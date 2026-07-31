@@ -9,7 +9,11 @@ from collections.abc import Mapping
 from typing import Any
 
 from gx1.contracts.entry_full_input_liveness_v1 import RARE_EVENT_MINIMUMS
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
+)
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
+from gx1.time.session_detector import SESSION_ORDER
 
 
 FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v7"
@@ -85,7 +89,7 @@ _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
             "live_size_application_authority": False,
         },
         "offline_rl_target": {
-            "action_order": ["LONG", "SHORT", "FLAT"],
+            "action_order": list(CLASS_ORDER),
             "horizon_bars": [12, 48, 96],
             "flat_reward_bps": 0.0,
             "min_best_action_rate_per_horizon": 0.01,
@@ -132,7 +136,7 @@ _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
         "min_trade_precision_wilson_lower": 0.95,
         "min_class_precision_wilson_lower": 0.90,
         "context_fields": ["session", "vol_regime"],
-        "expected_sessions": ["ASIA", "EU", "OVERLAP", "US"],
+        "expected_sessions": list(SESSION_ORDER),
         "min_rows_per_context_slice": 32,
         "min_context_trade_direction_precision": 0.95,
         "min_context_trade_rows": 32,

@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 import torch
 
+from gx1.contracts import model_native_serve_gate_v1 as serve_gate
 from gx1.models.entry_v10 import direction_decision_contract
 from gx1.scripts import audit_model_native_direction_pockets_v1 as pocket_audit
 from gx1.scripts import verify_model_native_serve_parity_v1 as serve_parity
@@ -25,6 +26,13 @@ PINNED_PATH = (
 )
 
 
+def test_v4_family_timeframe_token_arithmetic_is_exact() -> None:
+    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) == 40
+    assert len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4) == 111
+    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) == 555
+    assert len(set(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)) == 555
+
+
 def _softmax(values: tuple[float, ...]) -> list[float]:
     array = np.asarray(values, dtype=np.float64)
     exp = np.exp(array - array.max())
@@ -35,7 +43,7 @@ def _fresh_pinned_frame() -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     logit_rows = ((4.0, 1.0, 0.0), (0.0, 3.0, 1.0), (0.0, 1.0, 4.0))
     specialists = tuple(serve_parity.MODEL_NATIVE_REQUIRED_SPECIALISTS)
-    for offset in range(24):
+    for offset in range(48):
         logits = logit_rows[offset % len(logit_rows)]
         public_logits = (max(logits[0], logits[1]), logits[2])
         probabilities = _softmax(logits)
@@ -47,8 +55,16 @@ def _fresh_pinned_frame() -> pd.DataFrame:
         gate[offset % len(specialists)] = 0.65
         tf_gate = [0.05] * 5
         tf_gate[offset % 5] = 0.80
-        family_tf_gate = [0.02] * (len(specialists) + 5)
+        family_tf_width = 5 * len(specialists)
+        family_tf_base = (1.0 - 0.76) / (family_tf_width - 1)
+        family_tf_gate = [family_tf_base] * family_tf_width
         family_tf_gate[offset % len(family_tf_gate)] = 0.76
+        family_tf_feature_gate = [
+            1.0 + 0.05 * np.sin(0.2 * offset + 0.013 * index)
+            for index in range(
+                len(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)
+            )
+        ]
 
         def vector(width: int, base: float) -> list[float]:
             return [base + 0.01 * offset + 0.001 * index for index in range(width)]
@@ -149,6 +165,7 @@ def _fresh_pinned_frame() -> pd.DataFrame:
                 "specialist_gate": gate,
                 "tf_gate": tf_gate,
                 "family_tf_cooperation_gate": family_tf_gate,
+                "family_tf_feature_gate": family_tf_feature_gate,
             }
         )
     return pd.DataFrame(rows)
@@ -249,7 +266,7 @@ def test_fresh_pinned_contract_accepts_only_canonical_model_direction_rows() -> 
     )
 
     assert isinstance(validated.index, pd.DatetimeIndex)
-    assert len(validated) == 24
+    assert len(validated) == 48
     assert validated["pred_direction"].tolist()[:3] == [0, 1, 2]
     assert validated["public_trade_flat_hard_decision"].tolist()[:3] == [0, 0, 1]
 
@@ -285,6 +302,7 @@ def test_full_test_prediction_liveness_proves_every_head_and_specialist_gate() -
     assert report["specialist_gate"]["decision"] == "PASS"
     assert report["tf_gate"]["decision"] == "PASS"
     assert report["family_tf_cooperation_gate"]["decision"] == "PASS"
+    assert report["family_tf_feature_gate"]["decision"] == "PASS"
     assert all(
         count > 0
         for count in report["specialist_gate"]["top_rank_count"].values()
@@ -378,13 +396,46 @@ def test_fusion_reference_fails_closed_without_candidate_val_or_on_nonfinite_inp
         serve_parity._validate_fusion_reference_prediction_contract(val)
 
 
+def test_fusion_reference_rejects_impossible_action_value_manifold() -> None:
+    val = _fresh_pinned_frame()
+    val["split"] = "val"
+    broken = list(val.at[0, "action_advantage"])
+    broken[0] += 0.25
+    val.at[0, "action_advantage"] = broken
+
+    with pytest.raises(
+        RuntimeError,
+        match="violates action_advantage=Q-V",
+    ):
+        serve_parity._validate_fusion_reference_prediction_contract(val)
+
+
 def test_candidate_specific_context_tf_and_fusion_ablation_execution(
     tmp_path: Path,
 ) -> None:
+    class AssertActionValueManifold(torch.nn.Module):
+        def forward(self, value: torch.Tensor) -> torch.Tensor:
+            layouts = {
+                str(row["name"]): row
+                for row in (
+                    serve_parity.DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT
+                )
+            }
+            q_layout = layouts["action_value"]
+            v_layout = layouts["expectile_value"]
+            a_layout = layouts["action_advantage"]
+            q = value[:, q_layout["start"]:q_layout["stop"]]
+            v = value[:, v_layout["start"]:v_layout["stop"]]
+            advantage = value[:, a_layout["start"]:a_layout["stop"]]
+            expected = (q.reshape(-1, 3, 3) - v.unsqueeze(1)).reshape(-1, 9)
+            if not torch.allclose(advantage, expected, rtol=0.0, atol=1e-6):
+                raise RuntimeError("impossible Q/V/A fusion state")
+            return value
+
     class InfluenceModel(torch.nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.evidence_fusion_norm = torch.nn.Identity()
+            self.evidence_fusion_norm = AssertActionValueManifold()
             width = serve_parity.DIRECTION_EVIDENCE_FUSION_INPUT_DIM
             weights = torch.stack(
                 (
@@ -422,7 +473,22 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
                 device=base.device,
                 dtype=base.dtype,
             ).reshape(1, -1) * 0.001
-            fusion = self.evidence_fusion_norm(base.reshape(-1, 1) + offsets)
+            fusion = base.reshape(-1, 1) + offsets
+            layouts = {
+                str(row["name"]): row
+                for row in (
+                    serve_parity.DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT
+                )
+            }
+            q_layout = layouts["action_value"]
+            v_layout = layouts["expectile_value"]
+            a_layout = layouts["action_advantage"]
+            q = fusion[:, q_layout["start"]:q_layout["stop"]]
+            v = fusion[:, v_layout["start"]:v_layout["stop"]]
+            fusion[:, a_layout["start"]:a_layout["stop"]] = (
+                q.reshape(-1, 3, 3) - v.unsqueeze(1)
+            ).reshape(-1, 9)
+            fusion = self.evidence_fusion_norm(fusion)
             raw = torch.nn.functional.linear(fusion, self.direction_weights)
             final = raw / 1.25 + self.direction_bias
             return {
@@ -454,7 +520,11 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
                 start=1,
             ):
                 result[f"seq_{timeframe.lower()}"] = torch.full(
-                    (1, 2, 1),
+                    (
+                        1,
+                        2,
+                        len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4),
+                    ),
                     0.25 * offset + 0.001 * row,
                     dtype=torch.float32,
                 )
@@ -505,6 +575,11 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
         states=states,
         parity_targets=times,
     )
+    family_tf = serve_parity._family_tf_decision_influence_contract(
+        adapter=adapter,
+        states=states,
+        parity_targets=times,
+    )
     fusion = serve_parity._direction_evidence_fusion_influence_contract(
         adapter=adapter,
         states=states,
@@ -514,7 +589,8 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
 
     assert upstream["decision"] == "PASS", upstream["failures"]
     assert multi_tf["decision"] == "PASS", multi_tf["failures"]
-    for report in (upstream, multi_tf):
+    assert family_tf["decision"] == "PASS", family_tf["failures"]
+    for report in (upstream, multi_tf, family_tf):
         for metric in report["metrics"].values():
             assert metric["max_abs_class_centered_raw_logit_delta"] > 0.0
             assert metric["raw_changed_rows"] > 0
@@ -522,6 +598,9 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
             assert metric["changed_rows"] > 0
     assert set(multi_tf["metrics"]) == set(
         serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+    )
+    assert set(family_tf["metrics"]) == set(
+        serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS
     )
     assert fusion["decision"] == "PASS", fusion["failures"]
     assert set(fusion["groups"]) == {
@@ -542,6 +621,168 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
         )
     assert fusion["bundle_metadata_exact_match"] is True
     assert fusion["master_transformer_lock_exact_match"] is True
+
+
+def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
+    tmp_path: Path,
+) -> None:
+    signal_names = [
+        f"signal_{index:03d}"
+        for index in range(serve_parity.MODEL_NATIVE_SIGNAL_DIM)
+    ]
+
+    class AllInputModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.ctx_cat_embeddings = torch.nn.ModuleList(
+                torch.nn.Embedding(4, 1)
+                for _name in serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
+            )
+            with torch.no_grad():
+                for index, embedding in enumerate(self.ctx_cat_embeddings):
+                    embedding.weight[:, 0] = (
+                        torch.arange(4, dtype=torch.float32)
+                        * (0.01 + 0.01 * index)
+                    )
+
+        @staticmethod
+        def _weighted_sum(value: torch.Tensor) -> torch.Tensor:
+            width = int(value.shape[-1])
+            weights = torch.linspace(
+                0.25,
+                1.25,
+                width,
+                dtype=value.dtype,
+                device=value.device,
+            )
+            return (value * weights).sum(dim=tuple(range(1, value.ndim)))
+
+        def forward(
+            self,
+            seq: torch.Tensor,
+            snap: torch.Tensor,
+            *,
+            ctx_cat: torch.Tensor,
+            ctx_cont: torch.Tensor,
+            **multi_tf: torch.Tensor,
+        ) -> dict[str, torch.Tensor]:
+            base = self._weighted_sum(seq.float())
+            base = base + self._weighted_sum(snap.float())
+            base = base + self._weighted_sum(ctx_cont.float())
+            for value in multi_tf.values():
+                base = base + self._weighted_sum(value.float())
+            for index, embedding in enumerate(self.ctx_cat_embeddings):
+                base = base + embedding(ctx_cat[:, index]).reshape(-1)
+            raw = torch.stack((0.50 * base, -0.30 * base, 0.10 * base), dim=1)
+            return {
+                "raw_direction_logits": raw,
+                "direction_logits": raw / 1.25,
+            }
+
+    class AllInputAdapter:
+        def __init__(self, bundle_dir: Path, times: pd.DatetimeIndex) -> None:
+            self.bundle_dir = bundle_dir
+            self.device = torch.device("cpu")
+            self._model = AllInputModel().eval()
+            self._meta = {
+                "ordered_signal_names": signal_names,
+                "ordered_ctx_cont_names": list(
+                    serve_parity.MODEL_NATIVE_CTX_CONT_FIELDS
+                ),
+                "ordered_ctx_cat_names": list(
+                    serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
+                ),
+            }
+            self._positions = {
+                pd.Timestamp(value): index for index, value in enumerate(times)
+            }
+
+        def _multi_tf_window_tensors(
+            self, timestamp: pd.Timestamp
+        ) -> dict[str, torch.Tensor]:
+            row = self._positions[pd.Timestamp(timestamp)]
+            return {
+                f"seq_{timeframe.lower()}": torch.full(
+                    (
+                        1,
+                        2,
+                        len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4),
+                    ),
+                    0.01 + 0.0001 * row,
+                    dtype=torch.float32,
+                )
+                for timeframe in (
+                    serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+                )
+            }
+
+    times = pd.date_range(
+        "2026-01-01T00:00:00Z",
+        periods=serve_parity.SERVE_PARITY_SAMPLE_COUNT,
+        freq="5min",
+    )
+    row = np.arange(
+        serve_parity.SERVE_PARITY_SAMPLE_COUNT, dtype=np.float32
+    )
+    signal_dim = serve_parity.MODEL_NATIVE_SIGNAL_DIM
+    ctx_cont_dim = len(serve_parity.MODEL_NATIVE_CTX_CONT_FIELDS)
+    states: dict[str, object] = {
+        "seq": np.repeat(
+            (0.10 + 0.0001 * row)[:, None, None],
+            2 * signal_dim,
+            axis=1,
+        ).reshape(-1, 2, signal_dim),
+        "snap": np.repeat(
+            (0.20 + 0.0001 * row)[:, None], signal_dim, axis=1
+        ),
+        "ctx_cont": np.repeat(
+            (0.30 + 0.0001 * row)[:, None], ctx_cont_dim, axis=1
+        ),
+        "ctx_cat": np.stack(
+            [
+                (row.astype(np.int64) + index) % 4
+                for index in range(
+                    len(serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS)
+                )
+            ],
+            axis=1,
+        ),
+        "times": times.to_numpy(dtype=object),
+    }
+    adapter = AllInputAdapter(tmp_path, times)
+    report = serve_parity._individual_input_decision_influence_contract(
+        adapter=adapter,
+        states=states,
+        parity_targets=times,
+    )
+
+    assert report["decision"] == "PASS", report["failures"]
+    assert report["numeric_input_count"] == (2 * 513) + 142 + (5 * 111)
+    assert report["categorical_input_count"] == 5
+    assert set(report["numeric"]) == {
+        "seq_signal",
+        "snap_signal",
+        "ctx_cont",
+        "seq_m5",
+        "seq_m15",
+        "seq_h1",
+        "seq_h4",
+        "seq_d1",
+    }
+
+    dead_seq_route = json.loads(json.dumps(report))
+    first_signal = signal_names[0]
+    dead_seq_route["numeric"]["seq_signal"]["metrics"][first_signal][
+        "max_abs_raw_class_margin_gradient"
+    ] = 0.0
+    assert any(
+        "numeric.seq_signal" in failure and "is dead" in failure
+        for failure in (
+            serve_gate._individual_input_decision_influence_contract_failures(
+                dead_seq_route
+            )
+        )
+    )
 
 
 def test_pinned_contract_rejects_direction_only_partial_head_artifact() -> None:
@@ -649,7 +890,7 @@ def test_pinned_contract_uses_candidate_test_rows_only() -> None:
         pinned_path=PINNED_PATH,
     )
 
-    assert len(validated) == 24
+    assert len(validated) == 48
     assert set(validated["split"]) == {"test"}
 
 

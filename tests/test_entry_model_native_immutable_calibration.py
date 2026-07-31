@@ -36,6 +36,7 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     SCHEMA_VERSION as MOVEMENT_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    NEUTRAL_EFFECTIVE_INIT,
     build_tf_input_scale_contract,
     raw_tf_input_scale_from_effective,
 )
@@ -43,10 +44,21 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
     write_bundle_commit_manifest,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+    canonical_json_sha256,
+)
 from gx1.features.htf_features import (
-    HTF_V2_MATRIX_CONTRACT,
-    MULTI_TF_FEATURE_NAMES_SHA256_V2,
-    MULTI_TF_PER_BAR_FEATURES_V2,
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_FEATURE_NAMES_SHA256_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    require_multi_tf_resolution_pyramid,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
+    require_multi_tf_specialist_routing_v4,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -55,6 +67,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     model_direction_decision_contract_metadata,
+    unified_entry_exit_contract_metadata,
+)
+from tests.model_native_input_normalization_support import (
+    decision_window_coverage_fixture,
 )
 from gx1.models.entry_v10.entry_v10_bundle import (
     _ENTRY_HEAD_STATE_KEYS,
@@ -147,56 +163,139 @@ def _source_bundle(
             "evidence_fusion_out.bias": torch.zeros(3),
         }
     )
-    tf_inits = {name: 1.0 for name in ("m5", "m15", "h1", "h4", "d1")}
+    tf_inits = {
+        name: NEUTRAL_EFFECTIVE_INIT
+        for name in ("m5", "m15", "h1", "h4", "d1")
+    }
     learned_tf_raw = {
         name: raw_tf_input_scale_from_effective(value)
         for name, value in tf_inits.items()
     }
     for name, raw in learned_tf_raw.items():
         state[f"tf_input_scale_{name}"] = torch.tensor(raw, dtype=torch.float32)
+    mtf_routing = require_multi_tf_specialist_routing_v4(
+        MULTI_TF_PER_BAR_FEATURES_V4
+    )
+    for timeframe in ("m5", "m15", "h1", "h4", "d1"):
+        for specialist, indices in mtf_routing.items():
+            state[
+                "mtf_feature_context_gate."
+                f"{timeframe}__{specialist}.weight"
+            ] = torch.ones(len(indices), 1, dtype=torch.float32)
     state_path = bundle / "model_state_dict.pt"
     torch.save(state, state_path)
     state_sha = sha256_file(state_path)
 
     mtf_contract = {
         "enabled": True,
-        "v2_mode": True,
-        "m5_seq_dim": 25,
+        "v4_mode": True,
+        "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "m5_seq_len": 96,
-        "m15_seq_dim": 25,
+        "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "m15_seq_len": 96,
-        "h1_seq_dim": 25,
+        "h1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "h1_seq_len": 96,
-        "h4_seq_dim": 25,
+        "h4_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "h4_seq_len": 96,
-        "d1_seq_dim": 25,
+        "d1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "d1_seq_len": 96,
+        "multi_tf_num_layers": 1,
         "multi_tf_scale": 0.5,
-        "feature_contract": "MULTI_TF_PER_BAR_V2",
-        "matrix_contract": HTF_V2_MATRIX_CONTRACT,
-        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
-        "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V2,
+        "feature_contract": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
+        "matrix_contract": HTF_V4_MATRIX_CONTRACT,
+        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V4),
+        "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V4,
         "closed_bar_target_availability": True,
         "target_availability_shift_minutes": 5.0,
     }
+    per_tf_seq_lens = {
+        tf: 96 for tf in ("M5", "M15", "H1", "H4", "D1")
+    }
+    mtf_specialist_indices = {
+        name: list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(
+            MULTI_TF_PER_BAR_FEATURES_V4
+        ).items()
+    }
+    mtf_contract.update(
+        {
+            "resolution_pyramid": require_multi_tf_resolution_pyramid(
+                per_tf_seq_lens
+            ),
+            "decision_window_coverage": decision_window_coverage_fixture(
+                per_tf_seq_lens
+            ),
+            "specialist_routing_schema_version": (
+                MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
+            ),
+            "specialist_input_indices": mtf_specialist_indices,
+            "family_tf_token_order": [
+                f"{tf}:{specialist}"
+                for tf in ("m5", "m15", "h1", "h4", "d1")
+                for specialist in mtf_specialist_indices
+            ],
+        }
+    )
     tf_scale_contract = build_tf_input_scale_contract(
         init_effective=tf_inits,
         learned_raw=learned_tf_raw,
     )
     input_normalization = input_normalization_fixture(
         signal_names=list(signal_contract["fields"]),
-        mtf_names=list(MULTI_TF_PER_BAR_FEATURES_V2),
-        per_tf_seq_lens={
-            tf: 96 for tf in ("M5", "M15", "H1", "H4", "D1")
-        },
+        mtf_names=list(MULTI_TF_PER_BAR_FEATURES_V4),
+        per_tf_seq_lens=per_tf_seq_lens,
         dataset_run_id="MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
     )
+    native_subset_years = {
+        "year=2026": {
+            "rows": 20,
+            "canonical_rows_sha256": "3" * 64,
+        }
+    }
+    m1_authority = {
+        "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+        "m1_source_path": "/immutable/pair/base28.parquet",
+        "m1_source_sha256": "2" * 64,
+        "base28_native_m1_subset_proof": {
+            "method": "exact_base28_rows_are_native_m1_subset_v1",
+            "rows": 20,
+            "years": native_subset_years,
+            "proof_sha256": canonical_json_sha256(native_subset_years),
+        },
+    }
+    unified_exit_training_evidence = {
+        "schema_version": "gx1_unified_exit_training_evidence_v1",
+        "decision": "PASS",
+        "shared_model_state_dict": True,
+        "entry_representation_surface": "shared_feature_representation",
+        "future_outcomes_used_as_model_inputs": False,
+        "exit_action_loss_weight": 1.0,
+        "lifecycle": {
+            "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+            "future_outcomes_used_as_model_inputs": False,
+            "m1_source_path": m1_authority["m1_source_path"],
+            "m1_source_sha256": m1_authority["m1_source_sha256"],
+            "m1_authority": m1_authority,
+            "m1_authority_sha256": canonical_json_sha256(m1_authority),
+        },
+        "selected_checkpoint_validation": {
+            "unified_exit_action_loss_mean": 0.5,
+            "unified_exit_action_rows": 20,
+            "unified_exit_hold_rows": 10,
+            "unified_exit_now_rows": 10,
+            "unified_exit_action_accuracy": 0.6,
+        },
+        "selected_checkpoint_parameter_movement": {
+            "all_exit_components_moved": True,
+        },
+    }
     shared = {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
+        "dropout": 0.05,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "ordered_signal_names": list(signal_contract["fields"]),
@@ -223,12 +322,12 @@ def _source_bundle(
             "training_run_id": "MODEL_NATIVE_CALIBRATION_TRAIN_PYTEST_V1",
             "dataset_run_id": "MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
         },
+        "unified_entry_exit_contract": unified_entry_exit_contract_metadata(),
+        "unified_exit_training_evidence": unified_exit_training_evidence,
     }
     direction_contract = model_direction_decision_contract_metadata()
     lock = {
         **shared,
-        "neutral_xgb_bridge": False,
-        "xgb_bridge_source": None,
         "direction_decision_contract": direction_contract,
         "model_path_relative": "model_state_dict.pt",
         "model_sha256": state_sha,
@@ -244,8 +343,6 @@ def _source_bundle(
         **shared,
         "state_dict_sha256": state_sha,
         "supports_context_features": True,
-        "neutral_xgb_bridge": False,
-        "xgb_bridge_source": None,
         "anchored_entry_enabled": False,
         "anchor_source": None,
         "anchor_gate": {"enabled": False},

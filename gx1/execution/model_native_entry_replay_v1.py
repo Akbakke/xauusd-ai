@@ -18,6 +18,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.models.entry_v10.direction_decision_contract import (
+    canonical_closed_m1_bar,
+)
+
 LABEL_HORIZON_EXIT_MODE = "label_horizon"
 OFFLINE_REPLAY_EXECUTION_CODE_PATH = "gx1/execution/model_native_entry_replay_v1.py"
 OFFLINE_DIRECTION_DIAGNOSTIC_SCOPE = "offline_direction_argmax_diagnostic"
@@ -94,6 +98,10 @@ class SourceTape:
     source_size_bytes: int
     times: np.ndarray
     index: pd.Index
+    mid_open: np.ndarray
+    mid_high: np.ndarray
+    mid_low: np.ndarray
+    mid_close: np.ndarray
     bid_open: np.ndarray
     ask_open: np.ndarray
     bid_close: np.ndarray
@@ -102,6 +110,7 @@ class SourceTape:
     bid_low: np.ndarray
     ask_high: np.ndarray
     ask_low: np.ndarray
+    volume: np.ndarray
 
     @classmethod
     def load(cls, path: Path) -> "SourceTape":
@@ -114,6 +123,10 @@ class SourceTape:
         stat_before = source_path.stat()
         columns = [
             "time",
+            "open",
+            "high",
+            "low",
+            "close",
             "bid_open",
             "ask_open",
             "bid_close",
@@ -122,6 +135,7 @@ class SourceTape:
             "bid_low",
             "ask_high",
             "ask_low",
+            "volume",
         ]
         source = pd.read_parquet(source_path, columns=columns)
         digest = hashlib.sha256()
@@ -163,6 +177,10 @@ class SourceTape:
             source_size_bytes=int(stat_after.st_size),
             times=source["time"].to_numpy(),
             index=pd.Index(source["time"]),
+            mid_open=source["open"].to_numpy(np.float64),
+            mid_high=source["high"].to_numpy(np.float64),
+            mid_low=source["low"].to_numpy(np.float64),
+            mid_close=source["close"].to_numpy(np.float64),
             bid_open=source["bid_open"].to_numpy(np.float64),
             ask_open=source["ask_open"].to_numpy(np.float64),
             bid_close=source["bid_close"].to_numpy(np.float64),
@@ -171,6 +189,7 @@ class SourceTape:
             bid_low=source["bid_low"].to_numpy(np.float64),
             ask_high=source["ask_high"].to_numpy(np.float64),
             ask_low=source["ask_low"].to_numpy(np.float64),
+            volume=source["volume"].to_numpy(np.int64),
         )
         tape._require_shape_contract()
         return tape
@@ -190,6 +209,10 @@ class SourceTape:
         if len(self.index) != expected or not self.index.is_unique:
             raise RuntimeError("source tape time index is not unique and shape-aligned")
         for name in (
+            "mid_open",
+            "mid_high",
+            "mid_low",
+            "mid_close",
             "bid_open",
             "ask_open",
             "bid_close",
@@ -198,6 +221,7 @@ class SourceTape:
             "bid_low",
             "ask_high",
             "ask_low",
+            "volume",
         ):
             if len(getattr(self, name)) != expected:
                 raise RuntimeError(
@@ -207,6 +231,10 @@ class SourceTape:
         price_arrays = {
             name: np.asarray(getattr(self, name), dtype=np.float64)
             for name in (
+                "mid_open",
+                "mid_high",
+                "mid_low",
+                "mid_close",
                 "bid_open",
                 "ask_open",
                 "bid_close",
@@ -230,18 +258,30 @@ class SourceTape:
         bid_low = price_arrays["bid_low"]
         ask_high = price_arrays["ask_high"]
         ask_low = price_arrays["ask_low"]
+        mid_open = price_arrays["mid_open"]
+        mid_high = price_arrays["mid_high"]
+        mid_low = price_arrays["mid_low"]
+        mid_close = price_arrays["mid_close"]
+        volume = np.asarray(self.volume)
+        if (
+            volume.dtype.kind not in "iu"
+            or np.any(volume < 0)
+        ):
+            raise RuntimeError("source tape contains invalid negative volume")
         invalid_geometry = (
-            np.any(ask_open <= bid_open)
-            or np.any(ask_close <= bid_close)
+            np.any(ask_open < bid_open)
+            or np.any(ask_close < bid_close)
             or np.any(bid_low > np.minimum(bid_open, bid_close))
             or np.any(bid_high < np.maximum(bid_open, bid_close))
             or np.any(ask_low > np.minimum(ask_open, ask_close))
             or np.any(ask_high < np.maximum(ask_open, ask_close))
-            or np.any(ask_low <= bid_low)
-            or np.any(ask_high <= bid_high)
+            or np.any(ask_low < bid_low)
+            or np.any(ask_high < bid_high)
+            or np.any(mid_low > np.minimum(mid_open, mid_close))
+            or np.any(mid_high < np.maximum(mid_open, mid_close))
         )
         if invalid_geometry:
-            raise RuntimeError("source tape contains invalid bid/ask OHLC geometry")
+            raise RuntimeError("source tape contains invalid literal M/B/A OHLC geometry")
 
     def indices_for_times(self, sample_times: pd.Series) -> np.ndarray:
         self._require_shape_contract()
@@ -274,15 +314,25 @@ class SourceTape:
             raise RuntimeError(
                 f"source tape lacks exact closed M1 bar: {expected}"
             )
-        return {
-            "time": expected,
-            "bid_high": float(self.bid_high[position]),
-            "bid_low": float(self.bid_low[position]),
-            "ask_high": float(self.ask_high[position]),
-            "ask_low": float(self.ask_low[position]),
-            "ask_close": float(self.ask_close[position]),
-            "bid_close": float(self.bid_close[position]),
-        }
+        return canonical_closed_m1_bar(
+            m1_bar_ts=expected,
+            complete=True,
+            source_path=str(self.source_path),
+            source_sha256=self.source_sha256,
+            bid_open=float(self.bid_open[position]),
+            bid_high=float(self.bid_high[position]),
+            bid_low=float(self.bid_low[position]),
+            bid_close=float(self.bid_close[position]),
+            ask_open=float(self.ask_open[position]),
+            ask_high=float(self.ask_high[position]),
+            ask_low=float(self.ask_low[position]),
+            ask_close=float(self.ask_close[position]),
+            mid_open=float(self.mid_open[position]),
+            mid_high=float(self.mid_high[position]),
+            mid_low=float(self.mid_low[position]),
+            mid_close=float(self.mid_close[position]),
+            volume=int(self.volume[position]),
+        )
 
     def get_open_quote(
         self,

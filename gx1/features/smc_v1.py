@@ -3,7 +3,7 @@ Smart Money Concept (SMC) features — V1 implementation.
 
 For each M5 bar, compute 9 SMC features that describe market structure,
 liquidity events, and premium/discount position. Designed to feed the
-canonical_v3 feature parquet (and downstream XGB / V10 / V3 / IQL).
+canonical_v3 feature parquet and downstream model-native consumers.
 
 Features (all per-bar, lookahead-safe):
   smc_swing_state        int8     0=HH+HL (clean up), 1=up-bias, 2=down-bias, 3=LH+LL (clean down), 4=mixed
@@ -302,3 +302,291 @@ if _SWEEP_RECLAIM_ON:  # contract grows ONLY under the flag (GX1_SMC_SWEEP_RECLA
         "smc_sweep_reclaim_up_displacement_atr",
         "smc_sweep_reclaim_down_displacement_atr",
     ]
+
+
+# Exact fixed-width primitives for the multi-resolution Entry surface.  Unlike
+# the historical M5 contract above, this contract is independent of ambient
+# environment flags and never emits numeric unknown/sentinel values.  Rows are
+# NaN until two highs and two lows have been causally confirmed; the shared HTF
+# matrix owner trims that one chronological warmup prefix before a row can
+# reach training or serving.
+SMC_MTF_FEATURE_NAMES_V1 = (
+    "mtf_smc_structure_bias",
+    "mtf_smc_bos_up",
+    "mtf_smc_bos_down",
+    "mtf_smc_choch_up",
+    "mtf_smc_choch_down",
+    "mtf_smc_sweep_up",
+    "mtf_smc_sweep_down",
+    "mtf_smc_sweep_up_depth_atr",
+    "mtf_smc_sweep_down_depth_atr",
+    "mtf_smc_premium_discount",
+    "mtf_smc_range_width_atr",
+)
+
+SMC_MTF_GEOMETRY_FEATURE_NAMES_V1 = (
+    "mtf_geometry_support_dist_atr",
+    "mtf_geometry_resistance_dist_atr",
+    "mtf_geometry_support_age_bars",
+    "mtf_geometry_resistance_age_bars",
+    "mtf_geometry_support_rail_slope_atr_per_bar",
+    "mtf_geometry_resistance_rail_slope_atr_per_bar",
+    "mtf_geometry_support_break_displacement_atr",
+    "mtf_geometry_resistance_break_displacement_atr",
+    "mtf_geometry_nearest_level_abs_atr",
+    "mtf_geometry_range_mid_dist_atr",
+)
+
+
+def compute_smc_mtf_primitives_v1(
+    df: pd.DataFrame,
+    *,
+    high_col: str = "high",
+    low_col: str = "low",
+    close_col: str = "close",
+    atr_col: str = "atr",
+    swing_lookback: int = SWING_LOOKBACK,
+) -> pd.DataFrame:
+    """Return fixed, causal SMC and S/R geometry roots for one resolution.
+
+    The same observed-bar calculation runs independently on M5, M15, H1, H4
+    and D1.  It contains no direction decision, cross-timeframe proxy, ambient
+    feature flag or resolution-specific weight.
+    """
+    if (
+        isinstance(swing_lookback, bool)
+        or not isinstance(swing_lookback, int)
+        or swing_lookback < 1
+    ):
+        raise RuntimeError(
+            f"[SMC_MTF_SWING_LOOKBACK_INVALID] {swing_lookback!r}"
+        )
+    required = (high_col, low_col, close_col, atr_col)
+    missing = [column for column in required if column not in df.columns]
+    if missing:
+        raise RuntimeError(f"[SMC_MTF_SOURCE_MISSING] {missing}")
+    if len(df) == 0:
+        raise RuntimeError("[SMC_MTF_SOURCE_EMPTY]")
+
+    high = pd.to_numeric(df[high_col], errors="coerce").to_numpy(dtype=np.float64)
+    low = pd.to_numeric(df[low_col], errors="coerce").to_numpy(dtype=np.float64)
+    close = pd.to_numeric(df[close_col], errors="coerce").to_numpy(dtype=np.float64)
+    atr = pd.to_numeric(df[atr_col], errors="coerce").to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(high).all()
+        or not np.isfinite(low).all()
+        or not np.isfinite(close).all()
+        or np.isinf(atr).any()
+    ):
+        raise RuntimeError("[SMC_MTF_SOURCE_NONFINITE]")
+    atr_available = np.isfinite(atr)
+    if atr_available.any():
+        first_atr = int(np.argmax(atr_available))
+        if not atr_available[first_atr:].all():
+            raise RuntimeError("[SMC_MTF_ATR_AVAILABILITY_INVALID]")
+    if (
+        np.any(high <= 0.0)
+        or np.any(low <= 0.0)
+        or np.any(close <= 0.0)
+        or np.any(atr[atr_available] <= 0.0)
+        or np.any(high < low)
+        or np.any(high < close)
+        or np.any(low > close)
+    ):
+        raise RuntimeError("[SMC_MTF_SOURCE_GEOMETRY_INVALID]")
+
+    n_rows = len(df)
+    swing_high_mask, swing_low_mask = _detect_swing_pivots(
+        high,
+        low,
+        swing_lookback,
+    )
+    last_high_idx, prev_high_idx, last_low_idx, prev_low_idx = (
+        _track_recent_swings(
+            swing_high_mask,
+            swing_low_mask,
+            swing_lookback,
+        )
+    )
+    clipped_last_high = np.clip(last_high_idx, 0, n_rows - 1)
+    clipped_prev_high = np.clip(prev_high_idx, 0, n_rows - 1)
+    clipped_last_low = np.clip(last_low_idx, 0, n_rows - 1)
+    clipped_prev_low = np.clip(prev_low_idx, 0, n_rows - 1)
+    last_high = high[clipped_last_high]
+    prev_high = high[clipped_prev_high]
+    last_low = low[clipped_last_low]
+    prev_low = low[clipped_prev_low]
+
+    # The structural range is the causal envelope of both most-recent
+    # confirmed high pivots and both most-recent confirmed low pivots.  Using
+    # only the latest high/low made a perfectly valid equal-pivot transition
+    # collapse to zero width on real XAU M15 data (2025-08-18).  The previous
+    # confirmed pivots are already required below and are known at the same
+    # decision time, so the envelope defines the geometry without an epsilon,
+    # sentinel, future observation, or dropped interior row.
+    pivot_stack = np.vstack((last_high, prev_high, last_low, prev_low))
+    range_low = np.min(pivot_stack, axis=0)
+    range_high = np.max(pivot_stack, axis=0)
+    channel_width = range_high - range_low
+    available = (
+        (last_high_idx >= 0)
+        & (prev_high_idx >= 0)
+        & (last_low_idx >= 0)
+        & (prev_low_idx >= 0)
+        & (channel_width > 0.0)
+        & atr_available
+    )
+    if not available.any():
+        return pd.DataFrame(
+            np.full(
+                (
+                    n_rows,
+                    len(SMC_MTF_FEATURE_NAMES_V1)
+                    + len(SMC_MTF_GEOMETRY_FEATURE_NAMES_V1),
+                ),
+                np.nan,
+                dtype=np.float32,
+            ),
+            index=df.index,
+            columns=(
+                SMC_MTF_FEATURE_NAMES_V1
+                + SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
+            ),
+        )
+
+    # The mean of the independently observed high- and low-structure signs:
+    # +1=HH+HL, -1=LH+LL, and 0=mixed.  This is evidence, not a direction rule.
+    high_sign = np.sign(last_high - prev_high)
+    low_sign = np.sign(last_low - prev_low)
+    structure_bias = (high_sign + low_sign) / 2.0
+
+    # BOS is a causal crossing event, not a persistent "price remains outside
+    # the last swing" state.  The latter is already represented continuously
+    # by the support/resistance break-displacement geometry fields; keeping it
+    # here as well would duplicate evidence and turn one break into many
+    # identical event observations.
+    previous_close = np.roll(close, 1)
+    previous_last_high = np.roll(last_high, 1)
+    previous_last_low = np.roll(last_low, 1)
+    previous_available = np.roll(available, 1)
+    previous_available[0] = False
+    bos_up = (
+        available
+        & (
+            (~previous_available)
+            | (previous_close <= previous_last_high)
+            | (last_high != previous_last_high)
+        )
+        & (close > last_high)
+    ).astype(np.float64)
+    bos_down = (
+        available
+        & (
+            (~previous_available)
+            | (previous_close >= previous_last_low)
+            | (last_low != previous_last_low)
+        )
+        & (close < last_low)
+    ).astype(np.float64)
+    choch_up = np.zeros(n_rows, dtype=np.float64)
+    choch_down = np.zeros(n_rows, dtype=np.float64)
+    # A high and a low pivot normally confirm on different bars, so structure
+    # transitions pass through a mixed/zero state. Compare with the last
+    # observed non-zero structure sign; comparing only adjacent rows made both
+    # CHOCH fields effectively dead.
+    prior_nonzero_sign = 0.0
+    for row in range(n_rows):
+        if not available[row]:
+            continue
+        current_sign = float(np.sign(structure_bias[row]))
+        if current_sign == 0.0:
+            continue
+        if prior_nonzero_sign < 0.0 and current_sign > 0.0:
+            choch_up[row] = 1.0
+        elif prior_nonzero_sign > 0.0 and current_sign < 0.0:
+            choch_down[row] = 1.0
+        prior_nonzero_sign = current_sign
+
+    sweep_up = (high > last_high) & (close <= last_high)
+    sweep_down = (low < last_low) & (close >= last_low)
+    sweep_up_depth = np.where(sweep_up, (high - last_high) / atr, 0.0)
+    sweep_down_depth = np.where(sweep_down, (last_low - low) / atr, 0.0)
+    premium_discount = np.zeros(n_rows, dtype=np.float64)
+    np.divide(
+        close - range_low,
+        channel_width,
+        out=premium_discount,
+        where=available,
+    )
+    premium_discount = np.clip(premium_discount, 0.0, 1.0)
+
+    row_index = np.arange(n_rows, dtype=np.int64)
+    support_dist = (close - last_low) / atr
+    resistance_dist = (last_high - close) / atr
+    support_age = row_index - last_low_idx
+    resistance_age = row_index - last_high_idx
+    support_rail_span = last_low_idx - prev_low_idx
+    resistance_rail_span = last_high_idx - prev_high_idx
+    support_slope = np.full(n_rows, np.nan, dtype=np.float64)
+    resistance_slope = np.full(n_rows, np.nan, dtype=np.float64)
+    np.divide(
+        last_low - prev_low,
+        support_rail_span.astype(np.float64) * atr,
+        out=support_slope,
+        where=available & (support_rail_span > 0),
+    )
+    np.divide(
+        last_high - prev_high,
+        resistance_rail_span.astype(np.float64) * atr,
+        out=resistance_slope,
+        where=available & (resistance_rail_span > 0),
+    )
+    support_break = np.maximum(last_low - close, 0.0) / atr
+    resistance_break = np.maximum(close - last_high, 0.0) / atr
+    nearest_level = np.minimum(np.abs(support_dist), np.abs(resistance_dist))
+    range_mid_dist = (close - ((range_high + range_low) / 2.0)) / atr
+
+    values = {
+        "mtf_smc_structure_bias": structure_bias,
+        "mtf_smc_bos_up": bos_up,
+        "mtf_smc_bos_down": bos_down,
+        "mtf_smc_choch_up": choch_up,
+        "mtf_smc_choch_down": choch_down,
+        "mtf_smc_sweep_up": sweep_up.astype(np.float64),
+        "mtf_smc_sweep_down": sweep_down.astype(np.float64),
+        "mtf_smc_sweep_up_depth_atr": sweep_up_depth,
+        "mtf_smc_sweep_down_depth_atr": sweep_down_depth,
+        "mtf_smc_premium_discount": premium_discount,
+        "mtf_smc_range_width_atr": channel_width / atr,
+        "mtf_geometry_support_dist_atr": support_dist,
+        "mtf_geometry_resistance_dist_atr": resistance_dist,
+        "mtf_geometry_support_age_bars": support_age,
+        "mtf_geometry_resistance_age_bars": resistance_age,
+        "mtf_geometry_support_rail_slope_atr_per_bar": support_slope,
+        "mtf_geometry_resistance_rail_slope_atr_per_bar": resistance_slope,
+        "mtf_geometry_support_break_displacement_atr": support_break,
+        "mtf_geometry_resistance_break_displacement_atr": resistance_break,
+        "mtf_geometry_nearest_level_abs_atr": nearest_level,
+        "mtf_geometry_range_mid_dist_atr": range_mid_dist,
+    }
+    expected_names = (
+        SMC_MTF_FEATURE_NAMES_V1 + SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
+    )
+    if tuple(values) != expected_names:
+        raise RuntimeError("[SMC_MTF_OUTPUT_ORDER_INVALID]")
+
+    out = pd.DataFrame(index=df.index, columns=expected_names, dtype=np.float64)
+    for name, raw in values.items():
+        column = np.asarray(raw, dtype=np.float64)
+        column[~available] = np.nan
+        out[name] = column
+    numeric = out.to_numpy(dtype=np.float64, copy=False)
+    complete = np.isfinite(numeric).all(axis=1)
+    first_complete = int(np.argmax(complete))
+    if (
+        not complete.any()
+        or not complete[first_complete:].all()
+        or np.isinf(numeric).any()
+    ):
+        raise RuntimeError("[SMC_MTF_OUTPUT_AVAILABILITY_INVALID]")
+    return out.astype(np.float32)

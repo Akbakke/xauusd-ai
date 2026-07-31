@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Candidate run for the one-bundle Entry/Exit model. The required lifecycle
+# manifest feeds the same shared encoder; no separate Exit route is available.
 set -euo pipefail
 
 MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v4
@@ -20,6 +22,7 @@ Required identity and immutable evidence:
   --dataset-dir PATH
   --train-manifest-json PATH  --val-manifest-json PATH  --test-manifest-json PATH
   --train-parquet PATH        --val-parquet PATH        --test-parquet PATH
+  --unified-exit-lifecycle-manifest-json PATH
   --m5-prebuilt-path PATH
   --multi-tf-cache-manifest-json PATH
   --post-rebuild-readiness-json PATH
@@ -33,14 +36,17 @@ Required identity and immutable evidence:
 Required audited execution values (there are no wrapper defaults):
   --device cpu|cuda --seed N --epochs N --batch-size N --learning-rate X
   --early-stop-patience N --early-stop-min-delta X --grad-clip-norm X
-  --weight-decay X --multi-tf-scale X
-  --specialist-fusion-scale X --subsample-rows N
-  --multi-tf-seq-len N --per-tf-seq-len-m5 N --per-tf-seq-len-m15 N
+  --weight-decay X --dropout X --multi-tf-scale X
+  --specialist-fusion-scale X --cross-family-fusion-scale X --subsample-rows N
+  --multi-tf-num-layers N --specialist-num-layers N --grad-accum-steps N
+  --per-tf-seq-len-m5 N --per-tf-seq-len-m15 N
   --per-tf-seq-len-h1 N --per-tf-seq-len-h4 N --per-tf-seq-len-d1 N
   --memory-cap SIZE --swap-cap SIZE
 
 --dry-run validates and prints the exact capped command without writing files.
 --execute additionally requires a clean worktree and runs the capped trainer.
+Resume only from current post-rebuild/readiness evidence; smoke history cannot
+stand in for a fresh unified dataset or candidate authority.
 EOF
 }
 
@@ -60,15 +66,16 @@ take_value() {
 
 RUN_ID= DATASET_DIR= TRAIN_MANIFEST_JSON= VAL_MANIFEST_JSON= TEST_MANIFEST_JSON=
 TRAIN_PARQUET= VAL_PARQUET= TEST_PARQUET= M5_PREBUILT_PATH=
+UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON=
 POST_REBUILD_READINESS_JSON=
 FULL_INPUT_LIVENESS_AUDIT_JSON= FEATURE_AUDIT_JSON= TARGET_AUDIT_JSON=
 SPECIALIST_AUDIT_JSON= PRETRAIN_AUDIT_JSON= RECIPE_AUDIT_JSON=
 TRAINABILITY_READINESS_JSON= CANDIDATE_READINESS_JSON= SMOKE_BUNDLE_AUDIT_JSON=
 OUT_BUNDLE_DIR= GX1_DATA_ROOT= DEVICE= SEED= EPOCHS= BATCH_SIZE= LEARNING_RATE=
 EARLY_STOP_PATIENCE= EARLY_STOP_MIN_DELTA= GRAD_CLIP_NORM= WEIGHT_DECAY=
-MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= SUBSAMPLE_ROWS=
-NUM_WORKERS=
-MULTI_TF_SEQ_LEN= PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
+DROPOUT= MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= CROSS_FAMILY_FUSION_SCALE= SUBSAMPLE_ROWS=
+NUM_WORKERS= MULTI_TF_NUM_LAYERS= SPECIALIST_NUM_LAYERS= GRAD_ACCUM_STEPS=
+PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
 PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
 MEMORY_CAP= SWAP_CAP= RUN_MODE=
 
@@ -81,16 +88,18 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --run-id|--dataset-dir|--train-manifest-json|--val-manifest-json|--test-manifest-json|\
-    --train-parquet|--val-parquet|--test-parquet|--m5-prebuilt-path|--multi-tf-cache-manifest-json|\
+    --train-parquet|--val-parquet|--test-parquet|--unified-exit-lifecycle-manifest-json|\
+    --m5-prebuilt-path|--multi-tf-cache-manifest-json|\
     --post-rebuild-readiness-json|--full-input-liveness-audit-json|--feature-audit-json|--target-audit-json|\
     --specialist-audit-json|--pretrain-audit-json|--recipe-audit-json|\
     --trainability-readiness-json|--candidate-readiness-json|--smoke-bundle-audit-json|\
     --out-bundle-dir|--gx1-data-root|--device|--seed|--epochs|--batch-size|\
     --learning-rate|--early-stop-patience|--early-stop-min-delta|--grad-clip-norm|\
-    --weight-decay|--multi-tf-scale|--specialist-fusion-scale|\
+    --weight-decay|--dropout|--multi-tf-scale|--specialist-fusion-scale|--cross-family-fusion-scale|\
     --subsample-rows|--memory-cap|--swap-cap|\
     --num-workers|\
-    --multi-tf-seq-len|--per-tf-seq-len-m5|--per-tf-seq-len-m15|\
+    --multi-tf-num-layers|--specialist-num-layers|--grad-accum-steps|\
+    --per-tf-seq-len-m5|--per-tf-seq-len-m15|\
     --per-tf-seq-len-h1|--per-tf-seq-len-h4|--per-tf-seq-len-d1)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       case "$1" in
@@ -102,6 +111,7 @@ while [[ $# -gt 0 ]]; do
         --train-parquet) variable=TRAIN_PARQUET ;;
         --val-parquet) variable=VAL_PARQUET ;;
         --test-parquet) variable=TEST_PARQUET ;;
+        --unified-exit-lifecycle-manifest-json) variable=UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON ;;
         --m5-prebuilt-path) variable=M5_PREBUILT_PATH ;;
         --multi-tf-cache-manifest-json) variable=MULTI_TF_CACHE_MANIFEST_JSON ;;
         --post-rebuild-readiness-json) variable=POST_REBUILD_READINESS_JSON ;;
@@ -125,15 +135,19 @@ while [[ $# -gt 0 ]]; do
         --early-stop-min-delta) variable=EARLY_STOP_MIN_DELTA ;;
         --grad-clip-norm) variable=GRAD_CLIP_NORM ;;
         --weight-decay) variable=WEIGHT_DECAY ;;
+        --dropout) variable=DROPOUT ;;
         --multi-tf-scale) variable=MULTI_TF_SCALE ;;
         --num-workers) variable=NUM_WORKERS ;;
-        --multi-tf-seq-len) variable=MULTI_TF_SEQ_LEN ;;
+        --multi-tf-num-layers) variable=MULTI_TF_NUM_LAYERS ;;
+        --specialist-num-layers) variable=SPECIALIST_NUM_LAYERS ;;
+        --grad-accum-steps) variable=GRAD_ACCUM_STEPS ;;
         --per-tf-seq-len-m5) variable=PER_TF_SEQ_LEN_M5 ;;
         --per-tf-seq-len-m15) variable=PER_TF_SEQ_LEN_M15 ;;
         --per-tf-seq-len-h1) variable=PER_TF_SEQ_LEN_H1 ;;
         --per-tf-seq-len-h4) variable=PER_TF_SEQ_LEN_H4 ;;
         --per-tf-seq-len-d1) variable=PER_TF_SEQ_LEN_D1 ;;
         --specialist-fusion-scale) variable=SPECIALIST_FUSION_SCALE ;;
+        --cross-family-fusion-scale) variable=CROSS_FAMILY_FUSION_SCALE ;;
         --subsample-rows) variable=SUBSAMPLE_ROWS ;;
         --memory-cap) variable=MEMORY_CAP ;;
         --swap-cap) variable=SWAP_CAP ;;
@@ -149,16 +163,18 @@ done
 [[ -x "$CAPPED_RUNNER" ]] || die "capped runner is not executable: $CAPPED_RUNNER"
 [[ -n "$RUN_MODE" ]] || die "choose exactly one of --dry-run or --execute"
 for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MANIFEST_JSON \
-  TRAIN_PARQUET VAL_PARQUET TEST_PARQUET M5_PREBUILT_PATH MULTI_TF_CACHE_MANIFEST_JSON \
+  TRAIN_PARQUET VAL_PARQUET TEST_PARQUET UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON \
+  M5_PREBUILT_PATH MULTI_TF_CACHE_MANIFEST_JSON \
   POST_REBUILD_READINESS_JSON \
   FULL_INPUT_LIVENESS_AUDIT_JSON \
   FEATURE_AUDIT_JSON TARGET_AUDIT_JSON SPECIALIST_AUDIT_JSON PRETRAIN_AUDIT_JSON \
   RECIPE_AUDIT_JSON TRAINABILITY_READINESS_JSON CANDIDATE_READINESS_JSON \
   SMOKE_BUNDLE_AUDIT_JSON OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE \
   LEARNING_RATE EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA GRAD_CLIP_NORM WEIGHT_DECAY \
-  MULTI_TF_SCALE SPECIALIST_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP \
-  NUM_WORKERS \
-  MULTI_TF_SEQ_LEN PER_TF_SEQ_LEN_M5 PER_TF_SEQ_LEN_M15 PER_TF_SEQ_LEN_H1 \
+  DROPOUT \
+  MULTI_TF_SCALE SPECIALIST_FUSION_SCALE CROSS_FAMILY_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP \
+  NUM_WORKERS MULTI_TF_NUM_LAYERS SPECIALIST_NUM_LAYERS GRAD_ACCUM_STEPS \
+  PER_TF_SEQ_LEN_M5 PER_TF_SEQ_LEN_M15 PER_TF_SEQ_LEN_H1 \
   PER_TF_SEQ_LEN_H4 PER_TF_SEQ_LEN_D1; do
   [[ -n "${!variable}" ]] || die "missing required argument for $variable"
 done
@@ -170,6 +186,7 @@ VALIDATOR_ARGS=(
   --train-manifest-json "$TRAIN_MANIFEST_JSON" --val-manifest-json "$VAL_MANIFEST_JSON"
   --test-manifest-json "$TEST_MANIFEST_JSON" --train-parquet "$TRAIN_PARQUET"
   --val-parquet "$VAL_PARQUET" --test-parquet "$TEST_PARQUET"
+  --unified-exit-lifecycle-manifest-json "$UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON"
   --m5-prebuilt-path "$M5_PREBUILT_PATH"
   --multi-tf-cache-manifest-json "$MULTI_TF_CACHE_MANIFEST_JSON"
   --post-rebuild-readiness-json "$POST_REBUILD_READINESS_JSON"
@@ -184,9 +201,13 @@ VALIDATOR_ARGS=(
   --learning-rate "$LEARNING_RATE" --early-stop-patience "$EARLY_STOP_PATIENCE"
   --early-stop-min-delta "$EARLY_STOP_MIN_DELTA" --grad-clip-norm "$GRAD_CLIP_NORM"
   --weight-decay "$WEIGHT_DECAY" --multi-tf-scale "$MULTI_TF_SCALE"
-  --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE" --subsample-rows "$SUBSAMPLE_ROWS"
+  --dropout "$DROPOUT"
+  --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
+  --cross-family-fusion-scale "$CROSS_FAMILY_FUSION_SCALE" --subsample-rows "$SUBSAMPLE_ROWS"
   --num-workers "$NUM_WORKERS"
-  --multi-tf-seq-len "$MULTI_TF_SEQ_LEN"
+  --multi-tf-num-layers "$MULTI_TF_NUM_LAYERS"
+  --specialist-num-layers "$SPECIALIST_NUM_LAYERS"
+  --grad-accum-steps "$GRAD_ACCUM_STEPS"
   --per-tf-seq-len-m5 "$PER_TF_SEQ_LEN_M5"
   --per-tf-seq-len-m15 "$PER_TF_SEQ_LEN_M15"
   --per-tf-seq-len-h1 "$PER_TF_SEQ_LEN_H1"
@@ -230,25 +251,26 @@ TRAIN_CMD=(
   --train-parquet "$TRAIN_PARQUET"
   --val-parquet "$VAL_PARQUET"
   --test-parquet "$TEST_PARQUET"
+  --unified-exit-lifecycle-manifest-json "$UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON"
   --out_bundle_dir "$OUT_BUNDLE_DIR" --gx1-data "$GX1_DATA_ROOT"
   --m5-prebuilt-path "$M5_PREBUILT_PATH"
   --seq_len 96 --epochs "$EPOCHS" --lr "$LEARNING_RATE" --batch_size "$BATCH_SIZE"
   --early-stopping-patience "$EARLY_STOP_PATIENCE"
   --early-stopping-min-delta "$EARLY_STOP_MIN_DELTA"
-  --num-workers "$NUM_WORKERS" --grad-accum-steps 1 --subsample-rows "$SUBSAMPLE_ROWS"
+  --num-workers "$NUM_WORKERS" --grad-accum-steps "$GRAD_ACCUM_STEPS" --subsample-rows "$SUBSAMPLE_ROWS"
   --grad-clip-norm "$GRAD_CLIP_NORM" --weight-decay "$WEIGHT_DECAY"
-  --multi-tf-seq-len "$MULTI_TF_SEQ_LEN"
+  --dropout "$DROPOUT"
+  --multi-tf-num-layers "$MULTI_TF_NUM_LAYERS"
   --per-tf-seq-len-m5 "$PER_TF_SEQ_LEN_M5"
   --per-tf-seq-len-m15 "$PER_TF_SEQ_LEN_M15"
   --per-tf-seq-len-h1 "$PER_TF_SEQ_LEN_H1"
   --per-tf-seq-len-h4 "$PER_TF_SEQ_LEN_H4"
   --per-tf-seq-len-d1 "$PER_TF_SEQ_LEN_D1"
   --multi-tf-scale "$MULTI_TF_SCALE"
-  --tf-input-scale-init-m5 1.0 --tf-input-scale-init-m15 1.0
-  --tf-input-scale-init-h1 0.7 --tf-input-scale-init-h4 0.5 --tf-input-scale-init-d1 0.3
   --specialist-audit-json "$SPECIALIST_AUDIT_JSON"
   --specialist-contract-mode "$MODEL_NATIVE_CONTRACT_MODE"
-  --specialist-num-layers 1 --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
+  --specialist-num-layers "$SPECIALIST_NUM_LAYERS" --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
+  --cross-family-fusion-scale "$CROSS_FAMILY_FUSION_SCALE"
 )
 RUN_CMD=("$CAPPED_RUNNER" --mem "$MEMORY_CAP" --swap "$SWAP_CAP" -- "${TRAIN_CMD[@]}")
 

@@ -20,7 +20,7 @@ from gx1.features.entry_volatility_semantics_v1 import (
 
 
 FOUNDATION_STRUCTURE_FEATURE_VERSION = (
-    "entry_foundation_structure_v2_20260722_exact_compression_semantics_failclosed"
+    "entry_foundation_structure_v3_20260729_total_wick_share_semantics_failclosed"
 )
 FOUNDATION_STRUCTURE_FEATURE_PREFIX = "chart.foundation_"
 FOUNDATION_STRUCTURE_REQUIRED_FAMILIES = (
@@ -60,8 +60,7 @@ FOUNDATION_STRUCTURE_SOURCE_FIELDS = (
     "snap.smc_sweep_size_atr",
     "ctx_cont.smc_sweep_size_recent_tau12",
     "ctx_cont.smc_sweep_recency_tau24",
-    "ctx_cont.wick_ratio",
-    "snap.wick_asym",
+    "snap.body_pct",
     "ctx_cont.sr_support_proximity_exp",
     "ctx_cont.sr_resistance_proximity_exp",
     "ctx_cont.H1_range_compression_ratio",
@@ -282,7 +281,7 @@ def build_entry_foundation_structure_layer(
     sweep_down = _clip01(c("snap.smc_sweep_down") + 0.5 * _pos(sweep_bull_pressure12) + 0.25 * _pos(sweep_bull_pressure48))
     sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep")) + c("ctx_cont.smc_sweep_recency_tau24"))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
-    wick_level = _clip01(c("ctx_cont.wick_ratio") + np.abs(c("snap.wick_asym")))
+    wick_level = _clip01(1.0 - c("snap.body_pct"))
     support_prox = _clip01(c("ctx_cont.sr_support_proximity_exp"))
     resistance_prox = _clip01(c("ctx_cont.sr_resistance_proximity_exp"))
     sweep_low_reclaim_up = _clip(sweep_down * sweep_recent * (0.50 + sweep_size) * (0.50 + wick_level) * (0.50 + support_prox + low_context + trend_up), 0.0, 5.0)

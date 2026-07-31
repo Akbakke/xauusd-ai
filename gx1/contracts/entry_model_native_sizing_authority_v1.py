@@ -2,9 +2,9 @@
 
 The final model bundle binds only the TRAIN/VAL-fitted calibration.  A separate
 immutable adoption event is admissible only after the sizing-head diagnostic
-and a full-TEST joint Entry + ACTIVE Exit-V3/Exit-IQL/Strategy-F execution
-replay are both proven.  Paper/live launch additionally requires a fresh
-post-adoption broker-runtime sizing parity event.
+and a full-TEST joint replay of the same bundle's Entry and Exit heads are both
+proven. Paper/live launch additionally requires a fresh post-adoption
+broker-runtime sizing parity event.
 
 Only ``learned_calibrated`` is executable.  ``historical_fixed_1x`` exists only
 as an explicitly named negative-control description and has no application
@@ -41,8 +41,8 @@ from gx1.contracts.immutable_event_authority_v1 import (
 )
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
-    active_exit_registry_projection,
     load_bound_joint_exit_sizing_proof,
+    require_candidate_bundle_authority,
 )
 from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
 
@@ -192,7 +192,7 @@ class ValidatedLearnedSizingAuthority:
     calibration_json: str
     proof_json: str
     joint_proof_json: str
-    active_exit_registry_projection_json: str
+    candidate_bundle_authority_json: str
     content_hash_key: tuple[tuple[str, str, str], ...]
     file_stats: tuple[tuple[str, int, int, int, int], ...]
 
@@ -217,8 +217,8 @@ class ValidatedLearnedSizingAuthority:
         return json.loads(self.joint_proof_json)
 
     @property
-    def active_exit_registry_projection(self) -> dict[str, Any]:
-        return json.loads(self.active_exit_registry_projection_json)
+    def candidate_bundle_authority(self) -> dict[str, Any]:
+        return json.loads(self.candidate_bundle_authority_json)
 
 
 _VALIDATED_CACHE: dict[tuple[str, str], ValidatedLearnedSizingAuthority] = {}
@@ -356,20 +356,24 @@ def _snapshot_file_specs(
             str(joint_proof["exit_trace_rows"]["sha256"]),
         ),
     ]
-    for role, manifest in joint_proof[
-        "active_exit_artifact_manifests"
-    ].items():
-        root = Path(str(manifest["root_path"]))
-        for file_binding in manifest["files"]:
-            relative = str(file_binding["relative_path"])
-            path = root if relative == "." else root / relative
-            rows.append(
-                (
-                    f"active_exit.{role}.{relative}",
-                    str(path),
-                    str(file_binding["sha256"]),
-                )
+    bundle_authority = joint_proof["candidate_bundle_authority"]
+    bundle_root = Path(str(bundle_authority["bundle_dir"]))
+    commit_manifest = bundle_authority["bundle_commit_manifest"]
+    rows.append(
+        (
+            "candidate_bundle.commit_manifest",
+            str(bundle_authority["bundle_commit_manifest_path"]),
+            str(bundle_authority["bundle_commit_manifest_sha256"]),
+        )
+    )
+    for name in commit_manifest["artifact_names"]:
+        rows.append(
+            (
+                f"candidate_bundle.{name}",
+                str(bundle_root / name),
+                str(commit_manifest["artifacts"][name]["sha256"]),
             )
+        )
     lineage = calibration["lineage"]
     for stem in (
         "dataset_manifest",
@@ -545,19 +549,15 @@ def _require_snapshot_unchanged(
     )
     if observed_stats != snapshot.file_stats:
         _fail(context, "validated sizing file identity changed after startup")
-    expected_exit_projection = snapshot.active_exit_registry_projection
-    registry_path = Path(str(expected_exit_projection.get("path") or ""))
-    registry = _json_object(
-        registry_path,
-        context=f"{context}.active_exit_registry_projection",
+    expected_bundle_authority = snapshot.candidate_bundle_authority
+    observed_bundle_authority = require_candidate_bundle_authority(
+        expected_bundle_authority,
+        evaluation_bundle=expected_bundle_authority["evaluation_bundle"],
+        context=f"{context}.candidate_bundle_authority",
+        verify_files=True,
     )
-    observed_exit_projection = active_exit_registry_projection(
-        registry_path=registry_path,
-        registry=registry,
-        context=f"{context}.active_exit_registry_projection",
-    )
-    if observed_exit_projection != expected_exit_projection:
-        _fail(context, "validated active Exit registry projection changed")
+    if observed_bundle_authority != expected_bundle_authority:
+        _fail(context, "validated candidate bundle authority changed")
     specs = {label: Path(path) for label, path, _sha in snapshot.content_hash_key}
     for label, prefix in (
         ("adoption", _ADOPTION_EVENT_PREFIX),
@@ -965,9 +965,9 @@ def _validate_learned_sizing_authority_snapshot(
         joint_proof_json=_canonical_json(
             joint_proof, context=f"{context}.joint_exit_sizing_proof"
         ),
-        active_exit_registry_projection_json=_canonical_json(
-            joint_proof["active_exit_registry_projection"],
-            context=f"{context}.active_exit_registry_projection",
+        candidate_bundle_authority_json=_canonical_json(
+            joint_proof["candidate_bundle_authority"],
+            context=f"{context}.candidate_bundle_authority",
         ),
         content_hash_key=specs,
         file_stats=_capture_file_stats(specs, context=f"{context}.snapshot"),

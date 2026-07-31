@@ -56,14 +56,15 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 if TYPE_CHECKING:  # runtime imports stay lazy to keep loader startup light
     from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
 
-# ONE-TRUTH REGIME_V4 per-TF V2 mtf scalar projection (5-TF/9-feat). Shared with the
-# canonical_incremental daemon + build so the live serve, the daemon-maintained BASE34,
-# and the training BASE34 all project the SAME per-TF regime inputs (no train≠serve).
+# ONE-TRUTH REGIME_V4 per-TF V2 scalar projection (5-TF/9-feat). Shared with
+# immutable snapshot construction and offline build so admitted serving and
+# training project the same per-TF regime inputs (no train≠serve).
 from gx1.features.htf_features import (
     REGIME_V4_V2_MTF_PER_TF,
     REGIME_V4_V2_MTF_TFS,
@@ -72,6 +73,9 @@ from gx1.features.htf_features import (
 from gx1.features.basic_v1 import PLUS5_FEATURES, compute_plus5_features
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    canonical_closed_m1_bar,
 )
 
 LOG = logging.getLogger("v12_state_from_prebuilt")
@@ -116,8 +120,31 @@ def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
         raise RuntimeError(f"parallel group-A worker output missing: {missing}")
     return augmented[expected].copy()
 
-PREBUILT_PAIR_SCHEMA_VERSION = "gx1_canonical_v3_raw_base28_pair_generation_v2"
-PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION = "gx1_native_pair_lineage_v1"
+PREBUILT_PAIR_SCHEMA_VERSION = "gx1_canonical_v3_raw_base28_pair_generation_v3"
+PREBUILT_PAIR_LEGACY_SCHEMA_VERSION = (
+    "gx1_canonical_v3_raw_base28_pair_generation_v2"
+)
+PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION = "gx1_native_pair_lineage_v2"
+PREBUILT_PAIR_LEGACY_LINEAGE_SCHEMA_VERSION = "gx1_native_pair_lineage_v1"
+PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME = "PAIR_MANIFEST.json"
+PAIR_PUBLISH_LOCK_FILENAME = ".canonical_v3_base28_pair_publish.lock"
+PREBUILT_PAIR_PRODUCER_OWNER = "gx1.execution.v12_canonical_incremental"
+PREBUILT_PAIR_FORMULA_CONTRACT = {
+    "rank_inputs": "shared_model_native_simple_tr14_hl_mid_bid_ask_v1",
+    "train_rank_application": "consumer_boundary_only",
+    "group_a": "shared_parallel_exact_checkpointed_v1",
+    "native_m1_m5_aggregation": (
+        "source_exact_dense_or_sparse_no_session_hour_rules_v1"
+    ),
+}
+PREBUILT_PAIR_TIMING_CONTRACT = {
+    "m1_label": "bar_start_utc",
+    "m1_availability": "bar_start_plus_1min",
+    "m5_label": "bar_start_utc",
+    "m5_availability": "bar_start_plus_5min",
+    "htf_join_left_key": "m5_bar_start_plus_5min",
+    "session_and_cycles": "m5_bar_start_plus_5min",
+}
 RAW_BASE28_COLUMNS = tuple(CANONICAL_NATIVE_REQUIRED_COLUMNS[1:])
 PAIR_FORBIDDEN_CANONICAL_FIELDS = frozenset(
     {
@@ -159,6 +186,7 @@ class _PrebuiltManifestBinding:
 class _PrebuiltPairBinding:
     manifest_path: Path
     manifest_sha256: str
+    generation_manifest_path: Path | None
     pair_generation_id: str
     lineage: dict[str, object]
     canonical_v3: _PrebuiltManifestBinding
@@ -170,6 +198,24 @@ class _VerifiedPrebuilt:
     binding: _PrebuiltManifestBinding
     file_stamp: tuple[int, int, int, int]
     arrow_schema: tuple[tuple[str, str, bool], ...]
+
+
+@dataclass(frozen=True)
+class PrebuiltServingSnapshot:
+    """One immutable-reference view of a complete admitted serving generation."""
+
+    pair_generation_id: str
+    pair_manifest_sha256: str
+    pair_generation_manifest_path: Path
+    base28_path: Path
+    base28_sha256: str
+    base28_file_stamp: tuple[int, int, int, int]
+    cv3: pd.DataFrame
+    base28: pd.DataFrame
+    cutoff_ts: pd.Timestamp
+    multi_tf_feats: dict | None
+    multi_tf_shift: dict | None
+    multi_tf_feat_count: int
 
 
 def _sha256_file(path: Path) -> str:
@@ -247,16 +293,26 @@ def validate_prebuilt_pair_lineage(
         "coverage",
         "parent_pair_generation_id",
     }
+    lineage_schema_version = raw.get("schema_version")
+    if lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+        required.add("parent_pair_manifest_sha256")
+    elif lineage_schema_version != PREBUILT_PAIR_LEGACY_LINEAGE_SCHEMA_VERSION:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_SCHEMA_INVALID")
     if set(raw) != required:
         raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_FIELDS_INVALID")
-    if raw["schema_version"] != PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
-        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_SCHEMA_INVALID")
     for name in ("explicit_vedtak_id", "producer_owner"):
         value = raw[name]
         if not isinstance(value, str) or not value or value.strip() != value:
             raise PrebuiltIdentityError(
                 f"PREBUILT_PAIR_LINEAGE_{name.upper()}_INVALID"
             )
+    if (
+        lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION
+        and raw["producer_owner"] != PREBUILT_PAIR_PRODUCER_OWNER
+    ):
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_LINEAGE_PRODUCER_OWNER_INVALID"
+        )
     commit = raw["producer_git_commit"]
     if (
         not isinstance(commit, str)
@@ -316,11 +372,20 @@ def validate_prebuilt_pair_lineage(
         "producer_source_inventory_sha256",
         "manifest_payload_sha256",
     }
+    exact_native_v2 = mandatory_native | {
+        "manifest_path",
+        "year_sha256",
+        "year_rows",
+    }
     for label, timeframe in (("m1", "M1"), ("m5", "M5")):
         descriptor = native[label]
         if (
             not isinstance(descriptor, dict)
             or not mandatory_native.issubset(descriptor)
+            or (
+                lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION
+                and set(descriptor) != exact_native_v2
+            )
             or descriptor.get("instrument") != "XAU_USD"
             or descriptor.get("timeframe") != timeframe
             or descriptor.get("explicit_vedtak_id") != raw["explicit_vedtak_id"]
@@ -346,6 +411,64 @@ def validate_prebuilt_pair_lineage(
             raise PrebuiltIdentityError(
                 f"PREBUILT_PAIR_NATIVE_{timeframe}_ROWS_INVALID"
             )
+        if lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+            root = descriptor.get("root")
+            manifest_path = descriptor.get("manifest_path")
+            year_sha256 = descriptor.get("year_sha256")
+            year_rows = descriptor.get("year_rows")
+            if (
+                not isinstance(root, str)
+                or not Path(root).is_absolute()
+                or not isinstance(manifest_path, str)
+                or not Path(manifest_path).is_absolute()
+                or not isinstance(year_sha256, dict)
+                or not year_sha256
+                or not isinstance(year_rows, dict)
+                or set(year_sha256) != set(year_rows)
+                or not all(_valid_sha256(value) for value in year_sha256.values())
+                or not all(
+                    isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and value > 0
+                    for value in year_rows.values()
+                )
+            ):
+                raise PrebuiltIdentityError(
+                    f"PREBUILT_PAIR_NATIVE_{timeframe}_IMMUTABLE_LAYOUT_INVALID"
+                )
+            try:
+                requested_start = pd.Timestamp(
+                    descriptor["requested_start_utc"]
+                )
+                requested_end = pd.Timestamp(
+                    descriptor["requested_end_utc_exclusive"]
+                )
+                time_min = pd.Timestamp(descriptor["time_min_utc"])
+                time_max = pd.Timestamp(descriptor["time_max_utc"])
+            except Exception as exc:
+                raise PrebuiltIdentityError(
+                    f"PREBUILT_PAIR_NATIVE_{timeframe}_TIME_IDENTITY_INVALID"
+                ) from exc
+            timestamps = (
+                requested_start,
+                requested_end,
+                time_min,
+                time_max,
+            )
+            if (
+                any(
+                    value.tzinfo is None
+                    or value.utcoffset() != pd.Timedelta(0)
+                    for value in timestamps
+                )
+                or requested_start >= requested_end
+                or time_min > time_max
+                or time_min < requested_start
+                or time_max >= requested_end
+            ):
+                raise PrebuiltIdentityError(
+                    f"PREBUILT_PAIR_NATIVE_{timeframe}_TIME_IDENTITY_INVALID"
+                )
     for shared_field in (
         "source_environment",
         "source_base_url",
@@ -359,6 +482,20 @@ def validate_prebuilt_pair_lineage(
     derivation = raw["derivation_contract"]
     if (
         not isinstance(derivation, dict)
+        or (
+            lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION
+            and set(derivation)
+            != {
+                "canonical_builder",
+                "canonical_ordered_columns_sha256",
+                "raw_base28_columns",
+                "raw_base28_columns_sha256",
+                "rank_fit_fields_absent",
+                "m5_phase_owned_by_m1_time",
+                "formula_contract",
+                "timing_contract",
+            }
+        )
         or derivation.get("raw_base28_columns") != list(RAW_BASE28_COLUMNS)
         or derivation.get("rank_fit_fields_absent") is not True
         or derivation.get("m5_phase_owned_by_m1_time") is not True
@@ -370,12 +507,78 @@ def validate_prebuilt_pair_lineage(
         raise PrebuiltIdentityError(
             "PREBUILT_PAIR_DERIVATION_CONTRACT_INVALID"
         )
+    if lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+        expected_raw_sha = _sha256_json(list(RAW_BASE28_COLUMNS))
+        if (
+            derivation["canonical_builder"]
+            != "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v1"
+            or not _valid_sha256(
+                derivation["canonical_ordered_columns_sha256"]
+            )
+            or derivation["raw_base28_columns_sha256"] != expected_raw_sha
+            or derivation["formula_contract"] != PREBUILT_PAIR_FORMULA_CONTRACT
+            or derivation["timing_contract"] != PREBUILT_PAIR_TIMING_CONTRACT
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_DERIVATION_CONTRACT_IDENTITY_MISMATCH"
+            )
     coverage = raw["coverage"]
     if not isinstance(coverage, dict) or not coverage:
         raise PrebuiltIdentityError("PREBUILT_PAIR_COVERAGE_INVALID")
+    if lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+        expected_coverage_fields = {
+            "native_m1_rows",
+            "native_m5_rows",
+            "canonical_rows",
+            "base28_rows",
+            "canonical_time_min_utc",
+            "canonical_time_max_utc",
+            "base28_time_min_utc",
+            "base28_time_max_utc",
+            "canonical_warmup_prefix_rows_trimmed",
+        }
+        if set(coverage) != expected_coverage_fields:
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_COVERAGE_FIELDS_INVALID"
+            )
+        for name in (
+            "native_m1_rows",
+            "native_m5_rows",
+            "canonical_rows",
+            "base28_rows",
+        ):
+            if (
+                not isinstance(coverage[name], int)
+                or isinstance(coverage[name], bool)
+                or coverage[name] <= 0
+            ):
+                raise PrebuiltIdentityError(
+                    f"PREBUILT_PAIR_COVERAGE_{name.upper()}_INVALID"
+                )
+        trimmed = coverage["canonical_warmup_prefix_rows_trimmed"]
+        if (
+            not isinstance(trimmed, int)
+            or isinstance(trimmed, bool)
+            or trimmed < 0
+            or coverage["native_m5_rows"] - coverage["canonical_rows"]
+            != trimmed
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_COVERAGE_WARMUP_INVALID"
+            )
     parent = raw["parent_pair_generation_id"]
     if parent is not None and not _valid_sha256(parent):
         raise PrebuiltIdentityError("PREBUILT_PAIR_PARENT_ID_INVALID")
+    if lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+        parent_manifest_sha256 = raw["parent_pair_manifest_sha256"]
+        if (parent is None) != (parent_manifest_sha256 is None):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_PARENT_MANIFEST_IDENTITY_INCOMPLETE"
+            )
+        if parent is not None and not _valid_sha256(parent_manifest_sha256):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_PARENT_MANIFEST_SHA256_INVALID"
+            )
     # Break references to caller-owned mutable nested objects.
     return json.loads(json.dumps(raw, sort_keys=True))
 
@@ -383,9 +586,11 @@ def validate_prebuilt_pair_lineage(
 def _artifact_generation_identity(
     artifacts: dict[str, dict[str, object]],
     lineage: dict[str, object],
+    *,
+    schema_version: str = PREBUILT_PAIR_SCHEMA_VERSION,
 ) -> dict[str, object]:
     return {
-        "schema_version": PREBUILT_PAIR_SCHEMA_VERSION,
+        "schema_version": schema_version,
         "lineage": lineage,
         "artifacts": {
             label: {
@@ -403,6 +608,7 @@ def pair_generation_id_for_artifacts(
     artifacts: dict[str, dict[str, object]],
     *,
     lineage: dict[str, object],
+    schema_version: str = PREBUILT_PAIR_SCHEMA_VERSION,
 ) -> str:
     """Return the only pair generation id.
 
@@ -413,7 +619,11 @@ def pair_generation_id_for_artifacts(
     """
     validated_lineage = validate_prebuilt_pair_lineage(lineage)
     return _sha256_json(
-        _artifact_generation_identity(artifacts, validated_lineage)
+        _artifact_generation_identity(
+            artifacts,
+            validated_lineage,
+            schema_version=schema_version,
+        )
     )
 
 
@@ -607,16 +817,29 @@ def read_prebuilt_pair_manifest(
         raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_JSON_INVALID") from exc
     if not isinstance(manifest, dict):
         raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_ROOT_INVALID")
-    if set(manifest) != {
+    schema_version = manifest.get("schema_version")
+    common_fields = {
         "schema_version",
         "pair_generation_id",
         "created_utc",
         "lineage",
         "artifacts",
-    }:
-        raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_FIELDS_INVALID")
-    if manifest["schema_version"] != PREBUILT_PAIR_SCHEMA_VERSION:
+    }
+    if schema_version == PREBUILT_PAIR_SCHEMA_VERSION:
+        expected_fields = common_fields | {"generation_manifest_required"}
+    elif schema_version == PREBUILT_PAIR_LEGACY_SCHEMA_VERSION:
+        expected_fields = common_fields
+    else:
         raise PrebuiltIdentityError("PREBUILT_PAIR_SCHEMA_VERSION_INVALID")
+    if set(manifest) != expected_fields:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_FIELDS_INVALID")
+    if (
+        schema_version == PREBUILT_PAIR_SCHEMA_VERSION
+        and manifest["generation_manifest_required"] is not True
+    ):
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_GENERATION_MANIFEST_REQUIREMENT_INVALID"
+        )
     created_utc = manifest["created_utc"]
     if (
         not isinstance(created_utc, str)
@@ -658,6 +881,7 @@ def read_prebuilt_pair_manifest(
         observed_generation_id = pair_generation_id_for_artifacts(
             artifacts,
             lineage=lineage,
+            schema_version=str(schema_version),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise PrebuiltIdentityError(
@@ -679,9 +903,64 @@ def read_prebuilt_pair_manifest(
         pair_generation_id=pair_generation_id,
         generation_root=generation_root,
     )
+    if lineage["schema_version"] == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+        coverage = lineage["coverage"]
+        native_sources = lineage["native_sources"]
+        canonical_names = [
+            name
+            for name, _dtype, _nullable in canonical.arrow_schema
+            if name != "time"
+        ]
+        if (
+            coverage["canonical_rows"] != canonical.rows
+            or coverage["base28_rows"] != base28.rows
+            or coverage["native_m1_rows"]
+            != native_sources["m1"]["row_count"]
+            or coverage["native_m5_rows"]
+            != native_sources["m5"]["row_count"]
+            or lineage["derivation_contract"][
+                "canonical_ordered_columns_sha256"
+            ]
+            != _sha256_json(canonical_names)
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_LINEAGE_ARTIFACT_COVERAGE_MISMATCH"
+            )
+    generation_manifest_path: Path | None = None
+    if schema_version == PREBUILT_PAIR_SCHEMA_VERSION:
+        generation_manifest_path = (
+            generation_root
+            / pair_generation_id
+            / PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
+        )
+        if (
+            generation_manifest_path.is_symlink()
+            or not generation_manifest_path.is_file()
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_GENERATION_MANIFEST_MISSING"
+            )
+        generation_before = _file_stamp(
+            generation_manifest_path,
+            label="PREBUILT_PAIR_GENERATION_MANIFEST",
+        )
+        generation_raw = generation_manifest_path.read_bytes()
+        generation_after = _file_stamp(
+            generation_manifest_path,
+            label="PREBUILT_PAIR_GENERATION_MANIFEST",
+        )
+        if generation_before != generation_after:
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_GENERATION_MANIFEST_CHANGED_DURING_READ"
+            )
+        if generation_raw != raw:
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_POINTER_GENERATION_MANIFEST_MISMATCH"
+            )
     return _PrebuiltPairBinding(
         manifest_path=manifest_path.resolve(strict=True),
         manifest_sha256=hashlib.sha256(raw).hexdigest(),
+        generation_manifest_path=generation_manifest_path,
         pair_generation_id=pair_generation_id,
         lineage=lineage,
         canonical_v3=canonical,
@@ -767,6 +1046,51 @@ def verify_prebuilt_pair(
         binding.base28,
         expected_schema=expected_base28_schema,
     )
+    if (
+        binding.lineage["schema_version"]
+        == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION
+    ):
+        coverage = binding.lineage["coverage"]
+        for artifact, first_field, last_field in (
+            (
+                canonical,
+                "canonical_time_min_utc",
+                "canonical_time_max_utc",
+            ),
+            (base28, "base28_time_min_utc", "base28_time_max_utc"),
+        ):
+            try:
+                time_frame = pd.read_parquet(
+                    artifact.binding.parquet_path,
+                    columns=["time"],
+                )
+                times = pd.DatetimeIndex(
+                    pd.to_datetime(
+                        time_frame["time"],
+                        utc=True,
+                        errors="raise",
+                    )
+                )
+            except Exception as exc:
+                raise PrebuiltIdentityError(
+                    f"{artifact.binding.label}_COVERAGE_TIME_READ_INVALID"
+                ) from exc
+            if (
+                len(times) != artifact.binding.rows
+                or times.hasnans
+                or times.has_duplicates
+                or not times.is_monotonic_increasing
+                or times[0].isoformat() != coverage[first_field]
+                or times[-1].isoformat() != coverage[last_field]
+                or _file_stamp(
+                    artifact.binding.parquet_path,
+                    label=artifact.binding.label,
+                )
+                != artifact.file_stamp
+            ):
+                raise PrebuiltIdentityError(
+                    f"{artifact.binding.label}_LINEAGE_TIME_COVERAGE_MISMATCH"
+                )
     return canonical, base28
 
 
@@ -812,6 +1136,120 @@ def _load_verified_prebuilt(
             f"expected=({binding.rows}, {binding.cols_total})"
         )
     return frame, verified
+
+
+def require_prebuilt_pair_parent(
+    lineage: dict[str, object],
+    *,
+    expected_parent_pair_generation_id: str | None,
+    expected_parent_manifest_sha256: str | None,
+) -> None:
+    """Require bootstrap ``None`` or the exact current parent ID and bytes."""
+
+    validated = validate_prebuilt_pair_lineage(lineage)
+    observed = validated["parent_pair_generation_id"]
+    observed_manifest_sha256 = validated.get(
+        "parent_pair_manifest_sha256"
+    )
+    if (
+        observed != expected_parent_pair_generation_id
+        or observed_manifest_sha256 != expected_parent_manifest_sha256
+    ):
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_PARENT_MISMATCH: "
+            f"observed={observed!r} "
+            f"expected={expected_parent_pair_generation_id!r} "
+            f"observed_manifest_sha256={observed_manifest_sha256!r} "
+            f"expected_manifest_sha256={expected_parent_manifest_sha256!r}"
+        )
+
+
+def require_prebuilt_successor_frame(
+    current: pd.DataFrame,
+    successor: pd.DataFrame,
+    *,
+    label: str,
+) -> None:
+    """Prove one immutable artifact is a strict, bit-exact prefix successor."""
+
+    if (
+        not isinstance(current, pd.DataFrame)
+        or not isinstance(successor, pd.DataFrame)
+        or current.empty
+        or successor.empty
+        or not isinstance(current.index, pd.DatetimeIndex)
+        or not isinstance(successor.index, pd.DatetimeIndex)
+        or current.index.hasnans
+        or successor.index.hasnans
+        or not current.index.is_unique
+        or not successor.index.is_unique
+        or not current.index.is_monotonic_increasing
+        or not successor.index.is_monotonic_increasing
+    ):
+        raise PrebuiltIdentityError(
+            f"{label}_PREBUILT_SUCCESSOR_FRAME_INVALID"
+        )
+    if (
+        list(successor.columns) != list(current.columns)
+        or tuple(str(dtype) for dtype in successor.dtypes)
+        != tuple(str(dtype) for dtype in current.dtypes)
+    ):
+        raise PrebuiltIdentityError(
+            f"{label}_PREBUILT_SUCCESSOR_SCHEMA_MISMATCH"
+        )
+    if (
+        len(successor) <= len(current)
+        or successor.index[-1] <= current.index[-1]
+    ):
+        raise PrebuiltIdentityError(
+            f"{label}_PREBUILT_SUCCESSOR_NOT_STRICTLY_ADVANCING"
+        )
+    prefix = successor.iloc[: len(current)]
+    current_arrow = pa.Table.from_pandas(
+        current,
+        preserve_index=True,
+    ).combine_chunks()
+    prefix_arrow = pa.Table.from_pandas(
+        prefix,
+        preserve_index=True,
+    ).combine_chunks()
+    current_buffers = tuple(
+        tuple(
+            None if buffer is None else buffer.to_pybytes()
+            for buffer in current_arrow.column(index).chunk(0).buffers()
+        )
+        for index in range(current_arrow.num_columns)
+    )
+    prefix_buffers = tuple(
+        tuple(
+            None if buffer is None else buffer.to_pybytes()
+            for buffer in prefix_arrow.column(index).chunk(0).buffers()
+        )
+        for index in range(prefix_arrow.num_columns)
+    )
+    if (
+        current_arrow.schema != prefix_arrow.schema
+        or current_buffers != prefix_buffers
+    ):
+        raise PrebuiltIdentityError(
+            f"{label}_PREBUILT_SUCCESSOR_PREFIX_MISMATCH"
+        )
+
+
+def _persisted_source_view(
+    frame: pd.DataFrame,
+    schema: tuple[tuple[str, str, bool], ...] | None,
+    *,
+    label: str,
+) -> pd.DataFrame:
+    """Project an augmented in-memory frame back to its persisted columns."""
+
+    if schema is None:
+        raise PrebuiltIdentityError(f"{label}_PERSISTED_SCHEMA_UNBOUND")
+    columns = [name for name, _dtype, _nullable in schema if name != "time"]
+    if not columns or any(name not in frame.columns for name in columns):
+        raise PrebuiltIdentityError(f"{label}_PERSISTED_SOURCE_FIELDS_MISSING")
+    return frame.loc[:, columns]
 
 
 def _require_persisted_model_agnostic_canonical(
@@ -910,11 +1348,18 @@ class PrebuiltStateLoader:
     # nanosecond/inode/size/ctime stamps above.
     _cv3_mtime: float = field(default=0.0, init=False)
     _base28_mtime: float = field(default=0.0, init=False)
+    # One lock owns the complete in-memory serving capsule. A sequence of GIL-
+    # atomic assignments is not an atomic state transition for a concurrent
+    # reader; every public read and the refresh swap therefore use this lock.
+    _state_lock: threading.RLock = field(
+        default_factory=threading.RLock,
+        init=False,
+        repr=False,
+    )
     # 2026-06-01: async refresh — background thread runs the full 5-augmenter
     # pipeline on a LOCAL copy so the M1 exit-path never blocks on cv3 reload.
-    # When the thread finishes, it atomically swaps self._cv3 / self._base28 /
-    # self._last_ts in. Main loop reads them between calls (Python attribute
-    # assignment is atomic under the GIL, so reader sees old or new — never half).
+    # When the thread finishes, it swaps the entire serving capsule under
+    # _state_lock; readers therefore observe one old or one new generation.
     _refresh_thread: threading.Thread | None = field(default=None, init=False)
     _refresh_enabled: bool = field(default=True, init=False)
     # An async error invalidates the old snapshot. Every public read and future
@@ -946,20 +1391,21 @@ class PrebuiltStateLoader:
 
         if not isinstance(reference, TrainRankReferenceV2):
             raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_TYPE_INVALID")
-        self._raise_refresh_error()
-        if self._cv3 is None:
-            raise RuntimeError(
-                "PREBUILT_TRAIN_RANK_REFERENCE_REQUIRES_LOAD: "
-                "call load() or load_frozen_pair() first"
-            )
-        if self._train_rank_reference is not None:
-            raise RuntimeError(
-                "PREBUILT_TRAIN_RANK_REFERENCE_ALREADY_ATTACHED: "
-                f"bound_sha256={self._train_rank_reference.sha256} "
-                f"offered_sha256={reference.sha256}"
-            )
-        self._derive_train_rank_buckets(self._cv3, reference=reference)
-        self._train_rank_reference = reference
+        with self._state_lock:
+            self._raise_refresh_error()
+            if self._cv3 is None:
+                raise RuntimeError(
+                    "PREBUILT_TRAIN_RANK_REFERENCE_REQUIRES_LOAD: "
+                    "call load() or load_frozen_pair() first"
+                )
+            if self._train_rank_reference is not None:
+                raise RuntimeError(
+                    "PREBUILT_TRAIN_RANK_REFERENCE_ALREADY_ATTACHED: "
+                    f"bound_sha256={self._train_rank_reference.sha256} "
+                    f"offered_sha256={reference.sha256}"
+                )
+            self._derive_train_rank_buckets(self._cv3, reference=reference)
+            self._train_rank_reference = reference
 
     def _derive_train_rank_buckets(
         self,
@@ -993,7 +1439,8 @@ class PrebuiltStateLoader:
     def train_rank_reference_attached(self) -> bool:
         """True only when one immutable reference is bound to this loader."""
 
-        return self._train_rank_reference is not None
+        with self._state_lock:
+            return self._train_rank_reference is not None
 
     def train_rank_reference_binding(self) -> dict[str, object]:
         """Exact bindable identity of the attached reference (fail-closed)."""
@@ -1002,9 +1449,10 @@ class PrebuiltStateLoader:
             train_rank_reference_identity_v2,
         )
 
-        if self._train_rank_reference is None:
-            raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_UNBOUND")
-        return train_rank_reference_identity_v2(self._train_rank_reference)
+        with self._state_lock:
+            if self._train_rank_reference is None:
+                raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_UNBOUND")
+            return train_rank_reference_identity_v2(self._train_rank_reference)
 
     def _raise_refresh_error(self) -> None:
         if self._refresh_error is not None:
@@ -1025,6 +1473,41 @@ class PrebuiltStateLoader:
             self.pair_manifest_path,
             generation_root=self.generation_root,
         )
+        if self._pair_binding is None:
+            raise PrebuiltIdentityError("PREBUILT_CURRENT_PAIR_UNBOUND")
+        if pair_binding == self._pair_binding:
+            if (
+                _file_stamp(
+                    pair_binding.canonical_v3.parquet_path,
+                    label="CANONICAL_V3",
+                )
+                != self._cv3_file_stamp
+                or _file_stamp(
+                    pair_binding.base28.parquet_path,
+                    label="BASE28",
+                )
+                != self._base28_file_stamp
+            ):
+                raise PrebuiltIdentityError(
+                    "PREBUILT_PAIR_IMMUTABLE_ARTIFACT_REWRITTEN"
+                )
+            return None
+        if (
+            pair_binding.pair_generation_id
+            == self._pair_binding.pair_generation_id
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_IDENTITY_REWRITTEN_WITHOUT_ADVANCE"
+            )
+        require_prebuilt_pair_parent(
+            pair_binding.lineage,
+            expected_parent_pair_generation_id=(
+                self._pair_binding.pair_generation_id
+            ),
+            expected_parent_manifest_sha256=(
+                self._pair_binding.manifest_sha256
+            ),
+        )
         cv3_binding = pair_binding.canonical_v3
         base28_binding = pair_binding.base28
         cv3_stamp = _file_stamp(cv3_binding.parquet_path, label="CANONICAL_V3")
@@ -1039,9 +1522,6 @@ class PrebuiltStateLoader:
             or base28_binding != self._base28_binding
             or base28_stamp != self._base28_file_stamp
         )
-        if not (cv3_advanced or b28_advanced):
-            return None
-
         # Validate the complete pair before starting expensive asynchronous
         # augmentation. Serving identity is the pair, never two independently
         # moving files or individual legacy manifests.
@@ -1065,52 +1545,53 @@ class PrebuiltStateLoader:
         synchronously. Background failures are latched and invalidate reads;
         stale in-memory state is never treated as an admissible fallback.
         """
-        self._raise_refresh_error()
-        if self._cv3_binding is None or self._base28_binding is None:
-            raise PrebuiltIdentityError(
-                "PREBUILT_BINDINGS_UNINITIALIZED: call load() first"
-            )
+        with self._state_lock:
+            self._raise_refresh_error()
+            if self._cv3_binding is None or self._base28_binding is None:
+                raise PrebuiltIdentityError(
+                    "PREBUILT_BINDINGS_UNINITIALIZED: call load() first"
+                )
 
-        # If a verified refresh is already in flight, let it finish. Its final
-        # identity recheck either swaps the pair or latches an error.
-        if self._refresh_thread is not None and self._refresh_thread.is_alive():
-            return False
-        if not self._refresh_enabled:
-            return False
+            # If a verified refresh is already in flight, let it finish. Its final
+            # identity recheck either swaps the pair or latches an error.
+            if self._refresh_thread is not None and self._refresh_thread.is_alive():
+                return False
+            if not self._refresh_enabled:
+                return False
 
-        try:
-            admission = self._admit_current_refresh_pair()
-        except PrebuiltIdentityError as exc:
-            self._refresh_error = RuntimeError(
-                f"PREBUILT_REFRESH_IDENTITY_FAILED: {exc}"
-            )
-            raise
-        if admission is None:
-            return False
-        (
-            pair_binding,
-            cv3_verified,
-            base28_verified,
-            cv3_advanced,
-            b28_advanced,
-        ) = admission
-
-        # Schedule background refresh.
-        t = threading.Thread(
-            target=self._async_full_refresh,
-            args=(
+            try:
+                admission = self._admit_current_refresh_pair()
+            except PrebuiltIdentityError as exc:
+                self._refresh_error = RuntimeError(
+                    f"PREBUILT_REFRESH_IDENTITY_FAILED: {exc}"
+                )
+                raise
+            if admission is None:
+                return False
+            (
+                pair_binding,
                 cv3_verified,
                 base28_verified,
-                pair_binding,
                 cv3_advanced,
                 b28_advanced,
-            ),
-            daemon=True,
-            name="cv3_async_refresh",
-        )
-        self._refresh_thread = t
-        t.start()
-        return True
+            ) = admission
+
+            # Schedule background refresh.
+            t = threading.Thread(
+                target=self._async_full_refresh,
+                args=(
+                    cv3_verified,
+                    base28_verified,
+                    pair_binding,
+                    cv3_advanced,
+                    b28_advanced,
+                ),
+                daemon=True,
+                name="cv3_async_refresh",
+            )
+            self._refresh_thread = t
+            t.start()
+            return True
 
     def _async_full_refresh(
         self,
@@ -1128,28 +1609,69 @@ class PrebuiltStateLoader:
         """
         try:
             t_start = pd.Timestamp.utcnow()
+            with self._state_lock:
+                self._raise_refresh_error()
+                admitted_parent = self._pair_binding
+                current_cv3 = self._cv3
+                current_b28 = self._base28
+                cv3_source_schema = self._cv3_source_schema
+                base28_source_schema = self._base28_source_schema
+                train_rank_reference = self._train_rank_reference
+                had_multi_tf = self._multi_tf_feats is not None
+            if admitted_parent is None or current_cv3 is None or current_b28 is None:
+                raise PrebuiltIdentityError(
+                    "PREBUILT_REFRESH_PARENT_STATE_UNAVAILABLE"
+                )
+            require_prebuilt_pair_parent(
+                pair_binding.lineage,
+                expected_parent_pair_generation_id=(
+                    admitted_parent.pair_generation_id
+                ),
+                expected_parent_manifest_sha256=(
+                    admitted_parent.manifest_sha256
+                ),
+            )
+
             # --- cv3 ---
-            new_cv3 = self._cv3
+            new_cv3 = current_cv3
             if cv3_advanced:
                 new_cv3, loaded_cv3 = _load_verified_prebuilt(
                     cv3_verified.binding,
-                    expected_schema=self._cv3_source_schema,
+                    expected_schema=cv3_source_schema,
                 )
                 if loaded_cv3 != cv3_verified:
                     raise PrebuiltIdentityError(
                         "CANONICAL_V3_CHANGED_AFTER_REFRESH_ADMISSION"
                     )
             # --- base28 ---
-            new_b28 = self._base28
+            new_b28 = current_b28
             if b28_advanced:
                 new_b28, loaded_base28 = _load_verified_prebuilt(
                     base28_verified.binding,
-                    expected_schema=self._base28_source_schema,
+                    expected_schema=base28_source_schema,
                 )
                 if loaded_base28 != base28_verified:
                     raise PrebuiltIdentityError(
                         "BASE28_CHANGED_AFTER_REFRESH_ADMISSION"
                     )
+            require_prebuilt_successor_frame(
+                _persisted_source_view(
+                    current_cv3,
+                    cv3_source_schema,
+                    label="CANONICAL_V3",
+                ),
+                new_cv3,
+                label="CANONICAL_V3",
+            )
+            require_prebuilt_successor_frame(
+                _persisted_source_view(
+                    current_b28,
+                    base28_source_schema,
+                    label="BASE28",
+                ),
+                new_b28,
+                label="BASE28",
+            )
 
             # --- augment local cv3 (does NOT touch self._cv3 yet) ---
             # 2026-06-01: PARALLEL via multiprocessing for V2 mtf + GROUP-A.
@@ -1190,7 +1712,8 @@ class PrebuiltStateLoader:
                     # V1/R10 completion: run regime_v4 only after the exact
                     # multiprocessing outputs have been merged. At
                     # the live async hot-refresh would otherwise drop the active regime columns ->
-                    # v12_v3_live.build_window fail-closed guard crashes the regime exit serve on first refresh.
+                    # Keep the transition explicit so a first refresh cannot
+                    # fabricate regime state.
                     # Runs AFTER the mtf merge above (supplies the 12 {tf}_*_v2 sources); joins D1_dist + is a
                     # no-op at flag=0 (cement bit-identical).
                     new_cv3 = self._augment_cv3_with_regime_v4(new_cv3)
@@ -1202,10 +1725,10 @@ class PrebuiltStateLoader:
                 # When one immutable TRAIN-rank reference is attached, the
                 # exact bucket fields must be re-derived BEFORE the atomic
                 # swap so live never loses them on a refresh cycle.
-                if cv3_advanced and self._train_rank_reference is not None:
+                if cv3_advanced and train_rank_reference is not None:
                     new_cv3 = self._derive_train_rank_buckets(
                         new_cv3,
-                        reference=self._train_rank_reference,
+                        reference=train_rank_reference,
                     )
 
                 aug_took = (pd.Timestamp.utcnow() - t_aug).total_seconds()
@@ -1230,7 +1753,7 @@ class PrebuiltStateLoader:
             # new_cv3 and swap cv3 + mtf together (single sequential write block
             # under the GIL).
             new_mtf_bundle = None
-            if self._multi_tf_feats is not None and new_cv3 is not None:
+            if had_multi_tf and new_cv3 is not None:
                 try:
                     new_mtf_bundle = self.build_multi_tf_features(new_cv3)
                 except Exception as exc:
@@ -1270,27 +1793,40 @@ class PrebuiltStateLoader:
                     "BASE28_PARQUET_CHANGED_DURING_REFRESH"
                 )
 
-            # --- atomic swap (single attribute assignments are GIL-atomic) ---
-            old_cutoff = self._cv3.index[-1] if self._cv3 is not None else None
-            self._cv3 = new_cv3
-            self._base28 = new_b28
-            self.canonical_v3_path = cv3_verified.binding.parquet_path
-            self.base28_path = base28_verified.binding.parquet_path
-            self._cv3_binding = cv3_verified.binding
-            self._base28_binding = base28_verified.binding
-            self._pair_binding = pair_binding
-            self._cv3_file_stamp = cv3_verified.file_stamp
-            self._base28_file_stamp = base28_verified.file_stamp
-            self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
-            self._base28_mtime = base28_verified.file_stamp[2] / 1_000_000_000.0
-            self._last_ts = new_last_ts
-            if new_mtf_bundle is not None:
-                self._multi_tf_feats = new_mtf_bundle["feats"]
-                self._multi_tf_shift = new_mtf_bundle["shift"]
-                self._multi_tf_feat_count = new_mtf_bundle["feat_count"]
+            # --- one atomic serving-capsule swap under the state lock ---
+            with self._state_lock:
+                if self._pair_binding != admitted_parent:
+                    raise PrebuiltIdentityError(
+                        "PREBUILT_IN_MEMORY_PARENT_CHANGED_DURING_REFRESH"
+                    )
+                old_cutoff = (
+                    self._cv3.index[-1] if self._cv3 is not None else None
+                )
+                self._cv3 = new_cv3
+                self._base28 = new_b28
+                self.canonical_v3_path = cv3_verified.binding.parquet_path
+                self.base28_path = base28_verified.binding.parquet_path
+                self._cv3_binding = cv3_verified.binding
+                self._base28_binding = base28_verified.binding
+                self._pair_binding = pair_binding
+                self._cv3_file_stamp = cv3_verified.file_stamp
+                self._base28_file_stamp = base28_verified.file_stamp
+                self._cv3_mtime = (
+                    cv3_verified.file_stamp[2] / 1_000_000_000.0
+                )
+                self._base28_mtime = (
+                    base28_verified.file_stamp[2] / 1_000_000_000.0
+                )
+                self._last_ts = new_last_ts
+                if new_mtf_bundle is not None:
+                    self._multi_tf_feats = new_mtf_bundle["feats"]
+                    self._multi_tf_shift = new_mtf_bundle["shift"]
+                    self._multi_tf_feat_count = new_mtf_bundle["feat_count"]
+                new_cutoff = (
+                    self._cv3.index[-1] if self._cv3 is not None else None
+                )
 
             took_sec = (pd.Timestamp.utcnow() - t_start).total_seconds()
-            new_cutoff = self._cv3.index[-1] if self._cv3 is not None else None
             LOG.info(f"[async-refresh] cv3 cutoff {old_cutoff} → {new_cutoff} "
                      f"(took {took_sec:.1f}s, main loop never blocked)")
         except Exception as exc:
@@ -1298,7 +1834,8 @@ class PrebuiltStateLoader:
                 f"PREBUILT_ASYNC_REFRESH_FAILED: "
                 f"{type(exc).__name__}: {exc}"
             )
-            self._refresh_error = failure
+            with self._state_lock:
+                self._refresh_error = failure
             LOG.exception("async prebuilt refresh failed closed; old state invalidated")
 
     def load(self) -> None:
@@ -1328,41 +1865,55 @@ class PrebuiltStateLoader:
                 "PREBUILT_PARQUET_CHANGED_DURING_INITIAL_LOAD"
             )
 
-        LOG.info(f"loading canonical_v3 prebuilt: {cv3_binding.parquet_path.name}")
-        self._cv3 = cv3
-        self.canonical_v3_path = cv3_binding.parquet_path
-        self._cv3_binding = cv3_binding
-        self._pair_binding = pair_binding
-        self._cv3_source_schema = cv3_verified.arrow_schema
-        self._cv3_file_stamp = cv3_verified.file_stamp
-        self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
-        LOG.info(f"  canonical_v3: {len(cv3):,} rows × {len(cv3.columns)} cols  "
-                  f"range {cv3.index[0]} → {cv3.index[-1]}")
+        with self._state_lock:
+            LOG.info(
+                f"loading canonical_v3 prebuilt: {cv3_binding.parquet_path.name}"
+            )
+            self._cv3 = cv3
+            self.canonical_v3_path = cv3_binding.parquet_path
+            self._cv3_binding = cv3_binding
+            self._pair_binding = pair_binding
+            self._cv3_source_schema = cv3_verified.arrow_schema
+            self._cv3_file_stamp = cv3_verified.file_stamp
+            self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
+            LOG.info(
+                f"  canonical_v3: {len(cv3):,} rows × "
+                f"{len(cv3.columns)} cols  "
+                f"range {cv3.index[0]} → {cv3.index[-1]}"
+            )
 
-        LOG.info(f"loading BASE28 prebuilt: {base28_binding.parquet_path.name}")
-        self._base28 = base28
-        self.base28_path = base28_binding.parquet_path
-        self._base28_binding = base28_binding
-        self._base28_source_schema = base28_verified.arrow_schema
-        self._base28_file_stamp = base28_verified.file_stamp
-        self._base28_mtime = base28_verified.file_stamp[2] / 1_000_000_000.0
-        LOG.info(f"  BASE28: {len(base28):,} rows × {len(base28.columns)} cols  "
-                  f"range {base28.index[0]} → {base28.index[-1]}")
+            LOG.info(
+                f"loading BASE28 prebuilt: {base28_binding.parquet_path.name}"
+            )
+            self._base28 = base28
+            self.base28_path = base28_binding.parquet_path
+            self._base28_binding = base28_binding
+            self._base28_source_schema = base28_verified.arrow_schema
+            self._base28_file_stamp = base28_verified.file_stamp
+            self._base28_mtime = (
+                base28_verified.file_stamp[2] / 1_000_000_000.0
+            )
+            LOG.info(
+                f"  BASE28: {len(base28):,} rows × "
+                f"{len(base28.columns)} cols  "
+                f"range {base28.index[0]} → {base28.index[-1]}"
+            )
 
-        _require_persisted_model_agnostic_canonical(cv3)
-        self._last_ts = min(cv3.index[-1], base28.index[-1])
-        LOG.info(f"  effective live cutoff (min of both): {self._last_ts}")
-        self._augment_cv3_with_volume_features()
-        self._augment_cv3_with_v2_mtf_scalars()
-        self._augment_cv3_with_group_a_and_dip_struct()
-        self._augment_cv3_with_v1_legacy()
-        self._augment_cv3_with_regime_v4()  # after v2_mtf sources; immutable active transform
-        self._refresh_error = None
+            _require_persisted_model_agnostic_canonical(cv3)
+            self._last_ts = min(cv3.index[-1], base28.index[-1])
+            LOG.info(f"  effective live cutoff (min of both): {self._last_ts}")
+            self._augment_cv3_with_volume_features()
+            self._augment_cv3_with_v2_mtf_scalars()
+            self._augment_cv3_with_group_a_and_dip_struct()
+            self._augment_cv3_with_v1_legacy()
+            # after v2_mtf sources; immutable active transform
+            self._augment_cv3_with_regime_v4()
+            self._refresh_error = None
 
     def load_frozen_pair(self) -> dict[str, object]:
         """Load one exact pair generation and disable mutable refresh.
 
-        Historical active-Exit replay must observe one immutable canonical-v3
+        Historical unified-Exit replay must observe one immutable canonical-v3
         and BASE28 generation for its entire lifetime.  The owner returns the
         exact admitted identity so a producer can bind it in replay evidence.
         """
@@ -1430,13 +1981,13 @@ class PrebuiltStateLoader:
         }
         return self._cv3, self._base28, identity
 
-    # ── Exit-XGB V2 multi-TF scalar augmentation ──────────────────────
+    # ── Historical V2 multi-TF scalar augmentation ────────────────────
     # The exact bundle contract consumes 31 V2-suffixed columns per row.
     # ONE TRUTH (2026-06-13): the per-TF V2 mtf projection now lives in
-    # gx1.features.htf_features.REGIME_V4_V2_MTF_* and is imported at module top, so the serve,
-    # the canonical_incremental daemon (BASE34 ctx recompute), and the build all use the IDENTICAL
-    # 5-TF/9-feat regime projection. (m5 ADDED 2026-06-05 — regime ALL-5; trend_age_bars_norm = R2
-    # for gx1.features.regime_v4_features.) Was inline here; promoted to kill the duplication.
+    # gx1.features.htf_features.REGIME_V4_V2_MTF_* and is imported at module
+    # top, so serving, immutable snapshot construction and offline build use
+    # the identical 5-TF/9-feature regime projection. (M5 added 2026-06-05;
+    # trend_age_bars_norm is R2 for gx1.features.regime_v4_features.)
     _V2_MTF_PER_TF = REGIME_V4_V2_MTF_PER_TF
     _V2_MTF_TFS = REGIME_V4_V2_MTF_TFS
     _V2_MTF_SKIP = REGIME_V4_V2_MTF_SKIP
@@ -1529,7 +2080,7 @@ class PrebuiltStateLoader:
         )
         from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
         # LIVE serve: build the multi-TF bundle IN-MEMORY from THIS cv3 and pass it, instead
-        # of reading the on-disk MULTI_TF_V2_CACHE. The disk cache is only as fresh as its
+        # of reading the on-disk MULTI_TF_V4_CACHE. The disk cache is only as fresh as its
         # last rebuild — nothing in the live loop advances it, so it eventually trips the
         # 2-day stale guard (live breaks) or, worse, would serve stale HTF context. Building
         # from the live cv3 makes the group-A/dip-struct ctx ALWAYS current and removes the
@@ -1661,55 +2212,165 @@ class PrebuiltStateLoader:
 
     # ── public API ────────────────────────────────────────────────────
 
+    def acquire_serving_snapshot(self) -> PrebuiltServingSnapshot:
+        """Capture all frames/caches from one generation under one lock.
+
+        The returned DataFrame/cache objects are no longer mutated by a refresh;
+        a later swap installs new objects. Callers that need several inputs for
+        one decision must retain and reuse this capsule throughout that decision.
+        """
+
+        with self._state_lock:
+            self._raise_refresh_error()
+            if (
+                self._pair_binding is None
+                or self._cv3 is None
+                or self._base28 is None
+                or self._last_ts is None
+                or self._pair_binding.generation_manifest_path is None
+                or self._base28_file_stamp is None
+            ):
+                raise RuntimeError("loader not initialized — call .load() first")
+            return PrebuiltServingSnapshot(
+                pair_generation_id=self._pair_binding.pair_generation_id,
+                pair_manifest_sha256=self._pair_binding.manifest_sha256,
+                pair_generation_manifest_path=(
+                    self._pair_binding.generation_manifest_path
+                ),
+                base28_path=self._pair_binding.base28.parquet_path,
+                base28_sha256=self._pair_binding.base28.parquet_sha256,
+                base28_file_stamp=self._base28_file_stamp,
+                cv3=self._cv3,
+                base28=self._base28,
+                cutoff_ts=self._last_ts,
+                multi_tf_feats=self._multi_tf_feats,
+                multi_tf_shift=self._multi_tf_shift,
+                multi_tf_feat_count=self._multi_tf_feat_count,
+            )
+
+    def canonical_frame_view(self) -> pd.DataFrame:
+        """Return the canonical frame from one captured serving capsule."""
+
+        return self.acquire_serving_snapshot().cv3
+
+    def get_closed_m1_bar(
+        self,
+        expected_m1: pd.Timestamp,
+        *,
+        snapshot: PrebuiltServingSnapshot | None = None,
+    ) -> dict[str, object]:
+        """Return one exact complete BASE28 row from one captured pair."""
+
+        expected = pd.Timestamp(expected_m1)
+        if (
+            pd.isna(expected)
+            or expected.tzinfo is None
+            or expected.utcoffset() != pd.Timedelta(0)
+            or expected != expected.floor("min")
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_CLOSED_M1_TIMESTAMP_INVALID"
+            )
+        expected = expected.tz_convert("UTC")
+        state = snapshot or self.acquire_serving_snapshot()
+        if not isinstance(state, PrebuiltServingSnapshot):
+            raise TypeError("snapshot must be a PrebuiltServingSnapshot")
+        generation = read_prebuilt_pair_manifest(
+            state.pair_generation_manifest_path,
+            generation_root=self.generation_root,
+        )
+        if (
+            generation.pair_generation_id != state.pair_generation_id
+            or generation.manifest_sha256 != state.pair_manifest_sha256
+            or generation.base28.parquet_path != state.base28_path
+            or generation.base28.parquet_sha256 != state.base28_sha256
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_CLOSED_M1_SNAPSHOT_IDENTITY_CHANGED"
+            )
+        if (
+            _file_stamp(state.base28_path, label="BASE28")
+            != state.base28_file_stamp
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_CLOSED_M1_SOURCE_CHANGED"
+            )
+        position = int(state.base28.index.get_indexer([expected])[0])
+        if position < 0:
+            raise PrebuiltIdentityError(
+                "PREBUILT_CLOSED_M1_EXACT_BAR_MISSING: "
+                f"{expected.isoformat()}"
+            )
+        row = state.base28.iloc[position]
+        return canonical_closed_m1_bar(
+            m1_bar_ts=expected,
+            complete=True,
+            source_path=str(state.base28_path),
+            source_sha256=state.base28_sha256,
+            bid_open=float(row["bid_open"]),
+            bid_high=float(row["bid_high"]),
+            bid_low=float(row["bid_low"]),
+            bid_close=float(row["bid_close"]),
+            ask_open=float(row["ask_open"]),
+            ask_high=float(row["ask_high"]),
+            ask_low=float(row["ask_low"]),
+            ask_close=float(row["ask_close"]),
+            mid_open=float(row["open"]),
+            mid_high=float(row["high"]),
+            mid_low=float(row["low"]),
+            mid_close=float(row["close"]),
+            volume=int(row["volume"]),
+        )
+
     @property
     def cutoff_ts(self) -> pd.Timestamp:
         """Latest M5 bar timestamp available in BOTH prebuilts (joint coverage)."""
-        self._raise_refresh_error()
-        if self._last_ts is None:
-            raise RuntimeError("loader not initialized — call .load() first")
-        return self._last_ts
+        return self.acquire_serving_snapshot().cutoff_ts
 
     @property
     def pair_generation_id(self) -> str:
         """Content identity shared by the two currently loaded artifacts."""
-        self._raise_refresh_error()
-        if self._pair_binding is None:
-            raise RuntimeError("loader not initialized — call .load() first")
-        return self._pair_binding.pair_generation_id
+        return self.acquire_serving_snapshot().pair_generation_id
 
-    def get_window(self, end_ts: pd.Timestamp, n_bars: int = 96) -> pd.DataFrame:
+    def get_window(
+        self,
+        end_ts: pd.Timestamp,
+        n_bars: int = 96,
+        *,
+        snapshot: PrebuiltServingSnapshot | None = None,
+    ) -> pd.DataFrame:
         """Return the last `n_bars` M5 bars up to and including `end_ts`,
         joined from canonical_v3 + BASE28 prebuilts.
 
         Latest row is the decision bar (at end_ts.floor('5min')).
         Empty DataFrame if `end_ts` is past the prebuilt coverage.
         """
-        self._raise_refresh_error()
-        if self._cv3 is None or self._base28 is None:
-            raise RuntimeError("loader not initialized — call .load() first")
+        state = snapshot or self.acquire_serving_snapshot()
+        if not isinstance(state, PrebuiltServingSnapshot):
+            raise TypeError("snapshot must be a PrebuiltServingSnapshot")
 
         end_bucket = end_ts.floor("5min")
-        if end_bucket > self.cutoff_ts:
-            LOG.warning(f"decision_ts {end_bucket} is past prebuilt cutoff {self.cutoff_ts} — "
+        if end_bucket > state.cutoff_ts:
+            LOG.warning(f"decision_ts {end_bucket} is past prebuilt cutoff {state.cutoff_ts} — "
                          f"run canonical rebuild cron")
             return pd.DataFrame()
 
-        cv3_win = self._cv3.loc[:end_bucket].tail(n_bars)
+        cv3_win = state.cv3.loc[:end_bucket].tail(n_bars)
         if cv3_win.empty:
             return pd.DataFrame()
 
         # Join BASE28 augmented columns at exact timestamps. Missing timestamps
         # are unavailable evidence; they may not be reconstructed from a later
         # M1 row inside the bucket.
-        b28_cols = [c for c in self._base28.columns if c not in cv3_win.columns]
+        b28_cols = [c for c in state.base28.columns if c not in cv3_win.columns]
         if b28_cols:
-            missing_index = cv3_win.index[~cv3_win.index.isin(self._base28.index)]
+            missing_index = cv3_win.index[~cv3_win.index.isin(state.base28.index)]
             if len(missing_index):
                 raise RuntimeError(
                     "BASE28 exact timestamp contract missing rows: "
                     f"count={len(missing_index)} first={missing_index[0]}"
                 )
-            b28_slice = self._base28.loc[cv3_win.index, b28_cols]
+            b28_slice = state.base28.loc[cv3_win.index, b28_cols]
             joined = pd.concat([cv3_win, b28_slice], axis=1)
         else:
             joined = cv3_win.copy()
@@ -1737,8 +2398,10 @@ class PrebuiltStateLoader:
         cv3 + multi_tf together (fixes CRITICAL race that produced silent V10
         feature mismatch during cv3 swap window).
         """
-        self._raise_refresh_error()
-        source = cv3 if cv3 is not None else self._cv3
+        with self._state_lock:
+            self._raise_refresh_error()
+            source = cv3 if cv3 is not None else self._cv3
+            source_pair = self._pair_binding
         if source is None:
             raise RuntimeError("call .load() before .build_multi_tf_features()")
         from gx1.features.htf_features import (
@@ -1769,24 +2432,36 @@ class PrebuiltStateLoader:
         # cv3 arg) expect side-effect on self.*. When cv3 IS provided the caller
         # is responsible for the atomic swap.
         if cv3 is None:
-            self._multi_tf_feats = result["feats"]
-            self._multi_tf_shift = result["shift"]
-            self._multi_tf_feat_count = result["feat_count"]
+            with self._state_lock:
+                if self._cv3 is not source or self._pair_binding != source_pair:
+                    raise PrebuiltIdentityError(
+                        "PREBUILT_STATE_CHANGED_DURING_MULTI_TF_BUILD"
+                    )
+                self._multi_tf_feats = result["feats"]
+                self._multi_tf_shift = result["shift"]
+                self._multi_tf_feat_count = result["feat_count"]
         return result
 
-    def get_multi_tf_windows(self, end_ts: pd.Timestamp, n_bars: int = 96
-                              ) -> dict[str, np.ndarray]:
+    def get_multi_tf_windows(
+        self,
+        end_ts: pd.Timestamp,
+        n_bars: int = 96,
+        *,
+        snapshot: PrebuiltServingSnapshot | None = None,
+    ) -> dict[str, np.ndarray]:
         """Return {seq_m5, seq_m15, seq_h1, seq_h4, seq_d1} arrays at-or-before end_ts.
         Each is (n_bars, n_features) float32. Zero-padded at start if warmup unmet.
 
         Empty dict if multi-TF features aren't built (caller falls back to v3 path)."""
-        self._raise_refresh_error()
-        if self._multi_tf_feats is None:
+        state = snapshot or self.acquire_serving_snapshot()
+        if not isinstance(state, PrebuiltServingSnapshot):
+            raise TypeError("snapshot must be a PrebuiltServingSnapshot")
+        if state.multi_tf_feats is None:
             return {}
         from gx1.features.htf_features import get_last_n_at_or_before
         return {
             f"seq_{tf.lower()}": get_last_n_at_or_before(
-                feats, end_ts, n=n_bars, tf_shift=self._multi_tf_shift[tf]
+                feats, end_ts, n=n_bars, tf_shift=state.multi_tf_shift[tf]
             )
-            for tf, feats in self._multi_tf_feats.items()
+            for tf, feats in state.multi_tf_feats.items()
         }

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""V12 live ctx-augmentation — adds the 32 features that XGB v5 / V10 v3
-need on top of canonical_v3.
+"""V12 live context augmentation for the model-native feature stack.
 
-Background: XGB v5 was trained against a prebuilt parquet that contained
+Background: an older stack was trained against a prebuilt parquet that contained
 canonical_v3 columns + ~32 augmented ctx-cont / ctx-cat features computed
 by `add_ctx_cont_columns_to_prebuilt.py`. Today the canonical_v3 prebuilt
 on disk has been regenerated without those augmentations, so any live
@@ -85,12 +84,13 @@ from gx1.features.swing_structure_v1 import (
     SWING_LOOKBACK_V1,
     compute_swing_structure_features,
 )
-from gx1.time.session_detector import m5_decision_availability
 from gx1.time.session_detector import (
+    ASIA_SESSION_ID,
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
     get_session_vectorized,
+    m5_decision_availability,
 )
 
 LOG = logging.getLogger("v12_ctx_augment_live")
@@ -165,7 +165,9 @@ def _add_session_features(cv3: pd.DataFrame) -> None:
     idx = m5_decision_availability(cv3.index)
     session_id = get_session_id_vectorized(idx).to_numpy(dtype=np.int64)
     cv3["session_id"] = session_id
-    cv3["is_ASIA"] = (cv3["session_id"] == 0).astype(np.int64)
+    cv3["is_ASIA"] = (
+        cv3["session_id"] == ASIA_SESSION_ID
+    ).astype(np.int64)
     cv3["minutes_since_session_open"] = (
         get_session_minutes_since_open_vectorized(idx)
         .to_numpy(dtype=np.float32)
@@ -178,7 +180,9 @@ def _add_session_features(cv3: pd.DataFrame) -> None:
     cv3["session_change_flag"] = (
         sess_tag.ne(sess_tag.shift(1)).to_numpy(dtype=np.int64)
     )
-    cv3["session_tradable"] = (cv3["session_id"] != 0).astype(np.int64)
+    cv3["session_tradable"] = (
+        cv3["session_id"] != ASIA_SESSION_ID
+    ).astype(np.int64)
     # Session membership is calendar evidence known at the decision instant;
     # shifting it would make these two fields disagree with session_id for one
     # complete M5 bar at every boundary.
@@ -203,22 +207,6 @@ def _add_session_interactions(cv3: pd.DataFrame) -> None:
         cv3["_v1_int_slope_h1_us"] = (
             cv3["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us
         )
-    # Exit-XGB compatibility aliases: canonical_v3 renamed four features still
-    # present in the exact training surface. They are EXACT duplicates (see
-    # materialize_canonical_v3_augment.py duplicate-pair list) — alias them so
-    # the serving augmenter feeds XGB the same inputs as training. One truth:
-    # raw canonical_v3 (e.g. CANONICAL_V3_FULL) lacks these; FULL_PLUS_CTX baked
-    # them in. Guarded so pre-baked frames are untouched.
-    for _dst, _src in (
-        ("_v1_body_tr", "_v1_body_share_1"),
-        ("_v1_int_clv_atr", "_v1_clv"),
-        ("_v1_int_r5_atr", "_v1_r5"),
-        ("_v1_int_slope_h4_atr", "_v1h4_slope5"),
-    ):
-        if _dst not in cv3.columns and _src in cv3.columns:
-            cv3[_dst] = cv3[_src].to_numpy(dtype=np.float64)
-
-
 def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
     """Mutate ``cv3`` with the shared model-native ATR/spread formula."""
 

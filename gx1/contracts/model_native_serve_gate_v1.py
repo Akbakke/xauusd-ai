@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -20,6 +21,17 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
 )
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+)
+from gx1.features.htf_features import (
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_TIMEFRAMES,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    require_multi_tf_specialist_routing_v4,
+)
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
     INPUTS_SHA256 as DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
@@ -32,11 +44,11 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
-    "xau_model_native_exact_test_full_stack_serve_gate_v5"
+    "xau_model_native_exact_test_full_stack_serve_gate_v11"
 )
-MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v5"
+MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v11"
 MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION = (
-    "model_native_direction_pocket_audit_v1"
+    "model_native_direction_pocket_audit_v2"
 )
 MODEL_NATIVE_REQUIRED_TEST_SPLIT = "test"
 MODEL_NATIVE_REQUIRED_MODEL_NAME = "candidate"
@@ -50,6 +62,65 @@ SERVE_PARITY_SAMPLING_CONTRACT = (
 SERVE_PARITY_ENV_PINS = {
     "CUDA_VISIBLE_DEVICES": "",
 }
+SERVE_SOURCE_IDENTITY_SCHEMA_VERSION = "gx1_serve_source_identity_v1"
+SERVE_SOURCE_IDENTITY_CONTRACT = (
+    "git_tracked_bytes_excluding_transaction_bound_mutable_authority_v1"
+)
+SERVE_SOURCE_IDENTITY_EXCLUDED_TRACKED_PATHS = (
+    "PROJECT_STATE_artifacts.json",
+    "PROJECT_STATE_xau_direction_launch.json",
+)
+SERVE_SOURCE_IDENTITY_UNTRACKED_SOURCE_SUFFIXES = (
+    ".json",
+    ".py",
+    ".sh",
+    ".toml",
+    ".yaml",
+    ".yml",
+)
+SERVE_SOURCE_IDENTITY_UNTRACKED_SOURCE_ROOTS = (
+    "gx1/",
+    "gx1_guards/",
+    "scripts/",
+)
+SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES = MULTI_TF_TIMEFRAMES
+SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_POSITIONS = (
+    0,
+    36,
+    73,
+    109,
+    146,
+    182,
+    219,
+    255,
+)
+SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT = len(
+    SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_POSITIONS
+)
+SERVE_PARITY_INDIVIDUAL_INPUT_GRADIENT_EPSILON = 1e-12
+SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON = 1e-7
+SERVE_PARITY_INDIVIDUAL_INPUT_COMPARISON_SURFACE = (
+    "all_class_margin_input_gradients_plus_valid_categorical_counterfactual_v1"
+)
+SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS = tuple(
+    f"{timeframe.lower()}:{specialist}"
+    for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+    for specialist in MODEL_NATIVE_REQUIRED_SPECIALISTS
+)
+SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS = tuple(
+    f"{timeframe.lower()}:{feature}"
+    for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+    for feature in MULTI_TF_PER_BAR_FEATURES_V4
+)
+if len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) != 40:
+    raise RuntimeError("SERVE_PARITY_FAMILY_TF_COOPERATION_TOKEN_COUNT_INVALID")
+if (
+    len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) != 555
+    or len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)
+    != len(SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES)
+    * len(MULTI_TF_PER_BAR_FEATURES_V4)
+):
+    raise RuntimeError("SERVE_PARITY_FAMILY_TF_FEATURE_TOKEN_COUNT_INVALID")
 
 # Exact retained model tensors plus every numeric diagnostic consumed by the
 # live head schema.  Width one is scalar; wider values are dense vectors.  This
@@ -60,7 +131,10 @@ SERVE_PARITY_FORWARD_FIELD_WIDTHS = {
     "bad_path_logit": 1,
     "specialist_gate": len(MODEL_NATIVE_REQUIRED_SPECIALISTS),
     "tf_gate": 5,
-    "family_tf_cooperation_gate": len(MODEL_NATIVE_REQUIRED_SPECIALISTS) + 5,
+    "family_tf_cooperation_gate": len(
+        SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS
+    ),
+    "family_tf_feature_gate": len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
     "raw_direction_logits": 3,
     "direction_logits": 3,
     "public_trade_flat_decision_logits": 2,
@@ -147,6 +221,9 @@ SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT = 0.01
 SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY = 0.5
 SERVE_PARITY_SPECIALIST_GATE_MIN_STD = 1e-6
 SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT = 1
+SERVE_PARITY_FEATURE_GATE_MIN_EXCLUSIVE = 0.0
+SERVE_PARITY_FEATURE_GATE_MAX_EXCLUSIVE = 2.0
+SERVE_PARITY_FEATURE_GATE_MIN_STD_EXCLUSIVE = 1e-6
 
 # Direct decision influence is audited on a deterministic subset of the same
 # 256 parity states.  Both evidence-family masking and an isolated specialist
@@ -184,6 +261,32 @@ SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE = (
 )
 SERVE_PARITY_FUSION_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS = 8
+SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON = 1e-12
+SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS = (
+    "action_value",
+    "expectile_value",
+    "action_advantage",
+)
+SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL = 1e-6
+SERVE_PARITY_FUSION_INFLUENCE_ABLATION = (
+    "exact_slice_or_q_v_a_manifold_preserving_candidate_val_mean_v2"
+)
+SERVE_PARITY_FUSION_DERIVED_ABLATION_SURFACES = {
+    "action_value": (
+        "q_val_mean_plus_recomputed_advantage_preserving_q_minus_v"
+    ),
+    "expectile_value": (
+        "v_val_mean_plus_recomputed_advantage_preserving_q_minus_v"
+    ),
+    "action_advantage": (
+        "joint_q_v_val_means_plus_recomputed_advantage_preserving_q_minus_v"
+    ),
+}
+SERVE_PARITY_FUSION_DERIVED_REFERENCE_INPUTS = {
+    "action_value": ("action_value",),
+    "expectile_value": ("expectile_value",),
+    "action_advantage": ("action_value", "expectile_value"),
+}
 SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT = (
     SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT
 )
@@ -211,7 +314,6 @@ SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_POSITIONS = (
 SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLING_CONTRACT = (
     SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLING_CONTRACT
 )
-SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 SERVE_PARITY_MULTI_TF_INFLUENCE_COMPARISON_SURFACE = (
     "class_centered_raw_and_final_calibrated_direction_logits_v2"
 )
@@ -227,8 +329,8 @@ if len(SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS) != (
 ):
     raise RuntimeError("SERVE_PARITY_SPECIALIST_SAMPLE_POSITION_COUNT_MISMATCH")
 
-DIRECTION_POCKET_MAX_BAD_SIDE_RATE = 0.10
-DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95 = 0.15
+DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE = 0.10
+DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95 = 0.15
 DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL = 0.95
 DIRECTION_POCKET_WILSON_Z = 1.959963984540054
 DIRECTION_POCKET_MIN_SELECTED_ROWS = 100
@@ -236,29 +338,23 @@ DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE = 0.0
 DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT = (
     "canonical_side_path_utility_bps_after_spread_v1"
 )
-DIRECTION_POCKET_SHORT_WRONG_SIDE_REPAIR_POCKETS = (
+DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS = (
+    "intraday_bull",
+    "intraday_bull__htf_bull",
+    "intraday_bull__htf_bear",
+    "intraday_bear",
+    "intraday_bear__htf_bear",
+    "intraday_bear__htf_bull",
     "rising_channel_support_touch",
     "support_retest_continuation",
     "rising_channel_support_continuation",
     "countertrend_short_trap",
     "short_high_mae_low_mfe_early_failure",
-)
-DIRECTION_POCKET_LONG_WRONG_SIDE_REPAIR_POCKETS = (
     "falling_channel_resistance_touch",
     "resistance_retest_continuation",
     "falling_channel_resistance_continuation",
     "countertrend_long_trap",
     "long_high_mae_low_mfe_early_failure",
-)
-DIRECTION_POCKET_UTILITY_REPAIR_POCKETS = (
-    "rising_channel_support_touch",
-    "support_retest_continuation",
-    "rising_channel_support_continuation",
-    "countertrend_short_trap",
-    "falling_channel_resistance_touch",
-    "resistance_retest_continuation",
-    "falling_channel_resistance_continuation",
-    "countertrend_long_trap",
 )
 
 UTC_TIME_COVERAGE_SCHEMA_VERSION = "sorted_unique_utc_ns_sha256_v1"
@@ -301,6 +397,150 @@ def _canonical_sha256(value: object) -> str:
         allow_nan=False,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _git_null_paths(repo_root: Path, *args: str) -> list[str]:
+    result = subprocess.run(
+        ["git", *args, "-z"],
+        cwd=repo_root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        stderr = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(
+            f"serve source identity git {' '.join(args)} failed: {stderr}"
+        )
+    return sorted(
+        item.decode("utf-8", errors="strict")
+        for item in result.stdout.split(b"\0")
+        if item
+    )
+
+
+def build_serve_source_identity(repo_root: Path) -> dict[str, Any]:
+    """Hash exact tracked repository bytes used by parity and live serving.
+
+    The two mutable authority JSON files are excluded because the transactional
+    finalizer necessarily replaces them after parity.  Their exact bytes remain
+    separately hash-bound by the launch transaction contract.  All other
+    tracked bytes, plus the absence of untracked source/config files in runtime
+    roots, remain mandatory and are independent of whether authority updates
+    have subsequently been committed.
+    """
+
+    root = Path(repo_root).expanduser().resolve()
+    if not (root / ".git").exists():
+        raise RuntimeError(f"serve source identity root is not a git repo: {root}")
+    tracked = _git_null_paths(root, "ls-files", "--cached")
+    missing_exclusions = sorted(
+        set(SERVE_SOURCE_IDENTITY_EXCLUDED_TRACKED_PATHS) - set(tracked)
+    )
+    if missing_exclusions:
+        raise RuntimeError(
+            "serve source identity mutable authority files are not tracked: "
+            + ",".join(missing_exclusions)
+        )
+    included = [
+        relative
+        for relative in tracked
+        if relative not in SERVE_SOURCE_IDENTITY_EXCLUDED_TRACKED_PATHS
+    ]
+    path_digest = hashlib.sha256()
+    byte_digest = hashlib.sha256()
+    total_bytes = 0
+    for relative in included:
+        encoded_path = relative.encode("utf-8")
+        path = root / relative
+        if not path.is_file() or path.is_symlink():
+            raise RuntimeError(
+                "serve source identity tracked path is missing/non-regular/symlink: "
+                f"{relative}"
+            )
+        payload = path.read_bytes()
+        total_bytes += len(payload)
+        path_digest.update(len(encoded_path).to_bytes(8, "big"))
+        path_digest.update(encoded_path)
+        byte_digest.update(len(encoded_path).to_bytes(8, "big"))
+        byte_digest.update(encoded_path)
+        byte_digest.update(len(payload).to_bytes(8, "big"))
+        byte_digest.update(payload)
+
+    untracked = _git_null_paths(
+        root,
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+    )
+    untracked_source = [
+        relative
+        for relative in untracked
+        if (
+            relative.startswith(SERVE_SOURCE_IDENTITY_UNTRACKED_SOURCE_ROOTS)
+            or (
+                "/" not in relative
+                and relative.endswith(
+                    SERVE_SOURCE_IDENTITY_UNTRACKED_SOURCE_SUFFIXES
+                )
+            )
+        )
+        and relative.endswith(SERVE_SOURCE_IDENTITY_UNTRACKED_SOURCE_SUFFIXES)
+    ]
+    return {
+        "schema_version": SERVE_SOURCE_IDENTITY_SCHEMA_VERSION,
+        "contract": SERVE_SOURCE_IDENTITY_CONTRACT,
+        "excluded_transaction_bound_paths": list(
+            SERVE_SOURCE_IDENTITY_EXCLUDED_TRACKED_PATHS
+        ),
+        "tracked_file_count": len(included),
+        "tracked_total_bytes": total_bytes,
+        "tracked_paths_sha256": path_digest.hexdigest(),
+        "tracked_bytes_sha256": byte_digest.hexdigest(),
+        "untracked_source_paths": untracked_source,
+    }
+
+
+def serve_source_identity_contract_failures(value: object) -> list[str]:
+    """Validate the immutable source-identity shape without reading the repo."""
+
+    label = "serve parity source identity"
+    if not isinstance(value, dict):
+        return [f"{label} must be an exact object"]
+    failures: list[str] = []
+    expected_keys = {
+        "schema_version",
+        "contract",
+        "excluded_transaction_bound_paths",
+        "tracked_file_count",
+        "tracked_total_bytes",
+        "tracked_paths_sha256",
+        "tracked_bytes_sha256",
+        "untracked_source_paths",
+    }
+    if set(value) != expected_keys:
+        failures.append(f"{label} keys mismatch")
+    if value.get("schema_version") != SERVE_SOURCE_IDENTITY_SCHEMA_VERSION:
+        failures.append(f"{label} schema_version mismatch")
+    if value.get("contract") != SERVE_SOURCE_IDENTITY_CONTRACT:
+        failures.append(f"{label} contract mismatch")
+    if value.get("excluded_transaction_bound_paths") != list(
+        SERVE_SOURCE_IDENTITY_EXCLUDED_TRACKED_PATHS
+    ):
+        failures.append(f"{label} authority exclusion mismatch")
+    for field in ("tracked_file_count", "tracked_total_bytes"):
+        observed = value.get(field)
+        if (
+            isinstance(observed, bool)
+            or not isinstance(observed, int)
+            or observed <= 0
+        ):
+            failures.append(f"{label} {field} must be a positive integer")
+    for field in ("tracked_paths_sha256", "tracked_bytes_sha256"):
+        if not _is_sha256(value.get(field)):
+            failures.append(f"{label} {field} is not an exact SHA-256")
+    if value.get("untracked_source_paths") != []:
+        failures.append(f"{label} contains untracked runtime source/config paths")
+    return failures
 
 
 def direction_pocket_wilson_upper_95(*, failures: int, total: int) -> float:
@@ -355,6 +595,7 @@ def _test_prediction_liveness_contract_failures(
         "specialist_gate",
         "tf_gate",
         "family_tf_cooperation_gate",
+        "family_tf_feature_gate",
     }
     if set(value) != exact_keys:
         failures.append(
@@ -527,10 +768,7 @@ def _test_prediction_liveness_contract_failures(
         ("tf_gate", SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES),
         (
             "family_tf_cooperation_gate",
-            (
-                *MODEL_NATIVE_REQUIRED_SPECIALISTS,
-                *SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES,
-            ),
+            SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS,
         ),
     ):
         report = value.get(gate_name)
@@ -622,6 +860,79 @@ def _test_prediction_liveness_contract_failures(
                 SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
             ):
                 failures.append(f"{gate_label}.mean_weight does not sum to one")
+    feature_gate = value.get("family_tf_feature_gate")
+    feature_label = f"{label}.family_tf_feature_gate"
+    failures.extend(_zero_failure_pass(feature_gate, label=feature_label))
+    if isinstance(feature_gate, dict):
+        expected_feature_keys = {
+            "decision",
+            "failures",
+            "rows",
+            "finite",
+            "tokens",
+            "mean_weight",
+            "std_weight",
+            "min_observed",
+            "max_observed",
+            "thresholds",
+        }
+        if set(feature_gate) != expected_feature_keys:
+            failures.append(f"{feature_label} keys mismatch")
+        if feature_gate.get("rows") != expected_rows:
+            failures.append(f"{feature_label}.rows mismatch")
+        if feature_gate.get("finite") is not True:
+            failures.append(f"{feature_label} is not finite")
+        if feature_gate.get("tokens") != list(
+            SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS
+        ):
+            failures.append(f"{feature_label}.tokens mismatch")
+        expected_thresholds = {
+            "min_weight_exclusive": SERVE_PARITY_FEATURE_GATE_MIN_EXCLUSIVE,
+            "max_weight_exclusive": SERVE_PARITY_FEATURE_GATE_MAX_EXCLUSIVE,
+            "min_std_exclusive": SERVE_PARITY_FEATURE_GATE_MIN_STD_EXCLUSIVE,
+        }
+        if feature_gate.get("thresholds") != expected_thresholds:
+            failures.append(f"{feature_label}.thresholds mismatch")
+        for metric_name in (
+            "mean_weight",
+            "std_weight",
+            "min_observed",
+            "max_observed",
+        ):
+            metrics = feature_gate.get(metric_name)
+            if not isinstance(metrics, dict) or set(metrics) != set(
+                SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS
+            ):
+                failures.append(f"{feature_label}.{metric_name} set mismatch")
+                continue
+            for token, metric in metrics.items():
+                if not _is_finite_number(metric):
+                    failures.append(
+                        f"{feature_label}.{metric_name}.{token} is non-finite"
+                    )
+                    continue
+                numeric = float(metric)
+                if (
+                    metric_name == "std_weight"
+                    and numeric <= SERVE_PARITY_FEATURE_GATE_MIN_STD_EXCLUSIVE
+                ):
+                    failures.append(
+                        f"{feature_label}.{metric_name}.{token} violates contract"
+                    )
+                elif (
+                    metric_name == "min_observed"
+                    and numeric <= SERVE_PARITY_FEATURE_GATE_MIN_EXCLUSIVE
+                ):
+                    failures.append(
+                        f"{feature_label}.{metric_name}.{token} violates contract"
+                    )
+                elif (
+                    metric_name == "max_observed"
+                    and numeric >= SERVE_PARITY_FEATURE_GATE_MAX_EXCLUSIVE
+                ):
+                    failures.append(
+                        f"{feature_label}.{metric_name}.{token} violates contract"
+                    )
     return failures
 
 
@@ -836,6 +1147,7 @@ def _masked_input_influence_contract_failures(
     names_field: str,
     expected_targets: Mapping[str, str],
     report_ablation: str | None,
+    metric_ablation_surface: str,
 ) -> list[str]:
     failures = _zero_failure_pass(value, label=label)
     if not isinstance(value, dict):
@@ -905,7 +1217,7 @@ def _masked_input_influence_contract_failures(
             failures.append(f"{metric_label} keys mismatch")
         if metric.get("target") != expected_targets[name]:
             failures.append(f"{metric_label}.target mismatch")
-        if metric.get("ablation_surface") != "full_tensor_zero_mask":
+        if metric.get("ablation_surface") != metric_ablation_surface:
             failures.append(f"{metric_label}.ablation_surface mismatch")
         delta = metric.get("max_abs_class_centered_raw_logit_delta")
         if not _is_finite_number(delta) or float(delta) <= epsilon:
@@ -951,6 +1263,40 @@ def _multi_tf_decision_influence_contract_failures(value: object) -> list[str]:
             for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
         },
         report_ablation="candidate_specific_full_tensor_zero_ablation_v1",
+        metric_ablation_surface="full_tensor_zero_mask",
+    )
+
+
+def _family_tf_decision_influence_contract_failures(
+    value: object,
+) -> list[str]:
+    routing = require_multi_tf_specialist_routing_v4(
+        MULTI_TF_PER_BAR_FEATURES_V4
+    )
+    tokens = tuple(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS)
+    return _masked_input_influence_contract_failures(
+        value,
+        label="serve parity family_tf_decision_influence",
+        sample_count=SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
+        sample_positions=SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_POSITIONS,
+        sampling_contract=SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLING_CONTRACT,
+        comparison_surface=SERVE_PARITY_MULTI_TF_INFLUENCE_COMPARISON_SURFACE,
+        epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
+        min_changed_rows=SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS,
+        names=tokens,
+        names_field="family_timeframe_tokens",
+        expected_targets={
+            f"{timeframe.lower()}:{specialist}": (
+                f"model.input.seq_{timeframe.lower()}["
+                f"{','.join(str(index) for index in indices)}]"
+            )
+            for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+            for specialist, indices in routing.items()
+        },
+        report_ablation=(
+            "candidate_specific_family_tensor_index_zero_ablation_v1"
+        ),
+        metric_ablation_surface="exact_family_feature_indices_zero_mask",
     )
 
 
@@ -973,7 +1319,202 @@ def _upstream_context_decision_influence_contract_failures(
             "ctx_cat_zero_mask": "model.input.ctx_cat",
         },
         report_ablation=None,
+        metric_ablation_surface="full_tensor_zero_mask",
     )
+
+
+def _individual_input_decision_influence_contract_failures(
+    value: object,
+) -> list[str]:
+    label = "serve parity individual_input_decision_influence"
+    failures = _zero_failure_pass(value, label=label)
+    if not isinstance(value, dict):
+        return failures
+    expected_keys = {
+        "decision",
+        "failures",
+        "sample_count",
+        "sample_positions",
+        "sampled_test_coverage",
+        "comparison_surface",
+        "gradient_epsilon",
+        "categorical_delta_epsilon",
+        "numeric_input_count",
+        "categorical_input_count",
+        "signal_names_sha256",
+        "ctx_cont_names_sha256",
+        "ctx_cat_names_sha256",
+        "numeric",
+        "categorical",
+    }
+    if set(value) != expected_keys:
+        failures.append(f"{label} keys mismatch")
+    if value.get("sample_count") != SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT:
+        failures.append(f"{label}.sample_count mismatch")
+    if value.get("sample_positions") != list(
+        SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_POSITIONS
+    ):
+        failures.append(f"{label}.sample_positions mismatch")
+    failures.extend(
+        time_coverage_contract_failures(
+            value.get("sampled_test_coverage"),
+            label=f"{label}.sampled_test_coverage",
+            expected_rows=SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT,
+        )
+    )
+    if (
+        value.get("comparison_surface")
+        != SERVE_PARITY_INDIVIDUAL_INPUT_COMPARISON_SURFACE
+    ):
+        failures.append(f"{label}.comparison_surface mismatch")
+    if not _is_exact_number(
+        value.get("gradient_epsilon"),
+        SERVE_PARITY_INDIVIDUAL_INPUT_GRADIENT_EPSILON,
+    ):
+        failures.append(f"{label}.gradient_epsilon mismatch")
+    if not _is_exact_number(
+        value.get("categorical_delta_epsilon"),
+        SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON,
+    ):
+        failures.append(f"{label}.categorical_delta_epsilon mismatch")
+
+    numeric = value.get("numeric")
+    signal_row = numeric.get("seq_signal") if isinstance(numeric, dict) else None
+    raw_signal_names = (
+        signal_row.get("tokens") if isinstance(signal_row, dict) else None
+    )
+    signal_names = (
+        list(raw_signal_names) if isinstance(raw_signal_names, list) else []
+    )
+    if (
+        len(signal_names) != MODEL_NATIVE_SIGNAL_DIM
+        or len(signal_names) != len(set(signal_names))
+        or not all(isinstance(item, str) and item for item in signal_names)
+    ):
+        failures.append(f"{label} signal tokens are not exact unique seq513")
+    ctx_cont_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
+    ctx_cat_names = list(MODEL_NATIVE_CTX_CAT_FIELDS)
+    expected_numeric_tokens = {
+        "seq_signal": signal_names,
+        "snap_signal": signal_names,
+        "ctx_cont": ctx_cont_names,
+        **{
+            f"seq_{timeframe.lower()}": [
+                f"{timeframe.lower()}:{feature}"
+                for feature in MULTI_TF_PER_BAR_FEATURES_V4
+            ]
+            for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+        },
+    }
+    expected_numeric_count = (
+        (2 * MODEL_NATIVE_SIGNAL_DIM)
+        + len(MODEL_NATIVE_CTX_CONT_FIELDS)
+        + len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)
+    )
+    if value.get("numeric_input_count") != expected_numeric_count:
+        failures.append(f"{label}.numeric_input_count mismatch")
+    if value.get("categorical_input_count") != len(ctx_cat_names):
+        failures.append(f"{label}.categorical_input_count mismatch")
+    for field, names in (
+        ("signal_names_sha256", signal_names),
+        ("ctx_cont_names_sha256", ctx_cont_names),
+        ("ctx_cat_names_sha256", ctx_cat_names),
+    ):
+        if value.get(field) != _canonical_sha256(names):
+            failures.append(f"{label}.{field} mismatch")
+
+    if not isinstance(numeric, dict) or set(numeric) != set(
+        expected_numeric_tokens
+    ):
+        failures.append(f"{label}.numeric surface set mismatch")
+    else:
+        for surface, tokens in expected_numeric_tokens.items():
+            surface_label = f"{label}.numeric.{surface}"
+            row = numeric.get(surface)
+            if not isinstance(row, dict) or set(row) != {"tokens", "metrics"}:
+                failures.append(f"{surface_label} keys mismatch")
+                continue
+            if row.get("tokens") != tokens:
+                failures.append(f"{surface_label}.tokens mismatch")
+            metrics = row.get("metrics")
+            if not isinstance(metrics, dict) or set(metrics) != set(tokens):
+                failures.append(f"{surface_label}.metrics set mismatch")
+                continue
+            for token in tokens:
+                metric_label = f"{surface_label}.metrics.{token}"
+                metric = metrics[token]
+                failures.extend(_zero_failure_pass(metric, label=metric_label))
+                if not isinstance(metric, dict) or set(metric) != {
+                    "decision",
+                    "failures",
+                    "max_abs_raw_class_margin_gradient",
+                    "max_abs_final_class_margin_gradient",
+                }:
+                    failures.append(f"{metric_label} keys mismatch")
+                    continue
+                for field in (
+                    "max_abs_raw_class_margin_gradient",
+                    "max_abs_final_class_margin_gradient",
+                ):
+                    observed = metric.get(field)
+                    if (
+                        not _is_finite_number(observed)
+                        or float(observed)
+                        <= SERVE_PARITY_INDIVIDUAL_INPUT_GRADIENT_EPSILON
+                    ):
+                        failures.append(f"{metric_label}.{field} is dead")
+
+    categorical = value.get("categorical")
+    if not isinstance(categorical, dict) or set(categorical) != set(ctx_cat_names):
+        failures.append(f"{label}.categorical set mismatch")
+    else:
+        exact_metric_keys = {
+            "decision",
+            "failures",
+            "counterfactual",
+            "max_abs_class_centered_raw_logit_delta",
+            "raw_changed_rows",
+            "max_abs_class_centered_logit_delta",
+            "changed_rows",
+            "total_rows",
+        }
+        for name in ctx_cat_names:
+            metric_label = f"{label}.categorical.{name}"
+            metric = categorical[name]
+            failures.extend(_zero_failure_pass(metric, label=metric_label))
+            if not isinstance(metric, dict) or set(metric) != exact_metric_keys:
+                failures.append(f"{metric_label} keys mismatch")
+                continue
+            if (
+                metric.get("counterfactual")
+                != "next_valid_embedding_category_modulo_domain"
+            ):
+                failures.append(f"{metric_label}.counterfactual mismatch")
+            for field in (
+                "max_abs_class_centered_raw_logit_delta",
+                "max_abs_class_centered_logit_delta",
+            ):
+                observed = metric.get(field)
+                if (
+                    not _is_finite_number(observed)
+                    or float(observed)
+                    <= SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON
+                ):
+                    failures.append(f"{metric_label}.{field} is dead")
+            for field in ("raw_changed_rows", "changed_rows"):
+                observed = metric.get(field)
+                if (
+                    isinstance(observed, bool)
+                    or not isinstance(observed, int)
+                    or observed < 1
+                    or observed > SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT
+                ):
+                    failures.append(f"{metric_label}.{field} invalid")
+            if metric.get("total_rows") != (
+                SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT
+            ):
+                failures.append(f"{metric_label}.total_rows mismatch")
+    return failures
 
 
 def _direction_evidence_fusion_influence_contract_failures(
@@ -995,6 +1536,7 @@ def _direction_evidence_fusion_influence_contract_failures(
         "sampled_test_coverage",
         "comparison_surface",
         "epsilon",
+        "fusion_input_gradient_epsilon",
         "min_changed_rows",
         "ablation",
         "fusion_metadata",
@@ -1039,6 +1581,11 @@ def _direction_evidence_fusion_influence_contract_failures(
         value.get("epsilon"), SERVE_PARITY_FUSION_INFLUENCE_EPSILON
     ):
         failures.append(f"{label}.epsilon mismatch")
+    if not _is_exact_number(
+        value.get("fusion_input_gradient_epsilon"),
+        SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON,
+    ):
+        failures.append(f"{label}.fusion_input_gradient_epsilon mismatch")
     if (
         value.get("min_changed_rows")
         != SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
@@ -1046,7 +1593,7 @@ def _direction_evidence_fusion_influence_contract_failures(
         failures.append(f"{label}.min_changed_rows mismatch")
     if (
         value.get("ablation")
-        != "replace_exact_fusion_slice_with_immutable_candidate_val_mean_v1"
+        != SERVE_PARITY_FUSION_INFLUENCE_ABLATION
     ):
         failures.append(f"{label}.ablation mismatch")
     expected_metadata = direction_evidence_fusion_metadata()
@@ -1099,6 +1646,7 @@ def _direction_evidence_fusion_influence_contract_failures(
         "coverage",
         "input_dim",
         "inputs_sha256",
+        "derived_relation",
         "mean_by_input",
         "ordered_mean_sha256",
     }
@@ -1122,6 +1670,36 @@ def _direction_evidence_fusion_influence_contract_failures(
             failures.append(f"{reference_label}.input_dim mismatch")
         if reference.get("inputs_sha256") != DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256:
             failures.append(f"{reference_label}.inputs_sha256 mismatch")
+        relation = reference.get("derived_relation")
+        if not isinstance(relation, dict) or set(relation) != {
+            "equation",
+            "max_abs_error",
+            "atol",
+        }:
+            failures.append(f"{reference_label}.derived_relation keys mismatch")
+        else:
+            if relation.get("equation") != (
+                "action_advantage=action_value-expectile_value_by_horizon"
+            ):
+                failures.append(
+                    f"{reference_label}.derived_relation.equation mismatch"
+                )
+            if not _is_exact_number(
+                relation.get("atol"),
+                SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL,
+            ):
+                failures.append(
+                    f"{reference_label}.derived_relation.atol mismatch"
+                )
+            relation_error = relation.get("max_abs_error")
+            if (
+                not _is_finite_number(relation_error)
+                or float(relation_error)
+                > SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL
+            ):
+                failures.append(
+                    f"{reference_label}.derived_relation exceeds tolerance"
+                )
         raw_means = reference.get("mean_by_input")
         if not isinstance(raw_means, dict) or set(raw_means) != {
             name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS
@@ -1156,10 +1734,14 @@ def _direction_evidence_fusion_influence_contract_failures(
         "decision",
         "failures",
         "target",
+        "ablation_surface",
         "start",
         "stop",
         "width",
+        "reference_inputs",
         "reference_values_sha256",
+        "max_abs_raw_class_margin_input_gradient",
+        "max_abs_final_class_margin_input_gradient",
         "max_abs_class_centered_raw_logit_delta",
         "raw_changed_rows",
         "max_abs_class_centered_logit_delta",
@@ -1178,14 +1760,64 @@ def _direction_evidence_fusion_influence_contract_failures(
         for field in ("start", "stop", "width"):
             if metric.get(field) != layout[field]:
                 failures.append(f"{metric_label}.{field} mismatch")
-        if metric.get("target") != (
-            f"model.evidence_fusion_norm.input[{layout['start']}:{layout['stop']}]"
-        ):
+        if name == "action_value":
+            expected_target = (
+                "model.evidence_fusion_norm.input["
+                "action_value+action_advantage]"
+            )
+        elif name == "expectile_value":
+            expected_target = (
+                "model.evidence_fusion_norm.input["
+                "expectile_value+action_advantage]"
+            )
+        elif name == "action_advantage":
+            expected_target = (
+                "model.evidence_fusion_norm.input["
+                "action_value+expectile_value+action_advantage]"
+            )
+        else:
+            expected_target = (
+                f"model.evidence_fusion_norm.input["
+                f"{layout['start']}:{layout['stop']}]"
+            )
+        if metric.get("target") != expected_target:
             failures.append(f"{metric_label}.target mismatch")
-        if name in means and metric.get("reference_values_sha256") != _canonical_sha256(
-            means[name]
+        expected_surface = SERVE_PARITY_FUSION_DERIVED_ABLATION_SURFACES.get(
+            name, "exact_fusion_slice_val_mean_replacement"
+        )
+        if metric.get("ablation_surface") != expected_surface:
+            failures.append(f"{metric_label}.ablation_surface mismatch")
+        expected_reference_inputs = list(
+            SERVE_PARITY_FUSION_DERIVED_REFERENCE_INPUTS.get(name, (name,))
+        )
+        if metric.get("reference_inputs") != expected_reference_inputs:
+            failures.append(f"{metric_label}.reference_inputs mismatch")
+        reference_values = [
+            item
+            for reference_name in expected_reference_inputs
+            for item in means.get(reference_name, ())
+        ]
+        if (
+            len(reference_values)
+            == sum(
+                dict(DIRECTION_EVIDENCE_FUSION_INPUTS)[reference_name]
+                for reference_name in expected_reference_inputs
+            )
+            and metric.get("reference_values_sha256")
+            != _canonical_sha256(reference_values)
         ):
             failures.append(f"{metric_label}.reference_values_sha256 mismatch")
+        for field in (
+            "max_abs_raw_class_margin_input_gradient",
+            "max_abs_final_class_margin_input_gradient",
+        ):
+            gradient = metric.get(field)
+            if (
+                not _is_finite_number(gradient)
+                or float(gradient)
+                <= SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON
+            ):
+                failures.append(f"{metric_label}.{field} is dead")
         raw_delta = metric.get("max_abs_class_centered_raw_logit_delta")
         if (
             not _is_finite_number(raw_delta)
@@ -1351,6 +1983,24 @@ def serve_gate_event_contract_failures(
         if payload.get("env_pins") != SERVE_PARITY_ENV_PINS:
             failures.append("serve parity env_pins mismatch")
         failures.extend(
+            serve_source_identity_contract_failures(
+                payload.get("serve_source_identity")
+            )
+        )
+        operating_point = payload.get("operating_point")
+        if (
+            not isinstance(operating_point, dict)
+            or set(operating_point) != {"selection_score", "max_trades"}
+            or operating_point.get("selection_score")
+            != "model_direction_argmax"
+            or isinstance(operating_point.get("max_trades"), bool)
+            or not isinstance(operating_point.get("max_trades"), int)
+            or int(operating_point["max_trades"]) <= 0
+        ):
+            failures.append("serve parity operating_point contract mismatch")
+        if payload.get("runtime_device") != "cpu":
+            failures.append("serve parity runtime_device must be exactly 'cpu'")
+        failures.extend(
             time_coverage_contract_failures(
                 payload.get("sampled_test_coverage"),
                 label="serve parity sampled_test_coverage",
@@ -1454,6 +2104,11 @@ def serve_gate_event_contract_failures(
             )
         )
         failures.extend(
+            _individual_input_decision_influence_contract_failures(
+                payload.get("individual_input_decision_influence")
+            )
+        )
+        failures.extend(
             _upstream_context_decision_influence_contract_failures(
                 payload.get("upstream_context_decision_influence")
             )
@@ -1461,6 +2116,11 @@ def serve_gate_event_contract_failures(
         failures.extend(
             _multi_tf_decision_influence_contract_failures(
                 payload.get("multi_tf_decision_influence")
+            )
+        )
+        failures.extend(
+            _family_tf_decision_influence_contract_failures(
+                payload.get("family_tf_decision_influence")
             )
         )
         failures.extend(
@@ -1477,9 +2137,12 @@ def serve_gate_event_contract_failures(
         ):
             failures.append("direction pocket schema_version mismatch")
         if not _is_exact_number(
-            payload.get("max_bad_side_rate"), DIRECTION_POCKET_MAX_BAD_SIDE_RATE
+            payload.get("max_selected_label_error_rate"),
+            DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE,
         ):
-            failures.append("direction pocket max_bad_side_rate mismatch")
+            failures.append(
+                "direction pocket max_selected_label_error_rate mismatch"
+            )
         if payload.get("min_selected_rows") != DIRECTION_POCKET_MIN_SELECTED_ROWS:
             failures.append("direction pocket min_selected_rows mismatch")
         if not _is_exact_number(
@@ -1488,10 +2151,12 @@ def serve_gate_event_contract_failures(
         ):
             failures.append("direction pocket min_mean_proxy_pnl_bps mismatch")
         if not _is_exact_number(
-            payload.get("max_bad_side_wilson_upper_95"),
-            DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
+            payload.get("max_selected_label_error_wilson_upper_95"),
+            DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95,
         ):
-            failures.append("direction pocket Wilson upper threshold mismatch")
+            failures.append(
+                "direction pocket selected-label Wilson threshold mismatch"
+            )
         if not _is_exact_number(
             payload.get("wilson_confidence_level"),
             DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
@@ -1503,9 +2168,7 @@ def serve_gate_event_contract_failures(
         ):
             failures.append("direction pocket spread-aware proxy contract mismatch")
         pockets = payload.get("pockets")
-        required_pockets = set(
-            DIRECTION_POCKET_SHORT_WRONG_SIDE_REPAIR_POCKETS
-        ).union(DIRECTION_POCKET_LONG_WRONG_SIDE_REPAIR_POCKETS)
+        required_pockets = set(DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS)
         if not isinstance(pockets, dict):
             failures.append("direction pocket metrics object is missing")
         else:
@@ -1520,18 +2183,10 @@ def serve_gate_event_contract_failures(
                 if not isinstance(row, dict):
                     failures.append(f"direction pocket {pocket_name} is not an object")
                     continue
-                wrong_side = (
-                    "short"
-                    if pocket_name
-                    in DIRECTION_POCKET_SHORT_WRONG_SIDE_REPAIR_POCKETS
-                    else "long"
-                )
-                count_name = f"selected_side_{wrong_side}_count"
-                rate_name = f"selected_side_{wrong_side}_rate"
-                wilson_name = f"selected_side_{wrong_side}_wilson_upper_95"
                 selected_rows = row.get("selected_rows")
                 pocket_rows = row.get("rows")
-                wrong_count = row.get(count_name)
+                correct_count = row.get("selected_label_correct_count")
+                error_count = row.get("selected_label_error_count")
                 if (
                     isinstance(pocket_rows, bool)
                     or not isinstance(pocket_rows, int)
@@ -1550,49 +2205,72 @@ def serve_gate_event_contract_failures(
                     )
                     continue
                 if (
-                    isinstance(wrong_count, bool)
-                    or not isinstance(wrong_count, int)
-                    or wrong_count < 0
-                    or wrong_count > selected_rows
+                    isinstance(correct_count, bool)
+                    or not isinstance(correct_count, int)
+                    or isinstance(error_count, bool)
+                    or not isinstance(error_count, int)
+                    or correct_count < 0
+                    or error_count < 0
+                    or correct_count + error_count != selected_rows
                 ):
                     failures.append(
-                        f"direction pocket {pocket_name}.{count_name} invalid"
+                        f"direction pocket {pocket_name} selected-label counts invalid"
                     )
                     continue
-                expected_rate = wrong_count / selected_rows
-                observed_rate = row.get(rate_name)
+                expected_error_rate = error_count / selected_rows
+                observed_error_rate = row.get("selected_label_error_rate")
                 if (
-                    not _is_finite_number(observed_rate)
-                    or abs(float(observed_rate) - expected_rate) > 1e-12
-                    or float(observed_rate) > DIRECTION_POCKET_MAX_BAD_SIDE_RATE
+                    not _is_finite_number(observed_error_rate)
+                    or abs(
+                        float(observed_error_rate) - expected_error_rate
+                    )
+                    > 1e-12
+                    or float(observed_error_rate)
+                    > DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
                 ):
                     failures.append(
-                        f"direction pocket {pocket_name}.{rate_name} violates contract"
+                        f"direction pocket {pocket_name}.selected_label_error_rate "
+                        "violates contract"
+                    )
+                observed_correct_rate = row.get("selected_label_correct_rate")
+                if (
+                    not _is_finite_number(observed_correct_rate)
+                    or abs(
+                        float(observed_correct_rate)
+                        - (correct_count / selected_rows)
+                    )
+                    > 1e-12
+                ):
+                    failures.append(
+                        f"direction pocket {pocket_name}.selected_label_correct_rate "
+                        "is inconsistent"
                     )
                 expected_wilson = direction_pocket_wilson_upper_95(
-                    failures=wrong_count,
+                    failures=error_count,
                     total=selected_rows,
                 )
-                observed_wilson = row.get(wilson_name)
+                observed_wilson = row.get(
+                    "selected_label_error_wilson_upper_95"
+                )
                 if (
                     not _is_finite_number(observed_wilson)
                     or abs(float(observed_wilson) - expected_wilson) > 1e-12
                     or float(observed_wilson)
-                    > DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+                    > DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95
                 ):
                     failures.append(
-                        f"direction pocket {pocket_name}.{wilson_name} violates contract"
+                        f"direction pocket {pocket_name} selected-label Wilson "
+                        "upper bound violates contract"
                     )
-                if pocket_name in DIRECTION_POCKET_UTILITY_REPAIR_POCKETS:
-                    mean_proxy = row.get("selected_mean_proxy_pnl_bps")
-                    if (
-                        not _is_finite_number(mean_proxy)
-                        or float(mean_proxy)
-                        <= DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
-                    ):
-                        failures.append(
-                            f"direction pocket {pocket_name} spread-aware proxy edge is unproven"
-                        )
+                mean_proxy = row.get("selected_mean_proxy_pnl_bps")
+                if (
+                    not _is_finite_number(mean_proxy)
+                    or float(mean_proxy)
+                    <= DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
+                ):
+                    failures.append(
+                        f"direction pocket {pocket_name} spread-aware proxy edge is unproven"
+                    )
     else:
         failures.append(f"unknown serve-gate evidence name {evidence_name!r}")
     return failures

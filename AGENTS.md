@@ -2,18 +2,19 @@
 
 ## Current objective and status
 
-Build one XAUUSD Entry model that learns tops, bottoms and abstention from the
-full evidence stack, then selects `LONG`, `SHORT` or `FLAT` through one
-model-native decision path. Near-perfect practical precision is the target,
-not a current claim. The system stays closed until immutable out-of-sample
-contracts prove the required direction edge.
+Build one XAUUSD model bundle that learns tops, bottoms, abstention and
+position lifecycle from the full evidence stack. The same shared encoder
+selects Entry `LONG/SHORT/FLAT` and Exit `HOLD/EXIT_NOW`. Near-perfect
+practical precision is the target, not a current claim. The system stays
+closed until immutable out-of-sample contracts prove both edges.
 
-Current Entry status is **BLOCK**. There is no accepted model bundle, no
-empirical direction-edge proof and no launch authority. Old Smart520,
-neutral-XGB, anchored Entry and Entry-IQL evidence is historical and cannot
-authorize a run or launch.
+Current system status is **BLOCK**. There is no accepted unified model bundle,
+no empirical Entry/Exit edge proof and no launch authority. Old Smart520,
+external decision-bridge, anchored Entry and Entry-IQL evidence is retired and
+cannot authorize a run or launch.
 
-V26 (`XAU_SEQ513_REBUILD_20260725_V26`) is the current immutable lineage:
+V26 (`XAU_SEQ513_REBUILD_20260725_V26`) was the latest completed pre-V4
+dataset lineage:
 the first dataset built end to end on an event-local strict native-v3 M5
 tape (2019-01-01→2026-07-24T20:55, 369,303/5,904/4,776 split rows), terminal
 GREEN with all dataset/readiness audits PASS. Its smoke training
@@ -23,6 +24,12 @@ substrate — ended `TRAIN_FAIL_NO_BEST_STATE` with total FLAT collapse (VAL
 checkpoint or bundle exists. Seventeen never-executed post-audit boundaries
 were repaired in existing owners during that campaign (DECISION_LOG
 2026-07-25). V25 is chain-RED evidence; V24/V7 below are historical.
+On 2026-07-29 the rejected V18 bundle plus the stale V19/V26 dataset, audit
+and smoke-manifest bytes were retired from launch authority and deleted
+through the immutable cleanup owner. Their measured results remain historical
+chronology only. No dataset is currently admitted. The event-local native
+source and frozen V4 cache remain input evidence, not model or launch
+authority.
 V24 (`XAU_SEQ513_REBUILD_20260722_V24`) was the previous immutable failed
 dataset/training lineage. It rebuilt a fresh XAU source cascade through the
 last complete M5 bar at `2026-07-22T12:05:00Z` and terminalized `GREEN` under
@@ -89,77 +96,69 @@ The independent full-pipeline audit in
 repairs target/objective semantics,
 no-replacement sampling, conditional auxiliary evidence, exact recipe/M5/MTF
 identity, full-TRAIN normalization, direct 142+5 family ownership,
-all-22-head/26-group influence, atomic bundle/event publication, recursive
-active-Exit byte identity, identity-bound approval/vedtak, recoverable
+all-22-head/26-group influence, atomic bundle/event publication, exact
+same-candidate bundle identity, identity-bound approval/vedtak, recoverable
 candidate-to-launch finalization, runtime lease rechecks and execution
 fail-close. The public finalizer serializes the canonical registry/state
 targets, requires a pre-existing one-time vedtak, binds the accepted bundle
 and exact single-exposure operating point, and either commits both targets or
 restores both with durable failure evidence.
 
-The adversarial re-audit proved that the existing joint Exit finalizer only
-validates caller-supplied replay/trace parquets; it does not run the active
-XGB→V3→Exit-IQL/Strategy-F chain. Those diagnostics have zero launch
-authority. Both the launch finalizer and runtime artifact guard reject them
-before activation. The existing sizing/replay owner now contains the canonical
-full-TEST producer: it owns every row, calls
-`V12Pipeline.make_exit_decision` per exact M1, emits explicit FLAT no-order
-evidence, binds every active input/output byte and accepts neither missing
-state nor a horizon cap. The caller-parquet compatibility route remains
-diagnostic-only. The later full feature/Exit audit also invalidates the
-retained Exit artifacts: old fill/M5/overlay timing is causal-wrong and the
-Exit-IQL bundle declares research-only/non-production with no bound feature
-order or serving fold. Source now has one atomic canonical/BASE generation,
-full-history native-M5 recomputation, one shared M1/M5 ownership/closure contract,
-causal spread-only features, reproducible V3 lineage including XGB identity,
-the exact 173-field V3 writer and the full-TEST Exit producer. The
-existing historical OANDA owner has one immutable v3 source-bundle
-operation for both native M1 and M5: fixed three-day M1 or 15-day M5 MBA
-requests (4,320 theoretical slots), retained compressed source responses,
-complete-only rederivation, streamed year partitions, clean-code inventory and
-atomic no-replace publication through `model-native-native-m1-source` or
-`model-native-native-m5-source`. Both executed on 2026-07-24 under vedtak
-`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1` with 2019-01-01→2026-07-24 roots, and
-the first immutable pair generation `077e5419…` (468,267 canonical /
-2,326,495 BASE28 rows from 2019-12-15) is the current serving identity. The
-exit chain binds one immutable TRAIN-rank identity end to end (dataset,
-replay proof, live loader/registry, trainer lineage); the registry has no
-`train_rank_reference` entry yet, so live remains fail-closed. XGB is cut by
-user vedtak 2026-07-24: no trainer or fresh XGB artifact is ever built, and
-the successor Exit IO contract replaces the bridge evidence with the
-accepted Entry bundle's calibrated outputs; the current XGB surface remains
-only as the blocked historical stack until that successor lands. Open gates
-are producing the immutable TRAIN-only rank reference and executing the
-bound exit routes, the successor Exit IO contract plus fresh V3/Exit-IQL on
-accepted Entry prediction evidence, and the full-TEST producer run. V24/V7
-remain immutable failure evidence. The Entry seq513 chain now accepts an
-event-local strict native-v3 M5 tape (`m5_tape_native_v3`), superseding the
-December-2024 repair and collector-snapshot steps for new lineages. Every
-fresh empirical dataset/model/edge gate also remains open.
+The adversarial re-audit proved that the former separate Exit chain was both
+causally invalid and an architecture violation. Its implementation,
+contracts, registry roles and artifacts are retired. Entry and Exit now have
+one authority boundary: the exact same immutable bundle and shared encoder
+must emit calibrated `LONG/SHORT/FLAT` Entry logits and `HOLD/EXIT_NOW` Exit
+logits. Exit must consume a hash-bound frozen Entry snapshot plus an exact,
+contiguous, closed-M1 post-entry path envelope. No auxiliary model, bridge,
+overlay, runtime rule or synthetic HOLD is permitted.
 
-ROADMAP.md is the current execution/takeover plan. Read it after this
-constitution; it records active rebuild incidents but never overrides the
-machine-readable launch BLOCK.
+The existing OANDA owner can publish immutable native M1/M5 source bundles,
+and pair generation `077e5419…` remains frozen historical source evidence.
+It is not a current serving identity. Native schema v4 successors bind the
+exact parent manifest by CAS, reuse verified historical chunks, refetch only
+one bounded overlap plus the new tail and refuse any overlap rewrite. The pair
+owner publishes the candidate event before pointer activation. The live-tail
+contract requires two consecutive events, stores a static launch anchor and
+revalidates the newest admission against the exact inference pair before each
+new Entry and order. Stale evidence must block new exposure without blocking
+same-bundle Exit recovery. No real successor/admission has been published or
+launch-bound.
+The unified Exit head, lifecycle dataset/loss, exact closed-M1 runtime envelope
+and canonical full-TEST producer also exist in source. Runtime and replay
+retain the same frozen shared Entry representation, call only the same
+candidate bundle, use the same path transform and bind exact model-output
+hashes. No producer output, serve parity or trained unified artifact exists,
+so runtime still fails closed. V24/V7 remain immutable failure evidence. Every
+fresh empirical dataset, model, edge, sizing and launch gate remains open.
+
+ROADMAP.md is the current ordered execution plan. It records historical
+incidents and the next admissible stages, but no V4 rebuild or training is
+active and it never overrides the machine-readable launch BLOCK.
 
 Read in this order:
 
 1. `AGENTS.md`
 2. `PIPELINE_AUDIT_XAU_20260723.md`
-3. `SYSTEM_MAP.md` — including the "Pipeline- og ingredienskart" section: read
-   it BEFORE grepping for artifact producers or feature-column owners; it is
-   the one-truth map of the data DAG and saves large amounts of re-scanning.
+3. `SYSTEM_MAP.md` — read it before grepping for artifact producers or
+   feature-column owners; it is the one-truth map of the data DAG.
 4. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
 5. `PROJECT_STATE_xau_direction_launch.json`
 6. relevant code contract and test files
 
-Run `bash scripts/gx1_handover.sh` for a read-only takeover snapshot.
+Run `bash scripts/entry_next_edge_control.sh handover` for a read-only takeover
+snapshot.
 
 Token/credit discipline:
 
 - Run the compact snapshot once per root takeover. On continuations and in
-  subagents, run `bash scripts/gx1_handover.sh --check` first; when its
-  `authority_fingerprint` is unchanged, do not reread the authoritative
-  documents or repeat an all-Markdown inventory.
+  subagents, run `bash scripts/entry_next_edge_control.sh handover --check`
+  first. `authority_fingerprint` binds the ordered documents and launch state;
+  when it is unchanged, do not reread them or repeat an all-Markdown
+  inventory. `worktree_fingerprint` separately binds HEAD, the complete
+  tracked diff and every untracked file byte. If it changed, inspect the
+  current diff and rerun the affected contracts before resuming even when the
+  changed-path count and authority fingerprint are unchanged.
 - `--verbose` is an explicit diagnostic, not a takeover default. Do not print
   the full handover or a raw process table again after they have been read.
 - Start discovery from the ownership paths in `SYSTEM_MAP.md`. Read exact
@@ -201,7 +200,9 @@ The exact model-native surface is:
 - 142 ordered continuous context fields;
 - 5 ordered categorical context fields;
 - sequence length 96;
-- M5, M15, H1, H4 and D1 market context;
+- exact V4 M5, M15, H1, H4 and D1 market context: 111 ordered
+  timeframe-native fields at each resolution, 555 feature×timeframe cells,
+  40 family×timeframe cooperation routes and all eight non-empty specialists;
 - cross-timeframe attention, positional encoding, FiLM context conditioning
   and learned timeframe scales;
 - eight specialists: structure/swing, SMC/liquidity, trend/EMA,
@@ -212,6 +213,40 @@ Every genuine trend, session, structure, liquidity, volatility, momentum,
 chart, candle, path-quality and utility input/target stays in the learned
 path. Removing an old filter means removing competing decision authority, not
 amputating its evidence.
+
+### Causal multi-resolution evidence pyramid
+
+Multi-timeframe means that all eight specialist families have a real,
+timeframe-native causal surface on M5, M15, H1, H4 and D1. Eight M5 specialists
+beside five generic timeframe tokens is not this contract. The learned path
+must expose and audit the complete family×timeframe surface; a missing, dead,
+unrouted or non-influential cell fails closed.
+
+History becomes coarser as it becomes older. Fine M5 context is retained only
+for the recent horizon declared by the immutable recipe; progressively older
+context is carried by M15, H1, H4 and D1 instead of duplicating distant history
+at M5 resolution. The exact per-timeframe windows are explicit recipe inputs
+and must form a strictly increasing wall-clock coverage pyramid. They are
+selected on declared TRAIN/VAL evidence, never hidden in a wrapper, ambient
+environment or model default.
+
+Feature relevance is learned independently for each feature×timeframe and may
+change with age, regime and the other evidence. A feature may be weak on M5 and
+decisive on D1, or the reverse. No fixed timeframe preference, manual
+confluence rule or hard-coded live direction weight is allowed. Per-timeframe
+TRAIN-only normalization gives every cell a comparable numerical path; shared
+family semantics, timeframe-specific normalization/gates, temporal encoding and learned
+cross-family/cross-timeframe cooperation determine conditional influence.
+Attention or gate values alone are not influence proof: immutable VAL/TEST
+ablation must move raw and calibrated class margins for every retained
+family×timeframe route, while window and architecture selection remain
+TRAIN/VAL-only.
+
+Cache reach is not model-window reach. The active cache contract must publish
+only fully closed resample buckets, and training must prove the exact declared
+M5/M15/H1/H4/D1 window at the first and last decision of TRAIN, VAL and TEST.
+The preflight cache check proves causal warmup/reach only; it may never claim a
+shared 96-bar MTF window.
 
 All advertised output heads must be present, trained with positive weight,
 exported and audited. This includes direction, MTF direction, specialist
@@ -233,16 +268,27 @@ pockets, Q ranks the counterfactual reward-best action, V tracks learned max-Q
 and Advantage equals Q minus V. Missing old-schema fields fail closed; do not
 forward-fill them.
 
-Smoke liveness is not a pass-through or direction-influence proof. Only
-serve-parity v4 may supply that launch evidence: both specialist ablation
-methods and all 26 exact fusion-slice replacements must move class-centred raw
-and calibrated logits above the immutable row/epsilon floors. The same applies
-to both context tensors and every retained timeframe. Missing or pre-v4
-evidence fails closed.
+Smoke liveness is not a pass-through or direction-influence proof. Only the
+current serve-parity v11 contract may supply that launch evidence: both
+specialist ablation methods and all 26 exact fusion-slice replacements must
+move class-centred raw and calibrated logits above the immutable row/epsilon
+floors. The same applies to both context tensors, all five timeframes and all
+40 family×timeframe routes. All 555 feature×timeframe gates must be finite,
+ordered, non-saturated and context-responsive. In addition, all 1,723 numeric
+routes must have sampled local raw and calibrated class-margin sensitivity:
+513 sequence-field routes, 513 snapshot-field routes, 142 continuous-context
+routes and 555 MTF feature×timeframe routes. Each of the five categorical
+context fields must move both surfaces under a valid next-category
+counterfactual. These are local gradient/counterfactual proofs, not a claim
+that individual zero ablation is globally causal. Missing or pre-v11 evidence
+fails closed.
 
-The exact active output declaration has 22 heads. Their ordered evidence feeds
-one learned 26-group/96-value direction fusion (`LayerNorm(96)`, `96 -> 128`,
-GELU, `128 -> 3`) before immutable calibration and exact three-class argmax.
+The exact Entry evidence declaration has 22 heads. Their ordered evidence
+feeds one learned 26-group/96-value direction fusion (`LayerNorm(96)`,
+`96 -> 128`, GELU, `128 -> 3`) before immutable calibration and exact
+three-class argmax. The same model adds one positively trained unified Exit
+action head; it does not join the 26-group direction fusion and cannot be
+trained or swapped after the unified candidate is selected.
 
 ### Value origin and evidence class
 
@@ -323,7 +369,7 @@ plus non-degenerate class support only; auxiliary and cooperation health stay
 computed, logged and journaled as diagnostics. This is a trainability
 ratchet, not an acceptance change: a smoke bundle carries zero edge,
 promotion or launch authority, and the smoke bundle audit, candidate
-readiness, selective-edge, replay, serve-parity v4, sizing, joint Exit,
+    readiness, selective-edge, replay, current serve-parity v11, sizing, joint Exit,
 lifecycle and launch finalizer contracts are unchanged. Only a candidate
 bundle may enter the acceptance chain. Never widen smoke admission further,
 and never let a smoke result stand in for candidate evidence.
@@ -334,9 +380,9 @@ The learned `position_size` head is mandatory and must be trained from the
 realized future path target, parity-checked and journaled. Label-horizon TEST
 utility/exposure/drawdown is a sizing-head diagnostic, not capital authority.
 No fresh accepted current-contract sizing result exists.
-Paper/live additionally requires a joint sizing-only replay with the exact
-adopted active Exit stack and a fresh post-adoption broker runtime-parity event.
-The joint proof must cover full TEST and bind the complete per-M1 active Exit
+Paper/live additionally requires a joint sizing replay with the exact unified
+bundle and a fresh post-adoption broker runtime-parity event. The joint proof
+must cover full TEST and bind the complete per-M1 unified-model
 HOLD-to-`EXIT_NOW` trace for every non-FLAT row; runtime parity is broker-live
 shadow-only and submits zero orders. Until both pass, emit no order. Never
 substitute fixed units or multiplier `1.0`; historical fixed 1x may be used
@@ -344,17 +390,31 @@ only as an explicitly named comparison benchmark.
 
 ### Exact contracts; no compatibility lane
 
-The model-native lane has no XGB Entry bridge, neutral constants, direction
-anchor, legacy direction mode, separate Entry-IQL policy/fallback, warm start,
-post-model filter or alternate launcher. Learned offline-RL Q/V/advantage
-heads may exist only inside the shared encoder and final learned direction
-fusion, with positive training objectives and exact export/serve evidence;
-they never become a second policy. Do not preserve dead arguments or outputs
-for compatibility. Exact consumers either match the current schema or fail.
+The model-native lane has no external decision bridge, neutral constants,
+direction anchor, legacy direction mode, separate Entry or Exit policy,
+post-model filter or alternate launcher. One immutable bundle and shared
+encoder own both decisions. Learned auxiliary heads may exist only inside that
+model, with positive objectives and exact export/serve evidence; they never
+become a second policy.
 
-Active Exit components are a separate scope. Do not delete Exit XGB or
-Exit-IQL primitives merely because XGB and IQL are forbidden as Entry
-direction authorities.
+The former separate Exit stack is permanently forbidden. Do not reintroduce
+an auxiliary tree model, V3 scorer, Exit-IQL policy, Strategy-F overlay,
+hand-written close rule or compatibility bridge under a new name. The unified
+Exit head must be trained from causal lifecycle samples and must bind the
+frozen Entry snapshot and exact closed-M1 path. Missing or invalid evidence is
+an error, never `HOLD` or `EXIT_NOW`. Do not preserve dead arguments or
+outputs for compatibility; exact consumers either match the current schema or
+fail.
+
+A same-bundle `EXIT_NOW` is durable execution intent. Persist it before broker
+mutation, recover its journal record idempotently after restart, and retry the
+same close until broker reconciliation resolves it. Never run a later model
+bar that can replace pending `EXIT_NOW` with `HOLD`.
+
+Lifecycle M1 authority is an immutable native/pair manifest that revalidates
+the stored raw OANDA responses and literal `complete=true` candles. A
+standalone parquet path, collector snapshot, inferred cadence or producer-code
+claim is never sufficient authority for training, replay or serving.
 
 Continual Entry adaptation has one source path: immutable same-bundle drift,
 replay-readiness v2, offline challenger, zero-order shadow, explicit promotion
@@ -364,7 +424,7 @@ bid/ask-recomputed outcomes, absolute candidate LONG/SHORT edge and positive
 lower-95% paired improvement globally and per supported direction/context.
 Live/online weight updates, post-model direction rules and stale lifecycle
 events are forbidden. Launch must cross-bind the fresh activating lifecycle
-event to the exact accepted bundle, serve, active Exit and learned-sizing
+event to the exact accepted bundle, serve, unified Exit and learned-sizing
 evidence; otherwise fail closed.
 
 ## Evidence and artifact rules
@@ -380,6 +440,9 @@ evidence; otherwise fail closed.
   so a raw-text grep can find them; conversely, an unused import is not proof.
 - Newest terminal event for the same family wins. Newer red, malformed or
   incomplete evidence invalidates older green evidence.
+- Current takeover fields may bind only artifacts admissible at the current
+  stage. When no dataset is admitted, current smoke evidence is null; a
+  historical recipe remains diagnosis and is never a handover prerequisite.
 - Train/validation/test must be chronological and leakage-safe. Calibration
   may only fit on its declared calibration split and must be immutable before
   evaluation.
@@ -412,7 +475,9 @@ overrides those contracts.
 Before a heavy authorized run:
 
 - inspect `git status --short`, disk, RAM and active Python processes;
-- do not collide with persistent collectors/canonical builders/dashboard;
+- do not collide with valid persistent collectors or unrelated dashboard
+  processes; verify that any claimed canonical builder still has an admitted
+  current CLI before preserving it;
 - use capped execution where the contract requires it;
 - stop a clearly hard-red recipe instead of consuming compute;
 - monitor `/home/andre2` and `/home/andre2/GX1_DATA`; clean repository debris
@@ -485,8 +550,8 @@ artifacts and data. Never recursively scan `.venv`, `.git` or
 - `scripts/entry_next_edge_control.sh`: single read-only/control entrypoint.
 - `scripts/gx1_handover.sh`: single handover entrypoint.
 - `PROJECT_STATE_xau_direction_launch.json`: current Entry launch decision.
-- `PROJECT_STATE_artifacts.json`: retained artifact registry, including the
-  separately active Exit chain; it cannot override the Entry launch contract.
+- `PROJECT_STATE_artifacts.json`: unified-bundle artifact registry. It has no
+  separate Entry/Exit policy role and cannot override the launch contract.
 - `/home/andre2/GX1_DATA`: large immutable data, bundles and evidence.
 
 Do not create a parallel implementation when an active owner exists. If a new
@@ -499,6 +564,12 @@ script for a minor edit, compatibility spelling or local workaround. A new
 file is admissible only for a genuinely new, bounded authority/responsibility
 whose inclusion in an existing owner would mix contracts; document why it is
 new and route it through the existing public control surface.
+
+No dashboard, watchdog, launcher or systemd unit may advertise or restart a
+removed CLI/daemon mode. The implemented snapshot successor/publication route
+must execute two fresh events and bind their admission before launch; source
+implementation alone is not authority. Runtime staleness rejection is a
+second wall, not a substitute for launch-time completeness.
 
 ## Cleanup discipline
 

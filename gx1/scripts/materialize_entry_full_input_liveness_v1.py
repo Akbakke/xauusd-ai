@@ -46,13 +46,17 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.features.htf_features import (
+    load_multi_tf_cache,
+    require_multi_tf_v4_liveness_contract,
+)
 
 
 OUTPUT_PREFIX = "ENTRY_FULL_INPUT_LIVENESS_CONTRACT"
 OUTPUT_FILENAME_RE = re.compile(
     rf"{OUTPUT_PREFIX}_\d{{8}}T\d{{6}}(?:\d{{6}})?Z\.json"
 )
-PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v4"
+PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v5"
 DEFAULT_BATCH_SIZE = 512
 REQUIRED_COLUMNS = ("seq", "snap", "ctx_cont", "ctx_cat")
 
@@ -280,8 +284,6 @@ def _validate_split_manifest(
         raise RuntimeError(f"SPLIT_EXTRA_MODE_INVALID: {manifest_path}")
     if extra.get("direction_logit_mode") != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
         raise RuntimeError(f"SPLIT_DIRECTION_MODE_INVALID: {manifest_path}")
-    if extra.get("neutral_xgb_bridge") is not False:
-        raise RuntimeError(f"SPLIT_LEGACY_BRIDGE_NEGATIVE_PROOF_MISSING: {manifest_path}")
     if str(extra.get("entry_run_id") or "").strip() != entry_run_id:
         raise RuntimeError(f"SPLIT_RUN_ID_MISMATCH: {manifest_path}")
     state = (
@@ -476,6 +478,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(str(args.dataset_dir)).expanduser().resolve()
     stem = str(args.stem or "").strip()
     out_path = Path(str(args.out_json)).expanduser().resolve()
+    mtf_cache_dir = Path(str(args.mtf_cache_dir)).expanduser().resolve()
     batch_size = int(getattr(args, "batch_size", DEFAULT_BATCH_SIZE))
     if not dataset_dir.is_dir() or dataset_dir.is_symlink():
         raise RuntimeError(f"DATASET_DIR_MISSING_REGULAR_DIRECTORY: {dataset_dir}")
@@ -490,6 +493,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError(f"LIVENESS_OUTPUT_ALREADY_EXISTS: {out_path}")
     if batch_size < 1 or batch_size > 2048:
         raise RuntimeError(f"LIVENESS_BATCH_SIZE_INVALID: {batch_size}")
+    if not mtf_cache_dir.is_dir() or mtf_cache_dir.is_symlink():
+        raise RuntimeError(
+            f"MULTI_TF_CACHE_DIR_MISSING_REGULAR_DIRECTORY: {mtf_cache_dir}"
+        )
 
     manifests: dict[str, Path] = {}
     parquets: dict[str, Path] = {}
@@ -540,6 +547,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         scan_proof[split] = proof
         semantic_scan[split] = semantics
 
+    # The cache loader already verifies every array byte, recomputes the exact
+    # 5×111 liveness contract, and rejects false manifest claims. Reuse that
+    # single owner instead of scanning and defining the same proof again here.
+    load_multi_tf_cache(mtf_cache_dir)
+    mtf_manifest_path = (mtf_cache_dir / "manifest.json").resolve()
+    mtf_manifest = _load_json(
+        mtf_manifest_path,
+        label="MULTI_TF_CACHE_MANIFEST",
+    )
+    mtf_cache_binding = {
+        "manifest_path": str(mtf_manifest_path),
+        "manifest_sha256": sha256_file(mtf_manifest_path),
+        "cache_identity_sha256": str(
+            mtf_manifest.get("cache_identity_sha256") or ""
+        ),
+    }
+    mtf_liveness_contract = require_multi_tf_v4_liveness_contract(
+        mtf_manifest.get("full_input_liveness")
+    )
+
     artifact = build_full_input_liveness_artifact(
         dataset_dir=dataset_dir,
         contract_mode=MODEL_NATIVE_CONTRACT_MODE,
@@ -547,6 +574,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         stats_by_split=stats_by_split,
         manifest_bindings=manifest_bindings,
         scan_proof_by_split=scan_proof,
+        multi_tf_liveness_contract=mtf_liveness_contract,
+        multi_tf_cache_binding=mtf_cache_binding,
         created_utc=datetime.now(timezone.utc).isoformat(),
     )
     artifact["materializer_provenance"] = {
@@ -604,6 +633,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--stem", required=True)
+    parser.add_argument("--mtf-cache-dir", required=True)
     parser.add_argument("--out-json", required=True)
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--quiet", action="store_true")

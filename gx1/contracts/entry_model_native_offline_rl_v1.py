@@ -6,9 +6,12 @@ from typing import Any, Mapping
 
 import torch
 
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
+)
 
 SCHEMA_VERSION = "entry_model_native_offline_rl_v2"
-ACTION_ORDER = ("LONG", "SHORT", "FLAT")
+ACTION_ORDER = CLASS_ORDER
 HORIZON_BARS = (12, 48, 96)
 ACTION_COUNT = len(ACTION_ORDER)
 HORIZON_COUNT = len(HORIZON_BARS)

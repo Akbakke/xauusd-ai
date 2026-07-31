@@ -55,6 +55,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
 from gx1.scripts import audit_entry_foundation_smoke_bundle_v1 as audit
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
@@ -416,7 +419,7 @@ def test_bundle_contract_uses_strict_loader_and_proves_full_stack(
         "state_dict_sha256": state_sha,
         "model_native_signal_contract": signal,
         "direction_decision_contract": direction,
-        "multi_tf": {"enabled": True, "v2_mode": True},
+        "multi_tf": {"enabled": True, "v4_mode": True},
         "enable_pos_enc": True,
         "enable_regime_film": True,
         "specialist_fusion": specialist,
@@ -455,7 +458,10 @@ def test_bundle_contract_uses_strict_loader_and_proves_full_stack(
         "specialist_cross_attn.layers.0.weight",
         "specialist_token_gate.weight",
         "family_tf_token_identity",
-        "family_tf_cross_attn.layers.0.weight",
+        "family_axis_attn.layers.0.weight",
+        "timeframe_axis_attn.layers.0.weight",
+        "mtf_family_encoder.structure_swing_encoder.layers.0.weight",
+        "mtf_feature_context_gate.m5__structure_swing_encoder.weight",
         "family_tf_context_gate.weight",
         "family_tf_token_gate.weight",
         "family_tf_cooperation_out.weight",
@@ -493,10 +499,9 @@ def test_bundle_contract_uses_strict_loader_and_proves_full_stack(
     assert all(value is True for key, value in report["full_stack"].items() if key != "multi_tf_timeframes")
     assert calls == [
         {
-                "bundle_dir": bundle,
-                "device": "cpu",
-                "is_replay": True,
-            }
+            "bundle_dir": bundle,
+            "device": "cpu",
+        }
     ]
     assert loaded is not None
 
@@ -631,7 +636,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         lambda **_: (bundle_contract, metadata, direction, object()),
     )
     evidence = {
-        "schema_version": "entry_candidate_model_direction_prediction_evidence_v3",
+        "schema_version": RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
         "authoritative": True,
         "runtime_head_evidence_authoritative": True,
         "path": str(predictions.resolve()),

@@ -49,8 +49,7 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     set_col("ctx_cont.smc_sweep_bull_pressure_last48", [0, 1, 0.5, 0, 0, 0, 0.2, 0.1])
     set_col("ctx_cont.smc_sweep_size_recent_tau12", [0, 1, 0.5, 0, 0, 0, 0.5, 0.2])
     set_col("ctx_cont.smc_sweep_recency_tau24", [0, 1, 0.8, 0.5, 0.2, 0.1, 1, 0.8])
-    set_col("ctx_cont.wick_ratio", [0.1, 1, 0.5, 0.2, 0.2, 0.3, 1, 0.4])
-    set_col("snap.wick_asym", [0, -0.5, 0.1, 0, 0, 0, 0.6, 0.2])
+    set_col("snap.body_pct", [0.8, 0.1, 0.5, 0.8, 0.8, 0.7, 0.1, 0.6])
     set_col("ctx_cont.sr_support_proximity_exp", [0.1, 1, 0.6, 0.2, 0.1, 0.2, 0.3, 0.4])
     set_col("ctx_cont.sr_resistance_proximity_exp", [0.2, 0.2, 0.3, 0.5, 0.7, 1, 1, 0.4])
     set_col("ctx_cont.H1_range_compression_ratio", [1.0, 0.8, 0.5, 0.4, 0.7, 0.9, 0.6, 0.8])
@@ -100,8 +99,7 @@ def test_foundation_structure_layer_exposes_required_families_and_age_logic() ->
         "ctx_cont.smc_sweep_bull_pressure_last48",
         "ctx_cont.smc_sweep_size_recent_tau12",
         "ctx_cont.smc_sweep_recency_tau24",
-        "ctx_cont.wick_ratio",
-        "snap.wick_asym",
+        "snap.body_pct",
         "ctx_cont.sr_support_proximity_exp",
         "ctx_cont.sr_resistance_proximity_exp",
         "ctx_cont.H1_range_compression_ratio",
@@ -169,7 +167,7 @@ def test_foundation_structure_layer_uses_signed_smc_pressure_directionally() -> 
     set_col("ctx_cont.smc_sweep_recency_tau24", [0.0, 0.0, 1.0, 1.0])
     set_col("snap.smc_sweep_size_atr", [0.0, 0.0, 1.0, 1.0])
     set_col("ctx_cont.smc_sweep_size_recent_tau12", [0.0, 0.0, 1.0, 1.0])
-    set_col("ctx_cont.wick_ratio", [0.0, 0.0, 1.0, 1.0])
+    set_col("snap.body_pct", [1.0, 1.0, 0.0, 0.0])
     set_col("ctx_cont.sr_support_proximity_exp", [0.0, 0.0, 1.0, 1.0])
     set_col("ctx_cont.sr_resistance_proximity_exp", [0.0, 0.0, 1.0, 1.0])
     set_col("ctx_cont.H1_range_compression_ratio", [1.0, 1.0, 1.0, 1.0])

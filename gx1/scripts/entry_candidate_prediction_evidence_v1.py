@@ -32,7 +32,12 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     EXPECTILE_VALUE_DIM,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
+    MODEL_DIRECTION_SHORT_INDEX,
+    PUBLIC_FLAT_INDEX,
+    PUBLIC_TRADE_INDEX,
     require_model_direction_decision_contract,
 )
 
@@ -41,10 +46,10 @@ PREDICTION_EVIDENCE_SCHEMA_VERSION = (
     "entry_candidate_model_direction_prediction_evidence_v2"
 )
 RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v3"
+    "entry_candidate_model_direction_prediction_evidence_v5"
 )
 RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_head_evidence_v1"
+    "entry_model_native_runtime_head_evidence_v3"
 )
 AUTHORITATIVE_PREDICTIONS_PREFIX = "selective_edge_predictions_"
 REPORT_PREFIX = "ENTRY_CANDIDATE_SELECTIVE_EDGE_"
@@ -174,7 +179,13 @@ def validate_model_direction_parquet_semantics(
     for target_column in ACTION_VALUE_TARGET_COLUMNS:
         numeric(target_column)
     expected_public_logits = np.column_stack(
-        [np.maximum(direction_logits[:, 0], direction_logits[:, 1]), direction_logits[:, 2]]
+        [
+            np.maximum(
+                direction_logits[:, MODEL_DIRECTION_LONG_INDEX],
+                direction_logits[:, MODEL_DIRECTION_SHORT_INDEX],
+            ),
+            direction_logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        ]
     )
     if not np.allclose(public_logits, expected_public_logits, rtol=1e-6, atol=1e-6):
         raise RuntimeError(
@@ -208,7 +219,11 @@ def validate_model_direction_parquet_semantics(
         raise RuntimeError("prediction evidence public probabilities mismatch public logits")
     public_margin = numeric("public_trade_flat_margin")
     if not np.allclose(
-        public_margin, public_logits[:, 0] - public_logits[:, 1], rtol=1e-5, atol=1e-6
+        public_margin,
+        public_logits[:, PUBLIC_TRADE_INDEX]
+        - public_logits[:, PUBLIC_FLAT_INDEX],
+        rtol=1e-5,
+        atol=1e-6,
     ):
         raise RuntimeError("prediction evidence public margin mismatch public logits")
     public_hard = numeric("public_trade_flat_hard_decision")
@@ -216,7 +231,11 @@ def validate_model_direction_parquet_semantics(
         public_hard.astype(np.int64), np.argmax(public_logits, axis=1)
     ):
         raise RuntimeError("prediction evidence public hard decision mismatch public logits")
-    expected_public_hard = np.where(pred_direction.astype(np.int64) == 2, 1, 0)
+    expected_public_hard = np.where(
+        pred_direction.astype(np.int64) == MODEL_DIRECTION_FLAT_INDEX,
+        PUBLIC_FLAT_INDEX,
+        PUBLIC_TRADE_INDEX,
+    )
     if not np.array_equal(public_hard.astype(np.int64), expected_public_hard):
         raise RuntimeError("prediction evidence public hard decision mismatches LONG/SHORT/FLAT")
     modes = sorted({str(value) for value in frame["selection_score_mode"].to_numpy()})

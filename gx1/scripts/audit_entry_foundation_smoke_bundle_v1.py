@@ -80,6 +80,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     require_training_objective_contract,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
     INPUTS as DIRECTION_EVIDENCE_INPUTS,
     require_direction_evidence_fusion_metadata,
 )
@@ -95,6 +96,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+from gx1.features.htf_features import (
+    MULTI_TF_TIMEFRAMES,
+    MULTI_TF_TIMEFRAMES_LOWER,
+)
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
     atomic_write_text,
@@ -105,7 +110,7 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 REPORT_PREFIX = "ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT"
 _SMOKE_EDGE_POLICY = foundation_audit_policy_metadata()["smoke_edge_pockets"]
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
-CLASS_NAMES = ("LONG", "SHORT", "FLAT")
+CLASS_NAMES = CLASS_ORDER
 EXPECTED_SESSIONS = tuple(_SMOKE_EDGE_POLICY["expected_sessions"])
 CONTEXT_POCKET_FIELDS = tuple(_SMOKE_EDGE_POLICY["context_fields"])
 MIN_TRADE_DIRECTION_PRECISION = float(
@@ -344,13 +349,12 @@ def _bundle_dataset_kwargs(
         raise RuntimeError(f"explicit M5 prebuilt is not a regular file: {m5_prebuilt_path}")
     lengths = {
         timeframe: int(mtf[f"{timeframe.lower()}_seq_len"])
-        for timeframe in ("M5", "M15", "H1", "H4", "D1")
+        for timeframe in MULTI_TF_TIMEFRAMES
     }
     if any(value <= 0 for value in lengths.values()):
         raise RuntimeError(f"model-native multi-TF sequence lengths are invalid: {lengths}")
     return {
         "m5_prebuilt_path": m5_prebuilt_path,
-        "multi_tf_seq_len": lengths["M15"],
         "multi_tf_closed_bar": True,
         "per_tf_seq_lens": lengths,
     }
@@ -455,8 +459,6 @@ def _dataset_manifest_contract(
                 row_failures.append("split manifest extra.contract_mode mismatch")
             if extra.get("direction_logit_mode") != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
                 row_failures.append("split manifest direction mode mismatch")
-            if extra.get("neutral_xgb_bridge") is not False:
-                row_failures.append("split manifest neutral bridge flag is not false")
             signal_contract = extra.get("model_native_signal_contract")
             try:
                 normalized = require_model_native_signal_contract(
@@ -705,7 +707,6 @@ def _bundle_contract_report(
         loaded = load_entry_v10_ctx_bundle(
             bundle_dir=bundle_dir,
             device=device,
-            is_replay=True,
         )
     except Exception as exc:
         failures.append(f"strict bundle load failed: {exc}")
@@ -728,7 +729,7 @@ def _bundle_contract_report(
     blocked_heads = list(MODEL_NATIVE_BLOCKED_HEADS)
     specialists = list(MODEL_NATIVE_REQUIRED_SPECIALISTS)
     full_stack = {
-        "multi_tf_timeframes": ["M5", "M15", "H1", "H4", "D1"],
+        "multi_tf_timeframes": list(MULTI_TF_TIMEFRAMES),
         "cross_tf_attention": False,
         "mtf_direction_head": False,
         "positional_encoding": False,
@@ -787,7 +788,7 @@ def _bundle_contract_report(
                 ),
                 "learned_tf_input_scales": all(
                     finite_nonzero_tensor(f"tf_input_scale_{tf}")
-                    for tf in ("m5", "m15", "h1", "h4", "d1")
+                    for tf in MULTI_TF_TIMEFRAMES_LOWER
                 ),
                 "specialist_fusion": bool(
                     isinstance(specialist, dict)
@@ -799,7 +800,10 @@ def _bundle_contract_report(
                 ),
                 "cross_family_cooperation": bool(
                     "family_tf_token_identity" in model_keys
-                    and any(key.startswith("family_tf_cross_attn.") for key in model_keys)
+                    and any(key.startswith("family_axis_attn.") for key in model_keys)
+                    and any(key.startswith("timeframe_axis_attn.") for key in model_keys)
+                    and any(key.startswith("mtf_family_encoder.") for key in model_keys)
+                    and any(key.startswith("mtf_feature_context_gate.") for key in model_keys)
                     and any(key.startswith("family_tf_context_gate.") for key in model_keys)
                     and any(key.startswith("family_tf_token_gate.") for key in model_keys)
                     and finite_nonzero_tensor("family_tf_cooperation_out.weight")
@@ -850,8 +854,10 @@ def _bundle_contract_report(
                 ),
             }
         )
-        if not isinstance(mtf, dict) or mtf.get("enabled") is not True or mtf.get("v2_mode") is not True:
-            failures.append("bundle does not expose exact five-timeframe MTF v2")
+        if not isinstance(mtf, dict) or mtf.get("enabled") is not True or mtf.get("v4_mode") is not True:
+            failures.append(
+                "bundle does not expose exact five-timeframe eight-family MTF V4"
+            )
         if not isinstance(specialist, dict):
             failures.append("bundle specialist_fusion metadata missing")
         else:

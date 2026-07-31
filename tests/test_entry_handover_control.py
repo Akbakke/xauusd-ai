@@ -1,7 +1,10 @@
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
+
+import pytest
 
 
 # One truth: test the checked-out tree these tests live in (worktrees
@@ -17,16 +20,23 @@ AUTHORITY_PATHS = (
     REPO / "DEVELOPMENT_NOTES.md",
     REPO / "README.md",
     REPO / "GX1_PATHS.md",
+    REPO / "RISK_OF_WRONG_CODE_2026_05_24.md",
     REPO / "ROADMAP.md",
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
     REPO / "PROJECT_STATE.md",
     REPO / "DECISION_LOG.md",
     REPO / "PIPELINE_AUDIT_XAU_20260723.md",
+    REPO / "docs/BACKFILL_2020_2025_COMMANDS.md",
     REPO / "docs/CANONICAL_EXIT_STATUS.md",
     REPO / "docs/DATA_CONTRACT.md",
+    REPO / "docs/DATA_OANDA_SCHEMA_SSOT.md",
     REPO / "docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md",
     REPO / "docs/FEATURE_MANIFEST.md",
+    REPO / "docs/FOUNDATION_FEATURE_ROUTING_AUDIT_20260722.md",
+    REPO / "docs/GIT_WORKTREE_POLICY.md",
+    REPO / "docs/SESSION_CONTEXT_OBSERVABILITY_NOTE.md",
+    REPO / "docs/TRAINING_DETERMINISM_MPS.md",
     REPO / "PROJECT_STATE_artifacts.json",
     REPO / "PROJECT_STATE_entry_iql_delete_incident.json",
     REPO / "PROJECT_STATE_xau_direction_launch.json",
@@ -39,6 +49,9 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-native-m5-source",
     "model-native-native-m1-source",
     "model-native-canonical-pair",
+    "model-native-live-tail-pair",
+    "model-native-live-tail-admission",
+    "model-native-mtf-v4-cache",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
     "model-native-foundation-feature-audit",
@@ -55,8 +68,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-replay-trade-log",
     "model-native-replay-evidence",
     "model-native-replay-readiness",
-    "model-native-v3-exit-dataset",
-    "model-native-canonical-active-exit-replay",
     "model-native-finalize-launch",
     "model-native-rebuild",
     "model-native-smoke-train",
@@ -68,12 +79,31 @@ def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
     text = HANDOVER_VIEWER.read_text(encoding="utf-8")
 
     assert "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md" in text
-    assert "Use this script only: scripts/gx1_handover.sh" in text
+    assert (
+        "takeover_entrypoint: scripts/entry_next_edge_control.sh handover"
+        in text
+    )
+    assert "handover_owner: scripts/gx1_handover.sh" in text
     assert "trading bot for gold/XAUUSD" in text
     assert "selects LONG/SHORT/FLAT direction" in text
     assert "no competing" in text
     assert "GX1_ALLOW_LEGACY_HANDOVER" not in text
     assert "SMART JOINT POLICY PROMOTED" not in text
+
+
+def test_handover_authority_fingerprint_covers_every_markdown_file() -> None:
+    markdown_paths = {
+        path.resolve()
+        for path in REPO.rglob("*.md")
+        if not any(
+            part.startswith(".")
+            for part in path.relative_to(REPO).parts
+        )
+    }
+    fingerprint_markdown = {
+        path.resolve() for path in AUTHORITY_PATHS if path.suffix == ".md"
+    }
+    assert fingerprint_markdown == markdown_paths
 
 
 def test_only_one_handover_shell_entrypoint_exists() -> None:
@@ -96,122 +126,89 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "# GX1 XAU Direction Repair Takeover (compact)" in result.stdout
     assert "Build the GX1 trading bot for gold/XAUUSD" in result.stdout
     assert "selects LONG/SHORT/FLAT direction" in result.stdout
-    assert "Use this script only: scripts/gx1_handover.sh" in result.stdout
-    assert "decision: BLOCK" in result.stdout
-    assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
-    assert "dataset_event_id: XAU_SEQ513_REBUILD_20260725_V26" in result.stdout
     assert (
-        "dataset_admission_stage: DATASET_BYTES_GREEN_SMOKE_MODEL_EMPIRICALLY_RED"
+        "takeover_entrypoint: scripts/entry_next_edge_control.sh handover"
         in result.stdout
     )
-    assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
-    assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
-    assert "smoke_recipe_evidence: VERIFIED decision=PASS env_count=162" in result.stdout
-    assert "source_commit=bbaf493da5143447bcd7f09a65a6c37dfbfec791" in result.stdout
-    assert "smoke_recipe_dry_run: PASS" in result.stdout
-    assert "smoke_recipe_execution_state: TERMINAL_FAILED" in result.stdout
+    assert "decision: BLOCK" in result.stdout
+    assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
+    assert "dataset_event_id: NONE" in result.stdout
+    assert "dataset_admission_stage: NO_ADMITTED_UNIFIED_DATASET" in result.stdout
+    assert "dataset_terminal_evidence: NONE" in result.stdout
+    assert "current_smoke_launch_evidence: NONE" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
+    assert (
+        "v4_architecture: VERIFIED "
+        "timeframes=5 families=8 fields_per_tf=111 routes=40 cells=555"
+        in result.stdout
+    )
+    assert "v4_cache: BLOCK observed=htf_v4_disk_cache_manifest_v2" in result.stdout
+    assert (
+        "historical_identity="
+        "ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a"
+        in result.stdout
+    )
     assert "active_seq513_chain" in result.stdout
+    assert "## Resume boundary" in result.stdout
+    assert "source_publication_contract: IMPLEMENTED_NOT_EXECUTED_OR_ADMITTED" in result.stdout
+    assert "resume_owner: scripts/entry_next_edge_control.sh" in result.stdout
+    assert "model-native-mtf-v4-cache" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert "## Required evidence before Entry can open" not in result.stdout
-    assert len(result.stdout.encode("utf-8")) < len(HANDOVER.read_bytes())
+    assert len(result.stdout.encode("utf-8")) < 10_000
 
 
-def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
+def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     state = json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
 
     assert state["decision"] == "BLOCK"
     assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260725_V26"
     assert state["latest_terminal_event_decision"] == "GREEN"
-    assert state["dataset_event_id"] == "XAU_SEQ513_REBUILD_20260725_V26"
-    assert (
-        state["dataset_admission_stage"]
-        == "DATASET_BYTES_GREEN_SMOKE_MODEL_EMPIRICALLY_RED"
-    )
+    assert state["dataset_event_id"] is None
+    assert state["dataset_admission_stage"] == "NO_ADMITTED_UNIFIED_DATASET"
+    assert state["accepted_dataset_dir"] is None
+    assert state["accepted_dataset_terminal_evidence"] is None
+    assert state["current_audited_dataset_evidence"] == {}
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
+    retired_bundle = state["latest_trainability_bundle"]
+    assert retired_bundle["artifact_present"] is False
+    assert retired_bundle["bundle_dir"] is None
+    assert retired_bundle["bundle_commit_path"] is None
+    assert retired_bundle["bundle_commit_sha256"] is None
+    assert retired_bundle["bundle_commit_identity_sha256"] is None
+    assert retired_bundle["model_state_sha256"] is None
     repair = state["source_repair_checkpoint"]
     assert repair["status"] == "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
-    assert repair["fresh_rebuild_started"] is True
-    assert repair["fresh_training_started"] is True
+    assert repair["historical_rebuild_execution_started"] is True
+    assert repair["historical_training_execution_started"] is True
+    assert repair["active_v4_rebuild_started"] is False
+    assert repair["active_v4_training_started"] is False
     assert repair["empirical_direction_edge_proven"] is False
     assert repair["remaining_source_p0"] == [
-        "produce_immutable_train_only_rank_reference_and_execute_bound_exit_routes",
-        "successor_exit_io_contract_replacing_xgb_bridge_with_accepted_entry_outputs",
-        "fresh_v3_and_exit_iql_on_accepted_entry_prediction_evidence",
-        "execute_canonical_full_test_active_exit_replay_on_accepted_chain",
+        "publish_fresh_generation_local_native_pair_for_lifecycle_authority",
+        "rebuild_htf_v4_cache_under_manifest_v3_and_bind_fresh_dataset_lineage",
+        "publish_fresh_combined_entry_exit_lifecycle_dataset",
+        "train_and_prove_same_bundle_entry_exit_artifact",
+        "prove_exact_closed_m1_exit_train_serve_parity_on_same_candidate",
+        "execute_candidate_bound_full_test_unified_entry_exit_replay_and_runtime_parity",
+        "execute_two_consecutive_fresh_live_tail_successors_and_publish_admission",
     ]
-
-    terminal = state["accepted_dataset_terminal_evidence"]
-    terminal_path = Path(terminal["path"])
-    assert terminal_path.is_file()
-    assert hashlib.sha256(terminal_path.read_bytes()).hexdigest() == terminal["sha256"]
-    terminal_state = json.loads(terminal_path.read_text(encoding="utf-8"))
-    assert terminal_state["entry_run_id"] == state["dataset_event_id"]
-    assert terminal_state["state"] == terminal["state"] == "GREEN"
-
-    audits = state["current_audited_dataset_evidence"]
-    assert len(audits) == 9
-    for binding in audits.values():
-        audit_path = Path(binding["path"])
-        audit_bytes = audit_path.read_bytes()
-        assert hashlib.sha256(audit_bytes).hexdigest() == binding["sha256"]
-        audit = json.loads(audit_bytes)
-        assert audit["decision"] == binding["decision"]
-
-    recipe_binding = state["current_smoke_launch_evidence"]["train_recipe_audit"]
-    recipe_path = Path(recipe_binding["path"])
-    recipe_bytes = recipe_path.read_bytes()
-    assert hashlib.sha256(recipe_bytes).hexdigest() == recipe_binding["sha256"]
-    recipe = json.loads(recipe_bytes)
-    assert recipe["schema_version"] == "entry_model_native_seq513_train_recipe_audit_v2"
-    assert recipe["decision"] == recipe_binding["decision"] == "PASS"
-    assert recipe["profile"] == recipe_binding["profile"] == "smoke"
-    assert recipe["run_id"] == recipe_binding["run_id"]
-    assert recipe["source_commit"] == recipe_binding["source_commit"]
-    assert len(recipe["trainer_env"]) == recipe_binding["trainer_env_count"] == 162
     assert (
-        recipe["trainer_env_contract"]["sha256"]
-        == recipe_binding["trainer_env_contract_sha256"]
+        "immutable_live_tail_successor_publication_and_two_event_admission_owner"
+        in repair["completed"]
     )
-    assert (
-        recipe["source_bindings_sha256"]
-        == recipe_binding["source_bindings_sha256"]
-    )
-    assert recipe_binding["dry_run_decision"] == "PASS"
-    assert recipe_binding["execution_state"] == "TERMINAL_FAILED"
-    assert recipe_binding["execution_started"] is True
-    assert recipe_binding["execution_completed"] is True
-    assert recipe_binding["execution_decision"] == "BLOCK"
-    assert recipe_binding["execution_failure_code"] == "TRAIN_FAIL_NO_BEST_STATE"
-    assert recipe_binding["epochs_completed"] == 6
-    assert recipe_binding["out_bundle_present"] is False
-    assert not Path(recipe_binding["out_bundle_dir"]).exists()
+    assert state["current_smoke_launch_evidence"] is None
     failed = state["latest_failed_smoke_execution"]
-    assert failed["run_id"] == recipe_binding["run_id"] == "XAU_SEQ513_SMOKE_20260726_V10"
-    assert failed["dataset_run_id"] == recipe_binding["dataset_run_id"]
-    assert failed["completed_utc"] == recipe_binding["execution_completed_utc"]
-    assert failed["failure_code"] == recipe_binding["execution_failure_code"]
-    assert failed["epochs_completed"] == recipe_binding["epochs_completed"]
+    assert failed["run_id"] == "XAU_SEQ513_SMOKE_20260726_V10"
     assert failed["bundle_created"] is False
-    assert subprocess.run(
-        [
-            "git",
-            "merge-base",
-            "--is-ancestor",
-            recipe_binding["source_commit"],
-            "HEAD",
-        ],
-        cwd=REPO,
-        check=False,
-    ).returncode == 0
 
     rejected = state["latest_rejected_downstream_evidence"]
     rejected_path = Path(rejected["path"])
     assert hashlib.sha256(rejected_path.read_bytes()).hexdigest() == rejected["sha256"]
 
     blockers = "\n".join(state["blockers"])
-    assert "No smoke model" in blockers
+    assert "No accepted candidate/direction bundle" in blockers
     # The optimization-throughput hypothesis this line used to pin was withdrawn
     # on 2026-07-27 after V14 confirmed the balanced-sampler prior mismatch by
     # measurement. The blocker now records the settled cause; V8/V9/V10 remain
@@ -220,10 +217,10 @@ def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
     assert "The FLAT-collapse cause is settled by measurement" in blockers
     assert "V8, V9 and V10 remain immutable failure evidence" in blockers
     assert "optimization-throughput hypothesis" in blockers
-    assert "source-repaired only" in blockers
+    assert "source-repaired" in blockers
     assert "transactional finalizer/recovery" in blockers
-    assert "existing sizing/replay owner now has a canonical full-TEST producer" in blockers
-    assert "has not run on a compliant fresh artifact chain" in blockers
+    assert "unified lifecycle materializer/loader" in blockers
+    assert "No fresh native-manifest-bound lifecycle dataset" in blockers
     assert "no canonical immutable" not in blockers
 
 
@@ -243,10 +240,11 @@ def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> N
         "## Full Handover (--verbose)\n", maxsplit=1
     )[1]
     assert rendered_handover == authoritative_handover
-    assert "## Exact Entry contract" in rendered_handover
-    assert "xau_seq513_model_native_direction_v4" in rendered_handover
-    assert "## Required evidence before Entry can open" in rendered_handover
-    assert "## Operational takeover" in rendered_handover
+    assert "## Current feature architecture" in rendered_handover
+    assert "## What is implemented" in rendered_handover
+    assert "## What remains empirically unproven or unadmitted" in rendered_handover
+    assert "## Next implementation sequence" in rendered_handover
+    assert "## Takeover" in rendered_handover
     assert rendered_handover.splitlines()[-1] == authoritative_handover.splitlines()[-1]
 
 
@@ -272,7 +270,7 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
         )
     )
     digest = hashlib.sha256()
-    digest.update(b"gx1-takeover-authority-v1\0")
+    digest.update(b"gx1-takeover-authority-v2\0")
     for index, authority_path in enumerate(AUTHORITY_PATHS):
         path = viewer_repo / authority_path.relative_to(REPO)
         path_bytes = str(path).encode("utf-8")
@@ -288,10 +286,11 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "decision: BLOCK" in result.stdout
     assert "head_commit:" in result.stdout
     assert "changed_path_count:" in result.stdout
+    assert re.search(r"worktree_fingerprint: [0-9a-f]{64}", result.stdout)
     assert "## Host capacity" not in result.stdout
     assert "## Active GX1 process groups" not in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
-    assert len(result.stdout.encode("utf-8")) < 320
+    assert len(result.stdout.encode("utf-8")) < 420
 
 
 def test_control_surface_handover_alias_uses_current_handover_viewer() -> None:
@@ -309,6 +308,22 @@ def test_control_surface_handover_alias_uses_current_handover_viewer() -> None:
     assert "decision: BLOCK" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert "SMART JOINT POLICY PROMOTED" not in result.stdout
+
+
+def test_control_surface_handover_alias_exposes_minimal_resume_check() -> None:
+    result = subprocess.run(
+        ["bash", str(CONTROL), "handover", "--check"],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "mode: check" in result.stdout
+    assert "authority_fingerprint:" in result.stdout
+    assert "## Resume boundary" not in result.stdout
 
 
 def test_control_surface_exposes_only_exact_model_native_routes() -> None:
@@ -362,7 +377,84 @@ def test_control_surface_exposes_only_exact_model_native_routes() -> None:
         assert f"  {stale_route}\n" not in result.stdout
     assert "  entry-exit-" not in source
     assert "  exit-transformer-" not in source
-    assert "Exit evidence remains unavailable" in result.stdout
+    assert (
+        "Unified Exit evidence is admitted only through the\n"
+        "same-candidate, full-TEST producer route above."
+    ) in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("mode", "omitted", "expected"),
+    [
+        ("bootstrap", "--start-utc", "requires explicit --start-utc"),
+        ("successor", "--parent-root", "requires explicit --parent-root"),
+        (
+            "successor",
+            "--expected-parent-manifest-sha256",
+            "requires explicit --expected-parent-manifest-sha256",
+        ),
+    ],
+)
+def test_native_source_route_exposes_exact_bootstrap_or_successor_contract(
+    mode: str,
+    omitted: str,
+    expected: str,
+) -> None:
+    required = {
+        "--publication-mode": mode,
+        "--vedtak": "UNIT_NATIVE_SOURCE",
+        "--start-utc": "2026-07-01T00:00:00Z",
+        "--end-utc": "2026-07-02T00:00:00Z",
+        "--out-root": "/tmp/native-source",
+        "--parent-root": "/tmp/native-parent",
+        "--expected-parent-manifest-sha256": "1" * 64,
+    }
+    argv = ["bash", str(CONTROL), "model-native-native-m5-source"]
+    for flag, value in required.items():
+        if flag != omitted:
+            argv.extend((flag, value))
+
+    result = subprocess.run(
+        argv,
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert expected in result.stderr
+
+
+def test_launch_finalizer_route_requires_live_tail_admission() -> None:
+    required = {
+        "--accepted-bundle-dir": "/tmp/bundle",
+        "--sizing-adoption-json": "/tmp/sizing.json",
+        "--joint-exit-proof-json": "/tmp/exit.json",
+        "--sizing-runtime-parity-json": "/tmp/sizing-parity.json",
+        "--serve-parity-json": "/tmp/serve.json",
+        "--direction-pocket-json": "/tmp/pocket.json",
+        "--adaptation-lifecycle-json": "/tmp/lifecycle.json",
+        "--launch-vedtak-json": "/tmp/vedtak.json",
+        "--transaction-id": "UNIT_LAUNCH",
+        "--max-trades": "1",
+    }
+    argv = ["bash", str(CONTROL), "model-native-finalize-launch"]
+    for flag, value in required.items():
+        argv.extend((flag, value))
+
+    result = subprocess.run(
+        argv,
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "requires explicit --live-tail-admission-json" in result.stderr
 
 
 def test_candidate_readiness_route_requires_exact_trainability_event() -> None:
@@ -424,53 +516,16 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     assert "audit_entry_foundation_smoke_bundle_v1" in audit
 
 
-def test_v3_dataset_route_extends_existing_owner_with_explicit_inputs() -> None:
+def test_retired_separate_exit_dataset_route_is_absent() -> None:
     source = CONTROL.read_text(encoding="utf-8")
-    route = source.split("  model-native-v3-exit-dataset)", 1)[1].split(
-        "    ;;", 1
-    )[0]
-
-    for flag in (
-        "--run-id",
-        "--prediction-parquet",
-        "--prediction-report-json",
-        "--entry-bundle-dir",
-        "--entry-dataset-dir",
-        "--source-tape-parquet",
-        "--xgb-bundle-dir",
-        "--prebuilt-pair-manifest",
-        "--prebuilt-generation-root",
-        "--train-rank-reference-npz",
-        "--train-rank-reference-sha256",
-        "--expected-model",
-        "--expected-splits",
-        "--out-dir",
-    ):
-        assert flag in route
-    assert "gx1_capped_run.sh" in route
-    assert "-m gx1.exits.training.thin_record_dataset materialize" in route
+    assert "model-native-v3-exit-dataset" not in source
+    assert "gx1.exits.training.thin_record_dataset" not in source
 
 
-def test_canonical_active_exit_replay_route_requires_exact_bound_inputs() -> None:
+def test_pre_unified_active_registry_replay_route_is_absent() -> None:
     source = CONTROL.read_text(encoding="utf-8")
-    route = source.split(
-        "  model-native-canonical-active-exit-replay)", 1
-    )[1].split("    ;;", 1)[0]
-
-    for flag in (
-        "--calibration",
-        "--proof",
-        "--artifact-registry",
-        "--source-tape",
-        "--prebuilt-pair-manifest",
-        "--prebuilt-generation-root",
-        "--train-rank-reference-npz",
-        "--train-rank-reference-sha256",
-        "--authority-root",
-    ):
-        assert flag in route
-    assert "gx1_capped_run.sh" in route
-    assert "produce-canonical-joint-exit-proof" in route
+    assert "model-native-canonical-active-exit-replay" not in source
+    assert "produce-canonical-joint-exit-proof" not in source
 
 
 def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> None:
@@ -488,6 +543,11 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
         "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
+        "--m1-lifecycle-pair-manifest-json",
+        "--m1-lifecycle-pair-generation-root",
+        "--exit-lifecycle-dir",
+        "--exit-target-lookahead-m1-steps",
+        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--history-start",
@@ -512,6 +572,48 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
         assert retired not in route
 
 
+def test_rebuild_preflight_help_exposes_every_required_lineage_input() -> None:
+    result = subprocess.run(
+        ["bash", str(CONTROL), "--help"],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    usage = result.stdout.split("  model-native-rebuild-preflight \\\n", 1)[1].split(
+        "  model-native-post-rebuild-readiness", 1
+    )[0]
+    for flag in (
+        "--run-id",
+        "--source-parquet",
+        "--canonical-v2-parquet",
+        "--signal-manifest",
+        "--feature-ranking-json",
+        "--rank-reference-npz",
+        "--mtf-cache-dir",
+        "--tape-root",
+        "--m1-lifecycle-pair-manifest-json",
+        "--m1-lifecycle-pair-generation-root",
+        "--exit-lifecycle-dir",
+        "--exit-target-lookahead-m1-steps",
+        "--early-move-threshold-bps",
+        "--output",
+        "--audit-out-dir",
+        "--history-start",
+        "--train-start",
+        "--train-end",
+        "--val-start",
+        "--val-end",
+        "--test-start",
+        "--test-end",
+        "--out-dir",
+    ):
+        assert flag in usage
+
+
 def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() -> None:
     required = {
         "--run-id": "XAU_SEQ513_REBUILD_TEST_V1",
@@ -522,7 +624,12 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         "--rank-reference-npz": "/tmp/rank.npz",
         "--mtf-cache-dir": "/tmp/mtf",
         "--tape-root": "/tmp/tape",
-        "--output": "/tmp/output__HOLD_03B.parquet",
+        "--m1-lifecycle-pair-manifest-json": "/tmp/pair/PAIR_MANIFEST.json",
+        "--m1-lifecycle-pair-generation-root": "/tmp/pair-generations",
+        "--exit-lifecycle-dir": "/tmp/exit-lifecycle",
+        "--exit-target-lookahead-m1-steps": "30",
+        "--early-move-threshold-bps": "4.0",
+        "--output": "/tmp/output__DIR_H24B.parquet",
         "--audit-out-dir": "/tmp/audit",
         "--history-start": "2020-01-01T00:00:00Z",
         "--train-start": "2020-01-02T00:00:00Z",
@@ -549,6 +656,228 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         )
         assert result.returncode == 2
         assert f"requires explicit {missing}" in result.stderr
+
+
+def test_rebuild_route_requires_the_explicit_target_threshold() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    route = source.split("  model-native-rebuild)", 1)[1].split(
+        "    ;;", 1
+    )[0]
+
+    assert "--early-move-threshold-bps" in route
+    assert 'require_flag "$cmd" "$flag" "$@"' in route
+    assert "--early_move_threshold_bps \"$EARLY_MOVE_THRESHOLD_BPS\"" not in route
+
+
+@pytest.mark.parametrize(
+    "missing",
+    (
+        "--m5-prebuilt",
+        "--expected-source-sha256",
+        "--out-dir",
+    ),
+)
+def test_mtf_v4_cache_route_requires_exact_source_binding(
+    missing: str,
+) -> None:
+    required = {
+        "--m5-prebuilt": "/tmp/source.parquet",
+        "--expected-source-sha256": "0" * 64,
+        "--out-dir": "/tmp/new-cache",
+    }
+    argv = ["bash", str(CONTROL), "model-native-mtf-v4-cache"]
+    for flag, value in required.items():
+        if flag != missing:
+            argv.extend((flag, value))
+
+    result = subprocess.run(
+        argv,
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert f"requires explicit {missing}" in result.stderr
+
+
+def test_mtf_v4_cache_route_forbids_contract_override() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(CONTROL),
+            "model-native-mtf-v4-cache",
+            "--contract",
+            "v2",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "fixes --contract in the exact evidence contract" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "missing",
+    (
+        "--native-m1-root",
+        "--native-m5-root",
+        "--vedtak",
+        "--checkpoint-dir",
+        "--pair-manifest",
+        "--generation-root",
+        "--expected-pair-generation-id",
+        "--expected-manifest-sha256",
+        "--live-tail-publication-event-root",
+    ),
+)
+def test_live_tail_pair_route_requires_exact_successor_authority(
+    missing: str,
+) -> None:
+    required = {
+        "--native-m1-root": "/tmp/native-m1",
+        "--native-m5-root": "/tmp/native-m5",
+        "--vedtak": "XAU_LIVE_TAIL_TEST_V1",
+        "--checkpoint-dir": "/tmp/checkpoint",
+        "--pair-manifest": "/tmp/pair.json",
+        "--generation-root": "/tmp/generations",
+        "--expected-pair-generation-id": "1" * 64,
+        "--expected-manifest-sha256": "2" * 64,
+        "--live-tail-publication-event-root": "/tmp/events",
+    }
+    argv = ["bash", str(CONTROL), "model-native-live-tail-pair"]
+    for flag, value in required.items():
+        if flag != missing:
+            argv.extend((flag, value))
+
+    result = subprocess.run(
+        argv,
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert f"requires explicit {missing}" in result.stderr
+
+
+def test_live_tail_pair_route_fixes_successor_mode() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(CONTROL),
+            "model-native-live-tail-pair",
+            "--publication-mode",
+            "bootstrap",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert (
+        "fixes --publication-mode in the exact evidence contract"
+        in result.stderr
+    )
+
+
+def test_generic_pair_route_cannot_claim_live_tail_authority() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(CONTROL),
+            "model-native-canonical-pair",
+            "--live-tail-publication-event-root",
+            "/tmp/events",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert (
+        "fixes --live-tail-publication-event-root"
+        in result.stderr
+    )
+
+
+@pytest.mark.parametrize(
+    "missing",
+    (
+        "--pair-manifest",
+        "--generation-root",
+        "--live-tail-admission-event-root",
+        "--parent-live-tail-publication-json",
+        "--parent-live-tail-publication-sha256",
+        "--child-live-tail-publication-json",
+        "--child-live-tail-publication-sha256",
+    ),
+)
+def test_live_tail_admission_route_requires_exact_authority(
+    missing: str,
+) -> None:
+    required = {
+        "--pair-manifest": "/tmp/pair.json",
+        "--generation-root": "/tmp/generations",
+        "--live-tail-admission-event-root": "/tmp/admissions",
+        "--parent-live-tail-publication-json": "/tmp/parent.json",
+        "--parent-live-tail-publication-sha256": "1" * 64,
+        "--child-live-tail-publication-json": "/tmp/child.json",
+        "--child-live-tail-publication-sha256": "2" * 64,
+    }
+    argv = ["bash", str(CONTROL), "model-native-live-tail-admission"]
+    for flag, value in required.items():
+        if flag != missing:
+            argv.extend((flag, value))
+
+    result = subprocess.run(
+        argv,
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert f"requires explicit {missing}" in result.stderr
+
+
+def test_live_tail_admission_route_fixes_operation_mode() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(CONTROL),
+            "model-native-live-tail-admission",
+            "--publication-mode",
+            "successor",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert (
+        "fixes --publication-mode in the exact evidence contract"
+        in result.stderr
+    )
 
 
 def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
@@ -771,3 +1100,40 @@ def test_removed_or_mutating_routes_fail_closed() -> None:
     )
     assert live.returncode == 2
     assert "not exposed" in live.stderr
+
+
+@pytest.mark.parametrize(
+    ("route", "required_flag"),
+    [
+        ("model-native-sizing-capture-instrument", "--authority-root"),
+        ("model-native-sizing-fit-calibration", "--predictions"),
+        ("model-native-sizing-bind-bundle", "--source-bundle-dir"),
+        ("model-native-sizing-materialize-test-oos", "--calibration"),
+        ("model-native-sizing-finalize-test-proof", "--calibration"),
+        (
+            "model-native-sizing-produce-unified-joint-proof",
+            "--calibration",
+        ),
+        ("model-native-sizing-adopt", "--bundle-dir"),
+        ("model-native-sizing-runtime-parity", "--adoption"),
+        ("model-native-serve-parity", "--dataset-dir"),
+        ("model-native-direction-pocket-audit", "--dataset-dir"),
+        ("model-native-adaptation-drift", "--bundle-dir"),
+        ("model-native-adaptation-shadow", "--incumbent-bundle-dir"),
+        ("model-native-adaptation-lifecycle", "--transition"),
+    ],
+)
+def test_downstream_evidence_routes_are_exposed_but_fail_without_exact_inputs(
+    route: str,
+    required_flag: str,
+) -> None:
+    result = subprocess.run(
+        ["bash", str(CONTROL), route],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert f"requires explicit {required_flag}" in result.stderr

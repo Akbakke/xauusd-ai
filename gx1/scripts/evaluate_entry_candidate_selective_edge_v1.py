@@ -27,6 +27,9 @@ from torch.utils.data import DataLoader
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
 )
@@ -57,7 +60,14 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
+    MODEL_DIRECTION_NAME_BY_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
+    MODEL_DIRECTION_SHORT_INDEX,
+    MODEL_DIRECTION_TRADE_INDICES,
+    PUBLIC_FLAT_INDEX,
+    PUBLIC_TRADE_INDEX,
     require_model_direction_decision_contract,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
@@ -70,8 +80,10 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _bundle_dataset_kwargs,
     _device_arg,
 )
-SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-SIDE_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+from gx1.time.session_detector import SESSION_NAME_BY_ID
+
+SESSION_NAMES = SESSION_NAME_BY_ID
+SIDE_NAMES = MODEL_DIRECTION_NAME_BY_INDEX
 CONTRACT_SIGNAL_DIMS = {MODEL_NATIVE_CONTRACT_MODE: MODEL_NATIVE_SIGNAL_DIM}
 EVALUATION_SPLITS = ("train", "val", "test")
 DEFAULT_EVALUATION_SPLITS = ("val", "test")
@@ -147,7 +159,12 @@ def _require_model_direction_ssot(
     ):
         raise RuntimeError("model-native direction contract contains non-finite logits")
     expected_pair = torch.stack(
-        (direction_logits[:, :2].amax(dim=1), direction_logits[:, 2]),
+        (
+            direction_logits[
+                :, list(MODEL_DIRECTION_TRADE_INDICES)
+            ].amax(dim=1),
+            direction_logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        ),
         dim=1,
     )
     if not torch.equal(public_pair_logits, expected_pair):
@@ -158,7 +175,11 @@ def _require_model_direction_ssot(
         )
     direction_decision = torch.argmax(direction_logits, dim=1)
     public_pair_decision = torch.argmax(public_pair_logits, dim=1)
-    expected_pair_decision = (direction_decision == 2).to(dtype=torch.long)
+    expected_pair_decision = torch.where(
+        direction_decision == MODEL_DIRECTION_FLAT_INDEX,
+        PUBLIC_FLAT_INDEX,
+        PUBLIC_TRADE_INDEX,
+    ).to(dtype=torch.long)
     if not torch.equal(public_pair_decision, expected_pair_decision):
         raise RuntimeError(
             "public trade/FLAT argmax does not match final LONG/SHORT/FLAT argmax"
@@ -210,7 +231,11 @@ def _canonical_live_decision_evidence(
     public_pair_probs = _softmax_np(public_pair_logits)
     direction_index = np.argmax(direction_probs, axis=1).astype(np.int64)
     public_pair_index = np.argmax(public_pair_probs, axis=1).astype(np.int64)
-    expected_public_index = (direction_index == 2).astype(np.int64)
+    expected_public_index = np.where(
+        direction_index == MODEL_DIRECTION_FLAT_INDEX,
+        PUBLIC_FLAT_INDEX,
+        PUBLIC_TRADE_INDEX,
+    ).astype(np.int64)
     if not np.array_equal(public_pair_index, expected_public_index):
         raise RuntimeError(
             "canonical public TRADE/FLAT probability argmax does not match "
@@ -219,8 +244,11 @@ def _canonical_live_decision_evidence(
     row_index = np.arange(direction_index.shape[0], dtype=np.int64)
     selection_score = direction_probs[row_index, direction_index].astype(np.float32)
     edge_score = (
-        np.maximum(direction_probs[:, 0], direction_probs[:, 1])
-        - direction_probs[:, 2]
+        np.maximum(
+            direction_probs[:, MODEL_DIRECTION_LONG_INDEX],
+            direction_probs[:, MODEL_DIRECTION_SHORT_INDEX],
+        )
+        - direction_probs[:, MODEL_DIRECTION_FLAT_INDEX]
     ).astype(np.float32)
     return {
         "direction_logits": direction_logits,
@@ -229,11 +257,11 @@ def _canonical_live_decision_evidence(
         "public_trade_flat_decision_logits": public_pair_logits,
         "public_trade_flat_decision_probs": public_pair_probs,
         "public_trade_flat_decision_index": public_pair_index,
-        "p_long": direction_probs[:, 0],
-        "p_short": direction_probs[:, 1],
-        "p_flat": direction_probs[:, 2],
-        "p_trade": public_pair_probs[:, 0],
-        "p_flat_hier": public_pair_probs[:, 1],
+        "p_long": direction_probs[:, MODEL_DIRECTION_LONG_INDEX],
+        "p_short": direction_probs[:, MODEL_DIRECTION_SHORT_INDEX],
+        "p_flat": direction_probs[:, MODEL_DIRECTION_FLAT_INDEX],
+        "p_trade": public_pair_probs[:, PUBLIC_TRADE_INDEX],
+        "p_flat_hier": public_pair_probs[:, PUBLIC_FLAT_INDEX],
         "edge_score": edge_score,
         "selection_score": selection_score,
     }
@@ -399,15 +427,19 @@ def _pnl_proxy_for_side(frame: pd.DataFrame) -> np.ndarray:
         short_score
     ).all():
         raise RuntimeError("canonical utility evidence contains non-finite values")
-    if not set(side.astype(np.int64)).issubset({0, 1, 2}) or not np.array_equal(
-        side, side.astype(np.int64)
-    ):
+    if not set(side.astype(np.int64)).issubset(
+        set(MODEL_DIRECTION_NAME_BY_INDEX)
+    ) or not np.array_equal(side, side.astype(np.int64)):
         raise RuntimeError("pred_direction contains values outside LONG/SHORT/FLAT")
     side_int = side.astype(np.int64)
     return np.where(
-        side_int == 2,
+        side_int == MODEL_DIRECTION_FLAT_INDEX,
         0.0,
-        np.where(side_int == 0, long_score, short_score),
+        np.where(
+            side_int == MODEL_DIRECTION_LONG_INDEX,
+            long_score,
+            short_score,
+        ),
     )
 
 
@@ -838,7 +870,11 @@ def _runtime_head_evidence_for_row(
         "entry_trend_regime": str(row["trend_regime"]),
         "model_direction_index": direction_index,
         "model_direction": str(row["model_direction"]),
-        "selected_side": direction_index if direction_index in (0, 1) else None,
+        "selected_side": (
+            direction_index
+            if direction_index in MODEL_DIRECTION_TRADE_INDICES
+            else None
+        ),
         "public_trade_flat_decision": str(
             row["public_trade_flat_decision"]
         ),
@@ -1213,8 +1249,35 @@ def _predict_bundle(
                             _tensor_np(
                                 out,
                                 "family_tf_cooperation_gate",
-                                width=len(MODEL_NATIVE_TRAINING_SPECIALISTS) + 5,
+                                width=(
+                                    len(MODEL_NATIVE_TRAINING_SPECIALISTS) * 5
+                                ),
                             )
+                        )
+                        _feature_gate = out.get("family_tf_feature_gate")
+                        _expected_feature_width = int(
+                            len(meta["multi_tf"]["feature_names"])
+                        )
+                        if (
+                            not isinstance(_feature_gate, torch.Tensor)
+                            or _feature_gate.ndim != 3
+                            or tuple(_feature_gate.shape[1:])
+                            != (5, _expected_feature_width)
+                            or not bool(torch.isfinite(_feature_gate).all().item())
+                        ):
+                            raise RuntimeError(
+                                "exact model-native output family_tf_feature_gate "
+                                f"invalid: observed={getattr(_feature_gate, 'shape', None)} "
+                                f"expected=(*,5,{_expected_feature_width})"
+                            )
+                        extra_chunks.setdefault(
+                            "family_tf_feature_gate", []
+                        ).append(
+                            _feature_gate.detach()
+                            .cpu()
+                            .float()
+                            .numpy()
+                            .reshape(int(_feature_gate.shape[0]), -1)
                         )
                         trendline_rail_logits = _tensor_np(out, "trendline_rail_logits", width=6)
                         trendline_rail_probs = _sigmoid_np(trendline_rail_logits)
@@ -1333,11 +1396,16 @@ def _predict_bundle(
                         f"{model_name}/{split}: dataset lacks required target evidence: "
                         f"{missing_targets}"
                     )
-                if ctx_cat.ndim != 2 or ctx_cat.shape[1] != 5:
+                if (
+                    ctx_cat.ndim != 2
+                    or ctx_cat.shape[1] != len(MODEL_NATIVE_CTX_CAT_FIELDS)
+                ):
                     raise RuntimeError(
                         f"{model_name}/{split}: ctx_cat is not the exact five-field contract"
                     )
-                session_ids = ctx_cat[:, 0].astype(np.int64)
+                session_ids = ctx_cat[
+                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["session_id"]
+                ].astype(np.int64)
                 unknown_sessions = sorted(set(session_ids) - set(SESSION_NAMES))
                 if unknown_sessions:
                     raise RuntimeError(
@@ -1345,8 +1413,12 @@ def _predict_bundle(
                     )
                 frame["session"] = [SESSION_NAMES[int(x)] for x in session_ids]
                 frame["session_id"] = session_ids
-                vol_regime_ids = ctx_cat[:, 1].astype(np.int64)
-                h4_trend_ids = ctx_cat[:, 4].astype(np.int64)
+                vol_regime_ids = ctx_cat[
+                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["vol_regime_id"]
+                ].astype(np.int64)
+                h4_trend_ids = ctx_cat[
+                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["H4_trend_sign_cat"]
+                ].astype(np.int64)
                 if "trend_regime_id" not in frame.columns:
                     raise RuntimeError(
                         f"{model_name}/{split}: exact entry trend_regime_id is missing"
@@ -1368,14 +1440,14 @@ def _predict_bundle(
                 trend_regime_ids = trend_regime_numeric.astype(np.int64)
                 if not np.isin(
                     vol_regime_ids,
-                    np.arange(len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)),
+                    MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"],
                 ).all():
                     raise RuntimeError(
                         f"{model_name}/{split}: invalid entry vol-regime ids"
                     )
                 if not np.isin(
                     h4_trend_ids,
-                    np.arange(len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)),
+                    MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"],
                 ).all():
                     raise RuntimeError(
                         f"{model_name}/{split}: invalid entry H4-trend ids"
@@ -1392,8 +1464,24 @@ def _predict_bundle(
                     MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[int(value)]
                     for value in vol_regime_ids
                 ]
-                frame["atr_bucket"] = ctx_cat[:, 2].astype(np.int64)
-                frame["spread_bucket"] = ctx_cat[:, 3].astype(np.int64)
+                atr_bucket_ids = ctx_cat[
+                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["atr_bucket"]
+                ].astype(np.int64)
+                spread_bucket_ids = ctx_cat[
+                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["spread_bucket"]
+                ].astype(np.int64)
+                if not np.isin(
+                    atr_bucket_ids,
+                    MODEL_NATIVE_CTX_CAT_DOMAINS["atr_bucket"],
+                ).all() or not np.isin(
+                    spread_bucket_ids,
+                    MODEL_NATIVE_CTX_CAT_DOMAINS["spread_bucket"],
+                ).all():
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid entry rank-bucket ids"
+                    )
+                frame["atr_bucket"] = atr_bucket_ids
+                frame["spread_bucket"] = spread_bucket_ids
                 frame["H4_trend_sign_cat"] = h4_trend_ids
                 frame["trend_regime_id"] = trend_regime_ids
                 frame["trend_regime"] = [
@@ -1637,14 +1725,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "external session exclusion is forbidden; session evidence "
             "must be fused into the model-native LONG/SHORT/FLAT decision"
         )
-    if str(getattr(args, "no_xgb_bundle_dir", "") or "").strip() or hasattr(
-        args, "no_xgb_ablation_mode"
-    ):
-        raise RuntimeError(
-            "XGB/bridge ablation controls are retired for the model-native seq513 path"
-        )
     out_dir.mkdir(parents=True, exist_ok=True)
-    os.environ["GX1_V10_MULTI_TF_V2_CACHE_DIR"] = str(mtf_cache_dir)
+    os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(mtf_cache_dir)
 
     failures: list[str] = []
     feature_mask = {"enabled": False}

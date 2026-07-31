@@ -33,11 +33,15 @@ from typing import Any, Dict, List, Optional
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
     MODEL_NATIVE_RUNTIME_POLICY,
-    require_model_native_entry_time,
+    require_model_native_fill_time,
     require_model_native_runtime_evidence,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     require_model_native_sizing_application_record,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    require_unified_exit_output,
+    require_unified_exit_path_envelope,
 )
 
 logger = logging.getLogger(__name__)
@@ -423,7 +427,7 @@ class TradeJournal:
                             dict(persisted_evidence),
                             context="TRADE_JOURNAL_PERSISTED",
                         )
-                        require_model_native_entry_time(
+                        require_model_native_fill_time(
                             persisted_evidence,
                             persisted_entry.get("entry_time"),
                             context="TRADE_JOURNAL_PERSISTED",
@@ -504,8 +508,14 @@ class TradeJournal:
         try:
             # Time the actual I/O operation
             io_start = time.perf_counter()
-            with open(trade_json_path, "w", encoding="utf-8") as f:
+            tmp_path = trade_json_path.with_suffix(
+                trade_json_path.suffix + ".tmp"
+            )
+            with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(trade_journal, f, indent=2, ensure_ascii=False, default=str)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, trade_json_path)
             io_time = time.perf_counter() - io_start
             
             # Log journal I/O time (only periodically to avoid spam)
@@ -540,6 +550,8 @@ class TradeJournal:
         applied_size_multiplier: Optional[float] = None,
         sizing_application: Optional[Dict[str, Any]] = None,
         atr_bps: Optional[float] = None,
+        model_bundle_binding: Optional[Dict[str, Any]] = None,
+        entry_source_pair_binding: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Persist the exact model evidence and the separate execution facts.
 
@@ -560,7 +572,7 @@ class TradeJournal:
                     evidence,
                     context="TRADE_JOURNAL_ENTRY",
                 )
-                require_model_native_entry_time(
+                require_model_native_fill_time(
                     evidence,
                     entry_time,
                     context="TRADE_JOURNAL_ENTRY",
@@ -653,6 +665,23 @@ class TradeJournal:
                         "[TRADE_JOURNAL_MARKET_EVIDENCE_RANGE] "
                         + json.dumps(parsed_market_values, sort_keys=True)
                     )
+                from gx1.execution.v12_trade_state import (
+                    require_trade_model_bundle_binding,
+                    require_trade_source_pair_binding,
+                )
+
+                model_bundle_binding = (
+                    require_trade_model_bundle_binding(
+                        model_bundle_binding,
+                        executable=True,
+                    )
+                )
+                entry_source_pair_binding = (
+                    require_trade_source_pair_binding(
+                        entry_source_pair_binding,
+                        executable=True,
+                    )
+                )
             elif not self._is_execution_smoke_context():
                 raise RuntimeError(
                     "[TRADE_JOURNAL_MODEL_EVIDENCE_MISSING] empty evidence is allowed "
@@ -692,6 +721,12 @@ class TradeJournal:
                 ),
                 "sizing_application": dict(sizing_application or {}),
                 "atr_bps": float(atr_bps) if atr_bps is not None else None,
+                "model_bundle_binding": dict(
+                    model_bundle_binding or {}
+                ),
+                "entry_source_pair_binding": dict(
+                    entry_source_pair_binding or {}
+                ),
             }
             trade_journal["entry_snapshot"] = entry_snapshot
             self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
@@ -790,7 +825,7 @@ class TradeJournal:
                 dict(evidence),
                 context="TRADE_JOURNAL_INDEX",
             )
-            require_model_native_entry_time(
+            require_model_native_fill_time(
                 evidence,
                 entry_snapshot.get("entry_time"),
                 context="TRADE_JOURNAL_INDEX",
@@ -1184,36 +1219,65 @@ class TradeJournal:
         current_pnl_bps: float,
         cum_mfe_bps: float,
         cum_mae_bps: float,
-        iql_action: str,
-        iql_action_id: int,
-        iql_decision_source: str,
-        iql_q_hold: Optional[float] = None,
-        iql_q_exit: Optional[float] = None,
-        iql_q_advantage: Optional[float] = None,
-        v3_should_exit_prob: Optional[float] = None,
-        v3_max_prob_in_trade: Optional[float] = None,
-        v3_consecutive_exits: Optional[int] = None,
-        v3_total_exit_decisions: Optional[int] = None,
-        v3_signal_acceleration: Optional[float] = None,
-        v3_family_argmax: Optional[int] = None,
-        v3_family_logit_max: Optional[float] = None,
-        atr_bps: Optional[float] = None,
+        exit_action: str,
+        exit_action_index: int,
+        exit_action_logits: list[float],
+        exit_action_probs: list[float],
+        exit_decision_source: str,
+        bundle_sha256: str,
+        entry_snapshot_sha256: str,
+        exit_path_envelope_sha256: str,
+        output_evidence_sha256: str,
+        exit_path_envelope: Dict[str, Any],
+        executable_range_bps: Optional[float] = None,
         bars_since_mfe_peak: Optional[int] = None,
         trade_uid: Optional[str] = None,
     ) -> None:
-        """Log per-bar V12 decision context for retrospective trade analysis.
-
-        Captures everything Exit-IQL + V3 saw at this bar. Appended to a list
-        in the trade journal so the full bar-by-bar decision trace is preserved.
-
-        Use for: 'why did IQL hold at bar 23 when V3 was screaming?',
-        'what was MFE drawdown sequence?', 'when did V3 first signal exit?'.
-        """
+        """Log the exact unified-model per-bar Exit decision and identities."""
         if not self.enabled:
             return
         try:
             trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
-            trade_journal.setdefault("v12_bar_decisions", []).append({
+            entry_record = trade_journal.get("entry_snapshot")
+            if not isinstance(entry_record, dict):
+                raise RuntimeError("unified Exit journal requires Entry snapshot")
+            entry_evidence = entry_record.get("model_evidence")
+            if not isinstance(entry_evidence, dict) or not entry_evidence:
+                raise RuntimeError("unified Exit journal requires model Entry evidence")
+            exit_output = {
+                "exit_action_logits": list(exit_action_logits),
+                "exit_action_probs": list(exit_action_probs),
+                "exit_action_index": exit_action_index,
+                "action": exit_action,
+                "decision_source": exit_decision_source,
+                "bundle_sha256": bundle_sha256,
+                "entry_snapshot_sha256": entry_snapshot_sha256,
+                "exit_path_envelope_sha256": exit_path_envelope_sha256,
+                "output_evidence_sha256": output_evidence_sha256,
+            }
+            validated_path = require_unified_exit_path_envelope(
+                exit_path_envelope,
+                context="TRADE_JOURNAL_UNIFIED_EXIT",
+            )
+            if (
+                timestamp != validated_path["last_closed_m1_bar_ts"]
+                or bars_in_trade != validated_path["bars_in_trade"]
+                or bid != validated_path["path_rows"][-1]["bid_close"]
+                or ask != validated_path["path_rows"][-1]["ask_close"]
+            ):
+                raise RuntimeError(
+                    "unified Exit journal bar identity differs from "
+                    "the exact closed M1 envelope"
+                )
+            require_unified_exit_output(
+                exit_output,
+                context="TRADE_JOURNAL_UNIFIED_EXIT",
+                expected_bundle_sha256=bundle_sha256,
+                entry_snapshot=entry_evidence,
+                exit_path_envelope=validated_path,
+            )
+            bar_record = {
+                "schema_version": "gx1_unified_exit_journal_bar_v1",
                 "timestamp": timestamp,
                 "bars_in_trade": bars_in_trade,
                 "bid": bid, "ask": ask,
@@ -1221,25 +1285,65 @@ class TradeJournal:
                 "cum_mfe_bps": cum_mfe_bps,
                 "cum_mae_bps": cum_mae_bps,
                 "bars_since_mfe_peak": bars_since_mfe_peak,
-                "atr_bps": atr_bps,
-                "iql_action": iql_action,
-                "iql_action_id": iql_action_id,
-                "iql_decision_source": iql_decision_source,
-                "iql_q_hold": iql_q_hold,
-                "iql_q_exit": iql_q_exit,
-                "iql_q_advantage": iql_q_advantage,
-                "v3_should_exit_prob": v3_should_exit_prob,
-                "v3_max_prob_in_trade": v3_max_prob_in_trade,
-                "v3_consecutive_exits": v3_consecutive_exits,
-                "v3_total_exit_decisions": v3_total_exit_decisions,
-                "v3_signal_acceleration": v3_signal_acceleration,
-                "v3_family_argmax": v3_family_argmax,
-                "v3_family_logit_max": v3_family_logit_max,
-            })
+                "executable_range_bps": executable_range_bps,
+                "exit_action": exit_action,
+                "exit_action_index": exit_action_index,
+                "exit_action_logits": list(exit_action_logits),
+                "exit_action_probs": list(exit_action_probs),
+                "exit_decision_source": exit_decision_source,
+                "bundle_sha256": bundle_sha256,
+                "entry_snapshot_sha256": entry_snapshot_sha256,
+                "exit_path_envelope_sha256": exit_path_envelope_sha256,
+                "output_evidence_sha256": output_evidence_sha256,
+                "exit_path_envelope": validated_path,
+            }
+            decisions = trade_journal.setdefault(
+                "v12_bar_decisions",
+                [],
+            )
+            if not isinstance(decisions, list):
+                raise RuntimeError(
+                    "unified Exit journal decision history is invalid"
+                )
+            exact_replay = [
+                existing
+                for existing in decisions
+                if isinstance(existing, dict)
+                and existing.get("output_evidence_sha256")
+                == output_evidence_sha256
+            ]
+            if exact_replay:
+                if len(exact_replay) != 1 or exact_replay[0] != bar_record:
+                    raise RuntimeError(
+                        "unified Exit journal hash replay differs from "
+                        "the existing decision"
+                    )
+                return
+            identity_collision = [
+                existing
+                for existing in decisions
+                if isinstance(existing, dict)
+                and (
+                    existing.get("timestamp") == timestamp
+                    or existing.get("bars_in_trade") == bars_in_trade
+                )
+            ]
+            if identity_collision:
+                raise RuntimeError(
+                    "unified Exit journal bar identity already has "
+                    "a different model decision"
+                )
+            decisions.append(bar_record)
             self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
-        except Exception as e:
+        except Exception as exc:
             key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
-            logger.warning(f"[TRADE_JOURNAL] Failed to log v12 bar decision for key={key_str}: {e}")
+            logger.exception(
+                "[TRADE_JOURNAL] Failed to log v12 bar decision for key=%s",
+                key_str,
+            )
+            raise RuntimeError(
+                f"[TRADE_JOURNAL_V12_BAR_DECISION_FAILED] trade_key={key_str}"
+            ) from exc
 
     def close(self) -> None:
         """Close journal and flush all pending writes."""

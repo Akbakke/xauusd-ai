@@ -25,6 +25,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import require_newest_immutable_event
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import required_training_specialists_for_mode
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -752,7 +755,7 @@ def audit_model_native_replay_trades(trades: pd.DataFrame) -> dict[str, Any]:
                 f"max_abs_error={probability_sum_max_abs_error}"
             )
         if np.isfinite(probability_matrix).all() and "side" in trades.columns:
-            expected_side = np.asarray(["LONG", "SHORT", "FLAT"])[
+            expected_side = np.asarray(CLASS_ORDER)[
                 np.argmax(probability_matrix, axis=1)
             ]
             observed_side = trades["side"].astype(str).str.upper().to_numpy()

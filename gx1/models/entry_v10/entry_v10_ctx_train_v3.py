@@ -25,7 +25,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Mapping, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -39,6 +39,7 @@ from sklearn.metrics import accuracy_score
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -102,8 +103,14 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     require_learned_component_movement_metadata,
 )
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    NEUTRAL_EFFECTIVE_INIT as TF_INPUT_SCALE_NEUTRAL_INIT,
     TF_NAMES as TF_INPUT_SCALE_NAMES,
     build_tf_input_scale_contract,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UnifiedExitLifecycleCorpus,
+    UnifiedExitLifecycleSplit,
+    require_unified_exit_lifecycle_authority_evidence,
 )
 from gx1.models.entry_v10.entry_v10_input_normalization import (
     TrainNormalizationArtifacts,
@@ -118,16 +125,28 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     VOL_FORECAST_HORIZONS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
+    MODEL_DIRECTION_SHORT_INDEX,
+    UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
     model_direction_decision_contract_metadata,
+    unified_entry_exit_contract_metadata,
 )
+from gx1.time.session_detector import SESSION_NAME_BY_ID
 from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
+    require_multi_tf_specialist_routing_v4,
     require_model_native_context_specialist_routing,
     required_training_specialists_for_mode,
     require_model_native_specialist_contract_mode,
     specialist_model_contract_for_mode,
+)
+from gx1.features.htf_features import (
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_TIMEFRAMES,
 )
 
 
@@ -462,7 +481,18 @@ def _model_native_active_target_failures(
         return failures
 
     direction = numeric["y_direction"]
-    if bool((~np.isin(direction, [0.0, 1.0, 2.0])).any()):
+    if bool(
+        (
+            ~np.isin(
+                direction,
+                [
+                    float(MODEL_DIRECTION_LONG_INDEX),
+                    float(MODEL_DIRECTION_SHORT_INDEX),
+                    float(MODEL_DIRECTION_FLAT_INDEX),
+                ],
+            )
+        ).any()
+    ):
         failures.append(f"{split_name} model-native y_direction must be exact LONG/SHORT/FLAT ids")
     for name in _MODEL_NATIVE_BINARY_TARGET_COLS:
         values = numeric[name]
@@ -481,8 +511,10 @@ def _model_native_active_target_failures(
 _MODEL_NATIVE_COOPERATION_GATE_WIDTHS = {
     "specialist_gate": 8,
     "tf_gate": 5,
-    "family_tf_cooperation_gate": 13,
+    "family_tf_cooperation_gate": 40,
 }
+_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE = (5, MULTI_TF_FEATURE_COUNT_V4)
+_MODEL_NATIVE_FEATURE_TF_GATE_MIN_STD = 1e-6
 
 
 _MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS = {
@@ -509,6 +541,21 @@ def _model_native_active_output_head_failures(out: Dict[str, Any]) -> list[str]:
             )
         elif not bool(torch.isfinite(value).all().item()):
             failures.append(f"output {name} contains non-finite values")
+    feature_gate = out.get("family_tf_feature_gate")
+    if not isinstance(feature_gate, torch.Tensor):
+        failures.append("missing tensor output family_tf_feature_gate")
+    elif (
+        feature_gate.ndim != 3
+        or tuple(feature_gate.shape[1:]) != _MODEL_NATIVE_FEATURE_TF_GATE_SHAPE
+    ):
+        failures.append(
+            "output family_tf_feature_gate "
+            f"shape={tuple(feature_gate.shape)} expected="
+            f"(batch,{_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE[0]},"
+            f"{_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE[1]})"
+        )
+    elif not bool(torch.isfinite(feature_gate).all().item()):
+        failures.append("output family_tf_feature_gate contains non-finite values")
     return failures
 
 
@@ -528,6 +575,47 @@ def _direction_decision_contract_export_failures(
         failures.append("direction_decision_contract split-brain between lock and metadata")
     return failures
 
+
+def _unified_exit_export_failures(
+    lock: Dict[str, Any],
+    meta: Dict[str, Any],
+) -> list[str]:
+    failures: list[str] = []
+    canonical = unified_entry_exit_contract_metadata()
+    if lock.get("unified_entry_exit_contract") != canonical:
+        failures.append(
+            "MASTER_TRANSFORMER_LOCK unified_entry_exit_contract is not canonical"
+        )
+    if meta.get("unified_entry_exit_contract") != canonical:
+        failures.append(
+            "bundle_metadata unified_entry_exit_contract is not canonical"
+        )
+    lock_evidence = lock.get("unified_exit_training_evidence")
+    meta_evidence = meta.get("unified_exit_training_evidence")
+    if (
+        not isinstance(lock_evidence, dict)
+        or lock_evidence.get("decision") != "PASS"
+    ):
+        failures.append(
+            "MASTER_TRANSFORMER_LOCK unified_exit_training_evidence missing"
+        )
+    if lock_evidence != meta_evidence:
+        failures.append(
+            "unified_exit_training_evidence split-brain between lock and metadata"
+        )
+    if isinstance(lock_evidence, dict):
+        try:
+            require_unified_exit_lifecycle_authority_evidence(
+                lock_evidence.get("lifecycle")
+            )
+        except RuntimeError as exc:
+            failures.append(
+                "unified_exit lifecycle M1 authority evidence invalid: "
+                f"{exc}"
+            )
+    return failures
+
+
 # -----------------------------------------------------------------------------
 # Separate legacy-RL import guard (fail-fast). Internal Q/V heads live here.
 # -----------------------------------------------------------------------------
@@ -544,6 +632,7 @@ def _guard_no_rl() -> None:
                 "[ENTRY_V10_CTX_LEGACY_FORBIDDEN] gx1 legacy must not be imported. "
                 f"Found: {mod}"
             )
+
 
 # -----------------------------------------------------------------------------
 # Logging
@@ -972,6 +1061,9 @@ ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS = int(
     float(_env_str("ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS"))
 )
 ENTRY_TRENDLINE_RAIL_AUX_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT"))
+ENTRY_UNIFIED_EXIT_ACTION_WEIGHT = float(
+    _env_str("ENTRY_UNIFIED_EXIT_ACTION_WEIGHT")
+)
 
 
 def _current_model_native_active_loss_weights() -> Dict[str, float]:
@@ -1010,6 +1102,9 @@ def _current_model_native_active_loss_weights() -> Dict[str, float]:
         "ENTRY_HIER_MAE_WEIGHT": float(ENTRY_HIER_MAE_WEIGHT),
         "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT),
         "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
+        "ENTRY_UNIFIED_EXIT_ACTION_WEIGHT": float(
+            ENTRY_UNIFIED_EXIT_ACTION_WEIGHT
+        ),
     }
 
 def _enforce_canonical_train_env_contract() -> None:
@@ -1097,7 +1192,7 @@ def _require_nonneg(name: str, v: float) -> None:
 
 def _build_active_head_names() -> List[str]:
     """Return the one exact model-native learned-component surface."""
-    return list(MODEL_NATIVE_ACTIVE_HEADS)
+    return [*MODEL_NATIVE_ACTIVE_HEADS, "unified_exit"]
 
 
 _EVIDENCE_FUSION_MOVEMENT_KEYS: Tuple[str, ...] = tuple(
@@ -1480,12 +1575,15 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
+    "unified_exit_lifecycle_manifest": (
+        "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
+    ),
 }
 _TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 # Recipe-validated absolute path of the mandatory verified multi-TF V2 disk
 # cache. The launch contract emits this row; it is exact runtime identity, not
 # an ambient control.
-_TRAIN_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V2_CACHE_DIR"
+_TRAIN_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V4_CACHE_DIR"
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
     if not raw.is_absolute():
@@ -1516,6 +1614,7 @@ def _resolve_explicit_train_split_artifacts(
     train_parquet: Path,
     val_parquet: Path,
     test_parquet: Path,
+    unified_exit_lifecycle_manifest_path: Path,
     m5_prebuilt_path: Path,
     dataset_run_id: str,
     profile: str,
@@ -1547,6 +1646,21 @@ def _resolve_explicit_train_split_artifacts(
         m5_prebuilt_path,
         label="m5_prebuilt_path",
     )
+    lifecycle_manifest = _explicit_regular_artifact(
+        unified_exit_lifecycle_manifest_path,
+        label="unified_exit_lifecycle_manifest",
+    )
+    expected_lifecycle_sha256 = _expected_train_artifact_sha256(
+        "unified_exit_lifecycle_manifest"
+    )
+    observed_lifecycle_sha256 = _sha256_file(lifecycle_manifest)
+    if observed_lifecycle_sha256 != expected_lifecycle_sha256:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_ARTIFACT_SHA256_MISMATCH] "
+            "unified_exit_lifecycle_manifest "
+            f"expected={expected_lifecycle_sha256} "
+            f"observed={observed_lifecycle_sha256}"
+        )
     expected_m5_sha256 = _expected_train_artifact_sha256("m5_prebuilt_path")
     observed_m5_sha256 = _sha256_file(m5_prebuilt)
     if observed_m5_sha256 != expected_m5_sha256:
@@ -2038,18 +2152,30 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
         & ((-utility_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
     )
 
-    expected_direction = np.full(len(df), 2.0, dtype=np.float64)
+    expected_direction = np.full(
+        len(df),
+        float(MODEL_DIRECTION_FLAT_INDEX),
+        dtype=np.float64,
+    )
     only_long = tradable_long & (~tradable_short)
     only_short = tradable_short & (~tradable_long)
     both = tradable_long & tradable_short
-    expected_direction[only_long] = 0.0
-    expected_direction[only_short] = 1.0
-    expected_direction[both & (expected_long_utility >= expected_short_utility)] = 0.0
-    expected_direction[both & (expected_short_utility > expected_long_utility)] = 1.0
+    expected_direction[only_long] = float(MODEL_DIRECTION_LONG_INDEX)
+    expected_direction[only_short] = float(MODEL_DIRECTION_SHORT_INDEX)
+    expected_direction[
+        both & (expected_long_utility >= expected_short_utility)
+    ] = float(MODEL_DIRECTION_LONG_INDEX)
+    expected_direction[
+        both & (expected_short_utility > expected_long_utility)
+    ] = float(MODEL_DIRECTION_SHORT_INDEX)
 
     expected_scalar_bad = np.zeros(len(df), dtype=np.float64)
-    long_rows = (y_trade > 0.5) & (y_side == 0)
-    short_rows = (y_trade > 0.5) & (y_side == 1)
+    long_rows = (y_trade > 0.5) & (
+        y_side == MODEL_DIRECTION_LONG_INDEX
+    )
+    short_rows = (y_trade > 0.5) & (
+        y_side == MODEL_DIRECTION_SHORT_INDEX
+    )
     flat_rows = y_trade <= 0.5
     expected_scalar_bad[long_rows] = y_long_bad[long_rows]
     expected_scalar_bad[short_rows] = y_short_bad[short_rows]
@@ -2064,18 +2190,45 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
     ).astype(np.float32).astype(np.float64)
 
     checks = {
-        "y_direction contains values outside LONG/SHORT/FLAT": ~np.isin(y_direction, [0.0, 1.0, 2.0]),
-        "trade rows have y_direction FLAT": (y_trade > 0.5) & (y_direction == 2),
-        "LONG direction rows are not marked y_trade": (y_direction == 0) & (y_trade <= 0.5),
-        "SHORT direction rows are not marked y_trade": (y_direction == 1) & (y_trade <= 0.5),
-        "FLAT direction rows are marked y_trade": (y_direction == 2) & (y_trade > 0.5),
+        "y_direction contains values outside LONG/SHORT/FLAT": ~np.isin(
+            y_direction,
+            [
+                MODEL_DIRECTION_LONG_INDEX,
+                MODEL_DIRECTION_SHORT_INDEX,
+                MODEL_DIRECTION_FLAT_INDEX,
+            ],
+        ),
+        "trade rows have y_direction FLAT": (y_trade > 0.5)
+        & (y_direction == MODEL_DIRECTION_FLAT_INDEX),
+        "LONG direction rows are not marked y_trade": (
+            y_direction == MODEL_DIRECTION_LONG_INDEX
+        )
+        & (y_trade <= 0.5),
+        "SHORT direction rows are not marked y_trade": (
+            y_direction == MODEL_DIRECTION_SHORT_INDEX
+        )
+        & (y_trade <= 0.5),
+        "FLAT direction rows are marked y_trade": (
+            y_direction == MODEL_DIRECTION_FLAT_INDEX
+        )
+        & (y_trade > 0.5),
         "y_tradable mismatches y_trade": np.abs(y_tradable - y_trade) > 1e-5,
         "trade rows have y_side_mask off": (y_trade > 0.5) & (y_side_mask <= 0.5),
         "flat rows have y_side_mask on": flat_rows & (y_side_mask > 0.5),
-        "LONG trade rows have non-LONG y_side": long_rows & (y_side != 0),
-        "SHORT trade rows have non-SHORT y_side": short_rows & (y_side != 1),
-        "LONG direction rows have non-LONG y_side": (y_direction == 0) & (y_side_mask > 0.5) & (y_side != 0),
-        "SHORT direction rows have non-SHORT y_side": (y_direction == 1) & (y_side_mask > 0.5) & (y_side != 1),
+        "LONG trade rows have non-LONG y_side": long_rows
+        & (y_side != MODEL_DIRECTION_LONG_INDEX),
+        "SHORT trade rows have non-SHORT y_side": short_rows
+        & (y_side != MODEL_DIRECTION_SHORT_INDEX),
+        "LONG direction rows have non-LONG y_side": (
+            y_direction == MODEL_DIRECTION_LONG_INDEX
+        )
+        & (y_side_mask > 0.5)
+        & (y_side != MODEL_DIRECTION_LONG_INDEX),
+        "SHORT direction rows have non-SHORT y_side": (
+            y_direction == MODEL_DIRECTION_SHORT_INDEX
+        )
+        & (y_side_mask > 0.5)
+        & (y_side != MODEL_DIRECTION_SHORT_INDEX),
         "y_direction mismatches future outcome side selection": np.abs(y_direction - expected_direction) > 1e-5,
         "scalar y_bad_path mismatches selected side-specific bad-path outcome": np.abs(y_bad_path - expected_scalar_bad) > 1e-5,
         "mfe_first_n_bps mismatches selected side-specific MFE": np.abs(mfe_first - expected_mfe) > 1e-5,
@@ -2144,15 +2297,32 @@ def _log_label_distribution(parquet_path: Path, split: str) -> None:
 
     if "ctx_cat" in df.columns:
         try:
-            sess_ids = df["ctx_cat"].apply(lambda v: int(v[0]) if isinstance(v, (list, tuple)) and len(v) > 0 else None)
+            session_index = MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["session_id"]
+            sess_ids = df["ctx_cat"].apply(
+                lambda value: (
+                    int(value[session_index])
+                    if isinstance(value, (list, tuple))
+                    and len(value) > session_index
+                    else None
+                )
+            )
             df_s = pd.DataFrame({"y": y, "session_id": sess_ids}).dropna(subset=["session_id"])
             if not df_s.empty:
                 for sid, grp in df_s.groupby("session_id"):
                     n_s = int(len(grp))
-                    long_rate_s = float((grp["y"] == 0).mean())
-                    short_rate_s = float((grp["y"] == 1).mean())
-                    flat_rate_s = float((grp["y"] == 2).mean())
-                    session_name = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}.get(int(sid), "UNKNOWN")
+                    long_rate_s = float(
+                        (grp["y"] == MODEL_DIRECTION_LONG_INDEX).mean()
+                    )
+                    short_rate_s = float(
+                        (grp["y"] == MODEL_DIRECTION_SHORT_INDEX).mean()
+                    )
+                    flat_rate_s = float(
+                        (grp["y"] == MODEL_DIRECTION_FLAT_INDEX).mean()
+                    )
+                    session_name = SESSION_NAME_BY_ID.get(
+                        int(sid),
+                        "UNKNOWN",
+                    )
                     log.info(
                         "[ENTRY_LABEL_BY_SESSION_PROOF] split=%s session=%s session_id=%s n=%d long_rate=%.6f short_rate=%.6f flat_rate=%.6f",
                         split,
@@ -2174,7 +2344,7 @@ def _log_label_distribution(parquet_path: Path, split: str) -> None:
 # dataset instance so one source path can produce only one in-process object.
 _MULTI_TF_CACHE: Dict[str, Dict[str, pd.DataFrame]] = {}
 _MULTI_TF_ACTIVE_CACHE_KEYS: Dict[str, str] = {}
-_MULTI_TF_CACHE_CONTRACT = "V2_CAUSAL"
+_MULTI_TF_CACHE_CONTRACT = "V4_EIGHT_FAMILY_CAUSAL"
 
 
 def _multi_tf_cache_key(
@@ -2211,10 +2381,10 @@ def _multi_tf_cache_key(
     )
 
 
-def _prebuild_multi_tf_v2_features_once(
+def _prebuild_multi_tf_features_once(
     m5_prebuilt_path: Path,
 ) -> Dict[str, pd.DataFrame]:
-    """Load/build exact V2 tables once under a byte-bound source identity."""
+    """Load/build exact V4 tables once under a byte-bound source identity."""
 
     supplied = Path(m5_prebuilt_path).expanduser()
     absolute = supplied if supplied.is_absolute() else Path.cwd() / supplied
@@ -2231,7 +2401,7 @@ def _prebuild_multi_tf_v2_features_once(
     if not m5_path.is_file() or m5_path.is_symlink():
         raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
     source_sha256 = _sha256_file(m5_path)
-    disk_cache_raw = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR", "").strip()
+    disk_cache_raw = os.environ.get("GX1_V10_MULTI_TF_V4_CACHE_DIR", "").strip()
     backend_locator = (
         f"disk_path:{Path(disk_cache_raw).expanduser().resolve()}"
         if disk_cache_raw
@@ -2250,10 +2420,10 @@ def _prebuild_multi_tf_v2_features_once(
         return active_cached
 
     if disk_cache_raw:
-        from gx1.features.htf_features import load_multi_tf_v2_cache
+        from gx1.features.htf_features import load_multi_tf_cache
 
-        loaded = load_multi_tf_v2_cache(disk_cache_raw)
-        # The verified V2 cache binds its own full-history canonical M5 source
+        loaded = load_multi_tf_cache(disk_cache_raw)
+        # The verified V4 cache binds its own full-history canonical M5 source
         # (the cascade-audited canonical-v3 parquet). The trainer's
         # --m5-prebuilt-path is the model-range seq/snapshot source — a
         # distinct identity bound through the split manifests — so the cache
@@ -2329,7 +2499,7 @@ def _prebuild_multi_tf_v2_features_once(
         _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
         return cached
 
-    from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+    from gx1.features.htf_features import build_multi_tf_per_bar_features_v4
 
     load_cols = ["time", "open", "high", "low", "close", "volume"]
     import pyarrow.parquet as pq
@@ -2342,7 +2512,7 @@ def _prebuild_multi_tf_v2_features_once(
             f"{missing}"
         )
     log.info(
-        "[MULTI_TF] pre-building exact V2 causal features once: %s",
+        "[MULTI_TF] pre-building exact V4 eight-family features once: %s",
         m5_path.name,
     )
     m5 = pd.read_parquet(m5_path, columns=load_cols)
@@ -2350,7 +2520,7 @@ def _prebuild_multi_tf_v2_features_once(
     m5 = m5.set_index("time").sort_index()
     for column in ("open", "high", "low", "close", "volume"):
         m5[column] = m5[column].astype(np.float32)
-    feats = build_multi_tf_per_bar_features_v2(m5)
+    feats = build_multi_tf_per_bar_features_v4(m5)
     del m5
     import gc
 
@@ -2432,26 +2602,40 @@ class EntryV10CtxDataset(Dataset):
         parquet_path: Path,
         seq_len: int,
         m5_prebuilt_path: Path,
-        multi_tf_seq_len: int = 96,
-        # Per-TF sequence-length overrides are operational memory/receptive-field knobs.
-        per_tf_seq_lens: Optional[Dict[str, int]] = None,
-        multi_tf_closed_bar: Optional[bool] = None,
+        per_tf_seq_lens: Dict[str, int],
+        multi_tf_closed_bar: bool,
     ):
         self.parquet_path = Path(parquet_path)
         self.seq_len = int(seq_len)
-        self.multi_tf_seq_len = int(multi_tf_seq_len)
-        if multi_tf_closed_bar is False:
+        if multi_tf_closed_bar is not True:
             raise RuntimeError(
-                "ENTRY_MULTI_TF_CAUSALITY: forming higher-timeframe bars are forbidden"
+                "ENTRY_MULTI_TF_CAUSALITY: explicit closed-bar=True is required"
             )
         self._multi_tf_closed_bar = True
-        # per_tf_seq_lens: dict like {"M5": 96, "M15": 96, "H1": 96, "H4": 48, "D1": 30}.
-        # Unset TFs fall back to multi_tf_seq_len.
-        self.per_tf_seq_lens: Dict[str, int] = dict(per_tf_seq_lens) if per_tf_seq_lens else {}
+        expected_timeframes = MULTI_TF_TIMEFRAMES
+        if (
+            not isinstance(per_tf_seq_lens, dict)
+            or tuple(per_tf_seq_lens) != expected_timeframes
+            or any(
+                isinstance(per_tf_seq_lens[tf], bool)
+                or int(per_tf_seq_lens[tf]) <= 0
+                for tf in expected_timeframes
+            )
+        ):
+            raise RuntimeError(
+                "ENTRY_PER_TF_SEQ_LEN_CONTRACT_INVALID: exact ordered positive "
+                "M5/M15/H1/H4/D1 mapping required; fallback is forbidden"
+            )
+        self.per_tf_seq_lens = {
+            tf: int(per_tf_seq_lens[tf]) for tf in expected_timeframes
+        }
         self._multi_tf_feats: Optional[Dict[str, pd.DataFrame]] = None
         self._multi_tf_shift: Optional[Dict[str, pd.Timedelta]] = None
         self._multi_tf_feature_count: int = 0
         self._memmap_tmpdir: Optional[tempfile.TemporaryDirectory] = None
+        self._unified_exit_lifecycle: Optional[
+            UnifiedExitLifecycleSplit
+        ] = None
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
@@ -2672,16 +2856,12 @@ class EntryV10CtxDataset(Dataset):
         # IMPORTANT: cache at module level so train_ds + val_ds share the
         # ~3GB resampled feature tables. Without this, peak memory hits OOM
         # on 15GB hosts (1.5GB parquet × 2 + multi-TF × 2 + train arrays).
-        # MANDATORY V2: 5 TFs (M5/M15/H1/H4/D1) × 25 feats. The V1 (4-TF/17-feat)
-        # path + GX1_V10_MULTI_TF_V2 env-gate were removed 2026-05-26 — multi-TF×5
-        # is the only supported mode (rule: multi_tf_always_mandatory).
+        # Mandatory V4: all eight families on M5/M15/H1/H4/D1. Older generic
+        # V2/V3 matrices are historical cache formats, not trainable inputs.
         from gx1.features.htf_features import (
-            HTF_V2_MATRIX_CONTRACT,
-            HTF_V3_MATRIX_CONTRACT,
-            MULTI_TF_FEATURE_COUNT_V2,
-            MULTI_TF_FEATURE_COUNT_V3,
-            MULTI_TF_PER_BAR_FEATURES_V2,
-            MULTI_TF_PER_BAR_FEATURES_V3,
+            HTF_V4_MATRIX_CONTRACT,
+            MULTI_TF_FEATURE_COUNT_V4,
+            MULTI_TF_PER_BAR_FEATURES_V4,
             MULTI_TF_SHIFT,
         )
         if m5_prebuilt_path is None:
@@ -2694,20 +2874,15 @@ class EntryV10CtxDataset(Dataset):
         # in-process identity includes the exact M5 SHA and, when used, the
         # full byte-bound disk-cache identity. No path-only cache shortcut is
         # permitted.
-        self._multi_tf_feats = _prebuild_multi_tf_v2_features_once(m5_path)
+        self._multi_tf_feats = _prebuild_multi_tf_features_once(m5_path)
         self._multi_tf_shift = MULTI_TF_SHIFT
         self._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
-        # The loaded tables declare their own contract; the Dataset verifies that
-        # declaration instead of assuming one. Pinning the count to V2 here is
-        # what kept the higher timeframes on 25 generic features.
+        # The loaded tables declare their own exact V4 contract; no historical
+        # width is inferred or accepted here.
         _known_contracts = {
-            HTF_V2_MATRIX_CONTRACT: (
-                MULTI_TF_FEATURE_COUNT_V2,
-                MULTI_TF_PER_BAR_FEATURES_V2,
-            ),
-            HTF_V3_MATRIX_CONTRACT: (
-                MULTI_TF_FEATURE_COUNT_V3,
-                MULTI_TF_PER_BAR_FEATURES_V3,
+            HTF_V4_MATRIX_CONTRACT: (
+                MULTI_TF_FEATURE_COUNT_V4,
+                MULTI_TF_PER_BAR_FEATURES_V4,
             ),
         }
         _declared = {
@@ -2724,6 +2899,11 @@ class EntryV10CtxDataset(Dataset):
                 f"[MULTI_TF_CONTRACT_UNKNOWN] {_contract!r} is not a declared "
                 f"per-bar contract: {sorted(_known_contracts)}"
             )
+        if _contract != HTF_V4_MATRIX_CONTRACT:
+            raise RuntimeError(
+                "[MULTI_TF_EIGHT_FAMILY_CONTRACT_REQUIRED] "
+                f"observed={_contract!r} required={HTF_V4_MATRIX_CONTRACT!r}"
+            )
         _expected_count, _expected_names = _known_contracts[_contract]
         for _tf_name, _feats in self._multi_tf_feats.items():
             if int(_feats.shape[1]) != int(_expected_count):
@@ -2739,7 +2919,7 @@ class EntryV10CtxDataset(Dataset):
         self._multi_tf_contract = _contract
         self._multi_tf_feature_names = tuple(_expected_names)
         self._multi_tf_feature_count = int(_expected_count)
-        self._multi_tf_v2 = True
+        self._multi_tf_v4 = True
         log.info(
             "[MULTI_TF_CONTRACT] %s width=%d across %d timeframes",
             _contract,
@@ -2760,7 +2940,6 @@ class EntryV10CtxDataset(Dataset):
         history or indicator warmup fails closed.
         """
         from gx1.features.htf_features import get_last_n_at_or_before
-        default_n = self.multi_tf_seq_len
         out: Dict[str, np.ndarray] = {}
         availability_ts = pd.Timestamp(target_ts) + getattr(
             self,
@@ -2768,7 +2947,12 @@ class EntryV10CtxDataset(Dataset):
             pd.Timedelta(0),
         )
         for tf, feats in self._multi_tf_feats.items():
-            n = int(self.per_tf_seq_lens.get(tf, default_n))
+            try:
+                n = self.per_tf_seq_lens[tf]
+            except KeyError as exc:
+                raise RuntimeError(
+                    f"ENTRY_PER_TF_SEQ_LEN_MISSING: {tf}; fallback is forbidden"
+                ) from exc
             out[f"seq_{tf.lower()}"] = get_last_n_at_or_before(
                 feats, availability_ts, n=n, tf_shift=self._multi_tf_shift[tf],
             )
@@ -2776,6 +2960,26 @@ class EntryV10CtxDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.indices)
+
+    def bind_unified_exit_lifecycle(
+        self,
+        lifecycle: UnifiedExitLifecycleSplit,
+    ) -> None:
+        """Bind the exact split-local Exit episodes to immutable Entry rows."""
+
+        if not isinstance(lifecycle, UnifiedExitLifecycleSplit):
+            raise RuntimeError(
+                "UNIFIED_EXIT_LIFECYCLE_SPLIT_OBJECT_REQUIRED"
+            )
+        if int(lifecycle.entry_row_count) != len(self.df):
+            raise RuntimeError(
+                "UNIFIED_EXIT_LIFECYCLE_ENTRY_ROW_COUNT_MISMATCH: "
+                f"split={lifecycle.split} lifecycle={lifecycle.entry_row_count} "
+                f"dataset={len(self.df)}"
+            )
+        if self._unified_exit_lifecycle is not None:
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ALREADY_BOUND")
+        self._unified_exit_lifecycle = lifecycle
 
     def __getitem__(self, i: int) -> Dict[str, torch.Tensor]:
         if self._advanced:
@@ -2830,6 +3034,10 @@ class EntryV10CtxDataset(Dataset):
             mtf = self._get_multi_tf_window(pd.Timestamp(row["time"]))
             for k, v in mtf.items():
                 out_batch[k] = torch.from_numpy(v)
+            if self._unified_exit_lifecycle is not None:
+                lifecycle_sample = self._unified_exit_lifecycle.sample(t)
+                for name, value in lifecycle_sample.items():
+                    out_batch[name] = torch.from_numpy(value)
             return out_batch
 
 # -----------------------------------------------------------------------------
@@ -4381,11 +4589,29 @@ def _direction_utility_margin_term(
     short_clear = gap <= -min_gap
     terms: list[torch.Tensor] = []
     if bool(long_clear.any().detach().cpu().item()):
-        allowed = torch.maximum(logits[:, 0], logits[:, 2])
-        terms.append(nn.functional.softplus(logits[long_clear, 1] - allowed[long_clear] + margin).mean())
+        allowed = torch.maximum(
+            logits[:, MODEL_DIRECTION_LONG_INDEX],
+            logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        )
+        terms.append(
+            nn.functional.softplus(
+                logits[long_clear, MODEL_DIRECTION_SHORT_INDEX]
+                - allowed[long_clear]
+                + margin
+            ).mean()
+        )
     if bool(short_clear.any().detach().cpu().item()):
-        allowed = torch.maximum(logits[:, 1], logits[:, 2])
-        terms.append(nn.functional.softplus(logits[short_clear, 0] - allowed[short_clear] + margin).mean())
+        allowed = torch.maximum(
+            logits[:, MODEL_DIRECTION_SHORT_INDEX],
+            logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        )
+        terms.append(
+            nn.functional.softplus(
+                logits[short_clear, MODEL_DIRECTION_LONG_INDEX]
+                - allowed[short_clear]
+                + margin
+            ).mean()
+        )
     if not terms:
         return zero
     return weight * torch.stack(terms).mean()
@@ -4426,15 +4652,35 @@ def _direction_side_utility_conviction_term(
         )
 
     gap = long_u - short_u
-    long_mask = (target == 0) & (gap >= min_gap)
-    short_mask = (target == 1) & (gap <= -min_gap)
+    long_mask = (target == MODEL_DIRECTION_LONG_INDEX) & (gap >= min_gap)
+    short_mask = (target == MODEL_DIRECTION_SHORT_INDEX) & (
+        gap <= -min_gap
+    )
     terms: list[torch.Tensor] = []
     if bool(long_mask.any().detach().cpu().item()):
-        wrong = torch.maximum(logits[:, 1], logits[:, 2])
-        terms.append(nn.functional.softplus(wrong[long_mask] - logits[long_mask, 0] + margin).mean())
+        wrong = torch.maximum(
+            logits[:, MODEL_DIRECTION_SHORT_INDEX],
+            logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        )
+        terms.append(
+            nn.functional.softplus(
+                wrong[long_mask]
+                - logits[long_mask, MODEL_DIRECTION_LONG_INDEX]
+                + margin
+            ).mean()
+        )
     if bool(short_mask.any().detach().cpu().item()):
-        wrong = torch.maximum(logits[:, 0], logits[:, 2])
-        terms.append(nn.functional.softplus(wrong[short_mask] - logits[short_mask, 1] + margin).mean())
+        wrong = torch.maximum(
+            logits[:, MODEL_DIRECTION_LONG_INDEX],
+            logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        )
+        terms.append(
+            nn.functional.softplus(
+                wrong[short_mask]
+                - logits[short_mask, MODEL_DIRECTION_SHORT_INDEX]
+                + margin
+            ).mean()
+        )
     if not terms:
         return zero
     return weight * torch.stack(terms).mean()
@@ -4493,11 +4739,29 @@ def _direction_utility_trade_conviction_term(
     short_mask = (gap <= -min_gap) & (short_u >= min_utility) & (short_bad <= max_bad_path)
     terms: list[torch.Tensor] = []
     if bool(long_mask.any().detach().cpu().item()):
-        wrong = torch.maximum(logits[:, 1], logits[:, 2])
-        terms.append(nn.functional.softplus(wrong[long_mask] - logits[long_mask, 0] + margin).mean())
+        wrong = torch.maximum(
+            logits[:, MODEL_DIRECTION_SHORT_INDEX],
+            logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        )
+        terms.append(
+            nn.functional.softplus(
+                wrong[long_mask]
+                - logits[long_mask, MODEL_DIRECTION_LONG_INDEX]
+                + margin
+            ).mean()
+        )
     if bool(short_mask.any().detach().cpu().item()):
-        wrong = torch.maximum(logits[:, 0], logits[:, 2])
-        terms.append(nn.functional.softplus(wrong[short_mask] - logits[short_mask, 1] + margin).mean())
+        wrong = torch.maximum(
+            logits[:, MODEL_DIRECTION_LONG_INDEX],
+            logits[:, MODEL_DIRECTION_FLAT_INDEX],
+        )
+        terms.append(
+            nn.functional.softplus(
+                wrong[short_mask]
+                - logits[short_mask, MODEL_DIRECTION_SHORT_INDEX]
+                + margin
+            ).mean()
+        )
     if not terms:
         return zero
     return weight * torch.stack(terms).mean()
@@ -4554,9 +4818,14 @@ def _direction_utility_triad_ce_term(
     gap = long_u - short_u
     long_mask = (gap >= min_gap) & (long_u >= min_utility) & (long_bad <= max_bad_path)
     short_mask = (gap <= -min_gap) & (short_u >= min_utility) & (short_bad <= max_bad_path)
-    triad_target = torch.full((logits.shape[0],), 2, device=logits.device, dtype=torch.long)
-    triad_target[long_mask] = 0
-    triad_target[short_mask] = 1
+    triad_target = torch.full(
+        (logits.shape[0],),
+        MODEL_DIRECTION_FLAT_INDEX,
+        device=logits.device,
+        dtype=torch.long,
+    )
+    triad_target[long_mask] = MODEL_DIRECTION_LONG_INDEX
+    triad_target[short_mask] = MODEL_DIRECTION_SHORT_INDEX
 
     losses = nn.functional.cross_entropy(logits, triad_target, reduction="none")
     class_counts = torch.bincount(triad_target, minlength=3).to(device=logits.device, dtype=logits.dtype)
@@ -4628,11 +4897,25 @@ def _direction_flat_starvation_term(
         flat_label_rate * torch.as_tensor(pred_fraction, device=logits.device, dtype=logits.dtype),
         torch.as_tensor(pred_floor, device=logits.device, dtype=logits.dtype),
     )
-    values: list[torch.Tensor] = [torch.relu(required_global - hardish_probs[:, 2].mean())]
+    values: list[torch.Tensor] = [
+        torch.relu(
+            required_global
+            - hardish_probs[:, MODEL_DIRECTION_FLAT_INDEX].mean()
+        )
+    ]
 
     flat_logits = logits[flat_mask]
-    wrong_side = torch.maximum(flat_logits[:, 0], flat_logits[:, 1])
-    values.append(nn.functional.softplus(wrong_side - flat_logits[:, 2] + margin).mean())
+    wrong_side = torch.maximum(
+        flat_logits[:, MODEL_DIRECTION_LONG_INDEX],
+        flat_logits[:, MODEL_DIRECTION_SHORT_INDEX],
+    )
+    values.append(
+        nn.functional.softplus(
+            wrong_side
+            - flat_logits[:, MODEL_DIRECTION_FLAT_INDEX]
+            + margin
+        ).mean()
+    )
 
     if ctx_cat is not None and ctx_cat.ndim == 2 and ctx_cat.shape[0] == logits.shape[0]:
         indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
@@ -4644,7 +4927,13 @@ def _direction_flat_starvation_term(
                 if rows < min_rows:
                     continue
                 slice_targets = target_i[mask]
-                flat_count = int((slice_targets == 2).sum().detach().cpu().item())
+                flat_count = int(
+                    (slice_targets == MODEL_DIRECTION_FLAT_INDEX)
+                    .sum()
+                    .detach()
+                    .cpu()
+                    .item()
+                )
                 if flat_count <= 0:
                     continue
                 flat_rate = torch.as_tensor(flat_count / rows, device=logits.device, dtype=logits.dtype)
@@ -4785,6 +5074,76 @@ def _new_cooperation_gate_epoch_accumulator() -> dict[str, dict[str, Any]]:
     }
 
 
+def _new_feature_tf_gate_epoch_accumulator() -> dict[str, Any]:
+    shape = _MODEL_NATIVE_FEATURE_TF_GATE_SHAPE
+    return {
+        "rows": 0,
+        "sum": np.zeros(shape, dtype=np.float64),
+        "sum_sq": np.zeros(shape, dtype=np.float64),
+        "min": np.full(shape, np.inf, dtype=np.float64),
+        "max": np.full(shape, -np.inf, dtype=np.float64),
+    }
+
+
+def _accumulate_feature_tf_gate_epoch(
+    accumulator: dict[str, Any],
+    out: dict[str, Any],
+) -> None:
+    gate = out.get("family_tf_feature_gate")
+    if (
+        not isinstance(gate, torch.Tensor)
+        or gate.ndim != 3
+        or tuple(gate.shape[1:]) != _MODEL_NATIVE_FEATURE_TF_GATE_SHAPE
+        or gate.numel() == 0
+    ):
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE_INVALID] "
+            f"shape={getattr(gate, 'shape', None)}"
+        )
+    values = gate.detach().double()
+    if not bool(torch.isfinite(values).all().item()):
+        raise RuntimeError("[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_NONFINITE]")
+    array = values.cpu().numpy()
+    accumulator["rows"] = int(accumulator["rows"]) + int(array.shape[0])
+    accumulator["sum"] += array.sum(axis=0)
+    accumulator["sum_sq"] += np.square(array).sum(axis=0)
+    accumulator["min"] = np.minimum(accumulator["min"], array.min(axis=0))
+    accumulator["max"] = np.maximum(accumulator["max"], array.max(axis=0))
+
+
+def _finalize_feature_tf_gate_epoch(
+    accumulator: dict[str, Any],
+) -> dict[str, Any]:
+    rows = int(accumulator["rows"])
+    if rows <= 0:
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_EPOCH_EVIDENCE_MISSING]"
+        )
+    mean = np.asarray(accumulator["sum"], dtype=np.float64) / float(rows)
+    variance = (
+        np.asarray(accumulator["sum_sq"], dtype=np.float64) / float(rows)
+        - np.square(mean)
+    )
+    std = np.sqrt(np.maximum(variance, 0.0))
+    minimum = np.asarray(accumulator["min"], dtype=np.float64)
+    maximum = np.asarray(accumulator["max"], dtype=np.float64)
+    if not all(
+        bool(np.isfinite(value).all())
+        for value in (mean, std, minimum, maximum)
+    ):
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_EPOCH_EVIDENCE_INVALID]"
+        )
+    return {
+        "family_tf_feature_gate_rows": rows,
+        "family_tf_feature_gate_mean_weight": mean.reshape(-1).tolist(),
+        "family_tf_feature_gate_std_weight": std.reshape(-1).tolist(),
+        "family_tf_feature_gate_min_observed": minimum.reshape(-1).tolist(),
+        "family_tf_feature_gate_max_observed": maximum.reshape(-1).tolist(),
+        "family_tf_feature_gate_min_std": float(std.min()),
+    }
+
+
 def _accumulate_cooperation_gate_epoch(
     accumulator: dict[str, dict[str, Any]],
     out: dict[str, Any],
@@ -4877,6 +5236,43 @@ def _cooperation_gate_health_failures(stats: dict[str, Any]) -> list[str]:
             failures.append(
                 f"{output_name} entropy={float(entropy):.6f} "
                 f"(must be >= {entropy_floor:.6f})"
+            )
+    feature_count = int(np.prod(_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE))
+    feature_std = np.asarray(
+        stats.get("family_tf_feature_gate_std_weight", ()),
+        dtype=np.float64,
+    )
+    feature_min = np.asarray(
+        stats.get("family_tf_feature_gate_min_observed", ()),
+        dtype=np.float64,
+    )
+    feature_max = np.asarray(
+        stats.get("family_tf_feature_gate_max_observed", ()),
+        dtype=np.float64,
+    )
+    if any(
+        value.shape != (feature_count,) or not np.isfinite(value).all()
+        for value in (feature_std, feature_min, feature_max)
+    ):
+        failures.append(
+            "family_tf_feature_gate epoch-wide evidence is missing or invalid"
+        )
+    else:
+        dead = np.flatnonzero(
+            feature_std <= _MODEL_NATIVE_FEATURE_TF_GATE_MIN_STD
+        )
+        saturated = np.flatnonzero(
+            (feature_min <= 0.0) | (feature_max >= 2.0)
+        )
+        if dead.size:
+            failures.append(
+                "family_tf_feature_gate constant/dead indices="
+                f"{dead.tolist()}"
+            )
+        if saturated.size:
+            failures.append(
+                "family_tf_feature_gate saturated indices="
+                f"{saturated.tolist()}"
             )
     return failures
 
@@ -5450,13 +5846,18 @@ def _selected_side_bad_path_probability_penalty(
         )
 
     bad_mask = bad_path > 0.5
-    flat_bad_mask = bad_mask & (direction == 2)
+    flat_bad_mask = bad_mask & (
+        direction == MODEL_DIRECTION_FLAT_INDEX
+    )
     if bool(flat_bad_mask.any()):
         raise RuntimeError(
             "[ENTRY_SELECTED_SIDE_BAD_PATH_FLAT_TARGET_INVALID] "
             f"rows={int(flat_bad_mask.sum().item())}"
         )
-    invalid_direction_mask = bad_mask & ((direction < 0) | (direction > 1))
+    invalid_direction_mask = bad_mask & (
+        (direction != MODEL_DIRECTION_LONG_INDEX)
+        & (direction != MODEL_DIRECTION_SHORT_INDEX)
+    )
     if bool(invalid_direction_mask.any()):
         invalid = sorted(
             {
@@ -5550,6 +5951,225 @@ def _step_partial_gradient_accumulation(
     return True
 
 
+_UNIFIED_EXIT_MOVEMENT_PREFIXES: Dict[str, Tuple[str, ...]] = {
+    "path_projection": ("exit_path_proj.",),
+    "path_encoder": ("exit_path_encoder.",),
+    "side_embedding": ("exit_side_embedding.",),
+    "entry_path_attention": ("exit_entry_path_attention.",),
+    "entry_path_fusion": (
+        "exit_entry_query_norm.",
+        "exit_fuse.",
+    ),
+    "action_head": ("head_exit_action.",),
+}
+
+
+def _capture_unified_exit_initial_state(
+    model: nn.Module,
+) -> Dict[str, torch.Tensor]:
+    state = model.state_dict()
+    selected = {
+        key: value.detach().cpu().clone()
+        for key, value in state.items()
+        if any(
+            key.startswith(prefix)
+            for prefixes in _UNIFIED_EXIT_MOVEMENT_PREFIXES.values()
+            for prefix in prefixes
+        )
+    }
+    missing_components = [
+        component
+        for component, prefixes in _UNIFIED_EXIT_MOVEMENT_PREFIXES.items()
+        if not any(
+            any(key.startswith(prefix) for prefix in prefixes)
+            for key in selected
+        )
+    ]
+    if missing_components:
+        raise RuntimeError(
+            "[UNIFIED_EXIT_INITIAL_STATE_MISSING] "
+            f"components={missing_components}"
+        )
+    return selected
+
+
+def _unified_exit_movement_proof(
+    initial_state: Mapping[str, torch.Tensor],
+    selected_state: Mapping[str, torch.Tensor],
+    *,
+    selected_checkpoint_epoch: int,
+) -> Dict[str, Any]:
+    parameter_max_abs_delta: Dict[str, float] = {}
+    component_max_abs_delta: Dict[str, float] = {}
+    for key, initial in initial_state.items():
+        selected = selected_state.get(key)
+        if not isinstance(selected, torch.Tensor) or selected.shape != initial.shape:
+            raise RuntimeError(
+                f"[UNIFIED_EXIT_SELECTED_STATE_INVALID] parameter={key}"
+            )
+        delta = float(
+            torch.max(
+                torch.abs(
+                    selected.detach().cpu().to(torch.float64)
+                    - initial.to(torch.float64)
+                )
+            ).item()
+        )
+        if not math.isfinite(delta):
+            raise RuntimeError(
+                f"[UNIFIED_EXIT_MOVEMENT_NONFINITE] parameter={key}"
+            )
+        parameter_max_abs_delta[key] = delta
+    for component, prefixes in _UNIFIED_EXIT_MOVEMENT_PREFIXES.items():
+        deltas = [
+            delta
+            for key, delta in parameter_max_abs_delta.items()
+            if any(key.startswith(prefix) for prefix in prefixes)
+        ]
+        if not deltas:
+            raise RuntimeError(
+                f"[UNIFIED_EXIT_MOVEMENT_COMPONENT_MISSING] {component}"
+            )
+        component_max_abs_delta[component] = max(deltas)
+    dead = [
+        component
+        for component, delta in component_max_abs_delta.items()
+        if delta <= 0.0
+    ]
+    if dead:
+        raise RuntimeError(
+            "[UNIFIED_EXIT_SELECTED_CHECKPOINT_UNTRAINED] "
+            f"components={dead}"
+        )
+    return {
+        "schema_version": "gx1_unified_exit_parameter_movement_v1",
+        "selected_checkpoint_epoch": int(selected_checkpoint_epoch),
+        "component_max_abs_delta": component_max_abs_delta,
+        "parameter_max_abs_delta": parameter_max_abs_delta,
+        "all_exit_components_moved": True,
+    }
+
+
+def _unified_exit_action_loss(
+    model: nn.Module,
+    out: Mapping[str, torch.Tensor],
+    batch: Mapping[str, torch.Tensor],
+    device: torch.device,
+) -> tuple[torch.Tensor, Dict[str, Any]]:
+    """Train Exit from the same full-stack Entry representation and M1 prefix."""
+
+    required = (
+        "exit_path_x",
+        "exit_path_lengths",
+        "exit_side_index",
+        "exit_action_target",
+        "exit_sample_valid",
+    )
+    missing = [
+        name for name in required if not isinstance(batch.get(name), torch.Tensor)
+    ]
+    if missing:
+        raise RuntimeError(
+            f"[UNIFIED_EXIT_TRAIN_BATCH_MISSING] fields={missing}"
+        )
+    shared = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
+    if not isinstance(shared, torch.Tensor) or shared.ndim != 2:
+        raise RuntimeError(
+            "[UNIFIED_EXIT_SHARED_ENTRY_REPRESENTATION_MISSING]"
+        )
+    paths = batch["exit_path_x"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    lengths = batch["exit_path_lengths"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    sides = batch["exit_side_index"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    targets = batch["exit_action_target"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    valid = batch["exit_sample_valid"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    ).bool()
+    if (
+        paths.ndim != 4
+        or lengths.ndim != 2
+        or sides.ndim != 2
+        or targets.ndim != 2
+        or valid.ndim != 2
+        or tuple(paths.shape[:2]) != tuple(valid.shape)
+        or tuple(lengths.shape) != tuple(valid.shape)
+        or tuple(sides.shape) != tuple(valid.shape)
+        or tuple(targets.shape) != tuple(valid.shape)
+        or int(shared.shape[0]) != int(valid.shape[0])
+    ):
+        raise RuntimeError(
+            "[UNIFIED_EXIT_TRAIN_BATCH_SHAPE_INVALID] "
+            f"shared={tuple(shared.shape)} paths={tuple(paths.shape)} "
+            f"lengths={tuple(lengths.shape)} sides={tuple(sides.shape)} "
+            f"targets={tuple(targets.shape)} valid={tuple(valid.shape)}"
+        )
+    flat_valid = valid.reshape(-1)
+    valid_rows = int(flat_valid.sum().item())
+    if valid_rows == 0:
+        return shared.sum() * 0.0, {
+            "rows": 0,
+            "hold_rows": 0,
+            "exit_now_rows": 0,
+            "correct": 0,
+            "raw_loss": 0.0,
+        }
+    expanded_shared = shared.unsqueeze(1).expand(
+        -1,
+        valid.shape[1],
+        -1,
+    ).reshape(-1, shared.shape[1])
+    selected_targets = targets.reshape(-1)[flat_valid].long()
+    if bool(((selected_targets < 0) | (selected_targets > 1)).any()):
+        raise RuntimeError("[UNIFIED_EXIT_ACTION_TARGET_INVALID]")
+    owner = model._orig_mod if hasattr(model, "_orig_mod") else model
+    exit_out = owner.forward_exit_action(
+        entry_shared_representation=expanded_shared[flat_valid],
+        exit_path_x=paths.reshape(
+            -1,
+            paths.shape[2],
+            paths.shape[3],
+        )[flat_valid],
+        exit_path_lengths=lengths.reshape(-1)[flat_valid].long(),
+        exit_side_index=sides.reshape(-1)[flat_valid].long(),
+    )
+    logits = exit_out.get("exit_action_logits")
+    if (
+        not isinstance(logits, torch.Tensor)
+        or tuple(logits.shape) != (valid_rows, 2)
+        or not bool(torch.isfinite(logits).all().item())
+    ):
+        raise RuntimeError("[UNIFIED_EXIT_ACTION_LOGITS_INVALID]")
+    raw_loss = nn.functional.cross_entropy(logits, selected_targets)
+    weight = float(ENTRY_UNIFIED_EXIT_ACTION_WEIGHT)
+    if not math.isfinite(weight) or weight <= 0.0:
+        raise RuntimeError(
+            "[UNIFIED_EXIT_ACTION_LOSS_WEIGHT_INVALID] "
+            f"observed={weight!r} expected>0"
+        )
+    weighted_loss = weight * raw_loss
+    return weighted_loss, {
+        "rows": valid_rows,
+        "hold_rows": int((selected_targets == 0).sum().item()),
+        "exit_now_rows": int((selected_targets == 1).sum().item()),
+        "correct": int(
+            (torch.argmax(logits, dim=1) == selected_targets).sum().item()
+        ),
+        "raw_loss": float(raw_loss.detach().cpu().item()),
+    }
+
+
 def train_epoch(
     model,
     loader,
@@ -5567,8 +6187,8 @@ def train_epoch(
     bad_path_pos_weight: float,
     hier_trade_pos_weight: float,
     hier_bad_path_pos_weight: Any,
+    grad_accum_steps: int,
     scheduler=None,  # GX1_FAST_TRAIN: cosine+warmup scheduler, stepped per opt.step()
-    grad_accum_steps: int = 1,
 ):
     model.train()
     _accum_steps = int(grad_accum_steps)
@@ -5602,6 +6222,7 @@ def train_epoch(
     total_tail_direction = 0.0
     specialist_gate_loss_sum = 0.0
     cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
+    feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator()
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
     n = 0
@@ -5647,6 +6268,11 @@ def train_epoch(
     trendline_rail_rows_sum = 0
     trendline_rising_rows_sum = 0
     trendline_falling_rows_sum = 0
+    unified_exit_loss_sum = 0.0
+    unified_exit_rows = 0
+    unified_exit_hold_rows = 0
+    unified_exit_now_rows = 0
+    unified_exit_correct = 0
 
     for batch in loader:
         non_blocking = device.type == "cuda"
@@ -5677,6 +6303,12 @@ def train_epoch(
         # Grad accum: zero_grad happens AFTER step (or at start of epoch).
         # See loss.backward() / optimizer.step() block below for the gated step.
         out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+        unified_exit_loss, unified_exit_stats = _unified_exit_action_loss(
+            model,
+            out,
+            batch,
+            device,
+        )
         logits = out["direction_logits"]
         path_pred = _require_active_aux_head_prediction(
             out,
@@ -5722,6 +6354,7 @@ def train_epoch(
         )
         specialist_gate_loss, specialist_gate_stats = _specialist_gate_regularization(out, device)
         _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
+        _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out)
         bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
         path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
 
@@ -5813,6 +6446,7 @@ def train_epoch(
             + direction_utility_trade_conviction_term
             + direction_utility_triad_ce_term
             + direction_flat_starvation_term
+            + unified_exit_loss
         )
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
             loss = loss + tail_direction_loss
@@ -5857,7 +6491,8 @@ def train_epoch(
             hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
             loss = loss + hard_neg_prob_loss
         # SYMMETRIC SHORT prob-penalties (run_id v10_symmetric_negatives_20260603) — push down
-        # probs[:,1] (SHORT) on short-negative samples, mirroring the long penalties on probs[:,0].
+        # Canonical SHORT probability on short-negative samples mirrors the
+        # canonical LONG penalty on long-negative samples.
         # This is the direct counterweight to the LONG-suppression. OFF by default (cement).
         if ENTRY_SYMMETRIC_NEGATIVES:
             dead_neg_short_mask = y_dead_negative_short.float() > 0.5
@@ -6030,10 +6665,15 @@ def train_epoch(
         loss = loss + offline_rl_aux_loss(out, batch, device)
 
         preds = torch.argmax(probs, dim=1)
-        short_mask = y == 1
+        short_mask = y == MODEL_DIRECTION_SHORT_INDEX
         if short_mask.any():
             short_total += int(short_mask.sum().item())
-            short_pred_long += int(((preds == 0) & short_mask).sum().item())
+            short_pred_long += int(
+                (
+                    (preds == MODEL_DIRECTION_LONG_INDEX)
+                    & short_mask
+                ).sum().item()
+            )
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
         # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
         if _accum_steps > 1:
@@ -6120,6 +6760,14 @@ def train_epoch(
         trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
         trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
         trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
+        _exit_rows = int(unified_exit_stats["rows"])
+        unified_exit_loss_sum += (
+            float(unified_exit_loss.detach().cpu().item()) * _exit_rows
+        )
+        unified_exit_rows += _exit_rows
+        unified_exit_hold_rows += int(unified_exit_stats["hold_rows"])
+        unified_exit_now_rows += int(unified_exit_stats["exit_now_rows"])
+        unified_exit_correct += int(unified_exit_stats["correct"])
         n += bs
 
     if _accum_count:
@@ -6129,6 +6777,18 @@ def train_epoch(
             scheduler=scheduler,
             configured_steps=_accum_steps,
             observed_steps=_accum_count,
+        )
+    if (
+        unified_exit_rows <= 0
+        or unified_exit_hold_rows <= 0
+        or unified_exit_now_rows <= 0
+        or not math.isfinite(unified_exit_loss_sum)
+        or unified_exit_loss_sum <= 0.0
+    ):
+        raise RuntimeError(
+            "[UNIFIED_EXIT_TRAIN_EPOCH_EVIDENCE_INVALID] "
+            f"rows={unified_exit_rows} hold={unified_exit_hold_rows} "
+            f"exit_now={unified_exit_now_rows} loss_sum={unified_exit_loss_sum}"
         )
 
     stats = {
@@ -6207,8 +6867,18 @@ def train_epoch(
         "trendline_rail_rows": int(trendline_rail_rows_sum),
         "trendline_rising_rows": int(trendline_rising_rows_sum),
         "trendline_falling_rows": int(trendline_falling_rows_sum),
+        "unified_exit_action_loss_mean": (
+            unified_exit_loss_sum / unified_exit_rows
+        ),
+        "unified_exit_action_rows": int(unified_exit_rows),
+        "unified_exit_hold_rows": int(unified_exit_hold_rows),
+        "unified_exit_now_rows": int(unified_exit_now_rows),
+        "unified_exit_action_accuracy": (
+            unified_exit_correct / unified_exit_rows
+        ),
     }
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
+    stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
     return total / max(1, n), stats
 
 
@@ -7404,12 +8074,24 @@ def _direction_ckpt_balance_stats(
         penalty += guard_weight
     score = float(acc) - float(penalty)
     return {
-        "direction_label_rate_long": float(label_rates[0]),
-        "direction_label_rate_short": float(label_rates[1]),
-        "direction_label_rate_flat": float(label_rates[2]),
-        "direction_pred_rate_long": float(pred_rates[0]),
-        "direction_pred_rate_short": float(pred_rates[1]),
-        "direction_pred_rate_flat": float(pred_rates[2]),
+        "direction_label_rate_long": float(
+            label_rates[MODEL_DIRECTION_LONG_INDEX]
+        ),
+        "direction_label_rate_short": float(
+            label_rates[MODEL_DIRECTION_SHORT_INDEX]
+        ),
+        "direction_label_rate_flat": float(
+            label_rates[MODEL_DIRECTION_FLAT_INDEX]
+        ),
+        "direction_pred_rate_long": float(
+            pred_rates[MODEL_DIRECTION_LONG_INDEX]
+        ),
+        "direction_pred_rate_short": float(
+            pred_rates[MODEL_DIRECTION_SHORT_INDEX]
+        ),
+        "direction_pred_rate_flat": float(
+            pred_rates[MODEL_DIRECTION_FLAT_INDEX]
+        ),
         "direction_pred_label_l1": l1_drift,
         "direction_min_pred_to_label": min_pred_to_label,
         "direction_class_balance_guard_ok": guard_ok,
@@ -7489,8 +8171,12 @@ def _direction_hierarchy_output_stats(
         if bool(np.any(edge_mask & finite_side)):
             side_targets = targets_i[edge_mask & finite_side]
             side_preds = side_pred[edge_mask & finite_side]
-            stats["hier_side_pred_long_rate_on_edge"] = float(np.mean(side_preds == 0))
-            stats["hier_side_pred_short_rate_on_edge"] = float(np.mean(side_preds == 1))
+            stats["hier_side_pred_long_rate_on_edge"] = float(
+                np.mean(side_preds == MODEL_DIRECTION_LONG_INDEX)
+            )
+            stats["hier_side_pred_short_rate_on_edge"] = float(
+                np.mean(side_preds == MODEL_DIRECTION_SHORT_INDEX)
+            )
             stats["hier_side_acc_on_edge"] = float(np.mean(side_preds == side_targets))
 
     side_long_prob = _optional_float_1d(side_long_prob_np, n)
@@ -7930,6 +8616,7 @@ def validate(
     total_tail_direction = 0.0
     specialist_gate_loss_sum = 0.0
     cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
+    feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator()
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
     n = 0
@@ -7977,6 +8664,11 @@ def validate(
     trendline_rail_rows_sum = 0
     trendline_rising_rows_sum = 0
     trendline_falling_rows_sum = 0
+    unified_exit_loss_sum = 0.0
+    unified_exit_rows = 0
+    unified_exit_hold_rows = 0
+    unified_exit_now_rows = 0
+    unified_exit_correct = 0
     # V10-AUX-02: read-only accumulators for the cross-head / AUC / realized-target panel.
     _diag_pred: "dict[str, list]" = {k: [] for k in (
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
@@ -8016,6 +8708,12 @@ def validate(
             y_survival_bidir = batch["y_survival_bidir"].to(device, non_blocking=non_blocking)
 
             out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+            unified_exit_loss, unified_exit_stats = _unified_exit_action_loss(
+                model,
+                out,
+                batch,
+                device,
+            )
             _accumulate_active_head_epoch(
                 active_head_epoch,
                 model,
@@ -8037,6 +8735,7 @@ def validate(
             side_logits = out["side_logits"]
             specialist_gate_loss, _specialist_gate_stats = _specialist_gate_regularization(out, device)
             _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
+            _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out)
             bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
             path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
 
@@ -8057,7 +8756,13 @@ def validate(
             hierarchy_side_pred_chunks.append(
                 torch.argmax(side_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
             )
-            hierarchy_side_long_prob_chunks.append(side_probs[:, 0].detach().cpu().numpy().reshape(-1))
+            hierarchy_side_long_prob_chunks.append(
+                side_probs[:, MODEL_DIRECTION_LONG_INDEX]
+                .detach()
+                .cpu()
+                .numpy()
+                .reshape(-1)
+            )
             _diag_lbl["tradable"].append(_np1d(y_tradable))
             _diag_lbl["bad_path"].append(_np1d(y_bad_path))
             _diag_lbl["clean_edge"].append(_np1d(_aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)))
@@ -8156,6 +8861,7 @@ def validate(
                 + direction_utility_trade_conviction_term
                 + direction_utility_triad_ce_term
                 + direction_flat_starvation_term
+                + unified_exit_loss
             )
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
                 loss = loss + tail_direction_loss
@@ -8419,6 +9125,14 @@ def validate(
             trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
             trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
             trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
+            _exit_rows = int(unified_exit_stats["rows"])
+            unified_exit_loss_sum += (
+                float(unified_exit_loss.detach().cpu().item()) * _exit_rows
+            )
+            unified_exit_rows += _exit_rows
+            unified_exit_hold_rows += int(unified_exit_stats["hold_rows"])
+            unified_exit_now_rows += int(unified_exit_stats["exit_now_rows"])
+            unified_exit_correct += int(unified_exit_stats["correct"])
             n += bs
 
             p = probs.cpu().numpy()
@@ -8430,6 +9144,19 @@ def validate(
             short_total += int((y_np == 1).sum())
             if short_total > 0:
                 short_pred_long += int(((pred_np == 0) & (y_np == 1)).sum())
+
+    if (
+        unified_exit_rows <= 0
+        or unified_exit_hold_rows <= 0
+        or unified_exit_now_rows <= 0
+        or not math.isfinite(unified_exit_loss_sum)
+        or unified_exit_loss_sum <= 0.0
+    ):
+        raise RuntimeError(
+            "[UNIFIED_EXIT_VALIDATION_EVIDENCE_INVALID] "
+            f"rows={unified_exit_rows} hold={unified_exit_hold_rows} "
+            f"exit_now={unified_exit_now_rows} loss_sum={unified_exit_loss_sum}"
+        )
 
     preds_np = np.asarray(preds)
     targets_np = np.asarray(targets)
@@ -8573,8 +9300,18 @@ def validate(
         "trendline_rail_rows": int(trendline_rail_rows_sum),
         "trendline_rising_rows": int(trendline_rising_rows_sum),
         "trendline_falling_rows": int(trendline_falling_rows_sum),
+        "unified_exit_action_loss_mean": (
+            unified_exit_loss_sum / unified_exit_rows
+        ),
+        "unified_exit_action_rows": int(unified_exit_rows),
+        "unified_exit_hold_rows": int(unified_exit_hold_rows),
+        "unified_exit_now_rows": int(unified_exit_now_rows),
+        "unified_exit_action_accuracy": (
+            unified_exit_correct / unified_exit_rows
+        ),
     }
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
+    stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
     stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
     stats.update(
         _direction_hierarchy_output_stats(
@@ -8639,6 +9376,8 @@ def run_train(
     train_parquet: Path,
     train_manifest_path: Path,
     val_parquet: Path,
+    test_parquet: Path,
+    unified_exit_lifecycle_manifest_path: Path,
     seq_len: int,
     seed: int,
     device: torch.device,
@@ -8653,24 +9392,20 @@ def run_train(
     m5_prebuilt_path: Path,
     specialist_audit_json: Path,
     specialist_contract_mode: str,
+    dropout: float,
+    multi_tf_num_layers: int,
+    per_tf_seq_len_m5: int,
+    per_tf_seq_len_m15: int,
+    per_tf_seq_len_h1: int,
+    per_tf_seq_len_h4: int,
+    per_tf_seq_len_d1: int,
+    multi_tf_scale: float,
+    subsample_rows: int,
+    specialist_num_layers: int,
+    specialist_fusion_scale: float,
+    cross_family_fusion_scale: float,
+    grad_accum_steps: int,
     deterministic: bool = True,
-    multi_tf_seq_len: int = 96,
-    multi_tf_scale: float = 0.5,
-    subsample_rows: int = 0,
-    specialist_num_layers: int = 1,
-    specialist_fusion_scale: float = 0.25,
-    # V2 fast-train extras
-    per_tf_seq_len_m5: int = 0,
-    per_tf_seq_len_m15: int = 0,
-    per_tf_seq_len_h1: int = 0,
-    per_tf_seq_len_h4: int = 0,
-    per_tf_seq_len_d1: int = 0,
-    grad_accum_steps: int = 0,
-    tf_input_scale_init_m5: float = 1.0,
-    tf_input_scale_init_m15: float = 1.0,
-    tf_input_scale_init_h1: float = 0.7,
-    tf_input_scale_init_h4: float = 0.5,
-    tf_input_scale_init_d1: float = 0.3,
     run_id: str = "",
     dataset_run_id: str = "",
     profile: str = "",
@@ -8678,6 +9413,15 @@ def run_train(
     _guard_no_rl()
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+    if (
+        isinstance(dropout, bool)
+        or not math.isfinite(float(dropout))
+        or not 0.0 <= float(dropout) < 1.0
+    ):
+        raise RuntimeError(
+            "[ENTRY_TRAIN_DROPOUT_INVALID] dropout must be explicit, finite "
+            f"and in [0,1); got {dropout!r}"
+        )
 
     try:
         normalized_specialist_contract_mode = require_model_native_specialist_contract_mode(
@@ -8698,13 +9442,29 @@ def run_train(
     if not mtf_cache_raw or not mtf_cache_dir.is_absolute():
         raise RuntimeError(
             "[MULTI_TF_DISK_CACHE_MANDATORY] "
-            "GX1_V10_MULTI_TF_V2_CACHE_DIR must name the exact absolute "
-            "verified V2 cache used by training and normalization"
+            "GX1_V10_MULTI_TF_V4_CACHE_DIR must name the exact absolute "
+            "verified V4 cache used by training and normalization"
         )
     if int(grad_accum_steps) < 1:
         raise RuntimeError(
             "[ENTRY_GRAD_ACCUM_STEPS_INVALID] "
             f"observed={int(grad_accum_steps)} expected>=1"
+        )
+    if (
+        isinstance(multi_tf_num_layers, bool)
+        or int(multi_tf_num_layers) <= 0
+    ):
+        raise RuntimeError(
+            "[ENTRY_MULTI_TF_NUM_LAYERS_INVALID] expected a positive "
+            f"explicit integer; got {multi_tf_num_layers!r}"
+        )
+    if (
+        isinstance(specialist_num_layers, bool)
+        or int(specialist_num_layers) <= 0
+    ):
+        raise RuntimeError(
+            "[ENTRY_SPECIALIST_NUM_LAYERS_INVALID] expected a positive "
+            f"explicit integer; got {specialist_num_layers!r}"
         )
 
     log.info(
@@ -8714,24 +9474,10 @@ def run_train(
         f"early_stop_min_delta={early_stopping_min_delta}"
     )
 
-    _set_deterministic(seed, device, deterministic=deterministic)
-
-    _log_label_distribution(train_parquet, split="train")
-    _log_label_distribution(val_parquet, split="val")
-
-    # V12.2: pre-build multi-TF features BEFORE loading train_parquet so peak
-    # memory = max(train_parquet, M5_prebuilt) instead of their sum. Without
-    # this, OOM on 15GB hosts during Dataset construction (1.5GB parquet ×
-    # pandas overhead + 1.5GB M5 prebuilt × pandas overhead > 15GB).
-    _prebuild_multi_tf_v2_features_once(m5_prebuilt_path)
-
     # Build exact per-TF sequence lengths.
-    _per_tf_lens: Dict[str, int] = {}
     # How far back each timeframe reaches is decision-affecting, so it is an
     # explicit caller input for every timeframe - never an ambient environment
-    # value and never a wrapper default (rule 14). The former GX1_MTF_TAPERED
-    # environment switch is removed; its intent is expressed by passing the
-    # windows directly. 0 means "use the global --multi-tf-seq-len".
+    # value, wrapper default or zero-to-global fallback (rule 14).
     _requested_tf_lens = {
         "M5": int(per_tf_seq_len_m5),
         "M15": int(per_tf_seq_len_m15),
@@ -8740,26 +9486,71 @@ def run_train(
         "D1": int(per_tf_seq_len_d1),
     }
     for _tf_name, _tf_len in _requested_tf_lens.items():
-        if _tf_len < 0:
+        if _tf_len <= 0:
             raise RuntimeError(
-                f"[ENTRY_PER_TF_SEQ_LEN_INVALID] {_tf_name}={_tf_len} expected >= 0"
+                f"[ENTRY_PER_TF_SEQ_LEN_INVALID] {_tf_name}={_tf_len} "
+                "expected > 0; fallback is forbidden"
             )
-        if _tf_len > 0:
-            _per_tf_lens[_tf_name] = _tf_len
-    _effective_tf_lens = {
-        tf: (_per_tf_lens.get(tf) or int(multi_tf_seq_len))
-        for tf in ("M5", "M15", "H1", "H4", "D1")
-    }
-    log.info(
-        "[PER_TF_SEQ_LEN_DECLARED] %s (global=%d)",
-        " ".join(f"{tf}={n}" for tf, n in _effective_tf_lens.items()),
-        int(multi_tf_seq_len),
+    _per_tf_lens: Dict[str, int] = dict(_requested_tf_lens)
+    _effective_tf_lens = dict(_per_tf_lens)
+    from gx1.features.htf_features import require_multi_tf_resolution_pyramid
+
+    multi_tf_resolution_pyramid = require_multi_tf_resolution_pyramid(
+        _effective_tf_lens
     )
+    log.info(
+        "[PER_TF_SEQ_LEN_DECLARED] %s coverage_seconds=%s",
+        " ".join(f"{tf}={n}" for tf, n in _effective_tf_lens.items()),
+        multi_tf_resolution_pyramid["coverage_seconds"],
+    )
+
+    _set_deterministic(seed, device, deterministic=deterministic)
+
+    # Pre-build and prove the exact requested pyramid before label diagnostics,
+    # dataset allocation, normalization, or optimization begins. The old
+    # preflight checked 96 rows for every TF, even when the admitted recipe
+    # requested a different M5/M15/H1/H4/D1 window.
+    multi_tf_features = _prebuild_multi_tf_features_once(m5_prebuilt_path)
+    from gx1.features.htf_features import (
+        require_multi_tf_decision_window_coverage,
+    )
+
+    decision_times_by_split: dict[str, object] = {}
+    for _split_name, _split_path in (
+        ("train", train_parquet),
+        ("val", val_parquet),
+        ("test", test_parquet),
+    ):
+        try:
+            _split_times = pd.read_parquet(
+                _split_path, columns=["time"]
+            )["time"]
+        except Exception as exc:
+            raise RuntimeError(
+                "[MULTI_TF_DECISION_COVERAGE_SPLIT_READ_FAIL] "
+                f"{_split_name}={_split_path}: {exc}"
+            ) from exc
+        decision_times_by_split[_split_name] = _split_times
+    multi_tf_decision_window_coverage = (
+        require_multi_tf_decision_window_coverage(
+            multi_tf_features,
+            per_tf_seq_lens=_effective_tf_lens,
+            decision_times_by_split=decision_times_by_split,
+        )
+    )
+    log.info(
+        "[MULTI_TF_DECISION_WINDOW_COVERAGE] contract_sha256=%s",
+        multi_tf_decision_window_coverage["contract_sha256"],
+    )
+
+    _log_label_distribution(train_parquet, split="train")
+    _log_label_distribution(val_parquet, split="val")
+    _log_label_distribution(test_parquet, split="test")
+
     train_ds = EntryV10CtxDataset(
         train_parquet,
         seq_len=seq_len,
         m5_prebuilt_path=m5_prebuilt_path,
-        multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
     )
@@ -8819,9 +9610,37 @@ def run_train(
         val_parquet,
         seq_len=seq_len,
         m5_prebuilt_path=m5_prebuilt_path,
-        multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
+    )
+    unified_exit_lifecycle = UnifiedExitLifecycleCorpus(
+        root_manifest_path=unified_exit_lifecycle_manifest_path,
+        entry_parquets={
+            "train": Path(train_parquet),
+            "val": Path(val_parquet),
+            "test": Path(test_parquet),
+        },
+        dataset_run_id=str(dataset_run_id),
+    )
+    train_ds.bind_unified_exit_lifecycle(
+        unified_exit_lifecycle.splits["train"]
+    )
+    val_ds.bind_unified_exit_lifecycle(
+        unified_exit_lifecycle.splits["val"]
+    )
+    unified_exit_lifecycle_evidence = dict(
+        unified_exit_lifecycle.evidence
+    )
+    log.info(
+        "[UNIFIED_EXIT_LIFECYCLE_BOUND] manifest_sha256=%s "
+        "train_selected=%s val_selected=%s",
+        unified_exit_lifecycle_evidence["root_manifest_sha256"],
+        unified_exit_lifecycle_evidence["splits"]["train"][
+            "selected_target_counts"
+        ],
+        unified_exit_lifecycle_evidence["splits"]["val"][
+            "selected_target_counts"
+        ],
     )
     train_contract_mode = str(train_ds.contract_mode)
     val_contract_mode = str(val_ds.contract_mode)
@@ -9251,13 +10070,13 @@ def run_train(
     # against the cache's own declaration.
     _mtf_feat_count = int(train_ds._multi_tf_feature_count)
     # Exact mode always includes the causal M5 branch and all four higher TFs.
-    _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False))
-    if not _mtf_v2 or _mtf_feat_count <= 0:
+    _mtf_v4 = bool(getattr(train_ds, "_multi_tf_v4", False))
+    if not _mtf_v4 or _mtf_feat_count <= 0:
         raise RuntimeError(
-            "[MULTI_TF_EXACT_ARCHITECTURE_REQUIRED] expected causal M5/M15/H1/H4/D1 V2"
+            "[MULTI_TF_EXACT_ARCHITECTURE_REQUIRED] expected causal "
+            "M5/M15/H1/H4/D1 V4 eight-family input"
         )
-    # Per-TF seq_len overrides (default 0 → fall back to global multi_tf_seq_len).
-    # One resolution, mirrored into the model so bundle metadata records the
+    # One exact positive per-TF resolution, mirrored into the model so metadata records the
     # exact windows and live reads the same ones (train==serve).
     _m5_len = int(_effective_tf_lens["M5"])
     _m15_len = int(_effective_tf_lens["M15"])
@@ -9270,11 +10089,25 @@ def run_train(
         ordered_signal_names=list(train_ds.signal_names),
         contract_mode=specialist_contract_mode,
     )
+    multi_tf_specialist_indices = {
+        str(name): list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(
+            train_ds._multi_tf_feature_names
+        ).items()
+    }
     log.info("[SPECIALIST_FUSION] exact groups=%s", sorted(specialist_indices))
+    log.info(
+        "[MULTI_TF_SPECIALIST_FUSION] exact groups=%s",
+        {
+            name: len(indices)
+            for name, indices in multi_tf_specialist_indices.items()
+        },
+    )
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
+        dropout=float(dropout),
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
         m15_seq_dim=_mtf_feat_count,
@@ -9287,6 +10120,7 @@ def run_train(
         d1_seq_len=_d1_len,
         m5_seq_dim=_mtf_feat_count,
         m5_seq_len=_m5_len,
+        multi_tf_num_layers=int(multi_tf_num_layers),
         multi_tf_scale=multi_tf_scale,
         specialist_input_indices=specialist_indices,
         specialist_ctx_cont_indices={
@@ -9307,6 +10141,7 @@ def run_train(
                 "ctx_cat_indices"
             ].items()
         },
+        multi_tf_specialist_input_indices=multi_tf_specialist_indices,
         temporal_alias_signal_indices=list(
             specialist_meta["context_routing"]["temporal_alias_policy"][
                 "signal_indices"
@@ -9319,28 +10154,23 @@ def run_train(
         ),
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
-        cross_family_fusion_scale=float(specialist_fusion_scale),
-        tf_input_scale_init_m5=tf_input_scale_init_m5,
-        tf_input_scale_init_m15=tf_input_scale_init_m15,
-        tf_input_scale_init_h1=tf_input_scale_init_h1,
-        tf_input_scale_init_h4=tf_input_scale_init_h4,
-        tf_input_scale_init_d1=tf_input_scale_init_d1,
+        cross_family_fusion_scale=float(cross_family_fusion_scale),
         input_normalization=input_normalization,
     ).to(device)
     evidence_fusion_initial_state = _capture_evidence_fusion_initial_state(model)
+    unified_exit_initial_state = _capture_unified_exit_initial_state(model)
     log.info(
-        "[TF_INPUT_SCALE] mandatory learnable per-TF inits: M5=%.2f M15=%.2f H1=%.2f H4=%.2f D1=%.2f",
-        tf_input_scale_init_m5, tf_input_scale_init_m15,
-        tf_input_scale_init_h1, tf_input_scale_init_h4, tf_input_scale_init_d1,
+        "[TF_INPUT_SCALE] all five learnable scales start from the same "
+        "contract-owned neutral identity; no timeframe prior"
     )
     log.info(
         "[ENTRY_EXACT_HEADS] hierarchy=true side_validity=true trendline_rail=true "
         "tf_agreement=true path_variance=true position_size=true",
     )
     log.info(
-        "[MULTI_TF_PROOF] enabled=True TFs=M5+M15+H1+H4+D1 (V2) "
-        "per_tf_dim=%d per_tf_len=%d total_extra_params≈%dK",
-        _mtf_feat_count, multi_tf_seq_len,
+        "[MULTI_TF_PROOF] enabled=True TFs=M5+M15+H1+H4+D1 (V4) "
+        "per_tf_dim=%d per_tf_lens=%s total_extra_params≈%dK",
+        _mtf_feat_count, _effective_tf_lens,
         (sum(p.numel() for p in model.parameters()) - 691977) // 1000,
     )
     # GX1_FAST_TRAIN=1 wraps model with torch.compile (best-effort).
@@ -10128,6 +10958,7 @@ def run_train(
     raw_best_direction_balance_guard_ok: Optional[bool] = None
     raw_best_direction_slice_contract_ok: Optional[bool] = None
     best_direction_slice_stats: Dict[str, Any] = {}
+    best_unified_exit_validation: Dict[str, Any] = {}
     last_direction_slice_stats: Dict[str, Any] = {}
     best_epoch = -1
     epochs_since_improve = 0
@@ -10396,15 +11227,15 @@ def run_train(
                     float(detail.get("majority", 0.0)),
                     int(bool(detail.get("accuracy_failed", False))),
                     float(detail.get("accuracy_deficit", 0.0)),
-                    float(label_rates[0] if len(label_rates) > 0 else 0.0),
-                    float(label_rates[1] if len(label_rates) > 1 else 0.0),
-                    float(label_rates[2] if len(label_rates) > 2 else 0.0),
-                    float(pred_rates[0] if len(pred_rates) > 0 else 0.0),
-                    float(pred_rates[1] if len(pred_rates) > 1 else 0.0),
-                    float(pred_rates[2] if len(pred_rates) > 2 else 0.0),
-                    float(required_rates[0] if len(required_rates) > 0 else 0.0),
-                    float(required_rates[1] if len(required_rates) > 1 else 0.0),
-                    float(required_rates[2] if len(required_rates) > 2 else 0.0),
+                    float(label_rates[MODEL_DIRECTION_LONG_INDEX]),
+                    float(label_rates[MODEL_DIRECTION_SHORT_INDEX]),
+                    float(label_rates[MODEL_DIRECTION_FLAT_INDEX]),
+                    float(pred_rates[MODEL_DIRECTION_LONG_INDEX]),
+                    float(pred_rates[MODEL_DIRECTION_SHORT_INDEX]),
+                    float(pred_rates[MODEL_DIRECTION_FLAT_INDEX]),
+                    float(required_rates[MODEL_DIRECTION_LONG_INDEX]),
+                    float(required_rates[MODEL_DIRECTION_SHORT_INDEX]),
+                    float(required_rates[MODEL_DIRECTION_FLAT_INDEX]),
                     ",".join(str(int(cls)) for cls in detail.get("pred_rate_failed_classes", [])),
                     float(detail.get("pred_rate_shortfall", 0.0)),
                     float(detail.get("hier_trade_target_rate", 0.0)),
@@ -10553,6 +11384,17 @@ def run_train(
                 bool(val_stats.get("direction_slice_contract_ok", False)) if val_stats else False
             )
             best_direction_slice_stats = _direction_slice_stats_snapshot(val_stats)
+            best_unified_exit_validation = {
+                key: val_stats[key]
+                for key in (
+                    "unified_exit_action_loss_mean",
+                    "unified_exit_action_rows",
+                    "unified_exit_hold_rows",
+                    "unified_exit_now_rows",
+                    "unified_exit_action_accuracy",
+                )
+                if key in val_stats
+            }
             _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
             best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
             best_epoch = epoch + 1
@@ -10620,6 +11462,66 @@ def run_train(
         int(best_epoch),
         model_native_learned_component_movement["component_changed"],
     )
+    unified_exit_parameter_movement = _unified_exit_movement_proof(
+        unified_exit_initial_state,
+        best_state,
+        selected_checkpoint_epoch=best_epoch,
+    )
+    log.info(
+        "[UNIFIED_EXIT_MOVEMENT_PASS] epoch=%d components=%s",
+        int(best_epoch),
+        unified_exit_parameter_movement["component_max_abs_delta"],
+    )
+    if (
+        int(best_unified_exit_validation.get("unified_exit_action_rows", 0))
+        <= 0
+        or int(best_unified_exit_validation.get("unified_exit_hold_rows", 0))
+        <= 0
+        or int(
+            best_unified_exit_validation.get(
+                "unified_exit_now_rows",
+                0,
+            )
+        )
+        <= 0
+        or not math.isfinite(
+            float(
+                best_unified_exit_validation.get(
+                    "unified_exit_action_loss_mean",
+                    float("nan"),
+                )
+            )
+        )
+        or float(
+            best_unified_exit_validation.get(
+                "unified_exit_action_loss_mean",
+                0.0,
+            )
+        )
+        <= 0.0
+    ):
+        raise RuntimeError(
+            "[UNIFIED_EXIT_SELECTED_CHECKPOINT_VALIDATION_INVALID] "
+            f"{best_unified_exit_validation}"
+        )
+    unified_entry_exit_contract = unified_entry_exit_contract_metadata()
+    unified_exit_training_evidence = {
+        "schema_version": "gx1_unified_exit_training_evidence_v1",
+        "decision": "PASS",
+        "shared_model_state_dict": True,
+        "entry_representation_surface": (
+            UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+        ),
+        "future_outcomes_used_as_model_inputs": False,
+        "exit_action_loss_weight": float(
+            ENTRY_UNIFIED_EXIT_ACTION_WEIGHT
+        ),
+        "lifecycle": unified_exit_lifecycle_evidence,
+        "selected_checkpoint_validation": best_unified_exit_validation,
+        "selected_checkpoint_parameter_movement": (
+            unified_exit_parameter_movement
+        ),
+    }
     raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
     raw_best_direction_slice_contract_ok = best_direction_slice_contract_ok
     if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
@@ -11131,6 +12033,8 @@ def run_train(
         "contract_mode": train_contract_mode,
         "direction_logit_mode": direction_logit_mode,
         "direction_decision_contract": direction_decision_contract,
+        "unified_entry_exit_contract": unified_entry_exit_contract,
+        "unified_exit_training_evidence": unified_exit_training_evidence,
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "model_native_signal_contract": trained_model_native_signal_contract,
@@ -11148,13 +12052,11 @@ def run_train(
         "ordered_ctx_cont_names": list(ordered_ctx_cont_names),
         "ordered_ctx_cat_names": list(ordered_ctx_cat_names),
         "ordered_signal_names": trained_signal_names,
-        "neutral_xgb_bridge": False,
-        "xgb_bridge_source": None,
         "seq_input_dim": seq_input_dim,
         "snap_input_dim": snap_input_dim,
         "seq_len": seq_len,
+        "dropout": float(dropout),
         "num_classes": 3,
-        "class_order": [0, 1, 2],
         "model_path_relative": "model_state_dict.pt",
         "model_sha256": state_dict_sha256,
     }
@@ -11172,11 +12074,8 @@ def run_train(
         learned_tf_input_scale_raw[_tf] = _value
     tf_input_scale_contract = build_tf_input_scale_contract(
         init_effective={
-            "m5": float(tf_input_scale_init_m5),
-            "m15": float(tf_input_scale_init_m15),
-            "h1": float(tf_input_scale_init_h1),
-            "h4": float(tf_input_scale_init_h4),
-            "d1": float(tf_input_scale_init_d1),
+            tf: float(TF_INPUT_SCALE_NEUTRAL_INIT)
+            for tf in TF_INPUT_SCALE_NAMES
         },
         learned_raw=learned_tf_input_scale_raw,
     )
@@ -11194,6 +12093,8 @@ def run_train(
         "created_at_utc": _utc_now(),
         "git_commit": _git_commit(),
         "model_native_training_objective": model_native_training_objective,
+        "unified_entry_exit_contract": unified_entry_exit_contract,
+        "unified_exit_training_evidence": unified_exit_training_evidence,
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "context_specialist_routing": specialist_meta["context_routing"],
@@ -11225,11 +12126,11 @@ def run_train(
         "early_stopping_min_delta": float(early_stopping_min_delta),
         "epochs": epochs,
         "lr": lr,
-        # V12.2 multi-TF marker — live inference inspects this to decide
+        # Exact V4 multi-TF marker — live inference inspects this to decide
         # whether to feed seq_m15/seq_h1/seq_h4/seq_d1 into the model.
         "multi_tf": {
             "enabled": True,
-            "v2_mode": True,
+            "v4_mode": True,
             "m5_seq_dim": int(_mtf_feat_count),
             "m5_seq_len": int(_m5_len),
             "m15_seq_dim": int(_mtf_feat_count),
@@ -11240,8 +12141,9 @@ def run_train(
             "h1_seq_len": int(_h1_len),
             "h4_seq_len": int(_h4_len),
             "d1_seq_len": int(_d1_len),
+            "multi_tf_num_layers": int(multi_tf_num_layers),
             "multi_tf_scale": float(multi_tf_scale),
-            "feature_contract": "MULTI_TF_PER_BAR_V2",
+            "feature_contract": str(train_ds._multi_tf_contract),
             # What live reads back must be the surface this run actually trained
             # on, not whichever contract this module imports (rule 6).
             "matrix_contract": str(train_ds._multi_tf_contract),
@@ -11261,12 +12163,19 @@ def run_train(
                 getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)).total_seconds()
                 / 60.0
             ),
+            "resolution_pyramid": multi_tf_resolution_pyramid,
+            "decision_window_coverage": (
+                multi_tf_decision_window_coverage
+            ),
+            "specialist_routing_schema_version": (
+                MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
+            ),
+            "specialist_input_indices": multi_tf_specialist_indices,
+            "family_tf_token_order": list(model.family_tf_token_order),
         },
-        # 2026-06-02: per-TF learnable input scaling marker. Inference must
-        # init the model with the same exact learnable scale priors
-        # values used at train time so state_dict load is shape-compatible.
-        # Learned values overwrite the inits via state_dict; we surface them
-        # here for inspection/debugging.
+        # All five scale parameters begin at the same contract-owned neutral
+        # identity. Learned state is immutable evidence; there is no per-TF
+        # wrapper prior.
         "tf_input_scale": tf_input_scale_contract,
         # Positional encoding marker — buffer is persistent=False (not in
         # state_dict), so the live bundle loader MUST read this to rebuild the
@@ -11289,16 +12198,14 @@ def run_train(
         "model_native_signal_contract": trained_model_native_signal_contract,
         "run_lineage": run_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
-        "neutral_xgb_bridge": False,
-        "xgb_bridge_source": None,
         "model_native_state_contract": trained_model_native_state_contract,
         "seq_len": seq_len,
+        "dropout": float(dropout),
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
         "ordered_ctx_cont_names": list(ordered_ctx_cont_names),
         "ordered_ctx_cat_names": list(ordered_ctx_cat_names),
         "num_classes": 3,
-        "class_order": [0, 1, 2],
         "expected_ctx_cont_dim": ctx_cont_dim,
         "expected_ctx_cat_dim": ctx_cat_dim,
         "supports_context_features": True,
@@ -11310,7 +12217,7 @@ def run_train(
             **specialist_meta,
             "num_layers": int(specialist_num_layers),
             "fusion_scale": float(specialist_fusion_scale),
-            "cross_family_fusion_scale": float(specialist_fusion_scale),
+            "cross_family_fusion_scale": float(cross_family_fusion_scale),
         },
         "state_dict_sha256": state_dict_sha256,
         "anchored_entry_enabled": False,
@@ -11803,6 +12710,9 @@ def run_train(
     lock["multi_tf"] = meta["multi_tf"]
     lock["tf_input_scale"] = meta["tf_input_scale"]
     export_contract_failures = _direction_decision_contract_export_failures(lock, meta)
+    export_contract_failures.extend(
+        _unified_exit_export_failures(lock, meta)
+    )
     if export_contract_failures:
         raise RuntimeError(
             "[ENTRY_EXPORT_DIRECTION_DECISION_CONTRACT_INVALID] "
@@ -11834,6 +12744,7 @@ def run_train(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
+        dropout=float(dropout),
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
         m15_seq_dim=_mtf_feat_count,
@@ -11846,6 +12757,8 @@ def run_train(
         d1_seq_len=_d1_len,
         m5_seq_dim=_mtf_feat_count,
         m5_seq_len=_m5_len,
+        multi_tf_num_layers=int(multi_tf_num_layers),
+        multi_tf_scale=float(multi_tf_scale),
         specialist_input_indices=specialist_indices,
         specialist_ctx_cont_indices={
             str(name): list(values)
@@ -11865,6 +12778,7 @@ def run_train(
                 "ctx_cat_indices"
             ].items()
         },
+        multi_tf_specialist_input_indices=multi_tf_specialist_indices,
         temporal_alias_signal_indices=list(
             specialist_meta["context_routing"]["temporal_alias_policy"][
                 "signal_indices"
@@ -11877,11 +12791,7 @@ def run_train(
         ),
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
-        tf_input_scale_init_m5=tf_input_scale_init_m5,
-        tf_input_scale_init_m15=tf_input_scale_init_m15,
-        tf_input_scale_init_h1=tf_input_scale_init_h1,
-        tf_input_scale_init_h4=tf_input_scale_init_h4,
-        tf_input_scale_init_d1=tf_input_scale_init_d1,
+        cross_family_fusion_scale=float(cross_family_fusion_scale),
         input_normalization=input_normalization,
     )
     model2.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
@@ -11912,7 +12822,7 @@ def run_train(
                 normalization_per_tf_seq_lens[tf],
                 1,
             )
-            for tf in ("M5", "M15", "H1", "H4", "D1")
+            for tf in MULTI_TF_TIMEFRAMES
         }
         _ = model2(dummy_seq, dummy_snap, ctx_cat=dummy_cat, ctx_cont=dummy_cont, **mtf_kwargs)
     log.info(
@@ -12055,6 +12965,22 @@ def run_train(
             "signal_sequence": ("signal", _live_ds._np_snap, _snap_names),
             "ctx_cont": ("ctx_cont", _live_ds._np_ctx_cont, _live_cc),
         }
+        _live_mtf_names = list(
+            getattr(_live_ds, "_multi_tf_feature_names", ())
+        )
+        if len(_live_mtf_names) != int(
+            getattr(_live_ds, "_multi_tf_feature_count", -1)
+        ):
+            raise FeatureLivenessError(
+                "[FEATURE_LIVENESS_MTF_CONTRACT] ordered names do not match "
+                "the dataset-declared width"
+            )
+        for _tf, _feats in getattr(_live_ds, "_multi_tf_feats", {}).items():
+            _pop_arrays[f"multi_tf.{_tf}"] = (
+                f"multi_tf.{_tf}",
+                np.asarray(_feats.attrs.get("feats_np"), dtype=np.float32),
+                _live_mtf_names,
+            )
         _pop_cache: dict = {}
 
         def _population_stats(surface: str, name: str):
@@ -12079,7 +13005,9 @@ def run_train(
             return _pop_cache[key]
 
         assert_v10_batch_liveness(_ab, ctx_cont_names=_live_cc,
-                                  snap_names=_snap_names, raise_on_fail=True,
+                                  snap_names=_snap_names,
+                                  multi_tf_names=_live_mtf_names,
+                                  raise_on_fail=True,
                                   population_stats=_population_stats)
         if _pop_cache:
             log.info(
@@ -12091,7 +13019,11 @@ def run_train(
                     for (s, n), v in sorted(_pop_cache.items())
                 ),
             )
-        log.info("[FEATURE_LIVENESS] post-export audit OK — exact seq513/ctx142 inputs are live")
+        log.info(
+            "[FEATURE_LIVENESS] post-export audit OK — exact "
+            "seq513/ctx142/5x%d MTF inputs are live",
+            len(_live_mtf_names),
+        )
     except FeatureLivenessError:
         raise
     except Exception as _e:
@@ -12120,53 +13052,55 @@ def main() -> None:
     parser.add_argument("--profile", choices=("smoke", "candidate"), required=True)
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--dataset-run-id", type=str, required=True)
-    parser.add_argument("--seed", type=int, default=1337)
-    parser.add_argument("--device", type=str, default="auto", choices=["cpu", "cuda", "auto"])
-    parser.add_argument("--batch_size", type=int, default=256)
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--seq_len", type=int, default=MODEL_NATIVE_SEQ_LEN)
+    parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument("--device", type=str, required=True, choices=["cpu", "cuda", "auto"])
+    parser.add_argument("--batch_size", type=int, required=True)
+    parser.add_argument("--epochs", type=int, required=True)
+    parser.add_argument("--lr", type=float, required=True)
+    parser.add_argument("--seq_len", type=int, required=True)
     parser.add_argument("--train-manifest-json", type=Path, required=True)
     parser.add_argument("--val-manifest-json", type=Path, required=True)
     parser.add_argument("--test-manifest-json", type=Path, required=True)
     parser.add_argument("--train-parquet", type=Path, required=True)
     parser.add_argument("--val-parquet", type=Path, required=True)
     parser.add_argument("--test-parquet", type=Path, required=True)
+    parser.add_argument(
+        "--unified-exit-lifecycle-manifest-json",
+        type=Path,
+        required=True,
+    )
     parser.add_argument("--out_bundle_dir", type=Path, required=True)
     parser.add_argument("--gx1-data", type=str, required=True)
-    parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--num-workers", type=int, required=True)
     parser.add_argument(
         "--fast",
         action="store_true",
         help="Use the audited non-deterministic CUDA execution mode.",
     )
-    parser.add_argument("--early-stopping-patience", type=int, default=10)
-    parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4)
+    parser.add_argument("--early-stopping-patience", type=int, required=True)
+    parser.add_argument("--early-stopping-min-delta", type=float, required=True)
     parser.add_argument("--m5-prebuilt-path", type=Path, required=True)
-    parser.add_argument("--multi-tf-seq-len", type=int, default=96)
-    parser.add_argument("--per-tf-seq-len-m5", type=int, default=0)
-    parser.add_argument("--per-tf-seq-len-m15", type=int, default=0)
-    parser.add_argument("--per-tf-seq-len-h1", type=int, default=0)
-    parser.add_argument("--per-tf-seq-len-h4", type=int, default=0)
-    parser.add_argument("--per-tf-seq-len-d1", type=int, default=0)
-    parser.add_argument("--multi-tf-scale", type=float, default=0.5)
+    parser.add_argument("--multi-tf-num-layers", type=int, required=True)
+    parser.add_argument("--per-tf-seq-len-m5", type=int, required=True)
+    parser.add_argument("--per-tf-seq-len-m15", type=int, required=True)
+    parser.add_argument("--per-tf-seq-len-h1", type=int, required=True)
+    parser.add_argument("--per-tf-seq-len-h4", type=int, required=True)
+    parser.add_argument("--per-tf-seq-len-d1", type=int, required=True)
+    parser.add_argument("--multi-tf-scale", type=float, required=True)
     parser.add_argument("--specialist-audit-json", type=Path, required=True)
     parser.add_argument(
         "--specialist-contract-mode",
         choices=(MODEL_NATIVE_CONTRACT_MODE,),
         required=True,
     )
-    parser.add_argument("--specialist-num-layers", type=int, default=1)
-    parser.add_argument("--specialist-fusion-scale", type=float, default=0.25)
+    parser.add_argument("--specialist-num-layers", type=int, required=True)
+    parser.add_argument("--specialist-fusion-scale", type=float, required=True)
+    parser.add_argument("--cross-family-fusion-scale", type=float, required=True)
     parser.add_argument("--grad-accum-steps", type=int, required=True)
-    parser.add_argument("--tf-input-scale-init-m5", type=float, default=1.0)
-    parser.add_argument("--tf-input-scale-init-m15", type=float, default=1.0)
-    parser.add_argument("--tf-input-scale-init-h1", type=float, default=0.7)
-    parser.add_argument("--tf-input-scale-init-h4", type=float, default=0.5)
-    parser.add_argument("--tf-input-scale-init-d1", type=float, default=0.3)
-    parser.add_argument("--subsample-rows", type=int, default=0)
-    parser.add_argument("--grad-clip-norm", type=float, default=1.0)
-    parser.add_argument("--weight-decay", type=float, default=1e-5)
+    parser.add_argument("--subsample-rows", type=int, required=True)
+    parser.add_argument("--grad-clip-norm", type=float, required=True)
+    parser.add_argument("--weight-decay", type=float, required=True)
+    parser.add_argument("--dropout", type=float, required=True)
     args = parser.parse_args()
 
     from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
@@ -12183,12 +13117,14 @@ def main() -> None:
     _guard_no_rl()
     device = _resolve_device(args.device)
     log.info(
-        "[CONFIG] seed=%d device=%s deterministic=%s grad_clip_norm=%.6f weight_decay=%.6f",
+        "[CONFIG] seed=%d device=%s deterministic=%s grad_clip_norm=%.6f "
+        "weight_decay=%.6f dropout=%.6f",
         args.seed,
         device,
         not args.fast,
         _GRAD_CLIP_NORM,
         _WEIGHT_DECAY,
+        float(args.dropout),
     )
 
     _resolve_gx1_data(args.gx1_data)
@@ -12199,6 +13135,9 @@ def main() -> None:
         train_parquet=args.train_parquet,
         val_parquet=args.val_parquet,
         test_parquet=args.test_parquet,
+        unified_exit_lifecycle_manifest_path=(
+            args.unified_exit_lifecycle_manifest_json
+        ),
         m5_prebuilt_path=args.m5_prebuilt_path,
         dataset_run_id=args.dataset_run_id,
         profile=args.profile,
@@ -12206,12 +13145,15 @@ def main() -> None:
     train_parquet = parquets["train"]
     val_parquet = parquets["val"]
     test_parquet = parquets["test"]
-    _log_label_distribution(test_parquet, split="test")
 
     run_train(
         train_parquet=train_parquet,
         train_manifest_path=_manifests["train"],
         val_parquet=val_parquet,
+        test_parquet=test_parquet,
+        unified_exit_lifecycle_manifest_path=(
+            args.unified_exit_lifecycle_manifest_json
+        ),
         seq_len=args.seq_len,
         seed=args.seed,
         device=device,
@@ -12226,23 +13168,20 @@ def main() -> None:
         m5_prebuilt_path=args.m5_prebuilt_path,
         specialist_audit_json=args.specialist_audit_json,
         specialist_contract_mode=str(args.specialist_contract_mode),
+        dropout=float(args.dropout),
+        multi_tf_num_layers=int(args.multi_tf_num_layers),
         deterministic=not args.fast,
-        multi_tf_seq_len=args.multi_tf_seq_len,
         multi_tf_scale=args.multi_tf_scale,
         subsample_rows=args.subsample_rows,
         specialist_num_layers=int(args.specialist_num_layers),
         specialist_fusion_scale=float(args.specialist_fusion_scale),
+        cross_family_fusion_scale=float(args.cross_family_fusion_scale),
         per_tf_seq_len_m5=int(args.per_tf_seq_len_m5),
         per_tf_seq_len_m15=int(args.per_tf_seq_len_m15),
         per_tf_seq_len_h1=int(args.per_tf_seq_len_h1),
         per_tf_seq_len_h4=int(args.per_tf_seq_len_h4),
         per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),
         grad_accum_steps=int(args.grad_accum_steps),
-        tf_input_scale_init_m5=float(args.tf_input_scale_init_m5),
-        tf_input_scale_init_m15=float(args.tf_input_scale_init_m15),
-        tf_input_scale_init_h1=float(args.tf_input_scale_init_h1),
-        tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
-        tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
         run_id=str(args.run_id),
         dataset_run_id=str(args.dataset_run_id),
         profile=str(args.profile),

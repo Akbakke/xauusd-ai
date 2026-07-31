@@ -1,89 +1,25 @@
 {
   "schema_version": "gx1_artifact_selection_v2",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T09:29:10Z",
-  "note": "Only decision-active artifacts live under active. Entry is blocked because no v10_entry is active and PROJECT_STATE_xau_direction_launch.json is BLOCK. V24 data plus its immutable 162-setting recipe/dry-run evidence are admitted only to capped smoke execution, not recorded as an active model artifact. Rejected Smart520 and retired Entry-IQL records live under retired/history and cannot authorize decisioning. Exit selections remain separate.",
-  "active": {
-    "xgb": {
-      "path": "/home/andre2/GX1_DATA/models/xgb_v7_base80_20260526_cpu_PROMOTED_20260708",
-      "status": "ACTIVE",
-      "in_sample_only": false,
-      "role_scope": "EXIT_V3_INPUT_ONLY",
-      "vedtak": "SMART_JOINT_POLICY_PROMOTION_20260708",
-      "note": "Retained only for the separately active Exit chain. It is forbidden as an Entry direction bridge or anchor."
-    },
-    "v3_exit": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/v3_train_out_clean/v3_exit_clean_20260608",
-      "status": "ACTIVE",
-      "in_sample_only": false,
-      "note": "Retained clean Exit transformer. Entry model-native cleanup does not change this artifact."
-    },
-    "exit_iql": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_deferral_20260707",
-      "active_variant": "R_NET_REAL",
-      "active_aggregator": "max",
-      "active_k_horizon": 144,
-      "active_folds": [
-        "FOLD_1",
-        "FOLD_2",
-        "FOLD_3"
-      ],
-      "status": "ACTIVE",
-      "in_sample_only": false,
-      "vedtak": "EXIT_IQL_DEFERRAL_PROMOTION_20260707",
-      "note": "Retained Exit-IQL selection. Entry cleanup must not change its math or operating point.",
-      "operating_point": {
-        "vedtak": "EXIT_OPERATING_POINT_CONTRACT_PIN_20260707",
-        "hard_mae_stop_bps": 80.0,
-        "strategy_f_enabled": true,
-        "mfe_giveback_pct": 0.3,
-        "mfe_giveback_min_mfe_bps": 30.0,
-        "breakeven_ratio": 0.3,
-        "breakeven_min_mfe_bps": 10.0,
-        "strong_hold_qadv": -66.5,
-        "strategy_f_defer_cap_bars": 240,
-        "hold_horizon_overrun_mult": 1.5,
-        "hold_horizon_min_floor_bars": 60,
-        "use_distilled_exit": false,
-        "exit_augment_64": true,
-        "regime_v4": true,
-        "trend_regime_from_d1": true,
-        "let_winners_run": {
-          "enabled": true,
-          "giveback_frac": 0.3,
-          "min_pnl_bps": 15.0,
-          "vedtak": "let_winners_run_20260618"
-        },
-        "live_env": {
-          "GX1_STRATEGY_F_ENABLED": "1",
-          "GX1_MFE_GIVEBACK_PCT": "0.30",
-          "GX1_MFE_GIVEBACK_MIN_MFE_BPS": "30.0",
-          "GX1_BREAKEVEN_RATIO": "0.30",
-          "GX1_BREAKEVEN_MIN_MFE": "10.0",
-          "GX1_STRONG_HOLD_QADV": "-66.5",
-          "GX1_STRATEGY_F_DEFER_CAP_BARS": "240",
-          "GX1_HOLD_HORIZON_OVERRUN_MULT": "1.5",
-          "GX1_HOLD_HORIZON_MIN_FLOOR_BARS": "60",
-          "GX1_USE_DISTILLED_EXIT": "0",
-          "GX1_EXIT_HARD_STOP_BPS": "80",
-          "GX1_EXIT_LET_WINNERS_RUN": "1",
-          "GX1_LWR_GIVEBACK_FRAC": "0.30",
-          "GX1_LWR_MIN_PNL_BPS": "15.0",
-          "GX1_EXIT_AUGMENT_64": "1",
-          "GX1_REGIME_V4": "1",
-          "GX1_TREND_REGIME_FROM_D1": "1"
-        }
-      }
-    }
+  "updated_utc": "2026-07-30T15:57:19Z",
+  "note": "No decision artifact is active. The integrated Entry/Exit source path is implemented, but Entry and Exit must be emitted by one freshly trained contract-admitted model bundle. PROJECT_STATE_xau_direction_launch.json remains BLOCK until that exact bundle, its shared feature encoder, both output heads, immutable OOS evidence, full replay, and runtime parity are proven.",
+  "production_admission": {
+    "status": "BLOCK",
+    "entry_artifact": null,
+    "entry_contract": "xau_seq513_model_native_direction_v4",
+    "exit_artifact_set": null,
+    "reason": "No accepted unified Entry/Exit model bundle has passed immutable OOS, full replay, feature-movement, and runtime-parity gates.",
+    "selection_registry_is_launch_authority": false
   },
+  "active": {},
   "retired": {
-    "v10_entry": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_candidate_20260706T152210Z",
-      "status": "REJECTED_BY_XAU_SEQ513_MODEL_NATIVE_CONTRACT",
-      "in_sample_only": false,
-      "contract_mode": "smart_seq520_candidate",
-      "artifact_present": true,
-      "note": "Historical provenance only. The bundle has the retired seven-field neutral-XGB surface and is not loadable for Entry decisioning."
+        "v10_entry": {
+            "path": null,
+            "status": "RETIRED_ARTIFACT_DELETION_APPROVED",
+            "in_sample_only": false,
+            "contract_mode": "smart_seq520_candidate",
+            "artifact_present": false,
+            "note": "The rejected external-bridge bundle is permanently retired and has no decision or comparison authority."
     },
     "entry_iql": {
       "path": null,
@@ -95,11 +31,11 @@
     }
   },
   "history": [
-    {
-      "role": "v10_entry",
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_candidate_20260706T152210Z",
-      "status": "REJECTED_BY_XAU_SEQ513_MODEL_NATIVE_CONTRACT",
-      "reason": "Retired seven-field neutral-XGB input surface and hard-red direction smoke; retained only as historical provenance."
+        {
+            "role": "v10_entry",
+            "path": null,
+            "status": "RETIRED_ARTIFACT_DELETION_APPROVED",
+            "reason": "Retired external-bridge input surface and hard-red direction smoke; current registry retains no artifact path."
     },
     {
       "role": "entry_iql",

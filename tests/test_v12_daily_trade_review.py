@@ -7,7 +7,10 @@ import pytest
 from tests.model_native_sizing_support import (
     unverified_learned_sizing_authority,
 )
-from tests.model_native_offline_rl_support import offline_rl_evidence
+from tests.model_native_offline_rl_support import (
+    model_native_mtf_cooperation_evidence,
+    offline_rl_evidence,
+)
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
@@ -73,6 +76,9 @@ def _model_evidence() -> dict:
         "direction_probs": direction_probs,
         "model_direction_index": 0,
         "model_direction": "LONG",
+        "entry_shared_representation": [
+            float(index - 64) / 64.0 for index in range(128)
+        ],
         "selected_side": 0,
         "public_trade_flat_decision_logits": public_logits,
         "public_trade_flat_decision_probs": public_probs,
@@ -127,6 +133,7 @@ def _model_evidence() -> dict:
         "mtf_trend_evidence": 0.69,
         "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
         "specialist_gate": [0.125] * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        **model_native_mtf_cooperation_evidence(),
         "trendline_rail_logits": rail_logits,
         "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
         "geometry_channel_edge_pressure": 0.42,
@@ -179,38 +186,13 @@ def _trade() -> dict:
         "exit_summary": {
             "exit_time": "2026-07-08T18:20:00+00:00",
             "exit_price": 2365.0,
-            "exit_reason": "EXIT_IQL",
+            "exit_reason": "UNIFIED_MODEL_EXIT_NOW",
             "realized_pnl_bps": 20.7,
             "max_mfe_bps": 22.0,
             "max_mae_bps": -2.0,
             "intratrade_drawdown_bps": 1.3,
         },
-        "v12_bar_decisions": [
-            {
-                "timestamp": "2026-07-08T18:05:00+00:00",
-                "bars_in_trade": 1,
-                "bid": 2362.0,
-                "current_pnl_bps": 7.9,
-                "cum_mfe_bps": 8.1,
-                "cum_mae_bps": -0.5,
-                "v3_should_exit_prob": 0.2,
-                "v3_consecutive_exits": 0,
-                "iql_action": "HOLD",
-                "iql_decision_source": "EXIT_IQL",
-            },
-            {
-                "timestamp": "2026-07-08T18:20:00+00:00",
-                "bars_in_trade": 4,
-                "bid": 2365.0,
-                "current_pnl_bps": 20.7,
-                "cum_mfe_bps": 22.0,
-                "cum_mae_bps": -0.5,
-                "v3_should_exit_prob": 0.8,
-                "v3_consecutive_exits": 1,
-                "iql_action": "EXIT_NOW",
-                "iql_decision_source": "EXIT_IQL",
-            },
-        ],
+        "v12_bar_decisions": [],
     }
 
 
@@ -267,7 +249,7 @@ def test_daily_trade_review_requires_complete_executable_timing() -> None:
 @pytest.mark.parametrize(
     ("entry_key", "value", "match"),
     [
-        ("entry_time", "2026-07-08T18:01:00+00:00", "entry_time"),
+        ("entry_time", "2026-07-08T18:01:00+00:00", "fill_time"),
         ("session", "US", "entry_snapshot.session"),
         ("model_policy", "manual_override", "entry_snapshot.model_policy"),
     ],

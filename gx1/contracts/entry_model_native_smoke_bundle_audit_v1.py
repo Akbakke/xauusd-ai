@@ -29,6 +29,9 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
     HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
 )
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SEQ_LEN,
@@ -40,11 +43,11 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v4"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v5"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v3"
+    "entry_candidate_model_direction_prediction_evidence_v5"
 )
 BUNDLE_ARTIFACT_KEYS = (
     "bundle_commit",
@@ -58,7 +61,7 @@ INPUT_AUDIT_SCHEMAS = {
     "pretrain": "xau_direction_repair_pretrain_audit_v2",
 }
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_CLASS_NAMES = ("LONG", "SHORT", "FLAT")
+_CLASS_NAMES = CLASS_ORDER
 _SMOKE_EDGE_POLICY = foundation_audit_policy_metadata()["smoke_edge_pockets"]
 _DIRECTION_METRIC_KEYS = {
     "decision",

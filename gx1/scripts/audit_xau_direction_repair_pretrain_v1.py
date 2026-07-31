@@ -22,6 +22,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    DIRECTION_DATASET_STEM_SUFFIX,
     V12_DIRECTION_UTILITY_MAE_WEIGHT,
     V12_DIRECTION_UTILITY_MFE_WEIGHT,
     V12_DIRECTION_UTILITY_MIN_BPS,
@@ -41,7 +42,7 @@ from gx1.features.entry_chart_geometry_v1 import (
 )
 
 
-DEFAULT_STEM = "v10_6yr_dataset__HOLD_03B"
+DEFAULT_STEM = f"v10_6yr_dataset{DIRECTION_DATASET_STEM_SUFFIX}"
 REQUIRED_POLARITY_FEATURES = PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
 REQUIRED_RAIL_FEATURES = tuple(
     name
@@ -138,19 +139,13 @@ def _seq_structure_mode(manifest: dict[str, Any]) -> str | None:
 def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
     extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
     inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), dict) else {}
-    bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+    signal_surface = (
+        extra.get("signal_bridge")
+        if isinstance(extra.get("signal_bridge"), dict)
+        else {}
+    )
     state_contract = extra.get("model_native_state_contract")
     return {
-        "neutral_xgb_bridge": bool(
-            manifest.get("neutral_xgb_bridge", False)
-            or bridge.get("neutral_xgb_bridge", False)
-        ),
-        "xgb_bridge_source": str(
-            manifest.get("xgb_bridge_source")
-            or bridge.get("bridge_source")
-            or extra.get("xgb_bridge_source")
-            or ""
-        ),
         "tape_root": str(
             manifest.get("tape_root")
             or extra.get("tape_root")
@@ -161,7 +156,7 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
         "direction_logit_mode": str(extra.get("direction_logit_mode") or ""),
         "model_native_signal_contract": extra.get("model_native_signal_contract"),
         "xau_tape_provenance": extra.get("xau_tape_provenance"),
-        "fields": list(bridge.get("fields") or []),
+        "fields": list(signal_surface.get("fields") or []),
         "splits": manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {},
         "model_native_state_contract": (
             dict(state_contract) if isinstance(state_contract, dict) else {}
@@ -610,13 +605,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 f"{split}: XAU repair requires inline seq-structure features; observed mode={seq_mode}"
             )
         provenance = row.get("provenance") if isinstance(row.get("provenance"), dict) else {}
-        if provenance.get("neutral_xgb_bridge") is not False:
-            failures.append(f"{split}: neutral_xgb_bridge must be false")
-        if provenance.get("xgb_bridge_source") not in {None, ""}:
-            failures.append(
-                f"{split}: XAU repair forbids xgb_bridge_source; "
-                f"observed={provenance.get('xgb_bridge_source')!r}"
-            )
         if str(provenance.get("contract_mode") or "") != MODEL_NATIVE_CONTRACT_MODE:
             failures.append(f"{split}: contract_mode must be {MODEL_NATIVE_CONTRACT_MODE}")
         if (

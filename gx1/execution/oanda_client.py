@@ -3,28 +3,51 @@
 from __future__ import annotations
 
 import os
-import logging
-import time
 import hashlib
+import json
+import logging
+import re
+import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-from pathlib import Path
 
 import pandas as pd
 import requests
 
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_REQUIRED_COLUMNS,
+    validate_canonical_native_frame,
+)
 from gx1.utils.env_loader import load_dotenv_if_present
-from gx1.utils.granularity import granularity_to_pandas_freq, granularity_to_timedelta
+from gx1.utils.granularity import granularity_to_timedelta
 
 
 log = logging.getLogger(__name__)
 
 PRACTICE_URL = "https://api-fxpractice.oanda.com/v3"
 LIVE_URL = "https://api-fxtrade.oanda.com/v3"
+_EXPLICIT_UTC_RFC3339 = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+    r"(?:\.\d{1,9})?(?:Z|\+00:00|-00:00)\Z"
+)
 
 
 class OandaAPIError(RuntimeError):
     """Raised for non-2xx responses from the OANDA REST API."""
+
+
+class OandaDataContractError(OandaAPIError):
+    """The response is reachable but not admissible market evidence."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        evidence: Mapping[str, object] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.evidence = dict(evidence or {})
 
 
 @dataclass
@@ -41,6 +64,68 @@ def _mask(value: str) -> str:
     if len(value) <= 8:
         return value[:2] + "..." + value[-2:]
     return value[:4] + "..." + value[-4:]
+
+
+def _canonical_response_sha256(value: object) -> str:
+    """Return a stable diagnostic identity for one decoded JSON response."""
+
+    try:
+        encoded = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError):
+        encoded = repr(value).encode("utf-8", errors="backslashreplace")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _require_utc_half_open_interval(
+    *,
+    from_ts: pd.Timestamp | None,
+    to_ts: pd.Timestamp | None,
+    granularity: str,
+) -> tuple[pd.Timestamp, pd.Timestamp] | None:
+    """Validate an optional exact UTC, grid-aligned half-open interval."""
+
+    if (from_ts is None) != (to_ts is None):
+        raise OandaDataContractError(
+            "from_ts and to_ts must be provided together"
+        )
+    if from_ts is None:
+        return None
+    try:
+        start = pd.Timestamp(from_ts)
+        end = pd.Timestamp(to_ts)
+        duration = granularity_to_timedelta(granularity)
+    except Exception as exc:
+        raise OandaDataContractError(
+            "OANDA candle request interval is invalid"
+        ) from exc
+    if (
+        start.tzinfo is None
+        or end.tzinfo is None
+        or start.utcoffset() != pd.Timedelta(0)
+        or end.utcoffset() != pd.Timedelta(0)
+    ):
+        raise OandaDataContractError(
+            "OANDA candle request interval must be explicitly UTC"
+        )
+    start = start.tz_convert("UTC")
+    end = end.tz_convert("UTC")
+    duration_ns = int(duration.value)
+    if (
+        end <= start
+        or start.value % duration_ns != 0
+        or end.value % duration_ns != 0
+    ):
+        raise OandaDataContractError(
+            "OANDA candle request interval must be increasing and "
+            "granularity-aligned"
+        )
+    return start, end
 
 
 class OandaClient:
@@ -69,7 +154,11 @@ class OandaClient:
             }
         )
         log.debug("OandaClient base URL set to %s", self.base_url)
-        log.info("OandaClient initialised (env=%s, account=%s)", self.env, self.account_id)
+        log.info(
+            "OandaClient initialised (env=%s, account=%s)",
+            self.env,
+            _mask(self.account_id),
+        )
 
     # ------------------------------------------------------------------ #
     # Factory helpers
@@ -126,7 +215,10 @@ class OandaClient:
         retry_on_status: tuple = (429, 500, 502, 503, 504),
     ) -> Dict[str, Any]:
         """
-        Make HTTP request with exponential backoff retry on 429/5xx errors.
+        Make a request. Only read-only GET requests may be retried.
+
+        Broker mutations are single-attempt because a lost response is an
+        unknown outcome, not proof that OANDA did not apply the request.
         
         Parameters
         ----------
@@ -155,13 +247,16 @@ class OandaClient:
         """
         url = f"{self.base_url}{path}"
         headers = self.session.headers.copy()
-        masked_auth = headers.get("Authorization", "")[:32]
-        
-        for attempt in range(max_retries):
+        method_upper = method.upper()
+        attempt_limit = max_retries if method_upper == "GET" else 1
+        if attempt_limit < 1:
+            raise ValueError("max_retries must be at least 1")
+
+        for attempt in range(attempt_limit):
             log.debug(
                 "OANDA request (attempt %d/%d): %s %s | headers=%s | params=%s | json=%s",
                 attempt + 1,
-                max_retries,
+                attempt_limit,
                 method,
                 url,
                 {k: v for k, v in headers.items() if k.lower() != "authorization"},
@@ -178,23 +273,29 @@ class OandaClient:
                     timeout=self.timeout,
                 )
             except requests.RequestException as exc:
-                if attempt < max_retries - 1:
+                if attempt < attempt_limit - 1:
                     # Exponential backoff: 2^attempt seconds
                     wait_time = 2 ** attempt
                     log.warning(
                         "OANDA request failed (attempt %d/%d): %s. Retrying in %.1fs...",
                         attempt + 1,
-                        max_retries,
+                        attempt_limit,
                         exc,
                         wait_time,
                     )
                     time.sleep(wait_time)
                     continue
                 else:
-                    raise OandaAPIError(f"Request failed after {max_retries} attempts: {exc}") from exc
+                    raise OandaAPIError(
+                        "Request outcome unknown after "
+                        f"{attempt_limit} attempt(s): {exc}"
+                    ) from exc
             
             # Check if we should retry on this status code
-            if resp.status_code in retry_on_status and attempt < max_retries - 1:
+            if (
+                resp.status_code in retry_on_status
+                and attempt < attempt_limit - 1
+            ):
                 # Exponential backoff: 2^attempt seconds
                 wait_time = 2 ** attempt
                 # For 429 (rate limit), use Retry-After header if available
@@ -212,7 +313,7 @@ class OandaClient:
                     url,
                     resp.status_code,
                     attempt + 1,
-                    max_retries,
+                    attempt_limit,
                     wait_time,
                 )
                 time.sleep(wait_time)
@@ -220,6 +321,30 @@ class OandaClient:
             
             # If not OK and not retryable, raise error
             if not resp.ok:
+                if method_upper != "GET" and resp.status_code == 400:
+                    try:
+                        rejection = resp.json()
+                    except ValueError:
+                        rejection = None
+                    if (
+                        isinstance(rejection, dict)
+                        and isinstance(
+                            rejection.get("orderRejectTransaction"),
+                            dict,
+                        )
+                        and not any(
+                            key in rejection
+                            for key in (
+                                "orderFillTransaction",
+                                "orderCreateTransaction",
+                                "orderCancelTransaction",
+                            )
+                        )
+                    ):
+                        # This exact response proves that OANDA rejected the
+                        # mutation. Every other mutation failure remains an
+                        # unknown, single-attempt outcome.
+                        return rejection
                 log.error(
                     "OANDA %s %s failed (%s)\nResponse headers: %s\nResponse body: %s",
                     method,
@@ -281,102 +406,244 @@ class OandaClient:
             DataFrame sorted by time ascending with columns:
             open, high, low, close, volume.
         """
+        if not include_mid:
+            raise OandaDataContractError(
+                "Literal M/B/A candles are mandatory; BA-only mode is forbidden"
+            )
+        if not exclude_incomplete:
+            raise OandaDataContractError(
+                "Incomplete candles are forbidden by the GX1 source contract"
+            )
+        interval = _require_utc_half_open_interval(
+            from_ts=from_ts,
+            to_ts=to_ts,
+            granularity=granularity,
+        )
         params = {
             "granularity": granularity,
             "alignmentTimezone": "UTC",
         }
-        if include_mid:
-            params["price"] = "MBA"
-        else:
-            params["price"] = "BA"
+        params["price"] = "MBA"
         
         # Use from_ts/to_ts if provided, otherwise use count
-        if from_ts is not None and to_ts is not None:
+        if interval is not None:
+            request_start, request_end = interval
             # OANDA API uses RFC3339 format for from/to
             # Half-open interval: [from_ts, to_ts) - include from, exclude to
-            params["from"] = from_ts.strftime("%Y-%m-%dT%H:%M:%S.000000000Z")
-            params["to"] = to_ts.strftime("%Y-%m-%dT%H:%M:%S.000000000Z")
+            params["from"] = request_start.strftime(
+                "%Y-%m-%dT%H:%M:%S.000000000Z"
+            )
+            params["to"] = request_end.strftime(
+                "%Y-%m-%dT%H:%M:%S.000000000Z"
+            )
         else:
-            # Fall back to count (default: 500)
-            params["count"] = count or 500
+            requested_count = 500 if count is None else count
+            if (
+                isinstance(requested_count, bool)
+                or not isinstance(requested_count, int)
+                or requested_count <= 0
+            ):
+                raise OandaDataContractError(
+                    "OANDA candle count must be a positive integer"
+                )
+            params["count"] = requested_count
 
         data = self._request(
             "GET",
             f"/instruments/{instrument}/candles",
             params=params,
         )
+        response_sha256 = _canonical_response_sha256(data)
+        response_evidence = {"source_response_sha256": response_sha256}
+        if not isinstance(data, Mapping):
+            raise OandaDataContractError(
+                "OANDA candle response root is not an object",
+                evidence=response_evidence,
+            )
+        if data.get("instrument") != instrument:
+            raise OandaDataContractError(
+                "OANDA candle response instrument mismatch: "
+                f"expected={instrument!r} observed={data.get('instrument')!r}",
+                evidence=response_evidence,
+            )
+        if data.get("granularity") != granularity:
+            raise OandaDataContractError(
+                "OANDA candle response granularity mismatch: "
+                f"expected={granularity!r} observed={data.get('granularity')!r}",
+                evidence=response_evidence,
+            )
 
-        candles = data.get("candles", [])
+        candles = data.get("candles")
+        if not isinstance(candles, list):
+            raise OandaDataContractError(
+                "OANDA candle response candles field is not a list",
+                evidence=response_evidence,
+            )
         if not candles:
-            raise OandaAPIError(f"No candles returned for {instrument}")
+            raise OandaDataContractError(
+                f"No candles returned for {instrument}",
+                evidence=response_evidence,
+            )
 
         records = []
-        for item in candles:
-            # Exclude incomplete bars if requested
-            if exclude_incomplete and not item.get("complete", True):
-                continue
-            mid = item.get("mid", {})
-            bid = item.get("bid", {})
-            ask = item.get("ask", {})
-            # Normalize timestamp to the candle's own closed boundary
-            raw_time = pd.to_datetime(item["time"])
-            # Normalize to UTC and floor to 5-minute boundary
-            if raw_time.tzinfo is None:
-                raw_time = raw_time.tz_localize("UTC")
-            else:
-                raw_time = raw_time.tz_convert("UTC")
-            normalized_time = raw_time.floor(granularity_to_pandas_freq(granularity))
-            
-            # Skip if normalized_time >= to_ts (half-open interval)
-            if to_ts is not None and normalized_time >= to_ts:
-                continue
-            
-            def _resolve_mid(key: str) -> float:
-                if mid and mid.get(key) is not None:
-                    return float(mid[key])
-                if bid and ask and bid.get(key) is not None and ask.get(key) is not None:
-                    return (float(bid[key]) + float(ask[key])) / 2.0
-                if bid and bid.get(key) is not None:
-                    return float(bid[key])
-                if ask and ask.get(key) is not None:
-                    return float(ask[key])
-                raise OandaAPIError(f"Missing price component '{key}' in candle {item}")
-            
-            record = {
-                "time": normalized_time,
-                "open": _resolve_mid("o"),
-                "high": _resolve_mid("h"),
-                "low": _resolve_mid("l"),
-                "close": _resolve_mid("c"),
-                "volume": float(item.get("volume", 0.0)),
-            }
-            if bid:
-                record.update(
-                    {
-                        "bid_open": float(bid.get("o", record["open"])),
-                        "bid_high": float(bid.get("h", record["high"])),
-                        "bid_low": float(bid.get("l", record["low"])),
-                        "bid_close": float(bid.get("c", record["close"])),
-                    }
+        previous_time: pd.Timestamp | None = None
+        bar_ns = int(granularity_to_timedelta(granularity).value)
+        for position, item in enumerate(candles):
+            if not isinstance(item, dict):
+                raise OandaDataContractError(
+                    f"Candle payload is not an object for {instrument}",
+                    evidence=response_evidence,
                 )
-            if ask:
-                record.update(
-                    {
-                        "ask_open": float(ask.get("o", record["open"])),
-                        "ask_high": float(ask.get("h", record["high"])),
-                        "ask_low": float(ask.get("l", record["low"])),
-                        "ask_close": float(ask.get("c", record["close"])),
-                    }
+            complete = item.get("complete")
+            if not isinstance(complete, bool):
+                raise OandaDataContractError(
+                    f"Candle completion flag missing or invalid for {instrument}",
+                    evidence=response_evidence,
                 )
+            # A caller may explicitly request forming bars, but absence of the
+            # literal OANDA completion fact is never treated as complete.
+            if exclude_incomplete and not complete:
+                continue
+            mid = item.get("mid")
+            bid = item.get("bid")
+            ask = item.get("ask")
+            price_components = ("o", "h", "l", "c")
+            if (
+                not isinstance(mid, dict)
+                or not isinstance(bid, dict)
+                or not isinstance(ask, dict)
+                or any(
+                    component not in prices
+                    for prices in (mid, bid, ask)
+                    for component in price_components
+                )
+            ):
+                raise OandaDataContractError(
+                    f"Candle lacks literal M/B/A price components for {instrument}",
+                    evidence=response_evidence,
+                )
+            if "time" not in item:
+                raise OandaDataContractError(
+                    f"Candle timestamp missing for {instrument}",
+                    evidence=response_evidence,
+                )
+            raw_time = item["time"]
+            if (
+                not isinstance(raw_time, str)
+                or _EXPLICIT_UTC_RFC3339.fullmatch(raw_time) is None
+            ):
+                raise OandaDataContractError(
+                    "Candle timestamp must be an explicit UTC RFC3339 string "
+                    f"for {instrument}: position={position}",
+                    evidence=response_evidence,
+                )
+            try:
+                normalized_time = pd.Timestamp(
+                    pd.to_datetime(raw_time, utc=True, errors="raise")
+                )
+            except Exception as exc:
+                raise OandaDataContractError(
+                    f"Candle timestamp invalid for {instrument}",
+                    evidence=response_evidence,
+                ) from exc
+            if (
+                pd.isna(normalized_time)
+                or normalized_time.value % bar_ns != 0
+            ):
+                raise OandaDataContractError(
+                    "Candle timestamp is not exactly granularity-aligned: "
+                    f"position={position} time={normalized_time} "
+                    f"granularity={granularity}",
+                    evidence=response_evidence,
+                )
+            if previous_time is not None and normalized_time <= previous_time:
+                raise OandaDataContractError(
+                    "Candle response time order/uniqueness invalid: "
+                    f"position={position} previous={previous_time} "
+                    f"observed={normalized_time}",
+                    evidence=response_evidence,
+                )
+            previous_time = normalized_time
+            
+            if interval is not None and not (
+                request_start <= normalized_time < request_end
+            ):
+                raise OandaDataContractError(
+                    "Candle timestamp is outside the requested half-open "
+                    "interval: "
+                    f"position={position} time={normalized_time} "
+                    f"interval=[{request_start},{request_end})",
+                    evidence=response_evidence,
+                )
+            
+            if "volume" not in item:
+                raise OandaDataContractError(
+                    f"Candle lacks literal volume for {instrument}",
+                    evidence=response_evidence,
+                )
+            if (
+                isinstance(item["volume"], bool)
+                or not isinstance(item["volume"], int)
+                or item["volume"] < 0
+            ):
+                raise OandaDataContractError(
+                    f"Candle volume is not a literal non-negative integer for {instrument}",
+                    evidence=response_evidence,
+                )
+            try:
+                record = {
+                    "time": normalized_time,
+                    "open": float(mid["o"]),
+                    "high": float(mid["h"]),
+                    "low": float(mid["l"]),
+                    "close": float(mid["c"]),
+                    "bid_open": float(bid["o"]),
+                    "bid_high": float(bid["h"]),
+                    "bid_low": float(bid["l"]),
+                    "bid_close": float(bid["c"]),
+                    "ask_open": float(ask["o"]),
+                    "ask_high": float(ask["h"]),
+                    "ask_low": float(ask["l"]),
+                    "ask_close": float(ask["c"]),
+                    "volume": item["volume"],
+                }
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise OandaDataContractError(
+                    f"Candle numeric payload invalid for {instrument}",
+                    evidence=response_evidence,
+                ) from exc
             records.append(record)
 
-        df = pd.DataFrame.from_records(records)
-        if df.empty:
-            return df
-        df = df.sort_values("time").set_index("time")
-        # Drop duplicates per timestamp (idempotent)
-        df = df[~df.index.duplicated(keep="last")]
-        return df
+        if not records:
+            empty = pd.DataFrame(
+                columns=list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
+            )
+            if instrument == "XAU_USD" and granularity in {"M1", "M5"}:
+                empty = validate_canonical_native_frame(
+                    empty,
+                    timeframe=granularity,
+                    label="OANDA_CLIENT_EMPTY_RESPONSE",
+                    allow_empty=True,
+                )
+            empty.attrs.update(response_evidence)
+            return empty.set_index("time")
+        frame = pd.DataFrame.from_records(records).loc[
+            :, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
+        ]
+        if instrument == "XAU_USD" and granularity in {"M1", "M5"}:
+            try:
+                frame = validate_canonical_native_frame(
+                    frame,
+                    timeframe=granularity,
+                    label="OANDA_CLIENT_RESPONSE",
+                )
+            except RuntimeError as exc:
+                raise OandaDataContractError(
+                    str(exc),
+                    evidence=response_evidence,
+                ) from exc
+        frame.attrs.update(response_evidence)
+        return frame.set_index("time")
     
     def get_candles_chunked(
         self,
@@ -417,14 +684,35 @@ class OandaClient:
         pd.DataFrame
             DataFrame with all fetched candles.
         """
+        interval = _require_utc_half_open_interval(
+            from_ts=from_ts,
+            to_ts=to_ts,
+            granularity=granularity,
+        )
+        if interval is None:
+            raise OandaDataContractError(
+                "Chunked candle fetch requires an explicit interval"
+            )
+        if (
+            isinstance(chunk_size, bool)
+            or not isinstance(chunk_size, int)
+            or chunk_size <= 0
+            or isinstance(max_retries, bool)
+            or not isinstance(max_retries, int)
+            or max_retries <= 0
+        ):
+            raise OandaDataContractError(
+                "Chunked candle size/retry values must be positive integers"
+            )
+        request_start, request_end = interval
         # Calculate chunk duration from candle granularity
         chunk_duration = granularity_to_timedelta(granularity) * chunk_size
         
         all_candles = []
-        current_from = from_ts
+        current_from = request_start
         
-        while current_from < to_ts:
-            current_to = min(current_from + chunk_duration, to_ts)
+        while current_from < request_end:
+            current_to = min(current_from + chunk_duration, request_end)
             
             # Fetch chunk with retry
             for attempt in range(max_retries):
@@ -440,6 +728,8 @@ class OandaClient:
                     if not chunk_df.empty:
                         all_candles.append(chunk_df)
                     break  # Success
+                except OandaDataContractError:
+                    raise
                 except OandaAPIError as e:
                     if attempt < max_retries - 1:
                         # Exponential backoff: 200ms → 400ms → 800ms ... max 5s
@@ -464,9 +754,15 @@ class OandaClient:
             return pd.DataFrame()
         
         combined_df = pd.concat(all_candles)
-        combined_df = combined_df.sort_index()
-        # Drop duplicates per timestamp (idempotent)
-        combined_df = combined_df[~combined_df.index.duplicated(keep="last")]
+        if (
+            combined_df.index.has_duplicates
+            or not combined_df.index.is_monotonic_increasing
+            or combined_df.index[0] < request_start
+            or combined_df.index[-1] >= request_end
+        ):
+            raise OandaDataContractError(
+                "Chunked candle response time order/uniqueness invalid"
+            )
         return combined_df
 
     def get_open_trades(self) -> Dict[str, Any]:
@@ -518,13 +814,64 @@ class OandaClient:
             payload["order"]["stopLossOnFill"] = {"price": f"{stop_loss_price:.3f}"}
         if take_profit_price is not None:
             payload["order"]["takeProfitOnFill"] = {"price": f"{take_profit_price:.3f}"}
+        if client_order_id and client_extensions:
+            raise ValueError(
+                "client_order_id and client_extensions are mutually exclusive"
+            )
         if client_order_id:
-            # Truncate to 64 chars (OANDA limit)
-            payload["order"]["clientOrderID"] = client_order_id[:64]
-        if client_extensions:
+            if (
+                len(client_order_id) > 64
+                or not client_order_id
+                or any(
+                    character
+                    not in "abcdefghijklmnopqrstuvwxyz0123456789-"
+                    for character in client_order_id
+                )
+            ):
+                raise ValueError("client_order_id contract invalid")
+            payload["order"]["clientExtensions"] = {
+                "id": client_order_id,
+                "tag": "GX1_V12",
+            }
+        elif client_extensions:
             payload["order"]["clientExtensions"] = client_extensions
 
         return self._request("POST", f"/accounts/{self.account_id}/orders", json=payload)
+
+    def get_order_by_client_id(
+        self,
+        client_order_id: str,
+    ) -> Dict[str, Any]:
+        """Resolve one order by its exact OANDA client extension ID."""
+
+        if (
+            not client_order_id
+            or len(client_order_id) > 64
+            or any(
+                character
+                not in "abcdefghijklmnopqrstuvwxyz0123456789-"
+                for character in client_order_id
+            )
+        ):
+            raise ValueError("client_order_id contract invalid")
+        return self._request(
+            "GET",
+            f"/accounts/{self.account_id}/orders/@{client_order_id}",
+        )
+
+    def get_transaction(self, transaction_id: str) -> Dict[str, Any]:
+        """Return one exact transaction used for unknown-outcome recovery."""
+
+        value = str(transaction_id)
+        if (
+            not value
+            or any(character not in "0123456789" for character in value)
+        ):
+            raise ValueError("transaction_id contract invalid")
+        return self._request(
+            "GET",
+            f"/accounts/{self.account_id}/transactions/{value}",
+        )
     
     def get_server_time(self) -> Dict[str, Any]:
         """

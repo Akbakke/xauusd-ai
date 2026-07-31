@@ -2,13 +2,29 @@ import ast
 import inspect
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_ACTION_BY_INDEX,
+    MODEL_DIRECTION_ACTION_ID_BY_INDEX,
+    MODEL_DIRECTION_ACTION_ORDER,
+    MODEL_DIRECTION_CLASS_ORDER,
+    MODEL_DIRECTION_EXECUTION_SIDE_BY_INDEX,
+    MODEL_DIRECTION_NAME_BY_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
+    UNIFIED_EXIT_ACTION_ORDER,
+    UNIFIED_EXIT_PATH_FEATURE_DIM,
+    UNIFIED_EXIT_PATH_FEATURE_ORDER,
+    canonical_closed_m1_bar,
+    canonical_unified_evidence_sha256,
     model_direction_decision_contract_metadata,
     require_model_direction_decision_contract,
     require_model_direction_operating_point,
+    require_unified_exit_output,
+    unified_exit_path_tensor,
+    unified_entry_exit_contract_metadata,
 )
 
 
@@ -26,6 +42,180 @@ def test_model_direction_decision_contract_is_exact_and_rule_free() -> None:
         {"direction_decision_contract": contract},
         context="unit bundle",
     ) == contract
+
+
+def _unified_exit_output() -> dict[str, object]:
+    output = {
+        "exit_action_logits": [-1.0, 2.0],
+        "exit_action_probs": [0.047425873, 0.952574127],
+        "exit_action_index": 1,
+        "action": "EXIT_NOW",
+        "decision_source": "unified_model",
+        "bundle_sha256": "a" * 64,
+        "entry_snapshot_sha256": canonical_unified_evidence_sha256(
+            _entry_snapshot()
+        ),
+        "exit_path_envelope_sha256": canonical_unified_evidence_sha256(
+            _path_envelope()
+        ),
+    }
+    output["output_evidence_sha256"] = canonical_unified_evidence_sha256(
+        output
+    )
+    return output
+
+
+def _entry_snapshot() -> dict[str, object]:
+    return {"schema_version": "entry-test-v1", "shared_latent": [0.1, -0.2]}
+
+
+def _path_envelope() -> dict[str, object]:
+    return {"schema_version": "path-test-v1", "path_length": 3}
+
+
+def _validate_exit(output: dict[str, object]) -> dict[str, object]:
+    return require_unified_exit_output(
+        output,
+        context="UNIT_EXIT",
+        expected_bundle_sha256="a" * 64,
+        entry_snapshot=_entry_snapshot(),
+        exit_path_envelope=_path_envelope(),
+    )
+
+
+def test_unified_entry_exit_contract_has_one_rule_free_owner() -> None:
+    contract = unified_entry_exit_contract_metadata()
+
+    assert contract["single_model_bundle"] is True
+    assert contract["shared_feature_encoder"] is True
+    assert contract["exit_action_order"] == list(UNIFIED_EXIT_ACTION_ORDER)
+    assert contract["exit_decision"] == "argmax(exit_action_logits)"
+    assert contract["external_decision_models_allowed"] is False
+    assert contract["runtime_entry_overrides_allowed"] is False
+    assert contract["runtime_exit_overrides_allowed"] is False
+    assert contract["exit_path_feature_order"] == list(
+        UNIFIED_EXIT_PATH_FEATURE_ORDER
+    )
+    assert contract["exit_path_feature_dim"] == UNIFIED_EXIT_PATH_FEATURE_DIM
+    assert contract["exit_frozen_entry_surface"] == (
+        "shared_feature_representation"
+    )
+
+
+def _closed_m1_row(
+    time: str,
+    *,
+    shift: float = 0.0,
+) -> dict[str, object]:
+    bid_open = 100.00 + shift
+    bid_close = 100.02 + shift
+    ask_open = 100.04 + shift
+    ask_close = 100.06 + shift
+    return canonical_closed_m1_bar(
+        m1_bar_ts=pd.Timestamp(time),
+        complete=True,
+        source_path="/tmp/xau_m1.parquet",
+        source_sha256="b" * 64,
+        bid_open=bid_open,
+        bid_high=bid_close + 0.02,
+        bid_low=bid_open - 0.02,
+        bid_close=bid_close,
+        ask_open=ask_open,
+        ask_high=ask_close + 0.02,
+        ask_low=ask_open - 0.02,
+        ask_close=ask_close,
+        mid_open=(bid_open + ask_open) / 2.0,
+        mid_high=(bid_close + ask_close) / 2.0 + 0.02,
+        mid_low=(bid_open + ask_open) / 2.0 - 0.02,
+        mid_close=(bid_close + ask_close) / 2.0,
+        volume=100,
+    )
+
+
+def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule() -> None:
+    rows = [
+        _closed_m1_row("2026-07-29T12:00:00Z"),
+        _closed_m1_row("2026-07-29T12:01:00Z", shift=0.05),
+    ]
+    tensor = unified_exit_path_tensor(
+        path_rows=rows,
+        entry_bid=99.98,
+        entry_ask=100.02,
+    )
+
+    assert tensor.shape == (2, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    assert tensor.dtype == np.float32
+    assert np.isfinite(tensor).all()
+    assert tensor[0, 0] == pytest.approx(0.0)
+    assert tensor[0, -2] == pytest.approx(np.log1p(100))
+    assert tensor[0, -1] == pytest.approx(4.0)
+
+    gapped = [rows[0], _closed_m1_row("2026-07-29T12:02:00Z")]
+    with pytest.raises(ValueError, match="cadence gap"):
+        unified_exit_path_tensor(
+            path_rows=gapped,
+            entry_bid=99.98,
+            entry_ask=100.02,
+        )
+
+    noncanonical = [dict(rows[0])]
+    noncanonical[0]["time"] = "2026-07-29 12:00:00+00:00"
+    with pytest.raises(ValueError, match="not canonical"):
+        unified_exit_path_tensor(
+            path_rows=noncanonical,
+            entry_bid=99.98,
+            entry_ask=100.02,
+        )
+
+
+def test_unified_exit_output_requires_logit_probability_action_parity() -> None:
+    output = _unified_exit_output()
+    assert _validate_exit(output) == output
+
+    for key, replacement in (
+        ("exit_action_index", 0),
+        ("action", "HOLD"),
+        ("exit_action_probs", [0.8, 0.2]),
+        ("entry_snapshot_sha256", "not-a-hash"),
+    ):
+        malformed = dict(output)
+        malformed[key] = replacement
+        with pytest.raises(RuntimeError):
+            _validate_exit(malformed)
+
+    tied = dict(output)
+    tied["exit_action_logits"] = [1.0, 1.0]
+    with pytest.raises(RuntimeError, match="tied Exit logits"):
+        _validate_exit(tied)
+
+    unexpected = dict(output)
+    unexpected["compatibility_hint"] = "HOLD"
+    with pytest.raises(RuntimeError, match="exact schema mismatch"):
+        _validate_exit(unexpected)
+
+
+def test_direction_class_and_action_layout_have_one_active_owner() -> None:
+    from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+        CLASS_ORDER,
+    )
+    from gx1.contracts.entry_model_native_offline_rl_v1 import ACTION_ORDER
+    from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+        MODEL_DIRECTION_NAMES,
+    )
+
+    assert MODEL_DIRECTION_CLASS_ORDER is CLASS_ORDER
+    assert ACTION_ORDER is CLASS_ORDER
+    assert MODEL_DIRECTION_NAMES is CLASS_ORDER
+    assert tuple(MODEL_DIRECTION_NAME_BY_INDEX.values()) == CLASS_ORDER
+    assert tuple(MODEL_DIRECTION_ACTION_BY_INDEX.values()) == (
+        MODEL_DIRECTION_ACTION_ORDER
+    )
+    assert tuple(MODEL_DIRECTION_ACTION_ID_BY_INDEX.values()) == (1, 2, 0)
+    assert MODEL_DIRECTION_EXECUTION_SIDE_BY_INDEX == {
+        0: "long",
+        1: "short",
+        2: None,
+    }
 
 
 @pytest.mark.parametrize(
@@ -265,7 +455,7 @@ def test_active_pipeline_never_synthesizes_flat_for_unavailable_model() -> None:
 
     assert "_SKIP_BASE" not in active_entry
     assert '"advantage_over_skip"' not in active_entry
-    assert 'decision["xgb"]' not in active_entry
+    assert 'decision["external_tree_sidecar"]' not in active_entry
     assert "EntryDecisionUnavailable" in active_entry
     assert "Operational no-data/stale/cadence states raise" in active_entry
 
@@ -279,17 +469,16 @@ def test_entry_unavailable_event_preserves_structured_evidence() -> None:
     assert exc.evidence == {"latency_sec": 120.0}
 
 
-def test_runner_market_gate_contains_no_session_direction_rule() -> None:
+def test_runner_has_no_hand_written_spread_or_session_entry_gate() -> None:
     source = (
         Path(__file__).resolve().parents[1] / "gx1/execution/v12_paper_runner.py"
     ).read_text(encoding="utf-8")
-    start = source.index("def can_trade_now(")
-    end = source.index("\n\n# ── ", start)
-    market_gate = source[start:end]
 
-    assert "get_session" not in market_gate
-    assert "skip_asia" not in market_gate
-    assert "session_detector" not in market_gate
+    assert "def can_trade_now(" not in source
+    assert "spread_too_wide" not in source
+    assert "BLOCKED_BY_EXECUTION_SPREAD" not in source
+    assert "--max-spread-bps" not in source
+    assert "literal_spread_supplied_to_model" in source
 
 
 def test_runner_has_no_legacy_post_model_direction_or_sizing_path() -> None:
@@ -379,6 +568,26 @@ def test_entry_latency_override_is_retired_from_runner_and_launcher(
         Path(__file__).resolve().parents[1] / "scripts/launch_live_practice.sh"
     ).read_text(encoding="utf-8")
     assert "GX1_MAX_ENTRY_DECISION_LATENCY_SEC" not in launcher
+    assert (
+        "FATAL: no admitted immutable live-tail snapshot publisher exists"
+        not in launcher
+    )
+    assert "feature_liveness --live-tail --strict" not in launcher
+    assert (
+        "runner revalidates a fresh admission before every new Entry"
+        in launcher
+    )
+    assert "Exit recovery inside an already admitted runner" in launcher
+    assert "runner will fail closed on the first non-advancing" not in launcher
+
+    dashboard = (
+        Path(__file__).resolve().parents[1] / "scripts/gx1_dashboard.py"
+    ).read_text(encoding="utf-8")
+    assert '"live_tail_publisher": live_tail["admitted"]' in dashboard
+    assert "require_newest_live_tail_runtime_authority" in dashboard
+    assert "launch-state has no active live-tail authority" in dashboard
+    assert '_proc_cmdline_arg(rpid, "--max-trades")' in dashboard
+    assert '_proc_cmdline_arg(rpid, "--max-trades", 3)' not in dashboard
 
     runner_source = (
         Path(__file__).resolve().parents[1] / "gx1/execution/v12_paper_runner.py"

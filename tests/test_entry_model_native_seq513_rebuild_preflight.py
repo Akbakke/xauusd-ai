@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -27,11 +28,19 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import group_features_by_specialist
 from gx1.features.htf_features import (
-    MULTI_TF_FEATURE_COUNT_V2,
-    MULTI_TF_PER_BAR_FEATURES_V2,
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_RESAMPLE_RULES,
     MULTI_TF_SHIFT,
+    build_multi_tf_v4_closed_timestamp_indices,
+    multi_tf_last_closed_label,
 )
 from gx1.scripts import (
     materialize_entry_model_native_seq513_rebuild_preflight_v1 as preflight,
@@ -39,6 +48,7 @@ from gx1.scripts import (
 from gx1.scripts import (
     materialize_entry_model_native_seq513_signal_manifest_v1 as signal_manifest_producer,
 )
+from gx1.scripts.prebuild_multi_tf_cache_v2 import publish_multi_tf_v2_cache
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
@@ -65,6 +75,43 @@ def _write_json(path: Path, payload: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
+
+
+@pytest.fixture(autouse=True)
+def _stub_source_cascade_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        signal_manifest_producer,
+        "validate_seq513_source_cascade_proof",
+        lambda path, **kwargs: json.loads(
+            Path(path).read_text(encoding="utf-8")
+        ),
+    )
+
+    def _stub_m1_authority(
+        *,
+        pair_manifest_path: Path,
+        pair_generation_root: Path,
+    ) -> tuple[Path, dict[str, object]]:
+        source_path = (
+            Path(pair_manifest_path).parent
+            / "xauusd_m1_lifecycle.parquet"
+        ).resolve(strict=True)
+        authority = {
+            "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+            "pair_manifest_path": str(Path(pair_manifest_path)),
+            "pair_generation_root": str(Path(pair_generation_root)),
+            "m1_source_path": str(source_path),
+            "m1_source_sha256": _sha256(source_path),
+        }
+        return source_path, authority
+
+    monkeypatch.setattr(
+        preflight,
+        "require_unified_exit_m1_pair_authority",
+        _stub_m1_authority,
+    )
 
 
 def _write_parquet(path: Path, payload: dict[str, list]) -> Path:
@@ -99,12 +146,30 @@ def _build_fixture(
     break_ranking_source_hash: bool = False,
     break_ranking_train_window: bool = False,
     break_mtf: bool = False,
+    late_mtf_history_tf: str | None = None,
     missing_tape_year: int | None = None,
     missing_tape_column: str | None = None,
 ) -> argparse.Namespace:
     history_base = datetime.fromisoformat(SPLITS["history_start"])
-    history_times = [history_base + timedelta(minutes=5 * index) for index in range(289)]
-    source_times = history_times + [datetime.fromisoformat(SPLITS["test_end"])]
+    history_source_start = history_base - timedelta(days=2)
+    history_times = [
+        history_source_start + timedelta(minutes=5 * index)
+        for index in range(3 * 288 + 1)
+    ]
+    test_end = datetime.fromisoformat(SPLITS["test_end"])
+    test_tail_start = test_end.replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    ) - timedelta(days=2)
+    test_tail = [
+        test_tail_start + timedelta(minutes=5 * index)
+        for index in range(
+            int((test_end - test_tail_start) / timedelta(minutes=5)) + 1
+        )
+    ]
+    source_times = history_times + test_tail
     n_source = len(source_times)
     close = np.linspace(1800.0, 2300.0, n_source)
     source = _write_parquet(
@@ -129,6 +194,34 @@ def _build_fixture(
             "canonical_feature": [1.0, 2.0],
         },
     )
+    _write_parquet(
+        tmp_path / "inputs/xauusd_m1_lifecycle.parquet",
+        {
+            "time": [
+                datetime(2026, 6, 26, 3, 24, tzinfo=timezone.utc),
+                datetime(2026, 6, 26, 3, 25, tzinfo=timezone.utc),
+            ],
+            "open": [2000.0, 2000.1],
+            "high": [2000.2, 2000.3],
+            "low": [1999.8, 1999.9],
+            "close": [2000.1, 2000.2],
+            "bid_open": [1999.95, 2000.05],
+            "bid_high": [2000.15, 2000.25],
+            "bid_low": [1999.75, 1999.85],
+            "bid_close": [2000.05, 2000.15],
+            "ask_open": [2000.05, 2000.15],
+            "ask_high": [2000.25, 2000.35],
+            "ask_low": [1999.85, 1999.95],
+            "ask_close": [2000.15, 2000.25],
+            "volume": [10, 11],
+        },
+    )
+    m1_pair_manifest = _write_json(
+        tmp_path / "inputs/PAIR_MANIFEST.json",
+        {"fixture": True},
+    )
+    m1_pair_generation_root = tmp_path / "inputs/pair_generations"
+    m1_pair_generation_root.mkdir()
 
     source_layer = _write_json(
         tmp_path / f"inputs/MODEL_NATIVE_SIGNAL_LAYER_{STAMP}.json",
@@ -137,7 +230,6 @@ def _build_fixture(
     selected = _selected_features()
     now = datetime.now(timezone.utc)
     ranking_created = now - timedelta(seconds=2)
-    manifest_created = now - timedelta(seconds=1)
     ranking_path = tmp_path / "inputs" / (
         "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_"
         f"{_stamp(ranking_created)}.json"
@@ -150,6 +242,20 @@ def _build_fixture(
         fit_end=SPLITS["train_end"],
         source_path=source,
     )
+    source_cascade = {
+        "path": str((source.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
+        "sha256": "9" * 64,
+        "schema_version": "seq513_source_cascade_proof_v7",
+        "entry_run_id": RUN_ID,
+        "event_root": str(source.parent.resolve()),
+        "source_parquet_sha256": _sha256(source),
+        "canonical_v2_sha256": _sha256(canonical),
+        "multi_tf_manifest_sha256": "4" * 64,
+        "multi_tf_cache_identity_sha256": "5" * 64,
+        "history_start_utc": SPLITS["history_start"],
+        "time_max_utc": SPLITS["test_end"],
+    }
+    _write_json(Path(source_cascade["path"]), source_cascade)
     ranking = {
         "schema_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": ranking_created.isoformat(),
@@ -166,6 +272,7 @@ def _build_fixture(
         "target_contract": dict(
             signal_manifest_producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT
         ),
+        "source_cascade": source_cascade,
         "rank_reference": {
             "path": str(rank_reference.path),
             "sha256": rank_reference.sha256,
@@ -199,6 +306,10 @@ def _build_fixture(
     }
     _write_json(ranking_path, ranking)
 
+    # Build time can be material for this large fixture.  Derive the immutable
+    # output filename immediately before the producer call so the producer's
+    # real 30-second future-skew gate does not make the test clock-sensitive.
+    manifest_created = datetime.now(timezone.utc) - timedelta(seconds=1)
     immutable_manifest_path = tmp_path / "inputs" / (
         f"{signal_manifest_producer.SIGNAL_MANIFEST_EVENT_PREFIX}_"
         f"{_stamp(manifest_created)}.json"
@@ -245,43 +356,54 @@ def _build_fixture(
     if break_ranking_run_id or break_ranking_source_hash or break_ranking_train_window:
         _write_json(ranking_path, ranking)
 
-    test_end_ns = int(
-        datetime.fromisoformat(SPLITS["test_end"]).timestamp() * 1_000_000_000
+    source_index = pd.DatetimeIndex(
+        pd.to_datetime(source_times, utc=True)
     )
-    first_ns = int(
-        datetime(2019, 1, 1, tzinfo=timezone.utc).timestamp() * 1_000_000_000
-    )
+    expected_indices = build_multi_tf_v4_closed_timestamp_indices(source_index)
     mtf_cache = tmp_path / "inputs/mtf_cache"
-    mtf_cache.mkdir(parents=True)
-    tf_rows: dict[str, dict] = {}
-    for tf in ("M5", "M15", "H1", "H4", "D1"):
-        feats_name = f"{tf}_feats.npy"
-        ts_name = f"{tf}_ts.npy"
-        np.save(
-            mtf_cache / feats_name,
-            np.zeros((2, MULTI_TF_FEATURE_COUNT_V2), dtype=np.float32),
+    mtf_frames: dict[str, pd.DataFrame] = {}
+    for tf_offset, tf in enumerate(MULTI_TF_RESAMPLE_RULES):
+        timestamps = expected_indices[tf].asi8.astype(np.int64, copy=True)
+        row = np.arange(len(timestamps), dtype=np.float32).reshape(-1, 1) + 1.0
+        column = (
+            np.arange(MULTI_TF_FEATURE_COUNT_V4, dtype=np.float32)
+            .reshape(1, -1)
+            + 1.0
         )
-        np.save(mtf_cache / ts_name, np.array([first_ns, test_end_ns], dtype=np.int64))
-        tf_rows[tf] = {
-            "n_bars": 2,
-            "feature_count": MULTI_TF_FEATURE_COUNT_V2,
-            "feats_npy": feats_name,
-            "ts_npy": ts_name,
-            "first_ts_ns": first_ns,
-            "last_ts_ns": test_end_ns,
-        }
-    mtf_manifest = {
-        "feature_count": MULTI_TF_FEATURE_COUNT_V2,
-        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
-        "shift_contract": {tf: str(MULTI_TF_SHIFT[tf]) for tf in tf_rows},
-        "builder_version": preflight.EXPECTED_MTF_BUILDER_VERSION,
-        "m5_prebuilt_source": str(source.resolve()),
-        "m5_prebuilt_source_sha256": _sha256(source),
-        "tfs": tf_rows,
-    }
+        values = row * column + np.float32(tf_offset)
+        warmup_rows = 0
+        if tf == late_mtf_history_tf:
+            history_cutoff = multi_tf_last_closed_label(
+                SPLITS["history_start"],
+                tf,
+            )
+            warmup_rows = int(
+                (expected_indices[tf] <= history_cutoff).sum()
+            )
+            values[:warmup_rows] = np.nan
+        frame = pd.DataFrame(
+            values,
+            index=pd.to_datetime(timestamps, unit="ns", utc=True),
+            columns=MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+        frame.attrs["feats_np"] = values
+        frame.attrs["ts_int64"] = timestamps
+        frame.attrs["causal_warmup_rows"] = warmup_rows
+        frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        mtf_frames[tf] = frame
+    publish_multi_tf_v2_cache(
+        out_dir=mtf_cache,
+        m5_prebuilt=source.resolve(),
+        expected_source_sha256=_sha256(source),
+        features=mtf_frames,
+        contract="v4",
+    )
     if break_mtf:
-        mtf_manifest["feature_names"] = list(MULTI_TF_PER_BAR_FEATURES_V2[:-1])
-    _write_json(mtf_cache / "manifest.json", mtf_manifest)
+        mtf_manifest = json.loads(
+            (mtf_cache / "manifest.json").read_text(encoding="utf-8")
+        )
+        mtf_manifest["feature_names"] = list(MULTI_TF_PER_BAR_FEATURES_V4[:-1])
+        _write_json(mtf_cache / "manifest.json", mtf_manifest)
 
     tape_root = tmp_path / "inputs/tape"
     for year in range(2020, 2027):
@@ -313,7 +435,14 @@ def _build_fixture(
         rank_reference_npz=str(rank_reference.path),
         mtf_cache_dir=str(mtf_cache),
         tape_root=str(tape_root),
-        output=str(tmp_path / "run/dataset/model_native__HOLD_03B.parquet"),
+        m1_lifecycle_pair_manifest_json=str(m1_pair_manifest),
+        m1_lifecycle_pair_generation_root=str(
+            m1_pair_generation_root
+        ),
+        exit_lifecycle_dir=str(tmp_path / "run/exit_lifecycle"),
+        exit_target_lookahead_m1_steps=30,
+        early_move_threshold_bps=4.0,
+        output=str(tmp_path / "run/dataset/model_native__DIR_H24B.parquet"),
         audit_out_dir=str(tmp_path / "run/pretrain_audit"),
         out_dir=str(tmp_path / "reports"),
         **SPLITS,
@@ -328,13 +457,14 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     report = preflight.run(args)
 
     assert report["decision"] == preflight.READY_DECISION
-    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v5"
+    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v9"
     assert not report["failures"]
     assert report["counts"] == {
         "base_signal_features": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_features": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
+        "early_move_threshold_bps": 4.0,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "required_specialist_count": 8,
@@ -357,6 +487,46 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     assert report["specialist_contract"]["all_eight_covered"] is True
     assert report["specialist_contract"]["mandatory_full_stack_exact"] is True
     assert report["inputs"]["multi_tf_cache"]["exact"] is True
+    mtf_window_contract = report["inputs"]["multi_tf_cache"][
+        "decision_window_coverage_contract"
+    ]
+    assert mtf_window_contract == {
+        "scope": "cache_exact_source_closed_bar_geometry_v2",
+        "target_availability_shift": str(MULTI_TF_SHIFT["M5"]),
+        "source_timestamp_geometry_owner": (
+            "gx1.features.htf_features."
+            "build_multi_tf_v4_closed_timestamp_indices"
+        ),
+        "per_tf_seq_lens_declared_here": False,
+        "equal_timeframe_seq_len_assumed": False,
+        "progressive_resolution_pyramid_required": True,
+        "resolution_pyramid_owner": (
+            "gx1.features.htf_features.require_multi_tf_resolution_pyramid"
+        ),
+        "exact_split_window_coverage_owner": (
+            "gx1.features.htf_features."
+            "require_multi_tf_decision_window_coverage"
+        ),
+    }
+    history_start = pd.Timestamp(SPLITS["history_start"])
+    test_end = pd.Timestamp(SPLITS["test_end"])
+    for tf, row in report["inputs"]["multi_tf_cache"]["tf_rows"].items():
+        assert row["feature_history_closed_bar_cutoff_ns"] == int(
+            multi_tf_last_closed_label(history_start, tf).value
+        )
+        assert row["test_end_closed_bar_cutoff_ns"] == int(
+            multi_tf_last_closed_label(test_end, tf).value
+        )
+        assert row["causal_warmup_rows"] == 0
+        assert row["first_complete_ts_ns"] == row["first_ts_ns"]
+        assert row["source_timestamp_geometry_exact"] is True
+        assert row["covers_feature_history_start"] is True
+    assert (
+        report["inputs"]["multi_tf_cache"]["source"][
+            "timestamp_geometry_exact"
+        ]
+        is True
+    )
     assert report["inputs"]["tape"]["exact"] is True
     assert report["inputs"]["source_parquet"]["sha256"] == _sha256(
         Path(args.source_parquet)
@@ -380,6 +550,11 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
+        "--m1-lifecycle-pair-manifest-json",
+        "--m1-lifecycle-pair-generation-root",
+        "--exit-lifecycle-dir",
+        "--exit-target-lookahead-m1-steps",
+        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--history-start",
@@ -393,6 +568,36 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         assert argv.count(flag) == 1
     assert command["run_lineage_required"] is True
     assert command["entry_run_id"] == RUN_ID
+    assert command["unified_exit_lifecycle_contract"] == {
+        "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+        "m1_pair_manifest_json": str(
+            Path(args.m1_lifecycle_pair_manifest_json)
+        ),
+        "m1_pair_generation_root": str(
+            Path(args.m1_lifecycle_pair_generation_root)
+        ),
+        "output_dir": str(Path(args.exit_lifecycle_dir).resolve()),
+        "target_lookahead_m1_steps": 30,
+        "early_move_threshold_bps": 4.0,
+        "required_m1_columns": [
+            "time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "bid_open",
+            "bid_high",
+            "bid_low",
+            "bid_close",
+            "ask_open",
+            "ask_high",
+            "ask_low",
+            "ask_close",
+            "volume",
+        ],
+        "both_sides_per_entry_snapshot": True,
+        "starts_training": False,
+    }
     assert command["run_id_validated"] is True
     assert "<EXPLICIT_RUN_ID_ID>" not in argv
     assert command["rank_reference_contract"] == {
@@ -420,6 +625,7 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "preflight_validates_exact_existing_reference": True,
     }
     assert command["fixed_builder_contract"]["state_schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
+    assert command["fixed_builder_contract"]["early_move_threshold_bps"] == 4.0
     assert command["fixed_builder_contract"]["direction_target_mode"] == "path_utility_v2"
     assert command["fixed_builder_contract"]["run_lineage_required"] is True
     assert command["fixed_builder_contract"]["rank_reference_run_id_match_required"] is True
@@ -469,10 +675,37 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "inventory_report",
         "source_dataset_dir",
         "planned_dataset_dir",
-        "neutral_xgb_bridge",
         "allow_zero_ctx",
     ):
         assert retired not in serialized
+
+
+def test_mtf_cache_contract_fails_closed_without_borrowing_seq513_length(
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path, late_mtf_history_tf="D1")
+
+    contract = preflight._mtf_cache_contract(
+        Path(args.mtf_cache_dir),
+        history_start=datetime.fromisoformat(SPLITS["history_start"]),
+        test_end=datetime.fromisoformat(SPLITS["test_end"]),
+    )
+
+    assert contract["verified_loader_error"] is None
+    assert contract["exact"] is False
+    assert contract["tf_rows"]["D1"]["first_complete_ts_ns"] > int(
+        multi_tf_last_closed_label(SPLITS["history_start"], "D1").value
+    )
+    assert contract["tf_rows"]["D1"]["covers_feature_history_start"] is False
+    assert all(
+        contract["tf_rows"][tf]["covers_feature_history_start"]
+        for tf in MULTI_TF_RESAMPLE_RULES
+        if tf != "D1"
+    )
+    assert (
+        "MODEL_NATIVE_SEQ_LEN"
+        not in preflight._mtf_cache_contract.__code__.co_names
+    )
 
 
 @pytest.mark.parametrize(
@@ -663,8 +896,18 @@ def _explicit_cli_args(tmp_path: Path) -> list[str]:
         str(tmp_path / "mtf"),
         "--tape-root",
         str(tmp_path / "tape"),
+        "--m1-lifecycle-pair-manifest-json",
+        str(tmp_path / "pair_generation" / "PAIR_MANIFEST.json"),
+        "--m1-lifecycle-pair-generation-root",
+        str(tmp_path / "pair_generations"),
+        "--exit-lifecycle-dir",
+        str(tmp_path / "exit_lifecycle"),
+        "--exit-target-lookahead-m1-steps",
+        "30",
+        "--early-move-threshold-bps",
+        "4.0",
         "--output",
-        str(tmp_path / "dataset/model_native__HOLD_03B.parquet"),
+        str(tmp_path / "dataset/model_native__DIR_H24B.parquet"),
         "--audit-out-dir",
         str(tmp_path / "audit"),
     ]
@@ -687,7 +930,7 @@ def test_parser_requires_exact_rebuild_inputs_and_rejects_retired_arguments(
         ["--source-dataset-dir", str(tmp_path / "old_dataset")],
         ["--gx1-data-root", str(tmp_path / "GX1_DATA")],
         ["--verify-large-input-hashes"],
-        ["--neutral-xgb-bridge"],
+        ["--neutral-external_tree_sidecar-bridge"],
         ["--allow-zero-ctx"],
     ):
         with pytest.raises(SystemExit):
@@ -700,6 +943,7 @@ def test_parser_requires_exact_rebuild_inputs_and_rejects_retired_arguments(
         tmp_path / f"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_{STAMP}.json"
     )
     assert parsed.rank_reference_npz == str(tmp_path / "rank.npz")
+    assert parsed.early_move_threshold_bps == 4.0
 
 
 def test_run_lineage_required(tmp_path: Path) -> None:

@@ -1,81 +1,83 @@
-# GX1 paths
+# GX1 path authority
 
-## Canonical local roots
+Updated 2026-07-31.
+
+Paths are evidence identities, not “latest file” hints. Consumers must receive
+explicit canonical paths and SHA-256 bindings. Directory globs, mtimes,
+lexical-latest selection and inferred sibling filenames have no authority.
+
+## Source repository
 
 - repository: `/home/andre2/src/GX1_ENGINE`
-- repository Python: `/home/andre2/src/GX1_ENGINE/.venv/bin/python`
-- large data/artifacts: `/home/andre2/GX1_DATA`
-- current Entry launch state:
+- Python: `/home/andre2/src/GX1_ENGINE/.venv/bin/python`
+- operator control: `/home/andre2/src/GX1_ENGINE/scripts/entry_next_edge_control.sh`
+- handover: `/home/andre2/src/GX1_ENGINE/scripts/gx1_handover.sh`
+- launch state:
   `/home/andre2/src/GX1_ENGINE/PROJECT_STATE_xau_direction_launch.json`
-- retained artifact registry:
-  `/home/andre2/src/GX1_ENGINE/PROJECT_STATE_artifacts.json`
-- current immutable failed Entry dataset/training event:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24`
-- rejected V24 Entry dataset retained as failure evidence:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/dataset`
-- current dataset terminal evidence:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/CHAIN_TERMINAL_20260722T130501752412Z_GREEN.json`
-- terminal failed V7 smoke recipe evidence:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T124100Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T124040048490Z.json`
-- terminal V7 output path (absent because no checkpoint was admitted):
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v12_entry_model_native_seq513_smoke_20260723T124100Z`
-- rejected-split cleanup evidence:
-  `/home/andre2/GX1_DATA/cleanup_events/XAU_FAILED_SPLIT_CLEANUP_20260722_V4`
 
-Code, small contracts and tests belong in the repository. Market tapes,
-feature datasets, model bundles, checkpoints and large evidence outputs belong
-under `GX1_DATA` at explicit immutable paths.
+## Current XAU source/input evidence
 
-Do not infer a decision artifact from a directory default, glob, mtime or
-`latest` link. Required paths must be explicit, absolute, non-symlinked,
-hash-bound and accepted by the relevant contract.
+- V26 event root:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26`
+- canonical-v3 M5 source:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet`
+- source SHA-256:
+  `eca51c97ac5a1097ff1b2baae5aea8c38ca162466103d5c2f3c1c18d135848ac`
+- frozen historical schema-v2 V4 cache:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729`
+- V4 manifest:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729/manifest.json`
+- cache identity:
+  `ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a`
+- embedded liveness identity:
+  `42b2b9a4af1870796cf9b22c9257550cb004515095e5e4d2fa31fb22fe4a4b18`
 
-Environment variables may configure non-authoritative tooling, but they may
-not override immutable Entry artifact identity or introduce a fallback bundle.
+The dated cache path is intentional. It proves the code/source lineage used
+for this historical input checkpoint, but active schema v3 rejects it. A fresh
+rebuild event must publish its own
+event-local `MULTI_TF_V4_CACHE`; do not rename or copy this directory into
+authority.
 
-The V24 data and V7 recipe paths above are historical, immutable failure
-evidence. V7 completed six epochs, failed hard-red with
-`TRAIN_FAIL_NO_BEST_STATE`, wrote no bundle and cleaned its temporary memmap.
-The post-run audit found signed dip-MFE target corruption and active training
-objective mismatches; neither V24 nor V7 may be reused for another run.
-`PIPELINE_AUDIT_XAU_20260723.md` is the detailed repair boundary.
-The first-wave findings plus normalization, context routing, MTF component
-identity, bundle/event publication, active-Exit byte identity, the
-identity-bound transactional launch finalizer and runtime launch fail-close
-are source-repaired only. The second audit additionally repairs exact
-T+5/closed-M5 Exit timing, V3 window coverage, transactional TradeState and
-production-only Exit loading. The current repair adds full-history native-M5
-state, atomic canonical/BASE generations, strict source/closure ownership,
-causal spread-only semantics, XGB-bound V3 lineage and the exact V3 dataset
-writer/event in the existing owner. The native roots and first pair generation are
-executed; a fresh V3 dataset on accepted Entry prediction evidence and the
-successor Exit rebuild remain artifact gates. The
-public launch route owns canonical repository
-registry/state targets and canonical
-`/home/andre2/GX1_DATA/reports/entry_model_native_launch_authority` evidence
-roots; callers may not substitute alternate roots. No model or launch
-artifacts were written. The existing historical OANDA owner's immutable
-`model-native-native-m1-source` and `model-native-native-m5-source`
-publication routes (one strict v3 schema, fixed 3-day/15-day chunk policy)
-both executed on 2026-07-24 under vedtak
-`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1` with 2019-01-01→2026-07-24 roots, and
-`model-native-canonical-pair` published the first immutable
-native→canonical-v3/raw-BASE28 generation `077e5419…` at the canonical
-pointer. The immutable TRAIN-only rank reference remains missing and the
-registry has no `train_rank_reference` entry, so exit-chain consumers stay
-fail-closed.
-Caller-supplied joint Exit replay/trace parquets have
-zero launch authority; the retained Exit bundle is research-only and
-non-production. The canonical full-TEST producer is code-complete in the
-existing sizing owner and is routed through
-`model-native-canonical-active-exit-replay`, but it has not run on an accepted
-fresh chain. Causal Exit rebuild remains open on the accepted future Entry distribution;
-XGB is cut by user vedtak 2026-07-24 and is never rebuilt. New Entry lineages
-use an event-local strict native-v3 M5 tape, which supersedes the
-December-2024 repair path; the old canonical roots retain that defect as
-historical evidence only.
-`PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
+## Current dataset evidence
 
-Never delete or move `GX1_DATA` content merely to reduce repository search
-cost. Repository source cleanup and external artifact cleanup are separate:
-the latter requires an explicit inventory and cleanup decision.
+There is no admitted dataset path. The stale V19/V26 split, audit, smoke
+manifest and rejected trainability-bundle artifacts were retired from launch
+state and deleted through exact cleanup evidence on 2026-07-29. A fresh
+schema-v3 V4 build must publish a new event-local path; no historical path may
+be inferred or reused.
+
+## Model/bundle authority
+
+There is no accepted V4 model or bundle path. The former V18 artifact is
+absent; V21C survives only as a documented diagnostic result. Do not create a
+path here until the immutable producer publishes and audits it.
+
+## Native/canonical pair
+
+The accepted 2026-07-24 native M1/M5 roots and frozen pair generation
+`077e5419…` remain source evidence for future unified lifecycle training and
+replay. They are not a current live-tail authority. Resolve their exact paths through
+their immutable manifests and registry bindings; do not copy their pointer
+name into a new artifact.
+
+## Live-tail authority
+
+There is no admitted live-tail event path. The existing snapshot/pair and
+live-tail contract owners can publish exact immutable native schema-v4
+successors, canonical successor/publication events and two-event admission
+artifacts through the public control surface, but no real chain has executed.
+Native successors require exact parent root plus parent `MANIFEST.json`
+SHA-256 and fetch only bounded overlap plus tail. Launch state stores the exact
+admission/event roots, pair pointer/generation root, producer and anchor;
+runtime selects the newest immutable admission and requires exact equality
+with the pair used for Entry inference. The collector does not by itself
+create an advancing canonical pair, and the retired incremental daemon has no
+authority. Do not invent a `latest` path; record exact event paths and SHA-256
+only after their owners publish them.
+
+## Cleanup
+
+Large-data cleanup must use
+`gx1/scripts/cleanup_gx1_evidence_v1.py` with an immutable plan, separate
+approval, quarantine validation and terminal evidence. Never delete a parent
+directory by exclusion pattern.

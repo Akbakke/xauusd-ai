@@ -57,11 +57,11 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     set_col("ctx_cont.smc_choch_recent_tau24", [0, 0.1, 0.1, 0.7, 0.1, 0.7, 0.2, 0])
     set_col("snap.smc_premium_discount", [0.5, 0.18, 0.22, 0.25, 0.82, 0.86, 0.72, 0.5])
 
-    set_col("snap.body_pct", [0.0, 0.55, 0.35, -0.75, -0.40, -0.55, 0.80, 0.0])
-    set_col("snap._v1_body_share_1", [0.0, 0.60, 0.40, 0.70, 0.45, 0.55, 0.75, 0.0])
-    set_col("snap._v1_clv", [0.0, 0.90, 0.70, -0.85, -0.65, -0.90, 0.90, 0.0])
-    set_col("snap.wick_asym", [0.0, -0.85, -0.45, 0.10, 0.60, 0.85, -0.10, 0.0])
-    set_col("ctx_cont.wick_ratio", [0.5, 0.08, 0.20, 0.88, 0.80, 0.92, 0.10, 0.5])
+    set_col("candle.pattern_body_direction", [0, 1, 1, -1, -1, -1, 1, 0])
+    set_col("candle.pattern_body_share", [0.0, 0.60, 0.40, 0.70, 0.45, 0.55, 0.75, 0.0])
+    set_col("candle.pattern_upper_wick_share", [0.5, 0.05, 0.15, 0.20, 0.45, 0.40, 0.10, 0.5])
+    set_col("candle.pattern_lower_wick_share", [0.5, 0.35, 0.45, 0.10, 0.10, 0.05, 0.15, 0.5])
+    set_col("candle.pattern_close_location", [0.5, 0.95, 0.80, 0.10, 0.20, 0.08, 0.90, 0.5])
 
     for name in ("ctx_cont._v1h1_ema_diff", "ctx_cont._v1h4_ema_diff", "ctx_cont.d1_ema_slope_20_canon_v2", "ctx_cont.m15_trend_sign_canon_v2"):
         set_col(name, [0.0, 1.5, 1.2, -1.0, -1.0, -1.5, 1.5, 0.0])

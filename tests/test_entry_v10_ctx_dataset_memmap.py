@@ -99,7 +99,8 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
         parquet_path,
         seq_len=2,
         m5_prebuilt_path=m5_path,
-        multi_tf_seq_len=2,
+        per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+        multi_tf_closed_bar=True,
     )
 
     assert isinstance(ds._np_seq, np.memmap)
@@ -141,5 +142,27 @@ def test_advanced_dataset_rejects_unsorted_time_rows(tmp_path, monkeypatch) -> N
             parquet_path,
             seq_len=2,
             m5_prebuilt_path=m5_path,
-            multi_tf_seq_len=2,
+            per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+            multi_tf_closed_bar=True,
+        )
+
+
+def test_dataset_rejects_missing_timeframe_length_without_global_fallback(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    parquet_path = tmp_path / "advanced_train.parquet"
+    _write_advanced_parquet(parquet_path)
+    m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_PER_TF_SEQ_LEN_CONTRACT_INVALID",
+    ):
+        trainer.EntryV10CtxDataset(
+            parquet_path,
+            seq_len=2,
+            m5_prebuilt_path=m5_path,
+            per_tf_seq_lens={"M5": 2, "H4": 2, "D1": 2},
+            multi_tf_closed_bar=True,
         )

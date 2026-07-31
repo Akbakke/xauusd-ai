@@ -16,6 +16,7 @@ import threading
 # FASE 1: Use PREBUILT-safe tripwire counter (does not import feature-building modules)
 from gx1.execution.feature_build_tripwires import bump_feature_build_call_count
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
+from gx1.time.session_detector import ASIA_SESSION_ID
 
 # Legacy counter kept for backward compatibility (deprecated, use feature_build_tripwires)
 _basic_v1_call_lock = threading.Lock()
@@ -629,7 +630,9 @@ def add_session_features(df, tz_offset_minutes=0):
     df["session_change_flag"] = (pd.Series(session_id, index=df.index).diff().fillna(0) != 0).astype(int).to_numpy()
     
     # Tradable flag (policy can still restrict to EU/OVERLAP/US)
-    df["session_tradable"] = (df["session_id"] != 0).astype(int)
+    df["session_tradable"] = (
+        df["session_id"] != ASIA_SESSION_ID
+    ).astype(int)
     
     return df
 
@@ -1057,7 +1060,6 @@ def build_basic_v1(df):
 
     # --- Kost-proxies ---
     # DEL 2: Replace .shift(), .astype() with NumPy
-    n = len(df)
     spread_pct_arr = df["spread_pct"].to_numpy(dtype=np.float64)
     spread_bps = spread_pct_arr * 1e4
     spread_bps_shifted = np.roll(spread_bps, 1)
@@ -1458,8 +1460,7 @@ def build_basic_v1(df):
     from gx1.features.array_utils import safe_clip, safe_mul
     
     # Array-first batch processing: fetch all inputs once, compute in NumPy, assign back
-    n = len(df)
-    
+
     # Del 1: Base interaksjoner
     t_misc_interactions_base_start = time.perf_counter()
     if "_v1_r5" in df.columns and "_v1_atr_regime_id" in df.columns:

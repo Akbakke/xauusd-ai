@@ -49,16 +49,19 @@ documentation and code together.
       a gate reports a failure, prove the gate looked at the right rows before
       believing it about the system.
 3. Entry direction comes only from the accepted model's calibrated
-   `LONG/SHORT/FLAT` logits. No post-model trend, session, confidence, utility
-   or threshold rule may veto, flip or manufacture direction.
+   `LONG/SHORT/FLAT` logits, and Exit comes only from the same bundle/shared
+   encoder's calibrated `HOLD/EXIT_NOW` logits. No post-model trend, session,
+   confidence, utility, threshold or close rule may veto, flip or manufacture
+   either action. A separate Exit model is forbidden.
 4. Keep every genuine feature family in the learned path. Removing a retired
    rule must never remove its underlying market evidence. The 378 registered
    causal-layer outputs are mandatory; only 101 additional specialist fields
    may be selected by deterministic TRAIN-only ranking.
 5. The learned size head is mandatory evidence. Label-horizon sizing proof is
-   diagnostic only; paper/live additionally requires an exact joint adopted-
-   Exit sizing replay and fresh post-adoption broker runtime parity. Until both
-   pass, emit no order. Fixed size is not a fallback.
+   diagnostic only; paper/live additionally requires candidate-bound replay
+   of both heads in the same adopted bundle and fresh post-adoption broker
+   runtime parity. Until both pass, emit no order. Fixed size is not a
+   fallback.
 6. Train equals serve: exact ordered fields, dimensions, normalization,
    timeframe construction, hashes and final-logit semantics must match.
 7. Newest valid terminal evidence wins. A newer red event blocks every older
@@ -72,8 +75,10 @@ documentation and code together.
    not a caller override. IDs are lineage, not manual approval; evidence
    contracts alone admit execution. Never auto-promote an artifact.
 9. Do not delete anything under `/home/andre2/GX1_DATA` or active run paths
-   without an explicit verified cleanup decision. Preserve active collectors,
-   canonical builders, dashboards and their files.
+   without an explicit verified cleanup decision. Preserve valid active
+   collectors and unrelated dashboards, but never preserve or restart a
+   retired canonical daemon/watchdog merely because a process or service name
+   exists.
 10. Remove disconnected repository code and stale docs once call-site scans,
     tests and evidence ownership show they are unnecessary.
 11. Never expose secrets, force-push, hard-reset shared work or overwrite
@@ -85,7 +90,7 @@ documentation and code together.
     a consumer is not ownership proof and must never be required as one.
 14. Model-native training may receive decision-affecting environment values
     only from the canonical exact recipe owner. The immutable recipe must bind
-    all 162 keys, split artifacts, prerequisite audits and executable source
+    all 163 keys, split artifacts, prerequisite audits and executable source
     bytes; ambient values, wrapper defaults and hand-authored recipe evidence
     are forbidden.
 15. Dataset-build and training-output identities are separate roles. Recipe,
@@ -137,3 +142,36 @@ documentation and code together.
     hypothesis in ten minutes outranks a mechanism that might address it.
     Delete a diagnostic once its question is permanently settled unless it
     keeps earning its cost as observability.
+25. Multi-timeframe is a causal multi-resolution pyramid, not five generic
+    side inputs. All eight specialist families must have a timeframe-native
+    M5/M15/H1/H4/D1 surface and an explicit learned family×timeframe route.
+    The active V4 contract is exact: 111 fields per timeframe, 555
+    feature×timeframe cells and 40 family×timeframe routes. `5 × 111 = 555`;
+    a different count requires a versioned contract, never padding.
+    Fine history is short and recent; progressively older history is represented
+    at progressively coarser resolutions. Exact windows are required immutable
+    recipe inputs with strictly increasing wall-clock coverage. Feature
+    relevance is learned per feature×timeframe and conditioned on age/regime;
+    fixed timeframe preferences, wrapper scale literals and hand-written
+    confluence direction rules are forbidden. Gate values are diagnostics, not
+    proof: retained routes need immutable raw/calibrated-margin ablation evidence.
+26. Active cache schema v3 publishes only fully closed resample buckets and
+    training proves the exact five declared decision windows at both ends of
+    TRAIN/VAL/TEST. Serve-parity v11 requires independent local raw/final
+    sensitivity for all 513 sequence and 513 snapshot routes, 142 continuous
+    context routes and 555 MTF routes, plus valid counterfactual movement for
+    five categorical routes. No launcher, dashboard, watchdog or service may
+    advertise a retired daemon interface. A fresh advancing immutable
+    live-tail admission is mandatory for each new Entry, but it is not a
+    process-wide startup gate: an already admitted same-bundle runtime must
+    still be able to manage open exposure through model-native Exit.
+27. Takeover authority must describe the active boundary, not validate an old
+    artifact merely because it still exists. With no admitted dataset,
+    `current_smoke_launch_evidence` is null and handover may report historical
+    runs only as diagnosis. Source implementation, real execution and
+    admission are three separate states; never collapse them into “ready”.
+28. A changed-path count is not a source identity. Takeover must bind HEAD,
+    the complete tracked diff and every untracked file byte in a deterministic
+    `worktree_fingerprint`. An unchanged document fingerprint cannot authorize
+    continuation when that worktree identity changed; inspect the diff and
+    rerun affected contracts first.

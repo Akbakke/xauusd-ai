@@ -2,7 +2,7 @@
 
 The active Entry source cascade needs the causal ``atr`` normalization source
 that canonical-v3 omits from its model feature surface. Ten retired duplicate/
-XGB-only columns are not restored, and three constant legacy spread/regime fields
+Retired compatibility-only columns are not restored, and three constant legacy spread/regime fields
 are removed from the Entry projection. The nine mandatory ``add_session_features``
 columns are likewise removed from the Entry projection: the exact Entry context
 adder is their single downstream owner and a second source-borne copy would

@@ -33,6 +33,19 @@ def _stamp(value: datetime) -> str:
     return value.strftime("%Y%m%dT%H%M%S%fZ")
 
 
+@pytest.fixture(autouse=True)
+def _stub_source_cascade_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        producer,
+        "validate_seq513_source_cascade_proof",
+        lambda path, **kwargs: json.loads(
+            Path(path).read_text(encoding="utf-8")
+        ),
+    )
+
+
 def _ranking_payload(tmp_path: Path) -> dict:
     source_path, reference = materialize_test_rank_reference(
         tmp_path / "rank_reference",
@@ -48,6 +61,25 @@ def _ranking_payload(tmp_path: Path) -> dict:
             for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
         ],
     ]
+    source_cascade = {
+        "path": str((source_path.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
+        "sha256": "9" * 64,
+        "schema_version": "seq513_source_cascade_proof_v7",
+        "entry_run_id": RUN_ID,
+        "event_root": str(source_path.parent.resolve()),
+        "source_parquet_sha256": str(
+            reference.sidecar["source_parquet_sha256"]
+        ),
+        "canonical_v2_sha256": "3" * 64,
+        "multi_tf_manifest_sha256": "4" * 64,
+        "multi_tf_cache_identity_sha256": "5" * 64,
+        "history_start_utc": "2019-12-31T00:00:00+00:00",
+        "time_max_utc": "2025-12-31T23:59:59+00:00",
+    }
+    Path(source_cascade["path"]).write_text(
+        json.dumps(source_cascade),
+        encoding="utf-8",
+    )
     return {
         "schema_version": producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": RANKING_CREATED.isoformat(),
@@ -62,6 +94,7 @@ def _ranking_payload(tmp_path: Path) -> dict:
         "source_sha256": str(reference.sidecar["source_parquet_sha256"]),
         "target_sha256": "2" * 64,
         "target_contract": dict(producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT),
+        "source_cascade": source_cascade,
         "rank_reference": {
             "path": str(reference.path),
             "sha256": reference.sha256,

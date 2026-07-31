@@ -11,11 +11,13 @@ newer failure event, changed bundle, or changed registry is fail-closed.
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import json
 import os
 import re
 import stat
 from collections.abc import Mapping
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,10 @@ from gx1.contracts.entry_model_native_launch_approval_v1 import (
 from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
     select_latest_immutable_event,
+)
+from gx1.contracts.live_tail_publication_v1 import (
+    LiveTailAuthorityError,
+    require_live_tail_launch_authority,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_operating_point,
@@ -97,6 +103,7 @@ _LAUNCH_STATE_KEYS = frozenset(
         "sizing_runtime_parity_evidence",
         "serve_gate_evidence",
         "adaptation_lifecycle_evidence",
+        "new_entry_live_tail_authority",
         "operating_point",
         "launch_transaction",
         "accepted_via_vedtak",
@@ -119,6 +126,52 @@ _V10_ENTRY_KEYS = frozenset(
 
 class EntryLaunchTransactionError(RuntimeError):
     """Launch files do not form one complete immutable transaction."""
+
+
+@contextmanager
+def entry_launch_authority_lock(
+    *,
+    registry_path: Path,
+    launch_state_path: Path,
+):
+    """Serialize launch publication and the final broker mutation lease."""
+
+    targets: list[Path] = []
+    for raw, label in (
+        (registry_path, "artifact registry"),
+        (launch_state_path, "launch state"),
+    ):
+        path = Path(raw).expanduser()
+        if not path.is_absolute() or path.is_symlink():
+            raise EntryLaunchTransactionError(
+                f"{label} lock target must be absolute and non-symlinked"
+            )
+        targets.append(path.resolve())
+    identity = "\n".join(str(path) for path in targets).encode("utf-8")
+    lock_path = Path("/tmp") / (
+        ".gx1-entry-launch-"
+        + hashlib.sha256(identity).hexdigest()
+        + ".lock"
+    )
+    flags = (
+        os.O_RDWR
+        | os.O_CREAT
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    descriptor = os.open(lock_path, flags, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise EntryLaunchTransactionError(
+                "launch authority lock is not a regular file"
+            )
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
 
 
 def sha256_file(path: Path) -> str:
@@ -427,6 +480,12 @@ def require_entry_launch_transaction(
         or state.get("blockers") != []
     ):
         _fail("launch state is not an exact unblocked ALLOW authority")
+    try:
+        live_tail_authority = require_live_tail_launch_authority(
+            state.get("new_entry_live_tail_authority")
+        )
+    except LiveTailAuthorityError as exc:
+        _fail(f"new-Entry live-tail authority is invalid: {exc}")
     declaration = _exact_mapping(
         state.get("launch_transaction"),
         _DECLARATION_KEYS,
@@ -593,6 +652,9 @@ def require_entry_launch_transaction(
                 "serve_gate_evidence"
             ]["model_native_direction_pocket_audit"],
             "adaptation_lifecycle": state["adaptation_lifecycle_evidence"],
+            "live_tail_admission": live_tail_authority[
+                "launch_admission"
+            ],
         },
     )
     vedtak = require_preexisting_launch_vedtak(

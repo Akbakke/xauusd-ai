@@ -1,7 +1,7 @@
 """Exact model-native seq513 feature-to-specialist contract.
 
 Every seq/snap field is owned by one of eight trainable evidence specialists.
-The retired seven-field XGBoost bridge is detected only to fail closed; it is
+The retired seven-field external bridge is detected only to fail closed; it is
 never an encoder group, model input, prior, or compatibility route.
 """
 from __future__ import annotations
@@ -16,6 +16,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -90,15 +91,133 @@ SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
     ]
 )
 
-MODEL_NATIVE_TRAINING_SPECIALISTS = (
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
-    "chart_geometry_encoder",
-    "price_action_candle_encoder",
+MODEL_NATIVE_TRAINING_SPECIALISTS = tuple(SPECIALIST_GROUPS)
+
+# Exact all-eight-family routing for the per-resolution V4 surface.  This is a
+# second use of the same eight semantic owners, not a parallel specialist
+# taxonomy.  The HTF feature contract owns ordered emission; this owner binds
+# every emitted name to exactly one specialist and rejects older 6/8 surfaces
+# when explicit family×timeframe routing is requested.
+from gx1.features.htf_features import (  # noqa: E402
+    MULTI_TF_PER_BAR_CANDLESTICK_V3,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_PER_BAR_SWING_V3,
+)
+from gx1.features.smc_v1 import (  # noqa: E402
+    SMC_MTF_FEATURE_NAMES_V1,
+    SMC_MTF_GEOMETRY_FEATURE_NAMES_V1,
+)
+
+MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION = (
+    "entry_multi_tf_eight_family_specialist_routing_v1"
+)
+MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
+    [
+        (
+            "structure_swing_encoder",
+            tuple(MULTI_TF_PER_BAR_SWING_V3),
+        ),
+        (
+            "smc_liquidity_encoder",
+            tuple(SMC_MTF_FEATURE_NAMES_V1),
+        ),
+        (
+            "trend_ema_encoder",
+            (
+                "ema20_dist_atr",
+                "ema50_dist_atr",
+                "ema100_dist_atr",
+                "ema200_dist_atr",
+                "ema20_slope_atr",
+                "ema50_slope_atr",
+                "ema200_slope_atr",
+                "ema_stack_aligned_v2",
+                "adx_centered",
+                "trend_age_bars_norm",
+            ),
+        ),
+        (
+            "vol_compression_encoder",
+            (
+                "atr_bps_14",
+                "bb_width_atr",
+            ),
+        ),
+        (
+            "momentum_flow_encoder",
+            (
+                "rsi14_centered",
+                "mom_5_atr",
+                "mom_20_atr",
+                "bb_position",
+            ),
+        ),
+        (
+            "session_regime_encoder",
+            (
+                "regime_class_id",
+                "vwap_local_cycle_dist_atr",
+                "vwap20_dist_atr",
+                "vwap96_dist_atr",
+                "vwap_local_cycle_slope_atr",
+            ),
+        ),
+        (
+            "chart_geometry_encoder",
+            tuple(SMC_MTF_GEOMETRY_FEATURE_NAMES_V1),
+        ),
+        (
+            "price_action_candle_encoder",
+            (
+                "close_open_atr",
+                "body_pct",
+                "upper_wick_pct",
+                "lower_wick_pct",
+                *MULTI_TF_PER_BAR_CANDLESTICK_V3,
+            ),
+        ),
+    ]
+)
+
+
+def require_multi_tf_specialist_routing_v4(
+    feature_names: Iterable[str],
+) -> "OrderedDict[str, tuple[int, ...]]":
+    """Bind the exact V4 field order to all eight non-empty specialists."""
+    ordered = tuple(str(name) for name in feature_names)
+    if ordered != tuple(MULTI_TF_PER_BAR_FEATURES_V4):
+        raise RuntimeError(
+            "ENTRY_MULTI_TF_SPECIALIST_FEATURE_CONTRACT_INVALID"
+        )
+    if tuple(MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4) != (
+        MODEL_NATIVE_TRAINING_SPECIALISTS
+    ):
+        raise RuntimeError("ENTRY_MULTI_TF_SPECIALIST_ORDER_INVALID")
+    flattened = tuple(
+        name
+        for names in MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.values()
+        for name in names
+    )
+    if (
+        len(flattened) != len(set(flattened))
+        or set(flattened) != set(ordered)
+        or any(not names for names in MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.values())
+    ):
+        raise RuntimeError("ENTRY_MULTI_TF_SPECIALIST_COVERAGE_INVALID")
+    index = {name: position for position, name in enumerate(ordered)}
+    return OrderedDict(
+        (
+            specialist,
+            tuple(index[name] for name in names),
+        )
+        for specialist, names in MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.items()
+    )
+
+
+# Import-time proof: a contract edit cannot silently orphan, duplicate or
+# reorder one family×timeframe input.
+MULTI_TF_SPECIALIST_INDICES_V4 = require_multi_tf_specialist_routing_v4(
+    MULTI_TF_PER_BAR_FEATURES_V4
 )
 
 MODEL_NATIVE_EXPECTED_SIGNAL_DIM = MODEL_NATIVE_SIGNAL_DIM
@@ -120,16 +239,6 @@ MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS = (
     "d1_regime_class_id_v2",
 )
 MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY = 5
-MODEL_NATIVE_CTX_CAT_DOMAINS = {
-    "session_id": (0, 1, 2, 3),
-    "vol_regime_id": (0, 1, 2, 3, 4),
-    "atr_bucket": (0, 1, 2, 3, 4),
-    "spread_bucket": (0, 1, 2, 3, 4),
-    "H4_trend_sign_cat": (0, 1, 2),
-}
-if tuple(MODEL_NATIVE_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
-    raise RuntimeError("MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_INVALID")
-
 SPECIALIST_FUSION_ACTIVE_HEADS = (
     "direction",
     "tradable",
@@ -750,6 +859,12 @@ def classify_entry_specialist_feature(name: str) -> str:
     ):
         return "structure_swing_encoder"
 
+    # signed_vol_z_20 is directional participation (volume z-score multiplied
+    # by return sign), not an unsigned volatility magnitude. Keep this before
+    # the generic "vol" matcher so the intended momentum owner is reachable.
+    if "signed_vol" in n:
+        return "momentum_flow_encoder"
+
     if _contains_any(
         n,
         (
@@ -793,7 +908,6 @@ def classify_entry_specialist_feature(name: str) -> str:
             "dip_proximity",
             "acceleration",
             "clv",
-            "signed_vol",
             "followthrough",
             "rsi",
             "pct_change",

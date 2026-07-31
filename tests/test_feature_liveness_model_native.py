@@ -3,7 +3,9 @@ from __future__ import annotations
 import ast
 import inspect
 from pathlib import Path
+from types import SimpleNamespace
 
+import pandas as pd
 import pytest
 
 import numpy as np
@@ -14,6 +16,54 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     ordered_model_native_signal_fields,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+
+
+def _bind_live_pair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    end: pd.Timestamp,
+) -> None:
+    canonical_path = tmp_path / "canonical.parquet"
+    base28_path = tmp_path / "base28.parquet"
+    canonical_time = pd.date_range(
+        end=end,
+        periods=13,
+        freq="5min",
+        tz="UTC",
+    )
+    base28_time = pd.date_range(
+        end=end,
+        periods=61,
+        freq="min",
+        tz="UTC",
+    )
+    pd.DataFrame(
+        {
+            "time": canonical_time,
+            "signal": np.arange(len(canonical_time), dtype=np.float64),
+        }
+    ).to_parquet(canonical_path, index=False)
+    pd.DataFrame(
+        {
+            "time": base28_time,
+            "price": np.arange(len(base28_time), dtype=np.float64),
+        }
+    ).to_parquet(base28_path, index=False)
+    pair = SimpleNamespace(
+        canonical_v3=SimpleNamespace(parquet_path=canonical_path),
+        base28=SimpleNamespace(parquet_path=base28_path),
+    )
+    monkeypatch.setattr(
+        feature_liveness,
+        "read_prebuilt_pair_manifest",
+        lambda *args, **kwargs: pair,
+    )
+    monkeypatch.setattr(
+        feature_liveness,
+        "verify_prebuilt_pair",
+        lambda *args, **kwargs: None,
+    )
 
 
 def _signal_names() -> list[str]:
@@ -46,8 +96,64 @@ def _batch(*, rows: int = 8) -> tuple[dict, list[str], list[str]]:
     return batch, signal_names, ctx_cont_names
 
 
+def test_live_pair_liveness_reads_explicit_base28_time_column(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = pd.Timestamp.now(tz="UTC").floor("min")
+    _bind_live_pair(tmp_path, monkeypatch, end=now)
+
+    continuity = feature_liveness.check_live_continuity(
+        tail_days=1,
+        fresh_fail_hours=1,
+    )
+    tail = feature_liveness.check_live_prebuilt_tail(
+        tail_days=1 / 48,
+        ref_days=1 / 24,
+    )
+
+    assert continuity["ok"] is True
+    assert set(continuity["freshness_min"]) == {"CV3-M5", "BASE28-M1"}
+    assert continuity["freshness_min"]["BASE28-M1"] < 2.0
+    assert tail["ok"] is True
+    assert tail["stale_minutes"]["BASE28"] < 2.0
+    assert tail["checked"]["BASE28"]["tail_rows"] > 0
+
+
+def test_live_pair_liveness_fails_when_valid_pair_is_stale(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _bind_live_pair(
+        tmp_path,
+        monkeypatch,
+        end=pd.Timestamp("2026-07-24T12:00:00Z"),
+    )
+
+    tail = feature_liveness.check_live_prebuilt_tail()
+    continuity = feature_liveness.check_live_continuity()
+
+    assert tail["ok"] is False
+    assert {item.split(":", 1)[0] for item in tail["stale_sources"]} == {
+        "BASE28",
+        "CV3",
+    }
+    assert continuity["ok"] is False
+    assert {item.split(":", 1)[0] for item in continuity["stale_sources"]} == {
+        "BASE28-M1",
+        "CV3-M5",
+    }
+
+
 def _stub_multi_tf(monkeypatch, seen: dict | None = None) -> None:
-    def check(_seq, *, allow_known_dead):
+    def check(
+        _seq,
+        *,
+        feature_names,
+        allow_known_dead,
+        population_stats=None,
+    ):
+        assert feature_names == ["mtf.fixture"]
         if seen is not None:
             seen["allow_known_dead"] = allow_known_dead
         return {
@@ -87,13 +193,14 @@ def test_exact_model_native_seq513_can_pass_only_when_finite_and_live(monkeypatc
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
     )
 
     assert report == {
         "ok": True,
         "authoritative": True,
-        "contract": "model_native_seq513",
+        "contract": "model_native_seq513_mtf_declared",
         "issues": [],
         "multi_tf_atr": {"M5": 1.0, "D1": 2.0},
     }
@@ -111,6 +218,7 @@ def test_model_native_seq513_does_not_inherit_legacy_constant_allowlist(monkeypa
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
     )
 
@@ -127,6 +235,7 @@ def test_model_native_seq513_rejects_nonfinite_input(monkeypatch) -> None:
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
     )
 
@@ -144,6 +253,7 @@ def test_retired_520_surface_cannot_pass_even_when_values_vary(monkeypatch) -> N
         batch,
         snap_names=legacy_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
     )
 
@@ -162,6 +272,7 @@ def test_missing_model_native_surface_or_names_is_a_hard_fail(monkeypatch) -> No
         batch,
         snap_names=None,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
     )
 
@@ -201,8 +312,8 @@ def test_feature_liveness_cli_uses_current_exact_dataset_constructor() -> None:
         "parquet_path",
         "seq_len",
         "m5_prebuilt_path",
-        "multi_tf_seq_len",
         "per_tf_seq_lens",
+        "multi_tf_closed_bar",
     }
 
 
@@ -232,6 +343,7 @@ def test_sparse_impulse_flag_is_alive_on_its_full_population(monkeypatch) -> Non
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
         population_stats=lambda surface, name: (
             V26_SPARSE_IMPULSE if name == field else None
@@ -250,6 +362,7 @@ def test_small_magnitude_varying_score_is_alive_on_its_full_population(monkeypat
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
         population_stats=lambda surface, name: (
             V26_SMALL_MAGNITUDE_SCORE if name == field else None
@@ -267,6 +380,7 @@ def test_truly_constant_field_stays_dead_under_escalation(monkeypatch) -> None:
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
         population_stats=lambda surface, name: (0.0, 1),
     )
@@ -288,6 +402,7 @@ def test_escalation_absent_by_default_so_the_sample_verdict_stands(monkeypatch) 
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
     )
 
@@ -303,6 +418,7 @@ def test_unresolvable_field_keeps_the_sample_verdict(monkeypatch) -> None:
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
         population_stats=lambda surface, name: None,
     )
@@ -329,6 +445,7 @@ def test_each_surface_is_escalated_separately(monkeypatch) -> None:
         batch,
         snap_names=signal_names,
         ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
         raise_on_fail=False,
         population_stats=stats,
     )
@@ -380,7 +497,6 @@ def test_multi_tf_windows_are_caller_declared_not_wrapper_defaults() -> None:
         assert "--multi-tf-seq-len 16" not in wrapper
         assert "--multi-tf-seq-len 96" not in wrapper
         for variable in (
-            "MULTI_TF_SEQ_LEN",
             "PER_TF_SEQ_LEN_M5",
             "PER_TF_SEQ_LEN_M15",
             "PER_TF_SEQ_LEN_H1",
@@ -424,11 +540,12 @@ def test_every_declared_timeframe_window_reaches_the_trainer() -> None:
 
     for timeframe in ("m5", "m15", "h1", "h4", "d1"):
         assert f'"--per-tf-seq-len-{timeframe}"' in trainer, timeframe
-        assert f"per_tf_seq_len_{timeframe}: int = 0," in trainer, timeframe
+        assert f"per_tf_seq_len_{timeframe}: int," in trainer, timeframe
         assert (
             f"per_tf_seq_len_{timeframe}=int(args.per_tf_seq_len_{timeframe}),"
             in trainer
         ), f"{timeframe} is declared but never passed to the trainer"
+    assert "_per_tf_lens.get(tf) or int(multi_tf_seq_len)" not in trainer
 
 
 def test_smoke_audit_measures_edge_and_gates_only_on_validity() -> None:

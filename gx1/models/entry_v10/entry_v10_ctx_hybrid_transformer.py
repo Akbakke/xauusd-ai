@@ -32,6 +32,8 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 )
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
     MIN_EFFECTIVE_SCALE as TF_INPUT_SCALE_MIN_EFFECTIVE,
+    NEUTRAL_EFFECTIVE_INIT as TF_INPUT_SCALE_NEUTRAL_INIT,
+    TF_NAMES as TF_INPUT_SCALE_NAMES,
     raw_tf_input_scale_from_effective,
 )
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
@@ -41,6 +43,16 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CTX_CAT_DOMAINS,
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
+    MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_TRADE_INDICES,
+    UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
+    UNIFIED_EXIT_MAX_PATH_BARS,
+    UNIFIED_EXIT_PATH_ENCODER_LAYERS,
+    UNIFIED_EXIT_PATH_FEATURE_DIM,
 )
 
 
@@ -57,16 +69,7 @@ def _assert_finite(name: str, t: torch.Tensor) -> None:
 
 
 EXACT_TRENDLINE_RAIL_OUTPUT_DIM = 6
-EXACT_SPECIALIST_NAMES = (
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
-    "chart_geometry_encoder",
-    "price_action_candle_encoder",
-)
+EXACT_SPECIALIST_NAMES = MODEL_NATIVE_TRAINING_SPECIALISTS
 EXACT_CTX_CAT_DOMAINS = MODEL_NATIVE_CTX_CAT_DOMAINS
 if tuple(EXACT_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
     raise RuntimeError("ENTRY_MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_INVALID")
@@ -109,58 +112,44 @@ TAIL_RISK_HEAD_DIM = len(TAIL_RISK_DIRECTIONS) * len(TAIL_RISK_HORIZONS)  # = 6
 VOL_FORECAST_HORIZONS = (12, 48, 96)
 VOL_FORECAST_HEAD_DIM = len(VOL_FORECAST_HORIZONS)  # = 3
 
+
 @dataclass(frozen=True)
 class CtxModelConfig:
-    """Configuration for the one supported Entry model-native architecture.
+    """Internal immutable configuration for the exact Entry architecture.
 
-    There are deliberately no component/head enable flags.  Every instance has
-    the full M5/M15/H1/H4/D1 stack, positional encoding, cross-TF attention,
-    learnable TF scales, regime FiLM, eight specialists and every supervised
-    evidence head.  Values here tune dimensions/scales; they cannot remove a
-    decision-path component.
+    Every recipe-owned MTF, dropout and specialist-capacity value is required.
+    The class provides storage only; it is never an alternate configuration
+    loader or a source of compatibility defaults.
     """
 
     seq_input_dim: int
     snap_input_dim: int
     seq_len: int
+    dropout: float
+    multi_tf_num_layers: int
+    m15_seq_dim: int
+    h1_seq_dim: int
+    h4_seq_dim: int
+    d1_seq_dim: int
+    m15_seq_len: int
+    h1_seq_len: int
+    h4_seq_len: int
+    d1_seq_len: int
+    multi_tf_scale: float
+    m5_seq_dim: int
+    m5_seq_len: int
+    specialist_num_layers: int
+    specialist_fusion_scale: float
+    cross_family_fusion_scale: float
+    ctx_cat_dim: int
+    ctx_cont_dim: int
     d_model: int = 128
     n_heads: int = 4
     num_layers: int = 3
     dim_feedforward: Optional[int] = None
-    dropout: float = 0.05
-    ctx_cat_dim: int = MODEL_NATIVE_CTX_CAT_DIM
-    ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM
-    # simple, robust embedding: one shared vocab for all ctx_cat slots
     ctx_cat_emb_dim: int = 8
-    # Keep ctx as correction, not primary driver
     ctx_cat_scale: float = 0.25
     ctx_cont_scale: float = 0.25
-    # Exact M5/M15/H1/H4/D1 input contract.
-    m15_seq_dim: int = 0
-    h1_seq_dim: int = 0
-    h4_seq_dim: int = 0
-    d1_seq_dim: int = 0
-    m15_seq_len: int = 96        # ~24 hours at M15 cadence
-    h1_seq_len: int = 96         # ~4 days at H1 cadence
-    h4_seq_len: int = 96         # ~16 days at H4 cadence
-    d1_seq_len: int = 96         # ~3 months at D1 cadence
-    multi_tf_num_layers: int = 2 # smaller encoders per TF (lower TF count → less compute)
-    multi_tf_scale: float = 0.5  # fixed positive multi-TF representation scale
-    # Per-TF learnable input-scaling priors.
-    tf_input_scale_init_m5: float = 1.0
-    tf_input_scale_init_m15: float = 1.0
-    tf_input_scale_init_h1: float = 0.7
-    tf_input_scale_init_h4: float = 0.5
-    tf_input_scale_init_d1: float = 0.3
-    # The exact path receives seq_x (513 model-native signals × 96 M5 bars)
-    # plus separately declared M5/M15/H1/H4/D1 tensors. Each timeframe width is
-    # artifact-bound; none is inferred from these defaults or silently padded.
-    m5_seq_dim: int = 0
-    m5_seq_len: int = 96         # ~8 hours at M5 cadence
-    # Mandatory specialist and fusion hyperparameters.
-    specialist_num_layers: int = 1
-    specialist_fusion_scale: float = 0.25
-    cross_family_fusion_scale: float = 0.25
 
 
 class EntryV10CtxHybridTransformer(nn.Module):
@@ -170,7 +159,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
       - gx1/rl/entry_v10/train_entry_transformer_v10.py (CTX variant)
 
     Forward signature (expected by docs/usage):
-        out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+        out = model(
+            seq_x,
+            snap_x,
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            seq_m5=seq_m5,
+            seq_m15=seq_m15,
+            seq_h1=seq_h1,
+            seq_h4=seq_h4,
+            seq_d1=seq_d1,
+        )
         out["direction_logits"]  -> (B, 3)  # classes: 0=LONG, 1=SHORT, 2=FLAT
         out["public_trade_flat_decision_logits"] -> (B, 2)  # TRADE=max(LONG,SHORT), FLAT
         out["path_quality"]      -> (B, 1)  # auxiliary learned path evidence
@@ -187,40 +186,46 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_input_dim: int,
         snap_input_dim: int,
         seq_len: int,
+        dropout: float,
         ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim: int = MODEL_NATIVE_CTX_CAT_DIM,
         m15_seq_dim: int,
         h1_seq_dim: int,
         h4_seq_dim: int,
         d1_seq_dim: int,
-        m15_seq_len: int = 96,
-        h1_seq_len: int = 96,
-        h4_seq_len: int = 96,
-        d1_seq_len: int = 96,
-        multi_tf_num_layers: int = 2,
-        multi_tf_scale: float = 0.5,
+        m15_seq_len: int,
+        h1_seq_len: int,
+        h4_seq_len: int,
+        d1_seq_len: int,
+        multi_tf_num_layers: int,
+        multi_tf_scale: float,
         m5_seq_dim: int,
-        m5_seq_len: int = 96,
+        m5_seq_len: int,
         specialist_input_indices: Dict[str, list[int]],
         specialist_ctx_cont_indices: Dict[str, list[int]],
         specialist_ctx_cont_nominal_indices: Dict[str, list[int]],
         specialist_ctx_cat_indices: Dict[str, list[int]],
+        multi_tf_specialist_input_indices: Dict[str, list[int]],
         temporal_alias_signal_indices: list[int],
         temporal_alias_ctx_cont_indices: list[int],
         input_normalization: Mapping[str, object],
-        specialist_num_layers: int = 1,
-        specialist_fusion_scale: float = 0.25,
-        tf_input_scale_init_m5: float = 1.0,
-        tf_input_scale_init_m15: float = 1.0,
-        tf_input_scale_init_h1: float = 0.7,
-        tf_input_scale_init_h4: float = 0.5,
-        tf_input_scale_init_d1: float = 0.3,
-        cross_family_fusion_scale: float = 0.25,
+        specialist_num_layers: int,
+        specialist_fusion_scale: float,
+        cross_family_fusion_scale: float,
     ) -> None:
         super().__init__()
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
             raise RuntimeError(
                 f"INVALID_INIT: seq_input_dim={seq_input_dim} snap_input_dim={snap_input_dim} seq_len={seq_len}"
+            )
+        if (
+            isinstance(dropout, bool)
+            or not math.isfinite(float(dropout))
+            or not 0.0 <= float(dropout) < 1.0
+        ):
+            raise RuntimeError(
+                "MODEL_DROPOUT_INVALID: dropout must be explicit, finite and "
+                f"in [0,1); got {dropout!r}"
             )
         if int(seq_input_dim) != int(snap_input_dim):
             raise RuntimeError(
@@ -242,15 +247,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 f"M5/M15/H1/H4/D1 dims; got m5={m5_seq_dim} m15={m15_seq_dim} "
                 f"h1={h1_seq_dim} h4={h4_seq_dim} d1={d1_seq_dim}"
             )
+        if (
+            isinstance(multi_tf_num_layers, bool)
+            or not isinstance(multi_tf_num_layers, int)
+            or multi_tf_num_layers <= 0
+        ):
+            raise RuntimeError(
+                "MULTI_TF_NUM_LAYERS_INVALID: exact architecture requires "
+                f"a positive explicit integer; got {multi_tf_num_layers!r}"
+            )
         mandatory_positive_scales = {
             "multi_tf_scale": multi_tf_scale,
             "specialist_fusion_scale": specialist_fusion_scale,
             "cross_family_fusion_scale": cross_family_fusion_scale,
-            "tf_input_scale_init_m5": tf_input_scale_init_m5,
-            "tf_input_scale_init_m15": tf_input_scale_init_m15,
-            "tf_input_scale_init_h1": tf_input_scale_init_h1,
-            "tf_input_scale_init_h4": tf_input_scale_init_h4,
-            "tf_input_scale_init_d1": tf_input_scale_init_d1,
         }
         invalid_scales = {
             name: value
@@ -266,6 +275,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             seq_input_dim=seq_input_dim,
             snap_input_dim=snap_input_dim,
             seq_len=seq_len,
+            dropout=float(dropout),
             ctx_cont_dim=int(ctx_cont_dim),
             ctx_cat_dim=int(ctx_cat_dim),
             m15_seq_dim=int(m15_seq_dim),
@@ -283,11 +293,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
             specialist_num_layers=int(specialist_num_layers),
             specialist_fusion_scale=float(specialist_fusion_scale),
             cross_family_fusion_scale=float(cross_family_fusion_scale),
-            tf_input_scale_init_m5=float(tf_input_scale_init_m5),
-            tf_input_scale_init_m15=float(tf_input_scale_init_m15),
-            tf_input_scale_init_h1=float(tf_input_scale_init_h1),
-            tf_input_scale_init_h4=float(tf_input_scale_init_h4),
-            tf_input_scale_init_d1=float(tf_input_scale_init_d1),
         )
 
         d_model = int(self.cfg.d_model)
@@ -663,6 +668,61 @@ class EntryV10CtxHybridTransformer(nn.Module):
             for specialist in EXACT_SPECIALIST_NAMES
         }
         self._specialist_names = EXACT_SPECIALIST_NAMES
+        if (
+            not isinstance(multi_tf_specialist_input_indices, dict)
+            or tuple(multi_tf_specialist_input_indices)
+            != EXACT_SPECIALIST_NAMES
+        ):
+            raise RuntimeError("MULTI_TF_SPECIALIST_INDEX_CONTRACT_INVALID")
+        if len(
+            {
+                int(self.cfg.m5_seq_dim),
+                int(self.cfg.m15_seq_dim),
+                int(self.cfg.h1_seq_dim),
+                int(self.cfg.h4_seq_dim),
+                int(self.cfg.d1_seq_dim),
+            }
+        ) != 1:
+            raise RuntimeError(
+                "MULTI_TF_SPECIALIST_WIDTH_SPLIT_BRAIN: all timeframe surfaces "
+                "must declare the same ordered feature contract"
+            )
+        cleaned_mtf: dict[str, list[int]] = {}
+        seen_mtf: set[int] = set()
+        for specialist in EXACT_SPECIALIST_NAMES:
+            indices = multi_tf_specialist_input_indices[specialist]
+            if (
+                not isinstance(indices, list)
+                or not indices
+                or any(
+                    isinstance(value, bool) or not isinstance(value, int)
+                    for value in indices
+                )
+                or indices != sorted(set(indices))
+                or any(
+                    value < 0 or value >= int(self.cfg.m5_seq_dim)
+                    for value in indices
+                )
+            ):
+                raise RuntimeError(
+                    f"MULTI_TF_SPECIALIST_INDEX_INVALID: {specialist}"
+                )
+            overlap = seen_mtf.intersection(indices)
+            if overlap:
+                raise RuntimeError(
+                    "MULTI_TF_SPECIALIST_INDEX_OVERLAP: "
+                    f"{specialist} overlap={sorted(overlap)}"
+                )
+            seen_mtf.update(indices)
+            cleaned_mtf[specialist] = list(indices)
+        if seen_mtf != set(range(int(self.cfg.m5_seq_dim))):
+            raise RuntimeError(
+                "MULTI_TF_SPECIALIST_INDEX_COVERAGE_INVALID: every field must "
+                "have exactly one family owner"
+            )
+        self.multi_tf_specialist_routing_schema_version = (
+            MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
+        )
         self.specialist_proj = nn.ModuleDict(
             {name: nn.Linear(len(idx), d_model) for name, idx in cleaned.items()}
         )
@@ -751,6 +811,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 torch.tensor(idx, dtype=torch.long),
                 persistent=False,
             )
+        for name, idx in cleaned_mtf.items():
+            self.register_buffer(
+                f"multi_tf_specialist_idx_{name}",
+                torch.tensor(idx, dtype=torch.long),
+                persistent=False,
+            )
         for name, idx in cleaned_ctx_cont_numeric.items():
             self.register_buffer(
                 f"specialist_ctx_cont_idx_{name}",
@@ -835,21 +901,21 @@ class EntryV10CtxHybridTransformer(nn.Module):
         nn.init.xavier_uniform_(self.evidence_fusion_out.weight)
         nn.init.zeros_(self.evidence_fusion_out.bias)
 
-        # Exact five-timeframe stack with cross-TF attention and learnable scales.
+        # Exact five-timeframe, eight-family multi-resolution stack.  Each
+        # timeframe exposes the same one-owner family surface, but feature gates
+        # are independent per family×timeframe and conditioned on the current
+        # learned state.  Shared family encoders preserve semantic sample
+        # efficiency; axial attention then cooperates both across timeframes
+        # within a family and across families within a timeframe.
         mtf_layers = int(self.cfg.multi_tf_num_layers)
         if mtf_layers <= 0:
             raise RuntimeError("MULTI_TF_NUM_LAYERS_INVALID")
-        self.m5_proj = nn.Linear(int(self.cfg.m5_seq_dim), d_model)
-        self.m15_proj = nn.Linear(int(self.cfg.m15_seq_dim), d_model)
-        self.h1_proj = nn.Linear(int(self.cfg.h1_seq_dim), d_model)
-        self.h4_proj = nn.Linear(int(self.cfg.h4_seq_dim), d_model)
-        self.d1_proj = nn.Linear(int(self.cfg.d1_seq_dim), d_model)
         mtf_reference_names = normalization_field_names["mtf_m5"]
         mtf_categorical_indices = torch.nonzero(
             self.input_norm_mtf_m5_categorical_mask,
             as_tuple=False,
         ).flatten().tolist()
-        for tf_name in ("m15", "h1", "h4", "d1"):
+        for tf_name in TF_INPUT_SCALE_NAMES[1:]:
             surface = f"mtf_{tf_name}"
             if (
                 normalization_field_names[surface] != mtf_reference_names
@@ -874,15 +940,52 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     ),
                     d_model,
                 )
-                for tf_name in ("m5", "m15", "h1", "h4", "d1")
+                for tf_name in TF_INPUT_SCALE_NAMES
                 for index in mtf_categorical_indices
             }
         )
-        self.m5_encoder = _mk_encoder(mtf_layers)
-        self.m15_encoder = _mk_encoder(mtf_layers)
-        self.h1_encoder = _mk_encoder(mtf_layers)
-        self.h4_encoder = _mk_encoder(mtf_layers)
-        self.d1_encoder = _mk_encoder(mtf_layers)
+        self.mtf_family_proj = nn.ModuleDict(
+            {
+                name: nn.Linear(len(cleaned_mtf[name]), d_model)
+                for name in self._specialist_names
+            }
+        )
+        self.mtf_family_encoder = nn.ModuleDict(
+            {
+                name: _mk_encoder(mtf_layers)
+                for name in self._specialist_names
+            }
+        )
+        self.mtf_feature_context_gate = nn.ModuleDict()
+        for tf_name in TF_INPUT_SCALE_NAMES:
+            for name in self._specialist_names:
+                key = f"{tf_name}__{name}"
+                gate = nn.Linear(d_model, len(cleaned_mtf[name]))
+                # 2*sigmoid(0)=1: every feature×timeframe path starts neutral;
+                # no timeframe receives a hand-authored preference.
+                nn.init.zeros_(gate.weight)
+                nn.init.zeros_(gate.bias)
+                self.mtf_feature_context_gate[key] = gate
+        self.family_axis_attn = _mk_encoder(1)
+        self.timeframe_axis_attn = _mk_encoder(1)
+        self.family_tf_token_identity = nn.Parameter(
+            torch.empty(1, 5, len(self._specialist_names), d_model)
+        )
+        nn.init.normal_(self.family_tf_token_identity, std=0.02)
+        cooperation_token_count = 5 * len(self._specialist_names)
+        self.family_tf_context_gate = nn.Linear(
+            d_model,
+            cooperation_token_count,
+        )
+        self.family_tf_token_gate = nn.Linear(d_model, 1)
+        self.family_tf_cooperation_out = nn.Linear(d_model, d_model)
+        nn.init.zeros_(self.family_tf_cooperation_out.weight)
+        nn.init.zeros_(self.family_tf_cooperation_out.bias)
+        self.family_tf_token_order = tuple(
+            f"{tf_name}:{specialist}"
+            for tf_name in TF_INPUT_SCALE_NAMES
+            for specialist in self._specialist_names
+        )
         self.cross_tf_attn = _mk_encoder(1)
         self.tf_token_identity = nn.Parameter(torch.empty(1, 5, d_model))
         nn.init.normal_(self.tf_token_identity, std=0.02)
@@ -898,43 +1001,51 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self._expected_h4_seq_dim = int(self.cfg.h4_seq_dim)
         self._expected_d1_seq_dim = int(self.cfg.d1_seq_dim)
         self.register_buffer("multi_tf_scale", torch.tensor(float(self.cfg.multi_tf_scale)))
-        # State keys retain their historical names, but store unconstrained raw
-        # scalars. The effective multiplier is always min + softplus(raw), so
-        # training cannot zero, negate, or invert one timeframe branch.
-        for tf_name in ("m5", "m15", "h1", "h4", "d1"):
-            effective_init = float(
-                getattr(self.cfg, f"tf_input_scale_init_{tf_name}")
-            )
+        # State keys retain their historical names, but every timeframe starts
+        # from the same contract-owned neutral identity.  Learned gates/scales
+        # may diverge from data; no wrapper supplies a timeframe preference.
+        for tf_name in TF_INPUT_SCALE_NAMES:
             self.register_parameter(
                 f"tf_input_scale_{tf_name}",
                 nn.Parameter(
                     torch.tensor(
-                        raw_tf_input_scale_from_effective(effective_init),
+                        raw_tf_input_scale_from_effective(
+                            TF_INPUT_SCALE_NEUTRAL_INIT
+                        ),
                         dtype=torch.float32,
                     )
                 ),
             )
-
-        # Learned high-order cooperation across all eight feature-family
-        # specialists and all five timeframe representations.  Token identity
-        # prevents the attention block from treating e.g. trend and H4 as
-        # interchangeable slots.  Its zero-init output keeps cold-start stable;
-        # bundle liveness contracts require the block to move during training.
-        cooperation_token_count = len(self._specialist_names) + 5
-        self.family_tf_token_identity = nn.Parameter(
-            torch.empty(1, cooperation_token_count, d_model)
-        )
-        nn.init.normal_(self.family_tf_token_identity, std=0.02)
-        self.family_tf_cross_attn = _mk_encoder(1)
-        self.family_tf_context_gate = nn.Linear(d_model, cooperation_token_count)
-        self.family_tf_token_gate = nn.Linear(d_model, 1)
-        self.family_tf_cooperation_out = nn.Linear(d_model, d_model)
-        nn.init.zeros_(self.family_tf_cooperation_out.weight)
-        nn.init.zeros_(self.family_tf_cooperation_out.bias)
         self.register_buffer(
             "cross_family_fusion_scale",
             torch.tensor(float(self.cfg.cross_family_fusion_scale)),
         )
+
+        # Unified lifecycle head.  The full-stack Entry encoder produces the
+        # frozen ``z`` below; Exit consumes that exact representation plus the
+        # literal causal M1 prefix in this same model.  The path encoder adds
+        # post-entry evidence, but cannot replace or bypass the Entry state.
+        self.exit_path_proj = nn.Linear(UNIFIED_EXIT_PATH_FEATURE_DIM, d_model)
+        self.exit_path_encoder = _mk_encoder(
+            UNIFIED_EXIT_PATH_ENCODER_LAYERS
+        )
+        self.exit_side_embedding = nn.Embedding(2, d_model)
+        self.exit_entry_query_norm = nn.LayerNorm(d_model)
+        self.exit_entry_path_attention = nn.MultiheadAttention(
+            d_model,
+            n_heads,
+            dropout=dropout,
+            batch_first=True,
+        )
+        self.exit_fuse = nn.Sequential(
+            nn.LayerNorm(4 * d_model),
+            nn.Linear(4 * d_model, d_model),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, d_model),
+            nn.GELU(),
+        )
+        self.head_exit_action = nn.Linear(d_model, 2)
 
         # Strict markers (useful for debugging)
         self._expected_seq_dim = int(seq_input_dim)
@@ -949,6 +1060,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.register_buffer("pos_enc_h1", self._sinusoidal_pe(int(self.cfg.h1_seq_len), d_model), persistent=False)
         self.register_buffer("pos_enc_h4", self._sinusoidal_pe(int(self.cfg.h4_seq_len), d_model), persistent=False)
         self.register_buffer("pos_enc_d1", self._sinusoidal_pe(int(self.cfg.d1_seq_len), d_model), persistent=False)
+        self.register_buffer(
+            "pos_enc_exit",
+            self._sinusoidal_pe(UNIFIED_EXIT_MAX_PATH_BARS, d_model),
+            persistent=False,
+        )
 
     @staticmethod
     def _sinusoidal_pe(seq_len: int, d_model: int) -> torch.Tensor:
@@ -1327,6 +1443,145 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite("raw_direction_logits", raw_direction_logits)
         return raw_direction_logits
 
+    def forward_exit_action(
+        self,
+        *,
+        entry_shared_representation: torch.Tensor,
+        exit_path_x: torch.Tensor,
+        exit_path_lengths: torch.Tensor,
+        exit_side_index: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        """Emit learned HOLD/EXIT_NOW logits from one exact lifecycle state.
+
+        ``entry_shared_representation`` must be the frozen output produced by
+        this model's full 513+context+5x8 cooperation encoder at Entry. Every
+        valid path row must be present; only right-zero padding declared by the
+        exact integer lengths is accepted.
+        """
+
+        _assert_shape(
+            "entry_shared_representation",
+            entry_shared_representation,
+            2,
+        )
+        _assert_shape("exit_path_x", exit_path_x, 3)
+        _assert_shape("exit_path_lengths", exit_path_lengths, 1)
+        _assert_shape("exit_side_index", exit_side_index, 1)
+        batch_size, path_bars, path_dim = exit_path_x.shape
+        d_model = int(self.cfg.d_model)
+        if tuple(entry_shared_representation.shape) != (
+            batch_size,
+            d_model,
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_ENTRY_REPRESENTATION_SHAPE_MISMATCH: "
+                f"observed={tuple(entry_shared_representation.shape)} "
+                f"expected=({batch_size},{d_model})"
+            )
+        if int(path_dim) != UNIFIED_EXIT_PATH_FEATURE_DIM:
+            raise RuntimeError(
+                "UNIFIED_EXIT_PATH_DIM_MISMATCH: "
+                f"observed={int(path_dim)} "
+                f"expected={UNIFIED_EXIT_PATH_FEATURE_DIM}"
+            )
+        if not 1 <= int(path_bars) <= UNIFIED_EXIT_MAX_PATH_BARS:
+            raise RuntimeError(
+                "UNIFIED_EXIT_PATH_LENGTH_CAPACITY_INVALID: "
+                f"observed={int(path_bars)} "
+                f"capacity=1..{UNIFIED_EXIT_MAX_PATH_BARS}"
+            )
+        if (
+            exit_path_lengths.dtype
+            not in (torch.int64, torch.int32, torch.int16, torch.int8)
+            or exit_side_index.dtype
+            not in (torch.int64, torch.int32, torch.int16, torch.int8)
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_INDEX_DTYPE_INVALID: integer tensors required"
+            )
+        if (
+            int(exit_path_lengths.shape[0]) != batch_size
+            or int(exit_side_index.shape[0]) != batch_size
+        ):
+            raise RuntimeError("UNIFIED_EXIT_BATCH_DIM_MISMATCH")
+        _assert_finite(
+            "entry_shared_representation",
+            entry_shared_representation,
+        )
+        _assert_finite("exit_path_x", exit_path_x)
+        if bool(
+            ((exit_path_lengths < 1) | (exit_path_lengths > path_bars))
+            .any()
+            .item()
+        ):
+            raise RuntimeError("UNIFIED_EXIT_PATH_LENGTH_VALUE_INVALID")
+        if bool(
+            ((exit_side_index < 0) | (exit_side_index > 1)).any().item()
+        ):
+            raise RuntimeError("UNIFIED_EXIT_SIDE_INDEX_INVALID")
+
+        positions = torch.arange(
+            path_bars,
+            device=exit_path_x.device,
+        ).view(1, -1)
+        padding_mask = positions >= exit_path_lengths.view(-1, 1)
+        padded_values = exit_path_x.masked_select(padding_mask.unsqueeze(-1))
+        if int(padded_values.numel()) and not bool(
+            torch.equal(padded_values, torch.zeros_like(padded_values))
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_NONZERO_RIGHT_PADDING_FORBIDDEN"
+            )
+
+        path_hidden = self.exit_path_proj(exit_path_x)
+        path_hidden = self._add_pe(path_hidden, "pos_enc_exit")
+        path_hidden = self.exit_path_encoder(
+            path_hidden,
+            src_key_padding_mask=padding_mask,
+        )
+        side_hidden = self.exit_side_embedding(exit_side_index.long())
+        entry_query = self.exit_entry_query_norm(
+            entry_shared_representation + side_hidden
+        ).unsqueeze(1)
+        attended_path, attention_weights = self.exit_entry_path_attention(
+            entry_query,
+            path_hidden,
+            path_hidden,
+            key_padding_mask=padding_mask,
+            need_weights=True,
+        )
+        last_indices = (exit_path_lengths.long() - 1).view(
+            batch_size,
+            1,
+            1,
+        ).expand(-1, 1, d_model)
+        last_path_hidden = path_hidden.gather(1, last_indices).squeeze(1)
+        exit_hidden = self.exit_fuse(
+            torch.cat(
+                (
+                    entry_shared_representation,
+                    side_hidden,
+                    attended_path.squeeze(1),
+                    last_path_hidden,
+                ),
+                dim=1,
+            )
+        )
+        exit_action_logits = self.head_exit_action(exit_hidden)
+        exit_action_probs = torch.softmax(exit_action_logits, dim=1)
+        for name, value in (
+            ("exit_path_hidden", path_hidden),
+            ("exit_path_attention", attention_weights),
+            ("exit_action_logits", exit_action_logits),
+            ("exit_action_probs", exit_action_probs),
+        ):
+            _assert_finite(name, value)
+        return {
+            "exit_action_logits": exit_action_logits,
+            "exit_action_probs": exit_action_probs,
+            "exit_path_attention": attention_weights,
+        }
+
     def forward(
         self,
         seq_x: torch.Tensor,
@@ -1509,7 +1764,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
             _assert_finite(name, tensor)
 
-        pool_list = []
+        family_grid_rows = []
+        feature_gate_rows = []
         for name, tensor, _exp_len, _exp_dim in tf_inputs:
             suffix = name.removeprefix("seq_")
             surface = f"mtf_{suffix}"
@@ -1526,20 +1782,130 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 0.0,
             )
             effective_scale = self._effective_tf_input_scale(suffix)
-            scaled = numeric_tf * effective_scale
-            projected = getattr(self, f"{suffix}_proj")(scaled)
-            for index in torch.nonzero(
-                categorical_mask,
-                as_tuple=False,
-            ).flatten().tolist():
-                projected = projected + self.mtf_nominal_embeddings[
-                    f"{suffix}_{index}"
-                ](tensor[..., index].long()) * effective_scale
-            encoded = getattr(self, f"{suffix}_encoder")(
-                self._add_pe(projected, f"pos_enc_{suffix}")
+            full_feature_gate = torch.zeros(
+                B,
+                int(_exp_dim),
+                device=tensor.device,
+                dtype=normalized_tf.dtype,
             )
-            pool_list.append(encoded.mean(dim=1))
-        tf_tokens = torch.stack(pool_list, dim=1)
+            family_tokens = []
+            categorical_indices = set(
+                torch.nonzero(
+                    categorical_mask,
+                    as_tuple=False,
+                ).flatten().tolist()
+            )
+            for specialist in self._specialist_names:
+                family_idx = getattr(
+                    self,
+                    f"multi_tf_specialist_idx_{specialist}",
+                ).to(tensor.device)
+                feature_gate = 2.0 * torch.sigmoid(
+                    self.mtf_feature_context_gate[
+                        f"{suffix}__{specialist}"
+                    ](z_v3)
+                )
+                full_feature_gate = full_feature_gate.scatter(
+                    1,
+                    family_idx.view(1, -1).expand(B, -1),
+                    feature_gate,
+                )
+                family_values = numeric_tf.index_select(
+                    dim=2,
+                    index=family_idx,
+                )
+                family_values = (
+                    family_values
+                    * feature_gate.unsqueeze(1)
+                    * effective_scale
+                )
+                projected = self.mtf_family_proj[specialist](family_values)
+                family_indices = family_idx.tolist()
+                for local_position, global_index in enumerate(family_indices):
+                    if global_index not in categorical_indices:
+                        continue
+                    nominal = self.mtf_nominal_embeddings[
+                        f"{suffix}_{global_index}"
+                    ](tensor[..., global_index].long())
+                    projected = projected + nominal * (
+                        feature_gate[:, local_position]
+                        .view(B, 1, 1)
+                        * effective_scale
+                    )
+                encoded = self.mtf_family_encoder[specialist](
+                    self._add_pe(projected, f"pos_enc_{suffix}")
+                )
+                family_token = encoded.mean(dim=1)
+                family_tokens.append(family_token)
+            family_grid_rows.append(torch.stack(family_tokens, dim=1))
+            feature_gate_rows.append(full_feature_gate)
+
+        family_tf_feature_gate = torch.stack(feature_gate_rows, dim=1)
+        family_grid = torch.stack(family_grid_rows, dim=1)
+        if tuple(family_grid.shape[1:3]) != (
+            5,
+            len(self._specialist_names),
+        ):
+            raise RuntimeError(
+                "FAMILY_TF_GRID_SHAPE_INVALID: "
+                f"observed={tuple(family_grid.shape)}"
+            )
+        family_grid = family_grid + self.family_tf_token_identity
+        family_axis = family_grid.permute(0, 2, 1, 3).reshape(
+            B * len(self._specialist_names),
+            5,
+            int(self.cfg.d_model),
+        )
+        family_axis = self.family_axis_attn(family_axis)
+        family_grid = family_axis.reshape(
+            B,
+            len(self._specialist_names),
+            5,
+            int(self.cfg.d_model),
+        ).permute(0, 2, 1, 3)
+        timeframe_axis = family_grid.reshape(
+            B * 5,
+            len(self._specialist_names),
+            int(self.cfg.d_model),
+        )
+        timeframe_axis = self.timeframe_axis_attn(timeframe_axis)
+        family_grid = timeframe_axis.reshape(
+            B,
+            5,
+            len(self._specialist_names),
+            int(self.cfg.d_model),
+        )
+        _assert_finite("family_tf_feature_gate", family_tf_feature_gate)
+        _assert_finite("family_grid", family_grid)
+
+        cooperation_tokens = family_grid.reshape(
+            B,
+            5 * len(self._specialist_names),
+            int(self.cfg.d_model),
+        )
+        family_tf_cooperation_gate = torch.softmax(
+            self.family_tf_context_gate(z_v3)
+            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
+            dim=1,
+        )
+        # Reuse the learned 5x8 cooperation distribution when constructing
+        # each timeframe token.  A fixed mean here would silently give every
+        # family equal influence even when the regime/context gate has learned
+        # otherwise.  Normalising within each TF preserves a convex, auditable
+        # aggregation while the global distribution remains available for
+        # cross-family/cross-TF cooperation.
+        family_gate_by_tf = family_tf_cooperation_gate.reshape(
+            B,
+            5,
+            len(self._specialist_names),
+        )
+        family_gate_within_tf = family_gate_by_tf / family_gate_by_tf.sum(
+            dim=2,
+            keepdim=True,
+        ).clamp_min(1e-12)
+        tf_tokens = (
+            family_grid * family_gate_within_tf.unsqueeze(-1)
+        ).sum(dim=2)
         tf_attended = self.cross_tf_attn(tf_tokens + self.tf_token_identity)
         tf_gate = torch.softmax(
             self.tf_gate_logits.view(1, -1)
@@ -1551,15 +1917,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
         mtf_correction = self.cross_tf_out(mtf_repr)
         _assert_finite("mtf_repr", mtf_repr)
         _assert_finite("mtf_correction", mtf_correction)
-        cooperation_tokens = torch.cat((specialist_tokens, tf_attended), dim=1)
-        cooperation_tokens = self.family_tf_cross_attn(
-            cooperation_tokens + self.family_tf_token_identity
-        )
-        family_tf_cooperation_gate = torch.softmax(
-            self.family_tf_context_gate(z_v3)
-            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
-            dim=1,
-        )
         cooperation_pool = (
             cooperation_tokens * family_tf_cooperation_gate.unsqueeze(-1)
         ).sum(dim=1)
@@ -1610,6 +1967,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         out = {
             "model_native_logits": model_native_logits,
             "mtf_dir_logits": mtf_dir_logits,
+            UNIFIED_EXIT_MODEL_REPRESENTATION_KEY: z,
             "path_quality_raw": path_quality_raw,
             "path_quality": path_quality,
             "mfe_first_n": mfe_first_n,
@@ -1622,6 +1980,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         out["specialist_gate"] = specialist_gate
         out["tf_gate"] = tf_gate
         out["family_tf_cooperation_gate"] = family_tf_cooperation_gate
+        out["family_tf_feature_gate"] = family_tf_feature_gate
         trade_logit = self.head_trade(z)
         side_logits = self.head_side(z)
 
@@ -1724,8 +2083,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # different binary policy than the public three-class output.
         public_trade_flat_decision_logits = torch.stack(
             (
-                direction_logits[:, :2].max(dim=1).values,
-                direction_logits[:, 2],
+                direction_logits[
+                    :, list(MODEL_DIRECTION_TRADE_INDICES)
+                ].max(dim=1).values,
+                direction_logits[:, MODEL_DIRECTION_FLAT_INDEX],
             ),
             dim=1,
         )

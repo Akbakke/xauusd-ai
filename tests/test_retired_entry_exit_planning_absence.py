@@ -27,7 +27,7 @@ RETIRED_ENTRY_EXIT_PLANNING_COMPONENTS = (
     "gx1/research/iql_training_harness_stub_v1.py",
 )
 
-ACTIVE_EXIT_COMPONENTS = (
+RETIRED_SEPARATE_EXIT_COMPONENTS = (
     "gx1/execution/v12_exit_iql_live.py",
     "gx1/runtime/exit_iql_v2_adapter.py",
     "gx1/scripts/exit_iql_artifact_primitives_v1.py",
@@ -42,9 +42,13 @@ def test_retired_entry_exit_planning_chain_is_physically_absent() -> None:
     assert present == []
 
 
-def test_active_exit_runtime_iql_and_transformer_v0_components_remain() -> None:
-    missing = [path for path in ACTIVE_EXIT_COMPONENTS if not (REPO / path).is_file()]
-    assert missing == []
+def test_separate_exit_runtime_and_policy_components_are_absent() -> None:
+    present = [
+        path
+        for path in RETIRED_SEPARATE_EXIT_COMPONENTS
+        if (REPO / path).exists()
+    ]
+    assert present == []
 
 
 def test_entry_control_surface_keeps_retired_handoff_and_transformer_routes_closed() -> None:

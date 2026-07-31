@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Build canonical M5 feature parquet for 2020-2026 — FULL V10/V3 parity.
+"""Build the canonical model-agnostic M5 feature parquet.
 
 Mission
 -------
-Produce ONE canonical feature parquet covering all 2020-2026 M5 bars with the
-same feature set V10 (entry transformer) and V3 (exit transformer) consume at
-runtime. Output is keyed by `time` and joinable into:
-  - Entry-IQL forward-outcome dataset (per-candidate state)
-  - Exit-IQL per-bar dataset (per-held-trade-bar state)
+Produce one canonical feature parquet covering the declared source interval.
+Output is keyed by `time` and feeds the current model-native dataset/runtime
+owners; it contains no decision policy.
 
 Feature families
 ----------------
@@ -24,8 +22,8 @@ Output
 
 Joinability
 -----------
-Both downstream pipelines (forward-outcome and exit-per-bar) load this file
-and use `np.searchsorted` on the time-array for O(log N) lookup at any
+Downstream causal builders load this file and use `np.searchsorted` on the
+time-array for O(log N) lookup at any
 candidate or held-trade-bar timestamp.
 
 This is RESEARCH-ONLY. No runtime promotion. Production V10/V3 features
@@ -51,14 +49,14 @@ if str(REPO_ROOT) not in sys.path:
 # Disable feature-build timeout (1s default is for replay; we need batch)
 os.environ.setdefault("FEATURE_BUILD_TIMEOUT_MS", "600000")
 
-from gx1.features.basic_v1 import (
+from gx1.features.basic_v1 import (  # noqa: E402
     PLUS5_FEATURES,
     build_basic_v1,
     compute_plus5_features,
 )
-from gx1.features.feature_state import FeatureState
-from gx1.utils.feature_context import set_feature_state
-from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
+from gx1.features.feature_state import FeatureState  # noqa: E402
+from gx1.utils.feature_context import set_feature_state  # noqa: E402
+from gx1.utils import artifact_primitives_v1 as contract_gate  # noqa: E402
 
 
 ACTION = "BUILD_CANONICAL_FEATURES_V1"

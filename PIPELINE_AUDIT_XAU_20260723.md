@@ -1,5 +1,38 @@
 # GX1 XAUUSD full-pipeline audit — 2026-07-23
 
+> Historical audit snapshot. Its V24/V7, 25-field MTF and retired external decision bridge descriptions
+> explain the state inspected on 2026-07-23. Current authority is the
+> 2026-07-29 V4 5×111 contract in `SYSTEM_MAP.md`,
+> `PROJECT_STATE_xau_direction_launch.json` and the handover. Nothing in this
+> file authorizes current training or launch.
+
+## 2026-07-29 addendum
+
+The active architecture is now 5×111 V4, but the measured cache below is
+frozen schema-v2 evidence. Active schema v3 closes trailing partial resample
+buckets and requires a rebuild. Serve-parity v11 requires independent local
+raw/final sensitivity for 513 sequence, 513 snapshot, 142 continuous-context
+and 555 MTF routes, plus five categorical counterfactual routes. Q/V/A audits
+remain on `Advantage = Q - V` manifold states.
+
+Live is still operationally incomplete: the old canonical daemon interface is
+retired. A later source repair implemented immutable pair successors,
+publication events and two-event admission in the existing owner, but no real
+chain is admitted. Transactional finalization cannot create or refresh market
+data. All older MTF widths, artifact identities and test counts below remain
+historical observations.
+
+## 2026-07-30 replay-authority supersession
+
+References below to an «active-Exit» registry and replay-v7 describe the
+historical architecture inspected in this audit. Current replay authority
+binds the pre-activation unified candidate bundle commit directly; it cannot
+bootstrap from an already-active registry. The canonical producer is now
+implemented in the existing sizing owner and exposed through
+`model-native-sizing-produce-unified-joint-proof`. It has produced no replay
+artifact because no admissible unified candidate exists. Current truth remains
+in `SYSTEM_MAP.md`, `PROJECT_STATE_xau_direction_launch.json` and the handover.
+
 ## Decision
 
 `BLOCK`. This is a source/data/model/runtime audit, not market-edge evidence.
@@ -83,7 +116,7 @@ It cannot create empirical authority.
 
 The adversarial replay re-audit first found the canonical producer P0: the joint
 Exit finalizer accepts replay and per-M1 trace parquets from a caller and never
-runs the byte-bound XGB→V3→Exit-IQL/Strategy-F artifacts. It therefore cannot
+runs the byte-bound retired external decision bridge→V3→Exit-IQL/Strategy-F artifacts. It therefore cannot
 prove that the active models caused the actions. The launch finalizer and
 runtime guard now reject this evidence before activation. The missing
 canonical full-TEST producer must reuse `V12Pipeline.make_exit_decision`,
@@ -122,7 +155,7 @@ used as a live incumbent:
 - V3 scoring placed the first trade-state overlay on the fill row one bar
   before the corresponding per-bar state;
 - a fixed 96-M5 fetch covered only 96 of 104 M5 buckets in an observed
-  512-M1 window, leaving 36 M1 rows with zero-filled canonical/XGB state;
+  512-M1 window, leaving 36 M1 rows with zero-filled canonical/retired external decision bridge state;
 - five active M1 microfeatures used simple returns/std live but log
   returns/RMS in training;
 - TradeState mutated before V3/Exit validation, did not persist its last M1
@@ -147,7 +180,7 @@ BASE augmentation and M5 decision-time HTF alignment are repaired in source.
 The post-audit source checkpoint closes complete-history canonical-v2
 recomputation, one atomic immutable canonical-v3/BASE28 generation pointer,
 strict native-M1/M5 market-closure/schema/hash ownership and reproducible V3
-lineage bound to the exact XGB bridge identity. Because no causal
+lineage bound to the exact retired external decision bridge bridge identity. Because no causal
 pre-decision slippage observation exists in the canonical tape, the
 slippage-derived decision fields were removed; explicit replay stress remains
 evaluation-only. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and published
@@ -186,14 +219,14 @@ The repaired source now:
 - maps every M1 phase to one shared last-closed-M5 key. An M1 row ending
   `xx:04` can no longer join the still-forming M5 bucket;
 - requires the complete 95-row volume prefix and rejects incomplete history;
-- validates exact XGB session domains, ordered bridge features, finite
+- validates exact retired external decision bridge session domains, ordered bridge features, finite
   probabilities and the probability simplex before V3 consumes them;
 - defines Exit IO V8 as a 173-field per-M1 historical context. The 78 market
   context fields are reconstructed at each historical M1 row rather than
   broadcast from the terminal row;
 - validates the V3 training substrate itself: `N x 173` float32 market
   matrix, strict UTC minute order, zero base trade-state slots, exact
-  seven-field XGB bridge recomputation, contiguous float32 overlays, exact
+  seven-field retired external decision bridge bridge recomputation, contiguous float32 overlays, exact
   overlay/record geometry, T+5 identity, 240-row teacher paths and terminal
   teacher equality. Producer-input and dataset-member bytes are rehashed and
   re-inventoried to detect substitution and time-of-check/time-of-use drift;
@@ -517,8 +550,8 @@ transaction tests; production rejects it.
   independently fail-closed.
 - Runtime spread/sizing may block order placement but cannot rewrite model
   direction.
-- The forbidden-instrument scan is clean; `eu_*` is the European session
-  label.
+- The forbidden-instrument scan is clean; regional-session fields are
+  time-of-day labels.
 - Current launch authority is `BLOCK`.
 
 ## Ordered repair boundary

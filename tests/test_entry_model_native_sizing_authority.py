@@ -63,7 +63,7 @@ def test_capital_adoption_without_joint_exit_proof_publishes_terminal_fail(
         "FULL_TEST_LABEL_HORIZON_SIZING_HEAD_DIAGNOSTIC_ONLY"
     )
 
-    with pytest.raises(SizingFinalizationError, match="joint active-Exit sizing proof"):
+    with pytest.raises(SizingFinalizationError, match="joint unified-Exit sizing proof"):
         adopt_learned_sizing(
             bundle_dir=evidence["bundle_dir"],
             calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
@@ -81,7 +81,7 @@ def test_capital_adoption_without_joint_exit_proof_publishes_terminal_fail(
     terminal = json.loads(adoption_path.read_text(encoding="utf-8"))
     assert terminal["decision"] == "FAIL"
     assert terminal["attempted_stage"] == "adoption"
-    assert "joint active-Exit sizing proof" in terminal["failures"][0]
+    assert "joint unified-Exit sizing proof" in terminal["failures"][0]
 
     authority = learned_sizing_authority_contract_metadata(
         adoption_artifact={"json_path": str(adoption_path), "sha256": _sha(adoption_path)}

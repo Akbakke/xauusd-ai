@@ -3,13 +3,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from gx1.contracts import signal_bridge_v3
-from gx1.contracts.entry_model_native_signal_v1 import (
-    MODEL_NATIVE_BASE_FIELDS,
-    MODEL_NATIVE_CTX_CAT_FIELDS,
-    MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
-    MODEL_NATIVE_CTX_CONT_FIELDS,
-    MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_ACTION_ORDER,
+    unified_entry_exit_contract_metadata,
 )
 
 
@@ -17,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 LEGACY_MODULES = {
     "gx1.contracts.signal_bridge_v1",
     "gx1.contracts.signal_bridge_v3",
+    "gx1.execution.v12_v3_live",
+    "gx1.execution.v12_exit_iql_live",
 }
 
 
@@ -53,25 +51,25 @@ def test_active_entry_python_has_zero_legacy_signal_bridge_imports() -> None:
     assert offenders == []
 
 
-def test_retained_v3_bridge_reexports_entry_owned_market_fields_without_drift() -> None:
-    assert tuple(signal_bridge_v3.PER_BAR_PRICE_STATE_FIELDS_V3) == (
-        MODEL_NATIVE_BASE_FIELDS
+def test_retired_external_decision_owners_are_physically_absent() -> None:
+    forbidden_paths = (
+        ROOT / "gx1" / ("x" + "gb"),
+        ROOT / "gx1/contracts/signal_bridge_v1.py",
+        ROOT / "gx1/contracts/signal_bridge_v3.py",
+        ROOT / "gx1/execution/v12_v3_live.py",
+        ROOT / "gx1/execution/v12_exit_iql_live.py",
+        ROOT / "gx1/execution" / ("v12_" + "x" + "gb" + "_live.py"),
     )
-    assert tuple(signal_bridge_v3.ORDERED_CTX_CONT_NAMES_V3) == (
-        MODEL_NATIVE_CTX_CONT_FIELDS
-    )
-    assert tuple(signal_bridge_v3.ORDERED_CTX_CAT_NAMES_V3) == (
-        MODEL_NATIVE_CTX_CAT_FIELDS
-    )
-    assert tuple(signal_bridge_v3.ORDERED_CTX_CONT_GROUP_A_PARITY) == (
-        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
-    )
-    assert tuple(signal_bridge_v3.ORDERED_CTX_CONT_DIP_STRUCT) == (
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
-    )
+    assert [str(path.relative_to(ROOT)) for path in forbidden_paths if path.exists()] == []
 
-    # The retained module still owns a real seven-field XGB/Exit-era bridge;
-    # it is not an empty compatibility shell and is not an Entry authority.
-    assert signal_bridge_v3.BRIDGE_DIM_V3 == 7
-    assert signal_bridge_v3.SEQ_SIGNAL_DIM_V3 == 41
-    assert callable(signal_bridge_v3.validate_seq_signal)
+
+def test_unified_contract_forbids_external_decision_authority() -> None:
+    contract = unified_entry_exit_contract_metadata()
+
+    assert contract["single_model_bundle"] is True
+    assert contract["shared_feature_encoder"] is True
+    assert contract["exit_bound_to_entry_snapshot"] is True
+    assert contract["external_decision_models_allowed"] is False
+    assert contract["runtime_entry_overrides_allowed"] is False
+    assert contract["runtime_exit_overrides_allowed"] is False
+    assert tuple(contract["exit_action_order"]) == UNIFIED_EXIT_ACTION_ORDER

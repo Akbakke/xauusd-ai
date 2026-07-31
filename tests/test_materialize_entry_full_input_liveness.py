@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -29,14 +30,52 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.scripts.materialize_entry_full_input_liveness_v1 import (
     run,
 )
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_RESAMPLE_RULES,
+    build_multi_tf_v4_liveness_contract,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
 RUN_ID = "UNIT_LIVENESS_20260717"
-STEM = "unit_seq513__HOLD_03B"
+STEM = "unit_seq513__DIR_H24B"
 OUTPUT_FILENAME = (
     "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260717T120000000000Z.json"
 )
+
+
+def _v4_frames() -> dict[str, pd.DataFrame]:
+    out = {}
+    rows = 32
+    row = np.arange(rows, dtype=np.float32)[:, None]
+    col = np.arange(
+        len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32
+    )[None, :]
+    values = row + col * np.float32(0.001)
+    for timeframe in MULTI_TF_RESAMPLE_RULES:
+        frame = pd.DataFrame(
+            values,
+            columns=MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+        frame.attrs["feats_np"] = values.copy()
+        frame.attrs["causal_warmup_rows"] = 1
+        frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        out[timeframe] = frame
+    return out
+
+
+@pytest.fixture(autouse=True)
+def _verified_v4_cache_loader(monkeypatch) -> None:
+    def load(_cache_dir):
+        return _v4_frames()
+
+    monkeypatch.setattr(
+        "gx1.scripts.materialize_entry_full_input_liveness_v1."
+        "load_multi_tf_cache",
+        load,
+    )
 
 
 def _signal_contract() -> dict:
@@ -89,7 +128,7 @@ def _write_split(
     pq.write_table(table, parquet_path)
 
     ctx_contract = {
-        "tag": "CTX6CAT5",
+        "tag": "CTX142CAT5",
         "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
         "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
         "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
@@ -103,7 +142,6 @@ def _write_split(
         "extra": {
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-            "neutral_xgb_bridge": False,
             "entry_run_id": RUN_ID,
             "model_native_state_contract": {"entry_run_id": RUN_ID},
             "model_native_signal_contract": signal_contract,
@@ -153,10 +191,25 @@ def _write_dataset(dataset_dir: Path, *, break_test_parity: bool = False) -> Non
 
 
 def _args(dataset_dir: Path, out_dir: Path) -> argparse.Namespace:
+    mtf_cache_dir = dataset_dir.parent / "MULTI_TF_CACHE"
+    mtf_cache_dir.mkdir(exist_ok=True)
+    (mtf_cache_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "cache_identity_sha256": "b" * 64,
+                "full_input_liveness": build_multi_tf_v4_liveness_contract(
+                    _v4_frames()
+                ),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return argparse.Namespace(
         run_id=RUN_ID,
         dataset_dir=str(dataset_dir),
         stem=STEM,
+        mtf_cache_dir=str(mtf_cache_dir),
         out_json=str(out_dir / OUTPUT_FILENAME),
         batch_size=16,
         quiet=True,
@@ -178,6 +231,7 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
     assert validation["ok"] is True
     assert validation["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
     assert validation["field_status_row_count"] == 3 * (513 + 142 + 5)
+    assert validation["multi_tf_field_status_row_count"] == 5 * 111
     provenance = artifact["materializer_provenance"]
     assert provenance["entry_run_id"] == RUN_ID
     assert len(provenance["dataset_build_proof"]["sha256"]) == 64

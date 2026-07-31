@@ -40,6 +40,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
+    CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     CURRENT_SNAPSHOT_SCHEMA,
     XAU_INSTRUMENT,
     validate_xau_tape_provenance_v1,
@@ -48,7 +49,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 
 SPLITS = ("train", "val", "test")
 SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
-PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v5"
+PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v9"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 CHAIN_SCHEMA = "seq513_rebuild_chain_status_v4"
@@ -343,8 +344,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and all(pretrain_tape.get(split) == xau_provenance for split in SPLITS)
     )
     provenance_schema = xau_provenance.get("schema_version")
-    if provenance_schema == CANONICAL_NATIVE_SOURCE_SCHEMA:
-        # A strict native-v3 source root is complete tape provenance by
+    if provenance_schema in {
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    }:
+        # A strict native source root is complete tape provenance by
         # construction; run identity is bound by the consuming split
         # manifests, which _manifest_contract validates per split above.
         tape_identity_ok = xau_provenance.get("instrument") == XAU_INSTRUMENT

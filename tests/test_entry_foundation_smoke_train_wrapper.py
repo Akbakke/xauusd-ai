@@ -204,7 +204,7 @@ def test_smoke_wrapper_source_is_exact_model_native_and_has_no_stale_launch_path
         "tombstone",
         "run_manifest",
         "event_ledger",
-        "neutral_xgb",
+        "neutral_external_tree_sidecar",
         "anchor_gate",
         "gx1_allow_legacy",
     ):

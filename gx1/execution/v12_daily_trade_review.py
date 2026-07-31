@@ -16,8 +16,8 @@ Inputs:
   - /home/andre2/GX1_DATA/reports/v12_paper_runs/trade_journal/
     trade_journal_index_model_native_v1.csv
 
-There is deliberately no compatibility read from ``entry_score``, SMART/XGB
-overlays, Entry-IQL Q values, an old index, or recovered open-trade state.  A
+There is deliberately no compatibility read from ``entry_score``, retired
+overlays, an old index, or recovered open-trade state. A
 trade whose immutable model-native evidence is absent or malformed fails the
 review closed.
 
@@ -39,7 +39,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
     MODEL_NATIVE_RUNTIME_POLICY,
     ModelNativeRuntimeEvidenceError,
-    require_model_native_entry_time,
+    require_model_native_fill_time,
     require_model_native_runtime_evidence,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
@@ -47,6 +47,14 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
+    MODEL_DIRECTION_SHORT_INDEX,
+    PUBLIC_FLAT_INDEX,
+    PUBLIC_TRADE_INDEX,
+    require_unified_exit_output,
 )
 
 LOG = logging.getLogger("v12_review")
@@ -163,7 +171,7 @@ def _require_entry_snapshot(trade_json: dict[str, Any]) -> tuple[dict[str, Any],
             _fail(f"entry_snapshot.{key}", "missing")
     _require_utc_timestamp(entry, "entry_time")
     try:
-        require_model_native_entry_time(
+        require_model_native_fill_time(
             evidence,
             entry["entry_time"],
             context="DAILY_REVIEW_ENTRY",
@@ -255,6 +263,121 @@ def _require_entry_snapshot(trade_json: dict[str, Any]) -> tuple[dict[str, Any],
 
 # ── trade analysis ─────────────────────────────────────────────────────────
 
+_UNIFIED_BAR_FIELDS = frozenset(
+    {
+        "schema_version",
+        "timestamp",
+        "bars_in_trade",
+        "bid",
+        "ask",
+        "current_pnl_bps",
+        "cum_mfe_bps",
+        "cum_mae_bps",
+        "bars_since_mfe_peak",
+        "executable_range_bps",
+        "exit_action",
+        "exit_action_index",
+        "exit_action_logits",
+        "exit_action_probs",
+        "exit_decision_source",
+        "bundle_sha256",
+        "entry_snapshot_sha256",
+        "exit_path_envelope_sha256",
+        "output_evidence_sha256",
+        "exit_path_envelope",
+    }
+)
+
+
+def _require_unified_bar_trace(
+    bars: Any,
+    *,
+    entry_evidence: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if not isinstance(bars, list):
+        _fail("v12_bar_decisions", "must be a list")
+    validated: list[dict[str, Any]] = []
+    for position, raw in enumerate(bars):
+        if not isinstance(raw, dict) or set(raw) != _UNIFIED_BAR_FIELDS:
+            _fail(
+                f"v12_bar_decisions[{position}]",
+                "unified Exit exact schema mismatch",
+            )
+        if raw.get("schema_version") != "gx1_unified_exit_journal_bar_v1":
+            _fail(
+                f"v12_bar_decisions[{position}].schema_version",
+                "mismatch",
+            )
+        expected_bar = position + 1
+        if (
+            isinstance(raw.get("bars_in_trade"), bool)
+            or raw.get("bars_in_trade") != expected_bar
+        ):
+            _fail(
+                f"v12_bar_decisions[{position}].bars_in_trade",
+                f"must be exact contiguous value {expected_bar}",
+            )
+        _require_utc_timestamp(raw, "timestamp")
+        bid = _finite_scalar(raw, "bid")
+        ask = _finite_scalar(raw, "ask")
+        if bid <= 0.0 or ask <= bid:
+            _fail(f"v12_bar_decisions[{position}].quote", "invalid")
+        for field in (
+            "current_pnl_bps",
+            "cum_mfe_bps",
+            "cum_mae_bps",
+        ):
+            _finite_scalar(raw, field)
+        if (
+            isinstance(raw.get("bars_since_mfe_peak"), bool)
+            or not isinstance(raw.get("bars_since_mfe_peak"), int)
+            or raw["bars_since_mfe_peak"] < 0
+        ):
+            _fail(
+                f"v12_bar_decisions[{position}].bars_since_mfe_peak",
+                "invalid",
+            )
+        if _finite_scalar(raw, "executable_range_bps") <= 0.0:
+            _fail(
+                f"v12_bar_decisions[{position}].executable_range_bps",
+                "must be positive",
+            )
+        path_envelope = raw.get("exit_path_envelope")
+        if (
+            not isinstance(path_envelope, dict)
+            or path_envelope.get("bars_in_trade") != expected_bar
+        ):
+            _fail(
+                f"v12_bar_decisions[{position}].exit_path_envelope",
+                "missing or bar-count mismatch",
+            )
+        output = {
+            "exit_action_logits": raw["exit_action_logits"],
+            "exit_action_probs": raw["exit_action_probs"],
+            "exit_action_index": raw["exit_action_index"],
+            "action": raw["exit_action"],
+            "decision_source": raw["exit_decision_source"],
+            "bundle_sha256": raw["bundle_sha256"],
+            "entry_snapshot_sha256": raw["entry_snapshot_sha256"],
+            "exit_path_envelope_sha256": raw[
+                "exit_path_envelope_sha256"
+            ],
+            "output_evidence_sha256": raw["output_evidence_sha256"],
+        }
+        try:
+            require_unified_exit_output(
+                output,
+                context=f"DAILY_REVIEW_EXIT_BAR_{position}",
+                expected_bundle_sha256=raw["bundle_sha256"],
+                entry_snapshot=entry_evidence,
+                exit_path_envelope=path_envelope,
+            )
+        except RuntimeError as exc:
+            raise ModelNativeTradeReviewError(str(exc)) from exc
+        validated.append(dict(raw))
+    return validated
+
+
 def _bar_metrics(bars: list[dict]) -> dict[str, Any]:
     """Derive trade-level metrics from per-bar decision trace."""
     if not bars:
@@ -264,7 +387,10 @@ def _bar_metrics(bars: list[dict]) -> dict[str, Any]:
     pnls = [b["current_pnl_bps"] for b in bars]
     mfes = [b["cum_mfe_bps"] for b in bars]
     maes = [b["cum_mae_bps"] for b in bars]
-    v3_probs = [b.get("v3_should_exit_prob") or 0.0 for b in bars]
+    exit_now_probs = [
+        _finite_vector(bar, "exit_action_probs", 2)[1]
+        for bar in bars
+    ]
 
     max_mfe = max(mfes)
     max_mae = min(maes)
@@ -272,14 +398,14 @@ def _bar_metrics(bars: list[dict]) -> dict[str, Any]:
     mfe_peak_bar = next((i for i, m in enumerate(mfes) if m == max_mfe), 0)
     mae_worst_bar = next((i for i, m in enumerate(maes) if m == max_mae), 0)
 
-    # V3 alarms
-    v3_max_prob = max(v3_probs) if v3_probs else 0.0
-    v3_first_alarm_bar = next((i for i, p in enumerate(v3_probs) if p > 0.5), -1)
-
-    # Exit-IQL held while the V3 exit model alarmed.
-    exit_iql_held_through_v3 = sum(
-        1 for b in bars
-        if (b.get("v3_should_exit_prob") or 0) > 0.5 and b.get("iql_action") != "EXIT_NOW"
+    max_exit_now_prob = max(exit_now_probs)
+    first_exit_now_bar = next(
+        (
+            index
+            for index, bar in enumerate(bars)
+            if bar.get("exit_action") == "EXIT_NOW"
+        ),
+        -1,
     )
 
     # MFE giveback ratio: (max_mfe - final_pnl) / max_mfe
@@ -299,9 +425,8 @@ def _bar_metrics(bars: list[dict]) -> dict[str, Any]:
         "final_pnl_bps": final_pnl,
         "mfe_peak_bar": mfe_peak_bar,
         "mae_worst_bar": mae_worst_bar,
-        "v3_max_prob": v3_max_prob,
-        "v3_first_alarm_bar": v3_first_alarm_bar,
-        "exit_iql_held_through_v3_count": exit_iql_held_through_v3,
+        "max_exit_now_prob": max_exit_now_prob,
+        "first_exit_now_bar": first_exit_now_bar,
         "mfe_giveback_bps": giveback_bps,
         "mfe_giveback_pct": giveback_pct,
         "pnl_zero_crossings": jojo,
@@ -331,8 +456,6 @@ def _classify_pattern(metrics: dict, exit_summary: dict | None) -> list[str]:
         tags.append("RECOVERY_FROM_DEEP_MAE")
     if mae <= -20 and final <= mae * 0.8:
         tags.append("RAN_TO_STOP")
-    if metrics.get("exit_iql_held_through_v3_count", 0) >= 5:
-        tags.append("EXIT_IQL_HELD_THROUGH_V3_ALARM")
     if metrics.get("pnl_zero_crossings", 0) >= 4:
         tags.append("JOJO_4PLUS")
     return tags
@@ -348,7 +471,10 @@ def trade_summary_row(trade_json: dict) -> dict[str, Any]:
     """
     entry, evidence = _require_entry_snapshot(trade_json)
     exit_s = trade_json.get("exit_summary")
-    bars = trade_json.get("v12_bar_decisions") or []
+    bars = _require_unified_bar_trace(
+        trade_json.get("v12_bar_decisions") or [],
+        entry_evidence=evidence,
+    )
 
     metrics = _bar_metrics(bars)
     tags = _classify_pattern(metrics, exit_s)
@@ -400,20 +526,20 @@ def trade_summary_row(trade_json: dict) -> dict[str, Any]:
         "decision_ts": evidence["decision_ts"],
         "model_direction": evidence["model_direction"],
         "model_direction_index": evidence["model_direction_index"],
-        "direction_logit_long": direction_logits[0],
-        "direction_logit_short": direction_logits[1],
-        "direction_logit_flat": direction_logits[2],
-        "direction_p_long": direction_probs[0],
-        "direction_p_short": direction_probs[1],
-        "direction_p_flat": direction_probs[2],
+        "direction_logit_long": direction_logits[MODEL_DIRECTION_LONG_INDEX],
+        "direction_logit_short": direction_logits[MODEL_DIRECTION_SHORT_INDEX],
+        "direction_logit_flat": direction_logits[MODEL_DIRECTION_FLAT_INDEX],
+        "direction_p_long": direction_probs[MODEL_DIRECTION_LONG_INDEX],
+        "direction_p_short": direction_probs[MODEL_DIRECTION_SHORT_INDEX],
+        "direction_p_flat": direction_probs[MODEL_DIRECTION_FLAT_INDEX],
         "public_trade_flat_decision": evidence["public_trade_flat_decision"],
         "public_trade_flat_decision_index": evidence[
             "public_trade_flat_decision_index"
         ],
-        "public_logit_trade": public_logits[0],
-        "public_logit_flat": public_logits[1],
-        "p_trade": public_probs[0],
-        "p_flat_hier": public_probs[1],
+        "public_logit_trade": public_logits[PUBLIC_TRADE_INDEX],
+        "public_logit_flat": public_logits[PUBLIC_FLAT_INDEX],
+        "p_trade": public_probs[PUBLIC_TRADE_INDEX],
+        "p_flat_hier": public_probs[PUBLIC_FLAT_INDEX],
         "p_long_given_trade": _finite_scalar(evidence, "p_long_given_trade"),
         "p_short_given_trade": _finite_scalar(evidence, "p_short_given_trade"),
         "path_quality": _finite_scalar(evidence, "path_quality"),
@@ -467,11 +593,8 @@ def trade_summary_row(trade_json: dict) -> dict[str, Any]:
         "mae_worst_bar": metrics.get("mae_worst_bar", -1),
         "mfe_giveback_bps": metrics.get("mfe_giveback_bps", 0.0),
         "mfe_giveback_pct": metrics.get("mfe_giveback_pct", 0.0),
-        "v3_max_prob": metrics.get("v3_max_prob", 0.0),
-        "v3_first_alarm_bar": metrics.get("v3_first_alarm_bar", -1),
-        "exit_iql_held_through_v3_count": metrics.get(
-            "exit_iql_held_through_v3_count", 0
-        ),
+        "max_exit_now_prob": metrics.get("max_exit_now_prob", 0.0),
+        "first_exit_now_bar": metrics.get("first_exit_now_bar", -1),
         "pnl_zero_crossings": metrics.get("pnl_zero_crossings", 0),
         "tags": ",".join(tags),
     }
@@ -489,7 +612,10 @@ def trade_summary_row(trade_json: dict) -> dict[str, Any]:
 def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None:
     entry, evidence = _require_entry_snapshot(trade_json)
     exit_s = trade_json.get("exit_summary")
-    bars = trade_json.get("v12_bar_decisions") or []
+    bars = _require_unified_bar_trace(
+        trade_json.get("v12_bar_decisions") or [],
+        entry_evidence=evidence,
+    )
     tid = trade_json.get("trade_id") or trade_json.get("trade_key") or "?"
     direction_logits = _finite_vector(evidence, "direction_logits", 3)
     direction_probs = _finite_vector(evidence, "direction_probs", 3)
@@ -538,13 +664,15 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
     )
     lines.append(
         "- calibrated logits LONG/SHORT/FLAT: "
-        f"{direction_logits[0]:+.4f} / {direction_logits[1]:+.4f} / "
-        f"{direction_logits[2]:+.4f}"
+        f"{direction_logits[MODEL_DIRECTION_LONG_INDEX]:+.4f} / "
+        f"{direction_logits[MODEL_DIRECTION_SHORT_INDEX]:+.4f} / "
+        f"{direction_logits[MODEL_DIRECTION_FLAT_INDEX]:+.4f}"
     )
     lines.append(
         "- calibrated probabilities LONG/SHORT/FLAT: "
-        f"{direction_probs[0]:.4f} / {direction_probs[1]:.4f} / "
-        f"{direction_probs[2]:.4f}"
+        f"{direction_probs[MODEL_DIRECTION_LONG_INDEX]:.4f} / "
+        f"{direction_probs[MODEL_DIRECTION_SHORT_INDEX]:.4f} / "
+        f"{direction_probs[MODEL_DIRECTION_FLAT_INDEX]:.4f}"
     )
     lines.append("")
 
@@ -554,11 +682,14 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
         f"(index {evidence['public_trade_flat_decision_index']})"
     )
     lines.append(
-        f"- logits TRADE/FLAT: {public_logits[0]:+.4f} / {public_logits[1]:+.4f}"
+        "- logits TRADE/FLAT: "
+        f"{public_logits[PUBLIC_TRADE_INDEX]:+.4f} / "
+        f"{public_logits[PUBLIC_FLAT_INDEX]:+.4f}"
     )
     lines.append(
-        f"- probabilities TRADE/FLAT: {public_probs[0]:.4f} / "
-        f"{public_probs[1]:.4f}"
+        "- probabilities TRADE/FLAT: "
+        f"{public_probs[PUBLIC_TRADE_INDEX]:.4f} / "
+        f"{public_probs[PUBLIC_FLAT_INDEX]:.4f}"
     )
     lines.append(
         "- conditional side probabilities LONG|TRADE / SHORT|TRADE: "
@@ -672,8 +803,8 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
 
     if bars:
         lines.append("## In-trade trajectory\n")
-        lines.append("| bar | time | bid | pnl | mfe | mae | dd_from_peak | v3_prob | v3_consec | exit_action | exit_source |")
-        lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
+        lines.append("| bar | time | bid | pnl | mfe | mae | dd_from_peak | p_exit_now | exit_action | exit_source |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|")
         # Sample at most ~30 bars across the trade for readability
         n = len(bars)
         step = max(1, n // 30)
@@ -683,8 +814,8 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
             sampled_idx.append(summary["mfe_peak_bar"])
         if summary["mae_worst_bar"] not in sampled_idx and summary["mae_worst_bar"] >= 0:
             sampled_idx.append(summary["mae_worst_bar"])
-        if summary["v3_first_alarm_bar"] not in sampled_idx and summary["v3_first_alarm_bar"] >= 0:
-            sampled_idx.append(summary["v3_first_alarm_bar"])
+        if summary["first_exit_now_bar"] not in sampled_idx and summary["first_exit_now_bar"] >= 0:
+            sampled_idx.append(summary["first_exit_now_bar"])
         if n - 1 not in sampled_idx:
             sampled_idx.append(n - 1)
         for i in sorted(set(sampled_idx)):
@@ -694,16 +825,16 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
                 mark = " 🟢MFE"
             if i == summary["mae_worst_bar"]:
                 mark += " 🔴MAE"
-            if i == summary["v3_first_alarm_bar"]:
-                mark += " ⚠️V3"
+            if i == summary["first_exit_now_bar"]:
+                mark += " EXIT"
             ts = b.get("timestamp", "?")[11:16]
             dd = (b.get("cum_mfe_bps", 0) - b.get("current_pnl_bps", 0))
             lines.append(
                 f"| {b.get('bars_in_trade', i)}{mark} | {ts} | {b.get('bid', 0):.2f} | "
                 f"{b.get('current_pnl_bps', 0):+.2f} | {b.get('cum_mfe_bps', 0):.2f} | "
                 f"{b.get('cum_mae_bps', 0):.2f} | {dd:.2f} | "
-                f"{b.get('v3_should_exit_prob', 0):.3f} | {b.get('v3_consecutive_exits', 0)} | "
-                f"{b.get('iql_action', '?')} | {b.get('iql_decision_source', '?')} |"
+                f"{_finite_vector(b, 'exit_action_probs', 2)[1]:.3f} | "
+                f"{b.get('exit_action', '?')} | {b.get('exit_decision_source', '?')} |"
             )
         lines.append("")
 
@@ -726,18 +857,13 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
     if "MFE_GIVEBACK_50PCT" in tags:
         lines.append(f"- ⚠️ **Giveback ≥50%** — MFE peak {summary['max_mfe_bps']:.1f} bps → final {summary['realized_pnl_bps']:+.1f} bps (giveback {summary['mfe_giveback_pct']*100:.0f}%).")
     if "RECOVERY_FROM_DEEP_MAE" in tags:
-        lines.append(f"- ✅ **Recovery fra deep MAE** — bunn {summary['max_mae_bps']:.1f} bps → final {summary['realized_pnl_bps']:+.1f}. Exit-IQL holdt rett.")
-    if "EXIT_IQL_HELD_THROUGH_V3_ALARM" in tags:
-        lines.append(
-            f"- 🟡 **Exit-IQL ignored V3** — V3 sa exit i "
-            f"{summary['exit_iql_held_through_v3_count']} bars; Exit-IQL holdt."
-        )
+        lines.append(f"- ✅ **Recovery fra deep MAE** — bunn {summary['max_mae_bps']:.1f} bps → final {summary['realized_pnl_bps']:+.1f}.")
     if "JOJO_4PLUS" in tags:
         lines.append(f"- ⚠️ **{summary['pnl_zero_crossings']} svingninger** rundt break-even — roller-coaster mønster.")
     if "RAN_TO_STOP" in tags:
-        lines.append("- 🔴 **Løp til stop-like deep MAE** — Exit-IQL holdt for lenge i tap, eller markedet snudde aldri.")
+        lines.append("- 🔴 **Løp til stop-like deep MAE** — modellen holdt for lenge i tap, eller markedet snudde aldri.")
     if not any(t in tags for t in ["MFE_GIVEBACK_50PCT", "MFE_HIT_BUT_NEGATIVE_EXIT", "RECOVERY_FROM_DEEP_MAE",
-                                    "EXIT_IQL_HELD_THROUGH_V3_ALARM", "JOJO_4PLUS", "RAN_TO_STOP"]):
+                                    "JOJO_4PLUS", "RAN_TO_STOP"]):
         lines.append("- (Ingen patologiske mønstre flagget)")
     lines.append("")
 
@@ -831,7 +957,6 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
         "MFE_GIVEBACK_50PCT": [],
         "MFE_HIT_BUT_NEGATIVE_EXIT": [],
         "RECOVERY_FROM_DEEP_MAE": [],
-        "EXIT_IQL_HELD_THROUGH_V3_ALARM": [],
         "JOJO_4PLUS": [],
         "RAN_TO_STOP": [],
     }

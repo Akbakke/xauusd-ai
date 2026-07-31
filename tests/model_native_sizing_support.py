@@ -18,7 +18,7 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
     MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS,
-    active_exit_registry_projection,
+    candidate_bundle_authority,
     joint_exit_trace_sha256,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
@@ -38,6 +38,7 @@ from gx1.contracts.model_native_serve_gate_v1 import (
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
+    canonical_unified_evidence_sha256,
     model_direction_decision_contract_metadata,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
@@ -56,6 +57,7 @@ from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
 from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
 from tests.model_native_serve_gate_support import (
     passing_serve_parity_liveness_sections,
+    passing_serve_source_identity,
 )
 from tests.model_native_turning_point_support import turning_point_prediction_row
 from tests.model_native_offline_rl_support import (
@@ -350,6 +352,13 @@ def _write_model_head_serve_parity(
             "state_tol": SERVE_PARITY_STATE_TOL,
             "forward_tol": SERVE_PARITY_FORWARD_TOL,
             "env_pins": dict(SERVE_PARITY_ENV_PINS),
+            "git_commit": "unit-source-identity",
+            "serve_source_identity": passing_serve_source_identity(),
+            "operating_point": {
+                "selection_score": MODEL_DIRECTION_SELECTION_MODE,
+                "max_trades": 1,
+            },
+            "runtime_device": "cpu",
             "sampled_test_coverage": _coverage(test_times[pick]),
             "state_parity": {
                 "n_compared": SERVE_PARITY_SAMPLE_COUNT,
@@ -369,11 +378,17 @@ def _write_model_head_serve_parity(
             "specialist_decision_influence": liveness[
                 "specialist_decision_influence"
             ],
+            "individual_input_decision_influence": liveness[
+                "individual_input_decision_influence"
+            ],
             "upstream_context_decision_influence": liveness[
                 "upstream_context_decision_influence"
             ],
             "multi_tf_decision_influence": liveness[
                 "multi_tf_decision_influence"
+            ],
+            "family_tf_decision_influence": liveness[
+                "family_tf_decision_influence"
             ],
             "direction_evidence_fusion_influence": liveness[
                 "direction_evidence_fusion_influence"
@@ -461,9 +476,14 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             progress = max(0.0, (minute - 5) / 5.0)
             bid = entry_bid + progress * (exit_bid - entry_bid)
             ask = entry_ask + progress * (exit_ask - entry_ask)
+            mid = (bid + ask) / 2.0
             tape_rows.append(
                 {
                     "time": ts + pd.Timedelta(minutes=minute),
+                    "open": mid,
+                    "high": mid + 0.1,
+                    "low": mid - 0.1,
+                    "close": mid,
                     "bid_open": bid,
                     "ask_open": ask,
                     "bid_close": bid,
@@ -472,6 +492,7 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
                     "bid_low": bid - 0.1,
                     "ask_high": ask + 0.1,
                     "ask_low": ask - 0.1,
+                    "volume": 100 + minute,
                 }
             )
     tape = root / "canonical_source_tape.parquet"
@@ -601,37 +622,12 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
     """Extend the canonical sizing fixture with strict full-TEST Exit traces."""
 
     evidence = write_passing_sizing_calibration_and_proof(root)
-    active_paths: dict[str, str] = {}
-    for role in ("xgb", "v3_exit", "exit_iql"):
-        path = root / "active_exit" / role
-        path.mkdir(parents=True, exist_ok=True)
-        (path / "identity.bin").write_bytes(role.encode("utf-8"))
-        active_paths[role] = str(path.resolve())
-    registry_path = root / "PROJECT_STATE_artifacts.json"
-    _write_json(
-        registry_path,
-        {
-            "schema_version": "gx1_artifact_selection_v2",
-            "project": "XAUUSD",
-            "updated_utc": "2026-07-17T12:00:00Z",
-            "active": {
-                role: {
-                    "path": active_paths[role],
-                    "status": "ACTIVE",
-                    "in_sample_only": False,
-                }
-                for role in ("xgb", "v3_exit", "exit_iql")
-            },
-            "retired": {},
-            "history": [],
-        },
+    bundle_authority = candidate_bundle_authority(
+        bundle_dir=Path(evidence["proof"]["evaluation_bundle"]["bundle_dir"]),
+        evaluation_bundle=evidence["proof"]["evaluation_bundle"],
+        context="UNIT_CANDIDATE_BUNDLE_AUTHORITY",
     )
-    registry_projection = active_exit_registry_projection(
-        registry_path=registry_path.resolve(),
-        registry=json.loads(registry_path.read_text(encoding="utf-8")),
-        context="UNIT_ACTIVE_EXIT_REGISTRY_PROJECTION",
-    )
-    exit_authority_sha = registry_projection["projection_sha256"]
+    candidate_bundle_sha = bundle_authority["bundle_commit_sha256"]
     source_rows_path = Path(
         evidence["oos_source"]["source_bindings"]["oos_rows"]["path"]
     )
@@ -643,49 +639,45 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
     rows["exit_replay_status"] = np.where(
         directions.isin([0, 1]), "EXIT_NOW", "FLAT_NO_ORDER"
     )
-    rows["active_exit_fill_time"] = [
+    rows["model_exit_fill_time"] = [
         (timestamp + pd.Timedelta(minutes=15)).isoformat()
         if direction in (0, 1)
         else None
         for timestamp, direction in zip(times, directions, strict=True)
     ]
-    rows["active_exit_decision_bar_time"] = [
+    rows["model_exit_decision_bar_time"] = [
         (timestamp + pd.Timedelta(minutes=14)).isoformat()
         if direction in (0, 1)
         else None
         for timestamp, direction in zip(times, directions, strict=True)
     ]
-    active_exit_shift = np.where(
+    model_exit_shift = np.where(
         directions == 0,
         0.02,
         np.where(directions == 1, -0.02, np.nan),
     )
-    rows["active_exit_fill_bid"] = rows["exit_bid"] + active_exit_shift
-    rows["active_exit_fill_ask"] = rows["exit_ask"] + active_exit_shift
+    rows["model_exit_fill_bid"] = rows["exit_bid"] + model_exit_shift
+    rows["model_exit_fill_ask"] = rows["exit_ask"] + model_exit_shift
     rows["exit_reason"] = np.where(
-        directions.isin([0, 1]), "EXIT_IQL_ARGMAX", "MODEL_FLAT"
+        directions.isin([0, 1]), "UNIFIED_MODEL_ARGMAX", "MODEL_FLAT"
     )
     rows["exit_steps"] = np.where(directions.isin([0, 1]), 10, 0)
-    rows["active_exit_authority_sha256"] = exit_authority_sha
+    rows["candidate_bundle_sha256"] = candidate_bundle_sha
     flat_mask = directions == 2
     trace_records: list[dict[str, Any]] = []
     for row_index, row in rows.loc[~flat_mask].iterrows():
         direction = int(row["model_direction_index"])
         entry_time = pd.Timestamp(row["entry_fill_time"])
+        entry_snapshot_sha = hashlib.sha256(
+            str(row["reference_row_id"]).encode("utf-8")
+        ).hexdigest()
         for step in range(1, int(row["exit_steps"]) + 1):
-            state_fraction = step / float(row["exit_steps"] + 1)
-            fresh_fraction = step / float(row["exit_steps"])
+            state_fraction = step / float(row["exit_steps"])
             state_bid = float(row["entry_bid"]) + state_fraction * (
-                float(row["active_exit_fill_bid"]) - float(row["entry_bid"])
+                float(row["model_exit_fill_bid"]) - float(row["entry_bid"])
             )
             state_ask = float(row["entry_ask"]) + state_fraction * (
-                float(row["active_exit_fill_ask"]) - float(row["entry_ask"])
-            )
-            fresh_bid = float(row["entry_bid"]) + fresh_fraction * (
-                float(row["active_exit_fill_bid"]) - float(row["entry_bid"])
-            )
-            fresh_ask = float(row["entry_ask"]) + fresh_fraction * (
-                float(row["active_exit_fill_ask"]) - float(row["entry_ask"])
+                float(row["model_exit_fill_ask"]) - float(row["entry_ask"])
             )
             state_pnl_bps = (
                 (state_bid - float(row["entry_ask"]))
@@ -696,30 +688,58 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
                 / float(row["entry_bid"])
                 * 10_000.0
             )
+            exit_now = step == int(row["exit_steps"])
+            logits = [-2.0, 2.0] if exit_now else [2.0, -2.0]
+            probs = _softmax(np.asarray(logits, dtype=np.float64)).tolist()
+            action_id = 1 if exit_now else 0
+            action = "EXIT_NOW" if exit_now else "HOLD"
+            path_sha = hashlib.sha256(
+                f"{row['reference_row_id']}:{step}".encode("utf-8")
+            ).hexdigest()
+            output = {
+                "exit_action_logits": logits,
+                "exit_action_probs": probs,
+                "exit_action_index": action_id,
+                "action": action,
+                "decision_source": "unified_model",
+                "bundle_sha256": candidate_bundle_sha,
+                "entry_snapshot_sha256": entry_snapshot_sha,
+                "exit_path_envelope_sha256": path_sha,
+            }
             trace_records.append(
                 {
                     "reference_row_id": str(row["reference_row_id"]),
                     "entry_fill_time": entry_time,
                     "step": step,
-                    "fresh_quote_time": (
-                        entry_time + pd.Timedelta(minutes=step)
-                    ),
                     "closed_bar_time": (
                         entry_time + pd.Timedelta(minutes=step - 1)
                     ),
-                    "bar_committed": True,
-                    "action_id": 1 if step == int(row["exit_steps"]) else 0,
-                    "decision_source": (
-                        str(row["exit_reason"])
-                        if step == int(row["exit_steps"])
-                        else "HOLD"
+                    "model_exit_fill_time": (
+                        entry_time + pd.Timedelta(minutes=step)
                     ),
+                    "bar_committed": True,
+                    "action_id": action_id,
+                    "action": action,
+                    "decision_source": "unified_model",
                     "state_pnl_bps": state_pnl_bps,
                     "state_bid": state_bid,
                     "state_ask": state_ask,
-                    "fresh_quote_bid": fresh_bid,
-                    "fresh_quote_ask": fresh_ask,
-                    "active_exit_authority_sha256": exit_authority_sha,
+                    "exit_hold_logit": logits[0],
+                    "exit_now_logit": logits[1],
+                    "exit_hold_prob": probs[0],
+                    "exit_now_prob": probs[1],
+                    "candidate_bundle_sha256": candidate_bundle_sha,
+                    "entry_snapshot_sha256": entry_snapshot_sha,
+                    "exit_path_envelope_sha256": path_sha,
+                    "output_evidence_sha256": (
+                        canonical_unified_evidence_sha256(output)
+                    ),
+                    "closed_m1_source_path": evidence["oos_source"][
+                        "source_tape"
+                    ]["path"],
+                    "closed_m1_source_sha256": evidence["oos_source"][
+                        "source_tape"
+                    ]["sha256"],
                 }
             )
     exit_trace_rows = pd.DataFrame(
@@ -748,8 +768,28 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
         proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
         replay_rows_path=replay_rows_path,
         exit_trace_rows_path=exit_trace_rows_path,
-        artifact_registry_path=registry_path,
         authority_root=evidence["authority_root"],
+    )
+    registry_path = root / "PROJECT_STATE_artifacts.json"
+    prior_active = root / "prior_active_v10_entry"
+    prior_active.mkdir(parents=True, exist_ok=True)
+    (prior_active / "identity.bin").write_bytes(b"prior-v10-entry")
+    _write_json(
+        registry_path,
+        {
+            "schema_version": "gx1_artifact_selection_v2",
+            "project": "XAUUSD",
+            "updated_utc": "2026-07-17T12:00:00Z",
+            "active": {
+                "v10_entry": {
+                    "path": str(prior_active.resolve()),
+                    "status": "ACTIVE",
+                    "in_sample_only": False,
+                }
+            },
+            "retired": {},
+            "history": [],
+        },
     )
     evidence.update(
         {

@@ -19,9 +19,11 @@ from gx1.scripts.cleanup_gx1_evidence_v1 import (
     APPROVAL_PREFIX,
     CLEARANCE_PREFIX,
     EXECUTION_PREFIX,
+    RECOVERY_PREFIX,
     STAGED_PREFIX,
     execute_cleanup,
     publish_cleanup_approval,
+    recover_interrupted_cleanup,
 )
 
 
@@ -77,6 +79,31 @@ def _published_plan(
     payload = build_cleanup_plan_payload(
         targets=[target],
         reason="Exact obsolete test evidence",
+        vedtak=VEDTAK,
+        artifact_registry_json=registry,
+        launch_contract_json=launch,
+        inventory_dir=tmp_path / "plans",
+        created_utc=CREATED_UTC,
+        allowed_roots=(tmp_path,),
+    )
+    plan_path, _ = write_immutable_json_event(
+        tmp_path / "plans",
+        PLAN_EVENT_PREFIX,
+        payload,
+    )
+    return plan_path, sha256_file(plan_path)
+
+
+def _published_plan_many(
+    tmp_path: Path,
+    *,
+    targets: list[Path],
+    registry: Path,
+    launch: Path,
+) -> tuple[Path, str]:
+    payload = build_cleanup_plan_payload(
+        targets=targets,
+        reason="Exact obsolete test evidence batch",
         vedtak=VEDTAK,
         artifact_registry_json=registry,
         launch_contract_json=launch,
@@ -413,6 +440,220 @@ def test_manifest_delete_never_removes_unapproved_racing_entry(
         )
     wrapper = target.parent / f".gx1_delete_{plan_sha[:16]}_0000"
     assert (wrapper / "payload" / "unapproved.bin").read_bytes() == b"must-not-delete"
+
+
+def test_batch_delete_validates_full_target_plan_only_twice(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    targets = [
+        tmp_path / "evidence" / "obsolete-a.bin",
+        tmp_path / "evidence" / "obsolete-b.bin",
+    ]
+    targets[0].parent.mkdir()
+    for index, target in enumerate(targets):
+        target.write_bytes(f"obsolete-{index}".encode())
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan_many(
+        tmp_path,
+        targets=targets,
+        registry=registry,
+        launch=launch,
+    )
+    approval_path, approval_sha = publish_cleanup_approval(
+        plan_json=plan_path,
+        plan_sha256=plan_sha,
+        vedtak=VEDTAK,
+        approved_by="test-operator",
+        out_dir=tmp_path / "approvals",
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    real_validate = cleanup_script.validate_cleanup_plan
+    validation_calls = 0
+
+    def counted_validate(*args: object, **kwargs: object) -> dict[str, object]:
+        nonlocal validation_calls
+        validation_calls += 1
+        return real_validate(*args, **kwargs)
+
+    monkeypatch.setattr(cleanup_script, "validate_cleanup_plan", counted_validate)
+    assert (
+        execute_cleanup(
+            plan_json=plan_path,
+            plan_sha256=plan_sha,
+            vedtak=VEDTAK,
+            out_dir=tmp_path / "reports",
+            execute=True,
+            quiet=True,
+            approval_json=approval_path,
+            approval_sha256=approval_sha,
+            allowed_roots=(tmp_path,),
+            required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+        == 0
+    )
+    assert validation_calls == 2
+    assert all(not target.exists() for target in targets)
+
+
+def test_authority_change_between_staged_deletes_stops_remaining_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    targets = [
+        tmp_path / "evidence" / "obsolete-a.bin",
+        tmp_path / "evidence" / "obsolete-b.bin",
+    ]
+    targets[0].parent.mkdir()
+    for index, target in enumerate(targets):
+        target.write_bytes(f"obsolete-{index}".encode())
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan_many(
+        tmp_path,
+        targets=targets,
+        registry=registry,
+        launch=launch,
+    )
+    approval_path, approval_sha = publish_cleanup_approval(
+        plan_json=plan_path,
+        plan_sha256=plan_sha,
+        vedtak=VEDTAK,
+        approved_by="test-operator",
+        out_dir=tmp_path / "approvals",
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    real_delete = cleanup_script._delete_staged_manifest_exact
+    delete_calls = 0
+
+    def mutate_authority_after_first_delete(
+        staged_target: dict[str, object],
+        plan_target: dict[str, object],
+    ) -> None:
+        nonlocal delete_calls
+        real_delete(staged_target, plan_target)
+        delete_calls += 1
+        if delete_calls == 1:
+            registry.write_text(
+                registry.read_text(encoding="utf-8") + "\n",
+                encoding="utf-8",
+            )
+
+    monkeypatch.setattr(
+        cleanup_script,
+        "_delete_staged_manifest_exact",
+        mutate_authority_after_first_delete,
+    )
+    with pytest.raises(RuntimeError, match="partial failure"):
+        execute_cleanup(
+            plan_json=plan_path,
+            plan_sha256=plan_sha,
+            vedtak=VEDTAK,
+            out_dir=tmp_path / "reports",
+            execute=True,
+            quiet=True,
+            approval_json=approval_path,
+            approval_sha256=approval_sha,
+            allowed_roots=(tmp_path,),
+            required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+    assert delete_calls == 1
+    assert not targets[0].exists()
+    second_wrapper = targets[1].parent / f".gx1_delete_{plan_sha[:16]}_0001"
+    assert (second_wrapper / "payload").read_bytes() == b"obsolete-1"
+
+
+def test_interrupted_pre_staged_cleanup_restores_exact_source_paths(
+    tmp_path: Path,
+) -> None:
+    targets = [
+        tmp_path / "evidence" / "obsolete-a.bin",
+        tmp_path / "evidence" / "obsolete-b.bin",
+    ]
+    targets[0].parent.mkdir()
+    for index, target in enumerate(targets):
+        target.write_bytes(f"obsolete-{index}".encode())
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan_many(
+        tmp_path,
+        targets=targets,
+        registry=registry,
+        launch=launch,
+    )
+    approval_path, approval_sha = publish_cleanup_approval(
+        plan_json=plan_path,
+        plan_sha256=plan_sha,
+        vedtak=VEDTAK,
+        approved_by="test-operator",
+        out_dir=tmp_path / "approvals",
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    validated = validate_cleanup_plan(
+        plan_path,
+        plan_sha,
+        vedtak=VEDTAK,
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    stage_plan = cleanup_script._stage_plan(
+        validated["targets"],
+        plan_sha256=plan_sha,
+    )
+    cleanup_script._stage_exact_target(validated["targets"][0], stage_plan[0])
+    started_path, _ = write_immutable_json_event(
+        tmp_path / "reports",
+        cleanup_script.STARTED_PREFIX,
+        {
+            "schema_version": "gx1_evidence_cleanup_started_v1",
+            "created_utc": CREATED_UTC,
+            "decision": "ATOMIC_STAGING_STARTED",
+            "plan_json": str(plan_path),
+            "plan_sha256": plan_sha,
+            "approval_json": str(approval_path),
+            "approval_sha256": approval_sha,
+            "vedtak": VEDTAK,
+            "stage_plan": stage_plan,
+            "direction_authority": False,
+            "launch_authority": False,
+        },
+    )
+
+    assert (
+        recover_interrupted_cleanup(
+            plan_json=plan_path,
+            plan_sha256=plan_sha,
+            vedtak=VEDTAK,
+            approval_json=approval_path,
+            approval_sha256=approval_sha,
+            started_json=started_path,
+            started_sha256=sha256_file(started_path),
+            out_dir=tmp_path / "reports",
+            recover=True,
+            quiet=True,
+            allowed_roots=(tmp_path,),
+            required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+        == 0
+    )
+    assert [target.read_bytes() for target in targets] == [
+        b"obsolete-0",
+        b"obsolete-1",
+    ]
+    assert not Path(stage_plan[0]["quarantine_wrapper"]).exists()
+    recovery_path = next((tmp_path / "reports").glob(f"{RECOVERY_PREFIX}_*.json"))
+    recovery = json.loads(recovery_path.read_text(encoding="utf-8"))
+    assert recovery["decision"] == "RESTORE_COMPLETE"
+    assert len(recovery["restored"]) == 1
+    assert recovery["failure"] is None
 
 
 def test_changed_target_bytes_invalidate_published_plan(tmp_path: Path) -> None:

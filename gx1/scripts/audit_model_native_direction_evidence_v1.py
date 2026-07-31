@@ -27,6 +27,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
+    MODEL_DIRECTION_NAME_BY_INDEX,
+    MODEL_DIRECTION_SHORT_INDEX,
     require_model_direction_decision_contract,
 )
 from gx1.scripts.audit_model_native_direction_pockets_v1 import (
@@ -48,7 +52,7 @@ DEFAULT_OUT_DIR = Path(
 )
 EVENT_PREFIX = "MODEL_NATIVE_DIRECTION_EVIDENCE_AUDIT"
 ROWS_PREFIX = "MODEL_NATIVE_DIRECTION_EVIDENCE_ROWS"
-SIDE_NAME = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+SIDE_NAME = MODEL_DIRECTION_NAME_BY_INDEX
 FORBIDDEN_PREDICTION_COLUMNS = frozenset(
     {
         "anchor_logits",
@@ -547,13 +551,16 @@ def main() -> int:
             "selection_score_mode": frame["selection_score_mode"].astype(str).to_numpy(),
             "edge_score_diagnostic": edge_diagnostic,
             "direction_logit_long_minus_short": (
-                direction_logits[:, 0] - direction_logits[:, 1]
+                direction_logits[:, MODEL_DIRECTION_LONG_INDEX]
+                - direction_logits[:, MODEL_DIRECTION_SHORT_INDEX]
             ),
             "direction_logit_long_minus_flat": (
-                direction_logits[:, 0] - direction_logits[:, 2]
+                direction_logits[:, MODEL_DIRECTION_LONG_INDEX]
+                - direction_logits[:, MODEL_DIRECTION_FLAT_INDEX]
             ),
             "direction_logit_short_minus_flat": (
-                direction_logits[:, 1] - direction_logits[:, 2]
+                direction_logits[:, MODEL_DIRECTION_SHORT_INDEX]
+                - direction_logits[:, MODEL_DIRECTION_FLAT_INDEX]
             ),
             "path_quality_pred": _finite_num(frame, "path_quality_pred"),
             "bad_path_prob": _finite_num(frame, "bad_path_prob"),

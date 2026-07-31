@@ -1,40 +1,69 @@
-# XAUUSD OANDA backfill boundary
+# XAUUSD OANDA source-production boundary
 
-The retained backfill implementations are
-`gx1/scripts/backfill_xauusd_m5_bidask_2020_2025.py` and
-`gx1/scripts/backfill_xauusd_m5_from_oanda.py`. They write large external data
-and are not diagnostic commands.
+Updated 2026-07-31.
 
-Do not run either script during ordinary source cleanup or testing. An
-authorized backfill must provide explicit immutable output/checkpoint paths
-under `/home/andre2/GX1_DATA`, valid OANDA credentials, a bounded UTC range and
-the relevant `--vedtak`. Inspect running collectors first so two writers never
-touch the same tape.
+The active immutable native M1/M5 owner is
+`gx1/scripts/backfill_xauusd_m5_from_oanda.py`. Its historical filename is not
+its contract: it supports strict `M1` or `M5` immutable bootstrap and
+schema-v4 successor publication.
 
-The CLI contract is fail-closed for both retained writers: `--vedtak` is
-mandatory and is validated before environment loading, credential access,
-network access, checkpoint/cache creation or output writes. Bounded invocations
-therefore start as follows (the paths and timestamps remain event-specific):
+This owner produces bounded immutable snapshots only. It is not a daemon.
+Successor mode reuses verified parent history and fetches only one bounded
+overlap chunk plus the new tail; its existence does not itself create the
+canonical pair publications or two-event live admission.
+
+Do not run it during ordinary source cleanup or testing. A real run accesses
+credentials/network and writes large external evidence. It requires an
+explicit vedtak, bounded left-closed/right-open UTC interval and fresh
+non-existing output root.
+
+Example of one pair-compatible successor request. Both timeframes retain the
+same parent vedtak/start and advance to the same exclusive end; their parent
+roots and manifest hashes remain timeframe-specific:
 
 ```bash
-.venv/bin/python gx1/scripts/backfill_xauusd_m5_bidask_2020_2025.py \
-  --vedtak XAU_OANDA_BACKFILL_2020_2024_V1 \
-  --granularity M5 \
-  --start 2020-01-01T00:00:00Z \
-  --end 2025-01-01T00:00:00Z \
-  --out /home/andre2/GX1_DATA/events/XAU_OANDA_BACKFILL_2020_2024_V1/XAUUSD_M5.parquet \
-  --checkpoint-dir /home/andre2/GX1_DATA/events/XAU_OANDA_BACKFILL_2020_2024_V1/checkpoints
+scripts/entry_next_edge_control.sh model-native-native-m1-source \
+  --publication-mode successor \
+  --vedtak PARENT_VEDTAK_ID \
+  --end-utc 2026-08-01T00:00:00Z \
+  --parent-root /home/andre2/GX1_DATA/events/PARENT_EVENT_ID/M1 \
+  --expected-parent-manifest-sha256 <m1-parent-lowercase-sha256> \
+  --out-root /home/andre2/GX1_DATA/events/CHILD_EVENT_ID/M1
 
-.venv/bin/python gx1/scripts/backfill_xauusd_m5_from_oanda.py \
-  --vedtak XAU_OANDA_REPAIR_2025_V1 \
-  --repair-mode \
-  --raw-in /home/andre2/GX1_DATA/events/XAU_OANDA_REPAIR_2025_V1/source.parquet \
-  --raw-out /home/andre2/GX1_DATA/events/XAU_OANDA_REPAIR_2025_V1/repaired.parquet \
-  --start-ts 2025-01-01T00:00:00Z \
-  --end-ts 2025-02-01T00:00:00Z
+scripts/entry_next_edge_control.sh model-native-native-m5-source \
+  --publication-mode successor \
+  --vedtak PARENT_VEDTAK_ID \
+  --end-utc 2026-08-01T00:00:00Z \
+  --parent-root /home/andre2/GX1_DATA/events/PARENT_EVENT_ID/M5 \
+  --expected-parent-manifest-sha256 <m5-parent-lowercase-sha256> \
+  --out-root /home/andre2/GX1_DATA/events/CHILD_EVENT_ID/M5
 ```
 
-Before admission, validate the schema in `DATA_OANDA_SCHEMA_SSOT.md`, complete-
-bar semantics, monotonic unique UTC timestamps, expected grid/gaps, overlap
-equality, row count and content hash. A backfill artifact is not automatically
-an accepted Entry dataset.
+The dates, IDs, roots and hashes above are illustrative contract shapes, not
+permission to execute. A bootstrap has a different required argument set; use
+the control surface help rather than deleting successor requirements. Inspect
+running collectors/heavy GX1 processes first.
+
+Policy is code-owned:
+
+- M1 requests use fixed three-day chunks;
+- M5 requests use fixed 15-day chunks;
+- both cap theoretical request slots at 4,320;
+- only literal complete OANDA MBA candles are admitted;
+- exact 14-column Arrow order, UTC grid, positive finite geometry and
+  non-negative integer volume are required;
+- retained normalized response chunks must rederive the published parquets
+  byte-for-byte;
+- successor mode requires exact parent-root/manifest CAS, unchanged
+  timeframe/vedtak/OANDA environment, strict end advancement and byte-exact
+  completed-row overlap;
+- publication is fsynced atomic no-replace.
+
+The retained
+`gx1/scripts/backfill_xauusd_m5_bidask_2020_2025.py` is a historical diagnostic
+writer. It is not the current native-source authority and must not be used to
+repair, merge into or bootstrap canonical production.
+
+A native source artifact does not automatically authorize Entry. The
+native→canonical pair, V4 cache, source cascade, split manifests and all later
+audits must bind its exact manifest and bytes.

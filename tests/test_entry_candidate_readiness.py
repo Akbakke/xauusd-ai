@@ -25,6 +25,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    SCHEMA_VERSION as SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
     require_smoke_bundle_audit_contract,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
@@ -45,6 +46,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
 from gx1.scripts import verify_entry_candidate_readiness_v1 as readiness
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+)
 from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
@@ -174,7 +178,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         return readiness._artifact_binding(path)
 
     report = {
-        "schema_version": "entry_foundation_smoke_bundle_audit_v4",
+        "schema_version": SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
         **foundation_audit_policy_binding(),
         "decision": "PASS",
         "failures": [],
@@ -265,7 +269,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         },
         "splits": passing_smoke_audit_splits(),
         "prediction_evidence": {
-            "schema_version": "entry_candidate_model_direction_prediction_evidence_v3",
+            "schema_version": RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
             "authoritative": True,
             "runtime_head_evidence_authoritative": True,
             "path": str(evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"),

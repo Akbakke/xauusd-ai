@@ -1,8 +1,9 @@
 """Canonical Entry candlestick-pattern features.
 
 The layer encodes single, double and triple candle patterns as continuous
-numeric scores. Outputs are shifted one bar so row t only sees patterns that
-were fully closed before t.
+numeric scores. Row ``t`` describes the bar that closed at ``t + timeframe``;
+the decision-time availability shift is owned by the dataset/live MTF slicer.
+No second feature-layer shift is allowed.
 """
 from __future__ import annotations
 
@@ -11,7 +12,7 @@ import pandas as pd
 
 
 CANDLESTICK_PATTERN_FEATURE_VERSION = (
-    "entry_candlestick_patterns_v1_20260717_closed_bar_numeric_patterns_failclosed"
+    "entry_candlestick_patterns_v2_20260729_single_closed_bar_alignment_failclosed"
 )
 CANDLESTICK_PATTERN_FEATURE_PREFIX = "candle.pattern_"
 CANDLESTICK_PATTERN_SOURCE_FIELDS = ("time", "open", "high", "low", "close")
@@ -69,13 +70,6 @@ def _clip01(arr: np.ndarray) -> np.ndarray:
     return _clip(arr, 0.0, 1.0)
 
 
-def _shift1(arr: np.ndarray) -> np.ndarray:
-    out = np.zeros_like(arr, dtype=np.float32)
-    if arr.size > 1:
-        out[1:] = arr[:-1]
-    return out
-
-
 def _lag(arr: np.ndarray, periods: int) -> np.ndarray:
     out = np.zeros_like(arr, dtype=np.float32)
     if periods <= 0:
@@ -104,7 +98,7 @@ def _rolling_mean(arr: np.ndarray, window: int) -> np.ndarray:
 
 
 def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray, *, lo: float = -25.0, hi: float = 25.0) -> None:
-    clean = _shift1(_clip(np.asarray(arr, dtype=np.float32), lo, hi))
+    clean = _clip(np.asarray(arr, dtype=np.float32), lo, hi)
     if clean.ndim != 1:
         raise RuntimeError(f"candlestick feature {name} is not 1D: {clean.shape}")
     if not np.isfinite(clean).all():

@@ -4,7 +4,18 @@ import json
 import subprocess
 from pathlib import Path
 
-from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
+import numpy as np
+import pandas as pd
+
+from gx1.features.htf_features import (
+    HTF_V4_CACHE_BUILDER_VERSION,
+    HTF_V4_MATRIX_CONTRACT,
+    HTF_V4_CACHE_SCHEMA_VERSION,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_RESAMPLE_RULES,
+    build_multi_tf_v4_liveness_contract,
+)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,
@@ -35,6 +46,9 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     model_native_readiness_contract_metadata,
 )
+from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    SCHEMA_VERSION as SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
     REQUIRED_RAIL_FEATURES,
@@ -52,8 +66,15 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
     training_objective_contract_metadata,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
+)
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
 from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
@@ -79,6 +100,30 @@ def _bindings(paths: dict[str, Path]) -> dict[str, dict]:
     return {key: artifact_binding(path) for key, path in paths.items()}
 
 
+def _multi_tf_v4_liveness_fixture() -> dict[str, object]:
+    frames: dict[str, pd.DataFrame] = {}
+    row = np.arange(1, 5, dtype=np.float32)[:, None]
+    feature_scale = np.arange(
+        1,
+        MULTI_TF_FEATURE_COUNT_V4 + 1,
+        dtype=np.float32,
+    )[None, :]
+    for tf_position, tf_name in enumerate(MULTI_TF_RESAMPLE_RULES):
+        values = np.ascontiguousarray(
+            row * feature_scale + np.float32(tf_position / 10.0),
+            dtype=np.float32,
+        )
+        frame = pd.DataFrame(
+            values,
+            columns=MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+        frame.attrs["feats_np"] = values
+        frame.attrs["causal_warmup_rows"] = 0
+        frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        frames[tf_name] = frame
+    return build_multi_tf_v4_liveness_contract(frames)
+
+
 def _split_manifest(
     path: Path,
     parquet: Path,
@@ -101,7 +146,6 @@ def _split_manifest(
             "extra": {
                 "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                 "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-                "neutral_xgb_bridge": False,
                 "model_native_signal_contract": contract,
                 "signal_bridge": {
                     "fields": contract["fields"],
@@ -145,13 +189,17 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     m5_path.write_bytes(b"xau-m5-fixture")
     artifacts["m5_prebuilt_path"] = m5_path.resolve()
 
-    mtf_cache_dir = (tmp_path / f"MULTI_TF_V2_CACHE_{STAMP}").resolve()
+    mtf_cache_dir = (tmp_path / f"MULTI_TF_V4_CACHE_{STAMP}").resolve()
     mtf_cache_dir.mkdir()
     artifacts["multi_tf_cache_manifest_json"] = _write_json(
         mtf_cache_dir / "manifest.json",
         {
-            "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
+            "schema_version": HTF_V4_CACHE_SCHEMA_VERSION,
+            "builder_version": HTF_V4_CACHE_BUILDER_VERSION,
+            "feature_count": MULTI_TF_FEATURE_COUNT_V4,
+            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V4),
             "m5_prebuilt_source": str(m5_path.resolve()),
+            "full_input_liveness": _multi_tf_v4_liveness_fixture(),
         },
     )
 
@@ -166,6 +214,65 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             m5_prebuilt=m5_path,
             profile=profile,
         )
+
+    lifecycle_dir = (tmp_path / f"exit_lifecycle_{STAMP}").resolve()
+    lifecycle_dir.mkdir()
+    lifecycle_m1 = lifecycle_dir / f"xau_m1_{STAMP}.parquet"
+    lifecycle_m1.write_bytes(b"xau-m1-lifecycle-fixture")
+    lifecycle_authority = {
+        "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+        "pair_manifest_path": str(
+            tmp_path / "pair_generation" / "PAIR_MANIFEST.json"
+        ),
+        "pair_generation_root": str(tmp_path / "pair_generations"),
+        "m1_source_path": str(lifecycle_m1),
+        "m1_source_sha256": artifact_binding(lifecycle_m1)["sha256"],
+    }
+    lifecycle_splits = {
+        split: {
+            "entry_dataset_path": str(artifacts[f"{split}_parquet"]),
+            "entry_dataset_sha256": artifact_binding(
+                artifacts[f"{split}_parquet"]
+            )["sha256"],
+            "lifecycle_parquet": (
+                f"{split}_unified_exit_lifecycle.parquet"
+            ),
+            "lifecycle_parquet_sha256": "1" * 64,
+            "lifecycle_manifest": (
+                f"{split}_unified_exit_lifecycle.manifest.json"
+            ),
+            "lifecycle_manifest_sha256": "2" * 64,
+            "episode_rows": 2,
+            "target_counts": {
+                "HOLD": 1,
+                "EXIT_NOW": 1,
+                "TIED_OMITTED": 0,
+            },
+            "target_stream_sha256": "3" * 64,
+        }
+        for split in ("train", "val", "test")
+    }
+    artifacts["unified_exit_lifecycle_manifest_json"] = _write_json(
+        lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+        {
+            "schema_version": (
+                UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+            ),
+            "decision": "PASS",
+            "entry_run_id": DATASET_RUN_ID,
+            "m1_source_path": str(lifecycle_m1),
+            "m1_source_sha256": artifact_binding(lifecycle_m1)["sha256"],
+            "m1_authority": lifecycle_authority,
+            "m1_authority_sha256": canonical_json_sha256(
+                lifecycle_authority
+            ),
+            "path_state_count": 512,
+            "target_lookahead_m1_steps": 3,
+            "side_order": ["long", "short"],
+            "action_order": ["HOLD", "EXIT_NOW"],
+            "splits": lifecycle_splits,
+        },
+    )
 
     evidence_dir = (tmp_path / f"evidence_{STAMP}").resolve()
     liveness_dir = evidence_dir / "liveness"
@@ -344,8 +451,6 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "provenance": {
                     "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                     "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-                    "neutral_xgb_bridge": False,
-                    "xgb_bridge_source": "",
                     "xau_tape_provenance": tape_provenance,
                     "fields": signal_contract["fields"],
                     "model_native_signal_contract": signal_contract,
@@ -451,7 +556,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_bundle_audit_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_BUNDLE_AUDIT_{STAMP}.json",
             {
-                "schema_version": "entry_foundation_smoke_bundle_audit_v4",
+                "schema_version": SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
                 **foundation_audit_policy_binding(),
                 "decision": "PASS",
                 "failures": [],
@@ -548,7 +653,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "splits": passing_smoke_audit_splits(),
                 "prediction_evidence": {
                     "schema_version": (
-                        "entry_candidate_model_direction_prediction_evidence_v3"
+                        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
                     ),
                     "authoritative": True,
                     "runtime_head_evidence_authoritative": True,
@@ -594,6 +699,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "train_parquet",
         "val_parquet",
         "test_parquet",
+        "unified_exit_lifecycle_manifest_json",
         "m5_prebuilt_path",
         "multi_tf_cache_manifest_json",
         "post_rebuild_readiness_json",
@@ -627,9 +733,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "early_stop_min_delta": 0.0,
         "grad_clip_norm": 1.0,
         "weight_decay": 0.00001,
+        "dropout": 0.05,
         "multi_tf_scale": 0.5,
         "specialist_fusion_scale": 0.25,
-        "multi_tf_seq_len": 96,
+        "cross_family_fusion_scale": 0.25,
+        "multi_tf_num_layers": 2,
+        "specialist_num_layers": 1,
+        "grad_accum_steps": 1,
         "per_tf_seq_len_m5": 16,
         "per_tf_seq_len_m15": 64,
         "per_tf_seq_len_h1": 96,
@@ -691,6 +801,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--train-parquet", str(artifacts["train_parquet"]),
         "--val-parquet", str(artifacts["val_parquet"]),
         "--test-parquet", str(artifacts["test_parquet"]),
+        "--unified-exit-lifecycle-manifest-json",
+        str(artifacts["unified_exit_lifecycle_manifest_json"]),
         "--m5-prebuilt-path", str(artifacts["m5_prebuilt_path"]),
         "--multi-tf-cache-manifest-json", str(artifacts["multi_tf_cache_manifest_json"]),
         "--post-rebuild-readiness-json", str(artifacts["post_rebuild_readiness_json"]),
@@ -712,11 +824,15 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--early-stop-min-delta", "0.0",
         "--grad-clip-norm", "1.0",
         "--weight-decay", "0.00001",
+        "--dropout", "0.05",
         "--multi-tf-scale", "0.5",
         "--specialist-fusion-scale", "0.25",
+        "--cross-family-fusion-scale", "0.25",
         "--subsample-rows", "0",
         "--num-workers", "-1",
-        "--multi-tf-seq-len", "96",
+        "--multi-tf-num-layers", "2",
+        "--specialist-num-layers", "1",
+        "--grad-accum-steps", "1",
         "--per-tf-seq-len-m5", "16",
         "--per-tf-seq-len-m15", "64",
         "--per-tf-seq-len-h1", "96",

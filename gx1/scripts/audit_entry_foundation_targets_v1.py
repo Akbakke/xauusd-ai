@@ -43,10 +43,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
+from gx1.time.session_detector import SESSION_NAME_BY_ID
 
 
-SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-CLASS_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+SESSION_NAMES = SESSION_NAME_BY_ID
+CLASS_NAMES = dict(enumerate(OFFLINE_RL_ACTION_ORDER))
 
 _TARGET_AUDIT_POLICY = foundation_audit_policy_metadata()["target_quality"]
 MAX_MAJORITY_RATE = float(_TARGET_AUDIT_POLICY["max_majority_rate"])

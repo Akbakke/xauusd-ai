@@ -42,6 +42,9 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     require_bundle_commit_manifest,
     write_bundle_commit_manifest,
 )
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
+)
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     resolve_and_validate_prediction_evidence,
     sha256_file,
@@ -52,7 +55,6 @@ SCHEMA_VERSION = "entry_model_native_immutable_calibration_v2"
 DIRECTION_CALIBRATION_VERSION = "entry_model_native_direction_calibration_v1"
 PATH_CALIBRATION_VERSION = "entry_model_native_path_calibration_v1"
 CLASS_COLUMNS = ("p_long", "p_short", "p_flat")
-CLASS_ORDER = ("LONG", "SHORT", "FLAT")
 HELD_OUT_SPLITS = ("val", "calibration")
 BUNDLE_REQUIRED_FILES = (
     "MASTER_TRANSFORMER_LOCK.json",

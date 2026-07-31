@@ -106,6 +106,260 @@ def test_v3_first_25_columns_equal_v2_exactly() -> None:
     assert np.array_equal(np.isfinite(v2), np.isfinite(v3[:, :25]))
 
 
+def test_v4_routes_every_field_to_all_eight_specialists() -> None:
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        MODEL_NATIVE_TRAINING_SPECIALISTS,
+        require_multi_tf_specialist_routing_v4,
+    )
+
+    routing = require_multi_tf_specialist_routing_v4(
+        htf.MULTI_TF_PER_BAR_FEATURES_V4
+    )
+    assert htf.MULTI_TF_FEATURE_COUNT_V4 == 111
+    assert tuple(routing) == MODEL_NATIVE_TRAINING_SPECIALISTS
+    assert {name: len(indices) for name, indices in routing.items()} == {
+        "structure_swing_encoder": 5,
+        "smc_liquidity_encoder": 11,
+        "trend_ema_encoder": 10,
+        "vol_compression_encoder": 2,
+        "momentum_flow_encoder": 4,
+        "session_regime_encoder": 5,
+        "chart_geometry_encoder": 10,
+        "price_action_candle_encoder": 64,
+    }
+    flattened = [index for indices in routing.values() for index in indices]
+    assert sorted(flattened) == list(range(htf.MULTI_TF_FEATURE_COUNT_V4))
+    assert "vwap_session_dist_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert "vwap_session_slope_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert "vwap_local_cycle_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
+
+
+def test_v4_smc_and_geometry_are_causal_and_have_one_warmup_prefix() -> None:
+    bars = _bars(4000, seed=23)
+    original = htf.compute_per_bar_features_v4(bars)
+    matrix = original.to_numpy(dtype=np.float64)
+    warmup = htf.validate_causal_feature_matrix(
+        matrix,
+        expected_width=htf.MULTI_TF_FEATURE_COUNT_V4,
+        context="HTF_V4_TEST",
+    )
+    assert warmup > 0
+    assert np.isfinite(matrix[warmup:]).all()
+
+    cutoff = 2500
+    changed = bars.copy()
+    changed.iloc[cutoff:, changed.columns.get_loc("open")] *= 1.1
+    changed.iloc[cutoff:, changed.columns.get_loc("high")] *= 1.1
+    changed.iloc[cutoff:, changed.columns.get_loc("low")] *= 1.1
+    changed.iloc[cutoff:, changed.columns.get_loc("close")] *= 1.1
+    future_changed = htf.compute_per_bar_features_v4(changed)
+    assert np.array_equal(
+        original.iloc[:cutoff].to_numpy(),
+        future_changed.iloc[:cutoff].to_numpy(),
+        equal_nan=True,
+    )
+
+    # A valid trend can place the latest confirmed low above an older
+    # confirmed high. That remains available structure evidence.
+    trending = htf.compute_per_bar_features_v4(_bars(4000, seed=0))
+    trending_matrix = trending.to_numpy(dtype=np.float64)
+    trending_warmup = htf.validate_causal_feature_matrix(
+        trending_matrix,
+        expected_width=htf.MULTI_TF_FEATURE_COUNT_V4,
+        context="HTF_V4_TRENDING_TEST",
+    )
+    assert np.isfinite(trending_matrix[trending_warmup:]).all()
+
+
+def test_v4_equal_latest_high_low_pivots_use_confirmed_pivot_envelope(
+    monkeypatch,
+) -> None:
+    """Equal latest pivots are valid XAU structure, not an interior data gap."""
+    from gx1.features import smc_v1 as smc
+
+    rows = 12
+    high = np.full(rows, 101.0)
+    low = np.full(rows, 99.0)
+    close = np.full(rows, 100.0)
+    high[1] = 105.0
+    high[3] = 100.0
+    low[2] = 95.0
+    low[4] = 100.0
+    close[3] = 100.0
+    close[4] = 100.0
+    frame = pd.DataFrame(
+        {"high": high, "low": low, "close": close, "atr": np.ones(rows)}
+    )
+
+    def fixed_pivots(_high, _low, _lookback):
+        swing_high = np.zeros(rows, dtype=bool)
+        swing_low = np.zeros(rows, dtype=bool)
+        swing_high[[1, 3]] = True
+        swing_low[[2, 4]] = True
+        return swing_high, swing_low
+
+    monkeypatch.setattr(smc, "_detect_swing_pivots", fixed_pivots)
+    built = smc.compute_smc_mtf_primitives_v1(frame, swing_lookback=1)
+    matrix = built.to_numpy(dtype=np.float64)
+
+    # At row 5 both latest confirmed pivots equal 100. The causal envelope of
+    # the four already-confirmed pivots remains [95,105], so every subsequent
+    # row is finite and carries a mathematically defined 0.5 position.
+    assert np.isfinite(matrix[5:]).all()
+    assert built.loc[5, "mtf_smc_premium_discount"] == 0.5
+    assert built.loc[5, "mtf_smc_range_width_atr"] == 10.0
+
+
+def test_v4_removes_cross_owner_duplicate_smc_geometry_fields() -> None:
+    from gx1.features.smc_v1 import (
+        SMC_MTF_FEATURE_NAMES_V1,
+        SMC_MTF_GEOMETRY_FEATURE_NAMES_V1,
+    )
+
+    assert "mtf_smc_premium_discount" in SMC_MTF_FEATURE_NAMES_V1
+    assert "mtf_smc_range_width_atr" in SMC_MTF_FEATURE_NAMES_V1
+    assert "mtf_geometry_channel_position" not in (
+        SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
+    )
+    assert "mtf_geometry_channel_width_atr" not in (
+        SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
+    )
+    matrix = htf.compute_per_bar_features_v4(_bars(4000, seed=31))
+    assert (
+        matrix["mtf_smc_choch_up"].sum()
+        + matrix["mtf_smc_choch_down"].sum()
+    ) > 0.0
+
+
+def test_resolution_windows_must_form_strict_wall_clock_pyramid() -> None:
+    accepted = htf.require_multi_tf_resolution_pyramid(
+        {"M5": 16, "M15": 16, "H1": 16, "H4": 8, "D1": 8}
+    )
+    spans = list(accepted["coverage_seconds"].values())
+    assert all(left < right for left, right in zip(spans, spans[1:]))
+
+    with np.testing.assert_raises_regex(
+        RuntimeError,
+        "MULTI_TF_RESOLUTION_PYRAMID_COVERAGE_INVALID",
+    ):
+        htf.require_multi_tf_resolution_pyramid(
+            {"M5": 500, "M15": 16, "H1": 16, "H4": 8, "D1": 8}
+        )
+
+
+def test_exact_resolution_pyramid_is_sliceable_across_all_split_boundaries() -> None:
+    features: dict[str, pd.DataFrame] = {}
+    end = pd.Timestamp("2026-01-21T00:00:00Z")
+    for timeframe, rule in htf.MULTI_TF_RESAMPLE_RULES.items():
+        index = pd.date_range(end=end, periods=400, freq=rule)
+        values = np.ones(
+            (len(index), htf.MULTI_TF_FEATURE_COUNT_V4),
+            dtype=np.float32,
+        )
+        frame = pd.DataFrame(
+            values,
+            index=index,
+            columns=htf.MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+        frame.attrs["ts_int64"] = index.asi8.astype(np.int64, copy=True)
+        frame.attrs["feats_np"] = values
+        frame.attrs["causal_warmup_rows"] = 10
+        frame.attrs["htf_feature_contract"] = htf.HTF_V4_MATRIX_CONTRACT
+        features[timeframe] = frame
+
+    split_times = {
+        "train": pd.date_range(
+            "2026-01-20T00:00:00Z", periods=2, freq="5min"
+        ),
+        "val": pd.date_range(
+            "2026-01-20T00:10:00Z", periods=2, freq="5min"
+        ),
+        "test": pd.date_range(
+            "2026-01-20T00:20:00Z", periods=2, freq="5min"
+        ),
+    }
+    lengths = {"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2}
+    proof = htf.require_multi_tf_decision_window_coverage(
+        features,
+        per_tf_seq_lens=lengths,
+        decision_times_by_split=split_times,
+    )
+
+    assert proof["all_split_boundaries_sliceable"] is True
+    assert proof["resolution_pyramid"]["per_tf_seq_lens"] == lengths
+    assert set(proof["per_tf"]) == set(htf.MULTI_TF_RESAMPLE_RULES)
+    assert len(proof["contract_sha256"]) == 64
+
+    features["D1"].attrs["causal_warmup_rows"] = 399
+    with np.testing.assert_raises_regex(
+        RuntimeError,
+        "MULTI_TF_DECISION_COVERAGE_UNAVAILABLE.*D1",
+    ):
+        htf.require_multi_tf_decision_window_coverage(
+            features,
+            per_tf_seq_lens=lengths,
+            decision_times_by_split=split_times,
+        )
+
+
+def test_v4_cache_surface_excludes_every_open_trailing_resample_bucket(
+    monkeypatch,
+) -> None:
+    source = _bars(419, seed=37)
+
+    def finite_contract(frame: pd.DataFrame) -> pd.DataFrame:
+        values = np.ones(
+            (len(frame), htf.MULTI_TF_FEATURE_COUNT_V4),
+            dtype=np.float32,
+        )
+        return pd.DataFrame(
+            values,
+            index=frame.index,
+            columns=htf.MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+
+    monkeypatch.setattr(htf, "compute_per_bar_features_v4", finite_contract)
+    built = htf.build_multi_tf_per_bar_features_v4(source)
+
+    assert source.index[-1] == pd.Timestamp("2021-01-05T10:50:00Z")
+    assert built["M5"].index[-1] == pd.Timestamp("2021-01-05T10:50:00Z")
+    assert built["M15"].index[-1] == pd.Timestamp("2021-01-05T10:30:00Z")
+    assert built["H1"].index[-1] == pd.Timestamp("2021-01-05T09:00:00Z")
+    assert built["H4"].index[-1] == pd.Timestamp("2021-01-05T04:00:00Z")
+    assert built["D1"].index[-1] == pd.Timestamp("2021-01-04T00:00:00Z")
+
+
+def test_v4_closed_geometry_floors_friday_h4_and_d1_to_real_labels() -> None:
+    source_index = pd.date_range(
+        "2026-07-20T00:00:00Z",
+        "2026-07-24T20:55:00Z",
+        freq="5min",
+    )
+
+    expected = htf.build_multi_tf_v4_closed_timestamp_indices(source_index)
+
+    assert expected["M5"][-1] == pd.Timestamp("2026-07-24T20:55:00Z")
+    assert expected["M15"][-1] == pd.Timestamp("2026-07-24T20:45:00Z")
+    assert expected["H1"][-1] == pd.Timestamp("2026-07-24T20:00:00Z")
+    assert expected["H4"][-1] == pd.Timestamp("2026-07-24T16:00:00Z")
+    assert expected["D1"][-1] == pd.Timestamp("2026-07-23T00:00:00Z")
+
+
+def test_v4_closed_geometry_rejects_off_grid_source_timestamp() -> None:
+    source_index = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2026-07-24T20:50:00Z"),
+            pd.Timestamp("2026-07-24T20:55:00.000001Z"),
+        ]
+    )
+
+    with np.testing.assert_raises_regex(
+        RuntimeError,
+        "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID",
+    ):
+        htf.build_multi_tf_v4_closed_timestamp_indices(source_index)
+
+
 def test_dataset_rejects_undeclared_and_split_brain_contracts() -> None:
     """The Dataset reads the cache's declaration; it may not assume one.
 
@@ -145,8 +399,8 @@ def test_bundle_and_normalization_read_the_declared_contract() -> None:
     assert '_mtf_manifest_declared["feature_names"]' in normalization
 
     bundle = (repo / "gx1/models/entry_v10/entry_v10_bundle.py").read_text()
-    assert "ENTRY_BUNDLE_MODEL_NATIVE_MTF_CONTRACT_UNKNOWN" in bundle
-    assert "_bundle_mtf_contracts" in bundle
+    assert "ENTRY_BUNDLE_MODEL_NATIVE_MTF_EIGHT_FAMILY_REQUIRED" in bundle
+    assert "HTF_V4_MATRIX_CONTRACT" in bundle
 
 
 def test_trainer_sweeps_orphaned_memmap_scratch() -> None:
@@ -165,10 +419,10 @@ def test_trainer_sweeps_orphaned_memmap_scratch() -> None:
 
     with tempfile.TemporaryDirectory() as raw_root:
         root = _pathlib.Path(raw_root)
-        dead = root / "v10_seq513_dataset__HOLD_03B_train_999999999_abc"
+        dead = root / "v10_seq513_dataset__DIR_H24B_train_999999999_abc"
         dead.mkdir()
         (dead / "seq.float32.mmap").write_bytes(b"x" * 32)
-        alive = root / f"v10_seq513_dataset__HOLD_03B_train_{_os.getpid()}_xyz"
+        alive = root / f"v10_seq513_dataset__DIR_H24B_train_{_os.getpid()}_xyz"
         alive.mkdir()
         (alive / "seq.float32.mmap").write_bytes(b"x" * 32)
 

@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -16,8 +17,15 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     XAU_INSTRUMENT,
     canonical_xau_source_descriptor_v1,
 )
-from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_RESAMPLE_RULES,
+    build_multi_tf_v4_closed_timestamp_indices,
+)
 from gx1.scripts import audit_seq513_source_cascade_v1 as audit
+from gx1.scripts import backfill_xauusd_m5_from_oanda as canonical_backfill
+from gx1.scripts.prebuild_multi_tf_cache_v2 import publish_multi_tf_v2_cache
 from gx1.scripts.materialize_cv3_modelrange_v1 import SCHEMA_VERSION as MODELRANGE_SCHEMA
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
     CTX_OWNED_SESSION_COLUMNS,
@@ -25,11 +33,17 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
     EXTRA_COLUMNS_FROM_CANONICAL_V2,
 )
 from tests.test_oanda_backfill_vedtak_gate import (
+    _FakeOandaClient,
     materialize_native_xau_test_bundle,
 )
 
 
 RUN_ID = "XAU_SEQ513_SOURCE_AUDIT_PYTEST_V1"
+SOURCE_TIMES = pd.date_range(
+    "2026-01-01T00:00:00Z",
+    "2026-01-03T00:00:00Z",
+    freq="5min",
+)
 
 
 def _sha(path: Path) -> str:
@@ -90,7 +104,7 @@ def _legacy_repaired_tape(tmp_path: Path, root: Path) -> Path:
             "instrument": XAU_INSTRUMENT,
             "entry_run_id": RUN_ID,
             "method": CURRENT_SNAPSHOT_METHOD,
-            "last_complete_m5_utc": "2026-01-01T00:05:00+00:00",
+            "last_complete_m5_utc": SOURCE_TIMES[-1].isoformat(),
             "base_tape_root": str(base_tape.resolve()),
             "base_manifest_path": str((base_tape / "REPAIR_MANIFEST.json").resolve()),
             "base_manifest_sha256": _sha(base_tape / "REPAIR_MANIFEST.json"),
@@ -122,17 +136,45 @@ def _fixture(
 ) -> Path:
     root = tmp_path / "event"
     root.mkdir()
-    if tape_kind == "native":
+    if tape_kind in {"native", "native_v4"}:
         tape = root / "m5_tape_native_v3"
-        materialize_native_xau_test_bundle(
-            tape,
-            timeframe="M5",
-            end_utc="2026-01-01T00:10:00Z",
-        )
+        if tape_kind == "native_v4":
+            parent = tmp_path / "native_m5_parent"
+            materialize_native_xau_test_bundle(
+                parent,
+                timeframe="M5",
+            )
+            parent_descriptor = canonical_xau_source_descriptor_v1(
+                parent,
+                timeframe="M5",
+            )
+            monkeypatch.setattr(
+                canonical_backfill,
+                "_require_clean_repository",
+                lambda _root, *, timeframe: "a" * 40,
+            )
+            canonical_backfill.materialize_native_xau_successor(
+                client=_FakeOandaClient(timeframe="M5"),
+                timeframe="M5",
+                vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+                end_utc=SOURCE_TIMES[-1] + pd.Timedelta(minutes=5),
+                out_root=tape,
+                parent_root=parent,
+                expected_parent_manifest_sha256=parent_descriptor[
+                    "manifest_sha256"
+                ],
+            )
+        else:
+            materialize_native_xau_test_bundle(
+                tape,
+                timeframe="M5",
+                end_utc=SOURCE_TIMES[-1] + pd.Timedelta(minutes=5),
+            )
     else:
         tape = _legacy_repaired_tape(tmp_path, root)
 
-    times = pd.date_range("2026-01-01T00:00:00Z", periods=2, freq="5min")
+    times = SOURCE_TIMES
+    row_count = len(times)
     cv2 = root / "canonical_features_v2.parquet"
     pd.DataFrame({"time": times}).to_parquet(cv2, index=False)
     _write_json(
@@ -140,7 +182,7 @@ def _fixture(
         {
             "out_path_v1": str(cv2.resolve()),
             "m5_tape_root_v1": str(tape.resolve()),
-            "m5_bars_loaded_v1": 2,
+            "m5_bars_loaded_v1": row_count,
             "total_columns_v1": 3,
             "htf_alignment_contract_v1": {"no_lookahead": True},
         },
@@ -155,7 +197,7 @@ def _fixture(
             "parquet_sha256": _sha(cv3),
             "source_v2_parquet": str(cv2.resolve()),
             "source_v2_parquet_sha256": _sha(cv2),
-            "rows": 2,
+            "rows": row_count,
             "cols_total": 3,
             "source_v2_no_lookahead": True,
         },
@@ -175,7 +217,7 @@ def _fixture(
             },
             "output": str(modelrange.resolve()),
             "output_sha256": _sha(modelrange),
-            "rows": 2,
+            "rows": row_count,
             "columns": 3,
             "time_max_utc": times[-1].isoformat(),
             "extra_columns_from_canonical_v2": list(
@@ -189,28 +231,49 @@ def _fixture(
             ),
         },
     )
-    mtf_root = root / "MULTI_TF_V2_CACHE"
-    mtf_root.mkdir()
-    tfs = {}
-    for tf in audit.EXPECTED_TFS:
-        feats = mtf_root / f"{tf}_feats.npy"
-        timestamps = mtf_root / f"{tf}_ts.npy"
-        feats.write_bytes(f"{tf}-features".encode())
-        timestamps.write_bytes(f"{tf}-timestamps".encode())
-        tfs[tf] = {"feats_npy": feats.name, "ts_npy": timestamps.name}
-    _write_json(
-        mtf_root / "manifest.json",
-        {
-            "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
-            "m5_prebuilt_source": str(cv3.resolve()),
-            "m5_prebuilt_source_sha256": _sha(cv3),
-            "tfs": tfs,
-        },
+    mtf_root = root / "MULTI_TF_V4_CACHE"
+    mtf_frames: dict[str, pd.DataFrame] = {}
+    expected_indices = build_multi_tf_v4_closed_timestamp_indices(
+        pd.DatetimeIndex(times)
+    )
+    for tf_offset, tf in enumerate(MULTI_TF_RESAMPLE_RULES):
+        timestamps = expected_indices[tf]
+        row = np.arange(1, len(timestamps) + 1, dtype=np.float32)[:, None]
+        column = np.arange(
+            1,
+            len(MULTI_TF_PER_BAR_FEATURES_V4) + 1,
+            dtype=np.float32,
+        )[None, :]
+        values = np.ascontiguousarray(
+            row * column + np.float32(tf_offset / 10.0)
+        )
+        timestamps_int64 = timestamps.as_unit("ns").asi8
+        frame = pd.DataFrame(
+            values,
+            index=timestamps,
+            columns=MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+        frame.attrs["feats_np"] = values
+        frame.attrs["ts_int64"] = timestamps_int64
+        frame.attrs["causal_warmup_rows"] = 0
+        frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        mtf_frames[tf] = frame
+    publish_multi_tf_v2_cache(
+        out_dir=mtf_root,
+        m5_prebuilt=cv3.resolve(),
+        expected_source_sha256=_sha(cv3),
+        features=mtf_frames,
+        contract="v4",
     )
     full = root / "FULL_PLUS_CTX_v3src.parquet"
-    pd.DataFrame({"time": times, "one": [1.0, 2.0], "two": [3.0, 4.0]}).to_parquet(
-        full, index=False
-    )
+    numeric_row = np.arange(1, row_count + 1, dtype=np.float64)
+    pd.DataFrame(
+        {
+            "time": times,
+            "one": numeric_row,
+            "two": numeric_row**2 + 3.0,
+        }
+    ).to_parquet(full, index=False)
     _write_json(
         root / "FULL_PLUS_CTX_v3src.manifest.json",
         {
@@ -230,7 +293,7 @@ def _fixture(
             "prebuilt_path": str(modelrange.resolve()),
             "output_path": str(full.resolve()),
             "tape_root": str(tape.resolve()),
-            "n_rows": 2,
+            "n_rows": row_count,
             "raw_m5_paths": raw_paths,
         },
     )
@@ -252,7 +315,7 @@ def _args(root: Path) -> argparse.Namespace:
         out=root / "SOURCE_CASCADE_PROOF.json",
         required_history_start="2026-01-01T00:00:00Z",
         expected_full_time_min="2026-01-01T00:00:00Z",
-        expected_full_time_max="2026-01-01T00:05:00Z",
+        expected_full_time_max=SOURCE_TIMES[-1].isoformat(),
     )
 
 
@@ -269,6 +332,18 @@ def test_source_cascade_audit_binds_every_stage_and_emits_pass(
     assert report["contracts"]["required_history_start_covered"] is True
     assert report["contracts"]["full_numeric_feature_liveness"]["decision"] == "PASS"
     assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
+    binding = audit.validate_seq513_source_cascade_proof(
+        root / "SOURCE_CASCADE_PROOF.json",
+        expected_run_id=RUN_ID,
+        expected_source_parquet=root / "FULL_PLUS_CTX_v3src.parquet",
+        expected_canonical_v2_parquet=root / "canonical_features_v2.parquet",
+        expected_mtf_cache_dir=root / "MULTI_TF_V4_CACHE",
+        expected_history_start_utc="2026-01-01T00:00:00Z",
+        expected_time_max_utc=SOURCE_TIMES[-1].isoformat(),
+    )
+    assert binding["multi_tf_cache_identity_sha256"] == report["artifacts"][
+        "multi_tf_cache_identity_sha256"
+    ]
     tape_manifest = root / "m5_tape_repaired_dec2024" / "REPAIR_MANIFEST.json"
     assert report["artifacts"]["tape_manifest_sha256"] == _sha(tape_manifest)
 
@@ -289,6 +364,21 @@ def test_source_cascade_audit_accepts_native_v3_tape_and_emits_pass(
     tape_manifest = root / "m5_tape_native_v3" / "MANIFEST.json"
     assert report["artifacts"]["tape_manifest_sha256"] == _sha(tape_manifest)
     assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
+
+
+def test_source_cascade_audit_accepts_native_v4_successor_tape(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _fixture(tmp_path, monkeypatch, tape_kind="native_v4")
+
+    report = audit.run(_args(root))
+
+    assert report["decision"] == "PASS"
+    assert (
+        report["contracts"]["xau_tape_provenance"]["schema_version"]
+        == "xau_canonical_native_source_v4"
+    )
 
 
 def test_source_cascade_audit_rejects_full_surface_after_required_history(

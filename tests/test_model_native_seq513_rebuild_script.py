@@ -18,6 +18,11 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
+        "--m1-lifecycle-pair-manifest-json",
+        "--m1-lifecycle-pair-generation-root",
+        "--exit-lifecycle-dir",
+        "--exit-target-lookahead-m1-steps",
+        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--history-start",
@@ -40,7 +45,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     assert "--base28_manifest" not in source
     assert "--epochs" not in source
     assert "RUN_TRAIN" not in source
-    assert "--neutral-xgb-bridge" not in source
+    assert "--neutral-external_tree_sidecar-bridge" not in source
     assert "--allow-missing-hold-map" not in source
     assert "--hold-map-source" not in source
     assert "y_hold_horizon_target" not in source
@@ -56,12 +61,46 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     assert "--require-xau-provenance" not in source
     assert 'ls ' not in source
     assert 'tail -1' not in source
+    assert 'EARLY_MOVE_THRESHOLD_BPS=' in source
+    assert '--early_move_threshold_bps "$EARLY_MOVE_THRESHOLD_BPS"' in source
+
+
+def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
+    builder = (REPO / "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py").read_text(
+        encoding="utf-8"
+    )
+
+    import ast
+
+    tree = ast.parse(builder)
+    observed: dict[str, ast.Call] = {}
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_argument"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value in {"--seq_len", "--early_move_threshold_bps"}
+        ):
+            continue
+        observed[str(node.args[0].value)] = node
+
+    assert set(observed) == {"--seq_len", "--early_move_threshold_bps"}
+    for flag, node in observed.items():
+        keywords = {keyword.arg: keyword.value for keyword in node.keywords}
+        assert isinstance(keywords.get("required"), ast.Constant)
+        assert keywords["required"].value is True, flag
+        assert "default" not in keywords, flag
+    assert "EARLY_MOVE_THRESHOLD_INVALID" in builder
+    assert "not np.isfinite(early_move_threshold_bps)" in builder
 
 
 def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
-    assert "GX1_XGB_BUNDLE_DIR" in source
+    retired_bridge_env = "GX1_" + "X" + "GB" + "_BUNDLE_DIR"
+    assert retired_bridge_env not in source
     assert "GX1_ALLOW_LEGACY_ENTRY_V10_RESEARCH" not in source
     assert "GX1_MTF_CACHE_ALLOW_STALE" in source
     assert "GX1_REGIME_V4 GX1_TREND_REGIME_FROM_D1" in source

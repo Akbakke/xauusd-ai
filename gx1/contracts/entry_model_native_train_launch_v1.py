@@ -64,9 +64,23 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+)
+from gx1.features.htf_features import (
+    HTF_V4_CACHE_BUILDER_VERSION,
+    HTF_V4_CACHE_SCHEMA_VERSION,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_TIMEFRAMES_LOWER,
+    require_multi_tf_v4_liveness_contract,
+)
 from gx1.features.entry_chart_geometry_v1 import (
     CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
 
 
@@ -74,6 +88,9 @@ SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v3"
 RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v2"
 PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+MODEL_RELATIVE_PATH = (
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
+)
 CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
 CONTROL_SURFACE_RELATIVE_PATH = "scripts/entry_next_edge_control.sh"
 LAUNCH_CONTRACT_RELATIVE_PATH = (
@@ -88,17 +105,16 @@ RECIPE_PRODUCER_RELATIVE_PATH = (
 AUX_TARGET_CONTRACT_RELATIVE_PATH = (
     "gx1/contracts/entry_model_native_aux_targets_v3.py"
 )
-
-REQUIRED_SPECIALISTS = (
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
-    "chart_geometry_encoder",
-    "price_action_candle_encoder",
+HTF_FEATURES_RELATIVE_PATH = "gx1/features/htf_features.py"
+SMC_FEATURES_RELATIVE_PATH = "gx1/features/smc_v1.py"
+MTF_SPECIALIST_ROUTING_RELATIVE_PATH = (
+    "gx1/features/entry_specialist_feature_groups_v1.py"
 )
+UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/unified_exit_lifecycle_v1.py"
+)
+
+REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 REQUIRED_RAIL_FEATURES = tuple(
     name
     for name in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
@@ -126,6 +142,7 @@ _COMMON_BINDING_KEYS = (
     "train_parquet",
     "val_parquet",
     "test_parquet",
+    "unified_exit_lifecycle_manifest_json",
     "m5_prebuilt_path",
     "multi_tf_cache_manifest_json",
     "post_rebuild_readiness_json",
@@ -160,12 +177,15 @@ TRAINER_ARTIFACT_HASH_ENV = {
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
+    "unified_exit_lifecycle_manifest_json": (
+        "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
+    ),
 }
 TRAINER_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 # The post-V7 audit made the verified five-timeframe V2 disk cache mandatory
 # for admitted training. The trainer receives the exact cache directory only
 # through this recipe-validated environment row; ambient values are rejected.
-TRAINER_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V2_CACHE_DIR"
+TRAINER_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V4_CACHE_DIR"
 
 
 class LaunchContractError(RuntimeError):
@@ -203,6 +223,81 @@ def artifact_binding(path: Path, *, content_sha256: str | None = None) -> dict[s
         "device": int(stat_result.st_dev),
         "inode": int(stat_result.st_ino),
     }
+
+
+def _validate_unified_exit_lifecycle_root(
+    payload: Mapping[str, Any],
+    *,
+    artifacts: Mapping[str, Path],
+    dataset_run_id: str,
+) -> None:
+    _require(
+        payload.get("schema_version")
+        == UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+        "unified Exit lifecycle schema mismatch",
+    )
+    _require(
+        payload.get("decision") == "PASS",
+        "unified Exit lifecycle is not PASS",
+    )
+    _require(
+        payload.get("entry_run_id") == dataset_run_id,
+        "unified Exit lifecycle dataset run ID mismatch",
+    )
+    _require(
+        payload.get("side_order") == ["long", "short"]
+        and payload.get("action_order") == ["HOLD", "EXIT_NOW"],
+        "unified Exit lifecycle class layout mismatch",
+    )
+    _require(
+        payload.get("path_state_count") == 512
+        and isinstance(payload.get("target_lookahead_m1_steps"), int)
+        and not isinstance(payload.get("target_lookahead_m1_steps"), bool)
+        and int(payload["target_lookahead_m1_steps"]) > 0,
+        "unified Exit lifecycle path/target horizon invalid",
+    )
+    authority = payload.get("m1_authority")
+    _require(
+        isinstance(authority, Mapping)
+        and authority.get("schema_version")
+        == UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION
+        and payload.get("m1_authority_sha256")
+        == canonical_json_sha256(authority),
+        "unified Exit lifecycle M1 authority evidence invalid",
+    )
+    _require(
+        payload.get("m1_source_path") == authority.get("m1_source_path")
+        and payload.get("m1_source_sha256")
+        == authority.get("m1_source_sha256")
+        and isinstance(authority.get("pair_manifest_path"), str)
+        and isinstance(authority.get("pair_generation_root"), str),
+        "unified Exit lifecycle M1 authority binding mismatch",
+    )
+    splits = payload.get("splits")
+    _require(
+        isinstance(splits, Mapping)
+        and set(splits) == {"train", "val", "test"},
+        "unified Exit lifecycle split set is not exact",
+    )
+    for split in ("train", "val", "test"):
+        binding = splits[split]
+        _require(
+            isinstance(binding, Mapping),
+            f"unified Exit lifecycle {split} binding missing",
+        )
+        parquet = artifacts[f"{split}_parquet"]
+        _require(
+            binding.get("entry_dataset_path") == str(parquet)
+            and binding.get("entry_dataset_sha256")
+            == artifact_binding(parquet)["sha256"],
+            f"unified Exit lifecycle {split} Entry binding mismatch",
+        )
+        _require(
+            isinstance(binding.get("target_counts"), Mapping)
+            and int(binding["target_counts"].get("HOLD", 0)) > 0
+            and int(binding["target_counts"].get("EXIT_NOW", 0)) > 0,
+            f"unified Exit lifecycle {split} target class is dead",
+        )
 
 
 def recipe_env_sha256(env_map: Mapping[str, str]) -> str:
@@ -294,10 +389,23 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         ).resolve(strict=True),
         "control_surface": (repo / CONTROL_SURFACE_RELATIVE_PATH).resolve(strict=True),
         "launch_contract": (repo / LAUNCH_CONTRACT_RELATIVE_PATH).resolve(strict=True),
+        "model": (repo / MODEL_RELATIVE_PATH).resolve(strict=True),
+        "mtf_feature_builder": (
+            repo / HTF_FEATURES_RELATIVE_PATH
+        ).resolve(strict=True),
+        "mtf_smc_geometry": (
+            repo / SMC_FEATURES_RELATIVE_PATH
+        ).resolve(strict=True),
+        "mtf_specialist_routing": (
+            repo / MTF_SPECIALIST_ROUTING_RELATIVE_PATH
+        ).resolve(strict=True),
         "recipe_contract": (repo / RECIPE_CONTRACT_RELATIVE_PATH).resolve(strict=True),
         "recipe_producer": (repo / RECIPE_PRODUCER_RELATIVE_PATH).resolve(strict=True),
         "wrapper": wrapper_path,
         "trainer": (repo / TRAINER_RELATIVE_PATH).resolve(strict=True),
+        "unified_exit_lifecycle_contract": (
+            repo / UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
         "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
     }
 
@@ -369,7 +477,6 @@ def _validate_split_manifest(
     _require(isinstance(extra, dict), f"split manifest extra contract missing: {path}")
     _require(extra.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, f"split manifest contract_mode mismatch: {path}")
     _require(extra.get("direction_logit_mode") == MODEL_NATIVE_DIRECTION_LOGIT_MODE, f"split manifest direction mode mismatch: {path}")
-    _require(extra.get("neutral_xgb_bridge") is False, f"split manifest declares a bridge: {path}")
     signal_contract = extra.get("model_native_signal_contract")
     _require(isinstance(signal_contract, dict), f"split manifest model-native signal contract missing: {path}")
     try:
@@ -699,8 +806,6 @@ def _validate_pretrain_audit(
             and provenance.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE
             and provenance.get("direction_logit_mode")
             == MODEL_NATIVE_DIRECTION_LOGIT_MODE
-            and provenance.get("neutral_xgb_bridge") is False
-            and provenance.get("xgb_bridge_source") == ""
             and provenance.get("xau_tape_provenance")
             == tape_provenance[split],
             f"pretrain audit {split} provenance mismatch",
@@ -729,7 +834,7 @@ def _validate_multi_tf_cache_manifest(
     path: Path,
     payload: Mapping[str, Any],
 ) -> Path:
-    """Validate the bound V2 multi-TF cache manifest and return its cache dir.
+    """Validate the bound V4 multi-TF cache manifest and return its cache dir.
 
     The trainer deep-verifies every cache byte (source M5 identity, the ten
     component arrays, sizes, hashes and the 11-file inventory); this boundary
@@ -742,15 +847,30 @@ def _validate_multi_tf_cache_manifest(
         f"multi_tf_cache_manifest_json must be the cache manifest.json: {path}",
     )
     _require(
-        payload.get("builder_version") == HTF_V2_CACHE_BUILDER_VERSION,
+        payload.get("builder_version") == HTF_V4_CACHE_BUILDER_VERSION,
         "multi-TF cache manifest builder_version mismatch: "
         f"observed={payload.get('builder_version')!r} "
-        f"expected={HTF_V2_CACHE_BUILDER_VERSION!r}",
+        f"expected={HTF_V4_CACHE_BUILDER_VERSION!r}",
+    )
+    _require(
+        payload.get("schema_version") == HTF_V4_CACHE_SCHEMA_VERSION
+        and payload.get("feature_count") == MULTI_TF_FEATURE_COUNT_V4
+        and payload.get("feature_names") == list(MULTI_TF_PER_BAR_FEATURES_V4),
+        "multi-TF cache manifest must declare the exact V4 eight-family "
+        "feature contract",
     )
     _require(
         bool(str(payload.get("m5_prebuilt_source") or "").strip()),
         "multi-TF cache manifest missing m5_prebuilt_source",
     )
+    try:
+        require_multi_tf_v4_liveness_contract(
+            payload.get("full_input_liveness")
+        )
+    except Exception as exc:
+        raise LaunchContractError(
+            f"multi-TF cache full-input liveness contract invalid: {exc}"
+        ) from exc
     cache_dir = path.parent
     _require(
         cache_dir.is_absolute() and cache_dir.is_dir() and not cache_dir.is_symlink(),
@@ -958,7 +1078,9 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         # Bound as lineage: a bundle must record how far back each timeframe
         # looked, or train==serve cannot be proved for the multi-TF stack.
         "num_workers": int(args.num_workers),
-        "multi_tf_seq_len": int(args.multi_tf_seq_len),
+        "multi_tf_num_layers": int(args.multi_tf_num_layers),
+        "specialist_num_layers": int(args.specialist_num_layers),
+        "grad_accum_steps": int(args.grad_accum_steps),
         "per_tf_seq_len_m5": int(args.per_tf_seq_len_m5),
         "per_tf_seq_len_m15": int(args.per_tf_seq_len_m15),
         "per_tf_seq_len_h1": int(args.per_tf_seq_len_h1),
@@ -973,25 +1095,53 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         integer_values["num_workers"] >= -1,
         "num_workers must be >= -1 (-1 selects from CPU count)",
     )
-    _require(integer_values["multi_tf_seq_len"] > 0, "multi_tf_seq_len must be > 0")
-    for _tf in ("m5", "m15", "h1", "h4", "d1"):
+    _require(
+        integer_values["multi_tf_num_layers"] > 0,
+        "multi_tf_num_layers must be > 0",
+    )
+    _require(
+        integer_values["specialist_num_layers"] > 0,
+        "specialist_num_layers must be > 0",
+    )
+    _require(
+        integer_values["grad_accum_steps"] > 0,
+        "grad_accum_steps must be > 0",
+    )
+    for _tf in MULTI_TF_TIMEFRAMES_LOWER:
         _require(
-            integer_values[f"per_tf_seq_len_{_tf}"] >= 0,
-            f"per_tf_seq_len_{_tf} must be >= 0 (0 means use multi_tf_seq_len)",
+            integer_values[f"per_tf_seq_len_{_tf}"] > 0,
+            f"per_tf_seq_len_{_tf} must be > 0; fallback is forbidden",
         )
+    from gx1.features.htf_features import require_multi_tf_resolution_pyramid
+
+    try:
+        require_multi_tf_resolution_pyramid(
+            {
+                tf.upper(): integer_values[f"per_tf_seq_len_{tf}"]
+                for tf in MULTI_TF_TIMEFRAMES_LOWER
+            }
+        )
+    except RuntimeError as exc:
+        raise LaunchContractError(
+            f"per-timeframe windows do not form a causal resolution pyramid: {exc}"
+        ) from exc
 
     float_values = {
         "learning_rate": float(args.learning_rate),
         "early_stop_min_delta": float(args.early_stop_min_delta),
         "grad_clip_norm": float(args.grad_clip_norm),
         "weight_decay": float(args.weight_decay),
+        "dropout": float(args.dropout),
         "multi_tf_scale": float(args.multi_tf_scale),
         "specialist_fusion_scale": float(args.specialist_fusion_scale),
+        "cross_family_fusion_scale": float(args.cross_family_fusion_scale),
     }
     for key, value in float_values.items():
         _require(math.isfinite(value), f"{key} must be finite")
-        if key == "early_stop_min_delta":
+        if key in {"early_stop_min_delta", "weight_decay"}:
             _require(value >= 0.0, f"{key} must be >= 0")
+        elif key == "dropout":
+            _require(0.0 <= value < 1.0, "dropout must be in [0,1)")
         else:
             _require(value > 0.0, f"{key} must be > 0")
 
@@ -1038,6 +1188,11 @@ def build_recipe_audit_payload(
     dataset_run_id = _dataset_run_id_from_launch_evidence(
         post_rebuild=payloads["post_rebuild_readiness_json"],
         payloads=payloads,
+    )
+    _validate_unified_exit_lifecycle_root(
+        payloads["unified_exit_lifecycle_manifest_json"],
+        artifacts=artifacts,
+        dataset_run_id=dataset_run_id,
     )
     expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
         payloads
@@ -1260,13 +1415,17 @@ def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParse
     parser.add_argument("--early-stop-min-delta", required=True)
     parser.add_argument("--grad-clip-norm", required=True)
     parser.add_argument("--weight-decay", required=True)
+    parser.add_argument("--dropout", required=True)
     parser.add_argument("--multi-tf-scale", required=True)
     parser.add_argument("--specialist-fusion-scale", required=True)
+    parser.add_argument("--cross-family-fusion-scale", required=True)
     parser.add_argument("--subsample-rows", required=True)
     # Per-timeframe lookback is decision-affecting and therefore a required
     # explicit input at every layer, never a wrapper default (rule 14).
     parser.add_argument("--num-workers", required=True)
-    parser.add_argument("--multi-tf-seq-len", required=True)
+    parser.add_argument("--multi-tf-num-layers", required=True)
+    parser.add_argument("--specialist-num-layers", required=True)
+    parser.add_argument("--grad-accum-steps", required=True)
     parser.add_argument("--per-tf-seq-len-m5", required=True)
     parser.add_argument("--per-tf-seq-len-m15", required=True)
     parser.add_argument("--per-tf-seq-len-h1", required=True)

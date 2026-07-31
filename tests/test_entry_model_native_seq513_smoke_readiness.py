@@ -50,6 +50,14 @@ def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
     assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == trainability_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
     assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == manifest_gate.DIRECTION_BALANCE_ENV_TEMPLATE
     assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == trainability_gate.DIRECTION_BALANCE_ENV_TEMPLATE
+    assert (
+        readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
+        == manifest_gate.DIRECTION_CONTEXT_SLICE_CONTRACT
+    )
+    assert (
+        readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
+        == trainability_gate.DIRECTION_CONTEXT_SLICE_CONTRACT
+    )
 
 
 def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) -> argparse.Namespace:
@@ -70,11 +78,11 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     for split in ("train", "val", "test"):
         parquet_path = (
             smart_smoke_dataset_dir
-            / f"v10_smart_seq513_model_native_smoke__HOLD_03B_{split}.parquet"
+            / f"v10_smart_seq513_model_native_smoke__DIR_H24B_{split}.parquet"
         )
         manifest_path = (
             smart_smoke_dataset_dir
-            / f"v10_smart_seq513_model_native_smoke__HOLD_03B_{split}.manifest.json"
+            / f"v10_smart_seq513_model_native_smoke__DIR_H24B_{split}.manifest.json"
         )
         parquet_path.write_bytes(f"{split}-parquet".encode("utf-8"))
         manifest_path.write_text(f'{{"split":"{split}"}}\n', encoding="utf-8")

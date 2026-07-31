@@ -25,8 +25,6 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     sha256_file,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
-    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-    DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
     direction_pocket_wilson_upper_95,
 )
 
@@ -52,6 +50,8 @@ MODEL_NATIVE_ADAPTATION_DRIFT_MAX_OBSERVATION_WINDOW_SECONDS = 30 * 86_400
 MODEL_NATIVE_ADAPTATION_DRIFT_MAX_OBSERVATION_LAG_SECONDS = 21_600
 MODEL_NATIVE_ADAPTATION_DRIFT_MAX_EVENT_AGE_SECONDS = 86_400
 MODEL_NATIVE_ADAPTATION_DRIFT_PNL_Z = 1.959963984540054
+MODEL_NATIVE_ADAPTATION_DRIFT_MAX_REALIZED_LOSS_RATE = 0.10
+MODEL_NATIVE_ADAPTATION_DRIFT_MAX_REALIZED_LOSS_WILSON_UPPER_95 = 0.15
 
 MODEL_NATIVE_ADAPTATION_DRIFT_COLUMNS = frozenset(
     {
@@ -446,8 +446,9 @@ def adaptation_side_metrics(
         np.std(values, ddof=1) / math.sqrt(rows)
     )
     passed = (
-        rate <= DIRECTION_POCKET_MAX_BAD_SIDE_RATE
-        and wilson <= DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+        rate <= MODEL_NATIVE_ADAPTATION_DRIFT_MAX_REALIZED_LOSS_RATE
+        and wilson
+        <= MODEL_NATIVE_ADAPTATION_DRIFT_MAX_REALIZED_LOSS_WILSON_UPPER_95
         and lower > 0.0
     )
     return {
@@ -511,8 +512,10 @@ def _context_metrics(
                 )
                 passed = (
                     obs_rows >= MODEL_NATIVE_ADAPTATION_DRIFT_MIN_OBSERVATION_CONTEXT_ROWS
-                    and rate <= DIRECTION_POCKET_MAX_BAD_SIDE_RATE
-                    and wilson <= DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+                    and rate
+                    <= MODEL_NATIVE_ADAPTATION_DRIFT_MAX_REALIZED_LOSS_RATE
+                    and wilson
+                    <= MODEL_NATIVE_ADAPTATION_DRIFT_MAX_REALIZED_LOSS_WILSON_UPPER_95
                     and lower > 0.0
                 )
                 row = {

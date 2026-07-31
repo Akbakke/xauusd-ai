@@ -1,16 +1,18 @@
-"""Immutable joint Entry-sizing plus active-Exit replay admission evidence.
+"""Immutable joint Entry-sizing plus same-candidate Exit replay evidence.
 
 This contract does not simulate or select direction.  It admits only a full
 candidate TEST row set whose non-FLAT rows were stepped through the exact
-registry-selected Exit chain and whose learned sizing metrics are independently
-recomputed from the resulting executable bid/ask exits.  Missing rows, horizon
-caps, failed Exit traces, mutable registry selection, or a passive sizing head
-fail closed.
+candidate bundle's unified Exit head and whose learned sizing metrics are
+independently recomputed from the resulting executable bid/ask exits. Missing
+rows, horizon caps, failed Exit traces, candidate-byte drift, or a passive
+sizing head fail closed.
 """
 
 from __future__ import annotations
 
+import ast
 import hashlib
+import importlib.util
 import io
 import json
 import os
@@ -37,19 +39,22 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v7"
+    "entry_model_native_joint_exit_sizing_proof_v9"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_active_exit_chain_to_exit_now_v7"
+    "full_candidate_test_exact_unified_model_exit_head_to_exit_now_v9"
 )
-CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_SCHEMA_VERSION = (
-    "canonical_active_exit_full_test_replay_producer_v1"
+CANONICAL_UNIFIED_REPLAY_PRODUCER_SCHEMA_VERSION = (
+    "canonical_unified_candidate_full_test_replay_producer_v3"
 )
-CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_CONTRACT = (
-    "v12_pipeline_make_exit_decision_full_test_owned_rows_v1"
+CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT = (
+    "same_candidate_bundle_unified_exit_full_test_owned_rows_v3"
+)
+UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION = (
+    "gx1_unified_candidate_bundle_authority_v1"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE = (
     "canonical_oos_reference"
@@ -61,21 +66,18 @@ MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE = 32
 # across overlapping trades. Until an exact shared-portfolio producer exists,
 # only one simultaneous exposure is provable.
 MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES = 1
-MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES = (
-    "xgb",
-    "v3_exit",
-    "exit_iql",
-)
-_ACTIVE_EXIT_REGISTRY_PROJECTION_KEYS = frozenset(
+_CANDIDATE_BUNDLE_AUTHORITY_KEYS = frozenset(
     {
-        "path",
         "schema_version",
-        "project",
-        "active_exit_entries",
-        "projection_sha256",
+        "bundle_dir",
+        "bundle_commit_manifest_path",
+        "bundle_commit_manifest_sha256",
+        "bundle_commit_sha256",
+        "bundle_commit_manifest",
+        "evaluation_bundle",
     }
 )
-_CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS = frozenset(
+_CANONICAL_UNIFIED_REPLAY_PRODUCER_KEYS = frozenset(
     {
         "schema_version",
         "producer_contract",
@@ -88,8 +90,7 @@ _CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS = frozenset(
         "prediction_report_artifact",
         "prediction_provenance",
         "canonical_oos_rows",
-        "active_exit_registry_projection",
-        "active_exit_artifact_manifests",
+        "candidate_bundle_authority",
         "replay_rows",
         "exit_trace_rows",
         "producer_source_files",
@@ -101,7 +102,7 @@ _CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS = frozenset(
         "last_utc",
     }
 )
-_CANONICAL_ACTIVE_EXIT_REPLAY_ADDITIONAL_SOURCE_FILES = frozenset(
+_CANONICAL_UNIFIED_REPLAY_ADDITIONAL_SOURCE_FILES = frozenset(
     {
         "gx1/contracts/entry_model_native_input_normalization_v1.py",
         "gx1/contracts/entry_model_native_learned_component_movement_v1.py",
@@ -113,7 +114,6 @@ _CANONICAL_ACTIVE_EXIT_REPLAY_ADDITIONAL_SOURCE_FILES = frozenset(
         "gx1/contracts/entry_model_native_training_objective_v1.py",
         "gx1/contracts/xau_tape_provenance_v1.py",
         "gx1/execution/oanda_client.py",
-        "gx1/execution/v12_exit_iql_live.py",
         "gx1/execution/v12_model_native_state_live.py",
         "gx1/execution/v12_pipeline.py",
         "gx1/execution/v12_smart_entry_live.py",
@@ -121,11 +121,11 @@ _CANONICAL_ACTIVE_EXIT_REPLAY_ADDITIONAL_SOURCE_FILES = frozenset(
         "gx1/features/tf_agreement_score.py",
         "gx1/models/entry_v10/entry_v10_bundle.py",
         "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
-        "gx1/runtime/exit_decider_v12_adapter.py",
-        "gx1/runtime/exit_iql_v2_adapter.py",
         "gx1/scripts/__init__.py",
+        "gx1/scripts/audit_seq513_source_cascade_v1.py",
         "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py",
         "gx1/scripts/finalize_entry_model_native_sizing_v1.py",
+        "gx1/scripts/materialize_cv3_modelrange_v1.py",
         "gx1/scripts/materialize_entry_model_native_seq513_signal_manifest_v1.py",
         "gx1/utils/env_loader.py",
         "gx1/utils/granularity.py",
@@ -145,135 +145,113 @@ def _canonical_sha256(value: Any) -> str:
     ).hexdigest()
 
 
-def active_exit_registry_projection(
+def candidate_bundle_authority(
     *,
-    registry_path: Path,
-    registry: Mapping[str, Any],
+    bundle_dir: Path,
+    evaluation_bundle: Mapping[str, Any],
     context: str,
 ) -> dict[str, Any]:
-    """Bind only Exit-owned registry authority, never unrelated Entry rows."""
+    """Bind the exact pre-activation bundle used by both Entry and Exit."""
 
-    path = Path(registry_path).expanduser()
-    if not path.is_absolute() or path.is_symlink():
-        _fail(context, "artifact registry path must be absolute and non-symlinked")
+    from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+        MANIFEST_NAME,
+        require_bundle_commit_manifest,
+    )
+
+    raw_dir = Path(bundle_dir).expanduser()
     if (
-        registry.get("schema_version") != "gx1_artifact_selection_v2"
-        or registry.get("project") != "XAUUSD"
-        or not isinstance(registry.get("active"), Mapping)
+        not raw_dir.is_absolute()
+        or raw_dir.is_symlink()
+        or not raw_dir.is_dir()
     ):
-        _fail(context, "artifact registry is not the XAUUSD active authority")
-    active = registry["active"]
-    entries = {
-        role: active.get(role)
-        for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
+        _fail(context, "candidate bundle directory is invalid")
+    root = raw_dir.resolve()
+    evaluation = dict(evaluation_bundle)
+    if str(evaluation.get("bundle_dir") or "") != str(root):
+        _fail(context, "candidate bundle differs from evaluation bundle")
+    manifest = require_bundle_commit_manifest(root)
+    expected_core = {
+        "bundle_metadata.json": evaluation.get("bundle_metadata_sha256"),
+        "MASTER_TRANSFORMER_LOCK.json": evaluation.get(
+            "master_transformer_lock_sha256"
+        ),
+        "model_state_dict.pt": evaluation.get("model_state_dict_sha256"),
     }
-    if any(not isinstance(value, Mapping) for value in entries.values()):
-        _fail(context, "artifact registry lacks the exact active Exit roles")
-    canonical_entries = {
-        role: dict(entries[role])
-        for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
-    }
-    payload = {
-        "schema_version": "gx1_artifact_selection_v2",
-        "project": "XAUUSD",
-        "active_exit_entries": canonical_entries,
-    }
+    for name, expected_sha in expected_core.items():
+        binding = manifest["artifacts"].get(name)
+        if (
+            not isinstance(binding, Mapping)
+            or binding.get("sha256") != expected_sha
+        ):
+            _fail(context, f"candidate commit differs from evaluation {name}")
+    manifest_path = root / MANIFEST_NAME
     return {
-        "path": str(path.resolve()),
-        **payload,
-        "projection_sha256": _canonical_sha256(payload),
+        "schema_version": UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION,
+        "bundle_dir": str(root),
+        "bundle_commit_manifest_path": str(manifest_path),
+        "bundle_commit_manifest_sha256": sha256_file(manifest_path),
+        "bundle_commit_sha256": manifest["commit_sha256"],
+        "bundle_commit_manifest": manifest,
+        "evaluation_bundle": evaluation,
     }
 
 
-def active_exit_artifact_manifests(
-    active_exit_entries: Mapping[str, Any],
+def require_candidate_bundle_authority(
+    value: object,
     *,
+    evaluation_bundle: Mapping[str, Any],
     context: str,
+    verify_files: bool,
 ) -> dict[str, Any]:
-    """Hash-bind every regular byte consumed from each selected Exit artifact."""
+    """Validate and optionally re-hash one candidate bundle authority."""
 
-    manifests: dict[str, Any] = {}
-    if set(active_exit_entries) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES):
-        _fail(context, "active Exit role set mismatch")
-    for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES:
-        entry = active_exit_entries[role]
-        if not isinstance(entry, Mapping):
-            _fail(context, f"active Exit role {role} entry is invalid")
-        raw_root = Path(str(entry.get("path") or "")).expanduser()
-        if not raw_root.is_absolute() or raw_root.is_symlink() or not raw_root.exists():
-            _fail(context, f"active Exit role {role} root is invalid")
-        root = raw_root.resolve()
-        candidates = [root] if root.is_file() else sorted(root.rglob("*"))
-        files: list[dict[str, Any]] = []
-        for path in candidates:
-            if path.is_symlink():
-                _fail(context, f"active Exit role {role} contains a symlink: {path}")
-            if path.is_dir():
-                continue
-            if not path.is_file():
-                _fail(
-                    context,
-                    f"active Exit role {role} contains a non-regular path: {path}",
-                )
-            relative = "." if path == root else path.relative_to(root).as_posix()
-            before = path.stat()
-            digest = sha256_file(path)
-            observed = path.stat()
-            if (
-                before.st_dev,
-                before.st_ino,
-                before.st_size,
-                before.st_mtime_ns,
-            ) != (
-                observed.st_dev,
-                observed.st_ino,
-                observed.st_size,
-                observed.st_mtime_ns,
-            ):
-                _fail(
-                    context,
-                    f"active Exit role {role} changed while hashing: {path}",
-                )
-            files.append(
-                {
-                    "relative_path": relative,
-                    "sha256": digest,
-                    "size_bytes": int(observed.st_size),
-                }
-            )
-        if not files:
-            _fail(context, f"active Exit role {role} contains no regular files")
-        files.sort(key=lambda row: row["relative_path"])
-        inventory_sha = hashlib.sha256(
-            json.dumps(
-                files,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=True,
-                allow_nan=False,
-            ).encode("utf-8")
-        ).hexdigest()
-        manifests[role] = {
-            "root_path": str(root),
-            "root_kind": "file" if root.is_file() else "directory",
-            "file_count": len(files),
-            "total_size_bytes": sum(int(row["size_bytes"]) for row in files),
-            "files": files,
-            "inventory_sha256": inventory_sha,
-        }
-    return manifests
+    observed = _exact_keys(
+        value,
+        _CANDIDATE_BUNDLE_AUTHORITY_KEYS,
+        context=context,
+    )
+    if (
+        observed["schema_version"]
+        != UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION
+        or observed["evaluation_bundle"] != dict(evaluation_bundle)
+    ):
+        _fail(context, "candidate bundle authority lineage mismatch")
+    bundle_dir = Path(str(observed["bundle_dir"] or "")).expanduser()
+    manifest_path = Path(
+        str(observed["bundle_commit_manifest_path"] or "")
+    ).expanduser()
+    if (
+        not bundle_dir.is_absolute()
+        or not manifest_path.is_absolute()
+        or manifest_path != bundle_dir / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json"
+    ):
+        _fail(context, "candidate bundle authority paths are invalid")
+    for field_name in (
+        "bundle_commit_manifest_sha256",
+        "bundle_commit_sha256",
+    ):
+        _sha(observed[field_name], context=f"{context}.{field_name}")
+    if verify_files:
+        expected = candidate_bundle_authority(
+            bundle_dir=bundle_dir,
+            evaluation_bundle=evaluation_bundle,
+            context=context,
+        )
+        if observed != expected:
+            _fail(context, "candidate bundle bytes differ")
+    return dict(observed)
 MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS = frozenset(
     {
         "entry_fill_time",
         "exit_replay_status",
-        "active_exit_decision_bar_time",
-        "active_exit_fill_time",
-        "active_exit_fill_bid",
-        "active_exit_fill_ask",
+        "model_exit_decision_bar_time",
+        "model_exit_fill_time",
+        "model_exit_fill_bid",
+        "model_exit_fill_ask",
         "exit_reason",
         "exit_steps",
         "exit_trace_sha256",
-        "active_exit_authority_sha256",
+        "candidate_bundle_sha256",
     }
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS = frozenset(
@@ -285,17 +263,25 @@ MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS = frozenset(
         "reference_row_id",
         "entry_fill_time",
         "step",
-        "fresh_quote_time",
         "closed_bar_time",
+        "model_exit_fill_time",
         "bar_committed",
         "action_id",
+        "action",
         "decision_source",
         "state_bid",
         "state_ask",
         "state_pnl_bps",
-        "fresh_quote_bid",
-        "fresh_quote_ask",
-        "active_exit_authority_sha256",
+        "exit_hold_logit",
+        "exit_now_logit",
+        "exit_hold_prob",
+        "exit_now_prob",
+        "candidate_bundle_sha256",
+        "entry_snapshot_sha256",
+        "exit_path_envelope_sha256",
+        "output_evidence_sha256",
+        "closed_m1_source_path",
+        "closed_m1_source_sha256",
     }
 )
 MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION = (
@@ -393,9 +379,8 @@ _PROOF_KEYS = frozenset(
         "oos_proof_artifact",
         "evaluation_bundle",
         "test_prediction_provenance",
-        "active_exit_registry_projection",
-        "active_exit_artifact_manifests",
-        "canonical_active_exit_replay_producer",
+        "candidate_bundle_authority",
+        "canonical_unified_replay_producer",
         "replay_rows",
         "exit_trace_rows",
         "exit_replay_coverage",
@@ -419,7 +404,7 @@ _EXIT_COVERAGE_KEYS = frozenset(
 
 
 class ModelNativeSizingExecutionContractError(RuntimeError):
-    """Joint active-Exit sizing evidence is absent, stale, or malformed."""
+    """Joint unified-Exit sizing evidence is absent, stale, or malformed."""
 
 
 def _fail(context: str, detail: str) -> None:
@@ -632,24 +617,40 @@ def joint_exit_trace_sha256(frame: pd.DataFrame, *, context: str) -> str:
         records.append(
             {
                 "action_id": int(row["action_id"]),
-                "active_exit_authority_sha256": str(
-                    row["active_exit_authority_sha256"]
-                ).lower(),
+                "action": str(row["action"]),
                 "bar_committed": bool(row["bar_committed"]),
+                "candidate_bundle_sha256": str(
+                    row["candidate_bundle_sha256"]
+                ).lower(),
                 "closed_bar_time": (
                     None
                     if pd.isna(row["closed_bar_time"])
                     else pd.Timestamp(row["closed_bar_time"]).isoformat()
                 ),
+                "closed_m1_source_path": str(row["closed_m1_source_path"]),
+                "closed_m1_source_sha256": str(
+                    row["closed_m1_source_sha256"]
+                ).lower(),
                 "decision_source": str(row["decision_source"]),
                 "entry_fill_time": pd.Timestamp(
                     row["entry_fill_time"]
                 ).isoformat(),
-                "fresh_quote_ask": float(row["fresh_quote_ask"]),
-                "fresh_quote_bid": float(row["fresh_quote_bid"]),
-                "fresh_quote_time": pd.Timestamp(
-                    row["fresh_quote_time"]
+                "entry_snapshot_sha256": str(
+                    row["entry_snapshot_sha256"]
+                ).lower(),
+                "exit_hold_logit": float(row["exit_hold_logit"]),
+                "exit_hold_prob": float(row["exit_hold_prob"]),
+                "exit_now_logit": float(row["exit_now_logit"]),
+                "exit_now_prob": float(row["exit_now_prob"]),
+                "exit_path_envelope_sha256": str(
+                    row["exit_path_envelope_sha256"]
+                ).lower(),
+                "model_exit_fill_time": pd.Timestamp(
+                    row["model_exit_fill_time"]
                 ).isoformat(),
+                "output_evidence_sha256": str(
+                    row["output_evidence_sha256"]
+                ).lower(),
                 "reference_row_id": str(row["reference_row_id"]),
                 "state_ask": float(row["state_ask"]),
                 "state_bid": float(row["state_bid"]),
@@ -671,10 +672,10 @@ def recompute_joint_exit_replay_coverage(
     frame: pd.DataFrame,
     *,
     exit_trace_rows: pd.DataFrame,
-    exit_authority_sha256: str,
+    candidate_bundle_sha256: str,
     context: str,
 ) -> dict[str, Any]:
-    """Recompute strict full-TEST active-Exit trace coverage from row evidence."""
+    """Recompute strict full-TEST unified Exit coverage from exact model rows."""
 
     if set(frame.columns) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS):
         _fail(
@@ -695,11 +696,11 @@ def recompute_joint_exit_replay_coverage(
     flat_mask = directions == 2
     trade_rows = int(np.count_nonzero(trade_mask))
     if trade_rows < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES:
-        _fail(context, "insufficient non-FLAT active-Exit replay support")
+        _fail(context, "insufficient non-FLAT unified-Exit replay support")
     if min(long_rows, short_rows) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE:
-        _fail(context, "insufficient LONG/SHORT active-Exit replay support")
+        _fail(context, "insufficient LONG/SHORT unified-Exit replay support")
     if set(frame.loc[trade_mask, "exit_replay_status"].astype(str)) != {"EXIT_NOW"}:
-        _fail(context, "every non-FLAT row must reach active Exit EXIT_NOW")
+        _fail(context, "every non-FLAT row must reach unified Exit EXIT_NOW")
     if set(frame.loc[flat_mask, "exit_replay_status"].astype(str)) - {"FLAT_NO_ORDER"}:
         _fail(context, "FLAT rows must remain explicit no-order rows")
     steps = pd.to_numeric(frame["exit_steps"], errors="coerce").to_numpy(dtype=np.float64)
@@ -725,61 +726,61 @@ def recompute_joint_exit_replay_coverage(
             context,
             "entry_fill_time must be exactly decision time + 5m",
         )
-    active_fill_times = pd.to_datetime(
-        frame["active_exit_fill_time"],
+    model_fill_times = pd.to_datetime(
+        frame["model_exit_fill_time"],
         utc=True,
         errors="coerce",
     )
-    if active_fill_times[trade_mask].isna().any() or np.any(
-        active_fill_times[trade_mask].to_numpy()
+    if model_fill_times[trade_mask].isna().any() or np.any(
+        model_fill_times[trade_mask].to_numpy()
         <= entry_fill_times[trade_mask].to_numpy()
     ):
         _fail(
             context,
-            "trade active_exit_fill_time must be finite UTC after Entry fill",
+            "trade model_exit_fill_time must be finite UTC after Entry fill",
         )
     decision_bar_times = pd.to_datetime(
-        frame["active_exit_decision_bar_time"],
+        frame["model_exit_decision_bar_time"],
         utc=True,
         errors="coerce",
     )
     claimed_decision_bars = trade_mask & decision_bar_times.notna().to_numpy()
     if np.any(
         decision_bar_times[claimed_decision_bars].to_numpy()
-        >= active_fill_times[claimed_decision_bars].to_numpy()
+        >= model_fill_times[claimed_decision_bars].to_numpy()
     ):
-        _fail(context, "trade active Exit decision-bar time is invalid")
+        _fail(context, "trade model Exit decision-bar time is invalid")
     if (
-        active_fill_times[flat_mask].notna().any()
+        model_fill_times[flat_mask].notna().any()
         or decision_bar_times[flat_mask].notna().any()
     ):
-        _fail(context, "FLAT rows cannot claim active Exit times")
+        _fail(context, "FLAT rows cannot claim model Exit times")
     if frame.loc[trade_mask, "exit_reason"].isna().any() or not frame.loc[
         trade_mask, "exit_reason"
     ].astype(str).str.strip().all():
-        _fail(context, "trade rows require a non-empty active Exit reason")
+        _fail(context, "trade rows require a non-empty model Exit reason")
     if set(frame.loc[flat_mask, "exit_reason"].astype(str)) - {"MODEL_FLAT"}:
         _fail(context, "FLAT rows require exact MODEL_FLAT reason")
     trace_hashes = frame["exit_trace_sha256"].astype(str).str.lower().tolist()
     for index, value in enumerate(trace_hashes):
         _sha(value, context=f"{context}.exit_trace_sha256[{index}]")
-    expected_exit_authority_sha = _sha(
-        exit_authority_sha256,
-        context=f"{context}.exit_authority_sha",
+    expected_candidate_bundle_sha = _sha(
+        candidate_bundle_sha256,
+        context=f"{context}.candidate_bundle_sha",
     )
-    if set(frame["active_exit_authority_sha256"].astype(str).str.lower()) != {
-        expected_exit_authority_sha
+    if set(frame["candidate_bundle_sha256"].astype(str).str.lower()) != {
+        expected_candidate_bundle_sha
     }:
-        _fail(context, "row Exit authority differs from proof projection")
+        _fail(context, "row candidate bundle differs from proof authority")
     if set(exit_trace_rows.columns) != set(MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS):
         _fail(context, "Exit trace row columns mismatch")
     if exit_trace_rows.empty:
-        _fail(context, "active Exit trace artifact is empty")
-    trace_registry = set(
-        exit_trace_rows["active_exit_authority_sha256"].astype(str).str.lower()
+        _fail(context, "unified Exit trace artifact is empty")
+    trace_bundle = set(
+        exit_trace_rows["candidate_bundle_sha256"].astype(str).str.lower()
     )
-    if trace_registry != {expected_exit_authority_sha}:
-        _fail(context, "Exit trace authority differs from proof projection")
+    if trace_bundle != {expected_candidate_bundle_sha}:
+        _fail(context, "Exit trace candidate bundle differs from proof authority")
     replay_ids = frame["reference_row_id"].astype(str)
     if replay_ids.duplicated().any():
         _fail(context, "replay reference_row_id must be unique")
@@ -820,8 +821,8 @@ def recompute_joint_exit_replay_coverage(
             utc=True,
             errors="coerce",
         )
-        fresh_quote_times = pd.to_datetime(
-            trace["fresh_quote_time"],
+        model_fill_times = pd.to_datetime(
+            trace["model_exit_fill_time"],
             utc=True,
             errors="coerce",
         )
@@ -830,10 +831,13 @@ def recompute_joint_exit_replay_coverage(
             utc=True,
             errors="coerce",
         )
-        expected_fresh_quote_times = pd.date_range(
-            start=entry_time + pd.Timedelta(minutes=1),
+        expected_closed_bar_times = pd.date_range(
+            start=entry_time,
             periods=len(trace),
             freq="min",
+        )
+        expected_model_fill_times = expected_closed_bar_times + pd.Timedelta(
+            minutes=1
         )
         committed = trace["bar_committed"].map(
             lambda value: value
@@ -843,45 +847,35 @@ def recompute_joint_exit_replay_coverage(
         if (
             trace_entry_times.isna().any()
             or set(trace_entry_times) != {entry_time}
-            or fresh_quote_times.isna().any()
-            or not fresh_quote_times.is_monotonic_increasing
-            or fresh_quote_times.duplicated().any()
+            or closed_bar_times.isna().any()
+            or model_fill_times.isna().any()
             or not np.array_equal(
-                fresh_quote_times.astype("int64").to_numpy(),
-                expected_fresh_quote_times.astype("int64").to_numpy(),
+                closed_bar_times.astype("int64").to_numpy(),
+                expected_closed_bar_times.astype("int64").to_numpy(),
+            )
+            or not np.array_equal(
+                model_fill_times.astype("int64").to_numpy(),
+                expected_model_fill_times.astype("int64").to_numpy(),
             )
             or committed.isna().any()
+            or not committed.astype(bool).all()
         ):
             _fail(context, f"{reference_row_id} Exit trace time binding is invalid")
-        committed_mask = committed.to_numpy(dtype=bool)
-        if (
-            closed_bar_times[committed_mask].isna().any()
-            or not (
-                closed_bar_times[committed_mask].to_numpy()
-                == (
-                    fresh_quote_times[committed_mask]
-                    - pd.Timedelta(minutes=1)
-                ).to_numpy()
-            ).all()
-            or closed_bar_times[~committed_mask].notna().any()
-        ):
-            _fail(
-                context,
-                f"{reference_row_id} closed-bar commitment is invalid",
-            )
         actions = pd.to_numeric(trace["action_id"], errors="coerce").to_numpy(
             dtype=np.float64
         )
+        action_names = trace["action"].astype(str).to_numpy()
         if (
             not np.array_equal(actions, actions.astype(np.int64))
             or np.any(actions[:-1] != 0)
             or int(actions[-1]) != 1
+            or np.any(action_names[:-1] != "HOLD")
+            or action_names[-1] != "EXIT_NOW"
         ):
             _fail(context, f"{reference_row_id} must HOLD then finish EXIT_NOW")
         if (
-            not trace["decision_source"].astype(str).str.strip().all()
-            or str(trace.iloc[-1]["decision_source"])
-            != str(replay_row["exit_reason"])
+            set(trace["decision_source"].astype(str)) != {"unified_model"}
+            or str(replay_row["exit_reason"]) != "UNIFIED_MODEL_ARGMAX"
         ):
             _fail(context, f"{reference_row_id} Exit reason differs from trace")
         state_bid = pd.to_numeric(
@@ -892,14 +886,6 @@ def recompute_joint_exit_replay_coverage(
             trace["state_ask"],
             errors="coerce",
         ).to_numpy(dtype=np.float64)
-        fresh_bid = pd.to_numeric(
-            trace["fresh_quote_bid"],
-            errors="coerce",
-        ).to_numpy(dtype=np.float64)
-        fresh_ask = pd.to_numeric(
-            trace["fresh_quote_ask"],
-            errors="coerce",
-        ).to_numpy(dtype=np.float64)
         state_pnl = pd.to_numeric(
             trace["state_pnl_bps"],
             errors="coerce",
@@ -907,23 +893,84 @@ def recompute_joint_exit_replay_coverage(
         if (
             not np.isfinite(state_bid).all()
             or not np.isfinite(state_ask).all()
-            or not np.isfinite(fresh_bid).all()
-            or not np.isfinite(fresh_ask).all()
             or not np.isfinite(state_pnl).all()
             or np.any(state_bid <= 0.0)
             or np.any(state_ask < state_bid)
-            or np.any(fresh_bid <= 0.0)
-            or np.any(fresh_ask < fresh_bid)
-            or not np.array_equal(
-                state_bid[~committed_mask],
-                fresh_bid[~committed_mask],
-            )
-            or not np.array_equal(
-                state_ask[~committed_mask],
-                fresh_ask[~committed_mask],
-            )
         ):
             _fail(context, f"{reference_row_id} Exit trace prices are invalid")
+        logits = trace.loc[
+            :, ["exit_hold_logit", "exit_now_logit"]
+        ].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
+        probs = trace.loc[
+            :, ["exit_hold_prob", "exit_now_prob"]
+        ].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
+        shifted = logits - np.max(logits, axis=1, keepdims=True)
+        expected_probs = np.exp(shifted)
+        expected_probs /= expected_probs.sum(axis=1, keepdims=True)
+        if (
+            not np.isfinite(logits).all()
+            or not np.isfinite(probs).all()
+            or np.any(logits[:, 0] == logits[:, 1])
+            or not np.allclose(probs, expected_probs, rtol=0.0, atol=1e-6)
+            or not np.array_equal(np.argmax(logits, axis=1), actions.astype(int))
+        ):
+            _fail(context, f"{reference_row_id} Exit model outputs are invalid")
+        hash_fields = (
+            "candidate_bundle_sha256",
+            "entry_snapshot_sha256",
+            "exit_path_envelope_sha256",
+            "output_evidence_sha256",
+            "closed_m1_source_sha256",
+        )
+        for field_name in hash_fields:
+            for index, value in enumerate(trace[field_name].astype(str)):
+                _sha(
+                    value,
+                    context=f"{context}.{reference_row_id}.{field_name}[{index}]",
+                )
+        if set(trace["candidate_bundle_sha256"].astype(str).str.lower()) != {
+            expected_candidate_bundle_sha
+        }:
+            _fail(context, f"{reference_row_id} candidate bundle changed in trace")
+        source_paths = trace["closed_m1_source_path"].astype(str)
+        if (
+            not source_paths.str.strip().all()
+            or any(not Path(value).is_absolute() for value in source_paths)
+            or len(set(source_paths)) != 1
+            or len(
+                set(trace["closed_m1_source_sha256"].astype(str).str.lower())
+            )
+            != 1
+        ):
+            _fail(context, f"{reference_row_id} source binding is invalid")
+        for index, row in trace.iterrows():
+            output = {
+                "exit_action_logits": [
+                    float(row["exit_hold_logit"]),
+                    float(row["exit_now_logit"]),
+                ],
+                "exit_action_probs": [
+                    float(row["exit_hold_prob"]),
+                    float(row["exit_now_prob"]),
+                ],
+                "exit_action_index": int(row["action_id"]),
+                "action": str(row["action"]),
+                "decision_source": str(row["decision_source"]),
+                "bundle_sha256": str(row["candidate_bundle_sha256"]).lower(),
+                "entry_snapshot_sha256": str(
+                    row["entry_snapshot_sha256"]
+                ).lower(),
+                "exit_path_envelope_sha256": str(
+                    row["exit_path_envelope_sha256"]
+                ).lower(),
+            }
+            if _canonical_sha256(output) != str(
+                row["output_evidence_sha256"]
+            ).lower():
+                _fail(
+                    context,
+                    f"{reference_row_id} output evidence hash mismatch at {index}",
+                )
         direction = int(replay_row["model_direction_index"])
         expected_state_pnl = (
             (state_bid - float(replay_row["entry_ask"]))
@@ -944,34 +991,23 @@ def recompute_joint_exit_replay_coverage(
                 context,
                 f"{reference_row_id} state PnL differs from closed state prices",
             )
-        final_committed = bool(committed_mask[-1])
-        expected_decision_bar_time = (
-            closed_bar_times.iloc[-1] if final_committed else pd.NaT
-        )
         replay_decision_bar_time = pd.to_datetime(
-            replay_row["active_exit_decision_bar_time"],
+            replay_row["model_exit_decision_bar_time"],
             utc=True,
             errors="coerce",
         )
         if (
-            fresh_quote_times.iloc[-1]
-            != pd.Timestamp(replay_row["active_exit_fill_time"])
-            or float(fresh_bid[-1])
-            != float(replay_row["active_exit_fill_bid"])
-            or float(fresh_ask[-1])
-            != float(replay_row["active_exit_fill_ask"])
-            or (
-                final_committed
-                and replay_decision_bar_time != expected_decision_bar_time
-            )
-            or (
-                not final_committed
-                and not pd.isna(replay_decision_bar_time)
-            )
+            model_fill_times.iloc[-1]
+            != pd.Timestamp(replay_row["model_exit_fill_time"])
+            or float(state_bid[-1])
+            != float(replay_row["model_exit_fill_bid"])
+            or float(state_ask[-1])
+            != float(replay_row["model_exit_fill_ask"])
+            or replay_decision_bar_time != closed_bar_times.iloc[-1]
         ):
             _fail(
                 context,
-                f"{reference_row_id} active Exit fill/decision binding is invalid",
+                f"{reference_row_id} model Exit fill/decision binding is invalid",
             )
         if joint_exit_trace_sha256(
             trace, context=f"{context}.{reference_row_id}.trace_hash"
@@ -984,15 +1020,15 @@ def recompute_joint_exit_replay_coverage(
         _fail(context, "FLAT rows require the exact no-order trace hash")
     if (
         pd.to_numeric(
-            frame.loc[flat_mask, "active_exit_fill_bid"],
+            frame.loc[flat_mask, "model_exit_fill_bid"],
             errors="coerce",
         ).notna().any()
         or pd.to_numeric(
-            frame.loc[flat_mask, "active_exit_fill_ask"],
+            frame.loc[flat_mask, "model_exit_fill_ask"],
             errors="coerce",
         ).notna().any()
     ):
-        _fail(context, "FLAT rows cannot claim active Exit fill prices")
+        _fail(context, "FLAT rows cannot claim model Exit fill prices")
     utc_ns = times.astype("int64").to_numpy(dtype=np.int64)
     trace_sequence_sha = hashlib.sha256(
         json.dumps(trace_hashes, separators=(",", ":")).encode("utf-8")
@@ -1082,7 +1118,7 @@ def require_joint_exit_portfolio_capacity(
     ):
         _fail(context, "portfolio replay entry_fill_time is not exact T+5")
     exits = pd.to_datetime(
-        frame["active_exit_fill_time"],
+        frame["model_exit_fill_time"],
         utc=True,
         errors="coerce",
     )
@@ -1098,7 +1134,7 @@ def require_joint_exit_portfolio_capacity(
             continue
         exit_time = exits.iloc[index]
         if pd.isna(exit_time) or exit_time <= entry_time:
-            _fail(context, "portfolio trade lacks a valid active-Exit time")
+            _fail(context, "portfolio trade lacks a valid unified-Exit time")
         if len(active_exits) >= max_trades:
             blocked += 1
             continue
@@ -1124,11 +1160,11 @@ def require_joint_exit_portfolio_capacity(
         dtype=np.float64
     )
     exit_bid = pd.to_numeric(
-        selected["active_exit_fill_bid"],
+        selected["model_exit_fill_bid"],
         errors="coerce",
     ).to_numpy(dtype=np.float64)
     exit_ask = pd.to_numeric(
-        selected["active_exit_fill_ask"],
+        selected["model_exit_fill_ask"],
         errors="coerce",
     ).to_numpy(dtype=np.float64)
     pnl = np.where(
@@ -1145,7 +1181,7 @@ def require_joint_exit_portfolio_capacity(
         _fail(context, "portfolio-cap TEST utility is not positive on both sides")
     admitted_ids = selected["reference_row_id"].astype(str).tolist()
     return {
-        "contract": "full_test_single_exposure_active_exit_capacity_v2",
+        "contract": "full_test_single_exposure_unified_exit_capacity_v3",
         "max_trades": max_trades,
         "eligible_trade_rows": int(
             np.count_nonzero((directions != 2) & authorized)
@@ -1164,20 +1200,58 @@ def require_joint_exit_portfolio_capacity(
     }
 
 
-def canonical_active_exit_replay_source_code_files() -> frozenset[str]:
+def canonical_unified_replay_source_code_files() -> frozenset[str]:
     """Return every local source byte reachable by the canonical producer."""
 
-    from gx1.exits.training.thin_record_dataset import (
-        V3_TRAINING_SOURCE_CODE_FILES,
-    )
+    repo_root = Path(__file__).resolve().parents[2]
+    pending = list(_CANONICAL_UNIFIED_REPLAY_ADDITIONAL_SOURCE_FILES)
+    observed: set[str] = set()
+    while pending:
+        relative = pending.pop()
+        if relative in observed:
+            continue
+        source_path = repo_root / relative
+        if not source_path.is_file():
+            continue
+        observed.add(relative)
+        module_name = relative.removesuffix(".py").replace("/", ".")
+        is_package = module_name.endswith(".__init__")
+        if is_package:
+            module_name = module_name.removesuffix(".__init__")
+        package = module_name if is_package else module_name.rpartition(".")[0]
+        tree = ast.parse(
+            source_path.read_text(encoding="utf-8"),
+            filename=str(source_path),
+        )
+        imported_modules: list[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported_modules.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:
+                    relative_name = "." * node.level + (node.module or "")
+                    try:
+                        imported_modules.append(
+                            importlib.util.resolve_name(relative_name, package)
+                        )
+                    except (ImportError, ValueError):
+                        continue
+                elif node.module:
+                    imported_modules.append(node.module)
+        for imported in imported_modules:
+            if not imported.startswith(("gx1", "gx1_guards")):
+                continue
+            module_path = Path(*imported.split("."))
+            candidate = module_path.with_suffix(".py")
+            package_init = module_path / "__init__.py"
+            if (repo_root / candidate).is_file():
+                pending.append(candidate.as_posix())
+            elif (repo_root / package_init).is_file():
+                pending.append(package_init.as_posix())
+    return frozenset(observed)
 
-    return frozenset(
-        set(V3_TRAINING_SOURCE_CODE_FILES)
-        | set(_CANONICAL_ACTIVE_EXIT_REPLAY_ADDITIONAL_SOURCE_FILES)
-    )
 
-
-def build_canonical_active_exit_replay_source_inventory(
+def build_canonical_unified_replay_source_inventory(
     repo_root: Path,
 ) -> list[dict[str, str]]:
     root = Path(repo_root).expanduser()
@@ -1187,19 +1261,19 @@ def build_canonical_active_exit_replay_source_inventory(
         or not root.is_dir()
         or root.resolve() != root
     ):
-        _fail("CANONICAL_ACTIVE_EXIT_SOURCE", "repository root is invalid")
+        _fail("CANONICAL_UNIFIED_EXIT_SOURCE", "repository root is invalid")
     inventory: list[dict[str, str]] = []
-    for relative in sorted(canonical_active_exit_replay_source_code_files()):
+    for relative in sorted(canonical_unified_replay_source_code_files()):
         path = root / relative
         if path.is_symlink() or not path.is_file():
             _fail(
-                "CANONICAL_ACTIVE_EXIT_SOURCE",
+                "CANONICAL_UNIFIED_EXIT_SOURCE",
                 f"source file is missing/noncanonical: {relative}",
             )
         before = os.lstat(path)
         if not stat.S_ISREG(before.st_mode):
             _fail(
-                "CANONICAL_ACTIVE_EXIT_SOURCE",
+                "CANONICAL_UNIFIED_EXIT_SOURCE",
                 f"source path is not a regular file: {relative}",
             )
         digest = sha256_file(path)
@@ -1218,7 +1292,7 @@ def build_canonical_active_exit_replay_source_inventory(
             after.st_ctime_ns,
         ):
             _fail(
-                "CANONICAL_ACTIVE_EXIT_SOURCE",
+                "CANONICAL_UNIFIED_EXIT_SOURCE",
                 f"source file changed while hashing: {relative}",
             )
         inventory.append(
@@ -1300,7 +1374,7 @@ def _require_canonical_frozen_pair(
     }
 
 
-def require_canonical_active_exit_replay_producer_evidence(
+def require_canonical_unified_replay_producer_evidence(
     value: object,
     *,
     proof: Mapping[str, Any],
@@ -1311,14 +1385,14 @@ def require_canonical_active_exit_replay_producer_evidence(
 
     evidence = _exact_keys(
         value,
-        _CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS,
+        _CANONICAL_UNIFIED_REPLAY_PRODUCER_KEYS,
         context=context,
     )
     if (
         evidence["schema_version"]
-        != CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_SCHEMA_VERSION
+        != CANONICAL_UNIFIED_REPLAY_PRODUCER_SCHEMA_VERSION
         or evidence["producer_contract"]
-        != CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_CONTRACT
+        != CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT
         or evidence["decision"] != "PASS"
         or evidence["failures"] != []
     ):
@@ -1345,13 +1419,16 @@ def require_canonical_active_exit_replay_producer_evidence(
     )
     if canonical_oos != expected_oos:
         _fail(context, "canonical OOS binding differs from proof")
-    if (
-        evidence["active_exit_registry_projection"]
-        != proof["active_exit_registry_projection"]
-        or evidence["active_exit_artifact_manifests"]
-        != proof["active_exit_artifact_manifests"]
-    ):
-        _fail(context, "active Exit authority differs from producer evidence")
+    require_candidate_bundle_authority(
+        evidence["candidate_bundle_authority"],
+        evaluation_bundle=proof["evaluation_bundle"],
+        context=f"{context}.candidate_bundle_authority",
+        verify_files=verify_source_files,
+    )
+    if evidence["candidate_bundle_authority"] != proof[
+        "candidate_bundle_authority"
+    ]:
+        _fail(context, "candidate bundle authority differs from producer evidence")
     producer_replay = _source_binding(
         evidence["replay_rows"],
         context=f"{context}.replay_rows",
@@ -1468,7 +1545,7 @@ def require_canonical_active_exit_replay_producer_evidence(
     raw_sources = evidence["producer_source_files"]
     if not isinstance(raw_sources, list):
         _fail(context, "producer source inventory is invalid")
-    expected_sources = build_canonical_active_exit_replay_source_inventory(
+    expected_sources = build_canonical_unified_replay_source_inventory(
         Path(__file__).resolve().parents[2]
     )
     if (
@@ -1516,24 +1593,33 @@ def require_canonical_active_exit_replay_producer_evidence(
             or len(trace_frame) != trace_rows
         ):
             _fail(context, "producer output row summary differs from bound files")
+        if (
+            set(trace_frame["closed_m1_source_path"].astype(str))
+            != {source_tape["path"]}
+            or set(
+                trace_frame["closed_m1_source_sha256"].astype(str).str.lower()
+            )
+            != {source_tape["sha256"]}
+        ):
+            _fail(context, "Exit trace source rows differ from bound SourceTape")
     return dict(evidence)
 
 
-def require_canonical_active_exit_replay_launch_authority(
+def require_canonical_unified_replay_launch_authority(
     proof: Mapping[str, Any],
     *,
     context: str,
 ) -> None:
-    """Require producer-owned full-TEST rows from the exact active Exit stack."""
+    """Require producer-owned full-TEST rows from the exact candidate bundle."""
 
-    evidence = proof.get("canonical_active_exit_replay_producer")
+    evidence = proof.get("canonical_unified_replay_producer")
     if evidence is None:
         _fail(
             context,
-            "canonical active Exit replay producer is absent; caller-supplied "
+            "canonical unified replay producer is absent; caller-supplied "
             "replay/trace rows have zero launch authority",
         )
-    require_canonical_active_exit_replay_producer_evidence(
+    require_canonical_unified_replay_producer_evidence(
         evidence,
         proof=proof,
         context=f"{context}.canonical_producer",
@@ -1597,42 +1683,12 @@ def load_bound_joint_exit_sizing_proof(
             != proof["test_prediction_provenance"]
         ):
             _fail(context, "joint proof lineage differs from canonical OOS proof")
-        registry_projection = _exact_keys(
-            observed["active_exit_registry_projection"],
-            _ACTIVE_EXIT_REGISTRY_PROJECTION_KEYS,
-            context=f"{context}.active_exit_registry_projection",
+        bundle_authority = require_candidate_bundle_authority(
+            observed["candidate_bundle_authority"],
+            evaluation_bundle=proof["evaluation_bundle"],
+            context=f"{context}.candidate_bundle_authority",
+            verify_files=verify_source_files,
         )
-        registry_path = Path(
-            str(registry_projection.get("path") or "")
-        ).expanduser()
-        if not registry_path.is_absolute() or registry_path.is_symlink():
-            _fail(context, "artifact registry projection path is invalid")
-        registry = _json_file(
-            registry_path,
-            context=f"{context}.active_exit_registry_projection",
-        )
-        expected_projection = active_exit_registry_projection(
-            registry_path=registry_path,
-            registry=registry,
-            context=f"{context}.active_exit_registry_projection",
-        )
-        if registry_projection != expected_projection:
-            _fail(context, "active Exit registry projection changed")
-        expected_exit_entries = registry_projection["active_exit_entries"]
-        for role, entry in expected_exit_entries.items():
-            if entry.get("status") != "ACTIVE" or entry.get("in_sample_only") is not False:
-                _fail(context, f"active Exit role {role} is not execution-admissible")
-            role_path = Path(str(entry.get("path") or "")).expanduser()
-            if not role_path.is_absolute() or (
-                verify_source_files and not role_path.resolve().exists()
-            ):
-                _fail(context, f"active Exit role {role} path is invalid")
-        expected_exit_manifests = active_exit_artifact_manifests(
-            expected_exit_entries,
-            context=f"{context}.active_exit_artifact_manifests",
-        )
-        if observed["active_exit_artifact_manifests"] != expected_exit_manifests:
-            _fail(context, "active Exit artifact bytes differ from bound proof")
         replay_binding = _source_binding(
             observed["replay_rows"],
             context=f"{context}.replay_rows",
@@ -1668,7 +1724,9 @@ def load_bound_joint_exit_sizing_proof(
         coverage = recompute_joint_exit_replay_coverage(
             replay_rows,
             exit_trace_rows=exit_trace_rows,
-            exit_authority_sha256=registry_projection["projection_sha256"],
+            candidate_bundle_sha256=bundle_authority[
+                "bundle_commit_sha256"
+            ],
             context=f"{context}.coverage",
         )
         if _exact_keys(
@@ -1684,7 +1742,7 @@ def load_bound_joint_exit_sizing_proof(
             context=f"{context}.sizing_recompute",
             fact_provenance_mode=MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
             extra_row_columns=MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS,
-            outcome_price_mode="active_exit_fill",
+            outcome_price_mode="model_exit_fill",
         )
         mismatched = [
             name for name in _RECOMPUTED_SECTION_NAMES
@@ -1696,11 +1754,9 @@ def load_bound_joint_exit_sizing_proof(
             section = observed[name]
             if not isinstance(section, Mapping) or section.get("decision") != "PASS":
                 _fail(context, f"{name} must be row-recomputed PASS")
-        producer_evidence = observed[
-            "canonical_active_exit_replay_producer"
-        ]
+        producer_evidence = observed["canonical_unified_replay_producer"]
         if producer_evidence is not None:
-            require_canonical_active_exit_replay_producer_evidence(
+            require_canonical_unified_replay_producer_evidence(
                 producer_evidence,
                 proof=observed,
                 context=f"{context}.canonical_producer",
@@ -1964,9 +2020,8 @@ def load_bound_runtime_sizing_parity(
 
 
 __all__ = [
-    "CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_CONTRACT",
-    "CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_SCHEMA_VERSION",
-    "MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES",
+    "CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT",
+    "CANONICAL_UNIFIED_REPLAY_PRODUCER_SCHEMA_VERSION",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES",
@@ -1984,16 +2039,17 @@ __all__ = [
     "MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS",
     "MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION",
     "ModelNativeSizingExecutionContractError",
-    "active_exit_artifact_manifests",
-    "active_exit_registry_projection",
-    "build_canonical_active_exit_replay_source_inventory",
-    "canonical_active_exit_replay_source_code_files",
+    "UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION",
+    "build_canonical_unified_replay_source_inventory",
+    "candidate_bundle_authority",
+    "canonical_unified_replay_source_code_files",
     "joint_exit_trace_sha256",
     "load_bound_joint_exit_sizing_proof",
     "load_bound_runtime_sizing_parity",
     "recompute_joint_exit_replay_coverage",
-    "require_canonical_active_exit_replay_launch_authority",
-    "require_canonical_active_exit_replay_producer_evidence",
+    "require_candidate_bundle_authority",
+    "require_canonical_unified_replay_launch_authority",
+    "require_canonical_unified_replay_producer_evidence",
     "require_joint_exit_portfolio_capacity",
     "require_joint_replay_extends_canonical_oos_rows",
     "recompute_runtime_sizing_parity_coverage",

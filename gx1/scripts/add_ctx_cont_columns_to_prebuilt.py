@@ -43,6 +43,7 @@ from gx1.features.model_native_market_context_v1 import (
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
     MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
@@ -62,6 +63,7 @@ from gx1.features.swing_structure_v1 import (
     compute_swing_structure_features,
 )
 from gx1.time.session_detector import (
+    ASIA_SESSION_ID,
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
@@ -74,7 +76,9 @@ CTX_CONT_COL_D1_DIST = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[2]
 CTX_CONT_COL_H1_COMP = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[3]
 CTX_CONT_COL_D1_ATR_PCTL252 = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[4]
 CTX_CONT_COL_M15_COMP = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[5]
-CTX_CAT_COL_H4_TREND_SIGN = MODEL_NATIVE_CTX_CAT_FIELDS[-1]
+CTX_CAT_COL_H4_TREND_SIGN = MODEL_NATIVE_CTX_CAT_FIELDS[
+    MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["H4_trend_sign_cat"]
+]
 
 
 def get_prebuilt_ctx_contract_columns() -> Tuple[List[str], List[str]]:
@@ -553,7 +557,9 @@ def run_add_ctx_cont_columns(
     df_pre["session_id"] = get_session_id_vectorized(decision_ts).to_numpy(
         dtype=np.int64
     )
-    df_pre["is_ASIA"] = (df_pre["session_id"] == 0).astype(np.int64)
+    df_pre["is_ASIA"] = (
+        df_pre["session_id"] == ASIA_SESSION_ID
+    ).astype(np.int64)
 
     # Session timing features (observerable context)
     df_pre["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
@@ -571,7 +577,9 @@ def run_add_ctx_cont_columns(
         session_change[1:] = (session_id[1:] != session_id[:-1]).astype(np.int64)
     df_pre["session_change_flag"] = session_change
     # Tradable flag (policy can still restrict to EU/OVERLAP/US)
-    df_pre["session_tradable"] = (df_pre["session_id"] != 0).astype(np.int64)
+    df_pre["session_tradable"] = (
+        df_pre["session_id"] != ASIA_SESSION_ID
+    ).astype(np.int64)
 
     # Legacy trend_regime_id has one immutable source: exact D1 distance.
     # price_vs_ema50_atr remains separate continuous learned evidence.
@@ -670,7 +678,12 @@ def run_add_ctx_cont_columns(
     )
 
     df_pre = df_pre.sort_index()
-    from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
+    from gx1.features.htf_features import (
+        REGIME_V4_V2_MTF_PER_TF,
+        REGIME_V4_V2_MTF_SKIP,
+        REGIME_V4_V2_MTF_TFS,
+        attach_v2_mtf_per_bar_scalars as _attach_v2,
+    )
 
     _rv4_required = ["open", "high", "low", "close", "volume"]
     _rv4_missing = [name for name in _rv4_required if name not in df_m5.columns]
@@ -679,23 +692,12 @@ def run_add_ctx_cont_columns(
             f"[REGIME_V4] exact raw M5 OHLCV source missing: {_rv4_missing}"
         )
     _rv4_m5 = df_m5[_rv4_required].astype(np.float64).copy()
-    _rv4_src_map = [
-        ("ema20_slope_atr", "ema20_slope_atr"),
-        ("ema_stack_aligned", "ema_stack_aligned_v2"),
-        ("regime_class_id", "regime_class_id"),
-        ("trend_age_bars_norm", "trend_age_bars_norm"),
-        ("mom_5_atr", "mom_5_atr"),
-        ("mom_20_atr", "mom_20_atr"),
-        ("rsi14_centered", "rsi14_centered"),
-        ("atr_bps_14", "atr_bps_14"),
-        ("lower_wick_pct", "lower_wick_pct"),
-    ]
     _attached = _attach_v2(
         _rv4_m5,
         df_pre.index.asi8,
-        _rv4_src_map,
-        ("m15", "h1", "h4", "d1", "m5"),
-        frozenset({("d1", "lower_wick_pct")}),
+        REGIME_V4_V2_MTF_PER_TF,
+        REGIME_V4_V2_MTF_TFS,
+        REGIME_V4_V2_MTF_SKIP,
     )
     for _c, _v in _attached.items():
         df_pre[_c] = _v

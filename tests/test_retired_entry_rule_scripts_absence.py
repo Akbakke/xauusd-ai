@@ -27,7 +27,9 @@ RETIRED_ENTRY_RULE_PATHS = (
     "gx1/scripts/materialize_sequence_structure_features_v1.py",
     "gx1/scripts/augment_canonical_v3_with_missing_features.py",
     "gx1/scripts/run_forward_outcome_rebuild.sh",
-    "gx1/utils/xgb_feature_names_ssot.py",
+    "gx1/utils/external_tree_sidecar_feature_names_ssot.py",
+    "gx1/execution/v12_counterfactual_replay.py",
+    "gx1/research/exit_netcapture.py",
 )
 
 RETIRED_ENTRY_RULE_MODULES = (
@@ -49,7 +51,9 @@ RETIRED_ENTRY_RULE_MODULES = (
     "gx1.scripts.materialize_model_native_rank_reference_v1",
     "gx1.scripts.materialize_sequence_structure_features_v1",
     "gx1.scripts.augment_canonical_v3_with_missing_features",
-    "gx1.utils.xgb_feature_names_ssot",
+    "gx1.utils.external_tree_sidecar_feature_names_ssot",
+    "gx1.execution.v12_counterfactual_replay",
+    "gx1.research.exit_netcapture",
 )
 
 
@@ -68,19 +72,6 @@ def test_retired_entry_rule_modules_are_not_importable() -> None:
         if spec is not None:
             importable.append(module)
     assert importable == []
-
-
-def test_counterfactual_replay_has_no_handwritten_trend_direction_gate() -> None:
-    source = (REPO_ROOT / "gx1/execution/v12_counterfactual_replay.py").read_text(
-        encoding="utf-8"
-    )
-    forbidden = (
-        "stress_test_short_in_uptrend",
-        "short_in_strong_uptrend",
-        "max_short_take_rate",
-        "stress-overbought-bps",
-    )
-    assert all(token not in source for token in forbidden)
 
 
 def test_environment_example_has_no_retired_direction_or_sizing_knobs() -> None:

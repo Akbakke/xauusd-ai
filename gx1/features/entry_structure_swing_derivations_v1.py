@@ -5,13 +5,14 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.features.htf_features import MULTI_TF_TIMEFRAMES_LOWER
 
 STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = (
     "entry_structure_swing_derivations_v1_20260717_exact_sources_fail_closed"
 )
 STRUCTURE_SWING_DERIVATION_FEATURE_PREFIX = "chart.structure_swing_"
 
-STRUCTURE_TFS = ("m5", "m15", "h1", "h4", "d1")
+STRUCTURE_TFS = MULTI_TF_TIMEFRAMES_LOWER
 
 STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS = (
     "chart.foundation_hh_state",

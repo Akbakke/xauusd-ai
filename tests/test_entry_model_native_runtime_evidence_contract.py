@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import copy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import pandas as pd
@@ -17,12 +18,14 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     encode_model_native_runtime_head_evidence,
     finalize_model_native_runtime_head_evidence,
     require_model_native_entry_time,
+    require_model_native_fill_time,
     require_model_native_runtime_evidence,
 )
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 from gx1.execution.v12_paper_runner import (
     MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS,
     require_executable_model_native_entry_decision,
@@ -84,6 +87,9 @@ def _valid_evidence() -> dict:
         "direction_probs": direction_probs,
         "model_direction_index": 0,
         "model_direction": "LONG",
+        "entry_shared_representation": [
+            float(index - 64) / 64.0 for index in range(128)
+        ],
         "selected_side": 0,
         "public_trade_flat_decision_logits": public_logits,
         "public_trade_flat_decision_probs": public_probs,
@@ -140,6 +146,13 @@ def _valid_evidence() -> dict:
         "mtf_trend_evidence": 0.69,
         "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
         "specialist_gate": [0.125] * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        "tf_gate": [0.2] * 5,
+        "family_tf_cooperation_gate": [
+            1.0 / (5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS))
+        ]
+        * (5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS)),
+        "family_tf_feature_gate": [1.0]
+        * (5 * len(MULTI_TF_PER_BAR_FEATURES_V4)),
         "trendline_rail_logits": rail_logits,
         "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
         "geometry_channel_edge_pressure": 0.42,
@@ -237,10 +250,12 @@ def _valid_executable_decision() -> dict:
             "entry_signal_latency_min": snapshot["entry_signal_latency_sec"] / 60.0,
             "entry_signal_latency_cap_sec": 90.0,
             "entry_signal_stale": False,
-            "context_refresh_in_flight": False,
-            "context_mtf_incremental": False,
-        }
-    )
+                "context_refresh_in_flight": False,
+                "context_mtf_incremental": False,
+                "entry_source_pair_generation_id": "1" * 64,
+                "entry_source_pair_manifest_sha256": "2" * 64,
+            }
+        )
     assert set(decision) == set(MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS)
     return decision
 
@@ -451,6 +466,25 @@ def test_executable_entry_time_is_derived_exactly_at_runtime_minute_resolution()
         )
 
 
+def test_exact_fill_time_is_bound_inside_model_derived_minute() -> None:
+    evidence = _valid_executable_evidence()
+
+    observed = require_model_native_fill_time(
+        evidence,
+        "2026-07-08T18:00:35.125000+00:00",
+    )
+
+    assert observed.isoformat() == "2026-07-08T18:00:35.125000+00:00"
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="outside model-derived fill interval",
+    ):
+        require_model_native_fill_time(
+            evidence,
+            "2026-07-08T18:01:00+00:00",
+        )
+
+
 @pytest.mark.parametrize(
     ("key", "value", "match"),
     [
@@ -538,6 +572,18 @@ def test_runner_pre_order_boundary_accepts_only_exact_executable_envelope() -> N
         ("outer", "session", "US", "snapshot parity mismatch"),
         ("outer", "action", "TAKE_SHORT_NOW", "action/direction parity"),
         ("outer", "entry_signal_latency_min", 9.0, "latency contract"),
+        (
+            "outer",
+            "entry_source_pair_generation_id",
+            "not-a-generation",
+            "lowercase sha256 identity",
+        ),
+        (
+            "outer",
+            "entry_source_pair_manifest_sha256",
+            "A" * 64,
+            "lowercase sha256 identity",
+        ),
         ("snapshot", "model_policy", "manual_override", "model_policy"),
         ("snapshot", "context_age_m5_bars", 1, "context_age_m5_bars"),
         ("snapshot", "unvalidated_live_hint", 1.0, "unexpected"),
@@ -607,9 +653,16 @@ def test_runner_dry_run_persists_entry_before_strict_exit_and_never_claims_oanda
     ) in source
 
 
-def test_pipeline_binds_complete_timing_into_the_frozen_snapshot_before_return() -> None:
+def test_pipeline_binds_complete_timing_into_the_frozen_snapshot_before_return(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _SmartEntry:
-        def predict_live_bar(self, _loader: object, end_ts: pd.Timestamp) -> dict:
+        def predict_live_bar(
+            self,
+            _loader: object,
+            end_ts: pd.Timestamp,
+            **_kwargs: object,
+        ) -> dict:
             return {
                 "context_cutoff_ts": str(end_ts),
                 "context_age_m5_bars": 0,
@@ -626,6 +679,10 @@ def test_pipeline_binds_complete_timing_into_the_frozen_snapshot_before_return()
             }
 
     decision_ts = pd.Timestamp("2026-07-08T17:55:00Z")
+    monkeypatch.setattr(
+        "gx1.execution.v12_pipeline._require_unified_model",
+        lambda *_args, **_kwargs: None,
+    )
     index = pd.date_range(
         end=decision_ts,
         periods=ENTRY_SEQ_LEN,
@@ -633,10 +690,13 @@ def test_pipeline_binds_complete_timing_into_the_frozen_snapshot_before_return()
     )
     pipeline = V12Pipeline(
         prebuilt_loader=object(),
-        exit_xgb=object(),
         smart_entry=_SmartEntry(),
     )
     pipeline._last_augmented = pd.DataFrame({"atr_bps": 12.0}, index=index)
+    pipeline._last_entry_prebuilt_snapshot = SimpleNamespace(
+        pair_generation_id="1" * 64,
+        pair_manifest_sha256="2" * 64,
+    )
     pipeline._refresh_entry_canonical = lambda _now: None  # type: ignore[method-assign]
 
     decision = pipeline.make_entry_decision(
@@ -679,7 +739,7 @@ def test_trade_journal_rejects_wrapper_entry_minute_tamper(tmp_path: Path) -> No
                 atr_bps=12.0,
             )
         assert raised.value.__cause__ is not None
-        assert "model-derived minute" in str(raised.value.__cause__)
+        assert "model-derived fill interval" in str(raised.value.__cause__)
     finally:
         journal.close()
 
@@ -687,7 +747,7 @@ def test_trade_journal_rejects_wrapper_entry_minute_tamper(tmp_path: Path) -> No
 @pytest.mark.parametrize(
     "retired_key",
     [
-        "xgb_anchor_probs",
+        "external_tree_sidecar_anchor_probs",
         "q_take_long",
         "advantage_over_skip",
         "hold_horizon_bars_pred",

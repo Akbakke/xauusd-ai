@@ -64,7 +64,6 @@ def test_live_entry_stack_cannot_import_retired_entry_iql() -> None:
         REPO / "gx1/execution/v12_paper_runner.py",
         REPO / "gx1/execution/v12_smart_entry_live.py",
         REPO / "gx1/execution/v12_model_native_state_live.py",
-        REPO / "gx1/execution/v12_exit_iql_live.py",
     )
     for module in live_modules:
         assert _imported_modules(module).isdisjoint(forbidden), module
@@ -98,9 +97,10 @@ def test_control_surface_has_no_entry_iql_reopening_route() -> None:
     assert "unknown command: iql-distill" in result.stderr
 
 
-def test_exit_iql_shared_core_and_adapter_remain_present() -> None:
-    shared_core = REPO / "gx1/scripts/exit_iql_multi_head_gpu_core_v1.py"
-    exit_adapter = REPO / "gx1/runtime/exit_iql_v2_adapter.py"
-    assert shared_core.is_file()
-    assert exit_adapter.is_file()
-    assert "gx1.scripts.exit_iql_multi_head_gpu_core_v1" in _imported_modules(exit_adapter)
+def test_retired_separate_exit_core_and_adapter_are_absent() -> None:
+    retired = (
+        REPO / "gx1/scripts/exit_iql_multi_head_gpu_core_v1.py",
+        REPO / "gx1/runtime/exit_iql_v2_adapter.py",
+        REPO / "gx1/execution/v12_exit_iql_live.py",
+    )
+    assert [path for path in retired if path.exists()] == []

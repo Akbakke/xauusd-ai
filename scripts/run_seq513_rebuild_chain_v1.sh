@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # One-shot fail-closed chain driver for one fresh seq513 dataset event:
 #   fresh immutable TRAIN rank reference -> fresh explicit TRAIN ranking
-#   -> fresh explicit signal manifest -> fresh preflight -> fresh dataset rebuild
+#   -> fresh explicit signal manifest -> fresh preflight
+#   -> fresh combined Entry/lifecycle dataset rebuild
 #
 # The driver never discovers artifacts, waits for an external producer, resumes
 # from inferred debris, or treats existing split manifests as completion. It
 # owns the ranker so a second heavyweight path cannot overlap the dataset job,
-# and stops before the smoke gate. Every producer receives the same explicit
-# run_id, ranking identity, split window, and event-local immutable paths.
+# and stops before post-rebuild audits/readiness. Every producer receives the
+# same explicit run_id, ranking identity, split window, and event-local
+# immutable paths.
 set -Eeuo pipefail
 
 ENG=/home/andre2/src/GX1_ENGINE
@@ -25,12 +27,18 @@ VAL_START=
 VAL_END=
 TEST_START=
 TEST_END=
+M1_LIFECYCLE_PAIR_MANIFEST=
+M1_LIFECYCLE_PAIR_GENERATION_ROOT=
+EXIT_TARGET_LOOKAHEAD_M1_STEPS=
 
 usage() {
   printf '%s\n' \
     "Usage: $0 --run-id ID --event-root /absolute/event/root" \
     "  --feature-ranking-json /absolute/event/root/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<UTC>.json" \
     "  --preflight-out-dir /absolute/event/root/fresh-preflight-dir" \
+    "  --m1-lifecycle-pair-manifest-json /absolute/immutable/generation/PAIR_MANIFEST.json" \
+    "  --m1-lifecycle-pair-generation-root /absolute/immutable/generations" \
+    "  --exit-target-lookahead-m1-steps N" \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -112,6 +120,24 @@ while (($#)); do
       TEST_END=$2
       shift 2
       ;;
+    --m1-lifecycle-pair-manifest-json)
+      (($# >= 2)) || die_args "--m1-lifecycle-pair-manifest-json requires a value"
+      [[ -z $M1_LIFECYCLE_PAIR_MANIFEST ]] || die_args "duplicate --m1-lifecycle-pair-manifest-json"
+      M1_LIFECYCLE_PAIR_MANIFEST=$2
+      shift 2
+      ;;
+    --m1-lifecycle-pair-generation-root)
+      (($# >= 2)) || die_args "--m1-lifecycle-pair-generation-root requires a value"
+      [[ -z $M1_LIFECYCLE_PAIR_GENERATION_ROOT ]] || die_args "duplicate --m1-lifecycle-pair-generation-root"
+      M1_LIFECYCLE_PAIR_GENERATION_ROOT=$2
+      shift 2
+      ;;
+    --exit-target-lookahead-m1-steps)
+      (($# >= 2)) || die_args "--exit-target-lookahead-m1-steps requires a value"
+      [[ -z $EXIT_TARGET_LOOKAHEAD_M1_STEPS ]] || die_args "duplicate --exit-target-lookahead-m1-steps"
+      EXIT_TARGET_LOOKAHEAD_M1_STEPS=$2
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -124,19 +150,31 @@ done
 
 for name in \
   RUN_ID EVENT RANKING PRE_OUT HISTORY_START TRAIN_START TRAIN_END \
-  VAL_START VAL_END TEST_START TEST_END; do
+  VAL_START VAL_END TEST_START TEST_END M1_LIFECYCLE_PAIR_MANIFEST \
+  M1_LIFECYCLE_PAIR_GENERATION_ROOT \
+  EXIT_TARGET_LOOKAHEAD_M1_STEPS; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   die_args "--run-id has invalid format"
 fi
+[[ $M1_LIFECYCLE_PAIR_MANIFEST == /* ]] \
+  || die_args "--m1-lifecycle-pair-manifest-json must be absolute"
+[[ -f $M1_LIFECYCLE_PAIR_MANIFEST && ! -L $M1_LIFECYCLE_PAIR_MANIFEST ]] \
+  || die_args "--m1-lifecycle-pair-manifest-json must be an existing regular file"
+[[ $M1_LIFECYCLE_PAIR_GENERATION_ROOT == /* ]] \
+  || die_args "--m1-lifecycle-pair-generation-root must be absolute"
+[[ -d $M1_LIFECYCLE_PAIR_GENERATION_ROOT && ! -L $M1_LIFECYCLE_PAIR_GENERATION_ROOT ]] \
+  || die_args "--m1-lifecycle-pair-generation-root must be an existing regular directory"
+[[ $EXIT_TARGET_LOOKAHEAD_M1_STEPS =~ ^[1-9][0-9]*$ ]] \
+  || die_args "--exit-target-lookahead-m1-steps must be a positive integer"
 [[ $EVENT == /* ]] || die_args "--event-root must be absolute"
 [[ -d $EVENT && ! -L $EVENT ]] || die_args "--event-root must be an existing regular directory"
 
 SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
 CV2="$EVENT/canonical_features_v2.parquet"
-MTF="$EVENT/MULTI_TF_V2_CACHE"
+MTF="$EVENT/MULTI_TF_V4_CACHE"
 # Exactly one event-local tape identity: the strict native-v3 source root
 # (new lineages) or the legacy repaired current-snapshot tape (historical).
 TAPE_NATIVE="$EVENT/m5_tape_native_v3"
@@ -149,9 +187,10 @@ else
   TAPE="$TAPE_REPAIRED"
 fi
 RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
-OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
+OUTPUT="$EVENT/dataset/v10_seq513_dataset__DIR_H24B.parquet"
 AUDIT="$EVENT/audit"
-TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__HOLD_03B_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
+EXIT_LIFECYCLE="$EVENT/exit_lifecycle"
+TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__DIR_H24B_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
 STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 STARTED_UTC=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')
 IFS= read -r BOOT_ID </proc/sys/kernel/random/boot_id
@@ -170,6 +209,8 @@ RANK_REFERENCE_SIDECAR_SHA256=
 MANIFEST_SHA256=
 PREFLIGHT_JSON=
 PREFLIGHT_SHA256=
+SOURCE_CASCADE="$EVENT/SEQ513_SOURCE_CASCADE_PROOF_${STAMP}.json"
+SOURCE_CASCADE_SHA256=
 
 tg() {
   "$PY" - "$1" <<'PYEOF' || true
@@ -195,7 +236,9 @@ write_status() {
     "$LOG" "$GIT_HEAD" "$RANKING" "$RANKING_SHA256" "$MANIFEST" \
     "$MANIFEST_SHA256" "$PRE_OUT" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" \
     "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" "$RANK_NPZ" \
-    "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" <<'PYEOF'
+    "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" \
+    "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" "$OUTPUT" "$AUDIT" \
+    "$EXIT_LIFECYCLE" <<'PYEOF'
 import json
 import os
 import sys
@@ -225,6 +268,11 @@ from pathlib import Path
     rank_reference_path,
     rank_reference_sha256,
     rank_reference_sidecar_sha256,
+    source_cascade_path,
+    source_cascade_sha256,
+    dataset_output_path,
+    audit_output_dir,
+    exit_lifecycle_dir,
 ) = sys.argv[1:]
 path = Path(raw_path)
 now = datetime.now(timezone.utc)
@@ -234,7 +282,7 @@ if state in terminal_states:
     stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     terminal_path = path.with_name(f"CHAIN_TERMINAL_{stamp}_{state}.json")
 payload = {
-    "schema_version": "seq513_rebuild_chain_status_v4",
+    "schema_version": "seq513_rebuild_chain_status_v6",
     "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
@@ -248,6 +296,10 @@ payload = {
     "feature_ranking": {
         "path": ranking_path,
         "sha256": ranking_sha256 or None,
+    },
+    "source_cascade": {
+        "path": source_cascade_path,
+        "sha256": source_cascade_sha256 or None,
     },
     "rank_reference": {
         "path": rank_reference_path,
@@ -264,6 +316,18 @@ payload = {
         "json_path": preflight_json or None,
         "sha256": preflight_sha256 or None,
     },
+    "outputs": {
+        "dataset_output_stem": dataset_output_path,
+        "audit_output_dir": audit_output_dir,
+        "unified_exit_lifecycle_dir": exit_lifecycle_dir,
+    },
+    "next_boundary": (
+        "POST_REBUILD_AUDITS_AND_READINESS"
+        if state == "GREEN"
+        else "REPAIR_CURRENT_FAILED_STEP_WITHOUT_REUSING_PARTIAL_OUTPUT"
+        if state in terminal_states
+        else "CURRENT_STEP_IN_PROGRESS"
+    ),
     "terminal_event_path": str(terminal_path) if terminal_path else None,
 }
 if reason:
@@ -397,7 +461,8 @@ CURRENT_STEP=contract-validation
 write_status "$CURRENT_STEP" RUNNING
 if ! "$PY" - \
   "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
-  "$SRC" "$CV2" "$MTF" "$TAPE" \
+  "$SRC" "$CV2" "$MTF" "$TAPE" "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" "$EXIT_LIFECYCLE" \
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
   "$TEST_START" "$TEST_END" >>"$LOG" 2>&1 <<'PYEOF'
 import re
@@ -417,6 +482,9 @@ import pandas as pd
     raw_canonical,
     raw_mtf,
     raw_tape,
+    raw_m1_lifecycle_pair_manifest,
+    raw_m1_lifecycle_pair_generation_root,
+    raw_exit_lifecycle,
     raw_history_start,
     raw_train_start,
     raw_train_end,
@@ -452,6 +520,18 @@ source = exact_path(raw_source, label="source parquet")
 canonical = exact_path(raw_canonical, label="canonical-v2 parquet")
 mtf = exact_path(raw_mtf, label="MTF cache")
 tape = exact_path(raw_tape, label="tape root")
+m1_lifecycle_pair_manifest = exact_path(
+    raw_m1_lifecycle_pair_manifest,
+    label="M1 lifecycle pair manifest",
+)
+m1_lifecycle_pair_generation_root = exact_path(
+    raw_m1_lifecycle_pair_generation_root,
+    label="M1 lifecycle pair generation root",
+)
+exit_lifecycle = exact_path(
+    raw_exit_lifecycle,
+    label="Exit lifecycle output directory",
+)
 
 for label, path in (
     ("feature ranking", ranking),
@@ -463,6 +543,7 @@ for label, path in (
     ("canonical-v2 parquet", canonical),
     ("MTF cache", mtf),
     ("tape root", tape),
+    ("Exit lifecycle output directory", exit_lifecycle),
 ):
     try:
         path.relative_to(event)
@@ -499,6 +580,26 @@ if not mtf.is_dir() or mtf.is_symlink():
     raise RuntimeError(f"MTF cache is missing/non-regular: {mtf}")
 if not tape.is_dir() or tape.is_symlink():
     raise RuntimeError(f"tape root is missing/non-regular: {tape}")
+if (
+    not m1_lifecycle_pair_manifest.is_file()
+    or m1_lifecycle_pair_manifest.is_symlink()
+):
+    raise RuntimeError(
+        "M1 lifecycle pair manifest is missing/non-regular: "
+        f"{m1_lifecycle_pair_manifest}"
+    )
+if (
+    not m1_lifecycle_pair_generation_root.is_dir()
+    or m1_lifecycle_pair_generation_root.is_symlink()
+):
+    raise RuntimeError(
+        "M1 lifecycle pair generation root is missing/non-regular: "
+        f"{m1_lifecycle_pair_generation_root}"
+    )
+if exit_lifecycle.exists() or exit_lifecycle.is_symlink():
+    raise RuntimeError(
+        f"Exit lifecycle output directory must be fresh: {exit_lifecycle}"
+    )
 
 labels = (
     "history_start",
@@ -612,12 +713,55 @@ require_rank_reference_unchanged() {
     "$RANK_REFERENCE_SIDECAR_SHA256"
 }
 
+# The dataset is admissible only when the complete tape→CV2→CV3→modelrange
+# →V4-cache→FULL_PLUS cascade is one hash-bound event.
+CURRENT_STEP=source-cascade
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+FULL_TIME_MIN=$("$PY" - "$SRC" <<'PYEOF'
+import sys
+import pandas as pd
+
+values = pd.to_datetime(
+    pd.read_parquet(sys.argv[1], columns=["time"])["time"],
+    utc=True,
+    errors="raise",
+)
+if values.empty or values.isna().any():
+    raise RuntimeError("source time coverage is empty or invalid")
+print(pd.Timestamp(values.iloc[0]).isoformat())
+PYEOF
+)
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 30G --swap 2G -- \
+  "$PY" -m gx1.scripts.audit_seq513_source_cascade_v1 \
+  --run-id "$RUN_ID" \
+  --event-root "$EVENT" \
+  --out "$SOURCE_CASCADE" \
+  --required-history-start "$HISTORY_START" \
+  --expected-full-time-min "$FULL_TIME_MIN" \
+  --expected-full-time-max "$TEST_END") >>"$LOG" 2>&1; then
+  fail "source cascade audit failed"
+fi
+[[ -f $SOURCE_CASCADE && ! -L $SOURCE_CASCADE ]] \
+  || fail "source cascade proof missing or non-regular"
+SOURCE_CASCADE_SHA256=$(hash_file "$SOURCE_CASCADE")
+require_source_identity
+write_status "$CURRENT_STEP" RUNNING
+printf '[chain] source-cascade=%s sha256=%s\n' \
+  "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" >>"$LOG"
+
+require_source_cascade_unchanged() {
+  require_unchanged "source cascade proof" "$SOURCE_CASCADE" \
+    "$SOURCE_CASCADE_SHA256"
+}
+
 # The frozen TRAIN-only ECDF/ATR state is upstream of feature computation.
 # Ranking, manifest, preflight, dataset, and live must therefore bind these
 # exact bytes rather than letting the dataset wrapper create a later artifact.
 CURRENT_STEP=train-rank-reference
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
+require_source_cascade_unchanged
 if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 30G --swap 2G -- \
   "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
   --run-id "$RUN_ID" \
@@ -633,6 +777,7 @@ fi
 RANK_REFERENCE_SHA256=$(hash_file "$RANK_NPZ")
 RANK_REFERENCE_SIDECAR_SHA256=$(hash_file "${RANK_NPZ}.json")
 require_source_identity
+require_source_cascade_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] rank-reference=%s sha256=%s sidecar_sha256=%s\n' \
   "$RANK_NPZ" "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" >>"$LOG"
@@ -644,12 +789,16 @@ printf '[chain] rank-reference=%s sha256=%s sidecar_sha256=%s\n' \
 CURRENT_STEP=feature-ranking
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
+require_source_cascade_unchanged
 run_feature_ranker() {
   (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 30G --swap 2G -- \
     "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \
+    --canonical-v2-parquet "$CV2" \
     --mtf-cache-dir "$MTF" \
+    --source-cascade-proof "$SOURCE_CASCADE" \
+    --expected-source-time-max "$TEST_END" \
     --rank-reference-npz "$RANK_NPZ" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" \
@@ -661,6 +810,7 @@ if ! run_feature_ranker >>"$LOG" 2>&1; then
     CURRENT_STEP=feature-ranking-exact-checkpoint-resume
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity
+    require_source_cascade_unchanged
     if ! run_feature_ranker >>"$LOG" 2>&1; then
       fail "feature ranking exact-checkpoint retry failed"
     fi
@@ -671,6 +821,7 @@ fi
 [[ -f $RANKING && ! -L $RANKING ]] || fail "feature ranking output missing/non-regular"
 RANKING_SHA256=$(hash_file "$RANKING")
 require_source_identity
+require_source_cascade_unchanged
 require_rank_reference_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
@@ -685,6 +836,7 @@ MANIFEST="$EVENT/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_${MANIFEST_STAMP}.jso
 [[ ! -e $MANIFEST && ! -L $MANIFEST ]] || fail "fresh signal manifest allocation collided"
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
+require_source_cascade_unchanged
 require_rank_reference_unchanged
 if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
   --feature-ranking-json "$RANKING" \
@@ -694,6 +846,7 @@ if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_si
 fi
 MANIFEST_SHA256=$(hash_file "$MANIFEST")
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
+require_source_cascade_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] manifest=%s sha256=%s\n' "$MANIFEST" "$MANIFEST_SHA256" >>"$LOG"
 
@@ -702,6 +855,7 @@ printf '[chain] manifest=%s sha256=%s\n' "$MANIFEST" "$MANIFEST_SHA256" >>"$LOG"
 CURRENT_STEP=rebuild-preflight
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
+require_source_cascade_unchanged
 require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
   --run-id "$RUN_ID" \
@@ -709,6 +863,10 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-
   --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
   --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
   --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
+  --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
+  --exit-lifecycle-dir "$EXIT_LIFECYCLE" \
+  --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
   --output "$OUTPUT" --audit-out-dir "$AUDIT" \
   --history-start "$HISTORY_START" \
   --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
@@ -752,6 +910,7 @@ fi
 IFS=$'\t' read -r PREFLIGHT_JSON PREFLIGHT_SHA256 <<<"$PREFLIGHT_ID"
 [[ -n $PREFLIGHT_JSON && -n $PREFLIGHT_SHA256 ]] || fail "preflight identity is empty"
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
+require_source_cascade_unchanged
 require_rank_reference_unchanged
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
@@ -764,6 +923,7 @@ CURRENT_STEP=dataset-rebuild
 write_status "$CURRENT_STEP" RUNNING
 tg "GX1 seq513: preflight GREEN; dataset rebuild startet. run_id=$RUN_ID"
 require_source_identity
+require_source_cascade_unchanged
 require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
@@ -781,6 +941,10 @@ run_dataset_rebuild() {
     --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
     --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
     --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
+    --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST" \
+    --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
+    --exit-lifecycle-dir "$EXIT_LIFECYCLE" \
+    --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
     --output "$OUTPUT" --audit-out-dir "$AUDIT" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
@@ -795,12 +959,12 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
   # fail-closed audit result or an interrupted non-atomic split write; neither
   # may be overwritten inside the same immutable lineage.
   DATASET_OUTPUT_STARTED=0
-  if [[ -e $AUDIT || -L $AUDIT ]]; then
+  if [[ -e $AUDIT || -L $AUDIT || -e $EXIT_LIFECYCLE || -L $EXIT_LIFECYCLE ]]; then
     DATASET_OUTPUT_STARTED=1
   fi
   for split in train val test; do
-    if [[ -e "$EVENT/dataset/v10_seq513_dataset__HOLD_03B_${split}.parquet" \
-       || -e "$EVENT/dataset/v10_seq513_dataset__HOLD_03B_${split}.manifest.json" ]]; then
+    if [[ -e "$EVENT/dataset/v10_seq513_dataset__DIR_H24B_${split}.parquet" \
+       || -e "$EVENT/dataset/v10_seq513_dataset__DIR_H24B_${split}.manifest.json" ]]; then
       DATASET_OUTPUT_STARTED=1
     fi
   done
@@ -810,6 +974,7 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
     CURRENT_STEP=dataset-rebuild-exact-checkpoint-resume
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity
+    require_source_cascade_unchanged
     require_rank_reference_unchanged
     require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
     require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
@@ -822,13 +987,14 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
   fi
 fi
 require_source_identity
+require_source_cascade_unchanged
 require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
 
 CURRENT_STEP=chain-complete
-write_status "$CURRENT_STEP" GREEN "stopped at smoke gate" 0
+write_status "$CURRENT_STEP" GREEN "stopped before post-rebuild audits/readiness" 0
 TERMINAL_WRITTEN=1
-tg "GX1 seq513-kjeden er GREEN gjennom dataset-rebuild. Neste steg er manuell smoke-gate."
-printf '[chain] GREEN — stopped at the smoke gate as designed\n'
+tg "GX1 seq513-kjeden er GREEN gjennom kombinert Entry/lifecycle-rebuild. Neste steg er post-rebuild audit/readiness."
+printf '[chain] GREEN — combined dataset complete; next boundary is post-rebuild audits/readiness\n'

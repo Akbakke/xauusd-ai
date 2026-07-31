@@ -64,9 +64,7 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("candle.pattern_bear_continuation_pressure", [0.0, 0.0, 0.0, 0.0, 0.5, 1.0])
     set_col("candle.pattern_bull_reversal_pressure", [0.0, 0.1, 0.1, 0.0, 0.2, 0.3])
     set_col("candle.pattern_bear_reversal_pressure", [0.0, 0.0, 0.2, 0.8, 0.1, 0.1])
-    set_col("snap.body_pct", [0.2, 0.7, 0.9, 0.8, 0.7, 0.9])
-    set_col("snap.wick_asym", [0.0, -0.35, -0.65, 0.75, 0.35, 0.75])
-    set_col("ctx_cont.wick_ratio", [0.5, 0.25, 0.15, 0.85, 0.75, 0.90])
+    set_col("candle.pattern_body_share", [0.2, 0.7, 0.9, 0.8, 0.7, 0.9])
     set_col("candle.pattern_upper_wick_share", [0.0, 0.1, 0.1, 0.9, 0.5, 0.9])
     set_col("candle.pattern_lower_wick_share", [0.0, 0.6, 0.9, 0.1, 0.1, 0.1])
     return x
@@ -79,8 +77,6 @@ def test_momentum_flow_layer_builds_causal_derivatives() -> None:
     idx = {name: i for i, name in enumerate(out_names)}
     neutral_wick = x.copy()
     source_idx = {name: i for i, name in enumerate(names)}
-    neutral_wick[:, source_idx["snap.wick_asym"]] = 0.0
-    neutral_wick[:, source_idx["ctx_cont.wick_ratio"]] = 0.5
     neutral_wick[:, source_idx["candle.pattern_upper_wick_share"]] = 0.0
     neutral_wick[:, source_idx["candle.pattern_lower_wick_share"]] = 0.0
     out_neutral_wick, _ = build_entry_momentum_flow_layer(neutral_wick, names)

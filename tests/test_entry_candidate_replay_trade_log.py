@@ -290,6 +290,10 @@ def _source_frame(times: list[pd.Timestamp]) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "time": times,
+            "open": values + 0.01,
+            "high": values + 0.06,
+            "low": values - 0.04,
+            "close": values + 0.01,
             "bid_open": values,
             "ask_open": values + 0.02,
             "bid_close": values,
@@ -298,6 +302,7 @@ def _source_frame(times: list[pd.Timestamp]) -> pd.DataFrame:
             "bid_low": values - 0.05,
             "ask_high": values + 0.07,
             "ask_low": values - 0.03,
+            "volume": np.arange(len(times), dtype=np.int64) + 1,
         }
     )
 
@@ -545,8 +550,12 @@ def test_source_tape_exposes_exact_hash_bound_closed_m1_provider(
     assert tape.source_binding["path"] == str(source_path.resolve())
     assert len(tape.source_binding["sha256"]) == 64
     assert tape.source_binding["size_bytes"] == source_path.stat().st_size
-    assert bar["time"] == pd.Timestamp(times[1])
+    assert pd.Timestamp(bar["time"]) == pd.Timestamp(times[1])
+    assert bar["schema_version"] == "gx1_closed_m1_literal_mba_path_v1"
+    assert bar["source_sha256"] == tape.source_sha256
+    assert bar["mid_close"] == pytest.approx(tape.mid_close[1])
     assert bar["bid_close"] == pytest.approx(tape.bid_close[1])
+    assert bar["volume"] == int(tape.volume[1])
     assert quote["time"] == pd.Timestamp(times[1])
     assert quote["bid"] == pytest.approx(tape.bid_open[1])
     assert quote["ask"] == pytest.approx(tape.ask_open[1])

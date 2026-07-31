@@ -821,7 +821,7 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
         "context_specialist_routing": routing,
         "recommended_fusion": {
             "type": "cross_attended_dynamic_gated_specialists_plus_five_tf_cooperation",
-            "gate_context": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
+            "gate_context": list(MODEL_NATIVE_CTX_CAT_FIELDS),
             "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),

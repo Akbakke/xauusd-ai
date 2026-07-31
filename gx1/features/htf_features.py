@@ -34,11 +34,12 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import math
 import os
 import stat
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Mapping, Optional
 
 import numpy as np
 import pandas as pd
@@ -303,7 +304,7 @@ def compute_h4_trend_sign_cat(
 
 
 # ---------------------------------------------------------------------------
-# Vectorized full-tape HTF (ONE TRUTH for the offline ctx builder + the live daemon)
+# Vectorized full-tape HTF (one truth for offline and immutable live snapshots)
 # ---------------------------------------------------------------------------
 
 HTF_TAPE_COLUMNS = (
@@ -331,9 +332,9 @@ def _align_last_closed_tape(
 def build_htf_tape(m5_candles: pd.DataFrame) -> pd.DataFrame:
     """Compute the 5 HTF features for EVERY M5 bar (vectorized full-tape), no lookahead.
 
-    ONE TRUTH for the offline ctx builder (add_ctx_cont_columns_to_prebuilt) AND the live
-    canonical_incremental daemon, so live serves the SAME fresh HTF the training
-    distribution was built with — fixing the daemon forward-fill / frozen-HTF bug (e.g. the
+    ONE TRUTH for the offline ctx builder (add_ctx_cont_columns_to_prebuilt) and the
+    immutable live snapshot owner, so serving uses the same fresh HTF the training
+    distribution was built with — preventing forward-fill/frozen-HTF drift (e.g. the
     H4 trend sign says down-when-down instead of a stale value). Strict warmup floors match
     the offline builder; FAIL-LOUD (raise) if warmup is unmet — never emits an unconverged
     value. Returns a DataFrame indexed like ``m5_candles`` with ``HTF_TAPE_COLUMNS``.
@@ -594,15 +595,73 @@ MULTI_TF_FEATURE_NAMES_SHA256_V3 = hashlib.sha256(
 ).hexdigest()
 HTF_V3_MATRIX_CONTRACT = "HTF_V3_CAUSAL_MATRIX_V1"
 HTF_V3_CACHE_SCHEMA_VERSION = "htf_v3_disk_cache_manifest_v1"
+HTF_V3_CACHE_BUILDER_VERSION = (
+    "prebuild_multi_tf_cache_v3_causal_sha256_bound_20260728"
+)
+
+# V4 is the first per-resolution surface with all eight Entry specialist
+# families.  V2/V3 remain immutable historical contracts.  The two old
+# ``vwap_session_*`` names are deliberately corrected here: on D1 their owner
+# computes a declared five-bar local cycle rather than a daily session, so V4
+# names the shared semantic honestly instead of carrying a proxy label.
+from gx1.features.smc_v1 import (  # noqa: E402
+    SMC_MTF_FEATURE_NAMES_V1,
+    SMC_MTF_GEOMETRY_FEATURE_NAMES_V1,
+)
+
+MULTI_TF_PER_BAR_FEATURES_V4_BASE = tuple(
+    "vwap_local_cycle_dist_atr"
+    if name == "vwap_session_dist_atr"
+    else "vwap_local_cycle_slope_atr"
+    if name == "vwap_session_slope_atr"
+    else name
+    for name in MULTI_TF_PER_BAR_FEATURES_V3
+)
+MULTI_TF_PER_BAR_FEATURES_V4 = (
+    MULTI_TF_PER_BAR_FEATURES_V4_BASE
+    + SMC_MTF_FEATURE_NAMES_V1
+    + SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
+)
+MULTI_TF_FEATURE_COUNT_V4 = len(MULTI_TF_PER_BAR_FEATURES_V4)
+MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
+    json.dumps(
+        list(MULTI_TF_PER_BAR_FEATURES_V4),
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+).hexdigest()
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2"
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v3"
+HTF_V4_CACHE_BUILDER_VERSION = (
+    "prebuild_multi_tf_cache_v4_closed_resample_smc_pivot_envelope_20260729"
+)
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = (
+    "htf_v4_full_input_liveness_v2"
+)
 
 MULTI_TF_RESAMPLE_RULES = {
-    # V10 (entry) base is M5 → uses M15+H1+H4+D1.
-    # V3 (exit) base is M1 → uses M5+M15+H1+H4+D1 (M5 added below).
-    "M5": "5min",     # 96 bars = 8h — micro momentum
-    "M15": "15min",   # 96 bars = 24h — intraday momentum
-    "H1": "1h",       # 96 bars = 4 days
-    "H4": "4h",       # 96 bars = 16 days
-    "D1": "1D",       # 96 bars = ~3 months
+    # Resample cadence only. Entry window lengths are explicit recipe inputs
+    # and must form a strictly increasing wall-clock coverage pyramid.
+    "M5": "5min",
+    "M15": "15min",
+    "H1": "1h",
+    "H4": "4h",
+    "D1": "1D",
+}
+MULTI_TF_TIMEFRAMES = tuple(MULTI_TF_RESAMPLE_RULES)
+MULTI_TF_TIMEFRAMES_LOWER = tuple(
+    timeframe.lower() for timeframe in MULTI_TF_TIMEFRAMES
+)
+MULTI_TF_TIMEFRAMES_LOWER_M5_LAST = (
+    *MULTI_TF_TIMEFRAMES_LOWER[1:],
+    MULTI_TF_TIMEFRAMES_LOWER[0],
+)
+MULTI_TF_BARS_IN_M5 = {
+    timeframe.lower(): int(
+        pd.Timedelta(rule) / pd.Timedelta(MULTI_TF_RESAMPLE_RULES["M5"])
+    )
+    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items()
 }
 
 # Pandas-Timedelta shift per TF: ensures we use only CLOSED bars at-or-before t
@@ -613,6 +672,356 @@ MULTI_TF_SHIFT = {
     "H4": pd.Timedelta(hours=4),
     "D1": pd.Timedelta(days=1),
 }
+MULTI_TF_PYRAMID_SCHEMA_VERSION = "entry_multi_tf_causal_resolution_pyramid_v1"
+
+
+def multi_tf_last_closed_label(
+    decision_bar_start: pd.Timestamp | str,
+    timeframe: str,
+) -> pd.Timestamp:
+    """Return the exact opening label of the last closed bar for one TF.
+
+    ``decision_bar_start`` is the opening timestamp of an observed M5 candle.
+    Its information becomes available five minutes later.  HTF resample labels
+    are bar-opening timestamps, so the availability cutoff must be shifted by
+    the full HTF duration and then floored to that timeframe's UTC grid.
+    """
+    if timeframe not in MULTI_TF_RESAMPLE_RULES:
+        raise RuntimeError(
+            f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}"
+        )
+    timestamp = pd.Timestamp(decision_bar_start)
+    if timestamp.tz is None or timestamp.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError(
+            "HTF_V4_DECISION_TIMESTAMP_INVALID: timezone-aware UTC required"
+        )
+    return (
+        timestamp
+        + MULTI_TF_SHIFT["M5"]
+        - MULTI_TF_SHIFT[timeframe]
+    ).floor(MULTI_TF_RESAMPLE_RULES[timeframe])
+
+
+def build_multi_tf_v4_closed_timestamp_indices(
+    m5_index: pd.DatetimeIndex,
+) -> dict[str, pd.DatetimeIndex]:
+    """Derive the one admissible closed-bar timestamp axis for every V4 TF."""
+    if not isinstance(m5_index, pd.DatetimeIndex) or len(m5_index) == 0:
+        raise RuntimeError(
+            "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID: non-empty "
+            "DatetimeIndex required"
+        )
+    m5_index = m5_index.as_unit("ns")
+    if (
+        m5_index.tz is None
+        or m5_index.hasnans
+        or not m5_index.is_unique
+        or not m5_index.is_monotonic_increasing
+        or m5_index[0].utcoffset() != pd.Timedelta(0)
+    ):
+        raise RuntimeError(
+            "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID: exact chronological "
+            "unique UTC timestamps required"
+        )
+    if not m5_index.floor(MULTI_TF_RESAMPLE_RULES["M5"]).equals(m5_index):
+        raise RuntimeError(
+            "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID: source timestamps "
+            "must lie on the exact M5 UTC grid"
+        )
+
+    expected: dict[str, pd.DatetimeIndex] = {}
+    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items():
+        labels = m5_index.floor(rule).drop_duplicates()
+        last_closed = multi_tf_last_closed_label(m5_index[-1], timeframe)
+        labels = labels[labels <= last_closed]
+        if len(labels) and m5_index[0] > labels[0]:
+            labels = labels[1:]
+        if len(labels) == 0:
+            raise RuntimeError(
+                f"HTF_V4_NO_COMPLETE_RESAMPLED_BARS: {timeframe}"
+            )
+        expected[timeframe] = labels
+    return expected
+
+
+def require_multi_tf_resolution_pyramid(
+    per_tf_seq_lens: dict[str, int],
+) -> dict[str, object]:
+    """Validate explicit windows as strictly increasing wall-clock coverage."""
+    expected_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
+    if not isinstance(per_tf_seq_lens, dict) or tuple(per_tf_seq_lens) != expected_tfs:
+        raise RuntimeError(
+            "MULTI_TF_RESOLUTION_PYRAMID_ORDER_INVALID: exact "
+            "M5/M15/H1/H4/D1 declaration required"
+        )
+    lengths: dict[str, int] = {}
+    coverage_seconds: dict[str, int] = {}
+    for tf in expected_tfs:
+        value = per_tf_seq_lens[tf]
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise RuntimeError(
+                f"MULTI_TF_RESOLUTION_PYRAMID_LENGTH_INVALID: {tf}={value!r}"
+            )
+        lengths[tf] = int(value)
+        coverage_seconds[tf] = int(
+            value * MULTI_TF_SHIFT[tf].total_seconds()
+        )
+    spans = tuple(coverage_seconds.values())
+    if any(left >= right for left, right in zip(spans, spans[1:])):
+        raise RuntimeError(
+            "MULTI_TF_RESOLUTION_PYRAMID_COVERAGE_INVALID: progressively "
+            f"coarser timeframes must cover strictly older history; {coverage_seconds}"
+        )
+    payload: dict[str, object] = {
+        "schema_version": MULTI_TF_PYRAMID_SCHEMA_VERSION,
+        "timeframe_order": list(expected_tfs),
+        "per_tf_seq_lens": lengths,
+        "coverage_seconds": coverage_seconds,
+        "strictly_increasing_wall_clock_coverage": True,
+    }
+    payload["contract_sha256"] = hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return payload
+
+
+def build_multi_tf_v4_liveness_contract(
+    features: dict[str, pd.DataFrame],
+) -> dict[str, object]:
+    """Prove every V4 field is finite, variable and non-duplicated on every TF."""
+
+    if tuple(features) != tuple(MULTI_TF_RESAMPLE_RULES):
+        raise RuntimeError(
+            "HTF_V4_LIVENESS_TIMEFRAME_ORDER_INVALID: exact "
+            "M5/M15/H1/H4/D1 required"
+        )
+    failures: list[str] = []
+    timeframe_rows: dict[str, object] = {}
+    for tf_name in MULTI_TF_RESAMPLE_RULES:
+        frame = features[tf_name]
+        if (
+            not isinstance(frame, pd.DataFrame)
+            or tuple(frame.columns) != MULTI_TF_PER_BAR_FEATURES_V4
+            or frame.attrs.get("htf_feature_contract")
+            != HTF_V4_MATRIX_CONTRACT
+        ):
+            raise RuntimeError(
+                f"HTF_V4_LIVENESS_SURFACE_INVALID: {tf_name}"
+            )
+        values = np.asarray(frame.attrs.get("feats_np"))
+        warmup_rows = frame.attrs.get("causal_warmup_rows")
+        if (
+            values.dtype != np.dtype(np.float32)
+            or values.shape
+            != (len(frame), MULTI_TF_FEATURE_COUNT_V4)
+            or isinstance(warmup_rows, bool)
+            or not isinstance(warmup_rows, (int, np.integer))
+            or not 0 <= int(warmup_rows) < len(frame)
+        ):
+            raise RuntimeError(
+                f"HTF_V4_LIVENESS_ARRAY_INVALID: {tf_name}"
+            )
+        warmup = int(warmup_rows)
+        live = values[warmup:].astype(np.float64, copy=False)
+        if not np.isfinite(live).all():
+            failures.append(f"{tf_name}:nonfinite_post_warmup")
+        field_stats: dict[str, object] = {}
+        column_hash_owner: dict[str, str] = {}
+        duplicate_pairs: list[list[str]] = []
+        constant_fields: list[str] = []
+        for index, feature_name in enumerate(MULTI_TF_PER_BAR_FEATURES_V4):
+            column = live[:, index]
+            unique_count = int(np.unique(column).size)
+            standard_deviation = float(np.std(column, dtype=np.float64))
+            nonzero_fraction = float(np.mean(np.abs(column) > 1e-12))
+            digest = hashlib.sha256(
+                np.ascontiguousarray(column).view(np.uint8)
+            ).hexdigest()
+            if unique_count <= 1 or standard_deviation <= 0.0:
+                constant_fields.append(feature_name)
+            prior = column_hash_owner.get(digest)
+            if prior is not None:
+                duplicate_pairs.append([prior, feature_name])
+            else:
+                column_hash_owner[digest] = feature_name
+            field_stats[feature_name] = {
+                "unique_count": unique_count,
+                "mean": float(np.mean(column, dtype=np.float64)),
+                "std": standard_deviation,
+                "minimum": float(np.min(column)),
+                "maximum": float(np.max(column)),
+                "nonzero_fraction": nonzero_fraction,
+                "values_sha256": digest,
+            }
+        if constant_fields:
+            failures.append(
+                f"{tf_name}:constant_fields={constant_fields}"
+            )
+        if duplicate_pairs:
+            failures.append(
+                f"{tf_name}:exact_duplicate_fields={duplicate_pairs}"
+            )
+        timeframe_rows[tf_name] = {
+            "rows": int(len(frame)),
+            "warmup_rows": warmup,
+            "live_rows": int(len(live)),
+            "constant_fields": constant_fields,
+            "exact_duplicate_pairs": duplicate_pairs,
+            "fields": field_stats,
+        }
+    payload: dict[str, object] = {
+        "schema_version": HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION,
+        "matrix_contract": HTF_V4_MATRIX_CONTRACT,
+        "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V4,
+        "timeframe_order": list(MULTI_TF_RESAMPLE_RULES),
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "timeframes": timeframe_rows,
+    }
+    payload["contract_sha256"] = hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return payload
+
+
+def require_multi_tf_v4_liveness_contract(
+    value: object,
+) -> dict[str, object]:
+    """Validate the exact immutable V4 per-field/per-timeframe proof."""
+
+    if not isinstance(value, dict):
+        raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_MISSING")
+    expected_keys = {
+        "schema_version",
+        "matrix_contract",
+        "feature_names_sha256",
+        "timeframe_order",
+        "decision",
+        "failures",
+        "timeframes",
+        "contract_sha256",
+    }
+    if set(value) != expected_keys:
+        raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_KEYS_INVALID")
+    identity_payload = {
+        key: item for key, item in value.items() if key != "contract_sha256"
+    }
+    expected_sha = hashlib.sha256(
+        json.dumps(
+            identity_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    if value.get("contract_sha256") != expected_sha:
+        raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_IDENTITY_INVALID")
+    if (
+        value.get("schema_version")
+        != HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION
+        or value.get("matrix_contract") != HTF_V4_MATRIX_CONTRACT
+        or value.get("feature_names_sha256")
+        != MULTI_TF_FEATURE_NAMES_SHA256_V4
+        or value.get("timeframe_order") != list(MULTI_TF_RESAMPLE_RULES)
+        or value.get("decision") != "PASS"
+        or value.get("failures") != []
+    ):
+        raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_DECISION_INVALID")
+    timeframes = value.get("timeframes")
+    if not isinstance(timeframes, dict) or set(timeframes) != set(
+        MULTI_TF_RESAMPLE_RULES
+    ):
+        raise RuntimeError("HTF_V4_LIVENESS_TIMEFRAME_ORDER_INVALID")
+    expected_tf_keys = {
+        "rows",
+        "warmup_rows",
+        "live_rows",
+        "constant_fields",
+        "exact_duplicate_pairs",
+        "fields",
+    }
+    expected_stat_keys = {
+        "unique_count",
+        "mean",
+        "std",
+        "minimum",
+        "maximum",
+        "nonzero_fraction",
+        "values_sha256",
+    }
+    for tf_name, row in timeframes.items():
+        if not isinstance(row, dict) or set(row) != expected_tf_keys:
+            raise RuntimeError(f"HTF_V4_LIVENESS_TF_KEYS_INVALID: {tf_name}")
+        rows = row.get("rows")
+        warmup = row.get("warmup_rows")
+        live_rows = row.get("live_rows")
+        if (
+            isinstance(rows, bool)
+            or not isinstance(rows, int)
+            or rows <= 0
+            or isinstance(warmup, bool)
+            or not isinstance(warmup, int)
+            or not 0 <= warmup < rows
+            or live_rows != rows - warmup
+            or row.get("constant_fields") != []
+            or row.get("exact_duplicate_pairs") != []
+        ):
+            raise RuntimeError(f"HTF_V4_LIVENESS_TF_DECISION_INVALID: {tf_name}")
+        fields = row.get("fields")
+        if not isinstance(fields, dict) or set(fields) != set(
+            MULTI_TF_PER_BAR_FEATURES_V4
+        ):
+            raise RuntimeError(f"HTF_V4_LIVENESS_FIELDS_INVALID: {tf_name}")
+        for field_name, stats in fields.items():
+            if not isinstance(stats, dict) or set(stats) != expected_stat_keys:
+                raise RuntimeError(
+                    f"HTF_V4_LIVENESS_STATS_KEYS_INVALID: {tf_name}:{field_name}"
+                )
+            unique_count = stats.get("unique_count")
+            numeric = [
+                stats.get(name)
+                for name in (
+                    "mean",
+                    "std",
+                    "minimum",
+                    "maximum",
+                    "nonzero_fraction",
+                )
+            ]
+            if (
+                isinstance(unique_count, bool)
+                or not isinstance(unique_count, int)
+                or unique_count <= 1
+                or any(
+                    isinstance(item, bool)
+                    or not isinstance(item, (int, float))
+                    or not math.isfinite(float(item))
+                    for item in numeric
+                )
+                or float(stats["std"]) <= 0.0
+                or not 0.0 < float(stats["nonzero_fraction"]) <= 1.0
+                or float(stats["minimum"]) > float(stats["maximum"])
+                or not isinstance(stats.get("values_sha256"), str)
+                or len(stats["values_sha256"]) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in stats["values_sha256"]
+                )
+            ):
+                raise RuntimeError(
+                    f"HTF_V4_LIVENESS_STATS_INVALID: {tf_name}:{field_name}"
+                )
+    return value
 
 
 def _rsi(close: pd.Series, n: int = 14) -> pd.Series:
@@ -983,6 +1392,42 @@ def compute_per_bar_features_v3(ohlcv: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def compute_per_bar_features_v4(ohlcv: pd.DataFrame) -> pd.DataFrame:
+    """Return the exact all-eight-family causal surface for one resolution."""
+    from gx1.features.smc_v1 import compute_smc_mtf_primitives_v1
+
+    v3 = compute_per_bar_features_v3(ohlcv)
+    base = v3.rename(
+        columns={
+            "vwap_session_dist_atr": "vwap_local_cycle_dist_atr",
+            "vwap_session_slope_atr": "vwap_local_cycle_slope_atr",
+        }
+    )
+    smc_source = ohlcv[["high", "low", "close"]].astype(np.float64).copy()
+    smc_source["atr"] = _atr(
+        smc_source["high"],
+        smc_source["low"],
+        smc_source["close"],
+        14,
+    )
+    primitives = compute_smc_mtf_primitives_v1(smc_source)
+    if not primitives.index.equals(base.index):
+        raise RuntimeError("HTF_V4_SMC_ROW_AXIS_MISMATCH")
+
+    out = pd.concat((base, primitives), axis=1)
+    if tuple(out.columns) != MULTI_TF_PER_BAR_FEATURES_V4:
+        raise RuntimeError(
+            "HTF_V4_COLUMN_ORDER_INVALID: "
+            f"observed={tuple(out.columns)}"
+        )
+    validate_causal_feature_matrix(
+        out.to_numpy(dtype=np.float64, copy=False),
+        expected_width=MULTI_TF_FEATURE_COUNT_V4,
+        context="HTF_V4_CAUSAL_FEATURES",
+    )
+    return out.astype(np.float32)
+
+
 def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
     """Build the exact causal V2 feature tables from observed M5 OHLCV.
 
@@ -1035,6 +1480,44 @@ def build_multi_tf_per_bar_features_v3(m5_df: pd.DataFrame) -> dict:
         feats.attrs["feats_np"] = feats_np
         feats.attrs["causal_warmup_rows"] = warmup_rows
         feats.attrs["htf_feature_contract"] = HTF_V3_MATRIX_CONTRACT
+        result[tf_name] = feats
+    return result
+
+
+def build_multi_tf_per_bar_features_v4(m5_df: pd.DataFrame) -> dict:
+    """Build all eight causal specialist families at every declared timeframe."""
+    _validate_m5_input(m5_df, require_volume=True)
+    source = m5_df.copy(deep=False)
+    source.index = source.index.as_unit("ns")
+    expected_indices = build_multi_tf_v4_closed_timestamp_indices(source.index)
+    result = {}
+    for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
+        resampled = _resample_ohlcv(source, rule)
+        resampled = resampled.dropna(subset=["open", "high", "low", "close"])
+        expected_index = expected_indices[tf_name]
+        if not resampled.index.is_unique or not expected_index.isin(
+            resampled.index
+        ).all():
+            raise RuntimeError(
+                f"HTF_V4_RESAMPLED_TIMESTAMP_GEOMETRY_INVALID: {tf_name}"
+            )
+        resampled = resampled.loc[expected_index]
+        if not resampled.index.equals(expected_index):
+            raise RuntimeError(
+                f"HTF_V4_RESAMPLED_TIMESTAMP_GEOMETRY_INVALID: {tf_name}"
+            )
+        feats = compute_per_bar_features_v4(resampled)
+        ts_int64 = feats.index.asi8.astype(np.int64, copy=True)
+        feats_np = feats.to_numpy(dtype=np.float32, copy=True)
+        warmup_rows = validate_causal_feature_matrix(
+            feats_np,
+            expected_width=MULTI_TF_FEATURE_COUNT_V4,
+            context=f"HTF_V4_{tf_name}",
+        )
+        feats.attrs["ts_int64"] = ts_int64
+        feats.attrs["feats_np"] = feats_np
+        feats.attrs["causal_warmup_rows"] = warmup_rows
+        feats.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
         result[tf_name] = feats
     return result
 
@@ -1115,10 +1598,10 @@ def attach_v2_mtf_per_bar_scalars(
 # `{tf}_*_v2` scalars REGIME_V4 needs (R1 regime_class_id / R2 trend_age_bars_norm /
 # R3 ema_stack_aligned, plus the mom/rsi/atr_bps/slope/lower_wick context). This is the
 # 5-TF/9-feature REGIME version (m5 ADDED 2026-06-05, user vedtak: regime ALL-5) — NOT the
-# older 4-TF/8-feature XGB-v7 projection (retired; its module v12_live_features is deleted).
+# older 4-TF/8-feature projection (retired; its module v12_live_features is deleted).
 # The live serve loader (v12_state_from_prebuilt._V2_MTF_PER_TF imports THIS) AND the
-# canonical_incremental daemon (BASE34 ctx recompute) AND the build (add_ctx_cont) all use
-# these so the daemon-maintained BASE34 regime cols are train==serve by construction.
+# immutable snapshot path (BASE28 context recompute) and the offline build use
+# these so admitted live regime columns are train==serve by construction.
 REGIME_V4_V2_MTF_PER_TF = (
     ("ema20_slope_atr", "ema20_slope_atr"),
     ("ema_stack_aligned", "ema_stack_aligned_v2"),
@@ -1130,7 +1613,7 @@ REGIME_V4_V2_MTF_PER_TF = (
     ("atr_bps_14", "atr_bps_14"),
     ("lower_wick_pct", "lower_wick_pct"),
 )
-REGIME_V4_V2_MTF_TFS = ("m15", "h1", "h4", "d1", "m5")
+REGIME_V4_V2_MTF_TFS = MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
 REGIME_V4_V2_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
 
 
@@ -1139,8 +1622,8 @@ def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
     context) to a cv3 frame IN PLACE, using the canonical REGIME_V4_V2_MTF_* constants.
 
     ONE TRUTH shared by the live serve loader, the build (add_ctx_cont), and the
-    canonical_incremental daemon — so the daemon-maintained BASE34 regime columns are
-    computed the SAME way the training BASE34 was (no train≠serve, no carry-forward freeze).
+    immutable snapshot owner — so admitted live regime columns are computed
+    the same way as offline training context (no train≠serve or carry-forward freeze).
     Existing derived columns are overwritten from the exact source so stale or
     externally injected values cannot pass through this owner.
     """
@@ -1166,6 +1649,9 @@ _HTF_V2_CACHE_MANIFEST_KEYS = frozenset(
         "m5_prebuilt_source_sha256",
         "tfs",
     }
+)
+_HTF_V4_CACHE_MANIFEST_KEYS = (
+    _HTF_V2_CACHE_MANIFEST_KEYS | {"full_input_liveness"}
 )
 _HTF_V2_CACHE_TF_KEYS = frozenset(
     {
@@ -1339,7 +1825,7 @@ def _load_verified_cache_npy(
 
 
 def load_multi_tf_v2_cache(cache_dir) -> dict:
-    """Load a pre-built V2 cache (see gx1/scripts/prebuild_multi_tf_cache_v2.py).
+    """Load one verified V2/V3/V4 cache through the retained cache owner.
 
     Returns the same dict shape as build_multi_tf_per_bar_features_v2(): one
     DataFrame per TF (M5/M15/H1/H4/D1) with .attrs["ts_int64"] and
@@ -1393,18 +1879,52 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
             ) from exc
         if not isinstance(manifest, dict):
             raise RuntimeError("HTF_V2_CACHE_MANIFEST_INVALID: root must be an object")
-        if set(manifest) != _HTF_V2_CACHE_MANIFEST_KEYS:
+        schema_version = manifest.get("schema_version")
+        expected_manifest_keys = (
+            _HTF_V4_CACHE_MANIFEST_KEYS
+            if schema_version == HTF_V4_CACHE_SCHEMA_VERSION
+            else _HTF_V2_CACHE_MANIFEST_KEYS
+        )
+        if set(manifest) != expected_manifest_keys:
             raise RuntimeError(
                 "HTF_V2_CACHE_CONTRACT_MISMATCH: manifest exact keys differ "
-                f"missing={sorted(_HTF_V2_CACHE_MANIFEST_KEYS - set(manifest))} "
-                f"unexpected={sorted(set(manifest) - _HTF_V2_CACHE_MANIFEST_KEYS)}"
+                f"missing={sorted(expected_manifest_keys - set(manifest))} "
+                f"unexpected={sorted(set(manifest) - expected_manifest_keys)}"
             )
         expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
+        declared_cache_contracts = {
+            HTF_V2_CACHE_SCHEMA_VERSION: (
+                HTF_V2_MATRIX_CONTRACT,
+                MULTI_TF_FEATURE_COUNT_V2,
+                MULTI_TF_PER_BAR_FEATURES_V2,
+                HTF_V2_CACHE_BUILDER_VERSION,
+            ),
+            HTF_V3_CACHE_SCHEMA_VERSION: (
+                HTF_V3_MATRIX_CONTRACT,
+                MULTI_TF_FEATURE_COUNT_V3,
+                MULTI_TF_PER_BAR_FEATURES_V3,
+                HTF_V3_CACHE_BUILDER_VERSION,
+            ),
+            HTF_V4_CACHE_SCHEMA_VERSION: (
+                HTF_V4_MATRIX_CONTRACT,
+                MULTI_TF_FEATURE_COUNT_V4,
+                MULTI_TF_PER_BAR_FEATURES_V4,
+                HTF_V4_CACHE_BUILDER_VERSION,
+            ),
+        }
+        if schema_version not in declared_cache_contracts:
+            raise RuntimeError(
+                "HTF_V2_CACHE_CONTRACT_MISMATCH: unknown schema_version "
+                f"{schema_version!r}"
+            )
+        matrix_contract, feature_width, feature_names, builder_version = (
+            declared_cache_contracts[schema_version]
+        )
         contracts = {
-            "schema_version": HTF_V2_CACHE_SCHEMA_VERSION,
-            "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
-            "feature_count": MULTI_TF_FEATURE_COUNT_V2,
-            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+            "schema_version": schema_version,
+            "builder_version": builder_version,
+            "feature_count": feature_width,
+            "feature_names": list(feature_names),
             "shift_contract": expected_shift,
         }
         for name, expected in contracts.items():
@@ -1482,10 +2002,10 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
                 label=f"{tf_name}.feature_count",
                 minimum=1,
             )
-            if feature_count != MULTI_TF_FEATURE_COUNT_V2:
+            if feature_count != feature_width:
                 raise RuntimeError(
                     f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name}.feature_count "
-                    f"observed={feature_count} expected={MULTI_TF_FEATURE_COUNT_V2}"
+                    f"observed={feature_count} expected={feature_width}"
                 )
             feats_size = _exact_cache_int(
                 info["feats_npy_size_bytes"],
@@ -1525,11 +2045,11 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
                     f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} requires "
                     "float32 features/int64 timestamps"
                 )
-            if feats_np.shape != (n_bars, MULTI_TF_FEATURE_COUNT_V2):
+            if feats_np.shape != (n_bars, feature_width):
                 raise RuntimeError(
                     f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} feature shape "
                     f"observed={feats_np.shape} "
-                    f"expected={(n_bars, MULTI_TF_FEATURE_COUNT_V2)}"
+                    f"expected={(n_bars, feature_width)}"
                 )
             if ts_int64.shape != (n_bars,) or np.any(np.diff(ts_int64) <= 0):
                 raise RuntimeError(
@@ -1537,7 +2057,7 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
                 )
             warmup_rows = validate_causal_feature_matrix(
                 feats_np,
-                expected_width=MULTI_TF_FEATURE_COUNT_V2,
+                expected_width=feature_width,
                 context=f"HTF_V2_CACHE_{tf_name}",
             )
             if warmup_rows == len(feats_np):
@@ -1546,7 +2066,7 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
                 )
             expected_meta = {
                 "n_bars": n_bars,
-                "feature_count": MULTI_TF_FEATURE_COUNT_V2,
+                "feature_count": feature_width,
                 "first_ts_ns": int(ts_int64[0]),
                 "last_ts_ns": int(ts_int64[-1]),
                 "causal_warmup_rows": warmup_rows,
@@ -1567,13 +2087,31 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
             df = pd.DataFrame(
                 np.empty((len(idx), feats_np.shape[1]), dtype=np.float32),
                 index=idx,
-                columns=MULTI_TF_PER_BAR_FEATURES_V2,
+                columns=feature_names,
             )
             df.attrs["ts_int64"] = np.ascontiguousarray(ts_int64)
             df.attrs["feats_np"] = np.ascontiguousarray(feats_np)
             df.attrs["causal_warmup_rows"] = warmup_rows
-            df.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
+            df.attrs["htf_feature_contract"] = matrix_contract
             out[tf_name] = df
+        if schema_version == HTF_V4_CACHE_SCHEMA_VERSION:
+            try:
+                require_multi_tf_v4_liveness_contract(
+                    manifest.get("full_input_liveness")
+                )
+            except RuntimeError as exc:
+                raise RuntimeError(
+                    "HTF_V4_CACHE_FULL_INPUT_LIVENESS_INVALID"
+                ) from exc
+            observed_liveness = build_multi_tf_v4_liveness_contract(out)
+            if (
+                observed_liveness.get("decision") != "PASS"
+                or manifest.get("full_input_liveness")
+                != observed_liveness
+            ):
+                raise RuntimeError(
+                    "HTF_V4_CACHE_FULL_INPUT_LIVENESS_INVALID"
+                )
         final_inventory = set(os.listdir(directory_fd))
         if final_inventory != declared_inventory:
             raise RuntimeError(
@@ -1584,6 +2122,12 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
         return out
     finally:
         os.close(directory_fd)
+
+
+# Contract-neutral public name for active Entry callers.  The historical V2
+# function name remains as a compatibility surface for immutable V2/V3
+# research readers, while active model-native paths validate and require V4.
+load_multi_tf_cache = load_multi_tf_v2_cache
 
 
 def build_multi_tf_per_bar_features(m5_df: pd.DataFrame) -> dict:
@@ -1640,9 +2184,19 @@ def get_last_n_at_or_before(
     target = pd.Timestamp(target_ts)
     if target.tzinfo is None or target.utcoffset() != pd.Timedelta(0):
         raise RuntimeError("HTF_WINDOW_TARGET_INVALID: target_ts must be timezone-aware UTC")
-    if feats.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT:
+    declared_contract = feats.attrs.get("htf_feature_contract")
+    exact_contracts = {
+        HTF_V2_MATRIX_CONTRACT: MULTI_TF_PER_BAR_FEATURES_V2,
+        HTF_V3_MATRIX_CONTRACT: MULTI_TF_PER_BAR_FEATURES_V3,
+        HTF_V4_MATRIX_CONTRACT: MULTI_TF_PER_BAR_FEATURES_V4,
+    }
+    if (
+        declared_contract not in exact_contracts
+        or tuple(feats.columns) != tuple(exact_contracts[declared_contract])
+    ):
         raise RuntimeError(
-            "HTF_WINDOW_SOURCE_CONTRACT_MISSING: refusing legacy/pandas fallback feature table"
+            "HTF_WINDOW_SOURCE_CONTRACT_MISSING: refusing unknown or "
+            "order-mismatched feature table"
         )
 
     ts_int64 = np.asarray(feats.attrs.get("ts_int64"))
@@ -1678,3 +2232,258 @@ def get_last_n_at_or_before(
     if tail.shape != (n, width) or not np.isfinite(tail).all():
         raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: selected feature evidence is non-finite")
     return np.ascontiguousarray(tail)
+
+
+def require_multi_tf_decision_window_coverage(
+    features: dict[str, pd.DataFrame],
+    *,
+    per_tf_seq_lens: dict[str, int],
+    decision_times_by_split: dict[str, object],
+) -> dict[str, object]:
+    """Prove the exact TF pyramid is sliceable at every split boundary.
+
+    This pre-training check calls the same closed-bar slicer as the dataset and
+    includes each resolution's real causal warmup. It therefore cannot confuse
+    the 96-row M5 signal sequence with the independently declared MTF windows.
+    """
+
+    pyramid = require_multi_tf_resolution_pyramid(per_tf_seq_lens)
+    expected_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
+    if not isinstance(features, dict) or tuple(features) != expected_tfs:
+        raise RuntimeError(
+            "MULTI_TF_DECISION_COVERAGE_FEATURE_SET_INVALID: exact ordered "
+            "M5/M15/H1/H4/D1 cache required"
+        )
+    if (
+        not isinstance(decision_times_by_split, dict)
+        or tuple(decision_times_by_split) != ("train", "val", "test")
+    ):
+        raise RuntimeError(
+            "MULTI_TF_DECISION_COVERAGE_SPLIT_SET_INVALID: exact ordered "
+            "train/val/test decision times required"
+        )
+
+    split_bounds: dict[str, dict[str, object]] = {}
+    boundary_times: list[tuple[str, str, pd.Timestamp]] = []
+    for split, raw_times in decision_times_by_split.items():
+        try:
+            times = pd.DatetimeIndex(
+                pd.to_datetime(raw_times, utc=True, errors="raise")
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"MULTI_TF_DECISION_COVERAGE_TIME_INVALID: {split}"
+            ) from exc
+        if (
+            times.empty
+            or times.hasnans
+            or not times.is_monotonic_increasing
+            or not times.is_unique
+        ):
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_TIME_INVALID: "
+                f"{split} must be non-empty, unique and chronological"
+            )
+        first = pd.Timestamp(times[0])
+        last = pd.Timestamp(times[-1])
+        split_bounds[split] = {
+            "rows": int(len(times)),
+            "first_utc": first.isoformat(),
+            "last_utc": last.isoformat(),
+        }
+        boundary_times.extend(
+            ((split, "first", first), (split, "last", last))
+        )
+
+    target_availability_shift = pd.Timedelta(minutes=5)
+    per_tf: dict[str, object] = {}
+    for tf in expected_tfs:
+        frame = features[tf]
+        n = int(per_tf_seq_lens[tf])
+        boundary_rows: dict[str, object] = {}
+        for split, edge, target in boundary_times:
+            availability = target + target_availability_shift
+            try:
+                window = get_last_n_at_or_before(
+                    frame,
+                    availability,
+                    n=n,
+                    tf_shift=MULTI_TF_SHIFT[tf],
+                )
+            except RuntimeError as exc:
+                raise RuntimeError(
+                    "MULTI_TF_DECISION_COVERAGE_UNAVAILABLE: "
+                    f"{split}.{edge}/{tf} target={target.isoformat()} "
+                    f"seq_len={n}: {exc}"
+                ) from exc
+            boundary_rows[f"{split}_{edge}"] = {
+                "target_utc": target.isoformat(),
+                "window_sha256": hashlib.sha256(
+                    np.ascontiguousarray(window, dtype="<f4").tobytes()
+                ).hexdigest(),
+            }
+        per_tf[tf] = {
+            "seq_len": n,
+            "coverage_seconds": pyramid["coverage_seconds"][tf],
+            "causal_warmup_rows": int(frame.attrs["causal_warmup_rows"]),
+            "boundaries": boundary_rows,
+        }
+
+    payload: dict[str, object] = {
+        "schema_version": "entry_multi_tf_decision_window_coverage_v1",
+        "target_availability_shift_minutes": 5,
+        "resolution_pyramid": pyramid,
+        "split_bounds": split_bounds,
+        "per_tf": per_tf,
+        "all_split_boundaries_sliceable": True,
+    }
+    payload["contract_sha256"] = hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return require_multi_tf_decision_window_coverage_metadata(
+        payload,
+        per_tf_seq_lens=per_tf_seq_lens,
+    )
+
+
+def require_multi_tf_decision_window_coverage_metadata(
+    value: Mapping[str, object],
+    *,
+    per_tf_seq_lens: dict[str, int],
+) -> dict[str, object]:
+    """Strictly validate the immutable split-boundary coverage proof."""
+
+    expected_keys = {
+        "schema_version",
+        "target_availability_shift_minutes",
+        "resolution_pyramid",
+        "split_bounds",
+        "per_tf",
+        "all_split_boundaries_sliceable",
+        "contract_sha256",
+    }
+    if not isinstance(value, Mapping) or set(value) != expected_keys:
+        raise RuntimeError("MULTI_TF_DECISION_COVERAGE_METADATA_KEYS_INVALID")
+    payload = dict(value)
+    pyramid = require_multi_tf_resolution_pyramid(per_tf_seq_lens)
+    if (
+        payload["schema_version"]
+        != "entry_multi_tf_decision_window_coverage_v1"
+        or payload["target_availability_shift_minutes"] != 5
+        or payload["resolution_pyramid"] != pyramid
+        or payload["all_split_boundaries_sliceable"] is not True
+    ):
+        raise RuntimeError("MULTI_TF_DECISION_COVERAGE_METADATA_INVALID")
+    split_bounds = payload["split_bounds"]
+    if not isinstance(split_bounds, dict) or tuple(split_bounds) != (
+        "train",
+        "val",
+        "test",
+    ):
+        raise RuntimeError("MULTI_TF_DECISION_COVERAGE_SPLIT_METADATA_INVALID")
+    parsed_bounds: dict[str, tuple[pd.Timestamp, pd.Timestamp]] = {}
+    for split, raw in split_bounds.items():
+        if not isinstance(raw, dict) or set(raw) != {
+            "rows",
+            "first_utc",
+            "last_utc",
+        }:
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_SPLIT_METADATA_INVALID"
+            )
+        rows = raw["rows"]
+        if isinstance(rows, bool) or not isinstance(rows, int) or rows <= 0:
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_SPLIT_METADATA_INVALID"
+            )
+        first = pd.Timestamp(raw["first_utc"])
+        last = pd.Timestamp(raw["last_utc"])
+        if (
+            first.tzinfo is None
+            or last.tzinfo is None
+            or first.utcoffset() != pd.Timedelta(0)
+            or last.utcoffset() != pd.Timedelta(0)
+            or first > last
+        ):
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_SPLIT_METADATA_INVALID"
+            )
+        parsed_bounds[split] = (first, last)
+    per_tf = payload["per_tf"]
+    if not isinstance(per_tf, dict) or tuple(per_tf) != tuple(
+        MULTI_TF_RESAMPLE_RULES
+    ):
+        raise RuntimeError("MULTI_TF_DECISION_COVERAGE_TF_METADATA_INVALID")
+    expected_boundaries = tuple(
+        f"{split}_{edge}"
+        for split in ("train", "val", "test")
+        for edge in ("first", "last")
+    )
+    for tf, raw in per_tf.items():
+        if not isinstance(raw, dict) or set(raw) != {
+            "seq_len",
+            "coverage_seconds",
+            "causal_warmup_rows",
+            "boundaries",
+        }:
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_TF_METADATA_INVALID"
+            )
+        warmup = raw["causal_warmup_rows"]
+        if (
+            raw["seq_len"] != per_tf_seq_lens[tf]
+            or raw["coverage_seconds"] != pyramid["coverage_seconds"][tf]
+            or isinstance(warmup, bool)
+            or not isinstance(warmup, int)
+            or warmup < 0
+        ):
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_TF_METADATA_INVALID"
+            )
+        boundaries = raw["boundaries"]
+        if not isinstance(boundaries, dict) or tuple(boundaries) != (
+            expected_boundaries
+        ):
+            raise RuntimeError(
+                "MULTI_TF_DECISION_COVERAGE_BOUNDARY_METADATA_INVALID"
+            )
+        for boundary, row in boundaries.items():
+            if not isinstance(row, dict) or set(row) != {
+                "target_utc",
+                "window_sha256",
+            }:
+                raise RuntimeError(
+                    "MULTI_TF_DECISION_COVERAGE_BOUNDARY_METADATA_INVALID"
+                )
+            split, edge = boundary.rsplit("_", 1)
+            expected_target = parsed_bounds[split][0 if edge == "first" else 1]
+            if (
+                pd.Timestamp(row["target_utc"]) != expected_target
+                or not isinstance(row["window_sha256"], str)
+                or len(row["window_sha256"]) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in row["window_sha256"]
+                )
+            ):
+                raise RuntimeError(
+                    "MULTI_TF_DECISION_COVERAGE_BOUNDARY_METADATA_INVALID"
+                )
+    observed_hash = payload.pop("contract_sha256")
+    expected_hash = hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    if observed_hash != expected_hash:
+        raise RuntimeError("MULTI_TF_DECISION_COVERAGE_HASH_INVALID")
+    payload["contract_sha256"] = observed_hash
+    return payload

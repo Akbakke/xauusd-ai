@@ -12,8 +12,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
+    MODEL_NATIVE_CTX_CAT_MIN_MAX,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
@@ -25,10 +28,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
     require_model_native_signal_contract,
 )
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    CTX_CAT_DOMAINS,
+)
 from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
 from gx1.execution import v12_model_native_state_live as state_module
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
+    MODEL_NATIVE_CTX_CAT_DOMAINS as SPECIALIST_CTX_CAT_DOMAINS,
     classify_entry_specialist_feature,
     model_native_context_temporal_alias_policy,
     specialist_contract_training_allowed_for_mode,
@@ -56,14 +63,22 @@ from tests.model_native_input_normalization_support import (
 # selected surface. The genuine 34-field base produces these totals.
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "chart_geometry_encoder": 22,
-    "momentum_flow_encoder": 30,
+    "momentum_flow_encoder": 31,
     "price_action_candle_encoder": 35,
     "session_regime_encoder": 208,
     "smc_liquidity_encoder": 74,
     "structure_swing_encoder": 56,
     "trend_ema_encoder": 43,
-    "vol_compression_encoder": 45,
+    "vol_compression_encoder": 44,
 }
+_TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)
+
+
+def _test_multi_tf_specialist_indices() -> dict[str, list[int]]:
+    return {
+        name: [position]
+        for position, name in enumerate(EXACT_SPECIALIST_NAMES)
+    }
 
 
 def _selected_fields() -> list[str]:
@@ -105,13 +120,19 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 4,
+        "dropout": 0.05,
+        "multi_tf_num_layers": 1,
+        "multi_tf_scale": 0.5,
+        "specialist_num_layers": 1,
+        "specialist_fusion_scale": 0.25,
+        "cross_family_fusion_scale": 0.25,
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
-        "m5_seq_dim": 3,
-        "m15_seq_dim": 3,
-        "h1_seq_dim": 3,
-        "h4_seq_dim": 3,
-        "d1_seq_dim": 3,
+        "m5_seq_dim": _TEST_MTF_DIM,
+        "m15_seq_dim": _TEST_MTF_DIM,
+        "h1_seq_dim": _TEST_MTF_DIM,
+        "h4_seq_dim": _TEST_MTF_DIM,
+        "d1_seq_dim": _TEST_MTF_DIM,
         "m5_seq_len": 4,
         "m15_seq_len": 4,
         "h1_seq_len": 4,
@@ -136,6 +157,9 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
                 "ctx_cat_indices"
             ].items()
         },
+        "multi_tf_specialist_input_indices": (
+            _test_multi_tf_specialist_indices()
+        ),
         "temporal_alias_signal_indices": list(
             temporal_alias_policy["signal_indices"]
         ),
@@ -144,7 +168,9 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
         ),
         "input_normalization": input_normalization_fixture(
             signal_names=ordered_signal_names,
-            mtf_names=["mtf_0", "mtf_1", "mtf_2"],
+            mtf_names=[
+                f"mtf_{index}" for index in range(_TEST_MTF_DIM)
+            ],
         ),
     }
 
@@ -231,6 +257,22 @@ def test_active_context_contract_always_contains_full_regime_stack(
     contract["ctx_cont_names"] = list(MODEL_NATIVE_CTX_CONT_FIELDS[:-1])
     with pytest.raises(RuntimeError, match="ctx_cont_names order mismatch"):
         require_model_native_signal_contract(contract, context="TEST")
+
+
+def test_categorical_context_owner_routes_exactly_to_all_active_consumers() -> None:
+    expected_fields = tuple(MODEL_NATIVE_CTX_CAT_DOMAINS)
+    assert expected_fields == MODEL_NATIVE_CTX_CAT_FIELDS
+    assert MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME == {
+        name: index for index, name in enumerate(expected_fields)
+    }
+    assert MODEL_NATIVE_CTX_CAT_MIN_MAX == {
+        name: (min(domain), max(domain))
+        for name, domain in MODEL_NATIVE_CTX_CAT_DOMAINS.items()
+    }
+    assert CTX_CAT_DOMAINS is MODEL_NATIVE_CTX_CAT_DOMAINS
+    assert SPECIALIST_CTX_CAT_DOMAINS is MODEL_NATIVE_CTX_CAT_DOMAINS
+    assert EXACT_CTX_CAT_DOMAINS is MODEL_NATIVE_CTX_CAT_DOMAINS
+    assert state_module._MODEL_NATIVE_CTX_CAT_DOMAINS is MODEL_NATIVE_CTX_CAT_MIN_MAX
 
 
 @pytest.mark.parametrize("forbidden_field", FORBIDDEN_LEGACY_BRIDGE_FIELDS)
@@ -328,7 +370,10 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
         dim=1,
     )
 
-    mtf = {f"seq_{tf}": torch.randn(2, 4, 3) for tf in ("m5", "m15", "h1", "h4", "d1")}
+    mtf = {
+        f"seq_{tf}": torch.randn(2, 4, _TEST_MTF_DIM)
+        for tf in ("m5", "m15", "h1", "h4", "d1")
+    }
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
     assert out["direction_logits"].shape == out["model_native_logits"].shape == (2, 3)

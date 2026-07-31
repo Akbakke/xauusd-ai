@@ -102,7 +102,7 @@ def _audited_wrapper_text() -> str:
     )
 
 
-def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse.Namespace:
+def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX142CAT5") -> argparse.Namespace:
     post_rebuild = (
         tmp_path
         / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_20260716T120000123456Z.json"
@@ -339,7 +339,7 @@ def test_smart_trainability_blocks_stale_ctx6cat6_source_metadata(tmp_path: Path
 
     assert report["decision"] == gate.BLOCKED_DECISION
     assert "smart source metadata has no stale CTX6CAT6 ctx contract" in report["blockers"]
-    assert "declared smart source ctx metadata matches CTX6CAT5" in report["blockers"]
+    assert "declared smart source ctx metadata matches CTX142CAT5" in report["blockers"]
     assert report["source_metadata_contract"]["stale_ctx6cat6_paths"]
     assert report["training_allowed"] is False
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
@@ -16,7 +17,9 @@ from tests.entry_full_input_liveness_support import (
 )
 
 
-def test_full_input_liveness_validates_all_660_fields_on_all_splits(tmp_path) -> None:
+def test_full_input_liveness_validates_660_split_fields_and_all_555_mtf_fields(
+    tmp_path,
+) -> None:
     path, artifact, _ = write_full_input_liveness_fixture(tmp_path)
 
     result = validate_full_input_liveness_artifact(
@@ -29,6 +32,8 @@ def test_full_input_liveness_validates_all_660_fields_on_all_splits(tmp_path) ->
     assert result["ok"] is True
     assert result["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
     assert result["field_status_row_count"] == 3 * (513 + 142 + 5)
+    assert result["multi_tf_field_count_per_timeframe"] == 111
+    assert result["multi_tf_field_status_row_count"] == 5 * 111
     assert artifact["decision"] == PASS_DECISION
     assert artifact["atr_ood_drift"]["status"] == "STABLE"
 
@@ -55,6 +60,33 @@ def test_full_input_liveness_allowlist_is_exact_and_has_no_prefix_pass_through(t
     assert any(
         row.get("field") == "p_unreviewed_direction_hint"
         and row.get("code") == "field_liveness_fail"
+        for row in result["failures"]
+    )
+
+
+def test_full_input_liveness_rejects_dead_or_missing_mtf_route(tmp_path) -> None:
+    path, artifact, _ = write_full_input_liveness_fixture(tmp_path)
+    mtf_contract = artifact["multi_tf_liveness"]["contract"]
+    timeframe = mtf_contract["timeframe_order"][0]
+    field = next(iter(mtf_contract["timeframes"][timeframe]["fields"]))
+    mtf_contract["timeframes"][timeframe]["fields"][field]["std"] = 0.0
+    artifact["decision"] = "FAIL"
+    artifact["failures"] = [
+        {
+            "code": "multi_tf_liveness_contract_invalid",
+            "error": "tampered fixture",
+        }
+    ]
+    path.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = validate_full_input_liveness_artifact(path)
+
+    assert result["ok"] is False
+    assert any(
+        row.get("code") == "multi_tf_liveness_contract_invalid"
         for row in result["failures"]
     )
 

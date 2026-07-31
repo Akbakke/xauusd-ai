@@ -27,30 +27,27 @@ The model must also emit ``public_trade_flat_decision_logits`` ordered as
 argmax or live inference fails closed. Auxiliary utility and rail heads are
 journaled only as direct model diagnostics.
 
-Exit-bound snapshot carries the model diagnostics required by the downstream
-exit contract:
+The frozen Entry snapshot carries the model diagnostics required by the
+same-bundle Exit head:
     direction_probs=[p_long,p_short,p_flat], path_quality=path_quality_pred,
-    mfe_first_n=mfe_first_n_pred (raw), tradable_prob, bad_path_prob (carried,
-    NOT consumed by the ACTIVE exit state), and the real learned
+    mfe_first_n=mfe_first_n_pred (raw), tradable_prob, bad_path_prob, and the
+    real learned
     tf_agreement_pred/path_quality_std diagnostics. ``position_size_logit`` is
     the sole learned sizing input and changes execution units only through the
-    separately adopted, fail-closed sizing calibration. atr_bps is the live cv3 value
-    at prediction bar T. hold_horizon_bars_pred is DELIBERATELY ABSENT -> TradeState
-    keeps the -1 sentinel -> the HOLD_HORIZON_EXPIRED Strategy-F rule stays INERT.
-    No substitute hold horizon is synthesized. A future admitted bundle must
-    prove the corresponding exit mapping before that field may be added.
+    separately adopted, fail-closed sizing calibration. atr_bps is the exact
+    value at prediction bar T. No hold horizon or post-model Exit rule is
+    synthesized.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
-import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
@@ -62,6 +59,9 @@ from gx1.contracts.immutable_event_authority_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     require_model_native_signal_contract,
 )
@@ -72,6 +72,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_POLICY,
     RETIRED_RUNTIME_EVIDENCE_FRAGMENTS,
     project_model_native_path_calibration,
+    require_model_native_runtime_head_evidence,
     require_model_native_runtime_evidence,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
@@ -86,16 +87,34 @@ from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
-    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-    DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
-    DIRECTION_POCKET_MIN_SELECTED_ROWS,
+    SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS,
+    SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS,
+    build_serve_source_identity,
     cross_gate_contract_failures,
     serve_gate_event_contract_failures,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_ACTION_BY_INDEX,
+    MODEL_DIRECTION_ACTION_ID_BY_INDEX,
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
+    MODEL_DIRECTION_NAME_BY_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
+    MODEL_DIRECTION_SHORT_INDEX,
+    MODEL_DIRECTION_TRADE_INDICES,
+    PUBLIC_FLAT_INDEX,
+    PUBLIC_TRADE_INDEX,
+    UNIFIED_EXIT_ACTION_ORDER,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
+    UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
+    UNIFIED_EXIT_SIDE_ORDER,
+    canonical_unified_evidence_sha256,
     require_model_direction_decision_contract,
     require_model_direction_operating_point,
+    require_unified_exit_output,
+    require_unified_exit_path_envelope,
+    unified_exit_path_tensor,
 )
 from gx1.execution.v12_model_native_state_live import (
     SEQ_LEN_MODEL_NATIVE,
@@ -104,22 +123,17 @@ from gx1.execution.v12_model_native_state_live import (
     ModelNativeStateBuilder,
     build_multi_tf_from_cv3,
 )
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
+)
+from gx1.time.session_detector import SESSION_NAME_BY_ID
 
 LOG = logging.getLogger("v12_smart_entry_live")
 
-SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-MODEL_DIRECTION_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
-MODEL_DIRECTION_ACTIONS = {0: "TAKE_LONG_NOW", 1: "TAKE_SHORT_NOW", 2: "SKIP"}
-MODEL_NATIVE_REQUIRED_SPECIALISTS = (
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
-    "chart_geometry_encoder",
-    "price_action_candle_encoder",
-)
+SESSION_NAMES = SESSION_NAME_BY_ID
+MODEL_DIRECTION_NAMES = MODEL_DIRECTION_NAME_BY_INDEX
+MODEL_DIRECTION_ACTIONS = MODEL_DIRECTION_ACTION_BY_INDEX
+MODEL_NATIVE_REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 MODEL_NATIVE_FORWARD_PARITY_EVIDENCE_KEYS = tuple(dict.fromkeys((
     "raw_direction_logits",
     "path_quality",
@@ -144,6 +158,9 @@ MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
     "vol_forecast_pred",
     "specialist_names",
     "specialist_gate",
+    "tf_gate",
+    "family_tf_cooperation_gate",
+    "family_tf_feature_gate",
     "p_long_given_trade",
     "p_short_given_trade",
     "side_logits",
@@ -175,6 +192,7 @@ MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
     "path_quality_std",
     "position_size_pred",
     "position_size_logit",
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
 )))
 MODEL_NATIVE_DECISION_HEAD_REQUIRED_FIELDS = frozenset(
     {
@@ -392,7 +410,13 @@ def _direction_ssot_from_logits(
         context=context,
     )
     expected_public_logits = np.asarray(
-        [max(float(direction_logits[0]), float(direction_logits[1])), float(direction_logits[2])],
+        [
+            max(
+                float(direction_logits[MODEL_DIRECTION_LONG_INDEX]),
+                float(direction_logits[MODEL_DIRECTION_SHORT_INDEX]),
+            ),
+            float(direction_logits[MODEL_DIRECTION_FLAT_INDEX]),
+        ],
         dtype=np.float64,
     )
     if not np.array_equal(public_logits, expected_public_logits):
@@ -413,13 +437,18 @@ def _direction_ssot_from_logits(
         context=context,
     )
     direction_index = int(np.argmax(direction_probs))
-    public_index = int(np.argmax(public_probs))  # TRADE=0, FLAT=1
-    expected_public_index = 1 if direction_index == 2 else 0
+    public_index = int(np.argmax(public_probs))
+    expected_public_index = (
+        PUBLIC_FLAT_INDEX
+        if direction_index == MODEL_DIRECTION_FLAT_INDEX
+        else PUBLIC_TRADE_INDEX
+    )
     if public_index != expected_public_index:
         raise RuntimeError(
             "[SMART_ENTRY] model direction SSOT mismatch: "
             f"direction={MODEL_DIRECTION_NAMES[direction_index]}({direction_index}) "
-            f"public_trade_flat={'FLAT' if public_index == 1 else 'TRADE'}({public_index})"
+            f"public_trade_flat={'FLAT' if public_index == PUBLIC_FLAT_INDEX else 'TRADE'}"
+            f"({public_index})"
         )
     return {
         "direction_logits": direction_logits,
@@ -429,7 +458,9 @@ def _direction_ssot_from_logits(
         "public_trade_flat_decision_logits": public_logits,
         "public_trade_flat_decision_probs": public_probs,
         "public_trade_flat_decision_index": public_index,
-        "public_trade_flat_decision": "FLAT" if public_index == 1 else "TRADE",
+        "public_trade_flat_decision": (
+            "FLAT" if public_index == PUBLIC_FLAT_INDEX else "TRADE"
+        ),
     }
 
 
@@ -520,7 +551,13 @@ def _validate_reported_direction_ssot(head_out: dict[str, Any]) -> dict[str, Any
         size=1,
         context="decision",
     )[0]
-    expected_edge = max(ssot["direction_probs"][:2]) - ssot["direction_probs"][2]
+    expected_edge = (
+        max(
+            ssot["direction_probs"][MODEL_DIRECTION_LONG_INDEX],
+            ssot["direction_probs"][MODEL_DIRECTION_SHORT_INDEX],
+        )
+        - ssot["direction_probs"][MODEL_DIRECTION_FLAT_INDEX]
+    )
     if not np.isclose(reported_edge, expected_edge, rtol=1e-6, atol=1e-7):
         raise RuntimeError(
             "[SMART_ENTRY] decision SSOT edge_score does not match direction_logits"
@@ -669,6 +706,32 @@ def _validate_model_native_diagnostics(
         float(specialist_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
     ):
         raise RuntimeError("[SMART_ENTRY] specialist_gate is not a probability simplex")
+    tf_gate = vector("tf_gate", 5)
+    if bool((tf_gate < 0.0).any()) or not np.isclose(
+        float(tf_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
+    ):
+        raise RuntimeError("[SMART_ENTRY] tf_gate is not a probability simplex")
+    family_tf_cooperation_gate = vector(
+        "family_tf_cooperation_gate",
+        len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+    )
+    if bool((family_tf_cooperation_gate < 0.0).any()) or not np.isclose(
+        float(family_tf_cooperation_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
+    ):
+        raise RuntimeError(
+            "[SMART_ENTRY] family_tf_cooperation_gate is not a probability simplex"
+        )
+    family_tf_feature_gate = vector(
+        "family_tf_feature_gate",
+        len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
+    )
+    if bool(
+        (family_tf_feature_gate <= 0.0).any()
+        or (family_tf_feature_gate >= 2.0).any()
+    ):
+        raise RuntimeError(
+            "[SMART_ENTRY] family_tf_feature_gate is outside learned (0,2) contract"
+        )
 
     calibration_version = head_out.get("calibration_version")
     if not isinstance(calibration_version, str) or not calibration_version.strip():
@@ -756,34 +819,6 @@ class SmartCtxSnapshot:
     build_seconds: float
 
 
-def _smart_gate_git_state() -> tuple[str, bool]:
-    repo = Path(__file__).resolve().parents[2]
-    commit = "unknown"
-    dirty = True
-    try:
-        commit_proc = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if commit_proc.returncode == 0:
-            commit = commit_proc.stdout.strip()
-        dirty_proc = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if dirty_proc.returncode == 0:
-            dirty = bool(dirty_proc.stdout.strip())
-    except Exception:
-        dirty = True
-    return commit, dirty
-
-
 def assert_smart_serving_gate() -> dict:
     """ONE-TRUTH launch gate for the smart serving path (launcher + runner):
     (1) the TRAIN==SERVE parity gate artifact must be decision=PASS and must
@@ -845,14 +880,23 @@ def assert_smart_serving_gate() -> dict:
             )
     if rep.get("decision") != "PASS":
         problems.append(f"parity decision={rep.get('decision')!r} failures={list(rep.get('failures') or [])[:3]}")
-    current_commit, worktree_dirty = _smart_gate_git_state()
     parity_commit = str(rep.get("git_commit") or "").strip()
     if not parity_commit:
         problems.append("parity report missing git_commit")
-    elif current_commit != parity_commit:
-        problems.append(f"parity git_commit {parity_commit} != current git_commit {current_commit}")
-    if worktree_dirty:
-        problems.append("smart serving git worktree is dirty; rerun parity on the exact source before launch")
+    try:
+        current_source_identity = build_serve_source_identity(
+            Path(__file__).resolve().parents[2]
+        )
+    except Exception as exc:
+        problems.append(f"smart serving source identity unavailable: {exc}")
+    else:
+        parity_source_identity = rep.get("serve_source_identity")
+        if current_source_identity != parity_source_identity:
+            problems.append(
+                "smart serving source bytes differ from immutable parity source "
+                f"identity: parity={parity_source_identity!r} "
+                f"current={current_source_identity!r}"
+            )
     now_utc = pd.Timestamp.now(tz="UTC")
     created_utc = pd.to_datetime(rep.get("created_utc"), utc=True, errors="coerce")
     if pd.isna(created_utc):
@@ -982,92 +1026,6 @@ def assert_smart_serving_gate() -> dict:
                         f"direction pocket audit {audit_field} references stale XAU repair marker "
                         f"{stale_marker!r}: {audit_path}"
                     )
-        required_direction_repair_pockets = {
-            "rising_channel_support_touch",
-            "support_retest_continuation",
-            "rising_channel_support_continuation",
-            "countertrend_short_trap",
-            "short_high_mae_low_mfe_early_failure",
-            "falling_channel_resistance_touch",
-            "resistance_retest_continuation",
-            "falling_channel_resistance_continuation",
-            "countertrend_long_trap",
-            "long_high_mae_low_mfe_early_failure",
-        }
-        audit_pockets = direction_audit.get("pockets")
-        if not isinstance(audit_pockets, dict):
-            problems.append("direction pocket audit lacks pockets dict")
-        else:
-            missing_pockets = sorted(required_direction_repair_pockets - set(audit_pockets))
-            if missing_pockets:
-                problems.append(
-                    "direction pocket audit lacks required XAU direction-repair pockets: "
-                    + ",".join(missing_pockets)
-                )
-            max_bad_side_rate = DIRECTION_POCKET_MAX_BAD_SIDE_RATE
-            min_selected_rows = DIRECTION_POCKET_MIN_SELECTED_ROWS
-            short_bad_pockets = {
-                "rising_channel_support_touch",
-                "support_retest_continuation",
-                "rising_channel_support_continuation",
-                "countertrend_short_trap",
-                "short_high_mae_low_mfe_early_failure",
-            }
-            long_bad_pockets = {
-                "falling_channel_resistance_touch",
-                "resistance_retest_continuation",
-                "falling_channel_resistance_continuation",
-                "countertrend_long_trap",
-                "long_high_mae_low_mfe_early_failure",
-            }
-            utility_pockets = (
-                required_direction_repair_pockets
-                - {"short_high_mae_low_mfe_early_failure", "long_high_mae_low_mfe_early_failure"}
-            )
-            for pocket_name in sorted(required_direction_repair_pockets & set(audit_pockets)):
-                row = audit_pockets.get(pocket_name)
-                if not isinstance(row, dict):
-                    problems.append(f"direction pocket audit {pocket_name} is not a metrics dict")
-                    continue
-                try:
-                    rows = int(row.get("rows"))
-                    selected_rows = int(row.get("selected_rows"))
-                except Exception:
-                    problems.append(f"direction pocket audit {pocket_name} lacks integer rows/selected_rows")
-                    continue
-                if rows < min_selected_rows:
-                    problems.append(
-                        f"direction pocket audit {pocket_name} rows={rows} < required {min_selected_rows}"
-                    )
-                if selected_rows < min_selected_rows:
-                    problems.append(
-                        f"direction pocket audit {pocket_name} selected_rows={selected_rows} < required {min_selected_rows}"
-                    )
-                if pocket_name in short_bad_pockets:
-                    short_rate = float(row.get("selected_side_short_rate", 1.0))
-                    if short_rate > max_bad_side_rate:
-                        problems.append(
-                            f"direction pocket audit {pocket_name} selected SHORT rate {short_rate:.3f} "
-                            f"> required {max_bad_side_rate:.3f}"
-                        )
-                if pocket_name in long_bad_pockets:
-                    long_rate = float(row.get("selected_side_long_rate", 1.0))
-                    if long_rate > max_bad_side_rate:
-                        problems.append(
-                            f"direction pocket audit {pocket_name} selected LONG rate {long_rate:.3f} "
-                            f"> required {max_bad_side_rate:.3f}"
-                        )
-                if pocket_name in utility_pockets:
-                    mean_pnl = row.get("selected_mean_proxy_pnl_bps")
-                    if (
-                        mean_pnl is None
-                        or float(mean_pnl)
-                        <= DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
-                    ):
-                        problems.append(
-                            f"direction pocket audit {pocket_name} selected_mean_proxy_pnl_bps={mean_pnl} "
-                            "> required 0"
-                        )
         if str(direction_audit.get("bundle_dir")) != str(entry["path"]):
             problems.append(
                 f"direction pocket audit bundle {direction_audit.get('bundle_dir')} "
@@ -1098,6 +1056,7 @@ class SmartEntryLiveInference:
     bundle_dir: Path
     operating_point: dict[str, Any]
     device: str = "cpu"
+    _bundle_sha256: str = field(default="", repr=False)
     _model: Any = field(default=None)
     _meta: dict = field(default_factory=dict)
     _sizing_authority: dict = field(default_factory=dict, repr=False)
@@ -1124,8 +1083,16 @@ class SmartEntryLiveInference:
     # ── loading ──────────────────────────────────────────────────────────────
 
     @classmethod
-    def load(cls, bundle_dir: Path | None = None, device: str = "cpu") -> "SmartEntryLiveInference":
+    def load(
+        cls,
+        *,
+        device: str,
+        bundle_dir: Path | None = None,
+    ) -> "SmartEntryLiveInference":
+        """Load only the transaction-authorized ACTIVE live bundle."""
+
         from gx1_guards.artifacts import load_decision_entry
+
         entry = load_decision_entry("v10_entry")
         contract_bundle = Path(entry["path"])
         if bundle_dir is None:
@@ -1143,20 +1110,9 @@ class SmartEntryLiveInference:
                 f"[SMART_ENTRY] contract v10_entry.contract_mode={mode!r} — this adapter "
                 f"serves {MODEL_NATIVE_CONTRACT_MODE} only"
             )
-        op = entry["operating_point"]
         op = require_model_direction_operating_point(
-            op,
+            entry["operating_point"],
             context="[SMART_ENTRY] contract v10_entry",
-        )
-
-        from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
-        bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=device)
-        model = bundle.transformer_model
-        model.eval()
-        meta = dict(bundle.metadata)
-        require_model_direction_decision_contract(
-            meta,
-            context="[SMART_ENTRY] contract-ACTIVE bundle",
         )
         launch_state = entry.get("xau_direction_launch_state")
         if not isinstance(launch_state, dict):
@@ -1171,6 +1127,114 @@ class SmartEntryLiveInference:
         prepare_model_native_sizing_authority(
             sizing_authority,
             context="[SMART_ENTRY] startup sizing adoption",
+        )
+        return cls._from_strict_bundle(
+            bundle_dir=bundle_dir,
+            operating_point=op,
+            device=device,
+            sizing_authority=sizing_authority,
+            load_context="contract-ACTIVE",
+        )
+
+    @classmethod
+    def load_candidate_for_parity(
+        cls,
+        *,
+        bundle_dir: Path,
+        operating_point: Mapping[str, Any],
+        device: str,
+    ) -> "SmartEntryLiveInference":
+        """Load an explicit pre-launch candidate through the live adapter.
+
+        No artifact selection, ALLOW state, sizing authority, fallback, or
+        "latest" lookup exists on this proof-only path.  The immutable parity
+        event binds the exact bundle and complete rule-free operating point.
+        """
+
+        return cls._from_strict_bundle(
+            bundle_dir=Path(bundle_dir).expanduser().resolve(),
+            operating_point=require_model_direction_operating_point(
+                operating_point,
+                context="[SMART_ENTRY] pre-launch candidate parity",
+            ),
+            device=device,
+            sizing_authority=None,
+            load_context="pre-launch candidate parity",
+        )
+
+    @classmethod
+    def load_immutable_exit_recovery(
+        cls,
+        *,
+        bundle_dir: Path,
+        expected_bundle_sha256: str,
+        operating_point: Mapping[str, Any],
+        sizing_authority: Mapping[str, Any],
+        device: str,
+    ) -> "SmartEntryLiveInference":
+        """Load only the exact bundle frozen into an existing TradeState.
+
+        This path has no new-Entry authority and never consults the mutable
+        active registry. It exists solely so launch revocation or promotion
+        cannot strand an already-open trade or switch its Exit model.
+        """
+
+        authority = require_model_native_sizing_authority_contract(
+            sizing_authority,
+            context="[SMART_ENTRY] immutable Exit recovery",
+            required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
+        )
+        prepare_model_native_sizing_authority(
+            authority,
+            context="[SMART_ENTRY] immutable Exit recovery",
+        )
+        adapter = cls._from_strict_bundle(
+            bundle_dir=Path(bundle_dir).expanduser().resolve(strict=True),
+            operating_point=require_model_direction_operating_point(
+                operating_point,
+                context="[SMART_ENTRY] immutable Exit recovery",
+            ),
+            device=device,
+            sizing_authority=authority,
+            load_context="immutable Exit recovery",
+        )
+        if adapter._bundle_sha256 != expected_bundle_sha256:
+            raise RuntimeError(
+                "[SMART_ENTRY] immutable Exit recovery bundle sha256 mismatch"
+            )
+        return adapter
+
+    @classmethod
+    def _from_strict_bundle(
+        cls,
+        *,
+        bundle_dir: Path,
+        operating_point: Mapping[str, Any],
+        device: str,
+        sizing_authority: Mapping[str, Any] | None,
+        load_context: str,
+    ) -> "SmartEntryLiveInference":
+        """Construct live and candidate adapters from one strict byte path."""
+
+        if not isinstance(device, str) or not device.strip():
+            raise RuntimeError(
+                "[SMART_ENTRY] device must be an explicit non-empty string"
+            )
+        op = require_model_direction_operating_point(
+            operating_point,
+            context=f"[SMART_ENTRY] {load_context}",
+        )
+        bundle_dir = Path(bundle_dir).expanduser().resolve()
+
+        from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+
+        bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=device)
+        model = bundle.transformer_model
+        model.eval()
+        meta = dict(bundle.metadata)
+        require_model_direction_decision_contract(
+            meta,
+            context=f"[SMART_ENTRY] {load_context} bundle",
         )
         if str(meta["direction_logit_mode"]) != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
             raise RuntimeError(
@@ -1191,15 +1255,23 @@ class SmartEntryLiveInference:
                 f"[SMART_ENTRY] bundle seq_input_dim={meta['seq_input_dim']} != {SIGNAL_DIM_MODEL_NATIVE}"
             )
         if int(meta["seq_len"]) != SEQ_LEN_MODEL_NATIVE:
-            raise RuntimeError(f"[SMART_ENTRY] bundle seq_len={meta['seq_len']} != {SEQ_LEN_MODEL_NATIVE}")
+            raise RuntimeError(
+                f"[SMART_ENTRY] bundle seq_len={meta['seq_len']} != {SEQ_LEN_MODEL_NATIVE}"
+            )
         direction_calibration = meta["direction_calibration"]
-        if not isinstance(direction_calibration, dict) or direction_calibration.get("enabled") is not True:
+        if (
+            not isinstance(direction_calibration, dict)
+            or direction_calibration.get("enabled") is not True
+        ):
             raise RuntimeError(
                 "[SMART_ENTRY] bundle lacks enabled direction_calibration — refusing an "
                 "uncalibrated model-direction load"
             )
         path_calibration = meta["path_calibration"]
-        if not isinstance(path_calibration, dict) or path_calibration.get("enabled") is not True:
+        if (
+            not isinstance(path_calibration, dict)
+            or path_calibration.get("enabled") is not True
+        ):
             raise RuntimeError(
                 "[SMART_ENTRY] bundle lacks enabled path_calibration — live/replay path heads "
                 "must be calibrated before serving"
@@ -1210,9 +1282,14 @@ class SmartEntryLiveInference:
         )
         mtf = meta["multi_tf"]
         if not isinstance(mtf, dict):
-            raise RuntimeError("[SMART_ENTRY] bundle multi_tf contract must be an object")
-        if mtf["enabled"] is not True or mtf["v2_mode"] is not True:
-            raise RuntimeError("[SMART_ENTRY] bundle must be multi-TF v2 — refusing")
+            raise RuntimeError(
+                "[SMART_ENTRY] bundle multi_tf contract must be an object"
+            )
+        if mtf["enabled"] is not True or mtf["v4_mode"] is not True:
+            raise RuntimeError(
+                "[SMART_ENTRY] bundle must be exact multi-TF V4 with all "
+                "eight families — refusing"
+            )
         mtf_shift_minutes = float(mtf["target_availability_shift_minutes"])
         if abs(mtf_shift_minutes - 5.0) > 1e-9:
             raise RuntimeError(
@@ -1233,14 +1310,29 @@ class SmartEntryLiveInference:
             signal_contract=dict(signal_contract),
         )
         LOG.info(
-            "[SMART_ENTRY] loaded contract-ACTIVE %s (mode=%s, selection=%s, history_start=%s)",
-            bundle_dir.name, mode, MODEL_DIRECTION_SELECTION_MODE, state_contract.feature_history_start_utc,
+            "[SMART_ENTRY] loaded %s %s (mode=%s, selection=%s, history_start=%s)",
+            load_context,
+            bundle_dir.name,
+            MODEL_NATIVE_CONTRACT_MODE,
+            MODEL_DIRECTION_SELECTION_MODE,
+            state_contract.feature_history_start_utc,
         )
         return cls(
-            bundle_dir=bundle_dir, operating_point=dict(op), device=device,
-            _model=model, _meta=meta, _builder=builder, _state_contract=state_contract, _per_tf_seq_lens=per_tf,
-            _sizing_authority=sizing_authority,
-            _multi_tf_target_availability_shift=pd.Timedelta(minutes=mtf_shift_minutes),
+            bundle_dir=bundle_dir,
+            operating_point=dict(op),
+            device=device,
+            _bundle_sha256=bundle.bundle_sha256,
+            _model=model,
+            _meta=meta,
+            _builder=builder,
+            _state_contract=state_contract,
+            _per_tf_seq_lens=per_tf,
+            _sizing_authority=(
+                dict(sizing_authority) if sizing_authority is not None else {}
+            ),
+            _multi_tf_target_availability_shift=pd.Timedelta(
+                minutes=mtf_shift_minutes
+            ),
         )
 
     # ── smart context (in-memory snapshot, refreshed on cv3 cutoff advance) ──
@@ -1264,7 +1356,16 @@ class SmartEntryLiveInference:
             raise RuntimeError("[SMART_ENTRY] model-native state contract not loaded")
         t0 = time.perf_counter()
         cutoff = cv3.index[-1]
-        multi_tf = build_multi_tf_from_cv3(cv3)
+        if self._meta is None:
+            raise RuntimeError("[SMART_ENTRY] bundle metadata unavailable")
+        mtf_contract = self._meta["multi_tf"]
+        multi_tf = build_multi_tf_from_cv3(
+            cv3,
+            matrix_contract=str(mtf_contract["matrix_contract"]),
+            feature_names=[
+                str(name) for name in mtf_contract["feature_names"]
+            ],
+        )
         # full-frame overrides: ctx_cat buckets (offline frame-global-rank
         # convention) + the 5 long-lookback HTF ctx cols (fresh full-frame
         # recompute; B28's incremental M1-lane stamping is one M5 bar behind
@@ -1377,7 +1478,7 @@ class SmartEntryLiveInference:
 
     def _prepare_common_history_frame(
         self, loader, cv3: pd.DataFrame, end_ts: pd.Timestamp,
-        overrides: pd.DataFrame, multi_tf: dict,
+        overrides: pd.DataFrame, multi_tf: dict, prebuilt_snapshot,
     ) -> pd.DataFrame:
         """Shared common-history build + prepare (ONE truth for the blocking
         gate path and the live async path)."""
@@ -1393,7 +1494,11 @@ class SmartEntryLiveInference:
             raise RuntimeError(
                 f"[SMART_ENTRY] common-history frame too short: {n_from_history_start} bars"
             )
-        joined = loader.get_window(end_ts, n_bars=n_from_history_start)
+        joined = loader.get_window(
+            end_ts,
+            n_bars=n_from_history_start,
+            snapshot=prebuilt_snapshot,
+        )
         history_pos = int(cv3_idx.searchsorted(history_start, side="left"))
         expected_first = cv3_idx[history_pos] if history_pos < len(cv3_idx) else None
         if joined.empty or expected_first is None or joined.index[0] != expected_first:
@@ -1418,12 +1523,20 @@ class SmartEntryLiveInference:
         values identical to the pre-gap-3 synchronous implementation."""
         if self._builder is None:
             raise RuntimeError("[SMART_ENTRY] not loaded")
+        prebuilt_snapshot = loader.acquire_serving_snapshot()
+        cv3 = prebuilt_snapshot.cv3
         if ctx is None:
-            self.refresh_multi_tf(loader._cv3)
+            self.refresh_multi_tf(cv3)
             ctx = self._ctx
-        cv3 = loader._cv3
         multi_tf, overrides, _age, _spliced = self._effective_context(cv3, ctx, end_ts)
-        return self._prepare_common_history_frame(loader, cv3, end_ts, overrides, multi_tf)
+        return self._prepare_common_history_frame(
+            loader,
+            cv3,
+            end_ts,
+            overrides,
+            multi_tf,
+            prebuilt_snapshot,
+        )
 
     def _multi_tf_window_tensors(
         self, ts: pd.Timestamp, multi_tf: dict | None = None,
@@ -1515,7 +1628,9 @@ class SmartEntryLiveInference:
                 )
                 probs = ssot["direction_probs"]
                 public_trade_flat_probs = ssot["public_trade_flat_decision_probs"]
-                p_long, p_short, p_flat = float(probs[0]), float(probs[1]), float(probs[2])
+                p_long = float(probs[MODEL_DIRECTION_LONG_INDEX])
+                p_short = float(probs[MODEL_DIRECTION_SHORT_INDEX])
+                p_flat = float(probs[MODEL_DIRECTION_FLAT_INDEX])
                 edge_score = max(p_long, p_short) - p_flat
                 path_quality_raw = _require_finite_vector(
                     out.get("path_quality"), name="path_quality", size=1, context=f"model forward at {ts}"
@@ -1571,6 +1686,67 @@ class SmartEntryLiveInference:
                     raise RuntimeError(
                         f"[SMART_ENTRY] model forward at {ts} specialist_gate is not a probability simplex"
                     )
+                tf_gate = _require_finite_vector(
+                    out.get("tf_gate"),
+                    name="tf_gate",
+                    size=5,
+                    context=f"model forward at {ts}",
+                )
+                if bool((tf_gate < 0.0).any()) or not np.isclose(
+                    float(tf_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
+                ):
+                    raise RuntimeError(
+                        f"[SMART_ENTRY] model forward at {ts} tf_gate is not a probability simplex"
+                    )
+                family_tf_cooperation_gate = _require_finite_vector(
+                    out.get("family_tf_cooperation_gate"),
+                    name="family_tf_cooperation_gate",
+                    size=len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+                    context=f"model forward at {ts}",
+                )
+                if bool((family_tf_cooperation_gate < 0.0).any()) or not np.isclose(
+                    float(family_tf_cooperation_gate.sum()),
+                    1.0,
+                    rtol=1e-6,
+                    atol=1e-7,
+                ):
+                    raise RuntimeError(
+                        f"[SMART_ENTRY] model forward at {ts} "
+                        "family_tf_cooperation_gate is not a probability simplex"
+                    )
+                family_tf_feature_gate_tensor = out.get(
+                    "family_tf_feature_gate"
+                )
+                if (
+                    not isinstance(family_tf_feature_gate_tensor, torch.Tensor)
+                    or tuple(family_tf_feature_gate_tensor.shape)
+                    != (
+                        1,
+                        5,
+                        len(self._meta["multi_tf"]["feature_names"]),
+                    )
+                    or not bool(
+                        torch.isfinite(family_tf_feature_gate_tensor).all().item()
+                    )
+                ):
+                    raise RuntimeError(
+                        f"[SMART_ENTRY] model forward at {ts} "
+                        "family_tf_feature_gate shape/finite contract invalid"
+                    )
+                family_tf_feature_gate = (
+                    family_tf_feature_gate_tensor.detach()
+                    .cpu()
+                    .float()
+                    .numpy()
+                    .reshape(-1)
+                )
+                if family_tf_feature_gate.shape != (
+                    len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
+                ):
+                    raise RuntimeError(
+                        f"[SMART_ENTRY] model forward at {ts} "
+                        "family_tf_feature_gate token contract invalid"
+                    )
                 mtf_logits = _require_finite_vector(
                     out.get("mtf_dir_logits"),
                     name="mtf_dir_logits",
@@ -1615,6 +1791,12 @@ class SmartEntryLiveInference:
                     out.get("position_size_logit"),
                     name="position_size_logit",
                     size=1,
+                    context=f"model forward at {ts}",
+                )
+                entry_shared_representation = _require_finite_vector(
+                    out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY),
+                    name=UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
+                    size=UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
                     context=f"model forward at {ts}",
                 )
                 tf_agreement_pred = _sigmoid_float(float(tf_agreement_logit[0]))
@@ -1678,14 +1860,30 @@ class SmartEntryLiveInference:
                     states["ctx_cat"][k],
                     dtype=np.int64,
                 ).reshape(-1)
-                if ctx_cat_values.shape != (5,):
+                if ctx_cat_values.shape != (len(MODEL_NATIVE_CTX_CAT_FIELDS),):
                     raise RuntimeError(
                         "[SMART_ENTRY] exact five-field ctx_cat state is required"
                     )
-                entry_vol_regime_id = int(ctx_cat_values[1])
-                entry_atr_bucket = int(ctx_cat_values[2])
-                entry_spread_bucket = int(ctx_cat_values[3])
-                entry_h4_trend_sign_cat = int(ctx_cat_values[4])
+                entry_vol_regime_id = int(
+                    ctx_cat_values[
+                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["vol_regime_id"]
+                    ]
+                )
+                entry_atr_bucket = int(
+                    ctx_cat_values[
+                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["atr_bucket"]
+                    ]
+                )
+                entry_spread_bucket = int(
+                    ctx_cat_values[
+                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["spread_bucket"]
+                    ]
+                )
+                entry_h4_trend_sign_cat = int(
+                    ctx_cat_values[
+                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["H4_trend_sign_cat"]
+                    ]
+                )
                 trend_regime_values = np.asarray(
                     states.get("entry_trend_regime_id"),
                     dtype=np.int64,
@@ -1695,21 +1893,23 @@ class SmartEntryLiveInference:
                         "[SMART_ENTRY] entry trend-regime state is incomplete"
                     )
                 entry_trend_regime_id = int(trend_regime_values[k])
-                if entry_vol_regime_id not in range(
-                    len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)
-                ):
+                if entry_vol_regime_id not in MODEL_NATIVE_CTX_CAT_DOMAINS[
+                    "vol_regime_id"
+                ]:
                     raise RuntimeError(
                         "[SMART_ENTRY] entry vol-regime category is invalid"
                     )
-                if entry_h4_trend_sign_cat not in range(
-                    len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
-                ):
+                if entry_h4_trend_sign_cat not in MODEL_NATIVE_CTX_CAT_DOMAINS[
+                    "H4_trend_sign_cat"
+                ]:
                     raise RuntimeError(
                         "[SMART_ENTRY] entry H4 trend category is invalid"
                     )
                 if (
-                    entry_atr_bucket not in range(5)
-                    or entry_spread_bucket not in range(5)
+                    entry_atr_bucket
+                    not in MODEL_NATIVE_CTX_CAT_DOMAINS["atr_bucket"]
+                    or entry_spread_bucket
+                    not in MODEL_NATIVE_CTX_CAT_DOMAINS["spread_bucket"]
                     or entry_trend_regime_id not in range(
                         len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
                     )
@@ -1737,7 +1937,11 @@ class SmartEntryLiveInference:
                     "public_trade_flat_decision": ssot["public_trade_flat_decision"],
                     "p_long": p_long, "p_short": p_short, "p_flat": p_flat,
                     "edge_score": float(edge_score),
-                    "session_id": int(states["ctx_cat"][k][0]),
+                    "session_id": int(
+                        states["ctx_cat"][k][
+                            MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["session_id"]
+                        ]
+                    ),
                     "entry_vol_regime_id": entry_vol_regime_id,
                     "entry_atr_bucket": entry_atr_bucket,
                     "entry_spread_bucket": entry_spread_bucket,
@@ -1761,12 +1965,20 @@ class SmartEntryLiveInference:
                     "vol_forecast_pred": vol_forecast_pred.tolist(),
                     "specialist_names": specialist_names,
                     "specialist_gate": specialist_gate.tolist(),
+                    "tf_gate": tf_gate.tolist(),
+                    "family_tf_cooperation_gate": (
+                        family_tf_cooperation_gate.tolist()
+                    ),
+                    "family_tf_feature_gate": family_tf_feature_gate.tolist(),
                     "tf_agreement_logit": float(tf_agreement_logit[0]),
                     "tf_agreement_pred": tf_agreement_pred,
                     "path_quality_log_var": float(path_quality_log_var[0]),
                     "path_quality_std": path_quality_std,
                     "position_size_pred": position_size_pred,
                     "position_size_logit": float(position_size_logit[0]),
+                    UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY: (
+                        entry_shared_representation.tolist()
+                    ),
                     "p_trade": p_trade_hier,
                     "p_flat_hier": p_flat_hier,
                     "p_long_given_trade": p_long_given_trade,
@@ -1798,9 +2010,153 @@ class SmartEntryLiveInference:
                 results.append(res)
         return results
 
+    def decide_exit(
+        self,
+        *,
+        entry_snapshot: Mapping[str, Any],
+        exit_path_envelope: Mapping[str, Any],
+        entry_bid: float,
+        entry_ask: float,
+        side: str,
+    ) -> dict[str, Any]:
+        """Emit exact same-bundle HOLD/EXIT_NOW from one frozen Entry state."""
+
+        if self._model is None or self._meta is None:
+            raise RuntimeError("[SMART_EXIT] unified model is not loaded")
+        if (
+            not isinstance(self._bundle_sha256, str)
+            or len(self._bundle_sha256) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in self._bundle_sha256
+            )
+        ):
+            raise RuntimeError("[SMART_EXIT] bundle identity is unavailable")
+        if "runtime_head_evidence_schema_version" in entry_snapshot:
+            snapshot = require_model_native_runtime_head_evidence(
+                entry_snapshot,
+                context="SMART_EXIT_ENTRY_HEAD_SNAPSHOT",
+            )
+        else:
+            snapshot = require_model_native_runtime_evidence(
+                entry_snapshot,
+                context="SMART_EXIT_ENTRY_SNAPSHOT",
+            )
+        envelope = require_unified_exit_path_envelope(
+            exit_path_envelope,
+            context="SMART_EXIT",
+        )
+        if side not in UNIFIED_EXIT_SIDE_ORDER:
+            raise RuntimeError("[SMART_EXIT] side is outside the unified contract")
+        side_index = UNIFIED_EXIT_SIDE_ORDER.index(side)
+        if (
+            snapshot.get("selected_side") != side_index
+            or snapshot.get("model_direction")
+            != ("LONG" if side_index == 0 else "SHORT")
+        ):
+            raise RuntimeError(
+                "[SMART_EXIT] trade side differs from frozen Entry argmax"
+            )
+        representation = np.asarray(
+            snapshot[UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY],
+            dtype=np.float32,
+        )
+        if (
+            representation.shape != (UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,)
+            or not np.isfinite(representation).all()
+        ):
+            raise RuntimeError(
+                "[SMART_EXIT] frozen Entry representation is invalid"
+            )
+        path_values = unified_exit_path_tensor(
+            path_rows=envelope["path_rows"],
+            entry_bid=entry_bid,
+            entry_ask=entry_ask,
+        )
+        with torch.no_grad():
+            model_output = self._model.forward_exit_action(
+                entry_shared_representation=torch.from_numpy(
+                    representation
+                )
+                .view(1, -1)
+                .to(self.device),
+                exit_path_x=torch.from_numpy(path_values)
+                .unsqueeze(0)
+                .to(self.device),
+                exit_path_lengths=torch.tensor(
+                    [len(path_values)],
+                    dtype=torch.int64,
+                    device=self.device,
+                ),
+                exit_side_index=torch.tensor(
+                    [side_index],
+                    dtype=torch.int64,
+                    device=self.device,
+                ),
+            )
+        logits = _require_finite_vector(
+            model_output.get("exit_action_logits"),
+            name="exit_action_logits",
+            size=2,
+            context="unified Exit forward",
+        )
+        model_probs = _require_finite_vector(
+            model_output.get("exit_action_probs"),
+            name="exit_action_probs",
+            size=2,
+            context="unified Exit forward",
+        )
+        if float(logits[0]) == float(logits[1]):
+            raise RuntimeError("[SMART_EXIT] tied Exit logits have no decision")
+        probabilities = _strict_softmax(
+            logits,
+            name="exit_action_logits",
+            context="unified Exit forward",
+        )
+        if not np.allclose(
+            model_probs,
+            probabilities,
+            rtol=0.0,
+            atol=1e-6,
+        ):
+            raise RuntimeError(
+                "[SMART_EXIT] model probabilities disagree with Exit logits"
+            )
+        action_index = int(np.argmax(logits))
+        output = {
+            "exit_action_logits": logits.tolist(),
+            "exit_action_probs": probabilities.tolist(),
+            "exit_action_index": action_index,
+            "action": UNIFIED_EXIT_ACTION_ORDER[action_index],
+            "decision_source": "unified_model",
+            "bundle_sha256": self._bundle_sha256,
+            "entry_snapshot_sha256": canonical_unified_evidence_sha256(
+                snapshot
+            ),
+            "exit_path_envelope_sha256": (
+                canonical_unified_evidence_sha256(envelope)
+            ),
+        }
+        output["output_evidence_sha256"] = canonical_unified_evidence_sha256(
+            output
+        )
+        return require_unified_exit_output(
+            output,
+            context="SMART_EXIT",
+            expected_bundle_sha256=self._bundle_sha256,
+            entry_snapshot=snapshot,
+            exit_path_envelope=envelope,
+        )
+
     # ── live per-M5 forward (async-context path — serving-wave gap 3) ────────
 
-    def predict_live_bar(self, loader, end_ts: pd.Timestamp) -> dict[str, Any]:
+    def predict_live_bar(
+        self,
+        loader,
+        end_ts: pd.Timestamp,
+        *,
+        prebuilt_snapshot,
+    ) -> dict[str, Any]:
         """LIVE per-M5 decision forward: uses the LAST COMPLETED context snapshot
         — NEVER blocks on the ~2-min context refresh (which now runs in a
         background thread, scheduled here on cv3 cutoff advance). One atomic
@@ -1814,7 +2170,7 @@ class SmartEntryLiveInference:
         """
         if self._builder is None or self._model is None:
             raise RuntimeError("[SMART_ENTRY] not loaded")
-        cv3 = loader._cv3
+        cv3 = prebuilt_snapshot.cv3
         self.maybe_schedule_ctx_refresh(cv3)
         ctx = self._ctx   # ONE atomic grab — never re-read during this decision
         if ctx is None:
@@ -1826,7 +2182,14 @@ class SmartEntryLiveInference:
                 ctx_cutoff=ctx.cv3_cutoff, end_ts=end_ts,
             )
         multi_tf, overrides, age, spliced = self._effective_context(cv3, ctx, end_ts)
-        frame = self._prepare_common_history_frame(loader, cv3, end_ts, overrides, multi_tf)
+        frame = self._prepare_common_history_frame(
+            loader,
+            cv3,
+            end_ts,
+            overrides,
+            multi_tf,
+            prebuilt_snapshot,
+        )
         states = self._builder.build_states(frame, [end_ts])
         head = self.forward_states(states, multi_tf=multi_tf)[0]
         t = self._ctx_refresh_thread
@@ -1838,13 +2201,12 @@ class SmartEntryLiveInference:
 
     # ── decision (operating point from the contract — ONE truth) ─────────────
 
-    def decide(self, head_out: dict[str, Any], atr_bps: float) -> dict[str, Any]:
-        """Emit the runner action from the model's final direction argmax.
+    def _validated_direction_ssot(
+        self,
+        head_out: Mapping[str, Any],
+    ) -> tuple[dict[str, Any], str, str]:
+        """Validate the exact model-native head and return its sole direction."""
 
-        ``direction_logits`` plus ``public_trade_flat_decision_logits`` are
-        validated again here so no caller can inject a parallel side, threshold,
-        or session decision between model forward and live action.
-        """
         retired_fields = sorted(
             key
             for key in head_out
@@ -1888,10 +2250,62 @@ class SmartEntryLiveInference:
             )
         ssot = _validate_reported_direction_ssot(head_out)
         direction_index = int(ssot["model_direction_index"])
+        action = MODEL_DIRECTION_ACTIONS[direction_index]
+        return ssot, selection_mode, action
+
+    def decide_direction(
+        self,
+        head_out: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Emit only the shared LONG/SHORT/FLAT decision surface.
+
+        Pre-launch parity calls this same method as live ``decide``.  It does
+        not consume sizing authority because sizing cannot select or rewrite
+        direction.
+        """
+
+        ssot, selection_mode, action = self._validated_direction_ssot(head_out)
+        direction_index = int(ssot["model_direction_index"])
+        direction_probs = ssot["direction_probs"]
+        return {
+            "action": action,
+            "model_direction_index": direction_index,
+            "model_direction": str(ssot["model_direction"]),
+            "direction_logits": ssot["direction_logits"].tolist(),
+            "direction_probs": direction_probs.tolist(),
+            "public_trade_flat_decision_logits": ssot[
+                "public_trade_flat_decision_logits"
+            ].tolist(),
+            "public_trade_flat_decision_probs": ssot[
+                "public_trade_flat_decision_probs"
+            ].tolist(),
+            "public_trade_flat_decision_index": int(
+                ssot["public_trade_flat_decision_index"]
+            ),
+            "public_trade_flat_decision": str(
+                ssot["public_trade_flat_decision"]
+            ),
+            "selection_score_mode": selection_mode,
+            "selection_score": float(direction_probs[direction_index]),
+        }
+
+    def decide(self, head_out: dict[str, Any], atr_bps: float) -> dict[str, Any]:
+        """Emit the runner action from the model's final direction argmax.
+
+        ``direction_logits`` plus ``public_trade_flat_decision_logits`` are
+        validated again here so no caller can inject a parallel side, threshold,
+        or session decision between model forward and live action.
+        """
+
+        ssot, selection_mode, action = self._validated_direction_ssot(head_out)
+        direction_index = int(ssot["model_direction_index"])
         model_direction = str(ssot["model_direction"])
         direction_probs = ssot["direction_probs"]
-        selected_side = direction_index if direction_index in (0, 1) else None
-        action = MODEL_DIRECTION_ACTIONS[direction_index]
+        selected_side = (
+            direction_index
+            if direction_index in MODEL_DIRECTION_TRADE_INDICES
+            else None
+        )
         session_id_raw = _require_finite_vector(
             head_out.get("session_id"),
             name="session_id",
@@ -1914,9 +2328,8 @@ class SmartEntryLiveInference:
         entry_vol_regime_id = int(entry_vol_regime_id_raw)
         if (
             float(entry_vol_regime_id_raw) != float(entry_vol_regime_id)
-            or entry_vol_regime_id not in range(
-                len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)
-            )
+            or entry_vol_regime_id
+            not in MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"]
         ):
             raise RuntimeError(
                 "[SMART_ENTRY] entry_vol_regime_id is outside the exact "
@@ -1931,9 +2344,8 @@ class SmartEntryLiveInference:
         entry_h4_trend_sign_cat = int(entry_h4_trend_sign_raw)
         if (
             float(entry_h4_trend_sign_raw) != float(entry_h4_trend_sign_cat)
-            or entry_h4_trend_sign_cat not in range(
-                len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
-            )
+            or entry_h4_trend_sign_cat
+            not in MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"]
         ):
             raise RuntimeError(
                 "[SMART_ENTRY] entry_h4_trend_sign_cat is outside the exact "
@@ -1962,9 +2374,11 @@ class SmartEntryLiveInference:
         entry_trend_regime_id = int(entry_trend_regime_id_raw)
         if (
             float(entry_atr_bucket_raw) != float(entry_atr_bucket)
-            or entry_atr_bucket not in range(5)
+            or entry_atr_bucket
+            not in MODEL_NATIVE_CTX_CAT_DOMAINS["atr_bucket"]
             or float(entry_spread_bucket_raw) != float(entry_spread_bucket)
-            or entry_spread_bucket not in range(5)
+            or entry_spread_bucket
+            not in MODEL_NATIVE_CTX_CAT_DOMAINS["spread_bucket"]
             or float(entry_trend_regime_id_raw)
             != float(entry_trend_regime_id)
             or entry_trend_regime_id not in range(
@@ -1975,7 +2389,13 @@ class SmartEntryLiveInference:
                 "[SMART_ENTRY] entry bucket/trend evidence is outside its "
                 "exact model-native category domain"
             )
-        edge = float(max(direction_probs[0], direction_probs[1]) - direction_probs[2])
+        edge = float(
+            max(
+                direction_probs[MODEL_DIRECTION_LONG_INDEX],
+                direction_probs[MODEL_DIRECTION_SHORT_INDEX],
+            )
+            - direction_probs[MODEL_DIRECTION_FLAT_INDEX]
+        )
         selection_score = float(direction_probs[direction_index])
         atr_bps_value = float(atr_bps)
         if not np.isfinite(atr_bps_value) or atr_bps_value <= 0.0:
@@ -1991,9 +2411,8 @@ class SmartEntryLiveInference:
             required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
         )
 
-        # Exit-bound snapshot. Direction fields come only from the validated SSOT.
-        # hold_horizon_bars_pred DELIBERATELY ABSENT (blocked head -> -1 sentinel
-        # -> HOLD_HORIZON_EXPIRED inert; live-equivalent to the joint replay).
+        # Frozen Entry snapshot. Direction fields come only from the validated
+        # SSOT; no hold-horizon or post-model Exit rule is synthesized.
         snapshot = {
             "decision_ts": str(head_out["time"]),
             "runtime_evidence_schema_version": (
@@ -2044,7 +2463,7 @@ class SmartEntryLiveInference:
         )
         out = {
             "action": action,
-            "action_id": {"SKIP": 0, "TAKE_LONG_NOW": 1, "TAKE_SHORT_NOW": 2}[action],
+            "action_id": MODEL_DIRECTION_ACTION_ID_BY_INDEX[direction_index],
             "model_direction_index": direction_index,
             "model_direction": model_direction,
             "direction_logits": ssot["direction_logits"].tolist(),
@@ -2071,11 +2490,15 @@ class SmartEntryLiveInference:
             "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
             "entry_trend_regime_id": entry_trend_regime_id,
             "entry_trend_regime": snapshot["entry_trend_regime"],
-            "p_long": float(direction_probs[0]),
-            "p_short": float(direction_probs[1]),
-            "p_flat": float(direction_probs[2]),
-            "p_trade": float(ssot["public_trade_flat_decision_probs"][0]),
-            "p_flat_hier": float(ssot["public_trade_flat_decision_probs"][1]),
+            "p_long": float(direction_probs[MODEL_DIRECTION_LONG_INDEX]),
+            "p_short": float(direction_probs[MODEL_DIRECTION_SHORT_INDEX]),
+            "p_flat": float(direction_probs[MODEL_DIRECTION_FLAT_INDEX]),
+            "p_trade": float(
+                ssot["public_trade_flat_decision_probs"][PUBLIC_TRADE_INDEX]
+            ),
+            "p_flat_hier": float(
+                ssot["public_trade_flat_decision_probs"][PUBLIC_FLAT_INDEX]
+            ),
             "selected_side": selected_side,
             "sizing_authority_contract": snapshot[
                 "sizing_authority_contract"

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import inspect
-from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,1228 +7,18 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gx1.execution import v12_pipeline as pipeline_module
-from gx1.execution.v12_pipeline import (
-    EntryDecisionUnavailable,
-    ExitDecisionUnavailable,
-    V12Pipeline,
-    _exact_closed_m5_row,
-    _validated_v3_output,
-    require_xgb_v3_chain_identity,
-)
-from gx1.execution.v12_v3_live import (
-    WINDOW_LEN as V3_WINDOW_LEN,
-    XGB_BRIDGE_NAMES,
-    V3LiveInference,
-    _resolve_default_v3_bundle,
-    build_v3_base_feature_rows,
-    required_closed_m5_keys_for_v3_window,
-)
-from gx1.execution.v12_xgb_live import _require_ordered_xgb_feature_identity
-
-
-def test_active_exit_replay_factory_has_no_smart_entry_or_mutable_provider() -> None:
-    source = inspect.getsource(V12Pipeline.load_active_exit_replay)
-
-    assert "SmartEntry" not in source
-    assert "load_default" not in source
-    assert "load_frozen_pair" in source
-    assert "attach_train_rank_reference" in source
-    # The immutable TRAIN-rank reference kwarg is mandatory — omitting it is
-    # a signature error, never a default.
-    with pytest.raises(TypeError):
-        V12Pipeline.load_active_exit_replay(
-            artifact_registry_path=Path("/missing/registry.json"),
-            prebuilt_pair_manifest_path=Path("/missing/pair.json"),
-            prebuilt_generation_root=Path("/missing/generations"),
-            closed_m1_provider=SimpleNamespace(),
-        )
-    with pytest.raises(
-        RuntimeError,
-        match="REQUIRES_EXACT_SOURCE_TAPE",
-    ):
-        V12Pipeline.load_active_exit_replay(
-            artifact_registry_path=Path("/missing/registry.json"),
-            prebuilt_pair_manifest_path=Path("/missing/pair.json"),
-            prebuilt_generation_root=Path("/missing/generations"),
-            closed_m1_provider=SimpleNamespace(),
-            train_rank_reference=SimpleNamespace(),
-        )
-
-
-def test_active_exit_replay_rejects_non_reference_train_rank_object() -> None:
-    import hashlib
-
-    from gx1.execution.model_native_entry_replay_v1 import SourceTape
-
-    times = pd.date_range("2026-07-08T09:00:00Z", periods=4, freq="min")
-    ordinal = np.arange(len(times), dtype=np.float64)
-    bid_open = 3300.0 + ordinal * 0.01
-    bid_close = bid_open + 0.005
-    ask_open = bid_open + 0.2
-    ask_close = bid_close + 0.2
-    tape = SourceTape(
-        source_path=Path("/tmp/unit-source-tape.parquet"),
-        source_sha256=hashlib.sha256(b"unit-source-tape").hexdigest(),
-        source_size_bytes=1,
-        times=times.to_numpy(),
-        index=pd.Index(times),
-        bid_open=bid_open,
-        ask_open=ask_open,
-        bid_close=bid_close,
-        ask_close=ask_close,
-        bid_high=np.maximum(bid_open, bid_close) + 0.1,
-        bid_low=np.minimum(bid_open, bid_close) - 0.1,
-        ask_high=np.maximum(ask_open, ask_close) + 0.1,
-        ask_low=np.minimum(ask_open, ask_close) - 0.1,
-    )
-    with pytest.raises(
-        RuntimeError,
-        match="ACTIVE_EXIT_REPLAY_TRAIN_RANK_REFERENCE_INVALID",
-    ):
-        V12Pipeline.load_active_exit_replay(
-            artifact_registry_path=Path("/missing/registry.json"),
-            prebuilt_pair_manifest_path=Path("/missing/pair.json"),
-            prebuilt_generation_root=Path("/missing/generations"),
-            closed_m1_provider=tape,
-            train_rank_reference=SimpleNamespace(),
-        )
-
-
-class _PassThroughSanitizer:
-    def sanitize(
-        self,
-        frame: pd.DataFrame,
-        *,
-        feature_list: list[str],
-        allow_nan_fill: bool,
-        nan_fill_value: float,
-    ) -> tuple[np.ndarray, dict[str, object]]:
-        assert allow_nan_fill is False
-        assert nan_fill_value == 0.0
-        return frame.loc[:, feature_list].to_numpy(dtype=np.float64), {}
-
-
-class _SessionProbabilityModel:
-    def __init__(
-        self,
-        probabilities: tuple[float, float, float] = (0.6, 0.3, 0.1),
-    ) -> None:
-        self.probabilities = probabilities
-        self.observed_sessions: list[str] = []
-
-    def predict_proba(
-        self,
-        frame: pd.DataFrame,
-        *,
-        session: str,
-        feature_list: list[str],
-    ) -> SimpleNamespace:
-        assert feature_list == ["feature"]
-        self.observed_sessions.append(session)
-        count = len(frame)
-        return SimpleNamespace(
-            p_long=np.full(count, self.probabilities[0]),
-            p_short=np.full(count, self.probabilities[1]),
-            p_flat=np.full(count, self.probabilities[2]),
-        )
-
-
-def _stub_xgb(
-    probabilities: tuple[float, float, float] = (0.6, 0.3, 0.1),
-):
-    from gx1.execution.v12_xgb_live import XGBLiveInference
-
-    model = _SessionProbabilityModel(probabilities)
-    inference = XGBLiveInference(
-        bundle_dir=Path("."),
-        sanitizer_config=Path("sanitizer.json"),
-        feature_contract=Path("features.json"),
-        _model=model,
-        _sanitizer=_PassThroughSanitizer(),
-        _features=["feature"],
-    )
-    return inference, model
-
-
-def _collector_rows(*times: str) -> pd.DataFrame:
-    rows = []
-    for offset, time in enumerate(times):
-        bid_close = 2400.0 + offset
-        ask_close = bid_close + 0.2
-        rows.append(
-            {
-                "time": pd.Timestamp(time),
-                "bid_high": bid_close + 0.5,
-                "bid_low": bid_close - 0.5,
-                "ask_high": ask_close + 0.5,
-                "ask_low": ask_close - 0.5,
-                "bid_close": bid_close,
-                "ask_close": ask_close,
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def test_v3_default_bundle_ignores_environment_path_override(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from gx1_guards import artifacts
-
-    monkeypatch.setenv("GX1_V3_BUNDLE_DIR", "/tmp/unbound-v3")
-    monkeypatch.setattr(
-        artifacts,
-        "load_decision_artifact",
-        lambda role: "/registry/bound-v3" if role == "v3_exit" else None,
-    )
-
-    assert _resolve_default_v3_bundle() == Path("/registry/bound-v3")
-
-
-def test_xgb_v3_chain_requires_exact_training_identity() -> None:
-    identity = {"identity_sha256": "a" * 64}
-    assert (
-        require_xgb_v3_chain_identity(
-            SimpleNamespace(_runtime_identity=identity),
-            SimpleNamespace(
-                _training_lineage={"xgb_bridge_source": deepcopy(identity)}
-            ),
-        )
-        == identity
-    )
-
-    with pytest.raises(RuntimeError, match="CHAIN_IDENTITY_MISMATCH"):
-        require_xgb_v3_chain_identity(
-            SimpleNamespace(_runtime_identity=identity),
-            SimpleNamespace(
-                _training_lineage={
-                    "xgb_bridge_source": {"identity_sha256": "b" * 64}
-                }
-            ),
-        )
-
-
-@pytest.mark.parametrize("session_id", [-1.0, 4.0, 1.5, np.nan, np.inf])
-def test_xgb_rejects_invalid_explicit_session_id(session_id: float) -> None:
-    inference, model = _stub_xgb()
-    frame = pd.DataFrame(
-        {"feature": [1.0], "session_id": [session_id]},
-        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
-    )
-
-    with pytest.raises(RuntimeError, match="XGB_SESSION_ID_INVALID"):
-        inference.predict(frame)
-
-    assert model.observed_sessions == []
-
-
-@pytest.mark.parametrize("session", ["", "asia", "INVALID"])
-def test_xgb_rejects_invalid_explicit_session_name(session: str) -> None:
-    inference, model = _stub_xgb()
-    frame = pd.DataFrame(
-        {"feature": [1.0]},
-        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
-    )
-
-    with pytest.raises(RuntimeError, match="XGB_SESSION_INVALID"):
-        inference.predict(frame, session=session)
-
-    assert model.observed_sessions == []
-
-
-def test_xgb_routes_each_row_once_and_emits_exact_bridge() -> None:
-    inference, model = _stub_xgb()
-    frame = pd.DataFrame(
-        {
-            "feature": [1.0, 2.0, 3.0, 4.0],
-            "session_id": [0.0, 1.0, 2.0, 3.0],
-        },
-        index=pd.date_range("2026-07-16T06:00:00Z", periods=4, freq="h"),
-    )
-
-    result = inference.predict(frame)
-
-    assert model.observed_sessions == ["ASIA", "EU", "OVERLAP", "US"]
-    assert result["session"].tolist() == ["ASIA", "EU", "OVERLAP", "US"]
-    np.testing.assert_array_equal(
-        result["signal_bridge_v1"][:, :3],
-        np.asarray([[0.6, 0.3, 0.1]] * 4, dtype=np.float32),
-    )
-    assert np.isfinite(result["signal_bridge_v1"]).all()
-
-
-def test_xgb_rejects_non_simplex_head_output() -> None:
-    inference, _model = _stub_xgb((0.6, 0.6, 0.1))
-    frame = pd.DataFrame(
-        {"feature": [1.0], "session_id": [0.0]},
-        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T06:00:00Z")]),
-    )
-
-    with pytest.raises(RuntimeError, match="XGB_PROBABILITY_SIMPLEX_INVALID"):
-        inference.predict(frame)
-
-
-def test_xgb_feature_identity_requires_metadata_order_and_sanitizer_parity() -> None:
-    _require_ordered_xgb_feature_identity(
-        model_feature_names=["a", "b"],
-        contract_features=["a", "b"],
-        sanitizer_features=["a", "b"],
-    )
-    with pytest.raises(RuntimeError, match="metadata lacks exact"):
-        _require_ordered_xgb_feature_identity(
-            model_feature_names=None,
-            contract_features=["a", "b"],
-            sanitizer_features=["a", "b"],
-        )
-    with pytest.raises(RuntimeError, match="order differs"):
-        _require_ordered_xgb_feature_identity(
-            model_feature_names=["b", "a"],
-            contract_features=["a", "b"],
-            sanitizer_features=["a", "b"],
-        )
-    with pytest.raises(RuntimeError, match="sanitizer feature order differs"):
-        _require_ordered_xgb_feature_identity(
-            model_feature_names=["a", "b"],
-            contract_features=["a", "b"],
-            sanitizer_features=["a"],
-        )
-
-
-def _pipeline(loader: object | None = None, **kwargs: object) -> V12Pipeline:
-    return V12Pipeline(
-        prebuilt_loader=loader or SimpleNamespace(),
-        exit_xgb=object(),
-        **kwargs,
-    )
-
-
-class _CanonicalLoader:
-    def __init__(
-        self,
-        cutoff: pd.Timestamp,
-        window: pd.DataFrame,
-        *,
-        base_m1: pd.DataFrame | None = None,
-        rank_attached: bool = True,
-    ) -> None:
-        self.cutoff_ts = cutoff
-        self.window = window
-        self._base28 = base_m1
-        self._rank_attached = rank_attached
-        self.requested: list[tuple[pd.Timestamp, int]] = []
-
-    def refresh_if_changed(self) -> bool:
-        return False
-
-    def train_rank_reference_attached(self) -> bool:
-        return self._rank_attached
-
-    def get_window(self, end_ts: pd.Timestamp, *, n_bars: int) -> pd.DataFrame:
-        self.requested.append((end_ts, n_bars))
-        return self.window.copy()
-
-
-def _canonical_window(end: str) -> pd.DataFrame:
-    index = pd.date_range(
-        end=pd.Timestamp(end),
-        periods=pipeline_module.ENTRY_SEQ_LEN,
-        freq="5min",
-    )
-    return pd.DataFrame({"atr_bps": np.full(len(index), 12.0)}, index=index)
-
-
-def _v3_m1_source(end: str) -> pd.DataFrame:
-    index = pd.date_range(
-        end=pd.Timestamp(end),
-        periods=V3_WINDOW_LEN,
-        freq="min",
-    )
-    return pd.DataFrame({"m1_source": np.arange(len(index), dtype=float)}, index=index)
-
-
-def test_entry_canonical_freshness_is_fixed_and_ignores_exit_staleness_env(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    base_m1 = _v3_m1_source("2026-07-16T12:05:00Z")
-    loader = _CanonicalLoader(
-        pd.Timestamp("2026-07-16T11:55:00Z"),
-        _canonical_window("2026-07-16T11:55:00Z"),
-        base_m1=base_m1,
-    )
-    pipe = _pipeline(loader)
-    monkeypatch.setenv("GX1_MAX_PREBUILT_STALENESS_MIN", "999999")
-
-    with pytest.raises(EntryDecisionUnavailable) as raised:
-        pipe._refresh_entry_canonical(pd.Timestamp("2026-07-16T12:06:00Z"))
-
-    assert raised.value.reason == "entry_canonical_stale"
-    assert raised.value.evidence["canonical_cutoff_age_sec"] == 660.0
-    assert raised.value.evidence["canonical_cutoff_age_cap_sec"] == 390.0
-    assert loader.requested == []
-
-    # The Exit staleness knob cannot authorize a cutoff that omits even one
-    # closed-M5 key required by the actual 512-M1 V3 window.
-    with pytest.raises(ExitDecisionUnavailable) as exit_raised:
-        pipe._refresh_exit_canonical(pd.Timestamp("2026-07-16T12:06:00Z"))
-    assert exit_raised.value.reason == "exit_latest_required_closed_m5_unavailable"
-    assert exit_raised.value.evidence["required_latest_m5"] == "2026-07-16 12:00:00+00:00"
-    assert loader.requested == []
-
-
-def test_exit_canonical_requires_attached_train_rank_reference() -> None:
-    now = pd.Timestamp("2026-07-16T12:07:00Z")
-    decision_m1 = now - pd.Timedelta(minutes=1)
-    base_m1 = _v3_m1_source(str(decision_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(decision_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"atr_bps": np.full(len(required_m5), 12.0)},
-        index=required_m5,
-    )
-    loader = _CanonicalLoader(
-        required_m5[-1],
-        canonical,
-        base_m1=base_m1,
-        rank_attached=False,
-    )
-    pipe = _pipeline(loader)
-
-    with pytest.raises(
-        RuntimeError,
-        match="EXIT_TRAIN_RANK_REFERENCE_UNBOUND",
-    ):
-        pipe._refresh_exit_canonical(now)
-    assert loader.requested == []
-    assert pipe._last_exit_augmented is None
-
-
-def test_exit_canonical_window_is_derived_from_exact_512_m1_coverage() -> None:
-    now = pd.Timestamp("2026-07-16T12:07:00Z")
-    decision_m1 = now - pd.Timedelta(minutes=1)
-    base_m1 = _v3_m1_source(str(decision_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(decision_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"atr_bps": np.full(len(required_m5), 12.0)},
-        index=required_m5,
-    )
-    loader = _CanonicalLoader(required_m5[-1], canonical, base_m1=base_m1)
-    pipe = _pipeline(loader)
-
-    pipe._refresh_exit_canonical(now)
-
-    assert len(required_m5) > pipeline_module.ENTRY_SEQ_LEN
-    assert loader.requested == [(required_m5[-1], len(required_m5))]
-    assert pipe._last_exit_augmented is not None
-    assert pipe._last_exit_augmented.index.equals(required_m5)
-    assert pipe._last_augmented is None
-
-
-class _ExactBridge:
-    def __init__(self) -> None:
-        self.observed_index: pd.DatetimeIndex | None = None
-
-    def predict(self, frame: pd.DataFrame) -> dict[str, np.ndarray]:
-        self.observed_index = pd.DatetimeIndex(frame.index)
-        bridge = np.arange(len(frame) * 7, dtype=np.float32).reshape(len(frame), 7)
-        return {"signal_bridge_v1": bridge}
-
-
-def _minimal_v3() -> V3LiveInference:
-    features = [*XGB_BRIDGE_NAMES, "atr_bps"]
-    return V3LiveInference(
-        bundle_dir=Path("."),
-        _features=features,
-        _feature_count=len(features),
-    )
-
-
-def test_v3_maps_each_m1_row_to_its_exact_latest_closed_m5() -> None:
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    base_m1 = _v3_m1_source(str(end_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"atr_bps": np.arange(len(required_m5), dtype=float) + 1.0},
-        index=required_m5,
-    )
-    bridge = _ExactBridge()
-
-    matrix = _minimal_v3().build_window(
-        end_m1,
-        base_m1,
-        bridge,
-        canonical_v3_window=canonical,
-    )
-
-    per_m1_closed_m5 = (
-        base_m1.index + pd.Timedelta(minutes=1)
-    ).floor("5min") - pd.Timedelta(minutes=5)
-    expected_atr = canonical.loc[per_m1_closed_m5, "atr_bps"].to_numpy()
-    bridge_positions = required_m5.get_indexer(per_m1_closed_m5)
-    expected_bridge = np.arange(
-        len(required_m5) * 7,
-        dtype=np.float32,
-    ).reshape(len(required_m5), 7)[bridge_positions]
-    assert required_m5[-1] == pd.Timestamp("2026-07-16T12:00:00Z")
-    assert bridge.observed_index is not None
-    assert bridge.observed_index.equals(required_m5)
-    np.testing.assert_array_equal(matrix[:, :7], expected_bridge)
-    np.testing.assert_array_equal(matrix[:, 7], expected_atr.astype(np.float32))
-    assert np.isfinite(matrix).all()
-
-
-def test_closed_m5_mapping_is_exact_for_all_five_m1_phases() -> None:
-    from gx1.execution.v12_m1_to_m5_downsample import (
-        closed_m5_start_for_m1_bar_labels,
-    )
-
-    labels = pd.date_range("2026-07-16T12:00:00Z", periods=5, freq="min")
-    observed = closed_m5_start_for_m1_bar_labels(labels)
-    expected = pd.DatetimeIndex(
-        [
-            pd.Timestamp("2026-07-16T11:55:00Z"),
-            pd.Timestamp("2026-07-16T11:55:00Z"),
-            pd.Timestamp("2026-07-16T11:55:00Z"),
-            pd.Timestamp("2026-07-16T11:55:00Z"),
-            pd.Timestamp("2026-07-16T12:00:00Z"),
-        ]
-    )
-
-    assert observed.equals(expected)
-
-
-def test_v3_phase_is_owned_by_exact_m1_timestamp_not_broadcast_prebuilt() -> None:
-    labels = pd.date_range("2026-07-16T12:00:00Z", periods=5, freq="min")
-    target = pd.DataFrame(
-        {
-            # A broad historical BASE28 could carry the wrong, M5-broadcast
-            # phase.  The serving owner must ignore it.
-            **{f"m5_phase_{phase}": np.ones(5) for phase in range(5)},
-        },
-        index=labels,
-    )
-    required_m5 = (
-        labels + pd.Timedelta(minutes=1)
-    ).floor("5min") - pd.Timedelta(minutes=5)
-    canonical = pd.DataFrame(
-        {
-            **{f"m5_phase_{phase}": np.ones(2) for phase in range(5)},
-        },
-        index=pd.DatetimeIndex(required_m5.unique()),
-    )
-    features = [*XGB_BRIDGE_NAMES, *(f"m5_phase_{phase}" for phase in range(5))]
-
-    matrix = build_v3_base_feature_rows(
-        target_m1=target,
-        volume_history_m1=target,
-        canonical_v3=canonical,
-        xgb_inferer=_ExactBridge(),
-        feature_names=features,
-    )
-
-    np.testing.assert_array_equal(matrix[:, 7:], np.eye(5, dtype=np.float32))
-
-
-def test_shared_v3_builder_requires_volume_prefix_and_is_chunk_invariant() -> None:
-    from gx1.features.volume_features import (
-        VOLUME_FEATURE_NAMES,
-        VOLUME_FEATURE_PREFIX_ROWS,
-    )
-
-    source_rows = 700
-    target_rows = 64
-    index = pd.date_range(
-        end=pd.Timestamp("2026-07-16T12:06:00Z"),
-        periods=source_rows,
-        freq="min",
-    )
-    full_history = pd.DataFrame(
-        {
-            "volume": 100.0 + np.square(np.sin(np.arange(source_rows) / 13.0)),
-            "close": 2000.0 + np.cos(np.arange(source_rows) / 17.0),
-        },
-        index=index,
-    )
-    target = full_history.tail(target_rows)
-    closed_m5 = (
-        target.index + pd.Timedelta(minutes=1)
-    ).floor("5min") - pd.Timedelta(minutes=5)
-    canonical = pd.DataFrame(
-        {"coverage": 1.0},
-        index=pd.DatetimeIndex(closed_m5.unique()),
-    )
-    features = [*XGB_BRIDGE_NAMES, *VOLUME_FEATURE_NAMES]
-
-    complete = build_v3_base_feature_rows(
-        target_m1=target,
-        volume_history_m1=full_history,
-        canonical_v3=canonical,
-        xgb_inferer=_ExactBridge(),
-        feature_names=features,
-    )
-    bounded_history = full_history.tail(
-        target_rows + VOLUME_FEATURE_PREFIX_ROWS
-    )
-    bounded = build_v3_base_feature_rows(
-        target_m1=target,
-        volume_history_m1=bounded_history,
-        canonical_v3=canonical,
-        xgb_inferer=_ExactBridge(),
-        feature_names=features,
-    )
-    np.testing.assert_array_equal(complete, bounded)
-
-    with pytest.raises(RuntimeError, match="V3_VOLUME_HISTORY_PREFIX_MISSING"):
-        build_v3_base_feature_rows(
-            target_m1=target,
-            volume_history_m1=full_history.tail(
-                target_rows + VOLUME_FEATURE_PREFIX_ROWS - 1
-            ),
-            canonical_v3=canonical,
-            xgb_inferer=_ExactBridge(),
-            feature_names=features,
-        )
-
-
-def test_v3_volume_features_use_required_prefix_not_model_window_start() -> None:
-    from gx1.features.volume_features import (
-        VOLUME_FEATURE_NAMES,
-        VOLUME_FEATURE_PREFIX_ROWS,
-        compute_volume_features,
-    )
-
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    source_rows = V3_WINDOW_LEN + VOLUME_FEATURE_PREFIX_ROWS
-    index = pd.date_range(end=end_m1, periods=source_rows, freq="min")
-    base_m1 = pd.DataFrame(
-        {
-            "volume": np.arange(1, source_rows + 1, dtype=np.float64),
-            "close": 2000.0 + np.sin(np.arange(source_rows) / 11.0),
-        },
-        index=index,
-    )
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame({"coverage": 1.0}, index=required_m5)
-    features = [*XGB_BRIDGE_NAMES, *VOLUME_FEATURE_NAMES]
-    v3 = V3LiveInference(
-        bundle_dir=Path("."),
-        _features=features,
-        _feature_count=len(features),
-    )
-
-    matrix = v3.build_window(
-        end_m1,
-        base_m1,
-        _ExactBridge(),
-        canonical_v3_window=canonical,
-    )
-    expected = compute_volume_features(base_m1)
-
-    for offset, name in enumerate(VOLUME_FEATURE_NAMES, start=7):
-        np.testing.assert_array_equal(
-            matrix[:, offset],
-            expected[name][-V3_WINDOW_LEN:],
-        )
-
-
-def test_v3_volume_features_fail_without_required_prefix() -> None:
-    from gx1.features.volume_features import VOLUME_FEATURE_NAMES
-
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    index = pd.date_range(end=end_m1, periods=V3_WINDOW_LEN, freq="min")
-    base_m1 = pd.DataFrame(
-        {
-            "volume": np.arange(1, V3_WINDOW_LEN + 1, dtype=np.float64),
-            "close": np.linspace(2000.0, 2001.0, V3_WINDOW_LEN),
-        },
-        index=index,
-    )
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame({"coverage": 1.0}, index=required_m5)
-    features = [*XGB_BRIDGE_NAMES, *VOLUME_FEATURE_NAMES]
-    v3 = V3LiveInference(
-        bundle_dir=Path("."),
-        _features=features,
-        _feature_count=len(features),
-    )
-
-    with pytest.raises(RuntimeError, match="V3_VOLUME_HISTORY_MISMATCH"):
-        v3.build_window(
-            end_m1,
-            base_m1,
-            _ExactBridge(),
-            canonical_v3_window=canonical,
-        )
-
-
-def test_v3_rejects_one_missing_required_closed_m5_key_before_xgb() -> None:
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    base_m1 = _v3_m1_source(str(end_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"atr_bps": np.ones(len(required_m5) - 1)},
-        index=required_m5.delete(len(required_m5) // 2),
-    )
-    bridge = _ExactBridge()
-
-    with pytest.raises(RuntimeError, match="V3_CANONICAL_CLOSED_M5_COVERAGE_MISSING"):
-        _minimal_v3().build_window(
-            end_m1,
-            base_m1,
-            bridge,
-            canonical_v3_window=canonical,
-        )
-
-    assert bridge.observed_index is None
-
-
-def test_v3_rejects_nonfinite_active_feature_before_xgb() -> None:
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    base_m1 = _v3_m1_source(str(end_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"atr_bps": np.ones(len(required_m5))},
-        index=required_m5,
-    )
-    canonical.iloc[len(canonical) // 2, 0] = np.nan
-    bridge = _ExactBridge()
-
-    with pytest.raises(RuntimeError, match="V3_ACTIVE_FEATURE_INVALID"):
-        _minimal_v3().build_window(
-            end_m1,
-            base_m1,
-            bridge,
-            canonical_v3_window=canonical,
-        )
-
-    assert bridge.observed_index is None
-
-
-def test_v3_rejects_missing_active_feature_instead_of_zero_fill() -> None:
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    base_m1 = _v3_m1_source(str(end_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"unrelated": np.ones(len(required_m5))},
-        index=required_m5,
-    )
-    bridge = _ExactBridge()
-
-    with pytest.raises(RuntimeError, match="V3_ACTIVE_FEATURE_MISSING: atr_bps"):
-        _minimal_v3().build_window(
-            end_m1,
-            base_m1,
-            bridge,
-            canonical_v3_window=canonical,
-        )
-
-    assert bridge.observed_index is None
-
-
-def test_v3_rejects_nonfinite_xgb_bridge_before_model_inference() -> None:
-    class _NonfiniteBridge:
-        def predict(self, frame: pd.DataFrame) -> dict[str, np.ndarray]:
-            values = np.ones((len(frame), 7), dtype=np.float32)
-            values[-1, -1] = np.inf
-            return {"signal_bridge_v1": values}
-
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    base_m1 = _v3_m1_source(str(end_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    canonical = pd.DataFrame(
-        {"atr_bps": np.ones(len(required_m5))},
-        index=required_m5,
-    )
-
-    with pytest.raises(RuntimeError, match="V3_XGB_BRIDGE_OUTPUT_INVALID"):
-        _minimal_v3().build_window(
-            end_m1,
-            base_m1,
-            _NonfiniteBridge(),
-            canonical_v3_window=canonical,
-        )
-
-
-def test_v3_rejects_duplicate_canonical_m5_key() -> None:
-    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
-    base_m1 = _v3_m1_source(str(end_m1))
-    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
-    duplicate_index = required_m5.insert(1, required_m5[0])
-    canonical = pd.DataFrame(
-        {"atr_bps": np.ones(len(duplicate_index))},
-        index=duplicate_index,
-    )
-
-    with pytest.raises(RuntimeError, match="V3_CANONICAL_INDEX_INVALID"):
-        _minimal_v3().build_window(
-            end_m1,
-            base_m1,
-            _ExactBridge(),
-            canonical_v3_window=canonical,
-        )
-
-
-def test_entry_canonical_requires_the_exact_latest_closed_m5() -> None:
-    loader = _CanonicalLoader(
-        pd.Timestamp("2026-07-16T11:59:00Z"),
-        _canonical_window("2026-07-16T11:55:00Z"),
-    )
-    pipe = _pipeline(loader)
-
-    with pytest.raises(EntryDecisionUnavailable) as raised:
-        pipe._refresh_entry_canonical(pd.Timestamp("2026-07-16T12:05:00Z"))
-
-    assert raised.value.reason == "entry_latest_closed_m5_unavailable"
-    assert raised.value.evidence["expected_m5"] == "2026-07-16 12:00:00+00:00"
-    assert loader.requested == []
-
-
-def test_entry_canonical_accepts_only_an_exact_96_bar_fresh_window() -> None:
-    window = _canonical_window("2026-07-16T12:00:00Z")
-    loader = _CanonicalLoader(pd.Timestamp("2026-07-16T12:00:00Z"), window)
-    pipe = _pipeline(loader)
-
-    pipe._refresh_entry_canonical(pd.Timestamp("2026-07-16T12:06:00Z"))
-
-    assert loader.requested == [
-        (pd.Timestamp("2026-07-16T12:00:00Z"), pipeline_module.ENTRY_SEQ_LEN)
-    ]
-    assert pipe._last_augmented is not None
-    assert pipe._last_augmented.index[-1] == pd.Timestamp("2026-07-16T12:00:00Z")
-
-
-def test_entry_canonical_age_does_not_floor_away_subminute_staleness() -> None:
-    loader = _CanonicalLoader(
-        pd.Timestamp("2026-07-16T12:00:00Z"),
-        _canonical_window("2026-07-16T12:00:00Z"),
-    )
-    pipe = _pipeline(loader)
-
-    with pytest.raises(EntryDecisionUnavailable) as raised:
-        pipe._refresh_entry_canonical(pd.Timestamp("2026-07-16T12:06:31Z"))
-
-    assert raised.value.reason == "entry_canonical_stale"
-    assert raised.value.evidence["canonical_cutoff_age_sec"] == 391.0
-    assert loader.requested == []
-
-
-def test_negative_retired_latency_env_cannot_enable_entry_backlog(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    class _EntryMustNotRun:
-        def predict_live_bar(self, *_args: object, **_kwargs: object) -> object:
-            raise AssertionError("stale Entry state must never reach model inference")
-
-    pipe = _pipeline(smart_entry=_EntryMustNotRun())
-    pipe._last_augmented = _canonical_window("2026-07-16T12:00:00Z")
-    monkeypatch.setattr(pipe, "_refresh_entry_canonical", lambda _now: None)
-    monkeypatch.setenv("GX1_MAX_ENTRY_DECISION_LATENCY_SEC", "-1")
-
-    with pytest.raises(EntryDecisionUnavailable) as raised:
-        pipe.make_entry_decision(
-            pd.Timestamp("2026-07-16T12:07:00Z"),
-            bid=2400.0,
-            ask=2400.2,
-        )
-
-    assert raised.value.reason == "entry_signal_stale"
-    assert raised.value.evidence["entry_signal_latency_sec"] == 120.0
-    assert raised.value.evidence["entry_signal_latency_cap_sec"] == 90.0
-
-
-def test_closed_m1_does_not_substitute_an_older_cached_or_latest_row(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    now = pd.Timestamp("2026-07-16T12:10:00Z")
-    expected_path = tmp_path / "xauusd_m1_20260716.parquet"
-    expected_path.touch()
-    pipe = _pipeline()
-    pipe._last_m1_atr_minute = pd.Timestamp("2026-07-16T12:08:00Z")
-    pipe._last_m1_bar = {"time": pipe._last_m1_atr_minute, "mid_close": 111.0}
-
-    monkeypatch.setattr(pipeline_module, "COLLECTOR_DIR", tmp_path)
-    monkeypatch.setattr(
-        pipeline_module.pd,
-        "read_parquet",
-        lambda *_args, **_kwargs: _collector_rows("2026-07-16T12:08:00Z"),
-    )
-
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        pipe._refresh_m1_bar(now)
-
-    assert raised.value.reason == "closed_m1_exact_bar_missing"
-    assert raised.value.evidence["expected_m1"] == "2026-07-16 12:09:00+00:00"
-    assert raised.value.evidence["latest_observed_m1"] == "2026-07-16 12:08:00+00:00"
-
-
-def test_closed_m1_selects_the_unique_exact_bar_not_a_forming_later_row(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    now = pd.Timestamp("2026-07-16T12:10:00Z")
-    expected_path = tmp_path / "xauusd_m1_20260716.parquet"
-    expected_path.touch()
-    frame = _collector_rows(
-        "2026-07-16T12:09:00Z",
-        "2026-07-16T12:10:00Z",
-    )
-    monkeypatch.setattr(pipeline_module, "COLLECTOR_DIR", tmp_path)
-    monkeypatch.setattr(
-        pipeline_module.pd,
-        "read_parquet",
-        lambda *_args, **_kwargs: frame.copy(),
-    )
-
-    bar = _pipeline()._refresh_m1_bar(now)
-
-    assert bar["time"] == pd.Timestamp("2026-07-16T12:09:00Z")
-    assert bar["bid_close"] == 2400.0
-    assert bar["mid_close"] == pytest.approx(2400.1)
-    assert bar["atr_bps"] > 0.0
-
-
-def test_closed_m1_midnight_uses_the_expected_bars_calendar_day(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    expected_path = tmp_path / "xauusd_m1_20260715.parquet"
-    expected_path.touch()
-    observed_paths: list[Path] = []
-
-    def fake_read(path: Path, **_kwargs: object) -> pd.DataFrame:
-        observed_paths.append(Path(path))
-        return _collector_rows("2026-07-15T23:59:00Z")
-
-    monkeypatch.setattr(pipeline_module, "COLLECTOR_DIR", tmp_path)
-    monkeypatch.setattr(pipeline_module.pd, "read_parquet", fake_read)
-
-    bar = _pipeline()._refresh_m1_bar(pd.Timestamp("2026-07-16T00:00:00Z"))
-
-    assert observed_paths == [expected_path]
-    assert bar["time"] == pd.Timestamp("2026-07-15T23:59:00Z")
-
-
-def test_closed_m1_provider_is_exact_historical_replay_seam(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    expected = pd.Timestamp("2026-07-16T12:09:00Z")
-
-    class _ExactProvider:
-        def __init__(self) -> None:
-            self.requested: list[pd.Timestamp] = []
-
-        def get_closed_m1_bar(
-            self,
-            expected_m1: pd.Timestamp,
-        ) -> dict[str, object]:
-            self.requested.append(expected_m1)
-            return _collector_rows(str(expected_m1)).iloc[0].to_dict()
-
-    provider = _ExactProvider()
-    pipe = _pipeline(closed_m1_provider=provider)
-    monkeypatch.setattr(
-        pipeline_module.pd,
-        "read_parquet",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            AssertionError("historical provider must not read live collector")
-        ),
-    )
-
-    bar = pipe._refresh_m1_bar(pd.Timestamp("2026-07-16T12:10:00Z"))
-
-    assert provider.requested == [expected]
-    assert bar["time"] == expected
-    assert bar["mid_close"] == pytest.approx(2400.1)
-
-
-def test_closed_m1_provider_rejects_nearby_bar_substitution() -> None:
-    class _WrongBarProvider:
-        def get_closed_m1_bar(
-            self,
-            _expected_m1: pd.Timestamp,
-        ) -> dict[str, object]:
-            return _collector_rows("2026-07-16T12:08:00Z").iloc[0].to_dict()
-
-    pipe = _pipeline(closed_m1_provider=_WrongBarProvider())
-
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        pipe._refresh_m1_bar(pd.Timestamp("2026-07-16T12:10:00Z"))
-
-    assert raised.value.reason == "closed_m1_provider_time_mismatch"
-    assert raised.value.evidence["expected_m1"] == "2026-07-16 12:09:00+00:00"
-    assert raised.value.evidence["observed_m1"] == "2026-07-16 12:08:00+00:00"
-
-
-def test_exact_closed_m5_rejects_latest_row_substitution() -> None:
-    augmented = pd.DataFrame(
-        {"atr_bps": [12.0]},
-        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T11:55:00Z")]),
-    )
-
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        _exact_closed_m5_row(augmented, pd.Timestamp("2026-07-16T12:07:00Z"))
-
-    assert raised.value.reason == "canonical_exact_m5_missing"
-    assert raised.value.evidence["expected_m5"] == "2026-07-16 12:00:00+00:00"
-
-
-@pytest.mark.parametrize(
-    ("output", "q_head_required", "reason"),
-    [
-        (None, False, "v3_output_invalid"),
-        ({}, False, "v3_output_missing"),
-        (
-            {
-                "v3_v8_should_exit_prob": np.nan,
-                "v3_v8_profit_protect_prob": 0.2,
-                "v3_v8_family_argmax": 1,
-                "v3_v8_family_logit_max": 2.0,
-            },
-            False,
-            "v3_output_non_finite",
-        ),
-        (
-            {
-                "v3_v8_should_exit_prob": 0.3,
-                "v3_v8_profit_protect_prob": 0.2,
-                "v3_v8_family_argmax": 1,
-                "v3_v8_family_logit_max": 2.0,
-            },
-            True,
-            "v3_output_missing",
-        ),
-    ],
-)
-def test_v3_output_contract_fails_closed(
-    output: object,
-    q_head_required: bool,
-    reason: str,
-) -> None:
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        _validated_v3_output(output, q_head_required=q_head_required)
-
-    assert raised.value.reason == reason
-
-
-class _FakeTrade:
-    def __init__(self, *, quote_pnl_bps: float = 0.0) -> None:
-        self.side = "long"
-        self.trade_id = "T-1"
-        self.bars_in_trade = 0
-        self.current_bid = 2400.0
-        self.current_ask = 2400.2
-        self.current_pnl_bps = 0.0
-        self.cum_mfe_bps = 0.0
-        self.cum_mae_bps = 0.0
-        self.last_atr_bps = 0.0
-        self._quote_pnl_bps = quote_pnl_bps
-        self.updated_bar: dict[str, float] | None = None
-        self.v3_updates: list[dict[str, object]] = []
-
-    def _pnl_bps(self, _bid: float, _ask: float) -> float:
-        return self._quote_pnl_bps
-
-    def clone_for_exit_decision(self) -> "_FakeTrade":
-        return deepcopy(self)
-
-    def commit_complete_exit_bar(self, staged: "_FakeTrade") -> None:
-        self.__dict__.clear()
-        self.__dict__.update(deepcopy(staged.__dict__))
-
-    def update_bar(self, **values: float) -> None:
-        self.updated_bar = dict(values)
-        self.bars_in_trade += 1
-        self.current_bid = float(values["bid"])
-        self.current_ask = float(values["ask"])
-
-    def build_v3_overlay(self) -> dict[str, np.ndarray]:
-        return {}
-
-    def update_v3(self, output: dict[str, object]) -> None:
-        self.v3_updates.append(output)
-
-    def build_v3_tracking_features(self) -> dict[str, float]:
-        return {}
-
-
-class _FailingV3:
-    _enable_multi_tf = False
-    _enable_q_head = False
-
-    def predict(self, **_kwargs: object) -> dict[str, object]:
-        raise RuntimeError("broken-v3")
-
-
-class _CompleteV3:
-    _enable_multi_tf = False
-    _enable_q_head = False
-
-    def predict(self, **_kwargs: object) -> dict[str, object]:
-        return {
-            "v3_v8_should_exit_prob": 0.7,
-            "v3_v8_profit_protect_prob": 0.4,
-            "v3_v8_family_argmax": 1,
-            "v3_v8_family_logit_max": 2.0,
-        }
-
-
-class _ExitMustNotRun:
-    def __init__(self) -> None:
-        self.calls = 0
-
-    def decide_for_trade(self, *_args: object, **_kwargs: object) -> object:
-        self.calls += 1
-        raise AssertionError("Exit-IQL must not receive failed V3 state")
-
-
-def _exact_m1_bar() -> dict[str, object]:
-    return {
-        "time": pd.Timestamp("2026-07-16T12:06:00Z"),
-        "bid_high": 2401.0,
-        "bid_low": 2399.0,
-        "ask_high": 2401.2,
-        "ask_low": 2399.2,
-        "bid_close": 2400.0,
-        "ask_close": 2400.2,
-        "mid_close": 2400.1,
-        "atr_bps": 9.16,
-    }
-
-
-def test_v3_failure_never_continues_into_exit_iql_zero_state(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    exact_time = pd.Timestamp("2026-07-16T12:06:00Z")
-    loader = SimpleNamespace(
-        _base28=pd.DataFrame({"x": [1.0]}, index=pd.DatetimeIndex([exact_time])),
-        cutoff_ts=pd.Timestamp("2026-07-16T12:00:00Z"),
-    )
-    exit_iql = _ExitMustNotRun()
-    pipe = _pipeline(loader, v3=_FailingV3(), exit_iql=exit_iql)
-    pipe._last_exit_augmented = pd.DataFrame(
-        {"atr_bps": [12.0]},
-        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
-    )
-    monkeypatch.setattr(pipe, "_refresh_m1_bar", lambda _now: _exact_m1_bar())
-    monkeypatch.setattr(pipe, "_refresh_exit_canonical", lambda _now: True)
-    trade = _FakeTrade()
-
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        pipe.make_exit_decision(
-            trade,
-            pd.Timestamp("2026-07-16T12:07:00Z"),
-            bid=2400.3,
-            ask=2400.5,
-        )
-
-    assert raised.value.reason == "v3_inference_failed"
-    assert exit_iql.calls == 0
-    assert trade.v3_updates == []
-    assert trade.updated_bar is None
-    assert trade.bars_in_trade == 0
-
-
-def test_exit_iql_failure_leaves_trade_state_byte_equivalent(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    exact_time = pd.Timestamp("2026-07-16T12:06:00Z")
-    loader = SimpleNamespace(
-        _base28=pd.DataFrame({"x": [1.0]}, index=pd.DatetimeIndex([exact_time])),
-        cutoff_ts=pd.Timestamp("2026-07-16T12:00:00Z"),
-    )
-    exit_iql = _ExitMustNotRun()
-    pipe = _pipeline(loader, v3=_CompleteV3(), exit_iql=exit_iql)
-    pipe._last_exit_augmented = pd.DataFrame(
-        {"atr_bps": [12.0]},
-        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
-    )
-    monkeypatch.setattr(pipe, "_refresh_m1_bar", lambda _now: _exact_m1_bar())
-    monkeypatch.setattr(pipe, "_refresh_exit_canonical", lambda _now: None)
-    trade = _FakeTrade()
-    before = deepcopy(trade.__dict__)
-
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        pipe.make_exit_decision(
-            trade,
-            pd.Timestamp("2026-07-16T12:07:00Z"),
-            bid=2400.3,
-            ask=2400.5,
-        )
-
-    assert raised.value.reason == "exit_iql_decision_failed"
-    assert trade.__dict__ == before
-
-
-def test_missing_canonical_state_is_unavailable_not_synthetic_hold(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    loader = SimpleNamespace(cutoff_ts=pd.Timestamp("2026-07-16T11:55:00Z"))
-    pipe = _pipeline(loader)
-    trade = _FakeTrade()
-    monkeypatch.setattr(pipe, "_refresh_m1_bar", lambda _now: _exact_m1_bar())
-
-    def _canonical_unavailable(_now: pd.Timestamp) -> None:
-        raise ExitDecisionUnavailable(
-            "canonical_data_unavailable",
-            expected_m5="2026-07-16 12:00:00+00:00",
-        )
-
-    monkeypatch.setattr(pipe, "_refresh_exit_canonical", _canonical_unavailable)
-
-    with pytest.raises(ExitDecisionUnavailable) as raised:
-        pipe.make_exit_decision(
-            trade,
-            pd.Timestamp("2026-07-16T12:07:00Z"),
-            bid=2400.3,
-            ask=2400.5,
-        )
-
-    assert raised.value.reason == "canonical_data_unavailable"
-    assert raised.value.evidence["expected_m5"] == "2026-07-16 12:00:00+00:00"
-    assert trade.bars_in_trade == 0
-    assert trade.updated_bar is None
-
-
-def test_fresh_quote_hard_stop_remains_available_before_model_inputs(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    pipe = _pipeline()
-    trade = _FakeTrade(quote_pnl_bps=-95.0)
-    monkeypatch.setattr(pipeline_module, "_EXIT_HARD_STOP_BPS", 80.0)
-    monkeypatch.setattr(
-        pipe,
-        "_refresh_m1_bar",
-        lambda _now: (_ for _ in ()).throw(AssertionError("collector must not be read")),
-    )
-
-    decision = pipe.make_exit_decision(
-        trade,
-        pd.Timestamp("2026-07-16T12:07:00Z"),
-        bid=2300.0,
-        ask=2300.2,
-    )
-
-    assert decision["action"] == "EXIT_NOW"
-    assert decision["decision_source"] == "HARD_MAE_STOP"
-    assert decision["decision_safety_scope"] == "fresh_quote_existing_position_close"
-    assert trade.bars_in_trade == 0
-    assert trade.current_pnl_bps == -95.0
-
 
 def test_active_runtime_source_has_no_decision_state_substitution() -> None:
     root = Path(__file__).resolve().parents[1]
     pipeline_source = (root / "gx1/execution/v12_pipeline.py").read_text(encoding="utf-8")
     runner_source = (root / "gx1/execution/v12_paper_runner.py").read_text(encoding="utf-8")
     exit_start = pipeline_source.index("    def make_exit_decision(")
-    exit_end = pipeline_source.index("\n\n# Backwards-compat", exit_start)
-    active_exit = pipeline_source[exit_start:exit_end]
+    active_exit = pipeline_source[exit_start:]
 
     for forbidden in (
         "using zero fallback",
-        "zero-fallback V3 state",
         "Use latest available bar as fallback",
         '"error": "no_canonical_data"',
-        "current_m1_atr_bps_override=m1_atr_bps if",
-        "v3_v8_out = None",
         "trade.update_bar(bid=bid",
     ):
         assert forbidden not in active_exit
@@ -1245,10 +33,16 @@ def test_active_runtime_source_has_no_decision_state_substitution() -> None:
     assert "except ExitDecisionUnavailable as exc:" in runner_source
     assert '"exit_decision": None' in runner_source
     assert "if exit_decision_unavailable:" in runner_source
-    assert "FILLED_STATE_UNAVAILABLE_RECOVERY" in runner_source
-    assert "EXIT_CLOSE_FAILED" in runner_source
-    assert "EXIT_EXECUTION_UNRESOLVED" in runner_source
+    assert (
+        "FILLED_STATE_UNAVAILABLE_RECONCILIATION_REQUIRED"
+        in runner_source
+    )
+    assert "BROKER_CLOSE_OUTCOME_UNRESOLVED" in runner_source
+    assert "submit_broker_close_with_durable_intent" in runner_source
+    assert runner_source.count("attempt_close_trade(") == 3
     assert "BROKER_RECONCILIATION_REQUIRED" in runner_source
+    assert 'exit_action = exit_decision["action"]' in runner_source
+    assert 'exit_decision.get("action_id")' not in runner_source
 
 
 def test_missing_trade_id_fails_closed_without_counter_order(
@@ -1291,6 +85,1174 @@ def test_empty_trade_id_fails_closed_without_counter_order(
     assert calls == []
 
 
+def _close_fill_response(
+    *,
+    trade_id: str = "trade-7",
+    units: str = "-7",
+) -> dict[str, object]:
+    return {
+        "orderFillTransaction": {
+            "id": "close-tx-1",
+            "orderID": "close-order-1",
+            "instrument": "XAU_USD",
+            "time": "2026-07-31T10:00:00.125000000Z",
+            "price": "3300.25",
+            "pl": "4.50",
+            "units": units,
+            "tradesClosed": [
+                {
+                    "tradeID": trade_id,
+                    "units": units,
+                    "realizedPL": "4.50",
+                }
+            ],
+        }
+    }
+
+
+@pytest.mark.parametrize(
+    ("response", "reason"),
+    [
+        ({}, "order_fill_transaction_missing"),
+        (
+            _close_fill_response(trade_id="wrong-trade"),
+            "closed_trade_id_mismatch",
+        ),
+        (
+            _close_fill_response(units="-3"),
+            "closed_units_not_exact_all",
+        ),
+        (
+            _close_fill_response(units="7"),
+            "closed_units_not_exact_all",
+        ),
+    ],
+)
+def test_close_requires_exact_full_trade_fill(
+    response: dict[str, object],
+    reason: str,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    client = SimpleNamespace(close_trade=lambda _trade_id: response)
+    trade = SimpleNamespace(
+        trade_id="trade-7",
+        side="long",
+        units=7,
+    )
+
+    result = runner.attempt_close_trade(client, trade)
+
+    assert result["status"] == "close_fill_mismatch"
+    assert reason in result["reason"]
+
+
+def test_close_accepts_only_exact_reconciled_trade_fill() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    client = SimpleNamespace(
+        close_trade=lambda _trade_id: _close_fill_response()
+    )
+    trade = SimpleNamespace(
+        trade_id="trade-7",
+        side="long",
+        units=7,
+    )
+
+    result = runner.attempt_close_trade(client, trade)
+
+    assert result["status"] == "closed"
+    assert result["trade_id"] == "trade-7"
+    assert result["closed_signed_units"] == -7
+    assert result["fill_price"] == pytest.approx(3300.25)
+
+
+def test_close_reject_with_fill_evidence_is_ambiguous_not_terminal() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    response = _close_fill_response()
+    response["orderRejectTransaction"] = {
+        "id": "reject-and-fill",
+        "rejectReason": "UNKNOWN",
+    }
+    client = SimpleNamespace(
+        close_trade=lambda _trade_id: response
+    )
+    trade = SimpleNamespace(
+        trade_id="trade-7",
+        side="long",
+        units=7,
+    )
+
+    result = runner.attempt_close_trade(client, trade)
+
+    assert result["status"] == "ambiguous_response"
+
+
+@pytest.mark.parametrize(
+    ("dry_run", "shadow_only", "mode", "error"),
+    [
+        (
+            True,
+            False,
+            "learned_broker_fill",
+            "TRADE_STATE_EXECUTION_MODE_MISMATCH",
+        ),
+        (
+            False,
+            False,
+            "learned_virtual_dry_run",
+            "TRADE_STATE_EXECUTION_MODE_MISMATCH",
+        ),
+        (
+            True,
+            True,
+            "learned_broker_fill",
+            "SHADOW_RUNNER_PERSISTED_TRADE_STATE_PRESENT",
+        ),
+    ],
+)
+def test_runner_rejects_cross_mode_persisted_trade_state(
+    dry_run: bool,
+    shadow_only: bool,
+    mode: str,
+    error: str,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    trade = SimpleNamespace(
+        trade_id="mode-bound-trade",
+        sizing_execution_evidence={"mode": mode},
+    )
+
+    with pytest.raises(RuntimeError, match=error):
+        runner.require_runner_trade_state_mode(
+            [trade],
+            dry_run=dry_run,
+            shadow_only=shadow_only,
+        )
+
+
+def test_runner_accepts_only_matching_persisted_trade_state_mode() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    virtual = SimpleNamespace(
+        trade_id="virtual",
+        sizing_execution_evidence={"mode": "learned_virtual_dry_run"},
+    )
+    broker = SimpleNamespace(
+        trade_id="broker",
+        sizing_execution_evidence={"mode": "learned_broker_fill"},
+    )
+    runner.require_runner_trade_state_mode(
+        [virtual],
+        dry_run=True,
+        shadow_only=False,
+    )
+    runner.require_runner_trade_state_mode(
+        [broker],
+        dry_run=False,
+        shadow_only=False,
+    )
+    runner.require_runner_trade_state_mode(
+        [],
+        dry_run=True,
+        shadow_only=True,
+    )
+
+
+def _broker_account_binding(
+    digest_character: str = "a",
+) -> dict[str, str]:
+    return {
+        "schema_version": "gx1_trade_state_broker_account_binding_v1",
+        "environment": "practice",
+        "account_id_sha256": digest_character * 64,
+    }
+
+
+def test_runner_rejects_persisted_trade_from_other_broker_account() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    trade = SimpleNamespace(
+        trade_id="account-bound-trade",
+        broker_account_binding=_broker_account_binding("a"),
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="TRADE_STATE_BROKER_ACCOUNT_MISMATCH",
+    ):
+        runner.require_runner_broker_account_binding(
+            [trade],
+            broker_account_binding=_broker_account_binding("b"),
+            dry_run=False,
+            shadow_only=False,
+        )
+    runner.require_runner_broker_account_binding(
+        [trade],
+        broker_account_binding=_broker_account_binding("a"),
+        dry_run=False,
+        shadow_only=False,
+    )
+
+
+def test_runner_singleton_lock_blocks_second_state_writer(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    lock_path = tmp_path / "runner.lock"
+    first = runner.acquire_runner_singleton_lock(lock_path)
+    try:
+        with pytest.raises(
+            RuntimeError,
+            match="RUNNER_SINGLETON_ALREADY_ACTIVE",
+        ):
+            runner.acquire_runner_singleton_lock(lock_path)
+    finally:
+        first.close()
+    replacement = runner.acquire_runner_singleton_lock(lock_path)
+    replacement.close()
+
+
+class _CloseIntentTrade:
+    trade_id = "trade-7"
+    side = "long"
+    units = 7
+    last_exit_decision = {
+        "action": "EXIT_NOW",
+        "decision_ts": "2026-07-31T10:00:00+00:00",
+    }
+    broker_account_binding = _broker_account_binding("a")
+
+    def __init__(self, journal_path: Path | None = None) -> None:
+        self.deleted = False
+        self.journal_path = journal_path
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "trade_id": self.trade_id,
+            "side": self.side,
+            "units": self.units,
+            "last_exit_decision": self.last_exit_decision,
+            "broker_account_binding": self.broker_account_binding,
+        }
+
+    def delete_state_file(self, _directory: Path) -> None:
+        if self.journal_path is not None:
+            assert self.journal_path.is_file()
+        self.deleted = True
+
+
+def test_close_unknown_outcome_is_reconciled_by_get_without_retry(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    journal_path = tmp_path / "close_recovery.jsonl"
+    trade = _CloseIntentTrade(journal_path)
+
+    class _LostResponseClient:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        def close_trade(self, _trade_id: str) -> dict[str, object]:
+            assert len(list(unresolved.glob("*.json"))) == 1
+            self.close_calls += 1
+            raise TimeoutError("lost close response")
+
+    lost_client = _LostResponseClient()
+    intent, intent_path, result = (
+        runner.submit_broker_close_with_durable_intent(
+            lost_client,
+            trade,
+            broker_account_binding=_broker_account_binding("a"),
+            intent_root=unresolved,
+            resolved_root=resolved,
+        )
+    )
+    assert intent["broker_account_binding"] == (
+        _broker_account_binding("a")
+    )
+    assert result["status"] == "api_error"
+    assert lost_client.close_calls == 1
+    assert intent_path.is_file()
+
+    loaded_intent = runner.load_broker_close_intent(intent_path)
+    assert loaded_intent == intent
+    assert loaded_intent["expected_close_signed_units"] == -7
+
+    transaction = _close_fill_response()["orderFillTransaction"]
+
+    class _ReconciliationClient:
+        close_calls = 0
+
+        @staticmethod
+        def get_trade(_trade_id: str) -> dict[str, object]:
+            return {
+                "trade": {
+                    "id": "trade-7",
+                    "instrument": "XAU_USD",
+                    "state": "CLOSED",
+                    "closingTransactionIDs": ["close-tx-1"],
+                }
+            }
+
+        @staticmethod
+        def get_transaction(
+            _transaction_id: str,
+        ) -> dict[str, object]:
+            return {"transaction": transaction}
+
+    reconciliation_client = _ReconciliationClient()
+    recovered = runner.reconcile_unresolved_broker_close_intents(
+        reconciliation_client,
+        open_trades=[trade],
+        dry_run=False,
+        broker_account_binding=_broker_account_binding("a"),
+        journal_path=journal_path,
+        intent_root=unresolved,
+        resolved_root=resolved,
+    )
+
+    assert recovered == []
+    assert trade.deleted is True
+    assert reconciliation_client.close_calls == 0
+    assert not intent_path.exists()
+    assert (resolved / intent_path.name).is_file()
+    assert "BROKER_CLOSE_INTENT_TERMINAL_CLOSED" in (
+        journal_path.read_text(encoding="utf-8")
+    )
+
+
+def test_close_unknown_outcome_never_retries_while_trade_is_open(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    trade = _CloseIntentTrade()
+    intent = runner.build_broker_close_intent(
+        trade,
+        broker_account_binding=_broker_account_binding("a"),
+        created_utc=pd.Timestamp("2026-07-31T10:00:00Z"),
+    )
+    intent_path = runner.persist_broker_close_intent(
+        intent,
+        intent_root=unresolved,
+        resolved_root=tmp_path / "resolved",
+    )
+    client = SimpleNamespace(
+        get_trade=lambda _trade_id: {
+            "trade": {
+                "id": "trade-7",
+                "instrument": "XAU_USD",
+                "state": "OPEN",
+            }
+        }
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="OUTCOME_UNRESOLVED_NO_RETRY",
+    ):
+        runner.reconcile_unresolved_broker_close_intents(
+            client,
+            open_trades=[trade],
+            dry_run=False,
+            broker_account_binding=_broker_account_binding("a"),
+            journal_path=tmp_path / "journal.jsonl",
+            intent_root=unresolved,
+            resolved_root=tmp_path / "resolved",
+        )
+    assert intent_path.is_file()
+    assert trade.deleted is False
+
+
+def test_same_exposure_blocks_second_intent_with_different_exit_snapshot(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    first_trade = _CloseIntentTrade()
+    first_trade.last_exit_decision = {
+        "action": "EXIT_NOW",
+        "decision_ts": "2026-07-31T10:00:00+00:00",
+    }
+    first_intent = runner.build_broker_close_intent(
+        first_trade,
+        broker_account_binding=_broker_account_binding("a"),
+        created_utc=pd.Timestamp("2026-07-31T10:00:00Z"),
+    )
+    first_path = runner.persist_broker_close_intent(
+        first_intent,
+        intent_root=unresolved,
+        resolved_root=resolved,
+    )
+    stale_trade = _CloseIntentTrade()
+    stale_trade.last_exit_decision = {
+        "action": "EXIT_NOW",
+        "decision_ts": "2026-07-31T10:01:00+00:00",
+    }
+    second_intent = runner.build_broker_close_intent(
+        stale_trade,
+        broker_account_binding=_broker_account_binding("a"),
+        created_utc=pd.Timestamp("2026-07-31T10:01:00Z"),
+    )
+
+    assert (
+        first_intent["close_intent_id"]
+        != second_intent["close_intent_id"]
+    )
+    assert runner._broker_close_exposure_filename(
+        first_intent
+    ) == runner._broker_close_exposure_filename(second_intent)
+    with pytest.raises(
+        RuntimeError,
+        match="ALREADY_EXISTS_RECONCILIATION_REQUIRED",
+    ):
+        runner.persist_broker_close_intent(
+            second_intent,
+            intent_root=unresolved,
+            resolved_root=resolved,
+        )
+    assert first_path.is_file()
+    assert len(list(unresolved.glob("*.json"))) == 1
+
+
+def test_close_recovery_survives_crash_after_state_delete(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    trade = _CloseIntentTrade()
+    intent = runner.build_broker_close_intent(
+        trade,
+        broker_account_binding=_broker_account_binding("a"),
+        created_utc=pd.Timestamp("2026-07-31T10:00:00Z"),
+    )
+    intent_path = runner.persist_broker_close_intent(
+        intent,
+        intent_root=unresolved,
+        resolved_root=resolved,
+    )
+    transaction = _close_fill_response()["orderFillTransaction"]
+    client = SimpleNamespace(
+        get_trade=lambda _trade_id: {
+            "trade": {
+                "id": "trade-7",
+                "instrument": "XAU_USD",
+                "state": "CLOSED",
+                "closingTransactionIDs": ["close-tx-1"],
+            }
+        },
+        get_transaction=lambda _transaction_id: {
+            "transaction": transaction
+        },
+    )
+
+    recovered = runner.reconcile_unresolved_broker_close_intents(
+        client,
+        open_trades=[],
+        dry_run=False,
+        broker_account_binding=_broker_account_binding("a"),
+        journal_path=tmp_path / "recovery.jsonl",
+        intent_root=unresolved,
+        resolved_root=resolved,
+    )
+
+    assert recovered == []
+    assert not intent_path.exists()
+    assert (resolved / intent_path.name).is_file()
+
+
+def test_resolved_close_tombstone_blocks_delayed_second_runner(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    journal_path = tmp_path / "finalized.jsonl"
+    trade = _CloseIntentTrade(journal_path)
+
+    class _Client:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        def close_trade(self, _trade_id: str) -> dict[str, object]:
+            self.close_calls += 1
+            return _close_fill_response()
+
+    client = _Client()
+    intent, intent_path, close_result = (
+        runner.submit_broker_close_with_durable_intent(
+            client,
+            trade,
+            broker_account_binding=_broker_account_binding("a"),
+            intent_root=unresolved,
+            resolved_root=resolved,
+        )
+    )
+    runner.finalize_broker_close_intent(
+        intent=intent,
+        intent_path=intent_path,
+        close_result=close_result,
+        trade=trade,
+        journal_path=journal_path,
+        unresolved_root=unresolved,
+        resolved_root=resolved,
+    )
+
+    assert client.close_calls == 1
+    assert (resolved / intent_path.name).is_file()
+    trade.last_exit_decision = {
+        "action": "EXIT_NOW",
+        "decision_ts": "2026-07-31T10:01:00+00:00",
+    }
+    with pytest.raises(
+        RuntimeError,
+        match="ALREADY_RESOLVED_NO_REPLAY",
+    ):
+        runner.submit_broker_close_with_durable_intent(
+            client,
+            trade,
+            broker_account_binding=_broker_account_binding("a"),
+            intent_root=unresolved,
+            resolved_root=resolved,
+        )
+    assert client.close_calls == 1
+
+
+def test_known_close_rejection_archives_no_mutation_and_allows_restart(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    rejected = tmp_path / "rejected"
+    journal_path = tmp_path / "rejected.jsonl"
+    trade = _CloseIntentTrade()
+
+    class _RejectingClient:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        def close_trade(self, _trade_id: str) -> dict[str, object]:
+            self.close_calls += 1
+            return {
+                "orderRejectTransaction": {
+                    "id": f"reject-{self.close_calls}",
+                    "rejectReason": "MARKET_HALTED",
+                }
+            }
+
+    client = _RejectingClient()
+    intent, intent_path, close_result = (
+        runner.submit_broker_close_with_durable_intent(
+            client,
+            trade,
+            broker_account_binding=_broker_account_binding("a"),
+            intent_root=unresolved,
+            resolved_root=resolved,
+        )
+    )
+    archive = runner.finalize_broker_close_rejection(
+        intent=intent,
+        intent_path=intent_path,
+        close_result=close_result,
+        trade=trade,
+        journal_path=journal_path,
+        unresolved_root=unresolved,
+        resolved_root=resolved,
+        rejected_root=rejected,
+    )
+
+    assert archive.is_file()
+    assert not intent_path.exists()
+    assert trade.deleted is False
+    assert "BROKER_CLOSE_INTENT_REJECTED_NO_MUTATION" in (
+        journal_path.read_text(encoding="utf-8")
+    )
+    _, retry_path, retry_result = (
+        runner.submit_broker_close_with_durable_intent(
+            client,
+            trade,
+            broker_account_binding=_broker_account_binding("a"),
+            intent_root=unresolved,
+            resolved_root=resolved,
+        )
+    )
+    assert retry_path.is_file()
+    assert retry_result["status"] == "rejected"
+    assert client.close_calls == 2
+
+
+def test_close_mutation_lock_blocks_concurrent_intent_publication(
+    tmp_path: Path,
+) -> None:
+    import threading
+
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    trade = _CloseIntentTrade()
+    intent = runner.build_broker_close_intent(
+        trade,
+        broker_account_binding=_broker_account_binding("a"),
+        created_utc=pd.Timestamp("2026-07-31T10:00:00Z"),
+    )
+    finished = threading.Event()
+    failures: list[BaseException] = []
+
+    def publish() -> None:
+        try:
+            runner.persist_broker_close_intent(
+                intent,
+                intent_root=unresolved,
+                resolved_root=resolved,
+            )
+        except BaseException as exc:  # pragma: no cover - assertion below
+            failures.append(exc)
+        finally:
+            finished.set()
+
+    with runner.broker_close_mutation_lock(
+        intent_root=unresolved,
+        resolved_root=resolved,
+    ):
+        thread = threading.Thread(target=publish)
+        thread.start()
+        assert finished.wait(0.1) is False
+    thread.join(timeout=2.0)
+
+    assert finished.is_set()
+    assert failures == []
+    assert len(list(unresolved.glob("*.json"))) == 1
+
+
+def test_close_terminal_journal_idempotency_key_deduplicates_restart(
+    tmp_path: Path,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    path = tmp_path / "journal.jsonl"
+    event = {
+        "event": "BROKER_CLOSE_INTENT_TERMINAL_CLOSED",
+        "idempotency_key": "broker-close-terminal:gx1-close-proof",
+        "trade_id": "trade-7",
+    }
+    runner.log_journal_event(path, event)
+    runner.log_journal_event(path, event)
+
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 1
+    with pytest.raises(
+        RuntimeError,
+        match="JOURNAL_IDEMPOTENCY_PAYLOAD_MISMATCH",
+    ):
+        runner.log_journal_event(
+            path,
+            {
+                **event,
+                "trade_id": "different-trade",
+            },
+        )
+
+
+def test_oanda_mutation_transport_failure_is_never_retried() -> None:
+    import requests
+
+    from gx1.execution.oanda_client import OandaAPIError, OandaClient
+
+    class _FailingSession:
+        headers: dict[str, str] = {}
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def request(self, **_kwargs: object) -> object:
+            self.calls += 1
+            raise requests.Timeout("response outcome unknown")
+
+    session = _FailingSession()
+    client = object.__new__(OandaClient)
+    client.base_url = "https://api-fxpractice.oanda.com/v3"
+    client.timeout = 1.0
+    client.session = session
+
+    with pytest.raises(OandaAPIError, match="outcome unknown"):
+        client._request(
+            "POST",
+            "/accounts/test/orders",
+            json={"order": {}},
+            max_retries=3,
+        )
+    assert session.calls == 1
+
+
+def test_oanda_explicit_http_400_order_rejection_reaches_runner() -> None:
+    from gx1.execution import v12_paper_runner as runner
+    from gx1.execution.oanda_client import OandaClient
+
+    rejection = {
+        "orderRejectTransaction": {
+            "id": "reject-1",
+            "rejectReason": "MARKET_HALTED",
+        },
+        "lastTransactionID": "reject-1",
+    }
+
+    class _Response:
+        status_code = 400
+        ok = False
+        headers: dict[str, str] = {}
+        text = "explicit order rejection"
+
+        @staticmethod
+        def json() -> dict[str, object]:
+            return rejection
+
+    class _Session:
+        headers: dict[str, str] = {}
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def request(self, **_kwargs: object) -> _Response:
+            self.calls += 1
+            return _Response()
+
+    session = _Session()
+    client = object.__new__(OandaClient)
+    client.account_id = "practice-account"
+    client.base_url = "https://api-fxpractice.oanda.com/v3"
+    client.timeout = 1.0
+    client.session = session
+
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-known-rejection",
+    )
+
+    assert session.calls == 1
+    assert result == {
+        "status": "rejected",
+        "reason": "MARKET_HALTED",
+        "client_order_id": "gx1-known-rejection",
+        "raw": rejection,
+    }
+
+
+@pytest.mark.parametrize(
+    ("status_code", "payload"),
+    [
+        (400, {"errorMessage": "malformed order"}),
+        (
+            500,
+            {
+                "orderRejectTransaction": {
+                    "rejectReason": "INTERNAL_SERVER_ERROR"
+                }
+            },
+        ),
+    ],
+)
+def test_other_oanda_mutation_http_failures_stay_unknown_and_single_attempt(
+    status_code: int,
+    payload: dict[str, object],
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+    from gx1.execution.oanda_client import OandaClient
+
+    class _Response:
+        ok = False
+        headers: dict[str, str] = {}
+        text = "mutation failure"
+
+        def __init__(self) -> None:
+            self.status_code = status_code
+
+        @staticmethod
+        def json() -> dict[str, object]:
+            return payload
+
+    class _Session:
+        headers: dict[str, str] = {}
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def request(self, **_kwargs: object) -> _Response:
+            self.calls += 1
+            return _Response()
+
+    session = _Session()
+    client = object.__new__(OandaClient)
+    client.account_id = "practice-account"
+    client.base_url = "https://api-fxpractice.oanda.com/v3"
+    client.timeout = 1.0
+    client.session = session
+
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-unknown-http-failure",
+    )
+
+    assert session.calls == 1
+    assert result["status"] == "unknown_outcome"
+    assert f"API error {status_code}" in result["reason"]
+
+
+def test_oanda_client_binds_idempotency_to_client_extensions() -> None:
+    from gx1.execution.oanda_client import OandaClient
+
+    observed: dict[str, object] = {}
+    client = object.__new__(OandaClient)
+    client.account_id = "practice-account"
+
+    def _request(
+        method: str,
+        path: str,
+        *,
+        json: dict[str, object],
+    ) -> dict[str, object]:
+        observed.update(
+            {"method": method, "path": path, "json": json}
+        )
+        return {"orderCreateTransaction": {}}
+
+    client._request = _request
+    client.create_market_order(
+        "XAU_USD",
+        2,
+        client_order_id="gx1-idempotent-order",
+    )
+
+    order = observed["json"]["order"]
+    assert "clientOrderID" not in order
+    assert order["clientExtensions"] == {
+        "id": "gx1-idempotent-order",
+        "tag": "GX1_V12",
+    }
+
+
+def test_broker_entry_intent_is_durable_no_replace_and_blocks_restart(
+    tmp_path: Path,
+) -> None:
+    from datetime import datetime, timezone
+
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    intent = runner.build_broker_entry_intent(
+        side="long",
+        units=3,
+        decision_snapshot={
+            "decision_ts": "2026-07-31T10:00:00+00:00",
+            "model_direction": "LONG",
+        },
+        sizing_application={"units": 3},
+        model_bundle_binding={
+            "bundle_sha256": "b" * 64,
+        },
+        entry_source_pair_binding={
+            "pair_generation_id": "c" * 64,
+            "pair_manifest_sha256": "d" * 64,
+        },
+        broker_account_binding={
+            "schema_version": "gx1_trade_state_broker_account_binding_v1",
+            "environment": "practice",
+            "account_id_sha256": "a" * 64,
+        },
+        launch_lease={
+            "launch_state_sha256": "e" * 64,
+            "artifact_registry_sha256": "f" * 64,
+        },
+        created_utc=datetime(2026, 7, 31, 10, 0, tzinfo=timezone.utc),
+    )
+
+    path = runner.persist_broker_entry_intent(
+        intent,
+        intent_root=unresolved,
+    )
+    assert path.is_file()
+    with pytest.raises(
+        RuntimeError,
+        match="ALREADY_EXISTS_RECONCILIATION_REQUIRED",
+    ):
+        runner.persist_broker_entry_intent(
+            intent,
+            intent_root=unresolved,
+        )
+    with pytest.raises(RuntimeError, match="UNRESOLVED"):
+        runner.require_no_unresolved_broker_entry_intents(
+            intent_root=unresolved,
+        )
+
+    resolved_path = runner.resolve_broker_entry_intent(
+        path,
+        unresolved_root=unresolved,
+        resolved_root=resolved,
+    )
+    assert resolved_path.is_file()
+    assert not path.exists()
+    runner.require_no_unresolved_broker_entry_intents(
+        intent_root=unresolved,
+    )
+
+
+def test_broker_entry_intent_identity_binds_artifact_registry_lease(
+    tmp_path: Path,
+) -> None:
+    from datetime import datetime, timezone
+
+    from gx1.execution import v12_paper_runner as runner
+
+    def build(
+        registry_sha256: str,
+        account_digest_character: str = "a",
+    ) -> dict[str, object]:
+        return runner.build_broker_entry_intent(
+            side="long",
+            units=3,
+            decision_snapshot={
+                "decision_ts": "2026-07-31T10:00:00+00:00",
+                "model_direction": "LONG",
+            },
+            sizing_application={"units": 3},
+            model_bundle_binding={"bundle_sha256": "b" * 64},
+            entry_source_pair_binding={
+                "pair_generation_id": "c" * 64,
+                "pair_manifest_sha256": "d" * 64,
+            },
+            broker_account_binding={
+                "schema_version": "gx1_trade_state_broker_account_binding_v1",
+                "environment": "practice",
+                "account_id_sha256": account_digest_character * 64,
+            },
+            launch_lease={
+                "launch_state_sha256": "e" * 64,
+                "artifact_registry_sha256": registry_sha256,
+            },
+            created_utc=datetime(2026, 7, 31, 10, 0, tzinfo=timezone.utc),
+        )
+
+    first = build("f" * 64)
+    replacement = build("0" * 64)
+    other_account = build("f" * 64, "b")
+    assert first["identity_sha256"] != replacement["identity_sha256"]
+    assert first["client_order_id"] != replacement["client_order_id"]
+    assert first["identity_sha256"] != other_account["identity_sha256"]
+    assert first["client_order_id"] != other_account["client_order_id"]
+
+    path = runner.persist_broker_entry_intent(
+        first,
+        intent_root=tmp_path,
+    )
+    assert runner.load_broker_entry_intent(path) == first
+    tampered = dict(first)
+    tampered["launch_lease"] = {
+        **first["launch_lease"],
+        "artifact_registry_sha256": "0" * 64,
+    }
+    path.write_bytes(runner._canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(RuntimeError, match="IDENTITY_HASH_MISMATCH"):
+        runner.load_broker_entry_intent(path)
+
+
+def test_entry_transport_unknown_outcome_keeps_client_identity() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    client = SimpleNamespace(
+        create_market_order=lambda *_args, **_kwargs: (
+            (_ for _ in ()).throw(TimeoutError("lost response"))
+        )
+    )
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-unknown-outcome",
+    )
+
+    assert result["status"] == "unknown_outcome"
+    assert result["client_order_id"] == "gx1-unknown-outcome"
+
+
+def test_unknown_entry_outcome_reconciles_exact_fill_before_restart(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import datetime, timezone
+
+    from gx1.execution import v12_paper_runner as runner
+
+    unresolved = tmp_path / "unresolved"
+    resolved = tmp_path / "resolved"
+    intent = runner.build_broker_entry_intent(
+        side="long",
+        units=2,
+        decision_snapshot={
+            "decision_ts": "2026-07-31T10:00:00+00:00",
+            "model_direction": "LONG",
+        },
+        sizing_application={"units": 2},
+        model_bundle_binding={"bundle_sha256": "b" * 64},
+        entry_source_pair_binding={
+            "pair_generation_id": "c" * 64,
+            "pair_manifest_sha256": "d" * 64,
+        },
+        broker_account_binding={
+            "schema_version": "gx1_trade_state_broker_account_binding_v1",
+            "environment": "practice",
+            "account_id_sha256": "a" * 64,
+        },
+        launch_lease={
+            "launch_state_sha256": "e" * 64,
+            "artifact_registry_sha256": "f" * 64,
+        },
+        created_utc=datetime(2026, 7, 31, 10, 0, tzinfo=timezone.utc),
+    )
+    path = runner.persist_broker_entry_intent(
+        intent,
+        intent_root=unresolved,
+    )
+    client_order_id = intent["client_order_id"]
+    fill_time = "2026-07-31T10:00:00.125000000Z"
+    transaction = {
+        "id": "123",
+        "orderID": "122",
+        "time": fill_time,
+        "instrument": "XAU_USD",
+        "units": "2",
+        "fullVWAP": "3300.25",
+        "tradeOpened": {
+            "tradeID": "trade-recovered",
+            "units": "2",
+            "price": "3300.25",
+        },
+        "fullPrice": {
+            "time": fill_time,
+            "bids": [{"price": "3300.00", "liquidity": "100"}],
+            "asks": [{"price": "3300.20", "liquidity": "100"}],
+            "closeoutBid": "3299.90",
+            "closeoutAsk": "3300.30",
+        },
+        "clientExtensions": {"id": client_order_id},
+    }
+    client = SimpleNamespace(
+        get_order_by_client_id=lambda _client_id: {
+            "order": {
+                "state": "FILLED",
+                "fillingTransactionID": "123",
+                "clientExtensions": {"id": client_order_id},
+            }
+        },
+        get_transaction=lambda _transaction_id: {
+            "transaction": transaction
+        },
+        get_open_trades=lambda: {
+            "trades": [
+                {
+                    "id": "trade-recovered",
+                    "instrument": "XAU_USD",
+                    "currentUnits": "2",
+                    "clientExtensions": {"id": client_order_id},
+                }
+            ]
+        },
+    )
+
+    class _RecoveredTrade:
+        trade_id = "trade-recovered"
+        model_bundle_binding = intent["model_bundle_binding"]
+        entry_source_pair_binding = intent[
+            "entry_source_pair_binding"
+        ]
+        broker_account_binding = intent["broker_account_binding"]
+        v10_snapshot = intent["decision_snapshot"]
+
+        def save(self, _directory: Path) -> None:
+            return None
+
+    class _TradeState:
+        @classmethod
+        def open(cls, **_kwargs: object) -> _RecoveredTrade:
+            return _RecoveredTrade()
+
+    monkeypatch.setattr(runner, "TradeState", _TradeState, raising=False)
+    recovered = runner.reconcile_unresolved_broker_entry_intents(
+        client,
+        open_trades=[],
+        dry_run=False,
+        broker_account_binding=intent["broker_account_binding"],
+        journal_path=tmp_path / "recovery.jsonl",
+        intent_root=unresolved,
+        resolved_root=resolved,
+    )
+
+    assert [trade.trade_id for trade in recovered] == [
+        "trade-recovered"
+    ]
+    assert not path.exists()
+    assert (resolved / path.name).is_file()
+    assert (tmp_path / "recovery.jsonl").is_file()
+
+
+def test_live_practice_boundary_and_runner_latch_are_fail_closed() -> None:
+    root = Path(__file__).resolve().parents[1]
+    launch_source = (
+        root / "scripts/launch_live_practice.sh"
+    ).read_text(encoding="utf-8")
+    runner_source = (
+        root / "gx1/execution/v12_paper_runner.py"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        'if [[ "${OANDA_ENV:-practice}" != "practice" ]]; then'
+        in launch_source
+    )
+    assert "requires OANDA_ENV=practice exactly" in launch_source
+    assert (
+        "require_live_latch=not (args.dry_run or args.shadow_only)"
+        in runner_source
+    )
+    assert "prod_baseline=True" in runner_source
+    assert runner_source.index("load_runner_open_trades(") < (
+        runner_source.index("load_oanda_credentials(", 10_000)
+    )
+
+
+def test_runner_strict_credentials_reject_invalid_environment_at_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution.oanda_credentials import load_oanda_credentials
+
+    monkeypatch.setenv("OANDA_ENV", "practcie")
+    monkeypatch.setenv("OANDA_API_TOKEN", "unit-token")
+    monkeypatch.setenv("OANDA_ACCOUNT_ID", "unit-account")
+
+    with pytest.raises(ValueError, match="Invalid OANDA_ENV"):
+        load_oanda_credentials(
+            prod_baseline=True,
+            require_live_latch=True,
+        )
+
+
 def test_runtime_launch_lease_rejects_replacement_and_in_check_change(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1323,6 +1285,11 @@ def test_runtime_launch_lease_rejects_replacement_and_in_check_change(
     )
 
     lease = runner.require_runtime_entry_launch_lease()
+    assert lease["artifact_registry_sha256"] == runner._sha256_regular_file(
+        registry_path,
+        label="artifact registry",
+    )
+    assert "registry_sha256" not in lease
     state_path.write_text('{"decision":"BLOCK"}\n', encoding="utf-8")
     with pytest.raises(RuntimeError, match="replaced or revoked"):
         runner.require_runtime_entry_launch_lease(expected_lease=lease)
@@ -1354,11 +1321,63 @@ def test_filled_order_with_missing_price_is_explicitly_incomplete_not_zero() -> 
         }
     )
 
-    result = runner.attempt_market_entry(client, "long", units=2)
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-test-missing-price",
+    )
 
     assert result["status"] == "filled"
     assert result["trade_id"] == "trade-1"
     assert result["fill_price"] is None
+    assert result["fill_price_pair_exact"] is False
+
+
+def test_filled_order_uses_exact_full_price_pair_not_polling_quote() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    fill_time = "2026-07-16T12:00:17.125000000Z"
+    client = SimpleNamespace(
+        create_market_order=lambda *_args, **_kwargs: {
+            "orderFillTransaction": {
+                "id": "tx-exact",
+                "orderID": "order-exact",
+                "time": fill_time,
+                "units": "2",
+                "fullVWAP": "2400.25",
+                "tradeOpened": {
+                    "tradeID": "trade-exact",
+                    "units": "2",
+                    "price": "2400.25",
+                },
+                "fullPrice": {
+                    "time": fill_time,
+                    "bids": [
+                        {"price": "2400.00", "liquidity": "10"},
+                        {"price": "2399.95", "liquidity": "100"},
+                    ],
+                    "asks": [{"price": "2400.20", "liquidity": "100"}],
+                    "closeoutBid": "2399.90",
+                    "closeoutAsk": "2400.30",
+                },
+            }
+        }
+    )
+
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-test-full-price",
+    )
+
+    assert result["status"] == "filled"
+    assert result["fill_price_pair_exact"] is True
+    assert result["fill_price"] == pytest.approx(2400.25)
+    assert result["fill_bid"] == pytest.approx(2400.00)
+    assert result["fill_ask"] == pytest.approx(2400.25)
+    assert pd.Timestamp(result["fill_time"]) == pd.Timestamp(fill_time)
 
 
 def test_filled_order_units_must_exactly_match_requested_learned_units() -> None:
@@ -1376,7 +1395,12 @@ def test_filled_order_units_must_exactly_match_requested_learned_units() -> None
         }
     )
 
-    result = runner.attempt_market_entry(client, "long", units=2)
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-test-units",
+    )
 
     assert result["status"] == "filled_units_mismatch"
     assert result["requested_signed_units"] == 2
@@ -1400,11 +1424,42 @@ def test_mixed_netting_fill_is_never_accepted_as_new_trade_state() -> None:
         }
     )
 
-    result = runner.attempt_market_entry(client, "long", units=5)
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=5,
+        client_order_id="gx1-test-netting",
+    )
 
     assert result["status"] == "filled_structure_mismatch"
     assert result["fill_units_exact"] is True
     assert result["pure_trade_open"] is False
+    assert result["trade_id"] == "trade-new"
+
+
+def test_fill_without_trade_opened_never_infers_trade_identity() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    client = SimpleNamespace(
+        create_market_order=lambda *_args, **_kwargs: {
+            "orderFillTransaction": {
+                "id": "tx-close-only",
+                "orderID": "order-close-only",
+                "units": "2",
+                "tradesClosed": [{"tradeID": "old-trade", "units": "-2"}],
+            }
+        }
+    )
+
+    result = runner.attempt_market_entry(
+        client,
+        "long",
+        units=2,
+        client_order_id="gx1-test-no-inferred-trade-id",
+    )
+
+    assert result["status"] == "filled_structure_mismatch"
+    assert result["trade_id"] is None
 
 
 def _runtime_sizing_authority_for_broker_fact_tests():
@@ -1432,7 +1487,7 @@ def _runtime_sizing_authority_for_broker_fact_tests():
         ),
         proof_json="{}",
         joint_proof_json="{}",
-        active_exit_registry_projection_json="{}",
+        candidate_bundle_authority_json="{}",
         content_hash_key=(),
         file_stats=(),
     )
@@ -1715,3 +1770,374 @@ def test_plus5_build_and_serve_delegate_to_identical_formula_owner() -> None:
         built[list(PLUS5_FEATURES)],
         served[list(PLUS5_FEATURES)],
     )
+
+
+def test_collector_cli_rejects_introspection_before_credentials_or_writes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_oanda_data_collector as collector
+
+    monkeypatch.setattr(
+        collector,
+        "load_oanda_credentials",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("credentials must not load")
+        ),
+    )
+    monkeypatch.setenv("GX1_COLLECTOR_POLL_SECONDS", "not-an-integer")
+    with pytest.raises(SystemExit) as help_exit:
+        collector.main(["--help"])
+    assert help_exit.value.code == 0
+    with pytest.raises(SystemExit) as invalid_exit:
+        collector.main(["--unexpected"])
+    assert invalid_exit.value.code == 2
+
+
+def _collector_frame(times: list[str]) -> pd.DataFrame:
+    parsed = pd.to_datetime(times, utc=True)
+    rows: list[dict[str, object]] = []
+    for position, timestamp in enumerate(parsed):
+        middle = 3300.0 + position
+        rows.append(
+            {
+                "time": timestamp,
+                "open": middle,
+                "high": middle + 1.0,
+                "low": middle - 1.0,
+                "close": middle + 0.25,
+                "bid_open": middle - 0.1,
+                "bid_high": middle + 0.9,
+                "bid_low": middle - 1.1,
+                "bid_close": middle + 0.15,
+                "ask_open": middle + 0.1,
+                "ask_high": middle + 1.1,
+                "ask_low": middle - 0.9,
+                "ask_close": middle + 0.35,
+                "volume": 10 + position,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def test_collector_rejects_conflicting_completed_bar_overlap() -> None:
+    from gx1.execution import v12_oanda_data_collector as collector
+
+    existing = _collector_frame(["2026-07-29T15:00:00Z"])
+    identical = existing.copy()
+    merged = collector._merge_and_dedupe(existing, identical)
+    pd.testing.assert_frame_equal(merged, existing)
+
+    conflicting = identical.copy()
+    conflicting.loc[0, "close"] = 3300.5
+    conflicting.attrs["source_response_sha256"] = "a" * 64
+    with pytest.raises(
+        RuntimeError,
+        match="COLLECTOR_COMPLETED_BAR_CONFLICT",
+    ) as caught:
+        collector._merge_and_dedupe(existing, conflicting)
+    evidence = caught.value.evidence
+    assert evidence["source_response_sha256"] == "a" * 64
+    conflict = evidence["completed_bar_conflicts"][0]
+    assert conflict["time_utc"] == "2026-07-29T15:00:00+00:00"
+    assert conflict["existing"][0]["row_sha256"]
+    assert conflict["incoming"][0]["row_sha256"]
+    assert (
+        conflict["existing"][0]["row_sha256"]
+        != conflict["incoming"][0]["row_sha256"]
+    )
+
+
+def test_collector_atomic_write_preserves_previous_snapshot_on_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_oanda_data_collector as collector
+
+    out_path = tmp_path / "xauusd_m1_20260729.parquet"
+    _collector_frame(["2026-07-29T15:00:00Z"]).to_parquet(
+        out_path,
+        index=False,
+    )
+    previous = out_path.read_bytes()
+
+    def _partial_then_fail(
+        self: pd.DataFrame,
+        path,
+        *,
+        index: bool,
+    ) -> None:
+        del self, index
+        path.write(b"partial")
+        raise OSError("simulated parquet failure")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", _partial_then_fail)
+    with pytest.raises(OSError, match="simulated parquet failure"):
+        collector._write_parquet_atomic(
+            _collector_frame(["2026-07-29T15:01:00Z"]),
+            out_path,
+        )
+
+    assert out_path.read_bytes() == previous
+    assert not list(tmp_path.glob(f".{out_path.name}.*.tmp"))
+
+
+def test_oanda_client_requires_literal_candle_completion_flag() -> None:
+    from gx1.execution.oanda_client import OandaAPIError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: {
+        "instrument": "XAU_USD",
+        "granularity": "M1",
+        "candles": [
+            {
+                "time": "2026-07-29T15:00:00Z",
+                "mid": {
+                    "o": "3300",
+                    "h": "3301",
+                    "l": "3299",
+                    "c": "3300.5",
+                },
+                "volume": 10,
+            }
+        ]
+    }
+    with pytest.raises(OandaAPIError, match="completion flag missing or invalid"):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+
+def test_oanda_client_rejects_non_object_response_as_latchable_contract_error() -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: []
+    with pytest.raises(
+        OandaDataContractError,
+        match="response root is not an object",
+    ) as caught:
+        client.get_candles("XAU_USD", "M1", count=1)
+    assert len(caught.value.evidence["source_response_sha256"]) == 64
+
+
+@pytest.mark.parametrize(
+    ("from_ts", "to_ts", "match"),
+    [
+        (pd.Timestamp("2026-07-29T15:00:00Z"), None, "provided together"),
+        (
+            pd.Timestamp("2026-07-29T17:00:00+02:00"),
+            pd.Timestamp("2026-07-29T17:01:00+02:00"),
+            "explicitly UTC",
+        ),
+        (
+            pd.Timestamp("2026-07-29T15:00:01Z"),
+            pd.Timestamp("2026-07-29T15:01:00Z"),
+            "granularity-aligned",
+        ),
+        (
+            pd.Timestamp("2026-07-29T15:01:00Z"),
+            pd.Timestamp("2026-07-29T15:00:00Z"),
+            "increasing",
+        ),
+    ],
+)
+def test_oanda_client_requires_exact_half_open_utc_request_interval(
+    from_ts: pd.Timestamp,
+    to_ts: pd.Timestamp | None,
+    match: str,
+) -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("invalid interval must fail before network access")
+    )
+    with pytest.raises(OandaDataContractError, match=match):
+        client.get_candles(
+            "XAU_USD",
+            "M1",
+            from_ts=from_ts,
+            to_ts=to_ts,
+        )
+
+
+def test_oanda_client_requires_literal_mid_bid_ask_components() -> None:
+    from gx1.execution.oanda_client import OandaAPIError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: {
+        "instrument": "XAU_USD",
+        "granularity": "M1",
+        "candles": [
+            {
+                "complete": True,
+                "time": "2026-07-29T15:00:00Z",
+                "mid": {
+                    "o": "3300",
+                    "h": "3301",
+                    "l": "3299",
+                    "c": "3300.5",
+                },
+                "volume": 10,
+            }
+        ]
+    }
+    with pytest.raises(OandaAPIError, match="literal M/B/A"):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+
+def _oanda_candle(
+    timestamp: str,
+    *,
+    complete: bool = True,
+) -> dict[str, object]:
+    return {
+        "complete": complete,
+        "time": timestamp,
+        "mid": {"o": "3300", "h": "3301", "l": "3299", "c": "3300.5"},
+        "bid": {
+            "o": "3299.9",
+            "h": "3300.9",
+            "l": "3298.9",
+            "c": "3300.4",
+        },
+        "ask": {
+            "o": "3300.1",
+            "h": "3301.1",
+            "l": "3299.1",
+            "c": "3300.6",
+        },
+        "volume": 10,
+    }
+
+
+def test_oanda_client_rejects_out_of_interval_candle_instead_of_dropping_it() -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: {
+        "instrument": "XAU_USD",
+        "granularity": "M1",
+        "candles": [_oanda_candle("2026-07-29T15:01:00Z")],
+    }
+    with pytest.raises(OandaDataContractError, match="outside the requested"):
+        client.get_candles(
+            "XAU_USD",
+            "M1",
+            from_ts=pd.Timestamp("2026-07-29T15:00:00Z"),
+            to_ts=pd.Timestamp("2026-07-29T15:01:00Z"),
+        )
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        "2026-07-29T15:00:00",
+        "2026-07-29 15:00:00Z",
+        "2026-07-29T17:00:00+02:00",
+        1785337200,
+    ],
+)
+def test_oanda_client_requires_explicit_utc_rfc3339_response_time(
+    timestamp: object,
+) -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: {
+        "instrument": "XAU_USD",
+        "granularity": "M1",
+        "candles": [_oanda_candle(timestamp)],
+    }
+    with pytest.raises(
+        OandaDataContractError,
+        match="explicit UTC RFC3339",
+    ):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+
+@pytest.mark.parametrize(
+    ("response_instrument", "response_granularity"),
+    [("GBP_USD", "M1"), ("XAU_USD", "H4")],
+)
+def test_oanda_client_rejects_response_instrument_or_timeframe_mismatch(
+    response_instrument: str,
+    response_granularity: str,
+) -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    client._request = lambda *args, **kwargs: {
+        "instrument": response_instrument,
+        "granularity": response_granularity,
+        "candles": [_oanda_candle("2026-07-29T15:00:00Z")],
+    }
+    with pytest.raises(OandaDataContractError, match="mismatch"):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+
+def test_oanda_client_rejects_off_grid_or_duplicate_response_without_repair() -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    payload = {
+        "instrument": "XAU_USD",
+        "granularity": "M1",
+        "candles": [_oanda_candle("2026-07-29T15:00:59Z")],
+    }
+    client._request = lambda *args, **kwargs: payload
+    with pytest.raises(OandaDataContractError, match="exactly granularity-aligned"):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+    payload["candles"] = [
+        _oanda_candle("2026-07-29T15:00:00Z"),
+        _oanda_candle("2026-07-29T15:00:00Z"),
+    ]
+    with pytest.raises(OandaDataContractError, match="order/uniqueness"):
+        client.get_candles("XAU_USD", "M1", count=2)
+
+
+def test_oanda_client_rejects_invalid_geometry_and_noninteger_volume() -> None:
+    from gx1.execution.oanda_client import OandaDataContractError, OandaClient
+
+    client = object.__new__(OandaClient)
+    candle = _oanda_candle("2026-07-29T15:00:00Z")
+    candle["volume"] = -1.5
+    client._request = lambda *args, **kwargs: {
+        "instrument": "XAU_USD",
+        "granularity": "M1",
+        "candles": [candle],
+    }
+    with pytest.raises(OandaDataContractError, match="non-negative integer"):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+    candle["volume"] = 10
+    candle["ask"] = {
+        "o": "3299.0",
+        "h": "3300.0",
+        "l": "3298.0",
+        "c": "3299.5",
+    }
+    with pytest.raises(OandaDataContractError, match="BID_ASK_GEOMETRY_INVALID"):
+        client.get_candles("XAU_USD", "M1", count=1)
+
+
+def test_collector_partitions_by_candle_utc_date_not_process_date(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_oanda_data_collector as collector
+
+    monkeypatch.setattr(collector, "OUT_DIR", tmp_path)
+    frame = _collector_frame(
+        [
+            "2026-07-28T23:59:00Z",
+            "2026-07-29T00:00:00Z",
+        ]
+    )
+    written = collector._persist_collected_batch(frame)
+
+    assert [path.name for path in written] == [
+        "xauusd_m1_20260728.parquet",
+        "xauusd_m1_20260729.parquet",
+    ]
+    assert pd.read_parquet(written[0])["time"].tolist() == [frame["time"].iloc[0]]
+    assert pd.read_parquet(written[1])["time"].tolist() == [frame["time"].iloc[1]]

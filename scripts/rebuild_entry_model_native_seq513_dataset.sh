@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Build one fresh XAU model-native seq513 Entry dataset. This script never trains,
-# promotes, replays, or touches live state. Every artifact identity is explicit.
+# Build one fresh XAU model-native seq513 Entry dataset plus its source-bound
+# unified Exit lifecycle surface. This script never trains, promotes, replays,
+# or touches live state. Every artifact identity is explicit.
 set -euo pipefail
 
 ENG=/home/andre2/src/GX1_ENGINE
@@ -15,6 +16,11 @@ FEATURE_RANKING_JSON=
 RANK_REFERENCE_NPZ=
 MTF_CACHE_DIR=
 TAPE_ROOT=
+M1_LIFECYCLE_PAIR_MANIFEST_JSON=
+M1_LIFECYCLE_PAIR_GENERATION_ROOT=
+EXIT_LIFECYCLE_DIR=
+EXIT_TARGET_LOOKAHEAD_M1_STEPS=
+EARLY_MOVE_THRESHOLD_BPS=
 OUTPUT=
 AUDIT_OUT_DIR=
 TRAIN_START=
@@ -32,7 +38,11 @@ usage() {
     "Usage: $0 --run-id ID --source-parquet PATH --canonical-v2-parquet PATH" \
     "  --signal-manifest PATH --feature-ranking-json PATH --rank-reference-npz PATH" \
     "  --mtf-cache-dir PATH --tape-root PATH" \
-    "  --output /new/dir/STEM__HOLD_03B.parquet --audit-out-dir /new/report/dir" \
+    "  --m1-lifecycle-pair-manifest-json /immutable/generation/PAIR_MANIFEST.json" \
+    "  --m1-lifecycle-pair-generation-root /immutable/generations" \
+    "  --exit-lifecycle-dir /new/dir --exit-target-lookahead-m1-steps N" \
+    "  --early-move-threshold-bps BPS" \
+    "  --output /new/dir/STEM__DIR_H24B.parquet --audit-out-dir /new/report/dir" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
     "  --test-start UTC --test-end UTC --existing-rank-reference [--resume-exact-checkpoints]"
 }
@@ -47,6 +57,11 @@ while (($#)); do
     --rank-reference-npz) RANK_REFERENCE_NPZ=${2:-}; shift 2 ;;
     --mtf-cache-dir) MTF_CACHE_DIR=${2:-}; shift 2 ;;
     --tape-root) TAPE_ROOT=${2:-}; shift 2 ;;
+    --m1-lifecycle-pair-manifest-json) M1_LIFECYCLE_PAIR_MANIFEST_JSON=${2:-}; shift 2 ;;
+    --m1-lifecycle-pair-generation-root) M1_LIFECYCLE_PAIR_GENERATION_ROOT=${2:-}; shift 2 ;;
+    --exit-lifecycle-dir) EXIT_LIFECYCLE_DIR=${2:-}; shift 2 ;;
+    --exit-target-lookahead-m1-steps) EXIT_TARGET_LOOKAHEAD_M1_STEPS=${2:-}; shift 2 ;;
+    --early-move-threshold-bps) EARLY_MOVE_THRESHOLD_BPS=${2:-}; shift 2 ;;
     --output) OUTPUT=${2:-}; shift 2 ;;
     --audit-out-dir) AUDIT_OUT_DIR=${2:-}; shift 2 ;;
     --history-start) HISTORY_START=${2:-}; shift 2 ;;
@@ -70,7 +85,10 @@ fi
 
 required_values=(
   RUN_ID SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON
-  RANK_REFERENCE_NPZ MTF_CACHE_DIR TAPE_ROOT OUTPUT AUDIT_OUT_DIR
+  RANK_REFERENCE_NPZ MTF_CACHE_DIR TAPE_ROOT M1_LIFECYCLE_PAIR_MANIFEST_JSON
+  M1_LIFECYCLE_PAIR_GENERATION_ROOT
+  EXIT_LIFECYCLE_DIR EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS
+  OUTPUT AUDIT_OUT_DIR
   HISTORY_START TRAIN_START TRAIN_END VAL_START VAL_END TEST_START TEST_END
 )
 for name in "${required_values[@]}"; do
@@ -81,28 +99,43 @@ for name in "${required_values[@]}"; do
   fi
 done
 
-if [[ $OUTPUT != *.parquet || $OUTPUT != *"__HOLD_03B.parquet" ]]; then
-  printf '[ABORT] --output must end in __HOLD_03B.parquet: %s\n' "$OUTPUT" >&2
+if [[ $OUTPUT != *.parquet || $OUTPUT != *"__DIR_H24B.parquet" ]]; then
+  printf '[ABORT] --output must end in __DIR_H24B.parquet: %s\n' "$OUTPUT" >&2
   exit 2
 fi
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   printf '[ABORT] --run-id has invalid format\n' >&2
   exit 2
 fi
+if [[ ! $EXIT_TARGET_LOOKAHEAD_M1_STEPS =~ ^[1-9][0-9]*$ ]]; then
+  printf '[ABORT] --exit-target-lookahead-m1-steps must be a positive integer\n' >&2
+  exit 2
+fi
+if [[ ! $EARLY_MOVE_THRESHOLD_BPS =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  printf '[ABORT] --early-move-threshold-bps must be a finite non-negative decimal\n' >&2
+  exit 2
+fi
 
-for name in SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON; do
+for name in SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON M1_LIFECYCLE_PAIR_MANIFEST_JSON; do
   if [[ ! -f ${!name} ]]; then
     printf '[ABORT] required file missing (%s): %s\n' "$name" "${!name}" >&2
     exit 2
   fi
 done
-if [[ ! -d $MTF_CACHE_DIR || ! -d $TAPE_ROOT ]]; then
-  printf '[ABORT] MTF cache or XAU tape directory missing\n' >&2
+if [[ ! -d $MTF_CACHE_DIR || ! -d $TAPE_ROOT || ! -d $M1_LIFECYCLE_PAIR_GENERATION_ROOT ]]; then
+  printf '[ABORT] MTF cache, XAU tape, or pair generation root missing\n' >&2
+  exit 2
+fi
+if [[ -e $EXIT_LIFECYCLE_DIR || -L $EXIT_LIFECYCLE_DIR ]]; then
+  printf '[ABORT] Exit lifecycle directory already exists; choose a fresh immutable path: %s\n' "$EXIT_LIFECYCLE_DIR" >&2
+  exit 2
+fi
+if [[ ! -d $(dirname "$EXIT_LIFECYCLE_DIR") ]]; then
+  printf '[ABORT] Exit lifecycle parent directory is missing: %s\n' "$(dirname "$EXIT_LIFECYCLE_DIR")" >&2
   exit 2
 fi
 
 retired_env=(
-  GX1_XGB_BUNDLE_DIR
   GX1_MTF_CACHE_ALLOW_STALE GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES
   GX1_PERTF_CLOSED_BAR
   GX1_REGIME_V4 GX1_TREND_REGIME_FROM_D1
@@ -134,7 +167,9 @@ for split in train val test; do
 done
 cd "$ENG"
 
-"$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$RUN_ID" "$SOURCE_PARQUET" "$TRAIN_START" "$TRAIN_END" <<'PY'
+"$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$RUN_ID" "$SOURCE_PARQUET" \
+    "$CANONICAL_V2_PARQUET" "$MTF_CACHE_DIR" "$HISTORY_START" "$TEST_END" \
+    "$TRAIN_START" "$TRAIN_END" <<'PY'
 import hashlib
 import json
 import sys
@@ -147,6 +182,8 @@ from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import
 path = Path(sys.argv[1]).expanduser().resolve()
 ranking_path = Path(sys.argv[2]).expanduser().resolve()
 source_path = Path(sys.argv[4]).expanduser().resolve()
+canonical_v2_path = Path(sys.argv[5]).expanduser().resolve()
+mtf_cache_dir = Path(sys.argv[6]).expanduser().resolve()
 digest = hashlib.sha256()
 with source_path.open("rb") as handle:
     for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -155,9 +192,14 @@ lineage = validate_signal_manifest_training_lineage(
     manifest_path=path,
     feature_ranking_path=ranking_path,
     expected_run_id=sys.argv[3],
+    expected_source_parquet=source_path,
     expected_source_sha256=digest.hexdigest(),
-    expected_train_start_utc=sys.argv[5],
-    expected_train_end_utc=sys.argv[6],
+    expected_canonical_v2_parquet=canonical_v2_path,
+    expected_mtf_cache_dir=mtf_cache_dir,
+    expected_history_start_utc=sys.argv[7],
+    expected_time_max_utc=sys.argv[8],
+    expected_train_start_utc=sys.argv[9],
+    expected_train_end_utc=sys.argv[10],
 )
 contract = lineage["model_native_signal_contract"]
 if len(contract["fields"]) != 513 or contract["bridge_dim"] != 0:
@@ -165,7 +207,7 @@ if len(contract["fields"]) != 513 or contract["bridge_dim"] != 0:
 print(f"[GATE] exact model-native signal/ranking lineage: {path}")
 PY
 
-export GX1_V10_MULTI_TF_V2_CACHE_DIR=$MTF_CACHE_DIR
+export GX1_V10_MULTI_TF_V4_CACHE_DIR=$MTF_CACHE_DIR
 
 "$PY" - "$RANK_REFERENCE_NPZ" "$RUN_ID" "$SOURCE_PARQUET" \
     "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" <<'PY'
@@ -214,9 +256,13 @@ fi
   --feature-ranking-json "$FEATURE_RANKING_JSON" \
   --model-native-rank-reference-npz "$RANK_REFERENCE_NPZ" \
   --tape_root "$TAPE_ROOT" \
+  --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST_JSON" \
+  --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
+  --exit-lifecycle-dir "$EXIT_LIFECYCLE_DIR" \
+  --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
   --output "$OUTPUT" \
   --start "$HISTORY_START" --end "$TEST_END" \
-  --hold-bars 3 --seq_len 96 --time_split \
+  --seq_len 96 --early_move_threshold_bps "$EARLY_MOVE_THRESHOLD_BPS" --time_split \
   --train_start "$TRAIN_START" --train_end "$TRAIN_END" \
   --val_start "$VAL_START" --val_end "$VAL_END" \
   --test_start "$TEST_START" --test_end "$TEST_END"
@@ -225,6 +271,7 @@ fi
   --run-id "$RUN_ID" \
   --dataset-dir "$OUTPUT_DIR" \
   --stem "$OUTPUT_STEM" \
+  --mtf-cache-dir "$MTF_CACHE_DIR" \
   --out-json "$FULL_INPUT_LIVENESS_JSON" \
   --quiet
 
@@ -255,4 +302,5 @@ PY
   --data-splits train,val,test \
   --quiet
 
-printf '[PASS] dataset materialized and pretrain-audited; full-input-liveness=%s; no training was run. run_id=%s output=%s\n' "$FULL_INPUT_LIVENESS_JSON" "$RUN_ID" "$OUTPUT_DIR"
+printf '[PASS] combined Entry/lifecycle dataset materialized and pretrain-audited; full-input-liveness=%s exit-lifecycle=%s; no training was run. run_id=%s output=%s\n' \
+  "$FULL_INPUT_LIVENESS_JSON" "$EXIT_LIFECYCLE_DIR" "$RUN_ID" "$OUTPUT_DIR"

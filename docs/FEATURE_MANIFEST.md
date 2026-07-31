@@ -13,7 +13,7 @@ The accepted surface is 513 ordered signals:
   code-owned outputs from twelve registered causal feature layers first,
   followed by exactly 101 fields selected by deterministic TRAIN-only ranking;
 - no duplicate base/selected names;
-- none of the seven retired XGB bridge names;
+- none of the retired external decision-bridge fields;
 - exact field-order SHA-256 stored and revalidated by every consumer.
 
 The mandatory 378-field registry is owned by
@@ -26,13 +26,31 @@ evidence. All 479 specialist fields must
 then satisfy the exact eight-encoder routing contract in
 `gx1/features/entry_specialist_feature_groups_v1.py`.
 
-No family is an isolated vote or live rule. The eight specialist tokens,
-five timeframe branches and 22 supervised heads cooperate inside the learned
-model. Their exact 26 evidence groups produce 96 values for one
+No family is an isolated vote or live rule. The eight specialist tokens, five
+timeframe branches and 22 supervised Entry evidence heads cooperate inside the
+learned model. The same shared encoder also owns one positively trained
+`HOLD/EXIT_NOW` head; it is trained with Entry in one candidate and does not
+become another direction-fusion group. V4 gives every timeframe an exact
+111-field all-eight-family surface:
+555 feature×timeframe cells and 40 family×timeframe routes. Their exact 26
+evidence groups produce 96 values for one
 `96 -> 128 -> 3` LONG/SHORT/FLAT fusion. Admission requires non-degenerate
 use and class-margin influence from every specialist, timeframe,
 family×timeframe path and evidence group; merely emitting a feature does not
 prove that the decision path uses it.
+
+Serve-parity v11 additionally requires sampled local raw/final class-margin
+sensitivity for every one of the 513 sequence routes and 513 snapshot routes,
+all 142 continuous-context routes and all 555 MTF cells. Each of the five
+categorical fields must move both surfaces under a valid next-category
+counterfactual. This is local reachability evidence, not a replacement for the
+route-level ablations or untouched OOS edge.
+
+The V4 one-owner per-timeframe partition is exact:
+structure/swing 5, SMC/liquidity 11, trend/EMA 10,
+volatility/compression 2, momentum/flow 4, session/regime 5,
+chart geometry 10 and price-action/candles 64. The sum is 111 and
+`5 × 111 = 555`.
 
 ## Admission rules
 
@@ -46,6 +64,13 @@ population before sampling. Binary/categorical semantics, robust continuous
 statistics, alias ownership and every selected causal MTF source row are
 hash-bound into metadata, lock and persistent model state. External scaler
 paths and VAL/TEST refits are forbidden.
+
+V4 also binds the per-timeframe 111-field order, cache identity, embedded
+full-input liveness, causal warmup and exact feature×timeframe token order.
+Every post-warmup cell must be finite and variable and no two fields may be
+exact duplicates within a timeframe. Historical V2/V3 cache manifests cannot
+authorize active Entry. The frozen V4 schema-v2 cache is also historical after
+schema v3 added complete trailing-resample closure.
 
 Feature selection is training-only. Test/OOS outcomes cannot select fields or
 their order. The manifest binds source data, builder revision, split range,
@@ -78,3 +103,28 @@ the audit from independently reporting target liveness and consistency.
 
 Trend/session features are required model evidence. Their presence never
 authorizes a downstream hand-written filter.
+
+## Multi-timeframe feature grid
+
+The active V4 grid is separate from the 513-field current-bar tensor and is
+mandatory model input:
+
+- exact M5/M15/H1/H4/D1 order;
+- exact 111-field order at every timeframe;
+- structure/swing 5, SMC/liquidity 11, trend/EMA 10,
+  volatility/compression 2, momentum/flow 4, session/regime 5,
+  chart geometry 10 and price-action/candles 64;
+- 40 learned family×timeframe cooperation routes;
+- 555 ordered feature×timeframe gates.
+
+Every route must receive genuine causal post-warmup values from its own
+timeframe. A copied M5 surface, missing family, zero padding, inferred cache
+path or V2/V3 compatibility identity fails admission. Per-timeframe history
+lengths and architecture depth are immutable recipe inputs. Learned feature
+gates, shared family encoders, axial attention and final fusion own
+cross-timeframe cooperation; no fixed EMA/regime/SMC confluence weight may
+choose or veto direction.
+
+Training proves each declared TF window at the first and last decision of
+TRAIN, VAL and TEST. Cache preflight proves only causal warmup/reach and never
+assumes 96 bars for every timeframe.

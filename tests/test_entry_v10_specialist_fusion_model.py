@@ -27,6 +27,8 @@ from tests.model_native_input_normalization_support import (
     input_normalization_fixture,
 )
 
+MTF_DIM = len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+
 
 def _specialist_indices(
     signal_dim: int = MODEL_NATIVE_SIGNAL_DIM,
@@ -35,6 +37,13 @@ def _specialist_indices(
     for index in range(signal_dim):
         grouped[MODEL_NATIVE_TRAINING_SPECIALISTS[index % len(grouped)]].append(index)
     return grouped
+
+
+def _multi_tf_specialist_indices() -> dict[str, list[int]]:
+    return {
+        name: [position]
+        for position, name in enumerate(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    }
 
 
 def _context_indices() -> tuple[dict[str, list[int]], dict[str, list[int]]]:
@@ -97,13 +106,19 @@ def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=4,
+        dropout=0.05,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=3,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
+        m5_seq_dim=MTF_DIM,
+        m15_seq_dim=MTF_DIM,
+        h1_seq_dim=MTF_DIM,
+        h4_seq_dim=MTF_DIM,
+        d1_seq_dim=MTF_DIM,
         m5_seq_len=4,
         m15_seq_len=4,
         h1_seq_len=4,
@@ -115,6 +130,7 @@ def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
             "ctx_cont_nominal_indices"
         ],
         specialist_ctx_cat_indices=context_routing["ctx_cat_indices"],
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
         temporal_alias_signal_indices=context_routing[
             "temporal_alias_policy"
         ]["signal_indices"],
@@ -123,6 +139,12 @@ def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
         ]["ctx_cont_indices"],
         input_normalization=_input_normalization(_specialist_indices()),
     ).eval()
+
+
+def test_m5_family_token_has_no_hard_coded_duplicate_current_bar_merge() -> None:
+    model = _guard_test_model(_context_routing(_specialist_indices()))
+
+    assert not hasattr(model, "mtf_m5_family_merge_norm")
 
 
 def _context_routing(
@@ -152,7 +174,7 @@ def _input_normalization(
         )
     return input_normalization_fixture(
         signal_names=signal_names,
-        mtf_names=["mtf_0", "mtf_1", "mtf_2"],
+        mtf_names=[f"mtf_{index}" for index in range(MTF_DIM)],
     )
 
 
@@ -197,13 +219,19 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
         seq_input_dim=16,
         snap_input_dim=16,
         seq_len=16,
+        dropout=0.05,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=3,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
+        m5_seq_dim=MTF_DIM,
+        m15_seq_dim=MTF_DIM,
+        h1_seq_dim=MTF_DIM,
+        h4_seq_dim=MTF_DIM,
+        d1_seq_dim=MTF_DIM,
         m5_seq_len=16,
         m15_seq_len=16,
         h1_seq_len=16,
@@ -215,6 +243,7 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
             name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS
         },
         specialist_ctx_cat_indices=ctx_cat_indices,
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
         temporal_alias_signal_indices=[],
         temporal_alias_ctx_cont_indices=[],
         input_normalization=_input_normalization(_specialist_indices(16)),
@@ -231,7 +260,10 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
         snap_x,
         ctx_cat=torch.zeros(2, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long),
         ctx_cont=ctx_cont,
-        **{f"seq_{tf}": torch.randn(2, 16, 3) for tf in ("m5", "m15", "h1", "h4", "d1")},
+        **{
+            f"seq_{tf}": torch.randn(2, 16, MTF_DIM)
+            for tf in ("m5", "m15", "h1", "h4", "d1")
+        },
     )
     assert "specialist_gate" in out
     assert out["model_native_logits"].shape == (2, 3)
@@ -245,13 +277,18 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=16,
+        dropout=0.05,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=3,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
+        m5_seq_dim=MTF_DIM,
+        m15_seq_dim=MTF_DIM,
+        h1_seq_dim=MTF_DIM,
+        h4_seq_dim=MTF_DIM,
+        d1_seq_dim=MTF_DIM,
         m5_seq_len=16,
         m15_seq_len=16,
         h1_seq_len=16,
@@ -263,6 +300,7 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
             "ctx_cont_nominal_indices"
         ],
         specialist_ctx_cat_indices=context_routing["ctx_cat_indices"],
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
         temporal_alias_signal_indices=context_routing[
             "temporal_alias_policy"
         ]["signal_indices"],
@@ -284,7 +322,10 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
         snap_x,
         ctx_cat=torch.zeros(2, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long),
         ctx_cont=ctx_cont,
-        **{f"seq_{tf}": torch.randn(2, 16, 3) for tf in ("m5", "m15", "h1", "h4", "d1")},
+        **{
+            f"seq_{tf}": torch.randn(2, 16, MTF_DIM)
+            for tf in ("m5", "m15", "h1", "h4", "d1")
+        },
     )
 
     assert model._specialist_names == MODEL_NATIVE_TRAINING_SPECIALISTS
@@ -295,7 +336,11 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
     assert torch.allclose(out["specialist_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
     assert torch.isfinite(out["specialist_gate"]).all()
     assert out["tf_gate"].shape == (2, 5)
-    assert out["family_tf_cooperation_gate"].shape == (2, 13)
+    assert out["family_tf_cooperation_gate"].shape == (
+        2,
+        5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+    )
+    assert out["family_tf_feature_gate"].shape == (2, 5, MTF_DIM)
     assert torch.allclose(out["tf_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
     assert torch.allclose(
         out["family_tf_cooperation_gate"].sum(dim=1), torch.ones(2), atol=1e-6
@@ -309,13 +354,19 @@ def test_all_147_context_fields_move_only_their_pre_cross_owner_token() -> None:
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=4,
+        dropout=0.05,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=3,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
+        m5_seq_dim=MTF_DIM,
+        m15_seq_dim=MTF_DIM,
+        h1_seq_dim=MTF_DIM,
+        h4_seq_dim=MTF_DIM,
+        d1_seq_dim=MTF_DIM,
         m5_seq_len=4,
         m15_seq_len=4,
         h1_seq_len=4,
@@ -327,6 +378,7 @@ def test_all_147_context_fields_move_only_their_pre_cross_owner_token() -> None:
             "ctx_cont_nominal_indices"
         ],
         specialist_ctx_cat_indices=context_routing["ctx_cat_indices"],
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
         temporal_alias_signal_indices=context_routing[
             "temporal_alias_policy"
         ]["signal_indices"],
@@ -390,13 +442,19 @@ def test_nominal_ctx_cont_regime_ids_fail_closed_outside_integer_domain(
         seq_input_dim=16,
         snap_input_dim=16,
         seq_len=4,
+        dropout=0.05,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=3,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
+        m5_seq_dim=MTF_DIM,
+        m15_seq_dim=MTF_DIM,
+        h1_seq_dim=MTF_DIM,
+        h4_seq_dim=MTF_DIM,
+        d1_seq_dim=MTF_DIM,
         m5_seq_len=4,
         m15_seq_len=4,
         h1_seq_len=4,
@@ -408,6 +466,7 @@ def test_nominal_ctx_cont_regime_ids_fail_closed_outside_integer_domain(
             "ctx_cont_nominal_indices"
         ],
         specialist_ctx_cat_indices=ctx_cat_indices,
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
         temporal_alias_signal_indices=[],
         temporal_alias_ctx_cont_indices=[],
         input_normalization=_input_normalization(specialist_indices),
@@ -436,13 +495,19 @@ def test_temporal_alias_current_snap_copies_are_excluded_from_generic_projection
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=4,
+        dropout=0.05,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=3,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
+        m5_seq_dim=MTF_DIM,
+        m15_seq_dim=MTF_DIM,
+        h1_seq_dim=MTF_DIM,
+        h4_seq_dim=MTF_DIM,
+        d1_seq_dim=MTF_DIM,
         m5_seq_len=4,
         m15_seq_len=4,
         h1_seq_len=4,
@@ -454,6 +519,7 @@ def test_temporal_alias_current_snap_copies_are_excluded_from_generic_projection
             name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS
         },
         specialist_ctx_cat_indices=ctx_cat_indices,
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
         temporal_alias_signal_indices=aliases,
         temporal_alias_ctx_cont_indices=context_routing[
             "temporal_alias_policy"
@@ -485,7 +551,7 @@ def test_forward_fails_closed_on_stale_snap_and_ctx_alias_mismatch() -> None:
     )
     ctx_cat = torch.zeros(1, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long)
     mtf = {
-        f"seq_{tf}": torch.randn(1, 4, 3)
+        f"seq_{tf}": torch.randn(1, 4, MTF_DIM)
         for tf in ("m5", "m15", "h1", "h4", "d1")
     }
 

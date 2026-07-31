@@ -47,15 +47,30 @@ if str(REPO_ROOT) not in sys.path:
 
 from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
+    CANONICAL_NATIVE_SUCCESSOR_MODE,
+    CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     canonical_xau_source_descriptor_v1,
+)
+from gx1.contracts.live_tail_publication_v1 import (  # noqa: E402
+    publish_live_tail_admission_event,
+    publish_live_tail_publication_event,
 )
 from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
     PREBUILT_PAIR_MANIFEST_PATH,
     PREBUILT_PAIR_ROOT,
+    PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
+    PREBUILT_PAIR_FORMULA_CONTRACT,
+    PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION,
+    PAIR_PUBLISH_LOCK_FILENAME,
+    PREBUILT_PAIR_PRODUCER_OWNER,
     PREBUILT_PAIR_SCHEMA_VERSION,
+    PREBUILT_PAIR_TIMING_CONTRACT,
+    _load_verified_prebuilt,
     inspect_prebuilt_artifact,
     pair_generation_id_for_artifacts,
     read_prebuilt_pair_manifest,
+    require_prebuilt_pair_parent,
+    require_prebuilt_successor_frame,
     verify_prebuilt_pair,
 )
 from gx1.execution.v12_m1_to_m5_downsample import (  # noqa: E402
@@ -79,7 +94,6 @@ LOG = logging.getLogger("v12_incr")
 
 PAIR_CANONICAL_FILENAME = "canonical_v3.parquet"
 PAIR_BASE28_FILENAME = "base28.parquet"
-PAIR_PUBLISH_LOCK_FILENAME = ".canonical_v3_base28_pair_publish.lock"
 _PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
 # PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
@@ -89,9 +103,10 @@ M1_MARKET_IDENTITY_COLUMNS = CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]
 # context and M5 broadcasts are forbidden because they created duplicate,
 # precedence-dependent feature authorities in Entry and Exit.
 RAW_BASE28_COLUMNS = M1_MARKET_IDENTITY_COLUMNS
-PAIR_PRODUCER_OWNER = "gx1.execution.v12_canonical_incremental"
+PAIR_PRODUCER_OWNER = PREBUILT_PAIR_PRODUCER_OWNER
 _PAIR_PRODUCER_SOURCE_PATHS = (
     "gx1/contracts/entry_model_native_state_v2.py",
+    "gx1/contracts/live_tail_publication_v1.py",
     "gx1/contracts/xau_tape_provenance_v1.py",
     "gx1/execution/v12_canonical_incremental.py",
     "gx1/execution/v12_ctx_augment_live.py",
@@ -183,12 +198,19 @@ def _discard_pair_staging_dir(staging_dir: Path, *, generation_root: Path) -> No
         return
     if candidate.is_symlink() or not candidate.is_dir():
         raise RuntimeError(f"refusing non-directory pair staging cleanup: {candidate}")
-    allowed = {PAIR_CANONICAL_FILENAME, PAIR_BASE28_FILENAME}
+    allowed = {
+        PAIR_CANONICAL_FILENAME,
+        PAIR_BASE28_FILENAME,
+        PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
+    }
     entries = list(candidate.iterdir())
     if any(
         item.name not in allowed or item.is_symlink() or not item.is_file()
         for item in entries
-    ):
+    ) or not {
+        PAIR_CANONICAL_FILENAME,
+        PAIR_BASE28_FILENAME,
+    }.issubset(item.name for item in entries):
         raise RuntimeError(
             f"refusing pair staging cleanup with unexpected contents: {candidate}"
         )
@@ -220,9 +242,16 @@ def _discard_unpublished_generation_dir(
         raise RuntimeError(
             f"refusing invalid unpublished generation cleanup: {generation_dir}"
         )
-    if set(item.name for item in generation_dir.iterdir()) != {
+    generation_contents = {
+        item.name for item in generation_dir.iterdir()
+    }
+    if not {
         PAIR_CANONICAL_FILENAME,
         PAIR_BASE28_FILENAME,
+    }.issubset(generation_contents) or generation_contents - {
+        PAIR_CANONICAL_FILENAME,
+        PAIR_BASE28_FILENAME,
+        PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
     }:
         raise RuntimeError(
             f"refusing unpublished generation cleanup with unexpected contents: "
@@ -288,6 +317,10 @@ def _publish_prebuilt_pair_generation(
     expected_manifest_sha256: str | None,
     lineage_contract: dict[str, object],
     created_utc: str | None = None,
+    live_tail_publication_event_root: Path | None = None,
+    previous_live_tail_publication_json: Path | None = None,
+    previous_live_tail_publication_sha256: str | None = None,
+    live_tail_publication_result: dict[str, object] | None = None,
 ) -> str:
     """Publish a complete immutable pair through one atomic pointer replacement.
 
@@ -300,6 +333,32 @@ def _publish_prebuilt_pair_generation(
     staging_dir = Path(staging_dir)
     pair_manifest_path = Path(pair_manifest_path)
     generation_root = Path(generation_root)
+    if (expected_pair_generation_id is None) != (
+        expected_manifest_sha256 is None
+    ):
+        raise RuntimeError(
+            "pair publication requires both expected pointer identities or neither"
+        )
+    if (previous_live_tail_publication_json is None) != (
+        previous_live_tail_publication_sha256 is None
+    ):
+        raise RuntimeError(
+            "live-tail predecessor requires exact path and SHA-256"
+        )
+    if live_tail_publication_event_root is None and (
+        previous_live_tail_publication_json is not None
+        or previous_live_tail_publication_sha256 is not None
+    ):
+        raise RuntimeError(
+            "live-tail predecessor requires publication event root"
+        )
+    if (
+        live_tail_publication_event_root is not None
+        and expected_pair_generation_id is None
+    ):
+        raise RuntimeError(
+            "live-tail publication is forbidden for pair bootstrap"
+        )
     if generation_root.is_symlink() or not generation_root.is_dir():
         raise RuntimeError(f"pair generation root is invalid: {generation_root}")
     generation_root = generation_root.resolve(strict=True)
@@ -346,11 +405,17 @@ def _publish_prebuilt_pair_generation(
         if lock_path.is_symlink() or not lock_path.is_file():
             raise RuntimeError(f"pair publish lock path is not exact: {lock_path}")
         fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
-        if expected_pair_generation_id is None or expected_manifest_sha256 is None:
+        current = None
+        if expected_pair_generation_id is None:
             if pair_manifest_path.exists() or pair_manifest_path.is_symlink():
                 raise RuntimeError(
                     "pair bootstrap refused because an active pointer already exists"
                 )
+            require_prebuilt_pair_parent(
+                lineage_contract,
+                expected_parent_pair_generation_id=None,
+                expected_parent_manifest_sha256=None,
+            )
         else:
             current = read_prebuilt_pair_manifest(
                 pair_manifest_path,
@@ -364,6 +429,42 @@ def _publish_prebuilt_pair_generation(
                     "active pair changed during candidate computation; "
                     "refusing stale publication"
                 )
+            require_prebuilt_pair_parent(
+                lineage_contract,
+                expected_parent_pair_generation_id=current.pair_generation_id,
+                expected_parent_manifest_sha256=current.manifest_sha256,
+            )
+
+        published_artifacts: dict[str, dict[str, object]] = {}
+        for label, filename in (
+            ("canonical_v3", PAIR_CANONICAL_FILENAME),
+            ("base28", PAIR_BASE28_FILENAME),
+        ):
+            contract = dict(artifacts[label])
+            contract["parquet_path"] = str(
+                (final_dir / filename).absolute()
+            )
+            published_artifacts[label] = contract
+        manifest = {
+            "schema_version": PREBUILT_PAIR_SCHEMA_VERSION,
+            "pair_generation_id": pair_generation_id,
+            "created_utc": created_utc
+            or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generation_manifest_required": True,
+            "lineage": lineage_contract,
+            "artifacts": published_artifacts,
+        }
+        encoded = (
+            json.dumps(manifest, sort_keys=True, indent=2) + "\n"
+        ).encode("utf-8")
+        staging_generation_manifest = (
+            staging_resolved / PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
+        )
+        with staging_generation_manifest.open("xb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        _fsync_directory(staging_resolved)
 
         created_final_dir = False
         if final_dir.exists() or final_dir.is_symlink():
@@ -374,6 +475,7 @@ def _publish_prebuilt_pair_generation(
             if set(item.name for item in final_dir.iterdir()) != {
                 PAIR_CANONICAL_FILENAME,
                 PAIR_BASE28_FILENAME,
+                PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
             }:
                 raise RuntimeError(
                     f"immutable pair generation contents are invalid: {final_dir}"
@@ -398,6 +500,17 @@ def _publish_prebuilt_pair_generation(
                 raise RuntimeError(
                     f"immutable pair generation identity collision: {final_dir}"
                 )
+            existing_generation = read_prebuilt_pair_manifest(
+                final_dir / PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
+                generation_root=generation_root,
+            )
+            if existing_generation.pair_generation_id != pair_generation_id:
+                raise RuntimeError(
+                    f"immutable pair generation manifest mismatch: {final_dir}"
+                )
+            encoded = (
+                final_dir / PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
+            ).read_bytes()
             _discard_pair_staging_dir(
                 staging_resolved,
                 generation_root=generation_root,
@@ -408,36 +521,117 @@ def _publish_prebuilt_pair_generation(
             _fsync_directory(generation_root)
 
         pointer_replaced = False
+        live_tail_event_published = False
         try:
-            published_artifacts: dict[str, dict[str, object]] = {}
-            for label, filename in (
-                ("canonical_v3", PAIR_CANONICAL_FILENAME),
-                ("base28", PAIR_BASE28_FILENAME),
-            ):
-                contract = dict(artifacts[label])
-                contract["parquet_path"] = str(
-                    (final_dir / filename).resolve(strict=True)
-                )
-                published_artifacts[label] = contract
-            manifest = {
-                "schema_version": PREBUILT_PAIR_SCHEMA_VERSION,
-                "pair_generation_id": pair_generation_id,
-                "created_utc": created_utc
-                or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "lineage": lineage_contract,
-                "artifacts": published_artifacts,
-            }
             pointer_tmp = manifest_parent / (
                 f".{pair_manifest_path.name}.{uuid.uuid4().hex}.tmp"
             )
-            encoded = (
-                json.dumps(manifest, sort_keys=True, indent=2) + "\n"
-            ).encode("utf-8")
             try:
                 with pointer_tmp.open("xb") as handle:
                     handle.write(encoded)
                     handle.flush()
                     os.fsync(handle.fileno())
+
+                # Prove the exact temp pointer and both final immutable files
+                # are admissible before the active pointer can observe them.
+                candidate = read_prebuilt_pair_manifest(
+                    pointer_tmp,
+                    generation_root=generation_root,
+                )
+                if candidate.pair_generation_id != pair_generation_id:
+                    raise RuntimeError(
+                        "candidate pair pointer failed identity pre-admission"
+                    )
+                candidate_cv3_verified, candidate_base28_verified = (
+                    verify_prebuilt_pair(candidate)
+                )
+                if current is not None:
+                    current_cv3_verified, current_base28_verified = (
+                        verify_prebuilt_pair(current)
+                    )
+                    if (
+                        candidate_cv3_verified.arrow_schema
+                        != current_cv3_verified.arrow_schema
+                    ):
+                        raise RuntimeError(
+                            "CANONICAL_V3_SUCCESSOR_ARROW_SCHEMA_MISMATCH"
+                        )
+                    if (
+                        candidate_base28_verified.arrow_schema
+                        != current_base28_verified.arrow_schema
+                    ):
+                        raise RuntimeError(
+                            "BASE28_SUCCESSOR_ARROW_SCHEMA_MISMATCH"
+                        )
+                    current_cv3, _ = _load_verified_prebuilt(
+                        current_cv3_verified.binding
+                    )
+                    current_base28, _ = _load_verified_prebuilt(
+                        current_base28_verified.binding
+                    )
+                    candidate_cv3, _ = _load_verified_prebuilt(
+                        candidate_cv3_verified.binding
+                    )
+                    candidate_base28, _ = _load_verified_prebuilt(
+                        candidate_base28_verified.binding
+                    )
+                    require_prebuilt_successor_frame(
+                        current_cv3,
+                        candidate_cv3,
+                        label="CANONICAL_V3",
+                    )
+                    require_prebuilt_successor_frame(
+                        current_base28,
+                        candidate_base28,
+                        label="BASE28",
+                    )
+
+                if live_tail_publication_event_root is not None:
+                    event_path, event = publish_live_tail_publication_event(
+                        event_root=live_tail_publication_event_root,
+                        pair_manifest_path=pair_manifest_path,
+                        generation_root=generation_root,
+                        previous_publication_json=(
+                            previous_live_tail_publication_json
+                        ),
+                        previous_publication_sha256=(
+                            previous_live_tail_publication_sha256
+                        ),
+                        candidate_generation_manifest_path=(
+                            final_dir
+                            / PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
+                        ),
+                    )
+                    live_tail_event_published = True
+                    event_result = {
+                        "path": str(event_path),
+                        "sha256": hashlib.sha256(
+                            event_path.read_bytes()
+                        ).hexdigest(),
+                        "decision": event["decision"],
+                        "failures": event["failures"],
+                        "pair_generation_id": event["pair"][
+                            "pair_generation_id"
+                        ],
+                        "generation_manifest_sha256": event["pair"][
+                            "generation_manifest"
+                        ]["sha256"],
+                    }
+                    if live_tail_publication_result is not None:
+                        live_tail_publication_result.clear()
+                        live_tail_publication_result.update(event_result)
+                    if (
+                        event["decision"] != "PASS"
+                        or event_result["pair_generation_id"]
+                        != pair_generation_id
+                        or event_result["generation_manifest_sha256"]
+                        != candidate.manifest_sha256
+                    ):
+                        raise RuntimeError(
+                            "LIVE_TAIL_PUBLICATION_PRECOMMIT_BLOCK: "
+                            f"{event_result}"
+                        )
+
                 os.replace(pointer_tmp, pair_manifest_path)
                 pointer_replaced = True
             finally:
@@ -461,7 +655,11 @@ def _publish_prebuilt_pair_generation(
                 )
             verify_prebuilt_pair(admitted)
         except Exception:
-            if created_final_dir and not pointer_replaced:
+            if (
+                created_final_dir
+                and not pointer_replaced
+                and not live_tail_event_published
+            ):
                 _discard_unpublished_generation_dir(
                     final_dir,
                     generation_root=generation_root,
@@ -626,7 +824,7 @@ def _build_model_agnostic_canonical(
     canonical = attach_group_a_dip_struct_ctx_columns_parallel(
         canonical,
         multi_tf=multi_tf,
-        journal_label="native_pair_bootstrap",
+        journal_label="native_pair_generation",
         workers=workers,
         checkpoint_dir=checkpoint_dir,
         checkpoint_key=checkpoint_key,
@@ -711,6 +909,345 @@ def _native_pair_lineage_descriptor(
     return {name: descriptor[name] for name in fields}
 
 
+def _require_native_pair_compatibility(
+    m1_descriptor: dict[str, object],
+    m5_descriptor: dict[str, object],
+    *,
+    vedtak: str,
+    label: str,
+) -> None:
+    """Require one M1/M5 source decision and one exact requested interval."""
+
+    for field in (
+        "instrument",
+        "explicit_vedtak_id",
+        "source_environment",
+        "source_base_url",
+        "requested_start_utc",
+        "requested_end_utc_exclusive",
+    ):
+        if m1_descriptor.get(field) != m5_descriptor.get(field):
+            raise RuntimeError(
+                f"PAIR_{label}_NATIVE_{field.upper()}_MISMATCH"
+            )
+    if m1_descriptor.get("explicit_vedtak_id") != vedtak:
+        raise RuntimeError(f"PAIR_{label}_VEDTAK_SOURCE_MISMATCH")
+
+
+def _native_frame_view(
+    frame: pd.DataFrame,
+    *,
+    timeframe: str,
+) -> pd.DataFrame:
+    """Return a timestamp-indexed exact native frame for bit-prefix proof."""
+
+    required = list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
+    if (
+        not isinstance(frame, pd.DataFrame)
+        or list(frame.columns) != required
+        or frame.empty
+    ):
+        raise RuntimeError(f"PAIR_NATIVE_{timeframe}_FRAME_INVALID")
+    indexed = frame.copy()
+    indexed["time"] = pd.to_datetime(indexed["time"], utc=True, errors="coerce")
+    indexed = indexed.set_index("time")
+    indexed.index.name = "time"
+    return indexed
+
+
+def _aggregate_native_m1_to_m5(native_m1: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate every observed M1 bucket without session-time assumptions."""
+
+    required = list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
+    if (
+        not isinstance(native_m1, pd.DataFrame)
+        or native_m1.empty
+        or list(native_m1.columns) != required
+    ):
+        raise RuntimeError("PAIR_NATIVE_M1_AGGREGATION_INPUT_INVALID")
+    indexed = native_m1.copy()
+    indexed["time"] = pd.to_datetime(
+        indexed["time"],
+        utc=True,
+        errors="coerce",
+    )
+    if indexed["time"].isna().any():
+        raise RuntimeError("PAIR_NATIVE_M1_AGGREGATION_TIME_INVALID")
+    indexed["_m5_time"] = indexed["time"].dt.floor("5min")
+    aggregations: dict[str, str] = {}
+    for name in required[1:]:
+        if name == "volume":
+            aggregations[name] = "sum"
+        elif name.endswith("open") or name == "open":
+            aggregations[name] = "first"
+        elif name.endswith("high") or name == "high":
+            aggregations[name] = "max"
+        elif name.endswith("low") or name == "low":
+            aggregations[name] = "min"
+        elif name.endswith("close") or name == "close":
+            aggregations[name] = "last"
+        else:
+            raise RuntimeError(
+                f"PAIR_NATIVE_M1_AGGREGATION_FIELD_UNOWNED: {name}"
+            )
+    aggregated = indexed.groupby("_m5_time", sort=True).agg(aggregations)
+    aggregated.index = pd.DatetimeIndex(aggregated.index, name="time")
+    return aggregated.loc[:, required[1:]]
+
+
+def _require_native_m1_m5_aggregation_identity(
+    native_m1: pd.DataFrame,
+    native_m5: pd.DataFrame,
+) -> None:
+    """Prove every native M5 row is the exact aggregation of native M1.
+
+    Sparse/reopen buckets are accepted only when the separately sourced M5 row
+    is still bit-exact. No UTC session hour is encoded in this contract.
+    """
+
+    required = list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
+    if (
+        not isinstance(native_m5, pd.DataFrame)
+        or native_m5.empty
+        or list(native_m5.columns) != required
+    ):
+        raise RuntimeError("PAIR_NATIVE_M5_AGGREGATION_INPUT_INVALID")
+    observed = native_m5.copy()
+    observed["time"] = pd.to_datetime(
+        observed["time"],
+        utc=True,
+        errors="coerce",
+    )
+    if observed["time"].isna().any():
+        raise RuntimeError("PAIR_NATIVE_M5_AGGREGATION_TIME_INVALID")
+    observed = observed.set_index("time")
+    observed.index.name = "time"
+    expected = _aggregate_native_m1_to_m5(native_m1)
+    expected_through_m5_tail = expected.loc[expected.index <= observed.index[-1]]
+    if not expected_through_m5_tail.index.equals(observed.index):
+        missing = observed.index.difference(expected_through_m5_tail.index)
+        unexpected = expected_through_m5_tail.index.difference(observed.index)
+        raise RuntimeError(
+            "PAIR_NATIVE_M1_M5_BUCKET_IDENTITY_MISMATCH: "
+            f"missing_from_m1={list(missing[:3])} "
+            f"missing_from_m5={list(unexpected[:3])}"
+        )
+    for name in required[1:]:
+        expected_values = expected_through_m5_tail[name].to_numpy()
+        observed_values = observed[name].to_numpy()
+        if (
+            expected_values.dtype != observed_values.dtype
+            or expected_values.tobytes() != observed_values.tobytes()
+        ):
+            mismatch = np.flatnonzero(
+                expected_values != observed_values
+            )
+            position = int(mismatch[0]) if len(mismatch) else 0
+            raise RuntimeError(
+                "PAIR_NATIVE_M1_M5_VALUE_IDENTITY_MISMATCH: "
+                f"field={name} time={observed.index[position]} "
+                f"expected={expected_values[position]!r} "
+                f"observed={observed_values[position]!r}"
+            )
+
+
+def _require_native_successor_descriptor_binding(
+    *,
+    parent_descriptor: dict[str, object],
+    successor_descriptor: dict[str, object],
+    timeframe: str,
+) -> None:
+    """Require a schema-v4 successor bound to the active pair's native source."""
+
+    if (
+        successor_descriptor.get("schema_version")
+        != CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA
+        or successor_descriptor.get("publication_mode")
+        != CANONICAL_NATIVE_SUCCESSOR_MODE
+    ):
+        raise RuntimeError(
+            f"PAIR_SUCCESSOR_NATIVE_{timeframe}_SCHEMA_OR_MODE_INVALID"
+        )
+    successor_parent = successor_descriptor.get("parent_source")
+    if not isinstance(successor_parent, dict):
+        raise RuntimeError(
+            f"PAIR_SUCCESSOR_NATIVE_{timeframe}_PARENT_SOURCE_INVALID"
+        )
+    for field in ("root", "manifest_path", "manifest_sha256"):
+        if successor_parent.get(field) != parent_descriptor.get(field):
+            raise RuntimeError(
+                f"PAIR_SUCCESSOR_NATIVE_{timeframe}_PARENT_SOURCE_{field.upper()}_MISMATCH"
+            )
+
+
+def _require_native_source_successor(
+    *,
+    parent_descriptor: dict[str, object],
+    successor_descriptor: dict[str, object],
+    successor_frame: pd.DataFrame,
+    timeframe: str,
+) -> None:
+    """Prove that a new immutable native source is an exact strict child."""
+
+    _require_native_successor_descriptor_binding(
+        parent_descriptor=parent_descriptor,
+        successor_descriptor=successor_descriptor,
+        timeframe=timeframe,
+    )
+
+    observed_parent = canonical_xau_source_descriptor_v1(
+        Path(str(parent_descriptor["root"])),
+        timeframe=timeframe,
+    )
+    if _native_pair_lineage_descriptor(observed_parent) != parent_descriptor:
+        raise RuntimeError(
+            f"PAIR_SUCCESSOR_PARENT_NATIVE_{timeframe}_IDENTITY_MISMATCH"
+        )
+    parent_frame = _load_native_source_frame(
+        observed_parent,
+        timeframe=timeframe,
+    )
+    for field in (
+        "instrument",
+        "timeframe",
+        "explicit_vedtak_id",
+        "source_environment",
+        "source_base_url",
+        "requested_start_utc",
+        "time_min_utc",
+    ):
+        if parent_descriptor.get(field) != successor_descriptor.get(field):
+            raise RuntimeError(
+                f"PAIR_SUCCESSOR_NATIVE_{timeframe}_{field.upper()}_MISMATCH"
+            )
+    try:
+        parent_end = pd.Timestamp(parent_descriptor["requested_end_utc_exclusive"])
+        successor_end = pd.Timestamp(
+            successor_descriptor["requested_end_utc_exclusive"]
+        )
+        parent_max = pd.Timestamp(parent_descriptor["time_max_utc"])
+        successor_max = pd.Timestamp(successor_descriptor["time_max_utc"])
+    except Exception as exc:
+        raise RuntimeError(
+            f"PAIR_SUCCESSOR_NATIVE_{timeframe}_TIME_IDENTITY_INVALID"
+        ) from exc
+    if (
+        successor_end <= parent_end
+        or successor_max <= parent_max
+        or int(successor_descriptor["row_count"])
+        <= int(parent_descriptor["row_count"])
+    ):
+        raise RuntimeError(
+            f"PAIR_SUCCESSOR_NATIVE_{timeframe}_NOT_STRICTLY_ADVANCING"
+        )
+    require_prebuilt_successor_frame(
+        _native_frame_view(parent_frame, timeframe=timeframe),
+        _native_frame_view(successor_frame, timeframe=timeframe),
+        label=f"NATIVE_{timeframe}",
+    )
+
+
+def _derive_pair_frames(
+    *,
+    native_m1: pd.DataFrame,
+    native_m5: pd.DataFrame,
+    checkpoint_dir: Path,
+    checkpoint_key: str,
+    workers: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build the complete canonical M5 and raw M1 pair from loaded sources."""
+
+    canonical = _build_model_agnostic_canonical(
+        native_m5,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_key=checkpoint_key,
+        workers=workers,
+    )
+    m1 = native_m1.set_index("time").sort_index()
+    closed_keys = closed_m5_start_for_m1_bar_labels(m1.index)
+    keep = closed_keys.isin(canonical.index)
+    base28 = _build_raw_base28_owned_frame(m1.loc[keep])
+    if base28.empty:
+        raise RuntimeError("PAIR_RAW_BASE28_EMPTY")
+    if closed_m5_start_for_m1_bar_labels(base28.index)[-1] != canonical.index[-1]:
+        raise RuntimeError("PAIR_RAW_BASE28_TAIL_MISMATCH")
+    return canonical, base28
+
+
+def _build_pair_lineage(
+    *,
+    vedtak: str,
+    commit: str,
+    source_inventory: list[dict[str, str]],
+    m1_descriptor: dict[str, object],
+    m5_descriptor: dict[str, object],
+    native_m1: pd.DataFrame,
+    native_m5: pd.DataFrame,
+    canonical: pd.DataFrame,
+    base28: pd.DataFrame,
+    parent_pair_generation_id: str | None,
+    parent_pair_manifest_sha256: str | None,
+) -> dict[str, object]:
+    """Build the single lineage envelope used by bootstrap and successors."""
+
+    return {
+        "schema_version": PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION,
+        "explicit_vedtak_id": vedtak,
+        "producer_owner": PAIR_PRODUCER_OWNER,
+        "producer_git_commit": commit,
+        "producer_repository_clean": True,
+        "producer_source_files": source_inventory,
+        "producer_source_inventory_sha256": hashlib.sha256(
+            json.dumps(
+                source_inventory,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest(),
+        "native_sources": {
+            "m1": _native_pair_lineage_descriptor(m1_descriptor),
+            "m5": _native_pair_lineage_descriptor(m5_descriptor),
+        },
+        "derivation_contract": {
+            "canonical_builder": (
+                "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v1"
+            ),
+            "canonical_ordered_columns_sha256": hashlib.sha256(
+                json.dumps(
+                    list(canonical.columns),
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            "raw_base28_columns": list(RAW_BASE28_COLUMNS),
+            "raw_base28_columns_sha256": hashlib.sha256(
+                json.dumps(
+                    list(RAW_BASE28_COLUMNS),
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            "rank_fit_fields_absent": True,
+            "m5_phase_owned_by_m1_time": True,
+            "formula_contract": dict(PREBUILT_PAIR_FORMULA_CONTRACT),
+            "timing_contract": dict(PREBUILT_PAIR_TIMING_CONTRACT),
+        },
+        "coverage": {
+            "native_m1_rows": len(native_m1),
+            "native_m5_rows": len(native_m5),
+            "canonical_rows": len(canonical),
+            "base28_rows": len(base28),
+            "canonical_time_min_utc": canonical.index[0].isoformat(),
+            "canonical_time_max_utc": canonical.index[-1].isoformat(),
+            "base28_time_min_utc": base28.index[0].isoformat(),
+            "base28_time_max_utc": base28.index[-1].isoformat(),
+            "canonical_warmup_prefix_rows_trimmed": len(native_m5)
+            - len(canonical),
+        },
+        "parent_pair_generation_id": parent_pair_generation_id,
+        "parent_pair_manifest_sha256": parent_pair_manifest_sha256,
+    }
+
+
 def bootstrap_prebuilt_pair(
     *,
     native_m1_root: Path,
@@ -736,20 +1273,12 @@ def bootstrap_prebuilt_pair(
         native_m5_root,
         timeframe="M5",
     )
-    for field in (
-        "instrument",
-        "explicit_vedtak_id",
-        "source_environment",
-        "source_base_url",
-        "requested_start_utc",
-        "requested_end_utc_exclusive",
-    ):
-        if m1_descriptor.get(field) != m5_descriptor.get(field):
-            raise RuntimeError(
-                f"PAIR_BOOTSTRAP_NATIVE_{field.upper()}_MISMATCH"
-            )
-    if m1_descriptor.get("explicit_vedtak_id") != vedtak:
-        raise RuntimeError("PAIR_BOOTSTRAP_VEDTAK_SOURCE_MISMATCH")
+    _require_native_pair_compatibility(
+        m1_descriptor,
+        m5_descriptor,
+        vedtak=vedtak,
+        label="BOOTSTRAP",
+    )
     checkpoint = Path(checkpoint_dir)
     if not checkpoint.is_absolute() or checkpoint.is_symlink():
         raise RuntimeError("PAIR_BOOTSTRAP_CHECKPOINT_DIR_INVALID")
@@ -759,6 +1288,7 @@ def bootstrap_prebuilt_pair(
 
     native_m1 = _load_native_source_frame(m1_descriptor, timeframe="M1")
     native_m5 = _load_native_source_frame(m5_descriptor, timeframe="M5")
+    _require_native_m1_m5_aggregation_identity(native_m1, native_m5)
     source_key = hashlib.sha256(
         json.dumps(
             {
@@ -770,86 +1300,30 @@ def bootstrap_prebuilt_pair(
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()
-    canonical = _build_model_agnostic_canonical(
-        native_m5,
+    canonical, base28 = _derive_pair_frames(
+        native_m1=native_m1,
+        native_m5=native_m5,
         checkpoint_dir=checkpoint,
         checkpoint_key=source_key,
         workers=workers,
     )
 
-    m1 = native_m1.set_index("time").sort_index()
-    closed_keys = closed_m5_start_for_m1_bar_labels(m1.index)
-    keep = closed_keys.isin(canonical.index)
-    base28 = _build_raw_base28_owned_frame(m1.loc[keep])
-    if base28.empty:
-        raise RuntimeError("PAIR_BOOTSTRAP_RAW_BASE28_EMPTY")
-    if closed_m5_start_for_m1_bar_labels(base28.index)[-1] != canonical.index[-1]:
-        raise RuntimeError("PAIR_BOOTSTRAP_RAW_BASE28_TAIL_MISMATCH")
-
+    if _clean_repository_commit(Path(repo_root)) != commit:
+        raise RuntimeError("PAIR_BOOTSTRAP_REPOSITORY_CHANGED_DURING_BUILD")
     source_inventory = _pair_producer_source_inventory(Path(repo_root))
-    lineage: dict[str, object] = {
-        "schema_version": "gx1_native_pair_lineage_v1",
-        "explicit_vedtak_id": vedtak,
-        "producer_owner": PAIR_PRODUCER_OWNER,
-        "producer_git_commit": commit,
-        "producer_repository_clean": True,
-        "producer_source_files": source_inventory,
-        "producer_source_inventory_sha256": hashlib.sha256(
-            json.dumps(
-                source_inventory,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=False,
-            ).encode("utf-8")
-        ).hexdigest(),
-        "native_sources": {
-            "m1": _native_pair_lineage_descriptor(m1_descriptor),
-            "m5": _native_pair_lineage_descriptor(m5_descriptor),
-        },
-        "derivation_contract": {
-            "canonical_builder": "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v1",
-            "canonical_ordered_columns_sha256": hashlib.sha256(
-                json.dumps(
-                    list(canonical.columns),
-                    separators=(",", ":"),
-                ).encode("utf-8")
-            ).hexdigest(),
-            "raw_base28_columns": list(RAW_BASE28_COLUMNS),
-            "raw_base28_columns_sha256": hashlib.sha256(
-                json.dumps(
-                    list(RAW_BASE28_COLUMNS),
-                    separators=(",", ":"),
-                ).encode("utf-8")
-            ).hexdigest(),
-            "rank_fit_fields_absent": True,
-            "m5_phase_owned_by_m1_time": True,
-            "formula_contract": {
-                "rank_inputs": "shared_model_native_simple_tr14_hl_mid_bid_ask_v1",
-                "train_rank_application": "consumer_boundary_only",
-                "group_a": "shared_parallel_exact_checkpointed_v1",
-            },
-            "timing_contract": {
-                "m1_label": "bar_start_utc",
-                "m1_availability": "bar_start_plus_1min",
-                "m5_label": "bar_start_utc",
-                "m5_availability": "bar_start_plus_5min",
-                "htf_join_left_key": "m5_bar_start_plus_5min",
-                "session_and_cycles": "m5_bar_start_plus_5min",
-            },
-        },
-        "coverage": {
-            "native_m1_rows": len(native_m1),
-            "native_m5_rows": len(native_m5),
-            "canonical_rows": len(canonical),
-            "base28_rows": len(base28),
-            "canonical_time_min_utc": canonical.index[0].isoformat(),
-            "canonical_time_max_utc": canonical.index[-1].isoformat(),
-            "base28_time_min_utc": base28.index[0].isoformat(),
-            "base28_time_max_utc": base28.index[-1].isoformat(),
-            "canonical_warmup_prefix_rows_trimmed": len(native_m5) - len(canonical),
-        },
-        "parent_pair_generation_id": None,
-    }
+    lineage = _build_pair_lineage(
+        vedtak=vedtak,
+        commit=commit,
+        source_inventory=source_inventory,
+        m1_descriptor=m1_descriptor,
+        m5_descriptor=m5_descriptor,
+        native_m1=native_m1,
+        native_m5=native_m5,
+        canonical=canonical,
+        base28=base28,
+        parent_pair_generation_id=None,
+        parent_pair_manifest_sha256=None,
+    )
 
     staging_dir = _candidate_staging_path(generation_root)
     try:
@@ -878,14 +1352,276 @@ def bootstrap_prebuilt_pair(
         )
 
 
+def publish_prebuilt_pair_successor(
+    *,
+    native_m1_root: Path,
+    native_m5_root: Path,
+    vedtak_id: str,
+    checkpoint_dir: Path,
+    expected_pair_generation_id: str,
+    expected_manifest_sha256: str,
+    pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH,
+    generation_root: Path = PREBUILT_PAIR_ROOT,
+    repo_root: Path = REPO_ROOT,
+    workers: int = 12,
+    live_tail_publication_event_root: Path | None = None,
+    previous_live_tail_publication_json: Path | None = None,
+    previous_live_tail_publication_sha256: str | None = None,
+    live_tail_publication_result: dict[str, object] | None = None,
+) -> str:
+    """Derive and CAS-publish one strict child of the active pair.
+
+    Both native source bundles must themselves be immutable, full-history,
+    strict bit-prefix successors of the exact M1/M5 sources recorded in the
+    active pair. The derived canonical and BASE28 artifacts must then be strict
+    bit-prefix successors too. Any source, formula, schema, history, pointer or
+    repository mismatch aborts before the serving pointer moves.
+    """
+
+    from gx1_guards.gates import require_retrain_vedtak
+
+    vedtak = require_retrain_vedtak(vedtak_id)
+    commit = _clean_repository_commit(Path(repo_root))
+    current = read_prebuilt_pair_manifest(
+        pair_manifest_path,
+        generation_root=generation_root,
+    )
+    if (
+        current.pair_generation_id != expected_pair_generation_id
+        or current.manifest_sha256 != expected_manifest_sha256
+    ):
+        raise RuntimeError(
+            "PAIR_SUCCESSOR_EXPECTED_POINTER_IDENTITY_MISMATCH"
+        )
+    verify_prebuilt_pair(current)
+    if current.lineage["explicit_vedtak_id"] != vedtak:
+        raise RuntimeError("PAIR_SUCCESSOR_VEDTAK_PARENT_MISMATCH")
+
+    m1_descriptor = canonical_xau_source_descriptor_v1(
+        native_m1_root,
+        timeframe="M1",
+    )
+    m5_descriptor = canonical_xau_source_descriptor_v1(
+        native_m5_root,
+        timeframe="M5",
+    )
+    _require_native_pair_compatibility(
+        m1_descriptor,
+        m5_descriptor,
+        vedtak=vedtak,
+        label="SUCCESSOR",
+    )
+    parent_sources = current.lineage["native_sources"]
+    if not isinstance(parent_sources, dict):
+        raise RuntimeError("PAIR_SUCCESSOR_PARENT_NATIVE_SOURCES_INVALID")
+    for label, timeframe, descriptor in (
+        ("m1", "M1", m1_descriptor),
+        ("m5", "M5", m5_descriptor),
+    ):
+        raw_parent = parent_sources.get(label)
+        if not isinstance(raw_parent, dict):
+            raise RuntimeError(
+                f"PAIR_SUCCESSOR_PARENT_NATIVE_{timeframe}_DESCRIPTOR_INVALID"
+            )
+        _require_native_successor_descriptor_binding(
+            parent_descriptor=raw_parent,
+            successor_descriptor=descriptor,
+            timeframe=timeframe,
+        )
+    native_m1 = _load_native_source_frame(m1_descriptor, timeframe="M1")
+    native_m5 = _load_native_source_frame(m5_descriptor, timeframe="M5")
+    _require_native_m1_m5_aggregation_identity(native_m1, native_m5)
+    for label, timeframe, descriptor, frame in (
+        ("m1", "M1", m1_descriptor, native_m1),
+        ("m5", "M5", m5_descriptor, native_m5),
+    ):
+        raw_parent = parent_sources[label]
+        _require_native_source_successor(
+            parent_descriptor=raw_parent,
+            successor_descriptor=descriptor,
+            successor_frame=frame,
+            timeframe=timeframe,
+        )
+
+    checkpoint = Path(checkpoint_dir)
+    if not checkpoint.is_absolute() or checkpoint.is_symlink():
+        raise RuntimeError("PAIR_SUCCESSOR_CHECKPOINT_DIR_INVALID")
+    checkpoint.mkdir(parents=True, exist_ok=True)
+    if checkpoint.resolve() != checkpoint:
+        raise RuntimeError("PAIR_SUCCESSOR_CHECKPOINT_DIR_NOT_CANONICAL")
+    source_key = hashlib.sha256(
+        json.dumps(
+            {
+                "m1": m1_descriptor["manifest_sha256"],
+                "m5": m5_descriptor["manifest_sha256"],
+                "commit": commit,
+                "parent_pair_generation_id": current.pair_generation_id,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    canonical, base28 = _derive_pair_frames(
+        native_m1=native_m1,
+        native_m5=native_m5,
+        checkpoint_dir=checkpoint,
+        checkpoint_key=source_key,
+        workers=workers,
+    )
+
+    current_cv3, _ = _load_verified_prebuilt(current.canonical_v3)
+    current_base28, _ = _load_verified_prebuilt(current.base28)
+    require_prebuilt_successor_frame(
+        current_cv3,
+        canonical,
+        label="CANONICAL_V3",
+    )
+    require_prebuilt_successor_frame(
+        current_base28,
+        base28,
+        label="BASE28",
+    )
+    for timeframe, descriptor in (
+        ("M1", m1_descriptor),
+        ("M5", m5_descriptor),
+    ):
+        observed = canonical_xau_source_descriptor_v1(
+            Path(str(descriptor["root"])),
+            timeframe=timeframe,
+        )
+        if observed != descriptor:
+            raise RuntimeError(
+                f"PAIR_SUCCESSOR_NATIVE_{timeframe}_CHANGED_DURING_BUILD"
+            )
+    if _clean_repository_commit(Path(repo_root)) != commit:
+        raise RuntimeError("PAIR_SUCCESSOR_REPOSITORY_CHANGED_DURING_BUILD")
+    source_inventory = _pair_producer_source_inventory(Path(repo_root))
+    lineage = _build_pair_lineage(
+        vedtak=vedtak,
+        commit=commit,
+        source_inventory=source_inventory,
+        m1_descriptor=m1_descriptor,
+        m5_descriptor=m5_descriptor,
+        native_m1=native_m1,
+        native_m5=native_m5,
+        canonical=canonical,
+        base28=base28,
+        parent_pair_generation_id=current.pair_generation_id,
+        parent_pair_manifest_sha256=current.manifest_sha256,
+    )
+
+    staging_dir = _candidate_staging_path(generation_root)
+    try:
+        _write_candidate_parquet(
+            canonical.reset_index(),
+            staging_dir / PAIR_CANONICAL_FILENAME,
+            index=False,
+        )
+        _write_candidate_parquet(
+            base28.reset_index(),
+            staging_dir / PAIR_BASE28_FILENAME,
+            index=False,
+        )
+        return _publish_prebuilt_pair_generation(
+            staging_dir,
+            pair_manifest_path=pair_manifest_path,
+            generation_root=generation_root,
+            expected_pair_generation_id=expected_pair_generation_id,
+            expected_manifest_sha256=expected_manifest_sha256,
+            lineage_contract=lineage,
+            live_tail_publication_event_root=(
+                live_tail_publication_event_root
+            ),
+            previous_live_tail_publication_json=(
+                previous_live_tail_publication_json
+            ),
+            previous_live_tail_publication_sha256=(
+                previous_live_tail_publication_sha256
+            ),
+            live_tail_publication_result=live_tail_publication_result,
+        )
+    finally:
+        _discard_pair_staging_dir(
+            staging_dir,
+            generation_root=generation_root,
+        )
+
+
+def pair_publication_evidence(
+    *,
+    pair_manifest_path: Path,
+    generation_root: Path,
+) -> dict[str, object]:
+    """Return terminal, re-admitted identity and coverage evidence."""
+
+    admitted = read_prebuilt_pair_manifest(
+        pair_manifest_path,
+        generation_root=generation_root,
+    )
+    verify_prebuilt_pair(admitted)
+    return {
+        "schema_version": "gx1_prebuilt_pair_publication_evidence_v1",
+        "pair_generation_id": admitted.pair_generation_id,
+        "pair_manifest_path": str(admitted.manifest_path),
+        "pair_manifest_sha256": admitted.manifest_sha256,
+        "generation_manifest_path": (
+            str(admitted.generation_manifest_path)
+            if admitted.generation_manifest_path is not None
+            else None
+        ),
+        "generation_manifest_sha256": (
+            admitted.manifest_sha256
+            if admitted.generation_manifest_path is not None
+            else None
+        ),
+        "parent_pair_generation_id": admitted.lineage[
+            "parent_pair_generation_id"
+        ],
+        "native_sources": admitted.lineage["native_sources"],
+        "coverage": admitted.lineage["coverage"],
+        "canonical_v3": {
+            "parquet_sha256": admitted.canonical_v3.parquet_sha256,
+            "rows": admitted.canonical_v3.rows,
+            "cols_total": admitted.canonical_v3.cols_total,
+        },
+        "base28": {
+            "parquet_sha256": admitted.base28.parquet_sha256,
+            "rows": admitted.base28.rows,
+            "cols_total": admitted.base28.cols_total,
+        },
+    }
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description="Build one immutable canonical-v3/raw-BASE28 pair"
     )
-    p.add_argument("--native-m1-root", type=Path, required=True)
-    p.add_argument("--native-m5-root", type=Path, required=True)
-    p.add_argument("--vedtak", required=True)
-    p.add_argument("--checkpoint-dir", type=Path, required=True)
+    p.add_argument(
+        "--publication-mode",
+        choices=("bootstrap", "successor", "live-tail-admission"),
+        required=True,
+    )
+    p.add_argument("--native-m1-root", type=Path)
+    p.add_argument("--native-m5-root", type=Path)
+    p.add_argument("--vedtak")
+    p.add_argument("--checkpoint-dir", type=Path)
+    p.add_argument("--expected-pair-generation-id")
+    p.add_argument("--expected-manifest-sha256")
+    p.add_argument(
+        "--live-tail-publication-event-root",
+        type=Path,
+        help=(
+            "Publish immutable freshness/continuity evidence for this "
+            "successor. Omit for non-serving rebuild publications."
+        ),
+    )
+    p.add_argument("--previous-live-tail-publication-json", type=Path)
+    p.add_argument("--previous-live-tail-publication-sha256")
+    p.add_argument("--live-tail-admission-event-root", type=Path)
+    p.add_argument("--parent-live-tail-publication-json", type=Path)
+    p.add_argument("--parent-live-tail-publication-sha256")
+    p.add_argument("--child-live-tail-publication-json", type=Path)
+    p.add_argument("--child-live-tail-publication-sha256")
     p.add_argument(
         "--pair-manifest",
         type=Path,
@@ -903,24 +1639,256 @@ def main() -> int:
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
                         datefmt="%Y-%m-%dT%H:%M:%SZ")
 
-    generation_id = bootstrap_prebuilt_pair(
-        native_m1_root=args.native_m1_root,
-        native_m5_root=args.native_m5_root,
-        vedtak_id=args.vedtak,
-        checkpoint_dir=args.checkpoint_dir,
+    claims_live_tail_authority = (
+        args.publication_mode == "live-tail-admission"
+        or args.live_tail_publication_event_root is not None
+    )
+    if claims_live_tail_authority and (
+        args.pair_manifest.expanduser().resolve()
+        != PREBUILT_PAIR_MANIFEST_PATH.resolve()
+        or args.generation_root.expanduser().resolve()
+        != PREBUILT_PAIR_ROOT.resolve()
+    ):
+        p.error(
+            "live-tail authority requires the canonical pair pointer and "
+            "generation root"
+        )
+
+    admission_args = (
+        args.live_tail_admission_event_root,
+        args.parent_live_tail_publication_json,
+        args.parent_live_tail_publication_sha256,
+        args.child_live_tail_publication_json,
+        args.child_live_tail_publication_sha256,
+    )
+    if args.publication_mode == "live-tail-admission":
+        forbidden = [
+            name
+            for name, value in (
+                ("--native-m1-root", args.native_m1_root),
+                ("--native-m5-root", args.native_m5_root),
+                ("--vedtak", args.vedtak),
+                ("--checkpoint-dir", args.checkpoint_dir),
+                (
+                    "--expected-pair-generation-id",
+                    args.expected_pair_generation_id,
+                ),
+                ("--expected-manifest-sha256", args.expected_manifest_sha256),
+                (
+                    "--live-tail-publication-event-root",
+                    args.live_tail_publication_event_root,
+                ),
+                (
+                    "--previous-live-tail-publication-json",
+                    args.previous_live_tail_publication_json,
+                ),
+                (
+                    "--previous-live-tail-publication-sha256",
+                    args.previous_live_tail_publication_sha256,
+                ),
+            )
+            if value is not None
+        ]
+        if forbidden:
+            p.error(
+                "live-tail-admission forbids " + ", ".join(forbidden)
+            )
+        required = [
+            name
+            for name, value in (
+                (
+                    "--live-tail-admission-event-root",
+                    args.live_tail_admission_event_root,
+                ),
+                (
+                    "--parent-live-tail-publication-json",
+                    args.parent_live_tail_publication_json,
+                ),
+                (
+                    "--parent-live-tail-publication-sha256",
+                    args.parent_live_tail_publication_sha256,
+                ),
+                (
+                    "--child-live-tail-publication-json",
+                    args.child_live_tail_publication_json,
+                ),
+                (
+                    "--child-live-tail-publication-sha256",
+                    args.child_live_tail_publication_sha256,
+                ),
+            )
+            if value is None
+        ]
+        if required:
+            p.error(
+                "live-tail-admission requires explicit "
+                + ", ".join(required)
+            )
+        event_path, event = publish_live_tail_admission_event(
+            event_root=args.live_tail_admission_event_root,
+            parent_publication_json=args.parent_live_tail_publication_json,
+            parent_publication_sha256=(
+                args.parent_live_tail_publication_sha256
+            ),
+            child_publication_json=args.child_live_tail_publication_json,
+            child_publication_sha256=args.child_live_tail_publication_sha256,
+            pair_manifest_path=args.pair_manifest,
+            generation_root=args.generation_root,
+        )
+        evidence = {
+            "schema_version": "gx1_live_tail_admission_evidence_v1",
+            "path": str(event_path),
+            "sha256": hashlib.sha256(event_path.read_bytes()).hexdigest(),
+            "decision": event["decision"],
+            "failures": event["failures"],
+            "anchor_pair": event["anchor_pair"],
+            "valid_until_utc": event["valid_until_utc"],
+        }
+        print(json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False))
+        if event["decision"] != "PASS":
+            raise RuntimeError(
+                "LIVE_TAIL_ADMISSION_BLOCK: "
+                f"{event['failures']}"
+            )
+        return 0
+
+    missing_build_args = [
+        name
+        for name, value in (
+            ("--native-m1-root", args.native_m1_root),
+            ("--native-m5-root", args.native_m5_root),
+            ("--vedtak", args.vedtak),
+            ("--checkpoint-dir", args.checkpoint_dir),
+        )
+        if value is None
+    ]
+    if missing_build_args:
+        p.error(
+            f"{args.publication_mode} requires explicit "
+            + ", ".join(missing_build_args)
+        )
+    if any(value is not None for value in admission_args):
+        p.error(
+            f"{args.publication_mode} forbids live-tail-admission arguments"
+        )
+
+    if args.publication_mode == "bootstrap":
+        if (
+            args.expected_pair_generation_id is not None
+            or args.expected_manifest_sha256 is not None
+            or args.live_tail_publication_event_root is not None
+            or args.previous_live_tail_publication_json is not None
+            or args.previous_live_tail_publication_sha256 is not None
+        ):
+            p.error(
+                "bootstrap forbids successor pointer/live-tail arguments"
+            )
+        generation_id = bootstrap_prebuilt_pair(
+            native_m1_root=args.native_m1_root,
+            native_m5_root=args.native_m5_root,
+            vedtak_id=args.vedtak,
+            checkpoint_dir=args.checkpoint_dir,
+            pair_manifest_path=args.pair_manifest,
+            generation_root=args.generation_root,
+            workers=args.workers,
+        )
+    else:
+        missing = [
+            name
+            for name, value in (
+                (
+                    "--expected-pair-generation-id",
+                    args.expected_pair_generation_id,
+                ),
+                ("--expected-manifest-sha256", args.expected_manifest_sha256),
+            )
+            if value is None
+        ]
+        if missing:
+            p.error(
+                "successor requires explicit " + ", ".join(missing)
+            )
+        if (
+            args.previous_live_tail_publication_json is None
+        ) != (
+            args.previous_live_tail_publication_sha256 is None
+        ):
+            p.error(
+                "successor live-tail predecessor requires both "
+                "--previous-live-tail-publication-json and "
+                "--previous-live-tail-publication-sha256"
+            )
+        if (
+            args.live_tail_publication_event_root is None
+            and (
+                args.previous_live_tail_publication_json is not None
+                or args.previous_live_tail_publication_sha256 is not None
+            )
+        ):
+            p.error(
+                "successor predecessor publication requires "
+                "--live-tail-publication-event-root"
+            )
+        if (
+            args.pair_manifest.expanduser().resolve()
+            == PREBUILT_PAIR_MANIFEST_PATH.resolve()
+            and args.generation_root.expanduser().resolve()
+            == PREBUILT_PAIR_ROOT.resolve()
+            and args.live_tail_publication_event_root is None
+        ):
+            p.error(
+                "successor of the canonical serving pointer requires "
+                "--live-tail-publication-event-root"
+            )
+        live_tail_publication: dict[str, object] = {}
+        generation_id = publish_prebuilt_pair_successor(
+            native_m1_root=args.native_m1_root,
+            native_m5_root=args.native_m5_root,
+            vedtak_id=args.vedtak,
+            checkpoint_dir=args.checkpoint_dir,
+            expected_pair_generation_id=args.expected_pair_generation_id,
+            expected_manifest_sha256=args.expected_manifest_sha256,
+            pair_manifest_path=args.pair_manifest,
+            generation_root=args.generation_root,
+            workers=args.workers,
+            live_tail_publication_event_root=(
+                args.live_tail_publication_event_root
+            ),
+            previous_live_tail_publication_json=(
+                args.previous_live_tail_publication_json
+            ),
+            previous_live_tail_publication_sha256=(
+                args.previous_live_tail_publication_sha256
+            ),
+            live_tail_publication_result=live_tail_publication,
+        )
+    evidence = pair_publication_evidence(
         pair_manifest_path=args.pair_manifest,
         generation_root=args.generation_root,
-        workers=args.workers,
     )
-    print(
-        json.dumps(
-            {
-                "pair_generation_id": generation_id,
-                "pair_manifest": str(args.pair_manifest),
-            },
-            indent=2,
+    if evidence["pair_generation_id"] != generation_id:
+        raise RuntimeError("PAIR_PUBLICATION_TERMINAL_IDENTITY_MISMATCH")
+    if args.live_tail_publication_event_root is not None:
+        if (
+            not live_tail_publication
+            or live_tail_publication["pair_generation_id"]
+            != generation_id
+            or live_tail_publication["generation_manifest_sha256"]
+            != evidence["generation_manifest_sha256"]
+        ):
+            raise RuntimeError(
+                "LIVE_TAIL_PUBLICATION_TERMINAL_IDENTITY_MISMATCH"
+            )
+        evidence["live_tail_publication"] = live_tail_publication
+    print(json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False))
+    if (
+        args.live_tail_publication_event_root is not None
+        and evidence["live_tail_publication"]["decision"] != "PASS"
+    ):
+        raise RuntimeError(
+            "LIVE_TAIL_PUBLICATION_BLOCK: "
+            f"{evidence['live_tail_publication']['failures']}"
         )
-    )
     return 0
 
 

@@ -1,6 +1,6 @@
 """Fail-closed signal contract for the model-native XAU entry candidate.
 
-The retired Smart520 surface prepended seven XGBoost-derived values to 34
+The retired Smart520 surface prepended seven externally derived values to 34
 genuine per-bar price-state fields.  Fresh XAU builds filled those seven values
 with constants, while the Transformer still interpreted three of them as
 direction-anchor probabilities.  This contract removes that dead bridge from
@@ -44,12 +44,8 @@ MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
 MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v4"
 RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE = "smart_seq520_candidate"
 MODEL_NATIVE_DIRECTION_LOGIT_MODE = "model_native"
-LEGACY_ANCHOR_DIRECTION_LOGIT_MODE = "xgb_anchor_residual"
-
-# The model-native Entry contract owns these fields directly.  Legacy
-# signal_bridge_v1/v3 may re-export them for retained Exit/XGB consumers, but
-# no Entry authority may import its input order from those compatibility
-# surfaces.
+# The model-native contract owns these fields directly. No decision authority
+# may import its input order from a compatibility surface.
 FORBIDDEN_LEGACY_BRIDGE_FIELDS = (
     "p_long",
     "p_short",
@@ -237,6 +233,46 @@ MODEL_NATIVE_CTX_CAT_FIELDS = (
     "spread_bucket",
     "H4_trend_sign_cat",
 )
+MODEL_NATIVE_CTX_CAT_DOMAINS = {
+    "session_id": (0, 1, 2, 3),
+    "vol_regime_id": (0, 1, 2, 3, 4),
+    "atr_bucket": (0, 1, 2, 3, 4),
+    "spread_bucket": (0, 1, 2, 3, 4),
+    "H4_trend_sign_cat": (0, 1, 2),
+}
+if tuple(MODEL_NATIVE_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
+    raise RuntimeError("MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_INVALID")
+MODEL_NATIVE_VOL_REGIME_NAMES = (
+    "VERY_LOW",
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "EXTREME",
+)
+MODEL_NATIVE_TREND_REGIME_NAMES = (
+    "TREND_DOWN",
+    "TREND_NEUTRAL",
+    "TREND_UP",
+)
+if len(MODEL_NATIVE_VOL_REGIME_NAMES) != len(
+    MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"]
+):
+    raise RuntimeError("MODEL_NATIVE_VOL_REGIME_NAME_DOMAIN_MISMATCH")
+if len(set(MODEL_NATIVE_VOL_REGIME_NAMES)) != len(
+    MODEL_NATIVE_VOL_REGIME_NAMES
+):
+    raise RuntimeError("MODEL_NATIVE_VOL_REGIME_NAMES_NOT_UNIQUE")
+if len(MODEL_NATIVE_TREND_REGIME_NAMES) != len(
+    MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"]
+):
+    raise RuntimeError("MODEL_NATIVE_TREND_REGIME_NAME_DOMAIN_MISMATCH")
+MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME = {
+    name: index for index, name in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS)
+}
+MODEL_NATIVE_CTX_CAT_MIN_MAX = {
+    name: (min(domain), max(domain))
+    for name, domain in MODEL_NATIVE_CTX_CAT_DOMAINS.items()
+}
 
 MODEL_NATIVE_BASE_SIGNAL_DIM = 34
 MODEL_NATIVE_SELECTED_FEATURE_COUNT = 479
@@ -295,14 +331,18 @@ def _sha256_json(value: Any) -> str:
 MODEL_NATIVE_BASE_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_BASE_FIELDS)
 MODEL_NATIVE_CTX_CONT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CONT_FIELDS)
 MODEL_NATIVE_CTX_CAT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CAT_FIELDS)
+MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v2"
+MODEL_NATIVE_CONTEXT_TAG = (
+    f"CTX{MODEL_NATIVE_CTX_CONT_DIM}CAT{MODEL_NATIVE_CTX_CAT_DIM}"
+)
 
 
 def model_native_context_contract_metadata() -> dict[str, Any]:
     """Return the exact 142-continuous/5-categorical Entry context contract."""
 
     return {
-        "schema_version": "entry_model_native_context_v1",
-        "tag": "CTX6CAT5",
+        "schema_version": MODEL_NATIVE_CONTEXT_SCHEMA_VERSION,
+        "tag": MODEL_NATIVE_CONTEXT_TAG,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "ctx_cont_fields_sha256": MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
@@ -606,7 +646,7 @@ def require_model_native_manifest(
     if mode == RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE:
         raise RuntimeError(
             f"[{context}_RETIRED_SMART520_CONTRACT] {mode} contains the retired "
-            "seven-field XGB/neutral bridge; materialize a fresh "
+            "seven-field external bridge; materialize a fresh "
             f"{MODEL_NATIVE_CONTRACT_MODE} manifest"
         )
     if mode != MODEL_NATIVE_CONTRACT_MODE:

@@ -31,17 +31,17 @@ def test_candlestick_pattern_layer_builds_closed_bar_numeric_patterns() -> None:
     assert all(name.startswith(CANDLESTICK_PATTERN_FEATURE_PREFIX) for name in names)
     assert out.shape == (9, 60)
     assert np.isfinite(out).all()
-    assert out[0].sum() == 0.0
-    assert out[5, idx["candle.pattern_hammer_bull_reversal_score"]] > 0.0
-    assert out[6, idx["candle.pattern_bullish_engulfing_score"]] > 0.0
-    assert out[6, idx["candle.pattern_bullish_engulfing_quality"]] > 0.0
-    assert out[6, idx["candle.pattern_tweezer_bottom_quality"]] > 0.0
-    assert out[7, idx["candle.pattern_bull_rejection_continuation_score"]] > 0.0
-    assert out[8, idx["candle.pattern_bull_continuation_pressure"]] > 0.0
-    assert out[8, idx["candle.pattern_three_bar_bull_continuation_quality"]] > 0.0
+    assert out[0, idx["candle.pattern_body_direction"]] == 1.0
+    assert out[4, idx["candle.pattern_hammer_bull_reversal_score"]] > 0.0
+    assert out[5, idx["candle.pattern_bullish_engulfing_score"]] > 0.0
+    assert out[5, idx["candle.pattern_bullish_engulfing_quality"]] > 0.0
+    assert out[5, idx["candle.pattern_tweezer_bottom_quality"]] > 0.0
+    assert out[6, idx["candle.pattern_bull_rejection_continuation_score"]] > 0.0
+    assert out[7, idx["candle.pattern_bull_continuation_pressure"]] > 0.0
+    assert out[7, idx["candle.pattern_three_bar_bull_continuation_quality"]] > 0.0
 
 
-def test_candlestick_pattern_layer_triple_quality_is_shifted() -> None:
+def test_candlestick_pattern_layer_triple_quality_ends_on_current_closed_bar() -> None:
     frame = pd.DataFrame(
         {
             "time": pd.date_range("2026-01-01", periods=8, freq="5min", tz="UTC"),
@@ -57,13 +57,13 @@ def test_candlestick_pattern_layer_triple_quality_is_shifted() -> None:
 
     morning = idx["candle.pattern_morning_star_bull_quality"]
     evening = idx["candle.pattern_evening_star_bear_quality"]
-    assert out[2, morning] == 0.0
-    assert out[3, morning] > 0.0
-    assert out[6, evening] == 0.0
-    assert out[7, evening] > 0.0
+    assert out[2, morning] > 0.0
+    assert out[3, morning] == 0.0
+    assert out[6, evening] > 0.0
+    assert out[7, evening] == 0.0
 
 
-def test_candlestick_pattern_layer_has_no_same_row_or_future_leakage() -> None:
+def test_candlestick_pattern_layer_uses_current_closed_bar_without_past_leakage() -> None:
     frame = pd.DataFrame(
         {
             "time": pd.date_range("2026-01-01", periods=7, freq="5min", tz="UTC"),
@@ -78,9 +78,43 @@ def test_candlestick_pattern_layer_has_no_same_row_or_future_leakage() -> None:
     mutated.loc[5, ["open", "high", "low", "close"]] = [100.0, 140.0, 80.0, 135.0]
     changed, _ = build_entry_candlestick_pattern_layer(mutated)
 
-    np.testing.assert_allclose(base[:6], changed[:6])
-    assert not np.allclose(base[6], changed[6])
+    np.testing.assert_allclose(base[:5], changed[:5])
+    assert not np.allclose(base[5], changed[5])
     assert tuple(names) == CANDLESTICK_PATTERN_FEATURE_NAMES
+
+
+@pytest.mark.parametrize("frequency", ["5min", "15min", "1h", "4h", "1D"])
+def test_candlestick_current_closed_bar_impulse_is_identical_across_timeframes(
+    frequency: str,
+) -> None:
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range(
+                "2026-01-01",
+                periods=12,
+                freq=frequency,
+                tz="UTC",
+            ),
+            "open": np.linspace(10.0, 11.1, 12),
+            "high": np.linspace(10.5, 11.6, 12),
+            "low": np.linspace(9.8, 10.9, 12),
+            "close": np.linspace(10.3, 11.4, 12),
+        }
+    )
+    base, names = build_entry_candlestick_pattern_layer(frame)
+    mutated = frame.copy()
+    mutated.loc[11, ["open", "high", "low", "close"]] = [
+        11.4,
+        11.8,
+        10.8,
+        10.9,
+    ]
+    changed, changed_names = build_entry_candlestick_pattern_layer(mutated)
+
+    np.testing.assert_allclose(base[:-1], changed[:-1])
+    assert not np.allclose(base[-1], changed[-1])
+    assert changed[-1, names.index("candle.pattern_body_direction")] == -1.0
+    assert names == changed_names
 
 
 def test_candlestick_pattern_layer_rejects_nan_and_inf() -> None:

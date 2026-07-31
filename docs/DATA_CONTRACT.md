@@ -20,25 +20,28 @@ The exact physical native column order is `time`, `open`, `high`, `low`,
 non-finite prices, duplicates, non-monotonic timestamps or unexplained grid
 gaps fail. Mid-only substitution is forbidden.
 
-Canonical native M1 and M5 share one producer:
-`gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_xau_snapshot`,
-routed as `model-native-native-m1-source` or
-`model-native-native-m5-source`. It accepts an explicit immutable output root,
-vedtak, timeframe and left-closed/right-open interval. Policy is owned by the
-contract, not the caller: M1 uses fixed three-day chunks and M5 fixed 15-day
-chunks, each at most 4,320 theoretical grid slots. Requests are OANDA-only
-`MBA`; fixed request sleep is absent because the shared client owns retry,
-`Retry-After` and exponential backoff. Every normalized response is retained
-as deterministic gzip evidence. Only source rows with literal
-`complete=true` enter the strict 14-column Arrow surface; source absence is
-closure evidence and is never filled. A v3 manifest binds the exact
-timeframe policy, request closure, response chunks, clean Git/source
-inventory, typed row digest, each year hash/count/bounds and the final
-absolute root. Source and parquet rows are independently rederived with a
-byte-identical streamed digest before a hidden directory is fsynced and
-atomically published without replacement. Shallow legacy M1 manifests,
-native-M5 v2 manifests, direct year-file merge and alternate-provider repair
-cannot be admitted.
+Canonical native M1 and M5 share one module owner,
+`gx1.scripts.backfill_xauusd_m5_from_oanda`, routed as
+`model-native-native-m1-source` or `model-native-native-m5-source`. Bootstrap
+uses `materialize_native_xau_snapshot` and publishes source schema v3. An
+advancing child uses `materialize_native_xau_successor` and must publish source
+schema v4 with the exact immutable parent root and parent-manifest SHA-256.
+Both modes accept an explicit immutable output root, vedtak, timeframe and
+left-closed/right-open interval. Policy is owned by the contract, not the
+caller: M1 uses fixed three-day chunks and M5 fixed 15-day chunks, each at most
+4,320 theoretical grid slots. Requests are OANDA-only `MBA`; fixed request
+sleep is absent because the shared client owns retry, `Retry-After` and
+exponential backoff. Every normalized response is retained as deterministic
+gzip evidence. Only source rows with literal `complete=true` enter the strict
+14-column Arrow surface; source absence is closure evidence and is never
+filled. Both schemas bind the exact timeframe policy, request closure,
+response chunks, clean Git/source inventory, typed row digest, each year
+hash/count/bounds and final absolute root. Schema v4 additionally binds the
+parent and strict overlap/append envelope. Source and parquet rows are
+independently rederived with a byte-identical streamed digest before a hidden
+directory is fsynced and atomically published without replacement. Shallow
+legacy M1 manifests, native-M5 v2 manifests, direct year-file merge and
+alternate-provider repair cannot be admitted.
 
 Raw BASE28 may carry only the 13 non-time physical M1 fields in that exact
 native order. It may not carry broadcast M5 duplicates, canonical context,
@@ -53,7 +56,7 @@ reference fitted only on the complete physical TRAIN population. Dataset,
 bundle, replay and live must all bind and revalidate the same reference; the
 mutable global `regime_bucket_edges_v1.json` has no launch authority.
 
-The current-data rebuild never edits a running collector or canonical tape.
+The bounded event rebuild never edits a running collector or canonical tape.
 It snapshots the exact collector parquet bytes into one fresh event, rejects
 conflicting duplicate timestamps, proves finite OHLC/bid-ask geometry, builds
 M5 only from either all five exact M1 minutes or the separately overlap-proven
@@ -64,6 +67,16 @@ observed minute offsets in the manifest, never filled or silently admitted.
 The last declared M5 bucket itself must remain admitted. The snapshot manifest
 binds every source/snapshot/year hash and the explicit last complete M1/M5
 cutoff. Changing live source files after snapshot cannot change event bytes.
+
+This bounded snapshot operation is not continuous live-tail publication.
+Native schema v4 adds an efficient immutable successor: exact parent-root and
+manifest CAS, verified historical-chunk reuse, one bounded refetched overlap
+plus the new tail, and byte-exact rejection of any completed-row rewrite.
+Canonical successor publication emits its immutable PASS/BLOCK event before
+the serving pointer moves. Two consecutive fresh PASS events may then produce
+one short-lived admission. No real successor/admission chain is currently
+published, so new paper/live Entry remains blocked; stale admission does not
+remove model-native Exit authority for an already-open trade.
 
 ## Entry split artifact
 
@@ -151,12 +164,20 @@ context chunks, partial files, changed inputs and inferred checkpoints fail.
 
 The accepted Entry tensor contract is sequence length 96 with 513 genuine
 ordered signal fields, a 513-field snapshot, 142 continuous context fields and
-5 categorical context fields. The five timeframes are M5/M15/H1/H4/D1.
+5 categorical context fields. The five timeframes are M5/M15/H1/H4/D1. Under
+the active V4 contract, each timeframe tensor has the same exact ordered
+111-field surface and all eight specialist families. The combined grid is
+555 feature×timeframe cells and 40 family×timeframe routes.
 The 479-field specialist extension is generated inline from that split's common
 causal history. It consists of the exact 378 code-owned outputs from all twelve
 registered causal layers plus 101 eligible fields from deterministic
 TRAIN-only ranking. A separately materialized sample-parquet extension is
 forbidden.
+
+The context identity tag is `CTX142CAT5`; the retired `CTX6CAT5` spelling is
+invalid. Ranker and dataset extension builders must consume the same complete
+causal M5 prefix. In particular, `vol_pct_m5_1yr` and `vol_pct_h1_1yr` must be
+bit-identical under that shared history; truncated ranker history fails closed.
 
 The structural auxiliary-label producer consumes only prerequisites declared
 by `entry_structural_aux_label_signal_v1.py`. At least one candidate for each
@@ -169,8 +190,8 @@ the mandatory prefix. The polarity proof and future-outcome target-consistency
 proof are independent audit branches; failure of one never marks the other
 unavailable.
 
-The seven retired XGB/neutral bridge fields are forbidden. There is no zero-
-fill, median-fill, compatibility dimension, optional context or synthetic
+The retired external decision-bridge fields are forbidden. There is no
+zero-fill, median-fill, compatibility dimension, optional context or synthetic
 decision surface. Missing or non-finite values fail before inference.
 
 ## Targets
@@ -184,6 +205,10 @@ The Dataset converts immutable parquet `y_direction` exactly once to the
 class-index batch tensor `y`; the primary and MTF direction losses share that
 same tensor. A duplicated `y_direction` batch alias is forbidden.
 
+Counterfactual Q, expectile V and Advantage are internal evidence only.
+Advantage equals `Q - V` exactly; parity and fusion ablation may not construct
+an impossible state where those values disagree.
+
 The position-size target is exactly `sigmoid((MFE-MAE)/(2*ATR_bps))`, where MAE
 is a non-negative adverse magnitude. MFE is selected-side and spread-aware: it
 remains signed when the path never earns back the entry spread. Path quality
@@ -192,40 +217,34 @@ validation loss must preserve both signed domains exactly; zero clipping,
 absolute values and parked-zero substitution are forbidden. `FLAT` is neutral
 during training and executes zero units. Any label-horizon TEST
 utility/exposure/drawdown result is diagnostic only; no fresh accepted
-current-contract result exists. Paper/live exposure authority additionally requires
-a joint sizing-only replay with the exact adopted active Exit stack and a fresh
+current-contract result exists. Paper/live exposure authority additionally
+requires a joint replay of the exact unified candidate bundle and a fresh
 post-adoption broker runtime-parity event. Until both exist and pass, capital
 adoption is blocked; fixed 1x is only a named historical benchmark and never a
 fallback.
 
-Active-Exit replay schema v7 preserves the canonical label-horizon outcome as
-an immutable fact and records model decisions/fills separately. Each step must
-bind one committed closed M1 bar to the following exact fresh quote; state PnL
-is recomputed from state prices and active fill is the final fresh quote.
-Caller-supplied trace parquet cannot authorize launch. The canonical operation
-in the existing sizing/replay owner drives the Exit-only pipeline factory and
-frozen-pair loader over every TEST row, emits explicit FLAT no-order evidence
-and binds its runtime heads, SourceTape, active artifacts, source closure and
-exact replay/trace outputs. Missing state, cadence, inference or `EXIT_NOW`
-before source exhaustion is terminal red.
+The same immutable model bundle and shared encoder must own Entry and Exit.
+The lifecycle dataset records the frozen Entry snapshot plus every exact,
+contiguous closed-M1 post-entry path state. Each step binds one committed
+closed M1 bar to the following exact fresh quote; state PnL is recomputed from
+executable bid/ask prices. The model emits finite calibrated logits ordered
+`HOLD/EXIT_NOW`, and exact argmax owns the action. Missing state, cadence,
+bundle identity, path hash or output evidence is terminal red, never synthetic
+HOLD.
 
-Exit V3 training storage is `N x 173` float32 market state plus exact UTC M1
-times and separate float32 trade overlays. Admission recomputes the Exit-XGB
-bridge, requires zero trade-state slots in the base matrix, reconstructs every
-overlay/record boundary and verifies exact 240-row teacher paths. Bound source
-hashes without those semantic checks are not dataset evidence. The existing
-owner's `materialize` operation is the only admitted end-to-end writer: it
-derives the matrix through the shared serving builder, derives T+5
-overlays/records from runtime-head predictions plus strict chronological
-SourceTape, binds the frozen canonical-v3/BASE28 pair and XGB identity, writes
-an immutable producer event and publishes atomically. It accepts no
-caller-supplied dataset members.
+Canonical replay binds the candidate bundle directly before activation,
+iterates every TEST row from exact T+5 fill to model `EXIT_NOW`, and publishes
+the replay, path traces and complete transitive source inventory atomically.
+Caller-supplied traces and an already-active registry cannot authorize launch.
+The former separate Exit dataset, model, bridge, overlay and policy stack are
+deleted and may not be restored or padded into the unified contract.
 
 ## Liveness and identity
 
-Full-input liveness evaluates every 513+142+5 field on train, validation and
-test. TRAIN rejects constants, insufficient generic activity and sparse-event
-fields below their exact declared support floor. VAL/TEST remain untouched
+Full-input liveness evaluates every 513+142+5 current-bar field plus all
+5×111 V4 cells on train, validation and test. TRAIN rejects constants,
+insufficient generic activity and sparse-event fields below their exact
+declared support floor. VAL/TEST remain untouched
 chronological observations: a genuine one-state regime is recorded explicitly
 instead of being relabelled or fabricated, but non-finite values, unknown
 categorical values outside the TRAIN vocabulary, duplicate/reordered fields,
@@ -233,9 +252,21 @@ forbidden fields and identity mismatches still fail. ATR distribution shift is
 recorded exactly as diagnostic evidence; only later untouched OOS direction,
 cost and calibration gates decide whether the model handles that shift. All
 five timeframe representations must be present, alive and distinct on TRAIN.
+The embedded V4 liveness contract additionally scans every post-warmup field
+on every timeframe, rejects constants and exact within-timeframe duplicate
+pairs, and binds causal warmup, field order and feature hash. A V2/V3 cache or
+a cache without this complete 5×111 proof cannot authorize active Entry.
+Active V4 cache schema v3 publishes only complete resample buckets; a
+schema-v2 V4 cache is historical. Training must also prove the exact requested
+M5/M15/H1/H4/D1 decision window at both ends of every split.
 The materializer scans every `96 x 513` sequence value and requires exact
 `seq[-1] == snap`; direct Arrow-buffer access is only a zero-copy performance
 path and validates every nested-list offset before use. It does not sample.
+
+Serve-parity v11 requires sampled local raw/final class-margin sensitivity for
+1,723 numeric routes: 513 sequence, 513 snapshot, 142 continuous context and
+555 MTF. Five categorical routes require valid-category counterfactual
+movement. Route/group ablations and untouched OOS edge remain separate gates.
 
 Consumers revalidate bound bytes. A copied manifest or report-level `PASS`
 without matching content hashes is not evidence.

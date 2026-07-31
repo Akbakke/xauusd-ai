@@ -367,7 +367,7 @@ def sizing_risk_policy_metadata() -> dict[str, Any]:
         "rounded_allocation_control_role": "diagnostic_only",
         "capital_adoption_authority": False,
         "capital_adoption_requirement": (
-            "fresh_joint_entry_active_exit_v3_exit_iql_strategy_f_replay_proof"
+            "fresh_candidate_bound_same_bundle_entry_exit_full_test_replay_proof"
         ),
         "capacity_formula": (
             "floor_step(min((min(margin_available,max(0,equity*0.10-margin_used))"
@@ -2126,7 +2126,7 @@ def recompute_sizing_oos_evidence(
 ) -> dict[str, Any]:
     """Recompute every admission metric from immutable row-level sources."""
 
-    if outcome_price_mode not in {"label_horizon", "active_exit_fill"}:
+    if outcome_price_mode not in {"label_horizon", "model_exit_fill"}:
         _fail(
             context,
             f"unsupported outcome_price_mode={outcome_price_mode!r}",
@@ -2283,13 +2283,13 @@ def recompute_sizing_oos_evidence(
         _fail(context, "outcomes exit_bid must be <= exit_ask")
     realized_exit_bid = outcome_numeric["exit_bid"]
     realized_exit_ask = outcome_numeric["exit_ask"]
-    if outcome_price_mode == "active_exit_fill":
+    if outcome_price_mode == "model_exit_fill":
         realized_exit_bid = pd.to_numeric(
-            combined["active_exit_fill_bid"],
+            combined["model_exit_fill_bid"],
             errors="coerce",
         ).to_numpy(dtype=np.float64)
         realized_exit_ask = pd.to_numeric(
-            combined["active_exit_fill_ask"],
+            combined["model_exit_fill_ask"],
             errors="coerce",
         ).to_numpy(dtype=np.float64)
         trade_mask = np.isin(directions, [0, 1])
@@ -2305,7 +2305,7 @@ def recompute_sizing_oos_evidence(
             or not np.isnan(realized_exit_bid[flat_mask]).all()
             or not np.isnan(realized_exit_ask[flat_mask]).all()
         ):
-            _fail(context, "active Exit fill outcome prices are invalid")
+            _fail(context, "model Exit fill outcome prices are invalid")
     instrument = calibration["instrument_constraints"]
     if int(instrument["unit_step"]) != 1 or int(instrument["minimum_order_units"]) != 1:
         _fail(context, "historical control requires exact executable XAU 1-unit sizing")

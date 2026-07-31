@@ -23,6 +23,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BLOCKED_HEADS,
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES,
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
@@ -36,6 +37,7 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 
 
 TEST_DIRECTION_CALIBRATION = {
@@ -64,6 +66,21 @@ def offline_rl_evidence() -> dict[str, list[float]]:
             value - expectile_value[index % 3]
             for index, value in enumerate(action_value)
         ],
+    }
+
+
+def model_native_mtf_cooperation_evidence() -> dict[str, list[float]]:
+    """Return the exact neutral-shape fixture for learned MTF diagnostics."""
+
+    timeframe_count = 5
+    cooperation_width = timeframe_count * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    feature_width = timeframe_count * len(MULTI_TF_PER_BAR_FEATURES_V4)
+    return {
+        "tf_gate": [1.0 / timeframe_count] * timeframe_count,
+        "family_tf_cooperation_gate": [
+            1.0 / cooperation_width
+        ] * cooperation_width,
+        "family_tf_feature_gate": [1.0] * feature_width,
     }
 
 
@@ -167,7 +184,7 @@ def runtime_head_prediction_columns(
         session_names = ("ASIA", "EU", "OVERLAP", "US")
         session = session_names[session_id]
         vol_id = int(row.get("vol_regime_id", 2))
-        vol_names = ("LOW", "LOW", "MEDIUM", "HIGH", "EXTREME")
+        vol_names = MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES
         trend_id = int(row.get("trend_regime_id", 1))
         trend_names = ("TREND_DOWN", "TREND_NEUTRAL", "TREND_UP")
         evidence: dict[str, object] = {
@@ -193,6 +210,9 @@ def runtime_head_prediction_columns(
             "direction_probs": probs.tolist(),
             "model_direction_index": direction_index,
             "model_direction": ("LONG", "SHORT", "FLAT")[direction_index],
+            "entry_shared_representation": [
+                float(index - 64) / 64.0 for index in range(128)
+            ],
             "selected_side": direction_index if direction_index in (0, 1) else None,
             "public_trade_flat_decision_logits": public_logits.tolist(),
             "public_trade_flat_decision_probs": public_probs.tolist(),
@@ -242,6 +262,7 @@ def runtime_head_prediction_columns(
             "mtf_trend_evidence": 0.2,
             "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
             "specialist_gate": [0.125] * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+            **model_native_mtf_cooperation_evidence(),
             "trendline_rail_logits": rail_logits,
             "trendline_rail_probs": [
                 1.0 / (1.0 + math.exp(-value)) for value in rail_logits

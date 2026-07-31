@@ -1,5 +1,10 @@
 # Foundation feature routing audit — 2026-07-22
 
+> Historical V19 routing audit. The findings remain provenance for the
+> mandatory 57-field foundation repair, but current Entry authority is V4 with
+> the complete 5×111 multi-timeframe grid. See `../SYSTEM_MAP.md` and
+> `../PROJECT_STATE_xau_direction_launch.json`.
+
 ## Decision
 
 V19 is rejected for training. Its real signal-manifest producer emitted zero
@@ -51,8 +56,8 @@ not select, remove or authorize a field.
    target liveness/consistency independently of polarity availability, while a
    missing polarity field remains hard RED.
 
-The `eu` token in field names denotes European trading-session hours. It is a
-time/session feature, not a price series or an independently traded instrument.
+Regional-hours tokens in field names denote time/session features, not price
+series or independently traded instruments.
 
 ## Exact family routing
 

@@ -57,17 +57,20 @@ from gx1.contracts.entry_model_native_state_v2 import (
     parse_utc as parse_state_utc,
     validate_train_rank_reference_lineage_v2,
 )
+from gx1.scripts.audit_seq513_source_cascade_v1 import (
+    validate_seq513_source_cascade_proof,
+)
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v7"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v8"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v7"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v8"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v7"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v8"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v7"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v8"
 TRAIN_FEATURE_RANKING_TARGET_CONTRACT = {
     "target": "spread_aware_direction_utility_margin_bps",
     "direction_horizon_bars": 24,
@@ -117,10 +120,26 @@ _RANKING_TOP_LEVEL_KEYS = frozenset(
         "source_sha256",
         "target_sha256",
         "target_contract",
+        "source_cascade",
         "rank_reference",
         "ranking_order",
         "causality_contract",
         "ranked_features",
+    }
+)
+_SOURCE_CASCADE_KEYS = frozenset(
+    {
+        "path",
+        "sha256",
+        "schema_version",
+        "entry_run_id",
+        "event_root",
+        "source_parquet_sha256",
+        "canonical_v2_sha256",
+        "multi_tf_manifest_sha256",
+        "multi_tf_cache_identity_sha256",
+        "history_start_utc",
+        "time_max_utc",
     }
 )
 _RANK_REFERENCE_KEYS = frozenset(
@@ -405,6 +424,34 @@ def load_and_validate_train_feature_ranking(
     if raw_rank_reference != expected_rank_reference:
         raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_METADATA_MISMATCH")
 
+    raw_source_cascade = ranking.get("source_cascade")
+    if (
+        not isinstance(raw_source_cascade, dict)
+        or frozenset(raw_source_cascade) != _SOURCE_CASCADE_KEYS
+    ):
+        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_SCHEMA_INVALID")
+    event_root = Path(str(raw_source_cascade.get("event_root") or "")).expanduser()
+    if not event_root.is_absolute():
+        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_EVENT_ROOT_INVALID")
+    event_root = event_root.resolve()
+    expected_source = Path(
+        str(reference.sidecar["source_parquet"])
+    ).expanduser().resolve()
+    if expected_source.parent != event_root:
+        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_EVENT_ROOT_MISMATCH")
+    source_cascade = validate_seq513_source_cascade_proof(
+        Path(str(raw_source_cascade.get("path") or "")),
+        expected_run_id=entry_run_id,
+        expected_source_parquet=expected_source,
+        expected_canonical_v2_parquet=event_root
+        / "canonical_features_v2.parquet",
+        expected_mtf_cache_dir=event_root / "MULTI_TF_V4_CACHE",
+        expected_history_start_utc=history_start,
+        expected_time_max_utc=raw_source_cascade.get("time_max_utc"),
+    )
+    if raw_source_cascade != source_cascade:
+        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_METADATA_MISMATCH")
+
     raw_rows = ranking.get("ranked_features")
     if not isinstance(raw_rows, list) or not raw_rows:
         raise RuntimeError("FEATURE_RANKING_ROWS_MISSING")
@@ -458,7 +505,12 @@ def validate_signal_manifest_training_lineage(
     manifest_path: Path,
     feature_ranking_path: Path,
     expected_run_id: str,
+    expected_source_parquet: Path,
     expected_source_sha256: str,
+    expected_canonical_v2_parquet: Path,
+    expected_mtf_cache_dir: Path,
+    expected_history_start_utc: object,
+    expected_time_max_utc: object,
     expected_train_start_utc: object,
     expected_train_end_utc: object,
 ) -> dict[str, Any]:
@@ -546,6 +598,17 @@ def validate_signal_manifest_training_lineage(
             "FEATURE_RANKING_SOURCE_SHA256_MISMATCH: "
             f"ranking={ranking['source_sha256']} expected={expected_source_sha256}"
         )
+    source_cascade = validate_seq513_source_cascade_proof(
+        Path(str(ranking["source_cascade"]["path"])),
+        expected_run_id=run_id,
+        expected_source_parquet=expected_source_parquet,
+        expected_canonical_v2_parquet=expected_canonical_v2_parquet,
+        expected_mtf_cache_dir=expected_mtf_cache_dir,
+        expected_history_start_utc=expected_history_start_utc,
+        expected_time_max_utc=expected_time_max_utc,
+    )
+    if ranking["source_cascade"] != source_cascade:
+        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_CONSUMER_MISMATCH")
     ranking_created = _parse_utc(ranking["created_utc"], field="created_utc")
     if created <= ranking_created:
         raise RuntimeError("SIGNAL_MANIFEST_TIMESTAMP_NOT_AFTER_RANKING")
@@ -567,6 +630,7 @@ def validate_signal_manifest_training_lineage(
         "source_sha256": ranking["source_sha256"],
         "target_sha256": ranking["target_sha256"],
         "target_contract": ranking["target_contract"],
+        "source_cascade": ranking["source_cascade"],
         "ranking_order": ranking["ranking_order"],
         "causality_contract": ranking["causality_contract"],
         "rank_reference": ranking["rank_reference"],
@@ -595,6 +659,7 @@ def validate_signal_manifest_training_lineage(
         "feature_ranking_sha256": ranking_sha256,
         "entry_run_id": run_id,
         "source_sha256": expected_source_sha256,
+        "source_cascade": source_cascade,
         "train_start_utc": expected_train_start.isoformat(),
         "train_end_utc": expected_train_end.isoformat(),
         "model_native_signal_contract": signal_contract,
@@ -758,6 +823,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "source_sha256": ranking["source_sha256"],
             "target_sha256": ranking["target_sha256"],
             "target_contract": ranking["target_contract"],
+            "source_cascade": ranking["source_cascade"],
             "ranking_order": ranking["ranking_order"],
             "causality_contract": ranking["causality_contract"],
             "rank_reference": ranking["rank_reference"],

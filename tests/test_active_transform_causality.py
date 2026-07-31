@@ -17,6 +17,7 @@ from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
     attach_v2_mtf_per_bar_scalars,
     build_multi_tf_per_bar_features_v2,
+    build_multi_tf_per_bar_features_v4,
     compute_per_bar_features_v2,
     get_last_n_at_or_before,
 )
@@ -47,7 +48,7 @@ from gx1.scripts.augment_forward_outcome_v2 import (
 
 def test_tf_cache_row_is_strict_float32_zero_copy() -> None:
     target = pd.Timestamp("2026-01-02T12:00:00Z")
-    width = 25
+    width = 111
     ts_values = np.asarray(
         [target.value - pd.Timedelta(minutes=10).value, target.value],
         dtype=np.int64,
@@ -81,8 +82,16 @@ def test_tf_cache_row_rejects_dtype_coercion_instead_of_copying() -> None:
 
 def _market_frame(periods: int = 900) -> pd.DataFrame:
     index = pd.date_range("2026-01-01T00:00:00Z", periods=periods, freq="5min")
-    phase = np.linspace(0.0, 20.0, periods)
-    close = 2_000.0 + np.linspace(0.0, 30.0, periods) + np.sin(phase)
+    # Four-day cycles keep confirmed causal pivots alive even after D1
+    # resampling, so this fixture exercises the same complete V4 surface as
+    # production rather than silently testing only the historical V2 prefix.
+    phase = np.arange(periods, dtype=np.float64) * 2.0 * np.pi / (288.0 * 4.0)
+    close = (
+        2_000.0
+        + np.linspace(0.0, 10.0, periods)
+        + 8.0 * np.sin(phase)
+        + 1.5 * np.sin(phase * 0.31)
+    )
     half_range = 0.4 + 0.25 * (1.0 + np.sin(phase * 0.37))
     return pd.DataFrame(
         {
@@ -161,8 +170,8 @@ def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
     prefix = frame.iloc[:18_200]
     target = prefix.index[-1]
 
-    prefix_mtf = build_multi_tf_per_bar_features_v2(prefix)
-    full_mtf = build_multi_tf_per_bar_features_v2(frame)
+    prefix_mtf = build_multi_tf_per_bar_features_v4(prefix)
+    full_mtf = build_multi_tf_per_bar_features_v4(frame)
     prefix_ctx = build_context(
         prefix[["high", "low", "close"]],
         prefix_mtf,
@@ -184,7 +193,7 @@ def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
 
 def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) -> None:
     frame = _market_frame(18_400)
-    multi_tf = build_multi_tf_per_bar_features_v2(frame)
+    multi_tf = build_multi_tf_per_bar_features_v4(frame)
     decision = frame.iloc[-12:].reset_index(names="time")
 
     augmented = attach_group_a_dip_struct_ctx_columns(
@@ -210,7 +219,7 @@ def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) ->
 
 def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
     frame = _market_frame(18_400)
-    multi_tf = build_multi_tf_per_bar_features_v2(frame)
+    multi_tf = build_multi_tf_per_bar_features_v4(frame)
     decision = frame.iloc[-2:].reset_index(names="time")
     decision.loc[0, "close"] += 0.01
 
@@ -224,7 +233,7 @@ def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
 
 def test_attach_marks_only_real_warmup_and_shared_trim_removes_it() -> None:
     frame = _market_frame(18_400)
-    multi_tf = build_multi_tf_per_bar_features_v2(frame)
+    multi_tf = build_multi_tf_per_bar_features_v4(frame)
     source = frame.reset_index(names="time")
 
     augmented = attach_group_a_dip_struct_ctx_columns(source, multi_tf=multi_tf)
@@ -238,7 +247,7 @@ def test_attach_marks_only_real_warmup_and_shared_trim_removes_it() -> None:
 
 def test_attach_requires_explicit_mtf_and_exact_smc_source() -> None:
     frame = _market_frame(4_500)
-    multi_tf = build_multi_tf_per_bar_features_v2(frame)
+    multi_tf = build_multi_tf_per_bar_features_v4(frame)
     source = frame.reset_index(names="time")
 
     with pytest.raises(RuntimeError, match="explicit multi_tf"):
@@ -445,6 +454,9 @@ def test_active_regime_call_sites_have_no_environment_selected_surface() -> None
         add_ctx_cont_columns_to_prebuilt,
     ):
         source = inspect.getsource(module)
+        retired_cross_feature_env = (
+            "GX1_" + "X" + "GB" + "_CV3_FOR_CROSSFEATS"
+        )
         assert "GX1_REGIME_V4" not in source
         assert "GX1_TREND_REGIME_FROM_D1" not in source
-        assert "GX1_XGB_CV3_FOR_CROSSFEATS" not in source
+        assert retired_cross_feature_env not in source

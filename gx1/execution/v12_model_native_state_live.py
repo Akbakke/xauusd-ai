@@ -13,9 +13,10 @@ imported from the offline one-truth builders; nothing is re-derived here:
   - entry smart ctx (19)        -> gx1.features.entry_smart_context.add_entry_smart_context_features
   - 479 extension signals       -> gx1.scripts.build_entry_v10_ctx_training_dataset_v3._build_inline_seq_structure_extension
   - all other source columns    -> live cv3+BASE28 prebuilts (PrebuiltStateLoader.get_window),
-                                   maintained full-history by the canonical_incremental daemon
-                                   with the SAME one-truth augmenters the offline chain used
-                                   (v12_ctx_augment_live mirrors add_ctx_cont_columns_to_prebuilt).
+                                   which must come from an admitted immutable
+                                   snapshot publisher using the same one-truth
+                                   augmenters as the offline chain. No such
+                                   live-tail publisher is currently admitted.
 
 TRAIN==SERVE FRAME CONVENTION (critical): every TRAIN/VAL/TEST build and serving
 decision starts causal feature construction at the bundle's single immutable
@@ -44,6 +45,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CAT_MIN_MAX,
     MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS,
@@ -98,13 +100,7 @@ _SOURCE_PARQUET_COLS = ["time", "close", "atr", "open", "high", "low"]
 # narrower than the transformer's embedding capacity by design: spare
 # embedding rows are not permission to serve malformed context.  Keep this
 # mapping in the same order as the model-native context contract.
-_MODEL_NATIVE_CTX_CAT_DOMAINS: dict[str, tuple[int, int]] = {
-    "session_id": (0, 3),
-    "vol_regime_id": (0, 4),
-    "atr_bucket": (0, 4),
-    "spread_bucket": (0, 4),
-    "H4_trend_sign_cat": (0, 2),
-}
+_MODEL_NATIVE_CTX_CAT_DOMAINS = MODEL_NATIVE_CTX_CAT_MIN_MAX
 if tuple(_MODEL_NATIVE_CTX_CAT_DOMAINS) != tuple(MODEL_NATIVE_CTX_CAT_FIELDS):
     raise RuntimeError(
         "MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_MISMATCH: "
@@ -853,15 +849,39 @@ def compute_htf_ctx_full_frame(
     return out.loc[sub_idx].copy()
 
 
-def build_multi_tf_from_cv3(cv3: pd.DataFrame) -> dict:
-    """In-memory MTF-v2 bundle from the live cv3 frame — float32-cast OHLCV,
+def build_multi_tf_from_cv3(
+    cv3: pd.DataFrame,
+    *,
+    matrix_contract: str,
+    feature_names: list[str],
+) -> dict:
+    """Build the exact bundle-declared in-memory MTF surface from live OHLCV.
+
+    The active Entry architecture requires the all-eight-family V4 matrix.
+    The caller must repeat the immutable bundle identity; this owner neither
+    guesses a version nor falls back to the older generic V2 surface.
+
+    Uses float32-cast OHLCV,
     the EXACT dtype convention of both the offline disk cache
     (gx1/scripts/prebuild_multi_tf_cache_v2.py:60-66) and the trainer/eval dataset
     (entry_v10_ctx_train_v3.py:1634-1651). NOTE: PrebuiltStateLoader.build_multi_tf_features
     exists but feeds the EXIT chain with float64 OHLC — the entry parity target is the
     float32 cache convention, hence this thin one-truth wrapper (build fn is shared).
     """
-    from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+    from gx1.features.htf_features import (
+        HTF_V4_MATRIX_CONTRACT,
+        MULTI_TF_PER_BAR_FEATURES_V4,
+        build_multi_tf_per_bar_features_v4,
+    )
+
+    if (
+        matrix_contract != HTF_V4_MATRIX_CONTRACT
+        or tuple(feature_names) != MULTI_TF_PER_BAR_FEATURES_V4
+    ):
+        raise RuntimeError(
+            "[MODEL_NATIVE_STATE] exact bundle-declared V4 MTF contract "
+            "required"
+        )
 
     cols = ["open", "high", "low", "close", "volume"]
     missing = [c for c in cols if c not in cv3.columns]
@@ -876,4 +896,14 @@ def build_multi_tf_from_cv3(cv3: pd.DataFrame) -> dict:
         raise RuntimeError(
             "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for MTF build"
         )
-    return build_multi_tf_per_bar_features_v2(m5)
+    built = build_multi_tf_per_bar_features_v4(m5)
+    for timeframe, frame in built.items():
+        if (
+            frame.attrs.get("htf_feature_contract") != matrix_contract
+            or tuple(frame.columns) != tuple(feature_names)
+        ):
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] live MTF contract mismatch "
+                f"timeframe={timeframe}"
+            )
+    return built

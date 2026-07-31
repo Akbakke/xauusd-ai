@@ -36,6 +36,7 @@ _VEDTAK_EVIDENCE_KEYS = frozenset(
         "model_native_serve_parity",
         "model_native_direction_pocket_audit",
         "adaptation_lifecycle",
+        "live_tail_admission",
     }
 )
 _VEDTAK_REQUEST_KEYS = frozenset(

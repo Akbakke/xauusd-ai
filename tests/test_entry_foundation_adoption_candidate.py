@@ -94,7 +94,6 @@ def _dataset(root: Path) -> tuple[Path, dict[str, dict]]:
                     "extra": {
                         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-                        "neutral_xgb_bridge": False,
                         "model_native_signal_contract": contract,
                         "signal_bridge": {
                             "fields": contract["fields"],

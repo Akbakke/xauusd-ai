@@ -21,6 +21,7 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     require_model_native_sizing_authority_contract,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER as MODEL_DIRECTION_CLASS_ORDER,
     INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
 )
 from gx1.contracts.entry_model_native_offline_rl_v1 import (
@@ -28,41 +29,43 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     EXPECTILE_VALUE_DIM,
     HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
 )
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
+    MODEL_NATIVE_TREND_REGIME_NAMES,
+    MODEL_NATIVE_VOL_REGIME_NAMES,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_TRADE_INDICES,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
+)
+from gx1.time.session_detector import SESSION_ORDER
 
 
 MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_evidence_v3"
+    "entry_model_native_runtime_evidence_v5"
 )
 MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_head_evidence_v1"
+    "entry_model_native_runtime_head_evidence_v3"
 )
 MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v2"
 MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC = 300.0
 MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC = 90.0
-MODEL_DIRECTION_NAMES = ("LONG", "SHORT", "FLAT")
+MODEL_DIRECTION_NAMES = MODEL_DIRECTION_CLASS_ORDER
 PUBLIC_TRADE_FLAT_NAMES = ("TRADE", "FLAT")
-MODEL_NATIVE_SESSION_NAMES = ("ASIA", "EU", "OVERLAP", "US")
-MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES = (
-    "LOW",
-    "LOW",
-    "MEDIUM",
-    "HIGH",
-    "EXTREME",
-)
-MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES = (
-    "TREND_DOWN",
-    "TREND_NEUTRAL",
-    "TREND_UP",
-)
+MODEL_NATIVE_SESSION_NAMES = SESSION_ORDER
+MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES = MODEL_NATIVE_VOL_REGIME_NAMES
+MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES = MODEL_NATIVE_TREND_REGIME_NAMES
 RETIRED_RUNTIME_EVIDENCE_FRAGMENTS = (
     "anchor",
     "sniper",
     "risk_guard",
     "entry_critic",
-    "xgb",
     "q_take",
     "advantage_over_skip",
     "selection_score_threshold",
@@ -84,6 +87,7 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS = frozenset(
         "entry_h4_trend_sign_cat",
         "entry_trend_regime_id",
         "entry_trend_regime",
+        UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
         "direction_logits",
         "raw_direction_logits",
         "direction_probs",
@@ -135,6 +139,9 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS = frozenset(
         "mtf_trend_evidence",
         "specialist_names",
         "specialist_gate",
+        "tf_gate",
+        "family_tf_cooperation_gate",
+        "family_tf_feature_gate",
         "trendline_rail_logits",
         "trendline_rail_probs",
         "geometry_channel_edge_pressure",
@@ -458,8 +465,8 @@ def _require_model_native_evidence(
             f"{MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION!r}",
         )
     session_id = _exact_integer(validated, "session_id", context=context)
-    if session_id not in range(len(MODEL_NATIVE_SESSION_NAMES)):
-        _fail(context, "session_id", "must be one of 0,1,2,3")
+    if session_id not in MODEL_NATIVE_CTX_CAT_DOMAINS["session_id"]:
+        _fail(context, "session_id", "outside canonical category domain")
     if validated.get("session") != MODEL_NATIVE_SESSION_NAMES[session_id]:
         _fail(context, "session", "session_id/name mismatch")
     entry_vol_regime_id = _exact_integer(
@@ -467,8 +474,12 @@ def _require_model_native_evidence(
         "entry_vol_regime_id",
         context=context,
     )
-    if entry_vol_regime_id not in range(len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)):
-        _fail(context, "entry_vol_regime_id", "must be one of 0,1,2,3,4")
+    if entry_vol_regime_id not in MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"]:
+        _fail(
+            context,
+            "entry_vol_regime_id",
+            "outside canonical category domain",
+        )
     if (
         validated.get("entry_vol_regime")
         != MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[entry_vol_regime_id]
@@ -483,14 +494,26 @@ def _require_model_native_evidence(
         "entry_h4_trend_sign_cat",
         context=context,
     )
-    if entry_h4_trend_sign_cat not in range(
-        len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+    if (
+        entry_h4_trend_sign_cat
+        not in MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"]
     ):
-        _fail(context, "entry_h4_trend_sign_cat", "must be one of 0,1,2")
-    for bucket_name in ("entry_atr_bucket", "entry_spread_bucket"):
+        _fail(
+            context,
+            "entry_h4_trend_sign_cat",
+            "outside canonical category domain",
+        )
+    for bucket_name, contract_name in (
+        ("entry_atr_bucket", "atr_bucket"),
+        ("entry_spread_bucket", "spread_bucket"),
+    ):
         bucket = _exact_integer(validated, bucket_name, context=context)
-        if bucket not in range(5):
-            _fail(context, bucket_name, "must be one of 0,1,2,3,4")
+        if bucket not in MODEL_NATIVE_CTX_CAT_DOMAINS[contract_name]:
+            _fail(
+                context,
+                bucket_name,
+                "outside canonical category domain",
+            )
     entry_trend_regime_id = _exact_integer(
         validated,
         "entry_trend_regime_id",
@@ -509,6 +532,12 @@ def _require_model_native_evidence(
             "entry_trend_regime",
             "entry_trend_regime_id/name mismatch",
         )
+    _finite_vector(
+        validated,
+        UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
+        UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
+        context=context,
+    )
 
     # Every exact raw tensor that enters the sole learned 96-wide direction
     # fusion is mandatory runtime evidence with its immutable width.  This is
@@ -569,7 +598,10 @@ def _require_model_native_evidence(
         "direction_probs",
         context=context,
     )
-    direction_index = max(range(3), key=direction_probs.__getitem__)
+    direction_index = max(
+        range(len(MODEL_DIRECTION_NAMES)),
+        key=direction_probs.__getitem__,
+    )
     if _exact_integer(
         validated,
         "model_direction_index",
@@ -578,7 +610,11 @@ def _require_model_native_evidence(
         _fail(context, "model_direction_index", "argmax mismatch")
     if validated.get("model_direction") != MODEL_DIRECTION_NAMES[direction_index]:
         _fail(context, "model_direction", "index/name mismatch")
-    expected_side = direction_index if direction_index in (0, 1) else None
+    expected_side = (
+        direction_index
+        if direction_index in MODEL_DIRECTION_TRADE_INDICES
+        else None
+    )
     if expected_side is None:
         if validated.get("selected_side") is not None:
             _fail(context, "selected_side", "direction parity mismatch")
@@ -592,8 +628,11 @@ def _require_model_native_evidence(
         context=context,
     )
     expected_public_logits = (
-        max(direction_logits[0], direction_logits[1]),
-        direction_logits[2],
+        max(
+            direction_logits[MODEL_DIRECTION_TRADE_INDICES[0]],
+            direction_logits[MODEL_DIRECTION_TRADE_INDICES[1]],
+        ),
+        direction_logits[MODEL_DIRECTION_FLAT_INDEX],
     )
     if public_logits != expected_public_logits:
         _fail(context, "public_trade_flat_decision_logits", "direction parity mismatch")
@@ -810,6 +849,41 @@ def _require_model_native_evidence(
         sum(specialist_gate), 1.0, rel_tol=1e-6, abs_tol=1e-7
     ):
         _fail(context, "specialist_gate", "not a probability simplex")
+    tf_gate = _finite_vector(validated, "tf_gate", 5, context=context)
+    if any(value < 0.0 for value in tf_gate) or not math.isclose(
+        sum(tf_gate), 1.0, rel_tol=1e-6, abs_tol=1e-7
+    ):
+        _fail(context, "tf_gate", "not a probability simplex")
+    cooperation_width = 5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    family_tf_cooperation_gate = _finite_vector(
+        validated,
+        "family_tf_cooperation_gate",
+        cooperation_width,
+        context=context,
+    )
+    if any(value < 0.0 for value in family_tf_cooperation_gate) or not math.isclose(
+        sum(family_tf_cooperation_gate), 1.0, rel_tol=1e-6, abs_tol=1e-7
+    ):
+        _fail(
+            context,
+            "family_tf_cooperation_gate",
+            "not a probability simplex",
+        )
+    family_tf_feature_gate = _finite_vector(
+        validated,
+        "family_tf_feature_gate",
+        5 * len(MULTI_TF_PER_BAR_FEATURES_V4),
+        context=context,
+    )
+    if any(
+        value <= 0.0 or value >= 2.0
+        for value in family_tf_feature_gate
+    ):
+        _fail(
+            context,
+            "family_tf_feature_gate",
+            "outside learned (0,2) contract",
+        )
 
     for key in (
         "geometry_channel_edge_pressure",
@@ -1148,15 +1222,70 @@ def require_model_native_entry_time(
     return observed
 
 
+def require_model_native_fill_time(
+    evidence: Mapping[str, Any],
+    fill_time: Any,
+    *,
+    context: str = "ENTRY_MODEL_NATIVE_RUNTIME_FILL",
+) -> datetime:
+    """Bind an exact broker/virtual fill timestamp to the model decision minute.
+
+    ``require_model_native_entry_time`` validates the minute-resolution
+    pre-order wrapper boundary.  A persisted trade lifecycle must instead keep
+    the authoritative transaction timestamp, including seconds and
+    microseconds.  The fill may not predate the model-derived availability plus
+    measured signal latency, and it may not spill into a later minute.
+    """
+
+    validated = require_model_native_runtime_evidence(evidence, context=context)
+    if not MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS.issubset(validated):
+        _fail(context, "fill_time", "complete executable timing evidence is required")
+    if isinstance(fill_time, bool) or fill_time is None:
+        _fail(context, "fill_time", "missing or invalid")
+    try:
+        observed = datetime.fromisoformat(str(fill_time).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ModelNativeRuntimeEvidenceError(
+            f"[{_context_name(context)}_MODEL_NATIVE_RUNTIME_EVIDENCE_INVALID] "
+            "fill_time: invalid ISO timestamp"
+        ) from exc
+    if (
+        observed.tzinfo is None
+        or observed.utcoffset() != timezone.utc.utcoffset(observed)
+    ):
+        _fail(context, "fill_time", "must be timezone-aware UTC")
+
+    available = _require_utc_timestamp(
+        validated,
+        "decision_available_ts",
+        context=context,
+    )
+    earliest = available + timedelta(
+        seconds=float(validated["entry_signal_latency_sec"])
+    )
+    minute_start = earliest.replace(second=0, microsecond=0)
+    minute_end = minute_start + timedelta(minutes=1)
+    if observed < earliest or observed >= minute_end:
+        _fail(
+            context,
+            "fill_time",
+            (
+                f"{observed.isoformat()} is outside model-derived fill interval "
+                f"[{earliest.isoformat()}, {minute_end.isoformat()})"
+            ),
+        )
+    return observed
+
+
 def require_model_native_exit_replay_entry_time(
     head_evidence: Mapping[str, Any],
     entry_time: Any,
     *,
     context: str = "ENTRY_MODEL_NATIVE_EXIT_REPLAY",
 ) -> datetime:
-    """Bind non-executable active-Exit replay to the exact T+5 M1 fill.
+    """Bind non-executable unified-Exit replay to the exact T+5 M1 fill.
 
-    Joint active-Exit proof necessarily runs before learned-sizing adoption.
+    Joint unified-Exit proof necessarily runs before learned-sizing adoption.
     It therefore consumes the fully validated pre-sizing head envelope and may
     not manufacture a live sizing authority. The research fill is the opening
     tick of the M1 bar immediately after the decision M5 bar has closed.
@@ -1218,6 +1347,7 @@ __all__ = [
     "ModelNativeRuntimeEvidenceError",
     "project_model_native_path_calibration",
     "require_model_native_entry_time",
+    "require_model_native_fill_time",
     "require_model_native_exit_replay_entry_time",
     "require_model_native_runtime_head_evidence",
     "finalize_model_native_runtime_head_evidence",

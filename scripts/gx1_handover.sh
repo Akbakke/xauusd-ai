@@ -12,7 +12,8 @@ usage() {
 Usage: scripts/gx1_handover.sh [--check|--verbose]
 
 Default: compact, hash-bound status. --check prints only the deterministic
-authority fingerprint and minimal source state. --verbose additionally prints
+authority fingerprint and minimal source state. The compact view includes the
+exact resume boundary and public control routes. --verbose additionally prints
 the full handover document and raw Python process table.
 EOF
 }
@@ -33,16 +34,23 @@ sources=(
   "$REPO/DEVELOPMENT_NOTES.md"
   "$REPO/README.md"
   "$REPO/GX1_PATHS.md"
+  "$REPO/RISK_OF_WRONG_CODE_2026_05_24.md"
   "$REPO/ROADMAP.md"
   "$REPO/SYSTEM_MAP.md"
   "$HANDOVER"
   "$REPO/PROJECT_STATE.md"
   "$REPO/DECISION_LOG.md"
   "$REPO/PIPELINE_AUDIT_XAU_20260723.md"
+  "$REPO/docs/BACKFILL_2020_2025_COMMANDS.md"
   "$REPO/docs/CANONICAL_EXIT_STATUS.md"
   "$REPO/docs/DATA_CONTRACT.md"
+  "$REPO/docs/DATA_OANDA_SCHEMA_SSOT.md"
   "$REPO/docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md"
   "$REPO/docs/FEATURE_MANIFEST.md"
+  "$REPO/docs/FOUNDATION_FEATURE_ROUTING_AUDIT_20260722.md"
+  "$REPO/docs/GIT_WORKTREE_POLICY.md"
+  "$REPO/docs/SESSION_CONTEXT_OBSERVABILITY_NOTE.md"
+  "$REPO/docs/TRAINING_DETERMINISM_MPS.md"
   "$REPO/PROJECT_STATE_artifacts.json"
   "$REPO/PROJECT_STATE_entry_iql_delete_incident.json"
   "$LAUNCH_STATE"
@@ -53,26 +61,88 @@ done
 [[ -x "$PY" ]] || { echo "FATAL: repository Python is not executable: $PY" >&2; exit 2; }
 cd "$REPO"
 
+worktree_fingerprint() {
+  "$PY" - "$REPO" <<'PY'
+import hashlib
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+repo = Path(sys.argv[1])
+
+
+def git_bytes(*args: str) -> bytes:
+    return subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+    ).stdout
+
+
+digest = hashlib.sha256()
+digest.update(b"gx1-worktree-identity-v1\0")
+for label, payload in (
+    (b"head", git_bytes("rev-parse", "HEAD")),
+    (
+        b"tracked-diff",
+        git_bytes("diff", "--binary", "--no-ext-diff", "HEAD", "--"),
+    ),
+):
+    digest.update(len(label).to_bytes(4, "big"))
+    digest.update(label)
+    digest.update(len(payload).to_bytes(8, "big"))
+    digest.update(payload)
+
+untracked = tuple(
+    raw
+    for raw in git_bytes(
+        "ls-files", "--others", "--exclude-standard", "-z"
+    ).split(b"\0")
+    if raw
+)
+for raw_path in untracked:
+    path = repo / os.fsdecode(raw_path)
+    if path.is_symlink():
+        kind = b"symlink"
+        payload = os.readlink(path).encode("utf-8", errors="surrogateescape")
+    elif path.is_file():
+        kind = b"file"
+        payload = path.read_bytes()
+    else:
+        raise SystemExit(
+            "FATAL: unsupported untracked worktree entry: "
+            + os.fsdecode(raw_path)
+        )
+    digest.update(len(raw_path).to_bytes(8, "big"))
+    digest.update(raw_path)
+    digest.update(len(kind).to_bytes(4, "big"))
+    digest.update(kind)
+    digest.update(len(payload).to_bytes(8, "big"))
+    digest.update(payload)
+
+print(digest.hexdigest())
+PY
+}
+
+worktree_sha256=$(worktree_fingerprint)
+
 if [[ "$mode" == "check" ]]; then
   mapfile -t git_lines < <(git status --short --untracked-files=all)
   "$PY" - "${sources[@]}" <<'PY'
 import hashlib
 import json
-import subprocess
 import sys
 from pathlib import Path
 
-from gx1.contracts.entry_model_native_train_launch_v1 import (
-    RECIPE_AUDIT_SCHEMA,
-    artifact_binding,
-    canonical_json_sha256,
-    recipe_source_binding_paths,
-)
+from gx1.features.htf_features import HTF_V4_CACHE_SCHEMA_VERSION
 
 
 paths = tuple(Path(raw) for raw in sys.argv[1:])
 digest = hashlib.sha256()
-digest.update(b"gx1-takeover-authority-v1\0")
+digest.update(b"gx1-takeover-authority-v2\0")
 for index, path in enumerate(paths):
     path_bytes = str(path).encode("utf-8")
     payload = path.read_bytes()
@@ -95,25 +165,32 @@ repair = state.get("source_repair_checkpoint")
 if (
     not isinstance(repair, dict)
     or repair.get("status") != "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
-    or repair.get("fresh_rebuild_started") is not True
-    or repair.get("fresh_training_started") is not True
+    or repair.get("historical_rebuild_execution_started") is not True
+    or repair.get("historical_training_execution_started") is not True
+    or repair.get("active_v4_rebuild_started") is not False
+    or repair.get("active_v4_training_started") is not False
     or repair.get("empirical_direction_edge_proven") is not False
-    or repair.get("remaining_source_p0")
-    != [
-        "produce_immutable_train_only_rank_reference_and_execute_bound_exit_routes",
-        "successor_exit_io_contract_replacing_xgb_bridge_with_accepted_entry_outputs",
-        "fresh_v3_and_exit_iql_on_accepted_entry_prediction_evidence",
-        "execute_canonical_full_test_active_exit_replay_on_accepted_chain",
-    ]
 ):
     raise SystemExit("FATAL: malformed source-repair checkpoint")
+remaining_source_p0 = repair.get("remaining_source_p0")
+if (
+    not isinstance(remaining_source_p0, list)
+    or not remaining_source_p0
+    or any(not isinstance(item, str) or not item for item in remaining_source_p0)
+    or len(set(remaining_source_p0)) != len(remaining_source_p0)
+):
+    raise SystemExit("FATAL: malformed remaining source-P0 register")
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1912
-    or verification.get("tests_passed") != 1907
-    or verification.get("tests_skipped") != 5
+    or verification.get("current_tree_complete_verification")
+    not in {"PENDING_FINAL_ROOT_VERIFICATION", "PASS"}
+    or not isinstance(verification.get("tests_collected"), int)
+    or not isinstance(verification.get("tests_passed"), int)
+    or not isinstance(verification.get("tests_skipped"), int)
     or verification.get("tests_failed") != 0
+    or verification["tests_collected"]
+    != verification["tests_passed"] + verification["tests_skipped"]
     or verification.get("changed_python_compile") != "PASS"
     or verification.get("git_diff_check") != "PASS"
     or verification.get("json_parse") != "PASS"
@@ -122,12 +199,74 @@ if (
     or verification.get("forbidden_instrument_scan") != "PASS"
 ):
     raise SystemExit("FATAL: malformed repository-verification checkpoint")
+
+feature_checkpoint = state.get("current_feature_stack_checkpoint")
+if (
+    not isinstance(feature_checkpoint, dict)
+    or feature_checkpoint.get("status")
+    != "V4_ARCHITECTURE_PROVEN_HISTORICAL_CACHE_STALE_REBUILD_REQUIRED"
+    or feature_checkpoint.get("signal_fields_per_bar") != 513
+    or feature_checkpoint.get("continuous_context_fields") != 142
+    or feature_checkpoint.get("categorical_context_fields") != 5
+    or feature_checkpoint.get("multi_timeframe_order")
+    != ["M5", "M15", "H1", "H4", "D1"]
+    or feature_checkpoint.get("multi_timeframe_fields_per_bar") != 111
+    or feature_checkpoint.get("multi_timeframe_total_cells_per_decision_step")
+    != 555
+    or feature_checkpoint.get("specialist_family_count") != 8
+    or feature_checkpoint.get("family_timeframe_route_count") != 40
+):
+    raise SystemExit("FATAL: malformed current feature-stack checkpoint")
+cache_binding = feature_checkpoint.get("cache_manifest")
+if not isinstance(cache_binding, dict):
+    raise SystemExit("FATAL: current feature stack has no cache manifest")
+cache_manifest_path = Path(str(cache_binding.get("path", "")))
+if (
+    not cache_manifest_path.is_absolute()
+    or cache_manifest_path.resolve() != cache_manifest_path
+    or not cache_manifest_path.is_file()
+    or cache_manifest_path.is_symlink()
+):
+    raise SystemExit("FATAL: V4 cache manifest path is not exact")
+cache_manifest_bytes = cache_manifest_path.read_bytes()
+if hashlib.sha256(cache_manifest_bytes).hexdigest() != cache_binding.get("sha256"):
+    raise SystemExit("FATAL: V4 cache manifest SHA-256 mismatch")
+cache_manifest = json.loads(cache_manifest_bytes)
+cache_liveness = cache_manifest.get("full_input_liveness")
+if (
+    cache_binding.get("decision") != "HISTORICAL_PASS_ACTIVE_CONTRACT_BLOCK"
+    or cache_binding.get("observed_schema_version")
+    != cache_manifest.get("schema_version")
+    or cache_binding.get("required_schema_version")
+    != HTF_V4_CACHE_SCHEMA_VERSION
+    or cache_manifest.get("schema_version") == HTF_V4_CACHE_SCHEMA_VERSION
+    or cache_manifest.get("feature_count") != 111
+    or cache_manifest.get("cache_identity_sha256")
+    != cache_binding.get("cache_identity_sha256")
+    or not isinstance(cache_liveness, dict)
+    or cache_liveness.get("decision") != "PASS"
+    or cache_liveness.get("contract_sha256")
+    != cache_binding.get("liveness_contract_sha256")
+):
+    raise SystemExit("FATAL: V4 cache manifest contract mismatch")
 if state["decision"] == "BLOCK" and state.get("accepted_via_vedtak") is not None:
     raise SystemExit("FATAL: blocked launch state carries approval authority")
 
 dataset_event_id = state.get("dataset_event_id")
 terminal = state.get("accepted_dataset_terminal_evidence")
-if dataset_event_id is not None:
+if dataset_event_id is None:
+    if (
+        state.get("dataset_admission_stage")
+        != "NO_ADMITTED_UNIFIED_DATASET"
+        or state.get("accepted_dataset_dir") is not None
+        or terminal is not None
+        or state.get("current_audited_dataset_evidence") != {}
+        or state.get("current_smoke_launch_evidence") is not None
+    ):
+        raise SystemExit(
+            "FATAL: no-dataset authority carries stale current dataset/smoke evidence"
+        )
+else:
     if not isinstance(dataset_event_id, str) or not dataset_event_id:
         raise SystemExit("FATAL: malformed launch authority: invalid dataset_event_id")
     if not isinstance(terminal, dict):
@@ -170,116 +309,24 @@ if dataset_event_id is not None:
         if audit.get("decision") != binding.get("decision"):
             raise SystemExit(f"FATAL: dataset audit decision mismatch: {name}")
 
-smoke_launch = state.get("current_smoke_launch_evidence")
-recipe_binding = (
-    smoke_launch.get("train_recipe_audit")
-    if isinstance(smoke_launch, dict)
-    else None
-)
-if not isinstance(recipe_binding, dict):
-    raise SystemExit("FATAL: launch authority has no smoke recipe binding")
-recipe_path = Path(str(recipe_binding.get("path", "")))
-if (
-    not recipe_path.is_absolute()
-    or recipe_path.resolve() != recipe_path
-    or not recipe_path.is_file()
-    or recipe_path.is_symlink()
-):
-    raise SystemExit("FATAL: smoke recipe path is not an exact regular file")
-recipe_bytes = recipe_path.read_bytes()
-if hashlib.sha256(recipe_bytes).hexdigest() != recipe_binding.get("sha256"):
-    raise SystemExit("FATAL: smoke recipe SHA-256 mismatch")
-recipe = json.loads(recipe_bytes)
-for key in ("decision", "profile", "run_id", "dataset_run_id", "source_commit"):
-    if recipe.get(key) != recipe_binding.get(key):
-        raise SystemExit(f"FATAL: smoke recipe binding mismatch: {key}")
-if recipe.get("dataset_run_id") != dataset_event_id:
-    raise SystemExit("FATAL: smoke recipe dataset lineage mismatch")
-env_contract = recipe.get("trainer_env_contract")
-trainer_env = recipe.get("trainer_env")
-if (
-    recipe.get("schema_version") != RECIPE_AUDIT_SCHEMA
-    or not isinstance(env_contract, dict)
-    or not isinstance(trainer_env, dict)
-    or len(trainer_env) != recipe_binding.get("trainer_env_count")
-    or env_contract.get("count") != recipe_binding.get("trainer_env_count")
-    or env_contract.get("sha256") != recipe_binding.get("trainer_env_contract_sha256")
-    or recipe.get("source_bindings_sha256") != recipe_binding.get("source_bindings_sha256")
-):
-    raise SystemExit("FATAL: smoke recipe contract mismatch")
-repo = Path.cwd().resolve()
-wrapper_path = (
-    repo
-    / "scripts"
-    / (
-        "run_entry_model_native_seq513_smoke_train.sh"
-        if recipe["profile"] == "smoke"
-        else "run_entry_model_native_seq513_candidate_train.sh"
-    )
-).resolve()
-expected_source_paths = recipe_source_binding_paths(
-    repo=repo,
-    wrapper_path=wrapper_path,
-)
-source_bindings = recipe.get("source_bindings")
-if (
-    not isinstance(source_bindings, dict)
-    or set(source_bindings) != set(expected_source_paths)
-    or recipe.get("source_bindings_sha256")
-    != canonical_json_sha256(source_bindings)
-):
-    raise SystemExit("FATAL: smoke recipe source binding set/hash mismatch")
-for name, source_path in expected_source_paths.items():
-    if (
-        recipe_binding.get("execution_state") == "READY_NOT_STARTED"
-        and source_bindings.get(name) != artifact_binding(source_path)
-    ):
-        raise SystemExit(f"FATAL: ready smoke recipe source binding is stale: {name}")
-execution_state = recipe_binding.get("execution_state")
-out_bundle_path = Path(str(recipe_binding.get("out_bundle_dir", "")))
-if (
-    recipe_binding.get("dry_run_decision") != "PASS"
-    or recipe_binding.get("out_bundle_present") is not False
-    or out_bundle_path.exists()
-):
-    raise SystemExit("FATAL: smoke recipe output-state mismatch")
-if execution_state == "READY_NOT_STARTED":
-    if (
-        recipe_binding.get("execution_started") is not False
-        or recipe_binding.get("execution_completed") not in (None, False)
-    ):
-        raise SystemExit("FATAL: ready smoke recipe execution-state mismatch")
-elif execution_state == "TERMINAL_FAILED":
-    failed = state.get("latest_failed_smoke_execution")
-    if (
-        recipe_binding.get("execution_started") is not True
-        or recipe_binding.get("execution_completed") is not True
-        or recipe_binding.get("execution_decision") != "BLOCK"
-        or not isinstance(failed, dict)
-        or failed.get("run_id") != recipe_binding.get("run_id")
-        or failed.get("dataset_run_id") != recipe_binding.get("dataset_run_id")
-        or failed.get("decision") != "BLOCK"
-        or failed.get("failure_code") != recipe_binding.get("execution_failure_code")
-        or failed.get("epochs_completed") != recipe_binding.get("epochs_completed")
-        or failed.get("bundle_created") is not False
-        or failed.get("completed_utc") != recipe_binding.get("execution_completed_utc")
-    ):
-        raise SystemExit("FATAL: terminal failed smoke recipe evidence mismatch")
-else:
-    raise SystemExit(f"FATAL: unsupported smoke recipe execution state: {execution_state!r}")
-if subprocess.run(
-    ["git", "merge-base", "--is-ancestor", recipe["source_commit"], "HEAD"],
-    check=False,
-).returncode != 0:
-    raise SystemExit("FATAL: smoke recipe source commit is not an ancestor")
-
 print("mode: check")
 print(f"authority_fingerprint: {digest.hexdigest()}")
 print(f"decision: {state['decision']}")
 print(f"updated_utc: {state['updated_utc']}")
+observed_cache_tag = str(cache_manifest["schema_version"]).removeprefix(
+    "htf_v4_disk_cache_manifest_"
+)
+required_cache_tag = str(HTF_V4_CACHE_SCHEMA_VERSION).removeprefix(
+    "htf_v4_disk_cache_manifest_"
+)
+print(
+    "v4: ARCH_OK_5x111 "
+    f"CACHE_BLOCK_{observed_cache_tag}_to_{required_cache_tag}"
+)
 PY
   echo "head_commit: $(git rev-parse HEAD)"
   printf 'changed_path_count: %d\n' "${#git_lines[@]}"
+  printf 'worktree_fingerprint: %s\n' "$worktree_sha256"
   exit 0
 fi
 
@@ -288,40 +335,121 @@ echo "mode: $mode"
 echo "full_view_command: bash $REPO/scripts/gx1_handover.sh --verbose"
 echo
 echo "## Goal"
-echo "Build the GX1 trading bot for gold/XAUUSD with one learned full-stack path"
-echo "that selects LONG/SHORT/FLAT direction. No fallback, live hand-rules, stale"
-echo "artifact authority or soft pass-through is allowed; no competing decision path exists."
+echo "Build the GX1 trading bot for gold/XAUUSD as one immutable learned bundle"
+echo "that selects LONG/SHORT/FLAT direction for Entry, HOLD/EXIT_NOW for Exit"
+echo "and learned size through one shared encoder."
+echo "No fallback, live hand-rule, stale artifact authority or soft pass-through exists;"
+echo "there is no competing decision path. Entry and Exit train together in one candidate."
 echo "Near-perfect practical precision is a target, not a current claim."
 echo
-echo "## Authoritative sources (read in this order)"
+echo "## Canonical takeover order"
+echo "  1. AGENTS.md"
+echo "  2. PIPELINE_AUDIT_XAU_20260723.md (historical audit context only)"
+echo "  3. SYSTEM_MAP.md"
+echo "  4. HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
+echo "  5. PROJECT_STATE_xau_direction_launch.json"
+echo "  6. relevant code contracts/tests"
+echo
+echo "## Authority fingerprint inventory (complete; not a reading order)"
 for source in "${sources[@]}"; do
   printf '%s  %s\n' "$(sha256sum -- "$source" | cut -d' ' -f1)" "$source"
 done
-echo "Use this script only: scripts/gx1_handover.sh"
+echo "takeover_entrypoint: scripts/entry_next_edge_control.sh handover"
+echo "handover_owner: scripts/gx1_handover.sh"
 echo
 echo "## Launch authority"
 "$PY" - "$LAUNCH_STATE" <<'PY'
 import hashlib
 import json
-import subprocess
 import sys
 from pathlib import Path
 
-from gx1.contracts.entry_model_native_train_launch_v1 import (
-    RECIPE_AUDIT_SCHEMA,
-    artifact_binding,
-    canonical_json_sha256,
-    recipe_source_binding_paths,
-)
+from gx1.features.htf_features import HTF_V4_CACHE_SCHEMA_VERSION
 
 state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 for key in (
-    "decision", "updated_utc", "latest_terminal_event_id",
-    "latest_terminal_event_decision", "required_contract_mode",
+    "decision", "updated_utc", "required_contract_mode",
     "accepted_bundle_dir", "bundle_metadata_sha256",
 ):
     value = state.get(key)
     print(f"{key}: {'NONE' if value is None else value}")
+
+repair = state.get("source_repair_checkpoint")
+if (
+    not isinstance(repair, dict)
+    or repair.get("active_v4_rebuild_started") is not False
+    or repair.get("active_v4_training_started") is not False
+):
+    raise SystemExit("FATAL: active V4 execution state is not fail-closed")
+print("active_v4_rebuild_started: false")
+print("active_v4_training_started: false")
+verification = repair.get("repository_verification")
+if not isinstance(verification, dict):
+    raise SystemExit("FATAL: repository verification state missing")
+current_verification = verification.get("current_tree_complete_verification")
+if current_verification not in {"PENDING_FINAL_ROOT_VERIFICATION", "PASS"}:
+    raise SystemExit("FATAL: current-tree verification state invalid")
+print(f"current_tree_complete_verification: {current_verification}")
+
+feature_checkpoint = state.get("current_feature_stack_checkpoint")
+if (
+    not isinstance(feature_checkpoint, dict)
+    or feature_checkpoint.get("status")
+    != "V4_ARCHITECTURE_PROVEN_HISTORICAL_CACHE_STALE_REBUILD_REQUIRED"
+    or feature_checkpoint.get("signal_fields_per_bar") != 513
+    or feature_checkpoint.get("continuous_context_fields") != 142
+    or feature_checkpoint.get("categorical_context_fields") != 5
+    or feature_checkpoint.get("multi_timeframe_order")
+    != ["M5", "M15", "H1", "H4", "D1"]
+    or feature_checkpoint.get("multi_timeframe_fields_per_bar") != 111
+    or feature_checkpoint.get("multi_timeframe_total_cells_per_decision_step")
+    != 555
+    or feature_checkpoint.get("specialist_family_count") != 8
+    or feature_checkpoint.get("family_timeframe_route_count") != 40
+):
+    raise SystemExit("FATAL: malformed current feature-stack checkpoint")
+cache_binding = feature_checkpoint.get("cache_manifest")
+if not isinstance(cache_binding, dict):
+    raise SystemExit("FATAL: current feature stack has no cache manifest")
+cache_manifest_path = Path(str(cache_binding.get("path", "")))
+if (
+    not cache_manifest_path.is_absolute()
+    or cache_manifest_path.resolve() != cache_manifest_path
+    or not cache_manifest_path.is_file()
+    or cache_manifest_path.is_symlink()
+):
+    raise SystemExit("FATAL: V4 cache manifest path is not exact")
+cache_manifest_bytes = cache_manifest_path.read_bytes()
+if hashlib.sha256(cache_manifest_bytes).hexdigest() != cache_binding.get("sha256"):
+    raise SystemExit("FATAL: V4 cache manifest SHA-256 mismatch")
+cache_manifest = json.loads(cache_manifest_bytes)
+cache_liveness = cache_manifest.get("full_input_liveness")
+if (
+    cache_binding.get("decision") != "HISTORICAL_PASS_ACTIVE_CONTRACT_BLOCK"
+    or cache_binding.get("observed_schema_version")
+    != cache_manifest.get("schema_version")
+    or cache_binding.get("required_schema_version")
+    != HTF_V4_CACHE_SCHEMA_VERSION
+    or cache_manifest.get("schema_version") == HTF_V4_CACHE_SCHEMA_VERSION
+    or cache_manifest.get("feature_count") != 111
+    or cache_manifest.get("cache_identity_sha256")
+    != cache_binding.get("cache_identity_sha256")
+    or not isinstance(cache_liveness, dict)
+    or cache_liveness.get("decision") != "PASS"
+    or cache_liveness.get("contract_sha256")
+    != cache_binding.get("liveness_contract_sha256")
+):
+    raise SystemExit("FATAL: V4 cache manifest contract mismatch")
+print(
+    "v4_architecture: VERIFIED "
+    "timeframes=5 families=8 fields_per_tf=111 routes=40 cells=555"
+)
+print(
+    "v4_cache: BLOCK "
+    f"observed={cache_manifest.get('schema_version')} "
+    f"required={HTF_V4_CACHE_SCHEMA_VERSION} "
+    f"historical_identity={cache_binding['cache_identity_sha256']}"
+)
 for key in ("dataset_event_id", "dataset_admission_stage", "accepted_dataset_dir"):
     value = state.get(key)
     print(f"{key}: {'NONE' if value is None else value}")
@@ -329,9 +457,19 @@ for key in ("dataset_event_id", "dataset_admission_stage", "accepted_dataset_dir
 terminal = state.get("accepted_dataset_terminal_evidence")
 dataset_event_id = state.get("dataset_event_id")
 if dataset_event_id is None:
-    if terminal is not None:
-        raise SystemExit("FATAL: terminal evidence exists without dataset_event_id")
+    if (
+        state.get("dataset_admission_stage")
+        != "NO_ADMITTED_UNIFIED_DATASET"
+        or state.get("accepted_dataset_dir") is not None
+        or terminal is not None
+        or state.get("current_audited_dataset_evidence") != {}
+        or state.get("current_smoke_launch_evidence") is not None
+    ):
+        raise SystemExit(
+            "FATAL: no-dataset authority carries stale current dataset/smoke evidence"
+        )
     print("dataset_terminal_evidence: NONE")
+    print("current_smoke_launch_evidence: NONE")
 else:
     if not isinstance(terminal, dict):
         raise SystemExit("FATAL: dataset event has no terminal evidence object")
@@ -386,118 +524,10 @@ else:
         if audit.get("decision") != binding.get("decision"):
             raise SystemExit(f"FATAL: dataset audit decision mismatch: {name}")
     print(f"dataset_audit_evidence: VERIFIED count={len(audits)}")
-
-smoke_launch = state.get("current_smoke_launch_evidence")
-recipe_binding = (
-    smoke_launch.get("train_recipe_audit")
-    if isinstance(smoke_launch, dict)
-    else None
-)
-if not isinstance(recipe_binding, dict):
-    raise SystemExit("FATAL: launch authority has no smoke recipe binding")
-recipe_path = Path(str(recipe_binding.get("path", "")))
-if (
-    not recipe_path.is_absolute()
-    or recipe_path.resolve() != recipe_path
-    or not recipe_path.is_file()
-    or recipe_path.is_symlink()
-):
-    raise SystemExit("FATAL: smoke recipe path is not an exact regular file")
-recipe_bytes = recipe_path.read_bytes()
-observed_recipe_sha256 = hashlib.sha256(recipe_bytes).hexdigest()
-if observed_recipe_sha256 != recipe_binding.get("sha256"):
-    raise SystemExit("FATAL: smoke recipe SHA-256 mismatch")
-recipe = json.loads(recipe_bytes)
-for key in ("decision", "profile", "run_id", "dataset_run_id", "source_commit"):
-    if recipe.get(key) != recipe_binding.get(key):
-        raise SystemExit(f"FATAL: smoke recipe binding mismatch: {key}")
-if recipe.get("dataset_run_id") != dataset_event_id:
-    raise SystemExit("FATAL: smoke recipe dataset lineage mismatch")
-env_contract = recipe.get("trainer_env_contract")
-trainer_env = recipe.get("trainer_env")
-if (
-    recipe.get("schema_version") != RECIPE_AUDIT_SCHEMA
-    or not isinstance(env_contract, dict)
-    or not isinstance(trainer_env, dict)
-    or len(trainer_env) != recipe_binding.get("trainer_env_count")
-    or env_contract.get("count") != recipe_binding.get("trainer_env_count")
-    or env_contract.get("sha256") != recipe_binding.get("trainer_env_contract_sha256")
-    or recipe.get("source_bindings_sha256") != recipe_binding.get("source_bindings_sha256")
-):
-    raise SystemExit("FATAL: smoke recipe contract mismatch")
-repo = Path.cwd().resolve()
-wrapper_path = (
-    repo
-    / "scripts"
-    / (
-        "run_entry_model_native_seq513_smoke_train.sh"
-        if recipe["profile"] == "smoke"
-        else "run_entry_model_native_seq513_candidate_train.sh"
+    print(
+        "current_smoke_launch_evidence: "
+        + ("BOUND" if state.get("current_smoke_launch_evidence") else "NONE")
     )
-).resolve()
-expected_source_paths = recipe_source_binding_paths(
-    repo=repo,
-    wrapper_path=wrapper_path,
-)
-source_bindings = recipe.get("source_bindings")
-if (
-    not isinstance(source_bindings, dict)
-    or set(source_bindings) != set(expected_source_paths)
-    or recipe.get("source_bindings_sha256")
-    != canonical_json_sha256(source_bindings)
-):
-    raise SystemExit("FATAL: smoke recipe source binding set/hash mismatch")
-for name, source_path in expected_source_paths.items():
-    if (
-        recipe_binding.get("execution_state") == "READY_NOT_STARTED"
-        and source_bindings.get(name) != artifact_binding(source_path)
-    ):
-        raise SystemExit(f"FATAL: ready smoke recipe source binding is stale: {name}")
-execution_state = recipe_binding.get("execution_state")
-out_bundle_path = Path(str(recipe_binding.get("out_bundle_dir", "")))
-if (
-    recipe_binding.get("dry_run_decision") != "PASS"
-    or recipe_binding.get("out_bundle_present") is not False
-    or out_bundle_path.exists()
-):
-    raise SystemExit("FATAL: smoke recipe output-state mismatch")
-if execution_state == "READY_NOT_STARTED":
-    if (
-        recipe_binding.get("execution_started") is not False
-        or recipe_binding.get("execution_completed") not in (None, False)
-    ):
-        raise SystemExit("FATAL: ready smoke recipe execution-state mismatch")
-elif execution_state == "TERMINAL_FAILED":
-    failed = state.get("latest_failed_smoke_execution")
-    if (
-        recipe_binding.get("execution_started") is not True
-        or recipe_binding.get("execution_completed") is not True
-        or recipe_binding.get("execution_decision") != "BLOCK"
-        or not isinstance(failed, dict)
-        or failed.get("run_id") != recipe_binding.get("run_id")
-        or failed.get("dataset_run_id") != recipe_binding.get("dataset_run_id")
-        or failed.get("decision") != "BLOCK"
-        or failed.get("failure_code") != recipe_binding.get("execution_failure_code")
-        or failed.get("epochs_completed") != recipe_binding.get("epochs_completed")
-        or failed.get("bundle_created") is not False
-        or failed.get("completed_utc") != recipe_binding.get("execution_completed_utc")
-    ):
-        raise SystemExit("FATAL: terminal failed smoke recipe evidence mismatch")
-else:
-    raise SystemExit(f"FATAL: unsupported smoke recipe execution state: {execution_state!r}")
-if subprocess.run(
-    ["git", "merge-base", "--is-ancestor", recipe["source_commit"], "HEAD"],
-    check=False,
-).returncode != 0:
-    raise SystemExit("FATAL: smoke recipe source commit is not an ancestor")
-print(
-    "smoke_recipe_evidence: VERIFIED "
-    f"decision={recipe['decision']} env_count={len(trainer_env)} "
-    f"source_commit={recipe['source_commit']} sha256={observed_recipe_sha256}"
-)
-print(f"smoke_recipe_dry_run: {recipe_binding['dry_run_decision']}")
-print(f"smoke_recipe_execution_state: {execution_state}")
-print(f"smoke_recipe_path: {recipe_path}")
 print(
     "dimensions: "
     + " ".join(
@@ -517,12 +547,19 @@ blockers = state.get("blockers")
 print(f"blocker_count: {len(blockers) if isinstance(blockers, list) else 'INVALID'}")
 if isinstance(blockers, list) and blockers:
     print(f"next_blocker: {blockers[0]}")
+remaining = repair.get("remaining_source_p0")
+if not isinstance(remaining, list) or not remaining:
+    raise SystemExit("FATAL: no explicit remaining source-P0 register")
+print("remaining_source_p0:")
+for index, item in enumerate(remaining, start=1):
+    print(f"  {index}. {item}")
 PY
 echo
 echo "## Source worktree"
 echo "head_commit: $(git rev-parse HEAD)"
 mapfile -t git_lines < <(git status --short --untracked-files=all)
 printf 'changed_path_count: %d\n' "${#git_lines[@]}"
+printf 'worktree_fingerprint: %s\n' "$worktree_sha256"
 git_limit=24
 for ((i = 0; i < ${#git_lines[@]} && i < git_limit; i++)); do
   printf '%s\n' "${git_lines[$i]}"
@@ -530,6 +567,30 @@ done
 if (( ${#git_lines[@]} > git_limit )); then
   printf '... %d more; run git status --short explicitly\n' "$(( ${#git_lines[@]} - git_limit ))"
 fi
+echo
+echo "## Resume boundary"
+echo "resume_owner: scripts/entry_next_edge_control.sh"
+echo "source_publication_contract: IMPLEMENTED_NOT_EXECUTED_OR_ADMITTED"
+echo "dataset_contract: NO_ADMITTED_UNIFIED_DATASET"
+echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
+if (( ${#git_lines[@]} == 0 )); then
+  echo "resume_stage: FRESH_NATIVE_PAIR_PUBLICATION"
+  echo "source_identity_gate: READY_CLEAN_WORKTREE"
+else
+  echo "resume_stage: VERIFY_CURRENT_SOURCE_BEFORE_FRESH_PUBLICATION"
+  echo "source_identity_gate: BLOCK_DIRTY_WORKTREE"
+fi
+echo "ordered_control_routes:"
+echo "  1. model-native-native-m1-source + model-native-native-m5-source --publication-mode successor"
+echo "  2. model-native-canonical-pair --publication-mode successor"
+echo "  3. model-native-mtf-v4-cache"
+echo "  4. model-native-rebuild"
+echo "  5. post-rebuild audits/readiness -> integrated Entry+Exit smoke -> same-bundle candidate"
+echo "live_tail_activation_routes:"
+echo "  1. model-native-live-tail-pair (two consecutive fresh successors)"
+echo "  2. model-native-live-tail-admission"
+echo "  3. model-native-finalize-launch (only after every model/OOS/replay gate)"
+echo "exact_route_help: bash scripts/entry_next_edge_control.sh --help"
 echo
 echo "## Host capacity"
 echo "gx1_data_available_bytes: $(df -B1 --output=avail /home/andre2/GX1_DATA | awk 'NR == 2 {print $1}')"

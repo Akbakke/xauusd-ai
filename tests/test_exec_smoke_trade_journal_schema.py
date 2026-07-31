@@ -18,7 +18,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gx1.monitoring.trade_journal import TradeJournal
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
-from tests.model_native_offline_rl_support import offline_rl_evidence
+from tests.model_native_offline_rl_support import (
+    model_native_mtf_cooperation_evidence,
+    offline_rl_evidence,
+)
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
@@ -192,6 +195,9 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
             "direction_probs": direction_probs,
             "model_direction_index": 0,
             "model_direction": "LONG",
+            "entry_shared_representation": [
+                float(index - 64) / 64.0 for index in range(128)
+            ],
             "selected_side": 0,
             "public_trade_flat_decision_logits": public_logits,
             "public_trade_flat_decision_probs": public_probs,
@@ -255,6 +261,7 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
                 "price_action_candle_encoder",
             ],
             "specialist_gate": [0.125] * 8,
+            **model_native_mtf_cooperation_evidence(),
             "trendline_rail_logits": rail_logits,
             "trendline_rail_probs": [sigmoid(value) for value in rail_logits],
             "geometry_channel_edge_pressure": 0.42,

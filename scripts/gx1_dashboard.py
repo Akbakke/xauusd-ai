@@ -7,8 +7,8 @@ stack health, execution state, proof-bound learned sizing, and today's tally.
 
 ONE-TRUTH: it reads the SAME live sources the operator inspects by hand —
   • the paper journal (exact model direction, hierarchy, path and sizing evidence)
-  • the canonical_incremental daemon log (prebuilt cutoff = data freshness)
-  • live process status via pgrep (runner / collector / canonical)
+  • live process status via pgrep (runner / collector)
+  • the exact launch-bound immutable live-tail admission, revalidated on read
   • the journaled sizing application (mode, calibrated fraction, capacity, units)
 It NEVER writes to any live file and NEVER touches contracts or feature data
 or any process (pgrep/proc reads only). Stdlib only — no new deps.
@@ -23,18 +23,29 @@ import glob
 import json
 import math
 import os
-import re
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-REPO = Path("/home/andre2/src/GX1_ENGINE")
+REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from gx1.models.entry_v10.direction_decision_contract import (  # noqa: E402
+    MODEL_DIRECTION_ACTION_BY_INDEX,
+    MODEL_DIRECTION_NAME_BY_INDEX,
+)
+from gx1.contracts.live_tail_publication_v1 import (  # noqa: E402
+    require_newest_live_tail_runtime_authority,
+)
+
 RUNS = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 JOURNAL_GLOB = str(RUNS / "v12_paper_journal_*.jsonl")
-CANON_LOG = RUNS / "logs" / "canonical_incremental.log"
 WANTS = Path.home() / ".config/systemd/user/default.target.wants/gx1-paper-runner.service"
+LAUNCH_STATE = REPO / "PROJECT_STATE_xau_direction_launch.json"
 _count_cache: dict[str, tuple[float, dict]] = {}
 
 
@@ -113,14 +124,6 @@ def _today_counts(path):
     return counts
 
 
-def _canon_cutoff():
-    for line in reversed(_tail_lines(CANON_LOG, 20_000)):
-        m = re.search(r"new[_ ]cutoff'?:?\s*'?(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
-        if m:
-            return m.group(1)
-    return None
-
-
 def _git_clean():
     try:
         out = subprocess.run(["git", "-C", str(REPO), "status", "--short"],
@@ -160,6 +163,59 @@ def _parse_ts(s):
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def _live_tail_status() -> dict:
+    """Revalidate the exact runtime admission; process presence is not proof."""
+    try:
+        state = json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {
+            "admitted": False,
+            "status": f"BLOCK — launch-state unreadable: {type(exc).__name__}",
+            "cutoff": None,
+            "cutoff_lag_min": None,
+        }
+    if state.get("decision") != "ALLOW":
+        return {
+            "admitted": False,
+            "status": "BLOCK — launch-state has no active live-tail authority",
+            "cutoff": None,
+            "cutoff_lag_min": None,
+        }
+    authority = state.get("new_entry_live_tail_authority")
+    try:
+        runtime = require_newest_live_tail_runtime_authority(authority)
+        admission_path = Path(runtime["current_admission"]["path"])
+        admission = json.loads(admission_path.read_text(encoding="utf-8"))
+        child_path = Path(admission["child_publication"]["path"])
+        child = json.loads(child_path.read_text(encoding="utf-8"))
+        cutoff = child["timing"]["canonical_m5_cutoff_utc"]
+        cutoff_dt = _parse_ts(cutoff)
+        lag = (
+            round(
+                (datetime.now(timezone.utc) - cutoff_dt).total_seconds() / 60,
+                1,
+            )
+            if cutoff_dt is not None
+            else None
+        )
+        return {
+            "admitted": True,
+            "status": (
+                "PASS — immutable admission "
+                f"{runtime['current_admission']['pair_generation_id'][:12]}"
+            ),
+            "cutoff": cutoff,
+            "cutoff_lag_min": lag,
+        }
+    except Exception as exc:
+        return {
+            "admitted": False,
+            "status": f"BLOCK — live-tail authority invalid: {type(exc).__name__}",
+            "cutoff": None,
+            "cutoff_lag_min": None,
+        }
 
 
 TRADES_DIR = RUNS / "trade_journal" / "trades"
@@ -214,14 +270,11 @@ def _trades_summary(open_records):
 def build_status() -> dict:
     now = datetime.now(timezone.utc)
     rpid = (_pgrep("v12_paper_runner") or [None])[0]
+    live_tail = _live_tail_status()
 
     jrnl = _latest_journal()
     dec = _last_decision(jrnl) if jrnl else None
     counts = _today_counts(jrnl) if jrnl else {}
-    cutoff = _canon_cutoff()
-    cutoff_dt = _parse_ts(cutoff)
-    cutoff_lag = round((now - cutoff_dt).total_seconds() / 60, 1) if cutoff_dt else None
-
     model = None
     market = None
     sizing = None
@@ -236,12 +289,17 @@ def build_status() -> dict:
                 sum(probs), 1.0, rel_tol=1e-6, abs_tol=1e-7
             ):
                 raise ValueError("direction_probs is not a probability simplex")
-            direction_index = max(range(3), key=probs.__getitem__)
-            directions = ("LONG", "SHORT", "FLAT")
+            direction_index = max(
+                MODEL_DIRECTION_NAME_BY_INDEX,
+                key=probs.__getitem__,
+            )
             direction = str(vd["model_direction"])
-            if direction != directions[direction_index] or vd.get("model_direction_index") != direction_index:
+            if (
+                direction != MODEL_DIRECTION_NAME_BY_INDEX[direction_index]
+                or vd.get("model_direction_index") != direction_index
+            ):
                 raise ValueError("direction argmax/index/name parity failure")
-            expected_action = ("TAKE_LONG_NOW", "TAKE_SHORT_NOW", "SKIP")[direction_index]
+            expected_action = MODEL_DIRECTION_ACTION_BY_INDEX[direction_index]
             if vd.get("action") != expected_action:
                 raise ValueError("model action disagrees with direction argmax")
             required_scalars = {}
@@ -325,13 +383,15 @@ def build_status() -> dict:
         "health": {
             "runner": rpid is not None,
             "collector": bool(_pgrep("v12_oanda_data_collector")),
-            "canonical": bool(_pgrep("v12_canonical_incremental")),
+            "live_tail_publisher": live_tail["admitted"],
             "git_clean": _git_clean(),
             "auto_recover": WANTS.is_symlink(),
         },
         "model": model,
         "data": {
-            "cutoff": cutoff, "cutoff_lag_min": cutoff_lag,
+            "cutoff": live_tail["cutoff"],
+            "cutoff_lag_min": live_tail["cutoff_lag_min"],
+            "publisher_status": live_tail["status"],
             "last_decision_ts": dec.get("ts_utc") if dec else None,
             "last_decision_age_min": dec_age,
         },
@@ -341,7 +401,7 @@ def build_status() -> dict:
         "op": {
             "direction": "exact_long_short_flat_argmax",
             "sizing": sizing,
-            "max_trades": _proc_cmdline_arg(rpid, "--max-trades", 3),
+            "max_trades": _proc_cmdline_arg(rpid, "--max-trades"),
         },
         "journal": os.path.basename(jrnl) if jrnl else None,
     }
@@ -497,10 +557,10 @@ async function refresh(){
   const d=s.data;const lag=d.cutoff_lag_min;
   $("lag").textContent=lag==null?"—":lag.toFixed(1)+" min";
   $("lag").style.color=lag==null?"#fff":(lag<8?"var(--grn)":(lag<20?"var(--amb)":"var(--red)"));
-  $("cutoff").textContent=d.cutoff||"—";$("decAge").textContent=fmtAge(d.last_decision_age_min);
+  $("cutoff").textContent=d.cutoff||d.publisher_status||"—";$("decAge").textContent=fmtAge(d.last_decision_age_min);
 
   // health pills
-  const h=s.health;const labels={runner:"paper_runner",collector:"collector",canonical:"canonical_incr",git_clean:"git rent",auto_recover:"auto-recover"};
+  const h=s.health;const labels={runner:"paper_runner",collector:"collector",live_tail_publisher:"live-tail publisher",git_clean:"git rent",auto_recover:"auto-recover"};
   $("pills").innerHTML=Object.keys(labels).map(k=>`<div class="pill"><span class="${dotClass(h[k])}"></span>${labels[k]}</div>`).join("");
   const allok=Object.values(h).every(v=>v===true);
   $("pulse").style.background=allok?"var(--grn)":"var(--amb)";

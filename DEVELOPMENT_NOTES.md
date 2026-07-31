@@ -1,142 +1,130 @@
 # Development notes
 
+Updated 2026-07-31.
+
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python`.
 
-Before editing, read `AGENTS.md`, `SYSTEM_MAP.md` and the current handover.
-Prefer the existing owner over a parallel script. Preserve unrelated changes
-in the dirty worktree.
+Use the canonical takeover order: `AGENTS.md`,
+`PIPELINE_AUDIT_XAU_20260723.md` as historical audit context, `SYSTEM_MAP.md`,
+the handover, then `PROJECT_STATE_xau_direction_launch.json`. Read only the
+relevant code contracts/tests afterward. Preserve unrelated dirty-worktree
+changes.
 
-Use `rg`/`rg --files` for source searches. Do not recursively walk `.venv`,
-`.git` or `/home/andre2/GX1_DATA`; they are not source and dominate disk I/O.
+## Work pattern
 
-Minimum verification for a bounded change:
+- Search source with `rg`/`rg --files`; exclude `.git`, `.venv` and
+  `/home/andre2/GX1_DATA`.
+- Measure the existing owner before adding code.
+- Extend the existing contract/producer/verifier/script for a minor change.
+- Do not add a versioned copy, compatibility wrapper or one-off route when the
+  responsibility already has an owner.
+- Create a new file only for a genuinely new bounded authority and route it
+  through `scripts/entry_next_edge_control.sh`.
+- Source tests prove implementation contracts, not prediction edge.
+
+## Active MTF contract
+
+V4 is the only admissible Entry source/model/runtime contract. No current
+model, direction or launch authority exists:
+
+- 111 fields on each of M5/M15/H1/H4/D1;
+- eight non-empty specialist families on every timeframe;
+- 40 family×timeframe routes;
+- 555 feature×timeframe gates;
+- exact V4 cache/liveness/normalization/bundle/runtime contracts;
+- recipe-owned progressively coarser historical windows.
+
+V2/V3 loaders exist for immutable historical research artifacts only. Active
+Entry code must import the generic loader and require V4 identity. Do not
+restore the old `GX1_V10_MULTI_TF_V2_CACHE_DIR` environment name.
+
+The frozen measured cache is
+`.../v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729`.
+It is schema-v2 historical input proof, not a trainable recipe or edge result.
+Active schema v3 requires closed trailing buckets and therefore needs a fresh
+event-local rebuild.
+
+## Value and decision rules
+
+- Final calibrated three-class argmax is the sole direction authority.
+- A missing decision is an error, never synthetic `FLAT`.
+- The same bundle/shared encoder owns calibrated `HOLD/EXIT_NOW`; a missing
+  Exit decision is an error, never synthetic `HOLD`.
+- No separate Exit model, bridge, overlay or hand-written close policy.
+- Per-timeframe feature relevance is learned; no fixed live TF weight.
+- Engineered confluence fields are evidence, not direction rules.
+- Gate values are liveness diagnostics; ablation proves decision influence.
+- Serve-parity v11 separately proves sampled local sensitivity for 1,723
+  numeric routes and counterfactual movement for five categorical routes.
+- Q/V/A audits stay on the valid `Advantage = Q - V` manifold.
+- Signed MFE/path-quality stays signed; MAE stays non-negative.
+- No fill, fallback, alias, clip or default may absorb invalid state.
+- Window, dropout, capacity and optimization values must be explicit recipe
+  inputs before they can be swept.
+
+## Verification
+
+For a bounded change:
 
 ```bash
 .venv/bin/python -m py_compile <changed-python-files>
 .venv/bin/python -m pytest -q <focused-tests>
 .venv/bin/python -m pytest --collect-only -q
+bash -n <changed-shell-files>
 git diff --check
+bash scripts/gx1_handover.sh --check
 ```
 
-Also scan for deleted filenames, retired contract modes, fallback wording,
-mutable artifact selection and obsolete CLI arguments in active code.
+Also scan active code for:
 
-Prefer extension over proliferation. If behavior is already owned by an
-existing producer, verifier, contract or control command, change that owner
-and its tests. Do not add `*_vN+1.py`, a compatibility wrapper or a parallel
-one-off for a small change. Create a new file only for a genuinely new,
-single-purpose authority boundary, record why it is new, and expose it through
-the existing public control surface.
+- retired V2/V3 Entry cache authority;
+- obsolete environment names;
+- fallback/default/pass-through wording;
+- mutable artifact selection;
+- wrong counts (`111`, `40`, `555`);
+- stale serve-parity versions or collapsed seq/snapshot influence;
+- retired daemon/`--loop`/watchdog/service assumptions;
+- stale instrument references.
 
-Contract-source verification should inspect parsed imports and executable use
-from the canonical owner. A raw text search for duplicated mode/dimension/field
-literals is not a valid wiring check and can reject correctly centralized
-consumers.
+## Heavy jobs and external data
 
-Do not run a dataset rebuild, trainer, large replay or live launcher as a test.
-Entry rebuild/training require immutable prerequisites. Rebuild shares one
-dataset-build `--run-id`; training uses a new output `--run-id` and a separate
-launch-derived `dataset_run_id` from the exact input evidence. These are
-lineage rather than manual approval. Live launch and destructive data work keep
-their separate authorization contracts.
+Do not run a dataset rebuild, trainer, large replay or live launcher merely as
+a test. Real jobs require immutable prerequisites, explicit event identity,
+capped RAM/swap and the host-wide heavy-job lock.
 
-The current model-native smoke path additionally requires the immutable
-162-key recipe event through `model-native-smoke-train`; direct trainer calls
-and ambient decision-setting overrides are invalid. `--dry-run` is the
-non-writing contract test. `--execute` is a real capped training job and its
-output must immediately enter `model-native-smoke-bundle-audit`.
+The next real job must publish fresh immutable native M1/M5 authority, rebuild
+the schema-v3 V4 cache and create a fresh bound combined Entry/lifecycle
+dataset/audit lineage, then run a declared TRAIN/VAL capacity sweep, smoke and
+candidate. The existing dataset/model/trainer owners now contain the
+same-bundle causal Exit lifecycle head and positive loss, but no trained
+artifact proves them. TEST remains untouched until candidate evaluation.
 
-The terminal V7 smoke recipe declared 25,000 stratified rows, eight epochs and
-patience eight. It completed six epochs, then failed hard-red with no
-checkpoint or bundle. It is immutable failure evidence and must not be reused
-or silently treated as a default. V24 is also rejected for rebuild after the
-post-V7 audit proved signed dip-MFE clipping.
+No current dataset or bundle artifact is admitted. The rejected V18 bundle
+and stale V19/V26 dataset/audit bytes were retired and deleted; use the
+retained native/canonical source and frozen V4 input cache only as inputs to a
+fresh schema-v3 lineage.
 
-Read `PIPELINE_AUDIT_XAU_20260723.md` before any Entry data/model edit. The two
-P0 target/objective faults, replacement sampler, bidirectional/conditional
-auxiliary evidence, recipe/M5/MTF byte boundary, complete physical-TRAIN
-normalization, 142+5 family-owned context routing, all-head/group influence,
-raw-bps units, positive TF scales, grad accumulation, strict bundle commit,
-atomic bundle/event publication, active-Exit byte identity, immutable approval,
-runtime lease and missing-trade-ID execution path are source-repaired and
-regression-tested. The current-bar alias set is derived from actual ordered
-signals; V24's count of 82 is not a code constant.
+The existing native owner implements schema-v4 parent-CAS successors with
+verified history reuse and one bounded overlap/tail refetch. Pair publication
+emits the live-tail event before pointer activation; the admission owner
+requires two consecutive pair events. No new Entry may be authorized until a
+fresh real admission is launch-bound and equals the pair used for inference.
+Do not turn freshness into a global startup condition: same-bundle Exit
+recovery must remain available when publisher evidence is stale.
 
-Do not infer dataset/model proof: V24/V7 predate the fixes. The audited source
-boundary, including the canonical transactional candidate/promotion/launch
-finalizer, is code-proven only. The finalizer must continue through the
-existing `entry_next_edge_control.sh` surface; it requires a pre-existing
-identity-bound vedtak, serializes canonical targets, proves the bundle,
-operating point and active-Exit bytes, and rolls both targets back with durable
-failure evidence on any partial error. It intentionally refuses the current
-caller-supplied joint Exit replay/trace diagnostics. The canonical operation in
-the same existing sizing/replay owner now executes the exact active
-XGB→V3→Exit-IQL/Strategy-F chain over full TEST, emits complete per-M1 evidence
-and cross-binds every input, active artifact and output byte. Missing cadence,
-state, model decisions or source exhaustion are terminal; there is no horizon
-substitution. The native-M1/M5 v3 bundles and pair generation
-`077e5419…` executed on 2026-07-24; per the XGB-cut vedtak the same day, the
-next fresh Entry rebuild lineage runs on an event-local strict native-v3 M5
-tape (`m5_tape_native_v3`), which supersedes the December-2024 repair and
-collector-snapshot steps for new lineages. The exit-chain TRAIN-rank identity
-binding is source-complete, but the immutable TRAIN-only rank reference and
-all exit-route executions remain open. No producer/finalizer
-execution is admissible until
-fresh empirical artifacts satisfy every prerequisite.
+Native OANDA writes require an explicit vedtak and fresh immutable output root.
+Destructive `GX1_DATA` work must use the evidence-retention cleanup owner with
+exact targets, immutable plan, separate approval and terminal evidence.
 
-Native OANDA M1/M5 production belongs to the existing
-`backfill_xauusd_m5_from_oanda.py` owner and the
-`model-native-native-m1-source` / `model-native-native-m5-source` control
-routes. It publishes immutable v3 bundles from retained complete-only MBA
-responses with fixed three-day M1 or 15-day M5 chunks, streamed year output
-and atomic no-replace visibility. Do not reintroduce direct canonical-year merges,
-alternate-provider repair, fixed request sleeps or a parallel backfill script.
-Both native routes and the initial native→canonical-v3/BASE28 bootstrap
-executed on 2026-07-24 under vedtak `XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`
-(pair generation `077e5419…`); any further production run still requires its
-own explicit vedtak and fresh immutable output root.
+## Handover lifecycle
 
-Checkpoint admission is profile-separated by user vedtak 2026-07-25 and has
-one owner, `_checkpoint_admission_ok`. Candidate is unchanged and requires
-auxiliary, active-head and cooperation health. Smoke admits on active-head
-liveness plus non-degenerate class support so a trainability run yields a
-measurable bundle; auxiliary and cooperation health remain computed, logged
-and journaled as diagnostics. A smoke bundle is never edge, promotion or
-launch evidence. Do not widen smoke admission further and do not let a smoke
-result substitute for candidate evidence.
+`scripts/gx1_handover.sh --check` binds all authority documents and launch
+state. With no admitted dataset, `current_smoke_launch_evidence` must be null;
+the takeover path does not read a historical recipe. The compact handover
+reports the dirty/clean source gate, exact resume stage and public route order.
+It also emits a deterministic `worktree_fingerprint` over HEAD, the complete
+tracked diff and every untracked file byte; changed-path count alone is never
+source identity. A future current recipe must bind the then-admitted dataset
+and current source bytes exactly.
 
-The same vedtak rebalanced five objective weights in the canonical recipe
-owner (`ENTRY_DIRECTION_CE_SCALE` to 12.00, prediction-balance class weights
-to `1.0,1.0,1.0`, and the triad/trade/side conviction weights to 2.00) after
-V8 and V9 collapsed while an unweighted-cross-entropy probe on the same
-substrate did not. Objective weights are recipe values. Never move
-`ENTRY_CKPT_*`, slice policy, minimum rows, label-rate floors, prediction-rate
-floors, gate floors, hard-red stop settings or the transition cost matrix to
-make a run pass.
-
-Checkpoint selection must consume exact epoch-wide `specialist_gate`,
-`tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean
-use above 0.01 and each gate must retain its direction-neutral entropy floor.
-Training-batch proxies or delayed post-bundle checks cannot substitute for
-this admission gate. Gate mean/entropy proves only use distribution; the
-repaired admission contract must additionally prove class-margin influence by
-specialist, timeframe, family×timeframe and all 26 fusion groups on supported
-VAL slices.
-
-Target-domain changes require producer, validator, train-loss and val-loss
-review together. Every spread-aware MFE, including all six dip-MFE targets,
-and path quality are signed forward outcomes and must not be clamped to zero;
-MAE is a non-negative adverse magnitude.
-Focused tests must cover both an admitted negative signed target and rejection
-of negative MAE.
-
-Head/target changes require an emitted-batch-key audit across both train and
-validation. The Dataset maps immutable parquet `y_direction` once to class
-tensor `y`; head checks consume `y` directly and may not add an alias or
-fallback merely to satisfy liveness.
-
-Every heavy GX1 job must use the capped runner, explicit RAM/swap limits and
-the one host-wide heavy-job lock. Never start another heavy job merely to test
-a wrapper. Destructive `GX1_DATA` work must use the sole evidence-retention
-cleanup owner with exact leaf targets, immutable inventory, separate approval
-and execution evidence.
+Launch remains `BLOCK`.

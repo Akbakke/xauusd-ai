@@ -21,6 +21,12 @@ liquidity, momentum and multi-timeframe state. Source code and immutable
 manifest order are authoritative; this document does not duplicate the
 142-name list.
 
+These 147 current-bar context values also condition the V4 cooperation path:
+555 feature×timeframe gates, 40 family×timeframe routes and five timeframe
+gates. Context may change learned relevance; it may not switch to a manual
+regime policy. The separate V4 market surface is exactly 111 fields on each of
+M5/M15/H1/H4/D1 and is not counted inside the 142+5 context dimensions.
+
 ## No fallback
 
 All 147 context values must be present, finite and schema-valid. Unknown
@@ -44,3 +50,8 @@ Session, trend, volatility and spread context condition the learned model
 through embeddings/FiLM/fusion. They do not decide whether a session is
 tradable, veto a side, apply a confidence threshold or rewrite final logits.
 The final calibrated `LONG/SHORT/FLAT` argmax remains the only authority.
+
+Serve-parity v11 requires every continuous context field to have nonzero
+sampled local raw and final class-margin sensitivity. Every categorical field
+must move both surfaces under a valid next-category counterfactual. Whole
+context-tensor ablations remain a separate route-level proof.

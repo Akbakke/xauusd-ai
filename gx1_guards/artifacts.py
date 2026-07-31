@@ -21,6 +21,11 @@ from gx1.contracts.immutable_event_authority_v1 import (
     require_newest_immutable_event,
     select_latest_immutable_event,
 )
+from gx1.contracts.live_tail_publication_v1 import (
+    LiveTailAuthorityError,
+    require_live_tail_launch_authority,
+    require_newest_live_tail_runtime_authority,
+)
 from gx1_guards import REPO_ROOT
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -42,7 +47,7 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
     load_bound_runtime_sizing_parity,
-    require_canonical_active_exit_replay_launch_authority,
+    require_canonical_unified_replay_launch_authority,
     require_joint_exit_portfolio_capacity,
 )
 from gx1.contracts.entry_model_native_adaptation_lifecycle_v1 import (
@@ -58,6 +63,9 @@ from gx1.contracts.entry_model_native_launch_transaction_v1 import (
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_operating_point,
+)
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
     MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
@@ -86,9 +94,6 @@ SERVE_GATE_PREDICTION_PATH_FIELDS = {
     "model_native_serve_parity": "pinned_predictions",
     "model_native_direction_pocket_audit": "predictions_parquet",
 }
-RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v3"
-)
 REQUIRED_XAU_CTX_CONT_DIM = 142
 REQUIRED_XAU_CTX_CAT_DIM = 5
 
@@ -126,140 +131,6 @@ def _exact_sha256(raw: object, *, label: str) -> str:
     if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
         raise ArtifactGuardError(f"{label} is not an exact SHA-256")
     return value
-
-
-def exit_iql_ordered_feature_names_sha256(feature_names: list[str]) -> str:
-    """Hash an ordered Exit-IQL feature list using one canonical encoding."""
-
-    return hashlib.sha256(
-        json.dumps(
-            feature_names,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    ).hexdigest()
-
-
-def require_exit_iql_summary_contract(
-    summary: object,
-    *,
-    context: str,
-) -> tuple[list[str], str]:
-    """Require production eligibility and an exact ordered-feature binding."""
-
-    if not isinstance(summary, dict):
-        raise ArtifactGuardError(f"{context} summary must be a JSON object")
-    if summary.get("research_only_v1") is not False:
-        raise ArtifactGuardError(
-            f"{context} research_only_v1 must be exact false"
-        )
-    if summary.get("iql_production_allowed_v1") is not True:
-        raise ArtifactGuardError(
-            f"{context} iql_production_allowed_v1 must be exact true"
-        )
-
-    raw_feature_names = summary.get("feature_names_v1")
-    if not isinstance(raw_feature_names, list) or not raw_feature_names:
-        raise ArtifactGuardError(
-            f"{context} feature_names_v1 must be a non-empty ordered list"
-        )
-    if any(
-        not isinstance(name, str) or not name or name != name.strip()
-        for name in raw_feature_names
-    ):
-        raise ArtifactGuardError(
-            f"{context} feature_names_v1 contains an invalid name"
-        )
-    feature_names = list(raw_feature_names)
-    if len(set(feature_names)) != len(feature_names):
-        raise ArtifactGuardError(
-            f"{context} feature_names_v1 contains duplicate names"
-        )
-    n_features = summary.get("n_features_v1")
-    if type(n_features) is not int or n_features != len(feature_names):
-        raise ArtifactGuardError(
-            f"{context} n_features_v1 does not match feature_names_v1"
-        )
-
-    expected_hash = summary.get("feature_names_sha256_v1")
-    if (
-        not isinstance(expected_hash, str)
-        or expected_hash != expected_hash.strip().lower()
-        or len(expected_hash) != 64
-        or any(ch not in "0123456789abcdef" for ch in expected_hash)
-    ):
-        raise ArtifactGuardError(
-            f"{context} feature_names_sha256_v1 is not an exact SHA-256"
-        )
-    actual_hash = exit_iql_ordered_feature_names_sha256(feature_names)
-    if actual_hash != expected_hash:
-        raise ArtifactGuardError(
-            f"{context} ordered feature_names_v1 SHA-256 mismatch: "
-            f"declared={expected_hash} actual={actual_hash}"
-        )
-    return feature_names, actual_hash
-
-
-def _check_exit_iql_active_contract(entry: dict, path: Path) -> None:
-    """Reject ambiguous or research-only ACTIVE Exit-IQL selections."""
-
-    active_variant = entry.get("active_variant")
-    if (
-        not isinstance(active_variant, str)
-        or not active_variant
-        or active_variant != active_variant.strip()
-    ):
-        raise ArtifactGuardError(
-            "ACTIVE exit_iql requires one explicit active_variant"
-        )
-    if entry.get("active_aggregator") not in {"mean", "max", "weighted"}:
-        raise ArtifactGuardError(
-            "ACTIVE exit_iql active_aggregator must be exact mean/max/weighted"
-        )
-    active_folds = entry.get("active_folds")
-    if (
-        not isinstance(active_folds, list)
-        or not active_folds
-        or any(
-            not isinstance(fold, str) or not fold or fold != fold.strip()
-            for fold in active_folds
-        )
-        or len(set(active_folds)) != len(active_folds)
-    ):
-        raise ArtifactGuardError(
-            "ACTIVE exit_iql active_folds must be a non-empty unique ordered "
-            "list of exact fold IDs"
-        )
-    serving_fold = entry.get("serving_fold")
-    if (
-        not isinstance(serving_fold, str)
-        or not serving_fold
-        or serving_fold != serving_fold.strip()
-    ):
-        raise ArtifactGuardError(
-            "ACTIVE exit_iql requires one explicit serving_fold; implicit "
-            "first-fold selection is forbidden"
-        )
-    if serving_fold not in active_folds:
-        raise ArtifactGuardError(
-            "ACTIVE exit_iql serving_fold is not present in active_folds"
-        )
-
-    summary_path = path / "summary_v1.json"
-    if not summary_path.is_file():
-        raise ArtifactGuardError(
-            f"ACTIVE exit_iql summary missing: {summary_path}"
-        )
-    try:
-        summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        raise ArtifactGuardError(
-            f"ACTIVE exit_iql summary unreadable: {summary_path}: {exc}"
-        ) from exc
-    require_exit_iql_summary_contract(
-        summary,
-        context=f"ACTIVE exit_iql bundle {path}",
-    )
 
 
 def _validate_gate_prediction_lineage(
@@ -678,6 +549,14 @@ def _check_v10_entry_launch_contract(
                 f"XAU direction launch contract lacks {evidence_name}"
             )
     try:
+        require_live_tail_launch_authority(
+            state.get("new_entry_live_tail_authority")
+        )
+    except LiveTailAuthorityError as exc:
+        raise ArtifactGuardError(
+            f"XAU direction launch static live-tail authority invalid: {exc}"
+        ) from exc
+    try:
         authority = require_model_native_sizing_authority_contract(
             state.get("sizing_authority_contract"),
             context="XAU_DIRECTION_LAUNCH_SIZING_AUTHORITY",
@@ -696,16 +575,16 @@ def _check_v10_entry_launch_contract(
         raise ArtifactGuardError(
             "XAU direction launch sizing adoption bundle differs from accepted bundle"
         )
-    exit_registry_path = Path(
-        str(sizing_snapshot.active_exit_registry_projection.get("path") or "")
+    candidate_bundle_path = Path(
+        str(sizing_snapshot.candidate_bundle_authority.get("bundle_dir") or "")
     ).expanduser()
     if (
-        not exit_registry_path.is_absolute()
-        or exit_registry_path.resolve() != target_selection_path.resolve()
+        not candidate_bundle_path.is_absolute()
+        or candidate_bundle_path.resolve() != path.resolve()
     ):
         raise ArtifactGuardError(
-            "XAU direction launch sizing proof binds a different Exit registry "
-            "than the launch target"
+            "XAU direction launch sizing proof binds a different candidate "
+            "bundle than the launch target"
         )
     if (
         state.get("joint_exit_execution_proof_evidence")
@@ -719,9 +598,9 @@ def _check_v10_entry_launch_contract(
             state.get("operating_point"),
             context="XAU direction launch state",
         )
-        require_canonical_active_exit_replay_launch_authority(
+        require_canonical_unified_replay_launch_authority(
             sizing_snapshot.joint_proof,
-            context="XAU_DIRECTION_LAUNCH_ACTIVE_EXIT_REPLAY_PRODUCER",
+            context="XAU_DIRECTION_LAUNCH_UNIFIED_REPLAY_PRODUCER",
         )
         require_joint_exit_portfolio_capacity(
             sizing_snapshot.joint_proof,
@@ -820,6 +699,37 @@ def _check_v10_entry_launch_contract(
     return state
 
 
+def require_new_entry_live_tail_admission(
+    launch_state: dict,
+    *,
+    expected_pair_generation_id: str | None = None,
+    expected_generation_manifest_sha256: str | None = None,
+    now_utc: object | None = None,
+) -> dict:
+    """Require newest fresh pair authority solely for opening new exposure."""
+
+    if not isinstance(launch_state, dict):
+        raise ArtifactGuardError(
+            "new-Entry live-tail launch state is unavailable"
+        )
+    try:
+        authority = require_live_tail_launch_authority(
+            launch_state.get("new_entry_live_tail_authority")
+        )
+        return require_newest_live_tail_runtime_authority(
+            authority,
+            expected_pair_generation_id=expected_pair_generation_id,
+            expected_generation_manifest_sha256=(
+                expected_generation_manifest_sha256
+            ),
+            now_utc=now_utc,
+        )
+    except LiveTailAuthorityError as exc:
+        raise ArtifactGuardError(
+            f"new-Entry live-tail admission unavailable: {exc}"
+        ) from exc
+
+
 def load_decision_entry(role: str) -> dict:
     """
     Return the full ACTIVE entry dict for a role — path resolved + active_variant,
@@ -834,6 +744,16 @@ def load_decision_entry(role: str) -> dict:
         raise ArtifactGuardError(
             f"Contract project is {contract.get('project')!r}, "
             f"expected {THIS_PROJECT!r}. Refusing cross-project load."
+        )
+    admission = contract.get("production_admission")
+    if (
+        not isinstance(admission, dict)
+        or admission.get("status") != "ALLOW"
+        or admission.get("selection_registry_is_launch_authority") is not True
+    ):
+        raise ArtifactGuardError(
+            "Production admission is not ALLOW and authoritative; refusing "
+            f"decision-artifact role {role!r}."
         )
     entry = contract.get("active", {}).get(role)
     if entry is None:
@@ -857,8 +777,6 @@ def load_decision_entry(role: str) -> dict:
         raise ArtifactGuardError(
             f"ACTIVE artifact for '{role}' not found on disk: {path}."
         )
-    if role == "exit_iql":
-        _check_exit_iql_active_contract(entry, path)
     launch_state: dict | None = None
     if role == "v10_entry":
         launch_state = _check_v10_entry_launch_contract(
@@ -883,8 +801,7 @@ def load_decision_entry(role: str) -> dict:
 
 def load_decision_artifact(role: str) -> Path:
     """
-    Return the ACTIVE artifact path for a given decision role
-    (e.g. 'v10_entry', 'v3_exit', 'xgb', 'entry_iql', 'exit_iql').
+    Return the ACTIVE artifact path for a declared decision role.
 
     Thin wrapper over load_decision_entry — kept for callers that only need
     the path. There is deliberately NO glob, NO 'latest', NO mtime sorting.

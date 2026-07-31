@@ -24,7 +24,7 @@ import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Set
+from typing import Any, Dict, Mapping, Set
 
 import torch
 
@@ -53,6 +53,7 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
 )
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    NEUTRAL_EFFECTIVE_INIT as TF_INPUT_SCALE_NEUTRAL_INIT,
     TF_NAMES as TF_INPUT_SCALE_NAMES,
     require_tf_input_scale_contract,
     require_tf_input_scale_state,
@@ -65,31 +66,39 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     require_bundle_commit_manifest,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    require_unified_exit_lifecycle_authority_evidence,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
+    UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
     require_model_direction_decision_contract,
+    require_unified_entry_exit_contract,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
+    MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
+    require_multi_tf_specialist_routing_v4,
     require_model_native_context_specialist_routing,
 )
 from gx1.features.htf_features import (
-    HTF_V2_MATRIX_CONTRACT,
-    HTF_V3_MATRIX_CONTRACT,
-    MULTI_TF_FEATURE_COUNT_V2,
-    MULTI_TF_FEATURE_COUNT_V3,
-    MULTI_TF_FEATURE_NAMES_SHA256_V2,
-    MULTI_TF_FEATURE_NAMES_SHA256_V3,
-    MULTI_TF_PER_BAR_FEATURES_V2,
-    MULTI_TF_PER_BAR_FEATURES_V3,
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_FEATURE_NAMES_SHA256_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    require_multi_tf_decision_window_coverage_metadata,
+    require_multi_tf_resolution_pyramid,
 )
 
 
 @dataclass
 class EntryV10Bundle:
     bundle_dir: str
+    bundle_sha256: str
     device: torch.device
     transformer_model: Any
     metadata: Dict[str, Any]
@@ -102,9 +111,9 @@ def _guard_required(path: Path, label: str) -> None:
         raise RuntimeError(f"[ENTRY_V10_BUNDLE_MISSING] {label} not found: {path}")
 
 
-def _resolve_device(device: Optional[str]) -> torch.device:
-    if device is None:
-        return torch.device("cpu")
+def _resolve_device(device: str) -> torch.device:
+    if not isinstance(device, str) or not device.strip():
+        raise RuntimeError("[ENTRY_V10_DEVICE_NOT_EXPLICIT]")
     return torch.device(device)
 
 
@@ -155,6 +164,10 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
     "timing": {"head_timing.weight", "head_timing.bias"},
     "tail_risk": {"head_tail_risk.weight", "head_tail_risk.bias"},
     "vol_forecast": {"head_vol_forecast.weight", "head_vol_forecast.bias"},
+    "unified_exit": {
+        "head_exit_action.weight",
+        "head_exit_action.bias",
+    },
 }
 
 _MODEL_NATIVE_METADATA_ONLY_COMPONENTS: frozenset[str] = frozenset()
@@ -183,19 +196,11 @@ _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS = frozenset(
         "model_native_evidence_fusion",
         "side_validity",
         "trendline_rail",
+        "unified_exit",
     }
 )
 
-_MODEL_NATIVE_REQUIRED_SPECIALISTS = (
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
-    "chart_geometry_encoder",
-    "price_action_candle_encoder",
-)
+_MODEL_NATIVE_REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 
 _MODEL_NATIVE_FORBIDDEN_COMPATIBILITY_ARTIFACTS = (
     "feature_meta_path",
@@ -239,6 +244,7 @@ def _require_exact_model_native_bundle_metadata(
         "seq_input_dim",
         "snap_input_dim",
         "seq_len",
+        "dropout",
         "ctx_cont_dim",
         "ctx_cat_dim",
         "ordered_signal_names",
@@ -316,6 +322,15 @@ def _require_exact_model_native_bundle_metadata(
             f"got={meta['seq_len']!r} expected={MODEL_NATIVE_SEQ_LEN}"
         )
     if (
+        isinstance(meta["dropout"], bool)
+        or not math.isfinite(float(meta["dropout"]))
+        or not 0.0 <= float(meta["dropout"]) < 1.0
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_DROPOUT_INVALID] "
+            f"got={meta['dropout']!r}"
+        )
+    if (
         int(meta["ctx_cont_dim"]) != MODEL_NATIVE_CTX_CONT_DIM
         or int(meta["ctx_cat_dim"]) != MODEL_NATIVE_CTX_CAT_DIM
     ):
@@ -340,10 +355,6 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SIGNAL_ORDER_INVALID]")
     if meta.get("supports_context_features") is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CONTEXT_FEATURES_REQUIRED]")
-    if meta.get("neutral_xgb_bridge") is not False or lock.get("neutral_xgb_bridge") is not False:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_NEUTRAL_BRIDGE_FLAG_INVALID]")
-    if meta.get("xgb_bridge_source") is not None or lock.get("xgb_bridge_source") is not None:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_BRIDGE_SOURCE_INVALID]")
     if meta.get("anchored_entry_enabled") is not False or meta.get("anchor_source") is not None:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_ANCHOR_METADATA_FORBIDDEN]")
     anchor_gate = _require_mapping_field(meta, "anchor_gate", context="meta")
@@ -354,6 +365,70 @@ def _require_exact_model_native_bundle_metadata(
     require_model_direction_decision_contract(lock, context="ENTRY_BUNDLE_LOCK")
     if meta["direction_decision_contract"] != lock["direction_decision_contract"]:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CONTRACT_SPLIT_BRAIN]")
+    require_unified_entry_exit_contract(
+        meta,
+        context="ENTRY_BUNDLE_META",
+    )
+    require_unified_entry_exit_contract(
+        lock,
+        context="ENTRY_BUNDLE_LOCK",
+    )
+    if (
+        meta["unified_entry_exit_contract"]
+        != lock["unified_entry_exit_contract"]
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_ENTRY_EXIT_CONTRACT_SPLIT_BRAIN]"
+        )
+    exit_evidence = _require_mapping_field(
+        meta,
+        "unified_exit_training_evidence",
+        context="meta",
+    )
+    lock_exit_evidence = _require_mapping_field(
+        lock,
+        "unified_exit_training_evidence",
+        context="lock",
+    )
+    if exit_evidence != lock_exit_evidence:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_TRAINING_EVIDENCE_SPLIT_BRAIN]"
+        )
+    exit_validation = exit_evidence.get("selected_checkpoint_validation")
+    exit_movement = exit_evidence.get(
+        "selected_checkpoint_parameter_movement"
+    )
+    exit_lifecycle = exit_evidence.get("lifecycle")
+    try:
+        require_unified_exit_lifecycle_authority_evidence(exit_lifecycle)
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_LIFECYCLE_AUTHORITY_INVALID]"
+        ) from exc
+    if (
+        exit_evidence.get("schema_version")
+        != "gx1_unified_exit_training_evidence_v1"
+        or exit_evidence.get("decision") != "PASS"
+        or exit_evidence.get("shared_model_state_dict") is not True
+        or exit_evidence.get("entry_representation_surface")
+        != UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+        or exit_evidence.get("future_outcomes_used_as_model_inputs") is not False
+        or not isinstance(exit_evidence.get("exit_action_loss_weight"), (int, float))
+        or isinstance(exit_evidence.get("exit_action_loss_weight"), bool)
+        or not math.isfinite(float(exit_evidence["exit_action_loss_weight"]))
+        or float(exit_evidence["exit_action_loss_weight"]) <= 0.0
+        or not isinstance(exit_validation, Mapping)
+        or int(exit_validation.get("unified_exit_action_rows", 0)) <= 0
+        or int(exit_validation.get("unified_exit_hold_rows", 0)) <= 0
+        or int(exit_validation.get("unified_exit_now_rows", 0)) <= 0
+        or not isinstance(exit_movement, Mapping)
+        or exit_movement.get("all_exit_components_moved") is not True
+        or not isinstance(exit_lifecycle, Mapping)
+        or exit_lifecycle.get("future_outcomes_used_as_model_inputs") is not False
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_TRAINING_EVIDENCE_INVALID]"
+        )
 
     train_recipe = _require_mapping_field(meta, "train_recipe", context="meta")
     active_raw = train_recipe.get("active_heads")
@@ -372,7 +447,7 @@ def _require_exact_model_native_bundle_metadata(
     mtf = _require_mapping_field(meta, "multi_tf", context="meta")
     required_mtf = (
         "enabled",
-        "v2_mode",
+        "v4_mode",
         "m5_seq_dim",
         "m5_seq_len",
         "m15_seq_dim",
@@ -383,6 +458,7 @@ def _require_exact_model_native_bundle_metadata(
         "h4_seq_len",
         "d1_seq_dim",
         "d1_seq_len",
+        "multi_tf_num_layers",
         "multi_tf_scale",
         "feature_contract",
         "matrix_contract",
@@ -390,37 +466,32 @@ def _require_exact_model_native_bundle_metadata(
         "feature_names_sha256",
         "closed_bar_target_availability",
         "target_availability_shift_minutes",
+        "resolution_pyramid",
+        "decision_window_coverage",
+        "specialist_routing_schema_version",
+        "specialist_input_indices",
+        "family_tf_token_order",
     )
     missing_mtf = [key for key in required_mtf if key not in mtf]
     if missing_mtf:
         raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_METADATA_MISSING] {missing_mtf}")
-    if mtf["enabled"] is not True or mtf["v2_mode"] is not True:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_V2_REQUIRED]")
+    if mtf["enabled"] is not True or mtf["v4_mode"] is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_V4_REQUIRED]")
     # The bundle states which per-bar contract it was trained against and is
     # verified against exactly that one. Accepting a declared contract is not
     # the same as accepting any width: an unknown declaration fails closed, and
     # names, order and hash must all match the one named.
-    _bundle_mtf_contracts = {
-        HTF_V2_MATRIX_CONTRACT: (
-            MULTI_TF_PER_BAR_FEATURES_V2,
-            MULTI_TF_FEATURE_NAMES_SHA256_V2,
-            MULTI_TF_FEATURE_COUNT_V2,
-        ),
-        HTF_V3_MATRIX_CONTRACT: (
-            MULTI_TF_PER_BAR_FEATURES_V3,
-            MULTI_TF_FEATURE_NAMES_SHA256_V3,
-            MULTI_TF_FEATURE_COUNT_V3,
-        ),
-    }
     _declared_contract = mtf.get("matrix_contract")
-    if _declared_contract not in _bundle_mtf_contracts:
+    if _declared_contract != HTF_V4_MATRIX_CONTRACT:
         raise RuntimeError(
-            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CONTRACT_UNKNOWN] "
-            f"{_declared_contract!r}"
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_EIGHT_FAMILY_REQUIRED] "
+            f"observed={_declared_contract!r} expected={HTF_V4_MATRIX_CONTRACT!r}"
         )
-    _mtf_names, _mtf_names_sha, _mtf_count = _bundle_mtf_contracts[_declared_contract]
+    _mtf_names = MULTI_TF_PER_BAR_FEATURES_V4
+    _mtf_names_sha = MULTI_TF_FEATURE_NAMES_SHA256_V4
+    _mtf_count = MULTI_TF_FEATURE_COUNT_V4
     if (
-        mtf["feature_contract"] != "MULTI_TF_PER_BAR_V2"
+        mtf["feature_contract"] != HTF_V4_MATRIX_CONTRACT
         or mtf["feature_names"] != list(_mtf_names)
         or mtf["feature_names_sha256"] != _mtf_names_sha
     ):
@@ -429,10 +500,64 @@ def _require_exact_model_native_bundle_metadata(
         )
     if not math.isfinite(float(mtf["multi_tf_scale"])) or float(mtf["multi_tf_scale"]) <= 0.0:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SCALE_INVALID]")
+    if (
+        isinstance(mtf["multi_tf_num_layers"], bool)
+        or not isinstance(mtf["multi_tf_num_layers"], int)
+        or int(mtf["multi_tf_num_layers"]) <= 0
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_NUM_LAYERS_INVALID]"
+        )
     if mtf["closed_bar_target_availability"] is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CLOSED_BAR_REQUIRED]")
     if abs(float(mtf["target_availability_shift_minutes"]) - 5.0) > 1e-9:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SHIFT_INVALID]")
+    per_tf_seq_lens = {
+        "M5": int(mtf["m5_seq_len"]),
+        "M15": int(mtf["m15_seq_len"]),
+        "H1": int(mtf["h1_seq_len"]),
+        "H4": int(mtf["h4_seq_len"]),
+        "D1": int(mtf["d1_seq_len"]),
+    }
+    observed_pyramid = mtf["resolution_pyramid"]
+    expected_pyramid = require_multi_tf_resolution_pyramid(per_tf_seq_lens)
+    if observed_pyramid != expected_pyramid:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_RESOLUTION_PYRAMID_INVALID]"
+        )
+    try:
+        require_multi_tf_decision_window_coverage_metadata(
+            mtf["decision_window_coverage"],
+            per_tf_seq_lens=per_tf_seq_lens,
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_DECISION_COVERAGE_INVALID]"
+        ) from exc
+    expected_mtf_specialist_indices = {
+        str(name): list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(
+            mtf["feature_names"]
+        ).items()
+    }
+    if (
+        mtf["specialist_routing_schema_version"]
+        != MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
+        or mtf["specialist_input_indices"]
+        != expected_mtf_specialist_indices
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SPECIALIST_ROUTING_INVALID]"
+        )
+    expected_family_tf_token_order = [
+        f"{tf}:{specialist}"
+        for tf in TF_INPUT_SCALE_NAMES
+        for specialist in expected_mtf_specialist_indices
+    ]
+    if mtf["family_tf_token_order"] != expected_family_tf_token_order:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_TOKEN_ORDER_INVALID]"
+        )
     for key in (
         "m5_seq_dim",
         "m5_seq_len",
@@ -465,7 +590,7 @@ def _require_exact_model_native_bundle_metadata(
             "signal": list(meta["ordered_signal_names"]),
             "ctx_cont": list(meta["ordered_ctx_cont_names"]),
             **{
-                f"mtf_{tf.lower()}": list(MULTI_TF_PER_BAR_FEATURES_V2)
+                f"mtf_{tf.lower()}": list(_mtf_names)
                 for tf in INPUT_NORMALIZATION_TFS
             },
         },
@@ -576,7 +701,17 @@ def _require_exact_model_native_bundle_metadata(
             raise RuntimeError(
                 f"[ENTRY_BUNDLE_MODEL_NATIVE_FULL_STACK_COMPONENT_REQUIRED] meta.{key}"
             )
-    require_tf_input_scale_contract(meta["tf_input_scale"])
+    normalized_tf_scale = require_tf_input_scale_contract(
+        meta["tf_input_scale"]
+    )
+    if any(
+        float(normalized_tf_scale["init"][tf])
+        != float(TF_INPUT_SCALE_NEUTRAL_INIT)
+        for tf in TF_INPUT_SCALE_NAMES
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_PRIOR_FORBIDDEN]"
+        )
 
     forbidden_direction_artifacts = (
         "hierarchical_direction_composition",
@@ -891,6 +1026,42 @@ def _require_model_native_learned_component_liveness(
             continue
         if not any(bool(torch.count_nonzero(value).item()) for value in tensors):
             failures.append(f"{component}:zero_init_pass_through")
+    mtf_routing = require_multi_tf_specialist_routing_v4(
+        MULTI_TF_PER_BAR_FEATURES_V4
+    )
+    for timeframe in TF_INPUT_SCALE_NAMES:
+        for specialist, indices in mtf_routing.items():
+            key = (
+                "mtf_feature_context_gate."
+                f"{timeframe}__{specialist}.weight"
+            )
+            value = state_dict.get(key)
+            expected_rows = len(indices)
+            if not isinstance(value, torch.Tensor):
+                failures.append(f"feature_tf_context_gate:{key}:missing_or_non_tensor")
+                continue
+            if (
+                value.ndim != 2
+                or int(value.shape[0]) != expected_rows
+                or int(value.shape[1]) <= 0
+            ):
+                failures.append(
+                    "feature_tf_context_gate:"
+                    f"{key}:shape={tuple(value.shape)} expected_rows={expected_rows}"
+                )
+                continue
+            if not bool(torch.isfinite(value).all().item()):
+                failures.append(f"feature_tf_context_gate:{key}:non_finite")
+                continue
+            dead_rows = torch.nonzero(
+                torch.count_nonzero(value, dim=1) == 0,
+                as_tuple=False,
+            ).flatten()
+            if int(dead_rows.numel()) > 0:
+                failures.append(
+                    "feature_tf_context_gate:"
+                    f"{key}:zero_init_pass_through_rows={dead_rows.tolist()}"
+                )
     _require_evidence_fusion_state_contract(state_dict)
     if failures:
         raise RuntimeError(
@@ -925,8 +1096,7 @@ def _infer_entry_bundle_capabilities(meta: Dict[str, Any], state_dict: Dict[str,
 def load_entry_v10_ctx_bundle(
     *,
     bundle_dir: str | Path,
-    device: Optional[str] = None,
-    is_replay: bool = True,
+    device: str,
 ) -> EntryV10Bundle:
 
     supplied_bundle_dir = Path(bundle_dir).expanduser()
@@ -1024,6 +1194,7 @@ def load_entry_v10_ctx_bundle(
     _h4_seq_len = int(mtf_meta["h4_seq_len"])
     _d1_seq_len = int(mtf_meta["d1_seq_len"])
     mtf_scale = float(mtf_meta["multi_tf_scale"])
+    mtf_num_layers = int(mtf_meta["multi_tf_num_layers"])
     _m5_seq_dim = int(mtf_meta["m5_seq_dim"])
     _m5_seq_len = int(mtf_meta["m5_seq_len"])
     state_dict_preview = torch.load(
@@ -1033,7 +1204,6 @@ def load_entry_v10_ctx_bundle(
     )
     _require_model_native_state_head_contract(meta, state_dict_preview)
     _require_model_native_learned_component_liveness(state_dict_preview)
-    _tf_inits = meta["tf_input_scale"]["init"]
     required_tf_scale_keys = {
         f"tf_input_scale_{tf}" for tf in TF_INPUT_SCALE_NAMES
     }
@@ -1048,18 +1218,15 @@ def load_entry_v10_ctx_bundle(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
+        dropout=float(meta["dropout"]),
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
         m15_seq_dim=_m15_seq_dim, h1_seq_dim=_h1_seq_dim, h4_seq_dim=_h4_seq_dim, d1_seq_dim=_d1_seq_dim,
         m15_seq_len=_m15_seq_len, h1_seq_len=_h1_seq_len,
         h4_seq_len=_h4_seq_len, d1_seq_len=_d1_seq_len,
         m5_seq_dim=_m5_seq_dim, m5_seq_len=_m5_seq_len,
+        multi_tf_num_layers=mtf_num_layers,
         multi_tf_scale=mtf_scale,
-        tf_input_scale_init_m5=float(_tf_inits["m5"]),
-        tf_input_scale_init_m15=float(_tf_inits["m15"]),
-        tf_input_scale_init_h1=float(_tf_inits["h1"]),
-        tf_input_scale_init_h4=float(_tf_inits["h4"]),
-        tf_input_scale_init_d1=float(_tf_inits["d1"]),
         specialist_input_indices={
             str(k): list(v) for k, v in _indices.items()
         },
@@ -1081,6 +1248,12 @@ def load_entry_v10_ctx_bundle(
                 "ctx_cat_indices"
             ].items()
         },
+        multi_tf_specialist_input_indices={
+            str(name): list(indices)
+            for name, indices in require_multi_tf_specialist_routing_v4(
+                mtf_meta["feature_names"]
+            ).items()
+        },
         temporal_alias_signal_indices=list(
             _specialist_cfg["context_routing"]["temporal_alias_policy"][
                 "signal_indices"
@@ -1098,6 +1271,12 @@ def load_entry_v10_ctx_bundle(
         ),
         input_normalization=meta["input_normalization"],
     ).to(dev)
+    if int(model.cfg.d_model) != UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_REPRESENTATION_DIM_INVALID] "
+            f"observed={model.cfg.d_model!r} "
+            f"expected={UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM}"
+        )
 
     state_dict = state_dict_preview
     model.load_state_dict(state_dict, strict=True)
@@ -1142,12 +1321,12 @@ def load_entry_v10_ctx_bundle(
 
     bundle = EntryV10Bundle(
         bundle_dir=str(bd),
+        bundle_sha256=str(committed_bundle["commit_sha256"]),
         device=dev,
         transformer_model=model,
         metadata={
             **meta,
             "model_variant": "v10_ctx",
-            "is_replay": bool(is_replay),
             "capabilities": capabilities,
         },
         transformer_config={

@@ -10,16 +10,14 @@ canonical_features_v2 = canonical_features_v1 (84 features)
 
 Why v2
 ------
-Audit (2026-05-02) revealed the GX1 stack's downstream consumers (V10 transformer,
-V3 transformer, entry-IQL, exit-IQL) all use canonical_features_v1 as their multi-TF
-context source, but v1 is missing **explicit D1 and M15 indicators**:
+Audit (2026-05-02) revealed that canonical_features_v1 was missing
+**explicit D1 and M15 indicators**:
   - V1 has 84 features but multi-TF coverage is dominated by H1 (6) + H4 (5).
   - D1 is represented only by 2 single-value runtime features inside V10's ctx_cont.
   - M15 is represented only by 1 (M15_range_compression_ratio).
 
-For the 2026-Q2 full-stack rebuild (XGB + V10 + V3 + IQLs all retrained on 2020-2026
-bidirectional XAUUSD), the four model layers must consume from a unified feature
-universe. canonical_v2 is the foundation: every layer downstream joins from this
+The model-native stack must consume one unified feature universe.
+canonical_v2 is the foundation: every downstream causal layer joins from this
 single parquet.
 
 New features added (11 total)
@@ -77,9 +75,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
-from gx1.scripts import materialize_build_canonical_features_v1 as v1_builder
-from gx1.features.smc_v1 import compute_smc_features, SMC_FEATURE_NAMES
+from gx1.utils import artifact_primitives_v1 as contract_gate  # noqa: E402
+from gx1.scripts import materialize_build_canonical_features_v1 as v1_builder  # noqa: E402
+from gx1.features.smc_v1 import compute_smc_features, SMC_FEATURE_NAMES  # noqa: E402
 
 
 ACTION = "BUILD_CANONICAL_FEATURES_V2"

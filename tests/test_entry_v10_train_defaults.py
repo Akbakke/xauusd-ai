@@ -4,6 +4,9 @@ import ast
 import json
 from pathlib import Path
 
+import pytest
+import torch
+
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
 )
@@ -43,12 +46,135 @@ def _env_str_defaults(module: ast.Module) -> dict[str, str]:
     return {key: MODEL_NATIVE_RECIPE_ENV[key] for key in keys}
 
 
+def test_entry_training_requires_live_unified_exit_supervision_and_proof() -> None:
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    run_train_source = source.split("def run_train(", 1)[1]
+
+    assert "_require_unified_exit_training_evidence" not in source
+    assert "--unified-exit-lifecycle-manifest-json" in source
+    assert run_train_source.index(
+        "UnifiedExitLifecycleCorpus("
+    ) < run_train_source.index("optim.AdamW(")
+    assert source.index(
+        "unified_exit_loss, unified_exit_stats = _unified_exit_action_loss("
+    ) < source.index("\n            loss.backward()")
+    assert run_train_source.index(
+        "_unified_exit_movement_proof("
+    ) < run_train_source.index("torch.save(best_state")
+
+
+def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    class _ExitProbe(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.head = torch.nn.Linear(4 + 14 + 2, 2)
+
+        def forward_exit_action(
+            self,
+            *,
+            entry_shared_representation,
+            exit_path_x,
+            exit_path_lengths,
+            exit_side_index,
+        ):
+            row = torch.arange(exit_path_x.shape[0])
+            last = exit_path_x[row, exit_path_lengths.long() - 1]
+            side = torch.nn.functional.one_hot(
+                exit_side_index.long(),
+                num_classes=2,
+            ).float()
+            logits = self.head(
+                torch.cat(
+                    [entry_shared_representation, last, side],
+                    dim=1,
+                )
+            )
+            return {"exit_action_logits": logits}
+
+    model = _ExitProbe()
+    shared = torch.randn(1, 4, requires_grad=True)
+    paths = torch.zeros(1, 4, 3, 14)
+    paths[0, 0, :2] = 0.25
+    paths[0, 1, :3] = -0.25
+    batch = {
+        "exit_path_x": paths,
+        "exit_path_lengths": torch.tensor([[2, 3, 0, 0]]),
+        "exit_side_index": torch.tensor([[0, 1, 0, 0]]),
+        "exit_action_target": torch.tensor([[0, 1, 0, 0]]),
+        "exit_sample_valid": torch.tensor([[True, True, False, False]]),
+    }
+    loss, stats = trainer._unified_exit_action_loss(
+        model,
+        {"shared_feature_representation": shared},
+        batch,
+        torch.device("cpu"),
+    )
+    loss.backward()
+
+    assert float(loss) > 0.0
+    assert stats["rows"] == 2
+    assert stats["hold_rows"] == 1
+    assert stats["exit_now_rows"] == 1
+    assert shared.grad is not None
+    assert float(shared.grad.abs().sum()) > 0.0
+    assert model.head.weight.grad is not None
+    assert float(model.head.weight.grad.abs().sum()) > 0.0
+
+
 def test_entry_v10_env_reads_are_owned_by_the_exact_recipe_contract() -> None:
     module = _trainer_ast()
     env_defaults = _env_str_defaults(module)
     assert set(env_defaults).issubset(MODEL_NATIVE_RECIPE_ENV)
     assert "_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS" not in TRAINER_PATH.read_text(
         encoding="utf-8"
+    )
+
+
+def test_entry_v10_model_has_no_hidden_mtf_or_capacity_defaults() -> None:
+    import inspect
+
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as model_module
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    model_signature = inspect.signature(
+        model_module.EntryV10CtxHybridTransformer.__init__
+    )
+    for name in (
+        "dropout",
+        "m5_seq_len",
+        "m15_seq_len",
+        "h1_seq_len",
+        "h4_seq_len",
+        "d1_seq_len",
+        "multi_tf_num_layers",
+        "multi_tf_scale",
+        "specialist_num_layers",
+        "specialist_fusion_scale",
+        "cross_family_fusion_scale",
+    ):
+        assert model_signature.parameters[name].default is inspect.Parameter.empty
+    config_signature = inspect.signature(model_module.CtxModelConfig)
+    for name in (
+        "dropout",
+        "m5_seq_len",
+        "m15_seq_len",
+        "h1_seq_len",
+        "h4_seq_len",
+        "d1_seq_len",
+        "multi_tf_num_layers",
+        "multi_tf_scale",
+        "specialist_num_layers",
+        "specialist_fusion_scale",
+        "cross_family_fusion_scale",
+    ):
+        assert config_signature.parameters[name].default is inspect.Parameter.empty
+    assert (
+        inspect.signature(trainer.train_epoch)
+        .parameters["grad_accum_steps"]
+        .default
+        is inspect.Parameter.empty
     )
 
 
@@ -1495,6 +1621,7 @@ def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -
     from gx1.features.htf_features import (
         HTF_V2_MATRIX_CONTRACT,
         MULTI_TF_FEATURE_COUNT_V2,
+        MULTI_TF_PER_BAR_FEATURES_V2,
     )
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
@@ -1515,6 +1642,7 @@ def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -
     frame = pd.DataFrame(
         feats,
         index=pd.DatetimeIndex(ts.astype("datetime64[ns]"), tz="UTC"),
+        columns=list(MULTI_TF_PER_BAR_FEATURES_V2),
     )
     frame.attrs["ts_int64"] = ts
     frame.attrs["feats_np"] = feats
@@ -1525,8 +1653,13 @@ def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -
     dataset._multi_tf_feats = {"M5": frame}
     dataset._multi_tf_shift = {"M5": pd.Timedelta(minutes=5)}
     dataset._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
-    dataset.multi_tf_seq_len = 1
-    dataset.per_tf_seq_lens = {"M5": 1}
+    dataset.per_tf_seq_lens = {
+        "M5": 1,
+        "M15": 1,
+        "H1": 1,
+        "H4": 1,
+        "D1": 1,
+    }
 
     out = dataset._get_multi_tf_window(target)
 
@@ -1549,7 +1682,7 @@ def test_entry_v10_trainer_verifies_mtf_cache_source_sha() -> None:
     assert "MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH" in text
     assert "m5_prebuilt_source_sha256" in text
     assert "cache_identity_sha256" in text
-    assert "load_multi_tf_v2_cache" in text
+    assert "load_multi_tf_cache" in text
     assert "MULTI_TF_DISK_CACHE_MANDATORY" in text
 
 

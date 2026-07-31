@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_entry_iql_delete_incident_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-20T00:00:00+02:00",
+  "updated_utc": "2026-07-29T18:47:00+02:00",
   "incident": {
     "executed_utc": "2026-07-07T12:27:11.695728+00:00",
     "failure_mode": "ABBREVIATED_EXCLUSION_PATHS_NOT_RESOLVED_OR_FAIL_CLOSED",
@@ -20,7 +20,10 @@
     "deleted_entry_iql_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs"
   },
   "salvage_inventory": {
-    "path": "/home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests",
+    "path": null,
+    "former_path_relative": "reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests",
+    "status": "RETIREMENT_APPROVED_BY_USER",
+    "cleanup_vedtak": "USER_SINGLE_MODEL_ENTRY_EXIT_PERMANENT_REMOVAL_20260729",
     "file_count": 2271,
     "directory_count": 647,
     "total_bytes": 66670234,

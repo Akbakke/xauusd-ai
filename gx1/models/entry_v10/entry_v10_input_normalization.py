@@ -51,13 +51,16 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.features.htf_features import (
     HTF_V2_MATRIX_CONTRACT,
     HTF_V3_MATRIX_CONTRACT,
+    HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_FEATURE_COUNT_V2,
     MULTI_TF_FEATURE_COUNT_V3,
+    MULTI_TF_FEATURE_COUNT_V4,
     MULTI_TF_PER_BAR_FEATURES_V2,
     MULTI_TF_PER_BAR_FEATURES_V3,
+    MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_SHIFT,
     MultiTFV2DiskCache,
-    load_multi_tf_v2_cache,
+    load_multi_tf_cache,
 )
 
 
@@ -357,6 +360,7 @@ def _validate_full_train_inputs(
 _MTF_PER_BAR_CONTRACTS = {
     HTF_V2_MATRIX_CONTRACT: (MULTI_TF_FEATURE_COUNT_V2, MULTI_TF_PER_BAR_FEATURES_V2),
     HTF_V3_MATRIX_CONTRACT: (MULTI_TF_FEATURE_COUNT_V3, MULTI_TF_PER_BAR_FEATURES_V3),
+    HTF_V4_MATRIX_CONTRACT: (MULTI_TF_FEATURE_COUNT_V4, MULTI_TF_PER_BAR_FEATURES_V4),
 }
 
 
@@ -588,12 +592,12 @@ def _verify_artifacts_and_load_mtf(
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_MTF_CACHE_PATH_INVALID]"
         )
-    cache = load_multi_tf_v2_cache(cache_dir)
+    cache = load_multi_tf_cache(cache_dir)
     if not isinstance(cache, MultiTFV2DiskCache):
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_MTF_CACHE_IDENTITY_MISSING]"
         )
-    # The verified V2 cache binds its own full-history canonical M5 source
+    # The verified V4 cache binds its own full-history canonical M5 source
     # (the cascade-audited canonical-v3 parquet); m5_prebuilt is the separate
     # model-range seq/snapshot source. Prove the cache against its own
     # declared source bytes — equality with m5_prebuilt would force the

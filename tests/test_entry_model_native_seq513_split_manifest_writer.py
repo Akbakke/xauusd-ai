@@ -26,6 +26,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    _log_label_distribution_proof,
     _model_native_state_contract,
     write_manifest,
 )
@@ -55,16 +56,20 @@ def _source(tmp_path: Path) -> Path:
     return source
 
 
-def _extra() -> dict:
+def _extra(tmp_path: Path) -> dict:
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields(
             remainder_prefix="session_regime.split_writer_fixture"
         )
     )
+    cache_dir = tmp_path / "mtf_cache"
+    cache_dir.mkdir(exist_ok=True)
+    cache_manifest = cache_dir / "manifest.json"
+    cache_manifest.write_text('{"fixture":"v4"}\n', encoding="utf-8")
+    cache_manifest_sha = hashlib.sha256(cache_manifest.read_bytes()).hexdigest()
     return {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-        "neutral_xgb_bridge": False,
         "model_native_signal_contract": signal_contract,
         "signal_bridge": {
             "id": signal_contract["schema_version"],
@@ -75,7 +80,7 @@ def _extra() -> dict:
             "bridge_source": None,
         },
         "ctx_contract": {
-            "tag": "CTX6CAT5",
+            "tag": "CTX142CAT5",
             "ctx_cont_dim": 142,
             "ctx_cat_dim": 5,
             "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
@@ -102,6 +107,14 @@ def _extra() -> dict:
             "runtime_rule_free": True,
             "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
         },
+        "multi_tf_cache_binding": {
+            "cache_dir": str(cache_dir.resolve()),
+            "manifest_path": str(cache_manifest.resolve()),
+            "manifest_sha256": cache_manifest_sha,
+            "cache_identity_sha256": "d" * 64,
+            "m5_prebuilt_source": str((tmp_path / "source.parquet").resolve()),
+            "m5_prebuilt_source_sha256": "e" * 64,
+        },
     }
 
 
@@ -120,7 +133,7 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
             source_parquet=_source(tmp_path),
             tape_root=tmp_path / "tape",
             splits=_splits(),
-            extra=_extra(),
+            extra=_extra(tmp_path),
         )
 
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -135,6 +148,18 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
         }
 
 
+def test_test_label_distribution_is_withheld_before_final_evaluation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    frame = pd.DataFrame({"y_direction": [0, 0, 1, 2]})
+
+    with caplog.at_level("INFO"):
+        _log_label_distribution_proof(frame, split="test")
+
+    assert "withheld_until_final_candidate_evaluation" in caplog.text
+    assert "long=2" not in caplog.text
+
+
 def test_canonical_writer_records_one_exact_source(tmp_path: Path) -> None:
     source = _source(tmp_path)
     manifest_path = write_manifest(
@@ -142,7 +167,7 @@ def test_canonical_writer_records_one_exact_source(tmp_path: Path) -> None:
         build_command=["builder"],
         source_parquet=source,
         tape_root=tmp_path / "tape",
-        extra=_extra(),
+        extra=_extra(tmp_path),
     )
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -156,7 +181,7 @@ def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
             build_command=["builder"],
             source_parquet=tmp_path / "missing.parquet",
             tape_root=tmp_path / "tape",
-            extra=_extra(),
+            extra=_extra(tmp_path),
         )
 
 
@@ -166,10 +191,6 @@ def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
         (
             lambda extra: extra.update({"model_native_signal_contract": None}),
             "MODEL_NATIVE_MANIFEST_SIGNAL_CONTRACT_MISSING",
-        ),
-        (
-            lambda extra: extra.update({"neutral_xgb_bridge": True}),
-            "MODEL_NATIVE_MANIFEST_NEUTRAL_BRIDGE_FORBIDDEN",
         ),
         (
             lambda extra: extra["signal_bridge"].update({"bridge_dim": 7}),
@@ -188,7 +209,7 @@ def test_canonical_split_writer_rejects_soft_or_legacy_contracts(
     mutation,
     error: str,
 ) -> None:
-    extra = copy.deepcopy(_extra())
+    extra = copy.deepcopy(_extra(tmp_path))
     mutation(extra)
 
     with pytest.raises(RuntimeError, match=error):

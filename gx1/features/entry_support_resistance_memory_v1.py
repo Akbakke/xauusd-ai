@@ -12,7 +12,7 @@ import numpy as np
 
 
 SUPPORT_RESISTANCE_MEMORY_FEATURE_VERSION = (
-    "entry_support_resistance_memory_v1_20260717_closed_bar_level_memory_failclosed"
+    "entry_support_resistance_memory_v2_20260729_signed_candle_owner_failclosed"
 )
 SUPPORT_RESISTANCE_MEMORY_FEATURE_PREFIX = "chart.sr_memory_"
 
@@ -58,11 +58,11 @@ SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS = (
     "ctx_cont.smc_choch_recent_tau12",
     "ctx_cont.smc_choch_recent_tau24",
     "snap.smc_premium_discount",
-    "snap.body_pct",
-    "snap.wick_asym",
-    "snap._v1_body_share_1",
-    "snap._v1_clv",
-    "ctx_cont.wick_ratio",
+    "candle.pattern_body_direction",
+    "candle.pattern_body_share",
+    "candle.pattern_upper_wick_share",
+    "candle.pattern_lower_wick_share",
+    "candle.pattern_close_location",
     "ctx_cont._v1h1_ema_diff",
     "ctx_cont._v1h4_ema_diff",
     "ctx_cont.d1_ema_slope_20_canon_v2",
@@ -324,17 +324,14 @@ def build_entry_support_resistance_memory_layer(
 
     premium = _clip01(c("snap.smc_premium_discount"))
     discount = _clip01(1.0 - premium)
-    clv_unit = _clip01(0.5 + 0.5 * _clip(c("snap._v1_clv"), -1.0, 1.0))
-    body_direction = _clip(c("snap.body_pct"), -1.0, 1.0)
-    body_share = _clip01(np.abs(body_direction) + c("snap._v1_body_share_1"))
-    body_bull = _clip01(_pos(body_direction) + clv_unit)
-    body_bear = _clip01(_neg(body_direction) + (1.0 - clv_unit))
-    wick_asym = _clip(c("snap.wick_asym"), -1.0, 1.0)
-    wick_ratio = _clip01(c("ctx_cont.wick_ratio"))
-    lower_wick = _clip01(_neg(wick_asym) + 0.50 * (1.0 - wick_ratio))
-    upper_wick = _clip01(_pos(wick_asym) + 0.50 * wick_ratio)
-    close_near_high = _clip01(0.55 * clv_unit + 0.45 * (1.0 - wick_ratio))
-    close_near_low = _clip01(0.55 * (1.0 - clv_unit) + 0.45 * wick_ratio)
+    body_direction = _clip(c("candle.pattern_body_direction"), -1.0, 1.0)
+    body_share = _clip01(c("candle.pattern_body_share"))
+    body_bull = _pos(body_direction)
+    body_bear = _neg(body_direction)
+    lower_wick = _clip01(c("candle.pattern_lower_wick_share"))
+    upper_wick = _clip01(c("candle.pattern_upper_wick_share"))
+    close_near_high = _clip01(c("candle.pattern_close_location"))
+    close_near_low = _clip01(1.0 - close_near_high)
     wick_reject_long = _clip01(lower_wick * (0.55 + close_near_high + 0.25 * body_bull) * (0.75 + 0.25 * body_share))
     wick_reject_short = _clip01(upper_wick * (0.55 + close_near_low + 0.25 * body_bear) * (0.75 + 0.25 * body_share))
 

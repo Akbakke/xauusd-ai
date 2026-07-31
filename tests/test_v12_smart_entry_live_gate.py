@@ -32,12 +32,14 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
-    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-    DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
+    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE,
+    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95,
     DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
     DIRECTION_POCKET_MIN_SELECTED_ROWS,
+    DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS,
     DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT,
     DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
+    MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
     MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
     MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
     SERVE_PARITY_ENV_PINS,
@@ -54,26 +56,22 @@ from gx1.execution.v12_paper_runner import (
     MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS,
     require_executable_model_native_entry_decision,
 )
-from gx1.features.htf_features import HTF_V2_MATRIX_CONTRACT
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+)
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+)
 from tests.model_native_serve_gate_support import (
     passing_direction_repair_pockets,
     passing_serve_parity_liveness_sections,
+    passing_serve_source_identity,
 )
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
 
 
-REQUIRED_REPAIR_POCKETS = {
-    "rising_channel_support_touch",
-    "support_retest_continuation",
-    "rising_channel_support_continuation",
-    "countertrend_short_trap",
-    "short_high_mae_low_mfe_early_failure",
-    "falling_channel_resistance_touch",
-    "resistance_retest_continuation",
-    "falling_channel_resistance_continuation",
-    "countertrend_long_trap",
-    "long_high_mae_low_mfe_early_failure",
-}
+REQUIRED_REPAIR_POCKETS = set(DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS)
 
 
 def _coverage(rows: int = 1_000) -> dict[str, object]:
@@ -184,7 +182,7 @@ def _write_gate_artifacts(
     dataset_parquet = f"{dataset_dir}/entry_model_native_test.parquet"
     prediction_path = "/home/andre2/GX1_DATA/reports/xau_direction_repair_predictions.parquet"
     prediction_evidence = {
-        "schema_version": "entry_candidate_model_direction_prediction_evidence_v3",
+        "schema_version": RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
         "authoritative": True,
         "runtime_head_evidence_authoritative": True,
         "path": prediction_path,
@@ -240,6 +238,12 @@ def _write_gate_artifacts(
             "state_tol": SERVE_PARITY_STATE_TOL,
             "forward_tol": SERVE_PARITY_FORWARD_TOL,
             "env_pins": dict(SERVE_PARITY_ENV_PINS),
+            "serve_source_identity": passing_serve_source_identity(),
+            "operating_point": {
+                "selection_score": live.MODEL_DIRECTION_SELECTION_MODE,
+                "max_trades": 1,
+            },
+            "runtime_device": "cpu",
             "sampled_test_coverage": _coverage(SERVE_PARITY_SAMPLE_COUNT),
             "state_parity": {
                 "n_compared": SERVE_PARITY_SAMPLE_COUNT,
@@ -261,11 +265,17 @@ def _write_gate_artifacts(
             "specialist_decision_influence": parity_liveness[
                 "specialist_decision_influence"
             ],
+            "individual_input_decision_influence": parity_liveness[
+                "individual_input_decision_influence"
+            ],
             "upstream_context_decision_influence": parity_liveness[
                 "upstream_context_decision_influence"
             ],
             "multi_tf_decision_influence": parity_liveness[
                 "multi_tf_decision_influence"
+            ],
+            "family_tf_decision_influence": parity_liveness[
+                "family_tf_decision_influence"
             ],
             "direction_evidence_fusion_influence": parity_liveness[
                 "direction_evidence_fusion_influence"
@@ -278,14 +288,16 @@ def _write_gate_artifacts(
         direction_root,
         "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
         {
-            "schema_version": "model_native_direction_pocket_audit_v1",
+            "schema_version": MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
             "decision": "PASS",
             "failures": [],
             "created_utc": now,
             **common_gate_contract,
-            "max_bad_side_rate": DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-            "max_bad_side_wilson_upper_95": (
-                DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+            "max_selected_label_error_rate": (
+                DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
+            ),
+            "max_selected_label_error_wilson_upper_95": (
+                DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95
             ),
             "wilson_confidence_level": DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
             "min_selected_rows": DIRECTION_POCKET_MIN_SELECTED_ROWS,
@@ -316,7 +328,11 @@ def _write_gate_artifacts(
     monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS", 0.0)
     monkeypatch.setattr(live, "SMART_DIRECTION_AUDIT_MAX_AGE_HOURS", 0.0)
     monkeypatch.setattr(live, "SMART_CTX_MAX_STALENESS_M5", 0)
-    monkeypatch.setattr(live, "_smart_gate_git_state", lambda: ("unit-clean-commit", False))
+    monkeypatch.setattr(
+        live,
+        "build_serve_source_identity",
+        lambda _repo_root: passing_serve_source_identity(),
+    )
 
     import gx1_guards.artifacts as artifacts
 
@@ -368,7 +384,7 @@ def test_smart_serving_gate_rejects_old_direction_audit_without_repair_pockets(
         },
     )
 
-    with pytest.raises(RuntimeError, match="required XAU direction-repair pockets"):
+    with pytest.raises(RuntimeError, match="required repair metrics missing"):
         live.assert_smart_serving_gate()
 
 
@@ -393,7 +409,7 @@ def test_smart_serving_gate_accepts_direction_audit_with_repair_pockets(
     [
         {"split": "val"},
         {"model_name": "baseline"},
-        {"max_bad_side_rate": 0.20},
+        {"max_selected_label_error_rate": 0.20},
         {"min_selected_rows": 1},
         {"min_selected_rows": 31},
         {"min_mean_proxy_pnl_bps_exclusive": -1.0},
@@ -670,22 +686,24 @@ def test_smart_serving_gate_rejects_empty_direction_pocket_metrics(
         normalize_pockets=False,
     )
 
-    with pytest.raises(RuntimeError, match="lacks integer rows/selected_rows"):
+    with pytest.raises(RuntimeError, match="rows below contract"):
         live.assert_smart_serving_gate()
 
 
-def test_smart_serving_gate_rejects_git_commit_mismatch(
+def test_smart_serving_gate_rejects_source_identity_mismatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    stale_identity = passing_serve_source_identity()
+    stale_identity["tracked_bytes_sha256"] = "7" * 64
     _write_gate_artifacts(
         tmp_path,
         monkeypatch,
         pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        git_commit="old-commit",
+        parity_overrides={"serve_source_identity": stale_identity},
     )
 
-    with pytest.raises(RuntimeError, match="git_commit"):
+    with pytest.raises(RuntimeError, match="source bytes differ"):
         live.assert_smart_serving_gate()
 
 
@@ -813,11 +831,20 @@ def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Pat
             "2026-07-08T12:05:00Z",
         ]
     )
-    frame = pd.DataFrame({"fixture_feature": [1.0, 2.0]}, index=idx)
+    values = np.zeros(
+        (2, len(MULTI_TF_PER_BAR_FEATURES_V4)),
+        dtype=np.float32,
+    )
+    values[:, 0] = [1.0, 2.0]
+    frame = pd.DataFrame(
+        values,
+        columns=MULTI_TF_PER_BAR_FEATURES_V4,
+        index=idx,
+    )
     frame.attrs["ts_int64"] = idx.asi8.astype("int64")
-    frame.attrs["feats_np"] = np.asarray([[1.0], [2.0]], dtype=np.float32)
+    frame.attrs["feats_np"] = values
     frame.attrs["causal_warmup_rows"] = 0
-    frame.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
+    frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
     engine = live.SmartEntryLiveInference(
         bundle_dir=tmp_path,
         operating_point={
@@ -892,6 +919,9 @@ def _decision_head(
         "direction_probs": direction_probs,
         "model_direction_index": direction_index,
         "model_direction": ("LONG", "SHORT", "FLAT")[direction_index],
+        "entry_shared_representation": [
+            float(index - 64) / 64.0 for index in range(128)
+        ],
         "p_long": direction_probs[0],
         "p_short": direction_probs[1],
         "p_flat": direction_probs[2],
@@ -926,6 +956,13 @@ def _decision_head(
         "specialist_names": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
         "specialist_gate": [1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)]
         * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "tf_gate": [0.2] * 5,
+        "family_tf_cooperation_gate": [
+            1.0 / len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS)
+        ]
+        * len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+        "family_tf_feature_gate": [1.0]
+        * len(live.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
         "p_long_given_trade": _softmax(side_logits)[0],
         "p_short_given_trade": _softmax(side_logits)[1],
         "side_logits": side_logits,
@@ -1043,10 +1080,12 @@ def test_actual_smart_decision_keyset_forms_exact_executable_pipeline_envelope(
             "decision_available_ts": timing["decision_available_ts"],
             "entry_signal_latency_sec": timing["entry_signal_latency_sec"],
             "entry_signal_latency_min": 0.5,
-            "entry_signal_latency_cap_sec": 90.0,
-            "entry_signal_stale": False,
-        }
-    )
+                "entry_signal_latency_cap_sec": 90.0,
+                "entry_signal_stale": False,
+                "entry_source_pair_generation_id": "1" * 64,
+                "entry_source_pair_manifest_sha256": "2" * 64,
+            }
+        )
 
     assert set(decision) == set(MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS)
     assert require_executable_model_native_entry_decision(
@@ -1337,6 +1376,9 @@ def _forward_outputs() -> dict:
     return {
         "raw_direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
         "direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
+        "shared_feature_representation": torch.arange(
+            128, dtype=torch.float32
+        ).reshape(1, 128),
         "public_trade_flat_decision_logits": torch.tensor([[5.0, 0.0]], dtype=torch.float32),
         "model_native_logits": torch.tensor([[0.4, -0.2, 0.1]], dtype=torch.float32),
         "mtf_dir_logits": torch.tensor([[2.0, 0.0, -1.0]], dtype=torch.float32),
@@ -1367,6 +1409,20 @@ def _forward_outputs() -> dict:
         "specialist_gate": torch.full(
             (1, len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
             1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            dtype=torch.float32,
+        ),
+        "tf_gate": torch.full((1, 5), 0.2, dtype=torch.float32),
+        "family_tf_cooperation_gate": torch.full(
+            (1, len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS)),
+            1.0 / len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+            dtype=torch.float32,
+        ),
+        "family_tf_feature_gate": torch.ones(
+            (
+                1,
+                5,
+                len(live.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) // 5,
+            ),
             dtype=torch.float32,
         ),
         "tf_agreement_logit": torch.tensor([[0.5]], dtype=torch.float32),
@@ -1400,6 +1456,11 @@ def _prepare_forward_engine(tmp_path: Path, outputs: dict) -> live.SmartEntryLiv
         },
         "specialist_fusion": {
             "trainable_specialists": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        },
+        "multi_tf": {
+            "feature_names": list(
+                range(len(live.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) // 5)
+            ),
         },
     }
     engine._model = lambda *args, **kwargs: outputs

@@ -17,10 +17,19 @@ import pandas as pd
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
+    CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     CURRENT_SNAPSHOT_SCHEMA,
     validate_xau_tape_provenance_v1,
 )
-from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
+from gx1.features.htf_features import (
+    HTF_V4_CACHE_BUILDER_VERSION,
+    HTF_V4_CACHE_SCHEMA_VERSION,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_TIMEFRAMES,
+    load_multi_tf_cache,
+    require_multi_tf_v4_liveness_contract,
+)
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
     CTX_OWNED_SESSION_COLUMNS,
     ENTRY_DEAD_CONSTANT_COLUMNS,
@@ -29,7 +38,7 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
 )
 
 
-SCHEMA_VERSION = "seq513_source_cascade_proof_v5"
+SCHEMA_VERSION = "seq513_source_cascade_proof_v7"
 # 2026-07-24 source decisions changed the canonical surface: the three
 # non-causal slippage/cost fields are removed, the session evidence block is
 # mandatory (nine add_session_features fields plus _v1_is_EU/_v1_is_US and
@@ -45,7 +54,11 @@ EXPECTED_CV3_MANIFEST_COLUMNS = 125
 EXPECTED_MODELRANGE_COLUMNS = 115
 # FULL_PLUS = 115 modelrange columns + the exact 79-column Entry context set.
 EXPECTED_FULL_COLUMNS = 194
-EXPECTED_TFS = ("M5", "M15", "H1", "H4", "D1")
+EXPECTED_TFS = MULTI_TF_TIMEFRAMES
+NATIVE_SOURCE_SCHEMAS = {
+    CANONICAL_NATIVE_SOURCE_SCHEMA,
+    CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+}
 
 
 def _sha256_file(path: Path) -> str:
@@ -195,6 +208,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if out.parent != root or out.exists() or out.is_symlink():
         raise RuntimeError("SEQ513_SOURCE_PROOF_TARGET_NOT_FRESH_EVENT_LOCAL")
 
+    # Historical event-local path name; its strict manifest may be either the
+    # v3 bootstrap or a CAS-linked v4 successor.
     tape_native = root / "m5_tape_native_v3"
     tape_repaired = root / "m5_tape_repaired_dec2024"
     if tape_native.exists() and tape_repaired.exists():
@@ -208,7 +223,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         expected_run_id=run_id,
         require_current=True,
     )
-    if tape_provenance.get("schema_version") == CANONICAL_NATIVE_SOURCE_SCHEMA:
+    if tape_provenance.get("schema_version") in NATIVE_SOURCE_SCHEMAS:
         _same(
             _utc(
                 tape_provenance.get("time_max_utc"),
@@ -236,7 +251,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     year_numbers = sorted(int(key.split("=", 1)[1]) for key in tape_hashes)
     tape_manifest_name = (
         "MANIFEST.json"
-        if tape_provenance.get("schema_version") == CANONICAL_NATIVE_SOURCE_SCHEMA
+        if tape_provenance.get("schema_version") in NATIVE_SOURCE_SCHEMAS
         else "REPAIR_MANIFEST.json"
     )
 
@@ -316,14 +331,40 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         label="MODELRANGE_CTX_OWNED_SESSION_COLUMNS_REMOVED",
     )
 
-    mtf_root = root / "MULTI_TF_V2_CACHE"
+    mtf_root = root / "MULTI_TF_V4_CACHE"
     mtf = _json(mtf_root / "manifest.json", label="MTF_MANIFEST")
-    _same(mtf.get("builder_version"), HTF_V2_CACHE_BUILDER_VERSION, label="MTF_BUILDER")
+    _same(
+        mtf.get("builder_version"),
+        HTF_V4_CACHE_BUILDER_VERSION,
+        label="MTF_BUILDER",
+    )
+    _same(
+        mtf.get("schema_version"),
+        HTF_V4_CACHE_SCHEMA_VERSION,
+        label="MTF_SCHEMA",
+    )
+    _same(
+        mtf.get("feature_count"),
+        MULTI_TF_FEATURE_COUNT_V4,
+        label="MTF_FEATURE_COUNT",
+    )
+    _same(
+        mtf.get("feature_names"),
+        list(MULTI_TF_PER_BAR_FEATURES_V4),
+        label="MTF_FEATURE_NAMES",
+    )
     _same_path(mtf.get("m5_prebuilt_source"), cv3, label="MTF_SOURCE")
     _same(mtf.get("m5_prebuilt_source_sha256"), cv3_sha, label="MTF_SOURCE_HASH")
+    require_multi_tf_v4_liveness_contract(mtf.get("full_input_liveness"))
+    verified_mtf = load_multi_tf_cache(mtf_root)
+    _same(
+        getattr(verified_mtf, "cache_identity_sha256", None),
+        mtf.get("cache_identity_sha256"),
+        label="MTF_VERIFIED_CACHE_IDENTITY",
+    )
     mtf_meta = mtf.get("tfs")
-    if not isinstance(mtf_meta, dict) or tuple(mtf_meta) != EXPECTED_TFS:
-        raise RuntimeError("SEQ513_SOURCE_MTF_SET_OR_ORDER_INVALID")
+    if not isinstance(mtf_meta, dict) or set(mtf_meta) != set(EXPECTED_TFS):
+        raise RuntimeError("SEQ513_SOURCE_MTF_SET_INVALID")
     mtf_hashes: dict[str, dict[str, str]] = {}
     for tf in EXPECTED_TFS:
         row = mtf_meta[tf]
@@ -333,6 +374,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "feats_sha256": _sha256_file(feats),
             "timestamps_sha256": _sha256_file(timestamps),
         }
+        _same(
+            mtf_hashes[tf]["feats_sha256"],
+            row.get("feats_npy_sha256"),
+            label=f"MTF_{tf}_FEATS_HASH",
+        )
+        _same(
+            mtf_hashes[tf]["timestamps_sha256"],
+            row.get("ts_npy_sha256"),
+            label=f"MTF_{tf}_TS_HASH",
+        )
 
     full = _regular(root / "FULL_PLUS_CTX_v3src.parquet", label="FULL_PLUS")
     full_sha = _sha256_file(full)
@@ -394,6 +445,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "modelrange_sha256": modelrange_sha,
             "modelrange_manifest_sha256": _sha256_file(root / "cv3_modelrange.provenance.json"),
             "multi_tf_manifest_sha256": _sha256_file(mtf_root / "manifest.json"),
+            "multi_tf_cache_identity_sha256": str(
+                mtf["cache_identity_sha256"]
+            ),
             "multi_tf_arrays": mtf_hashes,
             "full_plus_sha256": full_sha,
             "full_plus_manifest_sha256": _sha256_file(root / "FULL_PLUS_CTX_v3src.manifest.json"),
@@ -417,10 +471,134 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "required_history_start_utc": required_history_start.isoformat(),
             "required_history_start_covered": True,
             "full_numeric_feature_liveness": full_numeric_liveness,
+            "multi_tf_v4_liveness_contract_sha256": mtf[
+                "full_input_liveness"
+            ]["contract_sha256"],
         },
     }
     _atomic_json(out, report)
     return report
+
+
+def validate_seq513_source_cascade_proof(
+    proof_path: Path,
+    *,
+    expected_run_id: str,
+    expected_source_parquet: Path,
+    expected_canonical_v2_parquet: Path,
+    expected_mtf_cache_dir: Path,
+    expected_history_start_utc: object,
+    expected_time_max_utc: object,
+) -> dict[str, Any]:
+    """Revalidate the immutable source→V4-cache proof at a consumer boundary."""
+
+    run_id = require_entry_run_id(expected_run_id)
+    source = _regular(
+        expected_source_parquet.expanduser().resolve(),
+        label="BOUND_FULL_PLUS",
+    )
+    canonical_v2 = _regular(
+        expected_canonical_v2_parquet.expanduser().resolve(),
+        label="BOUND_CV2",
+    )
+    cache_dir = expected_mtf_cache_dir.expanduser().resolve()
+    if cache_dir.is_symlink() or not cache_dir.is_dir():
+        raise RuntimeError(
+            f"SEQ513_SOURCE_BOUND_MTF_CACHE_MISSING_OR_SYMLINK: {cache_dir}"
+        )
+    event_root = source.parent.resolve()
+    if canonical_v2.parent.resolve() != event_root or cache_dir.parent.resolve() != event_root:
+        raise RuntimeError("SEQ513_SOURCE_BOUND_ARTIFACTS_NOT_ONE_EVENT_ROOT")
+
+    proof = _json(proof_path.expanduser().resolve(), label="CASCADE_PROOF")
+    resolved_proof = proof_path.expanduser().resolve()
+    if resolved_proof.parent != event_root:
+        raise RuntimeError("SEQ513_SOURCE_CASCADE_PROOF_NOT_EVENT_LOCAL")
+    if set(proof) != {
+        "schema_version",
+        "created_utc",
+        "decision",
+        "entry_run_id",
+        "event_root",
+        "artifacts",
+        "contracts",
+    }:
+        raise RuntimeError("SEQ513_SOURCE_CASCADE_PROOF_KEYS_INVALID")
+    _same(proof.get("schema_version"), SCHEMA_VERSION, label="CASCADE_SCHEMA")
+    _same(proof.get("decision"), "PASS", label="CASCADE_DECISION")
+    _same(proof.get("entry_run_id"), run_id, label="CASCADE_RUN_ID")
+    _same_path(proof.get("event_root"), event_root, label="CASCADE_EVENT_ROOT")
+
+    artifacts = proof.get("artifacts")
+    contracts = proof.get("contracts")
+    if not isinstance(artifacts, dict) or not isinstance(contracts, dict):
+        raise RuntimeError("SEQ513_SOURCE_CASCADE_PROOF_SECTIONS_INVALID")
+    cache = load_multi_tf_cache(cache_dir)
+    manifest_path = cache_dir / "manifest.json"
+    expected_history = _utc(
+        expected_history_start_utc,
+        label="BOUND_HISTORY_START",
+    )
+    expected_time_max = _utc(
+        expected_time_max_utc,
+        label="BOUND_TIME_MAX",
+    )
+    _same(
+        artifacts.get("full_plus_sha256"),
+        _sha256_file(source),
+        label="CASCADE_FULL_PLUS_HASH",
+    )
+    _same(
+        artifacts.get("canonical_v2_sha256"),
+        _sha256_file(canonical_v2),
+        label="CASCADE_CV2_HASH",
+    )
+    _same(
+        artifacts.get("multi_tf_manifest_sha256"),
+        _sha256_file(manifest_path),
+        label="CASCADE_MTF_MANIFEST_HASH",
+    )
+    _same(
+        artifacts.get("multi_tf_cache_identity_sha256"),
+        cache.cache_identity_sha256,
+        label="CASCADE_MTF_CACHE_IDENTITY",
+    )
+    _same(
+        _utc(
+            contracts.get("required_history_start_utc"),
+            label="CASCADE_HISTORY_START",
+        ),
+        expected_history,
+        label="CASCADE_HISTORY_START",
+    )
+    _same(
+        _utc(contracts.get("full_time_max_utc"), label="CASCADE_TIME_MAX"),
+        expected_time_max,
+        label="CASCADE_TIME_MAX",
+    )
+    _same(
+        contracts.get("required_history_start_covered"),
+        True,
+        label="CASCADE_HISTORY_COVERED",
+    )
+    _same(contracts.get("no_fallback"), True, label="CASCADE_NO_FALLBACK")
+    return {
+        "path": str(resolved_proof),
+        "sha256": _sha256_file(resolved_proof),
+        "schema_version": SCHEMA_VERSION,
+        "entry_run_id": run_id,
+        "event_root": str(event_root),
+        "source_parquet_sha256": str(artifacts["full_plus_sha256"]),
+        "canonical_v2_sha256": str(artifacts["canonical_v2_sha256"]),
+        "multi_tf_manifest_sha256": str(
+            artifacts["multi_tf_manifest_sha256"]
+        ),
+        "multi_tf_cache_identity_sha256": str(
+            artifacts["multi_tf_cache_identity_sha256"]
+        ),
+        "history_start_utc": expected_history.isoformat(),
+        "time_max_utc": expected_time_max.isoformat(),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:

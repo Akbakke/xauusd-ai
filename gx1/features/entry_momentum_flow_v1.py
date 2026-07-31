@@ -10,7 +10,9 @@ from typing import Iterable
 import numpy as np
 
 
-MOMENTUM_FLOW_FEATURE_VERSION = "entry_momentum_flow_v1_20260630_causal_flow_pressure"
+MOMENTUM_FLOW_FEATURE_VERSION = (
+    "entry_momentum_flow_v2_20260729_true_candle_wick_flow"
+)
 MOMENTUM_FLOW_FEATURE_PREFIX = "momentum.flow_"
 
 MOMENTUM_FLOW_SOURCE_FIELDS = (
@@ -49,9 +51,7 @@ MOMENTUM_FLOW_SOURCE_FIELDS = (
     "candle.pattern_bear_continuation_pressure",
     "candle.pattern_bull_reversal_pressure",
     "candle.pattern_bear_reversal_pressure",
-    "snap.body_pct",
-    "snap.wick_asym",
-    "ctx_cont.wick_ratio",
+    "candle.pattern_body_share",
     "candle.pattern_upper_wick_share",
     "candle.pattern_lower_wick_share",
 )
@@ -209,14 +209,10 @@ def build_entry_momentum_flow_layer(
     atr_bps = c("ctx_cont.atr_bps")
     atr_z = _tanh(c("snap.atr_z"), scale=3.0)
     range_z = _tanh(c("snap._v1_range_z"), scale=3.0)
-    wick_asym = _clip(c("snap.wick_asym"), -1.0, 1.0)
-    wick_ratio = _clip01(c("ctx_cont.wick_ratio"))
     upper_wick_share = _clip01(c("candle.pattern_upper_wick_share"))
     lower_wick_share = _clip01(c("candle.pattern_lower_wick_share"))
-    upper_wick_flow = _clip01(_pos(wick_asym) + 0.50 * wick_ratio + 0.50 * upper_wick_share)
-    lower_wick_flow = _clip01(
-        _neg(wick_asym) + 0.50 * (1.0 - wick_ratio) + 0.50 * lower_wick_share
-    )
+    upper_wick_flow = upper_wick_share
+    lower_wick_flow = lower_wick_share
 
     vol_scale = _safe_scale(
         ret1,
@@ -285,8 +281,8 @@ def build_entry_momentum_flow_layer(
     bear_cont = _clip01(c("candle.pattern_bear_continuation_pressure"))
     bull_reversal = _clip01(c("candle.pattern_bull_reversal_pressure"))
     bear_reversal = _clip01(c("candle.pattern_bear_reversal_pressure"))
-    body_pct = _clip01(c("snap.body_pct"))
-    body_impulse = _clip01(0.55 * body_pct + 0.45 * np.abs(clv))
+    body_share = _clip01(c("candle.pattern_body_share"))
+    body_impulse = _clip01(0.55 * body_share + 0.45 * np.abs(clv))
     clv_body_bull_flow = _clip01(
         0.40 * _pos(clv) * (0.50 + 0.50 * body_impulse)
         + 0.24 * lower_wick_flow

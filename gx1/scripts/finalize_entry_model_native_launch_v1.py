@@ -11,13 +11,10 @@ newer terminal failure event.
 from __future__ import annotations
 
 import argparse
-import fcntl
 import hashlib
 import json
 import os
-import stat
 import tempfile
-from contextlib import contextmanager
 from datetime import timezone
 from functools import wraps
 from pathlib import Path
@@ -38,6 +35,7 @@ from gx1.contracts.entry_model_native_launch_transaction_v1 import (
     EVENT_PREFIX,
     SCHEMA_VERSION,
     EntryLaunchTransactionError,
+    entry_launch_authority_lock,
     launch_transaction_declaration,
     require_launch_transaction_commit_event,
     sha256_file,
@@ -58,7 +56,7 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
 )
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
-    require_canonical_active_exit_replay_launch_authority,
+    require_canonical_unified_replay_launch_authority,
 )
 from gx1.contracts.entry_run_lineage_v1 import (
     EntryRunLineageError,
@@ -68,6 +66,11 @@ from gx1.contracts.immutable_event_authority_v1 import (
     next_immutable_event_created_utc,
     select_latest_immutable_event,
     write_immutable_json_event,
+)
+from gx1.contracts.live_tail_publication_v1 import (
+    LiveTailAuthorityError,
+    live_tail_launch_authority,
+    require_newest_live_tail_runtime_authority,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_COUNT,
@@ -108,54 +111,12 @@ class EntryLaunchFinalizationError(RuntimeError):
     """The complete launch authority could not be committed."""
 
 
-@contextmanager
-def _launch_authority_lock(
-    *,
-    registry_path: Path,
-    launch_state_path: Path,
-):
-    targets: list[Path] = []
-    for raw, label in (
-        (registry_path, "artifact registry"),
-        (launch_state_path, "launch state"),
-    ):
-        path = Path(raw).expanduser()
-        if not path.is_absolute() or path.is_symlink():
-            raise EntryLaunchFinalizationError(
-                f"{label} lock target must be absolute and non-symlinked"
-            )
-        targets.append(path.resolve())
-    identity = "\n".join(str(path) for path in targets).encode("utf-8")
-    lock_path = Path("/tmp") / (
-        ".gx1-entry-launch-" + hashlib.sha256(identity).hexdigest() + ".lock"
-    )
-    flags = (
-        os.O_RDWR
-        | os.O_CREAT
-        | getattr(os, "O_CLOEXEC", 0)
-        | getattr(os, "O_NOFOLLOW", 0)
-    )
-    fd = os.open(lock_path, flags, 0o600)
-    try:
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise EntryLaunchFinalizationError(
-                "launch authority lock is not a regular file"
-            )
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        yield
-    finally:
-        try:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-        finally:
-            os.close(fd)
-
-
 def _serialized_launch_finalization(function):
     @wraps(function)
     def wrapped(*args, **kwargs):
         if args:
             raise TypeError("launch finalization accepts keyword arguments only")
-        with _launch_authority_lock(
+        with entry_launch_authority_lock(
             registry_path=Path(kwargs["artifact_registry_path"]),
             launch_state_path=Path(kwargs["launch_state_path"]),
         ):
@@ -515,6 +476,7 @@ def _require_idempotent_retry_matches(
     serve_parity_path: Path,
     direction_pocket_path: Path,
     adaptation_lifecycle_path: Path,
+    live_tail_admission_path: Path,
     launch_vedtak_path: Path,
     max_trades: int,
 ) -> None:
@@ -552,6 +514,9 @@ def _require_idempotent_retry_matches(
             "adaptation lifecycle": state[
                 "adaptation_lifecycle_evidence"
             ]["json_path"],
+            "live-tail admission": state[
+                "new_entry_live_tail_authority"
+            ]["launch_admission"]["json_path"],
         }
     except (KeyError, TypeError, AttributeError) as exc:
         raise EntryLaunchFinalizationError(
@@ -572,6 +537,7 @@ def _require_idempotent_retry_matches(
         "serve parity": serve_parity_path,
         "direction pocket": direction_pocket_path,
         "adaptation lifecycle": adaptation_lifecycle_path,
+        "live-tail admission": live_tail_admission_path,
     }
     for label, requested in requested_paths.items():
         if Path(requested).expanduser().resolve() != Path(
@@ -661,6 +627,7 @@ def _build_launch_state(
     serve_parity_binding: Mapping[str, Any],
     direction_pocket_binding: Mapping[str, Any],
     lifecycle_binding: Mapping[str, Any],
+    live_tail_authority: Mapping[str, Any],
     operating_point: Mapping[str, Any],
     transaction_id: str,
     transaction_dir: Path,
@@ -708,6 +675,7 @@ def _build_launch_state(
             ),
         },
         "adaptation_lifecycle_evidence": dict(lifecycle_binding),
+        "new_entry_live_tail_authority": dict(live_tail_authority),
         "operating_point": dict(operating_point),
         "launch_transaction": launch_transaction_declaration(
             transaction_id=transaction_id,
@@ -716,6 +684,40 @@ def _build_launch_state(
         "accepted_via_vedtak": None,
         "blockers": [],
     }
+
+
+def _require_current_launch_live_tail(
+    *,
+    authority: Mapping[str, Any],
+    admission_binding: Mapping[str, str],
+) -> dict[str, Any]:
+    """Prove that the exact launch admission is still newest and fresh."""
+
+    try:
+        runtime = require_newest_live_tail_runtime_authority(authority)
+    except LiveTailAuthorityError as exc:
+        raise EntryLaunchFinalizationError(
+            f"live-tail launch admission invalid: {exc}"
+        ) from exc
+    current = runtime.get("current_admission")
+    anchor = authority.get("launch_anchor")
+    if not isinstance(current, Mapping) or not isinstance(anchor, Mapping):
+        raise EntryLaunchFinalizationError(
+            "live-tail launch authority response is malformed"
+        )
+    expected = {
+        "path": admission_binding["json_path"],
+        "sha256": admission_binding["sha256"],
+        "pair_generation_id": anchor["pair_generation_id"],
+        "generation_manifest_sha256": anchor[
+            "generation_manifest_sha256"
+        ],
+    }
+    if any(current.get(field) != value for field, value in expected.items()):
+        raise EntryLaunchFinalizationError(
+            "live-tail launch admission is not the newest current authority"
+        )
+    return runtime
 
 
 @_serialized_launch_finalization
@@ -728,6 +730,7 @@ def finalize_entry_model_native_launch(
     serve_parity_path: Path,
     direction_pocket_path: Path,
     adaptation_lifecycle_path: Path,
+    live_tail_admission_path: Path,
     launch_vedtak_path: Path,
     transaction_id: str,
     max_trades: int,
@@ -786,6 +789,7 @@ def finalize_entry_model_native_launch(
             serve_parity_path=serve_parity_path,
             direction_pocket_path=direction_pocket_path,
             adaptation_lifecycle_path=adaptation_lifecycle_path,
+            live_tail_admission_path=live_tail_admission_path,
             launch_vedtak_path=launch_vedtak_path,
             max_trades=max_trades,
         )
@@ -838,7 +842,7 @@ def finalize_entry_model_native_launch(
     )
     joint_exit = _binding(joint_exit_proof_path, label="joint Exit proof")
     try:
-        require_canonical_active_exit_replay_launch_authority(
+        require_canonical_unified_replay_launch_authority(
             _read_object(joint_exit_proof_path, label="joint Exit proof"),
             context="ENTRY_LAUNCH_ACTIVE_EXIT_REPLAY_PRODUCER",
         )
@@ -865,6 +869,23 @@ def finalize_entry_model_native_launch(
         raise EntryLaunchFinalizationError(
             "lifecycle entry_run_id differs from bundle training lineage"
         )
+    live_tail_admission = _binding(
+        live_tail_admission_path,
+        label="live-tail admission",
+    )
+    try:
+        new_entry_live_tail_authority = live_tail_launch_authority(
+            Path(live_tail_admission["json_path"]),
+            expected_sha256=live_tail_admission["sha256"],
+        )
+    except LiveTailAuthorityError as exc:
+        raise EntryLaunchFinalizationError(
+            f"live-tail launch admission invalid: {exc}"
+        ) from exc
+    _require_current_launch_live_tail(
+        authority=new_entry_live_tail_authority,
+        admission_binding=live_tail_admission,
+    )
     evidence = {
         "sizing_adoption": sizing_adoption,
         "joint_exit_sizing_proof": joint_exit,
@@ -872,6 +893,7 @@ def finalize_entry_model_native_launch(
         "model_native_serve_parity": serve_parity,
         "model_native_direction_pocket_audit": direction_pocket,
         "adaptation_lifecycle": lifecycle,
+        "live_tail_admission": live_tail_admission,
     }
     request = launch_vedtak_request(
         transaction_id=str(transaction_id),
@@ -919,6 +941,7 @@ def finalize_entry_model_native_launch(
         serve_parity_binding=serve_parity,
         direction_pocket_binding=direction_pocket,
         lifecycle_binding=lifecycle,
+        live_tail_authority=new_entry_live_tail_authority,
         operating_point=operating_point,
         transaction_id=transaction_id,
         transaction_dir=transaction_dir,
@@ -943,6 +966,13 @@ def finalize_entry_model_native_launch(
     replaced_registry = False
     replaced_state = False
     try:
+        # Close the validation-to-publication gap: a newer admission, BLOCK,
+        # pointer advance, or expiry after request construction invalidates
+        # this launch before any approval/commit event is emitted.
+        _require_current_launch_live_tail(
+            authority=new_entry_live_tail_authority,
+            admission_binding=live_tail_admission,
+        )
         approval_path, _ = write_immutable_json_event(
             approval_dir,
             APPROVAL_EVENT_PREFIX,
@@ -983,6 +1013,10 @@ def finalize_entry_model_native_launch(
         )
         registry_stage = _stage_bytes(registry_path, registry_bytes)
         state_stage = _stage_bytes(state_path, state_bytes)
+        _require_current_launch_live_tail(
+            authority=new_entry_live_tail_authority,
+            admission_binding=live_tail_admission,
+        )
         commit_path, commit_event = write_immutable_json_event(
             transaction_dir,
             EVENT_PREFIX,
@@ -1085,6 +1119,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--serve-parity-json", type=Path, required=True)
     parser.add_argument("--direction-pocket-json", type=Path, required=True)
     parser.add_argument("--adaptation-lifecycle-json", type=Path, required=True)
+    parser.add_argument("--live-tail-admission-json", type=Path, required=True)
     parser.add_argument("--launch-vedtak-json", type=Path, required=True)
     parser.add_argument("--transaction-id", required=True)
     parser.add_argument("--max-trades", type=int, required=True)
@@ -1113,6 +1148,7 @@ def main() -> int:
         serve_parity_path=args.serve_parity_json,
         direction_pocket_path=args.direction_pocket_json,
         adaptation_lifecycle_path=args.adaptation_lifecycle_json,
+        live_tail_admission_path=args.live_tail_admission_json,
         launch_vedtak_path=vedtak_path.resolve(),
         transaction_id=args.transaction_id,
         max_trades=args.max_trades,

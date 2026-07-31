@@ -40,6 +40,34 @@ def _rank_reference(tmp_path: Path):
     )[1]
 
 
+def _source_cascade_metadata(
+    tmp_path: Path,
+    reference: object | None = None,
+) -> dict[str, object]:
+    event_root = (
+        Path(str(reference.sidecar["source_parquet"])).resolve().parent
+        if reference is not None
+        else tmp_path.resolve()
+    )
+    return {
+        "path": str((event_root / "SOURCE_CASCADE_PROOF.json").resolve()),
+        "sha256": "9" * 64,
+        "schema_version": "seq513_source_cascade_proof_v7",
+        "entry_run_id": RUN_ID,
+        "event_root": str(event_root),
+        "source_parquet_sha256": (
+            str(reference.sidecar["source_parquet_sha256"])
+            if reference is not None
+            else "1" * 64
+        ),
+        "canonical_v2_sha256": "3" * 64,
+        "multi_tf_manifest_sha256": "4" * 64,
+        "multi_tf_cache_identity_sha256": "5" * 64,
+        "history_start_utc": "2019-12-31T00:00:00+00:00",
+        "time_max_utc": "2026-07-24T20:55:00+00:00",
+    }
+
+
 def test_candidate_universe_is_clean_and_large_enough() -> None:
     universe = ranker._candidate_universe(list(MODEL_NATIVE_CTX_CONT_FIELDS))
 
@@ -221,6 +249,7 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
         source_sha256=str(reference.sidecar["source_parquet_sha256"]),
         target_sha256="2" * 64,
         rank_reference=reference,
+        source_cascade=_source_cascade_metadata(tmp_path, reference),
         scores=scores,
         created=RANKING_CREATED,
     )
@@ -233,6 +262,12 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
         manifest_producer,
         "_utc_now",
         lambda: datetime(2026, 7, 18, 9, 0, 1, 500_000, tzinfo=timezone.utc),
+    )
+    source_cascade = _source_cascade_metadata(tmp_path, reference)
+    monkeypatch.setattr(
+        manifest_producer,
+        "validate_seq513_source_cascade_proof",
+        lambda *args, **kwargs: dict(source_cascade),
     )
     out = tmp_path / (
         f"{manifest_producer.SIGNAL_MANIFEST_EVENT_PREFIX}_{_stamp(MANIFEST_CREATED)}.json"
@@ -274,6 +309,7 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
         source_sha256=str(reference.sidecar["source_parquet_sha256"]),
         target_sha256="2" * 64,
         rank_reference=reference,
+        source_cascade=_source_cascade_metadata(tmp_path, reference),
         scores=scores,
         created=RANKING_CREATED,
     )
@@ -293,6 +329,7 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         "run_id": RUN_ID,
         "source_sha256": "1" * 64,
         "mtf_cache_sha256": "2" * 64,
+        "source_cascade_sha256": "9" * 64,
         "rank_reference_sha256": "5" * 64,
         "rank_reference_sidecar_sha256": "7" * 64,
         "history_start": pd.Timestamp("2021-01-05T00:00:00Z"),
@@ -305,6 +342,7 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         ("run_id", "FEATURE_RANKER_OTHER_RUN_ID"),
         ("source_sha256", "3" * 64),
         ("mtf_cache_sha256", "4" * 64),
+        ("source_cascade_sha256", "0" * 64),
         ("rank_reference_sha256", "6" * 64),
         ("rank_reference_sidecar_sha256", "8" * 64),
         ("train_start", pd.Timestamp("2021-03-17T00:00:00Z")),
@@ -328,6 +366,7 @@ def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path
             source_sha256=str(reference.sidecar["source_parquet_sha256"]),
             target_sha256="2" * 64,
             rank_reference=reference,
+            source_cascade=_source_cascade_metadata(tmp_path, reference),
             scores={"session_regime.test": 1.0},
             created=datetime(2026, 7, 18, 9, 0, 0, 2, tzinfo=timezone.utc),
         )

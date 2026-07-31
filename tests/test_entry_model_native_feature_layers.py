@@ -67,7 +67,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 242),
-            "1fe67c0955071f318526501b237555c2dc41ad7245f8af6d712db799e547da1b",
+            "8a05e6d39902a9c1a8277744711dd1f1aab7806128531dc8f183df4f6032f1fc",
             "df40b572938f61d81be0cac5dad4df44e6f48b1233a0d224cc734c14e1ff01d9",
         ),
         "price": (
@@ -81,14 +81,14 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             candle_x,
             candle_names,
             (240, 60),
-            "6db5ab8703f9a50cbd2dc41534ab1b691c2e968b24ed04c289cfd92914ae854b",
+            "18591a3ca25f8c4db4f749c8af9294e1df300a41735f829b43d36b184bcfd02e",
             "102894513328840980d120ff830b1f3c76fb4617557619285107a5eb87134d47",
         ),
         "deep": (
             deep_x,
             deep_names,
             (240, 315),
-            "52bd308e3c409fc96ebc77a933d178dec0e93fde752b3ee9be2d5df9ea17893c",
+            "60955af566ba4e17782e2842df25108f62c4496883f82bdf89e6eb57e53c7090",
             "8492ae7579b24364d21edbe08678177ea4610edb8e1a3cecf97d96625c4f82a8",
         ),
     }

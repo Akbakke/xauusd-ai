@@ -29,6 +29,9 @@ from gx1.contracts.immutable_event_authority_v1 import (
     require_newest_immutable_event,
     write_immutable_json_event,
 )
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    CLASS_ORDER,
+)
 from gx1.execution.model_native_entry_replay_v1 import (
     LABEL_HORIZON_EXIT_MODE,
     OFFLINE_DIRECTION_DIAGNOSTIC_SCOPE,
@@ -64,10 +67,10 @@ CANDIDATE_EVENT_PREFIX = "ENTRY_CANDIDATE_READINESS"
 CANDIDATE_SCHEMA_VERSION = "entry_candidate_readiness_model_native_v1"
 CANDIDATE_READY_DECISION = "READY_FOR_CANDIDATE_TRAINING"
 
-SIDE_LONG = 0
-SIDE_SHORT = 1
-SIDE_FLAT = 2
-SIDE_NAMES = {SIDE_LONG: "LONG", SIDE_SHORT: "SHORT", SIDE_FLAT: "FLAT"}
+SIDE_LONG = CLASS_ORDER.index("LONG")
+SIDE_SHORT = CLASS_ORDER.index("SHORT")
+SIDE_FLAT = CLASS_ORDER.index("FLAT")
+SIDE_NAMES = dict(enumerate(CLASS_ORDER))
 
 _FORBIDDEN_DIRECTION_KEYS = frozenset(
     {
@@ -820,7 +823,7 @@ def _trade_failures(
         failures.append("candidate replay direction probabilities are outside [0,1]")
     if not np.allclose(probabilities.sum(axis=1), 1.0, rtol=0.0, atol=1e-6):
         failures.append("candidate replay direction probabilities do not sum to 1")
-    expected_side = np.asarray(["LONG", "SHORT", "FLAT"])[np.argmax(probabilities, axis=1)]
+    expected_side = np.asarray(CLASS_ORDER)[np.argmax(probabilities, axis=1)]
     observed_side = trades["side"].astype(str).str.upper().to_numpy()
     if not np.array_equal(expected_side, observed_side):
         failures.append("candidate replay side differs from model probability argmax")
@@ -878,7 +881,7 @@ def _direction_policy_contract() -> dict[str, Any]:
         "schema_version": "entry_candidate_replay_direction_policy_v3",
         "direction_authority": "argmax(final_calibrated_direction_logits)",
         "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
-        "direction_classes": ["LONG", "SHORT", "FLAT"],
+        "direction_classes": list(CLASS_ORDER),
         "offline_only": True,
         "diagnostic_scope": OFFLINE_DIRECTION_DIAGNOSTIC_SCOPE,
         "pnl_normalization": UNIT_NORMALIZED_PNL_MODE,
@@ -955,7 +958,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "direction_authority": "argmax(final_calibrated_direction_logits)",
         "selection_score_mode": selection_score_mode,
         "score_diagnostic": score_column,
-        "direction_classes": ["LONG", "SHORT", "FLAT"],
+        "direction_classes": list(CLASS_ORDER),
         "offline_only": True,
         "diagnostic_scope": OFFLINE_DIRECTION_DIAGNOSTIC_SCOPE,
         "pnl_normalization": UNIT_NORMALIZED_PNL_MODE,

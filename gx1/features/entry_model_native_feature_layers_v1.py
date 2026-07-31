@@ -148,8 +148,16 @@ def _ordered_unique(values: Iterable[str]) -> tuple[str, ...]:
 
 CHART_LAYER_SOURCE_FIELDS = _ordered_unique(
     (
-        *FOUNDATION_STRUCTURE_SOURCE_FIELDS,
-        *CHART_GEOMETRY_SOURCE_FIELDS,
+        *(
+            name
+            for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+            if not name.startswith("candle.")
+        ),
+        *(
+            name
+            for name in CHART_GEOMETRY_SOURCE_FIELDS
+            if not name.startswith("candle.")
+        ),
         # Consumed directly by the legacy-free core chart layer (not by the
         # chart-geometry sublayer), so ownership must remain explicit here.
         "ctx_cont.sr_nearest_pivot_abs_atr",
@@ -161,6 +169,7 @@ CHART_LAYER_SOURCE_FIELDS = _ordered_unique(
         "ctx_cont.vol_pct_m5_1yr",
         "ctx_cont.atr_ratio_h1_d1",
         "ctx_cont.atr_ratio_m15_d1",
+        "snap.body_pct",
     )
 )
 
@@ -202,7 +211,6 @@ DEEP_INTERACTION_SOURCE_FIELDS = (
     "chart.bos_pressure_combo",
     "ctx_cont.smc_bos_pressure_last48",
     "chart.wick_x_major_level",
-    "ctx_cont.wick_ratio",
     "chart.pullback_depth_h1h4",
     "ctx_cont.struct_pullback_depth_h1_v3",
     "ctx_cont.struct_pullback_depth_h4_v3",
@@ -640,8 +648,10 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
         _col(x, idx, "snap.smc_sweep_size_atr")
         + _col(x, idx, "ctx_cont.smc_sweep_size_recent_tau12")
     )
-    wick_ratio = _clip(
-        _col(x, idx, "ctx_cont.wick_ratio") + np.abs(_col(x, idx, "snap.wick_asym"))
+    wick_share = _clip(
+        1.0 - _col(x, idx, "snap.body_pct"),
+        0.0,
+        1.0,
     )
     support_prox = _col(x, idx, "ctx_cont.sr_support_proximity_exp")
     resistance_prox = _col(x, idx, "ctx_cont.sr_resistance_proximity_exp")
@@ -651,19 +661,19 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
         arrays,
         names,
         "false_breakout_high_reject",
-        sweep_up * sweep_recent * wick_ratio * resistance_prox * (1.0 + down),
+        sweep_up * sweep_recent * wick_share * resistance_prox * (1.0 + down),
     )
     add_chart_feature(
         arrays,
         names,
         "false_breakout_low_reject",
-        sweep_down * sweep_recent * wick_ratio * support_prox * (1.0 + up),
+        sweep_down * sweep_recent * wick_share * support_prox * (1.0 + up),
     )
     add_chart_feature(
         arrays, names, "sweep_high_into_resistance", sweep_up * resistance_prox * high_context
     )
     add_chart_feature(arrays, names, "sweep_low_into_support", sweep_down * support_prox * low_context)
-    add_chart_feature(arrays, names, "sweep_size_x_wick", sweep_size * wick_ratio)
+    add_chart_feature(arrays, names, "sweep_size_x_wick", sweep_size * wick_share)
     add_chart_feature(arrays, names, "sweep_x_choch", sweep_recent * choch)
 
     h1_compression = atr_ratio_compression_pressure(
@@ -727,7 +737,7 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
     add_chart_feature(arrays, names, "pivot_nearest_proximity", nearest_pivot)
     add_chart_feature(arrays, names, "major_level_proximity_max", level_prox_max)
     add_chart_feature(arrays, names, "major_level_proximity_mean", level_prox_mean)
-    add_chart_feature(arrays, names, "wick_x_major_level", wick_ratio * level_prox_max)
+    add_chart_feature(arrays, names, "wick_x_major_level", wick_share * level_prox_max)
     add_chart_feature(arrays, names, "pullback_x_support_resistance", pullback * level_prox_max)
     add_chart_feature(
         arrays,
@@ -741,7 +751,7 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
     add_chart_feature(arrays, names, "d1_upper_range_pressure", d1_loc * up * high_context)
     add_chart_feature(arrays, names, "d1_lower_range_pressure", (1.0 - d1_loc) * down * low_context)
     add_chart_feature(arrays, names, "d1_boundary_x_sweep", d1_boundary * sweep_recent)
-    add_chart_feature(arrays, names, "d1_boundary_x_wick", d1_boundary * wick_ratio)
+    add_chart_feature(arrays, names, "d1_boundary_x_wick", d1_boundary * wick_share)
 
     session_cols = (
         "ctx_cont.is_ASIA",
@@ -757,7 +767,7 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
         ("sweep_recent", sweep_recent),
         ("compression", compression),
         ("expansion", expansion),
-        ("wick_level", wick_ratio * level_prox_max),
+        ("wick_level", wick_share * level_prox_max),
         ("pullback", pullback),
         ("d1_loc", d1_loc),
     )
@@ -782,7 +792,7 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
         ("sweep", sweep_recent),
         ("choch", choch),
         ("bos", bos_pressure),
-        ("wick_level", wick_ratio * level_prox_max),
+        ("wick_level", wick_share * level_prox_max),
     )
     for vol_name, vol in vol_signals:
         for signal_name, signal in struct_signals:
@@ -997,7 +1007,7 @@ def build_deep_interaction_layer(
     sweep_size = _clip(c("chart.sweep_size_combo") + c("snap.smc_sweep_size_atr"))
     choch = _clip(c("chart.choch_recent_combo") + c("snap.smc_choch"))
     bos = _clip(c("chart.bos_pressure_combo") + c("ctx_cont.smc_bos_pressure_last48"))
-    wick_level = _clip(c("chart.wick_x_major_level") + c("ctx_cont.wick_ratio"))
+    wick_level = _clip(c("chart.wick_x_major_level"))
     pullback = _clip(
         c("chart.pullback_depth_h1h4")
         + c("ctx_cont.struct_pullback_depth_h1_v3")

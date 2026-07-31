@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import pytest
 from pathlib import Path
+from types import SimpleNamespace
 
 from gx1.scripts.audit_model_native_direction_evidence_v1 import (
     _chosen_side,
@@ -105,7 +106,9 @@ def test_entry_decision_latency_allows_fresh_signal_inside_cap():
     assert fields["entry_signal_stale"] is False
 
 
-def test_entry_validation_failure_does_not_consume_fresh_m5_bucket():
+def test_entry_validation_failure_does_not_consume_fresh_m5_bucket(
+    monkeypatch,
+):
     from gx1.execution.v12_pipeline import (
         ENTRY_SEQ_LEN,
         EntryDecisionUnavailable,
@@ -116,14 +119,17 @@ def test_entry_validation_failure_does_not_consume_fresh_m5_bucket():
         def __init__(self) -> None:
             self.calls = 0
 
-        def predict_live_bar(self, _loader, _decision_m5):
+        def predict_live_bar(self, _loader, _decision_m5, **_kwargs):
             self.calls += 1
             return {}
 
     smart = _SmartEntry()
+    monkeypatch.setattr(
+        "gx1.execution.v12_pipeline._require_unified_model",
+        lambda *_args, **_kwargs: None,
+    )
     pipeline = V12Pipeline(
         prebuilt_loader=object(),
-        exit_xgb=object(),
         smart_entry=smart,
     )
     decision_m5 = pd.Timestamp("2026-07-09T12:05:00Z")
@@ -136,6 +142,10 @@ def test_entry_validation_failure_does_not_consume_fresh_m5_bucket():
         ),
     )
     pipeline._refresh_entry_canonical = lambda _now: None
+    pipeline._last_entry_prebuilt_snapshot = SimpleNamespace(
+        pair_generation_id="1" * 64,
+        pair_manifest_sha256="2" * 64,
+    )
 
     for _ in range(2):
         with pytest.raises(EntryDecisionUnavailable) as exc_info:
@@ -150,7 +160,9 @@ def test_entry_validation_failure_does_not_consume_fresh_m5_bucket():
     assert smart.calls == 2
 
 
-def test_invalid_model_direction_is_structured_unavailable_not_flat() -> None:
+def test_invalid_model_direction_is_structured_unavailable_not_flat(
+    monkeypatch,
+) -> None:
     from gx1.execution.v12_pipeline import (
         ENTRY_SEQ_LEN,
         EntryDecisionUnavailable,
@@ -161,7 +173,7 @@ def test_invalid_model_direction_is_structured_unavailable_not_flat() -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        def predict_live_bar(self, _loader, decision_m5):
+        def predict_live_bar(self, _loader, decision_m5, **_kwargs):
             return {"time": decision_m5}
 
         def decide(self, _head, *, atr_bps):
@@ -170,9 +182,12 @@ def test_invalid_model_direction_is_structured_unavailable_not_flat() -> None:
             raise RuntimeError("direction logits/probability parity mismatch")
 
     smart = _InvalidDirectionEntry()
+    monkeypatch.setattr(
+        "gx1.execution.v12_pipeline._require_unified_model",
+        lambda *_args, **_kwargs: None,
+    )
     pipeline = V12Pipeline(
         prebuilt_loader=object(),
-        exit_xgb=object(),
         smart_entry=smart,
     )
     decision_m5 = pd.Timestamp("2026-07-09T12:05:00Z")
@@ -181,6 +196,10 @@ def test_invalid_model_direction_is_structured_unavailable_not_flat() -> None:
         index=pd.date_range(end=decision_m5, periods=ENTRY_SEQ_LEN, freq="5min"),
     )
     pipeline._refresh_entry_canonical = lambda _now: None
+    pipeline._last_entry_prebuilt_snapshot = SimpleNamespace(
+        pair_generation_id="1" * 64,
+        pair_manifest_sha256="2" * 64,
+    )
 
     for _ in range(2):
         with pytest.raises(EntryDecisionUnavailable) as exc_info:
@@ -223,74 +242,64 @@ def test_latest_closed_m5_start_excludes_current_forming_bar():
     )
 
 
-def test_model_native_direction_pocket_gate_fails_rising_support_short_bias():
+def test_model_native_direction_pocket_gate_fails_rising_support_label_error():
     summaries = _passing_direction_pocket_summaries()
     summaries["rising_channel_support_touch"].update(
-        selected_side_short_count=60,
-        selected_side_short_rate=0.50,
-        selected_side_short_wilson_upper_95=0.60,
+        selected_label_correct_count=60,
+        selected_label_error_count=60,
+        selected_label_correct_rate=0.50,
+        selected_label_error_rate=0.50,
+        selected_label_error_wilson_upper_95=0.60,
     )
 
     decision, failures = _decision(summaries)
 
     assert decision == "FAIL"
-    assert any("rising_channel_support_touch selected SHORT rate" in x for x in failures)
+    assert any(
+        "rising_channel_support_touch selected label error rate" in x
+        for x in failures
+    )
 
 
 def test_model_native_direction_pocket_gate_fails_countertrend_short_trap() -> None:
     summaries = _passing_direction_pocket_summaries()
     summaries["countertrend_short_trap"].update(
-        selected_side_short_count=72,
-        selected_side_short_rate=0.60,
-        selected_side_short_wilson_upper_95=0.70,
+        selected_label_correct_count=48,
+        selected_label_error_count=72,
+        selected_label_correct_rate=0.40,
+        selected_label_error_rate=0.60,
+        selected_label_error_wilson_upper_95=0.70,
         selected_mean_proxy_pnl_bps=-4.0,
     )
 
     decision, failures = _decision(summaries)
 
     assert decision == "FAIL"
-    assert any("countertrend_short_trap selected SHORT rate" in x for x in failures)
+    assert any(
+        "countertrend_short_trap selected label error rate" in x
+        for x in failures
+    )
 
 
-def test_smart_direction_pocket_gate_fails_low_support_wrong_side() -> None:
-    template = {
-        "rows": 30,
-        "selected_rows": 30,
-        "selected_side_short_count": 0,
-        "selected_side_long_count": 0,
-        "selected_side_short_rate": 0.0,
-        "selected_side_long_rate": 0.0,
-        "selected_mean_proxy_pnl_bps": 1.0,
-    }
-    summaries = {
-        "intraday_bull": dict(template),
-        "intraday_bull__htf_bull": dict(template),
-        "intraday_bull__htf_bear": dict(template),
-        "intraday_bear": dict(template),
-        "intraday_bear__htf_bear": dict(template),
-        "intraday_bear__htf_bull": dict(template),
-        "rising_channel_support_touch": {
-            **template,
-            "rows": 30,
-            "selected_rows": 12,
-            "selected_side_short_count": 1,
-            "selected_side_short_rate": 1.0 / 12.0,
-        },
-        "falling_channel_resistance_touch": dict(template),
-        "support_retest_continuation": dict(template),
-        "resistance_retest_continuation": dict(template),
-        "rising_channel_support_continuation": dict(template),
-        "falling_channel_resistance_continuation": dict(template),
-        "countertrend_short_trap": dict(template),
-        "countertrend_long_trap": dict(template),
-        "short_high_mae_low_mfe_early_failure": dict(template),
-        "long_high_mae_low_mfe_early_failure": dict(template),
-    }
+def test_smart_direction_pocket_gate_fails_low_selected_support() -> None:
+    summaries = _passing_direction_pocket_summaries()
+    summaries["rising_channel_support_touch"].update(
+        rows=30,
+        selected_rows=12,
+        selected_label_correct_count=11,
+        selected_label_error_count=1,
+        selected_label_correct_rate=11.0 / 12.0,
+        selected_label_error_rate=1.0 / 12.0,
+        selected_label_error_wilson_upper_95=0.25,
+    )
 
     decision, failures = _decision(summaries)
 
     assert decision == "FAIL"
-    assert any("rising_channel_support_touch selected SHORT count" in x for x in failures)
+    assert any(
+        "rising_channel_support_touch selected coverage 12 < 100" in x
+        for x in failures
+    )
 
 
 def test_direction_pocket_utility_is_an_offline_launch_gate_only() -> None:

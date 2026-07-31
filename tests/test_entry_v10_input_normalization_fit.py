@@ -183,6 +183,7 @@ def _artifacts(
         m5_prebuilt=m5_prebuilt,
         expected_source_sha256=_sha256_file(m5_prebuilt),
         features=features,
+        contract="v2",
     )
     manifest = {
         "output_data_path": str(train_parquet),

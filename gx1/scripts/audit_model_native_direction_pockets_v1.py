@@ -46,10 +46,11 @@ from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
-    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-    DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
+    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE,
+    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95,
     DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
     DIRECTION_POCKET_MIN_SELECTED_ROWS,
+    DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS,
     DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT,
     DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
     MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
@@ -505,6 +506,12 @@ def _summarize(frame: pd.DataFrame, mask: np.ndarray, selected: np.ndarray) -> d
     label = pd.to_numeric(sub_sel["y_direction"], errors="coerce").to_numpy(
         dtype=np.float64
     )
+    if not np.isfinite(label).all() or not np.isin(
+        label, (SIDE_LONG, SIDE_SHORT, SIDE_FLAT)
+    ).all():
+        raise RuntimeError(
+            "selected y_direction labels must be exact finite LONG/SHORT/FLAT ids"
+        )
     pnl = _pnl_proxy_for_side(sub_sel, side) if len(sub_sel) else np.asarray([], dtype=np.float64)
     mae = pd.to_numeric(sub_sel["mae_first_n_bps"], errors="coerce")
     mfe = pd.to_numeric(sub_sel["mfe_first_n_bps"], errors="coerce")
@@ -519,13 +526,14 @@ def _summarize(frame: pd.DataFrame, mask: np.ndarray, selected: np.ndarray) -> d
     selected_rows = int(len(sub_sel))
     long_count = int(np.sum(side == SIDE_LONG))
     short_count = int(np.sum(side == SIDE_SHORT))
-    long_wilson = (
-        direction_pocket_wilson_upper_95(failures=long_count, total=selected_rows)
-        if selected_rows
-        else None
-    )
-    short_wilson = (
-        direction_pocket_wilson_upper_95(failures=short_count, total=selected_rows)
+    label_int = label.astype(np.int8, copy=False)
+    label_correct_count = int(np.sum(side == label_int))
+    label_error_count = selected_rows - label_correct_count
+    label_error_wilson = (
+        direction_pocket_wilson_upper_95(
+            failures=label_error_count,
+            total=selected_rows,
+        )
         if selected_rows
         else None
     )
@@ -537,8 +545,11 @@ def _summarize(frame: pd.DataFrame, mask: np.ndarray, selected: np.ndarray) -> d
         "selected_side_short_count": short_count,
         "selected_side_long_rate": _rate(side == SIDE_LONG),
         "selected_side_short_rate": _rate(side == SIDE_SHORT),
-        "selected_side_long_wilson_upper_95": long_wilson,
-        "selected_side_short_wilson_upper_95": short_wilson,
+        "selected_label_correct_count": label_correct_count,
+        "selected_label_error_count": label_error_count,
+        "selected_label_correct_rate": _rate(side == label_int),
+        "selected_label_error_rate": _rate(side != label_int),
+        "selected_label_error_wilson_upper_95": label_error_wilson,
         "model_direction_flat_count": int(np.sum(all_side == SIDE_FLAT)),
         "model_direction_flat_rate": _rate(all_side == SIDE_FLAT),
         "selected_label_long_rate": _rate(label == SIDE_LONG),
@@ -558,33 +569,13 @@ def _summarize(frame: pd.DataFrame, mask: np.ndarray, selected: np.ndarray) -> d
 def _decision(
     summaries: dict[str, dict[str, Any]],
 ) -> tuple[str, list[str]]:
-    max_bad_rate = DIRECTION_POCKET_MAX_BAD_SIDE_RATE
+    max_error_rate = DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
     min_rows = DIRECTION_POCKET_MIN_SELECTED_ROWS
     min_mean_proxy_pnl_bps = (
         DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
     )
     failures: list[str] = []
-    short_bad_pockets = [
-        "intraday_bull",
-        "intraday_bull__htf_bull",
-        "intraday_bull__htf_bear",
-        "rising_channel_support_touch",
-        "support_retest_continuation",
-        "rising_channel_support_continuation",
-        "countertrend_short_trap",
-        "short_high_mae_low_mfe_early_failure",
-    ]
-    long_bad_pockets = [
-        "intraday_bear",
-        "intraday_bear__htf_bear",
-        "intraday_bear__htf_bull",
-        "falling_channel_resistance_touch",
-        "resistance_retest_continuation",
-        "falling_channel_resistance_continuation",
-        "countertrend_long_trap",
-        "long_high_mae_low_mfe_early_failure",
-    ]
-    for name in short_bad_pockets:
+    for name in DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS:
         row = summaries[name]
         pocket_rows = int(row["rows"])
         selected_rows = int(row["selected_rows"])
@@ -598,68 +589,28 @@ def _decision(
                 f"{name} selected coverage {selected_rows} < {min_rows} "
                 f"with pocket rows={pocket_rows}"
             )
-        short_count = int(row["selected_side_short_count"])
-        if selected_rows < min_rows and short_count > 0:
-            failures.append(f"{name} selected SHORT count {short_count} with low support n={selected_rows} < {min_rows}")
-        if selected_rows >= min_rows and float(row["selected_side_short_rate"]) > max_bad_rate:
-            failures.append(
-                f"{name} selected SHORT rate {row['selected_side_short_rate']:.3f} > {max_bad_rate:.3f}"
-            )
-        if selected_rows >= min_rows and (
-            row["selected_side_short_wilson_upper_95"] is None
-            or float(row["selected_side_short_wilson_upper_95"])
-            > DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
-        ):
-            failures.append(
-                f"{name} selected SHORT Wilson upper 95% "
-                f"{row['selected_side_short_wilson_upper_95']} > "
-                f"{DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95:.3f}"
-            )
-    for name in long_bad_pockets:
-        row = summaries[name]
-        pocket_rows = int(row["rows"])
-        selected_rows = int(row["selected_rows"])
-        if pocket_rows < min_rows:
-            failures.append(
-                f"{name} pocket support {pocket_rows} < {min_rows}; "
-                "direction edge is unproven"
-            )
-        if selected_rows < min_rows:
-            failures.append(
-                f"{name} selected coverage {selected_rows} < {min_rows} "
-                f"with pocket rows={pocket_rows}"
-            )
-        long_count = int(row["selected_side_long_count"])
-        if selected_rows < min_rows and long_count > 0:
-            failures.append(f"{name} selected LONG count {long_count} with low support n={selected_rows} < {min_rows}")
-        if selected_rows >= min_rows and float(row["selected_side_long_rate"]) > max_bad_rate:
-            failures.append(
-                f"{name} selected LONG rate {row['selected_side_long_rate']:.3f} > {max_bad_rate:.3f}"
-            )
-        if selected_rows >= min_rows and (
-            row["selected_side_long_wilson_upper_95"] is None
-            or float(row["selected_side_long_wilson_upper_95"])
-            > DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
-        ):
-            failures.append(
-                f"{name} selected LONG Wilson upper 95% "
-                f"{row['selected_side_long_wilson_upper_95']} > "
-                f"{DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95:.3f}"
-            )
-    utility_pockets = (
-        "rising_channel_support_touch",
-        "support_retest_continuation",
-        "rising_channel_support_continuation",
-        "countertrend_short_trap",
-        "falling_channel_resistance_touch",
-        "resistance_retest_continuation",
-        "falling_channel_resistance_continuation",
-        "countertrend_long_trap",
-    )
-    for name in utility_pockets:
-        row = summaries[name]
         if int(row["selected_rows"]) < min_rows:
             continue
+        error_rate = row["selected_label_error_rate"]
+        if (
+            error_rate is None
+            or float(error_rate) > max_error_rate
+        ):
+            failures.append(
+                f"{name} selected label error rate {error_rate} > "
+                f"{max_error_rate:.3f}"
+            )
+        error_wilson = row["selected_label_error_wilson_upper_95"]
+        if (
+            error_wilson is None
+            or float(error_wilson)
+            > DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95
+        ):
+            failures.append(
+                f"{name} selected label-error Wilson upper 95% "
+                f"{error_wilson} > "
+                f"{DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95:.3f}"
+            )
         mean_pnl = row["selected_mean_proxy_pnl_bps"]
         if mean_pnl is None:
             failures.append(
@@ -1055,9 +1006,11 @@ def main() -> int:
         "observed_selection_score_modes": _selection_score_mode_values(frame),
         "required_prediction_columns": list(MODEL_DIRECTION_REQUIRED_COLUMNS),
         "selection_policy": "argmax(direction_logits) != FLAT",
-        "max_bad_side_rate": DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-        "max_bad_side_wilson_upper_95": (
-            DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+        "max_selected_label_error_rate": (
+            DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
+        ),
+        "max_selected_label_error_wilson_upper_95": (
+            DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95
         ),
         "wilson_confidence_level": DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
         "min_selected_rows": DIRECTION_POCKET_MIN_SELECTED_ROWS,

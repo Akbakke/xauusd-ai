@@ -7,7 +7,7 @@ import numpy as np
 
 
 SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = (
-    "entry_smc_liquidity_quality_v1_20260722_distinct_liquidity_pool_stack_fail_closed"
+    "entry_smc_liquidity_quality_v2_20260729_signed_candle_owner_fail_closed"
 )
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
 
@@ -48,10 +48,6 @@ SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
     "snap.smc_bars_since_sweep",
     "snap.smc_premium_discount",
     "snap.smc_choch",
-    "snap.body_pct",
-    "snap.wick_asym",
-    "snap._v1_body_share_1",
-    "snap._v1_clv",
     "ctx_cont.smc_sweep_bull_pressure_last12",
     "ctx_cont.smc_sweep_bull_pressure_last48",
     "ctx_cont.smc_sweep_size_recent_tau12",
@@ -81,7 +77,6 @@ SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
     "ctx_cont.dist_last_swing_low_atr",
     "ctx_cont.bars_since_swing_high",
     "ctx_cont.bars_since_swing_low",
-    "ctx_cont.wick_ratio",
     "ctx_cont._v1h1_ema_diff",
     "ctx_cont._v1h4_ema_diff",
     "ctx_cont.d1_ema_slope_20_canon_v2",
@@ -233,18 +228,15 @@ def build_entry_smc_liquidity_quality_layer(
 
     premium = _clip01(c("snap.smc_premium_discount"))
     discount = _clip01(1.0 - premium)
-    clv_unit = _clip01(0.5 + 0.5 * _clip(c("snap._v1_clv"), -1.0, 1.0))
-    body_direction = _clip(c("snap.body_pct") + c("candle.pattern_body_direction"), -1.0, 1.0)
-    body_share = _clip01(np.abs(c("snap.body_pct")) + c("snap._v1_body_share_1") + c("candle.pattern_body_share"))
-    body_bull = _clip01(_pos(body_direction) + _pos(c("candle.pattern_body_direction")))
-    body_bear = _clip01(_neg(body_direction) + _neg(c("candle.pattern_body_direction")))
+    body_direction = _clip(c("candle.pattern_body_direction"), -1.0, 1.0)
+    body_share = _clip01(c("candle.pattern_body_share"))
+    body_bull = _pos(body_direction)
+    body_bear = _neg(body_direction)
 
-    wick_asym = _clip(c("snap.wick_asym"), -1.0, 1.0)
-    wick_ratio = _clip01(c("ctx_cont.wick_ratio"))
-    upper_wick = _clip01(_pos(wick_asym) + 0.50 * wick_ratio + c("candle.pattern_upper_wick_share"))
-    lower_wick = _clip01(_neg(wick_asym) + 0.50 * (1.0 - wick_ratio) + c("candle.pattern_lower_wick_share"))
-    close_near_high = _clip01(0.55 * (1.0 - wick_ratio) + 0.30 * clv_unit + 0.15 * c("candle.pattern_close_location"))
-    close_near_low = _clip01(0.55 * wick_ratio + 0.30 * (1.0 - clv_unit) + 0.15 * (1.0 - c("candle.pattern_close_location")))
+    upper_wick = _clip01(c("candle.pattern_upper_wick_share"))
+    lower_wick = _clip01(c("candle.pattern_lower_wick_share"))
+    close_near_high = _clip01(c("candle.pattern_close_location"))
+    close_near_low = _clip01(1.0 - close_near_high)
     wick_reject_long = _clip01(lower_wick * (0.50 + close_near_high + 0.25 * body_bull) * (0.75 + 0.25 * body_share))
     wick_reject_short = _clip01(upper_wick * (0.50 + close_near_low + 0.25 * body_bear) * (0.75 + 0.25 * body_share))
 

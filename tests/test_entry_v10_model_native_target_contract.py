@@ -187,10 +187,10 @@ def test_model_native_active_loss_weight_contract_accepts_only_positive_surface(
     assert trainer._model_native_active_loss_weight_failures(_valid_loss_weights()) == []
 
 
-def test_model_native_active_head_names_are_the_exact_enabled_surface() -> None:
+def test_model_native_active_head_names_include_unified_exit_surface() -> None:
     heads = trainer._build_active_head_names()
 
-    assert heads == list(MODEL_NATIVE_ACTIVE_HEADS)
+    assert heads == [*MODEL_NATIVE_ACTIVE_HEADS, "unified_exit"]
 
 
 def _valid_output_heads(batch_size: int = 2) -> dict[str, torch.Tensor]:
@@ -359,7 +359,8 @@ def test_model_native_dataset_fails_before_training_when_active_target_missing(
             parquet,
             seq_len=2,
             m5_prebuilt_path=m5_path,
-            multi_tf_seq_len=2,
+            per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+            multi_tf_closed_bar=True,
         )
 
 
@@ -375,7 +376,8 @@ def test_model_native_dataset_getitem_reads_exact_targets_without_hold_horizon(
         parquet,
         seq_len=2,
         m5_prebuilt_path=m5_path,
-        multi_tf_seq_len=2,
+        per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+        multi_tf_closed_bar=True,
     )
     sample = dataset[0]
 
@@ -443,13 +445,31 @@ def test_cooperation_gate_epoch_health_requires_every_gate_family_live() -> None
     }
     trainer._accumulate_cooperation_gate_epoch(accumulator, uniform)
     stats = trainer._finalize_cooperation_gate_epoch(accumulator)
+    feature_accumulator = trainer._new_feature_tf_gate_epoch_accumulator()
+    feature_gate = torch.stack(
+        [
+            torch.full(
+                trainer._MODEL_NATIVE_FEATURE_TF_GATE_SHAPE,
+                0.95 + 0.03 * row,
+                dtype=torch.float32,
+            )
+            for row in range(4)
+        ]
+    )
+    trainer._accumulate_feature_tf_gate_epoch(
+        feature_accumulator,
+        {"family_tf_feature_gate": feature_gate},
+    )
+    stats.update(
+        trainer._finalize_feature_tf_gate_epoch(feature_accumulator)
+    )
 
     assert trainer._cooperation_gate_health_failures(stats) == []
     assert stats["specialist_gate_rows"] == 4
     assert stats["specialist_gate_min_mean"] == pytest.approx(1.0 / 8.0)
     assert stats["tf_gate_min_mean"] == pytest.approx(1.0 / 5.0)
     assert stats["family_tf_cooperation_gate_min_mean"] == pytest.approx(
-        1.0 / 13.0
+        1.0 / 40.0
     )
 
 
@@ -464,6 +484,24 @@ def test_cooperation_gate_epoch_health_rejects_starved_specialist() -> None:
     out["specialist_gate"] = starved
     trainer._accumulate_cooperation_gate_epoch(accumulator, out)
     stats = trainer._finalize_cooperation_gate_epoch(accumulator)
+    feature_accumulator = trainer._new_feature_tf_gate_epoch_accumulator()
+    feature_gate = torch.stack(
+        [
+            torch.full(
+                trainer._MODEL_NATIVE_FEATURE_TF_GATE_SHAPE,
+                0.95 + 0.04 * row,
+                dtype=torch.float32,
+            )
+            for row in range(3)
+        ]
+    )
+    trainer._accumulate_feature_tf_gate_epoch(
+        feature_accumulator,
+        {"family_tf_feature_gate": feature_gate},
+    )
+    stats.update(
+        trainer._finalize_feature_tf_gate_epoch(feature_accumulator)
+    )
 
     failures = trainer._cooperation_gate_health_failures(stats)
     assert any(

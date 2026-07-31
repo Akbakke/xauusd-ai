@@ -12,7 +12,7 @@ import argparse
 import hashlib
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -48,13 +48,26 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     group_features_by_specialist,
 )
 from gx1.features.htf_features import (
-    HTF_V2_CACHE_BUILDER_VERSION,
-    MULTI_TF_FEATURE_COUNT_V2,
-    MULTI_TF_PER_BAR_FEATURES_V2,
+    HTF_V4_CACHE_SCHEMA_VERSION,
+    HTF_V4_CACHE_BUILDER_VERSION,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_SHIFT,
+    MULTI_TF_TIMEFRAMES,
+    build_multi_tf_v4_closed_timestamp_indices,
+    load_multi_tf_cache,
+    multi_tf_last_closed_label,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    DIRECTION_DATASET_STEM_SUFFIX,
+    final_direction_label_horizon_bars,
     model_native_aux_target_contract_metadata,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS,
+    canonical_json_sha256,
+    require_unified_exit_m1_pair_authority,
 )
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
@@ -68,11 +81,11 @@ EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT"
 READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 BLOCKED_DECISION = "BLOCKED_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT"
 
-EXPECTED_MTF_TFS = ("M5", "M15", "H1", "H4", "D1")
+EXPECTED_MTF_TFS = MULTI_TF_TIMEFRAMES
 # ONE numeric owner: the loader (htf_features) enforces this exact version at
 # consumption time; pinning a separate literal here made the two contracts
 # mutually unsatisfiable when the cache builder was re-versioned 2026-07-17.
-EXPECTED_MTF_BUILDER_VERSION = HTF_V2_CACHE_BUILDER_VERSION
+EXPECTED_MTF_BUILDER_VERSION = HTF_V4_CACHE_BUILDER_VERSION
 FULL_INPUT_LIVENESS_OUTPUT_PATTERN = (
     "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_<UTC_TIMESTAMP>.json"
 )
@@ -452,9 +465,43 @@ def _mtf_cache_contract(
 ) -> dict[str, Any]:
     manifest_path = cache_dir / "manifest.json"
     manifest, read_error = _read_json(manifest_path)
-    expected_feature_names = list(MULTI_TF_PER_BAR_FEATURES_V2)
+    verified_loader_error: str | None = None
+    verified_cache_identity: str | None = None
+    try:
+        verified_cache = load_multi_tf_cache(cache_dir)
+        verified_cache_identity = str(
+            getattr(verified_cache, "cache_identity_sha256", "")
+        )
+    except Exception as exc:
+        verified_loader_error = str(exc)
+    expected_feature_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
     expected_shift = {tf: str(MULTI_TF_SHIFT[tf]) for tf in EXPECTED_MTF_TFS}
     observed_tfs = manifest.get("tfs") if isinstance(manifest.get("tfs"), dict) else {}
+    mtf_source_raw = str(manifest.get("m5_prebuilt_source") or "").strip()
+    mtf_source = Path(mtf_source_raw).expanduser().resolve() if mtf_source_raw else Path("/")
+    declared_source_sha = str(manifest.get("m5_prebuilt_source_sha256") or "")
+    observed_source_sha = (
+        _sha256_file(mtf_source)
+        if mtf_source_raw and mtf_source.is_file() and not mtf_source.is_symlink()
+        else None
+    )
+    expected_timestamp_indices: dict[str, pd.DatetimeIndex] = {}
+    source_timestamp_geometry_error: str | None = None
+    if observed_source_sha == declared_source_sha and len(declared_source_sha) == 64:
+        try:
+            source_time = pd.read_parquet(mtf_source, columns=["time"])["time"]
+            source_index = pd.DatetimeIndex(
+                pd.to_datetime(source_time, utc=True, errors="coerce")
+            )
+            expected_timestamp_indices = (
+                build_multi_tf_v4_closed_timestamp_indices(source_index)
+            )
+        except Exception as exc:
+            source_timestamp_geometry_error = str(exc)
+    else:
+        source_timestamp_geometry_error = (
+            "cache source is missing or its declared SHA-256 does not match"
+        )
     rows: dict[str, dict[str, Any]] = {}
     file_names: set[str] = set()
     for tf in EXPECTED_MTF_TFS:
@@ -473,8 +520,14 @@ def _mtf_cache_contract(
         feats_dtype = ""
         ts_dtype = ""
         first_ts_ns: int | None = None
+        first_complete_ts_ns: int | None = None
         last_ts_ns: int | None = None
         monotonic = False
+        causal_warmup_rows: int | None = None
+        source_timestamp_geometry_exact = False
+        expected_first_ts_ns: int | None = None
+        expected_last_ts_ns: int | None = None
+        expected_timestamp_count = 0
         if feats_path.is_file() and ts_path.is_file() and not feats_path.is_symlink() and not ts_path.is_symlink():
             try:
                 feats = np.load(feats_path, mmap_mode="r", allow_pickle=False)
@@ -487,28 +540,47 @@ def _mtf_cache_contract(
                     first_ts_ns = int(ts[0])
                     last_ts_ns = int(ts[-1])
                     monotonic = bool(len(ts) == 1 or np.all(ts[1:] > ts[:-1]))
+                    raw_warmup_rows = info.get("causal_warmup_rows")
+                    if (
+                        not isinstance(raw_warmup_rows, bool)
+                        and isinstance(raw_warmup_rows, int)
+                        and 0 <= raw_warmup_rows < len(ts)
+                    ):
+                        causal_warmup_rows = int(raw_warmup_rows)
+                        first_complete_ts_ns = int(ts[causal_warmup_rows])
+                    expected_index = expected_timestamp_indices.get(tf)
+                    if expected_index is not None:
+                        expected_ts = expected_index.asi8
+                        expected_timestamp_count = len(expected_ts)
+                        expected_first_ts_ns = int(expected_ts[0])
+                        expected_last_ts_ns = int(expected_ts[-1])
+                        source_timestamp_geometry_exact = bool(
+                            np.array_equal(ts, expected_ts)
+                        )
             except Exception as exc:  # pragma: no cover - corrupt numpy variants differ
                 errors.append(str(exc))
         else:
             errors.append("feature or timestamp npy is missing/non-regular")
 
-        expected_first_max = None
-        expected_last_min = None
-        covers_train_history = False
+        feature_history_cutoff_ns = None
+        test_end_cutoff_ns = None
+        covers_feature_history_start = False
         covers_test_end = False
-        shift = MULTI_TF_SHIFT[tf]
         if history_start is not None:
-            expected_first_max = int(
-                (history_start - timedelta(seconds=shift.total_seconds() * MODEL_NATIVE_SEQ_LEN)).timestamp()
-                * 1_000_000_000
+            feature_history_cutoff_ns = int(
+                multi_tf_last_closed_label(history_start, tf).value
             )
-            covers_train_history = first_ts_ns is not None and first_ts_ns <= expected_first_max
+            covers_feature_history_start = bool(
+                first_complete_ts_ns is not None
+                and first_complete_ts_ns <= feature_history_cutoff_ns
+            )
         if test_end is not None:
-            expected_last_min = int(
-                (test_end - timedelta(seconds=shift.total_seconds())).timestamp()
-                * 1_000_000_000
+            test_end_cutoff_ns = int(
+                multi_tf_last_closed_label(test_end, tf).value
             )
-            covers_test_end = last_ts_ns is not None and last_ts_ns >= expected_last_min
+            covers_test_end = bool(
+                last_ts_ns is not None and last_ts_ns >= test_end_cutoff_ns
+            )
 
         n_bars = int(info.get("n_bars") or 0)
         exact = bool(
@@ -517,15 +589,17 @@ def _mtf_cache_contract(
             and ts_name == f"{tf}_ts.npy"
             and len(feats_shape) == 2
             and feats_shape[0] == n_bars
-            and feats_shape[1] == MULTI_TF_FEATURE_COUNT_V2
+            and feats_shape[1] == MULTI_TF_FEATURE_COUNT_V4
             and ts_shape == (n_bars,)
             and feats_dtype == "float32"
             and ts_dtype == "int64"
-            and int(info.get("feature_count") or 0) == MULTI_TF_FEATURE_COUNT_V2
+            and int(info.get("feature_count") or 0) == MULTI_TF_FEATURE_COUNT_V4
+            and causal_warmup_rows is not None
             and first_ts_ns == int(info.get("first_ts_ns") or -1)
             and last_ts_ns == int(info.get("last_ts_ns") or -1)
             and monotonic
-            and covers_train_history
+            and source_timestamp_geometry_exact
+            and covers_feature_history_start
             and covers_test_end
         )
         rows[tf] = {
@@ -536,10 +610,16 @@ def _mtf_cache_contract(
             "feature_dtype": feats_dtype,
             "timestamp_dtype": ts_dtype,
             "first_ts_ns": first_ts_ns,
+            "causal_warmup_rows": causal_warmup_rows,
+            "first_complete_ts_ns": first_complete_ts_ns,
             "last_ts_ns": last_ts_ns,
-            "expected_first_ts_ns_at_most": expected_first_max,
-            "expected_last_ts_ns_at_least": expected_last_min,
-            "covers_train_history": covers_train_history,
+            "expected_source_timestamp_count": expected_timestamp_count,
+            "expected_source_first_ts_ns": expected_first_ts_ns,
+            "expected_source_last_ts_ns": expected_last_ts_ns,
+            "source_timestamp_geometry_exact": source_timestamp_geometry_exact,
+            "feature_history_closed_bar_cutoff_ns": feature_history_cutoff_ns,
+            "test_end_closed_bar_cutoff_ns": test_end_cutoff_ns,
+            "covers_feature_history_start": covers_feature_history_start,
             "covers_test_end": covers_test_end,
             "timestamps_strictly_increasing": monotonic,
             "feature_file": _artifact_meta(feats_path),
@@ -547,14 +627,6 @@ def _mtf_cache_contract(
             "errors": errors,
         }
 
-    mtf_source_raw = str(manifest.get("m5_prebuilt_source") or "").strip()
-    mtf_source = Path(mtf_source_raw).expanduser().resolve() if mtf_source_raw else Path("/")
-    declared_source_sha = str(manifest.get("m5_prebuilt_source_sha256") or "")
-    observed_source_sha = (
-        _sha256_file(mtf_source)
-        if mtf_source_raw and mtf_source.is_file() and not mtf_source.is_symlink()
-        else None
-    )
     expected_files = {
         *(f"{tf}_feats.npy" for tf in EXPECTED_MTF_TFS),
         *(f"{tf}_ts.npy" for tf in EXPECTED_MTF_TFS),
@@ -564,12 +636,35 @@ def _mtf_cache_contract(
         "cache_dir": str(cache_dir),
         "manifest": _artifact_meta(manifest_path),
         "manifest_read_error": read_error,
+        "verified_loader_error": verified_loader_error,
+        "verified_cache_identity_sha256": verified_cache_identity,
+        "full_input_liveness": manifest.get("full_input_liveness"),
+        "schema_version": manifest.get("schema_version"),
         "feature_count": manifest.get("feature_count"),
         "feature_names": manifest.get("feature_names"),
         "shift_contract": manifest.get("shift_contract"),
         "builder_version": manifest.get("builder_version"),
         "tf_order": list(observed_tfs),
         "tf_rows": rows,
+        "decision_window_coverage_contract": {
+            "scope": "cache_exact_source_closed_bar_geometry_v2",
+            "target_availability_shift": str(MULTI_TF_SHIFT["M5"]),
+            "source_timestamp_geometry_owner": (
+                "gx1.features.htf_features."
+                "build_multi_tf_v4_closed_timestamp_indices"
+            ),
+            "per_tf_seq_lens_declared_here": False,
+            "equal_timeframe_seq_len_assumed": False,
+            "progressive_resolution_pyramid_required": True,
+            "resolution_pyramid_owner": (
+                "gx1.features.htf_features."
+                "require_multi_tf_resolution_pyramid"
+            ),
+            "exact_split_window_coverage_owner": (
+                "gx1.features.htf_features."
+                "require_multi_tf_decision_window_coverage"
+            ),
+        },
         "files_declared": sorted(file_names),
         "files_observed": sorted(observed_npy),
         "files_exact": file_names == expected_files and observed_npy == expected_files,
@@ -582,12 +677,24 @@ def _mtf_cache_contract(
                 and observed_source_sha == declared_source_sha
                 and not mtf_source.is_symlink()
             ),
+            "timestamp_geometry_error": source_timestamp_geometry_error,
+            "timestamp_geometry_exact": bool(
+                source_timestamp_geometry_error is None
+                and len(expected_timestamp_indices) == len(EXPECTED_MTF_TFS)
+                and all(
+                    rows[tf]["source_timestamp_geometry_exact"]
+                    for tf in EXPECTED_MTF_TFS
+                )
+            ),
         },
         "exact": bool(
             read_error is None
+            and verified_loader_error is None
+            and len(str(verified_cache_identity or "")) == 64
             and cache_dir.is_dir()
             and not cache_dir.is_symlink()
-            and manifest.get("feature_count") == MULTI_TF_FEATURE_COUNT_V2
+            and manifest.get("schema_version") == HTF_V4_CACHE_SCHEMA_VERSION
+            and manifest.get("feature_count") == MULTI_TF_FEATURE_COUNT_V4
             and manifest.get("feature_names") == expected_feature_names
             and manifest.get("shift_contract") == expected_shift
             and manifest.get("builder_version") == EXPECTED_MTF_BUILDER_VERSION
@@ -598,6 +705,7 @@ def _mtf_cache_contract(
             and len(declared_source_sha) == 64
             and observed_source_sha == declared_source_sha
             and not mtf_source.is_symlink()
+            and source_timestamp_geometry_error is None
         ),
     }
 
@@ -641,7 +749,11 @@ def _tape_contract(tape_root: Path, *, start_year: int | None, end_year: int | N
 
 
 def _freshness_contract(
-    *, rank_reference: Path, output: Path, audit_out_dir: Path
+    *,
+    rank_reference: Path,
+    output: Path,
+    audit_out_dir: Path,
+    exit_lifecycle_dir: Path,
 ) -> dict[str, Any]:
     output_stem = output.stem
     derived = [
@@ -664,11 +776,16 @@ def _freshness_contract(
         "rank_reference_sidecar_present": rank_sidecar.is_file()
         and not rank_sidecar.is_symlink(),
         "output": str(output),
-        "output_suffix_valid": output.name.endswith("__HOLD_03B.parquet"),
+        "output_suffix_valid": output.name.endswith(
+            f"{DIRECTION_DATASET_STEM_SUFFIX}.parquet"
+        ),
         "existing_output_artifacts": existing,
         "output_fresh": not existing,
         "audit_out_dir": str(audit_out_dir),
         "audit_out_dir_fresh": not audit_out_dir.exists() and not audit_out_dir.is_symlink(),
+        "exit_lifecycle_dir": str(exit_lifecycle_dir),
+        "exit_lifecycle_dir_fresh": not exit_lifecycle_dir.exists()
+        and not exit_lifecycle_dir.is_symlink(),
         "full_input_liveness_output": str(
             audit_out_dir / FULL_INPUT_LIVENESS_OUTPUT_PATTERN
         ),
@@ -688,6 +805,11 @@ def _command_contract(
     rank_reference_npz: Path,
     mtf_cache_dir: Path,
     tape_root: Path,
+    m1_lifecycle_pair_manifest_json: Path,
+    m1_lifecycle_pair_generation_root: Path,
+    exit_lifecycle_dir: Path,
+    exit_target_lookahead_m1_steps: int,
+    early_move_threshold_bps: float,
     output: Path,
     audit_out_dir: Path,
     split_schedule: dict[str, dict[str, str]],
@@ -713,6 +835,16 @@ def _command_contract(
         str(mtf_cache_dir),
         "--tape-root",
         str(tape_root),
+        "--m1-lifecycle-pair-manifest-json",
+        str(m1_lifecycle_pair_manifest_json),
+        "--m1-lifecycle-pair-generation-root",
+        str(m1_lifecycle_pair_generation_root),
+        "--exit-lifecycle-dir",
+        str(exit_lifecycle_dir),
+        "--exit-target-lookahead-m1-steps",
+        str(exit_target_lookahead_m1_steps),
+        "--early-move-threshold-bps",
+        str(early_move_threshold_bps),
         "--output",
         str(output),
         "--audit-out-dir",
@@ -742,6 +874,27 @@ def _command_contract(
         "starts_training": False,
         "starts_replay": False,
         "touches_shadow_or_live": False,
+        "unified_exit_lifecycle_contract": {
+            "schema_version": (
+                UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+            ),
+            "m1_pair_manifest_json": str(
+                m1_lifecycle_pair_manifest_json
+            ),
+            "m1_pair_generation_root": str(
+                m1_lifecycle_pair_generation_root
+            ),
+            "output_dir": str(exit_lifecycle_dir),
+            "target_lookahead_m1_steps": (
+                exit_target_lookahead_m1_steps
+            ),
+            "early_move_threshold_bps": early_move_threshold_bps,
+            "required_m1_columns": list(
+                UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS
+            ),
+            "both_sides_per_entry_snapshot": True,
+            "starts_training": False,
+        },
         "mandatory_post_build_gates": [
             {
                 "producer": "gx1.scripts.materialize_entry_full_input_liveness_v1",
@@ -793,9 +946,10 @@ def _command_contract(
             "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
             "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "seq_len": MODEL_NATIVE_SEQ_LEN,
+            "early_move_threshold_bps": early_move_threshold_bps,
             "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
-            "hold_bars": 3,
+            "direction_label_horizon_bars": final_direction_label_horizon_bars(),
             "direction_target_mode": "path_utility_v2",
             "aux_head_target_contract": model_native_aux_target_contract_metadata(),
             "inline_selected_features": True,
@@ -828,6 +982,63 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     mtf_cache_dir = _required_path_arg(args, "mtf_cache_dir", "--mtf-cache-dir")
     tape_root = _required_path_arg(args, "tape_root", "--tape-root")
+    raw_pair_manifest = getattr(
+        args,
+        "m1_lifecycle_pair_manifest_json",
+        None,
+    )
+    raw_pair_generation_root = getattr(
+        args,
+        "m1_lifecycle_pair_generation_root",
+        None,
+    )
+    if raw_pair_manifest is None or not str(raw_pair_manifest).strip():
+        raise RuntimeError(
+            "explicit --m1-lifecycle-pair-manifest-json is required"
+        )
+    if (
+        raw_pair_generation_root is None
+        or not str(raw_pair_generation_root).strip()
+    ):
+        raise RuntimeError(
+            "explicit --m1-lifecycle-pair-generation-root is required"
+        )
+    m1_lifecycle_pair_manifest_json = Path(
+        str(raw_pair_manifest)
+    ).expanduser()
+    m1_lifecycle_pair_generation_root = Path(
+        str(raw_pair_generation_root)
+    ).expanduser()
+    exit_lifecycle_dir = _required_path_arg(
+        args,
+        "exit_lifecycle_dir",
+        "--exit-lifecycle-dir",
+    )
+    raw_exit_lookahead = getattr(
+        args,
+        "exit_target_lookahead_m1_steps",
+        None,
+    )
+    if (
+        isinstance(raw_exit_lookahead, bool)
+        or not isinstance(raw_exit_lookahead, int)
+        or raw_exit_lookahead <= 0
+    ):
+        raise RuntimeError(
+            "explicit --exit-target-lookahead-m1-steps must be a positive integer"
+        )
+    exit_target_lookahead_m1_steps = int(raw_exit_lookahead)
+    raw_early_move_threshold = getattr(args, "early_move_threshold_bps", None)
+    try:
+        early_move_threshold_bps = float(raw_early_move_threshold)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            "explicit --early-move-threshold-bps is required and must be numeric"
+        ) from exc
+    if not np.isfinite(early_move_threshold_bps) or early_move_threshold_bps < 0.0:
+        raise RuntimeError(
+            "explicit --early-move-threshold-bps must be finite and non-negative"
+        )
     output = _required_path_arg(args, "output", "--output")
     audit_out_dir = _required_path_arg(args, "audit_out_dir", "--audit-out-dir")
     out_dir = _required_path_arg(args, "out_dir", "--out-dir")
@@ -838,6 +1049,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     canonical_sha = _sha256_file(canonical_v2_parquet)
     source_columns, source_schema_error = _parquet_columns(source_parquet)
     canonical_columns, canonical_schema_error = _parquet_columns(canonical_v2_parquet)
+    m1_lifecycle_authority_error: str | None = None
+    m1_lifecycle_authority: dict[str, Any] = {}
+    m1_lifecycle_source_parquet: Path | None = None
+    try:
+        (
+            m1_lifecycle_source_parquet,
+            m1_lifecycle_authority,
+        ) = require_unified_exit_m1_pair_authority(
+            pair_manifest_path=m1_lifecycle_pair_manifest_json,
+            pair_generation_root=m1_lifecycle_pair_generation_root,
+        )
+    except Exception as exc:
+        m1_lifecycle_authority_error = str(exc)
     _check(
         checks,
         "explicit source parquet is a regular readable parquet",
@@ -864,6 +1088,35 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     _check(checks, "source parquet hash is bound", source_sha is not None, source_sha)
     _check(checks, "canonical-v2 parquet hash is bound", canonical_sha is not None, canonical_sha)
+    _check(
+        checks,
+        "literal closed-M1 lifecycle source is native/pair-bound and complete",
+        m1_lifecycle_authority_error is None
+        and m1_lifecycle_source_parquet is not None,
+        {
+            "pair_manifest_json": str(
+                m1_lifecycle_pair_manifest_json
+            ),
+            "pair_generation_root": str(
+                m1_lifecycle_pair_generation_root
+            ),
+            "source_path": (
+                None
+                if m1_lifecycle_source_parquet is None
+                else str(m1_lifecycle_source_parquet)
+            ),
+            "authority": m1_lifecycle_authority,
+            "authority_sha256": (
+                canonical_json_sha256(m1_lifecycle_authority)
+                if m1_lifecycle_authority
+                else None
+            ),
+            "required_columns": list(
+                UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS
+            ),
+            "error": m1_lifecycle_authority_error,
+        },
+    )
 
     manifest, manifest_read_error = _read_json(signal_manifest_path)
     _check(
@@ -985,7 +1238,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 manifest_path=signal_manifest_path,
                 feature_ranking_path=feature_ranking_path,
                 expected_run_id=entry_run_id,
+                expected_source_parquet=source_parquet,
                 expected_source_sha256=source_sha,
+                expected_canonical_v2_parquet=canonical_v2_parquet,
+                expected_mtf_cache_dir=mtf_cache_dir,
+                expected_history_start_utc=split_schedule["history"]["start"],
+                expected_time_max_utc=split_schedule["test"]["end"],
                 expected_train_start_utc=split_schedule["train"]["start"],
                 expected_train_end_utc=split_schedule["train"]["end"],
             )
@@ -1040,6 +1298,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         rank_reference=rank_reference_npz,
         output=output,
         audit_out_dir=audit_out_dir,
+        exit_lifecycle_dir=exit_lifecycle_dir,
     )
     _check(
         checks,
@@ -1100,6 +1359,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     _check(
         checks,
+        "unified Exit lifecycle output directory is fresh",
+        freshness["exit_lifecycle_dir_fresh"],
+        freshness,
+    )
+    _check(
+        checks,
         "rebuild wrapper is a regular executable control artifact",
         REBUILD_WRAPPER.is_file()
         and not REBUILD_WRAPPER.is_symlink()
@@ -1118,6 +1383,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             rank_reference_npz=rank_reference_npz,
             mtf_cache_dir=mtf_cache_dir,
             tape_root=tape_root,
+            m1_lifecycle_pair_manifest_json=(
+                m1_lifecycle_pair_manifest_json
+            ),
+            m1_lifecycle_pair_generation_root=(
+                m1_lifecycle_pair_generation_root
+            ),
+            exit_lifecycle_dir=exit_lifecycle_dir,
+            exit_target_lookahead_m1_steps=(
+                exit_target_lookahead_m1_steps
+            ),
+            early_move_threshold_bps=early_move_threshold_bps,
             output=output,
             audit_out_dir=audit_out_dir,
             split_schedule=split_schedule,
@@ -1128,7 +1404,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures = [row for row in checks if not row["ok"]]
     created_utc = datetime.now(timezone.utc)
     report = {
-        "schema_version": "entry_model_native_seq513_rebuild_preflight_v5",
+        "schema_version": "entry_model_native_seq513_rebuild_preflight_v9",
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,
@@ -1148,6 +1424,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "selected_features": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "seq_len": MODEL_NATIVE_SEQ_LEN,
+            "early_move_threshold_bps": early_move_threshold_bps,
             "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
             "required_specialist_count": len(MODEL_NATIVE_TRAINING_SPECIALISTS),
@@ -1179,6 +1456,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "source_time_contract": source_time,
             "multi_tf_cache": mtf,
             "tape": tape,
+            "m1_lifecycle_pair_manifest_json": _artifact_meta(
+                m1_lifecycle_pair_manifest_json
+            ),
+            "m1_lifecycle_pair_generation_root": str(
+                m1_lifecycle_pair_generation_root
+            ),
+            "m1_lifecycle_authority": m1_lifecycle_authority,
+            "exit_lifecycle_dir": str(exit_lifecycle_dir),
+            "exit_target_lookahead_m1_steps": (
+                exit_target_lookahead_m1_steps
+            ),
+            "early_move_threshold_bps": early_move_threshold_bps,
         },
         "specialist_contract": specialist,
         "signal_source_manifest_rows": source_manifest_rows,
@@ -1211,6 +1500,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rank-reference-npz", required=True)
     parser.add_argument("--mtf-cache-dir", required=True)
     parser.add_argument("--tape-root", required=True)
+    parser.add_argument(
+        "--m1-lifecycle-pair-manifest-json",
+        required=True,
+    )
+    parser.add_argument(
+        "--m1-lifecycle-pair-generation-root",
+        required=True,
+    )
+    parser.add_argument("--exit-lifecycle-dir", required=True)
+    parser.add_argument(
+        "--exit-target-lookahead-m1-steps",
+        type=int,
+        required=True,
+    )
+    parser.add_argument(
+        "--early-move-threshold-bps",
+        type=float,
+        required=True,
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--audit-out-dir", required=True)
     parser.add_argument("--history-start", required=True)

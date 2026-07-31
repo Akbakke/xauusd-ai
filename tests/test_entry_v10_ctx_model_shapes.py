@@ -23,6 +23,9 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
 )
+from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_PATH_FEATURE_DIM,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
 )
@@ -34,7 +37,7 @@ from tests.model_native_input_normalization_support import (
 
 SEQ_DIM = 16
 SEQ_LEN = 4
-TF_DIM = 3
+TF_DIM = len(EXACT_SPECIALIST_NAMES)
 INPUT_NORMALIZATION = input_normalization_fixture(
     signal_names=[f"signal_{index}" for index in range(SEQ_DIM)],
     mtf_names=[f"mtf_{index}" for index in range(TF_DIM)],
@@ -48,11 +51,24 @@ def _specialist_indices() -> dict[str, list[int]]:
     return grouped
 
 
+def _multi_tf_specialist_indices(width: int) -> dict[str, list[int]]:
+    return {
+        name: list(range(position, width, len(EXACT_SPECIALIST_NAMES)))
+        for position, name in enumerate(EXACT_SPECIALIST_NAMES)
+    }
+
+
 def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
     kwargs = {
         "seq_input_dim": SEQ_DIM,
         "snap_input_dim": SEQ_DIM,
         "seq_len": SEQ_LEN,
+        "dropout": 0.05,
+        "multi_tf_num_layers": 1,
+        "multi_tf_scale": 0.5,
+        "specialist_num_layers": 1,
+        "specialist_fusion_scale": 0.25,
+        "cross_family_fusion_scale": 0.25,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "m5_seq_dim": TF_DIM,
@@ -89,6 +105,10 @@ def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
         "input_normalization": INPUT_NORMALIZATION,
     }
     kwargs.update(overrides)
+    kwargs.setdefault(
+        "multi_tf_specialist_input_indices",
+        _multi_tf_specialist_indices(int(kwargs["m5_seq_dim"])),
+    )
     return EntryV10CtxHybridTransformer(**kwargs)
 
 
@@ -150,7 +170,7 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         "survival_logit": 1,
         "specialist_gate": 8,
         "tf_gate": 5,
-        "family_tf_cooperation_gate": 13,
+        "family_tf_cooperation_gate": 5 * len(EXACT_SPECIALIST_NAMES),
         "trade_logit": 1,
         "side_logits": 2,
         "side_utility": 2,
@@ -170,6 +190,7 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         "expectile_value": 3,
         "action_advantage": 9,
         "public_trade_flat_decision_logits": 2,
+        "shared_feature_representation": 128,
     }
     for name, width in widths.items():
         assert out[name].shape == (2, width), name
@@ -181,6 +202,81 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
             out[gate_name].sum(dim=1),
             torch.ones(2),
             atol=1e-6,
+        )
+    assert out["family_tf_feature_gate"].shape == (2, 5, TF_DIM)
+    assert torch.isfinite(out["family_tf_feature_gate"]).all()
+
+
+def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> None:
+    model = _make_model().train()
+    out = _forward(model, batch_size=2)
+    path = torch.randn(2, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    path[1, 2:, :] = 0.0
+    exit_out = model.forward_exit_action(
+        entry_shared_representation=out["shared_feature_representation"],
+        exit_path_x=path,
+        exit_path_lengths=torch.tensor([4, 2], dtype=torch.long),
+        exit_side_index=torch.tensor([0, 1], dtype=torch.long),
+    )
+    assert exit_out["exit_action_logits"].shape == (2, 2)
+    assert exit_out["exit_action_probs"].shape == (2, 2)
+    assert exit_out["exit_path_attention"].shape == (2, 1, 4)
+    assert torch.isfinite(exit_out["exit_action_logits"]).all()
+    assert torch.allclose(
+        exit_out["exit_action_probs"].sum(dim=1),
+        torch.ones(2),
+        atol=1e-6,
+    )
+
+    torch.nn.functional.cross_entropy(
+        exit_out["exit_action_logits"],
+        torch.tensor([0, 1], dtype=torch.long),
+    ).backward()
+    for parameter_name in (
+        "seq_proj.weight",
+        "exit_path_proj.weight",
+        "exit_entry_path_attention.in_proj_weight",
+        "head_exit_action.weight",
+    ):
+        parameter = dict(model.named_parameters())[parameter_name]
+        assert parameter.grad is not None, parameter_name
+        assert bool(torch.count_nonzero(parameter.grad).item()), parameter_name
+
+
+def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> None:
+    model = _make_model(dropout=0.0).eval()
+    shared = _forward(model, batch_size=1)["shared_feature_representation"]
+    prefix = torch.randn(1, 2, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    exact = model.forward_exit_action(
+        entry_shared_representation=shared,
+        exit_path_x=prefix,
+        exit_path_lengths=torch.tensor([2], dtype=torch.long),
+        exit_side_index=torch.tensor([0], dtype=torch.long),
+    )
+    padded = torch.zeros(1, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    padded[:, :2, :] = prefix
+    padded_out = model.forward_exit_action(
+        entry_shared_representation=shared,
+        exit_path_x=padded,
+        exit_path_lengths=torch.tensor([2], dtype=torch.long),
+        exit_side_index=torch.tensor([0], dtype=torch.long),
+    )
+    assert torch.allclose(
+        exact["exit_action_logits"],
+        padded_out["exit_action_logits"],
+        atol=1e-6,
+    )
+
+    padded[0, 3, 0] = 1.0
+    with pytest.raises(
+        RuntimeError,
+        match="UNIFIED_EXIT_NONZERO_RIGHT_PADDING_FORBIDDEN",
+    ):
+        model.forward_exit_action(
+            entry_shared_representation=shared,
+            exit_path_x=padded,
+            exit_path_lengths=torch.tensor([2], dtype=torch.long),
+            exit_side_index=torch.tensor([0], dtype=torch.long),
         )
 
 
@@ -272,7 +368,8 @@ def test_public_direction_reaches_every_specialist_tf_and_cooperation_branch_aft
     torch.nn.functional.cross_entropy(out["direction_logits"], targets).backward()
     parameters = [
         model.specialist_cross_attn.layers[0].self_attn.in_proj_weight,
-        model.family_tf_cross_attn.layers[0].self_attn.in_proj_weight,
+        model.family_axis_attn.layers[0].self_attn.in_proj_weight,
+        model.timeframe_axis_attn.layers[0].self_attn.in_proj_weight,
         model.cross_tf_attn.layers[0].self_attn.in_proj_weight,
         model.specialist_gate.weight,
         model.specialist_token_gate.weight,
@@ -281,11 +378,15 @@ def test_public_direction_reaches_every_specialist_tf_and_cooperation_branch_aft
         model.family_tf_context_gate.weight,
         model.family_tf_token_gate.weight,
         *(projection.weight for projection in model.specialist_proj.values()),
-        model.m5_proj.weight,
-        model.m15_proj.weight,
-        model.h1_proj.weight,
-        model.h4_proj.weight,
-        model.d1_proj.weight,
+        *(projection.weight for projection in model.mtf_family_proj.values()),
+        *(
+            encoder.layers[0].self_attn.in_proj_weight
+            for encoder in model.mtf_family_encoder.values()
+        ),
+        *(
+            gate.weight
+            for gate in model.mtf_feature_context_gate.values()
+        ),
     ]
     for parameter in parameters:
         assert parameter.grad is not None
@@ -332,16 +433,11 @@ def test_report_only_path_calibration_cannot_change_direction_fusion() -> None:
 
 @pytest.mark.parametrize(
     "scale_name",
-    (
-        "multi_tf_scale",
-        "specialist_fusion_scale",
-        "cross_family_fusion_scale",
-        "tf_input_scale_init_m5",
-        "tf_input_scale_init_m15",
-        "tf_input_scale_init_h1",
-        "tf_input_scale_init_h4",
-        "tf_input_scale_init_d1",
-    ),
+        (
+            "multi_tf_scale",
+            "specialist_fusion_scale",
+            "cross_family_fusion_scale",
+        ),
 )
 def test_exact_architecture_rejects_zero_representation_scale(scale_name: str) -> None:
     with pytest.raises(RuntimeError, match="MANDATORY_REPRESENTATION_SCALE_INVALID"):
@@ -531,5 +627,12 @@ def test_mtf_semantic_domains_fail_closed_at_model_boundary(
 def test_model_and_config_expose_no_architecture_disable_switches() -> None:
     model_parameters = inspect.signature(EntryV10CtxHybridTransformer).parameters
     assert not [name for name in model_parameters if name.startswith("enable_")]
+    assert model_parameters["dropout"].default is inspect.Parameter.empty
     config_fields = EntryV10CtxHybridTransformer.__init__.__annotations__
     assert not [name for name in config_fields if name.startswith("enable_")]
+
+
+@pytest.mark.parametrize("invalid_dropout", (-0.01, 1.0, float("nan"), True))
+def test_model_rejects_invalid_explicit_dropout(invalid_dropout: object) -> None:
+    with pytest.raises(RuntimeError, match="MODEL_DROPOUT_INVALID"):
+        _make_model(dropout=invalid_dropout)

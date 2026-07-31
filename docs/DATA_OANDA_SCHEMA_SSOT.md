@@ -44,5 +44,14 @@ Shallow legacy M1 manifests and native-M5 v2 manifests are rejected. BASE28
 owns only the 13 physical M1 market fields; phase, volume transforms and
 TRAIN-fit rank buckets are derived under their separate contracts.
 
+The native owner publishes bounded immutable bootstrap snapshots and
+schema-v4 successors; it is not a continuous live-tail daemon. A successor
+requires the exact parent root and parent manifest SHA-256, reuses all verified
+chunks before one bounded overlap chunk, refetches that overlap plus the new
+tail, and rejects any byte-level revision of completed native rows. The
+canonical pair owner then emits a candidate-bound publication event before
+moving its pointer. No real admitted successor/admission chain currently
+advances collector data into live authority.
+
 M15/H1/H4/D1 inputs must close before or at the M5 decision cutoff. Exit may
 use the M1 path; Entry must not see future M1 information inside its M5 bar.

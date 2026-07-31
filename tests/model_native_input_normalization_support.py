@@ -24,10 +24,75 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.features.entry_specialist_feature_groups_v1 import (
     model_native_context_temporal_alias_policy,
 )
+from gx1.features.htf_features import (
+    MULTI_TF_RESAMPLE_RULES,
+    require_multi_tf_decision_window_coverage_metadata,
+    require_multi_tf_resolution_pyramid,
+)
 
 
 def _selection_hash(namespace: str) -> str:
     return hashlib.sha256(namespace.encode("utf-8")).hexdigest()
+
+
+def decision_window_coverage_fixture(
+    per_tf_seq_lens: dict[str, int],
+) -> dict[str, object]:
+    pyramid = require_multi_tf_resolution_pyramid(per_tf_seq_lens)
+    split_bounds = {
+        "train": {
+            "rows": 10,
+            "first_utc": "2026-01-01T00:00:00+00:00",
+            "last_utc": "2026-01-01T00:45:00+00:00",
+        },
+        "val": {
+            "rows": 10,
+            "first_utc": "2026-01-02T00:00:00+00:00",
+            "last_utc": "2026-01-02T00:45:00+00:00",
+        },
+        "test": {
+            "rows": 10,
+            "first_utc": "2026-01-03T00:00:00+00:00",
+            "last_utc": "2026-01-03T00:45:00+00:00",
+        },
+    }
+    per_tf = {}
+    for tf in MULTI_TF_RESAMPLE_RULES:
+        boundaries = {}
+        for split, bounds in split_bounds.items():
+            for edge in ("first", "last"):
+                boundaries[f"{split}_{edge}"] = {
+                    "target_utc": bounds[f"{edge}_utc"],
+                    "window_sha256": hashlib.sha256(
+                        f"{tf}:{split}:{edge}".encode("utf-8")
+                    ).hexdigest(),
+                }
+        per_tf[tf] = {
+            "seq_len": per_tf_seq_lens[tf],
+            "coverage_seconds": pyramid["coverage_seconds"][tf],
+            "causal_warmup_rows": 10,
+            "boundaries": boundaries,
+        }
+    payload: dict[str, object] = {
+        "schema_version": "entry_multi_tf_decision_window_coverage_v1",
+        "target_availability_shift_minutes": 5,
+        "resolution_pyramid": pyramid,
+        "split_bounds": split_bounds,
+        "per_tf": per_tf,
+        "all_split_boundaries_sliceable": True,
+    }
+    payload["contract_sha256"] = hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return require_multi_tf_decision_window_coverage_metadata(
+        payload,
+        per_tf_seq_lens=per_tf_seq_lens,
+    )
 
 
 def input_normalization_fixture(

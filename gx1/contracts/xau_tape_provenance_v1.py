@@ -27,6 +27,8 @@ CURRENT_SNAPSHOT_SCHEMA = "m5_tape_current_snapshot_v2"
 BASE_REPAIR_METHOD = "recompute_window_from_canonical_m1_drop_unbacked_bars"
 CURRENT_SNAPSHOT_METHOD = "immutable_live_collector_snapshot_exact_m5_overlap"
 CANONICAL_NATIVE_SOURCE_SCHEMA = "xau_canonical_native_source_v3"
+CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA = "xau_canonical_native_source_v4"
+CANONICAL_NATIVE_SUCCESSOR_MODE = "successor"
 CANONICAL_NATIVE_PRODUCER_OWNER = (
     "gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_xau_snapshot"
 )
@@ -81,6 +83,30 @@ NATIVE_TIMEFRAME_POLICY: dict[str, dict[str, int]] = {
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 _VEDTAK_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
+_MAX_CANONICAL_NATIVE_ANCESTOR_DEPTH = 1_024
+_CANONICAL_NATIVE_PARENT_BINDING_FIELDS = (
+    "schema_version",
+    "root",
+    "manifest_path",
+    "manifest_sha256",
+    "instrument",
+    "timeframe",
+    "explicit_vedtak_id",
+    "source_environment",
+    "source_base_url",
+    "requested_start_utc",
+    "requested_end_utc_exclusive",
+    "row_count",
+    "time_min_utc",
+    "time_max_utc",
+    "canonical_rows_sha256",
+    "source_chunks_sha256",
+    "producer_git_commit",
+    "producer_source_inventory_sha256",
+    "manifest_payload_sha256",
+    "year_sha256",
+    "year_rows",
+)
 
 
 def native_timeframe_policy(timeframe: Any) -> tuple[str, dict[str, int]]:
@@ -105,6 +131,35 @@ def _canonical_json_bytes(value: Any) -> bytes:
 
 def canonical_json_sha256(value: Any) -> str:
     return hashlib.sha256(_canonical_json_bytes(value)).hexdigest()
+
+
+def canonical_native_parent_binding_v1(
+    descriptor: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Return the exact immutable native identity admitted as a successor parent."""
+
+    if not isinstance(descriptor, Mapping):
+        raise RuntimeError("XAU_CANONICAL_NATIVE_PARENT_DESCRIPTOR_INVALID")
+    missing = [
+        name
+        for name in _CANONICAL_NATIVE_PARENT_BINDING_FIELDS
+        if name not in descriptor
+    ]
+    if missing:
+        raise RuntimeError(
+            "XAU_CANONICAL_NATIVE_PARENT_DESCRIPTOR_FIELDS_MISSING: "
+            f"{missing}"
+        )
+    return json.loads(
+        json.dumps(
+            {
+                name: descriptor[name]
+                for name in _CANONICAL_NATIVE_PARENT_BINDING_FIELDS
+            },
+            sort_keys=True,
+            allow_nan=False,
+        )
+    )
 
 
 def sha256_file(path: Path) -> str:
@@ -305,6 +360,27 @@ def _validate_canonical_native_frame(
     return out.loc[:, expected]
 
 
+def validate_canonical_native_frame(
+    frame: pd.DataFrame,
+    *,
+    timeframe: str,
+    label: str,
+    allow_empty: bool = False,
+) -> pd.DataFrame:
+    """Public SSOT validator for one exact native XAU M1/M5 frame."""
+
+    if not isinstance(frame, pd.DataFrame):
+        raise RuntimeError(
+            f"XAU_CANONICAL_{str(timeframe).upper()}_{label}_FRAME_INVALID"
+        )
+    return _validate_canonical_native_frame(
+        frame,
+        timeframe=timeframe,
+        label=label,
+        allow_empty=allow_empty,
+    )
+
+
 def canonical_native_rows_bytes(
     frame: pd.DataFrame,
     *,
@@ -383,7 +459,6 @@ def canonical_native_frame_from_oanda_response(
         raise RuntimeError(f"{prefix}_SOURCE_RESPONSE_CANDLES_INVALID")
 
     rows: list[dict[str, Any]] = []
-    incomplete = 0
     previous: pd.Timestamp | None = None
     for position, raw_candle in enumerate(candles):
         if not isinstance(raw_candle, Mapping):
@@ -396,8 +471,10 @@ def canonical_native_frame_from_oanda_response(
                 f"{prefix}_SOURCE_COMPLETION_INVALID: position={position}"
             )
         if not complete:
-            incomplete += 1
-            continue
+            raise RuntimeError(
+                f"{prefix}_SOURCE_INCOMPLETE_CANDLE_FORBIDDEN: "
+                f"position={position}"
+            )
         timestamp = _utc_native_bar(
             raw_candle.get("time"),
             timeframe=normalized,
@@ -454,7 +531,7 @@ def canonical_native_frame_from_oanda_response(
     stats = {
         "response_candles": len(candles),
         "complete_candles": len(frame),
-        "incomplete_candles": incomplete,
+        "incomplete_candles": 0,
         "first_complete_utc": (
             None if frame.empty else pd.Timestamp(frame["time"].iloc[0]).isoformat()
         ),
@@ -526,6 +603,344 @@ def _decode_source_chunk(
     return value
 
 
+def _native_parent_binding_from_manifest(
+    *,
+    parent_root: Path,
+    parent_manifest_path: Path,
+    parent_manifest: Mapping[str, Any],
+    timeframe: str,
+) -> dict[str, Any]:
+    """Reconstruct the exact successor-parent identity from immutable bytes."""
+
+    normalized, _policy = native_timeframe_policy(timeframe)
+    declared_root = Path(str(parent_manifest.get("out_root") or "")).expanduser()
+    if declared_root != parent_root:
+        raise RuntimeError(
+            "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_DECLARED_ROOT_MISMATCH"
+        )
+    parent_without_hash = dict(parent_manifest)
+    parent_payload_sha = _require_sha256(
+        parent_without_hash.pop("manifest_payload_sha256", ""),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_PAYLOAD",
+    )
+    if canonical_json_sha256(parent_without_hash) != parent_payload_sha:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_PAYLOAD_INVALID")
+    return {
+        "schema_version": parent_manifest.get("schema_version"),
+        "root": str(parent_root),
+        "manifest_path": str(parent_manifest_path),
+        "manifest_sha256": sha256_file(parent_manifest_path),
+        "instrument": parent_manifest.get("instrument"),
+        "timeframe": parent_manifest.get("timeframe"),
+        "explicit_vedtak_id": parent_manifest.get("explicit_vedtak_id"),
+        "source_environment": parent_manifest.get("source_environment"),
+        "source_base_url": parent_manifest.get("source_base_url"),
+        "requested_start_utc": _utc_native_bar(
+            parent_manifest.get("requested_start_utc"),
+            timeframe=normalized,
+            label="SUCCESSOR_PARENT_BINDING_START",
+        ).isoformat(),
+        "requested_end_utc_exclusive": _utc_native_bar(
+            parent_manifest.get("requested_end_utc_exclusive"),
+            timeframe=normalized,
+            label="SUCCESSOR_PARENT_BINDING_END",
+        ).isoformat(),
+        "row_count": parent_manifest.get("row_count"),
+        "time_min_utc": _utc_native_bar(
+            parent_manifest.get("time_min_utc"),
+            timeframe=normalized,
+            label="SUCCESSOR_PARENT_BINDING_TIME_MIN",
+        ).isoformat(),
+        "time_max_utc": _utc_native_bar(
+            parent_manifest.get("time_max_utc"),
+            timeframe=normalized,
+            label="SUCCESSOR_PARENT_BINDING_TIME_MAX",
+        ).isoformat(),
+        "canonical_rows_sha256": parent_manifest.get("canonical_rows_sha256"),
+        "source_chunks_sha256": parent_manifest.get("source_chunks_sha256"),
+        "producer_git_commit": parent_manifest.get("producer_git_commit"),
+        "producer_source_inventory_sha256": parent_manifest.get(
+            "producer_source_inventory_sha256"
+        ),
+        "manifest_payload_sha256": parent_payload_sha,
+        "year_sha256": parent_manifest.get("year_sha256"),
+        "year_rows": parent_manifest.get("year_rows"),
+    }
+
+
+def _validate_native_ancestor_manifest_cas_chain(
+    parent_source: Mapping[str, Any],
+    *,
+    timeframe: str,
+) -> None:
+    """Walk every ancestor manifest CAS with explicit cycle/depth bounds."""
+
+    normalized, _policy = native_timeframe_policy(timeframe)
+    current = canonical_native_parent_binding_v1(parent_source)
+    seen_roots: set[Path] = set()
+    for _depth in range(_MAX_CANONICAL_NATIVE_ANCESTOR_DEPTH):
+        ancestor_root = Path(str(current["root"])).expanduser()
+        ancestor_manifest_path = Path(str(current["manifest_path"])).expanduser()
+        if (
+            not ancestor_root.is_absolute()
+            or ancestor_root.is_symlink()
+            or not ancestor_root.is_dir()
+            or ancestor_root.resolve() != ancestor_root
+            or ancestor_root in seen_roots
+            or ancestor_manifest_path != ancestor_root / "MANIFEST.json"
+            or ancestor_manifest_path.is_symlink()
+            or not ancestor_manifest_path.is_file()
+        ):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_PATH_OR_CYCLE_INVALID"
+            )
+        seen_roots.add(ancestor_root)
+        expected_manifest_sha = _require_sha256(
+            current["manifest_sha256"],
+            timeframe=normalized,
+            label="SUCCESSOR_ANCESTOR_MANIFEST",
+        )
+        if sha256_file(ancestor_manifest_path) != expected_manifest_sha:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_MANIFEST_CAS_MISMATCH"
+            )
+        ancestor_manifest = _json(
+            ancestor_manifest_path,
+            label="XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_MANIFEST",
+        )
+        observed = _native_parent_binding_from_manifest(
+            parent_root=ancestor_root,
+            parent_manifest_path=ancestor_manifest_path,
+            parent_manifest=ancestor_manifest,
+            timeframe=normalized,
+        )
+        if observed != current:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_IDENTITY_MISMATCH"
+            )
+        schema = ancestor_manifest.get("schema_version")
+        if schema == CANONICAL_NATIVE_SOURCE_SCHEMA:
+            return
+        if (
+            schema != CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA
+            or ancestor_manifest.get("publication_mode")
+            != CANONICAL_NATIVE_SUCCESSOR_MODE
+        ):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_SCHEMA_INVALID"
+            )
+        next_parent = ancestor_manifest.get("parent_source")
+        if not isinstance(next_parent, Mapping):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_PARENT_MISSING"
+            )
+        current = canonical_native_parent_binding_v1(next_parent)
+        if current != next_parent:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_PARENT_FIELDS_INVALID"
+            )
+        next_root = Path(str(current["root"])).expanduser()
+        if (
+            next_root == ancestor_root
+            or next_root in ancestor_root.parents
+            or ancestor_root in next_root.parents
+        ):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_ROOTS_NOT_DISJOINT"
+            )
+    raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_DEPTH_EXCEEDED")
+
+
+def _validate_native_successor_envelope(
+    root: Path,
+    manifest: dict[str, Any],
+    *,
+    timeframe: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+) -> dict[str, Any]:
+    """Validate the immutable parent CAS and bounded overlap declaration."""
+
+    normalized, _policy = native_timeframe_policy(timeframe)
+    if manifest.get("publication_mode") != CANONICAL_NATIVE_SUCCESSOR_MODE:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_MODE_INVALID")
+    parent_source = manifest.get("parent_source")
+    if not isinstance(parent_source, dict):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_MISSING")
+    if canonical_native_parent_binding_v1(parent_source) != parent_source:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_FIELDS_INVALID")
+    parent_root = Path(str(parent_source["root"])).expanduser()
+    parent_manifest_path = Path(
+        str(parent_source["manifest_path"])
+    ).expanduser()
+    child_declared_root = Path(str(manifest.get("out_root") or "")).expanduser()
+    if (
+        not parent_root.is_absolute()
+        or parent_root.is_symlink()
+        or not parent_root.is_dir()
+        or parent_root.resolve() != parent_root
+        or parent_root == root
+        or child_declared_root == parent_root
+        or child_declared_root in parent_root.parents
+        or parent_root in child_declared_root.parents
+        or parent_manifest_path != parent_root / "MANIFEST.json"
+        or parent_manifest_path.is_symlink()
+        or not parent_manifest_path.is_file()
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_PATH_INVALID")
+    if (
+        sha256_file(parent_manifest_path)
+        != _require_sha256(
+            parent_source["manifest_sha256"],
+            timeframe=normalized,
+            label="SUCCESSOR_PARENT_MANIFEST",
+        )
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_MANIFEST_CAS_MISMATCH")
+    parent_manifest = _json(
+        parent_manifest_path,
+        label="XAU_CANONICAL_M5_SUCCESSOR_PARENT_MANIFEST",
+    )
+    observed_parent = _native_parent_binding_from_manifest(
+        parent_root=parent_root,
+        parent_manifest_path=parent_manifest_path,
+        parent_manifest=parent_manifest,
+        timeframe=normalized,
+    )
+    if observed_parent != parent_source:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_IDENTITY_MISMATCH")
+    _validate_native_ancestor_manifest_cas_chain(
+        parent_source,
+        timeframe=normalized,
+    )
+    for field in (
+        "instrument",
+        "timeframe",
+        "explicit_vedtak_id",
+        "source_environment",
+        "source_base_url",
+    ):
+        if parent_manifest.get(field) != manifest.get(field):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_PARENT_CONTRACT_MISMATCH: "
+                f"field={field}"
+            )
+    for field in ("requested_start_utc", "time_min_utc"):
+        parent_value = _utc_native_bar(
+            parent_manifest.get(field),
+            timeframe=normalized,
+            label=f"SUCCESSOR_PARENT_{field.upper()}",
+        )
+        child_value = _utc_native_bar(
+            manifest.get(field),
+            timeframe=normalized,
+            label=f"SUCCESSOR_CHILD_{field.upper()}",
+        )
+        if parent_value != child_value:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_PARENT_CONTRACT_MISMATCH: "
+                f"field={field}"
+            )
+    parent_start = _utc_native_bar(
+        parent_manifest.get("requested_start_utc"),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_START",
+    )
+    parent_end = _utc_native_bar(
+        parent_manifest.get("requested_end_utc_exclusive"),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_END",
+    )
+    parent_time_max = _utc_native_bar(
+        parent_manifest.get("time_max_utc"),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_TIME_MAX",
+    )
+    if parent_start != start or parent_end >= end:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_INTERVAL_NOT_ADVANCING")
+
+    parent_chunks = parent_manifest.get("source_chunks")
+    child_chunks = manifest.get("source_chunks")
+    if (
+        not isinstance(parent_chunks, list)
+        or not parent_chunks
+        or not isinstance(child_chunks, list)
+        or not child_chunks
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_CHUNKS_INVALID")
+    append = manifest.get("successor_append")
+    expected_append_keys = {
+        "overlap_start_utc",
+        "parent_end_utc_exclusive",
+        "reused_source_chunks",
+        "refetched_source_chunks",
+        "parent_overlap_rows",
+        "appended_rows",
+        "overlap_rows_sha256",
+    }
+    if not isinstance(append, dict) or set(append) != expected_append_keys:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_APPEND_CONTRACT_INVALID")
+    reused = append.get("reused_source_chunks")
+    refetched = append.get("refetched_source_chunks")
+    if (
+        isinstance(reused, bool)
+        or not isinstance(reused, int)
+        or not 0 <= reused < len(parent_chunks)
+        or isinstance(refetched, bool)
+        or not isinstance(refetched, int)
+        or refetched <= 0
+        or refetched != len(child_chunks) - reused
+        or child_chunks[:reused] != parent_chunks[:reused]
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_CHUNK_LINEAGE_INVALID")
+    overlap_start = _utc_native_bar(
+        append.get("overlap_start_utc"),
+        timeframe=normalized,
+        label="SUCCESSOR_OVERLAP_START",
+    )
+    last_parent_start = _utc_native_bar(
+        parent_chunks[reused].get("request_from_utc"),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_LAST_CHUNK_START",
+    )
+    declared_parent_end = _utc_native_bar(
+        append.get("parent_end_utc_exclusive"),
+        timeframe=normalized,
+        label="SUCCESSOR_DECLARED_PARENT_END",
+    )
+    if (
+        overlap_start != last_parent_start
+        or declared_parent_end != parent_end
+        or not start <= overlap_start < parent_end < end
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_OVERLAP_INTERVAL_INVALID")
+    for name in ("parent_overlap_rows", "appended_rows"):
+        value = append.get(name)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value <= 0
+        ):
+            raise RuntimeError(
+                f"XAU_CANONICAL_M5_SUCCESSOR_{name.upper()}_INVALID"
+            )
+    overlap_sha = _require_sha256(
+        append.get("overlap_rows_sha256"),
+        timeframe=normalized,
+        label="SUCCESSOR_OVERLAP_ROWS",
+    )
+    return {
+        "append": append,
+        "overlap_rows_sha256": overlap_sha,
+        "overlap_start": overlap_start,
+        "parent_end": parent_end,
+        "parent_time_max": parent_time_max,
+        "parent_manifest": parent_manifest,
+        "parent_root": parent_root,
+    }
+
+
 def _validate_canonical_native_source_contract_impl(
     root: Path,
     manifest: dict[str, Any],
@@ -536,8 +951,17 @@ def _validate_canonical_native_source_contract_impl(
     """Require one hash-bound native owner and source-defined closure."""
 
     normalized, policy = native_timeframe_policy(timeframe)
+    schema_version = manifest.get("schema_version")
+    if schema_version not in {
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    }:
+        raise RuntimeError(
+            "XAU_CANONICAL_M5_MANIFEST_SCHEMA_INVALID: "
+            f"observed={schema_version!r}"
+        )
     exact = {
-        "schema_version": CANONICAL_NATIVE_SOURCE_SCHEMA,
+        "schema_version": schema_version,
         "producer_owner": CANONICAL_NATIVE_PRODUCER_OWNER,
         "source_kind": "oanda_native_mba_candles",
         "source_endpoint": "/instruments/XAU_USD/candles",
@@ -583,6 +1007,14 @@ def _validate_canonical_native_source_contract_impl(
         "year_time_bounds",
         "manifest_payload_sha256",
     }
+    if schema_version == CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA:
+        expected_keys.update(
+            {
+                "publication_mode",
+                "parent_source",
+                "successor_append",
+            }
+        )
     if set(manifest) != expected_keys:
         raise RuntimeError(
             "XAU_CANONICAL_M5_MANIFEST_SCHEMA_INVALID: "
@@ -644,6 +1076,15 @@ def _validate_canonical_native_source_contract_impl(
     )
     if end <= start:
         raise RuntimeError("XAU_CANONICAL_M5_REQUEST_INTERVAL_INVALID")
+    successor_context: dict[str, Any] | None = None
+    if schema_version == CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA:
+        successor_context = _validate_native_successor_envelope(
+            root,
+            manifest,
+            timeframe=normalized,
+            start=start,
+            end=end,
+        )
     chunk_days = manifest.get("request_chunk_days")
     if chunk_days != policy["request_chunk_days"]:
         raise RuntimeError("XAU_CANONICAL_M5_REQUEST_CHUNK_DAYS_INVALID")
@@ -776,6 +1217,8 @@ def _validate_canonical_native_source_contract_impl(
     source_time_min: str | None = None
     source_time_max: str | None = None
     previous_source_time: pd.Timestamp | None = None
+    successor_overlap_frames: list[pd.DataFrame] = []
+    successor_appended_rows = 0
     cursor = start
     actual_chunk_files = sorted(
         path
@@ -864,6 +1307,11 @@ def _validate_canonical_native_source_contract_impl(
             request_start=chunk_start,
             request_end=chunk_end,
         )
+        if metadata.get("incomplete_candles") != 0:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SOURCE_CHUNK_INCOMPLETE_CANDLES_FORBIDDEN: "
+                f"sequence={sequence}"
+            )
         for key, expected in stats.items():
             if metadata.get(key) != expected:
                 raise RuntimeError(
@@ -888,6 +1336,16 @@ def _validate_canonical_native_source_contract_impl(
                     timeframe=normalized,
                 )
             )
+            if successor_context is not None:
+                overlap = frame.loc[
+                    (frame["time"] >= successor_context["overlap_start"])
+                    & (frame["time"] < successor_context["parent_end"])
+                ]
+                if not overlap.empty:
+                    successor_overlap_frames.append(overlap)
+                successor_appended_rows += int(
+                    (frame["time"] >= successor_context["parent_end"]).sum()
+                )
     if cursor != end or manifest_chunk_files != actual_chunk_files:
         raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_CLOSURE_INVALID")
 
@@ -912,6 +1370,84 @@ def _validate_canonical_native_source_contract_impl(
         != source_rows_sha
     ):
         raise RuntimeError("XAU_CANONICAL_M5_SOURCE_ROWS_BINDING_MISMATCH")
+    if successor_context is not None:
+        parent_manifest = successor_context["parent_manifest"]
+        parent_root = successor_context["parent_root"]
+        overlap_start = successor_context["overlap_start"]
+        parent_end = successor_context["parent_end"]
+        parent_overlap_frames: list[pd.DataFrame] = []
+        parent_year_hashes = parent_manifest.get("year_sha256")
+        if not isinstance(parent_year_hashes, dict):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_PARENT_YEAR_HASHES_INVALID"
+            )
+        overlap_year_keys = [
+            key
+            for key in sorted(parent_year_hashes)
+            if overlap_start.year
+            <= int(str(key).split("=", 1)[1])
+            <= parent_end.year
+        ]
+        for key in overlap_year_keys:
+            part = parent_root / key / "part-000.parquet"
+            expected_part_sha = parent_year_hashes.get(key)
+            if (
+                not isinstance(expected_part_sha, str)
+                or part.is_symlink()
+                or not part.is_file()
+                or sha256_file(part) != expected_part_sha
+            ):
+                raise RuntimeError(
+                    "XAU_CANONICAL_M5_SUCCESSOR_PARENT_YEAR_CAS_MISMATCH: "
+                    f"{key}"
+                )
+            parent_year = _validate_canonical_native_frame(
+                pd.read_parquet(part),
+                timeframe=normalized,
+                label=f"SUCCESSOR_PARENT_{key}",
+                allow_empty=False,
+            )
+            selected = parent_year.loc[
+                (parent_year["time"] >= overlap_start)
+                & (parent_year["time"] < parent_end)
+            ]
+            if not selected.empty:
+                parent_overlap_frames.append(selected)
+        if not parent_overlap_frames or not successor_overlap_frames:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_OVERLAP_ROWS_MISSING"
+            )
+        parent_overlap = pd.concat(
+            parent_overlap_frames,
+            ignore_index=True,
+        ).loc[:, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)]
+        child_overlap = pd.concat(
+            successor_overlap_frames,
+            ignore_index=True,
+        ).loc[:, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)]
+        parent_overlap_bytes = canonical_native_rows_bytes(
+            parent_overlap,
+            timeframe=normalized,
+        )
+        child_overlap_bytes = canonical_native_rows_bytes(
+            child_overlap,
+            timeframe=normalized,
+        )
+        overlap_sha = hashlib.sha256(parent_overlap_bytes).hexdigest()
+        append = successor_context["append"]
+        if (
+            len(parent_overlap) != append["parent_overlap_rows"]
+            or parent_overlap_bytes != child_overlap_bytes
+            or overlap_sha != successor_context["overlap_rows_sha256"]
+            or successor_appended_rows != append["appended_rows"]
+            or source_row_count
+            <= int(parent_manifest.get("row_count") or 0)
+            or pd.Timestamp(source_time_max)
+            <= successor_context["parent_time_max"]
+        ):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_PREFIX_OR_APPEND_MISMATCH"
+            )
 
     year_hashes = manifest.get("year_sha256")
     if not isinstance(year_hashes, dict) or not year_hashes:
@@ -1023,7 +1559,7 @@ def _validate_canonical_native_source_contract_impl(
     )
     if observed_manifest_hash != canonical_json_sha256(without_manifest_hash):
         raise RuntimeError("XAU_CANONICAL_M5_MANIFEST_PAYLOAD_HASH_MISMATCH")
-    return {
+    descriptor = {
         **exact,
         "explicit_vedtak_id": vedtak,
         "source_environment": environment,
@@ -1046,6 +1582,19 @@ def _validate_canonical_native_source_contract_impl(
         "year_sha256": dict(sorted(year_hashes.items())),
         "year_rows": dict(sorted(year_rows.items())),
     }
+    if successor_context is not None:
+        descriptor.update(
+            {
+                "publication_mode": CANONICAL_NATIVE_SUCCESSOR_MODE,
+                "parent_source": json.loads(
+                    json.dumps(manifest["parent_source"], sort_keys=True)
+                ),
+                "successor_append": json.loads(
+                    json.dumps(manifest["successor_append"], sort_keys=True)
+                ),
+            }
+        )
+    return descriptor
 
 
 def _validate_canonical_native_source_contract(
@@ -1075,7 +1624,7 @@ def _validate_canonical_native_source_contract(
         raise RuntimeError(message) from exc
 
 
-def validate_canonical_native_source_bundle_v3(
+def validate_canonical_native_source_bundle(
     physical_root: Path | str,
     *,
     timeframe: str,
@@ -1125,6 +1674,21 @@ def validate_canonical_native_source_bundle_v3(
         manifest,
         timeframe=normalized,
         expected_declared_root=declared,
+    )
+
+
+def validate_canonical_native_source_bundle_v3(
+    physical_root: Path | str,
+    *,
+    timeframe: str,
+    expected_declared_root: Path | str,
+) -> dict[str, Any]:
+    """Compatibility name for the strict v3/v4 native bundle validator."""
+
+    return validate_canonical_native_source_bundle(
+        physical_root,
+        timeframe=timeframe,
+        expected_declared_root=expected_declared_root,
     )
 
 
@@ -1304,7 +1868,8 @@ def validate_xau_tape_provenance_v1(
         not (root / "REPAIR_MANIFEST.json").exists()
         and (root / "MANIFEST.json").exists()
     ):
-        # A strict native-v3 source root is complete tape provenance by
+        # A strict native v3 bootstrap or v4 successor source root is complete
+        # tape provenance by
         # construction: retained response evidence, source↔parquet identity,
         # year hashes and market-closure semantics are all validated by the
         # canonical descriptor. It has no repair lineage and no collector
@@ -1312,7 +1877,7 @@ def validate_xau_tape_provenance_v1(
         # currency is enforced downstream against its exact time_max_utc.
         descriptor = canonical_xau_source_descriptor_v1(root, timeframe="M5")
         return {
-            "schema_version": CANONICAL_NATIVE_SOURCE_SCHEMA,
+            "schema_version": descriptor["schema_version"],
             "tape_root": str(root),
             **{
                 key: descriptor[key]

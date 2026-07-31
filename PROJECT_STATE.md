@@ -1,427 +1,224 @@
 # GX1 project state
 
-Updated 2026-07-25.
+Updated 2026-07-31.
 
-## Entry direction
+## Terminal decision
 
-Status: **BLOCK**.
+Entry launch is **BLOCK**.
 
-The current immutable lineage is V26/V8 (2026-07-25). V26 is the first
-dataset built end to end on an event-local strict native-v3 M5 tape
-(2019-01-01→2026-07-24T20:55): chain terminal GREEN, splits
-369,303/5,904/4,776, exhaustive liveness/pretrain/readiness and
-feature/target/specialist audits all PASS with zero failures. Its exact
-bytes remain admitted to the next evidence gate. Smoke training
-`XAU_SEQ513_SMOKE_20260725_V8` — the first ever on the fully repaired
-substrate (signed targets, symmetric penalties, no-replacement sampling,
-complete TRAIN-fit normalization) — executed six epochs under the frozen
-V7-era hyperparameters and ended `TRAIN_FAIL_NO_BEST_STATE` with a total
-FLAT-collapse signature; no checkpoint or bundle exists. Seventeen
-never-executed post-audit boundaries were repaired in their existing owners
-during the campaign (DECISION_LOG 2026-07-25). V25 is chain-RED failure
-evidence; V24/V7 are historical. There is no prediction evidence, accepted
-bundle or launch authority. Paper, demo and live Entry trading remain
-closed. The absence of model/edge proof means no direction and no order; it
-must never become a guessed direction, synthetic FLAT, cached decision or
-manual overlay.
+There is no accepted V4 model, calibrated bundle, Entry/Exit edge proof,
+learned-sizing authority or launch transaction. A
+failed model decision is unavailable evidence, not `FLAT`, and cannot be
+replaced by a rule or older artifact.
 
-The post-V7 source-repair checkpoint now closes signed dip-MFE, selected-side
-bad-path symmetry, no-replacement sampler coverage, bidirectional auxiliary
-weights/conditional metrics, exact 162-value trainer recipe, full M5/MTF cache
-byte identity, complete physical-TRAIN normalization, all-142+5 family-owned
-context routing, all-22-head/26-group checkpoint influence, forward-head bps
-units, positive TF scales, grad-accum consumption, atomic bundle/event
-publication, recursive active-Exit byte binding, structured launch approval,
-identity-bound vedtak, recoverable candidate→promotion→launch finalization,
-single-exposure enforcement, runtime authority rechecks, broker/local XAU
-trade-ID reconciliation and the unsafe missing-trade-ID close fallback. The
-finalizer serializes the canonical
-registry/state pair, uses compare-and-swap and exact immutable transaction
-events, and restores both targets if either update fails. These are code
-proofs only. Fresh data have not been rebuilt, no model has been retrained and
-no launch transaction has been executed.
+## What is code-proven
 
-The second adversarial full-pipeline audit reopened several source and artifact
-P0s; the former single-P0 statement is superseded. Source now enforces exact
-Entry T+5 fill semantics, first Exit state on the closed fill-bar with
-`bars_in_trade=1`, exact last-closed-M5 joins, exact V3 overlay placement, full
-512-M1-derived M5 coverage, shared M1 microfeature formulas, transactional
-TradeState commit, contiguous persisted M1 cadence, persisted Strategy-F
-deferral, explicit Entry-time categorical evidence, exact Exit feature order
-and checkpoint hash, explicit serving fold and production-only Exit admission.
-These repairs invalidate rather than rehabilitate the retained June/July Exit
-artifacts: they were trained/scored on the old T+2/T+3 path, M5 lookahead on
-about 80% of per-M1 rows, shifted V3 overlay and an older Entry distribution.
-The retained Exit-IQL summary also declares itself research-only and
-non-production, so startup now blocks it.
+The active Entry path has one exact model-native direction authority:
+calibrated `LONG/SHORT/FLAT` logits and their argmax. External decision
+bridges, Entry-IQL, manual confluence scores, post-model trend/session/SMC
+filters and compatibility fallbacks have no authority.
 
-The current source checkpoint adds one immutable atomic canonical-v3/BASE28 pair
-generation, complete-history native-M5 recomputation, a strict native OANDA
-M1/M5 owner/closure/hash/schema contract and reproducible V3 lineage including
-the exact XGB bridge bytes. That same existing OANDA owner now contains the
-previously missing immutable source producer: fixed three-day M1 and 15-day M5
-MBA requests, retained normalized source responses, literal complete-only row derivation,
-streamed yearly parquet, clean Git/source inventory, full source↔parquet
-rederivation and atomic no-replace publication. It is exposed only as
-`model-native-native-m1-source` or `model-native-native-m5-source`; both
-executed on 2026-07-24 (2019-01-01→2026-07-24 roots under vedtak
-`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`) and the first pair generation
-`077e5419…` is published at the canonical pointer. M1 uses fixed three-day
-chunks and M5 fixed 15-day chunks; both are capped at 4,320 theoretical slots
-and callers cannot override the policy.
-Non-causal `_v1_slip_bps` and
-`_v1_cost_bps_est` are removed; realized slippage remains execution/evaluation
-evidence, while observed spread keeps its honest name. The saturated
-hand-written `_v1_cost_bps_dyn` fallback is replaced by a non-cost
-session/volatility-pressure feature. Runtime XGB now requires bundle-owned
-feature/sanitizer contracts with exact order, and V12 exposes a hash-bound
-historical M1 provider seam without duplicating Exit policy.
+The source, model and runtime contracts now require:
 
-The latest three-way audit additionally closes the shared last-closed-M5 key
-for all M1 phases, complete volume-prefix admission, XGB session/probability
-bridge checks and the 173-field per-M1 Exit V8 cadence. V3 training authority
-now revalidates real matrix/time/overlay/record geometry and every bound byte;
-path calibration uses exact tradable/selector support; prediction evidence V3
-must prove all active runtime heads through smoke, serve and launch. Replay
-schema v7 keeps label-horizon outcomes immutable and separately binds each
-closed decision bar to its following fresh quote and final active-Exit fill.
-SourceTape exact-open lookup, atomic frozen-pair loading and an Exit-only
-`V12Pipeline` factory are code-proven.
+- 513 signals = 34 base + 479 specialist fields;
+- 378 mandatory outputs from twelve causal layers + 101 deterministic
+  TRAIN-only ranked fields;
+- 142 continuous + five categorical context fields;
+- sequence length 96, 22 supervised Entry heads and one unified Exit head;
+- one 26-group/96-value learned final fusion;
+- exact V4 M5/M15/H1/H4/D1 inputs with 111 fields per timeframe;
+- all eight specialist families on every timeframe;
+- 40 family×timeframe routes and 555 feature×timeframe gates;
+- exact V4 field order, cache bytes, normalization state and runtime schema;
+- recipe-owned history windows with progressively coarser resolution for
+  progressively older context;
+- no redundant global MTF length or missing-timeframe fallback; the Dataset
+  requires the exact ordered positive five-timeframe length map;
+- no fixed per-timeframe live direction weight;
+- serve-parity v11 raw/final influence evidence before launch: 1,723 numeric
+  routes (513 sequence + 513 snapshot + 142 context + 555 MTF) and five
+  categorical counterfactual routes;
+- Q/V/Advantage fusion audits restricted to valid `Advantage = Q - V`
+  manifold states;
+- exact split-boundary decision-window coverage and fully closed trailing HTF
+  buckets.
 
-The V3 training owner now derives and atomically publishes the complete
-173-field matrix, exact T+5 overlays/records and immutable producer event from
-the bound prediction evidence, chronological SourceTape, frozen
-canonical-v3/BASE28 pair and XGB bundle. It accepts no caller matrix, overlay
-or record input and revalidates all published bytes. The existing
-sizing/replay owner now also owns canonical full-TEST production: every row is
-derived from canonical OOS/runtime-head evidence, FLAT emits no order, and
-every LONG/SHORT trade calls `V12Pipeline.make_exit_decision` over exact
-contiguous M1 state until real `EXIT_NOW`. Replay schema v7 binds SourceTape,
-the frozen pair, active Exit artifacts, transitive producer source and the
-exact immutable replay/trace files. The caller-parquet route remains
-diagnostic-only and cannot authorize launch.
-Current M1 and M5 data do not satisfy the strict v3 native-source manifest and
-no compliant atomic pair has been produced. The existing pair owner now
-implements the complete snapshot-driven
-native-M1/M5→canonical-v3/raw-BASE28 bootstrap and exposes it as
-`model-native-canonical-pair`. It verifies both immutable native descriptors,
-their identical source interval/environment, clean producer commit/source
-inventory, exact derivation/timing contract and physical output schemas before
-atomic no-replace publication. BASE28 is exactly the 13 native-M1 market
-fields; phase, volume and model context are not duplicated into it.
+The eight V4 family widths per timeframe are
+`5/11/10/2/4/5/10/64` for structure, SMC, trend, volatility, momentum,
+session, geometry and candles respectively. They sum exactly to 111. The
+feature×timeframe count is exactly 555, not 565.
 
-M5 feature availability is now uniformly evaluated at bar close (`T+5`):
-M15/H1/H4/D1 merges, cyclic time and session state share that decision
-timestamp. Persisted model-agnostic canonical fields are validated once and
-the loader's former full-history compatibility augmenters are no-ops when the
-complete surface is present. This removes roughly 17 seconds from repeated
-raw-BASE work and about 95 seconds from a measured complete-pair load/refresh
-without changing formulas.
+## What is measured on real data
 
-ATR/spread rank buckets remain a separate immutable TRAIN-fit reference. The
-mutable full-history rank path is removed; the measured old-vs-TRAIN category
-disagreement was 13.577428% for ATR and 30.579820% for spread. Entry has the
-exact reference transform, but rebuilt XGB→V3→Exit dataset, bundle, replay and
-live identities must still bind that same reference before their artifacts
-can be produced. Execute both native producers, prove the December window and
-run the new pair route only under explicit data authority. A fresh 79-field
-Exit-XGB, V3 rescore/retrain and
-production Exit-IQL retrain are mandatory before the producer can create real
-authority; no old role may be mixed in.
-PLUS5 ATR/ROC/VWAP, dependent normalized VWAP, published SMC ATR and H1/H4
-decision-time alignment have shared owners. Canonical/live December-2024
-tape parity also remains unresolved: canonical M5 and live-prebuilt share
-3,430 impossible-geometry rows; 2,799 are weekend rows. A separate full-loader
-check found 2,375 invalid prebuilt OHLC rows from
-`2024-11-30T00:40Z` through `2024-12-31T23:55Z`. The clean M1 source supports
-5,757 rebuilt December M5 buckets and leaves 3,459 canonical rows unbacked.
-No canonical/live data were modified.
+The current source parquet is:
 
-The active signal contract is
-`xau_seq513_model_native_direction_v4`:
+`/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet`
 
-- 513 ordered signal fields: 34 base + 479 specialist fields;
-- 378 mandatory fields from twelve code-owned causal feature layers;
-- 101 deterministic TRAIN-only ranked remainder fields;
-- 142 continuous and five categorical context fields;
-- sequence length 96;
-- five causal timeframe branches with 25 values per bar and explicit
-  per-timeframe history lengths; V7 used M5/M15/H1/H4/D1 lengths
-  `16/16/16/8/8`, not 96;
-- exact immutable normalization fitted on the full physical TRAIN population;
-- eight learned specialist encoders, each receiving its one-owner signal and
-  context family before cross-attention;
-- 26 learned evidence groups producing one exact 96-value fusion;
-- one final model-native `96 -> 128 -> 3` LONG/SHORT/FLAT direction path.
+It contains 536,086 ordered unique M5 rows from
+`2019-01-01T23:00:00Z` through `2026-07-24T20:55:00Z`; SHA-256:
+`eca51c97ac5a1097ff1b2baae5aea8c38ca162466103d5c2f3c1c18d135848ac`.
 
-All 57 `chart.foundation_*` fields are now part of the mandatory 378-field
-prefix. They route to four learned specialists: 19 structure/swing, five
-SMC/liquidity, five volatility/compression and 28 session/regime fields. They
-remain available beside their higher-order derivations so feature selection
-cannot silently discard primitive HH/HL/LH/LL, BOS/CHoCH age, sweep/reclaim,
-compression/release, impulse/pullback or session-conditioned structure
-evidence. The complete field-by-field routing and duplicate comparison is in
-`docs/FOUNDATION_FEATURE_ROUTING_AUDIT_20260722.md`.
+The frozen historical V4 cache is:
 
-The learned cooperation path is the sole direction authority. Features first
-enter their specialist and timeframe representations, then learned
-interaction, gating and cross-attention blocks combine compatible and
-conflicting evidence across families and timeframes. Structure, trend,
-liquidity, volatility, momentum, session, price action, path quality and
-utility therefore do not vote through separate rules. Their combined evidence
-reaches the final three logits; no post-model trend, EMA, regime, support,
-resistance, momentum, SMC or MTF rule may change the result.
+`/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729`
 
-## Dataset evidence
+Evidence:
 
-V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable failed data
-lineage.
-It rebuilt a fresh source cascade through the last complete M5 bar at
-`2026-07-22T12:05:00Z`; FULL_PLUS contains 393,176 rows x 188 columns and its
-source-cascade proof is PASS. The chain terminal is GREEN, stopped at the
-designed smoke gate, with SHA-256
-`aaf5458fa53e83f16c436031650ff7ede322094b2376a9747fbe30f388891e48`.
-The terminal producer Git head is `c18a07181140b4fb2838c7fc62a59306cdf4709b`.
+| Timeframe | Rows | Causal warmup | Post-warmup constants | Exact duplicates |
+|---|---:|---:|---:|---:|
+| M5 | 536,086 | 29 | 0 | 0 |
+| M15 | 178,767 | 27 | 0 | 0 |
+| H1 | 44,726 | 27 | 0 | 0 |
+| H4 | 12,096 | 27 | 0 | 0 |
+| D1 | 2,351 | 27 | 0 | 0 |
 
-The exact V24 split identity is:
+Cache identity:
+`ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a`.
 
-- TRAIN: 369,081 rows, parquet SHA-256
-  `b4c7455cd16ed01d815af546ca59fb39d7790c242b3a37c8df2bb1cd64a479ee`;
-- VAL: 5,904 June rows, parquet SHA-256
-  `15488f69ee8ce5b48b458bc9e9e091b2672103ba1a18cbfe4e9d354fd02f1bc3`;
-- TEST: 4,115 July rows through 12:05 UTC, parquet SHA-256
-  `2cbc718fb8aa7d8122c5847c62ae9950bdb2dc862fccfd09388494398802a666`.
+Embedded V4 liveness identity:
+`42b2b9a4af1870796cf9b22c9257550cb004515095e5e4d2fa31fb22fe4a4b18`.
 
-Exhaustive input liveness and pretrain passed under the pre-V7 contracts.
-Post-rebuild readiness, foundation feature, complete 46-target and specialist
-audits also passed on those same bytes. The specialist audit proves 513/513
-signals and 479/479 selected
-features, all eight model contracts, zero TRAIN dead signals, zero TRAIN exact
-duplicate groups and zero unmapped signal/context fields. Sparse TRAIN support
-includes CHoCH 375, bullish/bearish outside-after-inside 3,345/3,129 and M5
-EMA50/200 cross-up/down 1,114/1,114. A six-field D1 exact duplicate group exists
-only in June VAL because that short OOS window occupies one regime state; it is
-diagnostic OOD evidence, not a TRAIN code duplicate. Those passes do not admit
-V24 now: the later audit proved that all six signed dip-MFE targets were
-clipped to a non-negative domain and that the MTF source identity was not
-fully bound at the trainer boundary. A fresh rebuild is mandatory after repair.
+This is real-data input liveness under cache schema v2. Active cache schema v3
+adds complete trailing-resample closure, so these bytes are no longer
+admissible for a new dataset or training run. They are not a direction-edge
+result.
 
-V22 had failed this specialist audit because SMC liquidity-pool proximity was
-exactly identical to S/R-memory proximity and because sparse events were judged
-by the wrong generic floor. V23 proved the semantic separation and canonical
-sparse floors, then smoke readiness failed only because preflight omitted the
-required `iql_distillation=false` key. V24 proves all six side-effect keys
-explicitly false and smoke readiness is READY.
+The current verification boundary is recorded once below. This remains code
+evidence, not a retrained model. The live collector is healthy without a
+failure latch through complete M1 `2026-07-31T09:34:00Z`, while the last
+immutable native pair remains frozen on 2026-07-24. Native publication refuses
+the dirty working tree until the exact producer source is committed; that
+clean-source gate must not be bypassed. The compact handover reports the live
+path count instead of freezing it in authority documentation.
 
-The first V24 trainability audit caught one more source mismatch: it searched
-downstream source text for duplicated contract literals even though all four
-consumers correctly imported the exact mode and width from the signal-contract
-owner. Commit `0f2b9468f396bdfd7d850749fd045294662a9bd4` replaces that check
-with AST-proven import and use.
+## Latest empirical model evidence
 
-Commits `f08cd90474336b5632c19aa8cd734f6e9bf65f9a`,
-`b5a61e21118693491edf4975edec793fbc47d794` and
-`bf5c61a00500aa50890f118b6eb41ab5e91bb0c6` then close the exact
-source-level smoke-launch gap. One canonical recipe owner and producer now
-construct all 162 decision-affecting trainer settings without ambient
-pass-through/default values, validate the real split-native pretrain audit and
-bind every executable source file by SHA-256. The single control surface now
-exposes both recipe production and the existing exact post-smoke bundle audit.
+V26 remains the latest completed historical pre-V4 experiment, and V21C is
+the latest model diagnosis. Its split/audit bytes and the rejected V18 bundle
+were retired and deleted on 2026-07-29. No source/split dataset is currently
+admitted. Both measurements precede the complete V4 MTF contract.
 
-The terminal V24 smoke-readiness event was READY with SHA-256
-`395d76f9dbe58e7c5a2c9a7488de32d320487efa0942908fcc39a57219034ebb`;
-the terminal trainability event was READY with SHA-256
-`9f05c6970e7ee17fd8dba5c5583a6332fc068c59d34068e0e49a218079048e77`.
-The post-V7 audit supersedes both for future admission.
+V21C trained on all 369,303 TRAIN rows and was stopped after eight epochs:
 
-Seven real capped executions have provided fail-closed evidence.
-V1 rejected the stronger emitted aux-target contract because the trainer
-compared it with only the static 46-target subset. Commit `9459babe` added the
-exact four-counter emission validator. V2 then reached the next wall and
-rejected V24's correct dataset-build ID because the trainer compared it with
-the new smoke output ID. V3 crossed both walls, started the trainer and
-completed the five-timeframe prebuild, then rejected 1,952 / 52 / 31 legitimate
-negative TRAIN / VAL / TEST `mfe_first_n_bps` rows. Spread-aware selected-side
-MFE is signed when price never recovers the entry spread. The same inspection
-found that train and validation loss silently clipped signed MFE and path
-quality to zero; among tradable rows the affected path-quality counts were
-12,965 / 413 / 216. None of the three attempts started a training batch or
-created an output directory. V4 crossed that target wall, built the complete
-72.71 GB TRAIN tensor, stratified 10,000 rows, loaded VAL and the five exact
-timeframe tables, constructed all mandatory specialists/heads and entered the
-first model forward. It then failed before loss completion or optimizer step
-because the MTF direction-head liveness check required `y_direction`, while
-the Dataset canonically maps that immutable parquet column once to batch tensor
-`y`. V4 also created no output directory. V5 crossed every source/runtime wall:
-it completed the full TRAIN load, the exact 10,000-row subsample, all five
-timeframe inputs, one complete training epoch with optimizer steps and the
-full VAL epoch. Class support was non-degenerate, but the learned evidence was
-red: validation accuracy was 0.324187, direction-slice score was -0.914416
-with 23 failures, tradable AUC was 0.509 and bad-path AUC was 0.482 against the
-fixed 0.52 auxiliary-health floor. The checkpoint contract consequently
-admitted no best state and wrote no bundle (`TRAIN_FAIL_NO_BEST_STATE`). This
-is empirical model-quality evidence, not a source failure and not permission
-to weaken a gate. V6 then ran six complete train/VAL epochs. Epoch 4 briefly
-reached 0.383469 accuracy, near-label global class balance and direction score
-0.361111, but 15 local slices still failed and bad-path/clean-edge/survival
-AUC remained 0.472/0.517/0.501. By epoch 6, LONG support had fallen to 0.058943,
-29 slice checks failed, bad-path/survival AUC was 0.474/0.509, and the learned
-clean-edge/path-quality heads had collapsed to Spearman +0.959 although their
-VAL targets correlate only +0.699. Early stopping correctly ended the run with
-no admissible checkpoint or bundle.
+- train loss fell 36%;
+- validation loss roughly doubled;
+- epoch 1 accuracy was 0.4048 but SHORT support was zero and admission
+  correctly failed;
+- balanced/admissible epochs were 4–5 points below the 0.3858 majority
+  baseline;
+- balanced accuracy was 0.3438;
+- a plain diagnostic MLP on the same substrate reached 0.4021 with all three
+  classes alive and tradable AUC 0.5833.
 
-Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
-lineages without weakening identity. Recipe schema v2 derives
-`dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24` from post-rebuild plus all
-three split manifests. Commit
-`c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` restores the selected-side
-MFE/path-quality target domain in active validation and both losses, while MAE
-remains a non-negative magnitude. The post-V7 audit then proved that the
-separate six-field dip-MFE producer still clipped negative values; current
-source preserves those signed values. Commit
-`f05b3390144f988079bbd49aa1abff8cacd4bd55` makes both train and validation
-MTF heads require the canonical `y` class tensor, without aliases or fallback.
-Commit `3712898531916374e67c9c4c58f9d9dc4e1995c3` closes the
-cooperation-observability mismatch exposed by V6. Train and VAL now aggregate
-exact epoch-wide use for the specialist, timeframe and 13-way
-family×timeframe gates; checkpoint admission fails if any token mean is at or
-below 0.01 or gate entropy is below the existing training floor. The
-direction-neutral balance weight rises from 0.05 to 0.50 so a family cannot
-win by starving another. This changes no LONG/SHORT/FLAT, auxiliary AUC,
-slice or promotion threshold.
+The honest conclusion is that the old full model overfit before it balanced.
+It did not prove a direction edge and cannot be promoted. It also cannot judge
+the new V4 family×timeframe architecture because it never trained on it.
 
-The terminal `run_id=XAU_SEQ513_SMOKE_20260723_V7` owns its historical
-training/output lineage. Wrapper and trainer revalidated the distinct dataset
-and training roles. The immutable V7 recipe is PASS as a pre-execution recipe
-with SHA-256
-`fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`,
-eight epochs, patience eight, a 25,000-row stratified cap and the same 30G/2G
-memory/swap caps. Its exact public dry-run passes and binds source commit
-`37128985`.
+## V4 cooperation design
 
-V7 executed six full epochs before the hard-red slice stop emitted
-`TRAIN_FAIL_NO_BEST_STATE`. Raw VAL accuracy peaked at 0.403455 only with
-85.1118% FLAT. The final epoch predicted 71.4092% SHORT, failed 32 slices,
-retained bad-path/survival AUC 0.478/0.514, six cross-head collapse pairs and
-near-zero specialist/family×TF minimum use. No checkpoint or bundle was
-written and the temporary memmap was cleaned.
+Each timeframe computes the same semantic families from its own closed bars.
+Each feature has a contextual gate at each timeframe. The resulting 5×8 token
+grid is processed along both axes:
 
-The exact cap did not provide the presumed roughly 835 unique bad-path rows
-per epoch: replacement sampling exposed only 556-613 unique positives and
-15,533-15,661 unique total rows. The full audit also proved a side-asymmetric
-bad-path penalty, LONG-only weighting for bidirectional auxiliaries and global
-AUC leakage through tradable versus FLAT. `PIPELINE_AUDIT_XAU_20260723.md`
-contains the complete P0/P1/P2 findings and ordered repair.
-Those mismatches are now source-repaired and regression-tested; this paragraph
-remains historical evidence explaining why V24/V7 cannot be reused.
-V21/V22/V23 large rejected split parquets have been deleted, while their small
-terminal/manifest/audit evidence remains.
+```text
+5 timeframe-native 111-field tensors
+        |
+        +-- per-TF TRAIN-only normalization
+        +-- 555 contextual feature gates
+        +-- shared semantic family encoders
+        +-- timeframe temporal/positional encoding
+        v
+5 × 8 family/timeframe token grid
+        |
+        +-- attention across timeframes within each family
+        +-- attention across families within each timeframe
+        +-- 40 learned cooperation gates
+        v
+learned timeframe fusion + 22 Entry evidence heads + 26-group direction fusion
+        v
+one calibrated LONG/SHORT/FLAT argmax
+```
 
-## Evidence and runtime boundary
+The same encoder also consumes the frozen Entry representation plus the exact
+closed-M1 lifecycle path for its unified `HOLD/EXIT_NOW` head. It trains in the
+same smoke/candidate and never enters or competes with the direction fusion.
 
-Foundation feature, target and specialist audits bind explicit immutable
-TRAIN/VAL/TEST manifests and parquet SHA-256 values. Selected-field
-learnability is assessed on TRAIN. Every selected field must be finite in all
-splits, and every required foundation output, objective, family and source
-must be present and live in TRAIN, VAL and TEST. The former split-constant
-allowlist is deleted; no allowlist or CLI threshold can soften the fixed
-policy.
+Existing cross-family engineered fields may remain as causal evidence
+hypotheses. They are not direction rules. The raw independent V4 cells run in
+parallel so the model can reject, downweight or condition those composites.
 
-The internal Q/V/Advantage, TOP/BOTTOM timing, path-quality, utility,
-calibration and learned-size heads remain supporting learned evidence, not
-parallel live policies. Adoption still requires untouched OOS predictions,
-non-degenerate LONG/SHORT/FLAT support, calibration, cost robustness,
-row-recomputed replay, all-specialist/all-group serve influence, exact
-train-equals-serve parity, joint active Exit replay, sizing parity and settled
-broker shadow evidence. No current-contract event proves these conditions.
+## Remaining blockers, in order
 
-Live model loading begins from exact launch-declared paths and hashes. Entry
-requires a complete 96-row window ending at the latest closed M5 bar, exact
-context and causal timeframe evidence. A failed model decision remains
-structured direction unavailability and leaves the bucket retryable. Missing,
-invalid, stale or session-inconsistent evidence cannot be repaired by an
-environment override, artifact search, default value, cached row or synthetic
-FLAT.
+1. Publish a fresh generation-local immutable native M1/M5 pair from the
+   clean committed producer identity; mutable collector bytes have no
+   lifecycle or training authority.
+2. Rebuild the 5×111 cache under active schema v3 and bind a fresh
+   source/dataset audit lineage. The deleted V26 dataset/audits and retained
+   frozen v2 input cache cannot authorize it.
+3. Publish one fresh combined Entry/lifecycle dataset bound to the same native
+   pair, V4 cache and chronological TRAIN/VAL/TEST lineage.
+4. Use the now-explicit, hash-bound dropout/layer/window recipe inputs to run a
+   bounded TRAIN/VAL-only regularization/capacity sweep.
+5. Train one unified V4 smoke and require exact 8/5/40/555 gate liveness,
+   non-degenerate LONG/SHORT/FLAT and HOLD/EXIT_NOW support, positive Exit loss
+   and movement in every Exit component.
+6. Train one same-bundle/shared-encoder Entry+Exit candidate and preserve
+   untouched TEST. Exit may not be retrained or replaced afterward.
+7. Fit calibration only on the declared calibration split.
+8. Prove TEST direction, abstention, cost, slice and top/bottom alignment.
+9. Prove train==serve parity plus raw/calibrated margin movement for all eight
+   specialists, five timeframes, 40 family×timeframe routes, 26 fusion groups,
+   all 1,723 numeric routes and five categorical routes for both outputs,
+   including exact closed-M1 Exit envelope parity.
+10. Execute two consecutive fresh canonical successor/publication events
+    through the implemented owner and publish the short-lived immutable
+    live-tail admission. No real event is admitted yet.
+11. Execute the implemented same-candidate full-TEST unified Entry/Exit
+    producer, then prove zero-order shadow, promotion and the one-time launch
+    transaction. No producer output exists yet.
 
-Every future bundle must carry an exact inventory commit and be published from
-a fully validated hidden sibling directory. Every launch approval must be the
-newest immutable one-time event bound to the complete launch state and bundle
-commit. The long-running runner revalidates unchanged launch/registry identity
-and expiring evidence before every new exposure. Joint Exit sizing binds the
-actual recursive Exit artifact bytes. Missing broker trade identity blocks a
-close attempt rather than creating an opposite hedge.
-
-`PROJECT_STATE_xau_direction_launch.json` is the machine-readable launch
-decision. It is `BLOCK`, marks V24/V7 rejected for rebuild after terminal
-failure, binds the historical recipe/execution evidence and has no accepted
-bundle or launch evidence.
-
-## Verification state
-
-The current post-V7 source-repair tree completed repository-wide verification
-on 2026-07-24:
-
-- 1,898 tests collected;
-- 1,893 passed, five explicit skips and zero failures;
-- Python compilation for every changed Python source and test;
-- Ruff on every changed Python source and test, with only the repository's
-  intentional import-bootstrap `E402` pattern excluded;
-- `git diff --check`, JSON parsing, shell syntax and handover self-check;
-- exact contract/count/routing assertions;
-- repository and active-hook forbidden-instrument zero-scan;
-- zero executable references to the retired
-  `GX1_SMART_LAUNCH_VEDTAK` pass-through or smoke-audit schema v3.
-
-The earlier pre-V7 v4 source and V24 audits also passed their then-active
-checks:
-
-- exact contract/count/routing assertions;
-- V24 post-rebuild, foundation feature/target/specialist, smoke-readiness,
-  trainability, immutable V7 162-setting recipe and exact wrapper dry-run;
-- repository and active-hook forbidden-instrument zero-scan.
-
-V7 execution and the later three-part audit supersede dataset/training
-admission. The old passes remain historical proof of the bytes they checked;
-they do not prove correct signed dip targets, objective symmetry, market edge,
-near-perfect precision or live readiness.
+No acceptance threshold is changed merely to make a run pass.
 
 ## Exit
 
-The retained Exit V3/Exit-IQL chain is a separate contract. Its XGB use and M1
-exit semantics are not removed by the Entry cleanup. Shared helpers have
-neutral or Exit-owned modules; active Exit math is unchanged.
+Exit remains blocked. The former separate Exit stack is deleted. The current
+source model and trainer now contain the same-bundle Exit head, causal
+lifecycle loader, positive loss and parameter-movement/export gates. Runtime
+also retains the frozen shared Entry representation, builds the exact
+source-bound closed-M1 envelope, calls the same bundle, persists the decision
+in TradeState v6 and journals it idempotently. There is still no admitted
+freshly trained bundle or candidate-bound train==serve/full-TEST proof. The
+canonical producer exists in the sizing owner, but cannot emit launch evidence
+without that candidate, so runtime and replay intentionally fail closed. See
+`docs/CANONICAL_EXIT_STATUS.md`.
 
-The Exit-only V3 XGB bridge owns exact 7/41 field validation for two active
-Exit consumers; both its import and ordered field contract fail closed. The
-retired Entry-IQL registry record has `path=null` and status
-`RETIRED_ARTIFACT_ABSENT`, so it cannot act as an Entry fallback.
+## Operational state
 
-## Next admissible milestone
+Large failed split, audit, bundle and scratch artifacts were released through
+the evidence-retention owner. Only authority-required historical/cleanup
+receipts remain; no dataset or model artifact is admitted.
+Dead-PID training scratch is now swept before a new allocation. Direct data
+deletion and overlapping heavy jobs remain forbidden.
 
-Do not rerun the proven-red V8 recipe. The V26 dataset bytes are admitted
-evidence for the next gate; the next smoke attempt requires a new immutable
-recipe decision whose hyperparameters are chosen for the normalized input
-landscape (recipe values, never acceptance thresholds — every direction,
-slice, auxiliary and gate floor stays fixed). Do not rerun V7 or reuse V24. Preserve the completed target/objective,
-sampling, conditional-metric, normalization, context-routing, MTF,
-all-head/group-influence, atomic-publication, Exit-byte, transactional launch
-and runtime fail-close repairs, including the exact V3 storage, calibration
-support, runtime-head V3 and replay-v7 contracts. The native OANDA M1/M5
-bundles are materialized (2019-roots, 2026-07-24), the
-native→canonical-v3/raw-BASE28 bootstrap has published generation
-`077e5419…`, and the exit-chain TRAIN-rank identity binding is
-source-complete. Next: produce the immutable TRAIN-only rank reference and
-execute the bound exit routes, decide the Entry-cascade rewiring to the fresh
-native roots (the old canonical roots still carry the December-2024 defect),
-then rebuild fresh XAU-only splits and rerun every dataset/readiness audit
-before binding a new smoke recipe.
+The authoritative chronology is `DECISION_LOG.md`. Historical V2/V3 MTF
+readers and V26/V21C measurements are diagnostic history only; their rejected
+dataset/model bytes are absent. V4 is the active source/model/runtime contract.
 
-After a new smoke passes, compare a declared full-history baseline with a
-TRAIN-only recent-regime challenger, select/calibrate without touching the
-final TEST window, then open TEST once for the declared final gate. A candidate
-still needs replay, serve parity, learned sizing, joint Exit and shadow
-lifecycle evidence before paper/demo/live can open.
+The installed legacy `gx1-canonical-incremental.service` targets a removed
+daemon interface. Its service and watchdog timer are disabled/inactive. The
+snapshot successor/publication/admission owner now exists in source and is
+routed through the public control surface, but no real admission is
+launch-bound. The repository watchdog remains deleted and the dashboard now
+revalidates exact launch-bound live-tail authority instead of hard-coding a
+publisher state.
 
-Selective, well-supported high precision is a feasible research target.
-Near-perfect practical precision is not assumed and may only be claimed from
-immutable OOS and live-like empirical evidence.
+## Repository verification
+
+The last complete full-suite checkpoint before the 2026-07-31 native-successor
+and live-tail changes collected 1,872 tests: 1,870 passed, two were explicitly
+skipped and zero failed on 2026-07-30. Targeted native, pair, runtime, control
+and launch-transaction tests for the later changes are green. Final
+current-tree full-suite, syntax, lint, JSON, shell, diff and handover
+verification is pending; no newer count or verification timestamp is claimed
+here. These checks prove source contracts only, never a V4 direction edge,
+unified Entry/Exit edge or launch authority.

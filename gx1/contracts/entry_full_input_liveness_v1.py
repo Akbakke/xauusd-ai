@@ -19,14 +19,23 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
 )
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_NAMES_SHA256_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_TIMEFRAMES,
+    require_multi_tf_v4_liveness_contract,
+)
 
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v3"
-POLICY_VERSION = "entry_full_input_liveness_policy_v3"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v4"
+POLICY_VERSION = "entry_full_input_liveness_policy_v4"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val", "test")
 SURFACES = ("signal", "ctx_cont", "ctx_cat")
 EXPECTED_FIELD_COUNTS = {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
+MULTI_TF_FEATURE_NAMES = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
+EXPECTED_MULTI_TF_FIELD_COUNT = len(MULTI_TF_FEATURE_NAMES)
 
 NEAR_CONSTANT_STD = 1e-9
 MIN_ACTIVE_RATE = 0.01
@@ -136,6 +145,17 @@ def canonical_policy() -> dict[str, Any]:
             "train": "strict_learnability_and_support",
             "val": "untouched_oos_coverage_and_finiteness",
             "test": "untouched_oos_coverage_and_finiteness",
+        },
+        "multi_tf_cache": {
+            "matrix_contract": HTF_V4_MATRIX_CONTRACT,
+            "timeframes": list(MULTI_TF_TIMEFRAMES),
+            "field_count_per_timeframe": EXPECTED_MULTI_TF_FIELD_COUNT,
+            "field_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V4,
+            "population": "every_post_warmup_cache_row",
+            "minimum_unique_count_exclusive": 1,
+            "minimum_std_exclusive": 0.0,
+            "reject_exact_duplicate_columns": True,
+            "constant_allowlist": [],
         },
     }
 
@@ -298,6 +318,8 @@ def build_full_input_liveness_artifact(
     stats_by_split: Mapping[str, Mapping[str, Mapping[str, Mapping[str, Any]]]],
     manifest_bindings: Mapping[str, Mapping[str, Any]],
     scan_proof_by_split: Mapping[str, Mapping[str, Any]],
+    multi_tf_liveness_contract: Mapping[str, Any],
+    multi_tf_cache_binding: Mapping[str, Any],
     created_utc: str,
 ) -> dict[str, Any]:
     normalized_order = {
@@ -378,6 +400,53 @@ def build_full_input_liveness_artifact(
                             "reason": reason,
                         }
                     )
+
+    try:
+        normalized_mtf_liveness = require_multi_tf_v4_liveness_contract(
+            dict(multi_tf_liveness_contract)
+        )
+    except RuntimeError as exc:
+        normalized_mtf_liveness = dict(multi_tf_liveness_contract)
+        failures.append(
+            {
+                "code": "multi_tf_liveness_contract_invalid",
+                "error": str(exc),
+            }
+        )
+
+    mtf_manifest_path = _normalized_path(
+        multi_tf_cache_binding.get("manifest_path")
+    )
+    mtf_manifest_sha256 = str(
+        multi_tf_cache_binding.get("manifest_sha256") or ""
+    )
+    mtf_manifest = Path(mtf_manifest_path) if mtf_manifest_path else None
+    mtf_manifest_exists = bool(
+        mtf_manifest is not None
+        and mtf_manifest.is_file()
+        and not mtf_manifest.is_symlink()
+    )
+    mtf_observed_manifest_sha256 = (
+        sha256_file(mtf_manifest) if mtf_manifest_exists else ""
+    )
+    mtf_cache_identity = str(
+        multi_tf_cache_binding.get("cache_identity_sha256") or ""
+    )
+    if (
+        not mtf_manifest_exists
+        or not _is_sha256(mtf_manifest_sha256)
+        or mtf_observed_manifest_sha256 != mtf_manifest_sha256
+        or not _is_sha256(mtf_cache_identity)
+    ):
+        failures.append(
+            {
+                "code": "multi_tf_cache_binding_invalid",
+                "manifest_path": mtf_manifest_path,
+                "manifest_sha256": mtf_manifest_sha256,
+                "observed_manifest_sha256": mtf_observed_manifest_sha256,
+                "cache_identity_sha256": mtf_cache_identity,
+            }
+        )
 
     # Categorical OOS values must remain inside the exact TRAIN vocabulary.
     # A one-state OOS split is a valid regime observation; an unseen category
@@ -498,6 +567,15 @@ def build_full_input_liveness_artifact(
             "fullscan_proof": scan_proof,
         },
         "field_status": field_rows,
+        "multi_tf_liveness": {
+            "contract": normalized_mtf_liveness,
+            "cache_binding": {
+                "manifest_path": mtf_manifest_path,
+                "manifest_sha256": mtf_manifest_sha256,
+                "observed_manifest_sha256": mtf_observed_manifest_sha256,
+                "cache_identity_sha256": mtf_cache_identity,
+            },
+        },
         "atr_ood_drift": {
             "status": (
                 "STABLE"
@@ -771,6 +849,54 @@ def validate_full_input_liveness_artifact(
                     unseen_values=unseen,
                 )
 
+    mtf_root = (
+        payload.get("multi_tf_liveness")
+        if isinstance(payload.get("multi_tf_liveness"), dict)
+        else {}
+    )
+    raw_mtf_contract = mtf_root.get("contract")
+    try:
+        normalized_mtf_contract = require_multi_tf_v4_liveness_contract(
+            raw_mtf_contract
+        )
+    except RuntimeError as exc:
+        normalized_mtf_contract = {}
+        _append_failure(
+            failures,
+            "multi_tf_liveness_contract_invalid",
+            error=str(exc),
+        )
+    mtf_binding = (
+        mtf_root.get("cache_binding")
+        if isinstance(mtf_root.get("cache_binding"), Mapping)
+        else {}
+    )
+    mtf_manifest_path = _normalized_path(mtf_binding.get("manifest_path"))
+    mtf_manifest = Path(mtf_manifest_path) if mtf_manifest_path else None
+    mtf_manifest_exists = bool(
+        mtf_manifest is not None
+        and mtf_manifest.is_file()
+        and not mtf_manifest.is_symlink()
+    )
+    mtf_recorded_sha = str(mtf_binding.get("manifest_sha256") or "")
+    mtf_actual_sha = (
+        sha256_file(mtf_manifest) if mtf_manifest_exists else ""
+    )
+    if (
+        not mtf_manifest_exists
+        or not _is_sha256(mtf_recorded_sha)
+        or mtf_actual_sha != mtf_recorded_sha
+        or mtf_binding.get("observed_manifest_sha256") != mtf_recorded_sha
+        or not _is_sha256(mtf_binding.get("cache_identity_sha256"))
+    ):
+        _append_failure(
+            failures,
+            "multi_tf_cache_binding_invalid",
+            manifest_path=mtf_manifest_path,
+            recorded_sha256=mtf_recorded_sha,
+            actual_sha256=mtf_actual_sha,
+        )
+
     bindings_root = payload.get("input_bindings") if isinstance(payload.get("input_bindings"), dict) else {}
     bindings = (
         bindings_root.get("split_manifests")
@@ -920,6 +1046,21 @@ def validate_full_input_liveness_artifact(
         "field_order_sha256": observed_order_hashes,
         "field_counts": {surface: len(normalized_order[surface]) for surface in SURFACES},
         "field_status_row_count": len(raw_rows),
+        "multi_tf_field_count_per_timeframe": EXPECTED_MULTI_TF_FIELD_COUNT,
+        "multi_tf_field_status_row_count": sum(
+            len(
+                row.get("fields", {})
+                if isinstance(row, Mapping)
+                else {}
+            )
+            for row in (
+                normalized_mtf_contract.get("timeframes", {}).values()
+                if isinstance(
+                    normalized_mtf_contract.get("timeframes"), Mapping
+                )
+                else ()
+            )
+        ),
         "atr_ood_status": drift_root.get("status"),
         "failures": failures,
     }

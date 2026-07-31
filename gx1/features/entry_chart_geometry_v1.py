@@ -20,7 +20,7 @@ from gx1.features.entry_volatility_semantics_v1 import (
 
 
 CHART_GEOMETRY_FEATURE_VERSION = (
-    "entry_chart_geometry_v2_20260722_exact_compression_semantics_failclosed"
+    "entry_chart_geometry_v3_20260729_total_wick_share_semantics_failclosed"
 )
 CHART_GEOMETRY_FEATURE_PREFIX = "chart.geometry_"
 
@@ -71,8 +71,7 @@ CHART_GEOMETRY_SOURCE_FIELDS = (
     "snap.smc_sweep_size_atr",
     "ctx_cont.smc_sweep_size_recent_tau12",
     "ctx_cont.smc_sweep_recency_tau24",
-    "ctx_cont.wick_ratio",
-    "snap.wick_asym",
+    "snap.body_pct",
     "ctx_cont.H1_range_compression_ratio",
     "ctx_cont.M15_range_compression_ratio",
     "snap._v1_bb_squeeze_20_2",
@@ -409,7 +408,7 @@ def build_entry_chart_geometry_layer(
     sweep_down = _clip01(c("snap.smc_sweep_down") + 0.5 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last12")) + 0.25 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last48")))
     sweep_recent = _clip01(c("ctx_cont.smc_sweep_recency_tau24"))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
-    wick_level = _clip01(c("ctx_cont.wick_ratio") + np.abs(c("snap.wick_asym")))
+    wick_level = _clip01(1.0 - c("snap.body_pct"))
     breakout_up_seed = _clip01(
         0.50 * bos_up + 0.20 * ema_bull_confirmation + 0.20 * release + 0.10 * _pos(regime_stack)
     )

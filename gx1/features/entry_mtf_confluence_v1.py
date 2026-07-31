@@ -10,11 +10,12 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.features.htf_features import MULTI_TF_TIMEFRAMES_LOWER
 
 MTF_CONFLUENCE_FEATURE_VERSION = (
     "entry_mtf_confluence_v1_20260717_causal_family_agreement_failclosed"
 )
-MTF_CONFLUENCE_TIMEFRAMES = ("m5", "m15", "h1", "h4", "d1")
+MTF_CONFLUENCE_TIMEFRAMES = MULTI_TF_TIMEFRAMES_LOWER
 
 MTF_CONFLUENCE_SOURCE_FIELDS = (
     "snap._v1_ema_diff",

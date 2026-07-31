@@ -35,9 +35,54 @@ SESSION_BOUNDARIES = {
 }
 
 # Canonical session_id mapping (observerable context)
-SESSION_ID_MAP = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+SESSION_ORDER = tuple(SESSION_BOUNDARIES)
+SESSION_ID_MAP = {
+    name: index for index, name in enumerate(SESSION_ORDER)
+}
 SESSION_ID_INV = {v: k for k, v in SESSION_ID_MAP.items()}
+SESSION_NAME_BY_ID = SESSION_ID_INV
+ASIA_SESSION_ID = SESSION_ID_MAP["ASIA"]
 M5_BAR_DURATION = pd.Timedelta(minutes=5)
+
+
+def _session_mask(
+    minute_of_day: pd.Series,
+    *,
+    start_hour: int,
+    end_hour: int,
+) -> pd.Series:
+    start = start_hour * 60
+    end = end_hour * 60
+    if start < end:
+        return (minute_of_day >= start) & (minute_of_day < end)
+    return (minute_of_day >= start) | (minute_of_day < end)
+
+
+def _session_for_minute(minute_of_day: int) -> str:
+    matches = [
+        name
+        for name, (start, end) in SESSION_BOUNDARIES.items()
+        if (
+            (start < end and start * 60 <= minute_of_day < end * 60)
+            or (
+                start >= end
+                and (
+                    minute_of_day >= start * 60
+                    or minute_of_day < end * 60
+                )
+            )
+        )
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(
+            "SESSION_BOUNDARY_CONTRACT_INVALID: "
+            f"minute={minute_of_day} matches={matches}"
+        )
+    return matches[0]
+
+
+for _minute in range(24 * 60):
+    _session_for_minute(_minute)
 
 
 def m5_decision_availability(
@@ -79,10 +124,12 @@ def _as_datetime_series(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarra
         out = pd.Series(timestamps)
     else:
         out = pd.Series(timestamps)
-    if not pd.api.types.is_datetime64_any_dtype(out):
-        converted = pd.to_datetime(out)
-        out = converted if isinstance(converted, pd.Series) else pd.Series(converted)
-    return out
+    converted = pd.to_datetime(out, utc=True, errors="raise")
+    return (
+        converted
+        if isinstance(converted, pd.Series)
+        else pd.Series(converted, index=out.index)
+    )
 
 
 def get_session(ts: pd.Timestamp) -> str:
@@ -104,16 +151,7 @@ def get_session(ts: pd.Timestamp) -> str:
     
     # Convert to UTC if needed
     ts_utc = ts.tz_convert("UTC")
-    hour = ts_utc.hour
-    
-    if 7 <= hour < 12:
-        return "EU"
-    elif 12 <= hour < 16:
-        return "OVERLAP"
-    elif 16 <= hour < 22:
-        return "US"
-    else:  # 22-07
-        return "ASIA"
+    return _session_for_minute(ts_utc.hour * 60 + ts_utc.minute)
 
 
 def get_session_vectorized(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]) -> pd.Series:
@@ -127,15 +165,18 @@ def get_session_vectorized(timestamps: Union[pd.Series, pd.DatetimeIndex, np.nda
         Series of session labels
     """
     ts_series = _as_datetime_series(timestamps)
-    hours = ts_series.dt.hour
-    
-    # Vectorized session assignment
-    sessions = pd.Series(index=hours.index, dtype=str)
-    sessions[(hours >= 7) & (hours < 12)] = "EU"
-    sessions[(hours >= 12) & (hours < 16)] = "OVERLAP"
-    sessions[(hours >= 16) & (hours < 22)] = "US"
-    sessions[(hours >= 22) | (hours < 7)] = "ASIA"
-    
+    minute_of_day = ts_series.dt.hour * 60 + ts_series.dt.minute
+    sessions = pd.Series(index=minute_of_day.index, dtype="object")
+    for name, (start, end) in SESSION_BOUNDARIES.items():
+        sessions[
+            _session_mask(
+                minute_of_day,
+                start_hour=start,
+                end_hour=end,
+            )
+        ] = name
+    if sessions.isna().any():
+        raise RuntimeError("SESSION_BOUNDARY_CONTRACT_UNCOVERED")
     return sessions
 
 
@@ -186,25 +227,16 @@ def get_session_minutes_since_open_vectorized(
     minutes = ts_series.dt.minute
     minute_of_day = hours * 60 + minutes
 
-    # ASIA: 22:00-07:00 (wrap)
-    asia = (minute_of_day >= 22 * 60) | (minute_of_day < 7 * 60)
-    # If after 22:00 -> since open = minute_of_day - 1320
-    # If before 07:00 -> since open = minute_of_day + 120
     since_open = pd.Series(0.0, index=ts_series.index, dtype=float)
-    since_open[asia & (minute_of_day >= 22 * 60)] = (minute_of_day[asia & (minute_of_day >= 22 * 60)] - 22 * 60).astype(float)
-    since_open[asia & (minute_of_day < 7 * 60)] = (minute_of_day[asia & (minute_of_day < 7 * 60)] + 120).astype(float)
-
-    # EU: 07:00-12:00
-    eu = (minute_of_day >= 7 * 60) & (minute_of_day < 12 * 60)
-    since_open[eu] = (minute_of_day[eu] - 7 * 60).astype(float)
-
-    # OVERLAP: 12:00-16:00
-    overlap = (minute_of_day >= 12 * 60) & (minute_of_day < 16 * 60)
-    since_open[overlap] = (minute_of_day[overlap] - 12 * 60).astype(float)
-
-    # US: 16:00-22:00
-    us = (minute_of_day >= 16 * 60) & (minute_of_day < 22 * 60)
-    since_open[us] = (minute_of_day[us] - 16 * 60).astype(float)
+    for _name, (start, end) in SESSION_BOUNDARIES.items():
+        mask = _session_mask(
+            minute_of_day,
+            start_hour=start,
+            end_hour=end,
+        )
+        since_open[mask] = (
+            (minute_of_day[mask] - start * 60) % (24 * 60)
+        ).astype(float)
 
     return since_open
 
@@ -223,26 +255,15 @@ def get_session_minutes_to_next_boundary_vectorized(
 
     to_next = pd.Series(0.0, index=ts_series.index, dtype=float)
 
-    # ASIA: 22:00-07:00
-    asia = (minute_of_day >= 22 * 60) | (minute_of_day < 7 * 60)
-    # If after 22:00 -> next boundary at 07:00 next day
-    to_next[asia & (minute_of_day >= 22 * 60)] = (
-        (24 * 60 - minute_of_day[asia & (minute_of_day >= 22 * 60)]) + 7 * 60
-    ).astype(float)
-    # If before 07:00 -> next boundary at 07:00 same day
-    to_next[asia & (minute_of_day < 7 * 60)] = (7 * 60 - minute_of_day[asia & (minute_of_day < 7 * 60)]).astype(float)
-
-    # EU: 07:00-12:00
-    eu = (minute_of_day >= 7 * 60) & (minute_of_day < 12 * 60)
-    to_next[eu] = (12 * 60 - minute_of_day[eu]).astype(float)
-
-    # OVERLAP: 12:00-16:00
-    overlap = (minute_of_day >= 12 * 60) & (minute_of_day < 16 * 60)
-    to_next[overlap] = (16 * 60 - minute_of_day[overlap]).astype(float)
-
-    # US: 16:00-22:00
-    us = (minute_of_day >= 16 * 60) & (minute_of_day < 22 * 60)
-    to_next[us] = (22 * 60 - minute_of_day[us]).astype(float)
+    for _name, (start, end) in SESSION_BOUNDARIES.items():
+        mask = _session_mask(
+            minute_of_day,
+            start_hour=start,
+            end_hour=end,
+        )
+        to_next[mask] = (
+            (end * 60 - minute_of_day[mask]) % (24 * 60)
+        ).astype(float)
 
     return to_next
 

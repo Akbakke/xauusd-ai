@@ -11,8 +11,8 @@ Six function families, all computable from local data (no external feeds):
 
 Total: 28 features per candidate/bar.
 
-Used by the model-native Entry feature stack and the Exit-IQL bar-state
-builder to expose context the transformer outputs alone do not capture.
+Used by the model-native feature stack to expose context the shared encoder
+must learn jointly with the other evidence families.
 """
 from __future__ import annotations
 
@@ -23,7 +23,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from gx1.features.htf_features import MULTI_TF_SHIFT
+from gx1.features.htf_features import (
+    MULTI_TF_SHIFT,
+    MULTI_TF_TIMEFRAMES,
+)
 
 # Round-number / psychological $-level proximity (2026-06-11, env-gated GX1_ROUND_NUMBER, default OFF =
 # contract byte-unchanged). The chain is otherwise ENTIRELY ATR-scale-invariant → structurally blind to
@@ -135,7 +138,7 @@ def vol_term_structure(multi_tf_cache: dict[str, pd.DataFrame],
     Returns 4 ratios.
     """
     target_ts = _require_utc_ts(target_ts, context="GROUP_A_VOL_TERM")
-    expected = {"M5", "M15", "H1", "H4", "D1"}
+    expected = set(MULTI_TF_TIMEFRAMES)
     if not isinstance(multi_tf_cache, dict) or set(multi_tf_cache) != expected:
         raise RuntimeError(
             f"[GROUP_A_VOL_TERM] exact TF cache required: expected={sorted(expected)} "
@@ -290,7 +293,7 @@ def liquidity_zones(m5_df: pd.DataFrame,
       H1: 168 (1 week)
       H4: 168 (4 weeks)
     """
-    # 2026-05-24 FIX: add M15 + D1. Previously only M5/H1/H4 → Entry/Exit IQL
+    # M15 and D1 are mandatory peers of M5/H1/H4 in the unified MTF stack.
     # could not see M15 or D1 swing highs/lows, blocking "wait when next M15
     # turns down" behavior.
     target_ts = _require_utc_ts(target_ts, context="GROUP_A_LIQUIDITY")
@@ -298,7 +301,7 @@ def liquidity_zones(m5_df: pd.DataFrame,
     numeric = _require_market_frame(m5_df, context="GROUP_A_LIQUIDITY")
     if target_ts not in numeric.index:
         raise RuntimeError("[GROUP_A_LIQUIDITY] target must be an exact M5 row")
-    expected_tf = {"M5", "M15", "H1", "H4", "D1"}
+    expected_tf = set(MULTI_TF_TIMEFRAMES)
     if lookback_bars_per_tf is None:
         lookback_bars_per_tf = {"M5": 240, "M15": 192, "H1": 168, "H4": 168, "D1": 60}
     if set(lookback_bars_per_tf) != expected_tf or any(
@@ -457,7 +460,7 @@ GROUP_A_FEATURE_NAMES = (
     # A6 — pivots (4)
     "dist_to_R1_atr", "dist_to_R2_atr", "dist_to_S1_atr", "dist_to_S2_atr",
     # A5 — liquidity zones (10) — 2026-05-26 one-truth fix: added M15+D1 to match
-    # liquidity_zones() (which computes all 5 TFs) + Entry/Exit-IQL V2_GROUP_A_COLS.
+    # liquidity_zones(), which computes all five timeframes.
     # Previously stale at 6 (m5/h1/h4) → compute_group_a_features silently dropped m15/d1.
     "dist_to_m5_hi_atr", "dist_to_m5_lo_atr",
     "dist_to_m15_hi_atr", "dist_to_m15_lo_atr",

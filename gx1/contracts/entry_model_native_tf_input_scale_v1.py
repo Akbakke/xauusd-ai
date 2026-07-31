@@ -8,12 +8,14 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from gx1.features.htf_features import MULTI_TF_TIMEFRAMES_LOWER
 
 SCHEMA_VERSION = "entry_model_native_tf_input_scale_v1"
 PARAMETERIZATION = "min_effective_plus_softplus_raw_v1"
 STATE_KEY_SEMANTICS = "tf_input_scale_<tf>_stores_unconstrained_raw_scalar"
 MIN_EFFECTIVE_SCALE = 1.0e-4
-TF_NAMES = ("m5", "m15", "h1", "h4", "d1")
+NEUTRAL_EFFECTIVE_INIT = 1.0
+TF_NAMES = MULTI_TF_TIMEFRAMES_LOWER
 
 
 def effective_tf_input_scale_from_raw(raw: float) -> float:

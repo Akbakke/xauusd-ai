@@ -132,7 +132,6 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
         json.dumps(
             {
                 "extra": {
-                    "neutral_xgb_bridge": False,
                     "model_native_signal_contract": signal_contract,
                     "signal_bridge": {
                         "fields": signal_contract["fields"],
@@ -162,9 +161,6 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
     assert emitted["signal_fields"] == signal_contract["fields"]
     assert emitted["seq_input_dim"] == MODEL_NATIVE_SIGNAL_DIM
     assert emitted["seq_structure_extension_dim"] == MODEL_NATIVE_SELECTED_FEATURE_COUNT
-    assert emitted["neutral_xgb_bridge"] is False
-
-
 def test_selected_feature_learnability_is_train_owned_without_allowlist() -> None:
     assert SELECTED_FEATURE_LEARNABILITY_SPLITS == ("train",)
 
@@ -183,7 +179,6 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
         extra={
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-            "neutral_xgb_bridge": False,
             "model_native_signal_contract": signal_contract,
             "signal_bridge": {
                 "id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
@@ -194,7 +189,7 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
                 "bridge_source": None,
             },
             "ctx_contract": {
-                "tag": "CTX6CAT5",
+                "tag": "CTX142CAT5",
                 "ctx_cont_dim": 142,
                 "ctx_cat_dim": 5,
                 "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
@@ -227,7 +222,7 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
     )
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["feature_contract"]["ctx_tag"] == "CTX6CAT5"
+    assert manifest["feature_contract"]["ctx_tag"] == "CTX142CAT5"
     assert manifest["feature_contract"]["ctx_cont_dim"] == 142
     assert manifest["feature_contract"]["ctx_cat_dim"] == 5
     assert (
@@ -242,7 +237,7 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
         manifest["feature_contract"]["signal_bridge_fields"]
         == signal_contract["fields"]
     )
-    assert not any("xgb" in key.lower() for key in manifest["inputs"])
+    assert not any("external_tree_sidecar" in key.lower() for key in manifest["inputs"])
 
 
 def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant() -> (

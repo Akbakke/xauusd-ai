@@ -308,8 +308,6 @@ def _write_split(
 
     pd.DataFrame(rows).to_parquet(root / f"{stem}_{split}.parquet")
     manifest = {
-        "neutral_xgb_bridge": False,
-        "xgb_bridge_source": None,
         "tape_root": tape_root,
         "splits": {
             "train": {
@@ -331,7 +329,6 @@ def _write_split(
             "model_native_signal_contract": signal_contract,
             "xau_tape_provenance": tape_provenance,
             "signal_bridge": {
-                "neutral_xgb_bridge": False,
                 "bridge_source": None,
                 "bridge_dim": 0,
                 "fields": fields,
@@ -591,7 +588,7 @@ def test_xau_direction_repair_pretrain_audit_rejects_dataset_tape_rebinding(
 
 
 def test_xau_direction_repair_pretrain_audit_rejects_auto_discovered_stem(tmp_path: Path) -> None:
-    stem = "v10_6yr_dataset__HOLD_03B"
+    stem = "v10_6yr_dataset__DIR_H24B"
     for split in ("train", "val", "test"):
         _write_split(tmp_path, split, inverted=False, stem=stem)
 

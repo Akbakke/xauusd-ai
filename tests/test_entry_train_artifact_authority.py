@@ -21,6 +21,9 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
@@ -120,6 +123,26 @@ def _artifacts(
         trainer._TRAIN_ARTIFACT_HASH_ENV["m5_prebuilt_path"],
         _sha(m5_prebuilt),
     )
+    lifecycle_manifest = root / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    lifecycle_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": (
+                    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+                ),
+                "decision": "PASS",
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(
+        trainer._TRAIN_ARTIFACT_HASH_ENV[
+            "unified_exit_lifecycle_manifest"
+        ],
+        _sha(lifecycle_manifest),
+    )
     return manifests, parquets, m5_prebuilt
 
 
@@ -135,6 +158,10 @@ def _resolve(
         train_parquet=parquets["train"],
         val_parquet=parquets["val"],
         test_parquet=parquets["test"],
+        unified_exit_lifecycle_manifest_path=(
+            manifests["train"].parent
+            / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+        ),
         m5_prebuilt_path=m5_prebuilt,
         dataset_run_id=DATASET_RUN_ID,
         profile="candidate",
@@ -230,6 +257,10 @@ def test_relative_symlink_and_latest_paths_fail_closed(
             train_parquet=parquets["train"],
             val_parquet=parquets["val"],
             test_parquet=parquets["test"],
+            unified_exit_lifecycle_manifest_path=(
+                manifests["train"].parent
+                / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+            ),
             m5_prebuilt_path=m5_prebuilt,
             dataset_run_id=DATASET_RUN_ID,
             profile="candidate",

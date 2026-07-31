@@ -366,7 +366,6 @@ def _load_emitted_contract(manifest_path: Path) -> dict[str, Any]:
         "signal_fields": signal_fields,
         "ctx_cont_names": ctx_cont_names,
         "ctx_cat_names": ctx_cat_names,
-        "neutral_xgb_bridge": extra.get("neutral_xgb_bridge"),
         "seq_input_dim": signal_bridge.get("seq_input_dim"),
         "seq_structure_extension_dim": extension_dim,
         "seq_structure_extension_v1": extension,
@@ -1188,11 +1187,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 failures.append(
                     f"{split}: seq_structure_extension_dim {contract.get('seq_structure_extension_dim')} != selected feature count {len(selected_features)}"
                 )
-            if contract.get("neutral_xgb_bridge") is not False:
-                failures.append(
-                    f"{split}: retired bridge negative proof is not false in emitted split manifest"
-                )
-
             contract_missing = [name for name in selected_features if name not in contract_feature_set]
             if contract_missing:
                 failures.append(

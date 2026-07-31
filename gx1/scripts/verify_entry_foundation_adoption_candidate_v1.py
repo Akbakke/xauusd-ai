@@ -228,7 +228,6 @@ def _dataset_contract(
             "output_data_path": output_path,
             "contract_mode": extra.get("contract_mode"),
             "direction_logit_mode": extra.get("direction_logit_mode"),
-            "neutral_xgb_bridge": extra.get("neutral_xgb_bridge"),
             "seq_input_dim": bridge.get("seq_input_dim"),
             "snap_input_dim": bridge.get("snap_input_dim"),
             "field_count": len(fields),
@@ -249,7 +248,6 @@ def _dataset_contract(
                 and extra.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE
                 and extra.get("direction_logit_mode")
                 == MODEL_NATIVE_DIRECTION_LOGIT_MODE
-                and extra.get("neutral_xgb_bridge") is False
                 and int(bridge.get("seq_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
                 and int(bridge.get("snap_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
                 and fields == contract.get("fields"),

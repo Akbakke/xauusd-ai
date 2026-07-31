@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Cleanly stop the COSTFIX live-practice stack (collectors + paper runner).
+# Cleanly stop the XAUUSD live-practice processes (collector + paper runner).
+# Immutable pair publication/admission is snapshot-driven and has no daemon to
+# stop. The retired canonical PID is reaped only as stale-process hygiene.
 #
 # Use this before code edits that affect the live runtime, before reboots,
 # or whenever the stack should be quiet. Pairs with launch_live_practice.sh.
@@ -45,6 +47,6 @@ for _p in $(pgrep -f "gx1.execution.v12_paper_runner" 2>/dev/null || true); do
     echo "  reaping orphan paper_runner PID $_p"
     kill "$_p" 2>/dev/null || true
 done
-stop_pid canonical_incremental   "$PAPER_RUNS/canonical_incremental.pid"
+stop_pid retired_canonical_incremental "$PAPER_RUNS/canonical_incremental.pid"
 stop_pid oanda_data_collector    "$PAPER_RUNS/collector.pid"
 echo "done."

@@ -56,7 +56,7 @@ EVIDENCE_SPECS = (
         "rebuild_preflight",
         "rebuild_preflight_json",
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
-        "entry_model_native_seq513_rebuild_preflight_v5",
+        "entry_model_native_seq513_rebuild_preflight_v9",
         "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
     ),
     EvidenceSpec(

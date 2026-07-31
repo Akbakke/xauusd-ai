@@ -59,6 +59,10 @@ def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> N
     assert classify_entry_specialist_feature("chart.foundation_eu_x_bos_balance") == "session_regime_encoder"
     assert classify_entry_specialist_feature("ema20_slope") == "trend_ema_encoder"
     assert classify_entry_specialist_feature("ret_5") == "momentum_flow_encoder"
+    assert (
+        classify_entry_specialist_feature("signed_vol_z_20")
+        == "momentum_flow_encoder"
+    )
     assert classify_entry_specialist_feature("p_long") == FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
     assert FORBIDDEN_LEGACY_BRIDGE_SPECIALIST not in SPECIALIST_GROUPS
 

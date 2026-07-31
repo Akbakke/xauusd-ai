@@ -11,9 +11,12 @@ from unittest import mock
 import pandas as pd
 import pytest
 
+from gx1.contracts import xau_tape_provenance_v1 as tape_contract
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
+    CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     NATIVE_TIMEFRAME_POLICY,
+    canonical_json_sha256,
     canonical_native_frame_from_oanda_response,
     canonical_native_rows_bytes,
     canonical_xau_source_descriptor_v1,
@@ -33,15 +36,19 @@ class _FakeOandaClient:
         *,
         fail: bool = False,
         incomplete_only: bool = False,
+        incomplete_position: int | None = None,
         bad_geometry: bool = False,
         timeframe: str = "M5",
         response_timeframe: str | None = None,
+        price_offset: float = 0.0,
     ) -> None:
         self.fail = fail
         self.incomplete_only = incomplete_only
+        self.incomplete_position = incomplete_position
         self.bad_geometry = bad_geometry
         self.timeframe = timeframe
         self.response_timeframe = response_timeframe or timeframe
+        self.price_offset = float(price_offset)
         self.requests: list[dict[str, Any]] = []
 
     def _request(
@@ -66,29 +73,36 @@ class _FakeOandaClient:
         )
         candles = []
         for position, timestamp in enumerate(timestamps):
-            mid_high = "1998.0" if self.bad_geometry and position == 0 else "2002.0"
+            mid_high = (
+                "1998.0"
+                if self.bad_geometry and position == 0
+                else str(2002.0 + self.price_offset)
+            )
             candles.append(
                 {
-                    "complete": not self.incomplete_only,
+                    "complete": not (
+                        self.incomplete_only
+                        or position == self.incomplete_position
+                    ),
                     "time": timestamp.isoformat().replace("+00:00", "Z"),
                     "volume": 10 + position,
                     "mid": {
-                        "o": "2000.0",
+                        "o": str(2000.0 + self.price_offset),
                         "h": mid_high,
-                        "l": "1999.0",
-                        "c": "2001.0",
+                        "l": str(1999.0 + self.price_offset),
+                        "c": str(2001.0 + self.price_offset),
                     },
                     "bid": {
-                        "o": "1999.5",
-                        "h": "2001.5",
-                        "l": "1998.5",
-                        "c": "2000.5",
+                        "o": str(1999.5 + self.price_offset),
+                        "h": str(2001.5 + self.price_offset),
+                        "l": str(1998.5 + self.price_offset),
+                        "c": str(2000.5 + self.price_offset),
                     },
                     "ask": {
-                        "o": "2000.5",
-                        "h": "2002.5",
-                        "l": "1999.5",
-                        "c": "2001.5",
+                        "o": str(2000.5 + self.price_offset),
+                        "h": str(2002.5 + self.price_offset),
+                        "l": str(1999.5 + self.price_offset),
+                        "c": str(2001.5 + self.price_offset),
                     },
                 }
             )
@@ -159,7 +173,10 @@ def test_backfill_cli_rejects_invalid_vedtak_before_side_effect_setup(
     monkeypatch: pytest.MonkeyPatch,
     module: object,
 ) -> None:
-    monkeypatch.setattr(sys, "argv", [str(module.__file__), "--vedtak", "short"])
+    argv = [str(module.__file__), "--vedtak", "short"]
+    if module is canonical_backfill:
+        argv.extend(["--publication-mode", "bootstrap"])
+    monkeypatch.setattr(sys, "argv", argv)
     monkeypatch.setattr(
         module,
         "load_dotenv_if_present",
@@ -241,6 +258,382 @@ def test_native_materialization_is_source_bound_and_atomic(
     assert payload["response"]["candles"][0]["complete"] is True
 
 
+def test_native_successor_reuses_history_and_refetches_only_exact_overlap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m1_parent"
+    child = tmp_path / "native_m1_child"
+    vedtak = "XAU_NATIVE_M1_SUCCESSOR_TEST_001"
+    parent_client = _FakeOandaClient(timeframe="M1")
+    parent_manifest = canonical_backfill.materialize_native_xau_snapshot(
+        client=parent_client,
+        timeframe="M1",
+        vedtak_id=vedtak,
+        start_utc="2024-12-30T23:59:00Z",
+        end_utc="2025-01-03T00:00:00Z",
+        out_root=parent,
+    )
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M1",
+    )
+    successor_client = _FakeOandaClient(timeframe="M1")
+
+    child_manifest = canonical_backfill.materialize_native_xau_successor(
+        client=successor_client,
+        timeframe="M1",
+        vedtak_id=vedtak,
+        end_utc="2025-01-03T00:03:00Z",
+        out_root=child,
+        parent_root=parent,
+        expected_parent_manifest_sha256=parent_descriptor["manifest_sha256"],
+    )
+    child_descriptor = canonical_xau_source_descriptor_v1(
+        child,
+        timeframe="M1",
+    )
+
+    overlap_start = parent_manifest["source_chunks"][-1][
+        "request_from_utc"
+    ]
+    assert len(parent_client.requests) == 2
+    assert len(successor_client.requests) == 1
+    assert successor_client.requests[0]["params"]["from"] == pd.Timestamp(
+        overlap_start
+    ).strftime("%Y-%m-%dT%H:%M:%S.000000000Z")
+    assert successor_client.requests[0]["params"]["from"] != (
+        "2024-12-30T23:59:00.000000000Z"
+    )
+    assert child_manifest["schema_version"] == (
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA
+    )
+    assert child_manifest["parent_source"]["root"] == str(parent)
+    assert child_manifest["parent_source"]["manifest_sha256"] == (
+        parent_descriptor["manifest_sha256"]
+    )
+    assert child_manifest["successor_append"] == {
+        "overlap_start_utc": pd.Timestamp(overlap_start).isoformat(),
+        "parent_end_utc_exclusive": "2025-01-03T00:00:00+00:00",
+        "reused_source_chunks": 1,
+        "refetched_source_chunks": 1,
+        "parent_overlap_rows": 1,
+        "appended_rows": 3,
+        "overlap_rows_sha256": child_manifest["successor_append"][
+            "overlap_rows_sha256"
+        ],
+    }
+    assert child_descriptor["row_count"] == parent_descriptor["row_count"] + 3
+    assert child_descriptor["requested_start_utc"] == (
+        parent_descriptor["requested_start_utc"]
+    )
+    assert child_descriptor["requested_end_utc_exclusive"] == (
+        "2025-01-03T00:03:00+00:00"
+    )
+
+
+def test_native_successor_rejects_wrong_parent_cas_before_request(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    client = _FakeOandaClient(timeframe="M5")
+    child = tmp_path / "native_m5_child"
+
+    with pytest.raises(RuntimeError, match="PARENT_MANIFEST_CAS_MISMATCH"):
+        canonical_backfill.materialize_native_xau_successor(
+            client=client,
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+            end_utc="2026-01-01T00:10:00Z",
+            out_root=child,
+            parent_root=parent,
+            expected_parent_manifest_sha256="f" * 64,
+        )
+
+    assert client.requests == []
+    assert not child.exists()
+
+
+def test_native_successor_rejects_output_nested_under_parent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+    child = parent / "nested_child"
+    client = _FakeOandaClient(timeframe="M5")
+
+    with pytest.raises(RuntimeError, match="OUTPUT_PARENT_INVALID"):
+        canonical_backfill.materialize_native_xau_successor(
+            client=client,
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+            end_utc="2026-01-01T00:10:00Z",
+            out_root=child,
+            parent_root=parent,
+            expected_parent_manifest_sha256=parent_descriptor["manifest_sha256"],
+        )
+
+    assert client.requests == []
+    assert not child.exists()
+
+
+def test_native_successor_rejects_overlap_rewrite_and_publishes_nothing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+    client = _FakeOandaClient(timeframe="M5", price_offset=10.0)
+    child = tmp_path / "native_m5_child"
+
+    with pytest.raises(RuntimeError, match="SUCCESSOR_OVERLAP_REWRITE"):
+        canonical_backfill.materialize_native_xau_successor(
+            client=client,
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+            end_utc="2026-01-01T00:10:00Z",
+            out_root=child,
+            parent_root=parent,
+            expected_parent_manifest_sha256=(
+                parent_descriptor["manifest_sha256"]
+            ),
+        )
+
+    assert len(client.requests) == 1
+    assert not child.exists()
+    assert not list(tmp_path.glob(".native_m5_child.staging.*"))
+
+
+def test_native_successor_descriptor_revalidates_parent_manifest_cas(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    child = tmp_path / "native_m5_child"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+    canonical_backfill.materialize_native_xau_successor(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+        end_utc="2026-01-01T00:10:00Z",
+        out_root=child,
+        parent_root=parent,
+        expected_parent_manifest_sha256=parent_descriptor["manifest_sha256"],
+    )
+    parent_manifest = parent / "MANIFEST.json"
+    parent_manifest.write_bytes(parent_manifest.read_bytes() + b"\n")
+
+    with pytest.raises(
+        RuntimeError,
+        match="SUCCESSOR_PARENT_MANIFEST_CAS_MISMATCH",
+    ):
+        canonical_xau_source_descriptor_v1(child, timeframe="M5")
+
+
+def test_native_grandchild_revalidates_bootstrap_ancestor_manifest_cas(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    child = tmp_path / "native_m5_child"
+    grandchild = tmp_path / "native_m5_grandchild"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+    canonical_backfill.materialize_native_xau_successor(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+        end_utc="2026-01-01T00:10:00Z",
+        out_root=child,
+        parent_root=parent,
+        expected_parent_manifest_sha256=parent_descriptor["manifest_sha256"],
+    )
+    child_descriptor = canonical_xau_source_descriptor_v1(
+        child,
+        timeframe="M5",
+    )
+    canonical_backfill.materialize_native_xau_successor(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+        end_utc="2026-01-01T00:15:00Z",
+        out_root=grandchild,
+        parent_root=child,
+        expected_parent_manifest_sha256=child_descriptor["manifest_sha256"],
+    )
+    monkeypatch.setattr(
+        tape_contract,
+        "_MAX_CANONICAL_NATIVE_ANCESTOR_DEPTH",
+        1,
+    )
+    with pytest.raises(RuntimeError, match="SUCCESSOR_ANCESTOR_DEPTH_EXCEEDED"):
+        canonical_xau_source_descriptor_v1(grandchild, timeframe="M5")
+    monkeypatch.setattr(
+        tape_contract,
+        "_MAX_CANONICAL_NATIVE_ANCESTOR_DEPTH",
+        1_024,
+    )
+    parent_manifest = parent / "MANIFEST.json"
+    parent_manifest.write_bytes(parent_manifest.read_bytes() + b"\n")
+
+    with pytest.raises(
+        RuntimeError,
+        match="SUCCESSOR_ANCESTOR_MANIFEST_CAS_MISMATCH",
+    ):
+        canonical_xau_source_descriptor_v1(grandchild, timeframe="M5")
+
+
+def test_native_successor_can_extend_a_valid_successor_parent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    child = tmp_path / "native_m5_child"
+    grandchild = tmp_path / "native_m5_grandchild"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+    canonical_backfill.materialize_native_xau_successor(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+        end_utc="2026-01-01T00:10:00Z",
+        out_root=child,
+        parent_root=parent,
+        expected_parent_manifest_sha256=parent_descriptor["manifest_sha256"],
+    )
+    child_descriptor = canonical_xau_source_descriptor_v1(
+        child,
+        timeframe="M5",
+    )
+
+    canonical_backfill.materialize_native_xau_successor(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+        end_utc="2026-01-01T00:15:00Z",
+        out_root=grandchild,
+        parent_root=child,
+        expected_parent_manifest_sha256=child_descriptor["manifest_sha256"],
+    )
+    grandchild_descriptor = canonical_xau_source_descriptor_v1(
+        grandchild,
+        timeframe="M5",
+    )
+
+    assert grandchild_descriptor["parent_source"]["schema_version"] == (
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA
+    )
+    assert grandchild_descriptor["parent_source"]["manifest_sha256"] == (
+        child_descriptor["manifest_sha256"]
+    )
+    assert grandchild_descriptor["row_count"] == (
+        child_descriptor["row_count"] + 1
+    )
+
+
+def test_native_successor_parent_change_before_publish_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    child = tmp_path / "native_m5_child"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+
+    def mutate_parent(**_kwargs: object) -> None:
+        manifest_path = parent / "MANIFEST.json"
+        manifest_path.write_bytes(manifest_path.read_bytes() + b"\n")
+
+    monkeypatch.setattr(
+        canonical_backfill,
+        "_verify_producer_sources_unchanged",
+        mutate_parent,
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="SUCCESSOR_PARENT_CHANGED_BEFORE_PUBLISH",
+    ):
+        canonical_backfill.materialize_native_xau_successor(
+            client=_FakeOandaClient(timeframe="M5"),
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+            end_utc="2026-01-01T00:10:00Z",
+            out_root=child,
+            parent_root=parent,
+            expected_parent_manifest_sha256=(
+                parent_descriptor["manifest_sha256"]
+            ),
+        )
+
+    assert not child.exists()
+    assert not list(tmp_path.glob(".native_m5_child.staging.*"))
+
+
+def test_native_successor_incomplete_refetch_publishes_nothing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    parent = tmp_path / "native_m5_parent"
+    child = tmp_path / "native_m5_child"
+    materialize_native_xau_test_bundle(parent, timeframe="M5")
+    parent_descriptor = canonical_xau_source_descriptor_v1(
+        parent,
+        timeframe="M5",
+    )
+
+    with pytest.raises(RuntimeError, match="INCOMPLETE_CANDLE_FORBIDDEN"):
+        canonical_backfill.materialize_native_xau_successor(
+            client=_FakeOandaClient(
+                timeframe="M5",
+                incomplete_only=True,
+            ),
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+            end_utc="2026-01-01T00:10:00Z",
+            out_root=child,
+            parent_root=parent,
+            expected_parent_manifest_sha256=(
+                parent_descriptor["manifest_sha256"]
+            ),
+        )
+
+    assert not child.exists()
+    assert not list(tmp_path.glob(".native_m5_child.staging.*"))
+
+
 def test_native_request_failure_publishes_nothing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -265,7 +658,7 @@ def test_native_request_failure_publishes_nothing(
 @pytest.mark.parametrize(
     ("client", "error"),
     [
-        (_FakeOandaClient(incomplete_only=True), "COMPLETE_SOURCE_EMPTY"),
+        (_FakeOandaClient(incomplete_only=True), "INCOMPLETE_CANDLE_FORBIDDEN"),
         (_FakeOandaClient(bad_geometry=True), "OHLC_GEOMETRY_INVALID"),
     ],
 )
@@ -289,6 +682,55 @@ def test_native_rejects_unproven_source_rows(
         )
 
     assert not output.exists()
+
+
+def test_native_mixed_complete_response_fails_before_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    output = tmp_path / "native_m5_mixed_completion"
+
+    with pytest.raises(RuntimeError, match="INCOMPLETE_CANDLE_FORBIDDEN"):
+        canonical_backfill.materialize_native_xau_snapshot(
+            client=_FakeOandaClient(
+                timeframe="M5",
+                incomplete_position=1,
+            ),
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_MIXED_COMPLETION",
+            start_utc="2025-01-01T00:00:00Z",
+            end_utc="2025-01-01T00:15:00Z",
+            out_root=output,
+        )
+
+    assert not output.exists()
+    assert not list(tmp_path.glob(".native_m5_mixed_completion.staging.*"))
+
+
+def test_native_validator_requires_zero_incomplete_candles(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "native_m5"
+    materialize_native_xau_test_bundle(output, timeframe="M5")
+    manifest_path = output / "MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_chunks"][0]["incomplete_candles"] = 1
+    manifest["source_chunks_sha256"] = canonical_json_sha256(
+        manifest["source_chunks"]
+    )
+    manifest_without_hash = dict(manifest)
+    manifest_without_hash.pop("manifest_payload_sha256")
+    manifest["manifest_payload_sha256"] = canonical_json_sha256(
+        manifest_without_hash
+    )
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="INCOMPLETE_CANDLES_FORBIDDEN"):
+        canonical_xau_source_descriptor_v1(output, timeframe="M5")
 
 
 @pytest.mark.parametrize(
@@ -438,6 +880,84 @@ def test_native_removed_legacy_modes_are_not_parseable() -> None:
                 "--repair-mode",
             ]
         )
+
+    assert exc_info.value.code == 2
+
+
+def test_native_cli_requires_explicit_publication_mode() -> None:
+    parser = canonical_backfill.build_parser()
+
+    with pytest.raises(SystemExit) as exc_info:
+        parser.parse_args(
+            [
+                "--vedtak",
+                "XAU_NATIVE_M5_EXPLICIT_MODE",
+                "--timeframe",
+                "M5",
+                "--start-utc",
+                "2026-01-01T00:00:00Z",
+                "--end-utc",
+                "2026-01-01T00:10:00Z",
+                "--out-root",
+                "/tmp/native-m5-explicit-mode",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        ["--publication-mode", "successor"],
+        [
+            "--publication-mode",
+            "successor",
+            "--parent-root",
+            "/tmp/parent",
+            "--expected-parent-manifest-sha256",
+            "invalid",
+        ],
+        [
+            "--publication-mode",
+            "bootstrap",
+            "--parent-root",
+            "/tmp/parent",
+            "--expected-parent-manifest-sha256",
+            "f" * 64,
+        ],
+    ],
+)
+def test_native_cli_rejects_incomplete_or_mixed_successor_contract_before_setup(
+    monkeypatch: pytest.MonkeyPatch,
+    extra: list[str],
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(canonical_backfill.__file__),
+            "--vedtak",
+            "XAU_NATIVE_CLI_SUCCESSOR_TEST",
+            "--timeframe",
+            "M5",
+            "--start-utc",
+            "2026-01-01T00:00:00Z",
+            "--end-utc",
+            "2026-01-01T00:10:00Z",
+            "--out-root",
+            "/tmp/native-child",
+            *extra,
+        ],
+    )
+    monkeypatch.setattr(
+        canonical_backfill,
+        "load_dotenv_if_present",
+        lambda: pytest.fail("environment loaded before CLI contract failed"),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        canonical_backfill.main()
 
     assert exc_info.value.code == 2
 

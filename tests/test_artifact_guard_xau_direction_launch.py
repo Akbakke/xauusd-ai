@@ -1,13 +1,27 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
+import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    require_bundle_commit_manifest,
+)
+from gx1.contracts.entry_model_native_launch_approval_v1 import (
+    VEDTAK_EVENT_PREFIX,
+    VEDTAK_SCHEMA_VERSION,
+    launch_vedtak_request,
+)
+from gx1.contracts.entry_model_native_launch_transaction_v1 import (
+    EVENT_PREFIX as LAUNCH_TRANSACTION_EVENT_PREFIX,
+    SCHEMA_VERSION as LAUNCH_TRANSACTION_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -27,21 +41,14 @@ from gx1.contracts.immutable_event_authority_v1 import (
     select_latest_immutable_event,
     write_immutable_json_event,
 )
-from gx1.contracts.entry_model_native_bundle_commit_v1 import (
-    require_bundle_commit_manifest,
-)
-from gx1.contracts.entry_model_native_launch_approval_v1 import (
-    VEDTAK_EVENT_PREFIX,
-    VEDTAK_SCHEMA_VERSION,
-    launch_vedtak_request,
-)
-from gx1.contracts.entry_model_native_launch_transaction_v1 import (
-    EVENT_PREFIX as LAUNCH_TRANSACTION_EVENT_PREFIX,
-    SCHEMA_VERSION as LAUNCH_TRANSACTION_SCHEMA_VERSION,
+from gx1.contracts.live_tail_publication_v1 import (
+    live_tail_launch_authority,
+    publish_live_tail_admission_event,
+    publish_live_tail_publication_event,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
-    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-    DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
+    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE,
+    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95,
     DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
     DIRECTION_POCKET_MIN_SELECTED_ROWS,
     DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT,
@@ -51,28 +58,43 @@ from gx1.contracts.model_native_serve_gate_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
 )
-from tests.model_native_serve_gate_support import passing_direction_repair_pockets
-from tests.model_native_sizing_support import write_passing_runtime_sizing_parity
+from gx1.scripts import finalize_entry_model_native_launch_v1 as launch_finalizer
+from gx1_guards import artifacts
+from tests import test_v12_state_from_prebuilt_refresh as prebuilt_refresh
 from tests.model_native_adaptation_support import (
     adaptation_bundle_identity,
     write_initial_adaptation_lifecycle,
 )
-from gx1.scripts import finalize_entry_model_native_launch_v1 as launch_finalizer
-from gx1_guards import artifacts
+from tests.model_native_serve_gate_support import passing_direction_repair_pockets
+from tests.model_native_sizing_support import write_passing_runtime_sizing_parity
 
 
 @pytest.fixture(autouse=True)
 def _pin_lifecycle_contract_clock(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    original = artifacts.require_launch_adaptation_authority
+    original_lifecycle = artifacts.require_launch_adaptation_authority
+    original_live_tail = (
+        launch_finalizer.require_newest_live_tail_runtime_authority
+    )
 
     def require_with_event_clock(binding: dict, **kwargs):
         event_path = Path(str(binding.get("json_path") or ""))
         payload = json.loads(event_path.read_text(encoding="utf-8"))
-        return original(
+        return original_lifecycle(
             binding,
             now_utc=payload["created_utc"],
+            **kwargs,
+        )
+
+    def require_live_tail_with_event_clock(authority: dict, **kwargs):
+        admission_path = Path(
+            str(authority["launch_admission"]["json_path"])
+        )
+        admission = json.loads(admission_path.read_text(encoding="utf-8"))
+        return original_live_tail(
+            authority,
+            now_utc=admission["created_utc"],
             **kwargs,
         )
 
@@ -81,12 +103,113 @@ def _pin_lifecycle_contract_clock(
         "require_launch_adaptation_authority",
         require_with_event_clock,
     )
+    monkeypatch.setattr(
+        launch_finalizer,
+        "require_newest_live_tail_runtime_authority",
+        require_live_tail_with_event_clock,
+    )
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _passing_live_tail_fixture(tmp_path: Path) -> dict:
+    paths = prebuilt_refresh._prebuilt_fixture(tmp_path / "live-tail-pair")
+    pair_manifest = Path(paths["pair_manifest"])
+    generation_root = Path(paths["generation_root"])
+    publication_root = tmp_path / "live-tail-publications"
+    admission_root = tmp_path / "live-tail-admissions"
+
+    canonical_one, base28_one = prebuilt_refresh._successor_frames()
+    prebuilt_refresh._publish_live_tail_fixture_pair(
+        paths,
+        canonical=canonical_one,
+        base28=base28_one,
+        created_utc="2026-07-16T12:20:00Z",
+    )
+    publication_one_path, publication_one = (
+        publish_live_tail_publication_event(
+            event_root=publication_root,
+            pair_manifest_path=pair_manifest,
+            generation_root=generation_root,
+            created_utc="2026-07-16T12:20:30Z",
+        )
+    )
+    assert publication_one["decision"] == "PASS"
+
+    next_time = pd.Timestamp("2026-07-16T12:20:00Z")
+    canonical_two = pd.concat(
+        [
+            canonical_one,
+            pd.DataFrame(
+                {
+                    "time": [next_time],
+                    "open": np.asarray([2404.0], dtype=np.float64),
+                    "signal": np.asarray([5.0], dtype=np.float32),
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+    base_row = pd.DataFrame(
+        {
+            name: np.asarray([2404.0 + offset], dtype=np.float64)
+            for offset, name in enumerate(
+                prebuilt_refresh.incremental.RAW_BASE28_COLUMNS
+            )
+        },
+        index=pd.DatetimeIndex([next_time], name="time"),
+    )
+    base28_two = pd.concat([base28_one, base_row])
+    prebuilt_refresh._publish_live_tail_fixture_pair(
+        paths,
+        canonical=canonical_two,
+        base28=base28_two,
+        created_utc="2026-07-16T12:25:00Z",
+    )
+    publication_one_sha256 = _sha256(publication_one_path)
+    publication_two_path, publication_two = (
+        publish_live_tail_publication_event(
+            event_root=publication_root,
+            pair_manifest_path=pair_manifest,
+            generation_root=generation_root,
+            previous_publication_json=publication_one_path,
+            previous_publication_sha256=publication_one_sha256,
+            created_utc="2026-07-16T12:25:30Z",
+        )
+    )
+    assert publication_two["decision"] == "PASS"
+    admission_path, admission = publish_live_tail_admission_event(
+        event_root=admission_root,
+        parent_publication_json=publication_one_path,
+        parent_publication_sha256=publication_one_sha256,
+        child_publication_json=publication_two_path,
+        child_publication_sha256=_sha256(publication_two_path),
+        pair_manifest_path=pair_manifest,
+        generation_root=generation_root,
+        created_utc="2026-07-16T12:25:31Z",
+    )
+    assert admission["decision"] == "PASS"
+    admission_sha256 = _sha256(admission_path)
+    authority = live_tail_launch_authority(
+        admission_path,
+        expected_sha256=admission_sha256,
+    )
+    return {
+        "admission_path": admission_path,
+        "admission_binding": {
+            "json_path": str(admission_path),
+            "sha256": admission_sha256,
+        },
+        "authority": authority,
+    }
 
 
 def _allow_state(**updates: object) -> dict:
@@ -141,7 +264,7 @@ def test_explicit_block_state_reports_terminal_blockers(
             "project": artifacts.THIS_PROJECT,
             "decision": "BLOCK",
             "latest_terminal_event_id": "UNIT_HARD_RED",
-            "blockers": ["joint active Exit proof absent"],
+            "blockers": ["joint unified Exit proof absent"],
         },
     )
     monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
@@ -216,12 +339,14 @@ def test_allow_state_cannot_omit_launch_authority_evidence(
 def test_allow_state_rejects_unbound_sizing_authority_before_runtime_parity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    live_tail = _passing_live_tail_fixture(tmp_path)
     launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
     _write_json(
         launch,
         _allow_state(
             joint_exit_execution_proof_evidence={"decision": "PASS"},
             sizing_runtime_parity_evidence={"decision": "PASS"},
+            new_entry_live_tail_authority=live_tail["authority"],
         ),
     )
     monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
@@ -231,6 +356,7 @@ def test_allow_state_rejects_unbound_sizing_authority_before_runtime_parity(
 
 
 def _passing_launch_prerequisites(tmp_path: Path) -> dict:
+    live_tail = _passing_live_tail_fixture(tmp_path)
     evidence = write_passing_runtime_sizing_parity(tmp_path)
     bundle_dir = evidence["bundle_dir"]
     parity_binding = evidence["oos_source"][
@@ -261,9 +387,11 @@ def _passing_launch_prerequisites(tmp_path: Path) -> dict:
                     "test_coverage",
                 )
             },
-            "max_bad_side_rate": DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
-            "max_bad_side_wilson_upper_95": (
-                DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+            "max_selected_label_error_rate": (
+                DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
+            ),
+            "max_selected_label_error_wilson_upper_95": (
+                DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95
             ),
             "wilson_confidence_level": DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
             "min_selected_rows": DIRECTION_POCKET_MIN_SELECTED_ROWS,
@@ -301,6 +429,7 @@ def _passing_launch_prerequisites(tmp_path: Path) -> dict:
             "model_native_serve_parity": parity_binding,
             "model_native_direction_pocket_audit": direction_binding,
         },
+        new_entry_live_tail_authority=live_tail["authority"],
     )
     lifecycle = write_initial_adaptation_lifecycle(
         tmp_path / "adaptation",
@@ -324,17 +453,56 @@ def _passing_launch_prerequisites(tmp_path: Path) -> dict:
         "direction_path": direction_path,
         "state": state,
         "lifecycle": lifecycle,
+        "live_tail": live_tail,
     }
 
 
-def test_launch_fails_closed_without_canonical_active_exit_replay_producer(
+def test_allow_state_without_static_live_tail_authority_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chain = _passing_launch_prerequisites(tmp_path)
+    state = json.loads(json.dumps(chain["state"]))
+    state.pop("new_entry_live_tail_authority")
+    launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
+    _write_json(launch, state)
+    monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
+
+    with pytest.raises(
+        artifacts.ArtifactGuardError,
+        match="static live-tail authority invalid",
+    ):
+        artifacts._check_v10_entry_launch_contract(chain["bundle_dir"])
+
+
+def test_allow_state_with_tampered_static_live_tail_authority_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chain = _passing_launch_prerequisites(tmp_path)
+    state = json.loads(json.dumps(chain["state"]))
+    state["new_entry_live_tail_authority"]["launch_anchor"][
+        "pair_generation_id"
+    ] = "PAIR_TAMPERED"
+    launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
+    _write_json(launch, state)
+    monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
+
+    with pytest.raises(
+        artifacts.ArtifactGuardError,
+        match="static live-tail authority invalid",
+    ):
+        artifacts._check_v10_entry_launch_contract(chain["bundle_dir"])
+
+
+def test_launch_fails_closed_without_canonical_unified_replay_producer(
     tmp_path: Path,
 ) -> None:
     chain = _passing_launch_prerequisites(tmp_path)
     launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
     with pytest.raises(
         launch_finalizer.EntryLaunchFinalizationError,
-        match="canonical active Exit replay producer is absent",
+        match="canonical unified replay producer is absent",
     ):
         _run_launch_finalizer(
             chain,
@@ -352,6 +520,7 @@ def _run_launch_finalizer(
     artifact_registry_path: Path | None = None,
     max_trades: int = 1,
     allow_diagnostic_joint_exit_fixture: bool = False,
+    diagnostic_sizing_snapshot=None,
 ) -> tuple[Path, dict]:
     evidence = chain["evidence"]
     launch_path = root / "PROJECT_STATE_xau_direction_launch.json"
@@ -402,6 +571,9 @@ def _run_launch_finalizer(
                 ).hexdigest(),
             },
             "adaptation_lifecycle": chain["lifecycle"]["artifact"],
+            "live_tail_admission": chain["live_tail"][
+                "admission_binding"
+            ],
         },
     )
     vedtak_path, _ = write_immutable_json_event(
@@ -439,6 +611,7 @@ def _run_launch_finalizer(
         "serve_parity_path": chain["parity_path"],
         "direction_pocket_path": chain["direction_path"],
         "adaptation_lifecycle_path": chain["lifecycle"]["event_path"],
+        "live_tail_admission_path": chain["live_tail"]["admission_path"],
         "launch_vedtak_path": vedtak_path,
         "transaction_id": transaction_id,
         "max_trades": max_trades,
@@ -450,17 +623,29 @@ def _run_launch_finalizer(
     if not allow_diagnostic_joint_exit_fixture:
         return launch_finalizer.finalize_entry_model_native_launch(**kwargs)
     # Transaction-mechanics tests isolate commit/rollback behavior from the
-    # separately blocked active-Exit replay producer prerequisite.
+    # separately blocked candidate-bound unified Exit replay prerequisite.
+    if diagnostic_sizing_snapshot is None:
+        diagnostic_sizing_snapshot = artifacts.prepare_model_native_sizing_authority(
+            learned_sizing_authority_contract_metadata(
+                adoption_artifact=evidence["adoption_artifact"]
+            ),
+            context="UNIT_DIAGNOSTIC_SIZING_SNAPSHOT",
+        )
     with (
         patch.object(
             launch_finalizer,
-            "require_canonical_active_exit_replay_launch_authority",
+            "require_canonical_unified_replay_launch_authority",
             return_value=None,
         ),
         patch.object(
             artifacts,
-            "require_canonical_active_exit_replay_launch_authority",
+            "require_canonical_unified_replay_launch_authority",
             return_value=None,
+        ),
+        patch.object(
+            artifacts,
+            "prepare_model_native_sizing_authority",
+            return_value=diagnostic_sizing_snapshot,
         ),
     ):
         return launch_finalizer.finalize_entry_model_native_launch(**kwargs)
@@ -470,11 +655,18 @@ def test_transactional_launch_finalizer_commits_both_authority_files(
     tmp_path: Path,
 ) -> None:
     chain = _passing_launch_prerequisites(tmp_path)
+    diagnostic_sizing_snapshot = artifacts.prepare_model_native_sizing_authority(
+        learned_sizing_authority_contract_metadata(
+            adoption_artifact=chain["evidence"]["adoption_artifact"]
+        ),
+        context="UNIT_FINALIZER_DIAGNOSTIC_SIZING_SNAPSHOT",
+    )
     event_path, event = _run_launch_finalizer(
         chain,
         root=tmp_path,
         transaction_id="UNIT_FINALIZER_TRANSACTION",
         allow_diagnostic_joint_exit_fixture=True,
+        diagnostic_sizing_snapshot=diagnostic_sizing_snapshot,
     )
     registry_path = chain["evidence"]["artifact_registry_path"]
     launch_path = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
@@ -488,6 +680,10 @@ def test_transactional_launch_finalizer_commits_both_authority_files(
     )
     assert state["decision"] == "ALLOW"
     assert state["blockers"] == []
+    assert (
+        state["new_entry_live_tail_authority"]
+        == chain["live_tail"]["authority"]
+    )
     evidence = chain["evidence"]
     retry_kwargs = {
         "accepted_bundle_dir": chain["bundle_dir"],
@@ -503,6 +699,7 @@ def test_transactional_launch_finalizer_commits_both_authority_files(
         "serve_parity_path": chain["parity_path"],
         "direction_pocket_path": chain["direction_path"],
         "adaptation_lifecycle_path": chain["lifecycle"]["event_path"],
+        "live_tail_admission_path": chain["live_tail"]["admission_path"],
         "launch_vedtak_path": Path(
             state["accepted_via_vedtak"]["vedtak_authority"]["json_path"]
         ),
@@ -527,8 +724,12 @@ def test_transactional_launch_finalizer_commits_both_authority_files(
         )
     with patch.object(
         artifacts,
-        "require_canonical_active_exit_replay_launch_authority",
+        "require_canonical_unified_replay_launch_authority",
         return_value=None,
+    ), patch.object(
+        artifacts,
+        "prepare_model_native_sizing_authority",
+        return_value=diagnostic_sizing_snapshot,
     ):
         validated = artifacts._check_v10_entry_launch_contract(
             chain["bundle_dir"],
@@ -544,8 +745,13 @@ def test_transactional_launch_finalizer_commits_both_authority_files(
     with (
         patch.object(
             artifacts,
-            "require_canonical_active_exit_replay_launch_authority",
+            "require_canonical_unified_replay_launch_authority",
             return_value=None,
+        ),
+        patch.object(
+            artifacts,
+            "prepare_model_native_sizing_authority",
+            return_value=diagnostic_sizing_snapshot,
         ),
         pytest.raises(artifacts.ArtifactGuardError, match="transaction invalid"),
     ):
@@ -563,6 +769,12 @@ def test_transactional_launch_finalizer_rolls_back_partial_replace(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     chain = _passing_launch_prerequisites(tmp_path)
+    diagnostic_sizing_snapshot = artifacts.prepare_model_native_sizing_authority(
+        learned_sizing_authority_contract_metadata(
+            adoption_artifact=chain["evidence"]["adoption_artifact"]
+        ),
+        context="UNIT_ROLLBACK_DIAGNOSTIC_SIZING_SNAPSHOT",
+    )
     registry_path = chain["evidence"]["artifact_registry_path"]
     launch_path = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
     original_registry = registry_path.read_bytes()
@@ -590,6 +802,7 @@ def test_transactional_launch_finalizer_rolls_back_partial_replace(
             root=tmp_path,
             transaction_id="UNIT_ROLLBACK_TRANSACTION",
             allow_diagnostic_joint_exit_fixture=True,
+            diagnostic_sizing_snapshot=diagnostic_sizing_snapshot,
         )
 
     assert registry_path.read_bytes() == original_registry
@@ -613,13 +826,18 @@ def test_transactional_launch_finalizer_rolls_back_partial_replace(
         root=tmp_path,
         transaction_id="UNIT_ROLLBACK_RETRY_TRANSACTION",
         allow_diagnostic_joint_exit_fixture=True,
+        diagnostic_sizing_snapshot=diagnostic_sizing_snapshot,
     )
     assert event["decision"] == "COMMIT"
     assert Path(event["json_path"]) == event_path
     with patch.object(
         artifacts,
-        "require_canonical_active_exit_replay_launch_authority",
+        "require_canonical_unified_replay_launch_authority",
         return_value=None,
+    ), patch.object(
+        artifacts,
+        "prepare_model_native_sizing_authority",
+        return_value=diagnostic_sizing_snapshot,
     ):
         artifacts._check_v10_entry_launch_contract(
             chain["bundle_dir"],
@@ -677,34 +895,26 @@ def test_transactional_launch_finalizer_records_precommit_side_effect_failure(
     assert failure["rollback_complete"] is True
 
 
-def test_transactional_launch_rejects_decoy_exit_registry(
+def test_joint_replay_authority_is_candidate_bound_not_registry_bound(
     tmp_path: Path,
 ) -> None:
     chain = _passing_launch_prerequisites(tmp_path)
-    source_registry = chain["evidence"]["artifact_registry_path"]
-    decoy_registry = tmp_path / "decoy" / "PROJECT_STATE_artifacts.json"
-    decoy_registry.parent.mkdir()
-    decoy_registry.write_bytes(source_registry.read_bytes())
-    original_decoy = decoy_registry.read_bytes()
-
-    with pytest.raises(
-        launch_finalizer.EntryLaunchFinalizationError,
-        match="different Exit registry",
-    ):
-        _run_launch_finalizer(
-            chain,
-            root=tmp_path,
-            transaction_id="UNIT_DECOY_EXIT_REGISTRY_TRANSACTION",
-            artifact_registry_path=decoy_registry,
-            allow_diagnostic_joint_exit_fixture=True,
-        )
-
-    assert decoy_registry.read_bytes() == original_decoy
-    assert json.loads(
-        (tmp_path / "PROJECT_STATE_xau_direction_launch.json").read_text(
-            encoding="utf-8"
-        )
-    )["decision"] == "BLOCK"
+    snapshot = artifacts.prepare_model_native_sizing_authority(
+        learned_sizing_authority_contract_metadata(
+            adoption_artifact=chain["evidence"]["adoption_artifact"]
+        ),
+        context="UNIT_CANDIDATE_NOT_REGISTRY_AUTHORITY",
+    )
+    assert snapshot.candidate_bundle_authority["bundle_dir"] == str(
+        chain["bundle_dir"]
+    )
+    assert not {
+        "path",
+        "active_exit_entries",
+        "projection_sha256",
+    }.intersection(
+        snapshot.candidate_bundle_authority
+    )
 
 
 def test_transactional_launch_rejects_unproven_concurrency_cap(

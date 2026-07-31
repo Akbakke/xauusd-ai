@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """V2 Phase B5 — augment forward-outcome parquets with 125 per-TF + 28 group-A V2 scalars.
 
-C+prune strategy: embed ALL 25 V2-features per TF (5 TFs × 25 = 125), plus 28
-group-A features. Permutation importance later (Phase C4b/C5b) prunes weak ones.
+C+prune strategy: extract the exact historical 25-field group-A subset per TF
+from the verified V4 cache (5 TFs × 25 = 125), plus 28 group-A features. This
+derived context surface is not the model's separate 5×111 V4 input grid.
 
 OPTIMIZED (2026-07-21): builds all caches once, resolves each TF snapshot once,
 and keeps row lookup zero-copy. Measured full-contract throughput is >2,000
@@ -30,10 +32,13 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from gx1.features.htf_features import (
-    build_multi_tf_per_bar_features_v2,
-    HTF_V2_MATRIX_CONTRACT,
+    build_multi_tf_per_bar_features_v4,
+    HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_PER_BAR_FEATURES_V2,
+    MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
+    MULTI_TF_TIMEFRAMES,
+    MULTI_TF_TIMEFRAMES_LOWER,
     validate_causal_feature_matrix,
 )
 # Round-number proximity: import the ONE-TRUTH compute (group_a_features) — no duplicated math.
@@ -42,7 +47,19 @@ from gx1.features.group_a_features import (
 )
 _AUG_ROUND_ON = os.environ.get("GX1_ROUND_NUMBER", "0") == "1"
 
-TF_NAMES = ("M5", "M15", "H1", "H4", "D1")
+TF_NAMES = MULTI_TF_TIMEFRAMES
+_GROUP_A_MTF_SOURCE_FEATURES = tuple(
+    "vwap_local_cycle_dist_atr"
+    if name == "vwap_session_dist_atr"
+    else "vwap_local_cycle_slope_atr"
+    if name == "vwap_session_slope_atr"
+    else name
+    for name in MULTI_TF_PER_BAR_FEATURES_V2
+)
+_GROUP_A_MTF_SOURCE_INDICES = tuple(
+    MULTI_TF_PER_BAR_FEATURES_V4.index(name)
+    for name in _GROUP_A_MTF_SOURCE_FEATURES
+)
 
 
 class CausalContextWarmupError(RuntimeError):
@@ -163,7 +180,7 @@ if _AUG_ROUND_ON:  # +5 ONLY under GX1_ROUND_NUMBER → default-OFF keeps the Gr
 # byte-identical to cement. (H4/D1 gaps too sparse for shuffled-liveness → M5/M15/H1 only.)
 _FVG_ON = os.environ.get("GX1_FVG_FEATURES", "0") == "1"
 FVG_FEATURE_NAMES = tuple(
-    f"{tf}_{c}" for tf in ("m5", "m15", "h1")
+    f"{tf}_{c}" for tf in MULTI_TF_TIMEFRAMES_LOWER[:3]
     for c in ("dist_to_unfilled_fvg_atr", "fvg_active")
 ) if _FVG_ON else ()
 
@@ -173,16 +190,16 @@ FVG_FEATURE_NAMES = tuple(
 # forward_outcome → all zero downstream. Fix: load canonical_v3 once, asof-join
 # by time to add SMC cols (with _canon_v1 suffix to match downstream expectations).
 # 2026-05-24 PM: 5-TF dip + structure features (computed in augment_candidate).
-# Persisted into fwd parquet so both Entry-IQL and Exit-IQL state builders can
-# read them via column lookup (no need to recompute at training time).
+# Persisted into the forward parquet so current causal dataset builders read
+# the exact same values without recomputing them.
 DIP_STRUCT_FEATURE_NAMES = tuple(
-    [f"dip_proximity_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
-  + [f"dip_confirmed_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
-  + [f"struct_continuation_up_{tf}_v3"      for tf in ("m5","m15","h1","h4","d1")]
-  + [f"struct_pullback_in_uptrend_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
-  + [f"struct_continuation_down_{tf}_v3"    for tf in ("m5","m15","h1","h4","d1")]
-  + [f"struct_bounce_in_downtrend_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
-  + [f"struct_pullback_depth_{tf}_v3"       for tf in ("m5","m15","h1","h4","d1")]
+    [f"dip_proximity_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
+    + [f"dip_confirmed_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
+    + [f"struct_continuation_up_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
+    + [f"struct_pullback_in_uptrend_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
+    + [f"struct_continuation_down_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
+    + [f"struct_bounce_in_downtrend_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
+    + [f"struct_pullback_depth_{tf}_v3" for tf in MULTI_TF_TIMEFRAMES_LOWER]
   + ["struct_all_tf_pullback_v3", "struct_tf_agree_count_v3", "struct_dip_x_uptrend_v3"]
 )  # 5×7 + 3 = 38 cols (smc_swing_x_dip computed downstream after SMC join)
 
@@ -433,7 +450,7 @@ def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
             f"observed={sorted(map(str, multi_tf))}"
         )
     m5_last = int(pd.Timestamp(m5_df.index[-1]).value)
-    expected_width = len(MULTI_TF_PER_BAR_FEATURES_V2)
+    expected_width = len(MULTI_TF_PER_BAR_FEATURES_V4)
     for tf in TF_NAMES:
         feats = multi_tf[tf]
         if not isinstance(feats, pd.DataFrame) or feats.empty:
@@ -442,7 +459,11 @@ def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
         values = np.asarray(feats.attrs.get("feats_np"))
         if ts_arr.ndim != 1 or len(ts_arr) != len(feats) or np.any(np.diff(ts_arr) <= 0):
             raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} timestamps are missing or invalid")
-        if feats.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT:
+        if (
+            feats.attrs.get("htf_feature_contract")
+            != HTF_V4_MATRIX_CONTRACT
+            or tuple(feats.columns) != MULTI_TF_PER_BAR_FEATURES_V4
+        ):
             raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} exact causal matrix contract missing")
         warmup_rows = validate_causal_feature_matrix(
             values,
@@ -537,7 +558,7 @@ def _tf_cache_row(ctx: AugmentContext, tf: str, ts_ns: int) -> np.ndarray:
         ts_arr.dtype != np.dtype(np.int64)
         or values.dtype != np.dtype(np.float32)
         or ts_arr.ndim != 1
-        or values.shape != (len(ts_arr), len(MULTI_TF_PER_BAR_FEATURES_V2))
+        or values.shape != (len(ts_arr), len(MULTI_TF_PER_BAR_FEATURES_V4))
     ):
         raise RuntimeError(f"[CTX_MTF_SOURCE] malformed {tf} cache arrays")
     right = int(np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right"))
@@ -567,8 +588,12 @@ def _per_tf_all(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     out: dict[str, float] = {}
     for tf in TF_NAMES:
         row = _tf_cache_row(ctx, tf, ts_ns)
-        for j, feat in enumerate(MULTI_TF_PER_BAR_FEATURES_V2):
-            out[_pertf_name(tf, feat)] = float(row[j])
+        for output_name, source_index in zip(
+            MULTI_TF_PER_BAR_FEATURES_V2,
+            _GROUP_A_MTF_SOURCE_INDICES,
+            strict=True,
+        ):
+            out[_pertf_name(tf, output_name)] = float(row[source_index])
     return out
 
 
@@ -703,12 +728,11 @@ def _per_side_perf(ctx: AugmentContext, ts: pd.Timestamp, lookback_n: int = 10) 
 
 def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> dict[str, float]:
     """5-TF dip + structure features computed from per-TF V2 + liquidity zones.
-    Persisted into fwd dataset so both Entry-IQL and Exit-IQL state builders can
-    read them without recomputing.
+    Persisted into the forward dataset for exact downstream reuse.
     """
     out: dict[str, float] = {}
     # DIP per TF: proximity-to-low × sigmoid(ema20-slope)
-    for tf in ("m5", "m15", "h1", "h4", "d1"):
+    for tf in MULTI_TF_TIMEFRAMES_LOWER:
         dist_name = f"dist_to_{tf}_lo_atr"
         slope_name = f"{tf}_ema20_slope_atr_v2"
         if dist_name not in liq_out or slope_name not in per_tf_out:
@@ -725,7 +749,7 @@ def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> 
         out[f"dip_confirmed_{tf}_v3"] = dip_prox * recovery
     # STRUCTURE per TF: HH/HL/LH/LL via mom_5 + mom_20 signs
     pback = {}
-    for tf in ("m5", "m15", "h1", "h4", "d1"):
+    for tf in MULTI_TF_TIMEFRAMES_LOWER:
         mom5_name = f"{tf}_mom_5_atr_v2"
         mom20_name = f"{tf}_mom_20_atr_v2"
         if mom5_name not in per_tf_out or mom20_name not in per_tf_out:
@@ -1640,7 +1664,7 @@ def main() -> int:
     m5_df = pd.read_parquet(args.m5_prebuilt, columns=["time", "open", "high", "low", "close", "volume"])
     m5_df["time"] = pd.to_datetime(m5_df["time"], utc=True)
     m5_df = m5_df.set_index("time").sort_index()
-    multi_tf = build_multi_tf_per_bar_features_v2(m5_df)
+    multi_tf = build_multi_tf_per_bar_features_v4(m5_df)
     print(f"[AUG_V2]   M5={len(m5_df):,} bars  multi-TF in {time.time()-t0:.1f}s")
 
     print("[AUG_V2] building augment context (one-shot pre-compute)...")

@@ -1,15 +1,15 @@
 """Cross-chain FEATURE-LIVENESS audit — "NOTHING gets silently ignored" (user vedtak 2026-06-06).
 
 A consolidated, ALWAYS-RUN check that every input feature the chain consumes is ALIVE (non-constant)
-and that the multi-TF block is intact (all 5 TFs present, alive, DISTINCT resolutions). It complements
-(does NOT duplicate) the model-native Entry training contracts or the separate
-Exit-IQL state-vector coverage guard.
+and that the multi-TF block is intact (all 5 TFs present, alive, DISTINCT
+resolutions). It complements, but does not duplicate, the model-native
+training contracts.
 
 The active V10 batch gate is model-native only: its signal surface must be the
 exact 513-field contract, its 142 continuous-context inputs must be present,
 and every value on both surfaces must be finite and non-constant. It never
 consults the historical ``KNOWN_ALLOWED_DEAD`` diagnostic allowlist. That
-allowlist remains only for explicitly legacy IQL/XGB hygiene readers and cannot
+allowlist remains only for explicitly legacy hygiene readers and cannot
 turn a retired signal surface into an authoritative PASS.
 
 Run automatically: the V10 trainer calls assert_v10_batch_liveness() at post-export.
@@ -19,9 +19,12 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
@@ -30,12 +33,16 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     ordered_model_native_signal_fields,
     require_model_native_signal_contract,
 )
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC,
+)
 from gx1.execution.v12_state_from_prebuilt import (
     PREBUILT_PAIR_MANIFEST_PATH,
     PREBUILT_PAIR_ROOT,
     read_prebuilt_pair_manifest,
     verify_prebuilt_pair,
 )
+from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
 
 DEAD_STD = 1e-4   # std below this over a real batch = constant = "ignored input"
 
@@ -68,7 +75,7 @@ def _population_alive(std: float, nunique: int) -> bool:
 
 # ── Legacy diagnostic structural/known-dead allowlist ──────────────────────────────────────
 # Format: bare name OR "tf:name" for a per-TF feature. This is available to
-# historical IQL/XGB hygiene readers only. The model-native entry gate below
+# historical hygiene readers only. The model-native entry gate below
 # explicitly disables it for all 513 signal and 142 ctx-cont inputs.
 KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "vol_pct_m5_1yr": "1-year vol-percentile not computed → pinned 0.5. Hygiene wave: compute or drop.",
@@ -76,12 +83,12 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     # Ultra-sparse but ALIVE (91 nonzero / 396,681 rows): false-flags as dead below
     # DEAD_STD on typical sample sizes — the documented slow-varying D1 class.
     "d1_regime_changed_flag_v3": "ultra-sparse impulse flag (0.023% nonzero) — alive on full scan 2026-07-05; sibling bars_since_d1_regime_change_v3 carries the signal.",
-    # Benign by construction — XGB is SESSION-HEADED so session feats are const within a head:
-    "session_id": "0 XGB gain by construction (session-headed model).",
+    # Benign by construction in the retired session-headed diagnostic:
+    "session_id": "constant by construction in the retired session-headed diagnostic.",
     "is_ASIA": "ditto.", "session_change_flag": "ditto.", "session_tradable": "ditto.",
     "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
-    "_v1_is_EU": "legacy baked session one-hot; 0 XGB gain by construction in session-headed model.",
-    "_v1_is_US": "legacy baked session one-hot; 0 XGB gain by construction in session-headed model.",
+    "_v1_is_EU": "legacy baked session one-hot; constant in the retired session-headed diagnostic.",
+    "_v1_is_US": "legacy baked session one-hot; constant in the retired session-headed diagnostic.",
     # Known bugs/gaps tracked in the hygiene wave (NOT to be silently forgotten):
     "_v1_atr_regime_id": "BUG-MASK: chained-index BUG → const=1 (basic_v1.py:726). Fix EXISTS behind "
                          "GX1_ATR_REGIME_FIX=1 (bf4a6abd, default OFF — live builds still emit const). REMOVE this "
@@ -89,21 +96,7 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "smc_choch": "BUG-MASK (remove when fixed): too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",
-    # Provenance one-hot — constant by construction in the historical Exit-IQL
-    # training substrate. Harmless dead slot; drop at the next Exit rebuild.
-    "decision_reason_v2_inference_batch": "Exit-IQL: same const provenance one-hot. Drop at rebuild.",
 }
-
-MULTI_TF_NAMES: Sequence[str] = ()
-try:
-    # Names are only used to label a dead column, so carrying the widest
-    # declared contract keeps every V2 index valid (V3's first 25 are V2) while
-    # naming V3's extra columns instead of falling back to "[index]".
-    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V3 as _MTF
-    MULTI_TF_NAMES = tuple(_MTF)
-except Exception:  # pragma: no cover
-    pass
-
 
 class FeatureLivenessError(RuntimeError):
     """A contracted feature failed finiteness/liveness or input identity."""
@@ -234,7 +227,9 @@ def _model_native_signal_contract_issues(names: Sequence[str]) -> List[str]:
 def check_multi_tf_integrity(
     seq_by_tf: Dict[str, np.ndarray],
     *,
+    feature_names: Sequence[str],
     allow_known_dead: bool = True,
+    population_stats: Optional[PopulationStats] = None,
 ) -> Dict[str, object]:
     """All 5 TFs present, correctly shaped, live and at distinct resolutions.
 
@@ -244,8 +239,15 @@ def check_multi_tf_integrity(
     model-native gate always passes ``False``.
     """
     rep: Dict[str, object] = {"missing": [], "new_dead": [], "duplicate": [], "atr_by_tf": {}}
-    names = list(MULTI_TF_NAMES)
-    want = ["M5", "M15", "H1", "H4", "D1"]
+    names = [str(name).strip() for name in feature_names]
+    if not names or any(not name for name in names) or len(set(names)) != len(names):
+        return {
+            "missing": [],
+            "new_dead": ["ordered MTF feature identity missing/blank/duplicate"],
+            "duplicate": [],
+            "atr_by_tf": {},
+        }
+    want = list(MULTI_TF_TIMEFRAMES)
     rep["missing"] = [tf for tf in want if tf not in seq_by_tf]
     atr_idx = names.index("atr_bps_14") if "atr_bps_14" in names else 0
     ema50_idx = names.index("ema50_dist_atr") if "ema50_dist_atr" in names else None
@@ -260,6 +262,8 @@ def check_multi_tf_integrity(
                 names,
                 tf=tf.lower(),
                 allow_known_dead=allow_known_dead,
+                population_stats=population_stats,
+                surface=f"multi_tf.{tf}",
             )
         )
         # mask zero-padded warmup rows (atr==0) so the ATR-scaling sanity isn't deflated on a skewed batch
@@ -285,7 +289,9 @@ def check_multi_tf_integrity(
 
 
 def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[str]] = None,
-                              snap_names: Optional[Sequence[str]] = None, raise_on_fail: bool = True,
+                              snap_names: Optional[Sequence[str]] = None,
+                              multi_tf_names: Optional[Sequence[str]] = None,
+                              raise_on_fail: bool = True,
                               population_stats: Optional[PopulationStats] = None) -> dict:
     """Authoritative post-export gate for exact model-native V10 inputs.
 
@@ -344,11 +350,22 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
         )
     seq_by_tf = {k.replace("seq_", "").upper(): to_np(batch[k])
                  for k in ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1") if k in batch}
+    if multi_tf_names is None:
+        issues.append("multi_tf: exact ordered field names missing")
     mtf = (
-        check_multi_tf_integrity(seq_by_tf, allow_known_dead=False)
-        if seq_by_tf
+        check_multi_tf_integrity(
+            seq_by_tf,
+            feature_names=multi_tf_names or (),
+            allow_known_dead=False,
+            population_stats=population_stats,
+        )
+        if seq_by_tf and multi_tf_names is not None
         else {
-            "missing": ["ALL — no multi-TF in batch"],
+            "missing": (
+                ["ALL — no multi-TF in batch"]
+                if not seq_by_tf
+                else []
+            ),
             "new_dead": [],
             "duplicate": [],
         }
@@ -357,7 +374,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
     rep = {
         "ok": not issues,
         "authoritative": True,
-        "contract": "model_native_seq513",
+        "contract": "model_native_seq513_mtf_declared",
         "issues": issues,
         "multi_tf_atr": mtf.get("atr_by_tf", {}),
     }
@@ -369,39 +386,13 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
     return rep
 
 
-def audit_iql_state_liveness(X, names, *, role: str = "iql-state", raise_on_fail: bool = False) -> dict:
-    """Liveness check for an already-built Exit-IQL state matrix.
-
-    This reusable enforcement primitive lets Exit-IQL builds pass their actual
-    ``(X, names)`` values and fail loudly on any state feature that is constant
-    or zero and not on ``KNOWN_ALLOWED_DEAD``.
-
-    X: (N, F) state matrix (the 1st return of build_state_matrix). names: F feature names (2nd return).
-    Pure wrapper on _dead_cols (the one-truth checker) — takes already-built values, so it adds NO heavy
-    import to this light lib (which the V10/XGB trainers import at post-export). raise_on_fail=True at cement.
-    """
-    arr = np.asarray(X, dtype=np.float64)
-    names = list(names)
-    if arr.shape[-1] != len(names):
-        raise ValueError(f"audit_iql_state_liveness[{role}]: {arr.shape[-1]} cols vs {len(names)} names — mismatch")
-    flat = arr.reshape(-1, arr.shape[-1])                 # view, no copy (C-contiguous)
-    dead = _dead_cols(arr, names)
-    n_zero = int((~flat.any(axis=0)).sum())               # all-zero columns (single pass; callers needn't recompute)
-    rep = {"ok": not dead, "role": role, "n_rows": int(flat.shape[0]),
-           "n_features": arr.shape[-1], "n_zero": n_zero, "dead": dead}
-    if dead:
-        msg = (f"[FEATURE_LIVENESS_FAIL] {role}: {len(dead)} state feature(s) constant/zero and NOT on "
-               f"KNOWN_ALLOWED_DEAD — a silent-ignore regression (rule 9):\n  - " + "\n  - ".join(dead))
-        if raise_on_fail:
-            raise FeatureLivenessError(msg)
-        print(msg, file=sys.stderr)
-    return rep
-
-
 LIVE_TAIL_ALLOWED_CONST: Dict[str, str] = {}
 LIVE_TAIL_REF_MIN_NUNIQUE = 4   # was-varying threshold: ref-window nunique >= this => freeze when tail==1
 LIVE_PAIR_MANIFEST = str(PREBUILT_PAIR_MANIFEST_PATH)
 LIVE_PAIR_GENERATION_ROOT = str(PREBUILT_PAIR_ROOT)
+LIVE_PAIR_MAX_STALE_MINUTES = (
+    5.0 + float(MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC) / 60.0
+)
 
 
 US_MARKET_HOLIDAYS = {  # XAU/CME stengt eller early-close (utvid årlig)
@@ -426,20 +417,75 @@ KNOWN_DATA_GAPS = {  # aksepterte historiske hull (dato → grunn). Repareres vi
 }
 
 
+def _time_indexed_prebuilt_frame(path: Path, *, label: str) -> "pd.DataFrame":
+    import pandas as pd
+
+    try:
+        frame = pd.read_parquet(path)
+    except Exception as exc:
+        raise FeatureLivenessError(
+            f"{label}_LIVE_TAIL_PARQUET_READ_FAILED: {path}"
+        ) from exc
+    if "time" not in frame.columns or isinstance(frame.index, pd.DatetimeIndex):
+        raise FeatureLivenessError(
+            f"{label}_LIVE_TAIL_EXPLICIT_TIME_COLUMN_REQUIRED"
+        )
+    timestamps = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+    if (
+        timestamps.isna().any()
+        or timestamps.duplicated().any()
+        or not timestamps.is_monotonic_increasing
+    ):
+        raise FeatureLivenessError(
+            f"{label}_LIVE_TAIL_TIME_INDEX_INVALID"
+        )
+    out = frame.drop(columns=["time"]).copy()
+    out.index = pd.DatetimeIndex(timestamps)
+    out.index.name = "time"
+    return out
+
+
+def _freshness_minutes(
+    index: "pd.DatetimeIndex",
+    *,
+    now: "pd.Timestamp",
+    label: str,
+) -> float:
+    import pandas as pd
+
+    if not isinstance(index, pd.DatetimeIndex) or index.empty:
+        raise FeatureLivenessError(f"{label}_LIVE_TAIL_TIME_INDEX_EMPTY")
+    age = float((now - index.max()).total_seconds() / 60.0)
+    if not np.isfinite(age) or age < 0.0:
+        raise FeatureLivenessError(
+            f"{label}_LIVE_TAIL_FRESHNESS_INVALID: {age}"
+        )
+    return age
+
+
 def check_live_continuity(
     tail_days: int = 10,
     fresh_fail_hours: int = 48,
+    max_stale_minutes: float = LIVE_PAIR_MAX_STALE_MINUTES,
     pair_manifest: str = LIVE_PAIR_MANIFEST,
     generation_root: str = LIVE_PAIR_GENERATION_ROOT,
     raise_on_fail: bool = False,
 ) -> dict:
     """Rule-9 CONTINUITY check (user-direktiv 2026-06-12: «ALLTID oppdatert, INGEN hull, nøyaktig på
-    hver M1 (exit) og M5 (entry)»). Skanner cv3 (M5) + BASE34 (M1) for grid-hull, klassifisert mot
+    hver M1 (exit) og M5 (entry)»). Skanner cv3 (M5) + BASE28 (M1) for grid-hull, klassifisert mot
     helg / daglig 21-22Z-pause / US-helligdager / tick-tomme minutter (<=10 min) / KNOWN_DATA_GAPS.
     Et UKJENT hull NYERE enn fresh_fail_hours = FAIL (collector/daemon-utfall pågår eller nettopp
     skjedd); eldre ukjente hull rapporteres for backfill. Sjekker også ferskhet (cutoff-alder)."""
     import pandas as pd
-    out: dict = {"ok": True, "fresh_gaps": [], "stale_gaps": [], "freshness_min": {}}
+    if not np.isfinite(max_stale_minutes) or max_stale_minutes <= 0.0:
+        raise FeatureLivenessError("LIVE_TAIL_MAX_STALE_MINUTES_INVALID")
+    out: dict = {
+        "ok": True,
+        "fresh_gaps": [],
+        "stale_gaps": [],
+        "freshness_min": {},
+        "stale_sources": [],
+    }
     now = pd.Timestamp.now(tz="UTC")
     pair = read_prebuilt_pair_manifest(
         Path(pair_manifest),
@@ -447,12 +493,26 @@ def check_live_continuity(
     )
     verify_prebuilt_pair(pair)
     frames = []
-    cv3 = pd.read_parquet(pair.canonical_v3.parquet_path, columns=["time"])
-    frames.append(("CV3-M5", pd.DatetimeIndex(pd.to_datetime(cv3["time"], utc=True)).sort_values(), 5))
-    b34 = pd.read_parquet(pair.base28.parquet_path, columns=[])
-    frames.append(("BASE34-M1", pd.DatetimeIndex(pd.to_datetime(b34.index, utc=True)).sort_values(), 1))
+    cv3 = _time_indexed_prebuilt_frame(
+        pair.canonical_v3.parquet_path,
+        label="CV3",
+    )
+    frames.append(("CV3-M5", cv3.index, 5))
+    base28 = _time_indexed_prebuilt_frame(
+        pair.base28.parquet_path,
+        label="BASE28",
+    )
+    frames.append(("BASE28-M1", base28.index, 1))
     for name, idx, step in frames:
-        out["freshness_min"][name] = round(float((now - idx.max()).total_seconds() / 60), 1)
+        freshness = _freshness_minutes(idx, now=now, label=name)
+        out["freshness_min"][name] = round(freshness, 1)
+        if freshness > max_stale_minutes:
+            stale = (
+                f"{name}: cutoff stale {freshness:.1f}min "
+                f"> {max_stale_minutes:.1f}min"
+            )
+            out["stale_sources"].append(stale)
+            out["fresh_gaps"].append(stale)
         idx = idx[idx >= (now - pd.Timedelta(days=tail_days))]
         if len(idx) < 2:
             out["fresh_gaps"].append(f"{name}: <2 bars i {tail_days}d-vinduet")
@@ -491,6 +551,7 @@ def check_live_continuity(
 def check_live_prebuilt_tail(
     tail_days: int = 5,
     ref_days: int = 30,
+    max_stale_minutes: float = LIVE_PAIR_MAX_STALE_MINUTES,
     pair_manifest: str = LIVE_PAIR_MANIFEST,
     generation_root: str = LIVE_PAIR_GENERATION_ROOT,
     raise_on_fail: bool = False,
@@ -498,34 +559,52 @@ def check_live_prebuilt_tail(
     """Rule-9 LIVE-TAIL check (user vedtak 2026-06-11): detect the FREEZE SIGNATURE on the LIVE
     prebuilts — a column constant over the recent tail that USED to vary in the reference window.
 
-    Training-data audits can never see this class of failure: the BASE34 copy-forward freeze lived
+    Training-data audits can never see this class of failure: a live BASE28/canonical freeze lives
     17 days (2026-05-25→06-11, session pinned US / atr_bps const into the live entry+exit states)
     while every training-side liveness audit was green.
 
     FAIL signature per column: nunique(tail) == 1 AND nunique(ref) >= LIVE_TAIL_REF_MIN_NUNIQUE
     (was-varying, now-frozen), off LIVE_TAIL_ALLOWED_CONST. Constant in BOTH windows = structural
-    (reported, not failed). Also reports cutoff staleness (informational — markets may be closed).
+    (reported, not failed). A stale artifact is itself a failure; a structurally
+    healthy but non-advancing pair cannot advertise live-tail health.
     """
     import pandas as pd
-    out: dict = {"ok": True, "frozen": [], "structural_const": [], "checked": {}, "stale_minutes": {}}
+    if not np.isfinite(max_stale_minutes) or max_stale_minutes <= 0.0:
+        raise FeatureLivenessError("LIVE_TAIL_MAX_STALE_MINUTES_INVALID")
+    out: dict = {
+        "ok": True,
+        "frozen": [],
+        "structural_const": [],
+        "checked": {},
+        "stale_minutes": {},
+        "stale_sources": [],
+    }
     frames: list[tuple[str, "pd.DataFrame"]] = []
     pair = read_prebuilt_pair_manifest(
         Path(pair_manifest),
         generation_root=Path(generation_root),
     )
     verify_prebuilt_pair(pair)
-    b34 = pd.read_parquet(pair.base28.parquet_path)
-    b34.index = pd.to_datetime(b34.index, utc=True)
-    frames.append(("BASE34", b34))
-    cv3 = pd.read_parquet(pair.canonical_v3.parquet_path)
-    if "time" in cv3.columns:
-        cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
-        cv3 = cv3.set_index("time")
-    frames.append(("CV3", cv3.sort_index()))
+    base28 = _time_indexed_prebuilt_frame(
+        pair.base28.parquet_path,
+        label="BASE28",
+    )
+    frames.append(("BASE28", base28))
+    cv3 = _time_indexed_prebuilt_frame(
+        pair.canonical_v3.parquet_path,
+        label="CV3",
+    )
+    frames.append(("CV3", cv3))
     now = pd.Timestamp.now(tz="UTC")
     for name, df in frames:
         cutoff = df.index.max()
-        out["stale_minutes"][name] = round(float((now - cutoff).total_seconds() / 60.0), 1)
+        freshness = _freshness_minutes(df.index, now=now, label=name)
+        out["stale_minutes"][name] = round(freshness, 1)
+        if freshness > max_stale_minutes:
+            out["stale_sources"].append(
+                f"{name}: cutoff stale {freshness:.1f}min "
+                f"> {max_stale_minutes:.1f}min"
+            )
         tail_start = cutoff - pd.Timedelta(days=tail_days)
         ref_start = tail_start - pd.Timedelta(days=ref_days)
         tail = df[df.index > tail_start]
@@ -544,34 +623,18 @@ def check_live_prebuilt_tail(
             elif nu_ref <= 1:
                 out["structural_const"].append(f"{name}:{c}")
         out["checked"][name] = {"cols": n_checked, "tail_rows": len(tail), "ref_rows": len(ref)}
-    out["ok"] = not out["frozen"]
+    out["ok"] = not out["frozen"] and not out["stale_sources"]
     if not out["ok"]:
-        msg = (f"[RULE9-LIVE-TAIL] FREEZE SIGNATURE on the live prebuilt(s): {out['frozen']} — "
-               f"a was-varying column is now constant on the {tail_days}d tail. Fix the append wiring; "
-               f"NEVER let live serve frozen context (the 2026-05-25 BASE34 freeze class).")
+        msg = (
+            "[RULE9-LIVE-TAIL] invalid live prebuilt(s): "
+            f"frozen={out['frozen']} stale={out['stale_sources']} — "
+            f"a was-varying column must remain alive on the {tail_days}d tail "
+            "and both pair artifacts must advance within the runtime freshness cap."
+        )
         if raise_on_fail:
             raise FeatureLivenessError(msg)
         print(msg, file=sys.stderr)
     return out
-
-
-def audit_xgb_gain(bundle_dir: str) -> List[str]:
-    """Return exact bundle features with zero gain in every session head."""
-    from gx1.execution.v12_xgb_live import XGBLiveInference
-
-    admitted = XGBLiveInference.load(Path(bundle_dir))
-    feats = admitted._features
-    m = admitted._model
-    if m is None:
-        raise FeatureLivenessError("XGB bundle admitted without a loaded model")
-    used = set()
-    for _, head in m.heads.items():
-        b = head.get_booster() if hasattr(head, "get_booster") else head
-        for k in b.get_score(importance_type="gain"):
-            idx = int(k[1:]) if k.startswith("f") and k[1:].isdigit() else (feats.index(k) if k in feats else None)
-            if idx is not None:
-                used.add(idx)
-    return [feats[i] for i in range(len(feats)) if i not in used and feats[i] not in KNOWN_ALLOWED_DEAD]
 
 
 def _main() -> int:
@@ -579,10 +642,9 @@ def _main() -> int:
     ap.add_argument("--v10-bundle", type=str, default=None)
     ap.add_argument("--test-parquet", type=str, default=None)
     ap.add_argument("--m5-prebuilt", type=str, default=None)
-    ap.add_argument("--xgb-bundle", type=str, default=None)
     ap.add_argument("--strict", action="store_true", help="exit nonzero if any NEW dead feature")
     ap.add_argument("--live-tail", action="store_true",
-                    help="rule-9 LIVE-TAIL check: freeze-signature scan of the live cv3+BASE34 prebuilt tails")
+                    help="rule-9 LIVE-TAIL check: freshness/freeze scan of the live cv3+BASE28 pair tails")
     ap.add_argument("--tail-days", type=int, default=5)
     ap.add_argument("--ref-days", type=int, default=30)
     a = ap.parse_args()
@@ -591,16 +653,15 @@ def _main() -> int:
         rep = check_live_prebuilt_tail(tail_days=a.tail_days, ref_days=a.ref_days)
         print(f"[LIVE-TAIL] checked={rep['checked']} stale_min={rep['stale_minutes']}")
         print(f"[LIVE-TAIL] structural-const (info): {len(rep['structural_const'])} cols")
-        print(f"[LIVE-TAIL] {'OK ✓ — no freeze signature' if rep['ok'] else 'FROZEN: ' + repr(rep['frozen'])}")
+        print(
+            f"[LIVE-TAIL] "
+            f"{'OK ✓ — fresh and no freeze signature' if rep['ok'] else 'INVALID: ' + repr({'frozen': rep['frozen'], 'stale': rep['stale_sources']})}"
+        )
         failed |= not rep["ok"]
         crep = check_live_continuity()
         print(f"[CONTINUITY] freshness_min={crep['freshness_min']}  kjente/gamle hull: {len(crep['stale_gaps'])}")
         print(f"[CONTINUITY] {'OK ✓ — ingen ferske ukjente hull' if crep['ok'] else 'FERSKE HULL: ' + repr(crep['fresh_gaps'])}")
         failed |= not crep["ok"]
-    if a.xgb_bundle:
-        dead = audit_xgb_gain(a.xgb_bundle)
-        print(f"[XGB] new-dead (0 gain, off allowlist): {dead or 'NONE ✓'}")
-        failed |= bool(dead)
     if a.v10_bundle and a.test_parquet and a.m5_prebuilt:
         import os
         os.environ.setdefault("GX1_REGIME_V4", "1")
@@ -621,12 +682,21 @@ def _main() -> int:
                 "[FEATURE_LIVENESS_CLI_CTX_CONT_CONTRACT_INVALID] "
                 f"ordered_ctx_cont_names={len(cc)} expected=142"
             )
+        mtf_meta = meta.get("multi_tf")
+        if not isinstance(mtf_meta, dict):
+            raise FeatureLivenessError(
+                "[FEATURE_LIVENESS_CLI_MULTI_TF_METADATA_MISSING]"
+            )
+        per_tf_seq_lens = {
+            tf: int(mtf_meta[f"{tf.lower()}_seq_len"])
+            for tf in MULTI_TF_TIMEFRAMES
+        }
         ds = EntryV10CtxDataset(
             parquet_path=Path(a.test_parquet),
             seq_len=96,
             m5_prebuilt_path=Path(a.m5_prebuilt),
-            multi_tf_seq_len=96,
-            per_tf_seq_lens={"H4": 96, "D1": 96},
+            per_tf_seq_lens=per_tf_seq_lens,
+            multi_tf_closed_bar=True,
         )
         # shuffle=True is LOAD-BEARING: a consecutive batch false-flags slowly-varying features
         # (e.g. D1 regime is const within any short window but varies over the period). A shuffled
@@ -637,6 +707,7 @@ def _main() -> int:
             batch,
             ctx_cont_names=cc,
             snap_names=snap_names,
+            multi_tf_names=tuple(ds._multi_tf_feature_names),
             raise_on_fail=False,
         )
         print(f"[V10] multi-TF atr-by-tf: {rep['multi_tf_atr']}")

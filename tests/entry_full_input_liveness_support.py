@@ -4,9 +4,18 @@ import json
 from pathlib import Path
 from typing import Callable
 
+import numpy as np
+import pandas as pd
+
 from gx1.contracts.entry_full_input_liveness_v1 import (
+    MULTI_TF_FEATURE_NAMES,
+    MULTI_TF_TIMEFRAMES,
     build_full_input_liveness_artifact,
     sha256_file,
+)
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    build_multi_tf_v4_liveness_contract,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
@@ -107,6 +116,26 @@ def write_full_input_liveness_fixture(
             "fullscan": True,
             "scan_complete": True,
         }
+    mtf_cache_dir = tmp_path / "MULTI_TF_CACHE"
+    mtf_cache_dir.mkdir()
+    mtf_manifest = mtf_cache_dir / "manifest.json"
+    mtf_manifest.write_text(
+        json.dumps({"cache_identity_sha256": "a" * 64}) + "\n",
+        encoding="utf-8",
+    )
+    mtf_frames: dict[str, pd.DataFrame] = {}
+    for timeframe in MULTI_TF_TIMEFRAMES:
+        row = np.arange(32, dtype=np.float32)[:, None]
+        column = np.arange(
+            len(MULTI_TF_FEATURE_NAMES), dtype=np.float32
+        )[None, :]
+        values = row + column * np.float32(0.001)
+        frame = pd.DataFrame(values, columns=MULTI_TF_FEATURE_NAMES)
+        frame.attrs["feats_np"] = values.copy()
+        frame.attrs["causal_warmup_rows"] = 1
+        frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        mtf_frames[timeframe] = frame
+    mtf_liveness = build_multi_tf_v4_liveness_contract(mtf_frames)
     artifact = build_full_input_liveness_artifact(
         dataset_dir=dataset,
         contract_mode=MODEL_NATIVE_CONTRACT_MODE,
@@ -114,6 +143,12 @@ def write_full_input_liveness_fixture(
         stats_by_split=stats,
         manifest_bindings=manifest_bindings,
         scan_proof_by_split=scan_proof,
+        multi_tf_liveness_contract=mtf_liveness,
+        multi_tf_cache_binding={
+            "manifest_path": str(mtf_manifest.resolve()),
+            "manifest_sha256": sha256_file(mtf_manifest),
+            "cache_identity_sha256": "a" * 64,
+        },
         created_utc="2026-07-16T00:00:00+00:00",
     )
     path = tmp_path / "ENTRY_FULL_INPUT_LIVENESS_CONTRACT.json"

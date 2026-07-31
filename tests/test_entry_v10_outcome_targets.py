@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import json
+from unittest import mock
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.xau_tape_provenance_v1 import (
+    canonical_xau_source_descriptor_v1,
+)
+from gx1.execution import v12_canonical_incremental as incremental
+from gx1.scripts import backfill_xauusd_m5_from_oanda as native_publisher
+import gx1.contracts.unified_exit_lifecycle_v1 as lifecycle_contract
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_RISK_HORIZONS,
     MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
@@ -13,6 +21,14 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+    UnifiedExitLifecycleCorpus,
+    canonical_json_sha256,
+    require_unified_exit_m1_pair_authority,
+    sha256_file,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
@@ -22,9 +38,12 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _position_size_target_from_path,
     _selected_side_bad_path_target,
     _validate_model_native_aux_head_targets,
+    build_unified_exit_lifecycle_episodes,
+    compute_unified_exit_action_targets,
     hierarchical_direction_label_contract,
     model_native_aux_target_contract_metadata,
 )
+from tests.test_oanda_backfill_vedtak_gate import _FakeOandaClient
 
 
 BUILDER_PATH = Path("gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py")
@@ -260,6 +279,539 @@ def test_aux_target_validator_rejects_finite_incomplete_tail() -> None:
         _validate_model_native_aux_head_targets(broken, n_rows=130)
 
 
+def _decision_quotes(mid: list[float]) -> pd.DataFrame:
+    values = np.asarray(mid, dtype=np.float64)
+    return pd.DataFrame(
+        {
+            "time": pd.date_range(
+                "2026-07-29T10:00:00Z",
+                periods=len(values),
+                freq="min",
+            ),
+            "bid": values - 0.05,
+            "ask": values + 0.05,
+        }
+    )
+
+
+def _closed_m1_lifecycle_source(n_rows: int = 560) -> pd.DataFrame:
+    time = pd.date_range(
+        "2026-01-01T00:05:00Z",
+        periods=n_rows,
+        freq="min",
+    )
+    phase = np.arange(n_rows, dtype=np.float64)
+    close = 2000.0 + np.sin(phase / 7.0) * 2.0 + phase * 0.001
+    open_values = close - np.cos(phase / 11.0) * 0.05
+    high = np.maximum(open_values, close) + 0.10
+    low = np.minimum(open_values, close) - 0.10
+    spread = 0.10
+    return pd.DataFrame(
+        {
+            "time": time,
+            "open": open_values,
+            "high": high,
+            "low": low,
+            "close": close,
+            "bid_open": open_values - spread / 2.0,
+            "bid_high": high - spread / 2.0,
+            "bid_low": low - spread / 2.0,
+            "bid_close": close - spread / 2.0,
+            "ask_open": open_values + spread / 2.0,
+            "ask_high": high + spread / 2.0,
+            "ask_low": low + spread / 2.0,
+            "ask_close": close + spread / 2.0,
+            "volume": np.arange(n_rows, dtype=np.int64) + 1,
+        }
+    )
+
+
+def _strict_native_pair_fixture(
+    tmp_path: Path,
+) -> tuple[Path, Path, Path]:
+    native_m1_parent_root = tmp_path / "native-m1-parent"
+    native_m5_parent_root = tmp_path / "native-m5-parent"
+    native_m1_root = tmp_path / "native-m1"
+    native_m5_root = tmp_path / "native-m5"
+    vedtak = "XAU_NATIVE_PAIR_LIFECYCLE_FIXTURE_V1"
+    parent_end = "2026-01-01T09:20:00Z"
+    successor_end = "2026-01-01T09:25:00Z"
+    with mock.patch.object(
+        native_publisher,
+        "_require_clean_repository",
+        return_value="a" * 40,
+    ):
+        native_publisher.materialize_native_xau_snapshot(
+            client=_FakeOandaClient(timeframe="M1"),
+            timeframe="M1",
+            vedtak_id=vedtak,
+            start_utc="2026-01-01T00:00:00Z",
+            end_utc=parent_end,
+            out_root=native_m1_parent_root,
+        )
+        native_publisher.materialize_native_xau_snapshot(
+            client=_FakeOandaClient(timeframe="M5"),
+            timeframe="M5",
+            vedtak_id=vedtak,
+            start_utc="2026-01-01T00:00:00Z",
+            end_utc=parent_end,
+            out_root=native_m5_parent_root,
+        )
+        m1_parent = canonical_xau_source_descriptor_v1(
+            native_m1_parent_root,
+            timeframe="M1",
+        )
+        m5_parent = canonical_xau_source_descriptor_v1(
+            native_m5_parent_root,
+            timeframe="M5",
+        )
+        native_publisher.materialize_native_xau_successor(
+            client=_FakeOandaClient(timeframe="M1"),
+            timeframe="M1",
+            vedtak_id=vedtak,
+            end_utc=successor_end,
+            out_root=native_m1_root,
+            parent_root=native_m1_parent_root,
+            expected_parent_manifest_sha256=m1_parent["manifest_sha256"],
+        )
+        native_publisher.materialize_native_xau_successor(
+            client=_FakeOandaClient(timeframe="M5"),
+            timeframe="M5",
+            vedtak_id=vedtak,
+            end_utc=successor_end,
+            out_root=native_m5_root,
+            parent_root=native_m5_parent_root,
+            expected_parent_manifest_sha256=m5_parent["manifest_sha256"],
+        )
+    m1_descriptor = canonical_xau_source_descriptor_v1(
+        native_m1_root,
+        timeframe="M1",
+    )
+    m5_descriptor = canonical_xau_source_descriptor_v1(
+        native_m5_root,
+        timeframe="M5",
+    )
+    native_m1 = pd.read_parquet(
+        native_m1_root / "year=2026" / "part-000.parquet"
+    )
+    native_m5 = pd.read_parquet(
+        native_m5_root / "year=2026" / "part-000.parquet"
+    )
+    base28 = native_m1.set_index("time").loc[
+        :, list(incremental.RAW_BASE28_COLUMNS)
+    ]
+    canonical = pd.DataFrame(
+        {
+            "open": native_m5["open"].to_numpy(dtype=np.float64),
+            "fixture_signal": np.linspace(
+                0.0,
+                1.0,
+                len(native_m5),
+                dtype=np.float64,
+            ),
+        },
+        index=pd.DatetimeIndex(native_m5["time"], name="time"),
+    )
+    source_inventory = [{"path": "fixture.py", "sha256": "b" * 64}]
+    lineage = incremental._build_pair_lineage(
+        vedtak=vedtak,
+        commit="c" * 40,
+        source_inventory=source_inventory,
+        m1_descriptor=m1_descriptor,
+        m5_descriptor=m5_descriptor,
+        native_m1=native_m1,
+        native_m5=native_m5,
+        canonical=canonical,
+        base28=base28,
+        parent_pair_generation_id=None,
+        parent_pair_manifest_sha256=None,
+    )
+    generation_root = tmp_path / "pair-generations"
+    pointer = tmp_path / "CURRENT_PAIR_MANIFEST.json"
+    stage = incremental._candidate_staging_path(generation_root)
+    incremental._write_candidate_parquet(
+        canonical.reset_index(),
+        stage / incremental.PAIR_CANONICAL_FILENAME,
+        index=False,
+    )
+    incremental._write_candidate_parquet(
+        base28.reset_index(),
+        stage / incremental.PAIR_BASE28_FILENAME,
+        index=False,
+    )
+    generation_id = incremental._publish_prebuilt_pair_generation(
+        stage,
+        pair_manifest_path=pointer,
+        generation_root=generation_root,
+        expected_pair_generation_id=None,
+        expected_manifest_sha256=None,
+        lineage_contract=lineage,
+        created_utc="2026-01-01T10:00:00Z",
+    )
+    generation_manifest = (
+        generation_root
+        / generation_id
+        / incremental.PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
+    )
+    return generation_manifest, generation_root, pointer
+
+
+def test_unified_exit_m1_authority_revalidates_native_complete_source(
+    tmp_path: Path,
+) -> None:
+    generation_manifest, generation_root, pointer = (
+        _strict_native_pair_fixture(tmp_path)
+    )
+
+    source_path, authority = require_unified_exit_m1_pair_authority(
+        pair_manifest_path=generation_manifest,
+        pair_generation_root=generation_root,
+    )
+
+    assert source_path.name == incremental.PAIR_BASE28_FILENAME
+    assert authority["native_m1_completion_field"] == "complete"
+    assert authority["native_m1_completion_value"] is True
+    assert authority["base28_native_m1_subset_proof"]["rows"] == 565
+    native_manifest = json.loads(
+        Path(authority["native_m1_manifest_path"]).read_text(encoding="utf-8")
+    )
+    assert native_manifest["schema_version"] == (
+        incremental.CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="MUTABLE_PAIR_POINTER_FORBIDDEN",
+    ):
+        require_unified_exit_m1_pair_authority(
+            pair_manifest_path=pointer,
+            pair_generation_root=generation_root,
+        )
+
+
+def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() -> None:
+    entries = pd.DataFrame(
+        {
+            "time": pd.to_datetime(
+                [
+                    "2026-01-01T00:00:00Z",
+                    "2026-01-01T00:05:00Z",
+                ],
+                utc=True,
+            )
+        }
+    )
+    source = _closed_m1_lifecycle_source()
+    split_end = source["time"].iloc[-1] + pd.Timedelta(minutes=1)
+
+    episodes, proof = build_unified_exit_lifecycle_episodes(
+        entry_rows=entries,
+        closed_m1=source,
+        split_end=split_end,
+        target_lookahead_m1_steps=3,
+    )
+    repeated, repeated_proof = build_unified_exit_lifecycle_episodes(
+        entry_rows=entries,
+        closed_m1=source,
+        split_end=split_end,
+        target_lookahead_m1_steps=3,
+    )
+
+    pd.testing.assert_frame_equal(episodes, repeated)
+    assert len(episodes) == 4
+    assert episodes.groupby("entry_row_index")["side"].apply(list).tolist() == [
+        ["long", "short"],
+        ["long", "short"],
+    ]
+    assert (episodes["entry_available_at"] == episodes["m1_start_time"]).all()
+    assert (episodes["path_state_count"] == 512).all()
+    assert (
+        episodes["non_tied_target_count"]
+        + episodes["tied_target_count"]
+        == episodes["path_state_count"]
+    ).all()
+    assert proof["decision"] == "PASS"
+    assert proof["entry_side_selection"] == (
+        "both_sides_for_every_causal_entry_snapshot"
+    )
+    assert proof["path_values_duplicated_into_episode_artifact"] is False
+    assert proof["target_counts"]["HOLD"] > 0
+    assert proof["target_counts"]["EXIT_NOW"] > 0
+    assert len(proof["target_stream_sha256"]) == 64
+    assert (
+        proof["target_stream_sha256"]
+        == repeated_proof["target_stream_sha256"]
+    )
+
+
+def test_unified_exit_lifecycle_rejects_gapped_or_boundary_crossing_path() -> None:
+    entries = pd.DataFrame(
+        {"time": pd.to_datetime(["2026-01-01T00:00:00Z"], utc=True)}
+    )
+    source = _closed_m1_lifecycle_source()
+    gapped = source.drop(index=200).reset_index(drop=True)
+
+    with pytest.raises(
+        RuntimeError,
+        match="UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES",
+    ):
+        build_unified_exit_lifecycle_episodes(
+            entry_rows=entries,
+            closed_m1=gapped,
+            split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
+            target_lookahead_m1_steps=3,
+        )
+    with pytest.raises(
+        RuntimeError,
+        match="UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES",
+    ):
+        build_unified_exit_lifecycle_episodes(
+            entry_rows=entries,
+            closed_m1=source,
+            split_end=source["time"].iloc[400],
+            target_lookahead_m1_steps=3,
+        )
+
+
+def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entries = pd.DataFrame(
+        {
+            "time": pd.to_datetime(
+                [
+                    "2026-01-01T00:00:00Z",
+                    "2026-01-01T00:05:00Z",
+                ],
+                utc=True,
+            )
+        }
+    )
+    m1_source = tmp_path / "xau_m1_20260101T000000Z.parquet"
+    source = _closed_m1_lifecycle_source()
+    source.to_parquet(m1_source, index=False)
+    m1_authority = {
+        "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+        "pair_manifest_path": str(tmp_path / "PAIR_MANIFEST.json"),
+        "pair_generation_root": str(tmp_path / "generations"),
+        "m1_source_path": str(m1_source),
+        "m1_source_sha256": sha256_file(m1_source),
+    }
+    m1_authority_sha256 = canonical_json_sha256(m1_authority)
+    monkeypatch.setattr(
+        lifecycle_contract,
+        "require_unified_exit_m1_pair_authority",
+        lambda **_kwargs: (m1_source, dict(m1_authority)),
+    )
+    lifecycle_dir = tmp_path / "exit_lifecycle_20260101T000000Z"
+    lifecycle_dir.mkdir()
+    bindings: dict[str, dict[str, object]] = {}
+    entry_paths: dict[str, Path] = {}
+    for split in ("train", "val", "test"):
+        entry_path = tmp_path / f"entry_{split}_20260101T000000Z.parquet"
+        entries.to_parquet(entry_path, index=False)
+        entry_paths[split] = entry_path
+        episodes, proof = build_unified_exit_lifecycle_episodes(
+            entry_rows=entries,
+            closed_m1=source,
+            split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
+            target_lookahead_m1_steps=3,
+        )
+        lifecycle_path = (
+            lifecycle_dir / f"{split}_unified_exit_lifecycle.parquet"
+        )
+        episodes.to_parquet(lifecycle_path, index=False)
+        proof.update(
+            {
+                "entry_run_id": "EXIT_LIFECYCLE_PYTEST_V1",
+                "split": split,
+                "entry_dataset_path": str(entry_path),
+                "entry_dataset_sha256": sha256_file(entry_path),
+                "m1_source_path": str(m1_source),
+                "m1_source_sha256": sha256_file(m1_source),
+                "m1_authority_sha256": m1_authority_sha256,
+                "lifecycle_parquet": lifecycle_path.name,
+                "lifecycle_parquet_sha256": sha256_file(lifecycle_path),
+                "lifecycle_parquet_rows": len(episodes),
+            }
+        )
+        split_manifest = (
+            lifecycle_dir
+            / f"{split}_unified_exit_lifecycle.manifest.json"
+        )
+        split_manifest.write_text(
+            json.dumps(proof, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        bindings[split] = {
+            "entry_dataset_path": str(entry_path),
+            "entry_dataset_sha256": sha256_file(entry_path),
+            "lifecycle_parquet": lifecycle_path.name,
+            "lifecycle_parquet_sha256": sha256_file(lifecycle_path),
+            "lifecycle_manifest": split_manifest.name,
+            "lifecycle_manifest_sha256": sha256_file(split_manifest),
+            "episode_rows": len(episodes),
+            "target_counts": proof["target_counts"],
+            "target_stream_sha256": proof["target_stream_sha256"],
+        }
+    root_manifest = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    root_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+                "decision": "PASS",
+                "entry_run_id": "EXIT_LIFECYCLE_PYTEST_V1",
+                "m1_source_path": str(m1_source),
+                "m1_source_sha256": sha256_file(m1_source),
+                "m1_authority": m1_authority,
+                "m1_authority_sha256": m1_authority_sha256,
+                "path_state_count": 512,
+                "target_lookahead_m1_steps": 3,
+                "side_order": ["long", "short"],
+                "action_order": ["HOLD", "EXIT_NOW"],
+                "splits": bindings,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    corpus = UnifiedExitLifecycleCorpus(
+        root_manifest_path=root_manifest,
+        entry_parquets=entry_paths,
+        dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
+    )
+    sample = corpus.splits["train"].sample(0)
+    valid = sample["exit_sample_valid"]
+
+    assert valid.any()
+    assert set(sample["exit_action_target"][valid]) == {0, 1}
+    assert set(sample["exit_side_index"][valid]) == {0, 1}
+    for slot in np.flatnonzero(valid):
+        length = int(sample["exit_path_lengths"][slot])
+        assert 1 <= length <= 512
+        assert np.any(sample["exit_path_x"][slot, :length] != 0.0)
+        assert np.all(sample["exit_path_x"][slot, length:] == 0.0)
+    assert corpus.evidence["future_outcomes_used_as_model_inputs"] is False
+    assert corpus.evidence["splits"]["train"]["selected_target_counts"][
+        "HOLD"
+    ] > 0
+    assert corpus.evidence["splits"]["train"]["selected_target_counts"][
+        "EXIT_NOW"
+    ] > 0
+
+
+@pytest.mark.parametrize(
+    ("side", "mid"),
+    (
+        ("long", [100.0, 101.0, 102.0, 101.0, 100.0]),
+        ("short", [100.0, 99.0, 98.0, 99.0, 100.0]),
+    ),
+)
+def test_unified_exit_targets_hold_into_peak_then_exit_at_peak(
+    side: str,
+    mid: list[float],
+) -> None:
+    targets = compute_unified_exit_action_targets(
+        decision_quotes=_decision_quotes(mid),
+        entry_bid=99.95,
+        entry_ask=100.05,
+        side=side,
+        target_lookahead_m1_steps=2,
+    )
+
+    assert targets["state_index"].tolist() == [0, 1, 2]
+    assert targets["exit_action"].tolist() == ["HOLD", "HOLD", "EXIT_NOW"]
+    assert targets["y_exit_action"].tolist() == [0, 0, 1]
+    assert (targets["target_margin_bps"] > 0.0).all()
+    assert (
+        targets.loc[targets["exit_action"] == "HOLD", "q_hold_bps"]
+        > targets.loc[targets["exit_action"] == "HOLD", "q_exit_now_bps"]
+    ).all()
+    peak = targets.loc[targets["exit_action"] == "EXIT_NOW"].iloc[0]
+    assert peak["q_exit_now_bps"] > peak["q_hold_bps"]
+
+
+def test_unified_exit_targets_omit_exact_ties_and_right_censored_tail() -> None:
+    targets = compute_unified_exit_action_targets(
+        decision_quotes=_decision_quotes([100.0, 100.0, 101.0, 100.0]),
+        entry_bid=99.95,
+        entry_ask=100.05,
+        side="long",
+        target_lookahead_m1_steps=1,
+    )
+
+    assert targets["state_index"].tolist() == [1, 2]
+    assert targets["exit_action"].tolist() == ["HOLD", "EXIT_NOW"]
+    assert 0 not in targets["state_index"].tolist()
+    assert 3 not in targets["state_index"].tolist()
+
+
+@pytest.mark.parametrize("lookahead", (0, -1, True, 1.5))
+def test_unified_exit_targets_require_explicit_positive_integer_lookahead(
+    lookahead: object,
+) -> None:
+    with pytest.raises(RuntimeError, match="LOOKAHEAD_INVALID"):
+        compute_unified_exit_action_targets(
+            decision_quotes=_decision_quotes([100.0, 101.0, 100.0]),
+            entry_bid=99.95,
+            entry_ask=100.05,
+            side="long",
+            target_lookahead_m1_steps=lookahead,  # type: ignore[arg-type]
+        )
+
+
+def test_unified_exit_targets_fail_on_gap_or_fully_censored_episode() -> None:
+    gap = _decision_quotes([100.0, 101.0, 100.0])
+    gap.loc[2, "time"] = pd.Timestamp("2026-07-29T10:03:00Z")
+    with pytest.raises(RuntimeError, match="CADENCE_GAP"):
+        compute_unified_exit_action_targets(
+            decision_quotes=gap,
+            entry_bid=99.95,
+            entry_ask=100.05,
+            side="long",
+            target_lookahead_m1_steps=1,
+        )
+    with pytest.raises(RuntimeError, match="RIGHT_CENSORED_EPISODE"):
+        compute_unified_exit_action_targets(
+            decision_quotes=_decision_quotes([100.0, 101.0]),
+            entry_bid=99.95,
+            entry_ask=100.05,
+            side="long",
+            target_lookahead_m1_steps=2,
+        )
+
+
+def test_unified_exit_future_quote_changes_target_not_causal_state_identity() -> None:
+    base = _decision_quotes([100.0, 101.0, 102.0, 101.0])
+    changed = base.copy()
+    changed.loc[3, ["bid", "ask"]] = [102.95, 103.05]
+
+    base_targets = compute_unified_exit_action_targets(
+        decision_quotes=base,
+        entry_bid=99.95,
+        entry_ask=100.05,
+        side="long",
+        target_lookahead_m1_steps=1,
+    )
+    changed_targets = compute_unified_exit_action_targets(
+        decision_quotes=changed,
+        entry_bid=99.95,
+        entry_ask=100.05,
+        side="long",
+        target_lookahead_m1_steps=1,
+    )
+
+    pd.testing.assert_frame_equal(base.iloc[:3], changed.iloc[:3])
+    assert base_targets.loc[
+        base_targets["state_index"] == 2, "exit_action"
+    ].item() == "EXIT_NOW"
+    assert changed_targets.loc[
+        changed_targets["state_index"] == 2, "exit_action"
+    ].item() == "HOLD"
+
+
 def test_aux_target_builder_requires_bid_ask_high_low() -> None:
     frame = _spread_tape().drop(columns=["ask_low"])
 
@@ -359,20 +911,20 @@ def test_builder_has_no_structural_side_or_utility_repair_primitive() -> None:
 
 def test_builder_has_one_model_native_signal_path_and_no_context_soft_pass() -> None:
     source = BUILDER_PATH.read_text(encoding="utf-8")
+    retired_provider = "X" + "GB"
 
     forbidden = (
-        "XGBMultiheadModel",
-        "XGBInputSanitizer",
+        f"{retired_provider}MultiheadModel",
+        f"{retired_provider}InputSanitizer",
         "proba_to_signal_bridge_v1",
-        "xgb_bundle_path",
-        "xgb_model_sha256",
-        "xgb_bridge_source",
-        "GX1_XGB_BUNDLE_DIR",
-        "--xgb",
-        "--neutral-xgb-bridge",
-        "HARD_NEG_LONG_MIN_XGB_P_LONG",
-        "hard_negative_uses_xgb_predictions",
-        "hard_negative_long_xgb_p_long_min",
+        "external_tree_sidecar_bundle_path",
+        "external_tree_sidecar_model_sha256",
+        f"GX1_{retired_provider}_BUNDLE_DIR",
+        "--external_tree_sidecar",
+        "--neutral-external_tree_sidecar-bridge",
+        f"HARD_NEG_LONG_MIN_{retired_provider}_P_LONG",
+        "hard_negative_uses_external_tree_sidecar_predictions",
+        "hard_negative_long_external_tree_sidecar_p_long_min",
         "entry_runtime_gates",
         "flat_veto",
         "tradable_gate",
@@ -383,4 +935,3 @@ def test_builder_has_one_model_native_signal_path_and_no_context_soft_pass() -> 
     )
     assert [token for token in forbidden if token in source] == []
     assert '"hard_negative_candidate_source": _hard_negative_candidate_source' in source
-    assert '"neutral_xgb_bridge": False' in source

@@ -1,50 +1,19 @@
 #!/usr/bin/env python3
-"""V12 trade-state tracker — maintains per-trade running state across M1 bars
-for the Exit-IQL V12.1 per-bar exit-decision loop.
+"""Exact per-trade state for the unified model's closed-M1 Exit path.
 
 Each open trade has a TradeState that records:
   - entry timestamp + side + entry prices (bid+ask snapshot)
-  - V10 snapshot at entry (frozen — used as 'v10_*_at_entry_v1' features)
-  - Per-bar PnL trajectory (used for MFE/MAE/cum_peak/drawdown features)
-  - Recent M1 return window (used for vol/return-since-entry features)
-
-The Exit-IQL state vector at any M1 bar combines:
-  - TradeState-derived running stats (~15 trade-state features)
-  - V3 v8 outputs at this bar (4 required features)
-  - V10 entry-snapshot (10 features)
-  - canonical_v3 + augmented features at current bar (~170 features)
-
-Usage:
-    trade = TradeState.open_unit_normalized_research(
-        entry_ts=current_minute,
-        side="long",
-        entry_bid=4685.0, entry_ask=4685.5,
-        v10_snapshot=v10_out,
-        normalization_contract="unit_normalized_direction_exit_research_v1",
-    )
-    # Each M1 bar after entry:
-    trade.update_bar(
-        m1_bar_ts=closed_m1_bar_ts,
-        bid=4686.0,
-        ask=4686.5,
-        m1_close=4686.25,
-        bid_high=4686.3,
-        bid_low=4685.8,
-        ask_high=4686.8,
-        ask_low=4686.3,
-    )
-    bar_state = exit_iql.build_bar_state(
-        trade,
-        canonical_v3_row=augmented_cv3.loc[now_ts],
-        v3_v8_out=v3_v8_out,
-        now_minute=now_ts,
-    )
+  - the exact model-native Entry snapshot, frozen at Entry
+  - contiguous literal mid/bid/ask OHLCV path with immutable source identity
+  - exact executable intrabar excursion and spread-inclusive one-bar range
+  - content-hashable path evidence with no synthetic early-history features
 """
 from __future__ import annotations
 
 import json
 import logging
 import os
+import hashlib
 from copy import deepcopy
 from collections import deque
 from dataclasses import dataclass, field
@@ -58,30 +27,61 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
     require_model_native_entry_time,
     require_model_native_exit_replay_entry_time,
+    require_model_native_fill_time,
     require_model_native_runtime_head_evidence,
     require_model_native_runtime_evidence,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     require_model_native_sizing_application_record,
 )
-from gx1.features.trade_overlay import (
-    OVERLAY_COL_NAMES,
-    compute_m1_micro_feature_arrays,
-    compute_trade_overlay,
+from gx1.models.entry_v10.direction_decision_contract import (
+    CLOSED_M1_PATH_FIELDS,
+    CLOSED_M1_PATH_SCHEMA_VERSION,
+    UNIFIED_EXIT_MAX_PATH_BARS,
+    UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
+    canonical_closed_m1_bar,
+    canonical_closed_m1_path_sha256,
+    require_model_direction_operating_point,
+    require_unified_exit_output,
+    require_unified_exit_path_envelope,
 )
-
 LOG = logging.getLogger("v12_trade_state")
 
 SIDE_LONG = "long"
 SIDE_SHORT = "short"
 SIDES = (SIDE_LONG, SIDE_SHORT)
 
-PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v3"
+PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v8"
+TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION = (
+    "gx1_trade_state_model_bundle_binding_v1"
+)
+TRADE_STATE_SOURCE_PAIR_BINDING_SCHEMA_VERSION = (
+    "gx1_trade_state_source_pair_binding_v1"
+)
+TRADE_STATE_BROKER_ACCOUNT_BINDING_SCHEMA_VERSION = (
+    "gx1_trade_state_broker_account_binding_v1"
+)
 TRADE_STATE_SIZING_EXECUTION_EVIDENCE_SCHEMA_VERSION = (
     "trade_state_sizing_execution_evidence_v1"
 )
 M1_RETURNS_WINDOW_MAXLEN = 120
-TRAJECTORY_HISTORY_MAXLEN = 2000
+TRAJECTORY_HISTORY_MAXLEN = UNIFIED_EXIT_MAX_PATH_BARS
+
+
+def first_full_closed_m1_bar_ts(entry_fill_ts: pd.Timestamp) -> pd.Timestamp:
+    """Return the first M1 bar whose full interval starts at/after the fill."""
+
+    parsed = pd.Timestamp(entry_fill_ts)
+    if (
+        pd.isna(parsed)
+        or parsed.tzinfo is None
+        or parsed.utcoffset() is None
+        or parsed.utcoffset().total_seconds() != 0.0
+    ):
+        raise ValueError("entry fill timestamp must be timezone-aware UTC")
+    return parsed.tz_convert("UTC").ceil("min")
+
+
 _PERSISTED_TRADE_STATE_FIELDS = frozenset(
     {
         "schema_version",
@@ -94,9 +94,11 @@ _PERSISTED_TRADE_STATE_FIELDS = frozenset(
         "trade_id",
         "units",
         "sizing_execution_evidence",
+        "model_bundle_binding",
+        "entry_source_pair_binding",
+        "broker_account_binding",
         "bars_in_trade",
         "last_processed_m1_ts",
-        "sf_defer_state_v1",
         "current_bid",
         "current_ask",
         "current_pnl_bps",
@@ -104,23 +106,47 @@ _PERSISTED_TRADE_STATE_FIELDS = frozenset(
         "cum_mae_bps",
         "bars_since_mfe_peak",
         "m1_returns_window",
-        "v3_last_prob",
-        "v3_max_prob_in_trade",
-        "v3_consecutive_exits",
-        "v3_max_consecutive_exits",
-        "v3_total_exit_decisions",
-        "v3_signal_acceleration",
         "pnl_history",
         "mfe_at_bar",
         "time_since_mfe_peak_bars",
-        "last_atr_bps",
+        "last_executable_range_bps",
         "peak_history",
         "trough_history",
-        "atr_bps_history",
+        "executable_range_bps_history",
+        "closed_m1_path",
+        "last_exit_decision",
     }
 )
+_MODEL_BUNDLE_BINDING_FIELDS = frozenset(
+    {
+        "schema_version",
+        "bundle_dir",
+        "bundle_sha256",
+        "operating_point",
+    }
+)
+_SOURCE_PAIR_BINDING_FIELDS = frozenset(
+    {
+        "schema_version",
+        "pair_generation_id",
+        "pair_manifest_sha256",
+    }
+)
+_BROKER_ACCOUNT_BINDING_FIELDS = frozenset(
+    {
+        "schema_version",
+        "environment",
+        "account_id_sha256",
+    }
+)
+_SHA256_CHARACTERS = frozenset("0123456789abcdef")
 _INTRABAR_HISTORY_FIELDS = frozenset(
-    {"peak_history", "trough_history", "atr_bps_history"}
+    {
+        "peak_history",
+        "trough_history",
+        "executable_range_bps_history",
+        "closed_m1_path",
+    }
 )
 _SIZING_EXECUTION_EVIDENCE_FIELDS = frozenset(
     {
@@ -194,6 +220,146 @@ def _require_sizing_execution_evidence(
     if evidence["research_normalization_contract"] is not None:
         raise ValueError("learned sizing evidence cannot claim research normalization")
     return evidence
+
+
+def _require_sha256(value: object, *, label: str) -> str:
+    parsed = str(value or "")
+    if (
+        len(parsed) != 64
+        or parsed.lower() != parsed
+        or any(character not in _SHA256_CHARACTERS for character in parsed)
+    ):
+        raise ValueError(f"{label} must be a lowercase sha256")
+    return parsed
+
+
+def require_trade_model_bundle_binding(
+    value: Any,
+    *,
+    executable: bool,
+) -> dict[str, Any] | None:
+    """Validate the immutable same-bundle recovery authority."""
+
+    if not executable:
+        if value is not None:
+            raise ValueError(
+                "non-executable trade state cannot claim a model bundle"
+            )
+        return None
+    if not isinstance(value, dict) or set(value) != _MODEL_BUNDLE_BINDING_FIELDS:
+        raise ValueError("trade model bundle binding exact schema mismatch")
+    if (
+        value["schema_version"]
+        != TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION
+    ):
+        raise ValueError("trade model bundle binding schema_version mismatch")
+    raw_path = value["bundle_dir"]
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        raise ValueError("trade model bundle path is invalid")
+    path = Path(raw_path).expanduser()
+    if not path.is_absolute() or path.resolve() != path:
+        raise ValueError("trade model bundle path must be absolute/normalized")
+    operating_point = require_model_direction_operating_point(
+        value["operating_point"],
+        context="TRADE_STATE_MODEL_BUNDLE_BINDING",
+    )
+    return {
+        "schema_version": TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION,
+        "bundle_dir": str(path),
+        "bundle_sha256": _require_sha256(
+            value["bundle_sha256"],
+            label="trade model bundle",
+        ),
+        "operating_point": operating_point,
+    }
+
+
+def require_trade_source_pair_binding(
+    value: Any,
+    *,
+    executable: bool,
+) -> dict[str, Any] | None:
+    """Validate the exact source pair used for the Entry inference."""
+
+    if not executable:
+        if value is not None:
+            raise ValueError(
+                "non-executable trade state cannot claim a source pair"
+            )
+        return None
+    if not isinstance(value, dict) or set(value) != _SOURCE_PAIR_BINDING_FIELDS:
+        raise ValueError("trade source pair binding exact schema mismatch")
+    if (
+        value["schema_version"]
+        != TRADE_STATE_SOURCE_PAIR_BINDING_SCHEMA_VERSION
+    ):
+        raise ValueError("trade source pair binding schema_version mismatch")
+    return {
+        "schema_version": TRADE_STATE_SOURCE_PAIR_BINDING_SCHEMA_VERSION,
+        "pair_generation_id": _require_sha256(
+            value["pair_generation_id"],
+            label="trade source pair generation",
+        ),
+        "pair_manifest_sha256": _require_sha256(
+            value["pair_manifest_sha256"],
+            label="trade source pair manifest",
+        ),
+    }
+
+
+def build_trade_broker_account_binding(
+    *,
+    environment: str,
+    account_id: str,
+) -> dict[str, str]:
+    """Build a non-secret exact identity for one OANDA account authority."""
+
+    if environment not in {"practice", "live"}:
+        raise ValueError("broker account environment must be practice/live")
+    if (
+        not isinstance(account_id, str)
+        or not account_id
+        or account_id.strip() != account_id
+    ):
+        raise ValueError("broker account id must be a non-empty exact string")
+    return {
+        "schema_version": TRADE_STATE_BROKER_ACCOUNT_BINDING_SCHEMA_VERSION,
+        "environment": environment,
+        "account_id_sha256": hashlib.sha256(
+            account_id.encode("utf-8")
+        ).hexdigest(),
+    }
+
+
+def require_trade_broker_account_binding(
+    value: Any,
+    *,
+    execution_mode: str,
+) -> dict[str, str] | None:
+    """Require exact environment/account ownership for broker exposure."""
+
+    if execution_mode != "learned_broker_fill":
+        if value is not None:
+            raise ValueError(
+                "non-broker trade state cannot claim a broker account"
+            )
+        return None
+    if (
+        not isinstance(value, dict)
+        or set(value) != _BROKER_ACCOUNT_BINDING_FIELDS
+        or value.get("schema_version")
+        != TRADE_STATE_BROKER_ACCOUNT_BINDING_SCHEMA_VERSION
+        or value.get("environment") not in {"practice", "live"}
+    ):
+        raise ValueError("trade broker account binding exact schema mismatch")
+    return {
+        "schema_version": TRADE_STATE_BROKER_ACCOUNT_BINDING_SCHEMA_VERSION,
+        "environment": value["environment"],
+        "account_id_sha256": _require_sha256(
+            value.get("account_id_sha256"),
+            label="trade broker account id",
+        ),
+    }
 
 
 def require_model_native_entry_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -371,11 +537,17 @@ def _validate_persisted_trade_state_payload(
             entry_ts,
             context="TRADE_STATE_PERSISTED_EXIT_RESEARCH",
         )
-    else:
+    elif sizing_evidence_raw.get("mode") == "unit_normalized_research_only":
         require_model_native_entry_time(
             snapshot,
             entry_ts,
-            context="TRADE_STATE_PERSISTED",
+            context="TRADE_STATE_PERSISTED_RESEARCH",
+        )
+    else:
+        require_model_native_fill_time(
+            snapshot,
+            entry_ts,
+            context="TRADE_STATE_PERSISTED_FILL",
         )
     expected_side = {"LONG": SIDE_LONG, "SHORT": SIDE_SHORT}.get(
         snapshot["model_direction"]
@@ -395,12 +567,33 @@ def _validate_persisted_trade_state_payload(
         raise ValueError("persisted trade state trade_id is invalid")
 
     persisted_units = _nonnegative_persisted_integer(payload, "units", positive=True)
-    _require_sizing_execution_evidence(
+    validated_sizing_evidence = _require_sizing_execution_evidence(
         payload["sizing_execution_evidence"],
         snapshot=snapshot,
         side=side,
         units=persisted_units,
     )
+    executable = validated_sizing_evidence["mode"] in {
+        "learned_virtual_dry_run",
+        "learned_broker_fill",
+    }
+    bundle_binding = require_trade_model_bundle_binding(
+        payload["model_bundle_binding"],
+        executable=executable,
+    )
+    source_pair_binding = require_trade_source_pair_binding(
+        payload["entry_source_pair_binding"],
+        executable=executable,
+    )
+    require_trade_broker_account_binding(
+        payload["broker_account_binding"],
+        execution_mode=validated_sizing_evidence["mode"],
+    )
+    if (
+        payload["model_bundle_binding"] != bundle_binding
+        or payload["entry_source_pair_binding"] != source_pair_binding
+    ):
+        raise ValueError("persisted trade immutable binding is not canonical")
     bars_in_trade = _nonnegative_persisted_integer(payload, "bars_in_trade")
     raw_last_processed = payload["last_processed_m1_ts"]
     if raw_last_processed is None:
@@ -432,29 +625,14 @@ def _validate_persisted_trade_state_payload(
             "persisted trade state last_processed_m1_ts/bar count mismatch"
         )
     if last_processed_m1_ts is not None:
-        expected_last_processed = entry_ts.floor("min") + pd.Timedelta(
+        expected_last_processed = first_full_closed_m1_bar_ts(
+            entry_ts
+        ) + pd.Timedelta(
             minutes=bars_in_trade - 1
         )
         if last_processed_m1_ts != expected_last_processed:
             raise ValueError(
                 "persisted trade state M1 cadence is not contiguous from entry"
-            )
-    defer_state = payload["sf_defer_state_v1"]
-    if not isinstance(defer_state, dict) or set(defer_state) not in (
-        set(),
-        {"sf_first_veto_bar"},
-    ):
-        raise ValueError("persisted trade state Strategy-F defer schema mismatch")
-    if defer_state:
-        first_veto = defer_state["sf_first_veto_bar"]
-        if (
-            isinstance(first_veto, bool)
-            or not isinstance(first_veto, int)
-            or first_veto < 0
-            or first_veto > bars_in_trade
-        ):
-            raise ValueError(
-                "persisted trade state Strategy-F first veto bar is invalid"
             )
     bars_since_mfe_peak = _nonnegative_persisted_integer(
         payload, "bars_since_mfe_peak"
@@ -479,7 +657,9 @@ def _validate_persisted_trade_state_payload(
     cum_mfe_bps = _finite_persisted_number(payload, "cum_mfe_bps")
     cum_mae_bps = _finite_persisted_number(payload, "cum_mae_bps")
     mfe_at_bar = _finite_persisted_number(payload, "mfe_at_bar")
-    _finite_persisted_number(payload, "last_atr_bps", nonnegative=True)
+    _finite_persisted_number(
+        payload, "last_executable_range_bps", nonnegative=True
+    )
     expected_current_pnl_bps = (
         (current_bid - entry_ask) / entry_ask * 10_000.0
         if side == SIDE_LONG
@@ -510,9 +690,42 @@ def _validate_persisted_trade_state_payload(
     pnl_values = _finite_persisted_history(payload, "pnl_history")
     peak_values = _finite_persisted_history(payload, "peak_history")
     trough_values = _finite_persisted_history(payload, "trough_history")
-    atr_values = _finite_persisted_history(
-        payload, "atr_bps_history", positive=True
+    executable_range_values = _finite_persisted_history(
+        payload, "executable_range_bps_history", positive=True
     )
+    raw_path = payload["closed_m1_path"]
+    if not isinstance(raw_path, list):
+        raise ValueError("persisted trade state closed_m1_path must be a list")
+    canonical_path: list[dict[str, Any]] = []
+    for row in raw_path:
+        if not isinstance(row, dict) or tuple(row) != CLOSED_M1_PATH_FIELDS:
+            raise ValueError(
+                "persisted trade state closed_m1_path row exact schema mismatch"
+            )
+        canonical = canonical_closed_m1_bar(
+            m1_bar_ts=pd.Timestamp(row["time"]),
+            complete=row["complete"],
+            source_path=row["source_path"],
+            source_sha256=row["source_sha256"],
+            bid_open=row["bid_open"],
+            bid_high=row["bid_high"],
+            bid_low=row["bid_low"],
+            bid_close=row["bid_close"],
+            ask_open=row["ask_open"],
+            ask_high=row["ask_high"],
+            ask_low=row["ask_low"],
+            ask_close=row["ask_close"],
+            mid_open=row["mid_open"],
+            mid_high=row["mid_high"],
+            mid_low=row["mid_low"],
+            mid_close=row["mid_close"],
+            volume=row["volume"],
+        )
+        if row != canonical:
+            raise ValueError(
+                "persisted trade state closed_m1_path row is not canonical"
+            )
+        canonical_path.append(canonical)
     expected_m1_length = min(bars_in_trade, M1_RETURNS_WINDOW_MAXLEN)
     expected_trajectory_length = min(
         bars_in_trade, TRAJECTORY_HISTORY_MAXLEN
@@ -526,51 +739,231 @@ def _validate_persisted_trade_state_payload(
         len(pnl_values)
         == len(peak_values)
         == len(trough_values)
-        == len(atr_values)
+        == len(executable_range_values)
         == expected_trajectory_length
     ):
         raise ValueError(
             "persisted trade-state intrabar histories are not aligned with "
             "pnl_history/bars_in_trade/deque maxlen"
         )
+    if len(canonical_path) != bars_in_trade:
+        raise ValueError(
+            "persisted trade state literal path length does not match bars_in_trade"
+        )
+    if canonical_path:
+        expected_first = first_full_closed_m1_bar_ts(entry_ts)
+        for offset, row in enumerate(canonical_path):
+            expected_ts = expected_first + pd.Timedelta(minutes=offset)
+            if pd.Timestamp(row["time"]) != expected_ts:
+                raise ValueError(
+                    "persisted trade state closed_m1_path cadence mismatch"
+                )
+        if pd.Timestamp(canonical_path[-1]["time"]) != last_processed_m1_ts:
+            raise ValueError(
+                "persisted trade state closed_m1_path terminal timestamp mismatch"
+            )
+        derived_path = canonical_path[-expected_trajectory_length:]
+        path_bid_close = np.asarray(
+            [row["bid_close"] for row in derived_path], dtype=np.float64
+        )
+        path_ask_close = np.asarray(
+            [row["ask_close"] for row in derived_path], dtype=np.float64
+        )
+        expected_pnl = (
+            (path_bid_close - entry_ask) / entry_ask * 10_000.0
+            if side == SIDE_LONG
+            else (entry_bid - path_ask_close) / entry_bid * 10_000.0
+        )
+        expected_peak = (
+            (
+                np.asarray(
+                    [row["bid_high"] for row in derived_path],
+                    dtype=np.float64,
+                )
+                - entry_ask
+            )
+            / entry_ask
+            * 10_000.0
+            if side == SIDE_LONG
+            else (
+                entry_bid
+                - np.asarray(
+                    [row["ask_low"] for row in derived_path],
+                    dtype=np.float64,
+                )
+            )
+            / entry_bid
+            * 10_000.0
+        )
+        expected_trough = (
+            (
+                np.asarray(
+                    [row["bid_low"] for row in derived_path],
+                    dtype=np.float64,
+                )
+                - entry_ask
+            )
+            / entry_ask
+            * 10_000.0
+            if side == SIDE_LONG
+            else (
+                entry_bid
+                - np.asarray(
+                    [row["ask_high"] for row in derived_path],
+                    dtype=np.float64,
+                )
+            )
+            / entry_bid
+            * 10_000.0
+        )
+        expected_range = np.asarray(
+            [
+                (row["ask_high"] - row["bid_low"])
+                / row["mid_close"]
+                * 10_000.0
+                for row in derived_path
+            ],
+            dtype=np.float64,
+        )
+        if not (
+            np.allclose(pnl_values, expected_pnl, rtol=1e-12, atol=1e-9)
+            and np.allclose(
+                peak_values, expected_peak, rtol=1e-12, atol=1e-9
+            )
+            and np.allclose(
+                trough_values, expected_trough, rtol=1e-12, atol=1e-9
+            )
+            and np.allclose(
+                executable_range_values,
+                expected_range,
+                rtol=1e-12,
+                atol=1e-9,
+            )
+        ):
+            raise ValueError(
+                "persisted trade-state derived histories do not match literal path"
+            )
+        if not np.isclose(
+            current_bid, canonical_path[-1]["bid_close"], rtol=0.0, atol=0.0
+        ) or not np.isclose(
+            current_ask, canonical_path[-1]["ask_close"], rtol=0.0, atol=0.0
+        ):
+            raise ValueError(
+                "persisted trade-state current quote does not match literal path"
+            )
+        expected_recent_mid = np.asarray(
+            [row["mid_close"] for row in canonical_path[-len(m1_values) :]],
+            dtype=np.float64,
+        )
+        if not np.allclose(
+            m1_values, expected_recent_mid, rtol=0.0, atol=0.0
+        ):
+            raise ValueError(
+                "persisted trade-state M1 close window does not match literal path"
+            )
+        if not np.isclose(
+            payload["last_executable_range_bps"],
+            executable_range_values[-1],
+            rtol=1e-12,
+            atol=1e-9,
+        ):
+            raise ValueError(
+                "persisted last executable range does not match literal path"
+            )
+    elif payload["last_executable_range_bps"] != 0.0:
+        raise ValueError(
+            "zero-bar persisted state must have zero executable range"
+        )
     if np.any(peak_values + 1e-9 < trough_values) or np.any(
         pnl_values > peak_values + 1e-9
     ) or np.any(pnl_values < trough_values - 1e-9):
         raise ValueError("persisted trade-state intrabar histories are invalid")
     if len(pnl_values):
-        if cum_mfe_bps + 1e-9 < max(0.0, float(np.max(pnl_values))):
-            raise ValueError("persisted trade state cumulative MFE/history mismatch")
-        if cum_mae_bps - 1e-9 > min(0.0, float(np.min(pnl_values))):
-            raise ValueError("persisted trade state cumulative MAE/history mismatch")
-
-    v3_last_prob = _finite_persisted_number(payload, "v3_last_prob")
-    v3_max_prob = _finite_persisted_number(payload, "v3_max_prob_in_trade")
-    if not 0.0 <= v3_last_prob <= 1.0 or not 0.0 <= v3_max_prob <= 1.0:
-        raise ValueError("persisted trade state V3 probabilities are outside [0,1]")
-    if v3_max_prob + 1e-12 < v3_last_prob:
-        raise ValueError("persisted trade state V3 max probability is invalid")
-    v3_signal_acceleration = _finite_persisted_number(
-        payload, "v3_signal_acceleration"
-    )
-    if not -1.0 <= v3_signal_acceleration <= 1.0:
-        raise ValueError("persisted trade state V3 acceleration is outside [-1,1]")
-    v3_consecutive = _nonnegative_persisted_integer(
-        payload, "v3_consecutive_exits"
-    )
-    v3_max_consecutive = _nonnegative_persisted_integer(
-        payload, "v3_max_consecutive_exits"
-    )
-    v3_total_exits = _nonnegative_persisted_integer(
-        payload, "v3_total_exit_decisions"
-    )
-    if not (
-        v3_consecutive <= v3_max_consecutive <= v3_total_exits <= bars_in_trade
-    ):
-        raise ValueError("persisted trade state V3 counters are inconsistent")
-    if (v3_last_prob > 0.5) != (v3_consecutive > 0):
-        raise ValueError(
-            "persisted trade state V3 probability/consecutive counter mismatch"
-        )
+        full_peak = (
+            np.asarray(
+                [row["bid_high"] for row in canonical_path],
+                dtype=np.float64,
+            )
+            - entry_ask
+        ) / entry_ask * 10_000.0 if side == SIDE_LONG else (
+            entry_bid
+            - np.asarray(
+                [row["ask_low"] for row in canonical_path],
+                dtype=np.float64,
+            )
+        ) / entry_bid * 10_000.0
+        full_trough = (
+            np.asarray(
+                [row["bid_low"] for row in canonical_path],
+                dtype=np.float64,
+            )
+            - entry_ask
+        ) / entry_ask * 10_000.0 if side == SIDE_LONG else (
+            entry_bid
+            - np.asarray(
+                [row["ask_high"] for row in canonical_path],
+                dtype=np.float64,
+            )
+        ) / entry_bid * 10_000.0
+        exact_mfe = max(0.0, float(np.max(full_peak)))
+        exact_mae = min(0.0, float(np.min(full_trough)))
+        if (
+            not np.isclose(cum_mfe_bps, exact_mfe, rtol=1e-12, atol=1e-9)
+            or not np.isclose(cum_mae_bps, exact_mae, rtol=1e-12, atol=1e-9)
+        ):
+            raise ValueError(
+                "persisted trade state cumulative excursion is not exact"
+            )
+    raw_last_exit_decision = payload["last_exit_decision"]
+    if bars_in_trade == 0:
+        if raw_last_exit_decision is not None:
+            raise ValueError(
+                "zero-bar persisted state cannot contain an Exit decision"
+            )
+    else:
+        if not isinstance(raw_last_exit_decision, dict):
+            raise ValueError(
+                "processed persisted state requires its last Exit decision"
+            )
+        try:
+            exit_path_envelope = require_unified_exit_path_envelope(
+                {
+                    "schema_version": (
+                        UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION
+                    ),
+                    "entry_fill_ts": entry_ts.isoformat(),
+                    "first_full_m1_bar_ts": (
+                        first_full_closed_m1_bar_ts(entry_ts).isoformat()
+                    ),
+                    "last_closed_m1_bar_ts": (
+                        last_processed_m1_ts.isoformat()
+                    ),
+                    "bars_in_trade": bars_in_trade,
+                    "retained_path_length": len(canonical_path),
+                    "path_rows": canonical_path,
+                    "path_rows_sha256": canonical_closed_m1_path_sha256(
+                        canonical_path
+                    ),
+                },
+                context="TRADE_STATE_PERSISTED",
+            )
+            validated_exit_decision = require_unified_exit_output(
+                raw_last_exit_decision,
+                context="TRADE_STATE_PERSISTED",
+                expected_bundle_sha256=raw_last_exit_decision.get(
+                    "bundle_sha256"
+                ),
+                entry_snapshot=snapshot,
+                exit_path_envelope=exit_path_envelope,
+            )
+        except RuntimeError as exc:
+            raise ValueError(
+                "persisted last Exit decision is invalid"
+            ) from exc
+        if validated_exit_decision != raw_last_exit_decision:
+            raise ValueError(
+                "persisted last Exit decision is not canonical"
+            )
 
     return entry_ts, snapshot, last_processed_m1_ts
 
@@ -590,6 +983,9 @@ class TradeState:
     v10_snapshot: dict[str, Any]         # frozen V10 outputs at entry
     units: int
     sizing_execution_evidence: dict[str, Any]
+    model_bundle_binding: dict[str, Any] | None
+    entry_source_pair_binding: dict[str, Any] | None
+    broker_account_binding: dict[str, str] | None
 
     # Identity (set after OANDA fill — used as state-file name + close-trade id)
     trade_id: str | None = None
@@ -597,7 +993,6 @@ class TradeState:
     # Running state (updated per M1 bar)
     bars_in_trade: int = 0
     last_processed_m1_ts: pd.Timestamp | None = None
-    sf_defer_state_v1: dict[str, int] = field(default_factory=dict)
     current_bid: float = 0.0
     current_ask: float = 0.0
     current_pnl_bps: float = 0.0         # bid/ask asymmetric
@@ -610,37 +1005,31 @@ class TradeState:
         default_factory=lambda: deque(maxlen=M1_RETURNS_WINDOW_MAXLEN)
     )
 
-    # V3 v8 running stats (updated per bar via update_v3)
-    v3_last_prob: float = 0.0
-    v3_max_prob_in_trade: float = 0.0
-    v3_consecutive_exits: int = 0
-    v3_max_consecutive_exits: int = 0
-    v3_total_exit_decisions: int = 0
-    v3_signal_acceleration: float = 0.0      # latest delta-prob bar-to-bar
-
-    # Per-bar trajectory (used for V3 overlay + trade-state metrics)
+    # Per-bar trajectory used by the unified model path envelope.
     pnl_history: deque = field(
         default_factory=lambda: deque(maxlen=TRAJECTORY_HISTORY_MAXLEN)
     )  # bps per bar
     mfe_at_bar: float = 0.0                  # mfe_bps at last bar
     time_since_mfe_peak_bars: int = 0
-    last_atr_bps: float = 0.0
+    last_executable_range_bps: float = 0.0
 
-    # V4 (R13) intrabar excursion history — feeds the ONE-TRUTH V3 overlay helper
-    # (gx1.features.trade_overlay.compute_trade_overlay), the SAME function the
-    # train builder calls, so build_v3_overlay is bit-identical to training.
-    # peak/trough = INTRABAR favorable/adverse excursion bps (spread-side: long
-    # bid_high/bid_low, short ask_low/ask_high); atr = per-bar (ask_high-bid_low)/
-    # mid*1e4. One value appended per CLOSED M1 bar, in lock-step with pnl_history.
+    # Intrabar excursion history. Peak/trough are favorable/adverse excursion
+    # bps on the executable spread side: long
+    # bid_high/bid_low, short ask_low/ask_high). Executable range is the
+    # spread-inclusive one-bar range (ask_high-bid_low)/literal_mid_close*1e4;
+    # it is deliberately not called ATR. One value is appended per literal,
+    # source-bound CLOSED M1 bar in lock-step with pnl_history.
     peak_history: deque = field(
         default_factory=lambda: deque(maxlen=TRAJECTORY_HISTORY_MAXLEN)
     )
     trough_history: deque = field(
         default_factory=lambda: deque(maxlen=TRAJECTORY_HISTORY_MAXLEN)
     )
-    atr_bps_history: deque = field(
+    executable_range_bps_history: deque = field(
         default_factory=lambda: deque(maxlen=TRAJECTORY_HISTORY_MAXLEN)
     )
+    closed_m1_path: deque = field(default_factory=deque)
+    last_exit_decision: dict[str, Any] | None = None
 
     def require_entry_snapshot(self) -> dict[str, Any]:
         """Validate this trade's snapshot under its exact execution mode."""
@@ -664,6 +1053,9 @@ class TradeState:
         sizing_application: dict[str, Any],
         fill_transaction_id: str,
         execution_mode: str,
+        model_bundle_binding: dict[str, Any],
+        entry_source_pair_binding: dict[str, Any],
+        broker_account_binding: dict[str, str] | None = None,
     ) -> "TradeState":
         """Open executable/dry-run state only from an exact learned application."""
 
@@ -690,6 +1082,9 @@ class TradeState:
             trade_id=trade_id,
             units=units,
             sizing_execution_evidence=evidence,
+            model_bundle_binding=model_bundle_binding,
+            entry_source_pair_binding=entry_source_pair_binding,
+            broker_account_binding=broker_account_binding,
         )
 
     @classmethod
@@ -727,6 +1122,9 @@ class TradeState:
             trade_id=trade_id,
             units=1,
             sizing_execution_evidence=evidence,
+            model_bundle_binding=None,
+            entry_source_pair_binding=None,
+            broker_account_binding=None,
         )
 
     @classmethod
@@ -741,6 +1139,9 @@ class TradeState:
         trade_id: str | None,
         units: int,
         sizing_execution_evidence: dict[str, Any],
+        model_bundle_binding: dict[str, Any] | None,
+        entry_source_pair_binding: dict[str, Any] | None,
+        broker_account_binding: dict[str, str] | None,
     ) -> "TradeState":
         if side not in SIDES:
             raise ValueError(f"side must be {SIDES}, got {side!r}")
@@ -752,23 +1153,55 @@ class TradeState:
             sizing_execution_evidence=sizing_execution_evidence,
         )
         parsed_entry_ts = pd.Timestamp(entry_ts)
+        if (
+            pd.isna(parsed_entry_ts)
+            or parsed_entry_ts.tzinfo is None
+            or parsed_entry_ts.utcoffset() is None
+            or parsed_entry_ts.utcoffset().total_seconds() != 0.0
+        ):
+            raise ValueError("entry fill timestamp must be timezone-aware UTC")
+        parsed_entry_ts = parsed_entry_ts.tz_convert("UTC")
         if "runtime_head_evidence_schema_version" in snapshot:
             require_model_native_exit_replay_entry_time(
                 snapshot,
                 parsed_entry_ts,
                 context="TRADE_STATE_OPEN_EXIT_RESEARCH",
             )
-        else:
+        elif sizing_execution_evidence.get("mode") == "unit_normalized_research_only":
             require_model_native_entry_time(
                 snapshot,
                 parsed_entry_ts,
-                context="TRADE_STATE_OPEN",
+                context="TRADE_STATE_OPEN_RESEARCH",
+            )
+        else:
+            require_model_native_fill_time(
+                snapshot,
+                parsed_entry_ts,
+                context="TRADE_STATE_OPEN_FILL",
             )
         validated_sizing_evidence = _require_sizing_execution_evidence(
             sizing_execution_evidence,
             snapshot=snapshot,
             side=side,
             units=units,
+        )
+        executable = validated_sizing_evidence["mode"] in {
+            "learned_virtual_dry_run",
+            "learned_broker_fill",
+        }
+        validated_bundle_binding = require_trade_model_bundle_binding(
+            model_bundle_binding,
+            executable=executable,
+        )
+        validated_source_pair_binding = require_trade_source_pair_binding(
+            entry_source_pair_binding,
+            executable=executable,
+        )
+        validated_broker_account_binding = (
+            require_trade_broker_account_binding(
+                broker_account_binding,
+                execution_mode=validated_sizing_evidence["mode"],
+            )
         )
         spread_bps = (entry_ask - entry_bid) / entry_bid * 10000.0
         return cls(
@@ -780,6 +1213,9 @@ class TradeState:
             v10_snapshot=dict(snapshot),
             units=units,
             sizing_execution_evidence=validated_sizing_evidence,
+            model_bundle_binding=validated_bundle_binding,
+            entry_source_pair_binding=validated_source_pair_binding,
+            broker_account_binding=validated_broker_account_binding,
             trade_id=trade_id,
             current_bid=float(entry_bid),
             current_ask=float(entry_ask),
@@ -795,15 +1231,16 @@ class TradeState:
             return (self.entry_bid - ask) / self.entry_bid * 10000.0
 
     def _intrabar_excursion(
-        self, bid_high: float, bid_low: float, ask_high: float, ask_low: float,
-        bid_close: float, ask_close: float,
-    ) -> tuple[float, float, float]:
-        """Per-bar INTRABAR favorable/adverse excursion + atr in bps, IDENTICAL to
-        the train builder (materialize_build_exit_iql_per_bar_dataset_v1.compute_per_bar_signals).
+        self,
+        bid_high: float,
+        bid_low: float,
+        ask_high: float,
+        ask_low: float,
+    ) -> tuple[float, float]:
+        """Return exact intrabar favorable/adverse excursion in bps.
 
           long  (entry@ask): peak=(bid_high-entry_ask)/entry_ask, trough=(bid_low-entry_ask)/entry_ask
           short (entry@bid): peak=(entry_bid-ask_low)/entry_bid,  trough=(entry_bid-ask_high)/entry_bid
-          atr = (ask_high-bid_low)/mid*1e4,  mid=(ask_close+bid_close)/2
         """
         if self.side == SIDE_LONG:
             peak = (bid_high - self.entry_ask) / self.entry_ask * 10000.0
@@ -811,37 +1248,60 @@ class TradeState:
         else:
             peak = (self.entry_bid - ask_low) / self.entry_bid * 10000.0
             trough = (self.entry_bid - ask_high) / self.entry_bid * 10000.0
-        mid = (ask_close + bid_close) / 2.0
-        atr = (ask_high - bid_low) / mid * 10000.0 if mid > 0 else 0.0
-        return float(peak), float(trough), float(atr)
+        return float(peak), float(trough)
 
     def update_bar(
-        self, bid: float, ask: float, m1_close: float,
-        bid_high: float, bid_low: float,
-        ask_high: float, ask_low: float,
-        m1_bar_ts: pd.Timestamp,
+        self,
+        *,
+        schema_version: str,
+        time: str,
+        complete: bool,
+        source_path: str,
+        source_sha256: str,
+        bid_open: float,
+        bid_high: float,
+        bid_low: float,
+        bid_close: float,
+        ask_open: float,
+        ask_high: float,
+        ask_low: float,
+        ask_close: float,
+        mid_open: float,
+        mid_high: float,
+        mid_low: float,
+        mid_close: float,
+        volume: int,
     ) -> None:
-        """Advance trade state by one CLOSED M1 bar.
+        """Advance state by one literal, complete, source-bound M/B/A M1 row.
 
-        bid/ask = this bar's CLOSE bid/ask (the mark prices). m1_close = mid close
-        (drives the return window). bid_high/bid_low/ask_high/ask_low = this bar's
-        exact intrabar range. All seven values are required, finite, positive,
-        and geometrically consistent before any trade state is mutated. This is
-        the V4 one-truth V3-overlay basis used by the train builder; a close-only
-        substitute is not a valid Exit-IQL state.
+        The first admitted bar starts at ``ceil(actual_fill_time, 1m)``. A
+        mid-minute broker fill can therefore never inherit pre-fill high/low.
+        Literal mid prices are retained rather than reconstructed from bid/ask.
         """
-        parsed_m1_bar_ts = pd.Timestamp(m1_bar_ts)
-        if (
-            pd.isna(parsed_m1_bar_ts)
-            or parsed_m1_bar_ts.tzinfo is None
-            or parsed_m1_bar_ts.utcoffset() is None
-            or parsed_m1_bar_ts.utcoffset().total_seconds() != 0.0
-            or parsed_m1_bar_ts != parsed_m1_bar_ts.floor("min")
-        ):
-            raise ValueError("closed M1 timestamp must be an exact UTC minute")
-        parsed_m1_bar_ts = parsed_m1_bar_ts.tz_convert("UTC")
+        if schema_version != CLOSED_M1_PATH_SCHEMA_VERSION:
+            raise ValueError("closed M1 path schema_version mismatch")
+        canonical_bar = canonical_closed_m1_bar(
+            m1_bar_ts=pd.Timestamp(time),
+            complete=complete,
+            source_path=source_path,
+            source_sha256=source_sha256,
+            bid_open=bid_open,
+            bid_high=bid_high,
+            bid_low=bid_low,
+            bid_close=bid_close,
+            ask_open=ask_open,
+            ask_high=ask_high,
+            ask_low=ask_low,
+            ask_close=ask_close,
+            mid_open=mid_open,
+            mid_high=mid_high,
+            mid_low=mid_low,
+            mid_close=mid_close,
+            volume=volume,
+        )
+        parsed_m1_bar_ts = pd.Timestamp(canonical_bar["time"])
         expected_m1_bar_ts = (
-            self.entry_ts.floor("min")
+            first_full_closed_m1_bar_ts(self.entry_ts)
             if self.last_processed_m1_ts is None
             else self.last_processed_m1_ts + pd.Timedelta(minutes=1)
         )
@@ -852,57 +1312,13 @@ class TradeState:
                 f"observed={parsed_m1_bar_ts.isoformat()}"
             )
 
-        raw_values = {
-            "bid": bid,
-            "ask": ask,
-            "m1_close": m1_close,
-            "bid_high": bid_high,
-            "bid_low": bid_low,
-            "ask_high": ask_high,
-            "ask_low": ask_low,
-        }
-        values: dict[str, float] = {}
-        invalid_fields: list[str] = []
-        for name, raw_value in raw_values.items():
-            try:
-                value = float(raw_value)
-            except (TypeError, ValueError):
-                invalid_fields.append(name)
-                continue
-            if not np.isfinite(value) or value <= 0.0:
-                invalid_fields.append(name)
-            else:
-                values[name] = value
-        if invalid_fields:
-            raise ValueError(
-                f"closed M1 bar has non-finite/non-positive fields: {invalid_fields}"
-            )
-
-        bid = values["bid"]
-        ask = values["ask"]
-        m1_close = values["m1_close"]
-        bid_high = values["bid_high"]
-        bid_low = values["bid_low"]
-        ask_high = values["ask_high"]
-        ask_low = values["ask_low"]
-        expected_mid_close = (bid + ask) / 2.0
-        invalid_geometry = (
-            ask <= bid
-            or bid_low > bid
-            or bid > bid_high
-            or ask_low > ask
-            or ask > ask_high
-            or ask_low <= bid_low
-            or ask_high <= bid_high
-            or not np.isclose(m1_close, expected_mid_close, rtol=1e-9, atol=1e-9)
-        )
-        if invalid_geometry:
-            raise ValueError(
-                "closed M1 bid/ask OHLC geometry invalid: "
-                f"bid_low={bid_low} bid={bid} bid_high={bid_high} "
-                f"ask_low={ask_low} ask={ask} ask_high={ask_high} "
-                f"m1_close={m1_close} expected_mid_close={expected_mid_close}"
-            )
+        bid = canonical_bar["bid_close"]
+        ask = canonical_bar["ask_close"]
+        m1_close = canonical_bar["mid_close"]
+        bid_high = canonical_bar["bid_high"]
+        bid_low = canonical_bar["bid_low"]
+        ask_high = canonical_bar["ask_high"]
+        ask_low = canonical_bar["ask_low"]
 
         self.bars_in_trade += 1
         self.m1_returns_window.append(m1_close)
@@ -910,9 +1326,15 @@ class TradeState:
         self.current_bid = bid
         self.current_ask = ask
         self.current_pnl_bps = float(self._pnl_bps(bid, ask))
+        peak, trough = self._intrabar_excursion(
+            bid_high, bid_low, ask_high, ask_low,
+        )
+        executable_range_bps = (
+            (ask_high - bid_low) / m1_close * 10_000.0
+        )
         prev_peak = self.cum_mfe_bps
-        self.cum_mfe_bps = max(self.cum_mfe_bps, self.current_pnl_bps)
-        self.cum_mae_bps = min(self.cum_mae_bps, self.current_pnl_bps)
+        self.cum_mfe_bps = max(self.cum_mfe_bps, peak)
+        self.cum_mae_bps = min(self.cum_mae_bps, trough)
         if self.cum_mfe_bps > prev_peak:
             self.bars_since_mfe_peak = 0
             self.time_since_mfe_peak_bars = 0
@@ -922,275 +1344,37 @@ class TradeState:
         self.mfe_at_bar = self.cum_mfe_bps
         self.pnl_history.append(self.current_pnl_bps)
 
-        # V4 (R13): exact INTRABAR excursion + per-bar atr, never close-only.
-        peak, trough, atr = self._intrabar_excursion(
-            bid_high, bid_low, ask_high, ask_low, bid, ask,
-        )
         self.peak_history.append(float(peak))
         self.trough_history.append(float(trough))
-        self.atr_bps_history.append(float(atr))
+        self.executable_range_bps_history.append(float(executable_range_bps))
+        self.last_executable_range_bps = float(executable_range_bps)
+        self.closed_m1_path.append(canonical_bar)
         self.last_processed_m1_ts = parsed_m1_bar_ts
 
-    def update_v3(self, v3_v8_out: dict | None) -> None:
-        """Update V3 v8 running stats from latest V3 inference output."""
-        if (
-            not isinstance(v3_v8_out, dict)
-            or "v3_v8_should_exit_prob" not in v3_v8_out
-        ):
-            raise ValueError("V3 running-state update requires exact exit probability")
-        try:
-            prob = float(v3_v8_out["v3_v8_should_exit_prob"])
-        except (TypeError, ValueError) as exc:
-            raise ValueError("V3 exit probability must be numeric") from exc
-        if not np.isfinite(prob) or not 0.0 <= prob <= 1.0:
-            raise ValueError("V3 exit probability must be finite within [0,1]")
-        self.v3_signal_acceleration = prob - self.v3_last_prob
-        self.v3_last_prob = prob
-        if prob > self.v3_max_prob_in_trade:
-            self.v3_max_prob_in_trade = prob
-        if prob > 0.5:
-            self.v3_consecutive_exits += 1
-            self.v3_total_exit_decisions += 1
-            if self.v3_consecutive_exits > self.v3_max_consecutive_exits:
-                self.v3_max_consecutive_exits = self.v3_consecutive_exits
-        else:
-            self.v3_consecutive_exits = 0
+    def build_closed_m1_path_evidence(self) -> dict[str, Any]:
+        """Return the exact persisted path prefix and its content digest."""
 
-    # ── feature construction ────────────────────────────────────────
-
-    def _rolling_return_bps(self, n: int) -> float:
-        """M1 log return from the shared train/serve feature owner."""
-
-        arrays = compute_m1_micro_feature_arrays(
-            np.asarray(self.m1_returns_window, dtype=np.float64)
-        )
-        index = {5: 0, 15: 1, 60: 2}.get(n)
-        if index is None:
-            raise ValueError(f"unsupported M1 return horizon: {n}")
-        return float(arrays[index][-1]) if len(arrays[index]) else 0.0
-
-    def _rolling_vol_bps(self, n: int) -> float:
-        """M1 RMS log-return volatility from the shared feature owner."""
-
-        arrays = compute_m1_micro_feature_arrays(
-            np.asarray(self.m1_returns_window, dtype=np.float64)
-        )
-        index = {15: 3, 60: 4}.get(n)
-        if index is None:
-            raise ValueError(f"unsupported M1 volatility horizon: {n}")
-        return float(arrays[index][-1]) if len(arrays[index]) else 0.0
-
-    def build_trade_state_features(self) -> dict[str, float]:
-        """The ~13 per-bar trade-state features Exit-IQL V12.1 expects."""
-        drawdown_from_peak = self.cum_mfe_bps - self.current_pnl_bps
-        # bar_return_bps_v1: return of THIS bar (last - prev close)
-        if len(self.m1_returns_window) >= 2:
-            bar_return = (self.m1_returns_window[-1] - self.m1_returns_window[-2]) / self.m1_returns_window[-2] * 10000.0
-        else:
-            bar_return = 0.0
-
-        # Trade-state derivatives — formulas MUST match training EXACTLY
-        # (`materialize_build_exit_iql_per_bar_dataset_v1.py:283-322`). Live had
-        # subtly wrong formulas in earlier fix (audit 3 C-1/C-2 2026-05-20):
-        #   - mfe_decay_rate: training is cum_peak[t] - cum_peak[t-4]
-        #     (forward growth ≥ 0), live had used (max(h[-4:]) - h[-1])/4
-        #   - giveback_ratio: training clips to [-10, 10] with 1e-6 epsilon,
-        #     live had clipped to [0, 2] with 1.0 epsilon (different scale).
-        #   - giveback_acceleration: training is SECOND diff of giveback,
-        #     live had used FIRST diff (velocity, not acceleration).
-        #   - rolling_slope: training is closed-form OLS slope of pnl vs bar_idx
-        #     over [0..t], live had used rolling-return divided by bars.
-        h = np.asarray(list(self.pnl_history), dtype=np.float64)
-        n = len(h)
-        if n >= 1:
-            cum_peak = np.maximum.accumulate(h)
-        # pnl_velocity / pnl_acceleration: first / second discrete differences
-        pnl_velocity = float(h[-1] - h[-2]) if n >= 2 else 0.0
-        pnl_acceleration = float(h[-1] - 2.0 * h[-2] + h[-3]) if n >= 3 else 0.0
-        # mfe_decay_rate: cum_peak[t] - cum_peak[t-4]  (monotone ≥ 0 increase)
-        mfe_decay_rate = float(cum_peak[-1] - cum_peak[-5]) if n >= 5 else 0.0
-        # giveback_ratio: 1 - cur_pnl/max(cum_peak, 1e-6), clipped to [-10, 10]
-        if n >= 1:
-            pos_peak = max(float(cum_peak[-1]), 1e-6)
-            giveback_ratio = 1.0 - h[-1] / pos_peak
-            giveback_ratio = float(np.clip(giveback_ratio, -10.0, 10.0))
-        else:
-            giveback_ratio = 0.0
-        # giveback_acceleration: second diff of giveback timeseries
-        if n >= 3:
-            gv_t = 1.0 - h[-1] / max(float(cum_peak[-1]), 1e-6)
-            gv_t1 = 1.0 - h[-2] / max(float(cum_peak[-2]), 1e-6)
-            gv_t2 = 1.0 - h[-3] / max(float(cum_peak[-3]), 1e-6)
-            giveback_acceleration = float(np.clip(gv_t - 2.0 * gv_t1 + gv_t2, -10.0, 10.0))
-        else:
-            giveback_acceleration = 0.0
-
-        # rolling_slope_since_entry_v1: closed-form OLS slope of pnl vs bar_idx
-        # over [0..n-1]. slope = (n·Σxy − Σx·Σy) / (n·Σx² − (Σx)²).
-        if n >= 3:
-            idx = np.arange(n, dtype=np.float64)
-            sum_x = idx.sum()
-            sum_x2 = (idx * idx).sum()
-            sum_y = h.sum()
-            sum_xy = (idx * h).sum()
-            denom = n * sum_x2 - sum_x * sum_x
-            rolling_slope = float((n * sum_xy - sum_x * sum_y) / denom) if abs(denom) > 1e-9 else 0.0
-        else:
-            rolling_slope = 0.0
-
-        return {
-            "bars_in_trade_v1": float(self.bars_in_trade),
-            "current_unrealized_pnl_bps_v1": float(self.current_pnl_bps),
-            "current_mfe_bps_v1": float(self.cum_mfe_bps),
-            "current_mae_bps_v1": float(self.cum_mae_bps),
-            "bars_since_mfe_peak_v1": float(self.bars_since_mfe_peak),
-            "pnl_drawdown_from_peak_v1": float(drawdown_from_peak),
-            "bar_return_bps_v1": float(bar_return),
-            "m1_last_5bar_return_bps_v1": float(self._rolling_return_bps(5)),
-            "m1_last_15bar_return_bps_v1": float(self._rolling_return_bps(15)),
-            "m1_last_60bar_return_bps_v1": float(self._rolling_return_bps(60)),
-            "m1_realized_vol_15bar_bps_v1": float(self._rolling_vol_bps(15)),
-            "m1_realized_vol_60bar_bps_v1": float(self._rolling_vol_bps(60)),
-            # 6 trade-state derivatives — match training builder formulas exactly.
-            "pnl_velocity_v1": float(pnl_velocity),
-            "pnl_acceleration_v1": float(pnl_acceleration),
-            "mfe_decay_rate_v1": float(mfe_decay_rate),
-            "giveback_ratio_v1": float(giveback_ratio),
-            "giveback_acceleration_v1": float(giveback_acceleration),
-            "rolling_slope_since_entry_v1": float(rolling_slope),
+        rows = [dict(row) for row in self.closed_m1_path]
+        if len(rows) != self.bars_in_trade:
+            raise ValueError("closed M1 path/bar count mismatch")
+        if not rows:
+            raise ValueError("closed M1 path evidence requires at least one bar")
+        envelope = {
+            "schema_version": UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
+            "entry_fill_ts": self.entry_ts.isoformat(),
+            "first_full_m1_bar_ts": first_full_closed_m1_bar_ts(
+                self.entry_ts
+            ).isoformat(),
+            "last_closed_m1_bar_ts": self.last_processed_m1_ts.isoformat(),
+            "bars_in_trade": self.bars_in_trade,
+            "retained_path_length": len(rows),
+            "path_rows": rows,
+            "path_rows_sha256": canonical_closed_m1_path_sha256(rows),
         }
-
-    def build_v10_entry_snapshot_features(self) -> dict[str, float]:
-        """V10 outputs frozen at trade entry, exposed as exit-IQL features."""
-        s = _require_trade_entry_snapshot(
-            self.v10_snapshot,
-            sizing_execution_evidence=self.sizing_execution_evidence,
+        return require_unified_exit_path_envelope(
+            envelope,
+            context="TRADE_STATE",
         )
-        dp = s["direction_probs"]
-        p_long_e = float(dp[0])
-        p_short_e = float(dp[1])
-        return {
-            "v10_p_long_at_entry_v1": p_long_e,
-            "v10_p_short_at_entry_v1": p_short_e,
-            "v10_path_quality_at_entry_v1": float(s["path_quality"]),
-            "v10_mfe_pred_at_entry_v1": float(s["mfe_first_n"]),
-            "v10_tradable_at_entry_v1": float(s["tradable_prob"]),
-            "v10_bad_path_at_entry_v1": float(s["bad_path_prob"]),
-            # V10 v3+ aux head outputs frozen at entry — Exit-IQL was retrained
-            # 2026-05-19 to consume these 4 features (208-dim state vector).
-            # Without them they're silently 0-filled and Exit-IQL Q-values
-            # drift from what training saw.
-            "v10_tf_agreement_at_entry_v1": float(s["tf_agreement_pred"]),
-            "v10_path_quality_std_at_entry_v1": float(s["path_quality_std"]),
-            # Model-native sizing is evidence-only for Entry execution today,
-            # but Exit state must still receive the exact learned value.  A
-            # missing head is a contract failure, never a silent zero-fill.
-            "v10_position_size_at_entry_v1": float(s["position_size_pred"]),
-            # The active model-native contract blocks the stale hold head. Keep
-            # its explicit inactive sentinel; never synthesize a neutral value.
-            "v10_hold_horizon_at_entry_v1": -1.0,
-            # V3 v8 frozen at entry (would be from V3 inference at entry bar)
-            "p_long_entry_v1": p_long_e,
-            "p_hat_entry_v1": float(max(p_long_e, p_short_e, 1.0 - p_long_e - p_short_e)),
-            "uncertainty_entry_v1": float(1.0 - max(p_long_e, p_short_e, 1.0 - p_long_e - p_short_e)),
-            # margin = top1-top2 gap of the 3-class probs — matches the candidate-gen
-            # (sorted[-1]-sorted[-2]) and the Exit-IQL state builder
-            # (materialize_build_exit_iql_per_bar_dataset_v2_m1.py:247 candidate_row["margin"]).
-            # NOT abs(p_long-p_short) (wrong when p_flat is top1).
-            "margin_entry_v1": float(
-                sorted((p_long_e, p_short_e, max(0.0, 1.0 - p_long_e - p_short_e)))[-1]
-                - sorted((p_long_e, p_short_e, max(0.0, 1.0 - p_long_e - p_short_e)))[-2]),
-            # entropy
-            "entropy_entry_v1": float(
-                _shannon_entropy([p_long_e, p_short_e, float(dp[2])])
-            ),
-            # rolling_slope_since_entry_v1 is now produced by build_trade_state_features()
-            # using closed-form OLS slope over pnl_history (matches training).
-        }
-
-    def build_side_one_hot(self) -> dict[str, float]:
-        return {
-            "side_v1_long": 1.0 if self.side == SIDE_LONG else 0.0,
-            "side_v1_short": 1.0 if self.side == SIDE_SHORT else 0.0,
-        }
-
-    def build_v3_tracking_features(self) -> dict[str, float]:
-        """The 7 V3-tracking features Exit-IQL V12.1.1 expects in its state vector.
-
-        Computed as running stats over v3_v8_should_exit_prob across the trade's
-        bars (per V12 Phase 4 spec):
-
-          v3_should_exit_decision_v1  = (latest prob > 0.5)
-          v3_decision_confidence_v1   = |latest prob - 0.5|
-          v3_max_prob_in_trade_v1     = running max of prob since entry
-          v3_consecutive_exits_v1     = current consecutive bars with prob > 0.5
-          v3_signal_acceleration_v1   = Δ prob bar-to-bar
-          v3_total_exit_decisions_v1  = count of bars with prob > 0.5
-          v3_max_consecutive_exits_v1 = max run anywhere in trade
-        """
-        prob = self.v3_last_prob
-        return {
-            "v3_should_exit_decision_v1": 1.0 if prob > 0.5 else 0.0,
-            "v3_decision_confidence_v1": float(abs(prob - 0.5)),
-            "v3_max_prob_in_trade_v1": float(self.v3_max_prob_in_trade),
-            "v3_consecutive_exits_v1": float(self.v3_consecutive_exits),
-            "v3_signal_acceleration_v1": float(self.v3_signal_acceleration),
-            "v3_total_exit_decisions_v1": float(self.v3_total_exit_decisions),
-            "v3_max_consecutive_exits_v1": float(self.v3_max_consecutive_exits),
-        }
-
-    def build_v3_overlay(self) -> dict[str, np.ndarray]:
-        """Build the 19-feature trade-state overlay for V3's in-trade portion of
-        the 512-bar window, via the ONE-TRUTH helper
-        (`gx1.features.trade_overlay.compute_trade_overlay`). Any future V3
-        training builder must call that owner and prove build==serve parity.
-        Replaces the pre-V4 "MVP" overlay
-        that approximated ~10 of the 19 slots (close-mark MFE instead of intrabar,
-        1-based bars_held, wrong mfe_decay lag/giveback formula, slope=pnl/bars).
-
-        Arrays have length = number of recorded in-trade bars (one per CLOSED M1
-        bar, peak/trough/atr in lock-step with pnl_history). The consumer
-        (v12_v3_live) RIGHT-ALIGNS them onto the END of the 512-bar window and
-        uses the last min(len, 512) values.
-        """
-        n = len(self.pnl_history)
-        if n == 0:
-            # No closed bar yet — emit a single zero row (consumer right-aligns).
-            return {name: np.zeros(1, dtype=np.float32) for name in OVERLAY_COL_NAMES}
-
-        # peak/trough/atr are appended and persisted in lock-step with pnl_history.
-        # Reload rejects older or partial state instead of reconstructing evidence.
-        peak = np.fromiter(self.peak_history, dtype=np.float64, count=n)
-        trough = np.fromiter(self.trough_history, dtype=np.float64, count=n)
-        cur_pnl = np.fromiter(self.pnl_history, dtype=np.float64, count=n)
-        atr = np.fromiter(self.atr_bps_history, dtype=np.float64, count=n)
-
-        # Entry-snapshot (V10 direction softmax @entry, frozen). margin = top1-top2
-        # gap of the model-native 3-class probabilities. This is deliberately
-        # NOT abs(p_long-p_short).
-        s = _require_trade_entry_snapshot(
-            self.v10_snapshot,
-            sizing_execution_evidence=self.sizing_execution_evidence,
-        )
-        dp = s["direction_probs"]
-        p_long_e = float(dp[0])
-        p_short_e = float(dp[1])
-        p_flat_e = float(dp[2])
-        p_hat_e = max(p_long_e, p_short_e, p_flat_e)
-        _sorted = sorted((p_long_e, p_short_e, p_flat_e))
-        margin_e = _sorted[-1] - _sorted[-2]
-        uncertainty_e = 1.0 - p_hat_e
-        entropy_e = _shannon_entropy([p_long_e, p_short_e, p_flat_e])
-
-        overlay = compute_trade_overlay(peak, trough, cur_pnl, atr, {
-            "p_long_entry": p_long_e,
-            "p_hat_entry": p_hat_e,
-            "uncertainty_entry": uncertainty_e,
-            "entropy_entry": entropy_e,
-            "margin_entry": margin_e,
-        })
-        # Consumer maps by name → return one (n,) array per overlay column.
-        return {name: overlay[:, i] for i, name in enumerate(OVERLAY_COL_NAMES)}
 
     # ── persistence ──────────────────────────────────────────────────
 
@@ -1209,13 +1393,21 @@ class TradeState:
             "sizing_execution_evidence": _jsonable(
                 self.sizing_execution_evidence
             ),
+            "model_bundle_binding": _jsonable(
+                self.model_bundle_binding
+            ),
+            "entry_source_pair_binding": _jsonable(
+                self.entry_source_pair_binding
+            ),
+            "broker_account_binding": _jsonable(
+                self.broker_account_binding
+            ),
             "bars_in_trade": self.bars_in_trade,
             "last_processed_m1_ts": (
                 self.last_processed_m1_ts.isoformat()
                 if self.last_processed_m1_ts is not None
                 else None
             ),
-            "sf_defer_state_v1": dict(self.sf_defer_state_v1),
             "current_bid": self.current_bid,
             "current_ask": self.current_ask,
             "current_pnl_bps": self.current_pnl_bps,
@@ -1223,22 +1415,19 @@ class TradeState:
             "cum_mae_bps": self.cum_mae_bps,
             "bars_since_mfe_peak": self.bars_since_mfe_peak,
             "m1_returns_window": list(self.m1_returns_window),
-            # V3 tracking stats
-            "v3_last_prob": self.v3_last_prob,
-            "v3_max_prob_in_trade": self.v3_max_prob_in_trade,
-            "v3_consecutive_exits": self.v3_consecutive_exits,
-            "v3_max_consecutive_exits": self.v3_max_consecutive_exits,
-            "v3_total_exit_decisions": self.v3_total_exit_decisions,
-            "v3_signal_acceleration": self.v3_signal_acceleration,
             # Per-bar trajectory
             "pnl_history": list(self.pnl_history),
             "mfe_at_bar": self.mfe_at_bar,
             "time_since_mfe_peak_bars": self.time_since_mfe_peak_bars,
-            "last_atr_bps": self.last_atr_bps,
-            # V4 (R13) intrabar excursion history — in lock-step with pnl_history.
+            "last_executable_range_bps": self.last_executable_range_bps,
+            # V5 literal M/B/A path and exact intrabar state.
             "peak_history": list(self.peak_history),
             "trough_history": list(self.trough_history),
-            "atr_bps_history": list(self.atr_bps_history),
+            "executable_range_bps_history": list(
+                self.executable_range_bps_history
+            ),
+            "closed_m1_path": list(self.closed_m1_path),
+            "last_exit_decision": _jsonable(self.last_exit_decision),
         })
         if not isinstance(payload, dict):  # pragma: no cover - fixed literal shape
             raise AssertionError("trade-state serialization did not produce an object")
@@ -1261,36 +1450,75 @@ class TradeState:
             trade_id=d["trade_id"],
             units=d["units"],
             sizing_execution_evidence=dict(d["sizing_execution_evidence"]),
+            model_bundle_binding=(
+                dict(d["model_bundle_binding"])
+                if d["model_bundle_binding"] is not None
+                else None
+            ),
+            entry_source_pair_binding=(
+                dict(d["entry_source_pair_binding"])
+                if d["entry_source_pair_binding"] is not None
+                else None
+            ),
+            broker_account_binding=(
+                dict(d["broker_account_binding"])
+                if d["broker_account_binding"] is not None
+                else None
+            ),
             bars_in_trade=d["bars_in_trade"],
             last_processed_m1_ts=last_processed_m1_ts,
-            sf_defer_state_v1=dict(d["sf_defer_state_v1"]),
             current_bid=float(d["current_bid"]),
             current_ask=float(d["current_ask"]),
             current_pnl_bps=float(d["current_pnl_bps"]),
             cum_mfe_bps=float(d["cum_mfe_bps"]),
             cum_mae_bps=float(d["cum_mae_bps"]),
             bars_since_mfe_peak=d["bars_since_mfe_peak"],
-            v3_last_prob=float(d["v3_last_prob"]),
-            v3_max_prob_in_trade=float(d["v3_max_prob_in_trade"]),
-            v3_consecutive_exits=d["v3_consecutive_exits"],
-            v3_max_consecutive_exits=d["v3_max_consecutive_exits"],
-            v3_total_exit_decisions=d["v3_total_exit_decisions"],
-            v3_signal_acceleration=float(d["v3_signal_acceleration"]),
             mfe_at_bar=float(d["mfe_at_bar"]),
             time_since_mfe_peak_bars=d["time_since_mfe_peak_bars"],
-            last_atr_bps=float(d["last_atr_bps"]),
+            last_executable_range_bps=float(
+                d["last_executable_range_bps"]
+            ),
+            last_exit_decision=(
+                dict(d["last_exit_decision"])
+                if d["last_exit_decision"] is not None
+                else None
+            ),
         )
         t.m1_returns_window.extend(float(v) for v in d["m1_returns_window"])
         t.pnl_history.extend(float(v) for v in d["pnl_history"])
         t.peak_history.extend(float(v) for v in d["peak_history"])
         t.trough_history.extend(float(v) for v in d["trough_history"])
-        t.atr_bps_history.extend(float(v) for v in d["atr_bps_history"])
+        t.executable_range_bps_history.extend(
+            float(v) for v in d["executable_range_bps_history"]
+        )
+        t.closed_m1_path.extend(dict(row) for row in d["closed_m1_path"])
         return t
 
     def clone_for_exit_decision(self) -> "TradeState":
         """Return an exact detached copy used for transactional inference."""
 
         return self.from_dict(self.to_dict())
+
+    def bind_unified_exit_decision(
+        self,
+        decision: dict[str, Any],
+        *,
+        expected_bundle_sha256: str,
+    ) -> None:
+        """Bind one exact same-bundle decision to the current path prefix."""
+
+        if self.bars_in_trade <= 0:
+            raise ValueError("Exit decision requires one complete M1 bar")
+        snapshot = self.require_entry_snapshot()
+        path_envelope = self.build_closed_m1_path_evidence()
+        validated = require_unified_exit_output(
+            decision,
+            context="TRADE_STATE_BIND_EXIT",
+            expected_bundle_sha256=expected_bundle_sha256,
+            entry_snapshot=snapshot,
+            exit_path_envelope=path_envelope,
+        )
+        self.last_exit_decision = deepcopy(validated)
 
     def commit_complete_exit_bar(self, staged: "TradeState") -> None:
         """Atomically adopt one fully validated staged M1/Exit transition."""
@@ -1308,6 +1536,9 @@ class TradeState:
             "trade_id",
             "units",
             "sizing_execution_evidence",
+            "model_bundle_binding",
+            "entry_source_pair_binding",
+            "broker_account_binding",
         )
         current_payload = self.to_dict()
         if any(
@@ -1318,12 +1549,16 @@ class TradeState:
         if staged.bars_in_trade != self.bars_in_trade + 1:
             raise ValueError("staged exit state must contain exactly one new M1 bar")
         expected_ts = (
-            self.entry_ts.floor("min")
+            first_full_closed_m1_bar_ts(self.entry_ts)
             if self.last_processed_m1_ts is None
             else self.last_processed_m1_ts + pd.Timedelta(minutes=1)
         )
         if staged.last_processed_m1_ts != expected_ts:
             raise ValueError("staged exit state M1 timestamp is not the next bar")
+        if staged.last_exit_decision is None:
+            raise ValueError(
+                "staged exit state requires its exact model decision"
+            )
         self.__dict__.clear()
         self.__dict__.update(deepcopy(staged.__dict__))
 
@@ -1338,8 +1573,32 @@ class TradeState:
             path = path / self.state_filename()
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(self.to_dict(), default=str, indent=2))
+        encoded = json.dumps(
+            self.to_dict(),
+            default=str,
+            indent=2,
+        ).encode("utf-8")
+        descriptor = os.open(
+            tmp,
+            os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+            0o600,
+        )
+        try:
+            view = memoryview(encoded)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise OSError(f"short trade-state write: {tmp}")
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
         os.replace(tmp, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
 
     def state_filename(self) -> str:
         """Filename for this trade's state file (one file per trade)."""
@@ -1348,7 +1607,14 @@ class TradeState:
 
     def delete_state_file(self, directory: Path) -> None:
         """Remove this trade's persisted state file from the directory."""
-        (directory / self.state_filename()).unlink(missing_ok=True)
+        path = directory / self.state_filename()
+        if path.exists():
+            path.unlink()
+            directory_fd = os.open(directory, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
 
     @classmethod
     def load(cls, path: Path) -> "TradeState | None":
@@ -1428,11 +1694,3 @@ def _jsonable(o):
     if isinstance(o, (list, tuple)):
         return [_jsonable(x) for x in o]
     return o
-
-
-def _shannon_entropy(probs):
-    s = 0.0
-    for p in probs:
-        if p > 1e-12:
-            s -= p * float(np.log(p))
-    return s

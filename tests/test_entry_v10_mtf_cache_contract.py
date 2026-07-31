@@ -37,7 +37,13 @@ def test_exact_mtf_prebuild_builds_once_and_reuses_one_cache_identity(
 
     index = pd.DatetimeIndex([pd.Timestamp("2026-01-01", tz="UTC")])
     expected = {
-        tf: pd.DataFrame(np.zeros((1, 25), dtype=np.float32), index=index)
+        tf: pd.DataFrame(
+            np.zeros(
+                (1, htf_features.MULTI_TF_FEATURE_COUNT_V4),
+                dtype=np.float32,
+            ),
+            index=index,
+        )
         for tf in ("M5", "M15", "H1", "H4", "D1")
     }
     calls = 0
@@ -52,12 +58,12 @@ def test_exact_mtf_prebuild_builds_once_and_reuses_one_cache_identity(
 
     monkeypatch.setattr(
         htf_features,
-        "build_multi_tf_per_bar_features_v2",
+        "build_multi_tf_per_bar_features_v4",
         fake_build,
     )
 
-    first = trainer._prebuild_multi_tf_v2_features_once(m5_path)
-    second = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+    first = trainer._prebuild_multi_tf_features_once(m5_path)
+    second = trainer._prebuild_multi_tf_features_once(m5_path)
     cache_key = trainer._multi_tf_cache_key(m5_path)
 
     assert calls == 1
@@ -82,7 +88,11 @@ def test_in_process_mtf_cache_does_not_reuse_mutated_m5_source(
         calls += 1
         return {
             tf: pd.DataFrame(
-                np.full((1, 25), calls, dtype=np.float32),
+                np.full(
+                    (1, htf_features.MULTI_TF_FEATURE_COUNT_V4),
+                    calls,
+                    dtype=np.float32,
+                ),
                 index=pd.DatetimeIndex([pd.Timestamp("2026-01-01", tz="UTC")]),
             )
             for tf in ("M5", "M15", "H1", "H4", "D1")
@@ -90,14 +100,14 @@ def test_in_process_mtf_cache_does_not_reuse_mutated_m5_source(
 
     monkeypatch.setattr(
         htf_features,
-        "build_multi_tf_per_bar_features_v2",
+        "build_multi_tf_per_bar_features_v4",
         fake_build,
     )
-    first = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+    first = trainer._prebuild_multi_tf_features_once(m5_path)
     changed = pd.read_parquet(m5_path)
     changed.loc[0, "close"] = float(changed.loc[0, "close"]) + 1.0
     changed.to_parquet(m5_path, index=False)
-    second = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+    second = trainer._prebuild_multi_tf_features_once(m5_path)
 
     assert calls == 2
     assert second is not first
@@ -112,7 +122,7 @@ def test_prebuild_owner_uses_verified_disk_cache_and_binds_cache_identity(
     _write_m5_source(m5_path)
     disk_cache = (tmp_path / "verified_cache").resolve()
     disk_cache.mkdir()
-    monkeypatch.setenv("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(disk_cache))
+    monkeypatch.setenv("GX1_V10_MULTI_TF_V4_CACHE_DIR", str(disk_cache))
     monkeypatch.setattr(trainer, "_MULTI_TF_CACHE", {})
     monkeypatch.setattr(trainer, "_MULTI_TF_ACTIVE_CACHE_KEYS", {})
     source_sha256 = trainer._sha256_file(m5_path)
@@ -128,7 +138,10 @@ def test_prebuild_owner_uses_verified_disk_cache_and_binds_cache_identity(
     verified = VerifiedCache(
         {
             tf: pd.DataFrame(
-                np.zeros((len(index), 25), dtype=np.float32),
+                np.zeros(
+                    (len(index), htf_features.MULTI_TF_FEATURE_COUNT_V4),
+                    dtype=np.float32,
+                ),
                 index=index,
             )
             for tf in ("M5", "M15", "H1", "H4", "D1")
@@ -142,15 +155,15 @@ def test_prebuild_owner_uses_verified_disk_cache_and_binds_cache_identity(
         assert Path(cache_dir).resolve() == disk_cache
         return verified
 
-    monkeypatch.setattr(htf_features, "load_multi_tf_v2_cache", fake_load)
+    monkeypatch.setattr(htf_features, "load_multi_tf_cache", fake_load)
     monkeypatch.setattr(
         htf_features,
-        "build_multi_tf_per_bar_features_v2",
+        "build_multi_tf_per_bar_features_v4",
         lambda frame: pytest.fail("source builder bypassed verified disk cache"),
     )
 
-    first = trainer._prebuild_multi_tf_v2_features_once(m5_path)
-    second = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+    first = trainer._prebuild_multi_tf_features_once(m5_path)
+    second = trainer._prebuild_multi_tf_features_once(m5_path)
 
     assert first is verified
     assert second is first
@@ -175,10 +188,11 @@ def test_mtf_cache_key_rejects_every_non_exact_contract_mode(
 
 
 def test_active_mtf_prebuild_has_no_legacy_v1_builder_or_mode_lane() -> None:
-    owner_source = inspect.getsource(trainer._prebuild_multi_tf_v2_features_once)
+    owner_source = inspect.getsource(trainer._prebuild_multi_tf_features_once)
     train_source = inspect.getsource(trainer.run_train)
 
-    assert "build_multi_tf_per_bar_features_v2" in owner_source
+    assert "build_multi_tf_per_bar_features_v4" in owner_source
+    assert "build_multi_tf_per_bar_features_v2" not in owner_source
     assert "build_multi_tf_per_bar_features(" not in owner_source
     assert "v2_mode =" not in train_source
     assert "|v2=" not in train_source

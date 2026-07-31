@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 from pathlib import Path
@@ -30,11 +31,11 @@ WRAPPER = REPO / "scripts/run_entry_model_native_seq513_smoke_train.sh"
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     metadata = model_native_recipe_env_contract_metadata()
 
-    assert len(MODEL_NATIVE_RECIPE_ENV) == 162
-    assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == 162
+    assert len(MODEL_NATIVE_RECIPE_ENV) == 163
+    assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == 163
     assert metadata == {
         "schema_version": "entry_model_native_seq513_train_recipe_env_v1",
-        "count": 162,
+        "count": 163,
         "sha256": MODEL_NATIVE_RECIPE_ENV_SHA256,
         "keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
     }
@@ -108,11 +109,16 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "aux_target_contract",
         "control_surface",
         "launch_contract",
+        "model",
+        "mtf_feature_builder",
+        "mtf_smc_geometry",
+        "mtf_specialist_routing",
         "recipe_contract",
         "recipe_producer",
-        "wrapper",
-        "trainer",
-        "capped_runner",
+            "wrapper",
+            "trainer",
+            "unified_exit_lifecycle_contract",
+            "capped_runner",
     }
 
     original_recipe = str(paths["recipe_audit_json"])
@@ -133,6 +139,34 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
     assert "Validated model-native seq513 smoke contract" in result.stdout
     assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in result.stdout
     assert "ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35" in result.stdout
+
+
+@pytest.mark.parametrize("invalid_dropout", ("-0.01", "1.0", "nan"))
+def test_train_launch_rejects_invalid_explicit_dropout(
+    tmp_path: Path,
+    invalid_dropout: str,
+) -> None:
+    wrapper_argv, _ = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    dropout_index = wrapper_argv.index("--dropout") + 1
+    wrapper_argv[dropout_index] = invalid_dropout
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "smoke",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(launch.LaunchContractError, match="dropout"):
+        launch._trainer_cli_contract(args)
 
 
 def test_recipe_producer_fails_before_publication_when_source_is_dirty(
@@ -257,10 +291,50 @@ def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
     with_default = re.findall(r'_env_str\(\s*"[A-Z0-9_]+"\s*,', source)
     assert with_default == [], f"trainer regained shadow defaults: {with_default}"
     single_arg = re.findall(r'_env_str\(\s*"([A-Z0-9_]+)"\s*\)', source)
-    assert len(single_arg) == 160
+    assert len(single_arg) == 161
     # Every key the trainer reads must be owned by the recipe contract.
     unknown = sorted(set(single_arg) - set(MODEL_NATIVE_RECIPE_ENV_KEYS))
     assert unknown == [], f"trainer reads keys with no recipe owner: {unknown}"
+
+
+def test_trainer_cli_has_no_numeric_execution_defaults() -> None:
+    source = (REPO / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py").read_text(
+        encoding="utf-8"
+    )
+    required_flags = (
+        "--seed",
+        "--device",
+        "--batch_size",
+        "--epochs",
+        "--lr",
+        "--seq_len",
+        "--num-workers",
+        "--early-stopping-patience",
+        "--early-stopping-min-delta",
+        "--multi-tf-scale",
+        "--subsample-rows",
+        "--grad-clip-norm",
+        "--weight-decay",
+    )
+    tree = ast.parse(source)
+    observed: dict[str, ast.Call] = {}
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_argument"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value in required_flags
+        ):
+            continue
+        observed[str(node.args[0].value)] = node
+    assert set(observed) == set(required_flags)
+    for flag, node in observed.items():
+        keywords = {keyword.arg: keyword.value for keyword in node.keywords}
+        assert isinstance(keywords.get("required"), ast.Constant)
+        assert keywords["required"].value is True, flag
+        assert "default" not in keywords, flag
 
 
 def test_env_reader_rejects_a_key_the_recipe_does_not_own() -> None:

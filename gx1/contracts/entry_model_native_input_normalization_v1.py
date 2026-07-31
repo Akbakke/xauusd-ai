@@ -17,6 +17,13 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
+)
+from gx1.features.htf_features import (
+    MULTI_TF_TIMEFRAMES,
+    MULTI_TF_TIMEFRAMES_LOWER,
+)
 
 SCHEMA_VERSION = "entry_model_native_input_normalization_v1"
 TRANSFORM = "train_only_median_iqr_or_sparse_deviation_v1"
@@ -35,17 +42,11 @@ EXPECTED_SURFACES = (
     "mtf_h4",
     "mtf_d1",
 )
-EXPECTED_TFS = ("M5", "M15", "H1", "H4", "D1")
-CTX_CAT_DOMAINS = {
-    "session_id": (0, 1, 2, 3),
-    "vol_regime_id": (0, 1, 2, 3, 4),
-    "atr_bucket": (0, 1, 2, 3, 4),
-    "spread_bucket": (0, 1, 2, 3, 4),
-    "H4_trend_sign_cat": (0, 1, 2),
-}
+EXPECTED_TFS = MULTI_TF_TIMEFRAMES
+CTX_CAT_DOMAINS = MODEL_NATIVE_CTX_CAT_DOMAINS
 CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS = {
     f"{tf}_regime_class_id_v2": (0, 1, 2, 3, 4)
-    for tf in ("m15", "h1", "h4", "d1", "m5")
+    for tf in (*MULTI_TF_TIMEFRAMES_LOWER[1:], MULTI_TF_TIMEFRAMES_LOWER[0])
 }
 MTF_SEMANTIC_CATEGORICAL_DOMAINS = {
     "regime_class_id": (0, 1, 2, 3, 4),

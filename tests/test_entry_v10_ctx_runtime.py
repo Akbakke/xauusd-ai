@@ -43,7 +43,7 @@ class TestEntryV10CtxLoader:
         # Load bundle
         bundle = load_entry_v10_ctx_bundle(
             bundle_dir=bundle_dir,
-            is_replay=True,
+            device="cpu",
         )
         
         # Verify bundle loaded
@@ -94,11 +94,17 @@ class TestEntryV10CtxProof:
             seq_input_dim=16,
             snap_input_dim=16,
             seq_len=30,
-            m5_seq_dim=3,
-            m15_seq_dim=3,
-            h1_seq_dim=3,
-            h4_seq_dim=3,
-            d1_seq_dim=3,
+            dropout=0.05,
+            multi_tf_num_layers=1,
+            multi_tf_scale=0.5,
+            specialist_num_layers=1,
+            specialist_fusion_scale=0.25,
+            cross_family_fusion_scale=0.25,
+            m5_seq_dim=len(EXACT_SPECIALIST_NAMES),
+            m15_seq_dim=len(EXACT_SPECIALIST_NAMES),
+            h1_seq_dim=len(EXACT_SPECIALIST_NAMES),
+            h4_seq_dim=len(EXACT_SPECIALIST_NAMES),
+            d1_seq_dim=len(EXACT_SPECIALIST_NAMES),
             m5_seq_len=30,
             m15_seq_len=30,
             h1_seq_len=30,
@@ -126,11 +132,18 @@ class TestEntryV10CtxProof:
                     "ctx_cat_indices"
                 ].items()
             },
+            multi_tf_specialist_input_indices={
+                name: [index]
+                for index, name in enumerate(EXACT_SPECIALIST_NAMES)
+            },
             temporal_alias_signal_indices=[],
             temporal_alias_ctx_cont_indices=[],
             input_normalization=input_normalization_fixture(
                 signal_names=[f"signal_{index}" for index in range(16)],
-                mtf_names=["mtf_0", "mtf_1", "mtf_2"],
+                mtf_names=[
+                    f"mtf_{index}"
+                    for index in range(len(EXACT_SPECIALIST_NAMES))
+                ],
             ),
         )
         model.eval()
@@ -140,7 +153,11 @@ class TestEntryV10CtxProof:
         seq_x = torch.randn(batch_size, 30, 16)  # [1, 30, 16]
         snap_x = seq_x[:, -1, :].clone()
         mtf_inputs = {
-            f"seq_{tf}": torch.randn(batch_size, 30, 3)
+            f"seq_{tf}": torch.randn(
+                batch_size,
+                30,
+                len(EXACT_SPECIALIST_NAMES),
+            )
             for tf in ("m5", "m15", "h1", "h4", "d1")
         }
 

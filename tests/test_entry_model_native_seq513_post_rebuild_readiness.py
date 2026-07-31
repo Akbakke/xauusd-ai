@@ -30,13 +30,17 @@ def _write_json(path: Path, payload: dict) -> Path:
     return path
 
 
-def _fixture(tmp_path: Path) -> tuple[argparse.Namespace, dict]:
+def _fixture(
+    tmp_path: Path,
+    *,
+    xau_schema: str = "m5_tape_current_snapshot_v2",
+) -> tuple[argparse.Namespace, dict]:
     run_id = "XAU_SEQ513_POST_REBUILD_PYTEST_V1"
     event_root = (tmp_path / "event").resolve()
     dataset_dir = event_root / "dataset"
     dataset_dir.mkdir(parents=True)
     xau = {
-        "schema_version": "m5_tape_current_snapshot_v2",
+        "schema_version": xau_schema,
         "instrument": "XAU_USD",
         "entry_run_id": run_id,
         "tape_root": str(event_root / "tape"),
@@ -49,9 +53,9 @@ def _fixture(tmp_path: Path) -> tuple[argparse.Namespace, dict]:
 
     split_values: dict[str, str] = {}
     for index, split in enumerate(gate.SPLITS, start=1):
-        parquet = dataset_dir / f"v10_seq513_dataset__HOLD_03B_{split}.parquet"
+        parquet = dataset_dir / f"v10_seq513_dataset__DIR_H24B_{split}.parquet"
         parquet.write_bytes(f"parquet-{split}".encode())
-        manifest = dataset_dir / f"v10_seq513_dataset__HOLD_03B_{split}.manifest.json"
+        manifest = dataset_dir / f"v10_seq513_dataset__DIR_H24B_{split}.manifest.json"
         _write_json(
             manifest,
             {
@@ -195,6 +199,42 @@ def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
     }
 
 
+def test_post_rebuild_readiness_accepts_strict_native_v4_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    args, xau = _fixture(
+        tmp_path,
+        xau_schema="xau_canonical_native_source_v4",
+    )
+    monkeypatch.setattr(
+        gate,
+        "validate_xau_tape_provenance_v1",
+        lambda *a, **k: xau,
+    )
+    monkeypatch.setattr(
+        gate,
+        "_git_identity",
+        lambda repo: {
+            "repo_dir": str(repo),
+            "head": "a" * 40,
+            "status_short": [],
+        },
+    )
+    monkeypatch.setattr(
+        gate,
+        "validate_full_input_liveness_artifact",
+        lambda *a, **k: {"ok": True},
+    )
+
+    report = gate.run(args)
+
+    assert report["decision"] == READY_DECISION
+    assert report["xau_tape_provenance"]["schema_version"] == (
+        "xau_canonical_native_source_v4"
+    )
+
+
 def test_post_rebuild_readiness_rejects_separate_smoke_copy(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -210,3 +250,42 @@ def test_post_rebuild_readiness_rejects_separate_smoke_copy(
 
     with pytest.raises(RuntimeError, match="separate smoke dataset is forbidden"):
         gate.run(args)
+
+
+def test_post_rebuild_readiness_rejects_stale_v5_preflight(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    args, xau = _fixture(tmp_path)
+    preflight_path = Path(args.rebuild_preflight_json)
+    preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
+    preflight["schema_version"] = "entry_model_native_seq513_rebuild_preflight_v5"
+    _write_json(preflight_path, preflight)
+    terminal_path = Path(args.chain_terminal_json)
+    terminal = json.loads(terminal_path.read_text(encoding="utf-8"))
+    terminal["preflight"]["sha256"] = _sha256(preflight_path)
+    _write_json(terminal_path, terminal)
+    monkeypatch.setattr(
+        gate, "validate_xau_tape_provenance_v1", lambda *a, **k: xau
+    )
+    monkeypatch.setattr(
+        gate,
+        "_git_identity",
+        lambda repo: {"repo_dir": str(repo), "head": "a" * 40, "status_short": []},
+    )
+    monkeypatch.setattr(
+        gate,
+        "validate_full_input_liveness_artifact",
+        lambda *a, **k: {"ok": True},
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        gate.run(args)
+
+    assert exc_info.value.code == 2
+    reports = list(
+        Path(args.out_dir).glob("ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_*.json")
+    )
+    assert len(reports) == 1
+    report = json.loads(reports[0].read_text(encoding="utf-8"))
+    assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_POST_REBUILD"
+    assert report["checks"][1]["ok"] is False

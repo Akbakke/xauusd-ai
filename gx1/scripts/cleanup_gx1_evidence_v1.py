@@ -32,6 +32,7 @@ APPROVAL_PREFIX = "GX1_EVIDENCE_RETENTION_APPROVAL"
 STARTED_PREFIX = "GX1_EVIDENCE_CLEANUP_STARTED"
 STAGED_PREFIX = "GX1_EVIDENCE_CLEANUP_STAGED"
 EXECUTION_PREFIX = "GX1_EVIDENCE_CLEANUP_EXECUTION"
+RECOVERY_PREFIX = "GX1_EVIDENCE_CLEANUP_RECOVERY"
 DEFAULT_REGISTRY = REPO_ROOT / "PROJECT_STATE_artifacts.json"
 DEFAULT_LAUNCH = REPO_ROOT / "PROJECT_STATE_xau_direction_launch.json"
 DEFAULT_PLAN_DIR = GX1_DATA_ROOT / "reports/gx1_evidence_retention_cleanup_plans"
@@ -47,6 +48,20 @@ _APPROVAL_KEYS = {
     "vedtak",
     "approved_by",
     "targets",
+    "direction_authority",
+    "launch_authority",
+}
+_STARTED_KEYS = {
+    "schema_version",
+    "created_utc",
+    "json_path",
+    "decision",
+    "plan_json",
+    "plan_sha256",
+    "approval_json",
+    "approval_sha256",
+    "vedtak",
+    "stage_plan",
     "direction_authority",
     "launch_authority",
 }
@@ -213,6 +228,104 @@ def _validate_cleanup_approval(
     if sha256_file(path) != expected_sha:
         raise RuntimeError("cleanup approval changed during validation")
     return approval
+
+
+def _validate_cleanup_started_event(
+    started_json: Path,
+    started_sha256: str,
+    *,
+    validated_plan: dict[str, Any],
+    approval_json: Path,
+    approval_sha256: str,
+    expected_stage_plan: Sequence[dict[str, str]],
+) -> tuple[Path, dict[str, Any]]:
+    raw_path = Path(started_json).expanduser()
+    if not raw_path.is_absolute() or raw_path.is_symlink():
+        raise RuntimeError("cleanup started event path must be absolute and not a symlink")
+    path = raw_path.resolve(strict=True)
+    if raw_path != path or not path.is_file():
+        raise RuntimeError("cleanup started event is not an exact regular file")
+    expected_sha = started_sha256.strip().lower()
+    if len(expected_sha) != 64 or any(
+        char not in "0123456789abcdef" for char in expected_sha
+    ):
+        raise RuntimeError("cleanup started event SHA-256 is invalid")
+    if sha256_file(path) != expected_sha:
+        raise RuntimeError("cleanup started event SHA-256 mismatch")
+    try:
+        event = json.loads(
+            path.read_text(encoding="utf-8"),
+            parse_constant=lambda token: (_ for _ in ()).throw(
+                ValueError(f"non-finite JSON token {token}")
+            ),
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError(f"cleanup started event is not strict JSON: {exc}") from exc
+    if not isinstance(event, dict) or set(event) != _STARTED_KEYS:
+        raise RuntimeError("cleanup started event keys are invalid")
+    require_newest_immutable_event(path, STARTED_PREFIX)
+    required = {
+        "schema_version": "gx1_evidence_cleanup_started_v1",
+        "decision": "ATOMIC_STAGING_STARTED",
+        "json_path": str(path),
+        "plan_json": validated_plan["plan_json"],
+        "plan_sha256": validated_plan["plan_sha256"],
+        "approval_json": str(Path(approval_json).expanduser().resolve(strict=True)),
+        "approval_sha256": approval_sha256.strip().lower(),
+        "vedtak": validated_plan["vedtak"],
+        "stage_plan": list(expected_stage_plan),
+        "direction_authority": False,
+        "launch_authority": False,
+    }
+    for field, expected in required.items():
+        if event.get(field) != expected:
+            raise RuntimeError(f"cleanup started event {field} does not match plan")
+    if sha256_file(path) != expected_sha:
+        raise RuntimeError("cleanup started event changed during validation")
+    return path, event
+
+
+def _require_staged_delete_authority_unchanged(
+    *,
+    validated_plan: dict[str, Any],
+    approval_json: Path,
+    approval_sha256: str,
+) -> None:
+    """Recheck immutable authority without rescanning every staged target."""
+
+    plan_path = Path(validated_plan["plan_json"])
+    if sha256_file(plan_path) != validated_plan["plan_sha256"]:
+        raise RuntimeError("cleanup plan changed after staging")
+    try:
+        require_newest_immutable_event(plan_path, PLAN_EVENT_PREFIX)
+    except Exception as exc:
+        raise RuntimeError(
+            f"cleanup plan lost newest immutable authority after staging: {exc}"
+        ) from exc
+
+    authority = validated_plan["authority"]
+    for label, path_field, sha_field in (
+        (
+            "artifact registry",
+            "artifact_registry_json",
+            "artifact_registry_sha256",
+        ),
+        ("launch contract", "launch_contract_json", "launch_contract_sha256"),
+        ("delete incident", "delete_incident_json", "delete_incident_sha256"),
+    ):
+        path = Path(authority[path_field])
+        if sha256_file(path) != authority[sha_field]:
+            raise RuntimeError(f"{label} changed after staging")
+
+    approval_path = Path(approval_json).expanduser()
+    expected_approval_sha = approval_sha256.strip().lower()
+    if (
+        not approval_path.is_absolute()
+        or approval_path.is_symlink()
+        or approval_path.resolve(strict=True) != approval_path
+        or sha256_file(approval_path) != expected_approval_sha
+    ):
+        raise RuntimeError("cleanup approval changed after staging")
 
 
 def _same_inventory(declared: dict[str, Any], observed: dict[str, Any]) -> bool:
@@ -447,6 +560,182 @@ def _stage_exact_target(
     }
 
 
+def _restore_staged_target(
+    target: dict[str, Any],
+    mapping: dict[str, str],
+) -> dict[str, Any]:
+    source = Path(mapping["source_path"])
+    wrapper = Path(mapping["quarantine_wrapper"])
+    quarantine = Path(mapping["quarantine_path"])
+    if source.exists() or source.is_symlink():
+        raise RuntimeError(f"cleanup recovery source already exists: {source}")
+    if (
+        wrapper.is_symlink()
+        or not wrapper.is_dir()
+        or quarantine.is_symlink()
+        or not quarantine.exists()
+    ):
+        raise RuntimeError(f"cleanup recovery quarantine is invalid: {quarantine}")
+    observed = inventory_path(quarantine)
+    if not _same_inventory(target, observed):
+        raise RuntimeError(
+            f"cleanup recovery quarantine inventory differs: {quarantine}"
+        )
+    _reject_open_writer_fds(quarantine)
+
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    parent_fd = _open_absolute_directory_nofollow(source.parent)
+    wrapper_fd = os.open(wrapper.name, flags, dir_fd=parent_fd)
+    try:
+        os.rename(
+            "payload",
+            source.name,
+            src_dir_fd=wrapper_fd,
+            dst_dir_fd=parent_fd,
+        )
+        os.rmdir(wrapper.name, dir_fd=parent_fd)
+        os.fsync(parent_fd)
+    finally:
+        os.close(wrapper_fd)
+        os.close(parent_fd)
+
+    restored = inventory_path(source)
+    if not _same_inventory(target, restored):
+        raise RuntimeError(f"cleanup recovered source inventory differs: {source}")
+    return {
+        **mapping,
+        **{field: restored[field] for field in _INVENTORY_FIELDS},
+    }
+
+
+def recover_interrupted_cleanup(
+    *,
+    plan_json: Path,
+    plan_sha256: str,
+    vedtak: str,
+    approval_json: Path,
+    approval_sha256: str,
+    started_json: Path,
+    started_sha256: str,
+    out_dir: Path,
+    recover: bool,
+    quiet: bool,
+    allowed_roots: Sequence[Path] = (GX1_DATA_ROOT,),
+    required_artifact_registry_json: Path = DEFAULT_REGISTRY,
+    required_launch_contract_json: Path = DEFAULT_LAUNCH,
+) -> int:
+    """Restore an interrupted pre-STAGED transaction to its exact source paths."""
+
+    if not recover:
+        raise RuntimeError("cleanup recovery requires explicit --recover")
+    validated = validate_cleanup_plan(
+        plan_json,
+        plan_sha256,
+        vedtak=vedtak,
+        allowed_roots=allowed_roots,
+        required_artifact_registry_json=required_artifact_registry_json,
+        required_launch_contract_json=required_launch_contract_json,
+        verify_target_bytes=False,
+        require_targets_exist=False,
+    )
+    _validate_cleanup_approval(
+        approval_json,
+        approval_sha256,
+        validated_plan=validated,
+    )
+    stage_plan = _stage_plan(
+        validated["targets"],
+        plan_sha256=validated["plan_sha256"],
+    )
+    started_path, _ = _validate_cleanup_started_event(
+        started_json,
+        started_sha256,
+        validated_plan=validated,
+        approval_json=approval_json,
+        approval_sha256=approval_sha256,
+        expected_stage_plan=stage_plan,
+    )
+    report_dir = _validated_output_dir(
+        out_dir,
+        validated["targets"],
+        context="cleanup recovery report",
+    )
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    initial_state: list[dict[str, str]] = []
+    for target, mapping in zip(validated["targets"], stage_plan, strict=True):
+        source = Path(mapping["source_path"])
+        wrapper = Path(mapping["quarantine_wrapper"])
+        quarantine = Path(mapping["quarantine_path"])
+        source_present = source.exists() and not source.is_symlink()
+        staged_present = (
+            wrapper.is_dir()
+            and not wrapper.is_symlink()
+            and quarantine.exists()
+            and not quarantine.is_symlink()
+        )
+        if source_present == staged_present:
+            raise RuntimeError(
+                "cleanup recovery requires exactly one source/quarantine copy: "
+                f"{source}"
+            )
+        observed = inventory_path(source if source_present else quarantine)
+        if not _same_inventory(target, observed):
+            raise RuntimeError(f"cleanup recovery inventory differs: {source}")
+        initial_state.append(
+            {
+                **mapping,
+                "state": "SOURCE_PRESENT" if source_present else "STAGED_PRESENT",
+            }
+        )
+
+    restored: list[dict[str, Any]] = []
+    failure: str | None = None
+    try:
+        for target, mapping, state in zip(
+            validated["targets"],
+            stage_plan,
+            initial_state,
+            strict=True,
+        ):
+            if state["state"] == "SOURCE_PRESENT":
+                continue
+            _require_staged_delete_authority_unchanged(
+                validated_plan=validated,
+                approval_json=approval_json,
+                approval_sha256=approval_sha256,
+            )
+            restored.append(_restore_staged_target(target, mapping))
+    except Exception as exc:
+        failure = f"{type(exc).__name__}: {exc}"
+
+    _, event = write_immutable_json_event(
+        report_dir,
+        RECOVERY_PREFIX,
+        {
+            "schema_version": "gx1_evidence_cleanup_recovery_v1",
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "decision": "RESTORE_COMPLETE" if failure is None else "RESTORE_PARTIAL_FAILURE",
+            "plan_json": validated["plan_json"],
+            "plan_sha256": validated["plan_sha256"],
+            "approval_json": str(Path(approval_json).expanduser().resolve()),
+            "approval_sha256": approval_sha256.strip().lower(),
+            "started_json": str(started_path),
+            "started_sha256": started_sha256.strip().lower(),
+            "vedtak": validated["vedtak"],
+            "initial_state": initial_state,
+            "restored": restored,
+            "failure": failure,
+            "direction_authority": False,
+            "launch_authority": False,
+        },
+    )
+    _json(event, quiet=quiet)
+    if failure is not None:
+        raise RuntimeError(f"cleanup recovery stopped after partial failure: {failure}")
+    return 0
+
+
 def execute_cleanup(
     *,
     plan_json: Path,
@@ -599,20 +888,10 @@ def execute_cleanup(
             validated["targets"],
             strict=True,
         ):
-            authority_now = validate_cleanup_plan(
-                plan_path,
-                plan_sha256,
-                vedtak=vedtak,
-                allowed_roots=allowed_roots,
-                required_artifact_registry_json=required_artifact_registry_json,
-                required_launch_contract_json=required_launch_contract_json,
-                verify_target_bytes=False,
-                require_targets_exist=False,
-            )
-            _validate_cleanup_approval(
-                approval_json,
-                approval_sha256,
-                validated_plan=authority_now,
+            _require_staged_delete_authority_unchanged(
+                validated_plan=validated,
+                approval_json=approval_json,
+                approval_sha256=approval_sha256,
             )
             _delete_staged_manifest_exact(staged_target, plan_target)
             deleted.append(staged_target["source_path"])
@@ -681,6 +960,21 @@ def _approve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _recover(args: argparse.Namespace) -> int:
+    return recover_interrupted_cleanup(
+        plan_json=Path(args.plan_json),
+        plan_sha256=args.plan_sha256,
+        vedtak=args.vedtak,
+        approval_json=Path(args.approval_json),
+        approval_sha256=args.approval_sha256,
+        started_json=Path(args.started_json),
+        started_sha256=args.started_sha256,
+        out_dir=Path(args.out_dir),
+        recover=args.recover,
+        quiet=args.quiet,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -713,6 +1007,19 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--execute", action="store_true")
     execute.add_argument("--quiet", action="store_true")
     execute.set_defaults(handler=_execute)
+
+    recover = subparsers.add_parser("recover")
+    recover.add_argument("--plan-json", required=True)
+    recover.add_argument("--plan-sha256", required=True)
+    recover.add_argument("--vedtak", required=True)
+    recover.add_argument("--approval-json", required=True)
+    recover.add_argument("--approval-sha256", required=True)
+    recover.add_argument("--started-json", required=True)
+    recover.add_argument("--started-sha256", required=True)
+    recover.add_argument("--out-dir", default=str(DEFAULT_REPORT_DIR))
+    recover.add_argument("--recover", action="store_true")
+    recover.add_argument("--quiet", action="store_true")
+    recover.set_defaults(handler=_recover)
     return parser
 
 
