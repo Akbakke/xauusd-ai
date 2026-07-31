@@ -721,12 +721,142 @@ def _pair_producer_source_inventory(repo_root: Path) -> list[dict[str, str]]:
     return inventory
 
 
+def _sha256_regular_file(path: Path, *, label: str) -> str:
+    """Hash one canonical regular file without following a symlink."""
+
+    path = Path(path)
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or path.resolve(strict=True) != path
+    ):
+        raise RuntimeError(f"{label}_PATH_INVALID: {path}")
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _native_bundle_cas_snapshot(
+    descriptor: dict[str, object],
+    *,
+    timeframe: str,
+) -> tuple[str, tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]]:
+    """Capture cheap byte-CAS evidence after the full bundle was validated.
+
+    ``canonical_xau_source_descriptor_v1`` already performs the expensive
+    semantic validation.  Loading the parquet frame must still detect a
+    concurrent mutation, but decoding every historical OANDA response again
+    is unnecessary: the immutable manifest hash, every year-part hash and
+    every source-chunk byte hash provide the required identity proof.
+    """
+
+    normalized = str(timeframe).upper()
+    root = Path(str(descriptor.get("root") or "")).expanduser()
+    if (
+        not root.is_absolute()
+        or root.is_symlink()
+        or not root.is_dir()
+        or root.resolve(strict=True) != root
+    ):
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_ROOT_INVALID: {root}"
+        )
+    manifest_path = root / "MANIFEST.json"
+    expected_manifest_sha = str(descriptor.get("manifest_sha256") or "")
+    observed_manifest_sha = _sha256_regular_file(
+        manifest_path,
+        label=f"PAIR_BOOTSTRAP_NATIVE_{normalized}_MANIFEST",
+    )
+    if observed_manifest_sha != expected_manifest_sha:
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_MANIFEST_MISMATCH"
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_MANIFEST_INVALID"
+        ) from exc
+    if not isinstance(manifest, dict):
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_MANIFEST_INVALID"
+        )
+
+    year_hashes = descriptor.get("year_sha256")
+    if not isinstance(year_hashes, dict) or not year_hashes:
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_YEARS_INVALID"
+        )
+    year_snapshot: list[tuple[str, str]] = []
+    for key, expected in sorted(year_hashes.items()):
+        if not isinstance(key, str) or not isinstance(expected, str):
+            raise RuntimeError(
+                f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_YEARS_INVALID"
+            )
+        part = root / key / "part-000.parquet"
+        observed = _sha256_regular_file(
+            part,
+            label=f"PAIR_BOOTSTRAP_NATIVE_{normalized}_YEAR",
+        )
+        if observed != expected:
+            raise RuntimeError(
+                f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_YEAR_MISMATCH: {key}"
+            )
+        year_snapshot.append((key, observed))
+
+    source_chunks = manifest.get("source_chunks")
+    if not isinstance(source_chunks, list) or not source_chunks:
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_CHUNKS_INVALID"
+        )
+    chunk_snapshot: list[tuple[str, str]] = []
+    for position, metadata in enumerate(source_chunks):
+        if not isinstance(metadata, dict):
+            raise RuntimeError(
+                f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_CHUNKS_INVALID"
+            )
+        relative = Path(str(metadata.get("relative_path") or ""))
+        expected = str(metadata.get("sha256") or "")
+        expected_relative = (
+            Path("source_chunks") / f"chunk-{position:06d}.json.gz"
+        )
+        if (
+            relative != expected_relative
+            or relative.is_absolute()
+            or any(part in {"", ".", ".."} for part in relative.parts)
+        ):
+            raise RuntimeError(
+                f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_CHUNK_PATH_INVALID"
+            )
+        chunk = root / relative
+        observed = _sha256_regular_file(
+            chunk,
+            label=f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CHUNK",
+        )
+        if observed != expected:
+            raise RuntimeError(
+                f"PAIR_BOOTSTRAP_NATIVE_{normalized}_CAS_CHUNK_MISMATCH: {relative}"
+            )
+        chunk_snapshot.append((str(relative), observed))
+    return (
+        observed_manifest_sha,
+        tuple(year_snapshot),
+        tuple(chunk_snapshot),
+    )
+
+
 def _load_native_source_frame(
     descriptor: dict[str, object],
     *,
     timeframe: str,
 ) -> pd.DataFrame:
     root = Path(str(descriptor["root"]))
+    cas_before = _native_bundle_cas_snapshot(
+        descriptor,
+        timeframe=timeframe,
+    )
     parts = sorted(root.glob("year=*/part-000.parquet"))
     if not parts:
         raise RuntimeError(f"PAIR_BOOTSTRAP_NATIVE_{timeframe}_EMPTY")
@@ -752,9 +882,15 @@ def _load_native_source_frame(
         raise RuntimeError(
             f"PAIR_BOOTSTRAP_NATIVE_{timeframe}_NONFINITE"
         )
-    # Revalidate the complete immutable source after reading every partition.
-    observed = canonical_xau_source_descriptor_v1(root, timeframe=timeframe)
-    if observed != descriptor:
+    # The complete bundle was semantically validated before this load.  Check
+    # byte-CAS identity after reading so a concurrent mutation cannot be
+    # silently admitted, without decoding every historical source response a
+    # second time.
+    cas_after = _native_bundle_cas_snapshot(
+        descriptor,
+        timeframe=timeframe,
+    )
+    if cas_after != cas_before:
         raise RuntimeError(
             f"PAIR_BOOTSTRAP_NATIVE_{timeframe}_CHANGED_DURING_LOAD"
         )
