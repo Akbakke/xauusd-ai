@@ -1231,16 +1231,13 @@ def _require_native_source_successor(
         timeframe=timeframe,
     )
 
-    observed_parent = canonical_xau_source_descriptor_v1(
-        Path(str(parent_descriptor["root"])),
-        timeframe=timeframe,
-    )
-    if _native_pair_lineage_descriptor(observed_parent) != parent_descriptor:
-        raise RuntimeError(
-            f"PAIR_SUCCESSOR_PARENT_NATIVE_{timeframe}_IDENTITY_MISMATCH"
-        )
+    # The active pair lineage is the already-admitted semantic identity of
+    # the parent source.  Re-decoding every historical response here adds no
+    # new authority; the manifest hash, year hashes and source-chunk hashes
+    # prove that the bytes still are exactly that admitted parent.
+    _native_bundle_cas_snapshot(parent_descriptor, timeframe=timeframe)
     parent_frame = _load_native_source_frame(
-        observed_parent,
+        parent_descriptor,
         timeframe=timeframe,
     )
     for field in (
@@ -1566,6 +1563,10 @@ def publish_prebuilt_pair_successor(
         )
     native_m1 = _load_native_source_frame(m1_descriptor, timeframe="M1")
     native_m5 = _load_native_source_frame(m5_descriptor, timeframe="M5")
+    native_cas_after_load = {
+        "M1": _native_bundle_cas_snapshot(m1_descriptor, timeframe="M1"),
+        "M5": _native_bundle_cas_snapshot(m5_descriptor, timeframe="M5"),
+    }
     _require_native_m1_m5_aggregation_identity(native_m1, native_m5)
     for label, timeframe, descriptor, frame in (
         ("m1", "M1", m1_descriptor, native_m1),
@@ -1621,11 +1622,11 @@ def publish_prebuilt_pair_successor(
         ("M1", m1_descriptor),
         ("M5", m5_descriptor),
     ):
-        observed = canonical_xau_source_descriptor_v1(
-            Path(str(descriptor["root"])),
+        observed_cas = _native_bundle_cas_snapshot(
+            descriptor,
             timeframe=timeframe,
         )
-        if observed != descriptor:
+        if observed_cas != native_cas_after_load[timeframe]:
             raise RuntimeError(
                 f"PAIR_SUCCESSOR_NATIVE_{timeframe}_CHANGED_DURING_BUILD"
             )

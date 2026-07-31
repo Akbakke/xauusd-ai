@@ -1244,6 +1244,15 @@ def test_full_history_successor_revalidates_native_prefix_and_publishes_child(
     monkeypatch.setattr(incremental, "_load_native_source_frame", frame_for)
     monkeypatch.setattr(
         incremental,
+        "_native_bundle_cas_snapshot",
+        lambda descriptor, *, timeframe: (
+            str(descriptor["manifest_sha256"]),
+            (),
+            (),
+        ),
+    )
+    monkeypatch.setattr(
+        incremental,
         "_derive_pair_frames",
         lambda **_kwargs: (
             successor_canonical.copy(),
