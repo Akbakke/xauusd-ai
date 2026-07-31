@@ -792,7 +792,7 @@ def test_live_tail_pair_route_fixes_successor_mode() -> None:
     )
 
 
-def test_generic_pair_route_cannot_claim_live_tail_authority() -> None:
+def test_generic_pair_route_accepts_live_tail_publication_input() -> None:
     result = subprocess.run(
         [
             "bash",
@@ -809,10 +809,8 @@ def test_generic_pair_route_cannot_claim_live_tail_authority() -> None:
     )
 
     assert result.returncode == 2
-    assert (
-        "fixes --live-tail-publication-event-root"
-        in result.stderr
-    )
+    assert "requires explicit --publication-mode" in result.stderr
+    assert "fixes --live-tail-publication-event-root" not in result.stderr
 
 
 @pytest.mark.parametrize(

@@ -20,7 +20,7 @@ Model-native seq513 evidence:
   model-native-state-selftest
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
-  model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
+  model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--live-tail-publication-event-root <dir>] [--workers <n>]
   model-native-live-tail-pair --native-m1-root <immutable-successor-dir> --native-m5-root <immutable-successor-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> --expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256> --live-tail-publication-event-root <dir> [--previous-live-tail-publication-json <event> --previous-live-tail-publication-sha256 <sha256>] [--workers <n>]
   model-native-live-tail-admission --pair-manifest <json> --generation-root <dir> --live-tail-admission-event-root <dir> --parent-live-tail-publication-json <event> --parent-live-tail-publication-sha256 <sha256> --child-live-tail-publication-json <event> --child-live-tail-publication-sha256 <sha256>
   model-native-mtf-v4-cache --m5-prebuilt <immutable-parquet> --expected-source-sha256 <sha256> --out-dir <new-event-local-dir>
@@ -242,7 +242,6 @@ case "$cmd" in
       reject_flags "$cmd" --publication-mode
     else
       reject_flags "$cmd" \
-        --live-tail-publication-event-root \
         --previous-live-tail-publication-json \
         --previous-live-tail-publication-sha256
     fi
