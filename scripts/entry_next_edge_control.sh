@@ -308,7 +308,9 @@ case "$cmd" in
       --pair-generation-id; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+    # The complete 2.3m-row M1 inline signal extension needs more than the
+    # canonical M5/MTF builders, but remains hard-capped below host memory.
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 38G --swap 1G -- \
       "$PY" -m gx1.scripts.materialize_entry_exit_m1_feature_base_v1 "$@"
     ;;
 
