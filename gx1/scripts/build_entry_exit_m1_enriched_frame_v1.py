@@ -56,6 +56,10 @@ from gx1.features.htf_features import (  # noqa: E402
     attach_default_regime_v4_v2_scalars,
     build_multi_tf_per_bar_features_v4,
 )
+from gx1.features.entry_smart_context import (  # noqa: E402
+    add_entry_smart_context_features,
+)
+from gx1.time.session_detector import decision_availability  # noqa: E402
 from gx1.scripts.augment_forward_outcome_v2 import (  # noqa: E402
     attach_group_a_dip_struct_ctx_columns_parallel,
 )
@@ -358,6 +362,39 @@ def build_m1_enriched_frame(
         context_m5=indexed_raw[["open", "high", "low", "close"]],
         base_bar_duration=M1_DURATION,
     )
+
+    # Complete the same model-native extension surface used by Entry, with the
+    # only clock difference being the closed M1 decision bar.  These are owned
+    # transforms, not neutral fills: missing source evidence raises below.
+    decision_ts = decision_availability(
+        enriched.index,
+        bar_duration=M1_DURATION,
+        context="M1_ENRICHED_TIME_FEATURES",
+    )
+    hour = decision_ts.hour.to_numpy(dtype=np.float32)
+    dow = decision_ts.dayofweek.to_numpy(dtype=np.float32)
+    enriched["hour_sin"] = np.sin(2.0 * np.pi * hour / 24.0).astype(np.float32)
+    enriched["hour_cos"] = np.cos(2.0 * np.pi * hour / 24.0).astype(np.float32)
+    enriched["dow_sin"] = np.sin(2.0 * np.pi * dow / 7.0).astype(np.float32)
+    enriched["dow_cos"] = np.cos(2.0 * np.pi * dow / 7.0).astype(np.float32)
+    swing_state = pd.to_numeric(
+        enriched["smc_swing_state"], errors="raise"
+    ).to_numpy(dtype=np.float64)
+    premium_discount = pd.to_numeric(
+        enriched["smc_premium_discount"], errors="raise"
+    ).to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(swing_state).all()
+        or not np.isfinite(premium_discount).all()
+        or not np.equal(swing_state, np.rint(swing_state)).all()
+        or np.any((swing_state < 0.0) | (swing_state > 4.0))
+        or np.any((premium_discount < 0.0) | (premium_discount > 1.0))
+    ):
+        raise RuntimeError("M1_ENRICHED_SMC_PREMIUM_STATE_SOURCE_INVALID")
+    enriched["smc_premium_state"] = (
+        premium_discount * np.equal(swing_state, 0.0)
+    ).astype(np.float32)
+    add_entry_smart_context_features(enriched)
 
     if not enriched.index.is_unique or not enriched.index.is_monotonic_increasing:
         raise RuntimeError("M1_ENRICHED_OUTPUT_TIME_ORDER_INVALID")
