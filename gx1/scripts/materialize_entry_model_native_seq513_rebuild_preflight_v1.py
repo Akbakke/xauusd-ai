@@ -42,6 +42,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     model_native_mandatory_full_stack_metadata,
     require_model_native_manifest,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    require_entry_exit_shared_feature_base_contract,
+)
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -151,6 +154,94 @@ def _artifact_meta(path: Path, *, sha256: str | None = None) -> dict[str, Any]:
         "size_bytes": path.stat().st_size if exists else None,
         "sha256": sha256 if sha256 is not None else (_sha256_file(path) if exists else None),
     }
+
+
+def _m1_feature_base_contract(
+    *,
+    feature_base_path: Path,
+    expected_run_id: str,
+    expected_m1_source_path: Path | None,
+    expected_pair_generation_id: str | None,
+) -> dict[str, Any]:
+    manifest_path = Path(str(feature_base_path) + ".manifest.json")
+    result: dict[str, Any] = {
+        "path": str(feature_base_path),
+        "manifest_path": str(manifest_path),
+        "exists": feature_base_path.is_file() and not feature_base_path.is_symlink(),
+        "manifest_exists": manifest_path.is_file() and not manifest_path.is_symlink(),
+        "exact": False,
+    }
+    if not result["exists"] or not result["manifest_exists"]:
+        return result
+    feature_sha = _sha256_file(feature_base_path)
+    manifest_sha = _sha256_file(manifest_path)
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        require_entry_exit_shared_feature_base_contract(
+            manifest.get("shared_feature_base_contract"),
+            context="SEQ513_REBUILD_PREFLIGHT_M1_FEATURE_BASE",
+        )
+        declared_source = str(manifest.get("source_parquet") or "").strip()
+        pair_generation_match = (
+            expected_pair_generation_id is not None
+            and str(manifest.get("pair_generation_id") or "")
+            == expected_pair_generation_id
+        )
+        feature_times = pd.DatetimeIndex(
+            pd.to_datetime(
+                pd.read_parquet(feature_base_path, columns=["time"])["time"],
+                utc=True,
+                errors="coerce",
+            )
+        ).as_unit("ns")
+        source_times = pd.DatetimeIndex(
+            pd.to_datetime(
+                pd.read_parquet(
+                    expected_m1_source_path,
+                    columns=["time"],
+                )["time"],
+                utc=True,
+                errors="coerce",
+            )
+        ).as_unit("ns") if expected_m1_source_path is not None else pd.DatetimeIndex([])
+        time_alignment = bool(
+            len(source_times) > 0
+            and len(feature_times) >= len(source_times)
+            and source_times.isin(feature_times).all()
+            and feature_times[-1] == source_times[-1]
+        )
+        result.update(
+            {
+                "schema_version": manifest.get("schema_version"),
+                "decision": manifest.get("decision"),
+                "dataset_run_id": manifest.get("dataset_run_id"),
+                "output_parquet": manifest.get("output_parquet"),
+                "output_parquet_sha256": manifest.get("output_parquet_sha256"),
+                "feature_base_sha256": feature_sha,
+                "manifest_sha256": manifest_sha,
+                "source_parquet": declared_source,
+                "pair_generation_id": manifest.get("pair_generation_id"),
+                "pair_generation_matches": pair_generation_match,
+                "time_alignment": "exact_m1_source_timestamp_subset_with_causal_prefix"
+                if time_alignment
+                else "invalid",
+                "feature_rows": len(feature_times),
+                "m1_source_rows": len(source_times),
+                "shared_feature_base_contract_valid": True,
+            }
+        )
+        result["exact"] = bool(
+            manifest.get("schema_version") == "gx1_entry_exit_m1_feature_surface_v1"
+            and manifest.get("decision") == "PASS"
+            and manifest.get("dataset_run_id") == expected_run_id
+            and manifest.get("output_parquet") == str(feature_base_path)
+            and manifest.get("output_parquet_sha256") == feature_sha
+            and pair_generation_match
+            and time_alignment
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        result["error"] = str(exc)
+    return result
 
 
 def _read_json(path: Path) -> tuple[dict[str, Any], str | None]:
@@ -807,6 +898,7 @@ def _command_contract(
     tape_root: Path,
     m1_lifecycle_pair_manifest_json: Path,
     m1_lifecycle_pair_generation_root: Path,
+    m1_feature_base_path: Path,
     exit_lifecycle_dir: Path,
     exit_target_lookahead_m1_steps: int,
     early_move_threshold_bps: float,
@@ -839,6 +931,8 @@ def _command_contract(
         str(m1_lifecycle_pair_manifest_json),
         "--m1-lifecycle-pair-generation-root",
         str(m1_lifecycle_pair_generation_root),
+        "--m1-feature-base-parquet",
+        str(m1_feature_base_path),
         "--exit-lifecycle-dir",
         str(exit_lifecycle_dir),
         "--exit-target-lookahead-m1-steps",
@@ -1009,6 +1103,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     m1_lifecycle_pair_generation_root = Path(
         str(raw_pair_generation_root)
     ).expanduser()
+    m1_feature_base_path = _required_path_arg(
+        args,
+        "m1_feature_base_parquet",
+        "--m1-feature-base-parquet",
+    )
     exit_lifecycle_dir = _required_path_arg(
         args,
         "exit_lifecycle_dir",
@@ -1062,6 +1161,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     except Exception as exc:
         m1_lifecycle_authority_error = str(exc)
+    m1_feature_base = _m1_feature_base_contract(
+        feature_base_path=m1_feature_base_path,
+        expected_run_id=entry_run_id,
+        expected_m1_source_path=m1_lifecycle_source_parquet,
+        expected_pair_generation_id=m1_lifecycle_authority.get(
+            "pair_generation_id"
+        ),
+    )
     _check(
         checks,
         "explicit source parquet is a regular readable parquet",
@@ -1116,6 +1223,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "error": m1_lifecycle_authority_error,
         },
+    )
+    _check(
+        checks,
+        "explicit M1 feature base is the PASS artifact for this run and pair source",
+        bool(m1_feature_base.get("exact")),
+        m1_feature_base,
     )
 
     manifest, manifest_read_error = _read_json(signal_manifest_path)
@@ -1389,6 +1502,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             m1_lifecycle_pair_generation_root=(
                 m1_lifecycle_pair_generation_root
             ),
+            m1_feature_base_path=m1_feature_base_path,
             exit_lifecycle_dir=exit_lifecycle_dir,
             exit_target_lookahead_m1_steps=(
                 exit_target_lookahead_m1_steps
@@ -1462,6 +1576,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "m1_lifecycle_pair_generation_root": str(
                 m1_lifecycle_pair_generation_root
             ),
+            "m1_feature_base_parquet": m1_feature_base,
             "m1_lifecycle_authority": m1_lifecycle_authority,
             "exit_lifecycle_dir": str(exit_lifecycle_dir),
             "exit_target_lookahead_m1_steps": (
@@ -1508,6 +1623,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--m1-lifecycle-pair-generation-root",
         required=True,
     )
+    parser.add_argument("--m1-feature-base-parquet", required=True)
     parser.add_argument("--exit-lifecycle-dir", required=True)
     parser.add_argument(
         "--exit-target-lookahead-m1-steps",

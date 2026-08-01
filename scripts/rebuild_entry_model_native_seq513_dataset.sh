@@ -18,6 +18,7 @@ MTF_CACHE_DIR=
 TAPE_ROOT=
 M1_LIFECYCLE_PAIR_MANIFEST_JSON=
 M1_LIFECYCLE_PAIR_GENERATION_ROOT=
+M1_FEATURE_BASE_PARQUET=
 EXIT_LIFECYCLE_DIR=
 EXIT_TARGET_LOOKAHEAD_M1_STEPS=
 EARLY_MOVE_THRESHOLD_BPS=
@@ -40,6 +41,7 @@ usage() {
     "  --mtf-cache-dir PATH --tape-root PATH" \
     "  --m1-lifecycle-pair-manifest-json /immutable/generation/PAIR_MANIFEST.json" \
     "  --m1-lifecycle-pair-generation-root /immutable/generations" \
+    "  --m1-feature-base-parquet /immutable/M1_FEATURE_BASE.parquet" \
     "  --exit-lifecycle-dir /new/dir --exit-target-lookahead-m1-steps N" \
     "  --early-move-threshold-bps BPS" \
     "  --output /new/dir/STEM__DIR_H24B.parquet --audit-out-dir /new/report/dir" \
@@ -59,6 +61,7 @@ while (($#)); do
     --tape-root) TAPE_ROOT=${2:-}; shift 2 ;;
     --m1-lifecycle-pair-manifest-json) M1_LIFECYCLE_PAIR_MANIFEST_JSON=${2:-}; shift 2 ;;
     --m1-lifecycle-pair-generation-root) M1_LIFECYCLE_PAIR_GENERATION_ROOT=${2:-}; shift 2 ;;
+    --m1-feature-base-parquet) M1_FEATURE_BASE_PARQUET=${2:-}; shift 2 ;;
     --exit-lifecycle-dir) EXIT_LIFECYCLE_DIR=${2:-}; shift 2 ;;
     --exit-target-lookahead-m1-steps) EXIT_TARGET_LOOKAHEAD_M1_STEPS=${2:-}; shift 2 ;;
     --early-move-threshold-bps) EARLY_MOVE_THRESHOLD_BPS=${2:-}; shift 2 ;;
@@ -86,7 +89,7 @@ fi
 required_values=(
   RUN_ID SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON
   RANK_REFERENCE_NPZ MTF_CACHE_DIR TAPE_ROOT M1_LIFECYCLE_PAIR_MANIFEST_JSON
-  M1_LIFECYCLE_PAIR_GENERATION_ROOT
+  M1_LIFECYCLE_PAIR_GENERATION_ROOT M1_FEATURE_BASE_PARQUET
   EXIT_LIFECYCLE_DIR EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS
   OUTPUT AUDIT_OUT_DIR
   HISTORY_START TRAIN_START TRAIN_END VAL_START VAL_END TEST_START TEST_END
@@ -116,7 +119,7 @@ if [[ ! $EARLY_MOVE_THRESHOLD_BPS =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   exit 2
 fi
 
-for name in SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON M1_LIFECYCLE_PAIR_MANIFEST_JSON; do
+for name in SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON M1_LIFECYCLE_PAIR_MANIFEST_JSON M1_FEATURE_BASE_PARQUET; do
   if [[ ! -f ${!name} ]]; then
     printf '[ABORT] required file missing (%s): %s\n' "$name" "${!name}" >&2
     exit 2
@@ -258,6 +261,7 @@ fi
   --tape_root "$TAPE_ROOT" \
   --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST_JSON" \
   --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
+  --m1-feature-base-parquet "$M1_FEATURE_BASE_PARQUET" \
   --exit-lifecycle-dir "$EXIT_LIFECYCLE_DIR" \
   --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
   --output "$OUTPUT" \

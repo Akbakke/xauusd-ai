@@ -26,6 +26,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_FEATURE_SEQUENCE_BARS,
     EXIT_DECISION_BAR_SECONDS,
     EXIT_FEATURE_SEQUENCE_BARS,
     ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
@@ -79,14 +81,30 @@ def _fixed_size_list_column(values: np.ndarray, width: int, *, dtype: pa.DataTyp
     )
 
 
-def materialize_m1_feature_base(
+def _materialize_feature_base(
     *,
     source_parquet: Path,
     seq_structure_manifest: Path,
     output_parquet: Path,
     dataset_run_id: str,
     pair_generation_id: str,
+    timeframe: str,
 ) -> dict[str, Any]:
+    if timeframe not in {"M1", "M5"}:
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_TIMEFRAME_INVALID")
+    bar_seconds = (
+        EXIT_DECISION_BAR_SECONDS if timeframe == "M1" else ENTRY_DECISION_BAR_SECONDS
+    )
+    sequence_bars = (
+        EXIT_FEATURE_SEQUENCE_BARS
+        if timeframe == "M1"
+        else ENTRY_FEATURE_SEQUENCE_BARS
+    )
+    schema_version = (
+        ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
+        if timeframe == "M1"
+        else "gx1_entry_exit_m5_feature_surface_v1"
+    )
     require_offline_scope("featurebase_build")
     source = Path(source_parquet).expanduser().resolve()
     manifest_path = Path(seq_structure_manifest).expanduser().resolve()
@@ -141,7 +159,7 @@ def materialize_m1_feature_base(
         or times.hasnans
         or not times.is_unique
         or not times.is_monotonic_increasing
-        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
+        or not times.floor(f"{bar_seconds}s").equals(times)
     ):
         raise RuntimeError("M1_FEATURE_BASE_TIME_GEOMETRY_INVALID")
 
@@ -173,7 +191,7 @@ def materialize_m1_feature_base(
             ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
             ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
             source_parquet=source,
-            source_contract_label="causal_enriched_m1_frame_v1",
+            source_contract_label=f"causal_enriched_{timeframe.lower()}_frame_v1",
             base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
         )
     )
@@ -212,16 +230,16 @@ def materialize_m1_feature_base(
     pq.write_table(
         output_table,
         output,
-        row_group_size=EXIT_FEATURE_SEQUENCE_BARS,
+        row_group_size=sequence_bars,
     )
     manifest = {
-        "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
+        "schema_version": schema_version,
         "decision": "PASS",
         "feature_base_contract_schema_version": ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
         "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         "dataset_run_id": dataset_run_id,
         "pair_generation_id": pair_generation_id,
-        "anchor_timeframe": "M1",
+        "anchor_timeframe": timeframe,
         "source_parquet": str(source),
         "source_sha256": _sha256_file(source),
         "seq_structure_manifest": str(manifest_path),
@@ -236,7 +254,8 @@ def materialize_m1_feature_base(
         "extension": extension_meta,
         "causal_contract": {
             "future_rows_used": False,
-            "m1_closed_bar_required": True,
+            "closed_decision_bar_required": True,
+            "m1_closed_bar_required": timeframe == "M1",
             "m5_row_reuse": False,
             "duplicate_feature_implementation": False,
         },
@@ -256,6 +275,14 @@ def materialize_m1_feature_base(
     return manifest
 
 
+def materialize_m1_feature_base(**kwargs: Any) -> dict[str, Any]:
+    return _materialize_feature_base(timeframe="M1", **kwargs)
+
+
+def materialize_m5_feature_base(**kwargs: Any) -> dict[str, Any]:
+    return _materialize_feature_base(timeframe="M5", **kwargs)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-parquet", required=True, type=Path)
@@ -263,13 +290,15 @@ def main() -> None:
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--dataset-run-id", required=True)
     parser.add_argument("--pair-generation-id", required=True)
+    parser.add_argument("--timeframe", choices=("M1", "M5"), default="M1")
     args = parser.parse_args()
-    manifest = materialize_m1_feature_base(
+    manifest = _materialize_feature_base(
         source_parquet=args.source_parquet,
         seq_structure_manifest=args.seq_structure_manifest,
         output_parquet=args.output_parquet,
         dataset_run_id=args.dataset_run_id,
         pair_generation_id=args.pair_generation_id,
+        timeframe=args.timeframe,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False))
 

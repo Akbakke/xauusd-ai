@@ -27,6 +27,11 @@ MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS = tuple(
 )
 MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS = 1000.0
 MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS = 1000.0
+# Full-path adverse risk covers the complete 96-bar window, unlike dip MAE
+# which stops at the first favorable peak.  Keep its domain explicit and
+# wider than the short-horizon dip caps; this is a validation bound, never a
+# clipping instruction.
+MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS = 1500.0
 MODEL_NATIVE_DIP_TARGET_COLUMNS = (
     *MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
     *MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
@@ -151,6 +156,16 @@ def model_native_aux_target_contract_metadata() -> dict[str, Any]:
                 "lower_bound_bps": 0.0,
                 "upper_safety_cap_bps": float(
                     MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS
+                ),
+            },
+            "tail_mae": {
+                "columns": list(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
+                "unit": "bps",
+                "finite_on_complete_rows": True,
+                "signed": False,
+                "lower_bound_bps": 0.0,
+                "upper_safety_cap_bps": float(
+                    MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS
                 ),
             },
         },

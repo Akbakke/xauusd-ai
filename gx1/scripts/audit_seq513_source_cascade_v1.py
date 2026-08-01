@@ -39,6 +39,7 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
 
 
 SCHEMA_VERSION = "seq513_source_cascade_proof_v7"
+CURRENT_PAIR_SCHEMA_VERSION = "seq513_source_cascade_pair_proof_v1"
 # 2026-07-24 source decisions changed the canonical surface: the three
 # non-causal slippage/cost fields are removed, the session evidence block is
 # mandatory (nine add_session_features fields plus _v1_is_EU/_v1_is_US and
@@ -507,13 +508,23 @@ def validate_seq513_source_cascade_proof(
             f"SEQ513_SOURCE_BOUND_MTF_CACHE_MISSING_OR_SYMLINK: {cache_dir}"
         )
     event_root = source.parent.resolve()
-    if canonical_v2.parent.resolve() != event_root or cache_dir.parent.resolve() != event_root:
-        raise RuntimeError("SEQ513_SOURCE_BOUND_ARTIFACTS_NOT_ONE_EVENT_ROOT")
-
     proof = _json(proof_path.expanduser().resolve(), label="CASCADE_PROOF")
     resolved_proof = proof_path.expanduser().resolve()
     if resolved_proof.parent != event_root:
         raise RuntimeError("SEQ513_SOURCE_CASCADE_PROOF_NOT_EVENT_LOCAL")
+    if proof.get("schema_version") == CURRENT_PAIR_SCHEMA_VERSION:
+        return _validate_current_pair_source_cascade_proof(
+            proof_path=resolved_proof,
+            proof=proof,
+            expected_run_id=run_id,
+            expected_source_parquet=source,
+            expected_canonical_v2_parquet=canonical_v2,
+            expected_mtf_cache_dir=cache_dir,
+            expected_history=expected_history_start_utc,
+            expected_time_max=expected_time_max_utc,
+        )
+    if canonical_v2.parent.resolve() != event_root or cache_dir.parent.resolve() != event_root:
+        raise RuntimeError("SEQ513_SOURCE_BOUND_ARTIFACTS_NOT_ONE_EVENT_ROOT")
     if set(proof) != {
         "schema_version",
         "created_utc",
@@ -598,6 +609,98 @@ def validate_seq513_source_cascade_proof(
         ),
         "history_start_utc": expected_history.isoformat(),
         "time_max_utc": expected_time_max.isoformat(),
+    }
+
+
+def _validate_current_pair_source_cascade_proof(
+    *,
+    proof_path: Path,
+    proof: dict[str, Any],
+    expected_run_id: str,
+    expected_source_parquet: Path,
+    expected_canonical_v2_parquet: Path,
+    expected_mtf_cache_dir: Path,
+    expected_history: object,
+    expected_time_max: object,
+) -> dict[str, Any]:
+    """Validate the compact V3 pair lineage without reviving legacy FULL_PLUS."""
+
+    required_keys = {
+        "schema_version",
+        "created_utc",
+        "decision",
+        "entry_run_id",
+        "event_root",
+        "artifacts",
+        "contracts",
+    }
+    if set(proof) != required_keys:
+        raise RuntimeError("SEQ513_CURRENT_PAIR_PROOF_KEYS_INVALID")
+    event_root = expected_source_parquet.parent.resolve()
+    _same(proof.get("decision"), "PASS", label="CURRENT_PAIR_DECISION")
+    _same(proof.get("entry_run_id"), expected_run_id, label="CURRENT_PAIR_RUN_ID")
+    _same_path(proof.get("event_root"), event_root, label="CURRENT_PAIR_EVENT_ROOT")
+    artifacts = proof.get("artifacts")
+    contracts = proof.get("contracts")
+    if not isinstance(artifacts, dict) or not isinstance(contracts, dict):
+        raise RuntimeError("SEQ513_CURRENT_PAIR_PROOF_SECTIONS_INVALID")
+    if set(artifacts) != {
+        "source_parquet_path",
+        "source_parquet_sha256",
+        "canonical_v2_path",
+        "canonical_v2_sha256",
+        "multi_tf_manifest_sha256",
+        "multi_tf_cache_identity_sha256",
+        "pair_manifest_path",
+        "pair_manifest_sha256",
+        "pair_generation_id",
+    }:
+        raise RuntimeError("SEQ513_CURRENT_PAIR_PROOF_ARTIFACT_KEYS_INVALID")
+    if set(contracts) != {
+        "required_history_start_utc",
+        "required_history_start_covered",
+        "time_min_utc",
+        "time_max_utc",
+        "no_fallback",
+        "future_rows_used",
+    }:
+        raise RuntimeError("SEQ513_CURRENT_PAIR_PROOF_CONTRACT_KEYS_INVALID")
+    _same_path(artifacts.get("source_parquet_path"), expected_source_parquet, label="CURRENT_PAIR_SOURCE")
+    _same(artifacts.get("source_parquet_sha256"), _sha256_file(expected_source_parquet), label="CURRENT_PAIR_SOURCE_HASH")
+    _same_path(artifacts.get("canonical_v2_path"), expected_canonical_v2_parquet, label="CURRENT_PAIR_CANONICAL")
+    _same(artifacts.get("canonical_v2_sha256"), _sha256_file(expected_canonical_v2_parquet), label="CURRENT_PAIR_CANONICAL_HASH")
+    cache = load_multi_tf_cache(expected_mtf_cache_dir)
+    _same(artifacts.get("multi_tf_manifest_sha256"), _sha256_file(expected_mtf_cache_dir / "manifest.json"), label="CURRENT_PAIR_MTF_MANIFEST_HASH")
+    _same(artifacts.get("multi_tf_cache_identity_sha256"), cache.cache_identity_sha256, label="CURRENT_PAIR_MTF_IDENTITY")
+    pair_manifest = Path(str(artifacts.get("pair_manifest_path") or "")).expanduser().resolve()
+    _same(artifacts.get("pair_manifest_sha256"), _sha256_file(pair_manifest), label="CURRENT_PAIR_PAIR_MANIFEST_HASH")
+    pair = _json(pair_manifest, label="CURRENT_PAIR_MANIFEST")
+    _same(artifacts.get("pair_generation_id"), pair.get("pair_generation_id"), label="CURRENT_PAIR_GENERATION_ID")
+    expected_history_ts = _utc(expected_history, label="CURRENT_PAIR_EXPECTED_HISTORY")
+    expected_max_ts = _utc(expected_time_max, label="CURRENT_PAIR_EXPECTED_TIME_MAX")
+    _same(_utc(contracts.get("required_history_start_utc"), label="CURRENT_PAIR_HISTORY"), expected_history_ts, label="CURRENT_PAIR_HISTORY")
+    _same(_utc(contracts.get("time_max_utc"), label="CURRENT_PAIR_TIME_MAX"), expected_max_ts, label="CURRENT_PAIR_TIME_MAX")
+    _same(contracts.get("required_history_start_covered"), True, label="CURRENT_PAIR_HISTORY_COVERED")
+    _same(contracts.get("no_fallback"), True, label="CURRENT_PAIR_NO_FALLBACK")
+    _same(contracts.get("future_rows_used"), False, label="CURRENT_PAIR_FUTURE_ROWS")
+    return {
+        "path": str(proof_path),
+        "sha256": _sha256_file(proof_path),
+        "schema_version": CURRENT_PAIR_SCHEMA_VERSION,
+        "entry_run_id": expected_run_id,
+        "event_root": str(event_root),
+        "source_parquet_path": str(expected_source_parquet),
+        "source_parquet_sha256": str(artifacts["source_parquet_sha256"]),
+        "canonical_v2_path": str(expected_canonical_v2_parquet),
+        "canonical_v2_sha256": str(artifacts["canonical_v2_sha256"]),
+        "multi_tf_cache_dir": str(expected_mtf_cache_dir),
+        "multi_tf_manifest_sha256": str(artifacts["multi_tf_manifest_sha256"]),
+        "multi_tf_cache_identity_sha256": str(artifacts["multi_tf_cache_identity_sha256"]),
+        "pair_manifest_path": str(pair_manifest),
+        "pair_manifest_sha256": str(artifacts["pair_manifest_sha256"]),
+        "pair_generation_id": str(artifacts["pair_generation_id"]),
+        "history_start_utc": expected_history_ts.isoformat(),
+        "time_max_utc": expected_max_ts.isoformat(),
     }
 
 

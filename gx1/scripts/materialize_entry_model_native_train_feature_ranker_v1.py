@@ -259,9 +259,36 @@ def _load_ranker_common_history_m5(
     *,
     event_root: Path,
     train_end: pd.Timestamp,
+    source_parquet: Path | None = None,
+    source_cascade: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """Load the exact canonical M5 history used by the dataset Group-A path."""
     root = Path(event_root).expanduser().resolve()
+    if (
+        isinstance(source_cascade, dict)
+        and str(source_cascade.get("schema_version"))
+        == "seq513_source_cascade_pair_proof_v1"
+    ):
+        if source_parquet is None:
+            raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_HISTORY_MISSING")
+        current = pd.read_parquet(
+            Path(source_parquet).expanduser().resolve(),
+            columns=["time", "open", "high", "low", "close"],
+        )
+        current["time"] = pd.to_datetime(current["time"], utc=True, errors="raise")
+        current = current.loc[
+            (current["time"] >= pd.Timestamp("2020-01-01T00:00:00Z"))
+            & (current["time"] <= train_end)
+        ]
+        out = current.set_index("time").sort_index()
+        if (
+            out.empty
+            or not out.index.is_unique
+            or not out.index.is_monotonic_increasing
+            or out.index.max() > train_end
+        ):
+            raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_HISTORY_INVALID")
+        return out
     native = root / "m5_tape_native_v3"
     repaired = root / "m5_tape_repaired_dec2024"
     available = [
@@ -784,6 +811,8 @@ def main() -> None:
         common_history_m5 = _load_ranker_common_history_m5(
             event_root=Path(str(source_cascade["event_root"])),
             train_end=train_end,
+            source_parquet=source_parquet,
+            source_cascade=source_cascade,
         )
         frame, source_ctx_cont = _load_train_frame(
             source_parquet,

@@ -22,6 +22,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    entry_exit_shared_feature_base_contract,
+)
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
     MODEL_NATIVE_RANK_TRANSFORM,
@@ -104,6 +107,7 @@ def _stub_source_cascade_validation(
             "pair_generation_root": str(Path(pair_generation_root)),
             "m1_source_path": str(source_path),
             "m1_source_sha256": _sha256(source_path),
+            "pair_generation_id": "fixture-pair-generation-v1",
         }
         return source_path, authority
 
@@ -214,6 +218,27 @@ def _build_fixture(
             "ask_low": [1999.85, 1999.95],
             "ask_close": [2000.15, 2000.25],
             "volume": [10, 11],
+        },
+    )
+    m1_feature_base = _write_parquet(
+        tmp_path / "inputs/xauusd_m1_feature_base.parquet",
+        {
+            "time": [
+                datetime(2026, 6, 26, 3, 24, tzinfo=timezone.utc),
+                datetime(2026, 6, 26, 3, 25, tzinfo=timezone.utc),
+            ],
+        },
+    )
+    _write_json(
+        Path(str(m1_feature_base) + ".manifest.json"),
+        {
+            "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
+            "decision": "PASS",
+            "dataset_run_id": RUN_ID,
+            "output_parquet": str(m1_feature_base),
+            "output_parquet_sha256": _sha256(m1_feature_base),
+            "pair_generation_id": "fixture-pair-generation-v1",
+            "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         },
     )
     m1_pair_manifest = _write_json(
@@ -439,6 +464,7 @@ def _build_fixture(
         m1_lifecycle_pair_generation_root=str(
             m1_pair_generation_root
         ),
+        m1_feature_base_parquet=str(m1_feature_base),
         exit_lifecycle_dir=str(tmp_path / "run/exit_lifecycle"),
         exit_target_lookahead_m1_steps=30,
         early_move_threshold_bps=4.0,
@@ -900,6 +926,8 @@ def _explicit_cli_args(tmp_path: Path) -> list[str]:
         str(tmp_path / "pair_generation" / "PAIR_MANIFEST.json"),
         "--m1-lifecycle-pair-generation-root",
         str(tmp_path / "pair_generations"),
+        "--m1-feature-base-parquet",
+        str(tmp_path / "m1_feature_base.parquet"),
         "--exit-lifecycle-dir",
         str(tmp_path / "exit_lifecycle"),
         "--exit-target-lookahead-m1-steps",

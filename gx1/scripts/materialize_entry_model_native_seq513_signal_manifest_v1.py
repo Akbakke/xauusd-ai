@@ -142,6 +142,16 @@ _SOURCE_CASCADE_KEYS = frozenset(
         "time_max_utc",
     }
 )
+_CURRENT_SOURCE_CASCADE_KEYS = _SOURCE_CASCADE_KEYS | frozenset(
+    {
+        "source_parquet_path",
+        "canonical_v2_path",
+        "multi_tf_cache_dir",
+        "pair_manifest_path",
+        "pair_manifest_sha256",
+        "pair_generation_id",
+    }
+)
 _RANK_REFERENCE_KEYS = frozenset(
     {
         "path",
@@ -425,9 +435,17 @@ def load_and_validate_train_feature_ranking(
         raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_METADATA_MISMATCH")
 
     raw_source_cascade = ranking.get("source_cascade")
+    current_source_cascade = (
+        isinstance(raw_source_cascade, dict)
+        and raw_source_cascade.get("schema_version")
+        == "seq513_source_cascade_pair_proof_v1"
+    )
+    expected_source_cascade_keys = (
+        _CURRENT_SOURCE_CASCADE_KEYS if current_source_cascade else _SOURCE_CASCADE_KEYS
+    )
     if (
         not isinstance(raw_source_cascade, dict)
-        or frozenset(raw_source_cascade) != _SOURCE_CASCADE_KEYS
+        or frozenset(raw_source_cascade) != expected_source_cascade_keys
     ):
         raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_SCHEMA_INVALID")
     event_root = Path(str(raw_source_cascade.get("event_root") or "")).expanduser()
@@ -439,13 +457,22 @@ def load_and_validate_train_feature_ranking(
     ).expanduser().resolve()
     if expected_source.parent != event_root:
         raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_EVENT_ROOT_MISMATCH")
+    canonical_path = (
+        Path(str(raw_source_cascade["canonical_v2_path"])).expanduser().resolve()
+        if current_source_cascade
+        else event_root / "canonical_features_v2.parquet"
+    )
+    mtf_path = (
+        Path(str(raw_source_cascade["multi_tf_cache_dir"])).expanduser().resolve()
+        if current_source_cascade
+        else event_root / "MULTI_TF_V4_CACHE"
+    )
     source_cascade = validate_seq513_source_cascade_proof(
         Path(str(raw_source_cascade.get("path") or "")),
         expected_run_id=entry_run_id,
         expected_source_parquet=expected_source,
-        expected_canonical_v2_parquet=event_root
-        / "canonical_features_v2.parquet",
-        expected_mtf_cache_dir=event_root / "MULTI_TF_V4_CACHE",
+        expected_canonical_v2_parquet=canonical_path,
+        expected_mtf_cache_dir=mtf_path,
         expected_history_start_utc=history_start,
         expected_time_max_utc=raw_source_cascade.get("time_max_utc"),
     )

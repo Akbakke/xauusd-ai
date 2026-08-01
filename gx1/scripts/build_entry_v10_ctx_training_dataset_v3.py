@@ -97,6 +97,7 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS,
     MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
     MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
+    MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS,
     model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
@@ -594,7 +595,7 @@ def _build_model_native_aux_head_targets(
                 f"y_tail_mae_{side}_K{horizon}",
                 -run_adverse_spread,
                 lower=0.0,
-                upper=1000.0,
+                upper=MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS,
             )
 
             if side == "long":
@@ -4415,7 +4416,11 @@ def main() -> None:
             errors="coerce",
         )
     ).as_unit("ns")
-    if not m1_feature_times.equals(m1_source_times):
+    if (
+        len(m1_feature_times) < len(m1_source_times)
+        or not m1_source_times.isin(m1_feature_times).all()
+        or m1_feature_times[-1] != m1_source_times[-1]
+    ):
         raise RuntimeError("DATASET_BUILDER_M1_FEATURE_BASE_TIME_MISMATCH")
     proof_payload["unified_exit_lifecycle"] = {
         "schema_version": (
@@ -4427,6 +4432,7 @@ def main() -> None:
         "m1_feature_base_sha256": m1_feature_base_sha256,
         "m1_feature_base_manifest_path": str(m1_feature_base_manifest_path),
         "m1_feature_base_manifest_sha256": m1_feature_base_manifest_sha256,
+        "feature_base_time_alignment": "exact_m1_source_timestamp_subset_with_causal_prefix",
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "output_dir": str(exit_lifecycle_dir),
