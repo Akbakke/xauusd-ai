@@ -180,6 +180,287 @@ def _require_clean_repository(repo_root: Path, *, timeframe: str) -> str:
     return commit
 
 
+def _hash_canonical_parent_file(path: Path, *, label: str) -> str:
+    """Hash one immutable parent file without admitting symlinked bytes."""
+
+    path = Path(path)
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or path.resolve(strict=True) != path
+    ):
+        raise RuntimeError(f"[NATIVE_PARENT_{label}_PATH_INVALID] {path}")
+    return sha256_file(path)
+
+
+def _load_parent_descriptor_cas(
+    parent_root: Path,
+    *,
+    timeframe: str,
+    expected_manifest_sha256: str,
+    vedtak: str,
+) -> dict[str, Any]:
+    """Admit an existing parent by manifest and complete byte-CAS evidence.
+
+    The parent was already semantically admitted when it was published.  A
+    successor only needs to prove that the exact manifest, producer snapshot,
+    source chunks and year partitions are still the admitted bytes.  Decoding
+    every historical OANDA response again would add latency without adding
+    identity authority; the child is fully semantically validated before its
+    own publication.
+    """
+
+    normalized, policy = native_timeframe_policy(timeframe)
+    root = Path(parent_root)
+    manifest_path = root / "MANIFEST.json"
+    observed_manifest_sha = _hash_canonical_parent_file(
+        manifest_path,
+        label=f"{normalized}_MANIFEST",
+    )
+    if observed_manifest_sha != expected_manifest_sha256:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_MANIFEST_CAS_MISMATCH]"
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_MANIFEST_INVALID]"
+        ) from exc
+    if not isinstance(manifest, dict):
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_MANIFEST_INVALID]"
+        )
+
+    schema = manifest.get("schema_version")
+    if schema not in {
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    }:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_SCHEMA_INVALID]"
+        )
+    exact = {
+        "schema_version": schema,
+        "producer_owner": CANONICAL_NATIVE_PRODUCER_OWNER,
+        "source_kind": "oanda_native_mba_candles",
+        "source_endpoint": SOURCE_ENDPOINT,
+        "source_granularity": normalized,
+        "prices": "MBA",
+        "timestamp_semantics": "bar_start_utc",
+        "bar_duration_seconds": policy["bar_seconds"],
+        "decision_available_offset_seconds": policy["bar_seconds"],
+        "completion_field": "complete",
+        "completion_value": True,
+        "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+        "request_interval_semantics": (
+            CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS
+        ),
+        "source_response_encoding": CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING,
+        "source_chunk_schema": CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA,
+        "producer_repository_clean": True,
+    }
+    for name, expected in exact.items():
+        if manifest.get(name) != expected:
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_POLICY_MISMATCH]"
+            )
+    if (
+        manifest.get("instrument") != INSTRUMENT
+        or manifest.get("timeframe") != normalized
+        or manifest.get("out_root") != str(root)
+        or manifest.get("explicit_vedtak_id") != vedtak
+    ):
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_IDENTITY_MISMATCH]"
+        )
+    environment = manifest.get("source_environment")
+    base_url = manifest.get("source_base_url")
+    expected_base_url = {
+        "practice": "https://api-fxpractice.oanda.com/v3",
+        "live": "https://api-fxtrade.oanda.com/v3",
+    }.get(environment)
+    if expected_base_url is None or base_url != expected_base_url:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_ENVIRONMENT_INVALID]"
+        )
+    start = _utc_native(
+        manifest.get("requested_start_utc"),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_START",
+    )
+    end = _utc_native(
+        manifest.get("requested_end_utc_exclusive"),
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_END",
+    )
+    if end <= start or manifest.get("request_chunk_days") != policy[
+        "request_chunk_days"
+    ]:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_INTERVAL_INVALID]"
+        )
+
+    def require_sha(value: object, label: str) -> str:
+        digest = str(value or "")
+        if re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_{label}_SHA256_INVALID]"
+            )
+        return digest
+
+    payload_sha = require_sha(
+        manifest.get("manifest_payload_sha256"),
+        "MANIFEST_PAYLOAD",
+    )
+    without_payload = dict(manifest)
+    without_payload.pop("manifest_payload_sha256", None)
+    if canonical_json_sha256(without_payload) != payload_sha:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_MANIFEST_PAYLOAD_MISMATCH]"
+        )
+
+    source_chunks = manifest.get("source_chunks")
+    if not isinstance(source_chunks, list) or not source_chunks:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHUNKS_INVALID]"
+        )
+    if canonical_json_sha256(source_chunks) != require_sha(
+        manifest.get("source_chunks_sha256"),
+        "SOURCE_CHUNKS",
+    ):
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHUNKS_HASH_MISMATCH]"
+        )
+    expected_chunk_paths: list[Path] = []
+    for sequence, metadata in enumerate(source_chunks):
+        if not isinstance(metadata, dict):
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHUNK_METADATA_INVALID]"
+            )
+        relative = Path(str(metadata.get("relative_path") or ""))
+        expected_relative = (
+            Path("source_chunks") / f"chunk-{sequence:06d}.json.gz"
+        )
+        size = metadata.get("size_bytes")
+        if (
+            relative != expected_relative
+            or relative.is_absolute()
+            or ".." in relative.parts
+            or "." in relative.parts
+            or not isinstance(size, int)
+            or isinstance(size, bool)
+            or size <= 0
+        ):
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHUNK_METADATA_INVALID]"
+            )
+        expected = require_sha(metadata.get("sha256"), "CHUNK")
+        chunk = root / relative
+        if (
+            chunk.stat().st_size != size
+            or _hash_canonical_parent_file(
+                chunk,
+                label=f"{normalized}_CHUNK_{sequence:06d}",
+            )
+            != expected
+        ):
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHUNK_CAS_MISMATCH]"
+            )
+        expected_chunk_paths.append(chunk)
+    actual_chunk_paths = sorted(
+        path
+        for path in (root / "source_chunks").glob("chunk-*.json.gz")
+        if path.is_file()
+    )
+    if actual_chunk_paths != sorted(expected_chunk_paths):
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHUNK_FILESYSTEM_MISMATCH]"
+        )
+
+    year_sha256 = manifest.get("year_sha256")
+    year_rows = manifest.get("year_rows")
+    if (
+        not isinstance(year_sha256, dict)
+        or not year_sha256
+        or not isinstance(year_rows, dict)
+        or set(year_sha256) != set(year_rows)
+    ):
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_YEARS_INVALID]"
+        )
+    for key, expected_value in sorted(year_sha256.items()):
+        if (
+            not isinstance(key, str)
+            or re.fullmatch(r"year=[0-9]{4}", key) is None
+            or not isinstance(year_rows[key], int)
+            or isinstance(year_rows[key], bool)
+            or year_rows[key] <= 0
+        ):
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_YEARS_INVALID]"
+            )
+        part = root / key / "part-000.parquet"
+        if _hash_canonical_parent_file(
+            part,
+            label=f"{normalized}_{key}",
+        ) != require_sha(expected_value, "YEAR"):
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_YEAR_CAS_MISMATCH]"
+            )
+
+    descriptor: dict[str, Any] = {
+        **exact,
+        "root": str(root),
+        "manifest_path": str(manifest_path),
+        "manifest_sha256": observed_manifest_sha,
+        "instrument": INSTRUMENT,
+        "instrument_observed": str(manifest.get("instrument")),
+        "timeframe": normalized,
+        "explicit_vedtak_id": str(manifest["explicit_vedtak_id"]),
+        "source_environment": str(environment),
+        "source_base_url": str(base_url),
+        "schema_required_cols": list(CANONICAL_NATIVE_REQUIRED_COLUMNS),
+        "schema_optional_cols": [],
+        "request_chunk_days": policy["request_chunk_days"],
+        "requested_start_utc": start.isoformat(),
+        "requested_end_utc_exclusive": end.isoformat(),
+        "row_count": int(manifest["row_count"]),
+        "time_min_utc": str(manifest["time_min_utc"]),
+        "time_max_utc": str(manifest["time_max_utc"]),
+        "canonical_rows_sha256": require_sha(
+            manifest.get("canonical_rows_sha256"),
+            "CANONICAL_ROWS",
+        ),
+        "source_chunks_sha256": require_sha(
+            manifest.get("source_chunks_sha256"),
+            "SOURCE_CHUNKS",
+        ),
+        "producer_git_commit": str(manifest["producer_git_commit"]),
+        "producer_source_inventory_sha256": require_sha(
+            manifest.get("producer_source_inventory_sha256"),
+            "PRODUCER_SOURCE_INVENTORY",
+        ),
+        "manifest_payload_sha256": payload_sha,
+        "year_sha256": dict(sorted(year_sha256.items())),
+        "year_rows": dict(sorted(year_rows.items())),
+    }
+    if schema == CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA:
+        descriptor.update(
+            {
+                "publication_mode": manifest["publication_mode"],
+                "parent_source": json.loads(
+                    json.dumps(manifest["parent_source"], sort_keys=True)
+                ),
+                "successor_append": json.loads(
+                    json.dumps(manifest["successor_append"], sort_keys=True)
+                ),
+            }
+        )
+    return descriptor
+
+
 def _snapshot_producer_sources(
     *,
     timeframe: str,
@@ -712,14 +993,12 @@ def materialize_native_xau_successor(
         raise RuntimeError(
             f"[NATIVE_{normalized}_SUCCESSOR_PARENT_ROOT_INVALID] {parent_arg}"
         )
-    parent_descriptor = canonical_xau_source_descriptor_v1(
+    parent_descriptor = _load_parent_descriptor_cas(
         parent_arg,
         timeframe=normalized,
+        expected_manifest_sha256=expected_parent_sha,
+        vedtak=vedtak,
     )
-    if parent_descriptor["manifest_sha256"] != expected_parent_sha:
-        raise RuntimeError(
-            f"[NATIVE_{normalized}_SUCCESSOR_PARENT_MANIFEST_CAS_MISMATCH]"
-        )
     if parent_descriptor["explicit_vedtak_id"] != vedtak:
         raise RuntimeError(
             f"[NATIVE_{normalized}_SUCCESSOR_PARENT_VEDTAK_MISMATCH]"
@@ -1152,10 +1431,17 @@ def materialize_native_xau_successor(
             repo_root=repository,
             inventory=producer_sources,
         )
-        observed_parent = canonical_xau_source_descriptor_v1(
-            parent_arg,
-            timeframe=normalized,
-        )
+        try:
+            observed_parent = _load_parent_descriptor_cas(
+                parent_arg,
+                timeframe=normalized,
+                expected_manifest_sha256=expected_parent_sha,
+                vedtak=vedtak,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHANGED_BEFORE_PUBLISH]"
+            ) from exc
         if (
             observed_parent != parent_descriptor
             or observed_parent["manifest_sha256"] != expected_parent_sha
