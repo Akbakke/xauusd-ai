@@ -280,6 +280,22 @@ def _validate_unified_exit_lifecycle_root(
         and isinstance(authority.get("pair_generation_root"), str),
         "unified Exit lifecycle M1 authority binding mismatch",
     )
+    m1_feature_path = payload.get("m1_feature_base_path")
+    m1_feature_sha = payload.get("m1_feature_base_sha256")
+    _require(
+        isinstance(m1_feature_path, str)
+        and Path(m1_feature_path).is_absolute()
+        and Path(m1_feature_path).is_file()
+        and not Path(m1_feature_path).is_symlink()
+        and isinstance(m1_feature_sha, str)
+        and len(m1_feature_sha) == 64
+        and all(character in "0123456789abcdef" for character in m1_feature_sha),
+        "unified Exit shared M1 feature-base artifact binding is invalid",
+    )
+    _require(
+        sha256_file(Path(m1_feature_path)) == m1_feature_sha,
+        "unified Exit shared M1 feature-base artifact hash mismatch",
+    )
     splits = payload.get("splits")
     _require(
         isinstance(splits, Mapping)

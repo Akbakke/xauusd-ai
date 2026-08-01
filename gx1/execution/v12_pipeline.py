@@ -691,9 +691,16 @@ class V12Pipeline:
                 staged.update_bar(**closed_bar)
                 staged_snapshot = staged.require_entry_snapshot()
                 path_envelope = staged.build_closed_m1_path_evidence()
+                exit_feature_surface = (
+                    self.smart_entry.build_exit_feature_surface(
+                        decision_time=next_bar,
+                        prebuilt_snapshot=source_snapshot,
+                    )
+                )
                 decision = self.smart_entry.decide_exit(
                     entry_snapshot=staged_snapshot,
                     exit_path_envelope=path_envelope,
+                    exit_feature_surface=exit_feature_surface,
                     entry_bid=staged.entry_bid,
                     entry_ask=staged.entry_ask,
                     side=staged.side,

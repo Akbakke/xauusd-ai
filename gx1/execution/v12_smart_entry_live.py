@@ -126,6 +126,7 @@ from gx1.execution.v12_model_native_state_live import (
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import require_m1_feature_window
 from gx1.time.session_detector import SESSION_NAME_BY_ID
 
 LOG = logging.getLogger("v12_smart_entry_live")
@@ -1068,6 +1069,7 @@ class SmartEntryLiveInference:
         default_factory=lambda: pd.Timedelta(minutes=5),
         repr=False,
     )
+    _exit_feature_surface_provider: Any = field(default=None, repr=False)
     # LAST COMPLETED context snapshot (one atomic reference — loader async pattern)
     # + the in-flight background refresh thread (serving-wave gap 3). The per-M1
     # EXIT path never touches either — no lock exists to starve it.
@@ -2010,11 +2012,39 @@ class SmartEntryLiveInference:
                 results.append(res)
         return results
 
+    def build_exit_feature_surface(
+        self,
+        *,
+        decision_time: Any,
+        prebuilt_snapshot: Any,
+    ) -> Mapping[str, Any]:
+        """Return the admitted causal M1 shared feature window.
+
+        There is intentionally no reconstruction here.  Until the immutable
+        M1 feature-base publisher is admitted alongside the Entry pair, Exit
+        has no legal live feature surface and this method fails closed.
+        """
+
+        provider = self._exit_feature_surface_provider
+        if not callable(provider):
+            raise RuntimeError(
+                "[SMART_EXIT] immutable M1 shared feature-base publisher is not admitted"
+            )
+        value = provider(
+            decision_time=decision_time,
+            prebuilt_snapshot=prebuilt_snapshot,
+        )
+        return require_m1_feature_window(
+            dict(value),
+            context="SMART_EXIT_PROVIDER",
+        )
+
     def decide_exit(
         self,
         *,
         entry_snapshot: Mapping[str, Any],
         exit_path_envelope: Mapping[str, Any],
+        exit_feature_surface: Mapping[str, Any],
         entry_bid: float,
         entry_ask: float,
         side: str,
@@ -2044,6 +2074,10 @@ class SmartEntryLiveInference:
             )
         envelope = require_unified_exit_path_envelope(
             exit_path_envelope,
+            context="SMART_EXIT",
+        )
+        feature_window = require_m1_feature_window(
+            dict(exit_feature_surface),
             context="SMART_EXIT",
         )
         if side not in UNIFIED_EXIT_SIDE_ORDER:
@@ -2079,6 +2113,26 @@ class SmartEntryLiveInference:
                     representation
                 )
                 .view(1, -1)
+                .to(self.device),
+                exit_feature_seq_x=torch.from_numpy(
+                    feature_window["signal"]
+                )
+                .unsqueeze(0)
+                .to(self.device),
+                exit_feature_snap_x=torch.from_numpy(
+                    feature_window["snap"]
+                )
+                .unsqueeze(0)
+                .to(self.device),
+                exit_feature_ctx_cat=torch.from_numpy(
+                    feature_window["ctx_cat"]
+                )
+                .unsqueeze(0)
+                .to(self.device),
+                exit_feature_ctx_cont=torch.from_numpy(
+                    feature_window["ctx_cont"]
+                )
+                .unsqueeze(0)
                 .to(self.device),
                 exit_path_x=torch.from_numpy(path_values)
                 .unsqueeze(0)

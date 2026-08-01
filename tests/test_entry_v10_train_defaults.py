@@ -69,12 +69,16 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
     class _ExitProbe(torch.nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.head = torch.nn.Linear(4 + 14 + 2, 2)
+            self.head = torch.nn.Linear(4 + 4 + 14 + 2, 2)
 
         def forward_exit_action(
             self,
             *,
             entry_shared_representation,
+            exit_feature_seq_x,
+            exit_feature_snap_x,
+            exit_feature_ctx_cat,
+            exit_feature_ctx_cont,
             exit_path_x,
             exit_path_lengths,
             exit_side_index,
@@ -87,7 +91,12 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
             ).float()
             logits = self.head(
                 torch.cat(
-                    [entry_shared_representation, last, side],
+                    [
+                        entry_shared_representation,
+                        exit_feature_snap_x,
+                        last,
+                        side,
+                    ],
                     dim=1,
                 )
             )
@@ -99,6 +108,10 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
     paths[0, 0, :2] = 0.25
     paths[0, 1, :3] = -0.25
     batch = {
+        "exit_feature_seq_x": torch.randn(1, 4, 4, 4),
+        "exit_feature_snap_x": torch.randn(1, 4, 4),
+        "exit_feature_ctx_cat": torch.zeros(1, 4, 5, dtype=torch.long),
+        "exit_feature_ctx_cont": torch.randn(1, 4, 142),
         "exit_path_x": paths,
         "exit_path_lengths": torch.tensor([[2, 3, 0, 0]]),
         "exit_side_index": torch.tensor([[0, 1, 0, 0]]),

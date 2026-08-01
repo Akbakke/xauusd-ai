@@ -222,6 +222,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     lifecycle_dir.mkdir()
     lifecycle_m1 = lifecycle_dir / f"xau_m1_{STAMP}.parquet"
     lifecycle_m1.write_bytes(b"xau-m1-lifecycle-fixture")
+    lifecycle_feature_base = lifecycle_dir / f"xau_m1_feature_base_{STAMP}.parquet"
+    lifecycle_feature_base.write_bytes(b"xau-m1-feature-base-fixture")
     lifecycle_authority = {
         "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
         "pair_manifest_path": str(
@@ -265,6 +267,10 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "entry_run_id": DATASET_RUN_ID,
             "m1_source_path": str(lifecycle_m1),
             "m1_source_sha256": artifact_binding(lifecycle_m1)["sha256"],
+            "m1_feature_base_path": str(lifecycle_feature_base),
+            "m1_feature_base_sha256": artifact_binding(
+                lifecycle_feature_base
+            )["sha256"],
             "m1_authority": lifecycle_authority,
             "m1_authority_sha256": canonical_json_sha256(
                 lifecycle_authority

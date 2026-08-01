@@ -47,6 +47,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
     canonical_unified_evidence_sha256,
     unified_entry_exit_contract_metadata,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
 from gx1.monitoring.trade_journal import TradeJournal
 def _softmax(values: list[float]) -> list[float]:
     array = np.asarray(values, dtype=np.float64)
@@ -172,6 +176,21 @@ def _snapshot() -> dict:
             "bad_path_temperature": 1.0,
             "bad_path_bias": 0.0,
         },
+    }
+
+
+def _exit_feature_surface() -> dict:
+    signal = np.zeros((EXIT_FEATURE_SEQUENCE_BARS, 513), dtype=np.float32)
+    return {
+        "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
+        "decision_time": "2026-07-16T12:01:00+00:00",
+        "dataset_run_id": "EXIT_TEST_RUN",
+        "feature_base_sha256": "c" * 64,
+        "sequence_bars": EXIT_FEATURE_SEQUENCE_BARS,
+        "signal": signal,
+        "snap": signal[-1].copy(),
+        "ctx_cont": np.zeros(142, dtype=np.float32),
+        "ctx_cat": np.zeros(5, dtype=np.int64),
     }
 
 
@@ -340,6 +359,7 @@ def test_unified_exit_uses_frozen_entry_representation_and_exact_path(
     output = adapter.decide_exit(
         entry_snapshot=trade.require_entry_snapshot(),
         exit_path_envelope=trade.build_closed_m1_path_evidence(),
+        exit_feature_surface=_exit_feature_surface(),
         entry_bid=trade.entry_bid,
         entry_ask=trade.entry_ask,
         side=trade.side,
@@ -351,6 +371,10 @@ def test_unified_exit_uses_frozen_entry_representation_and_exact_path(
     assert output["bundle_sha256"] == "b" * 64
     assert len(model.calls) == 1
     assert model.calls[0]["entry_shared_representation"].shape == (1, 128)
+    assert model.calls[0]["exit_feature_seq_x"].shape == (1, EXIT_FEATURE_SEQUENCE_BARS, 513)
+    assert model.calls[0]["exit_feature_snap_x"].shape == (1, 513)
+    assert model.calls[0]["exit_feature_ctx_cat"].shape == (1, 5)
+    assert model.calls[0]["exit_feature_ctx_cont"].shape == (1, 142)
     assert model.calls[0]["exit_path_x"].shape == (1, 1, 14)
     assert model.calls[0]["exit_path_lengths"].tolist() == [1]
     assert model.calls[0]["exit_side_index"].tolist() == [0]
@@ -372,6 +396,7 @@ def test_unified_exit_replay_accepts_exact_pre_sizing_head_snapshot(
     output = adapter.decide_exit(
         entry_snapshot=trade.require_entry_snapshot(),
         exit_path_envelope=trade.build_closed_m1_path_evidence(),
+        exit_feature_surface=_exit_feature_surface(),
         entry_bid=trade.entry_bid,
         entry_ask=trade.entry_ask,
         side=trade.side,

@@ -13,6 +13,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_EXIT_RESOLUTION_RATIO,
+    EXIT_FEATURE_MAX_SEQUENCE_BARS,
+)
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     HIDDEN_DIM as EXACT_EVIDENCE_FUSION_HIDDEN_DIM,
     INPUT_DIM as EXACT_EVIDENCE_FUSION_INPUT_DIM,
@@ -1038,8 +1042,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             batch_first=True,
         )
         self.exit_fuse = nn.Sequential(
-            nn.LayerNorm(4 * d_model),
-            nn.Linear(4 * d_model, d_model),
+            nn.LayerNorm(5 * d_model),
+            nn.Linear(5 * d_model, d_model),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(d_model, d_model),
@@ -1054,7 +1058,20 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self._expected_ctx_cat_dim = int(self.cfg.ctx_cat_dim)
         self._expected_ctx_cont_dim = int(self.cfg.ctx_cont_dim)
         # Positional encoding is mandatory and covers every sequence branch.
+        if int(seq_len) * int(ENTRY_EXIT_RESOLUTION_RATIO) > int(
+            EXIT_FEATURE_MAX_SEQUENCE_BARS
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_FEATURE_SEQUENCE_CAPACITY_INVALID: "
+                f"entry_seq_len={int(seq_len)} ratio={int(ENTRY_EXIT_RESOLUTION_RATIO)} "
+                f"capacity={int(EXIT_FEATURE_MAX_SEQUENCE_BARS)}"
+            )
         self.register_buffer("pos_enc", self._sinusoidal_pe(int(seq_len), d_model), persistent=False)
+        self.register_buffer(
+            "pos_enc_exit_feature",
+            self._sinusoidal_pe(int(EXIT_FEATURE_MAX_SEQUENCE_BARS), d_model),
+            persistent=False,
+        )
         self.register_buffer("pos_enc_m5", self._sinusoidal_pe(int(self.cfg.m5_seq_len), d_model), persistent=False)
         self.register_buffer("pos_enc_m15", self._sinusoidal_pe(int(self.cfg.m15_seq_len), d_model), persistent=False)
         self.register_buffer("pos_enc_h1", self._sinusoidal_pe(int(self.cfg.h1_seq_len), d_model), persistent=False)
@@ -1083,6 +1100,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
     def _add_pe(self, t: torch.Tensor, buf_name: str) -> torch.Tensor:
         """Add the mandatory positional encoding for this sequence branch."""
         pe = getattr(self, buf_name)
+        if int(t.size(1)) > int(pe.size(1)):
+            raise RuntimeError(
+                "POSITIONAL_ENCODING_CAPACITY_EXCEEDED: "
+                f"buffer={buf_name} sequence={int(t.size(1))} capacity={int(pe.size(1))}"
+            )
         return t + pe[:, : t.size(1)]
 
     def require_input_normalization_state(self) -> None:
@@ -1443,10 +1465,165 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite("raw_direction_logits", raw_direction_logits)
         return raw_direction_logits
 
+    def _encode_shared_feature_base(
+        self,
+        *,
+        seq_x: torch.Tensor,
+        snap_x: torch.Tensor,
+        ctx_cat: torch.Tensor,
+        ctx_cont: torch.Tensor,
+        surface_label: str,
+        expected_seq_len: int,
+        positional_encoding: str,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Encode one causal surface with the one shared specialist stack.
+
+        Entry and Exit deliberately call this exact method and module set.  The
+        only permitted difference is the causal clock/sequence length: Entry is
+        M5 and Exit is five M1 bars per Entry bar.  No Exit-specific feature
+        projection or specialist implementation exists here.
+        """
+
+        _assert_shape(f"{surface_label}.seq_x", seq_x, 3)
+        _assert_shape(f"{surface_label}.snap_x", snap_x, 2)
+        _assert_shape(f"{surface_label}.ctx_cat", ctx_cat, 2)
+        _assert_shape(f"{surface_label}.ctx_cont", ctx_cont, 2)
+        batch_size, sequence_len, signal_dim = seq_x.shape
+        if int(sequence_len) != int(expected_seq_len):
+            raise RuntimeError(
+                f"{surface_label.upper()}_SEQ_LEN_MISMATCH: "
+                f"got={int(sequence_len)} expected={int(expected_seq_len)}"
+            )
+        if int(signal_dim) != self._expected_seq_dim:
+            raise RuntimeError(
+                f"{surface_label.upper()}_SIGNAL_DIM_MISMATCH: "
+                f"got={int(signal_dim)} expected={self._expected_seq_dim}"
+            )
+        if tuple(snap_x.shape) != (batch_size, self._expected_snap_dim):
+            raise RuntimeError(
+                f"{surface_label.upper()}_SNAP_SHAPE_MISMATCH: "
+                f"got={tuple(snap_x.shape)} expected=({batch_size},{self._expected_snap_dim})"
+            )
+        if tuple(ctx_cat.shape) != (batch_size, self._expected_ctx_cat_dim):
+            raise RuntimeError(
+                f"{surface_label.upper()}_CTX_CAT_DIM_MISMATCH: "
+                f"got={tuple(ctx_cat.shape)} expected=({batch_size},{self._expected_ctx_cat_dim})"
+            )
+        if tuple(ctx_cont.shape) != (batch_size, self._expected_ctx_cont_dim):
+            raise RuntimeError(
+                f"{surface_label.upper()}_CTX_CONT_DIM_MISMATCH: "
+                f"got={tuple(ctx_cont.shape)} expected=({batch_size},{self._expected_ctx_cont_dim})"
+            )
+
+        _assert_finite(f"{surface_label}.seq_x", seq_x)
+        _assert_finite(f"{surface_label}.snap_x", snap_x)
+        _assert_finite(f"{surface_label}.ctx_cont", ctx_cont)
+        if not torch.equal(seq_x[:, -1, :], snap_x):
+            raise RuntimeError(f"{surface_label.upper()}_SEQ_LAST_SNAP_NOT_BIT_IDENTICAL")
+        alias_signal_idx = self.temporal_alias_signal_idx.to(snap_x.device)
+        alias_ctx_idx = self.temporal_alias_ctx_cont_idx.to(ctx_cont.device)
+        if int(alias_signal_idx.numel()) > 0 and not torch.equal(
+            snap_x.index_select(dim=1, index=alias_signal_idx),
+            ctx_cont.index_select(dim=1, index=alias_ctx_idx),
+        ):
+            raise RuntimeError(f"{surface_label.upper()}_SNAP_CTX_CONT_ALIAS_NOT_BIT_IDENTICAL")
+
+        if ctx_cat.dtype not in (
+            torch.int64,
+            torch.int32,
+            torch.int16,
+            torch.int8,
+            torch.uint8,
+        ):
+            raise RuntimeError(f"{surface_label.upper()}_CTX_CAT_DTYPE_MISMATCH")
+        ctx_cat_min = self.input_norm_ctx_cat_min.to(ctx_cat.device)
+        ctx_cat_max = self.input_norm_ctx_cat_max.to(ctx_cat.device)
+        for index, field in enumerate(EXACT_CTX_CAT_DOMAINS):
+            values = ctx_cat[:, index]
+            if bool(
+                ((values < ctx_cat_min[index]) | (values > ctx_cat_max[index]))
+                .any()
+                .item()
+            ):
+                raise RuntimeError(
+                    f"{surface_label.upper()}_CTX_CAT_DOMAIN_INVALID: field={field}"
+                )
+
+        seq_n = self._normalize_input_surface(seq_x, surface="signal")
+        snap_n = self._normalize_input_surface(snap_x, surface="signal")
+        ctx_cont_n = self._normalize_input_surface(ctx_cont, surface="ctx_cont")
+        signal_categorical_mask = self.input_norm_signal_categorical_mask.to(seq_n.device)
+        seq_numeric = seq_n.masked_fill(signal_categorical_mask.view(1, 1, -1), 0.0)
+        snap_numeric = snap_n.masked_fill(signal_categorical_mask.view(1, -1), 0.0)
+
+        seq_h = self.seq_proj(seq_numeric)
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            seq_h = seq_h + embedding(seq_x[..., index].long())
+        seq_h = self._add_pe(seq_h, positional_encoding)
+        seq_h = self.encoder(seq_h)
+        seq_pool = seq_h.mean(dim=1)
+
+        generic_snap_idx = self.generic_snap_idx.to(snap_x.device)
+        snap_h = self.snap_proj(
+            snap_numeric.index_select(dim=1, index=generic_snap_idx)
+        )
+        generic_snap_set = set(generic_snap_idx.tolist())
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            if index in generic_snap_set:
+                snap_h = snap_h + embedding(snap_x[:, index].long())
+
+        family_context_tokens, global_context_h = self._build_family_context_tokens(
+            ctx_cont_n,
+            ctx_cat,
+        )
+        z_v3 = self.fuse(torch.cat([seq_pool, snap_h, global_context_h], dim=1))
+
+        pools = []
+        for specialist_position, name in enumerate(self._specialist_names):
+            idx = getattr(self, f"specialist_idx_{name}").to(seq_x.device)
+            seq_part = seq_numeric.index_select(dim=2, index=idx)
+            spec_h = self._add_pe(
+                self.specialist_proj[name](seq_part),
+                positional_encoding,
+            )
+            specialist_index_set = set(idx.tolist())
+            for index_text, embedding in self.signal_nominal_embeddings.items():
+                index = int(index_text)
+                if index in specialist_index_set:
+                    spec_h = spec_h + embedding(seq_x[..., index].long())
+            temporal_pool = self.specialist_encoder[name](spec_h).mean(dim=1)
+            pools.append(temporal_pool + family_context_tokens[:, specialist_position, :])
+        specialist_tokens = torch.stack(pools, dim=1)
+        specialist_tokens = self.specialist_cross_attn(
+            specialist_tokens + self.specialist_token_identity
+        )
+        specialist_gate = torch.softmax(
+            self.specialist_gate(z_v3)
+            + self.specialist_token_gate(specialist_tokens).squeeze(-1),
+            dim=1,
+        )
+        specialist_pool = (
+            specialist_tokens * specialist_gate.unsqueeze(-1)
+        ).sum(dim=1)
+        specialist_correction = self.specialist_out(specialist_pool)
+        _assert_finite(f"{surface_label}.specialist_correction", specialist_correction)
+        _assert_finite(f"{surface_label}.specialist_gate", specialist_gate)
+        z_v3 = z_v3 + self.specialist_fusion_scale.to(
+            specialist_correction.dtype
+        ) * specialist_correction
+        _assert_finite(f"{surface_label}.feature_base_representation", z_v3)
+        return z_v3, specialist_gate, global_context_h
+
     def forward_exit_action(
         self,
         *,
         entry_shared_representation: torch.Tensor,
+        exit_feature_seq_x: torch.Tensor,
+        exit_feature_snap_x: torch.Tensor,
+        exit_feature_ctx_cat: torch.Tensor,
+        exit_feature_ctx_cont: torch.Tensor,
         exit_path_x: torch.Tensor,
         exit_path_lengths: torch.Tensor,
         exit_side_index: torch.Tensor,
@@ -1455,8 +1632,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         ``entry_shared_representation`` must be the frozen output produced by
         this model's full 513+context+5x8 cooperation encoder at Entry. Every
-        valid path row must be present; only right-zero padding declared by the
-        exact integer lengths is accepted.
+        Exit call must also carry the exact shared feature base at M1.  The M1
+        surface is encoded by the same signal/context projections and all eight
+        specialist modules; the literal M1 path is additive execution evidence.
+        Every valid path row must be present; only right-zero padding declared
+        by the exact integer lengths is accepted.
         """
 
         _assert_shape(
@@ -1464,6 +1644,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             entry_shared_representation,
             2,
         )
+        _assert_shape("exit_feature_seq_x", exit_feature_seq_x, 3)
+        _assert_shape("exit_feature_snap_x", exit_feature_snap_x, 2)
+        _assert_shape("exit_feature_ctx_cat", exit_feature_ctx_cat, 2)
+        _assert_shape("exit_feature_ctx_cont", exit_feature_ctx_cont, 2)
         _assert_shape("exit_path_x", exit_path_x, 3)
         _assert_shape("exit_path_lengths", exit_path_lengths, 1)
         _assert_shape("exit_side_index", exit_side_index, 1)
@@ -1478,6 +1662,21 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 f"observed={tuple(entry_shared_representation.shape)} "
                 f"expected=({batch_size},{d_model})"
             )
+        exit_feature_base, exit_specialist_gate, _exit_global_context = (
+            self._encode_shared_feature_base(
+                seq_x=exit_feature_seq_x,
+                snap_x=exit_feature_snap_x,
+                ctx_cat=exit_feature_ctx_cat,
+                ctx_cont=exit_feature_ctx_cont,
+                surface_label="exit_m1",
+                expected_seq_len=(
+                    self._expected_seq_len * int(ENTRY_EXIT_RESOLUTION_RATIO)
+                ),
+                positional_encoding="pos_enc_exit_feature",
+            )
+        )
+        if tuple(exit_feature_base.shape) != (batch_size, d_model):
+            raise RuntimeError("UNIFIED_EXIT_FEATURE_BASE_REPRESENTATION_SHAPE_INVALID")
         if int(path_dim) != UNIFIED_EXIT_PATH_FEATURE_DIM:
             raise RuntimeError(
                 "UNIFIED_EXIT_PATH_DIM_MISMATCH: "
@@ -1560,6 +1759,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.cat(
                 (
                     entry_shared_representation,
+                    exit_feature_base,
                     side_hidden,
                     attended_path.squeeze(1),
                     last_path_hidden,
@@ -1570,6 +1770,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         exit_action_logits = self.head_exit_action(exit_hidden)
         exit_action_probs = torch.softmax(exit_action_logits, dim=1)
         for name, value in (
+            ("exit_feature_base_representation", exit_feature_base),
+            ("exit_specialist_gate", exit_specialist_gate),
             ("exit_path_hidden", path_hidden),
             ("exit_path_attention", attention_weights),
             ("exit_action_logits", exit_action_logits),
@@ -1579,6 +1781,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         return {
             "exit_action_logits": exit_action_logits,
             "exit_action_probs": exit_action_probs,
+            "exit_feature_base_representation": exit_feature_base,
+            "exit_specialist_gate": exit_specialist_gate,
             "exit_path_attention": attention_weights,
         }
 
@@ -1595,151 +1799,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_h4: torch.Tensor,
         seq_d1: torch.Tensor,
     ) -> Dict[str, torch.Tensor]:
-        _assert_shape("seq_x", seq_x, 3)     # (B,T,D)
-        _assert_shape("snap_x", snap_x, 2)   # (B,D)
-        _assert_shape("ctx_cat", ctx_cat, 2) # (B,ctx_cat_dim)
-        _assert_shape("ctx_cont", ctx_cont, 2) # (B,ctx_cont_dim)
-
-        B, T, Dseq = seq_x.shape
-        if int(Dseq) != self._expected_seq_dim:
-            raise RuntimeError(f"SEQ_DIM_MISMATCH: got={int(Dseq)} expected={self._expected_seq_dim}")
-        if int(T) != self._expected_seq_len:
-            raise RuntimeError(f"SEQ_LEN_MISMATCH: got={int(T)} expected={self._expected_seq_len}")
-
-        if int(snap_x.shape[1]) != self._expected_snap_dim:
-            raise RuntimeError(f"SNAP_DIM_MISMATCH: got={int(snap_x.shape[1])} expected={self._expected_snap_dim}")
-
-        if int(ctx_cat.shape[1]) != self._expected_ctx_cat_dim:
-            raise RuntimeError(
-                f"CTX_CAT_DIM_MISMATCH: got={int(ctx_cat.shape[1])} expected={self._expected_ctx_cat_dim}"
-            )
-        if int(ctx_cont.shape[1]) != self._expected_ctx_cont_dim:
-            raise RuntimeError(
-                f"CTX_CONT_DIM_MISMATCH: got={int(ctx_cont.shape[1])} expected={self._expected_ctx_cont_dim}"
-            )
-        if (
-            int(snap_x.shape[0]) != int(B)
-            or int(ctx_cat.shape[0]) != int(B)
-            or int(ctx_cont.shape[0]) != int(B)
-        ):
-            raise RuntimeError("ENTRY_MODEL_NATIVE_BATCH_DIM_MISMATCH")
-
-        # Hard finite checks
-        _assert_finite("seq_x", seq_x)
-        _assert_finite("snap_x", snap_x)
-        _assert_finite("ctx_cont", ctx_cont)
-
-        # These equalities are raw-input contracts and precede every transform
-        # or projection.  They prevent stale snap rows and independently
-        # materialized ctx aliases from entering separate decision paths.
-        if not torch.equal(seq_x[:, -1, :], snap_x):
-            raise RuntimeError("SEQ_LAST_SNAP_NOT_BIT_IDENTICAL")
-        alias_signal_idx = self.temporal_alias_signal_idx.to(snap_x.device)
-        alias_ctx_idx = self.temporal_alias_ctx_cont_idx.to(ctx_cont.device)
-        if int(alias_signal_idx.numel()) > 0 and not torch.equal(
-            snap_x.index_select(dim=1, index=alias_signal_idx),
-            ctx_cont.index_select(dim=1, index=alias_ctx_idx),
-        ):
-            raise RuntimeError("SNAP_CTX_CONT_ALIAS_NOT_BIT_IDENTICAL")
-
-        # ctx_cat must be integer and every semantic field has its own domain.
-        if ctx_cat.dtype not in (torch.int64, torch.int32, torch.int16, torch.int8, torch.uint8):
-            raise RuntimeError(f"CTX_CAT_DTYPE_MISMATCH: expected integer dtype, got {ctx_cat.dtype}")
-        ctx_cat_min = self.input_norm_ctx_cat_min.to(ctx_cat.device)
-        ctx_cat_max = self.input_norm_ctx_cat_max.to(ctx_cat.device)
-        for index, field in enumerate(EXACT_CTX_CAT_DOMAINS):
-            values = ctx_cat[:, index]
-            if bool(
-                (
-                    (values < ctx_cat_min[index])
-                    | (values > ctx_cat_max[index])
-                )
-                .any()
-                .item()
-            ):
-                raise RuntimeError(
-                    "CTX_CAT_DOMAIN_INVALID: "
-                    f"field={field} "
-                    f"expected={int(ctx_cat_min[index].item())}.."
-                    f"{int(ctx_cat_max[index].item())}"
-                )
-
-        # One immutable transform owns every numerical path. The raw tensors
-        # above are used only for identity/domain guards and categorical IDs.
-        seq_n = self._normalize_input_surface(seq_x, surface="signal")
-        snap_n = self._normalize_input_surface(snap_x, surface="signal")
-        ctx_cont_n = self._normalize_input_surface(
-            ctx_cont,
-            surface="ctx_cont",
+        z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
+            seq_x=seq_x,
+            snap_x=snap_x,
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            surface_label="entry_m5",
+            expected_seq_len=self._expected_seq_len,
+            positional_encoding="pos_enc",
         )
-        signal_categorical_mask = self.input_norm_signal_categorical_mask.to(
-            seq_n.device
-        )
-        seq_numeric = seq_n.masked_fill(
-            signal_categorical_mask.view(1, 1, -1),
-            0.0,
-        )
-        snap_numeric = snap_n.masked_fill(
-            signal_categorical_mask.view(1, -1),
-            0.0,
-        )
-
-        # Encode. Nominal temporal fields never enter a linear layer as fake
-        # ordinal numbers; their learned embeddings are added explicitly.
-        seq_h = self.seq_proj(seq_numeric)             # (B,T,d)
-        for index_text, embedding in self.signal_nominal_embeddings.items():
-            index = int(index_text)
-            seq_h = seq_h + embedding(seq_x[..., index].long())
-        seq_h = self._add_pe(seq_h, "pos_enc")        # mandatory temporal order
-        seq_h = self.encoder(seq_h)                   # (B,T,d)
-        seq_pool = seq_h.mean(dim=1)                  # (B,d)
-
-        generic_snap_idx = self.generic_snap_idx.to(snap_x.device)
-        snap_h = self.snap_proj(
-            snap_numeric.index_select(dim=1, index=generic_snap_idx)
-        )                                              # (B,d)
-        generic_snap_set = set(generic_snap_idx.tolist())
-        for index_text, embedding in self.signal_nominal_embeddings.items():
-            index = int(index_text)
-            if index in generic_snap_set:
-                snap_h = snap_h + embedding(snap_x[:, index].long())
-
-        family_context_tokens, global_context_h = (
-            self._build_family_context_tokens(ctx_cont_n, ctx_cat)
-        )
-
-        fused = torch.cat([seq_pool, snap_h, global_context_h], dim=1)
-        z_v3 = self.fuse(fused)
-
-        pools = []
-        for specialist_position, name in enumerate(self._specialist_names):
-            idx = getattr(self, f"specialist_idx_{name}").to(seq_x.device)
-            seq_part = seq_numeric.index_select(dim=2, index=idx)
-            spec_h = self._add_pe(self.specialist_proj[name](seq_part), "pos_enc")
-            specialist_index_set = set(idx.tolist())
-            for index_text, embedding in self.signal_nominal_embeddings.items():
-                index = int(index_text)
-                if index in specialist_index_set:
-                    spec_h = spec_h + embedding(seq_x[..., index].long())
-            temporal_pool = self.specialist_encoder[name](spec_h).mean(dim=1)
-            pools.append(
-                temporal_pool
-                + family_context_tokens[:, specialist_position, :]
-            )
-        specialist_tokens = torch.stack(pools, dim=1)
-        specialist_tokens = self.specialist_cross_attn(
-            specialist_tokens + self.specialist_token_identity
-        )
-        specialist_gate = torch.softmax(
-            self.specialist_gate(z_v3)
-            + self.specialist_token_gate(specialist_tokens).squeeze(-1),
-            dim=1,
-        )
-        specialist_pool = (specialist_tokens * specialist_gate.unsqueeze(-1)).sum(dim=1)
-        specialist_correction = self.specialist_out(specialist_pool)
-        _assert_finite("specialist_correction", specialist_correction)
-        _assert_finite("specialist_gate", specialist_gate)
-        z_v3 = z_v3 + self.specialist_fusion_scale.to(specialist_correction.dtype) * specialist_correction
+        B = int(seq_x.shape[0])
 
         # Exact five-timeframe second-stage fusion.  Every branch is required;
         # there is no single-TF or four-TF fallback.

@@ -6059,6 +6059,10 @@ def _unified_exit_action_loss(
     """Train Exit from the same full-stack Entry representation and M1 prefix."""
 
     required = (
+        "exit_feature_seq_x",
+        "exit_feature_snap_x",
+        "exit_feature_ctx_cat",
+        "exit_feature_ctx_cont",
         "exit_path_x",
         "exit_path_lengths",
         "exit_side_index",
@@ -6089,6 +6093,22 @@ def _unified_exit_action_loss(
         device,
         non_blocking=device.type == "cuda",
     )
+    exit_feature_seq = batch["exit_feature_seq_x"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    exit_feature_snap = batch["exit_feature_snap_x"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    exit_feature_ctx_cat = batch["exit_feature_ctx_cat"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
+    exit_feature_ctx_cont = batch["exit_feature_ctx_cont"].to(
+        device,
+        non_blocking=device.type == "cuda",
+    )
     targets = batch["exit_action_target"].to(
         device,
         non_blocking=device.type == "cuda",
@@ -6101,11 +6121,19 @@ def _unified_exit_action_loss(
         paths.ndim != 4
         or lengths.ndim != 2
         or sides.ndim != 2
+        or exit_feature_seq.ndim != 4
+        or exit_feature_snap.ndim != 3
+        or exit_feature_ctx_cat.ndim != 3
+        or exit_feature_ctx_cont.ndim != 3
         or targets.ndim != 2
         or valid.ndim != 2
         or tuple(paths.shape[:2]) != tuple(valid.shape)
         or tuple(lengths.shape) != tuple(valid.shape)
         or tuple(sides.shape) != tuple(valid.shape)
+        or tuple(exit_feature_seq.shape[:2]) != tuple(valid.shape)
+        or tuple(exit_feature_snap.shape[:2]) != tuple(valid.shape)
+        or tuple(exit_feature_ctx_cat.shape[:2]) != tuple(valid.shape)
+        or tuple(exit_feature_ctx_cont.shape[:2]) != tuple(valid.shape)
         or tuple(targets.shape) != tuple(valid.shape)
         or int(shared.shape[0]) != int(valid.shape[0])
     ):
@@ -6136,6 +6164,23 @@ def _unified_exit_action_loss(
     owner = model._orig_mod if hasattr(model, "_orig_mod") else model
     exit_out = owner.forward_exit_action(
         entry_shared_representation=expanded_shared[flat_valid],
+        exit_feature_seq_x=exit_feature_seq.reshape(
+            -1,
+            exit_feature_seq.shape[2],
+            exit_feature_seq.shape[3],
+        )[flat_valid],
+        exit_feature_snap_x=exit_feature_snap.reshape(
+            -1,
+            exit_feature_snap.shape[2],
+        )[flat_valid],
+        exit_feature_ctx_cat=exit_feature_ctx_cat.reshape(
+            -1,
+            exit_feature_ctx_cat.shape[2],
+        )[flat_valid].long(),
+        exit_feature_ctx_cont=exit_feature_ctx_cont.reshape(
+            -1,
+            exit_feature_ctx_cont.shape[2],
+        )[flat_valid],
         exit_path_x=paths.reshape(
             -1,
             paths.shape[2],

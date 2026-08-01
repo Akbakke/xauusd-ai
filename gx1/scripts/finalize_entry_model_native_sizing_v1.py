@@ -1560,9 +1560,14 @@ def produce_canonical_unified_joint_sizing_proof(
             staged = state.clone_for_exit_decision()
             staged.update_bar(**closed_bar)
             envelope = staged.build_closed_m1_path_evidence()
+            exit_feature_surface = adapter.build_exit_feature_surface(
+                decision_time=closed_bar_time,
+                prebuilt_snapshot=None,
+            )
             exit_decision = adapter.decide_exit(
                 entry_snapshot=head,
                 exit_path_envelope=envelope,
+                exit_feature_surface=exit_feature_surface,
                 entry_bid=state.entry_bid,
                 entry_ask=state.entry_ask,
                 side=state.side,

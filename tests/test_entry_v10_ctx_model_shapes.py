@@ -152,6 +152,17 @@ def _forward(model: EntryV10CtxHybridTransformer, batch_size: int = 2) -> dict:
     return model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
 
+def _make_exit_feature_inputs(batch_size: int = 2) -> dict[str, torch.Tensor]:
+    _entry_seq, _entry_snap, ctx_cat, ctx_cont, _mtf = _make_inputs(batch_size)
+    seq = torch.randn(batch_size, SEQ_LEN * 5, SEQ_DIM)
+    return {
+        "exit_feature_seq_x": seq,
+        "exit_feature_snap_x": seq[:, -1, :].clone(),
+        "exit_feature_ctx_cat": ctx_cat,
+        "exit_feature_ctx_cont": ctx_cont,
+    }
+
+
 def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> None:
     model = _make_model().eval()
     out = _forward(model, batch_size=2)
@@ -210,10 +221,12 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
 def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> None:
     model = _make_model().train()
     out = _forward(model, batch_size=2)
+    exit_features = _make_exit_feature_inputs(2)
     path = torch.randn(2, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
     path[1, 2:, :] = 0.0
     exit_out = model.forward_exit_action(
         entry_shared_representation=out["shared_feature_representation"],
+        **exit_features,
         exit_path_x=path,
         exit_path_lengths=torch.tensor([4, 2], dtype=torch.long),
         exit_side_index=torch.tensor([0, 1], dtype=torch.long),
@@ -246,9 +259,11 @@ def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> 
 def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> None:
     model = _make_model(dropout=0.0).eval()
     shared = _forward(model, batch_size=1)["shared_feature_representation"]
+    exit_features = _make_exit_feature_inputs(1)
     prefix = torch.randn(1, 2, UNIFIED_EXIT_PATH_FEATURE_DIM)
     exact = model.forward_exit_action(
         entry_shared_representation=shared,
+        **exit_features,
         exit_path_x=prefix,
         exit_path_lengths=torch.tensor([2], dtype=torch.long),
         exit_side_index=torch.tensor([0], dtype=torch.long),
@@ -257,6 +272,7 @@ def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> Non
     padded[:, :2, :] = prefix
     padded_out = model.forward_exit_action(
         entry_shared_representation=shared,
+        **exit_features,
         exit_path_x=padded,
         exit_path_lengths=torch.tensor([2], dtype=torch.long),
         exit_side_index=torch.tensor([0], dtype=torch.long),
@@ -274,6 +290,7 @@ def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> Non
     ):
         model.forward_exit_action(
             entry_shared_representation=shared,
+            **exit_features,
             exit_path_x=padded,
             exit_path_lengths=torch.tensor([2], dtype=torch.long),
             exit_side_index=torch.tensor([0], dtype=torch.long),

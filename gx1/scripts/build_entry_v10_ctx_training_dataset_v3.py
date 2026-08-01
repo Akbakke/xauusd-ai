@@ -149,6 +149,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
     entry_exit_shared_feature_base_contract,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -4130,6 +4131,15 @@ def main() -> None:
         help="Exact immutable canonical pair generation root.",
     )
     parser.add_argument(
+        "--m1-feature-base-parquet",
+        type=str,
+        required=True,
+        help=(
+            "Exact row-level shared feature-base surface at M1; it must use "
+            "the same ordered 513/142/5 contract as Entry."
+        ),
+    )
+    parser.add_argument(
         "--exit-lifecycle-dir",
         type=str,
         required=True,
@@ -4363,12 +4373,29 @@ def main() -> None:
     m1_lifecycle_source_sha256 = _sha256_file(
         m1_lifecycle_source_path
     )
+    m1_feature_base_path = Path(args.m1_feature_base_parquet).expanduser().resolve()
+    m1_feature_base_sha256 = _sha256_file(m1_feature_base_path)
+    m1_feature_times, _m1_feature_arrays = load_m1_feature_surface(
+        m1_feature_base_path,
+        context="DATASET_BUILDER",
+    )
+    m1_source_times = pd.DatetimeIndex(
+        pd.to_datetime(
+            pd.read_parquet(m1_lifecycle_source_path, columns=["time"])["time"],
+            utc=True,
+            errors="coerce",
+        )
+    ).as_unit("ns")
+    if not m1_feature_times.equals(m1_source_times):
+        raise RuntimeError("DATASET_BUILDER_M1_FEATURE_BASE_TIME_MISMATCH")
     proof_payload["unified_exit_lifecycle"] = {
         "schema_version": (
             UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
         ),
         "m1_source_path": str(m1_lifecycle_source_path),
         "m1_source_sha256": m1_lifecycle_source_sha256,
+        "m1_feature_base_path": str(m1_feature_base_path),
+        "m1_feature_base_sha256": m1_feature_base_sha256,
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "output_dir": str(exit_lifecycle_dir),
@@ -4568,6 +4595,8 @@ def main() -> None:
                 "entry_dataset_sha256": _sha256_file(out),
                 "m1_source_path": str(m1_lifecycle_source_path),
                 "m1_source_sha256": m1_lifecycle_source_sha256,
+                "m1_feature_base_path": str(m1_feature_base_path),
+                "m1_feature_base_sha256": m1_feature_base_sha256,
                 "m1_authority_sha256": (
                     m1_lifecycle_authority_sha256
                 ),
@@ -4644,6 +4673,8 @@ def main() -> None:
         "entry_run_id": entry_run_id,
         "m1_source_path": str(m1_lifecycle_source_path),
         "m1_source_sha256": m1_lifecycle_source_sha256,
+        "m1_feature_base_path": str(m1_feature_base_path),
+        "m1_feature_base_sha256": m1_feature_base_sha256,
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),

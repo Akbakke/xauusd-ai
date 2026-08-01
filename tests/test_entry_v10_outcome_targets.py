@@ -583,16 +583,28 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         {
             "time": pd.to_datetime(
                 [
-                    "2026-01-01T00:00:00Z",
-                    "2026-01-01T00:05:00Z",
+                    "2026-01-01T08:00:00Z",
+                    "2026-01-01T08:05:00Z",
                 ],
                 utc=True,
             )
         }
     )
     m1_source = tmp_path / "xau_m1_20260101T000000Z.parquet"
-    source = _closed_m1_lifecycle_source()
+    source = _closed_m1_lifecycle_source(n_rows=1200)
     source.to_parquet(m1_source, index=False)
+    m1_feature_base = tmp_path / "xau_m1_feature_base.parquet"
+    zero_signal = np.zeros(513, dtype=np.float32).tolist()
+    zero_ctx_cont = np.zeros(142, dtype=np.float32).tolist()
+    zero_ctx_cat = np.zeros(5, dtype=np.int64).tolist()
+    pd.DataFrame(
+        {
+            "time": source["time"],
+            "signal": [zero_signal for _ in range(len(source))],
+            "ctx_cont": [zero_ctx_cont for _ in range(len(source))],
+            "ctx_cat": [zero_ctx_cat for _ in range(len(source))],
+        }
+    ).to_parquet(m1_feature_base, index=False)
     m1_authority = {
         "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
         "pair_manifest_path": str(tmp_path / "PAIR_MANIFEST.json"),
@@ -632,6 +644,8 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 "entry_dataset_sha256": sha256_file(entry_path),
                 "m1_source_path": str(m1_source),
                 "m1_source_sha256": sha256_file(m1_source),
+                "m1_feature_base_path": str(m1_feature_base),
+                "m1_feature_base_sha256": sha256_file(m1_feature_base),
                 "m1_authority_sha256": m1_authority_sha256,
                 "lifecycle_parquet": lifecycle_path.name,
                 "lifecycle_parquet_sha256": sha256_file(lifecycle_path),
@@ -666,6 +680,8 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 "entry_run_id": "EXIT_LIFECYCLE_PYTEST_V1",
                 "m1_source_path": str(m1_source),
                 "m1_source_sha256": sha256_file(m1_source),
+                "m1_feature_base_path": str(m1_feature_base),
+                "m1_feature_base_sha256": sha256_file(m1_feature_base),
                 "m1_authority": m1_authority,
                 "m1_authority_sha256": m1_authority_sha256,
                     "path_state_count": 512,

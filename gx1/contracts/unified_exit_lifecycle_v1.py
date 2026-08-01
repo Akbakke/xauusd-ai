@@ -21,8 +21,15 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
+    EXIT_FEATURE_SEQUENCE_BARS,
     entry_exit_shared_feature_base_contract,
     require_entry_exit_shared_feature_base_contract,
+)
+from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.execution.v12_state_from_prebuilt import (
     PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
@@ -475,11 +482,32 @@ class UnifiedExitLifecycleSplit:
         split_manifest: Mapping[str, Any],
         m1_times: pd.DatetimeIndex,
         m1_arrays: Mapping[str, np.ndarray],
+        m1_feature_times: pd.DatetimeIndex,
+        m1_feature_arrays: Mapping[str, np.ndarray],
     ) -> None:
         self.split = str(split)
         self.entry_row_count = int(entry_row_count)
         self._m1_times = m1_times
         self._m1 = dict(m1_arrays)
+        if not m1_feature_times.equals(m1_times):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_M1_FEATURE_SURFACE_TIME_MISMATCH: {self.split}"
+            )
+        self._m1_feature_times = m1_feature_times
+        self._m1_features = dict(m1_feature_arrays)
+        for name, width in (
+            ("signal", MODEL_NATIVE_SIGNAL_DIM),
+            ("ctx_cont", MODEL_NATIVE_CTX_CONT_DIM),
+            ("ctx_cat", MODEL_NATIVE_CTX_CAT_DIM),
+        ):
+            values = self._m1_features.get(name)
+            if not isinstance(values, np.ndarray) or values.shape != (
+                len(m1_times),
+                width,
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_M1_FEATURE_SURFACE_{name.upper()}_SHAPE_INVALID"
+                )
         self._selected_state = np.full(
             (self.entry_row_count, UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY),
             -1,
@@ -697,6 +725,26 @@ class UnifiedExitLifecycleSplit:
             UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
             dtype=np.int64,
         )
+        feature_seq = np.zeros(
+            (
+                UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
+                EXIT_FEATURE_SEQUENCE_BARS,
+                MODEL_NATIVE_SIGNAL_DIM,
+            ),
+            dtype=np.float32,
+        )
+        feature_snap = np.zeros(
+            (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_SIGNAL_DIM),
+            dtype=np.float32,
+        )
+        feature_ctx_cont = np.zeros(
+            (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_CTX_CONT_DIM),
+            dtype=np.float32,
+        )
+        feature_ctx_cat = np.zeros(
+            (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_CTX_CAT_DIM),
+            dtype=np.int64,
+        )
         valid = self._selected_state[index] >= 0
         for slot in np.flatnonzero(valid):
             state = int(self._selected_state[index, slot])
@@ -712,6 +760,20 @@ class UnifiedExitLifecycleSplit:
             ):
                 raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ENTRY_QUOTE_INVALID")
             source_slice = slice(start, start + length)
+            current_row = start + state
+            feature_start = current_row - EXIT_FEATURE_SEQUENCE_BARS + 1
+            if feature_start < 0:
+                raise RuntimeError(
+                    "UNIFIED_EXIT_LIFECYCLE_M1_FEATURE_HISTORY_INSUFFICIENT"
+                )
+            feature_slice = slice(
+                feature_start,
+                current_row + 1,
+            )
+            feature_seq[slot] = self._m1_features["signal"][feature_slice]
+            feature_snap[slot] = feature_seq[slot, -1]
+            feature_ctx_cont[slot] = self._m1_features["ctx_cont"][current_row]
+            feature_ctx_cat[slot] = self._m1_features["ctx_cat"][current_row]
             price_arrays = (
                 self._m1["bid_open"],
                 self._m1["bid_high"],
@@ -743,6 +805,10 @@ class UnifiedExitLifecycleSplit:
         if not np.isfinite(paths).all():
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_PATH_TENSOR_NONFINITE")
         return {
+            "exit_feature_seq_x": feature_seq,
+            "exit_feature_snap_x": feature_snap,
+            "exit_feature_ctx_cat": feature_ctx_cat,
+            "exit_feature_ctx_cont": feature_ctx_cont,
             "exit_path_x": paths,
             "exit_path_lengths": lengths,
             "exit_side_index": self._selected_side[index].astype(
@@ -801,6 +867,8 @@ class UnifiedExitLifecycleCorpus:
                 "entry_run_id",
                 "m1_source_path",
                 "m1_source_sha256",
+                "m1_feature_base_path",
+                "m1_feature_base_sha256",
                 "m1_authority",
                 "m1_authority_sha256",
                 "path_state_count",
@@ -856,6 +924,23 @@ class UnifiedExitLifecycleCorpus:
         ):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_M1_IDENTITY_INVALID")
         m1_times, m1_arrays = _validated_m1_arrays(m1_path)
+        m1_feature_path = Path(
+            root_manifest["m1_feature_base_path"]
+        ).expanduser().absolute()
+        if (
+            not m1_feature_path.is_absolute()
+            or m1_feature_path.is_symlink()
+            or not m1_feature_path.is_file()
+            or sha256_file(m1_feature_path)
+            != root_manifest["m1_feature_base_sha256"]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_IDENTITY_INVALID")
+        m1_feature_times, m1_feature_arrays = load_m1_feature_surface(
+            m1_feature_path,
+            context="UNIFIED_EXIT_LIFECYCLE",
+        )
+        if not m1_feature_times.equals(m1_times):
+            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
 
         if set(entry_parquets) != {"train", "val", "test"}:
             raise RuntimeError(
@@ -963,6 +1048,8 @@ class UnifiedExitLifecycleCorpus:
                 split_manifest=split_manifest,
                 m1_times=m1_times,
                 m1_arrays=m1_arrays,
+                m1_feature_times=m1_feature_times,
+                m1_feature_arrays=m1_feature_arrays,
             )
             self.splits[split] = split_contract
             split_evidence[split] = {
@@ -990,6 +1077,8 @@ class UnifiedExitLifecycleCorpus:
             "entry_run_id": dataset_run_id,
             "m1_source_path": str(m1_path),
             "m1_source_sha256": root_manifest["m1_source_sha256"],
+            "m1_feature_base_path": str(m1_feature_path),
+            "m1_feature_base_sha256": root_manifest["m1_feature_base_sha256"],
             "m1_authority": raw_authority,
             "m1_authority_sha256": root_manifest[
                 "m1_authority_sha256"
