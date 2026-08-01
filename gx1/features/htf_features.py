@@ -645,6 +645,19 @@ HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = (
     "htf_v4_full_input_liveness_v2"
 )
 
+# These three fields are deliberately present in both the compact candle
+# geometry owner and the candlestick owner.  They are the same causal ratios,
+# not a second computation or a fallback.  Keep the 111-field model contract
+# stable while rejecting every duplicate that is not one of these declared
+# aliases.
+HTF_V4_DECLARED_ALIAS_PAIRS = frozenset(
+    {
+        ("body_pct", "mtf_pattern_body_share"),
+        ("upper_wick_pct", "mtf_pattern_upper_wick_share"),
+        ("lower_wick_pct", "mtf_pattern_lower_wick_share"),
+    }
+)
+
 MULTI_TF_RESAMPLE_RULES = {
     # Resample cadence only. Entry window lengths are explicit recipe inputs
     # and must form a strictly increasing wall-clock coverage pyramid.
@@ -863,7 +876,9 @@ def build_multi_tf_v4_liveness_contract(
                 constant_fields.append(feature_name)
             prior = column_hash_owner.get(digest)
             if prior is not None:
-                duplicate_pairs.append([prior, feature_name])
+                pair = (prior, feature_name)
+                if pair not in HTF_V4_DECLARED_ALIAS_PAIRS:
+                    duplicate_pairs.append([prior, feature_name])
             else:
                 column_hash_owner[digest] = feature_name
             field_stats[feature_name] = {
