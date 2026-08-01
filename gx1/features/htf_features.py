@@ -150,6 +150,7 @@ def _validate_m5_input(
     m5_candles: pd.DataFrame,
     *,
     require_volume: bool = False,
+    bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> None:
     if not isinstance(m5_candles, pd.DataFrame):
         raise TypeError(
@@ -157,6 +158,8 @@ def _validate_m5_input(
         )
     if m5_candles.empty:
         raise RuntimeError("HTF_INPUT_FAIL: m5_candles must be non-empty")
+    if not isinstance(bar_duration, pd.Timedelta) or bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("HTF_INPUT_FAIL: bar_duration must be positive")
     required_cols = ["open", "high", "low", "close"]
     if require_volume:
         required_cols.append("volume")
@@ -181,6 +184,8 @@ def _validate_m5_input(
         raise RuntimeError(
             "HTF_INPUT_FAIL: timestamps must be finite, unique and chronological"
         )
+    if np.any(m5_candles.index.asi8 % int(bar_duration.value) != 0):
+        raise RuntimeError("HTF_INPUT_FAIL: timestamps are off the declared base grid")
     numeric = m5_candles.loc[:, required_cols].apply(pd.to_numeric, errors="coerce")
     values = numeric.to_numpy(dtype=np.float64)
     if not np.isfinite(values).all():
@@ -678,6 +683,8 @@ MULTI_TF_PYRAMID_SCHEMA_VERSION = "entry_multi_tf_causal_resolution_pyramid_v1"
 def multi_tf_last_closed_label(
     decision_bar_start: pd.Timestamp | str,
     timeframe: str,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> pd.Timestamp:
     """Return the exact opening label of the last closed bar for one TF.
 
@@ -690,6 +697,8 @@ def multi_tf_last_closed_label(
         raise RuntimeError(
             f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}"
         )
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("HTF_V4_BASE_BAR_DURATION_INVALID")
     timestamp = pd.Timestamp(decision_bar_start)
     if timestamp.tz is None or timestamp.utcoffset() != pd.Timedelta(0):
         raise RuntimeError(
@@ -697,15 +706,19 @@ def multi_tf_last_closed_label(
         )
     return (
         timestamp
-        + MULTI_TF_SHIFT["M5"]
+        + base_bar_duration
         - MULTI_TF_SHIFT[timeframe]
     ).floor(MULTI_TF_RESAMPLE_RULES[timeframe])
 
 
 def build_multi_tf_v4_closed_timestamp_indices(
     m5_index: pd.DatetimeIndex,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> dict[str, pd.DatetimeIndex]:
     """Derive the one admissible closed-bar timestamp axis for every V4 TF."""
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("HTF_V4_BASE_BAR_DURATION_INVALID")
     if not isinstance(m5_index, pd.DatetimeIndex) or len(m5_index) == 0:
         raise RuntimeError(
             "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID: non-empty "
@@ -723,7 +736,7 @@ def build_multi_tf_v4_closed_timestamp_indices(
             "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID: exact chronological "
             "unique UTC timestamps required"
         )
-    if not m5_index.floor(MULTI_TF_RESAMPLE_RULES["M5"]).equals(m5_index):
+    if not m5_index.floor(base_bar_duration).equals(m5_index):
         raise RuntimeError(
             "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID: source timestamps "
             "must lie on the exact M5 UTC grid"
@@ -732,7 +745,11 @@ def build_multi_tf_v4_closed_timestamp_indices(
     expected: dict[str, pd.DatetimeIndex] = {}
     for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items():
         labels = m5_index.floor(rule).drop_duplicates()
-        last_closed = multi_tf_last_closed_label(m5_index[-1], timeframe)
+        last_closed = multi_tf_last_closed_label(
+            m5_index[-1],
+            timeframe,
+            base_bar_duration=base_bar_duration,
+        )
         labels = labels[labels <= last_closed]
         if len(labels) and m5_index[0] > labels[0]:
             labels = labels[1:]
@@ -1428,14 +1445,22 @@ def compute_per_bar_features_v4(ohlcv: pd.DataFrame) -> pd.DataFrame:
     return out.astype(np.float32)
 
 
-def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
+def build_multi_tf_per_bar_features_v2(
+    m5_df: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> dict:
     """Build the exact causal V2 feature tables from observed M5 OHLCV.
 
     Resamples M5 → M5/M15/H1/H4/D1, computes V2 25-feature set per TF.
     Result attaches .attrs["ts_int64"] and .attrs["feats_np"] for fast slicing
     (same fast-path API as V1).
     """
-    _validate_m5_input(m5_df, require_volume=True)
+    _validate_m5_input(
+        m5_df,
+        require_volume=True,
+        bar_duration=base_bar_duration,
+    )
     result = {}
     for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
         resampled = _resample_ohlcv(m5_df, rule)
@@ -1484,12 +1509,23 @@ def build_multi_tf_per_bar_features_v3(m5_df: pd.DataFrame) -> dict:
     return result
 
 
-def build_multi_tf_per_bar_features_v4(m5_df: pd.DataFrame) -> dict:
+def build_multi_tf_per_bar_features_v4(
+    m5_df: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> dict:
     """Build all eight causal specialist families at every declared timeframe."""
-    _validate_m5_input(m5_df, require_volume=True)
+    _validate_m5_input(
+        m5_df,
+        require_volume=True,
+        bar_duration=base_bar_duration,
+    )
     source = m5_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
-    expected_indices = build_multi_tf_v4_closed_timestamp_indices(source.index)
+    expected_indices = build_multi_tf_v4_closed_timestamp_indices(
+        source.index,
+        base_bar_duration=base_bar_duration,
+    )
     result = {}
     for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
         resampled = _resample_ohlcv(source, rule)
@@ -1528,6 +1564,8 @@ def attach_v2_mtf_per_bar_scalars(
     per_tf_map,
     tfs=("m15", "h1", "h4", "d1"),
     skip=frozenset(),
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> dict:
     """V2 (2026-06-04) ONE-TRUTH per-bar V2 multi-TF scalar projection.
 
@@ -1540,7 +1578,10 @@ def attach_v2_mtf_per_bar_scalars(
     np.ndarray(len(target_ts_ns), float64)]. Unavailable causal warmup remains
     NaN and must be trimmed by the owning state contract.
     """
-    tf_feats = build_multi_tf_per_bar_features_v2(m5_df)
+    tf_feats = build_multi_tf_per_bar_features_v2(
+        m5_df,
+        base_bar_duration=base_bar_duration,
+    )
     target_ts_ns = np.asarray(target_ts_ns, dtype=np.int64)
     if target_ts_ns.ndim != 1 or len(target_ts_ns) == 0 or np.any(np.diff(target_ts_ns) <= 0):
         raise RuntimeError(
@@ -1567,7 +1608,7 @@ def attach_v2_mtf_per_bar_scalars(
             expected_width=MULTI_TF_FEATURE_COUNT_V2,
             context=f"HTF_V2_PROJECTION_{tf_key}",
         )
-        decision_close_ns = target_ts_ns + int(MULTI_TF_SHIFT["M5"].value)
+        decision_close_ns = target_ts_ns + int(base_bar_duration.value)
         cutoffs = decision_close_ns - int(MULTI_TF_SHIFT[tf_key].value)
         right = np.searchsorted(tf_ts_ns, cutoffs, side="right") - 1
         valid_mask = right >= 0
@@ -1617,7 +1658,11 @@ REGIME_V4_V2_MTF_TFS = MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
 REGIME_V4_V2_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
 
 
-def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
+def attach_default_regime_v4_v2_scalars(
+    cv3: "pd.DataFrame",
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> "pd.DataFrame":
     """Attach the per-TF V2 multi-TF scalars REGIME_V4 needs (its R1/R2/R3 inputs +
     context) to a cv3 frame IN PLACE, using the canonical REGIME_V4_V2_MTF_* constants.
 
@@ -1627,11 +1672,20 @@ def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
     Existing derived columns are overwritten from the exact source so stale or
     externally injected values cannot pass through this owner.
     """
-    _validate_m5_input(cv3, require_volume=True)
+    _validate_m5_input(
+        cv3,
+        require_volume=True,
+        bar_duration=base_bar_duration,
+    )
     m5_df = cv3[["open", "high", "low", "close", "volume"]].astype(np.float64).copy()
     ts_ns = cv3.index.asi8.astype(np.int64, copy=False)
     for _col, _vals in attach_v2_mtf_per_bar_scalars(
-        m5_df, ts_ns, REGIME_V4_V2_MTF_PER_TF, REGIME_V4_V2_MTF_TFS, REGIME_V4_V2_MTF_SKIP
+        m5_df,
+        ts_ns,
+        REGIME_V4_V2_MTF_PER_TF,
+        REGIME_V4_V2_MTF_TFS,
+        REGIME_V4_V2_MTF_SKIP,
+        base_bar_duration=base_bar_duration,
     ).items():
         cv3[_col] = _vals
     return cv3

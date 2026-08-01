@@ -186,7 +186,12 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def build_basic_v1_chunked(df: pd.DataFrame, chunk_size: int = 100_000) -> pd.DataFrame:
+def build_basic_v1_chunked(
+    df: pd.DataFrame,
+    chunk_size: int = 100_000,
+    *,
+    decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> pd.DataFrame:
     """Run basic_v1 over the full tape. Sets FEATURE_STATE for HTF cache."""
     state = FeatureState()
     set_feature_state(state)
@@ -196,7 +201,12 @@ def build_basic_v1_chunked(df: pd.DataFrame, chunk_size: int = 100_000) -> pd.Da
 
     print(f"[{ACTION}] running basic_v1 on {len(work):,} rows...", flush=True)
     t0 = _time.time()
-    result = build_basic_v1(work)
+    if not isinstance(decision_bar_duration, pd.Timedelta) or decision_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("[BUILD_CANONICAL_FEATURES_V1] decision bar duration must be positive")
+    result = build_basic_v1(
+        work,
+        decision_delay_seconds=int(decision_bar_duration.total_seconds()),
+    )
     if isinstance(result, tuple):
         result = result[0]
     elapsed = _time.time() - t0
@@ -207,9 +217,16 @@ def build_basic_v1_chunked(df: pd.DataFrame, chunk_size: int = 100_000) -> pd.Da
     return result
 
 
-def build_canonical_features(m5: pd.DataFrame) -> pd.DataFrame:
+def build_canonical_features(
+    m5: pd.DataFrame,
+    *,
+    decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> pd.DataFrame:
     """Apply basic_v1 + high-level basics + m5_phase. Returns full feature parquet."""
-    feats = build_basic_v1_chunked(m5)
+    feats = build_basic_v1_chunked(
+        m5,
+        decision_bar_duration=decision_bar_duration,
+    )
 
     # Add high-level basics from raw bars
     feats = add_high_level_basics(feats)

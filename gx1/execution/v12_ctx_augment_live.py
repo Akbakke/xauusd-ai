@@ -90,7 +90,8 @@ from gx1.time.session_detector import (
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
     get_session_vectorized,
-    m5_decision_availability,
+    decision_availability,
+    M5_BAR_DURATION,
 )
 
 LOG = logging.getLogger("v12_ctx_augment_live")
@@ -139,14 +140,18 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series
 
 
 def _align_last_closed(
-    target_idx: pd.DatetimeIndex, htf_series: pd.Series, shift: pd.Timedelta
+    target_idx: pd.DatetimeIndex,
+    htf_series: pd.Series,
+    shift: pd.Timedelta,
+    *,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> pd.Series:
     """For each M5 timestamp, return the value of the last fully-closed HTF
     bar (no lookahead). The HTF bar at time T closes at T + shift.
     """
     shifted = htf_series.copy()
     shifted.index = shifted.index + shift
-    decision_idx = target_idx + pd.Timedelta(minutes=5)
+    decision_idx = target_idx + base_bar_duration
     aligned = shifted.reindex(decision_idx, method="ffill")
     aligned.index = target_idx
     return aligned
@@ -155,14 +160,22 @@ def _align_last_closed(
 # ── per-feature-group computations ────────────────────────────────────────
 
 
-def _add_session_features(cv3: pd.DataFrame) -> None:
+def _add_session_features(
+    cv3: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+) -> None:
     """Mutates cv3: adds session_id, is_ASIA, _v1_is_EU, _v1_is_US,
     minutes_since/to, session_change_flag, session_tradable.
 
     The input is M5-cadence canonical state labelled by bar start.  Session
     evidence describes the decision instant when that row closes, ``T+5min``.
     """
-    idx = m5_decision_availability(cv3.index)
+    idx = decision_availability(
+        cv3.index,
+        bar_duration=base_bar_duration,
+        context="CTX_SESSION",
+    )
     session_id = get_session_id_vectorized(idx).to_numpy(dtype=np.int64)
     cv3["session_id"] = session_id
     cv3["is_ASIA"] = (
@@ -218,7 +231,12 @@ def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
         cv3[name] = derived[name].to_numpy(dtype=np.float64)
 
 
-def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
+def _add_htf_features(
+    cv3: pd.DataFrame,
+    df_m5: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+) -> None:
     """Mutates cv3: D1_dist_from_ema200_atr, H1_range_compression_ratio,
     D1_atr_percentile_252, M15_range_compression_ratio, H4_trend_sign_cat.
 
@@ -261,9 +279,26 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         M15_ATR100_MIN_BARS,
         validate_causal_feature_matrix,
     )
-    from gx1.features.htf_features import _validate_m5_input as _validate_htf_source
-
-    _validate_htf_source(m5)
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("[LIVE_HTF_SOURCE] base bar duration must be positive")
+    if (
+        m5.empty
+        or not isinstance(m5.index, pd.DatetimeIndex)
+        or m5.index.tz is None
+        or m5.index.hasnans
+        or not m5.index.is_unique
+        or not m5.index.is_monotonic_increasing
+        or np.any(m5.index.asi8 % int(base_bar_duration.value) != 0)
+    ):
+        raise RuntimeError("[LIVE_HTF_SOURCE] raw source timestamp geometry invalid")
+    missing_ohlc = [name for name in ("open", "high", "low", "close") if name not in m5.columns]
+    if missing_ohlc:
+        raise RuntimeError(f"[LIVE_HTF_SOURCE] raw source columns missing: {missing_ohlc}")
+    _validate_values = m5.loc[:, ["open", "high", "low", "close"]].apply(
+        pd.to_numeric, errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    if not np.isfinite(_validate_values).all():
+        raise RuntimeError("[LIVE_HTF_SOURCE] raw source OHLC must be finite")
     if not cv3.index.isin(m5.index).all():
         raise RuntimeError(
             "[LIVE_HTF_SOURCE] raw M5 source does not cover every target timestamp"
@@ -276,7 +311,10 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     d1_dist = (d1_mid - d1_ema200) / np.maximum(d1_atr14, ATR_EPS)
     d1_dist.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
     cv3["D1_dist_from_ema200_atr"] = _align_last_closed(
-        cv3.index, d1_dist, pd.Timedelta(days=1)
+        cv3.index,
+        d1_dist,
+        pd.Timedelta(days=1),
+        base_bar_duration=base_bar_duration,
     ).to_numpy(dtype=float)
 
     def _pctl_last(arr):
@@ -288,7 +326,10 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     atr_pctl = d1_atr14.rolling(252, min_periods=252).apply(_pctl_last, raw=True)
     atr_pctl.iloc[: D1_PCTL252_MIN_BARS - 1] = np.nan
     cv3["D1_atr_percentile_252"] = _align_last_closed(
-        cv3.index, atr_pctl, pd.Timedelta(days=1)
+        cv3.index,
+        atr_pctl,
+        pd.Timedelta(days=1),
+        base_bar_duration=base_bar_duration,
     ).to_numpy(dtype=float)
 
     # H1 features (H1_ATR100_MIN_BARS=120 — ATR100 converged)
@@ -298,7 +339,10 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     h1_comp = h1_atr14 / np.maximum(h1_atr100, ATR_EPS)
     h1_comp.iloc[: H1_ATR100_MIN_BARS - 1] = np.nan
     cv3["H1_range_compression_ratio"] = _align_last_closed(
-        cv3.index, h1_comp, pd.Timedelta(hours=1)
+        cv3.index,
+        h1_comp,
+        pd.Timedelta(hours=1),
+        base_bar_duration=base_bar_duration,
     ).to_numpy(dtype=float)
 
     # M15 features (M15_ATR100_MIN_BARS=200)
@@ -308,7 +352,10 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
     m15_comp.iloc[: M15_ATR100_MIN_BARS - 1] = np.nan
     cv3["M15_range_compression_ratio"] = _align_last_closed(
-        cv3.index, m15_comp, pd.Timedelta(minutes=15)
+        cv3.index,
+        m15_comp,
+        pd.Timedelta(minutes=15),
+        base_bar_duration=base_bar_duration,
     ).to_numpy(dtype=float)
 
     # H4 trend sign categorical (H4_EMA50_MIN_BARS=80 — EMA50 converged)
@@ -319,7 +366,10 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     sign_series = (np.sign(diff) + 1.0).astype(np.float64)
     sign_series.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
     cv3["H4_trend_sign_cat"] = _align_last_closed(
-        cv3.index, sign_series, pd.Timedelta(hours=4)
+        cv3.index,
+        sign_series,
+        pd.Timedelta(hours=4),
+        base_bar_duration=base_bar_duration,
     ).to_numpy(dtype=float)
 
     htf_values = cv3.loc[:, _htf_cols].to_numpy(dtype=np.float64)
@@ -416,6 +466,7 @@ def _augment_canonical_v3(
     df_m5: pd.DataFrame,
     *,
     rank_reference: TrainRankReferenceV2 | None,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> pd.DataFrame:
     """Add the 32 ctx-cont / ctx-cat / session / interaction / swing features
     on top of a canonical_v3 DataFrame.
@@ -435,9 +486,9 @@ def _augment_canonical_v3(
         return cv3
     out = cv3.copy()
     _add_spread_atr_bps(out)
-    _add_session_features(out)
+    _add_session_features(out, base_bar_duration=base_bar_duration)
     _add_session_interactions(out)
-    _add_htf_features(out, df_m5)
+    _add_htf_features(out, df_m5, base_bar_duration=base_bar_duration)
     _add_micro_features(out)
     _add_swing_features(out)
     _add_regime_categoricals(out, rank_reference=rank_reference)
@@ -459,7 +510,10 @@ def _augment_canonical_v3(
         add_regime_v4_features,
     )
 
-    add_regime_v4_features(out)
+    add_regime_v4_features(
+        out,
+        base_bar_duration=base_bar_duration,
+    )
     from gx1.scripts.augment_forward_outcome_v2 import trim_causal_context_warmup_prefix
 
     htf_required = [
@@ -482,6 +536,8 @@ def _augment_canonical_v3(
 def augment_canonical_v3_model_agnostic(
     cv3: pd.DataFrame,
     df_m5: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> pd.DataFrame:
     """Build causal shared context without dataset-fitted bucket categories."""
 
@@ -489,6 +545,7 @@ def augment_canonical_v3_model_agnostic(
         cv3,
         df_m5,
         rank_reference=None,
+        base_bar_duration=base_bar_duration,
     )
     forbidden = sorted({"atr_bucket", "spread_bucket"} & set(out.columns))
     if forbidden:
@@ -503,6 +560,7 @@ def augment_canonical_v3(
     df_m5: pd.DataFrame,
     *,
     rank_reference: TrainRankReferenceV2,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> pd.DataFrame:
     """Build the complete causal context under one exact TRAIN reference."""
 
@@ -514,6 +572,7 @@ def augment_canonical_v3(
         cv3,
         df_m5,
         rank_reference=rank_reference,
+        base_bar_duration=base_bar_duration,
     )
     missing = sorted({"atr_bucket", "spread_bucket"} - set(out.columns))
     if missing:

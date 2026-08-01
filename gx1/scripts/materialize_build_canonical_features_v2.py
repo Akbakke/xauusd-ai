@@ -269,10 +269,19 @@ def merge_asof_features(
     return merged
 
 
-def build_canonical_v2(m5: pd.DataFrame) -> pd.DataFrame:
+def build_canonical_v2(
+    m5: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> pd.DataFrame:
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("canonical_v2 base_bar_duration must be positive")
     print(f"[{ACTION}] step 1/4 — building v1 canonical features...", flush=True)
     t0 = _time.time()
-    v1_feats = v1_builder.build_canonical_features(m5)
+    v1_feats = v1_builder.build_canonical_features(
+        m5,
+        decision_bar_duration=base_bar_duration,
+    )
     print(f"[{ACTION}] v1 done in {_time.time() - t0:.1f}s, shape={v1_feats.shape}", flush=True)
 
     print(f"[{ACTION}] step 2/4 — computing D1 features...", flush=True)
@@ -289,8 +298,16 @@ def build_canonical_v2(m5: pd.DataFrame) -> pd.DataFrame:
 
     print(f"[{ACTION}] step 4/5 — merge_asof D1 + M15 onto v1...", flush=True)
     t0 = _time.time()
-    out = merge_asof_features(v1_feats, d1_feats)
-    out = merge_asof_features(out, m15_feats)
+    out = merge_asof_features(
+        v1_feats,
+        d1_feats,
+        base_bar_duration=base_bar_duration,
+    )
+    out = merge_asof_features(
+        out,
+        m15_feats,
+        base_bar_duration=base_bar_duration,
+    )
     print(f"[{ACTION}] merge done in {_time.time() - t0:.1f}s, shape after merge={out.shape}", flush=True)
 
     print(f"[{ACTION}] step 5/5 — computing SMC features (HH/HL state, BOS, CHOCH, sweep, premium/discount)...", flush=True)

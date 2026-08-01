@@ -25,6 +25,7 @@ import pandas as pd
 from gx1.features.htf_features import (
     MULTI_TF_BARS_IN_M5,
     REGIME_V4_V2_MTF_TFS,
+    MULTI_TF_SHIFT,
     validate_causal_feature_matrix,
 )
 
@@ -84,7 +85,11 @@ def _sign_from_class(class_id: np.ndarray) -> np.ndarray:
     return np.where(np.isin(c, (1, 2)), 1, np.where(np.isin(c, (3, 4)), -1, 0)).astype(np.float64)
 
 
-def add_regime_v4_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_regime_v4_features(
+    df: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> pd.DataFrame:
     """Add REGIME_V4 derived features in place (and validate the reuse sources exist).
 
     The frame MUST be time-sorted ascending (shift/run-length depend on it). Build-side passes
@@ -92,6 +97,20 @@ def add_regime_v4_features(df: pd.DataFrame) -> pd.DataFrame:
     D1-dist history for F4 to be exact. The causal prefix remains NaN and is trimmed
     by the shared warmup contract; missing columns fail closed.
     """
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("[REGIME_V4] base bar duration must be positive")
+    if any(
+        int(shift.value) % int(base_bar_duration.value) != 0
+        for shift in MULTI_TF_SHIFT.values()
+    ):
+        raise RuntimeError("[REGIME_V4] base bar duration must divide every MTF duration")
+    tf_bars = {
+        timeframe: int(
+            MULTI_TF_SHIFT[timeframe.upper()].value
+            // int(base_bar_duration.value)
+        )
+        for timeframe in _TFS
+    }
     missing = [c for c in REGIME_V4_SOURCE_COLS if c not in df.columns]
     if missing:
         raise RuntimeError(
@@ -158,7 +177,7 @@ def add_regime_v4_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # F4: D1-dist rate-of-change over ~1 D1 bar (288 M5 bars). Clip MANDATORY (corrupt tails).
     d1d = suffix["D1_dist_from_ema200_atr"].to_numpy(dtype=np.float64)
-    roc_lookback = _TF_BARS["d1"]
+    roc_lookback = tf_bars["d1"]
     if len(d1d) > roc_lookback:
         roc = np.clip(d1d[roc_lookback:] - d1d[:-roc_lookback], -5.0, 5.0)
         derived["d1_dist_roc_288_v3"][source_start + roc_lookback:] = roc

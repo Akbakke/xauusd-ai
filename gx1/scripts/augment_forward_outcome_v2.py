@@ -80,11 +80,16 @@ _DECISION_M5_NS = 300_000_000_000  # M5 bar closes 5min after its label ts
 from gx1.features.htf_features import MULTI_TF_SHIFT as _MTF_SHIFT
 _TF_SHIFT_NS = {tf: int(_MTF_SHIFT[tf].value) for tf in TF_NAMES}
 
-def _cache_cutoff_ns(ts_ns: int, tf: str) -> int:
+def _cache_cutoff_ns(
+    ts_ns: int,
+    tf: str,
+    *,
+    decision_bar_duration_ns: int = _DECISION_M5_NS,
+) -> int:
     """Return the latest start-stamped ``tf`` row closed at decision time."""
     if tf not in _TF_SHIFT_NS:
         raise RuntimeError(f"[CTX_CAUSALITY] unsupported timeframe: {tf!r}")
-    return ts_ns + _DECISION_M5_NS - _TF_SHIFT_NS[tf]
+    return ts_ns + int(decision_bar_duration_ns) - _TF_SHIFT_NS[tf]
 
 
 def compute_smc_swing_dip_interaction(
@@ -261,6 +266,7 @@ class AugmentContext:
     daily_pivot_by_date: dict       # date_str → {R1, R2, S1, S2}
     # Trade history from journal — DataFrame with (close_ts, side, pnl_bps)
     trade_history: pd.DataFrame
+    decision_bar_duration_ns: int
 
 
 def _require_utc_timestamp(value: object, *, context: str) -> pd.Timestamp:
@@ -440,7 +446,12 @@ def _build_trade_history(journal_dir: Path, suffix: str = "live_v12_4") -> pd.Da
     return df.dropna(subset=["close_ts", "pnl_bps"]).sort_values("close_ts").reset_index(drop=True)
 
 
-def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
+def _assert_multi_tf_cache_fresh(
+    m5_df: pd.DataFrame,
+    multi_tf: dict,
+    *,
+    decision_bar_duration_ns: int = _DECISION_M5_NS,
+) -> None:
     """Require the exact causal cache and finite evidence at the final cutoff."""
     if not isinstance(multi_tf, dict):
         raise RuntimeError("[MTF_CACHE_CONTRACT] multi_tf must be an explicit dictionary")
@@ -472,7 +483,11 @@ def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
         )
         if feats.attrs.get("causal_warmup_rows") != warmup_rows:
             raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} warmup metadata mismatch")
-        closed_cutoff = _cache_cutoff_ns(m5_last, tf)
+        closed_cutoff = _cache_cutoff_ns(
+            m5_last,
+            tf,
+            decision_bar_duration_ns=decision_bar_duration_ns,
+        )
         expected = (
             m5_df.resample(MULTI_TF_RESAMPLE_RULES[tf])
             .agg({"high": "max", "low": "min", "close": "last"})
@@ -493,10 +508,25 @@ def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
             )
 
 
-def build_context(m5_df: pd.DataFrame, multi_tf: dict, journal_dir: Path) -> AugmentContext:
+def build_context(
+    m5_df: pd.DataFrame,
+    multi_tf: dict,
+    journal_dir: Path,
+    *,
+    decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> AugmentContext:
     """Pre-compute all caches ONCE. Heavy upfront cost, fast per-candidate after."""
+    if not isinstance(decision_bar_duration, pd.Timedelta) or decision_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("[CTX_BUILD] decision bar duration must be positive")
+    decision_bar_duration_ns = int(decision_bar_duration.value)
     _validate_m5_frame(m5_df, context="CTX_BUILD")
-    _assert_multi_tf_cache_fresh(m5_df, multi_tf)  # fail-closed on stale multi-TF cache (rule 4)
+    if np.any(m5_df.index.asi8 % decision_bar_duration_ns != 0):
+        raise RuntimeError("[CTX_BUILD] source timestamps are off the declared base grid")
+    _assert_multi_tf_cache_fresh(
+        m5_df,
+        multi_tf,
+        decision_bar_duration_ns=decision_bar_duration_ns,
+    )  # fail-closed on stale multi-TF cache (rule 4)
     ts_ns = m5_df.index.values.astype("datetime64[ns]").astype(np.int64)
     h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "1h")
     h4_ts, h4_hi, h4_lo = _build_resampled_ohlc_array(m5_df, "4h")
@@ -529,6 +559,7 @@ def build_context(m5_df: pd.DataFrame, multi_tf: dict, journal_dir: Path) -> Aug
         h1_atr_pct_ts_ns=h1_ts_pct,
         daily_pivot_by_date=daily_pivots,
         trade_history=trade_hist,
+        decision_bar_duration_ns=decision_bar_duration_ns,
     )
 
 
@@ -561,7 +592,17 @@ def _tf_cache_row(ctx: AugmentContext, tf: str, ts_ns: int) -> np.ndarray:
         or values.shape != (len(ts_arr), len(MULTI_TF_PER_BAR_FEATURES_V4))
     ):
         raise RuntimeError(f"[CTX_MTF_SOURCE] malformed {tf} cache arrays")
-    right = int(np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right"))
+    right = int(
+        np.searchsorted(
+            ts_arr,
+            _cache_cutoff_ns(
+                ts_ns,
+                tf,
+                decision_bar_duration_ns=ctx.decision_bar_duration_ns,
+            ),
+            side="right",
+        )
+    )
     if right == 0:
         raise CausalContextWarmupError(
             f"[CTX_MTF_WARMUP] no closed {tf} row at {pd.Timestamp(ts_ns, tz='UTC')}"
@@ -628,7 +669,15 @@ def _vol_pct(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     if m5_idx >= len(ctx.m5_ts_ns) or int(ctx.m5_ts_ns[m5_idx]) != int(ts_ns):
         raise RuntimeError("[CTX_VOL_PERCENTILE] decision timestamp is not an exact M5 source row")
     h1_right = int(
-        np.searchsorted(ctx.h1_atr_pct_ts_ns, _cache_cutoff_ns(ts_ns, "H1"), side="right")
+        np.searchsorted(
+            ctx.h1_atr_pct_ts_ns,
+            _cache_cutoff_ns(
+                ts_ns,
+                "H1",
+                decision_bar_duration_ns=ctx.decision_bar_duration_ns,
+            ),
+            side="right",
+        )
     )
     if h1_right == 0:
         raise CausalContextWarmupError(
@@ -671,7 +720,16 @@ def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, curr
         ("h4",  ctx.h4_ts_ns,  ctx.h4_high,  ctx.h4_low,  168),
         ("d1",  ctx.d1_ts_ns,  ctx.d1_high,  ctx.d1_low,  60),
     ):
-        right = int(np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf_name.upper()), side="right"))
+        cutoff_ns = (
+            ts_ns
+            if tf_name == "m5"
+            else _cache_cutoff_ns(
+                ts_ns,
+                tf_name.upper(),
+                decision_bar_duration_ns=ctx.decision_bar_duration_ns,
+            )
+        )
+        right = int(np.searchsorted(ts_arr, cutoff_ns, side="right"))
         if right < lookback:
             raise CausalContextWarmupError(
                 f"[CTX_LIQUIDITY_WARMUP] {tf_name.upper()} requires {lookback} closed rows; "
@@ -782,10 +840,10 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
     import math as _math
     atr_safe = max(current_atr, 1e-3)
     CLIP, TAU = 3.0, 1.0
-    M5_NS = 300_000_000_000  # decision moment = close of the M5 bar labeled ts (= ts + 5min)
+    base_ns = int(ctx.decision_bar_duration_ns)
     out: dict[str, float] = {}
     for tf, ts_arr, hi_arr, lo_arr, lb, period_ns in (
-        ("m5", ctx.m5_ts_ns, ctx.m5_high, ctx.m5_low, 240, M5_NS),
+        ("m5", ctx.m5_ts_ns, ctx.m5_high, ctx.m5_low, 240, base_ns),
         ("m15", ctx.m15_ts_ns, ctx.m15_high, ctx.m15_low, 192, 900_000_000_000),
         ("h1", ctx.h1_ts_ns, ctx.h1_high, ctx.h1_low, 168, 3_600_000_000_000),
     ):
@@ -795,7 +853,7 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
         # complete tape) leaks intra-period FUTURE data → build≠serve at the same ts. The serve-time
         # contract for FVG is therefore COMPLETED TF bars only. M5 is unchanged (label<=ts ⇔
         # completed-by-ts+5min on the native M5 grid).
-        right = int(np.searchsorted(ts_arr, ts_ns + M5_NS - period_ns, side="right"))
+        right = int(np.searchsorted(ts_arr, ts_ns + base_ns - period_ns, side="right"))
         if right < 3:
             out[f"{tf}_dist_to_unfilled_fvg_atr"] = CLIP
             out[f"{tf}_fvg_active"] = float(_math.exp(-CLIP / TAU))
@@ -978,6 +1036,7 @@ def _group_a_checkpoint_manifest(
     smc_col: str,
     chunk_rows: int,
     context_m5: pd.DataFrame | None,
+    decision_bar_duration_ns: int = _DECISION_M5_NS,
 ) -> dict:
     if not isinstance(checkpoint_key, str) or len(checkpoint_key) != 64 or any(
         ch not in "0123456789abcdef" for ch in checkpoint_key
@@ -1043,6 +1102,7 @@ def _group_a_checkpoint_manifest(
             [b"group_a_extract_v1\0", "\n".join(extract).encode("utf-8")]
         ),
         "smc_col": smc_col,
+        "decision_bar_duration_ns": int(decision_bar_duration_ns),
         "chunk_rows": int(chunk_rows),
         "bounds": bounds,
     }
@@ -1230,6 +1290,7 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
     checkpoint_key: str | None = None,
     checkpoint_chunk_rows: int = _GROUP_A_CHECKPOINT_CHUNK_ROWS,
     context_m5: pd.DataFrame | None = None,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> pd.DataFrame:
     """Exact parallel variant of attach_group_a_dip_struct_ctx_columns.
 
@@ -1251,6 +1312,7 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
         journal_label=journal_label,
         smc_col=smc_col,
         context_m5=context_m5,
+        base_bar_duration=base_bar_duration,
     )
     if (checkpoint_dir is None) != (checkpoint_key is None):
         raise RuntimeError(
@@ -1277,6 +1339,7 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
             smc_col=smc_col,
             chunk_rows=chunk_rows,
             context_m5=context_m5,
+            decision_bar_duration_ns=int(base_bar_duration.value),
         )
         _, manifest_sha256 = _initialize_group_a_checkpoint(
             checkpoint_path, manifest
@@ -1437,6 +1500,7 @@ def attach_group_a_dip_struct_ctx_columns(
     journal_label: str = "parity",
     smc_col: str = "smc_swing_state",
     context_m5: pd.DataFrame | None = None,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> pd.DataFrame:
     """Add the 24 GROUP-A parity + 36 dip/struct ctx_cont columns to ``df`` in place.
 
@@ -1461,6 +1525,7 @@ def attach_group_a_dip_struct_ctx_columns(
         journal_label=journal_label,
         smc_col=smc_col,
         context_m5=context_m5,
+        base_bar_duration=base_bar_duration,
     )
     cols = compute_attach_rows(ctx, ts_index, 0, len(df), extract=extract)
     return finalize_attach_columns(
@@ -1475,6 +1540,7 @@ def build_attach_context(
     journal_label: str = "parity",
     smc_col: str = "smc_swing_state",
     context_m5: pd.DataFrame | None = None,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ):
     """Validate ``df`` and build the FULL-series augment context.
 
@@ -1514,6 +1580,7 @@ def build_attach_context(
     ctx = build_context(
         m5, multi_tf,
         journal_dir=Path(f"/nonexistent_{journal_label}_journal"),
+        decision_bar_duration=base_bar_duration,
     )
 
     dip_from_aug = [f for f in _DIP_STRUCT if f != "struct_smc_swing_x_dip_v3"]

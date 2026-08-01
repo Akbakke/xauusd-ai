@@ -22,6 +22,7 @@ from gx1.time.session_detector import ASIA_SESSION_ID
 _basic_v1_call_lock = threading.Lock()
 _basic_v1_call_count = 0
 M5_DECISION_DELAY_SECONDS = 5 * 60
+M1_DECISION_DELAY_SECONDS = 1 * 60
 
 BASIC_V1_OBSERVED_SPREAD_FEATURES = (
     "_v1_spread_p",
@@ -382,7 +383,9 @@ def _align_htf_to_m5_numpy(
     htf_values: np.ndarray,
     htf_close_times: np.ndarray,
     m5_timestamps: np.ndarray,
-    is_replay: bool
+    is_replay: bool,
+    *,
+    decision_delay_seconds: int = M5_DECISION_DELAY_SECONDS,
 ) -> np.ndarray:
     """
     Align HTF values to M5 timestamps using searchsorted (NO PANDAS).
@@ -410,8 +413,14 @@ def _align_htf_to_m5_numpy(
             "HTF alignment: No completed HTF bars available (warmup not satisfied)"
         )
     
+    if (
+        isinstance(decision_delay_seconds, bool)
+        or not isinstance(decision_delay_seconds, (int, np.integer))
+        or int(decision_delay_seconds) <= 0
+    ):
+        raise RuntimeError("HTF alignment: decision delay must be positive")
     decision_available = (
-        np.asarray(m5_timestamps, dtype=np.int64) + M5_DECISION_DELAY_SECONDS
+        np.asarray(m5_timestamps, dtype=np.int64) + int(decision_delay_seconds)
     )
     # The HTF bar ending exactly when this M5 bar closes is observable for the
     # decision. Selecting at the bar-open key and shifting a row delayed it by
@@ -552,7 +561,12 @@ def _parkinson_sigma(high, low):
         return pd.Series(result_arr, index=high.index, dtype=np.float64)
     return result_arr
 
-def add_session_features(df, tz_offset_minutes=0):
+def add_session_features(
+    df,
+    tz_offset_minutes=0,
+    *,
+    decision_delay_seconds: int = M5_DECISION_DELAY_SECONDS,
+):
     """
     Deriver session features fra timestamp (ASIA/EU/OVERLAP/US).
     Del 2: Uses DatetimeIndex directly, no pd.to_datetime in hot path.
@@ -596,6 +610,14 @@ def add_session_features(df, tz_offset_minutes=0):
             "DatetimeIndex or 'ts' column"
         )
     
+    if (
+        isinstance(decision_delay_seconds, bool)
+        or not isinstance(decision_delay_seconds, (int, np.integer))
+        or int(decision_delay_seconds) <= 0
+    ):
+        raise RuntimeError("[SESSION_DECISION_DELAY_INVALID] positive integer required")
+    idx = idx + pd.Timedelta(seconds=int(decision_delay_seconds))
+
     # Del 2: Session inference (SSoT)
     from gx1.time.session_detector import (
         get_session_vectorized,
@@ -636,7 +658,11 @@ def add_session_features(df, tz_offset_minutes=0):
     
     return df
 
-def build_basic_v1(df):
+def build_basic_v1(
+    df,
+    *,
+    decision_delay_seconds: int = M5_DECISION_DELAY_SECONDS,
+):
     """
     Forventer kolonner: ts, open, high, low, close.
     Spread krever spread_pct, spread_bps, bid_close+ask_close eller spread+close.
@@ -1075,7 +1101,10 @@ def build_basic_v1(df):
             "[BASIC_V1_SESSION_TIME_SOURCE_MISSING] build_basic_v1 requires a "
             "DatetimeIndex or exact 'ts' column for session features"
         )
-    df = add_session_features(df)
+    df = add_session_features(
+        df,
+        decision_delay_seconds=decision_delay_seconds,
+    )
     if "is_EU" not in df.columns or "is_US" not in df.columns:
         raise RuntimeError(
             "[BASIC_V1_SESSION_FLAGS_MISSING] add_session_features did not "
@@ -1186,7 +1215,13 @@ def build_basic_v1(df):
             m5_ts_sec = (target_index.astype(np.int64) // 1_000_000_000).astype(np.int64)
         else:
             m5_ts_sec = (pd.to_datetime(target_index, utc=True, errors="coerce").astype(np.int64) // 1_000_000_000).astype(np.int64)
-        result = _align_htf_to_m5_numpy(z_htf_arr, htf_close_times, m5_ts_sec, is_replay)
+        result = _align_htf_to_m5_numpy(
+            z_htf_arr,
+            htf_close_times,
+            m5_ts_sec,
+            is_replay,
+            decision_delay_seconds=decision_delay_seconds,
+        )
         t_align_end = time.perf_counter()
         perf_add(f"feat.htf_zscore.align.{name}.w{win}", t_align_end - t_align_start)
         
@@ -1240,11 +1275,19 @@ def build_basic_v1(df):
                 # used a different meaning of shift(1), preventing parity.
                 h1_ema_diff_htf = h1_ema12_arr - h1_ema26_arr
                 df["_v1h1_ema_diff"] = _align_htf_to_m5_numpy(
-                    h1_ema_diff_htf, h1_close_times, m5_timestamps_sec, is_replay
+                    h1_ema_diff_htf,
+                    h1_close_times,
+                    m5_timestamps_sec,
+                    is_replay,
+                    decision_delay_seconds=decision_delay_seconds,
                 )
 
                 df["_v1h1_atr"] = _align_htf_to_m5_numpy(
-                    h1_atr14_arr, h1_close_times, m5_timestamps_sec, is_replay
+                    h1_atr14_arr,
+                    h1_close_times,
+                    m5_timestamps_sec,
+                    is_replay,
+                    decision_delay_seconds=decision_delay_seconds,
                 )
 
                 current_m5_ts = _assert_valid_datetime_index(
@@ -1307,11 +1350,19 @@ def build_basic_v1(df):
                 # Use the same causal alignment implementation as H1.
                 h4_ema_diff_htf = h4_ema12_arr - h4_ema26_arr
                 df["_v1h4_ema_diff"] = _align_htf_to_m5_numpy(
-                    h4_ema_diff_htf, h4_close_times, m5_timestamps_sec, is_replay
+                    h4_ema_diff_htf,
+                    h4_close_times,
+                    m5_timestamps_sec,
+                    is_replay,
+                    decision_delay_seconds=decision_delay_seconds,
                 )
 
                 df["_v1h4_atr"] = _align_htf_to_m5_numpy(
-                    h4_atr14_arr, h4_close_times, m5_timestamps_sec, is_replay
+                    h4_atr14_arr,
+                    h4_close_times,
+                    m5_timestamps_sec,
+                    is_replay,
+                    decision_delay_seconds=decision_delay_seconds,
                 )
 
                 current_m5_ts = _assert_valid_datetime_index(
