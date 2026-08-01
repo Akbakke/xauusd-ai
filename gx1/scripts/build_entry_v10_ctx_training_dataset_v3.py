@@ -148,6 +148,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_DECISION_BAR_SECONDS,
     EXIT_DECISION_BAR_SECONDS,
     entry_exit_shared_feature_base_contract,
+    require_entry_exit_shared_feature_base_contract,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
 
@@ -4375,6 +4376,34 @@ def main() -> None:
     )
     m1_feature_base_path = Path(args.m1_feature_base_parquet).expanduser().resolve()
     m1_feature_base_sha256 = _sha256_file(m1_feature_base_path)
+    m1_feature_base_manifest_path = Path(
+        str(m1_feature_base_path) + ".manifest.json"
+    )
+    if not m1_feature_base_manifest_path.is_file():
+        raise RuntimeError("DATASET_BUILDER_M1_FEATURE_BASE_MANIFEST_MISSING")
+    m1_feature_base_manifest_sha256 = _sha256_file(
+        m1_feature_base_manifest_path
+    )
+    m1_feature_base_manifest = json.loads(
+        m1_feature_base_manifest_path.read_text(encoding="utf-8")
+    )
+    if (
+        m1_feature_base_manifest.get("schema_version")
+        != "gx1_entry_exit_m1_feature_surface_v1"
+        or m1_feature_base_manifest.get("decision") != "PASS"
+        or m1_feature_base_manifest.get("dataset_run_id") != entry_run_id
+        or m1_feature_base_manifest.get("output_parquet")
+        != str(m1_feature_base_path)
+        or m1_feature_base_manifest.get("output_parquet_sha256")
+        != m1_feature_base_sha256
+    ):
+        raise RuntimeError(
+            "DATASET_BUILDER_M1_FEATURE_BASE_MANIFEST_CONTRACT_INVALID"
+        )
+    require_entry_exit_shared_feature_base_contract(
+        m1_feature_base_manifest.get("shared_feature_base_contract"),
+        context="DATASET_BUILDER_M1_FEATURE_BASE_MANIFEST",
+    )
     m1_feature_times, _m1_feature_arrays = load_m1_feature_surface(
         m1_feature_base_path,
         context="DATASET_BUILDER",
@@ -4396,6 +4425,8 @@ def main() -> None:
         "m1_source_sha256": m1_lifecycle_source_sha256,
         "m1_feature_base_path": str(m1_feature_base_path),
         "m1_feature_base_sha256": m1_feature_base_sha256,
+        "m1_feature_base_manifest_path": str(m1_feature_base_manifest_path),
+        "m1_feature_base_manifest_sha256": m1_feature_base_manifest_sha256,
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "output_dir": str(exit_lifecycle_dir),
@@ -4597,6 +4628,12 @@ def main() -> None:
                 "m1_source_sha256": m1_lifecycle_source_sha256,
                 "m1_feature_base_path": str(m1_feature_base_path),
                 "m1_feature_base_sha256": m1_feature_base_sha256,
+                "m1_feature_base_manifest_path": str(
+                    m1_feature_base_manifest_path
+                ),
+                "m1_feature_base_manifest_sha256": (
+                    m1_feature_base_manifest_sha256
+                ),
                 "m1_authority_sha256": (
                     m1_lifecycle_authority_sha256
                 ),
@@ -4675,6 +4712,8 @@ def main() -> None:
         "m1_source_sha256": m1_lifecycle_source_sha256,
         "m1_feature_base_path": str(m1_feature_base_path),
         "m1_feature_base_sha256": m1_feature_base_sha256,
+        "m1_feature_base_manifest_path": str(m1_feature_base_manifest_path),
+        "m1_feature_base_manifest_sha256": m1_feature_base_manifest_sha256,
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),

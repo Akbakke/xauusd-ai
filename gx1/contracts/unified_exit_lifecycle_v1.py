@@ -869,6 +869,8 @@ class UnifiedExitLifecycleCorpus:
                 "m1_source_sha256",
                 "m1_feature_base_path",
                 "m1_feature_base_sha256",
+                "m1_feature_base_manifest_path",
+                "m1_feature_base_manifest_sha256",
                 "m1_authority",
                 "m1_authority_sha256",
                 "path_state_count",
@@ -935,6 +937,32 @@ class UnifiedExitLifecycleCorpus:
             != root_manifest["m1_feature_base_sha256"]
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_IDENTITY_INVALID")
+        m1_feature_manifest_path = Path(
+            root_manifest["m1_feature_base_manifest_path"]
+        ).expanduser().absolute()
+        if (
+            not m1_feature_manifest_path.is_absolute()
+            or m1_feature_manifest_path.is_symlink()
+            or not m1_feature_manifest_path.is_file()
+            or sha256_file(m1_feature_manifest_path)
+            != root_manifest["m1_feature_base_manifest_sha256"]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST_IDENTITY_INVALID")
+        feature_manifest = _read_exact_json(m1_feature_manifest_path)
+        if (
+            feature_manifest.get("schema_version")
+            != "gx1_entry_exit_m1_feature_surface_v1"
+            or feature_manifest.get("decision") != "PASS"
+            or feature_manifest.get("dataset_run_id") != dataset_run_id
+            or feature_manifest.get("output_parquet") != str(m1_feature_path)
+            or feature_manifest.get("output_parquet_sha256")
+            != root_manifest["m1_feature_base_sha256"]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST_CONTRACT_INVALID")
+        require_entry_exit_shared_feature_base_contract(
+            feature_manifest.get("shared_feature_base_contract"),
+            context="UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST",
+        )
         m1_feature_times, m1_feature_arrays = load_m1_feature_surface(
             m1_feature_path,
             context="UNIFIED_EXIT_LIFECYCLE",
@@ -1079,6 +1107,10 @@ class UnifiedExitLifecycleCorpus:
             "m1_source_sha256": root_manifest["m1_source_sha256"],
             "m1_feature_base_path": str(m1_feature_path),
             "m1_feature_base_sha256": root_manifest["m1_feature_base_sha256"],
+            "m1_feature_base_manifest_path": str(m1_feature_manifest_path),
+            "m1_feature_base_manifest_sha256": root_manifest[
+                "m1_feature_base_manifest_sha256"
+            ],
             "m1_authority": raw_authority,
             "m1_authority_sha256": root_manifest[
                 "m1_authority_sha256"

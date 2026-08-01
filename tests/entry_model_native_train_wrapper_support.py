@@ -224,6 +224,28 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     lifecycle_m1.write_bytes(b"xau-m1-lifecycle-fixture")
     lifecycle_feature_base = lifecycle_dir / f"xau_m1_feature_base_{STAMP}.parquet"
     lifecycle_feature_base.write_bytes(b"xau-m1-feature-base-fixture")
+    lifecycle_feature_manifest = Path(
+        str(lifecycle_feature_base) + ".manifest.json"
+    )
+    lifecycle_feature_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
+                "decision": "PASS",
+                "dataset_run_id": DATASET_RUN_ID,
+                "output_parquet": str(lifecycle_feature_base),
+                "output_parquet_sha256": artifact_binding(
+                    lifecycle_feature_base
+                )["sha256"],
+                "shared_feature_base_contract": (
+                    entry_exit_shared_feature_base_contract()
+                ),
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     lifecycle_authority = {
         "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
         "pair_manifest_path": str(
@@ -270,6 +292,10 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "m1_feature_base_path": str(lifecycle_feature_base),
             "m1_feature_base_sha256": artifact_binding(
                 lifecycle_feature_base
+            )["sha256"],
+            "m1_feature_base_manifest_path": str(lifecycle_feature_manifest),
+            "m1_feature_base_manifest_sha256": artifact_binding(
+                lifecycle_feature_manifest
             )["sha256"],
             "m1_authority": lifecycle_authority,
             "m1_authority_sha256": canonical_json_sha256(

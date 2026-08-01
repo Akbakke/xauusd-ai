@@ -605,6 +605,24 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
             "ctx_cat": [zero_ctx_cat for _ in range(len(source))],
         }
     ).to_parquet(m1_feature_base, index=False)
+    m1_feature_manifest = Path(str(m1_feature_base) + ".manifest.json")
+    m1_feature_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
+                "decision": "PASS",
+                "dataset_run_id": "EXIT_LIFECYCLE_PYTEST_V1",
+                "output_parquet": str(m1_feature_base),
+                "output_parquet_sha256": sha256_file(m1_feature_base),
+                "shared_feature_base_contract": (
+                    entry_exit_shared_feature_base_contract()
+                ),
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     m1_authority = {
         "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
         "pair_manifest_path": str(tmp_path / "PAIR_MANIFEST.json"),
@@ -646,6 +664,10 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 "m1_source_sha256": sha256_file(m1_source),
                 "m1_feature_base_path": str(m1_feature_base),
                 "m1_feature_base_sha256": sha256_file(m1_feature_base),
+                "m1_feature_base_manifest_path": str(m1_feature_manifest),
+                "m1_feature_base_manifest_sha256": sha256_file(
+                    m1_feature_manifest
+                ),
                 "m1_authority_sha256": m1_authority_sha256,
                 "lifecycle_parquet": lifecycle_path.name,
                 "lifecycle_parquet_sha256": sha256_file(lifecycle_path),
@@ -682,6 +704,10 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 "m1_source_sha256": sha256_file(m1_source),
                 "m1_feature_base_path": str(m1_feature_base),
                 "m1_feature_base_sha256": sha256_file(m1_feature_base),
+                "m1_feature_base_manifest_path": str(m1_feature_manifest),
+                "m1_feature_base_manifest_sha256": sha256_file(
+                    m1_feature_manifest
+                ),
                 "m1_authority": m1_authority,
                 "m1_authority_sha256": m1_authority_sha256,
                     "path_state_count": 512,

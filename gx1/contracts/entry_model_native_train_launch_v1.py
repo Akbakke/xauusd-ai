@@ -296,6 +296,41 @@ def _validate_unified_exit_lifecycle_root(
         sha256_file(Path(m1_feature_path)) == m1_feature_sha,
         "unified Exit shared M1 feature-base artifact hash mismatch",
     )
+    m1_feature_manifest_path = payload.get("m1_feature_base_manifest_path")
+    m1_feature_manifest_sha = payload.get(
+        "m1_feature_base_manifest_sha256"
+    )
+    _require(
+        isinstance(m1_feature_manifest_path, str)
+        and Path(m1_feature_manifest_path).is_absolute()
+        and Path(m1_feature_manifest_path).is_file()
+        and not Path(m1_feature_manifest_path).is_symlink()
+        and isinstance(m1_feature_manifest_sha, str)
+        and len(m1_feature_manifest_sha) == 64
+        and all(
+            character in "0123456789abcdef"
+            for character in m1_feature_manifest_sha
+        )
+        and sha256_file(Path(m1_feature_manifest_path))
+        == m1_feature_manifest_sha,
+        "unified Exit shared M1 feature-base manifest binding is invalid",
+    )
+    feature_manifest = json.loads(
+        Path(m1_feature_manifest_path).read_text(encoding="utf-8")
+    )
+    _require(
+        feature_manifest.get("schema_version")
+        == "gx1_entry_exit_m1_feature_surface_v1"
+        and feature_manifest.get("decision") == "PASS"
+        and feature_manifest.get("dataset_run_id") == dataset_run_id
+        and feature_manifest.get("output_parquet") == m1_feature_path
+        and feature_manifest.get("output_parquet_sha256") == m1_feature_sha,
+        "unified Exit shared M1 feature-base manifest contents are invalid",
+    )
+    require_entry_exit_shared_feature_base_contract(
+        feature_manifest.get("shared_feature_base_contract"),
+        context="TRAIN_LAUNCH_M1_FEATURE_BASE_MANIFEST",
+    )
     splits = payload.get("splits")
     _require(
         isinstance(splits, Mapping)
