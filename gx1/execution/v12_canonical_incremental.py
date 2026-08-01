@@ -933,7 +933,7 @@ def _build_model_agnostic_canonical(
 
     from gx1.features.htf_features import (
         attach_default_regime_v4_v2_scalars,
-        build_multi_tf_per_bar_features_v2,
+        build_multi_tf_per_bar_features_v4,
     )
     from gx1.execution.v12_ctx_augment_live import (
         augment_canonical_v3_model_agnostic,
@@ -951,7 +951,7 @@ def _build_model_agnostic_canonical(
             list(CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]),
         ],
     )
-    multi_tf = build_multi_tf_per_bar_features_v2(canonical)
+    multi_tf = build_multi_tf_per_bar_features_v4(canonical)
     # Group-A long-memory state (60-D1 liquidity, trailing-1yr ATR
     # percentiles, pivots) must see the full causal native prehistory, not the
     # warmup-trimmed decision slice — resetting it at the trim boundary was
