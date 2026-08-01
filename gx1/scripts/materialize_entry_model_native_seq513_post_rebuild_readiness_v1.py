@@ -52,7 +52,7 @@ SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v9"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
-CHAIN_SCHEMA = "seq513_rebuild_chain_status_v4"
+CHAIN_SCHEMA = "seq513_rebuild_chain_status_v6"
 
 
 def _sha256_file(path: Path) -> str:
