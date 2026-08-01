@@ -54,7 +54,7 @@ from gx1.execution.v12_ctx_augment_live import (  # noqa: E402
 )
 from gx1.features.htf_features import (  # noqa: E402
     attach_default_regime_v4_v2_scalars,
-    build_multi_tf_per_bar_features_v2,
+    build_multi_tf_per_bar_features_v4,
 )
 from gx1.scripts.augment_forward_outcome_v2 import (  # noqa: E402
     attach_group_a_dip_struct_ctx_columns_parallel,
@@ -343,7 +343,7 @@ def build_m1_enriched_frame(
         base_bar_duration=M1_DURATION,
     )
 
-    multi_tf = build_multi_tf_per_bar_features_v2(
+    multi_tf = build_multi_tf_per_bar_features_v4(
         indexed_raw[["open", "high", "low", "close", "volume"]],
         base_bar_duration=M1_DURATION,
     )
