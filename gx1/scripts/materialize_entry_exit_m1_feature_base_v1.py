@@ -41,6 +41,7 @@ from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
     load_m1_feature_surface,
 )
+from gx1.contracts.gx1_scope_v1 import require_offline_scope
 
 
 def _sha256_file(path: Path) -> str:
@@ -71,6 +72,7 @@ def materialize_m1_feature_base(
     dataset_run_id: str,
     pair_generation_id: str,
 ) -> dict[str, Any]:
+    require_offline_scope("featurebase_build")
     source = Path(source_parquet).expanduser().resolve()
     manifest_path = Path(seq_structure_manifest).expanduser().resolve()
     output = Path(output_parquet).expanduser().resolve()

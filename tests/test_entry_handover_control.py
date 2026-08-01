@@ -16,6 +16,7 @@ CONTROL = REPO / "scripts/entry_next_edge_control.sh"
 LAUNCH_STATE = REPO / "PROJECT_STATE_xau_direction_launch.json"
 AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
+    REPO / "GX1_RULES.md",
     REPO / "CLAUDE.md",
     REPO / "DEVELOPMENT_NOTES.md",
     REPO / "README.md",
@@ -49,8 +50,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-native-m5-source",
     "model-native-native-m1-source",
     "model-native-canonical-pair",
-    "model-native-live-tail-pair",
-    "model-native-live-tail-admission",
     "model-native-mtf-v4-cache",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
@@ -68,7 +67,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-replay-trade-log",
     "model-native-replay-evidence",
     "model-native-replay-readiness",
-    "model-native-finalize-launch",
     "model-native-rebuild",
     "model-native-smoke-train",
     "model-native-candidate-train",
@@ -192,7 +190,6 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "train_and_prove_same_bundle_entry_exit_artifact",
         "prove_exact_closed_m1_exit_train_serve_parity_on_same_candidate",
         "execute_candidate_bound_full_test_unified_entry_exit_replay_and_runtime_parity",
-        "execute_two_consecutive_fresh_live_tail_successors_and_publish_admission",
     ]
     assert (
         "immutable_live_tail_successor_publication_and_two_event_admission_owner"
@@ -378,8 +375,9 @@ def test_control_surface_exposes_only_exact_model_native_routes() -> None:
     assert "  entry-exit-" not in source
     assert "  exit-transformer-" not in source
     assert (
-        "Unified Exit evidence is admitted only through the\n"
-        "same-candidate, full-TEST producer route above."
+        "Entry/Exit launch, promotion, shadow\n"
+        "and live operation are outside this checkout. Unified Exit evidence is admitted\n"
+        "only through the same-candidate, full-TEST producer route above."
     ) in result.stdout
 
 
@@ -454,7 +452,7 @@ def test_launch_finalizer_route_requires_live_tail_admission() -> None:
     )
 
     assert result.returncode == 2
-    assert "requires explicit --live-tail-admission-json" in result.stderr
+    assert "GX1_OFFLINE_SCOPE_FORBIDDEN" in result.stderr
 
 
 def test_candidate_readiness_route_requires_exact_trainability_event() -> None:
@@ -724,40 +722,19 @@ def test_mtf_v4_cache_route_forbids_contract_override() -> None:
 
 
 @pytest.mark.parametrize(
-    "missing",
+    "argv",
     (
-        "--native-m1-root",
-        "--native-m5-root",
-        "--vedtak",
-        "--checkpoint-dir",
-        "--pair-manifest",
-        "--generation-root",
-        "--expected-pair-generation-id",
-        "--expected-manifest-sha256",
-        "--live-tail-publication-event-root",
+        ["model-native-live-tail-pair"],
+        ["model-native-live-tail-admission"],
+        ["model-native-finalize-launch"],
+        ["model-native-adaptation-drift"],
+        ["model-native-adaptation-shadow"],
+        ["model-native-adaptation-lifecycle"],
     ),
 )
-def test_live_tail_pair_route_requires_exact_successor_authority(
-    missing: str,
-) -> None:
-    required = {
-        "--native-m1-root": "/tmp/native-m1",
-        "--native-m5-root": "/tmp/native-m5",
-        "--vedtak": "XAU_LIVE_TAIL_TEST_V1",
-        "--checkpoint-dir": "/tmp/checkpoint",
-        "--pair-manifest": "/tmp/pair.json",
-        "--generation-root": "/tmp/generations",
-        "--expected-pair-generation-id": "1" * 64,
-        "--expected-manifest-sha256": "2" * 64,
-        "--live-tail-publication-event-root": "/tmp/events",
-    }
-    argv = ["bash", str(CONTROL), "model-native-live-tail-pair"]
-    for flag, value in required.items():
-        if flag != missing:
-            argv.extend((flag, value))
-
+def test_offline_scope_rejects_operational_routes(argv: list[str]) -> None:
     result = subprocess.run(
-        argv,
+        ["bash", str(CONTROL), *argv],
         cwd=REPO,
         text=True,
         stdout=subprocess.PIPE,
@@ -766,116 +743,7 @@ def test_live_tail_pair_route_requires_exact_successor_authority(
     )
 
     assert result.returncode == 2
-    assert f"requires explicit {missing}" in result.stderr
-
-
-def test_live_tail_pair_route_fixes_successor_mode() -> None:
-    result = subprocess.run(
-        [
-            "bash",
-            str(CONTROL),
-            "model-native-live-tail-pair",
-            "--publication-mode",
-            "bootstrap",
-        ],
-        cwd=REPO,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-    assert result.returncode == 2
-    assert (
-        "fixes --publication-mode in the exact evidence contract"
-        in result.stderr
-    )
-
-
-def test_generic_pair_route_accepts_live_tail_publication_input() -> None:
-    result = subprocess.run(
-        [
-            "bash",
-            str(CONTROL),
-            "model-native-canonical-pair",
-            "--live-tail-publication-event-root",
-            "/tmp/events",
-        ],
-        cwd=REPO,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-    assert result.returncode == 2
-    assert "requires explicit --publication-mode" in result.stderr
-    assert "fixes --live-tail-publication-event-root" not in result.stderr
-
-
-@pytest.mark.parametrize(
-    "missing",
-    (
-        "--pair-manifest",
-        "--generation-root",
-        "--live-tail-admission-event-root",
-        "--parent-live-tail-publication-json",
-        "--parent-live-tail-publication-sha256",
-        "--child-live-tail-publication-json",
-        "--child-live-tail-publication-sha256",
-    ),
-)
-def test_live_tail_admission_route_requires_exact_authority(
-    missing: str,
-) -> None:
-    required = {
-        "--pair-manifest": "/tmp/pair.json",
-        "--generation-root": "/tmp/generations",
-        "--live-tail-admission-event-root": "/tmp/admissions",
-        "--parent-live-tail-publication-json": "/tmp/parent.json",
-        "--parent-live-tail-publication-sha256": "1" * 64,
-        "--child-live-tail-publication-json": "/tmp/child.json",
-        "--child-live-tail-publication-sha256": "2" * 64,
-    }
-    argv = ["bash", str(CONTROL), "model-native-live-tail-admission"]
-    for flag, value in required.items():
-        if flag != missing:
-            argv.extend((flag, value))
-
-    result = subprocess.run(
-        argv,
-        cwd=REPO,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-    assert result.returncode == 2
-    assert f"requires explicit {missing}" in result.stderr
-
-
-def test_live_tail_admission_route_fixes_operation_mode() -> None:
-    result = subprocess.run(
-        [
-            "bash",
-            str(CONTROL),
-            "model-native-live-tail-admission",
-            "--publication-mode",
-            "successor",
-        ],
-        cwd=REPO,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-    assert result.returncode == 2
-    assert (
-        "fixes --publication-mode in the exact evidence contract"
-        in result.stderr
-    )
+    assert "GX1_OFFLINE_SCOPE_FORBIDDEN" in result.stderr
 
 
 def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
@@ -1018,6 +886,26 @@ def test_control_surface_rejects_mutable_latest_and_soft_pass_throughs() -> None
     assert "soft pass-through is forbidden" in soft.stderr
 
 
+def test_control_surface_rejects_live_tail_inputs_on_offline_pair_route() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(CONTROL),
+            "model-native-canonical-pair",
+            "--live-tail-publication-event-root",
+            "/tmp/events",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "GX1_OFFLINE_SCOPE_FORBIDDEN" in result.stderr
+
+
 def test_model_native_adoption_route_requires_smoke_manifest_and_output_dir() -> None:
     without_smoke = subprocess.run(
         [
@@ -1116,9 +1004,6 @@ def test_removed_or_mutating_routes_fail_closed() -> None:
         ("model-native-sizing-runtime-parity", "--adoption"),
         ("model-native-serve-parity", "--dataset-dir"),
         ("model-native-direction-pocket-audit", "--dataset-dir"),
-        ("model-native-adaptation-drift", "--bundle-dir"),
-        ("model-native-adaptation-shadow", "--incumbent-bundle-dir"),
-        ("model-native-adaptation-lifecycle", "--transition"),
     ],
 )
 def test_downstream_evidence_routes_are_exposed_but_fail_without_exact_inputs(

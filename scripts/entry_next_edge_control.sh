@@ -20,9 +20,7 @@ Model-native seq513 evidence:
   model-native-state-selftest
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
-  model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--live-tail-publication-event-root <dir>] [--workers <n>]
-  model-native-live-tail-pair --native-m1-root <immutable-successor-dir> --native-m5-root <immutable-successor-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> --expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256> --live-tail-publication-event-root <dir> [--previous-live-tail-publication-json <event> --previous-live-tail-publication-sha256 <sha256>] [--workers <n>]
-  model-native-live-tail-admission --pair-manifest <json> --generation-root <dir> --live-tail-admission-event-root <dir> --parent-live-tail-publication-json <event> --parent-live-tail-publication-sha256 <sha256> --child-live-tail-publication-json <event> --child-live-tail-publication-sha256 <sha256>
+  model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
   model-native-mtf-v4-cache --m5-prebuilt <immutable-parquet> --expected-source-sha256 <sha256> --out-dir <new-event-local-dir>
   model-native-rebuild-preflight \
     --run-id <id> \
@@ -70,10 +68,6 @@ Model-native seq513 evidence:
   model-native-sizing-runtime-parity
   model-native-serve-parity
   model-native-direction-pocket-audit
-  model-native-adaptation-drift
-  model-native-adaptation-shadow
-  model-native-adaptation-lifecycle
-  model-native-finalize-launch --accepted-bundle-dir <dir> --sizing-adoption-json <event> --joint-exit-proof-json <event> --sizing-runtime-parity-json <event> --serve-parity-json <event> --direction-pocket-json <event> --adaptation-lifecycle-json <event> --live-tail-admission-json <event> --launch-vedtak-json <canonical-immutable-event> --transaction-id <id> --max-trades <n>
 
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-rebuild --run-id <id> <all other explicit rebuild arguments> --early-move-threshold-bps <bps>
@@ -82,10 +76,9 @@ Immutable run-lineage execution (evidence gates remain authoritative):
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
 soft failure flags, feature-mask ablations, alternate contract modes, and
-secondary direction paths are rejected. Entry launch is available only through
-the complete transactional finalizer; direct promotion, shadow and live start
-remain unavailable. Unified Exit evidence is admitted only through the
-same-candidate, full-TEST producer route above.
+secondary direction paths are rejected. Entry/Exit launch, promotion, shadow
+and live operation are outside this checkout. Unified Exit evidence is admitted
+only through the same-candidate, full-TEST producer route above.
 EOF
 }
 
@@ -120,6 +113,9 @@ reject_non_authoritative_args() {
       --feature-mask-json|--feature-mask-json=*|--contract-mode|--contract-mode=*)
         die "alternate or ablation contract input is forbidden: $arg"
         ;;
+      --live-tail-*|--previous-live-tail-*|--parent-live-tail-*|--child-live-tail-*)
+        die "GX1_OFFLINE_SCOPE_FORBIDDEN: live-tail inputs are disabled"
+        ;;
     esac
   done
 }
@@ -144,6 +140,12 @@ if [[ -z "$cmd" || "$cmd" == "-h" || "$cmd" == "--help" ]]; then
 fi
 shift
 COMMAND_ARGS=("$@")
+
+case "$cmd" in
+  model-native-live-tail-*|model-native-finalize-launch|model-native-adaptation-*)
+    die "GX1_OFFLINE_SCOPE_FORBIDDEN: live, launch and drift/adaptation routes are disabled"
+    ;;
+esac
 
 [[ -x "$PY" ]] || die "repository Python is not executable: $PY"
 cd "$REPO"
@@ -230,7 +232,7 @@ case "$cmd" in
       --timeframe M5 "$@"
     ;;
 
-  model-native-canonical-pair|model-native-live-tail-pair)
+  model-native-canonical-pair)
     reject_non_authoritative_args "$@"
     reject_flags "$cmd" \
       --loop \
@@ -238,13 +240,6 @@ case "$cmd" in
       --base28-parquet \
       --raw-m1-parquet \
       --raw-m5-parquet
-    if [[ "$cmd" == "model-native-live-tail-pair" ]]; then
-      reject_flags "$cmd" --publication-mode
-    else
-      reject_flags "$cmd" \
-        --previous-live-tail-publication-json \
-        --previous-live-tail-publication-sha256
-    fi
     for flag in \
       --publication-mode \
       --native-m1-root \
@@ -253,22 +248,8 @@ case "$cmd" in
       --checkpoint-dir \
       --pair-manifest \
       --generation-root; do
-      if [[ "$cmd" == "model-native-live-tail-pair" && "$flag" == "--publication-mode" ]]; then
-        continue
-      fi
       require_flag "$cmd" "$flag" "$@"
     done
-    if [[ "$cmd" == "model-native-live-tail-pair" ]]; then
-      for flag in \
-        --expected-pair-generation-id \
-        --expected-manifest-sha256 \
-        --live-tail-publication-event-root; do
-        require_flag "$cmd" "$flag" "$@"
-      done
-      exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
-        "$PY" -m gx1.execution.v12_canonical_incremental \
-        --publication-mode successor "$@"
-    fi
     publication_mode=""
     for ((index = 0; index < ${#COMMAND_ARGS[@]}; index++)); do
       arg="${COMMAND_ARGS[$index]}"
@@ -295,34 +276,6 @@ case "$cmd" in
     esac
     exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
       "$PY" -m gx1.execution.v12_canonical_incremental "$@"
-    ;;
-
-  model-native-live-tail-admission)
-    reject_non_authoritative_args "$@"
-    reject_flags "$cmd" \
-      --publication-mode \
-      --native-m1-root \
-      --native-m5-root \
-      --vedtak \
-      --checkpoint-dir \
-      --expected-pair-generation-id \
-      --expected-manifest-sha256 \
-      --live-tail-publication-event-root \
-      --previous-live-tail-publication-json \
-      --previous-live-tail-publication-sha256 \
-      --workers
-    for flag in \
-      --pair-manifest \
-      --generation-root \
-      --live-tail-admission-event-root \
-      --parent-live-tail-publication-json \
-      --parent-live-tail-publication-sha256 \
-      --child-live-tail-publication-json \
-      --child-live-tail-publication-sha256; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "$PY" -m gx1.execution.v12_canonical_incremental \
-      --publication-mode live-tail-admission "$@"
     ;;
 
   model-native-mtf-v4-cache)
@@ -903,62 +856,6 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$PY" -m gx1.scripts.audit_model_native_direction_pockets_v1 "$@"
-    ;;
-
-  model-native-adaptation-drift)
-    reject_non_authoritative_args "$@"
-    for flag in \
-      --bundle-dir \
-      --reference-rows \
-      --observation-rows \
-      --output-dir; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_adaptation_drift_v1 "$@"
-    ;;
-
-  model-native-adaptation-shadow)
-    reject_non_authoritative_args "$@"
-    for flag in \
-      --incumbent-bundle-dir \
-      --candidate-bundle-dir \
-      --paired-rows \
-      --output-dir; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_adaptation_shadow_v1 "$@"
-    ;;
-
-  model-native-adaptation-lifecycle)
-    reject_non_authoritative_args "$@"
-    for flag in \
-      --transition \
-      --incumbent-bundle-dir \
-      --drift-evidence \
-      --replay-readiness \
-      --output-dir; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_adaptation_lifecycle_v1 "$@"
-    ;;
-
-  model-native-finalize-launch)
-    reject_non_authoritative_args "$@"
-    for flag in \
-      --accepted-bundle-dir \
-      --sizing-adoption-json \
-      --joint-exit-proof-json \
-      --sizing-runtime-parity-json \
-      --serve-parity-json \
-      --direction-pocket-json \
-      --adaptation-lifecycle-json \
-      --live-tail-admission-json \
-      --launch-vedtak-json \
-      --transaction-id \
-      --max-trades; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_launch_v1 "$@"
     ;;
 
   train|retrain|promote|pin|shadow|live|start-live|start-shadow|preview-shadow|verify-shadow)

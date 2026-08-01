@@ -5,6 +5,16 @@ current architecture map. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md` records
 the current work state. If these disagree, fail closed and repair the
 documentation and code together.
 
+## Scope freeze
+
+The only active work is offline shared-featurebase work for XAUUSD: Entry M5,
+Exit M1, one shared eight-family causal feature owner, and offline
+train/OOS/replay evidence. Live/paper/demo operation, broker work, daemons,
+polling, live-tail admission, promotion, continual drift and online
+adaptation are forbidden. Do not add routes or complexity outside this path.
+Exact cache reuse and overlap/hash-proven tail append are required; invalid
+evidence fails closed.
+
 ## Non-negotiable rules
 
 1. Trade and model XAUUSD only. Entry contracts must not depend on market data

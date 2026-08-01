@@ -1,5 +1,21 @@
 # GX1 agent constitution
 
+## Scope freeze — the only active work
+
+`GX1_RULES.md` is the short, binding scope contract. GX1 is **offline shared
+featurebase only**: immutable XAUUSD snapshot → one shared featurebase →
+Entry M5 `LONG/SHORT/FLAT` and Exit M1 `HOLD/EXIT_NOW` → offline train/OOS/
+replay evidence. Entry and Exit use the same eight feature owners, formulas,
+normalization and lineage; resolution is the only intentional difference.
+
+Do not drift outside this path. Live, paper, demo, broker, daemon, polling,
+watchdog, live-tail admission, promotion, launcher and continual-drift or
+online-adaptation work are forbidden. Do not add a feature family, duplicate
+owner, compatibility lane or operational route. Reuse exact immutable caches
+and append only after overlap/hash proof; never recompute full history merely
+to process a new tail. Invalid evidence stops closed. Historical live and
+adaptation text below is reference only and cannot expand the active scope.
+
 ## Current objective and status
 
 Build one XAUUSD model bundle that learns tops, bottoms, abstention and

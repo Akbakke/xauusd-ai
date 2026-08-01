@@ -55,6 +55,7 @@ from gx1.contracts.live_tail_publication_v1 import (  # noqa: E402
     publish_live_tail_admission_event,
     publish_live_tail_publication_event,
 )
+from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
     PREBUILT_PAIR_MANIFEST_PATH,
     PREBUILT_PAIR_ROOT,
@@ -94,6 +95,7 @@ LOG = logging.getLogger("v12_incr")
 
 PAIR_CANONICAL_FILENAME = "canonical_v3.parquet"
 PAIR_BASE28_FILENAME = "base28.parquet"
+MODEL_AGNOSTIC_CACHE_SCHEMA = "gx1_model_agnostic_canonical_cache_v1"
 _PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
 # PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
@@ -910,6 +912,146 @@ def _apply_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
     return add_cross_tf_momentum(v3)
 
 
+def _canonical_cache_paths(
+    checkpoint_dir: Path,
+    checkpoint_key: str,
+) -> tuple[Path, Path]:
+    if (
+        not isinstance(checkpoint_key, str)
+        or len(checkpoint_key) != 64
+        or any(char not in "0123456789abcdef" for char in checkpoint_key)
+    ):
+        raise RuntimeError("PAIR_CANONICAL_CACHE_KEY_INVALID")
+    root = Path(checkpoint_dir).resolve(strict=True)
+    return (
+        root / f"canonical_model_agnostic_{checkpoint_key}.parquet",
+        root / f"canonical_model_agnostic_{checkpoint_key}.manifest.json",
+    )
+
+
+def _canonical_columns_sha256(columns: object) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            list(columns),
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _validate_model_agnostic_canonical(canonical: pd.DataFrame) -> pd.DataFrame:
+    if (
+        canonical.empty
+        or not canonical.index.is_unique
+        or not canonical.index.is_monotonic_increasing
+        or canonical.index.tz is None
+        or len(canonical.columns) != len(set(canonical.columns))
+    ):
+        raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_INDEX_OR_SCHEMA_INVALID")
+    numeric = canonical.apply(pd.to_numeric, errors="coerce")
+    invalid = [
+        name
+        for name in numeric.columns
+        if not np.isfinite(numeric[name].to_numpy(dtype=np.float64)).all()
+    ]
+    if invalid:
+        raise RuntimeError(
+            f"PAIR_BOOTSTRAP_CANONICAL_NONFINITE: {invalid}"
+        )
+    canonical.index.name = "time"
+    return canonical
+
+
+def _load_model_agnostic_canonical_cache(
+    *,
+    checkpoint_dir: Path,
+    checkpoint_key: str,
+) -> pd.DataFrame | None:
+    parquet_path, manifest_path = _canonical_cache_paths(
+        checkpoint_dir,
+        checkpoint_key,
+    )
+    present = (parquet_path.exists(), manifest_path.exists())
+    if not any(present):
+        return None
+    if not all(present) or parquet_path.is_symlink() or manifest_path.is_symlink():
+        raise RuntimeError("PAIR_CANONICAL_CACHE_INCOMPLETE")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("PAIR_CANONICAL_CACHE_MANIFEST_INVALID") from exc
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("schema_version") != MODEL_AGNOSTIC_CACHE_SCHEMA
+        or manifest.get("checkpoint_key") != checkpoint_key
+        or manifest.get("parquet_path") != str(parquet_path)
+        or manifest.get("parquet_sha256")
+        != _sha256_regular_file(parquet_path, label="PAIR_CANONICAL_CACHE")
+        or manifest.get("columns_sha256")
+        != _canonical_columns_sha256(manifest.get("columns", []))
+    ):
+        raise RuntimeError("PAIR_CANONICAL_CACHE_BINDING_INVALID")
+    loaded = pd.read_parquet(parquet_path)
+    if "time" not in loaded.columns:
+        raise RuntimeError("PAIR_CANONICAL_CACHE_TIME_FIELD_MISSING")
+    loaded["time"] = pd.to_datetime(loaded["time"], utc=True, errors="coerce")
+    loaded = loaded.set_index("time")
+    if tuple(loaded.columns) != tuple(manifest.get("columns", [])):
+        raise RuntimeError("PAIR_CANONICAL_CACHE_COLUMN_ORDER_INVALID")
+    if int(manifest.get("rows", -1)) != len(loaded):
+        raise RuntimeError("PAIR_CANONICAL_CACHE_ROW_COUNT_INVALID")
+    return _validate_model_agnostic_canonical(loaded)
+
+
+def _write_model_agnostic_canonical_cache(
+    *,
+    canonical: pd.DataFrame,
+    checkpoint_dir: Path,
+    checkpoint_key: str,
+) -> None:
+    parquet_path, manifest_path = _canonical_cache_paths(
+        checkpoint_dir,
+        checkpoint_key,
+    )
+    if parquet_path.exists() or manifest_path.exists():
+        raise RuntimeError("PAIR_CANONICAL_CACHE_ALREADY_EXISTS")
+    frame = canonical.reset_index()
+    temp_parquet = parquet_path.with_name(
+        f".{parquet_path.name}.tmp-{uuid.uuid4().hex}"
+    )
+    temp_manifest = manifest_path.with_name(
+        f".{manifest_path.name}.tmp-{uuid.uuid4().hex}"
+    )
+    try:
+        frame.to_parquet(temp_parquet, index=False)
+        _fsync_file(temp_parquet)
+        os.replace(temp_parquet, parquet_path)
+        _fsync_directory(parquet_path.parent)
+        manifest = {
+            "schema_version": MODEL_AGNOSTIC_CACHE_SCHEMA,
+            "checkpoint_key": checkpoint_key,
+            "parquet_path": str(parquet_path),
+            "parquet_sha256": _sha256_regular_file(
+                parquet_path,
+                label="PAIR_CANONICAL_CACHE",
+            ),
+            "rows": int(len(canonical)),
+            "columns": list(canonical.columns),
+            "columns_sha256": _canonical_columns_sha256(canonical.columns),
+        }
+        temp_manifest.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _fsync_file(temp_manifest)
+        os.replace(temp_manifest, manifest_path)
+        _fsync_directory(manifest_path.parent)
+    finally:
+        for path in (temp_parquet, temp_manifest):
+            if path.exists():
+                path.unlink()
+
+
 def _build_model_agnostic_canonical(
     native_m5: pd.DataFrame,
     *,
@@ -918,6 +1060,14 @@ def _build_model_agnostic_canonical(
     workers: int,
 ) -> pd.DataFrame:
     """Build the complete shared M5 surface once, without TRAIN-fit state."""
+
+    cached = _load_model_agnostic_canonical_cache(
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_key=checkpoint_key,
+    )
+    if cached is not None:
+        LOG.info("using exact model-agnostic canonical cache: %s", checkpoint_key)
+        return cached
 
     v2 = build_canonical_v2(native_m5)
     canonical = _apply_canonical_v3_augment(v2)
@@ -991,25 +1141,12 @@ def _build_model_agnostic_canonical(
             if name in canonical.columns
         ]
     )
-    if (
-        canonical.empty
-        or not canonical.index.is_unique
-        or not canonical.index.is_monotonic_increasing
-        or canonical.index.tz is None
-        or len(canonical.columns) != len(set(canonical.columns))
-    ):
-        raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_INDEX_OR_SCHEMA_INVALID")
-    numeric = canonical.apply(pd.to_numeric, errors="coerce")
-    invalid = [
-        name
-        for name in numeric.columns
-        if not np.isfinite(numeric[name].to_numpy(dtype=np.float64)).all()
-    ]
-    if invalid:
-        raise RuntimeError(
-            f"PAIR_BOOTSTRAP_CANONICAL_NONFINITE: {invalid}"
-        )
-    canonical.index.name = "time"
+    canonical = _validate_model_agnostic_canonical(canonical)
+    _write_model_agnostic_canonical_cache(
+        canonical=canonical,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_key=checkpoint_key,
+    )
     return canonical
 
 
@@ -1396,6 +1533,7 @@ def bootstrap_prebuilt_pair(
 
     from gx1_guards.gates import require_retrain_vedtak
 
+    require_offline_scope("featurebase_build")
     vedtak = require_retrain_vedtak(vedtak_id)
     commit = _clean_repository_commit(Path(repo_root))
     m1_descriptor = canonical_xau_source_descriptor_v1(
@@ -1513,6 +1651,7 @@ def publish_prebuilt_pair_successor(
 
     from gx1_guards.gates import require_retrain_vedtak
 
+    require_offline_scope("featurebase_build")
     vedtak = require_retrain_vedtak(vedtak_id)
     commit = _clean_repository_commit(Path(repo_root))
     current = read_prebuilt_pair_manifest(

@@ -39,6 +39,7 @@ from gx1.contracts.entry_model_native_state_v2 import (  # noqa: E402
 from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
 )
+from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.execution.v12_ctx_augment_live import (  # noqa: E402
     augment_canonical_v3,
 )
@@ -246,6 +247,7 @@ def build_m1_enriched_frame(
     workers: int,
     checkpoint_chunk_rows: int = 4096,
 ) -> dict[str, Any]:
+    require_offline_scope("featurebase_build")
     contract = require_entry_exit_shared_feature_base_contract(
         entry_exit_shared_feature_base_contract(),
         context="M1_ENRICHED_PRODUCER",

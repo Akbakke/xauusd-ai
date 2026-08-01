@@ -1,5 +1,17 @@
 # GX1 XAUUSD model-native trading engine
 
+## Active scope
+
+GX1 is frozen to one offline path only:
+
+`immutable XAUUSD snapshot -> shared featurebase -> Entry M5 -> Exit M1 -> offline train/OOS/replay`
+
+Entry and Exit share the same eight causal feature owners, formulas,
+normalization and lineage. No live/paper/demo operation, broker route, daemon,
+polling, live-tail admission, promotion, drift adaptation, fallback or second
+feature owner is active or permitted. Reuse exact immutable caches and append
+only after overlap/hash proof. See [GX1_RULES.md](GX1_RULES.md).
+
 GX1 is being rebuilt around one learned bundle and shared encoder for
 gold/XAUUSD. It emits calibrated Entry `LONG/SHORT/FLAT` and Exit
 `HOLD/EXIT_NOW` logits. Exact model argmax owns both decisions. Missing, stale,

@@ -151,8 +151,7 @@
             "publish_fresh_combined_entry_exit_lifecycle_dataset",
             "train_and_prove_same_bundle_entry_exit_artifact",
             "prove_exact_closed_m1_exit_train_serve_parity_on_same_candidate",
-            "execute_candidate_bound_full_test_unified_entry_exit_replay_and_runtime_parity",
-            "execute_two_consecutive_fresh_live_tail_successors_and_publish_admission"
+            "execute_candidate_bound_full_test_unified_entry_exit_replay_and_runtime_parity"
         ],
         "remaining_source_data_parity": [],
         "december_2024_read_only_data_audit": {

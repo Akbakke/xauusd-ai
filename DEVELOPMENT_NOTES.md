@@ -1,5 +1,10 @@
 # Development notes
 
+The active scope is frozen by `GX1_RULES.md`: offline shared featurebase only,
+Entry M5, Exit M1, no live operation and no drift/adaptation. Do not spend
+work on live-tail, launcher, daemon, polling, promotion or online-update
+routes. Use exact cache reuse and overlap/hash-verified tail append.
+
 Updated 2026-07-31.
 
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python`.

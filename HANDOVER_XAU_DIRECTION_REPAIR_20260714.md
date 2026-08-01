@@ -3,6 +3,13 @@
 Updated 2026-07-31. This file is the current operational handover. Historical
 chronology belongs in `DECISION_LOG.md`; rejected designs are not instructions.
 
+> Active scope freeze: this checkout is **offline shared-featurebase only** for
+> XAUUSD. Entry is M5, Exit is M1, both use the same eight feature owners, and
+> only offline train/OOS/replay evidence is active. Live, paper, demo, broker,
+> daemon, polling, live-tail, launch, promotion, drift and online adaptation
+> are forbidden. The historical operational text below is reference only and
+> cannot reopen any of those routes. See [`GX1_RULES.md`](GX1_RULES.md).
+
 ## Objective
 
 Build one XAUUSD model-native trading system that learns tops, bottoms and

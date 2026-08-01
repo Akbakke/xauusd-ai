@@ -30,6 +30,7 @@ esac
 
 sources=(
   "$REPO/AGENTS.md"
+  "$REPO/GX1_RULES.md"
   "$REPO/CLAUDE.md"
   "$REPO/DEVELOPMENT_NOTES.md"
   "$REPO/README.md"
@@ -343,12 +344,13 @@ echo "there is no competing decision path. Entry and Exit train together in one 
 echo "Near-perfect practical precision is a target, not a current claim."
 echo
 echo "## Canonical takeover order"
-echo "  1. AGENTS.md"
-echo "  2. PIPELINE_AUDIT_XAU_20260723.md (historical audit context only)"
-echo "  3. SYSTEM_MAP.md"
-echo "  4. HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
-echo "  5. PROJECT_STATE_xau_direction_launch.json"
-echo "  6. relevant code contracts/tests"
+echo "  1. GX1_RULES.md (binding scope freeze)"
+echo "  2. AGENTS.md"
+echo "  3. PIPELINE_AUDIT_XAU_20260723.md (historical audit context only)"
+echo "  4. SYSTEM_MAP.md"
+echo "  5. HANDOVER_XAU_DIRECTION_REPAIR_20260714.md (reference under scope freeze)"
+echo "  6. PROJECT_STATE_xau_direction_launch.json"
+echo "  7. relevant code contracts/tests"
 echo
 echo "## Authority fingerprint inventory (complete; not a reading order)"
 for source in "${sources[@]}"; do
@@ -569,6 +571,9 @@ if (( ${#git_lines[@]} > git_limit )); then
 fi
 echo
 echo "## Resume boundary"
+echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
+echo "live_operation: FORBIDDEN"
+echo "drift_adaptation: FORBIDDEN"
 echo "resume_owner: scripts/entry_next_edge_control.sh"
 echo "source_publication_contract: IMPLEMENTED_NOT_EXECUTED_OR_ADMITTED"
 echo "dataset_contract: NO_ADMITTED_UNIFIED_DATASET"
@@ -586,10 +591,7 @@ echo "  2. model-native-canonical-pair --publication-mode successor"
 echo "  3. model-native-mtf-v4-cache"
 echo "  4. model-native-rebuild"
 echo "  5. post-rebuild audits/readiness -> integrated Entry+Exit smoke -> same-bundle candidate"
-echo "live_tail_activation_routes:"
-echo "  1. model-native-live-tail-pair (two consecutive fresh successors)"
-echo "  2. model-native-live-tail-admission"
-echo "  3. model-native-finalize-launch (only after every model/OOS/replay gate)"
+echo "forbidden_routes: live-tail, broker, daemon, polling, promotion, drift-adaptation"
 echo "exact_route_help: bash scripts/entry_next_edge_control.sh --help"
 echo
 echo "## Host capacity"
