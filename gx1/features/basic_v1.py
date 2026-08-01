@@ -629,11 +629,15 @@ def add_session_features(
     sessions = get_session_vectorized(idx)
     session_id = get_session_id_vectorized(idx)
     
-    # Del 3: Create boolean masks directly (NumPy-friendly)
-    is_asia_mask = sessions == "ASIA"
-    is_eu_mask = sessions == "EU"
-    is_overlap_mask = sessions == "OVERLAP"
-    is_us_mask = sessions == "US"
+    # Del 3: Create boolean masks directly (NumPy-friendly).  The detector
+    # returns Series indexed by the decision instant (T+delay), while ``df``
+    # remains labelled by the bar start (T).  These are row-wise features;
+    # assign the values positionally or pandas will align on the shifted
+    # labels and create a NaN prefix at every decision delay.
+    is_asia_mask = np.asarray(sessions == "ASIA")
+    is_eu_mask = np.asarray(sessions == "EU")
+    is_overlap_mask = np.asarray(sessions == "OVERLAP")
+    is_us_mask = np.asarray(sessions == "US")
     
     # Assign as integer (0/1) arrays directly
     df["is_ASIA"] = is_asia_mask.astype(int)
@@ -642,18 +646,27 @@ def add_session_features(
     df["is_US"] = is_us_mask.astype(int)
     
     # Canonical session_id (observerable context)
-    df["session_id"] = session_id
+    session_id_values = np.asarray(session_id)
+    df["session_id"] = session_id_values
     
     # Session timing features (minutes)
-    df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(idx).astype(np.float32)
-    df["minutes_to_next_session_boundary"] = get_session_minutes_to_next_boundary_vectorized(idx).astype(np.float32)
+    df["minutes_since_session_open"] = np.asarray(
+        get_session_minutes_since_open_vectorized(idx),
+        dtype=np.float32,
+    )
+    df["minutes_to_next_session_boundary"] = np.asarray(
+        get_session_minutes_to_next_boundary_vectorized(idx),
+        dtype=np.float32,
+    )
     
     # Session change flag (1 if session changes vs previous bar)
-    df["session_change_flag"] = (pd.Series(session_id, index=df.index).diff().fillna(0) != 0).astype(int).to_numpy()
+    df["session_change_flag"] = (
+        pd.Series(session_id_values, index=df.index).diff().fillna(0) != 0
+    ).astype(int).to_numpy()
     
     # Tradable flag (policy can still restrict to EU/OVERLAP/US)
     df["session_tradable"] = (
-        df["session_id"] != ASIA_SESSION_ID
+        session_id_values != ASIA_SESSION_ID
     ).astype(int)
     
     return df

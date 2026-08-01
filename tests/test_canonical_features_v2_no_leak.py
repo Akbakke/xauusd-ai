@@ -175,8 +175,20 @@ def test_canonical_v2_native_frame_emits_mandatory_session_evidence() -> None:
         for degenerate in (700, 1500):
             assert values[degenerate + 1] == 0.0, (column, degenerate)
 
-    for column in ("_v1_is_EU", "_v1_is_US", "_v1_session_volatility_pressure"):
+    for column in (
+        "is_ASIA",
+        "is_EU",
+        "is_OVERLAP",
+        "is_US",
+        "session_id",
+        "minutes_since_session_open",
+        "minutes_to_next_session_boundary",
+        "_v1_is_EU",
+        "_v1_is_US",
+    ):
         assert column in v2.columns, column
+        assert np.isfinite(v2[column].to_numpy(dtype=np.float64)).all(), column
+    assert "_v1_session_volatility_pressure" in v2.columns
     is_us = v2["_v1_is_US"].to_numpy(dtype=np.float64)
     assert np.isfinite(is_us).all()
     assert is_us.max() == 1.0 and is_us.min() == 0.0
