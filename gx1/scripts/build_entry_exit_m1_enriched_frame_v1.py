@@ -189,11 +189,55 @@ def _checkpoint_key(
     )
 
 
+def _require_pair_binding(
+    *,
+    pair_manifest_path: Path,
+    pair_generation_id: str,
+    source_identity: dict[str, Any],
+    native_m1: pd.DataFrame,
+) -> dict[str, Any]:
+    manifest_path = _require_regular(pair_manifest_path, label="PAIR_MANIFEST")
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("M1_ENRICHED_PAIR_MANIFEST_INVALID") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("M1_ENRICHED_PAIR_MANIFEST_INVALID")
+    if payload.get("pair_generation_id") != pair_generation_id:
+        raise RuntimeError("M1_ENRICHED_PAIR_GENERATION_ID_MANIFEST_MISMATCH")
+    lineage = payload.get("lineage")
+    native_sources = lineage.get("native_sources") if isinstance(lineage, dict) else None
+    bound_m1 = native_sources.get("m1") if isinstance(native_sources, dict) else None
+    if not isinstance(bound_m1, dict):
+        raise RuntimeError("M1_ENRICHED_PAIR_NATIVE_M1_LINEAGE_MISSING")
+    expected = {
+        "root": source_identity["root"],
+        "manifest_path": source_identity["manifest_path"],
+        "manifest_sha256": source_identity["manifest_sha256"],
+        "row_count": int(len(native_m1)),
+        "time_min_utc": pd.Timestamp(native_m1["time"].iloc[0]).isoformat(),
+        "time_max_utc": pd.Timestamp(native_m1["time"].iloc[-1]).isoformat(),
+    }
+    observed = {name: bound_m1.get(name) for name in expected}
+    if observed != expected:
+        raise RuntimeError(
+            "M1_ENRICHED_PAIR_NATIVE_M1_BINDING_MISMATCH: "
+            f"observed={observed} expected={expected}"
+        )
+    return {
+        "manifest_path": str(manifest_path),
+        "manifest_sha256": _sha256_file(manifest_path),
+        "pair_generation_id": pair_generation_id,
+        "native_m1": expected,
+    }
+
+
 def build_m1_enriched_frame(
     *,
     native_m1_root: Path,
     rank_reference_npz: Path,
     rank_reference_sha256: str,
+    pair_manifest_path: Path,
     output_parquet: Path,
     manifest_path: Path,
     checkpoint_dir: Path,
@@ -208,7 +252,11 @@ def build_m1_enriched_frame(
     )
     if not isinstance(dataset_run_id, str) or not dataset_run_id:
         raise RuntimeError("M1_ENRICHED_DATASET_RUN_ID_INVALID")
-    if not isinstance(pair_generation_id, str) or not pair_generation_id:
+    if (
+        not isinstance(pair_generation_id, str)
+        or len(pair_generation_id) != 64
+        or any(ch not in "0123456789abcdef" for ch in pair_generation_id)
+    ):
         raise RuntimeError("M1_ENRICHED_PAIR_GENERATION_ID_INVALID")
     if (
         isinstance(workers, bool)
@@ -253,6 +301,12 @@ def build_m1_enriched_frame(
     )
 
     raw, source_identity = _load_native_m1(native_m1_root)
+    pair_binding = _require_pair_binding(
+        pair_manifest_path=pair_manifest_path,
+        pair_generation_id=pair_generation_id,
+        source_identity=source_identity,
+        native_m1=raw,
+    )
     indexed_raw = raw.set_index("time").sort_index()
     checkpoint_key = _checkpoint_key(
         source_identity=source_identity,
@@ -318,6 +372,7 @@ def build_m1_enriched_frame(
         "pair_generation_id": pair_generation_id,
         "base_bar_seconds": EXIT_DECISION_BAR_SECONDS,
         "native_m1_source": source_identity,
+        "pair_binding": pair_binding,
         "rank_reference_npz": str(rank_path),
         "rank_reference_sha256": rank_reference_sha256,
         "checkpoint_dir": str(checkpoint),
@@ -352,6 +407,7 @@ def main() -> None:
     parser.add_argument("--native-m1-root", required=True, type=Path)
     parser.add_argument("--rank-reference-npz", required=True, type=Path)
     parser.add_argument("--rank-reference-sha256", required=True)
+    parser.add_argument("--pair-manifest", required=True, type=Path)
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--manifest-path", required=True, type=Path)
     parser.add_argument("--checkpoint-dir", required=True, type=Path)
@@ -364,6 +420,7 @@ def main() -> None:
         native_m1_root=args.native_m1_root,
         rank_reference_npz=args.rank_reference_npz,
         rank_reference_sha256=args.rank_reference_sha256,
+        pair_manifest_path=args.pair_manifest,
         output_parquet=args.output_parquet,
         manifest_path=args.manifest_path,
         checkpoint_dir=args.checkpoint_dir,
