@@ -9,6 +9,7 @@ fallback inside this materializer.
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
 import sys
@@ -63,6 +64,19 @@ def _canonical_sha256(value: Any) -> str:
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _fixed_size_list_column(values: np.ndarray, width: int, *, dtype: pa.DataType) -> pa.Array:
+    matrix = np.ascontiguousarray(values)
+    if matrix.ndim != 2 or matrix.shape[1] != width:
+        raise RuntimeError(
+            "M1_FEATURE_BASE_FIXED_LIST_SHAPE_INVALID: "
+            f"shape={matrix.shape} width={width}"
+        )
+    return pa.FixedSizeListArray.from_arrays(
+        pa.array(matrix.reshape(-1), type=dtype),
+        width,
+    )
 
 
 def materialize_m1_feature_base(
@@ -166,10 +180,9 @@ def materialize_m1_feature_base(
     base_signal = frame[list(MODEL_NATIVE_BASE_FIELDS)].astype(
         np.float32
     ).to_numpy()
-    signal = np.concatenate([base_signal, extension], axis=1).astype(
-        np.float32,
-        copy=False,
-    )
+    signal = np.empty((len(frame), MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
+    signal[:, : len(MODEL_NATIVE_BASE_FIELDS)] = base_signal
+    signal[:, len(MODEL_NATIVE_BASE_FIELDS) :] = extension
     if signal.shape != (len(frame), MODEL_NATIVE_SIGNAL_DIM):
         raise RuntimeError(
             "M1_FEATURE_BASE_SIGNAL_SHAPE_INVALID: "
@@ -182,25 +195,22 @@ def materialize_m1_feature_base(
     if not np.isfinite(signal).all():
         raise RuntimeError("M1_FEATURE_BASE_SIGNAL_NONFINITE")
 
-    output_frame = pd.DataFrame(
-        {
-            "time": times,
-            "signal": [row.tolist() for row in signal],
-            "ctx_cont": [
-                row.tolist()
-                for row in frame[list(MODEL_NATIVE_CTX_CONT_FIELDS)]
-                .astype(np.float32)
-                .to_numpy()
-            ],
-            "ctx_cat": [row.tolist() for row in ctx_cat],
-        },
-        columns=list(ENTRY_EXIT_FEATURE_SURFACE_COLUMNS),
+    ctx_cont = frame[list(MODEL_NATIVE_CTX_CONT_FIELDS)].astype(
+        np.float32
+    ).to_numpy()
+    output_table = pa.Table.from_arrays(
+        [
+            pa.array(times),
+            _fixed_size_list_column(signal, MODEL_NATIVE_SIGNAL_DIM, dtype=pa.float32()),
+            _fixed_size_list_column(ctx_cont, len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=pa.float32()),
+            _fixed_size_list_column(ctx_cat, len(MODEL_NATIVE_CTX_CAT_FIELDS), dtype=pa.int64()),
+        ],
+        names=list(ENTRY_EXIT_FEATURE_SURFACE_COLUMNS),
     )
     # Keep live Exit reads bounded: the provider reads complete parquet
     # rowgroups, so one rowgroup is exactly one causal M1 window.
-    table = pa.Table.from_pandas(output_frame, preserve_index=False)
     pq.write_table(
-        table,
+        output_table,
         output,
         row_group_size=EXIT_FEATURE_SEQUENCE_BARS,
     )
@@ -218,7 +228,7 @@ def materialize_m1_feature_base(
         "seq_structure_manifest_sha256": _sha256_file(manifest_path),
         "output_parquet": str(output),
         "output_parquet_sha256": _sha256_file(output),
-        "rows": int(len(output_frame)),
+        "rows": int(len(frame)),
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
         "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
@@ -237,6 +247,8 @@ def materialize_m1_feature_base(
         json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False) + "\n",
         encoding="utf-8",
     )
+    del output_table, ctx_cont, ctx_cat, signal, extension, base_signal, frame
+    gc.collect()
     _loaded_times, _loaded = load_m1_feature_surface(
         output,
         context="M1_FEATURE_BASE_POST_WRITE",
