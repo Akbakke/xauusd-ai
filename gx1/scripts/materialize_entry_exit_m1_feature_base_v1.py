@@ -17,6 +17,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -191,7 +193,14 @@ def materialize_m1_feature_base(
         },
         columns=list(ENTRY_EXIT_FEATURE_SURFACE_COLUMNS),
     )
-    output_frame.to_parquet(output, index=False)
+    # Keep live Exit reads bounded: the provider reads complete parquet
+    # rowgroups, so one rowgroup is exactly one causal M1 window.
+    table = pa.Table.from_pandas(output_frame, preserve_index=False)
+    pq.write_table(
+        table,
+        output,
+        row_group_size=EXIT_FEATURE_SEQUENCE_BARS,
+    )
     manifest = {
         "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
         "decision": "PASS",

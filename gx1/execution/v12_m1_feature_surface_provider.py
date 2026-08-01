@@ -34,6 +34,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
 
+MAX_RUNTIME_ROWGROUP_ROWS = EXIT_FEATURE_SEQUENCE_BARS * 4
+
 
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -99,7 +101,10 @@ class M1SharedFeatureSurfaceProvider:
         row_groups = parquet.metadata.num_row_groups
         offsets = [0]
         for index in range(row_groups):
-            offsets.append(offsets[-1] + parquet.metadata.row_group(index).num_rows)
+            row_count = parquet.metadata.row_group(index).num_rows
+            if row_count > MAX_RUNTIME_ROWGROUP_ROWS:
+                raise RuntimeError("M1_FEATURE_PROVIDER_ROW_GROUP_TOO_LARGE")
+            offsets.append(offsets[-1] + row_count)
         if offsets[-1] != len(self._times_ns):
             raise RuntimeError("M1_FEATURE_PROVIDER_ROW_GROUP_INDEX_INVALID")
         self._parquet = parquet
