@@ -23,6 +23,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# The full causal M1 stack is materially larger than the M5 batch.  Keep the
+# timeout fatal, but bind the M1 producer to its own explicit offline budget;
+# inheriting the M5 ten-minute batch limit fails a valid full-history build.
+M1_FEATURE_BUILD_TIMEOUT_MS = 1_800_000
+os.environ.setdefault(
+    "FEATURE_BUILD_TIMEOUT_MS",
+    str(M1_FEATURE_BUILD_TIMEOUT_MS),
+)
+
 from gx1.contracts.entry_exit_feature_base_v1 import (  # noqa: E402
     EXIT_DECISION_BAR_SECONDS,
     entry_exit_shared_feature_base_contract,
