@@ -21,6 +21,8 @@ Model-native seq513 evidence:
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
+  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers <n> --checkpoint-chunk-rows <n>]
+  model-native-m1-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-mtf-v4-cache --m5-prebuilt <immutable-parquet> --expected-source-sha256 <sha256> --out-dir <new-event-local-dir>
   model-native-rebuild-preflight \
     --run-id <id> \
@@ -276,6 +278,38 @@ case "$cmd" in
     esac
     exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
       "$PY" -m gx1.execution.v12_canonical_incremental "$@"
+    ;;
+
+  model-native-m1-enriched-frame)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --native-m1-root \
+      --rank-reference-npz \
+      --rank-reference-sha256 \
+      --pair-manifest \
+      --output-parquet \
+      --manifest-path \
+      --checkpoint-dir \
+      --dataset-run-id \
+      --pair-generation-id; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+      "$PY" -m gx1.scripts.build_entry_exit_m1_enriched_frame_v1 "$@"
+    ;;
+
+  model-native-m1-feature-base)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --source-parquet \
+      --seq-structure-manifest \
+      --output-parquet \
+      --dataset-run-id \
+      --pair-generation-id; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+      "$PY" -m gx1.scripts.materialize_entry_exit_m1_feature_base_v1 "$@"
     ;;
 
   model-native-mtf-v4-cache)

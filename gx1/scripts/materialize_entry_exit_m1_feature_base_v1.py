@@ -26,6 +26,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
+    EXIT_FEATURE_SEQUENCE_BARS,
     ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
     entry_exit_shared_feature_base_contract,
 )

@@ -50,6 +50,8 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-native-m5-source",
     "model-native-native-m1-source",
     "model-native-canonical-pair",
+    "model-native-m1-enriched-frame",
+    "model-native-m1-feature-base",
     "model-native-mtf-v4-cache",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
