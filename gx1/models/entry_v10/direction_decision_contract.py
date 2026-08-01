@@ -21,6 +21,9 @@ import pandas as pd
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     CLASS_ORDER,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    entry_exit_shared_feature_base_contract,
+)
 
 DIRECTION_DECISION_CONTRACT_SCHEMA_VERSION = "gx1_model_direction_decision_v3"
 MODEL_DIRECTION_SELECTION_MODE = "model_direction_argmax"
@@ -646,6 +649,7 @@ def unified_entry_exit_contract_metadata() -> dict[str, Any]:
         "single_model_bundle": True,
         "shared_feature_encoder": True,
         "shared_feature_contract": True,
+        "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         "exit_bound_to_entry_snapshot": True,
         "entry_logits_key": DIRECTION_LOGITS_KEY,
         "entry_action_order": list(MODEL_DIRECTION_CLASS_ORDER),

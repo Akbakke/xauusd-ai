@@ -19,6 +19,11 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_native_rows_sha256,
     canonical_xau_source_descriptor_v1,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    EXIT_DECISION_BAR_SECONDS,
+    entry_exit_shared_feature_base_contract,
+    require_entry_exit_shared_feature_base_contract,
+)
 from gx1.execution.v12_state_from_prebuilt import (
     PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
     PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION,
@@ -416,7 +421,7 @@ def _validated_m1_arrays(
         or times.hasnans
         or not times.is_unique
         or not times.is_monotonic_increasing
-        or not times.floor("min").equals(times)
+        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
     ):
         raise RuntimeError("UNIFIED_EXIT_M1_TIME_GEOMETRY_INVALID")
     numeric = frame.apply(pd.to_numeric, errors="coerce")
@@ -800,6 +805,7 @@ class UnifiedExitLifecycleCorpus:
                 "m1_authority_sha256",
                 "path_state_count",
                 "target_lookahead_m1_steps",
+                "shared_feature_base_contract",
                 "side_order",
                 "action_order",
                 "splits",
@@ -817,6 +823,10 @@ class UnifiedExitLifecycleCorpus:
             or set(root_manifest["splits"]) != {"train", "val", "test"}
         ):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ROOT_CONTRACT_INVALID")
+        require_entry_exit_shared_feature_base_contract(
+            root_manifest["shared_feature_base_contract"],
+            context="UNIFIED_EXIT_LIFECYCLE_ROOT",
+        )
         raw_authority = root_manifest["m1_authority"]
         if (
             not isinstance(raw_authority, dict)
@@ -987,6 +997,9 @@ class UnifiedExitLifecycleCorpus:
             "path_state_count": UNIFIED_EXIT_MAX_PATH_BARS,
             "target_lookahead_m1_steps": int(
                 root_manifest["target_lookahead_m1_steps"]
+            ),
+            "shared_feature_base_contract": (
+                entry_exit_shared_feature_base_contract()
             ),
             "training_sample_selection": (
                 "deterministic_one_state_per_available_side_and_action_class"

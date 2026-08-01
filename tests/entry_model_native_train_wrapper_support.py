@@ -70,6 +70,9 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    entry_exit_shared_feature_base_contract,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
@@ -268,6 +271,9 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             ),
             "path_state_count": 512,
             "target_lookahead_m1_steps": 3,
+            "shared_feature_base_contract": (
+                entry_exit_shared_feature_base_contract()
+            ),
             "side_order": ["long", "short"],
             "action_order": ["HOLD", "EXIT_NOW"],
             "splits": lifecycle_splits,

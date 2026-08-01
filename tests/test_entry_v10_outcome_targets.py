@@ -30,6 +30,9 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     require_unified_exit_m1_pair_authority,
     sha256_file,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    entry_exit_shared_feature_base_contract,
+)
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
     MODEL_NATIVE_AUX_TARGET_COLUMNS,
@@ -665,9 +668,12 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 "m1_source_sha256": sha256_file(m1_source),
                 "m1_authority": m1_authority,
                 "m1_authority_sha256": m1_authority_sha256,
-                "path_state_count": 512,
-                "target_lookahead_m1_steps": 3,
-                "side_order": ["long", "short"],
+                    "path_state_count": 512,
+                    "target_lookahead_m1_steps": 3,
+                    "shared_feature_base_contract": (
+                        entry_exit_shared_feature_base_contract()
+                    ),
+                    "side_order": ["long", "short"],
                 "action_order": ["HOLD", "EXIT_NOW"],
                 "splits": bindings,
             },

@@ -144,6 +144,11 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     require_unified_exit_m1_pair_authority,
     unified_exit_future_extrema as _unified_exit_future_extrema,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    EXIT_DECISION_BAR_SECONDS,
+    entry_exit_shared_feature_base_contract,
+)
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -1398,7 +1403,7 @@ def build_unified_exit_lifecycle_episodes(
         or entry_time.hasnans
         or not entry_time.is_unique
         or not entry_time.is_monotonic_increasing
-        or not entry_time.floor("5min").equals(entry_time)
+        or not entry_time.floor(f"{ENTRY_DECISION_BAR_SECONDS}s").equals(entry_time)
     ):
         raise RuntimeError("UNIFIED_EXIT_ENTRY_TIME_GEOMETRY_INVALID")
 
@@ -1414,7 +1419,7 @@ def build_unified_exit_lifecycle_episodes(
         or m1_time.hasnans
         or not m1_time.is_unique
         or not m1_time.is_monotonic_increasing
-        or not m1_time.floor("min").equals(m1_time)
+        or not m1_time.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(m1_time)
     ):
         raise RuntimeError("UNIFIED_EXIT_M1_TIME_GEOMETRY_INVALID")
 
@@ -1482,7 +1487,7 @@ def build_unified_exit_lifecycle_episodes(
 
     path_state_count = int(UNIFIED_EXIT_MAX_PATH_BARS)
     required_rows = path_state_count + lookahead
-    minute_ns = int(pd.Timedelta(minutes=1).value)
+    minute_ns = int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
     m1_ns = m1_time.asi8
     records: list[dict[str, Any]] = []
     skipped = {
@@ -1498,7 +1503,9 @@ def build_unified_exit_lifecycle_episodes(
         "TIED_OMITTED": 0,
     }
     for entry_row_index, entry_timestamp in enumerate(entry_time):
-        entry_available_at = entry_timestamp + pd.Timedelta(minutes=5)
+        entry_available_at = entry_timestamp + pd.Timedelta(
+            seconds=ENTRY_DECISION_BAR_SECONDS
+        )
         start_row = int(np.searchsorted(m1_ns, entry_available_at.value))
         if start_row >= len(m1_ns) or m1_ns[start_row] != entry_available_at.value:
             skipped["missing_entry_available_m1_open"] += 1
@@ -4369,6 +4376,9 @@ def main() -> None:
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
+        "shared_feature_base_contract": (
+            entry_exit_shared_feature_base_contract()
+        ),
     }
 
     tape_root = Path(args.tape_root).expanduser().resolve()
@@ -4638,6 +4648,9 @@ def main() -> None:
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),
         "target_lookahead_m1_steps": exit_target_lookahead,
+        "shared_feature_base_contract": (
+            entry_exit_shared_feature_base_contract()
+        ),
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "splits": lifecycle_split_bindings,

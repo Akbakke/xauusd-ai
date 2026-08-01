@@ -68,6 +68,9 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    require_entry_exit_shared_feature_base_contract,
+)
 from gx1.features.htf_features import (
     HTF_V4_CACHE_BUILDER_VERSION,
     HTF_V4_CACHE_SCHEMA_VERSION,
@@ -255,6 +258,10 @@ def _validate_unified_exit_lifecycle_root(
         and not isinstance(payload.get("target_lookahead_m1_steps"), bool)
         and int(payload["target_lookahead_m1_steps"]) > 0,
         "unified Exit lifecycle path/target horizon invalid",
+    )
+    require_entry_exit_shared_feature_base_contract(
+        payload.get("shared_feature_base_contract"),
+        context="TRAIN_LAUNCH_UNIFIED_EXIT_LIFECYCLE",
     )
     authority = payload.get("m1_authority")
     _require(
