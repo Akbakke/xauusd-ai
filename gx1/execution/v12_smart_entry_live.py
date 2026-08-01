@@ -2039,6 +2039,33 @@ class SmartEntryLiveInference:
             context="SMART_EXIT_PROVIDER",
         )
 
+    def bind_admitted_m1_feature_surface(
+        self,
+        *,
+        parquet_path: Path,
+        manifest_path: Path,
+        dataset_run_id: str,
+        pair_generation_id: str,
+    ) -> None:
+        """Bind one immutable M1 surface to this frozen model adapter.
+
+        This is an explicit admission step.  The adapter does not discover a
+        latest file, follow a symlink, or rebuild features when the binding is
+        absent or invalid.
+        """
+
+        from gx1.execution.v12_m1_feature_surface_provider import (
+            M1SharedFeatureSurfaceProvider,
+        )
+
+        provider = M1SharedFeatureSurfaceProvider.from_admitted_artifact(
+            parquet_path=parquet_path,
+            manifest_path=manifest_path,
+            dataset_run_id=dataset_run_id,
+            pair_generation_id=pair_generation_id,
+        )
+        self._exit_feature_surface_provider = provider
+
     def decide_exit(
         self,
         *,

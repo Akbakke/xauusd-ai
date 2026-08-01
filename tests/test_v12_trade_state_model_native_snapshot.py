@@ -315,6 +315,15 @@ def _unified_exit_adapter(
             ),
         },
     )
+    def _provider(*, decision_time: object, prebuilt_snapshot: object) -> dict:
+        del prebuilt_snapshot
+        value = _exit_feature_surface()
+        value["decision_time"] = pd.Timestamp(decision_time).isoformat()
+        return value
+
+    # Unit tests admit an explicit fixture provider. Production binds the
+    # hash- and pair-bound parquet provider from model metadata instead.
+    adapter._exit_feature_surface_provider = _provider
     return adapter, model
 
 

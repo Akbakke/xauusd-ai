@@ -62,6 +62,7 @@ def materialize_m1_feature_base(
     seq_structure_manifest: Path,
     output_parquet: Path,
     dataset_run_id: str,
+    pair_generation_id: str,
 ) -> dict[str, Any]:
     source = Path(source_parquet).expanduser().resolve()
     manifest_path = Path(seq_structure_manifest).expanduser().resolve()
@@ -78,6 +79,8 @@ def materialize_m1_feature_base(
         raise RuntimeError("M1_FEATURE_BASE_INPUT_OR_OUTPUT_INVALID")
     if not isinstance(dataset_run_id, str) or not dataset_run_id:
         raise RuntimeError("M1_FEATURE_BASE_DATASET_RUN_ID_INVALID")
+    if not isinstance(pair_generation_id, str) or not pair_generation_id:
+        raise RuntimeError("M1_FEATURE_BASE_PAIR_GENERATION_ID_INVALID")
 
     contract = require_model_native_manifest(
         json.loads(manifest_path.read_text(encoding="utf-8")),
@@ -190,6 +193,7 @@ def materialize_m1_feature_base(
         "feature_base_contract_schema_version": ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
         "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         "dataset_run_id": dataset_run_id,
+        "pair_generation_id": pair_generation_id,
         "anchor_timeframe": "M1",
         "source_parquet": str(source),
         "source_sha256": _sha256_file(source),
@@ -229,12 +233,14 @@ def main() -> None:
     parser.add_argument("--seq-structure-manifest", required=True, type=Path)
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--dataset-run-id", required=True)
+    parser.add_argument("--pair-generation-id", required=True)
     args = parser.parse_args()
     manifest = materialize_m1_feature_base(
         source_parquet=args.source_parquet,
         seq_structure_manifest=args.seq_structure_manifest,
         output_parquet=args.output_parquet,
         dataset_run_id=args.dataset_run_id,
+        pair_generation_id=args.pair_generation_id,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False))
 

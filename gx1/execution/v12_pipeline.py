@@ -128,6 +128,45 @@ def _require_unified_model(model_adapter: object, *, context: str) -> None:
         )
 
 
+def _bind_admitted_m1_surface_if_declared(
+    model_adapter: object,
+    *,
+    context: str,
+) -> None:
+    """Bind the exact M1 surface declared by the frozen model metadata.
+
+    Missing metadata leaves Exit unavailable until a complete lifecycle/model
+    admission exists. A declared but malformed binding is a startup failure;
+    it is never ignored or replaced with a live feature rebuild.
+    """
+
+    metadata = getattr(model_adapter, "_meta", None)
+    if not isinstance(metadata, Mapping):
+        raise RuntimeError(f"{context}: M1_FEATURE_BINDING_METADATA_UNAVAILABLE")
+    binding = metadata.get("m1_feature_surface_binding")
+    if binding is None:
+        return
+    if not isinstance(binding, Mapping):
+        raise RuntimeError(f"{context}: M1_FEATURE_BINDING_SCHEMA_INVALID")
+    expected = {
+        "parquet_path",
+        "manifest_path",
+        "dataset_run_id",
+        "pair_generation_id",
+    }
+    if set(binding) != expected:
+        raise RuntimeError(f"{context}: M1_FEATURE_BINDING_KEYS_INVALID")
+    binder = getattr(model_adapter, "bind_admitted_m1_feature_surface", None)
+    if not callable(binder):
+        raise RuntimeError(f"{context}: M1_FEATURE_BINDING_ADAPTER_MISSING")
+    binder(
+        parquet_path=Path(str(binding["parquet_path"])),
+        manifest_path=Path(str(binding["manifest_path"])),
+        dataset_run_id=str(binding["dataset_run_id"]),
+        pair_generation_id=str(binding["pair_generation_id"]),
+    )
+
+
 @dataclass
 class V12Pipeline:
     """Runtime holder for one contract-admitted model and its shared state."""
@@ -184,6 +223,10 @@ class V12Pipeline:
             model_adapter,
             context="V12_PIPELINE_STARTUP",
         )
+        _bind_admitted_m1_surface_if_declared(
+            model_adapter,
+            context="V12_PIPELINE_STARTUP",
+        )
         model_adapter.refresh_multi_tf(loader.canonical_frame_view())
         LOG.info(
             "V12Pipeline loaded one unified model in %.0f ms; "
@@ -232,6 +275,10 @@ class V12Pipeline:
             )
         )
         _require_unified_model(
+            model_adapter,
+            context="V12_PIPELINE_EXIT_RECOVERY",
+        )
+        _bind_admitted_m1_surface_if_declared(
             model_adapter,
             context="V12_PIPELINE_EXIT_RECOVERY",
         )

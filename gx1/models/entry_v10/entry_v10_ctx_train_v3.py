@@ -616,6 +616,47 @@ def _unified_exit_export_failures(
     return failures
 
 
+def _m1_feature_surface_binding_from_lifecycle(
+    lifecycle_evidence: Mapping[str, Any],
+    *,
+    dataset_run_id: str,
+) -> dict[str, str]:
+    """Export the exact M1 runtime binding proved by lifecycle admission."""
+
+    feature_path = Path(str(lifecycle_evidence.get("m1_feature_base_path", "")))
+    manifest_path = Path(
+        str(lifecycle_evidence.get("m1_feature_base_manifest_path", ""))
+    )
+    if (
+        not feature_path.is_absolute()
+        or feature_path.is_symlink()
+        or not feature_path.is_file()
+        or not manifest_path.is_absolute()
+        or manifest_path.is_symlink()
+        or not manifest_path.is_file()
+    ):
+        raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_PATH_INVALID")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_MANIFEST_INVALID") from exc
+    pair_generation_id = manifest.get("pair_generation_id")
+    if (
+        not isinstance(pair_generation_id, str)
+        or not pair_generation_id
+        or manifest.get("dataset_run_id") != dataset_run_id
+        or manifest.get("output_parquet") != str(feature_path)
+        or manifest.get("output_parquet_sha256") != _sha256_file(feature_path)
+    ):
+        raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_LINEAGE_INVALID")
+    return {
+        "parquet_path": str(feature_path),
+        "manifest_path": str(manifest_path),
+        "dataset_run_id": str(dataset_run_id),
+        "pair_generation_id": pair_generation_id,
+    }
+
+
 # -----------------------------------------------------------------------------
 # Separate legacy-RL import guard (fail-fast). Internal Q/V heads live here.
 # -----------------------------------------------------------------------------
@@ -9676,6 +9717,10 @@ def run_train(
     unified_exit_lifecycle_evidence = dict(
         unified_exit_lifecycle.evidence
     )
+    m1_feature_surface_binding = _m1_feature_surface_binding_from_lifecycle(
+        unified_exit_lifecycle_evidence,
+        dataset_run_id=str(dataset_run_id),
+    )
     log.info(
         "[UNIFIED_EXIT_LIFECYCLE_BOUND] manifest_sha256=%s "
         "train_selected=%s val_selected=%s",
@@ -12080,6 +12125,7 @@ def run_train(
         "direction_decision_contract": direction_decision_contract,
         "unified_entry_exit_contract": unified_entry_exit_contract,
         "unified_exit_training_evidence": unified_exit_training_evidence,
+        "m1_feature_surface_binding": m1_feature_surface_binding,
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "model_native_signal_contract": trained_model_native_signal_contract,
@@ -12140,6 +12186,7 @@ def run_train(
         "model_native_training_objective": model_native_training_objective,
         "unified_entry_exit_contract": unified_entry_exit_contract,
         "unified_exit_training_evidence": unified_exit_training_evidence,
+        "m1_feature_surface_binding": m1_feature_surface_binding,
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "context_specialist_routing": specialist_meta["context_routing"],

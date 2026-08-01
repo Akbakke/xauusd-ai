@@ -42,6 +42,7 @@ SESSION_ID_MAP = {
 SESSION_ID_INV = {v: k for k, v in SESSION_ID_MAP.items()}
 SESSION_NAME_BY_ID = SESSION_ID_INV
 ASIA_SESSION_ID = SESSION_ID_MAP["ASIA"]
+M1_BAR_DURATION = pd.Timedelta(minutes=1)
 M5_BAR_DURATION = pd.Timedelta(minutes=5)
 
 
@@ -85,33 +86,55 @@ for _minute in range(24 * 60):
     _session_for_minute(_minute)
 
 
-def m5_decision_availability(
+def decision_availability(
     bar_start_timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray],
+    *,
+    bar_duration: pd.Timedelta,
+    context: str,
 ) -> pd.DatetimeIndex:
-    """Return exact UTC availability times for M5 bar-start labels.
-
-    This is the shared clock contract for canonical M5 evidence.  A row
-    labelled ``T`` contains the completed bar ``[T,T+5min)`` and may first be
-    used at ``T+5min``.  Market gaps are allowed; malformed, unordered, or
-    off-grid labels are not.
-    """
-
+    """Return exact UTC availability times for one closed-bar clock."""
+    if not isinstance(bar_duration, pd.Timedelta) or bar_duration <= pd.Timedelta(0):
+        raise RuntimeError(f"{context}_BAR_DURATION_INVALID")
     try:
         labels = pd.DatetimeIndex(
             pd.to_datetime(bar_start_timestamps, utc=True, errors="raise")
         )
     except Exception as exc:
-        raise RuntimeError("M5_DECISION_BAR_LABEL_INVALID") from exc
+        raise RuntimeError(f"{context}_BAR_LABEL_INVALID") from exc
     if (
         labels.hasnans
         or labels.has_duplicates
         or not labels.is_monotonic_increasing
     ):
-        raise RuntimeError("M5_DECISION_BAR_LABEL_ORDER_INVALID")
-    grid_ns = int(M5_BAR_DURATION.value)
+        raise RuntimeError(f"{context}_BAR_LABEL_ORDER_INVALID")
+    grid_ns = int(bar_duration.value)
     if len(labels) and np.any(labels.asi8 % grid_ns != 0):
-        raise RuntimeError("M5_DECISION_BAR_LABEL_OFF_GRID")
-    return labels.tz_convert("UTC") + M5_BAR_DURATION
+        raise RuntimeError(f"{context}_BAR_LABEL_OFF_GRID")
+    return labels.tz_convert("UTC") + bar_duration
+
+
+def m5_decision_availability(
+    bar_start_timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray],
+) -> pd.DatetimeIndex:
+    """Return exact UTC availability times for M5 bar-start labels."""
+
+    return decision_availability(
+        bar_start_timestamps,
+        bar_duration=M5_BAR_DURATION,
+        context="M5_DECISION",
+    )
+
+
+def m1_decision_availability(
+    bar_start_timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray],
+) -> pd.DatetimeIndex:
+    """Return exact UTC availability times for M1 bar-start labels."""
+
+    return decision_availability(
+        bar_start_timestamps,
+        bar_duration=M1_BAR_DURATION,
+        context="M1_DECISION",
+    )
 
 
 def _as_datetime_series(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]) -> pd.Series:
