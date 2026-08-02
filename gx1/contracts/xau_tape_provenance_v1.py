@@ -230,7 +230,16 @@ def _utc_native_bar(
     normalized, policy = native_timeframe_policy(timeframe)
     prefix = f"XAU_CANONICAL_{normalized}"
     try:
-        value = pd.Timestamp(pd.to_datetime(raw, utc=True, errors="raise"))
+        # OANDA emits one ISO-8601 value per candle.  ``pd.to_datetime`` on a
+        # scalar takes the slow array-dispatch path; this validator is also
+        # called over immutable multi-million-row M1 source bundles during
+        # lifecycle admission.  Parse the scalar directly while preserving
+        # the exact UTC/error semantics of the previous path.
+        value = pd.Timestamp(raw)
+        if value.tzinfo is None:
+            value = value.tz_localize("UTC")
+        else:
+            value = value.tz_convert("UTC")
     except Exception as exc:
         raise RuntimeError(
             f"{prefix}_{label}_TIMESTAMP_INVALID: {raw!r}"
