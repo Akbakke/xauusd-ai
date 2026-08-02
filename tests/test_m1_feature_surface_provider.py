@@ -14,6 +14,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
+    load_m1_feature_surface,
     load_m1_feature_surface_times,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -149,3 +150,28 @@ def test_time_only_surface_validation_preserves_exact_clock(tmp_path: Path) -> N
     assert times[-1] == pd.Timestamp("2026-01-01T00:00:00Z") + pd.Timedelta(
         minutes=EXIT_FEATURE_SEQUENCE_BARS
     )
+
+
+def test_full_surface_loader_preserves_fixed_list_values(tmp_path: Path) -> None:
+    parquet, _manifest, _run_id, _pair_id = _artifact(tmp_path)
+
+    times, arrays = load_m1_feature_surface(
+        parquet,
+        context="TEST",
+    )
+
+    assert len(times) == EXIT_FEATURE_SEQUENCE_BARS + 1
+    assert arrays["signal"].shape == (
+        EXIT_FEATURE_SEQUENCE_BARS + 1,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
+    assert arrays["ctx_cont"].shape == (
+        EXIT_FEATURE_SEQUENCE_BARS + 1,
+        MODEL_NATIVE_CTX_CONT_DIM,
+    )
+    assert arrays["ctx_cat"].shape == (
+        EXIT_FEATURE_SEQUENCE_BARS + 1,
+        MODEL_NATIVE_CTX_CAT_DIM,
+    )
+    assert arrays["signal"].dtype == np.float32
+    assert arrays["ctx_cat"].dtype == np.int64

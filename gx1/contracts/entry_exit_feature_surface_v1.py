@@ -107,7 +107,14 @@ def load_m1_feature_surface(
     *,
     context: str,
 ) -> tuple[pd.DatetimeIndex, dict[str, np.ndarray]]:
-    """Load and validate one exact row-level M1 feature-base artifact."""
+    """Load and validate one exact row-level M1 feature-base artifact.
+
+    The M1 surface is intentionally shared by Entry and Exit, but it is much
+    larger than a normal training parquet because it contains one row per
+    minute.  Read the nested fixed-size lists in bounded Arrow batches so the
+    contract does not transiently materialize a second object-heavy pandas
+    copy of the full feature base.
+    """
 
     resolved = Path(path).expanduser().absolute()
     if (
@@ -116,15 +123,25 @@ def load_m1_feature_surface(
         or not resolved.is_file()
     ):
         raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_PATH_INVALID")
-    frame = pd.read_parquet(resolved)
-    if tuple(frame.columns) != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS:
+    try:
+        import pyarrow.parquet as pq
+
+        parquet = pq.ParquetFile(resolved)
+        columns = tuple(parquet.schema_arrow.names)
+    except Exception as exc:
+        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_SCHEMA_INVALID") from exc
+    if columns != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS:
         raise RuntimeError(
             f"{context}_M1_FEATURE_SURFACE_SCHEMA_INVALID: "
-            f"columns={tuple(frame.columns)}"
+            f"columns={columns}"
         )
-    times = pd.DatetimeIndex(
-        pd.to_datetime(frame["time"], utc=True, errors="coerce")
-    ).as_unit("ns")
+    try:
+        time_frame = pd.read_parquet(resolved, columns=["time"])
+        times = pd.DatetimeIndex(
+            pd.to_datetime(time_frame["time"], utc=True, errors="coerce")
+        ).as_unit("ns")
+    except Exception as exc:
+        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID") from exc
     if (
         len(times) == 0
         or times.hasnans
@@ -134,39 +151,93 @@ def load_m1_feature_surface(
     ):
         raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID")
 
-    def _matrix(name: str, width: int, dtype: Any) -> np.ndarray:
-        rows = frame[name].tolist()
-        try:
-            values = np.asarray(rows, dtype=dtype)
-        except (TypeError, ValueError) as exc:
-            raise RuntimeError(
-                f"{context}_M1_FEATURE_SURFACE_{name.upper()}_DECODE_INVALID"
-            ) from exc
-        if values.shape != (len(frame), width):
-            raise RuntimeError(
-                f"{context}_M1_FEATURE_SURFACE_{name.upper()}_WIDTH_INVALID: "
-                f"shape={values.shape} expected=({len(frame)},{width})"
-            )
-        return values
+    arrays = {
+        "signal": np.empty(
+            (len(times), MODEL_NATIVE_SIGNAL_DIM),
+            dtype=np.float32,
+        ),
+        "ctx_cont": np.empty(
+            (len(times), MODEL_NATIVE_CTX_CONT_DIM),
+            dtype=np.float32,
+        ),
+        "ctx_cat": np.empty(
+            (len(times), MODEL_NATIVE_CTX_CAT_DIM),
+            dtype=np.int64,
+        ),
+    }
+    widths = {
+        "signal": MODEL_NATIVE_SIGNAL_DIM,
+        "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat": MODEL_NATIVE_CTX_CAT_DIM,
+    }
+    offsets = 0
+    try:
+        batches = parquet.iter_batches(
+            batch_size=8192,
+            columns=["signal", "ctx_cont", "ctx_cat"],
+            use_threads=False,
+        )
+        for batch in batches:
+            row_count = int(batch.num_rows)
+            if row_count <= 0:
+                continue
+            if offsets + row_count > len(times):
+                raise RuntimeError(
+                    f"{context}_M1_FEATURE_SURFACE_ROW_COUNT_INVALID"
+                )
+            for name, width in widths.items():
+                column = batch.column(batch.schema.get_field_index(name))
+                if not hasattr(column, "values"):
+                    raise RuntimeError(
+                        f"{context}_M1_FEATURE_SURFACE_{name.upper()}_DECODE_INVALID"
+                    )
+                flat = np.asarray(
+                    column.values.to_numpy(zero_copy_only=False),
+                    dtype=np.float64 if name == "ctx_cat" else np.float32,
+                )
+                if flat.shape != (row_count * width,):
+                    raise RuntimeError(
+                        f"{context}_M1_FEATURE_SURFACE_{name.upper()}_WIDTH_INVALID: "
+                        f"shape={flat.shape} expected=({row_count * width},)"
+                    )
+                values = flat.reshape(row_count, width)
+                if name == "ctx_cat":
+                    if not np.isfinite(values).all() or not np.array_equal(
+                        values, np.rint(values)
+                    ):
+                        raise RuntimeError(
+                            f"{context}_M1_FEATURE_SURFACE_CTX_CAT_NONINTEGER"
+                        )
+                    cast_values = values.astype(np.int64)
+                else:
+                    if not np.isfinite(values).all():
+                        raise RuntimeError(
+                            f"{context}_M1_FEATURE_SURFACE_NONFINITE"
+                        )
+                    cast_values = values.astype(np.float32, copy=False)
+                arrays[name][offsets : offsets + row_count] = cast_values
+            offsets += row_count
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            f"{context}_M1_FEATURE_SURFACE_DECODE_INVALID"
+        ) from exc
+    if offsets != len(times):
+        raise RuntimeError(
+            f"{context}_M1_FEATURE_SURFACE_ROW_COUNT_INVALID: "
+            f"rows={offsets} expected={len(times)}"
+        )
 
-    signal = _matrix("signal", MODEL_NATIVE_SIGNAL_DIM, np.float32)
-    ctx_cont = _matrix("ctx_cont", MODEL_NATIVE_CTX_CONT_DIM, np.float32)
-    ctx_cat_raw = _matrix("ctx_cat", MODEL_NATIVE_CTX_CAT_DIM, np.float64)
-    if not np.array_equal(ctx_cat_raw, np.rint(ctx_cat_raw)):
-        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_CTX_CAT_NONINTEGER")
-    ctx_cat = ctx_cat_raw.astype(np.int64)
-    if not np.isfinite(signal).all() or not np.isfinite(ctx_cont).all():
-        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_NONFINITE")
     for index, (lower, upper) in enumerate(MODEL_NATIVE_CTX_CAT_MIN_MAX.values()):
-        values = ctx_cat[:, index]
+        values = arrays["ctx_cat"][:, index]
         if np.any(values < lower) or np.any(values > upper):
             raise RuntimeError(
                 f"{context}_M1_FEATURE_SURFACE_CTX_CAT_DOMAIN_INVALID: index={index}"
             )
     return times, {
-        "signal": np.ascontiguousarray(signal),
-        "ctx_cont": np.ascontiguousarray(ctx_cont),
-        "ctx_cat": np.ascontiguousarray(ctx_cat),
+        name: np.ascontiguousarray(values)
+        for name, values in arrays.items()
     }
 
 
