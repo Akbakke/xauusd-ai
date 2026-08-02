@@ -104,10 +104,10 @@ candidate. The existing dataset/model/trainer owners now contain the
 same-bundle causal Exit lifecycle head and positive loss, but no trained
 artifact proves them. TEST remains untouched until candidate evaluation.
 
-No current dataset or bundle artifact is admitted. The rejected V18 bundle
-and stale V19/V26 dataset/audit bytes were retired and deleted; use the
-retained native/canonical source and frozen V4 input cache only as inputs to a
-fresh schema-v3 lineage.
+The fresh V8/V13 dataset and Exit-lifecycle evidence are current offline
+inputs, but no trained bundle artifact is admitted. The rejected V18 bundle
+and stale V19/V26 dataset/audit bytes were retired and deleted; do not mix
+them with the fresh immutable V8/V13 lineage.
 
 The existing native owner implements schema-v4 parent-CAS successors with
 verified history reuse and one bounded overlap/tail refetch. Pair publication

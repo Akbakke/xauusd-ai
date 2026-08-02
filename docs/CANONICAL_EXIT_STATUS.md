@@ -71,7 +71,8 @@ distribution.
 
 ## What remains empirically unproven or unadmitted
 
-- no freshly published native-manifest-bound lifecycle dataset exists;
+- the fresh V8/V13 native-manifest-bound lifecycle dataset exists and passed
+  full-input liveness, pretrain audit and lifecycle integrity;
 - no current model artifact has trained `head_exit_action`;
 - no completed training run proves positive Exit loss or parameter movement;
 - no trained candidate proves the implemented `decide_exit` adapter;
@@ -81,8 +82,8 @@ distribution.
 - no real live-tail publication/admission event is admitted.
 
 The target, lifecycle materializer, loader, model head, loss and replay
-producer now form one source path. They remain fail-closed because no immutable
-current-regime data event or trained bundle has crossed those contracts.
+producer now form one source path. They remain fail-closed because no trained
+bundle or model-bound edge evidence has crossed those contracts.
 
 Live-tail launch integration is now source-complete: launch stores a static
 admission/pair/root/producer anchor, while only new Entry evaluates freshness

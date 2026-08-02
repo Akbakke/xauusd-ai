@@ -18,7 +18,7 @@ gold/XAUUSD. It emits calibrated Entry `LONG/SHORT/FLAT` and Exit
 malformed or contradictory evidence stops the path; there is no fallback
 model, hand-written live rule, cached decision or synthetic `FLAT`/`HOLD`.
 
-## Current status — 2026-07-31
+## Current status — 2026-08-02
 
 **BLOCKED FOR V4 MODEL, EDGE AND LAUNCH.**
 
@@ -29,10 +29,12 @@ the best balanced accuracy was 0.3438 against a 0.3858 majority baseline and
 0.4021 from a plain diagnostic MLP on the same substrate. V21C produced no
 accepted model or launch authority.
 
-The rejected V18 trainability bundle and the stale V19/V26 dataset/audit
-artifacts were retired from authority and deleted on 2026-07-29. Their
-historical measurements remain documented, but no dataset, checkpoint,
-direction bundle or candidate bundle is currently admitted.
+The rejected V18 trainability bundle and stale V19/V26 dataset/audit artifacts
+were retired from authority and deleted on 2026-07-29. A fresh V8/V13
+combined Entry/lifecycle dataset now exists and passed full-input liveness,
+pretrain audit and Exit-lifecycle integrity under the capped runner. It is
+offline evidence only: no checkpoint, direction bundle, candidate bundle or
+launch authority is admitted.
 
 The source/input architecture has since advanced to MTF V4:
 
@@ -52,12 +54,11 @@ Its identity is
 Across all five timeframes, every post-warmup field is finite and variable,
 with zero constant fields and zero exact duplicate pairs.
 
-This is historical schema-v2 input evidence through
-`2026-07-24T20:55:00Z`. Active schema v3 additionally drops incomplete
-trailing resample buckets, so the frozen cache must be rebuilt before it can
-bind a new dataset or training run. No V4-bound dataset audit, trained
-checkpoint, calibrated bundle, immutable TEST edge or train==serve influence
-event exists.
+This remains historical schema-v2 input evidence through
+`2026-07-24T20:55:00Z`. The fresh V8/V13 dataset is separately bound to its
+immutable source, pair manifest, V4 cache and chronological TRAIN/VAL/TEST
+lineage. No trained checkpoint, calibrated bundle, immutable TEST edge or
+train==serve influence event exists.
 
 The cleanup retained the native/canonical source and frozen V4 input cache,
 while removing 92 stale target groups plus 500 exact legacy files under

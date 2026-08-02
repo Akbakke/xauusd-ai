@@ -1,6 +1,6 @@
 # GX1 current system map
 
-Updated 2026-07-31. This map describes the active XAUUSD Entry/Exit architecture.
+Updated 2026-08-02. This map describes the active XAUUSD Entry/Exit architecture.
 Historical implementation chronology belongs in `DECISION_LOG.md`.
 
 ## Authority boundary
@@ -49,10 +49,11 @@ full causal M5 prefix + TRAIN-only rank reference
 chronological TRAIN / VAL / TEST
 ```
 
-The frozen schema-v2 V4 cache was built from the real 536,086-row source
-through 2026-07-24T20:55Z and is byte-bound to that parquet. Active schema v3
-adds complete trailing-resample closure and rejects those old cache bytes.
-There is no on-demand feature fallback in admitted training or serving.
+The historical schema-v2 V4 cache was built from the real 536,086-row source
+through 2026-07-24T20:55Z and remains diagnostic input evidence. The fresh
+V8/V13 dataset binds the exact current source, pair manifest, V4 cache and
+complete trailing-resample closure. There is no on-demand feature fallback in
+admitted training or serving.
 
 The complete current-tree repository contract passes (`1962 passed,
 2 skipped`; 1,964 collected). Fresh publication is nevertheless blocked at
@@ -395,16 +396,16 @@ scripts to bypass an existing contract.
 ## Current evidence boundary
 
 Source/input V4 architecture is implemented. The frozen schema-v2 cache has
-zero post-warmup constants or exact duplicates on all timeframes, but active
-schema v3 rejects it until rebuilt. No model has trained on the full V4
-surface. V26 and V21C remain older-surface measurements only. The V19/V26
-dataset/audit artifacts and rejected V18 bundle were retired and deleted; no
-dataset or model is currently admitted.
+zero post-warmup constants or exact duplicates on all timeframes, while the
+fresh V8/V13 dataset is the current offline dataset evidence. No model has
+trained on the full V4 surface. V26 and V21C remain older-surface
+measurements only. The V19/V26 dataset/audit artifacts and rejected V18 bundle
+were retired and deleted; no trained model is currently admitted.
 
 Lifecycle materialization, the same-bundle Exit head, positive loss and
 component-movement/export gates are implemented in source and covered by
-focused regression tests. They are not empirical evidence: no fresh
-native-manifest-bound lifecycle dataset or trained unified bundle exists.
+focused regression tests. The fresh native-manifest-bound V8/V13 lifecycle
+dataset now exists and passed its audits; no trained unified bundle exists.
 The serving owner now also retains the frozen 128-value Entry representation,
 builds the exact source-bound closed-M1 envelope, calls the same bundle,
 commits one bar transactionally, and persists/idempotently journals the

@@ -18,13 +18,12 @@ adaptation text below is reference only and cannot expand the active scope.
 
 ## Current objective and status
 
-The 2026-08-02 V7/V12 rebuild attempt is terminally incomplete: its fresh
-Run12 preflight passed 30/30 checks, then the dataset producer was killed by
-the host-safe 14 GiB cgroup before publishing any split, audit or lifecycle
-artifact. The host survived with approximately 41 GiB available RAM and no
-swap pressure. The empty staging directory was removed. Commit `642b4d7a`
-removes the builder's duplicate full M1 feature-vector materialization; a
-fresh preflight is required after this source change.
+The 2026-08-02 fresh Run13 preflight passed 30/30 checks. The subsequent V8/V13
+rebuild completed under the host-safe cap: train 369,303 rows, val 5,904 rows,
+test 6,071 rows; full-input liveness PASS; pretrain audit PASS; Exit lifecycle
+PASS. The peak observed builder RSS stayed below 10 GiB inside the immutable
+14 GiB cgroup. No training, replay, promotion or live activity ran. These are
+dataset contracts only; they do not prove Entry/Exit model edge.
 
 Build one XAUUSD model bundle that learns tops, bottoms, abstention and
 position lifecycle from the full evidence stack. The same shared encoder
@@ -51,9 +50,9 @@ were repaired in existing owners during that campaign (DECISION_LOG
 On 2026-07-29 the rejected V18 bundle plus the stale V19/V26 dataset, audit
 and smoke-manifest bytes were retired from launch authority and deleted
 through the immutable cleanup owner. Their measured results remain historical
-chronology only. No dataset is currently admitted. The event-local native
-source and frozen V4 cache remain input evidence, not model or launch
-authority.
+chronology only. The fresh V8/V13 dataset is now current offline evidence, but
+it is not model or launch authority. The event-local native source and frozen
+V4 cache remain input evidence.
 V24 (`XAU_SEQ513_REBUILD_20260722_V24`) was the previous immutable failed
 dataset/training lineage. It rebuilt a fresh XAU source cascade through the
 last complete M5 bar at `2026-07-22T12:05:00Z` and terminalized `GREEN` under
@@ -153,12 +152,14 @@ and canonical full-TEST producer also exist in source. Runtime and replay
 retain the same frozen shared Entry representation, call only the same
 candidate bundle, use the same path transform and bind exact model-output
 hashes. No producer output, serve parity or trained unified artifact exists,
-so runtime still fails closed. V24/V7 remain immutable failure evidence. Every
-fresh empirical dataset, model, edge, sizing and launch gate remains open.
+so runtime still fails closed. V24/V7 remain immutable failure evidence. The
+fresh V8/V13 dataset gate is complete; model, edge, sizing and launch gates
+remain open.
 
 ROADMAP.md is the current ordered execution plan. It records historical
-incidents and the next admissible stages, but no V4 rebuild or training is
-active and it never overrides the machine-readable launch BLOCK.
+incidents and the next admissible stages; V8/V13 dataset materialization is
+complete, while bounded training/OOS proof is not active yet. It never
+overrides the machine-readable launch BLOCK.
 
 Read in this order:
 

@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-07-31. This file is the current operational handover. Historical
+Updated 2026-08-02. This file is the current operational handover. Historical
 chronology belongs in `DECISION_LOG.md`; rejected designs are not instructions.
 
 > Active scope freeze: this checkout is **offline shared-featurebase only** for
@@ -27,15 +27,13 @@ error.
 
 ## Current authority
 
-The 2026-08-02 fresh V7/V12 attempt remains **BLOCKED**. Run12 preflight
-passed 30/30 checks, but the following dataset build was terminated by the
-host-safe 14 GiB cgroup before publishing any dataset, audit or Exit-lifecycle
-artifact. No partial output is admitted. Commit `642b4d7a` changes only the
-builder's M1 clock validation so it no longer deserializes the full nested M1
-feature surface when lifecycle targets do not consume those vectors. The
-513/142/5 contract and all eight-family full-stack ownership remain unchanged.
-Run a fresh preflight and fresh output lineage after this commit; never resume
-the killed V7/V12 path.
+The fresh Run13 preflight passed 30/30 checks. The new V8/V13 output lineage
+completed under the host-safe 14 GiB cgroup: train 369,303 rows, val 5,904,
+test 6,071; full-input liveness PASS; pretrain audit PASS; and unified Exit
+lifecycle PASS. No partial V7/V12 output was resumed or admitted. The
+513/142/5 contract and all eight-family ownership remain unchanged. This
+dataset PASS does not constitute model training, OOS edge proof or launch
+authority.
 
 Status is **BLOCK**.
 
@@ -140,7 +138,9 @@ The lifecycle materializer/loader, same-bundle `head_exit_action`, positive
 loss and component-movement export/load gates are implemented in source.
 They remain intentionally unadmitted:
 
-- no fresh native-manifest-bound combined lifecycle dataset exists;
+- the fresh V8/V13 native-manifest-bound combined lifecycle dataset exists and
+  passed liveness, pretrain audit and Exit lifecycle integrity; it is not a
+  trained-model or launch authority;
 - no current trained bundle proves positive Exit loss or component movement;
 - no trained candidate has crossed the new runtime snapshot/envelope schemas;
 - no candidate-bound train==serve proof validates the implemented adapter
@@ -179,8 +179,8 @@ exists; this is source-contract progress, not replay evidence.
    current-pair pointer are both rejected.
 2. Rebuild V4 cache under schema v3 from that exact pair and bind a fresh
    dataset lineage.
-3. Build the fresh combined Entry/lifecycle dataset and run the integrated
-   same-bundle Entry/Exit trainer.
+3. Run the bounded integrated same-bundle Entry/Exit trainer against the
+   immutable V8/V13 dataset; preserve untouched TEST.
 4. Require positive `HOLD/EXIT_NOW` loss, both validation classes and measured
    movement in the shared encoder plus every Exit component before export.
 5. Prove that the implemented serving envelope and same-bundle adapter are

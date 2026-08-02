@@ -11,11 +11,11 @@ learned-sizing authority or launch transaction. A
 failed model decision is unavailable evidence, not `FLAT`, and cannot be
 replaced by a rule or older artifact.
 
-The fresh 2026-08-02 Run12 preflight passed 30/30 checks, but its V7/V12
-dataset producer was killed by the hard 14 GiB job cgroup before publishing
-any split, audit or lifecycle artifact. The host remained healthy; no partial
-output is admitted. Commit `642b4d7a` removes only the builder's duplicate
-full-M1 feature-vector load. A new preflight is mandatory before retrying.
+The fresh 2026-08-02 Run13 preflight passed 30/30 checks. Its V8/V13 dataset
+producer completed under the hard 14 GiB job cgroup with train 369,303 rows,
+val 5,904 rows and test 6,071 rows. Full-input liveness, pretrain audit and
+unified Exit lifecycle all PASS. No training or OOS edge proof exists yet;
+the launch decision therefore remains BLOCK.
 
 ## What is code-proven
 
@@ -155,31 +155,28 @@ parallel so the model can reject, downweight or condition those composites.
 
 ## Remaining blockers, in order
 
-1. Publish a fresh generation-local immutable native M1/M5 pair from the
-   clean committed producer identity; mutable collector bytes have no
-   lifecycle or training authority.
-2. Rebuild the 5×111 cache under active schema v3 and bind a fresh
-   source/dataset audit lineage. The deleted V26 dataset/audits and retained
-   frozen v2 input cache cannot authorize it.
-3. Publish one fresh combined Entry/lifecycle dataset bound to the same native
-   pair, V4 cache and chronological TRAIN/VAL/TEST lineage.
-4. Use the now-explicit, hash-bound dropout/layer/window recipe inputs to run a
+1. Use the immutable source, V4 cache and exact pair manifest already bound by
+   V8/V13; mutable collector bytes remain non-authoritative.
+2. Use the fresh V8/V13 combined Entry/lifecycle dataset and its PASS liveness,
+   audit and lifecycle evidence; do not rebuild it without a new evidence-based
+   source change.
+3. Use the now-explicit, hash-bound dropout/layer/window recipe inputs to run a
    bounded TRAIN/VAL-only regularization/capacity sweep.
-5. Train one unified V4 smoke and require exact 8/5/40/555 gate liveness,
+4. Train one unified V4 smoke and require exact 8/5/40/555 gate liveness,
    non-degenerate LONG/SHORT/FLAT and HOLD/EXIT_NOW support, positive Exit loss
    and movement in every Exit component.
-6. Train one same-bundle/shared-encoder Entry+Exit candidate and preserve
+5. Train one same-bundle/shared-encoder Entry+Exit candidate and preserve
    untouched TEST. Exit may not be retrained or replaced afterward.
-7. Fit calibration only on the declared calibration split.
-8. Prove TEST direction, abstention, cost, slice and top/bottom alignment.
-9. Prove train==serve parity plus raw/calibrated margin movement for all eight
+6. Fit calibration only on the declared calibration split.
+7. Prove TEST direction, abstention, cost, slice and top/bottom alignment.
+8. Prove train==serve parity plus raw/calibrated margin movement for all eight
    specialists, five timeframes, 40 family×timeframe routes, 26 fusion groups,
    all 1,723 numeric routes and five categorical routes for both outputs,
    including exact closed-M1 Exit envelope parity.
-10. Execute two consecutive fresh canonical successor/publication events
+9. Execute two consecutive fresh canonical successor/publication events
     through the implemented owner and publish the short-lived immutable
     live-tail admission. No real event is admitted yet.
-11. Execute the implemented same-candidate full-TEST unified Entry/Exit
+10. Execute the implemented same-candidate full-TEST unified Entry/Exit
     producer, then prove zero-order shadow, promotion and the one-time launch
     transaction. No producer output exists yet.
 
@@ -201,8 +198,9 @@ without that candidate, so runtime and replay intentionally fail closed. See
 ## Operational state
 
 Large failed split, audit, bundle and scratch artifacts were released through
-the evidence-retention owner. Only authority-required historical/cleanup
-receipts remain; no dataset or model artifact is admitted.
+the evidence-retention owner. The fresh V8/V13 dataset, liveness, audit and
+Exit-lifecycle artifacts are retained as current offline evidence; no trained
+model or launch artifact is admitted.
 Dead-PID training scratch is now swept before a new allocation. Direct data
 deletion and overlapping heavy jobs remain forbidden.
 

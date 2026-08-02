@@ -2924,3 +2924,15 @@ validated observed and required schema versions. It currently reports the
 same `v2_to_v3` block, but a later admitted fresh cache cannot leave a stale
 hard-coded status message behind. Handover-control tests and shell syntax
 pass; launch remains `BLOCK`.
+
+## 2026-08-02 — fresh capped V8/V13 Entry/Exit dataset completed
+
+Run13 report-only preflight passed all 30 checks after commit `642b4d7a`.
+The fresh V8/V13 rebuild then completed under the immutable host-safe runner
+(`MemoryMax/High=14G`, swap cap 1G, CPU cap 2 cores): train 369,303 rows, val
+5,904 rows and test 6,071 rows. The exact `513/142/5`, M5 Entry/M1 Exit
+shared-featurebase contract remained unchanged. Full-input liveness PASS,
+pretrain audit PASS and unified Exit lifecycle PASS were published with the
+fresh output lineage. No training, model, replay, promotion or live artifact
+was produced. Dataset contracts are now complete; Entry/Exit OOS edge proof,
+train==serve proof and launch authority remain BLOCKED.
