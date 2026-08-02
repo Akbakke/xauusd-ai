@@ -25,7 +25,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, List, Mapping, Optional, Tuple
+from typing import Dict, Any, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -2674,6 +2674,11 @@ class EntryV10CtxDataset(Dataset):
         self._multi_tf_shift: Optional[Dict[str, pd.Timedelta]] = None
         self._multi_tf_feature_count: int = 0
         self._memmap_tmpdir: Optional[tempfile.TemporaryDirectory] = None
+        # When a bounded smoke uses a stratified subset, this maps the compact
+        # in-memory rows back to their original immutable parquet row ids.  The
+        # full dataset/lifecycle row space remains authoritative; this is only
+        # a storage optimization after TRAIN normalization has been fitted.
+        self._compact_row_indices: Optional[np.ndarray] = None
         self._unified_exit_lifecycle: Optional[
             UnifiedExitLifecycleSplit
         ] = None
@@ -3002,6 +3007,80 @@ class EntryV10CtxDataset(Dataset):
     def __len__(self) -> int:
         return len(self.indices)
 
+    def compact_materialized_rows(self, row_indices: Sequence[int]) -> None:
+        """Release the full nested-array backing after a bounded smoke sample.
+
+        The parquet dataframe and original row ids stay intact so lifecycle
+        binding, target lookup and evidence hashes continue to use the exact
+        canonical split coordinates.  Only the already selected nested input
+        rows are retained for the smoke DataLoader.  Candidate/full training
+        never calls this method.
+        """
+
+        if not bool(getattr(self, "_advanced", False)):
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_REQUIRES_ADVANCED_DATASET]"
+            )
+        observed = np.asarray(row_indices, dtype=np.int64)
+        if observed.ndim != 1 or observed.size < 1:
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_INVALID] expected non-empty 1-D"
+            )
+        if np.any(observed < 0) or np.any(observed >= len(self.df)):
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_OOB]"
+            )
+        if np.any(np.diff(observed) <= 0):
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_NOT_SORTED_UNIQUE]"
+            )
+        if not np.array_equal(observed, np.asarray(self.indices, dtype=np.int64)):
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_MUST_MATCH_DATASET_SELECTION]"
+            )
+        if self._compact_row_indices is not None:
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ALREADY_APPLIED]"
+            )
+
+        old_arrays = (
+            self._np_seq,
+            self._np_snap,
+            self._np_ctx_cont,
+            self._np_ctx_cat,
+        )
+        compact_arrays = (
+            np.ascontiguousarray(self._np_seq[observed], dtype=np.float32),
+            np.ascontiguousarray(self._np_snap[observed], dtype=np.float32),
+            np.ascontiguousarray(self._np_ctx_cont[observed], dtype=np.float32),
+            np.ascontiguousarray(self._np_ctx_cat[observed], dtype=np.int64),
+        )
+        for array in old_arrays:
+            if isinstance(array, np.memmap):
+                array.flush()
+        memmap_tmpdir = self._memmap_tmpdir
+        self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat = (
+            compact_arrays
+        )
+        self._compact_row_indices = observed.copy()
+        self._memmap_tmpdir = None
+        for array in old_arrays:
+            if isinstance(array, np.memmap):
+                mmap_handle = getattr(array, "_mmap", None)
+                if mmap_handle is not None:
+                    mmap_handle.close()
+        if memmap_tmpdir is not None:
+            memmap_tmpdir.cleanup()
+        import gc
+
+        gc.collect()
+        log.info(
+            "[MEM_COMPACT] smoke_rows=%d original_rows=%d retained_nested_bytes=%.2f MB",
+            int(observed.size),
+            int(len(self.df)),
+            sum(int(array.nbytes) for array in compact_arrays) / 1e6,
+        )
+
     def bind_unified_exit_lifecycle(
         self,
         lifecycle: UnifiedExitLifecycleSplit,
@@ -3028,10 +3107,22 @@ class EntryV10CtxDataset(Dataset):
             row = self.df.iloc[t]
             # V12.2: nested cols were pre-converted to np arrays in __init__;
             # __getitem__ now just slices for speed + memory efficiency.
-            seq = self._np_seq[t]
-            snap = self._np_snap[t]
-            ctx_cont = self._np_ctx_cont[t]
-            ctx_cat = self._np_ctx_cat[t]
+            storage_position = t
+            if self._compact_row_indices is not None:
+                storage_position = int(
+                    np.searchsorted(self._compact_row_indices, t)
+                )
+                if (
+                    storage_position >= len(self._compact_row_indices)
+                    or int(self._compact_row_indices[storage_position]) != t
+                ):
+                    raise RuntimeError(
+                        "[ENTRY_V10_CTX_COMPACT_ROW_LOOKUP_MISMATCH]"
+                    )
+            seq = self._np_seq[storage_position]
+            snap = self._np_snap[storage_position]
+            ctx_cont = self._np_ctx_cont[storage_position]
+            ctx_cat = self._np_ctx_cat[storage_position]
             y = int(np.asarray(row["y_direction"]).ravel()[0])
             if y not in (0, 1, 2):
                 raise RuntimeError(f"[ENTRY_V10_CTX_LABEL_INVALID] y_direction={y} expected 0/1/2")
@@ -9688,6 +9779,7 @@ def run_train(
             sampled_idx.extend(keep.tolist())
         sampled_idx = sorted(sampled_idx)
         train_ds.indices = np.array(sampled_idx, dtype=np.int64)
+        train_ds.compact_materialized_rows(train_ds.indices)
         log.info(
             f"[SUBSAMPLE] stratified subsample: {len(sampled_idx):,}/{len(ys):,} rows  "
             f"(class counts: {[int((ys[sampled_idx]==c).sum()) for c in (0,1,2)]})"

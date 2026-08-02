@@ -166,3 +166,33 @@ def test_dataset_rejects_missing_timeframe_length_without_global_fallback(
             per_tf_seq_lens={"M5": 2, "H4": 2, "D1": 2},
             multi_tf_closed_bar=True,
         )
+
+
+def test_compact_materialized_rows_preserves_original_row_lookup(tmp_path, monkeypatch) -> None:
+    parquet_path = tmp_path / "advanced_train.parquet"
+    memmap_root = tmp_path / "memmap"
+    _write_advanced_parquet(parquet_path)
+
+    monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_MIN_GB", "0")
+    monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_ROOT", str(memmap_root))
+    m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
+    ds = trainer.EntryV10CtxDataset(
+        parquet_path,
+        seq_len=2,
+        m5_prebuilt_path=m5_path,
+        per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+        multi_tf_closed_bar=True,
+    )
+
+    ds.indices = np.asarray([0, 2], dtype=np.int64)
+    ds.compact_materialized_rows(ds.indices)
+
+    assert not isinstance(ds._np_seq, np.memmap)
+    assert ds._np_seq.shape == (2, 2, MODEL_NATIVE_SIGNAL_DIM)
+    assert np.array_equal(ds._compact_row_indices, np.asarray([0, 2]))
+    sample = ds[1]
+    assert int(sample["y"].item()) == 2
+    np.testing.assert_allclose(
+        sample["snap_x"].numpy(),
+        np.arange(MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32) + 2.0,
+    )
