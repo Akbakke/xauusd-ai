@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-31.
+Updated 2026-08-02.
 
 ## Terminal decision
 
@@ -10,6 +10,12 @@ There is no accepted V4 model, calibrated bundle, Entry/Exit edge proof,
 learned-sizing authority or launch transaction. A
 failed model decision is unavailable evidence, not `FLAT`, and cannot be
 replaced by a rule or older artifact.
+
+The fresh 2026-08-02 Run12 preflight passed 30/30 checks, but its V7/V12
+dataset producer was killed by the hard 14 GiB job cgroup before publishing
+any split, audit or lifecycle artifact. The host remained healthy; no partial
+output is admitted. Commit `642b4d7a` removes only the builder's duplicate
+full-M1 feature-vector load. A new preflight is mandatory before retrying.
 
 ## What is code-proven
 

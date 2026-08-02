@@ -6,6 +6,35 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-08-02 — V7/V12 rebuild fails closed at the host-safe job ceiling
+
+Run12 preflight for the fresh V7/V12 output paths passed all 30 checks with
+zero failures and allowed only the offline dataset rebuild. The subsequent
+build ran from committed source `d6a63776` under the immutable runner ceiling
+of `MemoryMax=14G`, `MemorySwapMax=1G`, `CPUQuota=200%` and one numerical
+thread. The cgroup killed the job before any train, validation, test, audit or
+Exit-lifecycle artifact was published. The host remained healthy with roughly
+41 GiB available RAM and zero swap use; the protected collector, dashboard and
+notifier were untouched. The empty V7 staging directory was removed, and no
+V7/V12 artifact is admitted.
+
+The cause was an avoidable builder allocation: the dataset producer loaded the
+entire nested M1 `signal`/`ctx` feature surface only to validate its timestamp
+axis, while the lifecycle target producer consumes the raw closed-M1 price
+columns. Commit `642b4d7a` adds an exact-schema/time-only validator for this
+producer and leaves full vector validation with the immutable preflight and
+runtime feature-surface owners. The 513/142/5 full-stack contract is unchanged;
+feature-count reduction is not admitted by opinion and requires a separate
+TRAIN/VAL/OOS proof.
+
+Decision:
+
+- retain the hard capacity ceiling and fail-closed cgroup kill;
+- reject all partial V7/V12 output as training authority;
+- use a fresh preflight/output lineage after commit `642b4d7a`;
+- do not claim that the current V4 feature surface has an edge or a proven
+  overfit until an untouched OOS comparison exists.
+
 ## 2026-07-23 — first audit repair checkpoint; later superseded
 
 The post-V7 findings were reproduced before repair. Source now closes signed

@@ -18,6 +18,14 @@ adaptation text below is reference only and cannot expand the active scope.
 
 ## Current objective and status
 
+The 2026-08-02 V7/V12 rebuild attempt is terminally incomplete: its fresh
+Run12 preflight passed 30/30 checks, then the dataset producer was killed by
+the host-safe 14 GiB cgroup before publishing any split, audit or lifecycle
+artifact. The host survived with approximately 41 GiB available RAM and no
+swap pressure. The empty staging directory was removed. Commit `642b4d7a`
+removes the builder's duplicate full M1 feature-vector materialization; a
+fresh preflight is required after this source change.
+
 Build one XAUUSD model bundle that learns tops, bottoms, abstention and
 position lifecycle from the full evidence stack. The same shared encoder
 selects Entry `LONG/SHORT/FLAT` and Exit `HOLD/EXIT_NOW`. Near-perfect

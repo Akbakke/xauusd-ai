@@ -27,6 +27,16 @@ error.
 
 ## Current authority
 
+The 2026-08-02 fresh V7/V12 attempt remains **BLOCKED**. Run12 preflight
+passed 30/30 checks, but the following dataset build was terminated by the
+host-safe 14 GiB cgroup before publishing any dataset, audit or Exit-lifecycle
+artifact. No partial output is admitted. Commit `642b4d7a` changes only the
+builder's M1 clock validation so it no longer deserializes the full nested M1
+feature surface when lifecycle targets do not consume those vectors. The
+513/142/5 contract and all eight-family full-stack ownership remain unchanged.
+Run a fresh preflight and fresh output lineage after this commit; never resume
+the killed V7/V12 path.
+
 Status is **BLOCK**.
 
 `PROJECT_STATE_artifacts.json` has:
