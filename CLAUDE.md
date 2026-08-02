@@ -15,6 +15,24 @@ adaptation are forbidden. Do not add routes or complexity outside this path.
 Exact cache reuse and overlap/hash-proven tail append are required; invalid
 evidence fails closed.
 
+## Takeover quickstart
+
+Start with the executable status, then the bounded reading order:
+
+```bash
+bash scripts/gx1_handover.sh --check
+bash scripts/gx1_handover.sh
+```
+
+Read `GX1_RULES.md`, `AGENTS.md`, `SYSTEM_MAP.md`, the current handover and
+the machine-readable launch state before touching code. The current offline
+V8/V13 dataset and explicit CPU-safe smoke recipe are usable only for bounded
+train/OOS/replay evidence; they do not change machine-readable `BLOCK` or
+authorize a model. Do not start a second heavy job, direct-run the trainer,
+select by `latest`/mtime, or touch live/paper/demo/broker/drift routes. Use the
+handover's exact paths and resume stage, and treat any cap kill or missing
+hash-bound artifact as terminal until a fresh gate proves otherwise.
+
 ## Non-negotiable rules
 
 1. Trade and model XAUUSD only. Entry contracts must not depend on market data

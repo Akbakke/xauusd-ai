@@ -141,6 +141,16 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_terminal_evidence: NONE" in result.stdout
     assert "current_smoke_launch_evidence: NONE" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
+    assert "## Current offline evidence anchors" in result.stdout
+    assert "dataset_dir: /home/andre2/GX1_DATA/data/data/prebuilt/" in result.stdout
+    assert "current_smoke_execution:" in result.stdout
+    assert "current_smoke_bundle: NOT_PRODUCED" in result.stdout
+    assert "dataset_contract: CURRENT_OFFLINE_V8_V13_READY_NOT_LAUNCH_ADMITTED" in result.stdout
+    assert (
+        "resume_stage: CURRENT_V8_V13_SMOKE_OR_CANDIDATE_REVIEW" in result.stdout
+        or "resume_stage: VERIFY_CURRENT_SOURCE_BEFORE_FRESH_PUBLICATION"
+        in result.stdout
+    )
     assert (
         "v4_architecture: VERIFIED "
         "timeframes=5 families=8 fields_per_tf=111 routes=40 cells=555"
@@ -160,6 +170,21 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Full Handover (--verbose)" not in result.stdout
     assert "## Required evidence before Entry can open" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
+
+
+def test_takeover_documents_state_the_current_shared_m5_m1_boundary() -> None:
+    rules = (REPO / "GX1_RULES.md").read_text(encoding="utf-8")
+    agents = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+    handover = HANDOVER.read_text(encoding="utf-8")
+
+    for text in (rules, agents, handover):
+        assert "offline" in text.lower()
+        assert "M5" in text
+        assert "M1" in text
+        assert "14G" in text or "14 GiB" in text
+        assert "scripts/gx1_handover.sh" in text
+    assert "480-bar M1" in handover
+    assert "same eight feature owners" in handover
 
 
 def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:

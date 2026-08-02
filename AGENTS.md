@@ -16,6 +16,34 @@ and append only after overlap/hash proof; never recompute full history merely
 to process a new tail. Invalid evidence stops closed. Historical live and
 adaptation text below is reference only and cannot expand the active scope.
 
+## Takeover quickstart — 2026-08-02
+
+The handover is executable and is the first source of truth for a new
+maintainer:
+
+```bash
+bash scripts/gx1_handover.sh --check
+bash scripts/gx1_handover.sh
+```
+
+The current offline line is the immutable V8/V13 dataset plus its PASS
+liveness, feature, target, specialist, pretrain and unified-Exit lifecycle
+evidence. Entry is M5 with 513/142/5 inputs and M5/M15/H1/H4/D1 MTF; Exit is
+M1 with the same eight owners and shared 513-field surface, a 480-bar M1
+window and additive closed-M1 path. The current explicit CPU smoke recipe is
+`batch_size=4`, `epochs=1`, `subsample_rows=512`, `num_workers=0`,
+`multi_tf_num_layers=2`, `specialist_num_layers=1`, per-TF windows
+`M5=16,M15=64,H1=96,H4=96,D1=252`, and the host cap is `14G/1G/2 cores`.
+Those values are evidence-bound recipe inputs, not defaults and not edge
+claims. If a smoke output is absent or rejected, remain BLOCK and continue
+only through the next explicit evidence gate.
+
+The exact control surface is `scripts/entry_next_edge_control.sh`. A new
+maintainer must not invoke the trainer directly, use a mutable artifact,
+resume a dead scratch directory, or run live/paper/demo/broker/drift work.
+The handover prints whether a heavy process is active and the exact current
+resume boundary; never start a second heavy job while one is active.
+
 ## Current objective and status
 
 The 2026-08-02 fresh Run13 preflight passed 30/30 checks. The subsequent V8/V13

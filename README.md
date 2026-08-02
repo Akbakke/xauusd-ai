@@ -22,6 +22,13 @@ model, hand-written live rule, cached decision or synthetic `FLAT`/`HOLD`.
 
 **BLOCKED FOR V4 MODEL, EDGE AND LAUNCH.**
 
+Takeover starts with `bash scripts/gx1_handover.sh --check` followed by
+`bash scripts/gx1_handover.sh`. The current V8/V13 dataset and explicit
+CPU-safe smoke recipe are offline evidence only; a new maintainer must use
+the printed immutable paths and never start a second capped job, direct-run a
+trainer, select a `latest` artifact or enter live/paper/demo/broker/drift
+operation.
+
 The latest empirical model evidence is V21C. It used the older incomplete
 multi-timeframe surface and overfit before it produced a balanced,
 generalizing checkpoint: train loss fell 36% while validation loss doubled;

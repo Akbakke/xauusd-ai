@@ -5,7 +5,23 @@ Entry M5, Exit M1, no live operation and no drift/adaptation. Do not spend
 work on live-tail, launcher, daemon, polling, promotion or online-update
 routes. Use exact cache reuse and overlap/hash-verified tail append.
 
-Updated 2026-07-31.
+Updated 2026-08-02.
+
+## Current takeover boundary
+
+The current work is the fresh V8/V13 offline dataset line. Its dataset,
+shared M1 Exit lifecycle and all upstream audits are PASS, but there is still
+no accepted model, candidate, OOS edge or launch authority. The bounded smoke
+recipe is intentionally CPU-safe: batch 4, one epoch, 512 sampled TRAIN rows,
+zero workers, two MTF layers, one specialist layer and explicit
+`M5=16,M15=64,H1=96,H4=96,D1=252` windows under the 14 GiB/1 GiB/two-core
+runner. A cap kill is a valid fail-closed result; never enlarge the job to
+force completion.
+
+For takeover, run `bash scripts/gx1_handover.sh --check` and then the compact
+handover. It reports the current immutable evidence anchors, active process
+state, worktree identity and exact next route. Do not infer the next step from
+the historical sections below or from a directory listing.
 
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python`.
 

@@ -6,6 +6,12 @@ REPO=/home/andre2/src/GX1_ENGINE
 HANDOVER="$REPO/HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 LAUNCH_STATE="$REPO/PROJECT_STATE_xau_direction_launch.json"
 PY="$REPO/.venv/bin/python"
+GX1_DATA_ROOT=/home/andre2/GX1_DATA/data/data/prebuilt
+CURRENT_DATASET_DIR="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_DATASET_V8"
+CURRENT_EXIT_LIFECYCLE="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_EXIT_LIFECYCLE_V13/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+CURRENT_MTF_MANIFEST="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_MTF_V4/manifest.json"
+CURRENT_RECIPE_AUDIT="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V13_20260802T223000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260802T201602481727Z.json"
+CURRENT_SMOKE_BUNDLE_DIR="$GX1_DATA_ROOT/v10_entry_model_native_seq513_smoke_XAU_SEQ513_OFFLINE_20260801_V3_20260802T223000Z"
 
 usage() {
   cat <<'EOF'
@@ -359,6 +365,29 @@ done
 echo "takeover_entrypoint: scripts/entry_next_edge_control.sh handover"
 echo "handover_owner: scripts/gx1_handover.sh"
 echo
+echo "## Current offline evidence anchors"
+echo "dataset_dir: $CURRENT_DATASET_DIR"
+echo "exit_lifecycle_manifest: $CURRENT_EXIT_LIFECYCLE"
+echo "mtf_v4_manifest: $CURRENT_MTF_MANIFEST"
+echo "train_recipe_audit: $CURRENT_RECIPE_AUDIT"
+for anchor in "$CURRENT_DATASET_DIR" "$CURRENT_EXIT_LIFECYCLE" "$CURRENT_MTF_MANIFEST" "$CURRENT_RECIPE_AUDIT"; do
+  if [[ -e "$anchor" ]]; then
+    echo "anchor_state: PRESENT $anchor"
+  else
+    echo "anchor_state: MISSING $anchor"
+  fi
+done
+if pgrep -f 'gx1.models.entry_v10.entry_v10_ctx_train_v3 --train' >/dev/null 2>&1; then
+  echo "current_smoke_execution: RUNNING"
+else
+  echo "current_smoke_execution: NOT_RUNNING"
+fi
+if [[ -d "$CURRENT_SMOKE_BUNDLE_DIR" ]]; then
+  echo "current_smoke_bundle: PRESENT $CURRENT_SMOKE_BUNDLE_DIR"
+else
+  echo "current_smoke_bundle: NOT_PRODUCED $CURRENT_SMOKE_BUNDLE_DIR"
+fi
+echo
 echo "## Launch authority"
 "$PY" - "$LAUNCH_STATE" <<'PY'
 import hashlib
@@ -576,21 +605,22 @@ echo "live_operation: FORBIDDEN"
 echo "drift_adaptation: FORBIDDEN"
 echo "resume_owner: scripts/entry_next_edge_control.sh"
 echo "source_publication_contract: IMPLEMENTED_NOT_EXECUTED_OR_ADMITTED"
-echo "dataset_contract: NO_ADMITTED_UNIFIED_DATASET"
+echo "dataset_contract: CURRENT_OFFLINE_V8_V13_READY_NOT_LAUNCH_ADMITTED"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 if (( ${#git_lines[@]} == 0 )); then
-  echo "resume_stage: FRESH_NATIVE_PAIR_PUBLICATION"
+  echo "resume_stage: CURRENT_V8_V13_SMOKE_OR_CANDIDATE_REVIEW"
   echo "source_identity_gate: READY_CLEAN_WORKTREE"
 else
   echo "resume_stage: VERIFY_CURRENT_SOURCE_BEFORE_FRESH_PUBLICATION"
   echo "source_identity_gate: BLOCK_DIRTY_WORKTREE"
 fi
 echo "ordered_control_routes:"
-echo "  1. model-native-native-m1-source + model-native-native-m5-source --publication-mode successor"
-echo "  2. model-native-canonical-pair --publication-mode successor"
-echo "  3. model-native-mtf-v4-cache"
-echo "  4. model-native-rebuild"
-echo "  5. post-rebuild audits/readiness -> integrated Entry+Exit smoke -> same-bundle candidate"
+echo "  1. model-native-train-recipe-audit (exact current recipe; no defaults)"
+echo "  2. model-native-smoke-train -> model-native-smoke-bundle-audit"
+echo "  3. model-native-candidate-readiness -> model-native-candidate-train"
+echo "  4. model-native-selective-edge -> candidate-bound replay/evidence"
+echo "  5. model-native-native-m1-source + model-native-native-m5-source --publication-mode successor (only if current source is invalidated)"
+echo "  6. model-native-canonical-pair -> model-native-mtf-v4-cache -> model-native-rebuild (only for a new immutable lineage)"
 echo "forbidden_routes: live-tail, broker, daemon, polling, promotion, drift-adaptation"
 echo "exact_route_help: bash scripts/entry_next_edge_control.sh --help"
 echo

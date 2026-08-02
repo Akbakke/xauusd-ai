@@ -17,6 +17,18 @@ val 5,904 rows and test 6,071 rows. Full-input liveness, pretrain audit and
 unified Exit lifecycle all PASS. No training or OOS edge proof exists yet;
 the launch decision therefore remains BLOCK.
 
+## Current offline takeover boundary
+
+The current V8/V13 dataset line is the next evidence boundary, not a launch
+state mutation. A new maintainer must use the exact dataset, lifecycle, MTF,
+audit and timestamped recipe paths printed by `scripts/gx1_handover.sh`. The
+bounded smoke recipe is CPU-only (`batch_size=4`, one epoch, 512 sampled TRAIN
+rows, zero workers, explicit `16/64/96/96/252` MTF windows) under the hard
+14 GiB/1 GiB/two-core cap. A smoke PASS would prove only trainability and
+bundle wiring; it cannot be promoted to candidate, OOS edge or launch without
+the downstream gates below. A cap kill or missing artifact is terminal and
+must not be resumed from scratch files.
+
 ## What is code-proven
 
 The active Entry path has one exact model-native direction authority:

@@ -35,6 +35,30 @@ lifecycle PASS. No partial V7/V12 output was resumed or admitted. The
 dataset PASS does not constitute model training, OOS edge proof or launch
 authority.
 
+## Immediate takeover path
+
+Use the executable viewer before reading historical chronology:
+
+```bash
+bash scripts/gx1_handover.sh --check
+bash scripts/gx1_handover.sh
+```
+
+The current offline evidence anchors are the explicit V8/V13 dataset,
+`UNIFIED_EXIT_LIFECYCLE_MANIFEST.json`, the Run13/feature/specialist audits,
+the MTF V4 manifest and the current timestamped train-recipe audit. The
+handover prints their exact paths and reports whether the bounded smoke
+process is active. The current smoke recipe is CPU-only, batch 4, one epoch,
+512 sampled TRAIN rows, zero workers and the explicit five-timeframe windows
+`16/64/96/96/252` under the hard `14G/1G/2-core` cap. This is a trainability
+attempt, not an admission. A missing bundle, cap kill or audit failure keeps
+the system BLOCK.
+
+The machine-readable launch state remains the final authority. It deliberately
+has no accepted model/bundle authority while the offline V8/V13 line is being
+evaluated. Never turn a PASS dataset or smoke artifact into launch authority
+by editing state manually.
+
 Status is **BLOCK**.
 
 `PROJECT_STATE_artifacts.json` has:
@@ -88,6 +112,13 @@ The model owns 555 feature×timeframe gates and 40 family×timeframe cooperation
 routes. Timeframe importance is learned from data; it is not hard-coded.
 History is resolution-aware: recent context remains fine, while older context
 becomes progressively coarser across M15/H1/H4/D1.
+
+Entry's decision clock is closed M5 with a 96-bar sequence. Exit's decision
+clock is closed M1 with the same ordered 513-signal surface, a 480-bar M1
+sequence (`5 × 96`) and an additive closed-M1 path; it also requires the Entry
+M5 representation. The M1 feature-base manifest is the single shared owner,
+not a second Exit taxonomy. Both sides bind the same dataset run, split
+boundaries and TRAIN normalization state.
 
 The frozen V4 cache proves input liveness only. It uses schema v2 and ends at
 the last complete 2026-07-24T20:55:00Z M5 bar. Active schema v3 additionally
@@ -173,25 +204,22 @@ exists; this is source-contract progress, not replay evidence.
 
 ## Next implementation sequence
 
-1. Publish matching fresh schema-v4 native M1/M5 successors, then their
-   canonical pair, and provide its generation-local `PAIR_MANIFEST.json` to the
-   implemented lifecycle authority; a free parquet path and the mutable
-   current-pair pointer are both rejected.
-2. Rebuild V4 cache under schema v3 from that exact pair and bind a fresh
-   dataset lineage.
-3. Run the bounded integrated same-bundle Entry/Exit trainer against the
+1. Complete the bounded integrated same-bundle Entry/Exit smoke against the
    immutable V8/V13 dataset; preserve untouched TEST.
-4. Require positive `HOLD/EXIT_NOW` loss, both validation classes and measured
-   movement in the shared encoder plus every Exit component before export.
-5. Prove that the implemented serving envelope and same-bundle adapter are
+2. Audit the produced bundle and require positive `HOLD/EXIT_NOW` loss, both
+   validation classes and measured movement in the shared encoder plus every
+   Exit component before export.
+3. Prove that the implemented serving envelope and same-bundle adapter are
    byte/float-identical to training; runtime and canonical replay now share the
    same adapter/path transform, update TradeState once per complete bar and
    fail on a missed bar.
-6. Prove movement and ablation across every required family/timeframe route for
+4. Prove movement and ablation across every required family/timeframe route for
    both Entry and Exit outputs.
-7. Run the implemented canonical full-TEST producer against the immutable
+5. Train one candidate from the admitted smoke boundary, then run the
+   implemented canonical full-TEST producer against the immutable
    candidate commit, then prove train==serve and zero-order broker parity.
-8. Execute two consecutive fresh successor publications through
+6. If the current immutable source/cache line is invalidated, execute two
+   consecutive fresh successor publications through
    `model-native-live-tail-pair`, publish their short-lived admission through
    `model-native-live-tail-admission`, and only then consider
    paper/demo/live launch.
