@@ -2206,11 +2206,12 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # -----------------------------------------------------------------------------
 # Core builder
 # -----------------------------------------------------------------------------
-# Workers share one read-only full-history context through fork and allocate
-# only one bounded 4096-row result at a time. Eight-way fanout remains inside
-# the rebuild cgroup while preserving exact serial spot-check parity.
-_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 8
+# The Group-A worker is deliberately serial: it shares the full-history context
+# and allocates only one bounded 4096-row result at a time. This is a capacity
+# contract, not a tunable throughput preference.
+_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 1
 _MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpoint_v3"
+_MODEL_NATIVE_STREAMING_BATCH_SIZE = 512
 
 
 def build_dataset_canonical(
@@ -2229,7 +2230,7 @@ def build_dataset_canonical(
     emit_end: pd.Timestamp,
     split_name: Optional[str] = None,
     output_path: Optional[Path] = None,  # V2 streaming-write target
-    streaming_batch_size: int = 5000,  # V2 batch rows per ParquetWriter flush
+    streaming_batch_size: int = _MODEL_NATIVE_STREAMING_BATCH_SIZE,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     ctx = _hard_gate_model_native_context()
     signal_build_contract = _signal_build_contract_from_manifest(

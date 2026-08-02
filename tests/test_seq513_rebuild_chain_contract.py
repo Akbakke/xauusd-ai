@@ -46,7 +46,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
     assert '--rank-reference-npz "$RANK_NPZ"' in source
     assert '--existing-rank-reference' in source
     assert '--out "$RANKING"' in source
-    assert "gx1_capped_run.sh --mem 30G --swap 2G" in source
+    assert "gx1_capped_run.sh --mem 14G --swap 1G" in source
     assert source.index("materialize_model_native_train_rank_reference_v2") < source.index(
         "materialize_entry_model_native_train_feature_ranker_v1"
     )

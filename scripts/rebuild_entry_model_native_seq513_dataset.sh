@@ -6,7 +6,7 @@ set -euo pipefail
 
 ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
-CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 30G --swap 2G --)
+CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 14G --swap 1G --)
 
 RUN_ID=
 SOURCE_PARQUET=
@@ -299,7 +299,7 @@ if not result["ok"]:
 print(f"[GATE] exact full-input liveness PASS: {sys.argv[1]}")
 PY
 
-"$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1 \
+"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1 \
   --dataset-dir "$OUTPUT_DIR" \
   --stem "$OUTPUT_STEM" \
   --out-dir "$AUDIT_OUT_DIR" \

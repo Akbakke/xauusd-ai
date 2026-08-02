@@ -185,3 +185,15 @@ evidence fails closed.
     `worktree_fingerprint`. An unchanged document fingerprint cannot authorize
     continuation when that worktree identity changed; inspect the diff and
     rerun affected contracts first.
+
+## Host-capacity hard stop
+
+The current machine has a 43 GiB RAM envelope. Every heavy offline producer,
+dataset build, audit, train, selective-edge run or replay must enter through
+`scripts/gx1_capped_run.sh`. That runner is the only capacity authority and
+enforces one heavy job, `MemoryMax/MemoryHigh <= 14G`, swap `<= 1G`, at least
+16G host-available RAM before launch, two CPU cores and one numerical-library
+thread. Any request above those limits, missing host state, lock contention or
+missing cgroup is a hard failure. Never bypass, weaken, background or duplicate
+a heavy job. Partial output after a cap, crash or reboot is invalid until its
+immutable completion manifest and hashes pass.

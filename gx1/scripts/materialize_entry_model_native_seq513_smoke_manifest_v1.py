@@ -65,8 +65,8 @@ _TIMESTAMPED_JSON_RE = re.compile(
     r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
 )
 RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
-DEFAULT_MEMORY_CAP = "22G"
-DEFAULT_SWAP_CAP = "2G"
+DEFAULT_MEMORY_CAP = "14G"
+DEFAULT_SWAP_CAP = "1G"
 CANONICAL_DIRECTION_DECISION_CONTRACT = model_direction_decision_contract_metadata()
 SIDE_EFFECTS_STARTED = {
     "dataset_rebuild": False,

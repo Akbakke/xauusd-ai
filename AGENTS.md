@@ -601,6 +601,19 @@ cleanup backlog.
 Never use destructive Git recovery commands. Do not modify or remove secrets.
 Never force-push.
 
+## Host-capacity hard stop
+
+This machine has a 43 GiB RAM envelope. Every heavy offline producer,
+dataset build, audit, train, selective-edge run or replay MUST enter through
+`scripts/gx1_capped_run.sh`. The runner is the only capacity authority and
+enforces: one heavy job, `MemoryMax/MemoryHigh <= 14G`, swap `<= 1G`, at least
+16G host-available RAM before launch, two CPU cores and one numerical-library
+thread. A request above those limits, missing host state, lock contention or a
+missing cgroup is a hard failure; never bypass it, lower the guard, run in the
+background or start a second copy. Large intermediate files do not justify a
+higher RAM cap. A partial output after a cap, crash or reboot is invalid until
+the producer's immutable completion manifest and all hashes pass.
+
 ## Verification before handoff
 
 For each bounded change:

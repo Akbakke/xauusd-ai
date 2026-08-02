@@ -141,3 +141,15 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "exit 75" in source
     assert "systemd-run --user --scope --quiet" in source
     assert "exec systemd-run" not in source
+    assert "SAFE_JOB_MEMORY_KIB=$((14 * 1024 * 1024))" in source
+    assert "SAFE_JOB_SWAP_KIB=$((1 * 1024 * 1024))" in source
+    assert "MIN_AVAILABLE_MEMORY_KIB=$((16 * 1024 * 1024))" in source
+    assert "-p CPUQuota=200%" in source
+    assert "--setenv=OMP_NUM_THREADS=1" in source
+
+
+def test_seq513_rebuild_caps_every_heavy_stage() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    assert 'CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 14G --swap 1G --)' in source
+    assert '"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source

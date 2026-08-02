@@ -1329,8 +1329,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--smoke-manifest-event-json", required=True)
     ap.add_argument("--repo-dir", required=True)
     ap.add_argument("--out-dir", required=True)
-    ap.add_argument("--memory-cap", default="22G")
-    ap.add_argument("--swap-cap", default="2G")
+    ap.add_argument("--memory-cap", default="14G")
+    ap.add_argument("--swap-cap", default="1G")
     ap.add_argument("--quiet", action="store_true")
     return ap
 

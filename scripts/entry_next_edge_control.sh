@@ -9,6 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 PY="$REPO/.venv/bin/python"
+CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 14G --swap 1G --)
 
 usage() {
   cat <<'EOF'
@@ -232,10 +233,10 @@ case "$cmd" in
         ;;
     esac
     if [[ "$cmd" == "model-native-native-m1-source" ]]; then
-      exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
+      exec "${CAP[@]}" "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
         --timeframe M1 "$@"
     fi
-    exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
       --timeframe M5 "$@"
     ;;
 
@@ -281,7 +282,7 @@ case "$cmd" in
         die "$cmd requires --publication-mode bootstrap or successor"
         ;;
     esac
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.execution.v12_canonical_incremental "$@"
     ;;
 
@@ -299,7 +300,7 @@ case "$cmd" in
       --pair-generation-id; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.build_entry_exit_m1_enriched_frame_v1 "$@"
     ;;
 
@@ -317,7 +318,7 @@ case "$cmd" in
       --pair-generation-id; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.build_entry_exit_m1_enriched_frame_v1 \
       --timeframe M5 "$@"
     ;;
@@ -333,7 +334,7 @@ case "$cmd" in
       --pair-generation-id; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 12G --swap 1G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.materialize_entry_model_native_m5_source_v1 "$@"
     ;;
 
@@ -349,7 +350,7 @@ case "$cmd" in
       --out; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 8G --swap 1G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.materialize_current_pair_source_cascade_proof_v1 "$@"
     ;;
 
@@ -366,7 +367,7 @@ case "$cmd" in
     done
     # The complete 2.3m-row M1 inline signal extension needs more than the
     # canonical M5/MTF builders, but remains hard-capped below host memory.
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 38G --swap 1G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.materialize_entry_exit_m1_feature_base_v1 "$@"
     ;;
 
@@ -380,7 +381,7 @@ case "$cmd" in
       --pair-generation-id; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 24G --swap 1G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.materialize_entry_exit_m1_feature_base_v1 \
       --timeframe M5 "$@"
     ;;
@@ -394,7 +395,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.prebuild_multi_tf_cache_v2 \
       --contract v4 "$@"
     ;;
@@ -428,7 +429,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_rebuild_preflight_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_rebuild_preflight_v1 "$@"
     ;;
 
   model-native-rebuild)
@@ -489,7 +490,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 "$@"
     ;;
 
   model-native-foundation-feature-audit)
@@ -509,7 +510,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.audit_entry_foundation_features_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_features_v1 "$@"
     ;;
 
   model-native-foundation-target-audit)
@@ -528,7 +529,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.audit_entry_foundation_targets_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_targets_v1 "$@"
     ;;
 
   model-native-specialist-feature-audit)
@@ -548,7 +549,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.audit_entry_specialist_feature_groups_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.audit_entry_specialist_feature_groups_v1 "$@"
     ;;
 
   model-native-adoption-candidate)
@@ -562,7 +563,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.verify_entry_foundation_adoption_candidate_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.verify_entry_foundation_adoption_candidate_v1 "$@"
     ;;
 
   model-native-smoke-manifest)
@@ -591,7 +592,7 @@ case "$cmd" in
       --batch-size; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_smoke_manifest_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_smoke_manifest_v1 "$@"
     ;;
 
   model-native-smoke-readiness)
@@ -612,7 +613,7 @@ case "$cmd" in
       --swap-cap; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.verify_entry_model_native_seq513_smoke_readiness_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_smoke_readiness_v1 "$@"
     ;;
 
   model-native-trainability-readiness)
@@ -632,7 +633,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.verify_entry_model_native_seq513_trainability_readiness_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_trainability_readiness_v1 "$@"
     ;;
 
   model-native-train-recipe-audit)
@@ -678,7 +679,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
     ;;
 
   model-native-smoke-train)
@@ -702,7 +703,7 @@ case "$cmd" in
       --device; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
     ;;
 
   model-native-candidate-readiness)
@@ -747,7 +748,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
     ;;
 
   model-native-replay-trade-log)
@@ -779,7 +780,7 @@ case "$cmd" in
       --slippage-bps; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 "$@"
     ;;
 
   model-native-replay-evidence)
@@ -801,7 +802,7 @@ case "$cmd" in
       --policy-id; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.materialize_entry_candidate_replay_evidence_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_candidate_replay_evidence_v1 "$@"
     ;;
 
   model-native-replay-readiness)
@@ -827,13 +828,13 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
     ;;
 
   model-native-sizing-capture-instrument)
     reject_non_authoritative_args "$@"
     require_flag "$cmd" --authority-root "$@"
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       capture-instrument "$@"
     ;;
 
@@ -849,7 +850,7 @@ case "$cmd" in
       --authority-root; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       fit-calibration "$@"
     ;;
 
@@ -858,7 +859,7 @@ case "$cmd" in
     for flag in --source-bundle-dir --out-bundle-dir --calibration; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       bind-bundle "$@"
     ;;
 
@@ -875,7 +876,7 @@ case "$cmd" in
       --authority-root; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       materialize-test-oos "$@"
     ;;
 
@@ -906,7 +907,7 @@ case "$cmd" in
       --device; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+    exec "${CAP[@]}" \
       "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       produce-unified-joint-exit-proof "$@"
     ;;
@@ -948,7 +949,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.verify_model_native_serve_parity_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.verify_model_native_serve_parity_v1 "$@"
     ;;
 
   model-native-direction-pocket-audit)
@@ -963,7 +964,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.audit_model_native_direction_pockets_v1 "$@"
+    exec "${CAP[@]}" "$PY" -m gx1.scripts.audit_model_native_direction_pockets_v1 "$@"
     ;;
 
   train|retrain|promote|pin|shadow|live|start-live|start-shadow|preview-shadow|verify-shadow)

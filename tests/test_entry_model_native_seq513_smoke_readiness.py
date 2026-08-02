@@ -312,8 +312,8 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         smoke_manifest_event_json=str(smoke_manifest_path),
         repo_dir=str(tmp_path),
         out_dir=str(tmp_path / "reports"),
-        memory_cap="22G",
-        swap_cap="2G",
+        memory_cap="14G",
+        swap_cap="1G",
         quiet=True,
     )
 
