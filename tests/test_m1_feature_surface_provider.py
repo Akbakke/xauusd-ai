@@ -175,3 +175,25 @@ def test_full_surface_loader_preserves_fixed_list_values(tmp_path: Path) -> None
     )
     assert arrays["signal"].dtype == np.float32
     assert arrays["ctx_cat"].dtype == np.int64
+
+
+def test_full_surface_loader_can_use_disk_backed_shared_storage(
+    tmp_path: Path,
+) -> None:
+    parquet, _manifest, _run_id, _pair_id = _artifact(tmp_path)
+
+    _times, arrays = load_m1_feature_surface(
+        parquet,
+        context="TEST",
+        storage_dir=tmp_path / "shared_surface_storage",
+    )
+
+    assert all(isinstance(value, np.memmap) for value in arrays.values())
+    assert np.array_equal(
+        arrays["signal"][-1],
+        np.arange(
+            EXIT_FEATURE_SEQUENCE_BARS * MODEL_NATIVE_SIGNAL_DIM,
+            (EXIT_FEATURE_SEQUENCE_BARS + 1) * MODEL_NATIVE_SIGNAL_DIM,
+            dtype=np.float32,
+        ),
+    )

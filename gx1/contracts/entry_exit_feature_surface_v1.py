@@ -106,6 +106,7 @@ def load_m1_feature_surface(
     path: Path,
     *,
     context: str,
+    storage_dir: Path | None = None,
 ) -> tuple[pd.DatetimeIndex, dict[str, np.ndarray]]:
     """Load and validate one exact row-level M1 feature-base artifact.
 
@@ -151,18 +152,40 @@ def load_m1_feature_surface(
     ):
         raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID")
 
+    backing_root: Path | None = None
+    if storage_dir is not None:
+        backing_root = Path(storage_dir).expanduser().absolute()
+        if backing_root.exists() and backing_root.is_symlink():
+            raise RuntimeError(
+                f"{context}_M1_FEATURE_SURFACE_STORAGE_PATH_INVALID"
+            )
+        backing_root.mkdir(parents=True, exist_ok=True)
+
+    def _allocate(name: str, shape: tuple[int, int], dtype: Any) -> np.ndarray:
+        if backing_root is None:
+            return np.empty(shape, dtype=dtype)
+        return np.memmap(
+            backing_root / f"{name}.mmap",
+            dtype=dtype,
+            mode="w+",
+            shape=shape,
+        )
+
     arrays = {
-        "signal": np.empty(
+        "signal": _allocate(
+            "signal",
             (len(times), MODEL_NATIVE_SIGNAL_DIM),
-            dtype=np.float32,
+            np.float32,
         ),
-        "ctx_cont": np.empty(
+        "ctx_cont": _allocate(
+            "ctx_cont",
             (len(times), MODEL_NATIVE_CTX_CONT_DIM),
-            dtype=np.float32,
+            np.float32,
         ),
-        "ctx_cat": np.empty(
+        "ctx_cat": _allocate(
+            "ctx_cat",
             (len(times), MODEL_NATIVE_CTX_CAT_DIM),
-            dtype=np.int64,
+            np.int64,
         ),
     }
     widths = {
@@ -235,8 +258,17 @@ def load_m1_feature_surface(
             raise RuntimeError(
                 f"{context}_M1_FEATURE_SURFACE_CTX_CAT_DOMAIN_INVALID: index={index}"
             )
+    if backing_root is not None:
+        for values in arrays.values():
+            if isinstance(values, np.memmap):
+                values.flush()
+                mmap_handle = getattr(values, "_mmap", None)
+                if mmap_handle is not None and hasattr(mmap_handle, "madvise"):
+                    import mmap
+
+                    mmap_handle.madvise(mmap.MADV_DONTNEED)
     return times, {
-        name: np.ascontiguousarray(values)
+        name: values
         for name, values in arrays.items()
     }
 

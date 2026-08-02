@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -963,10 +964,19 @@ class UnifiedExitLifecycleCorpus:
             feature_manifest.get("shared_feature_base_contract"),
             context="UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST",
         )
-        m1_feature_times, m1_feature_arrays = load_m1_feature_surface(
-            m1_feature_path,
-            context="UNIFIED_EXIT_LIFECYCLE",
+        m1_feature_tempdir = tempfile.TemporaryDirectory(
+            prefix="gx1_m1_feature_surface_"
         )
+        try:
+            m1_feature_times, m1_feature_arrays = load_m1_feature_surface(
+                m1_feature_path,
+                context="UNIFIED_EXIT_LIFECYCLE",
+                storage_dir=Path(m1_feature_tempdir.name),
+            )
+        except Exception:
+            m1_feature_tempdir.cleanup()
+            raise
+        self._m1_feature_tempdir = m1_feature_tempdir
         if not m1_feature_times.equals(m1_times):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
 
