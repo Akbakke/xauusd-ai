@@ -4,6 +4,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "rebuild_entry_model_native_seq513_dataset.sh"
 CAPPED_RUNNER = REPO / "scripts" / "gx1_capped_run.sh"
+PRE_COMMIT = REPO / ".claude" / "git-hooks" / "pre-commit"
 
 
 def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
@@ -146,6 +147,13 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "MIN_AVAILABLE_MEMORY_KIB=$((16 * 1024 * 1024))" in source
     assert "-p CPUQuota=200%" in source
     assert "--setenv=OMP_NUM_THREADS=1" in source
+
+
+def test_pre_commit_model_contracts_use_capped_runner() -> None:
+    source = PRE_COMMIT.read_text(encoding="utf-8")
+
+    assert 'CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 1G --)' in source
+    assert '"${CAP[@]}" "$PY" -m pytest -q' in source
 
 
 def test_seq513_rebuild_caps_every_heavy_stage() -> None:
