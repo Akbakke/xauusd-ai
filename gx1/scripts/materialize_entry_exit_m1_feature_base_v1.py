@@ -4,7 +4,8 @@ This producer accepts only an already enriched, causal M1 frame.  It reuses
 the exact model-native signal-layer owner used by the Entry dataset builder;
 it never copies M5 rows, synthesizes missing fields, or fills absent context.
 The upstream enrichment therefore remains a hard input contract, not a hidden
-fallback inside this materializer.
+fallback inside this materializer.  M1 also receives the exact closed-M1 source
+timeline used by the Exit lifecycle and emits that timestamp subset only.
 """
 from __future__ import annotations
 
@@ -84,6 +85,7 @@ def _fixed_size_list_column(values: np.ndarray, width: int, *, dtype: pa.DataTyp
 def _materialize_feature_base(
     *,
     source_parquet: Path,
+    alignment_parquet: Path | None,
     seq_structure_manifest: Path,
     output_parquet: Path,
     dataset_run_id: str,
@@ -92,6 +94,8 @@ def _materialize_feature_base(
 ) -> dict[str, Any]:
     if timeframe not in {"M1", "M5"}:
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_TIMEFRAME_INVALID")
+    if timeframe == "M1" and alignment_parquet is None:
+        raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_SOURCE_REQUIRED")
     bar_seconds = (
         EXIT_DECISION_BAR_SECONDS if timeframe == "M1" else ENTRY_DECISION_BAR_SECONDS
     )
@@ -107,11 +111,23 @@ def _materialize_feature_base(
     )
     require_offline_scope("featurebase_build")
     source = Path(source_parquet).expanduser().resolve()
+    alignment = (
+        None
+        if alignment_parquet is None
+        else Path(alignment_parquet).expanduser().resolve()
+    )
     manifest_path = Path(seq_structure_manifest).expanduser().resolve()
     output = Path(output_parquet).expanduser().resolve()
     if (
         not source.is_file()
         or source.is_symlink()
+        or (
+            alignment is not None
+            and (
+                not alignment.is_file()
+                or alignment.is_symlink()
+            )
+        )
         or not manifest_path.is_file()
         or manifest_path.is_symlink()
         or output.exists()
@@ -162,6 +178,38 @@ def _materialize_feature_base(
         or not times.floor(f"{bar_seconds}s").equals(times)
     ):
         raise RuntimeError("M1_FEATURE_BASE_TIME_GEOMETRY_INVALID")
+
+    alignment_times: pd.DatetimeIndex | None = None
+    if alignment is not None:
+        alignment_times = pd.DatetimeIndex(
+            pd.to_datetime(
+                pd.read_parquet(alignment, columns=["time"])["time"],
+                utc=True,
+                errors="coerce",
+            )
+        ).as_unit("ns")
+        if (
+            len(alignment_times) == 0
+            or alignment_times.hasnans
+            or not alignment_times.is_unique
+            or not alignment_times.is_monotonic_increasing
+            or not alignment_times.floor(f"{bar_seconds}s").equals(
+                alignment_times
+            )
+        ):
+            raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_TIME_GEOMETRY_INVALID")
+        positions = times.get_indexer(alignment_times)
+        if np.any(positions < 0):
+            missing = int(np.count_nonzero(positions < 0))
+            raise RuntimeError(
+                "M1_FEATURE_BASE_ALIGNMENT_TIME_NOT_SUBSET: "
+                f"missing_rows={missing}"
+            )
+        # Keep the exact source timeline.  The enriched producer may retain a
+        # causal warmup/history superset, but Exit must consume the same closed
+        # M1 rows as its pair-bound lifecycle source.
+        frame = frame.iloc[positions].reset_index(drop=True)
+        times = alignment_times
 
     for name in (*MODEL_NATIVE_BASE_FIELDS, *MODEL_NATIVE_CTX_CONT_FIELDS):
         values = pd.to_numeric(frame[name], errors="coerce").to_numpy(
@@ -242,6 +290,10 @@ def _materialize_feature_base(
         "anchor_timeframe": timeframe,
         "source_parquet": str(source),
         "source_sha256": _sha256_file(source),
+        "alignment_parquet": None if alignment is None else str(alignment),
+        "alignment_sha256": (
+            None if alignment is None else _sha256_file(alignment)
+        ),
         "seq_structure_manifest": str(manifest_path),
         "seq_structure_manifest_sha256": _sha256_file(manifest_path),
         "output_parquet": str(output),
@@ -258,6 +310,7 @@ def _materialize_feature_base(
             "m1_closed_bar_required": timeframe == "M1",
             "m5_row_reuse": False,
             "duplicate_feature_implementation": False,
+            "exact_closed_source_timestamp_subset": alignment is not None,
         },
     }
     manifest["manifest_sha256"] = _canonical_sha256(manifest)
@@ -286,6 +339,7 @@ def materialize_m5_feature_base(**kwargs: Any) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-parquet", required=True, type=Path)
+    parser.add_argument("--alignment-parquet", type=Path)
     parser.add_argument("--seq-structure-manifest", required=True, type=Path)
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--dataset-run-id", required=True)
@@ -294,6 +348,7 @@ def main() -> None:
     args = parser.parse_args()
     manifest = _materialize_feature_base(
         source_parquet=args.source_parquet,
+        alignment_parquet=args.alignment_parquet,
         seq_structure_manifest=args.seq_structure_manifest,
         output_parquet=args.output_parquet,
         dataset_run_id=args.dataset_run_id,

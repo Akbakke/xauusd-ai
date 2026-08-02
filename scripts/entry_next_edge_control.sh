@@ -25,7 +25,7 @@ Model-native seq513 evidence:
   model-native-m5-enriched-frame --native-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers <n> --checkpoint-chunk-rows <n>]
   model-native-m5-source-frame --enriched-parquet <immutable-parquet> --native-m5-root <immutable-dir> --pair-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-current-source-cascade-proof --run-id <id> --source-parquet <immutable-parquet> --canonical-v2-parquet <immutable-parquet> --mtf-cache-dir <immutable-dir> --pair-manifest <json> --required-history-start <UTC> --out <new-json>
-  model-native-m1-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
+  model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-m5-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-mtf-v4-cache --m5-prebuilt <immutable-parquet> --expected-source-sha256 <sha256> --out-dir <new-event-local-dir>
   model-native-rebuild-preflight \
@@ -357,6 +357,7 @@ case "$cmd" in
     reject_non_authoritative_args "$@"
     for flag in \
       --source-parquet \
+      --alignment-parquet \
       --seq-structure-manifest \
       --output-parquet \
       --dataset-run-id \
