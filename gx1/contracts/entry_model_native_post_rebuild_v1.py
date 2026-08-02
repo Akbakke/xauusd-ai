@@ -1,4 +1,10 @@
-"""Exact post-rebuild admission contract for model-native seq513 Entry data."""
+"""Exact post-rebuild admission contract for model-native seq513 Entry data.
+
+The current direct capped rebuild binds ``DATASET_BUILD_PROOF.json`` as its
+completion authority.  The historical chain-terminal schema remains readable
+for already-authoritative chain events, but no path may pass without one of
+those exact completion contracts.
+"""
 
 from __future__ import annotations
 

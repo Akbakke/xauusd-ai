@@ -235,6 +235,69 @@ def test_post_rebuild_readiness_accepts_strict_native_v4_provenance(
     )
 
 
+def test_post_rebuild_readiness_accepts_direct_capped_build_proof(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    args, xau = _fixture(tmp_path)
+    dataset_dir = Path(args.dataset_dir)
+    event_root = Path(args.event_root)
+    lifecycle_dir = event_root / "exit_lifecycle"
+    lifecycle_dir.mkdir()
+    _write_json(
+        lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+        {
+            "schema_version": gate.EXIT_LIFECYCLE_SCHEMA,
+            "decision": "PASS",
+            "entry_run_id": args.run_id,
+        },
+    )
+    source_path = event_root / "source.parquet"
+    source_path.write_bytes(b"source")
+    preflight_path = Path(args.rebuild_preflight_json)
+    preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
+    preflight["inputs"] = {
+        "source_parquet": {"path": str(source_path), "sha256": "source-sha"},
+        "exit_lifecycle_dir": str(lifecycle_dir),
+    }
+    _write_json(preflight_path, preflight)
+    signal_contract = json.loads(
+        Path(args.train_manifest_json).read_text(encoding="utf-8")
+    )["extra"]["model_native_signal_contract"]
+    proof = _write_json(
+        dataset_dir / gate.DIRECT_BUILD_PROOF_FILENAME,
+        {
+            "entry_run_id": args.run_id,
+            "truth_source": "exact_source_parquet",
+            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+            "direction_logit_mode": "model_native",
+            "ctx_cont_dim": 142,
+            "ctx_cat_dim": 5,
+            "output_path": str(dataset_dir / "v10_seq513_dataset__DIR_H24B.parquet"),
+            "model_native_signal_contract": signal_contract,
+            "source_parquet": str(source_path),
+            "signal_training_lineage": {"source_sha256": "source-sha"},
+            "unified_exit_lifecycle": {
+                "schema_version": gate.EXIT_LIFECYCLE_SCHEMA,
+                "output_dir": str(lifecycle_dir),
+            },
+        },
+    )
+    args.chain_terminal_json = str(proof)
+    monkeypatch.setattr(gate, "validate_xau_tape_provenance_v1", lambda *a, **k: xau)
+    monkeypatch.setattr(
+        gate,
+        "_git_identity",
+        lambda repo: {"repo_dir": str(repo), "head": "a" * 40, "status_short": []},
+    )
+    monkeypatch.setattr(gate, "validate_full_input_liveness_artifact", lambda *a, **k: {"ok": True})
+
+    report = gate.run(args)
+
+    assert report["decision"] == READY_DECISION
+    assert report["rebuild_completion_mode"] == "direct_capped_rebuild"
+    assert all(row["ok"] for row in report["checks"])
+
+
 def test_post_rebuild_readiness_rejects_separate_smoke_copy(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

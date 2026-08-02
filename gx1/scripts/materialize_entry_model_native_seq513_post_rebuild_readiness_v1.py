@@ -53,6 +53,8 @@ PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v9"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 CHAIN_SCHEMA = "seq513_rebuild_chain_status_v6"
+DIRECT_BUILD_PROOF_FILENAME = "DATASET_BUILD_PROOF.json"
+EXIT_LIFECYCLE_SCHEMA = "gx1_unified_exit_lifecycle_episode_envelope_v2"
 
 
 def _sha256_file(path: Path) -> str:
@@ -194,6 +196,98 @@ def _manifest_contract(
     }, failures
 
 
+def _direct_build_proof_details(
+    *,
+    proof_path: Path,
+    proof: dict[str, Any],
+    dataset_dir: Path,
+    event_root: Path,
+    expected_run_id: str,
+) -> tuple[bool, dict[str, Any]]:
+    """Validate the direct capped rebuild's immutable completion proof.
+
+    The current rebuild owner is intentionally callable without the historical
+    one-shot chain driver.  Its DATASET_BUILD_PROOF is therefore a first-class
+    completion authority, not a synthetic chain-terminal substitute.  Keep the
+    path explicit and bind the completed Exit lifecycle root as well.
+    """
+    failures: list[str] = []
+    expected_path = dataset_dir / DIRECT_BUILD_PROOF_FILENAME
+    if proof_path != expected_path:
+        failures.append("direct completion path is not the dataset build proof")
+    if proof.get("entry_run_id") != expected_run_id:
+        failures.append("direct completion run id mismatch")
+    if proof.get("truth_source") != "exact_source_parquet":
+        failures.append("direct completion truth source mismatch")
+    if proof.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE:
+        failures.append("direct completion contract mode mismatch")
+    if proof.get("direction_logit_mode") != "model_native":
+        failures.append("direct completion direction mode mismatch")
+    if proof.get("ctx_cont_dim") != EXPECTED_FIELD_COUNTS["ctx_cont"]:
+        failures.append("direct completion continuous context dimension mismatch")
+    if proof.get("ctx_cat_dim") != EXPECTED_FIELD_COUNTS["ctx_cat"]:
+        failures.append("direct completion categorical context dimension mismatch")
+    output_path = Path(str(proof.get("output_path") or ""))
+    if (
+        not output_path.is_absolute()
+        or output_path.parent != dataset_dir
+        or not output_path.name.endswith("__DIR_H24B.parquet")
+    ):
+        failures.append("direct completion output stem is not dataset-bound")
+    try:
+        require_model_native_signal_contract(
+            proof.get("model_native_signal_contract"),
+            context="direct rebuild DATASET_BUILD_PROOF",
+        )
+    except Exception as exc:
+        failures.append(f"direct completion signal contract invalid: {exc}")
+
+    lifecycle = proof.get("unified_exit_lifecycle")
+    if not isinstance(lifecycle, dict):
+        failures.append("direct completion lacks unified Exit lifecycle binding")
+        lifecycle = {}
+    lifecycle_dir = Path(str(lifecycle.get("output_dir") or ""))
+    lifecycle_manifest = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    lifecycle_payload: dict[str, Any] = {}
+    if (
+        not lifecycle_dir.is_absolute()
+        or lifecycle_dir.parent != event_root
+        or lifecycle_dir.is_symlink()
+        or not lifecycle_dir.is_dir()
+    ):
+        failures.append("direct completion Exit lifecycle directory is not event-bound")
+    elif not lifecycle_manifest.is_file() or lifecycle_manifest.is_symlink():
+        failures.append("direct completion Exit lifecycle root manifest is missing")
+    else:
+        lifecycle_payload = _json(
+            lifecycle_manifest,
+            label="direct completion Exit lifecycle root manifest",
+        )
+        if lifecycle_payload.get("decision") != "PASS":
+            failures.append("direct completion Exit lifecycle root is not PASS")
+        if lifecycle_payload.get("schema_version") != EXIT_LIFECYCLE_SCHEMA:
+            failures.append("direct completion Exit lifecycle schema mismatch")
+        if lifecycle_payload.get("entry_run_id") != expected_run_id:
+            failures.append("direct completion Exit lifecycle run id mismatch")
+    if lifecycle.get("schema_version") != EXIT_LIFECYCLE_SCHEMA:
+        failures.append("direct completion Exit lifecycle binding schema mismatch")
+    if lifecycle.get("output_dir") != str(lifecycle_dir):
+        failures.append("direct completion Exit lifecycle path binding mismatch")
+    details = {
+        "mode": "direct_capped_rebuild",
+        "proof_path": str(proof_path),
+        "proof_sha256": _sha256_file(proof_path),
+        "lifecycle_manifest_path": str(lifecycle_manifest),
+        "lifecycle_manifest_sha256": (
+            _sha256_file(lifecycle_manifest)
+            if lifecycle_manifest.is_file() and not lifecycle_manifest.is_symlink()
+            else None
+        ),
+        "failures": failures,
+    }
+    return not failures, details
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     run_id = str(args.run_id or "").strip()
     if not run_id:
@@ -301,7 +395,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
     )
 
-    terminal_ok = (
+    chain_terminal_ok = (
         terminal.get("schema_version") == CHAIN_SCHEMA
         and terminal.get("state") == "GREEN"
         and terminal.get("step") == "chain-complete"
@@ -311,19 +405,59 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and Path(str(terminal.get("terminal_event_path") or "")).resolve()
         == terminal_path
     )
+    direct_completion_ok, direct_completion_details = _direct_build_proof_details(
+        proof_path=terminal_path,
+        proof=terminal,
+        dataset_dir=dataset_dir,
+        event_root=event_root,
+        expected_run_id=run_id,
+    )
+    direct_completion_mode = (
+        terminal_path.name == DIRECT_BUILD_PROOF_FILENAME
+        and direct_completion_ok
+    )
+    terminal_ok = chain_terminal_ok or direct_completion_mode
+    completion_mode = (
+        "direct_capped_rebuild"
+        if direct_completion_mode
+        else "seq513_rebuild_chain_v6"
+        if chain_terminal_ok
+        else "invalid"
+    )
     terminal_preflight = (
         terminal.get("preflight")
         if isinstance(terminal.get("preflight"), dict)
         else {}
     )
-    preflight_ok = (
+    preflight_common_ok = (
         preflight.get("schema_version") == PREFLIGHT_SCHEMA
         and preflight.get("decision") == PREFLIGHT_DECISION
         and preflight.get("entry_run_id") == run_id
         and preflight.get("training_allowed") is False
-        and terminal_preflight.get("json_path") == str(preflight_path)
-        and terminal_preflight.get("sha256") == _sha256_file(preflight_path)
     )
+    if direct_completion_mode:
+        preflight_inputs = (
+            preflight.get("inputs")
+            if isinstance(preflight.get("inputs"), dict)
+            else {}
+        )
+        source_input = (
+            preflight_inputs.get("source_parquet")
+            if isinstance(preflight_inputs.get("source_parquet"), dict)
+            else {}
+        )
+        preflight_ok = preflight_common_ok and (
+            source_input.get("path") == terminal.get("source_parquet")
+            and source_input.get("sha256")
+            == terminal.get("signal_training_lineage", {}).get("source_sha256")
+            and preflight_inputs.get("exit_lifecycle_dir")
+            == terminal.get("unified_exit_lifecycle", {}).get("output_dir")
+        )
+    else:
+        preflight_ok = preflight_common_ok and (
+            terminal_preflight.get("json_path") == str(preflight_path)
+            and terminal_preflight.get("sha256") == _sha256_file(preflight_path)
+        )
     liveness_ok = (
         liveness.get("schema_version") == LIVENESS_SCHEMA_VERSION
         and liveness.get("decision") == "PASS"
@@ -365,7 +499,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     checks = [
-        _check(REQUIRED_PROOF_CHECKS[0], terminal_ok, _artifact(terminal_path, terminal)),
+        _check(
+            REQUIRED_PROOF_CHECKS[0],
+            terminal_ok,
+            {
+                "completion_mode": completion_mode,
+                "chain_terminal": chain_terminal_ok,
+                "direct_completion": direct_completion_details,
+                "artifact": _artifact(terminal_path, terminal),
+            },
+        ),
         _check(REQUIRED_PROOF_CHECKS[1], preflight_ok, _artifact(preflight_path, preflight)),
         _check(REQUIRED_PROOF_CHECKS[2], liveness_ok, liveness_validation),
         _check(REQUIRED_PROOF_CHECKS[3], pretrain_ok, _artifact(pretrain_path, pretrain)),
@@ -384,7 +527,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "entry_run_id": run_id,
         "event_root": str(event_root),
         "producer_git": producer_git,
-        "source_git_head": terminal.get("git_head"),
+        "source_git_head": terminal.get("git_head") or first_manifest.get("git_commit"),
         "dataset_dir": str(dataset_dir),
         "smoke_dataset_dir": str(smoke_dataset_dir),
         "report_only": True,
@@ -396,6 +539,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "pretrain_audit": _artifact(pretrain_path, pretrain),
         "chain_terminal": _artifact(terminal_path, terminal),
+        "rebuild_completion_mode": completion_mode,
         "rebuild_preflight": _artifact(preflight_path, preflight),
         "split_artifacts_schema_version": ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
         "split_artifacts": split_artifacts,
