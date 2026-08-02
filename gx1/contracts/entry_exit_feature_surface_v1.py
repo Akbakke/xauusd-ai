@@ -168,3 +168,53 @@ def load_m1_feature_surface(
         "ctx_cont": np.ascontiguousarray(ctx_cont),
         "ctx_cat": np.ascontiguousarray(ctx_cat),
     }
+
+
+def load_m1_feature_surface_times(
+    path: Path,
+    *,
+    context: str,
+) -> pd.DatetimeIndex:
+    """Validate only the ordered M1 clock without materializing feature arrays.
+
+    Dataset/lifecycle producers that do not consume the feature vectors must
+    not deserialize the full nested ``signal``/``ctx`` columns.  The immutable
+    manifest and the full-surface preflight remain responsible for validating
+    vector widths, finiteness and categorical domains; this helper owns only
+    the exact parquet schema and causal timestamp geometry needed by such a
+    producer.
+    """
+
+    resolved = Path(path).expanduser().absolute()
+    if (
+        not resolved.is_absolute()
+        or resolved.is_symlink()
+        or not resolved.is_file()
+    ):
+        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_PATH_INVALID")
+    try:
+        import pyarrow.parquet as pq
+
+        columns = tuple(pq.read_schema(resolved).names)
+    except Exception as exc:
+        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_SCHEMA_INVALID") from exc
+    if columns != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS:
+        raise RuntimeError(
+            f"{context}_M1_FEATURE_SURFACE_SCHEMA_INVALID: columns={columns}"
+        )
+    try:
+        frame = pd.read_parquet(resolved, columns=["time"])
+        times = pd.DatetimeIndex(
+            pd.to_datetime(frame["time"], utc=True, errors="coerce")
+        ).as_unit("ns")
+    except Exception as exc:
+        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID") from exc
+    if (
+        len(times) == 0
+        or times.hasnans
+        or not times.is_unique
+        or not times.is_monotonic_increasing
+        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
+    ):
+        raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID")
+    return times

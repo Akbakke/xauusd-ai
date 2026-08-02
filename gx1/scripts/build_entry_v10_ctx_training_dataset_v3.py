@@ -151,7 +151,9 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
     require_entry_exit_shared_feature_base_contract,
 )
-from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    load_m1_feature_surface_times,
+)
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -4406,7 +4408,7 @@ def main() -> None:
         m1_feature_base_manifest.get("shared_feature_base_contract"),
         context="DATASET_BUILDER_M1_FEATURE_BASE_MANIFEST",
     )
-    m1_feature_times, _m1_feature_arrays = load_m1_feature_surface(
+    m1_feature_times = load_m1_feature_surface_times(
         m1_feature_base_path,
         context="DATASET_BUILDER",
     )
