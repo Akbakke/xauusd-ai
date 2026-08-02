@@ -675,6 +675,8 @@ case "$cmd" in
       --target-audit-json \
       --specialist-audit-json \
       --pretrain-audit-json \
+      --smoke-manifest-json \
+      --smoke-readiness-json \
       --trainability-readiness-json \
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
