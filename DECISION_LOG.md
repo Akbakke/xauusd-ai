@@ -3022,3 +3022,34 @@ and the repaired runner. Its SHA-256 is
 `ca47e71ca5acf1d60682819a13d35300f74cc91dbfb72868b4db17a0de33f66d`.
 It started no training and carries no edge or launch authority. Launch remains
 `BLOCK` pending a terminal smoke result.
+
+## 2026-08-03 — V16 cgroup OOM isolated; exact activation memory repair bound
+
+The exact V16 smoke validated every V8/V13/V4 input, fitted TRAIN-only
+normalization, compacted TRAIN to 511 stratified rows, materialized the full
+VAL surface, attached all five 111-field timeframe tensors and selected
+balanced unified Exit supervision. The complete 513/142/5, eight-specialist,
+7.55M-parameter same-bundle model was created. At the first epoch's first
+training step, retained Entry/MTF/Exit Transformer activations reached both
+the 10 GiB RAM and 512 MiB swap cgroup ceilings. The kernel killed only the
+scope with exit 137. WSL and the host stayed healthy; no output bundle or
+checkpoint was produced.
+
+Commit `45421e70` routes every TransformerEncoder through exact per-layer,
+non-reentrant activation recomputation with RNG preservation during
+gradient-enabled training only. It retains Entry batch 8, all four Exit
+lifecycle samples per Entry row, all features, heads, timeframes, losses and
+parameters. Focused tests prove bit-identical full Entry/Exit outputs and
+parameter gradients against the direct path, including dropout, and prove
+that validation/inference never enters the checkpoint path. All 118 model and
+trainer tests pass under a 4 GiB cgroup.
+
+An exact-size synthetic proof then completed Entry forward, 32-row Exit
+forward over 480 M1 feature bars and 512 path bars, and combined backward at
+3,732,668 KiB maximum RSS, zero swap and 24.06 seconds wall time. The trainer's
+existing dead-PID scratch owner removed the sole orphaned V16 VAL memmap,
+freeing 1.2 GB. Immutable recipe V17 binds commit `45421e70` and unchanged
+V8/V13/V4 evidence; its SHA-256 is
+`2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`,
+and its exact smoke dry-run passes. No smoke completion, OOS edge, PnL,
+precision or launch authority is claimed. Launch remains `BLOCK`.

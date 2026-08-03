@@ -145,8 +145,19 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "current_smoke_bundle: NOT_PRODUCED" in result.stdout
     assert "dataset_contract: CURRENT_OFFLINE_V8_V13_VERIFIED_NOT_LAUNCH_ADMITTED" in result.stdout
     assert (
-        "resume_stage: READY_FOR_EXACT_V8_V13_SMOKE" in result.stdout
-        or "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_SMOKE"
+        "resume_stage: READY_FOR_EXACT_V17_V8_V13_SMOKE" in result.stdout
+        or "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_V17_SMOKE"
+        in result.stdout
+    )
+    assert "recipe_sha256=2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c" in result.stdout
+    assert (
+        "activation_checkpoint="
+        "per_transformer_layer_non_reentrant_preserve_rng_v1"
+        in result.stdout
+    )
+    assert "last_smoke_terminal: CGROUP_OOM_EXIT_137_NO_BUNDLE" in result.stdout
+    assert (
+        "memory_repair: COMMIT_45421e70_FULL_BATCH_RSS_3732668_KIB_NO_SWAP"
         in result.stdout
     )
     assert (

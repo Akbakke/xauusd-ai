@@ -1,6 +1,6 @@
 # GX1 current system map
 
-Updated 2026-08-02. This map describes the active XAUUSD Entry/Exit architecture.
+Updated 2026-08-03. This map describes the active XAUUSD Entry/Exit architecture.
 Historical implementation chronology belongs in `DECISION_LOG.md`.
 
 ## Authority boundary
@@ -395,10 +395,14 @@ scripts to bypass an existing contract.
 
 Source/input V4 architecture is implemented. The current schema-v3 cache has
 full-input liveness PASS and the V8/V13 dataset is the current offline
-evidence. An interrupted smoke reached epoch 3 but published no valid terminal
-bundle, so no trained model is admitted. V26 and V21C remain older-surface
-measurements only. The V19/V26 dataset/audit artifacts and rejected V18 bundle
-were retired and deleted.
+evidence. No smoke has published a valid terminal bundle. The latest exact
+V16 attempt reached its first training step and was safely killed only inside
+the 10 GiB/512 MiB cgroup; no trained model is admitted. Commit `45421e70`
+preserves the complete architecture and batch objective while recomputing
+Transformer activations per layer during backward. Its full-size batch proof
+peaked at 3,732,668 KiB RSS with no swap, and immutable V17 is the current
+recipe. V26 and V21C remain older-surface measurements only. The V19/V26
+dataset/audit artifacts and rejected V18 bundle were retired and deleted.
 
 Lifecycle materialization, the same-bundle Exit head, positive loss and
 component-movement/export gates are implemented in source and covered by

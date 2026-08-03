@@ -25,15 +25,15 @@ train-launch contract before it reports them ready:
 - V13 unified Exit lifecycle PASS;
 - Entry M5 sequence 96 and Exit M1 sequence 480, with identical feature
   ownership, split boundaries and TRAIN normalization;
-- immutable V16 smoke-recipe audit PASS.
+- immutable V17 smoke-recipe audit PASS.
 
 The recipe is CPU-only: batch 8, six epochs, patience 3, 512 sampled TRAIN
 rows, zero workers, two MTF layers, one specialist layer and explicit windows
 `M5=16,M15=64,H1=96,H4=96,D1=252`. It is a trainability recipe, not an edge
-claim. On 2026-08-03 the exact V16 audit passed after binding commit
-`667d704b`, the isolated capacity-runner proof environment and all unchanged
-V8/V13/V4 artifacts. Its SHA-256 is
-`ca47e71ca5acf1d60682819a13d35300f74cc91dbfb72868b4db17a0de33f66d`.
+claim. On 2026-08-03 the exact V17 audit passed after binding memory-repair
+commit `45421e70`, the isolated capacity-runner proof environment and all
+unchanged V8/V13/V4 artifacts. Its SHA-256 is
+`2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`.
 No training or model output was started by the audit.
 
 Exact paths and hashes are printed by `scripts/gx1_handover.sh`; they must not
@@ -55,11 +55,25 @@ trading edge.
 
 After the 32 GB/4 GB WSL cap became active, the first exact smoke launch
 stopped before data loading because the capacity runner's four internal proof
-variables collided with the trainer's ambient-control rejection. No batch or
-output was produced. Commit `667d704b` keeps the cgroup proof unchanged but
-unsets those internal values before entering the target process; 23 focused
-runner/trainer tests and a real cgroup environment check pass. V15 is now
-historical only; V16 is the sole current recipe authority.
+variables collided with the trainer's ambient-control rejection. Commit
+`667d704b` repaired that boundary. The following exact V16 launch validated
+all V8/V13/V4 bytes, materialized TRAIN and VAL, bound all five timeframes and
+the balanced unified Exit rows, and created the complete 7.55M-parameter
+same-bundle model. At the first training step it reached the hard 10 GiB RAM
+and 512 MiB swap ceilings and the cgroup killed only the job with exit 137.
+The host remained healthy and no output bundle was created.
+
+Commit `45421e70` keeps every feature, all four Exit samples per Entry row,
+batch-8 objective semantics, dropout stream, head and gradient unchanged. It
+recomputes each Transformer layer during backward instead of retaining every
+Entry/MTF/Exit activation simultaneously; validation and inference keep the
+ordinary path. The full 118-test model/trainer set passes under a 4 GiB cap,
+including exact output and parameter-gradient equality. A full-size synthetic
+batch with eight Entry rows, 32 Exit rows, 480 M1 feature bars and 512 path
+bars completed forward and backward at 3,732,668 KiB peak RSS with zero swap.
+V16 is historical only; V17 is the sole current recipe authority and its
+exact dry-run passes. This proves bounded trainability of one batch, not a
+completed smoke or trading edge.
 
 ## Code-proven architecture
 
@@ -87,7 +101,7 @@ This is source-contract proof only. It does not prove practical precision.
 On 2026-08-03 the sole cleanup owner removed 33 exact superseded V21/V23/V26
 leaves (5,447,068,479 bytes) after plan, dry-run, approval, same-device
 quarantine and terminal revalidation. The four still-existing historical
-registry references and every current V8/V13/V4/V15 anchor were outside the
+registry references and every then-current V8/V13/V4/V15 anchor were outside the
 target set. The legacy `entry_iql_runs` incident path was already absent by its
 recorded 2026-07-07 deletion incident; this cleanup did not target it.
 

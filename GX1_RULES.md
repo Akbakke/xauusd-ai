@@ -23,6 +23,11 @@ immutable XAUUSD snapshot
   overlay, fallback, synthetic decision or duplicate feature owner is allowed.
 - Entry and Exit require one unique top logit. An exact top tie is unavailable
   evidence and fails closed; array order may never choose a class.
+- Training memory may be reduced only by a tested compute-scheduling change
+  that preserves the complete feature/sample/head surface, batch objective,
+  stochastic stream, outputs and gradients. The current owner is exact
+  per-Transformer-layer activation recomputation during backward; evaluation
+  and inference use the ordinary model path.
 
 ## Forbidden
 
@@ -33,6 +38,8 @@ immutable XAUUSD snapshot
   overlap-verified append is available.
 - No new architecture, feature family, compatibility lane, versioned copy or
   operational route unless this scope is deliberately changed first.
+- No feature/head removal, fewer Entry/Exit lifecycle samples, altered batch
+  semantics or larger host/cgroup limits as a shortcut around memory pressure.
 
 If the source, cache, overlap, schema or model evidence is invalid, stop
 closed. Do not simplify the evidence by guessing, filling, clipping or routing

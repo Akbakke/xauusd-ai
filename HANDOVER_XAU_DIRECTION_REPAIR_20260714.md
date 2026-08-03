@@ -94,20 +94,37 @@ fields and `DECISION_LOG.md`, never in the active resume path.
 
 On 2026-08-03 a second exact-leaf retention event removed 33 superseded
 V21/V23/V26 bulk leaves (5,447,068,479 bytes) without targeting the current
-V8/V13/V4/V15 anchors or the four still-existing historical registry
+then-current V8/V13/V4/V15 anchors or the four still-existing historical registry
 references. Its terminal `DELETE_COMPLETE` event is
 `/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_reports/OLD_RUNS_20260803_V1/GX1_EVIDENCE_CLEANUP_EXECUTION_20260803T153441676760Z.json`
 with SHA-256
 `f0e96fe751de8bcc25730d1a5bfa8939e2632a94d8523203d8ca52d932b9d99d`.
 Do not search for, restore or rebuild those retired leaves.
 
-The first post-restart smoke launch then stopped before data loading: the
-runner's already-verified internal cgroup variables reached the trainer and
-were correctly rejected as ambient controls. It produced no batch or output.
-Commit `667d704b` removes only those four internal variables after scope proof,
-23 focused tests pass, and immutable recipe V16 now binds the repaired runner.
-V15 is historical only; the executable handover admits only V16 with SHA-256
-`ca47e71ca5acf1d60682819a13d35300f74cc91dbfb72868b4db17a0de33f66d`.
+The first post-restart smoke launch stopped before data loading: the runner's
+already-verified internal cgroup variables reached the trainer and were
+correctly rejected as ambient controls. Commit `667d704b` removes only those
+four internal variables after scope proof. The following exact V16 launch
+validated the immutable V8/V13/V4 inputs, materialized the compact 511-row
+TRAIN surface and full VAL surface, attached all five timeframes and balanced
+unified Exit targets, and created the complete same-bundle Entry/Exit model.
+At the first training step, retained Transformer activations reached both the
+10 GiB RAM and 512 MiB swap ceilings. The cgroup killed only the job with exit
+137; WSL and the PC stayed healthy, and no output bundle was created.
+
+Commit `45421e70` applies non-reentrant, RNG-preserving activation
+recomputation independently to each exact Transformer layer. Entry still uses
+batch 8; every feature, timeframe, head and all four Exit lifecycle samples
+remain; loss and gradient semantics are unchanged. Validation and live model
+execution do not use checkpoint recomputation. The complete 118-test
+model/trainer set passes under a 4 GiB cap with exact output and gradient
+equality. A full-size synthetic batch with eight Entry rows and 32 Exit rows
+completed forward/backward at 3,732,668 KiB peak RSS and zero swap. The dead
+V16 VAL scratch was then swept by the trainer's existing owner, freeing 1.2
+GB. V16 is historical only. The executable handover admits only V17 with
+SHA-256
+`2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`;
+its exact dry-run passes. No smoke completion or edge is claimed yet.
 
 The former tree-based decision provider and the separate V3/Exit-IQL/
 Strategy-F chain are permanently retired. Their source packages, runtime

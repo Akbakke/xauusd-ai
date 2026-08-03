@@ -16,7 +16,7 @@ and append only after overlap/hash proof; never recompute full history merely
 to process a new tail. Invalid evidence stops closed. Historical live and
 adaptation text below is reference only and cannot expand the active scope.
 
-## Takeover quickstart — 2026-08-02
+## Takeover quickstart — 2026-08-03
 
 The handover is executable and is the first source of truth for a new
 maintainer:
@@ -37,6 +37,16 @@ window and additive closed-M1 path. The current explicit CPU smoke recipe is
 Those values are evidence-bound recipe inputs, not defaults and not edge
 claims. If a smoke output is absent or rejected, remain BLOCK and continue
 only through the next explicit evidence gate.
+
+The exact V16 smoke reached its first training step and the cgroup killed only
+that job at 10 GiB RAM plus 512 MiB swap. No bundle was created. Commit
+`45421e70` preserves every feature, all four Exit samples per Entry row,
+batch-8 loss semantics, dropout stream, outputs and gradients while
+recomputing each Transformer layer during backward. Evaluation and inference
+remain unchanged. The 118 focused tests pass under 4 GiB; an exact-size
+batch-8 plus 32-row Exit proof peaked at 3,732,668 KiB RSS with zero swap.
+V17 is the current immutable recipe and its dry-run passes. Do not work around
+capacity by shrinking the evidence/model path or weakening the cap.
 
 The exact control surface is `scripts/entry_next_edge_control.sh`. A new
 maintainer must not invoke the trainer directly, use a mutable artifact,
@@ -654,6 +664,10 @@ missing cgroup is a hard failure; never bypass it, lower the guard, run in the
 background or start a second copy. Large intermediate files do not justify a
 higher RAM cap. A partial output after a cap, crash or reboot is invalid until
 the producer's immutable completion manifest and all hashes pass.
+Memory repairs must preserve features, all lifecycle samples, heads, batch
+objective, stochastic stream, outputs and gradients. Use the model's verified
+per-layer activation-recomputation owner; do not reduce the evidence surface,
+change batch semantics or increase the cap.
 On WSL, any request above 4G also requires the active VM `MemTotal` and
 `SwapTotal` to match `/mnt/c/Users/Andre/.wslconfig`; a pending WSL restart is a
 hard stop.

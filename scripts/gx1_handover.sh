@@ -10,7 +10,7 @@ GX1_DATA_ROOT=/home/andre2/GX1_DATA/data/data/prebuilt
 CURRENT_DATASET_DIR="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_DATASET_V8"
 CURRENT_EXIT_LIFECYCLE="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_EXIT_LIFECYCLE_V13/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
 CURRENT_MTF_MANIFEST="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_MTF_V4/manifest.json"
-CURRENT_RECIPE_AUDIT="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V16_20260803T175141Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T175204892622Z.json"
+CURRENT_RECIPE_AUDIT="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V17_20260803T182728Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T182740630205Z.json"
 CURRENT_SMOKE_BUNDLE_DIR="$GX1_DATA_ROOT/v10_entry_model_native_seq513_smoke_XAU_SEQ513_OFFLINE_20260801_V3_20260803T085638Z"
 
 usage() {
@@ -80,6 +80,9 @@ from pathlib import Path
 
 from gx1.contracts.entry_model_native_train_launch_v1 import validate_launch
 from gx1.features.htf_features import HTF_V4_CACHE_SCHEMA_VERSION
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    TRAIN_ACTIVATION_CHECKPOINT_POLICY,
+)
 
 
 recipe_path, dataset_dir, exit_lifecycle_path, mtf_manifest_path = (
@@ -145,11 +148,17 @@ if (
     or shared.get("separate_feature_implementations_forbidden") is not True
 ):
     raise SystemExit("FATAL: current unified Exit lifecycle contract mismatch")
+if (
+    TRAIN_ACTIVATION_CHECKPOINT_POLICY
+    != "per_transformer_layer_non_reentrant_preserve_rng_v1"
+):
+    raise SystemExit("FATAL: current bounded-training memory policy mismatch")
 
 print(
     "V8_V13_VERIFIED "
     f"mtf={mtf_manifest['schema_version']} "
-    f"recipe_sha256={hashlib.sha256(recipe_path.read_bytes()).hexdigest()}"
+    f"recipe_sha256={hashlib.sha256(recipe_path.read_bytes()).hexdigest()} "
+    f"activation_checkpoint={TRAIN_ACTIVATION_CHECKPOINT_POLICY}"
 )
 PY
 }
@@ -428,7 +437,7 @@ PY
   echo "head_commit: $(git rev-parse HEAD)"
   printf 'changed_path_count: %d\n' "${#git_lines[@]}"
   printf 'worktree_fingerprint: %s\n' "$worktree_sha256"
-  echo "capacity: job=10G/512M cpu=0-1"
+  echo "capacity: 10G/512M cpu=0-1"
   echo "wsl_vm_cap: $wsl_vm_status"
   exit 0
 fi
@@ -714,14 +723,16 @@ if (( ${#git_lines[@]} == 0 )); then
   if [[ "$wsl_vm_status" == "PENDING_RESTART" ]]; then
     echo "resume_stage: WAIT_FOR_WSL_CAP_THEN_EXACT_V8_V13_SMOKE"
   else
-    echo "resume_stage: READY_FOR_EXACT_V8_V13_SMOKE"
+    echo "resume_stage: READY_FOR_EXACT_V17_V8_V13_SMOKE"
   fi
 else
-  echo "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_SMOKE"
+  echo "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_V17_SMOKE"
   echo "source_identity_gate: BLOCK_DIRTY_WORKTREE"
 fi
 echo "ordered_control_routes:"
-echo "  1. require wsl_vm_cap != PENDING_RESTART and revalidate exact V16 recipe"
+echo "last_smoke_terminal: CGROUP_OOM_EXIT_137_NO_BUNDLE"
+echo "memory_repair: COMMIT_45421e70_FULL_BATCH_RSS_3732668_KIB_NO_SWAP"
+echo "  1. require wsl_vm_cap != PENDING_RESTART and revalidate exact V17 recipe"
 echo "  2. model-native-smoke-train -> model-native-smoke-bundle-audit"
 echo "  3. model-native-candidate-readiness -> model-native-candidate-train"
 echo "  4. model-native-selective-edge -> candidate-bound replay/evidence"

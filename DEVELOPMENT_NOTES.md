@@ -18,6 +18,16 @@ zero workers, two MTF layers, one specialist layer and explicit
 runner. A cap kill is a valid fail-closed result; never enlarge the job to
 force completion.
 
+The exact V16 attempt reached the first optimizer step and was safely killed
+inside its cgroup at 10 GiB RAM plus 512 MiB swap; no bundle exists. Commit
+`45421e70` is the sole memory repair: per-Transformer-layer activation
+recomputation during gradient-enabled training. It preserves every feature,
+sample, head, batch objective, dropout stream, output and gradient; eval and
+inference use the ordinary path. The 118 focused tests pass under 4 GiB and a
+full-size batch-8/32-Exit-row proof peaked at 3,732,668 KiB RSS with no swap.
+V17 is the current immutable recipe. Do not replace this with feature removal,
+fewer lifecycle samples, smaller batch semantics or a larger capacity cap.
+
 For takeover, run `bash scripts/gx1_handover.sh --check` and then the compact
 handover. It reports the current immutable evidence anchors, active process
 state, worktree identity and exact next route. Do not infer the next step from
@@ -112,8 +122,8 @@ Do not run a dataset rebuild, trainer, large replay or live launcher merely as
 a test. Real jobs require immutable prerequisites, explicit event identity,
 capped RAM/swap and the host-wide heavy-job lock.
 
-The next real job is the existing V8/V13 bounded smoke after the lower WSL cap
-is active. Do not republish source or rebuild the current cache/dataset without
+The next real job is the V17-bound V8/V13 bounded smoke. Do not republish
+source or rebuild the current cache/dataset without
 new invalidating evidence. The dataset/model/trainer owners contain the
 same-bundle causal Exit lifecycle head and positive loss, but no completed
 artifact proves them. TEST remains untouched until candidate evaluation.

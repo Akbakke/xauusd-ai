@@ -38,19 +38,26 @@ These are data, wiring and recipe contracts. They do not prove model edge.
 ## Current boundary
 
 The first six-epoch V8/V13 smoke was interrupted in epoch 3 by a Windows
-`HYPERVISOR_ERROR (0x20001)` bugcheck. It produced no completion bundle and
-cannot be resumed; the bugcheck does not prove that training caused it. The
-post-restart WSL VM now matches the configured 32 GB/4 GB envelope and a real
-10 GiB/512 MiB scope passes. The first post-restart launch stopped before data
-loading on a runner/trainer environment-contract collision, produced no
-output, and was repaired in `667d704b`. Immutable recipe V16 binds that fix.
+`HYPERVISOR_ERROR (0x20001)` bugcheck and produced no completion bundle. The
+post-restart WSL VM now matches the configured 32 GB/4 GB envelope. The first
+post-restart launch stopped before data on a runner/trainer environment
+collision, repaired in `667d704b`. The next exact V16 launch reached the first
+training step, where the cgroup safely killed only the job at its 10 GiB RAM
+and 512 MiB swap ceilings; no bundle was produced and the PC remained healthy.
+
+Commit `45421e70` replaces retained Transformer activations with exact
+per-layer backward recomputation. It removes no feature, head, timeframe or
+Exit sample and changes no batch objective, dropout stream, output or
+gradient. The 118 focused tests pass under 4 GiB, and a full-size batch-8 plus
+32-row Exit forward/backward proof peaked at 3,732,668 KiB RSS with zero swap.
+Immutable recipe V17 binds this source and its exact dry-run passes.
 
 Launch and model status remain `BLOCK`: no completed smoke bundle, candidate,
 calibration, untouched-TEST edge, train==serve proof or accepted replay exists.
 
 ## Next execution sequence
 
-1. Re-run the existing V8/V13 six-epoch smoke through the single control
+1. Run the V17-bound V8/V13 six-epoch smoke through the single control
    surface under 10 GiB/512 MiB/CPU0–1. Do not rebuild the current dataset.
 2. Require a terminal immutable result. A missing bundle, cap kill, class
    collapse or failed component-movement contract remains hard red.

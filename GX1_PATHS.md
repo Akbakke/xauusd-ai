@@ -64,11 +64,11 @@ Unified Exit lifecycle manifest:
 
 Recipe audit:
 
-`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V15_20260803T144245Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T144212558258Z.json`
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V17_20260803T182728Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T182740630205Z.json`
 
-- SHA-256: `424f5d8cdf584c4fbc3c41ff445665e00035c8df95e8d9e5d038455e1e07ca8d`
+- SHA-256: `2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`
 - decision: `PASS`
-- source commit: `0cabdf266e451c7b7549f0ea6eb64a8bdb7424ff`
+- source commit: `45421e706b5e6dbd911c88b25e230335c24a6a49`
 - output bundle path: absent, as required before execution
 
 The executable handover revalidates this recipe through the existing
