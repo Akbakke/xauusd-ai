@@ -650,6 +650,9 @@ missing cgroup is a hard failure; never bypass it, lower the guard, run in the
 background or start a second copy. Large intermediate files do not justify a
 higher RAM cap. A partial output after a cap, crash or reboot is invalid until
 the producer's immutable completion manifest and all hashes pass.
+On WSL, any request above 4G also requires the active VM `MemTotal` and
+`SwapTotal` to match `/mnt/c/Users/Andre/.wslconfig`; a pending WSL restart is a
+hard stop.
 
 ## Verification before handoff
 

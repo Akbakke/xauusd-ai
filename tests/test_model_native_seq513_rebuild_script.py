@@ -145,6 +145,8 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))" in source
     assert "SAFE_JOB_SWAP_KIB=$((512 * 1024))" in source
     assert "MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))" in source
+    assert "WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))" in source
+    assert "active WSL MemTotal exceeds configured memory cap" in source
     assert "capped_run_scope_verified" in source
     assert "/usr/bin/taskset -c" in source
     assert "--setenv=OMP_NUM_THREADS=1" in source

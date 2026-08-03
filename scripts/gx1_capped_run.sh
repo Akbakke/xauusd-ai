@@ -23,6 +23,8 @@ SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))
 SAFE_JOB_SWAP_KIB=$((512 * 1024))
 MIN_HOST_MEMORY_KIB=$((30 * 1024 * 1024))
 MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))
+WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))
+WSL_CONFIG_TOLERANCE_KIB=$((1024 * 1024))
 TASKS_MAX=64
 CPU_AFFINITY=0-1
 
@@ -76,6 +78,47 @@ fi
 if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
   echo "FATAL: requested MemorySwapMax exceeds GX1 safety ceiling (512M)" >&2
   exit 75
+fi
+if (( requested_mem_kib > WSL_GUARD_MIN_REQUEST_KIB )) \
+  && grep -qi microsoft /proc/version; then
+  WSL_CONFIG_PATH=/mnt/c/Users/Andre/.wslconfig
+  [[ -r "$WSL_CONFIG_PATH" ]] || {
+    echo "FATAL: WSL safety config is unavailable; refusing model/dataset job" >&2
+    exit 75
+  }
+  wsl_memory_raw=$(awk -F= '$1 == "memory" {gsub(/[[:space:]]/, "", $2); print toupper($2); exit}' "$WSL_CONFIG_PATH")
+  wsl_swap_raw=$(awk -F= '$1 == "swap" {gsub(/[[:space:]]/, "", $2); print toupper($2); exit}' "$WSL_CONFIG_PATH")
+  [[ "$wsl_memory_raw" =~ ^([1-9][0-9]*)(MB|GB)$ ]] || {
+    echo "FATAL: WSL memory= setting is invalid; refusing model/dataset job" >&2
+    exit 75
+  }
+  wsl_memory_number=${BASH_REMATCH[1]}
+  wsl_memory_unit=${BASH_REMATCH[2]}
+  [[ "$wsl_swap_raw" =~ ^([1-9][0-9]*)(MB|GB)$ ]] || {
+    echo "FATAL: WSL swap= setting is invalid; refusing model/dataset job" >&2
+    exit 75
+  }
+  wsl_swap_number=${BASH_REMATCH[1]}
+  wsl_swap_unit=${BASH_REMATCH[2]}
+  if [[ "$wsl_memory_unit" == "GB" ]]; then
+    wsl_memory_kib=$((wsl_memory_number * 1024 * 1024))
+  else
+    wsl_memory_kib=$((wsl_memory_number * 1024))
+  fi
+  if [[ "$wsl_swap_unit" == "GB" ]]; then
+    wsl_swap_kib=$((wsl_swap_number * 1024 * 1024))
+  else
+    wsl_swap_kib=$((wsl_swap_number * 1024))
+  fi
+  host_swap_kib=$(awk '/^SwapTotal:/ {print $2; exit}' /proc/meminfo)
+  if (( host_total_kib > wsl_memory_kib + WSL_CONFIG_TOLERANCE_KIB )); then
+    echo "FATAL: active WSL MemTotal exceeds configured memory cap; restart WSL before a model/dataset job" >&2
+    exit 75
+  fi
+  if (( host_swap_kib > wsl_swap_kib + WSL_CONFIG_TOLERANCE_KIB )); then
+    echo "FATAL: active WSL SwapTotal exceeds configured swap cap; restart WSL before a model/dataset job" >&2
+    exit 75
+  fi
 fi
 for helper in /usr/bin/taskset /usr/bin/ionice /usr/bin/nice /bin/bash; do
   [[ -x "$helper" ]] || { echo "FATAL: required capacity helper is missing: $helper" >&2; exit 75; }
