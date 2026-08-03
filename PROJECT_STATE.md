@@ -22,8 +22,8 @@ the launch decision therefore remains BLOCK.
 The current V8/V13 dataset line is the next evidence boundary, not a launch
 state mutation. A new maintainer must use the exact dataset, lifecycle, MTF,
 audit and timestamped recipe paths printed by `scripts/gx1_handover.sh`. The
-bounded smoke recipe is CPU-only (`batch_size=4`, one epoch, 512 sampled TRAIN
-rows, zero workers, explicit `16/64/96/96/252` MTF windows) under the hard
+bounded smoke recipe is CPU-only (`batch_size=8`, six epochs, patience 3,
+512 sampled TRAIN rows, zero workers, explicit `16/64/96/96/252` MTF windows) under the hard
 10 GiB/512 MiB/two-core cap. A smoke PASS would prove only trainability and
 bundle wiring; it cannot be promoted to candidate, OOS edge or launch without
 the downstream gates below. A cap kill or missing artifact is terminal and

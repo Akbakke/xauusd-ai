@@ -31,7 +31,7 @@ liveness, feature, target, specialist, pretrain and unified-Exit lifecycle
 evidence. Entry is M5 with 513/142/5 inputs and M5/M15/H1/H4/D1 MTF; Exit is
 M1 with the same eight owners and shared 513-field surface, a 480-bar M1
 window and additive closed-M1 path. The current explicit CPU smoke recipe is
-`batch_size=4`, `epochs=1`, `subsample_rows=512`, `num_workers=0`,
+`batch_size=8`, `epochs=6`, `early_stop_patience=3`, `subsample_rows=512`, `num_workers=0`,
 `multi_tf_num_layers=2`, `specialist_num_layers=1`, per-TF windows
 `M5=16,M15=64,H1=96,H4=96,D1=252`, and the host cap is `10G/512M/2 cores`.
 Those values are evidence-bound recipe inputs, not defaults and not edge

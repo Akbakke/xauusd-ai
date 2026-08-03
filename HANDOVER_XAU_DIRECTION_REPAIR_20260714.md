@@ -48,8 +48,8 @@ The current offline evidence anchors are the explicit V8/V13 dataset,
 `UNIFIED_EXIT_LIFECYCLE_MANIFEST.json`, the Run13/feature/specialist audits,
 the MTF V4 manifest and the current timestamped train-recipe audit. The
 handover prints their exact paths and reports whether the bounded smoke
-process is active. The current smoke recipe is CPU-only, batch 4, one epoch,
-512 sampled TRAIN rows, zero workers and the explicit five-timeframe windows
+process is active. The current smoke recipe is CPU-only, batch 8, six epochs,
+patience 3, 512 sampled TRAIN rows, zero workers and the explicit five-timeframe windows
 `16/64/96/96/252` under the hard `10G/512M/2-core` cap. This is a trainability
 attempt, not an admission. A missing bundle, cap kill or audit failure keeps
 the system BLOCK.
