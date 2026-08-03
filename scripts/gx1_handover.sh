@@ -47,14 +47,12 @@ sources=(
   "$HANDOVER"
   "$REPO/PROJECT_STATE.md"
   "$REPO/DECISION_LOG.md"
-  "$REPO/PIPELINE_AUDIT_XAU_20260723.md"
   "$REPO/docs/BACKFILL_2020_2025_COMMANDS.md"
   "$REPO/docs/CANONICAL_EXIT_STATUS.md"
   "$REPO/docs/DATA_CONTRACT.md"
   "$REPO/docs/DATA_OANDA_SCHEMA_SSOT.md"
   "$REPO/docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md"
   "$REPO/docs/FEATURE_MANIFEST.md"
-  "$REPO/docs/FOUNDATION_FEATURE_ROUTING_AUDIT_20260722.md"
   "$REPO/docs/GIT_WORKTREE_POLICY.md"
   "$REPO/docs/SESSION_CONTEXT_OBSERVABILITY_NOTE.md"
   "$REPO/docs/TRAINING_DETERMINISM_MPS.md"
@@ -67,6 +65,96 @@ for source in "${sources[@]}"; do
 done
 [[ -x "$PY" ]] || { echo "FATAL: repository Python is not executable: $PY" >&2; exit 2; }
 cd "$REPO"
+
+verify_current_offline_evidence() {
+  "$PY" - \
+    "$CURRENT_RECIPE_AUDIT" \
+    "$CURRENT_DATASET_DIR" \
+    "$CURRENT_EXIT_LIFECYCLE" \
+    "$CURRENT_MTF_MANIFEST" <<'PY'
+import argparse
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+from gx1.contracts.entry_model_native_train_launch_v1 import validate_launch
+from gx1.features.htf_features import HTF_V4_CACHE_SCHEMA_VERSION
+
+
+recipe_path, dataset_dir, exit_lifecycle_path, mtf_manifest_path = (
+    Path(raw).resolve(strict=True) for raw in sys.argv[1:]
+)
+recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
+bindings = recipe.get("artifact_bindings")
+trainer_cli = recipe.get("trainer_cli")
+source_bindings = recipe.get("source_bindings")
+if (
+    not isinstance(bindings, dict)
+    or not isinstance(trainer_cli, dict)
+    or not isinstance(source_bindings, dict)
+):
+    raise SystemExit("FATAL: current train recipe has no exact binding/CLI map")
+
+if Path(str(recipe.get("dataset_dir", ""))).resolve() != dataset_dir:
+    raise SystemExit("FATAL: current train recipe does not bind the handover dataset")
+for key, expected in (
+    ("unified_exit_lifecycle_manifest_json", exit_lifecycle_path),
+    ("multi_tf_cache_manifest_json", mtf_manifest_path),
+):
+    binding = bindings.get(key)
+    if not isinstance(binding, dict) or Path(str(binding.get("path", ""))).resolve() != expected:
+        raise SystemExit(f"FATAL: current train recipe binding mismatch: {key}")
+
+launch_args = dict(trainer_cli)
+launch_args.update(
+    profile=recipe.get("profile"),
+    repo=str(Path.cwd()),
+    wrapper_path=str(Path(str(source_bindings["wrapper"]["path"]))),
+    run_id=recipe.get("run_id"),
+    dataset_dir=str(dataset_dir),
+    out_bundle_dir=recipe.get("out_bundle_dir"),
+    recipe_audit_json=str(recipe_path),
+)
+for key, binding in bindings.items():
+    if not isinstance(binding, dict) or not isinstance(binding.get("path"), str):
+        raise SystemExit(f"FATAL: malformed current train recipe binding: {key}")
+    launch_args[key] = binding["path"]
+validate_launch(argparse.Namespace(**launch_args))
+
+mtf_manifest = json.loads(mtf_manifest_path.read_text(encoding="utf-8"))
+mtf_liveness = mtf_manifest.get("full_input_liveness")
+if (
+    mtf_manifest.get("schema_version") != HTF_V4_CACHE_SCHEMA_VERSION
+    or mtf_manifest.get("feature_count") != 111
+    or not isinstance(mtf_liveness, dict)
+    or mtf_liveness.get("decision") != "PASS"
+):
+    raise SystemExit("FATAL: current offline MTF V4 cache is not schema-v3 PASS")
+
+exit_lifecycle = json.loads(exit_lifecycle_path.read_text(encoding="utf-8"))
+shared = exit_lifecycle.get("shared_feature_base_contract")
+if (
+    exit_lifecycle.get("decision") != "PASS"
+    or exit_lifecycle.get("action_order") != ["HOLD", "EXIT_NOW"]
+    or not isinstance(shared, dict)
+    or shared.get("ordered_signal_dim") != 513
+    or shared.get("specialist_family_count") != 8
+    or shared.get("entry_feature_sequence_bars") != 96
+    or shared.get("exit_feature_sequence_bars") != 480
+    or shared.get("separate_feature_implementations_forbidden") is not True
+):
+    raise SystemExit("FATAL: current unified Exit lifecycle contract mismatch")
+
+print(
+    "V8_V13_VERIFIED "
+    f"mtf={mtf_manifest['schema_version']} "
+    f"recipe_sha256={hashlib.sha256(recipe_path.read_bytes()).hexdigest()}"
+)
+PY
+}
+
+offline_evidence_status=$(verify_current_offline_evidence)
 
 worktree_fingerprint() {
   "$PY" - "$REPO" <<'PY'
@@ -327,8 +415,8 @@ required_cache_tag = str(HTF_V4_CACHE_SCHEMA_VERSION).removeprefix(
     "htf_v4_disk_cache_manifest_"
 )
 print(
-    "v4: ARCH_OK_5x111 "
-    f"CACHE_BLOCK_{observed_cache_tag}_to_{required_cache_tag}"
+    f"v4: OFFLINE_{required_cache_tag}_PASS "
+    f"LAUNCH_{observed_cache_tag}_BLOCK 5x111"
 )
 PY
   echo "head_commit: $(git rev-parse HEAD)"
@@ -360,11 +448,10 @@ echo
 echo "## Canonical takeover order"
 echo "  1. GX1_RULES.md (binding scope freeze)"
 echo "  2. AGENTS.md"
-echo "  3. PIPELINE_AUDIT_XAU_20260723.md (historical audit context only)"
-echo "  4. SYSTEM_MAP.md"
-echo "  5. HANDOVER_XAU_DIRECTION_REPAIR_20260714.md (reference under scope freeze)"
-echo "  6. PROJECT_STATE_xau_direction_launch.json"
-echo "  7. relevant code contracts/tests"
+echo "  3. SYSTEM_MAP.md"
+echo "  4. HANDOVER_XAU_DIRECTION_REPAIR_20260714.md (reference under scope freeze)"
+echo "  5. PROJECT_STATE_xau_direction_launch.json"
+echo "  6. relevant code contracts/tests"
 echo
 echo "## Authority fingerprint inventory (complete; not a reading order)"
 for source in "${sources[@]}"; do
@@ -378,6 +465,7 @@ echo "dataset_dir: $CURRENT_DATASET_DIR"
 echo "exit_lifecycle_manifest: $CURRENT_EXIT_LIFECYCLE"
 echo "mtf_v4_manifest: $CURRENT_MTF_MANIFEST"
 echo "train_recipe_audit: $CURRENT_RECIPE_AUDIT"
+echo "offline_evidence_contract: $offline_evidence_status"
 for anchor in "$CURRENT_DATASET_DIR" "$CURRENT_EXIT_LIFECYCLE" "$CURRENT_MTF_MANIFEST" "$CURRENT_RECIPE_AUDIT"; do
   if [[ -e "$anchor" ]]; then
     echo "anchor_state: PRESENT $anchor"
@@ -484,7 +572,7 @@ print(
     "timeframes=5 families=8 fields_per_tf=111 routes=40 cells=555"
 )
 print(
-    "v4_cache: BLOCK "
+    "launch_checkpoint_v4_cache: BLOCK "
     f"observed={cache_manifest.get('schema_version')} "
     f"required={HTF_V4_CACHE_SCHEMA_VERSION} "
     f"historical_identity={cache_binding['cache_identity_sha256']}"

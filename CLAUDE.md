@@ -206,8 +206,10 @@ hash-bound artifact as terminal until a fresh gate proves otherwise.
 
 ## Host-capacity hard stop
 
-The current machine has a 43 GiB RAM envelope. Every heavy offline producer,
-dataset build, audit, train, selective-edge run or replay must enter through
+WSL is configured for a 32 GB RAM / 4 GB swap host envelope. Until a WSL
+restart applies it, the active VM may still report the former 43 GiB / 8 GiB
+values and every request above 4G must fail closed. Every heavy offline
+producer, dataset build, audit, train, selective-edge run or replay must enter through
 `scripts/gx1_capped_run.sh`. That runner is the only capacity authority and
 enforces one heavy job, `MemoryMax/MemoryHigh <= 10G`, swap `<= 512M`, at least
 20G host-available RAM before launch, two CPU-affined cores and one numerical-library

@@ -142,8 +142,8 @@ FLAT; the final epoch predicted 71.4092% SHORT, failed 32 slices, retained
 bad-path/survival AUC 0.478/0.514, six cross-head collapses and near-zero
 specialist/family×TF minimum use. No checkpoint or bundle was written.
 
-The independent full-pipeline audit in
-`PIPELINE_AUDIT_XAU_20260723.md` found two P0s and multiple P1s. Source now
+The independent 2026-07-23 full-pipeline audit found two P0s and multiple P1s.
+Its historical details remain in Git and `DECISION_LOG.md`. Source now
 repairs target/objective semantics,
 no-replacement sampling, conditional auxiliary evidence, exact recipe/M5/MTF
 identity, full-TRAIN normalization, direct 142+5 family ownership,
@@ -191,8 +191,8 @@ overrides the machine-readable launch BLOCK.
 
 Read in this order:
 
-1. `AGENTS.md`
-2. `PIPELINE_AUDIT_XAU_20260723.md`
+1. `GX1_RULES.md`
+2. `AGENTS.md`
 3. `SYSTEM_MAP.md` — read it before grepping for artifact producers or
    feature-column owners; it is the one-truth map of the data DAG.
 4. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
@@ -640,8 +640,10 @@ Never force-push.
 
 ## Host-capacity hard stop
 
-This machine has a 43 GiB RAM envelope. Every heavy offline producer,
-dataset build, audit, train, selective-edge run or replay MUST enter through
+WSL is configured for a 32 GB RAM / 4 GB swap host envelope. Until the next
+WSL restart applies it, the active VM may still report the former 43 GiB /
+8 GiB values and every request above 4G must fail closed. Every heavy offline
+producer, dataset build, audit, train, selective-edge run or replay MUST enter through
 `scripts/gx1_capped_run.sh`. The runner is the only capacity authority and
 enforces: one heavy job, `MemoryMax/MemoryHigh <= 10G`, swap `<= 512M`, at least
 20G host-available RAM before launch, two CPU-affined cores and one numerical-library

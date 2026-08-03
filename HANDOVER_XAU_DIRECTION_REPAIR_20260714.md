@@ -77,11 +77,12 @@ until handover reports the active lower VM cap and the runner prints
 - `selection_registry_is_launch_authority = false`;
 - `active = {}`.
 
-The artifact guard rejects decision loads while this admission is blocked.
-There is no admitted dataset, accepted Entry/Exit bundle, immutable OOS edge
-proof or paper/demo/live authority. The rejected V18 bundle and stale V19/V26
+The artifact guard rejects decision loads while launch admission is blocked.
+There is no launch-admitted dataset, accepted Entry/Exit bundle or immutable
+OOS edge proof. The current V8/V13 dataset remains valid offline evidence for
+the bounded smoke path. The rejected V18 bundle and stale V19/V26
 dataset/audit artifacts were retired and deleted through immutable cleanup
-evidence on 2026-07-29; native source and frozen V4 input cache remain.
+evidence on 2026-07-29.
 `current_smoke_launch_evidence` is now explicitly `null`: the handover no
 longer opens or validates the obsolete 162-value V26 smoke recipe as a current
 takeover dependency. Historical failure chronology remains in the diagnostic
@@ -130,10 +131,12 @@ M5 representation. The M1 feature-base manifest is the single shared owner,
 not a second Exit taxonomy. Both sides bind the same dataset run, split
 boundaries and TRAIN normalization state.
 
-The frozen V4 cache proves input liveness only. It uses schema v2 and ends at
-the last complete 2026-07-24T20:55:00Z M5 bar. Active schema v3 additionally
-requires closed trailing resample buckets, so the cache must be rebuilt before
-new training.
+The current offline MTF manifest is schema v3, binds complete trailing
+resample buckets and has full-input liveness PASS. The launch-state checkpoint
+still carries the older schema-v2 cache as historical BLOCK evidence; it is
+not the cache used by the current V8/V13 smoke recipe. The executable handover
+now validates the recipe, MTF and lifecycle bindings before reporting the
+offline line ready.
 
 ## What is implemented
 
@@ -225,14 +228,14 @@ exists; this is source-contract progress, not replay evidence.
    fail on a missed bar.
 4. Prove movement and ablation across every required family/timeframe route for
    both Entry and Exit outputs.
-5. Train one candidate from the admitted smoke boundary, then run the
-   implemented canonical full-TEST producer against the immutable
-   candidate commit, then prove train==serve and zero-order broker parity.
-6. If the current immutable source/cache line is invalidated, execute two
-   consecutive fresh successor publications through
-   `model-native-live-tail-pair`, publish their short-lived admission through
-   `model-native-live-tail-admission`, and only then consider
-   paper/demo/live launch.
+5. Train one candidate from the admitted smoke boundary, run the implemented
+   canonical full-TEST producer against the immutable candidate commit and
+   prove offline train==serve parity.
+
+Source publication, live-tail, paper, broker, promotion and launch work remain
+outside the frozen offline scope. If the current immutable source/cache line
+is invalidated, stop and establish a new explicit scope/evidence decision
+before replacing it.
 
 ## Permanent engineering rules
 
@@ -254,8 +257,8 @@ exists; this is source-contract progress, not replay evidence.
 
 Read, in order:
 
-1. `AGENTS.md`
-2. `PIPELINE_AUDIT_XAU_20260723.md`
+1. `GX1_RULES.md`
+2. `AGENTS.md`
 3. `SYSTEM_MAP.md`
 4. this handover
 5. `PROJECT_STATE_xau_direction_launch.json`

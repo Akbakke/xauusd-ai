@@ -1,6 +1,6 @@
 # Canonical Exit status
 
-Updated 2026-07-31.
+Updated 2026-08-03.
 
 Status: **BLOCK**. `PROJECT_STATE_artifacts.json` has no active decision
 artifact. The former separate Exit implementation, contracts, registry roles
@@ -39,17 +39,14 @@ The source implementation now provides:
   TradeState path over exact closed-M1 rows.
 
 These are source and regression-test results, not a trained artifact. The
-remaining Exit P0 sequence is:
+current V8/V13 lifecycle already binds immutable native M1 authority and the
+schema-v3 V4/shared-featurebase line. The remaining Exit sequence is:
 
-1. bind lifecycle input to a freshly published native M1 manifest whose raw
-   OANDA responses re-prove literal `complete=true`;
-2. rebuild the schema-v3 V4 cache and combined Entry/lifecycle dataset;
-3. smoke- and candidate-train the integrated model and prove positive loss,
+1. smoke- and candidate-train the integrated model and prove positive loss,
    both classes and component movement from the produced artifact;
-4. prove the implemented exact closed-M1 inference/output path against the
+2. prove the implemented exact closed-M1 inference/output path against the
    trained candidate with train==serve evidence;
-5. execute the implemented candidate-bound full-TEST producer and runtime
-   parity.
+3. execute the implemented candidate-bound full-TEST producer.
 
 Until their immutable OOS and live-like gates pass, Exit cannot authorize
 paper, demo or live operation.
@@ -95,16 +92,15 @@ and the Exit branch so stale publisher evidence cannot disable same-bundle
 
 ## Next implementation sequence
 
-1. Publish fresh immutable native M1/M5 sources and bind lifecycle M1 to the
-   exact native/pair manifest rather than a free parquet path.
-2. Rebuild V4 cache under schema v3 and bind a fresh combined dataset lineage.
-3. Run integrated smoke and candidate training; require both Exit classes,
-   positive validation loss and movement of every Exit component.
-4. Prove the implemented serving envelope and same-bundle adapter against the
+1. After the WSL 32 GB/4 GB cap is active, run the existing V8/V13 integrated
+   smoke; require both Exit classes, positive validation loss and movement of
+   every Exit component.
+2. Train one same-bundle candidate without replacing Exit.
+3. Prove the implemented serving envelope and same-bundle adapter against the
    candidate: exact tensors, logits, hashes and one-bar state transition.
-5. Prove movement and ablation across every required family/timeframe route for
+4. Prove movement and ablation across every required family/timeframe route for
    both Entry and Exit outputs.
-6. Run the canonical full-TEST producer against the immutable candidate commit,
-   then prove train==serve and zero-order broker runtime parity.
-7. Execute and admit two consecutive fresh live-tail successor publications,
-   and only then consider paper/demo/live launch.
+5. Run the canonical full-TEST producer against the immutable candidate commit
+   and prove offline train==serve parity.
+
+Live-tail, broker and launch work are outside the frozen active scope.

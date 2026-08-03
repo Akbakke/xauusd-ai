@@ -27,14 +27,12 @@ AUTHORITY_PATHS = (
     HANDOVER,
     REPO / "PROJECT_STATE.md",
     REPO / "DECISION_LOG.md",
-    REPO / "PIPELINE_AUDIT_XAU_20260723.md",
     REPO / "docs/BACKFILL_2020_2025_COMMANDS.md",
     REPO / "docs/CANONICAL_EXIT_STATUS.md",
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/DATA_OANDA_SCHEMA_SSOT.md",
     REPO / "docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md",
     REPO / "docs/FEATURE_MANIFEST.md",
-    REPO / "docs/FOUNDATION_FEATURE_ROUTING_AUDIT_20260722.md",
     REPO / "docs/GIT_WORKTREE_POLICY.md",
     REPO / "docs/SESSION_CONTEXT_OBSERVABILITY_NOTE.md",
     REPO / "docs/TRAINING_DETERMINISM_MPS.md",
@@ -156,7 +154,14 @@ def test_handover_viewer_prints_current_goal() -> None:
         "timeframes=5 families=8 fields_per_tf=111 routes=40 cells=555"
         in result.stdout
     )
-    assert "v4_cache: BLOCK observed=htf_v4_disk_cache_manifest_v2" in result.stdout
+    assert (
+        "launch_checkpoint_v4_cache: BLOCK "
+        "observed=htf_v4_disk_cache_manifest_v2" in result.stdout
+    )
+    assert (
+        "offline_evidence_contract: V8_V13_VERIFIED "
+        "mtf=htf_v4_disk_cache_manifest_v3" in result.stdout
+    )
     assert (
         "historical_identity="
         "ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a"

@@ -18,7 +18,7 @@ gold/XAUUSD. It emits calibrated Entry `LONG/SHORT/FLAT` and Exit
 malformed or contradictory evidence stops the path; there is no fallback
 model, hand-written live rule, cached decision or synthetic `FLAT`/`HOLD`.
 
-## Current status — 2026-08-02
+## Current status — 2026-08-03
 
 **BLOCKED FOR V4 MODEL, EDGE AND LAUNCH.**
 
@@ -29,12 +29,10 @@ the printed immutable paths and never start a second capped job, direct-run a
 trainer, select a `latest` artifact or enter live/paper/demo/broker/drift
 operation.
 
-The latest empirical model evidence is V21C. It used the older incomplete
-multi-timeframe surface and overfit before it produced a balanced,
-generalizing checkpoint: train loss fell 36% while validation loss doubled;
-the best balanced accuracy was 0.3438 against a 0.3858 majority baseline and
-0.4021 from a plain diagnostic MLP on the same substrate. V21C produced no
-accepted model or launch authority.
+The current six-epoch V8/V13 smoke was interrupted by a machine/WSL restart in
+epoch 3 and produced no completion bundle. An earlier bounded attempt
+collapsed almost entirely to FLAT and failed path/cooperation evidence. No
+current model or edge is accepted.
 
 The rejected V18 trainability bundle and stale V19/V26 dataset/audit artifacts
 were retired from authority and deleted on 2026-07-29. A fresh V8/V13
@@ -54,17 +52,12 @@ The source/input architecture has since advanced to MTF V4:
   age;
 - exact V4 cache, normalization, bundle, runtime and serve-parity contracts.
 
-The measured real-data V4 cache is frozen at
-`/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729`.
-Its identity is
-`ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a`.
-Across all five timeframes, every post-warmup field is finite and variable,
-with zero constant fields and zero exact duplicate pairs.
-
-This remains historical schema-v2 input evidence through
-`2026-07-24T20:55:00Z`. The fresh V8/V13 dataset is separately bound to its
-immutable source, pair manifest, V4 cache and chronological TRAIN/VAL/TEST
-lineage. No trained checkpoint, calibrated bundle, immutable TEST edge or
+The current real-data V4 manifest is
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_MTF_V4/manifest.json`.
+It is schema v3, has full-input liveness PASS and cache identity
+`68568bf9431b1c770876a05e5051eefc252c6eccbf145ca024a9350688ca31b4`.
+The V8/V13 dataset binds this exact cache and chronological TRAIN/VAL/TEST
+lineage. No completed checkpoint, calibrated bundle, immutable TEST edge or
 train==serve influence event exists.
 
 The cleanup retained the native/canonical source and frozen V4 input cache,
@@ -72,16 +65,9 @@ while removing 92 stale target groups plus 500 exact legacy files under
 immutable plan/approval/quarantine evidence. Operational source and data scans
 are clean; only immutable cleanup receipts retain historical deletion terms.
 
-Live is independently blocked: the old canonical incremental daemon interface
-is retired. The existing native owner now implements a parent-CAS successor
-that reuses verified history and fetches only one bounded overlap chunk plus
-the new tail. The pair owner publishes the candidate-bound freshness event
-before moving its serving pointer; two consecutive events form one short-lived
-admission. Launch stores a static pair/root/producer anchor, while every new
-Entry must revalidate the newest admission against the exact pair generation
-used for inference and again immediately before an order. Missing or stale
-evidence blocks only new exposure, not same-bundle Exit recovery. No real
-successor/admission chain is published or launch-bound yet.
+Live, paper, broker, publisher, promotion and drift work are outside the
+frozen scope. Their historical source contracts cannot change the current
+offline resume boundary.
 
 ## Active Entry surface
 
@@ -117,13 +103,9 @@ normalization, temporal position, contextual feature gates, axial attention
 and learned cooperation determine influence. An engineered confluence field
 is evidence only. It cannot vote, veto or choose a direction.
 
-The complete current-tree repository contract passed on 2026-07-31
-(`1962 passed, 2 skipped`; 1,964 collected). These tests prove source
-contracts, not direction edge or retraining. The mutable collector is current
-through complete M1 `2026-07-31T09:34:00Z` without a failure latch, but the
-last immutable native pair remains frozen on 2026-07-24. A fresh pair must be
-published from a clean committed producer identity before schema-v3 cache and
-dataset rebuild.
+Focused repository contracts are green. Test counts prove source behavior,
+not direction edge. The current V8/V13 source/cache/dataset line is already
+immutable and is the only allowed input to the next bounded smoke.
 
 The source runtime now preserves the exact 128-value shared Entry
 representation, builds a hash-bound contiguous closed-M1 path, calls
@@ -189,11 +171,10 @@ scripts/entry_next_edge_control.sh --help
 Read, in order:
 
 1. `AGENTS.md`
-2. `PIPELINE_AUDIT_XAU_20260723.md` as historical audit context only
-3. `SYSTEM_MAP.md`
-4. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
-5. `PROJECT_STATE_xau_direction_launch.json`
-6. relevant code contracts/tests
+2. `SYSTEM_MAP.md`
+3. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
+4. `PROJECT_STATE_xau_direction_launch.json`
+5. relevant code contracts/tests
 
 The compact handover hashes the broader rules, state and documentation set;
 that complete fingerprint inventory is not a second reading order.
@@ -205,26 +186,16 @@ another GX1 heavy process is active.
 
 ## Next admissible work
 
-The next lineage must first publish a fresh immutable generation-local
-native/canonical pair, then rebuild and bind the V4 cache under schema v3 and
-materialize fresh full-input evidence,
-fit a declared capacity/regularization sweep on TRAIN/VAL, train a bounded
-smoke, then train a candidate. Untouched TEST, calibration, ablation,
-train==serve and unified-Exit gates remain closed until those artifacts exist.
-
-Before any paper/live restart, execute two consecutive fresh successor
-publications through the existing snapshot/pair ownership path and publish the
-short-lived admission with exact freshness, lineage and health evidence. The
-implementation exists; no event has been admitted. A watchdog around the
-retired daemon is not a replacement.
+After the next natural WSL restart, verify the configured 32 GB/4 GB VM cap,
+then run the existing V8/V13 smoke under 10 GiB/512 MiB/CPU0–1. Do not rebuild
+the current dataset. A valid smoke may proceed to bundle audit and one
+same-bundle candidate; untouched TEST, calibration, ablation, train==serve and
+unified-Exit replay remain closed until that candidate exists.
 
 The lifecycle materializer/loader, same-bundle `HOLD/EXIT_NOW` head, positive
-trainer loss, component-movement gates and canonical candidate-bound full-TEST
-producer are implemented in source. The producer is exposed only through
-`model-native-sizing-produce-unified-joint-proof` and uses the same adapter,
-TradeState and exact closed-M1 path transform as runtime. These are not trained
-or replayed results. Exit remains blocked until fresh native/pair authority,
-combined training, train==serve, producer execution and runtime parity pass.
-The former separate Exit stack is deleted and may not be rebuilt.
+trainer loss, component-movement gates and candidate-bound full-TEST producer
+are implemented. These are not trained or replayed results. Exit remains
+blocked until combined training, train==serve and producer execution pass. The
+former separate Exit stack is deleted and may not be rebuilt.
 
 Near-perfect practical precision is a target, not a current claim.

@@ -1,83 +1,90 @@
 # GX1 path authority
 
-Updated 2026-07-31.
+Updated 2026-08-03.
 
-Paths are evidence identities, not “latest file” hints. Consumers must receive
-explicit canonical paths and SHA-256 bindings. Directory globs, mtimes,
-lexical-latest selection and inferred sibling filenames have no authority.
+Paths are evidence identities, never “latest file” hints. Consumers receive
+explicit canonical paths plus immutable hashes. Globs, mtimes, lexical version
+selection and inferred siblings have no authority.
 
-## Source repository
+## Repository owners
 
 - repository: `/home/andre2/src/GX1_ENGINE`
 - Python: `/home/andre2/src/GX1_ENGINE/.venv/bin/python`
-- operator control: `/home/andre2/src/GX1_ENGINE/scripts/entry_next_edge_control.sh`
+- control surface: `/home/andre2/src/GX1_ENGINE/scripts/entry_next_edge_control.sh`
 - handover: `/home/andre2/src/GX1_ENGINE/scripts/gx1_handover.sh`
-- launch state:
-  `/home/andre2/src/GX1_ENGINE/PROJECT_STATE_xau_direction_launch.json`
+- launch state: `/home/andre2/src/GX1_ENGINE/PROJECT_STATE_xau_direction_launch.json`
 
-## Current XAU source/input evidence
+## Current offline dataset
 
-- V26 event root:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26`
-- canonical-v3 M5 source:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet`
-- source SHA-256:
-  `eca51c97ac5a1097ff1b2baae5aea8c38ca162466103d5c2f3c1c18d135848ac`
-- frozen historical schema-v2 V4 cache:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729`
-- V4 manifest:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729/manifest.json`
-- cache identity:
-  `ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a`
-- embedded liveness identity:
-  `42b2b9a4af1870796cf9b22c9257550cb004515095e5e4d2fa31fb22fe4a4b18`
+Dataset directory:
 
-The dated cache path is intentional. It proves the code/source lineage used
-for this historical input checkpoint, but active schema v3 rejects it. A fresh
-rebuild event must publish its own
-event-local `MULTI_TF_V4_CACHE`; do not rename or copy this directory into
-authority.
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_DATASET_V8`
 
-## Current dataset evidence
+Exact split hashes:
 
-There is no admitted dataset path. The stale V19/V26 split, audit, smoke
-manifest and rejected trainability-bundle artifacts were retired from launch
-state and deleted through exact cleanup evidence on 2026-07-29. A fresh
-schema-v3 V4 build must publish a new event-local path; no historical path may
-be inferred or reused.
+- TRAIN: `71a652fa18f10d274fb457f34f96bc68fc96625361a29e95021c0733e7d5321b`
+- VAL: `c92ddfb9e053f39e04ef4a79b0850e8a218eea99f529996ad16ca4ab7a461bff`
+- TEST: `6111a9a5aa1d04f975ed8b8eb1f664820ef78b3a671cf89cebfa2c49e1bb9171`
 
-## Model/bundle authority
+Rows are 369,303/5,904/6,071. This is current offline evidence, not a
+launch-admitted dataset or model.
 
-There is no accepted V4 model or bundle path. The former V18 artifact is
-absent; V21C survives only as a documented diagnostic result. Do not create a
-path here until the immutable producer publishes and audits it.
+## Current MTF V4 evidence
 
-## Native/canonical pair
+Manifest:
 
-The accepted 2026-07-24 native M1/M5 roots and frozen pair generation
-`077e5419…` remain source evidence for future unified lifecycle training and
-replay. They are not a current live-tail authority. Resolve their exact paths through
-their immutable manifests and registry bindings; do not copy their pointer
-name into a new artifact.
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_MTF_V4/manifest.json`
 
-## Live-tail authority
+- manifest schema: `htf_v4_disk_cache_manifest_v3`
+- manifest SHA-256: `c01703e7be1e4271aabb91d3d4994355ccd3f97c177d1c22586b10f79e6ede6e`
+- cache identity: `68568bf9431b1c770876a05e5051eefc252c6eccbf145ca024a9350688ca31b4`
+- full-input liveness decision: `PASS`
 
-There is no admitted live-tail event path. The existing snapshot/pair and
-live-tail contract owners can publish exact immutable native schema-v4
-successors, canonical successor/publication events and two-event admission
-artifacts through the public control surface, but no real chain has executed.
-Native successors require exact parent root plus parent `MANIFEST.json`
-SHA-256 and fetch only bounded overlap plus tail. Launch state stores the exact
-admission/event roots, pair pointer/generation root, producer and anchor;
-runtime selects the newest immutable admission and requires exact equality
-with the pair used for Entry inference. The collector does not by itself
-create an advancing canonical pair, and the retired incremental daemon has no
-authority. Do not invent a `latest` path; record exact event paths and SHA-256
-only after their owners publish them.
+The old V26 schema-v2 cache is historical launch-checkpoint evidence only. It
+must not replace or invalidate this current offline schema-v3 binding.
+
+## Current shared Entry/Exit evidence
+
+Shared M1 featurebase:
+
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_M1_FEATURE_BASE_FINAL_V4_ALIGNED.parquet`
+
+Unified Exit lifecycle manifest:
+
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_EXIT_LIFECYCLE_V13/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json`
+
+- manifest SHA-256: `db00fa2318ff31e49f2b43c694db6f7cac586713d50b2b233e7f07533d38a05b`
+- decision: `PASS`
+- Entry: M5, 96 bars
+- Exit: M1, 480 bars
+- shared ordered signal width: 513
+- shared specialist families: 8
+
+## Current smoke recipe
+
+Recipe audit:
+
+`/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V15_20260803T144245Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T144212558258Z.json`
+
+- SHA-256: `424f5d8cdf584c4fbc3c41ff445665e00035c8df95e8d9e5d038455e1e07ca8d`
+- decision: `PASS`
+- source commit: `0cabdf266e451c7b7549f0ea6eb64a8bdb7424ff`
+- output bundle path: absent, as required before execution
+
+The executable handover revalidates this recipe through the existing
+train-launch contract, including current source bindings and immutable
+artifact stat/hash identities. A path existing by itself is not enough.
+
+## Model authority
+
+There is no accepted model or bundle path. The launch registry remains
+`BLOCK`, and historical model names or directories cannot be selected as a
+fallback.
 
 ## Cleanup
 
-Large-data cleanup must use
-`gx1/scripts/cleanup_gx1_evidence_v1.py` with an immutable plan, separate
-approval, quarantine validation and terminal evidence. Never delete a parent
-directory by exclusion pattern.
+Large-data cleanup has one owner:
+`gx1/scripts/cleanup_gx1_evidence_v1.py`. It requires an immutable exact-target
+plan, separate approval, quarantine verification and terminal evidence.
+Never delete a parent directory by exclusion pattern or direct recursive
+command.

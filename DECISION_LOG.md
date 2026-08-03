@@ -6,6 +6,37 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-08-03 — interrupted smoke is invalid; host and handover fail closed
+
+The first six-epoch V8/V13 CPU smoke reached epoch 3 and was interrupted by a
+machine/WSL restart. It published neither a completion bundle nor terminal
+checkpoint-admission evidence. The partial run cannot be resumed and carries
+no trainability, edge or launch authority. The previous boot retained no
+kernel OOM, panic or thermal record, so the exact restart trigger is unproven.
+
+The active WSL VM still reports about 43 GiB RAM and 8 GiB swap, while the
+user configuration is now 32 GB and 4 GB. The capped runner therefore rejects
+model/dataset requests above 4 GiB until a WSL restart makes the active totals
+match the configured host cap. Heavy jobs remain limited to one process,
+10 GiB job RAM, 512 MiB job swap, CPU 0–1 and one numerical thread.
+
+The operational handover previously reported the current V8/V13 offline line
+after checking only path existence. It now reuses the canonical train-launch
+validator to prove the V15 recipe, current source bindings, V8 split artifact
+identities, schema-v3 MTF cache and V13 Exit lifecycle contract before
+printing `V8_V13_VERIFIED`. Large parquet content hashes remain immutable
+manifest bindings and are checked by exact file identity rather than rehashing
+43 GiB on every takeover. The older schema-v2 cache remains explicitly labeled
+as a historical launch checkpoint, not the current offline cache.
+
+Decision:
+
+- start no new heavy work before the lower WSL host cap is active;
+- rerun the exact bounded V8/V13 smoke after that proof, never the partial;
+- keep launch and edge status `BLOCK`;
+- operative Markdown points only to the current smoke boundary; older
+  chronology remains here and cannot choose a route.
+
 ## 2026-08-02 — V7/V12 rebuild fails closed at the host-safe job ceiling
 
 Run12 preflight for the fresh V7/V12 output paths passed all 30 checks with
@@ -77,7 +108,7 @@ passed at 0.024166, proving that one healthy aggregate gate cannot substitute
 for full cooperation and directional evidence.
 
 Three independent read-only audits then reviewed the complete data, model and
-runtime pipeline. `PIPELINE_AUDIT_XAU_20260723.md` is the detailed record.
+runtime pipeline. Their detailed historical snapshot remains available in Git.
 Two findings are P0:
 
 1. the selected-side `y_bad_path` probability penalty always suppresses LONG,

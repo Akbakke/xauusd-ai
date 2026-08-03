@@ -5,7 +5,7 @@ Entry M5, Exit M1, no live operation and no drift/adaptation. Do not spend
 work on live-tail, launcher, daemon, polling, promotion or online-update
 routes. Use exact cache reuse and overlap/hash-verified tail append.
 
-Updated 2026-08-02.
+Updated 2026-08-03.
 
 ## Current takeover boundary
 
@@ -25,11 +25,10 @@ the historical sections below or from a directory listing.
 
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python`.
 
-Use the canonical takeover order: `AGENTS.md`,
-`PIPELINE_AUDIT_XAU_20260723.md` as historical audit context, `SYSTEM_MAP.md`,
-the handover, then `PROJECT_STATE_xau_direction_launch.json`. Read only the
-relevant code contracts/tests afterward. Preserve unrelated dirty-worktree
-changes.
+Use the canonical takeover order: `GX1_RULES.md`, `AGENTS.md`,
+`SYSTEM_MAP.md`, the handover, then
+`PROJECT_STATE_xau_direction_launch.json`. Historical chronology belongs in
+`DECISION_LOG.md`. Read only the relevant code contracts/tests afterward.
 
 ## Work pattern
 
@@ -59,11 +58,11 @@ V2/V3 loaders exist for immutable historical research artifacts only. Active
 Entry code must import the generic loader and require V4 identity. Do not
 restore the old `GX1_V10_MULTI_TF_V2_CACHE_DIR` environment name.
 
-The frozen measured cache is
-`.../v26_6yr_rebuild_20260725_seq513_model_native_v26/MULTI_TF_V4_CACHE_20260729`.
-It is schema-v2 historical input proof, not a trainable recipe or edge result.
-Active schema v3 requires closed trailing buckets and therefore needs a fresh
-event-local rebuild.
+The current cache is
+`.../CANONICAL_V3_BASE28_OFFLINE_20260801_MTF_V4/manifest.json`.
+It is schema v3, binds closed trailing buckets and has full-input liveness
+PASS. The old V26 schema-v2 cache is historical launch-checkpoint evidence and
+cannot replace the current offline binding.
 
 ## Value and decision rules
 
@@ -113,11 +112,10 @@ Do not run a dataset rebuild, trainer, large replay or live launcher merely as
 a test. Real jobs require immutable prerequisites, explicit event identity,
 capped RAM/swap and the host-wide heavy-job lock.
 
-The next real job must publish fresh immutable native M1/M5 authority, rebuild
-the schema-v3 V4 cache and create a fresh bound combined Entry/lifecycle
-dataset/audit lineage, then run a declared TRAIN/VAL capacity sweep, smoke and
-candidate. The existing dataset/model/trainer owners now contain the
-same-bundle causal Exit lifecycle head and positive loss, but no trained
+The next real job is the existing V8/V13 bounded smoke after the lower WSL cap
+is active. Do not republish source or rebuild the current cache/dataset without
+new invalidating evidence. The dataset/model/trainer owners contain the
+same-bundle causal Exit lifecycle head and positive loss, but no completed
 artifact proves them. TEST remains untouched until candidate evaluation.
 
 The fresh V8/V13 dataset and Exit-lifecycle evidence are current offline
@@ -140,9 +138,10 @@ exact targets, immutable plan, separate approval and terminal evidence.
 ## Handover lifecycle
 
 `scripts/gx1_handover.sh --check` binds all authority documents and launch
-state. With no admitted dataset, `current_smoke_launch_evidence` must be null;
-the takeover path does not read a historical recipe. The compact handover
-reports the dirty/clean source gate, exact resume stage and public route order.
+state. Launch has no admitted dataset, so `current_smoke_launch_evidence`
+remains null there; separately, the handover revalidates the current offline
+V8/V13 recipe and artifacts through the train-launch contract. The compact
+handover reports the exact resume stage and route order.
 It also emits a deterministic `worktree_fingerprint` over HEAD, the complete
 tracked diff and every untracked file byte; changed-path count alone is never
 source identity. A future current recipe must bind the then-admitted dataset
