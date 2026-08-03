@@ -148,6 +148,12 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))" in source
     assert "active WSL MemTotal exceeds configured memory cap" in source
     assert "capped_run_scope_verified" in source
+    assert 'verified_cpu_affinity="$GX1_CPU_AFFINITY"' in source
+    assert (
+        "unset GX1_EXPECTED_MEMORY_BYTES GX1_EXPECTED_SWAP_BYTES "
+        "GX1_EXPECTED_TASKS GX1_CPU_AFFINITY"
+    ) in source
+    assert '/usr/bin/taskset -c "$verified_cpu_affinity"' in source
     assert "/usr/bin/taskset -c" in source
     assert "--setenv=OMP_NUM_THREADS=1" in source
 
