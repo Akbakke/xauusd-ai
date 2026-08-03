@@ -10,7 +10,7 @@ GX1_DATA_ROOT=/home/andre2/GX1_DATA/data/data/prebuilt
 CURRENT_DATASET_DIR="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_DATASET_V8"
 CURRENT_EXIT_LIFECYCLE="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_EXIT_LIFECYCLE_V13/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
 CURRENT_MTF_MANIFEST="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_MTF_V4/manifest.json"
-CURRENT_RECIPE_AUDIT="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V15_20260803T144245Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T144212558258Z.json"
+CURRENT_RECIPE_AUDIT="$GX1_DATA_ROOT/CANONICAL_V3_BASE28_OFFLINE_20260801_FINAL_TRAIN_RECIPE_AUDIT_V16_20260803T175141Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260803T175204892622Z.json"
 CURRENT_SMOKE_BUNDLE_DIR="$GX1_DATA_ROOT/v10_entry_model_native_seq513_smoke_XAU_SEQ513_OFFLINE_20260801_V3_20260803T085638Z"
 
 usage() {
@@ -439,8 +439,8 @@ echo "full_view_command: bash $REPO/scripts/gx1_handover.sh --verbose"
 echo
 echo "## Goal"
 echo "Build the GX1 trading bot for gold/XAUUSD as one immutable learned bundle"
-echo "that selects one unique LONG/SHORT/FLAT Entry and HOLD/EXIT_NOW Exit argmax"
-echo "and learned size through one shared encoder."
+echo "that selects LONG/SHORT/FLAT direction through one unique Entry argmax,"
+echo "HOLD/EXIT_NOW Exit argmax and learned size through one shared encoder."
 echo "An exact top-logit tie is unavailable evidence and fails closed, never by array order."
 echo "No fallback, live hand-rule, stale artifact authority or soft pass-through exists;"
 echo "there is no competing decision path. Entry and Exit train together in one candidate."
@@ -721,7 +721,7 @@ else
   echo "source_identity_gate: BLOCK_DIRTY_WORKTREE"
 fi
 echo "ordered_control_routes:"
-echo "  1. require wsl_vm_cap != PENDING_RESTART and revalidate exact V15 recipe"
+echo "  1. require wsl_vm_cap != PENDING_RESTART and revalidate exact V16 recipe"
 echo "  2. model-native-smoke-train -> model-native-smoke-bundle-audit"
 echo "  3. model-native-candidate-readiness -> model-native-candidate-train"
 echo "  4. model-native-selective-edge -> candidate-bound replay/evidence"

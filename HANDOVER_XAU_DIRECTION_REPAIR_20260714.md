@@ -69,9 +69,11 @@ This proves the host/Hyper-V failure class, not that training caused it. The
 run published no completion bundle or checkpoint-admission failure event, so
 all partial output is invalid. The safety authority is now `10G` job memory,
 `512M` job swap, two CPU-affined cores and a `20G` available-RAM launch floor.
-WSL is configured for a `32GB` VM and `4GB` swap; that setting applies at the
-next WSL restart. Do not start another heavy run until handover reports the
-active lower VM cap and the runner prints `[capped_run_scope_verified]`.
+The post-restart WSL VM now reports about `31GiB` RAM and exactly `4GiB` swap,
+consistent with the configured `32GB`/`4GB` envelope. A real `10G`/`512M`
+no-op scope passed. Every heavy run must still print
+`[capped_run_scope_verified]`; the active cap is not permission to bypass the
+single-job lock or any lower producer limit.
 
 `PROJECT_STATE_artifacts.json` has:
 
@@ -98,6 +100,14 @@ references. Its terminal `DELETE_COMPLETE` event is
 with SHA-256
 `f0e96fe751de8bcc25730d1a5bfa8939e2632a94d8523203d8ca52d932b9d99d`.
 Do not search for, restore or rebuild those retired leaves.
+
+The first post-restart smoke launch then stopped before data loading: the
+runner's already-verified internal cgroup variables reached the trainer and
+were correctly rejected as ambient controls. It produced no batch or output.
+Commit `667d704b` removes only those four internal variables after scope proof,
+23 focused tests pass, and immutable recipe V16 now binds the repaired runner.
+V15 is historical only; the executable handover admits only V16 with SHA-256
+`ca47e71ca5acf1d60682819a13d35300f74cc91dbfb72868b4db17a0de33f66d`.
 
 The former tree-based decision provider and the separate V3/Exit-IQL/
 Strategy-F chain are permanently retired. Their source packages, runtime

@@ -642,9 +642,9 @@ Never force-push.
 
 ## Host-capacity hard stop
 
-WSL is configured for a 32 GB RAM / 4 GB swap host envelope. Until the next
-WSL restart applies it, the active VM may still report the former 43 GiB /
-8 GiB values and every request above 4G must fail closed. Every heavy offline
+WSL is configured for a 32 GB RAM / 4 GB swap host envelope. The active
+post-restart VM now reports about 31 GiB / 4 GiB and a real 10G/512M scope has
+passed. Every heavy offline
 producer, dataset build, audit, train, selective-edge run or replay MUST enter through
 `scripts/gx1_capped_run.sh`. The runner is the only capacity authority and
 enforces: one heavy job, `MemoryMax/MemoryHigh <= 10G`, swap `<= 512M`, at least

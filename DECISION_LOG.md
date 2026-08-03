@@ -3002,3 +3002,23 @@ Exit lifecycle, V4 MTF cache, 13 source bindings, 479 selected features,
 command. No training or output bundle was started. The active WSL VM still
 reports about 43 GiB RAM/8 GiB swap, so the real smoke remains fail-closed
 until a full WSL restart applies 32 GB/4 GB. Launch remains `BLOCK`.
+
+## 2026-08-03 — WSL cap active; runner proof environment isolated
+
+After the full WSL restart, the VM reported about 31 GiB RAM and exactly 4 GiB
+swap. A real 10 GiB/512 MiB scope verified its cgroup limits with roughly
+29 GiB host-available memory and no competing heavy GX1 job.
+
+The first exact V8/V13 smoke launch stopped before data loading because the
+capacity runner's four internal `GX1_*` proof variables reached the trainer's
+ambient-control guard. No batch or output was produced. Commit `667d704b`
+preserves the scope checks, copies the verified CPU affinity to a shell-local
+value and unsets only the four internal proof variables before target exec.
+A real scope leak check and 23 focused runner/trainer tests pass.
+
+Because the capped runner is recipe-bound, V15 was not reused. Fresh immutable
+recipe V16 passed against commit `667d704b`, the unchanged V8/V13/V4 artifacts
+and the repaired runner. Its SHA-256 is
+`ca47e71ca5acf1d60682819a13d35300f74cc91dbfb72868b4db17a0de33f66d`.
+It started no training and carries no edge or launch authority. Launch remains
+`BLOCK` pending a terminal smoke result.

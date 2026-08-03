@@ -40,35 +40,34 @@ These are data, wiring and recipe contracts. They do not prove model edge.
 The first six-epoch V8/V13 smoke was interrupted in epoch 3 by a Windows
 `HYPERVISOR_ERROR (0x20001)` bugcheck. It produced no completion bundle and
 cannot be resumed; the bugcheck does not prove that training caused it. The
-active WSL VM still reports roughly 43 GiB RAM and 8 GiB swap although
-`.wslconfig` is set to 32 GB and 4 GB. The capped runner therefore rejects
-heavy jobs until the next WSL restart applies the lower host limit.
+post-restart WSL VM now matches the configured 32 GB/4 GB envelope and a real
+10 GiB/512 MiB scope passes. The first post-restart launch stopped before data
+loading on a runner/trainer environment-contract collision, produced no
+output, and was repaired in `667d704b`. Immutable recipe V16 binds that fix.
 
 Launch and model status remain `BLOCK`: no completed smoke bundle, candidate,
 calibration, untouched-TEST edge, train==serve proof or accepted replay exists.
 
 ## Next execution sequence
 
-1. After the next natural WSL restart, prove active VM memory/swap are at the
-   configured 32 GB/4 GB limits.
-2. Re-run the existing V8/V13 six-epoch smoke through the single control
+1. Re-run the existing V8/V13 six-epoch smoke through the single control
    surface under 10 GiB/512 MiB/CPU0–1. Do not rebuild the current dataset.
-3. Require a terminal immutable result. A missing bundle, cap kill, class
+2. Require a terminal immutable result. A missing bundle, cap kill, class
    collapse or failed component-movement contract remains hard red.
-4. If smoke produces a contract-valid trainability bundle, run the existing
+3. If smoke produces a contract-valid trainability bundle, run the existing
    smoke-bundle audit. Smoke still carries zero edge authority.
-5. Train one candidate with the same shared encoder and both heads. Preserve
+4. Train one candidate with the same shared encoder and both heads. Preserve
    TEST untouched and never retrain or swap Exit afterward.
-6. Fit calibration only on its declared non-TEST split.
-7. Evaluate untouched TEST for direction, balanced accuracy, abstention
+5. Fit calibration only on its declared non-TEST split.
+6. Evaluate untouched TEST for direction, balanced accuracy, abstention
    coverage, LONG/BOTTOM and SHORT/TOP alignment, costs, path quality,
    utility and supported slices.
-8. Prove train==serve and raw/calibrated margin movement for all eight
+7. Prove train==serve and raw/calibrated margin movement for all eight
    specialists, five timeframes, 40 family×timeframe routes, 26 fusion groups,
    1,723 numeric routes and five categorical routes for both decisions.
-9. Execute the candidate-bound full-TEST Entry/Exit replay from exact T+5
+8. Execute the candidate-bound full-TEST Entry/Exit replay from exact T+5
    Entry fills through actual model `EXIT_NOW`.
-10. Admit nothing unless every current byte-bound contract passes. Otherwise
+9. Admit nothing unless every current byte-bound contract passes. Otherwise
     remain `BLOCK` with terminal evidence.
 
 ## Permanent no-go conditions

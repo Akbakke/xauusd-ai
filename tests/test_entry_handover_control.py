@@ -143,10 +143,10 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_dir: /home/andre2/GX1_DATA/data/data/prebuilt/" in result.stdout
     assert "current_smoke_execution:" in result.stdout
     assert "current_smoke_bundle: NOT_PRODUCED" in result.stdout
-    assert "dataset_contract: CURRENT_OFFLINE_V8_V13_READY_NOT_LAUNCH_ADMITTED" in result.stdout
+    assert "dataset_contract: CURRENT_OFFLINE_V8_V13_VERIFIED_NOT_LAUNCH_ADMITTED" in result.stdout
     assert (
-        "resume_stage: CURRENT_V8_V13_SMOKE_OR_CANDIDATE_REVIEW" in result.stdout
-        or "resume_stage: VERIFY_CURRENT_SOURCE_BEFORE_FRESH_PUBLICATION"
+        "resume_stage: READY_FOR_EXACT_V8_V13_SMOKE" in result.stdout
+        or "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_SMOKE"
         in result.stdout
     )
     assert (
@@ -169,9 +169,10 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert "active_seq513_chain" in result.stdout
     assert "## Resume boundary" in result.stdout
-    assert "source_publication_contract: IMPLEMENTED_NOT_EXECUTED_OR_ADMITTED" in result.stdout
+    assert "source_contract: CURRENT_COMMITTED_TREE_REQUIRED" in result.stdout
     assert "resume_owner: scripts/entry_next_edge_control.sh" in result.stdout
-    assert "model-native-mtf-v4-cache" in result.stdout
+    assert "model-native-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
+    assert "data_rebuild_route: FORBIDDEN_UNLESS_CURRENT_V8_V13_VALIDATION_FAILS" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert "## Required evidence before Entry can open" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000

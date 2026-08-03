@@ -192,9 +192,9 @@ another GX1 heavy process is active.
 
 ## Next admissible work
 
-After the next natural WSL restart, verify the configured 32 GB/4 GB VM cap,
-then run the existing V8/V13 smoke under 10 GiB/512 MiB/CPU0–1. Do not rebuild
-the current dataset. A valid smoke may proceed to bundle audit and one
+The configured 32 GB/4 GB WSL envelope and a real 10 GiB/512 MiB cgroup are
+now verified. Run the existing V8/V13 smoke under 10 GiB/512 MiB/CPU0–1. Do
+not rebuild the current dataset. A valid smoke may proceed to bundle audit and one
 same-bundle candidate; untouched TEST, calibration, ablation, train==serve and
 unified-Exit replay remain closed until that candidate exists.
 

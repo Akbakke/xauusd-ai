@@ -25,14 +25,16 @@ train-launch contract before it reports them ready:
 - V13 unified Exit lifecycle PASS;
 - Entry M5 sequence 96 and Exit M1 sequence 480, with identical feature
   ownership, split boundaries and TRAIN normalization;
-- immutable V15 smoke-recipe audit PASS.
+- immutable V16 smoke-recipe audit PASS.
 
 The recipe is CPU-only: batch 8, six epochs, patience 3, 512 sampled TRAIN
 rows, zero workers, two MTF layers, one specialist layer and explicit windows
 `M5=16,M15=64,H1=96,H4=96,D1=252`. It is a trainability recipe, not an edge
-claim. On 2026-08-03 the exact V15 launch arguments and all immutable bindings
-passed the public `model-native-smoke-train --dry-run` route inside a 1 GiB
-outer cgroup. No training or model output was started.
+claim. On 2026-08-03 the exact V16 audit passed after binding commit
+`667d704b`, the isolated capacity-runner proof environment and all unchanged
+V8/V13/V4 artifacts. Its SHA-256 is
+`ca47e71ca5acf1d60682819a13d35300f74cc91dbfb72868b4db17a0de33f66d`.
+No training or model output was started by the audit.
 
 Exact paths and hashes are printed by `scripts/gx1_handover.sh`; they must not
 be rediscovered by glob, mtime, version sorting or a `latest` pointer.
@@ -50,6 +52,14 @@ collapsed almost entirely to FLAT, auxiliary path skill remained near chance
 and specialist/family cooperation gates were below contract. No best state or
 bundle was admitted. These results diagnose trainability; they prove no
 trading edge.
+
+After the 32 GB/4 GB WSL cap became active, the first exact smoke launch
+stopped before data loading because the capacity runner's four internal proof
+variables collided with the trainer's ambient-control rejection. No batch or
+output was produced. Commit `667d704b` keeps the cgroup proof unchanged but
+unsets those internal values before entering the target process; 23 focused
+runner/trainer tests and a real cgroup environment check pass. V15 is now
+historical only; V16 is the sole current recipe authority.
 
 ## Code-proven architecture
 
@@ -98,23 +108,21 @@ Every heavy producer, trainer, audit or replay must use
 - at least 20 GiB host-available RAM before launch;
 - verified cgroup limits and a host-wide nonblocking lock.
 
-WSL is configured for 32 GB RAM and 4 GB swap, but the active VM still reports
-about 43 GiB/8 GiB. Any model/dataset request above 4 GiB is therefore rejected
-until a WSL restart applies the configured host cap. The handover reports
-`wsl_vm_cap: PENDING_RESTART` and the 10 GiB runner exits 75. This guard must
-not be bypassed or weakened.
+The active post-restart WSL VM reports about 31 GiB RAM and exactly 4 GiB swap,
+matching the configured 32 GB/4 GB envelope within kernel accounting. A real
+10 GiB/512 MiB no-op scope proved `memory.max`, `memory.high`,
+`memory.swap.max` and `pids.max`. The guard must not be bypassed or weakened.
 
 ## Remaining blockers, in order
 
-1. Apply and verify the 32 GB/4 GB WSL cap after the next natural restart.
-2. Complete one bounded V8/V13 smoke and publish a terminal immutable result.
-3. Audit any produced smoke bundle for class/head/gate/Exit liveness and
+1. Complete one bounded V8/V13 smoke and publish a terminal immutable result.
+2. Audit any produced smoke bundle for class/head/gate/Exit liveness and
    component movement.
-4. Train one same-bundle candidate without touching TEST or replacing Exit.
-5. Prove untouched-TEST direction, abstention, top/bottom alignment,
+3. Train one same-bundle candidate without touching TEST or replacing Exit.
+4. Prove untouched-TEST direction, abstention, top/bottom alignment,
    path/utility, costs and supported slices.
-6. Prove train==serve and influence for all required model routes.
-7. Execute the exact candidate-bound full-TEST Entry/Exit replay.
+5. Prove train==serve and influence for all required model routes.
+6. Execute the exact candidate-bound full-TEST Entry/Exit replay.
 
 No acceptance threshold is changed merely to make a run pass. The active
 scope ends at offline train/OOS/replay; live, paper, broker, publisher,
