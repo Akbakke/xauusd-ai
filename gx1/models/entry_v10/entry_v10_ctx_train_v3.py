@@ -11145,6 +11145,7 @@ def run_train(
     best_epoch = -1
     epochs_since_improve = 0
     last_epoch = 0
+    last_val_stats: Dict[str, Any] = {}
     early_stopped = False
     hard_red_stopped = False
     _ckpt_monitor = ENTRY_CKPT_MONITOR
@@ -11233,6 +11234,7 @@ def run_train(
             hier_trade_pos_weight=hier_trade_pos_weight,
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
         )
+        last_val_stats = dict(val_stats or {})
         last_direction_slice_stats = _direction_slice_stats_snapshot(val_stats)
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
@@ -11631,7 +11633,71 @@ def run_train(
             )
             break
 
-    _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
+    if best_state is None:
+        intended_out_bundle_dir = _resolve_train_out_bundle_dir(
+            out_bundle_dir,
+            gx1_data_override,
+        )
+        evidence_path = _write_direction_slice_failure_evidence(
+            intended_out_bundle_dir,
+            {
+                "schema_version": "entry_checkpoint_admission_failure_evidence_v1",
+                "created_at_utc": _utc_now(),
+                "decision": "FAIL_NO_ADMISSIBLE_CHECKPOINT",
+                "failure_code": "TRAIN_FAIL_NO_BEST_STATE",
+                "reason": (
+                    "No validation checkpoint satisfied the profile admission "
+                    "contract; no model bundle was written."
+                ),
+                "profile": str(profile),
+                "run_id": str(run_id or ""),
+                "git_commit": _git_commit(),
+                "intended_out_bundle_dir": str(intended_out_bundle_dir),
+                "train_data": str(train_parquet),
+                "val_data": str(val_parquet),
+                "train_data_sha256": _sha256_file(Path(train_parquet)),
+                "val_data_sha256": _sha256_file(Path(val_parquet)),
+                "best_epoch": int(best_epoch),
+                "last_epoch": int(last_epoch),
+                "epochs": int(epochs),
+                "early_stopped": bool(early_stopped),
+                "hard_red_stopped": bool(hard_red_stopped),
+                "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
+                "best_dir_ckpt_score": (
+                    float(best_dir_ckpt_score)
+                    if np.isfinite(best_dir_ckpt_score)
+                    else None
+                ),
+                "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+                "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
+                "last_direction_slice_stats": last_direction_slice_stats,
+                "last_validation": last_val_stats,
+                "trainer_cli": {
+                    "seed": int(seed),
+                    "device": str(device),
+                    "batch_size": int(batch_size),
+                    "epochs": int(epochs),
+                    "lr": float(lr),
+                    "seq_len": int(seq_len),
+                    "early_stopping_patience": int(early_stopping_patience),
+                    "early_stopping_min_delta": float(early_stopping_min_delta),
+                    "subsample_rows": int(subsample_rows),
+                    "multi_tf_num_layers": int(multi_tf_num_layers),
+                    "specialist_num_layers": int(specialist_num_layers),
+                    "multi_tf_scale": float(multi_tf_scale),
+                    "specialist_fusion_scale": float(specialist_fusion_scale),
+                    "cross_family_fusion_scale": float(cross_family_fusion_scale),
+                    "grad_accum_steps": int(grad_accum_steps),
+                },
+                "trainer_env": dict(MODEL_NATIVE_RECIPE_ENV),
+            },
+        )
+        log.error("[ENTRY_CHECKPOINT_ADMISSION_FAILURE_EVIDENCE] path=%s", evidence_path)
+        raise RuntimeError(
+            "[TRAIN_FAIL_NO_BEST_STATE] no validation checkpoint satisfied "
+            "profile admission; failure evidence was written and bundle creation "
+            "is refused"
+        )
     model_native_learned_component_movement = (
         _model_native_evidence_fusion_movement_proof(
             evidence_fusion_initial_state,
