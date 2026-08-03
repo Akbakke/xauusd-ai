@@ -12,7 +12,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -45,6 +45,18 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _canonical_sha256(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 def _read_manifest(path: Path) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise RuntimeError("M1_FEATURE_PROVIDER_MANIFEST_PATH_INVALID")
@@ -65,6 +77,7 @@ class _SurfaceBinding:
     manifest_sha256: str
     dataset_run_id: str
     pair_generation_id: str
+    feature_field_order_sha256: str
 
 
 class M1SharedFeatureSurfaceProvider:
@@ -118,6 +131,10 @@ class M1SharedFeatureSurfaceProvider:
         manifest_path: Path,
         dataset_run_id: str,
         pair_generation_id: str,
+        parquet_sha256: str,
+        manifest_sha256: str,
+        feature_field_order: Sequence[str],
+        feature_field_order_sha256: str,
     ) -> "M1SharedFeatureSurfaceProvider":
         parquet = Path(parquet_path).expanduser().resolve()
         manifest = Path(manifest_path).expanduser().resolve()
@@ -135,6 +152,16 @@ class M1SharedFeatureSurfaceProvider:
 
         feature_sha = _sha256_file(parquet)
         manifest_sha = _sha256_file(manifest)
+        ordered_fields = list(feature_field_order)
+        ordered_fields_sha = _canonical_sha256(ordered_fields)
+        if (
+            feature_sha != parquet_sha256
+            or manifest_sha != manifest_sha256
+            or len(ordered_fields) != MODEL_NATIVE_SIGNAL_DIM
+            or len(set(ordered_fields)) != MODEL_NATIVE_SIGNAL_DIM
+            or ordered_fields_sha != feature_field_order_sha256
+        ):
+            raise RuntimeError("M1_FEATURE_PROVIDER_TRAINING_BINDING_INVALID")
         payload = _read_manifest(manifest)
         if (
             payload.get("schema_version") != ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
@@ -146,6 +173,9 @@ class M1SharedFeatureSurfaceProvider:
             or payload.get("signal_dim") != MODEL_NATIVE_SIGNAL_DIM
             or payload.get("ctx_cont_dim") != MODEL_NATIVE_CTX_CONT_DIM
             or payload.get("ctx_cat_dim") != MODEL_NATIVE_CTX_CAT_DIM
+            or payload.get("feature_field_order") != ordered_fields
+            or payload.get("feature_field_order_sha256")
+            != ordered_fields_sha
         ):
             raise RuntimeError("M1_FEATURE_PROVIDER_MANIFEST_BINDING_INVALID")
         require_entry_exit_shared_feature_base_contract(
@@ -160,6 +190,7 @@ class M1SharedFeatureSurfaceProvider:
                 manifest_sha256=manifest_sha,
                 dataset_run_id=dataset_run_id,
                 pair_generation_id=pair_generation_id,
+                feature_field_order_sha256=ordered_fields_sha,
             )
         )
 
@@ -194,21 +225,23 @@ class M1SharedFeatureSurfaceProvider:
         if snapshot_pair_id != self._binding.pair_generation_id:
             raise RuntimeError("M1_FEATURE_PROVIDER_PAIR_GENERATION_MISMATCH")
 
-        end = int(np.searchsorted(self._times_ns, timestamp.value, side="left"))
+        # The decision is made after the bar labelled ``timestamp`` has
+        # closed. Training includes that same current row in both the 480-row
+        # sequence and snapshot, so serving must end immediately after it.
+        end = int(np.searchsorted(self._times_ns, timestamp.value, side="right"))
         start = end - EXIT_FEATURE_SEQUENCE_BARS
         if (
-            end >= len(self._times_ns)
-            or self._times_ns[end] != timestamp.value
+            end <= 0
+            or self._times_ns[end - 1] != timestamp.value
             or start < 0
         ):
             raise RuntimeError("M1_FEATURE_PROVIDER_CAUSAL_WINDOW_UNAVAILABLE")
         selected_times = self._times_ns[start:end]
-        expected_step = int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
         if (
             len(selected_times) != EXIT_FEATURE_SEQUENCE_BARS
-            or np.any(np.diff(selected_times) != expected_step)
+            or np.any(np.diff(selected_times) <= 0)
         ):
-            raise RuntimeError("M1_FEATURE_PROVIDER_CADENCE_GAP")
+            raise RuntimeError("M1_FEATURE_PROVIDER_ROW_CLOCK_INVALID")
 
         first_group = int(
             np.searchsorted(self._row_group_offsets, start, side="right") - 1

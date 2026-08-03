@@ -4,7 +4,6 @@ import ast
 import json
 from pathlib import Path
 
-import pytest
 import torch
 
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
@@ -2755,6 +2754,18 @@ def test_entry_v10_standalone_eval_matches_training_objective() -> None:
     assert '"hierarchical_loss_metrics_included": False' not in text
 
 
+def test_entry_v10_has_one_deterministic_low_memory_execution_path() -> None:
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "gx1.utils.fast_train" not in source
+    assert "GX1_FAST_TRAIN" not in source
+    assert 'parser.add_argument("--fast"' not in source
+    assert "torch.compile" not in source
+    assert "torch.autocast" not in source
+    assert "num_workers must equal 0" in source
+    assert "torch.use_deterministic_algorithms(True)" in source
+
+
 def test_entry_v10_grad_accum_cli_drives_steps_and_rescales_final_remainder(
     monkeypatch,
 ) -> None:
@@ -2768,29 +2779,21 @@ def test_entry_v10_grad_accum_cli_drives_steps_and_rescales_final_remainder(
         model.weight.fill_(1.0)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     model.weight.grad = torch.tensor([[0.5]])
-    scheduler_steps: list[int] = []
-
-    class _Scheduler:
-        def step(self) -> None:
-            scheduler_steps.append(1)
 
     monkeypatch.setattr(trainer, "_GRAD_CLIP_NORM", 1_000.0)
     assert trainer._step_partial_gradient_accumulation(
         model=model,
         optimizer=optimizer,
-        scheduler=_Scheduler(),
         configured_steps=4,
         observed_steps=2,
     )
     assert float(model.weight.detach().item()) == pytest.approx(0.9)
     assert model.weight.grad is None
-    assert scheduler_steps == [1]
 
     with pytest.raises(RuntimeError, match="GRAD_ACCUM_REMAINDER_INVALID"):
         trainer._step_partial_gradient_accumulation(
             model=model,
             optimizer=optimizer,
-            scheduler=None,
             configured_steps=4,
             observed_steps=4,
         )

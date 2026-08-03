@@ -22,6 +22,7 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     CLASS_ORDER,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    EXIT_FEATURE_ROW_CLOCK,
     entry_exit_shared_feature_base_contract,
 )
 
@@ -58,7 +59,7 @@ MODEL_DIRECTION_TRADE_INDICES = (
 )
 PUBLIC_TRADE_INDEX = 0
 PUBLIC_FLAT_INDEX = 1
-UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION = "gx1_unified_entry_exit_v1"
+UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION = "gx1_unified_entry_exit_v2"
 UNIFIED_EXIT_LOGITS_KEY = "exit_action_logits"
 UNIFIED_EXIT_PROBS_KEY = "exit_action_probs"
 UNIFIED_EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
@@ -68,7 +69,7 @@ UNIFIED_EXIT_MODEL_REPRESENTATION_KEY = "shared_feature_representation"
 UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM = 128
 UNIFIED_EXIT_PATH_TENSOR_SCHEMA_VERSION = "gx1_unified_exit_path_tensor_v1"
 UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION = (
-    "gx1_unified_exit_closed_m1_path_envelope_v1"
+    "gx1_unified_exit_closed_m1_path_envelope_v2"
 )
 UNIFIED_EXIT_MAX_PATH_BARS = 512
 UNIFIED_EXIT_PATH_ENCODER_LAYERS = 2
@@ -374,10 +375,8 @@ def require_unified_exit_path_envelope(
                 f"{context} closed M1 source identity changed within path"
             )
         current_time = pd.Timestamp(canonical["time"])
-        if previous_time is not None and current_time != previous_time + pd.Timedelta(
-            minutes=1
-        ):
-            raise RuntimeError(f"{context} closed M1 path cadence mismatch")
+        if previous_time is not None and current_time <= previous_time:
+            raise RuntimeError(f"{context} closed M1 path row clock mismatch")
         previous_time = current_time
         canonical_rows.append(canonical)
     if (
@@ -452,10 +451,8 @@ def unified_exit_path_tensor(
         elif current_identity != source_identity:
             raise ValueError("closed M1 path source identity changed within prefix")
         current_time = pd.Timestamp(canonical["time"])
-        if previous_time is not None and current_time != previous_time + pd.Timedelta(
-            minutes=1
-        ):
-            raise ValueError("closed M1 path cadence gap/duplicate")
+        if previous_time is not None and current_time <= previous_time:
+            raise ValueError("closed M1 path row clock duplicate/reversal")
         previous_time = current_time
         canonical_rows.append(canonical)
 
@@ -661,6 +658,7 @@ def unified_entry_exit_contract_metadata() -> dict[str, Any]:
         "exit_action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "exit_decision": "argmax(exit_action_logits)",
         "exit_requires_exact_closed_m1_path": True,
+        "exit_path_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "exit_path_schema_version": CLOSED_M1_PATH_SCHEMA_VERSION,
         "exit_path_ordered_fields": list(CLOSED_M1_PATH_FIELDS),
         "exit_path_price_source": "literal_oanda_mid_bid_ask_ohlcv",

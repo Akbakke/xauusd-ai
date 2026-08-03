@@ -65,6 +65,9 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     require_bundle_commit_manifest,
 )
+from gx1.contracts.entry_model_native_calibration_v1 import (
+    require_model_native_calibration_metadata,
+)
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     require_unified_exit_lifecycle_authority_evidence,
@@ -261,6 +264,7 @@ def _require_exact_model_native_bundle_metadata(
         "multi_tf",
         "tf_input_scale",
         "run_lineage",
+        "m1_feature_surface_binding",
     )
     missing_meta = [key for key in shared_exact if key not in meta]
     missing_lock = [key for key in shared_exact if key not in lock]
@@ -746,9 +750,13 @@ def _require_exact_model_native_bundle_metadata(
         "schema_version",
         "training_run_id",
         "dataset_run_id",
+        "training_profile",
+        "requested_subsample_rows",
+        "physical_train_rows",
+        "effective_train_rows",
     }:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_FIELDS_INVALID]")
-    if run_lineage.get("schema_version") != "entry_model_native_training_run_lineage_v1":
+    if run_lineage.get("schema_version") != "entry_model_native_training_run_lineage_v2":
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_SCHEMA_INVALID]")
     try:
         training_run_id = require_entry_run_id(run_lineage.get("training_run_id"))
@@ -759,8 +767,85 @@ def _require_exact_model_native_bundle_metadata(
         ) from exc
     if training_run_id == dataset_run_id:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_ROLES_COLLAPSED]")
+    training_profile = run_lineage.get("training_profile")
+    requested_subsample_rows = run_lineage.get("requested_subsample_rows")
+    physical_train_rows = run_lineage.get("physical_train_rows")
+    effective_train_rows = run_lineage.get("effective_train_rows")
+    if (
+        training_profile not in {"smoke", "candidate"}
+        or isinstance(requested_subsample_rows, bool)
+        or not isinstance(requested_subsample_rows, int)
+        or requested_subsample_rows < 0
+        or isinstance(physical_train_rows, bool)
+        or not isinstance(physical_train_rows, int)
+        or physical_train_rows <= 0
+        or isinstance(effective_train_rows, bool)
+        or not isinstance(effective_train_rows, int)
+        or not 0 < effective_train_rows <= physical_train_rows
+        or (
+            training_profile == "candidate"
+            and (
+                requested_subsample_rows != 0
+                or effective_train_rows != physical_train_rows
+            )
+        )
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_TRAINING_POPULATION_LINEAGE_INVALID]"
+        )
     if state_contract.get("entry_run_id") != dataset_run_id:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DATASET_RUN_LINEAGE_MISMATCH]")
+    m1_binding = _require_mapping_field(
+        meta,
+        "m1_feature_surface_binding",
+        context="meta",
+    )
+    if set(m1_binding) != {
+        "parquet_path",
+        "manifest_path",
+        "dataset_run_id",
+        "pair_generation_id",
+        "parquet_sha256",
+        "manifest_sha256",
+        "feature_field_order_sha256",
+    }:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_M1_FEATURE_BINDING_FIELDS_INVALID]"
+        )
+    ordered_signal_sha256 = hashlib.sha256(
+        json.dumps(
+            meta["ordered_signal_names"],
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    m1_hashes = (
+        m1_binding.get("parquet_sha256"),
+        m1_binding.get("manifest_sha256"),
+        m1_binding.get("feature_field_order_sha256"),
+    )
+    if (
+        m1_binding.get("dataset_run_id") != dataset_run_id
+        or not isinstance(m1_binding.get("pair_generation_id"), str)
+        or not m1_binding.get("pair_generation_id")
+        or any(
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+            for value in m1_hashes
+        )
+        or m1_binding.get("feature_field_order_sha256")
+        != ordered_signal_sha256
+        or any(
+            not Path(str(m1_binding.get(key) or "")).is_absolute()
+            for key in ("parquet_path", "manifest_path")
+        )
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_M1_FEATURE_BINDING_INVALID]"
+        )
     specialist = _require_mapping_field(meta, "specialist_fusion", context="meta")
     if specialist.get("enabled") is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_FUSION_REQUIRED]")
@@ -851,47 +936,18 @@ def _require_exact_model_native_bundle_metadata(
 
     direction_calibration = meta.get("direction_calibration")
     if direction_calibration is not None:
-        if not isinstance(direction_calibration, Mapping):
-            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_INVALID]")
-        missing = [
-            key
-            for key in ("enabled", "version", "temperature", "bias")
-            if key not in direction_calibration
-        ]
-        if missing or direction_calibration["enabled"] is not True:
-            raise RuntimeError(
-                "[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_INCOMPLETE] "
-                f"missing={missing}"
-            )
-        bias = direction_calibration["bias"]
-        if not isinstance(bias, list) or len(bias) != 3:
-            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_BIAS_INVALID]")
-        values = [float(direction_calibration["temperature"]), *(float(value) for value in bias)]
-        if not bool(torch.isfinite(torch.tensor(values, dtype=torch.float64)).all().item()) or values[0] <= 0.0:
-            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_NONFINITE]")
+        require_model_native_calibration_metadata(
+            direction_calibration,
+            head="direction",
+            context="ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION",
+        )
     path_calibration = meta.get("path_calibration")
     if path_calibration is not None:
-        if not isinstance(path_calibration, Mapping):
-            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_INVALID]")
-        required_path_cal = (
-            "enabled",
-            "version",
-            "path_quality_scale",
-            "path_quality_shift",
-            "bad_path_temperature",
-            "bad_path_bias",
+        require_model_native_calibration_metadata(
+            path_calibration,
+            head="path",
+            context="ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION",
         )
-        missing = [key for key in required_path_cal if key not in path_calibration]
-        if missing or path_calibration["enabled"] is not True:
-            raise RuntimeError(
-                "[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_INCOMPLETE] "
-                f"missing={missing}"
-            )
-        values = [float(path_calibration[key]) for key in required_path_cal[2:]]
-        if not bool(torch.isfinite(torch.tensor(values, dtype=torch.float64)).all().item()):
-            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_NONFINITE]")
-        if values[0] <= 0.0 or values[2] <= 0.0:
-            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_SCALE_INVALID]")
 
 
 def _require_model_native_state_head_contract(

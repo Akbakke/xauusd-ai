@@ -330,9 +330,26 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         "tf_input_scale": tf_scale_contract,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
         "run_lineage": {
-            "schema_version": "entry_model_native_training_run_lineage_v1",
+            "schema_version": "entry_model_native_training_run_lineage_v2",
             "training_run_id": "MODEL_NATIVE_TRAINING_PYTEST_V1",
             "dataset_run_id": "MODEL_NATIVE_DATASET_PYTEST_V1",
+            "training_profile": "candidate",
+            "requested_subsample_rows": 0,
+            "physical_train_rows": 100,
+            "effective_train_rows": 100,
+        },
+        "m1_feature_surface_binding": {
+            "parquet_path": "/immutable/m1_feature_base.parquet",
+            "manifest_path": (
+                "/immutable/m1_feature_base.parquet.manifest.json"
+            ),
+            "dataset_run_id": "MODEL_NATIVE_DATASET_PYTEST_V1",
+            "pair_generation_id": "MODEL_NATIVE_PAIR_PYTEST_V1",
+            "parquet_sha256": "1" * 64,
+            "manifest_sha256": "2" * 64,
+            "feature_field_order_sha256": canonical_json_sha256(
+                list(signal_contract["fields"])
+            ),
         },
         "unified_entry_exit_contract": unified_contract,
         "unified_exit_training_evidence": unified_exit_training_evidence,

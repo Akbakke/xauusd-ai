@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -31,14 +32,41 @@ from gx1.time.session_detector import (
 )
 
 
+FEATURE_FIELD_ORDER = [
+    f"signal_field_{index}"
+    for index in range(MODEL_NATIVE_SIGNAL_DIM)
+]
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _artifact(tmp_path: Path) -> tuple[Path, Path, str, str]:
+def _canonical_sha256(value: object) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _artifact(
+    tmp_path: Path,
+    *,
+    market_gap: bool = False,
+) -> tuple[Path, Path, str, str]:
     rows = EXIT_FEATURE_SEQUENCE_BARS + 1
     start = pd.Timestamp("2026-01-01T00:00:00Z")
     times = pd.date_range(start, periods=rows, freq="min")
+    if market_gap:
+        times = times.where(
+            np.arange(rows) < 240,
+            times + pd.Timedelta(days=2),
+        )
     signal = np.arange(rows * MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32).reshape(
         rows, MODEL_NATIVE_SIGNAL_DIM
     )
@@ -71,6 +99,10 @@ def _artifact(tmp_path: Path) -> tuple[Path, Path, str, str]:
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "feature_field_order": FEATURE_FIELD_ORDER,
+        "feature_field_order_sha256": _canonical_sha256(
+            FEATURE_FIELD_ORDER
+        ),
     }
     manifest_path = tmp_path / "m1_feature_base.parquet.manifest.json"
     manifest_path.write_text(
@@ -87,6 +119,10 @@ def test_provider_reads_exact_causal_m1_window(tmp_path: Path) -> None:
         manifest_path=manifest,
         dataset_run_id=run_id,
         pair_generation_id=pair_id,
+        parquet_sha256=_sha256(parquet),
+        manifest_sha256=_sha256(manifest),
+        feature_field_order=FEATURE_FIELD_ORDER,
+        feature_field_order_sha256=_canonical_sha256(FEATURE_FIELD_ORDER),
     )
     decision_time = pd.Timestamp("2026-01-01T08:00:00Z")
     value = provider(
@@ -103,10 +139,38 @@ def test_provider_reads_exact_causal_m1_window(tmp_path: Path) -> None:
         value["ctx_cont"],
         np.full(
             MODEL_NATIVE_CTX_CONT_DIM,
-            EXIT_FEATURE_SEQUENCE_BARS - 1,
+            EXIT_FEATURE_SEQUENCE_BARS,
             dtype=np.float32,
         ),
     )
+
+
+def test_provider_uses_observed_rows_across_proven_market_gap(
+    tmp_path: Path,
+) -> None:
+    parquet, manifest, run_id, pair_id = _artifact(
+        tmp_path,
+        market_gap=True,
+    )
+    provider = M1SharedFeatureSurfaceProvider.from_admitted_artifact(
+        parquet_path=parquet,
+        manifest_path=manifest,
+        dataset_run_id=run_id,
+        pair_generation_id=pair_id,
+        parquet_sha256=_sha256(parquet),
+        manifest_sha256=_sha256(manifest),
+        feature_field_order=FEATURE_FIELD_ORDER,
+        feature_field_order_sha256=_canonical_sha256(FEATURE_FIELD_ORDER),
+    )
+    decision_time = pd.read_parquet(parquet, columns=["time"])["time"].iloc[-1]
+
+    value = provider(
+        decision_time=pd.Timestamp(decision_time),
+        prebuilt_snapshot=SimpleNamespace(pair_generation_id=pair_id),
+    )
+
+    assert value["signal"].shape[0] == EXIT_FEATURE_SEQUENCE_BARS
+    assert np.array_equal(value["signal"][-1], value["snap"])
 
 
 def test_provider_rejects_pair_mismatch(tmp_path: Path) -> None:
@@ -116,6 +180,10 @@ def test_provider_rejects_pair_mismatch(tmp_path: Path) -> None:
         manifest_path=manifest,
         dataset_run_id=run_id,
         pair_generation_id=pair_id,
+        parquet_sha256=_sha256(parquet),
+        manifest_sha256=_sha256(manifest),
+        feature_field_order=FEATURE_FIELD_ORDER,
+        feature_field_order_sha256=_canonical_sha256(FEATURE_FIELD_ORDER),
     )
     with pytest.raises(RuntimeError, match="PAIR_GENERATION_MISMATCH"):
         provider(

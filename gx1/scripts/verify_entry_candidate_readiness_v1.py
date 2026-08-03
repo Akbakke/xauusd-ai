@@ -22,7 +22,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
-    SCHEMA_VERSION as SMOKE_AUDIT_SCHEMA,
     require_smoke_bundle_audit_contract,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (

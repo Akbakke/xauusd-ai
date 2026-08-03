@@ -1621,8 +1621,15 @@ def derive_canonical_sizing_oos_rows(
 
     tape = SourceTape.load(Path(tape_binding["path"]))
     decision_indices = tape.indices_for_times(times)
-    fill_times = times + pd.Timedelta(minutes=5)
-    fill_indices = tape.indices_for_times(fill_times)
+    resolved_horizons = [
+        tape.label_horizon_indices(
+            decision_time=pd.Timestamp(timestamp),
+            horizon_m5_bars=int(horizon),
+        )
+        for timestamp, horizon in zip(times, horizons_int, strict=True)
+    ]
+    fill_indices = np.asarray([row[0] for row in resolved_horizons], dtype=np.int64)
+    exit_indices = np.asarray([row[1] for row in resolved_horizons], dtype=np.int64)
     policy = sizing_oos_reference_account_policy_metadata()
     row_scenario = policy["scenarios"][policy["canonical_row_scenario"]]
     instrument = calibration["instrument_constraints"]
@@ -1633,10 +1640,7 @@ def derive_canonical_sizing_oos_rows(
         direction = int(directions[index])
         decision_idx = int(decision_indices[index])
         fill_idx = int(fill_indices[index])
-        horizon = int(horizons_int[index])
-        exit_idx = fill_idx + horizon
-        if exit_idx >= len(tape.times):
-            _fail(context, f"source tape lacks TEST exit path for row {index}")
+        exit_idx = int(exit_indices[index])
         decision_utc = pd.Timestamp(timestamp).isoformat()
         mark_price = float(
             (tape.bid_close[decision_idx] + tape.ask_close[decision_idx]) / 2.0

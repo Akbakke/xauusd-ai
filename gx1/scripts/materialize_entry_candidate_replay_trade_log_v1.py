@@ -586,9 +586,6 @@ def _run_exact_label_horizon_replay(
     policy_id: str,
     policy_config_hash: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    decision_times = pd.to_datetime(eval_df["time"], utc=True)
-    fill_times = decision_times + pd.Timedelta(minutes=5)
-    source_idx = tape.indices_for_times(fill_times)
     probabilities = eval_df[["p_long", "p_short", "p_flat"]].astype(float).to_numpy(np.float64)
     scores = pd.to_numeric(eval_df[score_column], errors="coerce").to_numpy(np.float64)
     sides = pd.to_numeric(eval_df["trade_side"], errors="coerce").to_numpy(np.int64)
@@ -649,7 +646,6 @@ def _run_exact_label_horizon_replay(
         side = int(sides[index])
         if side == SIDE_FLAT:
             continue
-        start_src_idx = int(source_idx[index])
         decision_time = pd.Timestamp(row.time)
         raw_horizon = float(row.label_horizon_bars)
         if not np.isfinite(raw_horizon) or raw_horizon <= 0.0 or not raw_horizon.is_integer():
@@ -659,9 +655,9 @@ def _run_exact_label_horizon_replay(
             )
         horizon_bars = int(raw_horizon)
         try:
-            sim = tape.simulate_trade(
-                start_idx=start_src_idx,
-                horizon_bars=horizon_bars,
+            sim = tape.simulate_label_horizon_trade(
+                decision_time=decision_time,
+                horizon_m5_bars=horizon_bars,
                 side=side,
             )
         except RuntimeError as exc:
@@ -722,6 +718,7 @@ def _run_exact_label_horizon_replay(
             "mfe_bps": float(sim["mfe_bps"]),
             "mae_bps": float(sim["mae_bps"]),
             "horizon_bars": horizon_bars,
+            "horizon_timeframe": "M5",
             "held_bars": int(sim["held_bars"]),
             "exit_reason": str(sim["exit_reason"]),
         }

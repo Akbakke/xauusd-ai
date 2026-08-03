@@ -37,10 +37,17 @@ from gx1.models.entry_v10.entry_v10_bundle import (
     _require_model_native_state_head_contract,
 )
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
-    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
     publish_bundle_directory_noreplace,
     require_bundle_commit_manifest,
     write_bundle_commit_manifest,
+)
+from gx1.contracts.entry_model_native_calibration_v1 import (
+    CALIBRATION_EVENT_PREFIX,
+    CALIBRATION_FIT_SPLITS,
+    DIRECTION_CALIBRATION_VERSION,
+    IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
+    PATH_CALIBRATION_VERSION,
+    require_model_native_calibration_metadata,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     CLASS_ORDER,
@@ -51,17 +58,14 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_immutable_calibration_v2"
-DIRECTION_CALIBRATION_VERSION = "entry_model_native_direction_calibration_v1"
-PATH_CALIBRATION_VERSION = "entry_model_native_path_calibration_v1"
+SCHEMA_VERSION = IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION
 CLASS_COLUMNS = ("p_long", "p_short", "p_flat")
-HELD_OUT_SPLITS = ("val", "calibration")
+HELD_OUT_SPLITS = CALIBRATION_FIT_SPLITS
 BUNDLE_REQUIRED_FILES = (
     "MASTER_TRANSFORMER_LOCK.json",
     "bundle_metadata.json",
     "model_state_dict.pt",
 )
-CALIBRATION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_CALIBRATION_"
 _TIMESTAMPED_DIR_RE = re.compile(
     r"[A-Za-z0-9][A-Za-z0-9._-]*_(?P<stamp>\d{8}T\d{12}Z)"
 )
@@ -221,8 +225,8 @@ def _bundle_artifact_hashes(bundle_dir: Path) -> dict[str, str]:
 
 def _validate_source_bundle(
     source_bundle_dir: Path,
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
-    require_bundle_commit_manifest(source_bundle_dir)
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, str], dict[str, Any]]:
+    source_commit = require_bundle_commit_manifest(source_bundle_dir)
     required = {name: source_bundle_dir / name for name in BUNDLE_REQUIRED_FILES}
     for name, path in required.items():
         _require_plain_file(path, label=name)
@@ -245,7 +249,7 @@ def _validate_source_bundle(
     _require_model_native_state_head_contract(metadata, state_dict)
     _require_model_native_learned_component_liveness(state_dict)
     artifact_hashes = _bundle_artifact_hashes(source_bundle_dir)
-    return metadata, lock, artifact_hashes
+    return metadata, lock, artifact_hashes, source_commit
 
 
 def _numeric_column(frame: pd.DataFrame, name: str) -> np.ndarray:
@@ -587,8 +591,14 @@ def _copy_bundle_to_stage(
     *,
     source_bundle_dir: Path,
     stage_dir: Path,
+    source_commit: Mapping[str, Any],
 ) -> None:
-    for name in ("MASTER_TRANSFORMER_LOCK.json", "model_state_dict.pt"):
+    # Preserve earlier calibration events.  They are active lineage, not stale
+    # run debris: a path-calibrated bundle must retain the direction event it
+    # was derived from.
+    for name in source_commit["artifact_names"]:
+        if name == "bundle_metadata.json":
+            continue
         _copy_file_fsync(source_bundle_dir / name, stage_dir / name)
 
 
@@ -600,6 +610,7 @@ def _publish_bundle(
     source_metadata: Mapping[str, Any],
     source_lock: Mapping[str, Any],
     source_hashes: Mapping[str, str],
+    source_commit: Mapping[str, Any],
     calibration_key: str,
     calibration: Mapping[str, Any],
     metrics: Mapping[str, Any],
@@ -626,6 +637,7 @@ def _publish_bundle(
         _copy_bundle_to_stage(
             source_bundle_dir=source_bundle_dir,
             stage_dir=stage_dir,
+            source_commit=source_commit,
         )
         output_metadata = copy.deepcopy(dict(source_metadata))
         output_metadata[calibration_key] = dict(calibration)
@@ -683,6 +695,7 @@ def _publish_bundle(
                 "path": str(source_bundle_dir),
                 "artifact_sha256": dict(source_hashes),
                 "artifact_set_sha256": _canonical_json_sha256(source_hashes),
+                "bundle_commit_sha256": source_commit["commit_sha256"],
             },
             "output_bundle": {
                 "path": str(out_bundle_dir),
@@ -716,9 +729,12 @@ def _publish_bundle(
         if event["output_bundle"]["training_objective_unchanged"] is not True:
             raise RuntimeError("derived bundle training-objective identity proof failed")
         _write_json_fsync(stage_dir / event_name, event)
+        output_artifact_names = tuple(
+            sorted({*source_commit["artifact_names"], event_name})
+        )
         write_bundle_commit_manifest(
             bundle_dir=stage_dir,
-            artifact_names=(*BUNDLE_COMMIT_CORE_ARTIFACTS, event_name),
+            artifact_names=output_artifact_names,
             bundle_kind="calibrated",
             created_at_utc=str(provenance["fitted_at_utc"]),
         )
@@ -769,7 +785,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if mutable := _mutable_alias_tokens(dataset_dir):
         raise RuntimeError(f"dataset dir contains mutable alias tokens: {mutable}")
 
-    source_metadata, source_lock, source_hashes = (
+    source_metadata, source_lock, source_hashes, source_commit = (
         _validate_source_bundle(source_bundle_dir)
     )
     calibration_key = f"{args.heads}_calibration"
@@ -890,6 +906,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "prediction_report_sha256": provenance["prediction_report_sha256"],
         }
     )
+    require_model_native_calibration_metadata(
+        calibration,
+        head=str(args.heads),
+        context="CALIBRATION_PRODUCER_OUTPUT",
+    )
     preview = {
         "decision": "DRY_RUN_PASS" if args.dry_run else "PASS",
         "source_bundle_dir": str(source_bundle_dir),
@@ -910,6 +931,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         source_metadata=source_metadata,
         source_lock=source_lock,
         source_hashes=source_hashes,
+        source_commit=source_commit,
         calibration_key=calibration_key,
         calibration=calibration,
         metrics=metrics,

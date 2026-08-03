@@ -220,6 +220,38 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
     assert torch.isfinite(out["family_tf_feature_gate"]).all()
 
 
+def test_context_inputs_materially_change_direction_logits() -> None:
+    torch.manual_seed(1337)
+    model = _make_model(dropout=0.0).eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=1)
+    changed_ctx_cat = torch.stack(
+        [
+            (ctx_cat[:, index] + 1) % len(domain)
+            for index, domain in enumerate(EXACT_CTX_CAT_DOMAINS.values())
+        ],
+        dim=1,
+    )
+    changed_ctx_cont = torch.zeros_like(ctx_cont)
+
+    with torch.no_grad():
+        baseline = model(
+            seq_x,
+            snap_x,
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            **mtf,
+        )["direction_logits"]
+        changed = model(
+            seq_x,
+            snap_x,
+            ctx_cat=changed_ctx_cat,
+            ctx_cont=changed_ctx_cont,
+            **mtf,
+        )["direction_logits"]
+
+    assert torch.max(torch.abs(baseline - changed)).item() > 1e-6
+
+
 def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> None:
     model = _make_model().train()
     out = _forward(model, batch_size=2)

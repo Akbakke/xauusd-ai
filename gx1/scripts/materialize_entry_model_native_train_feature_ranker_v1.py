@@ -257,72 +257,34 @@ ATTACH_WORKERS = 8
 
 def _load_ranker_common_history_m5(
     *,
-    event_root: Path,
     train_end: pd.Timestamp,
-    source_parquet: Path | None = None,
-    source_cascade: dict[str, Any] | None = None,
+    source_parquet: Path,
+    source_cascade: dict[str, Any],
 ) -> pd.DataFrame:
     """Load the exact canonical M5 history used by the dataset Group-A path."""
-    root = Path(event_root).expanduser().resolve()
     if (
-        isinstance(source_cascade, dict)
-        and str(source_cascade.get("schema_version"))
-        == "seq513_source_cascade_pair_proof_v1"
+        not isinstance(source_cascade, dict)
+        or str(source_cascade.get("schema_version"))
+        != "seq513_source_cascade_pair_proof_v1"
     ):
-        if source_parquet is None:
-            raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_HISTORY_MISSING")
-        current = pd.read_parquet(
-            Path(source_parquet).expanduser().resolve(),
-            columns=["time", "open", "high", "low", "close"],
-        )
-        current["time"] = pd.to_datetime(current["time"], utc=True, errors="raise")
-        current = current.loc[
-            (current["time"] >= pd.Timestamp("2020-01-01T00:00:00Z"))
-            & (current["time"] <= train_end)
-        ]
-        out = current.set_index("time").sort_index()
-        if (
-            out.empty
-            or not out.index.is_unique
-            or not out.index.is_monotonic_increasing
-            or out.index.max() > train_end
-        ):
-            raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_HISTORY_INVALID")
-        return out
-    native = root / "m5_tape_native_v3"
-    repaired = root / "m5_tape_repaired_dec2024"
-    available = [
-        path
-        for path in (native, repaired)
-        if path.is_dir() and not path.is_symlink()
+        raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_CASCADE_REQUIRED")
+    current = pd.read_parquet(
+        Path(source_parquet).expanduser().resolve(),
+        columns=["time", "open", "high", "low", "close"],
+    )
+    current["time"] = pd.to_datetime(current["time"], utc=True, errors="raise")
+    current = current.loc[
+        (current["time"] >= pd.Timestamp("2020-01-01T00:00:00Z"))
+        & (current["time"] <= train_end)
     ]
-    if len(available) != 1:
-        raise RuntimeError(
-            "FEATURE_RANKER_COMMON_HISTORY_TAPE_IDENTITY_INVALID: "
-            f"observed={[str(path) for path in available]}"
-        )
-
-    # Import the dataset's loader instead of growing a second parquet/timestamp
-    # implementation. The 2020 anchor is the same common-history boundary used
-    # by build_dataset_canonical for Group-A/volatility context.
-    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-        _load_canonical_tape,
-    )
-
-    history = _load_canonical_tape(
-        tape_root=available[0],
-        t_min=pd.Timestamp("2020-01-01T00:00:00Z"),
-        t_max=pd.Timestamp(train_end),
-        required_cols=["open", "high", "low", "close"],
-    )
-    out = history.set_index("time")[["open", "high", "low", "close"]].sort_index()
+    out = current.set_index("time")[["open", "high", "low", "close"]].sort_index()
     if (
         out.empty
         or not out.index.is_unique
         or not out.index.is_monotonic_increasing
         or out.index.max() > pd.Timestamp(train_end)
     ):
-        raise RuntimeError("FEATURE_RANKER_COMMON_HISTORY_INVALID")
+        raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_HISTORY_INVALID")
     return out
 
 
@@ -809,7 +771,6 @@ def main() -> None:
 
     if matrix is None:
         common_history_m5 = _load_ranker_common_history_m5(
-            event_root=Path(str(source_cascade["event_root"])),
             train_end=train_end,
             source_parquet=source_parquet,
             source_cascade=source_cascade,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -100,7 +101,9 @@ from tests.model_native_input_normalization_support import (
 
 SOURCE_STAMP = "20260716T100000123456Z"
 PREDICTION_STAMP = "20260716T110000123456Z"
+SECOND_PREDICTION_STAMP = "20260716T123000123456Z"
 OUTPUT_STAMP = "20260716T120000123456Z"
+SECOND_OUTPUT_STAMP = "20260716T130000123456Z"
 
 
 def _write_json(path: Path, value: dict) -> None:
@@ -318,9 +321,26 @@ def _source_bundle(
         "tf_input_scale": tf_scale_contract,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
         "run_lineage": {
-            "schema_version": "entry_model_native_training_run_lineage_v1",
+            "schema_version": "entry_model_native_training_run_lineage_v2",
             "training_run_id": "MODEL_NATIVE_CALIBRATION_TRAIN_PYTEST_V1",
             "dataset_run_id": "MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
+            "training_profile": "candidate",
+            "requested_subsample_rows": 0,
+            "physical_train_rows": 100,
+            "effective_train_rows": 100,
+        },
+        "m1_feature_surface_binding": {
+            "parquet_path": "/immutable/calibration_m1_feature_base.parquet",
+            "manifest_path": (
+                "/immutable/calibration_m1_feature_base.parquet.manifest.json"
+            ),
+            "dataset_run_id": "MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
+            "pair_generation_id": "MODEL_NATIVE_CALIBRATION_PAIR_PYTEST_V1",
+            "parquet_sha256": "1" * 64,
+            "manifest_sha256": "2" * 64,
+            "feature_field_order_sha256": canonical_json_sha256(
+                list(signal_contract["fields"])
+            ),
         },
         "unified_entry_exit_contract": unified_entry_exit_contract_metadata(),
         "unified_exit_training_evidence": unified_exit_training_evidence,
@@ -434,12 +454,19 @@ def _prediction_frame(rows: int = 120) -> pd.DataFrame:
     )
 
 
-def _prediction_event(tmp_path: Path, bundle: Path) -> dict[str, Path]:
+def _prediction_event(
+    tmp_path: Path,
+    bundle: Path,
+    *,
+    stamp: str = PREDICTION_STAMP,
+) -> dict[str, Path]:
     dataset = tmp_path / "entry_model_native_dataset"
-    reports = tmp_path / "prediction_events"
-    dataset.mkdir()
+    reports = tmp_path / (
+        "prediction_events" if stamp == PREDICTION_STAMP else f"prediction_events_{stamp}"
+    )
+    dataset.mkdir(exist_ok=True)
     reports.mkdir()
-    predictions = reports / f"selective_edge_predictions_{PREDICTION_STAMP}.parquet"
+    predictions = reports / f"selective_edge_predictions_{stamp}.parquet"
     _prediction_frame().to_parquet(predictions, index=False)
     metadata = json.loads((bundle / "bundle_metadata.json").read_text(encoding="utf-8"))
     evidence = build_prediction_evidence_declaration(
@@ -448,10 +475,12 @@ def _prediction_event(tmp_path: Path, bundle: Path) -> dict[str, Path]:
         bundle_metadata=metadata,
         requested_splits=["val"],
     )
-    report_path = reports / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{PREDICTION_STAMP}.json"
+    report_path = reports / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{stamp}.json"
     report = {
         "schema_version": "entry_candidate_selective_edge_v1",
-        "created_utc": "2026-07-16T11:00:00.123456+00:00",
+        "created_utc": datetime.strptime(stamp, "%Y%m%dT%H%M%S%fZ")
+        .replace(tzinfo=timezone.utc)
+        .isoformat(),
         "decision": "PASS",
         "failures": [],
         "bundle_dir": str(bundle),
@@ -600,6 +629,47 @@ def test_path_execute_uses_the_same_immutable_contract(tmp_path: Path) -> None:
         "long_short_union"
     )
     assert evidence["metrics"]["bad_path_support_rows"] == 120
+
+
+def test_sequential_direction_and_path_calibration_retain_both_events(
+    tmp_path: Path,
+) -> None:
+    source = _source_bundle(tmp_path)
+    event = _prediction_event(tmp_path, source)
+    direction_bundle = tmp_path / f"entry_model_native_calibrated_{OUTPUT_STAMP}"
+    final_bundle = tmp_path / (
+        f"entry_model_native_calibrated_{SECOND_OUTPUT_STAMP}"
+    )
+
+    assert calibration.main(_args(source, event, direction_bundle)) == 0
+    path_event = _prediction_event(
+        tmp_path,
+        direction_bundle,
+        stamp=SECOND_PREDICTION_STAMP,
+    )
+    assert calibration.main(
+        _args(direction_bundle, path_event, final_bundle, head="path")
+    ) == 0
+
+    metadata = json.loads(
+        (final_bundle / "bundle_metadata.json").read_text(encoding="utf-8")
+    )
+    commit = json.loads(
+        (
+            final_bundle / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json"
+        ).read_text(encoding="utf-8")
+    )
+    event_names = sorted(
+        name
+        for name in commit["artifact_names"]
+        if name.startswith(calibration.CALIBRATION_EVENT_PREFIX)
+    )
+    assert event_names == [
+        f"{calibration.CALIBRATION_EVENT_PREFIX}{OUTPUT_STAMP}.json",
+        f"{calibration.CALIBRATION_EVENT_PREFIX}{SECOND_OUTPUT_STAMP}.json",
+    ]
+    assert metadata["direction_calibration"]["fitted_on_split"] == "val"
+    assert metadata["path_calibration"]["fitted_on_split"] == "val"
 
 
 def test_path_fit_is_invariant_to_rows_outside_training_support() -> None:

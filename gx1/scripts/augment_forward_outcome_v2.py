@@ -41,12 +41,6 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES_LOWER,
     validate_causal_feature_matrix,
 )
-# Round-number proximity: import the ONE-TRUTH compute (group_a_features) — no duplicated math.
-from gx1.features.group_a_features import (
-    round_number_levels as _round_number_levels, ROUND_FEATURE_NAMES as _ROUND_FEATURE_NAMES,
-)
-_AUG_ROUND_ON = os.environ.get("GX1_ROUND_NUMBER", "0") == "1"
-
 TF_NAMES = MULTI_TF_TIMEFRAMES
 _GROUP_A_MTF_SOURCE_FEATURES = tuple(
     "vwap_local_cycle_dist_atr"
@@ -175,20 +169,6 @@ PORTFOLIO_FEATURE_NAMES = (
     "short_win_rate_last10", "short_mean_pnl_last10",
     "short_n_consec_losses", "short_time_since_last_close_min",
 )
-if _AUG_ROUND_ON:  # +5 ONLY under GX1_ROUND_NUMBER → default-OFF keeps the Group-A name set byte-identical;
-    # the zero-fill (augment_candidate m5_idx<0), new_cols dict (augment_week), and attach_group_a copy-set all
-    # iterate GROUP_A_FEATURE_NAMES, so appending here wires every code path in one place.
-    GROUP_A_FEATURE_NAMES = GROUP_A_FEATURE_NAMES + _ROUND_FEATURE_NAMES
-
-# FVG (fair-value-gap) 3-bar imbalance proximity per-TF M5/M15/H1 (2026-06-11, env-gated GX1_FVG_FEATURES,
-# default OFF). EMPTY tuple when OFF → the zero-fill / new_cols / cols_to_overwrite paths add nothing →
-# byte-identical to cement. (H4/D1 gaps too sparse for shuffled-liveness → M5/M15/H1 only.)
-_FVG_ON = os.environ.get("GX1_FVG_FEATURES", "0") == "1"
-FVG_FEATURE_NAMES = tuple(
-    f"{tf}_{c}" for tf in MULTI_TF_TIMEFRAMES_LOWER[:3]
-    for c in ("dist_to_unfilled_fvg_atr", "fvg_active")
-) if _FVG_ON else ()
-
 # 2026-05-24 GROUP_S: SMC features from canonical_v3 (joined by decision_ts).
 # These ARE in canonical_v3 prebuilt with real signal (smc_choch 421 non-zero,
 # smc_bos_down 76K, smc_sweep_up/down 25K each) but were NEVER joined into
@@ -833,79 +813,6 @@ def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> 
     return out
 
 
-def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_atr: float) -> dict[str, float]:
-    """Nearest UNFILLED 3-bar fair-value-gap per TF — signed ATR-distance + decayed activity.
-    Bullish FVG: high[k-2] < low[k] (gap band); bearish: low[k-2] > high[k]. A gap is FILLED once a later
-    bar trades back through it. Mirrors _liquidity_zones' per-TF resampled hi/lo arrays. M5/M15/H1 only."""
-    import math as _math
-    atr_safe = max(current_atr, 1e-3)
-    CLIP, TAU = 3.0, 1.0
-    base_ns = int(ctx.decision_bar_duration_ns)
-    out: dict[str, float] = {}
-    for tf, ts_arr, hi_arr, lo_arr, lb, period_ns in (
-        ("m5", ctx.m5_ts_ns, ctx.m5_high, ctx.m5_low, 240, base_ns),
-        ("m15", ctx.m15_ts_ns, ctx.m15_high, ctx.m15_low, 192, 900_000_000_000),
-        ("h1", ctx.h1_ts_ns, ctx.h1_high, ctx.h1_low, 168, 3_600_000_000_000),
-    ):
-        # 2026-06-11 LOOK-AHEAD FIX: only bars whose period has COMPLETED by the decision moment
-        # (close of the M5 bar labeled ts, i.e. ts+5min) may enter the window. The old side="right"
-        # cut at ts included the FORMING M15/H1 bar, whose full-period high/low (resampled from the
-        # complete tape) leaks intra-period FUTURE data → build≠serve at the same ts. The serve-time
-        # contract for FVG is therefore COMPLETED TF bars only. M5 is unchanged (label<=ts ⇔
-        # completed-by-ts+5min on the native M5 grid).
-        right = int(np.searchsorted(ts_arr, ts_ns + base_ns - period_ns, side="right"))
-        if right < 3:
-            out[f"{tf}_dist_to_unfilled_fvg_atr"] = CLIP
-            out[f"{tf}_fvg_active"] = float(_math.exp(-CLIP / TAU))
-            continue
-        left = max(0, right - lb)
-        hi = hi_arr[left:right]
-        lo = lo_arr[left:right]
-        n = len(hi)
-        bull = hi[:-2] < lo[2:]            # gap band (hi[k-2], lo[k])
-        bear = lo[:-2] > hi[2:]            # gap band (hi[k], lo[k-2])
-        suf_minlow = np.minimum.accumulate(lo[::-1])[::-1]   # suf_minlow[j] = min(lo[j:])
-        suf_maxhi = np.maximum.accumulate(hi[::-1])[::-1]
-        best_signed = None
-        best_abs = CLIP * atr_safe + 1.0
-        for j in np.flatnonzero(bull):        # local formation idx = j+2
-            f = j + 2
-            gap_lo, gap_hi = hi[j], lo[f]     # gap_lo < gap_hi by construction
-            if f + 1 < n and suf_minlow[f + 1] <= gap_lo:
-                continue                      # filled (later low traded back down through the gap)
-            if current_price >= gap_hi:
-                signed = current_price - gap_hi
-            elif current_price <= gap_lo:
-                signed = -(gap_lo - current_price)
-            else:
-                signed = 0.0                  # inside the gap
-            if abs(signed) < best_abs:
-                best_abs = abs(signed)
-                best_signed = signed
-        for j in np.flatnonzero(bear):
-            f = j + 2
-            gap_lo, gap_hi = hi[f], lo[j]
-            if f + 1 < n and suf_maxhi[f + 1] >= gap_hi:
-                continue
-            if current_price <= gap_lo:
-                signed = -(gap_lo - current_price)
-            elif current_price >= gap_hi:
-                signed = current_price - gap_hi
-            else:
-                signed = 0.0
-            if abs(signed) < best_abs:
-                best_abs = abs(signed)
-                best_signed = signed
-        if best_signed is None:
-            out[f"{tf}_dist_to_unfilled_fvg_atr"] = CLIP
-            out[f"{tf}_fvg_active"] = float(_math.exp(-CLIP / TAU))
-        else:
-            d = max(-CLIP, min(CLIP, float(best_signed) / atr_safe))
-            out[f"{tf}_dist_to_unfilled_fvg_atr"] = float(d)
-            out[f"{tf}_fvg_active"] = float(_math.exp(-abs(d) / TAU))
-    return out
-
-
 def augment_candidate(
     ctx: AugmentContext,
     ts: pd.Timestamp,
@@ -940,20 +847,14 @@ def augment_candidate(
     out.update(_vol_term(per_tf))                              # 4
     out.update(_vol_pct(ctx, ts_ns))                           # 2
     out.update(_pivots(ctx, ts, current_atr, current_price))   # 4
-    if _AUG_ROUND_ON:
-        out.update(_round_number_levels(current_price, current_atr))   # 5 (env-gated)
     out.update(liq)                                            # 10 (5 TFs × hi/lo)
     if include_portfolio:
         out.update(_per_side_perf(ctx, ts))                    # 8
     out.update(_dip_struct_5tf(per_tf, liq))                   # 38 (dip + struct)
-    if _FVG_ON:
-        out.update(_fvg_5tf(ctx, ts_ns, current_price, current_atr))   # 6 (3 TFs × {dist, active})
     required_group_a = set(GROUP_A_FEATURE_NAMES)
     if not include_portfolio:
         required_group_a.difference_update(PORTFOLIO_FEATURE_NAMES)
     required = set(PER_TF_FEATURE_NAMES) | required_group_a | set(DIP_STRUCT_FEATURE_NAMES)
-    if _FVG_ON:
-        required.update(FVG_FEATURE_NAMES)
     missing = sorted(required - set(out))
     if missing:
         raise RuntimeError(f"[CTX_CANDIDATE] derived feature contract incomplete: {missing}")
@@ -1634,15 +1535,13 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
     # 2026-05-24: drop existing V2/group-A/SMC cols if input was pre-augmented
     # (prevents duplicate cols when re-running on V10V2_AUGMENTED with bug-fixes).
     cols_to_overwrite = (set(PER_TF_FEATURE_NAMES) | set(GROUP_A_FEATURE_NAMES)
-                         | set(GROUP_S_SMC_FEATURE_NAMES) | set(DIP_STRUCT_FEATURE_NAMES)
-                         | set(FVG_FEATURE_NAMES))   # FVG_FEATURE_NAMES = () when GX1_FVG_FEATURES off
+                         | set(GROUP_S_SMC_FEATURE_NAMES) | set(DIP_STRUCT_FEATURE_NAMES))
     existing_to_drop = [c for c in df.columns if c in cols_to_overwrite]
     if existing_to_drop:
         df = df.drop(columns=existing_to_drop)
     ts_arr = pd.to_datetime(df["decision_ts_utc"], utc=True)
     new_cols: dict[str, list[float]] = {
-        name: [] for name in (PER_TF_FEATURE_NAMES + GROUP_A_FEATURE_NAMES + DIP_STRUCT_FEATURE_NAMES
-                              + FVG_FEATURE_NAMES)
+        name: [] for name in (PER_TF_FEATURE_NAMES + GROUP_A_FEATURE_NAMES + DIP_STRUCT_FEATURE_NAMES)
     }
     t0 = time.time()
     for ts in ts_arr:
@@ -1813,8 +1712,7 @@ def main() -> int:
         "commit": _commit,
         "source_forward_outcome_dir": str(args.forward_outcome_dir),
         "m5_prebuilt": str(args.m5_prebuilt),
-        "env_gates": {k: os.environ.get(k, "0") for k in
-                      ("GX1_ROUND_NUMBER", "GX1_FVG_FEATURES", "GX1_SMC_SWEEP_RECLAIM")},
+        "feature_contract": "fixed_group_a_32_plus_dip_struct_no_ambient_gates_v1",
         "n_week_files_seen": len(week_files),
         "n_built": len(week_rows),
         "n_skipped_existing": 0,

@@ -7,11 +7,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gx1.features.group_a_features import (
-    daily_pivot_levels,
-    realized_vol_percentile,
-    vol_term_structure,
-)
 from gx1.features.htf_features import (
     HTF_V2_MATRIX_CONTRACT,
     MULTI_TF_SHIFT,
@@ -21,6 +16,7 @@ from gx1.features.htf_features import (
     compute_per_bar_features_v2,
     get_last_n_at_or_before,
 )
+from gx1.features import basic_v1
 from gx1.features.regime_v4_features import (
     REGIME_V4_DERIVED_COLS,
     REGIME_V4_SOURCE_COLS,
@@ -58,13 +54,52 @@ def test_tf_cache_row_is_strict_float32_zero_copy() -> None:
     frame.attrs["ts_int64"] = ts_values
     frame.attrs["feats_np"] = feat_values
     frame.attrs["causal_warmup_rows"] = 0
-    ctx = type("Context", (), {"multi_tf": {"M5": frame}})()
+    ctx = type(
+        "Context",
+        (),
+        {
+            "multi_tf": {"M5": frame},
+            "decision_bar_duration_ns": pd.Timedelta(minutes=5).value,
+        },
+    )()
 
     row = _tf_cache_row(ctx, "M5", target.value)
 
     assert row.dtype == np.dtype(np.float32)
     assert np.shares_memory(row, feat_values)
     np.testing.assert_array_equal(row, feat_values[1])
+
+
+def test_basic_v1_has_one_environment_independent_feature_path() -> None:
+    source = inspect.getsource(basic_v1)
+    for forbidden in (
+        "GX1_FEATURE_BUILD_DISABLED",
+        "GX1_REPLAY_USE_PREBUILT_FEATURES",
+        "GX1_REPLAY_MODE",
+        "GX1_ASSERT_NO_PANDAS",
+        "GX1_FEATURE_USE_NP_ROLLING",
+        "GX1_REPLAY_INCREMENTAL_FEATURES",
+        "FEATURE_BUILD_TIMEOUT_MS",
+    ):
+        assert forbidden not in source
+    assert 'df["_v1_r1_q90_48"]' in source
+    assert 'df["_v1_r1_q10_48"]' in source
+
+
+def test_basic_v1_rejects_non_float_ohlc_without_mode_dependent_conversion() -> None:
+    frame = pd.DataFrame(
+        {
+            "open": [2000],
+            "high": [2001],
+            "low": [1999],
+            "close": [2000],
+            "volume": [100],
+            "spread_bps": [1.0],
+        },
+        index=pd.date_range("2026-01-01T00:00:00Z", periods=1, freq="5min"),
+    )
+    with pytest.raises(ValueError, match="OHLC dtype mismatch"):
+        basic_v1.build_basic_v1(frame)
 
 
 def test_tf_cache_row_rejects_dtype_coercion_instead_of_copying() -> None:
@@ -74,7 +109,14 @@ def test_tf_cache_row_rejects_dtype_coercion_instead_of_copying() -> None:
     frame.attrs["ts_int64"] = ts_values
     frame.attrs["feats_np"] = np.ones((1, 25), dtype=np.float64)
     frame.attrs["causal_warmup_rows"] = 0
-    ctx = type("Context", (), {"multi_tf": {"M5": frame}})()
+    ctx = type(
+        "Context",
+        (),
+        {
+            "multi_tf": {"M5": frame},
+            "decision_bar_duration_ns": pd.Timedelta(minutes=5).value,
+        },
+    )()
 
     with pytest.raises(RuntimeError, match="malformed M5 cache arrays"):
         _tf_cache_row(ctx, "M5", target.value)
@@ -257,18 +299,6 @@ def test_attach_requires_explicit_mtf_and_exact_smc_source() -> None:
             source.drop(columns="smc_swing_state"),
             multi_tf=multi_tf,
         )
-
-
-def test_group_a_public_owner_rejects_missing_evidence() -> None:
-    frame = _market_frame(600)
-    target = frame.index[-1]
-
-    with pytest.raises(RuntimeError, match="exact TF cache"):
-        vol_term_structure({}, target)
-    with pytest.raises(RuntimeError, match="current_atr"):
-        daily_pivot_levels(frame, target, 0.0)
-    with pytest.raises(RuntimeError, match="exact M5 row"):
-        realized_vol_percentile(frame, target + pd.Timedelta(minutes=1))
 
 
 def test_warmup_trim_rejects_nonfinite_gap_after_complete_rows() -> None:

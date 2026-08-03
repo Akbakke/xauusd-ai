@@ -11,7 +11,6 @@ from __future__ import annotations
 import os
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -189,4 +188,3 @@ def validate_oanda_credentials(credentials: OandaCredentials) -> bool:
     except Exception as e:
         logger.warning("[OANDA_CREDENTIALS] Credential validation error: %s", e)
         return False
-

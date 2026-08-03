@@ -145,7 +145,7 @@ def _bind_admitted_m1_surface_if_declared(
         raise RuntimeError(f"{context}: M1_FEATURE_BINDING_METADATA_UNAVAILABLE")
     binding = metadata.get("m1_feature_surface_binding")
     if binding is None:
-        return
+        raise RuntimeError(f"{context}: M1_FEATURE_BINDING_MISSING")
     if not isinstance(binding, Mapping):
         raise RuntimeError(f"{context}: M1_FEATURE_BINDING_SCHEMA_INVALID")
     expected = {
@@ -153,6 +153,9 @@ def _bind_admitted_m1_surface_if_declared(
         "manifest_path",
         "dataset_run_id",
         "pair_generation_id",
+        "parquet_sha256",
+        "manifest_sha256",
+        "feature_field_order_sha256",
     }
     if set(binding) != expected:
         raise RuntimeError(f"{context}: M1_FEATURE_BINDING_KEYS_INVALID")
@@ -164,6 +167,11 @@ def _bind_admitted_m1_surface_if_declared(
         manifest_path=Path(str(binding["manifest_path"])),
         dataset_run_id=str(binding["dataset_run_id"]),
         pair_generation_id=str(binding["pair_generation_id"]),
+        parquet_sha256=str(binding["parquet_sha256"]),
+        manifest_sha256=str(binding["manifest_sha256"]),
+        feature_field_order_sha256=str(
+            binding["feature_field_order_sha256"]
+        ),
     )
 
 
@@ -647,7 +655,8 @@ class V12Pipeline:
                 "trade_entry_fill_time_invalid",
             )
         if last_processed is None:
-            next_bar = entry_ts.tz_convert("UTC").ceil("min")
+            next_bar_floor = entry_ts.tz_convert("UTC").ceil("min")
+            next_bar_side = "left"
         else:
             try:
                 last_processed_ts = pd.Timestamp(last_processed)
@@ -665,10 +674,8 @@ class V12Pipeline:
                     "last_processed_m1_time_invalid",
                     last_processed_m1_ts=str(last_processed),
                 )
-            next_bar = (
-                last_processed_ts.tz_convert("UTC")
-                + pd.Timedelta(minutes=1)
-            )
+            next_bar_floor = last_processed_ts.tz_convert("UTC")
+            next_bar_side = "right"
         wall_latest_closed_bar = now_value - pd.Timedelta(minutes=1)
         try:
             self.prebuilt_loader.refresh_if_changed()
@@ -715,10 +722,18 @@ class V12Pipeline:
                 ),
             )
         latest_closed_bar = source_latest_closed_bar
-        if latest_closed_bar < next_bar:
+        source_times_ns = source_index.as_unit("ns").asi8
+        next_position = int(
+            np.searchsorted(
+                source_times_ns,
+                next_bar_floor.value,
+                side=next_bar_side,
+            )
+        )
+        if next_position >= len(source_index):
             raise ExitDecisionUnavailable(
                 "awaiting_authoritative_closed_m1_bar",
-                next_required_m1_bar=next_bar.isoformat(),
+                next_required_m1_bar_after=next_bar_floor.isoformat(),
                 source_latest_closed_m1_bar=(
                     latest_closed_bar.isoformat()
                 ),
@@ -728,7 +743,10 @@ class V12Pipeline:
             )
 
         last_decision: dict[str, Any] | None = None
-        while next_bar <= latest_closed_bar:
+        for raw_next_bar in source_index[next_position:]:
+            next_bar = pd.Timestamp(raw_next_bar).tz_convert("UTC")
+            if next_bar > latest_closed_bar:
+                break
             try:
                 closed_bar = self.prebuilt_loader.get_closed_m1_bar(
                     next_bar,
@@ -783,7 +801,6 @@ class V12Pipeline:
             last_decision = decision
             if decision["action"] == "EXIT_NOW":
                 return decision
-            next_bar += pd.Timedelta(minutes=1)
 
         if last_decision is None:
             raise ExitDecisionUnavailable(

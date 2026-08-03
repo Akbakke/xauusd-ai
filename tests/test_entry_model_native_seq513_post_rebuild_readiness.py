@@ -33,7 +33,7 @@ def _write_json(path: Path, payload: dict) -> Path:
 def _fixture(
     tmp_path: Path,
     *,
-    xau_schema: str = "m5_tape_current_snapshot_v2",
+    xau_schema: str = "xau_canonical_native_source_v3",
 ) -> tuple[argparse.Namespace, dict]:
     run_id = "XAU_SEQ513_POST_REBUILD_PYTEST_V1"
     event_root = (tmp_path / "event").resolve()

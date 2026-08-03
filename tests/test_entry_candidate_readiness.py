@@ -187,7 +187,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "bundle_dir": str(bundle),
         "dataset_dir": str(dataset),
-        "data_splits": ["val", "test"],
+        "data_splits": ["val"],
         "model_native_readiness_contract": model_native_readiness_contract_metadata(),
         "direction_decision_contract": model_direction_decision_contract_metadata(),
         "bundle_artifacts": {
@@ -302,7 +302,7 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
         "meta_lock_exact"
     ] is True
     policy = foundation_audit_policy_metadata()["smoke_edge_pockets"]
-    assert set(normalized["splits"]) == {"val", "test"}
+    assert set(normalized["splits"]) == {"val"}
     for split in normalized["splits"].values():
         direction = split["direction"]
         assert direction["support_scope"] == "global"
@@ -340,11 +340,11 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
         lambda report: report["edge_contract"].update(
             {"direction_edge_proven": False}
         ),
-        lambda report: report["splits"].pop("test"),
+        lambda report: report["splits"].pop("val"),
         lambda report: report["splits"]["val"]["direction"].update(
             {"minimum_trade_rows": 1}
         ),
-        lambda report: report["splits"]["test"]["direction"].update(
+        lambda report: report["splits"]["val"]["direction"].update(
             {"trade_direction_precision_wilson_lower": 1.0}
         ),
         lambda report: report["splits"]["val"]["context_slice_contract"].update(

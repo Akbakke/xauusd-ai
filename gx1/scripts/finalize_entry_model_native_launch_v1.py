@@ -76,7 +76,10 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_COUNT,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_CLASS_ORDER,
     MODEL_DIRECTION_SELECTION_MODE,
+    UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION,
+    UNIFIED_EXIT_ACTION_ORDER,
     require_model_direction_operating_point,
 )
 from gx1_guards import artifacts as artifact_guard
@@ -643,6 +646,14 @@ def _build_launch_state(
         "decision_surface": "model_direction_argmax",
         "public_trade_flat_surface": "public_trade_flat_decision_logits",
         "required_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "required_unified_entry_exit_contract": (
+            UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
+        ),
+        "required_entry_action_order": list(MODEL_DIRECTION_CLASS_ORDER),
+        "required_exit_action_order": list(UNIFIED_EXIT_ACTION_ORDER),
+        "required_same_bundle_shared_encoder": True,
+        "required_exact_closed_m1_exit_path_envelope": True,
+        "external_decision_models_allowed": False,
         "required_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "required_base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "required_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
@@ -819,9 +830,21 @@ def finalize_entry_model_native_launch(
     if (
         not isinstance(lineage, Mapping)
         or set(lineage)
-        != {"schema_version", "training_run_id", "dataset_run_id"}
+        != {
+            "schema_version",
+            "training_run_id",
+            "dataset_run_id",
+            "training_profile",
+            "requested_subsample_rows",
+            "physical_train_rows",
+            "effective_train_rows",
+        }
         or lineage.get("schema_version")
-        != "entry_model_native_training_run_lineage_v1"
+        != "entry_model_native_training_run_lineage_v2"
+        or lineage.get("training_profile") != "candidate"
+        or lineage.get("requested_subsample_rows") != 0
+        or lineage.get("physical_train_rows")
+        != lineage.get("effective_train_rows")
     ):
         raise EntryLaunchFinalizationError(
             "bundle run_lineage schema is absent or noncanonical"

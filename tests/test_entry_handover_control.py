@@ -17,27 +17,11 @@ LAUNCH_STATE = REPO / "PROJECT_STATE_xau_direction_launch.json"
 AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
     REPO / "GX1_RULES.md",
-    REPO / "CLAUDE.md",
-    REPO / "DEVELOPMENT_NOTES.md",
     REPO / "README.md",
-    REPO / "GX1_PATHS.md",
-    REPO / "RISK_OF_WRONG_CODE_2026_05_24.md",
-    REPO / "ROADMAP.md",
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
-    REPO / "PROJECT_STATE.md",
-    REPO / "DECISION_LOG.md",
-    REPO / "docs/BACKFILL_2020_2025_COMMANDS.md",
-    REPO / "docs/CANONICAL_EXIT_STATUS.md",
     REPO / "docs/DATA_CONTRACT.md",
-    REPO / "docs/DATA_OANDA_SCHEMA_SSOT.md",
-    REPO / "docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md",
-    REPO / "docs/FEATURE_MANIFEST.md",
     REPO / "docs/GIT_WORKTREE_POLICY.md",
-    REPO / "docs/SESSION_CONTEXT_OBSERVABILITY_NOTE.md",
-    REPO / "docs/TRAINING_DETERMINISM_MPS.md",
-    REPO / "PROJECT_STATE_artifacts.json",
-    REPO / "PROJECT_STATE_entry_iql_delete_incident.json",
     REPO / "PROJECT_STATE_xau_direction_launch.json",
 )
 
@@ -68,9 +52,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-bundle-audit",
     "model-native-candidate-readiness",
     "model-native-selective-edge",
-    "model-native-replay-trade-log",
-    "model-native-replay-evidence",
-    "model-native-replay-readiness",
     "model-native-rebuild",
     "model-native-smoke-train",
     "model-native-candidate-train",
@@ -136,59 +117,23 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
     assert "dataset_event_id: NONE" in result.stdout
     assert "dataset_admission_stage: NO_ADMITTED_UNIFIED_DATASET" in result.stdout
-    assert "dataset_terminal_evidence: NONE" in result.stdout
-    assert "current_smoke_launch_evidence: NONE" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
-    assert "## Current offline evidence anchors" in result.stdout
-    assert "dataset_dir: /home/andre2/GX1_DATA/data/data/prebuilt/" in result.stdout
-    assert "current_smoke_execution:" in result.stdout
-    assert "current_smoke_bundle: NOT_PRODUCED" in result.stdout
-    assert "dataset_contract: CURRENT_OFFLINE_V8_V13_VERIFIED_NOT_LAUNCH_ADMITTED" in result.stdout
     assert (
-        "resume_stage: READY_FOR_EXACT_V18_V8_V13_SMOKE" in result.stdout
-        or "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_V18_SMOKE"
+        "dataset_contract: "
+        "STALE_REBUILD_REQUIRED_AFTER_SOURCE_AND_LIFECYCLE_CONTRACT_CHANGE"
         in result.stdout
     )
-    assert "recipe_sha256=818d8202bd0ab56a29fd43eea46e05bc2a9bfef285d811cd38a1e0909ca18285" in result.stdout
-    assert (
-        "activation_checkpoint="
-        "per_transformer_layer_non_reentrant_preserve_rng_v1"
-        in result.stdout
-    )
-    assert (
-        "last_smoke_terminal: CGROUP_OOM_PREPROCESS_EXIT_137_NO_BUNDLE"
-        in result.stdout
-    )
-    assert (
-        "memory_repair: ACTIVATION_45421e70_IO_BATCH_98ea1c62"
-        in result.stdout
-    )
-    assert (
-        "v4_architecture: VERIFIED "
-        "timeframes=5 families=8 fields_per_tf=111 routes=40 cells=555"
-        in result.stdout
-    )
-    assert (
-        "launch_checkpoint_v4_cache: BLOCK "
-        "observed=htf_v4_disk_cache_manifest_v2" in result.stdout
-    )
-    assert (
-        "offline_evidence_contract: V8_V13_VERIFIED "
-        "mtf=htf_v4_disk_cache_manifest_v3" in result.stdout
-    )
-    assert (
-        "historical_identity="
-        "ff9cac78cdf6d5d4338f4d07b77df822c95efb568ed80a1e864600580a2b361a"
-        in result.stdout
-    )
-    assert "active_seq513_chain" in result.stdout
+    assert "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION" in result.stdout
+    assert "historical_pnl_winrate: UNPROVEN" in result.stdout
+    assert "featurebase: SAME_8_OWNERS_FORMULAS_NORMALIZATION_LINEAGE" in result.stdout
+    assert "entry: M5 sequence=96 signal=513 ctx_cont=142 ctx_cat=5" in result.stdout
+    assert "exit: M1 sequence=480" in result.stdout
     assert "## Resume boundary" in result.stdout
-    assert "source_contract: CURRENT_COMMITTED_TREE_REQUIRED" in result.stdout
-    assert "resume_owner: scripts/entry_next_edge_control.sh" in result.stdout
+    assert "resume_stage: VERIFY_COMMIT_REBUILD_THEN_BOUNDED_SMOKE" in result.stdout
+    assert "capacity: audits=4G training_max=10G swap=512M" in result.stdout
     assert "model-native-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
-    assert "data_rebuild_route: FORBIDDEN_UNLESS_CURRENT_V8_V13_VALIDATION_FAILS" in result.stdout
+    assert "same-bundle unified Exit proof" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
-    assert "## Required evidence before Entry can open" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
 
 
@@ -211,8 +156,14 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     state = json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
 
     assert state["decision"] == "BLOCK"
-    assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260725_V26"
-    assert state["latest_terminal_event_decision"] == "GREEN"
+    assert state["latest_terminal_event_id"] == "NO_CURRENT_ADMITTED_EVENT"
+    assert state["latest_terminal_event_decision"] == "BLOCK"
+    assert state["required_unified_entry_exit_contract"] == "gx1_unified_entry_exit_v2"
+    assert state["required_entry_action_order"] == ["LONG", "SHORT", "FLAT"]
+    assert state["required_exit_action_order"] == ["HOLD", "EXIT_NOW"]
+    assert state["required_same_bundle_shared_encoder"] is True
+    assert state["required_exact_closed_m1_exit_path_envelope"] is True
+    assert state["external_decision_models_allowed"] is False
     assert state["dataset_event_id"] is None
     assert state["dataset_admission_stage"] == "NO_ADMITTED_UNIFIED_DATASET"
     assert state["accepted_dataset_dir"] is None
@@ -220,56 +171,22 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert state["current_audited_dataset_evidence"] == {}
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
-    retired_bundle = state["latest_trainability_bundle"]
-    assert retired_bundle["artifact_present"] is False
-    assert retired_bundle["bundle_dir"] is None
-    assert retired_bundle["bundle_commit_path"] is None
-    assert retired_bundle["bundle_commit_sha256"] is None
-    assert retired_bundle["bundle_commit_identity_sha256"] is None
-    assert retired_bundle["model_state_sha256"] is None
-    repair = state["source_repair_checkpoint"]
-    assert repair["status"] == "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
-    assert repair["historical_rebuild_execution_started"] is True
-    assert repair["historical_training_execution_started"] is True
-    assert repair["active_v4_rebuild_started"] is False
-    assert repair["active_v4_training_started"] is False
-    assert repair["empirical_direction_edge_proven"] is False
-    assert repair["remaining_source_p0"] == [
-        "publish_fresh_generation_local_native_pair_for_lifecycle_authority",
-        "rebuild_htf_v4_cache_under_manifest_v3_and_bind_fresh_dataset_lineage",
-        "publish_fresh_combined_entry_exit_lifecycle_dataset",
-        "train_and_prove_same_bundle_entry_exit_artifact",
-        "prove_exact_closed_m1_exit_train_serve_parity_on_same_candidate",
-        "execute_candidate_bound_full_test_unified_entry_exit_replay_and_runtime_parity",
-    ]
-    assert (
-        "immutable_live_tail_successor_publication_and_two_event_admission_owner"
-        in repair["completed"]
-    )
     assert state["current_smoke_launch_evidence"] is None
-    failed = state["latest_failed_smoke_execution"]
-    assert failed["run_id"] == "XAU_SEQ513_SMOKE_20260726_V10"
-    assert failed["bundle_created"] is False
-
-    rejected = state["latest_rejected_downstream_evidence"]
-    rejected_path = Path(rejected["path"])
-    assert hashlib.sha256(rejected_path.read_bytes()).hexdigest() == rejected["sha256"]
-
     blockers = "\n".join(state["blockers"])
-    assert "No accepted candidate/direction bundle" in blockers
-    # The optimization-throughput hypothesis this line used to pin was withdrawn
-    # on 2026-07-27 after V14 confirmed the balanced-sampler prior mismatch by
-    # measurement. The blocker now records the settled cause; V8/V9/V10 remain
-    # immutable failure evidence. Pin the withdrawal so it cannot silently
-    # revert to a refuted claim.
-    assert "The FLAT-collapse cause is settled by measurement" in blockers
-    assert "V8, V9 and V10 remain immutable failure evidence" in blockers
-    assert "optimization-throughput hypothesis" in blockers
-    assert "source-repaired" in blockers
-    assert "transactional finalizer/recovery" in blockers
-    assert "unified lifecycle materializer/loader" in blockers
-    assert "No fresh native-manifest-bound lifecycle dataset" in blockers
-    assert "no canonical immutable" not in blockers
+    assert "fresh immutable native M1/M5 pair" in blockers
+    assert "No current hash-bound dataset" in blockers
+    assert "Untouched TEST direction edge" in blockers
+    assert "remain fail-closed" in blockers
+    assert len(LAUNCH_STATE.read_bytes()) < 5_000
+    assert not any(
+        key in state
+        for key in (
+            "latest_trainability_bundle",
+            "latest_failed_smoke_execution",
+            "latest_rejected_downstream_evidence",
+            "source_repair_checkpoint",
+        )
+    )
 
 
 def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> None:

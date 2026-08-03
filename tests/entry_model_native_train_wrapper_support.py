@@ -18,6 +18,7 @@ from gx1.features.htf_features import (
 )
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
+    FOUNDATION_AUDIT_SMOKE_SPLITS,
     foundation_audit_policy_binding,
     foundation_audit_policy_enforcement,
 )
@@ -303,6 +304,9 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             ),
             "path_state_count": 512,
             "target_lookahead_m1_steps": 3,
+            "m1_row_clock": (
+                "consecutive_authoritative_closed_m1_source_rows"
+            ),
             "shared_feature_base_contract": (
                 entry_exit_shared_feature_base_contract()
             ),
@@ -603,7 +607,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
                 "bundle_dir": str(smoke_bundle_dir),
                 "dataset_dir": str(dataset_dir),
-                "data_splits": ["val", "test"],
+                "data_splits": list(FOUNDATION_AUDIT_SMOKE_SPLITS),
                 "model_native_readiness_contract": (
                     model_native_readiness_contract_metadata()
                 ),
@@ -766,7 +770,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "batch_size": 8,
         "early_stop_patience": 1,
         "subsample_rows": 0,
-        "num_workers": -1,
+        "num_workers": 0,
         "learning_rate": 0.0003,
         "early_stop_min_delta": 0.0,
         "grad_clip_norm": 1.0,
@@ -867,7 +871,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--specialist-fusion-scale", "0.25",
         "--cross-family-fusion-scale", "0.25",
         "--subsample-rows", "0",
-        "--num-workers", "-1",
+        "--num-workers", "0",
         "--multi-tf-num-layers", "2",
         "--specialist-num-layers", "1",
         "--grad-accum-steps", "1",

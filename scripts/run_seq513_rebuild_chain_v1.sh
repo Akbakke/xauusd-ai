@@ -159,33 +159,14 @@ done
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   die_args "--run-id has invalid format"
 fi
-[[ $M1_LIFECYCLE_PAIR_MANIFEST == /* ]] \
-  || die_args "--m1-lifecycle-pair-manifest-json must be absolute"
-[[ -f $M1_LIFECYCLE_PAIR_MANIFEST && ! -L $M1_LIFECYCLE_PAIR_MANIFEST ]] \
-  || die_args "--m1-lifecycle-pair-manifest-json must be an existing regular file"
-[[ $M1_LIFECYCLE_PAIR_GENERATION_ROOT == /* ]] \
-  || die_args "--m1-lifecycle-pair-generation-root must be absolute"
-[[ -d $M1_LIFECYCLE_PAIR_GENERATION_ROOT && ! -L $M1_LIFECYCLE_PAIR_GENERATION_ROOT ]] \
-  || die_args "--m1-lifecycle-pair-generation-root must be an existing regular directory"
-[[ $EXIT_TARGET_LOOKAHEAD_M1_STEPS =~ ^[1-9][0-9]*$ ]] \
-  || die_args "--exit-target-lookahead-m1-steps must be a positive integer"
 [[ $EVENT == /* ]] || die_args "--event-root must be absolute"
 [[ -d $EVENT && ! -L $EVENT ]] || die_args "--event-root must be an existing regular directory"
 
 SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
 CV2="$EVENT/canonical_features_v2.parquet"
 MTF="$EVENT/MULTI_TF_V4_CACHE"
-# Exactly one event-local tape identity: the strict native-v3 source root
-# (new lineages) or the legacy repaired current-snapshot tape (historical).
-TAPE_NATIVE="$EVENT/m5_tape_native_v3"
-TAPE_REPAIRED="$EVENT/m5_tape_repaired_dec2024"
-if [[ -d $TAPE_NATIVE && -d $TAPE_REPAIRED ]]; then
-  die_args "ambiguous tape identity: both m5_tape_native_v3 and m5_tape_repaired_dec2024 exist"
-elif [[ -d $TAPE_NATIVE ]]; then
-  TAPE="$TAPE_NATIVE"
-else
-  TAPE="$TAPE_REPAIRED"
-fi
+# Fresh rebuilds accept only the immutable native OANDA M5 source.
+TAPE="$EVENT/m5_tape_native_v3"
 RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__DIR_H24B.parquet"
 AUDIT="$EVENT/audit"
@@ -459,6 +440,8 @@ require_source_identity() {
 # latest names, pre-existing outputs, and implicit resume debris all fail.
 CURRENT_STEP=contract-validation
 write_status "$CURRENT_STEP" RUNNING
+[[ $EXIT_TARGET_LOOKAHEAD_M1_STEPS =~ ^[1-9][0-9]*$ ]] \
+  || fail "--exit-target-lookahead-m1-steps must be a positive integer"
 if ! "$PY" - \
   "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
   "$SRC" "$CV2" "$MTF" "$TAPE" "$M1_LIFECYCLE_PAIR_MANIFEST" \

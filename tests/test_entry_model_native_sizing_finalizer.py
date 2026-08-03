@@ -80,6 +80,8 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
         "MASTER_TRANSFORMER_LOCK.json",
         "model_state_dict.pt",
         "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json",
+        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T090000123456Z.json",
+        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T093000123456Z.json",
     }
 
     source_metadata = json.loads(

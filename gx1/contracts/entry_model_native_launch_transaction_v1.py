@@ -39,6 +39,9 @@ from gx1.contracts.live_tail_publication_v1 import (
     require_live_tail_launch_authority,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_CLASS_ORDER,
+    UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION,
+    UNIFIED_EXIT_ACTION_ORDER,
     require_model_direction_operating_point,
 )
 
@@ -86,6 +89,12 @@ _LAUNCH_STATE_KEYS = frozenset(
         "decision_surface",
         "public_trade_flat_surface",
         "required_contract_mode",
+        "required_unified_entry_exit_contract",
+        "required_entry_action_order",
+        "required_exit_action_order",
+        "required_same_bundle_shared_encoder",
+        "required_exact_closed_m1_exit_path_envelope",
+        "external_decision_models_allowed",
         "required_signal_dim",
         "required_base_signal_dim",
         "required_selected_feature_count",
@@ -480,6 +489,23 @@ def require_entry_launch_transaction(
         or state.get("blockers") != []
     ):
         _fail("launch state is not an exact unblocked ALLOW authority")
+    required_unified_values = {
+        "required_unified_entry_exit_contract": (
+            UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
+        ),
+        "required_entry_action_order": list(MODEL_DIRECTION_CLASS_ORDER),
+        "required_exit_action_order": list(UNIFIED_EXIT_ACTION_ORDER),
+        "required_same_bundle_shared_encoder": True,
+        "required_exact_closed_m1_exit_path_envelope": True,
+        "external_decision_models_allowed": False,
+    }
+    mismatches = [
+        f"{key}={state.get(key)!r} expected={expected!r}"
+        for key, expected in required_unified_values.items()
+        if state.get(key) != expected
+    ]
+    if mismatches:
+        _fail("launch state unified Entry/Exit contract mismatch: " + " | ".join(mismatches))
     try:
         live_tail_authority = require_live_tail_launch_authority(
             state.get("new_entry_live_tail_authority")

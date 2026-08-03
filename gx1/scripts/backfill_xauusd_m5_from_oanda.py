@@ -52,7 +52,6 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_json_sha256,
     canonical_native_frame_from_oanda_response,
     canonical_native_rows_bytes,
-    canonical_xau_source_descriptor_v1,
     native_timeframe_policy,
     sha256_file,
     validate_canonical_native_frame,

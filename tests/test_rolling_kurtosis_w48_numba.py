@@ -5,7 +5,6 @@ Hard correctness test: if this fails, system is wrong.
 """
 import numpy as np
 import pandas as pd
-import pytest
 
 from gx1.features.rolling_np import rolling_kurtosis_w48
 
@@ -25,7 +24,6 @@ def test_rolling_kurtosis_w48_random_data():
     
     # Numba implementation
     got = rolling_kurtosis_w48(data, min_periods=min_periods)
-    got_series = pd.Series(got, index=s.index)
     
     # Compare finite values only (both got and expected must be finite)
     mask = np.isfinite(expected.values) & np.isfinite(got)
@@ -101,4 +99,3 @@ def test_rolling_kurtosis_w48_min_periods():
     
     # All positions from min_periods-1 onwards should have valid or NaN values
     assert len(result) == len(data), "Result should have same length as input"
-

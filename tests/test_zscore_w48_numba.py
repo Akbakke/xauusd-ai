@@ -5,7 +5,6 @@ Hard correctness test: if this fails, system is wrong.
 """
 import numpy as np
 import pandas as pd
-import pytest
 
 from gx1.features.rolling_np import zscore_w48
 
@@ -27,7 +26,6 @@ def test_zscore_w48_random_data():
     
     # Numba implementation
     got = zscore_w48(data, min_periods=min_periods)
-    got_series = pd.Series(got, index=s.index)
     
     # Compare non-NaN values
     mask = ~np.isnan(expected.values)
@@ -183,8 +181,4 @@ def test_zscore_w48_constant_series():
             atol=1e-6,
             equal_nan=False
         )
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
 

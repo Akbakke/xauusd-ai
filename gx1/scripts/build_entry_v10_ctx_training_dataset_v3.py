@@ -85,7 +85,10 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
 from gx1.contracts.entry_structural_aux_label_signal_v1 import (
     STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS,
 )
-from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    validate_xau_tape_provenance_v1,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_FORECAST_HORIZONS,
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
@@ -148,12 +151,14 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_DECISION_BAR_SECONDS,
     EXIT_DECISION_BAR_SECONDS,
+    EXIT_FEATURE_ROW_CLOCK,
     entry_exit_shared_feature_base_contract,
     require_entry_exit_shared_feature_base_contract,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     load_m1_feature_surface_times,
 )
+from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -1227,146 +1232,13 @@ def _load_canonical_tape(
     return tape
 
 
-UNIFIED_EXIT_TARGET_SCHEMA_VERSION = "gx1_unified_exit_optimal_stopping_target_v1"
-def compute_unified_exit_action_targets(
-    *,
-    decision_quotes: pd.DataFrame,
-    entry_bid: float,
-    entry_ask: float,
-    side: str,
-    target_lookahead_m1_steps: int,
-) -> pd.DataFrame:
-    """Build causal-state/future-outcome optimal-stopping targets.
-
-    Inputs at each emitted row are available at that row's fresh executable
-    quote. Future quotes are used only to build the offline target. Exact ties
-    and right-censored states are omitted rather than mapped to synthetic HOLD.
-    """
-
-    if (
-        isinstance(target_lookahead_m1_steps, bool)
-        or not isinstance(target_lookahead_m1_steps, int)
-        or target_lookahead_m1_steps <= 0
-    ):
-        raise RuntimeError(
-            "UNIFIED_EXIT_TARGET_LOOKAHEAD_INVALID: explicit positive integer required"
-        )
-    if side not in ("long", "short"):
-        raise RuntimeError("UNIFIED_EXIT_TARGET_SIDE_INVALID")
-    try:
-        parsed_entry_bid = float(entry_bid)
-        parsed_entry_ask = float(entry_ask)
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError("UNIFIED_EXIT_TARGET_ENTRY_PRICE_INVALID") from exc
-    if (
-        not np.isfinite(parsed_entry_bid)
-        or not np.isfinite(parsed_entry_ask)
-        or parsed_entry_bid <= 0.0
-        or parsed_entry_ask <= parsed_entry_bid
-    ):
-        raise RuntimeError("UNIFIED_EXIT_TARGET_ENTRY_PRICE_INVALID")
-    if not isinstance(decision_quotes, pd.DataFrame):
-        raise RuntimeError("UNIFIED_EXIT_TARGET_QUOTES_FRAME_REQUIRED")
-    required_columns = ("time", "bid", "ask")
-    if tuple(decision_quotes.columns) != required_columns:
-        raise RuntimeError(
-            "UNIFIED_EXIT_TARGET_QUOTES_SCHEMA_MISMATCH: "
-            f"expected={required_columns} observed={tuple(decision_quotes.columns)}"
-        )
-    times = pd.to_datetime(
-        decision_quotes["time"], utc=True, errors="coerce"
-    )
-    if (
-        times.isna().any()
-        or times.duplicated().any()
-        or not times.is_monotonic_increasing
-        or (times != times.dt.floor("min")).any()
-    ):
-        raise RuntimeError("UNIFIED_EXIT_TARGET_QUOTE_TIME_INVALID")
-    if len(times) > 1 and not (
-        times.diff().iloc[1:] == pd.Timedelta(minutes=1)
-    ).all():
-        raise RuntimeError(
-            "UNIFIED_EXIT_TARGET_QUOTE_CADENCE_GAP: closure proof required"
-        )
-    bid = pd.to_numeric(decision_quotes["bid"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
-    ask = pd.to_numeric(decision_quotes["ask"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
-    if (
-        not np.isfinite(bid).all()
-        or not np.isfinite(ask).all()
-        or np.any(bid <= 0.0)
-        or np.any(ask <= bid)
-    ):
-        raise RuntimeError("UNIFIED_EXIT_TARGET_QUOTE_PRICE_INVALID")
-    lookahead = target_lookahead_m1_steps
-    if len(decision_quotes) <= lookahead:
-        raise RuntimeError("UNIFIED_EXIT_TARGET_RIGHT_CENSORED_EPISODE")
-
-    pnl = (
-        (bid - parsed_entry_ask) / parsed_entry_ask * 10_000.0
-        if side == "long"
-        else (parsed_entry_bid - ask) / parsed_entry_bid * 10_000.0
-    )
-    future_bid, future_ask = _unified_exit_future_extrema(
-        bid=bid,
-        ask=ask,
-        lookahead=lookahead,
-    )
-    q_exit_now = pnl[:-lookahead]
-    q_hold = (
-        (future_bid - parsed_entry_ask) / parsed_entry_ask * 10_000.0
-        if side == "long"
-        else (parsed_entry_bid - future_ask) / parsed_entry_bid * 10_000.0
-    )
-    non_tied = q_hold != q_exit_now
-    state_index = np.flatnonzero(non_tied).astype(np.int32)
-    if len(state_index) == 0:
-        raise RuntimeError("UNIFIED_EXIT_TARGET_NO_NON_TIED_STATES")
-    selected_hold = q_hold[non_tied]
-    selected_exit = q_exit_now[non_tied]
-    target_index = np.where(
-        selected_hold > selected_exit,
-        0,
-        1,
-    ).astype(np.int8)
-    return pd.DataFrame(
-        {
-            "schema_version": np.repeat(
-                UNIFIED_EXIT_TARGET_SCHEMA_VERSION,
-                len(state_index),
-            ),
-            "time": times.iloc[state_index].reset_index(drop=True),
-            "side": np.repeat(side, len(state_index)),
-            "state_index": state_index,
-            "target_lookahead_m1_steps": np.full(
-                len(state_index),
-                lookahead,
-                dtype=np.int32,
-            ),
-            "q_hold_bps": selected_hold.astype(np.float32),
-            "q_exit_now_bps": selected_exit.astype(np.float32),
-            "target_margin_bps": np.abs(
-                selected_hold - selected_exit
-            ).astype(np.float32),
-            "y_exit_action": target_index,
-            "exit_action": np.asarray(
-                UNIFIED_EXIT_ACTION_ORDER,
-                dtype=object,
-            )[target_index],
-        }
-    )
-
-
 def build_unified_exit_lifecycle_episodes(
     *,
     entry_rows: pd.DataFrame,
     closed_m1: pd.DataFrame,
     split_end: pd.Timestamp | str,
     target_lookahead_m1_steps: int,
+    market_closure_contract: str,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Build compact, replayable Exit episodes for every Entry row and side.
 
@@ -1375,6 +1247,10 @@ def build_unified_exit_lifecycle_episodes(
     targets are recomputable from that source, while the proof binds the exact
     target byte stream used by the trainer.
     """
+    if market_closure_contract != CANONICAL_NATIVE_CLOSURE_CONTRACT:
+        raise RuntimeError(
+            "UNIFIED_EXIT_M1_MARKET_CLOSURE_PROOF_REQUIRED"
+        )
     lookahead = target_lookahead_m1_steps
     if (
         isinstance(lookahead, bool)
@@ -1416,6 +1292,10 @@ def build_unified_exit_lifecycle_episodes(
         :,
         list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
     ].copy()
+    assert_no_price_scale_glitch(
+        m1,
+        context="UNIFIED_EXIT_LIFECYCLE_TARGET_SOURCE",
+    )
     m1_time = pd.DatetimeIndex(
         pd.to_datetime(m1.pop("time"), utc=True, errors="coerce")
     ).as_unit("ns")
@@ -1492,13 +1372,11 @@ def build_unified_exit_lifecycle_episodes(
 
     path_state_count = int(UNIFIED_EXIT_MAX_PATH_BARS)
     required_rows = path_state_count + lookahead
-    minute_ns = int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
     m1_ns = m1_time.asi8
     records: list[dict[str, Any]] = []
     skipped = {
         "missing_entry_available_m1_open": 0,
         "insufficient_m1_tail": 0,
-        "non_contiguous_m1_window": 0,
         "crosses_split_end": 0,
     }
     target_stream = hashlib.sha256()
@@ -1519,14 +1397,9 @@ def build_unified_exit_lifecycle_episodes(
             skipped["insufficient_m1_tail"] += 1
             continue
         required_last_row = start_row + required_rows - 1
-        if (
-            m1_ns[required_last_row] - m1_ns[start_row]
-            != (required_rows - 1) * minute_ns
-        ):
-            skipped["non_contiguous_m1_window"] += 1
-            continue
         required_end_available_at = pd.Timestamp(
-            m1_ns[required_last_row] + minute_ns,
+            m1_ns[required_last_row]
+            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
             unit="ns",
             tz="UTC",
         )
@@ -1603,7 +1476,9 @@ def build_unified_exit_lifecycle_episodes(
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "path_state_count": path_state_count,
         "target_lookahead_m1_steps": lookahead,
-        "required_contiguous_m1_rows_per_episode": required_rows,
+        "required_observed_m1_rows_per_episode": required_rows,
+        "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
+        "market_closure_contract": market_closure_contract,
         "target_counts": target_counts,
         "skipped_entry_rows": skipped,
         "target_stream_sha256": target_stream.hexdigest(),
@@ -2268,6 +2143,10 @@ def build_dataset_canonical(
     df = df.reset_index(drop=False)
     time_col = _detect_time_col(df)
     df = _normalize_time_utc(df, time_col)
+    assert_no_price_scale_glitch(
+        df,
+        context="MODEL_NATIVE_M5_SOURCE",
+    )
 
     if "is_model_bar" in df.columns:
         raise RuntimeError(
@@ -4440,6 +4319,7 @@ def main() -> None:
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "output_dir": str(exit_lifecycle_dir),
         "target_lookahead_m1_steps": exit_target_lookahead,
+        "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
@@ -4570,6 +4450,10 @@ def main() -> None:
         m1_lifecycle_source_path,
         columns=list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
     )
+    assert_no_price_scale_glitch(
+        closed_m1_lifecycle,
+        context="UNIFIED_EXIT_M1_SOURCE",
+    )
     lifecycle_staging = tempfile.TemporaryDirectory(
         prefix=f".{exit_lifecycle_dir.name}.staging.",
         dir=str(exit_lifecycle_dir.parent),
@@ -4618,6 +4502,9 @@ def main() -> None:
                 closed_m1=closed_m1_lifecycle,
                 split_end=s1,
                 target_lookahead_m1_steps=exit_target_lookahead,
+                market_closure_contract=m1_lifecycle_authority[
+                    "native_m1_market_closure_contract"
+                ],
             )
         )
         lifecycle_parquet = (
@@ -4727,6 +4614,7 @@ def main() -> None:
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),
         "target_lookahead_m1_steps": exit_target_lookahead,
+        "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "shared_feature_base_contract": (
             entry_exit_shared_feature_base_contract()
         ),

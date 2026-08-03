@@ -1157,7 +1157,7 @@ class SmartEntryLiveInference:
         event binds the exact bundle and complete rule-free operating point.
         """
 
-        return cls._from_strict_bundle(
+        adapter = cls._from_strict_bundle(
             bundle_dir=Path(bundle_dir).expanduser().resolve(),
             operating_point=require_model_direction_operating_point(
                 operating_point,
@@ -1167,6 +1167,19 @@ class SmartEntryLiveInference:
             sizing_authority=None,
             load_context="pre-launch candidate parity",
         )
+        lineage = adapter._meta.get("run_lineage")
+        if (
+            not isinstance(lineage, Mapping)
+            or lineage.get("training_profile") != "candidate"
+            or lineage.get("requested_subsample_rows") != 0
+            or lineage.get("physical_train_rows")
+            != lineage.get("effective_train_rows")
+        ):
+            raise RuntimeError(
+                "[SMART_ENTRY] parity requires a full-population "
+                "candidate-profile bundle"
+            )
+        return adapter
 
     @classmethod
     def load_immutable_exit_recovery(
@@ -2050,6 +2063,9 @@ class SmartEntryLiveInference:
         manifest_path: Path,
         dataset_run_id: str,
         pair_generation_id: str,
+        parquet_sha256: str,
+        manifest_sha256: str,
+        feature_field_order_sha256: str,
     ) -> None:
         """Bind one immutable M1 surface to this frozen model adapter.
 
@@ -2067,6 +2083,10 @@ class SmartEntryLiveInference:
             manifest_path=manifest_path,
             dataset_run_id=dataset_run_id,
             pair_generation_id=pair_generation_id,
+            parquet_sha256=parquet_sha256,
+            manifest_sha256=manifest_sha256,
+            feature_field_order=self._meta["ordered_signal_names"],
+            feature_field_order_sha256=feature_field_order_sha256,
         )
         self._exit_feature_surface_provider = provider
 

@@ -37,7 +37,6 @@ from sklearn.metrics import accuracy_score
 
 # Canonical context ordering; exact model-native dimensions are verified below.
 from gx1.contracts.entry_model_native_signal_v1 import (
-    MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -642,12 +641,33 @@ def _m1_feature_surface_binding_from_lifecycle(
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_MANIFEST_INVALID") from exc
     pair_generation_id = manifest.get("pair_generation_id")
+    feature_sha256 = _sha256_file(feature_path)
+    manifest_sha256 = _sha256_file(manifest_path)
+    feature_field_order = manifest.get("feature_field_order")
+    feature_field_order_sha256 = hashlib.sha256(
+        json.dumps(
+            feature_field_order,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
     if (
         not isinstance(pair_generation_id, str)
         or not pair_generation_id
+        or not isinstance(feature_field_order, list)
+        or len(feature_field_order) != MODEL_NATIVE_SIGNAL_DIM
+        or len(set(feature_field_order)) != MODEL_NATIVE_SIGNAL_DIM
         or manifest.get("dataset_run_id") != dataset_run_id
         or manifest.get("output_parquet") != str(feature_path)
-        or manifest.get("output_parquet_sha256") != _sha256_file(feature_path)
+        or manifest.get("output_parquet_sha256") != feature_sha256
+        or manifest.get("feature_field_order_sha256")
+        != feature_field_order_sha256
+        or lifecycle_evidence.get("m1_feature_base_sha256")
+        != feature_sha256
+        or lifecycle_evidence.get("m1_feature_base_manifest_sha256")
+        != manifest_sha256
     ):
         raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_LINEAGE_INVALID")
     return {
@@ -655,6 +675,9 @@ def _m1_feature_surface_binding_from_lifecycle(
         "manifest_path": str(manifest_path),
         "dataset_run_id": str(dataset_run_id),
         "pair_generation_id": pair_generation_id,
+        "parquet_sha256": feature_sha256,
+        "manifest_sha256": manifest_sha256,
+        "feature_field_order_sha256": feature_field_order_sha256,
     }
 
 
@@ -704,6 +727,8 @@ def _flush_memmap_pages(*arrays: np.ndarray) -> None:
 # These are I/O scheduling bounds only; row order and tensor bytes are exact.
 _NESTED_ARROW_BATCH_ROWS = 512
 _MEMMAP_WRITEBACK_ROWS = 2048
+_MEMMAP_MIN_BYTES = 512 * 1024**2
+_MEMMAP_ROOT = Path("/home/andre2/GX1_DATA/tmp/entry_v10_memmap")
 
 
 def _env_str(name: str) -> str:
@@ -740,13 +765,6 @@ def _parse_three_float_value(name: str, raw: str) -> Tuple[float, float, float]:
 
 def _parse_three_float_env(name: str) -> Tuple[float, float, float]:
     return _parse_three_float_value(name, _env_str(name))
-
-
-def _running_in_wsl() -> bool:
-    try:
-        return "microsoft" in Path("/proc/version").read_text(encoding="utf-8").lower()
-    except Exception:
-        return False
 
 
 # -----------------------------------------------------------------------------
@@ -1371,14 +1389,14 @@ _GRAD_CLIP_NORM: float = 1.0
 _WEIGHT_DECAY: float = 1e-5
 
 
-def _autocast_forward(model: nn.Module, device: torch.device, *args, **kwargs) -> Dict[str, torch.Tensor]:
-    """Forward through model in bf16 autocast (if GX1_FAST_TRAIN=1), then cast
-    outputs back to fp32 for stable loss computation. No-op (just calls model)
-    when fast-train is off.
-    """
-    from gx1.utils.fast_train import autocast_context
-    with autocast_context(device):
-        out = model(*args, **kwargs)
+def _model_forward_fp32(
+    model: nn.Module,
+    *args,
+    **kwargs,
+) -> Dict[str, torch.Tensor]:
+    """Use the one deterministic fp32 model path owned by the recipe."""
+
+    out = model(*args, **kwargs)
     if isinstance(out, dict):
         out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
                for k, v in out.items()}
@@ -1589,31 +1607,15 @@ def _resolve_device(device_str: str) -> torch.device:
         raise RuntimeError("[CUDA_NOT_AVAILABLE] requested cuda but torch.cuda.is_available() is False")
     return torch.device(device_str)
 
-def _set_deterministic(seed: int, device: torch.device, deterministic: bool) -> None:
+def _set_deterministic(seed: int, device: torch.device) -> None:
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.manual_seed(seed)
     np.random.seed(seed)
     if device.type == "cuda":
         torch.cuda.manual_seed_all(seed)
-    if deterministic:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        try:
-            torch.use_deterministic_algorithms(True)
-        except Exception:
-            pass
-    else:
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cudnn.deterministic = False
-    # GX1_FAST_TRAIN: TF32 matmul + cuDNN tf32 enabled when master flag set.
-    # Overrides cudnn.deterministic above when deterministic=False — by design.
-    try:
-        from gx1.utils.fast_train import apply_global_speedups
-        _fast_report = apply_global_speedups()
-        log.info("[FAST_TRAIN] %s", _fast_report)
-    except Exception as _e:
-        log.warning("[FAST_TRAIN] init failed: %r", _e)
-
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True)
 # -----------------------------------------------------------------------------
 # Exact immutable dataset identity
 # -----------------------------------------------------------------------------
@@ -2810,13 +2812,9 @@ class EntryV10CtxDataset(Dataset):
             # well. The train smoke is compacted later, but the untouched VAL
             # surface is still ~1.2GB under the canonical recipe; retaining it
             # in anonymous RAM is unnecessary pressure inside the WSL cap.
-            memmap_min_gb = float(os.environ.get("ENTRY_V10_CTX_MEMMAP_MIN_GB", "0.5"))
-            memmap_disabled = os.environ.get("ENTRY_V10_CTX_DISABLE_MEMMAP", "0") == "1"
-            use_memmap = (not memmap_disabled) and nested_bytes >= int(memmap_min_gb * (1024 ** 3))
+            use_memmap = nested_bytes >= _MEMMAP_MIN_BYTES
             if use_memmap:
-                memmap_root = Path(
-                    os.environ.get("ENTRY_V10_CTX_MEMMAP_ROOT", "/home/andre2/GX1_DATA/tmp/entry_v10_memmap")
-                )
+                memmap_root = _MEMMAP_ROOT
                 memmap_root.mkdir(parents=True, exist_ok=True)
                 _sweep_orphaned_memmap_scratch(memmap_root)
                 self._memmap_tmpdir = tempfile.TemporaryDirectory(
@@ -2835,7 +2833,7 @@ class EntryV10CtxDataset(Dataset):
                 log.info(
                     "[MEMMAP] advanced nested arrays disk-backed: total=%.2f GB threshold=%.2f GB dir=%s",
                     nested_bytes / 1e9,
-                    memmap_min_gb,
+                    _MEMMAP_MIN_BYTES / 1024**3,
                     memmap_dir,
                 )
             else:
@@ -6069,7 +6067,6 @@ def _step_partial_gradient_accumulation(
     *,
     model: nn.Module,
     optimizer: optim.Optimizer,
-    scheduler: Any,
     configured_steps: int,
     observed_steps: int,
 ) -> bool:
@@ -6091,8 +6088,6 @@ def _step_partial_gradient_accumulation(
     torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
-    if scheduler is not None:
-        scheduler.step()
     return True
 
 
@@ -6306,8 +6301,7 @@ def _unified_exit_action_loss(
     selected_targets = targets.reshape(-1)[flat_valid].long()
     if bool(((selected_targets < 0) | (selected_targets > 1)).any()):
         raise RuntimeError("[UNIFIED_EXIT_ACTION_TARGET_INVALID]")
-    owner = model._orig_mod if hasattr(model, "_orig_mod") else model
-    exit_out = owner.forward_exit_action(
+    exit_out = model.forward_exit_action(
         entry_shared_representation=expanded_shared[flat_valid],
         exit_feature_seq_x=exit_feature_seq.reshape(
             -1,
@@ -6378,7 +6372,6 @@ def train_epoch(
     hier_trade_pos_weight: float,
     hier_bad_path_pos_weight: Any,
     grad_accum_steps: int,
-    scheduler=None,  # GX1_FAST_TRAIN: cosine+warmup scheduler, stepped per opt.step()
 ):
     model.train()
     _accum_steps = int(grad_accum_steps)
@@ -6492,7 +6485,14 @@ def train_epoch(
 
         # Grad accum: zero_grad happens AFTER step (or at start of epoch).
         # See loss.backward() / optimizer.step() block below for the gated step.
-        out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+        out = _model_forward_fp32(
+            model,
+            seq_x,
+            snap_x,
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+        )
         unified_exit_loss, unified_exit_stats = _unified_exit_action_loss(
             model,
             out,
@@ -6875,8 +6875,6 @@ def train_epoch(
             torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
-            if scheduler is not None:
-                scheduler.step()
             _accum_count = 0
 
         bs = y.shape[0]
@@ -6964,7 +6962,6 @@ def train_epoch(
         _step_partial_gradient_accumulation(
             model=model,
             optimizer=optimizer,
-            scheduler=scheduler,
             configured_steps=_accum_steps,
             observed_steps=_accum_count,
         )
@@ -7998,8 +7995,7 @@ def _accumulate_active_head_epoch(
         dim=1,
         keepdim=True,
     )
-    fusion_owner = model._orig_mod if hasattr(model, "_orig_mod") else model
-    fuse = getattr(fusion_owner, "_fuse_direction_evidence", None)
+    fuse = getattr(model, "_fuse_direction_evidence", None)
     if not callable(fuse):
         raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_FUSION_CALL_MISSING]")
     for head_name in MODEL_NATIVE_ACTIVE_HEADS:
@@ -8897,7 +8893,14 @@ def validate(
             y_clean_edge_bidir = batch["y_clean_edge_bidir"].to(device, non_blocking=non_blocking)
             y_survival_bidir = batch["y_survival_bidir"].to(device, non_blocking=non_blocking)
 
-            out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+            out = _model_forward_fp32(
+                model,
+                seq_x,
+                snap_x,
+                ctx_cat=ctx_cat,
+                ctx_cont=ctx_cont,
+                **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+            )
             unified_exit_loss, unified_exit_stats = _unified_exit_action_loss(
                 model,
                 out,
@@ -9595,7 +9598,6 @@ def run_train(
     specialist_fusion_scale: float,
     cross_family_fusion_scale: float,
     grad_accum_steps: int,
-    deterministic: bool = True,
     run_id: str = "",
     dataset_run_id: str = "",
     profile: str = "",
@@ -9603,6 +9605,11 @@ def run_train(
     _guard_no_rl()
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+    if profile == "candidate" and int(subsample_rows) != 0:
+        raise RuntimeError(
+            "[ENTRY_CANDIDATE_SUBSAMPLE_FORBIDDEN] candidate training must "
+            "use the full TRAIN population"
+        )
     if (
         isinstance(dropout, bool)
         or not math.isfinite(float(dropout))
@@ -9694,7 +9701,7 @@ def run_train(
         multi_tf_resolution_pyramid["coverage_seconds"],
     )
 
-    _set_deterministic(seed, device, deterministic=deterministic)
+    _set_deterministic(seed, device)
 
     # Pre-build and prove the exact requested pyramid before label diagnostics,
     # dataset allocation, normalization, or optimization begins. The old
@@ -9735,7 +9742,6 @@ def run_train(
 
     _log_label_distribution(train_parquet, split="train")
     _log_label_distribution(val_parquet, split="val")
-    _log_label_distribution(test_parquet, split="test")
 
     train_ds = EntryV10CtxDataset(
         train_parquet,
@@ -9744,6 +9750,7 @@ def run_train(
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
     )
+    physical_train_rows = int(len(train_ds))
     # Normalization must be fitted over the same windows the model reads, so it
     # takes the one resolution above rather than re-deriving it. A second
     # derivation is a second truth waiting to drift.
@@ -9797,6 +9804,7 @@ def run_train(
             f"[SUBSAMPLE] stratified subsample: {len(sampled_idx):,}/{len(ys):,} rows  "
             f"(class counts: {[int((ys[sampled_idx]==c).sum()) for c in (0,1,2)]})"
         )
+    effective_train_rows = int(len(train_ds))
     val_ds = EntryV10CtxDataset(
         val_parquet,
         seq_len=seq_len,
@@ -9809,9 +9817,9 @@ def run_train(
         entry_parquets={
             "train": Path(train_parquet),
             "val": Path(val_parquet),
-            "test": Path(test_parquet),
         },
         dataset_run_id=str(dataset_run_id),
+        splits=("train", "val"),
     )
     train_ds.bind_unified_exit_lifecycle(
         unified_exit_lifecycle.splits["train"]
@@ -10161,17 +10169,14 @@ def run_train(
         flat_class_weight,
     )
 
-    use_cuda = device.type == "cuda"
-    if use_cuda and num_workers < 0:
-        num_workers = max(2, min(8, (os.cpu_count() or 4)))
-    # Centralized loader tuning — bumps prefetch_factor 2→4 when GX1_FAST_TRAIN=1.
-    from gx1.utils.fast_train import loader_kwargs as _loader_kwargs
-    _dl_kwargs = _loader_kwargs(num_workers, use_cuda=use_cuda)
-    if _running_in_wsl():
-        _dl_kwargs["pin_memory"] = False
-    pin_memory = _dl_kwargs["pin_memory"]
-    persistent_workers = _dl_kwargs["persistent_workers"]
-    prefetch_factor = _dl_kwargs["prefetch_factor"]
+    if int(num_workers) != 0:
+        raise RuntimeError(
+            "[ENTRY_DATALOADER_WORKERS_INVALID] num_workers must equal 0 "
+            "under the fixed low-memory recipe"
+        )
+    pin_memory = False
+    persistent_workers = False
+    prefetch_factor = None
     log.info(
         "[DATALOADER_CONFIG] num_workers=%d pin_memory=%s persistent_workers=%s prefetch_factor=%s",
         num_workers, pin_memory, persistent_workers, str(prefetch_factor),
@@ -10373,14 +10378,6 @@ def run_train(
         _mtf_feat_count, _effective_tf_lens,
         (sum(p.numel() for p in model.parameters()) - 691977) // 1000,
     )
-    # GX1_FAST_TRAIN=1 wraps model with torch.compile (best-effort).
-    try:
-        from gx1.utils.fast_train import maybe_compile, compile_enabled
-        if compile_enabled():
-            log.info("[FAST_TRAIN] torch.compile=on (mode=reduce-overhead)")
-        model = maybe_compile(model)
-    except Exception as _e:
-        log.warning("[FAST_TRAIN] compile wrap failed: %r", _e)
     try:
         head_out = int(getattr(model.head_direction, "out_features", -1))
     except Exception:
@@ -10407,9 +10404,8 @@ def run_train(
     was_training = bool(model.training)
     model.eval()
     with torch.no_grad():
-        preflight_out = _autocast_forward(
+        preflight_out = _model_forward_fp32(
             model,
-            device,
             preflight_seq,
             preflight_snap,
             ctx_cat=preflight_ctx_cat,
@@ -11126,29 +11122,6 @@ def run_train(
     )
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=_WEIGHT_DECAY)
 
-    # GX1_FAST_TRAIN: cosine LR + 10% warmup scheduler (steps-based).
-    # Step every batch; works correctly with grad-accum since we still call
-    # scheduler.step() in train_epoch for each forward pass.
-    _scheduler = None
-    try:
-        from gx1.utils.fast_train import build_cosine_warmup_scheduler, _fast_train_master
-        if _fast_train_master():
-            _steps_per_epoch = max(
-                1,
-                math.ceil(len(train_loader) / int(grad_accum_steps)),
-            )
-            _total_steps = _steps_per_epoch * int(epochs)
-            _warmup_steps = max(1, int(_total_steps * 0.10))
-            _scheduler = build_cosine_warmup_scheduler(
-                optimizer, total_steps=_total_steps, warmup_steps=_warmup_steps,
-            )
-            log.info(
-                "[FAST_TRAIN] cosine+warmup scheduler: total_steps=%d warmup_steps=%d (10%%)",
-                _total_steps, _warmup_steps,
-            )
-    except Exception as _e:
-        log.warning("[FAST_TRAIN] scheduler init failed: %r", _e)
-
     best_state = None
     best_val = float("inf")
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
@@ -11190,11 +11163,10 @@ def run_train(
         # weight passes signal. Reporting live gradient norms at this point
         # would be misleading because the previous epoch already cleared them,
         # so the weight state is the honest and sufficient measurement.
-        _spec_ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
-        _spec_w = _spec_ckpt_model.specialist_out.weight.detach()
+        _spec_w = model.specialist_out.weight.detach()
         _spec_upstream_tensors = sum(
             1
-            for name, _param in _spec_ckpt_model.named_parameters()
+            for name, _param in model.named_parameters()
             if name.split(".")[0]
             in (
                 "specialist_encoder",
@@ -11232,7 +11204,6 @@ def run_train(
             bad_path_pos_weight=bad_path_pos_weight,
             hier_trade_pos_weight=hier_trade_pos_weight,
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
-            scheduler=_scheduler,
             grad_accum_steps=int(grad_accum_steps),
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
@@ -11597,8 +11568,7 @@ def run_train(
                 )
                 if key in val_stats
             }
-            _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
-            best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             best_epoch = epoch + 1
             epochs_since_improve = 0
             log.info(
@@ -12287,9 +12257,13 @@ def run_train(
     direction_decision_contract = model_direction_decision_contract_metadata()
     model_native_direction_evidence_fusion = direction_evidence_fusion_metadata()
     run_lineage = {
-        "schema_version": "entry_model_native_training_run_lineage_v1",
+        "schema_version": "entry_model_native_training_run_lineage_v2",
         "training_run_id": str(run_id),
         "dataset_run_id": str(dataset_run_id),
+        "training_profile": str(profile),
+        "requested_subsample_rows": int(subsample_rows),
+        "physical_train_rows": physical_train_rows,
+        "effective_train_rows": effective_train_rows,
     }
     lock = {
         "version": "entry_v10_ctx_lock_v1",
@@ -12332,10 +12306,9 @@ def run_train(
     learned_tf_input_scale_raw: Dict[str, float] = {}
     for _tf in TF_INPUT_SCALE_NAMES:
         _key = f"tf_input_scale_{_tf}"
-        _state_key = _key if _key in best_state else f"_orig_mod.{_key}"
-        if _state_key not in best_state:
+        if _key not in best_state:
             raise RuntimeError(f"[TF_INPUT_SCALE_STATE_MISSING] {_key}")
-        _value = float(best_state[_state_key].item())
+        _value = float(best_state[_key].item())
         if not np.isfinite(_value):
             raise RuntimeError(f"[TF_INPUT_SCALE_STATE_NONFINITE] {_key}={_value}")
         learned_tf_input_scale_raw[_tf] = _value
@@ -13340,11 +13313,6 @@ def main() -> None:
     parser.add_argument("--out_bundle_dir", type=Path, required=True)
     parser.add_argument("--gx1-data", type=str, required=True)
     parser.add_argument("--num-workers", type=int, required=True)
-    parser.add_argument(
-        "--fast",
-        action="store_true",
-        help="Use the audited non-deterministic CUDA execution mode.",
-    )
     parser.add_argument("--early-stopping-patience", type=int, required=True)
     parser.add_argument("--early-stopping-min-delta", type=float, required=True)
     parser.add_argument("--m5-prebuilt-path", type=Path, required=True)
@@ -13378,6 +13346,12 @@ def main() -> None:
         require_entry_run_id(args.dataset_run_id)
     except EntryRunLineageError as exc:
         parser.error(str(exc))
+    if args.run_id == args.dataset_run_id:
+        parser.error(
+            "training --run-id must differ from immutable --dataset-run-id"
+        )
+    if args.profile == "candidate" and int(args.subsample_rows) != 0:
+        parser.error("candidate training requires --subsample-rows 0")
 
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
     _GRAD_CLIP_NORM = float(args.grad_clip_norm)
@@ -13385,11 +13359,10 @@ def main() -> None:
     _guard_no_rl()
     device = _resolve_device(args.device)
     log.info(
-        "[CONFIG] seed=%d device=%s deterministic=%s grad_clip_norm=%.6f "
+        "[CONFIG] seed=%d device=%s deterministic=true grad_clip_norm=%.6f "
         "weight_decay=%.6f dropout=%.6f",
         args.seed,
         device,
-        not args.fast,
         _GRAD_CLIP_NORM,
         _WEIGHT_DECAY,
         float(args.dropout),
@@ -13438,7 +13411,6 @@ def main() -> None:
         specialist_contract_mode=str(args.specialist_contract_mode),
         dropout=float(args.dropout),
         multi_tf_num_layers=int(args.multi_tf_num_layers),
-        deterministic=not args.fast,
         multi_tf_scale=args.multi_tf_scale,
         subsample_rows=args.subsample_rows,
         specialist_num_layers=int(args.specialist_num_layers),

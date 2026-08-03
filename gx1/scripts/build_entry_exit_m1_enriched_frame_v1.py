@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -23,17 +22,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-# The full causal M1 stack is materially larger than the M5 batch.  Keep the
-# timeout fatal, but bind the M1 producer to its own explicit offline budget;
-# inheriting the M5 ten-minute batch limit fails a valid full-history build.
-M1_FEATURE_BUILD_TIMEOUT_MS = 1_800_000
-os.environ.setdefault(
-    "FEATURE_BUILD_TIMEOUT_MS",
-    str(M1_FEATURE_BUILD_TIMEOUT_MS),
-)
-
 from gx1.contracts.entry_exit_feature_base_v1 import (  # noqa: E402
     ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
     EXIT_DECISION_BAR_SECONDS,
     entry_exit_shared_feature_base_contract,
     require_entry_exit_shared_feature_base_contract,
@@ -318,9 +309,9 @@ def _build_enriched_frame(
     if (
         isinstance(workers, bool)
         or not isinstance(workers, int)
-        or workers <= 0
+        or workers != 1
     ):
-        raise RuntimeError(f"{label}_ENRICHED_WORKERS_INVALID")
+        raise RuntimeError(f"{label}_ENRICHED_WORKERS_MUST_EQUAL_ONE")
     if (
         isinstance(checkpoint_chunk_rows, bool)
         or not isinstance(checkpoint_chunk_rows, int)
@@ -460,7 +451,7 @@ def _build_enriched_frame(
     output_frame.to_parquet(output, index=False)
 
     result = {
-        "schema_version": "gx1_entry_exit_enriched_causal_frame_v1",
+        "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
         "decision": "PASS",
         "shared_feature_base_contract": contract,
         "dataset_run_id": dataset_run_id,
@@ -525,7 +516,7 @@ def main() -> None:
     parser.add_argument("--checkpoint-dir", required=True, type=Path)
     parser.add_argument("--dataset-run-id", required=True)
     parser.add_argument("--pair-generation-id", required=True)
-    parser.add_argument("--workers", type=int, default=max(1, min(12, os.cpu_count() or 1)))
+    parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--checkpoint-chunk-rows", type=int, default=4096)
     args = parser.parse_args()
     native_root = args.native_root or args.native_m1_root

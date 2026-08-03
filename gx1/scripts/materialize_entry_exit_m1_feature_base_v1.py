@@ -26,27 +26,29 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.contracts.entry_exit_feature_base_v1 import (
+from gx1.contracts.entry_exit_feature_base_v1 import (  # noqa: E402
     ENTRY_DECISION_BAR_SECONDS,
     ENTRY_FEATURE_SEQUENCE_BARS,
     EXIT_DECISION_BAR_SECONDS,
     EXIT_FEATURE_SEQUENCE_BARS,
+    ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
     ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
     entry_exit_shared_feature_base_contract,
+    require_entry_exit_shared_feature_base_contract,
 )
-from gx1.contracts.entry_model_native_signal_v1 import (
+from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_manifest,
 )
-from gx1.contracts.entry_exit_feature_surface_v1 import (
+from gx1.contracts.entry_exit_feature_surface_v1 import (  # noqa: E402
     ENTRY_EXIT_FEATURE_SURFACE_COLUMNS,
     ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
     load_m1_feature_surface,
 )
-from gx1.contracts.gx1_scope_v1 import require_offline_scope
+from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 
 
 def _sha256_file(path: Path) -> str:
@@ -67,6 +69,75 @@ def _canonical_sha256(value: Any) -> str:
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _load_enriched_source_binding(
+    source: Path,
+    *,
+    dataset_run_id: str,
+    pair_generation_id: str,
+    timeframe: str,
+) -> dict[str, Any]:
+    """Require the exact producer sidecar; caller labels cannot relabel bytes."""
+
+    source_manifest = source.with_suffix(source.suffix + ".manifest.json")
+    if source_manifest.is_symlink() or not source_manifest.is_file():
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_SOURCE_MANIFEST_MISSING")
+    try:
+        payload = json.loads(source_manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            "ENTRY_EXIT_FEATURE_BASE_SOURCE_MANIFEST_INVALID"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_SOURCE_MANIFEST_INVALID")
+
+    declared_manifest_sha = payload.get("manifest_sha256")
+    unhashed = dict(payload)
+    unhashed.pop("manifest_sha256", None)
+    source_sha = _sha256_file(source)
+    expected_bar_seconds = (
+        EXIT_DECISION_BAR_SECONDS
+        if timeframe == "M1"
+        else ENTRY_DECISION_BAR_SECONDS
+    )
+    if (
+        payload.get("schema_version")
+        != ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION
+        or payload.get("decision") != "PASS"
+        or payload.get("dataset_run_id") != dataset_run_id
+        or payload.get("pair_generation_id") != pair_generation_id
+        or payload.get("timeframe") != timeframe
+        or payload.get("base_bar_seconds") != expected_bar_seconds
+        or payload.get("output_parquet") != str(source)
+        or payload.get("output_parquet_sha256") != source_sha
+        or declared_manifest_sha != _canonical_sha256(unhashed)
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_SOURCE_LINEAGE_INVALID")
+    require_entry_exit_shared_feature_base_contract(
+        payload.get("shared_feature_base_contract"),
+        context="ENTRY_EXIT_FEATURE_BASE_SOURCE",
+    )
+    rank_path = Path(str(payload.get("rank_reference_npz") or ""))
+    rank_sha = str(payload.get("rank_reference_sha256") or "")
+    if (
+        not rank_path.is_absolute()
+        or rank_path.is_symlink()
+        or not rank_path.is_file()
+        or len(rank_sha) != 64
+        or _sha256_file(rank_path) != rank_sha
+    ):
+        raise RuntimeError(
+            "ENTRY_EXIT_FEATURE_BASE_SOURCE_RANK_LINEAGE_INVALID"
+        )
+    return {
+        "manifest_path": str(source_manifest),
+        "manifest_sha256": _sha256_file(source_manifest),
+        "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
+        "source_sha256": source_sha,
+        "rank_reference_npz": str(rank_path),
+        "rank_reference_sha256": rank_sha,
+    }
 
 
 def _fixed_size_list_column(values: np.ndarray, width: int, *, dtype: pa.DataType) -> pa.Array:
@@ -139,6 +210,13 @@ def _materialize_feature_base(
         raise RuntimeError("M1_FEATURE_BASE_DATASET_RUN_ID_INVALID")
     if not isinstance(pair_generation_id, str) or not pair_generation_id:
         raise RuntimeError("M1_FEATURE_BASE_PAIR_GENERATION_ID_INVALID")
+
+    source_binding = _load_enriched_source_binding(
+        source,
+        dataset_run_id=dataset_run_id,
+        pair_generation_id=pair_generation_id,
+        timeframe=timeframe,
+    )
 
     contract = require_model_native_manifest(
         json.loads(manifest_path.read_text(encoding="utf-8")),
@@ -289,7 +367,12 @@ def _materialize_feature_base(
         "pair_generation_id": pair_generation_id,
         "anchor_timeframe": timeframe,
         "source_parquet": str(source),
-        "source_sha256": _sha256_file(source),
+        "source_sha256": source_binding["source_sha256"],
+        "source_manifest": source_binding["manifest_path"],
+        "source_manifest_sha256": source_binding["manifest_sha256"],
+        "source_manifest_schema_version": source_binding["schema_version"],
+        "rank_reference_npz": source_binding["rank_reference_npz"],
+        "rank_reference_sha256": source_binding["rank_reference_sha256"],
         "alignment_parquet": None if alignment is None else str(alignment),
         "alignment_sha256": (
             None if alignment is None else _sha256_file(alignment)
@@ -303,6 +386,9 @@ def _materialize_feature_base(
         "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
         "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
         "feature_field_order": list(contract["fields"]),
+        "feature_field_order_sha256": _canonical_sha256(
+            list(contract["fields"])
+        ),
         "extension": extension_meta,
         "causal_contract": {
             "future_rows_used": False,

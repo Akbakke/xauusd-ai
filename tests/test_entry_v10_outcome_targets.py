@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_CLOSURE_CONTRACT,
     canonical_xau_source_descriptor_v1,
 )
 from gx1.execution import v12_canonical_incremental as incremental
@@ -42,7 +43,6 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _selected_side_bad_path_target,
     _validate_model_native_aux_head_targets,
     build_unified_exit_lifecycle_episodes,
-    compute_unified_exit_action_targets,
     hierarchical_direction_label_contract,
     model_native_aux_target_contract_metadata,
 )
@@ -282,21 +282,6 @@ def test_aux_target_validator_rejects_finite_incomplete_tail() -> None:
         _validate_model_native_aux_head_targets(broken, n_rows=130)
 
 
-def _decision_quotes(mid: list[float]) -> pd.DataFrame:
-    values = np.asarray(mid, dtype=np.float64)
-    return pd.DataFrame(
-        {
-            "time": pd.date_range(
-                "2026-07-29T10:00:00Z",
-                periods=len(values),
-                freq="min",
-            ),
-            "bid": values - 0.05,
-            "ask": values + 0.05,
-        }
-    )
-
-
 def _closed_m1_lifecycle_source(n_rows: int = 560) -> pd.DataFrame:
     time = pd.date_range(
         "2026-01-01T00:05:00Z",
@@ -511,12 +496,14 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
         closed_m1=source,
         split_end=split_end,
         target_lookahead_m1_steps=3,
+        market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
     repeated, repeated_proof = build_unified_exit_lifecycle_episodes(
         entry_rows=entries,
         closed_m1=source,
         split_end=split_end,
         target_lookahead_m1_steps=3,
+        market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
 
     pd.testing.assert_frame_equal(episodes, repeated)
@@ -546,22 +533,32 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
     )
 
 
-def test_unified_exit_lifecycle_rejects_gapped_or_boundary_crossing_path() -> None:
+def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() -> None:
     entries = pd.DataFrame(
         {"time": pd.to_datetime(["2026-01-01T00:00:00Z"], utc=True)}
     )
     source = _closed_m1_lifecycle_source()
     gapped = source.drop(index=200).reset_index(drop=True)
 
-    with pytest.raises(
-        RuntimeError,
-        match="UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES",
-    ):
+    episodes, proof = build_unified_exit_lifecycle_episodes(
+        entry_rows=entries,
+        closed_m1=gapped,
+        split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
+        target_lookahead_m1_steps=3,
+        market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    )
+    assert len(episodes) == 2
+    assert proof["required_observed_m1_rows_per_episode"] == 515
+    assert proof["m1_row_clock"] == (
+        "consecutive_authoritative_closed_m1_source_rows"
+    )
+    with pytest.raises(RuntimeError, match="MARKET_CLOSURE_PROOF_REQUIRED"):
         build_unified_exit_lifecycle_episodes(
             entry_rows=entries,
             closed_m1=gapped,
             split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
             target_lookahead_m1_steps=3,
+            market_closure_contract="unproven",
         )
     with pytest.raises(
         RuntimeError,
@@ -572,6 +569,27 @@ def test_unified_exit_lifecycle_rejects_gapped_or_boundary_crossing_path() -> No
             closed_m1=source,
             split_end=source["time"].iloc[400],
             target_lookahead_m1_steps=3,
+            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+        )
+
+
+def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
+    entries = pd.DataFrame(
+        {"time": pd.to_datetime(["2026-01-01T00:00:00Z"], utc=True)}
+    )
+    source = _closed_m1_lifecycle_source()
+    price_columns = [
+        name for name in source.columns if name not in {"time", "volume"}
+    ]
+    source.loc[200:300, price_columns] /= 10.0
+
+    with pytest.raises(RuntimeError, match="PRICE_SCALE_GLITCH"):
+        build_unified_exit_lifecycle_episodes(
+            entry_rows=entries,
+            closed_m1=source,
+            split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
+            target_lookahead_m1_steps=3,
+            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
         )
 
 
@@ -649,6 +667,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
             closed_m1=source,
             split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
             target_lookahead_m1_steps=3,
+            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
         )
         lifecycle_path = (
             lifecycle_dir / f"{split}_unified_exit_lifecycle.parquet"
@@ -712,6 +731,9 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 "m1_authority_sha256": m1_authority_sha256,
                     "path_state_count": 512,
                     "target_lookahead_m1_steps": 3,
+                    "m1_row_clock": (
+                        "consecutive_authoritative_closed_m1_source_rows"
+                    ),
                     "shared_feature_base_contract": (
                         entry_exit_shared_feature_base_contract()
                     ),
@@ -748,116 +770,6 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     assert corpus.evidence["splits"]["train"]["selected_target_counts"][
         "EXIT_NOW"
     ] > 0
-
-
-@pytest.mark.parametrize(
-    ("side", "mid"),
-    (
-        ("long", [100.0, 101.0, 102.0, 101.0, 100.0]),
-        ("short", [100.0, 99.0, 98.0, 99.0, 100.0]),
-    ),
-)
-def test_unified_exit_targets_hold_into_peak_then_exit_at_peak(
-    side: str,
-    mid: list[float],
-) -> None:
-    targets = compute_unified_exit_action_targets(
-        decision_quotes=_decision_quotes(mid),
-        entry_bid=99.95,
-        entry_ask=100.05,
-        side=side,
-        target_lookahead_m1_steps=2,
-    )
-
-    assert targets["state_index"].tolist() == [0, 1, 2]
-    assert targets["exit_action"].tolist() == ["HOLD", "HOLD", "EXIT_NOW"]
-    assert targets["y_exit_action"].tolist() == [0, 0, 1]
-    assert (targets["target_margin_bps"] > 0.0).all()
-    assert (
-        targets.loc[targets["exit_action"] == "HOLD", "q_hold_bps"]
-        > targets.loc[targets["exit_action"] == "HOLD", "q_exit_now_bps"]
-    ).all()
-    peak = targets.loc[targets["exit_action"] == "EXIT_NOW"].iloc[0]
-    assert peak["q_exit_now_bps"] > peak["q_hold_bps"]
-
-
-def test_unified_exit_targets_omit_exact_ties_and_right_censored_tail() -> None:
-    targets = compute_unified_exit_action_targets(
-        decision_quotes=_decision_quotes([100.0, 100.0, 101.0, 100.0]),
-        entry_bid=99.95,
-        entry_ask=100.05,
-        side="long",
-        target_lookahead_m1_steps=1,
-    )
-
-    assert targets["state_index"].tolist() == [1, 2]
-    assert targets["exit_action"].tolist() == ["HOLD", "EXIT_NOW"]
-    assert 0 not in targets["state_index"].tolist()
-    assert 3 not in targets["state_index"].tolist()
-
-
-@pytest.mark.parametrize("lookahead", (0, -1, True, 1.5))
-def test_unified_exit_targets_require_explicit_positive_integer_lookahead(
-    lookahead: object,
-) -> None:
-    with pytest.raises(RuntimeError, match="LOOKAHEAD_INVALID"):
-        compute_unified_exit_action_targets(
-            decision_quotes=_decision_quotes([100.0, 101.0, 100.0]),
-            entry_bid=99.95,
-            entry_ask=100.05,
-            side="long",
-            target_lookahead_m1_steps=lookahead,  # type: ignore[arg-type]
-        )
-
-
-def test_unified_exit_targets_fail_on_gap_or_fully_censored_episode() -> None:
-    gap = _decision_quotes([100.0, 101.0, 100.0])
-    gap.loc[2, "time"] = pd.Timestamp("2026-07-29T10:03:00Z")
-    with pytest.raises(RuntimeError, match="CADENCE_GAP"):
-        compute_unified_exit_action_targets(
-            decision_quotes=gap,
-            entry_bid=99.95,
-            entry_ask=100.05,
-            side="long",
-            target_lookahead_m1_steps=1,
-        )
-    with pytest.raises(RuntimeError, match="RIGHT_CENSORED_EPISODE"):
-        compute_unified_exit_action_targets(
-            decision_quotes=_decision_quotes([100.0, 101.0]),
-            entry_bid=99.95,
-            entry_ask=100.05,
-            side="long",
-            target_lookahead_m1_steps=2,
-        )
-
-
-def test_unified_exit_future_quote_changes_target_not_causal_state_identity() -> None:
-    base = _decision_quotes([100.0, 101.0, 102.0, 101.0])
-    changed = base.copy()
-    changed.loc[3, ["bid", "ask"]] = [102.95, 103.05]
-
-    base_targets = compute_unified_exit_action_targets(
-        decision_quotes=base,
-        entry_bid=99.95,
-        entry_ask=100.05,
-        side="long",
-        target_lookahead_m1_steps=1,
-    )
-    changed_targets = compute_unified_exit_action_targets(
-        decision_quotes=changed,
-        entry_bid=99.95,
-        entry_ask=100.05,
-        side="long",
-        target_lookahead_m1_steps=1,
-    )
-
-    pd.testing.assert_frame_equal(base.iloc[:3], changed.iloc[:3])
-    assert base_targets.loc[
-        base_targets["state_index"] == 2, "exit_action"
-    ].item() == "EXIT_NOW"
-    assert changed_targets.loc[
-        changed_targets["state_index"] == 2, "exit_action"
-    ].item() == "HOLD"
 
 
 def test_aux_target_builder_requires_bid_ask_high_low() -> None:

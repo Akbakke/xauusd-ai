@@ -5,7 +5,6 @@ Test OANDA Reconciliation Parsing.
 
 Tests transaction matching logic using fixture data (no network calls).
 """
-import json
 import unittest
 from pathlib import Path
 
@@ -274,4 +273,3 @@ class TestReconcileOandaParsing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

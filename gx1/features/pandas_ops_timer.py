@@ -5,12 +5,9 @@ Del 2: Provides wrapper functions to automatically time pandas rolling operation
 and report to PerfCollector with callsite information.
 """
 
-import inspect
-import os
 import time
-from typing import Union, Optional
+from typing import Union
 
-import numpy as np
 import pandas as pd
 
 from gx1.utils.perf_timer import perf_add, perf_inc
@@ -43,16 +40,6 @@ def timed_pandas_rolling(
     -------
     Result of the rolling operation
     """
-    # Get callsite information
-    frame = inspect.currentframe().f_back
-    lineno = frame.f_lineno
-    filename = frame.f_code.co_filename
-    
-    # Extract just the filename (not full path) for cleaner output
-    import os.path
-    filename_short = os.path.basename(filename)
-    site = f"{filename_short}:{lineno}"
-    
     # Build tag: for quantile, include q value if present
     if op == "quantile" and "q" in kwargs:
         q_val = kwargs["q"]
@@ -75,4 +62,3 @@ def timed_pandas_rolling(
         perf_inc(tag)
     
     return result
-

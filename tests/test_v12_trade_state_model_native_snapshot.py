@@ -525,6 +525,53 @@ def test_pipeline_catches_up_every_contiguous_authoritative_m1_bar(
     assert len(model.calls) == 2
 
 
+def test_pipeline_catches_up_consecutive_source_rows_across_market_closure(
+    tmp_path: Path,
+) -> None:
+    trade = _open()
+    adapter, model = _unified_exit_adapter(
+        tmp_path,
+        logits=(2.0, -1.0),
+    )
+    source_index = pd.DatetimeIndex(
+        ["2026-07-16T12:00:00Z", "2026-07-18T12:00:00Z"]
+    )
+
+    class _Loader:
+        def refresh_if_changed(self) -> bool:
+            return False
+
+        def acquire_serving_snapshot(self) -> SimpleNamespace:
+            return SimpleNamespace(base28=pd.DataFrame(index=source_index))
+
+        def get_closed_m1_bar(
+            self,
+            expected_m1: pd.Timestamp,
+            *,
+            snapshot: SimpleNamespace,
+        ) -> dict[str, object]:
+            assert expected_m1 in snapshot.base28.index
+            return _valid_closed_m1_bar(expected_m1.isoformat())
+
+    pipeline = V12Pipeline(
+        prebuilt_loader=_Loader(),
+        smart_entry=adapter,
+    )
+
+    output = pipeline.make_exit_decision(
+        trade,
+        pd.Timestamp("2026-07-18T12:01:00Z"),
+        bid=3300.0,
+        ask=3300.2,
+        on_bar_committed=lambda _trade: None,
+    )
+
+    assert output["action"] == "HOLD"
+    assert trade.bars_in_trade == 2
+    assert trade.last_processed_m1_ts == source_index[-1]
+    assert len(model.calls) == 2
+
+
 def test_pipeline_durably_journals_each_catch_up_bar_before_advancing(
     tmp_path: Path,
 ) -> None:
@@ -698,11 +745,21 @@ def test_exit_recovery_loads_trade_bound_bundle_without_active_registry(
         def load(self) -> None:
             self.loaded = True
 
+    bound_m1: dict[str, object] = {}
     adapter = SimpleNamespace(
         _meta={
             "unified_entry_exit_contract": (
                 unified_entry_exit_contract_metadata()
-            )
+            ),
+            "m1_feature_surface_binding": {
+                "parquet_path": "/tmp/m1_feature_surface.parquet",
+                "manifest_path": "/tmp/m1_feature_surface.parquet.manifest.json",
+                "dataset_run_id": "UNIT_EXIT_RECOVERY_DATASET",
+                "pair_generation_id": "UNIT_EXIT_RECOVERY_PAIR",
+                "parquet_sha256": "1" * 64,
+                "manifest_sha256": "2" * 64,
+                "feature_field_order_sha256": "3" * 64,
+            },
         },
         _model=SimpleNamespace(
             state_dict=lambda: {
@@ -711,6 +768,9 @@ def test_exit_recovery_loads_trade_bound_bundle_without_active_registry(
             }
         ),
         decide_exit=lambda **_kwargs: {},
+        bind_admitted_m1_feature_surface=lambda **kwargs: bound_m1.update(
+            kwargs
+        ),
     )
     observed: dict[str, object] = {}
 
@@ -740,6 +800,7 @@ def test_exit_recovery_loads_trade_bound_bundle_without_active_registry(
         _model_bundle_binding()["bundle_dir"]
     )
     assert observed["expected_bundle_sha256"] == "b" * 64
+    assert bound_m1["dataset_run_id"] == "UNIT_EXIT_RECOVERY_DATASET"
 
 
 def test_first_full_m1_bar_excludes_prefill_intraminute_path() -> None:
@@ -961,21 +1022,25 @@ def test_trade_state_update_bar_requires_all_bid_ask_ohlc_before_mutation() -> N
     assert not trade.peak_history
 
 
-def test_trade_state_rejects_duplicate_or_gapped_m1_before_mutation() -> None:
+def test_trade_state_accepts_forward_market_gap_but_rejects_duplicate_or_reversal() -> None:
     trade = _open()
     trade.update_bar(**_valid_closed_m1_bar())
     _bind_test_hold_decision(trade)
     before = trade.to_dict()
 
-    with pytest.raises(ValueError, match="cadence gap/duplicate"):
+    with pytest.raises(ValueError, match="row clock duplicate/reversal"):
         trade.update_bar(**_valid_closed_m1_bar())
     assert trade.to_dict() == before
 
-    with pytest.raises(ValueError, match="cadence gap/duplicate"):
+    trade.update_bar(
+        **_valid_closed_m1_bar("2026-07-16T12:02:00Z")
+    )
+    assert trade.bars_in_trade == 2
+
+    with pytest.raises(ValueError, match="row clock duplicate/reversal"):
         trade.update_bar(
-            **_valid_closed_m1_bar("2026-07-16T12:02:00Z")
+            **_valid_closed_m1_bar("2026-07-16T12:01:00Z")
         )
-    assert trade.to_dict() == before
 
 
 @pytest.mark.parametrize(

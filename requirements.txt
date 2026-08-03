@@ -1,0 +1,18 @@
+# GX1 direct dependencies verified with CPython 3.10.12.
+# Transitive dependencies remain resolver-owned; this is intentionally not a
+# dump of the workstation's unrelated virtual-environment packages.
+--extra-index-url https://download.pytorch.org/whl/cu124
+
+numba==0.65.0
+numpy==2.2.6
+pandas==2.3.3
+pyarrow==23.0.1
+PyYAML==6.0.3
+requests==2.33.1
+scikit-learn==1.7.2
+scipy==1.15.3
+torch==2.6.0+cu124
+
+# Verification toolchain.
+pytest==9.0.3
+ruff==0.15.14

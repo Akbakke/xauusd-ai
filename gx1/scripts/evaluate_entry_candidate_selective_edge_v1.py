@@ -979,6 +979,20 @@ def _predict_bundle(
     model = bundle.transformer_model
     model.eval()
     meta = dict(bundle.metadata)
+    run_lineage = meta.get("run_lineage")
+    if (
+        model_name == EVALUATION_MODEL_NAME
+        and (
+            not isinstance(run_lineage, Mapping)
+            or run_lineage.get("training_profile") != "candidate"
+            or run_lineage.get("requested_subsample_rows") != 0
+            or run_lineage.get("physical_train_rows")
+            != run_lineage.get("effective_train_rows")
+        )
+    ):
+        raise RuntimeError(
+            "candidate evaluation requires a full-population candidate-profile bundle"
+        )
     require_model_direction_decision_contract(
         meta,
         context=f"candidate bundle {Path(bundle_dir).expanduser().resolve()}",

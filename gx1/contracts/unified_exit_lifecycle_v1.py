@@ -7,7 +7,7 @@ import json
 import math
 import tempfile
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
+    EXIT_FEATURE_ROW_CLOCK,
     EXIT_FEATURE_SEQUENCE_BARS,
     entry_exit_shared_feature_base_contract,
     require_entry_exit_shared_feature_base_contract,
@@ -46,10 +47,11 @@ from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_SIDE_ORDER,
     unified_exit_path_tensor_from_values,
 )
+from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 
 
 UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION = (
-    "gx1_unified_exit_lifecycle_episode_envelope_v2"
+    "gx1_unified_exit_lifecycle_episode_envelope_v3"
 )
 UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION = (
     "gx1_unified_exit_native_pair_m1_authority_v1"
@@ -421,6 +423,10 @@ def _validated_m1_arrays(
     )
     if tuple(frame.columns) != UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS:
         raise RuntimeError("UNIFIED_EXIT_M1_SOURCE_SCHEMA_MISMATCH")
+    assert_no_price_scale_glitch(
+        frame,
+        context="UNIFIED_EXIT_LIFECYCLE_M1_SOURCE",
+    )
     times = pd.DatetimeIndex(
         pd.to_datetime(frame.pop("time"), utc=True, errors="coerce")
     ).as_unit("ns")
@@ -833,7 +839,18 @@ class UnifiedExitLifecycleCorpus:
         root_manifest_path: Path,
         entry_parquets: Mapping[str, Path],
         dataset_run_id: str,
+        splits: Sequence[str] = ("train", "val", "test"),
     ) -> None:
+        selected_splits = tuple(splits)
+        if (
+            not selected_splits
+            or len(selected_splits) != len(set(selected_splits))
+            or any(
+                split not in {"train", "val", "test"}
+                for split in selected_splits
+            )
+        ):
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_SELECTED_SPLITS_INVALID")
         manifest_path = Path(root_manifest_path).expanduser().absolute()
         if (
             not manifest_path.is_absolute()
@@ -876,6 +893,7 @@ class UnifiedExitLifecycleCorpus:
                 "m1_authority_sha256",
                 "path_state_count",
                 "target_lookahead_m1_steps",
+                "m1_row_clock",
                 "shared_feature_base_contract",
                 "side_order",
                 "action_order",
@@ -889,6 +907,7 @@ class UnifiedExitLifecycleCorpus:
             or root_manifest["decision"] != "PASS"
             or root_manifest["entry_run_id"] != dataset_run_id
             or root_manifest["path_state_count"] != UNIFIED_EXIT_MAX_PATH_BARS
+            or root_manifest["m1_row_clock"] != EXIT_FEATURE_ROW_CLOCK
             or root_manifest["side_order"] != list(UNIFIED_EXIT_SIDE_ORDER)
             or root_manifest["action_order"] != list(UNIFIED_EXIT_ACTION_ORDER)
             or set(root_manifest["splits"]) != {"train", "val", "test"}
@@ -980,13 +999,13 @@ class UnifiedExitLifecycleCorpus:
         if not m1_feature_times.equals(m1_times):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
 
-        if set(entry_parquets) != {"train", "val", "test"}:
+        if set(entry_parquets) != set(selected_splits):
             raise RuntimeError(
                 "UNIFIED_EXIT_LIFECYCLE_ENTRY_SPLIT_SET_INVALID"
             )
         self.splits: dict[str, UnifiedExitLifecycleSplit] = {}
         split_evidence: dict[str, Any] = {}
-        for split in ("train", "val", "test"):
+        for split in selected_splits:
             entry_path = Path(entry_parquets[split]).expanduser().absolute()
             binding = root_manifest["splits"][split]
             _require_exact_keys(
@@ -1045,6 +1064,7 @@ class UnifiedExitLifecycleCorpus:
                 ("lifecycle_parquet_rows", binding["episode_rows"]),
                 ("target_counts", binding["target_counts"]),
                 ("target_stream_sha256", binding["target_stream_sha256"]),
+                ("m1_row_clock", EXIT_FEATURE_ROW_CLOCK),
             ):
                 if split_manifest.get(key) != expected:
                     raise RuntimeError(
@@ -1129,6 +1149,7 @@ class UnifiedExitLifecycleCorpus:
             "target_lookahead_m1_steps": int(
                 root_manifest["target_lookahead_m1_steps"]
             ),
+            "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
             "shared_feature_base_contract": (
                 entry_exit_shared_feature_base_contract()
             ),

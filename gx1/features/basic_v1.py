@@ -9,18 +9,13 @@ import pandas as pd
 from sklearn.preprocessing import RobustScaler
 import pickle
 from pathlib import Path
-import os
 import time
-import threading
 
 # FASE 1: Use PREBUILT-safe tripwire counter (does not import feature-building modules)
 from gx1.execution.feature_build_tripwires import bump_feature_build_call_count
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 from gx1.time.session_detector import ASIA_SESSION_ID
 
-# Legacy counter kept for backward compatibility (deprecated, use feature_build_tripwires)
-_basic_v1_call_lock = threading.Lock()
-_basic_v1_call_count = 0
 M5_DECISION_DELAY_SECONDS = 5 * 60
 M1_DECISION_DELAY_SECONDS = 1 * 60
 
@@ -159,18 +154,6 @@ def _validate_causal_feature_column(values: np.ndarray, *, name: str) -> np.ndar
         )
     return array
 
-def get_basic_v1_call_count() -> int:
-    """Get global count of build_basic_v1 calls (thread-safe). DEPRECATED: Use feature_build_tripwires.get_feature_build_call_count() instead."""
-    with _basic_v1_call_lock:
-        return _basic_v1_call_count
-
-def reset_basic_v1_call_count() -> None:
-    """Reset global count of build_basic_v1 calls (thread-safe). DEPRECATED: Use feature_build_tripwires.reset_feature_build_call_count() instead."""
-    global _basic_v1_call_count
-    with _basic_v1_call_lock:
-        _basic_v1_call_count = 0
-
-
 def _assert_valid_datetime_index(df: pd.DataFrame, ctx: str = "unknown") -> pd.Timestamp:
     """
     Assert that df has a valid DatetimeIndex and return current timestamp.
@@ -185,25 +168,15 @@ def _assert_valid_datetime_index(df: pd.DataFrame, ctx: str = "unknown") -> pd.T
         pd.Timestamp: Current timestamp from df.index[-1]
     
     Raises:
-        RuntimeError: In replay mode if index is invalid
-        ValueError: In live mode if index is invalid (non-fatal but logged)
+        RuntimeError: If the deterministic timestamp contract is invalid.
     """
-    import os
-    is_replay = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1" or os.getenv("GX1_REPLAY_MODE") == "1"
-    
     if not isinstance(df.index, pd.DatetimeIndex):
         error_msg = (
             f"[DETERMINISM_BLOCKER] DataFrame index is not DatetimeIndex in context '{ctx}'. "
             f"Index type: {type(df.index)}, df.shape: {df.shape}. "
             f"This breaks determinism (cannot use pd.Timestamp.now() fallback)."
         )
-        if is_replay:
-            raise RuntimeError(error_msg)
-        else:
-            import logging
-            log = logging.getLogger(__name__)
-            log.error(error_msg + " (live mode: treating as fatal)")
-            raise ValueError(error_msg)
+        raise RuntimeError(error_msg)
     
     if len(df.index) == 0:
         error_msg = (
@@ -211,13 +184,7 @@ def _assert_valid_datetime_index(df: pd.DataFrame, ctx: str = "unknown") -> pd.T
             f"df.shape: {df.shape}. "
             f"This breaks determinism (cannot use pd.Timestamp.now() fallback)."
         )
-        if is_replay:
-            raise RuntimeError(error_msg)
-        else:
-            import logging
-            log = logging.getLogger(__name__)
-            log.error(error_msg + " (live mode: treating as fatal)")
-            raise ValueError(error_msg)
+        raise RuntimeError(error_msg)
     
     return df.index[-1]
 
@@ -383,7 +350,6 @@ def _align_htf_to_m5_numpy(
     htf_values: np.ndarray,
     htf_close_times: np.ndarray,
     m5_timestamps: np.ndarray,
-    is_replay: bool,
     *,
     decision_delay_seconds: int = M5_DECISION_DELAY_SECONDS,
 ) -> np.ndarray:
@@ -399,15 +365,10 @@ def _align_htf_to_m5_numpy(
         htf_values: HTF feature values (float64 array)
         htf_close_times: HTF bar close times (seconds since epoch, int64 array)
         m5_timestamps: M5 bar-open timestamps (seconds since epoch, int64 array)
-        is_replay: If True, hard fail on warmup not satisfied
-    
     Returns:
         Decision-time-aligned values (float64 array). A strict historical
         warmup prefix remains NaN and must be trimmed before model input.
     """
-    # PATCH: Per-call timing instrumentation (non-breaking)
-    t_align_call_start = time.perf_counter()
-    
     if len(htf_close_times) == 0:
         raise RuntimeError(
             "HTF alignment: No completed HTF bars available (warmup not satisfied)"
@@ -434,12 +395,6 @@ def _align_htf_to_m5_numpy(
         - 1
     )
     
-    # NEW: Track htf_align_idx_min for telemetry (harness-only, replay mode)
-    if is_replay:
-        htf_align_idx_min = int(np.min(indices)) if len(indices) > 0 else -1
-        from gx1.utils.perf_timer import perf_add
-        perf_add("feat.htf_align_idx_min", float(htf_align_idx_min))
-    
     # A strict leading warmup prefix is representable, but it is unavailable
     # evidence rather than a neutral market state.  Missing rows after the
     # first valid HTF observation are a broken alignment and always fail.
@@ -457,46 +412,10 @@ def _align_htf_to_m5_numpy(
                 f"HTF alignment: missing completed HTF evidence after first valid row; "
                 f"missing={n_missing} first_valid_index={first_valid_idx}"
             )
-        if is_replay and n_missing > 0:
-            # PATCH: Track warning path timing
-            from gx1.utils.perf_timer import perf_add
-            perf_add("feat.htf_align.warning_path", 1.0)  # Count warning paths
-            # Conservative estimate: 0.5us per missing bar (searchsorted + mask + zeros + roll)
-            estimated_overhead = n_missing * 0.5e-6
-            perf_add("feat.htf_align.warning_overhead_est", estimated_overhead)
-            
-            # Track alignment warning count per runner (via thread-local or module-level)
-            # For now, use module-level cache (will be reset per chunk in replay_eval_gated_parallel)
-            if not hasattr(_align_htf_to_m5_numpy, "_align_warn_count"):
-                _align_htf_to_m5_numpy._align_warn_count = 0  # type: ignore
-            _align_htf_to_m5_numpy._align_warn_count += 1  # type: ignore
-            
-            # Try to increment runner's counter (if available via context)
-            try:
-                from gx1.utils.feature_context import get_feature_state
-                state = get_feature_state()
-                if state is not None:
-                    # Store in state for chunk summary (runner will read it)
-                    if not hasattr(state, "htf_align_warn_count"):
-                        state.htf_align_warn_count = 0
-                    state.htf_align_warn_count += 1
-            except Exception:
-                pass  # Non-fatal: just use module-level cache
-            
-            # No per-row warning: the unavailable prefix stays NaN and the
-            # downstream causal warmup contract must trim it.
-
     # Missing HTF evidence remains NaN.  It cannot masquerade as neutral.
     aligned = np.full(len(m5_timestamps), np.nan, dtype=np.float64)
     valid_mask = indices >= 0
     aligned[valid_mask] = htf_values[indices[valid_mask]]
-    
-    # PATCH: Record per-call timing (non-breaking)
-    t_align_call_end = time.perf_counter()
-    if is_replay:
-        from gx1.utils.perf_timer import perf_add
-        perf_add("feat.htf_align.call_total", t_align_call_end - t_align_call_start)
-        perf_add("feat.htf_align.call_count", 1.0)
     
     return aligned
 
@@ -683,87 +602,23 @@ def build_basic_v1(
     Bruker kun fortid: shift(1) og ruller bakover.
     Returnerer df med nye _v1_* features; originalkolonner beholdes.
     
-    DEL 2: Runtime hot-path - all pandas operations replaced with NumPy.
-    Input must be float32/float64 - hard fail in replay mode on wrong dtype.
-    
-    FASE 0.3: Global kill-switch - GX1_FEATURE_BUILD_DISABLED=1 forbydder ALL feature-building.
+    Input OHLC must be float32/float64. Every caller uses the same strict
+    feature path; ambient environment flags cannot change formulas or fields.
     """
-    # FASE 0.3: Global kill-switch - hard-fail hvis feature-building er deaktivert
-    feature_build_disabled = os.getenv("GX1_FEATURE_BUILD_DISABLED", "0") == "1"
-    if feature_build_disabled:
-        raise RuntimeError(
-            "[PREBUILT_FAIL] build_basic_v1() called while GX1_FEATURE_BUILD_DISABLED=1. "
-            "Feature-building is completely disabled in prebuilt mode. "
-            "This is a hard invariant - prebuilt features must be used directly."
-        )
-    
-    # Increment global call counter (thread-safe)
-    # FASE 1: Use PREBUILT-safe tripwire counter
     bump_feature_build_call_count("basic_v1.build_basic_v1")
-    
-    # Legacy counter (kept for backward compatibility)
-    global _basic_v1_call_count
-    with _basic_v1_call_lock:
-        _basic_v1_call_count += 1
-    
-    # TRIPWIRE: Fail-fast if prebuilt features are enabled (should never call build_basic_v1)
-    prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1"
-    is_replay = os.getenv("GX1_REPLAY") == "1"
-    if prebuilt_enabled and is_replay:
-        raise RuntimeError(
-            "[PREBUILT_FAIL] build_basic_v1() called while GX1_REPLAY_USE_PREBUILT_FEATURES=1. "
-            f"Call count: {_basic_v1_call_count}. "
-            "This indicates prebuilt bypass is not working. "
-            "Prebuilt features must be used directly without calling build_basic_v1()."
-        )
-    
-    # HARD VERIFIKASJON: Runtime guard for pandas detection
-    assert_no_pandas = os.getenv("GX1_ASSERT_NO_PANDAS", "0") == "1"
-    pandas_ops_detected = []
-    
-    def _detect_pandas_op(op_name, obj):
-        """Detect pandas operations in hot-path."""
-        if assert_no_pandas:
-            if isinstance(obj, (pd.Series, pd.DataFrame)):
-                import traceback
-                stack = ''.join(traceback.format_stack()[-3:-1])
-                pandas_ops_detected.append(f"{op_name}: {type(obj).__name__} at:\n{stack}")
-    
-    # Del 2C: Time total function
-    import time
     from gx1.utils.perf_timer import perf_add
     t_start = time.perf_counter()
-    
-    # Del 4: Log numpy rolling activation once per call
-    use_np_rolling = os.getenv("GX1_FEATURE_USE_NP_ROLLING") == "1"
-    if use_np_rolling:
-        import logging
-        log = logging.getLogger(__name__)
-        log.info("[FEATURES] GX1_FEATURE_USE_NP_ROLLING=1: Using NumPy rolling_std_3 for comp3_ratio")
-    
+
     df = df.copy()
-    
-    # DEL 2: Dtype validation - hard fail in replay mode
-    is_replay = os.getenv("GX1_REPLAY", "0") == "1"
     for c in ["open", "high", "low", "close"]:
         if c not in df:
             raise ValueError(f"Column '{c}' missing for basic_v1 features")
-        # Check dtype
         if df[c].dtype not in [np.float32, np.float64]:
-            if is_replay:
-                raise ValueError(
-                    f"OHLCV dtype mismatch (replay): column '{c}' has dtype {df[c].dtype}, "
-                    f"expected float32/float64. This may cause pandas timeout. "
-                    f"First 5 values: {df[c].head().tolist()}"
-                )
-            # Live mode: convert with warning
-            import logging
-            log = logging.getLogger(__name__)
-            log.warning(f"[FEATURES] Column '{c}' dtype {df[c].dtype} converted to float64 (live mode)")
-            df[c] = df[c].astype(np.float64)
-        else:
-            # Ensure float64 (not float32) for consistency
-            df[c] = df[c].astype(np.float64)
+            raise ValueError(
+                f"OHLC dtype mismatch: column '{c}' has dtype {df[c].dtype}; "
+                "expected float32/float64"
+            )
+        df[c] = df[c].astype(np.float64)
 
     _require_observed_spread_input(df)
     plus5 = compute_plus5_features(df)
@@ -872,19 +727,11 @@ def build_basic_v1(
         # LOW regime: atr14 < q33 ; HIGH regime: atr14 >= q67 ; MEDIUM: q33<=atr14<q67 (already 1.0)
         low_mask = atr_valid < q33_valid
         high_mask = atr_valid >= q67_valid
-        if os.environ.get("GX1_ATR_REGIME_FIX", "0") == "1":
-            # 2026-06-11 FIX (env-gated; DEFAULT OFF = live-cement parity — the cement trained on the buggy
-            # const=1). The legacy `regime_id[valid_mask][low_mask]=0.0` is CHAINED indexing → it writes a
-            # temporary copy, NOT the underlying array → regime_id stayed const=1 (MEDIUM) for everyone.
-            # Write via the combined integer index into the real array. Flip ON only at the wave rebuild.
-            valid_idx = np.flatnonzero(valid_mask)
-            regime_id[valid_idx[low_mask]] = 0.0
-            regime_id[valid_idx[high_mask]] = 2.0
-        else:
-            # LEGACY buggy path kept for train==serve parity with the live cement (these two lines are no-ops
-            # by construction — chained indexing — so regime_id stays const=1; intentional until the wave).
-            regime_id[valid_mask][low_mask] = 0.0
-            regime_id[valid_mask][high_mask] = 2.0
+        # Write through integer indices. Chained boolean indexing writes a
+        # temporary copy and previously made this field constant MEDIUM.
+        valid_idx = np.flatnonzero(valid_mask)
+        regime_id[valid_idx[low_mask]] = 0.0
+        regime_id[valid_idx[high_mask]] = 2.0
     
     # Fill NaN with 1.0 (middle regime)
     regime_id = np.nan_to_num(regime_id, nan=1.0)
@@ -1232,7 +1079,6 @@ def build_basic_v1(
             z_htf_arr,
             htf_close_times,
             m5_ts_sec,
-            is_replay,
             decision_delay_seconds=decision_delay_seconds,
         )
         t_align_end = time.perf_counter()
@@ -1291,7 +1137,6 @@ def build_basic_v1(
                     h1_ema_diff_htf,
                     h1_close_times,
                     m5_timestamps_sec,
-                    is_replay,
                     decision_delay_seconds=decision_delay_seconds,
                 )
 
@@ -1299,7 +1144,6 @@ def build_basic_v1(
                     h1_atr14_arr,
                     h1_close_times,
                     m5_timestamps_sec,
-                    is_replay,
                     decision_delay_seconds=decision_delay_seconds,
                 )
 
@@ -1366,7 +1210,6 @@ def build_basic_v1(
                     h4_ema_diff_htf,
                     h4_close_times,
                     m5_timestamps_sec,
-                    is_replay,
                     decision_delay_seconds=decision_delay_seconds,
                 )
 
@@ -1374,7 +1217,6 @@ def build_basic_v1(
                     h4_atr14_arr,
                     h4_close_times,
                     m5_timestamps_sec,
-                    is_replay,
                     decision_delay_seconds=decision_delay_seconds,
                 )
 
@@ -1668,13 +1510,8 @@ def build_basic_v1(
     # Rolling quantil-momenter
     t_misc_quantiles_start = time.perf_counter()
     
-    # Del 3: Batch quantiles disabled in replay (incremental path used instead)
-    if os.environ.get("GX1_REPLAY_INCREMENTAL_FEATURES") == "1":
-        # In replay mode, quantiles are computed incrementally per bar
-        # Skip batch quantile computation; the caller supplies the immutable quantile contract.
-        pass
-    elif "close" in df.columns:
-        # Batch path (offline/backtest only)
+    # One formula path: quantiles are always materialized by this owner.
+    if "close" in df.columns:
         from gx1.features.rolling_np import rolling_quantile_w48
         from gx1.utils.perf_timer import perf_add, perf_inc
         
@@ -1838,56 +1675,10 @@ def build_basic_v1(
     t_final_end = time.perf_counter()
     perf_add("feat.basic_v1.final_pack", t_final_end - t_final_start)
     
-    # HARD VERIFIKASJON: Check for pandas operations if guard is enabled
-    if assert_no_pandas and pandas_ops_detected:
-        error_msg = f"PANDAS OPERATIONS DETECTED IN HOT-PATH ({len(pandas_ops_detected)}):\n" + "\n".join(pandas_ops_detected)
-        raise RuntimeError(error_msg)
-    
-    # Instrumentering: Record metrics
     t_end = time.perf_counter()
     feature_build_time_ms = (t_end - t_start) * 1000.0
-    n_pandas_ops_detected = len(pandas_ops_detected)
     perf_add("feat.basic_v1.total", t_end - t_start)
     perf_add("feat.basic_v1.total_ms", feature_build_time_ms)
-    # Use perf_inc to count total pandas ops detected (sum across all calls)
-    if n_pandas_ops_detected > 0:
-        perf_inc("feat.basic_v1.n_pandas_ops_detected", n_pandas_ops_detected)
-    
-    # Check timeout (FEATURE_BUILD_TIMEOUT_MS from env or default)
-    FEATURE_BUILD_TIMEOUT_MS = float(os.getenv("FEATURE_BUILD_TIMEOUT_MS", "1000.0"))
-    if feature_build_time_ms > FEATURE_BUILD_TIMEOUT_MS:
-        import logging
-        log = logging.getLogger(__name__)
-        
-        # FASE 5: Remove quiet mode - FEATURE_BUILD_TIMEOUT is ALWAYS fatal
-        # Track timeout count (use module-level cache for summary)
-        if not hasattr(build_basic_v1, "_timeout_count"):
-            build_basic_v1._timeout_count = 0  # type: ignore
-        build_basic_v1._timeout_count += 1  # type: ignore
-        
-        # Try to increment runner's counter (if available via context)
-        try:
-            from gx1.utils.feature_context import get_feature_state
-            state = get_feature_state()
-            if state is not None:
-                # Store in state for chunk summary (runner will read it)
-                if not hasattr(state, "feature_timeout_count"):
-                    state.feature_timeout_count = 0
-                state.feature_timeout_count += 1
-        except Exception:
-            pass  # Non-fatal: just use module-level cache
-        
-        # FASE 5: Always log ERROR (no quiet mode)
-        log.error(
-            f"FEATURE_BUILD_TIMEOUT: feature_build_time_ms={feature_build_time_ms:.2f} > "
-            f"FEATURE_BUILD_TIMEOUT_MS={FEATURE_BUILD_TIMEOUT_MS:.2f}"
-        )
-        
-        # FASE 5: Always raise RuntimeError (no quiet mode fallback)
-        raise RuntimeError(
-            f"FEATURE_BUILD_TIMEOUT in replay: {feature_build_time_ms:.2f}ms > {FEATURE_BUILD_TIMEOUT_MS:.2f}ms"
-        )
-    
     return df, newcols
 
 

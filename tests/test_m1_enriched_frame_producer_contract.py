@@ -95,3 +95,10 @@ def test_m1_producer_requires_exact_pair_native_m1_binding(tmp_path: Path) -> No
             source_identity=source,
             native_m1=frame,
         )
+
+
+def test_enriched_producer_is_fixed_to_one_worker() -> None:
+    builder = _load_builder()
+    source = Path(builder.__file__).read_text(encoding="utf-8")
+    assert 'parser.add_argument("--workers", type=int, default=1)' in source
+    assert "or workers != 1" in source

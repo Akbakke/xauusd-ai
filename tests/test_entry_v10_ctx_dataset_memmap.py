@@ -91,8 +91,8 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
     memmap_root = tmp_path / "memmap"
     _write_advanced_parquet(parquet_path)
 
-    monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_MIN_GB", "0")
-    monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_ROOT", str(memmap_root))
+    monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 0)
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
     assert trainer._NESTED_ARROW_BATCH_ROWS == 512
     assert trainer._MEMMAP_WRITEBACK_ROWS == 2048
     monkeypatch.setattr(trainer, "_NESTED_ARROW_BATCH_ROWS", 1)
@@ -187,8 +187,8 @@ def test_compact_materialized_rows_preserves_original_row_lookup(tmp_path, monke
     memmap_root = tmp_path / "memmap"
     _write_advanced_parquet(parquet_path)
 
-    monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_MIN_GB", "0")
-    monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_ROOT", str(memmap_root))
+    monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 0)
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
     m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
     ds = trainer.EntryV10CtxDataset(
         parquet_path,

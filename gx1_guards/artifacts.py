@@ -62,6 +62,9 @@ from gx1.contracts.entry_model_native_launch_transaction_v1 import (
     require_entry_launch_transaction,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_CLASS_ORDER,
+    UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION,
+    UNIFIED_EXIT_ACTION_ORDER,
     require_model_direction_operating_point,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
@@ -514,6 +517,14 @@ def _check_v10_entry_launch_contract(
         "public_trade_flat_surface": "public_trade_flat_decision_logits",
         "latest_terminal_event_decision": "PASS",
         "required_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "required_unified_entry_exit_contract": (
+            UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
+        ),
+        "required_entry_action_order": list(MODEL_DIRECTION_CLASS_ORDER),
+        "required_exit_action_order": list(UNIFIED_EXIT_ACTION_ORDER),
+        "required_same_bundle_shared_encoder": True,
+        "required_exact_closed_m1_exit_path_envelope": True,
+        "external_decision_models_allowed": False,
         "required_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "required_base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "required_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,

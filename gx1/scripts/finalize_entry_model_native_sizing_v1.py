@@ -27,6 +27,7 @@ import tempfile
 from functools import wraps
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -102,6 +103,11 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     publish_bundle_directory_noreplace,
     require_bundle_commit_manifest,
     write_bundle_commit_manifest,
+)
+from gx1.contracts.entry_model_native_calibration_v1 import (
+    CALIBRATION_EVENT_PREFIX as ENTRY_CALIBRATION_EVENT_PREFIX,
+    IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
+    require_model_native_calibration_metadata,
 )
 
 
@@ -766,15 +772,19 @@ def bind_bundle_sizing_calibration(
     source_metadata = source_bundle_dir / "bundle_metadata.json"
     source_lock = source_bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
     try:
-        require_bundle_commit_manifest(source_bundle_dir)
+        source_commit = require_bundle_commit_manifest(source_bundle_dir)
     except RuntimeError as exc:
         raise SizingFinalizationError(str(exc)) from exc
     source_inventory = {
-        *BUNDLE_COMMIT_CORE_ARTIFACTS,
+        *source_commit["artifact_names"],
         BUNDLE_COMMIT_MANIFEST_NAME,
     }
+    inherited_artifacts = sorted(
+        set(source_commit["artifact_names"]) - set(BUNDLE_COMMIT_CORE_ARTIFACTS)
+    )
     output_inventory = {
         *BUNDLE_COMMIT_CORE_ARTIFACTS,
+        *inherited_artifacts,
         BUNDLE_COMMIT_MANIFEST_NAME,
     }
     source_entries = list(source_bundle_dir.iterdir())
@@ -800,6 +810,50 @@ def bind_bundle_sizing_calibration(
             raise SizingFinalizationError(f"source bundle file missing: {path}")
     source_metadata_payload = _read_json(source_metadata, label="source bundle metadata")
     source_lock_payload = _read_json(source_lock, label="source transformer lock")
+    for head in ("direction", "path"):
+        key = f"{head}_calibration"
+        try:
+            require_model_native_calibration_metadata(
+                source_metadata_payload.get(key),
+                head=head,
+                context=f"SIZING_SOURCE_{head.upper()}_CALIBRATION",
+            )
+        except RuntimeError as exc:
+            raise SizingFinalizationError(str(exc)) from exc
+    calibration_events = [
+        name
+        for name in inherited_artifacts
+        if name.startswith(ENTRY_CALIBRATION_EVENT_PREFIX) and name.endswith(".json")
+    ]
+    if source_commit["bundle_kind"] != "calibrated" or len(calibration_events) < 2:
+        raise SizingFinalizationError(
+            "source must be the canonical direction+path calibrated bundle "
+            "with both committed calibration events"
+        )
+    calibrated_heads: set[str] = set()
+    for event_name in calibration_events:
+        event = _read_json(
+            source_bundle_dir / event_name,
+            label=f"source calibration event {event_name}",
+        )
+        head = event.get("head")
+        if (
+            event.get("schema_version")
+            != IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION
+            or event.get("decision") != "PASS"
+            or head not in {"direction", "path"}
+            or head in calibrated_heads
+            or event.get("calibration")
+            != source_metadata_payload.get(f"{head}_calibration")
+        ):
+            raise SizingFinalizationError(
+                f"source calibration event is not canonical: {event_name}"
+            )
+        calibrated_heads.add(str(head))
+    if calibrated_heads != {"direction", "path"}:
+        raise SizingFinalizationError(
+            "source calibration events do not prove both direction and path"
+        )
     if str(source_metadata_payload.get("state_dict_sha256") or "").lower() != checkpoint_sha:
         raise SizingFinalizationError("source metadata state_dict_sha256 mismatch")
     if (
@@ -823,7 +877,7 @@ def bind_bundle_sizing_calibration(
         )
     )
     try:
-        for name in sorted(BUNDLE_COMMIT_CORE_ARTIFACTS):
+        for name in sorted({*BUNDLE_COMMIT_CORE_ARTIFACTS, *inherited_artifacts}):
             shutil.copy2(source_bundle_dir / name, staging / name)
         paths = (
             staging / "bundle_metadata.json",
@@ -842,7 +896,9 @@ def bind_bundle_sizing_calibration(
             _atomic_json(path, payload)
         write_bundle_commit_manifest(
             bundle_dir=staging.resolve(),
-            artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+            artifact_names=tuple(
+                sorted({*BUNDLE_COMMIT_CORE_ARTIFACTS, *inherited_artifacts})
+            ),
             bundle_kind="sizing_finalized",
             created_at_utc=datetime.now(timezone.utc).isoformat(),
         )
@@ -1443,6 +1499,32 @@ def produce_canonical_unified_joint_sizing_proof(
         raise SizingFinalizationError(
             "candidate lifecycle M1/pair authority differs from replay lineage"
         )
+    m1_binding = adapter._meta.get("m1_feature_surface_binding")
+    if not isinstance(m1_binding, dict):
+        raise SizingFinalizationError(
+            "candidate bundle lacks exact M1 feature-surface binding"
+        )
+    if (
+        m1_binding.get("pair_generation_id")
+        != pair_binding.pair_generation_id
+    ):
+        raise SizingFinalizationError(
+            "candidate M1 feature surface differs from replay pair"
+        )
+    adapter.bind_admitted_m1_feature_surface(
+        parquet_path=Path(str(m1_binding["parquet_path"])),
+        manifest_path=Path(str(m1_binding["manifest_path"])),
+        dataset_run_id=str(m1_binding["dataset_run_id"]),
+        pair_generation_id=str(m1_binding["pair_generation_id"]),
+        parquet_sha256=str(m1_binding["parquet_sha256"]),
+        manifest_sha256=str(m1_binding["manifest_sha256"]),
+        feature_field_order_sha256=str(
+            m1_binding["feature_field_order_sha256"]
+        ),
+    )
+    replay_pair_snapshot = SimpleNamespace(
+        pair_generation_id=pair_binding.pair_generation_id
+    )
 
     canonical_oos_rows = read_bound_parquet_exact(
         proof["source_bindings"]["oos_rows"],
@@ -1551,18 +1633,29 @@ def produce_canonical_unified_joint_sizing_proof(
             normalization_contract="unit_normalized_direction_exit_research_v1",
         )
         first_bar_time = first_full_closed_m1_bar_ts(entry_fill_time)
+        first_bar_position = int(tape.index.searchsorted(first_bar_time, side="left"))
+        if (
+            first_bar_position >= len(tape.index)
+            or pd.Timestamp(tape.index[first_bar_position]) != first_bar_time
+        ):
+            raise SizingFinalizationError(
+                f"source tape lacks first closed Entry M1 row {row_index}"
+            )
         row_trace: list[dict[str, Any]] = []
         for step in range(1, UNIFIED_EXIT_MAX_PATH_BARS + 1):
-            closed_bar_time = first_bar_time + pd.Timedelta(
-                minutes=step - 1
-            )
+            tape_position = first_bar_position + step - 1
+            if tape_position >= len(tape.index):
+                raise SizingFinalizationError(
+                    f"source tape lacks Exit M1 tail for row {row_index}"
+                )
+            closed_bar_time = pd.Timestamp(tape.index[tape_position])
             closed_bar = tape.get_closed_m1_bar(closed_bar_time)
             staged = state.clone_for_exit_decision()
             staged.update_bar(**closed_bar)
             envelope = staged.build_closed_m1_path_evidence()
             exit_feature_surface = adapter.build_exit_feature_surface(
                 decision_time=closed_bar_time,
-                prebuilt_snapshot=None,
+                prebuilt_snapshot=replay_pair_snapshot,
             )
             exit_decision = adapter.decide_exit(
                 entry_snapshot=head,

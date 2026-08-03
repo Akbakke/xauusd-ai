@@ -12,7 +12,6 @@ Usage:
     result = timed_rolling(series, 20, "mean")
 """
 
-import os
 import time
 from typing import Union
 
@@ -94,4 +93,3 @@ def timed_rolling(
         perf_add(f"rolling.numpy.{operation}.w{window}", t_end - t_start)
         perf_inc(f"rolling.numpy.{operation}.w{window}")
     return result
-

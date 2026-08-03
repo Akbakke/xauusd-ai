@@ -23,8 +23,8 @@ Model-native seq513 evidence:
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
-  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers <n> --checkpoint-chunk-rows <n>]
-  model-native-m5-enriched-frame --native-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers <n> --checkpoint-chunk-rows <n>]
+  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-m5-enriched-frame --native-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
   model-native-m5-source-frame --enriched-parquet <immutable-parquet> --native-m5-root <immutable-dir> --pair-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-current-source-cascade-proof --run-id <id> --source-parquet <immutable-parquet> --canonical-v2-parquet <immutable-parquet> --mtf-cache-dir <immutable-dir> --pair-manifest <json> --required-history-start <UTC> --out <new-json>
   model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
@@ -64,9 +64,6 @@ Model-native seq513 evidence:
   model-native-smoke-bundle-audit
   model-native-candidate-readiness
   model-native-selective-edge
-  model-native-replay-trade-log
-  model-native-replay-evidence
-  model-native-replay-readiness
   model-native-sizing-capture-instrument
   model-native-sizing-fit-calibration
   model-native-sizing-bind-bundle
@@ -629,8 +626,6 @@ case "$cmd" in
       --candidate-wrapper \
       --candidate-readiness-script \
       --selective-edge-script \
-      --replay-evidence-script \
-      --replay-readiness-script \
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
@@ -752,86 +747,6 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${CAP[@]}" "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
-    ;;
-
-  model-native-replay-trade-log)
-    reject_non_authoritative_args "$@"
-    reject_flags "$cmd" \
-      --exit-mode \
-      --take-profit-bps \
-      --stop-loss-bps \
-      --same-bar-policy \
-      --mfe-protect-activation-bps \
-      --mfe-protect-breakeven-offset-bps \
-      --mfe-protect-trailing-capture-ratio \
-      --mfe-protect-trailing-floor-bps \
-      --cooldown-bars \
-      --max-trades-per-day \
-      --daily-loss-limit-bps \
-      --fail-on-audit-fail
-    for flag in \
-      --model-native-state-json \
-      --candidate-readiness-json \
-      --selective-edge-predictions \
-      --selective-edge-report-json \
-      --dataset-dir \
-      --source-parquet \
-      --out-dir \
-      --model-name \
-      --cost-stress-bps \
-      --policy-id \
-      --slippage-bps; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 "$@"
-    ;;
-
-  model-native-replay-evidence)
-    reject_non_authoritative_args "$@"
-    reject_flags "$cmd" \
-      --ablation-id \
-      --require-year \
-      --allow-non-2026 \
-      --require-model-native-trade-fields \
-      --no-require-model-native-trade-fields \
-      --require-identity-artifacts \
-      --no-require-identity-artifacts
-    for flag in \
-      --trades-path \
-      --trade-log-manifest-json \
-      --out-dir \
-      --candidate-bundle-audit-json \
-      --selective-edge-report-json \
-      --policy-id; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_candidate_replay_evidence_v1 "$@"
-    ;;
-
-  model-native-replay-readiness)
-    reject_non_authoritative_args "$@"
-    reject_flags "$cmd" \
-      --model-name \
-      --min-top5-mean-pnl-bps \
-      --min-top10-mean-pnl-bps \
-      --min-top-direction-precision \
-      --min-direction-slice-precision \
-      --min-direction-slice-n \
-      --min-replay-net-sum-bps \
-      --min-profit-factor \
-      --max-abs-drawdown-bps
-    for flag in \
-      --candidate-readiness-json \
-      --candidate-bundle-audit-json \
-      --selective-edge-report-json \
-      --selective-edge-metrics-csv \
-      --replay-evidence-json \
-      --pretrain-audit-json \
-      --expected-dataset-dir \
-      --out-dir; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "${CAP[@]}" "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
     ;;
 
   model-native-sizing-capture-instrument)

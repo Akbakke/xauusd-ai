@@ -18,7 +18,6 @@ from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
-    CURRENT_SNAPSHOT_SCHEMA,
     validate_xau_tape_provenance_v1,
 )
 from gx1.features.htf_features import (
@@ -209,52 +208,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if out.parent != root or out.exists() or out.is_symlink():
         raise RuntimeError("SEQ513_SOURCE_PROOF_TARGET_NOT_FRESH_EVENT_LOCAL")
 
-    # Historical event-local path name; its strict manifest may be either the
-    # v3 bootstrap or a CAS-linked v4 successor.
-    tape_native = root / "m5_tape_native_v3"
-    tape_repaired = root / "m5_tape_repaired_dec2024"
-    if tape_native.exists() and tape_repaired.exists():
-        raise RuntimeError(
-            "SEQ513_SOURCE_TAPE_IDENTITY_AMBIGUOUS: both m5_tape_native_v3 "
-            "and m5_tape_repaired_dec2024 exist in the event root"
-        )
-    tape = tape_native if tape_native.exists() else tape_repaired
+    tape = root / "m5_tape_native_v3"
+    if tape.is_symlink() or not tape.is_dir():
+        raise RuntimeError("SEQ513_SOURCE_NATIVE_M5_TAPE_REQUIRED")
     tape_provenance = validate_xau_tape_provenance_v1(
         tape,
         expected_run_id=run_id,
         require_current=True,
     )
-    if tape_provenance.get("schema_version") in NATIVE_SOURCE_SCHEMAS:
-        _same(
-            _utc(
-                tape_provenance.get("time_max_utc"),
-                label="NATIVE_TAPE_LAST_COMPLETE_M5",
-            ),
-            expected_full_time_max,
+    if tape_provenance.get("schema_version") not in NATIVE_SOURCE_SCHEMAS:
+        raise RuntimeError("SEQ513_SOURCE_NATIVE_M5_PROVENANCE_REQUIRED")
+    _same(
+        _utc(
+            tape_provenance.get("time_max_utc"),
             label="NATIVE_TAPE_LAST_COMPLETE_M5",
-        )
-    else:
-        repair = _json(tape / "REPAIR_MANIFEST.json", label="REPAIR_MANIFEST")
-        _same(
-            repair.get("schema_version"),
-            CURRENT_SNAPSHOT_SCHEMA,
-            label="REPAIR_SCHEMA",
-        )
-        _same(
-            _utc(
-                repair.get("last_complete_m5_utc"),
-                label="REPAIR_LAST_COMPLETE_M5",
-            ),
-            expected_full_time_max,
-            label="REPAIR_LAST_COMPLETE_M5",
-        )
+        ),
+        expected_full_time_max,
+        label="NATIVE_TAPE_LAST_COMPLETE_M5",
+    )
     tape_hashes = dict(tape_provenance["year_sha256"])
     year_numbers = sorted(int(key.split("=", 1)[1]) for key in tape_hashes)
-    tape_manifest_name = (
-        "MANIFEST.json"
-        if tape_provenance.get("schema_version") in NATIVE_SOURCE_SCHEMAS
-        else "REPAIR_MANIFEST.json"
-    )
+    tape_manifest_name = "MANIFEST.json"
 
     cv2 = _regular(root / "canonical_features_v2.parquet", label="CV2")
     cv2_sha = _sha256_file(cv2)

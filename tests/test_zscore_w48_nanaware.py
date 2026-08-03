@@ -4,7 +4,6 @@ Tests that it matches pandas _zscore behavior for window=48.
 """
 import numpy as np
 import pandas as pd
-import pytest
 
 from gx1.features.rolling_np import zscore_w48_nanaware
 from gx1.features.basic_v1 import _zscore
@@ -24,7 +23,6 @@ def test_zscore_w48_nanaware_random_data():
     
     # NumPy implementation
     got = zscore_w48_nanaware(data, min_periods=min_periods)
-    got_series = pd.Series(got, index=s.index)
     
     # Compare non-NaN values
     mask = ~np.isnan(expected.values)
@@ -170,8 +168,4 @@ def test_zscore_w48_nanaware_constant_series():
             atol=1e-6,
             equal_nan=False
         )
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
 

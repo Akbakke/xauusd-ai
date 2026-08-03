@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 import pandas as pd
-import yaml
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -457,7 +456,7 @@ def fetch_oanda_transactions_robust(
         
         # If window1 found nothing, try window2 (60-minute buffer)
         if len(txns) == 0:
-            logger.warning(f"Window1 (10min buffer) found 0 transactions, trying window2 (60min buffer)")
+            logger.warning("Window1 (10min buffer) found 0 transactions, trying window2 (60min buffer)")
             window2_start = open_time - timedelta(minutes=60)
             window2_end = close_time + timedelta(minutes=60)
             
@@ -615,9 +614,6 @@ def reconcile_trade(
             else:
                 order_filled_close = event
     
-    # Backward compatibility: use first ORDER_FILLED as order_filled
-    order_filled = order_filled_open
-    
     if not order_submitted:
         result["missing_order_submitted"] = True
         result["status"] = "MISSING_SUBMIT"
@@ -726,7 +722,6 @@ def reconcile_trade(
                     break
         
         if close_txn:
-            oanda_pl = float(close_txn.get("pl", 0))
             # Convert OANDA PL to bps (simplified - would need entry price)
             # For now, just flag if PL exists
             result["pnl_diff_bps"] = None  # Would need entry price to convert
@@ -933,9 +928,6 @@ def main():
     if index_df is None or len(index_df) == 0:
         logger.error("No trades found in journal index")
         return 1
-    
-    # Load smoke summary if available
-    smoke_summary = load_smoke_summary(args.run)
     
     # Fetch OANDA credentials
     import os

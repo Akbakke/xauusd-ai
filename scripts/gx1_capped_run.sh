@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# gx1_capped_run.sh — run a heavy job under a HARD cgroup/resource ceiling so that an OOM
-# kills the JOB (cgroup OOM-killer), NEVER freezes/crashes the whole machine.
-#
-# BIRTHED 2026-06-17: the FULL phase6 entry-gate (peaks ~56G on a 58G WSL cap) OOM-crashed the
-# PC mid-run (froze → hard reboot → live runner left down → open paper trades unmanaged ~3h).
-# CLAUDE.md/AGENTS.md make RAM-headroom a HARD ceiling ("an OOM CRASHED the PC"); this enforces it
-# by construction instead of "remember to watch RAM". Use for EVERY heavy job (gate / build / replay).
+# Run one heavy GX1 job under a verified hard cgroup ceiling. A job that reaches
+# its cap fails inside its own cgroup instead of consuming the workstation.
+# GX1_RULES.md and AGENTS.md require this wrapper for every heavy operation.
 #
 # Usage:  scripts/gx1_capped_run.sh [--mem 10G] [--swap 512M] -- <command ...>
 #   --mem   MemoryMax (hard) + MemoryHigh for the job's cgroup scope. This machine's

@@ -410,9 +410,13 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
     state_sha = _sha(state)
     direction_contract = model_direction_decision_contract_metadata()
     run_lineage = {
-        "schema_version": "entry_model_native_training_run_lineage_v1",
+        "schema_version": "entry_model_native_training_run_lineage_v2",
         "training_run_id": "UNIT_INITIAL_ADAPTATION_ADMISSION",
         "dataset_run_id": "UNIT_DATASET_RUN_20260717",
+        "training_profile": "candidate",
+        "requested_subsample_rows": 0,
+        "physical_train_rows": 300,
+        "effective_train_rows": 300,
     }
     source_metadata: dict[str, Any] = {
         "state_dict_sha256": state_sha,
@@ -430,10 +434,24 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             "run_lineage": run_lineage,
         },
     )
+    calibration_event_names = (
+        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T090000123456Z.json",
+        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T093000123456Z.json",
+    )
+    for head, name in zip(("direction", "path"), calibration_event_names, strict=True):
+        _write_json(
+            source_bundle / name,
+            {
+                "schema_version": "entry_model_native_immutable_calibration_v2",
+                "decision": "PASS",
+                "head": head,
+                "calibration": source_metadata[f"{head}_calibration"],
+            },
+        )
     write_bundle_commit_manifest(
         bundle_dir=source_bundle.resolve(),
-        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
-        bundle_kind="trained",
+        artifact_names=(*BUNDLE_COMMIT_CORE_ARTIFACTS, *calibration_event_names),
+        bundle_kind="calibrated",
         created_at_utc="2026-07-17T00:00:00+00:00",
     )
 
@@ -507,11 +525,9 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             {
                 "time": times,
                 "y_position_size_target": np.linspace(0.1, 0.9, len(times)),
-                # The source tape is minute-contiguous so the canonical Exit
-                # producer can step the real per-M1 decision loop.  Five bars
-                # preserve the fixture's original T+10 outcome from its T+5
-                # fill instead of accidentally relabelling it at T+6.
-                "label_horizon_bars": np.full(len(times), 5, dtype=np.int64),
+                # Label horizons are M5 bars even though replay reads the
+                # higher-resolution authoritative M1 tape.
+                "label_horizon_bars": np.full(len(times), 1, dtype=np.int64),
             }
         )
         if split == "test":

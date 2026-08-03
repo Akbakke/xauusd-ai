@@ -563,8 +563,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_wrapper = Path(args.candidate_wrapper).expanduser().resolve()
     candidate_readiness_script = Path(args.candidate_readiness_script).expanduser().resolve()
     selective_edge_script = Path(args.selective_edge_script).expanduser().resolve()
-    replay_evidence_script = Path(args.replay_evidence_script).expanduser().resolve()
-    replay_readiness_script = Path(args.replay_readiness_script).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
 
     full_input_liveness_json = Path(args.full_input_liveness_json).expanduser().resolve()
@@ -623,19 +621,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_wrapper_text = _read_text(candidate_wrapper)
     candidate_readiness_text = _read_text(candidate_readiness_script)
     selective_edge_text = _read_text(selective_edge_script)
-    replay_evidence_text = _read_text(replay_evidence_script)
-    replay_readiness_text = _read_text(replay_readiness_script)
     candidate_readiness_contract_review = (
         _source_model_native_contract_binding_review(candidate_readiness_text)
     )
     selective_edge_contract_review = _source_model_native_contract_binding_review(
         selective_edge_text
-    )
-    replay_evidence_contract_review = _source_model_native_contract_binding_review(
-        replay_evidence_text
-    )
-    replay_readiness_contract_review = _source_model_native_contract_binding_review(
-        replay_readiness_text
     )
 
     try:
@@ -896,22 +886,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "contract_binding": selective_edge_contract_review,
             },
         ),
-        _check(
-            "replay evidence supports model-native seq513",
-            bool(replay_evidence_contract_review["ok"]),
-            {
-                **_artifact_meta(replay_evidence_script),
-                "contract_binding": replay_evidence_contract_review,
-            },
-        ),
-        _check(
-            "replay-readiness supports model-native seq513",
-            bool(replay_readiness_contract_review["ok"]),
-            {
-                **_artifact_meta(replay_readiness_script),
-                "contract_binding": replay_readiness_contract_review,
-            },
-        ),
         _check("side effects remain closed", all(value is False for value in SIDE_EFFECTS_CLOSED.values()), SIDE_EFFECTS_CLOSED),
     ]
     failures = [row for row in checks if not row["ok"]]
@@ -935,8 +909,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "candidate_wrapper": _artifact_meta(candidate_wrapper),
             "candidate_readiness_script": _artifact_meta(candidate_readiness_script),
             "selective_edge_script": _artifact_meta(selective_edge_script),
-            "replay_evidence_script": _artifact_meta(replay_evidence_script),
-            "replay_readiness_script": _artifact_meta(replay_readiness_script),
         },
         "future_train_contract": future_train,
         "fresh_source_identity_contract": fresh_source_identity_contract,
@@ -978,8 +950,6 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--candidate-wrapper", required=True)
     ap.add_argument("--candidate-readiness-script", required=True)
     ap.add_argument("--selective-edge-script", required=True)
-    ap.add_argument("--replay-evidence-script", required=True)
-    ap.add_argument("--replay-readiness-script", required=True)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import pytest
 from gx1.features.rolling_np import rolling_mean_w48
 
 
@@ -118,4 +117,3 @@ def test_rolling_mean_w48_exact_min_periods():
     # Last value should be non-NaN (mean of all 48 values)
     assert not np.isnan(got[-1])
     assert np.allclose(got, expected.values, rtol=1e-12, atol=1e-12, equal_nan=True)
-

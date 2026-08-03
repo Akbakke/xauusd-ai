@@ -5,7 +5,6 @@ Hard correctness test: if this fails, system is wrong.
 """
 import numpy as np
 import pandas as pd
-import pytest
 
 from gx1.features.rolling_np import rolling_quantile_w48
 
@@ -162,6 +161,5 @@ def test_rolling_quantile_w48_edge_cases():
     data_nan = np.full(100, np.nan, dtype=np.float64)
     result_nan = rolling_quantile_w48(data_nan, q=0.5, min_periods=24)
     assert np.all(np.isnan(result_nan))
-
 
 

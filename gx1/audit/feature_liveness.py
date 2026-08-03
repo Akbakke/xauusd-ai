@@ -89,10 +89,7 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
     "_v1_is_EU": "legacy baked session one-hot; constant in the retired session-headed diagnostic.",
     "_v1_is_US": "legacy baked session one-hot; constant in the retired session-headed diagnostic.",
-    # Known bugs/gaps tracked in the hygiene wave (NOT to be silently forgotten):
-    "_v1_atr_regime_id": "BUG-MASK: chained-index BUG → const=1 (basic_v1.py:726). Fix EXISTS behind "
-                         "GX1_ATR_REGIME_FIX=1 (bf4a6abd, default OFF — live builds still emit const). REMOVE this "
-                         "entry at the first rebuild that enables the gate, or it will mask the then-alive feature.",
+    # Known gaps tracked in the hygiene wave (NOT to be silently forgotten):
     "smc_choch": "BUG-MASK (remove when fixed): too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",
@@ -663,9 +660,6 @@ def _main() -> int:
         print(f"[CONTINUITY] {'OK ✓ — ingen ferske ukjente hull' if crep['ok'] else 'FERSKE HULL: ' + repr(crep['fresh_gaps'])}")
         failed |= not crep["ok"]
     if a.v10_bundle and a.test_parquet and a.m5_prebuilt:
-        import os
-        os.environ.setdefault("GX1_REGIME_V4", "1")
-        os.environ.setdefault("GX1_TREND_REGIME_FROM_D1", "1")
         from torch.utils.data import DataLoader
         from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
         from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle

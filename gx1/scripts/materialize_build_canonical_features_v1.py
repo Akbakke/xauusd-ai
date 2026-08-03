@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time as _time
 from pathlib import Path
@@ -45,9 +44,6 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-
-# Disable feature-build timeout (1s default is for replay; we need batch)
-os.environ.setdefault("FEATURE_BUILD_TIMEOUT_MS", "600000")
 
 from gx1.features.basic_v1 import (  # noqa: E402
     PLUS5_FEATURES,

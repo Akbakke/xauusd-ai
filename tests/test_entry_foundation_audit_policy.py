@@ -27,10 +27,10 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
     assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-        "1ae49d94ac11fe9fec1e5400d11432f60f0fe338aadd76cea4f6aa03c5a12cfd"
+            "8f37c5ae69f5fdf09861492b6925693872371d3e72e30ad9feb8780a72cf09a9"
     )
     assert binding["foundation_audit_policy"]["schema_version"] == (
-        "entry_foundation_audit_policy_v7"
+        "entry_foundation_audit_policy_v8"
     )
     smoke = binding["foundation_audit_policy"]["smoke_edge_pockets"]
     assert smoke["wilson_confidence_level"] == 0.95

@@ -568,7 +568,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             activation="gelu",
             norm_first=True,
         )
-        self.encoder = nn.TransformerEncoder(enc_layer, num_layers=num_layers)
+        self.encoder = nn.TransformerEncoder(
+            enc_layer,
+            num_layers=num_layers,
+            enable_nested_tensor=False,
+        )
 
         # Context encoders. Raw context never receives an independent global
         # projection: every field first enters its one exact family token.
@@ -796,7 +800,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 activation="gelu",
                 norm_first=True,
             )
-            return nn.TransformerEncoder(layer, num_layers=layers)
+            return nn.TransformerEncoder(
+                layer,
+                num_layers=layers,
+                enable_nested_tensor=False,
+            )
 
         self.specialist_encoder = nn.ModuleDict(
             {name: _mk_encoder(specialist_layers) for name in self._specialist_names}

@@ -22,10 +22,16 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SEQ_LEN,
 )
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_CLOSURE_CONTRACT,
+)
 
 
 ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION = (
     "gx1_entry_exit_shared_feature_base_contract_v1"
+)
+ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION = (
+    "gx1_entry_exit_enriched_causal_frame_v1"
 )
 ENTRY_DECISION_TIMEFRAME = "M5"
 EXIT_DECISION_TIMEFRAME = "M1"
@@ -38,6 +44,7 @@ ENTRY_FEATURE_SEQUENCE_BARS = MODEL_NATIVE_SEQ_LEN
 EXIT_FEATURE_SEQUENCE_BARS = (
     ENTRY_FEATURE_SEQUENCE_BARS * ENTRY_EXIT_RESOLUTION_RATIO
 )
+EXIT_FEATURE_ROW_CLOCK = "consecutive_authoritative_closed_m1_source_rows"
 
 
 def entry_exit_shared_feature_base_contract() -> dict[str, Any]:
@@ -67,6 +74,9 @@ def entry_exit_shared_feature_base_contract() -> dict[str, Any]:
             "requires_shared_m1_feature_surface": True,
             "path_is_additive_not_replacement": True,
             "m1_sequence_resolution_ratio": ENTRY_EXIT_RESOLUTION_RATIO,
+            "row_clock": EXIT_FEATURE_ROW_CLOCK,
+            "source_absence_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+            "synthetic_gap_fill_allowed": False,
         },
         "resolution_ratio_m1_per_m5": ENTRY_EXIT_RESOLUTION_RATIO,
         "shared_encoder": ENTRY_EXIT_SHARED_ENCODER,

@@ -75,7 +75,7 @@ def pandas_resample_ohlc(
     }, index=pd.to_datetime(timestamps_sec, unit='s', utc=True))
     
     # Resample
-    freq = f"{interval_hours}H"
+    freq = f"{interval_hours}h"
     resampled = df.resample(freq, label=label, closed=closed).agg({
         "open": "first",
         "high": "max",
@@ -262,15 +262,14 @@ class TestHTFAlignmentEquivalence:
             timestamps_sec, open_arr, high_arr, low_arr, close_arr, interval_hours=1
         )
         
-        if len(h1_ts) == 0:
-            pytest.skip("No H1 bars generated")
+        assert len(h1_ts) > 0, "Synthetic H1 aggregation produced no bars"
         
         # Create a simple HTF feature (e.g., close price)
         h1_feature = h1_close.copy()
         
         # NumPy: _align_htf_to_m5_numpy
         aligned_numpy = _align_htf_to_m5_numpy(
-            h1_feature, h1_close_times, timestamps_sec, is_replay=False
+            h1_feature, h1_close_times, timestamps_sec
         )
         
         # Pandas oracle: an M5 row stamped t becomes decision-available at t+5.
@@ -310,15 +309,14 @@ class TestHTFAlignmentEquivalence:
             timestamps_sec, open_arr, high_arr, low_arr, close_arr, interval_hours=4
         )
         
-        if len(h4_ts) == 0:
-            pytest.skip("No H4 bars generated")
+        assert len(h4_ts) > 0, "Synthetic H4 aggregation produced no bars"
         
         # Create a simple HTF feature
         h4_feature = h4_close.copy()
         
         # NumPy alignment
         aligned_numpy = _align_htf_to_m5_numpy(
-            h4_feature, h4_close_times, timestamps_sec, is_replay=False
+            h4_feature, h4_close_times, timestamps_sec
         )
         
         # Pandas oracle at M5 close/decision time.
@@ -368,33 +366,10 @@ class TestHTFEdgeCases:
         # Create a feature
         h1_feature = h1_close.copy() if len(h1_close) > 0 else np.array([], dtype=np.float64)
         
-        # In replay mode, should hard fail
+        # Every caller follows the same fail-closed path.
         with pytest.raises(RuntimeError, match="warmup not satisfied"):
-            _align_htf_to_m5_numpy(
-                h1_feature, h1_close_times, timestamps_sec, is_replay=True
-            )
+            _align_htf_to_m5_numpy(h1_feature, h1_close_times, timestamps_sec)
     
-    def test_warmup_before_first_htf_close_live(self):
-        """Test live mode: hard fail when no completed HTF evidence exists."""
-        # Same setup as above
-        start_ts = int(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
-        timestamps_sec = np.array([start_ts + i * 300 for i in range(11)], dtype=np.int64)
-        open_arr = np.ones(11, dtype=np.float64)
-        high_arr = np.ones(11, dtype=np.float64) * 1.1
-        low_arr = np.ones(11, dtype=np.float64) * 0.9
-        close_arr = np.ones(11, dtype=np.float64)
-        
-        h1_ts, h1_open, h1_high, h1_low, h1_close, h1_close_times = build_htf_from_m5(
-            timestamps_sec, open_arr, high_arr, low_arr, close_arr, interval_hours=1
-        )
-        
-        h1_feature = h1_close.copy() if len(h1_close) > 0 else np.array([], dtype=np.float64)
-        
-        with pytest.raises(RuntimeError, match="warmup not satisfied"):
-            _align_htf_to_m5_numpy(
-                h1_feature, h1_close_times, timestamps_sec, is_replay=False
-            )
-
     def test_leading_warmup_is_nan_then_finite(self):
         """A historical prefix is explicit NaN and the valid suffix is finite."""
         start_ts = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
@@ -405,7 +380,7 @@ class TestHTFEdgeCases:
         values = np.array([11.0, 22.0], dtype=np.float64)
 
         aligned = _align_htf_to_m5_numpy(
-            values, close_times, m5_timestamps, is_replay=True
+            values, close_times, m5_timestamps
         )
 
         first_finite = int(np.flatnonzero(np.isfinite(aligned))[0])
@@ -460,7 +435,6 @@ class TestHTFEdgeCases:
             h1_values,
             h1_close_times,
             m5_open_times,
-            is_replay=False,
         )
 
         assert np.isnan(aligned[0])

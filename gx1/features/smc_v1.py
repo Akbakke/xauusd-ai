@@ -22,23 +22,11 @@ confirmed up to bar (i - SWING_LOOKBACK), no future leakage.
 """
 from __future__ import annotations
 
-import os
-
 import numpy as np
 import pandas as pd
 
 
 SWING_LOOKBACK = 3  # bars look-around for swing pivot detection (3 → 7-bar window centered)
-
-# sweep-THEN-reclaim (2026-06-11, env-gated GX1_SMC_SWEEP_RECLAIM, default OFF = contract byte-unchanged).
-# A sweep that RECLAIMS the swept level = stop-hunt reversal (recoverable dip); a sweep with no reclaim =
-# falling knife. CONTINUOUS displacement × decay (NOT a sparse binary → clears feature_liveness --strict).
-_SWEEP_RECLAIM_ON = os.environ.get("GX1_SMC_SWEEP_RECLAIM", "0") == "1"
-RECLAIM_WINDOW = 8      # bars after a sweep within which a reclaim still counts
-DECAY_TAU = 12.0        # bars; exp-decay of the displacement after the reclaim (~1h on M5)
-SWEEP_CAP = 5.0         # clip sweep-depth (ATR) so a data spike can't blow the value
-DISP_CAP = 5.0          # clip reclaim displacement (ATR)
-
 
 def _detect_swing_pivots(high: np.ndarray, low: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
     """Return (swing_high_mask, swing_low_mask) — bool arrays, True at pivot bars.
@@ -215,52 +203,6 @@ def compute_smc_features(
         bars_since_sweep[i] = float(i - last_sweep_at) if last_sweep_at >= 0 else 999.0
     bars_since_sweep = np.clip(bars_since_sweep, 0, 999).astype(np.float32)
 
-    # 5b. Sweep-THEN-reclaim (env-gated). Bullish = a DOWN-sweep (grab below support) then close back
-    # ABOVE the swept low on an up bar; bearish = an UP-sweep then close back BELOW the swept high.
-    # Magnitude = sweep-depth × (1 + reclaim-displacement), both ATR-normalized + clipped, then exp-decayed.
-    sweep_reclaim_up = np.zeros(nb, dtype=np.float32)    # bullish: down-sweep → up-reclaim
-    sweep_reclaim_down = np.zeros(nb, dtype=np.float32)  # bearish: up-sweep → down-reclaim
-    if _SWEEP_RECLAIM_ON:
-        # 2026-06-11 FAIL-LOUD: the old fallback open_=close made the reclaim conditions
-        # (close>open / close<open) permanently FALSE → silently all-zero reclaim features
-        # when the caller's frame lacks 'open'. Rule 9: a dead feature must fail, not ship.
-        if "open" not in df.columns:
-            raise ValueError(
-                "[SMC_SWEEP_RECLAIM] GX1_SMC_SWEEP_RECLAIM=1 but the input frame has no 'open' "
-                "column — the reclaim features would be constant-zero. Pass OHLC including 'open'."
-            )
-        open_ = df["open"].to_numpy(dtype=np.float64)
-        pend_dn = (-1, np.nan, 0.0)   # DOWN-sweep awaiting an UP-reclaim (bullish): (sweep_bar, swept_lvl, wick_atr)
-        pend_up = (-1, np.nan, 0.0)   # UP-sweep awaiting a DOWN-reclaim (bearish)
-        act_up = (-1, 0.0)            # active bullish reclaim: (reclaim_bar, strength)
-        act_dn = (-1, 0.0)
-        for i in range(nb):
-            a = atr[i]
-            if sweep_down[i] > 0.0 and has_sl[i]:
-                pend_dn = (i, float(last_sl_price[i]), min(float(sweep_size_atr[i]), SWEEP_CAP))
-            if sweep_up[i] > 0.0 and has_sh[i]:
-                pend_up = (i, float(last_sh_price[i]), min(float(sweep_size_atr[i]), SWEEP_CAP))
-            sb, lvl, wick = pend_dn
-            if sb >= 0 and (i - sb) <= RECLAIM_WINDOW and close[i] > lvl and close[i] > open_[i]:
-                disp = min((close[i] - lvl) / a, DISP_CAP)
-                act_up = (i, wick * (1.0 + max(disp, 0.0)))
-                pend_dn = (-1, np.nan, 0.0)
-                act_dn = (-1, 0.0)  # consumed + opposite invalidated
-            sb2, lvl2, wick2 = pend_up
-            if sb2 >= 0 and (i - sb2) <= RECLAIM_WINDOW and close[i] < lvl2 and close[i] < open_[i]:
-                disp = min((lvl2 - close[i]) / a, DISP_CAP)
-                act_dn = (i, wick2 * (1.0 + max(disp, 0.0)))
-                pend_up = (-1, np.nan, 0.0)
-                act_up = (-1, 0.0)
-            rb, st = act_up
-            if rb >= 0:
-                v = st * float(np.exp(-(i - rb) / DECAY_TAU))
-                sweep_reclaim_up[i] = v if v > 1e-3 else 0.0
-            rb, st = act_dn
-            if rb >= 0:
-                v = st * float(np.exp(-(i - rb) / DECAY_TAU))
-                sweep_reclaim_down[i] = v if v > 1e-3 else 0.0
-
     # 6. Premium/discount score — close position in [last_sl, last_sh] range
     pd_score = np.full(nb, 0.5, dtype=np.float32)
     valid_pd = (last_sh >= 0) & (last_sl >= 0) & (last_sh_price > last_sl_price)
@@ -279,9 +221,6 @@ def compute_smc_features(
         "smc_bars_since_sweep": bars_since_sweep,
         "smc_premium_discount": pd_score,
     }
-    if _SWEEP_RECLAIM_ON:  # appended ONLY under the flag → default-OFF keeps the 9-col contract byte-identical
-        out_cols["smc_sweep_reclaim_up_displacement_atr"] = sweep_reclaim_up
-        out_cols["smc_sweep_reclaim_down_displacement_atr"] = sweep_reclaim_down
     out = pd.DataFrame(out_cols, index=df.index)
     return out
 
@@ -297,13 +236,6 @@ SMC_FEATURE_NAMES = [
     "smc_bars_since_sweep",
     "smc_premium_discount",
 ]
-if _SWEEP_RECLAIM_ON:  # contract grows ONLY under the flag (GX1_SMC_SWEEP_RECLAIM=1)
-    SMC_FEATURE_NAMES = SMC_FEATURE_NAMES + [
-        "smc_sweep_reclaim_up_displacement_atr",
-        "smc_sweep_reclaim_down_displacement_atr",
-    ]
-
-
 # Exact fixed-width primitives for the multi-resolution Entry surface.  Unlike
 # the historical M5 contract above, this contract is independent of ambient
 # environment flags and never emits numeric unknown/sentinel values.  Rows are

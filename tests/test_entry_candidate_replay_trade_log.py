@@ -569,6 +569,29 @@ def test_source_tape_exposes_exact_hash_bound_closed_m1_provider(
         tape.simulate_trade(start_idx=1, horizon_bars=2, side=0)
 
 
+def test_m5_label_horizon_is_not_counted_as_m1_rows(tmp_path: Path) -> None:
+    times = list(pd.date_range("2026-01-01T00:00:00Z", periods=15, freq="min"))
+    source_path = tmp_path / "source.parquet"
+    _source_frame(times).to_parquet(source_path, index=False)
+    tape = SourceTape.load(source_path)
+
+    start, end = tape.label_horizon_indices(
+        decision_time=pd.Timestamp(times[0]),
+        horizon_m5_bars=2,
+    )
+    trade = tape.simulate_label_horizon_trade(
+        decision_time=pd.Timestamp(times[0]),
+        horizon_m5_bars=2,
+        side=0,
+    )
+
+    assert start == 5
+    assert end == 14
+    assert pd.Timestamp(trade["entry_time"]) == pd.Timestamp(times[5])
+    assert pd.Timestamp(trade["exit_time"]) == pd.Timestamp(times[14])
+    assert trade["held_bars"] == 2
+
+
 def test_source_tape_rejects_unsorted_source_rows_instead_of_reordering(
     tmp_path: Path,
 ) -> None:
@@ -578,6 +601,22 @@ def test_source_tape_rejects_unsorted_source_rows_instead_of_reordering(
     source.to_parquet(source_path, index=False)
 
     with pytest.raises(RuntimeError, match="not strictly chronological"):
+        SourceTape.load(source_path)
+
+
+def test_source_tape_rejects_historical_price_scale_corruption(
+    tmp_path: Path,
+) -> None:
+    times = list(pd.date_range("2026-01-01T00:00:00Z", periods=4, freq="min"))
+    source = _source_frame(times)
+    price_columns = [
+        name for name in source.columns if name not in {"time", "volume"}
+    ]
+    source.loc[1:2, price_columns] /= 10.0
+    source_path = tmp_path / "scale_corrupt_source.parquet"
+    source.to_parquet(source_path, index=False)
+
+    with pytest.raises(RuntimeError, match="PRICE_SCALE_GLITCH"):
         SourceTape.load(source_path)
 
 

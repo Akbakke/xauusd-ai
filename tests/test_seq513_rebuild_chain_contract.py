@@ -79,6 +79,10 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert "trap 'on_signal HUP 129' HUP" in source
     assert 'terminal_status ABORTED "received $signal_name" "$exit_code"' in source
     assert 'terminal_status RED "unexpected ERR at line $line" "$exit_code"' in source
+    assert source.index("trap 'on_err") < source.index("if not tape.is_dir()")
+    assert source.index("trap 'on_err") < source.index(
+        "not m1_lifecycle_pair_manifest.is_file()"
+    )
     assert '"entry_run_id": run_id' in source
     assert '"step": step' in source
     assert '"state": state' in source

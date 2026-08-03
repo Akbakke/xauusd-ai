@@ -10,11 +10,6 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.xau_tape_provenance_v1 import (
-    BASE_REPAIR_METHOD,
-    BASE_REPAIR_SCHEMA,
-    CURRENT_SNAPSHOT_METHOD,
-    CURRENT_SNAPSHOT_SCHEMA,
-    XAU_INSTRUMENT,
     canonical_xau_source_descriptor_v1,
 )
 from gx1.features.htf_features import (
@@ -55,123 +50,49 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def _legacy_repaired_tape(tmp_path: Path, root: Path) -> Path:
-    canonical_sources = {}
-    for key, timeframe in (("m5", "M5"), ("m1", "M1")):
-        canonical_root = tmp_path / f"canonical_{key}"
-        materialize_native_xau_test_bundle(
-            canonical_root,
-            timeframe=timeframe,
-        )
-        canonical_sources[key] = canonical_xau_source_descriptor_v1(
-            canonical_root.resolve(), timeframe=timeframe
-        )
-    base_tape = tmp_path / "base_tape"
-    base_years = {}
-    for year in range(2020, 2027):
-        part = base_tape / f"year={year}" / "part-000.parquet"
-        part.parent.mkdir(parents=True)
-        part.write_bytes(f"base-tape-{year}".encode())
-        base_years[f"year={year}"] = {"output_sha256": _sha(part)}
-    _write_json(
-        base_tape / "REPAIR_MANIFEST.json",
-        {
-            "schema_version": BASE_REPAIR_SCHEMA,
-            "instrument": XAU_INSTRUMENT,
-            "explicit_vedtak_id": RUN_ID,
-            "method": BASE_REPAIR_METHOD,
-            "geometry_bad_total_after": 0,
-            "m5_tape_root": canonical_sources["m5"]["root"],
-            "m1_tape_root": canonical_sources["m1"]["root"],
-            "canonical_sources": canonical_sources,
-            "years": base_years,
-        },
-    )
-    tape = root / "m5_tape_repaired_dec2024"
-    years = {}
-    for year in range(2020, 2027):
-        part = tape / f"year={year}" / "part-000.parquet"
-        part.parent.mkdir(parents=True)
-        part.write_bytes(f"tape-{year}".encode())
-        years[f"year={year}"] = {"output_sha256": _sha(part)}
-    snapshot = tape / "collector_snapshot" / "xauusd_m1_fixture.parquet"
-    snapshot.parent.mkdir()
-    snapshot.write_bytes(b"immutable-xau-collector-snapshot")
-    _write_json(
-        tape / "REPAIR_MANIFEST.json",
-        {
-            "schema_version": CURRENT_SNAPSHOT_SCHEMA,
-            "instrument": XAU_INSTRUMENT,
-            "entry_run_id": RUN_ID,
-            "method": CURRENT_SNAPSHOT_METHOD,
-            "last_complete_m5_utc": SOURCE_TIMES[-1].isoformat(),
-            "base_tape_root": str(base_tape.resolve()),
-            "base_manifest_path": str((base_tape / "REPAIR_MANIFEST.json").resolve()),
-            "base_manifest_sha256": _sha(base_tape / "REPAIR_MANIFEST.json"),
-            "base_year_sha256": {
-                key: value["output_sha256"] for key, value in base_years.items()
-            },
-            "collector_sources": [
-                {
-                    "source_path": "/collector/xauusd_m1_fixture.parquet",
-                    "snapshot_path": str(snapshot.resolve()),
-                    "sha256": _sha(snapshot),
-                    "rows": 1,
-                }
-            ],
-            "overlap_exact": True,
-            "overlap_proof": {"rows": 1, "max_abs_diff": 0.0, "new_tail_rows": 1},
-            "geometry_bad_total_after": 0,
-            "years": years,
-        },
-    )
-    return tape
-
-
 def _fixture(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     *,
-    tape_kind: str = "repaired",
+    tape_kind: str = "native",
 ) -> Path:
     root = tmp_path / "event"
     root.mkdir()
-    if tape_kind in {"native", "native_v4"}:
-        tape = root / "m5_tape_native_v3"
-        if tape_kind == "native_v4":
-            parent = tmp_path / "native_m5_parent"
-            materialize_native_xau_test_bundle(
-                parent,
-                timeframe="M5",
-            )
-            parent_descriptor = canonical_xau_source_descriptor_v1(
-                parent,
-                timeframe="M5",
-            )
-            monkeypatch.setattr(
-                canonical_backfill,
-                "_require_clean_repository",
-                lambda _root, *, timeframe: "a" * 40,
-            )
-            canonical_backfill.materialize_native_xau_successor(
-                client=_FakeOandaClient(timeframe="M5"),
-                timeframe="M5",
-                vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
-                end_utc=SOURCE_TIMES[-1] + pd.Timedelta(minutes=5),
-                out_root=tape,
-                parent_root=parent,
-                expected_parent_manifest_sha256=parent_descriptor[
-                    "manifest_sha256"
-                ],
-            )
-        else:
-            materialize_native_xau_test_bundle(
-                tape,
-                timeframe="M5",
-                end_utc=SOURCE_TIMES[-1] + pd.Timedelta(minutes=5),
-            )
+    if tape_kind not in {"native", "native_v4"}:
+        raise ValueError(f"unsupported tape_kind={tape_kind!r}")
+    tape = root / "m5_tape_native_v3"
+    if tape_kind == "native_v4":
+        parent = tmp_path / "native_m5_parent"
+        materialize_native_xau_test_bundle(
+            parent,
+            timeframe="M5",
+        )
+        parent_descriptor = canonical_xau_source_descriptor_v1(
+            parent,
+            timeframe="M5",
+        )
+        monkeypatch.setattr(
+            canonical_backfill,
+            "_require_clean_repository",
+            lambda _root, *, timeframe: "a" * 40,
+        )
+        canonical_backfill.materialize_native_xau_successor(
+            client=_FakeOandaClient(timeframe="M5"),
+            timeframe="M5",
+            vedtak_id="XAU_NATIVE_M5_FIXTURE_V3",
+            end_utc=SOURCE_TIMES[-1] + pd.Timedelta(minutes=5),
+            out_root=tape,
+            parent_root=parent,
+            expected_parent_manifest_sha256=parent_descriptor[
+                "manifest_sha256"
+            ],
+        )
     else:
-        tape = _legacy_repaired_tape(tmp_path, root)
+        materialize_native_xau_test_bundle(
+            tape,
+            timeframe="M5",
+            end_utc=SOURCE_TIMES[-1] + pd.Timedelta(minutes=5),
+        )
 
     times = SOURCE_TIMES
     row_count = len(times)
@@ -344,26 +265,8 @@ def test_source_cascade_audit_binds_every_stage_and_emits_pass(
     assert binding["multi_tf_cache_identity_sha256"] == report["artifacts"][
         "multi_tf_cache_identity_sha256"
     ]
-    tape_manifest = root / "m5_tape_repaired_dec2024" / "REPAIR_MANIFEST.json"
-    assert report["artifacts"]["tape_manifest_sha256"] == _sha(tape_manifest)
-
-
-def test_source_cascade_audit_accepts_native_v3_tape_and_emits_pass(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = _fixture(tmp_path, monkeypatch, tape_kind="native")
-
-    report = audit.run(_args(root))
-
-    assert report["decision"] == "PASS"
-    assert report["entry_run_id"] == RUN_ID
-    assert (
-        report["contracts"]["xau_tape_provenance"]["schema_version"]
-        == "xau_canonical_native_source_v3"
-    )
     tape_manifest = root / "m5_tape_native_v3" / "MANIFEST.json"
     assert report["artifacts"]["tape_manifest_sha256"] == _sha(tape_manifest)
-    assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
 
 
 def test_source_cascade_audit_accepts_native_v4_successor_tape(

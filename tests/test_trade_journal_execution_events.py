@@ -10,7 +10,6 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import sys
 
@@ -261,4 +260,3 @@ class TestTradeJournalExecutionEvents(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

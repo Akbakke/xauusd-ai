@@ -1934,7 +1934,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ):
             raise RuntimeError("prediction evidence schema mismatch")
         if tuple(sorted(prediction_evidence.get("splits") or ())) != tuple(sorted(DATA_SPLITS)):
-            raise RuntimeError("prediction evidence must contain exactly val,test")
+            raise RuntimeError(
+                "prediction evidence must contain exactly the policy-owned "
+                "smoke split(s)"
+            )
         models = tuple(prediction_evidence.get("models") or ())
         if len(models) != 1:
             raise RuntimeError(f"prediction evidence must contain exactly one model: {models}")

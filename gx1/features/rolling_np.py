@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Union
 
 # Del 1: Hard fail if Numba is not available
 try:
@@ -360,8 +359,6 @@ def zscore_w48_numba(x: np.ndarray, min_periods: int) -> np.ndarray:
         return result
     
     window = 48
-    ddof = 0
-    
     if n < min_periods:
         return result
     
@@ -452,9 +449,6 @@ def pct_change_np(x: np.ndarray, k: int) -> np.ndarray:
     Returns:
         float64 array with percentage change values
     """
-    import logging
-    log = logging.getLogger(__name__)
-    
     x = np.asarray(x, dtype=np.float64)
     
     # Explicit 1D input validation

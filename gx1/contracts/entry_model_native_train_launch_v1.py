@@ -69,6 +69,7 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    EXIT_FEATURE_ROW_CLOCK,
     require_entry_exit_shared_feature_base_contract,
 )
 from gx1.features.htf_features import (
@@ -254,6 +255,7 @@ def _validate_unified_exit_lifecycle_root(
     )
     _require(
         payload.get("path_state_count") == 512
+        and payload.get("m1_row_clock") == EXIT_FEATURE_ROW_CLOCK
         and isinstance(payload.get("target_lookahead_m1_steps"), int)
         and not isinstance(payload.get("target_lookahead_m1_steps"), bool)
         and int(payload["target_lookahead_m1_steps"]) > 0,
@@ -1149,9 +1151,14 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
     for key in ("epochs", "batch_size", "early_stop_patience"):
         _require(integer_values[key] > 0, f"{key} must be > 0")
     _require(integer_values["subsample_rows"] >= 0, "subsample_rows must be >= 0")
+    if str(args.profile) == "candidate":
+        _require(
+            integer_values["subsample_rows"] == 0,
+            "candidate training requires full TRAIN population (subsample_rows=0)",
+        )
     _require(
-        integer_values["num_workers"] >= -1,
-        "num_workers must be >= -1 (-1 selects from CPU count)",
+        integer_values["num_workers"] == 0,
+        "num_workers must equal 0 under the fixed low-memory recipe",
     )
     _require(
         integer_values["multi_tf_num_layers"] > 0,
@@ -1246,6 +1253,10 @@ def build_recipe_audit_payload(
     dataset_run_id = _dataset_run_id_from_launch_evidence(
         post_rebuild=payloads["post_rebuild_readiness_json"],
         payloads=payloads,
+    )
+    _require(
+        run_id != dataset_run_id,
+        "training run_id must differ from immutable dataset_run_id",
     )
     _validate_unified_exit_lifecycle_root(
         payloads["unified_exit_lifecycle_manifest_json"],
@@ -1357,6 +1368,10 @@ def validate_launch(
     dataset_run_id = _dataset_run_id_from_launch_evidence(
         post_rebuild=payloads["post_rebuild_readiness_json"],
         payloads=payloads,
+    )
+    _require(
+        run_id != dataset_run_id,
+        "training run_id must differ from immutable dataset_run_id",
     )
     expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
         payloads

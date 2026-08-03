@@ -5,7 +5,6 @@ Hard correctness test: if this fails, system is wrong.
 """
 import numpy as np
 import pandas as pd
-import pytest
 
 from gx1.features.rolling_state_numba import RollingR1Quantiles48State
 
@@ -138,6 +137,5 @@ def test_incremental_deterministic():
     # Results should be identical
     assert np.allclose(results1_q10, results2_q10, rtol=1e-10, atol=1e-10), "q10 should be deterministic"
     assert np.allclose(results1_q90, results2_q90, rtol=1e-10, atol=1e-10), "q90 should be deterministic"
-
 
 

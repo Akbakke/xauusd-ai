@@ -38,10 +38,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+)
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
-    CURRENT_SNAPSHOT_SCHEMA,
     XAU_INSTRUMENT,
     validate_xau_tape_provenance_v1,
 )
@@ -54,7 +56,7 @@ PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 CHAIN_SCHEMA = "seq513_rebuild_chain_status_v6"
 DIRECT_BUILD_PROOF_FILENAME = "DATASET_BUILD_PROOF.json"
-EXIT_LIFECYCLE_SCHEMA = "gx1_unified_exit_lifecycle_episode_envelope_v2"
+EXIT_LIFECYCLE_SCHEMA = UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
 
 
 def _sha256_file(path: Path) -> str:
@@ -478,20 +480,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and all(pretrain_tape.get(split) == xau_provenance for split in SPLITS)
     )
     provenance_schema = xau_provenance.get("schema_version")
-    if provenance_schema in {
+    tape_identity_ok = (
+        provenance_schema in {
         CANONICAL_NATIVE_SOURCE_SCHEMA,
         CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
-    }:
-        # A strict native source root is complete tape provenance by
-        # construction; run identity is bound by the consuming split
-        # manifests, which _manifest_contract validates per split above.
-        tape_identity_ok = xau_provenance.get("instrument") == XAU_INSTRUMENT
-    else:
-        tape_identity_ok = (
-            provenance_schema == CURRENT_SNAPSHOT_SCHEMA
-            and xau_provenance.get("instrument") == XAU_INSTRUMENT
-            and xau_provenance.get("entry_run_id") == run_id
-        )
+        }
+        and xau_provenance.get("instrument") == XAU_INSTRUMENT
+    )
     splits_ok = (
         not split_failures
         and tape_identity_ok

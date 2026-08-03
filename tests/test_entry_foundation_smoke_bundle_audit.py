@@ -641,8 +641,8 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         "runtime_head_evidence_authoritative": True,
         "path": str(predictions.resolve()),
         "sha256": audit._sha256_file(predictions),
-        "rows": len(frame),
-        "splits": ["test", "val"],
+        "rows": int((frame["split"].astype(str) == "val").sum()),
+        "splits": ["val"],
         "models": ["entry_model_native_smoke"],
     }
     monkeypatch.setattr(
@@ -654,7 +654,13 @@ def test_run_publishes_exact_consumer_contract_without_latest(
             evidence,
         ),
     )
-    monkeypatch.setattr(audit.pd, "read_parquet", lambda _: frame)
+    monkeypatch.setattr(
+        audit.pd,
+        "read_parquet",
+        lambda _: frame.loc[
+            frame["split"].astype(str) == "val"
+        ].reset_index(drop=True),
+    )
 
     report = audit.run(
         Namespace(

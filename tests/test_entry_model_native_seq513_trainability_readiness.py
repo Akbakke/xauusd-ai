@@ -233,8 +233,6 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX142CAT5") -> argpar
         candidate_wrapper=str(_write(tmp_path / "run_candidate.sh", candidate_wrapper_text)),
         candidate_readiness_script=str(_write(tmp_path / "candidate_readiness.py", smart_script_text)),
         selective_edge_script=str(_write(tmp_path / "selective_edge.py", smart_script_text)),
-        replay_evidence_script=str(_write(tmp_path / "replay_evidence.py", smart_script_text)),
-        replay_readiness_script=str(_write(tmp_path / "replay_readiness.py", smart_script_text)),
         out_dir=str(tmp_path / "reports"),
         quiet=True,
     )

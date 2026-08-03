@@ -17,7 +17,6 @@ def _m1_frame(rows: int = 5_000) -> pd.DataFrame:
         tz="UTC",
     )
     close = 1_800.0 + np.linspace(0.0, 20.0, rows) + np.sin(np.arange(rows) / 17.0)
-    spread = np.full(rows, 0.2)
     return pd.DataFrame(
         {
             "open": close - 0.05,

@@ -4,7 +4,7 @@
 Each open trade has a TradeState that records:
   - entry timestamp + side + entry prices (bid+ask snapshot)
   - the exact model-native Entry snapshot, frozen at Entry
-  - contiguous literal mid/bid/ask OHLCV path with immutable source identity
+  - ordered literal mid/bid/ask OHLCV path with immutable source identity
   - exact executable intrabar excursion and spread-inclusive one-bar range
   - content-hashable path evidence with no synthetic early-history features
 """
@@ -51,7 +51,7 @@ SIDE_LONG = "long"
 SIDE_SHORT = "short"
 SIDES = (SIDE_LONG, SIDE_SHORT)
 
-PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v8"
+PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v9"
 TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION = (
     "gx1_trade_state_model_bundle_binding_v1"
 )
@@ -624,16 +624,13 @@ def _validate_persisted_trade_state_payload(
         raise ValueError(
             "persisted trade state last_processed_m1_ts/bar count mismatch"
         )
-    if last_processed_m1_ts is not None:
-        expected_last_processed = first_full_closed_m1_bar_ts(
-            entry_ts
-        ) + pd.Timedelta(
-            minutes=bars_in_trade - 1
+    if (
+        last_processed_m1_ts is not None
+        and last_processed_m1_ts < first_full_closed_m1_bar_ts(entry_ts)
+    ):
+        raise ValueError(
+            "persisted trade state M1 row clock precedes entry"
         )
-        if last_processed_m1_ts != expected_last_processed:
-            raise ValueError(
-                "persisted trade state M1 cadence is not contiguous from entry"
-            )
     bars_since_mfe_peak = _nonnegative_persisted_integer(
         payload, "bars_since_mfe_peak"
     )
@@ -751,13 +748,18 @@ def _validate_persisted_trade_state_payload(
             "persisted trade state literal path length does not match bars_in_trade"
         )
     if canonical_path:
-        expected_first = first_full_closed_m1_bar_ts(entry_ts)
-        for offset, row in enumerate(canonical_path):
-            expected_ts = expected_first + pd.Timedelta(minutes=offset)
-            if pd.Timestamp(row["time"]) != expected_ts:
+        minimum_first = first_full_closed_m1_bar_ts(entry_ts)
+        previous_ts: pd.Timestamp | None = None
+        for row in canonical_path:
+            observed_ts = pd.Timestamp(row["time"])
+            if (
+                (previous_ts is None and observed_ts < minimum_first)
+                or (previous_ts is not None and observed_ts <= previous_ts)
+            ):
                 raise ValueError(
-                    "persisted trade state closed_m1_path cadence mismatch"
+                    "persisted trade state closed_m1_path row clock mismatch"
                 )
+            previous_ts = observed_ts
         if pd.Timestamp(canonical_path[-1]["time"]) != last_processed_m1_ts:
             raise ValueError(
                 "persisted trade state closed_m1_path terminal timestamp mismatch"
@@ -1300,15 +1302,21 @@ class TradeState:
             volume=volume,
         )
         parsed_m1_bar_ts = pd.Timestamp(canonical_bar["time"])
-        expected_m1_bar_ts = (
+        minimum_m1_bar_ts = (
             first_full_closed_m1_bar_ts(self.entry_ts)
             if self.last_processed_m1_ts is None
-            else self.last_processed_m1_ts + pd.Timedelta(minutes=1)
+            else self.last_processed_m1_ts
         )
-        if parsed_m1_bar_ts != expected_m1_bar_ts:
+        if (
+            parsed_m1_bar_ts < minimum_m1_bar_ts
+            or (
+                self.last_processed_m1_ts is not None
+                and parsed_m1_bar_ts == minimum_m1_bar_ts
+            )
+        ):
             raise ValueError(
-                "closed M1 cadence gap/duplicate: "
-                f"expected={expected_m1_bar_ts.isoformat()} "
+                "closed M1 row clock duplicate/reversal: "
+                f"minimum={minimum_m1_bar_ts.isoformat()} "
                 f"observed={parsed_m1_bar_ts.isoformat()}"
             )
 
@@ -1548,13 +1556,20 @@ class TradeState:
             raise ValueError("staged exit state changed immutable trade identity")
         if staged.bars_in_trade != self.bars_in_trade + 1:
             raise ValueError("staged exit state must contain exactly one new M1 bar")
-        expected_ts = (
+        minimum_ts = (
             first_full_closed_m1_bar_ts(self.entry_ts)
             if self.last_processed_m1_ts is None
-            else self.last_processed_m1_ts + pd.Timedelta(minutes=1)
+            else self.last_processed_m1_ts
         )
-        if staged.last_processed_m1_ts != expected_ts:
-            raise ValueError("staged exit state M1 timestamp is not the next bar")
+        if (
+            staged.last_processed_m1_ts is None
+            or staged.last_processed_m1_ts < minimum_ts
+            or (
+                self.last_processed_m1_ts is not None
+                and staged.last_processed_m1_ts == minimum_ts
+            )
+        ):
+            raise ValueError("staged exit state M1 row clock is not forward")
         if staged.last_exit_decision is None:
             raise ValueError(
                 "staged exit state requires its exact model decision"

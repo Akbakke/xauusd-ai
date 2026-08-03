@@ -26,6 +26,9 @@ from tests.entry_model_native_train_wrapper_support import (
 
 REPO = Path(__file__).resolve().parents[1]
 WRAPPER = REPO / "scripts/run_entry_model_native_seq513_smoke_train.sh"
+CANDIDATE_WRAPPER = (
+    REPO / "scripts/run_entry_model_native_seq513_candidate_train.sh"
+)
 
 
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
@@ -169,6 +172,33 @@ def test_train_launch_rejects_invalid_explicit_dropout(
         launch._trainer_cli_contract(args)
 
 
+def test_candidate_launch_rejects_training_subsample(tmp_path: Path) -> None:
+    wrapper_argv, _ = build_wrapper_contract(
+        tmp_path,
+        profile="candidate",
+        wrapper=CANDIDATE_WRAPPER,
+    )
+    subsample_index = wrapper_argv.index("--subsample-rows") + 1
+    wrapper_argv[subsample_index] = "512"
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "candidate",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(CANDIDATE_WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="candidate training requires full TRAIN population",
+    ):
+        launch._trainer_cli_contract(args)
+
+
 def test_recipe_producer_fails_before_publication_when_source_is_dirty(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -273,6 +303,35 @@ def test_launch_derives_dataset_run_id_from_post_rebuild_and_all_splits(
             post_rebuild=post_rebuild,
             payloads=payloads,
         )
+
+
+def test_recipe_rejects_training_run_id_equal_to_dataset_run_id(
+    tmp_path: Path,
+) -> None:
+    wrapper_argv, _ = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    run_id_index = wrapper_argv.index("--run-id") + 1
+    wrapper_argv[run_id_index] = DATASET_RUN_ID
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "smoke",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="training run_id must differ from immutable dataset_run_id",
+    ):
+        launch.validate_launch(args)
 
 
 def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
