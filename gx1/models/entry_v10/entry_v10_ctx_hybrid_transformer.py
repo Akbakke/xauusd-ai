@@ -7,6 +7,7 @@ from typing import Dict, Mapping, Optional, Tuple
 
 import torch
 import torch.nn as nn
+from torch.utils.checkpoint import checkpoint as _torch_checkpoint
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
@@ -70,6 +71,57 @@ def _assert_shape(name: str, t: torch.Tensor, nd: int) -> None:
 def _assert_finite(name: str, t: torch.Tensor) -> None:
     if torch.isnan(t).any() or torch.isinf(t).any():
         raise RuntimeError(f"NONFINITE: {name} contains NaN/Inf")
+
+
+TRAIN_ACTIVATION_CHECKPOINT_POLICY = (
+    "per_transformer_layer_non_reentrant_preserve_rng_v1"
+)
+
+
+def _memory_bounded_transformer_encoder(
+    encoder: nn.TransformerEncoder,
+    src: torch.Tensor,
+    *,
+    src_key_padding_mask: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """Run the exact encoder while bounding retained training activations.
+
+    Entry M5, all five MTF branches, and Exit M1 keep the same layers, rows,
+    features, batch semantics, dropout stream, and gradients.  During a
+    gradient-enabled training forward, each Transformer layer is recomputed
+    once during backward instead of retaining every attention/FFN activation
+    at the same time.  Evaluation and live inference use the ordinary encoder
+    path without checkpoint machinery.
+    """
+
+    if not (encoder.training and torch.is_grad_enabled()):
+        return encoder(
+            src,
+            src_key_padding_mask=src_key_padding_mask,
+        )
+
+    hidden = src
+    for layer in encoder.layers:
+        def _layer_forward(
+            value: torch.Tensor,
+            *,
+            exact_layer: nn.TransformerEncoderLayer = layer,
+        ) -> torch.Tensor:
+            return exact_layer(
+                value,
+                src_key_padding_mask=src_key_padding_mask,
+                is_causal=False,
+            )
+
+        hidden = _torch_checkpoint(
+            _layer_forward,
+            hidden,
+            use_reentrant=False,
+            preserve_rng_state=True,
+        )
+    if encoder.norm is not None:
+        hidden = encoder.norm(hidden)
+    return hidden
 
 
 EXACT_TRENDLINE_RAIL_OUTPUT_DIM = 6
@@ -1561,7 +1613,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             index = int(index_text)
             seq_h = seq_h + embedding(seq_x[..., index].long())
         seq_h = self._add_pe(seq_h, positional_encoding)
-        seq_h = self.encoder(seq_h)
+        seq_h = _memory_bounded_transformer_encoder(self.encoder, seq_h)
         seq_pool = seq_h.mean(dim=1)
 
         generic_snap_idx = self.generic_snap_idx.to(snap_x.device)
@@ -1593,11 +1645,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 index = int(index_text)
                 if index in specialist_index_set:
                     spec_h = spec_h + embedding(seq_x[..., index].long())
-            temporal_pool = self.specialist_encoder[name](spec_h).mean(dim=1)
+            temporal_pool = _memory_bounded_transformer_encoder(
+                self.specialist_encoder[name],
+                spec_h,
+            ).mean(dim=1)
             pools.append(temporal_pool + family_context_tokens[:, specialist_position, :])
         specialist_tokens = torch.stack(pools, dim=1)
-        specialist_tokens = self.specialist_cross_attn(
-            specialist_tokens + self.specialist_token_identity
+        specialist_tokens = _memory_bounded_transformer_encoder(
+            self.specialist_cross_attn,
+            specialist_tokens + self.specialist_token_identity,
         )
         specialist_gate = torch.softmax(
             self.specialist_gate(z_v3)
@@ -1734,7 +1790,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         path_hidden = self.exit_path_proj(exit_path_x)
         path_hidden = self._add_pe(path_hidden, "pos_enc_exit")
-        path_hidden = self.exit_path_encoder(
+        path_hidden = _memory_bounded_transformer_encoder(
+            self.exit_path_encoder,
             path_hidden,
             src_key_padding_mask=padding_mask,
         )
@@ -1901,8 +1958,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         .view(B, 1, 1)
                         * effective_scale
                     )
-                encoded = self.mtf_family_encoder[specialist](
-                    self._add_pe(projected, f"pos_enc_{suffix}")
+                encoded = _memory_bounded_transformer_encoder(
+                    self.mtf_family_encoder[specialist],
+                    self._add_pe(projected, f"pos_enc_{suffix}"),
                 )
                 family_token = encoded.mean(dim=1)
                 family_tokens.append(family_token)
@@ -1925,7 +1983,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             5,
             int(self.cfg.d_model),
         )
-        family_axis = self.family_axis_attn(family_axis)
+        family_axis = _memory_bounded_transformer_encoder(
+            self.family_axis_attn,
+            family_axis,
+        )
         family_grid = family_axis.reshape(
             B,
             len(self._specialist_names),
@@ -1937,7 +1998,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             len(self._specialist_names),
             int(self.cfg.d_model),
         )
-        timeframe_axis = self.timeframe_axis_attn(timeframe_axis)
+        timeframe_axis = _memory_bounded_transformer_encoder(
+            self.timeframe_axis_attn,
+            timeframe_axis,
+        )
         family_grid = timeframe_axis.reshape(
             B,
             5,
@@ -1975,7 +2039,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         tf_tokens = (
             family_grid * family_gate_within_tf.unsqueeze(-1)
         ).sum(dim=2)
-        tf_attended = self.cross_tf_attn(tf_tokens + self.tf_token_identity)
+        tf_attended = _memory_bounded_transformer_encoder(
+            self.cross_tf_attn,
+            tf_tokens + self.tf_token_identity,
+        )
         tf_gate = torch.softmax(
             self.tf_gate_logits.view(1, -1)
             + self.tf_context_gate(z_v3)

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import inspect
 
 import pytest
@@ -23,6 +24,7 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
 )
+from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as model_module
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_FEATURE_DIM,
 )
@@ -254,6 +256,107 @@ def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> 
         parameter = dict(model.named_parameters())[parameter_name]
         assert parameter.grad is not None, parameter_name
         assert bool(torch.count_nonzero(parameter.grad).item()), parameter_name
+
+
+def test_memory_bounded_transformers_preserve_full_entry_exit_outputs_and_gradients(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkpointed = _make_model(dropout=0.05).train()
+    direct = copy.deepcopy(checkpointed).train()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=2)
+    exit_features = _make_exit_feature_inputs(2)
+    path = torch.randn(2, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    path[1, 2:, :] = 0.0
+    path_lengths = torch.tensor([4, 2], dtype=torch.long)
+    side_index = torch.tensor([0, 1], dtype=torch.long)
+
+    def _run(model: EntryV10CtxHybridTransformer) -> tuple[dict, dict]:
+        torch.manual_seed(4242)
+        entry = model(
+            seq_x,
+            snap_x,
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            **mtf,
+        )
+        exit_out = model.forward_exit_action(
+            entry_shared_representation=entry["shared_feature_representation"],
+            **exit_features,
+            exit_path_x=path,
+            exit_path_lengths=path_lengths,
+            exit_side_index=side_index,
+        )
+        loss = torch.nn.functional.cross_entropy(
+            entry["direction_logits"],
+            torch.tensor([0, 1]),
+        ) + torch.nn.functional.cross_entropy(
+            exit_out["exit_action_logits"],
+            torch.tensor([0, 1]),
+        )
+        loss.backward()
+        return entry, exit_out
+
+    checkpointed_entry, checkpointed_exit = _run(checkpointed)
+
+    direct_layer_calls = 0
+
+    def _direct_layer(function, *args, **_kwargs):
+        nonlocal direct_layer_calls
+        direct_layer_calls += 1
+        return function(*args)
+
+    monkeypatch.setattr(model_module, "_torch_checkpoint", _direct_layer)
+    direct_entry, direct_exit = _run(direct)
+    assert direct_layer_calls > 0
+    for name in ("direction_logits", "shared_feature_representation"):
+        assert torch.equal(checkpointed_entry[name], direct_entry[name]), name
+    assert torch.equal(
+        checkpointed_exit["exit_action_logits"],
+        direct_exit["exit_action_logits"],
+    )
+    for (name, checkpointed_parameter), (
+        direct_name,
+        direct_parameter,
+    ) in zip(checkpointed.named_parameters(), direct.named_parameters()):
+        assert name == direct_name
+        if checkpointed_parameter.grad is None or direct_parameter.grad is None:
+            assert checkpointed_parameter.grad is direct_parameter.grad is None, name
+            continue
+        assert torch.equal(
+            checkpointed_parameter.grad,
+            direct_parameter.grad,
+        ), name
+
+
+def test_memory_checkpointing_is_training_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    real_checkpoint = model_module._torch_checkpoint
+
+    def _counting_checkpoint(function, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_checkpoint(function, *args, **kwargs)
+
+    monkeypatch.setattr(
+        model_module,
+        "_torch_checkpoint",
+        _counting_checkpoint,
+    )
+    model = _make_model(dropout=0.0).train()
+    _forward(model, batch_size=1)
+    assert calls > 0
+
+    calls = 0
+    model.eval()
+    _forward(model, batch_size=1)
+    assert calls == 0
+
+    model.train()
+    with torch.no_grad():
+        _forward(model, batch_size=1)
+    assert calls == 0
 
 
 def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> None:

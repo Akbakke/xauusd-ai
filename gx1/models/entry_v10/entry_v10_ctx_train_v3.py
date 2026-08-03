@@ -119,6 +119,7 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
     EXACT_EVIDENCE_FUSION_OUTPUTS,
+    TRAIN_ACTIVATION_CHECKPOINT_POLICY,
     DIP_DIRECTIONS, DIP_HORIZONS, DIP_TARGETS, FORECAST_HORIZONS,
     TIMING_DIRECTIONS, TIMING_HORIZONS, TIMING_TARGETS,
     TAIL_RISK_DIRECTIONS, TAIL_RISK_HORIZONS, TAIL_RISK_QUANTILE,
@@ -10352,6 +10353,11 @@ def run_train(
     log.info(
         "[ENTRY_EXACT_HEADS] hierarchy=true side_validity=true trendline_rail=true "
         "tf_agreement=true path_variance=true position_size=true",
+    )
+    log.info(
+        "[TRAIN_MEMORY_POLICY] activation_checkpoint=%s "
+        "features=unchanged samples=unchanged batch_semantics=unchanged",
+        TRAIN_ACTIVATION_CHECKPOINT_POLICY,
     )
     log.info(
         "[MULTI_TF_PROOF] enabled=True TFs=M5+M15+H1+H4+D1 (V4) "

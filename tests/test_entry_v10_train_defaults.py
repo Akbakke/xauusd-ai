@@ -107,16 +107,18 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
     paths = torch.zeros(1, 4, 3, 14)
     paths[0, 0, :2] = 0.25
     paths[0, 1, :3] = -0.25
+    paths[0, 2, :1] = 0.50
+    paths[0, 3, :2] = -0.50
     batch = {
         "exit_feature_seq_x": torch.randn(1, 4, 4, 4),
         "exit_feature_snap_x": torch.randn(1, 4, 4),
         "exit_feature_ctx_cat": torch.zeros(1, 4, 5, dtype=torch.long),
         "exit_feature_ctx_cont": torch.randn(1, 4, 142),
         "exit_path_x": paths,
-        "exit_path_lengths": torch.tensor([[2, 3, 0, 0]]),
-        "exit_side_index": torch.tensor([[0, 1, 0, 0]]),
-        "exit_action_target": torch.tensor([[0, 1, 0, 0]]),
-        "exit_sample_valid": torch.tensor([[True, True, False, False]]),
+        "exit_path_lengths": torch.tensor([[2, 3, 1, 2]]),
+        "exit_side_index": torch.tensor([[0, 1, 0, 1]]),
+        "exit_action_target": torch.tensor([[0, 1, 0, 1]]),
+        "exit_sample_valid": torch.tensor([[True, True, True, True]]),
     }
     loss, stats = trainer._unified_exit_action_loss(
         model,
@@ -127,9 +129,9 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
     loss.backward()
 
     assert float(loss) > 0.0
-    assert stats["rows"] == 2
-    assert stats["hold_rows"] == 1
-    assert stats["exit_now_rows"] == 1
+    assert stats["rows"] == 4
+    assert stats["hold_rows"] == 2
+    assert stats["exit_now_rows"] == 2
     assert shared.grad is not None
     assert float(shared.grad.abs().sum()) > 0.0
     assert model.head.weight.grad is not None
