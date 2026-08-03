@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 PY="$REPO/.venv/bin/python"
 CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 10G --swap 512M --)
+AUDIT_CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 512M --)
 
 usage() {
   cat <<'EOF'
@@ -681,7 +682,7 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
     ;;
 
   model-native-smoke-train)

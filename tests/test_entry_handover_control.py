@@ -524,6 +524,7 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     ):
         assert flag in recipe
     assert "materialize_entry_model_native_seq513_train_recipe_audit_v1" in recipe
+    assert 'AUDIT_CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 512M --)' in source
 
     audit = source.split("  model-native-smoke-bundle-audit)", 1)[1].split(
         "    ;;", 1
