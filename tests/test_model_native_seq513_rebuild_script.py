@@ -142,22 +142,23 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "exit 75" in source
     assert "systemd-run --user --scope --quiet" in source
     assert "exec systemd-run" not in source
-    assert "SAFE_JOB_MEMORY_KIB=$((14 * 1024 * 1024))" in source
-    assert "SAFE_JOB_SWAP_KIB=$((1 * 1024 * 1024))" in source
-    assert "MIN_AVAILABLE_MEMORY_KIB=$((16 * 1024 * 1024))" in source
-    assert "-p CPUQuota=200%" in source
+    assert "SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))" in source
+    assert "SAFE_JOB_SWAP_KIB=$((512 * 1024))" in source
+    assert "MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))" in source
+    assert "capped_run_scope_verified" in source
+    assert "/usr/bin/taskset -c" in source
     assert "--setenv=OMP_NUM_THREADS=1" in source
 
 
 def test_pre_commit_model_contracts_use_capped_runner() -> None:
     source = PRE_COMMIT.read_text(encoding="utf-8")
 
-    assert 'CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 1G --)' in source
+    assert 'CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 512M --)' in source
     assert '"${CAP[@]}" "$PY" -m pytest -q' in source
 
 
 def test_seq513_rebuild_caps_every_heavy_stage() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
-    assert 'CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 14G --swap 1G --)' in source
+    assert 'CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 10G --swap 512M --)' in source
     assert '"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source

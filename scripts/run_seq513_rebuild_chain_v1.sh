@@ -732,7 +732,7 @@ if values.empty or values.isna().any():
 print(pd.Timestamp(values.iloc[0]).isoformat())
 PYEOF
 )
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 14G --swap 1G -- \
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
   "$PY" -m gx1.scripts.audit_seq513_source_cascade_v1 \
   --run-id "$RUN_ID" \
   --event-root "$EVENT" \
@@ -762,7 +762,7 @@ CURRENT_STEP=train-rank-reference
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 14G --swap 1G -- \
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
   "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
   --run-id "$RUN_ID" \
   --source-parquet "$SRC" \
@@ -791,7 +791,7 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
 run_feature_ranker() {
-  (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 14G --swap 1G -- \
+  (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
     "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \

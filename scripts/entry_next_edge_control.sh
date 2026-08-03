@@ -9,7 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 PY="$REPO/.venv/bin/python"
-CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 14G --swap 1G --)
+CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 10G --swap 512M --)
 
 usage() {
   cat <<'EOF'

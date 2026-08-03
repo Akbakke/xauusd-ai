@@ -784,7 +784,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "per_tf_seq_len_h4": 96,
         "per_tf_seq_len_d1": 252,
         "memory_cap": "2G",
-        "swap_cap": "1G",
+        "swap_cap": "512M",
         "gx1_data_root": str(gx1_data_root),
     }
     recipe_path = evidence_dir / f"ENTRY_TRAIN_RECIPE_AUDIT_{STAMP}.json"
@@ -877,7 +877,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--per-tf-seq-len-h4", "96",
         "--per-tf-seq-len-d1", "252",
         "--memory-cap", "2G",
-        "--swap-cap", "1G",
+        "--swap-cap", "512M",
     ]
     if profile == "smoke":
         args.extend(

@@ -57,8 +57,8 @@ Then read `AGENTS.md`, `SYSTEM_MAP.md`,
 `worktree_fingerprint` is source identity; a clean-looking path count is not.
 If a heavy process is active, do not start another one or kill the protected
 collector/dashboard/notifier processes. Every heavy command must enter through
-`scripts/gx1_capped_run.sh` with `MemoryMax/High=14G`, swap `1G`, CPU quota two
-cores and one numerical thread. A cap kill, missing output or incomplete hash
+`scripts/gx1_capped_run.sh` with `MemoryMax/High=10G`, swap `512M`, two CPU
+affined cores and one numerical thread. A cap kill, missing output or incomplete hash
 chain is terminal evidence, not a reason to reuse partial files.
 
 The current offline V8/V13 evidence anchors are the dataset directory,

@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-08-02.
+Updated 2026-08-03.
 
 ## Terminal decision
 
@@ -12,7 +12,7 @@ failed model decision is unavailable evidence, not `FLAT`, and cannot be
 replaced by a rule or older artifact.
 
 The fresh 2026-08-02 Run13 preflight passed 30/30 checks. Its V8/V13 dataset
-producer completed under the hard 14 GiB job cgroup with train 369,303 rows,
+producer completed under the historical 14 GiB job cgroup with train 369,303 rows,
 val 5,904 rows and test 6,071 rows. Full-input liveness, pretrain audit and
 unified Exit lifecycle all PASS. No training or OOS edge proof exists yet;
 the launch decision therefore remains BLOCK.
@@ -24,10 +24,16 @@ state mutation. A new maintainer must use the exact dataset, lifecycle, MTF,
 audit and timestamped recipe paths printed by `scripts/gx1_handover.sh`. The
 bounded smoke recipe is CPU-only (`batch_size=4`, one epoch, 512 sampled TRAIN
 rows, zero workers, explicit `16/64/96/96/252` MTF windows) under the hard
-14 GiB/1 GiB/two-core cap. A smoke PASS would prove only trainability and
+10 GiB/512 MiB/two-core cap. A smoke PASS would prove only trainability and
 bundle wiring; it cannot be promoted to candidate, OOS edge or launch without
 the downstream gates below. A cap kill or missing artifact is terminal and
 must not be resumed from scratch files.
+
+The 2026-08-03 six-epoch smoke was externally interrupted by a machine/WSL
+reboot during epoch 3. No immutable completion bundle or failure-evidence event
+was published, so the run is invalid and cannot be resumed. The previous boot
+has no kernel OOM/panic record; cause is therefore unproven. No heavy run may
+start until the post-reboot cgroup proof and the lower WSL host cap are active.
 
 ## What is code-proven
 

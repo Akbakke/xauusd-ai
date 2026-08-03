@@ -33,7 +33,7 @@ M1 with the same eight owners and shared 513-field surface, a 480-bar M1
 window and additive closed-M1 path. The current explicit CPU smoke recipe is
 `batch_size=4`, `epochs=1`, `subsample_rows=512`, `num_workers=0`,
 `multi_tf_num_layers=2`, `specialist_num_layers=1`, per-TF windows
-`M5=16,M15=64,H1=96,H4=96,D1=252`, and the host cap is `14G/1G/2 cores`.
+`M5=16,M15=64,H1=96,H4=96,D1=252`, and the host cap is `10G/512M/2 cores`.
 Those values are evidence-bound recipe inputs, not defaults and not edge
 claims. If a smoke output is absent or rejected, remain BLOCK and continue
 only through the next explicit evidence gate.
@@ -49,7 +49,7 @@ resume boundary; never start a second heavy job while one is active.
 The 2026-08-02 fresh Run13 preflight passed 30/30 checks. The subsequent V8/V13
 rebuild completed under the host-safe cap: train 369,303 rows, val 5,904 rows,
 test 6,071 rows; full-input liveness PASS; pretrain audit PASS; Exit lifecycle
-PASS. The peak observed builder RSS stayed below 10 GiB inside the immutable
+PASS. The peak observed builder RSS stayed below 10 GiB inside the historical
 14 GiB cgroup. No training, replay, promotion or live activity ran. These are
 dataset contracts only; they do not prove Entry/Exit model edge.
 
@@ -643,8 +643,8 @@ Never force-push.
 This machine has a 43 GiB RAM envelope. Every heavy offline producer,
 dataset build, audit, train, selective-edge run or replay MUST enter through
 `scripts/gx1_capped_run.sh`. The runner is the only capacity authority and
-enforces: one heavy job, `MemoryMax/MemoryHigh <= 14G`, swap `<= 1G`, at least
-16G host-available RAM before launch, two CPU cores and one numerical-library
+enforces: one heavy job, `MemoryMax/MemoryHigh <= 10G`, swap `<= 512M`, at least
+20G host-available RAM before launch, two CPU-affined cores and one numerical-library
 thread. A request above those limits, missing host state, lock contention or a
 missing cgroup is a hard failure; never bypass it, lower the guard, run in the
 background or start a second copy. Large intermediate files do not justify a

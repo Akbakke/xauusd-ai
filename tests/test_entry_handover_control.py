@@ -181,7 +181,7 @@ def test_takeover_documents_state_the_current_shared_m5_m1_boundary() -> None:
         assert "offline" in text.lower()
         assert "M5" in text
         assert "M1" in text
-        assert "14G" in text or "14 GiB" in text
+        assert "10G" in text or "10 GiB" in text
         assert "scripts/gx1_handover.sh" in text
     assert "480-bar M1" in handover
     assert "same eight feature owners" in handover

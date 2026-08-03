@@ -7,7 +7,7 @@ set -euo pipefail
 PY=.venv/bin/python
 [ -x "$PY" ] || { echo "[pre-commit] ERROR: canonical $PY is missing" >&2; exit 1; }
 REPO="$(git rev-parse --show-toplevel)"
-CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 1G --)
+CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 512M --)
 
 # 1) Guardrail drift tripwire (fast, always): live ~/.claude hooks/settings must match the versioned refs.
 if ! "$PY" -m pytest tests/test_guard_hooks_versioned.py -q >/tmp/gx1_precommit_drift.log 2>&1; then

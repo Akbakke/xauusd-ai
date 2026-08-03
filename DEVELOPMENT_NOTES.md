@@ -14,7 +14,7 @@ shared M1 Exit lifecycle and all upstream audits are PASS, but there is still
 no accepted model, candidate, OOS edge or launch authority. The bounded smoke
 recipe is intentionally CPU-safe: batch 4, one epoch, 512 sampled TRAIN rows,
 zero workers, two MTF layers, one specialist layer and explicit
-`M5=16,M15=64,H1=96,H4=96,D1=252` windows under the 14 GiB/1 GiB/two-core
+`M5=16,M15=64,H1=96,H4=96,D1=252` windows under the 10 GiB/512 MiB/two-core
 runner. A cap kill is a valid fail-closed result; never enlarge the job to
 force completion.
 

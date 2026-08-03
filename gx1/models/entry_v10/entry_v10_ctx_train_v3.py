@@ -2797,7 +2797,11 @@ class EntryV10CtxDataset(Dataset):
                 + np.prod(ctx_cont_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
                 + np.prod(ctx_cat_shape, dtype=np.int64) * np.dtype(np.int64).itemsize
             )
-            memmap_min_gb = float(os.environ.get("ENTRY_V10_CTX_MEMMAP_MIN_GB", "8.0"))
+            # Keep validation and other non-compacted split arrays off RSS as
+            # well. The train smoke is compacted later, but the untouched VAL
+            # surface is still ~1.2GB under the canonical recipe; retaining it
+            # in anonymous RAM is unnecessary pressure inside the WSL cap.
+            memmap_min_gb = float(os.environ.get("ENTRY_V10_CTX_MEMMAP_MIN_GB", "0.5"))
             memmap_disabled = os.environ.get("ENTRY_V10_CTX_DISABLE_MEMMAP", "0") == "1"
             use_memmap = (not memmap_disabled) and nested_bytes >= int(memmap_min_gb * (1024 ** 3))
             if use_memmap:

@@ -334,6 +334,7 @@ PY
   echo "head_commit: $(git rev-parse HEAD)"
   printf 'changed_path_count: %d\n' "${#git_lines[@]}"
   printf 'worktree_fingerprint: %s\n' "$worktree_sha256"
+  echo "capacity: job=10G/512M cpu=0-1"
   exit 0
 fi
 
@@ -624,10 +625,6 @@ echo "  6. model-native-canonical-pair -> model-native-mtf-v4-cache -> model-nat
 echo "forbidden_routes: live-tail, broker, daemon, polling, promotion, drift-adaptation"
 echo "exact_route_help: bash scripts/entry_next_edge_control.sh --help"
 echo
-echo "## Host capacity"
-echo "gx1_data_available_bytes: $(df -B1 --output=avail /home/andre2/GX1_DATA | awk 'NR == 2 {print $1}')"
-echo "memory_available_bytes: $(awk '/^MemAvailable:/ {printf "%.0f", $2 * 1024}' /proc/meminfo)"
-echo "swap_free_bytes: $(awk '/^SwapFree:/ {printf "%.0f", $2 * 1024}' /proc/meminfo)"
 echo
 echo "## Active GX1 process groups"
 declare -A process_count=() process_pids=() process_ppids=() process_states=()

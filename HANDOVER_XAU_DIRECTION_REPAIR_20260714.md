@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-02. This file is the current operational handover. Historical
+Updated 2026-08-03. This file is the current operational handover. Historical
 chronology belongs in `DECISION_LOG.md`; rejected designs are not instructions.
 
 > Active scope freeze: this checkout is **offline shared-featurebase only** for
@@ -28,7 +28,7 @@ error.
 ## Current authority
 
 The fresh Run13 preflight passed 30/30 checks. The new V8/V13 output lineage
-completed under the host-safe 14 GiB cgroup: train 369,303 rows, val 5,904,
+completed under the historical 14 GiB cgroup: train 369,303 rows, val 5,904,
 test 6,071; full-input liveness PASS; pretrain audit PASS; and unified Exit
 lifecycle PASS. No partial V7/V12 output was resumed or admitted. The
 513/142/5 contract and all eight-family ownership remain unchanged. This
@@ -50,7 +50,7 @@ the MTF V4 manifest and the current timestamped train-recipe audit. The
 handover prints their exact paths and reports whether the bounded smoke
 process is active. The current smoke recipe is CPU-only, batch 4, one epoch,
 512 sampled TRAIN rows, zero workers and the explicit five-timeframe windows
-`16/64/96/96/252` under the hard `14G/1G/2-core` cap. This is a trainability
+`16/64/96/96/252` under the hard `10G/512M/2-core` cap. This is a trainability
 attempt, not an admission. A missing bundle, cap kill or audit failure keeps
 the system BLOCK.
 
@@ -60,6 +60,16 @@ evaluated. Never turn a PASS dataset or smoke artifact into launch authority
 by editing state manually.
 
 Status is **BLOCK**.
+
+The 2026-08-03 six-epoch CPU smoke was interrupted by a machine/WSL reboot in
+epoch 3. It published no completion bundle and no checkpoint-admission failure
+event; all partial output is invalid. The previous boot contains no kernel OOM,
+panic or thermal record, so the exact trigger is unproven. The safety authority
+is now `10G` job memory, `512M` job swap, two CPU-affined cores and a `20G`
+available-RAM launch floor. WSL is configured for a `32GB` VM and `4GB` swap;
+that setting applies at the next WSL restart. Do not start another heavy run
+until handover reports the active lower VM cap and the runner prints
+`[capped_run_scope_verified]`.
 
 `PROJECT_STATE_artifacts.json` has:
 

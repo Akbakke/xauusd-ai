@@ -6,7 +6,7 @@ set -euo pipefail
 
 ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
-CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 14G --swap 1G --)
+CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 10G --swap 512M --)
 
 RUN_ID=
 SOURCE_PARQUET=

@@ -28,7 +28,7 @@ the complete, hash-bound offline TEST split:
   bit-level state proof.
 
 Run under the capped runner (heavy: full prebuilt load + augmenters ~7 min):
-  scripts/gx1_capped_run.sh --mem 14G --swap 1G -- .venv/bin/python -m \
+  scripts/gx1_capped_run.sh --mem 10G --swap 512M -- .venv/bin/python -m \
       gx1.scripts.verify_model_native_serve_parity_v1 \
       --dataset-dir /absolute/model_native_dataset \
       --pair-manifest-path /absolute/CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json \
