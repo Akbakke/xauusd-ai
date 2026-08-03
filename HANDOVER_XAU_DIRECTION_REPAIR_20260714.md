@@ -90,6 +90,15 @@ longer opens or validates the obsolete 162-value V26 smoke recipe as a current
 takeover dependency. Historical failure chronology remains in the diagnostic
 fields and `DECISION_LOG.md`, never in the active resume path.
 
+On 2026-08-03 a second exact-leaf retention event removed 33 superseded
+V21/V23/V26 bulk leaves (5,447,068,479 bytes) without targeting the current
+V8/V13/V4/V15 anchors or the four still-existing historical registry
+references. Its terminal `DELETE_COMPLETE` event is
+`/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_reports/OLD_RUNS_20260803_V1/GX1_EVIDENCE_CLEANUP_EXECUTION_20260803T153441676760Z.json`
+with SHA-256
+`f0e96fe751de8bcc25730d1a5bfa8939e2632a94d8523203d8ca52d932b9d99d`.
+Do not search for, restore or rebuild those retired leaves.
+
 The former tree-based decision provider and the separate V3/Exit-IQL/
 Strategy-F chain are permanently retired. Their source packages, runtime
 adapters, contracts, tests, registry roles, selected model artifacts and Python

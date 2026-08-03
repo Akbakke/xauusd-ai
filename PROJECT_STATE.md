@@ -30,7 +30,9 @@ train-launch contract before it reports them ready:
 The recipe is CPU-only: batch 8, six epochs, patience 3, 512 sampled TRAIN
 rows, zero workers, two MTF layers, one specialist layer and explicit windows
 `M5=16,M15=64,H1=96,H4=96,D1=252`. It is a trainability recipe, not an edge
-claim.
+claim. On 2026-08-03 the exact V15 launch arguments and all immutable bindings
+passed the public `model-native-smoke-train --dry-run` route inside a 1 GiB
+outer cgroup. No training or model output was started.
 
 Exact paths and hashes are printed by `scripts/gx1_handover.sh`; they must not
 be rediscovered by glob, mtime, version sorting or a `latest` pointer.
@@ -69,6 +71,21 @@ trading edge.
 - Missing fields, schemas, hashes, outputs or class support fail closed.
 
 This is source-contract proof only. It does not prove practical precision.
+
+## Evidence retention
+
+On 2026-08-03 the sole cleanup owner removed 33 exact superseded V21/V23/V26
+leaves (5,447,068,479 bytes) after plan, dry-run, approval, same-device
+quarantine and terminal revalidation. The four still-existing historical
+registry references and every current V8/V13/V4/V15 anchor were outside the
+target set. The legacy `entry_iql_runs` incident path was already absent by its
+recorded 2026-07-07 deletion incident; this cleanup did not target it.
+
+Terminal evidence is
+`/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_reports/OLD_RUNS_20260803_V1/GX1_EVIDENCE_CLEANUP_EXECUTION_20260803T153441676760Z.json`
+with SHA-256
+`f0e96fe751de8bcc25730d1a5bfa8939e2632a94d8523203d8ca52d932b9d99d`.
+It has no dataset, model, direction or launch authority.
 
 ## Machine safety boundary
 

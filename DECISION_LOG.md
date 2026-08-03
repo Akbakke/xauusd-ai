@@ -2983,3 +2983,22 @@ pretrain audit PASS and unified Exit lifecycle PASS were published with the
 fresh output lineage. No training, model, replay, promotion or live artifact
 was produced. Dataset contracts are now complete; Entry/Exit OOS edge proof,
 train==serve proof and launch authority remain BLOCKED.
+
+## 2026-08-03 — old-run leaves retired and exact smoke dry-run revalidated
+
+The evidence-retention owner deleted 33 exact superseded V21/V23/V26 leaves,
+totalling 5,447,068,479 bytes, only after immutable plan, separate approval,
+dry-run validation, same-device quarantine and terminal revalidation. Current
+V8/V13/V4/V15 inputs were not targets; all four still-existing historical
+registry references remain present. The older `entry_iql_runs` incident path
+was already absent and was not part of this event. The immutable execution
+event is `GX1_EVIDENCE_CLEANUP_EXECUTION_20260803T153441676760Z.json`, SHA-256
+`f0e96fe751de8bcc25730d1a5bfa8939e2632a94d8523203d8ca52d932b9d99d`.
+
+After cleanup, the exact V15 `model-native-smoke-train --dry-run` route passed
+inside a 1 GiB/256 MiB outer cgroup. It revalidated the V8 dataset, V13 unified
+Exit lifecycle, V4 MTF cache, 13 source bindings, 479 selected features,
+513-wide signal contract and the audited 10 GiB/512 MiB/CPU-only training
+command. No training or output bundle was started. The active WSL VM still
+reports about 43 GiB RAM/8 GiB swap, so the real smoke remains fail-closed
+until a full WSL restart applies 32 GB/4 GB. Launch remains `BLOCK`.
