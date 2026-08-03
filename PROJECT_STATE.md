@@ -25,15 +25,15 @@ train-launch contract before it reports them ready:
 - V13 unified Exit lifecycle PASS;
 - Entry M5 sequence 96 and Exit M1 sequence 480, with identical feature
   ownership, split boundaries and TRAIN normalization;
-- immutable V17 smoke-recipe audit PASS.
+- immutable V18 smoke-recipe audit PASS.
 
 The recipe is CPU-only: batch 8, six epochs, patience 3, 512 sampled TRAIN
 rows, zero workers, two MTF layers, one specialist layer and explicit windows
 `M5=16,M15=64,H1=96,H4=96,D1=252`. It is a trainability recipe, not an edge
-claim. On 2026-08-03 the exact V17 audit passed after binding memory-repair
-commit `45421e70`, the isolated capacity-runner proof environment and all
+claim. On 2026-08-03 the exact V18 audit passed after binding memory-repair
+commits `45421e70` and `98ea1c62`, the capacity runner and all
 unchanged V8/V13/V4 artifacts. Its SHA-256 is
-`2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`.
+`818d8202bd0ab56a29fd43eea46e05bc2a9bfef285d811cd38a1e0909ca18285`.
 No training or model output was started by the audit.
 
 Exact paths and hashes are printed by `scripts/gx1_handover.sh`; they must not
@@ -71,9 +71,14 @@ ordinary path. The full 118-test model/trainer set passes under a 4 GiB cap,
 including exact output and parameter-gradient equality. A full-size synthetic
 batch with eight Entry rows, 32 Exit rows, 480 M1 feature bars and 512 path
 bars completed forward and backward at 3,732,668 KiB peak RSS with zero swap.
-V16 is historical only; V17 is the sole current recipe authority and its
-exact dry-run passes. This proves bounded trainability of one batch, not a
-completed smoke or trading edge.
+The first V17 execution then exposed a separate preprocessing peak: one
+8,192-row Arrow decode held float64 source values, a float32 cast and dirty
+memmap pages together and was killed by the cgroup before training. Commit
+`98ea1c62` fixes only I/O scheduling at 512-row decode batches with writeback
+every 2,048 rows; row order and tensor bytes are unchanged. Its 91 focused
+dataset/normalization/trainer tests pass under 4 GiB. V16/V17 are historical;
+V18 is the sole current recipe authority. This proves bounded trainability of
+one synthetic batch and bounded loader chunks, not a completed smoke or edge.
 
 ## Code-proven architecture
 

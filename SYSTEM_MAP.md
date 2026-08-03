@@ -400,8 +400,10 @@ V16 attempt reached its first training step and was safely killed only inside
 the 10 GiB/512 MiB cgroup; no trained model is admitted. Commit `45421e70`
 preserves the complete architecture and batch objective while recomputing
 Transformer activations per layer during backward. Its full-size batch proof
-peaked at 3,732,668 KiB RSS with no swap, and immutable V17 is the current
-recipe. V26 and V21C remain older-surface measurements only. The V19/V26
+peaked at 3,732,668 KiB RSS with no swap. V17 then exposed an independent
+8,192-row Arrow preprocessing peak; `98ea1c62` bounds exact decode to 512 rows
+and writeback to 2,048 rows. Immutable V18 is the current recipe. V26 and V21C
+remain older-surface measurements only. The V19/V26
 dataset/audit artifacts and rejected V18 bundle were retired and deleted.
 
 Lifecycle materialization, the same-bundle Exit head, positive loss and

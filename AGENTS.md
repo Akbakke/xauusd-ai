@@ -45,8 +45,11 @@ batch-8 loss semantics, dropout stream, outputs and gradients while
 recomputing each Transformer layer during backward. Evaluation and inference
 remain unchanged. The 118 focused tests pass under 4 GiB; an exact-size
 batch-8 plus 32-row Exit proof peaked at 3,732,668 KiB RSS with zero swap.
-V17 is the current immutable recipe and its dry-run passes. Do not work around
-capacity by shrinking the evidence/model path or weakening the cap.
+V17 then exposed a separate 8,192-row Arrow preprocessing peak before
+training. Commit `98ea1c62` bounds exact decode to 512 rows and memmap
+writeback to 2,048 rows without changing bytes or order. V18 is the current
+immutable recipe. Do not work around capacity by shrinking the evidence/model
+path or weakening the cap.
 
 The exact control surface is `scripts/entry_next_edge_control.sh`. A new
 maintainer must not invoke the trainer directly, use a mutable artifact,

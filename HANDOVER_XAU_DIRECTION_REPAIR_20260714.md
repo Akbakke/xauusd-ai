@@ -121,10 +121,19 @@ model/trainer set passes under a 4 GiB cap with exact output and gradient
 equality. A full-size synthetic batch with eight Entry rows and 32 Exit rows
 completed forward/backward at 3,732,668 KiB peak RSS and zero swap. The dead
 V16 VAL scratch was then swept by the trainer's existing owner, freeing 1.2
-GB. V16 is historical only. The executable handover admits only V17 with
-SHA-256
-`2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`;
-its exact dry-run passes. No smoke completion or edge is claimed yet.
+GB. V16 is historical only.
+
+The first V17 execution then exposed a different preprocessing peak before
+training: the old 8,192-row nested Arrow batch held float64 Parquet values, a
+float32 cast and dirty 73.7 GB memmap pages concurrently. The cgroup again
+killed only the job with exit 137 and no bundle. The producer-owned sweep
+removed its sparse scratch. Commit `98ea1c62` fixes only I/O scheduling:
+512-row exact decode batches and writeback every 2,048 rows. Row order, tensor
+bytes, normalization population and selected smoke rows are unchanged; 91
+focused dataset/normalization/trainer tests pass under 4 GiB. V17 is now
+historical. The executable handover admits only V18 with SHA-256
+`818d8202bd0ab56a29fd43eea46e05bc2a9bfef285d811cd38a1e0909ca18285`.
+No smoke completion or edge is claimed yet.
 
 The former tree-based decision provider and the separate V3/Exit-IQL/
 Strategy-F chain are permanently retired. Their source packages, runtime

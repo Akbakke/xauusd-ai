@@ -50,14 +50,19 @@ per-layer backward recomputation. It removes no feature, head, timeframe or
 Exit sample and changes no batch objective, dropout stream, output or
 gradient. The 118 focused tests pass under 4 GiB, and a full-size batch-8 plus
 32-row Exit forward/backward proof peaked at 3,732,668 KiB RSS with zero swap.
-Immutable recipe V17 binds this source and its exact dry-run passes.
+The first V17 run then exposed an independent preprocessing peak: one
+8,192-row Arrow decode could retain float64 input, float32 cast and dirty
+memmap pages together. The cgroup killed only the job before training. Commit
+`98ea1c62` fixes the I/O schedule at 512-row decode batches and writeback every
+2,048 rows without changing row order or tensor bytes. Immutable V18 binds
+both memory repairs.
 
 Launch and model status remain `BLOCK`: no completed smoke bundle, candidate,
 calibration, untouched-TEST edge, train==serve proof or accepted replay exists.
 
 ## Next execution sequence
 
-1. Run the V17-bound V8/V13 six-epoch smoke through the single control
+1. Run the V18-bound V8/V13 six-epoch smoke through the single control
    surface under 10 GiB/512 MiB/CPU0–1. Do not rebuild the current dataset.
 2. Require a terminal immutable result. A missing bundle, cap kill, class
    collapse or failed component-movement contract remains hard red.

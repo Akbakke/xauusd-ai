@@ -3053,3 +3053,22 @@ V8/V13/V4 evidence; its SHA-256 is
 `2237d5f20c7f778aaa2c0734391044c80c7dcece424ca75ba4ac6be35369403c`,
 and its exact smoke dry-run passes. No smoke completion, OOS edge, PnL,
 precision or launch authority is claimed. Launch remains `BLOCK`.
+
+## 2026-08-03 — V17 nested-Arrow preprocessing peak bounded
+
+The first exact V17 execution stopped before normalization or training while
+materializing the full TRAIN nested surface. One historical 8,192-row Arrow
+batch could simultaneously retain float64 Parquet values, the float32 cast
+and dirty memmap pages. The 10 GiB/512 MiB cgroup killed only the job with exit
+137; the host remained healthy and no bundle was created. The trainer's
+dead-PID sweep removed the sparse 73.7 GB scratch allocation.
+
+Commit `98ea1c62` replaces that hidden ambient-sized I/O path with fixed
+512-row nested decode batches and memmap writeback every 2,048 rows. This is
+only computation/I/O scheduling: immutable row order, decoded tensor bytes,
+full-TRAIN normalization population and the downstream 511-row stratified
+smoke selection remain unchanged. The 91 focused dataset, normalization and
+trainer tests pass under a 4 GiB cgroup. Immutable recipe V18 binds
+`98ea1c62`; its SHA-256 is
+`818d8202bd0ab56a29fd43eea46e05bc2a9bfef285d811cd38a1e0909ca18285`.
+No smoke completion or edge is claimed. Launch remains `BLOCK`.

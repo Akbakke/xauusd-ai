@@ -69,7 +69,7 @@ immutable plan/approval/quarantine evidence. Operational source and data scans
 are clean; only immutable cleanup receipts retain historical deletion terms.
 A later 2026-08-03 exact-leaf event removed the remaining 5,447,068,479 bytes
 of superseded V21/V23/V26 bulk run intermediates while preserving current
-V8/V13/V4/V17 inputs and registry-bound historical receipts.
+V8/V13/V4/V18 inputs and registry-bound historical receipts.
 
 Live, paper, broker, publisher, promotion and drift work are outside the
 frozen scope. Their historical source contracts cannot change the current

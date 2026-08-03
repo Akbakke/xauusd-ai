@@ -25,8 +25,12 @@ recomputation during gradient-enabled training. It preserves every feature,
 sample, head, batch objective, dropout stream, output and gradient; eval and
 inference use the ordinary path. The 118 focused tests pass under 4 GiB and a
 full-size batch-8/32-Exit-row proof peaked at 3,732,668 KiB RSS with no swap.
-V17 is the current immutable recipe. Do not replace this with feature removal,
-fewer lifecycle samples, smaller batch semantics or a larger capacity cap.
+The first V17 run separately proved that an 8,192-row nested Arrow decode was
+too large before training. Commit `98ea1c62` fixes the exact I/O schedule at
+512-row decode batches and writeback every 2,048 rows; bytes and row order do
+not change. V18 is the current immutable recipe. Do not replace either repair
+with feature removal, fewer lifecycle samples, smaller batch semantics or a
+larger capacity cap.
 
 For takeover, run `bash scripts/gx1_handover.sh --check` and then the compact
 handover. It reports the current immutable evidence anchors, active process
@@ -122,7 +126,7 @@ Do not run a dataset rebuild, trainer, large replay or live launcher merely as
 a test. Real jobs require immutable prerequisites, explicit event identity,
 capped RAM/swap and the host-wide heavy-job lock.
 
-The next real job is the V17-bound V8/V13 bounded smoke. Do not republish
+The next real job is the V18-bound V8/V13 bounded smoke. Do not republish
 source or rebuild the current cache/dataset without
 new invalidating evidence. The dataset/model/trainer owners contain the
 same-bundle causal Exit lifecycle head and positive loss, but no completed
