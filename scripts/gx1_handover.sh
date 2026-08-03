@@ -335,6 +335,13 @@ PY
   printf 'changed_path_count: %d\n' "${#git_lines[@]}"
   printf 'worktree_fingerprint: %s\n' "$worktree_sha256"
   echo "capacity: job=10G/512M cpu=0-1"
+  wsl_vm_status=ACTIVE_OR_UNVERIFIED
+  if grep -qi microsoft /proc/version \
+    && [[ -r /mnt/c/Users/Andre/.wslconfig ]] \
+    && (( $(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo) > 34 * 1024 * 1024 )); then
+    wsl_vm_status=PENDING_RESTART
+  fi
+  echo "wsl_vm_cap: $wsl_vm_status"
   exit 0
 fi
 
