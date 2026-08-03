@@ -427,6 +427,10 @@ def _direction_ssot_from_logits(
             "[max(final LONG/SHORT), final FLAT] surface; "
             f"max_abs_delta={max_delta:.9g}"
         )
+    if int(np.count_nonzero(direction_logits == np.max(direction_logits))) != 1:
+        raise RuntimeError(
+            f"[SMART_ENTRY] {context} SSOT direction_logits have no unique top class"
+        )
     direction_probs = _strict_softmax(
         direction_logits,
         name="direction_logits",

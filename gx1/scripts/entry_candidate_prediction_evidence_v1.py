@@ -205,6 +205,16 @@ def validate_model_direction_parquet_semantics(
         direction_probs, persisted_direction_probs, rtol=1e-5, atol=1e-6
     ):
         raise RuntimeError("prediction evidence direction probabilities mismatch logits")
+    winner_counts = np.count_nonzero(
+        direction_logits == np.max(direction_logits, axis=1, keepdims=True),
+        axis=1,
+    )
+    tied_rows = int(np.count_nonzero(winner_counts != 1))
+    if tied_rows:
+        raise RuntimeError(
+            "prediction evidence direction logits have no unique top class; "
+            f"rows={tied_rows}"
+        )
     pred_direction = numeric("pred_direction")
     if not np.array_equal(pred_direction, np.rint(pred_direction)) or not np.array_equal(
         pred_direction.astype(np.int64), np.argmax(direction_logits, axis=1)

@@ -20,10 +20,11 @@ and shared encoder must own:
 - Exit logits ordered `HOLD/EXIT_NOW`;
 - learned position size.
 
-Exact argmax owns both decisions. No auxiliary model, compatibility bridge,
-manual confluence weight, threshold, veto, direction flip, close overlay,
-cached output or synthetic `FLAT`/`HOLD` is allowed. Missing proof is a hard
-error.
+One unique exact argmax owns each decision. A tied top logit is unavailable
+evidence and fails closed; array order cannot select a class. No auxiliary
+model, compatibility bridge, manual confluence weight, threshold, veto,
+direction flip, close overlay, cached output or synthetic `FLAT`/`HOLD` is
+allowed. Missing proof is a hard error.
 
 ## Current authority
 
@@ -61,15 +62,16 @@ by editing state manually.
 
 Status is **BLOCK**.
 
-The 2026-08-03 six-epoch CPU smoke was interrupted by a machine/WSL reboot in
-epoch 3. It published no completion bundle and no checkpoint-admission failure
-event; all partial output is invalid. The previous boot contains no kernel OOM,
-panic or thermal record, so the exact trigger is unproven. The safety authority
-is now `10G` job memory, `512M` job swap, two CPU-affined cores and a `20G`
-available-RAM launch floor. WSL is configured for a `32GB` VM and `4GB` swap;
-that setting applies at the next WSL restart. Do not start another heavy run
-until handover reports the active lower VM cap and the runner prints
-`[capped_run_scope_verified]`.
+The 2026-08-03 six-epoch CPU smoke was interrupted in epoch 3 by a Windows
+bugcheck. The Windows Error Reporting record and minidump identify
+`HYPERVISOR_ERROR (0x20001)`; Linux recorded no OOM kill for this incident.
+This proves the host/Hyper-V failure class, not that training caused it. The
+run published no completion bundle or checkpoint-admission failure event, so
+all partial output is invalid. The safety authority is now `10G` job memory,
+`512M` job swap, two CPU-affined cores and a `20G` available-RAM launch floor.
+WSL is configured for a `32GB` VM and `4GB` swap; that setting applies at the
+next WSL restart. Do not start another heavy run until handover reports the
+active lower VM cap and the runner prints `[capped_run_scope_verified]`.
 
 `PROJECT_STATE_artifacts.json` has:
 

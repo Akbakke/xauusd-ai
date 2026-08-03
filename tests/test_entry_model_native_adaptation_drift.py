@@ -130,6 +130,25 @@ def test_shadow_order_or_mutated_source_never_passes(tmp_path: Path) -> None:
         )
 
 
+def test_adaptation_drift_rejects_tied_model_direction(tmp_path: Path) -> None:
+    _, identity, reference, observations, now = _write_inputs(tmp_path)
+    observation_frame = pd.read_parquet(observations)
+    observation_frame.loc[0, ["p_long", "p_short", "p_flat"]] = [
+        0.45,
+        0.45,
+        0.10,
+    ]
+
+    with pytest.raises(ModelNativeAdaptationDriftError, match="unique model argmax"):
+        recompute_adaptation_drift_evidence(
+            reference_rows=pd.read_parquet(reference),
+            observation_rows=observation_frame,
+            bundle_identity=identity,
+            event_created_utc=now,
+            context="UNIT_ADAPTATION_DRIFT_TIE",
+        )
+
+
 def test_failed_refresh_publishes_newer_terminal_block(tmp_path: Path) -> None:
     bundle, _, reference, observations, _ = _write_inputs(tmp_path)
     output_dir = tmp_path / "events"

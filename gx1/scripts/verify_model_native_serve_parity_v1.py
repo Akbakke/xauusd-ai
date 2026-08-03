@@ -2300,6 +2300,10 @@ def _validate_pinned_prediction_contract(
                 f"at {row_label}"
             )
 
+        if int(np.count_nonzero(direction_logits == np.max(direction_logits))) != 1:
+            raise RuntimeError(
+                f"pinned direction_logits have no unique top class at {row_label}"
+            )
         direction_index = int(np.argmax(direction_logits))
         public_index = int(np.argmax(public_logits))
         pred_direction = _strict_class_index(

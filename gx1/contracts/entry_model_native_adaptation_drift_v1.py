@@ -383,9 +383,19 @@ def _validated_frame(
         or np.any(probabilities < 0.0)
         or np.any(probabilities > 1.0)
         or not np.allclose(probabilities.sum(axis=1), 1.0, rtol=0.0, atol=1e-6)
+        or np.any(
+            np.count_nonzero(
+                probabilities == np.max(probabilities, axis=1, keepdims=True),
+                axis=1,
+            )
+            != 1
+        )
         or not np.array_equal(np.argmax(probabilities, axis=1), directions)
     ):
-        _fail(context, "probabilities must be finite normalized model argmax evidence")
+        _fail(
+            context,
+            "probabilities must be finite normalized unique model argmax evidence",
+        )
     pnl = pd.to_numeric(frame["realized_pnl_bps"], errors="coerce").to_numpy(
         dtype=np.float64
     )

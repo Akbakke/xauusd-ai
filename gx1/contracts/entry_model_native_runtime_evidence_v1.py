@@ -598,6 +598,8 @@ def _require_model_native_evidence(
         "direction_probs",
         context=context,
     )
+    if sum(value == max(direction_logits) for value in direction_logits) != 1:
+        _fail(context, "direction_logits", "no unique top class")
     direction_index = max(
         range(len(MODEL_DIRECTION_NAMES)),
         key=direction_probs.__getitem__,

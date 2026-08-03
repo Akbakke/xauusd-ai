@@ -37,11 +37,12 @@ These are data, wiring and recipe contracts. They do not prove model edge.
 
 ## Current boundary
 
-The first six-epoch V8/V13 smoke was interrupted by a machine/WSL restart in
-epoch 3. It produced no completion bundle and cannot be resumed. The active
-WSL VM still reports roughly 43 GiB RAM and 8 GiB swap although `.wslconfig`
-is set to 32 GB and 4 GB. The capped runner therefore rejects heavy jobs until
-the next WSL restart applies the lower host limit.
+The first six-epoch V8/V13 smoke was interrupted in epoch 3 by a Windows
+`HYPERVISOR_ERROR (0x20001)` bugcheck. It produced no completion bundle and
+cannot be resumed; the bugcheck does not prove that training caused it. The
+active WSL VM still reports roughly 43 GiB RAM and 8 GiB swap although
+`.wslconfig` is set to 32 GB and 4 GB. The capped runner therefore rejects
+heavy jobs until the next WSL restart applies the lower host limit.
 
 Launch and model status remain `BLOCK`: no completed smoke bundle, candidate,
 calibration, untouched-TEST edge, train==serve proof or accepted replay exists.

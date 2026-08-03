@@ -162,6 +162,25 @@ def test_direction_ssot_is_final_argmax_and_rejects_legacy_outputs() -> None:
             }
         )
 
+    tied_direction = torch.tensor([[2.0, 2.0, 0.0]])
+    tied_pair = torch.stack(
+        (tied_direction[:, :2].amax(dim=1), tied_direction[:, 2]),
+        dim=1,
+    )
+    with pytest.raises(RuntimeError, match="no unique top class"):
+        _require_model_direction_ssot(
+            {
+                "direction_logits": tied_direction,
+                "public_trade_flat_decision_logits": tied_pair,
+            }
+        )
+    with pytest.raises(RuntimeError, match="no unique top class"):
+        _direction_ssot_from_logits(
+            tied_direction[0].numpy(),
+            tied_pair[0].numpy(),
+            context="test",
+        )
+
 
 def test_candidate_decision_evidence_has_numeric_live_parity() -> None:
     direction = torch.tensor(

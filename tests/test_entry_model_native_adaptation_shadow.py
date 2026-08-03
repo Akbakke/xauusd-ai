@@ -8,8 +8,10 @@ import pytest
 from gx1.contracts.entry_model_native_adaptation_shadow_v1 import (
     ModelNativeAdaptationShadowError,
     load_bound_adaptation_shadow_evidence,
+    recompute_adaptation_shadow_evidence,
 )
 from tests.model_native_adaptation_support import (
+    paired_shadow_rows,
     write_adaptation_bundle,
     write_adaptation_shadow,
 )
@@ -68,6 +70,30 @@ def test_shadow_without_paired_improvement_is_terminal_fail(tmp_path: Path) -> N
             candidate_bundle=candidate_identity,
             context="UNIT_NONIMPROVING_SHADOW",
             now_utc=shadow["event"]["created_utc"],
+        )
+
+
+def test_paired_shadow_rejects_tied_model_direction(tmp_path: Path) -> None:
+    _, incumbent_identity = write_adaptation_bundle(tmp_path, "incumbent")
+    _, candidate_identity = write_adaptation_bundle(tmp_path, "candidate")
+    rows = paired_shadow_rows(
+        start=pd.Timestamp.now(tz="UTC").floor("s") - pd.Timedelta(days=10),
+        incumbent_identity=incumbent_identity,
+        candidate_identity=candidate_identity,
+    )
+    rows.loc[0, ["candidate_p_long", "candidate_p_short", "candidate_p_flat"]] = [
+        0.45,
+        0.45,
+        0.10,
+    ]
+
+    with pytest.raises(ModelNativeAdaptationShadowError, match="exact unique model argmax"):
+        recompute_adaptation_shadow_evidence(
+            paired_rows=rows,
+            incumbent_bundle=incumbent_identity,
+            candidate_bundle=candidate_identity,
+            event_created_utc=pd.Timestamp.now(tz="UTC").floor("s"),
+            context="UNIT_PAIRED_SHADOW_TIE",
         )
 
 

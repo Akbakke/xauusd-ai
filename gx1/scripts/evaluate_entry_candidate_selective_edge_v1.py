@@ -173,6 +173,15 @@ def _require_model_direction_ssot(
             "public trade/FLAT logits do not match final direction logits; "
             f"max_abs_delta={max_delta:.9g}"
         )
+    winner_counts = direction_logits.eq(
+        direction_logits.amax(dim=1, keepdim=True)
+    ).sum(dim=1)
+    tied_rows = int((winner_counts != 1).sum().item())
+    if tied_rows:
+        raise RuntimeError(
+            "final direction logits have no unique top class; "
+            f"rows={tied_rows}"
+        )
     direction_decision = torch.argmax(direction_logits, dim=1)
     public_pair_decision = torch.argmax(public_pair_logits, dim=1)
     expected_pair_decision = torch.where(

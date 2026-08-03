@@ -21,6 +21,8 @@ immutable XAUUSD snapshot
 - A new tail may be appended only after exact overlap and source-hash proof.
 - The model is the only direction authority. No live rule, threshold,
   overlay, fallback, synthetic decision or duplicate feature owner is allowed.
+- Entry and Exit require one unique top logit. An exact top tie is unavailable
+  evidence and fails closed; array order may never choose a class.
 
 ## Forbidden
 

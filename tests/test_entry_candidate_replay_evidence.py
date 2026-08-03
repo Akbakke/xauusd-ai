@@ -439,6 +439,12 @@ def test_model_native_trade_audit_enforces_argmax_and_rejects_flat_trade() -> No
     assert report["ready"] is False
     assert any("model-FLAT" in failure for failure in report["failures"])
 
+    tied = base.copy()
+    tied[["p_long", "p_short", "p_flat"]] = [0.45, 0.45, 0.10]
+    report = audit_model_native_replay_trades(tied)
+    assert report["ready"] is False
+    assert any("no unique top class" in failure for failure in report["failures"])
+
 
 def test_trade_normalization_rejects_threshold_columns_and_missing_full_stack() -> None:
     frame = pd.DataFrame(

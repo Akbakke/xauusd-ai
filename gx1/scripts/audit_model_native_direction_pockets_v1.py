@@ -391,6 +391,16 @@ def _model_direction_contract_failures(frame: pd.DataFrame) -> list[str]:
                 "persisted direction probabilities do not match final calibrated logits"
             )
 
+    winner_counts = np.count_nonzero(
+        direction_logits == np.max(direction_logits, axis=1, keepdims=True),
+        axis=1,
+    )
+    tied_rows = int(np.count_nonzero(winner_counts != 1))
+    if tied_rows:
+        failures.append(
+            "final calibrated direction_logits have no unique top class: "
+            f"rows={tied_rows}"
+        )
     logit_argmax = np.argmax(direction_logits, axis=1).astype(np.int8)
     logit_mismatches = int(np.sum(logit_argmax != pred_direction))
     if logit_mismatches:

@@ -223,6 +223,12 @@ PY
 }
 
 worktree_sha256=$(worktree_fingerprint)
+wsl_vm_status=ACTIVE_OR_UNVERIFIED
+if grep -qi microsoft /proc/version \
+  && [[ -r /mnt/c/Users/Andre/.wslconfig ]] \
+  && (( $(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo) > 34 * 1024 * 1024 )); then
+  wsl_vm_status=PENDING_RESTART
+fi
 
 if [[ "$mode" == "check" ]]; then
   mapfile -t git_lines < <(git status --short --untracked-files=all)
@@ -423,12 +429,6 @@ PY
   printf 'changed_path_count: %d\n' "${#git_lines[@]}"
   printf 'worktree_fingerprint: %s\n' "$worktree_sha256"
   echo "capacity: job=10G/512M cpu=0-1"
-  wsl_vm_status=ACTIVE_OR_UNVERIFIED
-  if grep -qi microsoft /proc/version \
-    && [[ -r /mnt/c/Users/Andre/.wslconfig ]] \
-    && (( $(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo) > 34 * 1024 * 1024 )); then
-    wsl_vm_status=PENDING_RESTART
-  fi
   echo "wsl_vm_cap: $wsl_vm_status"
   exit 0
 fi
@@ -439,8 +439,9 @@ echo "full_view_command: bash $REPO/scripts/gx1_handover.sh --verbose"
 echo
 echo "## Goal"
 echo "Build the GX1 trading bot for gold/XAUUSD as one immutable learned bundle"
-echo "that selects LONG/SHORT/FLAT direction for Entry, HOLD/EXIT_NOW for Exit"
+echo "that selects one unique LONG/SHORT/FLAT Entry and HOLD/EXIT_NOW Exit argmax"
 echo "and learned size through one shared encoder."
+echo "An exact top-logit tie is unavailable evidence and fails closed, never by array order."
 echo "No fallback, live hand-rule, stale artifact authority or soft pass-through exists;"
 echo "there is no competing decision path. Entry and Exit train together in one candidate."
 echo "Near-perfect practical precision is a target, not a current claim."
@@ -484,7 +485,7 @@ else
   echo "current_smoke_bundle: NOT_PRODUCED $CURRENT_SMOKE_BUNDLE_DIR"
 fi
 echo
-echo "## Launch authority"
+echo "## Launch authority (historical checkpoint; BLOCK is binding)"
 "$PY" - "$LAUNCH_STATE" <<'PY'
 import hashlib
 import json
@@ -494,6 +495,7 @@ from pathlib import Path
 from gx1.features.htf_features import HTF_V4_CACHE_SCHEMA_VERSION
 
 state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print("checkpoint_scope: HISTORICAL_LAUNCH_STATE_BLOCK_ONLY")
 for key in (
     "decision", "updated_utc", "required_contract_mode",
     "accepted_bundle_dir", "bundle_metadata_sha256",
@@ -579,7 +581,7 @@ print(
 )
 for key in ("dataset_event_id", "dataset_admission_stage", "accepted_dataset_dir"):
     value = state.get(key)
-    print(f"{key}: {'NONE' if value is None else value}")
+    print(f"historical_checkpoint_{key}: {'NONE' if value is None else value}")
 
 terminal = state.get("accepted_dataset_terminal_evidence")
 dataset_event_id = state.get("dataset_event_id")
@@ -671,13 +673,16 @@ print(
     )
 )
 blockers = state.get("blockers")
-print(f"blocker_count: {len(blockers) if isinstance(blockers, list) else 'INVALID'}")
+print(
+    "historical_checkpoint_blocker_count: "
+    f"{len(blockers) if isinstance(blockers, list) else 'INVALID'}"
+)
 if isinstance(blockers, list) and blockers:
-    print(f"next_blocker: {blockers[0]}")
+    print(f"historical_checkpoint_first_blocker: {blockers[0]}")
 remaining = repair.get("remaining_source_p0")
 if not isinstance(remaining, list) or not remaining:
     raise SystemExit("FATAL: no explicit remaining source-P0 register")
-print("remaining_source_p0:")
+print("historical_checkpoint_remaining_source_p0:")
 for index, item in enumerate(remaining, start=1):
     print(f"  {index}. {item}")
 PY
@@ -700,23 +705,27 @@ echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "live_operation: FORBIDDEN"
 echo "drift_adaptation: FORBIDDEN"
 echo "resume_owner: scripts/entry_next_edge_control.sh"
-echo "source_publication_contract: IMPLEMENTED_NOT_EXECUTED_OR_ADMITTED"
-echo "dataset_contract: CURRENT_OFFLINE_V8_V13_READY_NOT_LAUNCH_ADMITTED"
+echo "source_contract: CURRENT_COMMITTED_TREE_REQUIRED"
+echo "dataset_contract: CURRENT_OFFLINE_V8_V13_VERIFIED_NOT_LAUNCH_ADMITTED"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
+echo "wsl_vm_cap: $wsl_vm_status"
 if (( ${#git_lines[@]} == 0 )); then
-  echo "resume_stage: CURRENT_V8_V13_SMOKE_OR_CANDIDATE_REVIEW"
   echo "source_identity_gate: READY_CLEAN_WORKTREE"
+  if [[ "$wsl_vm_status" == "PENDING_RESTART" ]]; then
+    echo "resume_stage: WAIT_FOR_WSL_CAP_THEN_EXACT_V8_V13_SMOKE"
+  else
+    echo "resume_stage: READY_FOR_EXACT_V8_V13_SMOKE"
+  fi
 else
-  echo "resume_stage: VERIFY_CURRENT_SOURCE_BEFORE_FRESH_PUBLICATION"
+  echo "resume_stage: VERIFY_AND_COMMIT_CURRENT_SOURCE_BEFORE_SMOKE"
   echo "source_identity_gate: BLOCK_DIRTY_WORKTREE"
 fi
 echo "ordered_control_routes:"
-echo "  1. model-native-train-recipe-audit (exact current recipe; no defaults)"
+echo "  1. require wsl_vm_cap != PENDING_RESTART and revalidate exact V15 recipe"
 echo "  2. model-native-smoke-train -> model-native-smoke-bundle-audit"
 echo "  3. model-native-candidate-readiness -> model-native-candidate-train"
 echo "  4. model-native-selective-edge -> candidate-bound replay/evidence"
-echo "  5. model-native-native-m1-source + model-native-native-m5-source --publication-mode successor (only if current source is invalidated)"
-echo "  6. model-native-canonical-pair -> model-native-mtf-v4-cache -> model-native-rebuild (only for a new immutable lineage)"
+echo "data_rebuild_route: FORBIDDEN_UNLESS_CURRENT_V8_V13_VALIDATION_FAILS"
 echo "forbidden_routes: live-tail, broker, daemon, polling, promotion, drift-adaptation"
 echo "exact_route_help: bash scripts/entry_next_edge_control.sh --help"
 echo

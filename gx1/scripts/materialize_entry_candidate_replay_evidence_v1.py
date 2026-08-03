@@ -755,6 +755,17 @@ def audit_model_native_replay_trades(trades: pd.DataFrame) -> dict[str, Any]:
                 f"max_abs_error={probability_sum_max_abs_error}"
             )
         if np.isfinite(probability_matrix).all() and "side" in trades.columns:
+            winner_counts = np.count_nonzero(
+                probability_matrix
+                == np.max(probability_matrix, axis=1, keepdims=True),
+                axis=1,
+            )
+            tied_rows = int(np.count_nonzero(winner_counts != 1))
+            if tied_rows:
+                failures.append(
+                    "model-native replay direction probabilities have no unique "
+                    f"top class: rows={tied_rows}"
+                )
             expected_side = np.asarray(CLASS_ORDER)[
                 np.argmax(probability_matrix, axis=1)
             ]

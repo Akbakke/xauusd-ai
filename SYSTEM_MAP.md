@@ -14,15 +14,16 @@ exact causal feature state
         v
 one immutable learned bundle + shared encoder
         |
-        +-- calibrated Entry logits [LONG, SHORT, FLAT] -> exact argmax
+        +-- calibrated Entry logits [LONG, SHORT, FLAT] -> unique exact argmax
         |
         +-- frozen Entry snapshot + exact closed-M1 path
-        |       -> calibrated Exit logits [HOLD, EXIT_NOW] -> exact argmax
+        |       -> calibrated Exit logits [HOLD, EXIT_NOW] -> unique exact argmax
 ```
 
 Nothing after either output may threshold, veto, flip, recover or replace the
 model decision. Missing Entry evidence is an error, not `FLAT`; missing Exit
-evidence is an error, not `HOLD`. External decision bridges, separate Entry or
+evidence is an error, not `HOLD`. An exact top tie is also missing decision
+evidence and cannot inherit array order. External decision bridges, separate Entry or
 Exit policies, manual EMA/regime/SMC/confluence rules, close overlays and stale
 artifacts have no authority.
 

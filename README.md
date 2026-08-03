@@ -14,9 +14,10 @@ only after overlap/hash proof. See [GX1_RULES.md](GX1_RULES.md).
 
 GX1 is being rebuilt around one learned bundle and shared encoder for
 gold/XAUUSD. It emits calibrated Entry `LONG/SHORT/FLAT` and Exit
-`HOLD/EXIT_NOW` logits. Exact model argmax owns both decisions. Missing, stale,
-malformed or contradictory evidence stops the path; there is no fallback
-model, hand-written live rule, cached decision or synthetic `FLAT`/`HOLD`.
+`HOLD/EXIT_NOW` logits. One unique exact model argmax owns each decision; a
+tied top logit fails closed instead of inheriting array order. Missing, stale,
+malformed or contradictory evidence stops the path; there is no fallback model,
+hand-written live rule, cached decision or synthetic `FLAT`/`HOLD`.
 
 ## Current status — 2026-08-03
 
@@ -29,8 +30,10 @@ the printed immutable paths and never start a second capped job, direct-run a
 trainer, select a `latest` artifact or enter live/paper/demo/broker/drift
 operation.
 
-The current six-epoch V8/V13 smoke was interrupted by a machine/WSL restart in
-epoch 3 and produced no completion bundle. An earlier bounded attempt
+The current six-epoch V8/V13 smoke was interrupted in epoch 3 by a Windows
+bugcheck recorded as `HYPERVISOR_ERROR (0x20001)` and produced no completion
+bundle. This proves the host/Hyper-V failure class, not that training caused
+it. An earlier bounded attempt
 collapsed almost entirely to FLAT and failed path/cooperation evidence. No
 current model or edge is accepted.
 

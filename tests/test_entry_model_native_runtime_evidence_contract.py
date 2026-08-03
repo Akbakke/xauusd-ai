@@ -273,6 +273,26 @@ def test_runtime_evidence_contract_returns_copy_and_preserves_values() -> None:
     assert validated["position_size_pred"] == pytest.approx(_sigmoid(-0.2))
 
 
+def test_runtime_evidence_contract_rejects_tied_direction_logits() -> None:
+    evidence = _valid_evidence()
+    direction_logits = [2.0, 2.0, -1.0]
+    direction_probs = _softmax(direction_logits)
+    evidence.update(
+        {
+            "direction_logits": direction_logits,
+            "direction_probs": direction_probs,
+            "public_trade_flat_decision_logits": [2.0, -1.0],
+            "public_trade_flat_decision_probs": _softmax([2.0, -1.0]),
+        }
+    )
+
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="direction_logits: no unique top class",
+    ):
+        require_model_native_runtime_evidence(evidence, context="CONTRACT_TEST")
+
+
 def test_runtime_head_envelope_round_trips_and_finalizes_exact_snapshot() -> None:
     expected = _valid_evidence()
     sizing = expected.pop("sizing_authority_contract")

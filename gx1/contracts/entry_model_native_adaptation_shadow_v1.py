@@ -219,9 +219,16 @@ def _directions_and_probabilities(
         or np.any(probabilities < 0.0)
         or np.any(probabilities > 1.0)
         or not np.allclose(probabilities.sum(axis=1), 1.0, rtol=0.0, atol=1e-6)
+        or np.any(
+            np.count_nonzero(
+                probabilities == np.max(probabilities, axis=1, keepdims=True),
+                axis=1,
+            )
+            != 1
+        )
         or not np.array_equal(np.argmax(probabilities, axis=1), directions)
     ):
-        _fail(context, f"{owner} probabilities do not prove exact model argmax")
+        _fail(context, f"{owner} probabilities do not prove exact unique model argmax")
     return directions, probabilities
 
 

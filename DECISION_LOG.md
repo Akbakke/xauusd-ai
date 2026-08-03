@@ -6,13 +6,29 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-08-03 — model direction requires one unique top class
+
+The final Entry logits were already the sole direction authority, but Python,
+NumPy and Torch argmax default to the first class on an exact top tie. That
+behavior could silently turn tied final evidence into `LONG`. Live Entry,
+runtime evidence, candidate prediction/OOS, direction pockets, serve parity,
+replay and adaptation shadow/drift now reject any row without exactly one top
+class. Exit already rejected tied `HOLD/EXIT_NOW` logits. No epsilon, threshold,
+fallback or synthetic `FLAT` was added: exact ties are unavailable evidence.
+
+The affected contract suites pass inside a verified `1G` RAM, `256M` swap,
+CPU 0–1 cgroup. This source change invalidates prior serve parity by repository
+identity; it does not create a model, edge result or launch authority.
+
 ## 2026-08-03 — interrupted smoke is invalid; host and handover fail closed
 
 The first six-epoch V8/V13 CPU smoke reached epoch 3 and was interrupted by a
 machine/WSL restart. It published neither a completion bundle nor terminal
 checkpoint-admission evidence. The partial run cannot be resumed and carries
-no trainability, edge or launch authority. The previous boot retained no
-kernel OOM, panic or thermal record, so the exact restart trigger is unproven.
+no trainability, edge or launch authority. Windows Error Reporting and the
+kernel minidump identify a BlueScreen `HYPERVISOR_ERROR (0x20001)` at the
+restart. Linux recorded no OOM kill for this incident. This identifies the
+host/Hyper-V failure class but does not prove that training caused it.
 
 The active WSL VM still reports about 43 GiB RAM and 8 GiB swap, while the
 user configuration is now 32 GB and 4 GB. The capped runner therefore rejects

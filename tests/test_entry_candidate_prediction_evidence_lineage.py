@@ -368,6 +368,41 @@ def test_consumer_rejects_mode_even_when_attacker_rehashes_parquet(tmp_path: Pat
         )
 
 
+def test_consumer_rejects_tied_direction_even_when_parquet_is_rehashed(
+    tmp_path: Path,
+) -> None:
+    event = _event(tmp_path)
+    tampered = _predictions()
+    probabilities = np.asarray([0.45, 0.45, 0.10], dtype=np.float64)
+    logits = np.log(probabilities)
+    public_probability = float(probabilities[0] / (probabilities[0] + probabilities[2]))
+    tampered.at[0, "direction_logits"] = logits.tolist()
+    tampered.at[0, "public_trade_flat_decision_logits"] = [
+        float(logits[0]),
+        float(logits[2]),
+    ]
+    tampered.loc[0, ["p_long", "p_short", "p_flat"]] = probabilities
+    tampered.loc[0, ["public_trade_probability", "public_flat_probability"]] = [
+        public_probability,
+        1.0 - public_probability,
+    ]
+    tampered.loc[0, "public_trade_flat_margin"] = float(logits[0] - logits[2])
+    tampered.to_parquet(event["predictions"], index=False)
+    report = dict(event["report"])
+    evidence = dict(report["prediction_evidence"])
+    evidence["sha256"] = sha256_file(event["predictions"])
+    report["prediction_evidence"] = evidence
+    _rewrite_report(event, report)
+
+    with pytest.raises(RuntimeError, match="no unique top class"):
+        resolve_and_validate_prediction_evidence(
+            event["predictions"],
+            prediction_report_path=event["report_path"],
+            bundle_dir=event["bundle"],
+            dataset_dir=event["dataset"],
+        )
+
+
 def test_consumer_rejects_report_direction_contract_tamper(tmp_path: Path) -> None:
     event = _event(tmp_path)
     report = dict(event["report"])

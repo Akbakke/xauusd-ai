@@ -857,6 +857,23 @@ def test_pinned_contract_rejects_malformed_direction_ssot(
         )
 
 
+def test_pinned_contract_rejects_tied_top_direction_logits() -> None:
+    frame = _fresh_pinned_frame()
+    logits = (4.0, 4.0, 0.0)
+    probabilities = _softmax(logits)
+    frame.at[0, "direction_logits"] = list(logits)
+    frame.at[0, "direction_probs"] = probabilities
+    frame.loc[0, ["p_long", "p_short", "p_flat"]] = probabilities
+    frame.loc[0, "edge_score"] = max(probabilities[:2]) - probabilities[2]
+
+    with pytest.raises(RuntimeError, match="no unique top class"):
+        serve_parity._validate_pinned_prediction_contract(
+            frame,
+            dataset_dir=FULL_DATASET,
+            pinned_path=PINNED_PATH,
+        )
+
+
 def test_mutable_prediction_mirror_fails_closed_without_fallback() -> None:
     mirror = EVENT_ROOT / "serve_parity/selective_edge_predictions.parquet"
     with pytest.raises(RuntimeError, match="not a timestamped authoritative predictions path"):

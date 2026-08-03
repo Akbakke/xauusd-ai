@@ -1263,6 +1263,17 @@ def test_smart_decision_rejects_trade_flat_vs_three_class_surface_mismatch(tmp_p
         engine.decide(head, atr_bps=9.0)
 
 
+def test_smart_decision_rejects_tied_top_direction_logits(tmp_path: Path) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head(
+        direction_logits=(2.0, 2.0, 0.0),
+        public_logits=(2.0, 0.0),
+    )
+
+    with pytest.raises(RuntimeError, match="no unique top class"):
+        engine.decide(head, atr_bps=9.0)
+
+
 def test_smart_decision_rejects_noncanonical_pair_even_when_argmax_matches(tmp_path: Path) -> None:
     engine = _decision_engine(tmp_path)
     head = _decision_head(direction_logits=(5.0, 1.0, 0.0), public_logits=(4.0, 0.0))

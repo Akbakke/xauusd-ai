@@ -374,6 +374,30 @@ def test_direction_audits_reject_pred_direction_probability_argmax_mismatch() ->
     assert any("pred_direction mismatches" in item for item in failures)
 
 
+def test_direction_audits_reject_tied_top_direction_logits() -> None:
+    frame = _canonical_model_direction_predictions()
+    tied_probabilities = np.asarray([0.45, 0.45, 0.10], dtype=np.float64)
+    tied_logits = np.log(tied_probabilities)
+    frame.at[0, "direction_logits"] = tied_logits.tolist()
+    frame.at[0, "public_trade_flat_decision_logits"] = [
+        float(tied_logits[0]),
+        float(tied_logits[2]),
+    ]
+    frame.loc[0, ["p_long", "p_short", "p_flat"]] = tied_probabilities
+    public_trade_probability = float(
+        tied_probabilities[0] / (tied_probabilities[0] + tied_probabilities[2])
+    )
+    frame.loc[0, ["public_trade_probability", "public_flat_probability"]] = [
+        public_trade_probability,
+        1.0 - public_trade_probability,
+    ]
+    frame.loc[0, "public_trade_flat_margin"] = float(tied_logits[0] - tied_logits[2])
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any("no unique top class" in item for item in failures)
+
+
 def test_direction_audits_reject_public_hard_decision_vs_pred_direction() -> None:
     frame = _canonical_model_direction_predictions()
     frame.loc[2, "public_trade_flat_hard_decision"] = 0

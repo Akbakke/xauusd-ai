@@ -597,6 +597,16 @@ def _run_exact_label_horizon_replay(
         raise RuntimeError("model direction diagnostic margin contains non-finite values")
     if not bool(np.isin(sides, [SIDE_LONG, SIDE_SHORT, SIDE_FLAT]).all()):
         raise RuntimeError("replay contains a direction outside LONG/SHORT/FLAT")
+    winner_counts = np.count_nonzero(
+        probabilities == np.max(probabilities, axis=1, keepdims=True),
+        axis=1,
+    )
+    tied_rows = int(np.count_nonzero(winner_counts != 1))
+    if tied_rows:
+        raise RuntimeError(
+            "replay direction probabilities have no unique top class; "
+            f"rows={tied_rows}"
+        )
     probability_argmax = np.argmax(probabilities, axis=1).astype(np.int64)
     if not np.array_equal(sides, probability_argmax):
         raise RuntimeError("replay trade_side differs from model probability argmax")
@@ -823,6 +833,16 @@ def _trade_failures(
         failures.append("candidate replay direction probabilities are outside [0,1]")
     if not np.allclose(probabilities.sum(axis=1), 1.0, rtol=0.0, atol=1e-6):
         failures.append("candidate replay direction probabilities do not sum to 1")
+    winner_counts = np.count_nonzero(
+        probabilities == np.max(probabilities, axis=1, keepdims=True),
+        axis=1,
+    )
+    tied_rows = int(np.count_nonzero(winner_counts != 1))
+    if tied_rows:
+        failures.append(
+            "candidate replay direction probabilities have no unique top class: "
+            f"rows={tied_rows}"
+        )
     expected_side = np.asarray(CLASS_ORDER)[np.argmax(probabilities, axis=1)]
     observed_side = trades["side"].astype(str).str.upper().to_numpy()
     if not np.array_equal(expected_side, observed_side):

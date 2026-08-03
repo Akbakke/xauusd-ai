@@ -37,9 +37,11 @@ be rediscovered by glob, mtime, version sorting or a `latest` pointer.
 
 ## Current model evidence
 
-The 2026-08-03 six-epoch smoke was interrupted by a machine/WSL restart in
-epoch 3. It published no completion bundle or terminal checkpoint-admission
-event. All partial output is invalid and cannot be resumed.
+The 2026-08-03 six-epoch smoke was interrupted in epoch 3 by a Windows
+bugcheck recorded as `HYPERVISOR_ERROR (0x20001)`. It published no completion
+bundle or terminal checkpoint-admission event. All partial output is invalid
+and cannot be resumed. The bugcheck identifies the host/Hyper-V failure class;
+it does not prove that training caused it.
 
 The previous one-epoch bounded attempt also failed closed: public direction
 collapsed almost entirely to FLAT, auxiliary path skill remained near chance
@@ -49,9 +51,10 @@ trading edge.
 
 ## Code-proven architecture
 
-- One calibrated `LONG/SHORT/FLAT` argmax is the only Entry authority.
-- One calibrated `HOLD/EXIT_NOW` argmax from the same bundle/shared encoder is
-  the only Exit authority.
+- One unique calibrated `LONG/SHORT/FLAT` argmax is the only Entry authority;
+  an exact top tie fails closed.
+- One unique calibrated `HOLD/EXIT_NOW` argmax from the same bundle/shared
+  encoder is the only Exit authority; an exact top tie fails closed.
 - The 513-field surface is 34 base plus 378 mandatory causal-layer outputs and
   101 deterministic TRAIN-only ranked fields.
 - All eight specialists exist on every retained timeframe.

@@ -238,10 +238,12 @@ Token/credit discipline:
 ### One Entry decision authority
 
 The public Entry decision is exactly the accepted bundle's calibrated final
-direction logits and `argmax([LONG, SHORT, FLAT])`. Nothing downstream may
-veto, flip, threshold, recover or replace it. A missing decision, field,
-contract, artifact or proof is an error, never `FLAT` by convenience and never
-permission to use another policy.
+direction logits and unique `argmax([LONG, SHORT, FLAT])`. An exact top tie is
+an unavailable decision and must fail closed; array order may never select a
+class. Nothing downstream may veto, flip, threshold, recover or replace it. A
+missing decision, field, contract, artifact or proof is an error, never `FLAT`
+by convenience and never permission to use another policy. Exit applies the
+same unique-argmax rule to `[HOLD, EXIT_NOW]`.
 
 ### Full learned evidence
 
