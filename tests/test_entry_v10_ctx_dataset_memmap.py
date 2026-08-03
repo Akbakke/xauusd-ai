@@ -93,6 +93,19 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
 
     monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_MIN_GB", "0")
     monkeypatch.setenv("ENTRY_V10_CTX_MEMMAP_ROOT", str(memmap_root))
+    assert trainer._NESTED_ARROW_BATCH_ROWS == 512
+    assert trainer._MEMMAP_WRITEBACK_ROWS == 2048
+    monkeypatch.setattr(trainer, "_NESTED_ARROW_BATCH_ROWS", 1)
+    monkeypatch.setattr(trainer, "_MEMMAP_WRITEBACK_ROWS", 2)
+    flush_calls = 0
+    real_flush = trainer._flush_memmap_pages
+
+    def _counting_flush(*arrays) -> None:
+        nonlocal flush_calls
+        flush_calls += 1
+        real_flush(*arrays)
+
+    monkeypatch.setattr(trainer, "_flush_memmap_pages", _counting_flush)
     m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
 
     ds = trainer.EntryV10CtxDataset(
@@ -123,6 +136,7 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
     assert "y_teacher_bad_long" not in sample
     assert "y_teacher_winner_long" not in sample
     assert memmap_root.exists()
+    assert flush_calls == 2
 
 
 def test_advanced_dataset_rejects_unsorted_time_rows(tmp_path, monkeypatch) -> None:

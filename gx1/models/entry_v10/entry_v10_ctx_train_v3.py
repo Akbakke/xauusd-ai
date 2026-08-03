@@ -698,6 +698,14 @@ def _flush_memmap_pages(*arrays: np.ndarray) -> None:
             pass
 
 
+# The immutable TRAIN parquet stores nested values as float64.  An 8192-row
+# Arrow batch transiently held the Arrow values, a float32 cast and dirty
+# memmap pages together and could exhaust the 10 GiB cgroup before training.
+# These are I/O scheduling bounds only; row order and tensor bytes are exact.
+_NESTED_ARROW_BATCH_ROWS = 512
+_MEMMAP_WRITEBACK_ROWS = 2048
+
+
 def _env_str(name: str) -> str:
     """Read one recipe-owned training value from the single canonical origin.
 
@@ -2835,11 +2843,11 @@ class EntryV10CtxDataset(Dataset):
                 self._np_snap = np.zeros(snap_shape, dtype=np.float32)
                 self._np_ctx_cont = np.zeros(ctx_cont_shape, dtype=np.float32)
                 self._np_ctx_cat = np.zeros(ctx_cat_shape, dtype=np.int64)
-            memmap_flush_rows = max(0, int(os.environ.get("ENTRY_V10_CTX_MEMMAP_FLUSH_ROWS", "8192")))
             # Re-iterate (first batch was consumed) — read the whole file in chunks
             idx = 0
             for batch in pq.ParquetFile(self.parquet_path).iter_batches(
-                batch_size=8192, columns=["seq", "snap", "ctx_cont", "ctx_cat"]
+                batch_size=_NESTED_ARROW_BATCH_ROWS,
+                columns=["seq", "snap", "ctx_cont", "ctx_cat"],
             ):
                 nb = batch.num_rows
                 self._np_seq[idx:idx+nb] = batch.column("seq").flatten().flatten().to_numpy(
@@ -2851,7 +2859,7 @@ class EntryV10CtxDataset(Dataset):
                 self._np_ctx_cat[idx:idx+nb] = batch.column("ctx_cat").flatten().to_numpy(
                     zero_copy_only=False).reshape(nb, ctx_cat_dim).astype(np.int64, copy=False)
                 idx += nb
-                if use_memmap and memmap_flush_rows and idx % memmap_flush_rows == 0:
+                if use_memmap and idx % _MEMMAP_WRITEBACK_ROWS == 0:
                     _flush_memmap_pages(self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
             for arr in (self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat):
                 if isinstance(arr, np.memmap):
