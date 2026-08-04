@@ -20,6 +20,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+)
 from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     DIRECTION_DATASET_STEM_SUFFIX,
@@ -600,9 +603,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for row in split_reports:
         split = str(row.get("split"))
         seq_mode = row.get("seq_structure_extension_mode")
-        if seq_mode != "mandatory_inline_common_causal_history_v1":
+        if seq_mode != ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE:
             failures.append(
-                f"{split}: XAU repair requires inline seq-structure features; observed mode={seq_mode}"
+                f"{split}: XAU repair requires the exact native M5 feature "
+                f"surface; observed mode={seq_mode}"
             )
         provenance = row.get("provenance") if isinstance(row.get("provenance"), dict) else {}
         if str(provenance.get("contract_mode") or "") != MODEL_NATIVE_CONTRACT_MODE:

@@ -19,21 +19,34 @@ Invalid geometry, duplicate/reversed timestamps, non-finite or non-positive
 prices, ask below bid, unproven source gaps or a ×10 scale discontinuity fail.
 Mid-only substitution and synthetic gap filling are forbidden.
 
-## Shared featurebase
+## Shared feature-owner contract
 
-`gx1_entry_exit_shared_feature_base_contract_v1` owns both resolutions:
+`gx1_entry_exit_shared_feature_base_contract_v2` owns both resolutions:
 
 - instrument `XAU_USD`;
 - 513 ordered signals: 378 mandatory + 101 TRAIN-ranked plus fixed base fields;
 - 142 continuous and 5 categorical context values;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;
-- Entry M5 sequence 96;
-- Exit M1 sequence 480, maximum path states 512;
+- Entry local M5 sequence 96 plus closed M15/H1/H4/D1 context;
+- Exit local M1 sequence 480 plus closed M5/M15/H1/H4/D1 context, maximum path
+  states 512;
+- independent native values: no combined pre-owner source package and no M1/M5
+  value copying;
 - no separate feature implementation or future feature reuse.
 
-M15/H1/H4/D1 values are available only after the source bar has closed. A
-forming higher-timeframe candle may never enter a decision.
+Every MTF candle is completed before the same owner computes its features.
+Resampling finished M1 indicator/feature values into M5/M15/H1/H4/D1 is
+forbidden. A forming higher-timeframe candle may never enter a decision.
+
+The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
+ordered 513 fields and TRAIN-rank reference hash used by the M5 Entry build.
+Any disagreement fails before dataset construction.
+
+The M5 Entry surface must additionally match the exact full M5 source timeline,
+dataset run ID and pair generation. Dataset construction loads it once through
+bounded memmaps and uses only contiguous timestamp views for TRAIN/VAL/TEST.
+Recomputing the selected specialist fields inside a split is forbidden.
 
 Feature bytes cannot depend on ambient flags. The active ATR regime transform
 uses direct integer indexing and must be non-constant on the complete declared

@@ -74,6 +74,18 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _canonical_sha256(value: object) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 def _write_json(path: Path, payload: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -149,6 +161,8 @@ def _build_fixture(
     break_ranking_run_id: bool = False,
     break_ranking_source_hash: bool = False,
     break_ranking_train_window: bool = False,
+    break_m1_feature_identity: bool = False,
+    break_m5_feature_identity: bool = False,
     break_mtf: bool = False,
     late_mtf_history_tf: str | None = None,
     missing_tape_year: int | None = None,
@@ -229,8 +243,11 @@ def _build_fixture(
             ],
         },
     )
+    m1_feature_manifest_path = Path(
+        str(m1_feature_base) + ".manifest.json"
+    )
     _write_json(
-        Path(str(m1_feature_base) + ".manifest.json"),
+        m1_feature_manifest_path,
         {
             "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
             "decision": "PASS",
@@ -238,6 +255,27 @@ def _build_fixture(
             "output_parquet": str(m1_feature_base),
             "output_parquet_sha256": _sha256(m1_feature_base),
             "pair_generation_id": "fixture-pair-generation-v1",
+            "rows": 2,
+            "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+        },
+    )
+    m5_feature_base = _write_parquet(
+        tmp_path / "inputs/xauusd_m5_feature_base.parquet",
+        {"time": source_times},
+    )
+    m5_feature_manifest_path = Path(
+        str(m5_feature_base) + ".manifest.json"
+    )
+    _write_json(
+        m5_feature_manifest_path,
+        {
+            "schema_version": "gx1_entry_exit_m5_feature_surface_v1",
+            "decision": "PASS",
+            "dataset_run_id": RUN_ID,
+            "output_parquet": str(m5_feature_base),
+            "output_parquet_sha256": _sha256(m5_feature_base),
+            "pair_generation_id": "fixture-pair-generation-v1",
+            "rows": len(source_times),
             "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         },
     )
@@ -254,7 +292,9 @@ def _build_fixture(
     )
     selected = _selected_features()
     now = datetime.now(timezone.utc)
-    ranking_created = now - timedelta(seconds=2)
+    # Keep event ordering stable even if the host clock is corrected backwards
+    # by tens of seconds while this intentionally heavy fixture is built.
+    ranking_created = now - timedelta(minutes=5)
     ranking_path = tmp_path / "inputs" / (
         "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_"
         f"{_stamp(ranking_created)}.json"
@@ -371,6 +411,51 @@ def _build_fixture(
         manifest["json_path"] = str(manifest_path.resolve())
         immutable_manifest_path.unlink()
     _write_json(manifest_path, manifest)
+    m1_feature_manifest = json.loads(
+        m1_feature_manifest_path.read_text(encoding="utf-8")
+    )
+    ordered_fields = list(manifest["model_native_signal_contract"]["fields"])
+    m1_feature_manifest.update(
+        {
+            "anchor_timeframe": "M1",
+            "feature_field_order": ordered_fields,
+            "feature_field_order_sha256": _canonical_sha256(ordered_fields),
+            "seq_structure_manifest": str(manifest_path.resolve()),
+            "seq_structure_manifest_sha256": _sha256(manifest_path),
+            "rank_reference_sha256": rank_reference.sha256,
+        }
+    )
+    if break_m1_feature_identity:
+        broken_fields = list(ordered_fields)
+        broken_fields[-1] = "chart.stale_exit_only_fixture"
+        m1_feature_manifest["feature_field_order"] = broken_fields
+        m1_feature_manifest["feature_field_order_sha256"] = (
+            _canonical_sha256(broken_fields)
+        )
+    m1_feature_manifest["manifest_sha256"] = _canonical_sha256(
+        m1_feature_manifest
+    )
+    _write_json(m1_feature_manifest_path, m1_feature_manifest)
+
+    m5_feature_manifest = json.loads(
+        m5_feature_manifest_path.read_text(encoding="utf-8")
+    )
+    m5_feature_manifest.update(
+        {
+            "anchor_timeframe": "M5",
+            "feature_field_order": ordered_fields,
+            "feature_field_order_sha256": _canonical_sha256(ordered_fields),
+            "seq_structure_manifest": str(manifest_path.resolve()),
+            "seq_structure_manifest_sha256": _sha256(manifest_path),
+            "rank_reference_sha256": rank_reference.sha256,
+        }
+    )
+    if break_m5_feature_identity:
+        m5_feature_manifest["rank_reference_sha256"] = "7" * 64
+    m5_feature_manifest["manifest_sha256"] = _canonical_sha256(
+        m5_feature_manifest
+    )
+    _write_json(m5_feature_manifest_path, m5_feature_manifest)
 
     if break_ranking_run_id:
         ranking["entry_run_id"] = "XAU_DIFFERENT_REBUILD_TEST_V1"
@@ -465,6 +550,7 @@ def _build_fixture(
             m1_pair_generation_root
         ),
         m1_feature_base_parquet=str(m1_feature_base),
+        m5_feature_base_parquet=str(m5_feature_base),
         exit_lifecycle_dir=str(tmp_path / "run/exit_lifecycle"),
         exit_target_lookahead_m1_steps=30,
         early_move_threshold_bps=4.0,
@@ -483,7 +569,7 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     report = preflight.run(args)
 
     assert report["decision"] == preflight.READY_DECISION
-    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v9"
+    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v11"
     assert not report["failures"]
     assert report["counts"] == {
         "base_signal_features": MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -578,6 +664,8 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
         "--m1-lifecycle-pair-generation-root",
+        "--m1-feature-base-parquet",
+        "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
         "--exit-target-lookahead-m1-steps",
         "--early-move-threshold-bps",
@@ -748,6 +836,14 @@ def test_mtf_cache_contract_fails_closed_without_borrowing_seq513_length(
         (
             {"break_source_manifest_hash": True},
             "declared signal source manifests are present and hash-bound",
+        ),
+        (
+            {"break_m1_feature_identity": True},
+            "explicit M1 feature base is the PASS artifact for this run and pair source",
+        ),
+        (
+            {"break_m5_feature_identity": True},
+            "explicit M5 feature base is the exact Entry surface for this run and pair source",
         ),
         (
             {"break_mtf": True},
@@ -928,6 +1024,8 @@ def _explicit_cli_args(tmp_path: Path) -> list[str]:
         str(tmp_path / "pair_generations"),
         "--m1-feature-base-parquet",
         str(tmp_path / "m1_feature_base.parquet"),
+        "--m5-feature-base-parquet",
+        str(tmp_path / "m5_feature_base.parquet"),
         "--exit-lifecycle-dir",
         str(tmp_path / "exit_lifecycle"),
         "--exit-target-lookahead-m1-steps",

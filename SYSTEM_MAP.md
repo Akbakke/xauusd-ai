@@ -7,10 +7,11 @@ OANDA XAU_USD complete MBA candles
   M5 native source --------------------------+
   M1 native source ----+                     |
                        v                     v
-              shared feature-surface owner (same formulas/order)
-                 M1 surface            M5 surface
+             same 8 feature owners, run independently
+                 M1 values              M5 values
+          + M5/M15/H1/H4/D1      + M15/H1/H4/D1
                        |                     |
-                       +----- lineage -------+
+                       +-- exact contract ----+
                                   |
               TRAIN-only ranking + normalization
                                   |
@@ -35,14 +36,23 @@ The eight owners are:
 7. chart geometry;
 8. price action/candles.
 
-Each also reaches M5/M15/H1/H4/D1 through the fixed V4 grid. Relevance is
-learned; there is no handwritten confluence vote or timeframe weight.
+Entry has local M5 evidence and closed M15/H1/H4/D1 context. Exit has local M1
+evidence and closed M5/M15/H1/H4/D1 context. OHLCV is closed and aligned before
+the same owners compute each timeframe; finished M1 features are never rolled
+up. Relevance is learned, with no handwritten confluence vote or TF weight.
+
+The immutable M5 surface is Entry's sole 513/142/5 input authority. It is
+loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
+so no split rebuilds the specialist stack. The M1 surface is Exit's matching
+native-resolution authority; neither surface can substitute for the other.
 
 ## Data and lifecycle
 
 The M1 and M5 sources are one immutable generation pair. Dataset splits share
-the same run ID and boundaries. Entry and Exit share TRAIN normalization. Exit
-episodes point into the hash-bound M1 surface; they do not duplicate paths.
+the same run ID and boundaries. Entry and Exit share TRAIN normalization and
+the exact ordered signal-manifest identity, while their computed values remain
+native to each clock. Exit episodes point into the hash-bound M1 surface; they
+do not duplicate paths.
 
 The Exit row clock is consecutive authoritative observed M1 rows. Weekend and
 market-closure gaps are allowed only when the native OANDA manifest proves

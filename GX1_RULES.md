@@ -6,18 +6,28 @@ This file defines the only active project scope.
 
 ```text
 immutable OANDA XAU_USD M1 + M5
-    -> one hash-bound shared featurebase
-    -> Entry M5: LONG / SHORT / FLAT
-    -> Exit M1: HOLD / EXIT_NOW
+    -> same eight code-owned feature owners on separate native clocks
+    -> Entry local M5 + M15/H1/H4/D1: LONG / SHORT / FLAT
+    -> Exit local M1 + M5/M15/H1/H4/D1: HOLD / EXIT_NOW
     -> offline TRAIN / VAL / untouched TEST / same-bundle replay
 ```
 
 - Entry and Exit use the same eight feature owners, formulas, ordered fields,
-  TRAIN-only normalization and source lineage. M1 resolution and the additive
-  causal trade path are the only Exit differences.
-- The shared surface is 513 signal fields, 142 continuous context fields and
-  5 categorical fields. Entry reads 96 M5 bars; Exit reads a 480-bar M1
-  sequence, capped at 512 states, plus the frozen Entry representation.
+  TRAIN-only normalization and source lineage. Each owner computes native M5
+  values for Entry and native M1 values for Exit; values are never copied
+  between those clocks and there is no combined pre-owner M1/M5 package.
+- Multi-timeframe candles must close before feature computation. Entry uses a
+  local M5 sequence plus M15/H1/H4/D1 context. Exit uses a local M1 sequence
+  plus M5/M15/H1/H4/D1 context. Resampling already computed M1 indicators into
+  a higher timeframe is forbidden.
+- Both native surfaces use the same ordered 513 signal fields, 142 continuous
+  context fields and 5 categorical fields. Entry reads 96 M5 bars; Exit reads
+  480 M1 bars, capped at 512 path states, plus the frozen Entry representation.
+- Entry model inputs may come only from the exact hash-bound native M5 feature
+  surface. It is loaded once and sliced by exact timestamp for TRAIN/VAL/TEST;
+  split-local specialist recomputation, alternate M5 input lanes and soft
+  alignment are forbidden. Exit analogously consumes the bound native M1
+  surface plus its additive path.
 - The eight specialists are structure, SMC/liquidity, trend, volatility,
   momentum, session/regime, chart geometry and price action/candles.
 - Direction has one authority: unique argmax of the accepted model's calibrated
@@ -36,8 +46,9 @@ immutable OANDA XAU_USD M1 + M5
   final candidate is frozen.
 - M1/M5 source absence proven by the native OANDA authority is a market closure,
   not a bar to synthesize. Ordered observed rows advance through closures.
-- Source, formula, schema, field order, population, run identity and profile
-  must match at every boundary. Any mismatch invalidates the full attempt.
+- Source, formula, schema, field order, signal-manifest hash, TRAIN-rank state,
+  population, run identity and profile must match at every boundary. Any
+  mismatch invalidates the full attempt.
 - No practical precision, win-rate or PnL claim exists without immutable,
   recomputable untouched-TEST and same-candidate Entry/Exit evidence.
 

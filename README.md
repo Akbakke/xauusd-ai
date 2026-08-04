@@ -7,18 +7,25 @@ system. It is not currently an admitted or profitable trading bot.
 
 ```text
 native OANDA M1/M5
-  -> shared causal featurebase (8 owners)
+  -> same 8 causal feature owners on separate native M5/M1 clocks
   -> shared encoder
-       |-- Entry M5: LONG / SHORT / FLAT
-       |-- Exit M1: HOLD / EXIT_NOW
+       |-- Entry: local M5 + M15/H1/H4/D1 -> LONG / SHORT / FLAT
+       |-- Exit: local M1 + M5/M15/H1/H4/D1 -> HOLD / EXIT_NOW
        `-- learned sizing/evidence heads
   -> calibration -> untouched TEST -> same-bundle replay
 ```
 
-Entry consumes 96 M5 bars with 513 ordered signals, 142 continuous context
-fields, 5 categorical fields and M5/M15/H1/H4/D1 context. Exit consumes the
-same feature definitions and normalization at M1 resolution, a 480-bar M1
-sequence, the frozen Entry representation and its causal in-trade path.
+Entry consumes 96 local M5 bars with 513 ordered signals, 142 continuous
+context fields, 5 categorical fields and closed M15/H1/H4/D1 context. Exit
+consumes the same definitions and TRAIN normalization on 480 local M1 bars,
+closed M5/M15/H1/H4/D1 context, the frozen Entry representation and its causal
+in-trade path. Higher-timeframe OHLCV closes before feature computation;
+computed M1 indicators are never resampled upward.
+
+Entry's 513/142/5 tensors are read from one immutable, hash-bound native M5
+surface and sliced by exact timestamp across all three splits. Exit uses the
+corresponding native M1 surface. There is no split-local alternate feature
+builder or cross-resolution value copy.
 
 The model is the only decision authority. Exact top-logit ties, missing paths,
 stale artifacts and lineage mismatches fail closed. There are no active
@@ -29,8 +36,8 @@ handwritten direction rules, fallbacks or alternate replay selectors.
 The source architecture and contracts are substantially connected and tested,
 but the system is not empirically finished:
 
-- the 2026-08-03 producer-tree audit completed five independent review lanes,
-  repo-wide lint/compile/shell/JSON checks and 1,991 passing tests with no skips
+- the 2026-08-04 producer-tree audit completed five independent review lanes,
+  repo-wide lint/compile/shell/JSON checks and 2,001 passing tests with no skips
   or warnings;
 
 - no current admitted dataset or recipe;

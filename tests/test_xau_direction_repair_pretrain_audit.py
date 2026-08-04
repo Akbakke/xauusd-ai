@@ -18,6 +18,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+)
 from gx1.contracts.xau_tape_provenance_v1 import (
     BASE_REPAIR_METHOD,
     BASE_REPAIR_SCHEMA,
@@ -336,7 +339,7 @@ def _write_split(
                 "seq_structure_extension_v1": {
                     "enabled": True,
                     "mode": (
-                        "mandatory_inline_common_causal_history_v1"
+                        ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE
                         if include_inline_seq_structure
                         else "parquet_join"
                     ),
@@ -461,7 +464,9 @@ def test_xau_direction_repair_signal_contract_requires_every_rail_feature() -> N
         model_native_signal_contract_metadata(selected)
 
 
-def test_xau_direction_repair_pretrain_audit_requires_inline_seq_structure(tmp_path: Path) -> None:
+def test_xau_direction_repair_pretrain_audit_requires_native_m5_surface(
+    tmp_path: Path,
+) -> None:
     for split in ("train", "val", "test"):
         _write_split(tmp_path, split, inverted=False, include_inline_seq_structure=False)
 
@@ -470,7 +475,10 @@ def test_xau_direction_repair_pretrain_audit_requires_inline_seq_structure(tmp_p
 
     report = _read_immutable_audit(tmp_path)
     assert report["decision"] == "FAIL"
-    assert any("requires inline seq-structure" in item for item in report["failures"])
+    assert any(
+        "requires the exact native M5 feature surface" in item
+        for item in report["failures"]
+    )
 
 
 def test_xau_direction_repair_pretrain_audit_fails_bad_path_side_mismatch(tmp_path: Path) -> None:

@@ -1,10 +1,10 @@
-"""Build the causal M1 upstream frame for the shared Entry/Exit feature base.
+"""Build causal native M1/M5 frames through the same feature owners.
 
-This is the only upstream producer admitted for the current M1 Exit surface.
-It runs the existing feature owners at an explicit one-minute decision clock,
-then requires the complete model-native base/context/categorical contract.
-The older ``EXPANDED_BASE34_CTX16CAT6`` artifact is intentionally not an input
-to this path.
+One implementation runs at an explicit one-minute Exit clock or five-minute
+Entry clock.  Each route consumes only its own native closed rows, then builds
+closed MTF OHLCV before features.  It never combines M1/M5 values in front of
+the owners or resamples computed M1 features upward.  The older
+``EXPANDED_BASE34_CTX16CAT6`` artifact is intentionally not an input.
 """
 from __future__ import annotations
 
@@ -401,9 +401,9 @@ def _build_enriched_frame(
         base_bar_duration=spec["duration"],
     )
 
-    # Complete the same model-native extension surface used by Entry, with the
-    # only clock difference being the closed M1 decision bar.  These are owned
-    # transforms, not neutral fills: missing source evidence raises below.
+    # Complete the same model-native surface independently on the selected
+    # native clock. These are owned transforms, not neutral fills: missing
+    # source evidence raises below.
     decision_ts = decision_availability(
         enriched.index,
         bar_duration=spec["duration"],
@@ -476,6 +476,9 @@ def _build_enriched_frame(
             f"decision_uses_closed_{spec['label']}_bar": True,
             "same_feature_owner_as_entry": True,
             "same_specialist_stack_as_entry": True,
+            "native_resolution_values": True,
+            "cross_resolution_value_copy": False,
+            "computed_m1_feature_resampling": False,
             "old_m1_artifacts_consumed": False,
             "missing_field_fill": False,
             "frame_relative_bucket_fallback": False,

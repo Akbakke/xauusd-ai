@@ -153,9 +153,12 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
     EXIT_FEATURE_ROW_CLOCK,
     entry_exit_shared_feature_base_contract,
-    require_entry_exit_shared_feature_base_contract,
+    require_entry_exit_feature_surface_identity,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+    ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
+    load_m1_feature_surface,
     load_m1_feature_surface_times,
 )
 from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
@@ -2091,6 +2094,72 @@ _MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpo
 _MODEL_NATIVE_STREAMING_BATCH_SIZE = 512
 
 
+def _align_native_m5_feature_surface(
+    *,
+    target_times: Sequence[Any],
+    surface_times: pd.DatetimeIndex,
+    surface_arrays: Mapping[str, np.ndarray],
+) -> dict[str, np.ndarray]:
+    """Return zero-copy M5 surface views for one exact contiguous source window."""
+
+    target = pd.DatetimeIndex(
+        pd.to_datetime(target_times, utc=True, errors="coerce")
+    ).as_unit("ns")
+    surface = pd.DatetimeIndex(surface_times).as_unit("ns")
+    if (
+        len(target) == 0
+        or target.hasnans
+        or not target.is_unique
+        or not target.is_monotonic_increasing
+        or not target.floor(f"{ENTRY_DECISION_BAR_SECONDS}s").equals(target)
+    ):
+        raise RuntimeError("ENTRY_M5_FEATURE_SURFACE_TARGET_TIME_INVALID")
+    if (
+        len(surface) == 0
+        or surface.hasnans
+        or not surface.is_unique
+        or not surface.is_monotonic_increasing
+        or not surface.floor(f"{ENTRY_DECISION_BAR_SECONDS}s").equals(surface)
+    ):
+        raise RuntimeError("ENTRY_M5_FEATURE_SURFACE_TIME_INVALID")
+    expected_shapes = {
+        "signal": (len(surface), MODEL_NATIVE_SIGNAL_DIM),
+        "ctx_cont": (len(surface), MODEL_NATIVE_CTX_CONT_DIM),
+        "ctx_cat": (len(surface), MODEL_NATIVE_CTX_CAT_DIM),
+    }
+    expected_dtypes = {
+        "signal": np.dtype(np.float32),
+        "ctx_cont": np.dtype(np.float32),
+        "ctx_cat": np.dtype(np.int64),
+    }
+    if set(surface_arrays) != set(expected_shapes):
+        raise RuntimeError("ENTRY_M5_FEATURE_SURFACE_ARRAY_SCHEMA_INVALID")
+    for name, expected_shape in expected_shapes.items():
+        values = surface_arrays[name]
+        if (
+            not isinstance(values, np.ndarray)
+            or values.shape != expected_shape
+            or values.dtype != expected_dtypes[name]
+        ):
+            raise RuntimeError(
+                f"ENTRY_M5_FEATURE_SURFACE_{name.upper()}_INVALID: "
+                f"shape={getattr(values, 'shape', None)} "
+                f"dtype={getattr(values, 'dtype', None)}"
+            )
+    positions = surface.get_indexer(target)
+    if np.any(positions < 0):
+        raise RuntimeError(
+            "ENTRY_M5_FEATURE_SURFACE_TIME_MISSING: "
+            f"rows={int(np.count_nonzero(positions < 0))}"
+        )
+    if len(positions) > 1 and not np.all(np.diff(positions) == 1):
+        raise RuntimeError("ENTRY_M5_FEATURE_SURFACE_WINDOW_NONCONTIGUOUS")
+    window = slice(int(positions[0]), int(positions[-1]) + 1)
+    if not surface[window].equals(target):
+        raise RuntimeError("ENTRY_M5_FEATURE_SURFACE_WINDOW_IDENTITY_MISMATCH")
+    return {name: values[window] for name, values in surface_arrays.items()}
+
+
 def build_dataset_canonical(
     *,
     source_parquet: Path,
@@ -2103,6 +2172,9 @@ def build_dataset_canonical(
     canonical_v2_parquet: Path,
     seq_structure_manifest_path: Path,
     model_native_rank_reference_npz: Path,
+    m5_feature_surface_times: pd.DatetimeIndex,
+    m5_feature_surface_arrays: Mapping[str, np.ndarray],
+    m5_feature_surface_binding: Mapping[str, Any],
     emit_start: pd.Timestamp,
     emit_end: pd.Timestamp,
     split_name: Optional[str] = None,
@@ -2892,48 +2964,7 @@ def build_dataset_canonical(
     seq_structure_requested, seq_structure_meta = _resolve_seq_structure_extension(
         manifest_path=seq_structure_manifest_path,
     )
-    seq_structure_feature_names: List[str] = []
-    inline_source_columns = ["time", "close", "atr", "open", "high", "low"]
-    missing_inline_source = [
-        name for name in inline_source_columns if name not in merged3.columns
-    ]
-    if missing_inline_source:
-        raise RuntimeError(
-            f"MODEL_NATIVE_INLINE_CAUSAL_SOURCE_MISSING: {missing_inline_source}"
-        )
-    with tempfile.NamedTemporaryFile(
-        suffix="_model_native_common_history.parquet", delete=False
-    ) as temporary:
-        inline_source_path = Path(temporary.name)
-    try:
-        merged3[inline_source_columns].to_parquet(inline_source_path, index=False)
-        ext_sig_mat, seq_structure_feature_names, _seq_join_meta = (
-            _build_inline_seq_structure_extension(
-                merged3,
-                requested_features=seq_structure_requested,
-                ctx_cont_names=ctx_cont_names,
-                ctx_cat_names=ctx_cat_names,
-                source_parquet=inline_source_path,
-                source_contract_label="common_causal_history_frame_v1",
-                base_signal_fields=active_base_signal_fields,
-            )
-        )
-    finally:
-        inline_source_path.unlink(missing_ok=True)
-    seq_structure_meta.update(_seq_join_meta)
-    log.info(
-        "[SEQ_STRUCTURE_EXTENSION_V1] mandatory inline features=%d rows=%d",
-        len(seq_structure_feature_names),
-        len(merged3),
-    )
-
-    base_sig_mat = merged3[active_base_signal_fields].astype(np.float32).to_numpy()
-    if seq_structure_feature_names:
-        sig_mat = np.concatenate([base_sig_mat, ext_sig_mat], axis=1).astype(
-            np.float32, copy=False
-        )
-    else:
-        sig_mat = base_sig_mat
+    seq_structure_feature_names = list(seq_structure_requested)
     signal_fields_emitted = list(active_base_signal_fields) + list(
         seq_structure_feature_names
     )
@@ -2946,6 +2977,31 @@ def build_dataset_canonical(
             "MODEL_NATIVE_SIGNAL_FIELD_ORDER_MISMATCH: emitted field order does not "
             "match the exact manifest contract"
         )
+    times = merged3["time"].to_numpy()
+    aligned_surface = _align_native_m5_feature_surface(
+        target_times=times,
+        surface_times=m5_feature_surface_times,
+        surface_arrays=m5_feature_surface_arrays,
+    )
+    sig_mat = aligned_surface["signal"]
+    ctx_cont_mat = aligned_surface["ctx_cont"]
+    ctx_cat_mat = aligned_surface["ctx_cat"]
+    seq_structure_meta.update(
+        {
+            "mode": ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+            "feature_surface": dict(m5_feature_surface_binding),
+            "features": list(seq_structure_feature_names),
+            "feature_count": len(seq_structure_feature_names),
+            "inline_split_recomputation": False,
+        }
+    )
+    log.info(
+        "[ENTRY_M5_FEATURE_SURFACE] exact rows=%d signals=%d ctx_cont=%d ctx_cat=%d",
+        len(merged3),
+        int(sig_mat.shape[1]),
+        int(ctx_cont_mat.shape[1]),
+        int(ctx_cat_mat.shape[1]),
+    )
     expected_seq_snap_width = seq_structure_meta.get("expected_seq_snap_width")
     if expected_seq_snap_width is not None:
         expected_seq_snap_width = int(expected_seq_snap_width)
@@ -2957,10 +3013,8 @@ def build_dataset_canonical(
                 f"expected={expected_seq_snap_width} observed={observed_seq_snap_width} "
                 f"manifest={seq_structure_meta.get('manifest_path')}"
             )
-    times = merged3["time"].to_numpy()
-
-    ctx_cont_mat = merged3[ctx_cont_names].astype(np.float32).to_numpy()
-    ctx_cat_mat = merged3[ctx_cat_names].astype(np.int64).to_numpy()
+    if not np.isfinite(sig_mat).all():
+        raise RuntimeError("MODEL_NATIVE_SIGNAL_NONFINITE")
     if not np.isfinite(ctx_cont_mat).all():
         raise RuntimeError("MODEL_NATIVE_CTX_CONT_NONFINITE")
     if not np.isfinite(ctx_cat_mat.astype(np.float64)).all():
@@ -4024,6 +4078,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--m5-feature-base-parquet",
+        type=str,
+        required=True,
+        help=(
+            "Exact hash-bound native M5 feature surface consumed once by all "
+            "Entry TRAIN/VAL/TEST split builds."
+        ),
+    )
+    parser.add_argument(
         "--exit-lifecycle-dir",
         type=str,
         required=True,
@@ -4198,7 +4261,7 @@ def main() -> None:
             "manifest_path": str(
                 Path(args.seq_structure_manifest).expanduser().resolve()
             ),
-            "mode": "mandatory_inline_common_causal_history_v1",
+            "mode": ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
         },
     }
 
@@ -4270,22 +4333,40 @@ def main() -> None:
     m1_feature_base_manifest = json.loads(
         m1_feature_base_manifest_path.read_text(encoding="utf-8")
     )
+    m1_manifest_without_hash = dict(m1_feature_base_manifest)
+    m1_declared_manifest_sha256 = m1_manifest_without_hash.pop(
+        "manifest_sha256", None
+    )
     if (
         m1_feature_base_manifest.get("schema_version")
         != "gx1_entry_exit_m1_feature_surface_v1"
         or m1_feature_base_manifest.get("decision") != "PASS"
         or m1_feature_base_manifest.get("dataset_run_id") != entry_run_id
+        or m1_feature_base_manifest.get("pair_generation_id")
+        != m1_lifecycle_authority.get("pair_generation_id")
         or m1_feature_base_manifest.get("output_parquet")
         != str(m1_feature_base_path)
         or m1_feature_base_manifest.get("output_parquet_sha256")
         != m1_feature_base_sha256
+        or m1_declared_manifest_sha256
+        != canonical_json_sha256(m1_manifest_without_hash)
     ):
         raise RuntimeError(
             "DATASET_BUILDER_M1_FEATURE_BASE_MANIFEST_CONTRACT_INVALID"
         )
-    require_entry_exit_shared_feature_base_contract(
-        m1_feature_base_manifest.get("shared_feature_base_contract"),
-        context="DATASET_BUILDER_M1_FEATURE_BASE_MANIFEST",
+    signal_manifest_path = Path(args.seq_structure_manifest).expanduser().resolve()
+    require_entry_exit_feature_surface_identity(
+        m1_feature_base_manifest,
+        expected_timeframe="M1",
+        expected_ordered_fields=main_signal_build_contract[
+            "model_native_signal_contract"
+        ]["fields"],
+        expected_signal_manifest_path=str(signal_manifest_path),
+        expected_signal_manifest_sha256=_sha256_file(signal_manifest_path),
+        expected_rank_reference_sha256=state_contract[
+            "rank_reference_npz_sha256"
+        ],
+        context="DATASET_BUILDER_M1_VS_ENTRY_M5",
     )
     m1_feature_times = load_m1_feature_surface_times(
         m1_feature_base_path,
@@ -4302,8 +4383,97 @@ def main() -> None:
         len(m1_feature_times) < len(m1_source_times)
         or not m1_source_times.isin(m1_feature_times).all()
         or m1_feature_times[-1] != m1_source_times[-1]
+        or m1_feature_base_manifest.get("rows") != len(m1_feature_times)
     ):
         raise RuntimeError("DATASET_BUILDER_M1_FEATURE_BASE_TIME_MISMATCH")
+    m5_feature_base_path = Path(args.m5_feature_base_parquet).expanduser().resolve()
+    if m5_feature_base_path.is_symlink() or not m5_feature_base_path.is_file():
+        raise RuntimeError("DATASET_BUILDER_M5_FEATURE_BASE_MISSING")
+    m5_feature_base_sha256 = _sha256_file(m5_feature_base_path)
+    m5_feature_base_manifest_path = Path(
+        str(m5_feature_base_path) + ".manifest.json"
+    )
+    if (
+        m5_feature_base_manifest_path.is_symlink()
+        or not m5_feature_base_manifest_path.is_file()
+    ):
+        raise RuntimeError("DATASET_BUILDER_M5_FEATURE_BASE_MANIFEST_MISSING")
+    m5_feature_base_manifest_sha256 = _sha256_file(
+        m5_feature_base_manifest_path
+    )
+    m5_feature_base_manifest = json.loads(
+        m5_feature_base_manifest_path.read_text(encoding="utf-8")
+    )
+    m5_manifest_without_hash = dict(m5_feature_base_manifest)
+    m5_declared_manifest_sha256 = m5_manifest_without_hash.pop(
+        "manifest_sha256", None
+    )
+    if (
+        m5_feature_base_manifest.get("schema_version")
+        != ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION
+        or m5_feature_base_manifest.get("decision") != "PASS"
+        or m5_feature_base_manifest.get("dataset_run_id") != entry_run_id
+        or m5_feature_base_manifest.get("pair_generation_id")
+        != m1_lifecycle_authority.get("pair_generation_id")
+        or m5_feature_base_manifest.get("output_parquet")
+        != str(m5_feature_base_path)
+        or m5_feature_base_manifest.get("output_parquet_sha256")
+        != m5_feature_base_sha256
+        or m5_declared_manifest_sha256
+        != canonical_json_sha256(m5_manifest_without_hash)
+    ):
+        raise RuntimeError(
+            "DATASET_BUILDER_M5_FEATURE_BASE_MANIFEST_CONTRACT_INVALID"
+        )
+    require_entry_exit_feature_surface_identity(
+        m5_feature_base_manifest,
+        expected_timeframe="M5",
+        expected_ordered_fields=main_signal_build_contract[
+            "model_native_signal_contract"
+        ]["fields"],
+        expected_signal_manifest_path=str(signal_manifest_path),
+        expected_signal_manifest_sha256=_sha256_file(signal_manifest_path),
+        expected_rank_reference_sha256=state_contract[
+            "rank_reference_npz_sha256"
+        ],
+        context="DATASET_BUILDER_ENTRY_M5_FEATURE_SURFACE",
+    )
+    m5_feature_times_expected = load_m1_feature_surface_times(
+        m5_feature_base_path,
+        context="DATASET_BUILDER_ENTRY_M5",
+        expected_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
+    )
+    m5_source_times = pd.DatetimeIndex(
+        pd.to_datetime(
+            pd.read_parquet(source_parquet_path, columns=["time"])["time"],
+            utc=True,
+            errors="coerce",
+        )
+    ).as_unit("ns")
+    if (
+        not m5_feature_times_expected.equals(m5_source_times)
+        or m5_feature_base_manifest.get("rows")
+        != len(m5_feature_times_expected)
+    ):
+        raise RuntimeError("DATASET_BUILDER_M5_FEATURE_BASE_TIME_MISMATCH")
+    m5_feature_surface_binding = {
+        "schema_version": ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
+        "path": str(m5_feature_base_path),
+        "sha256": m5_feature_base_sha256,
+        "manifest_path": str(m5_feature_base_manifest_path),
+        "manifest_sha256": m5_feature_base_manifest_sha256,
+        "dataset_run_id": entry_run_id,
+        "pair_generation_id": m1_lifecycle_authority.get("pair_generation_id"),
+        "rows": len(m5_feature_times_expected),
+        "time_alignment": "exact_entry_m5_source_timeline",
+        "signal_manifest_sha256": _sha256_file(signal_manifest_path),
+        "rank_reference_sha256": state_contract["rank_reference_npz_sha256"],
+        "inline_split_recomputation": False,
+    }
+    proof_payload["entry_m5_feature_surface"] = m5_feature_surface_binding
+    proof_payload["seq_structure_extension_v1"]["mode"] = (
+        ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE
+    )
     proof_payload["unified_exit_lifecycle"] = {
         "schema_version": (
             UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
@@ -4423,7 +4593,9 @@ def main() -> None:
                     )
                     if args.seq_structure_manifest
                     else None,
-                    "mode": "mandatory_inline_common_causal_history_v1",
+                    "mode": ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+                    "feature_surface": m5_feature_surface_binding,
+                    "inline_split_recomputation": False,
                 },
                 "model_native_state_contract": state_contract,
                 "xau_tape_provenance": xau_tape_provenance,
@@ -4431,6 +4603,19 @@ def main() -> None:
             },
         )
         return
+
+    m5_surface_storage = tempfile.TemporaryDirectory(
+        prefix=".entry_m5_feature_surface.",
+        dir=str(output_path.parent),
+    )
+    m5_feature_surface_times, m5_feature_surface_arrays = load_m1_feature_surface(
+        m5_feature_base_path,
+        context="DATASET_BUILDER_ENTRY_M5",
+        storage_dir=Path(m5_surface_storage.name),
+        expected_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
+    )
+    if not m5_feature_surface_times.equals(m5_feature_times_expected):
+        raise RuntimeError("DATASET_BUILDER_M5_FEATURE_BASE_LOAD_TIME_MISMATCH")
 
     splits = {
         "train": {"start": str(train_start), "end": str(train_end)},
@@ -4485,6 +4670,9 @@ def main() -> None:
             emit_start=s0,
             emit_end=s1,
             model_native_rank_reference_npz=rank_reference_path,
+            m5_feature_surface_times=m5_feature_surface_times,
+            m5_feature_surface_arrays=m5_feature_surface_arrays,
+            m5_feature_surface_binding=m5_feature_surface_binding,
             max_rows=None,
             seq_len=int(args.seq_len),
             early_move_threshold_bps=early_move_threshold_bps,
@@ -4664,6 +4852,8 @@ def main() -> None:
         exit_lifecycle_dir,
     )
     lifecycle_staging.cleanup()
+    del m5_feature_surface_arrays
+    m5_surface_storage.cleanup()
     log.info("[DATASET_BUILD] Common-history TRAIN/VAL/TEST build complete")
 
 

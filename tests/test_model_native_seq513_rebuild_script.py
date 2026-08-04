@@ -21,6 +21,8 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
         "--m1-lifecycle-pair-generation-root",
+        "--m1-feature-base-parquet",
+        "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
         "--exit-target-lookahead-m1-steps",
         "--early-move-threshold-bps",

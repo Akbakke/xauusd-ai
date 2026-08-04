@@ -5,11 +5,18 @@ Read `GX1_RULES.md` first. It is binding.
 ## Current truth
 
 - Scope is offline XAUUSD only.
-- Architecture is fixed: one shared eight-owner featurebase, Entry M5 and Exit
-  M1 in one model/shared encoder.
+- Architecture is fixed: the same eight code-owned feature implementations run
+  independently on local M5 for Entry and local M1 for Exit, in one model and
+  shared encoder. There is no combined pre-owner M1/M5 package.
 - Entry is 96×513 plus 142 continuous and 5 categorical context values.
+- Entry consumes one immutable native M5 feature surface across all splits;
+  exact contiguous timestamp views are required. Never restore per-split
+  inline reconstruction of the 479 specialist fields.
 - Exit is the same feature contract at M1, a 480-bar M1 sequence, the frozen
   Entry representation and the additive 14-field causal path.
+- Entry context is closed M15/H1/H4/D1. Exit context is closed
+  M5/M15/H1/H4/D1. Build closed OHLCV bars before features; never resample
+  already computed M1 indicator values into a higher timeframe.
 - Unique model argmax is the only Entry/Exit authority; ties fail closed.
 - There is no admitted dataset, recipe, model, edge, win-rate or PnL proof.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
@@ -32,7 +39,8 @@ do not modify or delete it.
 
 - Extend an existing owner instead of adding another implementation.
 - One formula, one ordered field contract and one normalization state must serve
-  M5 and M1. Resolution-specific mechanics stay in the shared surface owner.
+  native M5 and native M1. The exact Entry signal-manifest hash and TRAIN-rank
+  state must bind the Exit surface. Resolution-specific values stay separate.
 - No ambient environment flag may change feature bytes, dimensions, sampling,
   objectives or model decisions. Recipe-owned values are exact and audited.
 - There is one deterministic FP32 trainer path. Feature producers use one
@@ -76,7 +84,8 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 
 1. Verify the audited producer commit with the executable handover.
 2. Publish a fresh native M1/M5 pair under a new dataset run ID.
-3. Rebuild both resolution surfaces, MTF cache, lifecycle v3 and split dataset.
+3. Rebuild both resolution surfaces, then pass the exact M5 surface to Entry
+   and the exact M1 surface to lifecycle/Exit before building the splits.
 4. Materialize a distinct training run ID and bounded smoke recipe.
 5. Train/audit smoke, then full candidate if every gate passes.
 6. Fit allowed calibration, freeze the candidate, evaluate untouched TEST and

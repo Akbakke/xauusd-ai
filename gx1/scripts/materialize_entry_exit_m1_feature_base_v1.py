@@ -1,11 +1,10 @@
-"""Materialize the canonical row-level shared feature base at M1.
+"""Materialize native M1/M5 surfaces through one feature-owner implementation.
 
-This producer accepts only an already enriched, causal M1 frame.  It reuses
-the exact model-native signal-layer owner used by the Entry dataset builder;
-it never copies M5 rows, synthesizes missing fields, or fills absent context.
-The upstream enrichment therefore remains a hard input contract, not a hidden
-fallback inside this materializer.  M1 also receives the exact closed-M1 source
-timeline used by the Exit lifecycle and emits that timestamp subset only.
+This producer accepts an already enriched causal frame at one explicit native
+clock. It reuses the exact model-native signal-layer owner used by the Entry
+dataset builder; it never copies values across M1/M5, synthesizes missing
+fields, fills absent context, or resamples computed M1 features upward. M1 also
+receives the exact closed-M1 source timeline used by the Exit lifecycle.
 """
 from __future__ import annotations
 
@@ -14,6 +13,7 @@ import gc
 import hashlib
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +44,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     require_model_native_manifest,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (  # noqa: E402
+    ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
     ENTRY_EXIT_FEATURE_SURFACE_COLUMNS,
     ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
     load_m1_feature_surface,
@@ -178,7 +179,7 @@ def _materialize_feature_base(
     schema_version = (
         ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
         if timeframe == "M1"
-        else "gx1_entry_exit_m5_feature_surface_v1"
+        else ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION
     )
     require_offline_scope("featurebase_build")
     source = Path(source_parquet).expanduser().resolve()
@@ -395,6 +396,9 @@ def _materialize_feature_base(
             "closed_decision_bar_required": True,
             "m1_closed_bar_required": timeframe == "M1",
             "m5_row_reuse": False,
+            "native_resolution_values": True,
+            "cross_resolution_value_copy": False,
+            "computed_m1_feature_resampling": False,
             "duplicate_feature_implementation": False,
             "exact_closed_source_timestamp_subset": alignment is not None,
         },
@@ -407,10 +411,18 @@ def _materialize_feature_base(
     )
     del output_table, ctx_cont, ctx_cat, signal, extension, base_signal, frame
     gc.collect()
-    _loaded_times, _loaded = load_m1_feature_surface(
-        output,
-        context="M1_FEATURE_BASE_POST_WRITE",
-    )
+    with tempfile.TemporaryDirectory(
+        prefix=f".{output.name}.validation.",
+        dir=str(output.parent),
+    ) as validation_storage:
+        _loaded_times, _loaded = load_m1_feature_surface(
+            output,
+            context=f"{timeframe}_FEATURE_BASE_POST_WRITE",
+            storage_dir=Path(validation_storage),
+            expected_bar_seconds=bar_seconds,
+        )
+        del _loaded_times, _loaded
+        gc.collect()
     return manifest
 
 

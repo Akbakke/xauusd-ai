@@ -1,8 +1,8 @@
-"""Validated row-level feature-base surface used by unified Exit lifecycle.
+"""Validated row-level native feature surfaces used by Entry and Exit.
 
-The surface stores one causal M1 row per timestamp.  Lifecycle sampling builds
-the higher-resolution sequence by slicing these rows; it never rebuilds a
-second feature taxonomy or substitutes the M5 Entry sequence.
+M5 carries Entry's model input and M1 carries Exit's higher-resolution model
+input.  Both surfaces use the same ordered semantic contract while retaining
+their independently computed native-resolution values.
 """
 from __future__ import annotations
 
@@ -24,6 +24,12 @@ from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
 
 ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION = (
     "gx1_entry_exit_m1_feature_surface_v1"
+)
+ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION = (
+    "gx1_entry_exit_m5_feature_surface_v1"
+)
+ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE = (
+    "exact_hash_bound_native_m5_feature_surface_v1"
 )
 ENTRY_EXIT_FEATURE_SURFACE_COLUMNS = ("time", "signal", "ctx_cont", "ctx_cat")
 
@@ -107,6 +113,7 @@ def load_m1_feature_surface(
     *,
     context: str,
     storage_dir: Path | None = None,
+    expected_bar_seconds: int = EXIT_DECISION_BAR_SECONDS,
 ) -> tuple[pd.DatetimeIndex, dict[str, np.ndarray]]:
     """Load and validate one exact row-level M1 feature-base artifact.
 
@@ -117,6 +124,12 @@ def load_m1_feature_surface(
     copy of the full feature base.
     """
 
+    if (
+        isinstance(expected_bar_seconds, bool)
+        or not isinstance(expected_bar_seconds, int)
+        or expected_bar_seconds <= 0
+    ):
+        raise RuntimeError(f"{context}_FEATURE_SURFACE_BAR_SECONDS_INVALID")
     resolved = Path(path).expanduser().absolute()
     if (
         not resolved.is_absolute()
@@ -148,7 +161,7 @@ def load_m1_feature_surface(
         or times.hasnans
         or not times.is_unique
         or not times.is_monotonic_increasing
-        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
+        or not times.floor(f"{expected_bar_seconds}s").equals(times)
     ):
         raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID")
 
@@ -277,8 +290,9 @@ def load_m1_feature_surface_times(
     path: Path,
     *,
     context: str,
+    expected_bar_seconds: int = EXIT_DECISION_BAR_SECONDS,
 ) -> pd.DatetimeIndex:
-    """Validate only the ordered M1 clock without materializing feature arrays.
+    """Validate only one ordered native clock without loading feature arrays.
 
     Dataset/lifecycle producers that do not consume the feature vectors must
     not deserialize the full nested ``signal``/``ctx`` columns.  The immutable
@@ -288,6 +302,12 @@ def load_m1_feature_surface_times(
     producer.
     """
 
+    if (
+        isinstance(expected_bar_seconds, bool)
+        or not isinstance(expected_bar_seconds, int)
+        or expected_bar_seconds <= 0
+    ):
+        raise RuntimeError(f"{context}_FEATURE_SURFACE_BAR_SECONDS_INVALID")
     resolved = Path(path).expanduser().absolute()
     if (
         not resolved.is_absolute()
@@ -317,7 +337,7 @@ def load_m1_feature_surface_times(
         or times.hasnans
         or not times.is_unique
         or not times.is_monotonic_increasing
-        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
+        or not times.floor(f"{expected_bar_seconds}s").equals(times)
     ):
         raise RuntimeError(f"{context}_M1_FEATURE_SURFACE_TIME_INVALID")
     return times

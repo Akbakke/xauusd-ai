@@ -74,6 +74,9 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
 from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
@@ -486,7 +489,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "feature_count": MODEL_NATIVE_SIGNAL_DIM,
                 "core_target_policy": "future_path_and_utility_outcomes_only",
                 "seq_structure_extension_mode": (
-                    "mandatory_inline_common_causal_history_v1"
+                    ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE
                 ),
                 "missing_polarity_features": [],
                 "missing_target_columns": [],

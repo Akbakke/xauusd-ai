@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-03. Run `bash scripts/gx1_handover.sh` before relying on this
+Updated 2026-08-04. Run `bash scripts/gx1_handover.sh` before relying on this
 document. `GX1_RULES.md` is binding.
 
 ## Current verdict
@@ -10,9 +10,9 @@ drive. Launch remains `BLOCK`. No admitted dataset, valid training recipe,
 accepted model, calibrated bundle, untouched-TEST edge, PnL or win-rate proof
 exists.
 
-The final producer-tree audit on 2026-08-03 used five independent review lanes.
+The final producer-tree audit on 2026-08-04 used five independent review lanes.
 Repo-wide Ruff, Python compilation, tracked-shell syntax, JSON parsing and all
-1,991 collected tests passed with zero skips and zero warnings under the 4G
+2,001 collected tests passed with zero skips and zero warnings under the 4G
 cgroup. This proves source consistency, not trading edge or profitability.
 
 The old V8 dataset, V13 lifecycle and V18 recipe cannot be resumed. Contract
@@ -22,11 +22,16 @@ No OOM occurred in that stop.
 
 ## Current feature architecture
 
-- one shared featurebase and same eight feature owners for Entry and Exit;
+- the same eight feature owners use one implementation each, run independently
+  at native M5 for Entry and native M1 for Exit; no combined pre-owner M1/M5
+  package;
 - 513 ordered signals, 142 continuous and 5 categorical context fields;
-- Entry: 96 M5 bars plus leak-safe M5/M15/H1/H4/D1 context;
-- Exit: the same fields at M1, a 480-bar M1 sequence, frozen 128-value Entry
-  representation and additive causal path;
+- Entry: 96 local M5 bars plus leak-safe M15/H1/H4/D1 context;
+- Exit: the same ordered fields on a 480-bar M1 local sequence plus leak-safe
+  M5/M15/H1/H4/D1 context, frozen 128-value Entry representation and additive
+  causal path;
+- closed OHLCV is built before each timeframe's features; finished M1 features
+  are never resampled upward or copied into Entry;
 - one shared encoder and one committed bundle;
 - unique calibrated LONG/SHORT/FLAT argmax for Entry;
 - unique HOLD/EXIT_NOW argmax for Exit;
@@ -35,7 +40,10 @@ No OOM occurred in that stop.
 ## What is implemented
 
 - native OANDA M1/M5 immutable source and pair contracts;
-- shared M1/M5 feature-surface identity and source-lineage validation;
+- exact M1/M5 owner, ordered-field, signal-manifest, TRAIN-rank and source
+  identity validation;
+- one required immutable M5 Entry surface loaded once through bounded memmaps
+  and shared as exact zero-copy timestamp windows across TRAIN/VAL/TEST;
 - all eight specialist families and five-timeframe grid;
 - TRAIN-only ranking and normalization contracts;
 - model-native Entry direction and unified Exit heads;
@@ -46,6 +54,12 @@ No OOM occurred in that stop.
 
 The latest repair pass also:
 
+- made every one of the eight owners explicitly resolution-symmetric at local
+  M5/M1 and locked the M15 bridge into both routes;
+- made preflight and dataset construction reject an Exit surface whose ordered
+  513 fields, signal-manifest hash or TRAIN-rank state differs from Entry;
+- removed Entry's three split-local 479-feature rebuilds; the M5 producer is
+  now the sole model-input surface and missing/noncontiguous rows fail closed;
 - made M1 windows include the current closed row;
 - changed lifecycle continuity from wall-clock minutes to authoritative
   observed M1 rows across proven closures;

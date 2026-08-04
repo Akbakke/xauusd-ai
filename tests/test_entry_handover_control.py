@@ -125,9 +125,19 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION" in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
-    assert "featurebase: SAME_8_OWNERS_FORMULAS_NORMALIZATION_LINEAGE" in result.stdout
-    assert "entry: M5 sequence=96 signal=513 ctx_cont=142 ctx_cat=5" in result.stdout
-    assert "exit: M1 sequence=480" in result.stdout
+    assert "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY" in result.stdout
+    assert "entry: local=M5 sequence=96 signal=513 ctx_cont=142 ctx_cat=5" in result.stdout
+    assert (
+        "entry_feature_surface: "
+        "HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"
+        in result.stdout
+    )
+    assert "exit: local=M1 sequence=480 mtf=M5,M15,H1,H4,D1" in result.stdout
+    assert (
+        "mtf_construction: "
+        "CLOSED_OHLCV_BEFORE_FEATURES_NO_COMPUTED_M1_RESAMPLING"
+        in result.stdout
+    )
     assert "## Resume boundary" in result.stdout
     assert "resume_stage: VERIFY_COMMIT_REBUILD_THEN_BOUNDED_SMOKE" in result.stdout
     assert "capacity: audits=4G training_max=10G swap=512M" in result.stdout
@@ -512,6 +522,8 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
         "--m1-lifecycle-pair-generation-root",
+        "--m1-feature-base-parquet",
+        "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
         "--exit-target-lookahead-m1-steps",
         "--early-move-threshold-bps",
@@ -564,6 +576,8 @@ def test_rebuild_preflight_help_exposes_every_required_lineage_input() -> None:
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
         "--m1-lifecycle-pair-generation-root",
+        "--m1-feature-base-parquet",
+        "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
         "--exit-target-lookahead-m1-steps",
         "--early-move-threshold-bps",
@@ -592,9 +606,10 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         "--mtf-cache-dir": "/tmp/mtf",
         "--tape-root": "/tmp/tape",
         "--m1-lifecycle-pair-manifest-json": "/tmp/pair/PAIR_MANIFEST.json",
-            "--m1-lifecycle-pair-generation-root": "/tmp/pair-generations",
-            "--m1-feature-base-parquet": "/tmp/m1-feature-base.parquet",
-            "--exit-lifecycle-dir": "/tmp/exit-lifecycle",
+        "--m1-lifecycle-pair-generation-root": "/tmp/pair-generations",
+        "--m1-feature-base-parquet": "/tmp/m1-feature-base.parquet",
+        "--m5-feature-base-parquet": "/tmp/m5-feature-base.parquet",
+        "--exit-lifecycle-dir": "/tmp/exit-lifecycle",
         "--exit-target-lookahead-m1-steps": "30",
         "--early-move-threshold-bps": "4.0",
         "--output": "/tmp/output__DIR_H24B.parquet",
@@ -633,6 +648,8 @@ def test_rebuild_route_requires_the_explicit_target_threshold() -> None:
     )[0]
 
     assert "--early-move-threshold-bps" in route
+    assert "--m1-feature-base-parquet" in route
+    assert "--m5-feature-base-parquet" in route
     assert 'require_flag "$cmd" "$flag" "$@"' in route
     assert "--early_move_threshold_bps \"$EARLY_MOVE_THRESHOLD_BPS\"" not in route
 

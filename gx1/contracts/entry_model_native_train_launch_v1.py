@@ -72,6 +72,9 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_ROW_CLOCK,
     require_entry_exit_shared_feature_base_contract,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+)
 from gx1.features.htf_features import (
     HTF_V4_CACHE_BUILDER_VERSION,
     HTF_V4_CACHE_SCHEMA_VERSION,
@@ -856,7 +859,7 @@ def _validate_pretrain_audit(
             and row.get("core_target_policy")
             == "future_path_and_utility_outcomes_only"
             and row.get("seq_structure_extension_mode")
-            == "mandatory_inline_common_causal_history_v1"
+            == ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE
             and row.get("missing_polarity_features") == []
             and row.get("missing_target_columns") == [],
             f"pretrain audit {split} feature/target proof mismatch",

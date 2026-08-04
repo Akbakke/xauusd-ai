@@ -43,7 +43,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    require_entry_exit_feature_surface_identity,
     require_entry_exit_shared_feature_base_contract,
+)
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
+    ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -156,13 +161,24 @@ def _artifact_meta(path: Path, *, sha256: str | None = None) -> dict[str, Any]:
     }
 
 
-def _m1_feature_base_contract(
+def _feature_base_contract(
     *,
     feature_base_path: Path,
+    timeframe: str,
     expected_run_id: str,
-    expected_m1_source_path: Path | None,
+    expected_source_path: Path | None,
     expected_pair_generation_id: str | None,
+    expected_signal_manifest_path: Path,
+    expected_rank_reference_path: Path,
 ) -> dict[str, Any]:
+    if timeframe not in {"M1", "M5"}:
+        raise RuntimeError("SEQ513_REBUILD_PREFLIGHT_FEATURE_TIMEFRAME_INVALID")
+    context = f"SEQ513_REBUILD_PREFLIGHT_{timeframe}_FEATURE_BASE"
+    expected_schema = (
+        ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
+        if timeframe == "M1"
+        else ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION
+    )
     manifest_path = Path(str(feature_base_path) + ".manifest.json")
     result: dict[str, Any] = {
         "path": str(feature_base_path),
@@ -179,13 +195,43 @@ def _m1_feature_base_contract(
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         require_entry_exit_shared_feature_base_contract(
             manifest.get("shared_feature_base_contract"),
-            context="SEQ513_REBUILD_PREFLIGHT_M1_FEATURE_BASE",
+            context=context,
+        )
+        signal_manifest = json.loads(
+            expected_signal_manifest_path.read_text(encoding="utf-8")
+        )
+        signal_contract = require_model_native_manifest(
+            signal_manifest,
+            context=f"{context}_SIGNAL_IDENTITY",
+        )
+        signal_manifest_sha = _sha256_file(expected_signal_manifest_path)
+        rank_reference_sha = _sha256_file(expected_rank_reference_path)
+        if signal_manifest_sha is None or rank_reference_sha is None:
+            raise RuntimeError(
+                "SEQ513_REBUILD_PREFLIGHT_RESOLUTION_IDENTITY_SOURCE_MISSING"
+            )
+        require_entry_exit_feature_surface_identity(
+            manifest,
+            expected_timeframe=timeframe,
+            expected_ordered_fields=signal_contract["fields"],
+            expected_signal_manifest_path=str(expected_signal_manifest_path),
+            expected_signal_manifest_sha256=signal_manifest_sha,
+            expected_rank_reference_sha256=rank_reference_sha,
+            context=f"{context}_SIGNAL_IDENTITY",
         )
         declared_source = str(manifest.get("source_parquet") or "").strip()
         pair_generation_match = (
             expected_pair_generation_id is not None
             and str(manifest.get("pair_generation_id") or "")
             == expected_pair_generation_id
+        )
+        manifest_without_hash = dict(manifest)
+        declared_manifest_sha256 = manifest_without_hash.pop(
+            "manifest_sha256", None
+        )
+        manifest_integrity = (
+            declared_manifest_sha256
+            == canonical_json_sha256(manifest_without_hash)
         )
         feature_times = pd.DatetimeIndex(
             pd.to_datetime(
@@ -197,19 +243,40 @@ def _m1_feature_base_contract(
         source_times = pd.DatetimeIndex(
             pd.to_datetime(
                 pd.read_parquet(
-                    expected_m1_source_path,
+                    expected_source_path,
                     columns=["time"],
                 )["time"],
                 utc=True,
                 errors="coerce",
             )
-        ).as_unit("ns") if expected_m1_source_path is not None else pd.DatetimeIndex([])
-        time_alignment = bool(
-            len(source_times) > 0
-            and len(feature_times) >= len(source_times)
-            and source_times.isin(feature_times).all()
-            and feature_times[-1] == source_times[-1]
+        ).as_unit("ns") if expected_source_path is not None else pd.DatetimeIndex([])
+        bar_seconds = 60 if timeframe == "M1" else 300
+        time_geometry = bool(
+            len(feature_times) > 0
+            and not feature_times.hasnans
+            and feature_times.is_unique
+            and feature_times.is_monotonic_increasing
+            and feature_times.floor(f"{bar_seconds}s").equals(feature_times)
         )
+        if timeframe == "M1":
+            time_alignment = bool(
+                len(source_times) > 0
+                and len(feature_times) >= len(source_times)
+                and source_times.isin(feature_times).all()
+                and feature_times[-1] == source_times[-1]
+            )
+            time_alignment_label = (
+                "exact_m1_source_timestamp_subset_with_causal_prefix"
+                if time_alignment
+                else "invalid"
+            )
+        else:
+            time_alignment = bool(
+                len(source_times) > 0 and feature_times.equals(source_times)
+            )
+            time_alignment_label = (
+                "exact_entry_m5_source_timeline" if time_alignment else "invalid"
+            )
         result.update(
             {
                 "schema_version": manifest.get("schema_version"),
@@ -219,23 +286,32 @@ def _m1_feature_base_contract(
                 "output_parquet_sha256": manifest.get("output_parquet_sha256"),
                 "feature_base_sha256": feature_sha,
                 "manifest_sha256": manifest_sha,
+                "declared_manifest_sha256": declared_manifest_sha256,
+                "manifest_integrity": manifest_integrity,
                 "source_parquet": declared_source,
                 "pair_generation_id": manifest.get("pair_generation_id"),
                 "pair_generation_matches": pair_generation_match,
-                "time_alignment": "exact_m1_source_timestamp_subset_with_causal_prefix"
-                if time_alignment
-                else "invalid",
+                "time_alignment": time_alignment_label,
                 "feature_rows": len(feature_times),
-                "m1_source_rows": len(source_times),
+                "declared_rows": manifest.get("rows"),
+                "time_geometry": time_geometry,
+                "source_rows": len(source_times),
                 "shared_feature_base_contract_valid": True,
+                "entry_exit_resolution_identity_valid": True,
+                "signal_manifest_path": str(expected_signal_manifest_path),
+                "signal_manifest_sha256": signal_manifest_sha,
+                "rank_reference_sha256": rank_reference_sha,
             }
         )
         result["exact"] = bool(
-            manifest.get("schema_version") == "gx1_entry_exit_m1_feature_surface_v1"
+            manifest.get("schema_version") == expected_schema
             and manifest.get("decision") == "PASS"
             and manifest.get("dataset_run_id") == expected_run_id
             and manifest.get("output_parquet") == str(feature_base_path)
             and manifest.get("output_parquet_sha256") == feature_sha
+            and manifest.get("rows") == len(feature_times)
+            and manifest_integrity
+            and time_geometry
             and pair_generation_match
             and time_alignment
         )
@@ -899,6 +975,7 @@ def _command_contract(
     m1_lifecycle_pair_manifest_json: Path,
     m1_lifecycle_pair_generation_root: Path,
     m1_feature_base_path: Path,
+    m5_feature_base_path: Path,
     exit_lifecycle_dir: Path,
     exit_target_lookahead_m1_steps: int,
     early_move_threshold_bps: float,
@@ -933,6 +1010,8 @@ def _command_contract(
         str(m1_lifecycle_pair_generation_root),
         "--m1-feature-base-parquet",
         str(m1_feature_base_path),
+        "--m5-feature-base-parquet",
+        str(m5_feature_base_path),
         "--exit-lifecycle-dir",
         str(exit_lifecycle_dir),
         "--exit-target-lookahead-m1-steps",
@@ -1108,6 +1187,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "m1_feature_base_parquet",
         "--m1-feature-base-parquet",
     )
+    m5_feature_base_path = _required_path_arg(
+        args,
+        "m5_feature_base_parquet",
+        "--m5-feature-base-parquet",
+    )
     exit_lifecycle_dir = _required_path_arg(
         args,
         "exit_lifecycle_dir",
@@ -1161,13 +1245,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     except Exception as exc:
         m1_lifecycle_authority_error = str(exc)
-    m1_feature_base = _m1_feature_base_contract(
+    m1_feature_base = _feature_base_contract(
         feature_base_path=m1_feature_base_path,
+        timeframe="M1",
         expected_run_id=entry_run_id,
-        expected_m1_source_path=m1_lifecycle_source_parquet,
+        expected_source_path=m1_lifecycle_source_parquet,
         expected_pair_generation_id=m1_lifecycle_authority.get(
             "pair_generation_id"
         ),
+        expected_signal_manifest_path=signal_manifest_path,
+        expected_rank_reference_path=rank_reference_npz,
+    )
+    m5_feature_base = _feature_base_contract(
+        feature_base_path=m5_feature_base_path,
+        timeframe="M5",
+        expected_run_id=entry_run_id,
+        expected_source_path=source_parquet,
+        expected_pair_generation_id=m1_lifecycle_authority.get(
+            "pair_generation_id"
+        ),
+        expected_signal_manifest_path=signal_manifest_path,
+        expected_rank_reference_path=rank_reference_npz,
     )
     _check(
         checks,
@@ -1229,6 +1327,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "explicit M1 feature base is the PASS artifact for this run and pair source",
         bool(m1_feature_base.get("exact")),
         m1_feature_base,
+    )
+    _check(
+        checks,
+        "explicit M5 feature base is the exact Entry surface for this run and pair source",
+        bool(m5_feature_base.get("exact")),
+        m5_feature_base,
     )
 
     manifest, manifest_read_error = _read_json(signal_manifest_path)
@@ -1503,6 +1607,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 m1_lifecycle_pair_generation_root
             ),
             m1_feature_base_path=m1_feature_base_path,
+            m5_feature_base_path=m5_feature_base_path,
             exit_lifecycle_dir=exit_lifecycle_dir,
             exit_target_lookahead_m1_steps=(
                 exit_target_lookahead_m1_steps
@@ -1518,7 +1623,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures = [row for row in checks if not row["ok"]]
     created_utc = datetime.now(timezone.utc)
     report = {
-        "schema_version": "entry_model_native_seq513_rebuild_preflight_v9",
+        "schema_version": "entry_model_native_seq513_rebuild_preflight_v11",
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,
@@ -1577,6 +1682,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 m1_lifecycle_pair_generation_root
             ),
             "m1_feature_base_parquet": m1_feature_base,
+            "m5_feature_base_parquet": m5_feature_base,
             "m1_lifecycle_authority": m1_lifecycle_authority,
             "exit_lifecycle_dir": str(exit_lifecycle_dir),
             "exit_target_lookahead_m1_steps": (
@@ -1624,6 +1730,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
     )
     parser.add_argument("--m1-feature-base-parquet", required=True)
+    parser.add_argument("--m5-feature-base-parquet", required=True)
     parser.add_argument("--exit-lifecycle-dir", required=True)
     parser.add_argument(
         "--exit-target-lookahead-m1-steps",

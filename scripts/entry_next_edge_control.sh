@@ -42,6 +42,7 @@ Model-native seq513 evidence:
     --m1-lifecycle-pair-manifest-json <json> \
     --m1-lifecycle-pair-generation-root <dir> \
     --m1-feature-base-parquet <immutable-parquet> \
+    --m5-feature-base-parquet <immutable-parquet> \
     --exit-lifecycle-dir <new-dir> \
     --exit-target-lookahead-m1-steps <n> \
     --early-move-threshold-bps <bps> \
@@ -412,6 +413,7 @@ case "$cmd" in
       --m1-lifecycle-pair-manifest-json \
       --m1-lifecycle-pair-generation-root \
       --m1-feature-base-parquet \
+      --m5-feature-base-parquet \
       --exit-lifecycle-dir \
       --exit-target-lookahead-m1-steps \
       --early-move-threshold-bps \
@@ -443,6 +445,8 @@ case "$cmd" in
       --tape-root \
       --m1-lifecycle-pair-manifest-json \
       --m1-lifecycle-pair-generation-root \
+      --m1-feature-base-parquet \
+      --m5-feature-base-parquet \
       --exit-lifecycle-dir \
       --exit-target-lookahead-m1-steps \
       --early-move-threshold-bps \

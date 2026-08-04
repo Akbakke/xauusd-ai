@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-03T20:55:37Z",
+  "updated_utc": "2026-08-04T07:30:32Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -29,6 +29,8 @@
   "required_mandatory_causal_layer_count": 12,
   "required_ctx_cont_dim": 142,
   "required_ctx_cat_dim": 5,
+  "required_entry_m5_feature_surface_loaded_once": true,
+  "required_entry_split_local_specialist_recompute": false,
   "dataset_event_id": null,
   "dataset_admission_stage": "NO_ADMITTED_UNIFIED_DATASET",
   "accepted_dataset_dir": null,
@@ -39,7 +41,7 @@
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
   "blockers": [
-    "Source contracts changed after the last historical artifacts; a fresh immutable native M1/M5 pair, shared featurebase and unified lifecycle dataset must be rebuilt.",
+    "Source contracts changed after the last historical artifacts; a fresh immutable native M1/M5 pair, native owner surfaces with exact cross-resolution field identity and a unified lifecycle dataset must be rebuilt.",
     "No current hash-bound dataset, distinct training recipe or same-bundle Entry/Exit model is admitted.",
     "Untouched TEST direction edge, calibration, path-quality, utility, closed-M1 Exit parity and cost-aware replay remain empirically unproven.",
     "Paper, demo, live, promotion and external direction routes remain fail-closed."
