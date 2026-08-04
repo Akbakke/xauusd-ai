@@ -294,6 +294,30 @@ def _tensor_np(
     return arr
 
 
+def _concatenate_evidence_chunks(
+    chunks: Mapping[str, list[np.ndarray]],
+    *,
+    expected_rows: int,
+) -> dict[str, np.ndarray]:
+    combined: dict[str, np.ndarray] = {}
+    for column, values in chunks.items():
+        arrays = [np.asarray(value) for value in values]
+        trailing_shapes = {array.shape[1:] for array in arrays if array.ndim > 0}
+        if not arrays or any(array.ndim == 0 for array in arrays) or len(trailing_shapes) != 1:
+            raise RuntimeError(
+                f"prediction evidence chunks have incompatible shapes: column={column} "
+                f"shapes={[array.shape for array in arrays]}"
+            )
+        value = np.concatenate(arrays, axis=0)
+        if int(value.shape[0]) != int(expected_rows):
+            raise RuntimeError(
+                f"prediction evidence row mismatch: column={column} "
+                f"observed={value.shape[0]} expected={expected_rows}"
+            )
+        combined[column] = value
+    return combined
+
+
 def _normalize_contract_mode(value: Any) -> str:
     mode = str(value or MODEL_NATIVE_CONTRACT_MODE).strip()
     if mode != MODEL_NATIVE_CONTRACT_MODE:
@@ -1252,10 +1276,6 @@ def _predict_bundle(
                                 extra_chunks.setdefault(
                                     "tf_agreement_prob", []
                                 ).append(_sigmoid_np(_raw.reshape(-1)))
-                            if _out_key == "position_size_logit":
-                                extra_chunks.setdefault(
-                                    "position_size_logit", []
-                                ).append(_raw.reshape(-1))
                         for _out_key, _col in _EXTRA_RAW_HEADS.items():
                             _raw = _tensor_np(out, _out_key, width=1).reshape(-1)
                             if _col != _out_key:
@@ -1387,9 +1407,12 @@ def _predict_bundle(
                         )
 
                 arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
-                extra_arrays = {col: np.concatenate(vals, axis=0) for col, vals in extra_chunks.items()}
-                frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
                 n = int(len(arrays["y_direction"]))
+                extra_arrays = _concatenate_evidence_chunks(
+                    extra_chunks,
+                    expected_rows=n,
+                )
+                frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
                 frame = frame.iloc[:n].copy()
                 ctx_cat = np.asarray(arrays["ctx_cat"], dtype=np.int64)
                 frame["split"] = split

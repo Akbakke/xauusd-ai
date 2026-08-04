@@ -21,6 +21,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _canonical_live_decision_evidence,
+    _concatenate_evidence_chunks,
     _dataset_model_native_contract,
     _derived_serve_parity_outputs,
     _normalize_contract_mode,
@@ -440,6 +441,25 @@ def test_evaluation_lineage_separates_smoke_from_runtime_authority() -> None:
         _require_evaluation_lineage(
             {**smoke, "effective_train_rows": 369_303},
             evidence_stage="pre_calibration",
+        )
+
+
+def test_evidence_chunk_concatenation_rejects_shape_and_row_drift() -> None:
+    combined = _concatenate_evidence_chunks(
+        {"position_size_logit": [np.zeros((2, 1)), np.ones((1, 1))]},
+        expected_rows=3,
+    )
+    assert combined["position_size_logit"].shape == (3, 1)
+
+    with pytest.raises(RuntimeError, match="incompatible shapes"):
+        _concatenate_evidence_chunks(
+            {"position_size_logit": [np.zeros((2, 1)), np.ones(1)]},
+            expected_rows=3,
+        )
+    with pytest.raises(RuntimeError, match="row mismatch"):
+        _concatenate_evidence_chunks(
+            {"position_size_logit": [np.zeros((2, 1)), np.ones((1, 1))]},
+            expected_rows=2,
         )
 
 
