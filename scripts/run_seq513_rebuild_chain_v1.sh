@@ -513,6 +513,11 @@ payload = json.loads(manifest.read_text(encoding="utf-8"))
 pair_id = str(payload.get("pair_generation_id") or "")
 if not re.fullmatch(r"[0-9a-f]{64}", pair_id):
     raise RuntimeError("pair generation id is not an exact SHA-256")
+expected_manifest = generation_root / pair_id / "PAIR_MANIFEST.json"
+if manifest != expected_manifest:
+    raise RuntimeError(
+        "pair manifest must be the exact generation-local PAIR_MANIFEST.json"
+    )
 artifacts = payload.get("artifacts")
 lineage = payload.get("lineage")
 native = lineage.get("native_sources") if isinstance(lineage, dict) else None

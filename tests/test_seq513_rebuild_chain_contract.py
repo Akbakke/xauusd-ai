@@ -38,6 +38,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         '--source-cascade-proof "$SOURCE_CASCADE"',
         "require_source_cascade_unchanged",
         "require_pair_unchanged",
+        "pair manifest must be the exact generation-local PAIR_MANIFEST.json",
         '--rank-source-parquet "$CV2"',
         "model-native-m5-enriched-frame",
         "model-native-m1-enriched-frame",
