@@ -247,26 +247,36 @@ def merge_asof_features(
         return base
     if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
         raise RuntimeError("canonical_v2 base_bar_duration must be a positive Timedelta")
-    base_sorted = base.sort_values(base_time_col, kind="mergesort").reset_index(drop=True)
-    decision_time = (
-        pd.to_datetime(base_sorted[base_time_col], utc=True) + base_bar_duration
-    )
-    base_sorted["_base_decision_time_ns"] = decision_time.astype("int64")
+    base_time = pd.to_datetime(base[base_time_col], utc=True, errors="raise")
+    base_time_ns = base_time.astype("int64").to_numpy(copy=False)
+    if np.any(np.diff(base_time_ns) < 0):
+        order = np.argsort(base_time_ns, kind="stable")
+        base_sorted = base.iloc[order].copy(deep=False)
+        base_time_ns = base_time_ns[order]
+    else:
+        # A shallow manager copy keeps the caller immutable while sharing the
+        # already-built feature blocks.  A full sort/reset or merge_asof here
+        # duplicates the complete M1 matrix and breaches the workstation cap.
+        base_sorted = base.copy(deep=False)
+    base_sorted.index = pd.RangeIndex(len(base_sorted))
+    decision_time_ns = base_time_ns + int(base_bar_duration.value)
     extra_sorted = extra.sort_values("_time_ns", kind="mergesort").reset_index(drop=True)
     feat_cols = [c for c in extra_sorted.columns if c not in ("time", "_time_ns")]
-
-    merged = pd.merge_asof(
-        base_sorted,
-        extra_sorted[["_time_ns"] + feat_cols],
-        left_on="_base_decision_time_ns",
-        right_on="_time_ns",
-        direction="backward",
-    )
-    merged = merged.drop(
-        columns=["_base_decision_time_ns", "_time_ns"],
-        errors="ignore",
-    )
-    return merged
+    extra_time_ns = pd.to_numeric(
+        extra_sorted["_time_ns"], errors="raise"
+    ).to_numpy(dtype=np.int64, copy=False)
+    if np.any(np.diff(extra_time_ns) < 0):
+        raise RuntimeError("canonical_v2 HTF timestamps must be chronological")
+    right = np.searchsorted(extra_time_ns, decision_time_ns, side="right") - 1
+    valid = right >= 0
+    for column in feat_cols:
+        source = pd.to_numeric(
+            extra_sorted[column], errors="raise"
+        ).to_numpy(dtype=np.float64, copy=False)
+        aligned = np.full(len(base_sorted), np.nan, dtype=np.float64)
+        aligned[valid] = source[right[valid]]
+        base_sorted[column] = aligned
+    return base_sorted
 
 
 def build_canonical_v2(
@@ -313,7 +323,13 @@ def build_canonical_v2(
     print(f"[{ACTION}] step 5/5 — computing SMC features (HH/HL state, BOS, CHOCH, sweep, premium/discount)...", flush=True)
     t0 = _time.time()
     smc_df = compute_smc_features(out)
-    out = pd.concat([out.reset_index(drop=True), smc_df.reset_index(drop=True)], axis=1)
+    if len(smc_df) != len(out) or not smc_df.index.equals(out.index):
+        raise RuntimeError("canonical_v2 SMC row axis mismatch")
+    overlap = sorted(set(SMC_FEATURE_NAMES) & set(out.columns))
+    if overlap:
+        raise RuntimeError(f"canonical_v2 SMC fields already exist: {overlap}")
+    for column in SMC_FEATURE_NAMES:
+        out[column] = smc_df[column].to_numpy(copy=False)
     print(f"[{ACTION}] SMC done in {_time.time() - t0:.1f}s, "
           f"added {len(SMC_FEATURE_NAMES)} features, final shape={out.shape}", flush=True)
 

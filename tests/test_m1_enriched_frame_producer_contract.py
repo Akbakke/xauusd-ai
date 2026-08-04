@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -102,3 +103,26 @@ def test_enriched_producer_is_fixed_to_one_worker() -> None:
     source = Path(builder.__file__).read_text(encoding="utf-8")
     assert 'parser.add_argument("--workers", type=int, default=1)' in source
     assert "or workers != 1" in source
+
+
+def test_enriched_writer_publishes_exact_schema_in_bounded_row_groups(
+    tmp_path: Path,
+) -> None:
+    builder = _load_builder()
+    index = pd.date_range("2026-01-01", periods=5, freq="min", tz="UTC")
+    frame = pd.DataFrame(
+        {
+            name: np.arange(len(index), dtype=np.float64)
+            for name in builder.OUTPUT_COLUMNS[1:]
+        },
+        index=index,
+    )
+    output = tmp_path / "enriched.parquet"
+
+    builder._write_output_parquet_bounded(frame, output, chunk_rows=2)
+
+    observed = pd.read_parquet(output)
+    assert tuple(observed.columns) == builder.OUTPUT_COLUMNS
+    assert observed["time"].tolist() == list(index)
+    assert len(observed) == len(frame)
+    assert not list(tmp_path.glob(".*.partial-*"))

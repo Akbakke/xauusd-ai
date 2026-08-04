@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -111,6 +112,63 @@ def _canonical_sha256(value: Any) -> str:
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _write_output_parquet_bounded(
+    frame: pd.DataFrame,
+    output: Path,
+    *,
+    chunk_rows: int = 32768,
+) -> None:
+    """Publish the ordered enriched surface without one full Arrow copy."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    if frame.empty or chunk_rows <= 0:
+        raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_INPUT_INVALID")
+    output = Path(output)
+    partial = output.with_name(f".{output.name}.partial-{os.getpid()}")
+    if output.exists() or output.is_symlink() or partial.exists() or partial.is_symlink():
+        raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_TARGET_EXISTS")
+
+    writer = None
+    try:
+        for lo in range(0, len(frame), chunk_rows):
+            hi = min(lo + chunk_rows, len(frame))
+            arrays = [pa.array(frame.index[lo:hi], from_pandas=True)]
+            arrays.extend(
+                pa.array(frame[name].iloc[lo:hi], from_pandas=True)
+                for name in OUTPUT_COLUMNS[1:]
+            )
+            table = pa.Table.from_arrays(arrays, names=list(OUTPUT_COLUMNS))
+            if writer is None:
+                writer = pq.ParquetWriter(
+                    partial,
+                    table.schema,
+                    compression="snappy",
+                    use_dictionary=True,
+                    write_statistics=True,
+                )
+            writer.write_table(table, row_group_size=hi - lo)
+        if writer is None:
+            raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_EMPTY")
+        writer.close()
+        writer = None
+        if output.exists() or output.is_symlink():
+            raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_TARGET_RACE")
+        partial.replace(output)
+    finally:
+        if writer is not None:
+            writer.close()
+        if partial.exists() and not partial.is_symlink():
+            partial.unlink()
+
+    parquet = pq.ParquetFile(output)
+    if (
+        parquet.metadata.num_rows != len(frame)
+        or tuple(parquet.schema_arrow.names) != OUTPUT_COLUMNS
+    ):
+        raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_PROOF_FAILED")
 
 
 def _require_regular(path: Path, *, label: str) -> Path:
@@ -359,7 +417,6 @@ def _build_enriched_frame(
         native_frame=raw,
         timeframe=timeframe,
     )
-    indexed_raw = raw.set_index("time").sort_index()
     checkpoint_key = _checkpoint_key(
         source_identity=source_identity,
         rank_reference_sha256=rank_reference_sha256,
@@ -372,8 +429,14 @@ def _build_enriched_frame(
         raw,
         base_bar_duration=spec["duration"],
     )
-    canonical["time"] = pd.to_datetime(canonical["time"], utc=True, errors="raise")
-    canonical = canonical.set_index("time").sort_index()
+    indexed_raw = raw.set_index("time")
+    del raw
+    canonical_time = pd.DatetimeIndex(
+        pd.to_datetime(canonical.pop("time"), utc=True, errors="raise")
+    ).as_unit("ns")
+    if canonical_time.has_duplicates or not canonical_time.is_monotonic_increasing:
+        raise RuntimeError(f"{label}_ENRICHED_CANONICAL_TIME_ORDER_INVALID")
+    canonical.index = canonical_time
     attach_default_regime_v4_v2_scalars(
         canonical,
         base_bar_duration=spec["duration"],
@@ -400,6 +463,7 @@ def _build_enriched_frame(
         context_m5=indexed_raw[["open", "high", "low", "close"]],
         base_bar_duration=spec["duration"],
     )
+    del canonical, multi_tf, indexed_raw
 
     # Complete the same model-native surface independently on the selected
     # native clock. These are owned transforms, not neutral fills: missing
@@ -439,16 +503,14 @@ def _build_enriched_frame(
     missing = [name for name in OUTPUT_COLUMNS if name != "time" and name not in enriched.columns]
     if missing:
         raise RuntimeError(f"{label}_ENRICHED_OUTPUT_FIELDS_MISSING: {missing}")
-    output_frame = enriched.loc[:, [name for name in OUTPUT_COLUMNS if name != "time"]].copy()
-    output_frame.insert(0, "time", enriched.index)
     for name in OUTPUT_COLUMNS[1:]:
-        values = pd.to_numeric(output_frame[name], errors="coerce").to_numpy(dtype=np.float64)
+        values = pd.to_numeric(enriched[name], errors="coerce").to_numpy(dtype=np.float64)
         if not np.isfinite(values).all():
             raise RuntimeError(f"{label}_ENRICHED_OUTPUT_NONFINITE: {name}")
-    cats = output_frame[list(MODEL_NATIVE_CTX_CAT_FIELDS)].to_numpy(dtype=np.float64)
+    cats = enriched[list(MODEL_NATIVE_CTX_CAT_FIELDS)].to_numpy(dtype=np.float64)
     if not np.equal(cats, np.rint(cats)).all():
         raise RuntimeError(f"{label}_ENRICHED_OUTPUT_CTX_CAT_NONINTEGER")
-    output_frame.to_parquet(output, index=False)
+    _write_output_parquet_bounded(enriched, output)
 
     result = {
         "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
@@ -466,8 +528,8 @@ def _build_enriched_frame(
         "checkpoint_key": checkpoint_key,
         "output_parquet": str(output),
         "output_parquet_sha256": _sha256_file(output),
-        "rows": int(len(output_frame)),
-        "columns": list(output_frame.columns),
+        "rows": int(len(enriched)),
+        "columns": list(OUTPUT_COLUMNS),
         "required_base_fields": list(MODEL_NATIVE_BASE_FIELDS),
         "required_context_cont_fields": list(MODEL_NATIVE_CTX_CONT_FIELDS),
         "required_context_cat_fields": list(MODEL_NATIVE_CTX_CAT_FIELDS),

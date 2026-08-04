@@ -137,7 +137,7 @@ def trim_causal_context_warmup_prefix(
         raise RuntimeError("[CTX_WARMUP_TRIM] no complete causal context row exists")
     if not invalid[:first_valid].all() or invalid[first_valid:].any():
         raise RuntimeError("[CTX_WARMUP_TRIM] non-finite context is not a contiguous warmup prefix")
-    trimmed = frame.iloc[first_valid:].copy()
+    trimmed = frame.iloc[first_valid:].copy(deep=False)
     trimmed.attrs.update(frame.attrs)
     trimmed.attrs["causal_context_warmup_rows_trimmed"] = first_valid
     return trimmed
@@ -1512,11 +1512,9 @@ def finalize_attach_columns(
         cols["dip_proximity_m5_v3"][valid],
     )
     out_cols["struct_smc_swing_x_dip_v3"] = interaction
-    new_cols = pd.DataFrame(out_cols, index=df.index)
-    existing = [c for c in new_cols.columns if c in df.columns]
-    if existing:
-        df = df.drop(columns=existing)
-    result = pd.concat([df, new_cols], axis=1)
+    result = df.copy(deep=False)
+    for column, values in out_cols.items():
+        result[column] = values
     result.attrs.update(df.attrs)
     result.attrs["causal_context_warmup_rows"] = int(np.count_nonzero(~valid))
     return result

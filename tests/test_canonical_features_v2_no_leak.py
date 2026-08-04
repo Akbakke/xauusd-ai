@@ -54,6 +54,31 @@ def test_merge_asof_features_only_exposes_closed_htf_rows() -> None:
     assert merged.loc[3, "m15_marker"] == 1.0
 
 
+def test_merge_asof_features_avoids_a_full_frame_pandas_merge(monkeypatch) -> None:
+    base = _m5_frame("2026-01-01T00:00:00Z", periods=6)
+    close_times = pd.to_datetime(
+        ["2026-01-01T00:15:00Z", "2026-01-01T00:30:00Z"], utc=True
+    )
+    extra = pd.DataFrame(
+        {
+            "time": close_times,
+            "_time_ns": close_times.astype("int64"),
+            "m15_marker": [1.0, 2.0],
+        }
+    )
+
+    def forbidden_full_merge(*args, **kwargs):
+        raise AssertionError("pd.merge_asof must not copy the full native frame")
+
+    monkeypatch.setattr(pd, "merge_asof", forbidden_full_merge)
+    merged = merge_asof_features(base, extra)
+
+    assert "m15_marker" not in base.columns
+    assert merged["m15_marker"].iloc[:2].isna().all()
+    assert merged["m15_marker"].iloc[2:5].tolist() == [1.0, 1.0, 1.0]
+    assert merged["m15_marker"].iloc[5] == 2.0
+
+
 def test_cyclic_clock_uses_m5_decision_availability_across_hour_and_day() -> None:
     labels = pd.DatetimeIndex(
         ["2026-07-23T12:55:00Z", "2026-07-23T23:55:00Z"]

@@ -267,7 +267,7 @@ def _add_htf_features(
         raise RuntimeError(
             "[LIVE_HTF_SOURCE] target must be non-empty, unique and chronological"
         )
-    m5 = df_m5.copy()
+    m5 = df_m5.copy(deep=False)
     if "time" in m5.columns and not isinstance(m5.index, pd.DatetimeIndex):
         m5["time"] = pd.to_datetime(m5["time"], utc=True, errors="coerce")
         m5 = m5.set_index("time")
@@ -480,11 +480,12 @@ def _augment_canonical_v3(
 
     Returns:
         DataFrame with cv3 + 32 added columns. Same index as cv3.
-        Mutation note: cv3 is copied first; input is not modified.
+        Mutation note: a shallow frame manager is created first; input columns
+        are not modified and the already-built blocks are not duplicated.
     """
     if cv3.empty:
         return cv3
-    out = cv3.copy()
+    out = cv3.copy(deep=False)
     _add_spread_atr_bps(out)
     _add_session_features(out, base_bar_duration=base_bar_duration)
     _add_session_interactions(out)

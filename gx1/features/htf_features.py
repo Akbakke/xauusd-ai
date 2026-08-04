@@ -1559,7 +1559,9 @@ def build_multi_tf_per_bar_features_v4(
             )
         feats = compute_per_bar_features_v4(resampled)
         ts_int64 = feats.index.asi8.astype(np.int64, copy=True)
-        feats_np = feats.to_numpy(dtype=np.float32, copy=True)
+        # V4 is the active Entry/Exit owner surface.  Keep one shared float32
+        # matrix instead of duplicating the full native-M1 block in attrs.
+        feats_np = feats.to_numpy(dtype=np.float32, copy=False)
         warmup_rows = validate_causal_feature_matrix(
             feats_np,
             expected_width=MULTI_TF_FEATURE_COUNT_V4,
