@@ -21,6 +21,10 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
 )
+from gx1.contracts.entry_model_native_state_v2 import (
+    TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS,
+    TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
+)
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
 )
@@ -72,10 +76,22 @@ def _artifacts(
     state_contract = {
         "schema_version": "entry_model_native_state_contract_v2",
         "entry_run_id": DATASET_RUN_ID,
+        "feature_history_start_utc": "2021-01-05T00:00:00Z",
         "rank_fit_start_utc": "2021-03-16T00:00:00Z",
         "rank_fit_end_utc": "2026-03-31T23:59:59Z",
         "rank_reference_source_parquet": str(m5_prebuilt),
         "rank_reference_source_parquet_sha256": _sha(m5_prebuilt),
+        "rank_reference_model_source_market_identity": {
+            "contract": TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
+            "rank_source_parquet": str(m5_prebuilt),
+            "rank_source_sha256": _sha(m5_prebuilt),
+            "model_source_parquet": str(m5_prebuilt),
+            "model_source_sha256": _sha(m5_prebuilt),
+            "history_start_utc": "2021-01-05T00:00:00+00:00",
+            "fit_end_utc": "2026-03-31T23:59:59+00:00",
+            "compared_rows": 4,
+            "columns": list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS),
+        },
     }
     manifests: dict[str, Path] = {}
     parquets: dict[str, Path] = {}
@@ -359,6 +375,34 @@ def test_m5_source_is_hash_and_manifest_bound(
 
     with pytest.raises(RuntimeError, match=expected):
         _resolve(manifests, parquets, m5_prebuilt)
+
+
+def test_distinct_rank_source_is_allowed_only_with_exact_market_identity_proof(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
+    rank_source = m5_prebuilt.parent / "canonical_rank_source.parquet"
+    rank_source.write_bytes(b"separate-rank-source")
+    for split, manifest in manifests.items():
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        state = payload["extra"]["model_native_state_contract"]
+        state["rank_reference_source_parquet"] = str(rank_source)
+        state["rank_reference_source_parquet_sha256"] = _sha(rank_source)
+        proof = state["rank_reference_model_source_market_identity"]
+        proof["rank_source_parquet"] = str(rank_source)
+        proof["rank_source_sha256"] = _sha(rank_source)
+        manifest.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+        monkeypatch.setenv(
+            trainer._TRAIN_ARTIFACT_HASH_ENV[f"{split}_manifest"],
+            _sha(manifest),
+        )
+
+    resolved_manifests, resolved_parquets = _resolve(
+        manifests, parquets, m5_prebuilt
+    )
+    assert resolved_manifests == manifests
+    assert resolved_parquets == parquets
 
 
 def test_wrappers_forward_all_six_explicit_artifacts_without_inference() -> None:

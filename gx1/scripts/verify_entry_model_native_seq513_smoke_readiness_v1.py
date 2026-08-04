@@ -487,6 +487,10 @@ def _future_contracts(
     smart_dataset_dir: Path,
     smart_smoke_dataset_dir: Path,
     smoke_splits: dict[str, Any],
+    unified_exit_lifecycle_manifest_json: Path,
+    m5_prebuilt_path: Path,
+    multi_tf_cache_manifest_json: Path,
+    pretrain_audit_json: Path,
     post_rebuild_readiness_json: Path,
     full_input_liveness_json: Path,
     feature_audit_json: Path,
@@ -524,8 +528,12 @@ def _future_contracts(
         _split_artifact("val", "out_parquet"),
         "--test-parquet",
         _split_artifact("test", "out_parquet"),
+        "--unified-exit-lifecycle-manifest-json",
+        str(unified_exit_lifecycle_manifest_json),
         "--m5-prebuilt-path",
-        "<IMMUTABLE_TIMESTAMPED_M5_PREBUILT_PATH>",
+        str(m5_prebuilt_path),
+        "--multi-tf-cache-manifest-json",
+        str(multi_tf_cache_manifest_json),
         "--post-rebuild-readiness-json",
         str(post_rebuild_readiness_json),
         "--full-input-liveness-audit-json",
@@ -537,7 +545,7 @@ def _future_contracts(
         "--specialist-audit-json",
         str(specialist_audit_json),
         "--pretrain-audit-json",
-        "<IMMUTABLE_TIMESTAMPED_PRETRAIN_AUDIT_JSON>",
+        str(pretrain_audit_json),
         "--recipe-audit-json",
         "<IMMUTABLE_TIMESTAMPED_RECIPE_AUDIT_JSON>",
         "--smoke-manifest-json",
@@ -568,9 +576,31 @@ def _future_contracts(
         "1.0",
         "--weight-decay",
         "0.00001",
+        "--dropout",
+        "0.05",
         "--multi-tf-scale",
         "0.5",
+        "--num-workers",
+        "0",
+        "--multi-tf-num-layers",
+        "2",
+        "--specialist-num-layers",
+        "1",
+        "--grad-accum-steps",
+        "1",
+        "--per-tf-seq-len-m5",
+        "16",
+        "--per-tf-seq-len-m15",
+        "64",
+        "--per-tf-seq-len-h1",
+        "96",
+        "--per-tf-seq-len-h4",
+        "96",
+        "--per-tf-seq-len-d1",
+        "252",
         "--specialist-fusion-scale",
+        "0.25",
+        "--cross-family-fusion-scale",
         "0.25",
         "--subsample-rows",
         "10000",
@@ -761,6 +791,39 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ]
     git_status = _git_status_short(Path(args.repo_dir).expanduser().resolve())
     trainer_probe = _trainer_loader_probe(specialist_audit_json) if specialist_audit_json.exists() else {"ok": False}
+    rebuild_inputs = rebuild.get("inputs") if isinstance(rebuild.get("inputs"), dict) else {}
+    source_meta = (
+        rebuild_inputs.get("source_parquet")
+        if isinstance(rebuild_inputs.get("source_parquet"), dict)
+        else {}
+    )
+    cache_meta = (
+        rebuild_inputs.get("multi_tf_cache")
+        if isinstance(rebuild_inputs.get("multi_tf_cache"), dict)
+        else {}
+    )
+    cache_manifest_meta = (
+        cache_meta.get("manifest") if isinstance(cache_meta.get("manifest"), dict) else {}
+    )
+    pretrain_meta = (
+        post_rebuild.get("pretrain_audit")
+        if isinstance(post_rebuild.get("pretrain_audit"), dict)
+        else {}
+    )
+    exit_lifecycle_dir = Path(
+        str(rebuild_inputs.get("exit_lifecycle_dir") or "")
+    ).expanduser().resolve()
+    unified_exit_lifecycle_manifest_json = (
+        exit_lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    )
+    m5_prebuilt_path = Path(str(source_meta.get("path") or "")).expanduser().resolve()
+    multi_tf_cache_manifest_json = Path(
+        str(cache_manifest_meta.get("path") or "")
+    ).expanduser().resolve()
+    pretrain_audit_json = Path(str(pretrain_meta.get("path") or "")).expanduser().resolve()
+    unified_exit_lifecycle = _read_json_or_empty(
+        unified_exit_lifecycle_manifest_json
+    )
     future_contracts = _future_contracts(
         smart_dataset_dir=smart_dataset_dir,
         smart_smoke_dataset_dir=smart_smoke_dataset_dir,
@@ -769,6 +832,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if isinstance(smoke_manifest.get("splits"), dict)
             else {}
         ),
+        unified_exit_lifecycle_manifest_json=unified_exit_lifecycle_manifest_json,
+        m5_prebuilt_path=m5_prebuilt_path,
+        multi_tf_cache_manifest_json=multi_tf_cache_manifest_json,
+        pretrain_audit_json=pretrain_audit_json,
         post_rebuild_readiness_json=post_rebuild_readiness_json,
         full_input_liveness_json=full_input_liveness_json,
         feature_audit_json=feature_audit_json,
@@ -778,6 +845,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         memory_cap=str(args.memory_cap),
         swap_cap=str(args.swap_cap),
     )
+    future_train_argv = future_contracts["smart_smoke_train"]["argv_template"]
+
+    def _future_arg(flag: str) -> str | None:
+        try:
+            index = future_train_argv.index(flag)
+        except ValueError:
+            return None
+        return future_train_argv[index + 1] if index + 1 < len(future_train_argv) else None
 
     rebuild_counts = rebuild.get("counts") if isinstance(rebuild.get("counts"), dict) else {}
     target_head_contract = _target_head_contract(target)
@@ -883,6 +958,59 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     rebuild_counts.get("manifest_variant") == MANIFEST_VARIANT
                     and int(rebuild_counts.get("expected_seq_snap_width") or 0) == EXPECTED_SIGNAL_DIM,
                     rebuild_counts,
+                ),
+                _check(
+                    "model-native rebuild preflight binds exact M5 model source bytes",
+                    m5_prebuilt_path.is_file()
+                    and source_meta.get("exists") is True
+                    and _path_equals(source_meta.get("path"), m5_prebuilt_path)
+                    and _sha256_file(m5_prebuilt_path)
+                    == str(source_meta.get("sha256") or "").lower(),
+                    {
+                        "preflight": source_meta,
+                        "selected": _artifact_meta(m5_prebuilt_path),
+                    },
+                ),
+                _check(
+                    "model-native rebuild preflight binds exact multi-TF cache manifest bytes",
+                    multi_tf_cache_manifest_json.is_file()
+                    and cache_manifest_meta.get("exists") is True
+                    and _path_equals(
+                        cache_manifest_meta.get("path"),
+                        multi_tf_cache_manifest_json,
+                    )
+                    and _sha256_file(multi_tf_cache_manifest_json)
+                    == str(cache_manifest_meta.get("sha256") or "").lower(),
+                    {
+                        "preflight": cache_manifest_meta,
+                        "selected": _artifact_meta(multi_tf_cache_manifest_json),
+                    },
+                ),
+                _check(
+                    "unified Exit lifecycle manifest is exact PASS for this dataset run",
+                    unified_exit_lifecycle_manifest_json.is_file()
+                    and unified_exit_lifecycle.get("decision") == "PASS"
+                    and unified_exit_lifecycle.get("entry_run_id")
+                    == post_rebuild.get("entry_run_id"),
+                    {
+                        "artifact": _artifact_meta(
+                            unified_exit_lifecycle_manifest_json
+                        ),
+                        "decision": unified_exit_lifecycle.get("decision"),
+                        "entry_run_id": unified_exit_lifecycle.get("entry_run_id"),
+                        "expected_entry_run_id": post_rebuild.get("entry_run_id"),
+                    },
+                ),
+                _check(
+                    "post-rebuild readiness binds exact PASS pretrain audit bytes",
+                    pretrain_audit_json.is_file()
+                    and pretrain_meta.get("decision") == "PASS"
+                    and _sha256_file(pretrain_audit_json)
+                    == str(pretrain_meta.get("sha256") or "").lower(),
+                    {
+                        "post_rebuild": pretrain_meta,
+                        "selected": _artifact_meta(pretrain_audit_json),
+                    },
                 ),
             ],
         ),
@@ -1167,7 +1295,44 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart smoke train contract pins num_workers zero",
-                    future_contracts["smart_smoke_train"]["num_workers"] == 0,
+                    future_contracts["smart_smoke_train"]["num_workers"] == 0
+                    and _future_arg("--num-workers") == "0",
+                    future_contracts["smart_smoke_train"],
+                ),
+                _check(
+                    "smart smoke train argv carries every exact launch-contract input",
+                    all(
+                        _future_arg(flag) not in (None, "")
+                        for flag in (
+                            "--unified-exit-lifecycle-manifest-json",
+                            "--m5-prebuilt-path",
+                            "--multi-tf-cache-manifest-json",
+                            "--post-rebuild-readiness-json",
+                            "--full-input-liveness-audit-json",
+                            "--feature-audit-json",
+                            "--target-audit-json",
+                            "--specialist-audit-json",
+                            "--pretrain-audit-json",
+                            "--dropout",
+                            "--num-workers",
+                            "--multi-tf-num-layers",
+                            "--specialist-num-layers",
+                            "--grad-accum-steps",
+                            "--per-tf-seq-len-m5",
+                            "--per-tf-seq-len-m15",
+                            "--per-tf-seq-len-h1",
+                            "--per-tf-seq-len-h4",
+                            "--per-tf-seq-len-d1",
+                            "--cross-family-fusion-scale",
+                        )
+                    )
+                    and _future_arg("--unified-exit-lifecycle-manifest-json")
+                    == str(unified_exit_lifecycle_manifest_json)
+                    and _future_arg("--m5-prebuilt-path") == str(m5_prebuilt_path)
+                    and _future_arg("--multi-tf-cache-manifest-json")
+                    == str(multi_tf_cache_manifest_json)
+                    and _future_arg("--pretrain-audit-json")
+                    == str(pretrain_audit_json),
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
@@ -1293,6 +1458,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart_target_audit": _artifact_meta(target_audit_json),
             "smart_specialist_audit": _artifact_meta(specialist_audit_json),
             "model_native_smoke_manifest_event": _artifact_meta(smoke_manifest_event_json),
+            "unified_exit_lifecycle_manifest": _artifact_meta(
+                unified_exit_lifecycle_manifest_json
+            ),
+            "m5_prebuilt": _artifact_meta(m5_prebuilt_path),
+            "multi_tf_cache_manifest": _artifact_meta(
+                multi_tf_cache_manifest_json
+            ),
+            "pretrain_audit": _artifact_meta(pretrain_audit_json),
             "smart_dataset_dir": str(smart_dataset_dir),
             "smart_smoke_dataset_dir": str(smart_smoke_dataset_dir),
         },

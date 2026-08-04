@@ -28,9 +28,10 @@ from tests.model_native_offline_rl_support import (
 )
 
 
-def _write_json(path: Path, data: dict) -> None:
+def _write_json(path: Path, data: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
 
 
 def _sha256(path: Path) -> str:
@@ -61,6 +62,7 @@ def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
 
 
 def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) -> argparse.Namespace:
+    dataset_run_id = "MODEL_NATIVE_SEQ513_DATASET_READINESS_PYTEST"
     smart_dataset_dir = tmp_path / "v10_dataset_smart_candidate_20260630"
     smart_smoke_dataset_dir = smart_dataset_dir
     smart_dataset_dir.mkdir()
@@ -74,6 +76,21 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     )
     stamped_liveness_path.write_bytes(full_input_liveness_path.read_bytes())
     full_input_liveness_path = stamped_liveness_path
+    m5_prebuilt_path = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
+    m5_prebuilt_path.write_bytes(b"exact-m5-model-source")
+    cache_manifest_path = _write_json(
+        tmp_path / "MULTI_TF_V4_CACHE" / "manifest.json",
+        {"schema_version": "pytest-cache", "source": str(m5_prebuilt_path)},
+    )
+    exit_lifecycle_dir = tmp_path / "exit_lifecycle"
+    _write_json(
+        exit_lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+        {"decision": "PASS", "entry_run_id": dataset_run_id},
+    )
+    pretrain_path = _write_json(
+        tmp_path / "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260716T120000223456Z.json",
+        {"decision": "PASS", "entry_run_id": dataset_run_id},
+    )
     split_artifacts: dict[str, dict[str, str]] = {}
     for split in ("train", "val", "test"):
         parquet_path = (
@@ -113,6 +130,23 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
                 "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             },
+            "inputs": {
+                "source_parquet": {
+                    "exists": True,
+                    "path": str(m5_prebuilt_path),
+                    "sha256": _sha256(m5_prebuilt_path),
+                    "size_bytes": m5_prebuilt_path.stat().st_size,
+                },
+                "multi_tf_cache": {
+                    "manifest": {
+                        "exists": True,
+                        "path": str(cache_manifest_path),
+                        "sha256": _sha256(cache_manifest_path),
+                        "size_bytes": cache_manifest_path.stat().st_size,
+                    }
+                },
+                "exit_lifecycle_dir": str(exit_lifecycle_dir),
+            },
         },
     )
     _write_json(
@@ -120,6 +154,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         {
             "schema_version": readiness.POST_REBUILD_SCHEMA_VERSION,
             "decision": readiness.POST_REBUILD_READY_DECISION,
+            "entry_run_id": dataset_run_id,
             "dataset_dir": str(smart_dataset_dir),
             "post_rebuild_refresh_command_contract": {
                 "smoke_dataset_dir": str(smart_smoke_dataset_dir),
@@ -132,6 +167,11 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                 "field_order_sha256": full_input_liveness["field_order_sha256"],
                 "field_counts": full_input_liveness["expected_field_counts"],
                 "atr_ood_status": full_input_liveness["atr_ood_drift"]["status"],
+            },
+            "pretrain_audit": {
+                "decision": "PASS",
+                "path": str(pretrain_path),
+                "sha256": _sha256(pretrain_path),
             },
         },
     )
@@ -411,6 +451,25 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert "--recipe-audit-json" in train_contract["wrapper_argv_template"]
     assert "--post-rebuild-readiness-json" in train_contract["wrapper_argv_template"]
     assert "--pretrain-audit-json" in train_contract["wrapper_argv_template"]
+    for flag in (
+        "--unified-exit-lifecycle-manifest-json",
+        "--m5-prebuilt-path",
+        "--multi-tf-cache-manifest-json",
+        "--dropout",
+        "--num-workers",
+        "--multi-tf-num-layers",
+        "--specialist-num-layers",
+        "--grad-accum-steps",
+        "--per-tf-seq-len-m5",
+        "--per-tf-seq-len-m15",
+        "--per-tf-seq-len-h1",
+        "--per-tf-seq-len-h4",
+        "--per-tf-seq-len-d1",
+        "--cross-family-fusion-scale",
+    ):
+        assert flag in train_contract["wrapper_argv_template"]
+    worker_index = train_contract["wrapper_argv_template"].index("--num-workers")
+    assert train_contract["wrapper_argv_template"][worker_index + 1] == "0"
     assert Path(report["json_path"]).exists()
 
 

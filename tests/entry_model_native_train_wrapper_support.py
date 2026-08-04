@@ -50,6 +50,10 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     SCHEMA_VERSION as SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_model_native_state_v2 import (
+    TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS,
+    TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
+)
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
     REQUIRED_RAIL_FEATURES,
@@ -136,6 +140,7 @@ def _split_manifest(
     parquet: Path,
     *,
     m5_prebuilt: Path,
+    rank_source: Path,
     profile: str,
 ) -> Path:
     selected = canonical_model_native_selected_fields(
@@ -168,10 +173,29 @@ def _split_manifest(
                 },
                 "model_native_state_contract": {
                     "entry_run_id": DATASET_RUN_ID,
-                    "rank_reference_source_parquet": str(m5_prebuilt.resolve()),
+                    "feature_history_start_utc": "2021-01-05T00:00:00Z",
+                    "rank_fit_end_utc": "2026-05-31T23:59:59Z",
+                    "rank_reference_source_parquet": str(rank_source.resolve()),
                     "rank_reference_source_parquet_sha256": artifact_binding(
-                        m5_prebuilt
+                        rank_source
                     )["sha256"],
+                    "rank_reference_model_source_market_identity": {
+                        "contract": TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
+                        "rank_source_parquet": str(rank_source.resolve()),
+                        "rank_source_sha256": artifact_binding(rank_source)[
+                            "sha256"
+                        ],
+                        "model_source_parquet": str(m5_prebuilt.resolve()),
+                        "model_source_sha256": artifact_binding(m5_prebuilt)[
+                            "sha256"
+                        ],
+                        "history_start_utc": "2021-01-05T00:00:00+00:00",
+                        "fit_end_utc": "2026-05-31T23:59:59+00:00",
+                        "compared_rows": 4,
+                        "columns": list(
+                            TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS
+                        ),
+                    },
                 },
                 "entry_run_id": DATASET_RUN_ID,
             },
@@ -195,6 +219,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     m5_path = m5_dir / "xau_m5.parquet"
     m5_path.write_bytes(b"xau-m5-fixture")
     artifacts["m5_prebuilt_path"] = m5_path.resolve()
+    rank_source = m5_dir / "canonical_rank_source.parquet"
+    rank_source.write_bytes(b"canonical-rank-source-fixture")
 
     mtf_cache_dir = (tmp_path / f"MULTI_TF_V4_CACHE_{STAMP}").resolve()
     mtf_cache_dir.mkdir()
@@ -219,6 +245,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             manifest,
             parquet,
             m5_prebuilt=m5_path,
+            rank_source=rank_source,
             profile=profile,
         )
 

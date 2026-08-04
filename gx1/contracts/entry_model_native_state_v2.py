@@ -36,6 +36,9 @@ TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS = (
     "bid_close",
     "ask_close",
 )
+TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT = (
+    "exact_rank_source_model_market_identity_v2"
+)
 
 TRAIN_RANK_NPZ_KEYS = frozenset(
     {
@@ -416,6 +419,89 @@ def validate_train_rank_reference_lineage_v2(
     return reference
 
 
+def validate_train_rank_source_market_identity_metadata_v2(
+    raw: Mapping[str, Any],
+    *,
+    expected_rank_source_parquet: Path,
+    expected_rank_source_sha256: str,
+    expected_model_source_parquet: Path,
+    expected_model_source_sha256: str | None,
+    expected_history_start_utc: Any,
+    expected_fit_end_utc: Any,
+) -> dict[str, Any]:
+    """Validate the immutable proof without re-reading either parquet."""
+
+    if not isinstance(raw, Mapping):
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_PROOF_MISSING")
+    proof = dict(raw)
+    if proof.get("contract") != TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_CONTRACT_INVALID")
+
+    def _exact_path(value: Any, *, field: str, expected: Path) -> None:
+        text = str(value or "").strip()
+        path = Path(text).expanduser()
+        expected_path = Path(expected).expanduser()
+        if (
+            not text
+            or not path.is_absolute()
+            or not expected_path.is_absolute()
+            or path.resolve() != expected_path.resolve()
+        ):
+            raise RuntimeError(
+                "MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_PATH_MISMATCH: "
+                f"field={field} observed={text!r} "
+                f"expected={str(expected_path)!r}"
+            )
+
+    def _exact_sha(value: Any, *, field: str, expected: str | None) -> str:
+        digest = str(value or "").strip().lower()
+        if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+            raise RuntimeError(
+                f"MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_SHA_INVALID: field={field}"
+            )
+        if expected is not None and digest != str(expected).strip().lower():
+            raise RuntimeError(
+                "MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_SHA_MISMATCH: "
+                f"field={field} observed={digest!r} expected={str(expected).strip().lower()!r}"
+            )
+        return digest
+
+    _exact_path(
+        proof.get("rank_source_parquet"),
+        field="rank_source_parquet",
+        expected=expected_rank_source_parquet,
+    )
+    _exact_sha(
+        proof.get("rank_source_sha256"),
+        field="rank_source_sha256",
+        expected=expected_rank_source_sha256,
+    )
+    _exact_path(
+        proof.get("model_source_parquet"),
+        field="model_source_parquet",
+        expected=expected_model_source_parquet,
+    )
+    _exact_sha(
+        proof.get("model_source_sha256"),
+        field="model_source_sha256",
+        expected=expected_model_source_sha256,
+    )
+    if parse_utc(
+        proof.get("history_start_utc"), field="market_identity.history_start_utc"
+    ) != parse_utc(expected_history_start_utc, field="expected_history_start_utc"):
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_HISTORY_MISMATCH")
+    if parse_utc(
+        proof.get("fit_end_utc"), field="market_identity.fit_end_utc"
+    ) != parse_utc(expected_fit_end_utc, field="expected_fit_end_utc"):
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_FIT_END_MISMATCH")
+    compared_rows = proof.get("compared_rows")
+    if isinstance(compared_rows, bool) or not isinstance(compared_rows, int) or compared_rows <= 0:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_ROW_COUNT_INVALID")
+    if proof.get("columns") != list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS):
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_IDENTITY_COLUMNS_INVALID")
+    return proof
+
+
 def require_train_rank_source_market_identity_v2(
     *,
     rank_source_parquet: Path,
@@ -495,8 +581,8 @@ def require_train_rank_source_market_identity_v2(
                 "MODEL_NATIVE_TRAIN_RANK_SOURCE_MARKET_IDENTITY_MISMATCH: "
                 f"field={name}"
             )
-    return {
-        "contract": "exact_rank_source_model_market_identity_v2",
+    proof = {
+        "contract": TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
         "rank_source_parquet": str(rank_path),
         "rank_source_sha256": sha256_file(rank_path),
         "model_source_parquet": str(model_path),
@@ -506,6 +592,15 @@ def require_train_rank_source_market_identity_v2(
         "compared_rows": int(len(model)),
         "columns": list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS),
     }
+    return validate_train_rank_source_market_identity_metadata_v2(
+        proof,
+        expected_rank_source_parquet=rank_path,
+        expected_rank_source_sha256=proof["rank_source_sha256"],
+        expected_model_source_parquet=model_path,
+        expected_model_source_sha256=proof["model_source_sha256"],
+        expected_history_start_utc=history_start,
+        expected_fit_end_utc=fit_end,
+    )
 
 
 def apply_train_rank_reference_v2(

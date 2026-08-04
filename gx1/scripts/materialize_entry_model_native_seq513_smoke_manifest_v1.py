@@ -375,6 +375,7 @@ def _future_command_contracts(
     *,
     dataset_dir: Path,
     splits: dict[str, dict[str, Any]],
+    post_rebuild_readiness_json: Path,
     specialist_audit_json: Path,
     run_id: str,
     memory_cap: str,
@@ -399,8 +400,14 @@ def _future_command_contracts(
         splits["val"]["parquet_path"],
         "--test-parquet",
         splits["test"]["parquet_path"],
+        "--unified-exit-lifecycle-manifest-json",
+        "<IMMUTABLE_UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON>",
         "--m5-prebuilt-path",
         "<IMMUTABLE_TIMESTAMPED_M5_PREBUILT_PATH>",
+        "--multi-tf-cache-manifest-json",
+        "<IMMUTABLE_MULTI_TF_CACHE_MANIFEST_JSON>",
+        "--post-rebuild-readiness-json",
+        str(post_rebuild_readiness_json),
         "--full-input-liveness-audit-json",
         "<IMMUTABLE_TIMESTAMPED_FULL_INPUT_LIVENESS_AUDIT_JSON>",
         "--feature-audit-json",
@@ -446,7 +453,7 @@ def _future_command_contracts(
         "--multi-tf-scale",
         "0.5",
         "--num-workers",
-        "-1",
+        "0",
         "--multi-tf-num-layers",
         "2",
         "--specialist-num-layers",
@@ -643,6 +650,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     future_command_contracts = _future_command_contracts(
         dataset_dir=dataset_dir,
         splits=splits,
+        post_rebuild_readiness_json=post_rebuild_readiness_json,
         specialist_audit_json=specialist_audit_json,
         run_id=run_id,
         memory_cap=memory_cap,
@@ -807,8 +815,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "--train-parquet",
                     "--val-parquet",
                     "--test-parquet",
+                    "--unified-exit-lifecycle-manifest-json",
+                    "--m5-prebuilt-path",
+                    "--multi-tf-cache-manifest-json",
+                    "--post-rebuild-readiness-json",
+                    "--dropout",
+                    "--num-workers",
+                    "--multi-tf-num-layers",
+                    "--specialist-num-layers",
+                    "--grad-accum-steps",
+                    "--per-tf-seq-len-m5",
+                    "--per-tf-seq-len-m15",
+                    "--per-tf-seq-len-h1",
+                    "--per-tf-seq-len-h4",
+                    "--per-tf-seq-len-d1",
+                    "--cross-family-fusion-scale",
                 )
             )
+            and future_command_contracts["smart_smoke_train"]["argv_template"][
+                future_command_contracts["smart_smoke_train"]["argv_template"].index(
+                    "--num-workers"
+                )
+                + 1
+            ]
+            == "0"
             and "gx1.models.entry_v10.entry_v10_ctx_train_v3"
             not in " ".join(future_command_contracts["smart_smoke_train"]["argv_template"])
             and "--dataset_dir"

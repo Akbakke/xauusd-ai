@@ -53,6 +53,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
+    validate_train_rank_source_market_identity_metadata_v2,
     validate_state_contract_metadata_v2,
 )
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
@@ -1788,26 +1789,43 @@ def _resolve_explicit_train_split_artifacts(
             if isinstance(extra.get("model_native_state_contract"), dict)
             else None
         )
-        state_m5_raw = str(
+        rank_source_raw = str(
             state_contract.get("rank_reference_source_parquet")
             if state_contract is not None
             else ""
         ).strip()
-        state_m5 = Path(state_m5_raw).expanduser()
-        state_m5_sha256 = str(
+        rank_source = Path(rank_source_raw).expanduser()
+        rank_source_sha256 = str(
             state_contract.get("rank_reference_source_parquet_sha256")
             if state_contract is not None
             else ""
         ).strip().lower()
-        if (
-            not state_m5.is_absolute()
-            or state_m5 != m5_prebuilt
-            or state_m5_sha256 != expected_m5_sha256
-        ):
+        try:
+            validate_train_rank_source_market_identity_metadata_v2(
+                state_contract.get("rank_reference_model_source_market_identity")
+                if state_contract is not None
+                else None,
+                expected_rank_source_parquet=rank_source,
+                expected_rank_source_sha256=rank_source_sha256,
+                expected_model_source_parquet=m5_prebuilt,
+                expected_model_source_sha256=expected_m5_sha256,
+                expected_history_start_utc=(
+                    state_contract.get("feature_history_start_utc")
+                    if state_contract is not None
+                    else None
+                ),
+                expected_fit_end_utc=(
+                    state_contract.get("rank_fit_end_utc")
+                    if state_contract is not None
+                    else None
+                ),
+            )
+        except RuntimeError as exc:
             raise RuntimeError(
                 f"[ENTRY_TRAIN_SPLIT_M5_STATE_BINDING_MISMATCH] {split}: "
-                f"path={state_m5_raw!r} sha256={state_m5_sha256!r}"
-            )
+                f"rank_path={rank_source_raw!r} "
+                f"rank_sha256={rank_source_sha256!r}: {exc}"
+            ) from exc
         manifest_dataset_run_id = extra.get("entry_run_id")
         state_dataset_run_id = (
             state_contract.get("entry_run_id")

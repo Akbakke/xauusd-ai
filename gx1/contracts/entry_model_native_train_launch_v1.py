@@ -54,6 +54,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     require_smoke_bundle_audit_contract,
 )
+from gx1.contracts.entry_model_native_state_v2 import (
+    validate_train_rank_source_market_identity_metadata_v2,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
@@ -571,18 +574,32 @@ def _validate_split_manifest(
         isinstance(state_contract, dict),
         f"split manifest model-native state contract missing: {path}",
     )
+    rank_source = Path(
+        str(state_contract.get("rank_reference_source_parquet") or "")
+    ).expanduser()
+    rank_source_sha256 = str(
+        state_contract.get("rank_reference_source_parquet_sha256") or ""
+    ).strip().lower()
     _require(
-        Path(str(state_contract.get("rank_reference_source_parquet") or "")).resolve()
-        == m5_prebuilt,
-        f"split manifest rank-reference source mismatch: {path}",
+        rank_source.is_absolute() and _SHA_RE.fullmatch(rank_source_sha256) is not None,
+        f"split manifest rank-reference source binding missing: {path}",
     )
-    _require(
-        _SHA_RE.fullmatch(
-            str(state_contract.get("rank_reference_source_parquet_sha256") or "")
+    try:
+        validate_train_rank_source_market_identity_metadata_v2(
+            state_contract.get("rank_reference_model_source_market_identity"),
+            expected_rank_source_parquet=rank_source,
+            expected_rank_source_sha256=rank_source_sha256,
+            expected_model_source_parquet=m5_prebuilt,
+            expected_model_source_sha256=None,
+            expected_history_start_utc=state_contract.get(
+                "feature_history_start_utc"
+            ),
+            expected_fit_end_utc=state_contract.get("rank_fit_end_utc"),
         )
-        is not None,
-        f"split manifest source parquet hash missing: {path}",
-    )
+    except RuntimeError as exc:
+        raise LaunchContractError(
+            f"split manifest rank/model market identity invalid: {path}: {exc}"
+        ) from exc
 
 
 def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None:
@@ -767,24 +784,45 @@ def _dataset_run_id_from_launch_evidence(
     return dataset_run_id
 
 
-def _m5_source_hash_from_manifests(
+def _model_source_hash_from_manifests(
     payloads: Mapping[str, Mapping[str, Any]],
 ) -> str:
-    source_hashes = {
-        str(
-            (
-                payloads[f"{split}_manifest_json"].get("extra") or {}
-            ).get("model_native_state_contract", {}).get(
-                "rank_reference_source_parquet_sha256"
-            )
-            or ""
+    source_hashes: set[str] = set()
+    for split in ("train", "val", "test"):
+        manifest = payloads[f"{split}_manifest_json"]
+        inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), Mapping) else {}
+        extra = manifest.get("extra") if isinstance(manifest.get("extra"), Mapping) else {}
+        state = (
+            extra.get("model_native_state_contract")
+            if isinstance(extra.get("model_native_state_contract"), Mapping)
+            else {}
         )
-        for split in ("train", "val", "test")
-    }
+        rank_source = Path(
+            str(state.get("rank_reference_source_parquet") or "")
+        ).expanduser()
+        rank_source_sha256 = str(
+            state.get("rank_reference_source_parquet_sha256") or ""
+        ).strip().lower()
+        model_source = Path(str(inputs.get("source_parquet") or "")).expanduser()
+        try:
+            proof = validate_train_rank_source_market_identity_metadata_v2(
+                state.get("rank_reference_model_source_market_identity"),
+                expected_rank_source_parquet=rank_source,
+                expected_rank_source_sha256=rank_source_sha256,
+                expected_model_source_parquet=model_source,
+                expected_model_source_sha256=None,
+                expected_history_start_utc=state.get("feature_history_start_utc"),
+                expected_fit_end_utc=state.get("rank_fit_end_utc"),
+            )
+        except RuntimeError as exc:
+            raise LaunchContractError(
+                f"{split} split rank/model market identity invalid: {exc}"
+            ) from exc
+        source_hashes.add(str(proof.get("model_source_sha256") or ""))
     _require(
         len(source_hashes) == 1
         and _SHA_RE.fullmatch(next(iter(source_hashes))) is not None,
-        "split manifests do not bind one exact m5_prebuilt source hash",
+        "split manifests do not bind one exact model-source hash",
     )
     return next(iter(source_hashes))
 
@@ -1266,7 +1304,7 @@ def build_recipe_audit_payload(
         artifacts=artifacts,
         dataset_run_id=dataset_run_id,
     )
-    expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
+    expected_large_hashes["m5_prebuilt_path"] = _model_source_hash_from_manifests(
         payloads
     )
     artifact_bindings = {
@@ -1376,7 +1414,7 @@ def validate_launch(
         run_id != dataset_run_id,
         "training run_id must differ from immutable dataset_run_id",
     )
-    expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
+    expected_large_hashes["m5_prebuilt_path"] = _model_source_hash_from_manifests(
         payloads
     )
     _validate_audits(artifacts, payloads, dataset_dir=dataset_dir, profile=profile)

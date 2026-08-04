@@ -240,8 +240,24 @@ def test_materializes_one_hash_bound_immutable_manifest_event(tmp_path: Path) ->
         "--train-parquet",
         "--val-parquet",
         "--test-parquet",
+        "--unified-exit-lifecycle-manifest-json",
+        "--m5-prebuilt-path",
+        "--multi-tf-cache-manifest-json",
+        "--post-rebuild-readiness-json",
+        "--dropout",
+        "--num-workers",
+        "--multi-tf-num-layers",
+        "--specialist-num-layers",
+        "--grad-accum-steps",
+        "--per-tf-seq-len-m5",
+        "--per-tf-seq-len-m15",
+        "--per-tf-seq-len-h1",
+        "--per-tf-seq-len-h4",
+        "--per-tf-seq-len-d1",
+        "--cross-family-fusion-scale",
     ):
         assert flag in argv
+    assert argv[argv.index("--num-workers") + 1] == "0"
     joined = " ".join(argv)
     assert "gx1.models.entry_v10.entry_v10_ctx_train_v3" not in joined
     assert "--dataset_dir" not in argv
