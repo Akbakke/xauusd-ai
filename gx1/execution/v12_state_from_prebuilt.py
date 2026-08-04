@@ -129,10 +129,17 @@ PREBUILT_PAIR_LEGACY_LINEAGE_SCHEMA_VERSION = "gx1_native_pair_lineage_v1"
 PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME = "PAIR_MANIFEST.json"
 PAIR_PUBLISH_LOCK_FILENAME = ".canonical_v3_base28_pair_publish.lock"
 PREBUILT_PAIR_PRODUCER_OWNER = "gx1.execution.v12_canonical_incremental"
+PREBUILT_CANONICAL_BUILDER_CONTRACT = (
+    "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v2"
+)
 PREBUILT_PAIR_FORMULA_CONTRACT = {
     "rank_inputs": "shared_model_native_simple_tr14_hl_mid_bid_ask_v1",
     "train_rank_application": "consumer_boundary_only",
     "group_a": "shared_parallel_exact_checkpointed_v1",
+    "canonical_m5_atr_regime": (
+        "atr14_rolling5760_min2880_q333_q667_shift1_"
+        "integer_write_through_v2"
+    ),
     "native_m1_m5_aggregation": (
         "source_exact_dense_or_sparse_no_session_hour_rules_v1"
     ),
@@ -511,7 +518,7 @@ def validate_prebuilt_pair_lineage(
         expected_raw_sha = _sha256_json(list(RAW_BASE28_COLUMNS))
         if (
             derivation["canonical_builder"]
-            != "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v1"
+            != PREBUILT_CANONICAL_BUILDER_CONTRACT
             or not _valid_sha256(
                 derivation["canonical_ordered_columns_sha256"]
             )

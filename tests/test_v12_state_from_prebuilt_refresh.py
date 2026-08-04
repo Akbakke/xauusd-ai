@@ -145,7 +145,7 @@ def _lineage(
         "native_sources": {"m1": native("M1"), "m5": native("M5")},
         "derivation_contract": {
             "canonical_builder": (
-                "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v1"
+                state_module.PREBUILT_CANONICAL_BUILDER_CONTRACT
             ),
             "canonical_ordered_columns_sha256": hashlib.sha256(
                 json.dumps(

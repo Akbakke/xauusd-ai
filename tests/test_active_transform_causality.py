@@ -79,11 +79,14 @@ def test_basic_v1_has_one_environment_independent_feature_path() -> None:
         "GX1_ASSERT_NO_PANDAS",
         "GX1_FEATURE_USE_NP_ROLLING",
         "GX1_REPLAY_INCREMENTAL_FEATURES",
+        "GX1_ATR_REGIME_FIX",
         "FEATURE_BUILD_TIMEOUT_MS",
     ):
         assert forbidden not in source
     assert 'df["_v1_r1_q90_48"]' in source
     assert 'df["_v1_r1_q10_48"]' in source
+    assert "regime_id[valid_idx[low_mask]] = 0.0" in source
+    assert "regime_id[valid_idx[high_mask]] = 2.0" in source
 
 
 def test_basic_v1_rejects_non_float_ohlc_without_mode_dependent_conversion() -> None:

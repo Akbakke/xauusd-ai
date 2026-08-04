@@ -50,3 +50,24 @@ def test_model_agnostic_canonical_cache_rejects_partial_pair(tmp_path) -> None:
             checkpoint_dir=checkpoint_dir,
             checkpoint_key=checkpoint_key,
         )
+
+
+def test_pair_contract_locks_repaired_atr_regime() -> None:
+    assert incremental.PREBUILT_CANONICAL_BUILDER_CONTRACT.endswith("_v2")
+    assert incremental.PREBUILT_PAIR_FORMULA_CONTRACT[
+        "canonical_m5_atr_regime"
+    ] == (
+        "atr14_rolling5760_min2880_q333_q667_shift1_"
+        "integer_write_through_v2"
+    )
+
+
+def test_pair_frame_build_rejects_parallel_feature_workers(tmp_path) -> None:
+    with pytest.raises(RuntimeError, match="PAIR_FEATURE_WORKERS_MUST_EQUAL_ONE"):
+        incremental._derive_pair_frames(
+            native_m1=pd.DataFrame(),
+            native_m5=pd.DataFrame(),
+            checkpoint_dir=tmp_path,
+            checkpoint_key="c" * 64,
+            workers=2,
+        )

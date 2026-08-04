@@ -153,7 +153,7 @@ echo "dataset_contract: STALE_REBUILD_REQUIRED_AFTER_SOURCE_AND_LIFECYCLE_CONTRA
 echo "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
-echo "source_regression: PASS_2001_TESTS_ZERO_SKIPS_ZERO_WARNINGS"
+echo "source_regression: PASS_2003_TESTS_ZERO_SKIPS_ZERO_WARNINGS"
 echo
 echo "## Fixed architecture"
 echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"

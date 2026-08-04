@@ -59,6 +59,7 @@ from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
     PREBUILT_PAIR_MANIFEST_PATH,
     PREBUILT_PAIR_ROOT,
+    PREBUILT_CANONICAL_BUILDER_CONTRACT,
     PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME,
     PREBUILT_PAIR_FORMULA_CONTRACT,
     PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION,
@@ -1427,6 +1428,9 @@ def _derive_pair_frames(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build the complete canonical M5 and raw M1 pair from loaded sources."""
 
+    if isinstance(workers, bool) or not isinstance(workers, int) or workers != 1:
+        raise RuntimeError("PAIR_FEATURE_WORKERS_MUST_EQUAL_ONE")
+
     canonical = _build_model_agnostic_canonical(
         native_m5,
         checkpoint_dir=checkpoint_dir,
@@ -1480,9 +1484,7 @@ def _build_pair_lineage(
             "m5": _native_pair_lineage_descriptor(m5_descriptor),
         },
         "derivation_contract": {
-            "canonical_builder": (
-                "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v1"
-            ),
+            "canonical_builder": PREBUILT_CANONICAL_BUILDER_CONTRACT,
             "canonical_ordered_columns_sha256": hashlib.sha256(
                 json.dumps(
                     list(canonical.columns),
@@ -1527,7 +1529,7 @@ def bootstrap_prebuilt_pair(
     pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH,
     generation_root: Path = PREBUILT_PAIR_ROOT,
     repo_root: Path = REPO_ROOT,
-    workers: int = 12,
+    workers: int = 1,
 ) -> str:
     """Derive and publish the first raw pair from two immutable native sources."""
 
@@ -1634,7 +1636,7 @@ def publish_prebuilt_pair_successor(
     pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH,
     generation_root: Path = PREBUILT_PAIR_ROOT,
     repo_root: Path = REPO_ROOT,
-    workers: int = 12,
+    workers: int = 1,
     live_tail_publication_event_root: Path | None = None,
     previous_live_tail_publication_json: Path | None = None,
     previous_live_tail_publication_sha256: str | None = None,
@@ -1908,7 +1910,7 @@ def main() -> int:
         type=Path,
         default=PREBUILT_PAIR_ROOT,
     )
-    p.add_argument("--workers", type=int, default=12)
+    p.add_argument("--workers", type=int, default=1)
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO,

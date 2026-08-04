@@ -12,7 +12,7 @@ exists.
 
 The final producer-tree audit on 2026-08-04 used five independent review lanes.
 Repo-wide Ruff, Python compilation, tracked-shell syntax, JSON parsing and all
-2,001 collected tests passed with zero skips and zero warnings under the 4G
+2,003 collected tests passed with zero skips and zero warnings under the 4G
 cgroup. This proves source consistency, not trading edge or profitability.
 
 The old V8 dataset, V13 lifecycle and V18 recipe cannot be resumed. Contract

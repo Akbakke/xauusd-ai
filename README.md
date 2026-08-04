@@ -37,7 +37,7 @@ The source architecture and contracts are substantially connected and tested,
 but the system is not empirically finished:
 
 - the 2026-08-04 producer-tree audit completed five independent review lanes,
-  repo-wide lint/compile/shell/JSON checks and 2,001 passing tests with no skips
+  repo-wide lint/compile/shell/JSON checks and 2,003 passing tests with no skips
   or warnings;
 
 - no current admitted dataset or recipe;
