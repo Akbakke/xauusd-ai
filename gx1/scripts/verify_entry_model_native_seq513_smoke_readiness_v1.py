@@ -503,7 +503,10 @@ def _future_contracts(
     def _split_artifact(split: str, key: str) -> str:
         row = smoke_splits.get(split)
         if isinstance(row, dict) and str(row.get(key) or "").strip():
-            return str(Path(str(row[key])).expanduser().resolve())
+            value = str(row[key]).strip()
+            if key.endswith("_sha256"):
+                return value.lower()
+            return str(Path(value).expanduser().resolve())
         return f"<MISSING_IMMUTABLE_{split.upper()}_{key.upper()}>"
 
     out_bundle = str(

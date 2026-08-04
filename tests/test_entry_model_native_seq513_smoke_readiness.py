@@ -417,6 +417,18 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
         prediction_argv[prediction_argv.index("--evidence-stage") + 1]
         == "pre_calibration"
     )
+    smoke_manifest_event = json.loads(
+        Path(args.smoke_manifest_event_json).read_text(encoding="utf-8")
+    )
+    val_artifacts = smoke_manifest_event["smoke_manifest"]["splits"]["val"]
+    assert (
+        prediction_argv[prediction_argv.index("--val-manifest-sha256") + 1]
+        == val_artifacts["out_manifest_sha256"]
+    )
+    assert (
+        prediction_argv[prediction_argv.index("--val-parquet-sha256") + 1]
+        == val_artifacts["out_parquet_sha256"]
+    )
     assert "--test-manifest-json" not in prediction_argv
     assert train_contract["post_smoke_audit_control_route_exposed"] is True
     assert train_contract["post_smoke_audit_control_route"] == "model-native-smoke-bundle-audit"
