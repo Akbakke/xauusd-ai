@@ -210,3 +210,35 @@ def test_compact_materialized_rows_preserves_original_row_lookup(tmp_path, monke
         sample["snap_x"].numpy(),
         np.arange(MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32) + 2.0,
     )
+
+
+def test_liveness_storage_indices_use_compact_array_coordinates() -> None:
+    class CompactDataset:
+        indices = np.asarray([3, 10_113, 20_000], dtype=np.int64)
+        _compact_row_indices = indices.copy()
+        _np_seq = np.empty((3, 0), dtype=np.float32)
+        _np_snap = np.empty((3, 0), dtype=np.float32)
+        _np_ctx_cont = np.empty((3, 0), dtype=np.float32)
+
+    observed = trainer._deterministic_liveness_storage_indices(
+        CompactDataset(),
+        sample_rows=3,
+    )
+
+    np.testing.assert_array_equal(observed, np.asarray([0, 1, 2]))
+
+
+def test_liveness_storage_indices_preserve_full_array_coordinates() -> None:
+    class FullDataset:
+        indices = np.asarray([3, 7, 11], dtype=np.int64)
+        _compact_row_indices = None
+        _np_seq = np.empty((12, 0), dtype=np.float32)
+        _np_snap = np.empty((12, 0), dtype=np.float32)
+        _np_ctx_cont = np.empty((12, 0), dtype=np.float32)
+
+    observed = trainer._deterministic_liveness_storage_indices(
+        FullDataset(),
+        sample_rows=3,
+    )
+
+    np.testing.assert_array_equal(observed, np.asarray([3, 7, 11]))

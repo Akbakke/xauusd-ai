@@ -2655,6 +2655,47 @@ def _sweep_orphaned_memmap_scratch(root: Path) -> None:
         )
 
 
+def _deterministic_liveness_storage_indices(
+    dataset: object,
+    *,
+    sample_rows: int,
+) -> np.ndarray:
+    """Map deterministic dataset samples to the currently materialized arrays."""
+
+    selected_rows = np.asarray(getattr(dataset, "indices", None), dtype=np.int64)
+    if selected_rows.ndim != 1 or selected_rows.size < 1:
+        raise RuntimeError("[FEATURE_LIVENESS_INDEX_MAP_INVALID] empty selection")
+    rows = min(int(sample_rows), int(selected_rows.size))
+    if rows <= 0:
+        raise RuntimeError("[FEATURE_LIVENESS_SAMPLE_ROWS_INVALID]")
+    dataset_offsets = np.linspace(
+        0,
+        selected_rows.size - 1,
+        num=rows,
+        dtype=np.int64,
+    )
+    compact_rows = getattr(dataset, "_compact_row_indices", None)
+    if compact_rows is None:
+        storage_indices = selected_rows[dataset_offsets]
+    else:
+        compact_rows = np.asarray(compact_rows, dtype=np.int64)
+        if not np.array_equal(compact_rows, selected_rows):
+            raise RuntimeError(
+                "[FEATURE_LIVENESS_COMPACT_INDEX_MAP_INVALID] compact rows do not "
+                "match the dataset selection"
+            )
+        storage_indices = dataset_offsets
+    for array_name in ("_np_seq", "_np_snap", "_np_ctx_cont"):
+        array = getattr(dataset, array_name, None)
+        if array is None or int(array.shape[0]) <= int(storage_indices.max()):
+            raise RuntimeError(
+                "[FEATURE_LIVENESS_STORAGE_INDEX_OOB] "
+                f"array={array_name} rows={getattr(array, 'shape', None)} "
+                f"max_index={int(storage_indices.max())}"
+            )
+    return storage_indices
+
+
 class EntryV10CtxDataset(Dataset):
     """
     Builds rolling-window samples from canonical ENTRY_V10_CTX parquet.
@@ -13122,10 +13163,11 @@ def run_train(
             and hasattr(_live_ds, "_np_snap")
         ):
             _sample_rows = min(1024, len(_live_ds))
-            # Sample the rows the model actually trains on. len(_live_ds) is the
-            # subsampled length, but _np_* are the full parquet arrays, so
-            # indexing them directly with 0..len-1 reads the first contiguous
-            # rows instead of the stratified selection. Measured on V26:
+            # Sample the rows the model actually trains on. Full datasets use
+            # immutable parquet row ids as storage positions; bounded smoke
+            # datasets compact those selected rows to 0..N-1. The mapper below
+            # owns that distinction so neither coordinate space can leak into
+            # the other. Measured on V26:
             # d1_trend_age_mature_flag_v3 has std 0.4007 over TRAIN and 0.4006
             # over the stratified subsample, but exactly 0.0000 over the first
             # 50,000 rows - so the gate reported a healthy field as dead.
@@ -13140,9 +13182,10 @@ def run_train(
                     "[FEATURE_LIVENESS_INDEX_MAP_INVALID] "
                     f"positions={_live_positions.size} dataset_len={len(_live_ds)}"
                 )
-            _sample_idx = _live_positions[
-                np.linspace(0, _live_positions.size - 1, num=_sample_rows, dtype=np.int64)
-            ]
+            _sample_idx = _deterministic_liveness_storage_indices(
+                _live_ds,
+                sample_rows=_sample_rows,
+            )
             _ab = {
                 "seq_x": np.asarray(_live_ds._np_seq[_sample_idx], dtype=np.float32),
                 "ctx_cont": np.asarray(_live_ds._np_ctx_cont[_sample_idx], dtype=np.float32),
@@ -13206,8 +13249,9 @@ def run_train(
         # impulse flag firing on 0.024% of rows is absent from almost every
         # sample, and a score whose natural range is [0, 0.0044] falls under
         # DEAD_STD on scale alone. So when the sample flags a field, measure
-        # that one field over the complete physical population - the same rows
-        # rule 18 fits normalization on - and let the gate rule on that.
+        # that one field over the complete currently materialized population
+        # and let the gate rule on that. This is the full physical population
+        # for candidates and the complete stratified TRAIN selection for smoke.
         # The sequence surface is ruled on the snap population by a proof from
         # source, not by assumption. The builder cuts both surfaces from ONE
         # matrix in the same column order
