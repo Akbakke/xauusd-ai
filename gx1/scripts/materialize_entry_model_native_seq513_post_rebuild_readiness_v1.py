@@ -422,7 +422,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     completion_mode = (
         "direct_capped_rebuild"
         if direct_completion_mode
-        else "seq513_rebuild_chain_v6"
+        else "seq513_rebuild_chain_v7"
         if chain_terminal_ok
         else "invalid"
     )

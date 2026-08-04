@@ -188,6 +188,7 @@ def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
 
     assert report["schema_version"] == SCHEMA_VERSION
     assert report["decision"] == READY_DECISION
+    assert report["rebuild_completion_mode"] == "seq513_rebuild_chain_v7"
     assert report["dataset_dir"] == report["smoke_dataset_dir"]
     assert [row["name"] for row in report["checks"]] == list(REQUIRED_PROOF_CHECKS)
     assert all(row["ok"] for row in report["checks"])
