@@ -867,11 +867,31 @@ def _build_inline_seq_structure_extension(
     source_parquet: Optional[Path],
     source_contract_label: Optional[str] = None,
     base_signal_fields: Sequence[str] = MODEL_NATIVE_BASE_FIELDS,
-) -> Tuple[np.ndarray, List[str], Dict[str, Any]]:
+    precomputed_price_layer: Optional[Tuple[np.ndarray, List[str]]] = None,
+    precomputed_candle_layer: Optional[Tuple[np.ndarray, List[str]]] = None,
+    emit_offset: int = 0,
+    support_memory_state: Optional[Mapping[str, float]] = None,
+    return_support_memory_state: bool = False,
+) -> (
+    Tuple[np.ndarray, List[str], Dict[str, Any]]
+    | Tuple[
+        np.ndarray,
+        List[str],
+        Dict[str, Any],
+        Dict[str, np.float32],
+    ]
+):
     if not requested_features:
         raise RuntimeError("SEQ_STRUCTURE_INLINE_REQUESTED_FEATURES_EMPTY")
     if source_parquet is None:
         raise RuntimeError("SEQ_STRUCTURE_INLINE_SOURCE_PARQUET_REQUIRED")
+    if (
+        isinstance(emit_offset, bool)
+        or not isinstance(emit_offset, int)
+        or emit_offset < 0
+        or emit_offset >= len(merged3)
+    ):
+        raise RuntimeError("SEQ_STRUCTURE_INLINE_EMIT_OFFSET_INVALID")
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
         MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
@@ -921,16 +941,38 @@ def _build_inline_seq_structure_extension(
     base_x = np.concatenate(base_blocks, axis=1).astype(np.float32, copy=False)
 
     chart_x, chart_names = build_chart_layer(base_x, base_names)
-    price_x, price_names = build_price_derived_layer(
-        merged3[["time"]].copy(),
-        Path(source_parquet),
-    )
+    if precomputed_price_layer is None:
+        price_x, price_names = build_price_derived_layer(
+            merged3[["time"]].copy(),
+            Path(source_parquet),
+        )
+    else:
+        price_x, price_names = precomputed_price_layer
+        price_x = np.asarray(price_x, dtype=np.float32)
+        price_names = list(price_names)
+        if (
+            price_x.ndim != 2
+            or price_x.shape != (len(merged3), len(price_names))
+            or not np.isfinite(price_x).all()
+        ):
+            raise RuntimeError("SEQ_STRUCTURE_INLINE_PRICE_LAYER_INVALID")
     chart_x = np.concatenate([chart_x, price_x], axis=1).astype(np.float32, copy=False)
     chart_names = list(chart_names) + list(price_names)
-    candle_x, candle_names = build_candlestick_derived_layer(
-        merged3[["time"]].copy(),
-        Path(source_parquet),
-    )
+    if precomputed_candle_layer is None:
+        candle_x, candle_names = build_candlestick_derived_layer(
+            merged3[["time"]].copy(),
+            Path(source_parquet),
+        )
+    else:
+        candle_x, candle_names = precomputed_candle_layer
+        candle_x = np.asarray(candle_x, dtype=np.float32)
+        candle_names = list(candle_names)
+        if (
+            candle_x.ndim != 2
+            or candle_x.shape != (len(merged3), len(candle_names))
+            or not np.isfinite(candle_x).all()
+        ):
+            raise RuntimeError("SEQ_STRUCTURE_INLINE_CANDLE_LAYER_INVALID")
     chart_x = np.concatenate([chart_x, candle_x], axis=1).astype(np.float32, copy=False)
     chart_names = list(chart_names) + list(candle_names)
     chart_all_x = (
@@ -1019,6 +1061,8 @@ def _build_inline_seq_structure_extension(
         "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
         "mtf_confluence_layer": build_entry_mtf_confluence_layer,
     }
+    next_support_memory_state: Dict[str, np.float32] = {}
+    emit_applied = False
     for label, feature_names in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES:
         if not any(
             name in requested_set and name not in set(all_names)
@@ -1028,9 +1072,24 @@ def _build_inline_seq_structure_extension(
         builder = smart_builders[label]
         if label == "price_action_candle_smart3_layer":
             smart_x, smart_names = builder()
+        elif label == "support_resistance_memory_layer" and (
+            emit_offset > 0 or return_support_memory_state
+        ):
+            if emit_offset > 0:
+                all_x = all_x[emit_offset:]
+                emit_applied = True
+            smart_x, smart_names, next_support_memory_state = builder(
+                all_x,
+                all_names,
+                memory_state=support_memory_state,
+                return_memory_state=True,
+            )
         else:
             smart_x, smart_names = builder(all_x, all_names)
         _append_generated_layer(label, smart_x, list(smart_names))
+
+    if emit_offset > 0 and not emit_applied:
+        all_x = all_x[emit_offset:]
 
     index = {name: i for i, name in enumerate(all_names)}
     missing = [name for name in requested_features if name not in index]
@@ -1066,6 +1125,10 @@ def _build_inline_seq_structure_extension(
         ),
         "missing_generated_features": [],
     }
+    if return_support_memory_state:
+        if not next_support_memory_state:
+            raise RuntimeError("SEQ_STRUCTURE_INLINE_SUPPORT_STATE_MISSING")
+        return out, selected, meta, next_support_memory_state
     return out, selected, meta
 
 

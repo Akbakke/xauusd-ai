@@ -6,7 +6,7 @@ train/serve feature path.
 """
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Mapping
 
 import numpy as np
 
@@ -176,16 +176,32 @@ def _tanh(arr: np.ndarray, scale: float = 1.0) -> np.ndarray:
     return np.tanh(arr / max(float(scale), 1e-6)).astype(np.float32, copy=False)
 
 
-def _decayed_memory(arr: np.ndarray, decay: float) -> np.ndarray:
+SUPPORT_RESISTANCE_MEMORY_STATE_KEYS = (
+    "support_fast",
+    "support_slow",
+    "resistance_fast",
+    "resistance_slow",
+)
+
+
+def _decayed_memory(
+    arr: np.ndarray,
+    decay: float,
+    *,
+    initial_carry: float = 0.0,
+) -> tuple[np.ndarray, np.float32]:
     values = _clip01(arr)
     out = np.empty_like(values, dtype=np.float32)
-    carry = np.float32(0.0)
+    carry = np.float32(initial_carry)
+    if not np.isfinite(carry) or carry < 0.0 or carry > 1.0:
+        raise RuntimeError("SUPPORT_RESISTANCE_MEMORY_STATE_INVALID")
     alpha = np.float32(1.0 - float(decay))
     decay32 = np.float32(decay)
     for i, value in enumerate(values):
         carry = decay32 * carry + alpha * np.float32(value)
         out[i] = carry
-    return _clip01(out)
+    clean = _clip01(out)
+    return clean, np.float32(clean[-1])
 
 
 def _add(
@@ -209,9 +225,32 @@ def _add(
 def build_entry_support_resistance_memory_layer(
     x: np.ndarray,
     feature_names: list[str],
-) -> tuple[np.ndarray, list[str]]:
+    *,
+    memory_state: Mapping[str, float] | None = None,
+    return_memory_state: bool = False,
+) -> (
+    tuple[np.ndarray, list[str]]
+    | tuple[np.ndarray, list[str], dict[str, np.float32]]
+):
     """Build deterministic support/resistance memory from exact sources."""
     x, idx = _require_source_matrix(x, feature_names)
+    if memory_state is None:
+        state = {
+            name: np.float32(0.0)
+            for name in SUPPORT_RESISTANCE_MEMORY_STATE_KEYS
+        }
+    else:
+        if set(memory_state) != set(SUPPORT_RESISTANCE_MEMORY_STATE_KEYS):
+            raise RuntimeError("SUPPORT_RESISTANCE_MEMORY_STATE_SCHEMA_INVALID")
+        state = {
+            name: np.float32(memory_state[name])
+            for name in SUPPORT_RESISTANCE_MEMORY_STATE_KEYS
+        }
+        if any(
+            not np.isfinite(value) or value < 0.0 or value > 1.0
+            for value in state.values()
+        ):
+            raise RuntimeError("SUPPORT_RESISTANCE_MEMORY_STATE_INVALID")
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
@@ -298,10 +337,26 @@ def build_entry_support_resistance_memory_layer(
 
     support_touch_event = _clip01(0.45 * support_stack + 0.25 * support_mtf + 0.20 * low_liquidity + 0.10 * _pos(support_minus_resistance))
     resistance_touch_event = _clip01(0.45 * resistance_stack + 0.25 * resistance_mtf + 0.20 * high_liquidity + 0.10 * _neg(support_minus_resistance))
-    support_fast = _decayed_memory(support_touch_event, 0.82)
-    support_slow = _decayed_memory(support_touch_event, 0.96)
-    resistance_fast = _decayed_memory(resistance_touch_event, 0.82)
-    resistance_slow = _decayed_memory(resistance_touch_event, 0.96)
+    support_fast, support_fast_state = _decayed_memory(
+        support_touch_event,
+        0.82,
+        initial_carry=state["support_fast"],
+    )
+    support_slow, support_slow_state = _decayed_memory(
+        support_touch_event,
+        0.96,
+        initial_carry=state["support_slow"],
+    )
+    resistance_fast, resistance_fast_state = _decayed_memory(
+        resistance_touch_event,
+        0.82,
+        initial_carry=state["resistance_fast"],
+    )
+    resistance_slow, resistance_slow_state = _decayed_memory(
+        resistance_touch_event,
+        0.96,
+        initial_carry=state["resistance_slow"],
+    )
     support_repeated = _clip01((0.62 * support_fast + 0.38 * support_slow) * (0.50 + support_stack))
     resistance_repeated = _clip01((0.62 * resistance_fast + 0.38 * resistance_slow) * (0.50 + resistance_stack))
     repeated_balance = _clip(support_repeated - resistance_repeated, -1.0, 1.0)
@@ -475,6 +530,13 @@ def build_entry_support_resistance_memory_layer(
     if len(set(names)) != len(names):
         dupes = sorted({name for name in names if names.count(name) > 1})
         raise RuntimeError(f"support/resistance memory layer has duplicate names: {dupes[:10]}")
+    if return_memory_state:
+        return out, names, {
+            "support_fast": support_fast_state,
+            "support_slow": support_slow_state,
+            "resistance_fast": resistance_fast_state,
+            "resistance_slow": resistance_slow_state,
+        }
     return out, names
 
 
