@@ -20,6 +20,10 @@ from gx1.scripts import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
+def test_post_rebuild_readiness_tracks_current_chain_schema() -> None:
+    assert gate.CHAIN_SCHEMA == "seq513_rebuild_chain_status_v7"
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
