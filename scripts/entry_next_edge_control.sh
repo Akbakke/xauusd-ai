@@ -695,7 +695,6 @@ case "$cmd" in
       --bundle-dir \
       --dataset-dir \
       --val-manifest-json \
-      --test-manifest-json \
       --predictions-parquet \
       --prediction-report-json \
       --target-audit-json \
@@ -730,18 +729,12 @@ case "$cmd" in
 
   model-native-selective-edge)
     reject_non_authoritative_args "$@"
-    reject_flags "$cmd" --splits --top-fracs --model-name --selection-score-mode
+    reject_flags "$cmd" --top-fracs --model-name --selection-score-mode
     for flag in \
       --bundle-dir \
       --dataset-dir \
-      --val-manifest-json \
-      --val-manifest-sha256 \
-      --val-parquet \
-      --val-parquet-sha256 \
-      --test-manifest-json \
-      --test-manifest-sha256 \
-      --test-parquet \
-      --test-parquet-sha256 \
+      --splits \
+      --evidence-stage \
       --device \
       --batch-size \
       --stream-chunk-rows \

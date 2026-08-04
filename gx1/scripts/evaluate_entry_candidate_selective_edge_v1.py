@@ -961,6 +961,51 @@ def _derived_serve_parity_outputs(
     }
 
 
+def _require_evaluation_lineage(
+    run_lineage: Any,
+    *,
+    evidence_stage: str,
+) -> None:
+    if evidence_stage not in EVIDENCE_STAGES:
+        raise RuntimeError(
+            f"unsupported prediction evidence stage: {evidence_stage!r}"
+        )
+    if not isinstance(run_lineage, Mapping):
+        raise RuntimeError("evaluation bundle lacks exact training run lineage")
+
+    requested = run_lineage.get("requested_subsample_rows")
+    physical = run_lineage.get("physical_train_rows")
+    effective = run_lineage.get("effective_train_rows")
+    exact_counts = all(type(value) is int for value in (requested, physical, effective))
+    full_candidate = bool(
+        exact_counts
+        and run_lineage.get("training_profile") == "candidate"
+        and requested == 0
+        and physical == effective
+        and physical > 0
+    )
+    bounded_smoke = bool(
+        exact_counts
+        and run_lineage.get("training_profile") == "smoke"
+        and requested > 0
+        and physical > effective > 0
+        and effective <= requested
+    )
+
+    if evidence_stage == "runtime_authoritative" and not full_candidate:
+        raise RuntimeError(
+            "runtime-authoritative evaluation requires a full-population "
+            "candidate-profile bundle"
+        )
+    if evidence_stage == "pre_calibration" and not (
+        full_candidate or bounded_smoke
+    ):
+        raise RuntimeError(
+            "pre-calibration evaluation requires either a bounded smoke-profile "
+            "bundle or a full-population candidate-profile bundle"
+        )
+
+
 def _predict_bundle(
     *,
     bundle_dir: Path,
@@ -980,18 +1025,10 @@ def _predict_bundle(
     model.eval()
     meta = dict(bundle.metadata)
     run_lineage = meta.get("run_lineage")
-    if (
-        model_name == EVALUATION_MODEL_NAME
-        and (
-            not isinstance(run_lineage, Mapping)
-            or run_lineage.get("training_profile") != "candidate"
-            or run_lineage.get("requested_subsample_rows") != 0
-            or run_lineage.get("physical_train_rows")
-            != run_lineage.get("effective_train_rows")
-        )
-    ):
-        raise RuntimeError(
-            "candidate evaluation requires a full-population candidate-profile bundle"
+    if model_name == EVALUATION_MODEL_NAME:
+        _require_evaluation_lineage(
+            run_lineage,
+            evidence_stage=evidence_stage,
         )
     require_model_direction_decision_contract(
         meta,
@@ -1034,10 +1071,6 @@ def _predict_bundle(
         and isinstance(path_calibration, Mapping)
         and path_calibration.get("enabled") is True
     )
-    if evidence_stage not in EVIDENCE_STAGES:
-        raise RuntimeError(
-            f"unsupported prediction evidence stage: {evidence_stage!r}"
-        )
     if evidence_stage == "runtime_authoritative" and not calibrated_runtime_bundle:
         raise RuntimeError(
             "runtime-authoritative prediction evidence requires enabled "
@@ -1924,7 +1957,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--dataset-dir", required=True)
     ap.add_argument(
         "--splits",
-        default=",".join(DEFAULT_EVALUATION_SPLITS),
+        required=True,
         help=(
             "Exact comma-separated artifact role: train,val for sizing fit; "
             "test for OOS; val,test for evaluation."
@@ -1933,7 +1966,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument(
         "--evidence-stage",
         choices=EVIDENCE_STAGES,
-        default="runtime_authoritative",
+        required=True,
         help=(
             "runtime_authoritative requires calibrated runtime-head envelopes; "
             "pre_calibration emits non-authorizing V2 evidence explicitly."

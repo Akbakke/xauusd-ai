@@ -47,7 +47,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from gx1.scripts import verify_entry_candidate_readiness_v1 as readiness
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
-    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
 from tests.model_native_signal_support import canonical_model_native_selected_fields
@@ -269,11 +269,12 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         },
         "splits": passing_smoke_audit_splits(),
         "prediction_evidence": {
-            "schema_version": RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+            "schema_version": PREDICTION_EVIDENCE_SCHEMA_VERSION,
             "authoritative": True,
-            "runtime_head_evidence_authoritative": True,
+            "runtime_head_evidence_authoritative": False,
             "path": str(evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"),
         },
+        "prediction_evidence_stage": "pre_calibration",
         "prediction_report_json": str(prediction_report),
         "prediction_report_sha256": binding(prediction_report)["sha256"],
         "promotion_shadow_live_allowed": False,
@@ -376,6 +377,38 @@ def test_bundle_rehash_rejects_objective_meta_lock_split_brain(tmp_path: Path) -
     lock_path.write_text(json.dumps(lock), encoding="utf-8")
 
     assert readiness._bundle_file_check(normalized)["ok"] is False
+
+
+def test_prediction_evidence_check_accepts_only_policy_owned_val(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    report_path = _write_json(tmp_path / "prediction_report.json", {"ok": True})
+    predictions_path = tmp_path / "predictions.parquet"
+    predictions_path.write_bytes(b"prediction-evidence")
+    evidence = {
+        "path": str(predictions_path),
+        "splits": ["val"],
+    }
+    smoke = {
+        "prediction_report_json": str(report_path),
+        "prediction_report_sha256": readiness._sha256_file(report_path),
+        "prediction_evidence": evidence,
+        "bundle_dir": str(tmp_path / "bundle"),
+        "dataset_dir": str(tmp_path / "dataset"),
+    }
+    monkeypatch.setattr(
+        readiness,
+        "resolve_and_validate_prediction_evidence",
+        lambda *_, **__: (predictions_path, {"decision": "PASS"}, evidence),
+    )
+
+    assert readiness._prediction_evidence_check(smoke)["ok"] is True
+
+    evidence["splits"] = ["val", "test"]
+    failed = readiness._prediction_evidence_check(smoke)
+    assert failed["ok"] is False
+    assert "policy-owned smoke splits" in failed["details"]["error"]
 
 
 def test_candidate_readiness_run_uses_only_exact_immutable_inputs(

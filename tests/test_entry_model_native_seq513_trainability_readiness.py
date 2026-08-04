@@ -58,6 +58,12 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
             "scripts/entry_next_edge_control.sh",
             "model-native-train-recipe-audit",
         ],
+        "post_smoke_prediction_control_route_exposed": True,
+        "post_smoke_prediction_control_route": "model-native-selective-edge",
+        "post_smoke_prediction_argv_template": [
+            "scripts/entry_next_edge_control.sh",
+            "model-native-selective-edge",
+        ],
         "post_smoke_audit_control_route_exposed": True,
         "post_smoke_audit_control_route": "model-native-smoke-bundle-audit",
         "post_smoke_audit_argv_template": [
@@ -197,6 +203,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX142CAT5") -> argpar
             "Usage: model-native-smoke-train --run-id <id>\n"
             "case\nmodel-native-smoke-train) exec wrapper ;;\n"
             "model-native-train-recipe-audit) exec recipe ;;\n"
+            "model-native-selective-edge) exec prediction ;;\n"
             "model-native-smoke-bundle-audit) exec audit ;;\n"
         )
         smoke_wrapper_text = _audited_wrapper_text()

@@ -101,7 +101,7 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES_LOWER,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
-    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
     atomic_write_text,
     resolve_and_validate_prediction_evidence,
 )
@@ -286,13 +286,18 @@ def _canonical_sha256(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _timestamped_directory(raw: str | Path, *, label: str) -> Path:
+def _explicit_immutable_directory(raw: str | Path, *, label: str) -> Path:
     path = Path(raw).expanduser().absolute()
     if path.is_symlink() or not path.is_dir():
         raise RuntimeError(f"{label} must be an explicit regular directory: {path}")
     path = path.resolve()
     if any("latest" in part.lower() for part in path.parts):
         raise RuntimeError(f"{label} cannot use a mutable latest path: {path}")
+    return path
+
+
+def _timestamped_directory(raw: str | Path, *, label: str) -> Path:
+    path = _explicit_immutable_directory(raw, label=label)
     if _STAMP_RE.search(path.name) is None:
         raise RuntimeError(f"{label} directory name lacks an immutable UTC stamp: {path}")
     return path
@@ -1862,7 +1867,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append(str(exc))
         bundle_dir = bundle_dir.resolve()
     try:
-        dataset_dir = _timestamped_directory(dataset_dir, label="dataset")
+        dataset_dir = _explicit_immutable_directory(dataset_dir, label="dataset")
     except RuntimeError as exc:
         failures.append(str(exc))
         dataset_dir = dataset_dir.resolve()
@@ -1872,7 +1877,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         dataset_dir=dataset_dir,
         manifests={
             "val": Path(args.val_manifest_json),
-            "test": Path(args.test_manifest_json),
         },
     )
     failures.extend(f"dataset_manifest: {failure}" for failure in manifests["failures"])
@@ -1925,14 +1929,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 prediction_report_path=prediction_report_path,
                 bundle_dir=bundle_dir,
                 dataset_dir=dataset_dir,
-                require_runtime_head_evidence=True,
+                require_runtime_head_evidence=False,
             )
         )
         if (
             prediction_evidence.get("schema_version")
-            != RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+            != PREDICTION_EVIDENCE_SCHEMA_VERSION
         ):
             raise RuntimeError("prediction evidence schema mismatch")
+        if prediction_evidence.get("runtime_head_evidence_authoritative") is not False:
+            raise RuntimeError(
+                "smoke prediction evidence must be non-authorizing pre-calibration evidence"
+            )
+        if prediction_report.get("evidence_stage") != "pre_calibration":
+            raise RuntimeError(
+                "smoke prediction report must declare evidence_stage=pre_calibration"
+            )
         if tuple(sorted(prediction_evidence.get("splits") or ())) != tuple(sorted(DATA_SPLITS)):
             raise RuntimeError(
                 "prediction evidence must contain exactly the policy-owned "
@@ -2142,6 +2154,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "prediction_report_json": str(prediction_report_path),
         "prediction_report_sha256": _sha256_file(prediction_report_path),
         "prediction_report_schema_version": prediction_report.get("schema_version"),
+        "prediction_evidence_stage": prediction_report.get("evidence_stage"),
         "splits": split_reports,
         "edge_contract": edge_contract,
         "activation_authority": False,
@@ -2181,7 +2194,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bundle-dir", required=True)
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--val-manifest-json", required=True)
-    parser.add_argument("--test-manifest-json", required=True)
     parser.add_argument("--predictions-parquet", required=True)
     parser.add_argument("--prediction-report-json", required=True)
     parser.add_argument("--target-audit-json", required=True)

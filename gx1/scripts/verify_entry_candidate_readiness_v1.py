@@ -11,6 +11,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_SMOKE_SPLITS,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
 )
@@ -222,8 +225,12 @@ def _prediction_evidence_check(
         )
         if observed != evidence:
             raise RuntimeError("smoke audit prediction declaration is not exact")
-        if sorted(observed.get("splits") or ()) != ["test", "val"]:
-            raise RuntimeError("prediction evidence must cover exactly val and test")
+        expected_splits = sorted(FOUNDATION_AUDIT_SMOKE_SPLITS)
+        if sorted(observed.get("splits") or ()) != expected_splits:
+            raise RuntimeError(
+                "prediction evidence must cover exactly the policy-owned smoke "
+                f"splits: {expected_splits}"
+            )
         details = {
             "predictions": str(predictions),
             "prediction_report": str(report_path),

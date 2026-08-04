@@ -24,6 +24,7 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _dataset_model_native_contract,
     _derived_serve_parity_outputs,
     _normalize_contract_mode,
+    _require_evaluation_lineage,
     _require_model_direction_ssot,
     _selection_sort_column,
     _specialist_contract_snapshot,
@@ -356,6 +357,10 @@ def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flag
         "/tmp/bundle",
         "--dataset-dir",
         "/tmp/dataset",
+        "--splits",
+        "val,test",
+        "--evidence-stage",
+        "runtime_authoritative",
         "--val-manifest-json",
         "/tmp/dataset/native_val.manifest.json",
         "--val-manifest-sha256",
@@ -409,6 +414,33 @@ def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flag
         ]
     )
     assert fit_args.splits == "train,val"
+
+
+def test_evaluation_lineage_separates_smoke_from_runtime_authority() -> None:
+    smoke = {
+        "training_profile": "smoke",
+        "requested_subsample_rows": 10_000,
+        "physical_train_rows": 369_303,
+        "effective_train_rows": 10_000,
+    }
+    candidate = {
+        "training_profile": "candidate",
+        "requested_subsample_rows": 0,
+        "physical_train_rows": 369_303,
+        "effective_train_rows": 369_303,
+    }
+
+    _require_evaluation_lineage(smoke, evidence_stage="pre_calibration")
+    _require_evaluation_lineage(candidate, evidence_stage="pre_calibration")
+    _require_evaluation_lineage(candidate, evidence_stage="runtime_authoritative")
+
+    with pytest.raises(RuntimeError, match="full-population candidate-profile"):
+        _require_evaluation_lineage(smoke, evidence_stage="runtime_authoritative")
+    with pytest.raises(RuntimeError, match="bounded smoke-profile"):
+        _require_evaluation_lineage(
+            {**smoke, "effective_train_rows": 369_303},
+            evidence_stage="pre_calibration",
+        )
 
 
 def test_selective_edge_source_has_no_split_glob_or_imported_split_selector() -> None:

@@ -43,11 +43,11 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v5"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v6"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v5"
+    "entry_candidate_model_direction_prediction_evidence_v2"
 )
 BUNDLE_ARTIFACT_KEYS = (
     "bundle_commit",
@@ -1046,8 +1046,12 @@ def require_smoke_bundle_audit_contract(
     _require(
         prediction.get("schema_version") == PREDICTION_EVIDENCE_SCHEMA_VERSION
         and prediction.get("authoritative") is True
-        and prediction.get("runtime_head_evidence_authoritative") is True,
+        and prediction.get("runtime_head_evidence_authoritative") is False,
         f"[{context}_PREDICTION_EVIDENCE_INVALID]",
+    )
+    _require(
+        report.get("prediction_evidence_stage") == "pre_calibration",
+        f"[{context}_PREDICTION_EVIDENCE_STAGE_INVALID]",
     )
     prediction_report = Path(
         str(report.get("prediction_report_json") or "")
@@ -1088,6 +1092,7 @@ def require_smoke_bundle_audit_contract(
         "edge_contract": dict(edge),
         "splits": splits,
         "prediction_evidence": dict(prediction),
+        "prediction_evidence_stage": "pre_calibration",
         "prediction_report_json": str(prediction_report),
         "prediction_report_sha256": str(report["prediction_report_sha256"]),
     }

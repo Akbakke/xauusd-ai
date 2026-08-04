@@ -635,8 +635,6 @@ def _future_contracts(
         str(smart_smoke_dataset_dir),
         "--val-manifest-json",
         _split_artifact("val", "out_manifest"),
-        "--test-manifest-json",
-        _split_artifact("test", "out_manifest"),
         "--predictions-parquet",
         "<IMMUTABLE_SMOKE_PREDICTIONS_PARQUET>",
         "--prediction-report-json",
@@ -646,11 +644,43 @@ def _future_contracts(
         "--specialist-audit-json",
         str(specialist_audit_json),
         "--pretrain-audit-json",
-        "<IMMUTABLE_TIMESTAMPED_PRETRAIN_AUDIT_JSON>",
+        str(pretrain_audit_json),
         "--out-dir",
         str(smart_dataset_dir.parent / "smoke_bundle_audit_<STAMP>"),
         "--device",
         "cuda",
+    ]
+    post_smoke_prediction_argv = [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-selective-edge",
+        "--bundle-dir",
+        out_bundle,
+        "--dataset-dir",
+        str(smart_smoke_dataset_dir),
+        "--splits",
+        "val",
+        "--evidence-stage",
+        "pre_calibration",
+        "--val-manifest-json",
+        _split_artifact("val", "out_manifest"),
+        "--val-manifest-sha256",
+        _split_artifact("val", "out_manifest_sha256"),
+        "--val-parquet",
+        _split_artifact("val", "out_parquet"),
+        "--val-parquet-sha256",
+        _split_artifact("val", "out_parquet_sha256"),
+        "--device",
+        "cuda",
+        "--batch-size",
+        "64",
+        "--stream-chunk-rows",
+        "0",
+        "--m5-prebuilt-path",
+        str(m5_prebuilt_path),
+        "--multi-tf-cache-dir",
+        str(multi_tf_cache_manifest_json.parent),
+        "--out-dir",
+        str(smart_dataset_dir.parent / "smoke_predictions_<STAMP>"),
     ]
     train = {
         "argv_template": wrapper_argv,
@@ -675,6 +705,9 @@ def _future_contracts(
         "recipe_audit_control_route_exposed": True,
         "recipe_audit_control_route": "model-native-train-recipe-audit",
         "recipe_audit_argv_template": recipe_argv,
+        "post_smoke_prediction_control_route_exposed": True,
+        "post_smoke_prediction_control_route": "model-native-selective-edge",
+        "post_smoke_prediction_argv_template": post_smoke_prediction_argv,
         "post_smoke_audit_control_route_exposed": True,
         "post_smoke_audit_control_route": "model-native-smoke-bundle-audit",
         "post_smoke_audit_argv_template": post_smoke_audit_argv,
@@ -846,13 +879,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         swap_cap=str(args.swap_cap),
     )
     future_train_argv = future_contracts["smart_smoke_train"]["argv_template"]
+    future_prediction_argv = future_contracts["smart_smoke_train"][
+        "post_smoke_prediction_argv_template"
+    ]
+    future_audit_argv = future_contracts["smart_smoke_train"][
+        "post_smoke_audit_argv_template"
+    ]
 
-    def _future_arg(flag: str) -> str | None:
+    def _argv_arg(argv: list[str], flag: str) -> str | None:
         try:
-            index = future_train_argv.index(flag)
+            index = argv.index(flag)
         except ValueError:
             return None
-        return future_train_argv[index + 1] if index + 1 < len(future_train_argv) else None
+        return argv[index + 1] if index + 1 < len(argv) else None
+
+    def _future_arg(flag: str) -> str | None:
+        return _argv_arg(future_train_argv, flag)
 
     rebuild_counts = rebuild.get("counts") if isinstance(rebuild.get("counts"), dict) else {}
     target_head_contract = _target_head_contract(target)
@@ -1336,8 +1378,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
-                    "smart smoke train contract exposes the immutable edge-audit route",
+                    "smart smoke train contract exposes immutable prediction and edge-audit routes",
                     future_contracts["smart_smoke_train"]["requires_edge_audit"] is True
+                    and future_contracts["smart_smoke_train"][
+                        "post_smoke_prediction_control_route_exposed"
+                    ]
+                    is True
+                    and future_contracts["smart_smoke_train"].get(
+                        "post_smoke_prediction_control_route"
+                    )
+                    == "model-native-selective-edge"
+                    and _argv_arg(future_prediction_argv, "--splits") == "val"
+                    and _argv_arg(future_prediction_argv, "--evidence-stage")
+                    == "pre_calibration"
+                    and "--test-manifest-json" not in future_prediction_argv
                     and future_contracts["smart_smoke_train"][
                         "post_smoke_audit_control_route_exposed"
                     ]
@@ -1350,7 +1404,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         future_contracts["smart_smoke_train"][
                             "post_smoke_audit_argv_template"
                         ]
-                    ),
+                    )
+                    and "--test-manifest-json" not in future_audit_argv,
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(

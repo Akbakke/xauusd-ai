@@ -790,17 +790,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             future_train,
         ),
         _check(
-            "smart smoke future contract exposes immutable recipe and smoke audit routes",
+            "smart smoke future contract exposes immutable recipe prediction and smoke audit routes",
             future_train.get("requires_edge_audit") is True
             and future_train.get("recipe_audit_control_route_exposed") is True
             and future_train.get("recipe_audit_control_route")
             == "model-native-train-recipe-audit"
             and bool(future_train.get("recipe_audit_argv_template"))
+            and future_train.get("post_smoke_prediction_control_route_exposed")
+            is True
+            and future_train.get("post_smoke_prediction_control_route")
+            == "model-native-selective-edge"
+            and bool(future_train.get("post_smoke_prediction_argv_template"))
             and future_train.get("post_smoke_audit_control_route_exposed") is True
             and future_train.get("post_smoke_audit_control_route")
             == "model-native-smoke-bundle-audit"
             and bool(future_train.get("post_smoke_audit_argv_template"))
             and "model-native-train-recipe-audit)" in control_text
+            and "model-native-selective-edge)" in control_text
             and "model-native-smoke-bundle-audit)" in control_text,
             future_train,
         ),

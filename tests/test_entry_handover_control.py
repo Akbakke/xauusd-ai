@@ -490,7 +490,6 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
         "--bundle-dir",
         "--dataset-dir",
         "--val-manifest-json",
-        "--test-manifest-json",
         "--predictions-parquet",
         "--prediction-report-json",
         "--target-audit-json",
@@ -500,7 +499,27 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
         "--device",
     ):
         assert flag in audit
+    assert "--test-manifest-json" not in audit
     assert "audit_entry_foundation_smoke_bundle_v1" in audit
+
+    prediction = source.split("  model-native-selective-edge)", 1)[1].split(
+        "    ;;", 1
+    )[0]
+    for flag in (
+        "--bundle-dir",
+        "--dataset-dir",
+        "--splits",
+        "--evidence-stage",
+        "--device",
+        "--batch-size",
+        "--stream-chunk-rows",
+        "--m5-prebuilt-path",
+        "--multi-tf-cache-dir",
+        "--out-dir",
+    ):
+        assert flag in prediction
+    assert 'reject_flags "$cmd" --top-fracs --model-name --selection-score-mode' in prediction
+    assert "evaluate_entry_candidate_selective_edge_v1" in prediction
 
 
 def test_retired_separate_exit_dataset_route_is_absent() -> None:

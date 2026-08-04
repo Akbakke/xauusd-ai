@@ -402,12 +402,35 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
         "scripts/entry_next_edge_control.sh",
         "model-native-train-recipe-audit",
     ]
+    assert train_contract["post_smoke_prediction_control_route_exposed"] is True
+    assert (
+        train_contract["post_smoke_prediction_control_route"]
+        == "model-native-selective-edge"
+    )
+    prediction_argv = train_contract["post_smoke_prediction_argv_template"]
+    assert prediction_argv[:2] == [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-selective-edge",
+    ]
+    assert prediction_argv[prediction_argv.index("--splits") + 1] == "val"
+    assert (
+        prediction_argv[prediction_argv.index("--evidence-stage") + 1]
+        == "pre_calibration"
+    )
+    assert "--test-manifest-json" not in prediction_argv
     assert train_contract["post_smoke_audit_control_route_exposed"] is True
     assert train_contract["post_smoke_audit_control_route"] == "model-native-smoke-bundle-audit"
     assert train_contract["post_smoke_audit_argv_template"][:2] == [
         "scripts/entry_next_edge_control.sh",
         "model-native-smoke-bundle-audit",
     ]
+    assert "--test-manifest-json" not in train_contract[
+        "post_smoke_audit_argv_template"
+    ]
+    audit_argv = train_contract["post_smoke_audit_argv_template"]
+    assert audit_argv[audit_argv.index("--pretrain-audit-json") + 1].endswith(
+        "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260716T120000223456Z.json"
+    )
     assert train_contract["control_route"] == "model-native-smoke-train"
     assert (
         train_contract["wrapper_path"]

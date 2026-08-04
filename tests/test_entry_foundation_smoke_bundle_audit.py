@@ -56,7 +56,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from gx1.scripts import audit_entry_foundation_smoke_bundle_v1 as audit
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
-    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
@@ -370,7 +370,6 @@ def test_parser_has_no_defaults_or_retired_aliases() -> None:
         "--bundle-dir", f"/tmp/bundle_{STAMP}",
         "--dataset-dir", f"/tmp/dataset_{STAMP}",
         "--val-manifest-json", "/tmp/val.manifest.json",
-        "--test-manifest-json", "/tmp/test.manifest.json",
         "--predictions-parquet", f"/tmp/selective_edge_predictions_{STAMP}.parquet",
         "--prediction-report-json", f"/tmp/ENTRY_CANDIDATE_SELECTIVE_EDGE_{STAMP}.json",
         "--target-audit-json", f"/tmp/ENTRY_TARGET_FOUNDATION_AUDIT_{STAMP}.json",
@@ -539,7 +538,6 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         created_at_utc="2026-07-16T12:00:00+00:00",
     )
     val_manifest = _write_json(dataset / "xau_val.manifest.json", {"fixture": True})
-    test_manifest = _write_json(dataset / "xau_test.manifest.json", {"fixture": True})
     predictions = tmp_path / f"selective_edge_predictions_{STAMP}.parquet"
     predictions.write_bytes(b"immutable-predictions")
     prediction_report = _write_json(
@@ -566,7 +564,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
                 "parquet_sha256": "a" * 64,
                 "model_native_signal_contract_sha256": "b" * 64,
             }
-            for split, path in (("val", val_manifest), ("test", test_manifest))
+            for split, path in (("val", val_manifest),)
         },
     }
     monkeypatch.setattr(
@@ -636,9 +634,9 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         lambda **_: (bundle_contract, metadata, direction, object()),
     )
     evidence = {
-        "schema_version": RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+        "schema_version": PREDICTION_EVIDENCE_SCHEMA_VERSION,
         "authoritative": True,
-        "runtime_head_evidence_authoritative": True,
+        "runtime_head_evidence_authoritative": False,
         "path": str(predictions.resolve()),
         "sha256": audit._sha256_file(predictions),
         "rows": int((frame["split"].astype(str) == "val").sum()),
@@ -650,7 +648,10 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         "resolve_and_validate_prediction_evidence",
         lambda *_, **__: (
             predictions.resolve(),
-            {"schema_version": "entry_candidate_selective_edge_v1"},
+            {
+                "schema_version": "entry_candidate_selective_edge_v1",
+                "evidence_stage": "pre_calibration",
+            },
             evidence,
         ),
     )
@@ -667,7 +668,6 @@ def test_run_publishes_exact_consumer_contract_without_latest(
             bundle_dir=str(bundle),
             dataset_dir=str(dataset),
             val_manifest_json=str(val_manifest),
-            test_manifest_json=str(test_manifest),
             predictions_parquet=str(predictions),
             prediction_report_json=str(prediction_report),
             target_audit_json=str(audits["target"]),
@@ -699,7 +699,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         require_smoke_bundle_audit_contract(forged, context="FORGED")
 
 
-def test_bundle_and_dataset_paths_must_be_timestamped(tmp_path: Path) -> None:
+def test_bundle_must_be_timestamped_and_dataset_must_be_explicit(tmp_path: Path) -> None:
     path = tmp_path / "bundle_latest"
     path.mkdir()
     with pytest.raises(RuntimeError, match="latest"):
@@ -708,3 +708,4 @@ def test_bundle_and_dataset_paths_must_be_timestamped(tmp_path: Path) -> None:
     plain.mkdir()
     with pytest.raises(RuntimeError, match="UTC stamp"):
         audit._timestamped_directory(plain, label="bundle")
+    assert audit._explicit_immutable_directory(plain, label="dataset") == plain.resolve()
