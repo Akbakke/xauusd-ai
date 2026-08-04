@@ -120,11 +120,17 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert (
         "dataset_contract: "
-        "STALE_REBUILD_REQUIRED_AFTER_SOURCE_AND_LIFECYCLE_CONTRACT_CHANGE"
+        "CURRENT_PAIR_READY_FEATURE_DATASET_REBUILD_PENDING"
         in result.stdout
     )
     assert "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION" in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
+    assert (
+        "pair_generation_id: "
+        "64d62c1f29e5d2b30f4e187af1ec65cabd48bb50fe4638a3ec5af2523a11b84c"
+        in result.stdout
+    )
+    assert "source_regression: PASS_2006_TESTS_ZERO_SKIPS_ZERO_WARNINGS" in result.stdout
     assert "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY" in result.stdout
     assert "entry: local=M5 sequence=96 signal=513 ctx_cont=142 ctx_cat=5" in result.stdout
     assert (
@@ -139,7 +145,11 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "## Resume boundary" in result.stdout
-    assert "resume_stage: VERIFY_COMMIT_REBUILD_THEN_BOUNDED_SMOKE" in result.stdout
+    assert (
+        "resume_stage: "
+        "RUN_CURRENT_PAIR_SHARED_FEATURE_DATASET_CHAIN_THEN_BOUNDED_SMOKE"
+        in result.stdout
+    )
     assert "capacity: audits=4G training_max=10G swap=512M" in result.stdout
     assert "model-native-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout

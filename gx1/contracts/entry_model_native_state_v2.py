@@ -28,6 +28,14 @@ MODEL_NATIVE_RANK_TRANSFORM = (
 )
 MODEL_NATIVE_HISTORY_MODE = "common_causal_history_no_split_reset_v1"
 MODEL_NATIVE_VOL_REGIME_WINDOW_BARS = 288
+TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS = (
+    "time",
+    "high",
+    "low",
+    "close",
+    "bid_close",
+    "ask_close",
+)
 
 TRAIN_RANK_NPZ_KEYS = frozenset(
     {
@@ -406,6 +414,98 @@ def validate_train_rank_reference_lineage_v2(
     if reference.fit_start_utc != fit_start or reference.fit_end_utc != fit_end:
         raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_LINEAGE_FIT_WINDOW_MISMATCH")
     return reference
+
+
+def require_train_rank_source_market_identity_v2(
+    *,
+    rank_source_parquet: Path,
+    model_source_parquet: Path,
+    history_start_utc: Any,
+    fit_end_utc: Any,
+) -> dict[str, Any]:
+    """Prove that rank-fit market bytes equal the model source market bytes."""
+
+    history_start = parse_utc(history_start_utc, field="history_start_utc")
+    fit_end = parse_utc(fit_end_utc, field="fit_end_utc")
+    if history_start > fit_end:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_MARKET_WINDOW_INVALID")
+
+    def _load(path: Path, *, label: str) -> tuple[Path, pd.DataFrame]:
+        resolved = Path(path).expanduser().resolve()
+        if resolved.is_symlink() or not resolved.is_file():
+            raise RuntimeError(
+                f"MODEL_NATIVE_TRAIN_RANK_{label}_SOURCE_INVALID: {resolved}"
+            )
+        try:
+            frame = pd.read_parquet(
+                resolved,
+                columns=list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS),
+            )
+            frame["time"] = pd.to_datetime(
+                frame["time"], utc=True, errors="raise"
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"MODEL_NATIVE_TRAIN_RANK_{label}_SOURCE_SCHEMA_INVALID"
+            ) from exc
+        frame = frame.sort_values("time", kind="mergesort").reset_index(
+            drop=True
+        )
+        if (
+            frame.empty
+            or frame["time"].isna().any()
+            or frame["time"].duplicated().any()
+            or not frame["time"].is_monotonic_increasing
+        ):
+            raise RuntimeError(
+                f"MODEL_NATIVE_TRAIN_RANK_{label}_SOURCE_TIME_INVALID"
+            )
+        numeric = frame.loc[
+            :, list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS[1:])
+        ].apply(pd.to_numeric, errors="coerce")
+        if not np.isfinite(numeric.to_numpy(dtype=np.float64)).all():
+            raise RuntimeError(
+                f"MODEL_NATIVE_TRAIN_RANK_{label}_SOURCE_NONFINITE"
+            )
+        normalized = pd.concat(
+            [frame[["time"]].reset_index(drop=True), numeric.reset_index(drop=True)],
+            axis=1,
+        )
+        return resolved, normalized
+
+    rank_path, rank = _load(rank_source_parquet, label="REFERENCE")
+    model_path, model = _load(model_source_parquet, label="MODEL")
+    model = model.loc[
+        (model["time"] >= history_start) & (model["time"] <= fit_end)
+    ].reset_index(drop=True)
+    if model.empty or model["time"].iloc[0] > history_start:
+        raise RuntimeError(
+            "MODEL_NATIVE_TRAIN_RANK_MODEL_SOURCE_WINDOW_NOT_COVERED"
+        )
+    rank = rank.set_index("time").reindex(pd.DatetimeIndex(model["time"]))
+    if rank.isna().any().any():
+        raise RuntimeError(
+            "MODEL_NATIVE_TRAIN_RANK_REFERENCE_SOURCE_TIME_ALIGNMENT_INVALID"
+        )
+    for name in TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS[1:]:
+        rank_values = rank[name].to_numpy(dtype=np.float64)
+        model_values = model[name].to_numpy(dtype=np.float64)
+        if not np.array_equal(rank_values, model_values):
+            raise RuntimeError(
+                "MODEL_NATIVE_TRAIN_RANK_SOURCE_MARKET_IDENTITY_MISMATCH: "
+                f"field={name}"
+            )
+    return {
+        "contract": "exact_rank_source_model_market_identity_v2",
+        "rank_source_parquet": str(rank_path),
+        "rank_source_sha256": sha256_file(rank_path),
+        "model_source_parquet": str(model_path),
+        "model_source_sha256": sha256_file(model_path),
+        "history_start_utc": history_start.isoformat(),
+        "fit_end_utc": fit_end.isoformat(),
+        "compared_rows": int(len(model)),
+        "columns": list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS),
+    }
 
 
 def apply_train_rank_reference_v2(

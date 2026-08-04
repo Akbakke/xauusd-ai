@@ -52,6 +52,14 @@ Feature bytes cannot depend on ambient flags. The active ATR regime transform
 uses direct integer indexing and must be non-constant on the complete declared
 population. Any dead required field fails liveness.
 
+The single TRAIN-rank artifact is fitted from the pair generation's canonical
+M5 `time/high/low/close/bid_close/ask_close` fields. The downstream M5 model
+source may contain a different feature schema, but those six fields must align
+exactly for every model timestamp from common-history start through TRAIN end.
+Its rank sidecar therefore binds canonical bytes, while ranking and labels bind
+the final M5 source bytes. This is one explicit identity proof, not a fallback
+or a second feature route.
+
 ## Split and fit boundaries
 
 TRAIN, VAL and TEST are chronological, disjoint and hash-bound. TRAIN alone

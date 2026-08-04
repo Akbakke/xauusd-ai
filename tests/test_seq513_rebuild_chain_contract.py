@@ -20,6 +20,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "--m1-lifecycle-pair-manifest-json",
         "--m1-lifecycle-pair-generation-root",
         "--exit-target-lookahead-m1-steps",
+        "--early-move-threshold-bps",
         'path.relative_to(event)',
         'feature ranking output must be a fresh timestamped JSON',
         'feature ranking timestamp cannot be in the future',
@@ -33,9 +34,19 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         'preflight json_path is not an exact self-reference',
         'preflight run_id does not match chain run_id',
         'hashlib.sha256(raw).hexdigest()',
-        "audit_seq513_source_cascade_v1",
+        "materialize_current_pair_source_cascade_proof_v1",
         '--source-cascade-proof "$SOURCE_CASCADE"',
         "require_source_cascade_unchanged",
+        "require_pair_unchanged",
+        '--rank-source-parquet "$CV2"',
+        "model-native-m5-enriched-frame",
+        "model-native-m1-enriched-frame",
+        "model-native-m5-feature-base",
+        "model-native-m1-feature-base",
+        '--m1-feature-base-parquet "$M1_FEATURE_BASE"',
+        '--m5-feature-base-parquet "$M5_FEATURE_BASE"',
+        "--workers 1",
+        "M5/M15/H1/H4/D1",
     ):
         assert required in source
 
@@ -51,6 +62,9 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "materialize_entry_model_native_train_feature_ranker_v1"
     )
     for forbidden in (
+        "audit_seq513_source_cascade_v1",
+        'CV2="$EVENT/canonical_features_v2.parquet"',
+        'TAPE="$EVENT/m5_tape_native_v3"',
         "pgrep",
         "sleep 60",
         "ls -1",
@@ -69,7 +83,7 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
 
     assert 'git -C "$ENG" rev-parse --verify HEAD' in source
     assert 'git -C "$ENG" status --porcelain --untracked-files=all' in source
-    assert source.count("require_source_identity") == 13
+    assert source.count("require_source_identity") == 18
     assert 'repository HEAD changed after binding' in source
     assert 'repository worktree changed after binding' in source
     assert '"git_head": git_head or None' in source
@@ -86,12 +100,15 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert '"entry_run_id": run_id' in source
     assert '"step": step' in source
     assert '"state": state' in source
-    assert '"schema_version": "seq513_rebuild_chain_status_v6"' in source
+    assert '"schema_version": "seq513_rebuild_chain_status_v7"' in source
     assert '"next_boundary": (' in source
     assert '"unified_exit_lifecycle_dir": exit_lifecycle_dir' in source
     assert "stopped before post-rebuild audits/readiness" in source
     assert '"source_cascade": {' in source
     assert '"rank_reference": {' in source
+    assert '"pair_authority": {' in source
+    assert '"m1_exit_feature_base": m1_feature_base_path' in source
+    assert '"m5_entry_feature_base": m5_feature_base_path' in source
     assert '"boot_id": boot_id' in source
     assert '"chain_pid": int(chain_pid)' in source
     assert 'f"CHAIN_TERMINAL_{stamp}_{state}.json"' in source
@@ -116,6 +133,7 @@ def test_chain_cli_rejects_old_positional_interface() -> None:
     assert "--preflight-out-dir" in help_result.stdout
     assert "--m1-lifecycle-pair-manifest-json" in help_result.stdout
     assert "--m1-lifecycle-pair-generation-root" in help_result.stdout
+    assert "--early-move-threshold-bps" in help_result.stdout
 
     old = subprocess.run(
         [str(SCRIPT), "XAU_SEQ513_REBUILD_UNIT_V1", "/tmp/unit-event"],
@@ -164,6 +182,8 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
             str(pair_generation_root),
             "--exit-target-lookahead-m1-steps",
             "30",
+            "--early-move-threshold-bps",
+            "4.0",
             "--history-start",
             "2021-01-05T00:00:00Z",
             "--train-start",
@@ -192,13 +212,17 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     assert status["state"] == "RED"
     # A dirty development checkout fails at the earlier source gate; a clean CI
     # checkout reaches the intentionally out-of-event preflight rejection.
-    assert status["step"] in {"source-revision", "contract-validation"}
+    assert status["step"] in {
+        "source-revision",
+        "pair-authority",
+        "contract-validation",
+    }
     assert status["entry_run_id"] == run_id
     assert status["event_root"] == str(event)
     assert re.fullmatch(r"[0-9a-f]{40}", status["git_head"])
     assert Path(status["log_path"]).is_file()
     assert status["exit_code"] == 2
-    assert status["schema_version"] == "seq513_rebuild_chain_status_v6"
+    assert status["schema_version"] == "seq513_rebuild_chain_status_v7"
     assert status["next_boundary"] == (
         "REPAIR_CURRENT_FAILED_STEP_WITHOUT_REUSING_PARTIAL_OUTPUT"
     )
@@ -211,6 +235,12 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     )
     assert status["rank_reference"]["sidecar_path"].endswith(
         "model_native_train_rank_reference_v4.npz.json"
+    )
+    assert status["outputs"]["m1_exit_feature_base"].endswith(
+        "/m1_feature_base.parquet"
+    )
+    assert status["outputs"]["m5_entry_feature_base"].endswith(
+        "/m5_feature_base.parquet"
     )
     assert re.fullmatch(r"[0-9a-f-]{36}", status["boot_id"])
     assert status["chain_pid"] > 0

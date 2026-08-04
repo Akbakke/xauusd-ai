@@ -225,9 +225,34 @@ def test_canonical_split_writer_rejects_soft_or_legacy_contracts(
     assert not list(tmp_path.glob("*.manifest.json"))
 
 
-def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict]:
+def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict, Path]:
     source = tmp_path / "canonical_source.parquet"
-    source.write_bytes(b"canonical-source-proof")
+    model_source = tmp_path / "model_source.parquet"
+    times = pd.to_datetime(
+        [
+            "2020-11-01T00:00:00Z",
+            "2020-11-09T00:00:00Z",
+            "2025-09-30T23:59:59Z",
+        ],
+        utc=True,
+    )
+    close = np.asarray([1800.0, 1801.0, 2300.0], dtype=np.float64)
+    market = pd.DataFrame(
+        {
+            "time": times,
+            "high": close + 1.0,
+            "low": close - 1.0,
+            "close": close,
+            "bid_close": close - 0.05,
+            "ask_close": close + 0.05,
+        }
+    )
+    market.assign(canonical_only=[1.0, 2.0, 3.0]).to_parquet(
+        source, index=False
+    )
+    market.assign(model_only=[4.0, 5.0, 6.0]).to_parquet(
+        model_source, index=False
+    )
     rank_reference = tmp_path / "model_native_rank_reference.npz"
     fit_start = pd.Timestamp("2020-11-09T00:00:00Z")
     fit_end = pd.Timestamp("2025-09-30T23:59:59Z")
@@ -262,18 +287,19 @@ def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict]:
         json.dumps(payload),
         encoding="utf-8",
     )
-    return rank_reference, payload
+    return rank_reference, payload, model_source
 
 
 def test_builder_requires_audited_rank_reference_and_source_hashes(
     tmp_path: Path,
 ) -> None:
-    rank_reference, payload = _rank_reference_fixture(tmp_path)
+    rank_reference, payload, model_source = _rank_reference_fixture(tmp_path)
 
     contract = _model_native_state_contract(
         args=argparse.Namespace(
             model_native_rank_reference_npz=str(rank_reference),
-            source_parquet=payload["source_parquet"],
+            source_parquet=str(model_source),
+            canonical_v2_parquet=payload["source_parquet"],
             run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
         ),
         feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
@@ -306,7 +332,7 @@ def test_builder_rejects_missing_or_tampered_rank_reference_contract(
             train_end=pd.Timestamp("2025-09-30T23:59:59Z"),
         )
 
-    rank_reference, payload = _rank_reference_fixture(tmp_path)
+    rank_reference, payload, model_source = _rank_reference_fixture(tmp_path)
     payload["source_parquet_sha256"] = "0" * 64
     rank_reference.with_suffix(".npz.json").write_text(
         json.dumps(payload),
@@ -316,7 +342,8 @@ def test_builder_rejects_missing_or_tampered_rank_reference_contract(
         _model_native_state_contract(
             args=argparse.Namespace(
                 model_native_rank_reference_npz=str(rank_reference),
-                source_parquet=payload["source_parquet"],
+                source_parquet=str(model_source),
+                canonical_v2_parquet=payload["source_parquet"],
                 run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
             ),
             feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),

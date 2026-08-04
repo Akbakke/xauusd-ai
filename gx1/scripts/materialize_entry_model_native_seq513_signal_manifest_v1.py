@@ -127,7 +127,7 @@ _RANKING_TOP_LEVEL_KEYS = frozenset(
         "ranked_features",
     }
 )
-_SOURCE_CASCADE_KEYS = frozenset(
+_CURRENT_SOURCE_CASCADE_KEYS = frozenset(
     {
         "path",
         "sha256",
@@ -140,10 +140,6 @@ _SOURCE_CASCADE_KEYS = frozenset(
         "multi_tf_cache_identity_sha256",
         "history_start_utc",
         "time_max_utc",
-    }
-)
-_CURRENT_SOURCE_CASCADE_KEYS = _SOURCE_CASCADE_KEYS | frozenset(
-    {
         "source_parquet_path",
         "canonical_v2_path",
         "multi_tf_cache_dir",
@@ -400,13 +396,17 @@ def load_and_validate_train_feature_ranking(
     history_start = parse_state_utc(
         raw_rank_reference.get("history_start_utc"), field="history_start_utc"
     )
+    rank_source_sha256 = _require_sha256(
+        raw_rank_reference.get("source_parquet_sha256"),
+        field="rank_reference.source_parquet_sha256",
+    )
     reference = validate_train_rank_reference_lineage_v2(
         rank_path,
         expected_run_id=entry_run_id,
         expected_source_parquet=Path(
             str(raw_rank_reference.get("source_parquet") or "")
         ),
-        expected_source_sha256=source_hash,
+        expected_source_sha256=rank_source_sha256,
         expected_history_start_utc=history_start,
         expected_fit_start_utc=train_start,
         expected_fit_end_utc=train_end,
@@ -423,7 +423,7 @@ def load_and_validate_train_feature_ranking(
         "source_parquet": str(
             Path(str(reference.sidecar["source_parquet"])).expanduser().resolve()
         ),
-        "source_parquet_sha256": source_hash,
+        "source_parquet_sha256": rank_source_sha256,
         "history_start_utc": history_start.isoformat(),
         "fit_start_utc": reference.fit_start_utc.isoformat(),
         "fit_end_utc": reference.fit_end_utc.isoformat(),
@@ -435,42 +435,47 @@ def load_and_validate_train_feature_ranking(
         raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_METADATA_MISMATCH")
 
     raw_source_cascade = ranking.get("source_cascade")
-    current_source_cascade = (
-        isinstance(raw_source_cascade, dict)
-        and raw_source_cascade.get("schema_version")
-        == "seq513_source_cascade_pair_proof_v1"
-    )
-    expected_source_cascade_keys = (
-        _CURRENT_SOURCE_CASCADE_KEYS if current_source_cascade else _SOURCE_CASCADE_KEYS
-    )
     if (
         not isinstance(raw_source_cascade, dict)
-        or frozenset(raw_source_cascade) != expected_source_cascade_keys
+        or raw_source_cascade.get("schema_version")
+        != "seq513_source_cascade_pair_proof_v1"
+        or frozenset(raw_source_cascade) != _CURRENT_SOURCE_CASCADE_KEYS
     ):
-        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_SCHEMA_INVALID")
+        raise RuntimeError("FEATURE_RANKING_CURRENT_SOURCE_CASCADE_REQUIRED")
     event_root = Path(str(raw_source_cascade.get("event_root") or "")).expanduser()
     if not event_root.is_absolute():
         raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_EVENT_ROOT_INVALID")
     event_root = event_root.resolve()
-    expected_source = Path(
+    canonical_path = Path(
+        str(raw_source_cascade["canonical_v2_path"])
+    ).expanduser().resolve()
+    ranking_source = Path(
+        str(raw_source_cascade["source_parquet_path"])
+    ).expanduser().resolve()
+    if ranking_source.parent != event_root:
+        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_EVENT_ROOT_MISMATCH")
+    rank_source = Path(
         str(reference.sidecar["source_parquet"])
     ).expanduser().resolve()
-    if expected_source.parent != event_root:
-        raise RuntimeError("FEATURE_RANKING_SOURCE_CASCADE_EVENT_ROOT_MISMATCH")
-    canonical_path = (
-        Path(str(raw_source_cascade["canonical_v2_path"])).expanduser().resolve()
-        if current_source_cascade
-        else event_root / "canonical_features_v2.parquet"
+    if rank_source != canonical_path:
+        raise RuntimeError(
+            "FEATURE_RANKING_RANK_SOURCE_CANONICAL_PATH_MISMATCH"
+        )
+    declared_canonical_sha = _require_sha256(
+        raw_source_cascade.get("canonical_v2_sha256"),
+        field="source_cascade.canonical_v2_sha256",
     )
-    mtf_path = (
-        Path(str(raw_source_cascade["multi_tf_cache_dir"])).expanduser().resolve()
-        if current_source_cascade
-        else event_root / "MULTI_TF_V4_CACHE"
-    )
+    if rank_source_sha256 != declared_canonical_sha:
+        raise RuntimeError(
+            "FEATURE_RANKING_RANK_SOURCE_CANONICAL_SHA256_MISMATCH"
+        )
+    mtf_path = Path(
+        str(raw_source_cascade["multi_tf_cache_dir"])
+    ).expanduser().resolve()
     source_cascade = validate_seq513_source_cascade_proof(
         Path(str(raw_source_cascade.get("path") or "")),
         expected_run_id=entry_run_id,
-        expected_source_parquet=expected_source,
+        expected_source_parquet=ranking_source,
         expected_canonical_v2_parquet=canonical_path,
         expected_mtf_cache_dir=mtf_path,
         expected_history_start_utc=history_start,

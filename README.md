@@ -36,11 +36,12 @@ handwritten direction rules, fallbacks or alternate replay selectors.
 The source architecture and contracts are substantially connected and tested,
 but the system is not empirically finished:
 
-- the 2026-08-04 producer-tree audit completed five independent review lanes,
-  repo-wide lint/compile/shell/JSON checks and 2,003 passing tests with no skips
-  or warnings;
+- the current 2026-08-04 producer tree passed repo-wide lint/compile/shell
+  checks and all 2,006 collected tests under the 4G cgroup;
 
-- no current admitted dataset or recipe;
+- fresh native M1/M5 V4 sources and canonical generation
+  `64d62c1f29e5...a11b84c` are published and hash-bound;
+- no current admitted M1/M5 feature surfaces, dataset or recipe;
 - no accepted Entry/Exit checkpoint or calibrated bundle;
 - no untouched-TEST edge, historical PnL or win-rate proof;
 - no same-candidate full-TEST unified Exit proof.

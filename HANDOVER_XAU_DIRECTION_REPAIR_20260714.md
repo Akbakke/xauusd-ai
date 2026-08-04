@@ -5,15 +5,16 @@ document. `GX1_RULES.md` is binding.
 
 ## Current verdict
 
-The car's major components are connected in source, but it is not ready to
-drive. Launch remains `BLOCK`. No admitted dataset, valid training recipe,
+The car's major components are connected in source, and a fresh immutable
+native/canonical source pair is published, but it is not ready to drive.
+Launch remains `BLOCK`. No admitted featurebase/dataset, valid training recipe,
 accepted model, calibrated bundle, untouched-TEST edge, PnL or win-rate proof
 exists.
 
-The final producer-tree audit on 2026-08-04 used five independent review lanes.
-Repo-wide Ruff, Python compilation, tracked-shell syntax, JSON parsing and all
-2,003 collected tests passed with zero skips and zero warnings under the 4G
-cgroup. This proves source consistency, not trading edge or profitability.
+The prior producer-tree audit on 2026-08-04 used five independent review lanes.
+The current rank-source/current-pair repair passed repo-wide Ruff, Python
+compilation, shell syntax and all 2,006 collected tests under the 4G cgroup.
+Source consistency never proves trading edge or profitability.
 
 The old V8 dataset, V13 lifecycle and V18 recipe cannot be resumed. Contract
 repairs changed source lineage and M1 episode semantics; V18 also reused the
@@ -76,12 +77,21 @@ The latest repair pass also:
 - removed the old label-horizon replay commands from the active control path;
 - completed the authorized retention workflow for 33 exact old-run targets
   with `DELETE_COMPLETE` and no recorded failure;
-- replaced the stale handover that falsely treated V18 as runnable.
+- replaced the stale handover that falsely treated V18 as runnable;
+- published native V4 sources and canonical pair generation
+  `64d62c1f29e5d2b30f4e187af1ec65cabd48bb50fe4638a3ec5af2523a11b84c`:
+  M1 has 2,661,631 rows through `2026-08-04T07:54:00Z`, M5 has 537,861
+  rows through `07:50:00Z`, canonical has 470,139 rows and BASE28 has
+  2,335,830 rows;
+- replaced the circular rank dependency with one canonical-M5 TRAIN-rank
+  source plus exact canonical-to-final-M5 market identity proof;
+- rewired `scripts/run_seq513_rebuild_chain_v1.sh` to build current M5 and M1
+  owner lanes, the mandatory M15 cache, both ordered feature surfaces and then
+  preflight/rebuild. The legacy event-local source-cascade route is rejected.
 
 ## What remains empirically unproven or unadmitted
 
-1. A fresh native pair and rebuilt M1/M5 featurebase under the repaired source
-   contracts.
+1. Rebuilt M1/M5 feature surfaces from the published pair.
 2. A lifecycle-v3 and split dataset with complete liveness and exact identity.
 3. A distinct, valid bounded smoke recipe and successful smoke bundle.
 4. A full candidate trained on all TRAIN rows.
@@ -111,8 +121,10 @@ do not inspect, clean or delete it. Preserve all unrelated user changes.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with `scripts/gx1_handover.sh --check`.
-2. Publish fresh native M1 and M5 artifacts with one new dataset run ID.
-3. Rebuild both feature resolutions, MTF cache, lifecycle and TRAIN/VAL/TEST.
+2. Run the current-pair chain from the published pair with one new dataset run
+   ID; it builds both native feature lanes one capped job at a time.
+3. Admit the resulting M1/M5 surfaces, lifecycle and TRAIN/VAL/TEST only if all
+   preflight/liveness/identity gates pass.
 4. Produce a distinct smoke training run ID and exact 4G/10G-safe recipe.
 5. Run smoke and audit every class, head, gate and Exit path.
 6. If smoke passes, train one full candidate, calibrate and freeze it.

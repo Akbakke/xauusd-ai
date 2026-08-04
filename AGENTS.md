@@ -19,6 +19,9 @@ Read `GX1_RULES.md` first. It is binding.
   already computed M1 indicator values into a higher timeframe.
 - Unique model argmax is the only Entry/Exit authority; ties fail closed.
 - There is no admitted dataset, recipe, model, edge, win-rate or PnL proof.
+- Fresh native M1/M5 V4 sources and canonical pair generation
+  `64d62c1f...a11b84c` exist. They are source authority only; the current
+  feature surfaces and dataset have not yet been admitted.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
   stopped safely. Source/lifecycle fixes invalidate V8/V13/V18 as resume input.
 
@@ -41,6 +44,9 @@ do not modify or delete it.
 - One formula, one ordered field contract and one normalization state must serve
   native M5 and native M1. The exact Entry signal-manifest hash and TRAIN-rank
   state must bind the Exit surface. Resolution-specific values stay separate.
+- Fit that rank state from the pair-bound canonical M5 market fields, then
+  require exact canonical-to-final-M5 market identity through TRAIN. Never
+  revive the circular rank-from-downstream-source path.
 - No ambient environment flag may change feature bytes, dimensions, sampling,
   objectives or model decisions. Recipe-owned values are exact and audited.
 - There is one deterministic FP32 trainer path. Feature producers use one
@@ -83,7 +89,8 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Publish a fresh native M1/M5 pair under a new dataset run ID.
+2. Use the published V4 native/canonical pair and run the current-pair rebuild
+   chain under a new dataset run ID.
 3. Rebuild both resolution surfaces, then pass the exact M5 surface to Entry
    and the exact M1 surface to lifecycle/Exit before building the splits.
 4. Materialize a distinct training run ID and bounded smoke recipe.

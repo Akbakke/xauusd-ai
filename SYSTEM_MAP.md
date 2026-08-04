@@ -54,6 +54,12 @@ the exact ordered signal-manifest identity, while their computed values remain
 native to each clock. Exit episodes point into the hash-bound M1 surface; they
 do not duplicate paths.
 
+The current published source authority is pair generation
+`64d62c1f29e5d2b30f4e187af1ec65cabd48bb50fe4638a3ec5af2523a11b84c`
+through `2026-08-04T07:50:00Z` M5 / `07:54:00Z` M1. One rank artifact is fit
+from its canonical M5 market fields; the final model source must prove exact
+market identity through TRAIN before either ranking or dataset construction.
+
 The Exit row clock is consecutive authoritative observed M1 rows. Weekend and
 market-closure gaps are allowed only when the native OANDA manifest proves
 source absence; no synthetic candle is inserted. A lifecycle episode has 480
@@ -95,8 +101,9 @@ source pair
  -> recomputable sizing/serve parity evidence
 ```
 
-Failure at any arrow stops the chain. Current status is before a fresh source
-and dataset rebuild; no accepted candidate exists.
+Failure at any arrow stops the chain. Fresh native and canonical source now
+exists; current status is before the shared M1/M5 feature-surface and dataset
+rebuild. No accepted candidate exists.
 
 ## Scope boundary
 

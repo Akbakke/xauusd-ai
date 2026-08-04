@@ -205,11 +205,13 @@ def _build_fixture(
     canonical = _write_parquet(
         tmp_path / "inputs/canonical_v2.parquet",
         {
-            "time": [
-                datetime(2020, 1, 1, tzinfo=timezone.utc),
-                datetime(2026, 6, 26, 3, 25, tzinfo=timezone.utc),
-            ],
-            "canonical_feature": [1.0, 2.0],
+            "time": source_times,
+            "high": (close + 1.0).tolist(),
+            "low": (close - 1.0).tolist(),
+            "close": close.tolist(),
+            "bid_close": (close - 0.05).tolist(),
+            "ask_close": (close + 0.05).tolist(),
+            "canonical_feature": np.arange(n_source, dtype=np.float64).tolist(),
         },
     )
     _write_parquet(
@@ -305,18 +307,24 @@ def _build_fixture(
         history_start=SPLITS["history_start"],
         fit_start=SPLITS["train_start"],
         fit_end=SPLITS["train_end"],
-        source_path=source,
+        source_path=canonical,
     )
     source_cascade = {
         "path": str((source.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
         "sha256": "9" * 64,
-        "schema_version": "seq513_source_cascade_proof_v7",
+        "schema_version": "seq513_source_cascade_pair_proof_v1",
         "entry_run_id": RUN_ID,
         "event_root": str(source.parent.resolve()),
+        "source_parquet_path": str(source.resolve()),
         "source_parquet_sha256": _sha256(source),
+        "canonical_v2_path": str(canonical.resolve()),
         "canonical_v2_sha256": _sha256(canonical),
+        "multi_tf_cache_dir": str((tmp_path / "inputs/mtf_cache").resolve()),
         "multi_tf_manifest_sha256": "4" * 64,
         "multi_tf_cache_identity_sha256": "5" * 64,
+        "pair_manifest_path": str(m1_pair_manifest.resolve()),
+        "pair_manifest_sha256": _sha256(m1_pair_manifest),
+        "pair_generation_id": "fixture-pair-generation-v1",
         "history_start_utc": SPLITS["history_start"],
         "time_max_utc": SPLITS["test_end"],
     }
@@ -347,8 +355,8 @@ def _build_fixture(
             "sidecar_sha256": rank_reference.sidecar_sha256,
             "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
             "entry_run_id": RUN_ID,
-            "source_parquet": str(source.resolve()),
-            "source_parquet_sha256": _sha256(source),
+            "source_parquet": str(canonical.resolve()),
+            "source_parquet_sha256": _sha256(canonical),
             "history_start_utc": datetime.fromisoformat(
                 SPLITS["history_start"]
             ).isoformat(),
@@ -717,8 +725,13 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     assert command["rank_reference_contract"] == {
         "producer": "gx1.scripts.materialize_model_native_train_rank_reference_v2",
         "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "source_parquet": str(Path(args.source_parquet).resolve()),
-        "source_parquet_sha256": _sha256(Path(args.source_parquet)),
+        "source_parquet": str(Path(args.canonical_v2_parquet).resolve()),
+        "source_parquet_sha256": _sha256(Path(args.canonical_v2_parquet)),
+        "model_source_parquet": str(Path(args.source_parquet).resolve()),
+        "model_source_parquet_sha256": _sha256(Path(args.source_parquet)),
+        "source_model_market_identity": (
+            "exact_time_high_low_close_bid_close_ask_close_history_through_train"
+        ),
         "output_npz": str(Path(args.rank_reference_npz).resolve()),
         "sidecar_json": str(Path(args.rank_reference_npz).resolve()) + ".json",
         "materialized_before_dataset_builder": True,
@@ -878,7 +891,7 @@ def test_preflight_blocks_incomplete_contracts(
         ),
         (
             {"break_ranking_source_hash": True},
-            "MODEL_NATIVE_TRAIN_RANK_LINEAGE_SOURCE_SHA_MISMATCH",
+            "FEATURE_RANKING_SOURCE_SHA256_MISMATCH",
         ),
         (
             {"break_ranking_train_window": True},

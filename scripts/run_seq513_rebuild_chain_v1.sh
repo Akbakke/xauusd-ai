@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# One-shot fail-closed chain driver for one fresh seq513 dataset event:
-#   fresh immutable TRAIN rank reference -> fresh explicit TRAIN ranking
-#   -> fresh explicit signal manifest -> fresh preflight
-#   -> fresh combined Entry/lifecycle dataset rebuild
+# One fail-closed chain for the current shared Entry/Exit feature architecture:
+#   canonical-pair TRAIN rank -> native M5/M1 owner surfaces (one worker)
+#   -> M5 model source + M5/M15/H1/H4/D1 cache -> TRAIN ranking
+#   -> one signal manifest -> M1/M5 513-field feature surfaces
+#   -> preflight -> combined Entry/Exit dataset rebuild.
 #
 # The driver never discovers artifacts, waits for an external producer, resumes
 # from inferred debris, or treats existing split manifests as completion. It
@@ -30,6 +31,7 @@ TEST_END=
 M1_LIFECYCLE_PAIR_MANIFEST=
 M1_LIFECYCLE_PAIR_GENERATION_ROOT=
 EXIT_TARGET_LOOKAHEAD_M1_STEPS=
+EARLY_MOVE_THRESHOLD_BPS=
 
 usage() {
   printf '%s\n' \
@@ -39,6 +41,7 @@ usage() {
     "  --m1-lifecycle-pair-manifest-json /absolute/immutable/generation/PAIR_MANIFEST.json" \
     "  --m1-lifecycle-pair-generation-root /absolute/immutable/generations" \
     "  --exit-target-lookahead-m1-steps N" \
+    "  --early-move-threshold-bps BPS" \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -138,6 +141,12 @@ while (($#)); do
       EXIT_TARGET_LOOKAHEAD_M1_STEPS=$2
       shift 2
       ;;
+    --early-move-threshold-bps)
+      (($# >= 2)) || die_args "--early-move-threshold-bps requires a value"
+      [[ -z $EARLY_MOVE_THRESHOLD_BPS ]] || die_args "duplicate --early-move-threshold-bps"
+      EARLY_MOVE_THRESHOLD_BPS=$2
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -152,7 +161,7 @@ for name in \
   RUN_ID EVENT RANKING PRE_OUT HISTORY_START TRAIN_START TRAIN_END \
   VAL_START VAL_END TEST_START TEST_END M1_LIFECYCLE_PAIR_MANIFEST \
   M1_LIFECYCLE_PAIR_GENERATION_ROOT \
-  EXIT_TARGET_LOOKAHEAD_M1_STEPS; do
+  EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
@@ -163,11 +172,14 @@ fi
 [[ -d $EVENT && ! -L $EVENT ]] || die_args "--event-root must be an existing regular directory"
 
 SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
-CV2="$EVENT/canonical_features_v2.parquet"
 MTF="$EVENT/MULTI_TF_V4_CACHE"
-# Fresh rebuilds accept only the immutable native OANDA M5 source.
-TAPE="$EVENT/m5_tape_native_v3"
 RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
+M1_ENRICHED="$EVENT/m1_enriched.parquet"
+M5_ENRICHED="$EVENT/m5_enriched.parquet"
+M1_FEATURE_BASE="$EVENT/m1_feature_base.parquet"
+M5_FEATURE_BASE="$EVENT/m5_feature_base.parquet"
+M1_CHECKPOINT="$EVENT/m1_enriched_checkpoint"
+M5_CHECKPOINT="$EVENT/m5_enriched_checkpoint"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__DIR_H24B.parquet"
 AUDIT="$EVENT/audit"
 EXIT_LIFECYCLE="$EVENT/exit_lifecycle"
@@ -192,6 +204,13 @@ PREFLIGHT_JSON=
 PREFLIGHT_SHA256=
 SOURCE_CASCADE="$EVENT/SEQ513_SOURCE_CASCADE_PROOF_${STAMP}.json"
 SOURCE_CASCADE_SHA256=
+PAIR_MANIFEST_SHA256=
+PAIR_GENERATION_ID=
+CV2=
+BASE28=
+NATIVE_M1_ROOT=
+NATIVE_M5_ROOT=
+TAPE=
 
 tg() {
   "$PY" - "$1" <<'PYEOF' || true
@@ -219,7 +238,9 @@ write_status() {
     "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" "$RANK_NPZ" \
     "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" \
     "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" "$OUTPUT" "$AUDIT" \
-    "$EXIT_LIFECYCLE" <<'PYEOF'
+    "$EXIT_LIFECYCLE" "$M1_FEATURE_BASE" "$M5_FEATURE_BASE" \
+    "$M1_LIFECYCLE_PAIR_MANIFEST" "$PAIR_MANIFEST_SHA256" \
+    "$PAIR_GENERATION_ID" <<'PYEOF'
 import json
 import os
 import sys
@@ -254,6 +275,11 @@ from pathlib import Path
     dataset_output_path,
     audit_output_dir,
     exit_lifecycle_dir,
+    m1_feature_base_path,
+    m5_feature_base_path,
+    pair_manifest_path,
+    pair_manifest_sha256,
+    pair_generation_id,
 ) = sys.argv[1:]
 path = Path(raw_path)
 now = datetime.now(timezone.utc)
@@ -263,7 +289,7 @@ if state in terminal_states:
     stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     terminal_path = path.with_name(f"CHAIN_TERMINAL_{stamp}_{state}.json")
 payload = {
-    "schema_version": "seq513_rebuild_chain_status_v6",
+    "schema_version": "seq513_rebuild_chain_status_v7",
     "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
@@ -288,6 +314,11 @@ payload = {
         "sidecar_path": f"{rank_reference_path}.json",
         "sidecar_sha256": rank_reference_sidecar_sha256 or None,
     },
+    "pair_authority": {
+        "manifest_path": pair_manifest_path,
+        "manifest_sha256": pair_manifest_sha256 or None,
+        "pair_generation_id": pair_generation_id or None,
+    },
     "signal_manifest": {
         "path": manifest_path,
         "sha256": manifest_sha256 or None,
@@ -301,6 +332,8 @@ payload = {
         "dataset_output_stem": dataset_output_path,
         "audit_output_dir": audit_output_dir,
         "unified_exit_lifecycle_dir": exit_lifecycle_dir,
+        "m1_exit_feature_base": m1_feature_base_path,
+        "m5_entry_feature_base": m5_feature_base_path,
     },
     "next_boundary": (
         "POST_REBUILD_AUDITS_AND_READINESS"
@@ -434,6 +467,112 @@ require_source_identity() {
   [[ -z $observed_status ]] || fail "repository worktree changed after binding"
 }
 
+# One pair manifest owns canonical M5, aligned M1, and both native roots.  The
+# chain never accepts event-local copies or separately selected source trees.
+CURRENT_STEP=pair-authority
+write_status "$CURRENT_STEP" RUNNING
+if ! PAIR_BINDING=$("$PY" - \
+  "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" <<'PYEOF'
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+
+def regular_file(raw: str, *, label: str) -> Path:
+    path = Path(raw).expanduser()
+    if not path.is_absolute() or path != path.resolve(strict=False):
+        raise RuntimeError(f"{label} must be an exact absolute path: {path}")
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"{label} is missing/non-regular: {path}")
+    return path
+
+
+def regular_dir(raw: str, *, label: str) -> Path:
+    path = Path(raw).expanduser()
+    if not path.is_absolute() or path != path.resolve(strict=False):
+        raise RuntimeError(f"{label} must be an exact absolute path: {path}")
+    if path.is_symlink() or not path.is_dir():
+        raise RuntimeError(f"{label} is missing/non-regular: {path}")
+    return path
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+manifest = regular_file(sys.argv[1], label="pair manifest")
+generation_root = regular_dir(sys.argv[2], label="pair generation root")
+payload = json.loads(manifest.read_text(encoding="utf-8"))
+pair_id = str(payload.get("pair_generation_id") or "")
+if not re.fullmatch(r"[0-9a-f]{64}", pair_id):
+    raise RuntimeError("pair generation id is not an exact SHA-256")
+artifacts = payload.get("artifacts")
+lineage = payload.get("lineage")
+native = lineage.get("native_sources") if isinstance(lineage, dict) else None
+if not isinstance(artifacts, dict) or not isinstance(native, dict):
+    raise RuntimeError("pair manifest artifact/native lineage is missing")
+canonical_meta = artifacts.get("canonical_v3")
+base28_meta = artifacts.get("base28")
+if not isinstance(canonical_meta, dict) or not isinstance(base28_meta, dict):
+    raise RuntimeError("pair manifest canonical/base28 binding is missing")
+canonical = regular_file(
+    str(canonical_meta.get("parquet_path") or ""), label="pair canonical parquet"
+)
+base28 = regular_file(
+    str(base28_meta.get("parquet_path") or ""), label="pair base28 parquet"
+)
+if canonical.parent != generation_root / pair_id or base28.parent != canonical.parent:
+    raise RuntimeError("pair artifacts are outside the exact generation directory")
+if sha256(canonical) != canonical_meta.get("parquet_sha256"):
+    raise RuntimeError("pair canonical parquet hash mismatch")
+if sha256(base28) != base28_meta.get("parquet_sha256"):
+    raise RuntimeError("pair base28 parquet hash mismatch")
+
+roots = []
+for timeframe in ("m1", "m5"):
+    meta = native.get(timeframe)
+    if not isinstance(meta, dict):
+        raise RuntimeError(f"pair native {timeframe} binding is missing")
+    root = regular_dir(str(meta.get("root") or ""), label=f"native {timeframe} root")
+    native_manifest = regular_file(
+        str(meta.get("manifest_path") or ""), label=f"native {timeframe} manifest"
+    )
+    if native_manifest.parent != root or sha256(native_manifest) != meta.get("manifest_sha256"):
+        raise RuntimeError(f"pair native {timeframe} manifest mismatch")
+    roots.append(root)
+
+print(
+    "\t".join(
+        (
+            sha256(manifest),
+            pair_id,
+            str(canonical),
+            str(base28),
+            str(roots[0]),
+            str(roots[1]),
+        )
+    )
+)
+PYEOF
+); then
+  fail "current pair authority validation failed"
+fi
+IFS=$'\t' read -r PAIR_MANIFEST_SHA256 PAIR_GENERATION_ID CV2 BASE28 \
+  NATIVE_M1_ROOT NATIVE_M5_ROOT <<<"$PAIR_BINDING"
+TAPE=$NATIVE_M5_ROOT
+[[ -n $PAIR_MANIFEST_SHA256 && -n $PAIR_GENERATION_ID && -n $CV2 \
+   && -n $BASE28 && -n $NATIVE_M1_ROOT && -n $NATIVE_M5_ROOT ]] \
+  || fail "current pair authority emitted an incomplete binding"
+require_source_identity
+write_status "$CURRENT_STEP" RUNNING
+
 # Validate all operator-supplied identities before any producer starts. The
 # ranking and fresh preflight namespace must be exact
 # canonical absolute paths below this event root; symlink indirection, mutable
@@ -442,10 +581,24 @@ CURRENT_STEP=contract-validation
 write_status "$CURRENT_STEP" RUNNING
 [[ $EXIT_TARGET_LOOKAHEAD_M1_STEPS =~ ^[1-9][0-9]*$ ]] \
   || fail "--exit-target-lookahead-m1-steps must be a positive integer"
+if ! "$PY" - "$EARLY_MOVE_THRESHOLD_BPS" <<'PYEOF'
+import math
+import sys
+
+value = float(sys.argv[1])
+if not math.isfinite(value) or value <= 0.0:
+    raise RuntimeError("early move threshold must be finite and positive")
+PYEOF
+then
+  fail "--early-move-threshold-bps must be finite and positive"
+fi
 if ! "$PY" - \
   "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
   "$SRC" "$CV2" "$MTF" "$TAPE" "$M1_LIFECYCLE_PAIR_MANIFEST" \
   "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" "$EXIT_LIFECYCLE" \
+  "$BASE28" "$NATIVE_M1_ROOT" "$NATIVE_M5_ROOT" \
+  "$M1_ENRICHED" "$M5_ENRICHED" "$M1_FEATURE_BASE" "$M5_FEATURE_BASE" \
+  "$M1_CHECKPOINT" "$M5_CHECKPOINT" "$SOURCE_CASCADE" \
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
   "$TEST_START" "$TEST_END" >>"$LOG" 2>&1 <<'PYEOF'
 import re
@@ -468,6 +621,16 @@ import pandas as pd
     raw_m1_lifecycle_pair_manifest,
     raw_m1_lifecycle_pair_generation_root,
     raw_exit_lifecycle,
+    raw_base28,
+    raw_native_m1,
+    raw_native_m5,
+    raw_m1_enriched,
+    raw_m5_enriched,
+    raw_m1_feature_base,
+    raw_m5_feature_base,
+    raw_m1_checkpoint,
+    raw_m5_checkpoint,
+    raw_source_cascade,
     raw_history_start,
     raw_train_start,
     raw_train_end,
@@ -515,6 +678,16 @@ exit_lifecycle = exact_path(
     raw_exit_lifecycle,
     label="Exit lifecycle output directory",
 )
+base28 = exact_path(raw_base28, label="pair base28 parquet")
+native_m1 = exact_path(raw_native_m1, label="native M1 root")
+native_m5 = exact_path(raw_native_m5, label="native M5 root")
+m1_enriched = exact_path(raw_m1_enriched, label="M1 enriched output")
+m5_enriched = exact_path(raw_m5_enriched, label="M5 enriched output")
+m1_feature_base = exact_path(raw_m1_feature_base, label="M1 feature-base output")
+m5_feature_base = exact_path(raw_m5_feature_base, label="M5 feature-base output")
+m1_checkpoint = exact_path(raw_m1_checkpoint, label="M1 checkpoint")
+m5_checkpoint = exact_path(raw_m5_checkpoint, label="M5 checkpoint")
+source_cascade = exact_path(raw_source_cascade, label="source cascade output")
 
 for label, path in (
     ("feature ranking", ranking),
@@ -523,9 +696,14 @@ for label, path in (
     ("dataset output", output),
     ("audit output directory", audit),
     ("source parquet", source),
-    ("canonical-v2 parquet", canonical),
     ("MTF cache", mtf),
-    ("tape root", tape),
+    ("M1 enriched output", m1_enriched),
+    ("M5 enriched output", m5_enriched),
+    ("M1 feature-base output", m1_feature_base),
+    ("M5 feature-base output", m5_feature_base),
+    ("M1 checkpoint", m1_checkpoint),
+    ("M5 checkpoint", m5_checkpoint),
+    ("source cascade output", source_cascade),
     ("Exit lifecycle output directory", exit_lifecycle),
 ):
     try:
@@ -555,14 +733,18 @@ if ranking_stamp > validation_now:
     )
 if preflight.exists() or preflight.is_symlink():
     raise RuntimeError(f"preflight output directory must be fresh: {preflight}")
-if not source.is_file() or source.is_symlink():
-    raise RuntimeError(f"source parquet is missing/non-regular: {source}")
 if not canonical.is_file() or canonical.is_symlink():
     raise RuntimeError(f"canonical-v2 parquet is missing/non-regular: {canonical}")
-if not mtf.is_dir() or mtf.is_symlink():
-    raise RuntimeError(f"MTF cache is missing/non-regular: {mtf}")
+if not base28.is_file() or base28.is_symlink():
+    raise RuntimeError(f"pair base28 parquet is missing/non-regular: {base28}")
+if not native_m1.is_dir() or native_m1.is_symlink():
+    raise RuntimeError(f"native M1 root is missing/non-regular: {native_m1}")
+if not native_m5.is_dir() or native_m5.is_symlink():
+    raise RuntimeError(f"native M5 root is missing/non-regular: {native_m5}")
 if not tape.is_dir() or tape.is_symlink():
     raise RuntimeError(f"tape root is missing/non-regular: {tape}")
+if tape != native_m5:
+    raise RuntimeError("dataset tape must be the pair-bound native M5 root")
 if (
     not m1_lifecycle_pair_manifest.is_file()
     or m1_lifecycle_pair_manifest.is_symlink()
@@ -617,32 +799,6 @@ if not all(left < right for left, right in zip(times, times[1:])):
         + ", ".join(f"{label}={value.isoformat()}" for label, value in zip(labels, times))
     )
 
-# Reject a context-trimmed source before spending time on TRAIN ranking.  The
-# final finite surface must already cover the declared common-history boundary;
-# pre-TRAIN row count alone is insufficient when its first timestamp is later
-# than --history-start.
-source_times = pd.to_datetime(
-    pd.read_parquet(source, columns=["time"])["time"], utc=True, errors="coerce"
-)
-if (
-    source_times.empty
-    or source_times.isna().any()
-    or source_times.duplicated().any()
-    or not source_times.is_monotonic_increasing
-):
-    raise RuntimeError("source time column must be nonempty, finite, unique, and ordered")
-source_first = pd.Timestamp(source_times.iloc[0])
-source_last = pd.Timestamp(source_times.iloc[-1])
-history_start, train_start, _, _, _, _, test_end = times
-pre_train_rows = int(((source_times >= history_start) & (source_times < train_start)).sum())
-if source_first > history_start or source_last < test_end or pre_train_rows < 96:
-    raise RuntimeError(
-        "source does not cover the declared common history/test window: "
-        f"first={source_first.isoformat()} history_start={history_start.isoformat()} "
-        f"last={source_last.isoformat()} test_end={test_end.isoformat()} "
-        f"pre_train_rows={pre_train_rows}"
-    )
-
 output_dir = output.parent
 output_stem = output.stem
 fresh_paths = [
@@ -651,6 +807,20 @@ fresh_paths = [
     event / "_ranker_group_a_checkpoint",
     rank_npz,
     Path(f"{rank_npz}.json"),
+    source,
+    Path(f"{source}.manifest.json"),
+    mtf,
+    source_cascade,
+    m1_enriched,
+    Path(f"{m1_enriched}.manifest.json"),
+    m5_enriched,
+    Path(f"{m5_enriched}.manifest.json"),
+    m1_feature_base,
+    Path(f"{m1_feature_base}.manifest.json"),
+    m5_feature_base,
+    Path(f"{m5_feature_base}.manifest.json"),
+    m1_checkpoint,
+    m5_checkpoint,
     output,
     output_dir / "DATASET_BUILD_PROOF.json",
     *(output_dir / f"{output_stem}_{split}.parquet" for split in ("train", "val", "test")),
@@ -690,65 +860,27 @@ require_unchanged() {
   [[ $observed == "$expected" ]] || fail "$label changed after identity binding"
 }
 
+require_pair_unchanged() {
+  require_unchanged "pair manifest" "$M1_LIFECYCLE_PAIR_MANIFEST" \
+    "$PAIR_MANIFEST_SHA256"
+}
+
 require_rank_reference_unchanged() {
   require_unchanged "rank reference" "$RANK_NPZ" "$RANK_REFERENCE_SHA256"
   require_unchanged "rank reference sidecar" "${RANK_NPZ}.json" \
     "$RANK_REFERENCE_SIDECAR_SHA256"
 }
 
-# The dataset is admissible only when the complete tape→CV2→CV3→modelrange
-# →V4-cache→FULL_PLUS cascade is one hash-bound event.
-CURRENT_STEP=source-cascade
-write_status "$CURRENT_STEP" RUNNING
-require_source_identity
-FULL_TIME_MIN=$("$PY" - "$SRC" <<'PYEOF'
-import sys
-import pandas as pd
-
-values = pd.to_datetime(
-    pd.read_parquet(sys.argv[1], columns=["time"])["time"],
-    utc=True,
-    errors="raise",
-)
-if values.empty or values.isna().any():
-    raise RuntimeError("source time coverage is empty or invalid")
-print(pd.Timestamp(values.iloc[0]).isoformat())
-PYEOF
-)
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
-  "$PY" -m gx1.scripts.audit_seq513_source_cascade_v1 \
-  --run-id "$RUN_ID" \
-  --event-root "$EVENT" \
-  --out "$SOURCE_CASCADE" \
-  --required-history-start "$HISTORY_START" \
-  --expected-full-time-min "$FULL_TIME_MIN" \
-  --expected-full-time-max "$TEST_END") >>"$LOG" 2>&1; then
-  fail "source cascade audit failed"
-fi
-[[ -f $SOURCE_CASCADE && ! -L $SOURCE_CASCADE ]] \
-  || fail "source cascade proof missing or non-regular"
-SOURCE_CASCADE_SHA256=$(hash_file "$SOURCE_CASCADE")
-require_source_identity
-write_status "$CURRENT_STEP" RUNNING
-printf '[chain] source-cascade=%s sha256=%s\n' \
-  "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" >>"$LOG"
-
-require_source_cascade_unchanged() {
-  require_unchanged "source cascade proof" "$SOURCE_CASCADE" \
-    "$SOURCE_CASCADE_SHA256"
-}
-
-# The frozen TRAIN-only ECDF/ATR state is upstream of feature computation.
-# Ranking, manifest, preflight, dataset, and live must therefore bind these
-# exact bytes rather than letting the dataset wrapper create a later artifact.
+# The one TRAIN rank state is fitted from canonical M5 market fields before
+# either native feature lane starts.  Both lanes bind the same NPZ bytes.
 CURRENT_STEP=train-rank-reference
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
-require_source_cascade_unchanged
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
+require_pair_unchanged
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 4G --swap 512M -- \
   "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
   --run-id "$RUN_ID" \
-  --source-parquet "$SRC" \
+  --source-parquet "$CV2" \
   --out "$RANK_NPZ" \
   --history-start "$HISTORY_START" \
   --fit-start "$TRAIN_START" \
@@ -760,10 +892,149 @@ fi
 RANK_REFERENCE_SHA256=$(hash_file "$RANK_NPZ")
 RANK_REFERENCE_SIDECAR_SHA256=$(hash_file "${RANK_NPZ}.json")
 require_source_identity
-require_source_cascade_unchanged
+require_pair_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] rank-reference=%s sha256=%s sidecar_sha256=%s\n' \
   "$RANK_NPZ" "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" >>"$LOG"
+
+# Build Entry locally on native M5.  The producer itself rejects workers != 1
+# and constructs M15/H1/H4/D1 from closed OHLCV before feature ownership.
+CURRENT_STEP=m5-enriched-feature-lane
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+require_pair_unchanged
+require_rank_reference_unchanged
+if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
+  model-native-m5-enriched-frame \
+  --native-root "$NATIVE_M5_ROOT" \
+  --rank-reference-npz "$RANK_NPZ" \
+  --rank-reference-sha256 "$RANK_REFERENCE_SHA256" \
+  --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --output-parquet "$M5_ENRICHED" \
+  --manifest-path "${M5_ENRICHED}.manifest.json" \
+  --checkpoint-dir "$M5_CHECKPOINT" \
+  --dataset-run-id "$RUN_ID" \
+  --pair-generation-id "$PAIR_GENERATION_ID" \
+  --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
+  fail "native M5 enriched feature lane failed"
+fi
+[[ -f $M5_ENRICHED && ! -L $M5_ENRICHED \
+   && -f ${M5_ENRICHED}.manifest.json && ! -L ${M5_ENRICHED}.manifest.json ]] \
+  || fail "native M5 enriched feature output is missing/non-regular"
+
+CURRENT_STEP=m5-model-source
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+require_pair_unchanged
+require_rank_reference_unchanged
+if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
+  model-native-m5-source-frame \
+  --enriched-parquet "$M5_ENRICHED" \
+  --native-m5-root "$NATIVE_M5_ROOT" \
+  --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --output-parquet "$SRC" \
+  --dataset-run-id "$RUN_ID" \
+  --pair-generation-id "$PAIR_GENERATION_ID") >>"$LOG" 2>&1; then
+  fail "M5 model-source materialization failed"
+fi
+[[ -f $SRC && ! -L $SRC && -f ${SRC}.manifest.json && ! -L ${SRC}.manifest.json ]] \
+  || fail "M5 model source/manifest is missing or non-regular"
+SOURCE_SHA256=$(hash_file "$SRC")
+
+CURRENT_STEP=mtf-cache
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+require_pair_unchanged
+require_rank_reference_unchanged
+if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
+  model-native-mtf-v4-cache \
+  --m5-prebuilt "$SRC" \
+  --expected-source-sha256 "$SOURCE_SHA256" \
+  --out-dir "$MTF") >>"$LOG" 2>&1; then
+  fail "M5/M15/H1/H4/D1 cache materialization failed"
+fi
+[[ -d $MTF && ! -L $MTF && -f $MTF/manifest.json ]] \
+  || fail "MTF cache is missing/non-regular"
+
+# Prove final source coverage and exact canonical↔model market identity before
+# spending hours on ranking or the M1 lane.
+CURRENT_STEP=model-source-identity
+write_status "$CURRENT_STEP" RUNNING
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 4G --swap 512M -- \
+  "$PY" - "$CV2" "$SRC" "$HISTORY_START" "$TRAIN_END" \
+  "$TRAIN_START" "$TEST_END") >>"$LOG" 2>&1 <<'PYEOF'; then
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+from gx1.contracts.entry_model_native_state_v2 import (
+    require_train_rank_source_market_identity_v2,
+)
+
+canonical, source = map(Path, sys.argv[1:3])
+history_start = pd.Timestamp(sys.argv[3])
+train_end = pd.Timestamp(sys.argv[4])
+train_start = pd.Timestamp(sys.argv[5])
+test_end = pd.Timestamp(sys.argv[6])
+times = pd.DatetimeIndex(
+    pd.to_datetime(
+        pd.read_parquet(source, columns=["time"])["time"],
+        utc=True,
+        errors="raise",
+    )
+)
+if (
+    len(times) == 0
+    or times.hasnans
+    or not times.is_unique
+    or not times.is_monotonic_increasing
+):
+    raise RuntimeError("final M5 model source time geometry is invalid")
+pre_train_rows = int(((times >= history_start) & (times < train_start)).sum())
+if times[0] > history_start or times[-1] != test_end or pre_train_rows < 96:
+    raise RuntimeError(
+        "source does not cover the declared common history/test window: "
+        f"first={times[0]} last={times[-1]} test_end={test_end} "
+        f"pre_train_rows={pre_train_rows}"
+    )
+require_train_rank_source_market_identity_v2(
+    rank_source_parquet=canonical,
+    model_source_parquet=source,
+    history_start_utc=history_start,
+    fit_end_utc=train_end,
+)
+PYEOF
+  fail "final M5 model-source identity failed"
+fi
+
+# Bind the current pair, final model source, and exact five-timeframe cache.
+CURRENT_STEP=source-cascade
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+require_pair_unchanged
+require_rank_reference_unchanged
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 4G --swap 512M -- \
+  "$PY" -m gx1.scripts.materialize_current_pair_source_cascade_proof_v1 \
+  --run-id "$RUN_ID" \
+  --source-parquet "$SRC" \
+  --canonical-v2-parquet "$CV2" \
+  --mtf-cache-dir "$MTF" \
+  --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --required-history-start "$HISTORY_START" \
+  --out "$SOURCE_CASCADE") >>"$LOG" 2>&1; then
+  fail "current pair source-cascade proof failed"
+fi
+[[ -f $SOURCE_CASCADE && ! -L $SOURCE_CASCADE ]] \
+  || fail "source cascade proof missing or non-regular"
+SOURCE_CASCADE_SHA256=$(hash_file "$SOURCE_CASCADE")
+printf '[chain] source-cascade=%s sha256=%s\n' \
+  "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" >>"$LOG"
+
+require_source_cascade_unchanged() {
+  require_unchanged "source cascade proof" "$SOURCE_CASCADE" \
+    "$SOURCE_CASCADE_SHA256"
+}
 
 # Ranking is part of this one chain, not a separately launched heavyweight
 # producer. The capped runner's global lock makes overlapping V3/V4-style
@@ -773,11 +1044,13 @@ CURRENT_STEP=feature-ranking
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
+require_pair_unchanged
 run_feature_ranker() {
   (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
     "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \
+    --rank-source-parquet "$CV2" \
     --canonical-v2-parquet "$CV2" \
     --mtf-cache-dir "$MTF" \
     --source-cascade-proof "$SOURCE_CASCADE" \
@@ -794,6 +1067,7 @@ if ! run_feature_ranker >>"$LOG" 2>&1; then
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity
     require_source_cascade_unchanged
+    require_pair_unchanged
     if ! run_feature_ranker >>"$LOG" 2>&1; then
       fail "feature ranking exact-checkpoint retry failed"
     fi
@@ -805,6 +1079,7 @@ fi
 RANKING_SHA256=$(hash_file "$RANKING")
 require_source_identity
 require_source_cascade_unchanged
+require_pair_unchanged
 require_rank_reference_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
@@ -820,6 +1095,7 @@ MANIFEST="$EVENT/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_${MANIFEST_STAMP}.jso
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
+require_pair_unchanged
 require_rank_reference_unchanged
 if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
   --feature-ranking-json "$RANKING" \
@@ -830,8 +1106,68 @@ fi
 MANIFEST_SHA256=$(hash_file "$MANIFEST")
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_source_cascade_unchanged
+require_pair_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] manifest=%s sha256=%s\n' "$MANIFEST" "$MANIFEST_SHA256" >>"$LOG"
+
+# Build Exit independently on native M1.  It uses local M1 plus closed
+# M5/M15/H1/H4/D1 OHLCV through the same owners and the same TRAIN-rank bytes.
+CURRENT_STEP=m1-enriched-feature-lane
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+require_pair_unchanged
+require_source_cascade_unchanged
+require_rank_reference_unchanged
+if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
+  model-native-m1-enriched-frame \
+  --native-m1-root "$NATIVE_M1_ROOT" \
+  --rank-reference-npz "$RANK_NPZ" \
+  --rank-reference-sha256 "$RANK_REFERENCE_SHA256" \
+  --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --output-parquet "$M1_ENRICHED" \
+  --manifest-path "${M1_ENRICHED}.manifest.json" \
+  --checkpoint-dir "$M1_CHECKPOINT" \
+  --dataset-run-id "$RUN_ID" \
+  --pair-generation-id "$PAIR_GENERATION_ID" \
+  --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
+  fail "native M1 enriched feature lane failed"
+fi
+[[ -f $M1_ENRICHED && ! -L $M1_ENRICHED \
+   && -f ${M1_ENRICHED}.manifest.json && ! -L ${M1_ENRICHED}.manifest.json ]] \
+  || fail "native M1 enriched feature output is missing/non-regular"
+
+# Project the same ordered 513 fields into each native clock.  M1 is aligned
+# to the pair-bound closed-M1 lifecycle rows; M5 retains its native timeline.
+CURRENT_STEP=entry-exit-feature-surfaces
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+require_pair_unchanged
+require_source_cascade_unchanged
+require_rank_reference_unchanged
+if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
+  model-native-m1-feature-base \
+  --source-parquet "$M1_ENRICHED" \
+  --alignment-parquet "$BASE28" \
+  --seq-structure-manifest "$MANIFEST" \
+  --output-parquet "$M1_FEATURE_BASE" \
+  --dataset-run-id "$RUN_ID" \
+  --pair-generation-id "$PAIR_GENERATION_ID") >>"$LOG" 2>&1; then
+  fail "M1 Exit feature-surface materialization failed"
+fi
+if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
+  model-native-m5-feature-base \
+  --source-parquet "$M5_ENRICHED" \
+  --seq-structure-manifest "$MANIFEST" \
+  --output-parquet "$M5_FEATURE_BASE" \
+  --dataset-run-id "$RUN_ID" \
+  --pair-generation-id "$PAIR_GENERATION_ID") >>"$LOG" 2>&1; then
+  fail "M5 Entry feature-surface materialization failed"
+fi
+for path in "$M1_FEATURE_BASE" "$M5_FEATURE_BASE"; do
+  [[ -f $path && ! -L $path && -f ${path}.manifest.json \
+     && ! -L ${path}.manifest.json ]] \
+    || fail "Entry/Exit feature surface or manifest is missing/non-regular: $path"
+done
 
 # Preflight publishes into one explicit fresh namespace. Its unique output is
 # then self-reference checked and hash-bound before the rebuild boundary.
@@ -839,6 +1175,7 @@ CURRENT_STEP=rebuild-preflight
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
+require_pair_unchanged
 require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
   --run-id "$RUN_ID" \
@@ -848,8 +1185,11 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-
   --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
   --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST" \
   --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
+  --m1-feature-base-parquet "$M1_FEATURE_BASE" \
+  --m5-feature-base-parquet "$M5_FEATURE_BASE" \
   --exit-lifecycle-dir "$EXIT_LIFECYCLE" \
   --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
+  --early-move-threshold-bps "$EARLY_MOVE_THRESHOLD_BPS" \
   --output "$OUTPUT" --audit-out-dir "$AUDIT" \
   --history-start "$HISTORY_START" \
   --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
@@ -894,6 +1234,7 @@ IFS=$'\t' read -r PREFLIGHT_JSON PREFLIGHT_SHA256 <<<"$PREFLIGHT_ID"
 [[ -n $PREFLIGHT_JSON && -n $PREFLIGHT_SHA256 ]] || fail "preflight identity is empty"
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_source_cascade_unchanged
+require_pair_unchanged
 require_rank_reference_unchanged
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
@@ -907,6 +1248,7 @@ write_status "$CURRENT_STEP" RUNNING
 tg "GX1 seq513: preflight GREEN; dataset rebuild startet. run_id=$RUN_ID"
 require_source_identity
 require_source_cascade_unchanged
+require_pair_unchanged
 require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
@@ -926,8 +1268,11 @@ run_dataset_rebuild() {
     --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
     --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST" \
     --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
+    --m1-feature-base-parquet "$M1_FEATURE_BASE" \
+    --m5-feature-base-parquet "$M5_FEATURE_BASE" \
     --exit-lifecycle-dir "$EXIT_LIFECYCLE" \
     --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
+    --early-move-threshold-bps "$EARLY_MOVE_THRESHOLD_BPS" \
     --output "$OUTPUT" --audit-out-dir "$AUDIT" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
@@ -958,6 +1303,7 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity
     require_source_cascade_unchanged
+    require_pair_unchanged
     require_rank_reference_unchanged
     require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
     require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
@@ -971,6 +1317,7 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
 fi
 require_source_identity
 require_source_cascade_unchanged
+require_pair_unchanged
 require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"

@@ -110,6 +110,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
     apply_train_rank_reference_v2,
     load_train_rank_reference_v2,
+    require_train_rank_source_market_identity_v2,
     validate_state_contract_metadata_v2,
 )
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
@@ -1944,11 +1945,22 @@ def _model_native_state_contract(
     declared_builder_source = (
         Path(str(getattr(args, "source_parquet", "") or "")).expanduser().resolve()
     )
-    if declared_builder_source != source_path:
+    declared_rank_source = (
+        Path(str(getattr(args, "canonical_v2_parquet", "") or ""))
+        .expanduser()
+        .resolve()
+    )
+    if declared_rank_source != source_path:
         raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_BUILDER_SOURCE_MISMATCH: "
-            f"rank_source={source_path} builder_source={declared_builder_source}"
+            "MODEL_NATIVE_RANK_REFERENCE_CANONICAL_SOURCE_MISMATCH: "
+            f"rank_source={source_path} canonical_source={declared_rank_source}"
         )
+    market_identity = require_train_rank_source_market_identity_v2(
+        rank_source_parquet=source_path,
+        model_source_parquet=declared_builder_source,
+        history_start_utc=feature_history_start,
+        fit_end_utc=train_end,
+    )
     reference = load_train_rank_reference_v2(npz_path, expected_sha256=npz_sha)
     rank_run_id = str(reference.sidecar.get("entry_run_id") or "").strip()
     if rank_run_id != entry_run_id:
@@ -1995,6 +2007,7 @@ def _model_native_state_contract(
         "rank_reference_fit_time_max": str(sidecar["fit_time_max"]),
         "rank_reference_source_parquet": str(source_path),
         "rank_reference_source_parquet_sha256": source_sha,
+        "rank_reference_model_source_market_identity": market_identity,
         "rank_reference_fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
@@ -4214,7 +4227,7 @@ def main() -> None:
         feature_ranking_path=Path(args.feature_ranking_json),
         expected_run_id=entry_run_id,
         expected_source_parquet=Path(args.source_parquet),
-        expected_source_sha256=state_contract["rank_reference_source_parquet_sha256"],
+        expected_source_sha256=_sha256_file(Path(args.source_parquet)),
         expected_canonical_v2_parquet=Path(args.canonical_v2_parquet),
         expected_mtf_cache_dir=Path(
             os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"]

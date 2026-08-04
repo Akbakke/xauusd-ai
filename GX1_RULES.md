@@ -20,6 +20,11 @@ immutable OANDA XAU_USD M1 + M5
   local M5 sequence plus M15/H1/H4/D1 context. Exit uses a local M1 sequence
   plus M5/M15/H1/H4/D1 context. Resampling already computed M1 indicators into
   a higher timeframe is forbidden.
+- One TRAIN-rank reference is fitted only from the immutable pair's canonical
+  M5 `time/high/low/close/bid_close/ask_close` fields. The final Entry M5 model
+  source must match those market values exactly from common-history start
+  through TRAIN end. M1 and M5 consumers bind that same NPZ; fitting a second
+  rank state or fitting from the downstream model source is forbidden.
 - Both native surfaces use the same ordered 513 signal fields, 142 continuous
   context fields and 5 categorical fields. Entry reads 96 M5 bars; Exit reads
   480 M1 bars, capped at 512 path states, plus the frozen Entry representation.
@@ -49,6 +54,11 @@ immutable OANDA XAU_USD M1 + M5
 - Source, formula, schema, field order, signal-manifest hash, TRAIN-rank state,
   population, run identity and profile must match at every boundary. Any
   mismatch invalidates the full attempt.
+- The only admitted dataset rebuild orchestration is the current-pair chain in
+  `scripts/run_seq513_rebuild_chain_v1.sh`. It resolves canonical, BASE28 and
+  native M1/M5 from one pair manifest, builds both feature lanes, and passes
+  both feature surfaces to preflight/rebuild. The retired event-local
+  `canonical_features_v2.parquet`/legacy source-cascade route is forbidden.
 - No practical precision, win-rate or PnL claim exists without immutable,
   recomputable untouched-TEST and same-candidate Entry/Exit evidence.
 

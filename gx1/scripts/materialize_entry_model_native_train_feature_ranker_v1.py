@@ -73,6 +73,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     TrainRankReferenceV2,
     apply_train_rank_reference_v2,
     parse_utc,
+    require_train_rank_source_market_identity_v2,
     validate_train_rank_reference_lineage_v2,
 )
 from gx1.time.session_detector import ASIA_SESSION_ID
@@ -252,7 +253,7 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     )
 
 
-ATTACH_WORKERS = 8
+ATTACH_WORKERS = 1
 
 
 def _load_ranker_common_history_m5(
@@ -647,6 +648,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--source-parquet", type=Path, required=True)
+    parser.add_argument("--rank-source-parquet", type=Path, required=True)
     parser.add_argument("--canonical-v2-parquet", type=Path, required=True)
     parser.add_argument("--mtf-cache-dir", type=Path, required=True)
     parser.add_argument("--source-cascade-proof", type=Path, required=True)
@@ -669,14 +671,38 @@ def main() -> None:
     if not source_parquet.is_file():
         raise RuntimeError(f"FEATURE_RANKER_SOURCE_MISSING: {source_parquet}")
     source_sha256 = _sha256_file(source_parquet)
+    rank_source_parquet = args.rank_source_parquet.expanduser().resolve()
+    if not rank_source_parquet.is_file() or rank_source_parquet.is_symlink():
+        raise RuntimeError(
+            f"FEATURE_RANKER_RANK_SOURCE_MISSING: {rank_source_parquet}"
+        )
+    rank_source_sha256 = _sha256_file(rank_source_parquet)
+    canonical_v2_parquet = args.canonical_v2_parquet.expanduser().resolve()
+    if (
+        not canonical_v2_parquet.is_file()
+        or canonical_v2_parquet.is_symlink()
+    ):
+        raise RuntimeError(
+            f"FEATURE_RANKER_CANONICAL_SOURCE_MISSING: {canonical_v2_parquet}"
+        )
+    if rank_source_parquet != canonical_v2_parquet:
+        raise RuntimeError(
+            "FEATURE_RANKER_RANK_SOURCE_CANONICAL_PATH_MISMATCH"
+        )
     rank_reference = validate_train_rank_reference_lineage_v2(
         args.rank_reference_npz,
         expected_run_id=run_id,
-        expected_source_parquet=source_parquet,
-        expected_source_sha256=source_sha256,
+        expected_source_parquet=rank_source_parquet,
+        expected_source_sha256=rank_source_sha256,
         expected_history_start_utc=history_start,
         expected_fit_start_utc=train_start,
         expected_fit_end_utc=train_end,
+    )
+    require_train_rank_source_market_identity_v2(
+        rank_source_parquet=rank_source_parquet,
+        model_source_parquet=source_parquet,
+        history_start_utc=history_start,
+        fit_end_utc=train_end,
     )
     mtf_cache_dir = args.mtf_cache_dir.expanduser().resolve()
     if not mtf_cache_dir.is_dir() or mtf_cache_dir.is_symlink():
@@ -686,7 +712,7 @@ def main() -> None:
         args.source_cascade_proof,
         expected_run_id=run_id,
         expected_source_parquet=source_parquet,
-        expected_canonical_v2_parquet=args.canonical_v2_parquet,
+        expected_canonical_v2_parquet=canonical_v2_parquet,
         expected_mtf_cache_dir=mtf_cache_dir,
         expected_history_start_utc=history_start,
         expected_time_max_utc=args.expected_source_time_max,

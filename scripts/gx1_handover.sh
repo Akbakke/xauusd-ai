@@ -6,6 +6,7 @@ REPO=/home/andre2/src/GX1_ENGINE
 HANDOVER="$REPO/HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 LAUNCH_STATE="$REPO/PROJECT_STATE_xau_direction_launch.json"
 PY="$REPO/.venv/bin/python"
+CURRENT_PAIR_MANIFEST=/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_MODEL_NATIVE_20260804_PAIR_MANIFEST.json
 
 # Keep the authority fingerprint path-ordered. Historical prose is reference
 # only; GX1_RULES.md defines the active scope.
@@ -42,10 +43,15 @@ esac
 for source in "${sources[@]}"; do
   [[ -f "$source" ]] || { echo "FATAL: authority input missing: $source" >&2; exit 2; }
 done
+[[ -f "$CURRENT_PAIR_MANIFEST" && ! -L "$CURRENT_PAIR_MANIFEST" ]] || {
+  echo "FATAL: current pair manifest missing/non-regular: $CURRENT_PAIR_MANIFEST" >&2
+  exit 2
+}
 [[ -x "$PY" ]] || { echo "FATAL: repository Python is not executable: $PY" >&2; exit 2; }
 cd "$REPO"
 
-readarray -t identity < <("$PY" - "$REPO" "$LAUNCH_STATE" "${sources[@]}" <<'PY'
+readarray -t identity < <("$PY" - "$REPO" "$LAUNCH_STATE" \
+  "$CURRENT_PAIR_MANIFEST" "${sources[@]}" <<'PY'
 import hashlib
 import json
 import os
@@ -55,13 +61,25 @@ from pathlib import Path
 
 repo = Path(sys.argv[1])
 launch_path = Path(sys.argv[2])
-authority_paths = tuple(Path(raw) for raw in sys.argv[3:])
+pair_path = Path(sys.argv[3])
+authority_paths = tuple(Path(raw) for raw in sys.argv[4:])
 
 state = json.loads(launch_path.read_text(encoding="utf-8"))
 if not isinstance(state, dict) or state.get("decision") != "BLOCK":
     raise SystemExit("FATAL: launch authority must remain BLOCK")
 if state.get("accepted_bundle_dir") is not None:
     raise SystemExit("FATAL: blocked launch authority carries an accepted bundle")
+pair = json.loads(pair_path.read_text(encoding="utf-8"))
+pair_id = str(pair.get("pair_generation_id") or "")
+artifacts = pair.get("artifacts")
+lineage = pair.get("lineage")
+native = lineage.get("native_sources") if isinstance(lineage, dict) else None
+if (
+    len(pair_id) != 64
+    or not isinstance(artifacts, dict)
+    or not isinstance(native, dict)
+):
+    raise SystemExit("FATAL: current pair authority is invalid")
 
 authority = hashlib.sha256()
 authority.update(b"gx1-takeover-authority-v2\0")
@@ -111,6 +129,13 @@ print(changed)
 print(state.get("required_contract_mode", "MISSING"))
 print(state.get("dataset_event_id") or "NONE")
 print(state.get("dataset_admission_stage") or "NONE")
+print(pair_id)
+print(artifacts["canonical_v3"]["parquet_path"])
+print(artifacts["base28"]["parquet_path"])
+print(native["m1"]["root"])
+print(native["m5"]["root"])
+print(lineage["coverage"]["base28_time_max_utc"])
+print(lineage["coverage"]["canonical_time_max_utc"])
 PY
 )
 
@@ -120,6 +145,13 @@ changed_path_count=${identity[2]}
 required_contract_mode=${identity[3]}
 dataset_event_id=${identity[4]}
 dataset_admission_stage=${identity[5]}
+pair_generation_id=${identity[6]}
+canonical_v3_path=${identity[7]}
+base28_path=${identity[8]}
+native_m1_root=${identity[9]}
+native_m5_root=${identity[10]}
+m1_time_max=${identity[11]}
+m5_time_max=${identity[12]}
 head_commit=$(git rev-parse HEAD)
 
 if [[ "$mode" == check ]]; then
@@ -149,11 +181,17 @@ echo "required_contract_mode: $required_contract_mode"
 echo "dataset_event_id: $dataset_event_id"
 echo "dataset_admission_stage: $dataset_admission_stage"
 echo "accepted_bundle_dir: NONE"
-echo "dataset_contract: STALE_REBUILD_REQUIRED_AFTER_SOURCE_AND_LIFECYCLE_CONTRACT_CHANGE"
+echo "dataset_contract: CURRENT_PAIR_READY_FEATURE_DATASET_REBUILD_PENDING"
 echo "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
-echo "source_regression: PASS_2003_TESTS_ZERO_SKIPS_ZERO_WARNINGS"
+echo "source_regression: PASS_2006_TESTS_ZERO_SKIPS_ZERO_WARNINGS"
+echo "pair_generation_id: $pair_generation_id"
+echo "native_m1_root: $native_m1_root"
+echo "native_m5_root: $native_m5_root"
+echo "canonical_v3_path: $canonical_v3_path"
+echo "base28_path: $base28_path"
+echo "source_time_max: M1=$m1_time_max M5=$m5_time_max"
 echo
 echo "## Fixed architecture"
 echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"
@@ -168,11 +206,11 @@ echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "source_identity_gate: $([[ $changed_path_count == 0 ]] && echo READY_CLEAN_WORKTREE || echo BLOCK_DIRTY_WORKTREE)"
-echo "resume_stage: VERIFY_COMMIT_REBUILD_THEN_BOUNDED_SMOKE"
+echo "resume_stage: RUN_CURRENT_PAIR_SHARED_FEATURE_DATASET_CHAIN_THEN_BOUNDED_SMOKE"
 echo "capacity: audits=4G training_max=10G swap=512M cpu=0-1 one_job_at_a_time"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
-echo "  1. rebuild immutable native M1/M5 pair, shared featurebase and lifecycle"
+echo "  1. run current-pair shared M1/M5 featurebase, lifecycle and dataset chain"
 echo "  2. model-native-smoke-train -> model-native-smoke-bundle-audit"
 echo "  3. model-native-candidate-readiness -> model-native-candidate-train"
 echo "  4. calibration -> untouched TEST selective edge -> same-bundle unified Exit proof"

@@ -13,6 +13,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
     TRAIN_RANK_NPZ_KEYS,
     load_train_rank_reference_v2,
+    require_train_rank_source_market_identity_v2,
     sha256_file,
     validate_train_rank_reference_lineage_v2,
 )
@@ -190,4 +191,50 @@ def test_rank_reference_lineage_binds_source_run_history_and_fit_window(
             expected_history_start_utc="2026-05-21T00:00:00Z",
             expected_fit_start_utc="2026-05-21T00:25:00Z",
             expected_fit_end_utc="2026-05-21T01:35:00Z",
+        )
+
+
+def test_rank_source_market_identity_accepts_distinct_exact_model_source(
+    tmp_path: Path,
+) -> None:
+    canonical = tmp_path / "canonical.parquet"
+    model_source = tmp_path / "model_source.parquet"
+    frame = _market_frame()
+    frame.assign(canonical_only=np.arange(len(frame))).to_parquet(
+        canonical, index=False
+    )
+    frame.assign(model_only=np.arange(len(frame)) * 2).to_parquet(
+        model_source, index=False
+    )
+
+    proof = require_train_rank_source_market_identity_v2(
+        rank_source_parquet=canonical,
+        model_source_parquet=model_source,
+        history_start_utc="2026-05-21T00:00:00Z",
+        fit_end_utc="2026-05-21T01:35:00Z",
+    )
+
+    assert proof["contract"] == "exact_rank_source_model_market_identity_v2"
+    assert proof["compared_rows"] == 20
+    assert proof["rank_source_parquet"] == str(canonical.resolve())
+    assert proof["model_source_parquet"] == str(model_source.resolve())
+
+
+def test_rank_source_market_identity_rejects_one_market_value_mismatch(
+    tmp_path: Path,
+) -> None:
+    canonical = tmp_path / "canonical.parquet"
+    model_source = tmp_path / "model_source.parquet"
+    frame = _market_frame()
+    frame.to_parquet(canonical, index=False)
+    mutated = frame.copy()
+    mutated.loc[7, "bid_close"] += 0.01
+    mutated.to_parquet(model_source, index=False)
+
+    with pytest.raises(RuntimeError, match="SOURCE_MARKET_IDENTITY_MISMATCH"):
+        require_train_rank_source_market_identity_v2(
+            rank_source_parquet=canonical,
+            model_source_parquet=model_source,
+            history_start_utc="2026-05-21T00:00:00Z",
+            fit_end_utc="2026-05-21T01:35:00Z",
         )

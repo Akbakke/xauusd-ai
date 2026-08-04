@@ -47,7 +47,7 @@ def _stub_source_cascade_validation(
 
 
 def _ranking_payload(tmp_path: Path) -> dict:
-    source_path, reference = materialize_test_rank_reference(
+    canonical_path, reference = materialize_test_rank_reference(
         tmp_path / "rank_reference",
         run_id=RUN_ID,
         history_start="2019-12-31T00:00:00Z",
@@ -61,18 +61,28 @@ def _ranking_payload(tmp_path: Path) -> dict:
             for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
         ],
     ]
+    source_path = (tmp_path / "FULL_PLUS_CTX_v3src.parquet").resolve()
+    source_path.write_bytes(canonical_path.read_bytes())
     source_cascade = {
         "path": str((source_path.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
         "sha256": "9" * 64,
-        "schema_version": "seq513_source_cascade_proof_v7",
+        "schema_version": "seq513_source_cascade_pair_proof_v1",
         "entry_run_id": RUN_ID,
         "event_root": str(source_path.parent.resolve()),
+        "source_parquet_path": str(source_path),
         "source_parquet_sha256": str(
             reference.sidecar["source_parquet_sha256"]
         ),
-        "canonical_v2_sha256": "3" * 64,
+        "canonical_v2_path": str(canonical_path),
+        "canonical_v2_sha256": str(
+            reference.sidecar["source_parquet_sha256"]
+        ),
+        "multi_tf_cache_dir": str(tmp_path / "MULTI_TF_V4_CACHE"),
         "multi_tf_manifest_sha256": "4" * 64,
         "multi_tf_cache_identity_sha256": "5" * 64,
+        "pair_manifest_path": str(tmp_path / "PAIR_MANIFEST.json"),
+        "pair_manifest_sha256": "6" * 64,
+        "pair_generation_id": "7" * 64,
         "history_start_utc": "2019-12-31T00:00:00+00:00",
         "time_max_utc": "2025-12-31T23:59:59+00:00",
     }
@@ -104,7 +114,7 @@ def _ranking_payload(tmp_path: Path) -> dict:
             "sidecar_sha256": reference.sidecar_sha256,
             "schema_version": reference.sidecar["schema_version"],
             "entry_run_id": RUN_ID,
-            "source_parquet": str(source_path),
+            "source_parquet": str(canonical_path),
             "source_parquet_sha256": str(
                 reference.sidecar["source_parquet_sha256"]
             ),

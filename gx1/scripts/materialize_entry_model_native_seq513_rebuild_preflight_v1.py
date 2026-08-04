@@ -24,6 +24,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+    require_train_rank_source_market_identity_v2,
     validate_train_rank_reference_lineage_v2,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -984,6 +985,7 @@ def _command_contract(
     split_schedule: dict[str, dict[str, str]],
     model_native_signal_contract: dict[str, Any],
     source_parquet_sha256: str,
+    canonical_v2_parquet_sha256: str,
 ) -> dict[str, Any]:
     argv_template = [
         "scripts/rebuild_entry_model_native_seq513_dataset.sh",
@@ -1091,8 +1093,13 @@ def _command_contract(
         "rank_reference_contract": {
             "producer": "gx1.scripts.materialize_model_native_train_rank_reference_v2",
             "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-            "source_parquet": str(source_parquet),
-            "source_parquet_sha256": source_parquet_sha256,
+            "source_parquet": str(canonical_v2_parquet),
+            "source_parquet_sha256": canonical_v2_parquet_sha256,
+            "model_source_parquet": str(source_parquet),
+            "model_source_parquet_sha256": source_parquet_sha256,
+            "source_model_market_identity": (
+                "exact_time_high_low_close_bid_close_ask_close_history_through_train"
+            ),
             "output_npz": str(rank_reference_npz),
             "sidecar_json": str(
                 rank_reference_npz.with_suffix(rank_reference_npz.suffix + ".json")
@@ -1527,16 +1534,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     rank_reference_lineage: dict[str, Any] = {}
     rank_reference_failures: list[str] = []
-    if split_schedule and source_sha:
+    if split_schedule and source_sha and canonical_sha:
         try:
             reference = validate_train_rank_reference_lineage_v2(
                 rank_reference_npz,
                 expected_run_id=entry_run_id,
-                expected_source_parquet=source_parquet,
-                expected_source_sha256=source_sha,
+                expected_source_parquet=canonical_v2_parquet,
+                expected_source_sha256=canonical_sha,
                 expected_history_start_utc=split_schedule["history"]["start"],
                 expected_fit_start_utc=split_schedule["train"]["start"],
                 expected_fit_end_utc=split_schedule["train"]["end"],
+            )
+            market_identity = require_train_rank_source_market_identity_v2(
+                rank_source_parquet=canonical_v2_parquet,
+                model_source_parquet=source_parquet,
+                history_start_utc=split_schedule["history"]["start"],
+                fit_end_utc=split_schedule["train"]["end"],
             )
             rank_reference_lineage = {
                 "path": str(reference.path),
@@ -1546,12 +1559,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "fit_start_utc": reference.fit_start_utc.isoformat(),
                 "fit_end_utc": reference.fit_end_utc.isoformat(),
                 "fit_row_count": reference.fit_row_count,
+                "market_identity": market_identity,
             }
         except (RuntimeError, TypeError, ValueError) as exc:
             rank_reference_failures.append(str(exc))
     else:
         rank_reference_failures.append(
-            "source hash and valid split schedule are required before rank-reference validation"
+            "source/canonical hashes and valid split schedule are required before rank-reference validation"
         )
     _check(
         checks,
@@ -1618,6 +1632,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             split_schedule=split_schedule,
             model_native_signal_contract=signal_contract,
             source_parquet_sha256=str(source_sha or ""),
+            canonical_v2_parquet_sha256=str(canonical_sha or ""),
         )
 
     failures = [row for row in checks if not row["ok"]]

@@ -44,28 +44,43 @@ def _source_cascade_metadata(
     tmp_path: Path,
     reference: object | None = None,
 ) -> dict[str, object]:
-    event_root = (
-        Path(str(reference.sidecar["source_parquet"])).resolve().parent
+    event_root = tmp_path.resolve()
+    canonical_path = (
+        Path(str(reference.sidecar["source_parquet"])).resolve()
         if reference is not None
-        else tmp_path.resolve()
+        else event_root / "canonical_v2.parquet"
+    )
+    source_path = event_root / "FULL_PLUS_CTX_v3src.parquet"
+    if reference is not None and not source_path.exists():
+        source_path.write_bytes(canonical_path.read_bytes())
+    source_sha = (
+        str(reference.sidecar["source_parquet_sha256"])
+        if reference is not None
+        else "1" * 64
     )
     return {
         "path": str((event_root / "SOURCE_CASCADE_PROOF.json").resolve()),
         "sha256": "9" * 64,
-        "schema_version": "seq513_source_cascade_proof_v7",
+        "schema_version": "seq513_source_cascade_pair_proof_v1",
         "entry_run_id": RUN_ID,
         "event_root": str(event_root),
-        "source_parquet_sha256": (
-            str(reference.sidecar["source_parquet_sha256"])
-            if reference is not None
-            else "1" * 64
-        ),
-        "canonical_v2_sha256": "3" * 64,
+        "source_parquet_path": str(source_path),
+        "source_parquet_sha256": source_sha,
+        "canonical_v2_path": str(canonical_path),
+        "canonical_v2_sha256": source_sha,
+        "multi_tf_cache_dir": str(event_root / "MULTI_TF_V4_CACHE"),
         "multi_tf_manifest_sha256": "4" * 64,
         "multi_tf_cache_identity_sha256": "5" * 64,
+        "pair_manifest_path": str(event_root / "PAIR_MANIFEST.json"),
+        "pair_manifest_sha256": "6" * 64,
+        "pair_generation_id": "7" * 64,
         "history_start_utc": "2019-12-31T00:00:00+00:00",
         "time_max_utc": "2026-07-24T20:55:00+00:00",
     }
+
+
+def test_ranker_feature_attachment_is_single_worker() -> None:
+    assert ranker.ATTACH_WORKERS == 1
 
 
 def test_candidate_universe_is_clean_and_large_enough() -> None:

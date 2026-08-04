@@ -216,34 +216,43 @@ PY
 export GX1_V10_MULTI_TF_V4_CACHE_DIR=$MTF_CACHE_DIR
 
 "$PY" - "$RANK_REFERENCE_NPZ" "$RUN_ID" "$SOURCE_PARQUET" \
-    "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" <<'PY'
+    "$CANONICAL_V2_PARQUET" "$HISTORY_START" "$TRAIN_START" \
+    "$TRAIN_END" <<'PY'
 import hashlib
 import sys
 from pathlib import Path
 
 from gx1.contracts.entry_model_native_state_v2 import (
     parse_utc,
+    require_train_rank_source_market_identity_v2,
     validate_train_rank_reference_lineage_v2,
 )
 
 rank_path = Path(sys.argv[1]).expanduser().resolve()
 run_id = sys.argv[2]
 source_path = Path(sys.argv[3]).expanduser().resolve()
-history_start = parse_utc(sys.argv[4], field="history_start")
-fit_start = parse_utc(sys.argv[5], field="fit_start")
-fit_end = parse_utc(sys.argv[6], field="fit_end")
+rank_source_path = Path(sys.argv[4]).expanduser().resolve()
+history_start = parse_utc(sys.argv[5], field="history_start")
+fit_start = parse_utc(sys.argv[6], field="fit_start")
+fit_end = parse_utc(sys.argv[7], field="fit_end")
 digest = hashlib.sha256()
-with source_path.open("rb") as handle:
+with rank_source_path.open("rb") as handle:
     for chunk in iter(lambda: handle.read(1024 * 1024), b""):
         digest.update(chunk)
 validate_train_rank_reference_lineage_v2(
     rank_path,
     expected_run_id=run_id,
-    expected_source_parquet=source_path,
+    expected_source_parquet=rank_source_path,
     expected_source_sha256=digest.hexdigest(),
     expected_history_start_utc=history_start,
     expected_fit_start_utc=fit_start,
     expected_fit_end_utc=fit_end,
+)
+require_train_rank_source_market_identity_v2(
+    rank_source_parquet=rank_source_path,
+    model_source_parquet=source_path,
+    history_start_utc=history_start,
+    fit_end_utc=fit_end,
 )
 print(f"[GATE] exact existing train-rank identity: {rank_path}")
 PY
