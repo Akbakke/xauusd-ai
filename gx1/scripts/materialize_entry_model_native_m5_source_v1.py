@@ -843,12 +843,28 @@ def _compact_regime_projection(
         (len(enriched_times_ns), len(REGIME_PROJECTED_FIELDS)),
         dtype=np.float64,
     )
+    # A decision row that precedes the first closed bar of a declared context
+    # timeframe has no value for that context: it is undefined by causality,
+    # not missing. Those rows are excluded from the model source rather than
+    # filled. Anything non-finite AFTER that leading warmup is real corruption
+    # and still fails closed.
+    warmup_rows = 0
     for index, name in enumerate(REGIME_PROJECTED_FIELDS):
         values = np.asarray(projected[name], dtype=np.float64)
-        if values.shape != (len(enriched_times_ns),) or not np.isfinite(values).all():
+        if values.shape != (len(enriched_times_ns),):
             raise RuntimeError(f"M5_SOURCE_REGIME_NONFINITE_OR_SHAPE_INVALID: {name}")
+        finite = np.isfinite(values)
+        if not finite.all():
+            first_finite = int(np.argmax(finite)) if finite.any() else len(values)
+            if not finite[first_finite:].all():
+                raise RuntimeError(
+                    f"M5_SOURCE_REGIME_NONFINITE_OR_SHAPE_INVALID: {name}"
+                )
+            warmup_rows = max(warmup_rows, first_finite)
         compact[:, index] = values
-    return compact
+    if warmup_rows >= len(enriched_times_ns):
+        raise RuntimeError("M5_SOURCE_REGIME_WARMUP_CONSUMES_WHOLE_SOURCE")
+    return compact, warmup_rows
 
 
 def _new_partial(final_path: Path) -> Path:
@@ -955,6 +971,7 @@ def _write_output_partial(
     regime_compact: np.ndarray,
     partial: Path,
     batch_rows: int,
+    skip_rows: int = 0,
 ) -> tuple[pa.Schema, int]:
     enriched_read_columns = tuple(
         name for name in ENRICHED_COLUMNS if name not in RANKER_OWNED_DERIVATIONS
@@ -972,6 +989,12 @@ def _write_output_partial(
             columns=enriched_read_columns,
             batch_rows=batch_rows,
         ):
+            if skip_rows:
+                if batch.num_rows <= skip_rows:
+                    skip_rows -= batch.num_rows
+                    continue
+                batch = batch.slice(skip_rows)
+                skip_rows = 0
             size = batch.num_rows
             end = offset + size
             if end > len(enriched_times_ns):
@@ -1211,11 +1234,15 @@ def materialize_m5_source(
         native.times_ns,
         enriched_times_ns,
     )
-    regime_compact = _compact_regime_projection(
+    regime_compact, regime_warmup_rows = _compact_regime_projection(
         multi_tf=multi_tf,
         enriched_times_ns=enriched_times_ns,
     )
     del multi_tf
+    if regime_warmup_rows:
+        enriched_times_ns = enriched_times_ns[regime_warmup_rows:]
+        native_positions = native_positions[regime_warmup_rows:]
+        regime_compact = regime_compact[regime_warmup_rows:]
 
     parquet_partial = _new_partial(output)
     manifest_partial: Path | None = None
@@ -1229,6 +1256,7 @@ def materialize_m5_source(
             regime_compact=regime_compact,
             partial=parquet_partial,
             batch_rows=batch_rows,
+            skip_rows=regime_warmup_rows,
         )
         output_sha256, output_size_bytes, output_schema_sha256 = (
             _verify_output_partial(
@@ -1266,6 +1294,10 @@ def materialize_m5_source(
             "output_parquet_size_bytes": output_size_bytes,
             "output_arrow_schema_sha256": output_schema_sha256,
             "rows": int(len(enriched_times_ns)),
+            "context_warmup_rows_excluded": int(regime_warmup_rows),
+            "first_decision_row_utc": str(
+                pd.Timestamp(int(enriched_times_ns[0]), tz="UTC")
+            ),
             "columns": list(OUTPUT_COLUMNS),
             "raw_market_columns": list(RAW_MARKET_COLUMNS),
             "rank_source_columns": list(RANK_COLUMNS),
