@@ -971,7 +971,6 @@ def _write_output_partial(
     regime_compact: np.ndarray,
     partial: Path,
     batch_rows: int,
-    skip_rows: int = 0,
 ) -> tuple[pa.Schema, int]:
     enriched_read_columns = tuple(
         name for name in ENRICHED_COLUMNS if name not in RANKER_OWNED_DERIVATIONS
@@ -989,12 +988,6 @@ def _write_output_partial(
             columns=enriched_read_columns,
             batch_rows=batch_rows,
         ):
-            if skip_rows:
-                if batch.num_rows <= skip_rows:
-                    skip_rows -= batch.num_rows
-                    continue
-                batch = batch.slice(skip_rows)
-                skip_rows = 0
             size = batch.num_rows
             end = offset + size
             if end > len(enriched_times_ns):
@@ -1039,7 +1032,15 @@ def _write_output_partial(
                     dtype=np.dtype(np.float64),
                 )
                 incoming = regime_compact[offset:end, projected_index[name]]
-                if not np.array_equal(existing, incoming):
+                # The verified V4 cache owns these scalars and publishes only
+                # closed buckets, so it is the authority. Where it defines a
+                # value the enriched frame must match it exactly. Where it does
+                # not - a row before the first closed bar of that timeframe -
+                # the value is undefined by causality, and any enriched value
+                # there could only have come from a forming bar, so the cache's
+                # undefined value is written instead.
+                defined = np.isfinite(incoming)
+                if not np.array_equal(existing[defined], incoming[defined]):
                     raise RuntimeError(f"M5_SOURCE_REGIME_{name.upper()}_MISMATCH")
 
             arrays: list[pa.Array] = []
@@ -1053,13 +1054,13 @@ def _write_output_partial(
                         native.floats[positions, NATIVE_FLOAT_INDEX[name]],
                         type=pa.float64(),
                     )
-                elif name in by_name:
-                    array = by_name[name]
                 elif name in projected_index:
                     array = pa.array(
                         regime_compact[offset:end, projected_index[name]],
                         type=pa.float64(),
                     )
+                elif name in by_name:
+                    array = by_name[name]
                 else:
                     raise RuntimeError(f"M5_SOURCE_OUTPUT_FIELD_UNRESOLVED: {name}")
                 arrays.append(array)
@@ -1239,10 +1240,6 @@ def materialize_m5_source(
         enriched_times_ns=enriched_times_ns,
     )
     del multi_tf
-    if regime_warmup_rows:
-        enriched_times_ns = enriched_times_ns[regime_warmup_rows:]
-        native_positions = native_positions[regime_warmup_rows:]
-        regime_compact = regime_compact[regime_warmup_rows:]
 
     parquet_partial = _new_partial(output)
     manifest_partial: Path | None = None
@@ -1256,7 +1253,6 @@ def materialize_m5_source(
             regime_compact=regime_compact,
             partial=parquet_partial,
             batch_rows=batch_rows,
-            skip_rows=regime_warmup_rows,
         )
         output_sha256, output_size_bytes, output_schema_sha256 = (
             _verify_output_partial(
@@ -1294,9 +1290,9 @@ def materialize_m5_source(
             "output_parquet_size_bytes": output_size_bytes,
             "output_arrow_schema_sha256": output_schema_sha256,
             "rows": int(len(enriched_times_ns)),
-            "context_warmup_rows_excluded": int(regime_warmup_rows),
-            "first_decision_row_utc": str(
-                pd.Timestamp(int(enriched_times_ns[0]), tz="UTC")
+            "context_warmup_rows": int(regime_warmup_rows),
+            "first_fully_defined_context_row_utc": str(
+                pd.Timestamp(int(enriched_times_ns[regime_warmup_rows]), tz="UTC")
             ),
             "columns": list(OUTPUT_COLUMNS),
             "raw_market_columns": list(RAW_MARKET_COLUMNS),
