@@ -157,6 +157,12 @@ def bucket_against_train_reference(values: np.ndarray, sorted_reference: np.ndar
     return np.clip(percentile * 5.0, 0.0, 4.99).astype(np.int64)
 
 
+# Segment length for the causal volatility-regime rank. Any value is exact
+# because each segment carries the full trailing window as context; this one
+# keeps the transient well under the producer ceiling on the M1 clock.
+_VOL_REGIME_RANK_SEGMENT_ROWS = 262_144
+
+
 def causal_vol_regime_bucket(
     atr_bps: np.ndarray,
     *,
@@ -176,12 +182,25 @@ def causal_vol_regime_bucket(
         raise RuntimeError("MODEL_NATIVE_VOL_REGIME_INPUT_INVALID")
     if isinstance(window_bars, bool) or not isinstance(window_bars, int) or window_bars < 2:
         raise RuntimeError("MODEL_NATIVE_VOL_REGIME_WINDOW_INVALID")
-    percentile = (
-        pd.Series(values, dtype=np.float64)
-        .rolling(window_bars, min_periods=1)
-        .rank(method="average", pct=True)
-        .to_numpy(dtype=np.float64)
-    )
+    # rolling().rank() recomputes each window independently, so a segment that
+    # carries window_bars - 1 rows of preceding context reproduces the whole-array
+    # result exactly. Computing it in segments keeps the transient bounded: on the
+    # native M1 clock the single-shot form costs about 2.8 GiB, which is what put
+    # the enriched stage over the 10G producer ceiling.
+    overlap = window_bars - 1
+    percentile = np.empty(values.size, dtype=np.float64)
+    start = 0
+    while start < values.size:
+        end = min(start + _VOL_REGIME_RANK_SEGMENT_ROWS, values.size)
+        low = max(0, start - overlap)
+        segment = (
+            pd.Series(values[low:end], dtype=np.float64)
+            .rolling(window_bars, min_periods=1)
+            .rank(method="average", pct=True)
+            .to_numpy(dtype=np.float64)
+        )
+        percentile[start:end] = segment[start - low:]
+        start = end
     if not np.isfinite(percentile).all():
         raise RuntimeError("MODEL_NATIVE_VOL_REGIME_RANK_NONFINITE")
     return np.clip(percentile * 5.0, 0.0, 4.99).astype(np.int64)
