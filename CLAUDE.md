@@ -200,7 +200,8 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 Every heavy offline producer, dataset build, audit, train, selective-edge run
 or replay enters through `scripts/gx1_capped_run.sh`. That runner is the only
 capacity authority: one heavy job at a time, `MemoryMax`/`MemoryHigh` at most
-10G for the canonical trainer and 4G for audits/tests, swap at most 512M, a
+10G for the heavy dataset producers and the canonical trainer, and 4G for
+audits/tests, swap at most 512M, a
 minimum of 20G host-available RAM before launch, CPU affinity 0-1 and one
 numerical-library thread. Any request above those limits, missing host state,
 lock contention or a missing cgroup is a hard failure. Never bypass, weaken,

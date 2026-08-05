@@ -1086,7 +1086,11 @@ require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
 run_feature_ranker() {
-  (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
+  # Heavy producer, not an audit: it materializes the full candidate matrix over
+  # every TRAIN row. The pre-wave chain ran it at 10G and the last GREEN run (V5)
+  # verified memory.max=10737418240. Reclassifying it as an audit capped it at 4G
+  # and the cgroup killed it.
+  (cd "$ENG" && bash scripts/gx1_capped_run.sh --class producer --mem 10G --swap 512M -- \
     "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \

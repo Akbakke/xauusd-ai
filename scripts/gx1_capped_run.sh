@@ -5,6 +5,9 @@
 #
 # Usage: scripts/gx1_capped_run.sh --class audit|trainer [--mem 4G] [--swap 512M] -- <command ...>
 #   --class audit is capped at 4G and cannot launch the trainer.
+#   --class producer is for the heavy offline dataset producers (feature lanes,
+#           model source, ranker, dataset rebuild) and may request at most 10G.
+#           It cannot launch the trainer.
 #   --class trainer is reserved for the one canonical trainer module and may
 #           request at most 10G.
 #   --mem   MemoryMax (hard) + MemoryHigh for the job's cgroup scope. This machine's
@@ -75,7 +78,7 @@ validate_target_command() {
     fi
   done
 
-  if [[ "$JOB_CLASS" == "audit" ]]; then
+  if [[ "$JOB_CLASS" == "audit" || "$JOB_CLASS" == "producer" ]]; then
     if [[ "$trainer_reference" == true ]]; then
       echo "FATAL: canonical trainer requires --class trainer" >&2
       exit 75
@@ -114,8 +117,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ $# -ge 1 ]] || { echo "FATAL: no command given after '--'"; exit 2; }
-[[ "$JOB_CLASS" == "audit" || "$JOB_CLASS" == "trainer" ]] || {
-  echo "FATAL: --class must be exactly audit or trainer" >&2
+[[ "$JOB_CLASS" == "audit" || "$JOB_CLASS" == "producer" || "$JOB_CLASS" == "trainer" ]] || {
+  echo "FATAL: --class must be exactly audit, producer or trainer" >&2
   exit 2
 }
 
