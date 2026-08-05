@@ -468,6 +468,25 @@ def _add_regime_categoricals(
 # ── public API ────────────────────────────────────────────────────────────
 
 
+def _ctx_rss_mark(label: str) -> None:
+    """Report resident memory inside the context completion.
+
+    The M1 enriched stage dies between the coarse stage marks, so the peak is
+    invisible without a mark per helper. Cheap, valid anywhere, no effect on
+    values.
+    """
+
+    try:
+        with open("/proc/self/status", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("VmRSS:"):
+                    gib = float(line.split()[1]) / (1024.0 * 1024.0)
+                    print(f"[ctx_rss] {label} rss_gib={gib:.2f}", flush=True)
+                    return
+    except OSError:
+        return
+
+
 def _finish_canonical_v3_context(
     out: pd.DataFrame,
     *,
@@ -476,12 +495,19 @@ def _finish_canonical_v3_context(
 ) -> pd.DataFrame:
     """Complete local context after an explicit MTF owner has attached fields."""
 
+    _ctx_rss_mark("finish_start")
     _add_spread_atr_bps(out)
+    _ctx_rss_mark("spread_atr")
     _add_session_features(out, base_bar_duration=base_bar_duration)
+    _ctx_rss_mark("session")
     _add_session_interactions(out)
+    _ctx_rss_mark("session_interactions")
     _add_micro_features(out)
+    _ctx_rss_mark("micro")
     _add_swing_features(out)
+    _ctx_rss_mark("swing")
     _add_regime_categoricals(out, rank_reference=rank_reference)
+    _ctx_rss_mark("regime_categoricals")
     # Volume / order-flow per-bar features — SAME helper the V10 builder uses, so
     # the seq's vol_z_20/vol_ratio_5_20/vol_pct_96/signed_vol_z_20 are identical
     # train↔serve. Computed on the full `out` frame (full history) so trailing
@@ -489,6 +515,7 @@ def _finish_canonical_v3_context(
     from gx1.features.volume_features import add_volume_features
 
     add_volume_features(out)
+    _ctx_rss_mark("volume")
     # REGIME_V4 (2026-06-03): multi-TF regime CONDITIONING + 'regime is shifting' CHANGE-
     # DETECTION features. ONE-TRUTH: identical gx1.features.regime_v4_features helper as the
     # build-side (add_ctx_cont_columns_to_prebuilt.py) — cannot drift. Sources are already on `out`: per-TF
@@ -500,6 +527,7 @@ def _finish_canonical_v3_context(
         add_regime_v4_features,
     )
 
+    _ctx_rss_mark("before_regime_v4")
     add_regime_v4_features(
         out,
         base_bar_duration=base_bar_duration,
