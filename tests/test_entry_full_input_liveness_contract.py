@@ -5,6 +5,7 @@ from pathlib import Path
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
     PASS_DECISION,
+    SPLITS,
     sha256_file,
     validate_full_input_liveness_artifact,
 )
@@ -31,7 +32,7 @@ def test_full_input_liveness_validates_660_split_fields_and_all_555_mtf_fields(
 
     assert result["ok"] is True
     assert result["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
-    assert result["field_status_row_count"] == 3 * (513 + 142 + 5)
+    assert result["field_status_row_count"] == len(SPLITS) * (513 + 142 + 5)
     assert result["multi_tf_field_count_per_timeframe"] == 111
     assert result["multi_tf_field_status_row_count"] == 5 * 111
     assert artifact["decision"] == PASS_DECISION
@@ -43,7 +44,7 @@ def test_full_input_liveness_allowlist_is_exact_and_has_no_prefix_pass_through(t
     order["signal"][-1] = "p_unreviewed_direction_hint"
 
     def make_unreviewed_field_constant(stats) -> None:
-        for split in ("train", "val", "test"):
+        for split in SPLITS:
             stats[split]["signal"]["p_unreviewed_direction_hint"].update(
                 {"mean": 0.0, "std": 0.0, "active_count": 0, "active_rate": 0.0}
             )
@@ -97,7 +98,7 @@ def test_oos_single_regime_state_is_observed_but_train_constant_fails(tmp_path) 
     categorical_field = order["ctx_cat"][0]
 
     def oos_single_state(stats) -> None:
-        for split in ("val", "test"):
+        for split in SPLITS[1:]:
             stats[split]["signal"][numeric_field].update(
                 {
                     "mean": 0.0,
@@ -125,7 +126,7 @@ def test_oos_single_regime_state_is_observed_but_train_constant_fails(tmp_path) 
         for row in artifact["field_status"]
     }
     assert observed[("val", "signal", numeric_field)] == "OBSERVED_SINGLE_STATE"
-    assert observed[("test", "ctx_cat", categorical_field)] == "OBSERVED_SINGLE_STATE"
+    assert observed[("val", "ctx_cat", categorical_field)] == "OBSERVED_SINGLE_STATE"
 
     def train_constant(stats) -> None:
         stats["train"]["signal"][numeric_field].update(
@@ -268,8 +269,9 @@ def test_full_input_liveness_fails_when_bound_manifest_or_scanned_parquet_change
     )
 
     parquet_path, artifact, _ = write_full_input_liveness_fixture(tmp_path / "parquet")
+    scanned_split = SPLITS[-1]
     bound_parquet = Path(
-        artifact["input_bindings"]["fullscan_proof"]["test"]["parquet_path"]
+        artifact["input_bindings"]["fullscan_proof"][scanned_split]["parquet_path"]
     )
     bound_parquet.write_bytes(b"changed-after-fullscan")
 
@@ -277,6 +279,6 @@ def test_full_input_liveness_fails_when_bound_manifest_or_scanned_parquet_change
 
     assert parquet_result["ok"] is False
     assert any(
-        row["code"] == "fullscan_proof_invalid" and row.get("split") == "test"
+        row["code"] == "fullscan_proof_invalid" and row.get("split") == scanned_split
         for row in parquet_result["failures"]
     )

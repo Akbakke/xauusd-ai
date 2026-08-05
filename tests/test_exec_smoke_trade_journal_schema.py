@@ -17,7 +17,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gx1.monitoring.trade_journal import TradeJournal
-from tests.model_native_sizing_support import unverified_learned_sizing_authority
 from tests.model_native_offline_rl_support import (
     model_native_mtf_cooperation_evidence,
     offline_rl_evidence,
@@ -234,7 +233,6 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
             "path_quality_std": math.exp(0.5 * path_log_var),
             "position_size_logit": size_logit,
             "position_size_pred": sigmoid(size_logit),
-            "sizing_authority_contract": unverified_learned_sizing_authority(),
             "p_long_given_trade": side_probs[0],
             "p_short_given_trade": side_probs[1],
             "side_logits": side_logits,
@@ -272,7 +270,6 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
             "calibration_version": "dircal_v2",
             "direction_calibration_enabled": True,
             "direction_calibration_temperature": 1.15,
-            "direction_calibration_bias": [0.1, -0.1, 0.0],
             "path_calibration_enabled": True,
             "path_calibration": {
                 "enabled": True,

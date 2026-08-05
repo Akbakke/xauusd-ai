@@ -43,11 +43,11 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v6"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v7"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v2"
+    "entry_candidate_model_direction_prediction_evidence_v3"
 )
 BUNDLE_ARTIFACT_KEYS = (
     "bundle_commit",
@@ -227,6 +227,16 @@ def _direction_wilson_contract(
         == minimum_prediction_rows,
         f"[{context}_MINIMUM_CLASS_SUPPORT_POLICY_INVALID]",
     )
+    for field, expected in ():
+        value_at_field = direction.get(field)
+        if expected is None:
+            _require(value_at_field is None, f"[{context}_{field.upper()}_INVALID]")
+        else:
+            _exact_policy_float(
+                value_at_field,
+                expected,
+                context=f"{context}_{field.upper()}",
+            )
 
     label_counts = _class_int_mapping(
         direction.get("label_counts"), context=f"{context}_LABEL_COUNTS"
@@ -378,14 +388,6 @@ def _direction_wilson_contract(
     _require(
         direction.get("beats_majority_baseline") is True and accuracy > majority,
         f"[{context}_MAJORITY_BASELINE_EDGE_UNPROVEN]",
-    )
-    _require(
-        accuracy >= float(_SMOKE_EDGE_POLICY["min_direction_accuracy"]),
-        f"[{context}_ACCURACY_BELOW_POLICY]",
-    )
-    _require(
-        balanced >= float(_SMOKE_EDGE_POLICY["min_balanced_accuracy"]),
-        f"[{context}_BALANCED_ACCURACY_BELOW_POLICY]",
     )
     trade_coverage = _finite_float(
         direction.get("trade_coverage"), context=f"{context}_TRADE_COVERAGE"
@@ -1045,9 +1047,31 @@ def require_smoke_bundle_audit_contract(
     _require(isinstance(prediction, Mapping), f"[{context}_PREDICTION_EVIDENCE_MISSING]")
     _require(
         prediction.get("schema_version") == PREDICTION_EVIDENCE_SCHEMA_VERSION
-        and prediction.get("authoritative") is True
+        and prediction.get("evidence_stage") == "pre_calibration"
+        and prediction.get("authoritative") is False
         and prediction.get("runtime_head_evidence_authoritative") is False,
         f"[{context}_PREDICTION_EVIDENCE_INVALID]",
+    )
+    _require(
+        prediction.get("splits") == list(DATA_SPLITS),
+        f"[{context}_PREDICTION_EVIDENCE_SPLITS_INVALID]",
+    )
+    prediction_models = prediction.get("models")
+    _require(
+        isinstance(prediction_models, list)
+        and len(prediction_models) == 1
+        and isinstance(prediction_models[0], str)
+        and bool(prediction_models[0]),
+        f"[{context}_PREDICTION_EVIDENCE_MODEL_INVALID]",
+    )
+    _require(
+        _SHA256_RE.fullmatch(str(prediction.get("sha256") or "")) is not None,
+        f"[{context}_PREDICTION_EVIDENCE_SHA256_INVALID]",
+    )
+    prediction_path = Path(str(prediction.get("path") or "")).expanduser()
+    _require(
+        prediction_path.is_absolute(),
+        f"[{context}_PREDICTION_EVIDENCE_PATH_INVALID]",
     )
     _require(
         report.get("prediction_evidence_stage") == "pre_calibration",

@@ -85,13 +85,16 @@ from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
-    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
 from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.model_native_offline_rl_support import (
     model_native_target_audit_evidence,
+)
+from tests.model_native_test_seal_support import (
+    write_prefreeze_test_seal_fixture,
 )
 
 
@@ -444,12 +447,17 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_signal_dim": 513,
             "required_training_specialists": list(REQUIRED_SPECIALISTS),
+            "future_train_contract": {
+                "profile": "smoke",
+                "control_route": "model-native-smoke-train",
+                "wrapper_path": "scripts/run_entry_model_native_seq513_train.sh",
+            },
         },
     )
 
     if profile == "smoke":
         embedded = {
-            "schema_version": "entry_model_native_seq513_smoke_dataset_v2",
+            "schema_version": "entry_model_native_seq513_smoke_dataset_v3",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": 513,
             "out_dir": str(dataset_dir),
@@ -460,13 +468,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     "out_parquet_sha256": artifact_binding(artifacts[f"{split}_parquet"])["sha256"],
                     "out_manifest_sha256": artifact_binding(artifacts[f"{split}_manifest_json"])["sha256"],
                 }
-                for split in ("train", "val", "test")
+                for split in ("train", "val")
             },
         }
         artifacts["smoke_manifest_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_MANIFEST_{STAMP}.json",
             {
-                "schema_version": "entry_model_native_seq513_smoke_manifest_v2",
+                "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
                 "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
                 "failures": [],
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
@@ -478,7 +486,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_readiness_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_READINESS_{STAMP}.json",
             {
-                "schema_version": "entry_model_native_seq513_smoke_readiness_v2",
+                "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
                 "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
                 "failures": [],
                 "smart_candidate": {
@@ -491,11 +499,27 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     else:
         pass
 
+    sealed_parquet_sha256 = {
+        split: artifact_binding(artifacts[f"{split}_parquet"])["sha256"]
+        for split in ("train", "val", "test")
+    }
+    test_seal_path, test_seal_sha256, test_seal_lineage = (
+        write_prefreeze_test_seal_fixture(
+            authority_dir=evidence_dir / "rebuild_authority",
+            dataset_dir=dataset_dir,
+            dataset_run_id=DATASET_RUN_ID,
+            manifest_path=artifacts["test_manifest_json"],
+            manifest_sha256=artifact_binding(artifacts["test_manifest_json"])[
+                "sha256"
+            ],
+            parquet_path=artifacts["test_parquet"],
+            parquet_sha256=sealed_parquet_sha256["test"],
+        )
+    )
+    artifacts["prefreeze_test_seal_json"] = test_seal_path
     large_artifact_sha256 = {
         key: artifact_binding(artifacts[key])["sha256"]
-        for key in sorted(
-            ("train_parquet", "val_parquet", "test_parquet", "m5_prebuilt_path")
-        )
+        for key in sorted(("train_parquet", "val_parquet", "m5_prebuilt_path"))
     }
     tape_provenance = {
         "schema_version": "xau_tape_current_snapshot_v1",
@@ -503,7 +527,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "entry_run_id": DATASET_RUN_ID,
     }
     pretrain_splits = []
-    for split in ("train", "val", "test"):
+    for split in ("train", "val"):
         manifest = json.loads(
             artifacts[f"{split}_manifest_json"].read_text(encoding="utf-8")
         )
@@ -536,14 +560,14 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "decision": "PASS",
             "failures": [],
             "dataset_dir": str(dataset_dir),
-            "data_splits": ["train", "val", "test"],
+            "data_splits": ["train", "val"],
             "require_rail_features": True,
             "require_inline_seq_structure": True,
             "require_xau_provenance": True,
             "required_rail_features": list(REQUIRED_RAIL_FEATURES),
             "missing_rail_features": [],
             "tape_provenance": {
-                split: tape_provenance for split in ("train", "val", "test")
+                split: tape_provenance for split in ("train", "val")
             },
             "splits": pretrain_splits,
         },
@@ -551,7 +575,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     artifacts["post_rebuild_readiness_json"] = _write_json(
         evidence_dir / f"ENTRY_POST_REBUILD_READINESS_{STAMP}.json",
         {
-            "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v1",
+            "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v2",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW",
             "failures": [],
             "entry_run_id": DATASET_RUN_ID,
@@ -580,16 +604,59 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 ],
             },
             "split_artifacts": {
-                split: {
-                    "manifest_path": str(artifacts[f"{split}_manifest_json"]),
-                    "manifest_sha256": artifact_binding(
-                        artifacts[f"{split}_manifest_json"]
-                    )["sha256"],
-                    "parquet_path": str(artifacts[f"{split}_parquet"]),
-                    "parquet_sha256": large_artifact_sha256[f"{split}_parquet"],
-                    "rows": 1,
-                }
-                for split in ("train", "val", "test")
+                **{
+                    split: {
+                        "manifest_path": str(artifacts[f"{split}_manifest_json"]),
+                        "manifest_sha256": artifact_binding(
+                            artifacts[f"{split}_manifest_json"]
+                        )["sha256"],
+                        "parquet_path": str(artifacts[f"{split}_parquet"]),
+                        "parquet_sha256": sealed_parquet_sha256[split],
+                        "rows": 1,
+                    }
+                    for split in ("train", "val")
+                },
+                "test": {
+                    "manifest_path": test_seal_lineage["test_manifest"]["path"],
+                    "manifest_sha256": test_seal_lineage["test_manifest"]["sha256"],
+                    "parquet_path": test_seal_lineage["test_parquet"]["path"],
+                    "parquet_sha256": test_seal_lineage["test_parquet"]["sha256"],
+                    "schema_version": test_seal_lineage["test_manifest"]["schema_version"],
+                    "manifest_variant": test_seal_lineage["test_manifest"]["manifest_variant"],
+                    "rows": test_seal_lineage["rows"],
+                    "entry_run_id": test_seal_lineage["dataset_run_id"],
+                    "instrument": test_seal_lineage["test_manifest"]["instrument"],
+                    "access_mode": test_seal_lineage["access_policy"],
+                    "seal_path": test_seal_lineage["seal_event"]["path"],
+                    "seal_sha256": test_seal_lineage["seal_event"]["sha256"],
+                },
+            },
+            "test_isolation": {
+                "schema_version": test_seal_lineage["seal_event"]["schema_version"],
+                "decision": test_seal_lineage["seal_event"]["decision"],
+                "access_policy": test_seal_lineage["access_policy"],
+                "authority": {
+                    "path": test_seal_lineage["seal_event"]["path"],
+                    "sha256": test_seal_lineage["seal_event"]["sha256"],
+                },
+                "content_binding_sha256": test_seal_lineage["seal_event"][
+                    "content_binding_sha256"
+                ],
+                "rebuild_terminal": {
+                    key: test_seal_lineage["rebuild_terminal"][key]
+                    for key in (
+                        "path",
+                        "sha256",
+                        "schema_version",
+                        "content_binding_sha256",
+                    )
+                },
+                "pair_lineage_sha256": test_seal_lineage["pair_lineage_sha256"],
+                "source_lineage_sha256": test_seal_lineage["source_lineage_sha256"],
+                "disclosure_count": 0,
+                "test_dataset_bytes_read": False,
+                "test_manifest_bytes_read": False,
+                "test_paths_resolved_or_statted": False,
             },
         },
     )
@@ -620,6 +687,10 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             evidence_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{STAMP}.json",
             {"fixture": "prediction report"},
         )
+        prediction_path = (
+            evidence_dir / f"selective_edge_predictions_{STAMP}.parquet"
+        )
+        prediction_path.write_bytes(b"wrapper-prediction-evidence")
 
         def simple_binding(path: Path) -> dict[str, str]:
             row = artifact_binding(path)
@@ -725,12 +796,17 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "splits": passing_smoke_audit_splits(),
                 "prediction_evidence": {
                     "schema_version": (
-                        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+                        PREDICTION_EVIDENCE_SCHEMA_VERSION
                     ),
-                    "authoritative": True,
-                    "runtime_head_evidence_authoritative": True,
-                    "path": str(evidence_dir / f"predictions_{STAMP}.parquet"),
+                    "evidence_stage": "pre_calibration",
+                    "authoritative": False,
+                    "runtime_head_evidence_authoritative": False,
+                    "path": str(prediction_path),
+                    "sha256": simple_binding(prediction_path)["sha256"],
+                    "splits": ["val"],
+                    "models": ["entry_model_native_smoke"],
                 },
+                "prediction_evidence_stage": "pre_calibration",
                 "prediction_report_json": str(prediction_report),
                 "prediction_report_sha256": simple_binding(prediction_report)["sha256"],
                 "promotion_shadow_live_allowed": False,
@@ -767,14 +843,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     recipe_binding_keys = [
         "train_manifest_json",
         "val_manifest_json",
-        "test_manifest_json",
         "train_parquet",
         "val_parquet",
-        "test_parquet",
         "unified_exit_lifecycle_manifest_json",
         "m5_prebuilt_path",
         "multi_tf_cache_manifest_json",
         "post_rebuild_readiness_json",
+        "prefreeze_test_seal_json",
         "full_input_liveness_audit_json",
         "feature_audit_json",
         "target_audit_json",
@@ -848,6 +923,10 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "dataset_run_id": DATASET_RUN_ID,
             "dataset_dir": str(dataset_dir),
             "out_bundle_dir": str(out_bundle),
+            "prefreeze_test_seal_lineage": test_seal_lineage,
+            "prefreeze_test_seal_lineage_sha256": canonical_json_sha256(
+                test_seal_lineage
+            ),
             "source_commit": subprocess.check_output(
                 ["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True
             ).strip(),
@@ -869,15 +948,15 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--dataset-dir", str(dataset_dir),
         "--train-manifest-json", str(artifacts["train_manifest_json"]),
         "--val-manifest-json", str(artifacts["val_manifest_json"]),
-        "--test-manifest-json", str(artifacts["test_manifest_json"]),
         "--train-parquet", str(artifacts["train_parquet"]),
         "--val-parquet", str(artifacts["val_parquet"]),
-        "--test-parquet", str(artifacts["test_parquet"]),
         "--unified-exit-lifecycle-manifest-json",
         str(artifacts["unified_exit_lifecycle_manifest_json"]),
         "--m5-prebuilt-path", str(artifacts["m5_prebuilt_path"]),
         "--multi-tf-cache-manifest-json", str(artifacts["multi_tf_cache_manifest_json"]),
         "--post-rebuild-readiness-json", str(artifacts["post_rebuild_readiness_json"]),
+        "--prefreeze-test-seal-json", str(artifacts["prefreeze_test_seal_json"]),
+        "--prefreeze-test-seal-sha256", test_seal_sha256,
         "--full-input-liveness-audit-json", str(artifacts["full_input_liveness_audit_json"]),
         "--feature-audit-json", str(artifacts["feature_audit_json"]),
         "--target-audit-json", str(artifacts["target_audit_json"]),

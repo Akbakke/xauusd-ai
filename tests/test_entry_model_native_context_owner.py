@@ -21,12 +21,14 @@ LEGACY_MODULES = {
 def _active_entry_sources() -> tuple[Path, ...]:
     paths = {
         ROOT / "gx1/contracts/entry_model_native_signal_v1.py",
-        ROOT / "gx1/scripts/add_ctx_cont_columns_to_prebuilt.py",
+        ROOT / "gx1/features/htf_features.py",
+        ROOT / "gx1/execution/v12_ctx_augment_live.py",
+        ROOT / "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py",
         ROOT / "gx1/scripts/augment_forward_outcome_v2.py",
         ROOT / "gx1/execution/v12_model_native_state_live.py",
         ROOT / "gx1/execution/v12_smart_entry_live.py",
         ROOT / "gx1/execution/v12_state_from_prebuilt.py",
-        ROOT / "gx1/execution/model_native_entry_replay_v1.py",
+        ROOT / "gx1/replay/source_tape_v1.py",
     }
     paths.update((ROOT / "gx1/models/entry_v10").glob("*.py"))
     paths.update((ROOT / "gx1/features").glob("entry_*.py"))

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +14,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS,
     MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS,
 )
 from gx1.features.micro_structure_v1 import (
@@ -29,9 +29,6 @@ from gx1.features.swing_structure_v1 import (
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 from gx1.contracts.entry_model_native_state_v2 import (
     bucket_against_train_reference,
-)
-from gx1.scripts.add_ctx_cont_columns_to_prebuilt import (
-    get_prebuilt_ctx_contract_columns,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _model_native_artifact_owner_fields,
@@ -134,35 +131,30 @@ def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     assert MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS == (
         MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
     )
-    required_cont, required_cat = get_prebuilt_ctx_contract_columns()
-    assert tuple(required_cont) == MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS
-    assert len(required_cont) == 16
-    assert len(required_cat) == 5
-    assert tuple(inspect.signature(get_prebuilt_ctx_contract_columns).parameters) == ()
+    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 16
+    assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == 5
 
 
 def test_active_context_has_no_future_or_soft_pass_through() -> None:
-    ctx_adder = (ROOT / "gx1/scripts/add_ctx_cont_columns_to_prebuilt.py").read_text(
+    htf_owner = (ROOT / "gx1/features/htf_features.py").read_text(encoding="utf-8")
+    augment_owner = (ROOT / "gx1/execution/v12_ctx_augment_live.py").read_text(
         encoding="utf-8"
     )
+    enriched_owner = (
+        ROOT / "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py"
+    ).read_text(encoding="utf-8")
     builder = (
         ROOT / "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py"
     ).read_text(encoding="utf-8")
-    serving = (ROOT / "gx1/execution/v12_model_native_state_live.py").read_text(
-        encoding="utf-8"
-    )
 
-    assert "shift(-" not in ctx_adder
-    assert "ctx-cont-dim" not in ctx_adder
-    assert "cv3-cross-source" not in ctx_adder
+    for source in (htf_owner, augment_owner, enriched_owner):
+        assert "shift(-" not in source
+        assert "ctx-cont-dim" not in source
+        assert "cv3-cross-source" not in source
     assert 'suffixes=("", "_tape")' not in builder
     assert 'if "is_ASIA" not in df.columns' not in builder
     assert "src_supplied" not in builder
     assert "fall back to canonical_v2" not in builder
-    assert (
-        "from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (\n            MICRO_FEATURE_NAMES"
-        not in serving
-    )
 
 
 def test_builder_artifact_field_owners_are_exact_and_disjoint() -> None:

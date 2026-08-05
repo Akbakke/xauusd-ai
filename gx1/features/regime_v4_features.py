@@ -24,7 +24,7 @@ import pandas as pd
 
 from gx1.features.htf_features import (
     MULTI_TF_BARS_IN_M5,
-    REGIME_V4_V2_MTF_TFS,
+    REGIME_V4_MTF_TIMEFRAMES,
     MULTI_TF_SHIFT,
     validate_causal_feature_matrix,
 )
@@ -34,7 +34,7 @@ from gx1.features.htf_features import (
 # agreement/divergence (regime_tf_agreement_v3 etc.), not just the M5 seq. Appended (not prepended) so the
 # m15/h1/h4/d1 features keep their relative order; everything is by-name so order is non-load-bearing.
 # Grows REGIME_V4_FEATURE_NAMES 16->18 -> ctx_cont 121->123, EXIT_IO_V8 171->173 (contracts import dynamically).
-_TFS = REGIME_V4_V2_MTF_TFS
+_TFS = REGIME_V4_MTF_TIMEFRAMES
 # M5-bar cadence per TF (one bar of TF = N M5 bars), for transition look-backs.
 _TF_BARS = {
     timeframe: MULTI_TF_BARS_IN_M5[timeframe]

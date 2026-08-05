@@ -6,6 +6,8 @@ their independently computed native-resolution values.
 """
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -16,10 +18,26 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_manifest,
 )
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CAT_MIN_MAX
-from gx1.contracts.entry_exit_feature_base_v1 import EXIT_DECISION_BAR_SECONDS
-from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_FEATURE_SEQUENCE_BARS,
+    entry_exit_shared_feature_base_contract,
+    require_entry_exit_enriched_source_binding,
+    require_entry_exit_feature_surface_identity,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
+)
+from gx1.utils.artifact_primitives_v1 import (
+    canonical_json_sha256,
+    require_immutable_artifact,
+    sha256_file,
+)
 
 
 ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION = (
@@ -33,6 +51,226 @@ ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE = (
 )
 ENTRY_EXIT_FEATURE_SURFACE_COLUMNS = ("time", "signal", "ctx_cont", "ctx_cat")
 
+def _read_json_manifest(path: Path, *, context: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"{context}_JSON_INVALID") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"{context}_JSON_OBJECT_REQUIRED")
+    return payload
+
+
+def build_entry_exit_feature_surface_manifest(
+    *,
+    timeframe: str,
+    dataset_run_id: str,
+    pair_generation_id: str,
+    source: Path,
+    source_binding: Mapping[str, str],
+    alignment: Path | None,
+    seq_structure_manifest: Path,
+    output: Path,
+    rows: int,
+    signal_contract: Mapping[str, Any],
+    extension: Mapping[str, Any],
+    materialization: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Build the only Entry/Exit feature-surface manifest shape."""
+
+    if (
+        timeframe not in {"M1", "M5"}
+        or (timeframe == "M1") != (materialization is not None)
+        or (timeframe == "M1" and alignment is None)
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_SURFACE_BUILD_CONTRACT_INVALID")
+    schema_version = (
+        ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
+        if timeframe == "M1"
+        else ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION
+    )
+    fields = list(signal_contract["fields"])
+    manifest: dict[str, Any] = {
+        "schema_version": schema_version,
+        "decision": "PASS",
+        "feature_base_contract_schema_version": (
+            ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION
+        ),
+        "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+        "dataset_run_id": dataset_run_id,
+        "pair_generation_id": pair_generation_id,
+        "anchor_timeframe": timeframe,
+        "source_parquet": str(source),
+        "source_sha256": source_binding["source_sha256"],
+        "source_manifest": source_binding["manifest_path"],
+        "source_manifest_sha256": source_binding["manifest_sha256"],
+        "source_manifest_schema_version": source_binding["schema_version"],
+        "rank_reference_npz": source_binding["rank_reference_npz"],
+        "rank_reference_sha256": source_binding["rank_reference_sha256"],
+        "alignment_parquet": None if alignment is None else str(alignment),
+        "alignment_sha256": (
+            None if alignment is None else sha256_file(alignment)
+        ),
+        "seq_structure_manifest": str(seq_structure_manifest),
+        "seq_structure_manifest_sha256": sha256_file(seq_structure_manifest),
+        "output_parquet": str(output),
+        "output_parquet_sha256": sha256_file(output),
+        "rows": rows,
+        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "feature_field_order": fields,
+        "feature_field_order_sha256": canonical_json_sha256(fields),
+        "extension": dict(extension),
+        "causal_contract": {
+            "future_rows_used": False,
+            "closed_decision_bar_required": True,
+            "m1_closed_bar_required": timeframe == "M1",
+            "m5_row_reuse": False,
+            "native_resolution_values": True,
+            "cross_resolution_value_copy": False,
+            "computed_m1_feature_resampling": False,
+            "duplicate_feature_implementation": False,
+            "exact_closed_source_timestamp_subset": alignment is not None,
+        },
+    }
+    if materialization is not None:
+        manifest["materialization"] = dict(materialization)
+    manifest["manifest_sha256"] = canonical_json_sha256(manifest)
+    return manifest
+
+
+def require_exact_m1_feature_surface_manifest(
+    *,
+    manifest_path: Path,
+    expected_manifest_sha256: str,
+    expected_parquet_path: Path,
+    expected_parquet_sha256: str,
+    expected_dataset_run_id: str,
+    expected_pair_generation_id: str,
+    expected_rows: int,
+    expected_m1_source_path: Path,
+    expected_m1_source_sha256: str,
+    context: str,
+) -> dict[str, Any]:
+    """Bind the exact M1 surface before lifecycle allocates either matrix."""
+
+    if (
+        not isinstance(expected_dataset_run_id, str)
+        or not expected_dataset_run_id
+        or not isinstance(expected_pair_generation_id, str)
+        or not expected_pair_generation_id
+        or isinstance(expected_rows, bool)
+        or not isinstance(expected_rows, int)
+        or expected_rows <= 0
+    ):
+        raise RuntimeError(f"{context}_EXPECTED_IDENTITY_INVALID")
+    manifest_path = require_immutable_artifact(
+        Path(manifest_path),
+        expected_sha256=expected_manifest_sha256,
+        context=f"{context}_MANIFEST",
+    )
+    parquet_path = require_immutable_artifact(
+        Path(expected_parquet_path),
+        expected_sha256=expected_parquet_sha256,
+        context=f"{context}_PARQUET",
+    )
+    m1_source_path = require_immutable_artifact(
+        Path(expected_m1_source_path),
+        expected_sha256=expected_m1_source_sha256,
+        context=f"{context}_M1_SOURCE",
+    )
+    if manifest_path != Path(f"{parquet_path}.manifest.json"):
+        raise RuntimeError(f"{context}_MANIFEST_SIDECAR_INVALID")
+
+    payload = _read_json_manifest(manifest_path, context=context)
+    source_raw = payload.get("source_parquet")
+    if not isinstance(source_raw, str):
+        raise RuntimeError(f"{context}_SOURCE_PATH_INVALID")
+    source_binding = require_entry_exit_enriched_source_binding(
+        Path(source_raw),
+        dataset_run_id=expected_dataset_run_id,
+        pair_generation_id=expected_pair_generation_id,
+        timeframe="M1",
+        context=context,
+    )
+    signal_raw = payload.get("seq_structure_manifest")
+    signal_sha = payload.get("seq_structure_manifest_sha256")
+    if not isinstance(signal_raw, str) or not isinstance(signal_sha, str):
+        raise RuntimeError(f"{context}_SIGNAL_MANIFEST_IDENTITY_INVALID")
+    signal_path = require_immutable_artifact(
+        Path(signal_raw),
+        expected_sha256=signal_sha,
+        context=f"{context}_SIGNAL_MANIFEST",
+    )
+    signal_contract = require_model_native_manifest(
+        _read_json_manifest(signal_path, context=f"{context}_SIGNAL_MANIFEST"),
+        context=f"{context}_SIGNAL_MANIFEST",
+    )
+    require_entry_exit_feature_surface_identity(
+        payload,
+        expected_timeframe="M1",
+        expected_ordered_fields=signal_contract["fields"],
+        expected_signal_manifest_path=str(signal_path),
+        expected_signal_manifest_sha256=signal_sha,
+        expected_rank_reference_sha256=source_binding[
+            "rank_reference_sha256"
+        ],
+        context=context,
+    )
+    extension = payload.get("extension")
+    materialization = payload.get("materialization")
+    if not isinstance(extension, Mapping) or not isinstance(
+        materialization,
+        Mapping,
+    ):
+        raise RuntimeError(f"{context}_MANIFEST_COMPONENT_INVALID")
+    expected_manifest = build_entry_exit_feature_surface_manifest(
+        timeframe="M1",
+        dataset_run_id=expected_dataset_run_id,
+        pair_generation_id=expected_pair_generation_id,
+        source=Path(source_raw),
+        source_binding=source_binding,
+        alignment=m1_source_path,
+        seq_structure_manifest=signal_path,
+        output=parquet_path,
+        rows=expected_rows,
+        signal_contract=signal_contract,
+        extension=extension,
+        materialization=materialization,
+    )
+    if payload != expected_manifest:
+        raise RuntimeError(f"{context}_IDENTITY_INVALID")
+
+    try:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        parquet = pq.ParquetFile(parquet_path)
+    except Exception as exc:
+        raise RuntimeError(f"{context}_PARQUET_SCHEMA_INVALID") from exc
+    if (
+        parquet.metadata is None
+        or parquet.metadata.num_rows != expected_rows
+        or tuple(parquet.schema_arrow.names)
+        != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS
+    ):
+        raise RuntimeError(f"{context}_PARQUET_SCHEMA_INVALID")
+    expected_types = (
+        ("signal", MODEL_NATIVE_SIGNAL_DIM, pa.float32()),
+        ("ctx_cont", MODEL_NATIVE_CTX_CONT_DIM, pa.float32()),
+        ("ctx_cat", MODEL_NATIVE_CTX_CAT_DIM, pa.int64()),
+    )
+    for name, width, dtype in expected_types:
+        observed = parquet.schema_arrow.field(name).type
+        if (
+            not pa.types.is_fixed_size_list(observed)
+            or observed.list_size != width
+            or observed.value_type != dtype
+        ):
+            raise RuntimeError(f"{context}_{name.upper()}_SCHEMA_INVALID")
+    return payload
+
 
 def require_m1_feature_window(
     value: Any,
@@ -40,6 +278,11 @@ def require_m1_feature_window(
     context: str,
 ) -> dict[str, Any]:
     """Validate one atomic live M1 feature window before model invocation."""
+
+    require_entry_exit_production_architecture(
+        current_entry_exit_architecture_observation(),
+        context=f"{context}_M1_FEATURE_WINDOW",
+    )
 
     required = {
         "schema_version",
@@ -124,6 +367,10 @@ def load_m1_feature_surface(
     copy of the full feature base.
     """
 
+    require_entry_exit_production_architecture(
+        current_entry_exit_architecture_observation(),
+        context=f"{context}_M1_FEATURE_SURFACE_LOAD",
+    )
     if (
         isinstance(expected_bar_seconds, bool)
         or not isinstance(expected_bar_seconds, int)
@@ -302,6 +549,10 @@ def load_m1_feature_surface_times(
     producer.
     """
 
+    require_entry_exit_production_architecture(
+        current_entry_exit_architecture_observation(),
+        context=f"{context}_M1_FEATURE_SURFACE_TIME_LOAD",
+    )
     if (
         isinstance(expected_bar_seconds, bool)
         or not isinstance(expected_bar_seconds, int)

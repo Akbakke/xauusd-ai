@@ -173,6 +173,10 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         evidence / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120002123456Z.json",
         {"fixture": True},
     )
+    prediction_path = (
+        evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"
+    )
+    prediction_path.write_bytes(b"candidate-readiness-prediction-evidence")
 
     def binding(path: Path) -> dict[str, str]:
         return readiness._artifact_binding(path)
@@ -270,9 +274,13 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         "splits": passing_smoke_audit_splits(),
         "prediction_evidence": {
             "schema_version": PREDICTION_EVIDENCE_SCHEMA_VERSION,
-            "authoritative": True,
+            "evidence_stage": "pre_calibration",
+            "authoritative": False,
             "runtime_head_evidence_authoritative": False,
-            "path": str(evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"),
+            "path": str(prediction_path),
+            "sha256": binding(prediction_path)["sha256"],
+            "splits": ["val"],
+            "models": ["entry_model_native_smoke"],
         },
         "prediction_evidence_stage": "pre_calibration",
         "prediction_report_json": str(prediction_report),
@@ -311,19 +319,23 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
         assert direction["minimum_prediction_rows_per_class"] == policy[
             "min_prediction_rows_per_class"
         ]
-        # Support floors are still policy-bound; the retired precision bars must
-        # not reappear anywhere in the consumed contract (user vedtak 2026-07-28).
+        # Smoke gates on validity only: support, all three classes emitted and
+        # beating the majority baseline. Precision bars are proved on untouched
+        # TEST, where the sample supports the claim, so the smoke artifact no
+        # longer publishes them as minimums.
         for retired in (
+            "minimum_direction_accuracy",
+            "minimum_balanced_accuracy",
             "minimum_trade_direction_precision",
             "minimum_trade_precision_wilson_lower",
+            "minimum_class_precision",
             "minimum_class_precision_wilson_lower",
         ):
-            assert retired not in direction, retired
+            assert retired not in direction
         context_contract = split["context_slice_contract"]
         assert context_contract["minimum_trade_rows_per_slice"] == policy[
             "min_context_trade_rows"
         ]
-        assert "minimum_trade_precision_wilson_lower" not in context_contract
 
 
 @pytest.mark.parametrize(
@@ -346,10 +358,22 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
             {"minimum_trade_rows": 1}
         ),
         lambda report: report["splits"]["val"]["direction"].update(
+            {"minimum_trade_direction_precision": 0.01}
+        ),
+        lambda report: report["splits"]["val"]["direction"].update(
             {"trade_direction_precision_wilson_lower": 1.0}
         ),
         lambda report: report["splits"]["val"]["context_slice_contract"].update(
             {"minimum_trade_rows_per_slice": 1}
+        ),
+        lambda report: report["prediction_evidence"].update(
+            {"schema_version": "entry_candidate_model_direction_prediction_evidence_v2"}
+        ),
+        lambda report: report["prediction_evidence"].update(
+            {"authoritative": True}
+        ),
+        lambda report: report["prediction_evidence"].update(
+            {"splits": ["val", "test"]}
         ),
     ],
 )
@@ -388,7 +412,9 @@ def test_prediction_evidence_check_accepts_only_policy_owned_val(
     predictions_path.write_bytes(b"prediction-evidence")
     evidence = {
         "path": str(predictions_path),
+        "sha256": readiness._sha256_file(predictions_path),
         "splits": ["val"],
+        "models": ["entry_model_native_smoke"],
     }
     smoke = {
         "prediction_report_json": str(report_path),
@@ -397,13 +423,30 @@ def test_prediction_evidence_check_accepts_only_policy_owned_val(
         "bundle_dir": str(tmp_path / "bundle"),
         "dataset_dir": str(tmp_path / "dataset"),
     }
+    resolver_calls: list[dict] = []
+
+    def fake_resolver(*_, **kwargs):
+        resolver_calls.append(kwargs)
+        return predictions_path, {"decision": "PASS"}, evidence
+
     monkeypatch.setattr(
         readiness,
         "resolve_and_validate_prediction_evidence",
-        lambda *_, **__: (predictions_path, {"decision": "PASS"}, evidence),
+        fake_resolver,
     )
 
     assert readiness._prediction_evidence_check(smoke)["ok"] is True
+    assert resolver_calls == [
+        {
+            "expected_sha256": evidence["sha256"],
+            "prediction_report_path": report_path,
+            "bundle_dir": Path(smoke["bundle_dir"]),
+            "dataset_dir": Path(smoke["dataset_dir"]),
+            "expected_stage": "pre_calibration",
+            "expected_splits": ("val",),
+            "expected_model": "entry_model_native_smoke",
+        }
+    ]
 
     evidence["splits"] = ["val", "test"]
     failed = readiness._prediction_evidence_check(smoke)
@@ -423,8 +466,9 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
         offset_seconds=3,
     )
     future = {
+        "profile": "smoke",
         "control_route": "model-native-smoke-train",
-        "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
+        "wrapper_path": "scripts/run_entry_model_native_seq513_train.sh",
         "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
         "training_objective_schema": TRAINING_OBJECTIVE_SCHEMA,
         "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),

@@ -130,24 +130,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _canonical_json_sha256(value: object) -> str:
-    payload = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _load_selected_features(path: Path) -> list[str]:
-    manifest = _read_json(path)
-    selected = [str(x) for x in manifest.get("selected_features", []) if str(x).strip()]
-    if not selected:
-        raise RuntimeError(f"sequence structure manifest has no selected_features: {path}")
-    return selected
-
-
 def _load_split_signal_fields(
     split_artifacts: dict[str, dict[str, str]],
     splits: list[str],

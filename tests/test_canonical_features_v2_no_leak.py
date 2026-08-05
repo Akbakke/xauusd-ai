@@ -1,12 +1,12 @@
+import inspect
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
+import pytest
 
-from gx1.scripts.materialize_build_canonical_features_v2 import (
-    compute_d1_features,
-    compute_m15_features,
-    merge_asof_features,
-)
+from gx1.features import basic_v1
+from gx1.features.basic_v1 import _local_bars_for_days
+from gx1.scripts import materialize_build_canonical_features_v2 as canonical_v2
 from gx1.scripts.materialize_canonical_v3_augment import add_cyclic_time_features
 
 
@@ -24,59 +24,61 @@ def _m5_frame(start: str, periods: int) -> pd.DataFrame:
     )
 
 
-def test_canonical_v2_htf_feature_times_are_close_times_not_bucket_starts() -> None:
-    m5 = _m5_frame("2026-01-01T00:00:00Z", periods=24 * 12 * 3)
+def test_canonical_v2_and_basic_owner_are_structurally_local_only() -> None:
+    canonical_source = inspect.getsource(canonical_v2)
+    basic_source = inspect.getsource(basic_v1)
 
-    d1 = compute_d1_features(m5)
-    m15 = compute_m15_features(m5)
+    assert canonical_v2.CANONICAL_V2_MTF_OWNER == "native_m5_v4_only"
+    for forbidden in (
+        "compute_d1_features",
+        "compute_m15_features",
+        "merge_asof_features",
+        ".resample(",
+    ):
+        assert forbidden not in canonical_source
+    for forbidden in (
+        "build_htf_from_m5",
+        "_align_htf_to_m5_numpy",
+        'df["_v1h1_ema_diff"]',
+        'df["_v1h4_ema_diff"]',
+    ):
+        assert forbidden not in basic_source
 
-    assert pd.Timestamp(d1["time"].iloc[0]) == pd.Timestamp("2026-01-02T00:00:00Z")
-    assert pd.Timestamp(m15["time"].iloc[0]) == pd.Timestamp("2026-01-01T00:15:00Z")
+
+@pytest.mark.parametrize(
+    ("decision_delay_seconds", "expected"),
+    ((60, 28_800), (300, 5_760)),
+)
+def test_day_based_basic_features_keep_the_same_physical_m1_m5_horizon(
+    decision_delay_seconds: int,
+    expected: int,
+) -> None:
+    assert _local_bars_for_days(
+        20,
+        decision_delay_seconds=decision_delay_seconds,
+    ) == expected
 
 
-def test_merge_asof_features_only_exposes_closed_htf_rows() -> None:
-    base = _m5_frame("2026-01-01T00:00:00Z", periods=4)
-    close_time = pd.Timestamp("2026-01-01T00:15:00Z")
-    extra = pd.DataFrame(
-        {
-            "time": [close_time],
-            "_time_ns": [int(close_time.value)],
-            "m15_marker": [1.0],
-        }
+@pytest.mark.parametrize(
+    ("start", "frequency", "decision_delay_seconds"),
+    (
+        ("2026-07-01T06:50:00Z", "5min", 300),
+        ("2026-07-01T06:58:00Z", "1min", 60),
+    ),
+)
+def test_basic_session_flags_switch_at_the_exact_m1_m5_decision_boundary(
+    start: str,
+    frequency: str,
+    decision_delay_seconds: int,
+) -> None:
+    index = pd.date_range(start, periods=3, freq=frequency, tz="UTC")
+    observed = basic_v1.add_session_features(
+        pd.DataFrame(index=index),
+        decision_delay_seconds=decision_delay_seconds,
     )
 
-    merged = merge_asof_features(base, extra)
-
-    assert merged.loc[0:1, "m15_marker"].isna().all()
-    # The 00:10 M5 row closes at 00:15 and can immediately use the M15 row
-    # that also closed at 00:15. Waiting for the 00:15 label is one M5 stale.
-    assert merged.loc[2, "m15_marker"] == 1.0
-    assert merged.loc[3, "m15_marker"] == 1.0
-
-
-def test_merge_asof_features_avoids_a_full_frame_pandas_merge(monkeypatch) -> None:
-    base = _m5_frame("2026-01-01T00:00:00Z", periods=6)
-    close_times = pd.to_datetime(
-        ["2026-01-01T00:15:00Z", "2026-01-01T00:30:00Z"], utc=True
-    )
-    extra = pd.DataFrame(
-        {
-            "time": close_times,
-            "_time_ns": close_times.astype("int64"),
-            "m15_marker": [1.0, 2.0],
-        }
-    )
-
-    def forbidden_full_merge(*args, **kwargs):
-        raise AssertionError("pd.merge_asof must not copy the full native frame")
-
-    monkeypatch.setattr(pd, "merge_asof", forbidden_full_merge)
-    merged = merge_asof_features(base, extra)
-
-    assert "m15_marker" not in base.columns
-    assert merged["m15_marker"].iloc[:2].isna().all()
-    assert merged["m15_marker"].iloc[2:5].tolist() == [1.0, 1.0, 1.0]
-    assert merged["m15_marker"].iloc[5] == 2.0
+    assert observed["is_EU"].tolist() == [0, 1, 1]
+    assert observed["_v1_is_EU"].tolist() == [0.0, 1.0, 1.0]
 
 
 def test_cyclic_clock_uses_m5_decision_availability_across_hour_and_day() -> None:
@@ -101,46 +103,13 @@ def test_cyclic_clock_uses_m5_decision_availability_across_hour_and_day() -> Non
     )
 
 
-def test_htf_and_cyclic_features_are_append_stable() -> None:
+def test_cyclic_features_are_append_stable() -> None:
     base = _m5_frame("2026-01-01T00:00:00Z", periods=8)
-    extra = pd.DataFrame(
-        {
-            "time": [pd.Timestamp("2026-01-01T00:15:00Z")],
-            "_time_ns": [pd.Timestamp("2026-01-01T00:15:00Z").value],
-            "m15_marker": [7.0],
-        }
-    )
-    prefix_merge = merge_asof_features(base.iloc[:5], extra)
-    full_merge = merge_asof_features(base, extra).iloc[:5]
-    pd.testing.assert_series_equal(
-        prefix_merge["m15_marker"],
-        full_merge["m15_marker"],
-    )
     prefix_cycles = add_cyclic_time_features(
         base.iloc[:5].set_index("time")
     )
     full_cycles = add_cyclic_time_features(base.set_index("time")).iloc[:5]
     pd.testing.assert_frame_equal(prefix_cycles, full_cycles)
-
-
-def test_canonical_v2_summary_declares_no_lookahead_contract() -> None:
-    repo = Path(__file__).resolve().parents[1]
-    text = (repo / "gx1/scripts/materialize_build_canonical_features_v2.py").read_text(encoding="utf-8")
-
-    assert "canonical_features_v2_decision_availability_20260724" in text
-    assert '"no_lookahead": True' in text
-    assert '"d1_feature_time": "bar_close_time"' in text
-    assert '"m15_feature_time": "bar_close_time"' in text
-    assert '"m5_decision_availability_shift": "5min"' in text
-
-
-def test_canonical_v3_manifest_records_source_v2_no_lookahead_provenance() -> None:
-    repo = Path(__file__).resolve().parents[1]
-    text = (repo / "gx1/scripts/materialize_canonical_v3_augment.py").read_text(encoding="utf-8")
-
-    assert "source_v2_parquet_sha256" in text
-    assert "source_v2_no_lookahead" in text
-    assert "source_v2_htf_alignment_contract" in text
 
 
 def _native_m5_frame(start: str, periods: int) -> pd.DataFrame:

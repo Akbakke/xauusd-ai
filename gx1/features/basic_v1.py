@@ -6,18 +6,17 @@
 # Input must be float32/float64 - hard fail in replay mode on wrong dtype.
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import RobustScaler
-import pickle
-from pathlib import Path
 import time
 
-# FASE 1: Use PREBUILT-safe tripwire counter (does not import feature-building modules)
-from gx1.execution.feature_build_tripwires import bump_feature_build_call_count
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 from gx1.time.session_detector import ASIA_SESSION_ID
 
 M5_DECISION_DELAY_SECONDS = 5 * 60
 M1_DECISION_DELAY_SECONDS = 1 * 60
+LOCAL_DECISION_DELAYS_SECONDS = (
+    M1_DECISION_DELAY_SECONDS,
+    M5_DECISION_DELAY_SECONDS,
+)
 
 BASIC_V1_OBSERVED_SPREAD_FEATURES = (
     "_v1_spread_p",
@@ -28,12 +27,11 @@ PLUS5_FEATURES = (
     "std50",
     "roc20",
     "_v1_vwap_drift48",
-    "_v1h1_vwap_drift",
 )
 
 
 def compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
-    """One train/serve owner for the five historical PLUS5 model fields."""
+    """One train/serve owner for the retained local-clock auxiliary fields."""
     required = ("open", "high", "low", "close", "volume")
     missing = [column for column in required if column not in df.columns]
     if missing:
@@ -92,13 +90,6 @@ def compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
         np.float32
     )
 
-    pv_288 = pv.rolling(288, min_periods=12).sum()
-    volume_288 = volume.rolling(288, min_periods=12).sum()
-    vwap_288 = pv_288 / volume_288
-    out["_v1h1_vwap_drift"] = ((close - vwap_288) / vwap_288).astype(
-        np.float32
-    )
-
     prev_close = close.shift(1)
     true_range = pd.concat(
         [
@@ -153,6 +144,22 @@ def _validate_causal_feature_column(values: np.ndarray, *, name: str) -> np.ndar
             "after causal warmup"
         )
     return array
+
+
+def _local_bars_for_days(days: int, *, decision_delay_seconds: int) -> int:
+    """Convert an explicitly day-based feature horizon to native M1/M5 rows."""
+
+    if (
+        isinstance(days, bool)
+        or not isinstance(days, (int, np.integer))
+        or int(days) <= 0
+        or isinstance(decision_delay_seconds, bool)
+        or not isinstance(decision_delay_seconds, (int, np.integer))
+        or int(decision_delay_seconds) not in LOCAL_DECISION_DELAYS_SECONDS
+        or 86_400 % int(decision_delay_seconds) != 0
+    ):
+        raise RuntimeError("[BASIC_V1_PHYSICAL_HORIZON_INVALID]")
+    return int(days) * (86_400 // int(decision_delay_seconds))
 
 def _assert_valid_datetime_index(df: pd.DataFrame, ctx: str = "unknown") -> pd.Timestamp:
     """
@@ -260,165 +267,6 @@ def _zscore(s, win):
     
     return result
 
-def _bucket_id_from_m5(ts: pd.Timestamp, tf: str) -> int:
-    """
-    Calculate bucket ID from M5 timestamp for cache key.
-    
-    Parameters
-    ----------
-    ts : pd.Timestamp
-        M5 bar timestamp
-    tf : str
-        Timeframe: "H1" or "H4"
-        
-    Returns
-    -------
-    int
-        Bucket ID (integer epoch bucket)
-    """
-    ns = int(ts.value)
-    if tf == "H1":
-        return ns // (3600 * 1_000_000_000)  # 1 hour in nanoseconds
-    elif tf == "H4":
-        return ns // (4 * 3600 * 1_000_000_000)  # 4 hours in nanoseconds
-    else:
-        raise ValueError(f"Unsupported timeframe: {tf}")
-
-
-def _resample_ohlc_numpy(
-    timestamps: np.ndarray,
-    open_arr: np.ndarray,
-    high_arr: np.ndarray,
-    low_arr: np.ndarray,
-    close_arr: np.ndarray,
-    interval_hours: int
-) -> tuple:
-    """
-    NumPy-based resampling of OHLC data to higher timeframe (H1 or H4).
-    DEL 2: Replaces pandas .resample() with NumPy implementation.
-    
-    Args:
-        timestamps: Unix timestamps (nanoseconds) as int64 array
-        open_arr: Open prices (float64)
-        high_arr: High prices (float64)
-        low_arr: Low prices (float64)
-        close_arr: Close prices (float64)
-        interval_hours: Resampling interval in hours (1 for H1, 4 for H4)
-    
-    Returns:
-        tuple: (resampled_timestamps, resampled_open, resampled_high, resampled_low, resampled_close)
-        All as NumPy arrays
-    """
-    if len(timestamps) == 0:
-        return (np.array([], dtype=np.int64), np.array([], dtype=np.float64),
-                np.array([], dtype=np.float64), np.array([], dtype=np.float64),
-                np.array([], dtype=np.float64))
-    
-    # Convert timestamps to hour buckets
-    interval_ns = interval_hours * 3600 * 1_000_000_000
-    buckets = timestamps // interval_ns
-    
-    # Get unique buckets and sort
-    unique_buckets = np.unique(buckets)
-    n_buckets = len(unique_buckets)
-    
-    resampled_ts = np.zeros(n_buckets, dtype=np.int64)
-    resampled_open = np.zeros(n_buckets, dtype=np.float64)
-    resampled_high = np.zeros(n_buckets, dtype=np.float64)
-    resampled_low = np.zeros(n_buckets, dtype=np.float64)
-    resampled_close = np.zeros(n_buckets, dtype=np.float64)
-    
-    # Aggregate per bucket
-    for i, bucket in enumerate(unique_buckets):
-        mask = buckets == bucket
-        bucket_indices = np.where(mask)[0]
-        
-        if len(bucket_indices) > 0:
-            # Timestamp: use first timestamp in bucket (floor to interval)
-            resampled_ts[i] = bucket * interval_ns
-            
-            # OHLC aggregation
-            resampled_open[i] = open_arr[bucket_indices[0]]  # first
-            resampled_high[i] = np.max(high_arr[bucket_indices])  # max
-            resampled_low[i] = np.min(low_arr[bucket_indices])  # min
-            resampled_close[i] = close_arr[bucket_indices[-1]]  # last
-    
-    return (resampled_ts, resampled_open, resampled_high, resampled_low, resampled_close)
-
-
-def _align_htf_to_m5_numpy(
-    htf_values: np.ndarray,
-    htf_close_times: np.ndarray,
-    m5_timestamps: np.ndarray,
-    *,
-    decision_delay_seconds: int = M5_DECISION_DELAY_SECONDS,
-) -> np.ndarray:
-    """
-    Align HTF values to M5 timestamps using searchsorted (NO PANDAS).
-    
-    For each M5 bar stamped at its open time t:
-    - Its decision becomes available at t + 5 minutes
-    - Find last completed HTF bar where htf_close_time <= decision_available
-    - Use that HTF bar's value
-    
-    Args:
-        htf_values: HTF feature values (float64 array)
-        htf_close_times: HTF bar close times (seconds since epoch, int64 array)
-        m5_timestamps: M5 bar-open timestamps (seconds since epoch, int64 array)
-    Returns:
-        Decision-time-aligned values (float64 array). A strict historical
-        warmup prefix remains NaN and must be trimmed before model input.
-    """
-    if len(htf_close_times) == 0:
-        raise RuntimeError(
-            "HTF alignment: No completed HTF bars available (warmup not satisfied)"
-        )
-    
-    if (
-        isinstance(decision_delay_seconds, bool)
-        or not isinstance(decision_delay_seconds, (int, np.integer))
-        or int(decision_delay_seconds) <= 0
-    ):
-        raise RuntimeError("HTF alignment: decision delay must be positive")
-    decision_available = (
-        np.asarray(m5_timestamps, dtype=np.int64) + int(decision_delay_seconds)
-    )
-    # The HTF bar ending exactly when this M5 bar closes is observable for the
-    # decision. Selecting at the bar-open key and shifting a row delayed it by
-    # an extra M5 bar and made the legacy H1/H4 state stale at every boundary.
-    indices = (
-        np.searchsorted(
-            htf_close_times,
-            decision_available,
-            side="right",
-        )
-        - 1
-    )
-    
-    # A strict leading warmup prefix is representable, but it is unavailable
-    # evidence rather than a neutral market state.  Missing rows after the
-    # first valid HTF observation are a broken alignment and always fail.
-    if np.any(indices < 0):
-        valid_positions = np.flatnonzero(indices >= 0)
-        n_missing = int(np.sum(indices < 0))
-        if valid_positions.size == 0:
-            raise RuntimeError(
-                f"HTF alignment: {n_missing} M5 bars have no completed HTF bar available "
-                "(warmup not satisfied)"
-            )
-        first_valid_idx = int(valid_positions[0])
-        if np.any(indices[first_valid_idx:] < 0):
-            raise RuntimeError(
-                f"HTF alignment: missing completed HTF evidence after first valid row; "
-                f"missing={n_missing} first_valid_index={first_valid_idx}"
-            )
-    # Missing HTF evidence remains NaN.  It cannot masquerade as neutral.
-    aligned = np.full(len(m5_timestamps), np.nan, dtype=np.float64)
-    valid_mask = indices >= 0
-    aligned[valid_mask] = htf_values[indices[valid_mask]]
-    
-    return aligned
-
 def _true_range(high, low, close):
     """
     True Range calculation using NumPy (no pandas).
@@ -482,7 +330,6 @@ def _parkinson_sigma(high, low):
 
 def add_session_features(
     df,
-    tz_offset_minutes=0,
     *,
     decision_delay_seconds: int = M5_DECISION_DELAY_SECONDS,
 ):
@@ -563,6 +410,10 @@ def add_session_features(
     df["is_EU"] = is_eu_mask.astype(int)
     df["is_OVERLAP"] = is_overlap_mask.astype(int)
     df["is_US"] = is_us_mask.astype(int)
+    # Historical model-field names are emitted by the same session owner at
+    # the same decision instant.  There is no second shift or second formula.
+    df["_v1_is_EU"] = is_eu_mask.astype(np.float64)
+    df["_v1_is_US"] = is_us_mask.astype(np.float64)
     
     # Canonical session_id (observerable context)
     session_id_values = np.asarray(session_id)
@@ -605,9 +456,13 @@ def build_basic_v1(
     Input OHLC must be float32/float64. Every caller uses the same strict
     feature path; ambient environment flags cannot change formulas or fields.
     """
-    bump_feature_build_call_count("basic_v1.build_basic_v1")
     from gx1.utils.perf_timer import perf_add
     t_start = time.perf_counter()
+
+    bars_per_day = _local_bars_for_days(
+        1,
+        decision_delay_seconds=decision_delay_seconds,
+    )
 
     df = df.copy()
     for c in ["open", "high", "low", "close"]:
@@ -691,16 +546,16 @@ def build_basic_v1(
     t_zscore_start = time.perf_counter()
     atr14_arr_for_regime = atr14_arr.copy()
     
-    # Use rolling quantiles (causal) instead of global ranking (non-causal)
-    # Window: 5760 bars (20 days of M5 bars)
+    # Use rolling quantiles (causal) instead of global ranking (non-causal).
+    # This field is explicitly day-based, so M1 and M5 retain the same
+    # physical 20/10-day semantics while remaining independently computed.
     from gx1.features.rolling_np import rolling_quantile
     from gx1.utils.perf_timer import perf_add, perf_inc
     import time as time_module
     
     # Compute rolling quantiles: q33 and q67 (for 3 bins: LOW, MEDIUM, HIGH)
-    # Window: 5760 bars (20 days), min_periods: 2880 (10 days)
-    regime_window = 5760  # 20 days of M5 bars
-    regime_min_periods = 2880  # 10 days minimum
+    regime_window = 20 * bars_per_day
+    regime_min_periods = 10 * bars_per_day
     
     t_q33_start = time_module.perf_counter()
     q33_arr = rolling_quantile(atr14_arr_for_regime, regime_window, q=0.333, min_periods=regime_min_periods)
@@ -757,9 +612,7 @@ def build_basic_v1(
     ema_diff_shifted[0] = ema_diff[0] if len(ema_diff) > 0 else 0.0
     df["_v1_ema_diff"] = ema_diff_shifted
 
-    # Shared PLUS5 owner: normalized volume-VWAP fraction. The dependent
-    # _v1_int_vwap_h1 interaction below therefore sees the exact field later
-    # published to the models.
+    # Shared local-clock owner for the normalized volume-VWAP fraction.
     df["_v1_vwap_drift48"] = plus5["_v1_vwap_drift48"].to_numpy(
         dtype=np.float64
     )
@@ -934,8 +787,8 @@ def build_basic_v1(
     range_comp_shifted[0] = 0.0
     range_comp_shifted = np.nan_to_num(range_comp_shifted, nan=0.0)
     df["_v1_range_comp_20_100"] = range_comp_shifted
-    # Range relativt til ADR(20)
-    adr20 = _roll(range_series, 288*20, "mean")
+    # Range relative to the same physical ADR(20) horizon on native M1/M5.
+    adr20 = _roll(range_series, 20 * bars_per_day, "mean")
     adr20_arr = adr20.to_numpy(dtype=np.float64) if hasattr(adr20, 'to_numpy') else np.asarray(adr20, dtype=np.float64)
     range_adr = range_arr / (adr20_arr + 1e-12)
     range_adr_shifted = np.roll(range_adr, 1)
@@ -965,286 +818,17 @@ def build_basic_v1(
         df,
         decision_delay_seconds=decision_delay_seconds,
     )
-    if "is_EU" not in df.columns or "is_US" not in df.columns:
+    if "_v1_is_EU" not in df.columns or "_v1_is_US" not in df.columns:
         raise RuntimeError(
             "[BASIC_V1_SESSION_FLAGS_MISSING] add_session_features did not "
-            "emit is_EU/is_US"
+            "emit _v1_is_EU/_v1_is_US"
         )
-    # DEL 2: Replace .shift(), .fillna() with NumPy
-    is_eu_arr = df["is_EU"].to_numpy(dtype=np.float64)
-    is_us_arr = df["is_US"].to_numpy(dtype=np.float64)
-    is_eu_shifted = np.roll(is_eu_arr, 1)
-    is_eu_shifted[0] = 0.0
-    is_eu_shifted = np.nan_to_num(is_eu_shifted, nan=0.0)
-    df["_v1_is_EU"] = is_eu_shifted
-    is_us_shifted = np.roll(is_us_arr, 1)
-    is_us_shifted[0] = 0.0
-    is_us_shifted = np.nan_to_num(is_us_shifted, nan=0.0)
-    df["_v1_is_US"] = is_us_shifted
+    if (
+        not np.isfinite(df["_v1_is_EU"].to_numpy(dtype=np.float64)).all()
+        or not np.isfinite(df["_v1_is_US"].to_numpy(dtype=np.float64)).all()
+    ):
+        raise RuntimeError("[BASIC_V1_SESSION_FLAGS_NONFINITE]")
 
-    # --- HTF-kontekst (Multi-timeframe) ---
-    # DEL 2: NumPy-only HTF aggregator (no pandas resample)
-    t_htf_start = time.perf_counter()
-    
-    # Get M5 timestamps in seconds (for HTF aggregator)
-    if isinstance(df.index, pd.DatetimeIndex):
-        m5_timestamps_sec = (df.index.astype(np.int64) // 1_000_000_000).astype(np.int64)
-    elif "ts" in df.columns:
-        ts_col = pd.to_datetime(df["ts"], utc=True, errors="coerce")
-        m5_timestamps_sec = (ts_col.astype(np.int64) // 1_000_000_000).astype(np.int64)
-    else:
-        m5_timestamps_sec = None
-    
-    # Get M5 OHLC arrays
-    m5_open = df["open"].to_numpy(dtype=np.float64)
-    m5_high = df["high"].to_numpy(dtype=np.float64)
-    m5_low = df["low"].to_numpy(dtype=np.float64)
-    m5_close = df["close"].to_numpy(dtype=np.float64)
-    
-    def _htf_zscore_cached(name: str, s_htf: pd.Series, win: int, current_m5_ts: pd.Timestamp) -> pd.Series:
-        """
-        Cached HTF zscore computation.
-        Del 2B: Cache key uses M5 timestamp bucket (not HTF series index).
-        This ensures cache hits across all M5 bars within the same H1/H4 bucket.
-        Del 3: Time compute only on cache miss.
-        
-        Parameters
-        ----------
-        name : str
-            Feature name (e.g., "h1_rsi", "h4_rsi")
-        s_htf : pd.Series
-            HTF series (H1 or H4 resampled)
-        win : int
-            Window size for zscore
-        current_m5_ts : pd.Timestamp
-            Current M5 bar timestamp (used for cache key bucket_id)
-        """
-        # Del 3: Get persistent cache from feature state
-        from gx1.utils.feature_context import get_feature_state
-        from gx1.utils.perf_timer import perf_add, perf_inc
-        state = get_feature_state()
-        if state is None:
-            raise RuntimeError("[HTF_CACHE] Feature state not set in context. Ensure FEATURE_STATE.set() is called in runner.")
-        
-        cache = state.htf_zscore_cache
-        
-        if len(s_htf) == 0:
-            return s_htf
-        
-        # Del 2B: Calculate bucket_id from M5 timestamp (not HTF series index)
-        if name.startswith("h1_"):
-            bucket_id = _bucket_id_from_m5(current_m5_ts, "H1")
-        elif name.startswith("h4_"):
-            bucket_id = _bucket_id_from_m5(current_m5_ts, "H4")
-        else:
-            # Fallback: assume H1
-            bucket_id = _bucket_id_from_m5(current_m5_ts, "H1")
-        
-        key = (name, win, bucket_id)
-        
-        # Del 1: Check cache and track hits/misses
-        if key in cache:
-            state.htf_cache_hits += 1
-            return cache[key]
-        
-        # Cache miss - compute zscore
-        state.htf_cache_misses += 1
-        t_zscore_start = time.perf_counter()
-        z = _zscore(s_htf, win)
-        t_zscore_end = time.perf_counter()
-        
-        # Del 3: Time compute only on cache miss
-        perf_add(f"feat.htf_zscore.compute.{name}.w{win}", t_zscore_end - t_zscore_start)
-        perf_inc(f"feat.htf_zscore.compute.{name}.w{win}")
-        cache[key] = z
-        return z
-    
-    def _htf_zscore_and_align(name: str, s_htf: pd.Series, win: int, target_index: pd.DatetimeIndex, current_m5_ts: pd.Timestamp, htf_close_times: np.ndarray) -> np.ndarray:
-        """
-        Compute zscore on HTF series (cached) and align to M5 using searchsorted (NO PANDAS).
-        Del 2B: Uses current_m5_ts for cache key (bucket_id based on M5 timestamp).
-        Del 3: Times alignment separately from computation.
-        """
-        z_htf = _htf_zscore_cached(name, s_htf, win, current_m5_ts)
-        z_htf_arr = z_htf.to_numpy(dtype=np.float64)
-        
-        # Del 3: Time alignment separately
-        t_align_start = time.perf_counter()
-        # Convert target_index to seconds
-        if isinstance(target_index, pd.DatetimeIndex):
-            m5_ts_sec = (target_index.astype(np.int64) // 1_000_000_000).astype(np.int64)
-        else:
-            m5_ts_sec = (pd.to_datetime(target_index, utc=True, errors="coerce").astype(np.int64) // 1_000_000_000).astype(np.int64)
-        result = _align_htf_to_m5_numpy(
-            z_htf_arr,
-            htf_close_times,
-            m5_ts_sec,
-            decision_delay_seconds=decision_delay_seconds,
-        )
-        t_align_end = time.perf_counter()
-        perf_add(f"feat.htf_zscore.align.{name}.w{win}", t_align_end - t_align_start)
-        
-        return result
-
-    # DEL 2: Build HTF bars using incremental aggregator (NO PANDAS resample)
-    if m5_timestamps_sec is not None and len(m5_timestamps_sec) > 0:
-            
-        # H1 features
-        try:
-            from gx1.features.htf_aggregator import build_htf_from_m5
-            h1_ts, h1_open, h1_high, h1_low, h1_close, h1_close_times = build_htf_from_m5(
-                m5_timestamps_sec, m5_open, m5_high, m5_low, m5_close, interval_hours=1
-            )
-            
-            if len(h1_ts) > 0:
-                # Build same V1 features on H1 (using NumPy arrays, convert to Series only for _ema/_roll)
-                h1_close_series = pd.Series(h1_close, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                h1_ema12 = _ema(h1_close_series, 12)
-                h1_ema26 = _ema(h1_close_series, 26)
-                h1_ema12_arr = h1_ema12.to_numpy(dtype=np.float64)
-                h1_ema26_arr = h1_ema26.to_numpy(dtype=np.float64)
-                
-                h1_tr = _true_range(
-                    pd.Series(h1_high, index=pd.to_datetime(h1_ts, unit='s', utc=True)),
-                    pd.Series(h1_low, index=pd.to_datetime(h1_ts, unit='s', utc=True)),
-                    pd.Series(h1_close, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                )
-                h1_tr_series = h1_tr if isinstance(h1_tr, pd.Series) else pd.Series(h1_tr, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                h1_atr14 = _roll(h1_tr_series, 14, "mean")
-                h1_atr14_arr = h1_atr14.to_numpy(dtype=np.float64)
-                
-                # RSI on H1 (Wilder formula — dn must be POSITIVE absolute losses)
-                h1_delta = np.diff(h1_close, prepend=h1_close[0])
-                h1_up = np.clip(h1_delta, 0, np.inf)
-                h1_dn_neg = np.clip(-h1_delta, 0, np.inf)
-                h1_dn = h1_dn_neg  # FIX 2026-05-03: was `-h1_dn_neg` (same bug as M5 RSI)
-                from gx1.features.rolling_timer import timed_rolling
-                h1_up_series = pd.Series(h1_up, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                h1_dn_series = pd.Series(h1_dn, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                h1_up_roll = timed_rolling(h1_up_series, 14, "mean", min_periods=7)
-                h1_dn_roll = timed_rolling(h1_dn_series, 14, "mean", min_periods=7)
-                h1_up_arr = h1_up_roll.to_numpy(dtype=np.float64)
-                h1_dn_arr = h1_dn_roll.to_numpy(dtype=np.float64)
-                h1_rs = h1_up_arr / (h1_dn_arr + 1e-12)
-                h1_rsi = 100 - 100/(1 + h1_rs)
-                h1_rsi_series = pd.Series(h1_rsi, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                
-                # One canonical causal alignment path is shared by dataset and
-                # serving.  The removed stateful branch was unreachable and
-                # used a different meaning of shift(1), preventing parity.
-                h1_ema_diff_htf = h1_ema12_arr - h1_ema26_arr
-                df["_v1h1_ema_diff"] = _align_htf_to_m5_numpy(
-                    h1_ema_diff_htf,
-                    h1_close_times,
-                    m5_timestamps_sec,
-                    decision_delay_seconds=decision_delay_seconds,
-                )
-
-                df["_v1h1_atr"] = _align_htf_to_m5_numpy(
-                    h1_atr14_arr,
-                    h1_close_times,
-                    m5_timestamps_sec,
-                    decision_delay_seconds=decision_delay_seconds,
-                )
-
-                current_m5_ts = _assert_valid_datetime_index(
-                    df, ctx="H1 RSI z-score (canonical aligner)"
-                )
-                target_index = (
-                    df.index
-                    if isinstance(df.index, pd.DatetimeIndex)
-                    else pd.to_datetime(df["ts"], utc=True, errors="coerce")
-                )
-                df["_v1h1_rsi14_z"] = _htf_zscore_and_align(
-                    "h1_rsi", h1_rsi_series, 48, target_index, current_m5_ts, h1_close_times
-                )
-            else:
-                raise RuntimeError(
-                    "H1 feature construction has no completed HTF bar"
-                )
-        except Exception as e:
-            raise RuntimeError("H1 feature construction failed closed") from e
-            
-        # H4 features (same logic)
-        try:
-            from gx1.features.htf_aggregator import build_htf_from_m5
-            h4_ts, h4_open, h4_high, h4_low, h4_close, h4_close_times = build_htf_from_m5(
-                m5_timestamps_sec, m5_open, m5_high, m5_low, m5_close, interval_hours=4
-            )
-            
-            if len(h4_ts) > 0:
-                h4_close_series = pd.Series(h4_close, index=pd.to_datetime(h4_ts, unit='s', utc=True))
-                h4_ema12 = _ema(h4_close_series, 12)
-                h4_ema26 = _ema(h4_close_series, 26)
-                h4_ema12_arr = h4_ema12.to_numpy(dtype=np.float64)
-                h4_ema26_arr = h4_ema26.to_numpy(dtype=np.float64)
-                
-                h4_tr = _true_range(
-                    pd.Series(h4_high, index=pd.to_datetime(h4_ts, unit='s', utc=True)),
-                    pd.Series(h4_low, index=pd.to_datetime(h4_ts, unit='s', utc=True)),
-                    pd.Series(h4_close, index=pd.to_datetime(h4_ts, unit='s', utc=True))
-                )
-                h4_tr_series = h4_tr if isinstance(h4_tr, pd.Series) else pd.Series(h4_tr, index=pd.to_datetime(h4_ts, unit='s', utc=True))
-                h4_atr14 = _roll(h4_tr_series, 14, "mean")
-                h4_atr14_arr = h4_atr14.to_numpy(dtype=np.float64)
-                
-                # RSI on H4
-                h4_delta = np.diff(h4_close, prepend=h4_close[0])
-                h4_up = np.clip(h4_delta, 0, np.inf)
-                h4_dn_neg = np.clip(-h4_delta, 0, np.inf)
-                h4_dn = h4_dn_neg  # FIX 2026-05-03: was `-h4_dn_neg` (same Wilder RSI sign bug)
-                from gx1.features.rolling_timer import timed_rolling
-                h4_up_series = pd.Series(h4_up, index=pd.to_datetime(h4_ts, unit='s', utc=True))
-                h4_dn_series = pd.Series(h4_dn, index=pd.to_datetime(h4_ts, unit='s', utc=True))
-                h4_up_roll = timed_rolling(h4_up_series, 14, "mean", min_periods=7)
-                h4_dn_roll = timed_rolling(h4_dn_series, 14, "mean", min_periods=7)
-                h4_up_arr = h4_up_roll.to_numpy(dtype=np.float64)
-                h4_dn_arr = h4_dn_roll.to_numpy(dtype=np.float64)
-                h4_rs = h4_up_arr / (h4_dn_arr + 1e-12)
-                h4_rsi = 100 - 100/(1 + h4_rs)
-                h4_rsi_series = pd.Series(h4_rsi, index=pd.to_datetime(h4_ts, unit='s', utc=True))
-                
-                # Use the same causal alignment implementation as H1.
-                h4_ema_diff_htf = h4_ema12_arr - h4_ema26_arr
-                df["_v1h4_ema_diff"] = _align_htf_to_m5_numpy(
-                    h4_ema_diff_htf,
-                    h4_close_times,
-                    m5_timestamps_sec,
-                    decision_delay_seconds=decision_delay_seconds,
-                )
-
-                df["_v1h4_atr"] = _align_htf_to_m5_numpy(
-                    h4_atr14_arr,
-                    h4_close_times,
-                    m5_timestamps_sec,
-                    decision_delay_seconds=decision_delay_seconds,
-                )
-
-                current_m5_ts = _assert_valid_datetime_index(
-                    df, ctx="H4 RSI z-score (canonical aligner)"
-                )
-                target_index = (
-                    df.index
-                    if isinstance(df.index, pd.DatetimeIndex)
-                    else pd.to_datetime(df["ts"], utc=True, errors="coerce")
-                )
-                df["_v1h4_rsi14_z"] = _htf_zscore_and_align(
-                    "h4_rsi", h4_rsi_series, 48, target_index, current_m5_ts, h4_close_times
-                )
-            else:
-                raise RuntimeError(
-                    "H4 feature construction has no completed HTF bar"
-                )
-        except Exception as e:
-            raise RuntimeError("H4 feature construction failed closed") from e
-    # Historical name retained by the model contract; its actual one-truth
-    # definition is the normalized rolling-288 M5 volume-VWAP drift.
-    df["_v1h1_vwap_drift"] = plus5["_v1h1_vwap_drift"].to_numpy(
-        dtype=np.float64
-    )
-    t_htf_end = time.perf_counter()
-    perf_add("feat.basic_v1.htf_features", t_htf_end - t_htf_start)
-    
     # --- Mikrostruktur ---
     # DEL 2: Replace ALL pandas operations with NumPy
     # CLV (Close Location Value)
@@ -1327,41 +911,8 @@ def build_basic_v1(
     t_misc_moments_end = time.perf_counter()
     perf_add("feat.basic_v1.misc_roll.moments", t_misc_moments_end - t_misc_moments_start)
     
-    # --- HTF-momentum "slope" (trendaks) - BYGG FØRST ---
-    t_misc_htf_slopes_start = time.perf_counter()
-    # DEL 2: Replace .diff(), .shift(), .fillna() with NumPy
-    if "_v1h1_ema_diff" in df.columns:
-        # Differanse av H1 EMA-diff over 3-5 trinn
-        h1_ema_diff_arr = df["_v1h1_ema_diff"].to_numpy(dtype=np.float64)
-        h1_slope3 = np.diff(h1_ema_diff_arr, n=3, prepend=h1_ema_diff_arr[:3])
-        h1_slope3_shifted = np.roll(h1_slope3, 1)
-        h1_slope3_shifted[0] = 0.0
-        h1_slope3_shifted = np.nan_to_num(h1_slope3_shifted, nan=0.0)
-        df["_v1h1_slope3"] = h1_slope3_shifted
-        
-        h1_slope5 = np.diff(h1_ema_diff_arr, n=5, prepend=h1_ema_diff_arr[:5])
-        h1_slope5_shifted = np.roll(h1_slope5, 1)
-        h1_slope5_shifted[0] = 0.0
-        h1_slope5_shifted = np.nan_to_num(h1_slope5_shifted, nan=0.0)
-        df["_v1h1_slope5"] = h1_slope5_shifted
-    
-    if "_v1h4_ema_diff" in df.columns:
-        h4_ema_diff_arr = df["_v1h4_ema_diff"].to_numpy(dtype=np.float64)
-        h4_slope3 = np.diff(h4_ema_diff_arr, n=3, prepend=h4_ema_diff_arr[:3])
-        h4_slope3_shifted = np.roll(h4_slope3, 1)
-        h4_slope3_shifted[0] = 0.0
-        h4_slope3_shifted = np.nan_to_num(h4_slope3_shifted, nan=0.0)
-        df["_v1h4_slope3"] = h4_slope3_shifted
-        
-        h4_slope5 = np.diff(h4_ema_diff_arr, n=5, prepend=h4_ema_diff_arr[:5])
-        h4_slope5_shifted = np.roll(h4_slope5, 1)
-        h4_slope5_shifted[0] = 0.0
-        h4_slope5_shifted = np.nan_to_num(h4_slope5_shifted, nan=0.0)
-        df["_v1h4_slope5"] = h4_slope5_shifted
-    t_misc_htf_slopes_end = time.perf_counter()
-    perf_add("feat.basic_v1.misc_roll.htf_slopes", t_misc_htf_slopes_end - t_misc_htf_slopes_start)
-    
-    # --- Interaksjoner (signal × regime) - BYGG ETTER SLOPES ---
+    # Local-clock interactions only. MTF values and their local projected
+    # slopes are attached later by the sole native-M5 V4 owner.
     t_misc_interactions_start = time.perf_counter()
     from gx1.features.array_utils import safe_clip, safe_mul
     
@@ -1381,29 +932,8 @@ def build_basic_v1(
         result = safe_clip(safe_mul(ema_diff_arr, is_us_arr))
         df["_v1_int_ema_us"] = result
     
-    if "_v1_vwap_drift48" in df.columns and "_v1h1_ema_diff" in df.columns:
-        vwap_arr = df["_v1_vwap_drift48"].to_numpy(dtype=np.float64, na_value=0.0)
-        h1_ema_diff_arr = df["_v1h1_ema_diff"].to_numpy(dtype=np.float64, na_value=0.0)
-        result = safe_clip(safe_mul(vwap_arr, h1_ema_diff_arr))
-        df["_v1_int_vwap_h1"] = result
     t_misc_interactions_base_end = time.perf_counter()
     perf_add("feat.basic_v1.misc_roll.interactions.base", t_misc_interactions_base_end - t_misc_interactions_base_start)
-    
-    # Del 2: Slope-interaksjoner (AUC-boost)
-    t_misc_interactions_slope_start = time.perf_counter()
-    if "_v1h1_slope3" in df.columns and "_v1_is_US" in df.columns:
-        h1_slope3_arr = df["_v1h1_slope3"].to_numpy(dtype=np.float64, na_value=0.0)
-        is_us_arr = df["_v1_is_US"].to_numpy(dtype=np.float64, na_value=0.0)
-        result = safe_clip(safe_mul(h1_slope3_arr, is_us_arr))
-        df["_v1_int_slope_h1_us"] = result
-    
-    if "_v1h4_slope5" in df.columns and "_v1_atr_regime_id" in df.columns:
-        h4_slope5_arr = df["_v1h4_slope5"].to_numpy(dtype=np.float64, na_value=0.0)
-        atr_regime_arr = df["_v1_atr_regime_id"].to_numpy(dtype=np.float64, na_value=0.0)
-        result = safe_clip(safe_mul(h4_slope5_arr, 1.0 + atr_regime_arr))
-        df["_v1_int_slope_h4_atr"] = result
-    t_misc_interactions_slope_end = time.perf_counter()
-    perf_add("feat.basic_v1.misc_roll.interactions.slope", t_misc_interactions_slope_end - t_misc_interactions_slope_start)
     
     # Del 3: Ekstra interaksjoner (AUC-løft)
     t_misc_interactions_extra_start = time.perf_counter()
@@ -1794,77 +1324,3 @@ def _kama(series, period):
         return pd.Series(kama_values, index=index, dtype=np.float64)
     else:
         return kama_values
-
-
-class FeaturePipeline:
-    """
-    Robust normalization pipeline using RobustScaler.
-    Persists scaler per fold.
-    """
-    def __init__(self, qrange=(10.0, 90.0)):
-        """
-        Initialize feature pipeline with robust scaler.
-        
-        Args:
-            qrange: Quantile range for RobustScaler (default: (10.0, 90.0))
-        """
-        self.scaler = RobustScaler(quantile_range=qrange)
-        self.fitted = False
-    
-    def fit(self, X):
-        """
-        Fit scaler on training data.
-        
-        Args:
-            X: Feature matrix (n_samples, n_features) or DataFrame
-            
-        Returns:
-            self
-        """
-        if isinstance(X, pd.DataFrame):
-            X = X.values
-        self.scaler.fit(X)
-        self.fitted = True
-        return self
-    
-    def transform(self, X):
-        """
-        Transform features using fitted scaler.
-        
-        Args:
-            X: Feature matrix (n_samples, n_features) or DataFrame
-            
-        Returns:
-            Transformed features (numpy array or DataFrame with same index)
-        """
-        if not self.fitted:
-            raise ValueError("Scaler must be fitted before transform")
-        is_df = isinstance(X, pd.DataFrame)
-        if is_df:
-            index = X.index
-            columns = X.columns
-            X = X.values
-        
-        X_transformed = self.scaler.transform(X)
-        
-        if is_df:
-            return pd.DataFrame(X_transformed, index=index, columns=columns)
-        return X_transformed
-    
-    def fit_transform(self, X):
-        """Fit and transform in one step."""
-        return self.fit(X).transform(X)
-    
-    def save(self, path):
-        """Save scaler to pickle file."""
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'wb') as f:
-            pickle.dump(self.scaler, f)
-    
-    def load(self, path):
-        """Load scaler from pickle file."""
-        with open(path, 'rb') as f:
-            self.scaler = pickle.load(f)
-        self.fitted = True
-        return self

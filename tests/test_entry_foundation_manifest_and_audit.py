@@ -42,8 +42,6 @@ from gx1.scripts.audit_entry_foundation_features_v1 import (
     _required_source_field_liveness_failures,
     SELECTED_FEATURE_LEARNABILITY_SPLITS,
     _load_emitted_contract,
-    _source_field_liveness_rows,
-    _stats_rows,
     _stream_split_liveness_rows,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
@@ -258,11 +256,14 @@ def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant(
         dtype=np.float32,
     )
 
-    rows = _stats_rows(
-        matrix,
+    accumulator = foundation_audit._StreamingStatsAccumulator(
         names,
-        split="train",
         liveness_epsilon=1e-7,
+    )
+    accumulator.add(matrix[:2])
+    accumulator.add(matrix[2:])
+    rows = accumulator.feature_rows(
+        split="train",
         near_constant_std=1e-9,
     )
     by_name = {row["feature"]: row for row in rows}
@@ -362,11 +363,14 @@ def test_foundation_objective_liveness_is_checked_per_split() -> None:
         ],
         dtype=np.float32,
     )
-    rows = _stats_rows(
-        matrix,
+    accumulator = foundation_audit._StreamingStatsAccumulator(
         names,
-        split="train",
         liveness_epsilon=1e-7,
+    )
+    accumulator.add(matrix[:1])
+    accumulator.add(matrix[1:])
+    rows = accumulator.feature_rows(
+        split="train",
         near_constant_std=1e-9,
     )
 
@@ -395,7 +399,7 @@ def test_foundation_objective_liveness_is_checked_per_split() -> None:
     )
 
 
-def test_foundation_source_field_liveness_is_checked_per_split() -> None:
+def test_foundation_source_field_liveness_is_checked_per_split(tmp_path) -> None:
     signal_fields = [
         field.split(".", 1)[1]
         for field in FOUNDATION_STRUCTURE_SOURCE_FIELDS
@@ -411,16 +415,25 @@ def test_foundation_source_field_liveness_is_checked_per_split() -> None:
     snap[:, :] = np.arange(4, dtype=np.float32)[:, None]
     ctx_cont[:, :] = np.arange(4, dtype=np.float32)[:, None]
 
-    rows = _source_field_liveness_rows(
-        snap=snap,
-        ctx_cont=ctx_cont,
+    parquet_path = tmp_path / "source_liveness.parquet"
+    pd.DataFrame(
+        {
+            "snap": [row for row in snap],
+            "ctx_cont": [row for row in ctx_cont],
+        }
+    ).to_parquet(parquet_path, index=False)
+
+    _, rows = _stream_split_liveness_rows(
+        parquet_path,
         signal_fields=signal_fields,
         ctx_cont_names=ctx_cont_names,
+        audit_features=[signal_fields[0]],
         split="train",
+        batch_size=2,
         liveness_epsilon=1e-7,
         near_constant_std=1e-9,
-        min_active_rate=0.0001,
-        min_active_count=1,
+        min_source_active_rate=0.0001,
+        min_source_active_count=1,
     )
 
     assert len(rows) == len(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
@@ -456,28 +469,7 @@ def test_foundation_source_field_liveness_is_checked_per_split() -> None:
     )
 
 
-def _assert_liveness_rows_match(
-    actual: list[dict[str, object]],
-    expected: list[dict[str, object]],
-    *,
-    key: str,
-) -> None:
-    assert len(actual) == len(expected)
-    actual_by_key = {str(row[key]): row for row in actual}
-    for expected_row in expected:
-        actual_row = actual_by_key[str(expected_row[key])]
-        assert set(actual_row) == set(expected_row)
-        for field, expected_value in expected_row.items():
-            actual_value = actual_row[field]
-            if isinstance(expected_value, float):
-                assert actual_value == pytest.approx(
-                    expected_value, rel=1e-12, abs=1e-12
-                )
-            else:
-                assert actual_value == expected_value
-
-
-def test_stream_split_liveness_matches_matrix_helpers(tmp_path) -> None:
+def test_stream_split_liveness_reports_exact_bounded_statistics(tmp_path) -> None:
     audit_features = [
         "chart.foundation_hh_state",
         "chart.foundation_bos_up_age_bars",
@@ -527,30 +519,49 @@ def test_stream_split_liveness_matches_matrix_helpers(tmp_path) -> None:
         min_source_active_rate=0.0001,
         min_source_active_count=1,
     )
-    audit_cols = [signal_fields.index(name) for name in audit_features]
-    expected_stats = _stats_rows(
-        snap[:, audit_cols],
-        audit_features,
-        split="train",
-        liveness_epsilon=1e-7,
-        near_constant_std=1e-9,
-    )
-    expected_source_rows = _source_field_liveness_rows(
-        snap=snap,
-        ctx_cont=ctx_cont,
-        signal_fields=signal_fields,
-        ctx_cont_names=ctx_cont_names,
-        split="train",
-        liveness_epsilon=1e-7,
-        near_constant_std=1e-9,
-        min_active_rate=0.0001,
-        min_active_count=1,
-    )
+    stats_by_name = {str(row["feature"]): row for row in streamed_stats}
+    assert set(stats_by_name) == set(audit_features)
+    for name in audit_features:
+        values = snap[:, signal_fields.index(name)].astype(np.float64)
+        finite = np.isfinite(values)
+        clean = np.where(finite, values, 0.0)
+        row = stats_by_name[name]
+        assert row["split"] == "train"
+        assert row["n"] == row_count
+        assert row["finite_rate"] == pytest.approx(float(finite.mean()))
+        assert row["nonfinite_count"] == int((~finite).sum())
+        assert row["zero_rate"] == pytest.approx(float((clean == 0.0).mean()))
+        assert row["active_rate"] == pytest.approx(
+            float((np.abs(clean) > 1e-7).mean())
+        )
+        assert row["mean"] == pytest.approx(float(np.mean(clean)))
+        assert row["std"] == pytest.approx(float(np.std(clean)))
+        assert row["min"] == pytest.approx(float(np.min(clean)))
+        assert row["max"] == pytest.approx(float(np.max(clean)))
+        assert row["near_constant"] is bool(float(np.std(clean)) <= 1e-9)
 
-    _assert_liveness_rows_match(streamed_stats, expected_stats, key="feature")
-    _assert_liveness_rows_match(
-        streamed_source_rows, expected_source_rows, key="source_field"
+    assert stats_by_name["chart.foundation_hh_state"]["family"] == (
+        "foundation_hh_hl_lh_ll"
     )
+    assert stats_by_name["chart.foundation_bos_up_age_bars"]["family"] == (
+        "foundation_bos_choch_age"
+    )
+    assert stats_by_name["p_long"]["near_constant"] is True
+
+    source_by_name = {
+        str(row["source_field"]): row for row in streamed_source_rows
+    }
+    assert set(source_by_name) == set(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
+    assert all(row["observed"] is True for row in streamed_source_rows)
+    assert all(row["n"] == row_count for row in streamed_source_rows)
+    if ctx_cont_names:
+        nonfinite_source = f"ctx_cont.{ctx_cont_names[0]}"
+        assert source_by_name[nonfinite_source]["nonfinite_count"] == 1
+        assert source_by_name[nonfinite_source]["finite_rate"] == pytest.approx(0.8)
+        assert source_by_name[nonfinite_source]["live"] is False
+        assert sum(
+            int(row["nonfinite_count"]) for row in streamed_source_rows
+        ) == 1
 
 
 def test_stream_split_source_scan_avoids_stacked_source_matrix(
@@ -686,7 +697,14 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
     tmp_path,
 ) -> None:
     periods = 12
-    times = pd.date_range("2026-01-01", periods=periods, freq="5min", tz="UTC")
+    source_periods = 240
+    source_times = pd.date_range(
+        "2026-01-01",
+        periods=source_periods,
+        freq="5min",
+        tz="UTC",
+    )
+    times = source_times[-periods:]
     ctx_cont_names = set(MODEL_NATIVE_CTX_CONT_FIELDS)
     ctx_cat_names = set(MODEL_NATIVE_CTX_CAT_FIELDS)
 
@@ -705,13 +723,13 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
     source = tmp_path / "source.parquet"
     pd.DataFrame(
         {
-            "time": times,
-            "open": np.linspace(1.0, 1.1, periods),
-            "high": np.linspace(1.01, 1.11, periods),
-            "low": np.linspace(0.99, 1.09, periods),
-            "close": np.linspace(1.005, 1.105, periods),
-            "mid": np.linspace(1.005, 1.105, periods),
-            "atr": np.full(periods, 0.01),
+            "time": source_times,
+            "open": np.linspace(1.0, 1.1, source_periods),
+            "high": np.linspace(1.01, 1.11, source_periods),
+            "low": np.linspace(0.99, 1.09, source_periods),
+            "close": np.linspace(1.005, 1.105, source_periods),
+            "mid": np.linspace(1.005, 1.105, source_periods),
+            "atr": np.full(source_periods, 0.01),
         }
     ).to_parquet(source)
     requested = [
@@ -741,7 +759,6 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
         "session_regime_interaction_layer",
         "vol_compression_smart_layer",
         "support_resistance_memory_layer",
-        "mtf_confluence_layer",
     }
 
 

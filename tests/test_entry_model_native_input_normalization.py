@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import inspect
 
 import numpy as np
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CAT_DOMAINS,
     EXPECTED_SURFACES,
+    MatrixPopulationPart,
     apply_surface_normalization,
     build_input_normalization_contract,
     fit_ctx_cat_contract,
@@ -68,6 +70,10 @@ def _contract() -> tuple[dict, dict[str, list[str]], dict[str, np.ndarray]]:
         "train_manifest_path": "/immutable/train.manifest.json",
         "train_manifest_sha256": "2" * 64,
         "train_row_count": 128,
+        "entry_train_decision_row_count": 96,
+        "exit_train_decision_row_count": 32,
+        "local_fit_row_count": 128,
+        "context_fit_row_count": 128,
         "val_fit_row_count": 0,
         "test_fit_row_count": 0,
         "train_time_min_utc": "2021-01-05T00:00:00+00:00",
@@ -208,3 +214,90 @@ def test_semantic_categorical_field_is_domain_checked_and_not_scaled() -> None:
     changed[0, 1] = 5.0
     with pytest.raises(RuntimeError, match="CATEGORICAL_VALUE_INVALID"):
         apply_surface_normalization(changed, fitted)
+
+
+def test_shared_population_fit_accepts_selected_sources_without_concatenation() -> None:
+    entry = np.arange(1, 41, dtype=np.float32).reshape(-1, 1)
+    exit_ = np.arange(101, 181, dtype=np.float32).reshape(-1, 1)
+    fitted = fit_surface_normalization(
+        [
+            MatrixPopulationPart(entry, source="entry_m5"),
+            MatrixPopulationPart(
+                exit_,
+                row_indices=np.arange(0, len(exit_), 2, dtype=np.int64),
+                source="exit_m1",
+            ),
+        ],
+        surface="signal",
+        field_names=["shared_local"],
+        row_count=80,
+        column_chunk=32,
+    )
+    expected = np.concatenate([entry[:, 0], exit_[::2, 0]])
+    assert fitted["fit_row_count"] == 80
+    assert np.float32(fitted["center"][0]) == np.float32(np.median(expected))
+    assert fitted["train_clipped_rate"][0] <= fitted["max_train_clip_rate"]
+
+
+def test_trainer_cgroup_preflight_rejects_uncapped_and_audit_without_training() -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    main_source = inspect.getsource(trainer.main)
+    assert main_source.index("_require_trainer_cgroup_preflight()") < (
+        main_source.index("_enforce_canonical_train_env_contract()")
+    )
+    assert main_source.index("_require_trainer_cgroup_preflight()") < (
+        main_source.index("_resolve_explicit_train_split_artifacts(")
+    )
+
+    reads: list[str] = []
+    memory = 10 * 1024**3
+    swap = 512 * 1024**2
+    files = {
+        "/proc/self/cgroup": "0::/gx1-test.scope\n",
+        "/sys/fs/cgroup/gx1-test.scope/memory.max": str(memory),
+        "/sys/fs/cgroup/gx1-test.scope/memory.high": str(memory),
+        "/sys/fs/cgroup/gx1-test.scope/memory.swap.max": str(swap),
+        "/sys/fs/cgroup/gx1-test.scope/pids.max": "64",
+    }
+
+    def read_text(path) -> str:
+        key = str(path)
+        reads.append(key)
+        return files[key]
+
+    base_env = {
+        "GX1_CAPPED_MEMORY_BYTES": str(memory),
+        "GX1_CAPPED_SWAP_BYTES": str(swap),
+        "GX1_CAPPED_TASKS_MAX": "64",
+    }
+    with pytest.raises(RuntimeError, match="CGROUP_CLASS_INVALID"):
+        trainer._require_trainer_cgroup_preflight(
+            environ=base_env,
+            read_text=read_text,
+        )
+    assert reads == []
+    with pytest.raises(RuntimeError, match="CGROUP_CLASS_INVALID"):
+        trainer._require_trainer_cgroup_preflight(
+            environ={**base_env, "GX1_CAPPED_CLASS": "audit"},
+            read_text=read_text,
+        )
+    assert reads == []
+
+    proof = trainer._require_trainer_cgroup_preflight(
+        environ={**base_env, "GX1_CAPPED_CLASS": "trainer"},
+        read_text=read_text,
+    )
+    assert proof["memory_max"] == proof["memory_high"] == memory
+    assert proof["swap"] == swap
+    assert proof["pids"] == 64
+
+    with pytest.raises(RuntimeError, match="ENV_ACTUAL_MISMATCH"):
+        trainer._require_trainer_cgroup_preflight(
+            environ={
+                **base_env,
+                "GX1_CAPPED_CLASS": "trainer",
+                "GX1_CAPPED_MEMORY_BYTES": str(9 * 1024**3),
+            },
+            read_text=read_text,
+        )

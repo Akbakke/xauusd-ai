@@ -163,14 +163,6 @@ def _sha256_json(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _strip_feature_prefix(name: str) -> str:
-    out = str(name)
-    for prefix in ("chart.", "ctx_cont.", "snap.", "seq."):
-        if out.startswith(prefix):
-            return out[len(prefix):]
-    return out
-
-
 def _feature_family(name: str) -> str:
     n = str(name).lower()
     if n.startswith("chart.foundation_"):
@@ -385,42 +377,6 @@ def _audit_features_for_contract(selected_features: list[str], signal_fields: li
 def _contract_features(contract: dict[str, Any]) -> list[str]:
     extension = contract.get("seq_structure_extension_v1") or {}
     return [str(x) for x in extension.get("features", [])]
-
-
-def _stats_rows(
-    matrix: np.ndarray,
-    names: list[str],
-    *,
-    split: str,
-    liveness_epsilon: float,
-    near_constant_std: float,
-) -> list[dict[str, Any]]:
-    arr = np.asarray(matrix, dtype=np.float64)
-    rows: list[dict[str, Any]] = []
-    for i, name in enumerate(names):
-        values = arr[:, i]
-        finite = np.isfinite(values)
-        clean = np.where(finite, values, 0.0)
-        std = float(np.std(clean)) if clean.size else 0.0
-        rows.append(
-            {
-                "split": split,
-                "feature": name,
-                "family": _feature_family(name),
-                "n": int(len(values)),
-                "finite_rate": float(finite.mean()) if len(values) else 0.0,
-                "nonfinite_count": int((~finite).sum()),
-                "zero_rate": float((clean == 0.0).mean()) if len(values) else 0.0,
-                "active_rate": float((np.abs(clean) > float(liveness_epsilon)).mean()) if len(values) else 0.0,
-                "mean": float(np.mean(clean)) if len(values) else 0.0,
-                "std": std,
-                "min": float(np.min(clean)) if len(values) else 0.0,
-                "max": float(np.max(clean)) if len(values) else 0.0,
-                "near_constant": bool(std <= float(near_constant_std)),
-                "constant_allowed": False,
-            }
-        )
-    return rows
 
 
 class _SplitMatrixShapeError(RuntimeError):
@@ -677,89 +633,6 @@ def _stream_split_liveness_rows(
         feature_acc.feature_rows(split=split, near_constant_std=float(near_constant_std)),
         source_rows,
     )
-
-
-def _source_field_liveness_rows(
-    *,
-    snap: np.ndarray,
-    ctx_cont: np.ndarray,
-    signal_fields: list[str],
-    ctx_cont_names: list[str],
-    split: str,
-    liveness_epsilon: float,
-    near_constant_std: float,
-    min_active_rate: float,
-    min_active_count: int,
-) -> list[dict[str, Any]]:
-    snap_arr = np.asarray(snap, dtype=np.float64)
-    ctx_arr = np.asarray(ctx_cont, dtype=np.float64)
-    signal_idx = {str(name): i for i, name in enumerate(signal_fields)}
-    ctx_idx = {str(name): i for i, name in enumerate(ctx_cont_names)}
-    rows: list[dict[str, Any]] = []
-    for source_field in FOUNDATION_STRUCTURE_SOURCE_FIELDS:
-        source_kind, raw_name = str(source_field).split(".", 1)
-        matrix = snap_arr if source_kind == "snap" else ctx_arr
-        idx_map = signal_idx if source_kind == "snap" else ctx_idx
-        idx = idx_map.get(raw_name)
-        if idx is None or matrix.ndim != 2 or idx >= matrix.shape[1]:
-            rows.append(
-                {
-                    "split": split,
-                    "source_field": source_field,
-                    "source_kind": source_kind,
-                    "raw_name": raw_name,
-                    "observed": False,
-                    "live": False,
-                    "n": 0,
-                    "finite_rate": 0.0,
-                    "nonfinite_count": 0,
-                    "zero_rate": 0.0,
-                    "active_count": 0,
-                    "active_rate": 0.0,
-                    "mean": 0.0,
-                    "std": 0.0,
-                    "min": 0.0,
-                    "max": 0.0,
-                    "near_constant": True,
-                }
-            )
-            continue
-        values = matrix[:, idx]
-        finite = np.isfinite(values)
-        clean = np.where(finite, values, 0.0)
-        active = np.abs(clean) > float(liveness_epsilon)
-        std = float(np.std(clean)) if clean.size else 0.0
-        nonfinite_count = int((~finite).sum())
-        active_count = int(active.sum())
-        active_rate = float(active.mean()) if len(values) else 0.0
-        near_constant = bool(std <= float(near_constant_std))
-        rows.append(
-            {
-                "split": split,
-                "source_field": source_field,
-                "source_kind": source_kind,
-                "raw_name": raw_name,
-                "observed": True,
-                "live": bool(
-                    nonfinite_count == 0
-                    and not near_constant
-                    and active_count >= int(min_active_count)
-                    and active_rate >= float(min_active_rate)
-                ),
-                "n": int(len(values)),
-                "finite_rate": float(finite.mean()) if len(values) else 0.0,
-                "nonfinite_count": nonfinite_count,
-                "zero_rate": float((clean == 0.0).mean()) if len(values) else 0.0,
-                "active_count": active_count,
-                "active_rate": active_rate,
-                "mean": float(np.mean(clean)) if len(values) else 0.0,
-                "std": std,
-                "min": float(np.min(clean)) if len(values) else 0.0,
-                "max": float(np.max(clean)) if len(values) else 0.0,
-                "near_constant": near_constant,
-            }
-        )
-    return rows
 
 
 def _required_source_field_liveness_failures(

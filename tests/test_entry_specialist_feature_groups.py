@@ -34,9 +34,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     model_native_context_temporal_alias_policy,
     require_model_native_specialist_contract_mode,
     required_training_specialists_for_mode,
-    smart_family_contract_for_mode,
     specialist_contract_training_allowed_for_mode,
     specialist_model_contract_for_mode,
+)
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+    PRICE_DERIVED_FEATURE_NAMES,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
 from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
@@ -65,6 +68,23 @@ def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> N
     )
     assert classify_entry_specialist_feature("p_long") == FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
     assert FORBIDDEN_LEGACY_BRIDGE_SPECIALIST not in SPECIALIST_GROUPS
+
+
+def test_local_ema_formula_family_has_one_exact_trend_owner() -> None:
+    assert len(PRICE_DERIVED_FEATURE_NAMES) == len(set(PRICE_DERIVED_FEATURE_NAMES)) == 11
+    assert {
+        field: classify_entry_specialist_feature(field)
+        for field in PRICE_DERIVED_FEATURE_NAMES
+    } == {
+        field: "trend_ema_encoder"
+        for field in PRICE_DERIVED_FEATURE_NAMES
+    }
+    # Execution spread remains session evidence; the exact EMA-spread fields
+    # above must not inherit that broad lexical owner.
+    assert (
+        classify_entry_specialist_feature("ctx_cont.spread_bps")
+        == "session_regime_encoder"
+    )
 
 
 def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
@@ -167,12 +187,12 @@ def test_specialist_liveness_uses_exact_sparse_event_support_contract(
         "smc_choch",
         "candle.pattern_outside_after_inside_bull_breakout_score",
         "candle.pattern_outside_after_inside_bear_breakout_score",
-        "chart.m5_ema50_200_cross_up",
-        "chart.m5_ema50_200_cross_down",
+        "chart.local_ema50_200_cross_up",
+        "chart.local_ema50_200_cross_down",
     ]
     event_counts = [32, 16, 16, 128, 128]
     split_artifacts: dict[str, dict[str, str]] = {}
-    for split in ("train", "val", "test"):
+    for split in ("train", "val"):
         values = np.zeros((20_000, len(fields)), dtype=np.float32)
         if split == "train":
             for index, count in enumerate(event_counts):
@@ -183,7 +203,7 @@ def test_specialist_liveness_uses_exact_sparse_event_support_contract(
 
     _groups, feature_rows, _duplicates = _specialist_input_liveness_rows(
         split_artifacts,
-        ["train", "val", "test"],
+        ["train", "val"],
         fields,
         (),
     )
@@ -229,9 +249,8 @@ def test_only_model_native_seq513_specialist_contract_is_registered() -> None:
         == MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
     )
 
-    family_contract = smart_family_contract_for_mode(MODEL_NATIVE_CONTRACT_MODE)
-    assert family_contract == MODEL_NATIVE_SMART_FAMILY_CONTRACT
-    assert len(family_contract) == len(MODEL_NATIVE_SMART_FAMILY_CONTRACT) == 12
+    family_contract = MODEL_NATIVE_SMART_FAMILY_CONTRACT
+    assert len(family_contract) == len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
     assert sum(int(spec["expected_feature_count"]) for spec in family_contract.values()) == (
         MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT
     )
@@ -302,7 +321,7 @@ def _write_smart_seq513_fixture(
     signal_contract = model_native_signal_contract_metadata(selected)
     dataset_dir = tmp_path / "smart_dataset"
     dataset_dir.mkdir()
-    for split in ("train", "val", "test"):
+    for split in ("train", "val"):
         parquet_path = dataset_dir / f"sample_{split}.parquet"
         manifest = {
             "output_data_path": str(parquet_path.resolve()),
@@ -371,7 +390,7 @@ def _write_smart_seq513_fixture(
 
 def _audit_args(tmp_path: Path, dataset_dir: Path, seq_manifest: Path, *, contract_mode: str) -> argparse.Namespace:
     split_args: dict[str, str] = {}
-    for split in ("train", "val", "test"):
+    for split in ("train", "val"):
         manifest = (dataset_dir / f"sample_{split}.manifest.json").resolve()
         parquet = (dataset_dir / f"sample_{split}.parquet").resolve()
         split_args[f"{split}_manifest_json"] = str(manifest)
@@ -385,7 +404,7 @@ def _audit_args(tmp_path: Path, dataset_dir: Path, seq_manifest: Path, *, contra
         dataset_dir=str(dataset_dir),
         seq_structure_manifest=str(seq_manifest),
         out_dir=str(tmp_path / "out"),
-        data_splits="train,val,test",
+        data_splits="train,val",
         contract_mode=contract_mode,
         quiet=True,
         **split_args,
@@ -396,7 +415,7 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     tmp_path: Path,
 ) -> None:
     dataset_dir, seq_manifest = _write_smart_seq513_fixture(tmp_path)
-    for split in ("train", "val", "test"):
+    for split in ("train", "val"):
         (dataset_dir / f"unbound_decoy_{split}.parquet").write_bytes(b"decoy")
 
     report = run(
@@ -427,9 +446,11 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert report["smart_family_contract_required"] is True
     assert report["smart_family_contract_valid"] is True
     assert report["smart_family_contract_failures"] == []
-    assert len(report["smart_family_contract_rows"]) == 12
+    assert len(report["smart_family_contract_rows"]) == len(
+        MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
+    )
     assert all(row["feature_count_matches"] is True for row in report["smart_family_contract_rows"])
-    assert len(report["specialist_input_liveness"]) == 24
+    assert len(report["specialist_input_liveness"]) == 16
     assert report["specialist_input_liveness_all_live"] is True
     assert report["context_taxonomy_all_mapped"] is True
     assert report["context_specialist_routing_all_mapped"] is True
@@ -447,7 +468,7 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert alias_policy["signal_alias_statistics_policy"] == (
         "bit_identical_copy_from_ctx_cont_train_stats"
     )
-    assert set(report["split_artifacts"]) == {"train", "val", "test"}
+    assert set(report["split_artifacts"]) == {"train", "val"}
 
 
 def test_specialist_feature_group_audit_fails_closed_on_model_native_family_count_mismatch(

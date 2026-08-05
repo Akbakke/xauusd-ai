@@ -10,7 +10,12 @@ def _frame() -> pd.DataFrame:
     index = pd.date_range("2026-01-01", periods=3, freq="5min", tz="UTC")
     index.name = "time"
     return pd.DataFrame(
-        {"feature_a": [1.0, 2.0, 3.0], "feature_b": [4.0, 5.0, 6.0]},
+        {
+            "feature_a": [1.0, 2.0, 3.0],
+            "feature_b": [4.0, 5.0, 6.0],
+            # V4 canonical must carry the owned m5h1 momentum column.
+            "m5h1_momentum": [0.5, -0.25, 0.75],
+        },
         index=index,
     )
 

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 
 from gx1.contracts.xau_tape_provenance_v1 import (
@@ -14,7 +16,6 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 from gx1.execution import v12_canonical_incremental as incremental
 from gx1.scripts import backfill_xauusd_m5_from_oanda as native_publisher
-import gx1.contracts.unified_exit_lifecycle_v1 as lifecycle_contract
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_RISK_HORIZONS,
     MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
@@ -25,14 +26,29 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
-    UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
     UnifiedExitLifecycleCorpus,
     canonical_json_sha256,
     require_unified_exit_m1_pair_authority,
     sha256_file,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
     entry_exit_shared_feature_base_contract,
+    require_entry_exit_enriched_source_binding,
+)
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_EXIT_FEATURE_SURFACE_COLUMNS,
+    build_entry_exit_feature_surface_manifest,
+    require_exact_m1_feature_surface_manifest,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_SIGNAL_DIM,
+    model_native_mandatory_full_stack_metadata,
+    model_native_signal_contract_metadata,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
@@ -47,6 +63,7 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     model_native_aux_target_contract_metadata,
 )
 from tests.test_oanda_backfill_vedtak_gate import _FakeOandaClient
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
 BUILDER_PATH = Path("gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py")
@@ -314,8 +331,48 @@ def _closed_m1_lifecycle_source(n_rows: int = 560) -> pd.DataFrame:
     )
 
 
+class _LifecycleTrendOandaClient(_FakeOandaClient):
+    """Timestamp-derived prices keep independently fetched M1/M5 fixtures aligned."""
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, object],
+    ) -> dict[str, object]:
+        response = super()._request(method, path, params=params)
+        epoch = pd.Timestamp("2026-01-01T00:00:00Z")
+        for candle in response["candles"]:
+            timestamp = pd.Timestamp(candle["time"])
+            bucket = int((timestamp - epoch) / pd.Timedelta(minutes=5))
+            mid = 2000.0 + bucket * 0.01
+            candle["mid"] = {
+                "o": str(mid),
+                "h": str(mid + 1.0),
+                "l": str(mid - 1.0),
+                "c": str(mid),
+            }
+            candle["bid"] = {
+                "o": str(mid - 0.5),
+                "h": str(mid + 0.5),
+                "l": str(mid - 1.5),
+                "c": str(mid - 0.5),
+            }
+            candle["ask"] = {
+                "o": str(mid + 0.5),
+                "h": str(mid + 1.5),
+                "l": str(mid - 0.5),
+                "c": str(mid + 0.5),
+            }
+        return response
+
+
 def _strict_native_pair_fixture(
     tmp_path: Path,
+    *,
+    successor_end: str = "2026-01-01T09:25:00Z",
+    trend_prices: bool = False,
 ) -> tuple[Path, Path, Path]:
     native_m1_parent_root = tmp_path / "native-m1-parent"
     native_m5_parent_root = tmp_path / "native-m5-parent"
@@ -323,14 +380,14 @@ def _strict_native_pair_fixture(
     native_m5_root = tmp_path / "native-m5"
     vedtak = "XAU_NATIVE_PAIR_LIFECYCLE_FIXTURE_V1"
     parent_end = "2026-01-01T09:20:00Z"
-    successor_end = "2026-01-01T09:25:00Z"
+    client_type = _LifecycleTrendOandaClient if trend_prices else _FakeOandaClient
     with mock.patch.object(
         native_publisher,
         "_require_clean_repository",
         return_value="a" * 40,
     ):
         native_publisher.materialize_native_xau_snapshot(
-            client=_FakeOandaClient(timeframe="M1"),
+            client=client_type(timeframe="M1"),
             timeframe="M1",
             vedtak_id=vedtak,
             start_utc="2026-01-01T00:00:00Z",
@@ -338,7 +395,7 @@ def _strict_native_pair_fixture(
             out_root=native_m1_parent_root,
         )
         native_publisher.materialize_native_xau_snapshot(
-            client=_FakeOandaClient(timeframe="M5"),
+            client=client_type(timeframe="M5"),
             timeframe="M5",
             vedtak_id=vedtak,
             start_utc="2026-01-01T00:00:00Z",
@@ -354,7 +411,7 @@ def _strict_native_pair_fixture(
             timeframe="M5",
         )
         native_publisher.materialize_native_xau_successor(
-            client=_FakeOandaClient(timeframe="M1"),
+            client=client_type(timeframe="M1"),
             timeframe="M1",
             vedtak_id=vedtak,
             end_utc=successor_end,
@@ -363,7 +420,7 @@ def _strict_native_pair_fixture(
             expected_parent_manifest_sha256=m1_parent["manifest_sha256"],
         )
         native_publisher.materialize_native_xau_successor(
-            client=_FakeOandaClient(timeframe="M5"),
+            client=client_type(timeframe="M5"),
             timeframe="M5",
             vedtak_id=vedtak,
             end_utc=successor_end,
@@ -442,6 +499,179 @@ def _strict_native_pair_fixture(
         / incremental.PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
     )
     return generation_manifest, generation_root, pointer
+
+
+def _write_exact_m1_feature_surface_fixture(
+    tmp_path: Path,
+    *,
+    m1_source: Path,
+    m1_frame: pd.DataFrame,
+    dataset_run_id: str,
+    pair_generation_id: str,
+) -> tuple[Path, Path]:
+    """Publish one small, fully bound M1 feature surface without bypasses."""
+
+    enriched_source = (tmp_path / "xau_m1_enriched.parquet").resolve()
+    m1_frame.to_parquet(enriched_source, index=False)
+    rank_reference = (tmp_path / "train_rank_reference.npz").resolve()
+    rank_reference.write_bytes(b"exact-m1-surface-rank-reference-v1")
+    enriched_manifest = Path(f"{enriched_source}.manifest.json")
+    enriched_payload = {
+        "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
+        "decision": "PASS",
+        "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+        "dataset_run_id": dataset_run_id,
+        "pair_generation_id": pair_generation_id,
+        "timeframe": "M1",
+        "base_bar_seconds": 60,
+        "rank_reference_npz": str(rank_reference),
+        "rank_reference_sha256": sha256_file(rank_reference),
+        "output_parquet": str(enriched_source),
+        "output_parquet_sha256": sha256_file(enriched_source),
+    }
+    enriched_payload["manifest_sha256"] = canonical_json_sha256(
+        enriched_payload
+    )
+    enriched_manifest.write_text(
+        json.dumps(enriched_payload, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    source_binding = require_entry_exit_enriched_source_binding(
+        enriched_source,
+        dataset_run_id=dataset_run_id,
+        pair_generation_id=pair_generation_id,
+        timeframe="M1",
+        context="TEST_UNIFIED_EXIT_M1_ENRICHED_SOURCE",
+    )
+
+    selected = canonical_model_native_selected_fields(
+        remainder_prefix="session_regime.unified_exit_surface_fixture"
+    )
+    signal_contract = model_native_signal_contract_metadata(selected)
+    signal_manifest = (tmp_path / "seq513_signal_manifest.json").resolve()
+    signal_manifest.write_text(
+        json.dumps(
+            {
+                "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+                "base_signal_feature_count": len(MODEL_NATIVE_BASE_FIELDS),
+                "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+                "selected_features": selected,
+                "mandatory_full_stack": (
+                    model_native_mandatory_full_stack_metadata()
+                ),
+                "model_native_signal_contract": signal_contract,
+            },
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    rows = len(m1_frame)
+    surface = (tmp_path / "xau_m1_feature_base.parquet").resolve()
+    table = pa.Table.from_arrays(
+        [
+            pa.Array.from_pandas(
+                pd.to_datetime(m1_frame["time"], utc=True, errors="raise")
+            ),
+            pa.FixedSizeListArray.from_arrays(
+                pa.array(
+                    np.zeros(rows * MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32),
+                    type=pa.float32(),
+                ),
+                MODEL_NATIVE_SIGNAL_DIM,
+            ),
+            pa.FixedSizeListArray.from_arrays(
+                pa.array(
+                    np.zeros(rows * MODEL_NATIVE_CTX_CONT_DIM, dtype=np.float32),
+                    type=pa.float32(),
+                ),
+                MODEL_NATIVE_CTX_CONT_DIM,
+            ),
+            pa.FixedSizeListArray.from_arrays(
+                pa.array(
+                    np.zeros(rows * MODEL_NATIVE_CTX_CAT_DIM, dtype=np.int64),
+                    type=pa.int64(),
+                ),
+                MODEL_NATIVE_CTX_CAT_DIM,
+            ),
+        ],
+        names=list(ENTRY_EXIT_FEATURE_SURFACE_COLUMNS),
+    )
+    pq.write_table(
+        table,
+        surface,
+        compression="snappy",
+        use_dictionary=False,
+        row_group_size=480,
+    )
+    surface_manifest = Path(f"{surface}.manifest.json")
+    manifest = build_entry_exit_feature_surface_manifest(
+        timeframe="M1",
+        dataset_run_id=dataset_run_id,
+        pair_generation_id=pair_generation_id,
+        source=enriched_source,
+        source_binding=source_binding,
+        alignment=m1_source,
+        seq_structure_manifest=signal_manifest,
+        output=surface,
+        rows=rows,
+        signal_contract=signal_contract,
+        extension={
+            "mode": "exact_test_fixture_v1",
+            "ordered_fields_sha256": signal_contract["ordered_fields_sha256"],
+        },
+        materialization={
+            "mode": "bounded_native_m1_owner_batches_v2_event_age_carry",
+            "batch_rows": rows,
+            "causal_overlap_rows": 0,
+            "recursive_state_fields": [],
+        },
+    )
+    surface_manifest.write_text(
+        json.dumps(manifest, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    return surface, surface_manifest
+
+
+def test_exact_m1_feature_surface_rejects_resealed_row_tamper(
+    tmp_path: Path,
+) -> None:
+    m1_frame = _closed_m1_lifecycle_source(n_rows=16)
+    m1_source = (tmp_path / "authoritative_m1.parquet").resolve()
+    m1_frame.to_parquet(m1_source, index=False)
+    pair_generation_id = "b" * 64
+    surface, manifest_path = _write_exact_m1_feature_surface_fixture(
+        tmp_path,
+        m1_source=m1_source,
+        m1_frame=m1_frame,
+        dataset_run_id="EXACT_M1_SURFACE_TAMPER_PYTEST_V1",
+        pair_generation_id=pair_generation_id,
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["rows"] = len(m1_frame) - 1
+    manifest.pop("manifest_sha256")
+    manifest["manifest_sha256"] = canonical_json_sha256(manifest)
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="TEST_M1_SURFACE_IDENTITY_INVALID"):
+        require_exact_m1_feature_surface_manifest(
+            manifest_path=manifest_path,
+            expected_manifest_sha256=sha256_file(manifest_path),
+            expected_parquet_path=surface,
+            expected_parquet_sha256=sha256_file(surface),
+            expected_dataset_run_id="EXACT_M1_SURFACE_TAMPER_PYTEST_V1",
+            expected_pair_generation_id=pair_generation_id,
+            expected_rows=len(m1_frame),
+            expected_m1_source_path=m1_source,
+            expected_m1_source_sha256=sha256_file(m1_source),
+            context="TEST_M1_SURFACE",
+        )
 
 
 def test_unified_exit_m1_authority_revalidates_native_complete_source(
@@ -595,7 +825,6 @@ def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
 
 def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entries = pd.DataFrame(
         {
@@ -608,52 +837,27 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
             )
         }
     )
-    m1_source = tmp_path / "xau_m1_20260101T000000Z.parquet"
-    source = _closed_m1_lifecycle_source(n_rows=1200)
-    source.to_parquet(m1_source, index=False)
-    m1_feature_base = tmp_path / "xau_m1_feature_base.parquet"
-    zero_signal = np.zeros(513, dtype=np.float32).tolist()
-    zero_ctx_cont = np.zeros(142, dtype=np.float32).tolist()
-    zero_ctx_cat = np.zeros(5, dtype=np.int64).tolist()
-    pd.DataFrame(
-        {
-            "time": source["time"],
-            "signal": [zero_signal for _ in range(len(source))],
-            "ctx_cont": [zero_ctx_cont for _ in range(len(source))],
-            "ctx_cat": [zero_ctx_cat for _ in range(len(source))],
-        }
-    ).to_parquet(m1_feature_base, index=False)
-    m1_feature_manifest = Path(str(m1_feature_base) + ".manifest.json")
-    m1_feature_manifest.write_text(
-        json.dumps(
-            {
-                "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
-                "decision": "PASS",
-                "dataset_run_id": "EXIT_LIFECYCLE_PYTEST_V1",
-                "output_parquet": str(m1_feature_base),
-                "output_parquet_sha256": sha256_file(m1_feature_base),
-                "shared_feature_base_contract": (
-                    entry_exit_shared_feature_base_contract()
-                ),
-            },
-            sort_keys=True,
+    generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
+        tmp_path,
+        successor_end="2026-01-01T20:00:00Z",
+        trend_prices=True,
+    )
+    m1_source, m1_authority = require_unified_exit_m1_pair_authority(
+        pair_manifest_path=generation_manifest,
+        pair_generation_root=generation_root,
+    )
+    source = pd.read_parquet(m1_source)
+    assert len(source) == m1_authority["m1_source_rows"] == 1200
+    m1_feature_base, m1_feature_manifest = (
+        _write_exact_m1_feature_surface_fixture(
+            tmp_path,
+            m1_source=m1_source,
+            m1_frame=source,
+            dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
+            pair_generation_id=str(m1_authority["pair_generation_id"]),
         )
-        + "\n",
-        encoding="utf-8",
     )
-    m1_authority = {
-        "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
-        "pair_manifest_path": str(tmp_path / "PAIR_MANIFEST.json"),
-        "pair_generation_root": str(tmp_path / "generations"),
-        "m1_source_path": str(m1_source),
-        "m1_source_sha256": sha256_file(m1_source),
-    }
     m1_authority_sha256 = canonical_json_sha256(m1_authority)
-    monkeypatch.setattr(
-        lifecycle_contract,
-        "require_unified_exit_m1_pair_authority",
-        lambda **_kwargs: (m1_source, dict(m1_authority)),
-    )
     lifecycle_dir = tmp_path / "exit_lifecycle_20260101T000000Z"
     lifecycle_dir.mkdir()
     bindings: dict[str, dict[str, object]] = {}
@@ -749,7 +953,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
 
     corpus = UnifiedExitLifecycleCorpus(
         root_manifest_path=root_manifest,
-        entry_parquets=entry_paths,
+        entry_parquets={name: entry_paths[name] for name in ("train", "val")},
         dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
     )
     sample = corpus.splits["train"].sample(0)
@@ -758,6 +962,10 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     assert valid.any()
     assert set(sample["exit_action_target"][valid]) == {0, 1}
     assert set(sample["exit_side_index"][valid]) == {0, 1}
+    assert np.all(sample["exit_decision_time_ns"][valid] > 0)
+    assert np.all(
+        sample["exit_decision_time_ns"][~valid] == np.iinfo(np.int64).min
+    )
     for slot in np.flatnonzero(valid):
         length = int(sample["exit_path_lengths"][slot])
         assert 1 <= length <= 512

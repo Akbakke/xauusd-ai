@@ -57,6 +57,8 @@ from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
     require_newest_immutable_event,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
+from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DOMAINS,
@@ -82,16 +84,6 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
-)
-from gx1.contracts.entry_model_native_state_v2 import (
-    validate_state_contract_metadata_v2,
-)
-from gx1.contracts.model_native_serve_gate_v1 import (
-    SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS,
-    SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS,
-    build_serve_source_identity,
-    cross_gate_contract_failures,
-    serve_gate_event_contract_failures,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_ACTION_BY_INDEX,
@@ -184,7 +176,6 @@ MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
     "calibration_version",
     "direction_calibration_enabled",
     "direction_calibration_temperature",
-    "direction_calibration_bias",
     "path_calibration_enabled",
     "path_calibration",
     "tf_agreement_logit",
@@ -711,14 +702,14 @@ def _validate_model_native_diagnostics(
         float(specialist_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
     ):
         raise RuntimeError("[SMART_ENTRY] specialist_gate is not a probability simplex")
-    tf_gate = vector("tf_gate", 5)
+    tf_gate = vector("tf_gate", ENTRY_MTF_CONTEXT_COUNT)
     if bool((tf_gate < 0.0).any()) or not np.isclose(
         float(tf_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
     ):
         raise RuntimeError("[SMART_ENTRY] tf_gate is not a probability simplex")
     family_tf_cooperation_gate = vector(
         "family_tf_cooperation_gate",
-        len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+        ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
     )
     if bool((family_tf_cooperation_gate < 0.0).any()) or not np.isclose(
         float(family_tf_cooperation_gate.sum()), 1.0, rtol=1e-6, atol=1e-7
@@ -728,7 +719,7 @@ def _validate_model_native_diagnostics(
         )
     family_tf_feature_gate = vector(
         "family_tf_feature_gate",
-        len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
+        ENTRY_MTF_CONTEXT_COUNT * MULTI_TF_FEATURE_COUNT_V4,
     )
     if bool(
         (family_tf_feature_gate <= 0.0).any()
@@ -746,9 +737,10 @@ def _validate_model_native_diagnostics(
     direction_temperature = scalar("direction_calibration_temperature")
     if direction_temperature <= 0.0:
         raise RuntimeError("[SMART_ENTRY] direction calibration temperature must be positive")
-    direction_bias = vector("direction_calibration_bias", 3)
+    # Calibration is one positive scalar temperature only. A per-class bias
+    # could remap the winning class, which would be an external direction rule.
     expected_direction_logits = (
-        vector("raw_direction_logits", 3) / direction_temperature + direction_bias
+        vector("raw_direction_logits", 3) / direction_temperature
     )
     if not np.allclose(
         vector("direction_logits", 3),
@@ -757,7 +749,7 @@ def _validate_model_native_diagnostics(
         atol=1e-6,
     ):
         raise RuntimeError(
-            "[SMART_ENTRY] final direction logits do not match raw/temperature+bias"
+            "[SMART_ENTRY] final direction logits do not match raw/temperature"
         )
     if head_out.get("path_calibration_enabled") is not True:
         raise RuntimeError("[SMART_ENTRY] path calibration must be enabled")
@@ -824,238 +816,6 @@ class SmartCtxSnapshot:
     build_seconds: float
 
 
-def assert_smart_serving_gate() -> dict:
-    """ONE-TRUTH launch gate for the smart serving path (launcher + runner):
-    (1) the TRAIN==SERVE parity gate artifact must be decision=PASS and must
-        have been produced for the CONTRACT-ACTIVE v10_entry bundle;
-    (2) the directional live-like pocket audit must be decision=PASS for the
-        CONTRACT-ACTIVE v10_entry bundle;
-    (3) the contract must be the exact model-native seq513 candidate with a complete
-        operating_point.
-    Raises RuntimeError on any violation; returns the gate report on success.
-    """
-    from gx1_guards.artifacts import load_decision_entry
-    entry = load_decision_entry("v10_entry")
-    launch_state = entry.get("xau_direction_launch_state")
-    if not isinstance(launch_state, dict):
-        raise RuntimeError(
-            "[SMART_GATE] artifact guard did not return the validated XAU direction launch state"
-        )
-    declared_evidence = launch_state.get("serve_gate_evidence")
-    if not isinstance(declared_evidence, dict) or set(declared_evidence) != {
-        "model_native_serve_parity",
-        "model_native_direction_pocket_audit",
-    }:
-        raise RuntimeError(
-            "[SMART_GATE] XAU direction launch state lacks exact serve_gate_evidence"
-        )
-    rep, parity_authority = _load_declared_gate_event(
-        declared_evidence["model_native_serve_parity"],
-        "MODEL_NATIVE_SERVE_PARITY",
-        label="TRAIN==SERVE parity",
-    )
-    direction_audit, direction_authority = _load_declared_gate_event(
-        declared_evidence["model_native_direction_pocket_audit"],
-        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
-        label="direction pocket audit",
-    )
-    problems: list[str] = []
-    problems.extend(
-        serve_gate_event_contract_failures(
-            rep,
-            evidence_name="model_native_serve_parity",
-        )
-    )
-    problems.extend(
-        serve_gate_event_contract_failures(
-            direction_audit,
-            evidence_name="model_native_direction_pocket_audit",
-        )
-    )
-    problems.extend(cross_gate_contract_failures(rep, direction_audit))
-    for evidence_name, observed in (
-        ("model_native_serve_parity", parity_authority),
-        ("model_native_direction_pocket_audit", direction_authority),
-    ):
-        declared = declared_evidence[evidence_name]
-        if declared != observed:
-            problems.append(
-                f"XAU direction launch {evidence_name} binding mismatch: "
-                f"declared={declared!r} observed={observed!r}"
-            )
-    if rep.get("decision") != "PASS":
-        problems.append(f"parity decision={rep.get('decision')!r} failures={list(rep.get('failures') or [])[:3]}")
-    parity_commit = str(rep.get("git_commit") or "").strip()
-    if not parity_commit:
-        problems.append("parity report missing git_commit")
-    try:
-        current_source_identity = build_serve_source_identity(
-            Path(__file__).resolve().parents[2]
-        )
-    except Exception as exc:
-        problems.append(f"smart serving source identity unavailable: {exc}")
-    else:
-        parity_source_identity = rep.get("serve_source_identity")
-        if current_source_identity != parity_source_identity:
-            problems.append(
-                "smart serving source bytes differ from immutable parity source "
-                f"identity: parity={parity_source_identity!r} "
-                f"current={current_source_identity!r}"
-            )
-    now_utc = pd.Timestamp.now(tz="UTC")
-    created_utc = pd.to_datetime(rep.get("created_utc"), utc=True, errors="coerce")
-    if pd.isna(created_utc):
-        problems.append(f"parity created_utc invalid/missing: {rep.get('created_utc')!r}")
-    elif SMART_PARITY_GATE_MAX_AGE_HOURS > 0:
-        age_hours = (now_utc - created_utc).total_seconds() / 3600.0
-        if age_hours > SMART_PARITY_GATE_MAX_AGE_HOURS:
-            problems.append(
-                f"parity report stale: age_hours={age_hours:.2f} "
-                f"> cap={SMART_PARITY_GATE_MAX_AGE_HOURS:.2f}"
-            )
-    cutoff_utc = pd.to_datetime(rep.get("live_prebuilt_cutoff"), utc=True, errors="coerce")
-    if pd.isna(cutoff_utc):
-        problems.append(f"parity live_prebuilt_cutoff invalid/missing: {rep.get('live_prebuilt_cutoff')!r}")
-    elif SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS > 0:
-        cutoff_lag_hours = (now_utc - cutoff_utc).total_seconds() / 3600.0
-        if cutoff_lag_hours > SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS:
-            problems.append(
-                f"parity prebuilt cutoff stale: cutoff_lag_hours={cutoff_lag_hours:.2f} "
-                f"> cap={SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS:.2f}"
-            )
-    if str(rep.get("bundle_dir")) != str(entry["path"]):
-        problems.append(f"parity bundle {rep.get('bundle_dir')} != contract-ACTIVE {entry['path']}")
-    bundle_meta_path = Path(str(entry["path"])) / "bundle_metadata.json"
-    bundle_state_contract = {}
-    if not bundle_meta_path.is_file():
-        problems.append(f"contract-ACTIVE bundle metadata missing: {bundle_meta_path}")
-    else:
-        try:
-            bundle_meta = json.loads(bundle_meta_path.read_text(encoding="utf-8"))
-            require_model_direction_decision_contract(
-                bundle_meta,
-                context="[SMART_GATE] contract-ACTIVE bundle",
-            )
-            raw_contract = bundle_meta.get("model_native_state_contract")
-            bundle_state_contract = raw_contract if isinstance(raw_contract, dict) else {}
-        except Exception as exc:
-            problems.append(f"contract-ACTIVE bundle metadata unreadable: {bundle_meta_path}: {exc}")
-    parity_state_contract = rep.get("model_native_state_contract")
-    if not isinstance(parity_state_contract, dict):
-        problems.append("parity report missing model_native_state_contract")
-    else:
-        for label, candidate in (
-            ("bundle", bundle_state_contract),
-            ("parity", parity_state_contract),
-        ):
-            try:
-                validate_state_contract_metadata_v2(candidate, require_artifact=True)
-            except Exception as exc:
-                problems.append(f"{label} model_native_state_contract v2 invalid: {exc}")
-        for key in (
-            "schema_version",
-            "feature_history_start_utc",
-            "rank_fit_start_utc",
-            "rank_fit_end_utc",
-            "rank_reference_npz",
-            "rank_reference_npz_sha256",
-            "rank_reference_sidecar_sha256",
-            "rank_reference_schema_version",
-            "rank_reference_fit_scope",
-            "rank_transform",
-            "feature_history_mode",
-            "split_reset_allowed",
-            "post_fit_rows_in_rank_reference",
-            "runtime_rule_free",
-        ):
-            parity_value = parity_state_contract.get(key)
-            bundle_value = bundle_state_contract.get(key)
-            if parity_value is None:
-                problems.append(f"parity model_native_state_contract missing {key}")
-            if bundle_value is not None and parity_value is not None and parity_value != bundle_value:
-                problems.append(
-                    f"parity model_native_state_contract.{key} {parity_value} != bundle metadata {bundle_value}"
-                )
-            if parity_value is not None and bundle_value is None:
-                problems.append(f"bundle model_native_state_contract missing {key}")
-    parity_dataset = str(rep.get("dataset_dir") or "").strip()
-    parity_dataset_low = parity_dataset.lower()
-    if not parity_dataset:
-        problems.append("parity report missing dataset_dir")
-    elif "xau" not in parity_dataset_low:
-        problems.append(f"parity dataset_dir must be XAU-only, got {parity_dataset}")
-    for stale_marker in ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext"):
-        if stale_marker in parity_dataset_low:
-            problems.append(
-                f"parity dataset_dir references stale XAU repair marker {stale_marker!r}: {parity_dataset}"
-            )
-    if direction_audit.get("decision") != "PASS":
-        problems.append(
-            f"direction pocket audit decision={direction_audit.get('decision')!r} "
-            f"failures={list(direction_audit.get('failures') or [])[:3]}"
-        )
-    direction_created_utc = pd.to_datetime(direction_audit.get("created_utc"), utc=True, errors="coerce")
-    if pd.isna(direction_created_utc):
-        problems.append(f"direction pocket audit created_utc invalid/missing: {direction_audit.get('created_utc')!r}")
-    else:
-        if SMART_DIRECTION_AUDIT_MAX_AGE_HOURS > 0:
-            direction_age_hours = (now_utc - direction_created_utc).total_seconds() / 3600.0
-            if direction_age_hours > SMART_DIRECTION_AUDIT_MAX_AGE_HOURS:
-                problems.append(
-                    f"direction pocket audit stale: age_hours={direction_age_hours:.2f} "
-                    f"> cap={SMART_DIRECTION_AUDIT_MAX_AGE_HOURS:.2f}"
-                )
-        if direction_audit.get("required_selection_score_mode") != MODEL_DIRECTION_SELECTION_MODE:
-            problems.append(
-                "direction pocket audit required_selection_score_mode must be exactly "
-                f"{MODEL_DIRECTION_SELECTION_MODE!r}"
-            )
-        observed_modes_raw = direction_audit.get("observed_selection_score_modes")
-        observed_modes = (
-            list(observed_modes_raw)
-            if isinstance(observed_modes_raw, list)
-            else []
-        )
-        if not observed_modes or any(mode != MODEL_DIRECTION_SELECTION_MODE for mode in observed_modes):
-            problems.append(f"direction pocket audit observed_selection_score_modes invalid: {observed_modes_raw!r}")
-        for audit_field in ("predictions_parquet", "dataset_dir", "dataset_parquet"):
-            audit_path = str(direction_audit.get(audit_field) or "").strip()
-            audit_low = audit_path.lower()
-            if not audit_path:
-                problems.append(f"direction pocket audit missing {audit_field}")
-            elif "xau" not in audit_low:
-                problems.append(f"direction pocket audit {audit_field} must be XAU-only, got {audit_path}")
-            for stale_marker in ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext"):
-                if stale_marker in audit_low:
-                    problems.append(
-                        f"direction pocket audit {audit_field} references stale XAU repair marker "
-                        f"{stale_marker!r}: {audit_path}"
-                    )
-        if str(direction_audit.get("bundle_dir")) != str(entry["path"]):
-            problems.append(
-                f"direction pocket audit bundle {direction_audit.get('bundle_dir')} "
-                f"!= contract-ACTIVE {entry['path']}"
-            )
-    if str(entry.get("contract_mode")) != MODEL_NATIVE_CONTRACT_MODE:
-        problems.append(f"contract_mode={entry.get('contract_mode')!r}")
-    op = entry.get("operating_point")
-    try:
-        require_model_direction_operating_point(
-            op,
-            context="v10_entry",
-        )
-    except RuntimeError as exc:
-        problems.append(str(exc))
-    if SMART_CTX_MAX_STALENESS_M5 != 0:
-        problems.append(
-            "GX1_SMART_CTX_MAX_STALENESS_M5 must be 0 for model-direction XAU repair serving; "
-            f"got {SMART_CTX_MAX_STALENESS_M5}"
-        )
-    if problems:
-        raise RuntimeError("[SMART_GATE] LAUNCH BLOCKED: " + " | ".join(problems))
-    return rep
-
-
 @dataclass
 class SmartEntryLiveInference:
     bundle_dir: Path
@@ -1087,60 +847,6 @@ class SmartEntryLiveInference:
         )
 
     # ── loading ──────────────────────────────────────────────────────────────
-
-    @classmethod
-    def load(
-        cls,
-        *,
-        device: str,
-        bundle_dir: Path | None = None,
-    ) -> "SmartEntryLiveInference":
-        """Load only the transaction-authorized ACTIVE live bundle."""
-
-        from gx1_guards.artifacts import load_decision_entry
-
-        entry = load_decision_entry("v10_entry")
-        contract_bundle = Path(entry["path"])
-        if bundle_dir is None:
-            bundle_dir = contract_bundle
-        else:
-            bundle_dir = Path(bundle_dir)
-            if bundle_dir.resolve() != contract_bundle.resolve():
-                raise RuntimeError(
-                    f"[SMART_ENTRY] explicit bundle_dir {bundle_dir} != contract-ACTIVE "
-                    f"{contract_bundle} — rule 8: serve resolves ONLY through the contract"
-                )
-        mode = str(entry["contract_mode"])
-        if mode != MODEL_NATIVE_CONTRACT_MODE:
-            raise RuntimeError(
-                f"[SMART_ENTRY] contract v10_entry.contract_mode={mode!r} — this adapter "
-                f"serves {MODEL_NATIVE_CONTRACT_MODE} only"
-            )
-        op = require_model_direction_operating_point(
-            entry["operating_point"],
-            context="[SMART_ENTRY] contract v10_entry",
-        )
-        launch_state = entry.get("xau_direction_launch_state")
-        if not isinstance(launch_state, dict):
-            raise RuntimeError(
-                "[SMART_ENTRY] artifact guard did not return validated launch state"
-            )
-        sizing_authority = require_model_native_sizing_authority_contract(
-            launch_state.get("sizing_authority_contract"),
-            context="[SMART_ENTRY] external sizing adoption",
-            required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
-        )
-        prepare_model_native_sizing_authority(
-            sizing_authority,
-            context="[SMART_ENTRY] startup sizing adoption",
-        )
-        return cls._from_strict_bundle(
-            bundle_dir=bundle_dir,
-            operating_point=op,
-            device=device,
-            sizing_authority=sizing_authority,
-            load_context="contract-ACTIVE",
-        )
 
     @classmethod
     def load_candidate_for_parity(
@@ -1562,7 +1268,7 @@ class SmartEntryLiveInference:
     ) -> dict[str, torch.Tensor]:
         """Per-TF windows at-or-before ts with the BUNDLE's per-TF seq lens —
         the exact offline dataset path (EntryV10CtxDataset._get_multi_tf_window:
-        get_last_n_at_or_before(feats, ts + 5min, n=per_tf,
+        slice_multi_tf_v4_window(feats, ts + 5min, n=per_tf,
         tf_shift=MULTI_TF_SHIFT)).
         `multi_tf=None` uses the current snapshot (gate/offline callers)."""
         if multi_tf is None:
@@ -1570,12 +1276,12 @@ class SmartEntryLiveInference:
             if ctx is None:
                 raise RuntimeError("[SMART_ENTRY] multi-TF not built — call refresh_multi_tf() first")
             multi_tf = ctx.multi_tf
-        from gx1.features.htf_features import get_last_n_at_or_before
+        from gx1.features.htf_features import slice_multi_tf_v4_window
         out: dict[str, torch.Tensor] = {}
         availability_ts = pd.Timestamp(ts) + self._multi_tf_target_availability_shift
         for tf, feats in multi_tf.items():
             n = int(self._per_tf_seq_lens[tf])
-            arr = get_last_n_at_or_before(
+            arr = slice_multi_tf_v4_window(
                 feats,
                 availability_ts,
                 n=n,
@@ -1708,7 +1414,7 @@ class SmartEntryLiveInference:
                 tf_gate = _require_finite_vector(
                     out.get("tf_gate"),
                     name="tf_gate",
-                    size=5,
+                    size=ENTRY_MTF_CONTEXT_COUNT,
                     context=f"model forward at {ts}",
                 )
                 if bool((tf_gate < 0.0).any()) or not np.isclose(
@@ -1720,7 +1426,8 @@ class SmartEntryLiveInference:
                 family_tf_cooperation_gate = _require_finite_vector(
                     out.get("family_tf_cooperation_gate"),
                     name="family_tf_cooperation_gate",
-                    size=len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+                    size=ENTRY_MTF_CONTEXT_COUNT
+                    * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
                     context=f"model forward at {ts}",
                 )
                 if bool((family_tf_cooperation_gate < 0.0).any()) or not np.isclose(
@@ -1741,7 +1448,7 @@ class SmartEntryLiveInference:
                     or tuple(family_tf_feature_gate_tensor.shape)
                     != (
                         1,
-                        5,
+                        ENTRY_MTF_CONTEXT_COUNT,
                         len(self._meta["multi_tf"]["feature_names"]),
                     )
                     or not bool(
@@ -1760,7 +1467,7 @@ class SmartEntryLiveInference:
                     .reshape(-1)
                 )
                 if family_tf_feature_gate.shape != (
-                    len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
+                    ENTRY_MTF_CONTEXT_COUNT * MULTI_TF_FEATURE_COUNT_V4,
                 ):
                     raise RuntimeError(
                         f"[SMART_ENTRY] model forward at {ts} "
@@ -2022,7 +1729,6 @@ class SmartEntryLiveInference:
                     "calibration_version": self._meta["direction_calibration"]["version"],
                     "direction_calibration_enabled": bool(self._meta["direction_calibration"]["enabled"]),
                     "direction_calibration_temperature": self._meta["direction_calibration"]["temperature"],
-                    "direction_calibration_bias": self._meta["direction_calibration"]["bias"],
                     "path_calibration_enabled": bool(self._meta["path_calibration"]["enabled"]),
                     "path_calibration": path_calibration,
                 }
@@ -2510,7 +2216,7 @@ class SmartEntryLiveInference:
             head_out,
             MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS,
         )
-        sizing_authority = require_model_native_sizing_authority_contract(
+        require_model_native_sizing_authority_contract(
             self._sizing_authority,
             context="[SMART_ENTRY] decision sizing",
             required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
@@ -2559,7 +2265,6 @@ class SmartEntryLiveInference:
             "p_trade": float(ssot["public_trade_flat_decision_probs"][0]),
             "p_flat_hier": float(ssot["public_trade_flat_decision_probs"][1]),
             "atr_bps": atr_bps_value,
-            "sizing_authority_contract": sizing_authority,
             **diagnostics,
         }
         snapshot = require_model_native_runtime_evidence(
@@ -2605,9 +2310,6 @@ class SmartEntryLiveInference:
                 ssot["public_trade_flat_decision_probs"][PUBLIC_FLAT_INDEX]
             ),
             "selected_side": selected_side,
-            "sizing_authority_contract": snapshot[
-                "sizing_authority_contract"
-            ],
             **diagnostics,
             "v10_path_quality_pred": head_out["path_quality_pred"],
             "v10_mfe_pred_at_entry": head_out["mfe_first_n_pred"],

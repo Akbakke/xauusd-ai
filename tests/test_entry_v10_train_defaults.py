@@ -68,7 +68,7 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
     class _ExitProbe(torch.nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.head = torch.nn.Linear(4 + 4 + 14 + 2, 2)
+            self.head = torch.nn.Linear(4 + 4 + 14 + 2 + 5, 2)
 
         def forward_exit_action(
             self,
@@ -78,6 +78,11 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
             exit_feature_snap_x,
             exit_feature_ctx_cat,
             exit_feature_ctx_cont,
+            exit_seq_m5,
+            exit_seq_m15,
+            exit_seq_h1,
+            exit_seq_h4,
+            exit_seq_d1,
             exit_path_x,
             exit_path_lengths,
             exit_side_index,
@@ -88,6 +93,19 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
                 exit_side_index.long(),
                 num_classes=2,
             ).float()
+            mtf = torch.stack(
+                [
+                    tensor[:, -1, :].mean(dim=1)
+                    for tensor in (
+                        exit_seq_m5,
+                        exit_seq_m15,
+                        exit_seq_h1,
+                        exit_seq_h4,
+                        exit_seq_d1,
+                    )
+                ],
+                dim=1,
+            )
             logits = self.head(
                 torch.cat(
                     [
@@ -95,6 +113,7 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
                         exit_feature_snap_x,
                         last,
                         side,
+                        mtf,
                     ],
                     dim=1,
                 )
@@ -113,6 +132,10 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
         "exit_feature_snap_x": torch.randn(1, 4, 4),
         "exit_feature_ctx_cat": torch.zeros(1, 4, 5, dtype=torch.long),
         "exit_feature_ctx_cont": torch.randn(1, 4, 142),
+        **{
+            f"exit_seq_{tf}": torch.randn(1, 4, 2, 3, requires_grad=True)
+            for tf in ("m5", "m15", "h1", "h4", "d1")
+        },
         "exit_path_x": paths,
         "exit_path_lengths": torch.tensor([[2, 3, 1, 2]]),
         "exit_side_index": torch.tensor([[0, 1, 0, 1]]),
@@ -1628,66 +1651,79 @@ def test_entry_v10_train_and_validate_apply_mtf_aux_direction_repair() -> None:
     assert 'if "mtf_dir_logits" in out' not in text
 
 
-def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -> None:
+def test_entry_v10_multi_tf_window_uses_entry_route_and_m5_clock() -> None:
     import numpy as np
     import pandas as pd
 
     from gx1.features.htf_features import (
-        HTF_V2_MATRIX_CONTRACT,
-        MULTI_TF_FEATURE_COUNT_V2,
-        MULTI_TF_PER_BAR_FEATURES_V2,
+        HTF_V4_MATRIX_CONTRACT,
+        MULTI_TF_FEATURE_COUNT_V4,
+        MULTI_TF_PER_BAR_FEATURES_V4,
+        MULTI_TF_SHIFT,
+        multi_tf_last_closed_label,
+    )
+    from gx1.contracts.entry_exit_feature_base_v1 import (
+        ENTRY_DECISION_BAR_SECONDS,
+        ENTRY_MTF_CONTEXT_TIMEFRAMES,
     )
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
     target = pd.Timestamp("2026-07-08T18:00:00Z")
-    ts = np.array(
-        [
-            (target - pd.Timedelta(minutes=5)).value,
-            target.value,
-        ],
-        dtype=np.int64,
-    )
-    feats = np.stack(
-        [
-            np.full(MULTI_TF_FEATURE_COUNT_V2, 1.0, dtype=np.float32),
-            np.full(MULTI_TF_FEATURE_COUNT_V2, 2.0, dtype=np.float32),
-        ]
-    )
-    frame = pd.DataFrame(
-        feats,
-        index=pd.DatetimeIndex(ts.astype("datetime64[ns]"), tz="UTC"),
-        columns=list(MULTI_TF_PER_BAR_FEATURES_V2),
-    )
-    frame.attrs["ts_int64"] = ts
-    frame.attrs["feats_np"] = feats
-    frame.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
-    frame.attrs["causal_warmup_rows"] = 0
+    cache = {}
+    for value, timeframe in enumerate(("M5", "M15", "H1", "H4", "D1"), 1):
+        closed_label = multi_tf_last_closed_label(
+            target,
+            timeframe,
+            base_bar_duration=pd.Timedelta(minutes=5),
+        )
+        ts = np.array([closed_label.value], dtype=np.int64)
+        feats = np.full(
+            (1, MULTI_TF_FEATURE_COUNT_V4),
+            float(value),
+            dtype=np.float32,
+        )
+        frame = pd.DataFrame(
+            feats,
+            index=pd.DatetimeIndex(ts.astype("datetime64[ns]"), tz="UTC"),
+            columns=list(MULTI_TF_PER_BAR_FEATURES_V4),
+        )
+        frame.attrs["ts_int64"] = ts
+        frame.attrs["feats_np"] = feats
+        frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        frame.attrs["causal_warmup_rows"] = 0
+        cache[timeframe] = frame
 
     dataset = trainer.EntryV10CtxDataset.__new__(trainer.EntryV10CtxDataset)
-    dataset._multi_tf_feats = {"M5": frame}
-    dataset._multi_tf_shift = {"M5": pd.Timedelta(minutes=5)}
-    dataset._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
-    dataset.per_tf_seq_lens = {
-        "M5": 1,
-        "M15": 1,
-        "H1": 1,
-        "H4": 1,
-        "D1": 1,
-    }
+    dataset._multi_tf_feats = cache
+    dataset.per_tf_seq_lens = {tf: 1 for tf in cache}
 
-    out = dataset._get_multi_tf_window(target)
-
-    np.testing.assert_allclose(
-        out["seq_m5"],
-        np.full((1, MULTI_TF_FEATURE_COUNT_V2), 2.0, dtype=np.float32),
+    out = dataset._get_multi_tf_window(
+        target,
+        route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
+        base_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
+        key_prefix="seq_",
     )
+    assert tuple(out) == ("seq_m15", "seq_h1", "seq_h4", "seq_d1")
+    for value, timeframe in enumerate(ENTRY_MTF_CONTEXT_TIMEFRAMES, 2):
+        np.testing.assert_allclose(
+            out[f"seq_{timeframe.lower()}"],
+            np.full(
+                (1, MULTI_TF_FEATURE_COUNT_V4),
+                float(value),
+                dtype=np.float32,
+            ),
+        )
+    assert "seq_m5" not in out
+    assert tuple(MULTI_TF_SHIFT) == ("M5", "M15", "H1", "H4", "D1")
 
 
-def test_entry_v10_metadata_records_multi_tf_target_availability_shift() -> None:
+def test_entry_v10_metadata_records_both_route_clocks() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
-    assert '"target_availability_shift_minutes"' in text
-    assert '"closed_bar_target_availability"' in text
+    assert '"entry_target_availability_shift_minutes"' in text
+    assert '"exit_target_availability_shift_minutes"' in text
+    assert '"entry_route_timeframes"' in text
+    assert '"exit_route_timeframes"' in text
 
 
 def test_entry_v10_trainer_verifies_mtf_cache_source_sha() -> None:
@@ -1696,7 +1732,7 @@ def test_entry_v10_trainer_verifies_mtf_cache_source_sha() -> None:
     assert "MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH" in text
     assert "m5_prebuilt_source_sha256" in text
     assert "cache_identity_sha256" in text
-    assert "load_multi_tf_cache" in text
+    assert "load_multi_tf_v4_cache" in text
     assert "MULTI_TF_DISK_CACHE_MANDATORY" in text
 
 
@@ -2733,17 +2769,18 @@ def test_model_native_train_wrappers_require_exact_audited_positive_recipe() -> 
     )
 
     repo = Path(__file__).resolve().parents[1]
-    smoke = (repo / "scripts" / "run_entry_model_native_seq513_smoke_train.sh").read_text(encoding="utf-8")
-    candidate = (repo / "scripts" / "run_entry_model_native_seq513_candidate_train.sh").read_text(encoding="utf-8")
+    wrapper = (
+        repo / "scripts" / "run_entry_model_native_seq513_train.sh"
+    ).read_text(encoding="utf-8")
 
-    for text in (smoke, candidate):
-        assert "--recipe-audit-json" in text
-        assert "gx1.contracts.entry_model_native_train_launch_v1" in text
-        assert "ENTRY_HIER_LEGACY_CE_MULT" not in text
+    assert "--recipe-audit-json" in wrapper
+    assert "gx1.contracts.entry_model_native_train_launch_v1" in wrapper
+    assert "ENTRY_HIER_LEGACY_CE_MULT" not in wrapper
+    assert "--profile" in wrapper
 
     assert set(REQUIRED_POSITIVE_LOSS_WEIGHTS).issubset(MODEL_NATIVE_RECIPE_ENV_KEYS)
     assert "ENTRY_HIER_LEGACY_CE_MULT" not in MODEL_NATIVE_RECIPE_ENV_KEYS
-    assert RECIPE_AUDIT_SCHEMA == "entry_model_native_seq513_train_recipe_audit_v2"
+    assert RECIPE_AUDIT_SCHEMA == "entry_model_native_seq513_train_recipe_audit_v4"
 
 
 def test_entry_v10_standalone_eval_matches_training_objective() -> None:

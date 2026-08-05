@@ -93,7 +93,7 @@ def _snapshot() -> dict:
         "entry_signal_latency_sec": 0.0,
         "context_cutoff_ts": "2026-07-16T11:55:00+00:00",
         "context_age_m5_bars": 0,
-        "raw_direction_logits": [5.39, 1.21, 0.0],
+        "raw_direction_logits": [5.5, 1.1, 0.0],
         "direction_logits": direction_logits,
         "direction_probs": _softmax(direction_logits),
         "model_direction_index": 0,
@@ -137,7 +137,6 @@ def _snapshot() -> dict:
         "path_quality_std": 1.0,
         "position_size_logit": size_logit,
         "position_size_pred": _sigmoid(size_logit),
-        "sizing_authority_contract": unverified_learned_sizing_authority(),
         "p_long_given_trade": _softmax(side_logits)[0],
         "p_short_given_trade": _softmax(side_logits)[1],
         "side_logits": side_logits,
@@ -166,7 +165,6 @@ def _snapshot() -> dict:
         "calibration_version": "direction-cal-v1",
         "direction_calibration_enabled": True,
         "direction_calibration_temperature": 1.1,
-        "direction_calibration_bias": [0.1, -0.1, 0.0],
         "path_calibration_enabled": True,
         "path_calibration": {
             "enabled": True,
@@ -231,7 +229,6 @@ def _source_pair_binding() -> dict[str, object]:
 
 def _head_snapshot() -> dict:
     snapshot = _snapshot()
-    snapshot.pop("sizing_authority_contract")
     for name in (
         "decision_available_ts",
         "entry_signal_latency_sec",
@@ -789,6 +786,11 @@ def test_exit_recovery_loads_trade_bound_bundle_without_active_registry(
     trade = SimpleNamespace(
         model_bundle_binding=_model_bundle_binding(),
         require_entry_snapshot=lambda: _snapshot(),
+        sizing_execution_evidence={
+            "sizing_application": {
+                "sizing_authority_contract": unverified_learned_sizing_authority(),
+            },
+        },
     )
 
     pipeline = V12Pipeline.load_exit_recovery(trade)

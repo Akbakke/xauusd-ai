@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import argparse
 import gc
-import hashlib
 import json
 import mmap as mmap_module
+import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
@@ -32,117 +32,37 @@ from gx1.contracts.entry_exit_feature_base_v1 import (  # noqa: E402
     ENTRY_FEATURE_SEQUENCE_BARS,
     EXIT_DECISION_BAR_SECONDS,
     EXIT_FEATURE_SEQUENCE_BARS,
-    ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
-    ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
-    entry_exit_shared_feature_base_contract,
-    require_entry_exit_shared_feature_base_contract,
+    require_entry_exit_enriched_source_binding,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (  # noqa: E402
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_MIN_MAX,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_manifest,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (  # noqa: E402
-    ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
     ENTRY_EXIT_FEATURE_SURFACE_COLUMNS,
-    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
-    load_m1_feature_surface,
+    build_entry_exit_feature_surface_manifest,
 )
 from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
+from gx1.features.entry_foundation_structure_v1 import (  # noqa: E402
+    FOUNDATION_EVENT_AGE_CARRY_KEYS,
+    foundation_event_age_carry_scope,
+)
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _canonical_sha256(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(
-            value,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=True,
-            allow_nan=False,
-        ).encode("utf-8")
-    ).hexdigest()
-
-
-def _load_enriched_source_binding(
-    source: Path,
+def _fixed_size_list_column(
+    values: np.ndarray,
+    width: int,
     *,
-    dataset_run_id: str,
-    pair_generation_id: str,
-    timeframe: str,
-) -> dict[str, Any]:
-    """Require the exact producer sidecar; caller labels cannot relabel bytes."""
-
-    source_manifest = source.with_suffix(source.suffix + ".manifest.json")
-    if source_manifest.is_symlink() or not source_manifest.is_file():
-        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_SOURCE_MANIFEST_MISSING")
-    try:
-        payload = json.loads(source_manifest.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(
-            "ENTRY_EXIT_FEATURE_BASE_SOURCE_MANIFEST_INVALID"
-        ) from exc
-    if not isinstance(payload, dict):
-        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_SOURCE_MANIFEST_INVALID")
-
-    declared_manifest_sha = payload.get("manifest_sha256")
-    unhashed = dict(payload)
-    unhashed.pop("manifest_sha256", None)
-    source_sha = _sha256_file(source)
-    expected_bar_seconds = (
-        EXIT_DECISION_BAR_SECONDS
-        if timeframe == "M1"
-        else ENTRY_DECISION_BAR_SECONDS
-    )
-    if (
-        payload.get("schema_version")
-        != ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION
-        or payload.get("decision") != "PASS"
-        or payload.get("dataset_run_id") != dataset_run_id
-        or payload.get("pair_generation_id") != pair_generation_id
-        or payload.get("timeframe") != timeframe
-        or payload.get("base_bar_seconds") != expected_bar_seconds
-        or payload.get("output_parquet") != str(source)
-        or payload.get("output_parquet_sha256") != source_sha
-        or declared_manifest_sha != _canonical_sha256(unhashed)
-    ):
-        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_SOURCE_LINEAGE_INVALID")
-    require_entry_exit_shared_feature_base_contract(
-        payload.get("shared_feature_base_contract"),
-        context="ENTRY_EXIT_FEATURE_BASE_SOURCE",
-    )
-    rank_path = Path(str(payload.get("rank_reference_npz") or ""))
-    rank_sha = str(payload.get("rank_reference_sha256") or "")
-    if (
-        not rank_path.is_absolute()
-        or rank_path.is_symlink()
-        or not rank_path.is_file()
-        or len(rank_sha) != 64
-        or _sha256_file(rank_path) != rank_sha
-    ):
-        raise RuntimeError(
-            "ENTRY_EXIT_FEATURE_BASE_SOURCE_RANK_LINEAGE_INVALID"
-        )
-    return {
-        "manifest_path": str(source_manifest),
-        "manifest_sha256": _sha256_file(source_manifest),
-        "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
-        "source_sha256": source_sha,
-        "rank_reference_npz": str(rank_path),
-        "rank_reference_sha256": rank_sha,
-    }
-
-
-def _fixed_size_list_column(values: np.ndarray, width: int, *, dtype: pa.DataType) -> pa.Array:
+    dtype: pa.DataType,
+) -> pa.Array:
     matrix = np.ascontiguousarray(values)
     if matrix.ndim != 2 or matrix.shape[1] != width:
         raise RuntimeError(
@@ -155,8 +75,137 @@ def _fixed_size_list_column(values: np.ndarray, width: int, *, dtype: pa.DataTyp
     )
 
 
-_M1_BOUNDED_CAUSAL_OVERLAP_ROWS = 8
-_M1_BOUNDED_PARQUET_ROW_GROUPS_PER_BATCH = 64
+_BOUNDED_CAUSAL_OVERLAP_ROWS = 8
+_BOUNDED_PARQUET_ROW_GROUPS_PER_BATCH = 64
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _admit_new_file(stage: Path, destination: Path) -> None:
+    """Atomically admit one fsynced immutable file without overwriting."""
+
+    with stage.open("rb") as handle:
+        os.fsync(handle.fileno())
+    try:
+        os.link(stage, destination, follow_symlinks=False)
+    except FileExistsError as exc:
+        raise RuntimeError(
+            f"ENTRY_EXIT_FEATURE_BASE_ADMISSION_TARGET_EXISTS: {destination}"
+        ) from exc
+    _fsync_directory(destination.parent)
+
+
+def _validate_staged_feature_surface(
+    path: Path,
+    *,
+    expected_times: pd.DatetimeIndex,
+    batch_rows: int,
+) -> None:
+    """Stream-validate staged bytes without allocating another full matrix."""
+
+    try:
+        parquet = pq.ParquetFile(path)
+    except Exception as exc:
+        raise RuntimeError(
+            "ENTRY_EXIT_FEATURE_BASE_STAGED_PARQUET_INVALID"
+        ) from exc
+    if (
+        parquet.metadata is None
+        or parquet.metadata.num_rows != len(expected_times)
+        or tuple(parquet.schema_arrow.names)
+        != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_STAGED_SCHEMA_INVALID")
+
+    expected_types = {
+        "signal": pa.list_(pa.float32(), MODEL_NATIVE_SIGNAL_DIM),
+        "ctx_cont": pa.list_(
+            pa.float32(),
+            len(MODEL_NATIVE_CTX_CONT_FIELDS),
+        ),
+        "ctx_cat": pa.list_(
+            pa.int64(),
+            len(MODEL_NATIVE_CTX_CAT_FIELDS),
+        ),
+    }
+    for name, expected_type in expected_types.items():
+        if parquet.schema_arrow.field(name).type != expected_type:
+            raise RuntimeError(
+                f"ENTRY_EXIT_FEATURE_BASE_STAGED_{name.upper()}_SCHEMA_INVALID"
+            )
+
+    offset = 0
+    try:
+        batches = parquet.iter_batches(
+            batch_size=batch_rows,
+            columns=list(ENTRY_EXIT_FEATURE_SURFACE_COLUMNS),
+            use_threads=False,
+        )
+        for batch in batches:
+            rows = int(batch.num_rows)
+            if rows <= 0 or offset + rows > len(expected_times):
+                raise RuntimeError(
+                    "ENTRY_EXIT_FEATURE_BASE_STAGED_ROW_COUNT_INVALID"
+                )
+            observed_times = pd.DatetimeIndex(
+                pd.to_datetime(
+                    batch.column(0).to_pandas(),
+                    utc=True,
+                    errors="coerce",
+                )
+            ).as_unit("ns")
+            if not observed_times.equals(expected_times[offset : offset + rows]):
+                raise RuntimeError(
+                    "ENTRY_EXIT_FEATURE_BASE_STAGED_TIME_MISMATCH"
+                )
+
+            for column_index, (name, expected_type) in enumerate(
+                expected_types.items(),
+                start=1,
+            ):
+                column = batch.column(column_index)
+                width = expected_type.list_size
+                if column.null_count or column.values.null_count:
+                    raise RuntimeError(
+                        f"ENTRY_EXIT_FEATURE_BASE_STAGED_{name.upper()}_NULL"
+                    )
+                values = np.asarray(
+                    column.values.to_numpy(zero_copy_only=False)
+                )
+                if values.shape != (rows * width,):
+                    raise RuntimeError(
+                        f"ENTRY_EXIT_FEATURE_BASE_STAGED_{name.upper()}_WIDTH_INVALID"
+                    )
+                values = values.reshape(rows, width)
+                if not np.isfinite(values).all():
+                    raise RuntimeError(
+                        f"ENTRY_EXIT_FEATURE_BASE_STAGED_{name.upper()}_NONFINITE"
+                    )
+                if name == "ctx_cat":
+                    for index, (lower, upper) in enumerate(
+                        MODEL_NATIVE_CTX_CAT_MIN_MAX.values()
+                    ):
+                        if np.any(values[:, index] < lower) or np.any(
+                            values[:, index] > upper
+                        ):
+                            raise RuntimeError(
+                                "ENTRY_EXIT_FEATURE_BASE_STAGED_CTX_CAT_DOMAIN_INVALID"
+                            )
+            offset += rows
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            "ENTRY_EXIT_FEATURE_BASE_STAGED_DECODE_INVALID"
+        ) from exc
+    if offset != len(expected_times):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_STAGED_ROW_COUNT_INVALID")
 
 
 def _drop_memmap_pages(values: np.ndarray) -> None:
@@ -166,6 +215,15 @@ def _drop_memmap_pages(values: np.ndarray) -> None:
     handle = getattr(values, "_mmap", None)
     if handle is not None and hasattr(handle, "madvise"):
         handle.madvise(mmap_module.MADV_DONTNEED)
+
+
+def _close_memmap(values: np.ndarray) -> None:
+    if not isinstance(values, np.memmap):
+        return
+    _drop_memmap_pages(values)
+    handle = getattr(values, "_mmap", None)
+    if handle is not None:
+        handle.close()
 
 
 def _persist_float32_matrix(
@@ -250,12 +308,14 @@ def _build_bounded_extension_chunk(
     candle_names: list[str],
     emit_offset: int,
     support_memory_state: dict[str, np.float32] | None,
+    foundation_event_age_state: Mapping[str, object] | None,
     source_contract_label: str,
 ) -> tuple[
     np.ndarray,
     list[str],
     dict[str, Any],
     dict[str, np.float32],
+    dict[str, int],
 ]:
     """Use the single model-native owner path on one bounded causal slice."""
 
@@ -263,33 +323,47 @@ def _build_bounded_extension_chunk(
         _build_inline_seq_structure_extension,
     )
 
-    result = _build_inline_seq_structure_extension(
-        frame,
-        requested_features=requested_features,
-        ctx_cont_names=ctx_cont_names,
-        ctx_cat_names=ctx_cat_names,
-        source_parquet=source_parquet,
-        source_contract_label=source_contract_label,
-        base_signal_fields=base_signal_fields,
-        precomputed_price_layer=(price_layer, price_names),
-        precomputed_candle_layer=(candle_layer, candle_names),
-        emit_offset=emit_offset,
-        support_memory_state=support_memory_state,
-        return_support_memory_state=True,
-    )
-    return result
+    with foundation_event_age_carry_scope(
+        foundation_event_age_state,
+        tail_replay_rows=min(
+            _BOUNDED_CAUSAL_OVERLAP_ROWS,
+            len(frame),
+        ),
+    ) as event_age_scope:
+        result = _build_inline_seq_structure_extension(
+            frame,
+            requested_features=requested_features,
+            ctx_cont_names=ctx_cont_names,
+            ctx_cat_names=ctx_cat_names,
+            source_parquet=source_parquet,
+            source_contract_label=source_contract_label,
+            base_signal_fields=base_signal_fields,
+            precomputed_price_layer=(price_layer, price_names),
+            precomputed_candle_layer=(candle_layer, candle_names),
+            emit_offset=emit_offset,
+            support_memory_state=support_memory_state,
+            return_support_memory_state=True,
+        )
+        if tuple(event_age_scope.next_state) != FOUNDATION_EVENT_AGE_CARRY_KEYS:
+            raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_NOT_CAPTURED")
+        next_event_age_state = dict(event_age_scope.next_state)
+    return (*result, next_event_age_state)
 
 
-def _materialize_bounded_m1_feature_surface(
+def _materialize_bounded_feature_surface(
     *,
     source: Path,
-    alignment: Path,
+    alignment: Path | None,
     output: Path,
     contract: dict[str, Any],
+    timeframe: str,
     bar_seconds: int,
     sequence_bars: int,
 ) -> dict[str, Any]:
-    """Write the native M1 surface without any full 479/513-wide RAM matrix."""
+    """Write one native surface without a full source/513-wide RAM frame."""
+
+    if (timeframe == "M1") != (alignment is not None):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_NATIVE_ROUTE_INVALID")
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
         PRICE_DERIVED_FEATURE_NAMES,
@@ -340,26 +414,32 @@ def _materialize_bounded_m1_feature_surface(
         raise RuntimeError("M1_FEATURE_BASE_TIME_GEOMETRY_INVALID")
     del source_time_frame
 
-    alignment_time_frame = pd.read_parquet(alignment, columns=["time"])
-    alignment_times = pd.DatetimeIndex(
-        pd.to_datetime(
-            alignment_time_frame["time"],
-            utc=True,
-            errors="coerce",
-        )
-    ).as_unit("ns")
-    if (
-        len(alignment_times) == 0
-        or alignment_times.hasnans
-        or not alignment_times.is_unique
-        or not alignment_times.is_monotonic_increasing
-        or not alignment_times.floor(f"{bar_seconds}s").equals(
-            alignment_times
-        )
-    ):
-        raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_TIME_GEOMETRY_INVALID")
-    del alignment_time_frame
-    positions = source_times.get_indexer(alignment_times)
+    if alignment is None:
+        surface_times = source_times
+        positions = np.arange(len(source_times), dtype=np.int64)
+    else:
+        alignment_time_frame = pd.read_parquet(alignment, columns=["time"])
+        surface_times = pd.DatetimeIndex(
+            pd.to_datetime(
+                alignment_time_frame["time"],
+                utc=True,
+                errors="coerce",
+            )
+        ).as_unit("ns")
+        if (
+            len(surface_times) == 0
+            or surface_times.hasnans
+            or not surface_times.is_unique
+            or not surface_times.is_monotonic_increasing
+            or not surface_times.floor(f"{bar_seconds}s").equals(
+                surface_times
+            )
+        ):
+            raise RuntimeError(
+                "M1_FEATURE_BASE_ALIGNMENT_TIME_GEOMETRY_INVALID"
+            )
+        del alignment_time_frame
+        positions = source_times.get_indexer(surface_times)
     if np.any(positions < 0):
         raise RuntimeError(
             "M1_FEATURE_BASE_ALIGNMENT_TIME_NOT_SUBSET: "
@@ -392,15 +472,15 @@ def _materialize_bounded_m1_feature_surface(
     )
     requested_features = list(contract["selected_fields"])
     expected_fields = tuple(contract["fields"])
-    batch_rows = sequence_bars * _M1_BOUNDED_PARQUET_ROW_GROUPS_PER_BATCH
-    source_contract_label = "causal_enriched_m1_frame_v1"
+    batch_rows = sequence_bars * _BOUNDED_PARQUET_ROW_GROUPS_PER_BATCH
+    source_contract_label = f"causal_enriched_{timeframe.lower()}_frame_v1"
 
     with tempfile.TemporaryDirectory(
-        prefix=f".{output.name}.bounded.",
+        prefix=f".{output.name}.generation.",
         dir=str(output.parent),
     ) as temporary_storage:
         storage = Path(temporary_storage)
-        sample_times = pd.DataFrame({"time": alignment_times})
+        sample_times = pd.DataFrame({"time": surface_times})
         price_values, price_names = build_price_derived_layer(
             sample_times,
             source,
@@ -433,12 +513,13 @@ def _materialize_bounded_m1_feature_surface(
         extension_meta: dict[str, Any] | None = None
         extension_names: list[str] | None = None
         support_state: dict[str, np.float32] | None = None
+        foundation_event_age_state: dict[str, int] | None = None
         try:
-            for start in range(0, len(alignment_times), batch_rows):
-                stop = min(start + batch_rows, len(alignment_times))
+            for start in range(0, len(surface_times), batch_rows):
+                stop = min(start + batch_rows, len(surface_times))
                 prefix = max(
                     0,
-                    start - _M1_BOUNDED_CAUSAL_OVERLAP_ROWS,
+                    start - _BOUNDED_CAUSAL_OVERLAP_ROWS,
                 )
                 emit_offset = start - prefix
                 frame = _read_positioned_source_rows(
@@ -454,7 +535,7 @@ def _materialize_bounded_m1_feature_surface(
                         errors="coerce",
                     )
                 ).as_unit("ns")
-                expected_times = alignment_times[prefix:stop]
+                expected_times = surface_times[prefix:stop]
                 if not frame_times.equals(expected_times):
                     raise RuntimeError(
                         "M1_FEATURE_BASE_BATCH_TIME_ALIGNMENT_INVALID"
@@ -483,28 +564,37 @@ def _materialize_bounded_m1_feature_surface(
                 ):
                     raise RuntimeError("M1_FEATURE_BASE_CTX_CAT_NONINTEGER")
 
-                extension, names, meta, support_state = (
-                    _build_bounded_extension_chunk(
-                        frame,
-                        source_parquet=source,
-                        requested_features=requested_features,
-                        ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
-                        ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
-                        base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
-                        price_layer=price_matrix[prefix:stop],
-                        price_names=list(price_names),
-                        candle_layer=candle_matrix[prefix:stop],
-                        candle_names=list(candle_names),
-                        emit_offset=emit_offset,
-                        support_memory_state=support_state,
-                        source_contract_label=source_contract_label,
-                    )
+                (
+                    extension,
+                    names,
+                    meta,
+                    support_state,
+                    foundation_event_age_state,
+                ) = _build_bounded_extension_chunk(
+                    frame,
+                    source_parquet=source,
+                    requested_features=requested_features,
+                    ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
+                    ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
+                    base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
+                    price_layer=price_matrix[prefix:stop],
+                    price_names=list(price_names),
+                    candle_layer=candle_matrix[prefix:stop],
+                    candle_names=list(candle_names),
+                    emit_offset=emit_offset,
+                    support_memory_state=support_state,
+                    foundation_event_age_state=foundation_event_age_state,
+                    source_contract_label=source_contract_label,
                 )
                 if set(support_state) != set(
                     SUPPORT_RESISTANCE_MEMORY_STATE_KEYS
                 ):
                     raise RuntimeError(
                         "M1_FEATURE_BASE_SUPPORT_STATE_SCHEMA_INVALID"
+                    )
+                if tuple(foundation_event_age_state) != FOUNDATION_EVENT_AGE_CARRY_KEYS:
+                    raise RuntimeError(
+                        "M1_FEATURE_BASE_FOUNDATION_EVENT_AGE_STATE_SCHEMA_INVALID"
                     )
                 if extension_names is None:
                     extension_names = names
@@ -519,13 +609,16 @@ def _materialize_bounded_m1_feature_surface(
                     )
 
                 emitted = frame.iloc[emit_offset:]
-                base_signal = emitted[
-                    list(MODEL_NATIVE_BASE_FIELDS)
-                ].astype(np.float32).to_numpy()
-                signal = np.concatenate(
-                    [base_signal, extension],
-                    axis=1,
-                ).astype(np.float32, copy=False)
+                signal = np.empty(
+                    (stop - start, MODEL_NATIVE_SIGNAL_DIM),
+                    dtype=np.float32,
+                )
+                for column, name in enumerate(MODEL_NATIVE_BASE_FIELDS):
+                    signal[:, column] = emitted[name].to_numpy(
+                        dtype=np.float32,
+                        copy=False,
+                    )
+                signal[:, len(MODEL_NATIVE_BASE_FIELDS) :] = extension
                 if signal.shape != (
                     stop - start,
                     MODEL_NATIVE_SIGNAL_DIM,
@@ -537,7 +630,7 @@ def _materialize_bounded_m1_feature_surface(
                 ctx_cat = raw_ctx_cat[emit_offset:].astype(np.int64)
                 output_table = pa.Table.from_arrays(
                     [
-                        pa.array(alignment_times[start:stop]),
+                        pa.array(surface_times[start:stop]),
                         _fixed_size_list_column(
                             signal,
                             MODEL_NATIVE_SIGNAL_DIM,
@@ -573,7 +666,6 @@ def _materialize_bounded_m1_feature_surface(
                     ctx_cat,
                     ctx_cont,
                     signal,
-                    base_signal,
                     extension,
                     emitted,
                     raw_ctx_cat,
@@ -585,43 +677,39 @@ def _materialize_bounded_m1_feature_surface(
         finally:
             if writer is not None:
                 writer.close()
+            _close_memmap(price_matrix)
+            _close_memmap(candle_matrix)
 
         if (
-            emitted_rows != len(alignment_times)
+            emitted_rows != len(surface_times)
             or extension_meta is None
             or extension_names is None
             or not partial_output.is_file()
         ):
             raise RuntimeError("M1_FEATURE_BASE_BOUNDED_WRITE_INCOMPLETE")
-        written = pq.ParquetFile(partial_output)
-        if (
-            written.metadata.num_rows != emitted_rows
-            or tuple(written.schema_arrow.names)
-            != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS
-        ):
-            raise RuntimeError("M1_FEATURE_BASE_BOUNDED_WRITE_SCHEMA_INVALID")
-        validation_dir = storage / "validation"
-        loaded_times, loaded = load_m1_feature_surface(
+        _validate_staged_feature_surface(
             partial_output,
-            context="M1_FEATURE_BASE_POST_WRITE",
-            storage_dir=validation_dir,
-            expected_bar_seconds=bar_seconds,
+            expected_times=surface_times,
+            batch_rows=sequence_bars,
         )
-        if not loaded_times.equals(alignment_times):
-            raise RuntimeError("M1_FEATURE_BASE_POST_WRITE_TIME_MISMATCH")
-        del loaded_times, loaded
-        gc.collect()
-        partial_output.replace(output)
+        _admit_new_file(partial_output, output)
         return {
             "rows": emitted_rows,
             "extension": extension_meta,
             "materialization": {
-                "mode": "bounded_native_m1_owner_batches_v1",
-                "batch_rows": batch_rows,
-                "causal_overlap_rows": _M1_BOUNDED_CAUSAL_OVERLAP_ROWS,
-                "recursive_state_fields": list(
-                    SUPPORT_RESISTANCE_MEMORY_STATE_KEYS
+                "mode": (
+                    f"bounded_native_{timeframe.lower()}_owner_batches_"
+                    "v2_event_age_carry"
                 ),
+                "batch_rows": batch_rows,
+                "causal_overlap_rows": _BOUNDED_CAUSAL_OVERLAP_ROWS,
+                "recursive_state_fields": [
+                    *SUPPORT_RESISTANCE_MEMORY_STATE_KEYS,
+                    *(
+                        f"foundation_event_age.{name}"
+                        for name in FOUNDATION_EVENT_AGE_CARRY_KEYS
+                    ),
+                ],
                 "full_signal_matrix_in_ram": False,
                 "full_extension_matrix_in_ram": False,
             },
@@ -630,7 +718,6 @@ def _materialize_bounded_m1_feature_surface(
 
 def _publish_feature_base_manifest(
     *,
-    schema_version: str,
     timeframe: str,
     dataset_run_id: str,
     pair_generation_id: str,
@@ -644,74 +731,59 @@ def _publish_feature_base_manifest(
     extension_meta: dict[str, Any],
     materialization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    manifest = {
-        "schema_version": schema_version,
-        "decision": "PASS",
-        "feature_base_contract_schema_version": (
-            ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION
-        ),
-        "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
-        "dataset_run_id": dataset_run_id,
-        "pair_generation_id": pair_generation_id,
-        "anchor_timeframe": timeframe,
-        "source_parquet": str(source),
-        "source_sha256": source_binding["source_sha256"],
-        "source_manifest": source_binding["manifest_path"],
-        "source_manifest_sha256": source_binding["manifest_sha256"],
-        "source_manifest_schema_version": source_binding["schema_version"],
-        "rank_reference_npz": source_binding["rank_reference_npz"],
-        "rank_reference_sha256": source_binding["rank_reference_sha256"],
-        "alignment_parquet": None if alignment is None else str(alignment),
-        "alignment_sha256": (
-            None if alignment is None else _sha256_file(alignment)
-        ),
-        "seq_structure_manifest": str(seq_structure_manifest),
-        "seq_structure_manifest_sha256": _sha256_file(
-            seq_structure_manifest
-        ),
-        "output_parquet": str(output),
-        "output_parquet_sha256": _sha256_file(output),
-        "rows": int(rows),
-        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
-        "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
-        "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
-        "feature_field_order": list(contract["fields"]),
-        "feature_field_order_sha256": _canonical_sha256(
-            list(contract["fields"])
-        ),
-        "extension": extension_meta,
-        "causal_contract": {
-            "future_rows_used": False,
-            "closed_decision_bar_required": True,
-            "m1_closed_bar_required": timeframe == "M1",
-            "m5_row_reuse": False,
-            "native_resolution_values": True,
-            "cross_resolution_value_copy": False,
-            "computed_m1_feature_resampling": False,
-            "duplicate_feature_implementation": False,
-            "exact_closed_source_timestamp_subset": alignment is not None,
-        },
-    }
-    if materialization is not None:
-        manifest["materialization"] = materialization
-    manifest["manifest_sha256"] = _canonical_sha256(manifest)
     manifest_path = output.with_suffix(output.suffix + ".manifest.json")
+    if (
+        not output.is_file()
+        or output.is_symlink()
+        or manifest_path.exists()
+        or manifest_path.is_symlink()
+    ):
+        raise RuntimeError(
+            "ENTRY_EXIT_FEATURE_BASE_MANIFEST_ADMISSION_STATE_INVALID"
+        )
+    manifest = build_entry_exit_feature_surface_manifest(
+        timeframe=timeframe,
+        dataset_run_id=dataset_run_id,
+        pair_generation_id=pair_generation_id,
+        source=source,
+        source_binding=source_binding,
+        alignment=alignment,
+        seq_structure_manifest=seq_structure_manifest,
+        output=output,
+        rows=rows,
+        signal_contract=contract,
+        extension=extension_meta,
+        materialization=materialization,
+    )
+    encoded = (
+        json.dumps(
+            manifest,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
     with tempfile.TemporaryDirectory(
-        prefix=f".{manifest_path.name}.publish.",
+        prefix=f".{output.name}.generation.",
         dir=str(output.parent),
     ) as publish_storage:
         partial = Path(publish_storage) / manifest_path.name
-        partial.write_text(
-            json.dumps(
-                manifest,
-                indent=2,
-                sort_keys=True,
-                allow_nan=False,
+        with partial.open("xb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            staged_manifest = json.loads(partial.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                "ENTRY_EXIT_FEATURE_BASE_STAGED_MANIFEST_INVALID"
+            ) from exc
+        if staged_manifest != manifest:
+            raise RuntimeError(
+                "ENTRY_EXIT_FEATURE_BASE_STAGED_MANIFEST_MISMATCH"
             )
-            + "\n",
-            encoding="utf-8",
-        )
-        partial.replace(manifest_path)
+        _admit_new_file(partial, manifest_path)
     return manifest
 
 
@@ -727,8 +799,12 @@ def _materialize_feature_base(
 ) -> dict[str, Any]:
     if timeframe not in {"M1", "M5"}:
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_TIMEFRAME_INVALID")
-    if timeframe == "M1" and alignment_parquet is None:
-        raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_SOURCE_REQUIRED")
+    if (timeframe == "M1") != (alignment_parquet is not None):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_NATIVE_ROUTE_INVALID")
+    require_entry_exit_production_architecture(
+        current_entry_exit_architecture_observation(),
+        context=f"ENTRY_EXIT_{timeframe}_FEATURE_BASE_BUILD",
+    )
     bar_seconds = (
         EXIT_DECISION_BAR_SECONDS if timeframe == "M1" else ENTRY_DECISION_BAR_SECONDS
     )
@@ -737,34 +813,35 @@ def _materialize_feature_base(
         if timeframe == "M1"
         else ENTRY_FEATURE_SEQUENCE_BARS
     )
-    schema_version = (
-        ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
-        if timeframe == "M1"
-        else ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION
-    )
     require_offline_scope("featurebase_build")
-    source = Path(source_parquet).expanduser().resolve()
-    alignment = (
+    source_input = Path(source_parquet).expanduser()
+    alignment_input = (
         None
         if alignment_parquet is None
-        else Path(alignment_parquet).expanduser().resolve()
+        else Path(alignment_parquet).expanduser()
     )
-    manifest_path = Path(seq_structure_manifest).expanduser().resolve()
-    output = Path(output_parquet).expanduser().resolve()
+    manifest_input = Path(seq_structure_manifest).expanduser()
+    output_input = Path(output_parquet).expanduser()
+    if (
+        source_input.is_symlink()
+        or (alignment_input is not None and alignment_input.is_symlink())
+        or manifest_input.is_symlink()
+        or output_input.is_symlink()
+    ):
+        raise RuntimeError("M1_FEATURE_BASE_INPUT_OR_OUTPUT_INVALID")
+    source = source_input.resolve()
+    alignment = None if alignment_input is None else alignment_input.resolve()
+    manifest_path = manifest_input.resolve()
+    output = output_input.resolve()
+    output_manifest = output.with_suffix(output.suffix + ".manifest.json")
     if (
         not source.is_file()
-        or source.is_symlink()
-        or (
-            alignment is not None
-            and (
-                not alignment.is_file()
-                or alignment.is_symlink()
-            )
-        )
+        or (alignment is not None and not alignment.is_file())
         or not manifest_path.is_file()
-        or manifest_path.is_symlink()
         or output.exists()
         or output.is_symlink()
+        or output_manifest.exists()
+        or output_manifest.is_symlink()
         or not output.parent.is_dir()
     ):
         raise RuntimeError("M1_FEATURE_BASE_INPUT_OR_OUTPUT_INVALID")
@@ -773,11 +850,12 @@ def _materialize_feature_base(
     if not isinstance(pair_generation_id, str) or not pair_generation_id:
         raise RuntimeError("M1_FEATURE_BASE_PAIR_GENERATION_ID_INVALID")
 
-    source_binding = _load_enriched_source_binding(
+    source_binding = require_entry_exit_enriched_source_binding(
         source,
         dataset_run_id=dataset_run_id,
         pair_generation_id=pair_generation_id,
         timeframe=timeframe,
+        context="ENTRY_EXIT_FEATURE_BASE",
     )
 
     contract = require_model_native_manifest(
@@ -789,166 +867,16 @@ def _materialize_feature_base(
     if int(contract["seq_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM:
         raise RuntimeError("M1_FEATURE_BASE_SIGNAL_DIM_INVALID")
 
-    if timeframe == "M1":
-        if alignment is None:
-            raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_SOURCE_REQUIRED")
-        bounded = _materialize_bounded_m1_feature_surface(
-            source=source,
-            alignment=alignment,
-            output=output,
-            contract=contract,
-            bar_seconds=bar_seconds,
-            sequence_bars=sequence_bars,
-        )
-        return _publish_feature_base_manifest(
-            schema_version=schema_version,
-            timeframe=timeframe,
-            dataset_run_id=dataset_run_id,
-            pair_generation_id=pair_generation_id,
-            source=source,
-            source_binding=source_binding,
-            alignment=alignment,
-            seq_structure_manifest=manifest_path,
-            output=output,
-            rows=int(bounded["rows"]),
-            contract=contract,
-            extension_meta=dict(bounded["extension"]),
-            materialization=dict(bounded["materialization"]),
-        )
-
-    frame = pd.read_parquet(source)
-    required = {
-        "time",
-        "open",
-        "high",
-        "low",
-        "close",
-        "atr",
-        *MODEL_NATIVE_BASE_FIELDS,
-        *MODEL_NATIVE_CTX_CONT_FIELDS,
-        *MODEL_NATIVE_CTX_CAT_FIELDS,
-    }
-    missing = sorted(required - set(frame.columns))
-    if missing:
-        raise RuntimeError(
-            "M1_FEATURE_BASE_ENRICHED_CAUSAL_FRAME_FIELDS_MISSING: "
-            f"{missing[:30]}"
-        )
-    times = pd.DatetimeIndex(
-        pd.to_datetime(frame["time"], utc=True, errors="coerce")
-    ).as_unit("ns")
-    if (
-        len(times) == 0
-        or times.hasnans
-        or not times.is_unique
-        or not times.is_monotonic_increasing
-        or not times.floor(f"{bar_seconds}s").equals(times)
-    ):
-        raise RuntimeError("M1_FEATURE_BASE_TIME_GEOMETRY_INVALID")
-
-    alignment_times: pd.DatetimeIndex | None = None
-    if alignment is not None:
-        alignment_times = pd.DatetimeIndex(
-            pd.to_datetime(
-                pd.read_parquet(alignment, columns=["time"])["time"],
-                utc=True,
-                errors="coerce",
-            )
-        ).as_unit("ns")
-        if (
-            len(alignment_times) == 0
-            or alignment_times.hasnans
-            or not alignment_times.is_unique
-            or not alignment_times.is_monotonic_increasing
-            or not alignment_times.floor(f"{bar_seconds}s").equals(
-                alignment_times
-            )
-        ):
-            raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_TIME_GEOMETRY_INVALID")
-        positions = times.get_indexer(alignment_times)
-        if np.any(positions < 0):
-            missing = int(np.count_nonzero(positions < 0))
-            raise RuntimeError(
-                "M1_FEATURE_BASE_ALIGNMENT_TIME_NOT_SUBSET: "
-                f"missing_rows={missing}"
-            )
-        # Keep the exact source timeline.  The enriched producer may retain a
-        # causal warmup/history superset, but Exit must consume the same closed
-        # M1 rows as its pair-bound lifecycle source.
-        frame = frame.iloc[positions].reset_index(drop=True)
-        times = alignment_times
-
-    for name in (*MODEL_NATIVE_BASE_FIELDS, *MODEL_NATIVE_CTX_CONT_FIELDS):
-        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(
-            dtype=np.float32
-        )
-        if not np.isfinite(values).all():
-            raise RuntimeError(f"M1_FEATURE_BASE_NONFINITE_FIELD: {name}")
-    ctx_cat = frame[list(MODEL_NATIVE_CTX_CAT_FIELDS)].apply(
-        pd.to_numeric,
-        errors="coerce",
-    ).to_numpy(dtype=np.float64)
-    if (
-        not np.isfinite(ctx_cat).all()
-        or not np.equal(ctx_cat, np.rint(ctx_cat)).all()
-    ):
-        raise RuntimeError("M1_FEATURE_BASE_CTX_CAT_NONINTEGER")
-    ctx_cat = ctx_cat.astype(np.int64)
-
-    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-        _build_inline_seq_structure_extension,
+    bounded = _materialize_bounded_feature_surface(
+        source=source,
+        alignment=alignment,
+        output=output,
+        contract=contract,
+        timeframe=timeframe,
+        bar_seconds=bar_seconds,
+        sequence_bars=sequence_bars,
     )
-
-    extension, extension_names, extension_meta = (
-        _build_inline_seq_structure_extension(
-            frame,
-            requested_features=list(contract["selected_fields"]),
-            ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
-            ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
-            source_parquet=source,
-            source_contract_label=f"causal_enriched_{timeframe.lower()}_frame_v1",
-            base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
-        )
-    )
-    base_signal = frame[list(MODEL_NATIVE_BASE_FIELDS)].astype(
-        np.float32
-    ).to_numpy()
-    signal = np.empty((len(frame), MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
-    signal[:, : len(MODEL_NATIVE_BASE_FIELDS)] = base_signal
-    signal[:, len(MODEL_NATIVE_BASE_FIELDS) :] = extension
-    if signal.shape != (len(frame), MODEL_NATIVE_SIGNAL_DIM):
-        raise RuntimeError(
-            "M1_FEATURE_BASE_SIGNAL_SHAPE_INVALID: "
-            f"observed={signal.shape} expected=({len(frame)},{MODEL_NATIVE_SIGNAL_DIM})"
-        )
-    if tuple([*MODEL_NATIVE_BASE_FIELDS, *extension_names]) != tuple(
-        contract["fields"]
-    ):
-        raise RuntimeError("M1_FEATURE_BASE_SIGNAL_FIELD_ORDER_MISMATCH")
-    if not np.isfinite(signal).all():
-        raise RuntimeError("M1_FEATURE_BASE_SIGNAL_NONFINITE")
-
-    ctx_cont = frame[list(MODEL_NATIVE_CTX_CONT_FIELDS)].astype(
-        np.float32
-    ).to_numpy()
-    output_table = pa.Table.from_arrays(
-        [
-            pa.array(times),
-            _fixed_size_list_column(signal, MODEL_NATIVE_SIGNAL_DIM, dtype=pa.float32()),
-            _fixed_size_list_column(ctx_cont, len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=pa.float32()),
-            _fixed_size_list_column(ctx_cat, len(MODEL_NATIVE_CTX_CAT_FIELDS), dtype=pa.int64()),
-        ],
-        names=list(ENTRY_EXIT_FEATURE_SURFACE_COLUMNS),
-    )
-    # Keep live Exit reads bounded: the provider reads complete parquet
-    # rowgroups, so one rowgroup is exactly one causal M1 window.
-    pq.write_table(
-        output_table,
-        output,
-        row_group_size=sequence_bars,
-    )
-    manifest = _publish_feature_base_manifest(
-        schema_version=schema_version,
+    return _publish_feature_base_manifest(
         timeframe=timeframe,
         dataset_run_id=dataset_run_id,
         pair_generation_id=pair_generation_id,
@@ -957,33 +885,15 @@ def _materialize_feature_base(
         alignment=alignment,
         seq_structure_manifest=manifest_path,
         output=output,
-        rows=len(frame),
+        rows=int(bounded["rows"]),
         contract=contract,
-        extension_meta=extension_meta,
+        extension_meta=dict(bounded["extension"]),
+        materialization=(
+            dict(bounded["materialization"])
+            if timeframe == "M1"
+            else None
+        ),
     )
-    del output_table, ctx_cont, ctx_cat, signal, extension, base_signal, frame
-    gc.collect()
-    with tempfile.TemporaryDirectory(
-        prefix=f".{output.name}.validation.",
-        dir=str(output.parent),
-    ) as validation_storage:
-        _loaded_times, _loaded = load_m1_feature_surface(
-            output,
-            context=f"{timeframe}_FEATURE_BASE_POST_WRITE",
-            storage_dir=Path(validation_storage),
-            expected_bar_seconds=bar_seconds,
-        )
-        del _loaded_times, _loaded
-        gc.collect()
-    return manifest
-
-
-def materialize_m1_feature_base(**kwargs: Any) -> dict[str, Any]:
-    return _materialize_feature_base(timeframe="M1", **kwargs)
-
-
-def materialize_m5_feature_base(**kwargs: Any) -> dict[str, Any]:
-    return _materialize_feature_base(timeframe="M5", **kwargs)
 
 
 def main() -> None:
@@ -994,8 +904,8 @@ def main() -> None:
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--dataset-run-id", required=True)
     parser.add_argument("--pair-generation-id", required=True)
-    parser.add_argument("--timeframe", choices=("M1", "M5"), default="M1")
     args = parser.parse_args()
+    timeframe = "M1" if args.alignment_parquet is not None else "M5"
     manifest = _materialize_feature_base(
         source_parquet=args.source_parquet,
         alignment_parquet=args.alignment_parquet,
@@ -1003,7 +913,7 @@ def main() -> None:
         output_parquet=args.output_parquet,
         dataset_run_id=args.dataset_run_id,
         pair_generation_id=args.pair_generation_id,
-        timeframe=args.timeframe,
+        timeframe=timeframe,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False))
 

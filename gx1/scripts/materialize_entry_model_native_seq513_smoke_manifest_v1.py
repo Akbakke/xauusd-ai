@@ -38,6 +38,9 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     TAIL_DIRECTION_ENV_TEMPLATE,
     TAIL_DIRECTION_RECIPE_CONTRACT,
 )
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    TRAIN_WRAPPER_RELATIVE_PATH,
+)
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     READY_DECISION as POST_REBUILD_READY_DECISION,
     REQUIRED_PROOF_CHECKS as REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS,
@@ -52,10 +55,10 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
 )
 
 
-SPLITS = ("train", "val", "test")
-SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v2"
+SPLITS = ("train", "val")
+SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v3"
 SPLIT_SCHEMA_VERSION = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
-REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v2"
+REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v3"
 MANIFEST_VARIANT = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SEQ_SNAP_WIDTH = MODEL_NATIVE_SIGNAL_DIM
 DEFAULT_STEM = f"v10_model_native_seq513_smoke{DIRECTION_DATASET_STEM_SUFFIX}"
@@ -392,14 +395,10 @@ def _future_command_contracts(
         splits["train"]["manifest_path"],
         "--val-manifest-json",
         splits["val"]["manifest_path"],
-        "--test-manifest-json",
-        splits["test"]["manifest_path"],
         "--train-parquet",
         splits["train"]["parquet_path"],
         "--val-parquet",
         splits["val"]["parquet_path"],
-        "--test-parquet",
-        splits["test"]["parquet_path"],
         "--unified-exit-lifecycle-manifest-json",
         "<IMMUTABLE_UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON>",
         "--m5-prebuilt-path",
@@ -502,8 +501,9 @@ def _future_command_contracts(
         "smart_smoke_train": {
             "mode": "future_exact_wrapper_contract_not_executed",
             "implemented_in_control_surface": True,
+            "profile": "smoke",
             "control_route": "model-native-smoke-train",
-            "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
+            "wrapper_path": TRAIN_WRAPPER_RELATIVE_PATH,
             "execution_allowed_now": False,
             "argv_template": wrapper_argv,
             "wrapper_argv_template": wrapper_argv,
@@ -723,13 +723,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check("smart smoke dataset directory exists", dataset_dir.exists(), {"dataset_dir": str(dataset_dir)}),
         _check(
-            "train val test split paths are explicit canonical and distinct",
+            "train val split paths are explicit canonical and distinct",
             all(row["explicit_paths_exact"] for row in splits.values())
-            and len(set(split_paths)) == 6,
+            and len(set(split_paths)) == 4,
             splits,
         ),
         _check(
-            "exact train val test split artifacts exist",
+            "exact train val split artifacts exist",
             all(
                 row["parquet_exists"] and row["manifest_exists"]
                 for row in splits.values()
@@ -742,7 +742,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             splits,
         ),
         _check(
-            "caller-bound split hashes match train val test bytes",
+            "caller-bound split hashes match train val bytes",
             all(row["hashes_exact"] for row in splits.values()),
             splits,
         ),
@@ -796,14 +796,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check("side effects remain closed", all(value is False for value in SIDE_EFFECTS_STARTED.values()), SIDE_EFFECTS_STARTED),
         _check(
-            "future train contract uses only the exact wrapper and six explicit splits",
+            "future train contract uses only the exact wrapper and four explicit artifacts",
             future_command_contracts["smart_smoke_train"]["requires_ram_cap"] is True
             and future_command_contracts["smart_smoke_train"]["ram_cap_runner"] == RAM_CAP_RUNNER
             and future_command_contracts["smart_smoke_train"]["num_workers"] == 0
+            and future_command_contracts["smart_smoke_train"]["profile"] == "smoke"
             and future_command_contracts["smart_smoke_train"]["control_route"]
             == "model-native-smoke-train"
             and future_command_contracts["smart_smoke_train"]["wrapper_path"]
-            == "scripts/run_entry_model_native_seq513_smoke_train.sh"
+            == TRAIN_WRAPPER_RELATIVE_PATH
             and future_command_contracts["smart_smoke_train"]["wrapper_argv_template"]
             == future_command_contracts["smart_smoke_train"]["argv_template"]
             and all(
@@ -811,10 +812,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 for flag in (
                     "--train-manifest-json",
                     "--val-manifest-json",
-                    "--test-manifest-json",
                     "--train-parquet",
                     "--val-parquet",
-                    "--test-parquet",
                     "--unified-exit-lifecycle-manifest-json",
                     "--m5-prebuilt-path",
                     "--multi-tf-cache-manifest-json",

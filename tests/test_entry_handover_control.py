@@ -16,6 +16,7 @@ CONTROL = REPO / "scripts/entry_next_edge_control.sh"
 LAUNCH_STATE = REPO / "PROJECT_STATE_xau_direction_launch.json"
 AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
+    REPO / "CLAUDE.md",
     REPO / "GX1_RULES.md",
     REPO / "README.md",
     REPO / "SYSTEM_MAP.md",
@@ -38,7 +39,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-current-source-cascade-proof",
     "model-native-m1-feature-base",
     "model-native-m5-feature-base",
-    "model-native-mtf-v4-cache",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
     "model-native-foundation-feature-audit",
@@ -52,7 +52,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-bundle-audit",
     "model-native-candidate-readiness",
     "model-native-selective-edge",
-    "model-native-rebuild",
     "model-native-smoke-train",
     "model-native-candidate-train",
 }
@@ -372,12 +371,12 @@ def test_control_surface_exposes_only_exact_model_native_routes() -> None:
 @pytest.mark.parametrize(
     ("mode", "omitted", "expected"),
     [
-        ("bootstrap", "--start-utc", "requires explicit --start-utc"),
-        ("successor", "--parent-root", "requires explicit --parent-root"),
+        ("bootstrap", "--start-utc", "requires exactly one explicit --start-utc"),
+        ("successor", "--parent-root", "requires exactly one explicit --parent-root"),
         (
             "successor",
             "--expected-parent-manifest-sha256",
-            "requires explicit --expected-parent-manifest-sha256",
+            "requires exactly one explicit --expected-parent-manifest-sha256",
         ),
     ],
 )
@@ -455,6 +454,27 @@ def test_candidate_readiness_route_requires_exact_trainability_event() -> None:
     assert "worktree" not in route.lower()
 
 
+def test_both_train_routes_use_one_profile_explicit_wrapper() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    wrapper = "scripts/run_entry_model_native_seq513_train.sh"
+    smoke_route = source.split("  model-native-smoke-train)", 1)[1].split(
+        "    ;;", 1
+    )[0]
+    candidate_route = source.split(
+        "  model-native-candidate-train)", 1
+    )[1].split("    ;;", 1)[0]
+    trainability_route = source.split(
+        "  model-native-trainability-readiness)", 1
+    )[1].split("    ;;", 1)[0]
+
+    assert wrapper in smoke_route
+    assert "--profile smoke" in smoke_route
+    assert wrapper in candidate_route
+    assert "--profile candidate" in candidate_route
+    assert source.count(wrapper) == 2
+    assert "--train-wrapper" in trainability_route
+
+
 def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     source = CONTROL.read_text(encoding="utf-8")
     recipe = source.split("  model-native-train-recipe-audit)", 1)[1].split(
@@ -469,6 +489,8 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
         "--out-bundle-dir",
         "--m5-prebuilt-path",
         "--post-rebuild-readiness-json",
+        "--prefreeze-test-seal-json",
+        "--prefreeze-test-seal-sha256",
         "--full-input-liveness-audit-json",
         "--feature-audit-json",
         "--target-audit-json",
@@ -480,8 +502,13 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
         "--out-dir",
     ):
         assert flag in recipe
+    assert "--test-manifest-json" not in recipe
+    assert "--test-parquet" not in recipe
     assert "materialize_entry_model_native_seq513_train_recipe_audit_v1" in recipe
-    assert 'AUDIT_CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 512M --)' in source
+    assert (
+        'AUDIT_CAP=("$REPO/scripts/gx1_capped_run.sh" --class audit '
+        '--mem 4G --swap 512M --)'
+    ) in source
 
     audit = source.split("  model-native-smoke-bundle-audit)", 1)[1].split(
         "    ;;", 1
@@ -667,64 +694,27 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
             check=False,
         )
         assert result.returncode == 2
-        assert f"requires explicit {missing}" in result.stderr
+        assert f"requires exactly one explicit {missing}" in result.stderr
 
 
-def test_rebuild_route_requires_the_explicit_target_threshold() -> None:
-    source = CONTROL.read_text(encoding="utf-8")
-    route = source.split("  model-native-rebuild)", 1)[1].split(
-        "    ;;", 1
-    )[0]
-
-    assert "--early-move-threshold-bps" in route
-    assert "--m1-feature-base-parquet" in route
-    assert "--m5-feature-base-parquet" in route
-    assert 'require_flag "$cmd" "$flag" "$@"' in route
-    assert "--early_move_threshold_bps \"$EARLY_MOVE_THRESHOLD_BPS\"" not in route
-
-
-@pytest.mark.parametrize(
-    "missing",
-    (
-        "--m5-prebuilt",
-        "--expected-source-sha256",
-        "--out-dir",
-    ),
-)
-def test_mtf_v4_cache_route_requires_exact_source_binding(
-    missing: str,
-) -> None:
-    required = {
-        "--m5-prebuilt": "/tmp/source.parquet",
-        "--expected-source-sha256": "0" * 64,
-        "--out-dir": "/tmp/new-cache",
-    }
-    argv = ["bash", str(CONTROL), "model-native-mtf-v4-cache"]
-    for flag, value in required.items():
-        if flag != missing:
-            argv.extend((flag, value))
-
-    result = subprocess.run(
-        argv,
-        cwd=REPO,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-    assert result.returncode == 2
-    assert f"requires explicit {missing}" in result.stderr
-
-
-def test_mtf_v4_cache_route_forbids_contract_override() -> None:
+def test_control_rejects_duplicate_required_flag_before_dispatch() -> None:
     result = subprocess.run(
         [
             "bash",
             str(CONTROL),
-            "model-native-mtf-v4-cache",
-            "--contract",
-            "v2",
+            "model-native-m5-feature-base",
+            "--source-parquet",
+            "/tmp/source.parquet",
+            "--seq-structure-manifest",
+            "/tmp/signal.json",
+            "--output-parquet",
+            "/tmp/surface-a.parquet",
+            "--output-parquet",
+            "/tmp/surface-b.parquet",
+            "--dataset-run-id",
+            "run",
+            "--pair-generation-id",
+            "0" * 64,
         ],
         cwd=REPO,
         text=True,
@@ -734,7 +724,10 @@ def test_mtf_v4_cache_route_forbids_contract_override() -> None:
     )
 
     assert result.returncode == 2
-    assert "fixes --contract in the exact evidence contract" in result.stderr
+    assert (
+        "requires exactly one explicit --output-parquet (observed=2)"
+        in result.stderr
+    )
 
 
 @pytest.mark.parametrize(
@@ -762,7 +755,7 @@ def test_offline_scope_rejects_operational_routes(argv: list[str]) -> None:
     assert "GX1_OFFLINE_SCOPE_FORBIDDEN" in result.stderr
 
 
-def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
+def test_post_rebuild_route_binds_prefreeze_splits_and_exact_test_seal() -> None:
     source = CONTROL.read_text(encoding="utf-8")
     route = source.split(
         "  model-native-post-rebuild-readiness)", 1
@@ -773,6 +766,8 @@ def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
         "--event-root",
         "--repo-dir",
         "--chain-terminal-json",
+        "--test-seal-json",
+        "--test-seal-sha256",
         "--rebuild-preflight-json",
         "--full-input-liveness-json",
         "--pretrain-audit-json",
@@ -786,17 +781,20 @@ def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
         "--val-manifest-sha256",
         "--val-parquet",
         "--val-parquet-sha256",
+        "--out-dir",
+    ):
+        assert flag in route
+    for forbidden in (
         "--test-manifest-json",
         "--test-manifest-sha256",
         "--test-parquet",
         "--test-parquet-sha256",
-        "--out-dir",
     ):
-        assert flag in route
+        assert forbidden not in route
     assert "materialize_entry_model_native_seq513_post_rebuild_readiness_v1" in route
 
 
-def test_foundation_audit_routes_bind_all_canonical_split_hashes() -> None:
+def test_foundation_audit_routes_bind_prefreeze_train_val_hashes_only() -> None:
     source = CONTROL.read_text(encoding="utf-8")
     routes = {
         "model-native-foundation-feature-audit": (
@@ -820,9 +818,6 @@ def test_foundation_audit_routes_bind_all_canonical_split_hashes() -> None:
         "--val-manifest-json",
         "--val-manifest-sha256",
         "--val-parquet-sha256",
-        "--test-manifest-json",
-        "--test-manifest-sha256",
-        "--test-parquet-sha256",
         "--out-dir",
     )
     for route_name, (module_name, requires_structure) in routes.items():
@@ -830,6 +825,8 @@ def test_foundation_audit_routes_bind_all_canonical_split_hashes() -> None:
         assert module_name in route
         for flag in common_flags:
             assert flag in route
+        assert "--test-manifest-json" not in route
+        assert "--test-parquet" not in route
         assert ("--seq-structure-manifest" in route) is requires_structure
 
 
@@ -946,7 +943,7 @@ def test_model_native_adoption_route_requires_smoke_manifest_and_output_dir() ->
         check=False,
     )
     assert without_smoke.returncode == 2
-    assert "requires explicit --smoke-manifest-json" in without_smoke.stderr
+    assert "requires exactly one explicit --smoke-manifest-json" in without_smoke.stderr
 
     without_out = subprocess.run(
         [
@@ -971,7 +968,7 @@ def test_model_native_adoption_route_requires_smoke_manifest_and_output_dir() ->
         check=False,
     )
     assert without_out.returncode == 2
-    assert "requires explicit --out-dir" in without_out.stderr
+    assert "requires exactly one explicit --out-dir" in without_out.stderr
 
 
 def test_removed_or_mutating_routes_fail_closed() -> None:
@@ -1035,4 +1032,4 @@ def test_downstream_evidence_routes_are_exposed_but_fail_without_exact_inputs(
         check=False,
     )
     assert result.returncode == 2
-    assert f"requires explicit {required_flag}" in result.stderr
+    assert f"requires exactly one explicit {required_flag}" in result.stderr

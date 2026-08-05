@@ -27,11 +27,11 @@ from gx1.features.htf_features import (
     require_multi_tf_v4_liveness_contract,
 )
 
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v4"
-POLICY_VERSION = "entry_full_input_liveness_policy_v4"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v5"
+POLICY_VERSION = "entry_full_input_liveness_policy_v5"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
-SPLITS = ("train", "val", "test")
+SPLITS = ("train", "val")
 SURFACES = ("signal", "ctx_cont", "ctx_cat")
 EXPECTED_FIELD_COUNTS = {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
 MULTI_TF_FEATURE_NAMES = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
@@ -45,7 +45,7 @@ ATR_MIN_STD_RATIO = 0.25
 ATR_MAX_STD_RATIO = 4.0
 
 # There is no constant pass-through surface in the model-native contract.  A
-# field must be learnable on TRAIN.  VAL/TEST are untouched chronological
+# field must be learnable on TRAIN. VAL is untouched chronological
 # observations and may legitimately contain one regime state for an entire
 # short split; their job here is exact coverage/finiteness, not synthetic
 # variation.  Direction edge is decided later by the OOS performance gates.
@@ -63,8 +63,8 @@ RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
     ("signal", "candle.pattern_outside_after_inside_bear_breakout_score"): {
         "train": 16,
     },
-    ("signal", "chart.m5_ema50_200_cross_up"): {"train": 128},
-    ("signal", "chart.m5_ema50_200_cross_down"): {"train": 128},
+    ("signal", "chart.local_ema50_200_cross_up"): {"train": 128},
+    ("signal", "chart.local_ema50_200_cross_down"): {"train": 128},
     ("ctx_cont", "d1_regime_changed_flag_v3"): {"train": 32},
 }
 
@@ -135,7 +135,7 @@ def canonical_policy() -> dict[str, Any]:
                 for surface, field in ATR_OOD_FIELDS
             ],
             "reference_split": "train",
-            "comparison_splits": ["val", "test"],
+            "comparison_splits": ["val"],
             "max_standardized_mean_shift": ATR_MAX_STANDARDIZED_MEAN_SHIFT,
             "min_std_ratio": ATR_MIN_STD_RATIO,
             "max_std_ratio": ATR_MAX_STD_RATIO,
@@ -144,7 +144,6 @@ def canonical_policy() -> dict[str, Any]:
         "split_roles": {
             "train": "strict_learnability_and_support",
             "val": "untouched_oos_coverage_and_finiteness",
-            "test": "untouched_oos_coverage_and_finiteness",
         },
         "multi_tf_cache": {
             "matrix_contract": HTF_V4_MATRIX_CONTRACT,
@@ -271,7 +270,7 @@ def _drift_rows(field_rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
         train = index.get(("train", surface, field), {})
         train_mean = _float(train.get("mean"))
         train_std = _float(train.get("std"))
-        for split in ("val", "test"):
+        for split in SPLITS[1:]:
             observed = index.get((split, surface, field), {})
             observed_mean = _float(observed.get("mean"))
             observed_std = _float(observed.get("std"))
@@ -458,7 +457,7 @@ def build_full_input_liveness_artifact(
         train_values = set(
             row_index.get(("train", "ctx_cat", field), {}).get("unique_values", [])
         )
-        for split in ("val", "test"):
+        for split in SPLITS[1:]:
             observed_values = set(
                 row_index.get((split, "ctx_cat", field), {}).get("unique_values", [])
             )
@@ -834,7 +833,7 @@ def validate_full_input_liveness_artifact(
         train_values = set(
             row_index.get(("train", "ctx_cat", field), {}).get("unique_values", [])
         )
-        for split in ("val", "test"):
+        for split in SPLITS[1:]:
             observed_values = set(
                 row_index.get((split, "ctx_cat", field), {}).get("unique_values", [])
             )

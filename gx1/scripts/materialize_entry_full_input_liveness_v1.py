@@ -47,7 +47,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.features.htf_features import (
-    load_multi_tf_cache,
+    load_multi_tf_v4_cache,
     require_multi_tf_v4_liveness_contract,
 )
 
@@ -550,7 +550,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     # The cache loader already verifies every array byte, recomputes the exact
     # 5×111 liveness contract, and rejects false manifest claims. Reuse that
     # single owner instead of scanning and defining the same proof again here.
-    load_multi_tf_cache(mtf_cache_dir)
+    load_multi_tf_v4_cache(mtf_cache_dir)
     mtf_manifest_path = (mtf_cache_dir / "manifest.json").resolve()
     mtf_manifest = _load_json(
         mtf_manifest_path,

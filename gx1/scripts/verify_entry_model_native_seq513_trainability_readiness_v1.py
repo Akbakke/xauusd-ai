@@ -26,7 +26,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTEXT_TAG,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.contracts.entry_model_native_train_launch_v1 import RECIPE_AUDIT_SCHEMA
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    RECIPE_AUDIT_SCHEMA,
+    TRAIN_WRAPPER_RELATIVE_PATH,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     DIRECTION_BALANCE_ENV_TEMPLATE as DIRECTION_BALANCE_ENV_TEMPLATE,
     DIRECTION_BALANCE_ENV_KEYS,
@@ -354,6 +357,8 @@ def _wrapper_recipe_audit_review(text: str, required_env_keys: tuple[str, ...]) 
         "--pretrain-audit-json",
         "--full-input-liveness-audit-json",
         "--post-rebuild-readiness-json",
+        "--prefreeze-test-seal-json",
+        "--prefreeze-test-seal-sha256",
         "--trainability-readiness-json",
         "gx1.contracts.entry_model_native_train_launch_v1",
         "--run-id",
@@ -559,8 +564,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     smoke_readiness_json = Path(args.smart_smoke_readiness_json).expanduser().resolve()
     control_script = Path(args.control_script).expanduser().resolve()
     trainer_source = Path(args.trainer_source).expanduser().resolve()
-    smoke_wrapper = Path(args.smoke_wrapper).expanduser().resolve()
-    candidate_wrapper = Path(args.candidate_wrapper).expanduser().resolve()
+    train_wrapper = Path(args.train_wrapper).expanduser().resolve()
     candidate_readiness_script = Path(args.candidate_readiness_script).expanduser().resolve()
     selective_edge_script = Path(args.selective_edge_script).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
@@ -617,8 +621,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     control_text = _read_text(control_script)
     trainer_text = _read_text(trainer_source)
-    smoke_wrapper_text = _read_text(smoke_wrapper)
-    candidate_wrapper_text = _read_text(candidate_wrapper)
+    train_wrapper_text = _read_text(train_wrapper)
     candidate_readiness_text = _read_text(candidate_readiness_script)
     selective_edge_text = _read_text(selective_edge_script)
     candidate_readiness_contract_review = (
@@ -644,12 +647,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     canonical_direction_decision_review = _canonical_direction_decision_review(
         future_train
     )
-    smoke_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(smoke_wrapper_text)
-    candidate_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(candidate_wrapper_text)
-    smoke_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(smoke_wrapper_text)
-    candidate_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(candidate_wrapper_text)
-    smoke_wrapper_tail_direction_review = _wrapper_tail_direction_env_review(smoke_wrapper_text)
-    candidate_wrapper_tail_direction_review = _wrapper_tail_direction_env_review(candidate_wrapper_text)
+    train_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(train_wrapper_text)
+    train_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(train_wrapper_text)
+    train_wrapper_tail_direction_review = _wrapper_tail_direction_env_review(train_wrapper_text)
 
     checks = [
         _check(
@@ -749,38 +749,47 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             source_metadata_contract,
         ),
         _check(
-            "smoke wrapper exposes the model-native seq513 lane",
-            CONTRACT_MODE in smoke_wrapper_text
-            and "--anchor-gate-init" not in smoke_wrapper_text,
-            _artifact_meta(smoke_wrapper),
+            "canonical train wrapper exposes both explicit model-native profiles",
+            CONTRACT_MODE in train_wrapper_text
+            and "--profile" in train_wrapper_text
+            and "smoke|candidate" in train_wrapper_text
+            and "--smoke-manifest-json" in train_wrapper_text
+            and "--candidate-readiness-json" in train_wrapper_text
+            and "--anchor-gate-init" not in train_wrapper_text,
+            _artifact_meta(train_wrapper),
         ),
         _check(
-            "smart smoke wrapper exposes path calibration rank env",
-            bool(smoke_wrapper_path_calibration_review["ok"]),
-            smoke_wrapper_path_calibration_review,
+            "canonical train wrapper exposes path calibration rank env",
+            bool(train_wrapper_path_calibration_review["ok"]),
+            train_wrapper_path_calibration_review,
         ),
         _check(
-            "smart smoke wrapper exposes direction balance env",
-            bool(smoke_wrapper_direction_balance_review["ok"]),
-            smoke_wrapper_direction_balance_review,
+            "canonical train wrapper exposes direction balance env",
+            bool(train_wrapper_direction_balance_review["ok"]),
+            train_wrapper_direction_balance_review,
         ),
         _check(
-            "smart smoke wrapper exposes tail direction env",
-            bool(smoke_wrapper_tail_direction_review["ok"]),
-            smoke_wrapper_tail_direction_review,
+            "canonical train wrapper exposes tail direction env",
+            bool(train_wrapper_tail_direction_review["ok"]),
+            train_wrapper_tail_direction_review,
         ),
         _check(
-            "model-native smoke train is wired in control surface",
+            "both model-native profiles use the canonical wrapper in control surface",
             "model-native-smoke-train)" in control_text
-            and "model-native-smoke-train --run-id <id>" in control_text,
+            and "model-native-candidate-train)" in control_text
+            and f'{Path(TRAIN_WRAPPER_RELATIVE_PATH).name}" --profile smoke'
+            in control_text
+            and f'{Path(TRAIN_WRAPPER_RELATIVE_PATH).name}" --profile candidate'
+            in control_text,
             _artifact_meta(control_script),
         ),
         _check("smart smoke future contract is implemented in control surface", future_train.get("implemented_in_control_surface") is True, future_train),
         _check(
             "smart smoke future contract uses only the compact wrapper route",
-            future_train.get("control_route") == "model-native-smoke-train"
+            future_train.get("profile") == "smoke"
+            and future_train.get("control_route") == "model-native-smoke-train"
             and future_train.get("wrapper_path")
-            == "scripts/run_entry_model_native_seq513_smoke_train.sh"
+            == TRAIN_WRAPPER_RELATIVE_PATH
             and future_train.get("wrapper_argv_template")
             == future_train.get("argv_template")
             and "gx1.models.entry_v10.entry_v10_ctx_train_v3"
@@ -864,27 +873,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             },
         ),
         _check(
-            "candidate train wrapper exposes the model-native seq513 lane",
-            CONTRACT_MODE in candidate_wrapper_text
-            and "--anchor-gate-init" not in candidate_wrapper_text,
-            _artifact_meta(candidate_wrapper),
-        ),
-        _check(
-            "smart candidate train wrapper exposes path calibration rank env",
-            bool(candidate_wrapper_path_calibration_review["ok"]),
-            candidate_wrapper_path_calibration_review,
-        ),
-        _check(
-            "smart candidate train wrapper exposes direction balance env",
-            bool(candidate_wrapper_direction_balance_review["ok"]),
-            candidate_wrapper_direction_balance_review,
-        ),
-        _check(
-            "smart candidate train wrapper exposes tail direction env",
-            bool(candidate_wrapper_tail_direction_review["ok"]),
-            candidate_wrapper_tail_direction_review,
-        ),
-        _check(
             "selective-edge supports model-native seq513",
             bool(selective_edge_contract_review["ok"]),
             {
@@ -911,8 +899,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "full_input_liveness_contract": _artifact_meta(full_input_liveness_json),
             "control_script": _artifact_meta(control_script),
             "trainer_source": _artifact_meta(trainer_source),
-            "smoke_wrapper": _artifact_meta(smoke_wrapper),
-            "candidate_wrapper": _artifact_meta(candidate_wrapper),
+            "train_wrapper": _artifact_meta(train_wrapper),
             "candidate_readiness_script": _artifact_meta(candidate_readiness_script),
             "selective_edge_script": _artifact_meta(selective_edge_script),
         },
@@ -952,8 +939,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--full-input-liveness-json", required=True)
     ap.add_argument("--control-script", required=True)
     ap.add_argument("--trainer-source", required=True)
-    ap.add_argument("--smoke-wrapper", required=True)
-    ap.add_argument("--candidate-wrapper", required=True)
+    ap.add_argument("--train-wrapper", required=True)
     ap.add_argument("--candidate-readiness-script", required=True)
     ap.add_argument("--selective-edge-script", required=True)
     ap.add_argument("--out-dir", required=True)

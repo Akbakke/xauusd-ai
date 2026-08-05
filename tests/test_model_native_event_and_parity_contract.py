@@ -874,13 +874,17 @@ def test_pinned_contract_rejects_tied_top_direction_logits() -> None:
         )
 
 
-def test_mutable_prediction_mirror_fails_closed_without_fallback() -> None:
-    mirror = EVENT_ROOT / "serve_parity/selective_edge_predictions.parquet"
+def test_mutable_prediction_mirror_fails_closed_without_fallback(
+    tmp_path: Path,
+) -> None:
+    mirror = tmp_path / "selective_edge_predictions.parquet"
+    report = tmp_path / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120000123456Z.json"
     with pytest.raises(RuntimeError, match="not a timestamped authoritative predictions path"):
         serve_parity._load_pinned_predictions(
             dataset_dir=FULL_DATASET,
             pinned_path=mirror,
-            prediction_report_path=EVENT_ROOT / "serve_parity/ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120000123456Z.json",
+            prediction_report_path=report,
+            expected_predictions_sha256="0" * 64,
         )
 
 
@@ -927,6 +931,8 @@ def test_direction_pocket_audit_rejects_mutable_prediction_mirror_before_io(
             str(tmp_path / "dataset/entry_model_native_test.parquet"),
             "--predictions-parquet",
             str(mirror),
+            "--predictions-sha256",
+            "0" * 64,
             "--prediction-report-json",
             str(tmp_path / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120000123456Z.json"),
             "--bundle-dir",

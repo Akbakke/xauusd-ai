@@ -27,10 +27,10 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
     assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-            "8f37c5ae69f5fdf09861492b6925693872371d3e72e30ad9feb8780a72cf09a9"
+        "39847fadc63a6d3f1bea6e2dd241888de60c5a8966e2803797e3a529d7374584"
     )
     assert binding["foundation_audit_policy"]["schema_version"] == (
-        "entry_foundation_audit_policy_v8"
+        "entry_foundation_audit_policy_v10"
     )
     smoke = binding["foundation_audit_policy"]["smoke_edge_pockets"]
     assert smoke["wilson_confidence_level"] == 0.95
@@ -61,8 +61,8 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     assert specialist["rare_event_minimum_active_count"] == {
         "candle.pattern_outside_after_inside_bear_breakout_score": 16,
         "candle.pattern_outside_after_inside_bull_breakout_score": 16,
-        "chart.m5_ema50_200_cross_down": 128,
-        "chart.m5_ema50_200_cross_up": 128,
+        "chart.local_ema50_200_cross_down": 128,
+        "chart.local_ema50_200_cross_up": 128,
         "smc_choch": 32,
     }
     assert binding["foundation_audit_policy"]["audit_data_splits"] == list(

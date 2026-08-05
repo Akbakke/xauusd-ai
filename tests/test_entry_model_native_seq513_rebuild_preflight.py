@@ -35,6 +35,9 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
 )
+from gx1.contracts.xau_tape_provenance_v1 import (
+    SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import group_features_by_specialist
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
@@ -51,7 +54,7 @@ from gx1.scripts import (
 from gx1.scripts import (
     materialize_entry_model_native_seq513_signal_manifest_v1 as signal_manifest_producer,
 )
-from gx1.scripts.prebuild_multi_tf_cache_v2 import publish_multi_tf_v2_cache
+from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
@@ -312,7 +315,7 @@ def _build_fixture(
     source_cascade = {
         "path": str((source.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
         "sha256": "9" * 64,
-        "schema_version": "seq513_source_cascade_pair_proof_v1",
+        "schema_version": SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
         "entry_run_id": RUN_ID,
         "event_root": str(source.parent.resolve()),
         "source_parquet_path": str(source.resolve()),
@@ -509,12 +512,11 @@ def _build_fixture(
         frame.attrs["causal_warmup_rows"] = warmup_rows
         frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
         mtf_frames[tf] = frame
-    publish_multi_tf_v2_cache(
+    publish_multi_tf_v4_cache(
         out_dir=mtf_cache,
         m5_prebuilt=source.resolve(),
         expected_source_sha256=_sha256(source),
         features=mtf_frames,
-        contract="v4",
     )
     if break_mtf:
         mtf_manifest = json.loads(

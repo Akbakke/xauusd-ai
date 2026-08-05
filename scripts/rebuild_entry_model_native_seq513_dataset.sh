@@ -6,7 +6,7 @@ set -euo pipefail
 
 ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
-CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 10G --swap 512M --)
+CAP=("$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M --)
 
 RUN_ID=
 SOURCE_PARQUET=
@@ -25,6 +25,8 @@ EXIT_TARGET_LOOKAHEAD_M1_STEPS=
 EARLY_MOVE_THRESHOLD_BPS=
 OUTPUT=
 AUDIT_OUT_DIR=
+REBUILD_TERMINAL_JSON=
+PREFREEZE_TEST_SEAL_JSON=
 TRAIN_START=
 TRAIN_END=
 VAL_START=
@@ -47,6 +49,8 @@ usage() {
     "  --exit-lifecycle-dir /new/dir --exit-target-lookahead-m1-steps N" \
     "  --early-move-threshold-bps BPS" \
     "  --output /new/dir/STEM__DIR_H24B.parquet --audit-out-dir /new/report/dir" \
+    "  --rebuild-terminal-json /event/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_<UTC>.json" \
+    "  --prefreeze-test-seal-json /event/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_<UTC>.json" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
     "  --test-start UTC --test-end UTC --existing-rank-reference [--resume-exact-checkpoints]"
 }
@@ -70,6 +74,8 @@ while (($#)); do
     --early-move-threshold-bps) EARLY_MOVE_THRESHOLD_BPS=${2:-}; shift 2 ;;
     --output) OUTPUT=${2:-}; shift 2 ;;
     --audit-out-dir) AUDIT_OUT_DIR=${2:-}; shift 2 ;;
+    --rebuild-terminal-json) REBUILD_TERMINAL_JSON=${2:-}; shift 2 ;;
+    --prefreeze-test-seal-json) PREFREEZE_TEST_SEAL_JSON=${2:-}; shift 2 ;;
     --history-start) HISTORY_START=${2:-}; shift 2 ;;
     --train-start) TRAIN_START=${2:-}; shift 2 ;;
     --train-end) TRAIN_END=${2:-}; shift 2 ;;
@@ -94,7 +100,7 @@ required_values=(
   RANK_REFERENCE_NPZ MTF_CACHE_DIR TAPE_ROOT M1_LIFECYCLE_PAIR_MANIFEST_JSON
   M1_LIFECYCLE_PAIR_GENERATION_ROOT M1_FEATURE_BASE_PARQUET M5_FEATURE_BASE_PARQUET
   EXIT_LIFECYCLE_DIR EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS
-  OUTPUT AUDIT_OUT_DIR
+  OUTPUT AUDIT_OUT_DIR REBUILD_TERMINAL_JSON PREFREEZE_TEST_SEAL_JSON
   HISTORY_START TRAIN_START TRAIN_END VAL_START VAL_END TEST_START TEST_END
 )
 for name in "${required_values[@]}"; do
@@ -155,6 +161,19 @@ done
 
 OUTPUT_DIR=$(dirname "$OUTPUT")
 OUTPUT_STEM=$(basename "$OUTPUT" .parquet)
+EXPECTED_AUTHORITY_DIR=$(dirname "$OUTPUT_DIR")/rebuild_authority
+if [[ $(dirname "$REBUILD_TERMINAL_JSON") != "$EXPECTED_AUTHORITY_DIR" \
+   || $(dirname "$PREFREEZE_TEST_SEAL_JSON") != "$EXPECTED_AUTHORITY_DIR" \
+   || $(basename "$REBUILD_TERMINAL_JSON") != ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_*.json \
+   || $(basename "$PREFREEZE_TEST_SEAL_JSON") != ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_*.json ]]; then
+  printf '[ABORT] TEST authority paths must be exact event-owned rebuild_authority events\n' >&2
+  exit 2
+fi
+if [[ -e $REBUILD_TERMINAL_JSON || -L $REBUILD_TERMINAL_JSON \
+   || -e $PREFREEZE_TEST_SEAL_JSON || -L $PREFREEZE_TEST_SEAL_JSON ]]; then
+  printf '[ABORT] TEST authority outputs must be fresh and immutable\n' >&2
+  exit 2
+fi
 FULL_INPUT_LIVENESS_TIMESTAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 FULL_INPUT_LIVENESS_JSON="$AUDIT_OUT_DIR/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_${FULL_INPUT_LIVENESS_TIMESTAMP}.json"
 if [[ -e $AUDIT_OUT_DIR || -L $AUDIT_OUT_DIR ]]; then
@@ -278,11 +297,53 @@ fi
   --exit-lifecycle-dir "$EXIT_LIFECYCLE_DIR" \
   --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
   --output "$OUTPUT" \
+  --rebuild-terminal-json "$REBUILD_TERMINAL_JSON" \
+  --prefreeze-test-seal-json "$PREFREEZE_TEST_SEAL_JSON" \
   --start "$HISTORY_START" --end "$TEST_END" \
   --seq_len 96 --early_move_threshold_bps "$EARLY_MOVE_THRESHOLD_BPS" --time_split \
   --train_start "$TRAIN_START" --train_end "$TRAIN_END" \
   --val_start "$VAL_START" --val_end "$VAL_END" \
   --test_start "$TEST_START" --test_end "$TEST_END"
+
+"$PY" - "$REBUILD_TERMINAL_JSON" "$PREFREEZE_TEST_SEAL_JSON" \
+  "$RUN_ID" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+terminal_path = Path(sys.argv[1])
+seal_path = Path(sys.argv[2])
+run_id = sys.argv[3]
+for label, path in (("rebuild terminal", terminal_path), ("TEST seal", seal_path)):
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"{label} was not atomically published: {path}")
+terminal = json.loads(terminal_path.read_text(encoding="utf-8"))
+seal = json.loads(seal_path.read_text(encoding="utf-8"))
+if (
+    terminal.get("entry_run_id") != run_id
+    or terminal.get("terminal_event_path") != str(terminal_path)
+    or seal.get("entry_run_id") != run_id
+    or seal.get("seal_path") != str(seal_path)
+    or seal.get("rebuild_terminal", {}).get("path") != str(terminal_path)
+    or seal.get("rebuild_terminal", {}).get("sha256") != sha256(terminal_path)
+):
+    raise RuntimeError("published pre-freeze TEST authority is inconsistent")
+print(
+    "[GATE] exact pre-freeze TEST authority: "
+    f"terminal={terminal_path} terminal_sha256={sha256(terminal_path)} "
+    f"seal={seal_path} seal_sha256={sha256(seal_path)}"
+)
+PY
 
 "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_full_input_liveness_v1 \
   --run-id "$RUN_ID" \
@@ -316,7 +377,6 @@ PY
   --dataset-dir "$OUTPUT_DIR" \
   --stem "$OUTPUT_STEM" \
   --out-dir "$AUDIT_OUT_DIR" \
-  --data-splits train,val,test \
   --quiet
 
 printf '[PASS] combined Entry/lifecycle dataset materialized and pretrain-audited; full-input-liveness=%s exit-lifecycle=%s; no training was run. run_id=%s output=%s\n' \

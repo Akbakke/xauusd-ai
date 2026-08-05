@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Bind one completed seq513 rebuild into an immutable smoke-readiness input.
+"""Bind one completed seq513 rebuild into pre-freeze smoke readiness.
 
-This is a report-only boundary.  It revalidates the exact split bytes, the
-complete liveness artifact, the pretrain target audit and the on-disk XAU tape
-lineage.  It never copies a dataset and never starts training or serving.
+This report-only boundary physically revalidates TRAIN/VAL, the complete
+liveness artifact, the pretrain target audit and the on-disk XAU tape lineage.
+It never opens, parses, stats or hashes TEST dataset/manifest paths.  TEST may
+only cross this boundary as metadata in an exact seal already hash-bound by the
+declared rebuild completion authority.
 """
 from __future__ import annotations
 
@@ -13,7 +15,7 @@ import json
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
@@ -25,11 +27,20 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     validate_full_input_liveness_artifact,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    DATASET_REBUILD_TERMINAL_DECISION,
+    DATASET_REBUILD_TERMINAL_EVENT_PREFIX,
+    DATASET_REBUILD_TERMINAL_SCHEMA_VERSION,
     EVENT_PREFIX,
+    PREFREEZE_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+    PREFREEZE_SPLITS,
     READY_DECISION,
     REQUIRED_PROOF_CHECKS,
     SCHEMA_VERSION,
     SIDE_EFFECT_KEYS,
+    TEST_SEAL_ACCESS_POLICY,
+    TEST_SEAL_DECISION,
+    TEST_SEAL_EVENT_PREFIX,
+    TEST_SEAL_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
@@ -38,9 +49,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
-from gx1.contracts.unified_exit_lifecycle_v1 import (
-    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
-)
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
@@ -49,14 +57,75 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 
 
-SPLITS = ("train", "val", "test")
+SPLITS = PREFREEZE_SPLITS
 SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v11"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 CHAIN_SCHEMA = "seq513_rebuild_chain_status_v7"
 DIRECT_BUILD_PROOF_FILENAME = "DATASET_BUILD_PROOF.json"
-EXIT_LIFECYCLE_SCHEMA = UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+FORBIDDEN_TEST_INPUT_FIELDS = (
+    "test_manifest_json",
+    "test_manifest_sha256",
+    "test_parquet",
+    "test_parquet_sha256",
+)
+_SHA256_HEX = frozenset("0123456789abcdef")
+_TEST_SEAL_AUTHORITY_KEYS = frozenset({"path", "sha256"})
+_TEST_SEAL_ARTIFACT_KEYS = frozenset({"path", "sha256"})
+_TEST_SEAL_MANIFEST_CONTRACT_KEYS = frozenset(
+    {"schema_version", "manifest_variant", "entry_run_id", "instrument"}
+)
+_TEST_SEAL_KEYS = frozenset(
+    {
+        "schema_version",
+        "decision",
+        "created_utc",
+        "seal_path",
+        "entry_run_id",
+        "dataset_dir",
+        "split",
+        "access_policy",
+        "disclosure_count",
+        "manifest",
+        "parquet",
+        "manifest_contract",
+        "rows",
+        "pair_lineage",
+        "pair_lineage_sha256",
+        "source_lineage",
+        "source_lineage_sha256",
+        "rebuild_terminal",
+        "content_binding_sha256",
+    }
+)
+_REBUILD_TERMINAL_AUTHORITY_KEYS = frozenset({"path", "sha256"})
+_REBUILD_TERMINAL_BINDING_KEYS = frozenset(
+    {
+        "path",
+        "sha256",
+        "schema_version",
+        "decision",
+        "content_binding_sha256",
+    }
+)
+_REBUILD_TERMINAL_KEYS = frozenset(
+    {
+        "schema_version",
+        "decision",
+        "created_utc",
+        "entry_run_id",
+        "dataset_dir",
+        "dataset_stem",
+        "terminal_event_path",
+        "split_artifacts",
+        "pair_lineage",
+        "pair_lineage_sha256",
+        "source_lineage",
+        "source_lineage_sha256",
+        "content_binding_sha256",
+    }
+)
 
 
 def _sha256_file(path: Path) -> str:
@@ -65,6 +134,39 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _sha256(value: Any, *, label: str) -> str:
+    observed = str(value or "").strip().lower()
+    if len(observed) != 64 or any(
+        character not in _SHA256_HEX for character in observed
+    ):
+        raise RuntimeError(f"{label}: expected exact SHA-256")
+    return observed
+
+
+def _canonical_json_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _reject_test_inputs(args: argparse.Namespace) -> None:
+    supplied = [
+        field
+        for field in FORBIDDEN_TEST_INPUT_FIELDS
+        if getattr(args, field, None) not in (None, "")
+    ]
+    if supplied:
+        raise RuntimeError(
+            "pre-freeze post-rebuild readiness forbids caller-supplied TEST "
+            f"artifacts: {supplied}"
+        )
 
 
 def _json(path: Path, *, label: str) -> dict[str, Any]:
@@ -91,6 +193,317 @@ def _path(raw: str, *, label: str, directory: bool = False) -> Path:
     ):
         raise RuntimeError(f"{label}: invalid immutable path: {path}")
     return path
+
+
+def _expected_opaque_test_paths(
+    *,
+    dataset_dir: Path,
+    prefreeze_artifacts: Mapping[str, Mapping[str, Any]],
+) -> tuple[Path, Path]:
+    train_manifest = Path(str(prefreeze_artifacts["train"]["manifest_path"]))
+    train_parquet = Path(str(prefreeze_artifacts["train"]["parquet_path"]))
+    manifest_suffix = "_train.manifest.json"
+    parquet_suffix = "_train.parquet"
+    if (
+        train_manifest.parent != dataset_dir
+        or train_parquet.parent != dataset_dir
+        or not train_manifest.name.endswith(manifest_suffix)
+        or not train_parquet.name.endswith(parquet_suffix)
+    ):
+        raise RuntimeError("TRAIN split cannot establish one exact dataset stem")
+    manifest_stem = train_manifest.name[: -len(manifest_suffix)]
+    parquet_stem = train_parquet.name[: -len(parquet_suffix)]
+    if not manifest_stem or manifest_stem != parquet_stem:
+        raise RuntimeError("TRAIN manifest/parquet stems differ")
+    for split in PREFREEZE_SPLITS:
+        expected_manifest = dataset_dir / f"{manifest_stem}_{split}.manifest.json"
+        expected_parquet = dataset_dir / f"{manifest_stem}_{split}.parquet"
+        if (
+            Path(str(prefreeze_artifacts[split]["manifest_path"]))
+            != expected_manifest
+            or Path(str(prefreeze_artifacts[split]["parquet_path"]))
+            != expected_parquet
+        ):
+            raise RuntimeError(f"{split}: split stem differs from TRAIN")
+    return (
+        dataset_dir / f"{manifest_stem}_test.manifest.json",
+        dataset_dir / f"{manifest_stem}_test.parquet",
+    )
+
+
+def _opaque_test_artifact(
+    raw: Any,
+    *,
+    expected_path: Path,
+    label: str,
+) -> dict[str, str]:
+    if not isinstance(raw, Mapping) or frozenset(raw) != _TEST_SEAL_ARTIFACT_KEYS:
+        raise RuntimeError(f"{label}: seal artifact keys are not exact")
+    # Deliberately lexical only: no resolve/stat/open operation may touch TEST.
+    observed_path = Path(str(raw.get("path") or ""))
+    if (
+        not observed_path.is_absolute()
+        or observed_path != expected_path
+        or any("latest" in part.lower() for part in observed_path.parts)
+    ):
+        raise RuntimeError(f"{label}: opaque TEST path binding mismatch")
+    return {
+        "path": str(observed_path),
+        "sha256": _sha256(raw.get("sha256"), label=f"{label}.sha256"),
+    }
+
+
+def _completion_bound_test_seal(
+    *,
+    completion_payload: Mapping[str, Any],
+    supplied_seal_path: str,
+    supplied_seal_sha256: str,
+    event_root: Path,
+    dataset_dir: Path,
+    expected_run_id: str,
+    prefreeze_artifacts: Mapping[str, Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    authority = completion_payload.get("prefreeze_test_seal")
+    if (
+        not isinstance(authority, Mapping)
+        or frozenset(authority) != _TEST_SEAL_AUTHORITY_KEYS
+    ):
+        raise RuntimeError(
+            "rebuild completion lacks one exact content-bound pre-freeze TEST seal"
+        )
+    raw_seal_path = Path(str(authority.get("path") or ""))
+    requested_seal_path = Path(str(supplied_seal_path or ""))
+    requested_seal_sha = _sha256(
+        supplied_seal_sha256,
+        label="supplied TEST seal sha256",
+    )
+    if (
+        not raw_seal_path.is_absolute()
+        or requested_seal_path != raw_seal_path
+        or event_root not in raw_seal_path.parents
+        or dataset_dir == raw_seal_path.parent
+        or dataset_dir in raw_seal_path.parents
+        or not raw_seal_path.name.startswith(f"{TEST_SEAL_EVENT_PREFIX}_")
+        or not raw_seal_path.name.endswith(".json")
+        or any("latest" in part.lower() for part in raw_seal_path.parts)
+    ):
+        raise RuntimeError("TEST seal is not an event-owned non-dataset artifact")
+    seal_path = _path(str(raw_seal_path), label="TEST seal")
+    authority_sha = _sha256(
+        authority.get("sha256"),
+        label="TEST seal authority sha256",
+    )
+    if authority_sha != requested_seal_sha or _sha256_file(seal_path) != authority_sha:
+        raise RuntimeError("TEST seal differs from rebuild completion binding")
+    seal = _json(seal_path, label="TEST seal")
+    if frozenset(seal) != _TEST_SEAL_KEYS:
+        raise RuntimeError("TEST seal keys are not exact")
+    if (
+        seal.get("schema_version") != TEST_SEAL_SCHEMA_VERSION
+        or seal.get("decision") != TEST_SEAL_DECISION
+        or seal.get("seal_path") != str(seal_path)
+        or seal.get("entry_run_id") != expected_run_id
+        or seal.get("dataset_dir") != str(dataset_dir)
+        or seal.get("split") != "test"
+        or seal.get("access_policy") != TEST_SEAL_ACCESS_POLICY
+        or seal.get("disclosure_count") != 0
+    ):
+        raise RuntimeError("TEST seal identity/access contract mismatch")
+
+    expected_manifest_path, expected_parquet_path = _expected_opaque_test_paths(
+        dataset_dir=dataset_dir,
+        prefreeze_artifacts=prefreeze_artifacts,
+    )
+    manifest = _opaque_test_artifact(
+        seal.get("manifest"),
+        expected_path=expected_manifest_path,
+        label="TEST manifest seal",
+    )
+    parquet = _opaque_test_artifact(
+        seal.get("parquet"),
+        expected_path=expected_parquet_path,
+        label="TEST parquet seal",
+    )
+    manifest_contract = seal.get("manifest_contract")
+    if (
+        not isinstance(manifest_contract, Mapping)
+        or frozenset(manifest_contract) != _TEST_SEAL_MANIFEST_CONTRACT_KEYS
+        or manifest_contract.get("schema_version") != SPLIT_MANIFEST_SCHEMA
+        or manifest_contract.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE
+        or manifest_contract.get("entry_run_id") != expected_run_id
+        or manifest_contract.get("instrument") != XAU_INSTRUMENT
+    ):
+        raise RuntimeError("TEST seal manifest contract mismatch")
+    rows = seal.get("rows")
+    if isinstance(rows, bool) or not isinstance(rows, int) or rows <= 0:
+        raise RuntimeError("TEST seal row count must be a positive integer")
+    bound_content = {
+        key: seal[key]
+        for key in sorted(_TEST_SEAL_KEYS - {"content_binding_sha256"})
+    }
+    content_binding_sha256 = _sha256(
+        seal.get("content_binding_sha256"),
+        label="TEST seal content binding sha256",
+    )
+    if _canonical_json_sha256(bound_content) != content_binding_sha256:
+        raise RuntimeError("TEST seal canonical content binding mismatch")
+
+    pair_lineage = seal.get("pair_lineage")
+    source_lineage = seal.get("source_lineage")
+    if (
+        not isinstance(pair_lineage, Mapping)
+        or not isinstance(source_lineage, Mapping)
+        or _canonical_json_sha256(pair_lineage)
+        != _sha256(
+            seal.get("pair_lineage_sha256"),
+            label="TEST seal pair lineage sha256",
+        )
+        or _canonical_json_sha256(source_lineage)
+        != _sha256(
+            seal.get("source_lineage_sha256"),
+            label="TEST seal source lineage sha256",
+        )
+    ):
+        raise RuntimeError("TEST seal pair/source lineage binding mismatch")
+
+    rebuild_binding = seal.get("rebuild_terminal")
+    completion_rebuild = completion_payload.get("dataset_rebuild_terminal")
+    if (
+        not isinstance(rebuild_binding, Mapping)
+        or frozenset(rebuild_binding) != _REBUILD_TERMINAL_BINDING_KEYS
+        or not isinstance(completion_rebuild, Mapping)
+        or frozenset(completion_rebuild) != _REBUILD_TERMINAL_AUTHORITY_KEYS
+        or completion_rebuild.get("path") != rebuild_binding.get("path")
+        or completion_rebuild.get("sha256") != rebuild_binding.get("sha256")
+    ):
+        raise RuntimeError("TEST seal rebuild-terminal authority mismatch")
+    raw_rebuild_path = Path(str(rebuild_binding.get("path") or ""))
+    if (
+        not raw_rebuild_path.is_absolute()
+        or event_root not in raw_rebuild_path.parents
+        or dataset_dir == raw_rebuild_path.parent
+        or dataset_dir in raw_rebuild_path.parents
+        or not raw_rebuild_path.name.startswith(
+            f"{DATASET_REBUILD_TERMINAL_EVENT_PREFIX}_"
+        )
+        or not raw_rebuild_path.name.endswith(".json")
+        or any("latest" in part.lower() for part in raw_rebuild_path.parts)
+    ):
+        raise RuntimeError("dataset rebuild terminal is not event-owned")
+    rebuild_path = _path(str(raw_rebuild_path), label="dataset rebuild terminal")
+    rebuild_sha = _sha256(
+        rebuild_binding.get("sha256"),
+        label="dataset rebuild terminal sha256",
+    )
+    if _sha256_file(rebuild_path) != rebuild_sha:
+        raise RuntimeError("dataset rebuild terminal hash mismatch")
+    rebuild = _json(rebuild_path, label="dataset rebuild terminal")
+    if frozenset(rebuild) != _REBUILD_TERMINAL_KEYS:
+        raise RuntimeError("dataset rebuild terminal keys are not exact")
+    rebuild_content = dict(rebuild)
+    rebuild_content_sha = _sha256(
+        rebuild_content.pop("content_binding_sha256", None),
+        label="dataset rebuild terminal content binding sha256",
+    )
+    if (
+        rebuild.get("schema_version") != DATASET_REBUILD_TERMINAL_SCHEMA_VERSION
+        or rebuild.get("decision") != DATASET_REBUILD_TERMINAL_DECISION
+        or rebuild.get("entry_run_id") != expected_run_id
+        or rebuild.get("dataset_dir") != str(dataset_dir)
+        or expected_manifest_path.name
+        != f"{rebuild.get('dataset_stem')}_test.manifest.json"
+        or expected_parquet_path.name
+        != f"{rebuild.get('dataset_stem')}_test.parquet"
+        or rebuild.get("terminal_event_path") != str(rebuild_path)
+        or rebuild_binding.get("schema_version")
+        != DATASET_REBUILD_TERMINAL_SCHEMA_VERSION
+        or rebuild_binding.get("decision") != DATASET_REBUILD_TERMINAL_DECISION
+        or rebuild_binding.get("content_binding_sha256") != rebuild_content_sha
+        or _canonical_json_sha256(rebuild_content) != rebuild_content_sha
+        or rebuild.get("pair_lineage") != pair_lineage
+        or rebuild.get("source_lineage") != source_lineage
+        or rebuild.get("pair_lineage_sha256")
+        != seal.get("pair_lineage_sha256")
+        or rebuild.get("source_lineage_sha256")
+        != seal.get("source_lineage_sha256")
+    ):
+        raise RuntimeError("dataset rebuild terminal content/lineage mismatch")
+    rebuild_splits = rebuild.get("split_artifacts")
+    if not isinstance(rebuild_splits, Mapping) or set(rebuild_splits) != {
+        "train",
+        "val",
+        "test",
+    }:
+        raise RuntimeError("dataset rebuild terminal split set is not exact")
+    for split in PREFREEZE_SPLITS:
+        expected = prefreeze_artifacts[split]
+        observed = rebuild_splits.get(split)
+        if not isinstance(observed, Mapping) or any(
+            observed.get(key) != expected.get(key)
+            for key in (
+                "manifest_path",
+                "manifest_sha256",
+                "parquet_path",
+                "parquet_sha256",
+                "schema_version",
+                "manifest_variant",
+                "rows",
+                "entry_run_id",
+                "instrument",
+            )
+        ):
+            raise RuntimeError(f"dataset rebuild terminal {split} binding mismatch")
+    rebuilt_test = rebuild_splits.get("test")
+    if not isinstance(rebuilt_test, Mapping) or any(
+        rebuilt_test.get(key) != expected
+        for key, expected in {
+            "manifest_path": manifest["path"],
+            "manifest_sha256": manifest["sha256"],
+            "parquet_path": parquet["path"],
+            "parquet_sha256": parquet["sha256"],
+            "schema_version": manifest_contract["schema_version"],
+            "manifest_variant": manifest_contract["manifest_variant"],
+            "rows": rows,
+            "entry_run_id": expected_run_id,
+            "instrument": manifest_contract["instrument"],
+        }.items()
+    ):
+        raise RuntimeError("dataset rebuild terminal TEST binding mismatch")
+
+    test_artifact = {
+        "manifest_path": manifest["path"],
+        "manifest_sha256": manifest["sha256"],
+        "parquet_path": parquet["path"],
+        "parquet_sha256": parquet["sha256"],
+        "schema_version": manifest_contract["schema_version"],
+        "manifest_variant": manifest_contract["manifest_variant"],
+        "rows": rows,
+        "entry_run_id": expected_run_id,
+        "instrument": manifest_contract["instrument"],
+        "access_mode": TEST_SEAL_ACCESS_POLICY,
+        "seal_path": str(seal_path),
+        "seal_sha256": authority_sha,
+    }
+    details = {
+        "schema_version": TEST_SEAL_SCHEMA_VERSION,
+        "decision": TEST_SEAL_DECISION,
+        "access_policy": TEST_SEAL_ACCESS_POLICY,
+        "authority": {"path": str(seal_path), "sha256": authority_sha},
+        "content_binding_sha256": content_binding_sha256,
+        "rebuild_terminal": {
+            "path": str(rebuild_path),
+            "sha256": rebuild_sha,
+            "schema_version": DATASET_REBUILD_TERMINAL_SCHEMA_VERSION,
+            "content_binding_sha256": rebuild_content_sha,
+        },
+        "pair_lineage_sha256": seal["pair_lineage_sha256"],
+        "source_lineage_sha256": seal["source_lineage_sha256"],
+        "disclosure_count": 0,
+        "test_dataset_bytes_read": False,
+        "test_manifest_bytes_read": False,
+        "test_paths_resolved_or_statted": False,
+    }
+    return test_artifact, details
 
 
 def _artifact(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
@@ -198,99 +611,8 @@ def _manifest_contract(
     }, failures
 
 
-def _direct_build_proof_details(
-    *,
-    proof_path: Path,
-    proof: dict[str, Any],
-    dataset_dir: Path,
-    event_root: Path,
-    expected_run_id: str,
-) -> tuple[bool, dict[str, Any]]:
-    """Validate the direct capped rebuild's immutable completion proof.
-
-    The current rebuild owner is intentionally callable without the historical
-    one-shot chain driver.  Its DATASET_BUILD_PROOF is therefore a first-class
-    completion authority, not a synthetic chain-terminal substitute.  Keep the
-    path explicit and bind the completed Exit lifecycle root as well.
-    """
-    failures: list[str] = []
-    expected_path = dataset_dir / DIRECT_BUILD_PROOF_FILENAME
-    if proof_path != expected_path:
-        failures.append("direct completion path is not the dataset build proof")
-    if proof.get("entry_run_id") != expected_run_id:
-        failures.append("direct completion run id mismatch")
-    if proof.get("truth_source") != "exact_source_parquet":
-        failures.append("direct completion truth source mismatch")
-    if proof.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE:
-        failures.append("direct completion contract mode mismatch")
-    if proof.get("direction_logit_mode") != "model_native":
-        failures.append("direct completion direction mode mismatch")
-    if proof.get("ctx_cont_dim") != EXPECTED_FIELD_COUNTS["ctx_cont"]:
-        failures.append("direct completion continuous context dimension mismatch")
-    if proof.get("ctx_cat_dim") != EXPECTED_FIELD_COUNTS["ctx_cat"]:
-        failures.append("direct completion categorical context dimension mismatch")
-    output_path = Path(str(proof.get("output_path") or ""))
-    if (
-        not output_path.is_absolute()
-        or output_path.parent != dataset_dir
-        or not output_path.name.endswith("__DIR_H24B.parquet")
-    ):
-        failures.append("direct completion output stem is not dataset-bound")
-    try:
-        require_model_native_signal_contract(
-            proof.get("model_native_signal_contract"),
-            context="direct rebuild DATASET_BUILD_PROOF",
-        )
-    except Exception as exc:
-        failures.append(f"direct completion signal contract invalid: {exc}")
-
-    lifecycle = proof.get("unified_exit_lifecycle")
-    if not isinstance(lifecycle, dict):
-        failures.append("direct completion lacks unified Exit lifecycle binding")
-        lifecycle = {}
-    lifecycle_dir = Path(str(lifecycle.get("output_dir") or ""))
-    lifecycle_manifest = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
-    lifecycle_payload: dict[str, Any] = {}
-    if (
-        not lifecycle_dir.is_absolute()
-        or lifecycle_dir.parent != event_root
-        or lifecycle_dir.is_symlink()
-        or not lifecycle_dir.is_dir()
-    ):
-        failures.append("direct completion Exit lifecycle directory is not event-bound")
-    elif not lifecycle_manifest.is_file() or lifecycle_manifest.is_symlink():
-        failures.append("direct completion Exit lifecycle root manifest is missing")
-    else:
-        lifecycle_payload = _json(
-            lifecycle_manifest,
-            label="direct completion Exit lifecycle root manifest",
-        )
-        if lifecycle_payload.get("decision") != "PASS":
-            failures.append("direct completion Exit lifecycle root is not PASS")
-        if lifecycle_payload.get("schema_version") != EXIT_LIFECYCLE_SCHEMA:
-            failures.append("direct completion Exit lifecycle schema mismatch")
-        if lifecycle_payload.get("entry_run_id") != expected_run_id:
-            failures.append("direct completion Exit lifecycle run id mismatch")
-    if lifecycle.get("schema_version") != EXIT_LIFECYCLE_SCHEMA:
-        failures.append("direct completion Exit lifecycle binding schema mismatch")
-    if lifecycle.get("output_dir") != str(lifecycle_dir):
-        failures.append("direct completion Exit lifecycle path binding mismatch")
-    details = {
-        "mode": "direct_capped_rebuild",
-        "proof_path": str(proof_path),
-        "proof_sha256": _sha256_file(proof_path),
-        "lifecycle_manifest_path": str(lifecycle_manifest),
-        "lifecycle_manifest_sha256": (
-            _sha256_file(lifecycle_manifest)
-            if lifecycle_manifest.is_file() and not lifecycle_manifest.is_symlink()
-            else None
-        ),
-        "failures": failures,
-    }
-    return not failures, details
-
-
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    _reject_test_inputs(args)
     run_id = str(args.run_id or "").strip()
     if not run_id:
         raise RuntimeError("entry run id is required")
@@ -383,6 +705,32 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         split_failures.extend(failures)
 
+    try:
+        test_artifact, test_seal_details = _completion_bound_test_seal(
+            completion_payload=terminal,
+            supplied_seal_path=args.test_seal_json,
+            supplied_seal_sha256=args.test_seal_sha256,
+            event_root=event_root,
+            dataset_dir=dataset_dir,
+            expected_run_id=run_id,
+            prefreeze_artifacts=split_artifacts,
+        )
+    except RuntimeError as exc:
+        test_artifact = None
+        test_seal_ok = False
+        test_seal_details = {
+            "schema_version": TEST_SEAL_SCHEMA_VERSION,
+            "decision": "REJECTED",
+            "access_policy": TEST_SEAL_ACCESS_POLICY,
+            "error": str(exc),
+            "disclosure_count": 0,
+            "test_dataset_bytes_read": False,
+            "test_manifest_bytes_read": False,
+            "test_paths_resolved_or_statted": False,
+        }
+    else:
+        test_seal_ok = True
+
     liveness_validation = validate_full_input_liveness_artifact(
         liveness_path,
         expected_sha256=_sha256_file(liveness_path),
@@ -397,8 +745,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
     )
 
+    standalone_build_proof_supplied = (
+        terminal_path.name == DIRECT_BUILD_PROOF_FILENAME
+    )
     chain_terminal_ok = (
-        terminal.get("schema_version") == CHAIN_SCHEMA
+        not standalone_build_proof_supplied
+        and terminal.get("schema_version") == CHAIN_SCHEMA
         and terminal.get("state") == "GREEN"
         and terminal.get("step") == "chain-complete"
         and terminal.get("exit_code") == 0
@@ -407,25 +759,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and Path(str(terminal.get("terminal_event_path") or "")).resolve()
         == terminal_path
     )
-    direct_completion_ok, direct_completion_details = _direct_build_proof_details(
-        proof_path=terminal_path,
-        proof=terminal,
-        dataset_dir=dataset_dir,
-        event_root=event_root,
-        expected_run_id=run_id,
-    )
-    direct_completion_mode = (
-        terminal_path.name == DIRECT_BUILD_PROOF_FILENAME
-        and direct_completion_ok
-    )
-    terminal_ok = chain_terminal_ok or direct_completion_mode
-    completion_mode = (
-        "direct_capped_rebuild"
-        if direct_completion_mode
-        else "seq513_rebuild_chain_v7"
-        if chain_terminal_ok
-        else "invalid"
-    )
+    terminal_ok = chain_terminal_ok
+    completion_mode = "seq513_rebuild_chain_v7" if chain_terminal_ok else "invalid"
     terminal_preflight = (
         terminal.get("preflight")
         if isinstance(terminal.get("preflight"), dict)
@@ -437,29 +772,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and preflight.get("entry_run_id") == run_id
         and preflight.get("training_allowed") is False
     )
-    if direct_completion_mode:
-        preflight_inputs = (
-            preflight.get("inputs")
-            if isinstance(preflight.get("inputs"), dict)
-            else {}
-        )
-        source_input = (
-            preflight_inputs.get("source_parquet")
-            if isinstance(preflight_inputs.get("source_parquet"), dict)
-            else {}
-        )
-        preflight_ok = preflight_common_ok and (
-            source_input.get("path") == terminal.get("source_parquet")
-            and source_input.get("sha256")
-            == terminal.get("signal_training_lineage", {}).get("source_sha256")
-            and preflight_inputs.get("exit_lifecycle_dir")
-            == terminal.get("unified_exit_lifecycle", {}).get("output_dir")
-        )
-    else:
-        preflight_ok = preflight_common_ok and (
-            terminal_preflight.get("json_path") == str(preflight_path)
-            and terminal_preflight.get("sha256") == _sha256_file(preflight_path)
-        )
+    preflight_ok = preflight_common_ok and (
+        terminal_preflight.get("json_path") == str(preflight_path)
+        and terminal_preflight.get("sha256") == _sha256_file(preflight_path)
+    )
     liveness_ok = (
         liveness.get("schema_version") == LIVENESS_SCHEMA_VERSION
         and liveness.get("decision") == "PASS"
@@ -476,8 +792,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and pretrain.get("decision") == "PASS"
         and not pretrain.get("failures")
         and pretrain.get("require_xau_provenance") is True
-        and tuple(pretrain.get("data_splits") or ()) == SPLITS
-        and all(pretrain_tape.get(split) == xau_provenance for split in SPLITS)
+        and tuple(pretrain.get("data_splits") or ()) == PREFREEZE_SPLITS
+        and set(pretrain_tape) == set(PREFREEZE_SPLITS)
+        and all(
+            pretrain_tape.get(split) == xau_provenance
+            for split in PREFREEZE_SPLITS
+        )
     )
     provenance_schema = xau_provenance.get("schema_version")
     tape_identity_ok = (
@@ -490,7 +810,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     splits_ok = (
         not split_failures
         and tape_identity_ok
-        and all(split_artifacts[split]["rows"] > 0 for split in SPLITS)
+        and all(
+            split_artifacts[split]["rows"] > 0
+            for split in PREFREEZE_SPLITS
+        )
     )
 
     checks = [
@@ -500,7 +823,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "completion_mode": completion_mode,
                 "chain_terminal": chain_terminal_ok,
-                "direct_completion": direct_completion_details,
+                "standalone_build_proof_allowed": False,
+                "standalone_build_proof_supplied": (
+                    standalone_build_proof_supplied
+                ),
                 "artifact": _artifact(terminal_path, terminal),
             },
         ),
@@ -511,6 +837,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             REQUIRED_PROOF_CHECKS[4],
             splits_ok,
             {"failures": split_failures, "splits": split_artifacts},
+        ),
+        _check(
+            REQUIRED_PROOF_CHECKS[5],
+            test_seal_ok,
+            test_seal_details,
         ),
     ]
     failures = [row for row in checks if not row["ok"]]
@@ -536,8 +867,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "chain_terminal": _artifact(terminal_path, terminal),
         "rebuild_completion_mode": completion_mode,
         "rebuild_preflight": _artifact(preflight_path, preflight),
-        "split_artifacts_schema_version": ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
-        "split_artifacts": split_artifacts,
+        "split_artifacts_schema_version": PREFREEZE_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+        "prefreeze_physical_split_contract_schema_version": (
+            ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+        ),
+        "split_artifacts": {
+            **split_artifacts,
+            **({"test": test_artifact} if test_artifact is not None else {}),
+        },
+        "test_isolation": test_seal_details,
         "xau_tape_provenance": xau_provenance,
         "post_rebuild_refresh_command_contract": {
             "smoke_dataset_dir": str(smoke_dataset_dir),
@@ -559,7 +897,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "decision": payload["decision"],
                     "entry_run_id": run_id,
                     "split_rows": {
-                        split: split_artifacts[split]["rows"] for split in SPLITS
+                        split: row["rows"]
+                        for split, row in payload["split_artifacts"].items()
                     },
                     "json_path": str(path),
                     "failures": failures,
@@ -579,6 +918,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-root", required=True)
     parser.add_argument("--repo-dir", required=True)
     parser.add_argument("--chain-terminal-json", required=True)
+    parser.add_argument("--test-seal-json", required=True)
+    parser.add_argument("--test-seal-sha256", required=True)
     parser.add_argument("--rebuild-preflight-json", required=True)
     parser.add_argument("--full-input-liveness-json", required=True)
     parser.add_argument("--pretrain-audit-json", required=True)

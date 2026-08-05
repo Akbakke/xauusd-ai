@@ -18,6 +18,7 @@ from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
     validate_xau_tape_provenance_v1,
 )
 from gx1.features.htf_features import (
@@ -26,7 +27,7 @@ from gx1.features.htf_features import (
     MULTI_TF_FEATURE_COUNT_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_TIMEFRAMES,
-    load_multi_tf_cache,
+    load_multi_tf_v4_cache,
     require_multi_tf_v4_liveness_contract,
 )
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
@@ -38,7 +39,6 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
 
 
 SCHEMA_VERSION = "seq513_source_cascade_proof_v7"
-CURRENT_PAIR_SCHEMA_VERSION = "seq513_source_cascade_pair_proof_v1"
 # 2026-07-24 source decisions changed the canonical surface: the three
 # non-causal slippage/cost fields are removed, the session evidence block is
 # mandatory (nine add_session_features fields plus _v1_is_EU/_v1_is_US and
@@ -129,7 +129,20 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
-    os.replace(temporary, path)
+    try:
+        os.link(temporary, path, follow_symlinks=False)
+    except FileExistsError as exc:
+        raise RuntimeError(
+            f"SEQ513_SOURCE_OUTPUT_EXISTS: immutable target already exists: {path}"
+        ) from exc
+    finally:
+        if temporary.exists() and not temporary.is_symlink():
+            temporary.unlink()
+    directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
 
 
 def _full_numeric_liveness(path: Path) -> dict[str, Any]:
@@ -331,7 +344,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _same_path(mtf.get("m5_prebuilt_source"), cv3, label="MTF_SOURCE")
     _same(mtf.get("m5_prebuilt_source_sha256"), cv3_sha, label="MTF_SOURCE_HASH")
     require_multi_tf_v4_liveness_contract(mtf.get("full_input_liveness"))
-    verified_mtf = load_multi_tf_cache(mtf_root)
+    verified_mtf = load_multi_tf_v4_cache(mtf_root)
     _same(
         getattr(verified_mtf, "cache_identity_sha256", None),
         mtf.get("cache_identity_sha256"),
@@ -486,7 +499,10 @@ def validate_seq513_source_cascade_proof(
     resolved_proof = proof_path.expanduser().resolve()
     if resolved_proof.parent != event_root:
         raise RuntimeError("SEQ513_SOURCE_CASCADE_PROOF_NOT_EVENT_LOCAL")
-    if proof.get("schema_version") == CURRENT_PAIR_SCHEMA_VERSION:
+    if (
+        proof.get("schema_version")
+        == SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION
+    ):
         return _validate_current_pair_source_cascade_proof(
             proof_path=resolved_proof,
             proof=proof,
@@ -518,7 +534,7 @@ def validate_seq513_source_cascade_proof(
     contracts = proof.get("contracts")
     if not isinstance(artifacts, dict) or not isinstance(contracts, dict):
         raise RuntimeError("SEQ513_SOURCE_CASCADE_PROOF_SECTIONS_INVALID")
-    cache = load_multi_tf_cache(cache_dir)
+    cache = load_multi_tf_v4_cache(cache_dir)
     manifest_path = cache_dir / "manifest.json"
     expected_history = _utc(
         expected_history_start_utc,
@@ -625,6 +641,8 @@ def _validate_current_pair_source_cascade_proof(
         "canonical_v2_sha256",
         "multi_tf_manifest_sha256",
         "multi_tf_cache_identity_sha256",
+        "multi_tf_source_path",
+        "multi_tf_source_sha256",
         "pair_manifest_path",
         "pair_manifest_sha256",
         "pair_generation_id",
@@ -637,15 +655,35 @@ def _validate_current_pair_source_cascade_proof(
         "time_max_utc",
         "no_fallback",
         "future_rows_used",
+        "multi_tf_source_market_identity",
     }:
         raise RuntimeError("SEQ513_CURRENT_PAIR_PROOF_CONTRACT_KEYS_INVALID")
     _same_path(artifacts.get("source_parquet_path"), expected_source_parquet, label="CURRENT_PAIR_SOURCE")
     _same(artifacts.get("source_parquet_sha256"), _sha256_file(expected_source_parquet), label="CURRENT_PAIR_SOURCE_HASH")
     _same_path(artifacts.get("canonical_v2_path"), expected_canonical_v2_parquet, label="CURRENT_PAIR_CANONICAL")
     _same(artifacts.get("canonical_v2_sha256"), _sha256_file(expected_canonical_v2_parquet), label="CURRENT_PAIR_CANONICAL_HASH")
-    cache = load_multi_tf_cache(expected_mtf_cache_dir)
+    cache = load_multi_tf_v4_cache(expected_mtf_cache_dir)
     _same(artifacts.get("multi_tf_manifest_sha256"), _sha256_file(expected_mtf_cache_dir / "manifest.json"), label="CURRENT_PAIR_MTF_MANIFEST_HASH")
     _same(artifacts.get("multi_tf_cache_identity_sha256"), cache.cache_identity_sha256, label="CURRENT_PAIR_MTF_IDENTITY")
+    cache_source = _regular(
+        Path(str(cache.m5_prebuilt_source)).expanduser().resolve(),
+        label="CURRENT_PAIR_MTF_SOURCE",
+    )
+    _same_path(
+        artifacts.get("multi_tf_source_path"),
+        cache_source,
+        label="CURRENT_PAIR_MTF_SOURCE",
+    )
+    _same(
+        artifacts.get("multi_tf_source_sha256"),
+        _sha256_file(cache_source),
+        label="CURRENT_PAIR_MTF_SOURCE_HASH",
+    )
+    _same(
+        str(cache.m5_prebuilt_source_sha256),
+        _sha256_file(cache_source),
+        label="CURRENT_PAIR_MTF_MANIFEST_SOURCE_HASH",
+    )
     pair_manifest = Path(str(artifacts.get("pair_manifest_path") or "")).expanduser().resolve()
     _same(artifacts.get("pair_manifest_sha256"), _sha256_file(pair_manifest), label="CURRENT_PAIR_PAIR_MANIFEST_HASH")
     pair = _json(pair_manifest, label="CURRENT_PAIR_MANIFEST")
@@ -657,10 +695,15 @@ def _validate_current_pair_source_cascade_proof(
     _same(contracts.get("required_history_start_covered"), True, label="CURRENT_PAIR_HISTORY_COVERED")
     _same(contracts.get("no_fallback"), True, label="CURRENT_PAIR_NO_FALLBACK")
     _same(contracts.get("future_rows_used"), False, label="CURRENT_PAIR_FUTURE_ROWS")
+    _same(
+        contracts.get("multi_tf_source_market_identity"),
+        True,
+        label="CURRENT_PAIR_MTF_SOURCE_MARKET_IDENTITY",
+    )
     return {
         "path": str(proof_path),
         "sha256": _sha256_file(proof_path),
-        "schema_version": CURRENT_PAIR_SCHEMA_VERSION,
+        "schema_version": SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
         "entry_run_id": expected_run_id,
         "event_root": str(event_root),
         "source_parquet_path": str(expected_source_parquet),
@@ -670,6 +713,8 @@ def _validate_current_pair_source_cascade_proof(
         "multi_tf_cache_dir": str(expected_mtf_cache_dir),
         "multi_tf_manifest_sha256": str(artifacts["multi_tf_manifest_sha256"]),
         "multi_tf_cache_identity_sha256": str(artifacts["multi_tf_cache_identity_sha256"]),
+        "multi_tf_source_path": str(artifacts["multi_tf_source_path"]),
+        "multi_tf_source_sha256": str(artifacts["multi_tf_source_sha256"]),
         "pair_manifest_path": str(pair_manifest),
         "pair_manifest_sha256": str(artifacts["pair_manifest_sha256"]),
         "pair_generation_id": str(artifacts["pair_generation_id"]),

@@ -34,22 +34,15 @@ if str(REPO) not in sys.path:
 from gx1.features.htf_features import (
     build_multi_tf_per_bar_features_v4,
     HTF_V4_MATRIX_CONTRACT,
-    MULTI_TF_PER_BAR_FEATURES_V2,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_V4_GROUP_A_BASE_FEATURES,
     MULTI_TF_RESAMPLE_RULES,
     MULTI_TF_TIMEFRAMES,
     MULTI_TF_TIMEFRAMES_LOWER,
     validate_causal_feature_matrix,
 )
 TF_NAMES = MULTI_TF_TIMEFRAMES
-_GROUP_A_MTF_SOURCE_FEATURES = tuple(
-    "vwap_local_cycle_dist_atr"
-    if name == "vwap_session_dist_atr"
-    else "vwap_local_cycle_slope_atr"
-    if name == "vwap_session_slope_atr"
-    else name
-    for name in MULTI_TF_PER_BAR_FEATURES_V2
-)
+_GROUP_A_MTF_SOURCE_FEATURES = MULTI_TF_V4_GROUP_A_BASE_FEATURES
 _GROUP_A_MTF_SOURCE_INDICES = tuple(
     MULTI_TF_PER_BAR_FEATURES_V4.index(name)
     for name in _GROUP_A_MTF_SOURCE_FEATURES
@@ -143,7 +136,9 @@ def trim_causal_context_warmup_prefix(
     return trimmed
 
 PER_TF_FEATURE_NAMES = tuple(
-    _pertf_name(tf, feat) for tf in TF_NAMES for feat in MULTI_TF_PER_BAR_FEATURES_V2
+    _pertf_name(tf, feat)
+    for tf in TF_NAMES
+    for feat in MULTI_TF_V4_GROUP_A_BASE_FEATURES
 )
 # 5 × 25 = 125
 
@@ -217,6 +212,8 @@ JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 @dataclass
 class AugmentContext:
     """Pre-built caches for fast per-candidate compute."""
+    decision_close: np.ndarray      # native local-clock close prices
+    decision_ts_ns: np.ndarray      # native local-clock bar-start timestamps
     m5_close: np.ndarray            # close prices
     m5_high: np.ndarray
     m5_low: np.ndarray
@@ -430,6 +427,7 @@ def _assert_multi_tf_cache_fresh(
     m5_df: pd.DataFrame,
     multi_tf: dict,
     *,
+    final_decision_ts_ns: int,
     decision_bar_duration_ns: int = _DECISION_M5_NS,
 ) -> None:
     """Require the exact causal cache and finite evidence at the final cutoff."""
@@ -440,7 +438,12 @@ def _assert_multi_tf_cache_fresh(
             f"[MTF_CACHE_CONTRACT] exact TF keys required: expected={list(TF_NAMES)} "
             f"observed={sorted(map(str, multi_tf))}"
         )
-    m5_last = int(pd.Timestamp(m5_df.index[-1]).value)
+    if (
+        isinstance(final_decision_ts_ns, bool)
+        or not isinstance(final_decision_ts_ns, (int, np.integer))
+    ):
+        raise RuntimeError("[MTF_CACHE_CONTRACT] final decision timestamp is invalid")
+    final_decision_ts_ns = int(final_decision_ts_ns)
     expected_width = len(MULTI_TF_PER_BAR_FEATURES_V4)
     for tf in TF_NAMES:
         feats = multi_tf[tf]
@@ -464,7 +467,7 @@ def _assert_multi_tf_cache_fresh(
         if feats.attrs.get("causal_warmup_rows") != warmup_rows:
             raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} warmup metadata mismatch")
         closed_cutoff = _cache_cutoff_ns(
-            m5_last,
+            final_decision_ts_ns,
             tf,
             decision_bar_duration_ns=decision_bar_duration_ns,
         )
@@ -493,18 +496,24 @@ def build_context(
     multi_tf: dict,
     journal_dir: Path,
     *,
+    decision_frame: pd.DataFrame | None = None,
     decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> AugmentContext:
     """Pre-compute all caches ONCE. Heavy upfront cost, fast per-candidate after."""
     if not isinstance(decision_bar_duration, pd.Timedelta) or decision_bar_duration <= pd.Timedelta(0):
         raise RuntimeError("[CTX_BUILD] decision bar duration must be positive")
     decision_bar_duration_ns = int(decision_bar_duration.value)
-    _validate_m5_frame(m5_df, context="CTX_BUILD")
-    if np.any(m5_df.index.asi8 % decision_bar_duration_ns != 0):
-        raise RuntimeError("[CTX_BUILD] source timestamps are off the declared base grid")
+    _validate_m5_frame(m5_df, context="CTX_BUILD_M5")
+    if np.any(m5_df.index.asi8 % _DECISION_M5_NS != 0):
+        raise RuntimeError("[CTX_BUILD] M5 context timestamps are off the five-minute grid")
+    decision = m5_df if decision_frame is None else decision_frame
+    _validate_m5_frame(decision, context="CTX_BUILD_DECISION")
+    if np.any(decision.index.asi8 % decision_bar_duration_ns != 0):
+        raise RuntimeError("[CTX_BUILD] decision timestamps are off the declared local grid")
     _assert_multi_tf_cache_fresh(
         m5_df,
         multi_tf,
+        final_decision_ts_ns=int(decision.index[-1].value),
         decision_bar_duration_ns=decision_bar_duration_ns,
     )  # fail-closed on stale multi-TF cache (rule 4)
     ts_ns = m5_df.index.values.astype("datetime64[ns]").astype(np.int64)
@@ -525,6 +534,8 @@ def build_context(
     trade_hist = _build_trade_history(journal_dir)
 
     return AugmentContext(
+        decision_close=decision["close"].to_numpy(np.float64),
+        decision_ts_ns=decision.index.values.astype("datetime64[ns]").astype(np.int64),
         m5_close=m5_df["close"].to_numpy(np.float64),
         m5_high=m5_df["high"].to_numpy(np.float64),
         m5_low=m5_df["low"].to_numpy(np.float64),
@@ -610,7 +621,7 @@ def _per_tf_all(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     for tf in TF_NAMES:
         row = _tf_cache_row(ctx, tf, ts_ns)
         for output_name, source_index in zip(
-            MULTI_TF_PER_BAR_FEATURES_V2,
+            MULTI_TF_V4_GROUP_A_BASE_FEATURES,
             _GROUP_A_MTF_SOURCE_INDICES,
             strict=True,
         ):
@@ -643,11 +654,25 @@ def _vol_term(per_tf: dict[str, float]) -> dict[str, float]:
     }
 
 
+def _closed_m5_index(ctx: AugmentContext, ts_ns: int) -> int:
+    """Return the latest M5 row closed at the native decision availability."""
+
+    cutoff_ns = _cache_cutoff_ns(
+        ts_ns,
+        "M5",
+        decision_bar_duration_ns=ctx.decision_bar_duration_ns,
+    )
+    right = int(np.searchsorted(ctx.m5_ts_ns, cutoff_ns, side="right"))
+    if right == 0:
+        raise CausalContextWarmupError(
+            "[CTX_M5_WARMUP] no closed M5 row at decision availability"
+        )
+    return right - 1
+
+
 def _vol_pct(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     """Lookup pre-computed M5 / H1 ATR percentile at ts_ns."""
-    m5_idx = int(np.searchsorted(ctx.m5_ts_ns, ts_ns, side="left"))
-    if m5_idx >= len(ctx.m5_ts_ns) or int(ctx.m5_ts_ns[m5_idx]) != int(ts_ns):
-        raise RuntimeError("[CTX_VOL_PERCENTILE] decision timestamp is not an exact M5 source row")
+    m5_idx = _closed_m5_index(ctx, ts_ns)
     h1_right = int(
         np.searchsorted(
             ctx.h1_atr_pct_ts_ns,
@@ -700,14 +725,10 @@ def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, curr
         ("h4",  ctx.h4_ts_ns,  ctx.h4_high,  ctx.h4_low,  168),
         ("d1",  ctx.d1_ts_ns,  ctx.d1_high,  ctx.d1_low,  60),
     ):
-        cutoff_ns = (
-            ts_ns
-            if tf_name == "m5"
-            else _cache_cutoff_ns(
-                ts_ns,
-                tf_name.upper(),
-                decision_bar_duration_ns=ctx.decision_bar_duration_ns,
-            )
+        cutoff_ns = _cache_cutoff_ns(
+            ts_ns,
+            tf_name.upper(),
+            decision_bar_duration_ns=ctx.decision_bar_duration_ns,
         )
         right = int(np.searchsorted(ts_arr, cutoff_ns, side="right"))
         if right < lookback:
@@ -824,21 +845,30 @@ def augment_candidate(
         raise TypeError("[CTX_CANDIDATE] include_portfolio must be bool")
     ts = _require_utc_timestamp(ts, context="CTX_CANDIDATE")
     ts_ns = int(ts.value)
-    m5_idx = int(np.searchsorted(ctx.m5_ts_ns, ts_ns, side="left"))
-    if m5_idx >= len(ctx.m5_ts_ns) or int(ctx.m5_ts_ns[m5_idx]) != ts_ns:
-        raise RuntimeError(f"[CTX_CANDIDATE] decision timestamp is not an exact M5 row: {ts}")
-    current_price = float(ctx.m5_close[m5_idx])
+    decision_idx = int(np.searchsorted(ctx.decision_ts_ns, ts_ns, side="left"))
+    if (
+        decision_idx >= len(ctx.decision_ts_ns)
+        or int(ctx.decision_ts_ns[decision_idx]) != ts_ns
+    ):
+        raise RuntimeError(
+            f"[CTX_CANDIDATE] timestamp is not an exact native decision row: {ts}"
+        )
+    current_price = float(ctx.decision_close[decision_idx])
+    m5_idx = _closed_m5_index(ctx, ts_ns)
     # Resolve exactly one row from each TF and reuse that common market
     # snapshot for ATR, volatility-term and dip/structure cooperation.
     per_tf = _per_tf_all(ctx, ts_ns)
     atr_bps = float(per_tf[_pertf_name("M5", "atr_bps_14")])
     if not np.isfinite(current_price) or current_price <= 0.0:
-        raise RuntimeError("[CTX_CANDIDATE] current M5 close must be finite and positive")
+        raise RuntimeError("[CTX_CANDIDATE] current local close must be finite and positive")
     if not np.isfinite(atr_bps):
         raise RuntimeError("[CTX_CANDIDATE] current M5 atr_bps_14 must be finite and positive")
     if atr_bps <= 0.0:
         raise CausalContextWarmupError("[CTX_CANDIDATE_WARMUP] current M5 ATR is not warmed")
-    current_atr = atr_bps / 1e4 * current_price
+    current_m5_close = float(ctx.m5_close[m5_idx])
+    if not np.isfinite(current_m5_close) or current_m5_close <= 0.0:
+        raise RuntimeError("[CTX_CANDIDATE] current closed M5 close is invalid")
+    current_atr = atr_bps / 1e4 * current_m5_close
 
     out: dict[str, float] = {}
     liq = _liquidity_zones(ctx, ts_ns, current_price, current_atr)
@@ -1417,8 +1447,9 @@ def attach_group_a_dip_struct_ctx_columns(
     Existing derived columns are never trusted or passed through: they are
     overwritten from the exact sources on every call. ``multi_tf`` is explicit
     and mandatory, so serving cannot silently fall back to a stale disk cache.
-    If ``context_m5`` is supplied, every decision timestamp and OHLC tuple must
-    match it exactly; the full prefix is used for D1/H4 liquidity history.
+    ``context_m5`` is mandatory for a non-M5 local clock. It supplies the one
+    real M5/M15/H1/H4/D1 context well while local prices remain native to the
+    decision lane.
     """
     ctx, ts_index, extract, dip_from_aug = build_attach_context(
         df,
@@ -1448,7 +1479,8 @@ def build_attach_context(
     Factored from attach_group_a_dip_struct_ctx_columns so a parallel caller
     can build the context once (full series -> exact trailing-1yr arrays) and
     fan the row loop out over workers. A separate ``context_m5`` prevents a
-    decision slice from resetting 60-D1-bar liquidity and pivot state.
+    decision slice from resetting 60-D1-bar liquidity and pivot state, and
+    prevents native M1 rows from ever being mislabeled as M5 context.
     """
     from gx1.contracts.entry_model_native_signal_v1 import (
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
@@ -1459,28 +1491,37 @@ def build_attach_context(
     if smc_col not in df.columns:
         raise RuntimeError(f"[CTX_CONT_PARITY] exact SMC source missing: {smc_col}")
 
-    decision_m5 = _indexed_m5_ohlc_frame(df, context="CTX_CONT_PARITY")
-    ts_index = decision_m5.index
+    decision_local = _indexed_m5_ohlc_frame(
+        df, context="CTX_CONT_PARITY_LOCAL"
+    )
+    ts_index = decision_local.index
+    if base_bar_duration != pd.Timedelta(minutes=5) and context_m5 is None:
+        raise RuntimeError(
+            "[CTX_CONT_PARITY] explicit true-M5 context is required for a non-M5 lane"
+        )
     m5 = (
-        decision_m5
+        decision_local
         if context_m5 is None
         else _indexed_m5_ohlc_frame(context_m5, context="CTX_CONT_FULL_HISTORY")
     )
-    decision_positions = m5.index.get_indexer(ts_index)
-    if np.any(decision_positions < 0):
-        missing_time = ts_index[int(np.flatnonzero(decision_positions < 0)[0])]
-        raise RuntimeError(
-            f"[CTX_CONT_FULL_HISTORY] decision timestamp absent from context: {missing_time}"
-        )
-    history_values = m5.iloc[decision_positions].to_numpy(dtype=np.float64)
-    decision_values = decision_m5.to_numpy(dtype=np.float64)
-    if not np.array_equal(history_values, decision_values):
-        raise RuntimeError(
-            "[CTX_CONT_FULL_HISTORY] decision OHLC differs from the context source"
-        )
+    if base_bar_duration == pd.Timedelta(minutes=5) and context_m5 is not None:
+        decision_positions = m5.index.get_indexer(ts_index)
+        if np.any(decision_positions < 0):
+            missing_time = ts_index[int(np.flatnonzero(decision_positions < 0)[0])]
+            raise RuntimeError(
+                f"[CTX_CONT_FULL_HISTORY] decision timestamp absent from context: {missing_time}"
+            )
+        if not np.array_equal(
+            m5.iloc[decision_positions].to_numpy(dtype=np.float64),
+            decision_local.to_numpy(dtype=np.float64),
+        ):
+            raise RuntimeError(
+                "[CTX_CONT_FULL_HISTORY] decision OHLC differs from the context source"
+            )
     ctx = build_context(
         m5, multi_tf,
         journal_dir=Path(f"/nonexistent_{journal_label}_journal"),
+        decision_frame=decision_local,
         decision_bar_duration=base_bar_duration,
     )
 

@@ -62,10 +62,6 @@ _SOURCE_COLUMNS: tuple[str, ...] = (
 )
 
 
-def required_entry_smart_source_columns() -> tuple[str, ...]:
-    return _SOURCE_COLUMNS
-
-
 def _source_array(df: pd.DataFrame, name: str) -> np.ndarray:
     if name not in df.columns:
         raise RuntimeError(f"ENTRY_SMART_CONTEXT_SOURCE_MISSING: {name}")

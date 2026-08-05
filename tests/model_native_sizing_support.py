@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -12,29 +12,18 @@ import pandas as pd
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     learned_sizing_authority_contract_metadata,
 )
-from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
-    calibrated_sizing_transform,
-)
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
     MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS,
     candidate_bundle_authority,
     joint_exit_trace_sha256,
 )
-from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
     write_bundle_commit_manifest,
 )
-from gx1.contracts.model_native_serve_gate_v1 import (
-    MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
-    MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
-    SERVE_PARITY_ENV_PINS,
-    SERVE_PARITY_FORWARD_TOL,
-    SERVE_PARITY_SAMPLE_COUNT,
-    SERVE_PARITY_SAMPLING_CONTRACT,
-    SERVE_PARITY_STATE_TOL,
-    UTC_TIME_COVERAGE_SCHEMA_VERSION,
+from gx1.contracts.entry_model_native_calibration_v1 import (
+    IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -46,18 +35,9 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     bind_bundle_sizing_calibration,
-    capture_oanda_instrument_evidence,
-    adopt_learned_sizing,
-    finalize_joint_exit_sizing_proof,
-    finalize_runtime_sizing_parity,
     finalize_test_sizing_proof,
-    fit_train_val_sizing_calibration,
+    fit_val_sizing_calibration,
     materialize_test_sizing_oos_source,
-)
-from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
-from tests.model_native_serve_gate_support import (
-    passing_serve_parity_liveness_sections,
-    passing_serve_source_identity,
 )
 from tests.model_native_turning_point_support import turning_point_prediction_row
 from tests.model_native_offline_rl_support import (
@@ -87,28 +67,7 @@ def _source_binding(path: Path) -> dict[str, str]:
     return {"path": str(path.resolve()), "sha256": _sha(path)}
 
 
-class _FakeOandaClient:
-    def get_account_summary(self) -> dict[str, Any]:
-        return {"account": {"currency": "USD"}, "lastTransactionID": "100"}
-
-    def get_account_instruments(self, instruments: list[str]) -> dict[str, Any]:
-        assert instruments == ["XAU_USD"]
-        return {
-            "instruments": [
-                {
-                    "name": "XAU_USD",
-                    "tradeUnitsPrecision": 0,
-                    "minimumTradeSize": "1",
-                    "maximumOrderUnits": "100000",
-                    "marginRate": "0.05",
-                }
-            ],
-            "lastTransactionID": "101",
-        }
-
-
-def default_runtime_sizing_constraints() -> dict[str, Any]:
-    observed = datetime.now(timezone.utc).isoformat()
+def default_offline_sizing_constraints() -> dict[str, Any]:
     return {
         "instrument": "XAU_USD",
         "account_currency": "USD",
@@ -123,14 +82,7 @@ def default_runtime_sizing_constraints() -> dict[str, Any]:
         "minimum_order_units": 1,
         "maximum_gross_xau_units": 1_000,
         "current_xau_abs_units": 0.0,
-        "sizing_decision_utc": observed,
-        "account_observed_utc": observed,
-        "instrument_observed_utc": observed,
-        "exposure_observed_utc": observed,
-        "account_last_transaction_id": "snapshot-9001",
-        "instrument_last_transaction_id": "snapshot-9001",
-        "exposure_last_transaction_id": "snapshot-9001",
-        "fact_provenance_mode": "broker_live",
+        "fact_provenance_mode": "canonical_oos_reference",
     }
 
 
@@ -229,22 +181,25 @@ def _write_prediction_event(
     bundle_dir: Path,
     dataset_dir: Path,
     stamp: str,
+    evidence_stage: str,
 ) -> tuple[Path, Path, dict[str, Any]]:
     root.mkdir(parents=True, exist_ok=True)
     predictions = root / f"selective_edge_predictions_{stamp}.parquet"
     metadata = json.loads((bundle_dir / "bundle_metadata.json").read_text())
     frame = frame.copy()
-    for name, values in runtime_head_prediction_columns(
-        frame,
-        metadata,
-    ).items():
-        frame[name] = values
+    if evidence_stage == "runtime_authoritative":
+        for name, values in runtime_head_prediction_columns(
+            frame,
+            metadata,
+        ).items():
+            frame[name] = values
     frame.to_parquet(predictions, index=False)
     splits = sorted(frame["split"].astype(str).unique())
     evidence = build_prediction_evidence_declaration(
         predictions_path=predictions,
         bundle_dir=bundle_dir,
         bundle_metadata=metadata,
+        evidence_stage=evidence_stage,
         requested_splits=splits,
     )
     report_path = root / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{stamp}.json"
@@ -268,6 +223,7 @@ def _write_prediction_event(
         ).replace(tzinfo=timezone.utc).isoformat(),
         "decision": "PASS",
         "failures": [],
+        "evidence_stage": evidence_stage,
         "json_path": str(report_path.resolve()),
         "predictions_path": str(predictions.resolve()),
         "prediction_evidence": evidence,
@@ -283,119 +239,6 @@ def _write_prediction_event(
     }
     _write_json(report_path, report)
     return predictions, report_path, evidence
-
-
-def _coverage(times: pd.DatetimeIndex) -> dict[str, Any]:
-    values = np.asarray(times.asi8, dtype="<i8")
-    return {
-        "schema_version": UTC_TIME_COVERAGE_SCHEMA_VERSION,
-        "rows": len(times),
-        "first_utc": times[0].isoformat(),
-        "last_utc": times[-1].isoformat(),
-        "utc_ns_sha256": hashlib.sha256(values.tobytes()).hexdigest(),
-    }
-
-
-def _write_model_head_serve_parity(
-    root: Path,
-    *,
-    bundle_dir: Path,
-    dataset_dir: Path,
-    predictions: Path,
-    prediction_report: Path,
-    prediction_evidence: dict[str, Any],
-    test_times: pd.DatetimeIndex,
-) -> Path:
-    pick = (
-        np.arange(SERVE_PARITY_SAMPLE_COUNT, dtype=np.int64) * (len(test_times) - 1)
-    ) // (SERVE_PARITY_SAMPLE_COUNT - 1)
-    metadata_sha = _sha(bundle_dir / "bundle_metadata.json")
-    lock_sha = _sha(bundle_dir / "MASTER_TRANSFORMER_LOCK.json")
-    liveness = passing_serve_parity_liveness_sections(
-        len(test_times),
-        bundle_dir=str(bundle_dir.resolve()),
-        bundle_metadata_sha256=metadata_sha,
-        master_transformer_lock_sha256=lock_sha,
-    )
-    common = {
-        "contract_version": MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
-        "split": "test",
-        "model_name": "candidate",
-        "bundle_dir": str(bundle_dir.resolve()),
-        "dataset_dir": str(dataset_dir.resolve()),
-        "dataset_parquet": str(
-            (dataset_dir / "entry_model_native_test.parquet").resolve()
-        ),
-        "dataset_parquet_sha256": _sha(
-            dataset_dir / "entry_model_native_test.parquet"
-        ),
-        "prediction_evidence": prediction_evidence,
-        "prediction_report_evidence": _binding(prediction_report),
-        "test_coverage": {
-            "dataset": _coverage(test_times),
-            "predictions": _coverage(test_times),
-            "exact_match": True,
-        },
-    }
-    path, _ = write_immutable_json_event(
-        root,
-        "MODEL_NATIVE_SERVE_PARITY",
-        {
-            "schema_version": MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
-            "created_utc": datetime.now(timezone.utc).isoformat(),
-            "decision": "PASS",
-            "failures": [],
-            **common,
-            "pinned_predictions": str(predictions.resolve()),
-            "n_bars": SERVE_PARITY_SAMPLE_COUNT,
-            "sampling_contract": SERVE_PARITY_SAMPLING_CONTRACT,
-            "state_tol": SERVE_PARITY_STATE_TOL,
-            "forward_tol": SERVE_PARITY_FORWARD_TOL,
-            "env_pins": dict(SERVE_PARITY_ENV_PINS),
-            "git_commit": "unit-source-identity",
-            "serve_source_identity": passing_serve_source_identity(),
-            "operating_point": {
-                "selection_score": MODEL_DIRECTION_SELECTION_MODE,
-                "max_trades": 1,
-            },
-            "runtime_device": "cpu",
-            "sampled_test_coverage": _coverage(test_times[pick]),
-            "state_parity": {
-                "n_compared": SERVE_PARITY_SAMPLE_COUNT,
-                "tolerance": SERVE_PARITY_STATE_TOL,
-            },
-            "forward_parity": {
-                "n_compared": SERVE_PARITY_SAMPLE_COUNT,
-                "tolerance": SERVE_PARITY_FORWARD_TOL,
-                "per_head_tolerance": liveness[
-                    "forward_parity_per_head_tolerance"
-                ],
-            },
-            "direction_calibration_parity": liveness[
-                "direction_calibration_parity"
-            ],
-            "test_prediction_liveness": liveness["test_prediction_liveness"],
-            "specialist_decision_influence": liveness[
-                "specialist_decision_influence"
-            ],
-            "individual_input_decision_influence": liveness[
-                "individual_input_decision_influence"
-            ],
-            "upstream_context_decision_influence": liveness[
-                "upstream_context_decision_influence"
-            ],
-            "multi_tf_decision_influence": liveness[
-                "multi_tf_decision_influence"
-            ],
-            "family_tf_decision_influence": liveness[
-                "family_tf_decision_influence"
-            ],
-            "direction_evidence_fusion_influence": liveness[
-                "direction_evidence_fusion_influence"
-            ],
-        },
-    )
-    return path
 
 
 def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
@@ -442,7 +285,7 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         _write_json(
             source_bundle / name,
             {
-                "schema_version": "entry_model_native_immutable_calibration_v2",
+                "schema_version": IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
                 "decision": "PASS",
                 "head": head,
                 "calibration": source_metadata[f"{head}_calibration"],
@@ -457,18 +300,13 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
 
     train_times = pd.date_range("2024-01-01T00:00:00Z", periods=300, freq="12h")
     val_times = pd.date_range("2025-01-01T00:00:00Z", periods=300, freq="12h")
-    test_times = pd.date_range("2026-01-01T00:00:00Z", periods=360, freq="12h")
+    test_times = pd.date_range("2026-01-01T00:00:00Z", periods=384, freq="12h")
     tape_rows: list[dict[str, Any]] = []
     test_rows: list[dict[str, Any]] = []
     sessions = ("ASIA", "EU", "OVERLAP", "US")
     regimes = ("0", "1", "2")
     for index, ts in enumerate(test_times):
-        direction_block = index // 2
-        direction = (
-            2
-            if direction_block % 12 in (10, 11)
-            else direction_block % 2
-        )
+        direction = index % 3
         winner = index % 2 == 0
         logit = 2.0 if winner else -2.0
         test_rows.append(
@@ -478,8 +316,8 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
                 logit=logit,
                 direction=direction,
                 target=float(1.0 / (1.0 + np.exp(-logit))),
-                session=sessions[(index // 2) % len(sessions)],
-                regime=regimes[(index // 2) % len(regimes)],
+                session=sessions[(index // 6) % len(sessions)],
+                regime=regimes[(index // 6) % len(regimes)],
             )
         )
         entry_bid = 2499.9
@@ -544,7 +382,7 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         )
 
     fit_rows: list[dict[str, Any]] = []
-    for split, times in (("train", train_times), ("val", val_times)):
+    for split, times in (("val", val_times),):
         targets = pd.read_parquet(
             dataset_dir / f"entry_model_native_{split}.parquet"
         )["y_position_size_target"].to_numpy(float)
@@ -567,17 +405,14 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         bundle_dir=source_bundle,
         dataset_dir=dataset_dir,
         stamp="20260717T100000123456Z",
+        evidence_stage="pre_calibration",
     )
-    instrument_path, _ = capture_oanda_instrument_evidence(
-        authority_root=authority_root, client=_FakeOandaClient()
-    )
-    calibration_path, calibration = fit_train_val_sizing_calibration(
+    calibration_path, calibration = fit_val_sizing_calibration(
         predictions_path=fit_predictions,
+        predictions_sha256=_sha(fit_predictions),
         prediction_report_path=fit_report,
         bundle_dir=source_bundle,
         dataset_dir=dataset_dir,
-        dataset_manifest_path=dataset_dir / "entry_model_native_train.manifest.json",
-        instrument_evidence_path=instrument_path,
         authority_root=authority_root,
     )
     final_bundle = root / "final_bundle"
@@ -586,30 +421,22 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         output_bundle_dir=final_bundle,
         calibration_path=calibration_path,
     )
-    test_predictions, test_report, test_evidence = _write_prediction_event(
+    test_predictions, test_report, _ = _write_prediction_event(
         root / "test_predictions",
         frame=pd.DataFrame(test_rows),
         bundle_dir=final_bundle,
         dataset_dir=dataset_dir,
         stamp="20260717T110000123456Z",
-    )
-    parity_path = _write_model_head_serve_parity(
-        root / "model_head_parity",
-        bundle_dir=final_bundle,
-        dataset_dir=dataset_dir,
-        predictions=test_predictions,
-        prediction_report=test_report,
-        prediction_evidence=test_evidence,
-        test_times=test_times,
+        evidence_stage="runtime_authoritative",
     )
     oos_path, oos_source = materialize_test_sizing_oos_source(
         calibration_path=calibration_path,
         test_predictions_path=test_predictions,
+        test_predictions_sha256=_sha(test_predictions),
         test_prediction_report_path=test_report,
         bundle_dir=final_bundle,
         dataset_dir=dataset_dir,
         source_tape_path=tape,
-        model_head_serve_parity_path=parity_path,
         authority_root=authority_root,
     )
     proof_path, proof = finalize_test_sizing_proof(
@@ -630,12 +457,12 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         "bundle_calibration": json.loads(
             (final_bundle / "bundle_metadata.json").read_text()
         )["model_native_sizing_calibration"],
-        "runtime_constraints": default_runtime_sizing_constraints(),
+        "offline_constraints": default_offline_sizing_constraints(),
     }
 
 
-def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
-    """Extend the canonical sizing fixture with strict full-TEST Exit traces."""
+def write_passing_unified_replay_fixture(root: Path) -> dict[str, Any]:
+    """Build exact full-TEST Entry M5 plus Exit M1 rows without fake authority."""
 
     evidence = write_passing_sizing_calibration_and_proof(root)
     bundle_authority = candidate_bundle_authority(
@@ -779,143 +606,11 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
         )
     replay_rows_path = root / "joint_exit_replay_rows_20260717T120000123456Z.parquet"
     rows.to_parquet(replay_rows_path, index=False)
-    joint_path, joint_proof = finalize_joint_exit_sizing_proof(
-        calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
-        proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
-        replay_rows_path=replay_rows_path,
-        exit_trace_rows_path=exit_trace_rows_path,
-        authority_root=evidence["authority_root"],
-    )
-    registry_path = root / "PROJECT_STATE_artifacts.json"
-    prior_active = root / "prior_active_v10_entry"
-    prior_active.mkdir(parents=True, exist_ok=True)
-    (prior_active / "identity.bin").write_bytes(b"prior-v10-entry")
-    _write_json(
-        registry_path,
-        {
-            "schema_version": "gx1_artifact_selection_v2",
-            "project": "XAUUSD",
-            "updated_utc": "2026-07-17T12:00:00Z",
-            "active": {
-                "v10_entry": {
-                    "path": str(prior_active.resolve()),
-                    "status": "ACTIVE",
-                    "in_sample_only": False,
-                }
-            },
-            "retired": {},
-            "history": [],
-        },
-    )
     evidence.update(
         {
-            "artifact_registry_path": registry_path,
+            "candidate_bundle_authority": bundle_authority,
             "joint_replay_rows_path": replay_rows_path,
             "joint_exit_trace_rows_path": exit_trace_rows_path,
-            "joint_exit_proof": joint_proof,
-            "joint_exit_proof_artifact": _binding(joint_path),
-        }
-    )
-    return evidence
-
-
-def write_passing_runtime_sizing_parity(root: Path) -> dict[str, Any]:
-    """Build deterministic fresh evidence despite host wall-clock corrections."""
-
-    original_now = sizing_finalizer._now
-    fixture_now = datetime.now(timezone.utc) - timedelta(minutes=5)
-    sizing_finalizer._now = lambda: fixture_now
-    try:
-        return _write_passing_runtime_sizing_parity(root)
-    finally:
-        sizing_finalizer._now = original_now
-
-
-def _write_passing_runtime_sizing_parity(root: Path) -> dict[str, Any]:
-    """Extend the joint fixture through adoption and broker-live shadow parity."""
-
-    evidence = write_passing_joint_exit_sizing_proof(root)
-    adoption_path, adoption = adopt_learned_sizing(
-        bundle_dir=evidence["bundle_dir"],
-        calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
-        proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
-        joint_exit_proof_path=Path(
-            evidence["joint_exit_proof_artifact"]["json_path"]
-        ),
-        authority_root=evidence["authority_root"],
-        entry_run_id="UNIT_RUNTIME_SIZING_ADOPTION",
-    )
-    adoption_binding = _binding(adoption_path)
-    adoption_created = pd.Timestamp(adoption["created_utc"])
-    directions = [index % 3 for index in range(36)]
-    logits = np.linspace(-3.0, 3.0, len(directions))
-    rows: list[dict[str, Any]] = []
-    for index, (direction, logit) in enumerate(zip(directions, logits, strict=True)):
-        timestamp = adoption_created + pd.Timedelta(microseconds=index + 1)
-        transaction_id = f"broker-snapshot-{index // 12 + 1}"
-        constraints = default_runtime_sizing_constraints()
-        constraints.update(
-            {
-                "sizing_decision_utc": timestamp.isoformat(),
-                "account_observed_utc": timestamp.isoformat(),
-                "instrument_observed_utc": timestamp.isoformat(),
-                "exposure_observed_utc": timestamp.isoformat(),
-                "account_last_transaction_id": transaction_id,
-                "instrument_last_transaction_id": transaction_id,
-                "exposure_last_transaction_id": transaction_id,
-            }
-        )
-        transformed = calibrated_sizing_transform(
-            calibration=evidence["calibration"],
-            position_size_logit=float(logit),
-            model_direction_index=direction,
-            runtime_constraints=constraints,
-            context=f"UNIT_RUNTIME_PARITY_ROW_{index}",
-        )
-        rows.append(
-            {
-                "time": timestamp.isoformat(),
-                "position_size_logit": float(logit),
-                "model_direction_index": direction,
-                "direction_after_sizing": direction,
-                **constraints,
-                **{
-                    field: transformed[field]
-                    for field in (
-                        "calibrated_size_fraction",
-                        "applied_size_multiplier",
-                        "capacity_units",
-                        "reference_pre_round_units",
-                        "pre_round_units",
-                        "units",
-                        "authorized_order",
-                        "no_order_reason",
-                    )
-                },
-                "runtime_bundle_metadata_sha256": adoption[
-                    "bundle_metadata_sha256"
-                ],
-                "runtime_model_state_dict_sha256": adoption[
-                    "model_state_dict_sha256"
-                ],
-                "runtime_adoption_sha256": adoption_binding["sha256"],
-                "order_submitted": False,
-            }
-        )
-    observations_path = root / "runtime_sizing_observations_20260717T130000123456Z.parquet"
-    pd.DataFrame(rows).to_parquet(observations_path, index=False)
-    runtime_path, runtime_parity = finalize_runtime_sizing_parity(
-        adoption_path=adoption_path,
-        observations_path=observations_path,
-        authority_root=evidence["authority_root"],
-    )
-    evidence.update(
-        {
-            "adoption": adoption,
-            "adoption_artifact": adoption_binding,
-            "runtime_sizing_observations_path": observations_path,
-            "runtime_sizing_parity": runtime_parity,
-            "runtime_sizing_parity_artifact": _binding(runtime_path),
         }
     )
     return evidence

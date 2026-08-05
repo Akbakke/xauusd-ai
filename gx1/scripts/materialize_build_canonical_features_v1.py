@@ -31,12 +31,9 @@ remain canonical-runtime; this is a derivative offline view to feed IQL.
 """
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 import time as _time
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -50,41 +47,10 @@ from gx1.features.basic_v1 import (  # noqa: E402
     build_basic_v1,
     compute_plus5_features,
 )
-from gx1.features.feature_state import FeatureState  # noqa: E402
-from gx1.utils.feature_context import set_feature_state  # noqa: E402
-from gx1.utils import artifact_primitives_v1 as contract_gate  # noqa: E402
-
-
 ACTION = "BUILD_CANONICAL_FEATURES_V1"
 DEFAULT_M5_TAPE_ROOT = Path(
     "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL"
 )
-DEFAULT_OUT_PATH = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANONICAL_FEATURES_V1/canonical_features_v1.parquet"
-)
-
-# High-level basic feature definitions (closed-form pandas)
-HIGH_LEVEL_FEATURE_SPECS = {
-    "atr": ("atr", 14),       # 14-bar ATR
-    "atr50": ("atr", 50),     # 50-bar ATR
-    "atr_z": ("atr_z", 50),
-    "std50": ("std", 50),
-    "ret_1": ("ret", 1),
-    "ret_5": ("ret", 5),
-    "ret_20": ("ret", 20),
-    "roc20": ("roc", 20),
-    "roc100": ("roc", 100),
-    "rvol_20": ("rvol", 20),
-    "rvol_60": ("rvol", 60),
-    "ema20_slope": ("ema_slope", 20),
-    "ema100_slope": ("ema_slope", 100),
-    "pos_vs_ema200": ("pos_vs_ema", 200),
-}
-
-
-_utc_now = contract_gate._utc_now
-_jsonable = contract_gate._jsonable
-_write_json = contract_gate._write_json
 
 
 def load_m5_tape(m5_root: Path = DEFAULT_M5_TAPE_ROOT) -> pd.DataFrame:
@@ -170,15 +136,6 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     plus5 = compute_plus5_features(df)
     for feature in PLUS5_FEATURES:
         df[feature] = plus5[feature]
-    if "_v1h1_ema_diff" in df.columns:
-        from gx1.features.array_utils import safe_clip, safe_mul
-
-        df["_v1_int_vwap_h1"] = safe_clip(
-            safe_mul(
-                df["_v1_vwap_drift48"].to_numpy(dtype=np.float64),
-                df["_v1h1_ema_diff"].to_numpy(dtype=np.float64),
-            )
-        )
     return df
 
 
@@ -188,9 +145,7 @@ def build_basic_v1_chunked(
     *,
     decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> pd.DataFrame:
-    """Run basic_v1 over the full tape. Sets FEATURE_STATE for HTF cache."""
-    state = FeatureState()
-    set_feature_state(state)
+    """Run the local-only basic_v1 owner over the full tape."""
 
     # basic_v1 expects DataFrame with DatetimeIndex
     work = df.set_index("time").copy()
@@ -231,76 +186,3 @@ def build_canonical_features(
     feats = add_m5_phase(feats)
 
     return feats
-
-
-def write_artifacts(
-    out_path: Path = DEFAULT_OUT_PATH,
-    *,
-    m5_tape_root: Path = DEFAULT_M5_TAPE_ROOT,
-    built_at_utc: str | None = None,
-) -> dict[str, Any]:
-    timestamp = built_at_utc or _utc_now()
-    out_path = Path(out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    print(f"[{ACTION}] loading M5 tape from {m5_tape_root}", flush=True)
-    m5 = load_m5_tape(m5_tape_root)
-    print(f"[{ACTION}] M5 bars loaded: {len(m5):,}  range={m5['time'].min()} -> {m5['time'].max()}", flush=True)
-
-    feats = build_canonical_features(m5)
-
-    # Inventory output
-    n_v1 = sum(1 for c in feats.columns if c.startswith("_v1_") and not c.startswith("_v1h"))
-    n_v1h1 = sum(1 for c in feats.columns if c.startswith("_v1h1_"))
-    n_v1h4 = sum(1 for c in feats.columns if c.startswith("_v1h4_"))
-    n_phase = sum(1 for c in feats.columns if c.startswith("m5_phase_"))
-    high_level = [c for c in feats.columns if c in (
-        "mid", "range", "body_pct", "wick_asym", "atr", "atr50", "atr_z",
-        "std50", "ret_1", "ret_5", "ret_20", "roc20", "roc100", "rvol_20",
-        "rvol_60", "ema20_slope", "ema100_slope", "pos_vs_ema200", "vol_ratio",
-    )]
-    print(f"[{ACTION}] feature counts: _v1_*={n_v1}, _v1h1_*={n_v1h1}, _v1h4_*={n_v1h4}, "
-          f"m5_phase_*={n_phase}, high_level={len(high_level)}", flush=True)
-    print(f"[{ACTION}] total cols: {len(feats.columns)}", flush=True)
-
-    feats.to_parquet(out_path, index=False)
-    print(f"[{ACTION}] wrote {out_path} ({out_path.stat().st_size / 1024**2:.1f}MB)", flush=True)
-
-    summary = {
-        "layer_name": "CANONICAL_FEATURES_V1_SUMMARY",
-        "action_v1": ACTION,
-        "out_path_v1": str(out_path),
-        "built_at_utc_v1": timestamp,
-        "m5_tape_root_v1": str(m5_tape_root),
-        "m5_bars_loaded_v1": int(len(m5)),
-        "m5_date_range_v1": [str(m5["time"].min()), str(m5["time"].max())],
-        "n_features_v1_basic": n_v1,
-        "n_features_v1h1_v1": n_v1h1,
-        "n_features_v1h4_v1": n_v1h4,
-        "n_features_m5_phase_v1": n_phase,
-        "n_features_high_level_v1": len(high_level),
-        "high_level_feature_names_v1": high_level,
-        "total_columns_v1": int(len(feats.columns)),
-        "research_only_v1": True,
-    }
-    summary_path = out_path.parent / "canonical_features_v1_summary.json"
-    _write_json(summary_path, summary)
-    print(f"[{ACTION}] summary at {summary_path}", flush=True)
-    return {"out_path": str(out_path), "summary": summary}
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=f"Materialize {ACTION}.")
-    parser.add_argument("--out-path", type=str, default=str(DEFAULT_OUT_PATH))
-    parser.add_argument("--m5-root", type=str, default=str(DEFAULT_M5_TAPE_ROOT))
-    parser.add_argument("--built-at-utc", type=str, default=None)
-    args = parser.parse_args()
-
-    out_path = Path(args.out_path).expanduser().resolve()
-    m5_tape_root = Path(args.m5_root).expanduser().resolve()
-    result = write_artifacts(out_path=out_path, m5_tape_root=m5_tape_root, built_at_utc=args.built_at_utc)
-    print(json.dumps(_jsonable(result["summary"]), ensure_ascii=True, indent=2, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()

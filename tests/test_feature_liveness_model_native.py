@@ -489,22 +489,19 @@ def test_multi_tf_windows_are_caller_declared_not_wrapper_defaults() -> None:
     for timeframe in ("m5", "m15", "h1", "h4", "d1"):
         assert f'"--per-tf-seq-len-{timeframe}"' in trainer
 
-    for wrapper_name in (
-        "run_entry_model_native_seq513_smoke_train.sh",
-        "run_entry_model_native_seq513_candidate_train.sh",
+    wrapper_name = "run_entry_model_native_seq513_train.sh"
+    wrapper = (repo / "scripts" / wrapper_name).read_text()
+    assert "--multi-tf-seq-len 16" not in wrapper
+    assert "--multi-tf-seq-len 96" not in wrapper
+    for variable in (
+        "PER_TF_SEQ_LEN_M5",
+        "PER_TF_SEQ_LEN_M15",
+        "PER_TF_SEQ_LEN_H1",
+        "PER_TF_SEQ_LEN_H4",
+        "PER_TF_SEQ_LEN_D1",
     ):
-        wrapper = (repo / "scripts" / wrapper_name).read_text()
-        assert "--multi-tf-seq-len 16" not in wrapper
-        assert "--multi-tf-seq-len 96" not in wrapper
-        for variable in (
-            "PER_TF_SEQ_LEN_M5",
-            "PER_TF_SEQ_LEN_M15",
-            "PER_TF_SEQ_LEN_H1",
-            "PER_TF_SEQ_LEN_H4",
-            "PER_TF_SEQ_LEN_D1",
-        ):
-            assert f'"${variable}"' in wrapper, (wrapper_name, variable)
-            assert variable in wrapper.split("; do")[0], (wrapper_name, variable)
+        assert f'"${variable}"' in wrapper, (wrapper_name, variable)
+        assert variable in wrapper.split("; do")[0], (wrapper_name, variable)
 
 
 def test_prior_match_tolerance_cannot_demand_less_than_sampling_noise() -> None:

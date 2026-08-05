@@ -1,3 +1,4 @@
+import inspect
 import json
 from pathlib import Path
 
@@ -10,6 +11,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    PRE_CALIBRATION_EVIDENCE_STAGE,
+    RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
     atomic_write_parquet_immutable,
     build_prediction_evidence_declaration,
     parquet_schema_descriptor,
@@ -30,8 +35,8 @@ from tests.model_native_offline_rl_support import (
 STAMP = "20260716T120000123456Z"
 
 
-def _predictions() -> pd.DataFrame:
-    return pd.DataFrame(
+def _predictions(splits: tuple[str, ...] = ("val",)) -> pd.DataFrame:
+    frame = pd.DataFrame(
         {
             "split": ["val", "test"],
             "model": ["candidate", "candidate"],
@@ -60,9 +65,20 @@ def _predictions() -> pd.DataFrame:
             **offline_rl_prediction_columns(2),
         }
     )
+    return frame.loc[frame["split"].isin(splits)].reset_index(drop=True)
 
 
-def _event(tmp_path: Path, *, runtime_head: bool = False) -> dict:
+def _event(
+    tmp_path: Path,
+    *,
+    evidence_stage: str = PRE_CALIBRATION_EVIDENCE_STAGE,
+) -> dict:
+    stage_splits = {
+        PRE_CALIBRATION_EVIDENCE_STAGE: ("val",),
+        RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE: ("test",),
+    }
+    splits = stage_splits[evidence_stage]
+    runtime_head = evidence_stage == RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE
     tmp_path.mkdir(parents=True, exist_ok=True)
     bundle = tmp_path / "bundle"
     dataset = tmp_path / "dataset"
@@ -80,7 +96,7 @@ def _event(tmp_path: Path, *, runtime_head: bool = False) -> dict:
         json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8"
     )
     predictions = out / f"selective_edge_predictions_{STAMP}.parquet"
-    frame = _predictions()
+    frame = _predictions(splits)
     if runtime_head:
         runtime_columns = runtime_head_prediction_columns(
             frame,
@@ -106,7 +122,8 @@ def _event(tmp_path: Path, *, runtime_head: bool = False) -> dict:
         predictions_path=predictions,
         bundle_dir=bundle,
         bundle_metadata=metadata,
-        requested_splits=["val", "test"],
+        evidence_stage=evidence_stage,
+        requested_splits=list(splits),
     )
     report_path = out / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{STAMP}.json"
     report = {
@@ -114,9 +131,10 @@ def _event(tmp_path: Path, *, runtime_head: bool = False) -> dict:
         "created_utc": "2026-07-16T12:00:00.123456+00:00",
         "decision": "PASS",
         "failures": [],
+        "evidence_stage": evidence_stage,
         "bundle_dir": str(bundle.resolve()),
         "dataset_dir": str(dataset.resolve()),
-        "splits": ["test", "val"],
+        "splits": list(splits),
         "models": ["candidate"],
         "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
         "direction_decision_contract": model_direction_decision_contract_metadata(),
@@ -135,6 +153,9 @@ def _event(tmp_path: Path, *, runtime_head: bool = False) -> dict:
         "untimestamped": out / "selective_edge_predictions.parquet",
         "report_path": report_path,
         "report": report,
+        "evidence_stage": evidence_stage,
+        "expected_splits": splits,
+        "expected_sha256": evidence["sha256"],
     }
 
 
@@ -142,50 +163,213 @@ def _rewrite_report(event: dict, report: dict) -> None:
     event["report_path"].write_text(json.dumps(report, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def test_authoritative_event_requires_explicit_matching_report(tmp_path: Path) -> None:
+def _resolve(event: dict, **overrides):
+    requested_path = overrides.pop("requested_path", event["predictions"])
+    kwargs = {
+        "expected_sha256": event["expected_sha256"],
+        "prediction_report_path": event["report_path"],
+        "bundle_dir": event["bundle"],
+        "dataset_dir": event["dataset"],
+        "expected_stage": event["evidence_stage"],
+        "expected_splits": event["expected_splits"],
+    }
+    kwargs.update(overrides)
+    return resolve_and_validate_prediction_evidence(requested_path, **kwargs)
+
+
+def test_pre_calibration_requires_exact_val_and_is_non_authoritative(
+    tmp_path: Path,
+) -> None:
     event = _event(tmp_path)
 
-    direct, _, direct_evidence = resolve_and_validate_prediction_evidence(
-        event["predictions"],
-        prediction_report_path=event["report_path"],
-        bundle_dir=event["bundle"],
-        dataset_dir=event["dataset"],
-        expected_split="test",
+    direct, _, direct_evidence = _resolve(
+        event,
         expected_model="candidate",
     )
 
     assert direct == event["predictions"].resolve()
     assert direct_evidence == event["report"]["prediction_evidence"]
+    assert direct_evidence["schema_version"] == PREDICTION_EVIDENCE_SCHEMA_VERSION
+    assert direct_evidence["evidence_stage"] == PRE_CALIBRATION_EVIDENCE_STAGE
+    assert direct_evidence["splits"] == ["val"]
+    assert direct_evidence["authoritative"] is False
+    assert direct_evidence["runtime_head_evidence_authoritative"] is False
 
 
-def test_runtime_authorizing_consumer_requires_exact_head_envelope(
+def test_runtime_authoritative_requires_exact_test_and_head_envelope(
     tmp_path: Path,
 ) -> None:
-    base = _event(tmp_path / "base")
-    with pytest.raises(RuntimeError, match="lacks the required exact runtime-head"):
-        resolve_and_validate_prediction_evidence(
-            base["predictions"],
-            prediction_report_path=base["report_path"],
-            bundle_dir=base["bundle"],
-            dataset_dir=base["dataset"],
-            require_runtime_head_evidence=True,
+    runtime = _event(
+        tmp_path,
+        evidence_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+    )
+    _, _, evidence = _resolve(runtime, expected_model="candidate")
+
+    assert evidence["schema_version"] == RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+    assert evidence["evidence_stage"] == RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE
+    assert evidence["splits"] == ["test"]
+    assert evidence["authoritative"] is True
+    assert evidence["runtime_head_evidence_authoritative"] is True
+
+
+def test_resolver_signature_requires_sha_stage_and_exact_splits() -> None:
+    parameters = inspect.signature(
+        resolve_and_validate_prediction_evidence
+    ).parameters
+
+    for name in ("expected_sha256", "expected_stage", "expected_splits"):
+        assert parameters[name].default is inspect.Parameter.empty
+    assert "expected_split" not in parameters
+    assert "require_runtime_head_evidence" not in parameters
+
+
+@pytest.mark.parametrize(
+    ("stage", "splits"),
+    [
+        (PRE_CALIBRATION_EVIDENCE_STAGE, ["val", "test"]),
+        (RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE, ["test", "val"]),
+        (RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE, ["val"]),
+    ],
+)
+def test_declaration_rejects_every_cross_stage_or_combined_split_set(
+    tmp_path: Path,
+    stage: str,
+    splits: list[str],
+) -> None:
+    event = _event(tmp_path)
+    metadata = json.loads(
+        (event["bundle"] / "bundle_metadata.json").read_text(encoding="utf-8")
+    )
+
+    with pytest.raises(RuntimeError, match="stage/split mismatch"):
+        build_prediction_evidence_declaration(
+            predictions_path=event["predictions"],
+            bundle_dir=event["bundle"],
+            bundle_metadata=metadata,
+            evidence_stage=stage,
+            requested_splits=splits,
         )
 
-    runtime = _event(tmp_path / "runtime", runtime_head=True)
-    _, _, evidence = resolve_and_validate_prediction_evidence(
-        runtime["predictions"],
-        prediction_report_path=runtime["report_path"],
-        bundle_dir=runtime["bundle"],
-        dataset_dir=runtime["dataset"],
-        require_runtime_head_evidence=True,
+
+def test_resolver_rejects_cross_stage_expectation(tmp_path: Path) -> None:
+    event = _event(tmp_path)
+
+    with pytest.raises(RuntimeError, match="evidence_stage mismatch"):
+        _resolve(
+            event,
+            expected_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+            expected_splits=("test",),
+        )
+    with pytest.raises(RuntimeError, match="stage/split mismatch"):
+        _resolve(event, expected_splits=("test",))
+    with pytest.raises(RuntimeError, match="exact tuple"):
+        _resolve(event, expected_splits=["val"])
+
+
+@pytest.mark.parametrize(
+    ("stage", "legacy_schema"),
+    [
+        (
+            PRE_CALIBRATION_EVIDENCE_STAGE,
+            "entry_candidate_model_direction_prediction_evidence_v2",
+        ),
+        (
+            RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+            "entry_candidate_model_direction_prediction_evidence_v5",
+        ),
+    ],
+)
+def test_resolver_rejects_legacy_schema_without_exact_stage(
+    tmp_path: Path,
+    stage: str,
+    legacy_schema: str,
+) -> None:
+    event = _event(tmp_path, evidence_stage=stage)
+    report = dict(event["report"])
+    evidence = dict(report["prediction_evidence"])
+    evidence["schema_version"] = legacy_schema
+    evidence.pop("evidence_stage")
+    report["prediction_evidence"] = evidence
+    _rewrite_report(event, report)
+
+    with pytest.raises(RuntimeError, match="schema_version mismatch"):
+        _resolve(event)
+
+
+def test_resolver_rejects_legacy_combined_val_test_event(tmp_path: Path) -> None:
+    event = _event(tmp_path)
+    combined = _predictions(("val", "test"))
+    combined.to_parquet(event["predictions"], index=False)
+    report = dict(event["report"])
+    evidence = dict(report["prediction_evidence"])
+    descriptor = parquet_schema_descriptor(event["predictions"])
+    combined_sha = sha256_file(event["predictions"])
+    evidence.update(
+        {
+            "schema_version": "entry_candidate_model_direction_prediction_evidence_v2",
+            "authoritative": True,
+            "sha256": combined_sha,
+            "rows": 2,
+            "splits": ["val", "test"],
+            "parquet_schema": descriptor,
+            "parquet_schema_sha256": parquet_schema_sha256(descriptor),
+        }
     )
-    assert evidence["runtime_head_evidence_authoritative"] is True
+    evidence.pop("evidence_stage")
+    report["splits"] = ["val", "test"]
+    report["prediction_evidence"] = evidence
+    _rewrite_report(event, report)
+
+    with pytest.raises(RuntimeError, match="schema_version mismatch"):
+        _resolve(event, expected_sha256=combined_sha)
+
+
+def test_resolver_rejects_missing_or_mutated_exact_declarations(
+    tmp_path: Path,
+) -> None:
+    event = _event(tmp_path)
+    report = dict(event["report"])
+    evidence = dict(report["prediction_evidence"])
+    evidence.pop("evidence_stage")
+    report["prediction_evidence"] = evidence
+    _rewrite_report(event, report)
+
+    with pytest.raises(RuntimeError, match="evidence_stage mismatch"):
+        _resolve(event)
+
+    report["prediction_evidence"] = dict(event["report"]["prediction_evidence"])
+    report["splits"] = ["val", "test"]
+    _rewrite_report(event, report)
+    with pytest.raises(RuntimeError, match="split declaration mismatch"):
+        _resolve(event)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["authoritative", "runtime_head_evidence_authoritative"],
+)
+def test_resolver_rejects_non_boolean_authority_declaration(
+    tmp_path: Path,
+    field: str,
+) -> None:
+    event = _event(tmp_path)
+    report = dict(event["report"])
+    evidence = dict(report["prediction_evidence"])
+    evidence[field] = "false"
+    report["prediction_evidence"] = evidence
+    _rewrite_report(event, report)
+
+    with pytest.raises(RuntimeError, match="authority"):
+        _resolve(event)
 
 
 def test_runtime_head_rejects_divergent_flat_sizing_truth(
     tmp_path: Path,
 ) -> None:
-    event = _event(tmp_path, runtime_head=True)
+    event = _event(
+        tmp_path,
+        evidence_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+    )
     tampered = pd.read_parquet(event["predictions"])
     tampered.loc[0, "position_size_logit"] = (
         float(tampered.loc[0, "position_size_logit"]) + 0.25
@@ -201,19 +385,19 @@ def test_runtime_head_rejects_divergent_flat_sizing_truth(
         RuntimeError,
         match="duplicated field mismatch.*position_size_logit",
     ):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-            require_runtime_head_evidence=True,
+        _resolve(
+            event,
+            expected_sha256=evidence["sha256"],
         )
 
 
 def test_runtime_head_rejects_divergent_path_quality_alias(
     tmp_path: Path,
 ) -> None:
-    event = _event(tmp_path, runtime_head=True)
+    event = _event(
+        tmp_path,
+        evidence_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+    )
     tampered = pd.read_parquet(event["predictions"])
     tampered.loc[0, "path_quality_pred"] = (
         float(tampered.loc[0, "path_quality_pred"]) + 0.25
@@ -229,41 +413,70 @@ def test_runtime_head_rejects_divergent_path_quality_alias(
         RuntimeError,
         match="duplicated field mismatch.*path_quality_pred",
     ):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-            require_runtime_head_evidence=True,
+        _resolve(
+            event,
+            expected_sha256=evidence["sha256"],
         )
 
 
 def test_authorizing_consumer_rejects_untimestamped_prediction_path(tmp_path: Path) -> None:
     event = _event(tmp_path)
+    event["untimestamped"].write_bytes(event["predictions"].read_bytes())
 
     with pytest.raises(RuntimeError, match="not a timestamped authoritative"):
-        resolve_and_validate_prediction_evidence(
-            event["untimestamped"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
+        _resolve(
+            event,
+            requested_path=event["untimestamped"],
         )
 
 
 def test_authorizing_consumer_rejects_mismatched_explicit_report(tmp_path: Path) -> None:
     event = _event(tmp_path)
     wrong = event["out"] / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120001123456Z.json"
+    wrong.write_text(event["report_path"].read_text(encoding="utf-8"), encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="does not match"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
+        _resolve(
+            event,
             prediction_report_path=wrong,
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
         )
 
 
-def test_authorizing_consumer_rejects_older_pass_when_newer_event_exists(
+def test_resolver_rejects_symlink_paths_and_unpinned_hash(tmp_path: Path) -> None:
+    event = _event(tmp_path)
+    # Must still satisfy the timestamped-name contract, so this isolates the
+    # symlink rejection rather than re-testing the mutable-locator check.
+    prediction_link = (
+        event["out"] / "selective_edge_predictions_20260716T120000999999Z.parquet"
+    )
+    prediction_link.symlink_to(event["predictions"])
+    report_link = event["out"] / "report-link.json"
+    report_link.symlink_to(event["report_path"])
+
+    with pytest.raises(RuntimeError, match="regular non-symlink"):
+        _resolve(event, requested_path=prediction_link)
+    with pytest.raises(RuntimeError, match="regular non-symlink"):
+        _resolve(event, prediction_report_path=report_link)
+    with pytest.raises(RuntimeError, match="expected_sha256"):
+        _resolve(event, expected_sha256="not-a-sha")
+    with pytest.raises(RuntimeError, match="caller-pinned expected SHA-256"):
+        _resolve(event, expected_sha256="0" * 64)
+
+
+def test_resolver_requires_exact_explicit_parent_lineage(tmp_path: Path) -> None:
+    event = _event(tmp_path)
+    wrong_bundle = tmp_path / "wrong-bundle"
+    wrong_dataset = tmp_path / "wrong-dataset"
+    wrong_bundle.mkdir()
+    wrong_dataset.mkdir()
+
+    with pytest.raises(RuntimeError, match="bundle_dir mismatch"):
+        _resolve(event, bundle_dir=wrong_bundle)
+    with pytest.raises(RuntimeError, match="dataset_dir mismatch"):
+        _resolve(event, dataset_dir=wrong_dataset)
+
+
+def test_explicit_parent_resolution_does_not_scan_newest_sibling(
     tmp_path: Path,
 ) -> None:
     event = _event(tmp_path)
@@ -283,13 +496,8 @@ def test_authorizing_consumer_rejects_older_pass_when_newer_event_exists(
         encoding="utf-8",
     )
 
-    with pytest.raises(RuntimeError, match="not the newest"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-        )
+    direct, _, _ = _resolve(event)
+    assert direct == event["predictions"].resolve()
 
 
 def test_immutable_prediction_event_refuses_overwrite(tmp_path: Path) -> None:
@@ -305,13 +513,8 @@ def test_consumer_rejects_prediction_parquet_tamper(tmp_path: Path) -> None:
     tampered.loc[0, "pred_direction"] = 1
     tampered.to_parquet(event["predictions"], index=False)
 
-    with pytest.raises(RuntimeError, match="parquet SHA-256 mismatch"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-        )
+    with pytest.raises(RuntimeError, match="caller-pinned expected SHA-256"):
+        _resolve(event)
 
 
 def test_consumer_rejects_declared_row_or_schema_tamper(tmp_path: Path) -> None:
@@ -322,23 +525,13 @@ def test_consumer_rejects_declared_row_or_schema_tamper(tmp_path: Path) -> None:
     _rewrite_report(event, report)
 
     with pytest.raises(RuntimeError, match="row-count mismatch"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-        )
+        _resolve(event)
 
-    report["prediction_evidence"]["rows"] = 2
+    report["prediction_evidence"]["rows"] = 1
     report["prediction_evidence"]["columns"] = report["prediction_evidence"]["columns"][:-1]
     _rewrite_report(event, report)
     with pytest.raises(RuntimeError, match="column schema mismatch"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-        )
+        _resolve(event)
 
 
 def test_consumer_rejects_mode_even_when_attacker_rehashes_parquet(tmp_path: Path) -> None:
@@ -360,11 +553,9 @@ def test_consumer_rejects_mode_even_when_attacker_rehashes_parquet(tmp_path: Pat
     _rewrite_report(event, report)
 
     with pytest.raises(RuntimeError, match="direction mode mismatch"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
+        _resolve(
+            event,
+            expected_sha256=evidence["sha256"],
         )
 
 
@@ -395,11 +586,9 @@ def test_consumer_rejects_tied_direction_even_when_parquet_is_rehashed(
     _rewrite_report(event, report)
 
     with pytest.raises(RuntimeError, match="no unique top class"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
+        _resolve(
+            event,
+            expected_sha256=evidence["sha256"],
         )
 
 
@@ -411,12 +600,7 @@ def test_consumer_rejects_report_direction_contract_tamper(tmp_path: Path) -> No
     _rewrite_report(event, report)
 
     with pytest.raises(RuntimeError, match="direction_decision_contract mismatch"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-        )
+        _resolve(event)
 
 
 def test_consumer_rejects_bundle_metadata_hash_tamper(tmp_path: Path) -> None:
@@ -427,9 +611,4 @@ def test_consumer_rejects_bundle_metadata_hash_tamper(tmp_path: Path) -> None:
     metadata_path.write_text(json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="bundle metadata SHA-256 mismatch"):
-        resolve_and_validate_prediction_evidence(
-            event["predictions"],
-            prediction_report_path=event["report_path"],
-            bundle_dir=event["bundle"],
-            dataset_dir=event["dataset"],
-        )
+        _resolve(event)

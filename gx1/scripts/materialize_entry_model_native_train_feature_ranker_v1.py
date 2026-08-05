@@ -52,6 +52,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
+from gx1.contracts.xau_tape_provenance_v1 import (
+    SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     classify_entry_specialist_feature,
@@ -217,7 +220,6 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     from gx1.features import entry_model_native_feature_layers_v1 as _fl
     import gx1.features.entry_chart_geometry_v1 as _cg
     import gx1.features.entry_momentum_flow_v1 as _mf
-    import gx1.features.entry_mtf_confluence_v1 as _mtf
     import gx1.features.entry_session_regime_interactions_v1 as _sr
     import gx1.features.entry_smc_liquidity_quality_v1 as _smc
     import gx1.features.entry_structure_swing_derivations_v1 as _ssw
@@ -226,7 +228,7 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     import gx1.features.entry_vol_compression_v1 as _vc
 
     union: set[str] = set()
-    for module in (_fl, _cg, _mf, _mtf, _sr, _smc, _ssw, _srm, _te, _vc):
+    for module in (_fl, _cg, _mf, _sr, _smc, _ssw, _srm, _te, _vc):
         for attr in dir(module):
             if attr.isupper() and attr.endswith("_FEATURE_NAMES"):
                 values = getattr(module, attr)
@@ -266,7 +268,7 @@ def _load_ranker_common_history_m5(
     if (
         not isinstance(source_cascade, dict)
         or str(source_cascade.get("schema_version"))
-        != "seq513_source_cascade_pair_proof_v1"
+        != SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION
     ):
         raise RuntimeError("FEATURE_RANKER_CURRENT_SOURCE_CASCADE_REQUIRED")
     current = pd.read_parquet(
@@ -349,7 +351,7 @@ def _load_train_frame(
         MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
     )
-    from gx1.features.htf_features import load_multi_tf_cache
+    from gx1.features.htf_features import load_multi_tf_v4_cache
     from gx1.scripts.augment_forward_outcome_v2 import (
         trim_causal_context_warmup_prefix,
     )
@@ -366,7 +368,7 @@ def _load_train_frame(
     # fields must use the same earlier canonical M5 prefix as the dataset.
     frame = _attach_ranker_group_a_with_common_history(
         frame,
-        multi_tf=load_multi_tf_cache(mtf_cache_dir),
+        multi_tf=load_multi_tf_v4_cache(mtf_cache_dir),
         workers=ATTACH_WORKERS,
         checkpoint_dir=checkpoint_dir,
         checkpoint_key=checkpoint_key,

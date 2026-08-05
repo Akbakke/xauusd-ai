@@ -99,7 +99,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "smoke_manifest",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST",
         {
-            "schema_version": "entry_model_native_seq513_smoke_manifest_v2",
+            "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
             "report_only": True,
             "side_effects_started": {"training": False, "replay": False},
@@ -126,7 +126,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "smoke_readiness",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS",
         {
-            "schema_version": "entry_model_native_seq513_smoke_readiness_v2",
+            "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
             "report_only": True,
             "side_effects_started": {"training": False, "live": False},

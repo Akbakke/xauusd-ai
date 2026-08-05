@@ -24,7 +24,7 @@ Mid-only substitution and synthetic gap filling are forbidden.
 `gx1_entry_exit_shared_feature_base_contract_v2` owns both resolutions:
 
 - instrument `XAU_USD`;
-- 513 ordered signals: 378 mandatory + 101 TRAIN-ranked plus fixed base fields;
+- 513 ordered signals: 346 mandatory + 133 TRAIN-ranked plus fixed base fields;
 - 142 continuous and 5 categorical context values;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;

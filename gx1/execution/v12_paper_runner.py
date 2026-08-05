@@ -27,6 +27,7 @@ model inputs/evidence, never post-model direction overrides.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import fcntl
 import hashlib
 import json
@@ -1303,6 +1304,39 @@ def _same_runtime_value(left: Any, right: Any) -> bool:
     except Exception:
         return False
     return result if isinstance(result, bool) else False
+
+
+# Launch, broker-authority and live-tail admission were removed with the
+# offline scope freeze (GX1_RULES.md "Frozen scope"). The paper runner keeps
+# its journaling and executable-decision contracts, but every route that would
+# claim launch authority now fails closed by construction instead of resolving
+# a decision registry that no longer exists.
+_LAUNCH_SCOPE_FROZEN = (
+    "launch, broker and live-tail admission are outside the frozen offline "
+    "scope; no launch authority can be granted from this checkout"
+)
+
+
+class _LaunchScopeFrozen(RuntimeError):
+    """Raised whenever a retired launch-authority route is entered."""
+
+
+@contextlib.contextmanager
+def broker_entry_authority_mutation_lease():
+    raise _LaunchScopeFrozen(_LAUNCH_SCOPE_FROZEN)
+    yield  # pragma: no cover - unreachable, keeps the contextmanager shape
+
+
+def require_runtime_entry_launch_lease(*_args: Any, **_kwargs: Any) -> dict[str, str]:
+    raise _LaunchScopeFrozen(_LAUNCH_SCOPE_FROZEN)
+
+
+def require_runtime_new_entry_live_tail(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+    raise _LaunchScopeFrozen(_LAUNCH_SCOPE_FROZEN)
+
+
+def enforce_entry_next_edge_runner_guard(*_args: Any, **_kwargs: Any) -> dict[str, str]:
+    raise _LaunchScopeFrozen(_LAUNCH_SCOPE_FROZEN)
 
 
 def require_executable_model_native_entry_decision(
@@ -2679,42 +2713,6 @@ def runtime_trade_immutable_bindings(
     )
 
 
-@contextmanager
-def broker_entry_authority_mutation_lease():
-    """Freeze launch files and pair publication through one broker request."""
-
-    from gx1.contracts.entry_model_native_launch_transaction_v1 import (
-        entry_launch_authority_lock,
-    )
-    from gx1.execution.v12_state_from_prebuilt import (
-        PAIR_PUBLISH_LOCK_FILENAME,
-        PREBUILT_PAIR_MANIFEST_PATH,
-    )
-    from gx1_guards.artifacts import (
-        SELECTION_CONTRACT,
-        XAU_DIRECTION_LAUNCH_CONTRACT,
-    )
-
-    with entry_launch_authority_lock(
-        registry_path=SELECTION_CONTRACT,
-        launch_state_path=XAU_DIRECTION_LAUNCH_CONTRACT,
-    ):
-        lock_path = (
-            PREBUILT_PAIR_MANIFEST_PATH.parent
-            / PAIR_PUBLISH_LOCK_FILENAME
-        )
-        if lock_path.is_symlink():
-            raise RuntimeError("PAIR_PUBLISH_LOCK_PATH_INVALID")
-        with lock_path.open("a+b") as lock_handle:
-            if lock_path.is_symlink() or not lock_path.is_file():
-                raise RuntimeError("PAIR_PUBLISH_LOCK_PATH_INVALID")
-            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
-
-
 def submit_market_entry_under_authority_lease(
     client: OandaClient,
     *,
@@ -2880,120 +2878,6 @@ def _sha256_regular_file(path: Path, *, label: str) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
-
-
-def require_runtime_entry_launch_lease(
-    *,
-    expected_lease: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Revalidate launch authority and reject any mid-process identity change."""
-
-    from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
-    from gx1_guards import artifacts as artifact_guard
-
-    state_path = artifact_guard.XAU_DIRECTION_LAUNCH_CONTRACT
-    registry_path = artifact_guard.SELECTION_CONTRACT
-    before = {
-        "launch_state_sha256": _sha256_regular_file(
-            state_path, label="launch state"
-        ),
-        "artifact_registry_sha256": _sha256_regular_file(
-            registry_path, label="artifact registry"
-        ),
-    }
-    assert_smart_serving_gate()
-    entry = artifact_guard.load_decision_entry("v10_entry")
-    after = {
-        "launch_state_sha256": _sha256_regular_file(
-            state_path, label="launch state"
-        ),
-        "artifact_registry_sha256": _sha256_regular_file(
-            registry_path, label="artifact registry"
-        ),
-    }
-    if before != after:
-        raise RuntimeError(
-            "[SMART_GATE] launch authority changed during lease validation"
-        )
-    launch_state = entry.get("xau_direction_launch_state")
-    approval = (
-        launch_state.get("accepted_via_vedtak")
-        if isinstance(launch_state, dict)
-        else None
-    )
-    if not isinstance(approval, dict):
-        raise RuntimeError("[SMART_GATE] validated launch approval is missing")
-    lease = {
-        **after,
-        "accepted_bundle_dir": str(Path(entry["path"]).resolve()),
-        "approval_event_sha256": str(approval.get("event_sha256") or ""),
-        "approval_vedtak_id": str(approval.get("vedtak_id") or ""),
-    }
-    if expected_lease is not None and lease != expected_lease:
-        raise RuntimeError(
-            "[SMART_GATE] launch authority was replaced or revoked; restart required"
-        )
-    return lease
-
-
-def require_runtime_new_entry_live_tail(
-    *,
-    expected_pair_generation_id: str | None = None,
-    expected_pair_manifest_sha256: str | None = None,
-) -> dict:
-    """Require dynamic data authority only for creating new exposure."""
-
-    from gx1_guards import artifacts as artifact_guard
-
-    try:
-        entry = artifact_guard.load_decision_entry("v10_entry")
-        launch_state = entry.get("xau_direction_launch_state")
-        return artifact_guard.require_new_entry_live_tail_admission(
-            launch_state,
-            expected_pair_generation_id=expected_pair_generation_id,
-            expected_generation_manifest_sha256=(
-                expected_pair_manifest_sha256
-            ),
-        )
-    except artifact_guard.ArtifactGuardError as exc:
-        raise RuntimeError(
-            f"[LIVE_TAIL_ADMISSION_UNAVAILABLE] {exc}"
-        ) from exc
-
-
-def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> dict[str, str]:
-    """Require the exact immutable launch approval and serving evidence.
-
-    Direct runner startup and the shell launcher use the same artifact-bound
-    authority. Ambient environment text is never launch authorization.
-    """
-    assert_no_retired_entry_overrides()
-    from gx1_guards.artifacts import load_decision_entry
-    from gx1.models.entry_v10.direction_decision_contract import (
-        require_model_direction_operating_point,
-    )
-
-    lease = require_runtime_entry_launch_lease()
-    entry = load_decision_entry("v10_entry")
-    op = require_model_direction_operating_point(
-        entry.get("operating_point"), context="paper runner v10_entry"
-    )
-    expected_max_trades = int(op["max_trades"])
-    if int(args.max_trades) != expected_max_trades:
-        raise SystemExit(
-            f"[SMART_GATE] --max-trades {args.max_trades} != "
-            "contract v10_entry.operating_point.max_trades "
-            f"{expected_max_trades}"
-        )
-    approval = entry["xau_direction_launch_state"]["accepted_via_vedtak"]
-    LOG.warning(
-        "[SMART_GATE] runner start authorized: vedtak=%s parity=%s "
-        "launch_state_sha256=%s",
-        approval["vedtak_id"],
-        "PASS",
-        lease["launch_state_sha256"],
-    )
-    return lease
 
 
 # ── Main loop ────────────────────────────────────────────────────────────

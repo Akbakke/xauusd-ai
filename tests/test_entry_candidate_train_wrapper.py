@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -12,18 +14,27 @@ from tests.entry_model_native_train_wrapper_support import (
 
 
 REPO = Path(__file__).resolve().parents[1]
-WRAPPER = REPO / "scripts/run_entry_model_native_seq513_candidate_train.sh"
+WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", str(WRAPPER), *args],
+        ["bash", str(WRAPPER), "--profile", "candidate", *args],
         cwd=REPO,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
     )
+
+
+def _capped_command_tokens(stdout: str) -> list[str]:
+    line = next(
+        row
+        for row in stdout.splitlines()
+        if row.startswith("Capped candidate train command:")
+    )
+    return shlex.split(line.split(":", 1)[1].strip())
 
 
 def test_candidate_wrapper_has_valid_shell_syntax() -> None:
@@ -55,8 +66,18 @@ def test_candidate_wrapper_rejects_unknown_retired_lane_argument() -> None:
 
 def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -> None:
     args, paths = build_wrapper_contract(tmp_path, profile="candidate", wrapper=WRAPPER)
-
-    result = _run(*args, "--dry-run")
+    env = os.environ.copy()
+    env["ENTRY_STALE_WRAPPER_TEST"] = "must_be_scrubbed"
+    env["GX1_STALE_WRAPPER_TEST"] = "must_be_scrubbed"
+    result = subprocess.run(
+        ["bash", str(WRAPPER), "--profile", "candidate", *args, "--dry-run"],
+        cwd=REPO,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Validated model-native seq513 candidate contract" in result.stdout
@@ -69,6 +90,26 @@ def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Pat
     assert "--mtf-dir-scale-init" not in result.stdout
     assert "--enable-" not in result.stdout
     assert not paths["out_bundle_dir"].exists()
+    command = _capped_command_tokens(result.stdout)
+    runner_index = command.index(str(REPO / "scripts/gx1_capped_run.sh"))
+    separator_index = command.index("--", runner_index)
+    assert command[0] == "/usr/bin/env"
+    assert command[runner_index + 1 : runner_index + 4] == [
+        "--class",
+        "trainer",
+        "--mem",
+    ]
+    assert command[separator_index + 1 : separator_index + 4] == [
+        str(REPO / ".venv/bin/python"),
+        "-m",
+        "gx1.models.entry_v10.entry_v10_ctx_train_v3",
+    ]
+    assert command[separator_index + 4] == "--train"
+    for stale_key in ("ENTRY_STALE_WRAPPER_TEST", "GX1_STALE_WRAPPER_TEST"):
+        stale_index = command.index(stale_key)
+        assert command[stale_index - 1] == "-u"
+        assert stale_index < runner_index
+        assert stale_key not in command[separator_index + 1 :]
 
 
 def test_candidate_wrapper_rejects_zero_mandatory_recipe_value(tmp_path: Path) -> None:
@@ -106,12 +147,20 @@ def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_
     assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v4" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
     assert "MODEL_NATIVE_SIGNAL_DIM=513" in text
+    assert "PROFILE=smoke" not in text
+    assert "PROFILE=candidate" not in text
+    assert "--profile" in text
     assert "--recipe-audit-json" in text
     assert "--pretrain-audit-json" in text
+    assert "--prefreeze-test-seal-json" in text
+    assert "--prefreeze-test-seal-sha256" in text
     assert "--candidate-readiness-json" in text
     assert "--smoke-bundle-audit-json" in text
     assert "--execute" in text and "--run-id" in text
-    assert 'RUN_CMD=("$CAPPED_RUNNER" --mem "$MEMORY_CAP" --swap "$SWAP_CAP" --' in text
+    assert 'TRAIN_CMD=(\n  "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3' in text
+    assert 'RUN_CMD=(\n  "${ENV_COMMAND[@]}"\n  "$CAPPED_RUNNER" --class trainer' in text
+    assert '-- "${TRAIN_CMD[@]}"' in text
+    assert 'exec "${RUN_CMD[@]}"' in text
     for flag in (
         "--enable-pos-enc",
         "--enable-regime-film",

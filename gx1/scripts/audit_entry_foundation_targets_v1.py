@@ -842,7 +842,7 @@ def _drift(metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
         split, scope, value, side = key
         if split != "train":
             continue
-        for other_split in ("val", "test"):
+        for other_split in ("val",):
             other = by_key.get((other_split, scope, value, side))
             if not other:
                 continue

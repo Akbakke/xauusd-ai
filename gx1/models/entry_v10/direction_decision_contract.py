@@ -22,7 +22,15 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     CLASS_ORDER,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_DECISION_TIMEFRAME,
+    ENTRY_FEATURE_SEQUENCE_BARS,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_DECISION_TIMEFRAME,
+    EXIT_FEATURE_SEQUENCE_BARS,
     EXIT_FEATURE_ROW_CLOCK,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
     entry_exit_shared_feature_base_contract,
 )
 
@@ -59,7 +67,7 @@ MODEL_DIRECTION_TRADE_INDICES = (
 )
 PUBLIC_TRADE_INDEX = 0
 PUBLIC_FLAT_INDEX = 1
-UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION = "gx1_unified_entry_exit_v2"
+UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION = "gx1_unified_entry_exit_v3"
 UNIFIED_EXIT_LOGITS_KEY = "exit_action_logits"
 UNIFIED_EXIT_PROBS_KEY = "exit_action_probs"
 UNIFIED_EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
@@ -647,6 +655,16 @@ def unified_entry_exit_contract_metadata() -> dict[str, Any]:
         "shared_feature_encoder": True,
         "shared_feature_contract": True,
         "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+        "entry_local_timeframe": ENTRY_DECISION_TIMEFRAME,
+        "entry_local_sequence_bars": ENTRY_FEATURE_SEQUENCE_BARS,
+        "entry_decision_bar_seconds": ENTRY_DECISION_BAR_SECONDS,
+        "entry_mtf_timeframes": list(ENTRY_MTF_CONTEXT_TIMEFRAMES),
+        "entry_local_timeframe_repeated_in_mtf": False,
+        "exit_local_timeframe": EXIT_DECISION_TIMEFRAME,
+        "exit_local_sequence_bars": EXIT_FEATURE_SEQUENCE_BARS,
+        "exit_decision_bar_seconds": EXIT_DECISION_BAR_SECONDS,
+        "exit_mtf_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
+        "exit_local_timeframe_repeated_in_mtf": False,
         "exit_requires_shared_m1_feature_surface": True,
         "exit_feature_encoder": "same_entry_specialist_modules_no_duplicate_stack",
         "exit_path_is_additive_not_replacement": True,

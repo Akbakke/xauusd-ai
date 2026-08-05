@@ -57,6 +57,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
     parse_utc as parse_state_utc,
     validate_train_rank_reference_lineage_v2,
 )
+from gx1.contracts.xau_tape_provenance_v1 import (
+    SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
+)
 from gx1.scripts.audit_seq513_source_cascade_v1 import (
     validate_seq513_source_cascade_proof,
 )
@@ -438,7 +441,7 @@ def load_and_validate_train_feature_ranking(
     if (
         not isinstance(raw_source_cascade, dict)
         or raw_source_cascade.get("schema_version")
-        != "seq513_source_cascade_pair_proof_v1"
+        != SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION
         or frozenset(raw_source_cascade) != _CURRENT_SOURCE_CASCADE_KEYS
     ):
         raise RuntimeError("FEATURE_RANKING_CURRENT_SOURCE_CASCADE_REQUIRED")

@@ -25,10 +25,7 @@ from tests.entry_model_native_train_wrapper_support import (
 
 
 REPO = Path(__file__).resolve().parents[1]
-WRAPPER = REPO / "scripts/run_entry_model_native_seq513_smoke_train.sh"
-CANDIDATE_WRAPPER = (
-    REPO / "scripts/run_entry_model_native_seq513_candidate_train.sh"
-)
+WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 
 
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
@@ -104,6 +101,13 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
     assert event["json_path"] == str(event_path)
     assert event["trainer_env"] == MODEL_NATIVE_RECIPE_ENV
     assert event["dataset_run_id"] == DATASET_RUN_ID
+    assert event["prefreeze_test_seal_lineage"]["dataset_run_id"] == DATASET_RUN_ID
+    assert event["prefreeze_test_seal_lineage"]["access_proof"][
+        "test_metrics_read"
+    ] is False
+    assert event["prefreeze_test_seal_lineage_sha256"] == (
+        launch.canonical_json_sha256(event["prefreeze_test_seal_lineage"])
+    )
     assert event["trainer_env_contract"] == model_native_recipe_env_contract_metadata()
     assert event["activation_authority"] is False
     assert event["report_only"] is True
@@ -113,6 +117,7 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "control_surface",
         "launch_contract",
         "model",
+        "test_seal_contract",
         "mtf_feature_builder",
         "mtf_smc_geometry",
         "mtf_specialist_routing",
@@ -130,7 +135,14 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         for value in wrapper_argv
     ]
     result = subprocess.run(
-        ["bash", str(WRAPPER), *validated_argv, "--dry-run"],
+        [
+            "bash",
+            str(WRAPPER),
+            "--profile",
+            "smoke",
+            *validated_argv,
+            "--dry-run",
+        ],
         cwd=REPO,
         text=True,
         stdout=subprocess.PIPE,
@@ -172,11 +184,40 @@ def test_train_launch_rejects_invalid_explicit_dropout(
         launch._trainer_cli_contract(args)
 
 
+def test_train_launch_rejects_every_noncanonical_wrapper_path(
+    tmp_path: Path,
+) -> None:
+    wrapper_argv, _ = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    noncanonical = tmp_path / "noncanonical_train.sh"
+    noncanonical.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "smoke",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(noncanonical),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="canonical profile-explicit trainer wrapper",
+    ):
+        launch.validate_launch(args)
+
+
 def test_candidate_launch_rejects_training_subsample(tmp_path: Path) -> None:
     wrapper_argv, _ = build_wrapper_contract(
         tmp_path,
         profile="candidate",
-        wrapper=CANDIDATE_WRAPPER,
+        wrapper=WRAPPER,
     )
     subsample_index = wrapper_argv.index("--subsample-rows") + 1
     wrapper_argv[subsample_index] = "512"
@@ -187,7 +228,7 @@ def test_candidate_launch_rejects_training_subsample(tmp_path: Path) -> None:
             "--repo",
             str(REPO),
             "--wrapper-path",
-            str(CANDIDATE_WRAPPER),
+            str(WRAPPER),
             *wrapper_argv,
         ]
     )

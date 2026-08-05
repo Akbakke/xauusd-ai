@@ -18,6 +18,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CAT_MIN_MAX,
     MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -52,6 +53,7 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_CTX_CAT_DOMAINS,
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
+    _build_unit_test_entry_v10_ctx_hybrid_transformer,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.model_native_input_normalization_support import (
@@ -62,13 +64,13 @@ from tests.model_native_input_normalization_support import (
 # The code-owned family fields plus ranked fixture fields form the exact
 # selected surface. The genuine 34-field base produces these totals.
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
-    "chart_geometry_encoder": 22,
+    "chart_geometry_encoder": 18,
     "momentum_flow_encoder": 31,
     "price_action_candle_encoder": 35,
-    "session_regime_encoder": 208,
-    "smc_liquidity_encoder": 74,
-    "structure_swing_encoder": 56,
-    "trend_ema_encoder": 43,
+    "session_regime_encoder": 229,
+    "smc_liquidity_encoder": 68,
+    "structure_swing_encoder": 51,
+    "trend_ema_encoder": 37,
     "vol_compression_encoder": 44,
 }
 _TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)
@@ -205,7 +207,7 @@ def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live()
     )
 
 
-def test_exact_m5_ema50_200_evidence_is_mandatory_and_trend_owned() -> None:
+def test_exact_local_ema50_200_evidence_is_mandatory_and_trend_owned() -> None:
     families = dict(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
     assert families["price_ema50_200_layer"] == PRICE_DERIVED_FEATURE_NAMES
     assert set(PRICE_DERIVED_FEATURE_NAMES).issubset(
@@ -252,6 +254,12 @@ def test_active_context_contract_always_contains_full_regime_stack(
     assert "trend_regime_id" not in MODEL_NATIVE_CTX_CAT_FIELDS
     assert tuple(context["ctx_cont_names"]) == MODEL_NATIVE_CTX_CONT_FIELDS
     assert tuple(context["ctx_cat_names"]) == MODEL_NATIVE_CTX_CAT_FIELDS
+    assert MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME == {
+        name: index for index, name in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
+    }
+    assert (
+        MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME["D1_dist_from_ema200_atr"] == 2
+    )
 
     contract = model_native_signal_contract_metadata(_selected_fields())
     contract["ctx_cont_names"] = list(MODEL_NATIVE_CTX_CONT_FIELDS[:-1])
@@ -346,7 +354,9 @@ def test_manifest_rejects_stale_top_level_mandatory_family_metadata() -> None:
 
 def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
     torch.manual_seed(7)
-    model = EntryV10CtxHybridTransformer(**_exact_model_kwargs()).eval()
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
+        **_exact_model_kwargs()
+    ).eval()
     seq_x = torch.randn(2, 4, MODEL_NATIVE_SIGNAL_DIM)
     snap_x = seq_x[:, -1, :].clone()
     ctx_cont = torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM)
@@ -372,7 +382,7 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
 
     mtf = {
         f"seq_{tf}": torch.randn(2, 4, _TEST_MTF_DIM)
-        for tf in ("m5", "m15", "h1", "h4", "d1")
+        for tf in ("m15", "h1", "h4", "d1")
     }
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
@@ -391,6 +401,16 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
     assert out["position_size_logit"].shape == (2, 1)
     assert torch.count_nonzero(model.head_direction.weight).item() > 0
 
+    with pytest.raises(TypeError, match="seq_m5"):
+        model(
+            seq_x,
+            snap_x,
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            seq_m5=torch.randn(2, 4, _TEST_MTF_DIM),
+            **mtf,
+        )
+
 
 def test_model_native_transformer_has_no_legacy_direction_api() -> None:
     parameters = inspect.signature(EntryV10CtxHybridTransformer).parameters
@@ -404,7 +424,10 @@ def test_model_native_transformer_has_no_legacy_direction_api() -> None:
 
 
 def test_model_native_transformer_rejects_noncanonical_context_dimensions() -> None:
-    with pytest.raises(RuntimeError, match="ENTRY_MODEL_NATIVE_CTX_DIM_INVALID"):
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_EXIT_PRODUCTION_ARCHITECTURE_MISMATCH",
+    ):
         EntryV10CtxHybridTransformer(
             **_exact_model_kwargs(ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM - 1)
         )

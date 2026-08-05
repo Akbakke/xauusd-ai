@@ -1,10 +1,10 @@
-"""Immutable TRAIN-only input-normalization contract for model-native Entry.
+"""Immutable shared TRAIN-only input normalization for Entry and Exit.
 
-The model consumes raw, finite XAU feature tensors.  This contract fits one
-robust transform per ordered field on TRAIN observations only and binds the
-statistics directly into the model state and bundle metadata.  Binary fields
-remain exact 0/1 evidence; every other field is median-centered, robustly
-scaled, and clipped by one explicit model-owned bound.
+The model consumes raw, finite XAU feature tensors. This contract fits the
+shared local encoder on the deduplicated physical M5+M1 TRAIN union, context on
+the Entry+Exit TRAIN decision union, and MTF surfaces on actual +5m/+1m route
+consumption. Binary fields remain exact 0/1 evidence; every other field is
+median-centered, robustly scaled, and clipped by one model-owned bound.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
 
@@ -25,13 +26,15 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES_LOWER,
 )
 
-SCHEMA_VERSION = "entry_model_native_input_normalization_v1"
-TRANSFORM = "train_only_median_iqr_or_sparse_deviation_v1"
-FIT_POPULATION = "unique_train_observation_rows_per_surface_v1"
+SCHEMA_VERSION = "entry_model_native_input_normalization_v2"
+TRANSFORM = "shared_entry_exit_train_only_median_iqr_or_sparse_deviation_v2"
+FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
 CLIP_ABS = 12.0
 SCALE_FLOOR = 1.0e-6
 IQR_TO_SIGMA = 1.349
 FIT_COLUMN_CHUNK = 32
+FIT_ROW_CHUNK = 4096
+FIT_MAX_WORKING_BLOCK_BYTES = 128 * 1024 * 1024
 MAX_TRAIN_CLIP_RATE = 0.02
 EXPECTED_SURFACES = (
     "signal",
@@ -59,6 +62,10 @@ _LINEAGE_KEYS = {
     "train_manifest_path",
     "train_manifest_sha256",
     "train_row_count",
+    "entry_train_decision_row_count",
+    "exit_train_decision_row_count",
+    "local_fit_row_count",
+    "context_fit_row_count",
     "val_fit_row_count",
     "test_fit_row_count",
     "train_time_min_utc",
@@ -73,6 +80,21 @@ _LINEAGE_KEYS = {
     "per_tf_shift_seconds",
     "per_tf_fit_windows",
 }
+
+
+@dataclass(frozen=True)
+class MatrixPopulationPart:
+    """One physical matrix plus an optional sorted unique row selection.
+
+    A fit may contain several physically distinct sources (Entry M5 and Exit
+    M1).  Keeping the source matrix and row indices separate lets the fit owner
+    scan the exact union repeatedly without concatenating a multi-gigabyte
+    matrix in RAM.
+    """
+
+    values: Any
+    row_indices: Any = None
+    source: str = ""
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -133,8 +155,31 @@ def _require_lineage(value: Mapping[str, Any]) -> dict[str, Any]:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_LINEAGE_SHA_INVALID] field={field}"
             )
-    if isinstance(data["train_row_count"], bool) or int(data["train_row_count"]) < 2:
+    population_counts = (
+        "train_row_count",
+        "entry_train_decision_row_count",
+        "exit_train_decision_row_count",
+        "local_fit_row_count",
+        "context_fit_row_count",
+    )
+    if any(
+        isinstance(data[field], bool)
+        or not isinstance(data[field], int)
+        or int(data[field]) < (2 if field != "exit_train_decision_row_count" else 1)
+        for field in population_counts
+    ):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_TRAIN_ROWS_INVALID]")
+    if (
+        int(data["context_fit_row_count"])
+        != int(data["entry_train_decision_row_count"])
+        + int(data["exit_train_decision_row_count"])
+        or int(data["train_row_count"]) != int(data["context_fit_row_count"])
+        or int(data["local_fit_row_count"])
+        < int(data["context_fit_row_count"])
+    ):
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_SHARED_POPULATION_COUNT_INVALID]"
+        )
     if data["val_fit_row_count"] != 0 or data["test_fit_row_count"] != 0:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_OOS_FIT_ROWS_FORBIDDEN]")
     time_min = _parse_utc(data["train_time_min_utc"], field="train_time_min_utc")
@@ -348,30 +393,47 @@ def fit_ctx_cat_contract(
     *,
     field_names: Sequence[str],
 ) -> dict[str, Any]:
-    matrix = _as_finite_matrix(values, surface="ctx_cat")
+    parts, population_rows, width = _as_population_parts(
+        values,
+        surface="ctx_cat",
+    )
     names = [str(name) for name in field_names]
-    if names != list(CTX_CAT_DOMAINS) or int(matrix.shape[1]) != len(names):
+    if names != list(CTX_CAT_DOMAINS) or int(width) != len(names):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CTX_CAT_FIELDS_INVALID]")
-    numeric = np.asarray(matrix, dtype=np.float64)
-    if not np.isfinite(numeric).all() or not np.equal(numeric, np.floor(numeric)).all():
-        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CTX_CAT_VALUE_INVALID]")
-    observed_counts: dict[str, dict[str, int]] = {}
-    for index, name in enumerate(names):
-        domain = CTX_CAT_DOMAINS[name]
-        values_i = numeric[:, index].astype(np.int64)
-        if not np.isin(values_i, domain).all():
-            raise RuntimeError(
-                f"[ENTRY_INPUT_NORMALIZATION_CTX_CAT_DOMAIN_INVALID] field={name}"
-            )
-        observed_counts[name] = {
-            str(value): int(np.count_nonzero(values_i == value))
-            for value in domain
-        }
+    observed_counts: dict[str, dict[str, int]] = {
+        name: {str(value): 0 for value in CTX_CAT_DOMAINS[name]}
+        for name in names
+    }
+    observed_rows = 0
+    for numeric in _iter_population_column_blocks(
+        parts,
+        start=0,
+        stop=width,
+    ):
+        if (
+            not np.isfinite(numeric).all()
+            or not np.equal(numeric, np.floor(numeric)).all()
+        ):
+            raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CTX_CAT_VALUE_INVALID]")
+        for index, name in enumerate(names):
+            domain = CTX_CAT_DOMAINS[name]
+            values_i = numeric[:, index].astype(np.int64)
+            if not np.isin(values_i, domain).all():
+                raise RuntimeError(
+                    f"[ENTRY_INPUT_NORMALIZATION_CTX_CAT_DOMAIN_INVALID] field={name}"
+                )
+            for value in domain:
+                observed_counts[name][str(value)] += int(
+                    np.count_nonzero(values_i == value)
+                )
+        observed_rows += int(numeric.shape[0])
+    if observed_rows != population_rows:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CTX_CAT_SCAN_MISMATCH]")
     payload = {
         "policy": "categorical_embedding_no_numeric_transform",
         "field_names": names,
         "field_names_sha256": _field_names_sha256(names),
-        "fit_row_count": int(matrix.shape[0]),
+        "fit_row_count": int(population_rows),
         "domains": {
             name: list(CTX_CAT_DOMAINS[name])
             for name in names
@@ -437,19 +499,169 @@ def require_ctx_cat_contract(
     return data
 
 
-def _as_finite_matrix(values: Any, *, surface: str) -> np.ndarray:
-    matrix = np.asarray(values)
-    if matrix.ndim != 2 or matrix.shape[0] < 2 or matrix.shape[1] < 1:
+def _as_population_parts(
+    values: Any,
+    *,
+    surface: str,
+) -> tuple[list[tuple[np.ndarray, np.ndarray | None, str]], int, int]:
+    """Validate one bounded fit population without concatenating its sources."""
+
+    if isinstance(values, MatrixPopulationPart):
+        raw_parts = [values]
+    elif (
+        isinstance(values, (list, tuple))
+        and values
+        and all(isinstance(item, MatrixPopulationPart) for item in values)
+    ):
+        raw_parts = list(values)
+    elif (
+        isinstance(values, (list, tuple))
+        and values
+        and all(np.asarray(item).ndim == 2 for item in values)
+    ):
+        raw_parts = [
+            MatrixPopulationPart(item, source=f"{surface}:{index}")
+            for index, item in enumerate(values)
+        ]
+    else:
+        raw_parts = [MatrixPopulationPart(values, source=surface)]
+
+    normalized: list[tuple[np.ndarray, np.ndarray | None, str]] = []
+    width: int | None = None
+    total_rows = 0
+    for part_index, part in enumerate(raw_parts):
+        matrix = np.asarray(part.values)
+        if matrix.ndim != 2 or matrix.shape[0] < 1 or matrix.shape[1] < 1:
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_MATRIX_INVALID] "
+                f"surface={surface} part={part_index} shape={tuple(matrix.shape)}"
+            )
+        if not np.issubdtype(matrix.dtype, np.number):
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_MATRIX_DTYPE_INVALID] "
+                f"surface={surface} part={part_index} dtype={matrix.dtype}"
+            )
+        if width is None:
+            width = int(matrix.shape[1])
+        elif int(matrix.shape[1]) != width:
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_MATRIX_WIDTH_MISMATCH] "
+                f"surface={surface} part={part_index} "
+                f"observed={int(matrix.shape[1])} expected={width}"
+            )
+        indices: np.ndarray | None = None
+        if part.row_indices is not None:
+            raw_indices = np.asarray(part.row_indices)
+            if (
+                raw_indices.ndim != 1
+                or raw_indices.size < 1
+                or not np.issubdtype(raw_indices.dtype, np.integer)
+            ):
+                raise RuntimeError(
+                    f"[ENTRY_INPUT_NORMALIZATION_ROW_SELECTION_INVALID] "
+                    f"surface={surface} part={part_index}"
+                )
+            indices = np.asarray(raw_indices, dtype=np.int64)
+            if (
+                int(indices[0]) < 0
+                or int(indices[-1]) >= int(matrix.shape[0])
+                or np.any(np.diff(indices) <= 0)
+            ):
+                raise RuntimeError(
+                    f"[ENTRY_INPUT_NORMALIZATION_ROW_SELECTION_INVALID] "
+                    f"surface={surface} part={part_index}"
+                )
+            selected_rows = int(indices.size)
+        else:
+            selected_rows = int(matrix.shape[0])
+        normalized.append((matrix, indices, str(part.source or surface)))
+        total_rows += selected_rows
+    if total_rows < 2 or width is None:
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_MATRIX_INVALID] "
-            f"surface={surface} shape={tuple(matrix.shape)}"
+            f"surface={surface} rows={total_rows}"
         )
-    if not np.issubdtype(matrix.dtype, np.number):
-        raise RuntimeError(
-            f"[ENTRY_INPUT_NORMALIZATION_MATRIX_DTYPE_INVALID] "
-            f"surface={surface} dtype={matrix.dtype}"
-        )
-    return matrix
+    return normalized, total_rows, width
+
+
+def _iter_population_column_blocks(
+    parts: Sequence[tuple[np.ndarray, np.ndarray | None, str]],
+    *,
+    start: int,
+    stop: int,
+    row_chunk: int = FIT_ROW_CHUNK,
+    dtype: np.dtype[Any] = np.dtype(np.float64),
+):
+    for matrix, indices, _source in parts:
+        selected_rows = int(matrix.shape[0]) if indices is None else int(indices.size)
+        for row_start in range(0, selected_rows, int(row_chunk)):
+            row_stop = min(selected_rows, row_start + int(row_chunk))
+            if indices is None:
+                raw = matrix[row_start:row_stop, start:stop]
+            else:
+                raw = matrix[indices[row_start:row_stop], start:stop]
+            yield np.asarray(raw, dtype=dtype)
+
+
+def _materialize_population_columns(
+    parts: Sequence[tuple[np.ndarray, np.ndarray | None, str]],
+    *,
+    total_rows: int,
+    start: int,
+    stop: int,
+) -> np.ndarray:
+    block = np.empty((int(total_rows), int(stop - start)), dtype=np.float64)
+    offset = 0
+    for source_block in _iter_population_column_blocks(
+        parts,
+        start=start,
+        stop=stop,
+    ):
+        next_offset = offset + int(source_block.shape[0])
+        block[offset:next_offset] = source_block
+        offset = next_offset
+    if offset != int(total_rows):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_POPULATION_SCAN_MISMATCH]")
+    return block
+
+
+def _population_clip_counts(
+    parts: Sequence[tuple[np.ndarray, np.ndarray | None, str]],
+    *,
+    width: int,
+    center: np.ndarray,
+    scale: np.ndarray,
+    binary_mask: np.ndarray,
+    categorical_mask: np.ndarray,
+    column_chunk: int,
+) -> np.ndarray:
+    clipped_count = np.zeros(int(width), dtype=np.int64)
+    for start in range(0, int(width), int(column_chunk)):
+        stop = min(int(width), start + int(column_chunk))
+        for block in _iter_population_column_blocks(
+            parts,
+            start=start,
+            stop=stop,
+        ):
+            if not np.isfinite(block).all():
+                raise RuntimeError(
+                    "[ENTRY_INPUT_NORMALIZATION_NONFINITE] "
+                    f"field_offset={start}"
+                )
+            normalized = (
+                block - center[start:stop].astype(np.float64)
+            ) / scale[start:stop].astype(np.float64)
+            identity = np.logical_or(
+                binary_mask[start:stop].astype(bool),
+                categorical_mask[start:stop].astype(bool),
+            )
+            if identity.any():
+                normalized[:, identity] = block[:, identity]
+            clipped_count[start:stop] += np.count_nonzero(
+                np.abs(normalized) > float(CLIP_ABS),
+                axis=0,
+            )
+    return clipped_count
 
 
 def fit_surface_normalization(
@@ -467,30 +679,37 @@ def fit_surface_normalization(
     the 513-wide TRAIN snapshot does not create another multi-gigabyte array.
     """
 
-    matrix = _as_finite_matrix(values, surface=surface)
+    parts, population_rows, width = _as_population_parts(
+        values,
+        surface=surface,
+    )
     names = [str(name) for name in field_names]
     if (
         not names
         or any(not name for name in names)
         or len(names) != len(set(names))
-        or len(names) != int(matrix.shape[1])
+        or len(names) != int(width)
     ):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_FIELDS_INVALID] "
-            f"surface={surface} fields={len(names)} width={int(matrix.shape[1])}"
+            f"surface={surface} fields={len(names)} width={int(width)}"
         )
-    if row_count is not None and int(row_count) != int(matrix.shape[0]):
+    if row_count is not None and int(row_count) != int(population_rows):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_ROW_COUNT_MISMATCH] "
             f"surface={surface} declared={int(row_count)} "
-            f"observed={int(matrix.shape[0])}"
+            f"observed={int(population_rows)}"
         )
     if isinstance(column_chunk, bool) or int(column_chunk) < 1:
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_CHUNK_INVALID] {column_chunk!r}"
         )
 
-    width = int(matrix.shape[1])
+    max_columns_by_budget = max(
+        1,
+        int(FIT_MAX_WORKING_BLOCK_BYTES) // (int(population_rows) * 8),
+    )
+    effective_column_chunk = min(int(column_chunk), max_columns_by_budget)
     center = np.empty(width, dtype=np.float32)
     scale = np.empty(width, dtype=np.float32)
     binary_mask = np.zeros(width, dtype=np.uint8)
@@ -512,9 +731,14 @@ def fit_surface_normalization(
             f"surface={surface}"
         )
 
-    for start in range(0, width, int(column_chunk)):
-        stop = min(width, start + int(column_chunk))
-        block = np.asarray(matrix[:, start:stop], dtype=np.float64)
+    for start in range(0, width, effective_column_chunk):
+        stop = min(width, start + effective_column_chunk)
+        block = _materialize_population_columns(
+            parts,
+            total_rows=population_rows,
+            start=start,
+            stop=stop,
+        )
         if not np.isfinite(block).all():
             bad = np.argwhere(~np.isfinite(block))[0]
             raise RuntimeError(
@@ -621,24 +845,16 @@ def fit_surface_normalization(
         categorical_mask=categorical_mask,
         categorical_domains=categorical_domains,
     )
-    clipped_count = np.zeros(width, dtype=np.int64)
-    for start in range(0, width, int(column_chunk)):
-        stop = min(width, start + int(column_chunk))
-        block = np.asarray(matrix[:, start:stop], dtype=np.float64)
-        normalized = (
-            block - center[start:stop].astype(np.float64)
-        ) / scale[start:stop].astype(np.float64)
-        identity = np.logical_or(
-            binary_mask[start:stop].astype(bool),
-            categorical_mask[start:stop].astype(bool),
-        )
-        if identity.any():
-            normalized[:, identity] = block[:, identity]
-        clipped_count[start:stop] = np.count_nonzero(
-            np.abs(normalized) > float(CLIP_ABS),
-            axis=0,
-        )
-    clipped_rate = clipped_count.astype(np.float64) / float(matrix.shape[0])
+    clipped_count = _population_clip_counts(
+        parts,
+        width=width,
+        center=center,
+        scale=scale,
+        binary_mask=binary_mask,
+        categorical_mask=categorical_mask,
+        column_chunk=effective_column_chunk,
+    )
+    clipped_rate = clipped_count.astype(np.float64) / float(population_rows)
     excessive = np.flatnonzero(clipped_rate > float(MAX_TRAIN_CLIP_RATE))
     if excessive.size:
         index = int(excessive[0])
@@ -653,7 +869,7 @@ def fit_surface_normalization(
         "field_count": width,
         "field_names": names,
         "field_names_sha256": _field_names_sha256(names),
-        "fit_row_count": int(matrix.shape[0]),
+        "fit_row_count": int(population_rows),
         "center": [float(value) for value in center],
         "scale": [float(value) for value in scale],
         "binary_mask": [int(value) for value in binary_mask],
@@ -893,6 +1109,125 @@ def share_temporal_alias_stats_from_ctx(
     return signal
 
 
+def share_temporal_alias_stats_from_signal(
+    ctx_cont_surface: Mapping[str, Any],
+    signal_surface: Mapping[str, Any],
+    *,
+    temporal_aliases: Sequence[Mapping[str, Any]],
+    ctx_cont_values: Any,
+) -> dict[str, Any]:
+    """Make the shared local 513 population own temporal-alias statistics.
+
+    Entry/Exit local rows are a superset of their current decision rows.  The
+    local encoder therefore owns each duplicated temporal field once; the
+    ctx_cont surface reuses those exact center/scale values while retaining a
+    clip proof measured on its own TRAIN-only decision population.
+    """
+
+    ctx_cont = dict(ctx_cont_surface)
+    signal = dict(signal_surface)
+    ctx_names = [str(name) for name in ctx_cont["field_names"]]
+    signal_names = [str(name) for name in signal["field_names"]]
+    center = np.asarray(ctx_cont["center"], dtype=np.float32).copy()
+    scale = np.asarray(ctx_cont["scale"], dtype=np.float32).copy()
+    binary = np.asarray(ctx_cont["binary_mask"], dtype=np.uint8).copy()
+    categorical = np.asarray(
+        ctx_cont["categorical_mask"], dtype=np.uint8
+    ).copy()
+    scale_source = [str(value) for value in ctx_cont["scale_source"]]
+    categorical_domains = {
+        str(name): [int(item) for item in domain]
+        for name, domain in ctx_cont["categorical_domains"].items()
+    }
+    signal_center = np.asarray(signal["center"], dtype=np.float32)
+    signal_scale = np.asarray(signal["scale"], dtype=np.float32)
+    signal_binary = np.asarray(signal["binary_mask"], dtype=np.uint8)
+    signal_categorical = np.asarray(
+        signal["categorical_mask"], dtype=np.uint8
+    )
+    for raw in temporal_aliases:
+        alias = dict(raw)
+        signal_index = int(alias["signal_index"])
+        ctx_index = int(alias["ctx_cont_index"])
+        if (
+            signal_names[signal_index] != alias["signal_field"]
+            or ctx_names[ctx_index] != alias["ctx_cont_field"]
+            or alias["signal_field"] != f"ctx_cont.{alias['ctx_cont_field']}"
+        ):
+            raise RuntimeError(
+                "[ENTRY_INPUT_NORMALIZATION_ALIAS_IDENTITY_INVALID]"
+            )
+        center[ctx_index] = signal_center[signal_index]
+        scale[ctx_index] = signal_scale[signal_index]
+        binary[ctx_index] = signal_binary[signal_index]
+        categorical[ctx_index] = signal_categorical[signal_index]
+        scale_source[ctx_index] = signal["scale_source"][signal_index]
+        categorical_domains.pop(alias["ctx_cont_field"], None)
+        signal_domain = signal["categorical_domains"].get(
+            alias["signal_field"]
+        )
+        if signal_domain is not None:
+            categorical_domains[alias["ctx_cont_field"]] = [
+                int(item) for item in signal_domain
+            ]
+
+    parts, population_rows, width = _as_population_parts(
+        ctx_cont_values,
+        surface="ctx_cont",
+    )
+    if (
+        width != len(ctx_names)
+        or population_rows != int(ctx_cont["fit_row_count"])
+    ):
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_ALIAS_CTX_POPULATION_MISMATCH]"
+        )
+    max_columns_by_budget = max(
+        1,
+        int(FIT_MAX_WORKING_BLOCK_BYTES) // (int(population_rows) * 8),
+    )
+    clipped_count = _population_clip_counts(
+        parts,
+        width=width,
+        center=center,
+        scale=scale,
+        binary_mask=binary,
+        categorical_mask=categorical,
+        column_chunk=min(FIT_COLUMN_CHUNK, max_columns_by_budget),
+    )
+    clipped_rate = clipped_count.astype(np.float64) / float(population_rows)
+    excessive = np.flatnonzero(clipped_rate > float(MAX_TRAIN_CLIP_RATE))
+    if excessive.size:
+        index = int(excessive[0])
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_SHARED_ALIAS_CLIP_RATE_EXCESSIVE] "
+            f"field={ctx_names[index]} rate={float(clipped_rate[index]):.9f}"
+        )
+    ctx_cont.update(
+        {
+            "center": [float(value) for value in center],
+            "scale": [float(value) for value in scale],
+            "binary_mask": [int(value) for value in binary],
+            "binary_field_count": int(binary.sum()),
+            "categorical_mask": [int(value) for value in categorical],
+            "categorical_field_count": int(categorical.sum()),
+            "categorical_domains": categorical_domains,
+            "scale_source": scale_source,
+            "train_clipped_count": [int(value) for value in clipped_count],
+            "train_clipped_rate": [float(value) for value in clipped_rate],
+        }
+    )
+    ctx_cont["stats_sha256"] = _stats_sha256(
+        field_names=ctx_names,
+        center=center,
+        scale=scale,
+        binary_mask=binary,
+        categorical_mask=categorical,
+        categorical_domains=categorical_domains,
+    )
+    return ctx_cont
+
+
 def build_input_normalization_contract(
     *,
     fit_start_utc: str,
@@ -925,15 +1260,17 @@ def build_input_normalization_contract(
         field_names=list(CTX_CAT_DOMAINS),
     )
     if int(normalized_ctx_cat["fit_row_count"]) != int(
-        normalized_lineage["train_row_count"]
+        normalized_lineage["context_fit_row_count"]
     ):
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_CTX_CAT_LINEAGE_ROWS_MISMATCH]"
         )
-    for surface in ("signal", "ctx_cont"):
-        if int(normalized_surfaces[surface]["fit_row_count"]) != int(
-            normalized_lineage["train_row_count"]
-        ):
+    expected_shared_rows = {
+        "signal": int(normalized_lineage["local_fit_row_count"]),
+        "ctx_cont": int(normalized_lineage["context_fit_row_count"]),
+    }
+    for surface, expected_rows in expected_shared_rows.items():
+        if int(normalized_surfaces[surface]["fit_row_count"]) != expected_rows:
             raise RuntimeError(
                 "[ENTRY_INPUT_NORMALIZATION_SURFACE_LINEAGE_ROWS_MISMATCH] "
                 f"surface={surface}"
@@ -1032,7 +1369,9 @@ def require_input_normalization_contract(
         data["ctx_cat"],
         field_names=expected_ctx_cat_names,
     )
-    if int(ctx_cat["fit_row_count"]) != int(lineage["train_row_count"]):
+    if int(ctx_cat["fit_row_count"]) != int(
+        lineage["context_fit_row_count"]
+    ):
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_CTX_CAT_LINEAGE_ROWS_MISMATCH]"
         )
@@ -1053,10 +1392,12 @@ def require_input_normalization_contract(
             surface=name,
             field_names=expected_field_names[name],
         )
-    for surface in ("signal", "ctx_cont"):
-        if int(normalized_surfaces[surface]["fit_row_count"]) != int(
-            lineage["train_row_count"]
-        ):
+    expected_shared_rows = {
+        "signal": int(lineage["local_fit_row_count"]),
+        "ctx_cont": int(lineage["context_fit_row_count"]),
+    }
+    for surface, expected_rows in expected_shared_rows.items():
+        if int(normalized_surfaces[surface]["fit_row_count"]) != expected_rows:
             raise RuntimeError(
                 "[ENTRY_INPUT_NORMALIZATION_SURFACE_LINEAGE_ROWS_MISMATCH] "
                 f"surface={surface}"

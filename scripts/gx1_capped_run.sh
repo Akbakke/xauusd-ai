@@ -3,7 +3,10 @@
 # its cap fails inside its own cgroup instead of consuming the workstation.
 # GX1_RULES.md and AGENTS.md require this wrapper for every heavy operation.
 #
-# Usage:  scripts/gx1_capped_run.sh [--mem 10G] [--swap 512M] -- <command ...>
+# Usage: scripts/gx1_capped_run.sh --class audit|trainer [--mem 4G] [--swap 512M] -- <command ...>
+#   --class audit is capped at 4G and cannot launch the trainer.
+#   --class trainer is reserved for the one canonical trainer module and may
+#           request at most 10G.
 #   --mem   MemoryMax (hard) + MemoryHigh for the job's cgroup scope. This machine's
 #           immutable safety ceiling is 10G; larger requests are rejected before launch.
 #   --swap  MemorySwapMax. The immutable safety ceiling is 512M; swap storms are forbidden.
@@ -13,9 +16,15 @@
 # target command is entered. If the cgroup cannot be created or verified, the job fails
 # closed and is never launched.
 set -euo pipefail
-MEM=10G ; SWAP=512M
+JOB_CLASS="" ; MEM=4G ; SWAP=512M
+
+CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
+RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
+CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 
 SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))
+SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))
 SAFE_JOB_SWAP_KIB=$((512 * 1024))
 MIN_HOST_MEMORY_KIB=$((30 * 1024 * 1024))
 MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))
@@ -41,18 +50,123 @@ size_to_kib() {
   echo $((number * multiplier))
 }
 
+is_direct_python() {
+  [[ -x "$1" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" ]]
+}
+
+validate_target_command() {
+  local executable_basename="${1##*/}" target_arg
+  local trainer_reference=false trainer_flag_count=0
+
+  case "$executable_basename" in
+    env|bash|sh|dash|zsh|ksh)
+      echo "FATAL: env and shell wrappers are forbidden as capped targets" >&2
+      exit 75
+      ;;
+  esac
+
+  for target_arg in "$@"; do
+    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"* ]]; then
+      trainer_reference=true
+    fi
+    if [[ "$target_arg" == "--train" ]]; then
+      trainer_flag_count=$((trainer_flag_count + 1))
+    fi
+  done
+
+  if [[ "$JOB_CLASS" == "audit" ]]; then
+    if [[ "$trainer_reference" == true ]]; then
+      echo "FATAL: canonical trainer requires --class trainer" >&2
+      exit 75
+    fi
+    return
+  fi
+
+  if ! is_direct_python "$1" \
+    || [[ "${2:-}" != "-m" ]] \
+    || [[ "${3:-}" != "$CANONICAL_TRAINER_MODULE" ]]; then
+    echo "FATAL: trainer class is reserved for the canonical trainer module as a direct target" >&2
+    exit 75
+  fi
+  if (( trainer_flag_count != 1 )); then
+    echo "FATAL: trainer class requires the canonical --train mode exactly once" >&2
+    exit 75
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mem)  MEM="$2";  shift 2 ;;
-    --swap) SWAP="$2"; shift 2 ;;
+    --class)
+      [[ $# -ge 2 ]] || { echo "FATAL: --class requires a value" >&2; exit 2; }
+      JOB_CLASS="$2"; shift 2
+      ;;
+    --mem)
+      [[ $# -ge 2 ]] || { echo "FATAL: --mem requires a value" >&2; exit 2; }
+      MEM="$2"; shift 2
+      ;;
+    --swap)
+      [[ $# -ge 2 ]] || { echo "FATAL: --swap requires a value" >&2; exit 2; }
+      SWAP="$2"; shift 2
+      ;;
     --)     shift; break ;;
     *) echo "FATAL: unknown arg '$1' (put the command after '--')"; exit 2 ;;
   esac
 done
 [[ $# -ge 1 ]] || { echo "FATAL: no command given after '--'"; exit 2; }
+[[ "$JOB_CLASS" == "audit" || "$JOB_CLASS" == "trainer" ]] || {
+  echo "FATAL: --class must be exactly audit or trainer" >&2
+  exit 2
+}
 
 requested_mem_kib=$(size_to_kib "$MEM")
 requested_swap_kib=$(size_to_kib "$SWAP")
+if (( requested_mem_kib > SAFE_JOB_MEMORY_KIB )); then
+  echo "FATAL: requested MemoryMax exceeds GX1 safety ceiling (10G)" >&2
+  exit 75
+fi
+if [[ "$JOB_CLASS" == "audit" ]] && (( requested_mem_kib > SAFE_AUDIT_MEMORY_KIB )); then
+  echo "FATAL: audit jobs may request at most 4G" >&2
+  exit 75
+fi
+if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
+  echo "FATAL: requested MemorySwapMax exceeds GX1 safety ceiling (512M)" >&2
+  exit 75
+fi
+validate_target_command "$@"
+
+if [[ -n "${GX1_CAPPED_CLASS:-}" \
+  || -n "${GX1_CAPPED_MEMORY_BYTES:-}" \
+  || -n "${GX1_CAPPED_SWAP_BYTES:-}" \
+  || -n "${GX1_CAPPED_TASKS_MAX:-}" ]]; then
+  [[ "${GX1_CAPPED_CLASS:-}" == "$JOB_CLASS" ]] || {
+    echo "FATAL: nested capped job class mismatch" >&2
+    exit 75
+  }
+  [[ "${GX1_CAPPED_MEMORY_BYTES:-}" == "$((requested_mem_kib * 1024))" ]] || {
+    echo "FATAL: nested capped job memory request differs from parent scope" >&2
+    exit 75
+  }
+  [[ "${GX1_CAPPED_SWAP_BYTES:-}" == "$((requested_swap_kib * 1024))" ]] || {
+    echo "FATAL: nested capped job swap request differs from parent scope" >&2
+    exit 75
+  }
+  [[ "${GX1_CAPPED_TASKS_MAX:-}" == "$TASKS_MAX" ]] || {
+    echo "FATAL: nested capped job task limit differs from parent scope" >&2
+    exit 75
+  }
+  nested_cgroup_rel=$(awk -F: '$1 == "0" {print $3}' /proc/self/cgroup)
+  nested_cgroup_dir="/sys/fs/cgroup${nested_cgroup_rel}"
+  [[ -d "$nested_cgroup_dir" \
+    && "$(cat "$nested_cgroup_dir/memory.max")" == "$GX1_CAPPED_MEMORY_BYTES" \
+    && "$(cat "$nested_cgroup_dir/memory.high")" == "$GX1_CAPPED_MEMORY_BYTES" \
+    && "$(cat "$nested_cgroup_dir/memory.swap.max")" == "$GX1_CAPPED_SWAP_BYTES" \
+    && "$(cat "$nested_cgroup_dir/pids.max")" == "$GX1_CAPPED_TASKS_MAX" ]] || {
+    echo "FATAL: nested capped job parent scope proof failed" >&2
+    exit 75
+  }
+  exec "$@"
+fi
 host_total_kib=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo)
 host_available_kib=$(awk '/^MemAvailable:/ {print $2; exit}' /proc/meminfo)
 if [[ -z "$host_total_kib" || -z "$host_available_kib" ]]; then
@@ -65,14 +179,6 @@ if (( host_total_kib < MIN_HOST_MEMORY_KIB )); then
 fi
 if (( host_available_kib < MIN_AVAILABLE_MEMORY_KIB )); then
   echo "FATAL: host currently has less than 20G available RAM; refusing heavy job" >&2
-  exit 75
-fi
-if (( requested_mem_kib > SAFE_JOB_MEMORY_KIB )); then
-  echo "FATAL: requested MemoryMax exceeds GX1 safety ceiling (10G)" >&2
-  exit 75
-fi
-if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
-  echo "FATAL: requested MemorySwapMax exceeds GX1 safety ceiling (512M)" >&2
   exit 75
 fi
 if (( requested_mem_kib > WSL_GUARD_MIN_REQUEST_KIB )) \
@@ -131,7 +237,7 @@ if ! flock -n 9; then
   echo "FATAL: another GX1 heavy job owns the exclusive lock: $LOCK_PATH" >&2
   exit 75
 fi
-echo "[capped_run] MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX"
+echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX"
 echo "[capped_run] cmd: $*"
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -160,6 +266,10 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_EXPECTED_SWAP_BYTES="$((requested_swap_kib * 1024))" \
   --setenv=GX1_EXPECTED_TASKS="$TASKS_MAX" \
   --setenv=GX1_CPU_AFFINITY="$CPU_AFFINITY" \
+  --setenv=GX1_CAPPED_CLASS="$JOB_CLASS" \
+  --setenv=GX1_CAPPED_MEMORY_BYTES="$((requested_mem_kib * 1024))" \
+  --setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))" \
+  --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
   --setenv=OMP_NUM_THREADS=1 \
   --setenv=MKL_NUM_THREADS=1 \
   --setenv=OPENBLAS_NUM_THREADS=1 \

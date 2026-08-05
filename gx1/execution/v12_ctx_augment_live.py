@@ -79,6 +79,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
     compute_causal_market_rank_inputs,
 )
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.model_native_market_context_v1 import (
+    derive_model_native_trend_regime_id,
+)
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
@@ -236,6 +239,7 @@ def _add_htf_features(
     df_m5: pd.DataFrame,
     *,
     base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+    context_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> None:
     """Mutates cv3: D1_dist_from_ema200_atr, H1_range_compression_ratio,
     D1_atr_percentile_252, M15_range_compression_ratio, H4_trend_sign_cat.
@@ -288,7 +292,9 @@ def _add_htf_features(
         or m5.index.hasnans
         or not m5.index.is_unique
         or not m5.index.is_monotonic_increasing
-        or np.any(m5.index.asi8 % int(base_bar_duration.value) != 0)
+        or not isinstance(context_bar_duration, pd.Timedelta)
+        or context_bar_duration != M5_BAR_DURATION
+        or np.any(m5.index.asi8 % int(context_bar_duration.value) != 0)
     ):
         raise RuntimeError("[LIVE_HTF_SOURCE] raw source timestamp geometry invalid")
     missing_ohlc = [name for name in ("open", "high", "low", "close") if name not in m5.columns]
@@ -299,9 +305,14 @@ def _add_htf_features(
     ).to_numpy(dtype=np.float64)
     if not np.isfinite(_validate_values).all():
         raise RuntimeError("[LIVE_HTF_SOURCE] raw source OHLC must be finite")
-    if not cv3.index.isin(m5.index).all():
+    final_m5_cutoff = int(
+        cv3.index[-1].value
+        + base_bar_duration.value
+        - context_bar_duration.value
+    )
+    if int(np.searchsorted(m5.index.asi8, final_m5_cutoff, side="right")) == 0:
         raise RuntimeError(
-            "[LIVE_HTF_SOURCE] raw M5 source does not cover every target timestamp"
+            "[LIVE_HTF_SOURCE] true M5 context does not cover the decision lane"
         )
 
     df_d1 = _resample_ohlc(m5, "1D")
@@ -430,11 +441,7 @@ def _add_regime_categoricals(
         context="TREND_REGIME_D1_SOURCE",
     )
     trend = np.full(len(d), np.nan, dtype=np.float64)
-    trend[d_warmup:] = np.where(
-        d[d_warmup:] < -1.0,
-        0.0,
-        np.where(d[d_warmup:] <= 1.0, 1.0, 2.0),
-    )
+    trend[d_warmup:] = derive_model_native_trend_regime_id(d[d_warmup:])
     cv3["trend_regime_id"] = trend
     # vol_regime_id is a distinct causal local-volatility coordinate. Absolute
     # ATR/spread buckets belong only to an explicit immutable TRAIN reference.
@@ -461,35 +468,17 @@ def _add_regime_categoricals(
 # ── public API ────────────────────────────────────────────────────────────
 
 
-def _augment_canonical_v3(
-    cv3: pd.DataFrame,
-    df_m5: pd.DataFrame,
+def _finish_canonical_v3_context(
+    out: pd.DataFrame,
     *,
     rank_reference: TrainRankReferenceV2 | None,
-    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+    base_bar_duration: pd.Timedelta,
 ) -> pd.DataFrame:
-    """Add the 32 ctx-cont / ctx-cat / session / interaction / swing features
-    on top of a canonical_v3 DataFrame.
+    """Complete local context after an explicit MTF owner has attached fields."""
 
-    Args:
-        cv3: canonical_v3 (DatetimeIndex'd, output of LiveCanonicalV3Builder).
-             Must already contain canonical_v2 features like _v1_atr14,
-             _v1_ema_diff, _v1_range_z, _v1h1_slope3, plus M5 OHLC columns.
-        df_m5: raw M5 OHLC tape covering the same time range (DatetimeIndex or
-               'time' column). Needed for HTF resampling (1H/4H/1D/M15).
-
-    Returns:
-        DataFrame with cv3 + 32 added columns. Same index as cv3.
-        Mutation note: a shallow frame manager is created first; input columns
-        are not modified and the already-built blocks are not duplicated.
-    """
-    if cv3.empty:
-        return cv3
-    out = cv3.copy(deep=False)
     _add_spread_atr_bps(out)
     _add_session_features(out, base_bar_duration=base_bar_duration)
     _add_session_interactions(out)
-    _add_htf_features(out, df_m5, base_bar_duration=base_bar_duration)
     _add_micro_features(out)
     _add_swing_features(out)
     _add_regime_categoricals(out, rank_reference=rank_reference)
@@ -503,7 +492,7 @@ def _augment_canonical_v3(
     # REGIME_V4 (2026-06-03): multi-TF regime CONDITIONING + 'regime is shifting' CHANGE-
     # DETECTION features. ONE-TRUTH: identical gx1.features.regime_v4_features helper as the
     # build-side (add_ctx_cont_columns_to_prebuilt.py) — cannot drift. Sources are already on `out`: per-TF
-    # regime/trend-age/ema-stack from v12_state_from_prebuilt._V2_MTF_PER_TF, D1_dist from
+    # regime/trend-age/ema-stack from the shared V4 MTF cache, D1_dist from
     # _add_htf_features above. `out` is full-history time-ordered (same as the volume helper).
     from gx1.features.regime_v4_features import (
         REGIME_V4_DERIVED_COLS,
@@ -534,11 +523,101 @@ def _augment_canonical_v3(
     return out
 
 
+def _augment_canonical_v3(
+    cv3: pd.DataFrame,
+    df_m5: pd.DataFrame,
+    *,
+    rank_reference: TrainRankReferenceV2 | None,
+    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+    context_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+) -> pd.DataFrame:
+    """Historical live-only augmentation; offline producers never call it."""
+
+    if cv3.empty:
+        return cv3
+    out = cv3.copy(deep=False)
+    _add_htf_features(
+        out,
+        df_m5,
+        base_bar_duration=base_bar_duration,
+        context_bar_duration=context_bar_duration,
+    )
+    return _finish_canonical_v3_context(
+        out,
+        rank_reference=rank_reference,
+        base_bar_duration=base_bar_duration,
+    )
+
+
+def augment_canonical_v3_from_v4(
+    cv3: pd.DataFrame,
+    *,
+    rank_reference: TrainRankReferenceV2,
+    base_bar_duration: pd.Timedelta,
+) -> pd.DataFrame:
+    """Complete offline context only after the exact V4 MTF projection."""
+
+    if not isinstance(rank_reference, TrainRankReferenceV2):
+        raise RuntimeError(
+            "[CANONICAL_CTX_TRAIN_RANK_REQUIRED] explicit immutable reference required"
+        )
+    if cv3.empty:
+        raise RuntimeError("[CANONICAL_CTX_V4_SOURCE_EMPTY]")
+    from gx1.features.htf_features import (
+        require_model_native_mtf_owner_marker_v4,
+    )
+
+    require_model_native_mtf_owner_marker_v4(
+        cv3,
+        decision_bar_duration=base_bar_duration,
+    )
+    out = _finish_canonical_v3_context(
+        cv3.copy(deep=False),
+        rank_reference=rank_reference,
+        base_bar_duration=base_bar_duration,
+    )
+    missing = sorted({"atr_bucket", "spread_bucket"} - set(out.columns))
+    if missing:
+        raise RuntimeError(f"[CANONICAL_CTX_TRAIN_RANK_OUTPUT_MISSING] {missing}")
+    return out
+
+
+def augment_canonical_v3_model_agnostic_from_v4(
+    cv3: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta,
+) -> pd.DataFrame:
+    """Complete model-agnostic offline context after exact V4 projection."""
+
+    if cv3.empty:
+        raise RuntimeError("[MODEL_AGNOSTIC_CANONICAL_V4_SOURCE_EMPTY]")
+    from gx1.features.htf_features import (
+        require_model_native_mtf_owner_marker_v4,
+    )
+
+    require_model_native_mtf_owner_marker_v4(
+        cv3,
+        decision_bar_duration=base_bar_duration,
+    )
+    out = _finish_canonical_v3_context(
+        cv3.copy(deep=False),
+        rank_reference=None,
+        base_bar_duration=base_bar_duration,
+    )
+    forbidden = sorted({"atr_bucket", "spread_bucket"} & set(out.columns))
+    if forbidden:
+        raise RuntimeError(
+            f"[MODEL_AGNOSTIC_CANONICAL] TRAIN-fit fields leaked into raw state: {forbidden}"
+        )
+    return out
+
+
 def augment_canonical_v3_model_agnostic(
     cv3: pd.DataFrame,
     df_m5: pd.DataFrame,
     *,
     base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+    context_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> pd.DataFrame:
     """Build causal shared context without dataset-fitted bucket categories."""
 
@@ -547,6 +626,7 @@ def augment_canonical_v3_model_agnostic(
         df_m5,
         rank_reference=None,
         base_bar_duration=base_bar_duration,
+        context_bar_duration=context_bar_duration,
     )
     forbidden = sorted({"atr_bucket", "spread_bucket"} & set(out.columns))
     if forbidden:
@@ -562,6 +642,7 @@ def augment_canonical_v3(
     *,
     rank_reference: TrainRankReferenceV2,
     base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
+    context_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> pd.DataFrame:
     """Build the complete causal context under one exact TRAIN reference."""
 
@@ -574,6 +655,7 @@ def augment_canonical_v3(
         df_m5,
         rank_reference=rank_reference,
         base_bar_duration=base_bar_duration,
+        context_bar_duration=context_bar_duration,
     )
     missing = sorted({"atr_bucket", "spread_bucket"} - set(out.columns))
     if missing:

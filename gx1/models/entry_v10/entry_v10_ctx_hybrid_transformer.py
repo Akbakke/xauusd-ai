@@ -15,8 +15,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_DIM,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
     ENTRY_EXIT_RESOLUTION_RATIO,
     EXIT_FEATURE_MAX_SEQUENCE_BARS,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     HIDDEN_DIM as EXACT_EVIDENCE_FUSION_HIDDEN_DIM,
@@ -46,6 +48,10 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     EXPECTED_SURFACES as INPUT_NORMALIZATION_SURFACES,
     require_input_normalization_contract,
 )
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -73,9 +79,52 @@ def _assert_finite(name: str, t: torch.Tensor) -> None:
         raise RuntimeError(f"NONFINITE: {name} contains NaN/Inf")
 
 
+def _apply_argmax_preserving_direction_temperature(
+    raw_direction_logits: torch.Tensor,
+    temperature: float,
+) -> torch.Tensor:
+    """Apply scalar temperature without granting calibration direction authority."""
+
+    _assert_shape("raw_direction_logits", raw_direction_logits, 2)
+    if int(raw_direction_logits.shape[1]) != 3:
+        raise RuntimeError(
+            "ENTRY_DIRECTION_CAL_LOGIT_SHAPE_INVALID: "
+            f"observed={tuple(raw_direction_logits.shape)} expected=(B,3)"
+        )
+    _assert_finite("raw_direction_logits", raw_direction_logits)
+    parsed_temperature = float(temperature)
+    if not math.isfinite(parsed_temperature) or parsed_temperature <= 0.0:
+        raise RuntimeError(
+            "ENTRY_DIRECTION_CAL_TEMPERATURE_INVALID: "
+            f"temperature={temperature!r}"
+        )
+
+    raw_winner_mask = raw_direction_logits.eq(
+        raw_direction_logits.amax(dim=1, keepdim=True)
+    )
+    raw_winner_counts = raw_winner_mask.sum(dim=1)
+    raw_tied_rows = int((raw_winner_counts != 1).sum().item())
+    if raw_tied_rows:
+        raise RuntimeError(
+            "ENTRY_DIRECTION_CAL_RAW_ARGMAX_NOT_UNIQUE: "
+            f"ties_fail_closed rows={raw_tied_rows}"
+        )
+
+    calibrated = raw_direction_logits / parsed_temperature
+    _assert_finite("calibrated_direction_logits", calibrated)
+    calibrated_winner_mask = calibrated.eq(calibrated.amax(dim=1, keepdim=True))
+    if not torch.equal(raw_winner_mask, calibrated_winner_mask):
+        raise RuntimeError(
+            "ENTRY_DIRECTION_CAL_ARGMAX_INVARIANT_VIOLATION: "
+            "scalar temperature changed or collapsed a raw winner"
+        )
+    return calibrated
+
+
 TRAIN_ACTIVATION_CHECKPOINT_POLICY = (
     "per_transformer_layer_non_reentrant_preserve_rng_v1"
 )
+_UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
 def _memory_bounded_transformer_encoder(
@@ -220,8 +269,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             snap_x,
             ctx_cat=ctx_cat,
             ctx_cont=ctx_cont,
-            seq_m5=seq_m5,
-            seq_m15=seq_m15,
+        seq_m15=seq_m15,
             seq_h1=seq_h1,
             seq_h4=seq_h4,
             seq_d1=seq_d1,
@@ -269,6 +317,60 @@ class EntryV10CtxHybridTransformer(nn.Module):
         specialist_fusion_scale: float,
         cross_family_fusion_scale: float,
     ) -> None:
+        unit_test_shape = (
+            getattr(self, "_gx1_unit_test_architecture_token", None)
+            is _UNIT_TEST_ARCHITECTURE_SENTINEL
+        )
+        if unit_test_shape:
+            object.__delattr__(self, "_gx1_unit_test_architecture_token")
+        else:
+            architecture = current_entry_exit_architecture_observation()
+            architecture["shared_surface"] = {
+                "signal_dim": seq_input_dim,
+                "snap_dim": snap_input_dim,
+                "ctx_cont_dim": ctx_cont_dim,
+                "ctx_cat_dim": ctx_cat_dim,
+            }
+            architecture["schemas"]["input_normalization"] = (
+                input_normalization.get("schema_version")
+                if isinstance(input_normalization, Mapping)
+                else None
+            )
+            architecture["local_specialists"] = (
+                list(specialist_input_indices)
+                if isinstance(specialist_input_indices, Mapping)
+                else specialist_input_indices
+            )
+            architecture["mtf_specialists"] = (
+                list(multi_tf_specialist_input_indices)
+                if isinstance(multi_tf_specialist_input_indices, Mapping)
+                else multi_tf_specialist_input_indices
+            )
+            architecture["mtf"]["per_tf_widths"] = {
+                "M5": m5_seq_dim,
+                "M15": m15_seq_dim,
+                "H1": h1_seq_dim,
+                "H4": h4_seq_dim,
+                "D1": d1_seq_dim,
+            }
+            architecture["mtf"]["per_tf_window_bars"] = {
+                "M5": m5_seq_len,
+                "M15": m15_seq_len,
+                "H1": h1_seq_len,
+                "H4": h4_seq_len,
+                "D1": d1_seq_len,
+            }
+            architecture["entry"]["sequence_bars"] = seq_len
+            architecture["exit"]["sequence_bars"] = (
+                seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+            )
+            architecture["exit"]["max_path_bars"] = (
+                UNIFIED_EXIT_MAX_PATH_BARS
+            )
+            require_entry_exit_production_architecture(
+                architecture,
+                context="ENTRY_V10_MODEL_CONSTRUCTION",
+            )
         super().__init__()
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
             raise RuntimeError(
@@ -911,7 +1013,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         # Exact direction and supervised evidence heads.
         self.head_direction = nn.Linear(d_model, 3)
-        self._direction_cal: Optional[Tuple[float, torch.Tensor]] = None
+        self._direction_cal: Optional[float] = None
         self._path_cal: Optional[Tuple[float, float, float, float]] = None
         self.regime_film = nn.Sequential(
             nn.Linear(d_model, d_model),
@@ -965,7 +1067,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
         nn.init.xavier_uniform_(self.evidence_fusion_out.weight)
         nn.init.zeros_(self.evidence_fusion_out.bias)
 
-        # Exact five-timeframe, eight-family multi-resolution stack.  Each
+        # One shared five-timeframe-capable, eight-family multi-resolution
+        # stack. Entry consumes M15/H1/H4/D1; Exit consumes
+        # M5/M15/H1/H4/D1. Each
         # timeframe exposes the same one-owner family surface, but feature gates
         # are independent per family×timeframe and conditioned on the current
         # learned state.  Shared family encoders preserve semantic sample
@@ -1050,6 +1154,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
             for tf_name in TF_INPUT_SCALE_NAMES
             for specialist in self._specialist_names
         )
+        self.entry_family_tf_token_order = tuple(
+            f"{tf_name.lower()}:{specialist}"
+            for tf_name in ENTRY_MTF_CONTEXT_TIMEFRAMES
+            for specialist in self._specialist_names
+        )
+        self.exit_family_tf_token_order = tuple(
+            f"{tf_name.lower()}:{specialist}"
+            for tf_name in EXIT_MTF_CONTEXT_TIMEFRAMES
+            for specialist in self._specialist_names
+        )
         self.cross_tf_attn = _mk_encoder(1)
         self.tf_token_identity = nn.Parameter(torch.empty(1, 5, d_model))
         nn.init.normal_(self.tf_token_identity, std=0.02)
@@ -1085,7 +1199,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.tensor(float(self.cfg.cross_family_fusion_scale)),
         )
 
-        # Unified lifecycle head.  The full-stack Entry encoder produces the
+        # Unified lifecycle head. The full-stack Entry encoder produces the
         # frozen ``z`` below; Exit consumes that exact representation plus the
         # literal causal M1 prefix in this same model.  The path encoder adds
         # post-entry evidence, but cannot replace or bypass the Entry state.
@@ -1447,17 +1561,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite("global_context_h", global_context_h)
         return family_context_tokens, global_context_h
 
-    def set_direction_calibration(self, temperature: float, bias: torch.Tensor) -> None:
-        """Install post-hoc direction calibration (fitted on a recent held-out
-        window, stored in bundle_metadata["direction_calibration"], applied by
-        the bundle loader). direction_logits -> logits/temperature + bias.
-        Identity when never called. Fail-loud on bad values."""
+    def set_direction_calibration(self, temperature: float) -> None:
+        """Install VAL-fitted scalar temperature; it has no direction authority."""
+
         t = float(temperature)
-        if not (t > 0.0) or not torch.isfinite(bias).all() or tuple(bias.shape) != (3,):
+        if not math.isfinite(t) or t <= 0.0:
             raise ValueError(
-                f"[ENTRY_DIRECTION_CAL] invalid calibration: temperature={temperature} bias_shape={tuple(bias.shape)}"
+                "[ENTRY_DIRECTION_CAL] invalid strictly-positive scalar "
+                f"temperature={temperature!r}"
             )
-        self._direction_cal = (t, bias.detach().clone().float())
+        self._direction_cal = t
 
     def set_path_calibration(
         self,
@@ -1680,6 +1793,242 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite(f"{surface_label}.feature_base_representation", z_v3)
         return z_v3, specialist_gate, global_context_h
 
+    def _encode_multi_tf_route(
+        self,
+        *,
+        base_representation: torch.Tensor,
+        tf_inputs: Tuple[Tuple[str, torch.Tensor, int, int], ...],
+        route_timeframes: tuple[str, ...],
+        route_label: str,
+    ) -> Dict[str, torch.Tensor]:
+        """Fuse one canonical route with the single shared V4 MTF stack."""
+
+        _assert_shape(f"{route_label}.base_representation", base_representation, 2)
+        batch_size = int(base_representation.shape[0])
+        route = tuple(tf.lower() for tf in route_timeframes)
+        expected_routes = {
+            "entry": tuple(tf.lower() for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES),
+            "exit": tuple(tf.lower() for tf in EXIT_MTF_CONTEXT_TIMEFRAMES),
+        }
+        if route_label not in expected_routes or route != expected_routes[route_label]:
+            raise RuntimeError(
+                f"MODEL_NATIVE_MTF_ROUTE_INVALID: label={route_label!r} route={route!r}"
+            )
+        if tuple(item[0] for item in tf_inputs) != route:
+            raise RuntimeError(
+                f"MODEL_NATIVE_MTF_INPUT_ORDER_INVALID: label={route_label!r}"
+            )
+        route_count = len(route)
+        route_indices = torch.tensor(
+            [TF_INPUT_SCALE_NAMES.index(tf) for tf in route],
+            dtype=torch.long,
+            device=base_representation.device,
+        )
+        for suffix, tensor, expected_len, expected_dim in tf_inputs:
+            name = f"{route_label}_seq_{suffix}"
+            _assert_shape(name, tensor, 3)
+            if int(tensor.shape[0]) != batch_size:
+                raise RuntimeError(f"{name.upper()}_BATCH_MISMATCH")
+            if int(tensor.shape[1]) != int(expected_len):
+                raise RuntimeError(
+                    f"{name.upper()}_LEN_MISMATCH: "
+                    f"got={int(tensor.shape[1])} expected={expected_len}"
+                )
+            if int(tensor.shape[2]) != int(expected_dim):
+                raise RuntimeError(
+                    f"{name.upper()}_DIM_MISMATCH: "
+                    f"got={int(tensor.shape[2])} expected={expected_dim}"
+                )
+            _assert_finite(name, tensor)
+
+        family_grid_rows: list[torch.Tensor] = []
+        feature_gate_rows: list[torch.Tensor] = []
+        for suffix, tensor, _expected_len, expected_dim in tf_inputs:
+            surface = f"mtf_{suffix}"
+            normalized_tf = self._normalize_input_surface(tensor, surface=surface)
+            categorical_mask = getattr(
+                self,
+                f"input_norm_{surface}_categorical_mask",
+            ).to(normalized_tf.device)
+            numeric_tf = normalized_tf.masked_fill(
+                categorical_mask.view(1, 1, -1),
+                0.0,
+            )
+            effective_scale = self._effective_tf_input_scale(suffix)
+            full_feature_gate = torch.zeros(
+                batch_size,
+                int(expected_dim),
+                device=tensor.device,
+                dtype=normalized_tf.dtype,
+            )
+            family_tokens: list[torch.Tensor] = []
+            categorical_indices = set(
+                torch.nonzero(
+                    categorical_mask,
+                    as_tuple=False,
+                ).flatten().tolist()
+            )
+            for specialist in self._specialist_names:
+                family_idx = getattr(
+                    self,
+                    f"multi_tf_specialist_idx_{specialist}",
+                ).to(tensor.device)
+                feature_gate = 2.0 * torch.sigmoid(
+                    self.mtf_feature_context_gate[
+                        f"{suffix}__{specialist}"
+                    ](base_representation)
+                )
+                full_feature_gate = full_feature_gate.scatter(
+                    1,
+                    family_idx.view(1, -1).expand(batch_size, -1),
+                    feature_gate,
+                )
+                family_values = numeric_tf.index_select(dim=2, index=family_idx)
+                family_values = (
+                    family_values
+                    * feature_gate.unsqueeze(1)
+                    * effective_scale
+                )
+                projected = self.mtf_family_proj[specialist](family_values)
+                for local_position, global_index in enumerate(family_idx.tolist()):
+                    if global_index not in categorical_indices:
+                        continue
+                    nominal = self.mtf_nominal_embeddings[
+                        f"{suffix}_{global_index}"
+                    ](tensor[..., global_index].long())
+                    projected = projected + nominal * (
+                        feature_gate[:, local_position].view(batch_size, 1, 1)
+                        * effective_scale
+                    )
+                encoded = _memory_bounded_transformer_encoder(
+                    self.mtf_family_encoder[specialist],
+                    self._add_pe(projected, f"pos_enc_{suffix}"),
+                )
+                family_tokens.append(encoded.mean(dim=1))
+            family_grid_rows.append(torch.stack(family_tokens, dim=1))
+            feature_gate_rows.append(full_feature_gate)
+
+        family_tf_feature_gate = torch.stack(feature_gate_rows, dim=1)
+        family_grid = torch.stack(family_grid_rows, dim=1)
+        expected_grid_shape = (route_count, len(self._specialist_names))
+        if tuple(family_grid.shape[1:3]) != expected_grid_shape:
+            raise RuntimeError(
+                f"{route_label.upper()}_FAMILY_TF_GRID_SHAPE_INVALID: "
+                f"observed={tuple(family_grid.shape)} expected={expected_grid_shape}"
+            )
+        route_family_identity = self.family_tf_token_identity.index_select(
+            1,
+            route_indices,
+        )
+        family_grid = family_grid + route_family_identity
+        family_axis = family_grid.permute(0, 2, 1, 3).reshape(
+            batch_size * len(self._specialist_names),
+            route_count,
+            int(self.cfg.d_model),
+        )
+        family_axis = _memory_bounded_transformer_encoder(
+            self.family_axis_attn,
+            family_axis,
+        )
+        family_grid = family_axis.reshape(
+            batch_size,
+            len(self._specialist_names),
+            route_count,
+            int(self.cfg.d_model),
+        ).permute(0, 2, 1, 3)
+        timeframe_axis = family_grid.reshape(
+            batch_size * route_count,
+            len(self._specialist_names),
+            int(self.cfg.d_model),
+        )
+        timeframe_axis = _memory_bounded_transformer_encoder(
+            self.timeframe_axis_attn,
+            timeframe_axis,
+        )
+        family_grid = timeframe_axis.reshape(
+            batch_size,
+            route_count,
+            len(self._specialist_names),
+            int(self.cfg.d_model),
+        )
+        _assert_finite(f"{route_label}.family_tf_feature_gate", family_tf_feature_gate)
+        _assert_finite(f"{route_label}.family_grid", family_grid)
+
+        cooperation_tokens = family_grid.reshape(
+            batch_size,
+            route_count * len(self._specialist_names),
+            int(self.cfg.d_model),
+        )
+        full_family_context_logits = self.family_tf_context_gate(
+            base_representation
+        ).reshape(
+            batch_size,
+            len(TF_INPUT_SCALE_NAMES),
+            len(self._specialist_names),
+        )
+        route_family_context_logits = full_family_context_logits.index_select(
+            1,
+            route_indices,
+        ).reshape(batch_size, -1)
+        family_tf_cooperation_gate = torch.softmax(
+            route_family_context_logits
+            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
+            dim=1,
+        )
+        family_gate_by_tf = family_tf_cooperation_gate.reshape(
+            batch_size,
+            route_count,
+            len(self._specialist_names),
+        )
+        family_gate_within_tf = family_gate_by_tf / family_gate_by_tf.sum(
+            dim=2,
+            keepdim=True,
+        ).clamp_min(1e-12)
+        tf_tokens = (
+            family_grid * family_gate_within_tf.unsqueeze(-1)
+        ).sum(dim=2)
+        tf_attended = _memory_bounded_transformer_encoder(
+            self.cross_tf_attn,
+            tf_tokens + self.tf_token_identity.index_select(1, route_indices),
+        )
+        tf_gate = torch.softmax(
+            self.tf_gate_logits.index_select(0, route_indices).view(1, -1)
+            + self.tf_context_gate(base_representation).index_select(
+                1,
+                route_indices,
+            )
+            + self.tf_token_gate(tf_attended).squeeze(-1),
+            dim=1,
+        )
+        mtf_repr = (tf_attended * tf_gate.unsqueeze(-1)).sum(dim=1)
+        mtf_correction = self.cross_tf_out(mtf_repr)
+        cooperation_pool = (
+            cooperation_tokens * family_tf_cooperation_gate.unsqueeze(-1)
+        ).sum(dim=1)
+        cooperation_correction = self.family_tf_cooperation_out(cooperation_pool)
+        for name, value in (
+            ("mtf_repr", mtf_repr),
+            ("mtf_correction", mtf_correction),
+            ("tf_gate", tf_gate),
+            ("family_tf_cooperation_gate", family_tf_cooperation_gate),
+            ("cooperation_correction", cooperation_correction),
+        ):
+            _assert_finite(f"{route_label}.{name}", value)
+        representation = (
+            base_representation
+            + self.multi_tf_scale.to(mtf_correction.dtype) * mtf_correction
+            + self.cross_family_fusion_scale.to(cooperation_correction.dtype)
+            * cooperation_correction
+        )
+        _assert_finite(f"{route_label}.mtf_fused_representation", representation)
+        return {
+            "representation": representation,
+            "mtf_repr": mtf_repr,
+            "tf_gate": tf_gate,
+            "family_tf_cooperation_gate": family_tf_cooperation_gate,
+            "family_tf_feature_gate": family_tf_feature_gate,
+        }
+
     def forward_exit_action(
         self,
         *,
@@ -1688,6 +2037,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         exit_feature_snap_x: torch.Tensor,
         exit_feature_ctx_cat: torch.Tensor,
         exit_feature_ctx_cont: torch.Tensor,
+        exit_seq_m5: torch.Tensor,
+        exit_seq_m15: torch.Tensor,
+        exit_seq_h1: torch.Tensor,
+        exit_seq_h4: torch.Tensor,
+        exit_seq_d1: torch.Tensor,
         exit_path_x: torch.Tensor,
         exit_path_lengths: torch.Tensor,
         exit_side_index: torch.Tensor,
@@ -1695,8 +2049,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
         """Emit learned HOLD/EXIT_NOW logits from one exact lifecycle state.
 
         ``entry_shared_representation`` must be the frozen output produced by
-        this model's full 513+context+5x8 cooperation encoder at Entry. Every
-        Exit call must also carry the exact shared feature base at M1.  The M1
+        this model's full 513+context+4x8 cooperation encoder at Entry. Every
+        Exit call must also carry the exact shared feature base at M1 and the
+        explicit M5/M15/H1/H4/D1 V4 grid. The M1
         surface is encoded by the same signal/context projections and all eight
         specialist modules; the literal M1 path is additive execution evidence.
         Every valid path row must be present; only right-zero padding declared
@@ -1726,7 +2081,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 f"observed={tuple(entry_shared_representation.shape)} "
                 f"expected=({batch_size},{d_model})"
             )
-        exit_feature_base, exit_specialist_gate, _exit_global_context = (
+        exit_feature_base_local, exit_specialist_gate, _exit_global_context = (
             self._encode_shared_feature_base(
                 seq_x=exit_feature_seq_x,
                 snap_x=exit_feature_snap_x,
@@ -1739,6 +2094,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 positional_encoding="pos_enc_exit_feature",
             )
         )
+        exit_mtf = self._encode_multi_tf_route(
+            base_representation=exit_feature_base_local,
+            tf_inputs=(
+                ("m5", exit_seq_m5, self.cfg.m5_seq_len, self._expected_m5_seq_dim),
+                ("m15", exit_seq_m15, self.cfg.m15_seq_len, self._expected_m15_seq_dim),
+                ("h1", exit_seq_h1, self.cfg.h1_seq_len, self._expected_h1_seq_dim),
+                ("h4", exit_seq_h4, self.cfg.h4_seq_len, self._expected_h4_seq_dim),
+                ("d1", exit_seq_d1, self.cfg.d1_seq_len, self._expected_d1_seq_dim),
+            ),
+            route_timeframes=EXIT_MTF_CONTEXT_TIMEFRAMES,
+            route_label="exit",
+        )
+        exit_feature_base = exit_mtf["representation"]
         if tuple(exit_feature_base.shape) != (batch_size, d_model):
             raise RuntimeError("UNIFIED_EXIT_FEATURE_BASE_REPRESENTATION_SHAPE_INVALID")
         if int(path_dim) != UNIFIED_EXIT_PATH_FEATURE_DIM:
@@ -1837,6 +2205,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
         for name, value in (
             ("exit_feature_base_representation", exit_feature_base),
             ("exit_specialist_gate", exit_specialist_gate),
+            ("exit_tf_gate", exit_mtf["tf_gate"]),
+            (
+                "exit_family_tf_cooperation_gate",
+                exit_mtf["family_tf_cooperation_gate"],
+            ),
+            (
+                "exit_family_tf_feature_gate",
+                exit_mtf["family_tf_feature_gate"],
+            ),
             ("exit_path_hidden", path_hidden),
             ("exit_path_attention", attention_weights),
             ("exit_action_logits", exit_action_logits),
@@ -1848,6 +2225,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "exit_action_probs": exit_action_probs,
             "exit_feature_base_representation": exit_feature_base,
             "exit_specialist_gate": exit_specialist_gate,
+            "exit_tf_gate": exit_mtf["tf_gate"],
+            "exit_family_tf_cooperation_gate": exit_mtf[
+                "family_tf_cooperation_gate"
+            ],
+            "exit_family_tf_feature_gate": exit_mtf["family_tf_feature_gate"],
             "exit_path_attention": attention_weights,
         }
 
@@ -1858,7 +2240,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
         *,
         ctx_cat: torch.Tensor,
         ctx_cont: torch.Tensor,
-        seq_m5: torch.Tensor,
         seq_m15: torch.Tensor,
         seq_h1: torch.Tensor,
         seq_h4: torch.Tensor,
@@ -1874,207 +2255,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
             positional_encoding="pos_enc",
         )
         B = int(seq_x.shape[0])
-
-        # Exact five-timeframe second-stage fusion.  Every branch is required;
-        # there is no single-TF or four-TF fallback.
-        tf_inputs = (
-            ("seq_m5", seq_m5, self.cfg.m5_seq_len, self._expected_m5_seq_dim),
-            ("seq_m15", seq_m15, self.cfg.m15_seq_len, self._expected_m15_seq_dim),
-            ("seq_h1", seq_h1, self.cfg.h1_seq_len, self._expected_h1_seq_dim),
-            ("seq_h4", seq_h4, self.cfg.h4_seq_len, self._expected_h4_seq_dim),
-            ("seq_d1", seq_d1, self.cfg.d1_seq_len, self._expected_d1_seq_dim),
+        entry_mtf = self._encode_multi_tf_route(
+            base_representation=z_v3,
+            tf_inputs=(
+                ("m15", seq_m15, self.cfg.m15_seq_len, self._expected_m15_seq_dim),
+                ("h1", seq_h1, self.cfg.h1_seq_len, self._expected_h1_seq_dim),
+                ("h4", seq_h4, self.cfg.h4_seq_len, self._expected_h4_seq_dim),
+                ("d1", seq_d1, self.cfg.d1_seq_len, self._expected_d1_seq_dim),
+            ),
+            route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
+            route_label="entry",
         )
-        for name, tensor, exp_len, exp_dim in tf_inputs:
-            _assert_shape(name, tensor, 3)
-            if int(tensor.shape[0]) != B:
-                raise RuntimeError(f"{name.upper()}_BATCH_MISMATCH")
-            if int(tensor.shape[1]) != int(exp_len):
-                raise RuntimeError(
-                    f"{name.upper()}_LEN_MISMATCH: got={int(tensor.shape[1])} expected={exp_len}"
-                )
-            if int(tensor.shape[2]) != int(exp_dim):
-                raise RuntimeError(
-                    f"{name.upper()}_DIM_MISMATCH: got={int(tensor.shape[2])} expected={exp_dim}"
-                )
-            _assert_finite(name, tensor)
-
-        family_grid_rows = []
-        feature_gate_rows = []
-        for name, tensor, _exp_len, _exp_dim in tf_inputs:
-            suffix = name.removeprefix("seq_")
-            surface = f"mtf_{suffix}"
-            normalized_tf = self._normalize_input_surface(
-                tensor,
-                surface=surface,
-            )
-            categorical_mask = getattr(
-                self,
-                f"input_norm_{surface}_categorical_mask",
-            ).to(normalized_tf.device)
-            numeric_tf = normalized_tf.masked_fill(
-                categorical_mask.view(1, 1, -1),
-                0.0,
-            )
-            effective_scale = self._effective_tf_input_scale(suffix)
-            full_feature_gate = torch.zeros(
-                B,
-                int(_exp_dim),
-                device=tensor.device,
-                dtype=normalized_tf.dtype,
-            )
-            family_tokens = []
-            categorical_indices = set(
-                torch.nonzero(
-                    categorical_mask,
-                    as_tuple=False,
-                ).flatten().tolist()
-            )
-            for specialist in self._specialist_names:
-                family_idx = getattr(
-                    self,
-                    f"multi_tf_specialist_idx_{specialist}",
-                ).to(tensor.device)
-                feature_gate = 2.0 * torch.sigmoid(
-                    self.mtf_feature_context_gate[
-                        f"{suffix}__{specialist}"
-                    ](z_v3)
-                )
-                full_feature_gate = full_feature_gate.scatter(
-                    1,
-                    family_idx.view(1, -1).expand(B, -1),
-                    feature_gate,
-                )
-                family_values = numeric_tf.index_select(
-                    dim=2,
-                    index=family_idx,
-                )
-                family_values = (
-                    family_values
-                    * feature_gate.unsqueeze(1)
-                    * effective_scale
-                )
-                projected = self.mtf_family_proj[specialist](family_values)
-                family_indices = family_idx.tolist()
-                for local_position, global_index in enumerate(family_indices):
-                    if global_index not in categorical_indices:
-                        continue
-                    nominal = self.mtf_nominal_embeddings[
-                        f"{suffix}_{global_index}"
-                    ](tensor[..., global_index].long())
-                    projected = projected + nominal * (
-                        feature_gate[:, local_position]
-                        .view(B, 1, 1)
-                        * effective_scale
-                    )
-                encoded = _memory_bounded_transformer_encoder(
-                    self.mtf_family_encoder[specialist],
-                    self._add_pe(projected, f"pos_enc_{suffix}"),
-                )
-                family_token = encoded.mean(dim=1)
-                family_tokens.append(family_token)
-            family_grid_rows.append(torch.stack(family_tokens, dim=1))
-            feature_gate_rows.append(full_feature_gate)
-
-        family_tf_feature_gate = torch.stack(feature_gate_rows, dim=1)
-        family_grid = torch.stack(family_grid_rows, dim=1)
-        if tuple(family_grid.shape[1:3]) != (
-            5,
-            len(self._specialist_names),
-        ):
-            raise RuntimeError(
-                "FAMILY_TF_GRID_SHAPE_INVALID: "
-                f"observed={tuple(family_grid.shape)}"
-            )
-        family_grid = family_grid + self.family_tf_token_identity
-        family_axis = family_grid.permute(0, 2, 1, 3).reshape(
-            B * len(self._specialist_names),
-            5,
-            int(self.cfg.d_model),
-        )
-        family_axis = _memory_bounded_transformer_encoder(
-            self.family_axis_attn,
-            family_axis,
-        )
-        family_grid = family_axis.reshape(
-            B,
-            len(self._specialist_names),
-            5,
-            int(self.cfg.d_model),
-        ).permute(0, 2, 1, 3)
-        timeframe_axis = family_grid.reshape(
-            B * 5,
-            len(self._specialist_names),
-            int(self.cfg.d_model),
-        )
-        timeframe_axis = _memory_bounded_transformer_encoder(
-            self.timeframe_axis_attn,
-            timeframe_axis,
-        )
-        family_grid = timeframe_axis.reshape(
-            B,
-            5,
-            len(self._specialist_names),
-            int(self.cfg.d_model),
-        )
-        _assert_finite("family_tf_feature_gate", family_tf_feature_gate)
-        _assert_finite("family_grid", family_grid)
-
-        cooperation_tokens = family_grid.reshape(
-            B,
-            5 * len(self._specialist_names),
-            int(self.cfg.d_model),
-        )
-        family_tf_cooperation_gate = torch.softmax(
-            self.family_tf_context_gate(z_v3)
-            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
-            dim=1,
-        )
-        # Reuse the learned 5x8 cooperation distribution when constructing
-        # each timeframe token.  A fixed mean here would silently give every
-        # family equal influence even when the regime/context gate has learned
-        # otherwise.  Normalising within each TF preserves a convex, auditable
-        # aggregation while the global distribution remains available for
-        # cross-family/cross-TF cooperation.
-        family_gate_by_tf = family_tf_cooperation_gate.reshape(
-            B,
-            5,
-            len(self._specialist_names),
-        )
-        family_gate_within_tf = family_gate_by_tf / family_gate_by_tf.sum(
-            dim=2,
-            keepdim=True,
-        ).clamp_min(1e-12)
-        tf_tokens = (
-            family_grid * family_gate_within_tf.unsqueeze(-1)
-        ).sum(dim=2)
-        tf_attended = _memory_bounded_transformer_encoder(
-            self.cross_tf_attn,
-            tf_tokens + self.tf_token_identity,
-        )
-        tf_gate = torch.softmax(
-            self.tf_gate_logits.view(1, -1)
-            + self.tf_context_gate(z_v3)
-            + self.tf_token_gate(tf_attended).squeeze(-1),
-            dim=1,
-        )
-        mtf_repr = (tf_attended * tf_gate.unsqueeze(-1)).sum(dim=1)
-        mtf_correction = self.cross_tf_out(mtf_repr)
-        _assert_finite("mtf_repr", mtf_repr)
-        _assert_finite("mtf_correction", mtf_correction)
-        cooperation_pool = (
-            cooperation_tokens * family_tf_cooperation_gate.unsqueeze(-1)
-        ).sum(dim=1)
-        cooperation_correction = self.family_tf_cooperation_out(cooperation_pool)
-        _assert_finite("tf_gate", tf_gate)
-        _assert_finite("family_tf_cooperation_gate", family_tf_cooperation_gate)
-        _assert_finite("cooperation_correction", cooperation_correction)
-        z = (
-            z_v3
-            + self.multi_tf_scale.to(mtf_correction.dtype) * mtf_correction
-            + self.cross_family_fusion_scale.to(cooperation_correction.dtype)
-            * cooperation_correction
-        )
-
+        z = entry_mtf["representation"]
+        mtf_repr = entry_mtf["mtf_repr"]
+        tf_gate = entry_mtf["tf_gate"]
+        family_tf_cooperation_gate = entry_mtf["family_tf_cooperation_gate"]
+        family_tf_feature_gate = entry_mtf["family_tf_feature_gate"]
         # Regime FiLM (BIG-9): modulate a SEPARATE z_dir for the direction head only,
         # leaving z untouched for the aux heads + downstream. Zero-init -> z_dir==z at cold
         # start (bit-parity). FiLM consumes the same family-derived global
@@ -2211,12 +2407,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         out.update(exact_outputs)
         # Post-hoc direction calibration (identity unless the bundle loader
-        # installed metadata-fitted values). It is fitted only after training and
-        # applied after the sole learned fusion for audit/live parity.
+        # installed one immutable VAL-fitted positive scalar temperature).
+        # Runtime equality checks prove that calibration cannot remap LONG,
+        # SHORT, or FLAT; raw ties fail closed instead of being broken post hoc.
         if self._direction_cal is not None:
-            _cal_t, _cal_b = self._direction_cal
-            direction_logits = direction_logits / _cal_t + _cal_b.to(
-                device=direction_logits.device, dtype=direction_logits.dtype
+            direction_logits = _apply_argmax_preserving_direction_temperature(
+                raw_direction_logits,
+                self._direction_cal,
             )
             out["direction_logits"] = direction_logits
 
@@ -2240,3 +2437,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         out["public_trade_flat_decision_logits"] = public_trade_flat_decision_logits
         return out
+
+
+def _build_unit_test_entry_v10_ctx_hybrid_transformer(
+    **kwargs: object,
+) -> EntryV10CtxHybridTransformer:
+    """Construct a private small-shape model that production inputs cannot select."""
+
+    model = EntryV10CtxHybridTransformer.__new__(EntryV10CtxHybridTransformer)
+    object.__setattr__(
+        model,
+        "_gx1_unit_test_architecture_token",
+        _UNIT_TEST_ARCHITECTURE_SENTINEL,
+    )
+    EntryV10CtxHybridTransformer.__init__(model, **kwargs)
+    return model

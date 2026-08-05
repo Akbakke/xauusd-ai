@@ -30,6 +30,7 @@ from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     RECIPE_AUDIT_SCHEMA,
+    TRAIN_WRAPPER_RELATIVE_PATH,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
@@ -41,6 +42,7 @@ from gx1.contracts.immutable_event_authority_v1 import (
     write_immutable_json_event,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    PRE_CALIBRATION_EVIDENCE_STAGE,
     resolve_and_validate_prediction_evidence,
     sha256_file,
 )
@@ -217,16 +219,30 @@ def _prediction_evidence_check(
         if _sha256_file(report_path) != smoke_contract["prediction_report_sha256"]:
             raise RuntimeError("prediction report SHA-256 mismatch")
         evidence = smoke_contract["prediction_evidence"]
+        models = evidence.get("models")
+        if (
+            not isinstance(models, list)
+            or len(models) != 1
+            or not isinstance(models[0], str)
+            or not models[0]
+        ):
+            raise RuntimeError(
+                "prediction evidence must pin exactly one non-empty model name"
+            )
         predictions, report, observed = resolve_and_validate_prediction_evidence(
             Path(str(evidence.get("path") or "")),
+            expected_sha256=str(evidence.get("sha256") or ""),
             prediction_report_path=report_path,
             bundle_dir=Path(smoke_contract["bundle_dir"]),
             dataset_dir=Path(smoke_contract["dataset_dir"]),
+            expected_stage=PRE_CALIBRATION_EVIDENCE_STAGE,
+            expected_splits=tuple(FOUNDATION_AUDIT_SMOKE_SPLITS),
+            expected_model=models[0],
         )
         if observed != evidence:
             raise RuntimeError("smoke audit prediction declaration is not exact")
-        expected_splits = sorted(FOUNDATION_AUDIT_SMOKE_SPLITS)
-        if sorted(observed.get("splits") or ()) != expected_splits:
+        expected_splits = list(FOUNDATION_AUDIT_SMOKE_SPLITS)
+        if list(observed.get("splits") or ()) != expected_splits:
             raise RuntimeError(
                 "prediction evidence must cover exactly the policy-owned smoke "
                 f"splits: {expected_splits}"
@@ -265,9 +281,9 @@ def _trainability_contract_check(payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(future, dict):
             raise RuntimeError("trainability future train contract missing")
         if (
-            future.get("control_route") != "model-native-smoke-train"
-            or future.get("wrapper_path")
-            != "scripts/run_entry_model_native_seq513_smoke_train.sh"
+            future.get("profile") != "smoke"
+            or future.get("control_route") != "model-native-smoke-train"
+            or future.get("wrapper_path") != TRAIN_WRAPPER_RELATIVE_PATH
             or future.get("recipe_audit_schema") != RECIPE_AUDIT_SCHEMA
             or future.get("training_objective_schema") != TRAINING_OBJECTIVE_SCHEMA
             or set(future.get("recipe_env_keys") or ())

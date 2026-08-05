@@ -41,7 +41,7 @@ import sys
 import hashlib
 import tempfile
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -87,6 +87,7 @@ from gx1.contracts.entry_structural_aux_label_signal_v1 import (
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    XAU_INSTRUMENT,
     validate_xau_tape_provenance_v1,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
@@ -133,6 +134,15 @@ from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     publish_bundle_directory_noreplace,
 )
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    DATASET_REBUILD_TERMINAL_DECISION,
+    DATASET_REBUILD_TERMINAL_EVENT_PREFIX,
+    DATASET_REBUILD_TERMINAL_SCHEMA_VERSION,
+    TEST_SEAL_ACCESS_POLICY,
+    TEST_SEAL_DECISION,
+    TEST_SEAL_EVENT_PREFIX,
+    TEST_SEAL_SCHEMA_VERSION,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_FLAT_INDEX,
     MODEL_DIRECTION_LONG_INDEX,
@@ -151,10 +161,15 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_EXIT_RESOLUTION_RATIO,
     EXIT_DECISION_BAR_SECONDS,
     EXIT_FEATURE_ROW_CLOCK,
     entry_exit_shared_feature_base_contract,
     require_entry_exit_feature_surface_identity,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
@@ -708,19 +723,37 @@ def _position_size_target_from_path(
 # Misc helpers
 # -----------------------------------------------------------------------------
 def get_git_commit() -> str:
-    """Get current git commit hash (best-effort)."""
+    """Return the exact repository HEAD or fail closed."""
+
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+            [
+                "git",
+                "rev-parse",
+                "--show-toplevel",
+                "--verify",
+                "HEAD^{commit}",
+            ],
             capture_output=True,
             text=True,
             cwd=project_root,
+            timeout=10,
+            check=False,
         )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return "unknown"
+    except Exception as exc:
+        raise RuntimeError("DATASET_PRODUCER_GIT_IDENTITY_UNAVAILABLE") from exc
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if result.returncode != 0 or len(lines) != 2:
+        raise RuntimeError("DATASET_PRODUCER_GIT_IDENTITY_UNAVAILABLE")
+    observed_root = Path(lines[0]).expanduser().resolve(strict=False)
+    commit = lines[1].lower()
+    if (
+        observed_root != project_root.resolve(strict=True)
+        or len(commit) != 40
+        or any(char not in "0123456789abcdef" for char in commit)
+    ):
+        raise RuntimeError("DATASET_PRODUCER_GIT_IDENTITY_INVALID")
+    return commit
 
 
 def _utc_now_iso() -> str:
@@ -800,6 +833,308 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+_PRODUCER_SOURCE_IDENTITY_KEYS = {
+    "git_commit",
+    "repository_root",
+    "source_path",
+    "source_sha256",
+}
+
+
+def _require_producer_source_identity(
+    expected: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, str]:
+    """Bind the running producer bytes to one exact repository commit."""
+
+    source_arg = Path(__file__).expanduser()
+    if source_arg.is_symlink():
+        raise RuntimeError("DATASET_PRODUCER_SOURCE_SYMLINK_FORBIDDEN")
+    try:
+        source_path = source_arg.resolve(strict=True)
+        source_path.relative_to(project_root.resolve(strict=True))
+    except (FileNotFoundError, ValueError) as exc:
+        raise RuntimeError("DATASET_PRODUCER_SOURCE_IDENTITY_INVALID") from exc
+    if not source_path.is_file():
+        raise RuntimeError("DATASET_PRODUCER_SOURCE_IDENTITY_INVALID")
+    identity = {
+        "git_commit": get_git_commit(),
+        "repository_root": str(project_root.resolve(strict=True)),
+        "source_path": str(source_path),
+        "source_sha256": _sha256_file(source_path),
+    }
+    if expected is not None:
+        if (
+            not isinstance(expected, Mapping)
+            or set(expected) != _PRODUCER_SOURCE_IDENTITY_KEYS
+            or any(expected[key] != value for key, value in identity.items())
+        ):
+            raise RuntimeError("DATASET_PRODUCER_SOURCE_IDENTITY_CHANGED")
+    return identity
+
+
+def _artifact_binding(path: Path, *, label: str) -> Dict[str, str]:
+    candidate = Path(path).expanduser()
+    if (
+        not candidate.is_absolute()
+        or candidate != candidate.resolve(strict=False)
+        or candidate.is_symlink()
+        or not candidate.is_file()
+        or any("latest" in part.lower() for part in candidate.parts)
+    ):
+        raise RuntimeError(f"{label}: expected exact immutable regular file: {candidate}")
+    return {"path": str(candidate), "sha256": _sha256_file(candidate)}
+
+
+def _publish_json_atomic_noreplace(path: Path, payload: Mapping[str, Any]) -> None:
+    destination = Path(path).expanduser()
+    if (
+        not destination.is_absolute()
+        or destination != destination.resolve(strict=False)
+        or any("latest" in part.lower() for part in destination.parts)
+    ):
+        raise RuntimeError(f"immutable authority path is invalid: {destination}")
+    parent = destination.parent
+    if parent.exists():
+        if parent.is_symlink() or not parent.is_dir():
+            raise RuntimeError(f"immutable authority parent is invalid: {parent}")
+    else:
+        if parent.parent.is_symlink() or not parent.parent.is_dir():
+            raise RuntimeError(
+                f"immutable authority parent owner is invalid: {parent.parent}"
+            )
+        parent.mkdir(mode=0o755)
+        _fsync_directory(parent.parent)
+    encoded = (
+        json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    ).encode("utf-8")
+    descriptor, stage_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.staging.",
+        dir=str(parent),
+    )
+    stage = Path(stage_name)
+    published = False
+    try:
+        os.fchmod(descriptor, 0o644)
+        view = memoryview(encoded)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError(f"short immutable authority write: {stage}")
+            view = view[written:]
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = -1
+        try:
+            os.link(stage, destination, follow_symlinks=False)
+        except FileExistsError as exc:
+            raise RuntimeError(
+                f"immutable authority already exists: {destination}"
+            ) from exc
+        published = True
+        _fsync_directory(parent)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        stage.unlink(missing_ok=True)
+        if published:
+            _fsync_directory(parent)
+
+
+def publish_prefreeze_test_authority(
+    *,
+    entry_run_id: str,
+    dataset_dir: Path,
+    dataset_stem: str,
+    pair_lineage: Mapping[str, Any],
+    source_lineage: Mapping[str, Any],
+    rebuild_terminal_json: Path,
+    test_seal_json: Path,
+) -> Dict[str, Any]:
+    """Seal TEST once, at its owning dataset producer boundary.
+
+    This is the only pre-freeze owner allowed to open/stat/hash TEST.  Every
+    later readiness, audit and training boundary consumes the returned seal
+    metadata and must keep the sealed manifest/parquet byte-opaque.
+    """
+
+    run_id = require_entry_run_id(entry_run_id)
+    root = Path(dataset_dir).expanduser().resolve()
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError(f"TEST authority dataset directory is invalid: {root}")
+    if not dataset_stem or "/" in dataset_stem:
+        raise RuntimeError("TEST authority dataset stem is invalid")
+    authority_dir = root.parent / "rebuild_authority"
+    terminal_path = Path(rebuild_terminal_json).expanduser()
+    seal_path = Path(test_seal_json).expanduser()
+    if terminal_path.parent != authority_dir or seal_path.parent != authority_dir:
+        raise RuntimeError("TEST authority artifacts must be event-owned")
+    if (
+        not terminal_path.name.startswith(
+            f"{DATASET_REBUILD_TERMINAL_EVENT_PREFIX}_"
+        )
+        or not terminal_path.name.endswith(".json")
+        or not seal_path.name.startswith(f"{TEST_SEAL_EVENT_PREFIX}_")
+        or not seal_path.name.endswith(".json")
+        or terminal_path == seal_path
+    ):
+        raise RuntimeError("TEST authority event filenames are invalid")
+
+    expected_pair_keys = {
+        "pair_generation_id",
+        "pair_manifest",
+        "pair_generation_root",
+        "m1_lifecycle_source",
+        "m1_feature_base",
+        "m5_feature_base",
+        "unified_exit_lifecycle_manifest",
+    }
+    expected_source_keys = {
+        "dataset_build_proof",
+        "source_parquet",
+        "canonical_v2_parquet",
+        "signal_manifest",
+        "feature_ranking",
+        "rank_reference",
+        "multi_tf_cache",
+        "xau_tape_provenance",
+    }
+    if set(pair_lineage) != expected_pair_keys:
+        raise RuntimeError("TEST authority pair lineage keys are not exact")
+    if set(source_lineage) != expected_source_keys:
+        raise RuntimeError("TEST authority source lineage keys are not exact")
+    pair_payload = json.loads(
+        json.dumps(pair_lineage, sort_keys=True, allow_nan=False)
+    )
+    source_payload = json.loads(
+        json.dumps(source_lineage, sort_keys=True, allow_nan=False)
+    )
+    pair_sha = canonical_json_sha256(pair_payload)
+    source_sha = canonical_json_sha256(source_payload)
+
+    split_artifacts: Dict[str, Dict[str, Any]] = {}
+    for split in ("train", "val", "test"):
+        parquet_path = root / f"{dataset_stem}_{split}.parquet"
+        manifest_path = root / f"{dataset_stem}_{split}.manifest.json"
+        parquet = _artifact_binding(
+            parquet_path,
+            label=f"{split} parquet at producer boundary",
+        )
+        manifest = _artifact_binding(
+            manifest_path,
+            label=f"{split} manifest at producer boundary",
+        )
+        manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        extra = (
+            manifest_payload.get("extra")
+            if isinstance(manifest_payload.get("extra"), dict)
+            else {}
+        )
+        xau = (
+            extra.get("xau_tape_provenance")
+            if isinstance(extra.get("xau_tape_provenance"), dict)
+            else {}
+        )
+        rows = extra.get("rows")
+        if (
+            manifest_payload.get("schema_version")
+            != MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+            or manifest_payload.get("manifest_variant")
+            != MODEL_NATIVE_CONTRACT_MODE
+            or manifest_payload.get("output_data_path") != str(parquet_path)
+            or extra.get("entry_run_id") != run_id
+            or xau.get("instrument") != XAU_INSTRUMENT
+            or isinstance(rows, bool)
+            or not isinstance(rows, int)
+            or rows <= 0
+        ):
+            raise RuntimeError(f"{split}: producer split contract is invalid")
+        split_artifacts[split] = {
+            "manifest_path": manifest["path"],
+            "manifest_sha256": manifest["sha256"],
+            "parquet_path": parquet["path"],
+            "parquet_sha256": parquet["sha256"],
+            "schema_version": manifest_payload["schema_version"],
+            "manifest_variant": manifest_payload["manifest_variant"],
+            "rows": rows,
+            "entry_run_id": run_id,
+            "instrument": xau["instrument"],
+        }
+
+    created_utc = datetime.now(timezone.utc).isoformat()
+    terminal_payload: Dict[str, Any] = {
+        "schema_version": DATASET_REBUILD_TERMINAL_SCHEMA_VERSION,
+        "decision": DATASET_REBUILD_TERMINAL_DECISION,
+        "created_utc": created_utc,
+        "entry_run_id": run_id,
+        "dataset_dir": str(root),
+        "dataset_stem": dataset_stem,
+        "terminal_event_path": str(terminal_path),
+        "split_artifacts": split_artifacts,
+        "pair_lineage": pair_payload,
+        "pair_lineage_sha256": pair_sha,
+        "source_lineage": source_payload,
+        "source_lineage_sha256": source_sha,
+    }
+    terminal_payload["content_binding_sha256"] = canonical_json_sha256(
+        terminal_payload
+    )
+    _publish_json_atomic_noreplace(terminal_path, terminal_payload)
+    terminal_sha = _sha256_file(terminal_path)
+
+    test = split_artifacts["test"]
+    seal_payload: Dict[str, Any] = {
+        "schema_version": TEST_SEAL_SCHEMA_VERSION,
+        "decision": TEST_SEAL_DECISION,
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "seal_path": str(seal_path),
+        "entry_run_id": run_id,
+        "dataset_dir": str(root),
+        "split": "test",
+        "access_policy": TEST_SEAL_ACCESS_POLICY,
+        "disclosure_count": 0,
+        "manifest": {
+            "path": test["manifest_path"],
+            "sha256": test["manifest_sha256"],
+        },
+        "parquet": {
+            "path": test["parquet_path"],
+            "sha256": test["parquet_sha256"],
+        },
+        "manifest_contract": {
+            "schema_version": test["schema_version"],
+            "manifest_variant": test["manifest_variant"],
+            "entry_run_id": run_id,
+            "instrument": test["instrument"],
+        },
+        "rows": test["rows"],
+        "pair_lineage": pair_payload,
+        "pair_lineage_sha256": pair_sha,
+        "source_lineage": source_payload,
+        "source_lineage_sha256": source_sha,
+        "rebuild_terminal": {
+            "path": str(terminal_path),
+            "sha256": terminal_sha,
+            "schema_version": DATASET_REBUILD_TERMINAL_SCHEMA_VERSION,
+            "decision": DATASET_REBUILD_TERMINAL_DECISION,
+            "content_binding_sha256": terminal_payload[
+                "content_binding_sha256"
+            ],
+        },
+    }
+    seal_payload["content_binding_sha256"] = canonical_json_sha256(seal_payload)
+    _publish_json_atomic_noreplace(seal_path, seal_payload)
+    return {
+        "rebuild_terminal": {
+            "path": str(terminal_path),
+            "sha256": terminal_sha,
+        },
+        "prefreeze_test_seal": {
+            "path": str(seal_path),
+            "sha256": _sha256_file(seal_path),
+        },
+    }
 
 
 def _signal_build_contract_from_manifest(
@@ -905,7 +1240,6 @@ def _build_inline_seq_structure_extension(
         build_entry_foundation_structure_layer,
     )
     from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
-    from gx1.features.entry_mtf_confluence_v1 import build_entry_mtf_confluence_layer
     from gx1.features.entry_session_regime_interactions_v1 import (
         build_entry_session_regime_interaction_layer,
     )
@@ -1059,7 +1393,6 @@ def _build_inline_seq_structure_extension(
         "chart_geometry_smart2_layer": _build_chart_geometry_smart_layer_strict,
         "price_action_candle_smart3_layer": _candlestick_layer_strict,
         "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
-        "mtf_confluence_layer": build_entry_mtf_confluence_layer,
     }
     next_support_memory_state: Dict[str, np.float32] = {}
     emit_applied = False
@@ -1182,40 +1515,134 @@ def _normalize_time_utc(df: pd.DataFrame, time_col: str) -> pd.DataFrame:
 # -----------------------------------------------------------------------------
 # Market tape loading (canonical lane)
 # -----------------------------------------------------------------------------
+def _require_canonical_tape_partitions(
+    *,
+    tape_root: Path,
+    tape_provenance: Mapping[str, Any],
+    t_min: pd.Timestamp,
+    t_max: pd.Timestamp,
+) -> List[Path]:
+    """Resolve only manifest-bound ``year=YYYY/part-000.parquet`` files."""
+
+    root_arg = Path(tape_root).expanduser()
+    if root_arg.is_symlink():
+        raise RuntimeError(f"TAPE_ROOT_SYMLINK_FORBIDDEN: {root_arg}")
+    try:
+        root = root_arg.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"TAPE_ROOT_MISSING: {root_arg}") from exc
+    if not root.is_dir():
+        raise RuntimeError(f"TAPE_ROOT_NOT_DIR: {root}")
+    if not isinstance(tape_provenance, Mapping):
+        raise RuntimeError("TAPE_PROVENANCE_BINDING_MISSING")
+    if tape_provenance.get("instrument") != XAU_INSTRUMENT:
+        raise RuntimeError("TAPE_PROVENANCE_INSTRUMENT_MISMATCH")
+
+    declared_root_raw = str(tape_provenance.get("tape_root") or "")
+    declared_root = Path(declared_root_raw).expanduser()
+    if (
+        not declared_root.is_absolute()
+        or declared_root.is_symlink()
+        or declared_root.resolve(strict=False) != root
+        or declared_root_raw != str(root)
+    ):
+        raise RuntimeError("TAPE_PROVENANCE_ROOT_MISMATCH")
+
+    manifest_raw = str(tape_provenance.get("manifest_path") or "")
+    manifest_path = Path(manifest_raw).expanduser()
+    declared_manifest_sha = str(
+        tape_provenance.get("manifest_sha256") or ""
+    ).lower()
+    if (
+        not manifest_path.is_absolute()
+        or manifest_path.is_symlink()
+        or not manifest_path.is_file()
+        or manifest_path.resolve(strict=True) != manifest_path
+        or manifest_path.parent != root
+        or manifest_path.name not in {"MANIFEST.json", "REPAIR_MANIFEST.json"}
+        or len(declared_manifest_sha) != 64
+        or any(char not in "0123456789abcdef" for char in declared_manifest_sha)
+        or _sha256_file(manifest_path) != declared_manifest_sha
+    ):
+        raise RuntimeError("TAPE_PROVENANCE_MANIFEST_BINDING_MISMATCH")
+
+    year_sha256 = tape_provenance.get("year_sha256")
+    if not isinstance(year_sha256, Mapping) or not year_sha256:
+        raise RuntimeError("TAPE_PROVENANCE_YEAR_BINDINGS_MISSING")
+    declared_year_hashes: Dict[str, str] = {}
+    for raw_key, raw_hash in year_sha256.items():
+        key = str(raw_key)
+        digest = str(raw_hash or "").lower()
+        try:
+            year = int(key.split("=", 1)[1])
+        except (IndexError, ValueError) as exc:
+            raise RuntimeError("TAPE_PROVENANCE_YEAR_BINDING_INVALID") from exc
+        if (
+            key != f"year={year}"
+            or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)
+        ):
+            raise RuntimeError("TAPE_PROVENANCE_YEAR_BINDING_INVALID")
+        declared_year_hashes[key] = digest
+
+    start = pd.Timestamp(t_min)
+    end = pd.Timestamp(t_max)
+    if pd.isna(start) or pd.isna(end) or start > end:
+        raise RuntimeError(f"TAPE_RANGE_INVALID: start={start} end={end}")
+    requested_keys = [
+        f"year={year}" for year in range(int(start.year), int(end.year) + 1)
+    ]
+    missing_bindings = [
+        key for key in requested_keys if key not in declared_year_hashes
+    ]
+    if missing_bindings:
+        raise RuntimeError(
+            f"TAPE_DECLARED_PARTITIONS_MISSING: {missing_bindings}"
+        )
+
+    files: List[Path] = []
+    for key in requested_keys:
+        year_dir = root / key
+        part = year_dir / "part-000.parquet"
+        if (
+            year_dir.is_symlink()
+            or not year_dir.is_dir()
+            or part.is_symlink()
+            or not part.is_file()
+        ):
+            raise RuntimeError(f"TAPE_EXPECTED_PARTITION_MISSING: {part}")
+        entries = sorted(year_dir.iterdir(), key=lambda path: path.name)
+        if entries != [part]:
+            raise RuntimeError(
+                f"TAPE_PARTITION_LAYOUT_INVALID: year={key} "
+                f"entries={[path.name for path in entries]}"
+            )
+        observed_hash = _sha256_file(part)
+        if observed_hash != declared_year_hashes[key]:
+            raise RuntimeError(
+                f"TAPE_PARTITION_HASH_MISMATCH: year={key} "
+                f"declared={declared_year_hashes[key]} observed={observed_hash}"
+            )
+        files.append(part)
+    return files
+
+
 def _load_canonical_tape(
     *,
     tape_root: Path,
+    tape_provenance: Mapping[str, Any],
     t_min: pd.Timestamp,
     t_max: pd.Timestamp,
     required_cols: List[str],
 ) -> pd.DataFrame:
-    """
-    Load canonical M5 tape for [t_min, t_max] from a partitioned parquet dataset:
-      .../xauusd_m5_bid_ask__CANONICAL/year=YYYY/part-000.parquet
+    """Load only exact manifest-bound canonical M5 year partitions."""
 
-    We avoid depending on manifest schema here; we trust the canonical lane path and parquet partitioning.
-    """
-    tape_root = tape_root.expanduser().resolve()
-    if not tape_root.exists():
-        raise RuntimeError(f"TAPE_ROOT_MISSING: {tape_root}")
-    if not tape_root.is_dir():
-        raise RuntimeError(f"TAPE_ROOT_NOT_DIR: {tape_root}")
-
-    # Pull only years that intersect range
-    y0 = int(pd.Timestamp(t_min).year)
-    y1 = int(pd.Timestamp(t_max).year)
-    files: List[Path] = []
-    for y in range(y0, y1 + 1):
-        p = tape_root / f"year={y}"
-        if p.exists() and p.is_dir():
-            files.extend(sorted(p.glob("*.parquet")))
-    files = sorted(set(files))
-    # If layout differs, fall back to recursive parquet scan (still deterministic)
-    if not files:
-        files = sorted(tape_root.rglob("*.parquet"))
-
-    if not files:
-        raise RuntimeError(f"TAPE_NO_FILES: no parquet files found under {tape_root}")
+    files = _require_canonical_tape_partitions(
+        tape_root=tape_root,
+        tape_provenance=tape_provenance,
+        t_min=t_min,
+        t_max=t_max,
+    )
 
     # Read and filter
     df_list: List[pd.DataFrame] = []
@@ -1314,6 +1741,12 @@ def build_unified_exit_lifecycle_episodes(
     targets are recomputable from that source, while the proof binds the exact
     target byte stream used by the trainer.
     """
+    architecture = current_entry_exit_architecture_observation()
+    architecture["exit"]["max_path_bars"] = UNIFIED_EXIT_MAX_PATH_BARS
+    require_entry_exit_production_architecture(
+        architecture,
+        context="UNIFIED_EXIT_LIFECYCLE_EPISODE_BUILD",
+    )
     if market_closure_contract != CANONICAL_NATIVE_CLOSURE_CONTRACT:
         raise RuntimeError(
             "UNIFIED_EXIT_M1_MARKET_CLOSURE_PROOF_REQUIRED"
@@ -1891,11 +2324,15 @@ def write_manifest(
     build_command: List[str],
     source_parquet: Path,
     tape_root: Optional[Path],
+    producer_source_identity: Optional[Mapping[str, Any]] = None,
     splits: Optional[Dict[str, Any]] = None,
     ts_min_max_by_split: Optional[Dict[str, Dict[str, Optional[str]]]] = None,
     notes: str = "",
     extra: Optional[Dict[str, Any]] = None,
 ) -> Path:
+    producer_identity = _require_producer_source_identity(
+        producer_source_identity
+    )
     source_parquet = Path(source_parquet).expanduser().resolve()
     if not source_parquet.is_file():
         raise RuntimeError(f"MODEL_NATIVE_SOURCE_PARQUET_MISSING: {source_parquet}")
@@ -1917,7 +2354,8 @@ def write_manifest(
 
     manifest: Dict[str, Any] = {
         "created_at": _utc_now_iso(),
-        "git_commit": get_git_commit(),
+        "git_commit": producer_identity["git_commit"],
+        "producer_source_identity": producer_identity,
         "output_data_path": str(output_path),
         "build_command": build_command,
         "inputs": {
@@ -2240,9 +2678,9 @@ def build_dataset_canonical(
     *,
     source_parquet: Path,
     tape_root: Path,
+    tape_provenance: Mapping[str, Any],
     start: pd.Timestamp,
     end: pd.Timestamp,
-    max_rows: Optional[int],
     seq_len: int,
     early_move_threshold_bps: float,
     canonical_v2_parquet: Path,
@@ -2257,9 +2695,39 @@ def build_dataset_canonical(
     output_path: Optional[Path] = None,  # V2 streaming-write target
     streaming_batch_size: int = _MODEL_NATIVE_STREAMING_BATCH_SIZE,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    architecture = current_entry_exit_architecture_observation()
+    architecture["entry"]["sequence_bars"] = seq_len
+    architecture["exit"]["sequence_bars"] = (
+        seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+        if isinstance(seq_len, int) and not isinstance(seq_len, bool)
+        else seq_len
+    )
+    require_entry_exit_production_architecture(
+        architecture,
+        context="ENTRY_V10_DATASET_BUILD",
+    )
     ctx = _hard_gate_model_native_context()
     signal_build_contract = _signal_build_contract_from_manifest(
         seq_structure_manifest_path
+    )
+    signal_contract = signal_build_contract["model_native_signal_contract"]
+    manifest_architecture = current_entry_exit_architecture_observation()
+    manifest_architecture["entry"]["sequence_bars"] = seq_len
+    manifest_architecture["exit"]["sequence_bars"] = (
+        seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+    )
+    manifest_architecture["schemas"]["signal"] = signal_contract.get(
+        "schema_version"
+    )
+    manifest_architecture["shared_surface"]["signal_dim"] = len(
+        signal_contract.get("fields") or ()
+    )
+    manifest_architecture["shared_surface"]["snap_dim"] = len(
+        signal_contract.get("fields") or ()
+    )
+    require_entry_exit_production_architecture(
+        manifest_architecture,
+        context="ENTRY_V10_DATASET_SIGNAL_MANIFEST",
     )
     active_base_signal_fields = list(signal_build_contract["base_fields"])
 
@@ -2324,10 +2792,6 @@ def build_dataset_canonical(
         start,
         end,
     )
-
-    # deterministic head
-    if max_rows and len(df) > max_rows:
-        df = df.head(int(max_rows)).copy()
 
     # 3) Validate the contracted session state and derive additional learned
     # session-context inputs from canonical UTC timestamps. Missing or malformed
@@ -2453,6 +2917,7 @@ def build_dataset_canonical(
     ]
     tape = _load_canonical_tape(
         tape_root=tape_root,
+        tape_provenance=tape_provenance,
         t_min=t_min,
         t_max=t_max,
         required_cols=_risk_tape_cols,
@@ -2792,6 +3257,7 @@ def build_dataset_canonical(
     # NaN across the first ~year of TRAIN and fail the extension head.
     _htf_m5_src = _load_canonical_tape(
         tape_root=tape_root,
+        tape_provenance=tape_provenance,
         t_min=pd.Timestamp("2020-01-01T00:00:00Z"),
         t_max=pd.Timestamp(_common_index.max()),
         required_cols=["open", "high", "low", "close"],
@@ -2858,7 +3324,7 @@ def build_dataset_canonical(
         attach_group_a_dip_struct_ctx_columns_parallel as _attach_group_a,
         trim_causal_context_warmup_prefix as _trim_context_warmup,
     )
-    from gx1.features.htf_features import load_multi_tf_cache as _ga_load_cache
+    from gx1.features.htf_features import load_multi_tf_v4_cache as _ga_load_cache
 
     _cache_dir_raw = os.environ.get("GX1_V10_MULTI_TF_V4_CACHE_DIR", "").strip()
     if not _cache_dir_raw:
@@ -4055,6 +4521,18 @@ def main() -> None:
         "--output", type=str, required=True, help="Output dataset path (.parquet)."
     )
     parser.add_argument(
+        "--rebuild-terminal-json",
+        type=str,
+        required=True,
+        help="Fresh event-owned immutable dataset-rebuild terminal JSON.",
+    )
+    parser.add_argument(
+        "--prefreeze-test-seal-json",
+        type=str,
+        required=True,
+        help="Fresh event-owned immutable pre-freeze TEST seal JSON.",
+    )
+    parser.add_argument(
         "--resume-exact-checkpoints",
         action="store_true",
         help=(
@@ -4075,13 +4553,6 @@ def main() -> None:
     parser.add_argument(
         "--end", type=str, required=True, help="Exact model range end (ISO UTC)."
     )
-    parser.add_argument(
-        "--max_rows",
-        type=int,
-        default=None,
-        help="Deterministic: take first N rows after filtering.",
-    )
-
     # Advanced dataset structure (the model-native sequence contract is explicit)
     parser.add_argument(
         "--seq_len",
@@ -4221,6 +4692,18 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    architecture = current_entry_exit_architecture_observation()
+    architecture["entry"]["sequence_bars"] = args.seq_len
+    architecture["exit"]["sequence_bars"] = (
+        args.seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+        if isinstance(args.seq_len, int) and not isinstance(args.seq_len, bool)
+        else args.seq_len
+    )
+    require_entry_exit_production_architecture(
+        architecture,
+        context="ENTRY_V10_DATASET_CLI",
+    )
+    producer_source_identity = _require_producer_source_identity()
     entry_run_id = require_entry_run_id(args.run_id)
     build_command = sys.argv.copy()
 
@@ -4251,10 +4734,6 @@ def main() -> None:
     if not args.time_split:
         raise RuntimeError(
             "MODEL_NATIVE_TIME_SPLIT_REQUIRED: TRAIN-only normalization has no single-frame fallback"
-        )
-    if args.max_rows is not None:
-        raise RuntimeError(
-            "MODEL_NATIVE_TIME_SPLIT_MAX_ROWS_FORBIDDEN: deterministic truncation would break common history"
         )
     train_start = _parse_ts(args.train_start)
     train_end = _parse_ts(args.train_end)
@@ -4310,6 +4789,7 @@ def main() -> None:
     ctx_contract = _model_native_ctx_contract_metadata()
     proof_payload = {
         "entry_run_id": entry_run_id,
+        "producer_source_identity": producer_source_identity,
         "ctx_tag": ctx_contract["tag"],
         "ctx_cont_dim": int(len(MODEL_NATIVE_CTX_CONT_FIELDS)),
         "ctx_cat_dim": int(len(MODEL_NATIVE_CTX_CAT_FIELDS)),
@@ -4354,10 +4834,32 @@ def main() -> None:
             f"{output_path.stem}{DIRECTION_DATASET_STEM_SUFFIX}{output_path.suffix}"
         )
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    rebuild_terminal_path = Path(args.rebuild_terminal_json).expanduser()
+    test_seal_path = Path(args.prefreeze_test_seal_json).expanduser()
+    authority_dir = output_path.parent.parent / "rebuild_authority"
+    for label, authority_path in (
+        ("rebuild terminal", rebuild_terminal_path),
+        ("pre-freeze TEST seal", test_seal_path),
+    ):
+        if (
+            not authority_path.is_absolute()
+            or authority_path != authority_path.resolve(strict=False)
+            or authority_path.parent != authority_dir
+            or authority_path.exists()
+            or authority_path.is_symlink()
+            or any("latest" in part.lower() for part in authority_path.parts)
+        ):
+            raise RuntimeError(
+                f"DATASET_BUILDER_{label.upper().replace(' ', '_')}_PATH_INVALID"
+            )
     proof_payload.update(
         {
             "source_parquet": str(source_parquet_path),
             "output_path": str(output_path),
+            "prefreeze_test_authority_targets": {
+                "rebuild_terminal_json": str(rebuild_terminal_path),
+                "test_seal_json": str(test_seal_path),
+            },
         }
     )
     m1_lifecycle_source_path, m1_lifecycle_authority = (
@@ -4632,11 +5134,11 @@ def main() -> None:
             build_command=build_command,
             source_parquet=source_parquet_path,
             tape_root=tape_root,
+            producer_source_identity=producer_source_identity,
             notes="DRY_RUN only.",
             extra={
                 "start": args.start,
                 "end": args.end,
-                "max_rows": args.max_rows,
                 "time_split": bool(args.time_split),
                 "seq_len": int(args.seq_len),
                 "aux_head_target_contract": model_native_aux_target_contract_metadata(),
@@ -4741,6 +5243,7 @@ def main() -> None:
         df_built, meta = build_dataset_canonical(
             source_parquet=source_parquet_path,
             tape_root=tape_root,
+            tape_provenance=xau_tape_provenance,
             start=start,
             end=s1,
             emit_start=s0,
@@ -4749,7 +5252,6 @@ def main() -> None:
             m5_feature_surface_times=m5_feature_surface_times,
             m5_feature_surface_arrays=m5_feature_surface_arrays,
             m5_feature_surface_binding=m5_feature_surface_binding,
-            max_rows=None,
             seq_len=int(args.seq_len),
             early_move_threshold_bps=early_move_threshold_bps,
             split_name=split_name,
@@ -4848,6 +5350,7 @@ def main() -> None:
             build_command=build_command,
             source_parquet=source_parquet_path,
             tape_root=tape_root,
+            producer_source_identity=producer_source_identity,
             splits=splits,
             ts_min_max_by_split=ts_min_max_by_split,
             notes=(
@@ -4928,9 +5431,96 @@ def main() -> None:
         exit_lifecycle_dir,
     )
     lifecycle_staging.cleanup()
+    lifecycle_root_manifest_published = (
+        exit_lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    ).resolve(strict=True)
+    rank_reference_sidecar_path = rank_reference_path.with_suffix(
+        rank_reference_path.suffix + ".json"
+    )
+    source_lineage = {
+        "dataset_build_proof": _artifact_binding(
+            proof_path,
+            label="dataset build proof",
+        ),
+        "source_parquet": _artifact_binding(
+            source_parquet_path,
+            label="model source parquet",
+        ),
+        "canonical_v2_parquet": _artifact_binding(
+            canonical_v2_path,
+            label="canonical V2 parquet",
+        ),
+        "signal_manifest": _artifact_binding(
+            signal_manifest_path,
+            label="signal manifest",
+        ),
+        "feature_ranking": _artifact_binding(
+            Path(args.feature_ranking_json).expanduser().resolve(),
+            label="feature ranking",
+        ),
+        "rank_reference": {
+            **_artifact_binding(
+                rank_reference_path,
+                label="TRAIN rank reference",
+            ),
+            "sidecar_path": str(rank_reference_sidecar_path),
+            "sidecar_sha256": _sha256_file(rank_reference_sidecar_path),
+        },
+        "multi_tf_cache": metas["test"]["multi_tf_cache_binding"],
+        "xau_tape_provenance": xau_tape_provenance,
+    }
+    pair_lineage = {
+        "pair_generation_id": m1_lifecycle_authority[
+            "pair_generation_id"
+        ],
+        "pair_manifest": _artifact_binding(
+            Path(args.m1_lifecycle_pair_manifest_json).expanduser().resolve(),
+            label="pair manifest",
+        ),
+        "pair_generation_root": str(
+            Path(args.m1_lifecycle_pair_generation_root).expanduser().resolve()
+        ),
+        "m1_lifecycle_source": _artifact_binding(
+            m1_lifecycle_source_path,
+            label="M1 lifecycle source",
+        ),
+        "m1_feature_base": {
+            **_artifact_binding(
+                m1_feature_base_path,
+                label="M1 feature base",
+            ),
+            "manifest_path": str(m1_feature_base_manifest_path),
+            "manifest_sha256": m1_feature_base_manifest_sha256,
+        },
+        "m5_feature_base": {
+            **_artifact_binding(
+                m5_feature_base_path,
+                label="M5 feature base",
+            ),
+            "manifest_path": str(m5_feature_base_manifest_path),
+            "manifest_sha256": m5_feature_base_manifest_sha256,
+        },
+        "unified_exit_lifecycle_manifest": _artifact_binding(
+            lifecycle_root_manifest_published,
+            label="unified Exit lifecycle manifest",
+        ),
+    }
+    authority = publish_prefreeze_test_authority(
+        entry_run_id=entry_run_id,
+        dataset_dir=out_dir,
+        dataset_stem=stem,
+        pair_lineage=pair_lineage,
+        source_lineage=source_lineage,
+        rebuild_terminal_json=rebuild_terminal_path,
+        test_seal_json=test_seal_path,
+    )
     del m5_feature_surface_arrays
     m5_surface_storage.cleanup()
-    log.info("[DATASET_BUILD] Common-history TRAIN/VAL/TEST build complete")
+    log.info(
+        "[DATASET_BUILD] Common-history TRAIN/VAL/TEST build complete; "
+        "TEST authority=%s",
+        authority,
+    )
 
 
 if __name__ == "__main__":

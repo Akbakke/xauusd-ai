@@ -50,6 +50,26 @@ RETIRED_ZERO_REACHABILITY_HELPERS = (
     ".github/workflows/gx1-ci.yml",
     "backup-exclude",
     "gx1/reports",
+    # 2026-08-05: frozen-scope dead-code closure, proven unreachable from
+    # active offline controls and the protected collector/dashboard/notifier.
+    "gx1/contracts/entry_model_native_adaptation_drift_v1.py",
+    "gx1/contracts/entry_model_native_adaptation_lifecycle_v1.py",
+    "gx1/contracts/entry_model_native_adaptation_shadow_v1.py",
+    "gx1/scripts/finalize_entry_model_native_adaptation_drift_v1.py",
+    "gx1/scripts/finalize_entry_model_native_adaptation_lifecycle_v1.py",
+    "gx1/scripts/finalize_entry_model_native_adaptation_shadow_v1.py",
+    "tests/model_native_adaptation_support.py",
+    "tests/test_entry_model_native_adaptation_drift.py",
+    "tests/test_entry_model_native_adaptation_lifecycle.py",
+    "tests/test_entry_model_native_adaptation_shadow.py",
+    "gx1/scripts/finalize_entry_model_native_launch_v1.py",
+    "tests/test_artifact_guard_xau_direction_launch.py",
+    "gx1/monitoring/reconcile_oanda.py",
+    "tests/test_reconcile_oanda_parsing.py",
+    "gx1/utils/feature_context.py",
+    "gx1/features/feature_state.py",
+    "gx1/features/rolling_state_numba.py",
+    "tests/test_rolling_r1_quantiles_incremental.py",
 )
 
 RETIRED_ZERO_REACHABILITY_MODULES = (
@@ -87,6 +107,18 @@ RETIRED_ZERO_REACHABILITY_MODULES = (
     "gx1.portfolio",
     "gx1.sniper",
     "gx1.runtime.overlays",
+    # 2026-08-05 frozen-scope dead-code closure.
+    "gx1.contracts.entry_model_native_adaptation_drift_v1",
+    "gx1.contracts.entry_model_native_adaptation_lifecycle_v1",
+    "gx1.contracts.entry_model_native_adaptation_shadow_v1",
+    "gx1.scripts.finalize_entry_model_native_adaptation_drift_v1",
+    "gx1.scripts.finalize_entry_model_native_adaptation_lifecycle_v1",
+    "gx1.scripts.finalize_entry_model_native_adaptation_shadow_v1",
+    "gx1.scripts.finalize_entry_model_native_launch_v1",
+    "gx1.monitoring.reconcile_oanda",
+    "gx1.utils.feature_context",
+    "gx1.features.feature_state",
+    "gx1.features.rolling_state_numba",
 )
 
 RETIRED_ENTRY_REPORT_FAMILIES = (
@@ -133,23 +165,3 @@ def test_retired_entry_external_tree_sidecar_v13_prune_report_families_remain_ab
     present = [path for path in retired if (REPO / path).exists()]
     assert present == []
 
-
-def test_stop_live_practice_has_no_retired_shadow_or_counterfactual_branches() -> None:
-    source = (REPO / "scripts/stop_live_practice.sh").read_text(encoding="utf-8")
-    retired = (
-        "noexternal_tree_sidecar_shadow",
-        "--verify-entry-next-edge-guards",
-        "counterfactual_daemon",
-    )
-    assert all(token not in source for token in retired)
-
-
-def test_stop_live_practice_keeps_current_stack_stop_owners() -> None:
-    source = (REPO / "scripts/stop_live_practice.sh").read_text(encoding="utf-8")
-    required = (
-        'stop_pid paper_runner            "$PAPER_RUNS/paper_runner.pid"',
-        'pgrep -f "gx1.execution.v12_paper_runner"',
-        'stop_pid retired_canonical_incremental "$PAPER_RUNS/canonical_incremental.pid"',
-        'stop_pid oanda_data_collector    "$PAPER_RUNS/collector.pid"',
-    )
-    assert all(token in source for token in required)

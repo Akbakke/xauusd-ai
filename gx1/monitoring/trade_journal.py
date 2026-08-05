@@ -120,7 +120,6 @@ MODEL_NATIVE_INDEX_FIELDS = (
     "tf_agreement_pred",
     "position_size_logit",
     "position_size_pred",
-    "sizing_authority_contract",
     "side_utility",
     "side_bad_path_logit",
     "long_bad_path_prob",
@@ -144,7 +143,6 @@ MODEL_NATIVE_INDEX_FIELDS = (
     "calibration_version",
     "direction_calibration_enabled",
     "direction_calibration_temperature",
-    "direction_calibration_bias",
     "path_calibration_enabled",
     "path_calibration",
     "decision_ts",
@@ -620,9 +618,6 @@ class TradeJournal:
                     "applied_size_multiplier": applied_size_multiplier,
                     "model_direction": evidence["model_direction"],
                     "position_size_logit": evidence["position_size_logit"],
-                    "sizing_authority_contract": evidence[
-                        "sizing_authority_contract"
-                    ],
                 }
                 mismatched_sizing = sorted(
                     key

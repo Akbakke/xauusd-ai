@@ -863,7 +863,7 @@ def build_multi_tf_from_cv3(
 
     Uses float32-cast OHLCV,
     the EXACT dtype convention of both the offline disk cache
-    (gx1/scripts/prebuild_multi_tf_cache_v2.py:60-66) and the trainer/eval dataset
+    (`gx1.scripts.prebuild_multi_tf_cache_v4`) and the trainer/eval dataset
     (entry_v10_ctx_train_v3.py:1634-1651). NOTE: PrebuiltStateLoader.build_multi_tf_features
     exists but feeds the EXIT chain with float64 OHLC — the entry parity target is the
     float32 cache convention, hence this thin one-truth wrapper (build fn is shared).

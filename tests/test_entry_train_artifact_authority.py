@@ -28,6 +28,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
 )
+from gx1.features.htf_features import HTF_V4_CACHE_SCHEMA_VERSION
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
@@ -51,7 +52,7 @@ def _set_exact_trainer_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _aux_target_contract(split: str) -> dict[str, object]:
-    candidates = {"train": 100, "val": 101, "test": 102}[split]
+    candidates = {"train": 100, "val": 101}[split]
     return {
         **model_native_aux_target_contract_metadata(),
         "incomplete_tail_rows_total": 96,
@@ -93,9 +94,35 @@ def _artifacts(
             "columns": list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS),
         },
     }
+    cache_dir = root / "MULTI_TF_V4_CACHE"
+    cache_dir.mkdir()
+    cache_manifest = cache_dir / "manifest.json"
+    cache_identity = "a" * 64
+    cache_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": HTF_V4_CACHE_SCHEMA_VERSION,
+                "cache_identity_sha256": cache_identity,
+                "m5_prebuilt_source": str(m5_prebuilt),
+                "m5_prebuilt_source_sha256": _sha(m5_prebuilt),
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    mtf_cache_binding = {
+        "cache_dir": str(cache_dir),
+        "manifest_path": str(cache_manifest),
+        "manifest_sha256": _sha(cache_manifest),
+        "cache_identity_sha256": cache_identity,
+        "m5_prebuilt_source": str(m5_prebuilt),
+        "m5_prebuilt_source_sha256": _sha(m5_prebuilt),
+    }
+    monkeypatch.setenv(trainer._TRAIN_MULTI_TF_CACHE_ENV, str(cache_dir))
     manifests: dict[str, Path] = {}
     parquets: dict[str, Path] = {}
-    for split in ("train", "val", "test"):
+    for split in ("train", "val"):
         parquet = root / f"entry_model_native_{split}.parquet"
         parquet.write_bytes(f"immutable-{split}".encode())
         manifest = root / f"entry_model_native_{split}.manifest.json"
@@ -119,6 +146,7 @@ def _artifacts(
                         "aux_head_target_contract": _aux_target_contract(split),
                         "entry_run_id": DATASET_RUN_ID,
                         "model_native_state_contract": state_contract,
+                        "multi_tf_cache_binding": mtf_cache_binding,
                     },
                 },
                 sort_keys=True,
@@ -170,10 +198,8 @@ def _resolve(
     return trainer._resolve_explicit_train_split_artifacts(
         train_manifest=manifests["train"],
         val_manifest=manifests["val"],
-        test_manifest=manifests["test"],
         train_parquet=parquets["train"],
         val_parquet=parquets["val"],
-        test_parquet=parquets["test"],
         unified_exit_lifecycle_manifest_path=(
             manifests["train"].parent
             / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
@@ -197,6 +223,41 @@ def test_exact_dataset_artifact_identity_including_m5_passes(
 
     assert observed_manifests == manifests
     assert observed_parquets == parquets
+
+
+def test_train_and_val_must_bind_the_same_exact_mtf_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
+    val_manifest = json.loads(manifests["val"].read_text(encoding="utf-8"))
+    val_manifest["extra"]["multi_tf_cache_binding"][
+        "cache_identity_sha256"
+    ] = "b" * 64
+    manifests["val"].write_text(
+        json.dumps(val_manifest, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(
+        trainer._TRAIN_ARTIFACT_HASH_ENV["val_manifest"],
+        _sha(manifests["val"]),
+    )
+
+    with pytest.raises(RuntimeError, match="SPLIT_MTF_CACHE_BINDING_MISMATCH"):
+        _resolve(manifests, parquets, m5_prebuilt)
+
+
+def test_launch_cache_path_must_equal_dataset_binding(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
+    wrong_cache = tmp_path / "WRONG_MTF_CACHE"
+    wrong_cache.mkdir()
+    monkeypatch.setenv(trainer._TRAIN_MULTI_TF_CACHE_ENV, str(wrong_cache))
+
+    with pytest.raises(RuntimeError, match="cache_dir differs from launch"):
+        _resolve(manifests, parquets, m5_prebuilt)
 
 
 def test_trainer_boundary_requires_exact_recipe_and_allows_only_bound_runtime_env(
@@ -269,10 +330,8 @@ def test_relative_symlink_and_latest_paths_fail_closed(
         trainer._resolve_explicit_train_split_artifacts(
             train_manifest=Path("relative_train.manifest.json"),
             val_manifest=manifests["val"],
-            test_manifest=manifests["test"],
             train_parquet=parquets["train"],
             val_parquet=parquets["val"],
-            test_parquet=parquets["test"],
             unified_exit_lifecycle_manifest_path=(
                 manifests["train"].parent
                 / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
@@ -295,7 +354,7 @@ def test_relative_symlink_and_latest_paths_fail_closed(
         _resolve({**manifests, "train": latest}, parquets, m5_prebuilt)
 
 
-def test_split_paths_must_be_six_way_distinct(
+def test_split_paths_must_be_four_way_distinct(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
@@ -314,10 +373,10 @@ def test_manifest_self_path_and_run_lineage_are_exact(
     mutation: str,
 ) -> None:
     manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
-    manifest = manifests["test"]
+    manifest = manifests["val"]
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     if mutation == "self_path":
-        payload["output_data_path"] = str(parquets["val"])
+        payload["output_data_path"] = str(parquets["train"])
         expected = "SELF_PATH_MISMATCH"
     else:
         payload["extra"]["model_native_state_contract"]["entry_run_id"] = (
@@ -325,7 +384,7 @@ def test_manifest_self_path_and_run_lineage_are_exact(
         )
         expected = "RUN_ID_LINEAGE_MISMATCH"
     manifest.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
-    monkeypatch.setenv(trainer._TRAIN_ARTIFACT_HASH_ENV["test_manifest"], _sha(manifest))
+    monkeypatch.setenv(trainer._TRAIN_ARTIFACT_HASH_ENV["val_manifest"], _sha(manifest))
 
     with pytest.raises(RuntimeError, match=expected):
         _resolve(manifests, parquets, m5_prebuilt)
@@ -405,25 +464,25 @@ def test_distinct_rank_source_is_allowed_only_with_exact_market_identity_proof(
     assert resolved_parquets == parquets
 
 
-def test_wrappers_forward_all_six_explicit_artifacts_without_inference() -> None:
+def test_wrappers_forward_train_val_artifacts_without_inference() -> None:
     root = Path(__file__).resolve().parents[1]
-    for name in (
-        "run_entry_model_native_seq513_smoke_train.sh",
-        "run_entry_model_native_seq513_candidate_train.sh",
+    source = (
+        root / "scripts" / "run_entry_model_native_seq513_train.sh"
+    ).read_text(encoding="utf-8")
+    train_command = source[source.index("TRAIN_CMD=(") : source.index("RUN_CMD=(")]
+    for flag in (
+        "--train-manifest-json",
+        "--val-manifest-json",
+        "--train-parquet",
+        "--val-parquet",
+        "--prefreeze-test-seal-json",
+        "--prefreeze-test-seal-sha256",
     ):
-        source = (root / "scripts" / name).read_text(encoding="utf-8")
-        train_command = source[source.index("TRAIN_CMD=(") : source.index("RUN_CMD=(")]
-        for flag in (
-            "--train-manifest-json",
-            "--val-manifest-json",
-            "--test-manifest-json",
-            "--train-parquet",
-            "--val-parquet",
-            "--test-parquet",
-        ):
-            assert flag in train_command
-        assert "--dataset_manifest" not in train_command
-        assert "--dataset_train_parquet" not in train_command
+        assert flag in train_command
+    assert "--test-manifest-json" not in train_command
+    assert "--test-parquet" not in train_command
+    assert "--dataset_manifest" not in train_command
+    assert "--dataset_train_parquet" not in train_command
 
 
 def test_trainer_source_has_no_split_discovery_or_stem_inference() -> None:
@@ -432,3 +491,6 @@ def test_trainer_source_has_no_split_discovery_or_stem_inference() -> None:
     assert "def _resolve_test_parquet" not in source
     assert 'glob("*.parquet")' not in source
     assert "inferred from train" not in source
+    assert "--test-manifest-json" not in source
+    assert "--test-parquet" not in source
+    assert "test_metrics" not in source.lower()

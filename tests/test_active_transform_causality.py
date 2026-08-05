@@ -8,13 +8,11 @@ import pandas as pd
 import pytest
 
 from gx1.features.htf_features import (
-    HTF_V2_MATRIX_CONTRACT,
     MULTI_TF_SHIFT,
-    attach_v2_mtf_per_bar_scalars,
-    build_multi_tf_per_bar_features_v2,
     build_multi_tf_per_bar_features_v4,
-    compute_per_bar_features_v2,
-    get_last_n_at_or_before,
+    compute_per_bar_features_v4,
+    multi_tf_last_closed_label,
+    slice_multi_tf_v4_window,
 )
 from gx1.features import basic_v1
 from gx1.features.regime_v4_features import (
@@ -26,9 +24,6 @@ from gx1.execution.v12_ctx_augment_live import (
     _add_htf_features,
     _add_regime_categoricals,
     _align_last_closed as _align_live_last_closed,
-)
-from gx1.scripts.add_ctx_cont_columns_to_prebuilt import (
-    _align_last_closed as _align_offline_last_closed,
 )
 from gx1.scripts.augment_forward_outcome_v2 import (
     _build_atr_percentile_array,
@@ -262,6 +257,48 @@ def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) ->
         assert float(augmented.loc[0, name]) == pytest.approx(expected[name], abs=1e-7)
 
 
+def test_native_m1_decisions_use_true_closed_m5_context(tmp_path: Path) -> None:
+    m5 = _market_frame(18_400)
+    multi_tf = build_multi_tf_per_bar_features_v4(m5)
+    start = m5.index[-3]
+    times = pd.date_range(start, periods=4, freq="1min", tz="UTC")
+    close = np.linspace(float(m5.loc[start, "close"]), float(m5.loc[start, "close"]) + 0.3, 4)
+    local_m1 = pd.DataFrame(
+        {
+            "time": times,
+            "high": close + 0.4,
+            "low": close - 0.4,
+            "close": close,
+            "smc_swing_state": np.arange(4) % 5,
+        }
+    )
+
+    augmented = attach_group_a_dip_struct_ctx_columns(
+        local_m1,
+        multi_tf=multi_tf,
+        context_m5=m5,
+        base_bar_duration=pd.Timedelta(minutes=1),
+    )
+    direct = build_context(
+        m5[["high", "low", "close"]],
+        multi_tf,
+        journal_dir=tmp_path / "missing_m1_journal",
+        decision_frame=local_m1.set_index("time")[["high", "low", "close"]],
+        decision_bar_duration=pd.Timedelta(minutes=1),
+    )
+    expected = augment_candidate(
+        direct,
+        times[0],
+        include_portfolio=False,
+    )
+
+    assert float(augmented.loc[0, "atr_ratio_m5_h4"]) == pytest.approx(
+        expected["atr_ratio_m5_h4"], abs=1e-7
+    )
+    assert augmented["atr_ratio_m5_h4"].nunique() == 1
+    assert augmented["dist_to_m5_hi_atr"].nunique() > 1
+
+
 def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
     frame = _market_frame(18_400)
     multi_tf = build_multi_tf_per_bar_features_v4(frame)
@@ -311,23 +348,23 @@ def test_warmup_trim_rejects_nonfinite_gap_after_complete_rows() -> None:
         trim_causal_context_warmup_prefix(frame, ["feature"])
 
 
-def test_htf_v2_requires_exact_observed_volume() -> None:
+def test_htf_v4_requires_exact_observed_volume() -> None:
     frame = _market_frame(100).drop(columns=["volume", "smc_swing_state"])
 
     with pytest.raises(RuntimeError, match="volume"):
-        compute_per_bar_features_v2(frame)
+        compute_per_bar_features_v4(frame)
 
     frame["volume"] = 0.0
     with pytest.raises(RuntimeError, match="volume"):
-        compute_per_bar_features_v2(frame)
+        compute_per_bar_features_v4(frame)
 
 
-def test_htf_v2_warmup_is_explicit_and_future_append_is_prefix_invariant() -> None:
-    frame = _market_frame(160).drop(columns="smc_swing_state")
-    prefix = frame.iloc[:120]
+def test_htf_v4_warmup_is_explicit_and_future_append_is_prefix_invariant() -> None:
+    frame = _market_frame(4_000).drop(columns="smc_swing_state")
+    prefix = frame.iloc[:3_500]
 
-    before = compute_per_bar_features_v2(prefix)
-    after = compute_per_bar_features_v2(frame)
+    before = compute_per_bar_features_v4(prefix)
+    after = compute_per_bar_features_v4(frame)
 
     assert before.iloc[0].isna().any()
     warmup = int(np.argmax(np.isfinite(before.to_numpy()).all(axis=1)))
@@ -343,17 +380,23 @@ def test_htf_v2_warmup_is_explicit_and_future_append_is_prefix_invariant() -> No
 
 
 def test_htf_window_refuses_padding_and_returns_only_exact_finite_history() -> None:
-    frame = _market_frame(180).drop(columns="smc_swing_state")
-    feats = build_multi_tf_per_bar_features_v2(frame)["M5"]
-    assert feats.attrs["htf_feature_contract"] == HTF_V2_MATRIX_CONTRACT
+    frame = _market_frame(4_000).drop(columns="smc_swing_state")
+    feats = build_multi_tf_per_bar_features_v4(frame)["M5"]
+    values = feats.attrs["feats_np"]
+    assert np.shares_memory(
+        feats.to_numpy(dtype=np.float32, copy=False),
+        values,
+    )
 
     target = frame.index[-1] + pd.Timedelta(minutes=5)
-    window = get_last_n_at_or_before(feats, target, n=32, tf_shift=MULTI_TF_SHIFT["M5"])
+    window = slice_multi_tf_v4_window(
+        feats, target, n=32, tf_shift=MULTI_TF_SHIFT["M5"]
+    )
     assert window.shape == (32, feats.shape[1])
     assert np.isfinite(window).all()
 
     with pytest.raises(RuntimeError, match="WARMUP|HISTORY"):
-        get_last_n_at_or_before(
+        slice_multi_tf_v4_window(
             feats,
             frame.index[30] + pd.Timedelta(minutes=5),
             n=10,
@@ -362,22 +405,9 @@ def test_htf_window_refuses_padding_and_returns_only_exact_finite_history() -> N
     legacy = feats.copy()
     legacy.attrs.clear()
     with pytest.raises(RuntimeError, match="CONTRACT"):
-        get_last_n_at_or_before(legacy, target, n=1, tf_shift=MULTI_TF_SHIFT["M5"])
-
-
-def test_htf_projection_uses_m5_decision_close_and_keeps_warmup_unavailable() -> None:
-    frame = _market_frame(400).drop(columns="smc_swing_state")
-    projected = attach_v2_mtf_per_bar_scalars(
-        frame,
-        frame.index.asi8,
-        (("atr_bps_14", "atr_bps_14"),),
-        tfs=("m5",),
-    )["m5_atr_bps_14_v2"]
-    direct = build_multi_tf_per_bar_features_v2(frame)["M5"]["atr_bps_14"].to_numpy()
-
-    np.testing.assert_allclose(projected, direct, rtol=0.0, atol=0.0, equal_nan=True)
-    assert np.isnan(projected[:13]).all()
-    assert np.isfinite(projected[13:]).all()
+        slice_multi_tf_v4_window(
+            legacy, target, n=1, tf_shift=MULTI_TF_SHIFT["M5"]
+        )
 
 
 def _regime_source_frame(periods: int) -> pd.DataFrame:
@@ -453,7 +483,7 @@ def test_htf_context_owner_overwrites_stale_values_with_causal_prefix() -> None:
     )
 
 
-def test_closed_htf_alignment_observes_m5_decision_close_identically() -> None:
+def test_closed_htf_alignment_matches_active_htf_owner() -> None:
     target = pd.DatetimeIndex(["2026-07-08T12:55:00Z"])
     source = pd.Series(
         [1.0, 2.0],
@@ -461,10 +491,8 @@ def test_closed_htf_alignment_observes_m5_decision_close_identically() -> None:
     )
 
     live = _align_live_last_closed(target, source, pd.Timedelta(hours=1))
-    offline = _align_offline_last_closed(target, source, pd.Timedelta(hours=1))
-
     assert float(live.iloc[0]) == 2.0
-    assert float(offline.iloc[0]) == 2.0
+    assert multi_tf_last_closed_label(target[0], "H1") == source.index[-1]
 
 
 def test_trend_regime_has_no_price_or_neutral_fallback() -> None:
@@ -478,13 +506,14 @@ def test_trend_regime_has_no_price_or_neutral_fallback() -> None:
 
 
 def test_active_regime_call_sites_have_no_environment_selected_surface() -> None:
-    from gx1.execution import v12_ctx_augment_live, v12_state_from_prebuilt
-    from gx1.scripts import add_ctx_cont_columns_to_prebuilt
+    from gx1.execution import v12_ctx_augment_live
+    from gx1.features import htf_features
+    from gx1.scripts import build_entry_exit_m1_enriched_frame_v1
 
     for module in (
+        htf_features,
         v12_ctx_augment_live,
-        v12_state_from_prebuilt,
-        add_ctx_cont_columns_to_prebuilt,
+        build_entry_exit_m1_enriched_frame_v1,
     ):
         source = inspect.getsource(module)
         retired_cross_feature_env = (

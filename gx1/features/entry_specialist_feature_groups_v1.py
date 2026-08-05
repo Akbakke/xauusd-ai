@@ -27,6 +27,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    PRICE_DERIVED_FEATURE_NAMES,
 )
 
 
@@ -99,9 +100,9 @@ MODEL_NATIVE_TRAINING_SPECIALISTS = tuple(SPECIALIST_GROUPS)
 # every emitted name to exactly one specialist and rejects older 6/8 surfaces
 # when explicit family×timeframe routing is requested.
 from gx1.features.htf_features import (  # noqa: E402
-    MULTI_TF_PER_BAR_CANDLESTICK_V3,
     MULTI_TF_PER_BAR_FEATURES_V4,
-    MULTI_TF_PER_BAR_SWING_V3,
+    MULTI_TF_V4_CANDLESTICK_FEATURES,
+    MULTI_TF_V4_SWING_FEATURES,
 )
 from gx1.features.smc_v1 import (  # noqa: E402
     SMC_MTF_FEATURE_NAMES_V1,
@@ -115,7 +116,7 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
     [
         (
             "structure_swing_encoder",
-            tuple(MULTI_TF_PER_BAR_SWING_V3),
+            tuple(MULTI_TF_V4_SWING_FEATURES),
         ),
         (
             "smc_liquidity_encoder",
@@ -173,7 +174,7 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "body_pct",
                 "upper_wick_pct",
                 "lower_wick_pct",
-                *MULTI_TF_PER_BAR_CANDLESTICK_V3,
+                *MULTI_TF_V4_CANDLESTICK_FEATURES,
             ),
         ),
     ]
@@ -621,33 +622,15 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
             },
         ),
         (
-            "mtf_confluence_layer",
-            {
-                "expected_feature_count": 32,
-                "expected_specialist_counts": {
-                    "trend_ema_encoder": 6,
-                    "structure_swing_encoder": 5,
-                    "smc_liquidity_encoder": 6,
-                    "chart_geometry_encoder": 4,
-                    "session_regime_encoder": 11,
-                },
-                "owned_specialists": (
-                    "trend_ema_encoder",
-                    "structure_swing_encoder",
-                    "smc_liquidity_encoder",
-                    "chart_geometry_encoder",
-                    "session_regime_encoder",
-                ),
-                "purpose": "Cross-family MTF confluence and disagreement features that route back to their mechanism owners.",
-            },
-        ),
-        (
             "price_ema50_200_layer",
             {
                 "expected_feature_count": 11,
                 "expected_specialist_counts": {"trend_ema_encoder": 11},
                 "owned_specialists": ("trend_ema_encoder",),
-                "purpose": "Exact M5 EMA50/200 state, crosses, slopes, acceleration and price location.",
+                "purpose": (
+                    "Exact local-resolution EMA50/200 state, crosses, slopes, "
+                    "acceleration and price location; M5 for Entry and M1 for Exit."
+                ),
             },
         ),
     ]
@@ -705,13 +688,6 @@ def specialist_contract_training_allowed_for_mode(mode: str) -> bool:
     return True
 
 
-def smart_family_contract_for_mode(
-    mode: str,
-) -> "OrderedDict[str, dict[str, object]]":
-    require_model_native_specialist_contract_mode(mode)
-    return MODEL_NATIVE_SMART_FAMILY_CONTRACT
-
-
 def _norm(name: str) -> str:
     return str(name or "").strip().lower()
 
@@ -719,6 +695,11 @@ def _norm(name: str) -> str:
 def _contains_any(name: str, tokens: Iterable[str]) -> bool:
     n = _norm(name)
     return any(token in n for token in tokens)
+
+
+_PRICE_DERIVED_TREND_FIELDS = frozenset(
+    _norm(field) for field in PRICE_DERIVED_FEATURE_NAMES
+)
 
 
 def classify_entry_specialist_feature(name: str) -> str:
@@ -742,12 +723,14 @@ def classify_entry_specialist_feature(name: str) -> str:
     if n.startswith("candle.pattern_") or bare.startswith("candle.pattern_"):
         return "price_action_candle_encoder"
 
+    # These eleven fields are one local-resolution EMA formula family.  Route
+    # the exact emitted fields before broad lexical rules: four names contain
+    # ``spread`` as an EMA spread, not execution/session spread evidence.
+    if n in _PRICE_DERIVED_TREND_FIELDS:
+        return "trend_ema_encoder"
+
     if n.startswith("chart.structure_swing_") or bare.startswith("structure_swing_"):
         return "structure_swing_encoder"
-    if bare.startswith(
-        ("m5_ema50_200_", "m5_price_vs_ema", "m5_ema50_", "m5_ema200_")
-    ):
-        return "trend_ema_encoder"
 
     if _contains_any(
         n,

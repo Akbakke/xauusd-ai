@@ -1,18 +1,16 @@
-"""Canonical producer/finalizer for the learned Entry sizing evidence chain.
+"""Canonical offline producer for the learned Entry sizing evidence chain.
 
 No JSON in this chain is intended for hand editing.  The public stages are:
 
-1. capture broker instrument evidence;
-2. fit TRAIN/VAL calibration and publish its immutable event;
-3. bind that calibration into a fresh bundle clone;
-4. materialize canonical TEST/OOS sizing rows and publish a row-recomputed
+1. fit exact VAL-only pre-calibration evidence and publish its immutable event;
+2. bind that calibration into a fresh frozen bundle clone;
+3. materialize canonical runtime-authoritative TEST/OOS sizing rows and publish a row-recomputed
    diagnostic proof;
-5. finalize a full-TEST same-candidate unified-Exit proof from exact row traces;
-6. adopt learned sizing only after that exact joint proof is bound;
-7. finalize post-adoption broker-runtime shadow parity from exact observations.
+4. produce a full-TEST same-candidate/same-bundle Entry M5 plus Exit M1 proof.
 
-Any red/malformed newer event keeps launch fail-closed.  This module never edits
-the launch-state selector and never starts training.
+Broker, instrument capture, serve parity, live source authority, promotion,
+adoption, runtime parity, and caller-supplied compatibility rows are forbidden.
+Any missing or red canonical producer evidence fails closed.
 """
 
 from __future__ import annotations
@@ -20,7 +18,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
 import shutil
 import tempfile
@@ -33,40 +30,32 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from gx1.contracts.entry_model_native_sizing_authority_v1 import (
-    MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION,
-    MODEL_NATIVE_SIZING_MODE_LEARNED,
-    model_native_sizing_bundle_calibration_metadata,
-    require_model_native_sizing_adoption_artifact,
-    require_model_native_sizing_bundle_calibration,
-)
 from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     MODEL_NATIVE_SIZING_CALIBRATION_SCHEMA_VERSION,
     MODEL_NATIVE_SIZING_FIT_SPLITS,
     MODEL_NATIVE_SIZING_FIT_SCOPE,
     MODEL_NATIVE_SIZING_HOLDOUT_SPLIT,
     MODEL_NATIVE_SIZING_MAX_CAPACITY_FRACTION,
-    MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS,
     MODEL_NATIVE_SIZING_MIN_FIT_ROWS_PER_SPLIT,
     MODEL_NATIVE_SIZING_OOS_PROOF_SCHEMA_VERSION,
     MODEL_NATIVE_SIZING_OOS_SOURCE_SCHEMA_VERSION,
     MODEL_NATIVE_SIZING_OOS_SCOPE,
     MODEL_NATIVE_SIZING_TRANSFORM_VERSION,
-    MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE_SCHEMA_VERSION,
     derive_canonical_sizing_oos_rows,
     fit_monotone_sizing_parameters,
     load_bound_sizing_calibration,
     load_bound_sizing_oos_proof,
     load_bound_sizing_oos_source,
+    model_native_sizing_bundle_calibration_metadata,
     recompute_sizing_oos_evidence,
-    require_immutable_json_binding,
     require_sizing_evaluation_bundle,
-    require_sizing_instrument_evidence_artifact,
+    require_model_native_sizing_bundle_calibration,
     require_sizing_prediction_provenance,
     sha256_file,
     sizing_risk_policy_metadata,
     sizing_oos_reference_account_policy_metadata,
     sizing_fit_contract_metadata,
+    sizing_offline_instrument_constraints_metadata,
 )
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT,
@@ -77,18 +66,15 @@ from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION,
     MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT,
     MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS,
-    MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX,
-    MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT,
-    MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION,
     build_canonical_unified_replay_source_inventory,
     candidate_bundle_authority,
     joint_exit_trace_sha256,
     load_bound_joint_exit_sizing_proof,
-    load_bound_runtime_sizing_parity,
     read_bound_parquet_exact,
     recompute_joint_exit_replay_coverage,
+    recompute_unified_replay_net_pnl,
     require_joint_replay_extends_canonical_oos_rows,
-    recompute_runtime_sizing_parity_coverage,
+    unified_replay_net_cost_policy_metadata,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     atomic_write_parquet_immutable,
@@ -111,48 +97,18 @@ from gx1.contracts.entry_model_native_calibration_v1 import (
 )
 
 
-INSTRUMENT_EVIDENCE_SCHEMA_VERSION = (
-    MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE_SCHEMA_VERSION
-)
-INSTRUMENT_EVIDENCE_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE"
 CALIBRATION_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_CALIBRATION"
 OOS_SOURCE_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_SOURCE"
 PROOF_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF"
-ADOPTION_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_ADOPTION"
 JOINT_EXIT_PROOF_PREFIX = MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX
 
-
-RUNTIME_PARITY_PREFIX = MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX
 MIN_FIT_ROWS_PER_SPLIT = MODEL_NATIVE_SIZING_MIN_FIT_ROWS_PER_SPLIT
 _AUTHORITY_STAGE_DIRS = {
-    "instrument": "instrument",
     "calibration": "calibration",
     "oos": "oos",
     "proof": "proof",
     "joint_replay": "joint_replay",
-    "adoption": "adoption",
-    "runtime_parity": "runtime_parity",
 }
-_INSTRUMENT_KEYS = frozenset(
-    {
-        "schema_version",
-        "created_utc",
-        "json_path",
-        "decision",
-        "failures",
-        "instrument",
-        "account_currency",
-        "quote_currency",
-        "trade_units_precision",
-        "minimum_trade_size",
-        "broker_maximum_order_units",
-        "margin_rate",
-        "account_observed_utc",
-        "instrument_observed_utc",
-        "account_last_transaction_id",
-        "instrument_last_transaction_id",
-    }
-)
 
 
 class SizingFinalizationError(RuntimeError):
@@ -392,11 +348,12 @@ def _dataset_split_bindings(
 def _prediction_provenance(
     *,
     predictions_path: Path,
+    predictions_sha256: str,
     prediction_report_path: Path,
     bundle_dir: Path,
     dataset_dir: Path,
     expected_splits: tuple[str, ...],
-    require_runtime_head_evidence: bool,
+    expected_stage: str,
     context: str,
 ) -> tuple[Path, dict[str, Any]]:
     predictions_path = predictions_path.expanduser().resolve()
@@ -406,11 +363,13 @@ def _prediction_provenance(
     try:
         authoritative, report, evidence = resolve_and_validate_prediction_evidence(
             predictions_path,
+            expected_sha256=predictions_sha256,
             prediction_report_path=prediction_report_path,
             bundle_dir=bundle_dir,
             dataset_dir=dataset_dir,
+            expected_stage=expected_stage,
+            expected_splits=expected_splits,
             expected_model="candidate",
-            require_runtime_head_evidence=require_runtime_head_evidence,
         )
     except Exception as exc:
         raise SizingFinalizationError(
@@ -436,7 +395,7 @@ def _prediction_provenance(
         provenance,
         predictions_binding=_source_binding(authoritative),
         expected_splits=expected_splits,
-        require_runtime_head_evidence=require_runtime_head_evidence,
+        expected_stage=expected_stage,
         context=context,
         verify_files=True,
     )
@@ -508,122 +467,26 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
         tmp.unlink(missing_ok=True)
 
 
-@_terminal_event_attempt("instrument", INSTRUMENT_EVIDENCE_PREFIX)
-def capture_oanda_instrument_evidence(
-    *, authority_root: Path, client: Any | None = None
-) -> tuple[Path, dict[str, Any]]:
-    """Capture account-specific OANDA XAU constraints without a hand JSON step."""
-
-    if client is None:
-        from gx1.execution.oanda_client import OandaClient
-
-        client = OandaClient.from_env()
-    account_payload = client.get_account_summary()
-    account_observed = _now()
-    instrument_payload = client.get_account_instruments(["XAU_USD"])
-    instrument_observed = _strictly_after_now(account_observed)
-    account = account_payload.get("account") if isinstance(account_payload, dict) else None
-    rows = (
-        instrument_payload.get("instruments")
-        if isinstance(instrument_payload, dict)
-        else None
-    )
-    matches = [
-        row
-        for row in (rows if isinstance(rows, list) else [])
-        if isinstance(row, dict) and row.get("name") == "XAU_USD"
-    ]
-    if not isinstance(account, dict) or len(matches) != 1:
-        raise SizingFinalizationError("broker account/instrument evidence is incomplete")
-    instrument = matches[0]
-    try:
-        precision = int(instrument["tradeUnitsPrecision"])
-        minimum = int(str(instrument["minimumTradeSize"]))
-        broker_maximum = int(str(instrument["maximumOrderUnits"]))
-        margin_rate = float(instrument["marginRate"])
-        account_currency = str(account["currency"])
-        account_tx = str(account_payload["lastTransactionID"])
-        instrument_tx = str(instrument_payload["lastTransactionID"])
-    except (KeyError, TypeError, ValueError) as exc:
-        raise SizingFinalizationError("broker instrument fields are not exact") from exc
-    if (
-        precision != 0
-        or minimum != 1
-        or broker_maximum < MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS
-        or not math.isfinite(margin_rate)
-        or not 0.0 < margin_rate <= 1.0
-        or account_currency != "USD"
-        or not account_tx
-        or not instrument_tx
-    ):
-        raise SizingFinalizationError("broker XAU constraints fail immutable policy")
-    output_dir = _stage_dir(authority_root, "instrument")
-    created = _monotonic_stage_created_utc(
-        output_dir,
-        INSTRUMENT_EVIDENCE_PREFIX,
-        account_observed,
-        instrument_observed,
-    )
-    payload = {
-        "schema_version": INSTRUMENT_EVIDENCE_SCHEMA_VERSION,
-        "created_utc": created.isoformat(),
-        "decision": "PASS",
-        "failures": [],
-        "instrument": "XAU_USD",
-        "account_currency": account_currency,
-        "quote_currency": "USD",
-        "trade_units_precision": precision,
-        "minimum_trade_size": minimum,
-        "broker_maximum_order_units": broker_maximum,
-        "margin_rate": margin_rate,
-        "account_observed_utc": account_observed.isoformat(),
-        "instrument_observed_utc": instrument_observed.isoformat(),
-        "account_last_transaction_id": account_tx,
-        "instrument_last_transaction_id": instrument_tx,
-    }
-    return write_immutable_json_event(
-        output_dir,
-        INSTRUMENT_EVIDENCE_PREFIX,
-        payload,
-    )
-
-
-def require_instrument_evidence(path: Path) -> dict[str, Any]:
-    path = path.expanduser().resolve()
-    try:
-        payload = require_sizing_instrument_evidence_artifact(
-            path,
-            _sha(path),
-            context="SIZING_FINALIZER_INSTRUMENT",
-            verify_file=True,
-        )
-    except Exception as exc:
-        raise SizingFinalizationError(str(exc)) from exc
-    if payload is None:
-        raise SizingFinalizationError("instrument evidence unexpectedly unavailable")
-    return payload
-
-
 @_terminal_event_attempt("calibration", CALIBRATION_PREFIX)
-def fit_train_val_sizing_calibration(
+def fit_val_sizing_calibration(
     *,
     predictions_path: Path,
+    predictions_sha256: str,
     prediction_report_path: Path,
     bundle_dir: Path,
     dataset_dir: Path,
-    dataset_manifest_path: Path,
-    instrument_evidence_path: Path,
     authority_root: Path,
 ) -> tuple[Path, dict[str, Any]]:
-    """Fit only TRAIN/VAL rows and publish an immutable calibration event."""
+    """Fit exact VAL-only non-authoritative evidence and publish one event."""
 
     predictions_path, fit_provenance = _prediction_provenance(
         predictions_path=predictions_path,
+        predictions_sha256=predictions_sha256,
         prediction_report_path=prediction_report_path,
         bundle_dir=bundle_dir,
         dataset_dir=dataset_dir,
         expected_splits=MODEL_NATIVE_SIZING_FIT_SPLITS,
-        require_runtime_head_evidence=True,
+        expected_stage="pre_calibration",
         context="SIZING_FINALIZER_FIT_PREDICTIONS",
     )
     frame = _read_table(predictions_path)
@@ -641,7 +504,7 @@ def fit_train_val_sizing_calibration(
         frame["model"].astype(str)
     ) != {"candidate"}:
         raise SizingFinalizationError(
-            "fit prediction source must be exact candidate TRAIN+VAL only"
+            "fit prediction source must be exact candidate VAL only"
         )
     selected = frame.loc[
         frame["split"].astype(str).isin(MODEL_NATIVE_SIZING_FIT_SPLITS),
@@ -657,9 +520,9 @@ def fit_train_val_sizing_calibration(
             "fit prediction rows must have unique increasing UTC time"
         )
     counts = selected.groupby("split", observed=True).size().to_dict()
-    if any(int(counts.get(split, 0)) < MIN_FIT_ROWS_PER_SPLIT for split in ("train", "val")):
+    if int(counts.get("val", 0)) < MIN_FIT_ROWS_PER_SPLIT:
         raise SizingFinalizationError(
-            f"TRAIN/VAL calibration support below {MIN_FIT_ROWS_PER_SPLIT}: {counts}"
+            f"VAL calibration support below {MIN_FIT_ROWS_PER_SPLIT}: {counts}"
         )
     logits = pd.to_numeric(selected["position_size_logit"], errors="coerce").to_numpy(float)
     raw_targets = pd.to_numeric(
@@ -672,28 +535,24 @@ def fit_train_val_sizing_calibration(
         raw_targets * MODEL_NATIVE_SIZING_MAX_CAPACITY_FRACTION,
     )
     authority_root = authority_root.expanduser().resolve()
-    _require_stage_path(instrument_evidence_path, authority_root, "instrument")
-    instrument = require_instrument_evidence(instrument_evidence_path)
     output_dir = _stage_dir(authority_root, "calibration")
+    fit_report = _read_json(
+        prediction_report_path,
+        label="VAL pre-calibration prediction report",
+    )
     created = _monotonic_stage_created_utc(
         output_dir,
         CALIBRATION_PREFIX,
-        instrument["created_utc"],
+        fit_report["created_utc"],
     )
-    dataset_manifest_path = dataset_manifest_path.expanduser().resolve()
-    expected_train_manifest = Path(
-        fit_provenance["dataset_split_bindings"]["train"]["manifest_path"]
-    )
-    if dataset_manifest_path != expected_train_manifest:
-        raise SizingFinalizationError(
-            "dataset_manifest must be exact TRAIN manifest from prediction evidence"
-        )
+    dataset_manifest_path = Path(
+        fit_provenance["dataset_split_bindings"]["val"]["manifest_path"]
+    ).resolve()
     model_checkpoint_path = bundle_dir.expanduser().resolve() / "model_state_dict.pt"
     lineage_paths = {
-        "dataset_manifest": dataset_manifest_path.expanduser().resolve(),
+        "dataset_manifest": dataset_manifest_path,
         "fit_predictions": predictions_path,
         "model_checkpoint": model_checkpoint_path,
-        "instrument_evidence": instrument_evidence_path.expanduser().resolve(),
     }
     for label, path in lineage_paths.items():
         if not path.is_file():
@@ -702,20 +561,12 @@ def fit_train_val_sizing_calibration(
         "schema_version": MODEL_NATIVE_SIZING_CALIBRATION_SCHEMA_VERSION,
         "created_utc": created.isoformat(),
         "fit_scope": MODEL_NATIVE_SIZING_FIT_SCOPE,
-        "fit_splits": ["train", "val"],
+        "fit_splits": list(MODEL_NATIVE_SIZING_FIT_SPLITS),
         "holdout_split": MODEL_NATIVE_SIZING_HOLDOUT_SPLIT,
         "source_head": "position_size_logit",
         "transform_version": MODEL_NATIVE_SIZING_TRANSFORM_VERSION,
         "monotonic_direction": "non_decreasing",
-        "instrument_constraints": {
-            "instrument": "XAU_USD",
-            "account_currency": "USD",
-            "quote_currency": "USD",
-            "unit_step": 1,
-            "minimum_order_units": int(instrument["minimum_trade_size"]),
-            "maximum_gross_xau_units": MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS,
-            "margin_rate": float(instrument["margin_rate"]),
-        },
+        "instrument_constraints": sizing_offline_instrument_constraints_metadata(),
         "parameters": parameters,
         "fit_contract": sizing_fit_contract_metadata(),
         "fit_prediction_provenance": fit_provenance,
@@ -766,7 +617,7 @@ def bind_bundle_sizing_calibration(
     )
     if Path(calibration["fit_prediction_provenance"]["bundle_dir"]).resolve() != source_bundle_dir:
         raise SizingFinalizationError(
-            "source bundle differs from canonical TRAIN/VAL fit provenance"
+            "source bundle differs from canonical VAL fit provenance"
         )
     source_state = source_bundle_dir / "model_state_dict.pt"
     source_metadata = source_bundle_dir / "bundle_metadata.json"
@@ -940,11 +791,11 @@ def materialize_test_sizing_oos_source(
     *,
     calibration_path: Path,
     test_predictions_path: Path,
+    test_predictions_sha256: str,
     test_prediction_report_path: Path,
     bundle_dir: Path,
     dataset_dir: Path,
     source_tape_path: Path,
-    model_head_serve_parity_path: Path,
     authority_root: Path,
 ) -> tuple[Path, dict[str, Any]]:
     """Publish the sole canonical full-TEST sizing row source."""
@@ -960,11 +811,12 @@ def materialize_test_sizing_oos_source(
     )
     predictions_path, provenance = _prediction_provenance(
         predictions_path=test_predictions_path,
+        predictions_sha256=test_predictions_sha256,
         prediction_report_path=test_prediction_report_path,
         bundle_dir=bundle_dir,
         dataset_dir=dataset_dir,
         expected_splits=("test",),
-        require_runtime_head_evidence=True,
+        expected_stage="runtime_authoritative",
         context="SIZING_FINALIZER_OOS_PREDICTIONS",
     )
     prediction_binding = _source_binding(predictions_path)
@@ -979,16 +831,12 @@ def materialize_test_sizing_oos_source(
         "dataset_test_manifest_path": test_manifest["manifest_path"],
         "dataset_test_manifest_sha256": test_manifest["manifest_sha256"],
     }
-    model_head_serve_parity = _binding(
-        model_head_serve_parity_path.expanduser().resolve()
-    )
     rows = derive_canonical_sizing_oos_rows(
         calibration=calibration,
         test_predictions_binding=prediction_binding,
         test_prediction_provenance=provenance,
         evaluation_bundle=evaluation,
         source_tape=source_tape,
-        model_head_serve_parity_artifact=model_head_serve_parity,
         context="SIZING_FINALIZER_OOS_DERIVE",
     )
     output_dir = _stage_dir(authority_root, "oos")
@@ -1011,7 +859,6 @@ def materialize_test_sizing_oos_source(
         "test_prediction_provenance": provenance,
         "evaluation_bundle": evaluation,
         "source_tape": source_tape,
-        "model_head_serve_parity_artifact": model_head_serve_parity,
         "reference_account_policy": sizing_oos_reference_account_policy_metadata(),
         "source_bindings": source_bindings,
     }
@@ -1065,6 +912,18 @@ def finalize_test_sizing_proof(
         "drawdown_bounds",
         "paired_oos_utility",
         "account_capacity_grid",
+        "direction_edge_policy",
+        "direction_edge_admission",
+        "direction_invariance",
+    )
+    pass_sections = (
+        "position_size_head_liveness",
+        "monotonicity",
+        "exposure_bounds",
+        "drawdown_bounds",
+        "paired_oos_utility",
+        "account_capacity_grid",
+        "direction_edge_admission",
         "direction_invariance",
     )
     failures: list[str] = []
@@ -1077,7 +936,7 @@ def finalize_test_sizing_proof(
         )
         failures.extend(
             name
-            for name in sections[1:]
+            for name in pass_sections
             if recomputed[name].get("decision") != "PASS"
         )
     except Exception as exc:
@@ -1136,7 +995,7 @@ def _finalize_joint_exit_sizing_proof(
     replay_rows_path: Path,
     exit_trace_rows_path: Path,
     authority_root: Path,
-    canonical_producer_evidence: dict[str, Any] | None,
+    canonical_producer_evidence: dict[str, Any],
 ) -> tuple[Path, dict[str, Any]]:
     """Publish row-recomputed sizing evidence from the exact candidate bundle.
 
@@ -1145,6 +1004,11 @@ def _finalize_joint_exit_sizing_proof(
     parquets. The OOS proof's immutable candidate bundle binds both Entry and
     the unified HOLD/EXIT_NOW head before any activation is possible.
     """
+
+    if not isinstance(canonical_producer_evidence, dict):
+        raise SizingFinalizationError(
+            "canonical unified replay producer evidence is required"
+        )
 
     calibration, calibration_binding = load_bound_sizing_calibration(
         _binding(calibration_path),
@@ -1202,6 +1066,14 @@ def _finalize_joint_exit_sizing_proof(
         candidate_bundle_sha256=bundle_authority["bundle_commit_sha256"],
         context="SIZING_JOINT_EXIT_COVERAGE",
     )
+    net_pnl = recompute_unified_replay_net_pnl(
+        replay_rows,
+        context="SIZING_JOINT_EXIT_NET_PNL",
+    )
+    if net_pnl["decision"] != "PASS":
+        raise SizingFinalizationError(
+            "joint unified replay net PnL is not strictly positive after declared costs"
+        )
     recomputed = recompute_sizing_oos_evidence(
         calibration=calibration,
         source_bindings={"oos_rows": replay_binding},
@@ -1211,8 +1083,18 @@ def _finalize_joint_exit_sizing_proof(
         extra_row_columns=MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS,
         outcome_price_mode="model_exit_fill",
     )
-    for name, section in recomputed.items():
-        if name != "full_test_coverage" and (
+    for name in (
+        "position_size_head_liveness",
+        "monotonicity",
+        "exposure_bounds",
+        "drawdown_bounds",
+        "paired_oos_utility",
+        "account_capacity_grid",
+        "direction_edge_admission",
+        "direction_invariance",
+    ):
+        section = recomputed[name]
+        if (
             not isinstance(section, dict) or section.get("decision") != "PASS"
         ):
             raise SizingFinalizationError(
@@ -1241,6 +1123,8 @@ def _finalize_joint_exit_sizing_proof(
         "replay_rows": replay_binding,
         "exit_trace_rows": exit_trace_binding,
         "exit_replay_coverage": coverage,
+        "net_pnl_cost_policy": unified_replay_net_cost_policy_metadata(),
+        "net_pnl_admission": net_pnl,
         **recomputed,
     }
     event_path, event = write_immutable_json_event(
@@ -1257,31 +1141,6 @@ def _finalize_joint_exit_sizing_proof(
 
 
 @_terminal_event_attempt("joint_replay", JOINT_EXIT_PROOF_PREFIX)
-def finalize_joint_exit_sizing_proof(
-    *,
-    calibration_path: Path,
-    proof_path: Path,
-    replay_rows_path: Path,
-    exit_trace_rows_path: Path,
-    authority_root: Path,
-) -> tuple[Path, dict[str, Any]]:
-    """Validate caller rows as diagnostic-only joint Exit evidence.
-
-    This retained compatibility route can never populate canonical producer
-    evidence and therefore has zero launch authority.
-    """
-
-    return _finalize_joint_exit_sizing_proof(
-        calibration_path=calibration_path,
-        proof_path=proof_path,
-        replay_rows_path=replay_rows_path,
-        exit_trace_rows_path=exit_trace_rows_path,
-        authority_root=authority_root,
-        canonical_producer_evidence=None,
-    )
-
-
-@_terminal_event_attempt("joint_replay", JOINT_EXIT_PROOF_PREFIX)
 def produce_canonical_unified_joint_sizing_proof(
     *,
     calibration_path: Path,
@@ -1289,6 +1148,7 @@ def produce_canonical_unified_joint_sizing_proof(
     source_tape_path: Path,
     prebuilt_pair_manifest_path: Path,
     prebuilt_generation_root: Path,
+    multi_tf_cache_dir: Path,
     train_rank_reference_npz: Path,
     train_rank_reference_sha256: str,
     authority_root: Path,
@@ -1297,7 +1157,7 @@ def produce_canonical_unified_joint_sizing_proof(
     """Produce exact full-TEST Entry/Exit replay from one candidate bundle.
 
     Direction is replayed from the persisted model head envelope. Every
-    non-FLAT row then advances the production TradeState one complete M1 bar at
+    non-FLAT row then advances the offline path state one complete M1 bar at
     a time and calls the same bundle's ``forward_exit_action`` path until the
     model itself emits EXIT_NOW. Missing bars, 512-bar non-exits, byte drift,
     direction mismatch, or a noncanonical lineage artifact fail closed.
@@ -1310,19 +1170,35 @@ def produce_canonical_unified_joint_sizing_proof(
         load_train_rank_reference_v2,
         train_rank_reference_identity_v2,
     )
-    from gx1.execution.model_native_entry_replay_v1 import SourceTape
-    from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference
+    from gx1.replay.source_tape_v1 import SourceTape
+    from gx1.execution.v12_m1_feature_surface_provider import (
+        M1SharedFeatureSurfaceProvider,
+    )
     from gx1.execution.v12_state_from_prebuilt import (
         read_prebuilt_pair_manifest,
         verify_prebuilt_pair,
     )
-    from gx1.execution.v12_trade_state import (
-        TradeState,
+    from gx1.replay.unified_exit_path_state_v1 import (
+        UnifiedExitPathState,
         first_full_closed_m1_bar_ts,
     )
     from gx1.models.entry_v10.direction_decision_contract import (
+        UNIFIED_EXIT_ACTION_ORDER,
         UNIFIED_EXIT_MAX_PATH_BARS,
+        canonical_unified_evidence_sha256,
+        require_unified_exit_output,
+        unified_exit_path_tensor,
     )
+    from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+    from gx1.features.htf_features import (
+        get_model_native_multi_tf_route_windows,
+        load_multi_tf_v4_cache,
+    )
+    from gx1.contracts.entry_exit_feature_base_v1 import (
+        EXIT_DECISION_BAR_SECONDS,
+        EXIT_MTF_CONTEXT_TIMEFRAMES,
+    )
+    import torch
 
     for label, path in (
         ("calibration", calibration_path),
@@ -1377,11 +1253,13 @@ def produce_canonical_unified_joint_sizing_proof(
     runtime_predictions_path, prediction_report, declaration = (
         resolve_and_validate_prediction_evidence(
             Path(oos_source["test_predictions"]["path"]),
+            expected_sha256=oos_source["test_predictions"]["sha256"],
             prediction_report_path=Path(report_binding["json_path"]),
             bundle_dir=Path(str(provenance["bundle_dir"])),
             dataset_dir=Path(str(provenance["dataset_dir"])),
+            expected_stage="runtime_authoritative",
+            expected_splits=("test",),
             expected_model="candidate",
-            require_runtime_head_evidence=True,
         )
     )
     if (
@@ -1395,44 +1273,40 @@ def produce_canonical_unified_joint_sizing_proof(
             "runtime prediction evidence differs from the OOS proof"
         )
 
-    serve_parity_binding = require_immutable_json_binding(
-        oos_source["model_head_serve_parity_artifact"],
-        event_prefix="MODEL_NATIVE_SERVE_PARITY",
-        context="UNIFIED_REPLAY_SERVE_PARITY",
-        verify_file=True,
-    )
-    try:
-        serve_parity = json.loads(
-            Path(serve_parity_binding["json_path"]).read_text(encoding="utf-8")
-        )
-    except Exception as exc:
-        raise SizingFinalizationError(
-            "model-head TRAIN==SERVE parity event is unreadable"
-        ) from exc
-    if (
-        serve_parity.get("decision") != "PASS"
-        or serve_parity.get("failures") != []
-        or serve_parity.get("bundle_dir") != provenance["bundle_dir"]
-        or serve_parity.get("dataset_dir") != provenance["dataset_dir"]
-    ):
-        raise SizingFinalizationError(
-            "model-head TRAIN==SERVE parity does not bind the OOS candidate"
-        )
-    operating_point = serve_parity.get("operating_point")
-    adapter = SmartEntryLiveInference.load_candidate_for_parity(
-        bundle_dir=Path(str(provenance["bundle_dir"])),
-        operating_point=operating_point,
+    candidate_bundle_dir = Path(str(provenance["bundle_dir"]))
+    bundle = load_entry_v10_ctx_bundle(
+        bundle_dir=candidate_bundle_dir,
         device=device,
     )
+    model = bundle.transformer_model.eval()
     bundle_authority = candidate_bundle_authority(
-        bundle_dir=Path(str(provenance["bundle_dir"])),
+        bundle_dir=candidate_bundle_dir,
         evaluation_bundle=proof["evaluation_bundle"],
         context="UNIFIED_REPLAY_CANDIDATE_BUNDLE",
     )
-    if adapter._bundle_sha256 != bundle_authority["bundle_commit_sha256"]:
+    if bundle.bundle_sha256 != bundle_authority["bundle_commit_sha256"]:
         raise SizingFinalizationError(
-            "live adapter loaded different candidate bundle bytes"
+            "offline replay loaded different candidate bundle bytes"
         )
+    mtf_cache = load_multi_tf_v4_cache(Path(multi_tf_cache_dir))
+    mtf_meta = bundle.metadata["multi_tf"]
+    if (
+        getattr(mtf_cache, "cache_identity_sha256", None)
+        != mtf_meta["shared_cache_identity_sha256"]
+        or getattr(mtf_cache, "manifest_sha256", None)
+        != mtf_meta["shared_cache_manifest_sha256"]
+    ):
+        raise SizingFinalizationError(
+            "shared V4 cache differs from the candidate bundle binding"
+        )
+    per_tf_seq_lens = {
+        "M5": int(mtf_meta["m5_seq_len"]),
+        "M15": int(mtf_meta["m15_seq_len"]),
+        "H1": int(mtf_meta["h1_seq_len"]),
+        "H4": int(mtf_meta["h4_seq_len"]),
+        "D1": int(mtf_meta["d1_seq_len"]),
+    }
+    replay_device = torch.device(device)
 
     pair_root = Path(prebuilt_generation_root).expanduser().resolve()
     pair_binding = read_prebuilt_pair_manifest(
@@ -1466,7 +1340,7 @@ def produce_canonical_unified_joint_sizing_proof(
         expected_sha256=train_rank_reference_sha256,
     )
     train_rank_reference = train_rank_reference_identity_v2(rank_reference)
-    state_contract = adapter._meta["model_native_state_contract"]
+    state_contract = bundle.metadata["model_native_state_contract"]
     if (
         str(Path(state_contract["rank_reference_npz"]).resolve())
         != train_rank_reference["path"]
@@ -1482,7 +1356,7 @@ def produce_canonical_unified_joint_sizing_proof(
         raise SizingFinalizationError(
             "train-rank reference differs from candidate bundle state contract"
         )
-    lifecycle = adapter._meta["unified_exit_training_evidence"]["lifecycle"]
+    lifecycle = bundle.metadata["unified_exit_training_evidence"]["lifecycle"]
     lifecycle_m1 = lifecycle["m1_authority"]
     if (
         lifecycle_m1["pair_manifest_path"]
@@ -1499,7 +1373,7 @@ def produce_canonical_unified_joint_sizing_proof(
         raise SizingFinalizationError(
             "candidate lifecycle M1/pair authority differs from replay lineage"
         )
-    m1_binding = adapter._meta.get("m1_feature_surface_binding")
+    m1_binding = bundle.metadata.get("m1_feature_surface_binding")
     if not isinstance(m1_binding, dict):
         raise SizingFinalizationError(
             "candidate bundle lacks exact M1 feature-surface binding"
@@ -1511,13 +1385,14 @@ def produce_canonical_unified_joint_sizing_proof(
         raise SizingFinalizationError(
             "candidate M1 feature surface differs from replay pair"
         )
-    adapter.bind_admitted_m1_feature_surface(
+    m1_feature_provider = M1SharedFeatureSurfaceProvider.from_admitted_artifact(
         parquet_path=Path(str(m1_binding["parquet_path"])),
         manifest_path=Path(str(m1_binding["manifest_path"])),
         dataset_run_id=str(m1_binding["dataset_run_id"]),
         pair_generation_id=str(m1_binding["pair_generation_id"]),
         parquet_sha256=str(m1_binding["parquet_sha256"]),
         manifest_sha256=str(m1_binding["manifest_sha256"]),
+        feature_field_order=list(bundle.metadata["ordered_signal_names"]),
         feature_field_order_sha256=str(
             m1_binding["feature_field_order_sha256"]
         ),
@@ -1585,10 +1460,9 @@ def produce_canonical_unified_joint_sizing_proof(
             prediction_row["runtime_head_evidence_sha256"],
             context=f"UNIFIED_REPLAY_HEAD_{row_index}",
         )
-        direction = adapter.decide_direction(head)
         expected_direction = int(oos_row["model_direction_index"])
         if (
-            int(direction["model_direction_index"]) != expected_direction
+            int(head["model_direction_index"]) != expected_direction
             or int(prediction_row["pred_direction"]) != expected_direction
             or float(prediction_row["position_size_logit"])
             != float(oos_row["position_size_logit"])
@@ -1623,13 +1497,13 @@ def produce_canonical_unified_joint_sizing_proof(
                 f"Entry fill quote differs from OOS row {row_index}"
             )
         side = "long" if expected_direction == 0 else "short"
-        state = TradeState.open_unit_normalized_research(
+        state = UnifiedExitPathState.open_unit_normalized_research(
             entry_ts=entry_fill_time,
             side=side,
             entry_bid=float(quote["bid"]),
             entry_ask=float(quote["ask"]),
             v10_snapshot=head,
-            trade_id=str(oos_row["reference_row_id"]),
+            replay_id=str(oos_row["reference_row_id"]),
             normalization_contract="unit_normalized_direction_exit_research_v1",
         )
         first_bar_time = first_full_closed_m1_bar_ts(entry_fill_time)
@@ -1653,17 +1527,115 @@ def produce_canonical_unified_joint_sizing_proof(
             staged = state.clone_for_exit_decision()
             staged.update_bar(**closed_bar)
             envelope = staged.build_closed_m1_path_evidence()
-            exit_feature_surface = adapter.build_exit_feature_surface(
+            exit_feature_surface = m1_feature_provider(
                 decision_time=closed_bar_time,
                 prebuilt_snapshot=replay_pair_snapshot,
             )
-            exit_decision = adapter.decide_exit(
-                entry_snapshot=head,
-                exit_path_envelope=envelope,
-                exit_feature_surface=exit_feature_surface,
+            exit_mtf_windows = get_model_native_multi_tf_route_windows(
+                mtf_cache,
+                decision_bar_start=closed_bar_time,
+                per_tf_seq_lens=per_tf_seq_lens,
+                route_timeframes=EXIT_MTF_CONTEXT_TIMEFRAMES,
+                base_bar_duration=pd.Timedelta(
+                    seconds=EXIT_DECISION_BAR_SECONDS
+                ),
+            )
+            entry_representation = np.asarray(
+                head["entry_shared_representation"],
+                dtype=np.float32,
+            )
+            path_values = unified_exit_path_tensor(
+                path_rows=envelope["path_rows"],
                 entry_bid=state.entry_bid,
                 entry_ask=state.entry_ask,
-                side=state.side,
+            )
+            side_index = 0 if state.side == "long" else 1
+            with torch.no_grad():
+                model_output = model.forward_exit_action(
+                    entry_shared_representation=torch.from_numpy(
+                        entry_representation
+                    ).view(1, -1).to(replay_device),
+                    exit_feature_seq_x=torch.from_numpy(
+                        exit_feature_surface["signal"]
+                    ).unsqueeze(0).to(replay_device),
+                    exit_feature_snap_x=torch.from_numpy(
+                        exit_feature_surface["snap"]
+                    ).unsqueeze(0).to(replay_device),
+                    exit_feature_ctx_cat=torch.from_numpy(
+                        exit_feature_surface["ctx_cat"]
+                    ).unsqueeze(0).to(replay_device),
+                    exit_feature_ctx_cont=torch.from_numpy(
+                        exit_feature_surface["ctx_cont"]
+                    ).unsqueeze(0).to(replay_device),
+                    **{
+                        f"exit_seq_{tf.lower()}": torch.from_numpy(values)
+                        .unsqueeze(0)
+                        .to(replay_device)
+                        for tf, values in exit_mtf_windows.items()
+                    },
+                    exit_path_x=torch.from_numpy(path_values)
+                    .unsqueeze(0)
+                    .to(replay_device),
+                    exit_path_lengths=torch.tensor(
+                        [len(path_values)],
+                        dtype=torch.int64,
+                        device=replay_device,
+                    ),
+                    exit_side_index=torch.tensor(
+                        [side_index],
+                        dtype=torch.int64,
+                        device=replay_device,
+                    ),
+                )
+            logits_tensor = model_output.get("exit_action_logits")
+            probs_tensor = model_output.get("exit_action_probs")
+            if (
+                not isinstance(logits_tensor, torch.Tensor)
+                or tuple(logits_tensor.shape) != (1, 2)
+                or not isinstance(probs_tensor, torch.Tensor)
+                or tuple(probs_tensor.shape) != (1, 2)
+                or not bool(torch.isfinite(logits_tensor).all().item())
+                or not bool(torch.isfinite(probs_tensor).all().item())
+            ):
+                raise SizingFinalizationError(
+                    f"unified Exit output is invalid at row {row_index} step {step}"
+                )
+            logits = logits_tensor[0].detach().cpu().to(torch.float64).numpy()
+            model_probs = probs_tensor[0].detach().cpu().to(torch.float64).numpy()
+            if float(logits[0]) == float(logits[1]):
+                raise SizingFinalizationError(
+                    f"unified Exit logits tie at row {row_index} step {step}"
+                )
+            shifted = logits - float(np.max(logits))
+            probabilities = np.exp(shifted) / float(np.exp(shifted).sum())
+            if not np.allclose(model_probs, probabilities, rtol=0.0, atol=1e-6):
+                raise SizingFinalizationError(
+                    f"unified Exit probabilities drift at row {row_index} step {step}"
+                )
+            action_index = int(np.argmax(logits))
+            exit_decision = {
+                "exit_action_logits": logits.tolist(),
+                "exit_action_probs": probabilities.tolist(),
+                "exit_action_index": action_index,
+                "action": UNIFIED_EXIT_ACTION_ORDER[action_index],
+                "decision_source": "unified_model",
+                "bundle_sha256": bundle_authority["bundle_commit_sha256"],
+                "entry_snapshot_sha256": canonical_unified_evidence_sha256(head),
+                "exit_path_envelope_sha256": canonical_unified_evidence_sha256(
+                    envelope
+                ),
+            }
+            exit_decision["output_evidence_sha256"] = (
+                canonical_unified_evidence_sha256(exit_decision)
+            )
+            exit_decision = require_unified_exit_output(
+                exit_decision,
+                context="OFFLINE_UNIFIED_EXIT_REPLAY",
+                expected_bundle_sha256=bundle_authority[
+                    "bundle_commit_sha256"
+                ],
+                entry_snapshot=head,
+                exit_path_envelope=envelope,
             )
             staged.bind_unified_exit_decision(
                 exit_decision,
@@ -1671,7 +1643,12 @@ def produce_canonical_unified_joint_sizing_proof(
                     "bundle_commit_sha256"
                 ],
             )
-            state.commit_complete_exit_bar(staged)
+            state.commit_complete_exit_bar(
+                staged,
+                expected_bundle_sha256=bundle_authority[
+                    "bundle_commit_sha256"
+                ],
+            )
             model_fill_time = closed_bar_time + pd.Timedelta(minutes=1)
             row_trace.append(
                 {
@@ -1823,241 +1800,15 @@ def produce_canonical_unified_joint_sizing_proof(
     )
 
 
-@_terminal_event_attempt("adoption", ADOPTION_PREFIX)
-def adopt_learned_sizing(
-    *,
-    bundle_dir: Path,
-    calibration_path: Path,
-    proof_path: Path,
-    joint_exit_proof_path: Path,
-    authority_root: Path,
-    entry_run_id: str,
-) -> tuple[Path, dict[str, Any]]:
-    """Adopt learned sizing after exact OOS and joint unified-Exit proofs.
-
-    This does not authorize paper/live capital.  The launch artifact guard still
-    requires a separate, newer post-adoption broker runtime-parity event.
-    """
-
-    from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-
-    entry_run_id = require_entry_run_id(entry_run_id)
-    if not joint_exit_proof_path.expanduser().resolve().is_file():
-        raise SizingFinalizationError(
-            "joint unified-Exit sizing proof is required before adoption"
-        )
-    bundle_dir = bundle_dir.expanduser().resolve()
-    metadata_path = bundle_dir / "bundle_metadata.json"
-    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
-    state_path = bundle_dir / "model_state_dict.pt"
-    for path in (metadata_path, lock_path, state_path):
-        if not path.is_file() or path.is_symlink():
-            raise SizingFinalizationError(f"adopted bundle artifact missing: {path}")
-    calibration, calibration_binding = load_bound_sizing_calibration(
-        _binding(calibration_path),
-        context="SIZING_ADOPTION_CALIBRATION",
-        verify_lineage_files=True,
-    )
-    proof, proof_binding = load_bound_sizing_oos_proof(
-        _binding(proof_path),
-        calibration=calibration,
-        calibration_artifact_sha256=calibration_binding["sha256"],
-        context="SIZING_ADOPTION_OOS_PROOF",
-        verify_source_files=True,
-    )
-    joint_proof, joint_binding = load_bound_joint_exit_sizing_proof(
-        _binding(joint_exit_proof_path),
-        context="SIZING_ADOPTION_JOINT_EXIT_PROOF",
-        verify_source_files=True,
-    )
-    if (
-        joint_proof["calibration_artifact"] != calibration_binding
-        or joint_proof["oos_proof_artifact"] != proof_binding
-    ):
-        raise SizingFinalizationError(
-            "joint unified-Exit proof differs from the adopted sizing chain"
-        )
-    _require_stage_path(
-        Path(calibration_binding["json_path"]), authority_root, "calibration"
-    )
-    _require_stage_path(Path(proof_binding["json_path"]), authority_root, "proof")
-    _require_stage_path(
-        Path(joint_binding["json_path"]), authority_root, "joint_replay"
-    )
-    evaluation_bundle = proof["evaluation_bundle"]
-    expected_bundle = {
-        "bundle_dir": str(bundle_dir),
-        "bundle_metadata_path": str(metadata_path),
-        "bundle_metadata_sha256": _sha(metadata_path),
-        "master_transformer_lock_path": str(lock_path),
-        "master_transformer_lock_sha256": _sha(lock_path),
-        "model_state_dict_path": str(state_path),
-        "model_state_dict_sha256": _sha(state_path),
-    }
-    if evaluation_bundle != expected_bundle:
-        raise SizingFinalizationError(
-            "OOS/joint proof bundle differs from proposed adoption bundle"
-        )
-    expected_declaration = model_native_sizing_bundle_calibration_metadata(
-        calibration_artifact=calibration_binding
-    )
-    for label, path in (("metadata", metadata_path), ("lock", lock_path)):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        if require_model_native_sizing_bundle_calibration(
-            payload.get("model_native_sizing_calibration"),
-            context=f"SIZING_ADOPTION_{label.upper()}",
-        ) != expected_declaration:
-            raise SizingFinalizationError(
-                f"bundle {label} sizing calibration differs from adoption"
-            )
-    output_dir = _stage_dir(authority_root, "adoption")
-    created = _monotonic_stage_created_utc(
-        output_dir,
-        ADOPTION_PREFIX,
-        joint_proof["created_utc"],
-    )
-    payload = {
-        "schema_version": MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION,
-        "created_utc": created.isoformat(),
-        "decision": "PASS",
-        "failures": [],
-        "adoption_mode": MODEL_NATIVE_SIZING_MODE_LEARNED,
-        "authority_root": str(authority_root.expanduser().resolve()),
-        **expected_bundle,
-        "calibration_artifact": calibration_binding,
-        "oos_proof_artifact": proof_binding,
-        "joint_exit_sizing_proof_artifact": joint_binding,
-        "risk_policy": sizing_risk_policy_metadata(),
-        "runtime_constraint_authority": (
-            "exact_broker_account_instrument_exposure_facts_with_transaction_ids"
-        ),
-        "direction_authority": "none",
-        "fixed_1x_fallback_allowed": False,
-        "entry_run_id": entry_run_id,
-    }
-    event_path, event = write_immutable_json_event(
-        output_dir,
-        ADOPTION_PREFIX,
-        payload,
-    )
-    require_model_native_sizing_adoption_artifact(
-        event,
-        context="SIZING_ADOPTION_SELF_VALIDATION",
-    )
-    return event_path, event
-
-
-@_terminal_event_attempt("runtime_parity", RUNTIME_PARITY_PREFIX)
-def finalize_runtime_sizing_parity(
-    *,
-    adoption_path: Path,
-    observations_path: Path,
-    authority_root: Path,
-) -> tuple[Path, dict[str, Any]]:
-    """Publish fresh broker-live shadow parity after learned sizing adoption."""
-
-    adoption_path = adoption_path.expanduser().resolve()
-    adoption_binding = _binding(adoption_path)
-    try:
-        adoption = json.loads(adoption_path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        raise SizingFinalizationError("sizing adoption is unreadable") from exc
-    require_model_native_sizing_adoption_artifact(
-        adoption,
-        context="SIZING_RUNTIME_PARITY_ADOPTION",
-    )
-    if Path(adoption["json_path"]).resolve() != adoption_path:
-        raise SizingFinalizationError("sizing adoption self-reference mismatch")
-    _require_stage_path(adoption_path, authority_root, "adoption")
-    calibration, calibration_binding = load_bound_sizing_calibration(
-        adoption["calibration_artifact"],
-        context="SIZING_RUNTIME_PARITY_CALIBRATION",
-        verify_lineage_files=True,
-    )
-    if calibration_binding != adoption["calibration_artifact"]:
-        raise SizingFinalizationError("runtime parity calibration binding mismatch")
-    observations_path, observations_binding = _canonical_immutable_parquet_binding(
-        observations_path,
-        context="runtime sizing observations",
-    )
-    observations = read_bound_parquet_exact(
-        observations_binding,
-        context="SIZING_RUNTIME_PARITY_OBSERVATIONS_EXACT",
-    )
-    if "time" not in observations:
-        raise SizingFinalizationError("runtime sizing observations lack time")
-    observation_times = pd.to_datetime(
-        observations["time"], utc=True, errors="coerce"
-    )
-    if len(observations) == 0 or observation_times.isna().any():
-        raise SizingFinalizationError("runtime sizing observations lack exact UTC rows")
-    output_dir = _stage_dir(authority_root, "runtime_parity")
-    created = _monotonic_stage_created_utc(
-        output_dir,
-        RUNTIME_PARITY_PREFIX,
-        adoption["created_utc"],
-        observation_times.max(),
-    )
-    coverage = recompute_runtime_sizing_parity_coverage(
-        observations,
-        calibration=calibration,
-        adoption=adoption,
-        adoption_sha256=adoption_binding["sha256"],
-        event_created_utc=created,
-        context="SIZING_RUNTIME_PARITY_RECOMPUTE",
-    )
-    bundle_identity = {
-        key: adoption[key]
-        for key in (
-            "bundle_dir",
-            "bundle_metadata_path",
-            "bundle_metadata_sha256",
-            "master_transformer_lock_path",
-            "master_transformer_lock_sha256",
-            "model_state_dict_path",
-            "model_state_dict_sha256",
-        )
-    }
-    payload = {
-        "schema_version": MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION,
-        "created_utc": created.isoformat(),
-        "decision": "PASS",
-        "failures": [],
-        "parity_contract": MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT,
-        "adoption_artifact": adoption_binding,
-        "bundle_identity": bundle_identity,
-        "observations": observations_binding,
-        "coverage": coverage,
-    }
-    event_path, event = write_immutable_json_event(
-        output_dir,
-        RUNTIME_PARITY_PREFIX,
-        payload,
-    )
-    load_bound_runtime_sizing_parity(
-        _binding(event_path),
-        adoption=adoption,
-        calibration=calibration,
-        adoption_artifact=adoption_binding,
-        context="SIZING_RUNTIME_PARITY_SELF_VALIDATION",
-        verify_source_files=True,
-        now_utc=created,
-    )
-    return event_path, event
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    capture = sub.add_parser("capture-instrument")
-    capture.add_argument("--authority-root", type=Path, required=True)
     fit = sub.add_parser("fit-calibration")
     fit.add_argument("--predictions", type=Path, required=True)
+    fit.add_argument("--predictions-sha256", required=True)
     fit.add_argument("--prediction-report", type=Path, required=True)
     fit.add_argument("--bundle-dir", type=Path, required=True)
     fit.add_argument("--dataset-dir", type=Path, required=True)
-    fit.add_argument("--dataset-manifest", type=Path, required=True)
-    fit.add_argument("--instrument-evidence", type=Path, required=True)
     fit.add_argument("--authority-root", type=Path, required=True)
     bind = sub.add_parser("bind-bundle")
     bind.add_argument("--source-bundle-dir", type=Path, required=True)
@@ -2066,64 +1817,42 @@ def _parser() -> argparse.ArgumentParser:
     oos = sub.add_parser("materialize-test-oos")
     oos.add_argument("--calibration", type=Path, required=True)
     oos.add_argument("--test-predictions", type=Path, required=True)
+    oos.add_argument("--test-predictions-sha256", required=True)
     oos.add_argument("--test-prediction-report", type=Path, required=True)
     oos.add_argument("--bundle-dir", type=Path, required=True)
     oos.add_argument("--dataset-dir", type=Path, required=True)
     oos.add_argument("--source-tape", type=Path, required=True)
-    oos.add_argument("--model-head-serve-parity", type=Path, required=True)
     oos.add_argument("--authority-root", type=Path, required=True)
     proof = sub.add_parser("finalize-test-proof")
     proof.add_argument("--calibration", type=Path, required=True)
     proof.add_argument("--oos-source", type=Path, required=True)
     proof.add_argument("--authority-root", type=Path, required=True)
-    joint = sub.add_parser("finalize-joint-exit-proof")
-    joint.add_argument("--calibration", type=Path, required=True)
-    joint.add_argument("--proof", type=Path, required=True)
-    joint.add_argument("--replay-rows", type=Path, required=True)
-    joint.add_argument("--exit-trace-rows", type=Path, required=True)
-    joint.add_argument("--authority-root", type=Path, required=True)
     unified = sub.add_parser("produce-unified-joint-exit-proof")
     unified.add_argument("--calibration", type=Path, required=True)
     unified.add_argument("--proof", type=Path, required=True)
     unified.add_argument("--source-tape", type=Path, required=True)
     unified.add_argument("--prebuilt-pair-manifest", type=Path, required=True)
     unified.add_argument("--prebuilt-generation-root", type=Path, required=True)
+    unified.add_argument("--multi-tf-cache-dir", type=Path, required=True)
     unified.add_argument("--train-rank-reference-npz", type=Path, required=True)
     unified.add_argument("--train-rank-reference-sha256", required=True)
     unified.add_argument("--authority-root", type=Path, required=True)
     unified.add_argument("--device", default="cpu")
-    adopt = sub.add_parser("adopt")
-    adopt.add_argument("--bundle-dir", type=Path, required=True)
-    adopt.add_argument("--calibration", type=Path, required=True)
-    adopt.add_argument("--proof", type=Path, required=True)
-    adopt.add_argument("--joint-exit-proof", type=Path, required=True)
-    adopt.add_argument("--authority-root", type=Path, required=True)
-    adopt.add_argument("--run-id", required=True)
-    runtime = sub.add_parser("finalize-runtime-parity")
-    runtime.add_argument("--adoption", type=Path, required=True)
-    runtime.add_argument("--observations", type=Path, required=True)
-    runtime.add_argument("--authority-root", type=Path, required=True)
     return parser
 
 
 def main() -> int:
     args = _parser().parse_args()
-    if args.command == "capture-instrument":
-        path, _ = capture_oanda_instrument_evidence(
-            authority_root=args.authority_root
-        )
-        result: Any = _binding(path)
-    elif args.command == "fit-calibration":
-        path, _ = fit_train_val_sizing_calibration(
+    if args.command == "fit-calibration":
+        path, _ = fit_val_sizing_calibration(
             predictions_path=args.predictions,
+            predictions_sha256=args.predictions_sha256,
             prediction_report_path=args.prediction_report,
             bundle_dir=args.bundle_dir,
             dataset_dir=args.dataset_dir,
-            dataset_manifest_path=args.dataset_manifest,
-            instrument_evidence_path=args.instrument_evidence,
             authority_root=args.authority_root,
         )
-        result = _binding(path)
+        result: Any = _binding(path)
     elif args.command == "bind-bundle":
         result = bind_bundle_sizing_calibration(
             source_bundle_dir=args.source_bundle_dir,
@@ -2134,11 +1863,11 @@ def main() -> int:
         path, _ = materialize_test_sizing_oos_source(
             calibration_path=args.calibration,
             test_predictions_path=args.test_predictions,
+            test_predictions_sha256=args.test_predictions_sha256,
             test_prediction_report_path=args.test_prediction_report,
             bundle_dir=args.bundle_dir,
             dataset_dir=args.dataset_dir,
             source_tape_path=args.source_tape,
-            model_head_serve_parity_path=args.model_head_serve_parity,
             authority_root=args.authority_root,
         )
         result = _binding(path)
@@ -2149,15 +1878,6 @@ def main() -> int:
             authority_root=args.authority_root,
         )
         result = _binding(path)
-    elif args.command == "finalize-joint-exit-proof":
-        path, _ = finalize_joint_exit_sizing_proof(
-            calibration_path=args.calibration,
-            proof_path=args.proof,
-            replay_rows_path=args.replay_rows,
-            exit_trace_rows_path=args.exit_trace_rows,
-            authority_root=args.authority_root,
-        )
-        result = _binding(path)
     elif args.command == "produce-unified-joint-exit-proof":
         path, _ = produce_canonical_unified_joint_sizing_proof(
             calibration_path=args.calibration,
@@ -2165,6 +1885,7 @@ def main() -> int:
             source_tape_path=args.source_tape,
             prebuilt_pair_manifest_path=args.prebuilt_pair_manifest,
             prebuilt_generation_root=args.prebuilt_generation_root,
+            multi_tf_cache_dir=args.multi_tf_cache_dir,
             train_rank_reference_npz=args.train_rank_reference_npz,
             train_rank_reference_sha256=(
                 args.train_rank_reference_sha256
@@ -2173,23 +1894,10 @@ def main() -> int:
             device=args.device,
         )
         result = _binding(path)
-    elif args.command == "adopt":
-        path, _ = adopt_learned_sizing(
-            bundle_dir=args.bundle_dir,
-            calibration_path=args.calibration,
-            proof_path=args.proof,
-            joint_exit_proof_path=args.joint_exit_proof,
-            authority_root=args.authority_root,
-            entry_run_id=args.run_id,
-        )
-        result = _binding(path)
     else:
-        path, _ = finalize_runtime_sizing_parity(
-            adoption_path=args.adoption,
-            observations_path=args.observations,
-            authority_root=args.authority_root,
+        raise SizingFinalizationError(
+            f"unsupported sizing command: {args.command}"
         )
-        result = _binding(path)
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
     return 0
 

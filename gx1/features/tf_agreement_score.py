@@ -139,20 +139,3 @@ def compute_tf_agreement_score(df: pd.DataFrame) -> pd.Series:
     if ((out < 0.0) | (out > 1.0)).any():
         raise RuntimeError("TF_AGREEMENT_OUTPUT_OUT_OF_RANGE")
     return out
-
-
-def summarize(df: pd.DataFrame, score: pd.Series) -> dict:
-    """Return summary stats for logging/sanity-check."""
-    return {
-        "n_rows": int(len(score)),
-        "mean": float(score.mean()),
-        "std": float(score.std()),
-        "p10": float(score.quantile(0.10)),
-        "p50": float(score.quantile(0.50)),
-        "p90": float(score.quantile(0.90)),
-        "frac_full_agreement": float((score == 1.0).mean()),
-        "frac_zero_agreement": float((score == 0.0).mean()),
-        "d1_sign_distribution": df["D1_dist_from_ema200_atr"].apply(
-            lambda v: "up" if v > D1_DIST_POS_THRESHOLD else ("down" if v < D1_DIST_NEG_THRESHOLD else "neutral")
-        ).value_counts().to_dict(),
-    }

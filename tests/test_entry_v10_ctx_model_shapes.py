@@ -12,6 +12,15 @@ import torch
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_SEQ_LEN,
+    MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_FEATURE_SEQUENCE_BARS,
+    EXIT_MTF_CONTEXT_COUNT,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import INPUTS
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
@@ -23,6 +32,8 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_CTX_CAT_DOMAINS,
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
+    _build_unit_test_entry_v10_ctx_hybrid_transformer,
+    _apply_argmax_preserving_direction_temperature,
 )
 from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as model_module
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -31,7 +42,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
 )
-from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V2
+from gx1.features.htf_features import (
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_V4_GROUP_A_BASE_FEATURES,
+)
 from tests.model_native_input_normalization_support import (
     input_normalization_fixture,
 )
@@ -46,9 +60,9 @@ INPUT_NORMALIZATION = input_normalization_fixture(
 )
 
 
-def _specialist_indices() -> dict[str, list[int]]:
+def _specialist_indices(width: int = SEQ_DIM) -> dict[str, list[int]]:
     grouped = {name: [] for name in EXACT_SPECIALIST_NAMES}
-    for index in range(SEQ_DIM):
+    for index in range(width):
         grouped[EXACT_SPECIALIST_NAMES[index % len(EXACT_SPECIALIST_NAMES)]].append(index)
     return grouped
 
@@ -111,7 +125,7 @@ def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
         "multi_tf_specialist_input_indices",
         _multi_tf_specialist_indices(int(kwargs["m5_seq_dim"])),
     )
-    return EntryV10CtxHybridTransformer(**kwargs)
+    return _build_unit_test_entry_v10_ctx_hybrid_transformer(**kwargs)
 
 
 def _make_inputs(batch_size: int = 2) -> tuple:
@@ -144,7 +158,9 @@ def _make_inputs(batch_size: int = 2) -> tuple:
         ctx_cont,
         {
             f"seq_{tf}": torch.randn(batch_size, SEQ_LEN, TF_DIM)
-            for tf in ("m5", "m15", "h1", "h4", "d1")
+            for tf in (
+                timeframe.lower() for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+            )
         },
     )
 
@@ -162,6 +178,14 @@ def _make_exit_feature_inputs(batch_size: int = 2) -> dict[str, torch.Tensor]:
         "exit_feature_snap_x": seq[:, -1, :].clone(),
         "exit_feature_ctx_cat": ctx_cat,
         "exit_feature_ctx_cont": ctx_cont,
+        **{
+            f"exit_seq_{tf.lower()}": torch.randn(
+                batch_size,
+                SEQ_LEN,
+                TF_DIM,
+            )
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        },
     }
 
 
@@ -182,8 +206,10 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         "clean_edge_logit": 1,
         "survival_logit": 1,
         "specialist_gate": 8,
-        "tf_gate": 5,
-        "family_tf_cooperation_gate": 5 * len(EXACT_SPECIALIST_NAMES),
+        "tf_gate": ENTRY_MTF_CONTEXT_COUNT,
+        "family_tf_cooperation_gate": (
+            ENTRY_MTF_CONTEXT_COUNT * len(EXACT_SPECIALIST_NAMES)
+        ),
         "trade_logit": 1,
         "side_logits": 2,
         "side_utility": 2,
@@ -216,7 +242,11 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
             torch.ones(2),
             atol=1e-6,
         )
-    assert out["family_tf_feature_gate"].shape == (2, 5, TF_DIM)
+    assert out["family_tf_feature_gate"].shape == (
+        2,
+        ENTRY_MTF_CONTEXT_COUNT,
+        TF_DIM,
+    )
     assert torch.isfinite(out["family_tf_feature_gate"]).all()
 
 
@@ -268,6 +298,16 @@ def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> 
     assert exit_out["exit_action_logits"].shape == (2, 2)
     assert exit_out["exit_action_probs"].shape == (2, 2)
     assert exit_out["exit_path_attention"].shape == (2, 1, 4)
+    assert exit_out["exit_tf_gate"].shape == (2, EXIT_MTF_CONTEXT_COUNT)
+    assert exit_out["exit_family_tf_cooperation_gate"].shape == (
+        2,
+        EXIT_MTF_CONTEXT_COUNT * len(EXACT_SPECIALIST_NAMES),
+    )
+    assert exit_out["exit_family_tf_feature_gate"].shape == (
+        2,
+        EXIT_MTF_CONTEXT_COUNT,
+        TF_DIM,
+    )
     assert torch.isfinite(exit_out["exit_action_logits"]).all()
     assert torch.allclose(
         exit_out["exit_action_probs"].sum(dim=1),
@@ -288,6 +328,51 @@ def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> 
         parameter = dict(model.named_parameters())[parameter_name]
         assert parameter.grad is not None, parameter_name
         assert bool(torch.count_nonzero(parameter.grad).item()), parameter_name
+
+
+def test_exit_loss_reaches_its_m5_specific_shared_encoder_inputs() -> None:
+    torch.manual_seed(914)
+    model = _make_model(dropout=0.0).train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
+    targets = torch.tensor([0, 1], dtype=torch.long)
+
+    for _ in range(2):
+        optimizer.zero_grad(set_to_none=True)
+        entry = _forward(model, batch_size=2)
+        exit_out = model.forward_exit_action(
+            entry_shared_representation=entry["shared_feature_representation"],
+            **_make_exit_feature_inputs(2),
+            exit_path_x=torch.randn(2, 3, UNIFIED_EXIT_PATH_FEATURE_DIM),
+            exit_path_lengths=torch.tensor([3, 3], dtype=torch.long),
+            exit_side_index=torch.tensor([0, 1], dtype=torch.long),
+        )
+        torch.nn.functional.cross_entropy(
+            exit_out["exit_action_logits"],
+            targets,
+        ).backward()
+        optimizer.step()
+
+    optimizer.zero_grad(set_to_none=True)
+    entry = _forward(model, batch_size=2)
+    exit_out = model.forward_exit_action(
+        entry_shared_representation=entry["shared_feature_representation"],
+        **_make_exit_feature_inputs(2),
+        exit_path_x=torch.randn(2, 3, UNIFIED_EXIT_PATH_FEATURE_DIM),
+        exit_path_lengths=torch.tensor([3, 3], dtype=torch.long),
+        exit_side_index=torch.tensor([0, 1], dtype=torch.long),
+    )
+    torch.nn.functional.cross_entropy(
+        exit_out["exit_action_logits"],
+        targets,
+    ).backward()
+
+    m5_gate = model.mtf_feature_context_gate[
+        f"m5__{EXACT_SPECIALIST_NAMES[0]}"
+    ].weight
+    for parameter in (model.tf_input_scale_m5, m5_gate):
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all()
+        assert parameter.grad.abs().sum().item() > 0.0
 
 
 def test_memory_bounded_transformers_preserve_full_entry_exit_outputs_and_gradients(
@@ -434,24 +519,47 @@ def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> Non
 
 def test_public_trade_flat_decision_is_post_calibration_argmax_ssot() -> None:
     model = _make_model().eval()
-    model.set_direction_calibration(
-        2.0,
-        torch.tensor([1.25, -0.75, 0.40], dtype=torch.float32),
-    )
+    model.set_direction_calibration(2.0)
     out = _forward(model, batch_size=4)
     final_logits = out["direction_logits"]
-    expected_final = out["raw_direction_logits"] / 2.0 + torch.tensor(
-        [1.25, -0.75, 0.40], dtype=final_logits.dtype
-    )
+    expected_final = out["raw_direction_logits"] / 2.0
     expected_pair = torch.stack(
         (final_logits[:, :2].max(dim=1).values, final_logits[:, 2]), dim=1
     )
     assert torch.allclose(final_logits, expected_final, atol=1e-6)
+    assert torch.equal(
+        out["raw_direction_logits"].argmax(dim=1),
+        final_logits.argmax(dim=1),
+    )
     assert torch.allclose(out["public_trade_flat_decision_logits"], expected_pair, atol=1e-6)
     assert torch.equal(
         out["public_trade_flat_decision_logits"].argmax(dim=1) == 0,
         final_logits.argmax(dim=1) != 2,
     )
+
+
+def test_direction_temperature_preserves_long_short_flat_and_ties_fail_closed() -> None:
+    raw_logits = torch.tensor(
+        [
+            [4.0, 2.0, 1.0],
+            [-3.0, 5.0, 2.0],
+            [-8.0, -2.0, 0.5],
+        ],
+        dtype=torch.float32,
+    )
+    calibrated = _apply_argmax_preserving_direction_temperature(raw_logits, 3.5)
+
+    assert torch.equal(raw_logits.argmax(dim=1), torch.tensor([0, 1, 2]))
+    assert torch.equal(calibrated.argmax(dim=1), torch.tensor([0, 1, 2]))
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_DIRECTION_CAL_RAW_ARGMAX_NOT_UNIQUE",
+    ):
+        _apply_argmax_preserving_direction_temperature(
+            torch.tensor([[1.0, 1.0, 0.0]], dtype=torch.float32),
+            2.0,
+        )
 
 
 def test_public_direction_gradient_reaches_every_fused_evidence_head() -> None:
@@ -537,7 +645,8 @@ def test_public_direction_reaches_every_specialist_tf_and_cooperation_branch_aft
         ),
         *(
             gate.weight
-            for gate in model.mtf_feature_context_gate.values()
+            for key, gate in model.mtf_feature_context_gate.items()
+            if not key.startswith("m5__")
         ),
     ]
     for parameter in parameters:
@@ -596,12 +705,143 @@ def test_exact_architecture_rejects_zero_representation_scale(scale_name: str) -
         _make_model(**{scale_name: 0.0})
 
 
-def test_exact_architecture_requires_all_five_tf_inputs() -> None:
+@pytest.mark.parametrize("missing_timeframe", ENTRY_MTF_CONTEXT_TIMEFRAMES)
+def test_exact_entry_architecture_requires_all_four_tf_inputs(
+    missing_timeframe: str,
+) -> None:
     model = _make_model().eval()
     seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs()
-    del mtf["seq_h4"]
-    with pytest.raises(TypeError, match="seq_h4"):
+    missing_key = f"seq_{missing_timeframe.lower()}"
+    del mtf[missing_key]
+    with pytest.raises(TypeError, match=missing_key):
         model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+
+
+@pytest.mark.parametrize("missing_timeframe", EXIT_MTF_CONTEXT_TIMEFRAMES)
+def test_exact_exit_architecture_requires_all_five_tf_inputs(
+    missing_timeframe: str,
+) -> None:
+    model = _make_model().eval()
+    shared = _forward(model, batch_size=1)["shared_feature_representation"]
+    exit_features = _make_exit_feature_inputs(1)
+    missing_key = f"exit_seq_{missing_timeframe.lower()}"
+    del exit_features[missing_key]
+    with pytest.raises(TypeError, match=missing_key):
+        model.forward_exit_action(
+            entry_shared_representation=shared,
+            **exit_features,
+            exit_path_x=torch.randn(1, 2, UNIFIED_EXIT_PATH_FEATURE_DIM),
+            exit_path_lengths=torch.tensor([2], dtype=torch.long),
+            exit_side_index=torch.tensor([0], dtype=torch.long),
+        )
+
+
+def test_exact_production_entry_and_exit_shapes_fit_one_shared_model() -> None:
+    tf_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
+    tf_width = len(tf_names)
+    tf_lengths = {"M5": 16, "M15": 64, "H1": 96, "H4": 96, "D1": 252}
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
+        snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
+        dropout=0.0,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
+        ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
+        ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
+        m5_seq_dim=tf_width,
+        m15_seq_dim=tf_width,
+        h1_seq_dim=tf_width,
+        h4_seq_dim=tf_width,
+        d1_seq_dim=tf_width,
+        m5_seq_len=tf_lengths["M5"],
+        m15_seq_len=tf_lengths["M15"],
+        h1_seq_len=tf_lengths["H1"],
+        h4_seq_len=tf_lengths["H4"],
+        d1_seq_len=tf_lengths["D1"],
+        specialist_input_indices=_specialist_indices(MODEL_NATIVE_SIGNAL_DIM),
+        specialist_ctx_cont_indices={
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_indices"
+            ].items()
+        },
+        specialist_ctx_cont_nominal_indices={
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_nominal_indices"
+            ].items()
+        },
+        specialist_ctx_cat_indices={
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cat_indices"
+            ].items()
+        },
+        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(tf_width),
+        temporal_alias_signal_indices=[],
+        temporal_alias_ctx_cont_indices=[],
+        input_normalization=input_normalization_fixture(
+            signal_names=[
+                f"production_signal_{index}"
+                for index in range(MODEL_NATIVE_SIGNAL_DIM)
+            ],
+            mtf_names=tf_names,
+            per_tf_seq_lens=tf_lengths,
+        ),
+    ).eval()
+    ctx_cont = torch.randn(1, MODEL_NATIVE_CTX_CONT_DIM)
+    nominal_indices = [
+        index
+        for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+            "ctx_cont_nominal_indices"
+        ].values()
+        for index in values
+    ]
+    ctx_cont[:, nominal_indices] = 0.0
+    ctx_cat = torch.zeros(1, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long)
+    entry_seq = torch.randn(1, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
+    entry_mtf = {
+        f"seq_{tf.lower()}": torch.zeros(1, tf_lengths[tf], tf_width)
+        for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    exit_seq = torch.randn(
+        1,
+        EXIT_FEATURE_SEQUENCE_BARS,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
+    exit_mtf = {
+        f"exit_seq_{tf.lower()}": torch.zeros(1, tf_lengths[tf], tf_width)
+        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+    }
+
+    with torch.no_grad():
+        entry = model(
+            entry_seq,
+            entry_seq[:, -1, :],
+            ctx_cat=ctx_cat,
+            ctx_cont=ctx_cont,
+            **entry_mtf,
+        )
+        exit_out = model.forward_exit_action(
+            entry_shared_representation=entry["shared_feature_representation"],
+            exit_feature_seq_x=exit_seq,
+            exit_feature_snap_x=exit_seq[:, -1, :],
+            exit_feature_ctx_cat=ctx_cat,
+            exit_feature_ctx_cont=ctx_cont,
+            **exit_mtf,
+            exit_path_x=torch.randn(1, 3, UNIFIED_EXIT_PATH_FEATURE_DIM),
+            exit_path_lengths=torch.tensor([3], dtype=torch.long),
+            exit_side_index=torch.tensor([0], dtype=torch.long),
+        )
+
+    assert entry["direction_logits"].shape == (1, 3)
+    assert entry["tf_gate"].shape == (1, ENTRY_MTF_CONTEXT_COUNT)
+    assert exit_out["exit_action_logits"].shape == (1, 2)
+    assert exit_out["exit_tf_gate"].shape == (1, EXIT_MTF_CONTEXT_COUNT)
 
 
 @pytest.mark.parametrize(
@@ -756,7 +996,7 @@ def test_mtf_semantic_domains_fail_closed_at_model_boundary(
     invalid_value: float,
     error: str,
 ) -> None:
-    mtf_names = list(MULTI_TF_PER_BAR_FEATURES_V2)
+    mtf_names = list(MULTI_TF_V4_GROUP_A_BASE_FEATURES)
     normalization = input_normalization_fixture(
         signal_names=[f"signal_{index}" for index in range(SEQ_DIM)],
         mtf_names=mtf_names,

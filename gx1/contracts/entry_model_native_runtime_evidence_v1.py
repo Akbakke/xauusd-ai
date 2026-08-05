@@ -1,10 +1,11 @@
 """Strict runtime evidence contract for model-native XAU Entry decisions.
 
-The calibrated LONG/SHORT/FLAT logits are the sole direction authority. Every
-auxiliary head below is immutable learned evidence: it may be reviewed and
-journaled, but it may not become an external direction rule. Missing heads,
-probability/logit disagreement, incomplete specialist fusion, disabled
-calibration, and retired overlay fields all fail closed.
+The raw LONG/SHORT/FLAT logits are the sole direction authority. Calibration is
+limited to one positive scalar temperature, so it cannot remap the winning
+class. Every auxiliary head below is immutable learned evidence: it may be
+reviewed and journaled, but it may not become an external direction rule.
+Missing heads, probability/logit disagreement, incomplete specialist fusion,
+disabled calibration, and retired overlay fields all fail closed.
 """
 from __future__ import annotations
 
@@ -16,10 +17,6 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, NoReturn
 
-from gx1.contracts.entry_model_native_sizing_authority_v1 import (
-    MODEL_NATIVE_SIZING_MODE_LEARNED,
-    require_model_native_sizing_authority_contract,
-)
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     CLASS_ORDER as MODEL_DIRECTION_CLASS_ORDER,
     INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
@@ -34,6 +31,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_TREND_REGIME_NAMES,
     MODEL_NATIVE_VOL_REGIME_NAMES,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
@@ -48,12 +46,12 @@ from gx1.time.session_detector import SESSION_ORDER
 
 
 MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_evidence_v5"
+    "entry_model_native_runtime_evidence_v7"
 )
 MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_head_evidence_v3"
+    "entry_model_native_runtime_head_evidence_v5"
 )
-MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v2"
+MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v4"
 MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC = 300.0
 MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC = 90.0
 MODEL_DIRECTION_NAMES = MODEL_DIRECTION_CLASS_ORDER
@@ -124,7 +122,6 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS = frozenset(
         "tf_agreement_pred",
         "position_size_logit",
         "position_size_pred",
-        "sizing_authority_contract",
         "p_long_given_trade",
         "p_short_given_trade",
         "side_logits",
@@ -152,7 +149,6 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS = frozenset(
         "calibration_version",
         "direction_calibration_enabled",
         "direction_calibration_temperature",
-        "direction_calibration_bias",
         "path_calibration_enabled",
         "path_calibration",
         *(name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS),
@@ -169,10 +165,7 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS = frozenset(
 MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS = frozenset(
     {
         "runtime_head_evidence_schema_version",
-        *(
-            MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
-            - {"sizing_authority_contract"}
-        ),
+        *MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     }
 )
 MODEL_NATIVE_PATH_CALIBRATION_INFERENCE_FIELDS = (
@@ -600,9 +593,15 @@ def _require_model_native_evidence(
     )
     if sum(value == max(direction_logits) for value in direction_logits) != 1:
         _fail(context, "direction_logits", "no unique top class")
+    if sum(value == max(raw_direction_logits) for value in raw_direction_logits) != 1:
+        _fail(context, "raw_direction_logits", "no unique top class")
     direction_index = max(
         range(len(MODEL_DIRECTION_NAMES)),
         key=direction_probs.__getitem__,
+    )
+    raw_direction_index = max(
+        range(len(MODEL_DIRECTION_NAMES)),
+        key=raw_direction_logits.__getitem__,
     )
     if _exact_integer(
         validated,
@@ -742,15 +741,6 @@ def _require_model_native_evidence(
         "position_size_pred",
         context=context,
     )
-    if not head_evidence:
-        try:
-            require_model_native_sizing_authority_contract(
-                validated["sizing_authority_contract"],
-                context=f"{context} runtime evidence",
-                required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
-            )
-        except RuntimeError as exc:
-            _fail(context, "sizing_authority_contract", str(exc))
     side_logits = _finite_vector(validated, "side_logits", 2, context=context)
     side_probs = _finite_vector(validated, "side_probs", 2, context=context)
     _require_close(side_probs, _softmax(side_logits), "side_probs", context=context)
@@ -851,12 +841,19 @@ def _require_model_native_evidence(
         sum(specialist_gate), 1.0, rel_tol=1e-6, abs_tol=1e-7
     ):
         _fail(context, "specialist_gate", "not a probability simplex")
-    tf_gate = _finite_vector(validated, "tf_gate", 5, context=context)
+    tf_gate = _finite_vector(
+        validated,
+        "tf_gate",
+        ENTRY_MTF_CONTEXT_COUNT,
+        context=context,
+    )
     if any(value < 0.0 for value in tf_gate) or not math.isclose(
         sum(tf_gate), 1.0, rel_tol=1e-6, abs_tol=1e-7
     ):
         _fail(context, "tf_gate", "not a probability simplex")
-    cooperation_width = 5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    cooperation_width = (
+        ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    )
     family_tf_cooperation_gate = _finite_vector(
         validated,
         "family_tf_cooperation_gate",
@@ -874,7 +871,7 @@ def _require_model_native_evidence(
     family_tf_feature_gate = _finite_vector(
         validated,
         "family_tf_feature_gate",
-        5 * len(MULTI_TF_PER_BAR_FEATURES_V4),
+        ENTRY_MTF_CONTEXT_COUNT * len(MULTI_TF_PER_BAR_FEATURES_V4),
         context=context,
     )
     if any(
@@ -927,19 +924,19 @@ def _require_model_native_evidence(
         <= 0.0
     ):
         _fail(context, "direction_calibration_temperature", "must be positive")
-    direction_bias = _finite_vector(
-        validated, "direction_calibration_bias", 3, context=context
-    )
     direction_temperature = float(validated["direction_calibration_temperature"])
     _require_close(
         direction_logits,
-        tuple(
-            raw / direction_temperature + bias
-            for raw, bias in zip(raw_direction_logits, direction_bias, strict=True)
-        ),
+        tuple(raw / direction_temperature for raw in raw_direction_logits),
         "raw direction calibration equation",
         context=context,
     )
+    if direction_index != raw_direction_index:
+        _fail(
+            context,
+            "direction_logits",
+            "positive scalar calibration changed raw argmax",
+        )
     if validated.get("path_calibration_enabled") is not True:
         _fail(context, "path_calibration_enabled", "must be true")
     path_calibration = validated.get("path_calibration")
@@ -1086,10 +1083,9 @@ def require_model_native_runtime_head_evidence(
     """Validate the exact frozen pre-sizing Entry evidence envelope.
 
     Sizing calibration is fitted on VAL after candidate prediction evidence is
-    produced.  The immutable prediction event therefore owns every live
-    snapshot field except ``sizing_authority_contract`` and executable timing.
-    No value is inferred here; the complete runtime validator is invoked only
-    after the separately adopted sizing authority is joined.
+    produced and is proven by the separate offline sizing contract. The
+    immutable prediction event owns every model-head field; no sizing authority
+    or executable timing is joined into this envelope.
     """
 
     return _require_model_native_evidence(
@@ -1097,32 +1093,6 @@ def require_model_native_runtime_head_evidence(
         context=context,
         head_evidence=True,
     )
-
-
-def finalize_model_native_runtime_head_evidence(
-    head_evidence: Mapping[str, Any],
-    *,
-    sizing_authority_contract: Mapping[str, Any],
-    timing_evidence: Mapping[str, Any] | None = None,
-    context: str = "ENTRY_MODEL_NATIVE_RUNTIME_HEAD",
-) -> dict[str, Any]:
-    """Join frozen heads with adopted sizing/timing and prove the live schema."""
-
-    head = require_model_native_runtime_head_evidence(
-        head_evidence,
-        context=context,
-    )
-    snapshot = {
-        key: value
-        for key, value in head.items()
-        if key != "runtime_head_evidence_schema_version"
-    }
-    snapshot["sizing_authority_contract"] = dict(sizing_authority_contract)
-    if timing_evidence is not None:
-        if not isinstance(timing_evidence, Mapping):
-            _fail(context, "timing_evidence", "must be a mapping")
-        snapshot.update(dict(timing_evidence))
-    return require_model_native_runtime_evidence(snapshot, context=context)
 
 
 def encode_model_native_runtime_head_evidence(
@@ -1352,7 +1322,6 @@ __all__ = [
     "require_model_native_fill_time",
     "require_model_native_exit_replay_entry_time",
     "require_model_native_runtime_head_evidence",
-    "finalize_model_native_runtime_head_evidence",
     "encode_model_native_runtime_head_evidence",
     "decode_model_native_runtime_head_evidence",
     "require_model_native_runtime_evidence",

@@ -277,7 +277,8 @@ def _smoke_event(
 ) -> Path:
     split_artifacts: dict[str, dict] = {}
     embedded_splits: dict[str, dict] = {}
-    for split, row in dataset_rows.items():
+    for split in FOUNDATION_AUDIT_DATA_SPLITS:
+        row = dataset_rows[split]
         split_artifacts[split] = {
             "rows": 3,
             "output_data_path": str(row["parquet"]),
@@ -492,7 +493,12 @@ def test_adoption_rejects_swapped_mandatory_signal_prefix(tmp_path: Path) -> Non
         for row in report["failures"]
         if row["gate"] == "feature_audit"
         and row["check"]
-            == "feature audit proves exact model-native 34 plus 378 plus 101 partition"
+            == (
+                "feature audit proves exact model-native "
+                f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
+                f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
+                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+            )
     )
     assert "mandatory_registry_prefix_order_violation" in partition_failure[
         "details"
@@ -518,7 +524,12 @@ def test_adoption_rejects_stale_partition_count(tmp_path: Path) -> None:
     assert any(
         row["gate"] == "feature_audit"
         and row["check"]
-            == "feature audit proves exact model-native 34 plus 378 plus 101 partition"
+            == (
+                "feature audit proves exact model-native "
+                f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
+                f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
+                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+            )
         for row in report["failures"]
     )
 

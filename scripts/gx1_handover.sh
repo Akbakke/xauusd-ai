@@ -12,6 +12,7 @@ CURRENT_PAIR_MANIFEST=/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE
 # only; GX1_RULES.md defines the active scope.
 sources=(
   "$REPO/AGENTS.md"
+  "$REPO/CLAUDE.md"
   "$REPO/GX1_RULES.md"
   "$REPO/README.md"
   "$REPO/SYSTEM_MAP.md"

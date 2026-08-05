@@ -1,6 +1,6 @@
-"""Fail-closed launch contract for the two model-native seq513 trainers.
+"""Fail-closed launch contract for the canonical model-native seq513 trainer.
 
-The shell wrappers deliberately contain no artifact discovery or recipe
+The shell wrapper deliberately contains no artifact discovery or recipe
 defaults.  This module validates an explicit immutable evidence set and emits
 only the audited, allowlisted trainer environment.
 """
@@ -32,8 +32,10 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     require_offline_rl_contract_metadata,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION,
     READY_DECISION as POST_REBUILD_READY_DECISION,
     SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
+    require_prefreeze_test_seal_lineage,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
@@ -75,6 +77,9 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_ROW_CLOCK,
     require_entry_exit_shared_feature_base_contract,
 )
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    PRODUCTION_MTF_PER_TF_WINDOW_BARS,
+)
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
 )
@@ -94,15 +99,18 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v3"
-RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v2"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v5"
+RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v4"
 PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
+TRAINING_DATA_SPLITS = ("train", "val")
+SEALED_DATA_SPLITS = (*TRAINING_DATA_SPLITS, "test")
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
 MODEL_RELATIVE_PATH = (
     "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
 )
 CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
 CONTROL_SURFACE_RELATIVE_PATH = "scripts/entry_next_edge_control.sh"
+TRAIN_WRAPPER_RELATIVE_PATH = "scripts/run_entry_model_native_seq513_train.sh"
 LAUNCH_CONTRACT_RELATIVE_PATH = (
     "gx1/contracts/entry_model_native_train_launch_v1.py"
 )
@@ -111,6 +119,9 @@ RECIPE_CONTRACT_RELATIVE_PATH = (
 )
 RECIPE_PRODUCER_RELATIVE_PATH = (
     "gx1/scripts/materialize_entry_model_native_seq513_train_recipe_audit_v1.py"
+)
+POST_REBUILD_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_model_native_post_rebuild_v1.py"
 )
 AUX_TARGET_CONTRACT_RELATIVE_PATH = (
     "gx1/contracts/entry_model_native_aux_targets_v3.py"
@@ -148,14 +159,13 @@ _MUTABLE_POINTER_RE = re.compile(r"(?:^|[/_.-])latest(?:[/_.-]|$)", re.IGNORECAS
 _COMMON_BINDING_KEYS = (
     "train_manifest_json",
     "val_manifest_json",
-    "test_manifest_json",
     "train_parquet",
     "val_parquet",
-    "test_parquet",
     "unified_exit_lifecycle_manifest_json",
     "m5_prebuilt_path",
     "multi_tf_cache_manifest_json",
     "post_rebuild_readiness_json",
+    "prefreeze_test_seal_json",
     "full_input_liveness_audit_json",
     "feature_audit_json",
     "target_audit_json",
@@ -176,16 +186,29 @@ _PROFILE_BINDING_KEYS = {
 _LARGE_ARTIFACT_KEYS = {
     "train_parquet",
     "val_parquet",
-    "test_parquet",
     "m5_prebuilt_path",
 }
+_POST_REBUILD_TEST_ISOLATION_KEYS = frozenset(
+    {
+        "schema_version",
+        "decision",
+        "access_policy",
+        "authority",
+        "content_binding_sha256",
+        "rebuild_terminal",
+        "pair_lineage_sha256",
+        "source_lineage_sha256",
+        "disclosure_count",
+        "test_dataset_bytes_read",
+        "test_manifest_bytes_read",
+        "test_paths_resolved_or_statted",
+    }
+)
 TRAINER_ARTIFACT_HASH_ENV = {
     "train_manifest_json": "GX1_ENTRY_TRAIN_MANIFEST_SHA256",
     "val_manifest_json": "GX1_ENTRY_VAL_MANIFEST_SHA256",
-    "test_manifest_json": "GX1_ENTRY_TEST_MANIFEST_SHA256",
     "train_parquet": "GX1_ENTRY_TRAIN_PARQUET_SHA256",
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
-    "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
     "unified_exit_lifecycle_manifest_json": (
         "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
@@ -342,10 +365,10 @@ def _validate_unified_exit_lifecycle_root(
     splits = payload.get("splits")
     _require(
         isinstance(splits, Mapping)
-        and set(splits) == {"train", "val", "test"},
+        and set(splits) == set(SEALED_DATA_SPLITS),
         "unified Exit lifecycle split set is not exact",
     )
-    for split in ("train", "val", "test"):
+    for split in TRAINING_DATA_SPLITS:
         binding = splits[split]
         _require(
             isinstance(binding, Mapping),
@@ -456,6 +479,9 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         "control_surface": (repo / CONTROL_SURFACE_RELATIVE_PATH).resolve(strict=True),
         "launch_contract": (repo / LAUNCH_CONTRACT_RELATIVE_PATH).resolve(strict=True),
         "model": (repo / MODEL_RELATIVE_PATH).resolve(strict=True),
+        "test_seal_contract": (
+            repo / POST_REBUILD_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
         "mtf_feature_builder": (
             repo / HTF_FEATURES_RELATIVE_PATH
         ).resolve(strict=True),
@@ -678,6 +704,7 @@ def _validate_post_rebuild_readiness(
     *,
     artifacts: Mapping[str, Path],
     dataset_dir: Path,
+    test_seal_lineage: Mapping[str, Any],
 ) -> dict[str, str]:
     _zero_failure(
         post_rebuild,
@@ -723,27 +750,113 @@ def _validate_post_rebuild_readiness(
     split_artifacts = post_rebuild.get("split_artifacts")
     _require(
         isinstance(split_artifacts, dict)
-        and set(split_artifacts) == {"train", "val", "test"},
+        and set(split_artifacts) == set(SEALED_DATA_SPLITS),
         "post-rebuild split artifact set is not exact",
     )
     large_hashes: dict[str, str] = {}
-    for split in ("train", "val", "test"):
+    for split in SEALED_DATA_SPLITS:
         row = split_artifacts[split]
         _require(isinstance(row, dict), f"post-rebuild {split} split binding invalid")
-        manifest = artifacts[f"{split}_manifest_json"]
-        parquet = artifacts[f"{split}_parquet"]
-        expected_manifest_sha = sha256_file(manifest)
+        manifest_path = Path(str(row.get("manifest_path") or "")).expanduser()
+        parquet_path = Path(str(row.get("parquet_path") or "")).expanduser()
+        manifest_sha = str(row.get("manifest_sha256") or "")
         parquet_sha = str(row.get("parquet_sha256") or "")
         _require(
-            row.get("manifest_path") == str(manifest)
-            and row.get("manifest_sha256") == expected_manifest_sha
-            and row.get("parquet_path") == str(parquet)
+            manifest_path.is_absolute()
+            and parquet_path.is_absolute()
+            and manifest_path.parent == dataset_dir
+            and parquet_path.parent == dataset_dir
+            and _SHA_RE.fullmatch(manifest_sha) is not None
             and _SHA_RE.fullmatch(parquet_sha) is not None
             and int(row.get("rows") or 0) > 0,
             f"post-rebuild {split} split binding mismatch",
         )
-        large_hashes[f"{split}_parquet"] = parquet_sha
+        if split in TRAINING_DATA_SPLITS:
+            manifest = artifacts[f"{split}_manifest_json"]
+            parquet = artifacts[f"{split}_parquet"]
+            _require(
+                manifest_path == manifest
+                and manifest_sha == sha256_file(manifest)
+                and parquet_path == parquet,
+                f"post-rebuild {split} launch artifact mismatch",
+            )
+            large_hashes[f"{split}_parquet"] = parquet_sha
+        else:
+            sealed_manifest = test_seal_lineage["test_manifest"]
+            sealed_parquet = test_seal_lineage["test_parquet"]
+            sealed_event = test_seal_lineage["seal_event"]
+            expected_test_row = {
+                "manifest_path": sealed_manifest["path"],
+                "manifest_sha256": sealed_manifest["sha256"],
+                "parquet_path": sealed_parquet["path"],
+                "parquet_sha256": sealed_parquet["sha256"],
+                "schema_version": sealed_manifest["schema_version"],
+                "manifest_variant": sealed_manifest["manifest_variant"],
+                "rows": test_seal_lineage["rows"],
+                "entry_run_id": test_seal_lineage["dataset_run_id"],
+                "instrument": sealed_manifest["instrument"],
+                "access_mode": test_seal_lineage["access_policy"],
+                "seal_path": sealed_event["path"],
+                "seal_sha256": sealed_event["sha256"],
+            }
+            _require(
+                row == expected_test_row,
+                "post-rebuild TEST split differs from immutable seal event",
+            )
+
+    isolation = post_rebuild.get("test_isolation")
+    sealed_event = test_seal_lineage["seal_event"]
+    sealed_rebuild = test_seal_lineage["rebuild_terminal"]
+    _require(
+        isinstance(isolation, Mapping)
+        and frozenset(isolation) == _POST_REBUILD_TEST_ISOLATION_KEYS,
+        "post-rebuild TEST isolation proof keys are not exact",
+    )
+    _require(
+        isolation.get("schema_version") == sealed_event["schema_version"]
+        and isolation.get("decision") == sealed_event["decision"]
+        and isolation.get("access_policy") == test_seal_lineage["access_policy"]
+        and isolation.get("authority")
+        == {"path": sealed_event["path"], "sha256": sealed_event["sha256"]}
+        and isolation.get("content_binding_sha256")
+        == sealed_event["content_binding_sha256"]
+        and isolation.get("rebuild_terminal")
+        == {
+            "path": sealed_rebuild["path"],
+            "sha256": sealed_rebuild["sha256"],
+            "schema_version": sealed_rebuild["schema_version"],
+            "content_binding_sha256": sealed_rebuild["content_binding_sha256"],
+        }
+        and isolation.get("pair_lineage_sha256")
+        == test_seal_lineage["pair_lineage_sha256"]
+        and isolation.get("source_lineage_sha256")
+        == test_seal_lineage["source_lineage_sha256"]
+        and isolation.get("disclosure_count") == 0
+        and isolation.get("test_dataset_bytes_read") is False
+        and isolation.get("test_manifest_bytes_read") is False
+        and isolation.get("test_paths_resolved_or_statted") is False,
+        "post-rebuild TEST isolation proof differs from immutable seal event",
+    )
     return large_hashes
+
+
+def _validated_prefreeze_test_seal_lineage(
+    args: argparse.Namespace,
+    *,
+    post_rebuild: Mapping[str, Any],
+    artifacts: Mapping[str, Path],
+    dataset_dir: Path,
+) -> dict[str, Any]:
+    try:
+        dataset_run_id = require_entry_run_id(post_rebuild.get("entry_run_id"))
+        return require_prefreeze_test_seal_lineage(
+            artifacts["prefreeze_test_seal_json"],
+            args.prefreeze_test_seal_sha256,
+            expected_dataset_run_id=dataset_run_id,
+            expected_dataset_dir=dataset_dir,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise LaunchContractError(f"immutable pre-freeze TEST seal rejected: {exc}") from exc
 
 
 def _dataset_run_id_from_launch_evidence(
@@ -760,7 +873,7 @@ def _dataset_run_id_from_launch_evidence(
             f"post-rebuild readiness dataset entry_run_id invalid: {exc}"
         ) from exc
 
-    for split in ("train", "val", "test"):
+    for split in TRAINING_DATA_SPLITS:
         manifest = payloads[f"{split}_manifest_json"]
         extra = manifest.get("extra")
         _require(
@@ -788,7 +901,7 @@ def _model_source_hash_from_manifests(
     payloads: Mapping[str, Mapping[str, Any]],
 ) -> str:
     source_hashes: set[str] = set()
-    for split in ("train", "val", "test"):
+    for split in TRAINING_DATA_SPLITS:
         manifest = payloads[f"{split}_manifest_json"]
         inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), Mapping) else {}
         extra = manifest.get("extra") if isinstance(manifest.get("extra"), Mapping) else {}
@@ -846,7 +959,7 @@ def _validate_pretrain_audit(
         "pretrain audit dataset mismatch",
     )
     _require(
-        pretrain.get("data_splits") == ["train", "val", "test"],
+        pretrain.get("data_splits") == list(TRAINING_DATA_SPLITS),
         "pretrain audit split contract mismatch",
     )
     _require(
@@ -863,8 +976,8 @@ def _validate_pretrain_audit(
     )
     split_rows = pretrain.get("splits")
     _require(
-        isinstance(split_rows, list) and len(split_rows) == 3,
-        "pretrain audit must contain exactly three split reports",
+        isinstance(split_rows, list) and len(split_rows) == len(TRAINING_DATA_SPLITS),
+        "pretrain audit must contain exactly TRAIN and VAL reports",
     )
     reports = {
         str(row.get("split") or ""): row
@@ -872,19 +985,17 @@ def _validate_pretrain_audit(
         if isinstance(row, dict)
     }
     _require(
-        set(reports) == {"train", "val", "test"},
+        set(reports) == set(TRAINING_DATA_SPLITS),
         "pretrain audit split report set is not exact",
     )
     tape_provenance = pretrain.get("tape_provenance")
     _require(
         isinstance(tape_provenance, dict)
-        and set(tape_provenance) == {"train", "val", "test"}
-        and tape_provenance["train"]
-        == tape_provenance["val"]
-        == tape_provenance["test"],
+        and set(tape_provenance) == set(TRAINING_DATA_SPLITS)
+        and tape_provenance["train"] == tape_provenance["val"],
         "pretrain audit XAU tape provenance differs across splits",
     )
-    for split in ("train", "val", "test"):
+    for split in TRAINING_DATA_SPLITS:
         row = reports[split]
         provenance = row.get("provenance")
         _require(
@@ -1062,13 +1173,21 @@ def _validate_audits(
     _require(trainability.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "trainability mode mismatch")
     _require(int(trainability.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "trainability signal width mismatch")
     _require(tuple(trainability.get("required_training_specialists") or ()) == REQUIRED_SPECIALISTS, "trainability specialist set mismatch")
+    future_train = trainability.get("future_train_contract")
+    _require(
+        isinstance(future_train, dict)
+        and future_train.get("profile") == "smoke"
+        and future_train.get("control_route") == "model-native-smoke-train"
+        and future_train.get("wrapper_path") == TRAIN_WRAPPER_RELATIVE_PATH,
+        "trainability canonical wrapper/profile contract mismatch",
+    )
 
     if profile == "smoke":
         smoke_manifest = payloads["smoke_manifest_json"]
         _zero_failure(
             smoke_manifest,
             label="smoke manifest",
-            schema="entry_model_native_seq513_smoke_manifest_v2",
+            schema="entry_model_native_seq513_smoke_manifest_v3",
             decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
         )
         _require(smoke_manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke manifest mode mismatch")
@@ -1082,7 +1201,7 @@ def _validate_audits(
         _zero_failure(
             smoke_readiness,
             label="smoke readiness",
-            schema="entry_model_native_seq513_smoke_readiness_v2",
+            schema="entry_model_native_seq513_smoke_readiness_v3",
             decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
         )
         candidate = smoke_readiness.get("smart_candidate")
@@ -1218,14 +1337,21 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
             integer_values[f"per_tf_seq_len_{_tf}"] > 0,
             f"per_tf_seq_len_{_tf} must be > 0; fallback is forbidden",
         )
+    observed_windows = {
+        timeframe.upper(): integer_values[f"per_tf_seq_len_{timeframe}"]
+        for timeframe in MULTI_TF_TIMEFRAMES_LOWER
+    }
+    expected_windows = dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)
+    _require(
+        observed_windows == expected_windows,
+        "per-timeframe windows must equal the frozen production architecture: "
+        f"observed={observed_windows} expected={expected_windows}",
+    )
     from gx1.features.htf_features import require_multi_tf_resolution_pyramid
 
     try:
         require_multi_tf_resolution_pyramid(
-            {
-                tf.upper(): integer_values[f"per_tf_seq_len_{tf}"]
-                for tf in MULTI_TF_TIMEFRAMES_LOWER
-            }
+            observed_windows
         )
     except RuntimeError as exc:
         raise LaunchContractError(
@@ -1273,6 +1399,10 @@ def build_recipe_audit_payload(
     _require(profile in _PROFILE_BINDING_KEYS, f"unsupported launch profile: {profile}")
     repo = Path(args.repo).expanduser().resolve(strict=True)
     wrapper_path = Path(args.wrapper_path).expanduser().resolve(strict=True)
+    _require(
+        wrapper_path == (repo / TRAIN_WRAPPER_RELATIVE_PATH).resolve(strict=True),
+        "wrapper path is not the canonical profile-explicit trainer wrapper",
+    )
     dataset_dir = _resolved_explicit_path(args.dataset_dir, "dataset_dir", directory=True)
     out_bundle_dir = _resolved_output_path(args.out_bundle_dir)
     trainer_cli = _trainer_cli_contract(args)
@@ -1284,12 +1414,19 @@ def build_recipe_audit_payload(
     payloads = {
         key: _read_json(path, key)
         for key, path in artifacts.items()
-        if key.endswith("_json")
+        if key.endswith("_json") and key != "prefreeze_test_seal_json"
     }
+    test_seal_lineage = _validated_prefreeze_test_seal_lineage(
+        args,
+        post_rebuild=payloads["post_rebuild_readiness_json"],
+        artifacts=artifacts,
+        dataset_dir=dataset_dir,
+    )
     expected_large_hashes = _validate_post_rebuild_readiness(
         payloads["post_rebuild_readiness_json"],
         artifacts=artifacts,
         dataset_dir=dataset_dir,
+        test_seal_lineage=test_seal_lineage,
     )
     dataset_run_id = _dataset_run_id_from_launch_evidence(
         post_rebuild=payloads["post_rebuild_readiness_json"],
@@ -1344,6 +1481,10 @@ def build_recipe_audit_payload(
         "dataset_run_id": dataset_run_id,
         "dataset_dir": str(dataset_dir),
         "out_bundle_dir": str(out_bundle_dir),
+        "prefreeze_test_seal_lineage": test_seal_lineage,
+        "prefreeze_test_seal_lineage_sha256": canonical_json_sha256(
+            test_seal_lineage
+        ),
         "source_commit": subprocess.check_output(
             ["git", "-C", str(repo), "rev-parse", "HEAD"],
             text=True,
@@ -1376,7 +1517,10 @@ def validate_launch(
     _require(profile in _PROFILE_BINDING_KEYS, f"unsupported launch profile: {profile}")
     repo = Path(args.repo).expanduser().resolve(strict=True)
     wrapper_path = Path(args.wrapper_path).expanduser().resolve(strict=True)
-    _require(wrapper_path.parent == repo / "scripts", "wrapper path is outside the repository scripts directory")
+    _require(
+        wrapper_path == (repo / TRAIN_WRAPPER_RELATIVE_PATH).resolve(strict=True),
+        "wrapper path is not the canonical profile-explicit trainer wrapper",
+    )
 
     dataset_dir = _resolved_explicit_path(args.dataset_dir, "dataset_dir", directory=True)
     out_bundle_dir = _resolved_output_path(args.out_bundle_dir)
@@ -1386,25 +1530,37 @@ def validate_launch(
         key: _resolved_explicit_path(str(getattr(args, key)), key)
         for key in artifact_keys
     }
-    for key in ("train_parquet", "val_parquet", "test_parquet", "train_manifest_json", "val_manifest_json", "test_manifest_json"):
+    for key in (
+        "train_parquet",
+        "val_parquet",
+        "train_manifest_json",
+        "val_manifest_json",
+    ):
         _require(artifacts[key].parent == dataset_dir, f"{key} must be directly inside dataset_dir")
 
     payloads = {
         key: _read_json(path, key)
         for key, path in artifacts.items()
-        if key.endswith("_json")
+        if key.endswith("_json") and key != "prefreeze_test_seal_json"
     }
-    for split in ("train", "val", "test"):
+    for split in TRAINING_DATA_SPLITS:
         _validate_split_manifest(
             payloads[f"{split}_manifest_json"],
             path=artifacts[f"{split}_manifest_json"],
             parquet=artifacts[f"{split}_parquet"],
             m5_prebuilt=artifacts["m5_prebuilt_path"],
         )
+    test_seal_lineage = _validated_prefreeze_test_seal_lineage(
+        args,
+        post_rebuild=payloads["post_rebuild_readiness_json"],
+        artifacts=artifacts,
+        dataset_dir=dataset_dir,
+    )
     expected_large_hashes = _validate_post_rebuild_readiness(
         payloads["post_rebuild_readiness_json"],
         artifacts=artifacts,
         dataset_dir=dataset_dir,
+        test_seal_lineage=test_seal_lineage,
     )
     dataset_run_id = _dataset_run_id_from_launch_evidence(
         post_rebuild=payloads["post_rebuild_readiness_json"],
@@ -1474,6 +1630,14 @@ def validate_launch(
     )
     _require(Path(str(recipe.get("dataset_dir") or "")).resolve() == dataset_dir, "recipe audit dataset mismatch")
     _require(Path(str(recipe.get("out_bundle_dir") or "")).resolve() == out_bundle_dir, "recipe audit output mismatch")
+    _require(
+        recipe.get("prefreeze_test_seal_lineage") == test_seal_lineage
+        and recipe.get("prefreeze_test_seal_lineage_sha256")
+        == canonical_json_sha256(test_seal_lineage)
+        and test_seal_lineage.get("schema_version")
+        == PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION,
+        "recipe audit pre-freeze TEST seal lineage mismatch",
+    )
     _validate_source_revision(recipe, repo=repo)
     _require(recipe.get("trainer_cli") == trainer_cli, "recipe audit trainer_cli mismatch")
     _require(recipe.get("trainer_cli_sha256") == canonical_json_sha256(trainer_cli), "recipe audit trainer_cli_sha256 mismatch")
@@ -1548,6 +1712,7 @@ def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParse
     parser.add_argument("--memory-cap", required=True)
     parser.add_argument("--swap-cap", required=True)
     parser.add_argument("--gx1-data-root", required=True)
+    parser.add_argument("--prefreeze-test-seal-sha256", required=True)
     for key in _COMMON_BINDING_KEYS:
         parser.add_argument("--" + key.replace("_", "-"), dest=key, required=True)
     for profile_keys in _PROFILE_BINDING_KEYS.values():

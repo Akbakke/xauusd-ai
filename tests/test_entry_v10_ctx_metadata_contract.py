@@ -22,6 +22,14 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
     training_objective_contract_metadata,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_MTF_CONTEXT_COUNT,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
@@ -50,6 +58,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.model_native_input_normalization_support import (
     decision_window_coverage_fixture,
+)
+from tests.model_native_test_seal_support import (
+    prefreeze_test_seal_lineage_fixture,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
@@ -233,16 +244,37 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
     mtf_contract = {
         "enabled": True,
         "v4_mode": True,
+        "route_schema_version": "entry_exit_shared_mtf_routes_v1",
+        "entry_route_timeframes": list(ENTRY_MTF_CONTEXT_TIMEFRAMES),
+        "exit_route_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
+        "entry_target_availability_shift_minutes": (
+            ENTRY_DECISION_BAR_SECONDS / 60.0
+        ),
+        "exit_target_availability_shift_minutes": (
+            EXIT_DECISION_BAR_SECONDS / 60.0
+        ),
+        "entry_tf_gate_width": ENTRY_MTF_CONTEXT_COUNT,
+        "exit_tf_gate_width": EXIT_MTF_CONTEXT_COUNT,
+        "entry_family_tf_gate_width": (
+            ENTRY_MTF_CONTEXT_COUNT * 8
+        ),
+        "exit_family_tf_gate_width": EXIT_MTF_CONTEXT_COUNT * 8,
+        "shared_cache_identity_sha256": "a" * 64,
+        "shared_cache_manifest_sha256": "4" * 64,
+        "shared_cache_dir": "/fixture/mtf",
+        "shared_cache_manifest_path": "/fixture/mtf/manifest.json",
+        "shared_cache_m5_source": "/fixture/xau_m5_full_history.parquet",
+        "shared_cache_m5_source_sha256": "c" * 64,
         "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
-        "m5_seq_len": 96,
+        "m5_seq_len": 16,
         "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "m15_seq_len": 64,
         "h1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "h1_seq_len": 96,
         "h4_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
-        "h4_seq_len": 48,
+        "h4_seq_len": 96,
         "d1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
-        "d1_seq_len": 30,
+        "d1_seq_len": 252,
         "multi_tf_num_layers": 1,
         "multi_tf_scale": 0.5,
         "feature_contract": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
@@ -250,7 +282,6 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V4),
         "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V4,
         "closed_bar_target_availability": True,
-        "target_availability_shift_minutes": 5.0,
     }
     per_tf_seq_lens = {
         "M5": mtf_contract["m5_seq_len"],
@@ -277,9 +308,19 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
                 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
             ),
             "specialist_input_indices": mtf_specialist_indices,
-            "family_tf_token_order": [
+            "parameter_family_tf_token_order": [
                 f"{tf}:{specialist}"
                 for tf in ("m5", "m15", "h1", "h4", "d1")
+                for specialist in mtf_specialist_indices
+            ],
+            "entry_family_tf_token_order": [
+                f"{tf.lower()}:{specialist}"
+                for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+                for specialist in mtf_specialist_indices
+            ],
+            "exit_family_tf_token_order": [
+                f"{tf.lower()}:{specialist}"
+                for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
                 for specialist in mtf_specialist_indices
             ],
         }
@@ -338,6 +379,9 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
             "physical_train_rows": 100,
             "effective_train_rows": 100,
         },
+        "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage_fixture(
+            dataset_run_id="MODEL_NATIVE_DATASET_PYTEST_V1"
+        ),
         "m1_feature_surface_binding": {
             "parquet_path": "/immutable/m1_feature_base.parquet",
             "manifest_path": (
@@ -406,6 +450,55 @@ def test_model_native_bundle_metadata_contract_is_exact_and_complete() -> None:
     meta, lock = _exact_model_native_metadata()
 
     _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_metadata_requires_exact_test_seal_lineage() -> None:
+    meta, lock = _exact_model_native_metadata()
+    meta.pop("prefreeze_test_seal_lineage")
+    lock.pop("prefreeze_test_seal_lineage")
+
+    with pytest.raises(RuntimeError, match="EXACT_METADATA_MISSING"):
+        _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_rejects_test_seal_meta_lock_split_brain() -> None:
+    meta, lock = _exact_model_native_metadata()
+    meta["prefreeze_test_seal_lineage"]["test_manifest"]["sha256"] = "f" * 64
+
+    with pytest.raises(RuntimeError, match="META_LOCK_SPLIT_BRAIN"):
+        _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_metadata_rejects_nonproduction_mtf_window() -> None:
+    meta, lock = _exact_model_native_metadata()
+    for payload in (meta, lock):
+        payload["multi_tf"]["m5_seq_len"] = 15
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_EXIT_PRODUCTION_ARCHITECTURE_MISMATCH",
+    ):
+        _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_rejects_cache_path_split_brain() -> None:
+    meta, lock = _exact_model_native_metadata()
+    for payload in (meta, lock):
+        payload["multi_tf"]["shared_cache_manifest_path"] = (
+            "/different/cache/manifest.json"
+        )
+
+    with pytest.raises(RuntimeError, match="MTF_CACHE_PATH_BINDING_INVALID"):
+        _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_rejects_normalization_cache_split_brain() -> None:
+    meta, lock = _exact_model_native_metadata()
+    for payload in (meta, lock):
+        payload["multi_tf"]["shared_cache_manifest_sha256"] = "5" * 64
+
+    with pytest.raises(RuntimeError, match="INPUT_NORMALIZATION_LINEAGE_MISMATCH"):
+        _require_exact_model_native_bundle_metadata(meta, lock)
 
 
 @pytest.mark.parametrize(

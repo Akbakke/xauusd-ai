@@ -37,6 +37,18 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_MTF_CONTEXT_COUNT,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
+)
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     require_training_objective_contract,
 )
@@ -67,6 +79,11 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
 )
 from gx1.contracts.entry_model_native_calibration_v1 import (
     require_model_native_calibration_metadata,
+)
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    PrefreezeTestSealLineageError,
+    require_prefreeze_test_seal_lineage,
+    require_prefreeze_test_seal_lineage_metadata,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.unified_exit_lifecycle_v1 import (
@@ -219,6 +236,100 @@ def _require_mapping_field(parent: Mapping[str, Any], key: str, *, context: str)
     return value
 
 
+def _bundle_architecture_observation(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Project existing bundle metadata without reading model-state bytes."""
+
+    observed = current_entry_exit_architecture_observation()
+    signal_contract = payload.get("model_native_signal_contract")
+    normalization = payload.get("input_normalization")
+    mtf = payload.get("multi_tf")
+    specialist = payload.get("specialist_fusion")
+    unified = payload.get("unified_entry_exit_contract")
+    context_routing = payload.get("context_specialist_routing")
+    signal_contract = signal_contract if isinstance(signal_contract, Mapping) else {}
+    normalization = normalization if isinstance(normalization, Mapping) else {}
+    mtf = mtf if isinstance(mtf, Mapping) else {}
+    specialist = specialist if isinstance(specialist, Mapping) else {}
+    unified = unified if isinstance(unified, Mapping) else {}
+    context_routing = (
+        context_routing if isinstance(context_routing, Mapping) else {}
+    )
+    shared_base = unified.get("shared_feature_base_contract")
+    shared_base = shared_base if isinstance(shared_base, Mapping) else {}
+    local_indices = specialist.get("input_indices")
+    if not isinstance(local_indices, Mapping):
+        local_indices = context_routing.get("ctx_cont_indices")
+    mtf_indices = mtf.get("specialist_input_indices")
+
+    observed["schemas"]["signal"] = signal_contract.get("schema_version")
+    observed["schemas"]["input_normalization"] = normalization.get(
+        "schema_version"
+    )
+    observed["schemas"]["mtf_matrix"] = mtf.get("matrix_contract")
+    observed["shared_surface"] = {
+        "signal_dim": payload.get("seq_input_dim"),
+        "snap_dim": payload.get("snap_input_dim"),
+        "ctx_cont_dim": payload.get("ctx_cont_dim"),
+        "ctx_cat_dim": payload.get("ctx_cat_dim"),
+    }
+    observed["shared_encoder"] = shared_base.get("shared_encoder")
+    observed["local_specialists"] = (
+        list(local_indices) if isinstance(local_indices, Mapping) else local_indices
+    )
+    observed["mtf_specialists"] = (
+        list(mtf_indices) if isinstance(mtf_indices, Mapping) else mtf_indices
+    )
+    observed["mtf"] = {
+        "generation": "V4" if mtf.get("v4_mode") is True else mtf.get("v4_mode"),
+        "native_source_timeframe": shared_base.get("entry", {}).get(
+            "decision_timeframe"
+        )
+        if isinstance(shared_base.get("entry"), Mapping)
+        else None,
+        "cache_timeframes": ["M5", "M15", "H1", "H4", "D1"],
+        "per_tf_widths": {
+            "M5": mtf.get("m5_seq_dim"),
+            "M15": mtf.get("m15_seq_dim"),
+            "H1": mtf.get("h1_seq_dim"),
+            "H4": mtf.get("h4_seq_dim"),
+            "D1": mtf.get("d1_seq_dim"),
+        },
+        "per_tf_window_bars": {
+            "M5": mtf.get("m5_seq_len"),
+            "M15": mtf.get("m15_seq_len"),
+            "H1": mtf.get("h1_seq_len"),
+            "H4": mtf.get("h4_seq_len"),
+            "D1": mtf.get("d1_seq_len"),
+        },
+        "m5_route_consumption": {
+            "entry": (
+                "M5" in mtf.get("entry_route_timeframes", ())
+                if isinstance(mtf.get("entry_route_timeframes"), list)
+                else None
+            ),
+            "exit": (
+                "M5" in mtf.get("exit_route_timeframes", ())
+                if isinstance(mtf.get("exit_route_timeframes"), list)
+                else None
+            ),
+        },
+    }
+    observed["entry"] = {
+        "local_timeframe": unified.get("entry_local_timeframe"),
+        "sequence_bars": payload.get("seq_len"),
+        "mtf_route": mtf.get("entry_route_timeframes"),
+    }
+    observed["exit"] = {
+        "local_timeframe": unified.get("exit_local_timeframe"),
+        "sequence_bars": unified.get("exit_local_sequence_bars"),
+        "mtf_route": mtf.get("exit_route_timeframes"),
+        "max_path_bars": unified.get("exit_max_path_bars"),
+    }
+    return observed
+
+
 def _require_exact_model_native_bundle_metadata(
     meta: Mapping[str, Any],
     lock: Mapping[str, Any],
@@ -264,6 +375,7 @@ def _require_exact_model_native_bundle_metadata(
         "multi_tf",
         "tf_input_scale",
         "run_lineage",
+        "prefreeze_test_seal_lineage",
         "m1_feature_surface_binding",
     )
     missing_meta = [key for key in shared_exact if key not in meta]
@@ -452,6 +564,21 @@ def _require_exact_model_native_bundle_metadata(
     required_mtf = (
         "enabled",
         "v4_mode",
+        "route_schema_version",
+        "entry_route_timeframes",
+        "exit_route_timeframes",
+        "entry_target_availability_shift_minutes",
+        "exit_target_availability_shift_minutes",
+        "entry_tf_gate_width",
+        "exit_tf_gate_width",
+        "entry_family_tf_gate_width",
+        "exit_family_tf_gate_width",
+        "shared_cache_identity_sha256",
+        "shared_cache_manifest_sha256",
+        "shared_cache_dir",
+        "shared_cache_manifest_path",
+        "shared_cache_m5_source",
+        "shared_cache_m5_source_sha256",
         "m5_seq_dim",
         "m5_seq_len",
         "m15_seq_dim",
@@ -469,18 +596,27 @@ def _require_exact_model_native_bundle_metadata(
         "feature_names",
         "feature_names_sha256",
         "closed_bar_target_availability",
-        "target_availability_shift_minutes",
         "resolution_pyramid",
         "decision_window_coverage",
         "specialist_routing_schema_version",
         "specialist_input_indices",
-        "family_tf_token_order",
+        "parameter_family_tf_token_order",
+        "entry_family_tf_token_order",
+        "exit_family_tf_token_order",
     )
     missing_mtf = [key for key in required_mtf if key not in mtf]
     if missing_mtf:
         raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_METADATA_MISSING] {missing_mtf}")
     if mtf["enabled"] is not True or mtf["v4_mode"] is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_V4_REQUIRED]")
+    # The frozen production architecture owns the shared surface, routes and
+    # per-timeframe window bars. It is presented once the metadata is known to
+    # be structurally present, and before any window/pyramid interpretation.
+    for _owner, _payload in (("META", meta), ("LOCK", lock)):
+        require_entry_exit_production_architecture(
+            _bundle_architecture_observation(_payload),
+            context=f"ENTRY_V10_BUNDLE_{_owner}_EXACT_METADATA",
+        )
     # The bundle states which per-bar contract it was trained against and is
     # verified against exactly that one. Accepting a declared contract is not
     # the same as accepting any width: an unknown declaration fails closed, and
@@ -514,8 +650,48 @@ def _require_exact_model_native_bundle_metadata(
         )
     if mtf["closed_bar_target_availability"] is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CLOSED_BAR_REQUIRED]")
-    if abs(float(mtf["target_availability_shift_minutes"]) - 5.0) > 1e-9:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SHIFT_INVALID]")
+    expected_family_count = len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    if (
+        mtf["route_schema_version"] != "entry_exit_shared_mtf_routes_v1"
+        or mtf["entry_route_timeframes"] != list(ENTRY_MTF_CONTEXT_TIMEFRAMES)
+        or mtf["exit_route_timeframes"] != list(EXIT_MTF_CONTEXT_TIMEFRAMES)
+        or float(mtf["entry_target_availability_shift_minutes"])
+        != ENTRY_DECISION_BAR_SECONDS / 60.0
+        or float(mtf["exit_target_availability_shift_minutes"])
+        != EXIT_DECISION_BAR_SECONDS / 60.0
+        or int(mtf["entry_tf_gate_width"]) != ENTRY_MTF_CONTEXT_COUNT
+        or int(mtf["exit_tf_gate_width"]) != EXIT_MTF_CONTEXT_COUNT
+        or int(mtf["entry_family_tf_gate_width"])
+        != ENTRY_MTF_CONTEXT_COUNT * expected_family_count
+        or int(mtf["exit_family_tf_gate_width"])
+        != EXIT_MTF_CONTEXT_COUNT * expected_family_count
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_ROUTE_CONTRACT_INVALID]")
+    for field in (
+        "shared_cache_identity_sha256",
+        "shared_cache_manifest_sha256",
+        "shared_cache_m5_source_sha256",
+    ):
+        value = str(mtf[field])
+        if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+            raise RuntimeError(
+                f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CACHE_BINDING_INVALID] {field}"
+            )
+    cache_dir = Path(str(mtf["shared_cache_dir"]))
+    cache_manifest_path = Path(str(mtf["shared_cache_manifest_path"]))
+    cache_m5_source = Path(str(mtf["shared_cache_m5_source"]))
+    if (
+        not cache_dir.is_absolute()
+        or cache_dir.expanduser() != cache_dir
+        or not cache_manifest_path.is_absolute()
+        or cache_manifest_path.expanduser() != cache_manifest_path
+        or cache_manifest_path != cache_dir / "manifest.json"
+        or not cache_m5_source.is_absolute()
+        or cache_m5_source.expanduser() != cache_m5_source
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CACHE_PATH_BINDING_INVALID]"
+        )
     per_tf_seq_lens = {
         "M5": int(mtf["m5_seq_len"]),
         "M15": int(mtf["m15_seq_len"]),
@@ -553,12 +729,29 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SPECIALIST_ROUTING_INVALID]"
         )
-    expected_family_tf_token_order = [
+    expected_parameter_family_tf_token_order = [
         f"{tf}:{specialist}"
         for tf in TF_INPUT_SCALE_NAMES
         for specialist in expected_mtf_specialist_indices
     ]
-    if mtf["family_tf_token_order"] != expected_family_tf_token_order:
+    expected_entry_family_tf_token_order = [
+        f"{tf.lower()}:{specialist}"
+        for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+        for specialist in expected_mtf_specialist_indices
+    ]
+    expected_exit_family_tf_token_order = [
+        f"{tf.lower()}:{specialist}"
+        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        for specialist in expected_mtf_specialist_indices
+    ]
+    if (
+        mtf["parameter_family_tf_token_order"]
+        != expected_parameter_family_tf_token_order
+        or mtf["entry_family_tf_token_order"]
+        != expected_entry_family_tf_token_order
+        or mtf["exit_family_tf_token_order"]
+        != expected_exit_family_tf_token_order
+    ):
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_TOKEN_ORDER_INVALID]"
         )
@@ -631,6 +824,10 @@ def _require_exact_model_native_bundle_metadata(
         != meta["run_lineage"]["dataset_run_id"]
         or lineage["per_tf_seq_lens"] != expected_normalization_seq_lens
         or lineage["mtf_feature_names_sha256"] != _mtf_names_sha
+        or lineage["mtf_cache_manifest_path"]
+        != mtf["shared_cache_manifest_path"]
+        or lineage["mtf_cache_manifest_sha256"]
+        != mtf["shared_cache_manifest_sha256"]
     ):
         raise RuntimeError(
             "[ENTRY_BUNDLE_INPUT_NORMALIZATION_LINEAGE_MISMATCH]"
@@ -795,6 +992,15 @@ def _require_exact_model_native_bundle_metadata(
         )
     if state_contract.get("entry_run_id") != dataset_run_id:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DATASET_RUN_LINEAGE_MISMATCH]")
+    try:
+        require_prefreeze_test_seal_lineage_metadata(
+            meta["prefreeze_test_seal_lineage"],
+            expected_dataset_run_id=dataset_run_id,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            f"[ENTRY_BUNDLE_PREFREEZE_TEST_SEAL_LINEAGE_INVALID] {exc}"
+        ) from exc
     m1_binding = _require_mapping_field(
         meta,
         "m1_feature_surface_binding",
@@ -948,7 +1154,6 @@ def _require_exact_model_native_bundle_metadata(
             head="path",
             context="ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION",
         )
-
 
 def _require_model_native_state_head_contract(
     meta: Mapping[str, Any],
@@ -1149,6 +1354,38 @@ def _infer_entry_bundle_capabilities(meta: Dict[str, Any], state_dict: Dict[str,
     }
 
 
+def _require_current_prefreeze_test_seal_lineage(
+    meta: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Revalidate only the immutable seal event, never sealed TEST artifacts."""
+
+    declared = meta.get("prefreeze_test_seal_lineage")
+    run_lineage = meta.get("run_lineage")
+    if not isinstance(declared, Mapping) or not isinstance(run_lineage, Mapping):
+        raise RuntimeError("[ENTRY_BUNDLE_PREFREEZE_TEST_SEAL_LINEAGE_MISSING]")
+    try:
+        normalized = require_prefreeze_test_seal_lineage_metadata(
+            declared,
+            expected_dataset_run_id=str(run_lineage.get("dataset_run_id") or ""),
+        )
+        seal_event = normalized["seal_event"]
+        observed = require_prefreeze_test_seal_lineage(
+            seal_event["path"],
+            seal_event["sha256"],
+            expected_dataset_run_id=normalized["dataset_run_id"],
+            expected_dataset_dir=normalized["dataset_dir"],
+        )
+    except (PrefreezeTestSealLineageError, OSError, RuntimeError, ValueError) as exc:
+        raise RuntimeError(
+            f"[ENTRY_BUNDLE_PREFREEZE_TEST_SEAL_REVALIDATION_FAILED] {exc}"
+        ) from exc
+    if observed != normalized:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_PREFREEZE_TEST_SEAL_EVENT_LINEAGE_MISMATCH]"
+        )
+    return observed
+
+
 def load_entry_v10_ctx_bundle(
     *,
     bundle_dir: str | Path,
@@ -1174,7 +1411,6 @@ def load_entry_v10_ctx_bundle(
     if bd != supplied_bundle_dir:
         raise RuntimeError("[ENTRY_BUNDLE_PATH_NOT_CANONICAL]")
     _guard_required(bd, "bundle_dir")
-    committed_bundle = require_bundle_commit_manifest(bd)
 
     lock_path = bd / "MASTER_TRANSFORMER_LOCK.json"
     meta_path = bd / "bundle_metadata.json"
@@ -1186,12 +1422,19 @@ def load_entry_v10_ctx_bundle(
 
     lock_bytes = lock_path.read_bytes()
     meta_bytes = meta_path.read_bytes()
-    state_bytes = state_path.read_bytes()
     try:
         lock = json.loads(lock_bytes.decode("utf-8"))
         meta = json.loads(meta_bytes.decode("utf-8"))
     except Exception as exc:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_JSON_INVALID]") from exc
+    for owner, payload in (("META", meta), ("LOCK", lock)):
+        require_entry_exit_production_architecture(
+            _bundle_architecture_observation(payload),
+            context=f"ENTRY_V10_BUNDLE_{owner}_PREWEIGHT",
+        )
+
+    committed_bundle = require_bundle_commit_manifest(bd)
+    state_bytes = state_path.read_bytes()
     for name, payload in (
         ("MASTER_TRANSFORMER_LOCK.json", lock_bytes),
         ("bundle_metadata.json", meta_bytes),
@@ -1208,6 +1451,7 @@ def load_entry_v10_ctx_bundle(
                 f"name={name}"
             )
     _require_exact_model_native_bundle_metadata(meta, lock)
+    _require_current_prefreeze_test_seal_lineage(meta)
     seq_input_dim = int(meta["seq_input_dim"])
     snap_input_dim = int(meta["snap_input_dim"])
     seq_len = int(meta["seq_len"])
@@ -1342,14 +1586,13 @@ def load_entry_v10_ctx_bundle(
     # were fully validated above before any model is returned.
     _dir_cal = meta.get("direction_calibration")
     if _dir_cal is not None:
-        _cal_bias = torch.tensor([float(x) for x in _dir_cal["bias"]], dtype=torch.float32)
         _cal_temperature = float(_dir_cal["temperature"])
         _cal_fitted_on = str(_dir_cal.get("fitted_on_split", "unspecified"))
-        model.set_direction_calibration(_cal_temperature, _cal_bias)
+        model.set_direction_calibration(_cal_temperature)
         logging.getLogger(__name__).info(
-            "[ENTRY_DIRECTION_CAL] installed: temperature=%.4f bias=%s fitted_on=%s",
+            "[ENTRY_DIRECTION_CAL] installed argmax-preserving scalar: "
+            "temperature=%.4f fitted_on=%s",
             _cal_temperature,
-            [round(float(x), 4) for x in _cal_bias.tolist()],
             _cal_fitted_on,
         )
     _path_cal = meta.get("path_calibration")

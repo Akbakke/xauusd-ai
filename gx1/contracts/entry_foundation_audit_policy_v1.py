@@ -16,9 +16,9 @@ from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MOD
 from gx1.time.session_detector import SESSION_ORDER
 
 
-FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v8"
+FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v10"
 FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v2"
-FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val", "test")
+FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val")
 # TEST is final evidence, never an input to smoke/candidate continuation.
 FOUNDATION_AUDIT_SMOKE_SPLITS = ("val",)
 FOUNDATION_AUDIT_POLICY_SECTIONS = {

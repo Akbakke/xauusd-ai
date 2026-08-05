@@ -20,7 +20,7 @@ from gx1.features.htf_features import (
 )
 from gx1.scripts import audit_seq513_source_cascade_v1 as audit
 from gx1.scripts import backfill_xauusd_m5_from_oanda as canonical_backfill
-from gx1.scripts.prebuild_multi_tf_cache_v2 import publish_multi_tf_v2_cache
+from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
 from gx1.scripts.materialize_cv3_modelrange_v1 import SCHEMA_VERSION as MODELRANGE_SCHEMA
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
     CTX_OWNED_SESSION_COLUMNS,
@@ -179,12 +179,11 @@ def _fixture(
         frame.attrs["causal_warmup_rows"] = 0
         frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
         mtf_frames[tf] = frame
-    publish_multi_tf_v2_cache(
+    publish_multi_tf_v4_cache(
         out_dir=mtf_root,
         m5_prebuilt=cv3.resolve(),
         expected_source_sha256=_sha(cv3),
         features=mtf_frames,
-        contract="v4",
     )
     full = root / "FULL_PLUS_CTX_v3src.parquet"
     numeric_row = np.arange(1, row_count + 1, dtype=np.float64)

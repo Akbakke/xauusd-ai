@@ -173,6 +173,18 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                 "path": str(pretrain_path),
                 "sha256": _sha256(pretrain_path),
             },
+            "test_isolation": {
+                "authority": {
+                    "path": str(
+                        (
+                            tmp_path
+                            / "rebuild_authority"
+                            / "ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20260716T120002123456Z.json"
+                        ).resolve()
+                    ),
+                    "sha256": "9" * 64,
+                }
+            },
         },
     )
     _write_json(
@@ -234,7 +246,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "near_constant_count": 0,
             "mean_active_rate": 0.25,
         }
-        for split in ("train", "val", "test")
+        for split in FOUNDATION_AUDIT_DATA_SPLITS
         for name in readiness.REQUIRED_SPECIALISTS
     ]
     ordered_signal_names = ordered_signal_names_for_specialist_indices(
@@ -278,7 +290,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         },
     )
     smoke_manifest = {
-            "schema_version": "entry_model_native_seq513_smoke_dataset_v2",
+            "schema_version": "entry_model_native_seq513_smoke_dataset_v3",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "out_dir": str(smart_smoke_dataset_dir),
@@ -290,7 +302,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                         readiness.SMOKE_SPLIT_MANIFEST_SCHEMA
                     ),
                 }
-                for split in ("train", "val", "test")
+                for split in readiness.PREFREEZE_SPLITS
             },
         }
     smoke_manifest_path = (
@@ -299,7 +311,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         smoke_manifest_path,
         {
-            "schema_version": "entry_model_native_seq513_smoke_manifest_v2",
+            "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
             "report_only": True,
             "manifest_embedded": True,
@@ -395,6 +407,7 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert train_contract["requires_ram_cap"] is True
     assert train_contract["ram_cap_runner"] == "scripts/gx1_capped_run.sh"
     assert train_contract["num_workers"] == 0
+    assert train_contract["prefreeze_test_seal_lineage_required"] is True
     assert train_contract["requires_edge_audit"] is True
     assert train_contract["recipe_audit_control_route_exposed"] is True
     assert train_contract["recipe_audit_control_route"] == "model-native-train-recipe-audit"
@@ -444,9 +457,10 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
         "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260716T120000223456Z.json"
     )
     assert train_contract["control_route"] == "model-native-smoke-train"
+    assert train_contract["profile"] == "smoke"
     assert (
         train_contract["wrapper_path"]
-        == "scripts/run_entry_model_native_seq513_smoke_train.sh"
+        == "scripts/run_entry_model_native_seq513_train.sh"
     )
     assert train_contract["specialist_contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
     assert train_contract["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM

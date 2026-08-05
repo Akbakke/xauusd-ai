@@ -9,7 +9,10 @@ from gx1.features.basic_v1 import (
     _require_observed_spread_input,
     _validate_causal_feature_column,
 )
-from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
+from gx1.features.model_native_market_context_v1 import (
+    derive_model_native_trend_regime_id,
+    derive_observed_spread_bps,
+)
 from gx1.features.smc_v1 import compute_smc_features
 from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
 from gx1.execution.v12_ctx_augment_live import (
@@ -38,33 +41,6 @@ def test_high_level_rejects_degenerate_ohlc_before_plus5_features() -> None:
 
     with pytest.raises(RuntimeError, match="PLUS5_OHLC_INVALID"):
         add_high_level_basics(df.copy())
-
-
-def test_high_level_plus5_owner_recomputes_dependent_vwap_interaction() -> None:
-    n = 120
-    close = 100.0 + np.linspace(0.0, 2.0, n)
-    frame = pd.DataFrame(
-        {
-            "bid_close": close - 0.05,
-            "ask_close": close + 0.05,
-            "ask_high": close + 0.6,
-            "bid_low": close - 0.6,
-            "open": close - 0.1,
-            "high": close + 0.5,
-            "low": close - 0.5,
-            "close": close,
-            "volume": np.linspace(10.0, 30.0, n),
-            "_v1h1_ema_diff": np.full(n, 2.0),
-            "_v1_int_vwap_h1": np.full(n, 999.0),
-        }
-    )
-
-    out = add_high_level_basics(frame)
-
-    np.testing.assert_allclose(
-        out["_v1_int_vwap_h1"],
-        out["_v1_vwap_drift48"] * 2.0,
-    )
 
 
 def test_add_ctx_derives_spread_bps_from_valid_bid_ask() -> None:
@@ -185,6 +161,16 @@ def test_regime_categories_omit_train_fit_buckets_without_reference() -> None:
     assert "atr_bucket" not in frame
     assert "spread_bucket" not in frame
     assert frame["trend_regime_id"].tolist() == [0, 1, 2]
+
+
+def test_shared_trend_regime_formula_is_strict_at_exact_boundaries() -> None:
+    values = np.asarray([-2.0, -1.0, 1.0, 2.0], dtype=np.float64)
+    assert derive_model_native_trend_regime_id(values).tolist() == [0, 1, 1, 2]
+
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_CONTEXT_NONFINITE"):
+        derive_model_native_trend_regime_id(np.asarray([np.nan]))
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_TREND_REGIME_SHAPE"):
+        derive_model_native_trend_regime_id(values[:, None])
 
 
 def test_regime_categories_use_one_explicit_train_reference() -> None:

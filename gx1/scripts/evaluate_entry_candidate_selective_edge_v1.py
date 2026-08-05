@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Evaluate selective edge for an exact model-native seq513 candidate bundle.
 
-This is a post-candidate evidence writer. It strict-loads the runtime bundle,
-runs val/test forward passes, ranks the model's own LONG/SHORT/FLAT choices by
-their selected-class probability, and writes evidence for replay-readiness.
+This is a post-candidate evidence writer with two exact, fail-closed stages:
+pre_calibration reads only VAL, while runtime_authoritative reads only TEST
+after the frozen bundle and both immutable VAL calibrations have been proven.
+It ranks the model's own LONG/SHORT/FLAT choices by selected-class probability
+and writes evidence for replay-readiness.
 
 It never trains, promotes, shadows, starts live, or writes adapter artifacts.
 """
@@ -30,8 +32,18 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_calibration_v1 import (
+    require_model_native_calibration_metadata,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES,
@@ -57,6 +69,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     required_training_specialists_for_mode,
     specialist_model_contract_for_mode,
+)
+from gx1.features.model_native_market_context_v1 import (
+    derive_model_native_trend_regime_id,
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -85,11 +100,19 @@ from gx1.time.session_detector import SESSION_NAME_BY_ID
 SESSION_NAMES = SESSION_NAME_BY_ID
 SIDE_NAMES = MODEL_DIRECTION_NAME_BY_INDEX
 CONTRACT_SIGNAL_DIMS = {MODEL_NATIVE_CONTRACT_MODE: MODEL_NATIVE_SIGNAL_DIM}
-EVALUATION_SPLITS = ("train", "val", "test")
-DEFAULT_EVALUATION_SPLITS = ("val", "test")
 EVIDENCE_STAGES = ("pre_calibration", "runtime_authoritative")
+SELECTIVE_EDGE_STAGE_SPLITS = {
+    "pre_calibration": ("val",),
+    "runtime_authoritative": ("test",),
+}
+EVALUATION_SPLITS = tuple(
+    split
+    for stage in EVIDENCE_STAGES
+    for split in SELECTIVE_EDGE_STAGE_SPLITS[stage]
+)
 EVALUATION_TOP_FRACS = (0.05, 0.10)
 EVALUATION_MODEL_NAME = "candidate"
+SELECTIVE_EDGE_MAX_STREAM_CHUNK_ROWS = 4096
 SPECIALIST_MODEL_CONTRACT_FLAGS = (
     "specialist_model_contract_valid",
     "specialist_model_contract_set_exact",
@@ -318,6 +341,20 @@ def _concatenate_evidence_chunks(
     return combined
 
 
+def _entry_trend_regime_ids_from_ctx_cont(ctx_cont: np.ndarray) -> np.ndarray:
+    values = np.asarray(ctx_cont)
+    expected_width = len(MODEL_NATIVE_CTX_CONT_FIELDS)
+    if values.ndim != 2 or values.shape[1] != expected_width:
+        raise RuntimeError(
+            "candidate ctx_cont is not the exact context contract: "
+            f"observed={values.shape} expected=(*,{expected_width})"
+        )
+    source = values[
+        :, MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME["D1_dist_from_ema200_atr"]
+    ]
+    return derive_model_native_trend_regime_id(source)
+
+
 def _normalize_contract_mode(value: Any) -> str:
     mode = str(value or MODEL_NATIVE_CONTRACT_MODE).strip()
     if mode != MODEL_NATIVE_CONTRACT_MODE:
@@ -540,13 +577,6 @@ def _selection_sort_column(frame: pd.DataFrame) -> str:
     return "selection_score"
 
 
-def _top_frame(frame: pd.DataFrame, top_frac: float) -> pd.DataFrame:
-    if frame.empty:
-        return frame.copy()
-    n = max(1, int(math.ceil(len(frame) * float(top_frac))))
-    return frame.sort_values(_selection_sort_column(frame), ascending=False, kind="mergesort").head(n).copy()
-
-
 def _sha256_file(path: Path) -> str:
     if not path.exists() or not path.is_file():
         return ""
@@ -699,6 +729,10 @@ def _dataset_model_native_contract(
     splits: list[str],
     split_bindings: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
+    if tuple(splits) not in tuple(SELECTIVE_EDGE_STAGE_SPLITS.values()):
+        raise RuntimeError(
+            "selective-edge dataset contract requires one exact stage split"
+        )
     if set(split_bindings) != set(splits):
         raise RuntimeError(
             "selective-edge explicit dataset split bindings are incomplete"
@@ -771,25 +805,32 @@ def _iter_split_chunks(
     manifest_path: Path,
     stream_chunk_rows: int,
 ):
-    """Yield (chunk_parquet_path, cleanup_fn). Each dataset row carries its own
-    nested (seq_len, signal_dim) sequence, so rows are independent and row-range
-    chunking is loss-free. stream_chunk_rows<=0 -> the original file, unsliced.
-    Memory-bounded evaluation for huge splits (2026-07-04: the 390K-row dense
-    forward would need ~78GB if materialized in one piece)."""
+    """Yield exact bounded row-group chunks or fail before reading data."""
     import pyarrow.parquet as _pq
     import tempfile
 
-    if stream_chunk_rows <= 0:
-        yield parquet_path, (lambda: None)
-        return
+    if (
+        isinstance(stream_chunk_rows, bool)
+        or not 1 <= int(stream_chunk_rows) <= SELECTIVE_EDGE_MAX_STREAM_CHUNK_ROWS
+    ):
+        raise RuntimeError(
+            "SELECTIVE_EDGE_STREAM_CHUNK_ROWS_INVALID: expected "
+            f"1..{SELECTIVE_EDGE_MAX_STREAM_CHUNK_ROWS}"
+        )
     pf = _pq.ParquetFile(parquet_path)
     n_groups = pf.metadata.num_row_groups
     group_rows = [pf.metadata.row_group(i).num_rows for i in range(n_groups)]
+    oversized = [rows for rows in group_rows if rows > stream_chunk_rows]
+    if oversized:
+        raise RuntimeError(
+            "SELECTIVE_EDGE_PARQUET_ROW_GROUP_EXCEEDS_MEMORY_CONTRACT: "
+            f"largest={max(oversized)} limit={stream_chunk_rows}"
+        )
     start = 0
     while start < n_groups:
         rows_acc = 0
         end = start
-        while end < n_groups and rows_acc + group_rows[end] <= max(stream_chunk_rows, group_rows[end]):
+        while end < n_groups and rows_acc + group_rows[end] <= stream_chunk_rows:
             rows_acc += group_rows[end]
             end += 1
         print(f"[STREAM_CHUNK] reading row-groups {start}..{end - 1} of {n_groups} ({rows_acc:,} rows)", flush=True)
@@ -917,9 +958,6 @@ def _runtime_head_evidence_for_row(
         "direction_calibration_temperature": float(
             direction_calibration["temperature"]
         ),
-        "direction_calibration_bias": _python_value(
-            direction_calibration["bias"]
-        ),
         "path_calibration_enabled": True,
         "path_calibration": project_model_native_path_calibration(
             path_calibration,
@@ -928,7 +966,6 @@ def _runtime_head_evidence_for_row(
     }
     same_name_fields = (
         MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
-        - {"sizing_authority_contract"}
         - set(evidence)
     )
     missing = sorted(field for field in same_name_fields if field not in row)
@@ -1030,8 +1067,140 @@ def _require_evaluation_lineage(
         )
 
 
+def _require_selective_edge_stage_split(
+    *,
+    evidence_stage: Any,
+    split_spec: Any,
+) -> list[str]:
+    """Resolve the only legal split for one evidence stage."""
+
+    stage = str(evidence_stage or "")
+    if stage not in SELECTIVE_EDGE_STAGE_SPLITS:
+        raise RuntimeError(
+            "SELECTIVE_EDGE_STAGE_INVALID: expected pre_calibration or "
+            "runtime_authoritative"
+        )
+    expected = SELECTIVE_EDGE_STAGE_SPLITS[stage]
+    observed = str(split_spec or "")
+    if observed != expected[0]:
+        raise RuntimeError(
+            "SELECTIVE_EDGE_STAGE_SPLIT_INVALID: "
+            f"{stage} requires exactly --splits {expected[0]}; "
+            f"observed={observed!r}"
+        )
+    return list(expected)
+
+
+def _require_stage_split_bindings(
+    args: argparse.Namespace,
+    *,
+    splits: list[str],
+) -> dict[str, dict[str, str]]:
+    """Require all selected bindings and reject every cross-stage binding."""
+
+    if tuple(splits) not in tuple(SELECTIVE_EDGE_STAGE_SPLITS.values()):
+        raise RuntimeError(
+            "SELECTIVE_EDGE_STAGE_SPLIT_INVALID: expected one exact stage split"
+        )
+    suffixes = (
+        "manifest_json",
+        "manifest_sha256",
+        "parquet",
+        "parquet_sha256",
+    )
+    selected = set(splits)
+    missing = [
+        f"{split}_{suffix}"
+        for split in splits
+        for suffix in suffixes
+        if not str(getattr(args, f"{split}_{suffix}", "") or "").strip()
+    ]
+    if missing:
+        raise RuntimeError(
+            "selected evaluation stage lacks explicit artifact bindings: "
+            f"{missing}"
+        )
+    forbidden = [
+        f"{split}_{suffix}"
+        for split in EVALUATION_SPLITS
+        if split not in selected
+        for suffix in suffixes
+        if str(getattr(args, f"{split}_{suffix}", "") or "").strip()
+    ]
+    if forbidden:
+        raise RuntimeError(
+            "selected evaluation stage includes forbidden cross-stage artifact "
+            f"bindings: {forbidden}"
+        )
+    return {
+        split: {
+            "manifest_path": str(getattr(args, f"{split}_manifest_json")),
+            "manifest_sha256": str(
+                getattr(args, f"{split}_manifest_sha256")
+            ),
+            "parquet_path": str(getattr(args, f"{split}_parquet")),
+            "parquet_sha256": str(
+                getattr(args, f"{split}_parquet_sha256")
+            ),
+        }
+        for split in splits
+    }
+
+
+def _require_runtime_authoritative_calibrations(
+    bundle_metadata: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Validate both immutable VAL calibration contracts for TEST authority."""
+
+    validated: dict[str, dict[str, Any]] = {}
+    for head in ("direction", "path"):
+        key = f"{head}_calibration"
+        calibration = require_model_native_calibration_metadata(
+            bundle_metadata.get(key),
+            head=head,
+            context=f"SELECTIVE_EDGE_RUNTIME_{head.upper()}_CALIBRATION",
+        )
+        if calibration["fitted_on_split"] != "val":
+            raise RuntimeError(
+                "SELECTIVE_EDGE_RUNTIME_CALIBRATION_SPLIT_INVALID: "
+                f"{key} must be fitted on val"
+            )
+        validated[head] = calibration
+    return validated
+
+
+def _load_selective_edge_stage_bundle(
+    *,
+    bundle_dir: Path,
+    device: torch.device,
+    evidence_stage: str,
+) -> Any:
+    """Strict-load and prove stage authority before any dataset is read."""
+
+    require_entry_exit_production_architecture(
+        current_entry_exit_architecture_observation(),
+        context="SELECTIVE_EDGE_EVALUATOR_CONSTRUCTION",
+    )
+
+    bundle = load_entry_v10_ctx_bundle(
+        bundle_dir=bundle_dir,
+        device=str(device),
+    )
+    metadata = bundle.metadata
+    if not isinstance(metadata, Mapping):
+        raise RuntimeError("selective-edge bundle metadata is not an object")
+    _require_evaluation_lineage(
+        metadata.get("run_lineage"),
+        evidence_stage=evidence_stage,
+    )
+    if evidence_stage == "runtime_authoritative":
+        _require_runtime_authoritative_calibrations(metadata)
+    return bundle
+
+
 def _predict_bundle(
     *,
+    bundle: Any,
     bundle_dir: Path,
     split_manifests: dict[str, Path],
     split_parquets: dict[str, Path],
@@ -1041,10 +1210,9 @@ def _predict_bundle(
     batch_size: int,
     m5_prebuilt_path: Path,
     evidence_stage: str,
-    stream_chunk_rows: int = 0,
+    stream_chunk_rows: int,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
-    bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device))
     model = bundle.transformer_model
     model.eval()
     meta = dict(bundle.metadata)
@@ -1087,19 +1255,9 @@ def _predict_bundle(
         if "side_mae_scale_bps" in hier_meta
         else None
     )
-    direction_calibration = meta.get("direction_calibration")
     path_calibration = meta.get("path_calibration")
-    calibrated_runtime_bundle = bool(
-        isinstance(direction_calibration, Mapping)
-        and direction_calibration.get("enabled") is True
-        and isinstance(path_calibration, Mapping)
-        and path_calibration.get("enabled") is True
-    )
-    if evidence_stage == "runtime_authoritative" and not calibrated_runtime_bundle:
-        raise RuntimeError(
-            "runtime-authoritative prediction evidence requires enabled "
-            "direction and path calibration"
-        )
+    if evidence_stage == "runtime_authoritative":
+        _require_runtime_authoritative_calibrations(meta)
     runtime_head_ready = evidence_stage == "runtime_authoritative"
     path_inference_calibration = (
         project_model_native_path_calibration(
@@ -1158,8 +1316,8 @@ def _predict_bundle(
                     "pred_direction": [],
                     "y_direction": [],
                     "ctx_cat": [],
+                    "ctx_cont": [],
                     "path_quality_pred": [],
-                    "bad_path_prob": [],
                 }
                 # Dynamic per-head buffers retain learned auxiliary evidence.
                 extra_chunks: dict[str, list[np.ndarray]] = {}
@@ -1223,8 +1381,14 @@ def _predict_bundle(
                         chunks["pred_direction"].append(pred_direction)
                         chunks["y_direction"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
                         chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
+                        chunks["ctx_cont"].append(
+                            batch["ctx_cont"]
+                            .detach()
+                            .cpu()
+                            .float()
+                            .numpy()
+                        )
                         chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
-                        chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
                         extra_chunks.setdefault("direction_logits", []).append(
                             decision["direction_logits"]
                         )
@@ -1317,7 +1481,11 @@ def _predict_bundle(
                             specialist_gate
                         )
                         extra_chunks.setdefault("tf_gate", []).append(
-                            _tensor_np(out, "tf_gate", width=5)
+                            _tensor_np(
+                                out,
+                                "tf_gate",
+                                width=ENTRY_MTF_CONTEXT_COUNT,
+                            )
                         )
                         extra_chunks.setdefault(
                             "family_tf_cooperation_gate", []
@@ -1326,7 +1494,8 @@ def _predict_bundle(
                                 out,
                                 "family_tf_cooperation_gate",
                                 width=(
-                                    len(MODEL_NATIVE_TRAINING_SPECIALISTS) * 5
+                                    len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+                                    * ENTRY_MTF_CONTEXT_COUNT
                                 ),
                             )
                         )
@@ -1338,13 +1507,14 @@ def _predict_bundle(
                             not isinstance(_feature_gate, torch.Tensor)
                             or _feature_gate.ndim != 3
                             or tuple(_feature_gate.shape[1:])
-                            != (5, _expected_feature_width)
+                            != (ENTRY_MTF_CONTEXT_COUNT, _expected_feature_width)
                             or not bool(torch.isfinite(_feature_gate).all().item())
                         ):
                             raise RuntimeError(
                                 "exact model-native output family_tf_feature_gate "
                                 f"invalid: observed={getattr(_feature_gate, 'shape', None)} "
-                                f"expected=(*,5,{_expected_feature_width})"
+                                f"expected=(*,{ENTRY_MTF_CONTEXT_COUNT},"
+                                f"{_expected_feature_width})"
                             )
                         extra_chunks.setdefault(
                             "family_tf_feature_gate", []
@@ -1415,6 +1585,7 @@ def _predict_bundle(
                 frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
                 frame = frame.iloc[:n].copy()
                 ctx_cat = np.asarray(arrays["ctx_cat"], dtype=np.int64)
+                ctx_cont = np.asarray(arrays["ctx_cont"], dtype=np.float32)
                 frame["split"] = split
                 frame["model"] = model_name
                 frame["p_long"] = arrays["p_long"]
@@ -1425,21 +1596,37 @@ def _predict_bundle(
                 frame["pred_direction"] = arrays["pred_direction"].astype(np.int64)
                 frame["y_direction"] = arrays["y_direction"].astype(np.int64)
                 frame["path_quality_pred"] = arrays["path_quality_pred"]
-                frame["bad_path_prob"] = arrays["bad_path_prob"]
-                # Auxiliary outputs are evidence columns only.
+                # Auxiliary outputs are evidence columns only. Add them in one
+                # block to avoid fragmented frames and needless memory churn.
+                evidence_columns: dict[str, Any] = {}
                 for _col, _arr in extra_arrays.items():
                     if _arr.ndim == 2 and _arr.shape[1] == 1:
-                        frame[_col] = _arr[:, 0].astype(np.float32)
+                        evidence_columns[_col] = _arr[:, 0].astype(np.float32)
                     elif _arr.ndim == 2:
-                        frame[_col] = [row.astype(np.float32).tolist() for row in _arr]
+                        evidence_columns[_col] = [
+                            row.astype(np.float32).tolist() for row in _arr
+                        ]
                     elif (
                         _col.endswith("_side")
                         or _col.endswith("_index")
                         or _col == "public_trade_flat_hard_decision"
                     ):
-                        frame[_col] = _arr.astype(np.int64)
+                        evidence_columns[_col] = _arr.astype(np.int64)
                     else:
-                        frame[_col] = _arr.astype(np.float32)
+                        evidence_columns[_col] = _arr.astype(np.float32)
+                overlapping_columns = frame.columns.intersection(evidence_columns)
+                if len(overlapping_columns):
+                    raise RuntimeError(
+                        f"{model_name}/{split}: model evidence collides with "
+                        f"dataset columns {overlapping_columns.tolist()}"
+                    )
+                frame = pd.concat(
+                    [
+                        frame,
+                        pd.DataFrame(evidence_columns, index=frame.index),
+                    ],
+                    axis=1,
+                )
                 frame["selection_score_mode"] = MODEL_DIRECTION_SELECTION_MODE
                 direction_probabilities = frame[
                     ["p_long", "p_short", "p_flat"]
@@ -1498,25 +1685,9 @@ def _predict_bundle(
                 h4_trend_ids = ctx_cat[
                     :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["H4_trend_sign_cat"]
                 ].astype(np.int64)
-                if "trend_regime_id" not in frame.columns:
-                    raise RuntimeError(
-                        f"{model_name}/{split}: exact entry trend_regime_id is missing"
-                    )
-                trend_regime_numeric = pd.to_numeric(
-                    frame["trend_regime_id"],
-                    errors="coerce",
-                ).to_numpy(dtype=np.float64)
-                if (
-                    not np.isfinite(trend_regime_numeric).all()
-                    or not np.array_equal(
-                        trend_regime_numeric,
-                        trend_regime_numeric.astype(np.int64),
-                    )
-                ):
-                    raise RuntimeError(
-                        f"{model_name}/{split}: invalid entry trend_regime_id"
-                    )
-                trend_regime_ids = trend_regime_numeric.astype(np.int64)
+                trend_regime_ids = _entry_trend_regime_ids_from_ctx_cont(
+                    ctx_cont
+                )
                 if not np.isin(
                     vol_regime_ids,
                     MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"],
@@ -1713,6 +1884,11 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    evidence_stage = str(args.evidence_stage)
+    splits = _require_selective_edge_stage_split(
+        evidence_stage=evidence_stage,
+        split_spec=args.splits,
+    )
     bundle_dir = Path(args.bundle_dir).expanduser().resolve()
     contract_mode = MODEL_NATIVE_CONTRACT_MODE
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
@@ -1728,57 +1904,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         valid = path.is_dir() if expected_kind == "dir" else path.is_file()
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
-    requested_splits = [
-        value.strip()
-        for value in str(
-            getattr(args, "splits", ",".join(DEFAULT_EVALUATION_SPLITS))
-        ).split(",")
-        if value.strip()
-    ]
-    if (
-        not requested_splits
-        or len(requested_splits) != len(set(requested_splits))
-        or not set(requested_splits).issubset(EVALUATION_SPLITS)
-    ):
-        raise RuntimeError(
-            "evaluation splits must be a unique non-empty subset of "
-            f"{EVALUATION_SPLITS}"
-        )
-    splits = [
-        split for split in EVALUATION_SPLITS if split in requested_splits
-    ]
-    evidence_stage = str(
-        getattr(args, "evidence_stage", "runtime_authoritative")
+    split_bindings = _require_stage_split_bindings(args, splits=splits)
+    device = torch.device(_device_arg(args.device))
+    _reject_retired_selection_environment()
+    bundle = _load_selective_edge_stage_bundle(
+        bundle_dir=bundle_dir,
+        device=device,
+        evidence_stage=evidence_stage,
     )
-    if evidence_stage not in EVIDENCE_STAGES:
-        raise RuntimeError(
-            f"evidence_stage must be one of {EVIDENCE_STAGES}"
-        )
-    missing_split_arguments = [
-        f"{split}_{suffix}"
-        for split in splits
-        for suffix in (
-            "manifest_json",
-            "manifest_sha256",
-            "parquet",
-            "parquet_sha256",
-        )
-        if not str(getattr(args, f"{split}_{suffix}", "") or "").strip()
-    ]
-    if missing_split_arguments:
-        raise RuntimeError(
-            "selected evaluation splits lack explicit artifact bindings: "
-            f"{missing_split_arguments}"
-        )
-    split_bindings = {
-        split: {
-            "manifest_path": str(getattr(args, f"{split}_manifest_json")),
-            "manifest_sha256": str(getattr(args, f"{split}_manifest_sha256")),
-            "parquet_path": str(getattr(args, f"{split}_parquet")),
-            "parquet_sha256": str(getattr(args, f"{split}_parquet_sha256")),
-        }
-        for split in splits
-    }
     dataset_contract = _dataset_model_native_contract(
         dataset_dir,
         splits,
@@ -1793,8 +1926,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for split in splits
     }
     top_fracs = list(EVALUATION_TOP_FRACS)
-    device = torch.device(_device_arg(args.device))
-    _reject_retired_selection_environment()
     selection_score_mode = MODEL_DIRECTION_SELECTION_MODE
     exclude_sessions = tuple(
         s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
@@ -1812,6 +1943,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     all_predictions: list[pd.DataFrame] = []
     bundle_meta: dict[str, Any] = {}
     candidate, candidate_failures, bundle_meta = _predict_bundle(
+        bundle=bundle,
         bundle_dir=bundle_dir,
         split_manifests=split_manifests,
         split_parquets=split_parquets,
@@ -1821,7 +1953,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_size=int(args.batch_size),
         m5_prebuilt_path=m5_prebuilt,
         evidence_stage=evidence_stage,
-        stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
+        stream_chunk_rows=int(args.stream_chunk_rows),
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
@@ -1862,6 +1994,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             predictions_path=predictions_path,
             bundle_dir=bundle_dir,
             bundle_metadata=bundle_meta,
+            evidence_stage=evidence_stage,
             requested_splits=splits,
         )
     atomic_write_text(metrics_path, metrics.to_csv(index=False))
@@ -1932,7 +2065,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "bundle_metadata_path": report["bundle_metadata_path"],
             "bundle_metadata_sha256": report["bundle_metadata_sha256"],
             "model_state_dict_sha256": report["model_state_dict_sha256"],
-            "authoritative": True,
+            "evidence_stage": evidence_stage,
+            "authoritative": bool(
+                prediction_evidence.get("authoritative") is True
+            ),
             "note": "immutable summary bound to the matching prediction report and parquet",
             "failures": failures,
         }
@@ -1982,8 +2118,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--splits",
         required=True,
         help=(
-            "Exact comma-separated artifact role: train,val for sizing fit; "
-            "test for OOS; val,test for evaluation."
+            "Exactly one stage-owned split: use val with pre_calibration or "
+            "test with runtime_authoritative."
         ),
     )
     ap.add_argument(
@@ -1991,8 +2127,9 @@ def build_parser() -> argparse.ArgumentParser:
         choices=EVIDENCE_STAGES,
         required=True,
         help=(
-            "runtime_authoritative requires calibrated runtime-head envelopes; "
-            "pre_calibration emits non-authorizing V2 evidence explicitly."
+            "pre_calibration is VAL-only and non-authorizing; "
+            "runtime_authoritative is TEST-only and requires a strict-loaded "
+            "full candidate bundle with frozen direction/path calibration."
         ),
     )
     for split in EVALUATION_SPLITS:
@@ -2005,12 +2142,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument(
         "--stream-chunk-rows",
         type=int,
-        default=0,
+        required=True,
         help=(
-            "Memory-bounded evaluation: forward the split in row-chunks of this size "
-            "(each dataset row carries its own nested sequence, so chunking is loss-free). "
-            "0 = load the whole split (default, unchanged). Use for huge splits, e.g. the "
-            "390K-row dense train-window forward (~78GB unchunked)."
+            "Required bounded row-group chunk size in the range "
+            f"1..{SELECTIVE_EDGE_MAX_STREAM_CHUNK_ROWS}; oversized source "
+            "row groups fail closed before loading."
         ),
     )
     ap.add_argument("--m5-prebuilt-path", required=True)

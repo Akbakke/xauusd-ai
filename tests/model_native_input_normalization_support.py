@@ -15,7 +15,13 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     build_input_normalization_contract,
     fit_ctx_cat_contract,
     fit_surface_normalization,
-    share_temporal_alias_stats_from_ctx,
+    share_temporal_alias_stats_from_signal,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -25,6 +31,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     model_native_context_temporal_alias_policy,
 )
 from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_RESAMPLE_RULES,
     require_multi_tf_decision_window_coverage_metadata,
     require_multi_tf_resolution_pyramid,
@@ -50,36 +57,51 @@ def decision_window_coverage_fixture(
             "first_utc": "2026-01-02T00:00:00+00:00",
             "last_utc": "2026-01-02T00:45:00+00:00",
         },
-        "test": {
-            "rows": 10,
-            "first_utc": "2026-01-03T00:00:00+00:00",
-            "last_utc": "2026-01-03T00:45:00+00:00",
-        },
+    }
+    route_specs = {
+        "entry": (list(ENTRY_MTF_CONTEXT_TIMEFRAMES), ENTRY_DECISION_BAR_SECONDS),
+        "exit": (list(EXIT_MTF_CONTEXT_TIMEFRAMES), EXIT_DECISION_BAR_SECONDS),
+    }
+    routes = {
+        route: {
+            "timeframes": timeframes,
+            "target_availability_shift_seconds": shift,
+            "split_bounds": split_bounds,
+        }
+        for route, (timeframes, shift) in route_specs.items()
     }
     per_tf = {}
     for tf in MULTI_TF_RESAMPLE_RULES:
-        boundaries = {}
-        for split, bounds in split_bounds.items():
-            for edge in ("first", "last"):
-                boundaries[f"{split}_{edge}"] = {
-                    "target_utc": bounds[f"{edge}_utc"],
-                    "window_sha256": hashlib.sha256(
-                        f"{tf}:{split}:{edge}".encode("utf-8")
-                    ).hexdigest(),
-                }
+        tf_routes = {}
+        for route, (timeframes, _shift) in route_specs.items():
+            enabled = tf in timeframes
+            boundaries = {}
+            if enabled:
+                for split, bounds in split_bounds.items():
+                    for edge in ("first", "last"):
+                        boundaries[f"{split}_{edge}"] = {
+                            "target_utc": bounds[f"{edge}_utc"],
+                            "window_sha256": hashlib.sha256(
+                                f"{route}:{tf}:{split}:{edge}".encode("utf-8")
+                            ).hexdigest(),
+                        }
+            tf_routes[route] = {
+                "enabled": enabled,
+                "boundaries": boundaries,
+            }
         per_tf[tf] = {
             "seq_len": per_tf_seq_lens[tf],
             "coverage_seconds": pyramid["coverage_seconds"][tf],
             "causal_warmup_rows": 10,
-            "boundaries": boundaries,
+            "routes": tf_routes,
         }
     payload: dict[str, object] = {
-        "schema_version": "entry_multi_tf_decision_window_coverage_v1",
-        "target_availability_shift_minutes": 5,
+        "schema_version": "entry_exit_multi_tf_decision_window_coverage_v2",
+        "cache_contract": HTF_V4_MATRIX_CONTRACT,
+        "routes": routes,
         "resolution_pyramid": pyramid,
-        "split_bounds": split_bounds,
         "per_tf": per_tf,
-        "all_split_boundaries_sliceable": True,
+        "all_route_split_boundaries_sliceable": True,
     }
     payload["contract_sha256"] = hashlib.sha256(
         json.dumps(
@@ -127,21 +149,27 @@ def input_normalization_fixture(
             :, int(alias["ctx_cont_index"])
         ]
 
+    signal_surface = fit_surface_normalization(
+        signal,
+        surface="signal",
+        field_names=signal_names,
+        semantic_categorical_domains={
+            f"ctx_cont.{name}": domain
+            for name, domain in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS.items()
+            if f"ctx_cont.{name}" in signal_names
+        },
+    )
     ctx_surface = fit_surface_normalization(
         ctx,
         surface="ctx_cont",
         field_names=MODEL_NATIVE_CTX_CONT_FIELDS,
         semantic_categorical_domains=CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
     )
-    signal_surface = fit_surface_normalization(
-        signal,
-        surface="signal",
-        field_names=signal_names,
-    )
-    signal_surface = share_temporal_alias_stats_from_ctx(
-        signal_surface,
+    ctx_surface = share_temporal_alias_stats_from_signal(
         ctx_surface,
+        signal_surface,
         temporal_aliases=alias_policy["aliases"],
+        ctx_cont_values=ctx,
     )
     surfaces = {
         "signal": signal_surface,
@@ -199,6 +227,10 @@ def input_normalization_fixture(
         "train_manifest_path": "/fixture/train.manifest.json",
         "train_manifest_sha256": "2" * 64,
         "train_row_count": rows,
+        "entry_train_decision_row_count": rows - 1,
+        "exit_train_decision_row_count": 1,
+        "local_fit_row_count": rows,
+        "context_fit_row_count": rows,
         "val_fit_row_count": 0,
         "test_fit_row_count": 0,
         "train_time_min_utc": "2021-01-01T00:00:00+00:00",
@@ -248,12 +280,34 @@ def input_normalization_fit_population_proof_fixture(
         window = lineage["per_tf_fit_windows"][tf]
         population = {
             "tf": tf,
-            "selection": "union_of_causal_train_windows_each_source_row_once",
-            "target_availability_shift_seconds": 300,
+            "selection": (
+                "union_of_entry_plus5_exit_plus1_train_windows_each_cache_row_once"
+            ),
+            "target_availability_shift_seconds": None,
+            "route_target_availability_shift_seconds": {
+                "entry": ENTRY_DECISION_BAR_SECONDS,
+                "exit": EXIT_DECISION_BAR_SECONDS,
+            },
             "tf_shift_seconds": int(lineage["per_tf_shift_seconds"][tf]),
             "seq_len": int(lineage["per_tf_seq_lens"][tf]),
             "source_row_count": int(window["right_index_exclusive"]),
             "source_warmup_rows": 0,
+            "routes": {
+                "entry": {
+                    "enabled": tf in ENTRY_MTF_CONTEXT_TIMEFRAMES,
+                    "decision_row_count": (
+                        int(lineage["entry_train_decision_row_count"])
+                        if tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+                        else 0
+                    ),
+                },
+                "exit": {
+                    "enabled": True,
+                    "decision_row_count": int(
+                        lineage["exit_train_decision_row_count"]
+                    ),
+                },
+            },
             **window,
         }
         population["selection_proof_sha256"] = hashlib.sha256(
@@ -272,14 +326,26 @@ def input_normalization_fit_population_proof_fixture(
         ),
         "fit_scope": "train_only",
         "signal_population": (
-            "one_full_train_snapshot_per_unique_decision_row"
+            "union_unique_physical_entry_m5_and_exit_m1_local_rows"
         ),
-        "ctx_cont_population": "one_full_train_row_per_decision_row",
-        "ctx_cat_population": "one_full_train_row_per_decision_row",
+        "ctx_cont_population": (
+            "entry_train_decisions_plus_unique_exit_m1_current_decisions"
+        ),
+        "ctx_cat_population": (
+            "entry_train_decisions_plus_unique_exit_m1_current_decisions"
+        ),
         "sequence_population": (
-            "validation_only_seq_last_equals_snap_not_flattened_for_fit"
+            "physical_window_union_each_source_row_once"
         ),
         "train_decision_row_count": int(lineage["train_row_count"]),
+        "entry_train_decision_row_count": int(
+            lineage["entry_train_decision_row_count"]
+        ),
+        "exit_train_decision_row_count": int(
+            lineage["exit_train_decision_row_count"]
+        ),
+        "local_fit_row_count": int(lineage["local_fit_row_count"]),
+        "context_fit_row_count": int(lineage["context_fit_row_count"]),
         "train_decision_row_indices_sha256": "6" * 64,
         "train_decision_row_values_sha256": "7" * 64,
         "val_fit_row_count": 0,

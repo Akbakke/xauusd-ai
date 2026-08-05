@@ -7,6 +7,9 @@ current contract does not expose the exact raw event.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Iterable
 
 import numpy as np
@@ -23,6 +26,12 @@ FOUNDATION_STRUCTURE_FEATURE_VERSION = (
     "entry_foundation_structure_v3_20260729_total_wick_share_semantics_failclosed"
 )
 FOUNDATION_STRUCTURE_FEATURE_PREFIX = "chart.foundation_"
+FOUNDATION_EVENT_AGE_CAP = 96
+FOUNDATION_EVENT_AGE_CARRY_KEYS = (
+    "bos_up_age_bars",
+    "bos_down_age_bars",
+    "choch_age_bars",
+)
 FOUNDATION_STRUCTURE_REQUIRED_FAMILIES = (
     "hh_hl_lh_ll_state",
     "bos_choch_age",
@@ -180,14 +189,121 @@ def _lag1(arr: np.ndarray) -> np.ndarray:
     return out
 
 
-def _bars_since_event(event: np.ndarray, *, cap: int = 96) -> np.ndarray:
+def _require_event_age_value(value: object, *, cap: int) -> int:
+    if isinstance(value, (bool, np.bool_)) or not isinstance(
+        value,
+        (int, float, np.integer, np.floating),
+    ):
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_STATE_INVALID")
+    numeric = float(value)
+    if (
+        not np.isfinite(numeric)
+        or not numeric.is_integer()
+        or numeric < 0.0
+        or numeric > float(cap)
+    ):
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_STATE_INVALID")
+    return int(numeric)
+
+
+def _require_event_age_carry_state(
+    state: Mapping[str, object] | None,
+) -> dict[str, int]:
+    if state is None:
+        return {
+            name: FOUNDATION_EVENT_AGE_CAP
+            for name in FOUNDATION_EVENT_AGE_CARRY_KEYS
+        }
+    if not isinstance(state, Mapping) or set(state) != set(
+        FOUNDATION_EVENT_AGE_CARRY_KEYS
+    ):
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_STATE_INVALID")
+    return {
+        name: _require_event_age_value(
+            state[name],
+            cap=FOUNDATION_EVENT_AGE_CAP,
+        )
+        for name in FOUNDATION_EVENT_AGE_CARRY_KEYS
+    }
+
+
+class _FoundationEventAgeCarryScope:
+    __slots__ = ("initial_state", "tail_replay_rows", "next_state")
+
+    def __init__(self, initial_state: dict[str, int], tail_replay_rows: int) -> None:
+        self.initial_state = initial_state
+        self.tail_replay_rows = tail_replay_rows
+        self.next_state: dict[str, int] = {}
+
+
+_FOUNDATION_EVENT_AGE_CARRY_SCOPE: ContextVar[
+    _FoundationEventAgeCarryScope | None
+] = ContextVar(
+    "foundation_event_age_carry_scope",
+    default=None,
+)
+
+
+@contextmanager
+def foundation_event_age_carry_scope(
+    state: Mapping[str, object] | None,
+    *,
+    tail_replay_rows: int,
+) -> Iterator[_FoundationEventAgeCarryScope]:
+    """Bound event-age continuation to one synchronous feature build."""
+
+    if _FOUNDATION_EVENT_AGE_CARRY_SCOPE.get() is not None:
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_SCOPE_NESTED")
+    if (
+        isinstance(tail_replay_rows, bool)
+        or not isinstance(tail_replay_rows, int)
+        or tail_replay_rows < 0
+    ):
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_REPLAY_ROWS_INVALID")
+    scope = _FoundationEventAgeCarryScope(
+        _require_event_age_carry_state(state),
+        tail_replay_rows,
+    )
+    token = _FOUNDATION_EVENT_AGE_CARRY_SCOPE.set(scope)
+    try:
+        yield scope
+    finally:
+        _FOUNDATION_EVENT_AGE_CARRY_SCOPE.reset(token)
+
+
+def _bars_since_event(
+    event: np.ndarray,
+    *,
+    cap: int = FOUNDATION_EVENT_AGE_CAP,
+    carry_key: str,
+) -> np.ndarray:
+    if isinstance(cap, bool) or not isinstance(cap, int) or cap <= 0:
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CAP_INVALID")
     flags = np.asarray(event, dtype=bool)
+    if flags.ndim != 1:
+        raise RuntimeError("FOUNDATION_EVENT_AGE_FLAGS_INVALID")
+    scope = _FOUNDATION_EVENT_AGE_CARRY_SCOPE.get()
+    if scope is not None and (
+        cap != FOUNDATION_EVENT_AGE_CAP
+        or carry_key not in FOUNDATION_EVENT_AGE_CARRY_KEYS
+        or carry_key in scope.next_state
+    ):
+        raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_CAPTURE_INVALID")
     out = np.empty(flags.shape[0], dtype=np.float32)
-    last = -1
+    age = cap if scope is None else scope.initial_state[carry_key]
     for i, hit in enumerate(flags):
         if bool(hit):
-            last = i
-        out[i] = float(cap if last < 0 else min(i - last, cap))
+            age = 0
+        else:
+            age = min(age + 1, cap)
+        out[i] = float(age)
+    if scope is not None:
+        carry_index = flags.size - scope.tail_replay_rows - 1
+        scope.next_state[carry_key] = (
+            scope.initial_state[carry_key]
+            if carry_index < 0
+            else int(out[carry_index])
+        )
     return out
 
 
@@ -260,9 +376,18 @@ def build_entry_foundation_structure_layer(
     _add(arrays, names, "ll_state", ll_state, lo=0.0, hi=1.0)
     _add(arrays, names, "structure_up_minus_down", (hh_state + hl_state) - (lh_state + ll_state), lo=-2.0, hi=2.0)
 
-    bos_up_age = _bars_since_event(bos_up_event > 0.5, cap=96)
-    bos_down_age = _bars_since_event(bos_down_event > 0.5, cap=96)
-    choch_age = _bars_since_event(choch_event > 0.5, cap=96)
+    bos_up_age = _bars_since_event(
+        bos_up_event > 0.5,
+        carry_key="bos_up_age_bars",
+    )
+    bos_down_age = _bars_since_event(
+        bos_down_event > 0.5,
+        carry_key="bos_down_age_bars",
+    )
+    choch_age = _bars_since_event(
+        choch_event > 0.5,
+        carry_key="choch_age_bars",
+    )
     bos_up_recent = np.exp(-bos_up_age / 24.0).astype(np.float32) * (0.5 + 0.5 * bos_up_pressure)
     bos_down_recent = np.exp(-bos_down_age / 24.0).astype(np.float32) * (0.5 + 0.5 * bos_down_pressure)
     choch_recent = _clip01(np.exp(-choch_age / 24.0).astype(np.float32) * (0.5 + 0.5 * choch_recent_contract))

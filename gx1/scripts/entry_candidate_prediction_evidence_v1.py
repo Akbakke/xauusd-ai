@@ -19,9 +19,6 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from gx1.contracts.immutable_event_authority_v1 import (
-    require_newest_immutable_event,
-)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
@@ -43,17 +40,25 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v2"
+    "entry_candidate_model_direction_prediction_evidence_v3"
 )
 RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v5"
+    "entry_candidate_model_direction_prediction_evidence_v7"
 )
 RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_head_evidence_v3"
+    "entry_model_native_runtime_head_evidence_v5"
 )
 AUTHORITATIVE_PREDICTIONS_PREFIX = "selective_edge_predictions_"
 REPORT_PREFIX = "ENTRY_CANDIDATE_SELECTIVE_EDGE_"
 _EVENT_STAMP_RE = re.compile(r"\d{8}T\d{12}Z")
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+
+PRE_CALIBRATION_EVIDENCE_STAGE = "pre_calibration"
+RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE = "runtime_authoritative"
+PREDICTION_EVIDENCE_STAGE_SPLITS = {
+    PRE_CALIBRATION_EVIDENCE_STAGE: ("val",),
+    RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE: ("test",),
+}
 
 REQUIRED_MODEL_DIRECTION_COLUMNS = (
     "split",
@@ -94,6 +99,63 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _exact_sha256(value: Any, *, context: str) -> str:
+    if not isinstance(value, str):
+        raise RuntimeError(f"{context} must be an exact lowercase SHA-256")
+    normalized = value.strip().lower()
+    if _SHA256_RE.fullmatch(normalized) is None:
+        raise RuntimeError(f"{context} must be an exact lowercase SHA-256")
+    return normalized
+
+
+def _explicit_regular_file(path: Path, *, context: str) -> Path:
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute():
+        raise RuntimeError(f"{context} must be an explicit absolute path")
+    if candidate.is_symlink() or not candidate.is_file():
+        raise RuntimeError(f"{context} must be a regular non-symlink file: {candidate}")
+    return candidate.resolve(strict=True)
+
+
+def _explicit_directory(path: Path, *, context: str) -> Path:
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute():
+        raise RuntimeError(f"{context} must be an explicit absolute path")
+    if candidate.is_symlink() or not candidate.is_dir():
+        raise RuntimeError(f"{context} must be a non-symlink directory: {candidate}")
+    return candidate.resolve(strict=True)
+
+
+def _exact_stage_splits(
+    evidence_stage: Any,
+    splits: Any,
+    *,
+    context: str,
+) -> tuple[tuple[str, ...], bool]:
+    if not isinstance(evidence_stage, str):
+        raise RuntimeError(f"{context} evidence_stage is missing or invalid")
+    stage = evidence_stage.strip()
+    if stage != evidence_stage:
+        raise RuntimeError(f"{context} evidence_stage must be exact")
+    expected = PREDICTION_EVIDENCE_STAGE_SPLITS.get(stage)
+    if expected is None:
+        raise RuntimeError(
+            f"{context} evidence_stage must be one of "
+            f"{tuple(PREDICTION_EVIDENCE_STAGE_SPLITS)}"
+        )
+    if not isinstance(splits, (list, tuple)) or any(
+        not isinstance(split, str) for split in splits
+    ):
+        raise RuntimeError(f"{context} expected_splits must be an exact list/tuple")
+    observed = tuple(splits)
+    if observed != expected:
+        raise RuntimeError(
+            f"{context} stage/split mismatch: stage={stage!r} "
+            f"observed={observed!r} expected={expected!r}"
+        )
+    return expected, stage == RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE
 
 
 def _canonical_json(value: Any) -> str:
@@ -382,8 +444,6 @@ def validate_runtime_head_parquet_semantics(
             or head["direction_calibration_enabled"] is not True
             or float(head["direction_calibration_temperature"])
             != float(direction_calibration.get("temperature"))
-            or list(head["direction_calibration_bias"])
-            != list(direction_calibration.get("bias") or ())
             or head["path_calibration"] != path_calibration_inference
         ):
             raise RuntimeError(
@@ -436,17 +496,28 @@ def build_prediction_evidence_declaration(
     predictions_path: Path,
     bundle_dir: Path,
     bundle_metadata: Mapping[str, Any],
+    evidence_stage: str,
     requested_splits: list[str],
 ) -> dict[str, Any]:
     """Inspect the published parquet and return its exact lineage declaration."""
 
-    path = predictions_path.expanduser().resolve()
-    bundle_dir = bundle_dir.expanduser().resolve()
-    metadata_path = bundle_dir / "bundle_metadata.json"
-    if not path.is_file():
-        raise RuntimeError(f"authoritative prediction evidence missing: {path}")
-    if not metadata_path.is_file():
-        raise RuntimeError(f"bundle metadata missing for prediction evidence: {metadata_path}")
+    expected_splits, runtime_authoritative = _exact_stage_splits(
+        evidence_stage,
+        requested_splits,
+        context="prediction evidence declaration",
+    )
+    path = _explicit_regular_file(
+        predictions_path,
+        context="prediction evidence parquet",
+    )
+    bundle_dir = _explicit_directory(
+        bundle_dir,
+        context="prediction evidence bundle_dir",
+    )
+    metadata_path = _explicit_regular_file(
+        bundle_dir / "bundle_metadata.json",
+        context="prediction evidence bundle metadata",
+    )
     direction_contract = require_model_direction_decision_contract(
         bundle_metadata,
         context=f"prediction evidence bundle {bundle_dir}",
@@ -464,12 +535,14 @@ def build_prediction_evidence_declaration(
         raise RuntimeError("prediction evidence contains forbidden selection_score_threshold")
     runtime_columns = set(RUNTIME_HEAD_PREDICTION_COLUMNS)
     observed_runtime_columns = runtime_columns.intersection(columns)
-    if observed_runtime_columns and observed_runtime_columns != runtime_columns:
+    expected_runtime_columns = runtime_columns if runtime_authoritative else set()
+    if observed_runtime_columns != expected_runtime_columns:
         raise RuntimeError(
-            "prediction evidence contains a partial runtime-head envelope: "
-            f"missing={sorted(runtime_columns - observed_runtime_columns)}"
+            "prediction evidence runtime-head envelope does not match its stage: "
+            f"stage={evidence_stage!r} "
+            f"observed={sorted(observed_runtime_columns)} "
+            f"expected={sorted(expected_runtime_columns)}"
         )
-    runtime_authoritative = observed_runtime_columns == runtime_columns
     validate_model_direction_parquet_semantics(path)
     if runtime_authoritative:
         validate_runtime_head_parquet_semantics(
@@ -477,10 +550,10 @@ def build_prediction_evidence_declaration(
             bundle_metadata=bundle_metadata,
         )
     splits = _unique_strings(path, "split")
-    expected_splits = sorted({str(value) for value in requested_splits})
-    if splits != expected_splits:
+    if splits != list(expected_splits):
         raise RuntimeError(
-            f"prediction evidence split mismatch: observed={splits} expected={expected_splits}"
+            "prediction evidence split mismatch: "
+            f"observed={splits} expected={list(expected_splits)}"
         )
     modes = _unique_strings(path, "selection_score_mode")
     if modes != [MODEL_DIRECTION_SELECTION_MODE]:
@@ -495,7 +568,8 @@ def build_prediction_evidence_declaration(
             if runtime_authoritative
             else PREDICTION_EVIDENCE_SCHEMA_VERSION
         ),
-        "authoritative": True,
+        "evidence_stage": evidence_stage,
+        "authoritative": runtime_authoritative,
         "runtime_head_evidence_authoritative": runtime_authoritative,
         "path": str(path),
         "sha256": sha256_file(path),
@@ -543,31 +617,55 @@ def _timestamped_report_for_predictions(path: Path) -> Path:
 def resolve_and_validate_prediction_evidence(
     requested_path: Path,
     *,
+    expected_sha256: str,
     prediction_report_path: Path,
-    bundle_dir: Path | None,
+    bundle_dir: Path,
     dataset_dir: Path,
-    expected_split: str | None = None,
+    expected_stage: str,
+    expected_splits: tuple[str, ...],
     expected_model: str | None = None,
-    require_runtime_head_evidence: bool = False,
 ) -> tuple[Path, dict[str, Any], dict[str, Any]]:
-    """Re-hash one explicitly named, newest immutable prediction event.
+    """Re-hash one explicitly pinned immutable prediction event.
 
     Returns ``(authoritative_path, timestamped_report, evidence_declaration)``.
-    Every mismatch raises before a consumer can read predictions.  This is an
-    authorizing contract: mutable mirrors and older timestamped PASS events are
-    deliberately rejected even when their content still hashes correctly.
+    Every mismatch raises before a consumer can read predictions. Resolution
+    uses only the caller's explicit regular path, expected SHA-256, exact stage
+    and split tuple, and explicit report/bundle/dataset parent lineage. It never
+    scans for a newest sibling or follows a mutable alias.
     """
 
-    requested = requested_path.expanduser().resolve()
-    dataset_dir = dataset_dir.expanduser().resolve()
-    authoritative = requested
-    if authoritative.is_symlink():
+    if not isinstance(expected_splits, tuple):
         raise RuntimeError(
-            f"authoritative prediction evidence cannot be a symlink: {authoritative}"
+            "prediction evidence resolver expected_splits must be an exact tuple"
         )
-    if prediction_report_path is None:
-        raise RuntimeError("explicit timestamped prediction_report_path is required")
-    report_path = prediction_report_path.expanduser().resolve()
+    stage_splits, runtime_authoritative = _exact_stage_splits(
+        expected_stage,
+        expected_splits,
+        context="prediction evidence resolver",
+    )
+    pinned_sha256 = _exact_sha256(
+        expected_sha256,
+        context="prediction evidence expected_sha256",
+    )
+    # A mutable locator is rejected before any filesystem access: naming the
+    # evidence wrongly must never reach I/O, hashing or lineage resolution.
+    _timestamped_report_for_predictions(Path(requested_path))
+    authoritative = _explicit_regular_file(
+        requested_path,
+        context="authoritative prediction evidence",
+    )
+    report_path = _explicit_regular_file(
+        prediction_report_path,
+        context="prediction evidence parent report",
+    )
+    bundle_dir = _explicit_directory(
+        bundle_dir,
+        context="prediction evidence bundle_dir",
+    )
+    dataset_dir = _explicit_directory(
+        dataset_dir,
+        context="prediction evidence dataset_dir",
+    )
     expected_report_path = _timestamped_report_for_predictions(authoritative).resolve()
     if report_path != expected_report_path:
         raise RuntimeError(
@@ -575,7 +673,11 @@ def resolve_and_validate_prediction_evidence(
             f"event: predictions={authoritative} report={report_path} "
             f"expected={expected_report_path}"
         )
-    require_newest_immutable_event(report_path, REPORT_PREFIX.rstrip("_"))
+    observed_sha = sha256_file(authoritative)
+    if observed_sha != pinned_sha256:
+        raise RuntimeError(
+            "prediction evidence does not match caller-pinned expected SHA-256"
+        )
     report = _read_json(report_path)
 
     if Path(str(report.get("json_path") or "")).expanduser().resolve() != report_path:
@@ -584,42 +686,32 @@ def resolve_and_validate_prediction_evidence(
         raise RuntimeError("timestamped prediction report schema_version mismatch")
     if str(report.get("decision") or "") != "PASS" or report.get("failures"):
         raise RuntimeError("timestamped prediction report is not a zero-failure PASS event")
+    if report.get("evidence_stage") != expected_stage:
+        raise RuntimeError("timestamped prediction report evidence_stage mismatch")
     evidence = report.get("prediction_evidence")
     if not isinstance(evidence, dict):
         raise RuntimeError("timestamped prediction report lacks prediction_evidence")
     evidence_schema = evidence.get("schema_version")
-    if evidence_schema not in {
-        PREDICTION_EVIDENCE_SCHEMA_VERSION,
-        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
-    }:
-        raise RuntimeError("prediction evidence schema_version mismatch")
-    runtime_authoritative = (
-        evidence_schema == RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+    expected_evidence_schema = (
+        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+        if runtime_authoritative
+        else PREDICTION_EVIDENCE_SCHEMA_VERSION
     )
-    if bool(evidence.get("runtime_head_evidence_authoritative")) != (
-        runtime_authoritative
-    ):
+    if evidence_schema != expected_evidence_schema:
+        raise RuntimeError("prediction evidence schema_version mismatch")
+    if evidence.get("evidence_stage") != expected_stage:
+        raise RuntimeError("prediction evidence evidence_stage mismatch")
+    if evidence.get("runtime_head_evidence_authoritative") is not runtime_authoritative:
         raise RuntimeError(
             "prediction runtime-head authority declaration mismatch"
         )
-    if require_runtime_head_evidence and not runtime_authoritative:
-        raise RuntimeError(
-            "prediction evidence lacks the required exact runtime-head envelope"
-        )
-    if evidence.get("authoritative") is not True:
-        raise RuntimeError("prediction evidence is not declared authoritative")
+    if evidence.get("authoritative") is not runtime_authoritative:
+        raise RuntimeError("prediction evidence authority does not match its stage")
     if Path(str(evidence.get("path") or "")).expanduser().resolve() != authoritative:
         raise RuntimeError("prediction evidence path mismatch")
     if Path(str(report.get("predictions_path") or "")).expanduser().resolve() != authoritative:
         raise RuntimeError("timestamped report predictions_path mismatch")
-    if not authoritative.is_file():
-        raise RuntimeError(f"authoritative prediction evidence missing: {authoritative}")
-
     declared_bundle_dir = Path(str(report.get("bundle_dir") or "")).expanduser().resolve()
-    if bundle_dir is None:
-        bundle_dir = declared_bundle_dir
-    else:
-        bundle_dir = bundle_dir.expanduser().resolve()
     if declared_bundle_dir != bundle_dir:
         raise RuntimeError("prediction evidence bundle_dir mismatch")
     if Path(str(report.get("dataset_dir") or "")).expanduser().resolve() != dataset_dir:
@@ -629,7 +721,10 @@ def resolve_and_validate_prediction_evidence(
     if "selection_score_threshold" in report:
         raise RuntimeError("prediction report contains retired selection_score_threshold")
 
-    metadata_path = bundle_dir / "bundle_metadata.json"
+    metadata_path = _explicit_regular_file(
+        bundle_dir / "bundle_metadata.json",
+        context="prediction evidence bundle metadata",
+    )
     metadata = _read_json(metadata_path)
     bundle_contract = require_model_direction_decision_contract(
         metadata,
@@ -663,8 +758,7 @@ def resolve_and_validate_prediction_evidence(
     if str(report.get("model_state_dict_sha256") or "").lower() != state_sha:
         raise RuntimeError("timestamped report model state SHA-256 mismatch")
 
-    observed_sha = sha256_file(authoritative)
-    if str(evidence.get("sha256") or "").lower() != observed_sha:
+    if str(evidence.get("sha256") or "").lower() != pinned_sha256:
         raise RuntimeError("prediction evidence parquet SHA-256 mismatch")
     parquet = pq.ParquetFile(authoritative)
     if int(evidence.get("rows") or -1) != int(parquet.metadata.num_rows):
@@ -700,11 +794,16 @@ def resolve_and_validate_prediction_evidence(
     observed_splits = _unique_strings(authoritative, "split")
     observed_models = _unique_strings(authoritative, "model")
     observed_modes = _unique_strings(authoritative, "selection_score_mode")
-    if list(evidence.get("splits") or []) != observed_splits:
+    exact_splits = list(stage_splits)
+    if observed_splits != exact_splits:
+        raise RuntimeError(
+            "prediction evidence physical split set does not match exact stage splits"
+        )
+    if list(evidence.get("splits") or []) != exact_splits:
         raise RuntimeError("prediction evidence split declaration mismatch")
     if list(evidence.get("models") or []) != observed_models:
         raise RuntimeError("prediction evidence model declaration mismatch")
-    if sorted(str(value) for value in report.get("splits") or []) != observed_splits:
+    if list(report.get("splits") or []) != exact_splits:
         raise RuntimeError("timestamped report split declaration mismatch")
     if sorted(str(value) for value in report.get("models") or []) != observed_models:
         raise RuntimeError("timestamped report model declaration mismatch")
@@ -714,8 +813,9 @@ def resolve_and_validate_prediction_evidence(
         raise RuntimeError("prediction evidence declared direction mode mismatch")
     if "selection_score_threshold" in evidence:
         raise RuntimeError("prediction evidence contains retired selection_score_threshold")
-    if expected_split is not None and str(expected_split) not in observed_splits:
-        raise RuntimeError(f"prediction evidence lacks requested split {expected_split!r}")
-    if expected_model is not None and str(expected_model) not in observed_models:
-        raise RuntimeError(f"prediction evidence lacks requested model {expected_model!r}")
+    if expected_model is not None and observed_models != [str(expected_model)]:
+        raise RuntimeError(
+            "prediction evidence model set is not exact: "
+            f"observed={observed_models} expected={[str(expected_model)]}"
+        )
     return authoritative, report, evidence

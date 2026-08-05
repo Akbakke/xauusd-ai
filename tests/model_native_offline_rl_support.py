@@ -11,6 +11,12 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     model_native_aux_target_contract_metadata,
 )
+from gx1.contracts.entry_model_native_calibration_v1 import (
+    DIRECTION_CALIBRATION_TIE_POLICY,
+    DIRECTION_CALIBRATION_TRANSFORM,
+    DIRECTION_CALIBRATION_VERSION,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.contracts.entry_model_native_offline_rl_v1 import (
     ACTION_ORDER,
     ACTION_VALUE_TARGET_COLUMNS,
@@ -42,10 +48,12 @@ from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 
 TEST_DIRECTION_CALIBRATION = {
     "enabled": True,
-    "version": "entry_model_native_direction_calibration_v1",
+    "version": DIRECTION_CALIBRATION_VERSION,
     "temperature": 1.0,
-    "bias": [0.0, 0.0, 0.0],
     "class_order": ["LONG", "SHORT", "FLAT"],
+    "transform": DIRECTION_CALIBRATION_TRANSFORM,
+    "argmax_preserving": True,
+    "tie_policy": DIRECTION_CALIBRATION_TIE_POLICY,
     "fitted_at_utc": "2026-07-17T09:00:00+00:00",
     "fitted_on_split": "val",
     "fitted_rows": 300,
@@ -97,7 +105,7 @@ def offline_rl_evidence() -> dict[str, list[float]]:
 def model_native_mtf_cooperation_evidence() -> dict[str, list[float]]:
     """Return the exact neutral-shape fixture for learned MTF diagnostics."""
 
-    timeframe_count = 5
+    timeframe_count = ENTRY_MTF_CONTEXT_COUNT
     cooperation_width = timeframe_count * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
     feature_width = timeframe_count * len(MULTI_TF_PER_BAR_FEATURES_V4)
     return {
@@ -300,7 +308,6 @@ def runtime_head_prediction_columns(
             "calibration_version": direction_calibration["version"],
             "direction_calibration_enabled": True,
             "direction_calibration_temperature": direction_calibration["temperature"],
-            "direction_calibration_bias": direction_calibration["bias"],
             "path_calibration_enabled": True,
             "path_calibration": project_model_native_path_calibration(
                 path_calibration

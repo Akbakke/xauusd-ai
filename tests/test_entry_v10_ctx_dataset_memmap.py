@@ -13,8 +13,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    PRODUCTION_MTF_PER_TF_WINDOW_BARS,
 )
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from tests.entry_v10_trainer_dataset_support import (
@@ -26,7 +30,7 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 def _write_advanced_parquet(path: Path, *, times: list[str] | None = None) -> None:
     rows = 3
-    seq_len = 2
+    seq_len = MODEL_NATIVE_SEQ_LEN
     signal_dim = MODEL_NATIVE_SIGNAL_DIM
     ctx_cont_dim = MODEL_NATIVE_CTX_CONT_DIM
     ctx_cat_dim = MODEL_NATIVE_CTX_CAT_DIM
@@ -110,9 +114,9 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
 
     ds = trainer.EntryV10CtxDataset(
         parquet_path,
-        seq_len=2,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
         m5_prebuilt_path=m5_path,
-        per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
         multi_tf_closed_bar=True,
     )
 
@@ -120,7 +124,7 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
     assert isinstance(ds._np_snap, np.memmap)
     assert isinstance(ds._np_ctx_cont, np.memmap)
     assert isinstance(ds._np_ctx_cat, np.memmap)
-    assert ds._np_seq.shape == (3, 2, MODEL_NATIVE_SIGNAL_DIM)
+    assert ds._np_seq.shape == (3, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
     assert ds._np_snap.shape == (3, MODEL_NATIVE_SIGNAL_DIM)
     assert ds._np_ctx_cont.shape == (3, MODEL_NATIVE_CTX_CONT_DIM)
     assert ds._np_ctx_cat.shape == (3, MODEL_NATIVE_CTX_CAT_DIM)
@@ -128,7 +132,10 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
 
     sample = ds[1]
 
-    assert tuple(sample["seq_x"].shape) == (2, MODEL_NATIVE_SIGNAL_DIM)
+    assert tuple(sample["seq_x"].shape) == (
+        MODEL_NATIVE_SEQ_LEN,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
     assert tuple(sample["snap_x"].shape) == (MODEL_NATIVE_SIGNAL_DIM,)
     assert tuple(sample["ctx_cont"].shape) == (MODEL_NATIVE_CTX_CONT_DIM,)
     assert tuple(sample["ctx_cat"].shape) == (MODEL_NATIVE_CTX_CAT_DIM,)
@@ -154,9 +161,9 @@ def test_advanced_dataset_rejects_unsorted_time_rows(tmp_path, monkeypatch) -> N
     with pytest.raises(RuntimeError, match="ENTRY_V10_CTX_ADVANCED_TIME_ORDER_FAIL"):
         trainer.EntryV10CtxDataset(
             parquet_path,
-            seq_len=2,
+            seq_len=MODEL_NATIVE_SEQ_LEN,
             m5_prebuilt_path=m5_path,
-            per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+            per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
             multi_tf_closed_bar=True,
         )
 
@@ -171,13 +178,13 @@ def test_dataset_rejects_missing_timeframe_length_without_global_fallback(
 
     with pytest.raises(
         RuntimeError,
-        match="ENTRY_PER_TF_SEQ_LEN_CONTRACT_INVALID",
+        match="ENTRY_EXIT_PRODUCTION_ARCHITECTURE_MISMATCH",
     ):
         trainer.EntryV10CtxDataset(
             parquet_path,
-            seq_len=2,
+            seq_len=MODEL_NATIVE_SEQ_LEN,
             m5_prebuilt_path=m5_path,
-            per_tf_seq_lens={"M5": 2, "H4": 2, "D1": 2},
+            per_tf_seq_lens={"M5": 16, "H4": 96, "D1": 252},
             multi_tf_closed_bar=True,
         )
 
@@ -192,9 +199,9 @@ def test_compact_materialized_rows_preserves_original_row_lookup(tmp_path, monke
     m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
     ds = trainer.EntryV10CtxDataset(
         parquet_path,
-        seq_len=2,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
         m5_prebuilt_path=m5_path,
-        per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
         multi_tf_closed_bar=True,
     )
 
@@ -202,7 +209,11 @@ def test_compact_materialized_rows_preserves_original_row_lookup(tmp_path, monke
     ds.compact_materialized_rows(ds.indices)
 
     assert not isinstance(ds._np_seq, np.memmap)
-    assert ds._np_seq.shape == (2, 2, MODEL_NATIVE_SIGNAL_DIM)
+    assert ds._np_seq.shape == (
+        2,
+        MODEL_NATIVE_SEQ_LEN,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
     assert np.array_equal(ds._compact_row_indices, np.asarray([0, 2]))
     sample = ds[1]
     assert int(sample["y"].item()) == 2

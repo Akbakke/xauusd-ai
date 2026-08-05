@@ -1,7 +1,7 @@
 """Produce an immutable calibrated model-native Entry bundle.
 
 Calibration is fitted only from an explicitly named, immutable prediction
-event on one held-out ``val`` or ``calibration`` split.  The source bundle is
+event on the held-out ``val`` split.  The source bundle is
 never modified.  Execution creates a new timestamped sibling bundle, keeps
 the model state and lock byte-identical, and records a hash-bound calibration
 event inside the derived bundle.
@@ -44,6 +44,8 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
 from gx1.contracts.entry_model_native_calibration_v1 import (
     CALIBRATION_EVENT_PREFIX,
     CALIBRATION_FIT_SPLITS,
+    DIRECTION_CALIBRATION_TIE_POLICY,
+    DIRECTION_CALIBRATION_TRANSFORM,
     DIRECTION_CALIBRATION_VERSION,
     IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
     PATH_CALIBRATION_VERSION,
@@ -80,10 +82,10 @@ def _positive_int(raw: str) -> int:
     return value
 
 
-def _direction_odds_cap(raw: str) -> float:
-    value = float(raw)
-    if not math.isfinite(value) or value < 1.0:
-        raise argparse.ArgumentTypeError("must be finite and >= 1.0")
+def _sha256_arg(raw: str) -> str:
+    value = str(raw).strip().lower()
+    if _HEX64_RE.fullmatch(value) is None:
+        raise argparse.ArgumentTypeError("must be an exact lowercase SHA-256")
     return value
 
 
@@ -101,17 +103,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         required=True,
         help="matching timestamped ENTRY_CANDIDATE_SELECTIVE_EDGE event",
     )
+    parser.add_argument(
+        "--predictions-sha256",
+        required=True,
+        type=_sha256_arg,
+        help="caller-pinned SHA-256 of the exact immutable prediction parquet",
+    )
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--heads", required=True, choices=("direction", "path"))
     parser.add_argument("--fit-split", required=True, choices=HELD_OUT_SPLITS)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--min-fit-rows", required=True, type=_positive_int)
-    parser.add_argument(
-        "--direction-odds-cap",
-        type=_direction_odds_cap,
-        help="required for direction; forbidden for path",
-    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -286,23 +289,35 @@ def _scoped_frame(
     return scoped
 
 
-def _direction_nll(params: np.ndarray, logp: np.ndarray, labels: np.ndarray) -> float:
-    if params.shape != (3,) or not np.isfinite(params).all():
+def _direction_nll(params: np.ndarray, logits: np.ndarray, labels: np.ndarray) -> float:
+    if params.shape != (1,) or not np.isfinite(params).all():
         return float("inf")
     temperature = float(np.exp(params[0]))
     if not math.isfinite(temperature) or temperature <= 0.0:
         return float("inf")
-    bias = np.asarray([params[1], params[2], -params[1] - params[2]], dtype=np.float64)
-    logits = logp / temperature + bias
-    value = np.mean(logsumexp(logits, axis=1) - logits[np.arange(len(labels)), labels])
+    calibrated = logits / temperature
+    value = np.mean(
+        logsumexp(calibrated, axis=1)
+        - calibrated[np.arange(len(labels)), labels]
+    )
     return float(value) if math.isfinite(float(value)) else float("inf")
 
 
-def _fit_direction(
-    frame: pd.DataFrame,
-    *,
-    odds_cap: float,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+def _direction_logits_matrix(frame: pd.DataFrame) -> np.ndarray:
+    try:
+        rows = [
+            np.asarray(value, dtype=np.float64)
+            for value in frame["direction_logits"].tolist()
+        ]
+        logits = np.stack(rows, axis=0)
+    except Exception as exc:
+        raise RuntimeError("direction_logits is not an exact numeric matrix") from exc
+    if logits.shape != (len(frame), 3) or not np.isfinite(logits).all():
+        raise RuntimeError("direction_logits must have finite exact shape (rows, 3)")
+    return logits
+
+
+def _fit_direction(frame: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
     probabilities = np.column_stack([_numeric_column(frame, name) for name in CLASS_COLUMNS])
     if probabilities.shape != (len(frame), 3):
         raise RuntimeError("direction probabilities must have exact shape (rows, 3)")
@@ -321,45 +336,65 @@ def _fit_direction(
     if observed_classes != [0, 1, 2]:
         raise RuntimeError(f"direction calibration is missing classes: observed={observed_classes}")
 
-    logp = np.log(probabilities)
-    initial = np.zeros(3, dtype=np.float64)
-    nll_before = _direction_nll(initial, logp, labels)
+    raw_logits = _direction_logits_matrix(frame)
+    raw_probabilities = np.exp(
+        raw_logits - logsumexp(raw_logits, axis=1, keepdims=True)
+    )
+    if not np.allclose(probabilities, raw_probabilities, rtol=0.0, atol=1e-6):
+        raise RuntimeError(
+            "direction probabilities are not softmax(raw direction_logits)"
+        )
+    raw_winner_mask = raw_logits == raw_logits.max(axis=1, keepdims=True)
+    raw_winner_counts = raw_winner_mask.sum(axis=1)
+    tied_rows = int(np.count_nonzero(raw_winner_counts != 1))
+    if tied_rows:
+        raise RuntimeError(
+            "raw direction logits have no unique argmax; "
+            f"ties fail closed rows={tied_rows}"
+        )
+
+    initial = np.zeros(1, dtype=np.float64)
+    nll_before = _direction_nll(initial, raw_logits, labels)
     result = minimize(
         _direction_nll,
         initial,
-        args=(logp, labels),
+        args=(raw_logits, labels),
         method="L-BFGS-B",
-        bounds=((-5.0, 5.0), (-10.0, 10.0), (-10.0, 10.0)),
+        bounds=((-5.0, 5.0),),
         options={"maxiter": 4000, "ftol": 1e-12, "gtol": 1e-8},
     )
     if result.success is not True:
         raise RuntimeError(f"direction calibration optimizer failed: {result.message}")
     fitted = np.asarray(result.x, dtype=np.float64)
-    if fitted.shape != (3,) or not np.isfinite(fitted).all():
+    if fitted.shape != (1,) or not np.isfinite(fitted).all():
         raise RuntimeError("direction calibration optimizer returned malformed parameters")
-    nll_after = _direction_nll(fitted, logp, labels)
+    nll_after = _direction_nll(fitted, raw_logits, labels)
     if not (math.isfinite(nll_before) and math.isfinite(nll_after) and nll_after < nll_before):
         raise RuntimeError(
             f"direction calibration lacks strict NLL improvement: {nll_before} -> {nll_after}"
         )
     temperature = float(np.exp(fitted[0]))
-    bias = [float(fitted[1]), float(fitted[2]), float(-fitted[1] - fitted[2])]
-    equal_logits = np.asarray(bias, dtype=np.float64)
-    equal_prob = np.exp(equal_logits - logsumexp(equal_logits))
-    long_short_odds = float(
-        max(equal_prob[0] / equal_prob[1], equal_prob[1] / equal_prob[0])
+    calibrated_logits = raw_logits / temperature
+    calibrated_winner_mask = calibrated_logits == calibrated_logits.max(
+        axis=1,
+        keepdims=True,
     )
-    if not math.isfinite(long_short_odds) or long_short_odds > odds_cap:
+    if not np.array_equal(raw_winner_mask, calibrated_winner_mask):
         raise RuntimeError(
-            "direction calibration exceeds the explicit equal-logit LONG/SHORT "
-            f"odds cap: observed={long_short_odds} cap={odds_cap}"
+            "direction temperature calibration changed or collapsed raw argmax"
         )
+    raw_argmax = np.argmax(raw_logits, axis=1)
+    calibrated_argmax = np.argmax(calibrated_logits, axis=1)
+    if not np.array_equal(raw_argmax, calibrated_argmax):
+        raise RuntimeError("direction temperature calibration changed raw argmax")
     calibration = {
         "enabled": True,
         "version": DIRECTION_CALIBRATION_VERSION,
         "temperature": temperature,
-        "bias": bias,
         "class_order": list(CLASS_ORDER),
+        "transform": DIRECTION_CALIBRATION_TRANSFORM,
+        "argmax_preserving": True,
+        "tie_policy": DIRECTION_CALIBRATION_TIE_POLICY,
     }
     metrics = {
         "fitted_rows": int(len(frame)),
@@ -367,11 +402,13 @@ def _fit_direction(
         "nll_before": nll_before,
         "nll_after": nll_after,
         "nll_improvement": nll_before - nll_after,
-        "equal_logit_long_probability": float(equal_prob[0]),
-        "equal_logit_short_probability": float(equal_prob[1]),
-        "equal_logit_flat_probability": float(equal_prob[2]),
-        "equal_logit_long_short_odds": long_short_odds,
-        "direction_odds_cap": odds_cap,
+        "raw_calibrated_argmax_identical": True,
+        "unique_raw_argmax_rows": int(len(frame)),
+        "winner_rows_by_class": {
+            str(CLASS_ORDER[index]): int(np.count_nonzero(raw_argmax == index))
+            for index in range(3)
+        },
+        "tie_policy": DIRECTION_CALIBRATION_TIE_POLICY,
         "optimizer": {
             "method": "L-BFGS-B",
             "success": True,
@@ -766,10 +803,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("source and output bundle paths must differ")
     if out_stamp <= source_stamp:
         raise RuntimeError("output bundle stamp must be later than source bundle stamp")
-    if args.heads == "direction" and args.direction_odds_cap is None:
-        raise RuntimeError("--direction-odds-cap is required for direction calibration")
-    if args.heads == "path" and args.direction_odds_cap is not None:
-        raise RuntimeError("--direction-odds-cap is forbidden for path calibration")
     if not str(args.model).strip():
         raise RuntimeError("--model cannot be blank")
     from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
@@ -810,10 +843,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             raise RuntimeError(f"{label} contains mutable alias tokens: {mutable}")
     predictions_path, _report, prediction_evidence = resolve_and_validate_prediction_evidence(
         requested_predictions,
+        expected_sha256=str(args.predictions_sha256),
         prediction_report_path=requested_report,
         bundle_dir=source_bundle_dir,
         dataset_dir=dataset_dir,
-        expected_split=args.fit_split,
+        expected_stage="pre_calibration",
+        expected_splits=(str(args.fit_split),),
         expected_model=args.model,
     )
     prediction_report_path = requested_report.resolve()
@@ -834,7 +869,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if _HEX64_RE.fullmatch(validated_report_sha) is None:
         raise RuntimeError("prediction report SHA-256 is not canonical")
     if args.heads == "direction":
-        columns = ("split", "model", "y_direction", *CLASS_COLUMNS)
+        columns = (
+            "split",
+            "model",
+            "y_direction",
+            "direction_logits",
+            *CLASS_COLUMNS,
+        )
     else:
         selector_mode = _path_support_contract(source_metadata)
         columns = (
@@ -857,10 +898,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         min_fit_rows=args.min_fit_rows,
     )
     if args.heads == "direction":
-        calibration, metrics = _fit_direction(
-            frame,
-            odds_cap=float(args.direction_odds_cap),
-        )
+        calibration, metrics = _fit_direction(frame)
     else:
         calibration, metrics = _fit_path(
             frame,

@@ -16,6 +16,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
 )
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIELDS
+from gx1.contracts.xau_tape_provenance_v1 import (
+    SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
+)
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as manifest_producer
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
@@ -61,7 +64,7 @@ def _source_cascade_metadata(
     return {
         "path": str((event_root / "SOURCE_CASCADE_PROOF.json").resolve()),
         "sha256": "9" * 64,
-        "schema_version": "seq513_source_cascade_pair_proof_v1",
+        "schema_version": SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
         "entry_run_id": RUN_ID,
         "event_root": str(event_root),
         "source_parquet_path": str(source_path),

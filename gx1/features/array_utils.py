@@ -22,7 +22,6 @@ def safe_clip(x: np.ndarray, lo: float = -1e3, hi: float = 1e3) -> np.ndarray:
     result[mask] = 0.0
     return result
 
-
 def safe_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
     Multiply two arrays, setting non-finite results to 0.
@@ -35,24 +34,6 @@ def safe_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         Product array with non-finite values set to 0
     """
     result = a * b
-    mask = ~np.isfinite(result)
-    result[mask] = 0.0
-    return result
-
-
-def safe_div(a: np.ndarray, b: np.ndarray, eps: float = 1e-12) -> np.ndarray:
-    """
-    Divide two arrays with epsilon protection, setting non-finite results to 0.
-    
-    Args:
-        a: Numerator array (float64)
-        b: Denominator array (float64)
-        eps: Epsilon for division protection (default 1e-12)
-    
-    Returns:
-        Quotient array with non-finite values set to 0
-    """
-    result = a / (b + eps)
     mask = ~np.isfinite(result)
     result[mask] = 0.0
     return result

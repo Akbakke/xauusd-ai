@@ -12,6 +12,7 @@ import pytest
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
     PASS_DECISION,
+    SPLITS,
     validate_full_input_liveness_artifact,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -73,7 +74,7 @@ def _verified_v4_cache_loader(monkeypatch) -> None:
 
     monkeypatch.setattr(
         "gx1.scripts.materialize_entry_full_input_liveness_v1."
-        "load_multi_tf_cache",
+        "load_multi_tf_v4_cache",
         load,
     )
 
@@ -162,16 +163,19 @@ def _write_split(
     )
 
 
-def _write_dataset(dataset_dir: Path, *, break_test_parity: bool = False) -> None:
+def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> None:
     dataset_dir.mkdir(parents=True)
     signal_contract = _signal_contract()
+    # Liveness scans only SPLITS; TEST stays sealed, so a corruption that must
+    # be caught is injected into the last scanned split.
+    corrupt_split = SPLITS[-1]
     for split, rows in (("train", 32), ("val", 8), ("test", 8)):
         _write_split(
             dataset_dir,
             split=split,
             rows=rows,
             signal_contract=signal_contract,
-            break_seq_snap_parity=break_test_parity and split == "test",
+            break_seq_snap_parity=break_scanned_parity and split == corrupt_split,
         )
     build_proof = {
         "entry_run_id": RUN_ID,
@@ -230,7 +234,7 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
     assert artifact["decision"] == PASS_DECISION
     assert validation["ok"] is True
     assert validation["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
-    assert validation["field_status_row_count"] == 3 * (513 + 142 + 5)
+    assert validation["field_status_row_count"] == len(SPLITS) * (513 + 142 + 5)
     assert validation["multi_tf_field_status_row_count"] == 5 * 111
     provenance = artifact["materializer_provenance"]
     assert provenance["entry_run_id"] == RUN_ID
@@ -243,16 +247,17 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
 
 def test_materializer_fails_closed_on_seq_history_not_matching_snap(tmp_path: Path) -> None:
     dataset_dir = tmp_path / "dataset"
-    _write_dataset(dataset_dir, break_test_parity=True)
+    _write_dataset(dataset_dir, break_scanned_parity=True)
 
     artifact = run(_args(dataset_dir, tmp_path / "audit"))
 
+    corrupt_split = SPLITS[-1]
     assert artifact["decision"] == "FAIL"
-    assert artifact["materializer_provenance"]["semantic_fullscan"]["test"][
+    assert artifact["materializer_provenance"]["semantic_fullscan"][corrupt_split][
         "seq_last_exactly_equals_snap"
     ] is False
     assert any(
-        row["code"] == "fullscan_proof_invalid" and row["split"] == "test"
+        row["code"] == "fullscan_proof_invalid" and row["split"] == corrupt_split
         for row in artifact["failures"]
     )
 

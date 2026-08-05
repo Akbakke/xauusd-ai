@@ -16,6 +16,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT,
     require_model_native_manifest,
 )
+from gx1.contracts.xau_tape_provenance_v1 import (
+    SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
+)
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as producer
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
@@ -66,7 +69,7 @@ def _ranking_payload(tmp_path: Path) -> dict:
     source_cascade = {
         "path": str((source_path.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
         "sha256": "9" * 64,
-        "schema_version": "seq513_source_cascade_pair_proof_v1",
+        "schema_version": SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
         "entry_run_id": RUN_ID,
         "event_root": str(source_path.parent.resolve()),
         "source_parquet_path": str(source_path),

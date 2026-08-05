@@ -168,6 +168,9 @@ _TIMESTAMPED_PREDICTION_RE = re.compile(
     r"selective_edge_predictions_\d{8}T\d{12}Z\.parquet"
 )
 
+# Runtime parity proves the serving path itself, so it consumes the
+# runtime-authoritative prediction event, never the pre-calibration one.
+MODEL_NATIVE_REQUIRED_EVIDENCE_STAGE = "runtime_authoritative"
 STATE_BLOCKS = ("seq", "snap", "ctx_cont", "ctx_cat")
 _FORWARD_LIVE_KEY_OVERRIDES = {
     "public_trade_probability": "p_trade",
@@ -2360,6 +2363,7 @@ def _load_pinned_predictions(
     dataset_dir: Path,
     pinned_path: Path,
     prediction_report_path: Path,
+    expected_predictions_sha256: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path, dict, dict, dict[str, str]]:
     """Resolve and revalidate one explicitly named immutable prediction event.
 
@@ -2377,7 +2381,9 @@ def _load_pinned_predictions(
             prediction_report_path=requested_report,
             bundle_dir=None,
             dataset_dir=dataset_dir,
-            expected_split=MODEL_NATIVE_REQUIRED_TEST_SPLIT,
+            expected_sha256=expected_predictions_sha256,
+            expected_stage=MODEL_NATIVE_REQUIRED_EVIDENCE_STAGE,
+            expected_splits=(MODEL_NATIVE_REQUIRED_TEST_SPLIT,),
             expected_model=MODEL_NATIVE_REQUIRED_MODEL_NAME,
         )
     )
@@ -2530,6 +2536,12 @@ def main() -> int:
         help="explicit timestamped authoritative selective_edge_predictions_<stamp>.parquet",
     )
     ap.add_argument(
+        "--pinned-predictions-sha256",
+        type=str,
+        required=True,
+        help="exact sha256 of the pinned authoritative predictions parquet",
+    )
+    ap.add_argument(
         "--prediction-report-json",
         type=Path,
         required=True,
@@ -2570,6 +2582,7 @@ def main() -> int:
         dataset_dir=dataset_dir,
         pinned_path=args.pinned_predictions,
         prediction_report_path=args.prediction_report_json,
+        expected_predictions_sha256=str(args.pinned_predictions_sha256),
     )
     dataset_parquet = _prediction_report_test_parquet(
         prediction_report,

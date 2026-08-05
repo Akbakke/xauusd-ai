@@ -79,6 +79,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     require_training_objective_contract,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     CLASS_ORDER,
     INPUTS as DIRECTION_EVIDENCE_INPUTS,
@@ -101,6 +107,7 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES_LOWER,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    PRE_CALIBRATION_EVIDENCE_STAGE,
     PREDICTION_EVIDENCE_SCHEMA_VERSION,
     atomic_write_text,
     resolve_and_validate_prediction_evidence,
@@ -113,9 +120,12 @@ DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 CLASS_NAMES = CLASS_ORDER
 EXPECTED_SESSIONS = tuple(_SMOKE_EDGE_POLICY["expected_sessions"])
 CONTEXT_POCKET_FIELDS = tuple(_SMOKE_EDGE_POLICY["context_fields"])
+MIN_DIRECTION_ACCURACY = float(_SMOKE_EDGE_POLICY["min_direction_accuracy"])
+MIN_BALANCED_ACCURACY = float(_SMOKE_EDGE_POLICY["min_balanced_accuracy"])
 MIN_TRADE_DIRECTION_PRECISION = float(
     _SMOKE_EDGE_POLICY["min_trade_direction_precision"]
 )
+MIN_CLASS_PRECISION = float(_SMOKE_EDGE_POLICY["min_class_precision"])
 WILSON_CONFIDENCE_LEVEL = float(
     _SMOKE_EDGE_POLICY["wilson_confidence_level"]
 )
@@ -324,11 +334,7 @@ def _device_arg(raw: str) -> str:
 def _bundle_dataset_kwargs(
     metadata: Mapping[str, Any], m5_prebuilt_path: Path
 ) -> dict[str, Any]:
-    """Translate exact MTF bundle metadata for dataset consumers.
-
-    This compatibility helper remains because the candidate evaluator and Exit
-    handoff import it.  It deliberately has no single-TF or missing-field path.
-    """
+    """Translate the exact shared V4 cache contract for dataset consumers."""
 
     mtf = metadata.get("multi_tf")
     if not isinstance(mtf, Mapping) or mtf.get("enabled") is not True:
@@ -340,13 +346,32 @@ def _bundle_dataset_kwargs(
         "h4_seq_len",
         "d1_seq_len",
         "closed_bar_target_availability",
-        "target_availability_shift_minutes",
+        "entry_route_timeframes",
+        "exit_route_timeframes",
+        "entry_target_availability_shift_minutes",
+        "exit_target_availability_shift_minutes",
     )
     missing = [name for name in required if name not in mtf]
     if missing:
         raise RuntimeError(f"model-native multi-TF metadata missing: {missing}")
-    if mtf["closed_bar_target_availability"] is not True or not math.isclose(
-        float(mtf["target_availability_shift_minutes"]), 5.0, abs_tol=1e-9
+    if (
+        mtf["closed_bar_target_availability"] is not True
+        or not isinstance(mtf["entry_route_timeframes"], (list, tuple))
+        or not isinstance(mtf["exit_route_timeframes"], (list, tuple))
+        or tuple(mtf["entry_route_timeframes"])
+        != ENTRY_MTF_CONTEXT_TIMEFRAMES
+        or tuple(mtf["exit_route_timeframes"])
+        != EXIT_MTF_CONTEXT_TIMEFRAMES
+        or not math.isclose(
+            float(mtf["entry_target_availability_shift_minutes"]),
+            ENTRY_DECISION_BAR_SECONDS / 60.0,
+            abs_tol=1e-9,
+        )
+        or not math.isclose(
+            float(mtf["exit_target_availability_shift_minutes"]),
+            EXIT_DECISION_BAR_SECONDS / 60.0,
+            abs_tol=1e-9,
+        )
     ):
         raise RuntimeError("model-native multi-TF closed-bar contract is invalid")
     m5_prebuilt_path = Path(m5_prebuilt_path).expanduser().resolve()
@@ -1056,17 +1081,16 @@ def _direction_metrics(
         ],
         dtype=np.float64,
     )
-    # Only support floors remain scope-dependent. The precision bars that used to
-    # be selected here are no longer enforced (user vedtak 2026-07-28); edge is
-    # measured and reported, not gated on an ambition.
     if support_scope == "global":
         required_trade_rows = MIN_TRADE_ROWS
         required_prediction_rows_per_class: int | None = (
             MIN_PREDICTION_ROWS_PER_CLASS
         )
+        required_class_precision: float | None = MIN_CLASS_PRECISION
     else:
         required_trade_rows = MIN_CONTEXT_TRADE_ROWS
         required_prediction_rows_per_class = None
+        required_class_precision = None
     probabilities = np.column_stack(
         [_numeric(frame, "p_long"), _numeric(frame, "p_short"), _numeric(frame, "p_flat")]
     )
@@ -1079,17 +1103,6 @@ def _direction_metrics(
         failures.append("direction evidence does not contain all three label classes")
     if np.any(prediction_counts <= 0):
         failures.append("direction model does not emit all LONG/SHORT/FLAT classes")
-    # Edge is MEASURED here, not gated (user vedtak 2026-07-28). The accuracy and
-    # precision bars this block used to enforce - 0.90 direction, 0.90 balanced,
-    # 0.98 trade precision, 0.95 per-class - were introduced on 2026-07-19 and
-    # applied to every row of val and test. The majority baseline is 0.3858 and the
-    # best figure ever measured on this substrate is 0.4021, so they demanded
-    # roughly 2.3x the highest number the project has recorded and could never
-    # pass. They also encode the retired "97%" goal rather than the honest
-    # bps/win/MAE/cost objective. The metrics below are still computed and
-    # reported in full; what fails closed is only whether a measurement is VALID:
-    # all three label classes present, all three predicted, and enough rows for
-    # the statistics to mean anything.
     if trade_rows < required_trade_rows:
         failures.append(
             f"trade_rows={trade_rows} below required support={required_trade_rows}"
@@ -1105,9 +1118,14 @@ def _direction_metrics(
             )
         if not np.isfinite(precisions[index]):
             failures.append(f"{name} precision is not finite: {precisions[index]!r}")
-    # The one honest bar, and it stays: beat the majority baseline. It is measured
-    # from the evaluation split's own label rates, so it has a real origin and
-    # moves with the data instead of encoding an ambition.
+        elif (
+            required_class_precision is not None
+            and float(precisions[index]) < required_class_precision
+        ):
+            failures.append(
+                f"{name} precision={float(precisions[index]):.6f} below "
+                f"required={required_class_precision:.6f}"
+            )
     if accuracy <= majority:
         failures.append(
             f"accuracy={accuracy:.6f} does not beat majority={majority:.6f}"
@@ -1919,17 +1937,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     prediction_evidence: dict[str, Any] = {}
     prediction_report: dict[str, Any] = {}
-    prediction_path = Path(args.predictions_parquet).expanduser().resolve()
-    prediction_report_path = Path(args.prediction_report_json).expanduser().resolve()
+    prediction_path = Path(args.predictions_parquet).expanduser()
+    prediction_report_path = Path(args.prediction_report_json).expanduser()
     prediction_frame = pd.DataFrame()
     try:
         prediction_path, prediction_report, prediction_evidence = (
             resolve_and_validate_prediction_evidence(
                 prediction_path,
+                expected_sha256=str(args.predictions_sha256),
                 prediction_report_path=prediction_report_path,
                 bundle_dir=bundle_dir,
                 dataset_dir=dataset_dir,
-                require_runtime_head_evidence=False,
+                expected_stage=PRE_CALIBRATION_EVIDENCE_STAGE,
+                expected_splits=tuple(DATA_SPLITS),
             )
         )
         if (
@@ -1941,11 +1961,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             raise RuntimeError(
                 "smoke prediction evidence must be non-authorizing pre-calibration evidence"
             )
-        if prediction_report.get("evidence_stage") != "pre_calibration":
+        if prediction_evidence.get("authoritative") is not False:
+            raise RuntimeError(
+                "smoke prediction evidence must not declare runtime authority"
+            )
+        if prediction_report.get("evidence_stage") != PRE_CALIBRATION_EVIDENCE_STAGE:
             raise RuntimeError(
                 "smoke prediction report must declare evidence_stage=pre_calibration"
             )
-        if tuple(sorted(prediction_evidence.get("splits") or ())) != tuple(sorted(DATA_SPLITS)):
+        if tuple(prediction_evidence.get("splits") or ()) != tuple(DATA_SPLITS):
             raise RuntimeError(
                 "prediction evidence must contain exactly the policy-owned "
                 "smoke split(s)"
@@ -2195,6 +2219,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--val-manifest-json", required=True)
     parser.add_argument("--predictions-parquet", required=True)
+    parser.add_argument(
+        "--predictions-sha256",
+        required=True,
+        help="caller-pinned SHA-256 of the exact VAL prediction parquet",
+    )
     parser.add_argument("--prediction-report-json", required=True)
     parser.add_argument("--target-audit-json", required=True)
     parser.add_argument("--specialist-audit-json", required=True)

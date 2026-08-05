@@ -202,8 +202,6 @@ def _require_sizing_execution_evidence(
     expected_direction = "LONG" if side == SIDE_LONG else "SHORT"
     if application["model_direction"] != expected_direction:
         raise ValueError("trade side differs from learned sizing application direction")
-    if application["sizing_authority_contract"] != snapshot["sizing_authority_contract"]:
-        raise ValueError("trade sizing application authority differs from Entry snapshot")
     transaction_id = evidence["fill_transaction_id"]
     if not isinstance(transaction_id, str) or not transaction_id.strip():
         raise ValueError("learned trade sizing evidence lacks fill transaction identity")

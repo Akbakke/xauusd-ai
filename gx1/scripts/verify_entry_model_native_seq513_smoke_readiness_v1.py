@@ -40,7 +40,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
 )
-from gx1.contracts.entry_model_native_train_launch_v1 import RECIPE_AUDIT_SCHEMA
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    RECIPE_AUDIT_SCHEMA,
+    TRAIN_WRAPPER_RELATIVE_PATH,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     DIRECTION_BALANCE_ENV_TEMPLATE as DIRECTION_BALANCE_ENV_TEMPLATE,
     DIRECTION_BALANCE_RECIPE_CONTRACT,
@@ -77,9 +80,10 @@ EXPECTED_MODEL_CONTRACT = specialist_model_contract_for_mode(CONTRACT_MODE)
 
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
 SMOKE_MANIFEST_READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
-SMOKE_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
-SMOKE_DATASET_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
+SMOKE_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_manifest_v3"
+SMOKE_DATASET_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_dataset_v3"
 SMOKE_SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+PREFREEZE_SPLITS = ("train", "val")
 _TIMESTAMPED_JSON_RE = re.compile(
     r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
 )
@@ -271,7 +275,7 @@ def _path_equals(raw: Any, expected: Path) -> bool:
 
 def _split_artifact_hash_review(splits: dict[str, Any]) -> dict[str, Any]:
     details: dict[str, Any] = {}
-    for split in ("train", "val", "test"):
+    for split in PREFREEZE_SPLITS:
         row = splits.get(split) if isinstance(splits.get(split), dict) else {}
         parquet_path = Path(str(row.get("out_parquet") or "")).expanduser()
         manifest_path = Path(str(row.get("out_manifest") or "")).expanduser()
@@ -292,13 +296,13 @@ def _split_artifact_hash_review(splits: dict[str, Any]) -> dict[str, Any]:
             "manifest_hash_matches": manifest_sha == row.get("out_manifest_sha256"),
         }
     return {
-        "ok": set(splits) == {"train", "val", "test"}
+        "ok": set(splits) == set(PREFREEZE_SPLITS)
         and all(
             details[split]["out_parquet_exists"]
             and details[split]["out_manifest_exists"]
             and details[split]["parquet_hash_matches"]
             and details[split]["manifest_hash_matches"]
-            for split in ("train", "val", "test")
+            for split in PREFREEZE_SPLITS
         ),
         "details": details,
     }
@@ -492,6 +496,8 @@ def _future_contracts(
     multi_tf_cache_manifest_json: Path,
     pretrain_audit_json: Path,
     post_rebuild_readiness_json: Path,
+    prefreeze_test_seal_json: str,
+    prefreeze_test_seal_sha256: str,
     full_input_liveness_json: Path,
     feature_audit_json: Path,
     target_audit_json: Path,
@@ -523,14 +529,10 @@ def _future_contracts(
         _split_artifact("train", "out_manifest"),
         "--val-manifest-json",
         _split_artifact("val", "out_manifest"),
-        "--test-manifest-json",
-        _split_artifact("test", "out_manifest"),
         "--train-parquet",
         _split_artifact("train", "out_parquet"),
         "--val-parquet",
         _split_artifact("val", "out_parquet"),
-        "--test-parquet",
-        _split_artifact("test", "out_parquet"),
         "--unified-exit-lifecycle-manifest-json",
         str(unified_exit_lifecycle_manifest_json),
         "--m5-prebuilt-path",
@@ -539,6 +541,10 @@ def _future_contracts(
         str(multi_tf_cache_manifest_json),
         "--post-rebuild-readiness-json",
         str(post_rebuild_readiness_json),
+        "--prefreeze-test-seal-json",
+        prefreeze_test_seal_json,
+        "--prefreeze-test-seal-sha256",
+        prefreeze_test_seal_sha256,
         "--full-input-liveness-audit-json",
         str(full_input_liveness_json),
         "--feature-audit-json",
@@ -624,7 +630,7 @@ def _future_contracts(
         "--repo",
         "<ABSOLUTE_CLEAN_GX1_REPO>",
         "--wrapper-path",
-        "<ABSOLUTE_CLEAN_GX1_REPO>/scripts/run_entry_model_native_seq513_smoke_train.sh",
+        f"<ABSOLUTE_CLEAN_GX1_REPO>/{TRAIN_WRAPPER_RELATIVE_PATH}",
         *recipe_input_argv,
         "--out-dir",
         str(smart_dataset_dir.parent / "train_recipe_<STAMP>"),
@@ -690,10 +696,12 @@ def _future_contracts(
         "wrapper_argv_template": wrapper_argv,
         "mode": "future_exact_wrapper_contract",
         "implemented_in_control_surface": True,
+        "profile": "smoke",
         "control_route": "model-native-smoke-train",
-        "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
+        "wrapper_path": TRAIN_WRAPPER_RELATIVE_PATH,
         "execution_allowed_now": False,
         "run_lineage_required": True,
+        "prefreeze_test_seal_lineage_required": True,
         "requires_clean_git": True,
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
@@ -857,6 +865,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         str(cache_manifest_meta.get("path") or "")
     ).expanduser().resolve()
     pretrain_audit_json = Path(str(pretrain_meta.get("path") or "")).expanduser().resolve()
+    test_isolation = (
+        post_rebuild.get("test_isolation")
+        if isinstance(post_rebuild.get("test_isolation"), dict)
+        else {}
+    )
+    test_seal_authority = (
+        test_isolation.get("authority")
+        if isinstance(test_isolation.get("authority"), dict)
+        else {}
+    )
+    prefreeze_test_seal_json = str(test_seal_authority.get("path") or "")
+    prefreeze_test_seal_sha256 = str(test_seal_authority.get("sha256") or "")
     unified_exit_lifecycle = _read_json_or_empty(
         unified_exit_lifecycle_manifest_json
     )
@@ -873,6 +893,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         multi_tf_cache_manifest_json=multi_tf_cache_manifest_json,
         pretrain_audit_json=pretrain_audit_json,
         post_rebuild_readiness_json=post_rebuild_readiness_json,
+        prefreeze_test_seal_json=prefreeze_test_seal_json,
+        prefreeze_test_seal_sha256=prefreeze_test_seal_sha256,
         full_input_liveness_json=full_input_liveness_json,
         feature_audit_json=feature_audit_json,
         target_audit_json=target_audit_json,
@@ -1266,13 +1288,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     {"out_dir": smoke_manifest.get("out_dir"), "expected": str(smart_smoke_dataset_dir)},
                 ),
                 _check(
-                    "smart smoke dataset has train val test split hashes",
-                    set(smoke_splits) == {"train", "val", "test"}
+                    "smart smoke dataset has train val split hashes",
+                    set(smoke_splits) == set(PREFREEZE_SPLITS)
                     and all(
                         int((smoke_splits.get(split) or {}).get("rows") or 0) > 0
                         and len(str((smoke_splits.get(split) or {}).get("out_parquet_sha256") or "")) == 64
                         and len(str((smoke_splits.get(split) or {}).get("out_manifest_sha256") or "")) == 64
-                        for split in ("train", "val", "test")
+                        for split in PREFREEZE_SPLITS
                     ),
                     {"splits": smoke_splits},
                 ),
@@ -1283,15 +1305,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart smoke split manifests pin model-native seq513 split schema",
-                    set(smoke_splits) == {"train", "val", "test"}
+                    set(smoke_splits) == set(PREFREEZE_SPLITS)
                     and all(
                         (smoke_splits.get(split) or {}).get("split_manifest_schema_version")
                         == SMOKE_SPLIT_MANIFEST_SCHEMA
-                        for split in ("train", "val", "test")
+                        for split in PREFREEZE_SPLITS
                     ),
                     {
                         split: (smoke_splits.get(split) or {}).get("split_manifest_schema_version")
-                        for split in ("train", "val", "test")
+                        for split in PREFREEZE_SPLITS
                     },
                 ),
             ],
@@ -1318,10 +1340,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart smoke train contract uses only the compact exact wrapper route",
-                    future_contracts["smart_smoke_train"].get("control_route")
+                    future_contracts["smart_smoke_train"].get("profile") == "smoke"
+                    and future_contracts["smart_smoke_train"].get("control_route")
                     == "model-native-smoke-train"
                     and future_contracts["smart_smoke_train"].get("wrapper_path")
-                    == "scripts/run_entry_model_native_seq513_smoke_train.sh"
+                    == TRAIN_WRAPPER_RELATIVE_PATH
                     and future_contracts["smart_smoke_train"].get(
                         "wrapper_argv_template"
                     )
@@ -1353,6 +1376,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                             "--m5-prebuilt-path",
                             "--multi-tf-cache-manifest-json",
                             "--post-rebuild-readiness-json",
+                            "--prefreeze-test-seal-json",
+                            "--prefreeze-test-seal-sha256",
                             "--full-input-liveness-audit-json",
                             "--feature-audit-json",
                             "--target-audit-json",
@@ -1376,6 +1401,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     and _future_arg("--m5-prebuilt-path") == str(m5_prebuilt_path)
                     and _future_arg("--multi-tf-cache-manifest-json")
                     == str(multi_tf_cache_manifest_json)
+                    and _future_arg("--prefreeze-test-seal-json")
+                    == prefreeze_test_seal_json
+                    and _future_arg("--prefreeze-test-seal-sha256")
+                    == prefreeze_test_seal_sha256
                     and _future_arg("--pretrain-audit-json")
                     == str(pretrain_audit_json),
                     future_contracts["smart_smoke_train"],
@@ -1479,7 +1508,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
     )
     report = {
-        "schema_version": "entry_model_native_seq513_smoke_readiness_v2",
+        "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": decision,
         "report_only": True,

@@ -10,6 +10,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
@@ -17,7 +21,10 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
 )
-from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    EntryV10CtxHybridTransformer,
+    _build_unit_test_entry_v10_ctx_hybrid_transformer,
+)
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
 from tests.model_native_context_routing_support import (
     context_routing_for_ordered_signal_names,
@@ -102,7 +109,7 @@ def _synchronized_seq_snap(
 
 
 def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
-    return EntryV10CtxHybridTransformer(
+    return _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=4,
@@ -215,7 +222,7 @@ def _write_audit(tmp_path: Path, payload: dict | None = None) -> Path:
 
 def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
     ctx_cont_indices, ctx_cat_indices = _context_indices()
-    model = EntryV10CtxHybridTransformer(
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=16,
         snap_input_dim=16,
         seq_len=16,
@@ -262,7 +269,9 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
         ctx_cont=ctx_cont,
         **{
             f"seq_{tf}": torch.randn(2, 16, MTF_DIM)
-            for tf in ("m5", "m15", "h1", "h4", "d1")
+            for tf in (
+                timeframe.lower() for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+            )
         },
     )
     assert "specialist_gate" in out
@@ -273,7 +282,7 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
 def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> None:
     specialist_indices = _specialist_indices()
     context_routing = _context_routing(specialist_indices)
-    model = EntryV10CtxHybridTransformer(
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=16,
@@ -324,7 +333,9 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
         ctx_cont=ctx_cont,
         **{
             f"seq_{tf}": torch.randn(2, 16, MTF_DIM)
-            for tf in ("m5", "m15", "h1", "h4", "d1")
+            for tf in (
+                timeframe.lower() for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+            )
         },
     )
 
@@ -335,12 +346,16 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
     assert out["specialist_gate"].shape == (2, len(MODEL_NATIVE_TRAINING_SPECIALISTS))
     assert torch.allclose(out["specialist_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
     assert torch.isfinite(out["specialist_gate"]).all()
-    assert out["tf_gate"].shape == (2, 5)
+    assert out["tf_gate"].shape == (2, ENTRY_MTF_CONTEXT_COUNT)
     assert out["family_tf_cooperation_gate"].shape == (
         2,
-        5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
     )
-    assert out["family_tf_feature_gate"].shape == (2, 5, MTF_DIM)
+    assert out["family_tf_feature_gate"].shape == (
+        2,
+        ENTRY_MTF_CONTEXT_COUNT,
+        MTF_DIM,
+    )
     assert torch.allclose(out["tf_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
     assert torch.allclose(
         out["family_tf_cooperation_gate"].sum(dim=1), torch.ones(2), atol=1e-6
@@ -350,7 +365,7 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
 def test_all_147_context_fields_move_only_their_pre_cross_owner_token() -> None:
     specialist_indices = _specialist_indices()
     context_routing = _context_routing(specialist_indices)
-    model = EntryV10CtxHybridTransformer(
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=4,
@@ -438,7 +453,7 @@ def test_nominal_ctx_cont_regime_ids_fail_closed_outside_integer_domain(
     specialist_indices = _specialist_indices(16)
     routing = _context_routing(_specialist_indices())
     ctx_cont_indices, ctx_cat_indices = _context_indices()
-    model = EntryV10CtxHybridTransformer(
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=16,
         snap_input_dim=16,
         seq_len=4,
@@ -491,7 +506,7 @@ def test_temporal_alias_current_snap_copies_are_excluded_from_generic_projection
     context_routing = _context_routing(specialist_indices)
     aliases = context_routing["temporal_alias_policy"]["signal_indices"]
     ctx_cont_indices, ctx_cat_indices = _context_indices()
-    model = EntryV10CtxHybridTransformer(
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=4,
@@ -552,7 +567,9 @@ def test_forward_fails_closed_on_stale_snap_and_ctx_alias_mismatch() -> None:
     ctx_cat = torch.zeros(1, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long)
     mtf = {
         f"seq_{tf}": torch.randn(1, 4, MTF_DIM)
-        for tf in ("m5", "m15", "h1", "h4", "d1")
+        for tf in (
+            timeframe.lower() for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+        )
     }
 
     stale_snap = snap_x.clone()

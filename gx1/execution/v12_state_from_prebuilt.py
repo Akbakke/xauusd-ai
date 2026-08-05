@@ -66,9 +66,9 @@ if TYPE_CHECKING:  # runtime imports stay lazy to keep loader startup light
 # immutable snapshot construction and offline build so admitted serving and
 # training project the same per-TF regime inputs (no train≠serve).
 from gx1.features.htf_features import (
-    REGIME_V4_V2_MTF_PER_TF,
-    REGIME_V4_V2_MTF_TFS,
-    REGIME_V4_V2_MTF_SKIP,
+    REGIME_V4_MTF_PROJECTION,
+    REGIME_V4_MTF_TIMEFRAMES,
+    REGIME_V4_MTF_SKIP,
 )
 from gx1.features.basic_v1 import PLUS5_FEATURES, compute_plus5_features
 from gx1.contracts.xau_tape_provenance_v1 import (
@@ -88,19 +88,18 @@ LOG = logging.getLogger("v12_state_from_prebuilt")
 # augmenter via an ephemeral PrebuiltStateLoader instance, returns only the
 # new columns (smaller payload back). On Linux fork() is used so cv3 is
 # inherited via copy-on-write — actual pickle cost is only the result.
-def _mp_v2_mtf_worker(cv3: pd.DataFrame) -> pd.DataFrame:
-    """Run V2 multi-TF augmenter in a subprocess. Returns DataFrame with ONLY
-    the new V2 mtf columns (suffix '_v2'), indexed identically to cv3 input.
+def _mp_v4_mtf_worker(cv3: pd.DataFrame) -> pd.DataFrame:
+    """Run the V4 projection in a subprocess and return persistent fields.
 
     NB: the augmenter mutates cv3 in-place and returns the same object, so we
     must snapshot the column set BEFORE the call to compute the new-cols delta.
     """
     loader = PrebuiltStateLoader()
-    augmented = loader._augment_cv3_with_v2_mtf_scalars(cv3)
-    expected = loader._expected_v2_mtf_columns()
+    augmented = loader._augment_cv3_with_v4_mtf_scalars(cv3)
+    expected = loader._expected_mtf_scalar_columns()
     missing = [name for name in expected if name not in augmented.columns]
     if missing:
-        raise RuntimeError(f"parallel V2 MTF worker output missing: {missing}")
+        raise RuntimeError(f"parallel V4 MTF worker output missing: {missing}")
     return augmented[expected].copy()
 
 
@@ -1296,9 +1295,9 @@ def _require_persisted_model_agnostic_canonical(
         "spread_bps",
         *(
             f"{timeframe}_{live_fragment}_v2"
-            for timeframe in REGIME_V4_V2_MTF_TFS
-            for live_fragment, _source_column in REGIME_V4_V2_MTF_PER_TF
-            if (timeframe, live_fragment) not in REGIME_V4_V2_MTF_SKIP
+            for timeframe in REGIME_V4_MTF_TIMEFRAMES
+            for live_fragment, _source_column in REGIME_V4_MTF_PROJECTION
+            if (timeframe, live_fragment) not in REGIME_V4_MTF_SKIP
         ),
     }
     missing = sorted(required - set(frame.columns))
@@ -1707,7 +1706,7 @@ class PrebuiltStateLoader:
                     from concurrent.futures import ProcessPoolExecutor
                     fork_ctx = _mp.get_context("fork")
                     with ProcessPoolExecutor(max_workers=2, mp_context=fork_ctx) as pool:
-                        f_mtf = pool.submit(_mp_v2_mtf_worker, new_cv3)
+                        f_mtf = pool.submit(_mp_v4_mtf_worker, new_cv3)
                         f_grp = pool.submit(_mp_group_a_worker, new_cv3)
                         mtf_new = f_mtf.result(timeout=600)
                         grp_new = f_grp.result(timeout=600)
@@ -1910,7 +1909,7 @@ class PrebuiltStateLoader:
             self._last_ts = min(cv3.index[-1], base28.index[-1])
             LOG.info(f"  effective live cutoff (min of both): {self._last_ts}")
             self._augment_cv3_with_volume_features()
-            self._augment_cv3_with_v2_mtf_scalars()
+            self._augment_cv3_with_v4_mtf_scalars()
             self._augment_cv3_with_group_a_and_dip_struct()
             self._augment_cv3_with_v1_legacy()
             # after v2_mtf sources; immutable active transform
@@ -1988,24 +1987,17 @@ class PrebuiltStateLoader:
         }
         return self._cv3, self._base28, identity
 
-    # ── Historical V2 multi-TF scalar augmentation ────────────────────
-    # The exact bundle contract consumes 31 V2-suffixed columns per row.
-    # ONE TRUTH (2026-06-13): the per-TF V2 mtf projection now lives in
-    # gx1.features.htf_features.REGIME_V4_V2_MTF_* and is imported at module
-    # top, so serving, immutable snapshot construction and offline build use
-    # the identical 5-TF/9-feature regime projection. (M5 added 2026-06-05;
-    # trend_age_bars_norm is R2 for gx1.features.regime_v4_features.)
-    _V2_MTF_PER_TF = REGIME_V4_V2_MTF_PER_TF
-    _V2_MTF_TFS = REGIME_V4_V2_MTF_TFS
-    _V2_MTF_SKIP = REGIME_V4_V2_MTF_SKIP
+    _MTF_PROJECTION = REGIME_V4_MTF_PROJECTION
+    _MTF_TIMEFRAMES = REGIME_V4_MTF_TIMEFRAMES
+    _MTF_SKIP = REGIME_V4_MTF_SKIP
 
     @classmethod
-    def _expected_v2_mtf_columns(cls) -> list[str]:
+    def _expected_mtf_scalar_columns(cls) -> list[str]:
         return [
             f"{tf}_{live_frag}_v2"
-            for tf in cls._V2_MTF_TFS
-            for live_frag, _source_col in cls._V2_MTF_PER_TF
-            if (tf, live_frag) not in cls._V2_MTF_SKIP
+            for tf in cls._MTF_TIMEFRAMES
+            for live_frag, _source_col in cls._MTF_PROJECTION
+            if (tf, live_frag) not in cls._MTF_SKIP
         ]
 
     # ── V1 / R10 (2026-06-04): REGIME_V4 exit-context augmentation ────────
@@ -2014,7 +2006,7 @@ class PrebuiltStateLoader:
         the canonical `add_regime_v4_features` owner. Any future V3 dataset
         builder must call the same owner and prove parity. This immutable active
         transform MUST run AFTER
-        _augment_cv3_with_v2_mtf_scalars (supplies the 12 {tf}_*_v2 source cols) and on the FULL frame
+        _augment_cv3_with_v4_mtf_scalars (supplies the persistent {tf}_*_v2 source cols) and on the FULL frame
         (F4 d1_dist_roc_288 / F9 bars_since_d1_regime_change need >=288-bar D1 history; a 96-bar window
         would clip them to 0 = a second-order skew). Fail-closed: raises on a missing source col.
         """
@@ -2085,16 +2077,15 @@ class PrebuiltStateLoader:
         from gx1.scripts.augment_forward_outcome_v2 import (
             attach_group_a_dip_struct_ctx_columns,
         )
-        from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+        from gx1.features.htf_features import build_multi_tf_per_bar_features_v4
         # LIVE serve: build the multi-TF bundle IN-MEMORY from THIS cv3 and pass it, instead
         # of reading the on-disk MULTI_TF_V4_CACHE. The disk cache is only as fresh as its
         # last rebuild — nothing in the live loop advances it, so it eventually trips the
         # 2-day stale guard (live breaks) or, worse, would serve stale HTF context. Building
         # from the live cv3 makes the group-A/dip-struct ctx ALWAYS current and removes the
-        # last live disk-cache dependency. Same builder + same bars as the disk cache (which
-        # prebuild_multi_tf_cache_v2 also makes via build_multi_tf_per_bar_features_v2), and
+        # last live disk-cache dependency. Same V4 builder + same bars as the disk cache, and
         # the features are causal/asof → bit-identical at every decision ts (train==serve).
-        mtf_in_mem = build_multi_tf_per_bar_features_v2(target)
+        mtf_in_mem = build_multi_tf_per_bar_features_v4(target)
         # The helper mutates in place via the returned DataFrame; rebind to be safe.
         target = attach_group_a_dip_struct_ctx_columns(
             target, journal_label="live_costfix", multi_tf=mtf_in_mem,
@@ -2114,7 +2105,6 @@ class PrebuiltStateLoader:
         "std50",                # M5 50-bar close-return std
         "roc20",                # M5 20-bar rate-of-change
         "_v1_vwap_drift48",     # M5 48-bar VWAP drift fraction
-        "_v1h1_vwap_drift",     # H1 VWAP drift fraction (last H1 bar)
     )
 
     def _augment_cv3_with_v1_legacy(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
@@ -2176,44 +2166,48 @@ class PrebuiltStateLoader:
         LOG.info(f"  volume features added: cv3 now {len(target.columns)} cols")
         return target
 
-    def _augment_cv3_with_v2_mtf_scalars(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
-        """Add 31 V2 multi-TF scalar columns to cv3 (defaults to self._cv3).
+    def _augment_cv3_with_v4_mtf_scalars(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
+        """Project persistent scalar columns from one exact in-memory V4 cache.
         Returns the augmented DataFrame. Idempotent — if columns are already
         present (e.g. from a rebuilt cv3 parquet), skip.
         """
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
-            raise RuntimeError("V2 MTF augmentation requires a loaded canonical_v3 frame")
-        from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars
+            raise RuntimeError("V4 MTF augmentation requires a loaded canonical_v3 frame")
+        from gx1.features.htf_features import (
+            build_multi_tf_per_bar_features_v4,
+            project_multi_tf_v4_scalars,
+        )
         cv3 = target
-        expected = self._expected_v2_mtf_columns()
+        expected = self._expected_mtf_scalar_columns()
         if set(expected).issubset(cv3.columns):
             return cv3
         ohlc = ["open", "high", "low", "close"]
         missing_ohlcv = [c for c in (*ohlc, "volume") if c not in cv3.columns]
         if missing_ohlcv:
-            raise RuntimeError(f"V2 MTF augmentation missing exact OHLCV: {missing_ohlcv}")
+            raise RuntimeError(f"V4 MTF augmentation missing exact OHLCV: {missing_ohlcv}")
         m5_df = cv3[ohlc].copy()
         for c in ohlc:
             m5_df[c] = m5_df[c].astype(np.float64)
         m5_df["volume"] = cv3["volume"].astype(np.float64)
-        LOG.info(f"augmenting canonical_v3 with V2 multi-TF scalar features "
+        LOG.info(f"augmenting canonical_v3 with V4-backed scalar features "
                  f"(31 cols expected) — {len(m5_df):,} M5 rows...")
-        # V2 (2026-06-04 one-truth): per-bar projection now lives in the SHARED
-        # htf_features.attach_v2_mtf_per_bar_scalars (build_multi_tf_per_bar_features_v2 +
-        # MULTI_TF_SHIFT only-closed-bars searchsorted) so the V3 exit builder produces the
-        # IDENTICAL {tf}_*_v2 cols (was an inline loop here -> the builder's stale join drifted to
-        # 88-95% match). Byte-identical to the prior loop.
         cv3_ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
-        _v2cols = attach_v2_mtf_per_bar_scalars(
-            m5_df, cv3_ts_ns, self._V2_MTF_PER_TF, self._V2_MTF_TFS, self._V2_MTF_SKIP,
+        multi_tf = build_multi_tf_per_bar_features_v4(m5_df)
+        projected = project_multi_tf_v4_scalars(
+            multi_tf,
+            cv3_ts_ns,
+            self._MTF_PROJECTION,
+            self._MTF_TIMEFRAMES,
+            self._MTF_SKIP,
+            decision_bar_duration=pd.Timedelta(minutes=5),
         )
-        missing = [name for name in expected if name not in _v2cols]
+        missing = [name for name in expected if name not in projected]
         if missing:
-            raise RuntimeError(f"V2 MTF feature owner output incomplete: {missing}")
-        for _col, _vals in _v2cols.items():
+            raise RuntimeError(f"V4 MTF feature owner output incomplete: {missing}")
+        for _col, _vals in projected.items():
             cv3[_col] = _vals
-        LOG.info(f"  V2 mtf augment done: +{len(_v2cols)} cols  "
+        LOG.info(f"  V4 mtf projection done: +{len(projected)} cols  "
                  f"(cv3 now {len(cv3.columns)} cols total)")
         return cv3
 
@@ -2412,7 +2406,9 @@ class PrebuiltStateLoader:
         if source is None:
             raise RuntimeError("call .load() before .build_multi_tf_features()")
         from gx1.features.htf_features import (
-            build_multi_tf_per_bar_features_v2, MULTI_TF_SHIFT,
+            MULTI_TF_FEATURE_COUNT_V4,
+            MULTI_TF_SHIFT,
+            build_multi_tf_per_bar_features_v4,
         )
         ohlc_cols = ["open", "high", "low", "close"]
         missing = [c for c in (*ohlc_cols, "volume") if c not in source.columns]
@@ -2420,16 +2416,16 @@ class PrebuiltStateLoader:
             raise RuntimeError(f"canonical_v3 missing exact OHLCV cols: {missing}")
         m5_df = source[ohlc_cols].copy()
         m5_df["volume"] = source["volume"].astype(np.float64)
-        LOG.info(f"building multi-TF V2 features (M5/M15/H1/H4/D1, 25 dim each) "
+        LOG.info(f"building multi-TF V4 features (M5/M15/H1/H4/D1, 111 dim each) "
                  f"from {len(m5_df):,} M5 bars...")
-        feats_dict = build_multi_tf_per_bar_features_v2(m5_df)
-        feat_count = 25
+        feats_dict = build_multi_tf_per_bar_features_v4(m5_df)
+        feat_count = MULTI_TF_FEATURE_COUNT_V4
         for tf, feats in feats_dict.items():
             if len(feats) > 0:
                 feat_count = int(feats.shape[1])
                 break
         for tf, feats in feats_dict.items():
-            LOG.info(f"  multi-TF V2 {tf}: {len(feats):,} bars × {feats.shape[1]} feats")
+            LOG.info(f"  multi-TF V4 {tf}: {len(feats):,} bars × {feats.shape[1]} feats")
         result = {
             "feats": feats_dict,
             "shift": MULTI_TF_SHIFT,
@@ -2448,27 +2444,3 @@ class PrebuiltStateLoader:
                 self._multi_tf_shift = result["shift"]
                 self._multi_tf_feat_count = result["feat_count"]
         return result
-
-    def get_multi_tf_windows(
-        self,
-        end_ts: pd.Timestamp,
-        n_bars: int = 96,
-        *,
-        snapshot: PrebuiltServingSnapshot | None = None,
-    ) -> dict[str, np.ndarray]:
-        """Return {seq_m5, seq_m15, seq_h1, seq_h4, seq_d1} arrays at-or-before end_ts.
-        Each is (n_bars, n_features) float32. Zero-padded at start if warmup unmet.
-
-        Empty dict if multi-TF features aren't built (caller falls back to v3 path)."""
-        state = snapshot or self.acquire_serving_snapshot()
-        if not isinstance(state, PrebuiltServingSnapshot):
-            raise TypeError("snapshot must be a PrebuiltServingSnapshot")
-        if state.multi_tf_feats is None:
-            return {}
-        from gx1.features.htf_features import get_last_n_at_or_before
-        return {
-            f"seq_{tf.lower()}": get_last_n_at_or_before(
-                feats, end_ts, n=n_bars, tf_shift=state.multi_tf_shift[tf]
-            )
-            for tf, feats in state.multi_tf_feats.items()
-        }

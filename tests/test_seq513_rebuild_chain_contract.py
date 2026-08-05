@@ -48,6 +48,9 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         '--m5-feature-base-parquet "$M5_FEATURE_BASE"',
         "--workers 1",
         "M5/M15/H1/H4/D1",
+        '--rebuild-terminal-json "$DATASET_REBUILD_TERMINAL"',
+        '--prefreeze-test-seal-json "$PREFREEZE_TEST_SEAL"',
+        "dataset rebuild terminal/TEST seal binding mismatch",
     ):
         assert required in source
 
@@ -58,7 +61,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
     assert '--rank-reference-npz "$RANK_NPZ"' in source
     assert '--existing-rank-reference' in source
     assert '--out "$RANKING"' in source
-    assert "gx1_capped_run.sh --mem 10G --swap 512M" in source
+    assert "gx1_capped_run.sh --class audit --mem 4G --swap 512M" in source
     assert source.index("materialize_model_native_train_rank_reference_v2") < source.index(
         "materialize_entry_model_native_train_feature_ranker_v1"
     )
@@ -84,7 +87,7 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
 
     assert 'git -C "$ENG" rev-parse --verify HEAD' in source
     assert 'git -C "$ENG" status --porcelain --untracked-files=all' in source
-    assert source.count("require_source_identity") == 18
+    assert source.count("require_source_identity") == 17
     assert 'repository HEAD changed after binding' in source
     assert 'repository worktree changed after binding' in source
     assert '"git_head": git_head or None' in source
@@ -108,6 +111,8 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert '"source_cascade": {' in source
     assert '"rank_reference": {' in source
     assert '"pair_authority": {' in source
+    assert '"dataset_rebuild_terminal": {' in source
+    assert '"prefreeze_test_seal": {' in source
     assert '"m1_exit_feature_base": m1_feature_base_path' in source
     assert '"m5_entry_feature_base": m5_feature_base_path' in source
     assert '"boot_id": boot_id' in source
@@ -118,6 +123,8 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert "DATASET_OUTPUT_STARTED" in source
     assert "dataset rebuild or post-build audit failed after immutable output materialization" in source
     assert "os.replace(temporary, path)" in source
+    assert 'require_unchanged "dataset rebuild terminal"' in source
+    assert 'require_unchanged "pre-freeze TEST seal"' in source
 
 
 def test_chain_cli_rejects_old_positional_interface() -> None:

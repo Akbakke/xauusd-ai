@@ -16,7 +16,6 @@ contract, startup and Exit inference fail closed with structured evidence.
 from __future__ import annotations
 
 import logging
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -30,7 +29,6 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     ModelNativeRuntimeEvidenceError,
     require_model_native_runtime_evidence,
 )
-from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 from gx1.execution.v12_m1_to_m5_downsample import latest_closed_m5_start_at
 from gx1.execution.v12_model_native_state_live import (
     SEQ_LEN_MODEL_NATIVE as ENTRY_SEQ_LEN,
@@ -187,68 +185,6 @@ class V12Pipeline:
     _last_entry_prebuilt_snapshot: object | None = None
 
     @classmethod
-    def load_default(cls) -> "V12Pipeline":
-        """Load one model bundle or fail before any trading loop can start."""
-
-        t0 = time.perf_counter()
-        loader = PrebuiltStateLoader()
-        loader.load()
-
-        from gx1.contracts.entry_model_native_state_v2 import (
-            load_train_rank_reference_v2,
-        )
-        from gx1.execution.v12_smart_entry_live import (
-            SmartEntryLiveInference,
-            assert_smart_serving_gate,
-        )
-        from gx1_guards.artifacts import ArtifactGuardError, load_decision_entry
-
-        try:
-            rank_entry = load_decision_entry("train_rank_reference")
-        except ArtifactGuardError as exc:
-            raise RuntimeError(
-                "TRAIN_RANK_REFERENCE_REGISTRY_ENTRY_INVALID: the active "
-                "registry must bind one immutable path and sha256"
-            ) from exc
-        rank_sha = str(rank_entry.get("sha256") or "").strip().lower()
-        if len(rank_sha) != 64 or any(
-            character not in "0123456789abcdef"
-            for character in rank_sha
-        ):
-            raise RuntimeError(
-                "TRAIN_RANK_REFERENCE_REGISTRY_SHA256_INVALID"
-            )
-        loader.attach_train_rank_reference(
-            load_train_rank_reference_v2(
-                Path(rank_entry["path"]),
-                expected_sha256=rank_sha,
-            )
-        )
-
-        assert_smart_serving_gate()
-        model_adapter = SmartEntryLiveInference.load(device="cpu")
-        _require_unified_model(
-            model_adapter,
-            context="V12_PIPELINE_STARTUP",
-        )
-        _bind_admitted_m1_surface_if_declared(
-            model_adapter,
-            context="V12_PIPELINE_STARTUP",
-        )
-        model_adapter.refresh_multi_tf(loader.canonical_frame_view())
-        LOG.info(
-            "V12Pipeline loaded one unified model in %.0f ms; "
-            "prebuilt_cutoff=%s contract=%s",
-            (time.perf_counter() - t0) * 1000.0,
-            loader.cutoff_ts,
-            MODEL_NATIVE_CONTRACT_MODE,
-        )
-        return cls(
-            prebuilt_loader=loader,
-            smart_entry=model_adapter,
-        )
-
-    @classmethod
     def load_exit_recovery(cls, trade: object) -> "V12Pipeline":
         """Load the exact frozen bundle for an already-open trade only."""
 
@@ -260,8 +196,21 @@ class V12Pipeline:
         require_snapshot = getattr(trade, "require_entry_snapshot", None)
         if not callable(require_snapshot):
             raise RuntimeError("EXIT_RECOVERY_ENTRY_SNAPSHOT_MISSING")
-        snapshot = require_snapshot()
-        sizing_authority = snapshot.get("sizing_authority_contract")
+        require_snapshot()
+        # Direction runtime evidence no longer carries the sizing authority:
+        # sizing may never sit inside the direction surface. The authority is
+        # owned by this trade's learned sizing application.
+        sizing_execution = getattr(trade, "sizing_execution_evidence", None)
+        sizing_application = (
+            sizing_execution.get("sizing_application")
+            if isinstance(sizing_execution, Mapping)
+            else None
+        )
+        sizing_authority = (
+            sizing_application.get("sizing_authority_contract")
+            if isinstance(sizing_application, Mapping)
+            else None
+        )
         if not isinstance(sizing_authority, Mapping):
             raise RuntimeError(
                 "EXIT_RECOVERY_SIZING_AUTHORITY_MISSING"
@@ -808,13 +757,3 @@ class V12Pipeline:
                 latest_closed_m1_bar=latest_closed_bar.isoformat(),
             )
         return last_decision
-
-
-_GLOBAL_PIPELINE: V12Pipeline | None = None
-
-
-def get_global_pipeline() -> V12Pipeline:
-    global _GLOBAL_PIPELINE
-    if _GLOBAL_PIPELINE is None:
-        _GLOBAL_PIPELINE = V12Pipeline.load_default()
-    return _GLOBAL_PIPELINE

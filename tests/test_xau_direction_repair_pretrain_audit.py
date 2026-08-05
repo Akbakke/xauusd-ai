@@ -380,8 +380,6 @@ def _args(tmp_path: Path, *extra: str):
             str(tmp_path / "audit"),
             "--stem",
             DEFAULT_STEM,
-            "--data-splits",
-            "train,val,test",
             "--max-rows-per-split",
             "80",
             "--max-row-groups-per-split",

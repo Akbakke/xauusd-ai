@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from gx1.features.entry_model_native_feature_layers_v1 import (
@@ -31,16 +32,20 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_CLOSURE_CONTRACT,
 )
+from gx1.utils.artifact_primitives_v1 import (
+    require_immutable_artifact,
+    sha256_file,
+)
 
 
 ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION = (
-    "gx1_entry_exit_shared_feature_base_contract_v2"
+    "gx1_entry_exit_shared_feature_base_contract_v4"
 )
 ENTRY_EXIT_FEATURE_OWNER_RESOLUTION_SCHEMA_VERSION = (
-    "gx1_entry_exit_feature_owner_resolution_contract_v1"
+    "gx1_entry_exit_feature_owner_resolution_contract_v3"
 )
 ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION = (
-    "gx1_entry_exit_enriched_causal_frame_v1"
+    "gx1_entry_exit_enriched_causal_frame_v3"
 )
 ENTRY_DECISION_TIMEFRAME = "M5"
 EXIT_DECISION_TIMEFRAME = "M1"
@@ -49,7 +54,9 @@ EXIT_DECISION_BAR_SECONDS = 60
 ENTRY_EXIT_RESOLUTION_RATIO = 5
 ENTRY_MTF_CONTEXT_TIMEFRAMES = ("M15", "H1", "H4", "D1")
 EXIT_MTF_CONTEXT_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
-ENTRY_EXIT_SHARED_ENCODER = "entry_v10_ctx_hybrid_transformer_shared_specialists_v1"
+ENTRY_MTF_CONTEXT_COUNT = len(ENTRY_MTF_CONTEXT_TIMEFRAMES)
+EXIT_MTF_CONTEXT_COUNT = len(EXIT_MTF_CONTEXT_TIMEFRAMES)
+ENTRY_EXIT_SHARED_ENCODER = "entry_v10_ctx_hybrid_transformer_shared_specialists_v2"
 EXIT_FEATURE_MAX_SEQUENCE_BARS = 512
 ENTRY_FEATURE_SEQUENCE_BARS = MODEL_NATIVE_SEQ_LEN
 EXIT_FEATURE_SEQUENCE_BARS = (
@@ -102,6 +109,10 @@ def entry_exit_feature_owner_resolution_contract() -> dict[str, Any]:
         "same_ordered_field_semantics_required": True,
         "resolution_specific_values_expected": True,
         "mtf_construction": "closed_ohlcv_before_feature_computation",
+        "mtf_feature_owner": "native_m5_v4",
+        "mtf_feature_owner_count": 1,
+        "mtf_source": "exact_native_m5_closed_ohlcv",
+        "legacy_local_owner_mtf_computation_allowed": False,
         "computed_feature_resampling_allowed": False,
         "entry_route": {
             "local_timeframe": ENTRY_DECISION_TIMEFRAME,
@@ -138,6 +149,8 @@ def entry_exit_shared_feature_base_contract() -> dict[str, Any]:
         "schema_version": ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
         "instrument": "XAU_USD",
         "single_feature_owner": True,
+        "single_mtf_feature_owner": "native_m5_v4",
+        "legacy_mtf_feature_owners_forbidden": True,
         "single_specialist_taxonomy": True,
         "specialist_families": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
         "specialist_family_count": len(MODEL_NATIVE_TRAINING_SPECIALISTS),
@@ -152,6 +165,8 @@ def entry_exit_shared_feature_base_contract() -> dict[str, Any]:
             "decision_timeframe": ENTRY_DECISION_TIMEFRAME,
             "decision_bar_seconds": ENTRY_DECISION_BAR_SECONDS,
             "surface_role": "shared_specialist_feature_surface",
+            "mtf_context_timeframes": list(ENTRY_MTF_CONTEXT_TIMEFRAMES),
+            "local_timeframe_may_repeat_in_mtf": False,
         },
         "exit": {
             "decision_timeframe": EXIT_DECISION_TIMEFRAME,
@@ -164,6 +179,8 @@ def entry_exit_shared_feature_base_contract() -> dict[str, Any]:
             "row_clock": EXIT_FEATURE_ROW_CLOCK,
             "source_absence_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
             "synthetic_gap_fill_allowed": False,
+            "mtf_context_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
+            "local_timeframe_may_repeat_in_mtf": False,
         },
         "resolution_ratio_m1_per_m5": ENTRY_EXIT_RESOLUTION_RATIO,
         "shared_encoder": ENTRY_EXIT_SHARED_ENCODER,
@@ -193,6 +210,78 @@ def require_entry_exit_shared_feature_base_contract(
             f"{context}_ENTRY_EXIT_SHARED_FEATURE_BASE_CONTRACT_MISMATCH"
         )
     return dict(value)
+
+
+def require_entry_exit_enriched_source_binding(
+    source: Path,
+    *,
+    dataset_run_id: str,
+    pair_generation_id: str,
+    timeframe: str,
+    context: str,
+) -> dict[str, str]:
+    """Validate the exact enriched-source sidecar for either surface."""
+
+    source = Path(source)
+    sidecar = Path(f"{source}.manifest.json")
+    if (
+        timeframe not in {ENTRY_DECISION_TIMEFRAME, EXIT_DECISION_TIMEFRAME}
+        or not source.is_absolute()
+        or source.resolve() != source
+        or source.is_symlink()
+        or not source.is_file()
+        or sidecar.is_symlink()
+        or not sidecar.is_file()
+    ):
+        raise RuntimeError(f"{context}_SOURCE_ARTIFACT_INVALID")
+    try:
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"{context}_SOURCE_MANIFEST_INVALID") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"{context}_SOURCE_MANIFEST_INVALID")
+    unhashed = dict(payload)
+    declared_hash = unhashed.pop("manifest_sha256", None)
+    source_hash = sha256_file(source)
+    bar_seconds = (
+        EXIT_DECISION_BAR_SECONDS
+        if timeframe == EXIT_DECISION_TIMEFRAME
+        else ENTRY_DECISION_BAR_SECONDS
+    )
+    if (
+        payload.get("schema_version")
+        != ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION
+        or payload.get("decision") != "PASS"
+        or payload.get("dataset_run_id") != dataset_run_id
+        or payload.get("pair_generation_id") != pair_generation_id
+        or payload.get("timeframe") != timeframe
+        or payload.get("base_bar_seconds") != bar_seconds
+        or payload.get("output_parquet") != str(source)
+        or payload.get("output_parquet_sha256") != source_hash
+        or declared_hash != _canonical_sha256(unhashed)
+    ):
+        raise RuntimeError(f"{context}_SOURCE_LINEAGE_INVALID")
+    require_entry_exit_shared_feature_base_contract(
+        payload.get("shared_feature_base_contract"),
+        context=context,
+    )
+    rank_raw = payload.get("rank_reference_npz")
+    rank_hash = payload.get("rank_reference_sha256")
+    if not isinstance(rank_raw, str) or not isinstance(rank_hash, str):
+        raise RuntimeError(f"{context}_SOURCE_RANK_LINEAGE_INVALID")
+    rank_path = require_immutable_artifact(
+        Path(rank_raw),
+        expected_sha256=rank_hash,
+        context=f"{context}_SOURCE_RANK",
+    )
+    return {
+        "manifest_path": str(sidecar),
+        "manifest_sha256": sha256_file(sidecar),
+        "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
+        "source_sha256": source_hash,
+        "rank_reference_npz": str(rank_path),
+        "rank_reference_sha256": rank_hash,
+    }
 
 
 def require_entry_exit_feature_surface_identity(

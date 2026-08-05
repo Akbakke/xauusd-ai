@@ -30,8 +30,8 @@ def full_input_field_order() -> dict[str, list[str]]:
         "candle.pattern_outside_after_inside_bear_breakout_score",
         "ctx_cont.d1_atr14_canon_v2",
         "ctx_cont._v1h4_atr",
-        "chart.m5_ema50_200_cross_up",
-        "chart.m5_ema50_200_cross_down",
+        "chart.local_ema50_200_cross_up",
+        "chart.local_ema50_200_cross_down",
     ]
     signal.extend(
         f"signal_feature_{idx:03d}"

@@ -63,13 +63,13 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-SPLITS = ("train", "val", "test")
+SPLITS = FOUNDATION_AUDIT_DATA_SPLITS
 REPORT_SCHEMA_VERSION = "entry_model_native_adoption_candidate_v1"
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE"
-SMOKE_REPORT_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
+SMOKE_REPORT_SCHEMA = "entry_model_native_seq513_smoke_manifest_v3"
 SMOKE_REPORT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
 SMOKE_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
-SMOKE_DATASET_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
+SMOKE_DATASET_SCHEMA = "entry_model_native_seq513_smoke_dataset_v3"
 SMOKE_SPLIT_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 AUDIT_EVENT_PREFIXES = {
     "feature_audit": "ENTRY_FEATURE_FOUNDATION_AUDIT",
@@ -262,7 +262,7 @@ def _dataset_contract(
             )
     checks.append(
         _check(
-            "train val test signal contracts are identical",
+            "train val signal contracts are identical",
             len(contracts) == len(SPLITS)
             and all(contract == contracts[0] for contract in contracts[1:]),
             {"validated_contract_count": len(contracts)},
@@ -325,7 +325,7 @@ def _base_evidence_checks(
             {"error": policy_error},
         ),
         _check(
-            "foundation audit covers exact train val test split order",
+            "foundation audit covers exact train val split order",
             tuple(report.get("data_splits") or ())
             == FOUNDATION_AUDIT_DATA_SPLITS,
             {

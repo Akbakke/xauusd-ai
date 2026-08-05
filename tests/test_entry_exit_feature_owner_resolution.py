@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import inspect
 import json
+import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,11 +26,16 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.features.entry_candlestick_patterns_v1 import (
     build_entry_candlestick_pattern_layer,
 )
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+)
+from gx1.features.basic_v1 import PLUS5_FEATURES
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
 from gx1.scripts import build_entry_exit_m1_enriched_frame_v1 as enriched_producer
 from gx1.scripts import materialize_entry_exit_m1_feature_base_v1 as feature_producer
+from gx1.execution import v12_canonical_incremental as canonical_incremental
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _align_native_m5_feature_surface,
 )
@@ -72,6 +80,9 @@ def test_all_eight_owners_are_bound_to_local_m5_and_m1_with_closed_mtf() -> None
     assert contract["pre_owner_combined_m1_m5_source_package_allowed"] is False
     assert contract["cross_resolution_value_copy_allowed"] is False
     assert contract["computed_feature_resampling_allowed"] is False
+    assert contract["mtf_feature_owner"] == "native_m5_v4"
+    assert contract["mtf_feature_owner_count"] == 1
+    assert contract["legacy_local_owner_mtf_computation_allowed"] is False
     assert contract["mtf_construction"] == (
         "closed_ohlcv_before_feature_computation"
     )
@@ -83,7 +94,10 @@ def test_all_eight_owners_are_bound_to_local_m5_and_m1_with_closed_mtf() -> None
         "local_timeframe": "M1",
         "mtf_context_timeframes": ["M5", "M15", "H1", "H4", "D1"],
     }
-    assert sum(contract["mandatory_feature_count_by_owner"].values()) == 378
+    assert (
+        sum(contract["mandatory_feature_count_by_owner"].values())
+        == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+    )
     for owner in MODEL_NATIVE_TRAINING_SPECIALISTS:
         assert contract["mandatory_feature_count_by_owner"][owner] > 0
         assert contract["owners"][owner] == {
@@ -164,7 +178,7 @@ def test_exit_surface_must_match_entry_field_manifest_and_rank_state() -> None:
             )
 
 
-def test_m1_and_m5_wrappers_call_one_shared_owner_implementation(
+def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     enriched_calls: list[dict[str, object]] = []
@@ -172,28 +186,150 @@ def test_m1_and_m5_wrappers_call_one_shared_owner_implementation(
 
     def fake_enriched(**kwargs: object) -> dict[str, object]:
         enriched_calls.append(dict(kwargs))
-        return dict(kwargs)
+        return {"decision": "PASS"}
 
     def fake_feature(**kwargs: object) -> dict[str, object]:
         feature_calls.append(dict(kwargs))
-        return dict(kwargs)
+        return {"decision": "PASS"}
 
     monkeypatch.setattr(enriched_producer, "_build_enriched_frame", fake_enriched)
     monkeypatch.setattr(feature_producer, "_materialize_feature_base", fake_feature)
 
-    enriched_producer.build_m1_enriched_frame(marker="exit")
-    enriched_producer.build_m5_enriched_frame(marker="entry")
-    feature_producer.materialize_m1_feature_base(marker="exit")
-    feature_producer.materialize_m5_feature_base(marker="entry")
+    common_enriched = [
+        "--rank-reference-npz", "/tmp/rank.npz",
+        "--rank-reference-sha256", "a" * 64,
+        "--pair-manifest", "/tmp/pair.json",
+        "--multi-tf-cache-dir", "/tmp/cache",
+        "--output-parquet", "/tmp/enriched.parquet",
+        "--manifest-path", "/tmp/enriched.json",
+        "--checkpoint-dir", "/tmp/checkpoint",
+        "--dataset-run-id", "run",
+        "--pair-generation-id", "b" * 64,
+    ]
+    for root_flag in ("--native-m1-root", "--native-m5-root"):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["producer", root_flag, "/tmp/native", *common_enriched],
+        )
+        enriched_producer.main()
 
-    assert enriched_calls == [
-        {"timeframe": "M1", "marker": "exit"},
-        {"timeframe": "M5", "marker": "entry"},
+    common_feature = [
+        "--source-parquet", "/tmp/enriched.parquet",
+        "--seq-structure-manifest", "/tmp/signal.json",
+        "--output-parquet", "/tmp/surface.parquet",
+        "--dataset-run-id", "run",
+        "--pair-generation-id", "b" * 64,
     ]
-    assert feature_calls == [
-        {"timeframe": "M1", "marker": "exit"},
-        {"timeframe": "M5", "marker": "entry"},
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["producer", *common_feature, "--alignment-parquet", "/tmp/m1.parquet"],
+    )
+    feature_producer.main()
+    monkeypatch.setattr(sys, "argv", ["producer", *common_feature])
+    feature_producer.main()
+
+    assert [call["timeframe"] for call in enriched_calls] == ["M1", "M5"]
+    assert [call["native_root"] for call in enriched_calls] == [
+        Path("/tmp/native"),
+        Path("/tmp/native"),
     ]
+    assert [call["timeframe"] for call in feature_calls] == ["M1", "M5"]
+    assert feature_calls[0]["alignment_parquet"] == Path("/tmp/m1.parquet")
+    assert feature_calls[1]["alignment_parquet"] is None
+
+
+@pytest.mark.parametrize(
+    "duration",
+    [pd.Timedelta(minutes=1), pd.Timedelta(minutes=5)],
+)
+def test_enriched_producer_runs_v4_before_every_cross_tf_consumer(
+    monkeypatch: pytest.MonkeyPatch,
+    duration: pd.Timedelta,
+) -> None:
+    calls: list[tuple[str, pd.Timedelta]] = []
+
+    def attach_scalar(frame, *, multi_tf, decision_bar_duration):
+        calls.append(("attach_v4", decision_bar_duration))
+        return frame
+
+    def attach_regime(frame, *, multi_tf, decision_bar_duration):
+        calls.append(("attach_regime", decision_bar_duration))
+        return frame
+
+    def augment(frame, *, rank_reference, base_bar_duration):
+        calls.append(("augment", base_bar_duration))
+        return frame
+
+    def momentum(frame, *, decision_bar_duration):
+        calls.append(("momentum", decision_bar_duration))
+        out = frame.copy()
+        out["m5h1_momentum"] = 1.0
+        return out
+
+    monkeypatch.setattr(
+        enriched_producer,
+        "attach_model_native_mtf_scalars_v4",
+        attach_scalar,
+    )
+    monkeypatch.setattr(
+        enriched_producer,
+        "attach_default_regime_v4_scalars",
+        attach_regime,
+    )
+    monkeypatch.setattr(
+        enriched_producer,
+        "augment_canonical_v3_from_v4",
+        augment,
+    )
+    monkeypatch.setattr(
+        enriched_producer,
+        "add_cross_tf_momentum",
+        momentum,
+    )
+
+    out = enriched_producer._complete_v4_owned_context(
+        pd.DataFrame({"close": np.arange(8, dtype=np.float64)}),
+        multi_tf={},
+        rank_reference=object(),
+        decision_bar_duration=duration,
+    )
+
+    assert calls == [
+        ("attach_v4", duration),
+        ("attach_regime", duration),
+        ("augment", duration),
+        ("momentum", duration),
+    ]
+    assert list(out.columns).count("m5h1_momentum") == 1
+
+
+def test_current_pair_build_cannot_run_cross_tf_before_v4_projection() -> None:
+    local_source = inspect.getsource(
+        canonical_incremental._apply_local_canonical_v3_augment
+    )
+    build_source = inspect.getsource(
+        canonical_incremental._build_model_agnostic_canonical
+    )
+
+    assert "add_cross_tf_momentum" not in local_source
+    ordered_calls = (
+        "build_multi_tf_per_bar_features_v4(",
+        "attach_model_native_mtf_scalars_v4(",
+        "augment_canonical_v3_model_agnostic_from_v4(",
+        "add_cross_tf_momentum(",
+    )
+    positions = [build_source.index(call) for call in ordered_calls]
+    assert positions == sorted(positions)
+    assert build_source.count("add_cross_tf_momentum(") == 1
+
+
+def test_misnamed_local_rolling_288_h1_owner_is_physically_absent() -> None:
+    from gx1.features import basic_v1
+
+    assert "_v1h1_vwap_drift" not in PLUS5_FEATURES
+    assert "_v1h1_vwap_drift" not in inspect.getsource(basic_v1)
 
 
 def test_candlestick_owner_computes_native_m1_and_m5_values_causally() -> None:

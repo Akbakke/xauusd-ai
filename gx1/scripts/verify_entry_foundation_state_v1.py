@@ -63,14 +63,14 @@ EVIDENCE_SPECS = (
         "smoke_manifest",
         "smoke_manifest_json",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST",
-        "entry_model_native_seq513_smoke_manifest_v2",
+        "entry_model_native_seq513_smoke_manifest_v3",
         "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
     ),
     EvidenceSpec(
         "smoke_readiness",
         "smoke_readiness_json",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS",
-        "entry_model_native_seq513_smoke_readiness_v2",
+        "entry_model_native_seq513_smoke_readiness_v3",
         "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
     ),
     EvidenceSpec(

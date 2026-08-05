@@ -15,34 +15,31 @@ from typing import Any
 
 
 STRUCTURAL_AUX_LABEL_SIGNAL_SCHEMA_VERSION = (
-    "entry_structural_aux_label_signal_v1"
+    "entry_structural_aux_label_signal_v2"
 )
 STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS = OrderedDict(
     [
         (
             "trend_score",
             (
-                "trend.mtf_confluence_trend_direction_score",
                 "trend.ema_stack_alignment_score",
             ),
         ),
         (
             "trend_conflict",
-            ("trend.mtf_confluence_trend_tf_conflict",),
+            ("trend.ema_mtf_divergence_pressure",),
         ),
         (
             "long_trend_bias",
-            ("trend.mtf_confluence_long_trend_bias",),
+            ("trend.ema_stack_bull_pressure",),
         ),
         (
             "short_trend_bias",
-            ("trend.mtf_confluence_short_trend_bias",),
+            ("trend.ema_stack_bear_pressure",),
         ),
         (
             "structure_direction",
-            (
-                "chart.structure_swing_mtf_confluence_structure_direction_score",
-            ),
+            ("chart.structure_swing_market_structure_regime_state",),
         ),
         (
             "geometry_support_line_proximity",
@@ -94,11 +91,11 @@ STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS = OrderedDict(
         ),
         (
             "geometry_long_fib_sr_proximity",
-            ("chart.geometry_mtf_confluence_fib_sr_long_proximity",),
+            ("chart.geometry_fib_support_confluence_long_pressure",),
         ),
         (
             "geometry_short_fib_sr_proximity",
-            ("chart.geometry_mtf_confluence_fib_sr_short_proximity",),
+            ("chart.geometry_fib_resistance_confluence_short_pressure",),
         ),
     ]
 )

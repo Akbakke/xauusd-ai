@@ -27,7 +27,14 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
     require_entry_exit_shared_feature_base_contract,
 )
-from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    load_m1_feature_surface,
+    require_exact_m1_feature_surface_manifest,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
@@ -91,6 +98,7 @@ UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS = (
     "tied_target_count",
 )
 UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY = 4
+UNIFIED_EXIT_INVALID_DECISION_TIME_NS = np.iinfo(np.int64).min
 
 
 def sha256_file(path: Path) -> str:
@@ -492,6 +500,12 @@ class UnifiedExitLifecycleSplit:
         m1_feature_times: pd.DatetimeIndex,
         m1_feature_arrays: Mapping[str, np.ndarray],
     ) -> None:
+        architecture = current_entry_exit_architecture_observation()
+        architecture["exit"]["max_path_bars"] = UNIFIED_EXIT_MAX_PATH_BARS
+        require_entry_exit_production_architecture(
+            architecture,
+            context="UNIFIED_EXIT_LIFECYCLE_SPLIT_CONSTRUCTION",
+        )
         self.split = str(split)
         self.entry_row_count = int(entry_row_count)
         self._m1_times = m1_times
@@ -714,6 +728,93 @@ class UnifiedExitLifecycleSplit:
             for index in range(2)
         }
 
+    def selected_current_decision_times_ns(self) -> np.ndarray:
+        """Return unique selected decision clocks for route coverage proof."""
+
+        valid = self._selected_state >= 0
+        current_indices = np.unique(
+            self._selected_start[valid].astype(np.int64, copy=False)
+            + self._selected_state[valid].astype(np.int64, copy=False)
+        )
+        if current_indices.size < 1:
+            raise RuntimeError(
+                "UNIFIED_EXIT_SELECTED_CURRENT_POPULATION_EMPTY"
+            )
+        return np.asarray(
+            self._m1_times.asi8[current_indices],
+            dtype=np.int64,
+        )
+
+    def train_normalization_population(self) -> dict[str, Any]:
+        """Expose exact unique physical M1 rows consumed by TRAIN Exit.
+
+        The returned feature matrices remain the lifecycle-owned disk-backed
+        arrays.  Only sorted int64 row selections are materialized, so the
+        normalization fit can scan them repeatedly without copying the full
+        513/142/5 surfaces into RAM.
+        """
+
+        if self.split != "train":
+            raise RuntimeError(
+                "UNIFIED_EXIT_NORMALIZATION_TRAIN_SPLIT_REQUIRED"
+            )
+        valid = self._selected_state >= 0
+        selected_current = (
+            self._selected_start[valid].astype(np.int64, copy=False)
+            + self._selected_state[valid].astype(np.int64, copy=False)
+        )
+        current_indices = np.unique(selected_current)
+        if current_indices.size < 1:
+            raise RuntimeError(
+                "UNIFIED_EXIT_NORMALIZATION_CURRENT_POPULATION_EMPTY"
+            )
+        local_left = current_indices - int(EXIT_FEATURE_SEQUENCE_BARS) + 1
+        if int(local_left[0]) < 0:
+            raise RuntimeError(
+                "UNIFIED_EXIT_NORMALIZATION_M1_HISTORY_INSUFFICIENT"
+            )
+
+        merged: list[tuple[int, int]] = []
+        for left, current in zip(local_left.tolist(), current_indices.tolist()):
+            right = int(current) + 1
+            if not merged or int(left) > merged[-1][1]:
+                merged.append((int(left), right))
+            else:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], right))
+        local_count = sum(right - left for left, right in merged)
+        local_indices = np.empty(local_count, dtype=np.int64)
+        offset = 0
+        for left, right in merged:
+            count = right - left
+            local_indices[offset : offset + count] = np.arange(
+                left,
+                right,
+                dtype=np.int64,
+            )
+            offset += count
+        if (
+            offset != local_count
+            or local_indices.size < current_indices.size
+            or np.any(np.diff(local_indices) <= 0)
+            or not np.isin(current_indices, local_indices).all()
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_NORMALIZATION_LOCAL_POPULATION_INVALID"
+            )
+        return {
+            "signal": self._m1_features["signal"],
+            "ctx_cont": self._m1_features["ctx_cont"],
+            "ctx_cat": self._m1_features["ctx_cat"],
+            "local_row_indices": local_indices,
+            "current_row_indices": current_indices,
+            "current_decision_times_ns": np.asarray(
+                self._m1_times.asi8[current_indices],
+                dtype=np.int64,
+            ),
+            "source_times_ns": np.asarray(self._m1_times.asi8, dtype=np.int64),
+            "local_merged_intervals": tuple(merged),
+        }
+
     def sample(self, entry_row_index: int) -> dict[str, np.ndarray]:
         index = int(entry_row_index)
         if not 0 <= index < self.entry_row_count:
@@ -752,6 +853,11 @@ class UnifiedExitLifecycleSplit:
             (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_CTX_CAT_DIM),
             dtype=np.int64,
         )
+        decision_time_ns = np.full(
+            UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
+            UNIFIED_EXIT_INVALID_DECISION_TIME_NS,
+            dtype=np.int64,
+        )
         valid = self._selected_state[index] >= 0
         for slot in np.flatnonzero(valid):
             state = int(self._selected_state[index, slot])
@@ -768,6 +874,7 @@ class UnifiedExitLifecycleSplit:
                 raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ENTRY_QUOTE_INVALID")
             source_slice = slice(start, start + length)
             current_row = start + state
+            decision_time_ns[slot] = int(self._m1_times[current_row].value)
             feature_start = current_row - EXIT_FEATURE_SEQUENCE_BARS + 1
             if feature_start < 0:
                 raise RuntimeError(
@@ -816,6 +923,7 @@ class UnifiedExitLifecycleSplit:
             "exit_feature_snap_x": feature_snap,
             "exit_feature_ctx_cat": feature_ctx_cat,
             "exit_feature_ctx_cont": feature_ctx_cont,
+            "exit_decision_time_ns": decision_time_ns,
             "exit_path_x": paths,
             "exit_path_lengths": lengths,
             "exit_side_index": self._selected_side[index].astype(
@@ -839,14 +947,20 @@ class UnifiedExitLifecycleCorpus:
         root_manifest_path: Path,
         entry_parquets: Mapping[str, Path],
         dataset_run_id: str,
-        splits: Sequence[str] = ("train", "val", "test"),
+        splits: Sequence[str] = ("train", "val"),
     ) -> None:
+        architecture = current_entry_exit_architecture_observation()
+        architecture["exit"]["max_path_bars"] = UNIFIED_EXIT_MAX_PATH_BARS
+        require_entry_exit_production_architecture(
+            architecture,
+            context="UNIFIED_EXIT_LIFECYCLE_CORPUS_CONSTRUCTION",
+        )
         selected_splits = tuple(splits)
         if (
             not selected_splits
             or len(selected_splits) != len(set(selected_splits))
             or any(
-                split not in {"train", "val", "test"}
+                split not in {"train", "val"}
                 for split in selected_splits
             )
         ):
@@ -945,7 +1059,6 @@ class UnifiedExitLifecycleCorpus:
             or sha256_file(m1_path) != root_manifest["m1_source_sha256"]
         ):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_M1_IDENTITY_INVALID")
-        m1_times, m1_arrays = _validated_m1_arrays(m1_path)
         m1_feature_path = Path(
             root_manifest["m1_feature_base_path"]
         ).expanduser().absolute()
@@ -968,21 +1081,36 @@ class UnifiedExitLifecycleCorpus:
             != root_manifest["m1_feature_base_manifest_sha256"]
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST_IDENTITY_INVALID")
-        feature_manifest = _read_exact_json(m1_feature_manifest_path)
+        authority_pair_generation_id = raw_authority.get("pair_generation_id")
+        authority_m1_source_rows = raw_authority.get("m1_source_rows")
         if (
-            feature_manifest.get("schema_version")
-            != "gx1_entry_exit_m1_feature_surface_v1"
-            or feature_manifest.get("decision") != "PASS"
-            or feature_manifest.get("dataset_run_id") != dataset_run_id
-            or feature_manifest.get("output_parquet") != str(m1_feature_path)
-            or feature_manifest.get("output_parquet_sha256")
-            != root_manifest["m1_feature_base_sha256"]
+            not isinstance(authority_pair_generation_id, str)
+            or not authority_pair_generation_id
+            or isinstance(authority_m1_source_rows, bool)
+            or not isinstance(authority_m1_source_rows, int)
+            or authority_m1_source_rows <= 0
         ):
-            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST_CONTRACT_INVALID")
-        require_entry_exit_shared_feature_base_contract(
-            feature_manifest.get("shared_feature_base_contract"),
+            raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_SURFACE_BINDING_INVALID")
+        require_exact_m1_feature_surface_manifest(
+            manifest_path=m1_feature_manifest_path,
+            expected_manifest_sha256=root_manifest[
+                "m1_feature_base_manifest_sha256"
+            ],
+            expected_parquet_path=m1_feature_path,
+            expected_parquet_sha256=root_manifest[
+                "m1_feature_base_sha256"
+            ],
+            expected_dataset_run_id=dataset_run_id,
+            expected_pair_generation_id=authority_pair_generation_id,
+            expected_rows=authority_m1_source_rows,
+            expected_m1_source_path=m1_path,
+            expected_m1_source_sha256=root_manifest["m1_source_sha256"],
             context="UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST",
         )
+
+        # No source or feature matrix is allocated before every immutable
+        # feature-surface binding above has passed exactly.
+        m1_times, m1_arrays = _validated_m1_arrays(m1_path)
         m1_feature_tempdir = tempfile.TemporaryDirectory(
             prefix="gx1_m1_feature_surface_"
         )

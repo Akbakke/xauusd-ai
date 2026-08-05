@@ -1,20 +1,22 @@
-"""Immutable calibration, risk policy, and recomputed OOS sizing proof.
+"""Immutable offline calibration and recomputed TEST sizing proof.
 
 The only learned transform is:
 
 ``position_size_logit -> calibrated capacity fraction -> reference multiplier
                        -> floor-to-step integer additional units``
 
-Calibration is fit on TRAIN/VAL only.  TEST admission is not granted by a
+Calibration is fit on exact VAL-only pre-calibration evidence. TEST admission is not granted by a
 self-reported PASS: this module independently derives and then re-derives one
 hash-bound canonical TEST row source from the exact candidate predictions,
-dataset manifests, SourceTape, evaluation bundle, and model-head serve-parity
-provenance.  The risk limits and metric formula are code-owned immutable
-policy, not values selected by the proof artifact.
+dataset manifests, SourceTape, and frozen evaluation bundle. The immutable
+0.98/Wilson/class precision policy is recomputed from those same TEST rows.
+No broker, live, serve-parity, adoption, or caller compatibility evidence is
+accepted anywhere in this contract.
 """
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import math
@@ -34,26 +36,23 @@ from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
     require_newest_immutable_event,
 )
-from gx1.contracts.model_native_serve_gate_v1 import (
-    serve_gate_event_contract_failures,
-)
-from gx1.execution.model_native_entry_replay_v1 import SourceTape
+from gx1.replay.source_tape_v1 import SourceTape
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     resolve_and_validate_prediction_evidence,
 )
 
 
 MODEL_NATIVE_SIZING_CALIBRATION_SCHEMA_VERSION = (
-    "entry_model_native_sizing_calibration_v3"
+    "entry_model_native_sizing_calibration_v4"
+)
+MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION = (
+    "entry_model_native_sizing_bundle_calibration_v2"
 )
 MODEL_NATIVE_SIZING_OOS_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_sizing_oos_proof_v4"
+    "entry_model_native_sizing_oos_proof_v5"
 )
 MODEL_NATIVE_SIZING_OOS_SOURCE_SCHEMA_VERSION = (
-    "entry_model_native_sizing_oos_source_v2"
-)
-MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_sizing_instrument_evidence_v1"
+    "entry_model_native_sizing_oos_source_v3"
 )
 MODEL_NATIVE_SIZING_TRANSFORM_VERSION = (
     "monotone_logistic_available_margin_capacity_fraction_v2"
@@ -61,11 +60,11 @@ MODEL_NATIVE_SIZING_TRANSFORM_VERSION = (
 MODEL_NATIVE_SIZING_RISK_POLICY_SCHEMA_VERSION = (
     "entry_model_native_sizing_risk_policy_v2"
 )
-MODEL_NATIVE_SIZING_FIT_SCOPE = "TRAIN_VAL_ONLY"
-MODEL_NATIVE_SIZING_FIT_SPLITS = ("train", "val")
+MODEL_NATIVE_SIZING_FIT_SCOPE = "EXACT_VAL_ONLY_PRE_CALIBRATION"
+MODEL_NATIVE_SIZING_FIT_SPLITS = ("val",)
 MODEL_NATIVE_SIZING_HOLDOUT_SPLIT = "test"
 MODEL_NATIVE_SIZING_OOS_SCOPE = (
-    "FULL_TEST_LABEL_HORIZON_SIZING_HEAD_DIAGNOSTIC_ONLY"
+    "FULL_TEST_RUNTIME_AUTHORITATIVE_SIZING_AND_DIRECTION_EDGE_PROOF"
 )
 MODEL_NATIVE_SIZING_HEAD_VARIATION_EPSILON = 1e-8
 MODEL_NATIVE_SIZING_MAX_CAPACITY_FRACTION = 0.75
@@ -73,21 +72,43 @@ MODEL_NATIVE_SIZING_MAX_ACCOUNT_MARGIN_FRACTION = 0.10
 MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS = 1_000
 MODEL_NATIVE_SIZING_MAX_ACCOUNT_FLOATING_DRAWDOWN_BPS = 250.0
 MODEL_NATIVE_SIZING_MAX_OOS_CUMULATIVE_DRAWDOWN_BPS = 250.0
-MODEL_NATIVE_SIZING_MAX_RUNTIME_FACT_AGE_SECONDS = 30.0
 MODEL_NATIVE_SIZING_MIN_OOS_ORDERS = 100
 MODEL_NATIVE_SIZING_MIN_FIT_ROWS_PER_SPLIT = 256
 MODEL_NATIVE_SIZING_MIN_OOS_WEEK_BLOCKS = 12
 MODEL_NATIVE_SIZING_MIN_OOS_MONTH_BLOCKS = 6
 MODEL_NATIVE_SIZING_MIN_SLICE_WEEK_BLOCKS = 6
+_FOUNDATION_AUDIT_POLICY_SCHEMA_RE = re.compile(
+    r"entry_foundation_audit_policy_v[1-9][0-9]*"
+)
+_DIRECTION_EDGE_POLICY_FIELDS = (
+    "min_direction_accuracy",
+    "min_balanced_accuracy",
+    "min_trade_direction_precision",
+    "min_class_precision",
+    "wilson_confidence_level",
+    "wilson_z_score",
+    "min_trade_rows",
+    "min_prediction_rows_per_class",
+    "min_trade_precision_wilson_lower",
+    "min_class_precision_wilson_lower",
+)
+_DIRECTION_EDGE_POLICY_FLOORS = {
+    "min_direction_accuracy": 0.90,
+    "min_balanced_accuracy": 0.90,
+    "min_trade_direction_precision": 0.98,
+    "min_class_precision": 0.95,
+    "wilson_confidence_level": 0.95,
+    "wilson_z_score": 1.959963984540054,
+    "min_trade_rows": 200,
+    "min_prediction_rows_per_class": 100,
+    "min_trade_precision_wilson_lower": 0.95,
+    "min_class_precision_wilson_lower": 0.90,
+}
 
 _CALIBRATION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_CALIBRATION"
 _OOS_PROOF_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF"
 _OOS_SOURCE_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_SOURCE"
-_INSTRUMENT_EVIDENCE_EVENT_PREFIX = (
-    "ENTRY_MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE"
-)
 _PREDICTION_REPORT_EVENT_PREFIX = "ENTRY_CANDIDATE_SELECTIVE_EDGE"
-_SERVE_PARITY_EVENT_PREFIX = "MODEL_NATIVE_SERVE_PARITY"
 _IMMUTABLE_JSON_RE = re.compile(
     r"^(?P<prefix>[A-Z0-9_]+)_(?P<stamp>[0-9]{8}T[0-9]{12}Z)\.json$"
 )
@@ -110,8 +131,19 @@ _CALIBRATION_KEYS = frozenset(
         "fit_contract",
     }
 )
+_BUNDLE_CALIBRATION_KEYS = frozenset(
+    {
+        "schema_version",
+        "source_head",
+        "transform_version",
+        "fit_scope",
+        "calibration_artifact",
+        "risk_policy",
+    }
+)
 _INSTRUMENT_KEYS = frozenset(
     {
+        "constraint_source",
         "instrument",
         "account_currency",
         "quote_currency",
@@ -138,8 +170,6 @@ _LINEAGE_KEYS = frozenset(
         "fit_predictions_sha256",
         "model_checkpoint_path",
         "model_checkpoint_sha256",
-        "instrument_evidence_path",
-        "instrument_evidence_sha256",
     }
 )
 _PREDICTION_PROVENANCE_KEYS = frozenset(
@@ -169,26 +199,6 @@ _EVALUATION_BUNDLE_KEYS = frozenset(
         "model_state_dict_sha256",
     }
 )
-_INSTRUMENT_EVIDENCE_KEYS = frozenset(
-    {
-        "schema_version",
-        "created_utc",
-        "json_path",
-        "decision",
-        "failures",
-        "instrument",
-        "account_currency",
-        "quote_currency",
-        "trade_units_precision",
-        "minimum_trade_size",
-        "broker_maximum_order_units",
-        "margin_rate",
-        "account_observed_utc",
-        "instrument_observed_utc",
-        "account_last_transaction_id",
-        "instrument_last_transaction_id",
-    }
-)
 _RUNTIME_CONSTRAINT_KEYS = frozenset(
     {
         "instrument",
@@ -204,13 +214,6 @@ _RUNTIME_CONSTRAINT_KEYS = frozenset(
         "minimum_order_units",
         "maximum_gross_xau_units",
         "current_xau_abs_units",
-        "sizing_decision_utc",
-        "account_observed_utc",
-        "instrument_observed_utc",
-        "exposure_observed_utc",
-        "account_last_transaction_id",
-        "instrument_last_transaction_id",
-        "exposure_last_transaction_id",
         "fact_provenance_mode",
     }
 )
@@ -227,6 +230,7 @@ MODEL_NATIVE_SIZING_OOS_PREDICTION_COLUMNS = frozenset(
         "model",
         "position_size_logit",
         "model_direction_index",
+        "target_direction_index",
         "session",
         "vol_regime",
     }
@@ -245,12 +249,6 @@ MODEL_NATIVE_SIZING_OOS_OUTCOME_COLUMNS = frozenset(
         "entry_ask",
         "exit_bid",
         "exit_ask",
-        "account_observed_utc",
-        "instrument_observed_utc",
-        "exposure_observed_utc",
-        "account_last_transaction_id",
-        "instrument_last_transaction_id",
-        "exposure_last_transaction_id",
         "fact_provenance_mode",
     }
 )
@@ -306,6 +304,8 @@ _PROOF_KEYS = frozenset(
         "drawdown_bounds",
         "paired_oos_utility",
         "account_capacity_grid",
+        "direction_edge_policy",
+        "direction_edge_admission",
         "direction_invariance",
     }
 )
@@ -321,7 +321,6 @@ _OOS_SOURCE_KEYS = frozenset(
         "test_prediction_provenance",
         "evaluation_bundle",
         "source_tape",
-        "model_head_serve_parity_artifact",
         "reference_account_policy",
         "source_bindings",
     }
@@ -333,6 +332,21 @@ _SOURCE_TAPE_KEYS = frozenset(
 
 class ModelNativeSizingContractError(RuntimeError):
     """Immutable learned sizing evidence is absent, stale, or inconsistent."""
+
+
+def sizing_offline_instrument_constraints_metadata() -> dict[str, Any]:
+    """Code-owned XAUUSD research constraints; never broker observations."""
+
+    return {
+        "constraint_source": "code_owned_offline_xauusd_v1",
+        "instrument": "XAU_USD",
+        "account_currency": "USD",
+        "quote_currency": "USD",
+        "unit_step": 1,
+        "minimum_order_units": 1,
+        "maximum_gross_xau_units": MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS,
+        "margin_rate": 0.05,
+    }
 
 
 def sizing_risk_policy_metadata() -> dict[str, Any]:
@@ -349,9 +363,6 @@ def sizing_risk_policy_metadata() -> dict[str, Any]:
         "maximum_oos_cumulative_drawdown_bps": (
             MODEL_NATIVE_SIZING_MAX_OOS_CUMULATIVE_DRAWDOWN_BPS
         ),
-        "maximum_runtime_fact_age_seconds": (
-            MODEL_NATIVE_SIZING_MAX_RUNTIME_FACT_AGE_SECONDS
-        ),
         "minimum_oos_evaluated_orders": MODEL_NATIVE_SIZING_MIN_OOS_ORDERS,
         "utility_confidence_level": 0.95,
         "utility_interval": "two_sided_student_t_on_independent_time_blocks",
@@ -365,9 +376,9 @@ def sizing_risk_policy_metadata() -> dict[str, Any]:
         "historical_control_units": 1,
         "allocation_control": "capacity_capped_equal_total_continuous_units",
         "rounded_allocation_control_role": "diagnostic_only",
-        "capital_adoption_authority": False,
-        "capital_adoption_requirement": (
-            "fresh_candidate_bound_same_bundle_entry_exit_full_test_replay_proof"
+        "execution_or_live_authority": False,
+        "required_final_evidence": (
+            "same_candidate_same_bundle_entry_m5_exit_m1_full_test_replay"
         ),
         "capacity_formula": (
             "floor_step(min((min(margin_available,max(0,equity*0.10-margin_used))"
@@ -380,7 +391,7 @@ def sizing_risk_policy_metadata() -> dict[str, Any]:
             "max(running_peak(cumulative_pnl_bps)-cumulative_pnl_bps)"
         ),
         "rounding_mode": "floor_to_unit_step",
-        "unknown_or_stale_runtime_fact_action": "NO_ORDER",
+        "external_runtime_fact_inputs_allowed": False,
     }
 
 
@@ -420,8 +431,7 @@ def sizing_oos_reference_account_policy_metadata() -> dict[str, Any]:
             },
         },
         "row_simulation_mode": "independent_full_test_rows",
-        "broker_observation_claimed": False,
-        "transaction_ids_applicable": False,
+        "external_runtime_or_broker_facts_allowed": False,
         "price_path_authority": "hash_bound_source_tape_bid_ask",
     }
 
@@ -447,7 +457,7 @@ def sizing_fit_contract_metadata() -> dict[str, Any]:
 def fit_monotone_sizing_parameters(
     logits: np.ndarray, targets: np.ndarray
 ) -> dict[str, float]:
-    """Shared deterministic TRAIN/VAL fit used by producer and verifier."""
+    """Shared deterministic VAL-only fit used by producer and verifier."""
 
     logits = np.asarray(logits, dtype=np.float64)
     targets = np.asarray(targets, dtype=np.float64)
@@ -460,7 +470,7 @@ def fit_monotone_sizing_parameters(
         or float(np.std(logits)) <= MODEL_NATIVE_SIZING_HEAD_VARIATION_EPSILON
         or np.any((targets < 0.0) | (targets > high))
     ):
-        _fail("SIZING_FIT", "TRAIN/VAL sizing arrays are invalid or inert")
+        _fail("SIZING_FIT", "VAL sizing arrays are invalid or inert")
     spread = max(float(np.std(logits)), 1e-3)
     lower = np.asarray(
         [0.0, float(np.min(logits) - 10.0 * spread), math.log(1e-4)],
@@ -611,6 +621,49 @@ def require_immutable_json_binding(
     return {"json_path": str(resolved), "sha256": expected_sha}
 
 
+def model_native_sizing_bundle_calibration_metadata(
+    *,
+    calibration_artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Bind exact VAL calibration into a frozen offline candidate bundle."""
+
+    binding = require_immutable_json_binding(
+        calibration_artifact,
+        event_prefix=_CALIBRATION_EVENT_PREFIX,
+        context="SIZING_BUNDLE_CALIBRATION.calibration_artifact",
+        verify_file=False,
+    )
+    return {
+        "schema_version": MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION,
+        "source_head": "position_size_logit",
+        "transform_version": MODEL_NATIVE_SIZING_TRANSFORM_VERSION,
+        "fit_scope": MODEL_NATIVE_SIZING_FIT_SCOPE,
+        "calibration_artifact": binding,
+        "risk_policy": sizing_risk_policy_metadata(),
+    }
+
+
+def require_model_native_sizing_bundle_calibration(
+    value: Mapping[str, Any] | Any,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Require the exact offline calibration declaration bound in a bundle."""
+
+    observed = _exact_keys(value, _BUNDLE_CALIBRATION_KEYS, context=context)
+    expected = model_native_sizing_bundle_calibration_metadata(
+        calibration_artifact=observed["calibration_artifact"]
+    )
+    if observed != expected:
+        mismatched = sorted(
+            key
+            for key, expected_value in expected.items()
+            if observed.get(key) != expected_value
+        )
+        _fail(context, f"bundle calibration mismatch: {mismatched}")
+    return observed
+
+
 def _source_binding(
     binding: Mapping[str, Any] | Any,
     *,
@@ -658,89 +711,12 @@ def _json_file(path: Path, *, context: str) -> dict[str, Any]:
     return payload
 
 
-def require_sizing_instrument_evidence_artifact(
-    path_raw: Any,
-    sha_raw: Any,
-    *,
-    context: str,
-    verify_file: bool,
-) -> dict[str, Any] | None:
-    """Validate the immutable broker evidence, including its self-reference."""
-
-    path = Path(str(path_raw or "")).expanduser()
-    if not path.is_absolute():
-        _fail(context, "instrument evidence path must be absolute")
-    path = path.resolve()
-    expected_sha = _sha(sha_raw, context=f"{context}.sha256")
-    if not verify_file:
-        return None
-    if not path.is_file() or sha256_file(path) != expected_sha:
-        _fail(context, "instrument evidence missing or hash mismatch")
-    try:
-        require_newest_immutable_event(path, _INSTRUMENT_EVIDENCE_EVENT_PREFIX)
-    except ImmutableEventAuthorityError as exc:
-        _fail(context, f"instrument evidence is not newest immutable authority: {exc}")
-    observed = _exact_keys(
-        _json_file(path, context=context),
-        _INSTRUMENT_EVIDENCE_KEYS,
-        context=context,
-    )
-    if Path(str(observed["json_path"] or "")).expanduser().resolve() != path:
-        _fail(context, "instrument evidence json_path self-reference mismatch")
-    created = _utc(observed["created_utc"], context=f"{context}.created_utc")
-    account_observed = _utc(
-        observed["account_observed_utc"], context=f"{context}.account_observed_utc"
-    )
-    instrument_observed = _utc(
-        observed["instrument_observed_utc"],
-        context=f"{context}.instrument_observed_utc",
-    )
-    if not account_observed <= instrument_observed <= created:
-        _fail(context, "broker observation chronology must be account <= instrument <= event")
-    expected_static = {
-        "schema_version": MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE_SCHEMA_VERSION,
-        "decision": "PASS",
-        "failures": [],
-        "instrument": "XAU_USD",
-        "account_currency": "USD",
-        "quote_currency": "USD",
-    }
-    for key, expected in expected_static.items():
-        if observed[key] != expected:
-            _fail(context, f"{key}={observed[key]!r} expected={expected!r}")
-    precision = _strict_int(
-        observed["trade_units_precision"],
-        context=f"{context}.trade_units_precision",
-    )
-    minimum = _strict_int(
-        observed["minimum_trade_size"],
-        context=f"{context}.minimum_trade_size",
-        minimum=1,
-    )
-    maximum = _strict_int(
-        observed["broker_maximum_order_units"],
-        context=f"{context}.broker_maximum_order_units",
-        minimum=minimum,
-    )
-    margin_rate = _finite(observed["margin_rate"], context=f"{context}.margin_rate")
-    if (
-        precision != 0
-        or maximum < MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS
-        or not 0.0 < margin_rate <= 1.0
-    ):
-        _fail(context, "broker instrument constraints violate immutable XAU policy")
-    for key in ("account_last_transaction_id", "instrument_last_transaction_id"):
-        if not isinstance(observed[key], str) or not observed[key].strip():
-            _fail(context, f"{key} must be a non-empty broker transaction id")
-    return observed
-
-
 def require_sizing_prediction_provenance(
     value: Mapping[str, Any] | Any,
     *,
     predictions_binding: Mapping[str, Any],
     expected_splits: tuple[str, ...],
-    require_runtime_head_evidence: bool,
+    expected_stage: str,
     context: str,
     verify_files: bool,
 ) -> dict[str, Any]:
@@ -816,18 +792,26 @@ def require_sizing_prediction_provenance(
     try:
         authoritative, report_payload, evidence = resolve_and_validate_prediction_evidence(
             Path(source["path"]),
+            expected_sha256=source["sha256"],
             prediction_report_path=Path(report["json_path"]),
             bundle_dir=bundle_dir,
             dataset_dir=dataset_dir,
+            expected_stage=expected_stage,
+            expected_splits=expected_splits,
             expected_model="candidate",
-            require_runtime_head_evidence=require_runtime_head_evidence,
         )
     except Exception as exc:
         _fail(context, f"canonical prediction evidence validation failed: {exc}")
-    if sorted(str(item) for item in evidence.get("splits") or []) != sorted(
-        expected_splits
-    ):
+    if tuple(str(item) for item in evidence.get("splits") or []) != expected_splits:
         _fail(context, "prediction evidence split set is not exact")
+    expected_authority = expected_stage == "runtime_authoritative"
+    if (
+        evidence.get("evidence_stage") != expected_stage
+        or evidence.get("authoritative") is not expected_authority
+        or evidence.get("runtime_head_evidence_authoritative")
+        is not expected_authority
+    ):
+        _fail(context, "prediction evidence stage/authority is not exact")
     if list(evidence.get("models") or []) != ["candidate"]:
         _fail(context, "prediction evidence model set must be exactly candidate")
     if authoritative.resolve() != Path(source["path"]).resolve():
@@ -856,7 +840,7 @@ def require_sizing_prediction_provenance(
         "position_size_logit",
         "position_size_pred",
     ]
-    if any(split in MODEL_NATIVE_SIZING_FIT_SPLITS for split in expected_splits):
+    if expected_stage == "pre_calibration":
         prediction_columns.append("y_position_size_target")
     prediction_frame = pd.read_parquet(authoritative, columns=prediction_columns)
     sizing_logits = pd.to_numeric(
@@ -941,7 +925,7 @@ def require_sizing_prediction_provenance(
             )
         ):
             _fail(context, f"prediction rows do not exactly cover {split} dataset rows")
-        if split in MODEL_NATIVE_SIZING_FIT_SPLITS:
+        if expected_stage == "pre_calibration":
             if "y_position_size_target" not in prediction_frame.columns:
                 _fail(context, "fit prediction evidence lacks y_position_size_target")
             dataset_targets = pd.to_numeric(
@@ -1075,13 +1059,8 @@ def require_sizing_calibration_artifact(
         _INSTRUMENT_KEYS,
         context=f"{context}.instrument_constraints",
     )
-    for key, expected in {
-        "instrument": "XAU_USD",
-        "account_currency": "USD",
-        "quote_currency": "USD",
-    }.items():
-        if instrument[key] != expected:
-            _fail(context, f"instrument_constraints.{key} mismatch")
+    if instrument != sizing_offline_instrument_constraints_metadata():
+        _fail(context, "instrument constraints differ from code-owned offline policy")
     step = _strict_int(instrument["unit_step"], context=f"{context}.unit_step", minimum=1)
     minimum = _strict_int(
         instrument["minimum_order_units"], context=f"{context}.minimum_units", minimum=1
@@ -1127,7 +1106,6 @@ def require_sizing_calibration_artifact(
         "dataset_manifest",
         "fit_predictions",
         "model_checkpoint",
-        "instrument_evidence",
     ):
         _lineage_file(
             lineage[f"{stem}_path"],
@@ -1135,12 +1113,6 @@ def require_sizing_calibration_artifact(
             context=f"{context}.lineage.{stem}",
             verify_file=verify_lineage_files,
         )
-    require_sizing_instrument_evidence_artifact(
-        lineage["instrument_evidence_path"],
-        lineage["instrument_evidence_sha256"],
-        context=f"{context}.lineage.instrument_evidence",
-        verify_file=verify_lineage_files,
-    )
     fit_binding = {
         "path": str(Path(str(lineage["fit_predictions_path"])).expanduser().resolve()),
         "sha256": str(lineage["fit_predictions_sha256"]),
@@ -1149,7 +1121,7 @@ def require_sizing_calibration_artifact(
         observed["fit_prediction_provenance"],
         predictions_binding=fit_binding,
         expected_splits=MODEL_NATIVE_SIZING_FIT_SPLITS,
-        require_runtime_head_evidence=True,
+        expected_stage="pre_calibration",
         context=f"{context}.fit_prediction_provenance",
         verify_files=verify_lineage_files,
     )
@@ -1164,11 +1136,11 @@ def require_sizing_calibration_artifact(
             _fail(context, "fit provenance checkpoint is not exact calibration checkpoint")
         manifest_path = Path(str(lineage["dataset_manifest_path"])).resolve()
         dataset_dir = Path(provenance["dataset_dir"]).resolve()
-        proven_train_manifest = Path(
-            provenance["dataset_split_bindings"]["train"]["manifest_path"]
+        proven_val_manifest = Path(
+            provenance["dataset_split_bindings"]["val"]["manifest_path"]
         ).resolve()
-        if manifest_path.parent != dataset_dir or manifest_path != proven_train_manifest:
-            _fail(context, "lineage dataset manifest is not exact proven TRAIN manifest")
+        if manifest_path.parent != dataset_dir or manifest_path != proven_val_manifest:
+            _fail(context, "lineage dataset manifest is not exact proven VAL manifest")
         manifest = _json_file(manifest_path, context=f"{context}.dataset_manifest")
         coverage = manifest.get("ts_min_max_by_split")
         if not isinstance(coverage, Mapping):
@@ -1186,7 +1158,7 @@ def require_sizing_calibration_artifact(
         if fit_frame.empty or set(fit_frame["split"].astype(str)) != set(
             MODEL_NATIVE_SIZING_FIT_SPLITS
         ) or set(fit_frame["model"].astype(str)) != {"candidate"}:
-            _fail(context, "fit predictions are not exact candidate TRAIN+VAL")
+            _fail(context, "fit predictions are not exact candidate VAL")
         fit_times = pd.to_datetime(fit_frame["time"], utc=True, errors="coerce")
         if (
             fit_times.isna().any()
@@ -1249,7 +1221,7 @@ def require_sizing_calibration_artifact(
         if mismatched_parameters:
             _fail(
                 context,
-                f"calibration parameters differ from TRAIN/VAL refit: {mismatched_parameters}",
+                f"calibration parameters differ from VAL refit: {mismatched_parameters}",
             )
     return observed
 
@@ -1260,6 +1232,8 @@ def require_runtime_sizing_constraints(
     calibration: Mapping[str, Any],
     context: str,
 ) -> dict[str, Any]:
+    """Validate code-owned offline TEST account facts only."""
+
     observed = _exact_keys(value, _RUNTIME_CONSTRAINT_KEYS, context=context)
     instrument = calibration["instrument_constraints"]
     for key in (
@@ -1297,34 +1271,8 @@ def require_runtime_sizing_constraints(
         abs_tol=1e-7,
     ):
         _fail(context, "account_floating_drawdown_bps does not match balance/equity")
-    decision_time = _utc(observed["sizing_decision_utc"], context=f"{context}.decision_time")
-    for key in ("account_observed_utc", "instrument_observed_utc", "exposure_observed_utc"):
-        observed_time = _utc(observed[key], context=f"{context}.{key}")
-        age = (decision_time - observed_time).total_seconds()
-        if age < 0.0 or age > MODEL_NATIVE_SIZING_MAX_RUNTIME_FACT_AGE_SECONDS:
-            _fail(context, f"{key} age_seconds={age} exceeds immutable freshness cap")
-    provenance_mode = observed["fact_provenance_mode"]
-    if provenance_mode not in (
-        "broker_live",
-        "canonical_oos_reference",
-    ):
-        _fail(context, "fact_provenance_mode must be broker_live or canonical_oos_reference")
-    transaction_keys = (
-        "account_last_transaction_id",
-        "instrument_last_transaction_id",
-        "exposure_last_transaction_id",
-    )
-    if provenance_mode == "broker_live":
-        for key in transaction_keys:
-            if not isinstance(observed[key], str) or not observed[key].strip():
-                _fail(context, f"{key} missing exact live broker provenance")
-        if len({str(observed[key]).strip() for key in transaction_keys}) != 1:
-            _fail(
-                context,
-                "live account/instrument/exposure facts must share one lastTransactionID",
-            )
-    elif any(observed[key] is not None for key in transaction_keys):
-        _fail(context, "canonical OOS reference must not claim broker transaction IDs")
+    if observed["fact_provenance_mode"] != "canonical_oos_reference":
+        _fail(context, "only canonical_oos_reference facts are allowed")
     return observed
 
 
@@ -1340,7 +1288,7 @@ def calibrated_sizing_transform(
     runtime_constraints: Mapping[str, Any],
     context: str,
 ) -> dict[str, Any]:
-    """Pure transform used identically by audit, replay, and live application."""
+    """Pure transform used only by frozen offline TEST evidence."""
 
     validated_calibration = require_sizing_calibration_artifact(
         calibration, context=f"{context}.calibration", verify_lineage_files=False
@@ -1489,52 +1437,6 @@ def _require_source_tape_binding(
     return canonical
 
 
-def _require_serve_parity_binding(
-    binding: Mapping[str, Any] | Any,
-    *,
-    test_prediction_provenance: Mapping[str, Any],
-    test_predictions_binding: Mapping[str, Any],
-    evaluation_bundle: Mapping[str, Any],
-    context: str,
-    verify_file: bool,
-) -> tuple[dict[str, Any] | None, dict[str, str]]:
-    canonical = require_immutable_json_binding(
-        binding,
-        event_prefix=_SERVE_PARITY_EVENT_PREFIX,
-        context=context,
-        verify_file=verify_file,
-    )
-    if not verify_file:
-        return None, canonical
-    payload = _json_file(Path(canonical["json_path"]), context=context)
-    failures = serve_gate_event_contract_failures(
-        payload, evidence_name="model_native_serve_parity"
-    )
-    if payload.get("decision") != "PASS" or payload.get("failures") or failures:
-        _fail(context, f"serve parity is not zero-failure PASS: {failures[:5]}")
-    if Path(str(payload.get("json_path") or "")).expanduser().resolve() != Path(
-        canonical["json_path"]
-    ):
-        _fail(context, "serve parity json_path mismatch")
-    if Path(str(payload.get("bundle_dir") or "")).expanduser().resolve() != Path(
-        evaluation_bundle["bundle_dir"]
-    ).resolve():
-        _fail(context, "serve parity bundle differs from sizing evaluation bundle")
-    if Path(str(payload.get("dataset_dir") or "")).expanduser().resolve() != Path(
-        test_prediction_provenance["dataset_dir"]
-    ).resolve():
-        _fail(context, "serve parity dataset differs from TEST prediction provenance")
-    prediction = payload.get("prediction_evidence")
-    if not isinstance(prediction, Mapping) or (
-        Path(str(prediction.get("path") or "")).expanduser().resolve()
-        != Path(test_predictions_binding["path"]).resolve()
-        or str(prediction.get("sha256") or "").lower()
-        != str(test_predictions_binding["sha256"]).lower()
-    ):
-        _fail(context, "serve parity does not bind exact TEST prediction event")
-    return payload, canonical
-
-
 def derive_canonical_sizing_oos_rows(
     *,
     calibration: Mapping[str, Any],
@@ -1542,7 +1444,6 @@ def derive_canonical_sizing_oos_rows(
     test_prediction_provenance: Mapping[str, Any],
     evaluation_bundle: Mapping[str, Any],
     source_tape: Mapping[str, Any],
-    model_head_serve_parity_artifact: Mapping[str, Any],
     context: str,
 ) -> pd.DataFrame:
     """Derive one full TEST sizing table from proven predictions and SourceTape."""
@@ -1559,7 +1460,7 @@ def derive_canonical_sizing_oos_rows(
         test_prediction_provenance,
         predictions_binding=prediction_binding,
         expected_splits=("test",),
-        require_runtime_head_evidence=True,
+        expected_stage="runtime_authoritative",
         context=f"{context}.prediction_provenance",
         verify_files=True,
     )
@@ -1573,14 +1474,6 @@ def derive_canonical_sizing_oos_rows(
         source_tape,
         test_prediction_provenance=provenance,
         context=f"{context}.source_tape",
-        verify_file=True,
-    )
-    _require_serve_parity_binding(
-        model_head_serve_parity_artifact,
-        test_prediction_provenance=provenance,
-        test_predictions_binding=prediction_binding,
-        evaluation_bundle=evaluation,
-        context=f"{context}.model_head_serve_parity",
         verify_file=True,
     )
     predictions = pd.read_parquet(Path(prediction_binding["path"]))
@@ -1598,6 +1491,7 @@ def derive_canonical_sizing_oos_rows(
         _fail(context, "TEST horizon coverage is not exact")
     times = pd.to_datetime(joined["time"], utc=True, errors="coerce")
     directions_raw = pd.to_numeric(joined["pred_direction"], errors="coerce").to_numpy()
+    targets_raw = pd.to_numeric(joined["y_direction"], errors="coerce").to_numpy()
     logits = pd.to_numeric(joined["position_size_logit"], errors="coerce").to_numpy(float)
     if (
         times.isna().any()
@@ -1607,8 +1501,11 @@ def derive_canonical_sizing_oos_rows(
         or not np.isfinite(directions_raw).all()
         or not np.array_equal(directions_raw, directions_raw.astype(np.int64))
         or not bool(np.isin(directions_raw.astype(np.int64), [0, 1, 2]).all())
+        or not np.isfinite(targets_raw).all()
+        or not np.array_equal(targets_raw, targets_raw.astype(np.int64))
+        or not bool(np.isin(targets_raw.astype(np.int64), [0, 1, 2]).all())
     ):
-        _fail(context, "canonical TEST direction/logit rows are invalid")
+        _fail(context, "canonical TEST prediction/target direction rows are invalid")
     directions = directions_raw.astype(np.int64)
     horizon_values = pd.to_numeric(joined["label_horizon_bars"], errors="coerce").to_numpy(float)
     if (
@@ -1661,13 +1558,6 @@ def derive_canonical_sizing_oos_rows(
             "minimum_order_units": instrument["minimum_order_units"],
             "maximum_gross_xau_units": instrument["maximum_gross_xau_units"],
             "current_xau_abs_units": row_scenario["current_xau_abs_units"],
-            "sizing_decision_utc": decision_utc,
-            "account_observed_utc": decision_utc,
-            "instrument_observed_utc": decision_utc,
-            "exposure_observed_utc": decision_utc,
-            "account_last_transaction_id": None,
-            "instrument_last_transaction_id": None,
-            "exposure_last_transaction_id": None,
             "fact_provenance_mode": "canonical_oos_reference",
         }
         transformed = calibrated_sizing_transform(
@@ -1695,12 +1585,6 @@ def derive_canonical_sizing_oos_rows(
                 "entry_ask": float(tape.ask_open[fill_idx]),
                 "exit_bid": float(tape.bid_close[exit_idx]),
                 "exit_ask": float(tape.ask_close[exit_idx]),
-                "account_observed_utc": decision_utc,
-                "instrument_observed_utc": decision_utc,
-                "exposure_observed_utc": decision_utc,
-                "account_last_transaction_id": None,
-                "instrument_last_transaction_id": None,
-                "exposure_last_transaction_id": None,
                 "fact_provenance_mode": "canonical_oos_reference",
             }
         )
@@ -1730,6 +1614,7 @@ def derive_canonical_sizing_oos_rows(
         "model",
         "position_size_logit",
         "pred_direction",
+        "y_direction",
         "session",
         "vol_regime",
     ]
@@ -1746,7 +1631,10 @@ def derive_canonical_sizing_oos_rows(
         prediction_rows["time"], utc=True
     ).map(lambda value: value.isoformat())
     prediction_rows = prediction_rows.rename(
-        columns={"pred_direction": "model_direction_index"}
+        columns={
+            "pred_direction": "model_direction_index",
+            "y_direction": "target_direction_index",
+        }
     )
     outcome_frame = pd.DataFrame(outcomes)
     replay_frame = pd.DataFrame(replay).drop(
@@ -1811,7 +1699,7 @@ def load_bound_sizing_oos_source(
         payload["test_prediction_provenance"],
         predictions_binding=prediction_binding,
         expected_splits=("test",),
-        require_runtime_head_evidence=True,
+        expected_stage="runtime_authoritative",
         context=f"{context}.test_prediction_provenance",
         verify_files=verify_source_files,
     )
@@ -1825,14 +1713,6 @@ def load_bound_sizing_oos_source(
         payload["source_tape"],
         test_prediction_provenance=provenance,
         context=f"{context}.source_tape",
-        verify_file=verify_source_files,
-    )
-    _require_serve_parity_binding(
-        payload["model_head_serve_parity_artifact"],
-        test_prediction_provenance=provenance,
-        test_predictions_binding=prediction_binding,
-        evaluation_bundle=evaluation,
-        context=f"{context}.model_head_serve_parity",
         verify_file=verify_source_files,
     )
     if payload["reference_account_policy"] != sizing_oos_reference_account_policy_metadata():
@@ -1859,9 +1739,6 @@ def load_bound_sizing_oos_source(
             test_prediction_provenance=provenance,
             evaluation_bundle=evaluation,
             source_tape=tape,
-            model_head_serve_parity_artifact=payload[
-                "model_head_serve_parity_artifact"
-            ],
             context=f"{context}.rederive",
         )
         observed_rows = _read_table(
@@ -2118,6 +1995,197 @@ def _paired_block_admission(
     }
 
 
+def sizing_direction_edge_policy_metadata() -> dict[str, Any]:
+    """Bind the exact immutable core precision policy enforced on TEST."""
+
+    policy_path = Path(__file__).with_name("entry_foundation_audit_policy_v1.py")
+    if policy_path.is_symlink() or not policy_path.is_file():
+        _fail("SIZING_DIRECTION_EDGE_POLICY", "foundation policy source is absent")
+    try:
+        source = policy_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(policy_path))
+    except Exception as exc:
+        _fail("SIZING_DIRECTION_EDGE_POLICY", f"foundation policy unreadable: {exc}")
+    schema_node: ast.AST | None = None
+    policy_node: ast.Dict | None = None
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            value_node = node.value
+        elif isinstance(node, ast.AnnAssign):
+            target = node.target
+            value_node = node.value
+        else:
+            continue
+        if not isinstance(target, ast.Name):
+            continue
+        if target.id == "FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION":
+            schema_node = value_node
+        elif target.id == "_FOUNDATION_AUDIT_POLICY" and isinstance(
+            value_node, ast.Dict
+        ):
+            policy_node = value_node
+    try:
+        schema = ast.literal_eval(schema_node) if schema_node is not None else None
+    except Exception as exc:
+        _fail("SIZING_DIRECTION_EDGE_POLICY", f"policy schema is not literal: {exc}")
+    if (
+        not isinstance(schema, str)
+        or _FOUNDATION_AUDIT_POLICY_SCHEMA_RE.fullmatch(schema) is None
+        or policy_node is None
+    ):
+        _fail("SIZING_DIRECTION_EDGE_POLICY", "foundation policy schema/payload changed")
+
+    def dict_value(node: ast.Dict, key: str) -> ast.AST | None:
+        for raw_key, raw_value in zip(node.keys, node.values, strict=True):
+            try:
+                parsed_key = ast.literal_eval(raw_key) if raw_key is not None else None
+            except Exception:
+                continue
+            if parsed_key == key:
+                return raw_value
+        return None
+
+    edge_node = dict_value(policy_node, "smoke_edge_pockets")
+    if not isinstance(edge_node, ast.Dict):
+        _fail("SIZING_DIRECTION_EDGE_POLICY", "smoke_edge_pockets is absent")
+    enforced_core: dict[str, Any] = {}
+    for name in _DIRECTION_EDGE_POLICY_FIELDS:
+        value_node = dict_value(edge_node, name)
+        try:
+            value = ast.literal_eval(value_node) if value_node is not None else None
+        except Exception as exc:
+            _fail("SIZING_DIRECTION_EDGE_POLICY", f"{name} is not literal: {exc}")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            _fail("SIZING_DIRECTION_EDGE_POLICY", f"{name} is not numeric")
+        floor = _DIRECTION_EDGE_POLICY_FLOORS[name]
+        if float(value) < float(floor):
+            _fail(
+                "SIZING_DIRECTION_EDGE_POLICY",
+                f"{name}={value} weakens immutable floor={floor}",
+            )
+        enforced_core[name] = value
+    core_sha = hashlib.sha256(
+        json.dumps(
+            enforced_core,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return {
+        "foundation_audit_policy_binding": {
+            "foundation_audit_policy_schema_version": schema,
+            "foundation_audit_policy_source": (
+                "gx1/contracts/entry_foundation_audit_policy_v1.py"
+            ),
+            "foundation_audit_policy_source_sha256": hashlib.sha256(
+                source.encode("utf-8")
+            ).hexdigest(),
+            "enforced_core_sha256": core_sha,
+        },
+        "policy_section": "smoke_edge_pockets",
+        "enforced_core": enforced_core,
+        "direction_order": ["LONG", "SHORT", "FLAT"],
+        "evaluation_split": "test",
+        "evidence_stage": "runtime_authoritative",
+    }
+
+
+def _wilson_lower(successes: int, trials: int, *, z_score: float) -> float:
+    if trials <= 0 or successes < 0 or successes > trials:
+        return 0.0
+    proportion = successes / trials
+    denominator = 1.0 + (z_score * z_score) / trials
+    center = proportion + (z_score * z_score) / (2.0 * trials)
+    radius = z_score * math.sqrt(
+        proportion * (1.0 - proportion) / trials
+        + (z_score * z_score) / (4.0 * trials * trials)
+    )
+    return float((center - radius) / denominator)
+
+
+def recompute_direction_edge_admission(
+    *,
+    predicted: np.ndarray,
+    target: np.ndarray,
+    context: str,
+) -> dict[str, Any]:
+    """Recompute hard TEST precision/Wilson/class admission from exact rows."""
+
+    predicted = np.asarray(predicted, dtype=np.int64)
+    target = np.asarray(target, dtype=np.int64)
+    if (
+        predicted.ndim != 1
+        or target.shape != predicted.shape
+        or len(predicted) == 0
+        or not np.isin(predicted, [0, 1, 2]).all()
+        or not np.isin(target, [0, 1, 2]).all()
+    ):
+        _fail(context, "direction edge rows are invalid")
+    policy = sizing_direction_edge_policy_metadata()["enforced_core"]
+    z_score = float(policy["wilson_z_score"])
+    names = ("LONG", "SHORT", "FLAT")
+    correct = predicted == target
+    class_rows: dict[str, dict[str, Any]] = {}
+    recalls: list[float] = []
+    failures: list[str] = []
+    for class_id, name in enumerate(names):
+        predicted_mask = predicted == class_id
+        target_mask = target == class_id
+        predicted_rows = int(np.count_nonzero(predicted_mask))
+        target_rows = int(np.count_nonzero(target_mask))
+        successes = int(np.count_nonzero(predicted_mask & correct))
+        precision = successes / predicted_rows if predicted_rows else 0.0
+        recall = successes / target_rows if target_rows else 0.0
+        wilson = _wilson_lower(successes, predicted_rows, z_score=z_score)
+        recalls.append(recall)
+        class_rows[name] = {
+            "predicted_rows": predicted_rows,
+            "target_rows": target_rows,
+            "correct_rows": successes,
+            "precision": float(precision),
+            "precision_wilson_lower": wilson,
+            "recall": float(recall),
+        }
+        if predicted_rows < int(policy["min_prediction_rows_per_class"]):
+            failures.append(f"{name}:prediction_support")
+        if precision < float(policy["min_class_precision"]):
+            failures.append(f"{name}:precision")
+        if wilson < float(policy["min_class_precision_wilson_lower"]):
+            failures.append(f"{name}:precision_wilson_lower")
+    trade_mask = predicted != 2
+    trade_rows = int(np.count_nonzero(trade_mask))
+    trade_successes = int(np.count_nonzero(trade_mask & correct))
+    trade_precision = trade_successes / trade_rows if trade_rows else 0.0
+    trade_wilson = _wilson_lower(trade_successes, trade_rows, z_score=z_score)
+    direction_accuracy = float(np.mean(correct))
+    balanced_accuracy = float(np.mean(recalls))
+    if trade_rows < int(policy["min_trade_rows"]):
+        failures.append("trade_prediction_support")
+    if trade_precision < float(policy["min_trade_direction_precision"]):
+        failures.append("trade_direction_precision")
+    if trade_wilson < float(policy["min_trade_precision_wilson_lower"]):
+        failures.append("trade_precision_wilson_lower")
+    if direction_accuracy < float(policy["min_direction_accuracy"]):
+        failures.append("direction_accuracy")
+    if balanced_accuracy < float(policy["min_balanced_accuracy"]):
+        failures.append("balanced_accuracy")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "rows": int(len(predicted)),
+        "direction_accuracy": direction_accuracy,
+        "balanced_accuracy": balanced_accuracy,
+        "trade_rows": trade_rows,
+        "trade_correct_rows": trade_successes,
+        "trade_direction_precision": float(trade_precision),
+        "trade_direction_precision_wilson_lower": trade_wilson,
+        "classes": class_rows,
+    }
+
+
 def recompute_sizing_oos_evidence(
     *,
     calibration: Mapping[str, Any],
@@ -2186,14 +2254,6 @@ def recompute_sizing_oos_evidence(
         fact_provenance_mode
     }:
         _fail(context, f"OOS rows must use {fact_provenance_mode} facts")
-    transaction_fields = (
-        "account_last_transaction_id",
-        "instrument_last_transaction_id",
-        "exposure_last_transaction_id",
-    )
-    for key in transaction_fields:
-        if outcomes[key].notna().any():
-            _fail(context, f"historical OOS rows must not claim {key}")
     logits = _finite_numeric_column(
         predictions, "position_size_logit", context=f"{context}.predictions"
     )
@@ -2205,6 +2265,19 @@ def recompute_sizing_oos_evidence(
                 allowed=frozenset({0, 1, 2}),
             )
             for index, value in enumerate(predictions["pred_direction"].array)
+        ],
+        dtype=np.int64,
+    )
+    targets = np.asarray(
+        [
+            _strict_table_int(
+                value,
+                context=f"{context}.predictions.target_direction_index[{index}]",
+                allowed=frozenset({0, 1, 2}),
+            )
+            for index, value in enumerate(
+                predictions["target_direction_index"].array
+            )
         ],
         dtype=np.int64,
     )
@@ -2316,9 +2389,7 @@ def recompute_sizing_oos_evidence(
     calculated: list[dict[str, Any]] = []
     price_pnl_per_unit: list[float] = []
     for index in range(rows):
-        ts = times.iloc[index]
         outcome = outcomes.iloc[index]
-        decision_utc = ts.isoformat()
         # This is the hash-bound decision-time price written by the canonical
         # SourceTape producer, not a price reconstructed from the later fill.
         mark_price = outcome_numeric["mark_price"][index]
@@ -2338,13 +2409,6 @@ def recompute_sizing_oos_evidence(
             "minimum_order_units": instrument["minimum_order_units"],
             "maximum_gross_xau_units": instrument["maximum_gross_xau_units"],
             "current_xau_abs_units": outcome_numeric["current_xau_abs_units"][index],
-            "sizing_decision_utc": decision_utc,
-            "account_observed_utc": str(outcome["account_observed_utc"]),
-            "instrument_observed_utc": str(outcome["instrument_observed_utc"]),
-            "exposure_observed_utc": str(outcome["exposure_observed_utc"]),
-            "account_last_transaction_id": outcome["account_last_transaction_id"],
-            "instrument_last_transaction_id": outcome["instrument_last_transaction_id"],
-            "exposure_last_transaction_id": outcome["exposure_last_transaction_id"],
             "fact_provenance_mode": str(outcome["fact_provenance_mode"]),
         }
         transformed = calibrated_sizing_transform(
@@ -2425,7 +2489,6 @@ def recompute_sizing_oos_evidence(
         scenario_transforms: list[dict[str, Any]] = []
         admitted: list[bool] = []
         for index in range(rows):
-            decision_utc = times.iloc[index].isoformat()
             constraints = {
                 "instrument": instrument["instrument"],
                 "account_currency": reference_policy["account_currency"],
@@ -2435,13 +2498,6 @@ def recompute_sizing_oos_evidence(
                 "unit_step": instrument["unit_step"],
                 "minimum_order_units": instrument["minimum_order_units"],
                 "maximum_gross_xau_units": instrument["maximum_gross_xau_units"],
-                "sizing_decision_utc": decision_utc,
-                "account_observed_utc": decision_utc,
-                "instrument_observed_utc": decision_utc,
-                "exposure_observed_utc": decision_utc,
-                "account_last_transaction_id": None,
-                "instrument_last_transaction_id": None,
-                "exposure_last_transaction_id": None,
                 "fact_provenance_mode": "canonical_oos_reference",
             }
             transformed = calibrated_sizing_transform(
@@ -2638,6 +2694,12 @@ def recompute_sizing_oos_evidence(
     )
 
     direction_mismatch = int(np.count_nonzero(replay_directions != directions))
+    direction_edge_policy = sizing_direction_edge_policy_metadata()
+    direction_edge_admission = recompute_direction_edge_admission(
+        predicted=directions,
+        target=targets,
+        context=f"{context}.direction_edge",
+    )
     utc_ns = times.astype("int64").to_numpy(np.int64)
     return {
         "full_test_coverage": {
@@ -2701,6 +2763,8 @@ def recompute_sizing_oos_evidence(
             "required_scenarios": list(reference_policy["scenario_order"]),
             "scenarios": grid_scenarios,
         },
+        "direction_edge_policy": direction_edge_policy,
+        "direction_edge_admission": direction_edge_admission,
         "direction_invariance": {
             "decision": "PASS" if direction_mismatch == 0 else "FAIL",
             "compared_rows": rows,
@@ -2768,6 +2832,7 @@ def require_sizing_oos_proof_artifact(
         "full_test_coverage", "position_size_head_liveness", "monotonicity",
         "exposure_bounds", "drawdown_bounds", "paired_oos_utility",
         "account_capacity_grid",
+        "direction_edge_policy", "direction_edge_admission",
         "direction_invariance",
     )
     if verify_source_files:
@@ -2780,7 +2845,18 @@ def require_sizing_oos_proof_artifact(
         mismatched = [name for name in section_names if observed[name] != recomputed[name]]
         if mismatched:
             _fail(context, f"reported proof differs from row-level recomputation: {mismatched}")
-    for name in section_names[1:]:
+    if observed["direction_edge_policy"] != sizing_direction_edge_policy_metadata():
+        _fail(context, "direction edge policy binding mismatch")
+    for name in (
+        "position_size_head_liveness",
+        "monotonicity",
+        "exposure_bounds",
+        "drawdown_bounds",
+        "paired_oos_utility",
+        "account_capacity_grid",
+        "direction_edge_admission",
+        "direction_invariance",
+    ):
         section = observed[name]
         if not isinstance(section, Mapping) or section.get("decision") != "PASS":
             _fail(context, f"{name} must be recomputed PASS")
@@ -2877,18 +2953,17 @@ def load_bound_sizing_oos_proof(
 
 
 __all__ = [
+    "MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION",
     "MODEL_NATIVE_SIZING_CALIBRATION_SCHEMA_VERSION",
     "MODEL_NATIVE_SIZING_FIT_SCOPE",
     "MODEL_NATIVE_SIZING_FIT_SPLITS",
     "MODEL_NATIVE_SIZING_HEAD_VARIATION_EPSILON",
     "MODEL_NATIVE_SIZING_HOLDOUT_SPLIT",
-    "MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE_SCHEMA_VERSION",
     "MODEL_NATIVE_SIZING_MAX_ACCOUNT_FLOATING_DRAWDOWN_BPS",
     "MODEL_NATIVE_SIZING_MAX_OOS_CUMULATIVE_DRAWDOWN_BPS",
     "MODEL_NATIVE_SIZING_MAX_ACCOUNT_MARGIN_FRACTION",
     "MODEL_NATIVE_SIZING_MAX_CAPACITY_FRACTION",
     "MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS",
-    "MODEL_NATIVE_SIZING_MAX_RUNTIME_FACT_AGE_SECONDS",
     "MODEL_NATIVE_SIZING_MIN_OOS_ORDERS",
     "MODEL_NATIVE_SIZING_OOS_PROOF_SCHEMA_VERSION",
     "MODEL_NATIVE_SIZING_OOS_SCOPE",
@@ -2899,14 +2974,18 @@ __all__ = [
     "calibrated_sizing_transform",
     "load_bound_sizing_calibration",
     "load_bound_sizing_oos_proof",
+    "model_native_sizing_bundle_calibration_metadata",
+    "recompute_direction_edge_admission",
     "recompute_sizing_oos_evidence",
     "require_immutable_json_binding",
+    "require_model_native_sizing_bundle_calibration",
     "require_runtime_sizing_constraints",
     "require_sizing_evaluation_bundle",
     "require_sizing_calibration_artifact",
-    "require_sizing_instrument_evidence_artifact",
     "require_sizing_oos_proof_artifact",
     "require_sizing_prediction_provenance",
     "sha256_file",
+    "sizing_direction_edge_policy_metadata",
+    "sizing_offline_instrument_constraints_metadata",
     "sizing_risk_policy_metadata",
 ]

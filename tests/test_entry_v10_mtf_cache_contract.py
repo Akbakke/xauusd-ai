@@ -26,92 +26,17 @@ def _write_m5_source(path: Path) -> None:
     ).to_parquet(path, index=False)
 
 
-def test_exact_mtf_prebuild_builds_once_and_reuses_one_cache_identity(
+def test_exact_mtf_prebuild_requires_verified_v4_cache(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     m5_path = tmp_path / "xau_m5.parquet"
     _write_m5_source(m5_path)
-    cache: dict[str, dict[str, pd.DataFrame]] = {}
-    monkeypatch.setattr(trainer, "_MULTI_TF_CACHE", cache)
-
-    index = pd.DatetimeIndex([pd.Timestamp("2026-01-01", tz="UTC")])
-    expected = {
-        tf: pd.DataFrame(
-            np.zeros(
-                (1, htf_features.MULTI_TF_FEATURE_COUNT_V4),
-                dtype=np.float32,
-            ),
-            index=index,
-        )
-        for tf in ("M5", "M15", "H1", "H4", "D1")
-    }
-    calls = 0
-
-    def fake_build(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
-        nonlocal calls
-        calls += 1
-        assert list(frame.columns) == ["open", "high", "low", "close", "volume"]
-        assert isinstance(frame.index, pd.DatetimeIndex)
-        assert str(frame.index.tz) == "UTC"
-        return expected
-
-    monkeypatch.setattr(
-        htf_features,
-        "build_multi_tf_per_bar_features_v4",
-        fake_build,
-    )
-
-    first = trainer._prebuild_multi_tf_features_once(m5_path)
-    second = trainer._prebuild_multi_tf_features_once(m5_path)
-    cache_key = trainer._multi_tf_cache_key(m5_path)
-
-    assert calls == 1
-    assert first is expected
-    assert second is first
-    assert cache == {cache_key: expected}
-    assert cache[cache_key] is first
-
-
-def test_in_process_mtf_cache_does_not_reuse_mutated_m5_source(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    m5_path = tmp_path / "xau_m5.parquet"
-    _write_m5_source(m5_path)
+    monkeypatch.delenv(trainer._TRAIN_MULTI_TF_CACHE_ENV, raising=False)
     monkeypatch.setattr(trainer, "_MULTI_TF_CACHE", {})
     monkeypatch.setattr(trainer, "_MULTI_TF_ACTIVE_CACHE_KEYS", {})
-    calls = 0
-
-    def fake_build(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
-        nonlocal calls
-        calls += 1
-        return {
-            tf: pd.DataFrame(
-                np.full(
-                    (1, htf_features.MULTI_TF_FEATURE_COUNT_V4),
-                    calls,
-                    dtype=np.float32,
-                ),
-                index=pd.DatetimeIndex([pd.Timestamp("2026-01-01", tz="UTC")]),
-            )
-            for tf in ("M5", "M15", "H1", "H4", "D1")
-        }
-
-    monkeypatch.setattr(
-        htf_features,
-        "build_multi_tf_per_bar_features_v4",
-        fake_build,
-    )
-    first = trainer._prebuild_multi_tf_features_once(m5_path)
-    changed = pd.read_parquet(m5_path)
-    changed.loc[0, "close"] = float(changed.loc[0, "close"]) + 1.0
-    changed.to_parquet(m5_path, index=False)
-    second = trainer._prebuild_multi_tf_features_once(m5_path)
-
-    assert calls == 2
-    assert second is not first
-    assert len(trainer._MULTI_TF_CACHE) == 2
+    with pytest.raises(RuntimeError, match="MULTI_TF_V4_CACHE_DIR_REQUIRED"):
+        trainer._prebuild_multi_tf_features_once(m5_path)
 
 
 def test_prebuild_owner_uses_verified_disk_cache_and_binds_cache_identity(
@@ -155,7 +80,7 @@ def test_prebuild_owner_uses_verified_disk_cache_and_binds_cache_identity(
         assert Path(cache_dir).resolve() == disk_cache
         return verified
 
-    monkeypatch.setattr(htf_features, "load_multi_tf_cache", fake_load)
+    monkeypatch.setattr(htf_features, "load_multi_tf_v4_cache", fake_load)
     monkeypatch.setattr(
         htf_features,
         "build_multi_tf_per_bar_features_v4",
@@ -191,8 +116,9 @@ def test_active_mtf_prebuild_has_no_legacy_v1_builder_or_mode_lane() -> None:
     owner_source = inspect.getsource(trainer._prebuild_multi_tf_features_once)
     train_source = inspect.getsource(trainer.run_train)
 
-    assert "build_multi_tf_per_bar_features_v4" in owner_source
-    assert "build_multi_tf_per_bar_features_v2" not in owner_source
+    assert "load_multi_tf_v4_cache" in owner_source
+    assert "build_multi_tf_per_bar_features_v4" not in owner_source
+    assert "source-build fallback is forbidden" in owner_source
     assert "build_multi_tf_per_bar_features(" not in owner_source
     assert "v2_mode =" not in train_source
     assert "|v2=" not in train_source

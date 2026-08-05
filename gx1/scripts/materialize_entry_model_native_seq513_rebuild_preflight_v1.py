@@ -64,7 +64,7 @@ from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
     MULTI_TF_TIMEFRAMES,
     build_multi_tf_v4_closed_timestamp_indices,
-    load_multi_tf_cache,
+    load_multi_tf_v4_cache,
     multi_tf_last_closed_label,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
@@ -636,7 +636,7 @@ def _mtf_cache_contract(
     verified_loader_error: str | None = None
     verified_cache_identity: str | None = None
     try:
-        verified_cache = load_multi_tf_cache(cache_dir)
+        verified_cache = load_multi_tf_v4_cache(cache_dir)
         verified_cache_identity = str(
             getattr(verified_cache, "cache_identity_sha256", "")
         )

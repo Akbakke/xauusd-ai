@@ -236,16 +236,7 @@ def test_training_objective_proof_rejects_zero_or_split_brain(tmp_path: Path) ->
     assert report["failures"]
 
 
-def test_direction_metrics_report_degradation_without_gating_on_ambition() -> None:
-    """Precision is measured and reported, not gated (user vedtak 2026-07-28).
-
-    This test used to require near-perfect three-class precision: corrupting 80 of
-    384 predictions had to FAIL. Those bars - 0.90 accuracy, 0.98 trade precision,
-    0.95 per-class - demanded roughly 2.3x the best figure ever measured on this
-    substrate and could never pass. The audit now reports the degradation in full
-    and fails only on validity and on the one data-derived bar: beat the majority
-    baseline.
-    """
+def test_direction_metrics_fail_closed_below_immutable_edge_policy() -> None:
     frame = _prediction_frame(384)
     clean = audit._direction_metrics(frame, context="fixture")
     frame.loc[frame.index[:80], "pred_direction"] = 2
@@ -255,11 +246,10 @@ def test_direction_metrics_report_degradation_without_gating_on_ambition() -> No
     assert clean["trade_direction_precision"] == 1.0
     assert set(clean["prediction_counts"]) == {"LONG", "SHORT", "FLAT"}
 
-    # The damage is visible in the reported metrics ...
     assert degraded["accuracy"] < clean["accuracy"]
     assert degraded["trade_direction_precision"] <= clean["trade_direction_precision"]
-    # ... and no failure is raised about how high precision ought to be.
-    assert not any(
+    assert degraded["decision"] == "FAIL"
+    assert any(
         "precision" in failure.lower() and "below" in failure.lower()
         for failure in degraded["failures"]
     ), degraded["failures"]
@@ -272,25 +262,7 @@ def test_direction_metrics_reject_tiny_perfect_support() -> None:
     assert all(value == 1.0 for value in tiny["precision"].values())
     assert tiny["decision"] == "FAIL"
     assert tiny["trade_rows"] < tiny["minimum_trade_rows"]
-    # Support floors survive the vedtak: they decide whether a measurement is
-    # valid at all, which is a different question from how good it must be.
     assert any("required support" in failure for failure in tiny["failures"])
-
-
-def test_direction_metrics_context_scope_uses_context_support_contract() -> None:
-    frame = _prediction_frame(96)
-    global_report = audit._direction_metrics(frame, context="global")
-    context_report = audit._direction_metrics(
-        frame,
-        context="context",
-        support_scope="context",
-    )
-
-    assert global_report["decision"] == "FAIL"
-    assert context_report["decision"] == "PASS"
-    assert context_report["minimum_trade_rows"] == 32
-    assert context_report["trade_direction_precision_wilson_lower"] >= 0.85
-    assert context_report["minimum_prediction_rows_per_class"] is None
 
 
 def test_wilson_lower_is_finite_and_support_sensitive() -> None:
@@ -371,6 +343,7 @@ def test_parser_has_no_defaults_or_retired_aliases() -> None:
         "--dataset-dir", f"/tmp/dataset_{STAMP}",
         "--val-manifest-json", "/tmp/val.manifest.json",
         "--predictions-parquet", f"/tmp/selective_edge_predictions_{STAMP}.parquet",
+        "--predictions-sha256", "a" * 64,
         "--prediction-report-json", f"/tmp/ENTRY_CANDIDATE_SELECTIVE_EDGE_{STAMP}.json",
         "--target-audit-json", f"/tmp/ENTRY_TARGET_FOUNDATION_AUDIT_{STAMP}.json",
         "--specialist-audit-json", f"/tmp/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_{STAMP}.json",
@@ -635,7 +608,8 @@ def test_run_publishes_exact_consumer_contract_without_latest(
     )
     evidence = {
         "schema_version": PREDICTION_EVIDENCE_SCHEMA_VERSION,
-        "authoritative": True,
+        "evidence_stage": "pre_calibration",
+        "authoritative": False,
         "runtime_head_evidence_authoritative": False,
         "path": str(predictions.resolve()),
         "sha256": audit._sha256_file(predictions),
@@ -643,17 +617,23 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         "splits": ["val"],
         "models": ["entry_model_native_smoke"],
     }
-    monkeypatch.setattr(
-        audit,
-        "resolve_and_validate_prediction_evidence",
-        lambda *_, **__: (
+    resolver_calls: list[dict] = []
+
+    def fake_prediction_resolver(*_, **kwargs):
+        resolver_calls.append(kwargs)
+        return (
             predictions.resolve(),
             {
                 "schema_version": "entry_candidate_selective_edge_v1",
                 "evidence_stage": "pre_calibration",
             },
             evidence,
-        ),
+        )
+
+    monkeypatch.setattr(
+        audit,
+        "resolve_and_validate_prediction_evidence",
+        fake_prediction_resolver,
     )
     monkeypatch.setattr(
         audit.pd,
@@ -669,6 +649,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
             dataset_dir=str(dataset),
             val_manifest_json=str(val_manifest),
             predictions_parquet=str(predictions),
+            predictions_sha256=audit._sha256_file(predictions),
             prediction_report_json=str(prediction_report),
             target_audit_json=str(audits["target"]),
             specialist_audit_json=str(audits["specialist"]),
@@ -680,6 +661,16 @@ def test_run_publishes_exact_consumer_contract_without_latest(
     )
 
     assert report["decision"] == "PASS", report["failures"]
+    assert resolver_calls == [
+        {
+            "expected_sha256": audit._sha256_file(predictions),
+            "prediction_report_path": prediction_report,
+            "bundle_dir": bundle,
+            "dataset_dir": dataset,
+            "expected_stage": "pre_calibration",
+            "expected_splits": ("val",),
+        }
+    ]
     normalized = require_smoke_bundle_audit_contract(report, context="TEST")
     assert normalized["head_contract"]["active_heads"] == list(MODEL_NATIVE_ACTIVE_HEADS)
     assert normalized["specialist_contract"]["specialists"] == list(

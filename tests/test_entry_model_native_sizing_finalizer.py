@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
@@ -107,9 +108,51 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
     assert final_metadata["model_native_sizing_calibration"] == evidence[
         "bundle_calibration"
     ]
-    assert evidence["calibration"]["fit_scope"] == "TRAIN_VAL_ONLY"
-    assert evidence["calibration"]["fit_splits"] == ["train", "val"]
+    assert evidence["calibration"]["fit_scope"] == (
+        "EXACT_VAL_ONLY_PRE_CALIBRATION"
+    )
+    assert evidence["calibration"]["fit_splits"] == ["val"]
+    fit_report = json.loads(
+        Path(
+            evidence["calibration"]["fit_prediction_provenance"]
+            ["prediction_report_artifact"]["json_path"]
+        ).read_text(encoding="utf-8")
+    )
+    assert fit_report["prediction_evidence"]["schema_version"] == (
+        "entry_candidate_model_direction_prediction_evidence_v3"
+    )
+    assert fit_report["prediction_evidence"]["evidence_stage"] == "pre_calibration"
+    assert fit_report["prediction_evidence"]["authoritative"] is False
     proof = evidence["proof"]
+    assert proof["direction_edge_policy"]["enforced_core"][
+        "min_trade_direction_precision"
+    ] == 0.98
+    assert proof["direction_edge_admission"]["decision"] == "PASS"
+    runtime_report = json.loads(
+        Path(
+            evidence["oos_source"]["test_prediction_provenance"]
+            ["prediction_report_artifact"]["json_path"]
+        ).read_text(encoding="utf-8")
+    )
+    runtime_declaration = runtime_report["prediction_evidence"]
+    assert runtime_declaration["schema_version"] == (
+        "entry_candidate_model_direction_prediction_evidence_v7"
+    )
+    assert runtime_declaration["evidence_stage"] == "runtime_authoritative"
+    assert runtime_declaration["authoritative"] is True
+    runtime_predictions = pd.read_parquet(runtime_declaration["path"])
+    runtime_head = json.loads(runtime_predictions.iloc[0]["runtime_head_evidence_json"])
+    assert runtime_head["runtime_evidence_schema_version"] == (
+        "entry_model_native_runtime_evidence_v7"
+    )
+    assert runtime_head["runtime_head_evidence_schema_version"] == (
+        "entry_model_native_runtime_head_evidence_v5"
+    )
+    assert runtime_head["model_policy"] == (
+        "xau_seq513_model_native_direction_argmax_v4"
+    )
+    assert runtime_head["direction_calibration_temperature"] > 0.0
+    assert "direction_calibration_bias" not in runtime_head
     assert proof["account_capacity_grid"]["decision"] == "PASS"
     assert set(proof["account_capacity_grid"]["scenarios"]) == {
         "small",
@@ -160,3 +203,27 @@ def test_failed_proof_refresh_publishes_newer_terminal_fail(tmp_path: Path) -> N
     assert terminal["decision"] == "FAIL"
     assert terminal["attempted_stage"] == "proof"
     assert terminal["failures"]
+
+
+def test_offline_cli_has_only_the_five_retained_routes() -> None:
+    parser = sizing_finalizer._parser()
+    subcommands = next(
+        action for action in parser._actions if hasattr(action, "choices") and action.choices
+    )
+    assert set(subcommands.choices) == {
+        "fit-calibration",
+        "bind-bundle",
+        "materialize-test-oos",
+        "finalize-test-proof",
+        "produce-unified-joint-exit-proof",
+    }
+    for retired in (
+        "capture_oanda_instrument_evidence",
+        "adopt_learned_sizing",
+        "finalize_runtime_sizing_parity",
+        "finalize_joint_exit_sizing_proof",
+    ):
+        assert not hasattr(sizing_finalizer, retired)
+    source = Path(sizing_finalizer.__file__).read_text(encoding="utf-8")
+    assert "MODEL_NATIVE_SIZING_INSTRUMENT_EVIDENCE_SCHEMA_VERSION" not in source
+    assert "direction_calibration_bias" not in source

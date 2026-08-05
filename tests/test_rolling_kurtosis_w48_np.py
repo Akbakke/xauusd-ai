@@ -18,7 +18,7 @@ def test_rolling_kurtosis_w48_random_data():
     x = np.random.randn(n).astype(np.float64) * 10.0 + 100.0  # Avoid small numbers
     
     # NumPy implementation
-    result_np = rolling_kurtosis_w48(x, min_periods=12, fisher=True, bias=True)
+    result_np = rolling_kurtosis_w48(x, min_periods=12)
     
     # Pandas reference (same as fallback in basic_v1.py)
     s = pd.Series(x)
@@ -64,7 +64,7 @@ def test_rolling_kurtosis_w48_simple_case():
     # Use larger window for simpler case
     x = np.array([1.0, 2.0, 3.0, 4.0, 5.0] * 20, dtype=np.float64)  # 100 points
     
-    result_np = rolling_kurtosis_w48(x, min_periods=12, fisher=True, bias=True)
+    result_np = rolling_kurtosis_w48(x, min_periods=12)
     s = pd.Series(x)
     result_pd = s.rolling(48, min_periods=12).apply(
         lambda x: pd.Series(x).kurtosis() if len(x) > 3 else 0.0,
@@ -95,7 +95,7 @@ def test_rolling_kurtosis_w48_with_nans_and_infs():
     # Inject Inf at position 100
     x[100] = np.inf
     
-    result_np = rolling_kurtosis_w48(x, min_periods=12, fisher=True, bias=True)
+    result_np = rolling_kurtosis_w48(x, min_periods=12)
     
     # Check that windows containing NaN/Inf produce NaN
     window = 48
@@ -128,7 +128,7 @@ def test_rolling_kurtosis_w48_min_periods():
     n = 100
     x = np.random.randn(n).astype(np.float64)
     
-    result = rolling_kurtosis_w48(x, min_periods=12, fisher=True, bias=True)
+    result = rolling_kurtosis_w48(x, min_periods=12)
     min_periods = 12
 
     window = 48
@@ -154,7 +154,7 @@ def test_rolling_kurtosis_w48_fisher_correction():
     np.random.seed(42)
     x = np.random.randn(1000).astype(np.float64)
     
-    result = rolling_kurtosis_w48(x, min_periods=12, fisher=True, bias=True)
+    result = rolling_kurtosis_w48(x, min_periods=12)
     
     # For large samples from normal distribution, kurtosis should be close to 0
     mask = np.isfinite(result)

@@ -72,6 +72,11 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     require_model_native_recipe_env,
 )
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    PrefreezeTestSealLineageError,
+    require_prefreeze_test_seal_lineage,
+    require_prefreeze_test_seal_lineage_metadata,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
@@ -108,13 +113,30 @@ from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
     build_tf_input_scale_contract,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_INVALID_DECISION_TIME_NS,
+    UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
     UnifiedExitLifecycleCorpus,
     UnifiedExitLifecycleSplit,
     require_unified_exit_lifecycle_authority_evidence,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_EXIT_RESOLUTION_RATIO,
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_MTF_CONTEXT_COUNT,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
+)
 from gx1.models.entry_v10.entry_v10_input_normalization import (
     TrainNormalizationArtifacts,
     fit_entry_v10_train_input_normalization,
+    require_dataset_manifest_multi_tf_cache_binding,
+    require_multi_tf_v4_cache_binding_files,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
@@ -131,11 +153,13 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     MODEL_DIRECTION_SHORT_INDEX,
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
+    UNIFIED_EXIT_PATH_FEATURE_DIM,
     model_direction_decision_contract_metadata,
     unified_entry_exit_contract_metadata,
 )
 from gx1.time.session_detector import SESSION_NAME_BY_ID
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
     MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
@@ -511,10 +535,15 @@ def _model_native_active_target_failures(
 
 _MODEL_NATIVE_COOPERATION_GATE_WIDTHS = {
     "specialist_gate": 8,
-    "tf_gate": 5,
-    "family_tf_cooperation_gate": 40,
+    "tf_gate": ENTRY_MTF_CONTEXT_COUNT,
+    "family_tf_cooperation_gate": (
+        ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    ),
 }
-_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE = (5, MULTI_TF_FEATURE_COUNT_V4)
+_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE = (
+    ENTRY_MTF_CONTEXT_COUNT,
+    MULTI_TF_FEATURE_COUNT_V4,
+)
 _MODEL_NATIVE_FEATURE_TF_GATE_MIN_STD = 1e-6
 
 
@@ -705,6 +734,104 @@ def _guard_no_rl() -> None:
 # -----------------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
+
+_TRAINER_MEMORY_LIMIT_BYTES = 10 * 1024**3
+_TRAINER_SWAP_LIMIT_BYTES = 512 * 1024**2
+_TRAINER_PIDS_LIMIT = 64
+_TRAINER_CGROUP_ENV = {
+    "memory": "GX1_CAPPED_MEMORY_BYTES",
+    "swap": "GX1_CAPPED_SWAP_BYTES",
+    "pids": "GX1_CAPPED_TASKS_MAX",
+}
+
+
+def _require_trainer_cgroup_preflight(
+    *,
+    environ: Mapping[str, str] | None = None,
+    read_text: Any = None,
+) -> dict[str, Any]:
+    """Prove the current process is the capped trainer before data reads."""
+
+    env = os.environ if environ is None else environ
+    if str(env.get("GX1_CAPPED_CLASS") or "") != "trainer":
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_CLASS_INVALID]")
+
+    expected: dict[str, int] = {}
+    for label, name in _TRAINER_CGROUP_ENV.items():
+        raw = str(env.get(name) or "")
+        if not raw.isascii() or not raw.isdigit() or int(raw) <= 0:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_CGROUP_ENV_PROOF_INVALID] field={name}"
+            )
+        expected[label] = int(raw)
+    if (
+        expected["memory"] > _TRAINER_MEMORY_LIMIT_BYTES
+        or expected["swap"] > _TRAINER_SWAP_LIMIT_BYTES
+        or expected["pids"] > _TRAINER_PIDS_LIMIT
+    ):
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_ENV_LIMIT_EXCEEDED]")
+
+    reader = read_text or (lambda path: path.read_text(encoding="utf-8"))
+    try:
+        cgroup_lines = str(reader(Path("/proc/self/cgroup"))).splitlines()
+    except Exception as exc:
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_PATH_UNAVAILABLE]") from exc
+    unified = [
+        line.split(":", 2)[2]
+        for line in cgroup_lines
+        if len(line.split(":", 2)) == 3
+        and line.split(":", 2)[0] == "0"
+        and line.split(":", 2)[1] == ""
+    ]
+    if len(unified) != 1 or not unified[0].startswith("/"):
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_PATH_INVALID]")
+    relative_parts = Path(unified[0]).parts[1:]
+    if (
+        not relative_parts
+        or not relative_parts[-1].endswith(".scope")
+        or any(part in {"", ".", ".."} for part in relative_parts)
+    ):
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_PATH_INVALID]")
+    cgroup_dir = Path("/sys/fs/cgroup").joinpath(*relative_parts)
+
+    def _read_limit(name: str) -> int:
+        try:
+            raw = str(reader(cgroup_dir / name)).strip()
+        except Exception as exc:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_CGROUP_LIMIT_UNAVAILABLE] field={name}"
+            ) from exc
+        if not raw.isascii() or not raw.isdigit() or int(raw) <= 0:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_CGROUP_LIMIT_INVALID] field={name}"
+            )
+        return int(raw)
+
+    actual = {
+        "memory_max": _read_limit("memory.max"),
+        "memory_high": _read_limit("memory.high"),
+        "swap": _read_limit("memory.swap.max"),
+        "pids": _read_limit("pids.max"),
+    }
+    if (
+        actual["memory_max"] > _TRAINER_MEMORY_LIMIT_BYTES
+        or actual["memory_high"] > _TRAINER_MEMORY_LIMIT_BYTES
+        or actual["swap"] > _TRAINER_SWAP_LIMIT_BYTES
+        or actual["pids"] > _TRAINER_PIDS_LIMIT
+    ):
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_ACTUAL_LIMIT_EXCEEDED]")
+    if (
+        actual["memory_max"] != expected["memory"]
+        or actual["memory_high"] != expected["memory"]
+        or actual["swap"] != expected["swap"]
+        or actual["pids"] != expected["pids"]
+    ):
+        raise RuntimeError("[ENTRY_TRAIN_CGROUP_ENV_ACTUAL_MISMATCH]")
+    return {
+        "class": "trainer",
+        "cgroup_path": str(cgroup_dir),
+        **actual,
+    }
 
 
 def _flush_memmap_pages(*arrays: np.ndarray) -> None:
@@ -1227,9 +1354,6 @@ def _enforce_canonical_train_env_contract() -> None:
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-def _utc_ts_compact() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-
 def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -1407,9 +1531,9 @@ def _model_forward_fp32(
 
 
 def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
-    """Extract the five mandatory causal TF tensors, or fail closed."""
+    """Extract Entry's exact M15/H1/H4/D1 route, or fail closed."""
     out: Dict[str, torch.Tensor] = {}
-    for key in ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1"):
+    for key in ("seq_m15", "seq_h1", "seq_h4", "seq_d1"):
         if key not in batch or not isinstance(batch[key], torch.Tensor):
             raise RuntimeError(f"[ENTRY_EXACT_MULTI_TF_BATCH_MISSING] {key}")
         out[key] = batch[key].to(device)
@@ -1623,10 +1747,8 @@ def _set_deterministic(seed: int, device: torch.device) -> None:
 _TRAIN_ARTIFACT_HASH_ENV = {
     "train_manifest": "GX1_ENTRY_TRAIN_MANIFEST_SHA256",
     "val_manifest": "GX1_ENTRY_VAL_MANIFEST_SHA256",
-    "test_manifest": "GX1_ENTRY_TEST_MANIFEST_SHA256",
     "train_parquet": "GX1_ENTRY_TRAIN_PARQUET_SHA256",
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
-    "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
     "unified_exit_lifecycle_manifest": (
         "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
@@ -1663,10 +1785,8 @@ def _resolve_explicit_train_split_artifacts(
     *,
     train_manifest: Path,
     val_manifest: Path,
-    test_manifest: Path,
     train_parquet: Path,
     val_parquet: Path,
-    test_parquet: Path,
     unified_exit_lifecycle_manifest_path: Path,
     m5_prebuilt_path: Path,
     dataset_run_id: str,
@@ -1688,12 +1808,10 @@ def _resolve_explicit_train_split_artifacts(
     manifests = {
         "train": _explicit_regular_artifact(train_manifest, label="train_manifest"),
         "val": _explicit_regular_artifact(val_manifest, label="val_manifest"),
-        "test": _explicit_regular_artifact(test_manifest, label="test_manifest"),
     }
     parquets = {
         "train": _explicit_regular_artifact(train_parquet, label="train_parquet"),
         "val": _explicit_regular_artifact(val_parquet, label="val_parquet"),
-        "test": _explicit_regular_artifact(test_parquet, label="test_parquet"),
     }
     m5_prebuilt = _explicit_regular_artifact(
         m5_prebuilt_path,
@@ -1732,7 +1850,8 @@ def _resolve_explicit_train_split_artifacts(
 
     reference_contract: Dict[str, Any] | None = None
     reference_state_contract: Dict[str, Any] | None = None
-    for split in ("train", "val", "test"):
+    reference_mtf_cache_binding: Dict[str, str] | None = None
+    for split in ("train", "val"):
         manifest_path = manifests[split]
         parquet_path = parquets[split]
         for label, path in (
@@ -1776,6 +1895,17 @@ def _resolve_explicit_train_split_artifacts(
         elif contract != reference_contract:
             raise RuntimeError("[ENTRY_TRAIN_SPLIT_SIGNAL_CONTRACT_MISMATCH]")
         extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+        mtf_cache_binding = require_dataset_manifest_multi_tf_cache_binding(
+            payload,
+            dataset_run_id=dataset_run_id,
+            context=f"ENTRY_TRAIN_{split.upper()}_MTF_BINDING",
+        )
+        if reference_mtf_cache_binding is None:
+            reference_mtf_cache_binding = mtf_cache_binding
+        elif mtf_cache_binding != reference_mtf_cache_binding:
+            raise RuntimeError(
+                "[ENTRY_TRAIN_SPLIT_MTF_CACHE_BINDING_MISMATCH]"
+            )
         inputs = payload.get("inputs") if isinstance(payload.get("inputs"), dict) else {}
         declared_m5_raw = str(inputs.get("source_parquet") or "").strip()
         declared_m5 = Path(declared_m5_raw).expanduser()
@@ -1852,6 +1982,16 @@ def _resolve_explicit_train_split_artifacts(
             parquet_path,
             _expected_train_artifact_sha256(f"{split}_parquet"),
         )
+    if reference_mtf_cache_binding is None:
+        raise RuntimeError("[ENTRY_TRAIN_MTF_CACHE_BINDING_MISSING]")
+    cache_dir_raw = str(os.environ.get(_TRAIN_MULTI_TF_CACHE_ENV) or "").strip()
+    if not cache_dir_raw:
+        raise RuntimeError("[ENTRY_TRAIN_MTF_CACHE_ENV_MISSING]")
+    require_multi_tf_v4_cache_binding_files(
+        reference_mtf_cache_binding,
+        expected_cache_dir=Path(cache_dir_raw),
+        context="ENTRY_TRAIN_LAUNCH_MTF_BINDING",
+    )
     return manifests, parquets
 
 
@@ -2409,9 +2549,9 @@ def _log_label_distribution(parquet_path: Path, split: str) -> None:
 # -----------------------------------------------------------------------------
 # Dataset
 # -----------------------------------------------------------------------------
-# Module-level cache for the exact causal V2 multi-TF feature tables.  The
-# contract-qualified key is shared by the pre-train peak-memory build and every
-# dataset instance so one source path can produce only one in-process object.
+# Module-level cache for the one verified causal V4 multi-TF artifact. The
+# contract-qualified key is shared by the pre-train load and every dataset
+# instance so one source/cache identity produces one in-process object.
 _MULTI_TF_CACHE: Dict[str, Dict[str, pd.DataFrame]] = {}
 _MULTI_TF_ACTIVE_CACHE_KEYS: Dict[str, str] = {}
 _MULTI_TF_CACHE_CONTRACT = "V4_EIGHT_FAMILY_CAUSAL"
@@ -2421,7 +2561,7 @@ def _multi_tf_cache_key(
     m5_prebuilt_path: Path,
     *,
     source_sha256: Optional[str] = None,
-    backend_identity: str = "source_build",
+    backend_identity: str = "verified_v4_cache",
     contract_mode: str = _MULTI_TF_CACHE_CONTRACT,
 ) -> str:
     if contract_mode != _MULTI_TF_CACHE_CONTRACT:
@@ -2454,7 +2594,12 @@ def _multi_tf_cache_key(
 def _prebuild_multi_tf_features_once(
     m5_prebuilt_path: Path,
 ) -> Dict[str, pd.DataFrame]:
-    """Load/build exact V4 tables once under a byte-bound source identity."""
+    """Load the exact verified V4 cache once under a byte-bound identity."""
+
+    require_entry_exit_production_architecture(
+        current_entry_exit_architecture_observation(),
+        context="ENTRY_V10_MTF_CACHE_LOAD",
+    )
 
     supplied = Path(m5_prebuilt_path).expanduser()
     absolute = supplied if supplied.is_absolute() else Path.cwd() / supplied
@@ -2471,11 +2616,13 @@ def _prebuild_multi_tf_features_once(
     if not m5_path.is_file() or m5_path.is_symlink():
         raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
     source_sha256 = _sha256_file(m5_path)
-    disk_cache_raw = os.environ.get("GX1_V10_MULTI_TF_V4_CACHE_DIR", "").strip()
+    disk_cache_raw = os.environ.get(_TRAIN_MULTI_TF_CACHE_ENV, "").strip()
+    if not disk_cache_raw:
+        raise RuntimeError(
+            "[MULTI_TF_V4_CACHE_DIR_REQUIRED] source-build fallback is forbidden"
+        )
     backend_locator = (
         f"disk_path:{Path(disk_cache_raw).expanduser().resolve()}"
-        if disk_cache_raw
-        else "source_build"
     )
     active_identity = (
         f"{m5_path}|source_sha256={source_sha256}"
@@ -2489,124 +2636,71 @@ def _prebuild_multi_tf_features_once(
             raise RuntimeError("[MULTI_TF_CACHE_ACTIVE_IDENTITY_DANGLING]")
         return active_cached
 
-    if disk_cache_raw:
-        from gx1.features.htf_features import load_multi_tf_cache
+    from gx1.features.htf_features import load_multi_tf_v4_cache
 
-        loaded = load_multi_tf_cache(disk_cache_raw)
-        # The verified V4 cache binds its own full-history canonical M5 source
-        # (the cascade-audited canonical-v3 parquet). The trainer's
-        # --m5-prebuilt-path is the model-range seq/snapshot source — a
-        # distinct identity bound through the split manifests — so the cache
-        # source is proven against its own declared bytes, not against
-        # m5_path. Requiring equality here would force the five-timeframe
-        # surfaces onto the model-range-trimmed file and reintroduce the
-        # truncated HTF warmup defect.
-        cache_source = Path(
-            str(getattr(loaded, "m5_prebuilt_source", "") or "")
-        ).expanduser()
-        cache_source_sha256 = str(
-            getattr(loaded, "m5_prebuilt_source_sha256", "") or ""
+    loaded = load_multi_tf_v4_cache(disk_cache_raw)
+    # The verified V4 cache binds its own full-history canonical M5 source
+    # (the cascade-audited canonical-v3 parquet). The trainer's
+    # --m5-prebuilt-path is the model-range seq/snapshot source — a distinct
+    # identity bound through the split manifests — so the cache source is
+    # proven against its own declared bytes, not against m5_path.
+    cache_source = Path(
+        str(getattr(loaded, "m5_prebuilt_source", "") or "")
+    ).expanduser()
+    cache_source_sha256 = str(
+        getattr(loaded, "m5_prebuilt_source_sha256", "") or ""
+    )
+    if (
+        not cache_source.is_absolute()
+        or not cache_source.is_file()
+        or cache_source.is_symlink()
+    ):
+        raise RuntimeError(
+            "[MULTI_TF_CACHE_SOURCE_MISSING] "
+            f"cache_source={str(cache_source)!r}"
         )
-        if (
-            not cache_source.is_absolute()
-            or not cache_source.is_file()
-            or cache_source.is_symlink()
-        ):
-            raise RuntimeError(
-                "[MULTI_TF_CACHE_SOURCE_MISSING] "
-                f"cache_source={str(cache_source)!r}"
-            )
-        observed_cache_source_sha256 = _sha256_file(cache_source)
-        if observed_cache_source_sha256 != cache_source_sha256:
-            raise RuntimeError(
-                "[MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH] "
-                f"cache_source={str(cache_source)!r} "
-                f"declared_sha256={cache_source_sha256} "
-                f"observed_sha256={observed_cache_source_sha256}"
-            )
-        cache_identity_sha256 = str(
-            getattr(loaded, "cache_identity_sha256", "")
+    observed_cache_source_sha256 = _sha256_file(cache_source)
+    if observed_cache_source_sha256 != cache_source_sha256:
+        raise RuntimeError(
+            "[MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH] "
+            f"cache_source={str(cache_source)!r} "
+            f"declared_sha256={cache_source_sha256} "
+            f"observed_sha256={observed_cache_source_sha256}"
         )
-        cache_key = _multi_tf_cache_key(
-            m5_path,
-            source_sha256=source_sha256,
-            backend_identity=(
-                f"{backend_locator}:cache_identity={cache_identity_sha256}"
-            ),
-        )
-        cached = _MULTI_TF_CACHE.get(cache_key)
-        if cached is not None:
-            _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
-            return cached
-
-        import pyarrow.parquet as pq
-
-        prebuilt_max = pd.to_datetime(
-            pq.read_table(m5_path, columns=["time"])
-            .column("time")
-            .to_numpy(zero_copy_only=False)
-            .max(),
-            utc=True,
-        )
-        cache_max = loaded["M5"].index.max()
-        if cache_max != prebuilt_max:
-            raise RuntimeError(
-                "[MULTI_TF_CACHE_STALE] "
-                f"disk cache M5 max {cache_max} does not exactly match "
-                f"prebuilt max {prebuilt_max}"
-            )
-        _MULTI_TF_CACHE[cache_key] = loaded
-        _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
-        return loaded
-
+    cache_identity_sha256 = str(
+        getattr(loaded, "cache_identity_sha256", "")
+    )
     cache_key = _multi_tf_cache_key(
         m5_path,
         source_sha256=source_sha256,
-        backend_identity=backend_locator,
+        backend_identity=(
+            f"{backend_locator}:cache_identity={cache_identity_sha256}"
+        ),
     )
     cached = _MULTI_TF_CACHE.get(cache_key)
     if cached is not None:
         _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
         return cached
 
-    from gx1.features.htf_features import build_multi_tf_per_bar_features_v4
-
-    load_cols = ["time", "open", "high", "low", "close", "volume"]
     import pyarrow.parquet as pq
 
-    source_columns = set(pq.ParquetFile(m5_path).schema_arrow.names)
-    missing = [name for name in load_cols if name not in source_columns]
-    if missing:
-        raise RuntimeError(
-            "[MULTI_TF_SOURCE_CONTRACT] exact canonical M5 OHLCV source missing: "
-            f"{missing}"
-        )
-    log.info(
-        "[MULTI_TF] pre-building exact V4 eight-family features once: %s",
-        m5_path.name,
+    prebuilt_max = pd.to_datetime(
+        pq.read_table(m5_path, columns=["time"])
+        .column("time")
+        .to_numpy(zero_copy_only=False)
+        .max(),
+        utc=True,
     )
-    m5 = pd.read_parquet(m5_path, columns=load_cols)
-    m5["time"] = pd.to_datetime(m5["time"], utc=True)
-    m5 = m5.set_index("time").sort_index()
-    for column in ("open", "high", "low", "close", "volume"):
-        m5[column] = m5[column].astype(np.float32)
-    feats = build_multi_tf_per_bar_features_v4(m5)
-    del m5
-    import gc
-
-    gc.collect()
-    if _sha256_file(m5_path) != source_sha256:
-        raise RuntimeError("[MULTI_TF_SOURCE_CHANGED_DURING_BUILD]")
-    _MULTI_TF_CACHE[cache_key] = feats
-    _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
-    for tf_name, frame in feats.items():
-        log.info(
-            "[MULTI_TF] %s: %s bars × %s feats",
-            tf_name,
-            f"{len(frame):,}",
-            frame.shape[1],
+    cache_max = loaded["M5"].index.max()
+    if cache_max != prebuilt_max:
+        raise RuntimeError(
+            "[MULTI_TF_CACHE_STALE] "
+            f"disk cache M5 max {cache_max} does not exactly match "
+            f"prebuilt max {prebuilt_max}"
         )
-    return feats
+    _MULTI_TF_CACHE[cache_key] = loaded
+    _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
+    return loaded
 
 
 def _sweep_orphaned_memmap_scratch(root: Path) -> None:
@@ -2701,8 +2795,9 @@ class EntryV10CtxDataset(Dataset):
     Builds rolling-window samples from canonical ENTRY_V10_CTX parquet.
     ctx_cont / ctx_cat are per-sample (B, N), not per-timestep.
 
-    The dataset always serves M5/M15/H1/H4/D1 per-bar feature windows for the
-    exact multi-TF model. Source is the M5 canonical_v3 prebuilt, resampled and
+    The dataset owns one shared M5/M15/H1/H4/D1 V4 cache. Entry slices only
+    M15/H1/H4/D1; Exit slices M5/M15/H1/H4/D1 at its native M1 clock. Source is
+    the M5 canonical_v3 prebuilt, resampled and
     feature-engineered once at __init__. Resampled tables are cached at module
     level so train_ds + val_ds share them. Adds ~25s init time first call,
     instant on subsequent dataset instantiations with same prebuilt path.
@@ -2716,6 +2811,27 @@ class EntryV10CtxDataset(Dataset):
         per_tf_seq_lens: Dict[str, int],
         multi_tf_closed_bar: bool,
     ):
+        architecture = current_entry_exit_architecture_observation()
+        architecture["entry"]["sequence_bars"] = seq_len
+        architecture["exit"]["sequence_bars"] = (
+            seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+            if isinstance(seq_len, int) and not isinstance(seq_len, bool)
+            else seq_len
+        )
+        architecture["mtf"]["cache_timeframes"] = (
+            list(per_tf_seq_lens)
+            if isinstance(per_tf_seq_lens, Mapping)
+            else per_tf_seq_lens
+        )
+        architecture["mtf"]["per_tf_window_bars"] = (
+            dict(per_tf_seq_lens)
+            if isinstance(per_tf_seq_lens, Mapping)
+            else per_tf_seq_lens
+        )
+        require_entry_exit_production_architecture(
+            architecture,
+            context="ENTRY_V10_DATASET_CONSTRUCTION",
+        )
         self.parquet_path = Path(parquet_path)
         self.seq_len = int(seq_len)
         if multi_tf_closed_bar is not True:
@@ -2741,7 +2857,6 @@ class EntryV10CtxDataset(Dataset):
             tf: int(per_tf_seq_lens[tf]) for tf in expected_timeframes
         }
         self._multi_tf_feats: Optional[Dict[str, pd.DataFrame]] = None
-        self._multi_tf_shift: Optional[Dict[str, pd.Timedelta]] = None
         self._multi_tf_feature_count: int = 0
         self._memmap_tmpdir: Optional[tempfile.TemporaryDirectory] = None
         # When a bounded smoke uses a stratified subset, this maps the compact
@@ -2765,6 +2880,27 @@ class EntryV10CtxDataset(Dataset):
         self.direction_logit_mode = MODEL_NATIVE_DIRECTION_LOGIT_MODE
         self.model_native_signal_contract = signal_contract["model_native_signal_contract"]
         self.aux_head_target_contract = signal_contract["aux_head_target_contract"]
+
+        manifest_architecture = current_entry_exit_architecture_observation()
+        manifest_architecture["entry"]["sequence_bars"] = self.seq_len
+        manifest_architecture["exit"]["sequence_bars"] = (
+            self.seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+        )
+        manifest_architecture["shared_surface"]["signal_dim"] = (
+            self.seq_input_dim
+        )
+        manifest_architecture["shared_surface"]["snap_dim"] = (
+            self.snap_input_dim
+        )
+        manifest_architecture["schemas"]["signal"] = (
+            self.model_native_signal_contract.get("schema_version")
+            if isinstance(self.model_native_signal_contract, Mapping)
+            else None
+        )
+        require_entry_exit_production_architecture(
+            manifest_architecture,
+            context="ENTRY_V10_DATASET_MANIFEST",
+        )
 
         # ── Memory fix (V12.2): EXCLUDE nested-list columns from pandas load.
         # The nested-list columns (seq/snap/ctx_cont/ctx_cat) stored as
@@ -2852,6 +2988,21 @@ class EntryV10CtxDataset(Dataset):
                 self.parquet_path,
                 seq_dim=seq_dim,
                 snap_dim=snap_dim,
+            )
+            parquet_architecture = current_entry_exit_architecture_observation()
+            parquet_architecture["entry"]["sequence_bars"] = seq_len
+            parquet_architecture["exit"]["sequence_bars"] = (
+                seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+            )
+            parquet_architecture["shared_surface"] = {
+                "signal_dim": seq_dim,
+                "snap_dim": snap_dim,
+                "ctx_cont_dim": ctx_cont_dim,
+                "ctx_cat_dim": ctx_cat_dim,
+            }
+            require_entry_exit_production_architecture(
+                parquet_architecture,
+                context="ENTRY_V10_DATASET_PARQUET_PREALLOCATION",
             )
             log.info(
                 f"[MEM_FIX] schema probe: seq=(N,{seq_len},{seq_dim})  snap=(N,{snap_dim})  "
@@ -2978,7 +3129,6 @@ class EntryV10CtxDataset(Dataset):
             HTF_V4_MATRIX_CONTRACT,
             MULTI_TF_FEATURE_COUNT_V4,
             MULTI_TF_PER_BAR_FEATURES_V4,
-            MULTI_TF_SHIFT,
         )
         if m5_prebuilt_path is None:
             raise RuntimeError(
@@ -2986,13 +3136,38 @@ class EntryV10CtxDataset(Dataset):
                 "(path to canonical_v3 M5 OHLC parquet)."
             )
         m5_path = Path(m5_prebuilt_path)
-        # One loader owns both source-build and verified disk-cache paths. Its
-        # in-process identity includes the exact M5 SHA and, when used, the
-        # full byte-bound disk-cache identity. No path-only cache shortcut is
-        # permitted.
+        # One loader owns the verified V4 disk-cache path. Its in-process
+        # identity includes the exact M5 SHA and full cache identity.
         self._multi_tf_feats = _prebuild_multi_tf_features_once(m5_path)
-        self._multi_tf_shift = MULTI_TF_SHIFT
-        self._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
+        self._multi_tf_cache_identity_sha256 = str(
+            getattr(self._multi_tf_feats, "cache_identity_sha256", "")
+        )
+        self._multi_tf_cache_manifest_sha256 = str(
+            getattr(self._multi_tf_feats, "manifest_sha256", "")
+        )
+        self._multi_tf_cache_dir = str(
+            Path(os.environ[_TRAIN_MULTI_TF_CACHE_ENV]).expanduser().resolve()
+        )
+        self._multi_tf_cache_manifest_path = str(
+            Path(self._multi_tf_cache_dir) / "manifest.json"
+        )
+        self._multi_tf_cache_m5_source = str(
+            getattr(self._multi_tf_feats, "m5_prebuilt_source", "")
+        )
+        self._multi_tf_cache_m5_source_sha256 = str(
+            getattr(self._multi_tf_feats, "m5_prebuilt_source_sha256", "")
+        )
+        for _name, _value in (
+            ("cache_identity", self._multi_tf_cache_identity_sha256),
+            ("manifest", self._multi_tf_cache_manifest_sha256),
+            ("m5_source", self._multi_tf_cache_m5_source_sha256),
+        ):
+            if len(_value) != 64 or any(
+                char not in "0123456789abcdef" for char in _value
+            ):
+                raise RuntimeError(
+                    f"[MULTI_TF_V4_CACHE_{_name.upper()}_SHA256_INVALID]"
+                )
         # The loaded tables declare their own exact V4 contract; no historical
         # width is inferred or accepted here.
         _known_contracts = {
@@ -3048,30 +3223,72 @@ class EntryV10CtxDataset(Dataset):
                 f"range {feats.index[0]} → {feats.index[-1]}"
             )
 
-    def _get_multi_tf_window(self, target_ts: pd.Timestamp) -> Dict[str, np.ndarray]:
-        """Slice the multi-TF window at-or-before target_ts, using per-TF seq_len.
+    def _get_multi_tf_window(
+        self,
+        target_ts: pd.Timestamp,
+        *,
+        route_timeframes: tuple[str, ...],
+        base_bar_seconds: int,
+        key_prefix: str,
+    ) -> Dict[str, np.ndarray]:
+        """Slice one exact route from the shared V4 cache, or fail closed."""
 
-        Returns dict with one 'seq_<tf>' key per TF in self._multi_tf_feats. Each
-        array shape = (per_tf_lens[TF], feature_count) float32. Insufficient
-        history or indicator warmup fails closed.
-        """
-        from gx1.features.htf_features import get_last_n_at_or_before
-        out: Dict[str, np.ndarray] = {}
-        availability_ts = pd.Timestamp(target_ts) + getattr(
-            self,
-            "_multi_tf_target_availability_shift",
-            pd.Timedelta(0),
+        from gx1.features.htf_features import (
+            get_model_native_multi_tf_route_windows,
         )
-        for tf, feats in self._multi_tf_feats.items():
-            try:
-                n = self.per_tf_seq_lens[tf]
-            except KeyError as exc:
-                raise RuntimeError(
-                    f"ENTRY_PER_TF_SEQ_LEN_MISSING: {tf}; fallback is forbidden"
-                ) from exc
-            out[f"seq_{tf.lower()}"] = get_last_n_at_or_before(
-                feats, availability_ts, n=n, tf_shift=self._multi_tf_shift[tf],
+
+        windows = get_model_native_multi_tf_route_windows(
+            self._multi_tf_feats,
+            decision_bar_start=pd.Timestamp(target_ts),
+            per_tf_seq_lens=self.per_tf_seq_lens,
+            route_timeframes=route_timeframes,
+            base_bar_duration=pd.Timedelta(seconds=base_bar_seconds),
+        )
+        return {
+            f"{key_prefix}{tf.lower()}": value
+            for tf, value in windows.items()
+        }
+
+    def _get_exit_multi_tf_windows(
+        self,
+        decision_time_ns: np.ndarray,
+        valid: np.ndarray,
+    ) -> Dict[str, np.ndarray]:
+        """Materialize only four selected Exit-state MTF grids for one sample."""
+
+        decision_ns = np.asarray(decision_time_ns, dtype=np.int64)
+        valid_mask = np.asarray(valid, dtype=np.bool_)
+        expected_shape = (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,)
+        if decision_ns.shape != expected_shape or valid_mask.shape != expected_shape:
+            raise RuntimeError("UNIFIED_EXIT_MTF_STATE_SHAPE_INVALID")
+        out = {
+            f"exit_seq_{tf.lower()}": np.zeros(
+                (
+                    UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
+                    self.per_tf_seq_lens[tf],
+                    self._multi_tf_feature_count,
+                ),
+                dtype=np.float32,
             )
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        }
+        for slot in range(UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY):
+            timestamp_ns = int(decision_ns[slot])
+            if not bool(valid_mask[slot]):
+                if timestamp_ns != UNIFIED_EXIT_INVALID_DECISION_TIME_NS:
+                    raise RuntimeError("UNIFIED_EXIT_MTF_INVALID_SLOT_TIMESTAMP_PRESENT")
+                continue
+            if timestamp_ns == UNIFIED_EXIT_INVALID_DECISION_TIME_NS:
+                raise RuntimeError("UNIFIED_EXIT_MTF_VALID_SLOT_TIMESTAMP_MISSING")
+            timestamp = pd.Timestamp(timestamp_ns, unit="ns", tz="UTC")
+            windows = self._get_multi_tf_window(
+                timestamp,
+                route_timeframes=EXIT_MTF_CONTEXT_TIMEFRAMES,
+                base_bar_seconds=EXIT_DECISION_BAR_SECONDS,
+                key_prefix="exit_seq_",
+            )
+            for name, value in windows.items():
+                out[name][slot] = value
         return out
 
     def __len__(self) -> int:
@@ -3233,12 +3450,23 @@ class EntryV10CtxDataset(Dataset):
                     else float(row[target_name])
                 )
                 out_batch[target_name] = torch.tensor(target_value, dtype=target_dtype)
-            mtf = self._get_multi_tf_window(pd.Timestamp(row["time"]))
+            mtf = self._get_multi_tf_window(
+                pd.Timestamp(row["time"]),
+                route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
+                base_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
+                key_prefix="seq_",
+            )
             for k, v in mtf.items():
                 out_batch[k] = torch.from_numpy(v)
             if self._unified_exit_lifecycle is not None:
                 lifecycle_sample = self._unified_exit_lifecycle.sample(t)
+                exit_mtf = self._get_exit_multi_tf_windows(
+                    lifecycle_sample["exit_decision_time_ns"],
+                    lifecycle_sample["exit_sample_valid"],
+                )
                 for name, value in lifecycle_sample.items():
+                    out_batch[name] = torch.from_numpy(value)
+                for name, value in exit_mtf.items():
                     out_batch[name] = torch.from_numpy(value)
             return out_batch
 
@@ -6151,6 +6379,11 @@ def _step_partial_gradient_accumulation(
 
 
 _UNIFIED_EXIT_MOVEMENT_PREFIXES: Dict[str, Tuple[str, ...]] = {
+    "m5_mtf_route": (
+        "tf_input_scale_m5",
+        "mtf_feature_context_gate.m5__",
+        "mtf_nominal_embeddings.m5_",
+    ),
     "path_projection": ("exit_path_proj.",),
     "path_encoder": ("exit_path_encoder.",),
     "side_embedding": ("exit_side_embedding.",),
@@ -6255,13 +6488,18 @@ def _unified_exit_action_loss(
     batch: Mapping[str, torch.Tensor],
     device: torch.device,
 ) -> tuple[torch.Tensor, Dict[str, Any]]:
-    """Train Exit from the same full-stack Entry representation and M1 prefix."""
+    """Train Exit from Entry state, native M1 and exact five-TF V4 context."""
 
     required = (
         "exit_feature_seq_x",
         "exit_feature_snap_x",
         "exit_feature_ctx_cat",
         "exit_feature_ctx_cont",
+        "exit_seq_m5",
+        "exit_seq_m15",
+        "exit_seq_h1",
+        "exit_seq_h4",
+        "exit_seq_d1",
         "exit_path_x",
         "exit_path_lengths",
         "exit_side_index",
@@ -6308,6 +6546,13 @@ def _unified_exit_action_loss(
         device,
         non_blocking=device.type == "cuda",
     )
+    exit_mtf = {
+        f"exit_seq_{tf.lower()}": batch[f"exit_seq_{tf.lower()}"].to(
+            device,
+            non_blocking=device.type == "cuda",
+        )
+        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+    }
     targets = batch["exit_action_target"].to(
         device,
         non_blocking=device.type == "cuda",
@@ -6333,6 +6578,10 @@ def _unified_exit_action_loss(
         or tuple(exit_feature_snap.shape[:2]) != tuple(valid.shape)
         or tuple(exit_feature_ctx_cat.shape[:2]) != tuple(valid.shape)
         or tuple(exit_feature_ctx_cont.shape[:2]) != tuple(valid.shape)
+        or any(
+            tensor.ndim != 4 or tuple(tensor.shape[:2]) != tuple(valid.shape)
+            for tensor in exit_mtf.values()
+        )
         or tuple(targets.shape) != tuple(valid.shape)
         or int(shared.shape[0]) != int(valid.shape[0])
     ):
@@ -6379,6 +6628,10 @@ def _unified_exit_action_loss(
             -1,
             exit_feature_ctx_cont.shape[2],
         )[flat_valid],
+        **{
+            name: tensor.reshape(-1, tensor.shape[2], tensor.shape[3])[flat_valid]
+            for name, tensor in exit_mtf.items()
+        },
         exit_path_x=paths.reshape(
             -1,
             paths.shape[2],
@@ -9628,7 +9881,6 @@ def run_train(
     train_parquet: Path,
     train_manifest_path: Path,
     val_parquet: Path,
-    test_parquet: Path,
     unified_exit_lifecycle_manifest_path: Path,
     seq_len: int,
     seed: int,
@@ -9657,10 +9909,29 @@ def run_train(
     specialist_fusion_scale: float,
     cross_family_fusion_scale: float,
     grad_accum_steps: int,
+    prefreeze_test_seal_lineage: Mapping[str, Any],
     run_id: str = "",
     dataset_run_id: str = "",
     profile: str = "",
 ) -> None:
+    architecture = current_entry_exit_architecture_observation()
+    architecture["entry"]["sequence_bars"] = seq_len
+    architecture["exit"]["sequence_bars"] = (
+        seq_len * ENTRY_EXIT_RESOLUTION_RATIO
+        if isinstance(seq_len, int) and not isinstance(seq_len, bool)
+        else seq_len
+    )
+    architecture["mtf"]["per_tf_window_bars"] = {
+        "M5": per_tf_seq_len_m5,
+        "M15": per_tf_seq_len_m15,
+        "H1": per_tf_seq_len_h1,
+        "H4": per_tf_seq_len_h4,
+        "D1": per_tf_seq_len_d1,
+    }
+    require_entry_exit_production_architecture(
+        architecture,
+        context="ENTRY_V10_TRAINER_CONSTRUCTION",
+    )
     _guard_no_rl()
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
@@ -9669,6 +9940,18 @@ def run_train(
             "[ENTRY_CANDIDATE_SUBSAMPLE_FORBIDDEN] candidate training must "
             "use the full TRAIN population"
         )
+    try:
+        prefreeze_test_seal_lineage = (
+            require_prefreeze_test_seal_lineage_metadata(
+                prefreeze_test_seal_lineage,
+                expected_dataset_run_id=dataset_run_id,
+                expected_dataset_dir=Path(train_parquet).parent,
+            )
+        )
+    except (PrefreezeTestSealLineageError, ValueError) as exc:
+        raise RuntimeError(
+            f"[ENTRY_TRAIN_PREFREEZE_TEST_SEAL_LINEAGE_INVALID] {exc}"
+        ) from exc
     if (
         isinstance(dropout, bool)
         or not math.isfinite(float(dropout))
@@ -9762,20 +10045,29 @@ def run_train(
 
     _set_deterministic(seed, device)
 
-    # Pre-build and prove the exact requested pyramid before label diagnostics,
-    # dataset allocation, normalization, or optimization begins. The old
-    # preflight checked 96 rows for every TF, even when the admitted recipe
-    # requested a different M5/M15/H1/H4/D1 window.
+    # Pre-build the one V4 cache, bind TRAIN/VAL lifecycle clocks, then prove
+    # both exact routes before normalization or optimization begins.
     multi_tf_features = _prebuild_multi_tf_features_once(m5_prebuilt_path)
     from gx1.features.htf_features import (
         require_multi_tf_decision_window_coverage,
     )
 
-    decision_times_by_split: dict[str, object] = {}
+    unified_exit_lifecycle = UnifiedExitLifecycleCorpus(
+        root_manifest_path=unified_exit_lifecycle_manifest_path,
+        entry_parquets={
+            "train": Path(train_parquet),
+            "val": Path(val_parquet),
+        },
+        dataset_run_id=str(dataset_run_id),
+        splits=("train", "val"),
+    )
+    decision_times_by_route_split: dict[str, dict[str, object]] = {
+        "entry": {},
+        "exit": {},
+    }
     for _split_name, _split_path in (
         ("train", train_parquet),
         ("val", val_parquet),
-        ("test", test_parquet),
     ):
         try:
             _split_times = pd.read_parquet(
@@ -9786,12 +10078,19 @@ def run_train(
                 "[MULTI_TF_DECISION_COVERAGE_SPLIT_READ_FAIL] "
                 f"{_split_name}={_split_path}: {exc}"
             ) from exc
-        decision_times_by_split[_split_name] = _split_times
+        decision_times_by_route_split["entry"][_split_name] = _split_times
+        decision_times_by_route_split["exit"][_split_name] = pd.to_datetime(
+            unified_exit_lifecycle.splits[
+                _split_name
+            ].selected_current_decision_times_ns(),
+            unit="ns",
+            utc=True,
+        )
     multi_tf_decision_window_coverage = (
         require_multi_tf_decision_window_coverage(
             multi_tf_features,
             per_tf_seq_lens=_effective_tf_lens,
-            decision_times_by_split=decision_times_by_split,
+            decision_times_by_route_split=decision_times_by_route_split,
         )
     )
     log.info(
@@ -9810,6 +10109,11 @@ def run_train(
         multi_tf_closed_bar=True,
     )
     physical_train_rows = int(len(train_ds))
+    # Bind the immutable TRAIN lifecycle before normalization so the shared
+    # 513/142/5 fit sees the exact M1 Exit rows selected by the same lifecycle
+    # used by optimization. This occurs before any smoke subsampling.
+    train_exit_lifecycle = unified_exit_lifecycle.splits["train"]
+    train_ds.bind_unified_exit_lifecycle(train_exit_lifecycle)
     # Normalization must be fitted over the same windows the model reads, so it
     # takes the one resolution above rather than re-deriving it. A second
     # derivation is a second truth waiting to drift.
@@ -9820,6 +10124,7 @@ def run_train(
         train_ctx_cont=train_ds._np_ctx_cont,
         train_ctx_cat=train_ds._np_ctx_cat,
         train_times=train_ds.df["time"],
+        train_exit_lifecycle=train_exit_lifecycle,
         ordered_signal_names=list(train_ds.signal_names),
         per_tf_seq_lens=normalization_per_tf_seq_lens,
         artifacts=TrainNormalizationArtifacts(
@@ -9836,7 +10141,7 @@ def run_train(
     ]
     log.info(
         "[ENTRY_INPUT_NORMALIZATION_FIT] contract_sha256=%s "
-        "full_train_rows=%d val_rows=0 test_rows=0",
+        "shared_context_train_rows=%d val_rows=0 test_rows=0",
         input_normalization["contract_sha256"],
         int(
             input_normalization_fit_population_proof[
@@ -9870,18 +10175,6 @@ def run_train(
         m5_prebuilt_path=m5_prebuilt_path,
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
-    )
-    unified_exit_lifecycle = UnifiedExitLifecycleCorpus(
-        root_manifest_path=unified_exit_lifecycle_manifest_path,
-        entry_parquets={
-            "train": Path(train_parquet),
-            "val": Path(val_parquet),
-        },
-        dataset_run_id=str(dataset_run_id),
-        splits=("train", "val"),
-    )
-    train_ds.bind_unified_exit_lifecycle(
-        unified_exit_lifecycle.splits["train"]
     )
     val_ds.bind_unified_exit_lifecycle(
         unified_exit_lifecycle.splits["val"]
@@ -12344,6 +12637,7 @@ def run_train(
             input_normalization_fit_population_proof
         ),
         "run_lineage": run_lineage,
+        "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "model_native_training_objective": model_native_training_objective,
         "ctx_tag": f"CTX{ctx_cont_dim}CAT{ctx_cat_dim}",
@@ -12426,11 +12720,42 @@ def run_train(
         "early_stopping_min_delta": float(early_stopping_min_delta),
         "epochs": epochs,
         "lr": lr,
-        # Exact V4 multi-TF marker — live inference inspects this to decide
-        # whether to feed seq_m15/seq_h1/seq_h4/seq_d1 into the model.
+        # Exact offline-only shared V4 MTF contract. Entry and Exit use one
+        # cache and one encoder, with route-specific clocks and TF sets.
         "multi_tf": {
             "enabled": True,
             "v4_mode": True,
+            "route_schema_version": "entry_exit_shared_mtf_routes_v1",
+            "entry_route_timeframes": list(ENTRY_MTF_CONTEXT_TIMEFRAMES),
+            "exit_route_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
+            "entry_target_availability_shift_minutes": (
+                ENTRY_DECISION_BAR_SECONDS / 60.0
+            ),
+            "exit_target_availability_shift_minutes": (
+                EXIT_DECISION_BAR_SECONDS / 60.0
+            ),
+            "entry_tf_gate_width": ENTRY_MTF_CONTEXT_COUNT,
+            "exit_tf_gate_width": EXIT_MTF_CONTEXT_COUNT,
+            "entry_family_tf_gate_width": (
+                ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+            ),
+            "exit_family_tf_gate_width": (
+                EXIT_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+            ),
+            "shared_cache_identity_sha256": (
+                train_ds._multi_tf_cache_identity_sha256
+            ),
+            "shared_cache_manifest_sha256": (
+                train_ds._multi_tf_cache_manifest_sha256
+            ),
+            "shared_cache_dir": train_ds._multi_tf_cache_dir,
+            "shared_cache_manifest_path": (
+                train_ds._multi_tf_cache_manifest_path
+            ),
+            "shared_cache_m5_source": train_ds._multi_tf_cache_m5_source,
+            "shared_cache_m5_source_sha256": (
+                train_ds._multi_tf_cache_m5_source_sha256
+            ),
             "m5_seq_dim": int(_mtf_feat_count),
             "m5_seq_len": int(_m5_len),
             "m15_seq_dim": int(_mtf_feat_count),
@@ -12456,13 +12781,7 @@ def run_train(
                     allow_nan=False,
                 ).encode("utf-8")
             ).hexdigest(),
-            "closed_bar_target_availability": bool(
-                getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)) > pd.Timedelta(0)
-            ),
-            "target_availability_shift_minutes": float(
-                getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)).total_seconds()
-                / 60.0
-            ),
+            "closed_bar_target_availability": True,
             "resolution_pyramid": multi_tf_resolution_pyramid,
             "decision_window_coverage": (
                 multi_tf_decision_window_coverage
@@ -12471,7 +12790,11 @@ def run_train(
                 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
             ),
             "specialist_input_indices": multi_tf_specialist_indices,
-            "family_tf_token_order": list(model.family_tf_token_order),
+            "parameter_family_tf_token_order": list(model.family_tf_token_order),
+            "entry_family_tf_token_order": list(
+                model.entry_family_tf_token_order
+            ),
+            "exit_family_tf_token_order": list(model.exit_family_tf_token_order),
         },
         # All five scale parameters begin at the same contract-owned neutral
         # identity. Learned state is immutable evidence; there is no per-TF
@@ -12497,6 +12820,7 @@ def run_train(
         "direction_decision_contract": direction_decision_contract,
         "model_native_signal_contract": trained_model_native_signal_contract,
         "run_lineage": run_lineage,
+        "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "model_native_state_contract": trained_model_native_state_contract,
         "seq_len": seq_len,
@@ -13111,7 +13435,7 @@ def run_train(
         dummy_snap = signal_center.view(1, -1).repeat(B, 1)
         dummy_cat = torch.zeros(B, ctx_cat_dim, dtype=torch.long)
         dummy_cont = ctx_cont_center.view(1, -1).repeat(B, 1)
-        mtf_kwargs = {
+        entry_mtf_kwargs = {
             f"seq_{tf.lower()}": torch.tensor(
                 input_normalization["surfaces"][f"mtf_{tf.lower()}"][
                     "center"
@@ -13122,9 +13446,53 @@ def run_train(
                 normalization_per_tf_seq_lens[tf],
                 1,
             )
-            for tf in MULTI_TF_TIMEFRAMES
+            for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
         }
-        _ = model2(dummy_seq, dummy_snap, ctx_cat=dummy_cat, ctx_cont=dummy_cont, **mtf_kwargs)
+        entry_out = model2(
+            dummy_seq,
+            dummy_snap,
+            ctx_cat=dummy_cat,
+            ctx_cont=dummy_cont,
+            **entry_mtf_kwargs,
+        )
+        shared_entry = entry_out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
+        if not isinstance(shared_entry, torch.Tensor):
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_STAGE_EXIT_SHARED_REPRESENTATION_MISSING]"
+            )
+        exit_mtf_kwargs = {
+            f"exit_seq_{tf.lower()}": torch.tensor(
+                input_normalization["surfaces"][f"mtf_{tf.lower()}"][
+                    "center"
+                ],
+                dtype=torch.float32,
+            ).view(1, 1, -1).repeat(
+                B,
+                normalization_per_tf_seq_lens[tf],
+                1,
+            )
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        }
+        _ = model2.forward_exit_action(
+            entry_shared_representation=shared_entry,
+            exit_feature_seq_x=signal_center.view(1, 1, -1).repeat(
+                B,
+                seq_len * ENTRY_EXIT_RESOLUTION_RATIO,
+                1,
+            ),
+            exit_feature_snap_x=dummy_snap,
+            exit_feature_ctx_cat=dummy_cat,
+            exit_feature_ctx_cont=dummy_cont,
+            **exit_mtf_kwargs,
+            exit_path_x=torch.zeros(
+                B,
+                1,
+                UNIFIED_EXIT_PATH_FEATURE_DIM,
+                dtype=torch.float32,
+            ),
+            exit_path_lengths=torch.ones(B, dtype=torch.long),
+            exit_side_index=torch.zeros(B, dtype=torch.long),
+        )
     log.info(
         "[ENTRY_BUNDLE_STAGE_VERIFIED] strict state load OK: %s",
         out_bundle_dir,
@@ -13348,6 +13716,7 @@ def run_train(
 # Main
 # -----------------------------------------------------------------------------
 def main() -> None:
+    _require_trainer_cgroup_preflight()
     _enforce_canonical_train_env_contract()
 
     parser = argparse.ArgumentParser("ENTRY_V10_CTX exact model-native trainer")
@@ -13363,10 +13732,10 @@ def main() -> None:
     parser.add_argument("--seq_len", type=int, required=True)
     parser.add_argument("--train-manifest-json", type=Path, required=True)
     parser.add_argument("--val-manifest-json", type=Path, required=True)
-    parser.add_argument("--test-manifest-json", type=Path, required=True)
     parser.add_argument("--train-parquet", type=Path, required=True)
     parser.add_argument("--val-parquet", type=Path, required=True)
-    parser.add_argument("--test-parquet", type=Path, required=True)
+    parser.add_argument("--prefreeze-test-seal-json", type=Path, required=True)
+    parser.add_argument("--prefreeze-test-seal-sha256", type=str, required=True)
     parser.add_argument(
         "--unified-exit-lifecycle-manifest-json",
         type=Path,
@@ -13434,10 +13803,8 @@ def main() -> None:
     _manifests, parquets = _resolve_explicit_train_split_artifacts(
         train_manifest=args.train_manifest_json,
         val_manifest=args.val_manifest_json,
-        test_manifest=args.test_manifest_json,
         train_parquet=args.train_parquet,
         val_parquet=args.val_parquet,
-        test_parquet=args.test_parquet,
         unified_exit_lifecycle_manifest_path=(
             args.unified_exit_lifecycle_manifest_json
         ),
@@ -13447,13 +13814,22 @@ def main() -> None:
     )
     train_parquet = parquets["train"]
     val_parquet = parquets["val"]
-    test_parquet = parquets["test"]
+    try:
+        prefreeze_test_seal_lineage = require_prefreeze_test_seal_lineage(
+            args.prefreeze_test_seal_json,
+            args.prefreeze_test_seal_sha256,
+            expected_dataset_run_id=str(args.dataset_run_id),
+            expected_dataset_dir=train_parquet.parent,
+        )
+    except (PrefreezeTestSealLineageError, OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"[ENTRY_TRAIN_PREFREEZE_TEST_SEAL_REJECTED] {exc}"
+        ) from exc
 
     run_train(
         train_parquet=train_parquet,
         train_manifest_path=_manifests["train"],
         val_parquet=val_parquet,
-        test_parquet=test_parquet,
         unified_exit_lifecycle_manifest_path=(
             args.unified_exit_lifecycle_manifest_json
         ),
@@ -13484,6 +13860,7 @@ def main() -> None:
         per_tf_seq_len_h4=int(args.per_tf_seq_len_h4),
         per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),
         grad_accum_steps=int(args.grad_accum_steps),
+        prefreeze_test_seal_lineage=prefreeze_test_seal_lineage,
         run_id=str(args.run_id),
         dataset_run_id=str(args.dataset_run_id),
         profile=str(args.profile),

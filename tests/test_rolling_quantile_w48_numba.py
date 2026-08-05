@@ -6,7 +6,49 @@ Hard correctness test: if this fails, system is wrong.
 import numpy as np
 import pandas as pd
 
-from gx1.features.rolling_np import rolling_quantile_w48
+from gx1.features.rolling_np import rolling_quantile, rolling_quantile_w48
+
+
+def test_generic_rolling_quantile_matches_pandas_with_missing_values():
+    rng = np.random.default_rng(47)
+    data = rng.normal(size=4_000)
+    data[::97] = np.nan
+    data[::211] = np.inf
+    expected = pd.Series(data).rolling(257, min_periods=113).quantile(0.333)
+
+    observed = rolling_quantile(
+        data,
+        window=257,
+        q=0.333,
+        min_periods=113,
+    )
+
+    np.testing.assert_allclose(
+        observed,
+        expected.to_numpy(dtype=np.float64),
+        rtol=0.0,
+        atol=1e-12,
+        equal_nan=True,
+    )
+
+
+def test_generic_rolling_quantile_is_append_stable_at_m1_regime_window():
+    data = np.sin(np.arange(35_000, dtype=np.float64) / 137.0)
+    prefix = rolling_quantile(
+        data[:30_000],
+        window=28_800,
+        q=0.667,
+        min_periods=14_400,
+    )
+    complete = rolling_quantile(
+        data,
+        window=28_800,
+        q=0.667,
+        min_periods=14_400,
+    )
+
+    np.testing.assert_array_equal(prefix, complete[: len(prefix)])
+    assert np.isfinite(complete[-1])
 
 
 def test_rolling_quantile_w48_random_data():
@@ -161,5 +203,4 @@ def test_rolling_quantile_w48_edge_cases():
     data_nan = np.full(100, np.nan, dtype=np.float64)
     result_nan = rolling_quantile_w48(data_nan, q=0.5, min_periods=24)
     assert np.all(np.isnan(result_nan))
-
 

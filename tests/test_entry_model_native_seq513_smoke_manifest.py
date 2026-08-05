@@ -236,10 +236,8 @@ def test_materializes_one_hash_bound_immutable_manifest_event(tmp_path: Path) ->
     for flag in (
         "--train-manifest-json",
         "--val-manifest-json",
-        "--test-manifest-json",
         "--train-parquet",
         "--val-parquet",
-        "--test-parquet",
         "--unified-exit-lifecycle-manifest-json",
         "--m5-prebuilt-path",
         "--multi-tf-cache-manifest-json",
@@ -296,7 +294,7 @@ def test_rejects_mutable_latest_input_before_artifact_reads(tmp_path: Path) -> N
 @pytest.mark.parametrize(
     ("dataset_kwargs", "blocker"),
     [
-        ({"missing_manifest_split": "val"}, "exact train val test split artifacts exist"),
+        ({"missing_manifest_split": "val"}, "exact train val split artifacts exist"),
         ({"width": 512}, "split signal seq and snap dims are 513"),
         ({"schema_version": "stale_split_schema_v1"}, "split manifests use model-native seq513 split schema"),
         ({"exact_signal_contract": False}, "split manifests carry exact model-native signal contract"),
@@ -334,14 +332,14 @@ def test_upstream_acceptance_proof_is_mandatory(tmp_path: Path, missing: str) ->
     assert report["manifest_embedded"] is False
 
 
-def test_explicit_split_hash_and_six_way_identity_fail_closed(tmp_path: Path) -> None:
+def test_explicit_split_hash_and_four_way_identity_fail_closed(tmp_path: Path) -> None:
     dataset_dir = _dataset(tmp_path)
     bad_hash = _args(tmp_path, dataset_dir)
     bad_hash.val_parquet_sha256 = "0" * 64
 
     hash_report = _run_blocked(bad_hash)
 
-    assert "caller-bound split hashes match train val test bytes" in hash_report["blockers"]
+    assert "caller-bound split hashes match train val bytes" in hash_report["blockers"]
 
     second_root = tmp_path / "second"
     second_root.mkdir()
@@ -353,7 +351,7 @@ def test_explicit_split_hash_and_six_way_identity_fail_closed(tmp_path: Path) ->
     duplicate_report = _run_blocked(duplicate)
 
     assert (
-        "train val test split paths are explicit canonical and distinct"
+        "train val split paths are explicit canonical and distinct"
         in duplicate_report["blockers"]
     )
 
@@ -385,3 +383,5 @@ def test_control_route_requires_all_explicit_split_paths_and_hashes() -> None:
             "manifest-sha256",
         ):
             assert f"--{split}-{suffix}" in route
+    assert "--test-manifest-json" not in route
+    assert "--test-parquet" not in route

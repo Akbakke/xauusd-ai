@@ -69,71 +69,6 @@ def rolling_std_3(x: np.ndarray, min_periods: int = 2, ddof: int = 0) -> np.ndar
     return result
 
 
-def rolling_mean_w48(x: np.ndarray, min_periods: int = 48) -> np.ndarray:
-    """
-    Rolling mean with window=48.
-    Matches pandas: Series.rolling(48, min_periods=min_periods).mean()
-    Returns float64 array with NaN where not enough periods.
-    
-    NaN/Inf policy: if the window contains NaN/Inf => output NaN for that position.
-    
-    Args:
-        x: 1D numpy array (float)
-        min_periods: Minimum periods required (default 48)
-    
-    Implementation:
-        Uses O(n) rolling sum for efficiency.
-        Handles NaN/Inf robustly: if any value in window is NaN/Inf, output NaN.
-        Matches pandas behavior for partial windows (i < window-1).
-    """
-    x = np.asarray(x, dtype=np.float64)
-    n = len(x)
-    result = np.full(n, np.nan, dtype=np.float64)
-    
-    if n == 0:
-        return result
-    
-    window = 48  # Fixed window size
-    
-    if n < min_periods:
-        return result
-    
-    # Rolling sum approach: maintain sum of current window
-    # For i < window-1: window_size = i+1
-    # For i >= window-1: window_size = window
-    
-    # Process each position
-    for i in range(n):
-        # Determine window size for this position
-        if i < window - 1:
-            window_size = i + 1
-        else:
-            window_size = window
-        
-        # Check if we have enough periods
-        if window_size < min_periods:
-            result[i] = np.nan
-            continue
-        
-        # Extract current window
-        window_start = max(0, i - window_size + 1)
-        window_end = i + 1
-        window_values = x[window_start:window_end]
-        
-        # Filter out NaN/Inf (pandas ignores them when computing mean)
-        finite_values = window_values[np.isfinite(window_values)]
-        
-        # Need at least min_periods finite values
-        if len(finite_values) < min_periods:
-            result[i] = np.nan
-            continue
-        
-        # Compute mean over finite values (matches pandas behavior)
-        result[i] = np.mean(finite_values)
-    
-    return result
-
-
 @njit(cache=True, fastmath=False)
 def rolling_kurtosis_w48_numba(x: np.ndarray, min_periods: int) -> np.ndarray:
     """
@@ -230,7 +165,7 @@ def rolling_kurtosis_w48_numba(x: np.ndarray, min_periods: int) -> np.ndarray:
     return result
 
 
-def rolling_kurtosis_w48(x: np.ndarray, min_periods: int = 12, fisher: bool = True, bias: bool = True) -> np.ndarray:
+def rolling_kurtosis_w48(x: np.ndarray, min_periods: int = 12) -> np.ndarray:
     """
     Public entrypoint for rolling kurtosis w48.
     Uses Numba-accelerated implementation (no fallback).
@@ -238,9 +173,6 @@ def rolling_kurtosis_w48(x: np.ndarray, min_periods: int = 12, fisher: bool = Tr
     Args:
         x: 1D numpy array (float)
         min_periods: Minimum periods required (default 12)
-        fisher: If True, Fisher's (excess) kurtosis is returned (kurtosis - 3). Default True (always used).
-        bias: Unused (kept for compatibility)
-    
     Returns:
         float64 array with Fisher's excess kurtosis, NaN where not enough finite periods
     """
@@ -252,90 +184,6 @@ def rolling_kurtosis_w48(x: np.ndarray, min_periods: int = 12, fisher: bool = Tr
         start = max(0, i - window + 1)
         if (i + 1) < min_periods or not np.all(finite[start : i + 1]):
             result[i] = np.nan
-    return result
-
-
-def rolling_mean_w48_nanaware(x: np.ndarray, min_periods: int = 48) -> np.ndarray:
-    """
-    Nan-aware rolling mean with window=48.
-    Same as rolling_mean_w48 but explicitly named for zscore usage.
-    Matches pandas: Series.rolling(48, min_periods=min_periods).mean()
-    
-    NaN/Inf policy: NaN values are ignored, mean computed over finite values only.
-    If count of finite values < min_periods, output NaN.
-    
-    Args:
-        x: 1D numpy array (float)
-        min_periods: Minimum periods required (default 48)
-    
-    Returns:
-        float64 array with NaN where not enough finite periods
-    """
-    return rolling_mean_w48(x, min_periods=min_periods)
-
-
-def rolling_std_w48_nanaware(x: np.ndarray, min_periods: int = 48, ddof: int = 0) -> np.ndarray:
-    """
-    Nan-aware rolling std with window=48.
-    Matches pandas: Series.rolling(48, min_periods=min_periods).std(ddof=0)
-    
-    NaN/Inf policy: NaN values are ignored, std computed over finite values only.
-    If count of finite values < min_periods, output NaN.
-    
-    Args:
-        x: 1D numpy array (float)
-        min_periods: Minimum periods required (default 48)
-        ddof: Delta degrees of freedom (only 0 supported)
-    
-    Returns:
-        float64 array with NaN where not enough finite periods
-    """
-    assert ddof == 0, "ddof only supports 0 for now"
-    
-    x = np.asarray(x, dtype=np.float64)
-    n = len(x)
-    result = np.full(n, np.nan, dtype=np.float64)
-    
-    if n == 0:
-        return result
-    
-    window = 48  # Fixed window size
-    
-    if n < min_periods:
-        return result
-    
-    # Rolling sum and sum of squares approach (finite values only)
-    current_sum = 0.0
-    current_sum_sq = 0.0
-    finite_count = 0
-    
-    for i in range(n):
-        # Add current element
-        val_add = x[i]
-        if np.isfinite(val_add):
-            current_sum += val_add
-            current_sum_sq += val_add * val_add
-            finite_count += 1
-        
-        # Remove element that falls out of window
-        if i >= window:
-            val_remove = x[i - window]
-            if np.isfinite(val_remove):
-                current_sum -= val_remove
-                current_sum_sq -= val_remove * val_remove
-                finite_count -= 1
-        
-        # Check if we have enough finite periods
-        if finite_count >= min_periods:
-            # Compute variance: var = E[X^2] - (E[X])^2
-            mean_val = current_sum / finite_count
-            var_val = (current_sum_sq / finite_count) - (mean_val * mean_val)
-            # Clamp variance to >= 0 (numerical stability)
-            var_val = max(var_val, 0.0)
-            result[i] = np.sqrt(var_val)
-        else:
-            result[i] = np.nan
-    
     return result
 
 
@@ -420,15 +268,6 @@ def zscore_w48(x: np.ndarray, min_periods: int = 24) -> np.ndarray:
     """
     x = np.asarray(x, dtype=np.float64)
     return zscore_w48_numba(x, min_periods)
-
-
-# Legacy function kept for backwards compatibility during migration
-def zscore_w48_nanaware(x: np.ndarray, min_periods: int = 24) -> np.ndarray:
-    """
-    DEPRECATED: Use zscore_w48 instead.
-    This function now delegates to zscore_w48 (Numba-accelerated).
-    """
-    return zscore_w48(x, min_periods)
 
 
 def pct_change_np(x: np.ndarray, k: int) -> np.ndarray:
@@ -726,73 +565,90 @@ def rolling_std(x: np.ndarray, window: int, min_periods: int = None, ddof: int =
 
 
 @njit(cache=True, fastmath=False)
-def rolling_quantile_numba(x: np.ndarray, window: int, q: float, min_periods: int) -> np.ndarray:
-    """
-    Numba-accelerated generic rolling quantile for any window size.
-    Matches pandas: Series.rolling(window, min_periods=min_periods).quantile(q)
-    
-    Args:
-        x: 1D numpy array (float64)
-        window: Window size
-        q: Quantile value (0.0 to 1.0)
-        min_periods: Minimum periods required
-    
-    Returns:
-        float64 array with NaN where not enough finite periods
-    """
-    n = len(x)
-    result = np.full(n, np.nan, dtype=np.float64)
-    
-    if n == 0 or n < min_periods:
-        return result
-    
-    # Ring buffer for window values
-    window_buffer = np.full(window, np.nan, dtype=np.float64)
-    
-    for i in range(n):
-        # Add current value to ring buffer
-        window_buffer[i % window] = x[i]
-        
-        if i >= min_periods - 1:
-            # Extract current window values, handling wrap-around
-            if i < window - 1:
-                # Not enough values to wrap around yet
-                current_window = window_buffer[:i+1]
-            else:
-                # Wrap around: build array manually (Numba-compatible)
-                idx_start = (i % window) + 1
-                current_window = np.zeros(window, dtype=np.float64)
-                for j in range(window):
-                    src_idx = (idx_start + j) % window
-                    current_window[j] = window_buffer[src_idx]
-            
-            # Filter finite values
-            finite_mask = np.isfinite(current_window)
-            finite_values = current_window[finite_mask]
-            count = len(finite_values)
-            
-            if count >= min_periods:
-                # Sort finite values
-                sorted_vals = np.sort(finite_values)
-                
-                # Compute quantile index (linear interpolation)
-                idx_float = (count - 1) * q
-                idx_low = int(np.floor(idx_float))
-                idx_high = int(np.ceil(idx_float))
-                
-                if idx_low == idx_high:
-                    result[i] = sorted_vals[idx_low]
-                else:
-                    # Linear interpolation
-                    weight_high = idx_float - idx_low
-                    weight_low = 1.0 - weight_high
-                    result[i] = weight_low * sorted_vals[idx_low] + weight_high * sorted_vals[idx_high]
-            else:
-                result[i] = np.nan
-        else:
-            result[i] = np.nan
-    
+def _fenwick_add(tree: np.ndarray, rank: int, delta: int) -> None:
+    index = rank + 1
+    while index < len(tree):
+        tree[index] += delta
+        index += index & -index
+
+
+@njit(cache=True, fastmath=False)
+def _fenwick_rank_at_count(tree: np.ndarray, count: int) -> int:
+    """Return the zero-based rank containing one-based ``count``."""
+
+    index = 0
+    step = 1
+    while step << 1 < len(tree):
+        step <<= 1
+    while step:
+        candidate = index + step
+        if candidate < len(tree) and tree[candidate] < count:
+            index = candidate
+            count -= tree[candidate]
+        step >>= 1
+    return index
+
+
+@njit(cache=True, fastmath=False)
+def _rolling_quantile_ranked_numba(
+    ranks: np.ndarray,
+    unique_values: np.ndarray,
+    window: int,
+    q: float,
+    min_periods: int,
+) -> np.ndarray:
+    """Exact rolling quantile in O(n log U), where U is unique values."""
+
+    result = np.full(len(ranks), np.nan, dtype=np.float64)
+    tree = np.zeros(len(unique_values) + 1, dtype=np.int64)
+    finite_count = 0
+    for index in range(len(ranks)):
+        incoming = int(ranks[index])
+        if incoming >= 0:
+            _fenwick_add(tree, incoming, 1)
+            finite_count += 1
+        if index >= window:
+            outgoing = int(ranks[index - window])
+            if outgoing >= 0:
+                _fenwick_add(tree, outgoing, -1)
+                finite_count -= 1
+        if finite_count < min_periods:
+            continue
+
+        position = (finite_count - 1) * q
+        lower_index = int(np.floor(position))
+        upper_index = int(np.ceil(position))
+        lower_rank = _fenwick_rank_at_count(tree, lower_index + 1)
+        lower = unique_values[lower_rank]
+        if lower_index == upper_index:
+            result[index] = lower
+            continue
+        upper_rank = _fenwick_rank_at_count(tree, upper_index + 1)
+        weight = position - lower_index
+        result[index] = lower + weight * (unique_values[upper_rank] - lower)
     return result
+
+
+def rolling_quantile_numba(
+    x: np.ndarray,
+    window: int,
+    q: float,
+    min_periods: int,
+) -> np.ndarray:
+    """Exact pandas-compatible rolling quantile without window-sized work per row."""
+
+    values = np.asarray(x, dtype=np.float64)
+    finite = np.isfinite(values)
+    unique_values, inverse = np.unique(values[finite], return_inverse=True)
+    ranks = np.full(len(values), -1, dtype=np.int64)
+    ranks[finite] = inverse.astype(np.int64, copy=False)
+    return _rolling_quantile_ranked_numba(
+        ranks,
+        unique_values,
+        window,
+        q,
+        min_periods,
+    )
 
 
 def rolling_quantile(x: np.ndarray, window: int, q: float, min_periods: int = None) -> np.ndarray:
@@ -809,6 +665,21 @@ def rolling_quantile(x: np.ndarray, window: int, q: float, min_periods: int = No
         float64 array with NaN where not enough finite periods
     """
     x = np.asarray(x, dtype=np.float64)
+    if x.ndim != 1:
+        raise ValueError("rolling_quantile requires a one-dimensional array")
+    if isinstance(window, bool) or not isinstance(window, (int, np.integer)) or window <= 0:
+        raise ValueError("rolling_quantile window must be a positive integer")
+    if not np.isfinite(q) or not 0.0 <= float(q) <= 1.0:
+        raise ValueError("rolling_quantile q must be finite and in [0, 1]")
     if min_periods is None:
         min_periods = window
+    if (
+        isinstance(min_periods, bool)
+        or not isinstance(min_periods, (int, np.integer))
+        or min_periods <= 0
+        or min_periods > window
+    ):
+        raise ValueError(
+            "rolling_quantile min_periods must be a positive integer <= window"
+        )
     return rolling_quantile_numba(x, window, q, min_periods)

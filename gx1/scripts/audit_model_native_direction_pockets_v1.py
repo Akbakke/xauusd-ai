@@ -62,6 +62,7 @@ from gx1.contracts.model_native_serve_gate_v1 import (
     serve_gate_event_contract_failures,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
     resolve_and_validate_prediction_evidence,
     sha256_file,
 )
@@ -650,10 +651,15 @@ def main() -> int:
         help="explicit timestamped authoritative selective_edge_predictions_<stamp>.parquet",
     )
     ap.add_argument(
+        "--predictions-sha256",
+        required=True,
+        help="caller-pinned SHA-256 of the exact TEST prediction parquet",
+    )
+    ap.add_argument(
         "--prediction-report-json",
         type=Path,
         required=True,
-        help="matching newest immutable ENTRY_CANDIDATE_SELECTIVE_EDGE_<stamp>.json",
+        help="exact matching ENTRY_CANDIDATE_SELECTIVE_EDGE_<stamp>.json",
     )
     ap.add_argument("--bundle-dir", type=Path, required=True)
     ap.add_argument(
@@ -674,22 +680,27 @@ def main() -> int:
     if raw_out_dir.is_symlink():
         raise RuntimeError(f"output directory cannot be a symlink: {raw_out_dir}")
 
-    bundle_dir = args.bundle_dir.expanduser().resolve()
-    dataset_dir = args.dataset_dir.expanduser().resolve()
-    requested_pred_path = args.predictions_parquet.expanduser().resolve()
-    requested_report_path = args.prediction_report_json.expanduser().resolve()
+    requested_bundle_dir = args.bundle_dir.expanduser()
+    requested_dataset_dir = args.dataset_dir.expanduser()
+    requested_pred_path = args.predictions_parquet.expanduser()
+    requested_report_path = args.prediction_report_json.expanduser()
     failures: list[str] = []
 
     pred_path, prediction_report, prediction_evidence = (
         resolve_and_validate_prediction_evidence(
             requested_pred_path,
+            expected_sha256=str(args.predictions_sha256),
             prediction_report_path=requested_report_path,
-            bundle_dir=bundle_dir,
-            dataset_dir=dataset_dir,
-            expected_split=MODEL_NATIVE_REQUIRED_TEST_SPLIT,
+            bundle_dir=requested_bundle_dir,
+            dataset_dir=requested_dataset_dir,
+            expected_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+            expected_splits=(MODEL_NATIVE_REQUIRED_TEST_SPLIT,),
             expected_model=MODEL_NATIVE_REQUIRED_MODEL_NAME,
         )
     )
+    bundle_dir = requested_bundle_dir.resolve()
+    dataset_dir = requested_dataset_dir.resolve()
+    requested_report_path = requested_report_path.resolve()
     meta_path, meta = _load_meta(bundle_dir, args.bundle_metadata_json)
     require_model_direction_decision_contract(
         meta,

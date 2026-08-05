@@ -28,6 +28,8 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
+        "--rebuild-terminal-json",
+        "--prefreeze-test-seal-json",
         "--history-start",
         "validate_train_rank_reference_lineage_v2",
         "validate_signal_manifest_training_lineage",
@@ -135,6 +137,19 @@ def test_seq513_rebuild_full_input_liveness_precedes_target_preflight() -> None:
     assert materialize < validate < target_audit
 
 
+def test_seq513_rebuild_seals_test_before_prefreeze_audits() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    producer = source.index("--prefreeze-test-seal-json")
+    seal_gate = source.index("exact pre-freeze TEST authority")
+    liveness = source.index("materialize_entry_full_input_liveness_v1")
+    pretrain = source.index("audit_xau_direction_repair_pretrain_v1")
+
+    assert producer < seal_gate < liveness < pretrain
+    assert "--test-manifest-json" not in source
+    assert "--test-parquet" not in source
+
+
 def test_capped_runner_serializes_every_heavy_job() -> None:
     source = CAPPED_RUNNER.read_text(encoding="utf-8")
 
@@ -145,11 +160,16 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "systemd-run --user --scope --quiet" in source
     assert "exec systemd-run" not in source
     assert "SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))" in source
+    assert "SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))" in source
     assert "SAFE_JOB_SWAP_KIB=$((512 * 1024))" in source
     assert "MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))" in source
     assert "WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))" in source
     assert "active WSL MemTotal exceeds configured memory cap" in source
     assert "capped_run_scope_verified" in source
+    assert "--class)" in source
+    assert 'JOB_CLASS="$2"; shift 2' in source
+    assert "trainer class is reserved for the canonical trainer module" in source
+    assert "audit jobs may request at most 4G" in source
     assert 'verified_cpu_affinity="$GX1_CPU_AFFINITY"' in source
     assert (
         "unset GX1_EXPECTED_MEMORY_BYTES GX1_EXPECTED_SWAP_BYTES "
@@ -163,12 +183,18 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
 def test_pre_commit_model_contracts_use_capped_runner() -> None:
     source = PRE_COMMIT.read_text(encoding="utf-8")
 
-    assert 'CAP=("$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 512M --)' in source
+    assert (
+        'CAP=("$REPO/scripts/gx1_capped_run.sh" --class audit '
+        '--mem 4G --swap 512M --)'
+    ) in source
     assert '"${CAP[@]}" "$PY" -m pytest -q' in source
 
 
 def test_seq513_rebuild_caps_every_heavy_stage() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
-    assert 'CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 10G --swap 512M --)' in source
+    assert (
+        'CAP=("$ENG/scripts/gx1_capped_run.sh" --class audit '
+        '--mem 4G --swap 512M --)'
+    ) in source
     assert '"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source

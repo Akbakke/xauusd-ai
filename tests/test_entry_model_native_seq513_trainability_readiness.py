@@ -47,8 +47,9 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
         "<IMMUTABLE_POST_REBUILD_READINESS_JSON>",
     ]
     return {
+        "profile": "smoke",
         "control_route": "model-native-smoke-train",
-        "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
+        "wrapper_path": "scripts/run_entry_model_native_seq513_train.sh",
         "argv_template": wrapper_argv,
         "wrapper_argv_template": wrapper_argv,
         "requires_edge_audit": True,
@@ -97,11 +98,17 @@ def _audited_wrapper_text() -> str:
         (
             f"MODEL_NATIVE_CONTRACT_MODE={MODEL_NATIVE_CONTRACT_MODE}",
             "gx1.contracts.entry_model_native_train_launch_v1",
+            "--profile",
             "--recipe-audit-json",
             "--pretrain-audit-json",
             "--full-input-liveness-audit-json",
             "--post-rebuild-readiness-json",
+            "--prefreeze-test-seal-json",
+            "--prefreeze-test-seal-sha256",
             "--trainability-readiness-json",
+            "--smoke-manifest-json",
+            "--candidate-readiness-json",
+            "smoke|candidate",
             "--run-id",
             "--execute",
         )
@@ -201,13 +208,14 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX142CAT5") -> argpar
     if wired:
         control_text = (
             "Usage: model-native-smoke-train --run-id <id>\n"
-            "case\nmodel-native-smoke-train) exec wrapper ;;\n"
+            "case\n"
+            "model-native-smoke-train) exec \"$REPO/scripts/run_entry_model_native_seq513_train.sh\" --profile smoke \"$@\" ;;\n"
+            "model-native-candidate-train) exec \"$REPO/scripts/run_entry_model_native_seq513_train.sh\" --profile candidate \"$@\" ;;\n"
             "model-native-train-recipe-audit) exec recipe ;;\n"
             "model-native-selective-edge) exec prediction ;;\n"
             "model-native-smoke-bundle-audit) exec audit ;;\n"
         )
-        smoke_wrapper_text = _audited_wrapper_text()
-        candidate_wrapper_text = _audited_wrapper_text()
+        train_wrapper_text = _audited_wrapper_text()
         smart_script_text = (
             "from gx1.contracts.entry_model_native_signal_v1 import (\n"
             "    MODEL_NATIVE_CONTRACT_MODE,\n"
@@ -218,8 +226,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX142CAT5") -> argpar
         )
     else:
         control_text = "smart-smoke-readiness)\n"
-        smoke_wrapper_text = "--challenger-seq215 SPECIALIST_CONTRACT_MODE=challenger_seq215\n"
-        candidate_wrapper_text = "--challenger-seq215 SPECIALIST_CONTRACT_MODE=challenger_seq215\n"
+        train_wrapper_text = "--challenger-seq215 SPECIALIST_CONTRACT_MODE=challenger_seq215\n"
         smart_script_text = "challenger_seq215 215\n"
     trainer_text = (
         "--specialist-contract-mode\n"
@@ -236,8 +243,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX142CAT5") -> argpar
         full_input_liveness_json=str(full_input_liveness_path),
         control_script=str(_write(tmp_path / "entry_next_edge_control.sh", control_text)),
         trainer_source=str(_write(tmp_path / "entry_v10_ctx_train_v3.py", trainer_text)),
-        smoke_wrapper=str(_write(tmp_path / "run_smoke.sh", smoke_wrapper_text)),
-        candidate_wrapper=str(_write(tmp_path / "run_candidate.sh", candidate_wrapper_text)),
+        train_wrapper=str(_write(tmp_path / "run_train.sh", train_wrapper_text)),
         candidate_readiness_script=str(_write(tmp_path / "candidate_readiness.py", smart_script_text)),
         selective_edge_script=str(_write(tmp_path / "selective_edge.py", smart_script_text)),
         out_dir=str(tmp_path / "reports"),
@@ -263,8 +269,14 @@ def test_smart_trainability_blocks_until_train_surface_exists(tmp_path: Path) ->
     assert report["replay_allowed"] is False
     assert report["iql_allowed"] is False
     assert not any(report["side_effects_started"].values())
-    assert "smoke wrapper exposes the model-native seq513 lane" in report["blockers"]
-    assert "model-native smoke train is wired in control surface" in report["blockers"]
+    assert (
+        "canonical train wrapper exposes both explicit model-native profiles"
+        in report["blockers"]
+    )
+    assert (
+        "both model-native profiles use the canonical wrapper in control surface"
+        in report["blockers"]
+    )
     assert "smart smoke future contract declares direction context slice audit" in report["blockers"]
 
 

@@ -51,10 +51,6 @@ from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     canonical_xau_source_descriptor_v1,
 )
-from gx1.contracts.live_tail_publication_v1 import (  # noqa: E402
-    publish_live_tail_admission_event,
-    publish_live_tail_publication_event,
-)
 from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
     PREBUILT_PAIR_MANIFEST_PATH,
@@ -96,11 +92,11 @@ LOG = logging.getLogger("v12_incr")
 
 PAIR_CANONICAL_FILENAME = "canonical_v3.parquet"
 PAIR_BASE28_FILENAME = "base28.parquet"
-MODEL_AGNOSTIC_CACHE_SCHEMA = "gx1_model_agnostic_canonical_cache_v1"
+MODEL_AGNOSTIC_CACHE_SCHEMA = "gx1_model_agnostic_canonical_cache_v2"
 _PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
-# PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
-# was trained on real values.  This function is the retained computation source.
+# Historical PLUS5 lane now retains four genuinely local auxiliary fields.
+# The misnamed rolling-288 `_v1h1_vwap_drift` was a second H1 owner and is gone.
 M1_MARKET_IDENTITY_COLUMNS = CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]
 # BASE28 is the M1-cadence lane. Every field is owned by native M1. Derived
 # context and M5 broadcasts are forbidden because they created duplicate,
@@ -109,7 +105,6 @@ RAW_BASE28_COLUMNS = M1_MARKET_IDENTITY_COLUMNS
 PAIR_PRODUCER_OWNER = PREBUILT_PAIR_PRODUCER_OWNER
 _PAIR_PRODUCER_SOURCE_PATHS = (
     "gx1/contracts/entry_model_native_state_v2.py",
-    "gx1/contracts/live_tail_publication_v1.py",
     "gx1/contracts/xau_tape_provenance_v1.py",
     "gx1/execution/v12_canonical_incremental.py",
     "gx1/execution/v12_ctx_augment_live.py",
@@ -320,10 +315,6 @@ def _publish_prebuilt_pair_generation(
     expected_manifest_sha256: str | None,
     lineage_contract: dict[str, object],
     created_utc: str | None = None,
-    live_tail_publication_event_root: Path | None = None,
-    previous_live_tail_publication_json: Path | None = None,
-    previous_live_tail_publication_sha256: str | None = None,
-    live_tail_publication_result: dict[str, object] | None = None,
 ) -> str:
     """Publish a complete immutable pair through one atomic pointer replacement.
 
@@ -341,26 +332,6 @@ def _publish_prebuilt_pair_generation(
     ):
         raise RuntimeError(
             "pair publication requires both expected pointer identities or neither"
-        )
-    if (previous_live_tail_publication_json is None) != (
-        previous_live_tail_publication_sha256 is None
-    ):
-        raise RuntimeError(
-            "live-tail predecessor requires exact path and SHA-256"
-        )
-    if live_tail_publication_event_root is None and (
-        previous_live_tail_publication_json is not None
-        or previous_live_tail_publication_sha256 is not None
-    ):
-        raise RuntimeError(
-            "live-tail predecessor requires publication event root"
-        )
-    if (
-        live_tail_publication_event_root is not None
-        and expected_pair_generation_id is None
-    ):
-        raise RuntimeError(
-            "live-tail publication is forbidden for pair bootstrap"
         )
     if generation_root.is_symlink() or not generation_root.is_dir():
         raise RuntimeError(f"pair generation root is invalid: {generation_root}")
@@ -524,7 +495,6 @@ def _publish_prebuilt_pair_generation(
             _fsync_directory(generation_root)
 
         pointer_replaced = False
-        live_tail_event_published = False
         try:
             pointer_tmp = manifest_parent / (
                 f".{pair_manifest_path.name}.{uuid.uuid4().hex}.tmp"
@@ -589,52 +559,6 @@ def _publish_prebuilt_pair_generation(
                         label="BASE28",
                     )
 
-                if live_tail_publication_event_root is not None:
-                    event_path, event = publish_live_tail_publication_event(
-                        event_root=live_tail_publication_event_root,
-                        pair_manifest_path=pair_manifest_path,
-                        generation_root=generation_root,
-                        previous_publication_json=(
-                            previous_live_tail_publication_json
-                        ),
-                        previous_publication_sha256=(
-                            previous_live_tail_publication_sha256
-                        ),
-                        candidate_generation_manifest_path=(
-                            final_dir
-                            / PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME
-                        ),
-                    )
-                    live_tail_event_published = True
-                    event_result = {
-                        "path": str(event_path),
-                        "sha256": hashlib.sha256(
-                            event_path.read_bytes()
-                        ).hexdigest(),
-                        "decision": event["decision"],
-                        "failures": event["failures"],
-                        "pair_generation_id": event["pair"][
-                            "pair_generation_id"
-                        ],
-                        "generation_manifest_sha256": event["pair"][
-                            "generation_manifest"
-                        ]["sha256"],
-                    }
-                    if live_tail_publication_result is not None:
-                        live_tail_publication_result.clear()
-                        live_tail_publication_result.update(event_result)
-                    if (
-                        event["decision"] != "PASS"
-                        or event_result["pair_generation_id"]
-                        != pair_generation_id
-                        or event_result["generation_manifest_sha256"]
-                        != candidate.manifest_sha256
-                    ):
-                        raise RuntimeError(
-                            "LIVE_TAIL_PUBLICATION_PRECOMMIT_BLOCK: "
-                            f"{event_result}"
-                        )
-
                 os.replace(pointer_tmp, pair_manifest_path)
                 pointer_replaced = True
             finally:
@@ -658,11 +582,7 @@ def _publish_prebuilt_pair_generation(
                 )
             verify_prebuilt_pair(admitted)
         except Exception:
-            if (
-                created_final_dir
-                and not pointer_replaced
-                and not live_tail_event_published
-            ):
+            if created_final_dir and not pointer_replaced:
                 _discard_unpublished_generation_dir(
                     final_dir,
                     generation_root=generation_root,
@@ -900,8 +820,8 @@ def _load_native_source_frame(
     return frame
 
 
-def _apply_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
-    """Apply the retained model-agnostic canonical-v3 feature transform."""
+def _apply_local_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
+    """Apply only local transforms; V4-owned cross-TF momentum comes later."""
 
     v3 = v2.copy()
     if "time" in v3.columns and not isinstance(v3.index, pd.DatetimeIndex):
@@ -909,8 +829,7 @@ def _apply_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
         v3 = v3.set_index("time")
     v3 = v3.drop(columns=[name for name in DROP_COLUMNS if name in v3.columns])
     v3 = add_cyclic_time_features(v3)
-    v3 = add_smc_premium_state_interaction(v3)
-    return add_cross_tf_momentum(v3)
+    return add_smc_premium_state_interaction(v3)
 
 
 def _canonical_cache_paths(
@@ -949,6 +868,10 @@ def _validate_model_agnostic_canonical(canonical: pd.DataFrame) -> pd.DataFrame:
         or len(canonical.columns) != len(set(canonical.columns))
     ):
         raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_INDEX_OR_SCHEMA_INVALID")
+    if "m5h1_momentum" not in canonical.columns:
+        raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_V4_MOMENTUM_MISSING")
+    if "_v1h1_vwap_drift" in canonical.columns:
+        raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_DUPLICATE_H1_OWNER")
     numeric = canonical.apply(pd.to_numeric, errors="coerce")
     invalid = [
         name
@@ -1071,7 +994,7 @@ def _build_model_agnostic_canonical(
         return cached
 
     v2 = build_canonical_v2(native_m5)
-    canonical = _apply_canonical_v3_augment(v2)
+    canonical = _apply_local_canonical_v3_augment(v2)
     indexed_m5 = native_m5.set_index("time").sort_index()
     plus5 = _compute_plus5_features(
         indexed_m5[["open", "high", "low", "close", "volume"]]
@@ -1083,26 +1006,42 @@ def _build_model_agnostic_canonical(
         canonical[name] = indexed_m5[name].reindex(canonical.index)
 
     from gx1.features.htf_features import (
-        attach_default_regime_v4_v2_scalars,
+        attach_model_native_mtf_scalars_v4,
+        attach_default_regime_v4_scalars,
         build_multi_tf_per_bar_features_v4,
     )
     from gx1.execution.v12_ctx_augment_live import (
-        augment_canonical_v3_model_agnostic,
+        augment_canonical_v3_model_agnostic_from_v4,
     )
     from gx1.scripts.augment_forward_outcome_v2 import (
         attach_group_a_dip_struct_ctx_columns_parallel,
         trim_causal_context_warmup_prefix,
     )
 
-    attach_default_regime_v4_v2_scalars(canonical)
-    canonical = augment_canonical_v3_model_agnostic(
-        canonical,
+    multi_tf = build_multi_tf_per_bar_features_v4(
         indexed_m5.loc[
             canonical.index,
-            list(CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]),
-        ],
+            ["open", "high", "low", "close", "volume"],
+        ]
     )
-    multi_tf = build_multi_tf_per_bar_features_v4(canonical)
+    attach_model_native_mtf_scalars_v4(
+        canonical,
+        multi_tf=multi_tf,
+        decision_bar_duration=pd.Timedelta(minutes=5),
+    )
+    attach_default_regime_v4_scalars(
+        canonical,
+        multi_tf=multi_tf,
+        decision_bar_duration=pd.Timedelta(minutes=5),
+    )
+    canonical = augment_canonical_v3_model_agnostic_from_v4(
+        canonical,
+        base_bar_duration=pd.Timedelta(minutes=5),
+    )
+    canonical = add_cross_tf_momentum(
+        canonical,
+        decision_bar_duration=pd.Timedelta(minutes=5),
+    )
     # Group-A long-memory state (60-D1 liquidity, trailing-1yr ATR
     # percentiles, pivots) must see the full causal native prehistory, not the
     # warmup-trimmed decision slice — resetting it at the trim boundary was
@@ -1637,10 +1576,6 @@ def publish_prebuilt_pair_successor(
     generation_root: Path = PREBUILT_PAIR_ROOT,
     repo_root: Path = REPO_ROOT,
     workers: int = 1,
-    live_tail_publication_event_root: Path | None = None,
-    previous_live_tail_publication_json: Path | None = None,
-    previous_live_tail_publication_sha256: str | None = None,
-    live_tail_publication_result: dict[str, object] | None = None,
 ) -> str:
     """Derive and CAS-publish one strict child of the active pair.
 
@@ -1807,16 +1742,6 @@ def publish_prebuilt_pair_successor(
             expected_pair_generation_id=expected_pair_generation_id,
             expected_manifest_sha256=expected_manifest_sha256,
             lineage_contract=lineage,
-            live_tail_publication_event_root=(
-                live_tail_publication_event_root
-            ),
-            previous_live_tail_publication_json=(
-                previous_live_tail_publication_json
-            ),
-            previous_live_tail_publication_sha256=(
-                previous_live_tail_publication_sha256
-            ),
-            live_tail_publication_result=live_tail_publication_result,
         )
     finally:
         _discard_pair_staging_dir(
@@ -1876,7 +1801,7 @@ def main() -> int:
     )
     p.add_argument(
         "--publication-mode",
-        choices=("bootstrap", "successor", "live-tail-admission"),
+        choices=("bootstrap", "successor"),
         required=True,
     )
     p.add_argument("--native-m1-root", type=Path)
@@ -1885,21 +1810,6 @@ def main() -> int:
     p.add_argument("--checkpoint-dir", type=Path)
     p.add_argument("--expected-pair-generation-id")
     p.add_argument("--expected-manifest-sha256")
-    p.add_argument(
-        "--live-tail-publication-event-root",
-        type=Path,
-        help=(
-            "Publish immutable freshness/continuity evidence for this "
-            "successor. Omit for non-serving rebuild publications."
-        ),
-    )
-    p.add_argument("--previous-live-tail-publication-json", type=Path)
-    p.add_argument("--previous-live-tail-publication-sha256")
-    p.add_argument("--live-tail-admission-event-root", type=Path)
-    p.add_argument("--parent-live-tail-publication-json", type=Path)
-    p.add_argument("--parent-live-tail-publication-sha256")
-    p.add_argument("--child-live-tail-publication-json", type=Path)
-    p.add_argument("--child-live-tail-publication-sha256")
     p.add_argument(
         "--pair-manifest",
         type=Path,
@@ -1917,119 +1827,6 @@ def main() -> int:
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
                         datefmt="%Y-%m-%dT%H:%M:%SZ")
 
-    claims_live_tail_authority = (
-        args.publication_mode == "live-tail-admission"
-        or args.live_tail_publication_event_root is not None
-    )
-    if claims_live_tail_authority and (
-        args.pair_manifest.expanduser().resolve()
-        != PREBUILT_PAIR_MANIFEST_PATH.resolve()
-        or args.generation_root.expanduser().resolve()
-        != PREBUILT_PAIR_ROOT.resolve()
-    ):
-        p.error(
-            "live-tail authority requires the canonical pair pointer and "
-            "generation root"
-        )
-
-    admission_args = (
-        args.live_tail_admission_event_root,
-        args.parent_live_tail_publication_json,
-        args.parent_live_tail_publication_sha256,
-        args.child_live_tail_publication_json,
-        args.child_live_tail_publication_sha256,
-    )
-    if args.publication_mode == "live-tail-admission":
-        forbidden = [
-            name
-            for name, value in (
-                ("--native-m1-root", args.native_m1_root),
-                ("--native-m5-root", args.native_m5_root),
-                ("--vedtak", args.vedtak),
-                ("--checkpoint-dir", args.checkpoint_dir),
-                (
-                    "--expected-pair-generation-id",
-                    args.expected_pair_generation_id,
-                ),
-                ("--expected-manifest-sha256", args.expected_manifest_sha256),
-                (
-                    "--live-tail-publication-event-root",
-                    args.live_tail_publication_event_root,
-                ),
-                (
-                    "--previous-live-tail-publication-json",
-                    args.previous_live_tail_publication_json,
-                ),
-                (
-                    "--previous-live-tail-publication-sha256",
-                    args.previous_live_tail_publication_sha256,
-                ),
-            )
-            if value is not None
-        ]
-        if forbidden:
-            p.error(
-                "live-tail-admission forbids " + ", ".join(forbidden)
-            )
-        required = [
-            name
-            for name, value in (
-                (
-                    "--live-tail-admission-event-root",
-                    args.live_tail_admission_event_root,
-                ),
-                (
-                    "--parent-live-tail-publication-json",
-                    args.parent_live_tail_publication_json,
-                ),
-                (
-                    "--parent-live-tail-publication-sha256",
-                    args.parent_live_tail_publication_sha256,
-                ),
-                (
-                    "--child-live-tail-publication-json",
-                    args.child_live_tail_publication_json,
-                ),
-                (
-                    "--child-live-tail-publication-sha256",
-                    args.child_live_tail_publication_sha256,
-                ),
-            )
-            if value is None
-        ]
-        if required:
-            p.error(
-                "live-tail-admission requires explicit "
-                + ", ".join(required)
-            )
-        event_path, event = publish_live_tail_admission_event(
-            event_root=args.live_tail_admission_event_root,
-            parent_publication_json=args.parent_live_tail_publication_json,
-            parent_publication_sha256=(
-                args.parent_live_tail_publication_sha256
-            ),
-            child_publication_json=args.child_live_tail_publication_json,
-            child_publication_sha256=args.child_live_tail_publication_sha256,
-            pair_manifest_path=args.pair_manifest,
-            generation_root=args.generation_root,
-        )
-        evidence = {
-            "schema_version": "gx1_live_tail_admission_evidence_v1",
-            "path": str(event_path),
-            "sha256": hashlib.sha256(event_path.read_bytes()).hexdigest(),
-            "decision": event["decision"],
-            "failures": event["failures"],
-            "anchor_pair": event["anchor_pair"],
-            "valid_until_utc": event["valid_until_utc"],
-        }
-        print(json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False))
-        if event["decision"] != "PASS":
-            raise RuntimeError(
-                "LIVE_TAIL_ADMISSION_BLOCK: "
-                f"{event['failures']}"
-            )
-        return 0
-
     missing_build_args = [
         name
         for name, value in (
@@ -2045,21 +1842,13 @@ def main() -> int:
             f"{args.publication_mode} requires explicit "
             + ", ".join(missing_build_args)
         )
-    if any(value is not None for value in admission_args):
-        p.error(
-            f"{args.publication_mode} forbids live-tail-admission arguments"
-        )
-
     if args.publication_mode == "bootstrap":
         if (
             args.expected_pair_generation_id is not None
             or args.expected_manifest_sha256 is not None
-            or args.live_tail_publication_event_root is not None
-            or args.previous_live_tail_publication_json is not None
-            or args.previous_live_tail_publication_sha256 is not None
         ):
             p.error(
-                "bootstrap forbids successor pointer/live-tail arguments"
+                "bootstrap forbids successor pointer arguments"
             )
         generation_id = bootstrap_prebuilt_pair(
             native_m1_root=args.native_m1_root,
@@ -2086,39 +1875,6 @@ def main() -> int:
             p.error(
                 "successor requires explicit " + ", ".join(missing)
             )
-        if (
-            args.previous_live_tail_publication_json is None
-        ) != (
-            args.previous_live_tail_publication_sha256 is None
-        ):
-            p.error(
-                "successor live-tail predecessor requires both "
-                "--previous-live-tail-publication-json and "
-                "--previous-live-tail-publication-sha256"
-            )
-        if (
-            args.live_tail_publication_event_root is None
-            and (
-                args.previous_live_tail_publication_json is not None
-                or args.previous_live_tail_publication_sha256 is not None
-            )
-        ):
-            p.error(
-                "successor predecessor publication requires "
-                "--live-tail-publication-event-root"
-            )
-        if (
-            args.pair_manifest.expanduser().resolve()
-            == PREBUILT_PAIR_MANIFEST_PATH.resolve()
-            and args.generation_root.expanduser().resolve()
-            == PREBUILT_PAIR_ROOT.resolve()
-            and args.live_tail_publication_event_root is None
-        ):
-            p.error(
-                "successor of the canonical serving pointer requires "
-                "--live-tail-publication-event-root"
-            )
-        live_tail_publication: dict[str, object] = {}
         generation_id = publish_prebuilt_pair_successor(
             native_m1_root=args.native_m1_root,
             native_m5_root=args.native_m5_root,
@@ -2129,16 +1885,6 @@ def main() -> int:
             pair_manifest_path=args.pair_manifest,
             generation_root=args.generation_root,
             workers=args.workers,
-            live_tail_publication_event_root=(
-                args.live_tail_publication_event_root
-            ),
-            previous_live_tail_publication_json=(
-                args.previous_live_tail_publication_json
-            ),
-            previous_live_tail_publication_sha256=(
-                args.previous_live_tail_publication_sha256
-            ),
-            live_tail_publication_result=live_tail_publication,
         )
     evidence = pair_publication_evidence(
         pair_manifest_path=args.pair_manifest,
@@ -2146,27 +1892,7 @@ def main() -> int:
     )
     if evidence["pair_generation_id"] != generation_id:
         raise RuntimeError("PAIR_PUBLICATION_TERMINAL_IDENTITY_MISMATCH")
-    if args.live_tail_publication_event_root is not None:
-        if (
-            not live_tail_publication
-            or live_tail_publication["pair_generation_id"]
-            != generation_id
-            or live_tail_publication["generation_manifest_sha256"]
-            != evidence["generation_manifest_sha256"]
-        ):
-            raise RuntimeError(
-                "LIVE_TAIL_PUBLICATION_TERMINAL_IDENTITY_MISMATCH"
-            )
-        evidence["live_tail_publication"] = live_tail_publication
     print(json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False))
-    if (
-        args.live_tail_publication_event_root is not None
-        and evidence["live_tail_publication"]["decision"] != "PASS"
-    ):
-        raise RuntimeError(
-            "LIVE_TAIL_PUBLICATION_BLOCK: "
-            f"{evidence['live_tail_publication']['failures']}"
-        )
     return 0
 
 

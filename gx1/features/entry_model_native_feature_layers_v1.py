@@ -30,7 +30,6 @@ from gx1.features.entry_foundation_structure_v1 import (
     build_entry_foundation_structure_layer,
 )
 from gx1.features.entry_momentum_flow_v1 import MOMENTUM_FLOW_FEATURE_NAMES
-from gx1.features.entry_mtf_confluence_v1 import MTF_CONFLUENCE_FEATURE_NAMES
 from gx1.features.entry_session_regime_interactions_v1 import (
     SESSION_REGIME_INTERACTION_FEATURE_NAMES,
 )
@@ -51,22 +50,23 @@ from gx1.features.entry_volatility_semantics_v1 import (
 )
 
 
-# Exact raw M5 trend-state evidence.  The offline builder and live adapter
-# both supply these columns from the TRAIN-ranked common-history frame.
+# Exact local-resolution trend-state evidence.  The same formulas run once on
+# native M5 for Entry and native M1 for Exit; neither route relabels or copies
+# the other route's values.
 PRICE_DERIVED_SOURCE_PRICE_FIELD = "close"
 PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
 PRICE_DERIVED_FEATURE_NAMES = (
-    "chart.m5_ema50_200_spread_bps",
-    "chart.m5_ema50_200_spread_atr",
-    "chart.m5_ema50_200_bull_state",
-    "chart.m5_ema50_200_cross_up",
-    "chart.m5_ema50_200_cross_down",
-    "chart.m5_price_vs_ema50_bps",
-    "chart.m5_price_vs_ema200_bps",
-    "chart.m5_ema50_slope_bps",
-    "chart.m5_ema200_slope_bps",
-    "chart.m5_ema50_200_spread_delta",
-    "chart.m5_ema50_200_spread_accel",
+    "chart.local_ema50_200_spread_bps",
+    "chart.local_ema50_200_spread_atr",
+    "chart.local_ema50_200_bull_state",
+    "chart.local_ema50_200_cross_up",
+    "chart.local_ema50_200_cross_down",
+    "chart.local_price_vs_ema50_bps",
+    "chart.local_price_vs_ema200_bps",
+    "chart.local_ema50_slope_bps",
+    "chart.local_ema200_slope_bps",
+    "chart.local_ema50_200_spread_delta",
+    "chart.local_ema50_200_spread_accel",
 )
 
 
@@ -95,7 +95,6 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
         CANDLESTICK_PATTERN_FEATURE_NAMES[28:],
     ),
     ("support_resistance_memory_layer", SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES),
-    ("mtf_confluence_layer", MTF_CONFLUENCE_FEATURE_NAMES),
     ("price_ema50_200_layer", PRICE_DERIVED_FEATURE_NAMES),
 )
 
@@ -109,8 +108,8 @@ MODEL_NATIVE_MANDATORY_SELECTED_FIELDS = tuple(
     for _family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
     for feature in features
 )
-MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 12
-MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 378
+MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 11
+MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 346
 
 _mandatory_family_labels = tuple(
     family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
@@ -181,14 +180,14 @@ DEEP_INTERACTION_SOURCE_FIELDS = (
     "snap.ema20_slope",
     "ctx_cont.d1_ema_slope_20_canon_v2",
     "ctx_cont._v1h1_slope5",
-    "chart.m5_ema50_200_spread_bps",
-    "chart.m5_ema50_200_spread_atr",
-    "chart.m5_ema50_200_bull_state",
-    "chart.m5_ema50_200_cross_up",
-    "chart.m5_ema50_200_cross_down",
-    "chart.m5_price_vs_ema200_bps",
-    "chart.m5_ema50_slope_bps",
-    "chart.m5_ema200_slope_bps",
+    "chart.local_ema50_200_spread_bps",
+    "chart.local_ema50_200_spread_atr",
+    "chart.local_ema50_200_bull_state",
+    "chart.local_ema50_200_cross_up",
+    "chart.local_ema50_200_cross_down",
+    "chart.local_price_vs_ema200_bps",
+    "chart.local_ema50_slope_bps",
+    "chart.local_ema200_slope_bps",
     "chart.compression_h1_m15_bb",
     "ctx_cont.H1_range_compression_ratio",
     "ctx_cont.M15_range_compression_ratio",
@@ -383,7 +382,7 @@ def build_price_derived_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build the exact past-only price/EMA layer with strict source alignment."""
+    """Build the exact past-only local-resolution EMA layer."""
 
     context = "PRICE_DERIVED"
     sample_times = _require_sample_times(sample_df, context=context)
@@ -415,26 +414,16 @@ def build_price_derived_layer(
     ema200 = close.ewm(span=200, adjust=False, min_periods=200).mean()
     spread = ema50 - ema200
     denom = close.abs()
-    both_ema = ema50.notna() & ema200.notna()
 
-    def zero_before_ready(values: pd.Series, ready: pd.Series) -> pd.Series:
-        out = pd.Series(np.zeros(len(values), dtype=np.float64), index=values.index)
-        out.loc[ready] = values.loc[ready]
-        if not np.isfinite(out.to_numpy(dtype=np.float64)).all():
-            raise RuntimeError(f"{context}_GENERATED_NONFINITE")
-        return out
+    spread_bps = spread / denom * 1e4
+    spread_atr = spread / atr
+    price_vs_ema50 = (close - ema50) / denom * 1e4
+    price_vs_ema200 = (close - ema200) / denom * 1e4
+    ema50_slope = ema50.diff() / denom * 1e4
+    ema200_slope = ema200.diff() / denom * 1e4
 
-    spread_bps = zero_before_ready(spread / denom * 1e4, both_ema)
-    spread_atr = zero_before_ready(spread / atr, both_ema)
-    price_vs_ema50 = zero_before_ready((close - ema50) / denom * 1e4, ema50.notna())
-    price_vs_ema200 = zero_before_ready((close - ema200) / denom * 1e4, ema200.notna())
-    ema50_slope = zero_before_ready(ema50.diff() / denom * 1e4, ema50.notna() & ema50.shift(1).notna())
-    ema200_slope = zero_before_ready(ema200.diff() / denom * 1e4, ema200.notna() & ema200.shift(1).notna())
     def causal_delta(values: pd.Series) -> pd.Series:
-        raw = values.to_numpy(dtype=np.float64)
-        out = np.zeros_like(raw)
-        out[1:] = raw[1:] - raw[:-1]
-        return pd.Series(out, index=values.index)
+        return values.diff()
 
     spread_delta = causal_delta(spread_bps)
     spread_accel = causal_delta(spread_delta)
@@ -456,6 +445,11 @@ def build_price_derived_layer(
         index=source_index,
     )
     aligned = raw.loc[sample_times]
+    if not np.isfinite(aligned.to_numpy(dtype=np.float64)).all():
+        raise RuntimeError(
+            f"{context}_LOCAL_EMA_WARMUP_INCOMPLETE: "
+            "sample rows must start after the exact causal EMA/derivative warmup"
+        )
     arrays: list[np.ndarray] = []
     names: list[str] = []
     clip_ranges = {
@@ -472,7 +466,7 @@ def build_price_derived_layer(
         add_chart_feature(
             arrays,
             names,
-            f"m5_{column}",
+            f"local_{column}",
             aligned[column].to_numpy(dtype=np.float32),
             lo=lo,
             hi=hi,
@@ -885,16 +879,16 @@ def build_deep_interaction_layer(
         + 0.05 * h1_slope
     )
     trend_delta = _delta(trend_stack)
-    ema50_200_spread = _tanh(c("chart.m5_ema50_200_spread_bps"), scale=50.0)
-    ema50_200_atr = _tanh(c("chart.m5_ema50_200_spread_atr"), scale=2.0)
-    ema50_200_bull = c("chart.m5_ema50_200_bull_state")
+    ema50_200_spread = _tanh(c("chart.local_ema50_200_spread_bps"), scale=50.0)
+    ema50_200_atr = _tanh(c("chart.local_ema50_200_spread_atr"), scale=2.0)
+    ema50_200_bull = c("chart.local_ema50_200_bull_state")
     ema50_200_bear = 1.0 - ema50_200_bull
     ema50_200_cross = _clip(
-        c("chart.m5_ema50_200_cross_up") - c("chart.m5_ema50_200_cross_down")
+        c("chart.local_ema50_200_cross_up") - c("chart.local_ema50_200_cross_down")
     )
-    price_vs_ema200 = _tanh(c("chart.m5_price_vs_ema200_bps"), scale=80.0)
-    ema50_slope = _tanh(c("chart.m5_ema50_slope_bps"), scale=12.0)
-    ema200_slope = _tanh(c("chart.m5_ema200_slope_bps"), scale=6.0)
+    price_vs_ema200 = _tanh(c("chart.local_price_vs_ema200_bps"), scale=80.0)
+    ema50_slope = _tanh(c("chart.local_ema50_slope_bps"), scale=12.0)
+    ema200_slope = _tanh(c("chart.local_ema200_slope_bps"), scale=6.0)
     add_chart_feature(arrays, names, "ema_stack_alignment", trend_stack)
     add_chart_feature(arrays, names, "ema_stack_delta", trend_delta)
     add_chart_feature(arrays, names, "ema_stack_acceleration", _delta(trend_delta))

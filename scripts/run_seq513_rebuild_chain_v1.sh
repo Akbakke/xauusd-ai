@@ -185,6 +185,8 @@ AUDIT="$EVENT/audit"
 EXIT_LIFECYCLE="$EVENT/exit_lifecycle"
 TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__DIR_H24B_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
 STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
+DATASET_REBUILD_TERMINAL="$EVENT/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_${STAMP}.json"
+PREFREEZE_TEST_SEAL="$EVENT/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_${STAMP}.json"
 STARTED_UTC=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')
 IFS= read -r BOOT_ID </proc/sys/kernel/random/boot_id
 CHAIN_PID=$$
@@ -206,6 +208,8 @@ SOURCE_CASCADE="$EVENT/SEQ513_SOURCE_CASCADE_PROOF_${STAMP}.json"
 SOURCE_CASCADE_SHA256=
 PAIR_MANIFEST_SHA256=
 PAIR_GENERATION_ID=
+DATASET_REBUILD_TERMINAL_SHA256=
+PREFREEZE_TEST_SEAL_SHA256=
 CV2=
 BASE28=
 NATIVE_M1_ROOT=
@@ -240,7 +244,9 @@ write_status() {
     "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" "$OUTPUT" "$AUDIT" \
     "$EXIT_LIFECYCLE" "$M1_FEATURE_BASE" "$M5_FEATURE_BASE" \
     "$M1_LIFECYCLE_PAIR_MANIFEST" "$PAIR_MANIFEST_SHA256" \
-    "$PAIR_GENERATION_ID" <<'PYEOF'
+    "$PAIR_GENERATION_ID" "$DATASET_REBUILD_TERMINAL" \
+    "$DATASET_REBUILD_TERMINAL_SHA256" "$PREFREEZE_TEST_SEAL" \
+    "$PREFREEZE_TEST_SEAL_SHA256" <<'PYEOF'
 import json
 import os
 import sys
@@ -280,6 +286,10 @@ from pathlib import Path
     pair_manifest_path,
     pair_manifest_sha256,
     pair_generation_id,
+    dataset_rebuild_terminal_path,
+    dataset_rebuild_terminal_sha256,
+    prefreeze_test_seal_path,
+    prefreeze_test_seal_sha256,
 ) = sys.argv[1:]
 path = Path(raw_path)
 now = datetime.now(timezone.utc)
@@ -318,6 +328,14 @@ payload = {
         "manifest_path": pair_manifest_path,
         "manifest_sha256": pair_manifest_sha256 or None,
         "pair_generation_id": pair_generation_id or None,
+    },
+    "dataset_rebuild_terminal": {
+        "path": dataset_rebuild_terminal_path,
+        "sha256": dataset_rebuild_terminal_sha256 or None,
+    },
+    "prefreeze_test_seal": {
+        "path": prefreeze_test_seal_path,
+        "sha256": prefreeze_test_seal_sha256 or None,
     },
     "signal_manifest": {
         "path": manifest_path,
@@ -604,6 +622,7 @@ if ! "$PY" - \
   "$BASE28" "$NATIVE_M1_ROOT" "$NATIVE_M5_ROOT" \
   "$M1_ENRICHED" "$M5_ENRICHED" "$M1_FEATURE_BASE" "$M5_FEATURE_BASE" \
   "$M1_CHECKPOINT" "$M5_CHECKPOINT" "$SOURCE_CASCADE" \
+  "$DATASET_REBUILD_TERMINAL" "$PREFREEZE_TEST_SEAL" \
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
   "$TEST_START" "$TEST_END" >>"$LOG" 2>&1 <<'PYEOF'
 import re
@@ -636,6 +655,8 @@ import pandas as pd
     raw_m1_checkpoint,
     raw_m5_checkpoint,
     raw_source_cascade,
+    raw_dataset_rebuild_terminal,
+    raw_prefreeze_test_seal,
     raw_history_start,
     raw_train_start,
     raw_train_end,
@@ -693,6 +714,28 @@ m5_feature_base = exact_path(raw_m5_feature_base, label="M5 feature-base output"
 m1_checkpoint = exact_path(raw_m1_checkpoint, label="M1 checkpoint")
 m5_checkpoint = exact_path(raw_m5_checkpoint, label="M5 checkpoint")
 source_cascade = exact_path(raw_source_cascade, label="source cascade output")
+dataset_rebuild_terminal = exact_path(
+    raw_dataset_rebuild_terminal,
+    label="dataset rebuild terminal",
+)
+prefreeze_test_seal = exact_path(
+    raw_prefreeze_test_seal,
+    label="pre-freeze TEST seal",
+)
+authority_dir = event / "rebuild_authority"
+if (
+    dataset_rebuild_terminal.parent != authority_dir
+    or prefreeze_test_seal.parent != authority_dir
+    or not dataset_rebuild_terminal.name.startswith(
+        "ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_"
+    )
+    or not dataset_rebuild_terminal.name.endswith(".json")
+    or not prefreeze_test_seal.name.startswith(
+        "ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_"
+    )
+    or not prefreeze_test_seal.name.endswith(".json")
+):
+    raise RuntimeError("TEST authority paths are not exact event-owned events")
 
 for label, path in (
     ("feature ranking", ranking),
@@ -709,6 +752,8 @@ for label, path in (
     ("M1 checkpoint", m1_checkpoint),
     ("M5 checkpoint", m5_checkpoint),
     ("source cascade output", source_cascade),
+    ("dataset rebuild terminal", dataset_rebuild_terminal),
+    ("pre-freeze TEST seal", prefreeze_test_seal),
     ("Exit lifecycle output directory", exit_lifecycle),
 ):
     try:
@@ -816,6 +861,8 @@ fresh_paths = [
     Path(f"{source}.manifest.json"),
     mtf,
     source_cascade,
+    dataset_rebuild_terminal,
+    prefreeze_test_seal,
     m1_enriched,
     Path(f"{m1_enriched}.manifest.json"),
     m5_enriched,
@@ -882,7 +929,7 @@ CURRENT_STEP=train-rank-reference
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 4G --swap 512M -- \
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
   "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
   --run-id "$RUN_ID" \
   --source-parquet "$CV2" \
@@ -911,10 +958,11 @@ require_pair_unchanged
 require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-enriched-frame \
-  --native-root "$NATIVE_M5_ROOT" \
+  --native-m5-root "$NATIVE_M5_ROOT" \
   --rank-reference-npz "$RANK_NPZ" \
   --rank-reference-sha256 "$RANK_REFERENCE_SHA256" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --multi-tf-cache-dir "$MTF" \
   --output-parquet "$M5_ENRICHED" \
   --manifest-path "${M5_ENRICHED}.manifest.json" \
   --checkpoint-dir "$M5_CHECKPOINT" \
@@ -924,8 +972,9 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   fail "native M5 enriched feature lane failed"
 fi
 [[ -f $M5_ENRICHED && ! -L $M5_ENRICHED \
-   && -f ${M5_ENRICHED}.manifest.json && ! -L ${M5_ENRICHED}.manifest.json ]] \
-  || fail "native M5 enriched feature output is missing/non-regular"
+   && -f ${M5_ENRICHED}.manifest.json && ! -L ${M5_ENRICHED}.manifest.json \
+   && -d $MTF && ! -L $MTF && -f $MTF/manifest.json ]] \
+  || fail "native M5 enriched output or its one V4 cache is missing/non-regular"
 
 CURRENT_STEP=m5-model-source
 write_status "$CURRENT_STEP" RUNNING
@@ -935,6 +984,7 @@ require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-source-frame \
   --enriched-parquet "$M5_ENRICHED" \
+  --multi-tf-cache-dir "$MTF" \
   --native-m5-root "$NATIVE_M5_ROOT" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
   --output-parquet "$SRC" \
@@ -946,26 +996,11 @@ fi
   || fail "M5 model source/manifest is missing or non-regular"
 SOURCE_SHA256=$(hash_file "$SRC")
 
-CURRENT_STEP=mtf-cache
-write_status "$CURRENT_STEP" RUNNING
-require_source_identity
-require_pair_unchanged
-require_rank_reference_unchanged
-if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
-  model-native-mtf-v4-cache \
-  --m5-prebuilt "$SRC" \
-  --expected-source-sha256 "$SOURCE_SHA256" \
-  --out-dir "$MTF") >>"$LOG" 2>&1; then
-  fail "M5/M15/H1/H4/D1 cache materialization failed"
-fi
-[[ -d $MTF && ! -L $MTF && -f $MTF/manifest.json ]] \
-  || fail "MTF cache is missing/non-regular"
-
 # Prove final source coverage and exact canonical↔model market identity before
 # spending hours on ranking or the M1 lane.
 CURRENT_STEP=model-source-identity
 write_status "$CURRENT_STEP" RUNNING
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 4G --swap 512M -- \
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
   "$PY" - "$CV2" "$SRC" "$HISTORY_START" "$TRAIN_END" \
   "$TRAIN_START" "$TEST_END") >>"$LOG" 2>&1 <<'PYEOF'; then
 import sys
@@ -1019,7 +1054,7 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
 require_rank_reference_unchanged
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 4G --swap 512M -- \
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
   "$PY" -m gx1.scripts.materialize_current_pair_source_cascade_proof_v1 \
   --run-id "$RUN_ID" \
   --source-parquet "$SRC" \
@@ -1051,7 +1086,7 @@ require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
 run_feature_ranker() {
-  (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 10G --swap 512M -- \
+  (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
     "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \
@@ -1129,6 +1164,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --rank-reference-npz "$RANK_NPZ" \
   --rank-reference-sha256 "$RANK_REFERENCE_SHA256" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --multi-tf-cache-dir "$MTF" \
   --output-parquet "$M1_ENRICHED" \
   --manifest-path "${M1_ENRICHED}.manifest.json" \
   --checkpoint-dir "$M1_CHECKPOINT" \
@@ -1279,6 +1315,8 @@ run_dataset_rebuild() {
     --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
     --early-move-threshold-bps "$EARLY_MOVE_THRESHOLD_BPS" \
     --output "$OUTPUT" --audit-out-dir "$AUDIT" \
+    --rebuild-terminal-json "$DATASET_REBUILD_TERMINAL" \
+    --prefreeze-test-seal-json "$PREFREEZE_TEST_SEAL" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
     --val-start "$VAL_START" --val-end "$VAL_END" \
@@ -1320,6 +1358,90 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
     fail "dataset rebuild failed before an exact resumable checkpoint existed"
   fi
 fi
+if ! DATASET_AUTHORITY_BINDING=$("$PY" - \
+  "$DATASET_REBUILD_TERMINAL" "$PREFREEZE_TEST_SEAL" "$RUN_ID" \
+  "$EVENT/dataset" "$OUTPUT" <<'PYEOF'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def canonical_sha256(payload: dict) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+terminal_path = Path(sys.argv[1])
+seal_path = Path(sys.argv[2])
+run_id = sys.argv[3]
+dataset_dir = Path(sys.argv[4])
+output_stem = Path(sys.argv[5]).stem
+if terminal_path.is_symlink() or not terminal_path.is_file():
+    raise RuntimeError("dataset rebuild terminal is missing/non-regular")
+if seal_path.is_symlink() or not seal_path.is_file():
+    raise RuntimeError("pre-freeze TEST seal is missing/non-regular")
+terminal = json.loads(terminal_path.read_text(encoding="utf-8"))
+seal = json.loads(seal_path.read_text(encoding="utf-8"))
+terminal_bound = dict(terminal)
+terminal_content_sha = terminal_bound.pop("content_binding_sha256", None)
+seal_bound = dict(seal)
+seal_content_sha = seal_bound.pop("content_binding_sha256", None)
+test_row = terminal.get("split_artifacts", {}).get("test", {})
+if (
+    terminal.get("schema_version")
+    != "entry_model_native_seq513_dataset_rebuild_terminal_v1"
+    or terminal.get("decision")
+    != "COMPLETED_MODEL_NATIVE_SEQ513_DATASET_REBUILD"
+    or terminal.get("entry_run_id") != run_id
+    or terminal.get("dataset_dir") != str(dataset_dir)
+    or terminal.get("terminal_event_path") != str(terminal_path)
+    or terminal_content_sha != canonical_sha256(terminal_bound)
+    or seal.get("schema_version")
+    != "entry_model_native_seq513_untouched_test_seal_v2"
+    or seal.get("decision") != "SEALED_UNTOUCHED_TEST"
+    or seal.get("entry_run_id") != run_id
+    or seal.get("dataset_dir") != str(dataset_dir)
+    or seal.get("seal_path") != str(seal_path)
+    or seal.get("rebuild_terminal", {}).get("path") != str(terminal_path)
+    or seal.get("rebuild_terminal", {}).get("sha256") != sha256(terminal_path)
+    or seal.get("pair_lineage") != terminal.get("pair_lineage")
+    or seal.get("source_lineage") != terminal.get("source_lineage")
+    or seal.get("manifest", {}).get("path")
+    != str(dataset_dir / f"{output_stem}_test.manifest.json")
+    or seal.get("parquet", {}).get("path")
+    != str(dataset_dir / f"{output_stem}_test.parquet")
+    or seal.get("manifest", {}).get("sha256")
+    != test_row.get("manifest_sha256")
+    or seal.get("parquet", {}).get("sha256")
+    != test_row.get("parquet_sha256")
+    or seal_content_sha != canonical_sha256(seal_bound)
+):
+    raise RuntimeError("dataset rebuild terminal/TEST seal binding mismatch")
+print(f"{sha256(terminal_path)}\t{sha256(seal_path)}")
+PYEOF
+); then
+  fail "dataset rebuild did not publish one exact pre-freeze TEST authority"
+fi
+IFS=$'\t' read -r DATASET_REBUILD_TERMINAL_SHA256 \
+  PREFREEZE_TEST_SEAL_SHA256 <<<"$DATASET_AUTHORITY_BINDING"
+[[ -n $DATASET_REBUILD_TERMINAL_SHA256 && -n $PREFREEZE_TEST_SEAL_SHA256 ]] \
+  || fail "dataset rebuild TEST authority hashes are empty"
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
@@ -1327,6 +1449,10 @@ require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
+require_unchanged "dataset rebuild terminal" "$DATASET_REBUILD_TERMINAL" \
+  "$DATASET_REBUILD_TERMINAL_SHA256"
+require_unchanged "pre-freeze TEST seal" "$PREFREEZE_TEST_SEAL" \
+  "$PREFREEZE_TEST_SEAL_SHA256"
 
 CURRENT_STEP=chain-complete
 write_status "$CURRENT_STEP" GREEN "stopped before post-rebuild audits/readiness" 0

@@ -15,8 +15,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
+)
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    PRODUCTION_MTF_PER_TF_WINDOW_BARS,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
 from gx1.contracts.entry_model_native_training_objective_v1 import (
@@ -289,7 +293,7 @@ def test_direction_decision_contract_export_is_canonical_and_split_brain_safe() 
 
 def _write_model_native_dataset(path: Path, *, missing_target: str | None = None) -> None:
     rows = 3
-    seq_len = 2
+    seq_len = MODEL_NATIVE_SEQ_LEN
     seq = [
         [[float(row + step + col) for col in range(MODEL_NATIVE_SIGNAL_DIM)] for step in range(seq_len)]
         for row in range(rows)
@@ -357,9 +361,9 @@ def test_model_native_dataset_fails_before_training_when_active_target_missing(
     with pytest.raises(RuntimeError, match="MODEL_NATIVE_ACTIVE_TARGET_CONTRACT_INVALID.*y_vol_fwd_K96"):
         trainer.EntryV10CtxDataset(
             parquet,
-            seq_len=2,
+            seq_len=MODEL_NATIVE_SEQ_LEN,
             m5_prebuilt_path=m5_path,
-            per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+            per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
             multi_tf_closed_bar=True,
         )
 
@@ -374,9 +378,9 @@ def test_model_native_dataset_getitem_reads_exact_targets_without_hold_horizon(
 
     dataset = trainer.EntryV10CtxDataset(
         parquet,
-        seq_len=2,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
         m5_prebuilt_path=m5_path,
-        per_tf_seq_lens={"M5": 2, "M15": 2, "H1": 2, "H4": 2, "D1": 2},
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
         multi_tf_closed_bar=True,
     )
     sample = dataset[0]
@@ -467,9 +471,14 @@ def test_cooperation_gate_epoch_health_requires_every_gate_family_live() -> None
     assert trainer._cooperation_gate_health_failures(stats) == []
     assert stats["specialist_gate_rows"] == 4
     assert stats["specialist_gate_min_mean"] == pytest.approx(1.0 / 8.0)
-    assert stats["tf_gate_min_mean"] == pytest.approx(1.0 / 5.0)
+    assert stats["tf_gate_min_mean"] == pytest.approx(
+        1.0 / trainer._MODEL_NATIVE_COOPERATION_GATE_WIDTHS["tf_gate"]
+    )
     assert stats["family_tf_cooperation_gate_min_mean"] == pytest.approx(
-        1.0 / 40.0
+        1.0
+        / trainer._MODEL_NATIVE_COOPERATION_GATE_WIDTHS[
+            "family_tf_cooperation_gate"
+        ]
     )
 
 

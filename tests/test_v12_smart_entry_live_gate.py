@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
-from collections.abc import Callable
-from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -12,52 +8,20 @@ import pytest
 import torch
 
 from gx1.execution import v12_smart_entry_live as live
-from gx1.contracts.immutable_event_authority_v1 import (
-    select_latest_immutable_event,
-    write_immutable_json_event,
-)
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
 )
 from tests.model_native_offline_rl_support import offline_rl_evidence
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    direction_evidence_fusion_metadata,
-)
-from gx1.contracts.entry_model_native_state_v2 import (
-    MODEL_NATIVE_HISTORY_MODE,
-    MODEL_NATIVE_RANK_TRANSFORM,
-    MODEL_NATIVE_STATE_SCHEMA_VERSION,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-)
 from gx1.contracts.model_native_serve_gate_v1 import (
-    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE,
-    DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95,
-    DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
-    DIRECTION_POCKET_MIN_SELECTED_ROWS,
     DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS,
-    DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT,
-    DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
-    MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
-    MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
-    MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
-    SERVE_PARITY_ENV_PINS,
-    SERVE_PARITY_FORWARD_TOL,
-    SERVE_PARITY_SAMPLE_COUNT,
-    SERVE_PARITY_SAMPLING_CONTRACT,
-    SERVE_PARITY_STATE_TOL,
     UTC_TIME_COVERAGE_SCHEMA_VERSION,
-)
-from gx1.models.entry_v10.direction_decision_contract import (
-    model_direction_decision_contract_metadata,
 )
 from gx1.execution.v12_paper_runner import (
     MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS,
     require_executable_model_native_entry_decision,
-)
-from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
-    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
@@ -65,8 +29,6 @@ from gx1.features.htf_features import (
 )
 from tests.model_native_serve_gate_support import (
     passing_direction_repair_pockets,
-    passing_serve_parity_liveness_sections,
-    passing_serve_source_identity,
 )
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
 
@@ -84,744 +46,11 @@ def _coverage(rows: int = 1_000) -> dict[str, object]:
     }
 
 
-def _write_gate_artifacts(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    *,
-    pockets: dict[str, dict],
-    git_commit: str = "unit-clean-commit",
-    normalize_pockets: bool = True,
-    audit_selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE,
-    operating_selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE,
-    parity_overrides: dict | None = None,
-    parity_liveness_mutator: Callable[[dict[str, object]], None] | None = None,
-    direction_overrides: dict | None = None,
-) -> Path:
-    bundle_dir = tmp_path / "bundle"
-    bundle_dir.mkdir()
-    rank_ref = tmp_path / "smart520_rank_reference_xau_direction_repair.npz"
-    fit_start = pd.Timestamp("2026-05-21T00:00:00Z")
-    fit_end = pd.Timestamp("2026-06-14T23:59:59Z")
-    np.savez_compressed(
-        rank_ref,
-        schema_version=np.asarray([MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION]),
-        fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
-        fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
-        fit_row_count=np.asarray([1], dtype=np.int64),
-        entry_run_id=np.asarray(["MODEL_NATIVE_LIVE_GATE_PYTEST"]),
-        atr_bps_sorted=np.asarray([10.0], dtype=np.float64),
-        spread_bps_sorted=np.asarray([1.0], dtype=np.float64),
-    )
-    rank_ref_sha = hashlib.sha256(rank_ref.read_bytes()).hexdigest()
-    rank_ref.with_suffix(rank_ref.suffix + ".json").write_text(
-        json.dumps(
-            {
-                "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-                "fit_scope": "train_only",
-                "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-                "row_level_state_present": False,
-                "entry_run_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
-                "out_npz": str(rank_ref.resolve()),
-                "out_npz_sha256": rank_ref_sha,
-                "fit_start_utc": str(fit_start),
-                "fit_end_utc": str(fit_end),
-                "fit_row_count": 1,
-            }
-        ),
-        encoding="utf-8",
-    )
-    state_contract = {
-        "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
-        "feature_history_start_utc": "2020-11-09 00:00:00+00:00",
-        "rank_fit_start_utc": str(fit_start),
-        "rank_fit_end_utc": str(fit_end),
-        "rank_reference_npz": str(rank_ref.resolve()),
-        "rank_reference_npz_sha256": rank_ref_sha,
-        "rank_reference_sidecar_sha256": hashlib.sha256(
-            rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
-        ).hexdigest(),
-        "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "rank_reference_fit_scope": "train_only",
-        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-        "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
-        "split_reset_allowed": False,
-        "post_fit_rows_in_rank_reference": False,
-        "runtime_rule_free": True,
-        "entry_run_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
-    }
-    metadata_path = bundle_dir / "bundle_metadata.json"
-    metadata_path.write_text(
-        json.dumps(
-            {
-                "model_native_state_contract": state_contract,
-                "direction_decision_contract": model_direction_decision_contract_metadata(),
-                "model_native_direction_evidence_fusion": (
-                    direction_evidence_fusion_metadata()
-                ),
-            }
-        ),
-        encoding="utf-8",
-    )
-    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
-    lock_path.write_text(
-        json.dumps(
-            {
-                "model_native_direction_evidence_fusion": (
-                    direction_evidence_fusion_metadata()
-                )
-            }
-        ),
-        encoding="utf-8",
-    )
-    metadata_sha = hashlib.sha256(metadata_path.read_bytes()).hexdigest()
-    lock_sha = hashlib.sha256(lock_path.read_bytes()).hexdigest()
-    now = datetime.now(timezone.utc).isoformat()
-    parity_root = tmp_path / "parity"
-    direction_root = tmp_path / "direction"
-    dataset_dir = "/home/andre2/GX1_DATA/runs/v10_dataset_6yr_smartctx_xau_direction_repair"
-    dataset_parquet = f"{dataset_dir}/entry_model_native_test.parquet"
-    prediction_path = "/home/andre2/GX1_DATA/reports/xau_direction_repair_predictions.parquet"
-    prediction_evidence = {
-        "schema_version": RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
-        "authoritative": True,
-        "runtime_head_evidence_authoritative": True,
-        "path": prediction_path,
-        "sha256": "a" * 64,
-        "bundle_metadata_path": str(metadata_path.resolve()),
-        "bundle_metadata_sha256": metadata_sha,
-    }
-    prediction_report_evidence = {
-        "json_path": "/home/andre2/GX1_DATA/reports/ENTRY_CANDIDATE_SELECTIVE_EDGE_20260717T120000123456Z.json",
-        "sha256": "b" * 64,
-    }
-    test_coverage = {
-        "dataset": _coverage(),
-        "predictions": _coverage(),
-        "exact_match": True,
-    }
-    common_gate_contract = {
-        "contract_version": MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
-        "split": "test",
-        "model_name": "candidate",
-        "dataset_dir": dataset_dir,
-        "dataset_parquet": dataset_parquet,
-        "dataset_parquet_sha256": "d" * 64,
-        "prediction_evidence": prediction_evidence,
-        "prediction_report_evidence": prediction_report_evidence,
-        "test_coverage": test_coverage,
-    }
-    parity_liveness = passing_serve_parity_liveness_sections(
-        int(test_coverage["dataset"]["rows"]),
-        bundle_dir=str(bundle_dir.resolve()),
-        bundle_metadata_sha256=metadata_sha,
-        master_transformer_lock_sha256=lock_sha,
-    )
-    if parity_liveness_mutator is not None:
-        parity_liveness_mutator(parity_liveness)
-    if normalize_pockets:
-        pockets = {name: _passing_pocket_metrics(name, row) for name, row in pockets.items()}
-    parity_path, _ = write_immutable_json_event(
-        parity_root,
-        "MODEL_NATIVE_SERVE_PARITY",
-        {
-            "schema_version": MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
-            "decision": "PASS",
-            "failures": [],
-            "created_utc": now,
-            "live_prebuilt_cutoff": now,
-            "bundle_dir": str(bundle_dir),
-            **common_gate_contract,
-            "git_commit": git_commit,
-            "model_native_state_contract": state_contract,
-            "n_bars": SERVE_PARITY_SAMPLE_COUNT,
-            "sampling_contract": SERVE_PARITY_SAMPLING_CONTRACT,
-            "state_tol": SERVE_PARITY_STATE_TOL,
-            "forward_tol": SERVE_PARITY_FORWARD_TOL,
-            "env_pins": dict(SERVE_PARITY_ENV_PINS),
-            "serve_source_identity": passing_serve_source_identity(),
-            "operating_point": {
-                "selection_score": live.MODEL_DIRECTION_SELECTION_MODE,
-                "max_trades": 1,
-            },
-            "runtime_device": "cpu",
-            "sampled_test_coverage": _coverage(SERVE_PARITY_SAMPLE_COUNT),
-            "state_parity": {
-                "n_compared": SERVE_PARITY_SAMPLE_COUNT,
-                "tolerance": SERVE_PARITY_STATE_TOL,
-            },
-            "forward_parity": {
-                "n_compared": SERVE_PARITY_SAMPLE_COUNT,
-                "tolerance": SERVE_PARITY_FORWARD_TOL,
-                "per_head_tolerance": parity_liveness[
-                    "forward_parity_per_head_tolerance"
-                ],
-            },
-            "direction_calibration_parity": parity_liveness[
-                "direction_calibration_parity"
-            ],
-            "test_prediction_liveness": parity_liveness[
-                "test_prediction_liveness"
-            ],
-            "specialist_decision_influence": parity_liveness[
-                "specialist_decision_influence"
-            ],
-            "individual_input_decision_influence": parity_liveness[
-                "individual_input_decision_influence"
-            ],
-            "upstream_context_decision_influence": parity_liveness[
-                "upstream_context_decision_influence"
-            ],
-            "multi_tf_decision_influence": parity_liveness[
-                "multi_tf_decision_influence"
-            ],
-            "family_tf_decision_influence": parity_liveness[
-                "family_tf_decision_influence"
-            ],
-            "direction_evidence_fusion_influence": parity_liveness[
-                "direction_evidence_fusion_influence"
-            ],
-            "pinned_predictions": prediction_path,
-            **(parity_overrides or {}),
-        },
-    )
-    direction_path, _ = write_immutable_json_event(
-        direction_root,
-        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
-        {
-            "schema_version": MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
-            "decision": "PASS",
-            "failures": [],
-            "created_utc": now,
-            **common_gate_contract,
-            "max_selected_label_error_rate": (
-                DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
-            ),
-            "max_selected_label_error_wilson_upper_95": (
-                DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_WILSON_UPPER_95
-            ),
-            "wilson_confidence_level": DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
-            "min_selected_rows": DIRECTION_POCKET_MIN_SELECTED_ROWS,
-            "min_mean_proxy_pnl_bps_exclusive": (
-                DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
-            ),
-            "spread_aware_proxy_pnl_contract": (
-                DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT
-            ),
-            "bundle_dir": str(bundle_dir),
-            "predictions_parquet": prediction_path,
-            "required_selection_score_mode": audit_selection_mode,
-            "observed_selection_score_modes": [audit_selection_mode],
-            "pockets": pockets,
-            **(direction_overrides or {}),
-        },
-    )
-    # Test-only handles used to mutate the declared events below. Runtime no
-    # longer owns or scans fixed gate directories.
-    monkeypatch.setattr(live, "SMART_PARITY_GATE_ROOT", parity_root, raising=False)
-    monkeypatch.setattr(
-        live,
-        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT",
-        direction_root,
-        raising=False,
-    )
-    monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_AGE_HOURS", 0.0)
-    monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS", 0.0)
-    monkeypatch.setattr(live, "SMART_DIRECTION_AUDIT_MAX_AGE_HOURS", 0.0)
-    monkeypatch.setattr(live, "SMART_CTX_MAX_STALENESS_M5", 0)
-    monkeypatch.setattr(
-        live,
-        "build_serve_source_identity",
-        lambda _repo_root: passing_serve_source_identity(),
-    )
-
-    import gx1_guards.artifacts as artifacts
-
-    launch_entry = {
-        "path": str(bundle_dir),
-        "contract_mode": live.MODEL_NATIVE_CONTRACT_MODE,
-        "operating_point": {
-            "selection_score": operating_selection_mode,
-            "max_trades": 3,
-        },
-        "xau_direction_launch_state": {
-            "serve_gate_evidence": {
-                "model_native_serve_parity": {
-                    "json_path": str(parity_path),
-                    "sha256": hashlib.sha256(parity_path.read_bytes()).hexdigest(),
-                },
-                "model_native_direction_pocket_audit": {
-                    "json_path": str(direction_path),
-                    "sha256": hashlib.sha256(direction_path.read_bytes()).hexdigest(),
-                },
-            }
-        },
-    }
-    monkeypatch.setattr(
-        artifacts,
-        "load_decision_entry",
-        lambda name: launch_entry,
-    )
-    return bundle_dir
-
-
 def _passing_pocket_metrics(name: str, overrides: dict | None = None) -> dict:
     row = dict(passing_direction_repair_pockets()[name])
     if overrides:
         row.update(overrides)
     return row
-
-
-def test_smart_serving_gate_rejects_old_direction_audit_without_repair_pockets(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={
-            "rising_channel_support_touch": {},
-            "falling_channel_resistance_touch": {},
-        },
-    )
-
-    with pytest.raises(RuntimeError, match="required repair metrics missing"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_accepts_direction_audit_with_repair_pockets(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    bundle_dir = _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-
-    report = live.assert_smart_serving_gate()
-
-    assert report["decision"] == "PASS"
-    assert report["bundle_dir"] == str(bundle_dir)
-
-
-@pytest.mark.parametrize(
-    "direction_overrides",
-    [
-        {"split": "val"},
-        {"model_name": "baseline"},
-        {"max_selected_label_error_rate": 0.20},
-        {"min_selected_rows": 1},
-        {"min_selected_rows": 31},
-        {"min_mean_proxy_pnl_bps_exclusive": -1.0},
-    ],
-)
-def test_smart_serving_gate_requires_exact_direction_audit_contract(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    direction_overrides: dict,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        direction_overrides=direction_overrides,
-    )
-
-    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
-        live.assert_smart_serving_gate()
-
-
-@pytest.mark.parametrize(
-    "parity_overrides",
-    [
-        {"split": "val"},
-        {"n_bars": 64},
-        {"state_tol": 1e-4},
-        {"forward_tol": 1e-2},
-        {"env_pins": {"CUDA_VISIBLE_DEVICES": "0"}},
-        {"sampling_contract": "caller_window_v0"},
-    ],
-)
-def test_smart_serving_gate_requires_exact_parity_contract(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    parity_overrides: dict,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        parity_overrides=parity_overrides,
-    )
-
-    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
-        live.assert_smart_serving_gate()
-
-
-@pytest.mark.parametrize(
-    ("raw_field", "invalid_value"),
-    [
-        ("max_abs_class_centered_raw_logit_delta", 0.0),
-        ("raw_changed_rows", 7),
-        ("max_abs_class_centered_raw_logit_delta", None),
-    ],
-)
-def test_smart_serving_gate_rejects_fusion_group_without_raw_direction_influence(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    raw_field: str,
-    invalid_value: object,
-) -> None:
-    def invalidate_one_group(liveness: dict[str, object]) -> None:
-        fusion = liveness["direction_evidence_fusion_influence"]
-        assert isinstance(fusion, dict)
-        groups = fusion["groups"]
-        assert isinstance(groups, dict)
-        group = groups["model_native_logits"]
-        assert isinstance(group, dict)
-        if invalid_value is None:
-            group.pop(raw_field)
-        else:
-            group[raw_field] = invalid_value
-
-    bundle_dir = _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        parity_liveness_mutator=invalidate_one_group,
-    )
-
-    import gx1_guards.artifacts as artifacts
-
-    launch_state = artifacts.load_decision_entry("v10_entry")[
-        "xau_direction_launch_state"
-    ]
-    with pytest.raises(artifacts.ArtifactGuardError, match="semantic contract invalid"):
-        artifacts._validate_serve_gate_evidence(
-            launch_state,
-            accepted_bundle=bundle_dir,
-        )
-    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_rejects_pre_raw_influence_parity_schema(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    bundle_dir = _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        parity_overrides={
-            "schema_version": "model_native_serve_parity_v3",
-            "contract_version": "xau_model_native_exact_test_full_stack_serve_gate_v3",
-        },
-    )
-
-    import gx1_guards.artifacts as artifacts
-
-    launch_state = artifacts.load_decision_entry("v10_entry")[
-        "xau_direction_launch_state"
-    ]
-    with pytest.raises(artifacts.ArtifactGuardError, match="schema mismatch"):
-        artifacts._validate_serve_gate_evidence(
-            launch_state,
-            accepted_bundle=bundle_dir,
-        )
-    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
-        live.assert_smart_serving_gate()
-
-
-@pytest.mark.parametrize(
-    ("section_name", "metric_name"),
-    [
-        ("upstream_context_decision_influence", "ctx_cont_zero_mask"),
-        ("multi_tf_decision_influence", "M5"),
-    ],
-)
-def test_smart_serving_gate_rejects_upstream_input_without_final_influence(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    section_name: str,
-    metric_name: str,
-) -> None:
-    def invalidate_final_influence(liveness: dict[str, object]) -> None:
-        section = liveness[section_name]
-        assert isinstance(section, dict)
-        metrics = section["metrics"]
-        assert isinstance(metrics, dict)
-        metric = metrics[metric_name]
-        assert isinstance(metric, dict)
-        metric["max_abs_class_centered_logit_delta"] = 0.0
-
-    bundle_dir = _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        parity_liveness_mutator=invalidate_final_influence,
-    )
-
-    import gx1_guards.artifacts as artifacts
-
-    launch_state = artifacts.load_decision_entry("v10_entry")[
-        "xau_direction_launch_state"
-    ]
-    with pytest.raises(artifacts.ArtifactGuardError, match="semantic contract invalid"):
-        artifacts._validate_serve_gate_evidence(
-            launch_state,
-            accepted_bundle=bundle_dir,
-        )
-    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_newer_red_beats_older_bound_pass(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    old_path = select_latest_immutable_event(
-        live.SMART_PARITY_GATE_ROOT,
-        "MODEL_NATIVE_SERVE_PARITY",
-    )
-    assert old_path is not None
-    payload = json.loads(old_path.read_text(encoding="utf-8"))
-    payload.pop("json_path")
-    payload["created_utc"] = (
-        datetime.fromisoformat(payload["created_utc"]) + pd.Timedelta(seconds=1)
-    ).isoformat()
-    payload["decision"] = "FAIL"
-    payload["failures"] = ["newest red"]
-    write_immutable_json_event(
-        live.SMART_PARITY_GATE_ROOT,
-        "MODEL_NATIVE_SERVE_PARITY",
-        payload,
-    )
-    (live.SMART_PARITY_GATE_ROOT / "MODEL_NATIVE_SERVE_PARITY_latest.json").write_text(
-        json.dumps({"decision": "PASS"}),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(RuntimeError, match="not the newest immutable"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_blocks_malformed_newest_event(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    old_path = select_latest_immutable_event(
-        live.SMART_PARITY_GATE_ROOT,
-        "MODEL_NATIVE_SERVE_PARITY",
-    )
-    assert old_path is not None
-    old = json.loads(old_path.read_text(encoding="utf-8"))
-    filename_time = datetime.fromisoformat(old["created_utc"]) + pd.Timedelta(seconds=2)
-    malformed = live.SMART_PARITY_GATE_ROOT / (
-        "MODEL_NATIVE_SERVE_PARITY_" + filename_time.strftime("%Y%m%dT%H%M%S%fZ") + ".json"
-    )
-    malformed.write_text(
-        json.dumps(
-            {
-                "created_utc": old["created_utc"],
-                "json_path": str(malformed),
-                "decision": "FAIL",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(RuntimeError, match="invalid TRAIN==SERVE parity event authority"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_blocks_ambiguous_newest_event_timestamp(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    old_path = select_latest_immutable_event(
-        live.SMART_PARITY_GATE_ROOT,
-        "MODEL_NATIVE_SERVE_PARITY",
-    )
-    assert old_path is not None
-    payload = json.loads(old_path.read_text(encoding="utf-8"))
-    payload.pop("json_path")
-    payload["created_utc"] = (
-        datetime.fromisoformat(payload["created_utc"]) + pd.Timedelta(seconds=3)
-    ).isoformat()
-    for scope in ("a", "b"):
-        write_immutable_json_event(
-            live.SMART_PARITY_GATE_ROOT / scope,
-            "MODEL_NATIVE_SERVE_PARITY",
-            payload,
-        )
-
-    with pytest.raises(RuntimeError, match="duplicate newest"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_rejects_empty_direction_pocket_metrics(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        normalize_pockets=False,
-    )
-
-    with pytest.raises(RuntimeError, match="rows below contract"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_rejects_source_identity_mismatch(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    stale_identity = passing_serve_source_identity()
-    stale_identity["tracked_bytes_sha256"] = "7" * 64
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        parity_overrides={"serve_source_identity": stale_identity},
-    )
-
-    with pytest.raises(RuntimeError, match="source bytes differ"):
-        live.assert_smart_serving_gate()
-
-
-@pytest.mark.parametrize("old_mode", ["expected_utility", "edge_score", "MODEL_DIRECTION_ARGMAX"])
-def test_smart_serving_gate_requires_exact_model_direction_argmax_audit(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    old_mode: str,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        audit_selection_mode=old_mode,
-    )
-
-    with pytest.raises(RuntimeError, match="required_selection_score_mode must be exactly"):
-        live.assert_smart_serving_gate()
-
-
-@pytest.mark.parametrize("old_mode", ["expected_utility", "edge_score", "unknown"])
-def test_smart_serving_gate_rejects_old_or_unknown_operating_mode(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    old_mode: str,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-        operating_selection_mode=old_mode,
-    )
-
-    with pytest.raises(RuntimeError, match="operating_point.selection_score must be exactly"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_rejects_stale_xau_dataset_marker(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    direction_path = select_latest_immutable_event(
-        live.MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT,
-        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
-    )
-    assert direction_path is not None
-    data = json.loads(direction_path.read_text(encoding="utf-8"))
-    data["dataset_dir"] = "/home/andre2/GX1_DATA/runs/v10_dataset_smart_candidate_20260630"
-    direction_path.write_text(json.dumps(data), encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="sha256 mismatch"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_rejects_stale_parity_dataset_marker(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    parity_path = select_latest_immutable_event(
-        live.SMART_PARITY_GATE_ROOT,
-        "MODEL_NATIVE_SERVE_PARITY",
-    )
-    assert parity_path is not None
-    data = json.loads(parity_path.read_text(encoding="utf-8"))
-    data["dataset_dir"] = "/home/andre2/GX1_DATA/runs/v10_dataset_smart_candidate_julyext_20260705"
-    parity_path.write_text(json.dumps(data), encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="sha256 mismatch"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_rejects_tampered_rank_reference_event_binding(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    parity_path = select_latest_immutable_event(
-        live.SMART_PARITY_GATE_ROOT,
-        "MODEL_NATIVE_SERVE_PARITY",
-    )
-    assert parity_path is not None
-    data = json.loads(parity_path.read_text(encoding="utf-8"))
-    data["model_native_state_contract"]["rank_reference_npz"] = (
-        "/home/andre2/GX1_DATA/models/smart520_rank_reference_julyext_20260708.npz"
-    )
-    parity_path.write_text(json.dumps(data), encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="sha256 mismatch"):
-        live.assert_smart_serving_gate()
-
-
-def test_smart_serving_gate_requires_zero_context_staleness_cap(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_gate_artifacts(
-        tmp_path,
-        monkeypatch,
-        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
-    )
-    monkeypatch.setattr(live, "SMART_CTX_MAX_STALENESS_M5", 1)
-
-    with pytest.raises(RuntimeError, match="GX1_SMART_CTX_MAX_STALENESS_M5 must be 0"):
-        live.assert_smart_serving_gate()
 
 
 def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Path) -> None:
@@ -956,13 +185,10 @@ def _decision_head(
         "specialist_names": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
         "specialist_gate": [1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)]
         * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
-        "tf_gate": [0.2] * 5,
-        "family_tf_cooperation_gate": [
-            1.0 / len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS)
-        ]
-        * len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
-        "family_tf_feature_gate": [1.0]
-        * len(live.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
+        "tf_gate": [1.0 / ENTRY_MTF_CONTEXT_COUNT] * ENTRY_MTF_CONTEXT_COUNT,
+        "family_tf_cooperation_gate": [1.0 / (ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS))]
+        * (ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
+        "family_tf_feature_gate": [1.0] * (ENTRY_MTF_CONTEXT_COUNT * live.MULTI_TF_FEATURE_COUNT_V4),
         "p_long_given_trade": _softmax(side_logits)[0],
         "p_short_given_trade": _softmax(side_logits)[1],
         "side_logits": side_logits,
@@ -989,7 +215,6 @@ def _decision_head(
         "calibration_version": "test-v1",
         "direction_calibration_enabled": True,
         "direction_calibration_temperature": 1.0,
-        "direction_calibration_bias": [0.0, 0.0, 0.0],
         "path_calibration_enabled": True,
         "path_calibration": {
             "enabled": True,
@@ -1422,17 +647,21 @@ def _forward_outputs() -> dict:
             1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
             dtype=torch.float32,
         ),
-        "tf_gate": torch.full((1, 5), 0.2, dtype=torch.float32),
+        "tf_gate": torch.full(
+            (1, ENTRY_MTF_CONTEXT_COUNT),
+            1.0 / ENTRY_MTF_CONTEXT_COUNT,
+            dtype=torch.float32,
+        ),
         "family_tf_cooperation_gate": torch.full(
-            (1, len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS)),
-            1.0 / len(live.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS),
+            (1, ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
+            1.0 / (ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
             dtype=torch.float32,
         ),
         "family_tf_feature_gate": torch.ones(
             (
                 1,
-                5,
-                len(live.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) // 5,
+                ENTRY_MTF_CONTEXT_COUNT,
+                live.MULTI_TF_FEATURE_COUNT_V4,
             ),
             dtype=torch.float32,
         ),
@@ -1469,9 +698,7 @@ def _prepare_forward_engine(tmp_path: Path, outputs: dict) -> live.SmartEntryLiv
             "trainable_specialists": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
         },
         "multi_tf": {
-            "feature_names": list(
-                range(len(live.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) // 5)
-            ),
+            "feature_names": list(range(live.MULTI_TF_FEATURE_COUNT_V4)),
         },
     }
     engine._model = lambda *args, **kwargs: outputs

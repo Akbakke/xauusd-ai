@@ -6,8 +6,8 @@ with constants, while the Transformer still interpreted three of them as
 direction-anchor probabilities.  This contract removes that dead bridge from
 the input surface and makes the Transformer direction logits model-native.
 
-Of the selected 479 specialist fields, all 378 registered causal full-stack
-layer outputs are code-owned and mandatory.  Only the remaining 101 positions
+Of the selected 479 specialist fields, all 346 registered causal full-stack
+layer outputs are code-owned and mandatory.  Only the remaining 133 positions
 are ranking-owned.  The emitted manifest still owns the audited exact order,
 while this module owns the immutable base order, mandatory registry identity,
 dimensions, forbidden legacy fields, and validation of the combined surface.
@@ -37,7 +37,7 @@ from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 from gx1.features.swing_structure_v1 import SWING_FEATURE_NAMES_V1
 
 
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v6"
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v7"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v4"
 )
@@ -226,6 +226,9 @@ MODEL_NATIVE_CTX_CONT_FIELDS = (
     + MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS
     + MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
 )
+MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME = {
+    name: index for index, name in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
+}
 MODEL_NATIVE_CTX_CAT_FIELDS = (
     "session_id",
     "vol_regime_id",
@@ -307,10 +310,10 @@ if "trend_regime_id" in MODEL_NATIVE_CTX_CAT_FIELDS:
     raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_CONTAIN_RETIRED_TREND_BUCKET")
 if set(MODEL_NATIVE_BASE_FIELDS) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_BASE_FIELDS_CONTAIN_FORBIDDEN_BRIDGE_FIELDS")
-if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 101:
+if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 133:
     raise RuntimeError(
         "MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT_MISMATCH: "
-        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=101"
+        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=133"
     )
 if set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) & set(MODEL_NATIVE_BASE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_FIELDS_OVERLAP_BASE_FIELDS")
@@ -359,7 +362,7 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
 
 
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v4"
+    "entry_model_native_mandatory_full_stack_v5"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

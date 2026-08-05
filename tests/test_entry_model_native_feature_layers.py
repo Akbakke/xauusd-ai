@@ -24,8 +24,13 @@ def _valid_inputs(tmp_path: Path, *, rows: int = 240):
     row = np.arange(rows, dtype=np.float64)[:, None]
     column = np.arange(len(names), dtype=np.float64)[None, :]
     matrix = (0.5 + 0.4 * np.sin(row * 0.071 + column * 0.137)).astype(np.float32)
-    times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
-    index = np.arange(rows, dtype=np.float64)
+    # EMA200 plus its two causal spread derivatives need 202 closed source
+    # bars before the first emitted sample.  Warmup belongs to the source
+    # history, not to zero-filled model rows.
+    warmup_rows = 202
+    source_rows = warmup_rows + rows
+    times = pd.date_range("2026-01-01", periods=source_rows, freq="5min", tz="UTC")
+    index = np.arange(source_rows, dtype=np.float64)
     mid = 2500.0 + index * 0.1 + np.sin(index * 0.11)
     open_ = mid - 0.05
     close = mid + 0.05 * np.sin(index * 0.17)
@@ -42,7 +47,8 @@ def _valid_inputs(tmp_path: Path, *, rows: int = 240):
     )
     source_path = tmp_path / "canonical_source.parquet"
     source.to_parquet(source_path, index=False)
-    return matrix, names, pd.DataFrame({"time": times}), source, source_path
+    samples = pd.DataFrame({"time": times[warmup_rows:]})
+    return matrix, names, samples, source, source_path
 
 
 def _sha256_matrix(values: np.ndarray) -> str:
@@ -74,21 +80,21 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             price_x,
             price_names,
             (240, 11),
-            "f3c674be109a152bd7ba4936f6ae7ae080c58265b642f42e3b56ef67f190ffa6",
-            "cbc76f9975d8087be90ab336ee5fc3cfc2e5bba0fdc42bf64bcd5dec5fcd5f1a",
+            "4a3ae77465c1b599d7746c8b29b2bab6af3caa995a9e90c8769be98d449c83a2",
+            "c28fc8b5163b7ccbddf9a80f5445c4149dc5a672b0818635ea0f200b0e147b61",
         ),
         "candle": (
             candle_x,
             candle_names,
             (240, 60),
-            "18591a3ca25f8c4db4f749c8af9294e1df300a41735f829b43d36b184bcfd02e",
+            "e4df04d431e6eac26e6068af305ce0bf21872c4b117030f88ddf5a65c69389ff",
             "102894513328840980d120ff830b1f3c76fb4617557619285107a5eb87134d47",
         ),
         "deep": (
             deep_x,
             deep_names,
             (240, 315),
-            "60955af566ba4e17782e2842df25108f62c4496883f82bdf89e6eb57e53c7090",
+            "aad1fe1e9b28169958ab862357082fb81c092735c412285d2e757e2b6e818b58",
             "8492ae7579b24364d21edbe08678177ea4610edb8e1a3cecf97d96625c4f82a8",
         ),
     }
@@ -138,6 +144,10 @@ def test_price_layer_rejects_missing_or_invalid_source_evidence(tmp_path: Path) 
     duplicate.to_parquet(duplicate_path, index=False)
     with pytest.raises(RuntimeError, match="PRICE_DERIVED_SOURCE_TIME_DUPLICATE"):
         build_price_derived_layer(samples, duplicate_path)
+
+    cold_samples = pd.DataFrame({"time": source["time"].iloc[:200]})
+    with pytest.raises(RuntimeError, match="PRICE_DERIVED_LOCAL_EMA_WARMUP_INCOMPLETE"):
+        build_price_derived_layer(cold_samples, tmp_path / "canonical_source.parquet")
 
     bad_samples = pd.DataFrame({"time": ["not-a-timestamp"]})
     with pytest.raises(RuntimeError, match="PRICE_DERIVED_SAMPLE_TIME_INVALID"):
@@ -239,7 +249,7 @@ def test_candlestick_and_deep_layers_reject_bad_geometry_and_row_mismatch(tmp_pa
     with pytest.raises(RuntimeError, match="DEEP_INTERACTION_ROW_MISMATCH"):
         build_deep_interaction_layer(deep_input, deep_names, samples.iloc[:-1])
 
-    missing_index = deep_names.index("chart.m5_ema50_200_spread_atr")
+    missing_index = deep_names.index("chart.local_ema50_200_spread_atr")
     with pytest.raises(RuntimeError, match="DEEP_INTERACTION_SOURCE_FIELDS_MISSING"):
         build_deep_interaction_layer(
             np.delete(deep_input, missing_index, axis=1),

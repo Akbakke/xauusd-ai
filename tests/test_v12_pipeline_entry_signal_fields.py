@@ -4,10 +4,6 @@ import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
-from gx1.scripts.audit_model_native_direction_evidence_v1 import (
-    _chosen_side,
-    _selected,
-)
 from gx1.scripts.audit_model_native_direction_pockets_v1 import (
     MODEL_DIRECTION_SELECTION_MODE,
     _assert_selection_score_mode,
@@ -66,17 +62,6 @@ def _passing_direction_pocket_summaries() -> dict[str, dict[str, object]]:
     ):
         summaries[name] = dict(long_template)
     return summaries
-
-
-def test_v12_pipeline_default_loader_calls_smart_serving_gate() -> None:
-    text = (
-        Path(__file__).resolve().parents[1]
-        / "gx1"
-        / "execution"
-        / "v12_pipeline.py"
-    ).read_text(encoding="utf-8")
-
-    assert "assert_smart_serving_gate()" in text
 
 
 def test_entry_decision_latency_uses_t_plus_5_availability():
@@ -338,9 +323,7 @@ def test_direction_audits_use_model_argmax_including_flat_without_threshold() ->
 
     assert _model_direction_contract_failures(frame) == []
     assert _side_from_predictions(frame).tolist() == [0, 1, 2]
-    assert _chosen_side(frame).tolist() == [0, 1, 2]
     assert _selected_from_predictions(frame).tolist() == [True, True, False]
-    assert _selected(frame).tolist() == [True, True, False]
 
 
 def test_direction_audits_require_model_direction_selection_mode() -> None:
@@ -440,10 +423,7 @@ def test_direction_audits_reject_noncanonical_public_pair_surface() -> None:
 
 def test_direction_audit_sources_expose_no_selection_threshold_cli() -> None:
     root = Path(__file__).resolve().parents[1]
-    sources = [
-        root / "gx1/scripts/audit_model_native_direction_pockets_v1.py",
-        root / "gx1/scripts/audit_model_native_direction_evidence_v1.py",
-    ]
+    sources = [root / "gx1/scripts/audit_model_native_direction_pockets_v1.py"]
 
     for source in sources:
         text = source.read_text(encoding="utf-8")

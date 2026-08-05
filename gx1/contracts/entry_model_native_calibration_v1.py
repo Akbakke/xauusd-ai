@@ -13,12 +13,16 @@ from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
 IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION = (
-    "entry_model_native_immutable_calibration_v2"
+    "entry_model_native_immutable_calibration_v3"
 )
-DIRECTION_CALIBRATION_VERSION = "entry_model_native_direction_calibration_v1"
+DIRECTION_CALIBRATION_VERSION = "entry_model_native_direction_calibration_v2"
+DIRECTION_CALIBRATION_TRANSFORM = (
+    "direction_logits=raw_direction_logits/temperature"
+)
+DIRECTION_CALIBRATION_TIE_POLICY = "fail_closed"
 PATH_CALIBRATION_VERSION = "entry_model_native_path_calibration_v1"
 CALIBRATION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_CALIBRATION_"
-CALIBRATION_FIT_SPLITS = ("val", "calibration")
+CALIBRATION_FIT_SPLITS = ("val",)
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _STAMP_RE = r"\d{8}T\d{12}Z"
@@ -46,8 +50,10 @@ _COMMON_KEYS = {
 }
 _DIRECTION_KEYS = _COMMON_KEYS | {
     "temperature",
-    "bias",
     "class_order",
+    "transform",
+    "argmax_preserving",
+    "tie_policy",
 }
 _PATH_KEYS = _COMMON_KEYS | {
     "path_quality_scale",
@@ -100,6 +106,11 @@ def require_model_native_calibration_metadata(
         _fail(context, "calibration must be an object")
     observed = dict(value)
     if head == "direction":
+        if "bias" in observed:
+            _fail(
+                context,
+                "direction class bias/remap is forbidden; stale calibration schema",
+            )
         expected_keys = _DIRECTION_KEYS
         expected_version = DIRECTION_CALIBRATION_VERSION
     elif head == "path":
@@ -172,16 +183,16 @@ def require_model_native_calibration_metadata(
         temperature = _finite(
             observed["temperature"], context=context, field="temperature"
         )
-        bias = observed["bias"]
-        if temperature <= 0.0 or not isinstance(bias, list) or len(bias) != 3:
-            _fail(context, "direction temperature/bias is malformed")
-        finite_bias = [
-            _finite(item, context=context, field="bias") for item in bias
-        ]
-        if abs(sum(finite_bias)) > 1e-8:
-            _fail(context, "direction bias must be zero-sum")
+        if temperature <= 0.0:
+            _fail(context, "direction temperature must be strictly positive")
         if observed["class_order"] != ["LONG", "SHORT", "FLAT"]:
             _fail(context, "direction class order mismatch")
+        if observed["transform"] != DIRECTION_CALIBRATION_TRANSFORM:
+            _fail(context, "direction calibration transform mismatch")
+        if observed["argmax_preserving"] is not True:
+            _fail(context, "direction calibration must preserve raw argmax")
+        if observed["tie_policy"] != DIRECTION_CALIBRATION_TIE_POLICY:
+            _fail(context, "direction calibration tie policy mismatch")
     else:
         path_scale = _finite(
             observed["path_quality_scale"],
@@ -211,6 +222,8 @@ def require_model_native_calibration_metadata(
 __all__ = [
     "CALIBRATION_EVENT_PREFIX",
     "CALIBRATION_FIT_SPLITS",
+    "DIRECTION_CALIBRATION_TIE_POLICY",
+    "DIRECTION_CALIBRATION_TRANSFORM",
     "DIRECTION_CALIBRATION_VERSION",
     "IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION",
     "PATH_CALIBRATION_VERSION",

@@ -11,7 +11,6 @@ import pytest
 
 from gx1.execution import v12_canonical_incremental as incremental
 from gx1.execution import v12_state_from_prebuilt as state_module
-from gx1.contracts import live_tail_publication_v1 as live_tail_contract
 from gx1.execution.v12_state_from_prebuilt import (
     PrebuiltIdentityError,
     PrebuiltStateLoader,
@@ -472,7 +471,7 @@ def _disable_augmenters(monkeypatch: pytest.MonkeyPatch) -> None:
 
     for name in (
         "_augment_cv3_with_volume_features",
-        "_augment_cv3_with_v2_mtf_scalars",
+        "_augment_cv3_with_v4_mtf_scalars",
         "_augment_cv3_with_group_a_and_dip_struct",
         "_augment_cv3_with_v1_legacy",
         "_augment_cv3_with_regime_v4",
@@ -1720,88 +1719,48 @@ def test_live_tail_publication_writes_block_evidence_when_pair_is_stale(
         )
 
 
-@pytest.mark.parametrize(
-    ("event_time", "expected_pass"),
-    (
-        ("2026-07-16T12:20:30Z", True),
-        ("2026-07-16T12:23:00Z", False),
-    ),
-)
-def test_live_tail_event_is_published_before_pair_pointer_moves(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    event_time: str,
-    expected_pass: bool,
-) -> None:
-    paths = _prebuilt_fixture(tmp_path)
-    pair_manifest = Path(paths["pair_manifest"])
-    generation_root = Path(paths["generation_root"])
-    parent = read_prebuilt_pair_manifest(
-        pair_manifest,
-        generation_root=generation_root,
-    )
-    canonical, base28 = _successor_frames()
-    lineage = _frame_lineage(
-        canonical,
-        base28,
-        parent_pair_generation_id=parent.pair_generation_id,
-        parent_pair_manifest_sha256=parent.manifest_sha256,
-    )
-    lineage["native_sources"]["m1"]["time_max_utc"] = (
-        "2026-07-16T12:19:00+00:00"
-    )
-    staging = incremental._candidate_staging_path(generation_root)
-    _write_staged_pair(staging, canonical, base28)
-    result: dict[str, object] = {}
-    monkeypatch.setattr(
-        live_tail_contract,
-        "_created_utc",
-        lambda _raw: pd.Timestamp(event_time),
+def test_canonical_incremental_owner_is_offline_only() -> None:
+    source = (REPO / "gx1/execution/v12_canonical_incremental.py").read_text(
+        encoding="utf-8"
     )
 
-    if expected_pass:
-        child_id = incremental._publish_prebuilt_pair_generation(
-            staging,
-            pair_manifest_path=pair_manifest,
-            generation_root=generation_root,
-            expected_pair_generation_id=parent.pair_generation_id,
-            expected_manifest_sha256=parent.manifest_sha256,
-            lineage_contract=lineage,
-            created_utc="2026-07-16T12:20:00Z",
-            live_tail_publication_event_root=tmp_path / "publications",
-            live_tail_publication_result=result,
-        )
-        current = read_prebuilt_pair_manifest(
-            pair_manifest,
-            generation_root=generation_root,
-        )
-        assert current.pair_generation_id == child_id
-        assert result["decision"] == "PASS"
-        assert result["pair_generation_id"] == child_id
-        assert result["generation_manifest_sha256"] == current.manifest_sha256
-    else:
-        with pytest.raises(
-            RuntimeError,
-            match="LIVE_TAIL_PUBLICATION_PRECOMMIT_BLOCK",
-        ):
-            incremental._publish_prebuilt_pair_generation(
-                staging,
-                pair_manifest_path=pair_manifest,
-                generation_root=generation_root,
-                expected_pair_generation_id=parent.pair_generation_id,
-                expected_manifest_sha256=parent.manifest_sha256,
-                lineage_contract=lineage,
-                created_utc="2026-07-16T12:20:00Z",
-                live_tail_publication_event_root=tmp_path / "publications",
-                live_tail_publication_result=result,
-            )
-        current = read_prebuilt_pair_manifest(
-            pair_manifest,
-            generation_root=generation_root,
-        )
-        assert current.pair_generation_id == parent.pair_generation_id
-        assert current.manifest_sha256 == parent.manifest_sha256
-        assert result["decision"] == "BLOCK"
+    for forbidden in (
+        "live-tail-admission",
+        "live_tail_publication",
+        "live-tail-publication",
+        "live_tail_admission",
+        "live-tail-admission",
+        "live_tail_publication_v1",
+        "publish_live_tail_",
+    ):
+        assert forbidden not in source
+    assert tuple(
+        inspect.signature(incremental.publish_prebuilt_pair_successor).parameters
+    ) == (
+        "native_m1_root",
+        "native_m5_root",
+        "vedtak_id",
+        "checkpoint_dir",
+        "expected_pair_generation_id",
+        "expected_manifest_sha256",
+        "pair_manifest_path",
+        "generation_root",
+        "repo_root",
+        "workers",
+    )
+    assert tuple(
+        inspect.signature(incremental._publish_prebuilt_pair_generation).parameters
+    ) == (
+        "staging_dir",
+        "pair_manifest_path",
+        "generation_root",
+        "expected_pair_generation_id",
+        "expected_manifest_sha256",
+        "lineage_contract",
+        "created_utc",
+    )
+    assert "bootstrap" in source
+    assert "successor" in source
 
 
 def test_live_tail_publication_rejects_generation_manifest_as_pointer(
@@ -2082,7 +2041,7 @@ def test_async_refresh_rederives_buckets_before_swap(
     )
     monkeypatch.setattr(
         state_module,
-        "_mp_v2_mtf_worker",
+        "_mp_v4_mtf_worker",
         lambda cv3: cv3.iloc[:, :0].copy(),
     )
     monkeypatch.setattr(

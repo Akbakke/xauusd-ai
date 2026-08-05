@@ -2,29 +2,15 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-import gx1.contracts.entry_model_native_sizing_authority_v1 as sizing_module
-from gx1.contracts.entry_model_native_sizing_authority_v1 import (
-    MODEL_NATIVE_SIZING_MODE_LEARNED,
-    ModelNativeSizingUnavailable,
-    historical_fixed_1x_negative_control_metadata,
-    learned_sizing_authority_contract_metadata,
-    prepare_model_native_sizing_authority,
-    require_model_native_sizing_authority_contract,
-)
 from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     ModelNativeSizingContractError,
     calibrated_sizing_transform,
     recompute_sizing_oos_evidence,
-)
-from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
-    SizingFinalizationError,
-    adopt_learned_sizing,
 )
 from tests.model_native_sizing_support import (
     write_passing_sizing_calibration_and_proof,
@@ -35,65 +21,10 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_historical_fixed_is_named_negative_control_with_no_execution_path() -> None:
-    reference = historical_fixed_1x_negative_control_metadata()
-
-    assert reference == {
-        "name": "historical_fixed_1x",
-        "role": "historical_negative_control_only",
-        "executable_order_authority": False,
-        "current_launch_authority": False,
-        "fallback_allowed": False,
-    }
-    assert not hasattr(sizing_module, "require_fixed_size_application")
-    with pytest.raises(ModelNativeSizingUnavailable):
-        require_model_native_sizing_authority_contract(
-            reference,
-            context="current Entry sizing",
-            required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
-        )
-
-
-def test_capital_adoption_without_joint_exit_proof_publishes_terminal_fail(
-    tmp_path: Path,
-) -> None:
-    evidence = write_passing_sizing_calibration_and_proof(tmp_path)
-    assert evidence["proof"]["decision"] == "PASS"
-    assert evidence["proof"]["evaluation_scope"] == (
-        "FULL_TEST_LABEL_HORIZON_SIZING_HEAD_DIAGNOSTIC_ONLY"
-    )
-
-    with pytest.raises(SizingFinalizationError, match="joint unified-Exit sizing proof"):
-        adopt_learned_sizing(
-            bundle_dir=evidence["bundle_dir"],
-            calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
-            proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
-            joint_exit_proof_path=tmp_path / "missing_joint_exit_proof.json",
-            authority_root=evidence["authority_root"],
-            entry_run_id="UNIT_MUST_NOT_ADOPT",
-        )
-
-    adoption_path = max(
-        (evidence["authority_root"] / "adoption").glob(
-            "ENTRY_MODEL_NATIVE_SIZING_ADOPTION_*.json"
-        )
-    )
-    terminal = json.loads(adoption_path.read_text(encoding="utf-8"))
-    assert terminal["decision"] == "FAIL"
-    assert terminal["attempted_stage"] == "adoption"
-    assert "joint unified-Exit sizing proof" in terminal["failures"][0]
-
-    authority = learned_sizing_authority_contract_metadata(
-        adoption_artifact={"json_path": str(adoption_path), "sha256": _sha(adoption_path)}
-    )
-    with pytest.raises(ModelNativeSizingUnavailable, match="exact keys mismatch"):
-        prepare_model_native_sizing_authority(authority, context="unit blocked adoption")
-
-
 def test_diagnostic_transform_is_monotone_exact_and_recomputable(tmp_path: Path) -> None:
     evidence = write_passing_sizing_calibration_and_proof(tmp_path)
     calibration = evidence["calibration"]
-    constraints = evidence["runtime_constraints"]
+    constraints = evidence["offline_constraints"]
     applications = [
         calibrated_sizing_transform(
             calibration=calibration,
@@ -125,7 +56,7 @@ def test_flat_is_exact_zero_without_changing_direction(tmp_path: Path) -> None:
         calibration=evidence["calibration"],
         position_size_logit=9.0,
         model_direction_index=2,
-        runtime_constraints=evidence["runtime_constraints"],
+        runtime_constraints=evidence["offline_constraints"],
         context="unit flat sizing diagnostic",
     )
 
@@ -146,11 +77,10 @@ def test_flat_is_exact_zero_without_changing_direction(tmp_path: Path) -> None:
         {"unit_step": 2},
         {"maximum_gross_xau_units": 999},
         {"margin_available": -1.0},
-        {"account_last_transaction_id": "different-snapshot"},
-        {"account_observed_utc": "2026-07-17T12:58:00+00:00"},
+        {"fact_provenance_mode": "broker_live"},
     ],
 )
-def test_missing_or_mismatched_runtime_constraints_never_fall_back(
+def test_missing_or_mismatched_offline_constraints_never_fall_back(
     tmp_path: Path,
     mutation: dict[str, object] | None,
 ) -> None:
@@ -158,7 +88,7 @@ def test_missing_or_mismatched_runtime_constraints_never_fall_back(
     observed = (
         None
         if mutation is None
-        else {**evidence["runtime_constraints"], **mutation}
+        else {**evidence["offline_constraints"], **mutation}
     )
 
     with pytest.raises(ModelNativeSizingContractError):
@@ -173,7 +103,7 @@ def test_missing_or_mismatched_runtime_constraints_never_fall_back(
 
 def test_immutable_drawdown_and_margin_caps_return_no_order(tmp_path: Path) -> None:
     evidence = write_passing_sizing_calibration_and_proof(tmp_path)
-    constraints = evidence["runtime_constraints"]
+    constraints = evidence["offline_constraints"]
     drawdown = {
         **constraints,
         "account_equity": 9_700.0,

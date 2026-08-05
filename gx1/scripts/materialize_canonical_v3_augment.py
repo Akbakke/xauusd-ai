@@ -26,11 +26,7 @@ Notes:
 """
 from __future__ import annotations
 
-import argparse
-import hashlib
-import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -55,7 +51,6 @@ PAIRS_TO_PRUNE = [
     # Near-duplicates (|corr|>0.95)
     ("_v1_atr14", "atr"),                              # _v1 family wins (used in V3 io)
     ("rvol_60", "std50"),                              # rvol_60 is more interpretable
-    ("_v1h1_ema_diff", "_v1h1_vwap_drift"),            # ema_diff is the "canonical" variant
     ("ema20_slope", "m15_ema_slope_5_canon_v2"),       # both useful but corr 0.962 → keep M5
     ("_v1_ema_diff", "_v1_vwap_drift48"),              # _v1_ema_diff is the canonical
     ("atr50", "m15_atr14_canon_v2"),                   # atr50 is more "current TF"
@@ -87,7 +82,6 @@ def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df["dow_sin"] = np.sin(2 * np.pi * dow / 7).astype(np.float32)
     df["dow_cos"] = np.cos(2 * np.pi * dow / 7).astype(np.float32)
     return df
-
 
 def add_smc_premium_state_interaction(df: pd.DataFrame) -> pd.DataFrame:
     """smc_premium_state = smc_premium_discount × indicator(smc_swing_state == 0)
@@ -128,11 +122,13 @@ def add_smc_premium_state_interaction(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _atr_normalized_12bar_momentum(
+def _atr_normalized_h1_momentum(
     close: np.ndarray,
     h1_atr: np.ndarray,
+    *,
+    horizon_rows: int,
 ) -> np.ndarray:
-    """Return past-12-row price change scaled by aligned completed-H1 ATR.
+    """Return one-hour price change scaled by aligned completed-H1 ATR.
 
     Causal HTF construction keeps the historical warmup prefix as NaN (it is
     not a neutral zero), so exactly one leading non-finite H1-ATR prefix is
@@ -143,7 +139,15 @@ def _atr_normalized_12bar_momentum(
     epsilon that would fabricate million-scale momentum.
     """
 
-    if close.ndim != 1 or h1_atr.ndim != 1 or close.shape != h1_atr.shape:
+    if (
+        close.ndim != 1
+        or h1_atr.ndim != 1
+        or close.shape != h1_atr.shape
+        or isinstance(horizon_rows, bool)
+        or not isinstance(horizon_rows, int)
+        or horizon_rows <= 0
+        or len(close) <= horizon_rows
+    ):
         raise RuntimeError("[canonical_v3] close/H1 ATR shape mismatch")
     if not np.isfinite(close).all():
         raise RuntimeError("[canonical_v3] close must be finite")
@@ -157,157 +161,53 @@ def _atr_normalized_12bar_momentum(
         )
     if np.any(h1_atr[first_finite:] < 0.0):
         raise RuntimeError("[canonical_v3] H1 ATR must be non-negative")
-    delta_12 = close - np.roll(close, 12)
-    delta_12[:12] = 0.0
-    result = np.zeros_like(delta_12, dtype=np.float64)
-    np.divide(delta_12, h1_atr, out=result, where=finite & (h1_atr > 1e-6))
+    delta = close - np.roll(close, horizon_rows)
+    delta[:horizon_rows] = 0.0
+    result = np.zeros_like(delta, dtype=np.float64)
+    np.divide(delta, h1_atr, out=result, where=finite & (h1_atr > 1e-6))
     result[:first_finite] = np.nan
     return result
 
 
-def add_cross_tf_momentum(df: pd.DataFrame) -> pd.DataFrame:
-    """Add 12 completed-M5-bar momentum normalized by completed-H1 ATR."""
-    if "close" in df.columns and "_v1h1_atr" in df.columns:
-        df = df.copy()
-        close = pd.to_numeric(df["close"], errors="coerce").to_numpy(np.float64)
-        h1_atr = pd.to_numeric(
-            df["_v1h1_atr"], errors="coerce"
-        ).to_numpy(np.float64)
-        m5h1_momentum = _atr_normalized_12bar_momentum(close, h1_atr)
-        df["m5h1_momentum"] = m5h1_momentum.astype(np.float32)
-    elif {"bid_close", "ask_close", "_v1h1_atr"}.issubset(df.columns):
-        df = df.copy()
-        close = ((pd.to_numeric(df["bid_close"], errors="coerce") +
-                  pd.to_numeric(df["ask_close"], errors="coerce")) / 2.0).to_numpy(np.float64)
-        h1_atr = pd.to_numeric(
-            df["_v1h1_atr"], errors="coerce"
-        ).to_numpy(np.float64)
-        df["m5h1_momentum"] = _atr_normalized_12bar_momentum(
-            close, h1_atr
-        ).astype(np.float32)
-    else:
+def add_cross_tf_momentum(
+    df: pd.DataFrame,
+    *,
+    decision_bar_duration: pd.Timedelta,
+) -> pd.DataFrame:
+    """Add one-hour local momentum only after the sole V4 H1 projection."""
+
+    from gx1.features.htf_features import require_model_native_mtf_owner_marker_v4
+
+    require_model_native_mtf_owner_marker_v4(
+        df,
+        decision_bar_duration=decision_bar_duration,
+    )
+    if "m5h1_momentum" in df.columns:
+        raise RuntimeError("[canonical_v3] duplicate m5h1_momentum owner")
+    if "close" not in df.columns or "_v1h1_atr" not in df.columns:
         raise RuntimeError(
-            "[canonical_v3] close (or bid/ask close) and _v1h1_atr are required"
+            "[canonical_v3] exact close and V4-projected _v1h1_atr are required"
         )
-    return df
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="canonical_v2 → canonical_v3 augmentation")
-    parser.add_argument("--input", type=str,
-                        default="/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V2_PREBUILT/xauusd_m5_CANONICAL_V2_2020_2026.parquet")
-    parser.add_argument("--output-dir", type=str,
-                        default="/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print summary; don't write output")
-    args = parser.parse_args()
-
-    print(f"[canonical_v3] loading: {args.input}", flush=True)
-    input_path = Path(args.input).expanduser().resolve()
-    df = pd.read_parquet(input_path)
-    if "time" in df.columns and not isinstance(df.index, pd.DatetimeIndex):
-        df["time"] = pd.to_datetime(df["time"], utc=True)
-        df = df.set_index("time")
-    df = df.sort_index()
-    n_in = len(df.columns)
-    print(f"[canonical_v3] input: {df.shape[0]:,} rows × {n_in} columns", flush=True)
-
-    # Drop redundant columns
-    to_drop = [c for c in DROP_COLUMNS if c in df.columns]
-    skipped = [c for c in DROP_COLUMNS if c not in df.columns]
-    print(f"[canonical_v3] dropping {len(to_drop)} redundant features:", flush=True)
-    for col in to_drop:
-        keep = next((a for a, b in PAIRS_TO_PRUNE if b == col), "?")
-        print(f"   - drop {col}  (kept {keep})", flush=True)
-    if skipped:
-        print(f"[canonical_v3] skipped (not present): {skipped}", flush=True)
-    df = df.drop(columns=to_drop)
-
-    # Add new features
-    df = add_cyclic_time_features(df)
-    print("[canonical_v3] +4 cyclic time features (hour_sin/cos, dow_sin/cos)", flush=True)
-    df = add_smc_premium_state_interaction(df)
-    print("[canonical_v3] +1 smc_premium_state interaction", flush=True)
-    df = add_cross_tf_momentum(df)
-    print("[canonical_v3] +1 m5h1_momentum cross-TF feature", flush=True)
-
-    n_out = len(df.columns)
-    print(f"[canonical_v3] output: {df.shape[0]:,} rows × {n_out} columns "
-          f"(net change: {n_out - n_in:+d})", flush=True)
-
-    # Sanity checks on new features
-    new_features = ["hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state", "m5h1_momentum"]
-    for f in new_features:
-        if f in df.columns:
-            v = df[f]
-            print(f"   {f}: mean={v.mean():.4f} std={v.std():.4f} min={v.min():.4f} max={v.max():.4f} "
-                  f"n_nan={int(v.isna().sum())}", flush=True)
-
-    if args.dry_run:
-        print("[canonical_v3] DRY RUN — not writing output", flush=True)
-        return
-
-    out_dir = Path(args.output_dir).expanduser().resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_parquet = out_dir / "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
-    print(f"[canonical_v3] writing → {out_parquet}", flush=True)
-    # Reset DatetimeIndex to a `time` column so downstream readers can join on it
-    # without losing the timestamp (parquet index round-trip is lossy via pd.read_parquet).
-    if isinstance(df.index, pd.DatetimeIndex):
-        df = df.reset_index()
-        if df.columns[0] != "time":
-            df = df.rename(columns={df.columns[0]: "time"})
-    df.to_parquet(out_parquet, index=False)
-
-    # Manifest
-    input_h = hashlib.sha256()
-    with open(input_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            input_h.update(chunk)
-    input_sha = input_h.hexdigest()
-    source_summary_path = input_path.parent / "canonical_features_v2_summary.json"
-    source_summary: dict[str, object] = {}
-    if source_summary_path.exists():
-        source_summary = json.loads(source_summary_path.read_text(encoding="utf-8"))
-    h = hashlib.sha256()
-    with open(out_parquet, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    sha = h.hexdigest()
-    manifest = {
-        "kind": "BASE28_CANONICAL_MANIFEST",  # compat with existing resolver
-        "kind_actual_v3": "CANONICAL_V3_PREBUILT_AUGMENTED_MANIFEST",
-        "parquet_path": str(out_parquet),
-        "parquet_sha256": sha,
-        "rows": len(df),
-        "cols_total": n_out,
-        "created_utc": datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
-        "source_v2_parquet": str(input_path),
-        "source_v2_parquet_sha256": input_sha,
-        "source_v2_summary_path": str(source_summary_path),
-        "source_v2_no_lookahead": bool(
-            ((source_summary.get("htf_alignment_contract_v1") or {}) if isinstance(source_summary, dict) else {}).get(
-                "no_lookahead"
-            )
-        ),
-        "source_v2_builder_version": (
-            source_summary.get("canonical_v2_builder_version") if isinstance(source_summary, dict) else None
-        ),
-        "source_v2_htf_alignment_contract": (
-            source_summary.get("htf_alignment_contract_v1") if isinstance(source_summary, dict) else None
-        ),
-        "diff_from_v2": {
-            "dropped": to_drop,
-            "added": [c for c in new_features if c in df.columns],
-            "net_columns": n_out - n_in,
-        },
-        "note": "canonical_v3 = canonical_v2 - 11 redundant + 6 new (cyclic time + SMC interaction + cross-TF momentum)",
+    if decision_bar_duration not in {
+        pd.Timedelta(minutes=1),
+        pd.Timedelta(minutes=5),
+    }:
+        raise RuntimeError("[canonical_v3] exact M1 or M5 decision clock required")
+    horizon_rows = int(pd.Timedelta(hours=1) / decision_bar_duration)
+    out = df.copy()
+    close = pd.to_numeric(out["close"], errors="coerce").to_numpy(np.float64)
+    h1_atr = pd.to_numeric(
+        out["_v1h1_atr"], errors="coerce"
+    ).to_numpy(np.float64)
+    out["m5h1_momentum"] = _atr_normalized_h1_momentum(
+        close,
+        h1_atr,
+        horizon_rows=horizon_rows,
+    ).astype(np.float32)
+    out.attrs["m5h1_momentum_owner"] = {
+        "owner": "native_m5_v4_projection",
+        "decision_bar_seconds": int(decision_bar_duration.total_seconds()),
+        "wall_clock_horizon_seconds": 3600,
+        "horizon_rows": horizon_rows,
     }
-    manifest_path = out_dir / "CURRENT_MANIFEST.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2))
-    print(f"[canonical_v3] manifest → {manifest_path}", flush=True)
-    print(json.dumps(manifest, indent=2))
-
-
-if __name__ == "__main__":
-    main()
+    return out

@@ -26,9 +26,7 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS,
-    MODEL_NATIVE_SIZING_RUNTIME_CONSTRAINT_KEYS,
     ModelNativeSizingContractError,
-    calibrated_sizing_transform,
     load_bound_sizing_calibration,
     load_bound_sizing_oos_proof,
     recompute_sizing_oos_evidence,
@@ -39,19 +37,22 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v9"
+    "entry_model_native_joint_exit_sizing_proof_v10"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_unified_model_exit_head_to_exit_now_v9"
+    "full_candidate_test_exact_unified_model_exit_head_to_exit_now_v10"
 )
 CANONICAL_UNIFIED_REPLAY_PRODUCER_SCHEMA_VERSION = (
-    "canonical_unified_candidate_full_test_replay_producer_v3"
+    "canonical_unified_candidate_full_test_replay_producer_v4"
 )
 CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT = (
-    "same_candidate_bundle_unified_exit_full_test_owned_rows_v3"
+    "same_candidate_bundle_unified_exit_full_test_owned_rows_v4"
+)
+MODEL_NATIVE_UNIFIED_REPLAY_COST_POLICY_SCHEMA_VERSION = (
+    "gx1_unified_replay_net_cost_policy_v1"
 )
 UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION = (
     "gx1_unified_candidate_bundle_authority_v1"
@@ -65,7 +66,6 @@ MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE = 32
 # decision. They do not replay shared equity, margin, exposure or drawdown
 # across overlapping trades. Until an exact shared-portfolio producer exists,
 # only one simultaneous exposure is provable.
-MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES = 1
 _CANDIDATE_BUNDLE_AUTHORITY_KEYS = frozenset(
     {
         "schema_version",
@@ -104,31 +104,7 @@ _CANONICAL_UNIFIED_REPLAY_PRODUCER_KEYS = frozenset(
 )
 _CANONICAL_UNIFIED_REPLAY_ADDITIONAL_SOURCE_FILES = frozenset(
     {
-        "gx1/contracts/entry_model_native_input_normalization_v1.py",
-        "gx1/contracts/entry_model_native_learned_component_movement_v1.py",
-        "gx1/contracts/entry_model_native_sizing_authority_v1.py",
-        "gx1/contracts/entry_model_native_sizing_calibration_v1.py",
-        "gx1/contracts/entry_model_native_sizing_execution_v1.py",
-        "gx1/contracts/entry_model_native_state_v2.py",
-        "gx1/contracts/entry_model_native_tf_input_scale_v1.py",
-        "gx1/contracts/entry_model_native_training_objective_v1.py",
-        "gx1/contracts/xau_tape_provenance_v1.py",
-        "gx1/execution/oanda_client.py",
-        "gx1/execution/v12_model_native_state_live.py",
-        "gx1/execution/v12_pipeline.py",
-        "gx1/execution/v12_smart_entry_live.py",
-        "gx1/execution/v12_trade_state.py",
-        "gx1/features/tf_agreement_score.py",
-        "gx1/models/entry_v10/entry_v10_bundle.py",
-        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
-        "gx1/scripts/__init__.py",
-        "gx1/scripts/audit_seq513_source_cascade_v1.py",
-        "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py",
         "gx1/scripts/finalize_entry_model_native_sizing_v1.py",
-        "gx1/scripts/materialize_cv3_modelrange_v1.py",
-        "gx1/scripts/materialize_entry_model_native_seq513_signal_manifest_v1.py",
-        "gx1/utils/env_loader.py",
-        "gx1/utils/granularity.py",
     }
 )
 
@@ -284,78 +260,6 @@ MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS = frozenset(
         "closed_m1_source_sha256",
     }
 )
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION = (
-    "entry_model_native_sizing_runtime_parity_v1"
-)
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX = (
-    "ENTRY_MODEL_NATIVE_SIZING_RUNTIME_PARITY"
-)
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT = (
-    "broker_live_shadow_exact_learned_sizing_transform_v1"
-)
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS = 32
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS_PER_CLASS = 8
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_MAX_AGE_SECONDS = 86_400
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_MAX_EVENT_LAG_SECONDS = 300
-_RUNTIME_PARITY_FLOAT_FIELDS = (
-    "calibrated_size_fraction",
-    "applied_size_multiplier",
-    "reference_pre_round_units",
-    "pre_round_units",
-)
-_RUNTIME_PARITY_INT_FIELDS = (
-    "capacity_units",
-    "units",
-)
-MODEL_NATIVE_SIZING_RUNTIME_PARITY_COLUMNS = frozenset(
-    {
-        "time",
-        "position_size_logit",
-        "model_direction_index",
-        "direction_after_sizing",
-        *MODEL_NATIVE_SIZING_RUNTIME_CONSTRAINT_KEYS,
-        *_RUNTIME_PARITY_FLOAT_FIELDS,
-        *_RUNTIME_PARITY_INT_FIELDS,
-        "authorized_order",
-        "no_order_reason",
-        "runtime_bundle_metadata_sha256",
-        "runtime_model_state_dict_sha256",
-        "runtime_adoption_sha256",
-        "order_submitted",
-    }
-)
-_RUNTIME_PARITY_EVENT_KEYS = frozenset(
-    {
-        "schema_version",
-        "created_utc",
-        "json_path",
-        "decision",
-        "failures",
-        "parity_contract",
-        "adoption_artifact",
-        "bundle_identity",
-        "observations",
-        "coverage",
-    }
-)
-_RUNTIME_PARITY_COVERAGE_KEYS = frozenset(
-    {
-        "rows",
-        "long_rows",
-        "short_rows",
-        "flat_rows",
-        "first_utc",
-        "last_utc",
-        "utc_ns_sha256",
-        "transaction_id_sequence_sha256",
-        "distinct_transaction_ids",
-        "max_float_abs_error",
-        "integer_mismatch_count",
-        "boolean_mismatch_count",
-        "direction_mismatch_count",
-        "order_submission_count",
-    }
-)
 _RECOMPUTED_SECTION_NAMES = (
     "full_test_coverage",
     "position_size_head_liveness",
@@ -364,6 +268,8 @@ _RECOMPUTED_SECTION_NAMES = (
     "drawdown_bounds",
     "paired_oos_utility",
     "account_capacity_grid",
+    "direction_edge_policy",
+    "direction_edge_admission",
     "direction_invariance",
 )
 _PROOF_KEYS = frozenset(
@@ -384,6 +290,8 @@ _PROOF_KEYS = frozenset(
         "replay_rows",
         "exit_trace_rows",
         "exit_replay_coverage",
+        "net_pnl_cost_policy",
+        "net_pnl_admission",
         *_RECOMPUTED_SECTION_NAMES,
     }
 )
@@ -1047,6 +955,100 @@ def recompute_joint_exit_replay_coverage(
     }
 
 
+def unified_replay_net_cost_policy_metadata() -> dict[str, Any]:
+    """Immutable executable-price cost policy for the final TEST replay."""
+
+    return {
+        "schema_version": MODEL_NATIVE_UNIFIED_REPLAY_COST_POLICY_SCHEMA_VERSION,
+        "spread_cost": "embedded_in_entry_and_exit_bid_ask_prices",
+        "additional_round_trip_cost_bps": 1.0,
+        "commission_and_slippage_proxy": "deducted_per_authorized_trade",
+        "financing_claimed": False,
+        "admission": "finite_total_net_pnl_usd_and_mean_net_pnl_bps_both_gt_zero",
+    }
+
+
+def recompute_unified_replay_net_pnl(
+    frame: pd.DataFrame,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Recompute final net PnL from executable prices after declared costs."""
+
+    if set(frame.columns) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS):
+        _fail(context, "joint replay row columns mismatch")
+    directions = _strict_directions(frame, context=f"{context}.directions")
+    authorized_values = frame["authorized_order"].tolist()
+    if not all(isinstance(value, (bool, np.bool_)) for value in authorized_values):
+        _fail(context, "authorized_order must contain exact booleans")
+    authorized = np.asarray(authorized_values, dtype=bool)
+    trade_mask = np.isin(directions, [0, 1]) & authorized
+    if int(np.count_nonzero(trade_mask)) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES:
+        _fail(context, "insufficient authorized trades for net PnL admission")
+    if min(
+        int(np.count_nonzero(trade_mask & (directions == 0))),
+        int(np.count_nonzero(trade_mask & (directions == 1))),
+    ) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE:
+        _fail(context, "insufficient authorized LONG/SHORT net PnL support")
+    numeric: dict[str, np.ndarray] = {}
+    for name in (
+        "entry_bid",
+        "entry_ask",
+        "model_exit_fill_bid",
+        "model_exit_fill_ask",
+        "units",
+    ):
+        numeric[name] = pd.to_numeric(frame[name], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
+    required = trade_mask
+    if (
+        not np.isfinite(numeric["entry_bid"][required]).all()
+        or not np.isfinite(numeric["entry_ask"][required]).all()
+        or not np.isfinite(numeric["model_exit_fill_bid"][required]).all()
+        or not np.isfinite(numeric["model_exit_fill_ask"][required]).all()
+        or not np.isfinite(numeric["units"][required]).all()
+        or np.any(numeric["units"][required] <= 0.0)
+    ):
+        _fail(context, "final replay prices/units are not finite positive facts")
+    reference_price = np.where(
+        directions == 0,
+        numeric["entry_ask"],
+        numeric["entry_bid"],
+    )
+    executable_delta = np.where(
+        directions == 0,
+        numeric["model_exit_fill_bid"] - numeric["entry_ask"],
+        numeric["entry_bid"] - numeric["model_exit_fill_ask"],
+    )
+    extra_cost_bps = float(
+        unified_replay_net_cost_policy_metadata()["additional_round_trip_cost_bps"]
+    )
+    cost_per_unit = reference_price * extra_cost_bps / 10_000.0
+    net_per_unit = executable_delta - cost_per_unit
+    net_bps = net_per_unit / reference_price * 10_000.0
+    net_usd = net_per_unit * numeric["units"]
+    selected_bps = net_bps[required]
+    selected_usd = net_usd[required]
+    if not np.isfinite(selected_bps).all() or not np.isfinite(selected_usd).all():
+        _fail(context, "final net PnL is non-finite")
+    total_net_usd = float(np.sum(selected_usd))
+    mean_net_bps = float(np.mean(selected_bps))
+    admitted = total_net_usd > 0.0 and mean_net_bps > 0.0
+    return {
+        "decision": "PASS" if admitted else "FAIL",
+        "failures": [] if admitted else ["net_pnl_not_strictly_positive"],
+        "authorized_trade_rows": int(np.count_nonzero(required)),
+        "total_net_pnl_usd": total_net_usd,
+        "mean_net_pnl_bps": mean_net_bps,
+        "total_declared_additional_cost_usd": float(
+            np.sum(cost_per_unit[required] * numeric["units"][required])
+        ),
+        "long_mean_net_pnl_bps": float(np.mean(net_bps[required & (directions == 0)])),
+        "short_mean_net_pnl_bps": float(np.mean(net_bps[required & (directions == 1)])),
+    }
+
+
 def require_joint_replay_extends_canonical_oos_rows(
     *,
     canonical_oos_rows: pd.DataFrame,
@@ -1073,131 +1075,6 @@ def require_joint_replay_extends_canonical_oos_rows(
             context,
             "joint replay rows differ from the exact canonical OOS TEST rows",
         )
-
-
-def require_joint_exit_portfolio_capacity(
-    proof: Mapping[str, Any],
-    *,
-    max_trades: int,
-    context: str,
-) -> dict[str, Any]:
-    """Prove the only admitted single-exposure cap over full TEST decisions."""
-
-    if (
-        proof.get("schema_version")
-        != MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION
-    ):
-        _fail(context, "joint Exit proof schema mismatch")
-    if (
-        isinstance(max_trades, bool)
-        or not isinstance(max_trades, int)
-        or not 1 <= max_trades <= MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES
-    ):
-        _fail(
-            context,
-            "max_trades is outside the portfolio replay contract "
-            f"1..{MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES}",
-        )
-    replay_binding = _source_binding(
-        proof.get("replay_rows"),
-        context=f"{context}.replay_rows",
-        verify_file=True,
-    )
-    frame = read_bound_parquet_exact(
-        replay_binding,
-        context=f"{context}.replay_rows_exact",
-    )
-    if set(frame.columns) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS):
-        _fail(context, "joint Exit portfolio replay columns mismatch")
-    decisions = pd.to_datetime(frame["time"], utc=True, errors="coerce")
-    times = pd.to_datetime(frame["entry_fill_time"], utc=True, errors="coerce")
-    if (
-        decisions.isna().any()
-        or times.isna().any()
-        or not bool((times == decisions + pd.Timedelta(minutes=5)).all())
-    ):
-        _fail(context, "portfolio replay entry_fill_time is not exact T+5")
-    exits = pd.to_datetime(
-        frame["model_exit_fill_time"],
-        utc=True,
-        errors="coerce",
-    )
-    directions = _strict_directions(frame, context=f"{context}.directions")
-    authorized = frame["authorized_order"].to_numpy(dtype=bool)
-    active_exits: list[pd.Timestamp] = []
-    admitted: list[int] = []
-    blocked = 0
-    peak = 0
-    for index, entry_time in enumerate(times):
-        active_exits = [exit_time for exit_time in active_exits if exit_time > entry_time]
-        if directions[index] == 2 or not authorized[index]:
-            continue
-        exit_time = exits.iloc[index]
-        if pd.isna(exit_time) or exit_time <= entry_time:
-            _fail(context, "portfolio trade lacks a valid unified-Exit time")
-        if len(active_exits) >= max_trades:
-            blocked += 1
-            continue
-        active_exits.append(exit_time)
-        admitted.append(index)
-        peak = max(peak, len(active_exits))
-    if len(admitted) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES:
-        _fail(context, "portfolio cap leaves insufficient admitted TEST trades")
-    admitted_directions = directions[np.asarray(admitted, dtype=np.int64)]
-    long_count = int(np.count_nonzero(admitted_directions == 0))
-    short_count = int(np.count_nonzero(admitted_directions == 1))
-    if (
-        min(long_count, short_count)
-        < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE
-    ):
-        _fail(context, "portfolio cap leaves insufficient LONG/SHORT support")
-    selected = frame.iloc[admitted]
-    selected_directions = admitted_directions
-    entry_bid = pd.to_numeric(selected["entry_bid"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
-    entry_ask = pd.to_numeric(selected["entry_ask"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
-    exit_bid = pd.to_numeric(
-        selected["model_exit_fill_bid"],
-        errors="coerce",
-    ).to_numpy(dtype=np.float64)
-    exit_ask = pd.to_numeric(
-        selected["model_exit_fill_ask"],
-        errors="coerce",
-    ).to_numpy(dtype=np.float64)
-    pnl = np.where(
-        selected_directions == 0,
-        (exit_bid - entry_ask) / entry_ask * 10_000.0,
-        (entry_bid - exit_ask) / entry_bid * 10_000.0,
-    )
-    if not np.isfinite(pnl).all():
-        _fail(context, "portfolio replay produced non-finite PnL")
-    mean_total = float(np.mean(pnl))
-    mean_long = float(np.mean(pnl[selected_directions == 0]))
-    mean_short = float(np.mean(pnl[selected_directions == 1]))
-    if min(mean_total, mean_long, mean_short) <= 0.0:
-        _fail(context, "portfolio-cap TEST utility is not positive on both sides")
-    admitted_ids = selected["reference_row_id"].astype(str).tolist()
-    return {
-        "contract": "full_test_single_exposure_unified_exit_capacity_v3",
-        "max_trades": max_trades,
-        "eligible_trade_rows": int(
-            np.count_nonzero((directions != 2) & authorized)
-        ),
-        "admitted_trade_rows": len(admitted),
-        "capacity_blocked_rows": blocked,
-        "admitted_long_rows": long_count,
-        "admitted_short_rows": short_count,
-        "peak_concurrent_trades": peak,
-        "mean_realized_pnl_bps": mean_total,
-        "mean_long_realized_pnl_bps": mean_long,
-        "mean_short_realized_pnl_bps": mean_short,
-        "admitted_reference_row_ids_sha256": hashlib.sha256(
-            json.dumps(admitted_ids, separators=(",", ":")).encode("utf-8")
-        ).hexdigest(),
-    }
 
 
 def canonical_unified_replay_source_code_files() -> frozenset[str]:
@@ -1494,7 +1371,7 @@ def require_canonical_unified_replay_producer_evidence(
     ):
         _fail(context, "prediction provenance differs from OOS proof")
     if verify_source_files:
-        from gx1.execution.model_native_entry_replay_v1 import SourceTape
+        from gx1.replay.source_tape_v1 import SourceTape
         from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
             resolve_and_validate_prediction_evidence,
         )
@@ -1509,11 +1386,13 @@ def require_canonical_unified_replay_producer_evidence(
         authoritative, _report, declaration = (
             resolve_and_validate_prediction_evidence(
                 Path(runtime_predictions["path"]),
+                expected_sha256=runtime_predictions["sha256"],
                 prediction_report_path=Path(report_binding["json_path"]),
                 bundle_dir=Path(str(provenance["bundle_dir"])),
                 dataset_dir=Path(str(provenance["dataset_dir"])),
+                expected_stage="runtime_authoritative",
+                expected_splits=("test",),
                 expected_model="candidate",
-                require_runtime_head_evidence=True,
             )
         )
         if (
@@ -1603,28 +1482,6 @@ def require_canonical_unified_replay_producer_evidence(
         ):
             _fail(context, "Exit trace source rows differ from bound SourceTape")
     return dict(evidence)
-
-
-def require_canonical_unified_replay_launch_authority(
-    proof: Mapping[str, Any],
-    *,
-    context: str,
-) -> None:
-    """Require producer-owned full-TEST rows from the exact candidate bundle."""
-
-    evidence = proof.get("canonical_unified_replay_producer")
-    if evidence is None:
-        _fail(
-            context,
-            "canonical unified replay producer is absent; caller-supplied "
-            "replay/trace rows have zero launch authority",
-        )
-    require_canonical_unified_replay_producer_evidence(
-        evidence,
-        proof=proof,
-        context=f"{context}.canonical_producer",
-        verify_source_files=True,
-    )
 
 
 def load_bound_joint_exit_sizing_proof(
@@ -1735,6 +1592,14 @@ def load_bound_joint_exit_sizing_proof(
             context=f"{context}.exit_replay_coverage",
         ) != coverage:
             _fail(context, "reported Exit replay coverage differs from rows")
+        if observed["net_pnl_cost_policy"] != unified_replay_net_cost_policy_metadata():
+            _fail(context, "net PnL cost policy mismatch")
+        net_pnl = recompute_unified_replay_net_pnl(
+            replay_rows,
+            context=f"{context}.net_pnl",
+        )
+        if observed["net_pnl_admission"] != net_pnl or net_pnl["decision"] != "PASS":
+            _fail(context, "final net PnL admission is not recomputed PASS")
         recomputed = recompute_sizing_oos_evidence(
             calibration=calibration,
             source_bindings={"oos_rows": replay_binding},
@@ -1750,270 +1615,26 @@ def load_bound_joint_exit_sizing_proof(
         ]
         if mismatched:
             _fail(context, f"reported sizing evidence differs from rows: {mismatched}")
-        for name in _RECOMPUTED_SECTION_NAMES[1:]:
+        for name in (
+            "position_size_head_liveness",
+            "monotonicity",
+            "exposure_bounds",
+            "drawdown_bounds",
+            "paired_oos_utility",
+            "account_capacity_grid",
+            "direction_edge_admission",
+            "direction_invariance",
+        ):
             section = observed[name]
             if not isinstance(section, Mapping) or section.get("decision") != "PASS":
                 _fail(context, f"{name} must be row-recomputed PASS")
         producer_evidence = observed["canonical_unified_replay_producer"]
-        if producer_evidence is not None:
-            require_canonical_unified_replay_producer_evidence(
-                producer_evidence,
-                proof=observed,
-                context=f"{context}.canonical_producer",
-                verify_source_files=verify_source_files,
-            )
-        return observed, canonical_binding
-    except ModelNativeSizingContractError as exc:
-        raise ModelNativeSizingExecutionContractError(str(exc)) from exc
-
-
-def recompute_runtime_sizing_parity_coverage(
-    frame: pd.DataFrame,
-    *,
-    calibration: Mapping[str, Any],
-    adoption: Mapping[str, Any],
-    adoption_sha256: str,
-    event_created_utc: Any,
-    context: str,
-) -> dict[str, Any]:
-    """Recompute shadow runtime sizing outputs from exact live broker facts."""
-
-    if set(frame.columns) != set(MODEL_NATIVE_SIZING_RUNTIME_PARITY_COLUMNS):
-        _fail(
-            context,
-            "runtime parity columns mismatch: "
-            f"missing={sorted(MODEL_NATIVE_SIZING_RUNTIME_PARITY_COLUMNS - set(frame.columns))} "
-            f"unexpected={sorted(set(frame.columns) - MODEL_NATIVE_SIZING_RUNTIME_PARITY_COLUMNS)}",
+        require_canonical_unified_replay_producer_evidence(
+            producer_evidence,
+            proof=observed,
+            context=f"{context}.canonical_producer",
+            verify_source_files=verify_source_files,
         )
-    if len(frame) < MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS:
-        _fail(context, "runtime parity has insufficient broker-live observations")
-    times = pd.to_datetime(frame["time"], utc=True, errors="coerce")
-    if times.isna().any() or times.duplicated().any() or not times.is_monotonic_increasing:
-        _fail(context, "runtime parity times must be unique monotonic UTC")
-    event_created = _utc(event_created_utc, context=f"{context}.event_created_utc")
-    if times.iloc[-1] > event_created or (
-        event_created - times.iloc[-1]
-    ).total_seconds() > MODEL_NATIVE_SIZING_RUNTIME_PARITY_MAX_EVENT_LAG_SECONDS:
-        _fail(context, "runtime parity observations are stale relative to the event")
-    if (
-        times.iloc[-1] - times.iloc[0]
-    ).total_seconds() > MODEL_NATIVE_SIZING_RUNTIME_PARITY_MAX_AGE_SECONDS:
-        _fail(context, "runtime parity observation window exceeds the maximum age")
-    directions = _strict_directions(frame, context=context)
-    class_counts = [int(np.count_nonzero(directions == index)) for index in range(3)]
-    if min(class_counts) < MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS_PER_CLASS:
-        _fail(context, "runtime parity lacks LONG/SHORT/FLAT support")
-    logits = pd.to_numeric(frame["position_size_logit"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
-    if not np.isfinite(logits).all() or float(np.std(logits)) <= 1e-8:
-        _fail(context, "runtime parity position_size_logit is not live")
-    expected_adoption_sha = _sha(
-        adoption_sha256, context=f"{context}.adoption_sha256"
-    )
-    lineage_sets = {
-        "runtime_bundle_metadata_sha256": adoption["bundle_metadata_sha256"],
-        "runtime_model_state_dict_sha256": adoption["model_state_dict_sha256"],
-        "runtime_adoption_sha256": expected_adoption_sha,
-    }
-    for field, expected in lineage_sets.items():
-        if set(frame[field].astype(str).str.lower()) != {str(expected).lower()}:
-            _fail(context, f"{field} differs from adopted runtime identity")
-    float_max_error = 0.0
-    integer_mismatches = 0
-    boolean_mismatches = 0
-    direction_mismatches = 0
-    transaction_ids: list[str] = []
-    for position, (_, row) in enumerate(frame.iterrows()):
-        constraints = {
-            key: row[key] for key in MODEL_NATIVE_SIZING_RUNTIME_CONSTRAINT_KEYS
-        }
-        if str(constraints["fact_provenance_mode"]) != "broker_live":
-            _fail(context, f"row {position} does not use broker_live facts")
-        row_time = pd.Timestamp(times.iloc[position]).isoformat()
-        if pd.Timestamp(constraints["sizing_decision_utc"]).isoformat() != row_time:
-            _fail(
-                context,
-                f"row {position} decision time differs from observation time",
-            )
-        transformed = calibrated_sizing_transform(
-            calibration=calibration,
-            position_size_logit=logits[position],
-            model_direction_index=int(directions[position]),
-            runtime_constraints=constraints,
-            context=f"{context}.row[{position}]",
-        )
-        for field in _RUNTIME_PARITY_FLOAT_FIELDS:
-            observed_value = float(row[field])
-            expected_value = float(transformed[field])
-            if not np.isfinite(observed_value):
-                _fail(context, f"row {position} {field} is non-finite")
-            float_max_error = max(float_max_error, abs(observed_value - expected_value))
-        for field in _RUNTIME_PARITY_INT_FIELDS:
-            observed_value = row[field]
-            if (
-                isinstance(observed_value, bool)
-                or not float(observed_value).is_integer()
-                or int(observed_value) != int(transformed[field])
-            ):
-                integer_mismatches += 1
-        if not isinstance(row["authorized_order"], (bool, np.bool_)):
-            _fail(
-                context,
-                f"row {position} authorized_order is not an exact boolean",
-            )
-        observed_authorized = bool(row["authorized_order"])
-        if observed_authorized != bool(transformed["authorized_order"]):
-            boolean_mismatches += 1
-        observed_reason = None if pd.isna(row["no_order_reason"]) else str(
-            row["no_order_reason"]
-        )
-        if observed_reason != transformed["no_order_reason"]:
-            boolean_mismatches += 1
-        direction_after = row["direction_after_sizing"]
-        if (
-            isinstance(direction_after, (bool, np.bool_))
-            or not float(direction_after).is_integer()
-        ):
-            _fail(
-                context,
-                f"row {position} direction_after_sizing is not an integer",
-            )
-        if int(direction_after) != int(directions[position]):
-            direction_mismatches += 1
-        transaction_ids.append(str(constraints["account_last_transaction_id"]))
-    if not frame["order_submitted"].map(
-        lambda value: isinstance(value, (bool, np.bool_))
-    ).all():
-        _fail(context, "order_submitted must contain exact booleans")
-    order_submitted = frame["order_submitted"].to_numpy(dtype=bool)
-    order_submission_count = int(np.count_nonzero(order_submitted))
-    if float_max_error > 1e-12:
-        _fail(context, f"runtime sizing float parity error={float_max_error}")
-    if integer_mismatches or boolean_mismatches or direction_mismatches:
-        _fail(
-            context,
-            "runtime sizing parity mismatch: "
-            f"integer={integer_mismatches} boolean={boolean_mismatches} "
-            f"direction={direction_mismatches}",
-        )
-    if order_submission_count:
-        _fail(context, "runtime parity must be shadow-only and submit no order")
-    distinct_transaction_ids = len(set(transaction_ids))
-    if distinct_transaction_ids < 2:
-        _fail(context, "runtime parity requires at least two broker snapshots")
-    utc_ns = times.astype("int64").to_numpy(dtype=np.int64)
-    return {
-        "rows": int(len(frame)),
-        "long_rows": class_counts[0],
-        "short_rows": class_counts[1],
-        "flat_rows": class_counts[2],
-        "first_utc": times.iloc[0].isoformat(),
-        "last_utc": times.iloc[-1].isoformat(),
-        "utc_ns_sha256": hashlib.sha256(utc_ns.tobytes()).hexdigest(),
-        "transaction_id_sequence_sha256": hashlib.sha256(
-            json.dumps(transaction_ids, separators=(",", ":")).encode("utf-8")
-        ).hexdigest(),
-        "distinct_transaction_ids": distinct_transaction_ids,
-        "max_float_abs_error": float_max_error,
-        "integer_mismatch_count": integer_mismatches,
-        "boolean_mismatch_count": boolean_mismatches,
-        "direction_mismatch_count": direction_mismatches,
-        "order_submission_count": order_submission_count,
-    }
-
-
-def load_bound_runtime_sizing_parity(
-    binding: Mapping[str, Any] | Any,
-    *,
-    adoption: Mapping[str, Any],
-    calibration: Mapping[str, Any],
-    adoption_artifact: Mapping[str, Any],
-    context: str,
-    verify_source_files: bool,
-    now_utc: Any | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Load one fresh post-adoption broker-live shadow parity event."""
-
-    try:
-        canonical_binding = require_immutable_json_binding(
-            binding,
-            event_prefix=MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX,
-            context=f"{context}.binding",
-            verify_file=True,
-        )
-        path = Path(canonical_binding["json_path"])
-        observed = _exact_keys(
-            _read_bound_json_exact(canonical_binding, context=f"{context}.event"),
-            _RUNTIME_PARITY_EVENT_KEYS,
-            context=context,
-        )
-        if observed["schema_version"] != MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION:
-            _fail(context, "runtime parity schema_version mismatch")
-        created = _utc(observed["created_utc"], context=f"{context}.created_utc")
-        if Path(str(observed["json_path"] or "")).expanduser().resolve() != path:
-            _fail(context, "runtime parity json_path self-reference mismatch")
-        if observed["decision"] != "PASS" or observed["failures"] != []:
-            _fail(context, "runtime parity must be zero-failure PASS")
-        if observed["parity_contract"] != MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT:
-            _fail(context, "runtime parity contract mismatch")
-        canonical_adoption = require_immutable_json_binding(
-            adoption_artifact,
-            event_prefix="ENTRY_MODEL_NATIVE_SIZING_ADOPTION",
-            context=f"{context}.adoption.binding",
-            verify_file=True,
-        )
-        if observed["adoption_artifact"] != canonical_adoption:
-            _fail(context, "runtime parity adoption binding mismatch")
-        adoption_created = _utc(
-            adoption["created_utc"], context=f"{context}.adoption.created_utc"
-        )
-        if created <= adoption_created:
-            _fail(context, "runtime parity must be strictly post-adoption")
-        now = _utc(
-            pd.Timestamp.now(tz="UTC") if now_utc is None else now_utc,
-            context=f"{context}.now_utc",
-        )
-        age = (now - created).total_seconds()
-        if age < 0.0 or age > MODEL_NATIVE_SIZING_RUNTIME_PARITY_MAX_AGE_SECONDS:
-            _fail(context, f"runtime parity event age_seconds={age} is invalid")
-        expected_bundle_identity = {
-            key: adoption[key]
-            for key in (
-                "bundle_dir",
-                "bundle_metadata_path",
-                "bundle_metadata_sha256",
-                "master_transformer_lock_path",
-                "master_transformer_lock_sha256",
-                "model_state_dict_path",
-                "model_state_dict_sha256",
-            )
-        }
-        if observed["bundle_identity"] != expected_bundle_identity:
-            _fail(context, "runtime parity bundle identity mismatch")
-        observations = _source_binding(
-            observed["observations"],
-            context=f"{context}.observations",
-            verify_file=verify_source_files,
-        )
-        frame = read_bound_parquet_exact(
-            observations,
-            context=f"{context}.observations_exact",
-        )
-        coverage = recompute_runtime_sizing_parity_coverage(
-            frame,
-            calibration=calibration,
-            adoption=adoption,
-            adoption_sha256=canonical_adoption["sha256"],
-            event_created_utc=created,
-            context=f"{context}.coverage",
-        )
-        if _exact_keys(
-            observed["coverage"],
-            _RUNTIME_PARITY_COVERAGE_KEYS,
-            context=f"{context}.reported_coverage",
-        ) != coverage:
-            _fail(context, "reported runtime parity coverage differs from observations")
         return observed, canonical_binding
     except ModelNativeSizingContractError as exc:
         raise ModelNativeSizingExecutionContractError(str(exc)) from exc
@@ -2026,18 +1647,12 @@ __all__ = [
     "MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE",
-    "MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS",
     "MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS",
-    "MODEL_NATIVE_SIZING_RUNTIME_PARITY_COLUMNS",
-    "MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT",
-    "MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX",
-    "MODEL_NATIVE_SIZING_RUNTIME_PARITY_MAX_AGE_SECONDS",
-    "MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS",
-    "MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION",
+    "MODEL_NATIVE_UNIFIED_REPLAY_COST_POLICY_SCHEMA_VERSION",
     "ModelNativeSizingExecutionContractError",
     "UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION",
     "build_canonical_unified_replay_source_inventory",
@@ -2045,12 +1660,10 @@ __all__ = [
     "canonical_unified_replay_source_code_files",
     "joint_exit_trace_sha256",
     "load_bound_joint_exit_sizing_proof",
-    "load_bound_runtime_sizing_parity",
     "recompute_joint_exit_replay_coverage",
+    "recompute_unified_replay_net_pnl",
     "require_candidate_bundle_authority",
-    "require_canonical_unified_replay_launch_authority",
     "require_canonical_unified_replay_producer_evidence",
-    "require_joint_exit_portfolio_capacity",
     "require_joint_replay_extends_canonical_oos_rows",
-    "recompute_runtime_sizing_parity_coverage",
+    "unified_replay_net_cost_policy_metadata",
 ]

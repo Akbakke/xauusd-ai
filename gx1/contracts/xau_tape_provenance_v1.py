@@ -28,6 +28,9 @@ BASE_REPAIR_METHOD = "recompute_window_from_canonical_m1_drop_unbacked_bars"
 CURRENT_SNAPSHOT_METHOD = "immutable_live_collector_snapshot_exact_m5_overlap"
 CANONICAL_NATIVE_SOURCE_SCHEMA = "xau_canonical_native_source_v3"
 CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA = "xau_canonical_native_source_v4"
+SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION = (
+    "seq513_source_cascade_pair_proof_v2"
+)
 CANONICAL_NATIVE_SUCCESSOR_MODE = "successor"
 CANONICAL_NATIVE_PRODUCER_OWNER = (
     "gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_xau_snapshot"
@@ -1683,21 +1686,6 @@ def validate_canonical_native_source_bundle(
         manifest,
         timeframe=normalized,
         expected_declared_root=declared,
-    )
-
-
-def validate_canonical_native_source_bundle_v3(
-    physical_root: Path | str,
-    *,
-    timeframe: str,
-    expected_declared_root: Path | str,
-) -> dict[str, Any]:
-    """Compatibility name for the strict v3/v4 native bundle validator."""
-
-    return validate_canonical_native_source_bundle(
-        physical_root,
-        timeframe=timeframe,
-        expected_declared_root=expected_declared_root,
     )
 
 

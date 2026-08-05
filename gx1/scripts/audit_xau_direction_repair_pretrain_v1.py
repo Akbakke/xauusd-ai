@@ -90,6 +90,7 @@ REQUIRED_XAU_TARGET_COLUMNS = (
     "y_short_high_mae_low_mfe_early_failure",
 )
 TARGET_CONTRACT_IDENTITY_COLUMNS = frozenset({"y_direction_target_mode_id"})
+PREFREEZE_SPLITS = ("train", "val")
 
 
 def _json_default(obj: Any) -> Any:
@@ -102,10 +103,6 @@ def _json_default(obj: Any) -> Any:
     if isinstance(obj, np.floating):
         return float(obj) if np.isfinite(obj) else None
     return str(obj)
-
-
-def _parse_csv(raw: str) -> list[str]:
-    return [part.strip() for part in str(raw or "").split(",") if part.strip()]
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -185,14 +182,6 @@ def _split_artifacts(dataset_dir: Path, stem: str, split: str) -> tuple[Path, Pa
     if not manifest_path.exists():
         raise RuntimeError(f"missing manifest for split={split}: {manifest_path}")
     return parquet_path, manifest_path
-
-
-def _stem_from_split_filename(name: str, *, split: str, suffix: str) -> str | None:
-    marker = f"_{split}{suffix}"
-    if not name.endswith(marker):
-        return None
-    stem = name[: -len(marker)]
-    return stem or None
 
 
 def _resolve_stem(dataset_dir: Path, requested_stem: str, splits: list[str]) -> str:
@@ -555,7 +544,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    splits = _parse_csv(args.data_splits)
+    splits = list(PREFREEZE_SPLITS)
     failures: list[str] = []
     requested_stem = str(args.stem)
     stem: str | None = None
@@ -753,7 +742,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if contract != baseline:
                 failures.append(
                     f"{split}: model_native_state_contract differs from {baseline_split}; "
-                    "TRAIN/VAL/TEST must share one immutable common-history/TRAIN-rank contract"
+                    "TRAIN/VAL must share one immutable common-history/TRAIN-rank contract"
                 )
 
     if len(tape_provenance_by_split) > 1:
@@ -763,7 +752,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if proof != baseline:
                 failures.append(
                     f"{split}: immutable XAU_USD tape provenance differs from "
-                    f"{baseline_split}; TRAIN/VAL/TEST must share one exact tape lineage"
+                    f"{baseline_split}; TRAIN/VAL must share one exact tape lineage"
                 )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
@@ -822,7 +811,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--stem", required=True, help="Explicit immutable dataset split stem; discovery is forbidden.")
     parser.add_argument("--out-dir", required=True)
-    parser.add_argument("--data-splits", default="train,val,test")
     parser.add_argument("--max-rows-per-split", type=int, default=25000)
     parser.add_argument("--max-row-groups-per-split", type=int, default=5)
     parser.add_argument("--support-dominance-min", type=float, default=0.25)

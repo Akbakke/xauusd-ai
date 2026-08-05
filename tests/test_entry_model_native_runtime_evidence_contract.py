@@ -16,12 +16,11 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     ModelNativeRuntimeEvidenceError,
     decode_model_native_runtime_head_evidence,
     encode_model_native_runtime_head_evidence,
-    finalize_model_native_runtime_head_evidence,
     require_model_native_entry_time,
     require_model_native_fill_time,
     require_model_native_runtime_evidence,
 )
-from tests.model_native_sizing_support import unverified_learned_sizing_authority
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
@@ -82,7 +81,7 @@ def _valid_evidence() -> dict:
         "entry_h4_trend_sign_cat": 2,
         "entry_trend_regime_id": 1,
         "entry_trend_regime": "TREND_NEUTRAL",
-        "raw_direction_logits": [2.09, 0.33, -1.1],
+        "raw_direction_logits": [2.2, 0.22, -1.1],
         "direction_logits": direction_logits,
         "direction_probs": direction_probs,
         "model_direction_index": 0,
@@ -128,7 +127,6 @@ def _valid_evidence() -> dict:
         "tf_agreement_pred": _sigmoid(tf_logit),
         "position_size_logit": size_logit,
         "position_size_pred": _sigmoid(size_logit),
-        "sizing_authority_contract": unverified_learned_sizing_authority(),
         "p_long_given_trade": side_probs[0],
         "p_short_given_trade": side_probs[1],
         "side_logits": side_logits,
@@ -146,13 +144,18 @@ def _valid_evidence() -> dict:
         "mtf_trend_evidence": 0.69,
         "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
         "specialist_gate": [0.125] * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
-        "tf_gate": [0.2] * 5,
+        "tf_gate": [1.0 / ENTRY_MTF_CONTEXT_COUNT]
+        * ENTRY_MTF_CONTEXT_COUNT,
         "family_tf_cooperation_gate": [
-            1.0 / (5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS))
+            1.0
+            / (
+                ENTRY_MTF_CONTEXT_COUNT
+                * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+            )
         ]
-        * (5 * len(MODEL_NATIVE_TRAINING_SPECIALISTS)),
+        * (ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)),
         "family_tf_feature_gate": [1.0]
-        * (5 * len(MULTI_TF_PER_BAR_FEATURES_V4)),
+        * (ENTRY_MTF_CONTEXT_COUNT * len(MULTI_TF_PER_BAR_FEATURES_V4)),
         "trendline_rail_logits": rail_logits,
         "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
         "geometry_channel_edge_pressure": 0.42,
@@ -163,7 +166,6 @@ def _valid_evidence() -> dict:
         "calibration_version": "direction-cal-v1",
         "direction_calibration_enabled": True,
         "direction_calibration_temperature": 1.1,
-        "direction_calibration_bias": [0.1, -0.1, 0.0],
         "path_calibration_enabled": True,
         "path_calibration": {
             "enabled": True,
@@ -293,9 +295,19 @@ def test_runtime_evidence_contract_rejects_tied_direction_logits() -> None:
         require_model_native_runtime_evidence(evidence, context="CONTRACT_TEST")
 
 
-def test_runtime_head_envelope_round_trips_and_finalizes_exact_snapshot() -> None:
+def test_runtime_evidence_contract_rejects_retired_direction_class_bias() -> None:
+    evidence = _valid_evidence()
+    evidence["direction_calibration_bias"] = [0.0, 0.0, 0.0]
+
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="exact schema mismatch",
+    ):
+        require_model_native_runtime_evidence(evidence, context="CONTRACT_TEST")
+
+
+def test_runtime_head_envelope_round_trips_exact_snapshot() -> None:
     expected = _valid_evidence()
-    sizing = expected.pop("sizing_authority_contract")
     head = {
         "runtime_head_evidence_schema_version": (
             MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
@@ -305,18 +317,12 @@ def test_runtime_head_envelope_round_trips_and_finalizes_exact_snapshot() -> Non
 
     payload, payload_sha = encode_model_native_runtime_head_evidence(head)
     decoded = decode_model_native_runtime_head_evidence(payload, payload_sha)
-    finalized = finalize_model_native_runtime_head_evidence(
-        decoded,
-        sizing_authority_contract=sizing,
-    )
 
     assert decoded == head
-    assert finalized == {**expected, "sizing_authority_contract": sizing}
 
 
 def test_runtime_head_envelope_rejects_hash_and_schema_tamper() -> None:
     evidence = _valid_evidence()
-    evidence.pop("sizing_authority_contract")
     head = {
         "runtime_head_evidence_schema_version": (
             MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
@@ -341,7 +347,6 @@ def test_runtime_head_envelope_rejects_hash_and_schema_tamper() -> None:
 
 def test_runtime_head_envelope_rejects_model_value_parity_tamper() -> None:
     evidence = _valid_evidence()
-    evidence.pop("sizing_authority_contract")
     head = {
         "runtime_head_evidence_schema_version": (
             MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
@@ -355,20 +360,6 @@ def test_runtime_head_envelope_rejects_model_value_parity_tamper() -> None:
         match="mtf_dir_probs: parity mismatch",
     ):
         encode_model_native_runtime_head_evidence(head)
-
-
-def test_runtime_evidence_rejects_dynamic_sizing_authority_tamper() -> None:
-    evidence = _valid_evidence()
-    evidence["sizing_authority_contract"]["dynamic_sizing_authorized"] = True
-
-    with pytest.raises(
-        ModelNativeRuntimeEvidenceError,
-        match="sizing_authority_contract",
-    ):
-        require_model_native_runtime_evidence(
-            evidence,
-            context="CONTRACT_TEST",
-        )
 
 
 @pytest.mark.parametrize(

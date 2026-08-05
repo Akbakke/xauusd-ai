@@ -24,6 +24,14 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
     training_objective_contract_metadata,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_DECISION_BAR_SECONDS,
+    EXIT_MTF_CONTEXT_COUNT,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
 )
@@ -79,6 +87,7 @@ from gx1.models.entry_v10.entry_v10_bundle import (
     _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS,
     _MODEL_NATIVE_REQUIRED_SPECIALISTS,
     _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS,
+    _require_exact_model_native_bundle_metadata,
 )
 from gx1.scripts import fit_entry_direction_calibration_v1 as calibration
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
@@ -96,6 +105,9 @@ from tests.model_native_context_routing_support import (
 from tests.model_native_input_normalization_support import (
     input_normalization_fit_population_proof_fixture,
     input_normalization_fixture,
+)
+from tests.model_native_test_seal_support import (
+    prefreeze_test_seal_lineage_fixture,
 )
 
 
@@ -192,16 +204,37 @@ def _source_bundle(
     mtf_contract = {
         "enabled": True,
         "v4_mode": True,
+        "route_schema_version": "entry_exit_shared_mtf_routes_v1",
+        "entry_route_timeframes": list(ENTRY_MTF_CONTEXT_TIMEFRAMES),
+        "exit_route_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
+        "entry_target_availability_shift_minutes": (
+            ENTRY_DECISION_BAR_SECONDS / 60.0
+        ),
+        "exit_target_availability_shift_minutes": (
+            EXIT_DECISION_BAR_SECONDS / 60.0
+        ),
+        "entry_tf_gate_width": ENTRY_MTF_CONTEXT_COUNT,
+        "exit_tf_gate_width": EXIT_MTF_CONTEXT_COUNT,
+        "entry_family_tf_gate_width": (
+            ENTRY_MTF_CONTEXT_COUNT * 8
+        ),
+        "exit_family_tf_gate_width": EXIT_MTF_CONTEXT_COUNT * 8,
+        "shared_cache_identity_sha256": "a" * 64,
+        "shared_cache_manifest_sha256": "4" * 64,
+        "shared_cache_dir": "/fixture/mtf",
+        "shared_cache_manifest_path": "/fixture/mtf/manifest.json",
+        "shared_cache_m5_source": "/fixture/xau_m5_full_history.parquet",
+        "shared_cache_m5_source_sha256": "c" * 64,
         "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
-        "m5_seq_len": 96,
+        "m5_seq_len": 16,
         "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
-        "m15_seq_len": 96,
+        "m15_seq_len": 64,
         "h1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "h1_seq_len": 96,
         "h4_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "h4_seq_len": 96,
         "d1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
-        "d1_seq_len": 96,
+        "d1_seq_len": 252,
         "multi_tf_num_layers": 1,
         "multi_tf_scale": 0.5,
         "feature_contract": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
@@ -209,10 +242,13 @@ def _source_bundle(
         "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V4),
         "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V4,
         "closed_bar_target_availability": True,
-        "target_availability_shift_minutes": 5.0,
     }
     per_tf_seq_lens = {
-        tf: 96 for tf in ("M5", "M15", "H1", "H4", "D1")
+        "M5": 16,
+        "M15": 64,
+        "H1": 96,
+        "H4": 96,
+        "D1": 252,
     }
     mtf_specialist_indices = {
         name: list(indices)
@@ -232,9 +268,19 @@ def _source_bundle(
                 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
             ),
             "specialist_input_indices": mtf_specialist_indices,
-            "family_tf_token_order": [
+            "parameter_family_tf_token_order": [
                 f"{tf}:{specialist}"
                 for tf in ("m5", "m15", "h1", "h4", "d1")
+                for specialist in mtf_specialist_indices
+            ],
+            "entry_family_tf_token_order": [
+                f"{tf.lower()}:{specialist}"
+                for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+                for specialist in mtf_specialist_indices
+            ],
+            "exit_family_tf_token_order": [
+                f"{tf.lower()}:{specialist}"
+                for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
                 for specialist in mtf_specialist_indices
             ],
         }
@@ -329,6 +375,10 @@ def _source_bundle(
             "physical_train_rows": 100,
             "effective_train_rows": 100,
         },
+        "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage_fixture(
+            dataset_run_id="MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
+            dataset_dir="/immutable/calibration_seq513_dataset",
+        ),
         "m1_feature_surface_binding": {
             "parquet_path": "/immutable/calibration_m1_feature_base.parquet",
             "manifest_path": (
@@ -473,6 +523,7 @@ def _prediction_event(
         predictions_path=predictions,
         bundle_dir=bundle,
         bundle_metadata=metadata,
+        evidence_stage="pre_calibration",
         requested_splits=["val"],
     )
     report_path = reports / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{stamp}.json"
@@ -483,6 +534,7 @@ def _prediction_event(
         .isoformat(),
         "decision": "PASS",
         "failures": [],
+        "evidence_stage": "pre_calibration",
         "bundle_dir": str(bundle),
         "dataset_dir": str(dataset),
         "splits": ["val"],
@@ -521,6 +573,8 @@ def _args(
         str(event["predictions"]),
         "--prediction-report-json",
         str(event["report"]),
+        "--predictions-sha256",
+        sha256_file(event["predictions"]),
         "--dataset-dir",
         str(event["dataset"]),
         "--model",
@@ -534,8 +588,6 @@ def _args(
         "--min-fit-rows",
         "90",
     ]
-    if head == "direction":
-        values.extend(["--direction-odds-cap", "2.0"])
     values.append("--execute" if execute else "--dry-run")
     return values
 
@@ -578,6 +630,10 @@ def test_direction_execute_publishes_new_hash_bound_bundle_without_source_mutati
     assert output_meta["direction_calibration"]["version"] == (
         calibration.DIRECTION_CALIBRATION_VERSION
     )
+    assert output_meta["direction_calibration"]["fitted_on_split"] == "val"
+    assert output_meta["direction_calibration"]["argmax_preserving"] is True
+    assert output_meta["direction_calibration"]["tie_policy"] == "fail_closed"
+    assert "bias" not in output_meta["direction_calibration"]
     assert (
         output_meta["model_native_training_objective"]
         == source_meta["model_native_training_objective"]
@@ -597,6 +653,27 @@ def test_direction_execute_publishes_new_hash_bound_bundle_without_source_mutati
     assert evidence["predictions"]["sha256"] == sha256_file(event["predictions"])
     assert evidence["prediction_report"]["sha256"] == sha256_file(event["report"])
     assert evidence["metrics"]["nll_after"] < evidence["metrics"]["nll_before"]
+    assert evidence["metrics"]["raw_calibrated_argmax_identical"] is True
+    assert evidence["metrics"]["winner_rows_by_class"] == {
+        "FLAT": 40,
+        "LONG": 40,
+        "SHORT": 40,
+    }
+
+    output_lock = json.loads(
+        (output / "MASTER_TRANSFORMER_LOCK.json").read_text(encoding="utf-8")
+    )
+    stale_meta = json.loads(json.dumps(output_meta))
+    stale_meta["direction_calibration"]["version"] = (
+        "entry_model_native_direction_calibration_v1"
+    )
+    with pytest.raises(RuntimeError, match="enabled/version mismatch"):
+        _require_exact_model_native_bundle_metadata(stale_meta, output_lock)
+
+    biased_meta = json.loads(json.dumps(output_meta))
+    biased_meta["direction_calibration"]["bias"] = [0.1, -0.1, 0.0]
+    with pytest.raises(RuntimeError, match="class bias/remap is forbidden"):
+        _require_exact_model_native_bundle_metadata(biased_meta, output_lock)
 
 
 def test_path_execute_uses_the_same_immutable_contract(tmp_path: Path) -> None:
@@ -758,6 +835,8 @@ def test_mutable_bundle_alias_is_rejected_before_read(tmp_path: Path, capsys: py
             str(tmp_path / f"selective_edge_predictions_{PREDICTION_STAMP}.parquet"),
             "--prediction-report-json",
             str(tmp_path / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{PREDICTION_STAMP}.json"),
+            "--predictions-sha256",
+            "a" * 64,
             "--dataset-dir",
             str(tmp_path),
             "--model",
@@ -770,8 +849,6 @@ def test_mutable_bundle_alias_is_rejected_before_read(tmp_path: Path, capsys: py
             "TEST",
             "--min-fit-rows",
             "10",
-            "--direction-odds-cap",
-            "2.0",
             "--dry-run",
         ]
     )
@@ -783,8 +860,15 @@ def test_mutable_bundle_alias_is_rejected_before_read(tmp_path: Path, capsys: py
 def test_cli_has_no_model_head_split_or_environment_defaults() -> None:
     parser = calibration.build_arg_parser()
     actions = {action.dest: action for action in parser._actions}
-    for name in ("model", "heads", "fit_split", "min_fit_rows"):
+    for name in (
+        "model",
+        "heads",
+        "fit_split",
+        "min_fit_rows",
+        "predictions_sha256",
+    ):
         assert actions[name].required is True
+    assert "direction_odds_cap" not in actions
     source = Path(calibration.__file__).read_text(encoding="utf-8")
     assert "os.environ" not in source
     assert "foundation" not in source.lower()
@@ -798,17 +882,38 @@ def test_direction_fit_rejects_missing_classes_and_malformed_probabilities() -> 
     frame = _prediction_frame(12)
     missing = frame[frame["y_direction"] != 2]
     with pytest.raises(RuntimeError, match="missing classes"):
-        calibration._fit_direction(missing, odds_cap=2.0)
+        calibration._fit_direction(missing)
 
     malformed = frame.copy()
     malformed.loc[0, "p_long"] = 0.9
     with pytest.raises(RuntimeError, match="do not sum to one"):
-        calibration._fit_direction(malformed, odds_cap=2.0)
+        calibration._fit_direction(malformed)
 
     nonfinite = frame.copy()
     nonfinite.loc[0, "p_short"] = np.nan
     with pytest.raises(RuntimeError, match="non-finite or malformed"):
-        calibration._fit_direction(nonfinite, odds_cap=2.0)
+        calibration._fit_direction(nonfinite)
+
+
+def test_direction_fit_preserves_all_three_argmax_classes_and_rejects_ties() -> None:
+    frame = _prediction_frame(12)
+    fitted, metrics = calibration._fit_direction(frame)
+    raw = np.stack(frame["direction_logits"].to_numpy())
+    calibrated = raw / float(fitted["temperature"])
+
+    assert np.array_equal(np.argmax(raw, axis=1), np.argmax(calibrated, axis=1))
+    assert set(np.argmax(raw, axis=1).tolist()) == {0, 1, 2}
+    assert metrics["raw_calibrated_argmax_identical"] is True
+    assert "bias" not in fitted
+
+    tied = frame.copy()
+    tied_logits = np.asarray([1.0, 1.0, 0.0], dtype=np.float64)
+    tied_exp = np.exp(tied_logits - tied_logits.max())
+    tied_probabilities = tied_exp / tied_exp.sum()
+    tied.at[0, "direction_logits"] = tied_logits.tolist()
+    tied.loc[0, list(calibration.CLASS_COLUMNS)] = tied_probabilities
+    with pytest.raises(RuntimeError, match="ties fail closed"):
+        calibration._fit_direction(tied)
 
 
 def test_direction_fit_rejects_unsuccessful_optimizer(
@@ -820,13 +925,13 @@ def test_direction_fit_rejects_unsuccessful_optimizer(
         lambda *args, **kwargs: SimpleNamespace(
             success=False,
             message="synthetic optimizer failure",
-            x=np.zeros(3),
+            x=np.zeros(1),
             nit=0,
         ),
     )
 
     with pytest.raises(RuntimeError, match="optimizer failed"):
-        calibration._fit_direction(_prediction_frame(12), odds_cap=2.0)
+        calibration._fit_direction(_prediction_frame(12))
 
 
 def test_cli_requires_exactly_one_execution_mode() -> None:
@@ -840,6 +945,8 @@ def test_cli_requires_exactly_one_execution_mode() -> None:
         f"/tmp/selective_edge_predictions_{PREDICTION_STAMP}.parquet",
         "--prediction-report-json",
         f"/tmp/ENTRY_CANDIDATE_SELECTIVE_EDGE_{PREDICTION_STAMP}.json",
+        "--predictions-sha256",
+        "a" * 64,
         "--dataset-dir",
         "/tmp",
         "--model",
@@ -852,8 +959,6 @@ def test_cli_requires_exactly_one_execution_mode() -> None:
         "TEST",
         "--min-fit-rows",
         "10",
-        "--direction-odds-cap",
-        "2.0",
     ]
     with pytest.raises(SystemExit):
         parser.parse_args(base)
@@ -861,8 +966,8 @@ def test_cli_requires_exactly_one_execution_mode() -> None:
         parser.parse_args([*base, "--dry-run", "--execute"])
 
 
-@pytest.mark.parametrize("split", ["train", "test"])
-def test_cli_forbids_train_and_test_calibration_splits(split: str) -> None:
+@pytest.mark.parametrize("split", ["train", "calibration", "test"])
+def test_cli_forbids_every_non_val_calibration_split(split: str) -> None:
     parser = calibration.build_arg_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(
@@ -875,6 +980,8 @@ def test_cli_forbids_train_and_test_calibration_splits(split: str) -> None:
                 f"/tmp/selective_edge_predictions_{PREDICTION_STAMP}.parquet",
                 "--prediction-report-json",
                 f"/tmp/ENTRY_CANDIDATE_SELECTIVE_EDGE_{PREDICTION_STAMP}.json",
+                "--predictions-sha256",
+                "a" * 64,
                 "--dataset-dir",
                 "/tmp",
                 "--model",
@@ -887,8 +994,6 @@ def test_cli_forbids_train_and_test_calibration_splits(split: str) -> None:
                 "TEST",
                 "--min-fit-rows",
                 "10",
-                "--direction-odds-cap",
-                "2.0",
                 "--dry-run",
             ]
         )
