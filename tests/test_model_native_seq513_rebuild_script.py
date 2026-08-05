@@ -193,8 +193,11 @@ def test_pre_commit_model_contracts_use_capped_runner() -> None:
 def test_seq513_rebuild_caps_every_heavy_stage() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
+    # The dataset rebuild is a heavy producer over the complete population, not
+    # an audit. The pre-wave chain gave it 10G; capping it at 4G is what killed
+    # the ranker and the M1 enriched lane.
     assert (
-        'CAP=("$ENG/scripts/gx1_capped_run.sh" --class audit '
-        '--mem 4G --swap 512M --)'
+        'CAP=("$ENG/scripts/gx1_capped_run.sh" --class producer '
+        '--mem 10G --swap 512M --)'
     ) in source
     assert '"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source
