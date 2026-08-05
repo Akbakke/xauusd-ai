@@ -33,7 +33,6 @@ import json
 import math
 import os
 import re
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
@@ -412,6 +411,7 @@ def _compute_candidate_matrix(
     *,
     candidates: Sequence[str],
     source_ctx_cont: Sequence[str],
+    causal_source_parquet: Path,
 ) -> Tuple[np.ndarray, List[str]]:
     """Compute candidate values via the dataset builder's one-truth extension."""
     from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
@@ -424,22 +424,14 @@ def _compute_candidate_matrix(
         raise RuntimeError(
             f"FEATURE_RANKER_INLINE_CAUSAL_SOURCE_MISSING: {missing_inline}"
         )
-    with tempfile.NamedTemporaryFile(
-        suffix="_train_feature_ranker_common_history.parquet", delete=False
-    ) as temporary:
-        inline_source_path = Path(temporary.name)
-    try:
-        frame[inline_source_columns].to_parquet(inline_source_path, index=False)
-        matrix, names, _meta = _build_inline_seq_structure_extension(
-            frame,
-            requested_features=list(candidates),
-            ctx_cont_names=list(source_ctx_cont),
-            ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
-            source_parquet=inline_source_path,
-            source_contract_label="train_feature_ranker_common_causal_history_v2",
-        )
-    finally:
-        inline_source_path.unlink(missing_ok=True)
+    matrix, names, _meta = _build_inline_seq_structure_extension(
+        frame,
+        requested_features=list(candidates),
+        ctx_cont_names=list(source_ctx_cont),
+        ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
+        source_parquet=causal_source_parquet,
+        source_contract_label="train_feature_ranker_common_causal_history_v2",
+    )
     matrix = np.asarray(matrix, dtype=np.float32)
     index_by_name = {name: column for column, name in enumerate(names)}
     missing = [name for name in candidates if name not in index_by_name]
@@ -823,6 +815,7 @@ def main() -> None:
             frame,
             candidates=candidates,
             source_ctx_cont=source_ctx_cont,
+            causal_source_parquet=Path(source_parquet),
         )
         times, target = _direction_utility_margin_target(
             frame, train_start=train_start, train_end=train_end

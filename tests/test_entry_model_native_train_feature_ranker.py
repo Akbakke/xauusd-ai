@@ -208,6 +208,22 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
         }
     )
     captured_path: Path | None = None
+    # The price/candlestick layers read this parquet for causal EMA/derivative
+    # history and then align to the sample rows, so it must carry the earlier
+    # prefix as well as the ranked rows. One truth still holds: for every ranked
+    # timestamp its close/atr must equal the ranked frame exactly.
+    causal_source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
+    warmup = pd.DataFrame(
+        {
+            "time": pd.date_range("2025-12-31", periods=3, freq="5min", tz="UTC"),
+            "close": [97.0, 98.0, 99.0],
+            "atr": [0.7, 0.8, 0.9],
+            "open": [96.5, 97.5, 98.5],
+            "high": [97.5, 98.5, 99.5],
+            "low": [96.0, 97.0, 98.0],
+        }
+    )
+    pd.concat([warmup, frame], ignore_index=True).to_parquet(causal_source, index=False)
 
     def fake_inline(
         observed_frame,
@@ -222,8 +238,14 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
         captured_path = Path(source_parquet)
         source = pd.read_parquet(captured_path)
         assert list(source.columns) == ["time", "close", "atr", "open", "high", "low"]
-        np.testing.assert_array_equal(source["close"], observed_frame["close"])
-        np.testing.assert_array_equal(source["atr"], observed_frame["atr"])
+        assert len(source) > len(observed_frame)
+        ranked = source.set_index("time").loc[observed_frame["time"]]
+        np.testing.assert_array_equal(
+            ranked["close"].to_numpy(), observed_frame["close"].to_numpy()
+        )
+        np.testing.assert_array_equal(
+            ranked["atr"].to_numpy(), observed_frame["atr"].to_numpy()
+        )
         assert source_contract_label == "train_feature_ranker_common_causal_history_v2"
         return (
             np.arange(len(observed_frame), dtype=np.float32).reshape(-1, 1),
@@ -236,11 +258,12 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
         frame,
         candidates=["trend.fixture_candidate"],
         source_ctx_cont=[],
+        causal_source_parquet=causal_source,
     )
 
     assert names == ["trend.fixture_candidate"]
     assert values.shape == (4, 1)
-    assert captured_path is not None and not captured_path.exists()
+    assert captured_path == causal_source
 
 
 def test_emit_ranking_round_trips_through_the_real_manifest_producer(
