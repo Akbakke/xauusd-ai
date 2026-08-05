@@ -744,14 +744,26 @@ def _rss_gib() -> float:
     return -1.0
 
 
-def _log_rss(label: str) -> None:
-    """Emit the resident set at a named producer step.
+# The producer ceiling is 10 GiB and a cgroup kill leaves no traceback, no
+# checkpoint and no partial output. Failing loudly just under it turns that
+# silent death into a named error that says which step was holding the memory.
+_RSS_CEILING_GIB = 9.0
+
+
+def _log_rss(label: str, *, ceiling_gib: float = _RSS_CEILING_GIB) -> None:
+    """Emit the resident set at a named producer step and fail before the kill.
 
     A cgroup kill leaves no traceback and no checkpoint, so the only way to
     locate the peak is to record it as the stage advances.
     """
 
-    print(f"[m1_enriched_rss] {label} rss_gib={_rss_gib():.2f}", flush=True)
+    rss = _rss_gib()
+    print(f"[m1_enriched_rss] {label} rss_gib={rss:.2f}", flush=True)
+    if rss >= ceiling_gib:
+        raise RuntimeError(
+            f"M1_ENRICHED_RSS_CEILING_EXCEEDED: {label} rss_gib={rss:.2f} "
+            f"ceiling_gib={ceiling_gib:.2f}"
+        )
 
 
 def _complete_v4_owned_context(

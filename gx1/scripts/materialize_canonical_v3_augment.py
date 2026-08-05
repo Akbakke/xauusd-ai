@@ -194,7 +194,12 @@ def add_cross_tf_momentum(
     }:
         raise RuntimeError("[canonical_v3] exact M1 or M5 decision clock required")
     horizon_rows = int(pd.Timedelta(hours=1) / decision_bar_duration)
-    out = df.copy()
+    # Shallow copy: this owner only INSERTS m5h1_momentum, guarded against
+    # duplication above, and never mutates an existing column, so the result is
+    # byte-identical while the existing column buffers stay shared. A deep copy
+    # here duplicates the whole frame - about 6.6 GiB on the native M1 clock -
+    # and is what put the enriched stage over the 10G producer ceiling.
+    out = df.copy(deep=False)
     close = pd.to_numeric(out["close"], errors="coerce").to_numpy(np.float64)
     h1_atr = pd.to_numeric(
         out["_v1h1_atr"], errors="coerce"

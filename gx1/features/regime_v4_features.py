@@ -122,7 +122,14 @@ def add_regime_v4_features(
         raise RuntimeError("[REGIME_V4] frame index must be UTC")
     if df.empty or df.index.hasnans or not df.index.is_unique or not df.index.is_monotonic_increasing:
         raise RuntimeError("[REGIME_V4] frame must be non-empty, unique and chronological")
-    source = df.loc[:, REGIME_V4_SOURCE_COLS].apply(pd.to_numeric, errors="coerce")
+    # Build the numeric view in one pass instead of .loc-copy then .apply-copy.
+    # Same values, same column order, one fewer full-frame duplicate - which on
+    # the native M1 clock is 341 MB per avoided copy.
+    source = pd.DataFrame(
+        {name: pd.to_numeric(df[name], errors="coerce") for name in REGIME_V4_SOURCE_COLS},
+        index=df.index,
+        copy=False,
+    )
     source_values = source.to_numpy(dtype=np.float64)
     source_warmups = [
         validate_causal_feature_matrix(
@@ -212,8 +219,9 @@ def add_regime_v4_features(
     d1_age = suffix["d1_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)
     derived["d1_trend_age_mature_flag_v3"][source_start:] = (d1_age > 0.8).astype(np.float64)
 
-    for name, values in derived.items():
-        df[name] = values.astype(np.float32)
+    # Release each float64 buffer as it is cast, at the memory peak.
+    for name in list(derived):
+        df[name] = derived.pop(name).astype(np.float32)
     derived_values = df.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64)
     derived_start = validate_causal_feature_matrix(
         derived_values,
