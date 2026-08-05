@@ -96,6 +96,10 @@ ENRICHED_COLUMNS = tuple(
             "close",
             "volume",
             "atr",
+            # Canonical-v3 cross-timeframe momentum owner, carried on both
+            # native clocks. The M1 enriched builder declares it in the same
+            # position; the two lanes must stay resolution-symmetric.
+            "m5h1_momentum",
             *MODEL_NATIVE_BASE_FIELDS,
             *MODEL_NATIVE_CTX_CONT_FIELDS,
             *MODEL_NATIVE_CTX_CAT_FIELDS,
