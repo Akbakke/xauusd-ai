@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 import math
 import os
 import re
@@ -38,6 +39,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
+import pyarrow.parquet as pq
 import pandas as pd
 
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
@@ -424,14 +426,28 @@ def _compute_candidate_matrix(
         raise RuntimeError(
             f"FEATURE_RANKER_INLINE_CAUSAL_SOURCE_MISSING: {missing_inline}"
         )
-    matrix, names, _meta = _build_inline_seq_structure_extension(
-        frame,
-        requested_features=list(candidates),
-        ctx_cont_names=list(source_ctx_cont),
-        ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
-        source_parquet=causal_source_parquet,
-        source_contract_label="train_feature_ranker_common_causal_history_v2",
-    )
+    # The price/candlestick layers need the full causal history for their
+    # EMA/derivative warmup, but only these six columns. Materializing exactly
+    # that keeps the layer inputs bounded instead of opening the whole 189-column
+    # model source inside the 4G audit cap.
+    with tempfile.NamedTemporaryFile(
+        suffix="_train_feature_ranker_common_history.parquet", delete=False
+    ) as temporary:
+        inline_source_path = Path(temporary.name)
+    try:
+        pq.read_table(
+            causal_source_parquet, columns=inline_source_columns
+        ).to_pandas().to_parquet(inline_source_path, index=False)
+        matrix, names, _meta = _build_inline_seq_structure_extension(
+            frame,
+            requested_features=list(candidates),
+            ctx_cont_names=list(source_ctx_cont),
+            ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
+            source_parquet=inline_source_path,
+            source_contract_label="train_feature_ranker_common_causal_history_v2",
+        )
+    finally:
+        inline_source_path.unlink(missing_ok=True)
     matrix = np.asarray(matrix, dtype=np.float32)
     index_by_name = {name: column for column, name in enumerate(names)}
     missing = [name for name in candidates if name not in index_by_name]

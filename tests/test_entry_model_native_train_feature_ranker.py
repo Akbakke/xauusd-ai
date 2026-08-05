@@ -263,7 +263,11 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
 
     assert names == ["trend.fixture_candidate"]
     assert values.shape == (4, 1)
-    assert captured_path == causal_source
+    # The layers receive a bounded six-column materialization of the causal
+    # source, published under a temporary path and removed afterwards.
+    assert captured_path is not None
+    assert captured_path != causal_source
+    assert not captured_path.exists()
 
 
 def test_emit_ranking_round_trips_through_the_real_manifest_producer(
