@@ -442,7 +442,9 @@ def _add_regime_categoricals(
     )
     trend = np.full(len(d), np.nan, dtype=np.float64)
     trend[d_warmup:] = derive_model_native_trend_regime_id(d[d_warmup:])
+    _ctx_rss_mark("  rc.trend_computed")
     cv3["trend_regime_id"] = trend
+    _ctx_rss_mark("  rc.trend_assigned")
     # vol_regime_id is a distinct causal local-volatility coordinate. Absolute
     # ATR/spread buckets belong only to an explicit immutable TRAIN reference.
     # A model-agnostic canonical build intentionally omits those two fields.
@@ -450,9 +452,13 @@ def _add_regime_categoricals(
         raise RuntimeError("[REGIME] exact atr_bps/spread_bps sources missing")
     _av = cv3["atr_bps"].to_numpy(dtype=float)
     _sv = cv3["spread_bps"].to_numpy(dtype=float)
+    _ctx_rss_mark("  rc.av_sv_extracted")
     vol = causal_vol_regime_bucket(_av)
+    _ctx_rss_mark("  rc.vol_computed")
     cv3["vol_regime_id"] = vol.astype(np.int64)
+    _ctx_rss_mark("  rc.vol_assigned")
     cv3.drop(columns=["atr_bucket", "spread_bucket"], errors="ignore", inplace=True)
+    _ctx_rss_mark("  rc.dropped")
     if rank_reference is None:
         return
     cv3["atr_bucket"] = bucket_against_train_reference(
@@ -463,6 +469,7 @@ def _add_regime_categoricals(
         _sv,
         rank_reference.spread_bps_sorted,
     )
+    _ctx_rss_mark("  rc.buckets_assigned")
 
 
 # ── public API ────────────────────────────────────────────────────────────
