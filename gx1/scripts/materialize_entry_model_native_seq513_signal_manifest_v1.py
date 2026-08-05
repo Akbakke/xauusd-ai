@@ -146,6 +146,11 @@ _CURRENT_SOURCE_CASCADE_KEYS = frozenset(
         "source_parquet_path",
         "canonical_v2_path",
         "multi_tf_cache_dir",
+        # The exact parquet the V4 cache was built from, and its hash. The
+        # cascade proof uses these to prove MTF market identity, so they are
+        # part of the provenance it publishes.
+        "multi_tf_source_path",
+        "multi_tf_source_sha256",
         "pair_manifest_path",
         "pair_manifest_sha256",
         "pair_generation_id",

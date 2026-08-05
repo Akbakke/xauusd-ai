@@ -72,6 +72,8 @@ def _source_cascade_metadata(
         "canonical_v2_path": str(canonical_path),
         "canonical_v2_sha256": source_sha,
         "multi_tf_cache_dir": str(event_root / "MULTI_TF_V4_CACHE"),
+        "multi_tf_source_path": str(tmp_path / "m5_enriched.parquet"),
+        "multi_tf_source_sha256": "6" * 64,
         "multi_tf_manifest_sha256": "4" * 64,
         "multi_tf_cache_identity_sha256": "5" * 64,
         "pair_manifest_path": str(event_root / "PAIR_MANIFEST.json"),

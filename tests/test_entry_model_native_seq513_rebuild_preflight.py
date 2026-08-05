@@ -323,6 +323,8 @@ def _build_fixture(
         "canonical_v2_path": str(canonical.resolve()),
         "canonical_v2_sha256": _sha256(canonical),
         "multi_tf_cache_dir": str((tmp_path / "inputs/mtf_cache").resolve()),
+        "multi_tf_source_path": str(tmp_path / "m5_enriched.parquet"),
+        "multi_tf_source_sha256": "6" * 64,
         "multi_tf_manifest_sha256": "4" * 64,
         "multi_tf_cache_identity_sha256": "5" * 64,
         "pair_manifest_path": str(m1_pair_manifest.resolve()),

@@ -81,6 +81,8 @@ def _ranking_payload(tmp_path: Path) -> dict:
             reference.sidecar["source_parquet_sha256"]
         ),
         "multi_tf_cache_dir": str(tmp_path / "MULTI_TF_V4_CACHE"),
+        "multi_tf_source_path": str(tmp_path / "m5_enriched.parquet"),
+        "multi_tf_source_sha256": "6" * 64,
         "multi_tf_manifest_sha256": "4" * 64,
         "multi_tf_cache_identity_sha256": "5" * 64,
         "pair_manifest_path": str(tmp_path / "PAIR_MANIFEST.json"),
