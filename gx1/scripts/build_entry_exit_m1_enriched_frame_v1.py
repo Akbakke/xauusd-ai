@@ -731,6 +731,29 @@ def _load_bound_m5_cache_context(
     }
 
 
+def _rss_gib() -> float:
+    """Resident set size in GiB. Always valid wherever it is called."""
+
+    try:
+        with open("/proc/self/status", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("VmRSS:"):
+                    return float(line.split()[1]) / (1024.0 * 1024.0)
+    except OSError:
+        return -1.0
+    return -1.0
+
+
+def _log_rss(label: str) -> None:
+    """Emit the resident set at a named producer step.
+
+    A cgroup kill leaves no traceback and no checkpoint, so the only way to
+    locate the peak is to record it as the stage advances.
+    """
+
+    print(f"[m1_enriched_rss] {label} rss_gib={_rss_gib():.2f}", flush=True)
+
+
 def _complete_v4_owned_context(
     canonical_holder: "list[pd.DataFrame] | pd.DataFrame",
     *,
@@ -749,17 +772,20 @@ def _complete_v4_owned_context(
         canonical = canonical_holder.pop()
     else:
         canonical = canonical_holder
+    _log_rss("context_start")
 
     attach_model_native_mtf_scalars_v4(
         canonical,
         multi_tf=multi_tf,
         decision_bar_duration=decision_bar_duration,
     )
+    _log_rss("after_mtf_scalars")
     attach_default_regime_v4_scalars(
         canonical,
         multi_tf=multi_tf,
         decision_bar_duration=decision_bar_duration,
     )
+    _log_rss("after_regime_scalars")
     out = augment_canonical_v3_from_v4(
         canonical,
         rank_reference=rank_reference,
@@ -771,10 +797,12 @@ def _complete_v4_owned_context(
     # frame as soon as its successor exists; the caller hands ownership over in
     # a holder so no caller-side reference keeps the input alive.
     del canonical
+    _log_rss("after_augment_v3")
     out = add_cross_tf_momentum(
         out,
         decision_bar_duration=decision_bar_duration,
     )
+    _log_rss("after_cross_tf_momentum")
     if tuple(name for name in out.columns if name == "m5h1_momentum") != (
         "m5h1_momentum",
     ):
@@ -994,6 +1022,7 @@ def _build_enriched_stage(
         rank_reference=rank_reference,
         decision_bar_duration=spec["duration"],
     )
+    _log_rss("before_group_a_attach")
     enriched = attach_group_a_dip_struct_ctx_columns_parallel(
         canonical,
         multi_tf=multi_tf,
@@ -1006,7 +1035,9 @@ def _build_enriched_stage(
         base_bar_duration=spec["duration"],
     )
     del canonical, context_m5
+    _log_rss("after_group_a_attach")
     enriched = _finish_model_native_surface(enriched, timeframe=timeframe)
+    _log_rss("after_finish_surface")
     _write_output_parquet_bounded(
         enriched,
         output_stage,
