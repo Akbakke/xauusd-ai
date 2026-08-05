@@ -732,13 +732,23 @@ def _load_bound_m5_cache_context(
 
 
 def _complete_v4_owned_context(
-    canonical: pd.DataFrame,
+    canonical_holder: "list[pd.DataFrame] | pd.DataFrame",
     *,
     multi_tf: dict,
     rank_reference: object,
     decision_bar_duration: pd.Timedelta,
 ) -> pd.DataFrame:
-    """Run the sole MTF owner before every dependent context transform."""
+    """Run the sole MTF owner before every dependent context transform.
+
+    Accepts either a frame or a single-element holder list. The holder form
+    transfers ownership: the element is popped so the caller no longer keeps the
+    input frame alive while the successor frames are built.
+    """
+
+    if isinstance(canonical_holder, list):
+        canonical = canonical_holder.pop()
+    else:
+        canonical = canonical_holder
 
     attach_model_native_mtf_scalars_v4(
         canonical,
@@ -755,6 +765,12 @@ def _complete_v4_owned_context(
         rank_reference=rank_reference,
         base_bar_duration=decision_bar_duration,
     )
+    # augment_canonical_v3_from_v4 and add_cross_tf_momentum each return a new
+    # frame. On the native M1 clock one frame is ~2.7 GB, so holding the input
+    # and both results at once exceeds the 10G producer ceiling. Release each
+    # frame as soon as its successor exists; the caller hands ownership over in
+    # a holder so no caller-side reference keeps the input alive.
+    del canonical
     out = add_cross_tf_momentum(
         out,
         decision_bar_duration=decision_bar_duration,
@@ -972,9 +988,8 @@ def _build_enriched_stage(
             pair_generation_id=pair_generation_id,
         )
 
-    canonical = _load_canonical_stage(canonical_stage, timeframe=timeframe)
     canonical = _complete_v4_owned_context(
-        canonical,
+        [_load_canonical_stage(canonical_stage, timeframe=timeframe)],
         multi_tf=multi_tf,
         rank_reference=rank_reference,
         decision_bar_duration=spec["duration"],
