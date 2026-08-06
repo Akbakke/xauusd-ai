@@ -56,6 +56,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     group_features_by_specialist,
 )
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+)
 from gx1.features.htf_features import (
     HTF_V4_CACHE_SCHEMA_VERSION,
     HTF_V4_CACHE_BUILDER_VERSION,
@@ -259,24 +262,48 @@ def _feature_base_contract(
             and feature_times.is_monotonic_increasing
             and feature_times.floor(f"{bar_seconds}s").equals(feature_times)
         )
+        # The price-derived layer is undefined on the leading
+        # PRICE_DERIVED_CAUSAL_WARMUP_ROWS rows of a source frame, so a feature
+        # base cannot cover them. Before the wave those rows were emitted with
+        # synthetic zeros, which is what let the surface match the source
+        # timeline exactly; with the zero fill correctly gone, the surface begins
+        # after the warmup and the expectation moves with it.
         if timeframe == "M1":
+            # The M1 surface begins where its own declared context is complete,
+            # which is later than the Entry M5 surface: the M1 lane trims the D1
+            # warmup while the M5 lane carries it. The nesting requirement is
+            # therefore checked where BOTH clocks are defined - every Entry
+            # timestamp at or after the M1 surface begins must exist on it.
+            comparable_source_times = (
+                source_times[source_times >= feature_times[0]]
+                if len(feature_times)
+                else source_times[:0]
+            )
             time_alignment = bool(
-                len(source_times) > 0
-                and len(feature_times) >= len(source_times)
-                and source_times.isin(feature_times).all()
-                and feature_times[-1] == source_times[-1]
+                len(comparable_source_times) > 0
+                and len(feature_times) >= len(comparable_source_times)
+                and comparable_source_times.isin(feature_times).all()
+                and feature_times[-1] == comparable_source_times[-1]
             )
             time_alignment_label = (
-                "exact_m1_source_timestamp_subset_with_causal_prefix"
+                "exact_m1_source_timestamp_subset_over_common_window"
                 if time_alignment
                 else "invalid"
             )
         else:
+            # The Entry surface cannot carry the leading rows on which the
+            # price-derived layer is undefined; before the wave those were
+            # emitted as synthetic zeros, which is what made an exact match with
+            # the full source timeline possible.
+            usable_source_times = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
             time_alignment = bool(
-                len(source_times) > 0 and feature_times.equals(source_times)
+                len(usable_source_times) > 0
+                and feature_times.equals(usable_source_times)
             )
             time_alignment_label = (
-                "exact_entry_m5_source_timeline" if time_alignment else "invalid"
+                "exact_entry_m5_source_timeline_after_causal_warmup"
+                if time_alignment
+                else "invalid"
             )
         result.update(
             {

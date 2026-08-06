@@ -22,6 +22,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
 )
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+)
 from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
 )
@@ -264,9 +267,12 @@ def _build_fixture(
             "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         },
     )
+    # The producer cannot emit the leading PRICE_DERIVED_CAUSAL_WARMUP_ROWS
+    # rows, so the surface it publishes starts after that prefix.
+    m5_surface_times = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
     m5_feature_base = _write_parquet(
         tmp_path / "inputs/xauusd_m5_feature_base.parquet",
-        {"time": source_times},
+        {"time": m5_surface_times},
     )
     m5_feature_manifest_path = Path(
         str(m5_feature_base) + ".manifest.json"
@@ -280,7 +286,7 @@ def _build_fixture(
             "output_parquet": str(m5_feature_base),
             "output_parquet_sha256": _sha256(m5_feature_base),
             "pair_generation_id": "fixture-pair-generation-v1",
-            "rows": len(source_times),
+            "rows": len(m5_surface_times),
             "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
         },
     )
