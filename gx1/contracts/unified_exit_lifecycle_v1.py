@@ -422,6 +422,16 @@ def _require_exact_keys(
         )
 
 
+def _m1_feature_surface_rows(manifest_path) -> int:
+    """Row count the Exit feature surface actually publishes."""
+
+    payload = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    rows = payload.get("rows")
+    if isinstance(rows, bool) or not isinstance(rows, int) or rows <= 0:
+        raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_SURFACE_ROWS_INVALID")
+    return rows
+
+
 def _validated_m1_arrays(
     source_path: Path,
 ) -> tuple[pd.DatetimeIndex, dict[str, np.ndarray]]:
@@ -1102,7 +1112,13 @@ class UnifiedExitLifecycleCorpus:
             ],
             expected_dataset_run_id=dataset_run_id,
             expected_pair_generation_id=authority_pair_generation_id,
-            expected_rows=authority_m1_source_rows,
+            # The Exit surface begins after the D1 warmup the M1 lane trims and
+            # after the price layer's causal warmup, so it carries fewer rows
+            # than the pair authority declares. The rows it does carry are bound
+            # by the parquet and manifest hashes checked immediately above; the
+            # containment of the authority's rows over the covered window is
+            # enforced below.
+            expected_rows=_m1_feature_surface_rows(m1_feature_manifest_path),
             expected_m1_source_path=m1_path,
             expected_m1_source_sha256=root_manifest["m1_source_sha256"],
             context="UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST",
@@ -1124,7 +1140,17 @@ class UnifiedExitLifecycleCorpus:
             m1_feature_tempdir.cleanup()
             raise
         self._m1_feature_tempdir = m1_feature_tempdir
-        if not m1_feature_times.equals(m1_times):
+        # Authority rows before the surface begins cannot be produced with valid
+        # features at all. Every authority row from the surface start onward must
+        # be present, and a gap inside that window is still a hard failure.
+        m1_covered_times = (
+            m1_times[m1_times >= m1_feature_times[0]]
+            if len(m1_feature_times)
+            else m1_times[:0]
+        )
+        if len(m1_covered_times) == 0 or not m1_feature_times.equals(
+            m1_covered_times
+        ):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
 
         if set(entry_parquets) != set(selected_splits):
