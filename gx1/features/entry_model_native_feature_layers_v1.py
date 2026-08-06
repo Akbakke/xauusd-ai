@@ -55,6 +55,15 @@ from gx1.features.entry_volatility_semantics_v1 import (
 # the other route's values.
 PRICE_DERIVED_SOURCE_PRICE_FIELD = "close"
 PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
+
+# Leading rows of a source frame on which the price-derived layer is undefined.
+# ema200 carries min_periods=200 so its first valid row is index 199; the first
+# derivative (ema50_200_spread_delta) moves that to 200 and the second
+# (ema50_200_spread_accel) to 201. Sample rows must therefore begin at source
+# index 201 or later. Verified against the native M1 surface: index 200 fails
+# the layer's own finiteness gate and 201 passes.
+PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
+
 PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema50_200_spread_bps",
     "chart.local_ema50_200_spread_atr",

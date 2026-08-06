@@ -366,6 +366,7 @@ def _materialize_bounded_feature_surface(
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_NATIVE_ROUTE_INVALID")
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
+    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
         PRICE_DERIVED_FEATURE_NAMES,
         build_candlestick_derived_layer,
         build_price_derived_layer,
@@ -449,12 +450,20 @@ def _materialize_bounded_feature_surface(
         # them anyway. Those leading rows are excluded, and the subset
         # requirement still holds exactly over the span the surface covers, so a
         # gap INSIDE the window is still a hard failure.
-        covered = surface_times >= source_times[0]
+        # The price-derived layer is undefined on the first
+        # PRICE_DERIVED_CAUSAL_WARMUP_ROWS rows of any source frame, so a
+        # surface row inside that prefix cannot carry a valid EMA/derivative
+        # value. Those rows are excluded together with the ones that precede the
+        # source entirely; both are leading, and neither can be produced.
+        warmup_floor = source_times[
+            min(PRICE_DERIVED_CAUSAL_WARMUP_ROWS, len(source_times) - 1)
+        ]
+        covered = surface_times >= warmup_floor
         pre_source_rows = int(np.count_nonzero(~covered))  # noqa: F841 - manifest
         if pre_source_rows:
             if not bool(covered[pre_source_rows:].all()):
                 raise RuntimeError(
-                    "M1_FEATURE_BASE_ALIGNMENT_PRE_SOURCE_ROWS_NOT_LEADING"
+                    "M1_FEATURE_BASE_ALIGNMENT_PRE_WARMUP_ROWS_NOT_LEADING"
                 )
             surface_times = surface_times[covered]
             if len(surface_times) == 0:
@@ -717,7 +726,7 @@ def _materialize_bounded_feature_surface(
         _admit_new_file(partial_output, output)
         return {
             "rows": emitted_rows,
-            "alignment_rows_before_source_span": pre_source_rows,
+            "alignment_rows_before_causal_warmup": pre_source_rows,
             "first_surface_row_utc": str(surface_times[0]),
             "extension": extension_meta,
             "materialization": {

@@ -27,6 +27,7 @@ from gx1.features.entry_candlestick_patterns_v1 import (
     CANDLESTICK_PATTERN_FEATURE_NAMES,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
+    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     PRICE_DERIVED_FEATURE_NAMES,
     build_candlestick_derived_layer,
@@ -423,7 +424,10 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
     sequence_bars: int,
     alignment_required: bool,
 ) -> None:
-    rows = 6
+    # The producer requires PRICE_DERIVED_CAUSAL_WARMUP_ROWS of source history
+    # before the first surface row, so a six-row fixture encodes a frame from
+    # which no valid surface can be produced at all.
+    rows = PRICE_DERIVED_CAUSAL_WARMUP_ROWS + 8
     times = pd.date_range(
         "2026-03-01",
         periods=rows,
@@ -454,7 +458,7 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
     expected_times = pd.DatetimeIndex(times).as_unit("ns")
     if alignment_required:
         alignment = tmp_path / "m1_alignment.parquet"
-        expected_times = expected_times[2:]
+        expected_times = expected_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
         pd.DataFrame({"time": expected_times}).to_parquet(
             alignment,
             index=False,
