@@ -4957,10 +4957,21 @@ def main() -> None:
             errors="coerce",
         )
     ).as_unit("ns")
+    # The Exit surface begins where its own declared context is complete: after
+    # the D1 warmup the M1 lane trims and after the price layer's causal warmup.
+    # Lifecycle rows before that point cannot be produced with valid features at
+    # all. The containment requirement is unchanged in substance and is measured
+    # over the window the surface actually covers.
+    m1_comparable_source_times = (
+        m1_source_times[m1_source_times >= m1_feature_times[0]]
+        if len(m1_feature_times)
+        else m1_source_times[:0]
+    )
     if (
-        len(m1_feature_times) < len(m1_source_times)
-        or not m1_source_times.isin(m1_feature_times).all()
-        or m1_feature_times[-1] != m1_source_times[-1]
+        len(m1_comparable_source_times) == 0
+        or len(m1_feature_times) < len(m1_comparable_source_times)
+        or not m1_comparable_source_times.isin(m1_feature_times).all()
+        or m1_feature_times[-1] != m1_comparable_source_times[-1]
         or m1_feature_base_manifest.get("rows") != len(m1_feature_times)
     ):
         raise RuntimeError("DATASET_BUILDER_M1_FEATURE_BASE_TIME_MISMATCH")
