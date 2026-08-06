@@ -1262,6 +1262,20 @@ class UnifiedExitLifecycleCorpus:
                 raise RuntimeError(
                     f"UNIFIED_EXIT_LIFECYCLE_ENTRY_ROW_POINTER_INVALID: {split}"
                 )
+            if covered_offset:
+                # Episode pointers were written against the unsliced M1 clock.
+                # Both clocks now start at the covered window, so the pointers
+                # move with them. An episode whose entry precedes the feature
+                # surface cannot be served at all and is a hard failure rather
+                # than a silent drop: the declared 2021 split start is far
+                # inside the covered window, so none is expected.
+                rebased = episodes["m1_start_row"].to_numpy() - covered_offset
+                if np.any(rebased < 0):
+                    raise RuntimeError(
+                        "UNIFIED_EXIT_LIFECYCLE_EPISODE_BEFORE_FEATURE_SURFACE: "
+                        f"{split} rows={int(np.count_nonzero(rebased < 0))}"
+                    )
+                episodes = episodes.assign(m1_start_row=rebased)
             split_contract = UnifiedExitLifecycleSplit(
                 split=split,
                 entry_row_count=len(entry_times),
