@@ -123,6 +123,9 @@ from gx1.features.swing_structure_v1 import (
     SWING_LOOKBACK_V1,
     compute_swing_structure_features,
 )
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+)
 from gx1.time.session_detector import (
     ASIA_SESSION_ID,
     SESSION_NAME_BY_ID,
@@ -5039,8 +5042,14 @@ def main() -> None:
             errors="coerce",
         )
     ).as_unit("ns")
+    # The Entry surface cannot carry the leading rows on which the price-derived
+    # layer is undefined, so it is the source timeline after that warmup. Before
+    # the wave those rows reached the surface only because zero_before_ready
+    # filled them with synthetic zeros.
+    m5_usable_source_times = m5_source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
     if (
-        not m5_feature_times_expected.equals(m5_source_times)
+        len(m5_usable_source_times) == 0
+        or not m5_feature_times_expected.equals(m5_usable_source_times)
         or m5_feature_base_manifest.get("rows")
         != len(m5_feature_times_expected)
     ):
