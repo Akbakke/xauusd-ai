@@ -414,6 +414,7 @@ def _materialize_bounded_feature_surface(
         raise RuntimeError("M1_FEATURE_BASE_TIME_GEOMETRY_INVALID")
     del source_time_frame
 
+    pre_source_rows = 0
     if alignment is None:
         surface_times = source_times
         positions = np.arange(len(source_times), dtype=np.int64)
@@ -439,6 +440,27 @@ def _materialize_bounded_feature_surface(
                 "M1_FEATURE_BASE_ALIGNMENT_TIME_GEOMETRY_INVALID"
             )
         del alignment_time_frame
+        # Every emitted M1 row must carry a complete higher-timeframe context,
+        # and the widest of those is the 252-bar D1 window - about 353 calendar
+        # days, built by resampling the native M5 tape. The first M1 row that can
+        # own a full D1 window therefore lands roughly a year after the M5 source
+        # begins. Alignment rows before that point cannot be produced with valid
+        # D1 context at all; a pair generation that predates this rule asks for
+        # them anyway. Those leading rows are excluded, and the subset
+        # requirement still holds exactly over the span the surface covers, so a
+        # gap INSIDE the window is still a hard failure.
+        covered = surface_times >= source_times[0]
+        pre_source_rows = int(np.count_nonzero(~covered))  # noqa: F841 - manifest
+        if pre_source_rows:
+            if not bool(covered[pre_source_rows:].all()):
+                raise RuntimeError(
+                    "M1_FEATURE_BASE_ALIGNMENT_PRE_SOURCE_ROWS_NOT_LEADING"
+                )
+            surface_times = surface_times[covered]
+            if len(surface_times) == 0:
+                raise RuntimeError(
+                    "M1_FEATURE_BASE_ALIGNMENT_NO_ROWS_WITHIN_SOURCE_SPAN"
+                )
         positions = source_times.get_indexer(surface_times)
     if np.any(positions < 0):
         raise RuntimeError(
@@ -695,6 +717,8 @@ def _materialize_bounded_feature_surface(
         _admit_new_file(partial_output, output)
         return {
             "rows": emitted_rows,
+            "alignment_rows_before_source_span": pre_source_rows,
+            "first_surface_row_utc": str(surface_times[0]),
             "extension": extension_meta,
             "materialization": {
                 "mode": (
