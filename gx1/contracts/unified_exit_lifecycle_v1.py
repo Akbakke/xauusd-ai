@@ -1143,15 +1143,24 @@ class UnifiedExitLifecycleCorpus:
         # Authority rows before the surface begins cannot be produced with valid
         # features at all. Every authority row from the surface start onward must
         # be present, and a gap inside that window is still a hard failure.
-        m1_covered_times = (
-            m1_times[m1_times >= m1_feature_times[0]]
+        covered_offset = (
+            int(np.searchsorted(m1_times.asi8, m1_feature_times.asi8[0], "left"))
             if len(m1_feature_times)
-            else m1_times[:0]
+            else len(m1_times)
         )
+        m1_covered_times = m1_times[covered_offset:]
         if len(m1_covered_times) == 0 or not m1_feature_times.equals(
             m1_covered_times
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
+        # Both clocks are carried forward on the same covered window so every
+        # positional lookup downstream indexes the same row on both sides. A
+        # length difference here would silently mis-index the Exit path.
+        if covered_offset:
+            m1_times = m1_covered_times
+            m1_arrays = {
+                name: values[covered_offset:] for name, values in m1_arrays.items()
+            }
 
         if set(entry_parquets) != set(selected_splits):
             raise RuntimeError(
