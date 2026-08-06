@@ -1331,6 +1331,7 @@ def _enforce_canonical_train_env_contract() -> None:
         *_TRAIN_ARTIFACT_HASH_ENV.values(),
         _TRAIN_DATASET_RUN_ID_ENV,
         _TRAIN_MULTI_TF_CACHE_ENV,
+        *_TRAIN_CAPPED_SCOPE_ENV,
     }
     extra_controls = sorted(
         key
@@ -1759,6 +1760,18 @@ _TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 # cache. The launch contract emits this row; it is exact runtime identity, not
 # an ambient control.
 _TRAIN_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V4_CACHE_DIR"
+# Scope identity published by scripts/gx1_capped_run.sh, which the trainer is
+# required to run under. The runner re-reads these to verify that a nested
+# capped job matches its parent scope. They name the cgroup the process already
+# lives in - class, memory, swap and task ceiling - and none of them reaches a
+# model input, a target, a threshold or a checkpoint decision, so they are
+# runtime identity rather than ambient control.
+_TRAIN_CAPPED_SCOPE_ENV = (
+    "GX1_CAPPED_CLASS",
+    "GX1_CAPPED_MEMORY_BYTES",
+    "GX1_CAPPED_SWAP_BYTES",
+    "GX1_CAPPED_TASKS_MAX",
+)
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
     if not raw.is_absolute():
