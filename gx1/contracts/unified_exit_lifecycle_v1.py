@@ -540,8 +540,11 @@ class UnifiedExitLifecycleSplit:
             ("ctx_cat", MODEL_NATIVE_CTX_CAT_DIM),
         ):
             values = self._m1_features.get(name)
+            # The surface is the tail of the source clock from the declared
+            # offset, verified against m1_feature_times just above, so its row
+            # count is the source row count minus that offset.
             if not isinstance(values, np.ndarray) or values.shape != (
-                len(m1_times),
+                len(m1_times) - self._feature_row_offset,
                 width,
             ):
                 raise RuntimeError(
