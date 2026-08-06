@@ -349,6 +349,9 @@ def _fit(values: dict) -> dict:
 def test_lifecycle_exposes_unique_train_m1_windows_without_surface_copy() -> None:
     lifecycle = object.__new__(UnifiedExitLifecycleSplit)
     lifecycle.split = "train"
+    # This fixture's feature surface starts at the source clock's first row, so
+    # source and feature coordinates coincide.
+    lifecycle._feature_row_offset = 0
     lifecycle._selected_state = np.asarray(
         [[0, 10, -1, -1], [20, -1, -1, -1]],
         dtype=np.int16,

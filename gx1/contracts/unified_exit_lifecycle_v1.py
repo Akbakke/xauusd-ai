@@ -503,6 +503,7 @@ class UnifiedExitLifecycleSplit:
         *,
         split: str,
         entry_row_count: int,
+        feature_row_offset: int,
         episodes: pd.DataFrame,
         split_manifest: Mapping[str, Any],
         m1_times: pd.DatetimeIndex,
@@ -520,7 +521,14 @@ class UnifiedExitLifecycleSplit:
         self.entry_row_count = int(entry_row_count)
         self._m1_times = m1_times
         self._m1 = dict(m1_arrays)
-        if not m1_feature_times.equals(m1_times):
+        # The Exit feature surface begins later than the source clock, so a
+        # source row r is feature row r - feature_row_offset. The surface must
+        # be exactly the tail of the source clock from that offset; anything
+        # else is a mis-alignment and fails closed.
+        self._feature_row_offset = int(feature_row_offset)
+        if self._feature_row_offset < 0 or not m1_feature_times.equals(
+            m1_times[self._feature_row_offset :]
+        ):
             raise RuntimeError(
                 f"UNIFIED_EXIT_M1_FEATURE_SURFACE_TIME_MISMATCH: {self.split}"
             )
@@ -811,17 +819,36 @@ class UnifiedExitLifecycleSplit:
             raise RuntimeError(
                 "UNIFIED_EXIT_NORMALIZATION_LOCAL_POPULATION_INVALID"
             )
+        # This exports the FEATURE population, so every array leaves in feature
+        # coordinates. The row indices are computed against the source clock,
+        # which starts _feature_row_offset rows earlier; returning them unshifted
+        # beside the feature matrices would index the matrices at the wrong rows
+        # while the timestamps stayed right.
+        offset = self._feature_row_offset
+        local_feature_indices = local_indices - offset
+        current_feature_indices = current_indices - offset
+        if offset and (
+            local_feature_indices.size
+            and int(local_feature_indices.min()) < 0
+            or current_feature_indices.size
+            and int(current_feature_indices.min()) < 0
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_NORMALIZATION_ROW_BEFORE_FEATURE_SURFACE"
+            )
         return {
             "signal": self._m1_features["signal"],
             "ctx_cont": self._m1_features["ctx_cont"],
             "ctx_cat": self._m1_features["ctx_cat"],
-            "local_row_indices": local_indices,
-            "current_row_indices": current_indices,
+            "local_row_indices": local_feature_indices,
+            "current_row_indices": current_feature_indices,
             "current_decision_times_ns": np.asarray(
                 self._m1_times.asi8[current_indices],
                 dtype=np.int64,
             ),
-            "source_times_ns": np.asarray(self._m1_times.asi8, dtype=np.int64),
+            "source_times_ns": np.asarray(
+                self._m1_times.asi8[offset:], dtype=np.int64
+            ),
             "local_merged_intervals": tuple(merged),
         }
 
@@ -885,19 +912,20 @@ class UnifiedExitLifecycleSplit:
             source_slice = slice(start, start + length)
             current_row = start + state
             decision_time_ns[slot] = int(self._m1_times[current_row].value)
-            feature_start = current_row - EXIT_FEATURE_SEQUENCE_BARS + 1
+            feature_row = current_row - self._feature_row_offset
+            feature_start = feature_row - EXIT_FEATURE_SEQUENCE_BARS + 1
             if feature_start < 0:
                 raise RuntimeError(
                     "UNIFIED_EXIT_LIFECYCLE_M1_FEATURE_HISTORY_INSUFFICIENT"
                 )
             feature_slice = slice(
                 feature_start,
-                current_row + 1,
+                feature_row + 1,
             )
             feature_seq[slot] = self._m1_features["signal"][feature_slice]
             feature_snap[slot] = feature_seq[slot, -1]
-            feature_ctx_cont[slot] = self._m1_features["ctx_cont"][current_row]
-            feature_ctx_cat[slot] = self._m1_features["ctx_cat"][current_row]
+            feature_ctx_cont[slot] = self._m1_features["ctx_cont"][feature_row]
+            feature_ctx_cat[slot] = self._m1_features["ctx_cat"][feature_row]
             price_arrays = (
                 self._m1["bid_open"],
                 self._m1["bid_high"],
@@ -1153,14 +1181,10 @@ class UnifiedExitLifecycleCorpus:
             m1_covered_times
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
-        # Both clocks are carried forward on the same covered window so every
-        # positional lookup downstream indexes the same row on both sides. A
-        # length difference here would silently mis-index the Exit path.
-        if covered_offset:
-            m1_times = m1_covered_times
-            m1_arrays = {
-                name: values[covered_offset:] for name, values in m1_arrays.items()
-            }
+        # The source clock is NOT advanced. Episode pointers are absolute rows
+        # written against it and sealed into target_stream_sha256, so moving it
+        # would invalidate immutable evidence. The offset is carried instead and
+        # applied wherever the feature surface is indexed.
 
         if set(entry_parquets) != set(selected_splits):
             raise RuntimeError(
@@ -1262,23 +1286,10 @@ class UnifiedExitLifecycleCorpus:
                 raise RuntimeError(
                     f"UNIFIED_EXIT_LIFECYCLE_ENTRY_ROW_POINTER_INVALID: {split}"
                 )
-            if covered_offset:
-                # Episode pointers were written against the unsliced M1 clock.
-                # Both clocks now start at the covered window, so the pointers
-                # move with them. An episode whose entry precedes the feature
-                # surface cannot be served at all and is a hard failure rather
-                # than a silent drop: the declared 2021 split start is far
-                # inside the covered window, so none is expected.
-                rebased = episodes["m1_start_row"].to_numpy() - covered_offset
-                if np.any(rebased < 0):
-                    raise RuntimeError(
-                        "UNIFIED_EXIT_LIFECYCLE_EPISODE_BEFORE_FEATURE_SURFACE: "
-                        f"{split} rows={int(np.count_nonzero(rebased < 0))}"
-                    )
-                episodes = episodes.assign(m1_start_row=rebased)
             split_contract = UnifiedExitLifecycleSplit(
                 split=split,
                 entry_row_count=len(entry_times),
+                feature_row_offset=covered_offset,
                 episodes=episodes,
                 split_manifest=split_manifest,
                 m1_times=m1_times,
