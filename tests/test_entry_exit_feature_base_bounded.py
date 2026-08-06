@@ -455,10 +455,13 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
         row_group_size=2,
     )
     alignment = None
-    expected_times = pd.DatetimeIndex(times).as_unit("ns")
+    # No surface may begin inside the price layer's causal warmup, with or
+    # without an alignment file.
+    expected_times = pd.DatetimeIndex(times).as_unit("ns")[
+        PRICE_DERIVED_CAUSAL_WARMUP_ROWS:
+    ]
     if alignment_required:
         alignment = tmp_path / "m1_alignment.parquet"
-        expected_times = expected_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
         pd.DataFrame({"time": expected_times}).to_parquet(
             alignment,
             index=False,

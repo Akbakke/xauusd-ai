@@ -415,10 +415,24 @@ def _materialize_bounded_feature_surface(
         raise RuntimeError("M1_FEATURE_BASE_TIME_GEOMETRY_INVALID")
     del source_time_frame
 
+    # The price-derived layer is undefined on the first
+    # PRICE_DERIVED_CAUSAL_WARMUP_ROWS rows of any source frame, so no surface -
+    # aligned or not - may begin inside that prefix.
+    if len(source_times) <= PRICE_DERIVED_CAUSAL_WARMUP_ROWS:
+        raise RuntimeError(
+            "M1_FEATURE_BASE_SOURCE_SHORTER_THAN_CAUSAL_WARMUP: "
+            f"rows={len(source_times)} "
+            f"warmup={PRICE_DERIVED_CAUSAL_WARMUP_ROWS}"
+        )
     pre_source_rows = 0
     if alignment is None:
-        surface_times = source_times
-        positions = np.arange(len(source_times), dtype=np.int64)
+        surface_times = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
+        pre_source_rows = PRICE_DERIVED_CAUSAL_WARMUP_ROWS
+        positions = np.arange(
+            PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+            len(source_times),
+            dtype=np.int64,
+        )
     else:
         alignment_time_frame = pd.read_parquet(alignment, columns=["time"])
         surface_times = pd.DatetimeIndex(
@@ -455,9 +469,7 @@ def _materialize_bounded_feature_surface(
         # surface row inside that prefix cannot carry a valid EMA/derivative
         # value. Those rows are excluded together with the ones that precede the
         # source entirely; both are leading, and neither can be produced.
-        warmup_floor = source_times[
-            min(PRICE_DERIVED_CAUSAL_WARMUP_ROWS, len(source_times) - 1)
-        ]
+        warmup_floor = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS]
         covered = surface_times >= warmup_floor
         pre_source_rows = int(np.count_nonzero(~covered))  # noqa: F841 - manifest
         if pre_source_rows:
