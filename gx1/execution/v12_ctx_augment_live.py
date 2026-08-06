@@ -457,7 +457,15 @@ def _add_regime_categoricals(
     _ctx_rss_mark("  rc.vol_computed")
     cv3["vol_regime_id"] = vol.astype(np.int64)
     _ctx_rss_mark("  rc.vol_assigned")
-    cv3.drop(columns=["atr_bucket", "spread_bucket"], errors="ignore", inplace=True)
+    # DataFrame.drop(inplace=True) reindexes the BlockManager, which on a
+    # fragmented multi-dtype frame copies every column. On the native M1 clock
+    # this frame carries ~190 single-dtype blocks and the drop cost 2.85 GiB
+    # measured, which is what put the enriched stage over the 10G producer
+    # ceiling. `del` removes the column in place without the reindex, and these
+    # two are usually absent anyway - the drop was written with errors="ignore".
+    for _stale in ("atr_bucket", "spread_bucket"):
+        if _stale in cv3.columns:
+            del cv3[_stale]
     _ctx_rss_mark("  rc.dropped")
     if rank_reference is None:
         return
