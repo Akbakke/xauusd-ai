@@ -1234,6 +1234,15 @@ def build_multi_tf_per_bar_features_v4(
 
 
 
+# Records, per verified cache frame object, that its full-matrix validation has
+# passed. The frames are immutable for a run, so the O(frame) equality and
+# finiteness checks below need to run once per frame, not once per sample. The
+# token binds the frame's exact identity (the two cache-array data pointers,
+# length and width); any replacement or in-place change misses the token and the
+# full validation runs again. The checks themselves are unchanged.
+_HTF_FRAMES_VALIDATED: dict = {}
+
+
 def require_multi_tf_v4_frames(
     features: Mapping[str, pd.DataFrame],
 ) -> Mapping[str, pd.DataFrame]:
@@ -1257,6 +1266,16 @@ def require_multi_tf_v4_frames(
             )
         timestamps = np.asarray(frame.attrs.get("ts_int64"))
         verified = np.asarray(frame.attrs.get("feats_np"))
+        _frame_token = (
+            verified.__array_interface__["data"][0]
+            if verified.dtype == np.dtype(np.float32) else None,
+            timestamps.__array_interface__["data"][0]
+            if timestamps.dtype == np.dtype(np.int64) else None,
+            len(frame),
+            int(verified.shape[1]) if verified.ndim == 2 else -1,
+        )
+        if _HTF_FRAMES_VALIDATED.get(id(frame)) == _frame_token:
+            continue
         frame_values = frame.to_numpy(dtype=np.float32, copy=False)
         if (
             timestamps.dtype != np.dtype(np.int64)
@@ -1283,6 +1302,7 @@ def require_multi_tf_v4_frames(
             raise RuntimeError(
                 f"HTF_V4_CACHE_WARMUP_INVALID: {timeframe}"
             )
+        _HTF_FRAMES_VALIDATED[id(frame)] = _frame_token
     return features
 
 
