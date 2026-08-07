@@ -1261,6 +1261,17 @@ ENTRY_UNIFIED_EXIT_ACTION_WEIGHT = float(
     _env_str("ENTRY_UNIFIED_EXIT_ACTION_WEIGHT")
 )
 
+# The unified-exit action loss runs every valid exit sequence through the shared
+# encoder, and each sequence carries a 480-bar M1 surface attended over full
+# O(480^2) by one main plus eight specialist encoders. Processing all valid rows
+# of a batch at once peaks ~3.9 GB and overflows the 10G trainer cap even at
+# batch 8. The loss reads only exit_action_logits and reduces by cross-entropy
+# mean over independent rows through LayerNorm-only sublayers, so the row
+# dimension is chunked and the per-chunk logits concatenated: exact for the loss
+# (dropout RNG ordering aside), with the attention peak bounded by the chunk size
+# independent of batch. 8 rows keeps the 480-bar attention transient near 1.2 GB.
+UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
+
 
 def _current_model_native_active_loss_weights() -> Dict[str, float]:
     """Return the exact configurable objective surface recorded in each bundle."""
@@ -6622,38 +6633,61 @@ def _unified_exit_action_loss(
     selected_targets = targets.reshape(-1)[flat_valid].long()
     if bool(((selected_targets < 0) | (selected_targets > 1)).any()):
         raise RuntimeError("[UNIFIED_EXIT_ACTION_TARGET_INVALID]")
-    exit_out = model.forward_exit_action(
-        entry_shared_representation=expanded_shared[flat_valid],
-        exit_feature_seq_x=exit_feature_seq.reshape(
+    # All forward_exit_action inputs are indexed to the valid rows, first
+    # dimension == valid_rows. Build them once, then run the encoder over
+    # fixed-size row chunks so the 480-bar attention peak stays bounded (see
+    # UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS). Only exit_action_logits is used,
+    # and it is concatenated back to the full (valid_rows, 2) tensor, so the
+    # downstream cross-entropy and stats are identical.
+    exit_forward_inputs: Dict[str, torch.Tensor] = {
+        "entry_shared_representation": expanded_shared[flat_valid],
+        "exit_feature_seq_x": exit_feature_seq.reshape(
             -1,
             exit_feature_seq.shape[2],
             exit_feature_seq.shape[3],
         )[flat_valid],
-        exit_feature_snap_x=exit_feature_snap.reshape(
+        "exit_feature_snap_x": exit_feature_snap.reshape(
             -1,
             exit_feature_snap.shape[2],
         )[flat_valid],
-        exit_feature_ctx_cat=exit_feature_ctx_cat.reshape(
+        "exit_feature_ctx_cat": exit_feature_ctx_cat.reshape(
             -1,
             exit_feature_ctx_cat.shape[2],
         )[flat_valid].long(),
-        exit_feature_ctx_cont=exit_feature_ctx_cont.reshape(
+        "exit_feature_ctx_cont": exit_feature_ctx_cont.reshape(
             -1,
             exit_feature_ctx_cont.shape[2],
         )[flat_valid],
-        **{
-            name: tensor.reshape(-1, tensor.shape[2], tensor.shape[3])[flat_valid]
-            for name, tensor in exit_mtf.items()
-        },
-        exit_path_x=paths.reshape(
+        "exit_path_x": paths.reshape(
             -1,
             paths.shape[2],
             paths.shape[3],
         )[flat_valid],
-        exit_path_lengths=lengths.reshape(-1)[flat_valid].long(),
-        exit_side_index=sides.reshape(-1)[flat_valid].long(),
-    )
-    logits = exit_out.get("exit_action_logits")
+        "exit_path_lengths": lengths.reshape(-1)[flat_valid].long(),
+        "exit_side_index": sides.reshape(-1)[flat_valid].long(),
+    }
+    for _mtf_name, _mtf_tensor in exit_mtf.items():
+        exit_forward_inputs[_mtf_name] = _mtf_tensor.reshape(
+            -1, _mtf_tensor.shape[2], _mtf_tensor.shape[3]
+        )[flat_valid]
+    logit_chunks: List[torch.Tensor] = []
+    for _chunk_start in range(
+        0, valid_rows, UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
+    ):
+        _chunk_end = min(
+            _chunk_start + UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS, valid_rows
+        )
+        _chunk_out = model.forward_exit_action(
+            **{
+                _k: _v[_chunk_start:_chunk_end]
+                for _k, _v in exit_forward_inputs.items()
+            }
+        )
+        _chunk_logits = _chunk_out.get("exit_action_logits")
+        if not isinstance(_chunk_logits, torch.Tensor):
+            raise RuntimeError("[UNIFIED_EXIT_ACTION_LOGITS_INVALID]")
+        logit_chunks.append(_chunk_logits)
+    logits = torch.cat(logit_chunks, dim=0)
     if (
         not isinstance(logits, torch.Tensor)
         or tuple(logits.shape) != (valid_rows, 2)

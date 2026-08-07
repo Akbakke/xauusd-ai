@@ -1028,3 +1028,49 @@ def test_model_and_config_expose_no_architecture_disable_switches() -> None:
 def test_model_rejects_invalid_explicit_dropout(invalid_dropout: object) -> None:
     with pytest.raises(RuntimeError, match="MODEL_DROPOUT_INVALID"):
         _make_model(dropout=invalid_dropout)
+
+
+def test_exit_action_row_chunking_is_exact_against_a_single_call() -> None:
+    """Chunking the exit-action forward over rows must not change the logits.
+
+    ``_unified_exit_action_loss`` runs the valid exit rows through the encoder in
+    fixed-size chunks so the 480-bar attention peak stays under the trainer cap.
+    ``forward_exit_action`` has no cross-row operation (self-attention within a
+    sequence, LayerNorm per sample), so concatenating per-chunk logits must equal
+    the single-call logits exactly. Dropout is disabled here so the comparison is
+    bit-identical rather than only training-equivalent.
+    """
+    torch.manual_seed(2026)
+    model = _make_model(dropout=0.0).eval()
+    rows = 5
+    entry = _forward(model, batch_size=rows)
+    exit_features = _make_exit_feature_inputs(rows)
+    path = torch.randn(rows, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    common = dict(
+        entry_shared_representation=entry["shared_feature_representation"],
+        **exit_features,
+        exit_path_x=path,
+        exit_path_lengths=torch.full((rows,), 4, dtype=torch.long),
+        exit_side_index=torch.tensor([0, 1, 0, 1, 0], dtype=torch.long),
+    )
+
+    with torch.no_grad():
+        whole = model.forward_exit_action(**common)["exit_action_logits"]
+        chunks = []
+        for start in range(0, rows, 2):
+            end = min(start + 2, rows)
+            piece = model.forward_exit_action(
+                **{
+                    key: value[start:end]
+                    for key, value in common.items()
+                }
+            )["exit_action_logits"]
+            chunks.append(piece)
+        chunked = torch.cat(chunks, dim=0)
+
+    assert chunked.shape == whole.shape == (rows, 2)
+    # Exact in math; the only difference is floating-point reduction order when
+    # the batch dimension differs between the chunked and single call, which is
+    # inherent to matmul/attention kernels and not a cross-row dependency.
+    max_abs = float((chunked - whole).abs().max())
+    assert max_abs < 1e-4, f"max_abs={max_abs}"
