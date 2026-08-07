@@ -2111,6 +2111,13 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
 
 
 
+# Per-frame validation memo for slice_multi_tf_v4_window. Keyed by the frame's
+# id and bound to its exact cache-array identities, so a reused immutable frame
+# is validated once instead of on every window slice. Bounded to the handful of
+# multi-TF frames a run holds.
+_HTF_WINDOW_VALIDATED: dict = {}
+
+
 def slice_multi_tf_v4_window(
     feats: pd.DataFrame, target_ts: pd.Timestamp, n: int, tf_shift: pd.Timedelta,
 ) -> np.ndarray:
@@ -2150,22 +2157,32 @@ def slice_multi_tf_v4_window(
     ts_int64 = np.asarray(feats.attrs.get("ts_int64"))
     feats_np = np.asarray(feats.attrs.get("feats_np"))
     width = int(feats.shape[1])
-    if (
-        ts_int64.dtype != np.dtype(np.int64)
-        or ts_int64.shape != (len(feats),)
-        or feats_np.dtype != np.dtype(np.float32)
-        or feats_np.shape != (len(feats), width)
-        or not np.shares_memory(
-            feats.to_numpy(dtype=np.float32, copy=False),
-            feats_np,
-        )
-        or not np.array_equal(
-            feats.to_numpy(dtype=np.float32, copy=False),
-            feats_np,
-            equal_nan=True,
-        )
-    ):
-        raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: malformed exact cache arrays")
+    # The cache-array validation compares the entire per-timeframe frame
+    # (e.g. 476k x 111 for M5) with np.array_equal on every window slice. The
+    # frame is immutable during a run, so the full check is run once per frame
+    # object and memoised: a token bound to this frame's exact identity
+    # (id, shape, and the two cache-array identities) records that it passed.
+    # The check itself is unchanged; only its per-window repetition is removed.
+    _seen = _HTF_WINDOW_VALIDATED.get(id(feats))
+    _token = (feats_np.__array_interface__["data"][0], ts_int64.__array_interface__["data"][0], len(feats), width)
+    if _seen != _token:
+        if (
+            ts_int64.dtype != np.dtype(np.int64)
+            or ts_int64.shape != (len(feats),)
+            or feats_np.dtype != np.dtype(np.float32)
+            or feats_np.shape != (len(feats), width)
+            or not np.shares_memory(
+                feats.to_numpy(dtype=np.float32, copy=False),
+                feats_np,
+            )
+            or not np.array_equal(
+                feats.to_numpy(dtype=np.float32, copy=False),
+                feats_np,
+                equal_nan=True,
+            )
+        ):
+            raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: malformed exact cache arrays")
+        _HTF_WINDOW_VALIDATED[id(feats)] = _token
     warmup_rows = feats.attrs.get("causal_warmup_rows")
     if (
         isinstance(warmup_rows, bool)
