@@ -6830,7 +6830,10 @@ def train_epoch(
 
     log.info("[TRAIN_RSS] epoch_start rss_gib=%.2f", _train_rss_gib())
     _first_batch_logged = False
+    _batch_i = 0
     for batch in loader:
+        _batch_i += 1
+        log.info("[TRAIN_STEP] batch=%d begin rss_gib=%.2f", _batch_i, _train_rss_gib())
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
         non_blocking = device.type == "cuda"
@@ -7248,16 +7251,19 @@ def train_epoch(
             )
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
         # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
+        log.info("[TRAIN_STEP] batch=%d loss_ready rss_gib=%.2f", _batch_i, _train_rss_gib())
         if _accum_steps > 1:
             (loss / float(_accum_steps)).backward()
         else:
             loss.backward()
+        log.info("[TRAIN_STEP] batch=%d backward_done rss_gib=%.2f", _batch_i, _train_rss_gib())
         _accum_count += 1
         if _accum_count >= _accum_steps:
             torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             _accum_count = 0
+            log.info("[TRAIN_STEP] batch=%d step_done", _batch_i)
 
         bs = y.shape[0]
         total += float(loss) * bs
