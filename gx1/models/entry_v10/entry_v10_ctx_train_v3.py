@@ -6679,6 +6679,18 @@ def _unified_exit_action_loss(
     }
 
 
+
+def _train_rss_gib() -> float:
+    try:
+        with open("/proc/self/status", encoding="utf-8") as fh:
+            for ln in fh:
+                if ln.startswith("VmRSS:"):
+                    return float(ln.split()[1]) / (1024.0 * 1024.0)
+    except OSError:
+        return -1.0
+    return -1.0
+
+
 def train_epoch(
     model,
     loader,
@@ -6782,7 +6794,11 @@ def train_epoch(
     unified_exit_now_rows = 0
     unified_exit_correct = 0
 
+    log.info("[TRAIN_RSS] epoch_start rss_gib=%.2f", _train_rss_gib())
+    _first_batch_logged = False
     for batch in loader:
+        if not _first_batch_logged:
+            log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
         non_blocking = device.type == "cuda"
         seq_x = batch["seq_x"].to(device, non_blocking=non_blocking)
         snap_x = batch["snap_x"].to(device, non_blocking=non_blocking)
@@ -6810,6 +6826,8 @@ def train_epoch(
 
         # Grad accum: zero_grad happens AFTER step (or at start of epoch).
         # See loss.backward() / optimizer.step() block below for the gated step.
+        if not _first_batch_logged:
+            log.info("[TRAIN_RSS] before_forward rss_gib=%.2f", _train_rss_gib())
         out = _model_forward_fp32(
             model,
             seq_x,
@@ -6818,6 +6836,8 @@ def train_epoch(
             ctx_cont=ctx_cont,
             **_multi_tf_kwargs_from_batch(batch, seq_x.device),
         )
+        if not _first_batch_logged:
+            log.info("[TRAIN_RSS] before_exit_loss rss_gib=%.2f", _train_rss_gib())
         unified_exit_loss, unified_exit_stats = _unified_exit_action_loss(
             model,
             out,
@@ -6890,6 +6910,9 @@ def train_epoch(
             residual_hard_neg_short,
         ).to(device=ce_per.device, dtype=ce_per.dtype)
         ce_loss_raw = (ce_per * ce_sample_weight).mean()
+        if not _first_batch_logged:
+            log.info("[TRAIN_RSS] after_forward_losses rss_gib=%.2f", _train_rss_gib())
+            _first_batch_logged = True
         ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
         tail_direction_loss = torch.tensor(0.0, device=device)
