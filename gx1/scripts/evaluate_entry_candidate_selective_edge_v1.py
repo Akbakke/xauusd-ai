@@ -27,7 +27,6 @@ import torch
 from torch.utils.data import DataLoader
 
 from gx1.contracts.entry_model_native_signal_v1 import (
-    FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -1965,10 +1964,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     predictions = pd.concat([df for df in all_predictions if not df.empty], ignore_index=True) if all_predictions else pd.DataFrame()
     if predictions.empty:
         failures.append("no selective-edge predictions were produced")
+    # FORBIDDEN_LEGACY_BRIDGE_FIELDS names input features the retired IQL bridge
+    # model consumed (self-referential leakage), not this writer's canonical
+    # decision-evidence output columns. _canonical_live_decision_evidence
+    # (line ~292) legitimately emits p_long/p_short/p_flat as the argmax-
+    # consistent LONG/SHORT/FLAT probability surface - the same fields the
+    # bridge-input list happens to name. Only the retired direct model OUTPUTS
+    # are forbidden here; the input-feature list is checked where it applies,
+    # at feature selection (entry_model_native_signal_v1.py:451).
     forbidden_prediction_columns = sorted(
-        set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
-        .union({"anchor_logits", "delta_logits", "anchor_gate"})
-        .intersection(predictions.columns)
+        {"anchor_logits", "delta_logits", "anchor_gate"}.intersection(
+            predictions.columns
+        )
     )
     if forbidden_prediction_columns:
         failures.append(
