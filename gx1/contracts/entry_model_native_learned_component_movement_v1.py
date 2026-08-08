@@ -21,6 +21,13 @@ PARAMETER_SHAPES = {
     "evidence_fusion_in.bias": [HIDDEN_DIM],
     "evidence_fusion_out.weight": [OUTPUT_DIM, HIDDEN_DIM],
     "evidence_fusion_out.bias": [OUTPUT_DIM],
+    # The specialist cross-attention residual output. Zero-initialized by
+    # design, so post-training movement here proves the eight-family branch
+    # received gradients and left initialization. Movement is necessary, not
+    # sufficient, for margin influence; a run whose specialist branch never
+    # moved fails closed instead of passing silently.
+    "specialist_out.weight": [HIDDEN_DIM, HIDDEN_DIM],
+    "specialist_out.bias": [HIDDEN_DIM],
 }
 COMPONENT_PARAMETERS = {
     "evidence_fusion_norm": (
@@ -34,6 +41,10 @@ COMPONENT_PARAMETERS = {
     "evidence_fusion_out": (
         "evidence_fusion_out.weight",
         "evidence_fusion_out.bias",
+    ),
+    "specialist_out": (
+        "specialist_out.weight",
+        "specialist_out.bias",
     ),
 }
 

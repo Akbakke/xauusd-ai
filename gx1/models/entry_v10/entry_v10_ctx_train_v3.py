@@ -10485,21 +10485,38 @@ def run_train(
         ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP,
     )
     # 2026-05-26: SYMMETRIC + sqrt-softened directional class weights. The old
-    # per-side inverse-frequency weights made the model over-predict SHORT (short
-    # rarer → higher weight: 4.67 vs long 4.22) AND over-predict direction vs flat
-    # (4.5 vs 1.0). With the re-balanced labels (~18/18/63) that aggressive scheme
-    # over-corrects. Fix: ONE shared directional weight from the COMBINED directional
-    # rate (removes long/short asymmetry), sqrt-softened (shrinks the directional-vs-
-    # flat gap). One shared cap clamps both directions. flat stays 1.0.
-    _dir_rate = 0.5 * (float(train_long_rate) + float(train_short_rate))
-    _raw_dir = ((1.0 - _dir_rate) / max(_dir_rate, 1e-9)) if _dir_rate > 0.0 else 1.0
-    _dir_w = float(np.sqrt(max(_raw_dir, 1.0)))  # sqrt-soften; >=1
-    raw_long_class_weight = _raw_dir   # kept for the proof log
-    raw_short_class_weight = _raw_dir
-    long_class_weight = float(
-        min(float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP), max(1.0, _dir_w))
+    # 2026-05-26 pooled ONE shared directional weight because RAW per-side
+    # inverse-frequency weights (4.67 vs 4.22, unsoftened) over-predicted SHORT.
+    # Measured on V27 (2026-08-08): the sqrt-softening is what fixed the
+    # direction-vs-flat overcorrection, while the POOLING is what now lets the
+    # TRAIN label prior (LONG 20.4% vs SHORT 18.4%) pass through unneutralized
+    # at CE scale 12 - a 0.80-nat/step bias tilt against SHORT that argmax
+    # amplified into 53.9/5.9/40.2 on VAL. Keep the softening, restore per-class
+    # neutralization: the same sqrt((1-r)/r) convention this block already uses,
+    # applied per class, so w_k * r_k equalizes between LONG and SHORT by
+    # construction. One shared cap clamps both directions. flat stays 1.0.
+    raw_long_class_weight = (
+        (1.0 - float(train_long_rate)) / max(float(train_long_rate), 1e-9)
+        if float(train_long_rate) > 0.0
+        else 1.0
     )
-    short_class_weight = long_class_weight
+    raw_short_class_weight = (
+        (1.0 - float(train_short_rate)) / max(float(train_short_rate), 1e-9)
+        if float(train_short_rate) > 0.0
+        else 1.0
+    )
+    long_class_weight = float(
+        min(
+            float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP),
+            max(1.0, float(np.sqrt(max(raw_long_class_weight, 1.0)))),
+        )
+    )
+    short_class_weight = float(
+        min(
+            float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP),
+            max(1.0, float(np.sqrt(max(raw_short_class_weight, 1.0)))),
+        )
+    )
     flat_class_weight = float(max(float(ENTRY_FLAT_CLASS_WEIGHT_FLOOR), 1.0))
     log.info(
         "[ENTRY_BAD_PATH_BALANCE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",

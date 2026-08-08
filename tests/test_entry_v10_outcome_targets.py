@@ -722,6 +722,7 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
     split_end = source["time"].iloc[-1] + pd.Timedelta(minutes=1)
 
     episodes, proof = build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
         entry_rows=entries,
         closed_m1=source,
         split_end=split_end,
@@ -729,6 +730,7 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
         market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
     repeated, repeated_proof = build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
         entry_rows=entries,
         closed_m1=source,
         split_end=split_end,
@@ -771,6 +773,7 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
     gapped = source.drop(index=200).reset_index(drop=True)
 
     episodes, proof = build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
         entry_rows=entries,
         closed_m1=gapped,
         split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
@@ -784,6 +787,7 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
     )
     with pytest.raises(RuntimeError, match="MARKET_CLOSURE_PROOF_REQUIRED"):
         build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
             entry_rows=entries,
             closed_m1=gapped,
             split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
@@ -795,6 +799,7 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
         match="UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES",
     ):
         build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
             entry_rows=entries,
             closed_m1=source,
             split_end=source["time"].iloc[400],
@@ -815,6 +820,7 @@ def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
 
     with pytest.raises(RuntimeError, match="PRICE_SCALE_GLITCH"):
         build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
             entry_rows=entries,
             closed_m1=source,
             split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
@@ -867,6 +873,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         entries.to_parquet(entry_path, index=False)
         entry_paths[split] = entry_path
         episodes, proof = build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
             entry_rows=entries,
             closed_m1=source,
             split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),

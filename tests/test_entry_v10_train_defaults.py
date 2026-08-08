@@ -2652,7 +2652,7 @@ def test_entry_v10_train_model_uses_exact_evidence_fusion_contract() -> None:
         assert retired not in train_ctor
 
 
-def test_entry_v10_evidence_fusion_movement_proof_has_exact_six_parameter_schema() -> None:
+def test_entry_v10_evidence_fusion_movement_proof_has_exact_eight_parameter_schema() -> None:
     import pytest
 
     from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
@@ -2669,7 +2669,9 @@ def test_entry_v10_evidence_fusion_movement_proof_has_exact_six_parameter_schema
         selected_checkpoint_epoch=4,
     )
 
-    assert len(PARAMETER_SHAPES) == 6
+    # Six evidence-fusion parameters plus the zero-initialized specialist_out
+    # pair: movement there proves the eight-family branch left initialization.
+    assert len(PARAMETER_SHAPES) == 8
     assert set(proof["parameter_deltas"]) == set(PARAMETER_SHAPES)
     assert all(row["changed"] is True for row in proof["parameter_deltas"].values())
     assert proof["component_changed"] == {name: True for name in COMPONENT_PARAMETERS}

@@ -163,6 +163,7 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     unified_exit_future_extrema as _unified_exit_future_extrema,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    EXIT_FEATURE_SEQUENCE_BARS,
     ENTRY_DECISION_BAR_SECONDS,
     ENTRY_EXIT_RESOLUTION_RATIO,
     EXIT_DECISION_BAR_SECONDS,
@@ -1736,6 +1737,7 @@ def build_unified_exit_lifecycle_episodes(
     split_end: pd.Timestamp | str,
     target_lookahead_m1_steps: int,
     market_closure_contract: str,
+    min_m1_start_row: int,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Build compact, replayable Exit episodes for every Entry row and side.
 
@@ -1927,6 +1929,17 @@ def build_unified_exit_lifecycle_episodes(
                 )
             target_counts[UNIFIED_EXIT_ACTION_ORDER[0]] += hold_count
             target_counts[UNIFIED_EXIT_ACTION_ORDER[1]] += exit_count
+            if int(start_row) < int(min_m1_start_row):
+                # The Exit trainer slices EXIT_FEATURE_SEQUENCE_BARS of feature
+                # history behind every decision row; an episode starting before
+                # the feature surface's floor cannot be served and would fail at
+                # corpus construction. Fail here, at build time, with the count.
+                raise RuntimeError(
+                    "UNIFIED_EXIT_EPISODE_BEFORE_FEATURE_FLOOR: "
+                    f"start_row={int(start_row)} "
+                    f"min_m1_start_row={int(min_m1_start_row)} "
+                    f"entry_row_index={int(entry_row_index)}"
+                )
             target_counts["TIED_OMITTED"] += tied_count
             target_stream.update(
                 np.asarray(
@@ -5282,6 +5295,13 @@ def main() -> None:
             .resolve(),
         )
         _log_label_distribution_proof(df_built, split=split_name)
+        # The Exit feature surface begins covered_offset rows into the M1
+        # source clock, and the trainer needs EXIT_FEATURE_SEQUENCE_BARS of
+        # surface history behind every decision row. Episodes below that floor
+        # cannot be served; guard at build time instead of trainer time.
+        _m1_covered_offset = len(m1_source_times) - len(
+            m1_comparable_source_times
+        )
         lifecycle_episodes, lifecycle_proof = (
             build_unified_exit_lifecycle_episodes(
                 entry_rows=df_built,
@@ -5291,6 +5311,9 @@ def main() -> None:
                 market_closure_contract=m1_lifecycle_authority[
                     "native_m1_market_closure_contract"
                 ],
+                min_m1_start_row=(
+                    _m1_covered_offset + EXIT_FEATURE_SEQUENCE_BARS - 1
+                ),
             )
         )
         lifecycle_parquet = (
