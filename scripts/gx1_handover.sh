@@ -19,6 +19,7 @@ sources=(
   "$HANDOVER"
   "$REPO/docs/DATA_CONTRACT.md"
   "$REPO/docs/GIT_WORKTREE_POLICY.md"
+  "$REPO/docs/RECIPE_DECISION_DRAFT_20260808.md"
   "$LAUNCH_STATE"
 )
 
