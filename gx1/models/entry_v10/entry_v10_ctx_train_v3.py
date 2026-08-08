@@ -6670,13 +6670,22 @@ def _unified_exit_action_loss(
         exit_forward_inputs[_mtf_name] = _mtf_tensor.reshape(
             -1, _mtf_tensor.shape[2], _mtf_tensor.shape[3]
         )[flat_valid]
+    # The chunk bound exists for the 10G host-RSS ceiling: on CPU the whole
+    # 480-bar attention graph lives in RAM, so rows are processed 8 at a time.
+    # On CUDA the graph lives in VRAM under gradient checkpointing - measured
+    # peak 0.17 GB at 128 rows with contract shapes, linear in rows, against
+    # 24 GB capacity - so the whole valid set runs in one call, which is the
+    # original pre-chunk semantics restored on the device that affords it.
+    _chunk_rows = (
+        valid_rows
+        if shared.device.type == "cuda"
+        else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
+    )
     logit_chunks: List[torch.Tensor] = []
     for _chunk_start in range(
-        0, valid_rows, UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
+        0, valid_rows, _chunk_rows
     ):
-        _chunk_end = min(
-            _chunk_start + UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS, valid_rows
-        )
+        _chunk_end = min(_chunk_start + _chunk_rows, valid_rows)
         _chunk_out = model.forward_exit_action(
             **{
                 _k: _v[_chunk_start:_chunk_end]
