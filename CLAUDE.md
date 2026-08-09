@@ -200,7 +200,12 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 Every heavy offline producer, dataset build, audit, train, selective-edge run
 or replay enters through `scripts/gx1_capped_run.sh`. That runner is the only
 capacity authority: one heavy job at a time, `MemoryMax`/`MemoryHigh` at most
-10G for the heavy dataset producers and the canonical trainer, and 4G for
+20G for the heavy dataset producers and the canonical trainer (raised from 10G
+on 2026-08-09: real batch=640 candidate-training measurement, not a
+misclassification workaround, showed a 640-row batch's pre-step host RSS
+baseline alone is ~10.1G on the repaired V27 substrate, leaving no headroom
+under the old ceiling even before a single training step; host has 31G total
+in the WSL VM, so 20G leaves 11G for everything else), and 4G for
 audits/tests, swap at most 512M, a
 minimum of 20G host-available RAM before launch, CPU affinity 0-1 and one
 numerical-library thread. Any request above those limits, missing host state,

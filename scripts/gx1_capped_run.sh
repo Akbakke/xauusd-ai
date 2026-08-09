@@ -6,12 +6,17 @@
 # Usage: scripts/gx1_capped_run.sh --class audit|trainer [--mem 4G] [--swap 512M] -- <command ...>
 #   --class audit is capped at 4G and cannot launch the trainer.
 #   --class producer is for the heavy offline dataset producers (feature lanes,
-#           model source, ranker, dataset rebuild) and may request at most 10G.
+#           model source, ranker, dataset rebuild) and may request at most 20G.
 #           It cannot launch the trainer.
 #   --class trainer is reserved for the one canonical trainer module and may
-#           request at most 10G.
+#           request at most 20G.
 #   --mem   MemoryMax (hard) + MemoryHigh for the job's cgroup scope. This machine's
-#           immutable safety ceiling is 10G; larger requests are rejected before launch.
+#           immutable safety ceiling is 20G (the same figure already used below as
+#           MIN_AVAILABLE_MEMORY_KIB, the pre-launch available-RAM gate); larger
+#           requests are rejected before launch. Raised from 10G on 2026-08-09 after
+#           real batch=640 candidate-training measurement showed a 640-row batch's
+#           pre-step host RSS baseline alone is ~10.1G, leaving no headroom under the
+#           old ceiling; host has 31G total, so 20G leaves 11G for everything else.
 #   --swap  MemorySwapMax. The immutable safety ceiling is 512M; swap storms are forbidden.
 # The runner also requires >=20G currently available RAM, serializes heavy jobs, binds the
 # job to two CPU cores, lowers its CPU/I/O priority, and constrains common numerical
@@ -26,7 +31,7 @@ RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 
-SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))
+SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))
 SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))
 SAFE_JOB_SWAP_KIB=$((512 * 1024))
 MIN_HOST_MEMORY_KIB=$((30 * 1024 * 1024))
@@ -125,7 +130,7 @@ done
 requested_mem_kib=$(size_to_kib "$MEM")
 requested_swap_kib=$(size_to_kib "$SWAP")
 if (( requested_mem_kib > SAFE_JOB_MEMORY_KIB )); then
-  echo "FATAL: requested MemoryMax exceeds GX1 safety ceiling (10G)" >&2
+  echo "FATAL: requested MemoryMax exceeds GX1 safety ceiling (20G)" >&2
   exit 75
 fi
 if [[ "$JOB_CLASS" == "audit" ]] && (( requested_mem_kib > SAFE_AUDIT_MEMORY_KIB )); then

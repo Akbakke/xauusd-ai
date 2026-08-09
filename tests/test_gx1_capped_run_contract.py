@@ -137,7 +137,7 @@ def test_trainer_class_requires_exactly_one_train_flag(
     ("job_class", "memory", "swap", "expected"),
     [
         ("audit", "5G", "512M", "audit jobs may request at most 4G"),
-        ("trainer", "11G", "512M", "safety ceiling (10G)"),
+        ("trainer", "21G", "512M", "safety ceiling (20G)"),
         ("audit", "4G", "1G", "safety ceiling (512M)"),
     ],
 )
@@ -163,7 +163,7 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     source = RUNNER.read_text(encoding="utf-8")
 
     assert "SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))" in source
-    assert "SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))" in source
+    assert "SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))" in source
     assert "SAFE_JOB_SWAP_KIB=$((512 * 1024))" in source
     assert "exec 9>>\"$LOCK_PATH\"" in source
     assert "flock -n 9" in source

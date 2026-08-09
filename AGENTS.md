@@ -64,7 +64,8 @@ do not modify or delete it.
 ## Machine safety
 
 Every heavy command uses `scripts/gx1_capped_run.sh`: 4G for audits/tests and
-at most 10G for the canonical trainer, 512 MiB swap, CPU 0-1, one job at a
+at most 20G for the canonical trainer (raised from 10G 2026-08-09 on real
+batch=640 RSS measurement, see CLAUDE.md), 512 MiB swap, CPU 0-1, one job at a
 time. Communicate before any run lasting more than a minute. Never launch live,
 paper, broker, dashboard, collector, notifier or adaptation work. Do not stop
 pre-existing processes unless the user explicitly authorizes that action.

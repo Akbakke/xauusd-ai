@@ -78,9 +78,13 @@ Complexity must live in the existing owners; unnecessary code is deleted.
 - Use `scripts/gx1_capped_run.sh` for every heavy producer, audit, train or
   replay. Run one job at a time on CPU cores 0-1 with 512 MiB swap.
 - Ordinary audits/tests use at most 4G. The heavy offline dataset producers
-  run as `--class producer` and may use at most 10G. The canonical trainer may
-  use at most 10G. Never increase a cap as a workaround; misclassifying a heavy
-  producer as an audit is a defect, not a reason to raise a ceiling.
+  run as `--class producer` and may use at most 20G. The canonical trainer may
+  use at most 20G (raised from 10G on 2026-08-09 on real batch=640
+  measurement: pre-step host RSS baseline alone was ~10.1G, before any
+  training step; see CLAUDE.md Host-capacity hard stop for the evidence).
+  Never increase a cap as a workaround; misclassifying a heavy producer as an
+  audit is a defect, not a reason to raise a ceiling — this was a correctly
+  classified trainer job proven to need more headroom, not a misclassification.
 - Feature producers run with exactly one worker. Model DataLoaders run with
   exactly zero subprocess workers. Canonical training is deterministic FP32;
   compile, autocast, TF32 and ambient fast-mode switches are forbidden.

@@ -68,7 +68,7 @@ runtime and verification surface used by the current Python 3.10.12 checkout.
 ## Resource safety
 
 All heavy work runs through `scripts/gx1_capped_run.sh`, one job at a time.
-Audits/tests are capped at 4G; canonical training is capped at 10G; swap is
+Audits/tests are capped at 4G; canonical training is capped at 20G; swap is
 512 MiB and CPU affinity is 0-1. Feature producers use one worker and model
 DataLoaders use zero subprocess workers. Training has one deterministic FP32
 path; compile, autocast, TF32 and runtime-selected fast modes are forbidden.

@@ -159,7 +159,7 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "exit 75" in source
     assert "systemd-run --user --scope --quiet" in source
     assert "exec systemd-run" not in source
-    assert "SAFE_JOB_MEMORY_KIB=$((10 * 1024 * 1024))" in source
+    assert "SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))" in source
     assert "SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))" in source
     assert "SAFE_JOB_SWAP_KIB=$((512 * 1024))" in source
     assert "MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))" in source

@@ -150,7 +150,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         "RUN_CURRENT_PAIR_SHARED_FEATURE_DATASET_CHAIN_THEN_BOUNDED_SMOKE"
         in result.stdout
     )
-    assert "capacity: audits=4G training_max=10G swap=512M" in result.stdout
+    assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
     assert "model-native-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout

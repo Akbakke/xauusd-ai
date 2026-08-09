@@ -109,7 +109,7 @@ environment controls stop closed.
 ## Resource contract
 
 Large producers and all model runs use `scripts/gx1_capped_run.sh`, one at a
-time. Tests/audits are capped at 4G; heavy dataset producers and canonical training at 10G; swap at 512 MiB
+time. Tests/audits are capped at 4G; heavy dataset producers at 10G; canonical training at 20G; swap at 512 MiB
 and CPU at 0-1. Feature production uses one worker; model DataLoaders use zero
 subprocess workers. Training is deterministic FP32 without compile, autocast or
 TF32. Memmap scheduling is fixed in source, not environment-tunable. Generated
