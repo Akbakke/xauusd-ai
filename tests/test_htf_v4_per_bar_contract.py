@@ -88,7 +88,9 @@ def test_v4_candlestick_names_come_from_the_owner() -> None:
 def test_v4_rejects_missing_volume_and_non_m5_cache_source() -> None:
     bars = _bars(400, seed=3)
     with np.testing.assert_raises_regex(RuntimeError, "volume"):
-        htf.compute_per_bar_features_v4(bars.drop(columns="volume"))
+        htf.compute_per_bar_features_v4(
+            bars.drop(columns="volume"), timeframe="M5"
+        )
 
     off_grid = bars.copy()
     off_grid.index = off_grid.index + pd.Timedelta(minutes=1)
@@ -129,7 +131,7 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
 
 def test_v4_smc_and_geometry_are_causal_and_have_one_warmup_prefix() -> None:
     bars = _bars(4000, seed=23)
-    original = htf.compute_per_bar_features_v4(bars)
+    original = htf.compute_per_bar_features_v4(bars, timeframe="M5")
     matrix = original.to_numpy(dtype=np.float64)
     warmup = htf.validate_causal_feature_matrix(
         matrix,
@@ -145,7 +147,7 @@ def test_v4_smc_and_geometry_are_causal_and_have_one_warmup_prefix() -> None:
     changed.iloc[cutoff:, changed.columns.get_loc("high")] *= 1.1
     changed.iloc[cutoff:, changed.columns.get_loc("low")] *= 1.1
     changed.iloc[cutoff:, changed.columns.get_loc("close")] *= 1.1
-    future_changed = htf.compute_per_bar_features_v4(changed)
+    future_changed = htf.compute_per_bar_features_v4(changed, timeframe="M5")
     assert np.array_equal(
         original.iloc[:cutoff].to_numpy(),
         future_changed.iloc[:cutoff].to_numpy(),
@@ -154,7 +156,7 @@ def test_v4_smc_and_geometry_are_causal_and_have_one_warmup_prefix() -> None:
 
     # A valid trend can place the latest confirmed low above an older
     # confirmed high. That remains available structure evidence.
-    trending = htf.compute_per_bar_features_v4(_bars(4000, seed=0))
+    trending = htf.compute_per_bar_features_v4(_bars(4000, seed=0), timeframe="M5")
     trending_matrix = trending.to_numpy(dtype=np.float64)
     trending_warmup = htf.validate_causal_feature_matrix(
         trending_matrix,
@@ -217,7 +219,7 @@ def test_v4_removes_cross_owner_duplicate_smc_geometry_fields() -> None:
     assert "mtf_geometry_channel_width_atr" not in (
         SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
     )
-    matrix = htf.compute_per_bar_features_v4(_bars(4000, seed=31))
+    matrix = htf.compute_per_bar_features_v4(_bars(4000, seed=31), timeframe="M5")
     assert (
         matrix["mtf_smc_choch_up"].sum()
         + matrix["mtf_smc_choch_down"].sum()
@@ -401,7 +403,8 @@ def test_v4_cache_surface_excludes_every_open_trailing_resample_bucket(
 ) -> None:
     source = _bars(419, seed=37)
 
-    def finite_contract(frame: pd.DataFrame) -> pd.DataFrame:
+    def finite_contract(frame: pd.DataFrame, *, timeframe: str) -> pd.DataFrame:
+        assert timeframe in htf.MULTI_TF_RESAMPLE_RULES
         values = np.ones(
             (len(frame), htf.MULTI_TF_FEATURE_COUNT_V4),
             dtype=np.float32,

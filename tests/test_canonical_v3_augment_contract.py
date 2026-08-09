@@ -52,7 +52,9 @@ def test_cross_tf_momentum_treats_zero_h1_atr_as_unavailable_not_tiny() -> None:
 
     assert np.isfinite(out).all()
     np.testing.assert_array_equal(out[:13], np.zeros(13))
-    np.testing.assert_allclose(out[13:], np.full(7, 6.0), rtol=0.0, atol=0.0)
+    # 2026-08-09 unit repair: numerator is now bps of price, ATR input is bps.
+    expected = (12.0 / close[13:] * 10000.0) / 2.0
+    np.testing.assert_allclose(out[13:], expected, rtol=1e-6)
 
 
 def test_cross_tf_momentum_carries_causal_nan_warmup_prefix() -> None:
@@ -72,7 +74,9 @@ def test_cross_tf_momentum_carries_causal_nan_warmup_prefix() -> None:
 
     assert np.isnan(out[:13]).all()
     assert np.isfinite(out[13:]).all()
-    np.testing.assert_allclose(out[13:], np.full(7, 6.0), rtol=0.0, atol=0.0)
+    # 2026-08-09 unit repair: bps numerator over bps ATR (see producer comment).
+    expected = (12.0 / close[13:] * 10000.0) / 2.0
+    np.testing.assert_allclose(out[13:], expected, rtol=1e-6)
 
 
 @pytest.mark.parametrize(
@@ -126,8 +130,15 @@ def test_cross_tf_momentum_routes_one_hour_as_12_m5_or_60_m1_rows() -> None:
 
     assert m5.attrs["m5h1_momentum_owner"]["horizon_rows"] == 12
     assert m1.attrs["m5h1_momentum_owner"]["horizon_rows"] == 60
-    assert float(m5["m5h1_momentum"].iloc[-1]) == 6.0
-    assert float(m1["m5h1_momentum"].iloc[-1]) == 30.0
+    # 2026-08-09 unit repair: expected = (delta/close*1e4) / atr_bps.
+    m5_expected = (12.0 / m5_close[-1] * 10000.0) / 2.0
+    m1_expected = (60.0 / m1_close[-1] * 10000.0) / 2.0
+    np.testing.assert_allclose(
+        float(m5["m5h1_momentum"].iloc[-1]), m5_expected, rtol=1e-6
+    )
+    np.testing.assert_allclose(
+        float(m1["m5h1_momentum"].iloc[-1]), m1_expected, rtol=1e-6
+    )
 
 
 def test_smc_premium_state_is_conditional_and_unknown_is_not_uptrend() -> None:

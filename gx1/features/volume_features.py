@@ -53,6 +53,8 @@ def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
     Returns a dict name -> float32 ndarray (len == len(df)). Sources are exact,
     numeric and finite. Causal warmup values use expanding trailing windows;
     missing or malformed market data is never converted into neutral evidence.
+    vol_pct_96 uses the mid-rank tie convention, so a single-element warmup
+    window ranks its own row at 0.5 (the mid-rank of one tied value), not 1.0.
     """
     n = len(df)
     if n == 0:
@@ -96,10 +98,13 @@ def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
     np.divide(sma_fast, sma_slow, out=vol_ratio, where=sma_slow > 0.0)
     vol_ratio[sma_slow > 0.0] -= 1.0
 
-    # rolling percentile rank over trailing 96 bars (fraction of window <= current)
+    # rolling percentile rank over trailing 96 bars, mid-rank tie convention:
+    # (count below + half the ties, including the row itself) / window length.
+    # Tie-inclusive "<=" would bias quiet sessions upward and pin row 0 at 1.0;
+    # mid-rank yields the neutral 0.5 for a single-element window.
     def _pct_rank(x: np.ndarray) -> float:
         last = x[-1]
-        return float((x <= last).mean())
+        return float(((x < last).sum() + 0.5 * (x == last).sum()) / len(x))
 
     vol_pct = vol.rolling(_PCT_WIN, min_periods=1).apply(
         _pct_rank, raw=True

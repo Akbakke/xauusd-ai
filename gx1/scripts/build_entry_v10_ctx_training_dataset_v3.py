@@ -1236,12 +1236,7 @@ def _build_inline_seq_structure_extension(
         MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
         build_candlestick_derived_layer,
         build_chart_layer,
-        build_deep_interaction_layer,
         build_price_derived_layer,
-    )
-    from gx1.features.entry_chart_geometry_v1 import build_entry_chart_geometry_layer
-    from gx1.features.entry_foundation_structure_v1 import (
-        build_entry_foundation_structure_layer,
     )
     from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
     from gx1.features.entry_session_regime_interactions_v1 import (
@@ -1313,26 +1308,12 @@ def _build_inline_seq_structure_extension(
             raise RuntimeError("SEQ_STRUCTURE_INLINE_CANDLE_LAYER_INVALID")
     chart_x = np.concatenate([chart_x, candle_x], axis=1).astype(np.float32, copy=False)
     chart_names = list(chart_names) + list(candle_names)
-    chart_all_x = (
-        np.concatenate([base_x, chart_x], axis=1).astype(np.float32, copy=False)
-        if chart_x.shape[1]
-        else base_x
-    )
-    chart_all_names = list(base_names) + list(chart_names)
-    deep_x, deep_names = build_deep_interaction_layer(
-        chart_all_x,
-        chart_all_names,
-        merged3[["time"]].copy(),
-    )
 
     all_pieces = [base_x]
     all_names = list(base_names)
     if chart_x.shape[1]:
         all_pieces.append(chart_x)
         all_names.extend(chart_names)
-    if deep_x.shape[1]:
-        all_pieces.append(deep_x)
-        all_names.extend(deep_names)
     all_x = np.concatenate(all_pieces, axis=1).astype(np.float32, copy=False)
     requested_set = set(requested_features)
     smart_generated_layers: List[Dict[str, Any]] = []
@@ -1381,20 +1362,20 @@ def _build_inline_seq_structure_extension(
         # This avoids a second parquet read with a different normalization path.
         return candle_x.astype(np.float32, copy=False), list(candle_names)
 
-    def _build_chart_geometry_smart_layer_strict(
-        all_x: np.ndarray, all_names: List[str]
-    ) -> Tuple[np.ndarray, List[str]]:
-        return build_entry_chart_geometry_layer(all_x, all_names)
-
+    # foundation_cross_family_layer, chart_geometry_smart2_layer and
+    # price_ema50_200_layer are emitted exactly once upstream (the first two
+    # inside build_chart_layer, the price layer via the chart concat above),
+    # so they carry no second builder here.  Re-running the same builders in
+    # this loop produced byte-identical columns that the name-exists filter
+    # discarded; the loop guard below skips fully-emitted layers, and a
+    # missing upstream emission fails closed instead of being rebuilt.
     smart_builders = {
-        "foundation_cross_family_layer": build_entry_foundation_structure_layer,
         "trend_ema_smart_layer": build_entry_trend_ema_layer,
         "smc_liquidity_quality_layer": build_entry_smc_liquidity_quality_layer,
         "structure_swing_derivation_layer": build_entry_structure_swing_derivation_layer,
         "momentum_flow_smart_layer": build_entry_momentum_flow_layer,
         "session_regime_interaction_layer": build_entry_session_regime_interaction_layer,
         "vol_compression_smart_layer": build_entry_vol_compression_layer,
-        "chart_geometry_smart2_layer": _build_chart_geometry_smart_layer_strict,
         "price_action_candle_smart3_layer": _candlestick_layer_strict,
         "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
     }
@@ -1406,7 +1387,11 @@ def _build_inline_seq_structure_extension(
             for name in feature_names
         ):
             continue
-        builder = smart_builders[label]
+        builder = smart_builders.get(label)
+        if builder is None:
+            raise RuntimeError(
+                f"SEQ_STRUCTURE_INLINE_UPSTREAM_LAYER_INCOMPLETE: {label}"
+            )
         if label == "price_action_candle_smart3_layer":
             smart_x, smart_names = builder()
         elif label == "support_resistance_memory_layer" and (
@@ -1449,7 +1434,6 @@ def _build_inline_seq_structure_extension(
         "feature_count": int(len(selected)),
         "base_matrix_dim": int(base_x.shape[1]),
         "chart_generated_dim": int(chart_x.shape[1]),
-        "deep_generated_dim": int(deep_x.shape[1]),
         "smart_generated_dim": int(
             sum(row["feature_count"] for row in smart_generated_layers)
         ),

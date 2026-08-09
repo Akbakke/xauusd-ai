@@ -161,10 +161,16 @@ def _atr_normalized_h1_momentum(
         )
     if np.any(h1_atr[first_finite:] < 0.0):
         raise RuntimeError("[canonical_v3] H1 ATR must be non-negative")
+    # 2026-08-09 unit repair: _v1h1_atr changed from raw USD to bps in
+    # htf_features (era-proxy repair). The numerator must match: convert the
+    # close change to bps of price (the repo's ret_* convention,
+    # materialize_build_canonical_features_v1 pct_change*1e4) so the ratio
+    # stays a dimensionless ATR-multiple of the one-hour move.
     delta = close - np.roll(close, horizon_rows)
     delta[:horizon_rows] = 0.0
-    result = np.zeros_like(delta, dtype=np.float64)
-    np.divide(delta, h1_atr, out=result, where=finite & (h1_atr > 1e-6))
+    delta_bps = delta / np.maximum(close, 1e-9) * 10000.0
+    result = np.zeros_like(delta_bps, dtype=np.float64)
+    np.divide(delta_bps, h1_atr, out=result, where=finite & (h1_atr > 1e-6))
     result[:first_finite] = np.nan
     return result
 

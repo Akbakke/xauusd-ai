@@ -202,7 +202,11 @@ def build_entry_momentum_flow_layer(
     ret1 = c("snap.ret_1")
     ret5 = c("snap.ret_5")
     ret20 = c("snap.ret_20")
-    clv = _tanh(c("snap._v1_clv"), scale=2.0)
+    # basic_v1 emits _v1_clv in [0, 1] with declared neutral 0.5 (close at the
+    # bar low -> 0.0, at the bar high -> 1.0, degenerate range -> 0.5).
+    # Recenter to a signed [-1, 1] conviction so _pos/_neg split bull/bear
+    # location instead of treating every row as bullish.
+    clv = _tanh(2.0 * (c("snap._v1_clv") - 0.5), scale=1.0)
     mom3 = c("ctx_cont.micro_momentum_3")
     mom5 = c("ctx_cont.micro_momentum_5")
     micro_accel = c("ctx_cont.micro_acceleration")
@@ -221,11 +225,18 @@ def build_entry_momentum_flow_layer(
         atr_bps,
         floor=1.0,
     )
-    ret1_norm = _tanh(ret1, vol_scale)
-    ret5_norm = _tanh(ret5, vol_scale * np.sqrt(5.0))
-    ret20_norm = _tanh(ret20, vol_scale * np.sqrt(20.0))
+    # Normalize returns by the ATR term only: including |ret| itself in the
+    # scale bounds |ret_norm| by tanh(1) and flattens the tail. atr_bps is the
+    # family's declared bps-volatility owner; sqrt-horizon scaling and the
+    # 1.0 bps floor follow the vol_scale convention above.
+    atr_scale = np.maximum(atr_bps, 1.0)
+    ret1_norm = _tanh(ret1, atr_scale)
+    ret5_norm = _tanh(ret5, atr_scale * np.sqrt(5.0))
+    ret20_norm = _tanh(ret20, atr_scale * np.sqrt(20.0))
 
-    micro_scale = _safe_scale(mom3, mom5 / np.sqrt(5.0), floor=0.5)
+    # micro_momentum_3/5 are bps (micro_structure_v1: close.diff(k)/close*1e4),
+    # so the floor adopts the same 1.0 bps floor as atr_scale above.
+    micro_scale = _safe_scale(mom3, mom5 / np.sqrt(5.0), floor=1.0)
     micro_impulse = _tanh(0.65 * mom3 + 0.35 * mom5, micro_scale)
     micro_accel_norm = _tanh(micro_accel, micro_scale)
     return_acceleration = _clip(
@@ -250,8 +261,13 @@ def build_entry_momentum_flow_layer(
         2.0,
     )
 
+    # Unit owner: htf_features.py. _v1h1_slope5/_v1h4_slope5 are true 5-bar
+    # slopes and d1_ema_slope_20_canon_v2 is an EMA slope, all in ATR-multiple
+    # units (O(1)), so scale=2.0 is dimensionally sane for them.
     h1_flow = _tanh(c("ctx_cont._v1h1_slope5"), scale=2.0)
     h4_flow = _tanh(c("ctx_cont._v1h4_slope5"), scale=2.0)
+    # d1_pct_change_5_canon_v2 is bps; scale=25.0 saturates near ~100 bps and
+    # is a candidate for a TRAIN-fitted scale in the next recipe decision.
     d1_ret = _tanh(c("ctx_cont.d1_pct_change_5_canon_v2"), scale=25.0)
     d1_slope = _tanh(c("ctx_cont.d1_ema_slope_20_canon_v2"), scale=2.0)
     mtf_confirmation, mtf_conflict, mtf_bull, mtf_bear = _sign_agreement(

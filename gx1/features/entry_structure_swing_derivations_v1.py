@@ -8,7 +8,7 @@ import numpy as np
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES_LOWER
 
 STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = (
-    "entry_structure_swing_derivations_v1_20260717_exact_sources_fail_closed"
+    "entry_structure_swing_derivations_v2_20260809_producer_domain_recency_raw_depth_failclosed"
 )
 STRUCTURE_SWING_DERIVATION_FEATURE_PREFIX = "chart.structure_swing_"
 
@@ -138,8 +138,11 @@ def _age_recency(age: np.ndarray, tau: float = 24.0) -> np.ndarray:
     return np.exp(-np.maximum(age, 0.0) / max(float(tau), 1e-6)).astype(np.float32)
 
 
-def _depth_quality(depth: np.ndarray) -> np.ndarray:
-    return np.exp(-np.abs(_clip01(depth) - 0.50) * 4.0).astype(np.float32)
+def _recency(arr: np.ndarray) -> np.ndarray:
+    # One recency convention per field: this is the sibling owner's exact
+    # transform (entry_foundation_structure_v1._recency, 1/(1+bars)) already
+    # applied to the same bars_since_swing_* sources there.
+    return (1.0 / (1.0 + np.maximum(arr, 0.0))).astype(np.float32, copy=False)
 
 
 def _mean_fields(c, names: Iterable[str]) -> np.ndarray:
@@ -203,8 +206,11 @@ def build_entry_structure_swing_derivation_layer(
     hl = _clip01(c("chart.foundation_hl_state"))
     lh = _clip01(c("chart.foundation_lh_state"))
     ll = _clip01(c("chart.foundation_ll_state"))
-    structure_balance_raw = _clip(c("chart.foundation_structure_up_minus_down"), -2.0, 2.0)
-    structure_balance = _clip(0.50 * structure_balance_raw + 0.50 * ((hh + hl) - (lh + ll)), -2.0, 2.0)
+    # Single clipped field: the former 0.5/0.5 blend was a no-op because its
+    # second term recomputed the producer expression of
+    # chart.foundation_structure_up_minus_down ((hh+hl)-(lh+ll)) bit-identically
+    # from the same float32 columns. Output is bit-identical to the blend.
+    structure_balance = _clip(c("chart.foundation_structure_up_minus_down"), -2.0, 2.0)
     up_structure = _clip01(0.35 * hh + 0.35 * hl + 0.30 * _pos(structure_balance * 0.5))
     down_structure = _clip01(0.35 * lh + 0.35 * ll + 0.30 * _neg(structure_balance * 0.5))
     hh_hl_consistency_up = _clip01(
@@ -253,7 +259,11 @@ def build_entry_structure_swing_derivation_layer(
     mtf_depth = _mean_fields(c, (f"ctx_cont.struct_pullback_depth_{tf}_v3" for tf in STRUCTURE_TFS))
     mtf_up = _clip01(0.65 * mtf_up_cont + 0.35 * mtf_up_pullback)
     mtf_down = _clip01(0.65 * mtf_down_cont + 0.35 * mtf_down_pullback)
-    tf_agree_count = _clip01(c("ctx_cont.struct_tf_agree_count_v3") / 5.0)
+    # Producer domain: augment_forward_outcome_v2 emits struct_tf_agree_count_v3
+    # as the mean of five per-TF binary pullback flags, already in [0,1]. The
+    # former /5.0 double-divided a mean as if it were a count, collapsing this
+    # gate to [0,0.2] and mtf_divergence's (1-count) gate to [0.8,1.0].
+    tf_agree_count = _clip01(c("ctx_cont.struct_tf_agree_count_v3"))
     mtf_agreement = _clip01(0.60 * np.maximum(mtf_up, mtf_down) + 0.40 * tf_agree_count)
     mtf_divergence = _clip01((2.0 * np.minimum(mtf_up, mtf_down)) * 0.65 + (1.0 - tf_agree_count) * np.maximum(mtf_up, mtf_down) * 0.35)
 
@@ -261,17 +271,26 @@ def build_entry_structure_swing_derivation_layer(
     dist_low = _clip(c("ctx_cont.dist_last_swing_low_atr"), -8.0, 8.0)
     swing_high_proximity = _clip01(_prox_abs(dist_high))
     swing_low_proximity = _clip01(_prox_abs(dist_low))
-    swing_high_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_high"), tau=48.0))
-    swing_low_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_low"), tau=48.0))
+    # Sibling-owner recency convention (1/(1+bars)): with SWING_LOOKBACK_V1=2
+    # the typical bars_since_swing_* is 2-6 bars, so the former tau=48
+    # exponential squashed these into [0.78,0.96]; 1/(1+bars) spans ~[0.14,0.33]
+    # over the same typical ages and matches foundation's transform on the
+    # exact same fields.
+    swing_high_recent = _clip01(_recency(c("ctx_cont.bars_since_swing_high")))
+    swing_low_recent = _clip01(_recency(c("ctx_cont.bars_since_swing_low")))
     swing_break_up = _clip01(_pos(dist_high) / 2.0)
     swing_break_down = _clip01(_neg(dist_low) / 2.0)
     swing_room_up = _clip01(_neg(dist_high) / 4.0)
     swing_room_down = _clip01(_pos(dist_low) / 4.0)
+    # The 0.25-weighted recency term now contributes ~[0.035,0.083] for the
+    # typical 2-6-bar swing ages (was a near-constant ~[0.20,0.24] under tau=48).
     swing_boundary_pressure = _clip01(
         0.45 * np.maximum(swing_high_proximity, swing_low_proximity)
         + 0.25 * np.maximum(swing_high_recent, swing_low_recent)
         + 0.30 * np.maximum(swing_break_up, swing_break_down)
     )
+    # The 0.20-weighted proximity*recency products below now vary with swing
+    # age instead of the recency factor sitting near 1 (tau=48 saturation).
     swing_distance_confirmation_up = _clip01(
         0.40 * swing_break_up
         + 0.25 * swing_room_up
@@ -286,7 +305,12 @@ def build_entry_structure_swing_derivation_layer(
     )
 
     combined_depth = _clip01(0.55 * pullback_depth + 0.45 * mtf_depth)
-    depth_quality = _depth_quality(combined_depth)
+    # Raw clipped depth passthrough. The former exp(-|depth-0.50|*4.0) shape
+    # hand-authored a Fibonacci 50%-retracement prior with an unsourced 4.0
+    # sharpness; Fib patterns are OOT-refuted in the project record. The model
+    # learns which depth is good (rule-4 precedent: remove the hand-written
+    # vote, keep the underlying evidence). Column name/count unchanged.
+    depth_quality = combined_depth
     structure_delta = _clip(structure_balance - _lag1(structure_balance), -2.0, 2.0)
     expansion_quality = _clip01(0.55 * expansion + 0.45 * release)
     continuation_pressure_up = _clip01(

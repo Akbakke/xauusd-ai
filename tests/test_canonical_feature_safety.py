@@ -287,3 +287,119 @@ def test_smc_rejects_missing_atr_instead_of_using_one() -> None:
 
     with pytest.raises(RuntimeError, match="SMC_SOURCE_MISSING"):
         compute_smc_features(frame)
+
+
+def _smc_frame(bars: list[tuple[float, float, float]]) -> pd.DataFrame:
+    """Build an OHLC+ATR frame from (high, low, close) rows; ATR=1.0 is an
+    explicit test input (it only scales sweep size, unasserted here)."""
+    high, low, close = (np.asarray(v, dtype=np.float64) for v in zip(*bars))
+    return pd.DataFrame(
+        {"high": high, "low": low, "close": close, "atr": np.ones(len(bars))}
+    )
+
+
+def test_smc_swing_state_partition_reaches_expansion_and_contraction() -> None:
+    # swing_lookback=1 (explicit test input) → 3-bar pivot windows.
+    # Confirmed pivots: SH 110(b1), SL 100(b3), SH 115(b5), SL 95(b6),
+    # SH 110(b9), SL 100(b10) — all generic distinct prices, no ties.
+    frame = _smc_frame(
+        [
+            (105.0, 104.0, 104.5),
+            (110.0, 108.0, 109.0),   # SH pivot 110
+            (106.0, 105.0, 105.5),
+            (101.0, 100.0, 100.5),   # SL pivot 100
+            (103.0, 101.5, 102.0),
+            (115.0, 103.0, 110.0),   # SH pivot 115 (HH)
+            (105.0, 95.0, 100.0),    # SL pivot 95 (LL)
+            (104.0, 97.0, 100.0),
+            (104.0, 98.0, 100.0),
+            (110.0, 100.5, 105.0),   # SH pivot 110 (LH)
+            (105.0, 100.0, 102.0),   # SL pivot 100 (HL)
+            (106.0, 101.0, 103.0),
+        ]
+    )
+    out = compute_smc_features(frame, swing_lookback=1)
+    # b7-b9: HH+LL = 1 (two-sided expansion); b10: LH+LL = 3;
+    # b11: LH+HL = 2 (contraction). Warmup rows stay 4.
+    assert out["smc_swing_state"].tolist() == [4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 3, 2]
+
+
+def test_smc_choch_fires_on_flip_through_mixed_state() -> None:
+    # Structure goes clean-up (state 0) → mixed (state 2, sign 0) → clean-down
+    # (state 3): the retired adjacent-row comparison saw 0→2→3 and never
+    # fired; the non-zero-sign comparison fires exactly once, on the state-3
+    # bar.
+    frame = _smc_frame(
+        [
+            (105.0, 104.0, 104.5),
+            (110.0, 106.0, 108.0),    # SH pivot 110
+            (106.5, 105.8, 106.0),
+            (102.0, 100.0, 101.0),    # SL pivot 100
+            (107.0, 102.5, 105.0),
+            (115.0, 107.0, 112.0),    # SH pivot 115 (HH)
+            (109.0, 106.0, 107.0),
+            (108.0, 105.0, 106.0),    # SL pivot 105 (HL) → state 0
+            (110.0, 105.5, 107.0),
+            (112.0, 106.0, 109.0),    # SH pivot 112 (LH) → state 2 (mixed)
+            (108.0, 103.0, 105.0),    # SL pivot 103 (LL) → state 3
+            (107.0, 103.5, 105.0),
+        ]
+    )
+    out = compute_smc_features(frame, swing_lookback=1)
+    state = out["smc_swing_state"].tolist()
+    assert state[8] == 0 and state[10] == 2 and state[11] == 3
+    choch = out["smc_choch"].to_numpy()
+    assert choch[11] == 1.0
+    assert float(choch.sum()) == 1.0
+
+
+def test_smc_premium_discount_valid_in_trend_geometry() -> None:
+    # Strong uptrend: at b9 the confirmed swings are last_sh=110 (b4 pivot)
+    # and last_sl=110.5 (b8 pivot) — last swing LOW above last swing HIGH.
+    # The retired last_sh>last_sl validity fabricated 0.5 here; the 4-pivot
+    # envelope [min(110.5, 99), max(110, 105)] = [99, 110] stays valid.
+    frame = _smc_frame(
+        [
+            (101.0, 99.0, 100.0),
+            (105.0, 101.0, 103.0),    # SH pivot 105
+            (102.0, 100.5, 101.0),
+            (101.5, 99.0, 100.0),     # SL pivot 99
+            (110.0, 103.0, 108.0),    # SH pivot 110
+            (109.5, 106.0, 108.0),
+            (112.0, 107.0, 110.0),
+            (115.0, 111.0, 114.0),
+            (115.5, 110.5, 113.0),    # SL pivot 110.5 (above last SH 110)
+            (116.0, 112.0, 115.0),    # SH pivot 116
+            (110.0, 104.0, 106.0),
+        ]
+    )
+    out = compute_smc_features(frame, swing_lookback=1)
+    pd_score = out["smc_premium_discount"].to_numpy()
+    # Warmup prefix (prev_sl unconfirmed until b9) keeps the 0.5 midpoint.
+    assert (pd_score[:9] == 0.5).all()
+    # b9: close 115 above the [99, 110] envelope → clipped premium 1.0,
+    # not a fabricated 0.5.
+    assert pd_score[9] == 1.0
+    # b10: envelope [99, 116] (SH 116 confirmed) → interior value.
+    assert pd_score[10] == pytest.approx((106.0 - 99.0) / 17.0, rel=1e-6)
+
+
+def test_smc_bos_fires_exactly_once_per_crossing() -> None:
+    # Close crosses above the confirmed SH 105 at b4 and stays above through
+    # b6: the crossing event fires only at b4 (the retired persistent state
+    # emitted 1.0 on every bar above the level).
+    frame = _smc_frame(
+        [
+            (100.0, 99.0, 99.5),
+            (105.0, 100.0, 104.0),    # SH pivot 105
+            (102.0, 101.0, 101.5),
+            (103.0, 101.2, 102.0),
+            (106.0, 102.0, 105.5),    # first close above 105 → event
+            (107.0, 105.0, 106.5),    # still above → no event
+            (108.0, 106.0, 107.0),    # still above → no event
+        ]
+    )
+    out = compute_smc_features(frame, swing_lookback=1)
+    assert out["smc_bos_up"].tolist() == [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+    # No swing low ever confirms in this monotone series.
+    assert float(out["smc_bos_down"].to_numpy().sum()) == 0.0

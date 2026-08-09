@@ -117,6 +117,68 @@ def test_candlestick_current_closed_bar_impulse_is_identical_across_timeframes(
     assert names == changed_names
 
 
+def test_candlestick_lag_preserves_float64_price_precision() -> None:
+    # prev_close - open = 6e-5 USD is below float32 resolution at 2000
+    # (ulp ~ 1.22e-4): a float32 lag collapses the strict open < prev_close
+    # gate into a tie and zeroes the pattern. The lag must preserve float64.
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-01-01", periods=2, freq="5min", tz="UTC"),
+            "open": [2001.0, 2000.0],
+            "high": [2001.2, 2001.0],
+            "low": [1999.9, 1999.95],
+            "close": [2000.00006, 2000.9],
+        }
+    )
+    assert np.float32(2000.00006) == np.float32(2000.0)  # documents the collapse
+    out, names = build_entry_candlestick_pattern_layer(frame)
+    idx = {name: i for i, name in enumerate(names)}
+    assert out[1, idx["candle.pattern_piercing_line_bull_score"]] > 0.0
+
+
+def test_candlestick_zero_range_bar_reports_neutral_close_location() -> None:
+    # high == low: close location is undefined, so it must read neutral 0.5
+    # (basic_v1 _v1_clv convention) and close_pressure_signed must read 0,
+    # not a fabricated "closed at the extreme low" of -1. Body/wick shares
+    # stay 0: a zero-range bar genuinely has zero body and zero wicks.
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC"),
+            "open": [2000.0, 2001.0, 2000.5, 2000.5],
+            "high": [2002.0, 2001.5, 2000.5, 2001.5],
+            "low": [1999.0, 2000.0, 2000.5, 2000.0],
+            "close": [2001.0, 2000.5, 2000.5, 2001.0],
+        }
+    )
+    out, names = build_entry_candlestick_pattern_layer(frame)
+    idx = {name: i for i, name in enumerate(names)}
+    row = 2  # open == high == low == close
+    assert out[row, idx["candle.pattern_close_location"]] == 0.5
+    assert out[row, idx["candle.pattern_close_pressure_signed"]] == 0.0
+    assert out[row, idx["candle.pattern_body_share"]] == 0.0
+    assert out[row, idx["candle.pattern_upper_wick_share"]] == 0.0
+    assert out[row, idx["candle.pattern_lower_wick_share"]] == 0.0
+
+
+def test_candlestick_star_first_candle_body_uses_its_own_range() -> None:
+    # First-candle body condition: lag2_body / lag2_range = 10/11 > 0.35
+    # fires the pattern; dividing by the CURRENT bar's range (10/40 < 0.35)
+    # would wrongly veto it whenever the third bar expands.
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-01-01", periods=3, freq="5min", tz="UTC"),
+            "open": [2010.0, 2000.2, 2000.5],
+            "high": [2010.5, 2001.0, 2040.0],
+            "low": [1999.5, 1999.8, 2000.0],
+            "close": [2000.0, 2000.4, 2035.0],
+        }
+    )
+    out, names = build_entry_candlestick_pattern_layer(frame)
+    idx = {name: i for i, name in enumerate(names)}
+    assert out[2, idx["candle.pattern_morning_star_bull_score"]] > 0.0
+    assert out[2, idx["candle.pattern_evening_star_bear_score"]] == 0.0
+
+
 def test_candlestick_pattern_layer_rejects_nan_and_inf() -> None:
     for field, value in (("open", np.nan), ("high", np.inf), ("low", -np.inf)):
         frame = pd.DataFrame(

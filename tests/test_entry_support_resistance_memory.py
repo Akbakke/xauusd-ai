@@ -3,6 +3,7 @@ import pytest
 
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
 from gx1.features.entry_support_resistance_memory_v1 import (
+    SR_MEMORY_WARMUP_ROWS,
     SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES,
     SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS,
     build_entry_support_resistance_memory_layer,
@@ -101,6 +102,12 @@ def test_support_resistance_memory_layer_builds_causal_level_features() -> None:
     assert out[1, idx["chart.sr_memory_liquidity_low_level_rejection_long"]] > out[0, idx["chart.sr_memory_liquidity_low_level_rejection_long"]]
     assert out[5, idx["chart.sr_memory_liquidity_high_level_rejection_short"]] > out[0, idx["chart.sr_memory_liquidity_high_level_rejection_short"]]
     assert out[6, idx["chart.sr_memory_liquidity_resistance_break_continuation_long"]] > out[0, idx["chart.sr_memory_liquidity_resistance_break_continuation_long"]]
+    # Side distinction: with the shared min(r_abs, s_abs) pivot row removed
+    # from both maxes, the stacks must decorrelate on this mixed scenario
+    # (support-near rows 1-3, resistance-near rows 4-6), not merely differ.
+    support_stack = out[:, idx["chart.sr_memory_support_level_proximity_stack"]]
+    resistance_stack = out[:, idx["chart.sr_memory_resistance_level_proximity_stack"]]
+    assert float(np.corrcoef(support_stack, resistance_stack)[0, 1]) < 0.99
 
 
 def test_support_resistance_memory_layer_rejects_nonfinite_inputs() -> None:
@@ -136,6 +143,122 @@ def test_support_resistance_memory_layer_is_future_row_invariant() -> None:
     np.testing.assert_allclose(out[:5], changed[:5], rtol=0.0, atol=1e-7)
 
 
+def test_support_resistance_dominated_max_rows_removal_is_bit_identical_on_producer_consistent_inputs() -> None:
+    """The 2026-08-09 stack repair removed max() rows dominated under the
+    producer contract (entry_smart_context.py:140-184).  On inputs that satisfy
+    that contract the reduced max must equal, bit for bit, the previous max
+    over the full row set minus only the shared pivot row (whose removal is the
+    deliberate value change)."""
+    names = list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS)
+    x = _matrix(names)
+    idx = {name: i for i, name in enumerate(names)}
+
+    low_fields = (
+        "ctx_cont.dist_to_m5_lo_atr",
+        "ctx_cont.dist_to_m15_lo_atr",
+        "ctx_cont.dist_to_h1_lo_atr",
+        "ctx_cont.dist_to_h4_lo_atr",
+        "ctx_cont.dist_to_d1_lo_atr",
+    )
+    high_fields = (
+        "ctx_cont.dist_to_m5_hi_atr",
+        "ctx_cont.dist_to_m15_hi_atr",
+        "ctx_cont.dist_to_h1_hi_atr",
+        "ctx_cont.dist_to_h4_hi_atr",
+        "ctx_cont.dist_to_d1_hi_atr",
+    )
+    x[:, idx["ctx_cont.dist_to_S1_atr"]] = [0.10, 0.60, 2.0, 4.0, 0.30, 1.2, 5.0, 8.0]
+    x[:, idx["ctx_cont.dist_to_S2_atr"]] = [0.40, 0.20, 3.0, 5.0, 0.90, 0.7, 6.0, 9.0]
+    x[:, idx["ctx_cont.dist_to_R1_atr"]] = [0.50, 3.0, 0.25, 1.0, 4.0, 0.15, 2.0, 7.0]
+    x[:, idx["ctx_cont.dist_to_R2_atr"]] = [0.80, 4.0, 0.45, 2.0, 5.0, 0.35, 3.0, 8.0]
+    for offset, field in enumerate(low_fields):
+        x[:, idx[field]] = np.asarray(
+            [0.2, 1.5, 0.4, 6.0, 2.5, 0.9, 3.5, 7.0], dtype=np.float32
+        ) + 0.1 * offset
+    for offset, field in enumerate(high_fields):
+        x[:, idx[field]] = np.asarray(
+            [0.6, 2.5, 0.3, 1.4, 4.5, 0.2, 2.4, 6.0], dtype=np.float32
+        ) + 0.1 * offset
+
+    # Derive the aggregates exactly as the producer does
+    # (gx1/features/entry_smart_context.py:140-184).
+    s_abs = np.minimum(
+        np.abs(x[:, idx["ctx_cont.dist_to_S1_atr"]]),
+        np.abs(x[:, idx["ctx_cont.dist_to_S2_atr"]]),
+    )
+    r_abs = np.minimum(
+        np.abs(x[:, idx["ctx_cont.dist_to_R1_atr"]]),
+        np.abs(x[:, idx["ctx_cont.dist_to_R2_atr"]]),
+    )
+    lo_abs = np.min(np.abs(np.stack([x[:, idx[f]] for f in low_fields])), axis=0)
+    hi_abs = np.min(np.abs(np.stack([x[:, idx[f]] for f in high_fields])), axis=0)
+    x[:, idx["ctx_cont.sr_support_proximity_exp"]] = np.exp(-np.minimum(s_abs, 20.0))
+    x[:, idx["ctx_cont.sr_resistance_proximity_exp"]] = np.exp(-np.minimum(r_abs, 20.0))
+    x[:, idx["ctx_cont.sr_nearest_pivot_abs_atr"]] = np.minimum(r_abs, s_abs)
+    x[:, idx["ctx_cont.liquidity_lo_nearest_abs_atr"]] = lo_abs
+    x[:, idx["ctx_cont.liquidity_hi_nearest_abs_atr"]] = hi_abs
+
+    def prox(values: np.ndarray) -> np.ndarray:
+        return (1.0 / (1.0 + np.abs(values))).astype(np.float32)
+
+    def clip01(values: np.ndarray) -> np.ndarray:
+        return np.clip(values, 0.0, 1.0).astype(np.float32)
+
+    def recency(values: np.ndarray) -> np.ndarray:
+        return (1.0 / (1.0 + np.maximum(values, 0.0))).astype(np.float32)
+
+    def col(name: str) -> np.ndarray:
+        return x[:, idx[name]]
+
+    swing_low_row = clip01(
+        prox(col("ctx_cont.dist_last_swing_low_atr"))
+        * (0.50 + recency(col("ctx_cont.bars_since_swing_low")))
+    )
+    swing_high_row = clip01(
+        prox(col("ctx_cont.dist_last_swing_high_atr"))
+        * (0.50 + recency(col("ctx_cont.bars_since_swing_high")))
+    )
+    kept_support = [
+        prox(col("ctx_cont.dist_to_S1_atr")),
+        prox(col("ctx_cont.dist_to_S2_atr")),
+        prox(col("ctx_cont.liquidity_lo_nearest_abs_atr")),
+        swing_low_row,
+        clip01(col("chart.geometry_support_line_proximity_stack")),
+    ]
+    dominated_support = [clip01(col("ctx_cont.sr_support_proximity_exp"))] + [
+        prox(col(field)) for field in low_fields
+    ]
+    kept_resistance = [
+        prox(col("ctx_cont.dist_to_R1_atr")),
+        prox(col("ctx_cont.dist_to_R2_atr")),
+        prox(col("ctx_cont.liquidity_hi_nearest_abs_atr")),
+        swing_high_row,
+        clip01(col("chart.geometry_resistance_line_proximity_stack")),
+    ]
+    dominated_resistance = [clip01(col("ctx_cont.sr_resistance_proximity_exp"))] + [
+        prox(col(field)) for field in high_fields
+    ]
+
+    reduced_support = np.maximum.reduce(kept_support)
+    reduced_resistance = np.maximum.reduce(kept_resistance)
+    # Bit-identity of the dominated-row removal on producer-consistent inputs.
+    np.testing.assert_array_equal(
+        reduced_support, np.maximum.reduce(kept_support + dominated_support)
+    )
+    np.testing.assert_array_equal(
+        reduced_resistance, np.maximum.reduce(kept_resistance + dominated_resistance)
+    )
+
+    out, out_names = build_entry_support_resistance_memory_layer(x, names)
+    out_idx = {name: i for i, name in enumerate(out_names)}
+    np.testing.assert_array_equal(
+        out[:, out_idx["chart.sr_memory_support_level_proximity_stack"]], reduced_support
+    )
+    np.testing.assert_array_equal(
+        out[:, out_idx["chart.sr_memory_resistance_level_proximity_stack"]], reduced_resistance
+    )
+
+
 def test_support_resistance_memory_source_contract_and_routing() -> None:
     assert len(SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES) == EXPECTED_SUPPORT_RESISTANCE_MEMORY_FEATURE_COUNT
     assert len(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS) == len(set(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS))
@@ -145,6 +268,9 @@ def test_support_resistance_memory_source_contract_and_routing() -> None:
     ]
     assert "chart.geometry_support_line_proximity_stack" in SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS
     assert "chart.smc_liquidity_reclaim_confirmation_long" in SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS
+    # Declared cold-start contamination bound exported for callers
+    # (origin: 5 * tau_slow at the declared slow decay 0.96, declared as 125).
+    assert SR_MEMORY_WARMUP_ROWS == 125
 
     routing = {name: classify_entry_specialist_feature(name) for name in SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES}
     routing_gaps = {

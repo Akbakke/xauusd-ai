@@ -26,7 +26,9 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("snap.ret_1", [2.0, 5.0, 8.0, 1.0, -4.0, -7.0])
     set_col("snap.ret_5", [4.0, 12.0, 20.0, 10.0, -12.0, -20.0])
     set_col("snap.ret_20", [8.0, 18.0, 35.0, 40.0, -18.0, -35.0])
-    set_col("snap._v1_clv", [0.2, 1.0, 1.3, -1.5, -1.0, -1.3])
+    # Producer domain (basic_v1): [0, 1] with neutral 0.5; bull rows close near
+    # the bar high, bear rows near the bar low.
+    set_col("snap._v1_clv", [0.6, 1.0, 1.0, 0.0, 0.0, 0.0])
     set_col("ctx_cont.micro_momentum_3", [0.2, 0.8, 1.0, 0.2, -0.8, -1.0])
     set_col("ctx_cont.micro_momentum_5", [0.3, 1.0, 1.3, 0.5, -1.0, -1.3])
     set_col("ctx_cont.micro_acceleration", [0.1, 0.4, 0.5, -0.5, -0.4, -0.5])

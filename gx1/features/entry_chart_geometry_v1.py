@@ -20,7 +20,7 @@ from gx1.features.entry_volatility_semantics_v1 import (
 
 
 CHART_GEOMETRY_FEATURE_VERSION = (
-    "entry_chart_geometry_v3_20260729_total_wick_share_semantics_failclosed"
+    "entry_chart_geometry_v4_20260809_sided_level_proximity_failclosed"
 )
 CHART_GEOMETRY_FEATURE_PREFIX = "chart.geometry_"
 
@@ -168,6 +168,20 @@ def _prox_abs(arr: np.ndarray) -> np.ndarray:
     return (1.0 / (1.0 + np.abs(arr))).astype(np.float32, copy=False)
 
 
+def _prox_valid_side(arr: np.ndarray, *, positive_is_valid: bool) -> np.ndarray:
+    """One-sided level proximity: 1/(1+|dist|) on the level's intact side, else 0.
+
+    1/(1+|dist|) on a signed distance discards which side of the level price
+    is on and reads a broken/swept level as "near" — a broken support is not
+    support. Each field's intact side follows its producer's exact sign
+    convention (augment_forward_outcome_v2 pivot/liquidity emitters).
+    """
+    values = np.asarray(arr, dtype=np.float32)
+    if positive_is_valid:
+        return np.where(values >= 0.0, 1.0 / (1.0 + values), 0.0).astype(np.float32)
+    return np.where(values <= 0.0, 1.0 / (1.0 - values), 0.0).astype(np.float32)
+
+
 def _recency(arr: np.ndarray) -> np.ndarray:
     return (1.0 / (1.0 + np.maximum(arr, 0.0))).astype(np.float32, copy=False)
 
@@ -224,6 +238,18 @@ def build_entry_chart_geometry_layer(
     def c(name: str) -> np.ndarray:
         return _col(x, idx, name)
 
+    # Unit assumptions (owners), audited per producer after the upstream
+    # USD->ATR-multiple conversion wave:
+    # - snap._v1_ema_diff, snap.ema20_slope, snap.pos_vs_ema200: emitted in
+    #   ATR-multiples by basic_v1 (unit-conversion owner); tanh scale=1.0 is
+    #   dimensionally sane on an ATR-multiple.
+    # - ctx_cont._v1h*_ema_diff, ctx_cont.d1_ema_slope_20_canon_v2: emitted in
+    #   ATR-multiples by htf_features (unit-conversion owner); scale=1.0 sane.
+    # - ctx_cont._v1h*_slope5: 5th-order difference of the same H1/H4 ema_diff
+    #   series (htf_features._model_native_htf_slope_v4); differencing
+    #   preserves units, so ATR-multiples after the conversion; scale=1.0 sane.
+    # - ctx_cont.m15_trend_sign_canon_v2: dimensionless sign in {-1,0,1}
+    #   (htf_features); scale=1.0 sane.
     m5_ema = _tanh(c("snap._v1_ema_diff"))
     m5_slope = _tanh(c("snap.ema20_slope"))
     m5_pos_ema200 = _tanh(c("snap.pos_vs_ema200"))
@@ -331,22 +357,31 @@ def build_entry_chart_geometry_layer(
     support_sources = np.vstack(
         [
             _clip01(c("ctx_cont.sr_support_proximity_exp")),
-            _prox_abs(c("ctx_cont.dist_to_S1_atr")),
-            _prox_abs(c("ctx_cont.dist_to_S2_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h1_lo_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h4_lo_atr")),
-            _prox_abs(c("ctx_cont.dist_to_d1_lo_atr")),
+            # Pivot supports: producer emits (price-S)/ATR, so the support is
+            # intact below price on dist>=0; dist<0 means price broke below it.
+            _prox_valid_side(c("ctx_cont.dist_to_S1_atr"), positive_is_valid=True),
+            _prox_valid_side(c("ctx_cont.dist_to_S2_atr"), positive_is_valid=True),
+            # TF lows: producer emits (price-nearest_lo)/ATR where an unswept
+            # low below price gives dist>=0; dist<0 means the low was swept.
+            _prox_valid_side(c("ctx_cont.dist_to_h1_lo_atr"), positive_is_valid=True),
+            _prox_valid_side(c("ctx_cont.dist_to_h4_lo_atr"), positive_is_valid=True),
+            _prox_valid_side(c("ctx_cont.dist_to_d1_lo_atr"), positive_is_valid=True),
             swing_low_line,
         ]
     )
     resistance_sources = np.vstack(
         [
             _clip01(c("ctx_cont.sr_resistance_proximity_exp")),
-            _prox_abs(c("ctx_cont.dist_to_R1_atr")),
-            _prox_abs(c("ctx_cont.dist_to_R2_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h1_hi_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h4_hi_atr")),
-            _prox_abs(c("ctx_cont.dist_to_d1_hi_atr")),
+            # Pivot resistances: producer emits (price-R)/ATR, so the
+            # resistance is intact above price on dist<=0; dist>0 means price
+            # broke above it.
+            _prox_valid_side(c("ctx_cont.dist_to_R1_atr"), positive_is_valid=False),
+            _prox_valid_side(c("ctx_cont.dist_to_R2_atr"), positive_is_valid=False),
+            # TF highs: producer emits (nearest_hi-price)/ATR where an unswept
+            # high above price gives dist>=0; dist<0 means the high was swept.
+            _prox_valid_side(c("ctx_cont.dist_to_h1_hi_atr"), positive_is_valid=True),
+            _prox_valid_side(c("ctx_cont.dist_to_h4_hi_atr"), positive_is_valid=True),
+            _prox_valid_side(c("ctx_cont.dist_to_d1_hi_atr"), positive_is_valid=True),
             swing_high_line,
         ]
     )
@@ -749,7 +784,15 @@ CHART_GEOMETRY_FEATURE_NAMES = tuple(
 )
 del _CHART_GEOMETRY_NAME_PROBE, _ratio_field
 
-CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[41:]
+# The smart2 block starts at a named marker rather than a bare index so an
+# insertion before the boundary fails loudly instead of silently re-pointing
+# the set (same repair as CANDLESTICK_SMART3_START_INDEX, 2026-08-09).
+CHART_GEOMETRY_SMART2_START_INDEX = CHART_GEOMETRY_FEATURE_NAMES.index(
+    "chart.geometry_trendline_channel_confluence_pressure"
+)
+CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[
+    CHART_GEOMETRY_SMART2_START_INDEX:
+]
 
 # The model-native geometry surface retains the exact current-bar inputs used
 # by structural auxiliary supervision and pretrain polarity proof, plus the

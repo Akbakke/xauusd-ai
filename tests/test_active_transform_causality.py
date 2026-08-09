@@ -352,19 +352,19 @@ def test_htf_v4_requires_exact_observed_volume() -> None:
     frame = _market_frame(100).drop(columns=["volume", "smc_swing_state"])
 
     with pytest.raises(RuntimeError, match="volume"):
-        compute_per_bar_features_v4(frame)
+        compute_per_bar_features_v4(frame, timeframe="M5")
 
     frame["volume"] = 0.0
     with pytest.raises(RuntimeError, match="volume"):
-        compute_per_bar_features_v4(frame)
+        compute_per_bar_features_v4(frame, timeframe="M5")
 
 
 def test_htf_v4_warmup_is_explicit_and_future_append_is_prefix_invariant() -> None:
     frame = _market_frame(4_000).drop(columns="smc_swing_state")
     prefix = frame.iloc[:3_500]
 
-    before = compute_per_bar_features_v4(prefix)
-    after = compute_per_bar_features_v4(frame)
+    before = compute_per_bar_features_v4(prefix, timeframe="M5")
+    after = compute_per_bar_features_v4(frame, timeframe="M5")
 
     assert before.iloc[0].isna().any()
     warmup = int(np.argmax(np.isfinite(before.to_numpy()).all(axis=1)))
@@ -444,6 +444,44 @@ def test_regime_v4_uses_causal_warmup_and_is_future_append_invariant() -> None:
         atol=0.0,
         equal_nan=True,
     )
+
+
+def test_regime_v4_agreement_is_strict_non_d1_vote_and_age_is_in_d1_bars() -> None:
+    periods = 400
+    index = pd.date_range("2025-01-01T00:00:00Z", periods=periods, freq="5min")
+    d1_classes = np.zeros(periods, dtype=np.float64)
+    d1_classes[100:] = 1.0  # single D1 regime change at absolute row 100
+    payload: dict[str, np.ndarray] = {}
+    for tf in ("m15", "h1", "h4", "d1", "m5"):
+        payload[f"{tf}_regime_class_id_v2"] = (
+            d1_classes.copy() if tf == "d1" else np.ones(periods, dtype=np.float64)
+        )
+        payload[f"{tf}_trend_age_bars_norm_v2"] = np.full(periods, 0.5)
+        payload[f"{tf}_ema_stack_aligned_v2"] = np.ones(periods, dtype=np.float64)
+    payload["D1_dist_from_ema200_atr"] = np.full(periods, 1.0)
+    frame = pd.DataFrame(payload, index=index)
+    frame.loc[frame.index[:20], REGIME_V4_SOURCE_COLS] = np.nan
+
+    out = add_regime_v4_features(frame.copy())
+
+    agree = out["regime_tf_agreement_v3"].to_numpy(dtype=np.float64)
+    diverge = out["regime_divergence_flag_v3"].to_numpy(dtype=np.float64)
+    # Neutral D1 (class 0): zero agreement — the old count paid a guaranteed
+    # 1/5 D1 self-vote and would count 0==0 as agreement.
+    np.testing.assert_allclose(agree[20:100], 0.0, rtol=0.0, atol=0.0)
+    np.testing.assert_allclose(diverge[20:100], 1.0, rtol=0.0, atol=0.0)
+    # Signed D1 with all four non-D1 TFs matching: full agreement.
+    np.testing.assert_allclose(agree[100:], 1.0, rtol=0.0, atol=0.0)
+    np.testing.assert_allclose(diverge[100:], 0.0, rtol=0.0, atol=0.0)
+
+    # F9 ages in D1 bars: k base rows after the change = k/288 D1 bars.
+    bars_norm = out["bars_since_d1_regime_change_v3"].to_numpy(dtype=np.float64)
+    assert np.isnan(bars_norm[:100]).all()
+    for k in (0, 20, 288):
+        expected = np.log1p(min(k / 288.0, 500.0)) / np.log1p(500.0)
+        np.testing.assert_allclose(
+            bars_norm[100 + k], expected, rtol=1e-6, atol=1e-7
+        )
 
 
 def test_regime_v4_rejects_nonfinite_source_gap_after_warmup() -> None:

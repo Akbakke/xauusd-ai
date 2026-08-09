@@ -31,8 +31,12 @@ def test_volume_features_are_finite_causal_and_ordered() -> None:
     assert all(np.isfinite(values).all() for values in baseline.values())
     assert baseline["vol_z_20"][0] == 0.0
     assert baseline["vol_ratio_5_20"][0] == 0.0
-    assert baseline["vol_pct_96"][0] == 1.0
-    assert baseline["signed_vol_z_20"][0] == 0.0
+    # Mid-rank tie convention: a single-element warmup window ranks its own
+    # row at the neutral 0.5, not 1.0.
+    assert baseline["vol_pct_96"][0] == 0.5
+    # Strictly increasing volume: mid-rank of the newest row in a full window
+    # is (window - 1 + 0.5) / window.
+    assert baseline["vol_pct_96"][119] == np.float32((95 + 0.5) / 96.0)
 
     future_start = 90
     changed = frame.copy()

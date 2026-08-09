@@ -18,7 +18,16 @@ def _finite_vector(values: np.ndarray, *, field: str) -> np.ndarray:
     return arr
 
 
-def _center_atr_ratio(values: np.ndarray) -> np.ndarray:
+def center_atr_ratio(values: np.ndarray) -> np.ndarray:
+    """Return the signed centered ATR-ratio ``tanh(log2(ratio))`` in [-1, 1].
+
+    This is the one-truth transform for every ``ATR_a / ATR_b`` ratio field:
+    0 at ratio 1, ``-tanh(1)`` at ratio 0.5, ``+tanh(1)`` at ratio 2.  It fails
+    closed on non-finite or non-positive input; consumers must call this owner
+    instead of re-deriving it with a soft floor that would read corrupt input
+    as maximal compression.
+    """
+
     ratio = _finite_vector(values, field="atr14_over_atr100")
     if (ratio <= 0.0).any():
         raise RuntimeError("ENTRY_VOLATILITY_SEMANTICS_ATR_RATIO_NOT_POSITIVE")
@@ -29,7 +38,7 @@ def _center_atr_ratio(values: np.ndarray) -> np.ndarray:
 def atr_ratio_compression_pressure(values: np.ndarray) -> np.ndarray:
     """Return [0,1] pressure where lower ATR14/ATR100 means more compression."""
 
-    return np.maximum(-_center_atr_ratio(values), 0.0).astype(
+    return np.maximum(-center_atr_ratio(values), 0.0).astype(
         np.float32, copy=False
     )
 
@@ -37,7 +46,7 @@ def atr_ratio_compression_pressure(values: np.ndarray) -> np.ndarray:
 def atr_ratio_expansion_pressure(values: np.ndarray) -> np.ndarray:
     """Return [0,1] pressure where higher ATR14/ATR100 means more expansion."""
 
-    return np.maximum(_center_atr_ratio(values), 0.0).astype(
+    return np.maximum(center_atr_ratio(values), 0.0).astype(
         np.float32, copy=False
     )
 
@@ -61,4 +70,5 @@ __all__ = [
     "atr_ratio_expansion_pressure",
     "bollinger_expansion_pressure",
     "bollinger_squeeze_pressure",
+    "center_atr_ratio",
 ]

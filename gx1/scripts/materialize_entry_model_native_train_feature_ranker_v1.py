@@ -219,7 +219,13 @@ def _sha256_target(times: np.ndarray, values: np.ndarray) -> str:
 def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     """Deterministic candidate pool: layer extras + classifiable ctx pass-throughs."""
     from gx1.features import entry_model_native_feature_layers_v1 as _fl
+    # Rule 13: candidate ownership must come from the exact producing module,
+    # not from a re-export that happens to sit in the feature-layers module's
+    # namespace.  The candlestick and foundation names were previously
+    # discovered only through _fl's imports; list their owners directly.
+    import gx1.features.entry_candlestick_patterns_v1 as _cp
     import gx1.features.entry_chart_geometry_v1 as _cg
+    import gx1.features.entry_foundation_structure_v1 as _fs
     import gx1.features.entry_momentum_flow_v1 as _mf
     import gx1.features.entry_session_regime_interactions_v1 as _sr
     import gx1.features.entry_smc_liquidity_quality_v1 as _smc
@@ -229,7 +235,7 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     import gx1.features.entry_vol_compression_v1 as _vc
 
     union: set[str] = set()
-    for module in (_fl, _cg, _mf, _sr, _smc, _ssw, _srm, _te, _vc):
+    for module in (_fl, _cp, _cg, _fs, _mf, _sr, _smc, _ssw, _srm, _te, _vc):
         for attr in dir(module):
             if attr.isupper() and attr.endswith("_FEATURE_NAMES"):
                 values = getattr(module, attr)

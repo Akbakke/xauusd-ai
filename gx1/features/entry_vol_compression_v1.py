@@ -12,10 +12,11 @@ import numpy as np
 from gx1.features.entry_volatility_semantics_v1 import (
     atr_ratio_compression_pressure,
     bollinger_squeeze_pressure,
+    center_atr_ratio,
 )
 
 
-VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v2_20260722_exact_ratio_and_squeeze_semantics"
+VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v3_20260809_owner_ratio_center_signed_confidence_derived_bounds"
 VOL_COMPRESSION_FEATURE_PREFIX = "vol_compression."
 
 VOL_COMPRESSION_SOURCE_FIELDS = (
@@ -144,9 +145,27 @@ def _lag1(arr: np.ndarray) -> np.ndarray:
     return out
 
 
-def _ratio_center(arr: np.ndarray) -> np.ndarray:
-    clean = np.maximum(np.asarray(arr, dtype=np.float32), 1e-4)
-    return _clip(np.tanh(np.log(clean) / np.log(2.0)), -1.0, 1.0)
+def _ctx_cat_domain_max(field: str) -> float:
+    """Return the max categorical code for ``field`` from the domain owner.
+
+    Deferred import: ``gx1.contracts.entry_model_native_signal_v1`` imports the
+    feature-layers registry, which imports this module for its name tuple, so a
+    module-level import here would be circular.  By the time the builder runs
+    the contract module is fully initialized.
+    """
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CAT_DOMAINS,
+    )
+
+    domain = MODEL_NATIVE_CTX_CAT_DOMAINS[field]
+    # ``len(domain) - 1`` equals the max code only for contiguous zero-based
+    # domains; verify that instead of silently mis-scaling if the owner drifts.
+    if tuple(domain) != tuple(range(len(domain))):
+        raise RuntimeError(
+            f"vol/compression ctx_cat domain not contiguous from zero: {field}"
+        )
+    return float(len(domain) - 1)
 
 
 def _dispersion01(parts: list[np.ndarray]) -> np.ndarray:
@@ -221,8 +240,11 @@ def build_entry_vol_compression_layer(
     m5_vol_pct = _clip01(c("ctx_cont.vol_pct_m5_1yr"))
     h1_vol_pct = _clip01(c("ctx_cont.vol_pct_h1_1yr"))
     d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252"))
-    atr_bucket = _clip01(c("ctx_cat.atr_bucket") / 4.0)
-    vol_regime = _clip01(c("ctx_cat.vol_regime_id") / 4.0)
+    # Divisors derived from the categorical domain owner
+    # (MODEL_NATIVE_CTX_CAT_DOMAINS), not repeated literals: len(domain) - 1
+    # per field, verified contiguous zero-based in _ctx_cat_domain_max.
+    atr_bucket = _clip01(c("ctx_cat.atr_bucket") / _ctx_cat_domain_max("atr_bucket"))
+    vol_regime = _clip01(c("ctx_cat.vol_regime_id") / _ctx_cat_domain_max("vol_regime_id"))
     m5_m15_ratio = _tanh(c("ctx_cont.atr_ratio_m5_m15") - 1.0, scale=1.0)
     m15_d1_ratio = _tanh(c("ctx_cont.atr_ratio_m15_d1") - 1.0, scale=1.0)
     h1_d1_ratio = _tanh(c("ctx_cont.atr_ratio_h1_d1") - 1.0, scale=1.0)
@@ -263,9 +285,12 @@ def build_entry_vol_compression_layer(
     bandwidth_expanding = _pos(bb_delta)
     foundation_compression = _clip01(c("chart.foundation_compression_state"))
     foundation_expansion = _clip01(c("chart.foundation_expansion_state"))
-    foundation_release = _clip01(c("chart.foundation_compression_release_trigger") / 5.0)
-    foundation_release_up = _clip01(c("chart.foundation_compression_release_up") / 5.0)
-    foundation_release_down = _clip01(c("chart.foundation_compression_release_down") / 5.0)
+    # Producer bound is [0, 1] per entry_foundation_structure_v1 (2026-08-09
+    # wave: the declared [0, 5] clip there was never reachable — the release
+    # trigger is a product of two [0, 1] quantities), so no rescale is needed.
+    foundation_release = _clip01(c("chart.foundation_compression_release_trigger"))
+    foundation_release_up = _clip01(c("chart.foundation_compression_release_up"))
+    foundation_release_down = _clip01(c("chart.foundation_compression_release_down"))
 
     range_compression_stack = _clip01(
         0.32 * h1_compression
@@ -284,10 +309,13 @@ def build_entry_vol_compression_layer(
     )
     compression_persistence = _clip01(compression_depth * (0.55 + 0.45 * _lag1(compression_depth)))
 
-    atr_ratio_m5_m15 = _ratio_center(c("ctx_cont.atr_ratio_m5_m15"))
-    atr_ratio_m5_h4 = _ratio_center(c("ctx_cont.atr_ratio_m5_h4"))
-    atr_ratio_m15_d1 = _ratio_center(c("ctx_cont.atr_ratio_m15_d1"))
-    atr_ratio_h1_d1 = _ratio_center(c("ctx_cont.atr_ratio_h1_d1"))
+    # One-truth owner transform (entry_volatility_semantics_v1.center_atr_ratio):
+    # fails closed on non-positive ratios instead of the retired local copy's
+    # silent 1e-4 floor, which read corrupt input as maximal compression.
+    atr_ratio_m5_m15 = center_atr_ratio(c("ctx_cont.atr_ratio_m5_m15"))
+    atr_ratio_m5_h4 = center_atr_ratio(c("ctx_cont.atr_ratio_m5_h4"))
+    atr_ratio_m15_d1 = center_atr_ratio(c("ctx_cont.atr_ratio_m15_d1"))
+    atr_ratio_h1_d1 = center_atr_ratio(c("ctx_cont.atr_ratio_h1_d1"))
     short_tf_expansion = _clip01(
         0.35 * _pos(atr_ratio_m5_m15)
         + 0.35 * _pos(atr_ratio_m5_h4)
@@ -320,12 +348,23 @@ def build_entry_vol_compression_layer(
         - 0.25 * ratio_dispersion
         + 0.15 * _clip01(c("ctx_cont.regime_tf_agreement_v3"))
     )
+    # Normalized by the sum's unclipped algebraic max so the additive terms
+    # keep resolution instead of clip-saturating at 1.  Derived max:
+    # mtf_agreement = clip01(1 - 0.70*vol_dispersion - 0.25*ratio_dispersion
+    # + 0.15*agreement) with both dispersions <= 1, so its unclipped minimum is
+    # 1 - 0.70 - 0.25 = 0.05 (the clip floor never binds) and
+    # (1 - mtf_agreement) <= 0.95; ratio_dispersion <= 1,
+    # |term_structure_slope| <= 1 (clipped), divergence flag <= 1.
+    # max = 0.95 + 0.25 + 0.20 + 0.15 = 1.55
     mtf_divergence = _clip01(
-        1.0
-        - mtf_agreement
-        + 0.25 * ratio_dispersion
-        + 0.20 * np.abs(term_structure_slope)
-        + 0.15 * _clip01(c("ctx_cont.regime_divergence_flag_v3"))
+        (
+            1.0
+            - mtf_agreement
+            + 0.25 * ratio_dispersion
+            + 0.20 * np.abs(term_structure_slope)
+            + 0.15 * _clip01(c("ctx_cont.regime_divergence_flag_v3"))
+        )
+        / 1.55
     )
     compression_divergence = _clip01(
         0.40 * compression_dispersion
@@ -358,6 +397,10 @@ def build_entry_vol_compression_layer(
     ret5 = _tanh(c("snap.ret_5"), scale=30.0)
     ret20 = _tanh(c("snap.ret_20"), scale=60.0)
     signed_vol = _tanh(c("snap.signed_vol_z_20"), scale=3.0)
+    # Unit note (2026-08-09 upstream ATR-normalization wave): `_v1h1_ema_diff`,
+    # `_v1h4_ema_diff` and `d1_ema_slope_20_canon_v2` are ATR-multiple units
+    # (O(1) per bar), so tanh scale 2.0 is dimensionally sane here: +-2 ATR of
+    # displacement maps to +-tanh(1) ~= 0.76 before saturation.
     trend_proxy = _clip(
         0.30 * _tanh(c("ctx_cont._v1h1_ema_diff"), scale=2.0)
         + 0.25 * _tanh(c("ctx_cont._v1h4_ema_diff"), scale=2.0)
@@ -384,11 +427,17 @@ def build_entry_vol_compression_layer(
         -1.0,
         1.0,
     )
-    direction_confidence = _clip01(
+    direction_confidence_mag = _clip01(
         np.abs(direction_raw)
         * (0.45 + 0.30 * expansion_state + 0.25 * compression_release_impulse)
         * (0.65 + 0.35 * mtf_agreement)
     )
+    # Signed emission: the field name promises direction, but np.abs above
+    # discards the only sign this composite consumes.  Sign =
+    # np.sign(direction_raw); an exact direction_raw == 0 yields 0 (honest
+    # neutral).  The chop/false-breakout/forecast consumers below keep using
+    # the unsigned magnitude, where (1 - confidence) means uncertainty.
+    direction_confidence = (direction_confidence_mag * np.sign(direction_raw)).astype(np.float32)
     release_up = _clip01(
         foundation_release_up
         + compression_release_impulse * (0.55 * _pos(direction_raw) + 0.45 * _pos(expansion_direction))
@@ -416,7 +465,7 @@ def build_entry_vol_compression_layer(
     )
     high_vol_chop_tail = _clip01(
         high_vol_tail_risk
-        * (0.45 + 0.30 * mtf_divergence + 0.15 * compression_divergence + 0.10 * (1.0 - direction_confidence))
+        * (0.45 + 0.30 * mtf_divergence + 0.15 * compression_divergence + 0.10 * (1.0 - direction_confidence_mag))
     )
     low_vol_breakout_setup = _clip01(
         low_atr_pressure
@@ -427,11 +476,11 @@ def build_entry_vol_compression_layer(
     )
     low_vol_false_breakout_risk = _clip01(
         low_vol_breakout_setup
-        * (0.45 * mtf_divergence + 0.30 * compression_divergence + 0.25 * (1.0 - direction_confidence))
+        * (0.45 * mtf_divergence + 0.30 * compression_divergence + 0.25 * (1.0 - direction_confidence_mag))
     )
     vol_forecast_confidence = _clip01(
         0.30 * mtf_agreement
-        + 0.20 * direction_confidence
+        + 0.20 * direction_confidence_mag
         + 0.18 * np.maximum(compression_release_impulse, compression_agreement)
         + 0.17 * np.maximum(expansion_state, low_vol_breakout_setup)
         + 0.15 * (1.0 - high_vol_chop_tail)
@@ -453,7 +502,7 @@ def build_entry_vol_compression_layer(
     _add(arrays, names, "expansion_state_score", expansion_state, lo=0.0, hi=1.0)
     _add(arrays, names, "expansion_acceleration_score", expansion_acceleration, lo=0.0, hi=1.0)
     _add(arrays, names, "expansion_direction_score", expansion_direction, lo=-1.0, hi=1.0)
-    _add(arrays, names, "expansion_direction_confidence", direction_confidence, lo=0.0, hi=1.0)
+    _add(arrays, names, "expansion_direction_confidence", direction_confidence, lo=-1.0, hi=1.0)
     _add(arrays, names, "high_vol_tail_risk", high_vol_tail_risk, lo=0.0, hi=1.0)
     _add(arrays, names, "high_vol_chop_tail_risk", high_vol_chop_tail, lo=0.0, hi=1.0)
     _add(arrays, names, "low_vol_breakout_setup", low_vol_breakout_setup, lo=0.0, hi=1.0)

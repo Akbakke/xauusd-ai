@@ -102,6 +102,21 @@ def test_micro_structure_is_causal_exact_and_strict() -> None:
     assert all(np.isfinite(values).all() for values in observed.values())
     assert observed["micro_momentum_3"][:3].tolist() == [0.0, 0.0, 0.0]
     assert observed["micro_momentum_5"][:5].tolist() == [0.0] * 5
+    # bps of the current close (repo ret_* convention), not raw USD diffs.
+    np.testing.assert_allclose(
+        observed["micro_momentum_3"][3:],
+        (close[3:] - close[:-3]) / close[3:] * 1e4,
+        rtol=1e-6,
+    )
+    np.testing.assert_allclose(
+        observed["micro_acceleration"][2:],
+        np.diff(np.diff(close)) / close[2:] * 1e4,
+        rtol=1e-6,
+    )
+    # A zero-range bar has no close-location evidence: neutral 0.5, never the
+    # fabricated "closed at high" 0.0.
+    flat = compute_micro_structure_features(close.copy(), close.copy(), close.copy())
+    assert flat["wick_ratio"].tolist() == [0.5] * len(close)
 
     changed_high = high.copy()
     changed_low = low.copy()

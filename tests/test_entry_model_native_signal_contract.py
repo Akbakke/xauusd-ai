@@ -63,15 +63,19 @@ from tests.model_native_input_normalization_support import (
 
 # The code-owned family fields plus ranked fixture fields form the exact
 # selected surface. The genuine 34-field base produces these totals.
+# 2026-08-09: the three unsigned tick-volume participation fields in the base
+# (vol_z_20, vol_ratio_5_20, vol_pct_96) moved from the volatility owner to
+# the momentum/flow owner alongside signed_vol_z_20 (declared order-flow in
+# gx1.features.volume_features), shifting 44/31 -> 41/34.
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "chart_geometry_encoder": 18,
-    "momentum_flow_encoder": 31,
+    "momentum_flow_encoder": 34,
     "price_action_candle_encoder": 35,
     "session_regime_encoder": 229,
     "smc_liquidity_encoder": 68,
     "structure_swing_encoder": 51,
     "trend_ema_encoder": 37,
-    "vol_compression_encoder": 44,
+    "vol_compression_encoder": 41,
 }
 _TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)
 

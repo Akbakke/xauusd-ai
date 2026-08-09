@@ -23,7 +23,7 @@ from gx1.features.entry_volatility_semantics_v1 import (
 
 
 FOUNDATION_STRUCTURE_FEATURE_VERSION = (
-    "entry_foundation_structure_v3_20260729_total_wick_share_semantics_failclosed"
+    "entry_foundation_structure_v4_20260809_bounded_amplifier_release_domain_failclosed"
 )
 FOUNDATION_STRUCTURE_FEATURE_PREFIX = "chart.foundation_"
 FOUNDATION_EVENT_AGE_CAP = 96
@@ -333,6 +333,10 @@ def build_entry_foundation_structure_layer(
     def c(name: str) -> np.ndarray:
         return _col(x, idx, name)
 
+    # Unit assumptions (owners): _v1h*_ema_diff and d1_ema_slope_20_canon_v2
+    # are emitted in ATR-multiples by htf_features (unit-conversion owner), so
+    # tanh at scale=1.0 is dimensionally sane; m15_trend_sign_canon_v2 is a
+    # dimensionless sign in {-1,0,1} (htf_features), scale=1.0 sane.
     h1_trend = _tanh(c("ctx_cont._v1h1_ema_diff"))
     h4_trend = _tanh(c("ctx_cont._v1h4_ema_diff"))
     d1_slope = _tanh(c("ctx_cont.d1_ema_slope_20_canon_v2"))
@@ -367,8 +371,12 @@ def build_entry_foundation_structure_layer(
     retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
 
     hh_state = _clip01(0.85 * clean_up + 0.45 * up_bias + 0.50 * high_context * trend_up + 0.35 * bos_up_pressure)
-    hl_state = _clip01(0.75 * clean_up + 0.55 * up_bias + 0.60 * low_context * trend_up * (1.0 + pullback + retracement))
-    lh_state = _clip01(0.55 * down_bias + 0.45 * clean_down + 0.60 * high_context * trend_down * (1.0 + pullback + retracement))
+    # Pullback/retracement amplifier normalized by its algebraic max: pullback
+    # and retracement are each _clip01-bounded, so (1+pullback+retracement) is
+    # in [1,3]; dividing by 3.0 maps it to [1/3,1] so the amplified term can no
+    # longer saturate _clip01 exactly in the informative region.
+    hl_state = _clip01(0.75 * clean_up + 0.55 * up_bias + 0.60 * low_context * trend_up * ((1.0 + pullback + retracement) / 3.0))
+    lh_state = _clip01(0.55 * down_bias + 0.45 * clean_down + 0.60 * high_context * trend_down * ((1.0 + pullback + retracement) / 3.0))
     ll_state = _clip01(0.85 * clean_down + 0.45 * down_bias + 0.50 * low_context * trend_down + 0.35 * bos_down_pressure)
     _add(arrays, names, "hh_state", hh_state, lo=0.0, hi=1.0)
     _add(arrays, names, "hl_state", hl_state, lo=0.0, hi=1.0)
@@ -441,10 +449,14 @@ def build_entry_foundation_structure_layer(
         + 0.15 * vol_ratio
     )
     expansion_delta = _pos(expansion - _lag1(expansion))
-    release_trigger = _clip(_lag1(compression) * expansion_delta, 0.0, 5.0)
+    # Honest declared bound: _lag1(compression) and expansion_delta are each in
+    # [0,1] (compression/expansion are _clip01-bounded), so the product is
+    # provably in [0,1]; the former hi=5.0 declared a domain the value cannot
+    # reach. The value itself is unchanged — its smallness is intrinsic.
+    release_trigger = _clip(_lag1(compression) * expansion_delta, 0.0, 1.0)
     _add(arrays, names, "compression_state", compression, lo=0.0, hi=1.0)
     _add(arrays, names, "expansion_state", expansion, lo=0.0, hi=1.0)
-    _add(arrays, names, "compression_release_trigger", release_trigger, lo=0.0, hi=5.0)
+    _add(arrays, names, "compression_release_trigger", release_trigger, lo=0.0, hi=1.0)
     _add(arrays, names, "compression_release_up", release_trigger * trend_up, lo=0.0, hi=5.0)
     _add(arrays, names, "compression_release_down", release_trigger * trend_down, lo=0.0, hi=5.0)
 

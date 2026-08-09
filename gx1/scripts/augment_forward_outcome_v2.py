@@ -195,6 +195,12 @@ GROUP_S_SMC_FEATURE_NAMES = (
     "smc_premium_discount_canon_v1",
     "smc_premium_state_canon_v1",
 )
+# Historical session-overlap windows (UTC hours) for the is_*_overlap/only
+# flags. These hour sets are a second, older clock than the canonical
+# gx1/time/session_detector.py SESSION_BOUNDARIES and are kept byte-identical
+# pending the full session-unification recipe decision; only the timestamp
+# they are evaluated on has been aligned to the canonical decision-availability
+# convention (bar close = bar start + bar duration), 2026-08-09.
 ASIA_HOURS = set(list(range(22, 24)) + list(range(0, 9)))
 EU_HOURS   = set(range(7, 17))
 US_HOURS   = set(range(13, 22))
@@ -554,9 +560,28 @@ def build_context(
     )
 
 
-def _session_overlap(ts: pd.Timestamp) -> dict[str, float]:
+def _session_overlap(
+    ts: pd.Timestamp,
+    *,
+    decision_bar_duration_ns: int,
+) -> dict[str, float]:
+    """Session-overlap flags on the canonical decision-availability clock.
+
+    ``ts`` is the decision bar-start label. The flags are classified at the
+    bar-close availability timestamp (ts + bar duration), the same clock the
+    canonical session_id owner (gx1/time/session_detector.py
+    decision_availability) uses — the two clocks now agree on WHEN a bar is
+    classified. The hour sets themselves are the historical overlap windows
+    above (a separate recipe decision).
+    """
     ts = _require_utc_timestamp(ts, context="CTX_SESSION")
-    h = ts.hour
+    if (
+        isinstance(decision_bar_duration_ns, bool)
+        or not isinstance(decision_bar_duration_ns, (int, np.integer))
+        or int(decision_bar_duration_ns) <= 0
+    ):
+        raise RuntimeError("[CTX_SESSION] decision bar duration is invalid")
+    h = (ts + pd.Timedelta(int(decision_bar_duration_ns), unit="ns")).hour
     asia, eu, us = h in ASIA_HOURS, h in EU_HOURS, h in US_HOURS
     return {
         "is_asia_eu_overlap": float(asia and eu),
@@ -808,6 +833,7 @@ def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> 
         out[f"dip_confirmed_{tf}_v3"] = dip_prox * recovery
     # STRUCTURE per TF: HH/HL/LH/LL via mom_5 + mom_20 signs
     pback = {}
+    counter_trend = {}
     for tf in MULTI_TF_TIMEFRAMES_LOWER:
         mom5_name = f"{tf}_mom_5_atr_v2"
         mom20_name = f"{tf}_mom_20_atr_v2"
@@ -821,12 +847,29 @@ def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> 
         out[f"struct_pullback_in_uptrend_{tf}_v3"] = float((m20_mom > 0) and (m5_mom < 0))
         out[f"struct_continuation_down_{tf}_v3"] = float((m20_mom < 0) and (m5_mom < 0))
         out[f"struct_bounce_in_downtrend_{tf}_v3"] = float((m20_mom < 0) and (m5_mom > 0))
-        depth = -m5_mom / max(abs(m20_mom), 1e-6) if m20_mom > 1e-6 else 0.0
+        # 2026-08-09 symmetry repair: the old `if m20_mom > 1e-6 else 0.0`
+        # emitted an identical 0.0 in every downtrend. Depth is now signed by
+        # the trend direction: positive = counter-trend pullback in either
+        # direction. Domain [-2, 2] and the 1e-6 momentum floor are unchanged.
+        if abs(m20_mom) > 1e-6:
+            depth = -m5_mom * math.copysign(1.0, m20_mom) / max(abs(m20_mom), 1e-6)
+        else:
+            depth = 0.0
         out[f"struct_pullback_depth_{tf}_v3"] = max(-2.0, min(2.0, depth))
         pback[tf] = out[f"struct_pullback_in_uptrend_{tf}_v3"]
+        # 2026-08-09 symmetry repair: the agree count previously saw only
+        # uptrend pullbacks. The mirrored in-downtrend flag uses the same
+        # construction with both signs flipped; a TF agrees when it shows a
+        # counter-trend bar in either trend direction. Field name and emitted
+        # domain (mean in [0, 1]) are unchanged.
+        pullback_in_downtrend = float((m20_mom < 0) and (m5_mom > 0))
+        counter_trend[tf] = max(pback[tf], pullback_in_downtrend)
     # Multi-TF combo: strict AND across all 5 TFs
     out["struct_all_tf_pullback_v3"] = pback["m5"] * pback["m15"] * pback["h1"] * pback["h4"] * pback["d1"]
-    out["struct_tf_agree_count_v3"] = (pback["m5"] + pback["m15"] + pback["h1"] + pback["h4"] + pback["d1"]) / 5.0
+    out["struct_tf_agree_count_v3"] = (
+        counter_trend["m5"] + counter_trend["m15"] + counter_trend["h1"]
+        + counter_trend["h4"] + counter_trend["d1"]
+    ) / 5.0
     avg_dip = (out["dip_confirmed_m5_v3"] + out["dip_confirmed_m15_v3"] + out["dip_confirmed_h1_v3"]
                + out["dip_confirmed_h4_v3"] + out["dip_confirmed_d1_v3"]) / 5.0
     out["struct_dip_x_uptrend_v3"] = avg_dip * pback["m5"]
@@ -873,7 +916,12 @@ def augment_candidate(
     out: dict[str, float] = {}
     liq = _liquidity_zones(ctx, ts_ns, current_price, current_atr)
     out.update(per_tf)                                         # 125
-    out.update(_session_overlap(ts))                           # 4
+    out.update(
+        _session_overlap(
+            ts,
+            decision_bar_duration_ns=ctx.decision_bar_duration_ns,
+        )
+    )                                                          # 4
     out.update(_vol_term(per_tf))                              # 4
     out.update(_vol_pct(ctx, ts_ns))                           # 2
     out.update(_pivots(ctx, ts, current_atr, current_price))   # 4

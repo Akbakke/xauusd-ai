@@ -7,7 +7,7 @@ import numpy as np
 
 
 SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = (
-    "entry_smc_liquidity_quality_v2_20260729_signed_candle_owner_fail_closed"
+    "entry_smc_liquidity_quality_v3_20260809_stack_side_owner_saturation_repair"
 )
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
 
@@ -96,6 +96,39 @@ SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
     "candle.pattern_body_direction",
     "candle.pattern_body_share",
 )
+
+
+# --- Shared hand-authored constants (single owners, rule 19) -----------------
+# Trend composite weights over (h1_trend, h4_trend, d1_slope, m15_trend,
+# regime_stack).  Origin: the chart-layer trend_proxy weighting in
+# gx1/features/entry_model_native_feature_layers_v1.py:557-563, adopted
+# 2026-08-09 as the single owner of this five-input fusion.  The per-file
+# variants (0.32/0.30/0.20/0.12/0.06 here, 0.30/0.30/0.20/0.12/0.08 in the
+# support/resistance memory layer) were hand copies of the same composite with
+# no separately stated origin and are retired in favour of this one weighting.
+TREND_COMPOSITE_WEIGHTS = (0.35, 0.30, 0.20, 0.10, 0.05)
+
+# Wick-rejection close-location base term.  Defined once here as the single
+# owner 2026-08-09: this file's 0.50 variant is the earlier owner; the
+# support/resistance memory layer carried a 0.55 copy of the otherwise
+# identical expression with no separate origin and now imports this constant.
+WICK_REJECTION_CLOSE_LOCATION_BASE = 0.50
+
+# Algebraic maximum of the wick-rejection product
+#   wick_share * (BASE + close_location + 0.25 * body_side) * (0.75 + 0.25 * body_share)
+# with wick_share, close_location, body_side, body_share all in [0, 1]:
+#   1.0 * (0.50 + 1.0 + 0.25) * (0.75 + 0.25 * 1.0) = 1.75.
+# Dividing the product by this bound before the [0, 1] clip maps the algebraic
+# range onto the declared domain instead of clipping away its top 43%.
+WICK_REJECTION_STRENGTH_ALGEBRAIC_MAX = WICK_REJECTION_CLOSE_LOCATION_BASE + 1.0 + 0.25
+
+# Algebraic maximum of the premium/discount trend-alignment product
+#   side * (0.50 + trend_side) * (0.50 + stack + pool):
+#   side <= 1 (_clip01); trend_side < 1 because TREND_COMPOSITE_WEIGHTS sums to
+#   1.0 over tanh-bounded inputs, so (0.50 + trend_side) <= 1.5; stack <= 1.5
+#   (its unclipped swing row is prox <= 1 times (0.50 + recency <= 1.0)) and
+#   pool <= 1, so (0.50 + stack + pool) <= 3.0.  Bound: 1.0 * 1.5 * 3.0 = 4.5.
+PREMIUM_DISCOUNT_TREND_ALIGNMENT_ALGEBRAIC_MAX = 4.5
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
@@ -208,7 +241,10 @@ def build_entry_smc_liquidity_quality_layer(
     d1_slope = _tanh(c("ctx_cont.d1_ema_slope_20_canon_v2"))
     m15_trend = _tanh(c("ctx_cont.m15_trend_sign_canon_v2"))
     regime_stack = _tanh(c("ctx_cont.regime_stack_sum_v3"), scale=3.0)
-    trend = _clip(0.32 * h1_trend + 0.30 * h4_trend + 0.20 * d1_slope + 0.12 * m15_trend + 0.06 * regime_stack)
+    w_h1, w_h4, w_d1, w_m15, w_regime = TREND_COMPOSITE_WEIGHTS
+    trend = _clip(
+        w_h1 * h1_trend + w_h4 * h4_trend + w_d1 * d1_slope + w_m15 * m15_trend + w_regime * regime_stack
+    )
     trend_up = _pos(trend)
     trend_down = _neg(trend)
 
@@ -237,13 +273,91 @@ def build_entry_smc_liquidity_quality_layer(
     lower_wick = _clip01(c("candle.pattern_lower_wick_share"))
     close_near_high = _clip01(c("candle.pattern_close_location"))
     close_near_low = _clip01(1.0 - close_near_high)
-    wick_reject_long = _clip01(lower_wick * (0.50 + close_near_high + 0.25 * body_bull) * (0.75 + 0.25 * body_share))
-    wick_reject_short = _clip01(upper_wick * (0.50 + close_near_low + 0.25 * body_bear) * (0.75 + 0.25 * body_share))
+    # Normalized by the derived algebraic maximum before the [0, 1] clip so the
+    # full algebraic range maps onto the declared domain (see the constant's
+    # derivation comment at module level).
+    wick_reject_long = _clip01(
+        lower_wick
+        * (WICK_REJECTION_CLOSE_LOCATION_BASE + close_near_high + 0.25 * body_bull)
+        * (0.75 + 0.25 * body_share)
+        / WICK_REJECTION_STRENGTH_ALGEBRAIC_MAX
+    )
+    wick_reject_short = _clip01(
+        upper_wick
+        * (WICK_REJECTION_CLOSE_LOCATION_BASE + close_near_low + 0.25 * body_bear)
+        * (0.75 + 0.25 * body_share)
+        / WICK_REJECTION_STRENGTH_ALGEBRAIC_MAX
+    )
 
     recent_swing_low = _recency(c("ctx_cont.bars_since_swing_low"))
     recent_swing_high = _recency(c("ctx_cont.bars_since_swing_high"))
     near_swing_low = _prox_abs(c("ctx_cont.dist_last_swing_low_atr"))
     near_swing_high = _prox_abs(c("ctx_cont.dist_last_swing_high_atr"))
+    swing_low_row = near_swing_low * (0.50 + recent_swing_low)
+    swing_high_row = near_swing_high * (0.50 + recent_swing_high)
+    low_liquidity_proximity = _prox_abs(c("ctx_cont.liquidity_lo_nearest_abs_atr"))
+    high_liquidity_proximity = _prox_abs(c("ctx_cont.liquidity_hi_nearest_abs_atr"))
+    support_geometry_row = _clip01(c("chart.geometry_support_line_proximity_stack"))
+    resistance_geometry_row = _clip01(c("chart.geometry_resistance_line_proximity_stack"))
+
+    # Support/resistance proximity stacks (2026-08-09 repair).
+    #
+    # The max() previously ran over 12 rows.  Producer contract
+    # (gx1/features/entry_smart_context.py:140-184):
+    #   s_abs = min(|dist_to_S1_atr|, |dist_to_S2_atr|)
+    #   r_abs = min(|dist_to_R1_atr|, |dist_to_R2_atr|)
+    #   sr_nearest_pivot_abs_atr    = min(r_abs, s_abs)
+    #   sr_support_proximity_exp    = exp(-min(s_abs, 20))
+    #   sr_resistance_proximity_exp = exp(-min(r_abs, 20))
+    #   liquidity_lo_nearest_abs_atr = min over |dist_to_{m5,m15,h1,h4,d1}_lo_atr|
+    #   liquidity_hi_nearest_abs_atr = min over |dist_to_{m5,m15,h1,h4,d1}_hi_atr|
+    # Because 1/(1+|x|) is monotone decreasing and round-to-nearest is monotone,
+    # _prox_abs of a min equals the componentwise max of _prox_abs bit-exactly,
+    # so under that contract these max inputs were algebraically dead (each one
+    # <= a row that remains) and are removed from the max:
+    #   removed (dominated) row               dominator kept in the max
+    #   _prox_abs(dist_to_m5_lo_atr)          _prox_abs(liquidity_lo_nearest_abs_atr)
+    #   _prox_abs(dist_to_m15_lo_atr)         _prox_abs(liquidity_lo_nearest_abs_atr)
+    #   _prox_abs(dist_to_h1_lo_atr)          _prox_abs(liquidity_lo_nearest_abs_atr)
+    #   _prox_abs(dist_to_h4_lo_atr)          _prox_abs(liquidity_lo_nearest_abs_atr)
+    #   _prox_abs(dist_to_d1_lo_atr)          _prox_abs(liquidity_lo_nearest_abs_atr)
+    #   _clip01(sr_support_proximity_exp)     max(_prox_abs(dist_to_S1_atr), _prox_abs(dist_to_S2_atr))
+    #                                         = 1/(1+s_abs) >= exp(-min(s_abs, 20))
+    #                                         since exp(-x) <= 1/(1+x) for x >= 0
+    #                                         (valid while s_abs <= e^20 - 1
+    #                                         ~= 4.9e8 ATR, i.e. every real tape;
+    #                                         exact up to <=1-ulp faithful
+    #                                         rounding of np.exp as s_abs -> 0)
+    # and the mirrored hi/R rows for the resistance stack.
+    #
+    # Separately, the shared row _prox_abs(sr_nearest_pivot_abs_atr) — prox of
+    # min(r_abs, s_abs) — appeared in BOTH stacks, flooring support proximity by
+    # resistance distance (and vice versa) and making the two stacks bit-equal
+    # whenever it won.  It is removed from both maxes (VALUE CHANGE): the
+    # side-specific rows dist_to_S1/S2 (support) and dist_to_R1/R2 (resistance)
+    # remain and now carry the side information.
+    support_stack = np.maximum.reduce(
+        [
+            _prox_abs(c("ctx_cont.dist_to_S1_atr")),
+            _prox_abs(c("ctx_cont.dist_to_S2_atr")),
+            low_liquidity_proximity,
+            swing_low_row,
+            support_geometry_row,
+        ]
+    ).astype(np.float32)
+    resistance_stack = np.maximum.reduce(
+        [
+            _prox_abs(c("ctx_cont.dist_to_R1_atr")),
+            _prox_abs(c("ctx_cont.dist_to_R2_atr")),
+            high_liquidity_proximity,
+            swing_high_row,
+            resistance_geometry_row,
+        ]
+    ).astype(np.float32)
+
+    # Touch-count proxy: semantics deliberately unchanged (documented for
+    # later).  It still counts over the full original 12-row source set —
+    # rows that are dead as *max* inputs remain individual touch evidence here.
     support_sources = np.vstack(
         [
             _clip01(c("ctx_cont.sr_support_proximity_exp")),
@@ -255,9 +369,9 @@ def build_entry_smc_liquidity_quality_layer(
             _prox_abs(c("ctx_cont.dist_to_h1_lo_atr")),
             _prox_abs(c("ctx_cont.dist_to_h4_lo_atr")),
             _prox_abs(c("ctx_cont.dist_to_d1_lo_atr")),
-            _prox_abs(c("ctx_cont.liquidity_lo_nearest_abs_atr")),
-            near_swing_low * (0.50 + recent_swing_low),
-            _clip01(c("chart.geometry_support_line_proximity_stack")),
+            low_liquidity_proximity,
+            swing_low_row,
+            support_geometry_row,
         ]
     )
     resistance_sources = np.vstack(
@@ -271,13 +385,11 @@ def build_entry_smc_liquidity_quality_layer(
             _prox_abs(c("ctx_cont.dist_to_h1_hi_atr")),
             _prox_abs(c("ctx_cont.dist_to_h4_hi_atr")),
             _prox_abs(c("ctx_cont.dist_to_d1_hi_atr")),
-            _prox_abs(c("ctx_cont.liquidity_hi_nearest_abs_atr")),
-            near_swing_high * (0.50 + recent_swing_high),
-            _clip01(c("chart.geometry_resistance_line_proximity_stack")),
+            high_liquidity_proximity,
+            swing_high_row,
+            resistance_geometry_row,
         ]
     )
-    support_stack = support_sources.max(axis=0).astype(np.float32)
-    resistance_stack = resistance_sources.max(axis=0).astype(np.float32)
     support_touch_count = _count_proxy(support_sources)
     resistance_touch_count = _count_proxy(resistance_sources)
 
@@ -290,10 +402,8 @@ def build_entry_smc_liquidity_quality_layer(
     # locator, the most recent swing, and clustered lower/higher TF extremes.
     # This preserves the intended cross-family cooperation without allowing
     # either family to masquerade as the other.
-    low_liquidity_proximity = _prox_abs(c("ctx_cont.liquidity_lo_nearest_abs_atr"))
-    high_liquidity_proximity = _prox_abs(c("ctx_cont.liquidity_hi_nearest_abs_atr"))
-    low_swing_proximity = _clip01(near_swing_low * (0.50 + recent_swing_low))
-    high_swing_proximity = _clip01(near_swing_high * (0.50 + recent_swing_high))
+    low_swing_proximity = _clip01(swing_low_row)
+    high_swing_proximity = _clip01(swing_high_row)
     low_tf_cluster = _clip01(
         0.30 * _prox_abs(c("ctx_cont.dist_to_m5_lo_atr"))
         + 0.25 * _prox_abs(c("ctx_cont.dist_to_m15_lo_atr"))
@@ -350,8 +460,20 @@ def build_entry_smc_liquidity_quality_layer(
     reclaim_short = _clip01(0.45 * foundation_reclaim_short + 0.35 * (sweep_high_quality / 5.0) + 0.20 * close_near_low)
     false_low_context = _clip01(0.40 * foundation_false_low + 0.20 * geometry_false_low + 0.40 * (sweep_low_quality / 5.0 + choch_recent * trend_up))
     false_high_context = _clip01(0.40 * foundation_false_high + 0.20 * geometry_false_high + 0.40 * (sweep_high_quality / 5.0 + choch_recent * trend_down))
-    long_pd_alignment = _clip01(discount * (0.50 + trend_up) * (0.50 + support_stack + low_pool))
-    short_pd_alignment = _clip01(premium * (0.50 + trend_down) * (0.50 + resistance_stack + high_pool))
+    # Normalized by the derived algebraic maximum before the [0, 1] clip (see
+    # the constant's derivation comment at module level).
+    long_pd_alignment = _clip01(
+        discount
+        * (0.50 + trend_up)
+        * (0.50 + support_stack + low_pool)
+        / PREMIUM_DISCOUNT_TREND_ALIGNMENT_ALGEBRAIC_MAX
+    )
+    short_pd_alignment = _clip01(
+        premium
+        * (0.50 + trend_down)
+        * (0.50 + resistance_stack + high_pool)
+        / PREMIUM_DISCOUNT_TREND_ALIGNMENT_ALGEBRAIC_MAX
+    )
     inducement_risk_long = _clip(
         high_pool
         * resistance_stack

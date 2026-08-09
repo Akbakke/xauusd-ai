@@ -74,7 +74,9 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     set_col("ctx_cont.dist_last_swing_low_atr", [4.0, 4.0, 4.0, 0.2, 0.3, -0.6, -0.4, 0.2])
     set_col("ctx_cont.bars_since_swing_high", [48, 1, 2, 4, 6, 48, 48, 4])
     set_col("ctx_cont.bars_since_swing_low", [48, 48, 48, 4, 6, 1, 2, 4])
-    set_col("ctx_cont.struct_tf_agree_count_v3", [0, 5, 4, 1, 4, 5, 4, 4])
+    # Producer domain (augment_forward_outcome_v2): mean of five per-TF binary
+    # pullback flags, already in [0,1]; attainable values are k/5.
+    set_col("ctx_cont.struct_tf_agree_count_v3", [0.0, 1.0, 0.8, 0.2, 0.8, 1.0, 0.8, 0.8])
 
     for tf in ("m5", "m15", "h1", "h4", "d1"):
         set_col(f"ctx_cont.struct_continuation_up_{tf}_v3", [0.0, 0.9, 0.8, 0.6, 0.8, 0.0, 0.0, 0.1])
@@ -115,8 +117,18 @@ def test_structure_swing_derivations_capture_quality_state_and_routing() -> None
     assert out[5, idx["chart.structure_swing_break_confirmation_balance"]] < -0.25
     assert out[4, idx["chart.structure_swing_choch_failure_up_risk"]] > 0.3
     assert out[7, idx["chart.structure_swing_choch_failure_down_risk"]] > 0.3
-    assert out[2, idx["chart.structure_swing_pullback_depth_phase_alignment_up"]] > 0.4
-    assert out[6, idx["chart.structure_swing_pullback_depth_phase_alignment_down"]] > 0.4
+    # pullback_depth_quality is the raw clipped depth passthrough (the
+    # exp(-|depth-0.50|*4.0) Fib prior was removed); with the fixture's equal
+    # pullback/mtf depths the blend reproduces the depth column exactly.
+    np.testing.assert_allclose(
+        out[:, idx["chart.structure_swing_pullback_depth_quality"]],
+        [0.2, 0.4, 0.5, 0.5, 0.4, 0.4, 0.5, 0.4],
+        rtol=1e-6,
+    )
+    # Depth-gated funnels use the raw depth (0.5 at the fixture peak, formerly
+    # amplified to 1.0 by the Fib prior); floor matches the continuation checks.
+    assert out[2, idx["chart.structure_swing_pullback_depth_phase_alignment_up"]] > 0.2
+    assert out[6, idx["chart.structure_swing_pullback_depth_phase_alignment_down"]] > 0.2
     assert out[2, idx["chart.structure_swing_pullback_phase_continuation_up"]] > 0.2
     assert out[6, idx["chart.structure_swing_pullback_phase_continuation_down"]] > 0.2
     assert out[1, idx["chart.structure_swing_pullback_phase_continuation_up"]] > out[1, idx["chart.structure_swing_pullback_phase_continuation_down"]]

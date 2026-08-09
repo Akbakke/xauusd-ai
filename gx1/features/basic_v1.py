@@ -607,7 +607,15 @@ def build_basic_v1(
     # DEL 2: Replace .shift() with NumPy
     ema12_arr = ema12.to_numpy(dtype=np.float64) if hasattr(ema12, 'to_numpy') else np.asarray(ema12, dtype=np.float64)
     ema26_arr = ema26.to_numpy(dtype=np.float64) if hasattr(ema26, 'to_numpy') else np.asarray(ema26, dtype=np.float64)
-    ema_diff = ema12_arr - ema26_arr
+    # ATR-relative trend spread. The raw USD spread (ema12 - ema26) scales
+    # with the price level (gold ran 1454 -> 5588 over the declared tape) and
+    # acted as an era/date proxy rather than market evidence. Dividing by the
+    # file's own _v1_atr14 source (additive 1e-12 epsilon, the same ATR
+    # division convention as _v1_tr_1_over_atr_14 below) makes it era-stable.
+    # Both numerator and denominator are unshifted here and shifted once
+    # together, so row t reads bar t-1's ratio; the ATR rolling warmup NaN
+    # prefix is preserved as honest causal warmup.
+    ema_diff = (ema12_arr - ema26_arr) / (atr14_arr + 1e-12)
     ema_diff_shifted = np.roll(ema_diff, 1)
     ema_diff_shifted[0] = ema_diff[0] if len(ema_diff) > 0 else 0.0
     df["_v1_ema_diff"] = ema_diff_shifted
@@ -844,6 +852,11 @@ def build_basic_v1(
     
     clv = (close_arr - low_arr) / (range_safe + 1e-12)
     clv_shifted = np.roll(clv, 1)
+    # CLV convention, deliberately different from the body/wick-share
+    # convention above: a zero-range bar has a genuinely zero body and zero
+    # wicks (0.0 is the honest share), but its close LOCATION inside a
+    # zero-width range is undefined, and 0.5 is the true neutral midpoint of
+    # the [0, 1] close-location domain. Keep nan -> 0.5 here.
     clv_shifted[0] = 0.5
     clv_shifted = np.nan_to_num(clv_shifted, nan=0.5)
     df["_v1_clv"] = clv_shifted
@@ -1151,12 +1164,15 @@ def build_basic_v1(
     # DEL 2: Replace .abs(), .replace(), .shift(), .fillna() with NumPy
     body = np.abs(close_arr - open_arr)
     range_arr = high_arr - low_arr
-    range_safe = range_arr.copy()
-    range_safe[range_safe == 0.0] = np.nan
-    body_share = body / (range_safe + 1e-9)
+    # Zero-range bar: zero body over zero range -> 0/eps = 0.0 is the honest
+    # defined value, per this file's stated candle-shape convention (see the
+    # _v1_body_tr block: same quantity, same 1e-12 epsilon, row-0 seed 0.0).
+    # The previous NaN mask + nan_to_num(0.5) fabricated a "half body" on
+    # quiet holiday tape. Contrast with _v1_clv below, where 0.5 genuinely is
+    # the neutral value of a [0, 1] close-location.
+    body_share = body / (range_arr + 1e-12)
     body_share_shifted = np.roll(body_share, 1)
-    body_share_shifted[0] = 0.5
-    body_share_shifted = np.nan_to_num(body_share_shifted, nan=0.5)
+    body_share_shifted[0] = 0.0
     df["_v1_body_share_1"] = body_share_shifted
     
     # 2) tr_1_over_atr_14: eksplosjon relativt ATR (breakout-styrke)

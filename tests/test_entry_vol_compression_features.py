@@ -84,9 +84,12 @@ def _matrix(names: list[str], n: int = 7) -> np.ndarray:
     set_col("ctx_cont.m15_trend_sign_canon_v2", [0.0, 0.2, 0.4, 1.0, 0.0, -1.0, 0.0])
     set_col("chart.foundation_compression_state", [0.0, 0.7, 0.9, 0.3, 0.1, 0.3, 0.7])
     set_col("chart.foundation_expansion_state", [0.0, 0.0, 0.1, 0.9, 0.8, 0.9, 0.1])
-    set_col("chart.foundation_compression_release_trigger", [0.0, 0.1, 0.2, 4.5, 2.0, 4.5, 0.0])
-    set_col("chart.foundation_compression_release_up", [0.0, 0.0, 0.0, 4.5, 0.0, 0.0, 0.0])
-    set_col("chart.foundation_compression_release_down", [0.0, 0.0, 0.0, 0.0, 0.0, 4.5, 0.0])
+    # Producer bound is [0, 1] per entry_foundation_structure_v1 (2026-08-09
+    # wave); values below are the old fixture values divided by the retired
+    # 5.0 rescale, so downstream expectations are unchanged.
+    set_col("chart.foundation_compression_release_trigger", [0.0, 0.02, 0.04, 0.9, 0.4, 0.9, 0.0])
+    set_col("chart.foundation_compression_release_up", [0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0])
+    set_col("chart.foundation_compression_release_down", [0.0, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0])
     set_col("chart.foundation_impulse_direction", [0.0, 0.1, 0.2, 1.5, 0.0, -1.5, 0.0])
     set_col("snap._v1_kurt_r", [0.0, 0.1, 0.1, 1.0, 6.0, 1.0, 0.2])
     set_col("snap._v1_pk_sigma20", [0.0, -0.5, -0.8, 1.0, 4.0, 1.0, 0.0])
@@ -113,6 +116,8 @@ def test_vol_compression_layer_builds_requested_smart_features() -> None:
     assert out[5, idx["vol_compression.compression_release_down_pressure"]] > out[5, idx["vol_compression.compression_release_up_pressure"]]
     assert out[3, idx["vol_compression.expansion_direction_score"]] > 0.0
     assert out[5, idx["vol_compression.expansion_direction_score"]] < 0.0
+    assert out[3, idx["vol_compression.expansion_direction_confidence"]] > 0.0
+    assert out[5, idx["vol_compression.expansion_direction_confidence"]] < 0.0
     assert out[4, idx["vol_compression.high_vol_tail_risk"]] > out[1, idx["vol_compression.high_vol_tail_risk"]]
     assert out[2, idx["vol_compression.low_vol_breakout_setup"]] > out[4, idx["vol_compression.low_vol_breakout_setup"]]
     assert out[2, idx["vol_compression.mtf_vol_agreement_score"]] > out[6, idx["vol_compression.mtf_vol_agreement_score"]]
@@ -163,8 +168,18 @@ def test_vol_compression_layer_is_future_row_invariant_and_ignores_targets() -> 
         for ratio_name in (
             "ctx_cont.H1_range_compression_ratio",
             "ctx_cont.M15_range_compression_ratio",
+            "ctx_cont.atr_ratio_m5_m15",
+            "ctx_cont.atr_ratio_m5_h4",
+            "ctx_cont.atr_ratio_m15_d1",
+            "ctx_cont.atr_ratio_h1_d1",
         ):
-            changed[:, source_idx[ratio_name]] = x[:, source_idx[ratio_name]]
+            # These ratio fields go through fail-closed owner transforms that
+            # reject non-positive values, so the blanket *-7+3 mutation above
+            # would abort the build.  Keep the strictly-positive domain while
+            # still changing every future row away from the baseline.
+            col = source_idx[ratio_name]
+            changed[:, col] = x[:, col]
+            changed[future_start:, col] = x[future_start:, col] * 2.0
         mutated, mutated_names = build_entry_vol_compression_layer(changed, names)
 
         assert mutated_names == base_names

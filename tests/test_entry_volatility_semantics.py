@@ -8,7 +8,18 @@ from gx1.features.entry_volatility_semantics_v1 import (
     atr_ratio_expansion_pressure,
     bollinger_expansion_pressure,
     bollinger_squeeze_pressure,
+    center_atr_ratio,
 )
+
+
+def test_center_atr_ratio_is_signed_symmetric_and_fails_closed() -> None:
+    ratio = np.asarray([0.5, 1.0, 2.0], dtype=np.float32)
+    expected = float(np.tanh(1.0))
+    np.testing.assert_allclose(
+        center_atr_ratio(ratio), [-expected, 0.0, expected], atol=1e-7
+    )
+    with pytest.raises(RuntimeError, match="ENTRY_VOLATILITY_SEMANTICS"):
+        center_atr_ratio(np.asarray([0.0], dtype=np.float32))
 
 
 def test_atr14_over_atr100_has_symmetric_compression_expansion_semantics() -> None:

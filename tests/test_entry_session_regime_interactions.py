@@ -20,8 +20,11 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("snap.ret_1", [0.5, 1.0, 3.0, 2.0, 4.0, -4.0])
     set_col("snap.ret_5", [1.0, 2.0, 8.0, 5.0, 8.0, -8.0])
     set_col("snap.ret_20", [2.0, 4.0, 18.0, 8.0, 15.0, -15.0])
-    set_col("ctx_cont.minutes_since_session_open", [0, 15, 120, 180, 240, 300])
-    set_col("ctx_cont.minutes_to_next_session_boundary", [180, 90, 45, 10, 180, 5])
+    # The two session clocks must sum to a real SESSION_BOUNDARIES length per
+    # row (ASIA=540, EU=300, OVERLAP=240, US=360); the layer fails closed
+    # otherwise. Rows: ASIA, ASIA, EU, OVERLAP, US, US.
+    set_col("ctx_cont.minutes_since_session_open", [0, 15, 120, 180, 240, 355])
+    set_col("ctx_cont.minutes_to_next_session_boundary", [540, 525, 180, 60, 120, 5])
     set_col("ctx_cont.session_change_flag", [1, 0, 0, 0, 0, 1])
     set_col("ctx_cont.session_tradable", [0, 1, 1, 1, 1, 1])
     set_col("ctx_cont.is_ASIA", [1, 1, 0, 0, 0, 0])
@@ -106,6 +109,102 @@ def test_session_regime_interaction_layer_is_finite_and_causal_shape() -> None:
     assert out[2, idx["session_regime.eu_h4_d1_structure_continuation_long"]] > 0.0
     assert out[3, idx["session_regime.overlap_h4_d1_liquidity_tail_risk"]] > 0.0
     assert out[4, idx["session_regime.session_momentum_structure_alignment_score"]] > 0.0
+    # session_age_progress divides by the OWNING session's length, not 360:
+    # EU row 120/300, OVERLAP row 180/240, US rows 240/360 and 355/360.
+    np.testing.assert_allclose(
+        out[:, idx["session_regime.session_age_progress_norm"]],
+        np.asarray(
+            [0.0, 15.0 / 540.0, 120.0 / 300.0, 180.0 / 240.0, 240.0 / 360.0, 355.0 / 360.0],
+            dtype=np.float32,
+        ),
+        rtol=1e-6,
+        atol=0.0,
+    )
+
+
+def test_session_regime_layer_rejects_invalid_session_length() -> None:
+    names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
+    x = _matrix(names)
+    idx = {name: i for i, name in enumerate(names)}
+    x[2, idx["ctx_cont.minutes_to_next_session_boundary"]] = 45.0  # sum 165
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_SESSION_REGIME_SESSION_LENGTH_INVALID",
+    ):
+        build_entry_session_regime_interaction_layer(x, names)
+
+
+def test_open_boundary_risks_ignore_session_change_flag() -> None:
+    # session_change was removed from both risk terms: at a session open the
+    # clock already forces exp(0)=1, and at every other minute the flag must
+    # not overwrite the true boundary distance. Toggling the flag column must
+    # therefore leave the whole layer bit-identical.
+    names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
+    base = _matrix(names)
+    toggled = base.copy()
+    idx = {name: i for i, name in enumerate(names)}
+    toggled[:, idx["ctx_cont.session_change_flag"]] = (
+        1.0 - toggled[:, idx["ctx_cont.session_change_flag"]]
+    )
+
+    base_out, _ = build_entry_session_regime_interaction_layer(base, names)
+    toggled_out, _ = build_entry_session_regime_interaction_layer(toggled, names)
+
+    np.testing.assert_allclose(toggled_out, base_out, rtol=0.0, atol=0.0)
+
+
+def test_asia_mid_session_permission_is_ungated_by_session_tradable() -> None:
+    # session_tradable is identically 0 on real ASIA rows, so the asia feature
+    # consumes the ungated mid-session core: toggling the tradable flag must
+    # not move it, while the gated stability output must move.
+    names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
+    base = _matrix(names)
+    toggled = base.copy()
+    idx = {name: i for i, name in enumerate(names)}
+    toggled[:, idx["ctx_cont.session_tradable"]] = (
+        1.0 - toggled[:, idx["ctx_cont.session_tradable"]]
+    )
+
+    base_out, out_names = build_entry_session_regime_interaction_layer(base, names)
+    toggled_out, _ = build_entry_session_regime_interaction_layer(toggled, names)
+    out_idx = {name: i for i, name in enumerate(out_names)}
+
+    np.testing.assert_allclose(
+        toggled_out[:, out_idx["session_regime.asia_mid_session_low_cost_permission"]],
+        base_out[:, out_idx["session_regime.asia_mid_session_low_cost_permission"]],
+        rtol=0.0,
+        atol=0.0,
+    )
+    # Row 1 is mid-session enough for a nonzero core, so the gate must bite.
+    assert (
+        toggled_out[1, out_idx["session_regime.session_mid_age_stability"]]
+        != base_out[1, out_idx["session_regime.session_mid_age_stability"]]
+    )
+
+
+def test_session_flag_union_covers_every_minute_of_day() -> None:
+    # active_session was removed from the layer because asia+eu+us is
+    # identically 1: is_ASIA marks the session owner's ASIA block, the eu flag
+    # union (is_eu_only + is_asia_eu_overlap + is_eu_us_overlap) is exactly
+    # 1{hour in EU_HOURS} (boolean tautology eu & (~us~asia | asia | us)), and
+    # the us flag union (is_us_only + is_eu_us_overlap) is exactly
+    # 1{hour in US_HOURS} provided US_HOURS never intersects ASIA_HOURS.
+    import pandas as pd
+
+    from gx1.scripts.augment_forward_outcome_v2 import ASIA_HOURS, EU_HOURS, US_HOURS
+    from gx1.time.session_detector import get_session
+
+    assert not (set(US_HOURS) & set(ASIA_HOURS))
+    for minute in range(24 * 60):
+        ts = pd.Timestamp("2026-01-05", tz="UTC") + pd.Timedelta(minutes=minute)
+        hour = ts.hour
+        covered = (
+            get_session(ts) == "ASIA"
+            or hour in EU_HOURS
+            or hour in US_HOURS
+        )
+        assert covered, f"minute {minute} not covered by asia/eu/us flag union"
 
 
 def test_session_regime_interaction_layer_rejects_unprefixed_aliases() -> None:
@@ -183,8 +282,14 @@ def test_session_regime_interaction_layer_rejects_nonfinite_inputs() -> None:
 def test_session_regime_interaction_layer_does_not_read_future_rows() -> None:
     names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
     base = _matrix(names)
+    idx = {name: i for i, name in enumerate(names)}
     changed_future = base.copy()
     changed_future[-1, :] = base[-1, :] * -7.0 + 3.0
+    # The perturbed future row must still carry a valid session clock (the
+    # layer fails closed on a sum outside the named session lengths); use a
+    # DIFFERENT valid pair than base so the row still changes.
+    changed_future[-1, idx["ctx_cont.minutes_since_session_open"]] = 30.0
+    changed_future[-1, idx["ctx_cont.minutes_to_next_session_boundary"]] = 210.0
 
     base_out, _ = build_entry_session_regime_interaction_layer(base, names)
     changed_out, _ = build_entry_session_regime_interaction_layer(changed_future, names)

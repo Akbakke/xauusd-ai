@@ -464,9 +464,12 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
         for field in _smart_seq513_fields()[0]
         if field in V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
     ]
-    assert alias_policy["statistics_owner"] == "ctx_cont"
+    # The executable owner (share_temporal_alias_stats_from_signal) copies
+    # signal-fitted statistics into ctx_cont; the declaration names that
+    # direction.
+    assert alias_policy["statistics_owner"] == "signal"
     assert alias_policy["signal_alias_statistics_policy"] == (
-        "bit_identical_copy_from_ctx_cont_train_stats"
+        "bit_identical_copy_from_signal_train_stats"
     )
     assert set(report["split_artifacts"]) == {"train", "val"}
 

@@ -71,7 +71,11 @@ def _clip01(arr: np.ndarray) -> np.ndarray:
 
 
 def _lag(arr: np.ndarray, periods: int) -> np.ndarray:
-    out = np.zeros_like(arr, dtype=np.float32)
+    # Preserve the input dtype. Truncating float64 price arrays to float32
+    # here destroyed sub-ulp price differences before the exact-equality /
+    # strict-inequality gates below (e.g. open vs prev_close), flipping tie
+    # outcomes on real gold tape.
+    out = np.zeros_like(arr)
     if periods <= 0:
         return arr.astype(np.float32, copy=False)
     if arr.size > periods:
@@ -152,6 +156,14 @@ def build_entry_candlestick_pattern_layer(frame: object) -> tuple[np.ndarray, li
     upper_share = _clip01(upper / raw_range)
     lower_share = _clip01(lower / raw_range)
     close_loc = _clip01((close - low) / raw_range)
+    # A zero-range bar (high == low) has no defined close location; 0/eps
+    # would read as "closed at the extreme low" and fabricate
+    # close_pressure_signed = -1. Adopt basic_v1._v1_clv's neutral 0.5
+    # convention for the identical degenerate case (gx1/features/basic_v1.py,
+    # CLV nan -> 0.5), so close_pressure_signed reads 0. Body and wick shares
+    # stay 0 per basic_v1's stated zero-range convention (0/eps = 0.0 is the
+    # honest defined value for genuinely zero body/wicks).
+    close_loc[high == low] = 0.5
     direction = np.sign(body_signed).astype(np.float32)
     bull = (body_signed > 0.0).astype(np.float32)
     bear = (body_signed < 0.0).astype(np.float32)
@@ -274,16 +286,20 @@ def build_entry_candlestick_pattern_layer(frame: object) -> tuple[np.ndarray, li
         0.60 * _safe_div(prev_low - close, prev_range) + 0.25 * (1.0 - close_loc) + 0.15 * body_share
     )
 
+    # The first-candle body condition measures the lag-2 candle against its
+    # OWN range (mirrors lag2_long_body in the _quality variants below);
+    # dividing by the current bar's range let an expanded current bar veto a
+    # valid star and a tiny current bar fabricate one.
     morning_star = (
         lag2_bear
-        * _clip01(lag2_body / np.maximum(raw_range, 1e-12) - 0.35)
+        * _clip01(lag2_body / np.maximum(lag2_range, 1e-12) - 0.35)
         * prev_small_body
         * bull
         * _clip01((close - (lag2_open + lag2_close) * 0.5) / np.maximum(lag2_body, 1e-12))
     )
     evening_star = (
         lag2_bull
-        * _clip01(lag2_body / np.maximum(raw_range, 1e-12) - 0.35)
+        * _clip01(lag2_body / np.maximum(lag2_range, 1e-12) - 0.35)
         * prev_small_body
         * bear
         * _clip01(((lag2_open + lag2_close) * 0.5 - close) / np.maximum(lag2_body, 1e-12))

@@ -5,10 +5,39 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.time.session_detector import SESSION_BOUNDARIES
+
 
 SESSION_REGIME_INTERACTION_FEATURE_VERSION = (
-    "entry_session_regime_interactions_v1_20260717_exact_sources_fail_closed"
+    "entry_session_regime_interactions_v1_20260809_causal_clock_fitted_spread_scale"
 )
+
+# Exact per-session length in minutes, derived from the session owner's named
+# boundaries (SESSION_BOUNDARIES in gx1/time/session_detector.py). The
+# producers of ctx_cont.minutes_since_session_open and
+# ctx_cont.minutes_to_next_session_boundary key both clocks on those same
+# boundaries, so on every valid row their sum equals the owning session's
+# length; any other sum is a producer-contract violation and fails closed.
+# Measured on the complete declared TRAIN population
+# (XAU_ENTRY_EXIT_M15_20260806_V27 v10_seq513_dataset__DIR_H24B_train.parquet,
+# 369,303 rows, 2026-08-09): the per-row sum takes exactly the values
+# {240, 300, 360, 540}.
+SESSION_LENGTH_MINUTES = {
+    name: float(((end - start) % 24) * 60)
+    for name, (start, end) in SESSION_BOUNDARIES.items()
+}
+
+# Spread/ATR tanh scale: statistic fitted on the complete declared TRAIN
+# population /home/andre2/GX1_DATA/data/data/prebuilt/
+# XAU_ENTRY_EXIT_M15_20260806_V27/dataset/
+# v10_seq513_dataset__DIR_H24B_train.parquet (369,303 rows, fitted 2026-08-09):
+# spread_ratio = clip(spread_bps / max(|atr_bps|, 1e-3), 0, 5) has
+# p50 = 0.254378 and p90 = 0.519975 on that population. The scale is the
+# fitted p90, so tanh(ratio / scale) reads tanh(1) ~= 0.762 at the p90 ratio
+# instead of saturating (the old unexplained 0.15 put even the p50 ratio at
+# tanh(1.70) ~= 0.935 and drove the (1 - pressure) complement to ~1e-6
+# through rollover spreads).
+SPREAD_RATIO_TANH_SCALE_TRAIN_P90 = 0.519975
 SESSION_REGIME_INTERACTION_FEATURE_PREFIX = "session_regime."
 
 SESSION_REGIME_INTERACTION_FEATURE_SUFFIXES = (
@@ -284,13 +313,37 @@ def build_entry_session_regime_interaction_layer(
 
     minutes_since_open = _clip(c("ctx_cont.minutes_since_session_open"), 0.0, 1440.0)
     minutes_to_boundary = _clip(c("ctx_cont.minutes_to_next_session_boundary"), 0.0, 1440.0)
-    session_change = _clip01(c("ctx_cont.session_change_flag"))
     session_tradable = _clip01(c("ctx_cont.session_tradable"))
-    open_risk = _clip01(np.exp(-minutes_since_open / 30.0).astype(np.float32) + session_change)
-    boundary_risk = _clip01(np.exp(-minutes_to_boundary / 30.0).astype(np.float32) + session_change)
+    # session_change_flag was removed from both risk terms 2026-08-09: in
+    # open_risk it was redundant (session_change=1 <=> minutes_since_open=0
+    # => exp(0)=1 already), and in boundary_risk it was wrong — it forced 1.0
+    # at every session OPEN, where the true boundary-distance term is
+    # exp(-session_length/30) ~ 1e-8..3e-4.
+    open_risk = _clip01(np.exp(-minutes_since_open / 30.0).astype(np.float32))
+    boundary_risk = _clip01(np.exp(-minutes_to_boundary / 30.0).astype(np.float32))
     boundary_transition = np.maximum(open_risk, boundary_risk).astype(np.float32)
-    mid_session_stability = _clip01(session_tradable * (1.0 - open_risk) * (1.0 - boundary_risk))
-    session_age_progress = _clip01(minutes_since_open / 360.0)
+    # Ungated mid-session core: session_tradable is 0 on every ASIA row
+    # (measured on all 138,840 TRAIN ASIA rows in V27), so ASIA features must
+    # consume the ungated core; the tradable-gated stability keeps its own
+    # semantics for the non-ASIA consumers.
+    mid_session_core = _clip01((1.0 - open_risk) * (1.0 - boundary_risk))
+    mid_session_stability = _clip01(session_tradable * mid_session_core)
+    # Per-row session length from the session owner's named boundaries: the
+    # producer keys both clocks on SESSION_BOUNDARIES, so their sum is exactly
+    # the owning session's length (ASIA=540, EU=300, OVERLAP=240, US=360).
+    # A sum outside that named set is a producer-contract violation.
+    session_length_minutes = (minutes_since_open + minutes_to_boundary).astype(np.float32)
+    valid_session_lengths = np.asarray(
+        sorted(set(SESSION_LENGTH_MINUTES.values())), dtype=np.float32
+    )
+    invalid_length = ~np.isin(session_length_minutes, valid_session_lengths)
+    if invalid_length.any():
+        bad = sorted({float(v) for v in session_length_minutes[invalid_length]})[:10]
+        raise RuntimeError(
+            "ENTRY_SESSION_REGIME_SESSION_LENGTH_INVALID: "
+            f"sums={bad} expected={sorted(set(SESSION_LENGTH_MINUTES.values()))}"
+        )
+    session_age_progress = _clip01(minutes_since_open / session_length_minutes)
 
     asia = _clip01(c("ctx_cont.is_ASIA"))
     asia_eu = _clip01(c("ctx_cont.is_asia_eu_overlap"))
@@ -298,10 +351,18 @@ def build_entry_session_regime_interaction_layer(
     eu = _clip01(c("ctx_cont.is_eu_only") + asia_eu + eu_us)
     us = _clip01(c("ctx_cont.is_us_only") + eu_us)
     overlap = _clip01(asia_eu + eu_us)
-    active_session = _clip01(asia + eu + us)
+    # active_session (= clip01(asia + eu + us)) was removed 2026-08-09: it is
+    # identically 1.0. Proof from the named constants: is_ASIA marks the
+    # session owner's ASIA block (SESSION_BOUNDARIES: 22:00-07:00 UTC, and the
+    # owner validates at import that the four sessions partition all 1440
+    # minutes), while eu = is_eu_only + is_asia_eu_overlap + is_eu_us_overlap
+    # covers every EU_HOURS hour and us = is_us_only + is_eu_us_overlap covers
+    # every US_HOURS hour (augment_forward_outcome_v2 named hour sets), and
+    # ASIA-block ∪ EU_HOURS ∪ US_HOURS covers all 24 hours. A x1.0 factor is
+    # a no-op, so it was dropped from the seven features that multiplied it.
 
     spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps")), 0.0, 5.0)
-    spread_pressure = _clip01(_tanh(spread_ratio, scale=0.15))
+    spread_pressure = _clip01(_tanh(spread_ratio, scale=SPREAD_RATIO_TANH_SCALE_TRAIN_P90))
     spread_bucket = c("ctx_cat.spread_bucket")
     spread_bucket_high = _bucket_ge(spread_bucket, 2)
     spread_bucket_medium_or_high = _bucket_ge(spread_bucket, 1)
@@ -450,9 +511,12 @@ def build_entry_session_regime_interaction_layer(
         arrays,
         names,
         "asia_mid_session_low_cost_permission",
+        # mid_session_core (not the tradable-gated stability): session_tradable
+        # is identically 0 on ASIA rows, which made this 0.30 term dead
+        # everywhere the asia gate was nonzero.
         asia
         * _clip01(
-            0.30 * mid_session_stability
+            0.30 * mid_session_core
             + 0.25 * (1.0 - boundary_transition)
             + 0.20 * low_cost_mid_atr_permission
             + 0.15 * low_spread_permission
@@ -510,10 +574,10 @@ def build_entry_session_regime_interaction_layer(
     _add(arrays, names, "eu_structure_breakout_readiness", eu * low_spread_permission * compression_release * mtf_agreement_pressure * np.abs(bos_balance), lo=0.0, hi=1.0)
     _add(arrays, names, "us_momentum_followthrough_pressure", us * low_spread_permission * mtf_agreement_pressure * impulse_direction, lo=-1.0, hi=1.0)
     _add(arrays, names, "overlap_liquidity_sweep_risk", overlap * np.abs(sweep_balance) * (0.50 + choch_recent) * (0.50 + mtf_divergence_pressure), lo=0.0, hi=2.0)
-    _add(arrays, names, "session_vol_spread_breakout_readiness", active_session * compression_release * vol_expansion_pressure * low_spread_permission * (1.0 - boundary_transition), lo=0.0, hi=1.0)
-    _add(arrays, names, "session_vol_spread_tail_risk", active_session * compression_release * vol_expansion_pressure * _clip01(spread_pressure + boundary_transition + mtf_divergence_pressure), lo=0.0, hi=1.0)
-    _add(arrays, names, "session_structure_regime_alignment", active_session * mid_session_stability * structure_alignment, lo=-1.0, hi=1.0)
-    _add(arrays, names, "session_structure_regime_conflict", active_session * structure_conflict * (0.50 + pullback_depth), lo=0.0, hi=2.0)
+    _add(arrays, names, "session_vol_spread_breakout_readiness", compression_release * vol_expansion_pressure * low_spread_permission * (1.0 - boundary_transition), lo=0.0, hi=1.0)
+    _add(arrays, names, "session_vol_spread_tail_risk", compression_release * vol_expansion_pressure * _clip01(spread_pressure + boundary_transition + mtf_divergence_pressure), lo=0.0, hi=1.0)
+    _add(arrays, names, "session_structure_regime_alignment", mid_session_stability * structure_alignment, lo=-1.0, hi=1.0)
+    _add(arrays, names, "session_structure_regime_conflict", structure_conflict * (0.50 + pullback_depth), lo=0.0, hi=2.0)
     _add(arrays, names, "asia_momentum_fade_pressure", asia * momentum_abs * (1.0 - mtf_agreement_pressure) * (0.50 + np.abs(sweep_balance)), lo=0.0, hi=2.0)
     _add(arrays, names, "eu_signed_momentum_followthrough", eu * momentum_score * low_spread_permission * mtf_agreement_pressure * (0.50 + vol_regime_pressure), lo=-1.0, hi=1.0)
     _add(arrays, names, "us_signed_momentum_followthrough", us * momentum_score * low_spread_permission * mtf_agreement_pressure * (0.50 + momentum_accel_alignment), lo=-1.0, hi=1.0)
@@ -521,7 +585,7 @@ def build_entry_session_regime_interaction_layer(
     _add(arrays, names, "asia_structure_mean_reversion_pressure", asia * np.abs(structure_bias) * (1.0 - mtf_agreement_pressure) * (0.50 + np.abs(sweep_balance)), lo=0.0, hi=2.0)
     _add(arrays, names, "eu_structure_regime_continuation_bias", eu * structure_alignment * bucket_low_spread_permission, lo=-1.0, hi=1.0)
     _add(arrays, names, "us_late_session_structure_chase_risk", us * momentum_abs * np.abs(structure_bias) * _clip01(boundary_risk + spread_bucket_pressure + vol_regime_pressure), lo=0.0, hi=1.0)
-    _add(arrays, names, "session_momentum_structure_alignment_score", active_session * momentum_score * structure_bias * mtf_agreement_pressure, lo=-1.0, hi=1.0)
+    _add(arrays, names, "session_momentum_structure_alignment_score", momentum_score * structure_bias * mtf_agreement_pressure, lo=-1.0, hi=1.0)
     _add(arrays, names, "asia_h4_d1_liquidity_reversal_risk", asia * np.abs(sweep_balance) * h4_d1_roc_reversal * (0.50 + regime_transition_abstain), lo=0.0, hi=2.0)
     _add(arrays, names, "eu_h4_d1_structure_continuation_long", eu * h4_d1_stack_bull * _pos(structure_bias) * bucket_low_spread_permission, lo=0.0, hi=1.0)
     _add(
@@ -534,13 +598,12 @@ def build_entry_session_regime_interaction_layer(
     )
     _add(arrays, names, "us_h4_d1_momentum_followthrough", us * momentum_score * h4_d1_stack_score * low_spread_permission * (1.0 - regime_transition_abstain), lo=-1.0, hi=1.0)
     _add(arrays, names, "overlap_h4_d1_liquidity_tail_risk", overlap * np.abs(sweep_balance) * regime_transition_tail * (0.50 + spread_atr_bucket_pressure), lo=0.0, hi=2.0)
-    _add(arrays, names, "session_trend_structure_liquidity_long_score", active_session * h4_d1_stack_bull * _pos(structure_bias) * _pos(sweep_balance) * low_cost_mid_atr_permission, lo=0.0, hi=1.0)
+    _add(arrays, names, "session_trend_structure_liquidity_long_score", h4_d1_stack_bull * _pos(structure_bias) * _pos(sweep_balance) * low_cost_mid_atr_permission, lo=0.0, hi=1.0)
     _add(
         arrays,
         names,
         "session_trend_structure_liquidity_short_score",
-        active_session
-        * _clip01(h4_d1_stack_bear + 0.35 * _neg(h4_d1_stack_score) + 0.20 * _neg(momentum_score))
+        _clip01(h4_d1_stack_bear + 0.35 * _neg(h4_d1_stack_score) + 0.20 * _neg(momentum_score))
         * _clip01(_neg(structure_bias) + 0.25 * _neg(bos_balance))
         * _clip01(_neg(sweep_balance) + 0.25 * choch_recent)
         * _clip01(0.50 * low_cost_mid_atr_permission + 0.50 * low_spread_permission),

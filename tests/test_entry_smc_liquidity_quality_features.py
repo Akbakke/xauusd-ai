@@ -137,6 +137,13 @@ def test_smc_liquidity_pool_surface_is_not_support_resistance_duplicate() -> Non
         smc[:, smc_index["chart.smc_liquidity_liquidity_pool_proximity_high"]],
         sr[:, sr_index["chart.sr_memory_resistance_level_proximity_stack"]],
     )
+    # Side distinction: with the shared min(r_abs, s_abs) pivot row removed
+    # from both maxes, the support and resistance stacks must decorrelate on a
+    # mixed scenario (support-near rows 1-2, resistance-near rows 4-5), not
+    # merely be non-equal.
+    support_stack = sr[:, sr_index["chart.sr_memory_support_level_proximity_stack"]]
+    resistance_stack = sr[:, sr_index["chart.sr_memory_resistance_level_proximity_stack"]]
+    assert float(np.corrcoef(support_stack, resistance_stack)[0, 1]) < 0.99
 
 
 def test_smc_liquidity_quality_layer_rejects_nonfinite_inputs() -> None:

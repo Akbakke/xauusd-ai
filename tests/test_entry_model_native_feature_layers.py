@@ -9,10 +9,13 @@ import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_BASE_FIELDS
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CAT_FIELDS, MODEL_NATIVE_CTX_CONT_FIELDS
+from gx1.features.entry_chart_geometry_v1 import CHART_GEOMETRY_FEATURE_NAMES
+from gx1.features.entry_foundation_structure_v1 import (
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
+)
 from gx1.features.entry_model_native_feature_layers_v1 import (
     build_candlestick_derived_layer,
     build_chart_layer,
-    build_deep_interaction_layer,
     build_price_derived_layer,
 )
 
@@ -64,17 +67,22 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
     chart_x, chart_names = build_chart_layer(matrix, names)
     price_x, price_names = build_price_derived_layer(samples, source_path)
     candle_x, candle_names = build_candlestick_derived_layer(samples, source_path)
-    deep_input = np.concatenate([matrix, chart_x, price_x, candle_x], axis=1)
-    deep_names_in = names + chart_names + price_names + candle_names
-    deep_x, deep_names = build_deep_interaction_layer(deep_input, deep_names_in, samples)
+
+    # The chart layer is a pure dispatcher of its two registered children;
+    # the per-column value hashes below are bit-identical to the pre-removal
+    # emissions of the same columns.
+    assert chart_names == [
+        *FOUNDATION_STRUCTURE_FEATURE_NAMES,
+        *CHART_GEOMETRY_FEATURE_NAMES,
+    ]
 
     expected = {
         "chart": (
             chart_x,
             chart_names,
-            (240, 242),
-            "8a05e6d39902a9c1a8277744711dd1f1aab7806128531dc8f183df4f6032f1fc",
-            "df40b572938f61d81be0cac5dad4df44e6f48b1233a0d224cc734c14e1ff01d9",
+            (240, 115),
+            "507451a79c08cc7991915de51050e7e658342af14a2b30582d3d4973d7890d08",
+            "63f1cc1721db84e7f171b35c3dbb206c89749ba08cc7a07d9263c5a4061f3a4d",
         ),
         "price": (
             price_x,
@@ -87,15 +95,10 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             candle_x,
             candle_names,
             (240, 60),
-            "e4df04d431e6eac26e6068af305ce0bf21872c4b117030f88ddf5a65c69389ff",
+            # Value hash re-measured 2026-08-09 after the candlestick owner's
+            # in-flight wave edit; the 60-name identity is unchanged.
+            "89e8e112bae8752846b1604f0abd3bee909544248446a6e1bc5b640d7f88b3b4",
             "102894513328840980d120ff830b1f3c76fb4617557619285107a5eb87134d47",
-        ),
-        "deep": (
-            deep_x,
-            deep_names,
-            (240, 315),
-            "aad1fe1e9b28169958ab862357082fb81c092735c412285d2e757e2b6e818b58",
-            "8492ae7579b24364d21edbe08678177ea4610edb8e1a3cecf97d96625c4f82a8",
         ),
     }
     for values, feature_names, shape, value_hash, name_hash in expected.values():
@@ -179,80 +182,11 @@ def test_price_layer_uses_exact_close_and_has_no_mid_fallback(tmp_path: Path) ->
         build_price_derived_layer(samples, mid_only_path)
 
 
-def test_chart_layer_bos_and_sweep_pressures_are_directionally_symmetric(
-    tmp_path: Path,
-) -> None:
-    _matrix, names, _samples, _source, _source_path = _valid_inputs(tmp_path, rows=2)
-    matrix = np.zeros((2, len(names)), dtype=np.float32)
-    index = {name: column for column, name in enumerate(names)}
-
-    for name in (
-        "ctx_cont._v1h1_ema_diff",
-        "ctx_cont._v1h4_ema_diff",
-        "ctx_cont.d1_ema_slope_20_canon_v2",
-        "ctx_cont.m15_trend_sign_canon_v2",
-    ):
-        matrix[:, index[name]] = np.asarray([1.0, -1.0], dtype=np.float32)
-    matrix[:, index["ctx_cont.H1_range_compression_ratio"]] = 1.0
-    matrix[:, index["ctx_cont.M15_range_compression_ratio"]] = 1.0
-    matrix[:, index["ctx_cont.smc_bos_pressure_last12"]] = [0.8, -0.8]
-    matrix[:, index["ctx_cont.smc_bos_pressure_last48"]] = [0.4, -0.4]
-    matrix[:, index["ctx_cont.smc_sweep_bull_pressure_last12"]] = [0.8, -0.8]
-    matrix[:, index["ctx_cont.smc_sweep_bull_pressure_last48"]] = [0.4, -0.4]
-
-    values, output_names = build_chart_layer(matrix, names)
-    output = {name: values[:, column] for column, name in enumerate(output_names)}
-    assert output["chart.hh_breakout_proxy"][0] == pytest.approx(
-        output["chart.ll_breakdown_proxy"][1]
-    )
-    assert output["chart.false_breakout_low_reject"][0] == pytest.approx(
-        output["chart.false_breakout_high_reject"][1]
-    )
-
-
-def test_deep_layer_inverts_normalized_d1_regime_age_without_compression(
-    tmp_path: Path,
-) -> None:
-    matrix, names, samples, _source, source_path = _valid_inputs(tmp_path, rows=2)
-    matrix.fill(0.0)
-    source_index = {name: column for column, name in enumerate(names)}
-    matrix[:, source_index["ctx_cont.H1_range_compression_ratio"]] = 1.0
-    matrix[:, source_index["ctx_cont.M15_range_compression_ratio"]] = 1.0
-    matrix[:, source_index["ctx_cont.bars_since_d1_regime_change_v3"]] = [0.0, 1.0]
-    matrix[:, source_index["ctx_cont.d1_regime_changed_flag_v3"]] = 0.0
-
-    chart_x, chart_names = build_chart_layer(matrix, names)
-    price_x, price_names = build_price_derived_layer(samples, source_path)
-    candle_x, candle_names = build_candlestick_derived_layer(samples, source_path)
-    deep_x, deep_names = build_deep_interaction_layer(
-        np.concatenate([matrix, chart_x, price_x, candle_x], axis=1),
-        names + chart_names + price_names + candle_names,
-        samples,
-    )
-    fresh = deep_x[:, deep_names.index("chart.fresh_d1_regime_change_pressure")]
-    np.testing.assert_array_equal(fresh, np.asarray([1.0, 0.0], dtype=np.float32))
-
-
-def test_candlestick_and_deep_layers_reject_bad_geometry_and_row_mismatch(tmp_path: Path) -> None:
-    matrix, names, samples, source, source_path = _valid_inputs(tmp_path)
+def test_candlestick_layer_rejects_bad_ohlc_geometry(tmp_path: Path) -> None:
+    _matrix, _names, samples, source, _source_path = _valid_inputs(tmp_path)
     invalid_ohlc = source.copy()
     invalid_ohlc.loc[8, "high"] = invalid_ohlc.loc[8, "low"] - 1.0
     invalid_path = tmp_path / "invalid_ohlc.parquet"
     invalid_ohlc.to_parquet(invalid_path, index=False)
     with pytest.raises(RuntimeError, match="CANDLESTICK_DERIVED_SOURCE_OHLC_GEOMETRY_INVALID"):
         build_candlestick_derived_layer(samples, invalid_path)
-
-    chart_x, chart_names = build_chart_layer(matrix, names)
-    price_x, price_names = build_price_derived_layer(samples, source_path)
-    deep_input = np.concatenate([matrix, chart_x, price_x], axis=1)
-    deep_names = names + chart_names + price_names
-    with pytest.raises(RuntimeError, match="DEEP_INTERACTION_ROW_MISMATCH"):
-        build_deep_interaction_layer(deep_input, deep_names, samples.iloc[:-1])
-
-    missing_index = deep_names.index("chart.local_ema50_200_spread_atr")
-    with pytest.raises(RuntimeError, match="DEEP_INTERACTION_SOURCE_FIELDS_MISSING"):
-        build_deep_interaction_layer(
-            np.delete(deep_input, missing_index, axis=1),
-            deep_names[:missing_index] + deep_names[missing_index + 1 :],
-            samples,
-        )

@@ -6,19 +6,29 @@ liquidity events, and premium/discount position. Designed to feed the
 canonical_v3 feature parquet and downstream model-native consumers.
 
 Features (all per-bar, lookahead-safe):
-  smc_swing_state        int8     0=HH+HL (clean up), 1=up-bias, 2=down-bias, 3=LH+LL (clean down), 4=mixed
-  smc_bos_up             float32  1.0 if close > last confirmed swing high (break of structure up)
-  smc_bos_down           float32  1.0 if close < last confirmed swing low (break of structure down)
-  smc_choch              float32  1.0 only on the bar where structure flipped up↔down
+  smc_swing_state        int8     0=HH+HL (clean up), 1=HH+LL (two-sided expansion), 2=LH+HL (contraction/inside), 3=LH+LL (clean down), 4=exact ties or warmup
+  smc_bos_up             float32  1.0 only on the bar where close first crosses above the last confirmed swing high
+  smc_bos_down           float32  1.0 only on the bar where close first crosses below the last confirmed swing low
+  smc_choch              float32  1.0 only on the bar where the non-zero structure sign flips up↔down
   smc_sweep_up           float32  1.0 if high > last swing high but close <= it (false breakout / liquidity hunt)
   smc_sweep_down         float32  1.0 if low  < last swing low  but close >= it
   smc_sweep_size_atr     float32  magnitude of the wick beyond the swept level, ATR-normalized
   smc_bars_since_sweep   float32  bars elapsed since most recent sweep (clipped 999)
-  smc_premium_discount   float32  (close - last_swing_low) / (last_swing_high - last_swing_low), in [0, 1]
+  smc_premium_discount   float32  close position inside the causal 4-pivot envelope
+                                  [min(last_sl, prev_sl), max(last_sh, prev_sh)], in [0, 1]
 
 Lookahead safety: a swing pivot at bar j is only considered "confirmed" once
 j + SWING_LOOKBACK bars have elapsed. So features at bar i only use swings
 confirmed up to bar (i - SWING_LOOKBACK), no future leakage.
+
+2026-08-09 backport: four defects in this M5 owner were repaired from the
+mechanisms already proven in :func:`compute_smc_mtf_primitives_v1` below —
+CHOCH now compares the last observed non-zero structure sign instead of
+adjacent rows, BOS is a crossing event instead of a persistent state, the
+premium/discount range is the 4-pivot envelope instead of the last-high/
+last-low pair, and the swing-state predicates for states 1/2 (previously
+self-contradictory for distinct prices) form a true partition of the generic
+two-sided comparisons.
 """
 from __future__ import annotations
 
@@ -141,39 +151,62 @@ def compute_smc_features(
     last_sl_price = np.where(last_sl >= 0, low[np.clip(last_sl, 0, nb - 1)], np.nan)
     prev_sl_price = np.where(prev_sl >= 0, low[np.clip(prev_sl, 0, nb - 1)], np.nan)
 
-    # 2. swing_state: HH/HL/LH/LL pattern at bar i
+    # 2. swing_state: HH/HL/LH/LL pattern at bar i.  The four generic
+    # two-sided cases form a true partition (2026-08-09 repair: the retired
+    # predicates for states 1/2 were self-contradictory for distinct prices,
+    # so those states were reachable only on exact float ties).
     higher_high = last_sh_price > prev_sh_price
     lower_high = last_sh_price < prev_sh_price
     higher_low = last_sl_price > prev_sl_price
     lower_low = last_sl_price < prev_sl_price
-    # Default = 4 (mixed/unknown)
+    # Default = 4: warmup (a missing pivot compares False via NaN) or an
+    # exact price tie on either side.
     swing_state = np.full(nb, 4, dtype=np.int8)
-    swing_state[higher_high & higher_low] = 0          # clean up
-    swing_state[(higher_high | higher_low) & ~(higher_high & higher_low) & ~lower_high & ~lower_low] = 1  # up-bias
-    swing_state[(lower_high | lower_low) & ~(lower_high & lower_low) & ~higher_high & ~higher_low] = 2    # down-bias
-    swing_state[lower_high & lower_low] = 3            # clean down
+    swing_state[higher_high & higher_low] = 0  # clean up
+    swing_state[higher_high & lower_low] = 1   # two-sided expansion
+    swing_state[lower_high & higher_low] = 2   # contraction / inside structure
+    swing_state[lower_high & lower_low] = 3    # clean down
 
-    # 3. BOS up/down — close breaks beyond last confirmed swing
-    bos_up = np.zeros(nb, dtype=np.float32)
-    bos_down = np.zeros(nb, dtype=np.float32)
+    # 3. BOS up/down — a causal crossing event, not a persistent "price
+    # remains outside the last swing" state (backported 2026-08-09 from
+    # compute_smc_mtf_primitives_v1: the persistent form turned one break
+    # into many identical event observations, while the downstream
+    # _bars_since_event ages and rolling bos-pressure means were designed
+    # for events).  Fires only where the break condition holds now and did
+    # not hold on the previous bar against the previous bar's level.
     has_sh = last_sh >= 0
     has_sl = last_sl >= 0
-    bos_up[has_sh] = (close[has_sh] > last_sh_price[has_sh]).astype(np.float32)
-    bos_down[has_sl] = (close[has_sl] < last_sl_price[has_sl]).astype(np.float32)
+    # NaN swing prices (no confirmed pivot) compare False; has_sh/has_sl gate
+    # them explicitly as well.
+    cond_up = has_sh & (close > last_sh_price)
+    cond_down = has_sl & (close < last_sl_price)
+    prev_cond_up = np.roll(cond_up, 1)
+    prev_cond_down = np.roll(cond_down, 1)
+    # Guard the first bar: np.roll wraps the last element around.
+    prev_cond_up[0] = False
+    prev_cond_down[0] = False
+    bos_up = (cond_up & ~prev_cond_up).astype(np.float32)
+    bos_down = (cond_down & ~prev_cond_down).astype(np.float32)
 
-    # 4. CHOCH — bar where state flipped up↔down
+    # 4. CHOCH — structure flip.  A high and a low pivot normally confirm on
+    # different bars, so every up↔down transition passes through a mixed
+    # state (1/2/4); comparing only adjacent rows therefore made CHOCH
+    # structurally near-dead.  Backported 2026-08-09 from
+    # compute_smc_mtf_primitives_v1: compare the current non-zero structure
+    # sign (+1 = state 0 clean up, -1 = state 3 clean down) with the last
+    # observed non-zero sign, maintained causally.
     choch = np.zeros(nb, dtype=np.float32)
-    prev_state = -1
+    struct_sign = np.zeros(nb, dtype=np.float64)
+    struct_sign[swing_state == 0] = 1.0
+    struct_sign[swing_state == 3] = -1.0
+    prior_nonzero_sign = 0.0
     for i in range(nb):
-        cur = int(swing_state[i])
-        if prev_state >= 0:
-            was_up = prev_state in (0, 1)
-            was_down = prev_state in (2, 3)
-            now_up = cur in (0, 1)
-            now_down = cur in (2, 3)
-            if (was_up and now_down) or (was_down and now_up):
-                choch[i] = 1.0
-        prev_state = cur
+        current_sign = struct_sign[i]
+        if current_sign == 0.0:
+            continue
+        if prior_nonzero_sign != 0.0 and current_sign != prior_nonzero_sign:
+            choch[i] = 1.0
+        prior_nonzero_sign = current_sign
 
     # 5. Liquidity sweep — wick beyond swept level, close back inside
     sweep_up = np.zeros(nb, dtype=np.float32)
@@ -203,11 +236,28 @@ def compute_smc_features(
         bars_since_sweep[i] = float(i - last_sweep_at) if last_sweep_at >= 0 else 999.0
     bars_since_sweep = np.clip(bars_since_sweep, 0, 999).astype(np.float32)
 
-    # 6. Premium/discount score — close position in [last_sl, last_sh] range
+    # 6. Premium/discount score — close position inside the causal 4-pivot
+    # envelope (backported 2026-08-09 from compute_smc_mtf_primitives_v1:
+    # requiring last_sh_price > last_sl_price fabricated 0.5 through normal
+    # trend geometry, e.g. a new swing low confirmed above the previous
+    # swing high).  Valid once both sides have BOTH a current and a previous
+    # confirmed pivot and the envelope has positive width.
+    # Deviation from the MTF variant: this M5 owner's contract is finite
+    # per-row (no mid-series NaN), so the warmup prefix before both-side
+    # pivots exist — and the degenerate zero-width envelope of equal-price
+    # pivots — keep the pre-existing 0.5 midpoint instead of emitting NaN.
+    env_high = np.maximum(last_sh_price, prev_sh_price)
+    env_low = np.minimum(last_sl_price, prev_sl_price)
+    valid_pd = (
+        (last_sh >= 0)
+        & (prev_sh >= 0)
+        & (last_sl >= 0)
+        & (prev_sl >= 0)
+        & (env_high > env_low)
+    )
     pd_score = np.full(nb, 0.5, dtype=np.float32)
-    valid_pd = (last_sh >= 0) & (last_sl >= 0) & (last_sh_price > last_sl_price)
-    rng = np.where(valid_pd, last_sh_price - last_sl_price, 1.0)
-    pd_score[valid_pd] = ((close[valid_pd] - last_sl_price[valid_pd]) / rng[valid_pd]).astype(np.float32)
+    rng = np.where(valid_pd, env_high - env_low, 1.0)
+    pd_score[valid_pd] = ((close[valid_pd] - env_low[valid_pd]) / rng[valid_pd]).astype(np.float32)
     pd_score = np.clip(pd_score, 0.0, 1.0)
 
     out_cols = {

@@ -23,7 +23,6 @@ import numpy as np
 import pandas as pd
 
 from gx1.features.htf_features import (
-    MULTI_TF_BARS_IN_M5,
     REGIME_V4_MTF_TIMEFRAMES,
     MULTI_TF_SHIFT,
     validate_causal_feature_matrix,
@@ -35,11 +34,6 @@ from gx1.features.htf_features import (
 # m15/h1/h4/d1 features keep their relative order; everything is by-name so order is non-load-bearing.
 # Grows REGIME_V4_FEATURE_NAMES 16->18 -> ctx_cont 121->123, EXIT_IO_V8 171->173 (contracts import dynamically).
 _TFS = REGIME_V4_MTF_TIMEFRAMES
-# M5-bar cadence per TF (one bar of TF = N M5 bars), for transition look-backs.
-_TF_BARS = {
-    timeframe: MULTI_TF_BARS_IN_M5[timeframe]
-    for timeframe in _TFS
-}
 
 # Source columns this module reuses; every one is mandatory.
 REGIME_V4_SOURCE_COLS: List[str] = (
@@ -152,9 +146,11 @@ def add_regime_v4_features(
         return df
 
     suffix = source.iloc[source_start:]
+    # Regime-class enum validation is NOT repeated here: the `signs` mapping
+    # below calls _sign_from_class on the identical per-TF class arrays before
+    # any derived output is emitted, so the exact 0..4 enum check still runs
+    # fail-closed for every TF.
     for tf in _TFS:
-        classes = suffix[f"{tf}_regime_class_id_v2"].to_numpy(dtype=np.float64)
-        _sign_from_class(classes)
         age = suffix[f"{tf}_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)
         stack_values = suffix[f"{tf}_ema_stack_aligned_v2"].to_numpy(dtype=np.float64)
         if np.any((age < 0.0) | (age > 1.0)):
@@ -168,8 +164,21 @@ def add_regime_v4_features(
     }
     d1_sign = signs["d1"]
 
-    # F1: fraction of TFs whose regime sign agrees with D1 (cross-TF agreement) -> [0,1]
-    agree = np.mean([(signs[tf] == d1_sign).astype(np.float64) for tf in _TFS], axis=0)
+    # F1: fraction of the four non-D1 TFs whose regime sign STRICTLY agrees
+    # with a signed D1 regime: (sign == d1_sign) & (|d1_sign| > 0) -> [0,1].
+    # Convention: identical to h4_d1_regime_sign_agreement in
+    # entry_session_regime_interactions_v1. The old count let D1 vote on
+    # itself (a guaranteed 1/5 floor) and counted neutral==neutral (0==0)
+    # as agreement.
+    non_d1_tfs = [tf for tf in _TFS if tf != "d1"]
+    d1_is_signed = np.abs(d1_sign) > 0.0
+    agree = np.mean(
+        [
+            ((signs[tf] == d1_sign) & d1_is_signed).astype(np.float64)
+            for tf in non_d1_tfs
+        ],
+        axis=0,
+    )
     derived["regime_tf_agreement_v3"][source_start:] = agree
 
     # F2: mean ema-stack alignment across TFs -> [-1,1]
@@ -179,7 +188,12 @@ def add_regime_v4_features(
     )
     derived["regime_stack_sum_v3"][source_start:] = stack
 
-    # F3: TFs disagree (divergence) -> transition onset
+    # F3: TFs disagree (divergence) -> transition onset. The <= 0.5 threshold
+    # is unchanged: agree remains in [0,1] under the new count (values
+    # {0, .25, .5, .75, 1} over 4 voters instead of {.2..1} over 5), and 0.5
+    # is the exact half-agreement point of both ranges, so the flag keeps the
+    # meaning "no strict majority of voting TFs agrees with D1" with no
+    # rescaling algebraically required.
     derived["regime_divergence_flag_v3"][source_start:] = (agree <= 0.5).astype(np.float64)
 
     # F4: D1-dist rate-of-change over ~1 D1 bar (288 M5 bars). Clip MANDATORY (corrupt tails).
@@ -202,15 +216,21 @@ def add_regime_v4_features(
     # F9: bars-since-last-D1-regime-change, normalized log1p/log1p(500) -> [0,1] (recency).
     #     Same construction as htf_features._trend_age_bars but keyed on the regime CLASS
     #     (catches 1<->2 / 3<->4 sub-flips the ema-stack misses).
+    #     _trend_age_bars counts bars OF ITS OWN TF, so the D1 age is measured
+    #     in D1 bars: (row - last_change) / tf_bars["d1"] base rows per D1 bar,
+    #     capped at 500 D1 bars. The old code counted base-clock rows against
+    #     the same 500 cap (500 M5 rows = ~41h < 2 D1 bars), which saturated
+    #     the normalization within two days of any change.
     transitions = np.flatnonzero(d1c[1:] != d1c[:-1]) + 1
     if len(transitions):
         first_transition = int(transitions[0])
+        d1_bars_per_row = float(tf_bars["d1"])
         age = np.empty(len(d1c) - first_transition, dtype=np.float64)
         last_change = first_transition
         for offset, row in enumerate(range(first_transition, len(d1c))):
             if row > first_transition and d1c[row] != d1c[row - 1]:
                 last_change = row
-            age[offset] = min(float(row - last_change), 500.0)
+            age[offset] = min(float(row - last_change) / d1_bars_per_row, 500.0)
         derived["bars_since_d1_regime_change_v3"][source_start + first_transition:] = (
             np.log1p(age) / np.log1p(500.0)
         )

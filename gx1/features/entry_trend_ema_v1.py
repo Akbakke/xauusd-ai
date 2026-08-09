@@ -10,7 +10,7 @@ from typing import Iterable
 import numpy as np
 
 
-TREND_EMA_FEATURE_VERSION = "entry_trend_ema_v1_20260630_mtf_stack_cross_age_pressure_failclosed"
+TREND_EMA_FEATURE_VERSION = "entry_trend_ema_v2_20260809_signed_direction_fields_derived_max_norm"
 TREND_EMA_FEATURE_PREFIX = "trend.ema_"
 
 TREND_EMA_SOURCE_FIELDS = (
@@ -58,13 +58,13 @@ TREND_EMA_FEATURE_DESCRIPTIONS = {
     "mtf_divergence_pressure": "Divergence pressure across M5/H1/H4/D1, EMA-vs-slope direction and existing regime divergence.",
     "distance_fast_abs": "Absolute distance-to-fast-EMA proxy, squashed for stability.",
     "distance_stack_abs": "Mean absolute distance of M5/H1/H4/D1 EMA proxies.",
-    "distance_stretch_pressure": "Directional extension from the EMA stack plus counter-trend stress.",
+    "distance_stretch_pressure": "Signed EMA-stack extension plus counter-trend stress; sign = tf direction consensus (0 at exact tie).",
     "retrace_to_fast_long_pressure": "Uptrend pullback/retrace-to-fast-EMA pressure.",
     "retrace_to_fast_short_pressure": "Downtrend pullback/retrace-to-fast-EMA pressure.",
     "trend_age_mean": "Mean normalized trend age across M5/M15/H1/H4/D1.",
     "trend_age_exhaustion_pressure": "Mature trend, EMA extension and fading slope-support pressure.",
-    "late_reversal_risk": "Mature trend, divergence and direction-aware adverse curvature turning pressure.",
-    "d1_flip_pressure": "D1/MTF trend-age turning pressure from age, divergence and D1 distance change.",
+    "late_reversal_risk": "Signed mature-trend, divergence and adverse-curvature turning pressure; sign = mtf_score sign (0 at exact tie).",
+    "d1_flip_pressure": "Signed D1/MTF trend-age turning pressure from age, divergence and D1 distance change; sign = mtf_score sign (0 at exact tie).",
 }
 
 TREND_EMA_FEATURE_SUFFIXES = (
@@ -212,6 +212,13 @@ def build_entry_trend_ema_layer(
     def c(name: str) -> np.ndarray:
         return _col(x, idx, name)
 
+    # Unit note (2026-08-09 upstream ATR-normalization wave): the EMA-distance /
+    # slope source fields `snap._v1_ema_diff`, `snap.ema20_slope`,
+    # `snap.pos_vs_ema200`, `ctx_cont._v1h1_ema_diff`, `ctx_cont._v1h4_ema_diff`
+    # and `ctx_cont.d1_ema_slope_20_canon_v2` are ATR-multiple units, i.e. O(1)
+    # displacements per bar.  The default tanh scale 1.0 used below is
+    # dimensionally sane for those inputs: +-1 ATR of displacement maps to
+    # +-tanh(1) ~= 0.76 before saturation.
     m5_ema = _tanh(c("snap._v1_ema_diff"))
     m5_slope = _tanh(c("snap.ema20_slope"))
     m5_slope3 = _tanh(c("snap._v1_close_ema_slope_3"))
@@ -313,12 +320,22 @@ def build_entry_trend_ema_layer(
         + 0.10 * ema_slope_coherence
     )
     agreement_pressure = _clip01(alignment_coherence * (0.60 + 0.40 * ema_slope_coherence))
+    # Normalized by the sum's unclipped algebraic max so the binary
+    # regime_divergence flag (which alone already reaches the old clip ceiling
+    # of 1.0) can no longer erase the four continuous divergence terms.
+    # Derived max: regime_divergence <= 1; ema_direction and slope_direction
+    # are each clipped to [-1, 1] so |difference| <= 2; the remaining three
+    # terms are differences of tanh outputs in (-1, 1) so |difference| < 2.
+    # max = 1 + 0.25*2 + 0.20*2 + 0.20*2 + 0.10*2 = 2.5
     divergence_pressure = _clip01(
-        regime_divergence
-        + np.abs(ema_direction - slope_direction) * 0.25
-        + np.abs(m5_ema - h4_ema) * 0.20
-        + np.abs(h1_ema - d1_slope) * 0.20
-        + np.abs(m5_pos_ema200 - h1_ema) * 0.10
+        (
+            regime_divergence
+            + np.abs(ema_direction - slope_direction) * 0.25
+            + np.abs(m5_ema - h4_ema) * 0.20
+            + np.abs(h1_ema - d1_slope) * 0.20
+            + np.abs(m5_pos_ema200 - h1_ema) * 0.10
+        )
+        / 2.5
     )
 
     trend_up = _pos(mtf_score)
@@ -346,18 +363,23 @@ def build_entry_trend_ema_layer(
     m5_cross_base = _clip(0.55 * m5_ema + 0.25 * fast_dist + 0.20 * m5_slope, -2.0, 2.0)
     turn_up_impulse = _clip01(0.45 * _pos(mtf_delta) + 0.35 * _pos(slope_delta) + 0.20 * _pos(fast_delta))
     turn_down_impulse = _clip01(0.45 * _neg(mtf_delta) + 0.35 * _neg(slope_delta) + 0.20 * _neg(fast_delta))
+    # Normalized (not re-clipped) by the derived algebraic max of the
+    # cross/turn sum so simultaneous crosses keep resolution instead of
+    # saturating at the old [0, 2] clip.  Derived max: cross_quality <= 1,
+    # bull/bear_context <= 1, each _cross flag <= 1, turn impulse <= 1, so
+    # max = (0.55+1) + (0.35+1) + (0.25+0.50*1) + (0.20+0.55*1) = 4.40.
     inflect_up = cross_quality * (
         _cross_up(mtf_score) * (0.55 + bull_context)
         + _cross_up(m5_cross_base) * (0.35 + bull_context)
         + _cross_up(slope_score) * (0.25 + 0.50 * bull_context)
         + turn_up_impulse * (0.20 + 0.55 * bull_context)
-    )
+    ) / 4.40
     inflect_down = cross_quality * (
         _cross_down(mtf_score) * (0.55 + bear_context)
         + _cross_down(m5_cross_base) * (0.35 + bear_context)
         + _cross_down(slope_score) * (0.25 + 0.50 * bear_context)
         + turn_down_impulse * (0.20 + 0.55 * bear_context)
-    )
+    ) / 4.40
 
     fast_distance_abs = np.abs(fast_dist).astype(np.float32)
     distance_stack_abs = np.vstack(
@@ -372,7 +394,12 @@ def build_entry_trend_ema_layer(
         + 0.35 * divergence_pressure
         + 0.20 * (1.0 - ema_slope_coherence)
     )
-    distance_stretch = _clip01(0.72 * directional_extension + 0.28 * countertrend_stress)
+    distance_stretch_mag = _clip01(0.72 * directional_extension + 0.28 * countertrend_stress)
+    # Signed emission: the name/description promise direction, which np.abs in
+    # the magnitude construction discards.  Sign = np.sign(tf_direction_consensus)
+    # (exact 0 consensus stays 0 — honest neutral, no branch bias).  The
+    # exhaustion composite below keeps consuming the unsigned magnitude.
+    distance_stretch = (distance_stretch_mag * np.sign(tf_direction_consensus)).astype(np.float32)
     near_fast_ema = _prox_abs(c("ctx_cont.distance_ema_fast"))
     retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
 
@@ -401,34 +428,53 @@ def build_entry_trend_ema_layer(
     slope_fade = _clip01(1.0 - trend_support + 0.35 * divergence_pressure)
     exhaustion = _clip01(
         age_pressure
-        * (0.42 + 0.40 * distance_stretch + 0.18 * np.abs(mtf_score))
+        * (0.42 + 0.40 * distance_stretch_mag + 0.18 * np.abs(mtf_score))
         * (0.75 + 0.25 * slope_fade)
     )
     adverse_curvature_up = _neg(slope_delta) + _neg(mtf_delta)
     adverse_curvature_down = _pos(slope_delta) + _pos(mtf_delta)
     adverse_curvature = np.where(mtf_score >= 0.0, adverse_curvature_up, adverse_curvature_down).astype(np.float32)
-    late_reversal = _clip01(
-        exhaustion
-        * (0.40 + 0.45 * divergence_pressure + 0.15 * countertrend_stress)
-        * (0.45 + adverse_curvature + 0.30 * slope_fade)
+    # Signed emission for the two turning-pressure fields below: the np.where
+    # branch on mtf_score selects which curvature is adverse but then folds the
+    # trend direction out of the value, hiding direction behind an interaction
+    # greedy trees never rebuild.  Sign = np.sign(mtf_score); an exact
+    # mtf_score == 0 yields sign 0 (honest neutral, no >=0 branch bias).
+    trend_sign = np.sign(mtf_score).astype(np.float32)
+    late_reversal = (
+        _clip01(
+            exhaustion
+            * (0.40 + 0.45 * divergence_pressure + 0.15 * countertrend_stress)
+            # Third factor normalized by its unclipped algebraic max so adverse
+            # curvature keeps resolution instead of clip-saturating.  Derived
+            # max: slope_score and mtf_score are clipped to [-2, 2], so each
+            # one-bar delta lies in [-4, 4] (the _delta clip at +-5 never
+            # binds) and adverse_curvature = _neg/_pos(slope_delta) +
+            # _neg/_pos(mtf_delta) <= 8.0; slope_fade <= 1.
+            # max = 0.45 + 8.0 + 0.30*1 = 8.75
+            * ((0.45 + adverse_curvature + 0.30 * slope_fade) / 8.75)
+        )
+        * trend_sign
     )
     d1_turn_against_trend = np.where(mtf_score >= 0.0, _neg(d1_dist_roc), _pos(d1_dist_roc)).astype(np.float32)
-    regime_flip = _clip01(
-        (0.45 + 0.55 * age_pressure)
-        * (
-            0.35 * regime_divergence
-            + 0.25 * d1_turn_against_trend
-            + 0.20 * np.abs(ema_direction - slope_direction)
-            + 0.20 * adverse_curvature
+    regime_flip = (
+        _clip01(
+            (0.45 + 0.55 * age_pressure)
+            * (
+                0.35 * regime_divergence
+                + 0.25 * d1_turn_against_trend
+                + 0.20 * np.abs(ema_direction - slope_direction)
+                + 0.20 * adverse_curvature
+            )
         )
+        * trend_sign
     )
 
     _add(arrays, names, "mtf_score", mtf_score, lo=-2.0, hi=2.0)
     _add(arrays, names, "stack_alignment_score", stack_alignment, lo=-1.5, hi=1.5)
     _add(arrays, names, "stack_bull_pressure", trend_up * agreement_pressure, lo=0.0, hi=2.0)
     _add(arrays, names, "stack_bear_pressure", trend_down * agreement_pressure, lo=0.0, hi=2.0)
-    _add(arrays, names, "inflect_up_pressure", inflect_up, lo=0.0, hi=2.0)
-    _add(arrays, names, "inflect_down_pressure", inflect_down, lo=0.0, hi=2.0)
+    _add(arrays, names, "inflect_up_pressure", inflect_up, lo=0.0, hi=1.0)
+    _add(arrays, names, "inflect_down_pressure", inflect_down, lo=0.0, hi=1.0)
     _add(arrays, names, "slope_score", slope_score, lo=-2.0, hi=2.0)
     _add(arrays, names, "slope_curvature", slope_delta, lo=-2.0, hi=2.0)
     _add(arrays, names, "slope_curvature_abs", np.abs(slope_delta), lo=0.0, hi=2.0)
@@ -436,13 +482,13 @@ def build_entry_trend_ema_layer(
     _add(arrays, names, "mtf_divergence_pressure", divergence_pressure, lo=0.0, hi=1.0)
     _add(arrays, names, "distance_fast_abs", fast_distance_abs, lo=0.0, hi=1.0)
     _add(arrays, names, "distance_stack_abs", distance_stack_abs, lo=0.0, hi=1.0)
-    _add(arrays, names, "distance_stretch_pressure", distance_stretch, lo=0.0, hi=1.0)
+    _add(arrays, names, "distance_stretch_pressure", distance_stretch, lo=-1.0, hi=1.0)
     _add(arrays, names, "retrace_to_fast_long_pressure", trend_up * near_fast_ema * (0.50 + retracement), lo=0.0, hi=3.0)
     _add(arrays, names, "retrace_to_fast_short_pressure", trend_down * near_fast_ema * (0.50 + retracement), lo=0.0, hi=3.0)
     _add(arrays, names, "trend_age_mean", trend_age_mean, lo=0.0, hi=1.0)
     _add(arrays, names, "trend_age_exhaustion_pressure", exhaustion, lo=0.0, hi=1.0)
-    _add(arrays, names, "late_reversal_risk", late_reversal, lo=0.0, hi=1.0)
-    _add(arrays, names, "d1_flip_pressure", regime_flip, lo=0.0, hi=1.0)
+    _add(arrays, names, "late_reversal_risk", late_reversal, lo=-1.0, hi=1.0)
+    _add(arrays, names, "d1_flip_pressure", regime_flip, lo=-1.0, hi=1.0)
 
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
     if not np.isfinite(out).all():

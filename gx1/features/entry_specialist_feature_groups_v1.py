@@ -29,6 +29,7 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     PRICE_DERIVED_FEATURE_NAMES,
 )
+from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
 
 SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
@@ -280,6 +281,13 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     # ownership to the volatility specialist.
     "ctx_cont.d1_dist_from_ema200_atr": "trend_ema_encoder",
     "d1_dist_from_ema200_atr": "trend_ema_encoder",
+    # D1 close location inside the trailing 20-day range is range-location
+    # structure evidence: the chart-geometry layer declares it as a source
+    # field and consumes it as its D1 range-location input.  The trailing
+    # ``range`` token names the structure, not candle body/wick shape, and
+    # must not fall through to the price-action owner.
+    "ctx_cont.d1_close_pct_in_20day_range_canon_v2": "chart_geometry_encoder",
+    "d1_close_pct_in_20day_range_canon_v2": "chart_geometry_encoder",
     "ctx_cont.spread_bps": "session_regime_encoder",
     "ctx_cat.spread_bucket": "session_regime_encoder",
     "spread_bps": "session_regime_encoder",
@@ -701,6 +709,16 @@ _PRICE_DERIVED_TREND_FIELDS = frozenset(
     _norm(field) for field in PRICE_DERIVED_FEATURE_NAMES
 )
 
+# The tick-volume family is declared PARTICIPATION evidence by its owner
+# (gx1.features.volume_features): surge detection, fast-vs-slow activity,
+# percentile rank of activity and signed participation are order-flow
+# quantities, not unsigned volatility magnitudes.  Routing them through the
+# lexical "vol" matcher handed them to the volatility specialist; the exact
+# declared field set belongs to the momentum/flow owner.
+_VOLUME_PARTICIPATION_FIELDS = frozenset(
+    _norm(field) for field in VOLUME_FEATURE_NAMES
+)
+
 
 def classify_entry_specialist_feature(name: str) -> str:
     """Return the primary specialist group for one emitted seq/snap feature."""
@@ -842,9 +860,13 @@ def classify_entry_specialist_feature(name: str) -> str:
     ):
         return "structure_swing_encoder"
 
-    # signed_vol_z_20 is directional participation (volume z-score multiplied
-    # by return sign), not an unsigned volatility magnitude. Keep this before
-    # the generic "vol" matcher so the intended momentum owner is reachable.
+    # The whole declared tick-volume participation family (vol_z_20,
+    # vol_ratio_5_20, vol_pct_96, signed_vol_z_20) is order-flow evidence.
+    # Keep this before the generic "vol" matcher so the intended momentum
+    # owner is reachable; the substring rule additionally keeps any derived
+    # signed-participation interaction with the same owner.
+    if bare in _VOLUME_PARTICIPATION_FIELDS:
+        return "momentum_flow_encoder"
     if "signed_vol" in n:
         return "momentum_flow_encoder"
 
@@ -1067,9 +1089,14 @@ def model_native_context_temporal_alias_policy(
         "signal_role": "temporal_sequence_only",
         "generic_snap_projection_excludes_aliases": True,
         "current_bar_context_source": "owner_family_context_token",
-        "statistics_owner": "ctx_cont",
+        # The executable owner is ``share_temporal_alias_stats_from_signal``
+        # (entry_v10_input_normalization -> entry_model_native_input
+        # _normalization_v1): the shared local signal population fits each
+        # duplicated temporal field once and the ctx_cont surface receives a
+        # bit-identical copy.  The declaration must name that direction.
+        "statistics_owner": "signal",
         "signal_alias_statistics_policy": (
-            "bit_identical_copy_from_ctx_cont_train_stats"
+            "bit_identical_copy_from_signal_train_stats"
         ),
         "forward_identity_guard": (
             "snap_alias_equals_ctx_cont_bit_identical_before_transform"

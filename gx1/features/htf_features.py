@@ -816,8 +816,23 @@ def validate_causal_feature_matrix(
     return first_complete
 
 
-def compute_per_bar_features_v4(ohlcv: pd.DataFrame) -> pd.DataFrame:
-    """Compute the exact fixed 111-field V4 surface directly from one OHLCV TF."""
+def compute_per_bar_features_v4(
+    ohlcv: pd.DataFrame,
+    *,
+    timeframe: str,
+) -> pd.DataFrame:
+    """Compute the exact fixed 111-field V4 surface directly from one OHLCV TF.
+
+    ``timeframe`` is the declared MULTI_TF_RESAMPLE_RULES key of ``ohlcv``. It
+    selects the local-cycle VWAP owner (D1 → rolling 5-bar, intraday TFs →
+    calendar-day session VWAP); the retired median-bar-spacing inference is
+    gone.
+    """
+
+    if timeframe not in MULTI_TF_RESAMPLE_RULES:
+        raise RuntimeError(
+            f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}"
+        )
 
     from gx1.features.entry_candlestick_patterns_v1 import (
         build_entry_candlestick_pattern_layer,
@@ -888,18 +903,12 @@ def compute_per_bar_features_v4(ohlcv: pd.DataFrame) -> pd.DataFrame:
         atr_safe,
     )
 
-    if len(close) >= 2:
-        median_delta_hours = float(
-            (
-                close.index.to_series().diff().median() or pd.Timedelta(0)
-            ).total_seconds()
-            / 3600.0
-        )
-    else:
-        median_delta_hours = 0.0
+    # Declared-TF selection (2026-08-09): value-identical to the retired
+    # >=23h median-spacing inference for the five declared timeframes, without
+    # inferring the clock from data or swallowing NaT spacing.
     local_cycle_vwap = (
         _rolling_vwap(close, volume, 5)
-        if median_delta_hours >= 23.0
+        if timeframe == "D1"
         else _session_vwap(close, volume)
     )
     out["vwap_local_cycle_dist_atr"] = (
@@ -1002,16 +1011,28 @@ def _model_native_htf_slope_v4(
     *,
     order: int,
 ) -> pd.Series:
-    """Compute the retained causal slope formula on the native HTF clock."""
+    """Compute the ``order``-bar change on the native HTF clock.
+
+    2026-08-09 repair: the previous ``np.diff(source, n=order, prepend=...)``
+    was the ORDER-th finite difference (coefficients 1,-5,10,-10,5,-1 for
+    order 5) — a noise amplifier, not a slope. The intended quantity is the
+    k-bar change ``x[i] - x[i-order]``. The pre-existing one-bar publish lag
+    (np.roll semantics) is kept exactly. The first ``order + 1`` outputs are an
+    honest NaN warmup prefix: the scalar-frame consumer asserts it through
+    ``validate_causal_feature_matrix`` (one contiguous warmup prefix, hard
+    failure on any later NaN) instead of masking with ``nan_to_num``.
+    """
 
     source = values.to_numpy(dtype=np.float64)
     if source.ndim != 1 or order not in {3, 5} or len(source) < order:
         raise RuntimeError("HTF_V4_MODEL_NATIVE_HTF_SLOPE_INPUT_INVALID")
-    delta = np.diff(source, n=order, prepend=source[:order])
-    shifted = np.roll(delta, 1)
-    shifted[0] = 0.0
+    slope = source - np.concatenate(
+        [np.full(order, np.nan), source[:-order]]
+    )
+    shifted = np.roll(slope, 1)
+    shifted[0] = np.nan
     return pd.Series(
-        np.nan_to_num(shifted, nan=0.0),
+        shifted,
         index=values.index,
         dtype=np.float64,
     )
@@ -1039,6 +1060,10 @@ def _compute_model_native_mtf_scalar_frame_v4(
     low = source["low"]
     close = source["close"]
     atr14 = _atr(high, low, close, 14)
+    # Same ATR flooring convention as compute_per_bar_features_v4 (its
+    # atr_floor/atr_safe at the top of that owner) — not a bare epsilon.
+    atr_floor = np.maximum(close * 1e-4, 1e-3)
+    atr_safe = np.maximum(atr14, atr_floor)
     out = pd.DataFrame(index=source.index)
 
     if timeframe in {"H1", "H4"}:
@@ -1056,9 +1081,17 @@ def _compute_model_native_mtf_scalar_frame_v4(
             category = np.sign(mid - ema50) + 1.0
             category.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
             out["H4_trend_sign_cat"] = category
-        ema_diff = ema12 - ema26
+        # 2026-08-09 era-proxy repair: these fields were raw USD magnitudes and
+        # tracked the multi-year gold price level instead of market state.
+        # Units now follow this file's own conventions (names unchanged):
+        # - ema_diff in ATR-multiples (the D1_dist_from_ema200_atr convention);
+        #   the slope3/slope5 fields below inherit the normalized series so
+        #   they are ATR-multiple changes, not USD changes.
+        # - atr in bps of price (the atr_bps_14 convention). Normalization
+        #   statistics are refitted at the next dataset rebuild.
+        ema_diff = (ema12 - ema26) / atr_safe
         out[f"{prefix}_ema_diff"] = ema_diff
-        out[f"{prefix}_atr"] = atr14
+        out[f"{prefix}_atr"] = atr14 / close * 1e4
         out[f"{prefix}_rsi14_z"] = _model_native_rsi_z48_v4(close)
         out[f"{prefix}_slope3"] = _model_native_htf_slope_v4(
             ema_diff,
@@ -1097,10 +1130,13 @@ def _compute_model_native_mtf_scalar_frame_v4(
         )
         percentile.iloc[: D1_PCTL252_MIN_BARS - 1] = np.nan
         out["D1_atr_percentile_252"] = percentile
-        out["d1_atr14_canon_v2"] = atr14
+        # 2026-08-09 era-proxy repair (names unchanged): d1_atr14_canon_v2 in
+        # bps of price (atr_bps_14 convention); d1_ema_slope_20_canon_v2 in
+        # ATR-multiples (D1_dist_from_ema200_atr convention, atr_safe floor).
+        out["d1_atr14_canon_v2"] = atr14 / close * 1e4
         out["d1_rsi14_canon_v2"] = _rsi(close, 14)
         ema20 = _ema(close, 20)
-        out["d1_ema_slope_20_canon_v2"] = ema20 - ema20.shift(5)
+        out["d1_ema_slope_20_canon_v2"] = (ema20 - ema20.shift(5)) / atr_safe
         bar_range = high - low
         range_mean = bar_range.rolling(20, min_periods=5).mean()
         range_std = bar_range.rolling(20, min_periods=5).std().replace(
@@ -1196,7 +1232,7 @@ def build_multi_tf_per_bar_features_v4(
             raise RuntimeError(
                 f"HTF_V4_RESAMPLED_TIMESTAMP_GEOMETRY_INVALID: {tf_name}"
             )
-        computed = compute_per_bar_features_v4(resampled)
+        computed = compute_per_bar_features_v4(resampled, timeframe=tf_name)
         # Retain the exact float32 matrix used to construct the DataFrame so
         # every in-memory V4 consumer sees the same verified bytes as attrs.
         # A fragmented pandas result may otherwise allocate a fresh matrix on
@@ -1240,6 +1276,11 @@ def build_multi_tf_per_bar_features_v4(
 # token binds the frame's exact identity (the two cache-array data pointers,
 # length and width); any replacement or in-place change misses the token and the
 # full validation runs again. The checks themselves are unchanged.
+# 2026-08-09 soundness fix: values store ``(frame, token)``. Keying on
+# ``id(frame)`` alone was unsound — a freed frame's id can be reused by a new,
+# never-validated object (demonstrated). Storing the frame pins it so its id
+# stays stable for the memo's lifetime, and a hit additionally requires the
+# stored object to be the same one (`is`) with an equal token.
 _HTF_FRAMES_VALIDATED: dict = {}
 
 
@@ -1274,7 +1315,12 @@ def require_multi_tf_v4_frames(
             len(frame),
             int(verified.shape[1]) if verified.ndim == 2 else -1,
         )
-        if _HTF_FRAMES_VALIDATED.get(id(frame)) == _frame_token:
+        _memo_hit = _HTF_FRAMES_VALIDATED.get(id(frame))
+        if (
+            _memo_hit is not None
+            and _memo_hit[0] is frame
+            and _memo_hit[1] == _frame_token
+        ):
             continue
         frame_values = frame.to_numpy(dtype=np.float32, copy=False)
         if (
@@ -1302,7 +1348,7 @@ def require_multi_tf_v4_frames(
             raise RuntimeError(
                 f"HTF_V4_CACHE_WARMUP_INVALID: {timeframe}"
             )
-        _HTF_FRAMES_VALIDATED[id(frame)] = _frame_token
+        _HTF_FRAMES_VALIDATED[id(frame)] = (frame, _frame_token)
     return features
 
 
@@ -2135,6 +2181,10 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
 # id and bound to its exact cache-array identities, so a reused immutable frame
 # is validated once instead of on every window slice. Bounded to the handful of
 # multi-TF frames a run holds.
+# 2026-08-09 soundness fix: values store ``(frame, token)`` — see
+# _HTF_FRAMES_VALIDATED. Pinning the frame keeps its id stable; a hit requires
+# identity (`is`) plus an equal token, so a recycled id can never inherit a
+# freed frame's validation.
 _HTF_WINDOW_VALIDATED: dict = {}
 
 
@@ -2185,7 +2235,7 @@ def slice_multi_tf_v4_window(
     # The check itself is unchanged; only its per-window repetition is removed.
     _seen = _HTF_WINDOW_VALIDATED.get(id(feats))
     _token = (feats_np.__array_interface__["data"][0], ts_int64.__array_interface__["data"][0], len(feats), width)
-    if _seen != _token:
+    if _seen is None or _seen[0] is not feats or _seen[1] != _token:
         if (
             ts_int64.dtype != np.dtype(np.int64)
             or ts_int64.shape != (len(feats),)
@@ -2202,7 +2252,7 @@ def slice_multi_tf_v4_window(
             )
         ):
             raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: malformed exact cache arrays")
-        _HTF_WINDOW_VALIDATED[id(feats)] = _token
+        _HTF_WINDOW_VALIDATED[id(feats)] = (feats, _token)
     warmup_rows = feats.attrs.get("causal_warmup_rows")
     if (
         isinstance(warmup_rows, bool)

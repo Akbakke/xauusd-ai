@@ -37,6 +37,9 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_EVENT_AGE_CARRY_KEYS,
     foundation_event_age_carry_scope,
 )
+from gx1.features.entry_session_regime_interactions_v1 import (
+    SESSION_LENGTH_MINUTES,
+)
 from gx1.features.entry_support_resistance_memory_v1 import (
     SUPPORT_RESISTANCE_MEMORY_STATE_KEYS,
     SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS,
@@ -84,10 +87,27 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
     for name in (
         "H1_range_compression_ratio",
         "M15_range_compression_ratio",
+        # ATR ratios are strictly positive quantities; the volatility
+        # semantics owner fails closed on non-positive input, so the fixture
+        # must provide a physically valid positive ratio pattern.
+        "atr_ratio_m5_m15",
+        "atr_ratio_m5_h4",
+        "atr_ratio_m15_d1",
+        "atr_ratio_h1_d1",
     ):
         columns[name] = (
             1.0 + 0.05 * np.sin(index * np.float32(0.017))
         ).astype(np.float32)
+    # The session-regime owner fails closed unless the two session clocks sum
+    # to a named session length (SESSION_LENGTH_MINUTES); derive both clocks
+    # from the owner's EU constant so the fixture satisfies the producer
+    # contract instead of feeding sinusoidal pseudo-clocks.
+    session_length = float(SESSION_LENGTH_MINUTES["EU"])
+    minutes_since_open = np.mod(index, session_length).astype(np.float32)
+    columns["minutes_since_session_open"] = minutes_since_open
+    columns["minutes_to_next_session_boundary"] = (
+        np.float32(session_length) - minutes_since_open
+    ).astype(np.float32)
     columns["atr_bps"] = np.full(rows, 10.0, dtype=np.float32)
     columns["spread_bps"] = np.full(rows, 1.0, dtype=np.float32)
     for name in MODEL_NATIVE_CTX_CAT_FIELDS:

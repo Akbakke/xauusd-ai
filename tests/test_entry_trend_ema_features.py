@@ -143,6 +143,14 @@ def test_trend_ema_layer_builds_causal_specialist_features() -> None:
     assert out[5, idx["trend.ema_trend_age_exhaustion_pressure"]] > out[2, idx["trend.ema_trend_age_exhaustion_pressure"]]
     assert out[4, idx["trend.ema_retrace_to_fast_long_pressure"]] > 0.0
     assert out[6, idx["trend.ema_late_reversal_risk"]] > out[2, idx["trend.ema_late_reversal_risk"]]
+    # Signed direction fields: bearish rows (row 1, mtf_score < 0) emit
+    # non-positive values, bullish rows (row 5, mtf_score > 0) non-negative.
+    assert out[1, idx["trend.ema_late_reversal_risk"]] < 0.0
+    assert out[5, idx["trend.ema_late_reversal_risk"]] > 0.0
+    assert out[1, idx["trend.ema_d1_flip_pressure"]] <= 0.0
+    assert out[5, idx["trend.ema_d1_flip_pressure"]] >= 0.0
+    assert out[1, idx["trend.ema_distance_stretch_pressure"]] < 0.0
+    assert out[5, idx["trend.ema_distance_stretch_pressure"]] > 0.0
 
 
 @pytest.mark.parametrize("bad_value", [np.nan, np.inf, -np.inf])

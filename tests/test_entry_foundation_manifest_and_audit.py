@@ -26,6 +26,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
+from gx1.features.entry_session_regime_interactions_v1 import (
+    SESSION_LENGTH_MINUTES,
+)
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
@@ -719,6 +722,17 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
         {field: np.full(periods, 0.2, dtype=np.float32) for field in ctx_cont_names}
     )
     data.update({field: np.ones(periods, dtype=np.int64) for field in ctx_cat_names})
+    # The session-regime owner fails closed unless the two session clocks sum
+    # to a named session length; derive both clocks from the owner's EU
+    # constant instead of the flat 0.2 fill.
+    session_length = float(SESSION_LENGTH_MINUTES["EU"])
+    minutes_since_open = np.mod(
+        np.arange(periods, dtype=np.float32), np.float32(session_length)
+    ).astype(np.float32)
+    data["minutes_since_session_open"] = minutes_since_open
+    data["minutes_to_next_session_boundary"] = (
+        np.float32(session_length) - minutes_since_open
+    ).astype(np.float32)
     merged = pd.DataFrame(data)
     source = tmp_path / "source.parquet"
     pd.DataFrame(

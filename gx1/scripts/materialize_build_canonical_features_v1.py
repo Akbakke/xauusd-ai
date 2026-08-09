@@ -48,6 +48,11 @@ from gx1.features.basic_v1 import (  # noqa: E402
     compute_plus5_features,
 )
 ACTION = "BUILD_CANONICAL_FEATURES_V1"
+# z-score outlier bound. Origin: the existing repo convention for z-score
+# clipping, gx1/features/volume_features.py::_CLIP = 6.0 ("clip z-scores to
+# ±6σ so a single bad tick-print can't dominate"). Without an output clip,
+# atr_z divided by a 1e-9-floored std blows up unbounded in quiet regimes.
+_CLIP = 6.0
 DEFAULT_M5_TAPE_ROOT = Path(
     "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL"
 )
@@ -101,7 +106,11 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     df["atr50"] = tr.rolling(50, min_periods=1).mean().astype(np.float32)
     atr50_mean = df["atr50"].rolling(50, min_periods=10).mean()
     atr50_std = df["atr50"].rolling(50, min_periods=10).std().clip(lower=1e-9)
-    df["atr_z"] = ((df["atr50"] - atr50_mean) / atr50_std).astype(np.float32)
+    df["atr_z"] = (
+        ((df["atr50"] - atr50_mean) / atr50_std)
+        .clip(-_CLIP, _CLIP)
+        .astype(np.float32)
+    )
 
     # Returns
     close = df["close"]
@@ -126,8 +135,16 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     ema20 = close.ewm(span=20, adjust=False).mean()
     ema100 = close.ewm(span=100, adjust=False).mean()
     ema200 = close.ewm(span=200, adjust=False).mean()
-    df["ema20_slope"] = (ema20 - ema20.shift(5)).astype(np.float32)
-    df["ema100_slope"] = (ema100 - ema100.shift(20)).astype(np.float32)
+    # 2026-08-09 era-proxy repair: slopes were raw USD (gold 1454->5588 over the
+    # tape made them date proxies, measured IQR-disjoint across eras). Converted
+    # to bps of price, adopting this file's own pos_vs_ema200 convention below
+    # (delta / price * 1e4). Same repair class as the htf_features USD fields.
+    df["ema20_slope"] = (
+        (ema20 - ema20.shift(5)) / np.maximum(close, 1e-9) * 10000.0
+    ).astype(np.float32)
+    df["ema100_slope"] = (
+        (ema100 - ema100.shift(20)) / np.maximum(close, 1e-9) * 10000.0
+    ).astype(np.float32)
     df["pos_vs_ema200"] = ((close - ema200) / np.maximum(ema200, 1e-9) * 10000.0).astype(np.float32)
 
     # vol_ratio: rvol_20 / rvol_60

@@ -59,10 +59,26 @@ def compute_micro_structure_features(
         raise RuntimeError(f"MICRO_STRUCTURE_EPS_INVALID: {eps!r}")
 
     close_series = pd.Series(c)
-    momentum_3 = close_series.diff(3).fillna(0.0).to_numpy(dtype=np.float64)
-    momentum_5 = close_series.diff(5).fillna(0.0).to_numpy(dtype=np.float64)
-    acceleration = close_series.diff().diff().fillna(0.0).to_numpy(dtype=np.float64)
+    # Momentum/acceleration/EMA distance are emitted in bps of the current
+    # close (repo ret_* convention: materialize_build_canonical_features_v1
+    # pct_change * 10000). Raw USD diffs are era proxies on gold's multi-year
+    # price drift and are forbidden as decision inputs. The fillna(0.0)
+    # boundary rows keep the contract-defined warmup value; they are masked by
+    # the global warmup downstream.
+    momentum_3 = (
+        close_series.diff(3).fillna(0.0).to_numpy(dtype=np.float64) / c * 1e4
+    )
+    momentum_5 = (
+        close_series.diff(5).fillna(0.0).to_numpy(dtype=np.float64) / c * 1e4
+    )
+    acceleration = (
+        close_series.diff().diff().fillna(0.0).to_numpy(dtype=np.float64) / c * 1e4
+    )
     wick_ratio = (h - c) / (h - low_values + float(eps))
+    # A zero-range bar carries no close-location evidence; emit the neutral
+    # 0.5 (basic_v1._v1_clv's documented convention for the identical
+    # degenerate case) instead of the fabricated 0.0 ("closed at high").
+    wick_ratio = np.where(h == low_values, 0.5, wick_ratio)
     ema_fast = close_series.ewm(span=ema_span, adjust=False).mean().to_numpy()
 
     result = {
@@ -70,7 +86,7 @@ def compute_micro_structure_features(
         "micro_momentum_5": momentum_5.astype(np.float32),
         "micro_acceleration": acceleration.astype(np.float32),
         "wick_ratio": wick_ratio.astype(np.float32),
-        "distance_ema_fast": (c - ema_fast).astype(np.float32),
+        "distance_ema_fast": ((c - ema_fast) / c * 1e4).astype(np.float32),
     }
     if tuple(result) != MICRO_FEATURE_NAMES_V1 or any(
         values.shape != c.shape or not np.isfinite(values).all()
