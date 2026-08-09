@@ -1271,6 +1271,16 @@ ENTRY_UNIFIED_EXIT_ACTION_WEIGHT = float(
 # (dropout RNG ordering aside), with the attention peak bounded by the chunk size
 # independent of batch. 8 rows keeps the 480-bar attention transient near 1.2 GB.
 UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
+# CUDA measurement 2026-08-08 verified VRAM headroom (0.06-0.17 GB) only up to
+# 128 rows and was then extrapolated to "unbounded" (chunk_rows=valid_rows) on
+# the assumption that cost is linear in rows past that point. A real batch=640
+# run on 2026-08-09 disproved the extrapolation: the same 8,000-row subsample
+# took ~9.5x longer wall-clock at batch=640 (up to 2,560 valid rows in one
+# unchunked call) than at batch=64 (up to 256 rows), and validation's first
+# large unchunked call crashed with a CUDA "illegal memory access" after 13
+# training steps had already pressured the allocator. The cost past 128 rows is
+# not proven linear, so CUDA is bounded at the one size actually measured safe.
+UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
 
 
 def _current_model_native_active_loss_weights() -> Dict[str, float]:
@@ -6672,12 +6682,13 @@ def _unified_exit_action_loss(
         )[flat_valid]
     # The chunk bound exists for the 10G host-RSS ceiling: on CPU the whole
     # 480-bar attention graph lives in RAM, so rows are processed 8 at a time.
-    # On CUDA the graph lives in VRAM under gradient checkpointing - measured
-    # peak 0.17 GB at 128 rows with contract shapes, linear in rows, against
-    # 24 GB capacity - so the whole valid set runs in one call, which is the
-    # original pre-chunk semantics restored on the device that affords it.
+    # On CUDA the graph lives in VRAM under gradient checkpointing, bounded at
+    # 128 rows -- the exact upper edge of the range actually measured safe
+    # (see UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA). Running the whole
+    # valid set unchunked was tried and reverted: real batch=640 evidence
+    # showed the cost past 128 rows is not linear.
     _chunk_rows = (
-        valid_rows
+        UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
         if shared.device.type == "cuda"
         else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
     )
