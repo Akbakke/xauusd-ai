@@ -1283,6 +1283,59 @@ UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
 UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
 
 
+class _PriorMatchAccumBuffer:
+    """Grad-accumulation-window buffer for the direction/hier prior-match terms.
+
+    ``_batch_rate_sampling_floor(n)`` (see ``_direction_global_prior_match_term``
+    and its five siblings) needs the real sample count backing the predicted-vs-
+    label rate drift it gates, not just the current micro-batch. At
+    batch_size=64 that floor is inert (sqrt(0.25/64)=0.177 dominates the 0.02
+    tolerance) exactly the way it was before the 2026-08-05 anti-collapse fix,
+    but batch_size=625+ is measured ~11x slower wall-clock per row (see
+    UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA). Concatenating the detached
+    predictions/targets of every micro-step in the current accumulation window
+    onto the live one lets --grad-accum-steps reach a statistically valid n
+    while each forward/backward pass still only materializes one small
+    micro-batch. Only the live tensor passed alongside the buffer on a given
+    call carries gradient; buffered entries are detached, so they inform the
+    statistic (drift, tolerance) without being double-counted in the graph.
+    Reset once per accumulation window (see train_epoch's _accum_count reset)
+    so grad_accum_steps=1 always reads/appends an empty buffer -- i.e. is
+    byte-for-byte the pre-existing single-micro-batch behavior.
+    """
+
+    __slots__ = (
+        "direction_probs",
+        "direction_y",
+        "trade_logit",
+        "trade_y",
+        "side_logits",
+        "side_y",
+        "side_mask",
+        "ctx_cat",
+    )
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        for name in self.__slots__:
+            setattr(self, name, None)
+
+    def read(self, name: str, live: torch.Tensor) -> torch.Tensor:
+        buffered = getattr(self, name)
+        return live if buffered is None else torch.cat([buffered, live], dim=0)
+
+    def append(self, name: str, live: torch.Tensor) -> None:
+        buffered = getattr(self, name)
+        live = live.detach()
+        setattr(
+            self,
+            name,
+            live if buffered is None else torch.cat([buffered, live], dim=0),
+        )
+
+
 def _current_model_native_active_loss_weights() -> Dict[str, float]:
     """Return the exact configurable objective surface recorded in each bundle."""
 
@@ -5910,6 +5963,7 @@ def _hierarchical_entry_loss(
     *,
     trade_pos_weight: float,
     side_bad_path_pos_weight: Any,
+    prior_match_buffer: "_PriorMatchAccumBuffer | None" = None,
 ) -> tuple[torch.Tensor, Dict[str, float]]:
     """Supervise the mandatory evidence heads consumed by direction fusion."""
     total = torch.tensor(0.0, device=device)
@@ -5998,10 +6052,25 @@ def _hierarchical_entry_loss(
         total = total + weighted
         stats["hier_trade_loss"] = float(weighted.detach().cpu().item())
 
-    hier_trade_global_prior = _hier_trade_global_prior_match_term(trade_logit, y_trade)
+    _pm_trade_logit = (
+        trade_logit
+        if prior_match_buffer is None
+        else prior_match_buffer.read("trade_logit", trade_logit)
+    )
+    _pm_trade_y = (
+        y_trade
+        if prior_match_buffer is None
+        else prior_match_buffer.read("trade_y", y_trade)
+    )
+    _pm_ctx_cat = (
+        ctx_cat
+        if prior_match_buffer is None
+        else prior_match_buffer.read("ctx_cat", ctx_cat)
+    )
+    hier_trade_global_prior = _hier_trade_global_prior_match_term(_pm_trade_logit, _pm_trade_y)
     total = total + hier_trade_global_prior
     stats["hier_trade_global_prior_loss"] = float(hier_trade_global_prior.detach().cpu().item())
-    hier_slice_trade_prior = _hier_slice_trade_prior_match_term(trade_logit, y_trade, ctx_cat)
+    hier_slice_trade_prior = _hier_slice_trade_prior_match_term(_pm_trade_logit, _pm_trade_y, _pm_ctx_cat)
     total = total + hier_slice_trade_prior
     stats["hier_slice_trade_prior_loss"] = float(hier_slice_trade_prior.detach().cpu().item())
     hier_slice_trade_accuracy_edge = _hier_slice_trade_accuracy_edge_term(
@@ -6045,10 +6114,27 @@ def _hierarchical_entry_loss(
     stats["hier_slice_side_accuracy_edge_loss"] = float(
         hier_slice_side_accuracy_edge.detach().cpu().item()
     )
-    hier_side_global_prior = _hier_side_global_prior_match_term(side_logits, y_side, y_side_mask)
+    _pm_side_logits = (
+        side_logits
+        if prior_match_buffer is None
+        else prior_match_buffer.read("side_logits", side_logits)
+    )
+    _pm_side_y = (
+        y_side
+        if prior_match_buffer is None
+        else prior_match_buffer.read("side_y", y_side)
+    )
+    _pm_side_mask = (
+        y_side_mask
+        if prior_match_buffer is None
+        else prior_match_buffer.read("side_mask", y_side_mask)
+    )
+    hier_side_global_prior = _hier_side_global_prior_match_term(_pm_side_logits, _pm_side_y, _pm_side_mask)
     total = total + hier_side_global_prior
     stats["hier_side_global_prior_loss"] = float(hier_side_global_prior.detach().cpu().item())
-    hier_slice_side_prior = _hier_slice_side_prior_match_term(side_logits, y_side, y_side_mask, ctx_cat)
+    hier_slice_side_prior = _hier_slice_side_prior_match_term(
+        _pm_side_logits, _pm_side_y, _pm_side_mask, _pm_ctx_cat
+    )
     total = total + hier_slice_side_prior
     stats["hier_slice_side_prior_loss"] = float(hier_slice_side_prior.detach().cpu().item())
 
@@ -6115,6 +6201,14 @@ def _hierarchical_entry_loss(
         stats["hier_short_valid_target_rate"] = float(validity_target[:, 1].detach().mean().cpu().item())
         stats["hier_long_valid_prob_mean"] = float(valid_prob[:, 0].mean().cpu().item())
         stats["hier_short_valid_prob_mean"] = float(valid_prob[:, 1].mean().cpu().item())
+
+    if prior_match_buffer is not None:
+        prior_match_buffer.append("trade_logit", trade_logit)
+        prior_match_buffer.append("trade_y", y_trade)
+        prior_match_buffer.append("side_logits", side_logits)
+        prior_match_buffer.append("side_y", y_side)
+        prior_match_buffer.append("side_mask", y_side_mask)
+        prior_match_buffer.append("ctx_cat", ctx_cat)
 
     return total, stats
 
@@ -6773,6 +6867,7 @@ def train_epoch(
     if _accum_steps > 1:
         log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
     _accum_count = 0
+    _prior_match_buffer = _PriorMatchAccumBuffer()
     optimizer.zero_grad(set_to_none=True)
     total = 0.0
     total_ce = 0.0
@@ -6982,14 +7077,19 @@ def train_epoch(
         cost_term = torch.tensor(0.0, device=device)
         balance_term = _direction_balance_term(probs, y, criterion)
         min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
-        global_prior_match_term = _direction_global_prior_match_term(probs, y)
+        _pm_probs = _prior_match_buffer.read("direction_probs", probs)
+        _pm_y = _prior_match_buffer.read("direction_y", y)
+        _pm_ctx_cat_dir = _prior_match_buffer.read("ctx_cat", ctx_cat)
+        global_prior_match_term = _direction_global_prior_match_term(_pm_probs, _pm_y)
         slice_min_pred_rate_term = _direction_slice_min_pred_rate_term(probs, y, ctx_cat)
         slice_recall_term = _direction_slice_recall_prob_term(probs, y, ctx_cat)
         slice_balanced_ce_term = _direction_slice_balanced_ce_term(logits, y, ctx_cat)
         slice_true_margin_term = _direction_slice_true_margin_term(logits, y, ctx_cat)
         slice_accuracy_edge_term = _direction_slice_accuracy_edge_term(logits, y, ctx_cat)
         slice_confusion_pair_term = _direction_slice_confusion_pair_term(logits, y, ctx_cat)
-        slice_prior_match_term = _direction_slice_prior_match_term(probs, y, ctx_cat)
+        slice_prior_match_term = _direction_slice_prior_match_term(_pm_probs, _pm_y, _pm_ctx_cat_dir)
+        _prior_match_buffer.append("direction_probs", probs)
+        _prior_match_buffer.append("direction_y", y)
         direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
         direction_utility_margin_term = _direction_utility_margin_term(
             logits,
@@ -7057,6 +7157,7 @@ def train_epoch(
             device,
             trade_pos_weight=hier_trade_pos_weight,
             side_bad_path_pos_weight=hier_bad_path_pos_weight,
+            prior_match_buffer=_prior_match_buffer,
         )
         if hier_loss.numel() == 1:
             loss = loss + hier_loss
@@ -7283,6 +7384,7 @@ def train_epoch(
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             _accum_count = 0
+            _prior_match_buffer.reset()
             log.info("[TRAIN_STEP] batch=%d step_done", _batch_i)
 
         bs = y.shape[0]
