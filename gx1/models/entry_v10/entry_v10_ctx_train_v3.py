@@ -735,7 +735,7 @@ def _guard_no_rl() -> None:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-_TRAINER_MEMORY_LIMIT_BYTES = 10 * 1024**3
+_TRAINER_MEMORY_LIMIT_BYTES = 20 * 1024**3
 _TRAINER_SWAP_LIMIT_BYTES = 512 * 1024**2
 _TRAINER_PIDS_LIMIT = 64
 _TRAINER_CGROUP_ENV = {
