@@ -253,7 +253,9 @@ def _feature_base_contract(
                 utc=True,
                 errors="coerce",
             )
-        ).as_unit("ns") if expected_source_path is not None else pd.DatetimeIndex([])
+        ).as_unit("ns") if expected_source_path is not None else pd.DatetimeIndex(
+            [], dtype="datetime64[ns, UTC]"
+        )
         bar_seconds = 60 if timeframe == "M1" else 300
         time_geometry = bool(
             len(feature_times) > 0
@@ -317,9 +319,14 @@ def _feature_base_contract(
                 )
                 if declared_ok:
                     usable_source_times = usable_source_times[v29_excluded:]
+                    try:
+                        declared_first_ts = pd.Timestamp(declared_first)
+                    except (TypeError, ValueError):
+                        declared_first_ts = None
                     declared_ok = (
-                        str(usable_source_times[0].isoformat())
-                        == declared_first
+                        declared_first_ts is not None
+                        and len(usable_source_times) > 0
+                        and usable_source_times[0] == declared_first_ts
                     )
                     time_alignment_label_ok = (
                         "exact_entry_m5_source_timeline_after_declared_"

@@ -38,6 +38,21 @@ State of the evidence chain:
   (`ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0`, TRAIN priors, class weights 1.0)
   and mandatory multi-seed judging. Their validation resumes on the V29
   substrate.
+- The first four V29 chain attempts (2026-08-11) are immutable RED/ABORTED
+  evidence, each repaired in the owning contract before relaunch: V29B —
+  D1 `geomline_below_active` saturates at constant 1.0 on the declared
+  population → presence-mask saturation contract in the V4 liveness owner
+  (constant 0.0/dead siblings/silent events stay RED); V29C — the M5
+  final-cache rebind published without the registry constants → bound
+  through, plus a source-binding test; V29D — the flip-age fields' data-
+  dependent warmup (NaN until each TF's first observed flip) reached the
+  surface start → measured per-layer warmup floors trim the surface
+  (declared in the manifest, bound by preflight and the dataset builder
+  with full row accounting); V29E — the retention cleanup of superseded
+  tape generations V1–V3 broke the successor ancestor chain → retired-
+  ancestor retention attestation in the provenance owner (identity
+  continuity via the executed DELETE_COMPLETE inventory; see
+  docs/DATA_CONTRACT.md "Retired ancestors").
 
 ## Current feature architecture
 

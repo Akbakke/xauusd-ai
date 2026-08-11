@@ -87,6 +87,19 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 _VEDTAK_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 _MAX_CANONICAL_NATIVE_ANCESTOR_DEPTH = 1_024
+# Retired-ancestor attestation (2026-08-11): a superseded native tape
+# generation may be retired through the retention owner
+# (gx1.scripts.cleanup_gx1_evidence_v1). Its bytes are gone, but the executed
+# DELETE_COMPLETE event chain (plan -> approval -> execution) records a
+# hash-bound per-file inventory of exactly what was deleted. A missing
+# successor parent root is therefore admitted ONLY when that inventory
+# attests the deleted MANIFEST.json with exactly the child's recorded
+# parent manifest sha256 — cryptographic identity continuity without the
+# bytes. Everything else (absent without attestation, present-but-tampered,
+# shape violations) fails closed exactly as before.
+_RETIRED_NATIVE_ATTESTATION_SCHEMA = "gx1_retired_native_root_attestation_v1"
+_EVIDENCE_CLEANUP_EXECUTION_SCHEMA = "gx1_evidence_cleanup_execution_v1"
+_EVIDENCE_CLEANUP_REPORTS_DIRNAME = "gx1_evidence_retention_cleanup_reports"
 _CANONICAL_NATIVE_PARENT_BINDING_FIELDS = (
     "schema_version",
     "root",
@@ -681,6 +694,115 @@ def _native_parent_binding_from_manifest(
     }
 
 
+def _retired_native_root_attestation(
+    parent_root: Path,
+    *,
+    expected_manifest_sha256: str,
+    reports_dir: Path | None = None,
+) -> dict[str, Any] | None:
+    """Attest a retired native root through the executed retention chain.
+
+    Returns the attestation payload when an executed DELETE_COMPLETE
+    retention event covers exactly ``parent_root`` and its hash-verified
+    per-file inventory records the deleted ``MANIFEST.json`` with exactly
+    ``expected_manifest_sha256``; returns ``None`` otherwise (the caller
+    fails closed). Every referenced artifact is re-verified by content hash
+    before it is believed.
+    """
+
+    from gx1.contracts.evidence_retention_v1 import GX1_DATA_ROOT
+
+    if reports_dir is None:
+        reports_dir = (
+            GX1_DATA_ROOT / "reports" / _EVIDENCE_CLEANUP_REPORTS_DIRNAME
+        )
+    if not reports_dir.is_dir():
+        return None
+    for execution_path in sorted(
+        reports_dir.glob("GX1_EVIDENCE_CLEANUP_EXECUTION_*.json"),
+        reverse=True,
+    ):
+        try:
+            execution = json.loads(execution_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if (
+            not isinstance(execution, dict)
+            or execution.get("schema_version")
+            != _EVIDENCE_CLEANUP_EXECUTION_SCHEMA
+            or execution.get("decision") != "DELETE_COMPLETE"
+        ):
+            continue
+        deleted = execution.get("deleted")
+        if not isinstance(deleted, list) or str(parent_root) not in deleted:
+            continue
+        plan_path = Path(str(execution.get("plan_json") or "")).expanduser()
+        plan_sha = execution.get("plan_sha256")
+        if (
+            not isinstance(plan_sha, str)
+            or plan_path.is_symlink()
+            or not plan_path.is_file()
+            or sha256_file(plan_path) != plan_sha
+        ):
+            continue
+        try:
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        plan_body = plan.get("plan") if isinstance(plan, dict) else None
+        targets = (
+            plan_body.get("targets")
+            if isinstance(plan_body, dict)
+            else plan.get("targets")
+            if isinstance(plan, dict)
+            else None
+        )
+        for target in targets or ():
+            if (
+                not isinstance(target, dict)
+                or target.get("path") != str(parent_root)
+                or target.get("kind") != "directory"
+            ):
+                continue
+            inventory_path = Path(
+                str(target.get("inventory_jsonl") or "")
+            ).expanduser()
+            inventory_sha = target.get("inventory_jsonl_sha256")
+            if (
+                not isinstance(inventory_sha, str)
+                or inventory_path.is_symlink()
+                or not inventory_path.is_file()
+                or sha256_file(inventory_path) != inventory_sha
+            ):
+                continue
+            for line in inventory_path.read_text(
+                encoding="utf-8"
+            ).splitlines():
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if (
+                    isinstance(entry, dict)
+                    and entry.get("relative_path") == "MANIFEST.json"
+                    and entry.get("kind") == "file"
+                    and entry.get("sha256") == expected_manifest_sha256
+                ):
+                    return {
+                        "schema_version": _RETIRED_NATIVE_ATTESTATION_SCHEMA,
+                        "parent_root": str(parent_root),
+                        "parent_manifest_sha256": expected_manifest_sha256,
+                        "plan_json": str(plan_path),
+                        "plan_sha256": plan_sha,
+                        "inventory_jsonl": str(inventory_path),
+                        "inventory_jsonl_sha256": inventory_sha,
+                        "execution_json": str(execution_path),
+                        "execution_sha256": sha256_file(execution_path),
+                        "vedtak": execution.get("vedtak"),
+                    }
+    return None
+
+
 def _validate_native_ancestor_manifest_cas_chain(
     parent_source: Mapping[str, Any],
     *,
@@ -764,6 +886,129 @@ def _validate_native_ancestor_manifest_cas_chain(
     raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_ANCESTOR_DEPTH_EXCEEDED")
 
 
+def _validate_native_successor_envelope_retired(
+    manifest: dict[str, Any],
+    *,
+    parent_source: Mapping[str, Any],
+    attestation: dict[str, Any],
+    timeframe: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    parent_root: Path,
+) -> dict[str, Any]:
+    """Successor envelope for a retention-attested retired parent.
+
+    Every proof derivable from the child manifest and the recorded parent
+    binding still runs (interval advance, append contract, overlap interval,
+    declared row/append counts, time advance). Only the parent-byte
+    re-proofs — manifest CAS re-read, ancestor chain walk, parent year CAS
+    and the parent-side overlap re-read — are replaced by the executed
+    retention attestation; the downstream child-overlap sha comparison still
+    binds the publication-time parent-byte proof through
+    ``successor_append.overlap_rows_sha256``.
+    """
+
+    normalized, _policy = native_timeframe_policy(timeframe)
+    binding = canonical_native_parent_binding_v1(parent_source)
+    parent_start = _utc_native_bar(
+        binding["requested_start_utc"],
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_BINDING_START",
+    )
+    parent_end = _utc_native_bar(
+        binding["requested_end_utc_exclusive"],
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_BINDING_END",
+    )
+    parent_time_max = _utc_native_bar(
+        binding["time_max_utc"],
+        timeframe=normalized,
+        label="SUCCESSOR_PARENT_BINDING_TIME_MAX",
+    )
+    if parent_start != start or parent_end >= end:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_INTERVAL_NOT_ADVANCING")
+    parent_row_count = binding.get("row_count")
+    if (
+        isinstance(parent_row_count, bool)
+        or not isinstance(parent_row_count, int)
+        or parent_row_count <= 0
+    ):
+        raise RuntimeError(
+            "XAU_CANONICAL_M5_SUCCESSOR_PARENT_FIELDS_INVALID"
+        )
+    child_chunks = manifest.get("source_chunks")
+    if not isinstance(child_chunks, list) or not child_chunks:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_CHUNKS_INVALID")
+    append = manifest.get("successor_append")
+    expected_append_keys = {
+        "overlap_start_utc",
+        "parent_end_utc_exclusive",
+        "reused_source_chunks",
+        "refetched_source_chunks",
+        "parent_overlap_rows",
+        "appended_rows",
+        "overlap_rows_sha256",
+    }
+    if not isinstance(append, dict) or set(append) != expected_append_keys:
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_APPEND_CONTRACT_INVALID")
+    reused = append.get("reused_source_chunks")
+    refetched = append.get("refetched_source_chunks")
+    # The parent-chunk prefix identity (child_chunks[:reused] ==
+    # parent_chunks[:reused]) was proven at publication and needs parent
+    # bytes; the child-side arithmetic still binds exactly.
+    if (
+        isinstance(reused, bool)
+        or not isinstance(reused, int)
+        or reused < 0
+        or isinstance(refetched, bool)
+        or not isinstance(refetched, int)
+        or refetched <= 0
+        or refetched != len(child_chunks) - reused
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_CHUNK_LINEAGE_INVALID")
+    overlap_start = _utc_native_bar(
+        append.get("overlap_start_utc"),
+        timeframe=normalized,
+        label="SUCCESSOR_OVERLAP_START",
+    )
+    declared_parent_end = _utc_native_bar(
+        append.get("parent_end_utc_exclusive"),
+        timeframe=normalized,
+        label="SUCCESSOR_DECLARED_PARENT_END",
+    )
+    if (
+        declared_parent_end != parent_end
+        or not start <= overlap_start < parent_end < end
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_OVERLAP_INTERVAL_INVALID")
+    for name in ("parent_overlap_rows", "appended_rows"):
+        value = append.get(name)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value <= 0
+        ):
+            raise RuntimeError(
+                f"XAU_CANONICAL_M5_SUCCESSOR_{name.upper()}_INVALID"
+            )
+    overlap_sha = _require_sha256(
+        append.get("overlap_rows_sha256"),
+        timeframe=normalized,
+        label="SUCCESSOR_OVERLAP_ROWS",
+    )
+    return {
+        "append": append,
+        "overlap_rows_sha256": overlap_sha,
+        "overlap_start": overlap_start,
+        "parent_end": parent_end,
+        "parent_time_max": parent_time_max,
+        "parent_manifest": None,
+        "parent_root": parent_root,
+        "parent_row_count": parent_row_count,
+        "retired_parent_attestation": attestation,
+    }
+
+
 def _validate_native_successor_envelope(
     root: Path,
     manifest: dict[str, Any],
@@ -790,7 +1035,6 @@ def _validate_native_successor_envelope(
     if (
         not parent_root.is_absolute()
         or parent_root.is_symlink()
-        or not parent_root.is_dir()
         or parent_root.resolve() != parent_root
         or parent_root == root
         or child_declared_root == parent_root
@@ -798,9 +1042,33 @@ def _validate_native_successor_envelope(
         or parent_root in child_declared_root.parents
         or parent_manifest_path != parent_root / "MANIFEST.json"
         or parent_manifest_path.is_symlink()
-        or not parent_manifest_path.is_file()
     ):
         raise RuntimeError("XAU_CANONICAL_M5_SUCCESSOR_PARENT_PATH_INVALID")
+    if not parent_root.is_dir() or not parent_manifest_path.is_file():
+        # Absent parent: admitted ONLY through the executed retention
+        # attestation (identity continuity via the recorded per-file
+        # inventory); anything unattested fails closed as before.
+        attestation = _retired_native_root_attestation(
+            parent_root,
+            expected_manifest_sha256=_require_sha256(
+                parent_source["manifest_sha256"],
+                timeframe=normalized,
+                label="SUCCESSOR_PARENT_MANIFEST",
+            ),
+        )
+        if attestation is None:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_PARENT_PATH_INVALID"
+            )
+        return _validate_native_successor_envelope_retired(
+            manifest,
+            parent_source=parent_source,
+            attestation=attestation,
+            timeframe=normalized,
+            start=start,
+            end=end,
+            parent_root=parent_root,
+        )
     if (
         sha256_file(parent_manifest_path)
         != _require_sha256(
@@ -1382,7 +1650,40 @@ def _validate_canonical_native_source_contract_impl(
         != source_rows_sha
     ):
         raise RuntimeError("XAU_CANONICAL_M5_SOURCE_ROWS_BINDING_MISMATCH")
-    if successor_context is not None:
+    if successor_context is not None and successor_context.get(
+        "retired_parent_attestation"
+    ):
+        # Retention-attested retired parent: the parent-side byte re-proof is
+        # replaced by the attestation, and the child overlap rows are proven
+        # against the publication-time recorded overlap sha (that sha was
+        # proven equal to the parent bytes when the successor was published).
+        if not successor_overlap_frames:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_OVERLAP_ROWS_MISSING"
+            )
+        child_overlap = pd.concat(
+            successor_overlap_frames,
+            ignore_index=True,
+        ).loc[:, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)]
+        child_overlap_bytes = canonical_native_rows_bytes(
+            child_overlap,
+            timeframe=normalized,
+        )
+        child_overlap_sha = hashlib.sha256(child_overlap_bytes).hexdigest()
+        append = successor_context["append"]
+        if (
+            len(child_overlap) != append["parent_overlap_rows"]
+            or child_overlap_sha != successor_context["overlap_rows_sha256"]
+            or successor_appended_rows != append["appended_rows"]
+            or source_row_count
+            <= int(successor_context["parent_row_count"])
+            or pd.Timestamp(source_time_max)
+            <= successor_context["parent_time_max"]
+        ):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SUCCESSOR_PREFIX_OR_APPEND_MISMATCH"
+            )
+    elif successor_context is not None:
         parent_manifest = successor_context["parent_manifest"]
         parent_root = successor_context["parent_root"]
         overlap_start = successor_context["overlap_start"]

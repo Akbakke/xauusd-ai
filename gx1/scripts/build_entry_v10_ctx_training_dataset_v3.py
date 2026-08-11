@@ -5268,9 +5268,14 @@ def main() -> None:
         )
         if m5_declared_ok:
             m5_usable_source_times = m5_usable_source_times[m5_v29_excluded:]
+            try:
+                m5_declared_first_ts = pd.Timestamp(m5_declared_first)
+            except (TypeError, ValueError):
+                m5_declared_first_ts = None
             m5_declared_ok = (
-                str(m5_usable_source_times[0].isoformat())
-                == m5_declared_first
+                m5_declared_first_ts is not None
+                and len(m5_usable_source_times) > 0
+                and m5_usable_source_times[0] == m5_declared_first_ts
             )
     if (
         not m5_declared_ok

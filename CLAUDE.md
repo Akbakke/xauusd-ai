@@ -121,7 +121,13 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 
 9. **Never delete under `/home/andre2/GX1_DATA` or an active run path** without
    an explicit verified cleanup decision, reachability proof and active-process
-   check. Preserve valid active collectors and unrelated dashboards; never
+   check. The reachability proof must cover manifest-recorded data-to-data
+   references (successor parent pointers, lineage bindings), not only code
+   references — a grep over the repository is not a reachability proof
+   (learned 2026-08-11: retiring superseded tape generations broke the
+   successor ancestor chain; repaired by the retention-attestation route in
+   the provenance owner, see docs/DATA_CONTRACT.md "Retired ancestors").
+   Preserve valid active collectors and unrelated dashboards; never
    restart a retired daemon merely because its name still exists.
 
 10. **Remove disconnected repository code and stale docs** once call-site

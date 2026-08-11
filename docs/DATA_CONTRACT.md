@@ -128,3 +128,17 @@ RSS measurement; see CLAUDE.md); swap at 512 MiB and CPU at 0-1. Feature product
 subprocess workers. Training is deterministic FP32 without compile, autocast or
 TF32. Memmap scheduling is fixed in source, not environment-tunable. Generated
 evidence is deleted only after retention/reachability proof.
+
+## Retired ancestors
+
+A superseded native tape generation may be retired only through the
+retention owner (`gx1.scripts.cleanup_gx1_evidence_v1`). After retirement,
+a successor's missing parent root is admitted at consumption time ONLY when
+the executed DELETE_COMPLETE retention chain (plan → approval → execution,
+every artifact re-verified by content hash) attests the deleted
+`MANIFEST.json` with exactly the child's recorded parent manifest sha256.
+The child-side proofs (interval advance, append contract, declared overlap
+sha, row/append counts, time advance) still run from the child manifest and
+the recorded parent binding; only the parent-byte re-proofs are replaced by
+the attestation. An absent parent without attestation, a present-but-
+tampered parent, and every other mismatch fail closed exactly as before.
