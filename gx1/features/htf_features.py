@@ -379,7 +379,51 @@ HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v5"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_v29_registry_blocks_20260811"
 )
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v2"
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v3"
+# The v2 schema (no saturated_presence_masks key) remains valid for immutable
+# artifacts published before 2026-08-11 (the V28 baseline cache); the
+# validator accepts exactly these two versions, each with its own exact key
+# set — no soft tolerance inside either version.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION_V2 = "htf_v4_full_input_liveness_v2"
+
+# Presence-mask saturation contract (rule 2d evidence class: measured on real
+# declared data, 2026-08-11, native-M5 V4 tape resampled to D1, TRAIN fit
+# band 1.2207 ATR, N=2304 D1 TRAIN bars): at D1 scale the trendline
+# slot-occupancy masks saturate — an ACTIVE >=3-touch line above/below the
+# close almost always exists inside the 252-bar candidate window, so
+# geomline_below_active is exactly 1.0 on every declared 2021-2026 D1 row
+# (871 touch events fired; all six sibling attributes non-constant) and
+# geomline_above_active escapes constancy only through a handful of 2024
+# zero-days. A saturated occupancy mask is the flag-disambiguated-zero
+# pattern's degenerate-but-honest limit (design B.5): the mask must stay (a
+# 0-attribute row is only readable through it) and its constancy at 1.0 with
+# live siblings and firing paired touch events is a measured market
+# property, not wiring death. Constant 0.0 (never occupied), dead sibling
+# attributes or a silent paired event remain RED exactly as before.
+HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT = {
+    "geomline_above_active": {
+        "attributes": (
+            "geomline_above_dist_atr",
+            "geomline_above_slope_atr_per_bar",
+            "geomline_above_touch_count",
+            "geomline_above_age_bars",
+            "geomline_above_last_touch_age_bars",
+            "geomline_above_max_dev_atr",
+        ),
+        "event": "geomline_touch_above",
+    },
+    "geomline_below_active": {
+        "attributes": (
+            "geomline_below_dist_atr",
+            "geomline_below_slope_atr_per_bar",
+            "geomline_below_touch_count",
+            "geomline_below_age_bars",
+            "geomline_below_last_touch_age_bars",
+            "geomline_below_max_dev_atr",
+        ),
+        "event": "geomline_touch_below",
+    },
+}
 
 # These are deliberate aliases inside the fixed per-bar V4 model surface.
 HTF_V4_DECLARED_ALIAS_PAIRS = frozenset(
@@ -1069,7 +1113,7 @@ def build_multi_tf_v4_liveness_contract(
         field_stats: dict[str, object] = {}
         column_hash_owner: dict[str, str] = {}
         duplicate_pairs: list[list[str]] = []
-        constant_fields: list[str] = []
+        constant_candidates: list[str] = []
         for index, feature_name in enumerate(MULTI_TF_PER_BAR_FEATURES_V4):
             column = live[:, index]
             unique_count = int(np.unique(column).size)
@@ -1079,7 +1123,7 @@ def build_multi_tf_v4_liveness_contract(
                 np.ascontiguousarray(column).view(np.uint8)
             ).hexdigest()
             if unique_count <= 1 or standard_deviation <= 0.0:
-                constant_fields.append(feature_name)
+                constant_candidates.append(feature_name)
             prior = column_hash_owner.get(digest)
             if prior is not None:
                 pair = (prior, feature_name)
@@ -1096,6 +1140,41 @@ def build_multi_tf_v4_liveness_contract(
                 "nonzero_fraction": nonzero_fraction,
                 "values_sha256": digest,
             }
+        # Presence-mask saturation: a constant column is admitted as a
+        # saturated occupancy mask only under the exact contract above —
+        # constant value 1.0, every sibling attribute non-constant on this
+        # same TF, and the paired touch event firing. Everything else stays
+        # a constant-field failure exactly as before.
+        constant_fields = []
+        saturated_presence_masks: list[str] = []
+        for candidate in constant_candidates:
+            rule = HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT.get(candidate)
+            stats = field_stats[candidate]
+            if (
+                rule is not None
+                and stats["minimum"] == 1.0
+                and stats["maximum"] == 1.0
+                and all(
+                    field_stats[attribute]["unique_count"] > 1
+                    for attribute in rule["attributes"]
+                )
+                and field_stats[rule["event"]]["nonzero_fraction"] > 0.0
+            ):
+                saturated_presence_masks.append(candidate)
+            else:
+                constant_fields.append(candidate)
+        # Two admitted saturated masks are necessarily byte-identical
+        # constant-1.0 columns; each admission already proved independent
+        # wiring (own live siblings, own firing event), so that exact pair is
+        # not a copy defect. Every other duplicate stays RED.
+        duplicate_pairs = [
+            pair
+            for pair in duplicate_pairs
+            if not (
+                pair[0] in saturated_presence_masks
+                and pair[1] in saturated_presence_masks
+            )
+        ]
         if constant_fields:
             failures.append(
                 f"{tf_name}:constant_fields={constant_fields}"
@@ -1109,6 +1188,7 @@ def build_multi_tf_v4_liveness_contract(
             "warmup_rows": warmup,
             "live_rows": int(len(live)),
             "constant_fields": constant_fields,
+            "saturated_presence_masks": saturated_presence_masks,
             "exact_duplicate_pairs": duplicate_pairs,
             "fields": field_stats,
         }
@@ -1166,7 +1246,10 @@ def require_multi_tf_v4_liveness_contract(
         raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_IDENTITY_INVALID")
     if (
         value.get("schema_version")
-        != HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION
+        not in (
+            HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION,
+            HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION_V2,
+        )
         or value.get("matrix_contract") != HTF_V4_MATRIX_CONTRACT
         or value.get("feature_names_sha256")
         != MULTI_TF_FEATURE_NAMES_SHA256_V4
@@ -1175,6 +1258,14 @@ def require_multi_tf_v4_liveness_contract(
         or value.get("failures") != []
     ):
         raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_DECISION_INVALID")
+    # v2 payloads are the pre-2026-08-11 immutable artifacts (V28 baseline):
+    # exact old key set, no saturation claims. v3 payloads must carry the
+    # saturated_presence_masks key and every claim is re-proved below from
+    # the payload's own field statistics.
+    is_v2 = (
+        value.get("schema_version")
+        == HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION_V2
+    )
     timeframes = value.get("timeframes")
     if not isinstance(timeframes, dict) or set(timeframes) != set(
         MULTI_TF_RESAMPLE_RULES
@@ -1188,6 +1279,8 @@ def require_multi_tf_v4_liveness_contract(
         "exact_duplicate_pairs",
         "fields",
     }
+    if not is_v2:
+        expected_tf_keys.add("saturated_presence_masks")
     expected_stat_keys = {
         "unique_count",
         "mean",
@@ -1220,6 +1313,41 @@ def require_multi_tf_v4_liveness_contract(
             MULTI_TF_PER_BAR_FEATURES_V4
         ):
             raise RuntimeError(f"HTF_V4_LIVENESS_FIELDS_INVALID: {tf_name}")
+        if not is_v2:
+            claimed = row.get("saturated_presence_masks")
+            if not isinstance(claimed, list) or len(set(claimed)) != len(
+                claimed
+            ):
+                raise RuntimeError(
+                    f"HTF_V4_LIVENESS_SATURATION_CLAIM_INVALID: {tf_name}"
+                )
+            for mask_name in claimed:
+                rule = HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT.get(mask_name)
+                mask_stats = fields.get(mask_name)
+                if (
+                    rule is None
+                    or not isinstance(mask_stats, dict)
+                    or mask_stats.get("unique_count") != 1
+                    or mask_stats.get("minimum") != 1.0
+                    or mask_stats.get("maximum") != 1.0
+                    or any(
+                        not isinstance(fields.get(attribute), dict)
+                        or fields[attribute].get("unique_count", 0) <= 1
+                        for attribute in rule["attributes"]
+                    )
+                    or not isinstance(fields.get(rule["event"]), dict)
+                    or not fields[rule["event"]].get("nonzero_fraction", 0.0)
+                    > 0.0
+                ):
+                    raise RuntimeError(
+                        "HTF_V4_LIVENESS_SATURATION_CLAIM_INVALID: "
+                        f"{tf_name}:{mask_name}"
+                    )
+        claimed_masks = (
+            frozenset()
+            if is_v2
+            else frozenset(row.get("saturated_presence_masks") or ())
+        )
         for field_name, stats in fields.items():
             if not isinstance(stats, dict) or set(stats) != expected_stat_keys:
                 raise RuntimeError(
@@ -1236,17 +1364,22 @@ def require_multi_tf_v4_liveness_contract(
                     "nonzero_fraction",
                 )
             ]
+            # An admitted saturated mask is the ONE exact case where a
+            # degenerate distribution is legal: unique_count 1, std 0.0,
+            # min == max == 1.0 (proved in the claim block above). Every
+            # other field keeps the strict live-distribution requirement.
+            saturated = field_name in claimed_masks
             if (
                 isinstance(unique_count, bool)
                 or not isinstance(unique_count, int)
-                or unique_count <= 1
+                or (unique_count <= 1) != saturated
                 or any(
                     isinstance(item, bool)
                     or not isinstance(item, (int, float))
                     or not math.isfinite(float(item))
                     for item in numeric
                 )
-                or float(stats["std"]) <= 0.0
+                or (float(stats["std"]) <= 0.0) != saturated
                 or not 0.0 < float(stats["nonzero_fraction"]) <= 1.0
                 or float(stats["minimum"]) > float(stats["maximum"])
                 or not isinstance(stats.get("values_sha256"), str)

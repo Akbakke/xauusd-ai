@@ -464,3 +464,28 @@ refutation stands; this design promises representability of the operator's
 confluence events, not edge). All eight source reports are proven-from-source
 reviews; this synthesis adds only arithmetic and the boundary decisions
 recorded above. No repo code was changed by this document.
+
+## 10. Stage-4 amendment (2026-08-11): presence-mask saturation at D1
+
+First real-tape measurement (native-M5 V4 tape → D1, TRAIN fit band 1.2207
+ATR, N=2304 D1 TRAIN bars, N_candidates=9505): at D1 scale an ACTIVE
+≥3-touch line above/below the close almost always exists inside the 252-bar
+candidate window. `geomline_below_active` is exactly 1.0 on every declared
+2021–2026 D1 row (871 touch events fired; all six sibling attributes
+non-constant); `geomline_above_active` escapes constancy only via a handful
+of 2024 zero-days. The first V29 chain run (`…20260811_V29B`) therefore went
+RED on `HTF_V4_CACHE_FULL_INPUT_LIVENESS_FAIL: D1:constant_fields=
+['geomline_below_active']` — the gate measured a true saturation, not wiring
+death.
+
+Resolution (owner: `htf_features.HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT`,
+liveness schema v2→v3): the B.5 flag-disambiguated-zero masks must stay (a
+0-attribute row is only readable through them), and a constant mask is
+admitted ONLY as saturation — exact value 1.0, every sibling attribute
+non-constant on the same TF, paired touch event firing — and is recorded
+explicitly as `saturated_presence_masks` in the liveness payload, re-proved
+by the strict validator. Constant 0.0, dead siblings, silent events and all
+non-mask constants remain RED. Two admitted masks are necessarily identical
+constant columns; exactly that pair is exempt from the duplicate check
+(each admission proved independent wiring). v2 payloads (the immutable V28
+baseline cache) stay valid under their own exact key set.
