@@ -293,8 +293,17 @@ def _write_split(
                 "y_short_bad_path": 1.0 if support_dom else selected_short_bad,
                 "y_long_expected_mae_bps": long_mae,
                 "y_short_expected_mae_bps": short_mae,
-                "y_rising_channel_support_touch": 1.0 if support_dom else 0.0,
-                "y_falling_channel_resistance_touch": 0.0 if support_dom else 1.0,
+                # Touch masks fire on a strict subset of rows so the audit's
+                # target-liveness gate sees genuine variation; held outcomes
+                # vary within the masked rows.
+                "y_line_support_touch_held": (
+                    1.0 if (support_dom and i % 2 == 0) else 0.0
+                ),
+                "y_line_support_touch_mask": 1.0 if support_dom else 0.0,
+                "y_line_resistance_touch_held": (
+                    1.0 if ((not support_dom) and i % 2 == 0) else 0.0
+                ),
+                "y_line_resistance_touch_mask": 0.0 if support_dom else 1.0,
                 "y_support_retest_continuation": 1.0 if support_dom else 0.0,
                 "y_resistance_retest_continuation": 0.0 if support_dom else 1.0,
                 "y_countertrend_short_trap": 1.0 if support_dom else 0.0,

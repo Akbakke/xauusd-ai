@@ -142,7 +142,7 @@ def exact_specialist_indices() -> dict[str, list[int]]:
     for specialist, count in counts.items():
         result[specialist] = list(range(start, start + count))
         start += count
-    assert start == 513
+    assert start == MODEL_NATIVE_SIGNAL_DIM
     return result
 
 

@@ -431,8 +431,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "dataset_dir": str(dataset_dir),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-            "signal_field_count": 513,
-            "selected_feature_count": 479,
+            "signal_field_count": MODEL_NATIVE_SIGNAL_DIM,
+            "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "required_training_specialists": list(REQUIRED_SPECIALISTS),
             "specialist_model_contract_valid": True,
             "signal_routing_all_mapped": True,
@@ -445,7 +445,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
             "failures": [],
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-            "expected_signal_dim": 513,
+            "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "required_training_specialists": list(REQUIRED_SPECIALISTS),
             "future_train_contract": {
                 "profile": "smoke",
@@ -459,7 +459,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         embedded = {
             "schema_version": "entry_model_native_seq513_smoke_dataset_v3",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-            "expected_seq_snap_width": 513,
+            "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "out_dir": str(dataset_dir),
             "splits": {
                 split: {
@@ -478,7 +478,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
                 "failures": [],
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-                "expected_seq_snap_width": 513,
+                "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
                 "smoke_manifest": embedded,
                 "manifest_sha256": canonical_json_sha256(embedded),
             },
@@ -491,8 +491,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "failures": [],
                 "smart_candidate": {
                     "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-                    "expected_signal_dim": 513,
-                    "expected_selected_feature_count": 479,
+                    "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+                    "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
                 },
             },
         )
@@ -830,7 +830,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "failures": [],
                 "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                 "sequence_length": 96,
-                "expected_signal_dim": 513,
+                "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
                 "required_specialist_groups": list(REQUIRED_SPECIALISTS),
                 "candidate_training_allowed": True,
                 "promotion_shadow_live_allowed": False,

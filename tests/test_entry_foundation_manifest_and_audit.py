@@ -735,17 +735,31 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
     ).astype(np.float32)
     merged = pd.DataFrame(data)
     source = tmp_path / "source.parquet"
-    pd.DataFrame(
+    # V29: the source must carry genuine swing pivots (a monotone ramp has
+    # none, which honestly fails the registry/swing layer warmups) plus the
+    # exact per-TF regime-class columns the regime-flip layer reads.
+    _steps = np.arange(source_periods, dtype=np.float64)
+    _close = 100.0 + np.sin(_steps / 3.0) + 0.01 * _steps
+    _open = np.concatenate([[100.0], _close[:-1]])
+    _source_frame = pd.DataFrame(
         {
             "time": source_times,
-            "open": np.linspace(1.0, 1.1, source_periods),
-            "high": np.linspace(1.01, 1.11, source_periods),
-            "low": np.linspace(0.99, 1.09, source_periods),
-            "close": np.linspace(1.005, 1.105, source_periods),
-            "mid": np.linspace(1.005, 1.105, source_periods),
+            "open": _open,
+            # high/low follow close alone (strict single-bar extremes) so the
+            # sine peaks are genuine strict swing pivots; |close step| < 0.5
+            # keeps OHLC geometry valid against open = previous close.
+            "high": _close + 0.5,
+            "low": _close - 0.5,
+            "close": _close,
+            "mid": _close,
             "atr": np.full(source_periods, 0.01),
         }
-    ).to_parquet(source)
+    )
+    for _tf_index, _tf in enumerate(("m5", "m15", "h1", "h4")):
+        _source_frame[f"{_tf}_regime_class_id_v2"] = (
+            ((_steps // (20 + 5 * _tf_index)) % 5).astype(np.float32)
+        )
+    _source_frame.to_parquet(source)
     requested = [
         name
         for _, features in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
@@ -758,6 +772,13 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
         ctx_cont_names=sorted(ctx_cont_names),
         ctx_cat_names=sorted(ctx_cat_names),
         source_parquet=source,
+        # Synthetic-execution registry params (rule 2c: proves the code runs;
+        # never production values).
+        v29_registry_layer_params={
+            "level_tol_atr": 1.0,
+            "trendline_band_atr": 0.5,
+            "trendline_seq_len": 96,
+        },
     )
 
     assert out.shape == (periods, len(requested))

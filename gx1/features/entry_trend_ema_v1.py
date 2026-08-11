@@ -212,13 +212,19 @@ def build_entry_trend_ema_layer(
     def c(name: str) -> np.ndarray:
         return _col(x, idx, name)
 
-    # Unit note (2026-08-09 upstream ATR-normalization wave): the EMA-distance /
-    # slope source fields `snap._v1_ema_diff`, `snap.ema20_slope`,
-    # `snap.pos_vs_ema200`, `ctx_cont._v1h1_ema_diff`, `ctx_cont._v1h4_ema_diff`
-    # and `ctx_cont.d1_ema_slope_20_canon_v2` are ATR-multiple units, i.e. O(1)
-    # displacements per bar.  The default tanh scale 1.0 used below is
-    # dimensionally sane for those inputs: +-1 ATR of displacement maps to
-    # +-tanh(1) ~= 0.76 before saturation.
+    # Unit note (2026-08-09 upstream normalization wave; GAP-6 comment repair
+    # 2026-08-11): `snap._v1_ema_diff`, `ctx_cont._v1h1_ema_diff`,
+    # `ctx_cont._v1h4_ema_diff` and `ctx_cont.d1_ema_slope_20_canon_v2` are
+    # ATR-multiple units (O(1) displacements), for which the default tanh
+    # scale 1.0 is dimensionally sane (+-1 ATR -> +-tanh(1) ~= 0.76).
+    # `snap.ema20_slope` and `snap.pos_vs_ema200` are emitted in BPS OF PRICE
+    # by their only producer (materialize_build_canonical_features_v1:
+    # delta / price * 1e4), NOT ATR-multiples: tanh(1.0x) saturates on
+    # routine multi-bps moves.  Whether that saturation warrants a producer
+    # normalization (own-atr14 `_v1_ema_diff` convention or a TRAIN-fitted
+    # scale — never a by-eye value) is the pre-registered GAP-6 quantile
+    # measurement gate (design doc §6.4/§7.2); the comment is repaired now,
+    # the scale is not moved without that measurement.
     m5_ema = _tanh(c("snap._v1_ema_diff"))
     m5_slope = _tanh(c("snap.ema20_slope"))
     m5_slope3 = _tanh(c("snap._v1_close_ema_slope_3"))

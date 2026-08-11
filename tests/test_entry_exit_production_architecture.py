@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 
 import pytest
+
+from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 import torch
 
 from gx1.contracts.entry_exit_production_architecture_v1 import (
@@ -21,6 +23,10 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
 )
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 
 
 def test_exact_current_production_architecture_passes() -> None:
@@ -32,17 +38,17 @@ def test_exact_current_production_architecture_passes() -> None:
     ) == expected
     assert expected["entry"]["sequence_bars"] == 96
     assert expected["shared_surface"] == {
-        "signal_dim": 513,
-        "snap_dim": 513,
+        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_dim": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont_dim": 142,
         "ctx_cat_dim": 5,
     }
     assert expected["mtf"]["per_tf_widths"] == {
-        "M5": 111,
-        "M15": 111,
-        "H1": 111,
-        "H4": 111,
-        "D1": 111,
+        "M5": MULTI_TF_FEATURE_COUNT_V4,
+        "M15": MULTI_TF_FEATURE_COUNT_V4,
+        "H1": MULTI_TF_FEATURE_COUNT_V4,
+        "H4": MULTI_TF_FEATURE_COUNT_V4,
+        "D1": MULTI_TF_FEATURE_COUNT_V4,
     }
     assert expected["exit"]["sequence_bars"] == 480
     assert expected["exit"]["max_path_bars"] == 512
@@ -56,7 +62,7 @@ def test_exact_current_production_architecture_passes() -> None:
         (("schemas", "mtf_cache"), "htf_v3_disk_cache_manifest_v3"),
         (("mtf", "cache_timeframes"), ["M5", "H1", "H4", "D1"]),
         (("entry", "mtf_route"), ["M5", "M15", "H1", "H4", "D1"]),
-        (("exit", "sequence_bars"), 479),
+        (("exit", "sequence_bars"), MODEL_NATIVE_SELECTED_FEATURE_COUNT),
         (("exit", "max_path_bars"), 511),
         (("shared_encoder",), "duplicate_exit_encoder"),
         (("local_specialists",), list(reversed(MODEL_NATIVE_TRAINING_SPECIALISTS))),
@@ -87,17 +93,17 @@ def _preallocation_model_kwargs() -> dict[str, object]:
     specialists = list(MODEL_NATIVE_TRAINING_SPECIALISTS)
     routing = {name: [index] for index, name in enumerate(specialists)}
     return {
-        "seq_input_dim": 513,
-        "snap_input_dim": 513,
+        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "dropout": 0.0,
         "ctx_cont_dim": 142,
         "ctx_cat_dim": 5,
-        "m5_seq_dim": 111,
-        "m15_seq_dim": 111,
-        "h1_seq_dim": 111,
-        "h4_seq_dim": 111,
-        "d1_seq_dim": 111,
+        "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+        "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+        "h1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+        "h4_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+        "d1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "m5_seq_len": 16,
         "m15_seq_len": 64,
         "h1_seq_len": 96,
@@ -225,8 +231,8 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
     specialists = list(MODEL_NATIVE_TRAINING_SPECIALISTS)
     specialist_indices = {name: [index] for index, name in enumerate(specialists)}
     return {
-        "seq_input_dim": 513,
-        "snap_input_dim": 513,
+        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "ctx_cont_dim": 142,
         "ctx_cat_dim": 5,
@@ -245,11 +251,11 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
             "matrix_contract": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
             "entry_route_timeframes": ["M15", "H1", "H4", "D1"],
             "exit_route_timeframes": ["M5", "M15", "H1", "H4", "D1"],
-            "m5_seq_dim": 111,
-            "m15_seq_dim": 111,
-            "h1_seq_dim": 111,
-            "h4_seq_dim": 111,
-            "d1_seq_dim": 111,
+            "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+            "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+            "h1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+            "h4_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
+            "d1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
             "m5_seq_len": 16,
             "m15_seq_len": 64,
             "h1_seq_len": 96,

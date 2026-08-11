@@ -288,8 +288,10 @@ def _rail_batch() -> dict[str, torch.Tensor]:
     batch = _base_hier_batch()
     batch.update(
         {
-            "y_rising_channel_support_touch": torch.tensor([1.0], dtype=torch.float32),
-            "y_falling_channel_resistance_touch": torch.tensor([0.0], dtype=torch.float32),
+            "y_line_support_touch_held": torch.tensor([1.0], dtype=torch.float32),
+            "y_line_support_touch_mask": torch.tensor([1.0], dtype=torch.float32),
+            "y_line_resistance_touch_held": torch.tensor([0.0], dtype=torch.float32),
+            "y_line_resistance_touch_mask": torch.tensor([0.0], dtype=torch.float32),
             "y_countertrend_short_trap": torch.tensor([1.0], dtype=torch.float32),
             "y_countertrend_long_trap": torch.tensor([0.0], dtype=torch.float32),
             "y_short_high_mae_low_mfe_early_failure": torch.tensor([1.0], dtype=torch.float32),

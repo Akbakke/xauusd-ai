@@ -10,6 +10,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -60,6 +61,12 @@ from gx1.scripts import (
 from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
+
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_constants,
+)
+
+_V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
 
 
 STAMP = "20260716T120000123456Z"
@@ -525,6 +532,7 @@ def _build_fixture(
         m5_prebuilt=source.resolve(),
         expected_source_sha256=_sha256(source),
         features=mtf_frames,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
     )
     if break_mtf:
         mtf_manifest = json.loads(

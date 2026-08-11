@@ -81,6 +81,29 @@ from gx1.models.entry_v10.direction_decision_contract import (
 LOG = logging.getLogger("v12_state_from_prebuilt")
 
 
+def _require_v29_registry_constants_from_bound_cache() -> dict:
+    """Frozen V29 registry constants from the run's bound V4 cache manifest.
+
+    In-memory V4 builds must use the exact constants of the immutable cache
+    the run binds (GX1_V10_MULTI_TF_V4_CACHE_DIR — the same env the derived
+    -context path already requires); a missing binding fails closed (no
+    default exists, rule 2a/18).
+    """
+    import os as _os
+    from pathlib import Path as _Path
+    from gx1.features.htf_features import load_v29_registry_constants_manifest
+
+    raw = _os.environ.get("GX1_V10_MULTI_TF_V4_CACHE_DIR", "").strip()
+    if not raw:
+        raise RuntimeError(
+            "GX1_V10_MULTI_TF_V4_CACHE_DIR_REQUIRED: in-memory V4 builds "
+            "need the bound cache's frozen v29_registry_constants"
+        )
+    return load_v29_registry_constants_manifest(
+        _Path(raw).expanduser() / "manifest.json"
+    )
+
+
 # ── Top-level subprocess workers for parallel augment (2026-06-01) ──
 # These run in subprocesses spawned by _async_full_refresh so V2 mtf and
 # GROUP-A — the two heavy augmenters — execute in true parallel rather than
@@ -2085,7 +2108,10 @@ class PrebuiltStateLoader:
         # from the live cv3 makes the group-A/dip-struct ctx ALWAYS current and removes the
         # last live disk-cache dependency. Same V4 builder + same bars as the disk cache, and
         # the features are causal/asof → bit-identical at every decision ts (train==serve).
-        mtf_in_mem = build_multi_tf_per_bar_features_v4(target)
+        mtf_in_mem = build_multi_tf_per_bar_features_v4(
+            target,
+            v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+        )
         # The helper mutates in place via the returned DataFrame; rebind to be safe.
         target = attach_group_a_dip_struct_ctx_columns(
             target, journal_label="live_costfix", multi_tf=mtf_in_mem,
@@ -2193,7 +2219,10 @@ class PrebuiltStateLoader:
         LOG.info(f"augmenting canonical_v3 with V4-backed scalar features "
                  f"(31 cols expected) — {len(m5_df):,} M5 rows...")
         cv3_ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
-        multi_tf = build_multi_tf_per_bar_features_v4(m5_df)
+        multi_tf = build_multi_tf_per_bar_features_v4(
+            m5_df,
+            v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+        )
         projected = project_multi_tf_v4_scalars(
             multi_tf,
             cv3_ts_ns,
@@ -2416,9 +2445,12 @@ class PrebuiltStateLoader:
             raise RuntimeError(f"canonical_v3 missing exact OHLCV cols: {missing}")
         m5_df = source[ohlc_cols].copy()
         m5_df["volume"] = source["volume"].astype(np.float64)
-        LOG.info(f"building multi-TF V4 features (M5/M15/H1/H4/D1, 111 dim each) "
+        LOG.info(f"building multi-TF V4 features (M5/M15/H1/H4/D1, {MULTI_TF_FEATURE_COUNT_V4} dim each) "
                  f"from {len(m5_df):,} M5 bars...")
-        feats_dict = build_multi_tf_per_bar_features_v4(m5_df)
+        feats_dict = build_multi_tf_per_bar_features_v4(
+            m5_df,
+            v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+        )
         feat_count = MULTI_TF_FEATURE_COUNT_V4
         for tf, feats in feats_dict.items():
             if len(feats) > 0:

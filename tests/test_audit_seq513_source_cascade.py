@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+
 from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_xau_source_descriptor_v1,
 )
@@ -31,6 +32,12 @@ from tests.test_oanda_backfill_vedtak_gate import (
     _FakeOandaClient,
     materialize_native_xau_test_bundle,
 )
+
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_constants,
+)
+
+_V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
 
 
 RUN_ID = "XAU_SEQ513_SOURCE_AUDIT_PYTEST_V1"
@@ -184,6 +191,7 @@ def _fixture(
         m5_prebuilt=cv3.resolve(),
         expected_source_sha256=_sha(cv3),
         features=mtf_frames,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
     )
     full = root / "FULL_PLUS_CTX_v3src.parquet"
     numeric_row = np.arange(1, row_count + 1, dtype=np.float64)

@@ -25,9 +25,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
+    LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
     PRICE_DERIVED_FEATURE_NAMES,
+    REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+    SWING_EVENT_LAYER_FEATURE_NAMES,
+    TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
 )
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
@@ -103,7 +108,11 @@ MODEL_NATIVE_TRAINING_SPECIALISTS = tuple(SPECIALIST_GROUPS)
 from gx1.features.htf_features import (  # noqa: E402
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_V4_CANDLESTICK_FEATURES,
+    MULTI_TF_V4_LEVEL_REGISTRY_FEATURES,
+    MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
     MULTI_TF_V4_SWING_FEATURES,
+    MULTI_TF_V4_TREND_EVENT_FEATURES,
+    MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES,
 )
 from gx1.features.smc_v1 import (  # noqa: E402
     SMC_MTF_FEATURE_NAMES_V1,
@@ -121,7 +130,11 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
         ),
         (
             "smc_liquidity_encoder",
-            tuple(SMC_MTF_FEATURE_NAMES_V1),
+            tuple(SMC_MTF_FEATURE_NAMES_V1)
+            # V29 Phase A: the per-TF pivot-cluster level-registry block
+            # (design doc §1.4 routing: level identity/touch/break/retest is
+            # liquidity-level evidence).
+            + tuple(MULTI_TF_V4_LEVEL_REGISTRY_FEATURES),
         ),
         (
             "trend_ema_encoder",
@@ -136,7 +149,10 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "ema_stack_aligned_v2",
                 "adx_centered",
                 "trend_age_bars_norm",
-            ),
+            )
+            # V29 Phase A: EMA50/200 spread/state/cross events + price-vs-EMA
+            # cross events and ages (trend_ema GAP-1/2/3).
+            + tuple(MULTI_TF_V4_TREND_EVENT_FEATURES),
         ),
         (
             "vol_compression_encoder",
@@ -152,7 +168,10 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "mom_5_atr",
                 "mom_20_atr",
                 "bb_position",
-            ),
+            )
+            # V29 Phase A: RSI threshold/divergence and mom20 sign-flip
+            # events (momentum_flow G1/G2).
+            + tuple(MULTI_TF_V4_MOMENTUM_EVENT_FEATURES),
         ),
         (
             "session_regime_encoder",
@@ -166,7 +185,10 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
         ),
         (
             "chart_geometry_encoder",
-            tuple(SMC_MTF_GEOMETRY_FEATURE_NAMES_V1),
+            tuple(SMC_MTF_GEOMETRY_FEATURE_NAMES_V1)
+            # V29 Phase A: the per-TF trendline/channel registry block
+            # (design doc §2: sloped-line evidence is chart geometry).
+            + tuple(MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES),
         ),
         (
             "price_action_candle_encoder",
@@ -641,6 +663,99 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 ),
             },
         ),
+        # ── V29 Phase A stage 2 event families (counts DERIVED from the
+        # declared owner tuples; docs/V29_EVENT_SURFACE_DESIGN_20260811.md) ──
+        (
+            "level_registry_m5_layer",
+            {
+                "expected_feature_count": len(
+                    LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "smc_liquidity_encoder": len(
+                        LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES
+                    ),
+                },
+                "owned_specialists": ("smc_liquidity_encoder",),
+                "purpose": (
+                    "Persistent pivot-cluster level identity: nearest "
+                    "above/below slots, touch/reaction memory, break and "
+                    "signed retest events, round-number grid distances."
+                ),
+            },
+        ),
+        (
+            "trendline_registry_m5_layer",
+            {
+                "expected_feature_count": len(
+                    TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "chart_geometry_encoder": len(
+                        TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES
+                    ),
+                },
+                "owned_specialists": ("chart_geometry_encoder",),
+                "purpose": (
+                    "Real two-point-anchored trendline/channel registry on the "
+                    "entry M5 clock: slot projections, touch/break/retest "
+                    "events and channel/triangle state."
+                ),
+            },
+        ),
+        (
+            "swing_structure_event_layer",
+            {
+                "expected_feature_count": len(SWING_EVENT_LAYER_FEATURE_NAMES),
+                "expected_specialist_counts": {
+                    "structure_swing_encoder": len(
+                        SWING_EVENT_LAYER_FEATURE_NAMES
+                    ),
+                },
+                "owned_specialists": ("structure_swing_encoder",),
+                "purpose": (
+                    "Confirmed-swing break events with displacement, break "
+                    "ages and pivot-sequence deltas/run counts (G1/G2/G4)."
+                ),
+            },
+        ),
+        (
+            "momentum_event_m5_layer",
+            {
+                "expected_feature_count": len(
+                    MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "momentum_flow_encoder": len(
+                        MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES
+                    ),
+                },
+                "owned_specialists": ("momentum_flow_encoder",),
+                "purpose": (
+                    "RSI threshold crosses, extreme age, mom20 sign flips and "
+                    "confirmed-pivot RSI divergence events on the entry M5 "
+                    "clock (G1/G2)."
+                ),
+            },
+        ),
+        (
+            "regime_flip_event_layer",
+            {
+                "expected_feature_count": len(
+                    REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "session_regime_encoder": len(
+                        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES
+                    ),
+                },
+                "owned_specialists": ("session_regime_encoder",),
+                "purpose": (
+                    "Per-TF regime-class flip flags and own-TF-bar flip ages "
+                    "for m5/m15/h1/h4 (session_regime G2; D1 exists as F8/F9)."
+                ),
+            },
+        ),
     ]
 )
 
@@ -763,6 +878,10 @@ def classify_entry_specialist_feature(name: str) -> str:
             "flag_pullback",
             "ema_cross",
             "line_pattern",
+            # V29 trendline/channel registry emissions (design doc §2): the
+            # M5/513 lane carries them as chart.geomline_*/chart.geomchan_*.
+            "geomline_",
+            "geomchan_",
         ),
     ):
         return "chart_geometry_encoder"
@@ -856,6 +975,10 @@ def classify_entry_specialist_feature(name: str) -> str:
             "hh_x_",
             "hl_x_",
             "ll_x_",
+            # V29 structure_swing G4 run counts (swing_structure_v1
+            # SWING_V29_ADDITION_NAMES_V1): pivot-sequence structure evidence.
+            "consecutive_higher_lows",
+            "consecutive_lower_highs",
         ),
     ):
         return "structure_swing_encoder"
@@ -917,6 +1040,10 @@ def classify_entry_specialist_feature(name: str) -> str:
             "rsi",
             "pct_change",
             "dist_roc",
+            # V29 momentum_flow G1 divergence events (bear/bull divergence and
+            # age; the session-owned regime_divergence_flag_v3 is routed by
+            # its explicit override/`regime` token before this rule).
+            "divergence",
         ),
     ):
         return "momentum_flow_encoder"

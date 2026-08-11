@@ -50,6 +50,9 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
 )
 from gx1.execution.v12_smart_entry_live import _direction_ssot_from_logits
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+)
 
 
 def _signal_contract() -> dict:
@@ -261,9 +264,9 @@ def test_specialist_snapshot_requires_all_eight_model_native_specialists() -> No
     snapshot = _specialist_contract_snapshot(
         _bundle_metadata(), MODEL_NATIVE_CONTRACT_MODE
     )
-    assert snapshot["expected_signal_dim"] == 513
-    assert snapshot["bundle_seq_input_dim"] == 513
-    assert snapshot["bundle_snap_input_dim"] == 513
+    assert snapshot["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
+    assert snapshot["bundle_seq_input_dim"] == MODEL_NATIVE_SIGNAL_DIM
+    assert snapshot["bundle_snap_input_dim"] == MODEL_NATIVE_SIGNAL_DIM
     assert snapshot["required_specialists_exact"] is True
     assert snapshot["chart_geometry_present"] is True
     assert snapshot["price_action_candle_present"] is True
@@ -416,7 +419,7 @@ def test_dataset_contract_requires_exact_34_plus_479_for_one_stage_split(
 ) -> None:
     contract = _signal_contract()
     assert contract["base_signal_dim"] == 34
-    assert contract["selected_feature_count"] == 479
+    assert contract["selected_feature_count"] == MODEL_NATIVE_SELECTED_FEATURE_COUNT
     bindings: dict[str, dict[str, str]] = {}
     for split in ("val",):
         parquet = tmp_path / f"native_{split}.parquet"
@@ -444,7 +447,7 @@ def test_dataset_contract_requires_exact_34_plus_479_for_one_stage_split(
         bindings,
     )
     assert observed["contract"] == contract
-    assert {row["seq_input_dim"] for row in observed["splits"].values()} == {513}
+    assert {row["seq_input_dim"] for row in observed["splits"].values()} == {MODEL_NATIVE_SIGNAL_DIM}
 
     broken = json.loads(json.dumps(contract))
     broken["bridge_dim"] = 7

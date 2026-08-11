@@ -306,7 +306,7 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
 
     assert normalized["contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
     assert normalized["sequence_length"] == 96
-    assert normalized["signal_dim"] == 513
+    assert normalized["signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
     assert normalized["model_native_training_objective_contract"][
         "meta_lock_exact"
     ] is True

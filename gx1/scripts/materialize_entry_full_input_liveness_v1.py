@@ -548,7 +548,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         semantic_scan[split] = semantics
 
     # The cache loader already verifies every array byte, recomputes the exact
-    # 5×111 liveness contract, and rejects false manifest claims. Reuse that
+    # 5-per-TF (MULTI_TF_FEATURE_COUNT_V4-wide) liveness contract, and rejects false manifest claims. Reuse that
     # single owner instead of scanning and defining the same proof again here.
     load_multi_tf_v4_cache(mtf_cache_dir)
     mtf_manifest_path = (mtf_cache_dir / "manifest.json").resolve()

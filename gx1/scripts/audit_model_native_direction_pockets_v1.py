@@ -769,8 +769,10 @@ def main() -> int:
         "path_quality_bps",
         "y_long_path_utility_bps",
         "y_short_path_utility_bps",
-        "y_rising_channel_support_touch",
-        "y_falling_channel_resistance_touch",
+        "y_line_support_touch_held",
+        "y_line_support_touch_mask",
+        "y_line_resistance_touch_held",
+        "y_line_resistance_touch_mask",
         "y_support_retest_continuation",
         "y_resistance_retest_continuation",
         "y_countertrend_short_trap",
@@ -953,8 +955,12 @@ def main() -> int:
             )
         return values == 1.0
 
-    rising_channel_support = label_mask("y_rising_channel_support_touch")
-    falling_channel_resistance = label_mask("y_falling_channel_resistance_touch")
+    # V29 stage 2: the same-bar tautology labels were replaced by
+    # forward-realized, touch-event-masked registry line-hold labels.  The
+    # pocket masks select the DEFINED (touch-event) rows via the emitted
+    # masks; the held outcome remains available per row.
+    rising_channel_support = label_mask("y_line_support_touch_mask")
+    falling_channel_resistance = label_mask("y_line_resistance_touch_mask")
 
     support_retest_continuation = label_mask("y_support_retest_continuation")
     resistance_retest_continuation = label_mask("y_resistance_retest_continuation")
@@ -1079,8 +1085,10 @@ def main() -> int:
                 "chart.geometry_channel_position_low_to_high",
             ],
             "future_outcome_pocket_labels": [
-                "y_rising_channel_support_touch",
-                "y_falling_channel_resistance_touch",
+                "y_line_support_touch_held",
+                "y_line_support_touch_mask",
+                "y_line_resistance_touch_held",
+                "y_line_resistance_touch_mask",
                 "y_support_retest_continuation",
                 "y_resistance_retest_continuation",
                 "y_countertrend_short_trap",

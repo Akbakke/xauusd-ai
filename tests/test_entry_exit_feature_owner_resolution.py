@@ -207,11 +207,15 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
         "--pair-generation-id", "b" * 64,
     ]
     for root_flag in ("--native-m1-root", "--native-m5-root"):
-        monkeypatch.setattr(
-            sys,
-            "argv",
-            ["producer", root_flag, "/tmp/native", *common_enriched],
-        )
+        route_args = ["producer", root_flag, "/tmp/native", *common_enriched]
+        if root_flag == "--native-m5-root":
+            # The M5 route TRAIN-fits the V29 registry constants; both are
+            # explicit recipe inputs with no default.
+            route_args += [
+                "--level-tol-quantile-q", "0.25",
+                "--registry-fit-train-end", "2026-01-05T00:00:00Z",
+            ]
+        monkeypatch.setattr(sys, "argv", route_args)
         enriched_producer.main()
 
     common_feature = [
@@ -220,6 +224,7 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
         "--output-parquet", "/tmp/surface.parquet",
         "--dataset-run-id", "run",
         "--pair-generation-id", "b" * 64,
+        "--v29-registry-constants-json", "/tmp/v29_constants.json",
     ]
     monkeypatch.setattr(
         sys,

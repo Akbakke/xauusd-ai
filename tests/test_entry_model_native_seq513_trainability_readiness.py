@@ -284,7 +284,7 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
     report = gate.run(_args(tmp_path, wired=True))
 
     assert report["decision"] == gate.READY_DECISION
-    assert report["expected_signal_dim"] == 513
+    assert report["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
     assert report["source_metadata_contract"]["declared_ctx_contracts_match_expected"] is True
     assert report["source_metadata_contract"]["no_stale_ctx6cat6"] is True
     assert report["fresh_source_identity_contract"]["future_train_out_under_source_root"] is True

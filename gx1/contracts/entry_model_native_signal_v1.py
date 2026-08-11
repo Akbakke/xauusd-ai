@@ -37,7 +37,9 @@ from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 from gx1.features.swing_structure_v1 import SWING_FEATURE_NAMES_V1
 
 
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v7"
+# v8: V29 Phase-A stage-2 event families extended the mandatory registry
+# (level/trendline registries, swing/momentum/regime events); dims derive.
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v8"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v4"
 )
@@ -277,12 +279,20 @@ MODEL_NATIVE_CTX_CAT_MIN_MAX = {
     for name, domain in MODEL_NATIVE_CTX_CAT_DOMAINS.items()
 }
 
-MODEL_NATIVE_BASE_SIGNAL_DIM = 34
-MODEL_NATIVE_SELECTED_FEATURE_COUNT = 479
-MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT = (
-    MODEL_NATIVE_SELECTED_FEATURE_COUNT - MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+# Dimensions are DERIVED from the declared field owners (rule 13).  The
+# TRAIN-ranked remainder is held constant at 133 and re-ranked TRAIN-only on
+# the V29 substrate (design doc §5.1); the mandatory causal count grew with
+# the V29 Phase-A stage-2 event families, so the selected and total signal
+# dims follow from the registry, never from a restated literal.
+MODEL_NATIVE_BASE_SIGNAL_DIM = len(MODEL_NATIVE_BASE_FIELDS)
+MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT = 133
+MODEL_NATIVE_SELECTED_FEATURE_COUNT = (
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+    + MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
 )
-MODEL_NATIVE_SIGNAL_DIM = 513
+MODEL_NATIVE_SIGNAL_DIM = (
+    MODEL_NATIVE_BASE_SIGNAL_DIM + MODEL_NATIVE_SELECTED_FEATURE_COUNT
+)
 MODEL_NATIVE_SEQ_LEN = 96
 MODEL_NATIVE_CTX_CONT_DIM = 142
 MODEL_NATIVE_CTX_CAT_DIM = 5
@@ -362,7 +372,7 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
 
 
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v5"
+    "entry_model_native_mandatory_full_stack_v6"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

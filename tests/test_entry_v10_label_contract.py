@@ -40,7 +40,11 @@ def test_hierarchical_direction_label_contract_forbids_feature_rewrites() -> Non
     assert targets["conditional_side_head"] == "long_vs_short_given_trade"
     assert targets["runtime_rule_free"] is True
     assert "y_countertrend_short_trap" in targets["target_columns"]
-    assert "y_rising_channel_support_touch" in targets["target_columns"]
+    assert "y_line_support_touch_held" in targets["target_columns"]
+    assert "y_line_support_touch_mask" in targets["target_columns"]
+    assert "y_line_resistance_touch_held" in targets["target_columns"]
+    assert "y_line_resistance_touch_mask" in targets["target_columns"]
+    assert "y_rising_channel_support_touch" not in targets["target_columns"]
     assert targets["core_target_source"] == "future_path_and_utility_outcomes_only"
     assert targets["feature_derived_core_rewrites_allowed"] is False
     assert targets["utility_order_forcing_allowed"] is False

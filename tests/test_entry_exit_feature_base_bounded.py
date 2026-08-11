@@ -108,6 +108,12 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
     columns["minutes_to_next_session_boundary"] = (
         np.float32(session_length) - minutes_since_open
     ).astype(np.float32)
+    for _tf_index, _tf in enumerate(("m5", "m15", "h1", "h4", "d1")):
+        columns[f"{_tf}_regime_class_id_v2"] = (
+            ((index.astype(np.int64) // (40 + 10 * _tf_index)) % 5).astype(
+                np.float32
+            )
+        )
     columns["atr_bps"] = np.full(rows, 10.0, dtype=np.float32)
     columns["spread_bps"] = np.full(rows, 1.0, dtype=np.float32)
     for name in MODEL_NATIVE_CTX_CAT_FIELDS:
@@ -121,6 +127,15 @@ def _synthetic_enriched_sample_with_price_warmup(
     source_frame = _synthetic_enriched_frame(rows + 202)
     sample_frame = source_frame.iloc[202:].reset_index(drop=True).copy()
     return sample_frame, source_frame
+
+
+# Synthetic-execution registry params (rule 2c: prove the code runs; never
+# production values).
+_V29_TEST_LAYER_PARAMS = {
+    "level_tol_atr": 1.0,
+    "trendline_band_atr": 0.5,
+    "trendline_seq_len": 96,
+}
 
 
 def _build_bounded_in_batches(
@@ -161,6 +176,7 @@ def _build_bounded_in_batches(
             price_names=price_names,
             candle_layer=candle[prefix:stop],
             candle_names=candle_names,
+            v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
             emit_offset=start - prefix,
             support_memory_state=support_state,
             foundation_event_age_state=foundation_event_age_state,
@@ -233,6 +249,7 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
             source_parquet=source,
             source_contract_label="causal_enriched_m1_frame_v1",
             base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
+            v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
         )
     )
     observed, observed_names, observed_meta = _build_bounded_in_batches(
@@ -294,6 +311,7 @@ def test_foundation_event_ages_match_full_history_across_batch_boundary(
             source_parquet=source,
             source_contract_label="causal_enriched_m1_frame_v1",
             base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
+            v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
         )
     )
     observed, observed_names, observed_meta = _build_bounded_in_batches(
@@ -393,7 +411,7 @@ def test_staged_surface_validation_preserves_exact_513_142_5_schema(
     )
 
     schema = pq.read_schema(surface)
-    assert schema.field("signal").type.list_size == 513
+    assert schema.field("signal").type.list_size == MODEL_NATIVE_SIGNAL_DIM
     assert schema.field("ctx_cont").type.list_size == 142
     assert schema.field("ctx_cat").type.list_size == 5
 

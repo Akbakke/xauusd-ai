@@ -43,7 +43,10 @@ from gx1.features.htf_features import (
 ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION = (
     "gx1_entry_exit_production_architecture_v1"
 )
-PRODUCTION_MTF_PER_TF_WIDTH = 111
+# Derived from the one ordered per-TF surface owner (rule 13: a repeated
+# literal is not ownership proof).  V29 Phase A stage 2: pre-V29 111 + 21
+# event fields + 11 level-registry fields + 30 trendline-registry fields.
+PRODUCTION_MTF_PER_TF_WIDTH = MULTI_TF_FEATURE_COUNT_V4
 PRODUCTION_EXIT_SEQUENCE_BARS = 480
 PRODUCTION_EXIT_MAX_PATH_BARS = 512
 PRODUCTION_MTF_CACHE_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
@@ -74,16 +77,19 @@ def entry_exit_production_architecture_contract() -> dict[str, Any]:
     return {
         "schema_version": ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION,
         "schemas": {
-            "signal": "entry_model_native_signal_v7",
+            "signal": "entry_model_native_signal_v8",
             "input_normalization": "entry_model_native_input_normalization_v2",
-            "mtf_cache": "htf_v4_disk_cache_manifest_v4",
+            "mtf_cache": HTF_V4_CACHE_SCHEMA_VERSION,
             "mtf_matrix": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
         },
         "shared_surface": {
-            "signal_dim": 513,
-            "snap_dim": 513,
-            "ctx_cont_dim": 142,
-            "ctx_cat_dim": 5,
+            # Derived from the signal/context contract owners (rule 13; the
+            # V29 stage-2 wiring grew the mandatory causal surface, so a
+            # repeated literal here would be a second, driftable declaration).
+            "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "snap_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+            "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         },
         "shared_encoder": "entry_v10_ctx_hybrid_transformer_shared_specialists_v2",
         "local_specialists": list(PRODUCTION_SPECIALISTS),

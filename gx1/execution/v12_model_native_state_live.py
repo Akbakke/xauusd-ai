@@ -896,7 +896,14 @@ def build_multi_tf_from_cv3(
         raise RuntimeError(
             "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for MTF build"
         )
-    built = build_multi_tf_per_bar_features_v4(m5)
+    from gx1.execution.v12_state_from_prebuilt import (
+        _require_v29_registry_constants_from_bound_cache,
+    )
+
+    built = build_multi_tf_per_bar_features_v4(
+        m5,
+        v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+    )
     for timeframe, frame in built.items():
         if (
             frame.attrs.get("htf_feature_contract") != matrix_contract

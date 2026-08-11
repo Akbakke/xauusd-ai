@@ -2,14 +2,24 @@
 """Build and atomically publish the sole immutable V4 multi-timeframe cache.
 
 The source must be one exact absolute native-M5 enriched parquet. The fixed
-M5/M15/H1/H4/D1 cache contains 111 ordered float32 fields per timeframe, exact
-int64 timestamps, byte hashes, full-input liveness evidence, and one canonical
-identity. There is no contract switch and no historical publisher.
+M5/M15/H1/H4/D1 cache contains ``MULTI_TF_FEATURE_COUNT_V4`` ordered float32
+fields per timeframe (derived from the declared name tuples), exact int64
+timestamps, byte hashes, full-input liveness evidence, the immutable
+TRAIN-fitted V29 registry constants, and one canonical identity. There is no
+contract switch and no historical publisher.
+
+The V29 registry constants (level cluster tolerance / trendline band per TF)
+are fitted here, once, on the declared TRAIN window (rule 18) with the
+explicit recipe input ``--level-tol-quantile-q`` (the design doc declares no
+default for the quantile; see ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q=REQUIRED in
+the recipe owner) and frozen with full provenance in the cache manifest.
 
 Usage:
     python -m gx1.scripts.prebuild_multi_tf_cache_v4 \
         --m5-prebuilt /absolute/xauusd_m5_enriched.parquet \
         --expected-source-sha256 <exact-lowercase-sha256> \
+        --level-tol-quantile-q <q in (0,1), explicit recipe input> \
+        --registry-fit-train-end <UTC timestamp of the declared TRAIN end> \
         --out-dir /absolute/MULTI_TF_V4_CACHE
 """
 from __future__ import annotations
@@ -106,6 +116,7 @@ def publish_multi_tf_v4_cache(
     m5_prebuilt: Path,
     expected_source_sha256: str,
     features: dict,
+    v29_registry_constants: dict,
 ) -> Path:
     from gx1.features.htf_features import (
         HTF_V4_CACHE_BUILDER_VERSION,
@@ -119,7 +130,12 @@ def publish_multi_tf_v4_cache(
         build_multi_tf_v4_liveness_contract,
         compute_htf_v4_cache_identity,
         require_multi_tf_v4_frames,
+        require_v29_registry_constants,
         validate_causal_feature_matrix,
+    )
+
+    v29_registry_constants = require_v29_registry_constants(
+        v29_registry_constants
     )
 
     SCHEMA_VERSION = HTF_V4_CACHE_SCHEMA_VERSION
@@ -195,6 +211,7 @@ def publish_multi_tf_v4_cache(
             "builder_version": BUILDER_VERSION,
             "m5_prebuilt_source": str(source),
             "m5_prebuilt_source_sha256": expected_source_sha256,
+            "v29_registry_constants": v29_registry_constants,
             "tfs": {},
         }
         for tf in MULTI_TF_RESAMPLE_RULES:
@@ -325,11 +342,37 @@ def main() -> int:
         required=True,
         help="New immutable V4 cache directory",
     )
+    parser.add_argument(
+        "--level-tol-quantile-q",
+        type=float,
+        required=True,
+        help=(
+            "Explicit recipe input: quantile q for the level-registry "
+            "cluster-tolerance TRAIN fit (design doc §8 item 4 declares no "
+            "default; recipe key ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q)"
+        ),
+    )
+    parser.add_argument(
+        "--registry-fit-train-end",
+        required=True,
+        help=(
+            "Declared TRAIN window end (UTC timestamp); the V29 registry "
+            "constants are fitted once on source rows at or before this "
+            "boundary and frozen in the cache manifest (rule 18)"
+        ),
+    )
     args = parser.parse_args()
 
+    from gx1.contracts.entry_exit_production_architecture_v1 import (
+        PRODUCTION_MTF_PER_TF_WINDOW_BARS,
+    )
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_SEQ_LEN,
+    )
     from gx1.features.htf_features import (
         MULTI_TF_FEATURE_COUNT_V4,
         build_multi_tf_per_bar_features_v4,
+        fit_v29_registry_constants_from_m5,
     )
     import pyarrow.parquet as pq
 
@@ -374,12 +417,33 @@ def main() -> int:
         f"[CACHE_V4] source={source} rows={len(m5):,} "
         f"fields={MULTI_TF_FEATURE_COUNT_V4} out={out_dir}"
     )
-    features = build_multi_tf_per_bar_features_v4(m5)
+    # TRAIN fit of the V29 registry constants (once, declared window; the
+    # per-TF candidate windows are the production per-TF window bars and the
+    # entry-M5 lane uses the Entry model sequence length — named contract
+    # constants, not new numbers).
+    registry_constants = fit_v29_registry_constants_from_m5(
+        m5,
+        level_tol_quantile_q=args.level_tol_quantile_q,
+        declared_train_window_end=args.registry_fit_train_end,
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
+        entry_m5_seq_len=MODEL_NATIVE_SEQ_LEN,
+    )
+    print(
+        "[CACHE_V4] v29 registry constants fitted: "
+        f"level_tol_atr={registry_constants['level_tol_atr']} "
+        f"trendline_band_atr={registry_constants['trendline_band_atr']} "
+        f"entry_m5={registry_constants['entry_m5']}"
+    )
+    features = build_multi_tf_per_bar_features_v4(
+        m5,
+        v29_registry_constants=registry_constants,
+    )
     manifest_path = publish_multi_tf_v4_cache(
         out_dir=out_dir,
         m5_prebuilt=source,
         expected_source_sha256=expected_source_sha256,
         features=features,
+        v29_registry_constants=registry_constants,
     )
     for timeframe, frame in features.items():
         print(

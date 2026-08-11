@@ -45,6 +45,9 @@ from tests.model_native_offline_rl_support import (
     offline_rl_prediction_row,
     runtime_head_prediction_columns,
 )
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 
 
 def _sha(path: Path) -> str:
@@ -212,8 +215,8 @@ def _write_prediction_event(
             "manifest_sha256": _sha(manifest),
             "parquet_path": str(parquet.resolve()),
             "parquet_sha256": _sha(parquet),
-            "seq_input_dim": 513,
-            "snap_input_dim": 513,
+            "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
             "ordered_fields_sha256": "f" * 64,
         }
     report = {

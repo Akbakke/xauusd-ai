@@ -12,6 +12,7 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -263,7 +264,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "failures": [],
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "signal_field_count": MODEL_NATIVE_SIGNAL_DIM,
-            "selected_feature_count": 479,
+            "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "required_training_specialists": list(readiness.REQUIRED_SPECIALISTS),
             "specialist_model_contract": _model_contract(),
             "specialist_model_contract_valid": True,
@@ -395,7 +396,7 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert not any(report["side_effects_started"].values())
     assert report["full_input_liveness_validation"]["ok"] is True
     assert report["full_input_liveness_validation"]["field_counts"] == {
-        "signal": 513,
+        "signal": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont": 142,
         "ctx_cat": 5,
     }
@@ -530,7 +531,7 @@ def test_model_native_seq513_smoke_readiness_fails_closed_on_dirty_git_and_wrong
     specialist_path = Path(args.smart_specialist_audit_json)
     specialist = json.loads(specialist_path.read_text(encoding="utf-8"))
     specialist["contract_mode"] = "foundation_seq146"
-    specialist["signal_field_count"] = 519
+    specialist["signal_field_count"] = MODEL_NATIVE_SIGNAL_DIM + 6
     _write_json(specialist_path, specialist)
     monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [" M gx1/example.py"])
 

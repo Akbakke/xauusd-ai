@@ -90,8 +90,12 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    must never remove its underlying market evidence. The registered
    causal-layer outputs are mandatory; only the remaining specialist fields may
    be selected, by deterministic TRAIN-only ranking. The active composition is
-   34 base + 346 mandatory causal + 133 TRAIN-ranked over 11 mandatory
-   families. Removing a hand-written vote is allowed and required — the
+   34 base + 425 mandatory causal + 133 TRAIN-ranked over 16 mandatory
+   families (V29 event surface, 2026-08-11: level/trendline registries plus
+   swing/momentum/regime event families joined the mandatory causal set; the
+   authoritative counts derive from the owner tuples, per
+   docs/V29_EVENT_SURFACE_DESIGN_20260811.md). Removing a hand-written vote is
+   allowed and required — the
    `mtf_confluence` layer was removed on 2026-08-05 because it emitted derived
    confluence/abstain/direction-bias votes — but only while every field it
    consumed remains a model input, so the model learns the fusion instead of

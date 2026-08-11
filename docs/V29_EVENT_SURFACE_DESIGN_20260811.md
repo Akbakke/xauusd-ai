@@ -287,6 +287,34 @@ Per-family additions (from §1–§3; per-TF numbers are per timeframe):
 **513 → 601 (Phase A) → 684 (Phase B)** — mandatory causal 346 → 434 → 517.
 **111 → 181 (Phase A) → 208 (Phase B)** per TF.
 
+> **STAGE-2 CORRECTION (2026-08-11, wiring wave — derived reality):**
+> the counts above were pre-implementation arithmetic; the stage-1 owners and
+> the stage-2 wiring bind the following exact derived counts, and the code
+> tuples — not this table — are the authority (rule 13):
+>
+> 1. **momentum events are 10, not 9** (accepted): the built G1/G2 block is
+>    4 RSI threshold crosses + `rsi_extreme_age_norm` + 2 mom20 sign flips +
+>    2 divergence events + `divergence_age_norm`
+>    (`MULTI_TF_V4_MOMENTUM_EVENT_FEATURES`).
+> 2. **Wired by stage 2** (operator decision: block E KEPT):
+>    per-TF surface `MULTI_TF_FEATURE_COUNT_V4` **111 → 173**
+>    (= 111 + 11 trend events + 10 momentum events + 11 `mtf_level_*` +
+>    30 `geomline_*`/`geomchan_*`); 513 lane
+>    `MODEL_NATIVE_SIGNAL_DIM` **513 → 592** with mandatory causal
+>    **346 → 425** over **11 → 16** families (= +22 `level_*` + 30
+>    `chart.geomline_*`/`chart.geomchan_*` + 9 swing events + 10 momentum
+>    events + 8 regime flips); ranked remainder held at 133.
+> 3. **Declared by Phase A but NOT yet wired** (remaining Phase-A deltas
+>    toward the 601/181 targets, own follow-up wiring): structure_swing
+>    per-TF additions (`MULTI_TF_V4_SWING_FEATURES` 5→17, +9/TF), trend_ema
+>    GAP-2/3 M5-local fields (+7 M5), momentum G3 raw-RSI ctx scalars
+>    (+3 ctx).  With momentum 9→10 accepted, the full-Phase-A targets
+>    restate as 513→602 and 111→182.
+> 4. The two aux tautologies are replaced by the forward-realized
+>    `y_line_support_touch_held` / `y_line_resistance_touch_held` plus their
+>    touch-event masks (§5.2.8; head stays 6-dim, masked loss on the two
+>    line dims).
+
 Entry-M5 visibility block (**block E**, inside the M5 numbers above): the
 Entry route consumes M15/H1/H4/D1 windows of the 111 surface only
 (`m5_route_consumption.entry = False`); Exit consumes all five TFs. Every

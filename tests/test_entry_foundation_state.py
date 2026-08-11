@@ -19,6 +19,10 @@ from gx1.scripts.verify_entry_foundation_state_v1 import (
     run,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -56,13 +60,13 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
     preflight_contract = {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": "model_native",
-        "seq_input_dim": 513,
-        "snap_input_dim": 513,
+        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "ctx_cont_dim": 142,
         "ctx_cat_dim": 5,
         "base_signal_dim": 34,
-        "selected_feature_count": 479,
+        "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "bridge_dim": 0,
         "bridge_source": None,
         "anchor_source": None,
@@ -105,7 +109,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
             "side_effects_started": {"training": False, "replay": False},
             "failures": [],
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-            "expected_seq_snap_width": 513,
+            "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "smoke_manifest": smoke_manifest_payload,
             "manifest_sha256": _sha256_json(smoke_manifest_payload),
             "post_rebuild_readiness": post_rebuild,
@@ -134,8 +138,8 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
             "smart_candidate": {
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
                 "specialist_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-                "expected_signal_dim": 513,
-                "expected_selected_feature_count": 479,
+                "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+                "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             },
             "inputs": smoke_inputs,
             "evidence_binding_sha256": _sha256_json(smoke_inputs),
@@ -155,7 +159,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
             "side_effects_started": {"training": False, "live": False},
             "failures": [],
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-            "expected_signal_dim": 513,
+            "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "inputs": trainability_inputs,
             "evidence_binding_sha256": _sha256_json(trainability_inputs),
         },
@@ -171,7 +175,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
             "decision": "READY_FOR_CANDIDATE_TRAINING",
             "failures": [],
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-            "expected_signal_dim": 513,
+            "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "edge_test_scope": "strict",
             "promotion_shadow_live_allowed": False,
             "artifact_fingerprints": {
@@ -218,7 +222,7 @@ def test_state_proves_exact_seq513_but_never_launches(tmp_path: Path) -> None:
     report = run(_args(_evidence_events(tmp_path), tmp_path))
     assert report["decision"] == STATE_PROVEN_DECISION
     assert report["model_native_evidence_ready"] is True
-    assert report["expected_signal_dim"] == 513
+    assert report["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
     assert report["launch_allowed"] is False
     assert report["promotion_shadow_live_allowed"] is False
     assert Path(report["json_path"]).name.startswith("ENTRY_MODEL_NATIVE_SEQ513_STATE_")

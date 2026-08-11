@@ -239,10 +239,15 @@ def build_entry_chart_geometry_layer(
         return _col(x, idx, name)
 
     # Unit assumptions (owners), audited per producer after the upstream
-    # USD->ATR-multiple conversion wave:
-    # - snap._v1_ema_diff, snap.ema20_slope, snap.pos_vs_ema200: emitted in
-    #   ATR-multiples by basic_v1 (unit-conversion owner); tanh scale=1.0 is
-    #   dimensionally sane on an ATR-multiple.
+    # USD->ATR-multiple conversion wave (GAP-6 comment repair 2026-08-11):
+    # - snap._v1_ema_diff: emitted in ATR-multiples by basic_v1
+    #   (unit-conversion owner); tanh scale=1.0 is dimensionally sane.
+    # - snap.ema20_slope, snap.pos_vs_ema200: emitted in BPS OF PRICE by
+    #   materialize_build_canonical_features_v1 (delta / price * 1e4), NOT
+    #   ATR-multiples; tanh(1.0x) saturates on routine multi-bps moves.  A
+    #   producer-side normalization is decided only by the pre-registered
+    #   GAP-6 saturation measurement (design doc §6.4/§7.2) — the comment is
+    #   repaired here, the scale is not moved without that measurement.
     # - ctx_cont._v1h*_ema_diff, ctx_cont.d1_ema_slope_20_canon_v2: emitted in
     #   ATR-multiples by htf_features (unit-conversion owner); scale=1.0 sane.
     # - ctx_cont._v1h*_slope5: 5th-order difference of the same H1/H4 ema_diff

@@ -9,12 +9,16 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     sha256_file,
     validate_full_input_liveness_artifact,
 )
+from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
 )
 from tests.entry_full_input_liveness_support import (
     full_input_field_order,
     write_full_input_liveness_fixture,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
 )
 
 
@@ -31,10 +35,14 @@ def test_full_input_liveness_validates_660_split_fields_and_all_555_mtf_fields(
     )
 
     assert result["ok"] is True
-    assert result["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
-    assert result["field_status_row_count"] == len(SPLITS) * (513 + 142 + 5)
-    assert result["multi_tf_field_count_per_timeframe"] == 111
-    assert result["multi_tf_field_status_row_count"] == 5 * 111
+    assert result["field_counts"] == {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
+    assert result["field_status_row_count"] == len(SPLITS) * (MODEL_NATIVE_SIGNAL_DIM + 142 + 5)
+    assert result["multi_tf_field_count_per_timeframe"] == (
+        MULTI_TF_FEATURE_COUNT_V4
+    )
+    assert result["multi_tf_field_status_row_count"] == (
+        5 * MULTI_TF_FEATURE_COUNT_V4
+    )
     assert artifact["decision"] == PASS_DECISION
     assert artifact["atr_ood_drift"]["status"] == "STABLE"
 

@@ -63,11 +63,16 @@ def install_multi_tf_stub(
         ENTRY_MTF_CONTEXT_TIMEFRAMES,
     )
 
+    from tests.htf_v29_registry_test_support import (
+        synthetic_v29_registry_constants,
+    )
+
     frames = MultiTFV4DiskCache(
         cache_identity_sha256="0" * 64,
         manifest_sha256="1" * 64,
         m5_prebuilt_source=str(m5_path.resolve()),
         m5_prebuilt_source_sha256=trainer._sha256_file(m5_path),
+        v29_registry_constants=synthetic_v29_registry_constants(),
     )
     for tf in ("M5", "M15", "H1", "H4", "D1"):
         frame = pd.DataFrame(

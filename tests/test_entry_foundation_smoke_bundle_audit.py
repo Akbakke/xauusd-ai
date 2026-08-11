@@ -59,6 +59,9 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 
 
 STAMP = "20260716T120000123456Z"
@@ -383,8 +386,8 @@ def test_bundle_contract_uses_strict_loader_and_proves_full_stack(
         "specialist_model_contract_model_roles_match": True,
     }
     metadata = {
-        "seq_input_dim": 513,
-        "snap_input_dim": 513,
+        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "ctx_cont_dim": 142,
         "ctx_cat_dim": 5,
@@ -590,8 +593,8 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         "state_path": str((bundle / "model_state_dict.pt").resolve()),
         "state_sha256": audit._sha256_file(bundle / "model_state_dict.pt"),
         "state_sha256_matches_metadata_and_lock": True,
-        "signal_dim": 513,
-        "snap_signal_dim": 513,
+        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "ctx_cont_dim": 142,
         "ctx_cat_dim": 5,

@@ -233,9 +233,15 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
 
     assert artifact["decision"] == PASS_DECISION
     assert validation["ok"] is True
-    assert validation["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
-    assert validation["field_status_row_count"] == len(SPLITS) * (513 + 142 + 5)
-    assert validation["multi_tf_field_status_row_count"] == 5 * 111
+    assert validation["field_counts"] == {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
+    assert validation["field_status_row_count"] == len(SPLITS) * (
+        MODEL_NATIVE_SIGNAL_DIM + 142 + 5
+    )
+    from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
+
+    assert validation["multi_tf_field_status_row_count"] == (
+        5 * MULTI_TF_FEATURE_COUNT_V4
+    )
     provenance = artifact["materializer_provenance"]
     assert provenance["entry_run_id"] == RUN_ID
     assert len(provenance["dataset_build_proof"]["sha256"]) == 64

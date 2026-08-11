@@ -63,6 +63,38 @@ REGIME_V4_FEATURE_NAMES: List[str] = (
     + REGIME_V4_DERIVED_COLS
 )
 
+# ── V29 Phase A additions (session_regime G2) ────────────────────────────────
+# docs/V29_EVENT_SURFACE_DESIGN_20260811.md §3 +
+# GX1_DATA/logs/event_gap_review_20260811/session_regime.md check 3 / G2.
+# Per-TF regime-flip EVENTS for the four TFs whose flips are invisible today:
+# the D1 flip exists below as F8/F9; the only per-TF proxy,
+# `{tf}_trend_age_bars_norm_v2`, resets on EMA-stack sign change only and
+# misses the 1<->2 / 3<->4 sub-flips (stated in the F9 comment). Construction
+# mirrors F8/F9 verbatim (origin: d1_regime_changed_flag_v3 /
+# bars_since_d1_regime_change_v3 in this file), keyed on the exact 5-class id,
+# aged on each TF's OWN bar clock via `tf_bars` (the F9 unit repair precedent:
+# divide base rows by tf_bars) — zero new numbers.
+# DECLARED SEPARATELY from REGIME_V4_FEATURE_NAMES: the accepted ctx_cont /
+# EXIT_IO tails bind the pre-V29 surface. The stage-2 V29 wiring wave adopts
+# these names into the contracts together with the V29 rebuild, so train==serve
+# moves at exactly one boundary (rule 6). NO cross-TF flip-alignment or
+# flip-agreement aggregate is built (rule 4 / mtf_confluence precedent —
+# excluded by the design doc §4); the fusion learns the coincidence from the
+# per-TF flags + ages.
+REGIME_V4_V29_FLIP_TFS = ("m5", "m15", "h1", "h4")
+REGIME_V4_V29_ADDITION_COLS: List[str] = (
+    [f"{tf}_regime_changed_flag_v3" for tf in REGIME_V4_V29_FLIP_TFS]
+    + [f"{tf}_regime_flip_age_norm" for tf in REGIME_V4_V29_FLIP_TFS]
+)
+if len(set(REGIME_V4_V29_ADDITION_COLS)) != len(REGIME_V4_V29_ADDITION_COLS) or (
+    set(REGIME_V4_V29_ADDITION_COLS)
+    & set(REGIME_V4_FEATURE_NAMES + REGIME_V4_SOURCE_COLS)
+):
+    raise RuntimeError(
+        "[REGIME_V4] V29 addition names must be unique and disjoint from the "
+        "bound pre-V29 surface"
+    )
+
 
 def _sign_from_class(class_id: np.ndarray) -> np.ndarray:
     """Per-TF regime sign from the 5-class regime id (htf_features._regime_class enum):
@@ -79,10 +111,145 @@ def _sign_from_class(class_id: np.ndarray) -> np.ndarray:
     return np.where(np.isin(c, (1, 2)), 1, np.where(np.isin(c, (3, 4)), -1, 0)).astype(np.float64)
 
 
+def _class_flip_flag_and_age(
+    class_ids: np.ndarray,
+    *,
+    tf_bars_per_row: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Edge-triggered regime-class flip flag + normalized flip age for ONE TF.
+
+    Vectorized mirror of the F8/F9 construction below (the D1 originals are the
+    origin; a drift-guard test asserts this helper reproduces them exactly on
+    the D1 lane):
+
+      flag[t]     = class[t] != class[t-1]      (first row unknown -> NaN)  [F8]
+      age_norm[t] = log1p(min((t - last_flip_row) / tf_bars_per_row, 500))
+                    / log1p(500)                                             [F9]
+
+    Keyed on the exact 5-class regime id, so 1<->2 / 3<->4 sub-flips fire (the
+    trend-age proxy resets on EMA-stack sign only and misses them). On the base
+    clock a {tf} class value repeats tf_bars_per_row times, so comparing
+    consecutive base rows fires exactly once per own-TF step change, and the
+    age is measured in that TF's OWN bars (F9 unit-repair precedent). Rows
+    before the first observed flip stay NaN — the age since an unobserved flip
+    is unknown (same honest warmup as F9).
+    """
+    ids = np.asarray(class_ids)
+    if ids.ndim != 1 or ids.dtype != np.int64:
+        raise RuntimeError("[REGIME_V4] flip helper requires a 1-D int64 class array")
+    if not np.isfinite(float(tf_bars_per_row)) or tf_bars_per_row < 1.0:
+        raise RuntimeError("[REGIME_V4] tf_bars_per_row must be >= 1")
+    n = len(ids)
+    flag = np.full(n, np.nan, dtype=np.float64)
+    age_norm = np.full(n, np.nan, dtype=np.float64)
+    if n > 1:
+        changed = ids[1:] != ids[:-1]
+        flag[1:] = changed.astype(np.float64)
+        idx = np.arange(n, dtype=np.int64)
+        change_row = np.where(
+            np.concatenate((np.zeros(1, dtype=bool), changed)), idx, np.int64(-1)
+        )
+        last_change = np.maximum.accumulate(change_row)
+        valid = last_change >= 0
+        if valid.any():
+            age = np.minimum(
+                (idx[valid] - last_change[valid]) / float(tf_bars_per_row), 500.0
+            )
+            age_norm[valid] = np.log1p(age) / np.log1p(500.0)
+    return flag, age_norm
+
+
+def compute_regime_v29_flip_frame(
+    class_frame: pd.DataFrame,
+    *,
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+) -> pd.DataFrame:
+    """Compute the 8 V29 per-TF regime-flip fields from the exact class ids.
+
+    Canonical producer of ``REGIME_V4_V29_ADDITION_COLS`` for the seq513
+    causal lane (V29 stage 2).  ``class_frame`` carries a chronological
+    tz-aware UTC index plus the four ``{tf}_regime_class_id_v2`` columns on
+    the base clock; each column may open with one honest NaN warmup prefix
+    (the shared causal-prefix contract) and the flip state starts at the
+    common finite suffix of the four columns.  The formula owner is
+    :func:`_class_flip_flag_and_age` — the same helper the ctx-path
+    ``add_regime_v4_features`` V29 branch uses, so the two call surfaces
+    cannot drift.
+    """
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("[REGIME_V4] base bar duration must be positive")
+    if any(
+        int(shift.value) % int(base_bar_duration.value) != 0
+        for shift in MULTI_TF_SHIFT.values()
+    ):
+        raise RuntimeError("[REGIME_V4] base bar duration must divide every MTF duration")
+    if not isinstance(class_frame, pd.DataFrame) or class_frame.empty:
+        raise RuntimeError("[REGIME_V4] flip frame requires a non-empty DataFrame")
+    if not isinstance(class_frame.index, pd.DatetimeIndex) or class_frame.index.tz is None:
+        raise RuntimeError("[REGIME_V4] flip frame requires a tz-aware UTC DatetimeIndex")
+    if (
+        class_frame.index.hasnans
+        or not class_frame.index.is_unique
+        or not class_frame.index.is_monotonic_increasing
+    ):
+        raise RuntimeError("[REGIME_V4] flip frame index must be unique and chronological")
+    required = [f"{tf}_regime_class_id_v2" for tf in REGIME_V4_V29_FLIP_TFS]
+    missing = [name for name in required if name not in class_frame.columns]
+    if missing:
+        raise RuntimeError(f"[REGIME_V4] flip source columns missing: {missing}")
+    source = pd.DataFrame(
+        {
+            name: pd.to_numeric(class_frame[name], errors="coerce")
+            for name in required
+        },
+        index=class_frame.index,
+        copy=False,
+    )
+    source_values = source.to_numpy(dtype=np.float64)
+    source_start = max(
+        validate_causal_feature_matrix(
+            source_values[:, column : column + 1],
+            expected_width=1,
+            context=f"REGIME_V4_V29_FLIP_SOURCE_{required[column]}",
+        )
+        for column in range(source_values.shape[1])
+    )
+    tf_bars = {
+        timeframe: int(
+            MULTI_TF_SHIFT[timeframe.upper()].value
+            // int(base_bar_duration.value)
+        )
+        for timeframe in REGIME_V4_V29_FLIP_TFS
+    }
+    n_rows = len(class_frame)
+    out = pd.DataFrame(index=class_frame.index, dtype=np.float64)
+    for tf in REGIME_V4_V29_FLIP_TFS:
+        column = np.full(n_rows, np.nan, dtype=np.float64)
+        age_column = np.full(n_rows, np.nan, dtype=np.float64)
+        suffix = source[f"{tf}_regime_class_id_v2"].to_numpy(dtype=np.float64)[
+            source_start:
+        ]
+        # Exact-enum proof before the int64 cast (same check as the ctx path).
+        _sign_from_class(suffix)
+        flag, age_norm = _class_flip_flag_and_age(
+            suffix.astype(np.int64),
+            tf_bars_per_row=float(tf_bars[tf]),
+        )
+        column[source_start:] = flag
+        age_column[source_start:] = age_norm
+        out[f"{tf}_regime_changed_flag_v3"] = column
+        out[f"{tf}_regime_flip_age_norm"] = age_column
+    out = out.loc[:, list(REGIME_V4_V29_ADDITION_COLS)]
+    if list(out.columns) != list(REGIME_V4_V29_ADDITION_COLS):
+        raise RuntimeError("[REGIME_V4] flip frame output order invalid")
+    return out
+
+
 def add_regime_v4_features(
     df: pd.DataFrame,
     *,
     base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+    include_v29_additions: bool = False,
 ) -> pd.DataFrame:
     """Add REGIME_V4 derived features in place (and validate the reuse sources exist).
 
@@ -90,7 +257,16 @@ def add_regime_v4_features(
     the full-history prebuilt; live-side passes the rolling cv3 window (must carry >=288 bars of
     D1-dist history for F4 to be exact. The causal prefix remains NaN and is trimmed
     by the shared warmup contract; missing columns fail closed.
+
+    ``include_v29_additions`` additionally emits REGIME_V4_V29_ADDITION_COLS
+    (per-TF flip flag + own-TF-bar flip age; see the tuple's comment). Default
+    False == the accepted pre-V29 contract surface, byte-identical; the stage-2
+    V29 wiring flips the canonical call sites explicitly together with the
+    contract/dimension updates and the V29 rebuild — it is a call-site contract
+    switch, never an environment gate.
     """
+    if not isinstance(include_v29_additions, bool):
+        raise RuntimeError("[REGIME_V4] include_v29_additions must be a bool")
     if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
         raise RuntimeError("[REGIME_V4] base bar duration must be positive")
     if any(
@@ -135,9 +311,12 @@ def add_regime_v4_features(
     ]
     source_start = max(source_warmups)
     n_rows = len(df)
+    emitted_cols = list(REGIME_V4_DERIVED_COLS) + (
+        list(REGIME_V4_V29_ADDITION_COLS) if include_v29_additions else []
+    )
     derived = {
         name: np.full(n_rows, np.nan, dtype=np.float64)
-        for name in REGIME_V4_DERIVED_COLS
+        for name in emitted_cols
     }
     if source_start == n_rows:
         for name, values in derived.items():
@@ -239,13 +418,27 @@ def add_regime_v4_features(
     d1_age = suffix["d1_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)
     derived["d1_trend_age_mature_flag_v3"][source_start:] = (d1_age > 0.8).astype(np.float64)
 
+    if include_v29_additions:
+        # V29 (session_regime G2): per-TF flip flag + own-TF-bar flip age for
+        # the four TFs without one (D1 exists as F8/F9 above — the origin the
+        # helper mirrors). The class arrays were already enum-validated for
+        # every TF by the `signs` mapping above; the int64 cast is exact.
+        for tf in REGIME_V4_V29_FLIP_TFS:
+            tf_classes = suffix[f"{tf}_regime_class_id_v2"].to_numpy(dtype=np.int64)
+            flag, age_norm = _class_flip_flag_and_age(
+                tf_classes,
+                tf_bars_per_row=float(tf_bars[tf]),
+            )
+            derived[f"{tf}_regime_changed_flag_v3"][source_start:] = flag
+            derived[f"{tf}_regime_flip_age_norm"][source_start:] = age_norm
+
     # Release each float64 buffer as it is cast, at the memory peak.
     for name in list(derived):
         df[name] = derived.pop(name).astype(np.float32)
-    derived_values = df.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64)
+    derived_values = df.loc[:, emitted_cols].to_numpy(dtype=np.float64)
     derived_start = validate_causal_feature_matrix(
         derived_values,
-        expected_width=len(REGIME_V4_DERIVED_COLS),
+        expected_width=len(emitted_cols),
         context="REGIME_V4_DERIVED",
     )
     df.attrs["causal_regime_v4_warmup_rows"] = derived_start

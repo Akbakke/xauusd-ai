@@ -13,6 +13,10 @@ from gx1.contracts import model_native_serve_gate_v1 as serve_gate
 from gx1.models.entry_v10 import direction_decision_contract
 from gx1.scripts import audit_model_native_direction_pockets_v1 as pocket_audit
 from gx1.scripts import verify_model_native_serve_parity_v1 as serve_parity
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+)
 
 
 EVENT_ID = "v10_6yr_rebuild_20260716_fresh_xau_direction_repair"
@@ -28,9 +32,14 @@ PINNED_PATH = (
 
 def test_v4_family_timeframe_token_arithmetic_is_exact() -> None:
     assert len(serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) == 40
-    assert len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4) == 111
-    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) == 555
-    assert len(set(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)) == 555
+    per_tf_width = len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4)
+    expected_tokens = 5 * per_tf_width
+    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) == (
+        expected_tokens
+    )
+    assert len(set(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)) == (
+        expected_tokens
+    )
 
 
 def _softmax(values: tuple[float, ...]) -> list[float]:
@@ -757,7 +766,11 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
     )
 
     assert report["decision"] == "PASS", report["failures"]
-    assert report["numeric_input_count"] == (2 * 513) + 142 + (5 * 111)
+    assert report["numeric_input_count"] == (
+        (2 * MODEL_NATIVE_SIGNAL_DIM)
+        + MODEL_NATIVE_CTX_CONT_DIM
+        + (5 * len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4))
+    )
     assert report["categorical_input_count"] == 5
     assert set(report["numeric"]) == {
         "seq_signal",

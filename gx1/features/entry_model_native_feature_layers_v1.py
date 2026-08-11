@@ -46,6 +46,28 @@ from gx1.features.entry_support_resistance_memory_v1 import (
 )
 from gx1.features.entry_trend_ema_v1 import TREND_EMA_FEATURE_NAMES
 from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES
+from gx1.features.htf_features import (
+    MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
+    _atr as _htf_atr_v4,
+    compute_v29_momentum_event_block_from_ohlc,
+)
+from gx1.features.level_registry_v1 import (
+    LEVEL_REGISTRY_M5_FEATURE_NAMES,
+    compute_level_registry_m5_block_v1,
+)
+from gx1.features.regime_v4_features import (
+    REGIME_V4_V29_ADDITION_COLS,
+    REGIME_V4_V29_FLIP_TFS,
+    compute_regime_v29_flip_frame,
+)
+from gx1.features.swing_structure_v1 import (
+    SWING_V29_ADDITION_NAMES_V1,
+    compute_swing_structure_features,
+)
+from gx1.features.trendline_registry_v1 import (
+    TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
+    compute_trendline_registry_features_v1,
+)
 
 
 # Exact local-resolution trend-state evidence.  The same formulas run once on
@@ -89,9 +111,35 @@ CANDLESTICK_SMART3_START_INDEX = CANDLESTICK_PATTERN_FEATURE_NAMES.index(
     CANDLESTICK_SMART3_FIRST_FEATURE_NAME
 )
 
+# V29 Phase A stage 2 — exact emitted names of the five new mandatory event
+# families (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §§1-3, block E kept per
+# operator decision).  The name tuples are owned by the producing modules;
+# this owner only sequences and (for the trendline block) applies the seq513
+# ``chart.`` family prefix declared by the design (§2: ``chart.geomline_*``).
+LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES = tuple(LEVEL_REGISTRY_M5_FEATURE_NAMES)
+TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES = tuple(
+    f"chart.{name}" for name in TRENDLINE_REGISTRY_FEATURE_NAMES_V1
+)
+SWING_EVENT_LAYER_FEATURE_NAMES = tuple(SWING_V29_ADDITION_NAMES_V1)
+MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES = tuple(
+    MULTI_TF_V4_MOMENTUM_EVENT_FEATURES
+)
+REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES = tuple(REGIME_V4_V29_ADDITION_COLS)
+
+# The two registry layers carry TRAIN-fitted constants with no legitimate
+# default (rule 2a); the inline extension fails closed when either family is
+# requested without this explicit payload.
+V29_REGISTRY_LAYER_PARAM_KEYS = (
+    "level_tol_atr",
+    "trendline_band_atr",
+    "trendline_seq_len",
+)
+
 # Ordered ownership registry for every generated specialist layer that the
 # canonical seq513 builder may materialize.  This belongs beside the builders,
 # not in a report/materializer script with mutable historical artifact paths.
+# The five V29 event families are appended AFTER the pre-V29 families so the
+# existing mandatory prefix order is byte-stable.
 MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     tuple[str, tuple[str, ...]], ...
 ] = (
@@ -115,6 +163,14 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     ),
     ("support_resistance_memory_layer", SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES),
     ("price_ema50_200_layer", PRICE_DERIVED_FEATURE_NAMES),
+    ("level_registry_m5_layer", LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES),
+    (
+        "trendline_registry_m5_layer",
+        TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+    ),
+    ("swing_structure_event_layer", SWING_EVENT_LAYER_FEATURE_NAMES),
+    ("momentum_event_m5_layer", MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES),
+    ("regime_flip_event_layer", REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES),
 )
 
 # This is the code-owned full-stack retention contract.  A feature-selection
@@ -127,28 +183,21 @@ MODEL_NATIVE_MANDATORY_SELECTED_FIELDS = tuple(
     for _family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
     for feature in features
 )
-MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 11
-MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 346
+# Both counts are DERIVED from the declared registry (rule 13: a repeated
+# literal in a consumer is not ownership proof).  V29 Phase A stage 2 grew
+# the pre-V29 11-family/346-field registry by the five event families above.
+MODEL_NATIVE_MANDATORY_FAMILY_COUNT = len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
+MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = len(
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+)
 
 _mandatory_family_labels = tuple(
     family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
 )
-if len(_mandatory_family_labels) != MODEL_NATIVE_MANDATORY_FAMILY_COUNT:
-    raise RuntimeError(
-        "MODEL_NATIVE_MANDATORY_FAMILY_COUNT_MISMATCH: "
-        f"observed={len(_mandatory_family_labels)} "
-        f"expected={MODEL_NATIVE_MANDATORY_FAMILY_COUNT}"
-    )
 if len(set(_mandatory_family_labels)) != len(_mandatory_family_labels):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_FAMILY_LABEL_DUPLICATE")
 if any(not family or not features for family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_FAMILY_EMPTY")
-if len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) != MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
-    raise RuntimeError(
-        "MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT_MISMATCH: "
-        f"observed={len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)} "
-        f"expected={MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT}"
-    )
 if len(set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)) != len(
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
 ):
@@ -443,6 +492,252 @@ def build_candlestick_derived_layer(
     candle_df = pd.DataFrame(candle_x, columns=candle_names, index=source_index)
     aligned = candle_df.loc[sample_times]
     return aligned.to_numpy(dtype=np.float32), list(candle_names)
+
+
+def _read_v29_price_source(
+    source_parquet: Path,
+    *,
+    context: str,
+    columns: tuple[str, ...] = ("time", "high", "low", "close"),
+) -> pd.DataFrame:
+    """Read and normalize the exact causal source columns for one V29 layer."""
+
+    source = Path(source_parquet).expanduser().resolve()
+    available = _read_source_schema(source, context=context)
+    missing = [name for name in columns if name not in available]
+    if missing:
+        raise RuntimeError(f"{context}_SOURCE_FIELDS_MISSING: {missing}")
+    src = pd.read_parquet(source, columns=list(columns), engine="pyarrow")
+    return _normalize_source_times(src, context=context)
+
+
+def _align_v29_layer_frame(
+    raw: pd.DataFrame,
+    sample_times: pd.DatetimeIndex,
+    expected_names: tuple[str, ...],
+    *,
+    context: str,
+) -> tuple[np.ndarray, list[str]]:
+    """Align one full-history V29 layer frame to the exact sample rows.
+
+    The layer is computed over the complete causal source history and then
+    row-aligned (the ``build_price_derived_layer`` pattern), so bounded-chunk
+    processing is exact by construction.  Any non-finite value at a sample
+    row is a hard failure: the sample window must start after the layer's
+    honest warmup prefix (rule 2e — no sentinel substitution).
+    """
+
+    if tuple(raw.columns) != tuple(expected_names):
+        raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
+    missing_times = sample_times.difference(raw.index)
+    if len(missing_times):
+        raise RuntimeError(
+            f"{context}_SOURCE_ROW_GAP: missing={len(missing_times)} "
+            f"first={missing_times[0]}"
+        )
+    aligned = raw.loc[sample_times]
+    values = aligned.to_numpy(dtype=np.float32)
+    if not np.isfinite(values).all():
+        raise RuntimeError(
+            f"{context}_WARMUP_INCOMPLETE: sample rows must start after the "
+            "layer's causal warmup prefix"
+        )
+    return values, list(expected_names)
+
+
+def build_level_registry_m5_layer(
+    sample_df: pd.DataFrame,
+    source_parquet: Path,
+    *,
+    tol_level_atr: float,
+) -> tuple[np.ndarray, list[str]]:
+    """Entry-M5/513-lane level-registry block (design doc §1.2, 22 fields).
+
+    ``tol_level_atr`` is the TRAIN-fitted frozen M5 cluster tolerance
+    (``fit_level_registry_tolerance``); it has no default (rule 2a).
+    """
+
+    context = "LEVEL_REGISTRY_M5_LAYER"
+    sample_times = _require_sample_times(sample_df, context=context)
+    src = _read_v29_price_source(source_parquet, context=context)
+    source_index = pd.DatetimeIndex(src["time"])
+    registry_source = pd.DataFrame(
+        {
+            "high": _require_finite_positive_column(src, "high", context=context),
+            "low": _require_finite_positive_column(src, "low", context=context),
+            "close": _require_finite_positive_column(src, "close", context=context),
+        },
+        index=source_index,
+    )
+    registry_source["atr"] = _htf_atr_v4(
+        registry_source["high"], registry_source["low"], registry_source["close"], 14
+    )
+    matrix, names = compute_level_registry_m5_block_v1(
+        registry_source,
+        tol_level_atr=tol_level_atr,
+    )
+    if tuple(names) != LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES:
+        raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
+    raw = pd.DataFrame(
+        np.asarray(matrix, dtype=np.float64),
+        index=source_index,
+        columns=list(names),
+    )
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
+        context=context,
+    )
+
+
+def build_trendline_registry_m5_layer(
+    sample_df: pd.DataFrame,
+    source_parquet: Path,
+    *,
+    band_atr: float,
+    seq_len: int,
+) -> tuple[np.ndarray, list[str]]:
+    """Entry-M5/513-lane trendline/channel block (design doc §2/§4.1 block E).
+
+    ``band_atr`` is the TRAIN-fitted frozen M5 band for the Entry candidate
+    window ``seq_len`` (the Entry model sequence length — an explicit recipe
+    input); neither has a default (rule 2a).
+    """
+
+    context = "TRENDLINE_REGISTRY_M5_LAYER"
+    sample_times = _require_sample_times(sample_df, context=context)
+    src = _read_v29_price_source(source_parquet, context=context)
+    source_index = pd.DatetimeIndex(src["time"])
+    registry_source = pd.DataFrame(
+        {
+            "high": _require_finite_positive_column(src, "high", context=context),
+            "low": _require_finite_positive_column(src, "low", context=context),
+            "close": _require_finite_positive_column(src, "close", context=context),
+        },
+        index=source_index,
+    )
+    registry_source["atr"] = _htf_atr_v4(
+        registry_source["high"], registry_source["low"], registry_source["close"], 14
+    )
+    frame, _state = compute_trendline_registry_features_v1(
+        registry_source,
+        timeframe="M5",
+        seq_len=seq_len,
+        band_atr=band_atr,
+    )
+    if tuple(frame.columns) != tuple(TRENDLINE_REGISTRY_FEATURE_NAMES_V1):
+        raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
+    raw = frame.astype(np.float64)
+    raw.columns = list(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+        context=context,
+    )
+
+
+def build_swing_event_m5_layer(
+    sample_df: pd.DataFrame,
+    source_parquet: Path,
+) -> tuple[np.ndarray, list[str]]:
+    """Entry-M5/513-lane structure_swing G1/G2/G4 event block (9 fields).
+
+    One formula owner: ``swing_structure_v1.compute_swing_structure_features``
+    with ``include_v29_additions=True`` on the complete causal source history.
+    """
+
+    context = "SWING_EVENT_M5_LAYER"
+    sample_times = _require_sample_times(sample_df, context=context)
+    src = _read_v29_price_source(source_parquet, context=context)
+    source_index = pd.DatetimeIndex(src["time"])
+    computed = compute_swing_structure_features(
+        _require_finite_positive_column(src, "high", context=context),
+        _require_finite_positive_column(src, "low", context=context),
+        _require_finite_positive_column(src, "close", context=context),
+        include_v29_additions=True,
+    )
+    raw = pd.DataFrame(
+        {
+            name: np.asarray(computed[name], dtype=np.float64)
+            for name in SWING_EVENT_LAYER_FEATURE_NAMES
+        },
+        index=source_index,
+    )
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        SWING_EVENT_LAYER_FEATURE_NAMES,
+        context=context,
+    )
+
+
+def build_momentum_event_m5_layer(
+    sample_df: pd.DataFrame,
+    source_parquet: Path,
+) -> tuple[np.ndarray, list[str]]:
+    """Entry-M5/513-lane momentum G1/G2 event block (design §4.1 block E).
+
+    One formula owner:
+    ``htf_features.compute_v29_momentum_event_block_from_ohlc`` — the same
+    function backing the per-TF V4 lane, run here on the entry M5 clock.
+    """
+
+    context = "MOMENTUM_EVENT_M5_LAYER"
+    sample_times = _require_sample_times(sample_df, context=context)
+    src = _read_v29_price_source(source_parquet, context=context)
+    source_index = pd.DatetimeIndex(src["time"])
+    ohlc = pd.DataFrame(
+        {
+            "high": _require_finite_positive_column(src, "high", context=context),
+            "low": _require_finite_positive_column(src, "low", context=context),
+            "close": _require_finite_positive_column(src, "close", context=context),
+        },
+        index=source_index,
+    )
+    raw = compute_v29_momentum_event_block_from_ohlc(ohlc).astype(np.float64)
+    if tuple(raw.columns) != MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES:
+        raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
+        context=context,
+    )
+
+
+def build_regime_flip_event_layer(
+    sample_df: pd.DataFrame,
+    source_parquet: Path,
+) -> tuple[np.ndarray, list[str]]:
+    """Entry-M5/513-lane session_regime G2 per-TF flip block (8 fields).
+
+    One formula owner: ``regime_v4_features.compute_regime_v29_flip_frame``
+    on the exact ``{tf}_regime_class_id_v2`` columns of the complete causal
+    source history (base M5 clock).
+    """
+
+    context = "REGIME_FLIP_EVENT_LAYER"
+    sample_times = _require_sample_times(sample_df, context=context)
+    class_columns = tuple(
+        f"{tf}_regime_class_id_v2" for tf in REGIME_V4_V29_FLIP_TFS
+    )
+    src = _read_v29_price_source(
+        source_parquet,
+        context=context,
+        columns=("time", *class_columns),
+    )
+    source_index = pd.DatetimeIndex(src["time"])
+    class_frame = src.drop(columns=["time"])
+    class_frame.index = source_index
+    raw = compute_regime_v29_flip_frame(class_frame).astype(np.float64)
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+        context=context,
+    )
 
 
 def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarray, list[str]]:

@@ -118,7 +118,7 @@ def test_xau_direction_repair_liveness_rejects_dead_present_columns() -> None:
             pd.DataFrame(
                 {
                     "split": [split, split, split],
-                    "y_rising_channel_support_touch": [0.0, 1.0, 0.0],
+                    "y_line_support_touch_held": [0.0, 1.0, 0.0],
                     "y_short_high_mae_low_mfe_early_failure": [0.0, 0.0, 1.0],
                 }
             )
@@ -127,7 +127,7 @@ def test_xau_direction_repair_liveness_rejects_dead_present_columns() -> None:
             pd.DataFrame(
                 {
                     "split": [split, split, split],
-                    "y_rising_channel_support_touch": [0.0, 0.0, 0.0],
+                    "y_line_support_touch_held": [0.0, 0.0, 0.0],
                 }
             )
         )

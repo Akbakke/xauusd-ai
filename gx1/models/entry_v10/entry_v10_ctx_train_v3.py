@@ -424,8 +424,13 @@ _MODEL_NATIVE_ACTIVE_CORE_TARGET_COLS = (
     "y_short_expected_mae_bps",
 )
 _MODEL_NATIVE_ACTIVE_RAIL_TARGET_COLS = (
-    "y_rising_channel_support_touch",
-    "y_falling_channel_resistance_touch",
+    # V29 stage 2: forward-realized registry line-hold labels replace the
+    # retired same-bar tautologies; the two *_mask columns carry the
+    # touch-event loss mask (the y_side_mask pattern).
+    "y_line_support_touch_held",
+    "y_line_support_touch_mask",
+    "y_line_resistance_touch_held",
+    "y_line_resistance_touch_mask",
     "y_countertrend_short_trap",
     "y_countertrend_long_trap",
     "y_short_high_mae_low_mfe_early_failure",
@@ -6358,8 +6363,8 @@ def _trendline_rail_aux_loss(
         batch,
         output_name="trendline_rail_logits",
         target_names=(
-            "y_rising_channel_support_touch",
-            "y_falling_channel_resistance_touch",
+            "y_line_support_touch_held",
+            "y_line_resistance_touch_held",
             "y_countertrend_short_trap",
             "y_countertrend_long_trap",
             "y_short_high_mae_low_mfe_early_failure",
@@ -6378,8 +6383,10 @@ def _trendline_rail_aux_loss(
         )
 
     non_blocking = device.type == "cuda"
-    rising = batch["y_rising_channel_support_touch"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    falling = batch["y_falling_channel_resistance_touch"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    rising = batch["y_line_support_touch_held"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    rising_mask = batch["y_line_support_touch_mask"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    falling = batch["y_line_resistance_touch_held"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    falling_mask = batch["y_line_resistance_touch_mask"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     short_trap = batch["y_countertrend_short_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     long_trap = batch["y_countertrend_long_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     short_early_fail = batch["y_short_high_mae_low_mfe_early_failure"].to(
@@ -6397,14 +6404,28 @@ def _trendline_rail_aux_loss(
             "[ENTRY_TRENDLINE_RAIL_OUTPUT_DIM_MISMATCH] "
             f"logits_shape={tuple(logits.shape)} targets_shape={tuple(targets.shape)}"
         )
-    loss = float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) * nn.functional.binary_cross_entropy_with_logits(
+    # V29 stage 2 masked objective: the two line-hold dims are supervised
+    # ONLY on registry touch-event rows (their forward outcome is defined
+    # there and nowhere else — the y_side_mask masking pattern); the four
+    # trap/early-failure dims stay dense.
+    element_mask = torch.ones_like(targets)
+    element_mask[:, 0] = rising_mask
+    element_mask[:, 1] = falling_mask
+    mask_total = element_mask.sum()
+    if float(mask_total.detach().cpu().item()) <= 0.0:
+        raise RuntimeError("[ENTRY_TRENDLINE_RAIL_LOSS_MASK_EMPTY]")
+    per_element = nn.functional.binary_cross_entropy_with_logits(
         logits,
         targets,
+        reduction="none",
+    )
+    loss = float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) * (
+        (per_element * element_mask).sum() / mask_total
     )
     stats["trendline_rail_loss"] = float(loss.detach().cpu().item())
     stats["trendline_rail_rows"] = float(int((targets.max(dim=1).values > 0.5).sum().detach().cpu().item()))
-    stats["trendline_rising_rows"] = float(int((rising > 0.5).sum().detach().cpu().item()))
-    stats["trendline_falling_rows"] = float(int((falling > 0.5).sum().detach().cpu().item()))
+    stats["trendline_rising_rows"] = float(int((rising_mask > 0.5).sum().detach().cpu().item()))
+    stats["trendline_falling_rows"] = float(int((falling_mask > 0.5).sum().detach().cpu().item()))
     return loss, stats
 
 
@@ -8293,10 +8314,10 @@ def _active_head_target_surfaces(
     trendline_target = torch.stack(
         [
             _active_head_batch_target(
-                batch, "y_rising_channel_support_touch", device
+                batch, "y_line_support_touch_held", device
             ),
             _active_head_batch_target(
-                batch, "y_falling_channel_resistance_touch", device
+                batch, "y_line_resistance_touch_held", device
             ),
             _active_head_batch_target(batch, "y_countertrend_short_trap", device),
             _active_head_batch_target(batch, "y_countertrend_long_trap", device),
@@ -10636,8 +10657,10 @@ def run_train(
             "y_short_bad_path",
             "y_long_expected_mae_bps",
             "y_short_expected_mae_bps",
-            "y_rising_channel_support_touch",
-            "y_falling_channel_resistance_touch",
+            "y_line_support_touch_held",
+            "y_line_support_touch_mask",
+            "y_line_resistance_touch_held",
+            "y_line_resistance_touch_mask",
             "y_support_retest_continuation",
             "y_resistance_retest_continuation",
             "y_countertrend_short_trap",
@@ -13346,13 +13369,17 @@ def run_train(
             "enabled": True,
             "output_dim": 6,
             "labels": [
-                "y_rising_channel_support_touch",
-                "y_falling_channel_resistance_touch",
+                "y_line_support_touch_held",
+                "y_line_resistance_touch_held",
                 "y_countertrend_short_trap",
                 "y_countertrend_long_trap",
                 "y_short_high_mae_low_mfe_early_failure",
                 "y_long_high_mae_low_mfe_early_failure",
             ],
+            "loss_masks": {
+                "y_line_support_touch_held": "y_line_support_touch_mask",
+                "y_line_resistance_touch_held": "y_line_resistance_touch_mask",
+            },
             "aux_weight": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
             "direction_mapping": "direct_learned_evidence_fusion",
             "hand_written_direction_pressure": False,

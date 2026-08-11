@@ -995,6 +995,8 @@ def _build_enriched_stage(
     checkpoint_chunk_rows: int,
     dataset_run_id: str,
     pair_generation_id: str,
+    level_tol_quantile_q: float | None = None,
+    registry_fit_train_end: str | None = None,
 ) -> dict[str, Any]:
     """Complete MTF/context owners after the raw/canonical process has exited."""
 
@@ -1015,7 +1017,37 @@ def _build_enriched_stage(
             native_ohlcv["time"], utc=True, errors="raise"
         )
         native_ohlcv = native_ohlcv.set_index("time")
-        multi_tf = build_multi_tf_per_bar_features_v4(native_ohlcv)
+        # The M5 enriched route is the first producer in the rebuild chain, so
+        # the V29 registry constants are TRAIN-fitted here (rule 18: once, on
+        # the declared window, with the explicit recipe input q) and frozen
+        # into the temporary cache manifest published below.
+        if level_tol_quantile_q is None or registry_fit_train_end is None:
+            raise RuntimeError(
+                "M5_ENRICHED_V29_REGISTRY_FIT_INPUTS_REQUIRED: "
+                "--level-tol-quantile-q and --registry-fit-train-end are "
+                "explicit recipe inputs with no default"
+            )
+        from gx1.contracts.entry_exit_production_architecture_v1 import (
+            PRODUCTION_MTF_PER_TF_WINDOW_BARS,
+        )
+        from gx1.contracts.entry_model_native_signal_v1 import (
+            MODEL_NATIVE_SEQ_LEN,
+        )
+        from gx1.features.htf_features import (
+            fit_v29_registry_constants_from_m5,
+        )
+
+        v29_registry_constants = fit_v29_registry_constants_from_m5(
+            native_ohlcv,
+            level_tol_quantile_q=float(level_tol_quantile_q),
+            declared_train_window_end=registry_fit_train_end,
+            per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
+            entry_m5_seq_len=MODEL_NATIVE_SEQ_LEN,
+        )
+        multi_tf = build_multi_tf_per_bar_features_v4(
+            native_ohlcv,
+            v29_registry_constants=v29_registry_constants,
+        )
         context_m5 = native_ohlcv[["high", "low", "close"]].copy()
         del native_ohlcv
         multi_tf_binding: dict[str, Any] | None = None
@@ -1067,6 +1099,7 @@ def _build_enriched_stage(
             m5_prebuilt=output_stage,
             expected_source_sha256=output_sha256,
             features=cache_features,
+            v29_registry_constants=v29_registry_constants,
         )
         verified = load_multi_tf_v4_cache(temporary_cache_dir)
         if (
@@ -1338,6 +1371,8 @@ def _build_enriched_frame(
     pair_generation_id: str,
     workers: int,
     checkpoint_chunk_rows: int = 4096,
+    level_tol_quantile_q: float | None = None,
+    registry_fit_train_end: str | None = None,
 ) -> dict[str, Any]:
     if timeframe not in TIMEFRAME_SPECS:
         raise RuntimeError(f"ENTRY_EXIT_ENRICHED_TIMEFRAME_INVALID: {timeframe}")
@@ -1486,6 +1521,8 @@ def _build_enriched_frame(
                 "checkpoint_chunk_rows": checkpoint_chunk_rows,
                 "dataset_run_id": dataset_run_id,
                 "pair_generation_id": pair_generation_id,
+                "level_tol_quantile_q": level_tol_quantile_q,
+                "registry_fit_train_end": registry_fit_train_end,
             },
             report_path=work_dir / "enriched-stage.json",
         )
@@ -1600,8 +1637,32 @@ def main() -> None:
     parser.add_argument("--pair-generation-id", required=True)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--checkpoint-chunk-rows", type=int, default=4096)
+    parser.add_argument(
+        "--level-tol-quantile-q",
+        type=float,
+        default=None,
+        help=(
+            "Explicit recipe input for the M5 route's V29 registry TRAIN "
+            "fit (no default exists; required when --native-m5-root is used)"
+        ),
+    )
+    parser.add_argument(
+        "--registry-fit-train-end",
+        default=None,
+        help=(
+            "Declared TRAIN window end (UTC) for the M5 route's V29 "
+            "registry TRAIN fit (required when --native-m5-root is used)"
+        ),
+    )
     args = parser.parse_args()
     timeframe = "M1" if args.native_m1_root is not None else "M5"
+    if timeframe == "M5" and (
+        args.level_tol_quantile_q is None or args.registry_fit_train_end is None
+    ):
+        parser.error(
+            "--level-tol-quantile-q and --registry-fit-train-end are required "
+            "for the M5 route (V29 registry TRAIN fit; no default exists)"
+        )
     native_root = args.native_m1_root or args.native_m5_root
     result = _build_enriched_frame(
         native_root=native_root,
@@ -1617,6 +1678,8 @@ def main() -> None:
         pair_generation_id=args.pair_generation_id,
         workers=args.workers,
         checkpoint_chunk_rows=args.checkpoint_chunk_rows,
+        level_tol_quantile_q=args.level_tol_quantile_q,
+        registry_fit_train_end=args.registry_fit_train_end,
     )
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
 

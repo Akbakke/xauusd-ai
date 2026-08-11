@@ -31,12 +31,23 @@ WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     metadata = model_native_recipe_env_contract_metadata()
 
-    assert len(MODEL_NATIVE_RECIPE_ENV) == 164
-    assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == 164
+    # 164 audited pre-V29 keys + the declared V29 registry recipe keys
+    # (derived, never restated as a bare literal).
+    from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS,
+    )
+
+    expected_count = 164 + len(MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS)
+    assert len(MODEL_NATIVE_RECIPE_ENV) == expected_count
+    assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == expected_count
     assert MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_LOGIT_ADJUST_TAU"] == "1.0"
+    assert (
+        MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"]
+        == "REQUIRED"
+    )
     assert metadata == {
         "schema_version": "entry_model_native_seq513_train_recipe_env_v1",
-        "count": 164,
+        "count": expected_count,
         "sha256": MODEL_NATIVE_RECIPE_ENV_SHA256,
         "keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
     }

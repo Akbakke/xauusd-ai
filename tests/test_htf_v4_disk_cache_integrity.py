@@ -15,6 +15,11 @@ import pytest
 
 from gx1.features import htf_features as htf
 from gx1.scripts import prebuild_multi_tf_cache_v4 as producer
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_constants,
+)
+
+_V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
 
 
 def _sha256(path: Path) -> str:
@@ -78,6 +83,7 @@ def _publish(tmp_path: Path) -> Path:
         m5_prebuilt=source,
         expected_source_sha256=_sha256(source),
         features=frames,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
     )
     assert manifest_path == cache_dir / "manifest.json"
     return cache_dir
@@ -107,6 +113,7 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
         m5_prebuilt=source,
         expected_source_sha256=_sha256(source),
         features=expected_frames,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
     )
     manifest = _manifest(cache_dir)
     assert {path.name for path in cache_dir.iterdir()} == {
@@ -115,7 +122,7 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
     }
     assert manifest["schema_version"] == htf.HTF_V4_CACHE_SCHEMA_VERSION
     assert manifest["builder_version"] == htf.HTF_V4_CACHE_BUILDER_VERSION
-    assert manifest["feature_count"] == 111
+    assert manifest["feature_count"] == htf.MULTI_TF_FEATURE_COUNT_V4
     assert manifest["feature_names"] == list(
         htf.MULTI_TF_PER_BAR_FEATURES_V4
     )
@@ -269,6 +276,7 @@ def test_publisher_never_replaces_existing_cache(tmp_path: Path) -> None:
             m5_prebuilt=source,
             expected_source_sha256=_sha256(source),
             features=frames,
+            v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
         )
     assert _sha256(cache_dir / "manifest.json") == before
 
@@ -297,6 +305,10 @@ def test_cli_rejects_wrong_source_hash_before_parquet_read(
             "0" * 64,
             "--out-dir",
             str((tmp_path / "cache").resolve()),
+            "--level-tol-quantile-q",
+            "0.25",
+            "--registry-fit-train-end",
+            "2026-01-05T00:00:00Z",
         ],
     )
     with pytest.raises(RuntimeError, match="CACHE_V4_SOURCE_SHA256_MISMATCH"):
@@ -333,6 +345,7 @@ def test_publisher_rejects_timestamps_not_derived_from_native_m5(
             m5_prebuilt=source,
             expected_source_sha256=_sha256(source),
             features=frames,
+            v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
         )
 
 
@@ -362,6 +375,7 @@ def test_parent_fsync_failure_reports_visible_inadmissible_output(
             m5_prebuilt=source,
             expected_source_sha256=_sha256(source),
             features=frames,
+            v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
         )
     assert destination.is_dir()
     assert (destination / "manifest.json").is_file()
@@ -377,6 +391,7 @@ def test_v4_disk_projection_matches_in_memory_verified_bytes(
         m5_prebuilt=source,
         expected_source_sha256=_sha256(source),
         features=in_memory,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
     )
     from_disk = htf.load_multi_tf_v4_cache(cache_dir)
     targets = pd.date_range(

@@ -9,15 +9,23 @@ import pytest
 
 from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
-    build_multi_tf_per_bar_features_v4,
-    compute_per_bar_features_v4,
+    build_multi_tf_per_bar_features_v4 as _build_multi_tf_v4,
+    compute_per_bar_features_v4 as _compute_per_bar_v4,
     multi_tf_last_closed_label,
     slice_multi_tf_v4_window,
 )
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_constants,
+)
+
 from gx1.features import basic_v1
 from gx1.features.regime_v4_features import (
     REGIME_V4_DERIVED_COLS,
+    REGIME_V4_FEATURE_NAMES,
     REGIME_V4_SOURCE_COLS,
+    REGIME_V4_V29_ADDITION_COLS,
+    REGIME_V4_V29_FLIP_TFS,
+    _class_flip_flag_and_age,
     add_regime_v4_features,
 )
 from gx1.execution.v12_ctx_augment_live import (
@@ -36,10 +44,29 @@ from gx1.scripts.augment_forward_outcome_v2 import (
     trim_causal_context_warmup_prefix,
 )
 
+_V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
+
+
+def build_multi_tf_per_bar_features_v4(m5_df):
+    return _build_multi_tf_v4(
+        m5_df,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+    )
+
+
+def compute_per_bar_features_v4(ohlcv, *, timeframe):
+    return _compute_per_bar_v4(
+        ohlcv,
+        timeframe=timeframe,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+    )
+
 
 def test_tf_cache_row_is_strict_float32_zero_copy() -> None:
     target = pd.Timestamp("2026-01-02T12:00:00Z")
-    width = 111
+    from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
+
+    width = MULTI_TF_FEATURE_COUNT_V4
     ts_values = np.asarray(
         [target.value - pd.Timedelta(minutes=10).value, target.value],
         dtype=np.int64,
@@ -206,8 +233,10 @@ def test_closed_bar_cutoff_is_immutable_and_excludes_forming_h1(monkeypatch: pyt
 
 
 def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
-    frame = _market_frame(18_400)
-    prefix = frame.iloc[:18_200]
+    # V29: the D1 trend-event fields carry an exact 200-bar min_periods
+    # mask, so a fully-warmed D1 row needs >= 201 D1 days of tape.
+    frame = _market_frame(60_000)
+    prefix = frame.iloc[:59_800]
     target = prefix.index[-1]
 
     prefix_mtf = build_multi_tf_per_bar_features_v4(prefix)
@@ -232,7 +261,7 @@ def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
 
 
 def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) -> None:
-    frame = _market_frame(18_400)
+    frame = _market_frame(60_000)
     multi_tf = build_multi_tf_per_bar_features_v4(frame)
     decision = frame.iloc[-12:].reset_index(names="time")
 
@@ -258,7 +287,7 @@ def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) ->
 
 
 def test_native_m1_decisions_use_true_closed_m5_context(tmp_path: Path) -> None:
-    m5 = _market_frame(18_400)
+    m5 = _market_frame(60_000)
     multi_tf = build_multi_tf_per_bar_features_v4(m5)
     start = m5.index[-3]
     times = pd.date_range(start, periods=4, freq="1min", tz="UTC")
@@ -314,7 +343,7 @@ def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
 
 
 def test_attach_marks_only_real_warmup_and_shared_trim_removes_it() -> None:
-    frame = _market_frame(18_400)
+    frame = _market_frame(60_000)
     multi_tf = build_multi_tf_per_bar_features_v4(frame)
     source = frame.reset_index(names="time")
 
@@ -482,6 +511,121 @@ def test_regime_v4_agreement_is_strict_non_d1_vote_and_age_is_in_d1_bars() -> No
         np.testing.assert_allclose(
             bars_norm[100 + k], expected, rtol=1e-6, atol=1e-7
         )
+
+
+def test_regime_v4_v29_additions_are_opt_in_and_mirror_f8_f9() -> None:
+    frame = _regime_source_frame(600)
+
+    base = add_regime_v4_features(frame.copy())
+    assert not set(REGIME_V4_V29_ADDITION_COLS) & set(base.columns)
+    assert not set(REGIME_V4_V29_ADDITION_COLS) & set(REGIME_V4_FEATURE_NAMES)
+
+    out = add_regime_v4_features(frame.copy(), include_v29_additions=True)
+    assert set(REGIME_V4_V29_ADDITION_COLS) <= set(out.columns)
+    # The bound pre-V29 surface is byte-identical with the additions on.
+    np.testing.assert_allclose(
+        base.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64),
+        out.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64),
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+
+    # Drift guard: the vectorized helper reproduces the F8/F9 originals
+    # exactly on the D1 lane (its declared origin), suffix rows onward.
+    source_start = 20
+    d1c = (
+        frame["d1_regime_class_id_v2"]
+        .iloc[source_start:]
+        .to_numpy(dtype=np.int64)
+    )
+    flag, age_norm = _class_flip_flag_and_age(d1c, tf_bars_per_row=288.0)
+    np.testing.assert_allclose(
+        out["d1_regime_changed_flag_v3"].to_numpy(dtype=np.float64)[source_start:],
+        flag,
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+    np.testing.assert_allclose(
+        out["bars_since_d1_regime_change_v3"].to_numpy(dtype=np.float64)[
+            source_start:
+        ],
+        age_norm,
+        rtol=1e-6,
+        equal_nan=True,
+    )
+
+    # Per-TF ages are measured in the TF's OWN bars (F9 unit-repair
+    # precedent). The fixture flips every TF at absolute row 80; at row 100
+    # the age is 20 base rows = 20/tf_bars own-TF bars.
+    for tf, tf_bars in (("m5", 1.0), ("m15", 3.0), ("h1", 12.0), ("h4", 48.0)):
+        flag_col = out[f"{tf}_regime_changed_flag_v3"].to_numpy(dtype=np.float64)
+        age_col = out[f"{tf}_regime_flip_age_norm"].to_numpy(dtype=np.float64)
+        assert flag_col[80] == 1.0
+        assert flag_col[81] == 0.0  # edge-triggered, not level-triggered
+        assert np.isnan(age_col[:80]).all()  # unknown until the first flip
+        np.testing.assert_allclose(
+            age_col[100],
+            np.log1p(min(20.0 / tf_bars, 500.0)) / np.log1p(500.0),
+            rtol=1e-6,
+        )
+
+    # Future-append invariance of the additions (causality).
+    longer = add_regime_v4_features(
+        _regime_source_frame(700), include_v29_additions=True
+    )
+    np.testing.assert_allclose(
+        out.loc[:, REGIME_V4_V29_ADDITION_COLS].to_numpy(dtype=np.float64),
+        longer.loc[:, REGIME_V4_V29_ADDITION_COLS]
+        .iloc[: len(out)]
+        .to_numpy(dtype=np.float64),
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+
+    with pytest.raises(RuntimeError, match="include_v29_additions"):
+        add_regime_v4_features(frame.copy(), include_v29_additions=1)  # type: ignore[arg-type]
+
+
+def test_regime_v4_v29_flip_flag_catches_sub_flips_the_age_proxy_misses() -> None:
+    periods = 400
+    index = pd.date_range("2025-01-01T00:00:00Z", periods=periods, freq="5min")
+    m15_classes = np.ones(periods, dtype=np.float64)
+    m15_classes[300:] = 2.0  # 1 -> 2 sub-flip: SAME sign, SAME EMA stack
+    payload: dict[str, np.ndarray] = {}
+    for tf in ("m15", "h1", "h4", "d1", "m5"):
+        payload[f"{tf}_regime_class_id_v2"] = (
+            m15_classes.copy() if tf == "m15" else np.ones(periods, dtype=np.float64)
+        )
+        payload[f"{tf}_trend_age_bars_norm_v2"] = np.full(periods, 0.5)
+        payload[f"{tf}_ema_stack_aligned_v2"] = np.ones(periods, dtype=np.float64)
+    payload["D1_dist_from_ema200_atr"] = np.full(periods, 1.0)
+    frame = pd.DataFrame(payload, index=index)
+    frame.loc[frame.index[:20], REGIME_V4_SOURCE_COLS] = np.nan
+
+    out = add_regime_v4_features(frame.copy(), include_v29_additions=True)
+
+    flag = out["m15_regime_changed_flag_v3"].to_numpy(dtype=np.float64)
+    age = out["m15_regime_flip_age_norm"].to_numpy(dtype=np.float64)
+    assert np.isnan(flag[:21]).all()  # source warmup + first-row unknown
+    np.testing.assert_allclose(flag[21:300], 0.0, rtol=0.0, atol=0.0)
+    assert flag[300] == 1.0
+    np.testing.assert_allclose(flag[301:], 0.0, rtol=0.0, atol=0.0)
+    assert np.isnan(age[:300]).all()
+    assert age[300] == 0.0
+    np.testing.assert_allclose(
+        age[303],
+        np.log1p(3.0 / 3.0) / np.log1p(500.0),  # 3 base rows = 1 m15 bar
+        rtol=1e-6,
+    )
+    # The trend-age proxy carried by the frame never resets across the
+    # sub-flip (constant 0.5) — the exact gap the class-keyed flag closes.
+    assert (
+        out["m15_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)[300] == 0.5
+    )
+    assert tuple(REGIME_V4_V29_FLIP_TFS) == ("m5", "m15", "h1", "h4")
 
 
 def test_regime_v4_rejects_nonfinite_source_gap_after_warmup() -> None:

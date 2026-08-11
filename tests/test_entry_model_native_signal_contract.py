@@ -59,6 +59,9 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 from tests.model_native_input_normalization_support import (
     input_normalization_fixture,
 )
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+)
 
 
 # The code-owned family fields plus ranked fixture fields form the exact
@@ -67,13 +70,23 @@ from tests.model_native_input_normalization_support import (
 # (vol_z_20, vol_ratio_5_20, vol_pct_96) moved from the volatility owner to
 # the momentum/flow owner alongside signed_vol_z_20 (declared order-flow in
 # gx1.features.volume_features), shifting 44/31 -> 41/34.
+# Pre-V29 audited per-specialist counts plus the V29 stage-2 event-family
+# additions, derived from the declared owner tuples (rule 13).
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES as _V29_LEVEL_NAMES,
+    MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES as _V29_MOMENTUM_NAMES,
+    REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES as _V29_REGIME_NAMES,
+    SWING_EVENT_LAYER_FEATURE_NAMES as _V29_SWING_NAMES,
+    TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES as _V29_TRENDLINE_NAMES,
+)
+
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
-    "chart_geometry_encoder": 18,
-    "momentum_flow_encoder": 34,
+    "chart_geometry_encoder": 18 + len(_V29_TRENDLINE_NAMES),
+    "momentum_flow_encoder": 34 + len(_V29_MOMENTUM_NAMES),
     "price_action_candle_encoder": 35,
-    "session_regime_encoder": 229,
-    "smc_liquidity_encoder": 68,
-    "structure_swing_encoder": 51,
+    "session_regime_encoder": 229 + len(_V29_REGIME_NAMES),
+    "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
+    "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),
     "trend_ema_encoder": 37,
     "vol_compression_encoder": 41,
 }
@@ -188,8 +201,8 @@ def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live()
     fields = ordered_model_native_signal_fields(selected)
     contract = model_native_signal_contract_metadata(selected)
 
-    assert len(selected) == 479
-    assert len(fields) == MODEL_NATIVE_SIGNAL_DIM == 513
+    assert len(selected) == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+    assert len(fields) == MODEL_NATIVE_SIGNAL_DIM == MODEL_NATIVE_SIGNAL_DIM
     assert fields[:34] == MODEL_NATIVE_BASE_FIELDS
     assert fields[34:] == tuple(selected)
     assert not (set(fields) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS))
@@ -319,7 +332,7 @@ def test_manifest_rejects_same_size_same_group_replacement_of_one_mandatory_fiel
     selected[selected.index(victim)] = replacement
     after = Counter(classify_entry_specialist_feature(name) for name in selected)
 
-    assert len(selected) == len(set(selected)) == 479
+    assert len(selected) == len(set(selected)) == MODEL_NATIVE_SELECTED_FEATURE_COUNT
     assert before == after
     manifest["selected_features"] = selected
     with pytest.raises(RuntimeError, match="missing_mandatory_full_stack_fields"):
@@ -467,8 +480,8 @@ def test_state_builder_exposes_only_model_native_513_symbols(tmp_path) -> None:
         signal_contract=contract,
     )
 
-    assert len(builder.ordered_signal_names) == 513
-    assert len(builder._ext_names) == 479
+    assert len(builder.ordered_signal_names) == MODEL_NATIVE_SIGNAL_DIM
+    assert len(builder._ext_names) == MODEL_NATIVE_SELECTED_FEATURE_COUNT
     assert not hasattr(state_module, "Smart520StateBuilder")
     assert not hasattr(state_module, "Smart520StateContract")
     assert not hasattr(state_module, "SIGNAL_DIM_SMART520")

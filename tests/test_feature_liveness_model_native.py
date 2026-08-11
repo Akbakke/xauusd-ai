@@ -12,6 +12,7 @@ import numpy as np
 
 from gx1.audit import feature_liveness
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     ordered_model_native_signal_fields,
 )
@@ -258,7 +259,11 @@ def test_retired_520_surface_cannot_pass_even_when_values_vary(monkeypatch) -> N
     )
 
     assert report["ok"] is False
-    assert any("width=520 expected=513" in issue for issue in report["issues"])
+    assert any(
+        f"width={len(legacy_names)} expected={MODEL_NATIVE_SIGNAL_DIM}"
+        in issue
+        for issue in report["issues"]
+    )
     assert any("forbidden legacy bridge fields" in issue for issue in report["issues"])
 
 

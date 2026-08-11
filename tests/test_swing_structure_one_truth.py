@@ -21,9 +21,11 @@ from gx1.features.micro_structure_v1 import (
     MICRO_FEATURE_NAMES_V1,
     compute_micro_structure_features,
 )
+from gx1.features.entry_foundation_structure_v1 import FOUNDATION_EVENT_AGE_CAP
 from gx1.features.regime_v4_features import REGIME_V4_SOURCE_COLS
 from gx1.features.swing_structure_v1 import (
     SWING_FEATURE_NAMES_V1,
+    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
@@ -93,6 +95,142 @@ def test_swing_structure_rejects_empty_or_invalid_parameters() -> None:
         compute_swing_structure_features(high, low, close, lookback=0)
     with pytest.raises(RuntimeError, match="ATR_PERIOD"):
         compute_swing_structure_features(high, low, close, atr_period=0)
+
+
+def _v29_ohlc(close_values: list[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    close = np.asarray(close_values, dtype=np.float64)
+    return close + 0.5, close - 0.5, close
+
+
+# Fixture A: two confirmed swing highs (pivots at j=2 level 103.5 adopted bar 4,
+# j=10 level 105.5 adopted bar 12), two confirmed swing lows (j=4 level 99.5
+# adopted bar 6, j=12 level 102.5 adopted bar 14). High breaks at bars 8 and 14.
+_V29_CLOSE_A = [
+    100.0, 101.0, 103.0, 101.0, 100.0, 100.5, 102.0, 102.5, 104.0,
+    104.8, 105.0, 104.0, 103.0, 103.5, 106.0, 106.5, 107.0,
+]
+
+# Fixture B: pivot lows at j=2 (99.5), j=6 (100.5, higher), j=10 (101.0,
+# higher), j=14 (98.5, LOWER -> run reset), adopted at bars 4/8/12/16.
+_V29_CLOSE_B = [
+    103.0, 102.0, 100.0, 102.0, 103.0, 102.5, 101.0, 102.0, 103.0,
+    102.5, 101.5, 103.0, 104.0, 103.0, 99.0, 101.0, 102.0, 103.0, 104.0,
+]
+
+
+def test_swing_v29_additions_are_opt_in_and_base_surface_is_unchanged() -> None:
+    high, low, close = _v29_ohlc(_V29_CLOSE_A)
+    base = compute_swing_structure_features(high, low, close)
+    assert tuple(base) == SWING_FEATURE_NAMES_V1
+    extended = compute_swing_structure_features(
+        high, low, close, include_v29_additions=True
+    )
+    assert tuple(extended) == SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
+    assert not set(SWING_V29_ADDITION_NAMES_V1) & set(SWING_FEATURE_NAMES_V1)
+    # The bound V1 surface is byte-identical with the additions on.
+    for name in SWING_FEATURE_NAMES_V1:
+        np.testing.assert_array_equal(base[name], extended[name])
+    with pytest.raises(RuntimeError, match="V29_FLAG"):
+        compute_swing_structure_features(
+            high, low, close, include_v29_additions=1  # type: ignore[arg-type]
+        )
+
+
+def test_swing_v29_break_event_fires_once_per_level_and_rearms_on_new_pivot() -> None:
+    high, low, close = _v29_ohlc(_V29_CLOSE_A)
+    out = compute_swing_structure_features(
+        high, low, close, include_v29_additions=True
+    )
+    # First close through 103.5 is bar 8; bars 9-10 stay above the broken
+    # level but the event is disarmed (fires once per level). The new level
+    # 105.5 (adopted bar 12) re-arms; first close through it is bar 14.
+    assert np.flatnonzero(out["swing_high_break_event"]).tolist() == [8, 14]
+    assert np.flatnonzero(out["swing_low_break_event"]).tolist() == []
+    # Displacement is (close - level)/ATR at the event bar and 0 off-event.
+    # At the event bar the level is still last_high, so the displacement
+    # equals dist_last_swing_high_atr there — same formula, same ATR.
+    assert np.flatnonzero(out["swing_break_displacement_atr"]).tolist() == [8, 14]
+    for row in (8, 14):
+        assert out["swing_break_displacement_atr"][row] > 0.0
+        np.testing.assert_allclose(
+            out["swing_break_displacement_atr"][row],
+            out["dist_last_swing_high_atr"][row],
+            rtol=1e-6,
+        )
+    # G2 ages: foundation _bars_since_event convention — cap-initialized,
+    # 0 on the event bar, +1 capped after.
+    ages = out["bars_since_swing_high_break"]
+    assert ages[:8].tolist() == [float(FOUNDATION_EVENT_AGE_CAP)] * 8
+    assert ages[8:].tolist() == [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 1.0, 2.0]
+    assert out["bars_since_swing_low_break"].tolist() == [
+        float(FOUNDATION_EVENT_AGE_CAP)
+    ] * len(close)
+
+
+def test_swing_v29_sequence_delta_and_counts_use_real_pivot_arithmetic() -> None:
+    high, low, close = _v29_ohlc(_V29_CLOSE_A)
+    out = compute_swing_structure_features(
+        high, low, close, include_v29_additions=True
+    )
+    # No delta exists before the SECOND confirmed pivot on a side: honest NaN
+    # warmup prefix, then finite forever.
+    high_delta = out["swing_high_sequence_delta_atr"]
+    assert np.isnan(high_delta[:12]).all()
+    assert np.isfinite(high_delta[12:]).all()
+    # delta = (last - prev)/ATR shares the ATR of dist_last_swing_high_atr
+    # = (close - last)/ATR; at bar 12: last=105.5, prev=103.5, close=103.0.
+    np.testing.assert_allclose(
+        high_delta[12],
+        out["dist_last_swing_high_atr"][12] * ((105.5 - 103.5) / (103.0 - 105.5)),
+        rtol=1e-6,
+    )
+    low_delta = out["swing_low_sequence_delta_atr"]
+    assert np.isnan(low_delta[:14]).all()
+    assert np.isfinite(low_delta[14:]).all()
+    assert (low_delta[14:] > 0.0).all()  # 102.5 is a higher low than 99.5
+    # 105.5 > 103.5 is a higher high: the lower-highs run never starts.
+    assert out["consecutive_lower_highs_count"].tolist() == [0.0] * len(close)
+    hl_norm_1 = np.log1p(1.0) / np.log1p(float(FOUNDATION_EVENT_AGE_CAP))
+    hl = out["consecutive_higher_lows_count"]
+    np.testing.assert_allclose(hl[:14], 0.0, atol=0.0)
+    np.testing.assert_allclose(hl[14:], np.float32(hl_norm_1), rtol=1e-6)
+
+
+def test_swing_v29_higher_low_run_counts_and_resets_on_lower_low() -> None:
+    high, low, close = _v29_ohlc(_V29_CLOSE_B)
+    out = compute_swing_structure_features(
+        high, low, close, include_v29_additions=True
+    )
+    cap = float(FOUNDATION_EVENT_AGE_CAP)
+    norm = lambda k: np.float32(np.log1p(float(k)) / np.log1p(cap))  # noqa: E731
+    hl = out["consecutive_higher_lows_count"]
+    np.testing.assert_allclose(hl[:8], 0.0, atol=0.0)
+    np.testing.assert_allclose(hl[8:12], norm(1), rtol=1e-6)
+    np.testing.assert_allclose(hl[12:16], norm(2), rtol=1e-6)
+    np.testing.assert_allclose(hl[16:], 0.0, atol=0.0)  # 98.5 < 101.0 resets
+    # The armed level 101.0 (adopted bar 12) breaks down at bar 14 (close 99).
+    assert np.flatnonzero(out["swing_low_break_event"]).tolist() == [14]
+    assert out["swing_break_displacement_atr"][14] < 0.0
+    np.testing.assert_allclose(
+        out["swing_break_displacement_atr"][14],
+        out["dist_last_swing_low_atr"][14],
+        rtol=1e-6,
+    )
+    ages = out["bars_since_swing_low_break"]
+    assert ages[13] == cap and ages[14] == 0.0 and ages[18] == 4.0
+
+
+def test_swing_v29_additions_are_causal_and_future_append_invariant() -> None:
+    high, low, close = _v29_ohlc(_V29_CLOSE_B)
+    full = compute_swing_structure_features(
+        high, low, close, include_v29_additions=True
+    )
+    keep = len(close) - 4
+    prefix = compute_swing_structure_features(
+        high[:keep], low[:keep], close[:keep], include_v29_additions=True
+    )
+    for name in SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1:
+        np.testing.assert_array_equal(prefix[name], full[name][:keep])
 
 
 def test_micro_structure_is_causal_exact_and_strict() -> None:

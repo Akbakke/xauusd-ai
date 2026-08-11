@@ -1018,11 +1018,16 @@ def _build_model_agnostic_canonical(
         trim_causal_context_warmup_prefix,
     )
 
+    from gx1.execution.v12_state_from_prebuilt import (
+        _require_v29_registry_constants_from_bound_cache,
+    )
+
     multi_tf = build_multi_tf_per_bar_features_v4(
         indexed_m5.loc[
             canonical.index,
             ["open", "high", "low", "close", "volume"],
-        ]
+        ],
+        v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
     )
     attach_model_native_mtf_scalars_v4(
         canonical,

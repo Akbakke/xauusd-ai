@@ -23,6 +23,9 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     publish_prefreeze_test_authority,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 
 
 def test_post_rebuild_readiness_tracks_current_chain_schema() -> None:
@@ -111,7 +114,7 @@ def _fixture(
                 "schema_version": gate.SPLIT_MANIFEST_SCHEMA,
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
                 "output_data_path": str(parquet),
-                "expected_seq_snap_width": 513,
+                "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
                 "feature_contract": {
                     "signal_bridge_fields": signal_contract["fields"],
                     "ctx_cont_dim": 142,

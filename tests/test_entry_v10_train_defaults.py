@@ -1824,8 +1824,10 @@ def test_entry_v10_outcome_target_contract_does_not_rewrite_structural_rows() ->
             "y_short_bad_path": [0.0],
             "y_long_expected_mae_bps": [2.0],
             "y_short_expected_mae_bps": [1.0],
-            "y_rising_channel_support_touch": [1.0],
-            "y_falling_channel_resistance_touch": [0.0],
+            "y_line_support_touch_held": [1.0],
+            "y_line_support_touch_mask": [1.0],
+            "y_line_resistance_touch_held": [0.0],
+            "y_line_resistance_touch_mask": [1.0],
             "y_support_retest_continuation": [0.0],
             "y_resistance_retest_continuation": [0.0],
             "y_countertrend_short_trap": [0.0],
@@ -1920,8 +1922,10 @@ def test_entry_v10_xau_direction_repair_target_contract_uses_float32_path_semant
             "y_short_bad_path": [0.0],
             "y_long_expected_mae_bps": [355.1455078125],
             "y_short_expected_mae_bps": [float(mae_short)],
-            "y_rising_channel_support_touch": [0.0],
-            "y_falling_channel_resistance_touch": [0.0],
+            "y_line_support_touch_held": [0.0],
+            "y_line_support_touch_mask": [0.0],
+            "y_line_resistance_touch_held": [0.0],
+            "y_line_resistance_touch_mask": [0.0],
             "y_support_retest_continuation": [0.0],
             "y_resistance_retest_continuation": [0.0],
             "y_countertrend_short_trap": [0.0],
@@ -2317,12 +2321,14 @@ def test_entry_v10_active_head_target_surfaces_match_exact_output_widths(monkeyp
         ),
         "y_long_expected_mae_bps": 5.0 * (base + 1.0),
         "y_short_expected_mae_bps": 6.0 * (1.0 - base),
-        "y_rising_channel_support_touch": torch.tensor(
+        "y_line_support_touch_held": torch.tensor(
             [float(index % 2) for index in range(rows)]
         ),
-        "y_falling_channel_resistance_touch": torch.tensor(
+        "y_line_support_touch_mask": torch.ones(rows),
+        "y_line_resistance_touch_held": torch.tensor(
             [float((index + 1) % 2) for index in range(rows)]
         ),
+        "y_line_resistance_touch_mask": torch.ones(rows),
         "y_countertrend_short_trap": torch.tensor(
             [float((index // 2) % 2) for index in range(rows)]
         ),

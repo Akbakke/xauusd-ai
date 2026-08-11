@@ -4,7 +4,8 @@
 
 C+prune strategy: extract the exact historical 25-field group-A subset per TF
 from the verified V4 cache (5 TFs × 25 = 125), plus 28 group-A features. This
-derived context surface is not the model's separate 5×111 V4 input grid.
+derived context surface is not the model's separate 5-per-TF V4 input grid
+(width = htf_features.MULTI_TF_FEATURE_COUNT_V4, derived from the declared tuples).
 
 OPTIMIZED (2026-07-21): builds all caches once, resolves each TF snapshot once,
 and keeps row lookup zero-copy. Measured full-contract throughput is >2,000
@@ -1693,6 +1694,16 @@ def main() -> int:
     ap.add_argument("--out-dir", type=Path, default=None)
     ap.add_argument("--m5-prebuilt", type=Path, default=M5_PREBUILT)
     ap.add_argument("--n-weeks-test", type=int, default=0)
+    ap.add_argument(
+        "--v29-registry-constants-manifest",
+        type=Path,
+        required=True,
+        help=(
+            "Explicit JSON artifact carrying the frozen TRAIN-fitted V29 "
+            "registry constants (a V4 cache manifest.json or a bare "
+            "payload); no default exists"
+        ),
+    )
     args = ap.parse_args()
 
     out_dir = args.out_dir or args.forward_outcome_dir.with_name(
@@ -1717,7 +1728,14 @@ def main() -> int:
     m5_df = pd.read_parquet(args.m5_prebuilt, columns=["time", "open", "high", "low", "close", "volume"])
     m5_df["time"] = pd.to_datetime(m5_df["time"], utc=True)
     m5_df = m5_df.set_index("time").sort_index()
-    multi_tf = build_multi_tf_per_bar_features_v4(m5_df)
+    from gx1.features.htf_features import load_v29_registry_constants_manifest
+
+    multi_tf = build_multi_tf_per_bar_features_v4(
+        m5_df,
+        v29_registry_constants=load_v29_registry_constants_manifest(
+            args.v29_registry_constants_manifest
+        ),
+    )
     print(f"[AUG_V2]   M5={len(m5_df):,} bars  multi-TF in {time.time()-t0:.1f}s")
 
     print("[AUG_V2] building augment context (one-shot pre-compute)...")

@@ -52,6 +52,9 @@ from gx1.contracts.entry_exit_feature_surface_v1 import (
 )
 from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
 from gx1.monitoring.trade_journal import TradeJournal
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 def _softmax(values: list[float]) -> list[float]:
     array = np.asarray(values, dtype=np.float64)
     exp = np.exp(array - array.max())
@@ -178,7 +181,7 @@ def _snapshot() -> dict:
 
 
 def _exit_feature_surface() -> dict:
-    signal = np.zeros((EXIT_FEATURE_SEQUENCE_BARS, 513), dtype=np.float32)
+    signal = np.zeros((EXIT_FEATURE_SEQUENCE_BARS, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
     return {
         "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
         "decision_time": "2026-07-16T12:01:00+00:00",
@@ -377,8 +380,8 @@ def test_unified_exit_uses_frozen_entry_representation_and_exact_path(
     assert output["bundle_sha256"] == "b" * 64
     assert len(model.calls) == 1
     assert model.calls[0]["entry_shared_representation"].shape == (1, 128)
-    assert model.calls[0]["exit_feature_seq_x"].shape == (1, EXIT_FEATURE_SEQUENCE_BARS, 513)
-    assert model.calls[0]["exit_feature_snap_x"].shape == (1, 513)
+    assert model.calls[0]["exit_feature_seq_x"].shape == (1, EXIT_FEATURE_SEQUENCE_BARS, MODEL_NATIVE_SIGNAL_DIM)
+    assert model.calls[0]["exit_feature_snap_x"].shape == (1, MODEL_NATIVE_SIGNAL_DIM)
     assert model.calls[0]["exit_feature_ctx_cat"].shape == (1, 5)
     assert model.calls[0]["exit_feature_ctx_cont"].shape == (1, 142)
     assert model.calls[0]["exit_path_x"].shape == (1, 1, 14)

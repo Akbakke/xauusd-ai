@@ -193,7 +193,30 @@ ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=1.00
 ENTRY_UNIFIED_EXIT_ACTION_WEIGHT=1.00
 GX1_CTX_CONTRACT=V_NEXT
 GX1_V10_CKPT_MONITOR=dir_acc
+ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q=REQUIRED
+ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS=12
+ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS=24
+ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS=7
 """.strip()
+
+# ── V29 registry recipe keys (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §1.4,
+# §8 item 4; stage-1 owners: level_registry_v1 / trendline_registry_v1) ──────
+# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q carries the marker value REQUIRED: the
+# design doc declares NO default for `q` (operator decision at the immutable
+# recipe decision, §8 item 4), so the dataset rebuild must receive it as an
+# explicit CLI input (`--level-tol-quantile-q` on the cache prebuild) and the
+# fitted tolerances are frozen with provenance in the rebuild authority
+# artifacts (rule 18).  A run that tries to consume the marker as a number
+# fails closed.  The three window keys restate the stage-1 owners' named
+# convention constants and are equality-checked against them below — the
+# module constants stay the single numerical truth (rule 2a/13).
+MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS = (
+    "ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q",
+    "ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS",
+    "ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS",
+    "ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS",
+)
+MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_REQUIRED_MARKER = "REQUIRED"
 
 
 def _parse_recipe_env(text: str) -> dict[str, str]:
@@ -336,11 +359,66 @@ DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "skips_low_label_diversity": True,
 }
 
-if len(MODEL_NATIVE_RECIPE_ENV) != 164:
+# The audited pre-V29 recipe surface held exactly 164 keys; the total is now
+# DERIVED as that audited base plus the declared V29 registry key tuple, so a
+# key can be neither silently dropped nor silently invented.
+_PRE_V29_RECIPE_ENV_KEY_COUNT = 164
+_EXPECTED_RECIPE_ENV_KEY_COUNT = _PRE_V29_RECIPE_ENV_KEY_COUNT + len(
+    MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS
+)
+if len(MODEL_NATIVE_RECIPE_ENV) != _EXPECTED_RECIPE_ENV_KEY_COUNT:
     raise RuntimeError(
         "MODEL_NATIVE_RECIPE_ENV_COUNT_INVALID: "
-        f"observed={len(MODEL_NATIVE_RECIPE_ENV)} expected=164"
+        f"observed={len(MODEL_NATIVE_RECIPE_ENV)} "
+        f"expected={_EXPECTED_RECIPE_ENV_KEY_COUNT}"
     )
+for _v29_key in MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS:
+    if _v29_key not in MODEL_NATIVE_RECIPE_ENV:
+        raise RuntimeError(
+            f"MODEL_NATIVE_RECIPE_ENV_V29_KEY_MISSING: {_v29_key}"
+        )
+if MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"] != (
+    MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_REQUIRED_MARKER
+):
+    raise RuntimeError(
+        "MODEL_NATIVE_RECIPE_ENV_V29_TOL_QUANTILE_INVALID: the design doc "
+        "declares no default; the value stays REQUIRED until the immutable "
+        "recipe decision supplies it"
+    )
+
+
+def _require_v29_registry_recipe_window_consistency() -> None:
+    """The window keys must equal the stage-1 owners' named constants."""
+
+    from gx1.features.level_registry_v1 import (
+        LEVEL_REGISTRY_REACTION_WINDOW_BARS,
+        LEVEL_REGISTRY_RETEST_WINDOW_BARS,
+    )
+    from gx1.features.trendline_registry_v1 import (
+        TRENDLINE_RETEST_WINDOW_BARS_V1,
+    )
+
+    expected = {
+        "ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS": (
+            LEVEL_REGISTRY_REACTION_WINDOW_BARS
+        ),
+        "ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS": (
+            LEVEL_REGISTRY_RETEST_WINDOW_BARS
+        ),
+        "ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS": (
+            TRENDLINE_RETEST_WINDOW_BARS_V1
+        ),
+    }
+    for key, owner_value in expected.items():
+        if int(MODEL_NATIVE_RECIPE_ENV[key]) != int(owner_value):
+            raise RuntimeError(
+                "MODEL_NATIVE_RECIPE_ENV_V29_WINDOW_MISMATCH: "
+                f"{key}={MODEL_NATIVE_RECIPE_ENV[key]!r} "
+                f"owner={owner_value!r}"
+            )
+
+
+_require_v29_registry_recipe_window_consistency()
 
 
 def require_model_native_recipe_env(value: Mapping[str, Any]) -> dict[str, str]:

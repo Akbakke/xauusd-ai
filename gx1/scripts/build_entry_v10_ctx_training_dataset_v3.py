@@ -15,19 +15,20 @@ Missing or mismatched contracts fail closed.  No compatibility fallback exists.
 
 SECTION LINE INDEX (oppdater ved flytting; se ogsaa SYSTEM_MAP.md
 "Pipeline- og ingredienskart"):
-  ~594  exact model-native ctx142/cat5 gate
-  ~628  _signal_build_contract_from_manifest
-  ~674  _build_inline_seq_structure_extension (alle specialist-lag fra merged3)
-  ~1799 is_ASIA-derivering ((session_id==0).astype(int8))
-  ~1835 Entry-owned exact context ordering
-  ~1982 df_ctx_cont-konstruksjon
-  ~2096 merged3-assembly (labels/path/bad-path + ctx-join)
-  ~2115 cv2-lasteliste (V3-navn minus computed-familier)
-  ~2244 GROUP_A/DIP_STRUCT-attach (krever env GX1_V10_MULTI_TF_V4_CACHE_DIR;
+  ~778  exact model-native ctx142/cat5 gate
+  ~1155 _signal_build_contract_from_manifest
+  ~1211 _build_inline_seq_structure_extension (alle specialist-lag fra merged3;
+        V29 stage 2: fem event-familier via source-parquet-lag +
+        v29_registry_layer_params for level/trendline)
+  ~2966 is_ASIA-derivering ((session_id==0).astype(int8))
+  ~3153 df_ctx_cont-konstruksjon
+  ~3434 GROUP_A/DIP_STRUCT-attach (krever env GX1_V10_MULTI_TF_V4_CACHE_DIR;
+        laster ogsaa V29 registry-konstanter fra cache-manifestet;
         85 ms/rad serielt — se parallellmoenster i ranker-scriptet)
-  ~2330 entry_smart_context (ENTRY_SMART_DERIVED)
-  ~2337 ctx-komplett-sjekk (alle 142 maa finnes)
-  ~3440 argparse
+  ~3603 entry_smart_context (ENTRY_SMART_DERIVED)
+  ~3610 ctx-komplett-sjekk (alle 142 maa finnes)
+  ~4177 V29 line-hold aux-labels (compute_trendline_touch_hold_labels_v1)
+  ~4724 argparse
 """
 
 from __future__ import annotations
@@ -297,8 +298,15 @@ def hierarchical_direction_label_contract() -> Dict[str, Any]:
                 "y_short_bad_path",
                 "y_long_expected_mae_bps",
                 "y_short_expected_mae_bps",
-                "y_rising_channel_support_touch",
-                "y_falling_channel_resistance_touch",
+                # V29 stage 2: the two same-bar tautologies
+                # (y_rising_channel_support_touch /
+                # y_falling_channel_resistance_touch) are replaced by
+                # forward-realized registry line-hold labels, event-masked per
+                # the y_side_mask pattern (chart report B.8; design §5.2.8).
+                "y_line_support_touch_held",
+                "y_line_support_touch_mask",
+                "y_line_resistance_touch_held",
+                "y_line_resistance_touch_mask",
                 "y_support_retest_continuation",
                 "y_resistance_retest_continuation",
                 "y_countertrend_short_trap",
@@ -1208,6 +1216,10 @@ def _build_inline_seq_structure_extension(
     base_signal_fields: Sequence[str] = MODEL_NATIVE_BASE_FIELDS,
     precomputed_price_layer: Optional[Tuple[np.ndarray, List[str]]] = None,
     precomputed_candle_layer: Optional[Tuple[np.ndarray, List[str]]] = None,
+    precomputed_v29_event_layers: Optional[
+        Mapping[str, Tuple[np.ndarray, List[str]]]
+    ] = None,
+    v29_registry_layer_params: Optional[Mapping[str, Any]] = None,
     emit_offset: int = 0,
     support_memory_state: Optional[Mapping[str, float]] = None,
     return_support_memory_state: bool = False,
@@ -1233,10 +1245,21 @@ def _build_inline_seq_structure_extension(
         raise RuntimeError("SEQ_STRUCTURE_INLINE_EMIT_OFFSET_INVALID")
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
+        LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
         MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
+        MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
+        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+        SWING_EVENT_LAYER_FEATURE_NAMES,
+        TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+        V29_REGISTRY_LAYER_PARAM_KEYS,
         build_candlestick_derived_layer,
         build_chart_layer,
+        build_level_registry_m5_layer,
+        build_momentum_event_m5_layer,
         build_price_derived_layer,
+        build_regime_flip_event_layer,
+        build_swing_event_m5_layer,
+        build_trendline_registry_m5_layer,
     )
     from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
     from gx1.features.entry_session_regime_interactions_v1 import (
@@ -1362,6 +1385,75 @@ def _build_inline_seq_structure_extension(
         # This avoids a second parquet read with a different normalization path.
         return candle_x.astype(np.float32, copy=False), list(candle_names)
 
+    # ── V29 Phase A stage 2 event families ─────────────────────────────────
+    # Each layer is computed over the COMPLETE causal source history and
+    # row-aligned (the price/candle layer pattern), so bounded-chunk callers
+    # are exact by construction; they may also pass the full-alignment layers
+    # precomputed.  The two registry layers carry TRAIN-fitted constants with
+    # no default (rule 2a): requesting them without the explicit params
+    # payload fails closed.
+    def _require_v29_registry_layer_params() -> Mapping[str, Any]:
+        if not isinstance(v29_registry_layer_params, Mapping) or set(
+            v29_registry_layer_params
+        ) != set(V29_REGISTRY_LAYER_PARAM_KEYS):
+            raise RuntimeError(
+                "SEQ_STRUCTURE_INLINE_V29_REGISTRY_PARAMS_REQUIRED: the "
+                "level/trendline registry layers need the exact TRAIN-fitted "
+                f"params {V29_REGISTRY_LAYER_PARAM_KEYS} (no default exists)"
+            )
+        return v29_registry_layer_params
+
+    def _v29_level_layer() -> Tuple[np.ndarray, List[str]]:
+        params = _require_v29_registry_layer_params()
+        return build_level_registry_m5_layer(
+            merged3[["time"]].copy(),
+            Path(source_parquet),
+            tol_level_atr=params["level_tol_atr"],
+        )
+
+    def _v29_trendline_layer() -> Tuple[np.ndarray, List[str]]:
+        params = _require_v29_registry_layer_params()
+        return build_trendline_registry_m5_layer(
+            merged3[["time"]].copy(),
+            Path(source_parquet),
+            band_atr=params["trendline_band_atr"],
+            seq_len=int(params["trendline_seq_len"]),
+        )
+
+    _v29_event_layer_plan: Tuple[Tuple[str, Tuple[str, ...], Any], ...] = (
+        (
+            "level_registry_m5_layer",
+            LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
+            _v29_level_layer,
+        ),
+        (
+            "trendline_registry_m5_layer",
+            TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+            _v29_trendline_layer,
+        ),
+        (
+            "swing_structure_event_layer",
+            SWING_EVENT_LAYER_FEATURE_NAMES,
+            lambda: build_swing_event_m5_layer(
+                merged3[["time"]].copy(), Path(source_parquet)
+            ),
+        ),
+        (
+            "momentum_event_m5_layer",
+            MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
+            lambda: build_momentum_event_m5_layer(
+                merged3[["time"]].copy(), Path(source_parquet)
+            ),
+        ),
+        (
+            "regime_flip_event_layer",
+            REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+            lambda: build_regime_flip_event_layer(
+                merged3[["time"]].copy(), Path(source_parquet)
+            ),
+        ),
+    )
+
     # foundation_cross_family_layer, chart_geometry_smart2_layer and
     # price_ema50_200_layer are emitted exactly once upstream (the first two
     # inside build_chart_layer, the price layer via the chart concat above),
@@ -1379,6 +1471,35 @@ def _build_inline_seq_structure_extension(
         "price_action_candle_smart3_layer": _candlestick_layer_strict,
         "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
     }
+    for _v29_label, _v29_names, _v29_builder in _v29_event_layer_plan:
+        if not any(
+            name in requested_set and name not in set(all_names)
+            for name in _v29_names
+        ):
+            continue
+        if precomputed_v29_event_layers is not None and _v29_label in (
+            precomputed_v29_event_layers
+        ):
+            _v29_x, _v29_observed = precomputed_v29_event_layers[_v29_label]
+            _v29_x = np.asarray(_v29_x, dtype=np.float32)
+            _v29_observed = list(_v29_observed)
+            if (
+                _v29_x.ndim != 2
+                or _v29_x.shape != (len(merged3), len(_v29_observed))
+                or tuple(_v29_observed) != tuple(_v29_names)
+                or not np.isfinite(_v29_x).all()
+            ):
+                raise RuntimeError(
+                    f"SEQ_STRUCTURE_INLINE_V29_LAYER_INVALID: {_v29_label}"
+                )
+        else:
+            _v29_x, _v29_observed = _v29_builder()
+            if tuple(_v29_observed) != tuple(_v29_names):
+                raise RuntimeError(
+                    f"SEQ_STRUCTURE_INLINE_V29_LAYER_ORDER_INVALID: {_v29_label}"
+                )
+        _append_generated_layer(_v29_label, _v29_x, list(_v29_observed))
+
     next_support_memory_state: Dict[str, np.float32] = {}
     emit_applied = False
     for label, feature_names in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES:
@@ -3335,6 +3456,10 @@ def build_dataset_canonical(
     if not _cache_dir.is_dir():
         raise RuntimeError(f"MULTI_TF_V4_CACHE_MISSING: {_cache_dir}")
     _verified_mtf_cache = _ga_load_cache(_cache_dir)
+    # The immutable TRAIN-fitted V29 registry constants travel with the cache
+    # manifest (rules 14/15/18): the dataset build consumes them from that
+    # hash-bound artifact, never from an ambient default.
+    _v29_registry_constants = dict(_verified_mtf_cache.v29_registry_constants)
     _multi_tf_cache_binding = {
         "cache_dir": str(_cache_dir),
         "manifest_path": str((_cache_dir / "manifest.json").resolve()),
@@ -3348,6 +3473,7 @@ def build_dataset_canonical(
         "m5_prebuilt_source_sha256": str(
             _verified_mtf_cache.m5_prebuilt_source_sha256
         ),
+        "v29_registry_constants": _v29_registry_constants,
     }
     _group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(
         MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
@@ -4045,8 +4171,87 @@ def build_dataset_canonical(
         float(np.percentile(y_position_size, 50)),
         float(np.percentile(y_position_size, 90)),
     )
-    y_rising_channel_support_touch = _rising_support.astype(np.float32)
-    y_falling_channel_resistance_touch = _falling_resistance.astype(np.float32)
+    # ── V29 aux rail-target replacement (chart report B.8; design §5.2.8) ──
+    # The retired y_rising_channel_support_touch /
+    # y_falling_channel_resistance_touch were same-bar tautologies over
+    # structural inputs.  The replacements are forward-realized registry
+    # line-hold labels: defined only on real trendline-registry touch events
+    # (event mask per the y_side_mask pattern), label = that same registry
+    # line not BROKEN within the existing named first-N forward horizon
+    # (PATH_QUALITY_HORIZON_BARS — the declared first-N label owner).  The
+    # registry runs on the complete canonical tape with the entry-M5 lane's
+    # TRAIN-fitted frozen constants from the cache manifest, so the labelled
+    # lines are the exact objects the chart.geomline_* features describe.
+    from gx1.features.htf_features import _atr as _htf_atr14
+    from gx1.features.trendline_registry_v1 import (
+        compute_trendline_touch_hold_labels_v1,
+    )
+
+    _v29_label_source = _common_m5[["high", "low", "close"]].astype(np.float64)
+    _v29_label_source["atr"] = _htf_atr14(
+        _v29_label_source["high"],
+        _v29_label_source["low"],
+        _v29_label_source["close"],
+        14,
+    )
+    _v29_line_labels = compute_trendline_touch_hold_labels_v1(
+        _v29_label_source,
+        seq_len=int(_v29_registry_constants["entry_m5"]["seq_len"]),
+        band_atr=float(
+            _v29_registry_constants["entry_m5"]["trendline_band_atr"]
+        ),
+        horizon_bars=int(PATH_QUALITY_HORIZON_BARS),
+    )
+    _v29_label_times = pd.DatetimeIndex(
+        pd.to_datetime(merged3["time"], utc=True, errors="raise")
+    )
+    _v29_missing_label_rows = _v29_label_times.difference(_v29_line_labels.index)
+    if len(_v29_missing_label_rows):
+        raise RuntimeError(
+            "V29_LINE_LABEL_ROW_GAP: "
+            f"missing={len(_v29_missing_label_rows)} "
+            f"first={_v29_missing_label_rows[0]}"
+        )
+    _v29_line_labels = _v29_line_labels.loc[_v29_label_times]
+    y_line_support_touch_held = (
+        _v29_line_labels["y_line_support_touch_held"].to_numpy(dtype=np.float32)
+    )
+    y_line_support_touch_mask = (
+        _v29_line_labels["y_line_support_touch_mask"].to_numpy(dtype=np.float32)
+    )
+    y_line_resistance_touch_held = (
+        _v29_line_labels["y_line_resistance_touch_held"].to_numpy(
+            dtype=np.float32
+        )
+    )
+    y_line_resistance_touch_mask = (
+        _v29_line_labels["y_line_resistance_touch_mask"].to_numpy(
+            dtype=np.float32
+        )
+    )
+    log.info(
+        "[V29_LINE_LABEL_PROOF] support_touch_rate=%.6f support_held_rate=%.6f "
+        "resistance_touch_rate=%.6f resistance_held_rate=%.6f horizon_bars=%d",
+        float(np.mean(y_line_support_touch_mask)),
+        float(
+            np.mean(
+                y_line_support_touch_held[y_line_support_touch_mask > 0.5]
+            )
+        )
+        if (y_line_support_touch_mask > 0.5).any()
+        else 0.0,
+        float(np.mean(y_line_resistance_touch_mask)),
+        float(
+            np.mean(
+                y_line_resistance_touch_held[
+                    y_line_resistance_touch_mask > 0.5
+                ]
+            )
+        )
+        if (y_line_resistance_touch_mask > 0.5).any()
+        else 0.0,
+        int(PATH_QUALITY_HORIZON_BARS),
+    )
     y_support_retest_continuation = _support_retest_continuation.astype(np.float32)
     y_resistance_retest_continuation = _resistance_retest_continuation.astype(
         np.float32
@@ -4058,12 +4263,12 @@ def build_dataset_canonical(
     y_short_high_mae_low_mfe_early_failure = _short_high_mae_low_mfe.astype(np.float32)
 
     log.info(
-        "[ENTRY_HIER_LABEL_PROOF] trade=%.4f side_mask=%.4f rising_support=%.4f falling_resistance=%.4f "
+        "[ENTRY_HIER_LABEL_PROOF] trade=%.4f side_mask=%.4f line_support_touch=%.4f line_resistance_touch=%.4f "
         "countertrend_short_trap=%.4f countertrend_long_trap=%.4f mtf_conflict=%.4f",
         float(np.mean(y_trade)),
         float(np.mean(y_side_mask)),
-        float(np.mean(y_rising_channel_support_touch)),
-        float(np.mean(y_falling_channel_resistance_touch)),
+        float(np.mean(y_line_support_touch_mask)),
+        float(np.mean(y_line_resistance_touch_mask)),
         float(np.mean(y_countertrend_short_trap)),
         float(np.mean(y_countertrend_long_trap)),
         float(np.mean(y_mtf_conflict_m5_vs_higher_side)),
@@ -4331,8 +4536,10 @@ def build_dataset_canonical(
                 "y_short_bad_path": y_short_bad_path[i],
                 "y_long_expected_mae_bps": y_long_expected_mae_bps[i],
                 "y_short_expected_mae_bps": y_short_expected_mae_bps[i],
-                "y_rising_channel_support_touch": y_rising_channel_support_touch[i],
-                "y_falling_channel_resistance_touch": y_falling_channel_resistance_touch[
+                "y_line_support_touch_held": y_line_support_touch_held[i],
+                "y_line_support_touch_mask": y_line_support_touch_mask[i],
+                "y_line_resistance_touch_held": y_line_resistance_touch_held[i],
+                "y_line_resistance_touch_mask": y_line_resistance_touch_mask[
                     i
                 ],
                 "y_support_retest_continuation": y_support_retest_continuation[i],

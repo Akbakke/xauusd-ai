@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -32,6 +33,12 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
     select_causal_mtf_fit_population,
 )
 from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
+
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_constants,
+)
+
+_V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
 
 
 def _sha256_file(path: Path) -> str:
@@ -269,6 +276,7 @@ def _artifacts(
         m5_prebuilt=m5_prebuilt,
         expected_source_sha256=_sha256_file(m5_prebuilt),
         features=features,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
     )
     cache_manifest = json.loads(
         cache_manifest_path.read_text(encoding="utf-8")

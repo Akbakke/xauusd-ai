@@ -306,7 +306,9 @@ def _build_bounded_extension_chunk(
     price_names: list[str],
     candle_layer: np.ndarray,
     candle_names: list[str],
-    emit_offset: int,
+    v29_event_layers: Mapping[str, tuple[np.ndarray, list[str]]] | None = None,
+    v29_registry_layer_params: Mapping[str, Any] | None = None,
+    emit_offset: int = 0,
     support_memory_state: dict[str, np.float32] | None,
     foundation_event_age_state: Mapping[str, object] | None,
     source_contract_label: str,
@@ -340,6 +342,8 @@ def _build_bounded_extension_chunk(
             base_signal_fields=base_signal_fields,
             precomputed_price_layer=(price_layer, price_names),
             precomputed_candle_layer=(candle_layer, candle_names),
+            precomputed_v29_event_layers=v29_event_layers,
+            v29_registry_layer_params=v29_registry_layer_params,
             emit_offset=emit_offset,
             support_memory_state=support_memory_state,
             return_support_memory_state=True,
@@ -359,6 +363,7 @@ def _materialize_bounded_feature_surface(
     timeframe: str,
     bar_seconds: int,
     sequence_bars: int,
+    v29_registry_layer_params: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Write one native surface without a full source/513-wide RAM frame."""
 
@@ -367,9 +372,20 @@ def _materialize_bounded_feature_surface(
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
     PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+        LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
+        MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
         PRICE_DERIVED_FEATURE_NAMES,
+        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+        SWING_EVENT_LAYER_FEATURE_NAMES,
+        TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+        V29_REGISTRY_LAYER_PARAM_KEYS,
         build_candlestick_derived_layer,
+        build_level_registry_m5_layer,
+        build_momentum_event_m5_layer,
         build_price_derived_layer,
+        build_regime_flip_event_layer,
+        build_swing_event_m5_layer,
+        build_trendline_registry_m5_layer,
     )
     from gx1.features.entry_candlestick_patterns_v1 import (
         CANDLESTICK_PATTERN_FEATURE_NAMES,
@@ -547,7 +563,88 @@ def _materialize_bounded_feature_surface(
             storage / "candle_layer.mmap",
             candle_values,
         )
-        del candle_values, sample_times
+        del candle_values
+        gc.collect()
+
+        # ── V29 Phase A stage 2 event layers ────────────────────────────
+        # Precomputed once over the full surface alignment (the price/candle
+        # pattern), so bounded chunks stay exact by construction.  The two
+        # registry layers require the explicit TRAIN-fitted lane params
+        # (no default exists, rule 2a).
+        requested_feature_set = set(requested_features)
+
+        def _v29_registry_params() -> Mapping[str, Any]:
+            if not isinstance(v29_registry_layer_params, Mapping) or set(
+                v29_registry_layer_params
+            ) != set(V29_REGISTRY_LAYER_PARAM_KEYS):
+                raise RuntimeError(
+                    "M1_FEATURE_BASE_V29_REGISTRY_PARAMS_REQUIRED: the "
+                    "level/trendline registry layers need the exact "
+                    f"TRAIN-fitted params {V29_REGISTRY_LAYER_PARAM_KEYS}"
+                )
+            return v29_registry_layer_params
+
+        _v29_layer_plan = (
+            (
+                "level_registry_m5_layer",
+                LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
+                lambda frame_times: build_level_registry_m5_layer(
+                    frame_times,
+                    source,
+                    tol_level_atr=_v29_registry_params()["level_tol_atr"],
+                ),
+            ),
+            (
+                "trendline_registry_m5_layer",
+                TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+                lambda frame_times: build_trendline_registry_m5_layer(
+                    frame_times,
+                    source,
+                    band_atr=_v29_registry_params()["trendline_band_atr"],
+                    seq_len=int(_v29_registry_params()["trendline_seq_len"]),
+                ),
+            ),
+            (
+                "swing_structure_event_layer",
+                SWING_EVENT_LAYER_FEATURE_NAMES,
+                lambda frame_times: build_swing_event_m5_layer(
+                    frame_times, source
+                ),
+            ),
+            (
+                "momentum_event_m5_layer",
+                MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
+                lambda frame_times: build_momentum_event_m5_layer(
+                    frame_times, source
+                ),
+            ),
+            (
+                "regime_flip_event_layer",
+                REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+                lambda frame_times: build_regime_flip_event_layer(
+                    frame_times, source
+                ),
+            ),
+        )
+        v29_layer_store: dict[str, tuple[np.ndarray, list[str]]] = {}
+        for _v29_label, _v29_names, _v29_builder in _v29_layer_plan:
+            if not any(name in requested_feature_set for name in _v29_names):
+                continue
+            _v29_values, _v29_observed = _v29_builder(sample_times)
+            if tuple(_v29_observed) != tuple(_v29_names):
+                raise RuntimeError(
+                    f"M1_FEATURE_BASE_V29_LAYER_ORDER_INVALID: {_v29_label}"
+                )
+            v29_layer_store[_v29_label] = (
+                _persist_float32_matrix(
+                    storage / f"{_v29_label}.mmap",
+                    _v29_values,
+                ),
+                list(_v29_observed),
+            )
+            del _v29_values
+            gc.collect()
+        del sample_times
         gc.collect()
 
         partial_output = storage / output.name
@@ -624,6 +721,10 @@ def _materialize_bounded_feature_surface(
                     price_names=list(price_names),
                     candle_layer=candle_matrix[prefix:stop],
                     candle_names=list(candle_names),
+                    v29_event_layers={
+                        label: (matrix[prefix:stop], list(names))
+                        for label, (matrix, names) in v29_layer_store.items()
+                    },
                     emit_offset=emit_offset,
                     support_memory_state=support_state,
                     foundation_event_age_state=foundation_event_age_state,
@@ -832,6 +933,51 @@ def _publish_feature_base_manifest(
     return manifest
 
 
+def _resolve_v29_registry_layer_params(
+    artifact: Path | None,
+    *,
+    timeframe: str,
+) -> dict[str, Any] | None:
+    """Resolve the exact TRAIN-fitted lane params for the registry layers.
+
+    Accepts either a bare lane-params JSON with exactly the
+    ``V29_REGISTRY_LAYER_PARAM_KEYS`` keys (any lane; e.g. an M1-lane fit),
+    or a frozen constants payload / V4 cache manifest, from which the M5
+    lane's params derive (level tol M5 + entry_m5 trendline band/seq).  A
+    constants payload cannot supply the M1 lane — that lane needs its own
+    declared fit (fail closed, no default).
+    """
+    from gx1.features.entry_model_native_feature_layers_v1 import (
+        V29_REGISTRY_LAYER_PARAM_KEYS,
+    )
+    from gx1.features.htf_features import require_v29_registry_constants
+
+    if artifact is None:
+        return None
+    payload = json.loads(Path(artifact).read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and set(payload) == set(
+        V29_REGISTRY_LAYER_PARAM_KEYS
+    ):
+        return dict(payload)
+    if isinstance(payload, dict) and "v29_registry_constants" in payload:
+        payload = payload["v29_registry_constants"]
+    constants = require_v29_registry_constants(payload)
+    if timeframe != "M5":
+        raise RuntimeError(
+            "M1_FEATURE_BASE_V29_REGISTRY_LANE_PARAMS_REQUIRED: the M5 "
+            "constants payload does not carry an M1-lane fit; pass a bare "
+            f"lane-params JSON with keys {V29_REGISTRY_LAYER_PARAM_KEYS} "
+            "fitted on the declared M1 TRAIN window"
+        )
+    return {
+        "level_tol_atr": float(constants["level_tol_atr"]["M5"]),
+        "trendline_band_atr": float(
+            constants["entry_m5"]["trendline_band_atr"]
+        ),
+        "trendline_seq_len": int(constants["entry_m5"]["seq_len"]),
+    }
+
+
 def _materialize_feature_base(
     *,
     source_parquet: Path,
@@ -841,6 +987,7 @@ def _materialize_feature_base(
     dataset_run_id: str,
     pair_generation_id: str,
     timeframe: str,
+    v29_registry_constants_json: Path | None = None,
 ) -> dict[str, Any]:
     if timeframe not in {"M1", "M5"}:
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_TIMEFRAME_INVALID")
@@ -911,6 +1058,10 @@ def _materialize_feature_base(
         raise RuntimeError("M1_FEATURE_BASE_BASE_FIELD_ORDER_INVALID")
     if int(contract["seq_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM:
         raise RuntimeError("M1_FEATURE_BASE_SIGNAL_DIM_INVALID")
+    v29_registry_layer_params = _resolve_v29_registry_layer_params(
+        v29_registry_constants_json,
+        timeframe=timeframe,
+    )
 
     bounded = _materialize_bounded_feature_surface(
         source=source,
@@ -920,6 +1071,7 @@ def _materialize_feature_base(
         timeframe=timeframe,
         bar_seconds=bar_seconds,
         sequence_bars=sequence_bars,
+        v29_registry_layer_params=v29_registry_layer_params,
     )
     return _publish_feature_base_manifest(
         timeframe=timeframe,
@@ -949,6 +1101,16 @@ def main() -> None:
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--dataset-run-id", required=True)
     parser.add_argument("--pair-generation-id", required=True)
+    parser.add_argument(
+        "--v29-registry-constants-json",
+        type=Path,
+        required=True,
+        help=(
+            "Explicit frozen V29 registry constants artifact (V4 cache "
+            "manifest.json / constants payload for the M5 lane, or a bare "
+            "lane-params JSON for the M1 lane); no default exists"
+        ),
+    )
     args = parser.parse_args()
     timeframe = "M1" if args.alignment_parquet is not None else "M5"
     manifest = _materialize_feature_base(
@@ -959,6 +1121,7 @@ def main() -> None:
         dataset_run_id=args.dataset_run_id,
         pair_generation_id=args.pair_generation_id,
         timeframe=timeframe,
+        v29_registry_constants_json=args.v29_registry_constants_json,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False))
 
