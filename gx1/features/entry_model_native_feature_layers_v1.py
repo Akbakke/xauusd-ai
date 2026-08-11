@@ -545,20 +545,67 @@ def _align_v29_layer_frame(
     return values, list(expected_names)
 
 
+def v29_layer_first_complete_time(raw: pd.DataFrame, *, context: str):
+    """First row at which EVERY column of a full-history V29 layer is finite.
+
+    A V29 layer's honest warmup must be one chronological prefix (the registry
+    emission contract); the surface materializer measures this floor on the
+    exact declared source bytes and excludes the leading rows it cannot
+    honestly produce (the established leading-exclusion doctrine). Any
+    non-finite value after the first complete row is a computation defect,
+    not warmup, and fails closed.
+    """
+
+    values = raw.to_numpy(dtype=np.float64)
+    finite = np.isfinite(values).all(axis=1)
+    if not bool(finite.any()):
+        raise RuntimeError(f"{context}_NEVER_COMPLETE: no fully finite row")
+    first = int(np.argmax(finite))
+    if not bool(finite[first:].all()):
+        raise RuntimeError(
+            f"{context}_WARMUP_NOT_PREFIX: non-finite rows after the first "
+            "complete row"
+        )
+    return raw.index[first]
+
+
+def align_v29_layer_frame(
+    raw: pd.DataFrame,
+    sample_df: pd.DataFrame,
+    expected_names,
+    *,
+    context: str,
+) -> tuple[np.ndarray, list[str]]:
+    """Row-align a raw full-history V29 layer frame to the sample rows."""
+
+    sample_times = _require_sample_times(sample_df, context=context)
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        tuple(expected_names),
+        context=context,
+    )
+
+
 def build_level_registry_m5_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
     *,
     tol_level_atr: float,
-) -> tuple[np.ndarray, list[str]]:
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
     """Entry-M5/513-lane level-registry block (design doc §1.2, 22 fields).
 
     ``tol_level_atr`` is the TRAIN-fitted frozen M5 cluster tolerance
     (``fit_level_registry_tolerance``); it has no default (rule 2a).
+    ``raw_frame=True`` returns the unaligned full-history frame so the
+    caller can measure the layer's warmup floor before choosing sample rows.
     """
 
     context = "LEVEL_REGISTRY_M5_LAYER"
-    sample_times = _require_sample_times(sample_df, context=context)
+    sample_times = (
+        None if raw_frame else _require_sample_times(sample_df, context=context)
+    )
     src = _read_v29_price_source(source_parquet, context=context)
     source_index = pd.DatetimeIndex(src["time"])
     registry_source = pd.DataFrame(
@@ -583,6 +630,8 @@ def build_level_registry_m5_layer(
         index=source_index,
         columns=list(names),
     )
+    if raw_frame:
+        return raw, list(LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(
         raw,
         sample_times,
@@ -597,16 +646,20 @@ def build_trendline_registry_m5_layer(
     *,
     band_atr: float,
     seq_len: int,
-) -> tuple[np.ndarray, list[str]]:
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
     """Entry-M5/513-lane trendline/channel block (design doc §2/§4.1 block E).
 
     ``band_atr`` is the TRAIN-fitted frozen M5 band for the Entry candidate
     window ``seq_len`` (the Entry model sequence length — an explicit recipe
-    input); neither has a default (rule 2a).
+    input); neither has a default (rule 2a). ``raw_frame=True`` returns the
+    unaligned full-history frame for warmup-floor measurement.
     """
 
     context = "TRENDLINE_REGISTRY_M5_LAYER"
-    sample_times = _require_sample_times(sample_df, context=context)
+    sample_times = (
+        None if raw_frame else _require_sample_times(sample_df, context=context)
+    )
     src = _read_v29_price_source(source_parquet, context=context)
     source_index = pd.DatetimeIndex(src["time"])
     registry_source = pd.DataFrame(
@@ -630,6 +683,8 @@ def build_trendline_registry_m5_layer(
         raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
     raw = frame.astype(np.float64)
     raw.columns = list(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    if raw_frame:
+        return raw, list(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(
         raw,
         sample_times,
@@ -641,15 +696,21 @@ def build_trendline_registry_m5_layer(
 def build_swing_event_m5_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
-) -> tuple[np.ndarray, list[str]]:
+    *,
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
     """Entry-M5/513-lane structure_swing G1/G2/G4 event block (9 fields).
 
     One formula owner: ``swing_structure_v1.compute_swing_structure_features``
     with ``include_v29_additions=True`` on the complete causal source history.
+    ``raw_frame=True`` returns the unaligned full-history frame for
+    warmup-floor measurement.
     """
 
     context = "SWING_EVENT_M5_LAYER"
-    sample_times = _require_sample_times(sample_df, context=context)
+    sample_times = (
+        None if raw_frame else _require_sample_times(sample_df, context=context)
+    )
     src = _read_v29_price_source(source_parquet, context=context)
     source_index = pd.DatetimeIndex(src["time"])
     computed = compute_swing_structure_features(
@@ -665,6 +726,8 @@ def build_swing_event_m5_layer(
         },
         index=source_index,
     )
+    if raw_frame:
+        return raw, list(SWING_EVENT_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(
         raw,
         sample_times,
@@ -676,16 +739,22 @@ def build_swing_event_m5_layer(
 def build_momentum_event_m5_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
-) -> tuple[np.ndarray, list[str]]:
+    *,
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
     """Entry-M5/513-lane momentum G1/G2 event block (design §4.1 block E).
 
     One formula owner:
     ``htf_features.compute_v29_momentum_event_block_from_ohlc`` — the same
     function backing the per-TF V4 lane, run here on the entry M5 clock.
+    ``raw_frame=True`` returns the unaligned full-history frame for
+    warmup-floor measurement.
     """
 
     context = "MOMENTUM_EVENT_M5_LAYER"
-    sample_times = _require_sample_times(sample_df, context=context)
+    sample_times = (
+        None if raw_frame else _require_sample_times(sample_df, context=context)
+    )
     src = _read_v29_price_source(source_parquet, context=context)
     source_index = pd.DatetimeIndex(src["time"])
     ohlc = pd.DataFrame(
@@ -699,6 +768,8 @@ def build_momentum_event_m5_layer(
     raw = compute_v29_momentum_event_block_from_ohlc(ohlc).astype(np.float64)
     if tuple(raw.columns) != MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES:
         raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
+    if raw_frame:
+        return raw, list(MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(
         raw,
         sample_times,
@@ -710,16 +781,23 @@ def build_momentum_event_m5_layer(
 def build_regime_flip_event_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
-) -> tuple[np.ndarray, list[str]]:
+    *,
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
     """Entry-M5/513-lane session_regime G2 per-TF flip block (8 fields).
 
     One formula owner: ``regime_v4_features.compute_regime_v29_flip_frame``
     on the exact ``{tf}_regime_class_id_v2`` columns of the complete causal
-    source history (base M5 clock).
+    source history (base M5 clock). ``raw_frame=True`` returns the unaligned
+    full-history frame for warmup-floor measurement (the flip-age fields are
+    honestly NaN until each timeframe's first observed flip — a
+    data-dependent warmup no fixed row constant can bound).
     """
 
     context = "REGIME_FLIP_EVENT_LAYER"
-    sample_times = _require_sample_times(sample_df, context=context)
+    sample_times = (
+        None if raw_frame else _require_sample_times(sample_df, context=context)
+    )
     class_columns = tuple(
         f"{tf}_regime_class_id_v2" for tf in REGIME_V4_V29_FLIP_TFS
     )
@@ -732,6 +810,8 @@ def build_regime_flip_event_layer(
     class_frame = src.drop(columns=["time"])
     class_frame.index = source_index
     raw = compute_regime_v29_flip_frame(class_frame).astype(np.float64)
+    if raw_frame:
+        return raw, list(REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(
         raw,
         sample_times,

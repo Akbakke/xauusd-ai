@@ -294,16 +294,44 @@ def _feature_base_contract(
             # The Entry surface cannot carry the leading rows on which the
             # price-derived layer is undefined; before the wave those were
             # emitted as synthetic zeros, which is what made an exact match with
-            # the full source timeline possible.
+            # the full source timeline possible. A V29 surface additionally
+            # declares the measured V29 layer warmup floor in its manifest
+            # (causal_warmup); the exactness check binds that declared
+            # exclusion with a full row accounting — the surface must equal
+            # the source suffix after 201 fixed + declared V29 rows, and the
+            # declared floor must be the surface's actual first row.
             usable_source_times = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
+            warmup_block = manifest.get("causal_warmup")
+            declared_ok = True
+            time_alignment_label_ok = (
+                "exact_entry_m5_source_timeline_after_causal_warmup"
+            )
+            if isinstance(warmup_block, dict):
+                v29_excluded = warmup_block.get("rows_before_v29_layer_warmup")
+                declared_first = warmup_block.get("first_surface_row_utc")
+                declared_ok = (
+                    not isinstance(v29_excluded, bool)
+                    and isinstance(v29_excluded, int)
+                    and 0 <= v29_excluded < len(usable_source_times)
+                    and isinstance(declared_first, str)
+                )
+                if declared_ok:
+                    usable_source_times = usable_source_times[v29_excluded:]
+                    declared_ok = (
+                        str(usable_source_times[0].isoformat())
+                        == declared_first
+                    )
+                    time_alignment_label_ok = (
+                        "exact_entry_m5_source_timeline_after_declared_"
+                        "causal_warmup"
+                    )
             time_alignment = bool(
-                len(usable_source_times) > 0
+                declared_ok
+                and len(usable_source_times) > 0
                 and feature_times.equals(usable_source_times)
             )
             time_alignment_label = (
-                "exact_entry_m5_source_timeline_after_causal_warmup"
-                if time_alignment
-                else "invalid"
+                time_alignment_label_ok if time_alignment else "invalid"
             )
         result.update(
             {

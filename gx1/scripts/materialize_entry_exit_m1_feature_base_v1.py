@@ -379,6 +379,7 @@ def _materialize_bounded_feature_surface(
         SWING_EVENT_LAYER_FEATURE_NAMES,
         TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
         V29_REGISTRY_LAYER_PARAM_KEYS,
+        align_v29_layer_frame,
         build_candlestick_derived_layer,
         build_level_registry_m5_layer,
         build_momentum_event_m5_layer,
@@ -386,6 +387,7 @@ def _materialize_bounded_feature_surface(
         build_regime_flip_event_layer,
         build_swing_event_m5_layer,
         build_trendline_registry_m5_layer,
+        v29_layer_first_complete_time,
     )
     from gx1.features.entry_candlestick_patterns_v1 import (
         CANDLESTICK_PATTERN_FEATURE_NAMES,
@@ -539,6 +541,114 @@ def _materialize_bounded_feature_surface(
         dir=str(output.parent),
     ) as temporary_storage:
         storage = Path(temporary_storage)
+
+        # ── V29 layer warmup floors (phase 1) ───────────────────────────
+        # Each V29 layer runs on the complete causal source history and has
+        # its own honest warmup prefix; the flip-age fields are NaN until
+        # each timeframe's first OBSERVED flip, a data-dependent warmup no
+        # fixed row constant can bound (rule 2a: the floor is a statistic
+        # measured on the exact declared source bytes, recorded below). The
+        # surface therefore starts at the max of the price-derived warmup
+        # and every requested V29 layer's first fully-finite row — the same
+        # leading-exclusion doctrine as the price-derived prefix above: rows
+        # before the floor cannot be honestly produced and are excluded, a
+        # gap INSIDE the covered span remains a hard failure.
+        requested_feature_set = set(requested_features)
+
+        def _v29_registry_params() -> Mapping[str, Any]:
+            if not isinstance(v29_registry_layer_params, Mapping) or set(
+                v29_registry_layer_params
+            ) != set(V29_REGISTRY_LAYER_PARAM_KEYS):
+                raise RuntimeError(
+                    "M1_FEATURE_BASE_V29_REGISTRY_PARAMS_REQUIRED: the "
+                    "level/trendline registry layers need the exact "
+                    f"TRAIN-fitted params {V29_REGISTRY_LAYER_PARAM_KEYS}"
+                )
+            return v29_registry_layer_params
+
+        _v29_layer_plan = (
+            (
+                "level_registry_m5_layer",
+                LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_level_registry_m5_layer(
+                    frame_times,
+                    source,
+                    tol_level_atr=_v29_registry_params()["level_tol_atr"],
+                    raw_frame=raw_frame,
+                ),
+            ),
+            (
+                "trendline_registry_m5_layer",
+                TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_trendline_registry_m5_layer(
+                    frame_times,
+                    source,
+                    band_atr=_v29_registry_params()["trendline_band_atr"],
+                    seq_len=int(_v29_registry_params()["trendline_seq_len"]),
+                    raw_frame=raw_frame,
+                ),
+            ),
+            (
+                "swing_structure_event_layer",
+                SWING_EVENT_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_swing_event_m5_layer(
+                    frame_times, source, raw_frame=raw_frame
+                ),
+            ),
+            (
+                "momentum_event_m5_layer",
+                MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_momentum_event_m5_layer(
+                    frame_times, source, raw_frame=raw_frame
+                ),
+            ),
+            (
+                "regime_flip_event_layer",
+                REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_regime_flip_event_layer(
+                    frame_times, source, raw_frame=raw_frame
+                ),
+            ),
+        )
+        _v29_requested_plan = tuple(
+            entry
+            for entry in _v29_layer_plan
+            if any(name in requested_feature_set for name in entry[1])
+        )
+        _v29_raw_store: dict[str, Any] = {}
+        v29_layer_warmup: dict[str, str] = {}
+        v29_rows_before_layer_warmup = 0
+        if _v29_requested_plan:
+            _v29_floor_time = None
+            for _v29_label, _v29_names, _v29_builder in _v29_requested_plan:
+                _v29_raw, _v29_observed = _v29_builder(None, raw_frame=True)
+                if tuple(_v29_observed) != tuple(_v29_names):
+                    raise RuntimeError(
+                        f"M1_FEATURE_BASE_V29_LAYER_ORDER_INVALID: {_v29_label}"
+                    )
+                _v29_first = v29_layer_first_complete_time(
+                    _v29_raw,
+                    context=f"M1_FEATURE_BASE_{_v29_label.upper()}",
+                )
+                _v29_raw_store[_v29_label] = _v29_raw
+                v29_layer_warmup[_v29_label] = str(_v29_first.isoformat())
+                if _v29_floor_time is None or _v29_first > _v29_floor_time:
+                    _v29_floor_time = _v29_first
+            if _v29_floor_time is not None and _v29_floor_time > surface_times[0]:
+                _v29_covered = surface_times >= _v29_floor_time
+                v29_rows_before_layer_warmup = int(
+                    np.count_nonzero(~_v29_covered)
+                )
+                surface_times = surface_times[_v29_covered]
+                positions = positions[_v29_covered]
+                if len(surface_times) == 0:
+                    raise RuntimeError(
+                        "M1_FEATURE_BASE_V29_WARMUP_CONSUMES_ALL_ROWS"
+                    )
+            v29_layer_warmup["floor_time"] = str(
+                (surface_times[0]).isoformat()
+            )
+
         sample_times = pd.DataFrame({"time": surface_times})
         price_values, price_names = build_price_derived_layer(
             sample_times,
@@ -566,71 +676,20 @@ def _materialize_bounded_feature_surface(
         del candle_values
         gc.collect()
 
-        # ── V29 Phase A stage 2 event layers ────────────────────────────
-        # Precomputed once over the full surface alignment (the price/candle
-        # pattern), so bounded chunks stay exact by construction.  The two
-        # registry layers require the explicit TRAIN-fitted lane params
-        # (no default exists, rule 2a).
-        requested_feature_set = set(requested_features)
-
-        def _v29_registry_params() -> Mapping[str, Any]:
-            if not isinstance(v29_registry_layer_params, Mapping) or set(
-                v29_registry_layer_params
-            ) != set(V29_REGISTRY_LAYER_PARAM_KEYS):
-                raise RuntimeError(
-                    "M1_FEATURE_BASE_V29_REGISTRY_PARAMS_REQUIRED: the "
-                    "level/trendline registry layers need the exact "
-                    f"TRAIN-fitted params {V29_REGISTRY_LAYER_PARAM_KEYS}"
-                )
-            return v29_registry_layer_params
-
-        _v29_layer_plan = (
-            (
-                "level_registry_m5_layer",
-                LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
-                lambda frame_times: build_level_registry_m5_layer(
-                    frame_times,
-                    source,
-                    tol_level_atr=_v29_registry_params()["level_tol_atr"],
-                ),
-            ),
-            (
-                "trendline_registry_m5_layer",
-                TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
-                lambda frame_times: build_trendline_registry_m5_layer(
-                    frame_times,
-                    source,
-                    band_atr=_v29_registry_params()["trendline_band_atr"],
-                    seq_len=int(_v29_registry_params()["trendline_seq_len"]),
-                ),
-            ),
-            (
-                "swing_structure_event_layer",
-                SWING_EVENT_LAYER_FEATURE_NAMES,
-                lambda frame_times: build_swing_event_m5_layer(
-                    frame_times, source
-                ),
-            ),
-            (
-                "momentum_event_m5_layer",
-                MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
-                lambda frame_times: build_momentum_event_m5_layer(
-                    frame_times, source
-                ),
-            ),
-            (
-                "regime_flip_event_layer",
-                REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
-                lambda frame_times: build_regime_flip_event_layer(
-                    frame_times, source
-                ),
-            ),
-        )
+        # ── V29 Phase A stage 2 event layers (phase 2: align) ───────────
+        # The raw full-history frames were computed in phase 1 (before the
+        # price/candle layers) so the measured warmup floors could trim the
+        # surface first; here they are row-aligned to the final sample rows
+        # (the price/candle pattern) and persisted. The strict align guard
+        # still proves finiteness at every emitted row.
         v29_layer_store: dict[str, tuple[np.ndarray, list[str]]] = {}
-        for _v29_label, _v29_names, _v29_builder in _v29_layer_plan:
-            if not any(name in requested_feature_set for name in _v29_names):
-                continue
-            _v29_values, _v29_observed = _v29_builder(sample_times)
+        for _v29_label, _v29_names, _v29_builder in _v29_requested_plan:
+            _v29_values, _v29_observed = align_v29_layer_frame(
+                _v29_raw_store.pop(_v29_label),
+                sample_times,
+                _v29_names,
+                context=f"M1_FEATURE_BASE_{_v29_label.upper()}",
+            )
             if tuple(_v29_observed) != tuple(_v29_names):
                 raise RuntimeError(
                     f"M1_FEATURE_BASE_V29_LAYER_ORDER_INVALID: {_v29_label}"
@@ -840,6 +899,8 @@ def _materialize_bounded_feature_surface(
         return {
             "rows": emitted_rows,
             "alignment_rows_before_causal_warmup": pre_source_rows,
+            "rows_before_v29_layer_warmup": v29_rows_before_layer_warmup,
+            "v29_layer_warmup": v29_layer_warmup,
             "first_surface_row_utc": str(surface_times[0]),
             "extension": extension_meta,
             "materialization": {
@@ -876,6 +937,7 @@ def _publish_feature_base_manifest(
     contract: dict[str, Any],
     extension_meta: dict[str, Any],
     materialization: dict[str, Any] | None = None,
+    causal_warmup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     manifest_path = output.with_suffix(output.suffix + ".manifest.json")
     if (
@@ -900,6 +962,7 @@ def _publish_feature_base_manifest(
         signal_contract=contract,
         extension=extension_meta,
         materialization=materialization,
+        causal_warmup=causal_warmup,
     )
     encoded = (
         json.dumps(
@@ -1086,6 +1149,16 @@ def _materialize_feature_base(
             if timeframe == "M1"
             else None
         ),
+        causal_warmup={
+            "alignment_rows_before_causal_warmup": int(
+                bounded["alignment_rows_before_causal_warmup"]
+            ),
+            "rows_before_v29_layer_warmup": int(
+                bounded["rows_before_v29_layer_warmup"]
+            ),
+            "v29_layer_warmup": dict(bounded["v29_layer_warmup"]),
+            "first_surface_row_utc": str(bounded["first_surface_row_utc"]),
+        },
     )
 
 

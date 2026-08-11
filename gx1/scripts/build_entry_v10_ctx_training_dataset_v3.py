@@ -5249,10 +5249,32 @@ def main() -> None:
     # The Entry surface cannot carry the leading rows on which the price-derived
     # layer is undefined, so it is the source timeline after that warmup. Before
     # the wave those rows reached the surface only because zero_before_ready
-    # filled them with synthetic zeros.
+    # filled them with synthetic zeros. A V29 surface additionally declares its
+    # measured V29 layer warmup exclusion (causal_warmup in the hash-bound
+    # surface manifest); the exactness check binds that declared count with a
+    # full row accounting and requires the declared floor to be the surface's
+    # actual first row.
     m5_usable_source_times = m5_source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
+    m5_warmup_block = m5_feature_base_manifest.get("causal_warmup")
+    m5_declared_ok = True
+    if isinstance(m5_warmup_block, dict):
+        m5_v29_excluded = m5_warmup_block.get("rows_before_v29_layer_warmup")
+        m5_declared_first = m5_warmup_block.get("first_surface_row_utc")
+        m5_declared_ok = (
+            not isinstance(m5_v29_excluded, bool)
+            and isinstance(m5_v29_excluded, int)
+            and 0 <= m5_v29_excluded < len(m5_usable_source_times)
+            and isinstance(m5_declared_first, str)
+        )
+        if m5_declared_ok:
+            m5_usable_source_times = m5_usable_source_times[m5_v29_excluded:]
+            m5_declared_ok = (
+                str(m5_usable_source_times[0].isoformat())
+                == m5_declared_first
+            )
     if (
-        len(m5_usable_source_times) == 0
+        not m5_declared_ok
+        or len(m5_usable_source_times) == 0
         or not m5_feature_times_expected.equals(m5_usable_source_times)
         or m5_feature_base_manifest.get("rows")
         != len(m5_feature_times_expected)

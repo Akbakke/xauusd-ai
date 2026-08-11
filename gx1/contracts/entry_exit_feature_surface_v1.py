@@ -75,8 +75,16 @@ def build_entry_exit_feature_surface_manifest(
     signal_contract: Mapping[str, Any],
     extension: Mapping[str, Any],
     materialization: Mapping[str, Any] | None,
+    causal_warmup: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the only Entry/Exit feature-surface manifest shape."""
+    """Build the only Entry/Exit feature-surface manifest shape.
+
+    ``causal_warmup`` declares the surface's leading-row exclusion: the fixed
+    price-derived prefix plus the measured V29 layer warmup floors (data-
+    dependent statistics on the exact declared source bytes). Downstream
+    exactness checks bind these declared values instead of re-deriving a
+    fixed prefix.
+    """
 
     if (
         timeframe not in {"M1", "M5"}
@@ -136,6 +144,8 @@ def build_entry_exit_feature_surface_manifest(
     }
     if materialization is not None:
         manifest["materialization"] = dict(materialization)
+    if causal_warmup is not None:
+        manifest["causal_warmup"] = dict(causal_warmup)
     manifest["manifest_sha256"] = canonical_json_sha256(manifest)
     return manifest
 
