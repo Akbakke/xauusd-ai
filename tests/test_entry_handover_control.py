@@ -24,6 +24,7 @@ AUTHORITY_PATHS = (
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/GIT_WORKTREE_POLICY.md",
     REPO / "docs/RECIPE_DECISION_DRAFT_20260808.md",
+    REPO / "docs/V29_EVENT_SURFACE_DESIGN_20260811.md",
     REPO / "PROJECT_STATE_xau_direction_launch.json",
 )
 
