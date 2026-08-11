@@ -13932,8 +13932,9 @@ def run_train(
 
     # ── ALWAYS-RUN exact model-native feature-liveness audit ───────────────────────
     # No input slicing, constant allowlist, or transient-error pass-through is
-    # permitted. Both seq_x and snap_x must prove the exact 513-field surface;
-    # ctx_cont must prove all 142 fields; every MTF surface must be present/live.
+    # permitted. Both seq_x and snap_x must prove the exact owner-declared
+    # signal surface; ctx_cont must prove all 142 fields; every MTF surface
+    # must be present/live.
     try:
         from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
         _live_cc = list(ordered_ctx_cont_names)
@@ -13945,9 +13946,10 @@ def run_train(
         if len(_live_ds) <= 0:
             raise FeatureLivenessError("[FEATURE_LIVENESS_EMPTY_TRAIN_SPLIT]")
         _snap_names = list(getattr(_live_ds, "signal_names", ()))
-        if len(_snap_names) != 513:
+        if len(_snap_names) != MODEL_NATIVE_SIGNAL_DIM:
             raise FeatureLivenessError(
-                f"[FEATURE_LIVENESS_SIGNAL_CONTRACT] names={len(_snap_names)} expected=513"
+                f"[FEATURE_LIVENESS_SIGNAL_CONTRACT] names={len(_snap_names)} "
+                f"expected={MODEL_NATIVE_SIGNAL_DIM}"
             )
         if (
             bool(getattr(_live_ds, "_advanced", False))

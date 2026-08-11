@@ -200,6 +200,7 @@ import json
 import sys
 from pathlib import Path
 
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
 )
@@ -227,7 +228,12 @@ lineage = validate_signal_manifest_training_lineage(
     expected_train_end_utc=sys.argv[10],
 )
 contract = lineage["model_native_signal_contract"]
-if len(contract["fields"]) != 513 or contract["bridge_dim"] != 0:
+# The signal width derives from the one contract owner (V29: 592); a
+# repeated literal here is exactly the stale-gate class that killed V29F.
+if (
+    len(contract["fields"]) != MODEL_NATIVE_SIGNAL_DIM
+    or contract["bridge_dim"] != 0
+):
     raise RuntimeError("SEQ513_REBUILD_CONTRACT_INVALID")
 print(f"[GATE] exact model-native signal/ranking lineage: {path}")
 PY
