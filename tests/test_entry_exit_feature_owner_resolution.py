@@ -407,3 +407,34 @@ def test_entry_m5_surface_alignment_fails_closed(
             surface_times=surface_times,
             surface_arrays=_m5_surface_arrays(len(surface_times)),
         )
+
+
+def test_every_production_cache_publish_call_binds_registry_constants() -> None:
+    """Every publish_multi_tf_v4_cache call in the production producers must
+    bind v29_registry_constants explicitly (the V29C chain went RED on a
+    rebind call site that omitted it; the publisher has no default)."""
+    import re
+    from pathlib import Path
+
+    for module_path in (
+        Path("gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py"),
+        Path("gx1/scripts/prebuild_multi_tf_cache_v4.py"),
+    ):
+        source = module_path.read_text(encoding="utf-8")
+        for match in re.finditer(
+            r"(?<!def )publish_multi_tf_v4_cache\(", source
+        ):
+            depth = 0
+            for offset in range(match.end() - 1, len(source)):
+                char = source[offset]
+                if char == "(":
+                    depth += 1
+                elif char == ")":
+                    depth -= 1
+                    if depth == 0:
+                        call_text = source[match.start() : offset + 1]
+                        break
+            assert "v29_registry_constants=" in call_text, (
+                f"{module_path}: publish_multi_tf_v4_cache call without "
+                "v29_registry_constants binding"
+            )

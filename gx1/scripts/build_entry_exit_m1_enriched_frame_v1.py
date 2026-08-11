@@ -1288,19 +1288,26 @@ def _prepare_m5_cache_stage(
         output_linked = True
         _fsync_directory(output_final.parent)
         temporary_features = load_multi_tf_v4_cache(temporary_cache_dir)
+        # The rebound final cache carries the exact TRAIN-fitted registry
+        # constants already frozen in the verified temporary cache manifest
+        # (one truth: fit happened once, upstream; this is a byte rebind,
+        # never a refit).
         publish_multi_tf_v4_cache(
             out_dir=cache_stage,
             m5_prebuilt=output_final,
             expected_source_sha256=output_sha256,
             features=temporary_features,
+            v29_registry_constants=temporary_features.v29_registry_constants,
         )
-        del temporary_features
         verified = load_multi_tf_v4_cache(cache_stage)
         if (
             Path(verified.m5_prebuilt_source) != output_final
             or verified.m5_prebuilt_source_sha256 != output_sha256
+            or verified.v29_registry_constants
+            != temporary_features.v29_registry_constants
         ):
             raise RuntimeError("M5_ENRICHED_PREPARED_CACHE_BINDING_MISMATCH")
+        del temporary_features
         binding = {
             "cache_dir": str(cache_final),
             "cache_manifest_path": str(cache_final / "manifest.json"),
