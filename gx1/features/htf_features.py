@@ -804,6 +804,228 @@ def fit_v29_registry_constants_from_m5(
     return require_v29_registry_constants(constants)
 
 
+# ---------------------------------------------------------------------------
+# V29 M1-lane registry params — the Exit local M1 lane runs the same
+# level/trendline local-layer blocks on the native M1 clock (the shared local
+# layer in entry_model_native_feature_layers_v1), so it needs its own TRAIN
+# fit on that clock (rule 2g: measure where the decision is made).  Same fit
+# owners (fit_level_registry_tolerance / fit_trendline_tolerance), same
+# rule-18/2f pattern as the M5 constants above.  The payload is frozen into
+# the M1-enriched frame manifest (the M1-side hash-bound artifact) and
+# consumed fail-closed by the M1 materializer.  No default exists anywhere.
+# ---------------------------------------------------------------------------
+V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION = (
+    "htf_v4_v29_registry_m1_lane_params_v1"
+)
+V29_REGISTRY_M1_LANE_MANIFEST_KEY = "v29_registry_m1_lane_params"
+_V29_REGISTRY_M1_LANE_PARAMS_KEYS = frozenset(
+    {
+        "schema_version",
+        "level_tol_quantile_recipe_key",
+        "level_tol_quantile_q",
+        "declared_train_window_end",
+        "level_tol_atr",
+        "exit_m1",
+        "provenance",
+    }
+)
+_V29_REGISTRY_EXIT_M1_KEYS = frozenset({"seq_len", "trendline_band_atr"})
+
+
+def require_v29_registry_m1_lane_params(value: object) -> dict:
+    """Validate the exact TRAIN-fitted V29 M1-lane registry params payload."""
+
+    if not isinstance(value, Mapping) or not value:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_MISSING: the Exit M1 lane's "
+            "registry layers require the TRAIN-fitted M1-lane params payload "
+            "(no default exists)"
+        )
+    observed = dict(value)
+    if set(observed) != _V29_REGISTRY_M1_LANE_PARAMS_KEYS:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: exact keys differ "
+            f"missing={sorted(_V29_REGISTRY_M1_LANE_PARAMS_KEYS - set(observed))} "
+            f"unexpected={sorted(set(observed) - _V29_REGISTRY_M1_LANE_PARAMS_KEYS)}"
+        )
+    if observed["schema_version"] != V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: schema_version="
+            f"{observed['schema_version']!r}"
+        )
+    if observed["level_tol_quantile_recipe_key"] != (
+        LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
+            "level_tol_quantile_recipe_key"
+        )
+    q = _require_positive_finite_float(
+        observed["level_tol_quantile_q"], label="level_tol_quantile_q"
+    )
+    if not q < 1.0:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
+            f"level_tol_quantile_q={q!r}"
+        )
+    window_end = observed["declared_train_window_end"]
+    if not isinstance(window_end, str) or not window_end:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
+            "declared_train_window_end"
+        )
+    _require_positive_finite_float(
+        observed["level_tol_atr"], label="level_tol_atr"
+    )
+    exit_m1 = observed["exit_m1"]
+    if (
+        not isinstance(exit_m1, Mapping)
+        or set(exit_m1) != _V29_REGISTRY_EXIT_M1_KEYS
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: exit_m1 exact keys "
+            "required"
+        )
+    exit_seq_len = exit_m1["seq_len"]
+    if (
+        isinstance(exit_seq_len, bool)
+        or not isinstance(exit_seq_len, (int, np.integer))
+        or int(exit_seq_len) <= 0
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
+            f"exit_m1.seq_len={exit_seq_len!r}"
+        )
+    _require_positive_finite_float(
+        exit_m1["trendline_band_atr"], label="exit_m1.trendline_band_atr"
+    )
+    if not isinstance(observed["provenance"], Mapping) or not observed["provenance"]:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: provenance"
+        )
+    return observed
+
+
+def load_v29_registry_m1_lane_params_manifest(path) -> dict:
+    """Load frozen V29 M1-lane registry params from an explicit JSON artifact.
+
+    Accepts either the M1-enriched frame ``manifest.json`` (the params live
+    under its ``v29_registry_m1_lane_params`` key) or a bare params payload.
+    The payload is validated by :func:`require_v29_registry_m1_lane_params`;
+    there is no fallback and no default.
+    """
+
+    artifact = Path(path).expanduser()
+    if not artifact.is_file():
+        raise RuntimeError(
+            f"HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_ARTIFACT_MISSING: {artifact}"
+        )
+    try:
+        payload = json.loads(artifact.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise RuntimeError(
+            f"HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_ARTIFACT_INVALID: {artifact}"
+        ) from exc
+    if isinstance(payload, dict) and V29_REGISTRY_M1_LANE_MANIFEST_KEY in payload:
+        payload = payload[V29_REGISTRY_M1_LANE_MANIFEST_KEY]
+    return require_v29_registry_m1_lane_params(payload)
+
+
+def fit_v29_registry_m1_lane_params_from_m1(
+    m1_df: pd.DataFrame,
+    *,
+    level_tol_quantile_q: float,
+    declared_train_window_end,
+    exit_m1_seq_len: int,
+) -> dict:
+    """Fit the Exit M1-lane registry params once on the declared TRAIN window.
+
+    ``m1_df`` is the exact native-M1 OHLCV source; only rows at or before
+    ``declared_train_window_end`` participate (rule 18: fit on the physical
+    TRAIN population, freeze, never refit).  The fit population is the native
+    M1 clock itself — the same clock, ATR convention (``_atr``, 14) and pivot
+    admission the shared local layer uses at serve (rule 2g).  The trendline
+    candidate window is the Exit model sequence length (named contract
+    constant, mirroring the entry-M5 lane's use of the Entry sequence
+    length).  Sample sizes and sampling bounds are recorded per fit owner
+    (rule 2f).
+    """
+
+    _validate_m5_input(
+        m1_df,
+        require_volume=False,
+        bar_duration=pd.Timedelta(minutes=1),
+    )
+    window_end = pd.Timestamp(declared_train_window_end)
+    if window_end.tzinfo is None or window_end.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_INVALID: "
+            "declared_train_window_end must be timezone-aware UTC"
+        )
+    q = _require_positive_finite_float(
+        level_tol_quantile_q, label="level_tol_quantile_q"
+    )
+    if not q < 1.0:
+        raise RuntimeError(
+            f"HTF_V4_V29_REGISTRY_M1_FIT_Q_INVALID: {level_tol_quantile_q!r}"
+        )
+    if (
+        isinstance(exit_m1_seq_len, bool)
+        or not isinstance(exit_m1_seq_len, (int, np.integer))
+        or int(exit_m1_seq_len) <= 0
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_FIT_EXIT_SEQ_LEN_INVALID: "
+            f"{exit_m1_seq_len!r}"
+        )
+    source = m1_df.copy(deep=False)
+    source.index = source.index.as_unit("ns")
+    train_source = source[source.index <= window_end]
+    if train_source.empty:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_EMPTY: no source rows at or "
+            f"before {window_end.isoformat()}"
+        )
+    window_label = str(window_end.isoformat())
+    fit_frame = train_source[["high", "low", "close"]].copy()
+    fit_frame["atr"] = _atr(
+        train_source["high"], train_source["low"], train_source["close"], 14
+    )
+    tol, tol_provenance = fit_level_registry_tolerance(
+        fit_frame,
+        q=q,
+        tf="m1",
+        declared_train_window=window_label,
+    )
+    band_payload = fit_trendline_tolerance(
+        fit_frame,
+        timeframe="M1",
+        seq_len=int(exit_m1_seq_len),
+    )
+    params = {
+        "schema_version": V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
+        "level_tol_quantile_recipe_key": LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY,
+        "level_tol_quantile_q": q,
+        "declared_train_window_end": window_label,
+        "level_tol_atr": float(tol),
+        "exit_m1": {
+            "seq_len": int(exit_m1_seq_len),
+            "trendline_band_atr": float(band_payload["band_atr"]),
+        },
+        "provenance": {
+            "fit_owner": (
+                "gx1.features.htf_features."
+                "fit_v29_registry_m1_lane_params_from_m1"
+            ),
+            "declared_train_window_end": window_label,
+            "n_train_m1_rows": int(len(train_source)),
+            "level_tol": tol_provenance,
+            "trendline_band": band_payload,
+        },
+    }
+    return require_v29_registry_m1_lane_params(params)
+
+
 def build_multi_tf_v4_liveness_contract(
     features: dict[str, pd.DataFrame],
 ) -> dict[str, object]:

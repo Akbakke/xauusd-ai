@@ -193,7 +193,7 @@ ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=1.00
 ENTRY_UNIFIED_EXIT_ACTION_WEIGHT=1.00
 GX1_CTX_CONTRACT=V_NEXT
 GX1_V10_CKPT_MONITOR=dir_acc
-ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q=REQUIRED
+ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q=0.5
 ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS=12
 ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS=24
 ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS=7
@@ -201,22 +201,23 @@ ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS=7
 
 # ── V29 registry recipe keys (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §1.4,
 # §8 item 4; stage-1 owners: level_registry_v1 / trendline_registry_v1) ──────
-# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q carries the marker value REQUIRED: the
-# design doc declares NO default for `q` (operator decision at the immutable
-# recipe decision, §8 item 4), so the dataset rebuild must receive it as an
-# explicit CLI input (`--level-tol-quantile-q` on the cache prebuild) and the
+# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q = 0.5.  Origin: median, adopting the
+# design document's own median convention used for the sibling trendline band
+# (docs/V29_EVENT_SURFACE_DESIGN_20260811.md B.2), applied uniformly across
+# registry tolerances; operator-adopted 2026-08-11.  The dataset rebuild still
+# receives it as an explicit CLI input (`--level-tol-quantile-q` on the
+# rebuild chain, both enriched producers and the cache prebuild) and the
 # fitted tolerances are frozen with provenance in the rebuild authority
-# artifacts (rule 18).  A run that tries to consume the marker as a number
-# fails closed.  The three window keys restate the stage-1 owners' named
-# convention constants and are equality-checked against them below — the
-# module constants stay the single numerical truth (rule 2a/13).
+# artifacts (rule 18).  The three window keys restate the stage-1 owners'
+# named convention constants and are equality-checked against them below —
+# the module constants stay the single numerical truth (rule 2a/13).
 MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS = (
     "ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q",
     "ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS",
     "ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS",
     "ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS",
 )
-MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_REQUIRED_MARKER = "REQUIRED"
+MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_ADOPTED_VALUE = "0.5"
 
 
 def _parse_recipe_env(text: str) -> dict[str, str]:
@@ -378,12 +379,14 @@ for _v29_key in MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS:
             f"MODEL_NATIVE_RECIPE_ENV_V29_KEY_MISSING: {_v29_key}"
         )
 if MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"] != (
-    MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_REQUIRED_MARKER
+    MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_ADOPTED_VALUE
 ):
     raise RuntimeError(
-        "MODEL_NATIVE_RECIPE_ENV_V29_TOL_QUANTILE_INVALID: the design doc "
-        "declares no default; the value stays REQUIRED until the immutable "
-        "recipe decision supplies it"
+        "MODEL_NATIVE_RECIPE_ENV_V29_TOL_QUANTILE_INVALID: the adopted "
+        "value is the operator decision of 2026-08-11 (median, the design "
+        "document's own median convention for the sibling trendline band, "
+        "docs/V29_EVENT_SURFACE_DESIGN_20260811.md B.2); changing it "
+        "requires a new recipe decision"
     )
 
 

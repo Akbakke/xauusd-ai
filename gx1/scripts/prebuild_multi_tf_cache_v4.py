@@ -10,9 +10,10 @@ contract switch and no historical publisher.
 
 The V29 registry constants (level cluster tolerance / trendline band per TF)
 are fitted here, once, on the declared TRAIN window (rule 18) with the
-explicit recipe input ``--level-tol-quantile-q`` (the design doc declares no
-default for the quantile; see ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q=REQUIRED in
-the recipe owner) and frozen with full provenance in the cache manifest.
+explicit recipe input ``--level-tol-quantile-q`` (the quantile is owned by
+the recipe key ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q in the recipe owner and
+must still arrive as this explicit CLI input — no ambient default here) and
+frozen with full provenance in the cache manifest.
 
 Usage:
     python -m gx1.scripts.prebuild_multi_tf_cache_v4 \

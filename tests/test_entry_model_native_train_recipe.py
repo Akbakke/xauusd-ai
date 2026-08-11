@@ -41,9 +41,13 @@ def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     assert len(MODEL_NATIVE_RECIPE_ENV) == expected_count
     assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == expected_count
     assert MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_LOGIT_ADJUST_TAU"] == "1.0"
+    # median, adopting the design document's own median convention used for
+    # the sibling trendline band (docs/V29_EVENT_SURFACE_DESIGN_20260811.md
+    # B.2), applied uniformly across registry tolerances; operator-adopted
+    # 2026-08-11.
     assert (
         MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"]
-        == "REQUIRED"
+        == "0.5"
     )
     assert metadata == {
         "schema_version": "entry_model_native_seq513_train_recipe_env_v1",

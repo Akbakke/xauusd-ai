@@ -32,6 +32,8 @@ M1_LIFECYCLE_PAIR_MANIFEST=
 M1_LIFECYCLE_PAIR_GENERATION_ROOT=
 EXIT_TARGET_LOOKAHEAD_M1_STEPS=
 EARLY_MOVE_THRESHOLD_BPS=
+LEVEL_TOL_QUANTILE_Q=
+REGISTRY_FIT_TRAIN_END=
 
 usage() {
   printf '%s\n' \
@@ -42,6 +44,8 @@ usage() {
     "  --m1-lifecycle-pair-generation-root /absolute/immutable/generations" \
     "  --exit-target-lookahead-m1-steps N" \
     "  --early-move-threshold-bps BPS" \
+    "  --level-tol-quantile-q Q (explicit recipe input for the V29 registry TRAIN fit)" \
+    "  [--registry-fit-train-end UTC (defaults to --train-end: same value, one origin)]" \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -147,6 +151,18 @@ while (($#)); do
       EARLY_MOVE_THRESHOLD_BPS=$2
       shift 2
       ;;
+    --level-tol-quantile-q)
+      (($# >= 2)) || die_args "--level-tol-quantile-q requires a value"
+      [[ -z $LEVEL_TOL_QUANTILE_Q ]] || die_args "duplicate --level-tol-quantile-q"
+      LEVEL_TOL_QUANTILE_Q=$2
+      shift 2
+      ;;
+    --registry-fit-train-end)
+      (($# >= 2)) || die_args "--registry-fit-train-end requires a value"
+      [[ -z $REGISTRY_FIT_TRAIN_END ]] || die_args "duplicate --registry-fit-train-end"
+      REGISTRY_FIT_TRAIN_END=$2
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -161,9 +177,18 @@ for name in \
   RUN_ID EVENT RANKING PRE_OUT HISTORY_START TRAIN_START TRAIN_END \
   VAL_START VAL_END TEST_START TEST_END M1_LIFECYCLE_PAIR_MANIFEST \
   M1_LIFECYCLE_PAIR_GENERATION_ROOT \
-  EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS; do
+  EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS \
+  LEVEL_TOL_QUANTILE_Q; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
+# The V29 registry TRAIN-fit window end defaults to the chain's one declared
+# --train-end: same value, one origin (the chain's split authority), so the
+# registry constants are fitted on exactly the TRAIN population the rebuild
+# declares (rule 2g).  An explicit --registry-fit-train-end overrides only by
+# operator decision.
+if [[ -z $REGISTRY_FIT_TRAIN_END ]]; then
+  REGISTRY_FIT_TRAIN_END=$TRAIN_END
+fi
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   die_args "--run-id has invalid format"
@@ -615,6 +640,17 @@ PYEOF
 then
   fail "--early-move-threshold-bps must be finite and positive"
 fi
+if ! "$PY" - "$LEVEL_TOL_QUANTILE_Q" <<'PYEOF'
+import math
+import sys
+
+value = float(sys.argv[1])
+if not math.isfinite(value) or not (0.0 < value < 1.0):
+    raise RuntimeError("level tol quantile q must lie strictly in (0, 1)")
+PYEOF
+then
+  fail "--level-tol-quantile-q must lie strictly in (0,1)"
+fi
 if ! "$PY" - \
   "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
   "$SRC" "$CV2" "$MTF" "$TAPE" "$M1_LIFECYCLE_PAIR_MANIFEST" \
@@ -968,6 +1004,8 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --checkpoint-dir "$M5_CHECKPOINT" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
+  --level-tol-quantile-q "$LEVEL_TOL_QUANTILE_Q" \
+  --registry-fit-train-end "$REGISTRY_FIT_TRAIN_END" \
   --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
   fail "native M5 enriched feature lane failed"
 fi
@@ -1174,6 +1212,8 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --checkpoint-dir "$M1_CHECKPOINT" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
+  --level-tol-quantile-q "$LEVEL_TOL_QUANTILE_Q" \
+  --registry-fit-train-end "$REGISTRY_FIT_TRAIN_END" \
   --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
   fail "native M1 enriched feature lane failed"
 fi
@@ -1196,7 +1236,8 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --seq-structure-manifest "$MANIFEST" \
   --output-parquet "$M1_FEATURE_BASE" \
   --dataset-run-id "$RUN_ID" \
-  --pair-generation-id "$PAIR_GENERATION_ID") >>"$LOG" 2>&1; then
+  --pair-generation-id "$PAIR_GENERATION_ID" \
+  --v29-registry-constants-json "${M1_ENRICHED}.manifest.json") >>"$LOG" 2>&1; then
   fail "M1 Exit feature-surface materialization failed"
 fi
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
@@ -1205,7 +1246,8 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --seq-structure-manifest "$MANIFEST" \
   --output-parquet "$M5_FEATURE_BASE" \
   --dataset-run-id "$RUN_ID" \
-  --pair-generation-id "$PAIR_GENERATION_ID") >>"$LOG" 2>&1; then
+  --pair-generation-id "$PAIR_GENERATION_ID" \
+  --v29-registry-constants-json "$MTF/manifest.json") >>"$LOG" 2>&1; then
   fail "M5 Entry feature-surface materialization failed"
 fi
 for path in "$M1_FEATURE_BASE" "$M5_FEATURE_BASE"; do

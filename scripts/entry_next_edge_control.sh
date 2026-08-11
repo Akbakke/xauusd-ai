@@ -26,12 +26,12 @@ Model-native seq513 evidence:
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
-  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --multi-tf-cache-dir <immutable-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
-  model-native-m5-enriched-frame --native-m5-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --multi-tf-cache-dir <new-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --multi-tf-cache-dir <immutable-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --level-tol-quantile-q <q> --registry-fit-train-end <UTC> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-m5-enriched-frame --native-m5-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --multi-tf-cache-dir <new-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --level-tol-quantile-q <q> --registry-fit-train-end <UTC> [--workers 1 --checkpoint-chunk-rows <n>]
   model-native-m5-source-frame --enriched-parquet <immutable-parquet> --multi-tf-cache-dir <immutable-v4-dir> --native-m5-root <immutable-dir> --pair-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-current-source-cascade-proof --run-id <id> --source-parquet <immutable-parquet> --canonical-v2-parquet <immutable-parquet> --mtf-cache-dir <immutable-dir> --pair-manifest <json> --required-history-start <UTC> --out <new-json>
-  model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
-  model-native-m5-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
+  model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <m1-enriched-manifest-json>
+  model-native-m5-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <v4-cache-manifest-json>
   model-native-rebuild-preflight \
     --run-id <id> \
     --source-parquet <immutable-parquet> \
@@ -300,7 +300,9 @@ case "$cmd" in
       --manifest-path \
       --checkpoint-dir \
       --dataset-run-id \
-      --pair-generation-id; do
+      --pair-generation-id \
+      --level-tol-quantile-q \
+      --registry-fit-train-end; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" \
@@ -320,7 +322,9 @@ case "$cmd" in
       --manifest-path \
       --checkpoint-dir \
       --dataset-run-id \
-      --pair-generation-id; do
+      --pair-generation-id \
+      --level-tol-quantile-q \
+      --registry-fit-train-end; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" \
@@ -368,7 +372,8 @@ case "$cmd" in
       --seq-structure-manifest \
       --output-parquet \
       --dataset-run-id \
-      --pair-generation-id; do
+      --pair-generation-id \
+      --v29-registry-constants-json; do
       require_flag "$cmd" "$flag" "$@"
     done
     # The complete 2.3m-row M1 inline signal extension needs more than the
@@ -385,7 +390,8 @@ case "$cmd" in
       --seq-structure-manifest \
       --output-parquet \
       --dataset-run-id \
-      --pair-generation-id; do
+      --pair-generation-id \
+      --v29-registry-constants-json; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" \

@@ -208,13 +208,13 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
     ]
     for root_flag in ("--native-m1-root", "--native-m5-root"):
         route_args = ["producer", root_flag, "/tmp/native", *common_enriched]
-        if root_flag == "--native-m5-root":
-            # The M5 route TRAIN-fits the V29 registry constants; both are
-            # explicit recipe inputs with no default.
-            route_args += [
-                "--level-tol-quantile-q", "0.25",
-                "--registry-fit-train-end", "2026-01-05T00:00:00Z",
-            ]
+        # Both native routes TRAIN-fit V29 registry state (M5: the five-TF
+        # constants; M1: the Exit M1-lane params); both fit inputs are
+        # explicit recipe inputs with no default.
+        route_args += [
+            "--level-tol-quantile-q", "0.25",
+            "--registry-fit-train-end", "2026-01-05T00:00:00Z",
+        ]
         monkeypatch.setattr(sys, "argv", route_args)
         enriched_producer.main()
 

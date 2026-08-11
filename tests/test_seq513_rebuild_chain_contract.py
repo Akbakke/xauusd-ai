@@ -21,6 +21,9 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "--m1-lifecycle-pair-generation-root",
         "--exit-target-lookahead-m1-steps",
         "--early-move-threshold-bps",
+        "--level-tol-quantile-q",
+        "--registry-fit-train-end",
+        "REGISTRY_FIT_TRAIN_END=$TRAIN_END",
         'path.relative_to(event)',
         'feature ranking output must be a fresh timestamped JSON',
         'feature ranking timestamp cannot be in the future',
@@ -44,6 +47,10 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "model-native-m1-enriched-frame",
         "model-native-m5-feature-base",
         "model-native-m1-feature-base",
+        '--level-tol-quantile-q "$LEVEL_TOL_QUANTILE_Q"',
+        '--registry-fit-train-end "$REGISTRY_FIT_TRAIN_END"',
+        '--v29-registry-constants-json "$MTF/manifest.json"',
+        '--v29-registry-constants-json "${M1_ENRICHED}.manifest.json"',
         '--m1-feature-base-parquet "$M1_FEATURE_BASE"',
         '--m5-feature-base-parquet "$M5_FEATURE_BASE"',
         "--workers 1",
@@ -192,6 +199,11 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
             "30",
             "--early-move-threshold-bps",
             "4.0",
+            # Explicit recipe input for the V29 registry TRAIN fit;
+            # --registry-fit-train-end is deliberately omitted so the probe
+            # also exercises its one-origin default (the chain's --train-end).
+            "--level-tol-quantile-q",
+            "0.5",
             "--history-start",
             "2021-01-05T00:00:00Z",
             "--train-start",

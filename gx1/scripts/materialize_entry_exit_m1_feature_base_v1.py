@@ -940,41 +940,37 @@ def _resolve_v29_registry_layer_params(
 ) -> dict[str, Any] | None:
     """Resolve the exact TRAIN-fitted lane params for the registry layers.
 
-    Accepts either a bare lane-params JSON with exactly the
-    ``V29_REGISTRY_LAYER_PARAM_KEYS`` keys (any lane; e.g. an M1-lane fit),
-    or a frozen constants payload / V4 cache manifest, from which the M5
-    lane's params derive (level tol M5 + entry_m5 trendline band/seq).  A
-    constants payload cannot supply the M1 lane — that lane needs its own
-    declared fit (fail closed, no default).
+    M5 lane: a frozen constants payload / V4 cache manifest
+    (``require_v29_registry_constants``), from which the M5 lane's params
+    derive (level tol M5 + entry_m5 trendline band/seq).  M1 lane: the
+    M1-enriched frame manifest (or bare params payload) carrying the declared
+    M1-lane TRAIN fit with its rule-2f provenance
+    (``require_v29_registry_m1_lane_params``).  A cross-lane payload and a
+    provenance-free bare key dict both fail closed — no default exists.
     """
-    from gx1.features.entry_model_native_feature_layers_v1 import (
-        V29_REGISTRY_LAYER_PARAM_KEYS,
+    from gx1.features.htf_features import (
+        load_v29_registry_constants_manifest,
+        load_v29_registry_m1_lane_params_manifest,
     )
-    from gx1.features.htf_features import require_v29_registry_constants
 
     if artifact is None:
         return None
-    payload = json.loads(Path(artifact).read_text(encoding="utf-8"))
-    if isinstance(payload, dict) and set(payload) == set(
-        V29_REGISTRY_LAYER_PARAM_KEYS
-    ):
-        return dict(payload)
-    if isinstance(payload, dict) and "v29_registry_constants" in payload:
-        payload = payload["v29_registry_constants"]
-    constants = require_v29_registry_constants(payload)
-    if timeframe != "M5":
-        raise RuntimeError(
-            "M1_FEATURE_BASE_V29_REGISTRY_LANE_PARAMS_REQUIRED: the M5 "
-            "constants payload does not carry an M1-lane fit; pass a bare "
-            f"lane-params JSON with keys {V29_REGISTRY_LAYER_PARAM_KEYS} "
-            "fitted on the declared M1 TRAIN window"
-        )
+    if timeframe == "M5":
+        constants = load_v29_registry_constants_manifest(artifact)
+        return {
+            "level_tol_atr": float(constants["level_tol_atr"]["M5"]),
+            "trendline_band_atr": float(
+                constants["entry_m5"]["trendline_band_atr"]
+            ),
+            "trendline_seq_len": int(constants["entry_m5"]["seq_len"]),
+        }
+    lane_params = load_v29_registry_m1_lane_params_manifest(artifact)
     return {
-        "level_tol_atr": float(constants["level_tol_atr"]["M5"]),
+        "level_tol_atr": float(lane_params["level_tol_atr"]),
         "trendline_band_atr": float(
-            constants["entry_m5"]["trendline_band_atr"]
+            lane_params["exit_m1"]["trendline_band_atr"]
         ),
-        "trendline_seq_len": int(constants["entry_m5"]["seq_len"]),
+        "trendline_seq_len": int(lane_params["exit_m1"]["seq_len"]),
     }
 
 
@@ -1106,9 +1102,10 @@ def main() -> None:
         type=Path,
         required=True,
         help=(
-            "Explicit frozen V29 registry constants artifact (V4 cache "
-            "manifest.json / constants payload for the M5 lane, or a bare "
-            "lane-params JSON for the M1 lane); no default exists"
+            "Explicit frozen V29 registry fit artifact (V4 cache "
+            "manifest.json / constants payload for the M5 lane; the "
+            "M1-enriched frame manifest.json / M1-lane params payload for "
+            "the M1 lane); no default exists"
         ),
     )
     args = parser.parse_args()

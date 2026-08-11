@@ -473,7 +473,18 @@ def _validate_source(
 # TRAIN fit of the cluster tolerance (smc report §2 — required TRAIN-fitted
 # statistic; rule 18 pattern: fitted once on the complete declared TRAIN
 # window, frozen as bundle state, never refitted downstream).
+#
+# Fit-lane labels: the engine TFs (the AGE_CAP table) plus "m1" — the Exit
+# local M1 lane runs the same M5-block engine on the native M1 clock (the
+# shared local layer in entry_model_native_feature_layers_v1), so its
+# tolerance must be fitted on that clock's own confirmed-pivot population
+# (rule 2g).  "m1" is the Exit decision timeframe named in
+# entry_exit_feature_base_v1; no new number is introduced by admitting the
+# label here — the engine's per-TF age caps are untouched.
 # ---------------------------------------------------------------------------
+LEVEL_REGISTRY_FIT_LANE_TFS = tuple(LEVEL_REGISTRY_AGE_CAP_BARS) + ("m1",)
+
+
 def fit_level_registry_tolerance(
     df: pd.DataFrame,
     *,
@@ -500,7 +511,11 @@ def fit_level_registry_tolerance(
     sqrt(q*(1-q)/N)`` (the distribution-free binomial SE of the empirical CDF
     at ``q``) and the empirical value bracket at ``q ± quantile_prob_se``.
     """
-    _validate_tf(tf)
+    if tf not in LEVEL_REGISTRY_FIT_LANE_TFS:
+        raise RuntimeError(
+            f"[LEVEL_REGISTRY_TF_INVALID] {tf!r} not in "
+            f"{LEVEL_REGISTRY_FIT_LANE_TFS}"
+        )
     try:
         q_value = float(q)
     except (TypeError, ValueError) as exc:

@@ -1006,6 +1006,7 @@ def _build_enriched_stage(
         rank_reference_npz,
         expected_sha256=rank_reference_sha256,
     )
+    v29_registry_m1_lane_params: dict[str, Any] | None = None
     if timeframe == "M5":
         if temporary_cache_dir is None:
             raise RuntimeError("M5_ENRICHED_TEMPORARY_CACHE_MISSING")
@@ -1054,6 +1055,38 @@ def _build_enriched_stage(
     else:
         if temporary_cache_dir is not None:
             raise RuntimeError("M1_ENRICHED_TEMPORARY_CACHE_FORBIDDEN")
+        # The M1 enriched route owns the Exit local lane's V29 registry fit
+        # (rule 18: once, on the declared M1 TRAIN window, with the explicit
+        # recipe input q) and freezes it into the hash-bound M1 manifest
+        # published below — mirroring the M5 route's cache-manifest freeze.
+        if level_tol_quantile_q is None or registry_fit_train_end is None:
+            raise RuntimeError(
+                "M1_ENRICHED_V29_REGISTRY_FIT_INPUTS_REQUIRED: "
+                "--level-tol-quantile-q and --registry-fit-train-end are "
+                "explicit recipe inputs with no default"
+            )
+        from gx1.contracts.entry_exit_feature_base_v1 import (
+            EXIT_FEATURE_SEQUENCE_BARS,
+        )
+        from gx1.features.htf_features import (
+            fit_v29_registry_m1_lane_params_from_m1,
+        )
+
+        native_m1_ohlcv = pd.read_parquet(
+            native_stage,
+            columns=["time", "open", "high", "low", "close", "volume"],
+        )
+        native_m1_ohlcv["time"] = pd.to_datetime(
+            native_m1_ohlcv["time"], utc=True, errors="raise"
+        )
+        native_m1_ohlcv = native_m1_ohlcv.set_index("time")
+        v29_registry_m1_lane_params = fit_v29_registry_m1_lane_params_from_m1(
+            native_m1_ohlcv,
+            level_tol_quantile_q=float(level_tol_quantile_q),
+            declared_train_window_end=registry_fit_train_end,
+            exit_m1_seq_len=EXIT_FEATURE_SEQUENCE_BARS,
+        )
+        del native_m1_ohlcv
         context_m5, multi_tf, multi_tf_binding = _load_bound_m5_cache_context(
             cache_dir=source_cache_dir,
             dataset_run_id=dataset_run_id,
@@ -1110,11 +1143,14 @@ def _build_enriched_stage(
         del cache_features, verified
     if timeframe == "M1" and multi_tf_binding is None:
         raise RuntimeError(f"{label}_ENRICHED_MULTI_TF_BINDING_MISSING")
+    if timeframe == "M1" and v29_registry_m1_lane_params is None:
+        raise RuntimeError("M1_ENRICHED_V29_REGISTRY_M1_LANE_PARAMS_MISSING")
     del multi_tf
     return {
         "rows": int(len(enriched)),
         "output_sha256": output_sha256,
         "multi_tf_binding": multi_tf_binding,
+        "v29_registry_m1_lane_params": v29_registry_m1_lane_params,
     }
 
 
@@ -1552,6 +1588,18 @@ def _build_enriched_frame(
                 raise RuntimeError("M1_ENRICHED_MULTI_TF_BINDING_MISSING")
             multi_tf_binding = observed_binding
 
+        v29_registry_m1_lane_params: dict[str, Any] | None = None
+        if timeframe == "M1":
+            # Freeze the declared M1-lane TRAIN fit into the hash-bound M1
+            # manifest (rule 2f provenance shape validated by the one owner).
+            from gx1.features.htf_features import (
+                require_v29_registry_m1_lane_params,
+            )
+
+            v29_registry_m1_lane_params = require_v29_registry_m1_lane_params(
+                enriched_result.get("v29_registry_m1_lane_params")
+            )
+
         result = {
             "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
             "decision": "PASS",
@@ -1563,6 +1611,13 @@ def _build_enriched_frame(
             f"native_{spec['lineage_key']}_source": source_identity,
             "pair_binding": pair_binding,
             "multi_tf_cache_binding": multi_tf_binding,
+            **(
+                {}
+                if v29_registry_m1_lane_params is None
+                else {
+                    "v29_registry_m1_lane_params": v29_registry_m1_lane_params
+                }
+            ),
             "rank_reference_npz": str(rank_path),
             "rank_reference_sha256": rank_reference_sha256,
             "checkpoint_dir": str(checkpoint),
@@ -1642,26 +1697,26 @@ def main() -> None:
         type=float,
         default=None,
         help=(
-            "Explicit recipe input for the M5 route's V29 registry TRAIN "
-            "fit (no default exists; required when --native-m5-root is used)"
+            "Explicit recipe input for the V29 registry TRAIN fit "
+            "(no default exists; required on both native routes — the M5 "
+            "route fits the five-TF constants, the M1 route fits the Exit "
+            "M1-lane params)"
         ),
     )
     parser.add_argument(
         "--registry-fit-train-end",
         default=None,
         help=(
-            "Declared TRAIN window end (UTC) for the M5 route's V29 "
-            "registry TRAIN fit (required when --native-m5-root is used)"
+            "Declared TRAIN window end (UTC) for the V29 registry TRAIN "
+            "fit (no default exists; required on both native routes)"
         ),
     )
     args = parser.parse_args()
     timeframe = "M1" if args.native_m1_root is not None else "M5"
-    if timeframe == "M5" and (
-        args.level_tol_quantile_q is None or args.registry_fit_train_end is None
-    ):
+    if args.level_tol_quantile_q is None or args.registry_fit_train_end is None:
         parser.error(
             "--level-tol-quantile-q and --registry-fit-train-end are required "
-            "for the M5 route (V29 registry TRAIN fit; no default exists)"
+            "on both native routes (V29 registry TRAIN fit; no default exists)"
         )
     native_root = args.native_m1_root or args.native_m5_root
     result = _build_enriched_frame(
