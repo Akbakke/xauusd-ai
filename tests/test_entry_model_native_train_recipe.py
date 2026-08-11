@@ -31,11 +31,12 @@ WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     metadata = model_native_recipe_env_contract_metadata()
 
-    assert len(MODEL_NATIVE_RECIPE_ENV) == 163
-    assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == 163
+    assert len(MODEL_NATIVE_RECIPE_ENV) == 164
+    assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == 164
+    assert MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_LOGIT_ADJUST_TAU"] == "1.0"
     assert metadata == {
         "schema_version": "entry_model_native_seq513_train_recipe_env_v1",
-        "count": 163,
+        "count": 164,
         "sha256": MODEL_NATIVE_RECIPE_ENV_SHA256,
         "keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
     }
@@ -391,7 +392,7 @@ def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
     with_default = re.findall(r'_env_str\(\s*"[A-Z0-9_]+"\s*,', source)
     assert with_default == [], f"trainer regained shadow defaults: {with_default}"
     single_arg = re.findall(r'_env_str\(\s*"([A-Z0-9_]+)"\s*\)', source)
-    assert len(single_arg) == 161
+    assert len(single_arg) == 162
     # Every key the trainer reads must be owned by the recipe contract.
     unknown = sorted(set(single_arg) - set(MODEL_NATIVE_RECIPE_ENV_KEYS))
     assert unknown == [], f"trainer reads keys with no recipe owner: {unknown}"

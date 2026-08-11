@@ -1637,12 +1637,21 @@ def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
         balance_class_weights=torch.tensor([1.0, 1.0, 4.0], dtype=torch.float32),
     )
 
-    loss = trainer._direction_aux_ce_loss(logits, targets, criterion, sample_weight)
+    loss = trainer._direction_aux_ce_loss(logits, targets, criterion, sample_weight, None)
     weighted_ce = (criterion.ce(logits, targets) * sample_weight).mean()
     balance_term = trainer._direction_balance_term(torch.softmax(logits, dim=1), targets, criterion)
 
     assert torch.allclose(loss, weighted_ce + balance_term)
     assert float(loss.item()) > float(criterion.ce(logits, targets).mean().item())
+
+    # With a logit-adjust offset the aux CE consumes adjusted logits while the
+    # balance term stays on the raw probabilities.
+    offset = torch.log(torch.tensor([0.2, 0.2, 0.6], dtype=torch.float32))
+    loss_adj = trainer._direction_aux_ce_loss(
+        logits, targets, criterion, sample_weight, offset
+    )
+    weighted_ce_adj = (criterion.ce(logits + offset, targets) * sample_weight).mean()
+    assert torch.allclose(loss_adj, weighted_ce_adj + balance_term)
 
 
 def test_entry_v10_train_and_validate_apply_mtf_aux_direction_repair() -> None:
@@ -2840,3 +2849,215 @@ def test_entry_v10_grad_accum_cli_drives_steps_and_rescales_final_remainder(
     source = TRAINER_PATH.read_text(encoding="utf-8")
     assert 'parser.add_argument("--grad-accum-steps", type=int, required=True)' in source
     assert "grad_accum_steps=int(grad_accum_steps)" in source
+
+
+def test_entry_v10_logit_adjust_tau_zero_is_bit_compatible(monkeypatch) -> None:
+    """tau=0 is the exact-compatibility switch: no offset is built, the live
+    logits tensor is passed through unchanged (same object, not just equal),
+    so the CE graph is bit-identical to the pre-adjustment trainer."""
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 0.0)
+    offset = trainer._direction_log_prior_offset(
+        train_long_rate=0.2,
+        train_short_rate=0.2,
+        train_flat_rate=0.6,
+        device=torch.device("cpu"),
+    )
+    assert offset is None
+
+    logits = torch.randn(5, 3, requires_grad=True)
+    adjusted = trainer._direction_logit_adjusted_ce_logits(logits, offset)
+    assert adjusted is logits
+
+    targets = torch.tensor([0, 1, 2, 0, 1], dtype=torch.long)
+    raw_ce = torch.nn.functional.cross_entropy(logits, targets, reduction="none")
+    adjusted_ce = torch.nn.functional.cross_entropy(adjusted, targets, reduction="none")
+    assert torch.equal(raw_ce, adjusted_ce)
+
+
+def test_entry_v10_logit_adjust_offset_orders_by_direction_contract_indices(
+    monkeypatch,
+) -> None:
+    import math
+
+    import pytest
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.models.entry_v10.direction_decision_contract import (
+        MODEL_DIRECTION_FLAT_INDEX,
+        MODEL_DIRECTION_LONG_INDEX,
+        MODEL_DIRECTION_SHORT_INDEX,
+    )
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 1.0)
+    offset = trainer._direction_log_prior_offset(
+        train_long_rate=0.2,
+        train_short_rate=0.3,
+        train_flat_rate=0.5,
+        device=torch.device("cpu"),
+    )
+    assert offset is not None and offset.shape == (3,)
+    assert float(offset[MODEL_DIRECTION_LONG_INDEX]) == pytest.approx(math.log(0.2))
+    assert float(offset[MODEL_DIRECTION_SHORT_INDEX]) == pytest.approx(math.log(0.3))
+    assert float(offset[MODEL_DIRECTION_FLAT_INDEX]) == pytest.approx(math.log(0.5))
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 0.5)
+    half = trainer._direction_log_prior_offset(
+        train_long_rate=0.2,
+        train_short_rate=0.3,
+        train_flat_rate=0.5,
+        device=torch.device("cpu"),
+    )
+    assert torch.allclose(half * 2.0, offset)
+
+
+def test_entry_v10_logit_adjust_tau_one_shifts_ce_toward_the_prior(
+    monkeypatch,
+) -> None:
+    """Hand example, priors (LONG,SHORT,FLAT)=(0.2,0.2,0.6): at zero logits
+    softmax(log p) = p exactly, so the adjusted CE equals -log(prior of the
+    target). Majority FLAT gets cheaper than the raw uniform CE log(3);
+    minority LONG/SHORT get costlier — the adjustment handicaps the prior
+    inside the loss instead of leaving CE to prefer collapse."""
+    import math
+
+    import pytest
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.models.entry_v10.direction_decision_contract import (
+        MODEL_DIRECTION_FLAT_INDEX,
+        MODEL_DIRECTION_LONG_INDEX,
+        MODEL_DIRECTION_SHORT_INDEX,
+    )
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 1.0)
+    offset = trainer._direction_log_prior_offset(
+        train_long_rate=0.2,
+        train_short_rate=0.2,
+        train_flat_rate=0.6,
+        device=torch.device("cpu"),
+    )
+    logits = torch.zeros(3, 3)
+    targets = torch.tensor(
+        [
+            MODEL_DIRECTION_LONG_INDEX,
+            MODEL_DIRECTION_SHORT_INDEX,
+            MODEL_DIRECTION_FLAT_INDEX,
+        ],
+        dtype=torch.long,
+    )
+    raw_ce = torch.nn.functional.cross_entropy(logits, targets, reduction="none")
+    adjusted_ce = torch.nn.functional.cross_entropy(
+        trainer._direction_logit_adjusted_ce_logits(logits, offset),
+        targets,
+        reduction="none",
+    )
+
+    uniform = math.log(3.0)
+    assert float(raw_ce[0]) == pytest.approx(uniform)
+    # softmax(log p) == p: adjusted CE is exactly -log(prior_target).
+    assert float(adjusted_ce[0]) == pytest.approx(-math.log(0.2))
+    assert float(adjusted_ce[1]) == pytest.approx(-math.log(0.2))
+    assert float(adjusted_ce[2]) == pytest.approx(-math.log(0.6))
+    # Directional: minority targets cost more than raw, majority costs less.
+    assert float(adjusted_ce[0]) > float(raw_ce[0])
+    assert float(adjusted_ce[1]) > float(raw_ce[1])
+    assert float(adjusted_ce[2]) < float(raw_ce[2])
+
+
+def test_entry_v10_logit_adjust_zero_rate_fails_closed(monkeypatch) -> None:
+    import pytest as _pytest
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 1.0)
+    with _pytest.raises(
+        RuntimeError, match="ENTRY_DIRECTION_LOGIT_ADJUST_PRIOR_INVALID"
+    ):
+        trainer._direction_log_prior_offset(
+            train_long_rate=0.4,
+            train_short_rate=0.0,
+            train_flat_rate=0.6,
+            device=torch.device("cpu"),
+        )
+
+
+def test_entry_v10_direction_class_weights_neutral_under_adjust_sqrt_when_off(
+    monkeypatch,
+) -> None:
+    import numpy as np
+    import pytest
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    long_rate, short_rate = 0.204, 0.184  # V28-era TRAIN rates (documented)
+    raw_long = (1.0 - long_rate) / long_rate
+    raw_short = (1.0 - short_rate) / short_rate
+
+    # tau > 0: adjustment replaces reweighting — all weights exactly 1.0.
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 1.0)
+    result = trainer._direction_class_weights(
+        train_long_rate=long_rate, train_short_rate=short_rate
+    )
+    assert result[0] == pytest.approx(raw_long)
+    assert result[1] == pytest.approx(raw_short)
+    assert result[2:] == (1.0, 1.0, 1.0)
+
+    # tau == 0: the exact 2026-08-08 sqrt-softened construction is unchanged.
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_LOGIT_ADJUST_TAU", 0.0)
+    result_off = trainer._direction_class_weights(
+        train_long_rate=long_rate, train_short_rate=short_rate
+    )
+    cap = float(trainer.ENTRY_DIRECTION_CLASS_WEIGHT_CAP)
+    floor = float(trainer.ENTRY_FLAT_CLASS_WEIGHT_FLOOR)
+    assert result_off[2] == pytest.approx(
+        min(cap, max(1.0, float(np.sqrt(max(raw_long, 1.0)))))
+    )
+    assert result_off[3] == pytest.approx(
+        min(cap, max(1.0, float(np.sqrt(max(raw_short, 1.0)))))
+    )
+    assert result_off[4] == pytest.approx(max(floor, 1.0))
+    # The corrected algebra: sqrt weights do NOT equalize w_k * r_k.
+    assert result_off[2] * long_rate != pytest.approx(result_off[3] * short_rate)
+
+
+def test_entry_v10_logit_adjust_is_training_loss_only_and_serving_logits_raw() -> None:
+    """Rule 6 / rule 3: the adjustment must never touch the model's emitted
+    logits or the battery probabilities. Proven from source: the model module
+    has no tau dependence, the helper never mutates its input, and every
+    battery softmax consumes the raw logits."""
+    import inspect
+
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as model_module
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    model_source = Path(model_module.__file__).read_text(encoding="utf-8")
+    assert "logit_adjust" not in model_source.lower()
+    forward_params = inspect.signature(
+        model_module.EntryV10CtxHybridTransformer.forward
+    ).parameters
+    assert not any("tau" in name or "prior" in name for name in forward_params)
+
+    logits = torch.randn(4, 3)
+    logits_before = logits.clone()
+    offset = torch.log(torch.tensor([0.2, 0.2, 0.6]))
+    adjusted = trainer._direction_logit_adjusted_ce_logits(logits, offset)
+    assert adjusted is not logits
+    assert torch.equal(logits, logits_before)
+    assert torch.allclose(adjusted, logits_before + offset)
+
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    # Both main direction CE call sites (train_epoch + validate) are adjusted;
+    # the mtf aux CE is adjusted inside _direction_aux_ce_loss.
+    assert (
+        text.count(
+            "_direction_logit_adjusted_ce_logits(logits, direction_log_prior_offset)"
+        )
+        == 2
+    )
+    assert "_direction_logit_adjusted_ce_logits(aux_logits, log_prior_offset)" in text
+    # Battery/metric probabilities stay on raw logits: no softmax over the
+    # adjusted logits anywhere.
+    assert text.count("probs = torch.softmax(logits, dim=1)") >= 2
+    assert "torch.softmax(_direction_logit_adjusted_ce_logits" not in text

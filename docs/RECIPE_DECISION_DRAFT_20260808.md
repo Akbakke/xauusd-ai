@@ -59,3 +59,41 @@ The 2026-08-07/08 smokes produced the first honest post-repair evidence:
 
 No anchoring weights change. No feature surface change. No threshold moves
 without its sampling-error bound stated (rule 2f). No live-route reopening.
+
+## ADOPTED 2026-08-11 — logit-adjusted direction CE (tau=1.0)
+
+Adopted into the recipe owner (`gx1/contracts/entry_model_native_train_recipe_v1.py`,
+key `ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0`, env count 163 → 164) and the trainer
+(`gx1/models/entry_v10/entry_v10_ctx_train_v3.py`).
+
+- **Decision:** every direction CE training loss (main CE, tail-direction CE
+  reuse, mtf-dir aux CE) consumes `logits + tau*log(TRAIN priors)`; the same
+  adjustment is applied in `validate()`'s CE for val-loss comparability only.
+  Emitted/serving logits, all battery probabilities (prior-match, balance,
+  min-pred-rate, slice terms) and every acc/pred-rate metric stay on raw
+  logits (rule 6 train==serve; rule 3 one decision authority). `tau=0.0` is
+  the exact-compatibility switch (no offset built, bit-identical CE graph).
+- **Origin:** tau=1.0 is the standard value of the published method (Menon et
+  al. 2021, "Long-tail learning via logit adjustment"). Priors = physical
+  TRAIN label rates computed in-trainer at dataset load; a zero/non-finite
+  rate fails closed (`ENTRY_DIRECTION_LOGIT_ADJUST_PRIOR_INVALID`).
+- **Class weights under adjustment:** with tau>0, long/short/flat direction CE
+  class weights are exactly 1.0 (Menon et al.: adjustment replaces
+  reweighting; combining both double-corrects). tau==0 keeps the 2026-08-08
+  sqrt-softened construction unchanged. The old comment's claim that
+  sqrt-softened `w_k * r_k` "equalizes by construction" is corrected in both
+  paths: `w_k * r_k = sqrt(r_k(1-r_k))` still orders by class rate (measured
+  2026-08-11 on V28 TRAIN rates: +3.8% CE mass on LONG vs SHORT).
+- **Evidence basis (measured 2026-08-10/11, V28):** training oscillates/
+  collapses class-wise under the anti-collapse penalty battery; the collapse
+  direction flips with seed; no static loss asymmetry explains it; the battery
+  anchors TRAIN-batch marginals while plain CE mildly prefers collapse.
+  Handling the prior inside the CE removes the need for the battery to fight
+  the CE. Anchoring weights themselves are unchanged (no origin for new
+  magnitudes without a sweep on real data — deferred item 4 above stands).
+- **Also adopted (log-only + record completeness):** short-side
+  DEAD/TEASER/HARD_NEG rate proofs mirroring the long-side lines (rule 2e —
+  the short negatives were applied under `ENTRY_SYMMETRIC_NEGATIVES` but never
+  recorded); `[ENTRY_HARD_NEG_RECIPE]` now states the short-side application;
+  `[ENTRY_TRAIN_RECIPE]`, `[ENTRY_DIRECTION_BALANCE_PROOF]` and the bundle
+  metadata now record `direction_logit_adjust_tau`.

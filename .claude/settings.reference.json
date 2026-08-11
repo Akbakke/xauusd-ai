@@ -60,5 +60,5 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "agentPushNotifEnabled": true,
-  "model": "claude-fable-5[1m]"
+  "model": "sonnet"
 }

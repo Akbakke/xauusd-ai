@@ -20,6 +20,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 
 SCHEMA_VERSION = "entry_model_native_seq513_train_recipe_env_v1"
 
+# ENTRY_DIRECTION_LOGIT_ADJUST_TAU origin (adopted 2026-08-11): tau=1.0 is the
+# standard value of the published method (Menon et al. 2021, "Long-tail
+# learning via logit adjustment"); the class priors it scales are the physical
+# TRAIN label rates computed in-trainer at dataset load, never a stored guess.
+# The adjustment is a training-loss device only; emitted/serving logits stay
+# unadjusted. tau=0.0 is the exact-compatibility switch (raw CE, sqrt-softened
+# class weights); tau>0 sets the direction CE class weights to the neutral 1.0
+# because adjustment replaces reweighting (combining both double-corrects).
 _RECIPE_ENV_TEXT = """
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP=20.0
 ENTRY_AUX_BAD_PATH_WEIGHT=1.25
@@ -65,6 +73,7 @@ ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00
 ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10
 ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02
 ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00
+ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0
 ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.05
 ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.50
 ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00
@@ -327,10 +336,10 @@ DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "skips_low_label_diversity": True,
 }
 
-if len(MODEL_NATIVE_RECIPE_ENV) != 163:
+if len(MODEL_NATIVE_RECIPE_ENV) != 164:
     raise RuntimeError(
         "MODEL_NATIVE_RECIPE_ENV_COUNT_INVALID: "
-        f"observed={len(MODEL_NATIVE_RECIPE_ENV)} expected=163"
+        f"observed={len(MODEL_NATIVE_RECIPE_ENV)} expected=164"
     )
 
 

@@ -934,6 +934,19 @@ ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET").lower()
 ENTRY_PRED_BALANCE_CLASS_WEIGHTS = _parse_three_float_env("ENTRY_PRED_BALANCE_CLASS_WEIGHTS")
 ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE"))
+# Logit-adjusted direction CE (Menon et al. 2021, "Long-tail learning via
+# logit adjustment"): the training losses consume logits + tau*log(prior),
+# where the priors are the physical TRAIN label rates computed at dataset
+# load. tau=1.0 is the published method's standard value (recipe owner);
+# tau=0.0 reproduces the exact unadjusted CE. Training-loss device only:
+# emitted/serving logits and every prior-match/balance battery probability
+# stay unadjusted (rule 6 train==serve; rule 3 one decision authority).
+ENTRY_DIRECTION_LOGIT_ADJUST_TAU = float(_env_str("ENTRY_DIRECTION_LOGIT_ADJUST_TAU"))
+if (not np.isfinite(ENTRY_DIRECTION_LOGIT_ADJUST_TAU)) or ENTRY_DIRECTION_LOGIT_ADJUST_TAU < 0.0:
+    raise RuntimeError(
+        "[ENTRY_DIRECTION_LOGIT_ADJUST_TAU_INVALID] "
+        f"got={ENTRY_DIRECTION_LOGIT_ADJUST_TAU!r} expected finite >= 0"
+    )
 ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT"))
 ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE = float(_env_str("ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE"))
 ENTRY_TAIL_DIRECTION_MIN_BATCH = int(_env_str("ENTRY_TAIL_DIRECTION_MIN_BATCH"))
@@ -5942,15 +5955,136 @@ def _direction_ce_sample_weight(
     return ce_sample_weight
 
 
+def _direction_log_prior_offset(
+    *,
+    train_long_rate: float,
+    train_short_rate: float,
+    train_flat_rate: float,
+    device: torch.device,
+) -> Optional[torch.Tensor]:
+    """Build the training-only logit-adjustment offset tau*log(TRAIN priors).
+
+    Menon et al. 2021 ("Long-tail learning via logit adjustment"): the direction
+    CE consumes logits + tau*log(prior) so the prior is handled inside the loss
+    instead of being fought by the anti-collapse battery. The priors are the
+    physical TRAIN label rates; ordering follows the canonical class indices of
+    the direction decision contract (rule 13, no literals). tau=0.0 returns
+    None so the unadjusted CE graph is reproduced exactly (compatibility
+    switch, bit-identical: no add op is inserted). A zero or non-finite rate
+    fails closed: log(0) would silently erase a class from the loss.
+    """
+
+    tau = float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU)
+    if tau == 0.0:
+        return None
+    rates = [0.0, 0.0, 0.0]
+    rates[int(MODEL_DIRECTION_LONG_INDEX)] = float(train_long_rate)
+    rates[int(MODEL_DIRECTION_SHORT_INDEX)] = float(train_short_rate)
+    rates[int(MODEL_DIRECTION_FLAT_INDEX)] = float(train_flat_rate)
+    if any((not np.isfinite(rate)) or rate <= 0.0 for rate in rates):
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_LOGIT_ADJUST_PRIOR_INVALID] "
+            f"train rates long={train_long_rate!r} short={train_short_rate!r} "
+            f"flat={train_flat_rate!r} must all be finite > 0 when tau > 0"
+        )
+    return tau * torch.log(
+        torch.tensor(rates, device=device, dtype=torch.float32)
+    )
+
+
+def _direction_class_weights(
+    *,
+    train_long_rate: float,
+    train_short_rate: float,
+) -> tuple[float, float, float, float, float]:
+    """Direction CE class weights; returns (raw_long, raw_short, long, short, flat).
+
+    2026-08-11 correction: the 2026-08-08 per-class comment claimed the
+    sqrt-softened weight "w_k * r_k equalizes between LONG and SHORT by
+    construction". That is algebraically FALSE: w_k = sqrt((1-r_k)/r_k) gives
+    w_k * r_k = sqrt(r_k * (1 - r_k)), which still orders by class rate
+    (measured 2026-08-11 on the V28 TRAIN rates: +3.8% CE mass on LONG vs
+    SHORT). The sqrt softens the raw inverse-frequency correction; it does not
+    neutralize the prior.
+
+    With logit adjustment active (tau > 0) the prior is handled inside the CE
+    itself (Menon et al. 2021), and combining adjustment with inverse-frequency
+    reweighting double-corrects, so every direction class weight is the neutral
+    1.0 (origin: the published method's standard — adjustment replaces
+    reweighting). The raw inverse-frequency statistics are still computed and
+    logged as TRAIN-population diagnostics.
+
+    tau == 0 keeps the exact 2026-08-08 sqrt-softened construction
+    (compatibility path; d631d64e), with the corrected description above.
+    """
+
+    raw_long_class_weight = (
+        (1.0 - float(train_long_rate)) / max(float(train_long_rate), 1e-9)
+        if float(train_long_rate) > 0.0
+        else 1.0
+    )
+    raw_short_class_weight = (
+        (1.0 - float(train_short_rate)) / max(float(train_short_rate), 1e-9)
+        if float(train_short_rate) > 0.0
+        else 1.0
+    )
+    if float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU) > 0.0:
+        long_class_weight = 1.0
+        short_class_weight = 1.0
+        flat_class_weight = 1.0
+    else:
+        long_class_weight = float(
+            min(
+                float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP),
+                max(1.0, float(np.sqrt(max(raw_long_class_weight, 1.0)))),
+            )
+        )
+        short_class_weight = float(
+            min(
+                float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP),
+                max(1.0, float(np.sqrt(max(raw_short_class_weight, 1.0)))),
+            )
+        )
+        flat_class_weight = float(max(float(ENTRY_FLAT_CLASS_WEIGHT_FLOOR), 1.0))
+    return (
+        float(raw_long_class_weight),
+        float(raw_short_class_weight),
+        float(long_class_weight),
+        float(short_class_weight),
+        float(flat_class_weight),
+    )
+
+
+def _direction_logit_adjusted_ce_logits(
+    logits: torch.Tensor,
+    log_prior_offset: Optional[torch.Tensor],
+) -> torch.Tensor:
+    """Adjusted logits for the direction CE losses only; never mutates input.
+
+    With offset None (tau=0) the live tensor is returned unchanged — the exact
+    pre-adjustment behavior. Emitted/serving logits and all battery
+    probabilities must keep consuming the raw logits, never this output.
+    """
+
+    if log_prior_offset is None:
+        return logits
+    return logits + log_prior_offset.to(device=logits.device, dtype=logits.dtype)
+
+
 def _direction_aux_ce_loss(
     aux_logits: torch.Tensor,
     targets: torch.Tensor,
     criterion: CostSensitiveCrossEntropyLoss,
     ce_sample_weight: torch.Tensor,
+    log_prior_offset: Optional[torch.Tensor],
 ) -> torch.Tensor:
-    aux_ce_per = criterion.ce(aux_logits, targets)
+    aux_ce_per = criterion.ce(
+        _direction_logit_adjusted_ce_logits(aux_logits, log_prior_offset),
+        targets,
+    )
     aux_weight = ce_sample_weight.to(device=aux_ce_per.device, dtype=aux_ce_per.dtype)
     aux_ce = (aux_ce_per * aux_weight).mean()
+    # Balance battery stays on the raw (unadjusted) probabilities.
     aux_probs = torch.softmax(aux_logits, dim=1)
     aux_balance = _direction_balance_term(aux_probs, targets, criterion)
     return aux_ce + aux_balance
@@ -6857,6 +6991,7 @@ def train_epoch(
     hier_trade_pos_weight: float,
     hier_bad_path_pos_weight: Any,
     grad_accum_steps: int,
+    direction_log_prior_offset: Optional[torch.Tensor],
 ):
     model.train()
     _accum_steps = int(grad_accum_steps)
@@ -7051,7 +7186,14 @@ def train_epoch(
         residual_hard_neg_short = _hard_negative_residual(
             y_hard_negative_short, y_dead_negative_short, y_teaser_negative_short
         )
-        ce_per = criterion.ce(logits, y)
+        # Training-loss-only logit adjustment (Menon et al. 2021). The tail
+        # CE reuses this ce_per, so it is adjusted through the same offset.
+        # probs below stays on the raw logits: the battery and every emitted
+        # logit are never adjusted.
+        ce_per = criterion.ce(
+            _direction_logit_adjusted_ce_logits(logits, direction_log_prior_offset),
+            y,
+        )
         ce_sample_weight = _direction_ce_sample_weight(
             y_bad_path,
             y_dead_negative_long,
@@ -7347,6 +7489,7 @@ def train_epoch(
             y,
             criterion,
             ce_sample_weight,
+            direction_log_prior_offset,
         )
         loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
 
@@ -9288,6 +9431,7 @@ def validate(
     bad_path_pos_weight: float,
     hier_trade_pos_weight: float,
     hier_bad_path_pos_weight: Any,
+    direction_log_prior_offset: Optional[torch.Tensor],
 ):
     model.eval()
     total = 0.0
@@ -9482,7 +9626,13 @@ def validate(
             residual_hard_neg_short = _hard_negative_residual(
                 y_hard_negative_short, y_dead_negative_short, y_teaser_negative_short
             )
-            ce_per = criterion.ce(logits, y)
+            # Same adjustment as train_epoch, for val-loss comparability only.
+            # Every metric below (probs, preds, acc, pred rates, AUC) stays on
+            # the raw logits.
+            ce_per = criterion.ce(
+                _direction_logit_adjusted_ce_logits(logits, direction_log_prior_offset),
+                y,
+            )
             ce_sample_weight = _direction_ce_sample_weight(
                 y_bad_path,
                 y_dead_negative_long,
@@ -9746,6 +9896,7 @@ def validate(
                 y,
                 criterion,
                 ce_sample_weight,
+                direction_log_prior_offset,
             )
             loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
             loss = loss + _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS[
@@ -10527,6 +10678,12 @@ def run_train(
     val_dead_neg_long_rate = float(val_ds.df["y_dead_negative_long"].astype(float).mean())
     train_teaser_neg_long_rate = float(train_ds.df["y_teaser_negative_long"].astype(float).mean())
     val_teaser_neg_long_rate = float(val_ds.df["y_teaser_negative_long"].astype(float).mean())
+    train_hard_neg_short_rate = float(train_ds.df["y_hard_negative_short"].astype(float).mean())
+    val_hard_neg_short_rate = float(val_ds.df["y_hard_negative_short"].astype(float).mean())
+    train_dead_neg_short_rate = float(train_ds.df["y_dead_negative_short"].astype(float).mean())
+    val_dead_neg_short_rate = float(val_ds.df["y_dead_negative_short"].astype(float).mean())
+    train_teaser_neg_short_rate = float(train_ds.df["y_teaser_negative_short"].astype(float).mean())
+    val_teaser_neg_short_rate = float(val_ds.df["y_teaser_negative_short"].astype(float).mean())
     train_clean_edge_rate = _active_aux_target_rate_from_frame(
         train_ds.df,
         split_name="train",
@@ -10606,40 +10763,19 @@ def run_train(
         train_survival_rate,
         ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP,
     )
-    # 2026-05-26: SYMMETRIC + sqrt-softened directional class weights. The old
-    # 2026-05-26 pooled ONE shared directional weight because RAW per-side
-    # inverse-frequency weights (4.67 vs 4.22, unsoftened) over-predicted SHORT.
-    # Measured on V27 (2026-08-08): the sqrt-softening is what fixed the
-    # direction-vs-flat overcorrection, while the POOLING is what now lets the
-    # TRAIN label prior (LONG 20.4% vs SHORT 18.4%) pass through unneutralized
-    # at CE scale 12 - a 0.80-nat/step bias tilt against SHORT that argmax
-    # amplified into 53.9/5.9/40.2 on VAL. Keep the softening, restore per-class
-    # neutralization: the same sqrt((1-r)/r) convention this block already uses,
-    # applied per class, so w_k * r_k equalizes between LONG and SHORT by
-    # construction. One shared cap clamps both directions. flat stays 1.0.
-    raw_long_class_weight = (
-        (1.0 - float(train_long_rate)) / max(float(train_long_rate), 1e-9)
-        if float(train_long_rate) > 0.0
-        else 1.0
+    # Direction CE class weights: see _direction_class_weights for the
+    # corrected algebra (the old "w_k * r_k equalizes" claim was false) and the
+    # tau-gated neutral-1.0 path under logit adjustment (Menon et al. 2021).
+    (
+        raw_long_class_weight,
+        raw_short_class_weight,
+        long_class_weight,
+        short_class_weight,
+        flat_class_weight,
+    ) = _direction_class_weights(
+        train_long_rate=train_long_rate,
+        train_short_rate=train_short_rate,
     )
-    raw_short_class_weight = (
-        (1.0 - float(train_short_rate)) / max(float(train_short_rate), 1e-9)
-        if float(train_short_rate) > 0.0
-        else 1.0
-    )
-    long_class_weight = float(
-        min(
-            float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP),
-            max(1.0, float(np.sqrt(max(raw_long_class_weight, 1.0)))),
-        )
-    )
-    short_class_weight = float(
-        min(
-            float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP),
-            max(1.0, float(np.sqrt(max(raw_short_class_weight, 1.0)))),
-        )
-    )
-    flat_class_weight = float(max(float(ENTRY_FLAT_CLASS_WEIGHT_FLOOR), 1.0))
     log.info(
         "[ENTRY_BAD_PATH_BALANCE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
         train_bad_path_rate,
@@ -10694,6 +10830,35 @@ def run_train(
         float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER),
         float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
     )
+    # Short-side mirrors of the three long-side proofs (log-only; rule 2e —
+    # the short negatives were applied under ENTRY_SYMMETRIC_NEGATIVES but
+    # their rates were never recorded). The multipliers/penalties are the
+    # same *_LONG_* recipe constants, applied to the short-negative rows only
+    # when symmetric_negatives=1.
+    log.info(
+        "[ENTRY_DEAD_SHORT_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f symmetric_negatives=%d",
+        train_dead_neg_short_rate,
+        val_dead_neg_short_rate,
+        float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
+        float(ENTRY_DEAD_LONG_PROB_PENALTY),
+        int(bool(ENTRY_SYMMETRIC_NEGATIVES)),
+    )
+    log.info(
+        "[ENTRY_TEASER_SHORT_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f symmetric_negatives=%d",
+        train_teaser_neg_short_rate,
+        val_teaser_neg_short_rate,
+        float(ENTRY_TEASER_LONG_CE_MULTIPLIER),
+        float(ENTRY_TEASER_LONG_PROB_PENALTY),
+        int(bool(ENTRY_SYMMETRIC_NEGATIVES)),
+    )
+    log.info(
+        "[ENTRY_HARD_NEG_SHORT_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f symmetric_negatives=%d",
+        train_hard_neg_short_rate,
+        val_hard_neg_short_rate,
+        float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER),
+        float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
+        int(bool(ENTRY_SYMMETRIC_NEGATIVES)),
+    )
     log.info(
         "[ENTRY_CLEAN_EDGE_RATE_PROOF] target_mode=%s selector_mode=%s "
         "train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f "
@@ -10725,7 +10890,8 @@ def run_train(
     )
     log.info(
         "[ENTRY_DIRECTION_BALANCE_PROOF] train_long_rate=%.6f train_short_rate=%.6f train_flat_rate=%.6f "
-        "raw_long_class_weight=%.6f raw_short_class_weight=%.6f long_class_weight=%.6f short_class_weight=%.6f flat_class_weight=%.6f",
+        "raw_long_class_weight=%.6f raw_short_class_weight=%.6f long_class_weight=%.6f short_class_weight=%.6f flat_class_weight=%.6f "
+        "logit_adjust_tau=%.6f",
         train_long_rate,
         train_short_rate,
         train_flat_rate,
@@ -10734,6 +10900,7 @@ def run_train(
         long_class_weight,
         short_class_weight,
         flat_class_weight,
+        float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU),
     )
 
     if int(num_workers) != 0:
@@ -11472,6 +11639,14 @@ def run_train(
         [float(long_class_weight), float(short_class_weight), float(flat_class_weight)],
         device=device,
     )
+    # Training-loss-only logit adjustment offset from the physical TRAIN label
+    # rates (None exactly when tau == 0: the unadjusted-CE compatibility path).
+    direction_log_prior_offset = _direction_log_prior_offset(
+        train_long_rate=train_long_rate,
+        train_short_rate=train_short_rate,
+        train_flat_rate=train_flat_rate,
+        device=device,
+    )
     criterion, cost_matrix = _build_cost_sensitive_criterion(
         device=device,
         class_weights=class_weights,
@@ -11488,8 +11663,9 @@ def run_train(
         balance_class_weights=pred_balance_class_weights,
     )
     log.info(
-        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f tail_direction_w=%.3f tail_direction_q=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
+        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f direction_logit_adjust_tau=%.3f tail_direction_w=%.3f tail_direction_q=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
         float(ENTRY_DIRECTION_CE_SCALE),
+        float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU),
         float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
         float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
         float(ENTRY_AUX_TRADABLE_WEIGHT),
@@ -11679,13 +11855,15 @@ def run_train(
         max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS)),
     )
     log.info(
-        "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f",
+        "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f "
+        "symmetric_negatives=%d short_side=same_long_constants_applied_to_short_negative_rows_when_symmetric",
         float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
         float(ENTRY_DEAD_LONG_PROB_PENALTY),
         float(ENTRY_TEASER_LONG_CE_MULTIPLIER),
         float(ENTRY_TEASER_LONG_PROB_PENALTY),
         float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER),
         float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
+        int(bool(ENTRY_SYMMETRIC_NEGATIVES)),
     )
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=_WEIGHT_DECAY)
 
@@ -11772,6 +11950,7 @@ def run_train(
             hier_trade_pos_weight=hier_trade_pos_weight,
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
             grad_accum_steps=int(grad_accum_steps),
+            direction_log_prior_offset=direction_log_prior_offset,
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
             model,
@@ -11789,6 +11968,7 @@ def run_train(
             bad_path_pos_weight=bad_path_pos_weight,
             hier_trade_pos_weight=hier_trade_pos_weight,
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
+            direction_log_prior_offset=direction_log_prior_offset,
         )
         last_val_stats = dict(val_stats or {})
         last_direction_slice_stats = _direction_slice_stats_snapshot(val_stats)
@@ -13196,6 +13376,9 @@ def run_train(
         "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
         "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
         "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+        # Training-loss-only logit adjustment (Menon et al. 2021); recorded for
+        # recipe completeness. Serving logits are never adjusted.
+        "direction_logit_adjust_tau": float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU),
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
