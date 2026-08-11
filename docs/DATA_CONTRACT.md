@@ -24,7 +24,9 @@ Mid-only substitution and synthetic gap filling are forbidden.
 `gx1_entry_exit_shared_feature_base_contract_v2` owns both resolutions:
 
 - instrument `XAU_USD`;
-- 513 ordered signals: 346 mandatory + 133 TRAIN-ranked plus fixed base fields;
+- 592 ordered signals: 34 fixed base fields + 425 mandatory causal + 133
+  TRAIN-ranked, over 16 mandatory families (V29 event surface; the counts
+  derive from the owner tuples);
 - 142 continuous and 5 categorical context values;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;
@@ -40,8 +42,19 @@ Resampling finished M1 indicator/feature values into M5/M15/H1/H4/D1 is
 forbidden. A forming higher-timeframe candle may never enter a decision.
 
 The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
-ordered 513 fields and TRAIN-rank reference hash used by the M5 Entry build.
+ordered 592 fields and TRAIN-rank reference hash used by the M5 Entry build.
 Any disagreement fails before dataset construction.
+
+The V29 registry layers (level and trendline registries and their event
+projections) consume TRAIN-fitted tolerances only. The rebuild chain fits
+them once per lane on the declared TRAIN window from the explicit recipe
+input `--level-tol-quantile-q` (recipe owner
+`ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q`; no default exists): the five-TF
+constants freeze with provenance into the V4 cache manifest, and the Exit
+M1-lane params freeze into the hash-bound M1-enriched frame manifest
+(`v29_registry_m1_lane_params`). Both materializers resolve the lane-correct
+frozen artifact fail-closed; cross-lane payloads and provenance-free bare
+values are rejected. VAL, TEST and serve never refit.
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through
@@ -109,8 +122,9 @@ environment controls stop closed.
 ## Resource contract
 
 Large producers and all model runs use `scripts/gx1_capped_run.sh`, one at a
-time. Tests/audits are capped at 4G; heavy dataset producers at 10G; canonical training at 20G; swap at 512 MiB
-and CPU at 0-1. Feature production uses one worker; model DataLoaders use zero
+time. Tests/audits are capped at 4G; the heavy dataset producers and the
+canonical trainer at 20G (raised from 10G on 2026-08-09 on real batch-640
+RSS measurement; see CLAUDE.md); swap at 512 MiB and CPU at 0-1. Feature production uses one worker; model DataLoaders use zero
 subprocess workers. Training is deterministic FP32 without compile, autocast or
 TF32. Memmap scheduling is fixed in source, not environment-tunable. Generated
 evidence is deleted only after retention/reachability proof.

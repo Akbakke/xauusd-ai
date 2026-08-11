@@ -21,7 +21,9 @@ SESSION_REGIME_INTERACTION_FEATURE_VERSION = (
 # Measured on the complete declared TRAIN population
 # (XAU_ENTRY_EXIT_M15_20260806_V27 v10_seq513_dataset__DIR_H24B_train.parquet,
 # 369,303 rows, 2026-08-09): the per-row sum takes exactly the values
-# {240, 300, 360, 540}.
+# {240, 300, 360, 540}. The V27 root was retired 2026-08-11 via the retention
+# owner (inventory manifest under GX1_DATA/reports/
+# gx1_evidence_retention_cleanup_plans); the measurement stands as recorded.
 SESSION_LENGTH_MINUTES = {
     name: float(((end - start) % 24) * 60)
     for name, (start, end) in SESSION_BOUNDARIES.items()
@@ -30,7 +32,9 @@ SESSION_LENGTH_MINUTES = {
 # Spread/ATR tanh scale: statistic fitted on the complete declared TRAIN
 # population /home/andre2/GX1_DATA/data/data/prebuilt/
 # XAU_ENTRY_EXIT_M15_20260806_V27/dataset/
-# v10_seq513_dataset__DIR_H24B_train.parquet (369,303 rows, fitted 2026-08-09):
+# v10_seq513_dataset__DIR_H24B_train.parquet (369,303 rows, fitted 2026-08-09;
+# root retired 2026-08-11 via the retention owner, inventory manifest under
+# GX1_DATA/reports/gx1_evidence_retention_cleanup_plans):
 # spread_ratio = clip(spread_bps / max(|atr_bps|, 1e-3), 0, 5) has
 # p50 = 0.254378 and p90 = 0.519975 on that population. The scale is the
 # fitted p90, so tanh(ratio / scale) reads tanh(1) ~= 0.762 at the p90 ratio

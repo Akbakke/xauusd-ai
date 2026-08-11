@@ -15,7 +15,7 @@ OANDA XAU_USD complete MBA candles
                                   |
               TRAIN-only ranking + normalization
                                   |
-                    513 signal + 142 cont + 5 cat
+                    592 signal + 142 cont + 5 cat
                                   |
                     shared specialist encoder
                        /                     \
@@ -41,7 +41,20 @@ evidence and closed M5/M15/H1/H4/D1 context. OHLCV is closed and aligned before
 the same owners compute each timeframe; finished M1 features are never rolled
 up. Relevance is learned, with no handwritten confluence vote or TF weight.
 
-The immutable M5 surface is Entry's sole 513/142/5 input authority. It is
+The signal surface is 592 ordered fields: 34 base + 425 mandatory causal + 133
+TRAIN-ranked over 16 mandatory families (V29 event surface; counts derive from
+the owner tuples). The V29 layer adds a level registry
+(`gx1/features/level_registry_v1.py`: level identity, touch counts, ages,
+signed reaction history, break/retest events, round numbers) and a trendline
+registry (`gx1/features/trendline_registry_v1.py`: two-point sloped lines,
+≥3-touch validation, channels), plus per-timeframe EMA-cross, RSI-threshold,
+divergence, regime-flip and swing-break event primitives on all five
+timeframes (per-TF V4 context width 173). Registry tolerances are TRAIN-fitted
+with the explicit recipe input `--level-tol-quantile-q` and frozen into the
+hash-bound build manifests (M5 lanes: V4 cache manifest; Exit M1 lane: the
+M1-enriched manifest); consumers fail closed without them.
+
+The immutable M5 surface is Entry's sole 592/142/5 input authority. It is
 loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
 so no split rebuilds the specialist stack. The M1 surface is Exit's matching
 native-resolution authority; neither surface can substitute for the other.
@@ -55,8 +68,9 @@ native to each clock. Exit episodes point into the hash-bound M1 surface; they
 do not duplicate paths.
 
 The current published source authority is pair generation
-`64d62c1f29e5d2b30f4e187af1ec65cabd48bb50fe4638a3ec5af2523a11b84c`
-through `2026-08-04T07:50:00Z` M5 / `07:54:00Z` M1. One rank artifact is fit
+`9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd`
+(published 2026-08-09; the 2026-08-04 parent `64d62c1f…` is untouched
+history). One rank artifact is fit
 from its canonical M5 market fields; the final model source must prove exact
 market identity through TRAIN before either ranking or dataset construction.
 
@@ -101,9 +115,11 @@ source pair
  -> recomputable sizing/serve parity evidence
 ```
 
-Failure at any arrow stops the chain. Fresh native and canonical source now
-exists; current status is before the shared M1/M5 feature-surface and dataset
-rebuild. No accepted candidate exists.
+Failure at any arrow stops the chain. Fresh native and canonical source
+exists, and the V28 dataset chain ran GREEN end to end (369,303/5,904/6,551
+rows, TEST sealed) — those bytes are the frozen baseline for the
+pre-registered V29-vs-V28 evaluation. Current status is before the V29 (592)
+feature-surface and dataset rebuild. No accepted candidate exists.
 
 ## Scope boundary
 

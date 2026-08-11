@@ -15,14 +15,17 @@ native OANDA M1/M5
   -> calibration -> untouched TEST -> same-bundle replay
 ```
 
-Entry consumes 96 local M5 bars with 513 ordered signals, 142 continuous
-context fields, 5 categorical fields and closed M15/H1/H4/D1 context. Exit
+Entry consumes 96 local M5 bars with 592 ordered signals (34 base + 425
+mandatory causal + 133 TRAIN-ranked over 16 mandatory families — the V29
+event surface with level/trendline registries and per-timeframe event
+primitives), 142 continuous context fields, 5 categorical fields and closed
+M15/H1/H4/D1 context. Exit
 consumes the same definitions and TRAIN normalization on 480 local M1 bars,
 closed M5/M15/H1/H4/D1 context, the frozen Entry representation and its causal
 in-trade path. Higher-timeframe OHLCV closes before feature computation;
 computed M1 indicators are never resampled upward.
 
-Entry's 513/142/5 tensors are read from one immutable, hash-bound native M5
+Entry's 592/142/5 tensors are read from one immutable, hash-bound native M5
 surface and sliced by exact timestamp across all three splits. Exit uses the
 corresponding native M1 surface. There is no split-local alternate feature
 builder or cross-resolution value copy.
@@ -36,20 +39,22 @@ handwritten direction rules, fallbacks or alternate replay selectors.
 The source architecture and contracts are substantially connected and tested,
 but the system is not empirically finished:
 
-- the current 2026-08-04 producer tree passed repo-wide lint/compile/shell
-  checks and all 2,006 collected tests under the 4G cgroup;
-
-- fresh native M1/M5 V4 sources and canonical generation
-  `64d62c1f29e5...a11b84c` are published and hash-bound;
-- no current admitted M1/M5 feature surfaces, dataset or recipe;
+- the current 2026-08-11 tree passes repo-wide lint/compile/shell checks and
+  all 2,078 collected tests under the 4G cgroup;
+- fresh native M1/M5 V4 sources and canonical pair generation
+  `9b18e215...077232cd` (2026-08-09) are published and hash-bound;
+- the V28 dataset chain ran GREEN end to end on the repaired feature
+  substrate; it is the frozen baseline for the pre-registered V29-vs-V28
+  evaluation, not an admitted training substrate;
+- the V29 event surface (level/trendline registries, per-TF event
+  primitives; 592 signals) is committed in source; its dataset rebuild has
+  not run yet;
 - no accepted Entry/Exit checkpoint or calibrated bundle;
 - no untouched-TEST edge, historical PnL or win-rate proof;
 - no same-candidate full-TEST unified Exit proof.
 
-The former V8 dataset, V13 lifecycle and V18 recipe are stale after repairs to
-M1 market-closure row semantics, source lineage, calibration provenance and
-run-ID separation. V18 was stopped safely because its training and dataset IDs
-collided. A fresh rebuild is required.
+Every dataset built on the retired 513 surface is invalid as substrate for
+new training. A fresh V29 rebuild is required.
 
 ## Start here
 

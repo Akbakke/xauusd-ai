@@ -128,12 +128,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     assert (
         "pair_generation_id: "
-        "64d62c1f29e5d2b30f4e187af1ec65cabd48bb50fe4638a3ec5af2523a11b84c"
+        "9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd"
         in result.stdout
     )
-    assert "source_regression: PASS_2006_TESTS_ZERO_SKIPS_ZERO_WARNINGS" in result.stdout
+    assert "source_regression: PASS_2078_TESTS_ZERO_SKIPS_ZERO_WARNINGS" in result.stdout
     assert "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY" in result.stdout
-    assert "entry: local=M5 sequence=96 signal=513 ctx_cont=142 ctx_cat=5" in result.stdout
+    assert "entry: local=M5 sequence=96 signal=592 ctx_cont=142 ctx_cat=5" in result.stdout
     assert (
         "entry_feature_surface: "
         "HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"

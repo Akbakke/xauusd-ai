@@ -8,20 +8,29 @@ Read `GX1_RULES.md` first. It is binding.
 - Architecture is fixed: the same eight code-owned feature implementations run
   independently on local M5 for Entry and local M1 for Exit, in one model and
   shared encoder. There is no combined pre-owner M1/M5 package.
-- Entry is 96×513 plus 142 continuous and 5 categorical context values.
+- Entry is 96×592 plus 142 continuous and 5 categorical context values (592 =
+  34 base + 425 mandatory causal + 133 TRAIN-ranked, 16 mandatory families —
+  the V29 event surface with level/trendline registries and per-TF event
+  primitives; counts derive from the owner tuples).
 - Entry consumes one immutable native M5 feature surface across all splits;
   exact contiguous timestamp views are required. Never restore per-split
-  inline reconstruction of the 479 specialist fields.
+  inline reconstruction of the 558 specialist fields.
 - Exit is the same feature contract at M1, a 480-bar M1 sequence, the frozen
   Entry representation and the additive 14-field causal path.
 - Entry context is closed M15/H1/H4/D1. Exit context is closed
   M5/M15/H1/H4/D1. Build closed OHLCV bars before features; never resample
   already computed M1 indicator values into a higher timeframe.
 - Unique model argmax is the only Entry/Exit authority; ties fail closed.
-- There is no admitted dataset, recipe, model, edge, win-rate or PnL proof.
+- There is no admitted model, recipe, edge, win-rate or PnL proof. The V28
+  dataset chain ran GREEN (frozen comparison baseline, retired 513 surface);
+  no V29 dataset exists yet.
 - Fresh native M1/M5 V4 sources and canonical pair generation
-  `64d62c1f...a11b84c` exist. They are source authority only; the current
-  feature surfaces and dataset have not yet been admitted.
+  `9b18e215...077232cd` (2026-08-09) exist; the 2026-08-04 parent
+  `64d62c1f...a11b84c` is untouched history. They are source authority only.
+- The V29 rebuild chain requires the explicit registry-fit inputs
+  (`--level-tol-quantile-q 0.5` adopted 2026-08-11; fit window defaults to
+  the chain's `--train-end`). Registry fits freeze into the hash-bound build
+  manifests; both lanes fail closed without them.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
   stopped safely. Source/lifecycle fixes invalidate V8/V13/V18 as resume input.
 

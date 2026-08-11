@@ -25,9 +25,11 @@ immutable OANDA XAU_USD M1 + M5
   source must match those market values exactly from common-history start
   through TRAIN end. M1 and M5 consumers bind that same NPZ; fitting a second
   rank state or fitting from the downstream model source is forbidden.
-- Both native surfaces use the same ordered 513 signal fields, 142 continuous
-  context fields and 5 categorical fields. Entry reads 96 M5 bars; Exit reads
-  480 M1 bars, capped at 512 path states, plus the frozen Entry representation.
+- Both native surfaces use the same ordered 592 signal fields (34 base + 425
+  mandatory causal + 133 TRAIN-ranked over 16 mandatory families; the counts
+  derive from the owner tuples), 142 continuous context fields and 5
+  categorical fields. Entry reads 96 M5 bars; Exit reads 480 M1 bars, capped
+  at 512 path states, plus the frozen Entry representation.
 - Entry model inputs may come only from the exact hash-bound native M5 feature
   surface. It is loaded once and sliced by exact timestamp for TRAIN/VAL/TEST;
   split-local specialist recomputation, alternate M5 input lanes and soft
@@ -56,8 +58,11 @@ immutable OANDA XAU_USD M1 + M5
   mismatch invalidates the full attempt.
 - The only admitted dataset rebuild orchestration is the current-pair chain in
   `scripts/run_seq513_rebuild_chain_v1.sh`. It resolves canonical, BASE28 and
-  native M1/M5 from one pair manifest, builds both feature lanes, and passes
-  both feature surfaces to preflight/rebuild. The retired event-local
+  native M1/M5 from one pair manifest, TRAIN-fits the V29 registry state on
+  both lanes from the explicit recipe input `--level-tol-quantile-q` (frozen
+  with provenance into the hash-bound build manifests; no default exists),
+  builds both feature lanes, and passes both feature surfaces to
+  preflight/rebuild. The retired event-local
   `canonical_features_v2.parquet`/legacy source-cascade route is forbidden.
 - No practical precision, win-rate or PnL claim exists without immutable,
   recomputable untouched-TEST and same-candidate Entry/Exit evidence.
@@ -102,5 +107,7 @@ git status --short --untracked-files=all
 
 Then read `AGENTS.md`, `SYSTEM_MAP.md`,
 `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md` and the relevant code contracts.
-The current V8/V13/V18 artifacts are stale under the repaired source/lifecycle
-contracts. Rebuild is required; no recipe or model is currently admitted.
+Every artifact built on the retired 513 surface (including the GREEN V28
+baseline dataset) is invalid as substrate for new training; V28 remains the
+frozen comparison baseline only. The V29 rebuild is required; no recipe or
+model is currently admitted.
