@@ -666,22 +666,28 @@ def require_v29_registry_constants(value: object) -> dict:
             "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: declared_train_window_end"
         )
     expected_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
+    # Exact key SET, canonical iteration order for the value checks. Key
+    # insertion order is not semantic here: the payload legitimately transits
+    # the repo's canonical sort_keys=True JSON serialization (e.g. inside the
+    # hash-bound split manifests), which reorders mapping keys — demanding
+    # insertion order made the first V29 smoke launch fail on a payload whose
+    # content was exact (2026-08-12).
     for mapping_name in ("level_tol_atr", "trendline_band_atr"):
         mapping = observed[mapping_name]
-        if not isinstance(mapping, Mapping) or tuple(mapping) != expected_tfs:
+        if not isinstance(mapping, Mapping) or set(mapping) != set(expected_tfs):
             raise RuntimeError(
                 f"HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: {mapping_name} must "
-                f"declare exact ordered {expected_tfs}"
+                f"declare exactly {expected_tfs}"
             )
-        for tf_name, tf_value in mapping.items():
+        for tf_name in expected_tfs:
             _require_positive_finite_float(
-                tf_value, label=f"{mapping_name}.{tf_name}"
+                mapping[tf_name], label=f"{mapping_name}.{tf_name}"
             )
     seq_lens = observed["per_tf_seq_lens"]
-    if not isinstance(seq_lens, Mapping) or tuple(seq_lens) != expected_tfs:
+    if not isinstance(seq_lens, Mapping) or set(seq_lens) != set(expected_tfs):
         raise RuntimeError(
             "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: per_tf_seq_lens must "
-            f"declare exact ordered {expected_tfs}"
+            f"declare exactly {expected_tfs}"
         )
     require_multi_tf_resolution_pyramid({tf: seq_lens[tf] for tf in expected_tfs})
     entry_m5 = observed["entry_m5"]
