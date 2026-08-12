@@ -32,6 +32,10 @@ def full_input_field_order() -> dict[str, list[str]]:
         "ctx_cont._v1h4_atr",
         "chart.local_ema50_200_cross_up",
         "chart.local_ema50_200_cross_down",
+        "chart.geomline_retest_fail_up",
+        "chart.geomline_retest_fail_down",
+        "h1_regime_changed_flag_v3",
+        "h4_regime_changed_flag_v3",
     ]
     signal.extend(
         f"signal_feature_{idx:03d}"

@@ -28,7 +28,7 @@ from gx1.features.htf_features import (
 )
 
 SCHEMA_VERSION = "entry_full_input_liveness_contract_v5"
-POLICY_VERSION = "entry_full_input_liveness_policy_v5"
+POLICY_VERSION = "entry_full_input_liveness_policy_v6"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -66,6 +66,18 @@ RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
     ("signal", "chart.local_ema50_200_cross_up"): {"train": 128},
     ("signal", "chart.local_ema50_200_cross_down"): {"train": 128},
     ("ctx_cont", "d1_regime_changed_flag_v3"): {"train": 32},
+    # V29 sparse impulses (registered 2026-08-12 from the first real V29
+    # TRAIN build, N=393,602 rows): the slow-clock flip flags are the same
+    # field family as the registered d1_regime_changed_flag_v3 and adopt its
+    # exact floor unchanged; the trendline retest-FAIL events are the rare
+    # complement of retest-hold (~32k) and adopt the structural-event floor
+    # (smc_choch). Measured TRAIN counts: h1 flip 1,543; h4 flip 421;
+    # retest_fail_up 1,142; retest_fail_down 1,180 — 13x-48x the floor, so
+    # the floor proves genuine firing without training on noise (rule 2f).
+    ("signal", "h1_regime_changed_flag_v3"): {"train": 32},
+    ("signal", "h4_regime_changed_flag_v3"): {"train": 32},
+    ("signal", "chart.geomline_retest_fail_up"): {"train": 32},
+    ("signal", "chart.geomline_retest_fail_down"): {"train": 32},
 }
 
 ATR_OOD_FIELDS = (

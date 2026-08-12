@@ -26,8 +26,10 @@ from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
 def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
+    # Re-pinned 2026-08-12: the liveness rare-event table gained the four
+    # V29 sparse impulses (h1/h4 flip flags, geomline retest-fail events).
     assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-        "39847fadc63a6d3f1bea6e2dd241888de60c5a8966e2803797e3a529d7374584"
+        "3ea7b244f1bd6db407607a101b2c653ac1f4f3eed6d1c1dc17733037c4e5384c"
     )
     assert binding["foundation_audit_policy"]["schema_version"] == (
         "entry_foundation_audit_policy_v10"
@@ -64,6 +66,12 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
         "chart.local_ema50_200_cross_down": 128,
         "chart.local_ema50_200_cross_up": 128,
         "smc_choch": 32,
+        # V29 sparse impulses, registered 2026-08-12 from the first real
+        # V29 TRAIN build (measured counts 13x-48x these floors).
+        "chart.geomline_retest_fail_down": 32,
+        "chart.geomline_retest_fail_up": 32,
+        "h1_regime_changed_flag_v3": 32,
+        "h4_regime_changed_flag_v3": 32,
     }
     assert binding["foundation_audit_policy"]["audit_data_splits"] == list(
         FOUNDATION_AUDIT_DATA_SPLITS
