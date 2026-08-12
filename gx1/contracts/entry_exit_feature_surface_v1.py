@@ -235,6 +235,13 @@ def require_exact_m1_feature_surface_manifest(
         Mapping,
     ):
         raise RuntimeError(f"{context}_MANIFEST_COMPONENT_INVALID")
+    # The declared leading-exclusion block (V29 measured warmup floors) is
+    # part of the identity exactly like extension/materialization: lift the
+    # observed block and let the byte-exact reconstruction comparison prove
+    # it. Pre-V29 manifests carry no block and reconstruct identically.
+    causal_warmup = payload.get("causal_warmup")
+    if causal_warmup is not None and not isinstance(causal_warmup, Mapping):
+        raise RuntimeError(f"{context}_MANIFEST_COMPONENT_INVALID")
     expected_manifest = build_entry_exit_feature_surface_manifest(
         timeframe="M1",
         dataset_run_id=expected_dataset_run_id,
@@ -248,6 +255,7 @@ def require_exact_m1_feature_surface_manifest(
         signal_contract=signal_contract,
         extension=extension,
         materialization=materialization,
+        causal_warmup=causal_warmup,
     )
     if payload != expected_manifest:
         raise RuntimeError(f"{context}_IDENTITY_INVALID")
