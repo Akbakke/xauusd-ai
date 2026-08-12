@@ -62,6 +62,7 @@ from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
     MultiTFV4DiskCache,
     load_multi_tf_v4_cache,
+    require_multi_tf_v4_liveness_contract,
 )
 
 
@@ -1499,6 +1500,25 @@ def fit_entry_v10_train_input_normalization(
     }
     tf_windows: dict[str, dict[str, Any]] = {}
     tf_population_proofs: dict[str, dict[str, Any]] = {}
+    # Saturated presence masks admitted by the cache's own hash-bound
+    # liveness payload (v3): exactly those fields normalize by binary
+    # identity on TFs where they are constant 1.0 (measured saturation, see
+    # HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT). One truth: read from the
+    # same verified cache manifest the surfaces were loaded from.
+    _cache_manifest = _read_json_object(
+        Path(artifacts.mtf_cache_dir).expanduser() / "manifest.json",
+        label="mtf_cache_manifest",
+    )
+    _cache_liveness = require_multi_tf_v4_liveness_contract(
+        _cache_manifest.get("full_input_liveness")
+    )
+    _saturated_by_tf = {
+        tf: tuple(
+            _cache_liveness["timeframes"][tf].get("saturated_presence_masks")
+            or ()
+        )
+        for tf in EXPECTED_TFS
+    }
     for tf in EXPECTED_TFS:
         selected_population, window, selection_proof = (
             select_shared_causal_mtf_fit_population(
@@ -1519,6 +1539,7 @@ def fit_entry_v10_train_input_normalization(
             field_names=_fit_names,
             row_count=int(window["selected_unique_row_count"]),
             semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS,
+            saturated_presence_masks=_saturated_by_tf[tf],
         )
         tf_windows[tf] = window
         tf_population_proofs[tf] = selection_proof

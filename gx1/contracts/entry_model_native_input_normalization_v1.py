@@ -672,6 +672,7 @@ def fit_surface_normalization(
     row_count: int | None = None,
     column_chunk: int = FIT_COLUMN_CHUNK,
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
+    saturated_presence_masks: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Fit a bounded robust transform without materializing the full matrix.
 
@@ -775,6 +776,29 @@ def fit_surface_normalization(
                 scale[index] = np.float32(1.0)
                 binary_mask[index] = np.uint8(1)
                 scale_source[index] = "binary_identity"
+                continue
+            # A presence mask admitted as SATURATED by the cache's own
+            # hash-bound liveness payload is constant 1.0 on the declared
+            # population (measured market property, see
+            # HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT). It receives the
+            # same binary identity affine the varying masks on faster TFs
+            # receive — no invented magnitude, and a serve-time zero-day
+            # flows through honestly. Any value outside {0,1}, or a mask
+            # that never fires, stays a hard failure.
+            if names[index] in (saturated_presence_masks or ()):
+                if not bool(
+                    np.isfinite(column).all()
+                    and np.logical_or(column == 0.0, column == 1.0).all()
+                    and (column == 1.0).any()
+                ):
+                    raise RuntimeError(
+                        "[ENTRY_INPUT_NORMALIZATION_SATURATED_MASK_INVALID] "
+                        f"surface={surface} field={names[index]}"
+                    )
+                center[index] = np.float32(0.0)
+                scale[index] = np.float32(1.0)
+                binary_mask[index] = np.uint8(1)
+                scale_source[index] = "saturated_presence_mask_identity"
                 continue
 
             field_center = float(median[local])
