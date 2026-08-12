@@ -1002,10 +1002,15 @@ def require_surface_normalization(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_VALUES_INVALID] surface={surface}"
         )
     for index, is_binary in enumerate(binary_mask.astype(bool)):
+        # Both admitted binary provenances carry the exact same identity
+        # affine; saturated_presence_mask_identity records that the field
+        # was constant 1.0 on the fit population under the attested
+        # saturation contract (see fit_surface_normalization).
         if is_binary and (
             center[index] != np.float32(0.0)
             or scale[index] != np.float32(1.0)
-            or scale_source[index] != "binary_identity"
+            or scale_source[index]
+            not in ("binary_identity", "saturated_presence_mask_identity")
         ):
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_BINARY_CONTRACT_INVALID] "
