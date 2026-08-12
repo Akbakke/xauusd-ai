@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from tests.htf_v29_registry_test_support import synthetic_v29_registry_constants
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -114,6 +116,9 @@ def _extra(tmp_path: Path) -> dict:
             "cache_identity_sha256": "d" * 64,
             "m5_prebuilt_source": str((tmp_path / "source.parquet").resolve()),
             "m5_prebuilt_source_sha256": "e" * 64,
+            # V29 split manifests freeze the TRAIN-fitted registry constants
+            # inside the binding; the writer validates them via their owner.
+            "v29_registry_constants": synthetic_v29_registry_constants(),
         },
     }
 

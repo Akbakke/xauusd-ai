@@ -87,6 +87,24 @@ MODEL_NATIVE_MTF_CACHE_BINDING_KEYS = frozenset(
         "m5_prebuilt_source_sha256",
     }
 )
+# V29 split manifests additionally freeze the TRAIN-fitted registry
+# constants inside the cache binding (stage-2 wiring, 2026-08-11). Both
+# exact key sets are legal: pre-V29 immutable split manifests (the V28
+# baseline arm of the pre-registered evaluation) carry the old set; V29
+# manifests must carry the new one, and the constants payload is validated
+# by its one owner (require_v29_registry_constants). No mixed or partial
+# key set is accepted.
+MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29 = MODEL_NATIVE_MTF_CACHE_BINDING_KEYS | {
+    "v29_registry_constants"
+}
+# V29 split manifests additionally carry the immutable TRAIN-fitted registry
+# constants inside the binding (rules 14/15/18: decision-affecting values
+# travel with the hash-bound artifact). Validators accept exactly one of the
+# two key sets — pre-V29 manifests (the frozen V28 baseline) keep their own
+# exact shape; a V29 binding must carry owner-valid constants.
+MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29 = frozenset(
+    MODEL_NATIVE_MTF_CACHE_BINDING_KEYS | {"v29_registry_constants"}
+)
 
 
 @dataclass(frozen=True)
@@ -216,8 +234,15 @@ def require_dataset_manifest_multi_tf_cache_binding(
     if not isinstance(extra, Mapping) or extra.get("entry_run_id") != dataset_run_id:
         raise RuntimeError(f"[{context}_INVALID] dataset run lineage mismatch")
     raw = extra.get("multi_tf_cache_binding")
-    if not isinstance(raw, Mapping) or set(raw) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS:
+    if not isinstance(raw, Mapping) or set(raw) not in (
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS,
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29,
+    ):
         raise RuntimeError(f"[{context}_INVALID] exact cache binding is missing")
+    if "v29_registry_constants" in raw:
+        from gx1.features.htf_features import require_v29_registry_constants
+
+        require_v29_registry_constants(raw["v29_registry_constants"])
     binding = {str(key): value for key, value in raw.items()}
     for field in (
         "manifest_sha256",
@@ -240,8 +265,15 @@ def require_multi_tf_v4_cache_binding_files(
 ) -> dict[str, str]:
     """Bind a split declaration to the exact V4 manifest and source bytes."""
 
-    if not isinstance(binding, Mapping) or set(binding) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS:
+    if not isinstance(binding, Mapping) or set(binding) not in (
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS,
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29,
+    ):
         raise RuntimeError(f"[{context}_INVALID] exact cache binding schema mismatch")
+    if "v29_registry_constants" in binding:
+        from gx1.features.htf_features import require_v29_registry_constants
+
+        require_v29_registry_constants(binding["v29_registry_constants"])
     data = {str(key): value for key, value in binding.items()}
     for field in (
         "manifest_sha256",

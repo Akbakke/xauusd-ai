@@ -2405,16 +2405,22 @@ def _require_model_native_seq513_split_manifest_contract(
             f"train={parsed['train_start']}..{parsed['train_end']}"
         )
     mtf_binding = extra.get("multi_tf_cache_binding")
-    expected_mtf_keys = {
-        "cache_dir",
-        "manifest_path",
-        "manifest_sha256",
-        "cache_identity_sha256",
-        "m5_prebuilt_source",
-        "m5_prebuilt_source_sha256",
-    }
-    if not isinstance(mtf_binding, dict) or set(mtf_binding) != expected_mtf_keys:
+    # One truth: the exact key set lives in the normalization owner. This
+    # builder writes V29 manifests, so the V29 set (with the TRAIN-fitted
+    # registry constants, validated by their owner) is required here — the
+    # pre-V29 set stays legal only for immutable pre-V29 artifacts read by
+    # the shared validators.
+    from gx1.features.htf_features import require_v29_registry_constants
+    from gx1.models.entry_v10.entry_v10_input_normalization import (
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29,
+    )
+
+    if (
+        not isinstance(mtf_binding, dict)
+        or set(mtf_binding) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29
+    ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_MTF_CACHE_BINDING_INVALID")
+    require_v29_registry_constants(mtf_binding["v29_registry_constants"])
     for key in (
         "manifest_sha256",
         "cache_identity_sha256",
