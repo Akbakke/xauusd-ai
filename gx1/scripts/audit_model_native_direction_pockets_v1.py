@@ -69,9 +69,11 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 
 SCHEMA_VERSION = MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION
 EVENT_PREFIX = "MODEL_NATIVE_DIRECTION_POCKET_AUDIT"
-# V30 (2026-08-13): 143 = 142 + H4_range_compression_ratio; independent
-# cross-check literal against the derived contract dim (fails closed below).
-EXPECTED_CTX_CONT_DIM = 143
+# V30 (2026-08-13): 155 = 142 + H4_range_compression_ratio (package 1) + the
+# 9 adopted swing V29 ctx fields + the 3 momentum-G3 raw-RSI canon scalars
+# (package 2); independent cross-check literal against the derived contract dim
+# (fails closed below).
+EXPECTED_CTX_CONT_DIM = 155
 EXPECTED_CTX_CAT_DIM = 5
 
 SIDE_LONG = 0
@@ -728,14 +730,18 @@ def main() -> int:
     ctx_cat_names = [str(value) for value in meta["ordered_ctx_cat_names"]]
     if len(MODEL_NATIVE_CTX_CONT_FIELDS) != EXPECTED_CTX_CONT_DIM:
         raise RuntimeError(
-            "runtime context contract is not the required 142-field model-native surface"
+            "runtime context contract is not the required "
+            f"{EXPECTED_CTX_CONT_DIM}-field model-native surface"
         )
     if len(MODEL_NATIVE_CTX_CAT_FIELDS) != EXPECTED_CTX_CAT_DIM:
         raise RuntimeError(
             "runtime categorical context contract is not the required 5-field surface"
         )
     if ctx_cont_names != list(MODEL_NATIVE_CTX_CONT_FIELDS):
-        raise RuntimeError("bundle ordered_ctx_cont_names mismatch exact 142-field contract")
+        raise RuntimeError(
+            "bundle ordered_ctx_cont_names mismatch exact "
+            f"{EXPECTED_CTX_CONT_DIM}-field contract"
+        )
     if ctx_cat_names != list(MODEL_NATIVE_CTX_CAT_FIELDS):
         raise RuntimeError("bundle ordered_ctx_cat_names mismatch exact 5-field contract")
     exact_dimensions = {

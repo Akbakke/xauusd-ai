@@ -81,22 +81,24 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 115),
-            # Value hash re-measured 2026-08-13 (V30): the synthetic input
-            # matrix keys values off the ctx_cont column INDEX, and
-            # H4_range_compression_ratio's insertion shifts every later
-            # ctx_cont column of the fixture; the chart formulas and the
-            # 115-name identity are unchanged.
-            "8f2672ce5690a5e3b465ef3b5ca88b258cc7ef685f930565d0659845ae978806",
+            # Value hash re-measured 2026-08-13 (V30 package 2): the synthetic
+            # input matrix keys values off the ctx_cont column INDEX, and the
+            # nine adopted swing V29 ctx fields plus the three momentum-G3 RSI
+            # scalars shift every later ctx_cont column of the fixture again;
+            # the chart formulas and the 115-name identity are unchanged (the
+            # name hash below is untouched).
+            "be1721f33ace67e2fa2932f14ad5fcbc4575b65d81a5ac6103572cc5f8b14de4",
             "63f1cc1721db84e7f171b35c3dbb206c89749ba08cc7a07d9263c5a4061f3a4d",
         ),
         "price": (
             price_x,
             price_names,
-            # V30 (2026-08-13): + chart.local_kama_efficiency_30 (12 fields);
+            # V30 (2026-08-13): package 1 added chart.local_kama_efficiency_30
+            # and package 2 the three GAP-2/3 local age fields (15 fields);
             # both hashes re-measured on the unchanged source fixture.
-            (240, 12),
-            "af0e23ba843de4b4bf18a953f392cc0be99b82e392a91addc0902765cf96e1fe",
-            "f5fbb1ad5a7e7647aed873286b06698a139af8bc594ac2b48c7751a1ff92f765",
+            (240, 15),
+            "237558a7c237e9b0444294ce1c33166492cd9c0ab20c5f3d906b56851c1766d0",
+            "93e49f6577ea0ce89878dcc237b2d0431d72bcbcb54d780342386c888411e3d9",
         ),
         "candle": (
             candle_x,

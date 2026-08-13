@@ -34,7 +34,10 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
 from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1
 from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
-from gx1.features.swing_structure_v1 import SWING_FEATURE_NAMES_V1
+from gx1.features.swing_structure_v1 import (
+    SWING_FEATURE_NAMES_V1,
+    SWING_V29_ADDITION_NAMES_V1,
+)
 
 
 # v8: V29 Phase-A stage-2 event families extended the mandatory registry
@@ -110,7 +113,17 @@ MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = (
     "H4_range_compression_ratio",
 )
 MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
-MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(SWING_FEATURE_NAMES_V1)
+# V30 Phase-A completion (2026-08-13): the swing owner's own declaration is
+# performed here.  ``swing_structure_v1`` declared the nine V29 additions
+# "DECLARED SEPARATELY from SWING_FEATURE_NAMES_V1: the accepted contracts bind
+# the 5-name V1 surface; the stage-2 V29 wiring adopts these names into the
+# ctx/111-surface contracts together with the V29 rebuild (rule 6: train==serve
+# moves at one boundary)."  This is that adoption, taken at the V30 rebuild
+# boundary together with the per-TF flip; all four ctx producers switch to
+# ``include_v29_additions=True`` in the same change.
+MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(
+    SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
+)
 MODEL_NATIVE_CTX_CONT_SESSION_FIELDS = (
     "is_ASIA",
     "minutes_since_session_open",
@@ -147,6 +160,16 @@ MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
     "m15_rsi14_canon_v2",
     "m15_range_z_20_canon_v2",
     "m15_trend_sign_canon_v2",
+    # V30 Phase-A completion (2026-08-13): momentum G3 raw-RSI ctx scalars.
+    # Verbatim siblings of m15_rsi14_canon_v2 / d1_rsi14_canon_v2 — one
+    # `_rsi(close, 14)` owner, raw 0-100 unit, each TF's own closed bars,
+    # projected by the one native-M5 scalar owner
+    # (htf_features.MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4, whose tuple order
+    # this block must preserve).  The `_v1h{1,4}_rsi14_z` z-scores are kept
+    # (design doc §3 momentum G3: "z-fields kept").
+    "m5_rsi14_canon_v2",
+    "h1_rsi14_canon_v2",
+    "h4_rsi14_canon_v2",
 )
 
 MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS = (
@@ -300,9 +323,12 @@ MODEL_NATIVE_SIGNAL_DIM = (
     MODEL_NATIVE_BASE_SIGNAL_DIM + MODEL_NATIVE_SELECTED_FEATURE_COUNT
 )
 MODEL_NATIVE_SEQ_LEN = 96
-# 143 = the previous 142 + H4_range_compression_ratio (V30, 2026-08-13); the
-# field list above is the owner, this literal is the cross-check.
-MODEL_NATIVE_CTX_CONT_DIM = 143
+# 155 = 143 (V30 package 1: + H4_range_compression_ratio) + the V30 package-2
+# Phase-A completion: 9 swing V29 event fields adopted into
+# MODEL_NATIVE_CTX_CONT_SWING_FIELDS + 3 momentum-G3 raw-RSI canon scalars
+# (2026-08-13).  The field lists above are the owner, this literal is the
+# cross-check.
+MODEL_NATIVE_CTX_CONT_DIM = 155
 MODEL_NATIVE_CTX_CAT_DIM = 5
 
 if len(MODEL_NATIVE_BASE_FIELDS) != MODEL_NATIVE_BASE_SIGNAL_DIM:
@@ -361,8 +387,10 @@ MODEL_NATIVE_CONTEXT_TAG = (
 def model_native_context_contract_metadata() -> dict[str, Any]:
     """Return the exact continuous/categorical Entry context contract.
 
-    Dims derive from the declared field tuples (143 continuous / 5
-    categorical since V30 added ``H4_range_compression_ratio``).
+    Dims derive from the declared field tuples (155 continuous / 5 categorical
+    after the V30 wave: package 1 added ``H4_range_compression_ratio`` and
+    package 2 adopted the nine swing V29 event fields plus the three
+    momentum-G3 raw-RSI canon scalars).
     """
 
     return {

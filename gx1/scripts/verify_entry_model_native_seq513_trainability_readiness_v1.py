@@ -62,9 +62,11 @@ CONTRACT_MODE = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SIGNAL_DIM = MODEL_NATIVE_SIGNAL_DIM
 EXPECTED_SPECIALIST_COUNT = 8
 EXPECTED_CTX_TAG = MODEL_NATIVE_CONTEXT_TAG
-# V30 (2026-08-13): 143 = 142 + H4_range_compression_ratio; independent
-# cross-check literal against the derived contract tag/dim.
-EXPECTED_CTX_CONT_DIM = 143
+# V30 (2026-08-13): 155 = 142 + H4_range_compression_ratio (package 1) + the
+# 9 adopted swing V29 ctx fields + the 3 momentum-G3 raw-RSI canon scalars
+# (package 2); independent cross-check literal against the derived contract
+# tag/dim.
+EXPECTED_CTX_CONT_DIM = 155
 EXPECTED_CTX_CAT_DIM = 5
 READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
 BLOCKED_DECISION = "BLOCKED_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS"

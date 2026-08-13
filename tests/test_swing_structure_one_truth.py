@@ -284,9 +284,10 @@ def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     assert MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS == (
         MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
     )
-    # V30 (2026-08-13): 17 = 16 + H4_range_compression_ratio in the source
-    # prefix subgroup.
-    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 17
+    # V30 (2026-08-13): 26 = 16 + H4_range_compression_ratio in the source
+    # prefix subgroup (package 1) + the nine V29 swing event fields adopted
+    # into MODEL_NATIVE_CTX_CONT_SWING_FIELDS (package 2).
+    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 26
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == 5
 
 

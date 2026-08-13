@@ -90,9 +90,10 @@ def test_model_native_mtf_fields_match_fixed_142_5_order_once() -> None:
 
     assert continuous == expected_continuous
     assert MODEL_NATIVE_CTX_CAT_FIELDS.count("H4_trend_sign_cat") == 1
-    # V30 (2026-08-13): 25 = 24 + H4_range_compression_ratio.
-    assert len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4) == 25
-    assert len(set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)) == 25
+    # V30 (2026-08-13): 28 = 24 + H4_range_compression_ratio (package 1)
+    # + the three momentum-G3 raw-RSI canon scalars (package 2).
+    assert len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4) == 28
+    assert len(set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)) == 28
 
 
 def test_m5_and_m1_projection_share_the_same_closed_v4_state() -> None:
@@ -125,12 +126,23 @@ def test_m5_and_m1_projection_share_the_same_closed_v4_state() -> None:
         assert np.isfinite(exit_[name]).all(), name
         assert float(entry[name][-1]) == float(exit_[name][-1]), name
 
+    # V30 package 2 (2026-08-13): the SCALAR route carries M5 on both clocks —
+    # the momentum-G3 `m5_rsi14_canon_v2` ctx scalar lives on the M5 frame, and
+    # its projection onto the M5 decision clock is the identity (cutoff =
+    # t + 5min - MULTI_TF_SHIFT["M5"] = t).  The windowed per-TF SEQUENCE route
+    # is a different contract and still M15/H1/H4/D1 for Entry
+    # (ENTRY_MTF_CONTEXT_TIMEFRAMES, entry_exit_feature_base_v1).
     assert model_native_mtf_owner_marker_v4(
         decision_bar_duration=pd.Timedelta(minutes=5)
-    )["route_timeframes"] == ["M15", "H1", "H4", "D1"]
+    )["route_timeframes"] == ["M5", "M15", "H1", "H4", "D1"]
     assert model_native_mtf_owner_marker_v4(
         decision_bar_duration=pd.Timedelta(minutes=1)
     )["route_timeframes"] == ["M5", "M15", "H1", "H4", "D1"]
+    from gx1.contracts.entry_exit_feature_base_v1 import (
+        ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    )
+
+    assert ENTRY_MTF_CONTEXT_TIMEFRAMES == ("M15", "H1", "H4", "D1")
 
 
 def test_v4_attachment_rejects_any_preexisting_mtf_field_owner() -> None:

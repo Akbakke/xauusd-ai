@@ -117,14 +117,19 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
     )
 
+    from gx1.features.swing_structure_v1 import SWING_V29_ADDITION_NAMES_V1
+
     expected_width = (
-        # 113 = the audited pre-V29 111-field surface + the V30 additions
-        # rsi14_delta_5 and di_spread_signed (2026-08-13).
+        # 113 = the audited pre-V29 111-field surface + the V30 package-1
+        # additions rsi14_delta_5 and di_spread_signed (2026-08-13).
         113
         + len(EXPECTED_V29_TREND_EVENT_FEATURES)
         + len(EXPECTED_V29_MOMENTUM_EVENT_FEATURES)
         + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES)
         + len(TRENDLINE_REGISTRY_FEATURE_NAMES_V1)
+        # V30 package 2 (2026-08-13): the nine V29 swing-event additions the
+        # Phase-A build declared for the per-TF lane but never wired.
+        + len(SWING_V29_ADDITION_NAMES_V1)
     )
     assert htf.MULTI_TF_FEATURE_COUNT_V4 == expected_width
     assert htf.MULTI_TF_V4_GROUP_A_BASE_FEATURES == (
@@ -209,7 +214,10 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
     # Pre-V29 audited per-specialist widths plus the V29 additions, derived
     # from the declared owner tuples (design doc §5.2.3).
     assert {name: len(indices) for name, indices in routing.items()} == {
-        "structure_swing_encoder": 5,
+        # V30 package 2 (2026-08-13): the per-TF swing block is the 5 V1 names
+        # plus the 9 adopted V29 swing-event names; the routing tuple is the
+        # feature tuple itself, so the count derives from the owner.
+        "structure_swing_encoder": len(htf.MULTI_TF_V4_SWING_FEATURES),
         "smc_liquidity_encoder": 11 + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES),
         # V30 (2026-08-13): + di_spread_signed (trend) and rsi14_delta_5
         # (momentum) in the explicit non-event routing tuples.

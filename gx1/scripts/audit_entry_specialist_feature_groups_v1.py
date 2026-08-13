@@ -305,7 +305,10 @@ def _context_specialist_routing_failures(
     if observed_cat != expected["ctx_cat_indices"]:
         failures.append("ctx_cat specialist ownership differs from exact contract")
     if len({index for values in observed_cont.values() for index in values}) != MODEL_NATIVE_CTX_CONT_DIM:
-        failures.append("ctx_cont specialist ownership does not cover exactly 142 fields")
+        failures.append(
+            "ctx_cont specialist ownership does not cover exactly "
+            f"{MODEL_NATIVE_CTX_CONT_DIM} fields"
+        )
     if len({index for values in observed_cat.values() for index in values}) != MODEL_NATIVE_CTX_CAT_DIM:
         failures.append("ctx_cat specialist ownership does not cover exactly five fields")
 

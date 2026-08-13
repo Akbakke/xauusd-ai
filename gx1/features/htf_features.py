@@ -170,6 +170,11 @@ from gx1.features.trendline_registry_v1 import (  # noqa: E402
     compute_trendline_registry_features_v1,
     fit_trendline_tolerance,
 )
+from gx1.features.swing_structure_v1 import (  # noqa: E402
+    SWING_FEATURE_NAMES_V1,
+    SWING_V29_ADDITION_NAMES_V1,
+    compute_swing_structure_features,
+)
 
 
 def _candlestick_feature_names_v4() -> tuple[str, ...]:
@@ -222,13 +227,34 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "trend_age_bars_norm",
 )
 MULTI_TF_V4_CANDLESTICK_FEATURES = _candlestick_feature_names_v4()
-MULTI_TF_V4_SWING_FEATURES = (
-    "swing_bars_since_swing_high",
-    "swing_bars_since_swing_low",
-    "swing_dist_last_swing_high_atr",
-    "swing_dist_last_swing_low_atr",
-    "swing_retracement_from_last_impulse",
-)
+# V30 Phase-A completion (2026-08-13): the nine V29 swing-event additions join
+# the per-TF lane.  The design doc's STAGE-2 CORRECTION item 3 declared this
+# ("structure_swing per-TF additions (``MULTI_TF_V4_SWING_FEATURES`` 5->17,
+# +9/TF)") and the stage-2 wiring wave did not perform it; the producer has
+# emitted them behind ``include_v29_additions`` since the Phase-A build.
+#
+# Per-TF spelling: the five pre-V29 fields keep their historical ``swing_``
+# prefix (their source names — ``bars_since_swing_high`` … — are ambiguous
+# without it); the nine V29 names are emitted VERBATIM, because they already
+# carry their own ``swing_``/``bars_since_swing_``/``consecutive_`` identity
+# and re-prefixing would spell ``swing_swing_high_break_event``.  The
+# per-TF-name -> producer-field mapping is therefore declared explicitly here
+# instead of being recovered by a prefix strip at the emission site.
+MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE = {
+    "swing_bars_since_swing_high": "bars_since_swing_high",
+    "swing_bars_since_swing_low": "bars_since_swing_low",
+    "swing_dist_last_swing_high_atr": "dist_last_swing_high_atr",
+    "swing_dist_last_swing_low_atr": "dist_last_swing_low_atr",
+    "swing_retracement_from_last_impulse": "retracement_from_last_impulse",
+    **{name: name for name in SWING_V29_ADDITION_NAMES_V1},
+}
+MULTI_TF_V4_SWING_FEATURES = tuple(MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE)
+if set(MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE.values()) != set(
+    SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
+) or len(MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE) != len(
+    SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
+):
+    raise RuntimeError("HTF_V4_SWING_SOURCE_FIELD_MAP_INVALID")
 
 # ---------------------------------------------------------------------------
 # V29 Phase A per-TF EVENT additions
@@ -302,8 +328,25 @@ MULTI_TF_V4_MOMENTUM_EVENT_FEATURES = (
 # fixed per-bar V4 matrices remain unchanged; this compact scalar surface is
 # computed from the same closed OHLCV bars and projected onto either local
 # decision clock.  Names are persistent model fields, not compatibility APIs.
+# V30 Phase-A completion (2026-08-13): momentum G3 raw-RSI ctx scalars.  The
+# design doc §3 momentum row G3 declared `m5_rsi14`, `h1_rsi14_raw`,
+# `h4_rsi14_raw` ("z-fields kept ... one `_rsi` producer, one unit") and the
+# Phase-A build never wired them, leaving the RSI term structure with raw
+# Wilder levels on M15/D1 (`m15_rsi14_canon_v2`, `d1_rsi14_canon_v2`) and only
+# 48-bar z-scores on M5/H1/H4.  The three new fields are the VERBATIM siblings
+# of the M15/D1 canon fields: same `_rsi(close, 14)` owner, same raw 0-100
+# unit, same native-TF clock, same last-closed projection — so the spelling
+# follows the existing canon convention (`<tf>_rsi14_canon_v2`) rather than the
+# design doc's pre-implementation `*_raw` sketch (the code tuples are the
+# authority, design doc STAGE-2 CORRECTION).
 MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
-    "M5": (),
+    # The M5 slot was empty, not forbidden: the compact scalar surface is
+    # "computed from the same closed OHLCV bars and projected onto either local
+    # decision clock" (block comment above).  On the M5 decision clock the
+    # projection of the M5 frame is the identity — cutoff = t + 5min -
+    # MULTI_TF_SHIFT["M5"] = t, and the bar labelled t closes exactly when the
+    # decision bar closes, the same closed-bar rule every other TF uses here.
+    "M5": ("m5_rsi14_canon_v2",),
     "M15": (
         "M15_range_compression_ratio",
         "m15_rsi14_canon_v2",
@@ -317,6 +360,7 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
         "_v1h1_rsi14_z",
         "_v1h1_slope3",
         "_v1h1_slope5",
+        "h1_rsi14_canon_v2",
     ),
     "H4": (
         # V30 (2026-08-13): verbatim sibling of H1/M15_range_compression_ratio
@@ -328,6 +372,7 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
         "_v1h4_rsi14_z",
         "_v1h4_slope3",
         "_v1h4_slope5",
+        "h4_rsi14_canon_v2",
     ),
     "D1": (
         "D1_dist_from_ema200_atr",
@@ -368,11 +413,31 @@ MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "m15_rsi14_canon_v2",
     "m15_range_z_20_canon_v2",
     "m15_trend_sign_canon_v2",
+    # V30 (2026-08-13): the three momentum-G3 raw-RSI siblings, ordered M5 ->
+    # H1 -> H4 as the design row lists them; the ctx_cont contract appends the
+    # same three names in the same order (the single-owner test requires the
+    # ctx_cont intersection to preserve this tuple's order).
+    "m5_rsi14_canon_v2",
+    "h1_rsi14_canon_v2",
+    "h4_rsi14_canon_v2",
     "H4_trend_sign_cat",
 )
 MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4 = (
     "model_native_mtf_scalar_owner_native_m5_v4"
 )
+# V30 (2026-08-13): the scalar-projection route per decision clock, previously
+# repeated as two identical literals inside the projection function and the
+# owner marker.  Both now read this one owner, so the marker can never describe
+# a route the projection did not take.  The M5 entry (5-minute clock) is new:
+# it carries the momentum-G3 `m5_rsi14_canon_v2` scalar, whose projection onto
+# the M5 clock is the identity (see the field-tuple comment).  This route is the
+# SCALAR surface only; the per-TF windowed sequence route stays
+# ENTRY_MTF_CONTEXT_TIMEFRAMES = M15/H1/H4/D1 (entry_exit_feature_base_v1) and
+# is untouched.
+MODEL_NATIVE_MTF_SCALAR_ROUTES_V4 = {
+    pd.Timedelta(minutes=5): ("M5", "M15", "H1", "H4", "D1"),
+    pd.Timedelta(minutes=1): ("M5", "M15", "H1", "H4", "D1"),
+}
 # V29 Phase A per-TF REGISTRY blocks (stage 2 wiring, design doc §1.3/§2):
 # the 11-field pivot-cluster level block and the 33-field trendline/channel
 # block run independently on every TF clock next to
@@ -1842,7 +1907,6 @@ def compute_per_bar_features_v4(
     from gx1.features.entry_candlestick_patterns_v1 import (
         build_entry_candlestick_pattern_layer,
     )
-    from gx1.features.swing_structure_v1 import compute_swing_structure_features
     from gx1.features.smc_v1 import compute_smc_mtf_primitives_v1
 
     _validate_m5_input(ohlcv, require_volume=True)
@@ -2040,18 +2104,37 @@ def compute_per_bar_features_v4(
     ):
         out[name] = values
 
+    # V30 (2026-08-13): the per-TF lane now consumes the V29 additions too (see
+    # MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE).  This is the call-site
+    # contract switch the producer's docstring reserved for the stage-2 wiring,
+    # taken at the V30 rebuild boundary — never an environment gate.
     swing = compute_swing_structure_features(
         high.to_numpy(dtype=np.float64),
         low.to_numpy(dtype=np.float64),
         close.to_numpy(dtype=np.float64),
+        include_v29_additions=True,
     )
-    for name in MULTI_TF_V4_SWING_FEATURES:
-        source_name = name.removeprefix("swing_")
-        if source_name not in swing:
-            raise RuntimeError(
-                f"HTF_V4_SWING_FIELD_MISSING: {source_name}"
+    missing_swing = [
+        MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE[name]
+        for name in MULTI_TF_V4_SWING_FEATURES
+        if MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE[name] not in swing
+    ]
+    if missing_swing:
+        raise RuntimeError(f"HTF_V4_SWING_FIELD_MISSING: {missing_swing}")
+    # Built as one block and concatenated below (14 columns, not 5, since the
+    # V30 adoption): a per-column insert into the already-wide `out` frame
+    # fragments its BlockManager past pandas' 100-block warning threshold.
+    swing_frame = pd.DataFrame(
+        {
+            name: np.asarray(
+                swing[MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE[name]],
+                dtype=np.float64,
             )
-        out[name] = np.asarray(swing[source_name], dtype=np.float64)
+            for name in MULTI_TF_V4_SWING_FEATURES
+        },
+        index=df.index,
+        columns=list(MULTI_TF_V4_SWING_FEATURES),
+    )
 
     smc_source = df[["high", "low", "close"]].copy()
     smc_source["atr"] = atr14
@@ -2089,7 +2172,14 @@ def compute_per_bar_features_v4(
         raise RuntimeError("HTF_V4_V29_REGISTRY_ROW_AXIS_MISMATCH")
 
     out = pd.concat(
-        (out, primitives, v29, level_frame, trendline_frame.astype(np.float64)),
+        (
+            out,
+            swing_frame,
+            primitives,
+            v29,
+            level_frame,
+            trendline_frame.astype(np.float64),
+        ),
         axis=1,
     )
     if tuple(out.columns) != MULTI_TF_PER_BAR_FEATURES_V4:
@@ -2163,8 +2253,6 @@ def _compute_model_native_mtf_scalar_frame_v4(
             f"HTF_V4_MODEL_NATIVE_SCALAR_TIMEFRAME_INVALID: {timeframe!r}"
         )
     expected_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[timeframe]
-    if timeframe == "M5":
-        return pd.DataFrame(index=ohlcv.index)
     _validate_m5_input(ohlcv, require_volume=True)
     source = ohlcv.loc[:, ["open", "high", "low", "close", "volume"]].astype(
         np.float64
@@ -2221,6 +2309,17 @@ def _compute_model_native_mtf_scalar_frame_v4(
             ema_diff,
             order=5,
         )
+        # V30 momentum G3: the raw Wilder level from the same one `_rsi` owner
+        # the M15/D1 canon fields call, on this TF's own closed bars.  The
+        # `_v1h{1,4}_rsi14_z` 48-bar z-score above is kept (design row: "z-fields
+        # kept"); a z-score of a bounded oscillator hides WHERE in the 0-100
+        # domain the market is, which is exactly the M15/D1 evidence M5/H1/H4
+        # lacked.
+        out[f"{timeframe.lower()}_rsi14_canon_v2"] = _rsi(close, 14)
+    elif timeframe == "M5":
+        # V30 momentum G3 (see the field-tuple comment): the M5 sibling of
+        # `m15_rsi14_canon_v2` — same producer, same unit, this TF's clock.
+        out["m5_rsi14_canon_v2"] = _rsi(close, 14)
     elif timeframe == "M15":
         atr100 = _atr(high, low, close, 100)
         compression = atr14 / np.maximum(atr100, 1e-9)
@@ -2574,10 +2673,7 @@ def project_model_native_mtf_scalars_v4(
     """Project the one native-M5 scalar owner onto local M5 or local M1."""
 
     require_model_native_mtf_scalar_owner_v4(features)
-    routes = {
-        pd.Timedelta(minutes=5): ("M15", "H1", "H4", "D1"),
-        pd.Timedelta(minutes=1): ("M5", "M15", "H1", "H4", "D1"),
-    }
+    routes = MODEL_NATIVE_MTF_SCALAR_ROUTES_V4
     if decision_bar_duration not in routes:
         raise RuntimeError(
             "HTF_V4_MODEL_NATIVE_PROJECTION_CLOCK_INVALID: exact M1 or M5 required"
@@ -2638,10 +2734,7 @@ def model_native_mtf_owner_marker_v4(
     *,
     decision_bar_duration: pd.Timedelta,
 ) -> dict[str, object]:
-    routes = {
-        pd.Timedelta(minutes=5): ("M15", "H1", "H4", "D1"),
-        pd.Timedelta(minutes=1): ("M5", "M15", "H1", "H4", "D1"),
-    }
+    routes = MODEL_NATIVE_MTF_SCALAR_ROUTES_V4
     if decision_bar_duration not in routes:
         raise RuntimeError("HTF_V4_MODEL_NATIVE_OWNER_MARKER_CLOCK_INVALID")
     fields = list(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)

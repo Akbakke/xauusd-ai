@@ -67,6 +67,7 @@ from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
+    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 
@@ -505,6 +506,10 @@ class ModelNativeStateBuilder:
             frame["close"].to_numpy(dtype=np.float64),
             lookback=SWING_LOOKBACK_V1,
             atr_period=SWING_ATR_PERIOD_V1,
+            # V30 (2026-08-13): the ctx swing surface is the 14-name contract
+            # (MODEL_NATIVE_CTX_CONT_SWING_FIELDS); flipped together with the
+            # dataset builder and the live ctx augmenter (rule 6).
+            include_v29_additions=True,
         ).items():
             frame[col] = arr
 
@@ -540,7 +545,14 @@ class ModelNativeStateBuilder:
 
         causal_required = list(
             dict.fromkeys(
-                ga_cols + list(REGIME_V4_SOURCE_COLS) + list(REGIME_V4_DERIVED_COLS)
+                ga_cols
+                + list(REGIME_V4_SOURCE_COLS)
+                + list(REGIME_V4_DERIVED_COLS)
+                # V30 (2026-08-13): the adopted V29 swing ctx fields have their
+                # own honest NaN warmup prefix (see the producer); trim it by
+                # contract, exactly as the offline builder and the live ctx
+                # augmenter now do.
+                + list(SWING_V29_ADDITION_NAMES_V1)
             )
         )
         frame = trim_causal_context_warmup_prefix(frame, causal_required).reset_index(

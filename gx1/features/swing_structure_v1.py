@@ -61,10 +61,18 @@ SWING_ATR_PERIOD_V1 = 14
 # Constant origins (rule 2a): SWING_LOOKBACK_V1=2, SWING_ATR_PERIOD_V1=14,
 # FOUNDATION_EVENT_AGE_CAP=96 (imported — one truth), log1p(x)/log1p(cap)
 # convention. Zero new numbers (design doc §3, structure_swing row).
-# DECLARED SEPARATELY from SWING_FEATURE_NAMES_V1: the accepted contracts bind
-# the 5-name V1 surface; the stage-2 V29 wiring adopts these names into the
-# ctx/111-surface contracts together with the V29 rebuild (rule 6: train==serve
-# moves at one boundary).
+# DECLARED SEPARATELY from SWING_FEATURE_NAMES_V1 because the pre-V30 accepted
+# contracts bound the 5-name V1 surface only.  That declaration is PERFORMED as
+# of V30 package 2 (2026-08-13): the promised adoption — "the stage-2 V29
+# wiring adopts these names into the ctx/111-surface contracts together with
+# the V29 rebuild (rule 6: train==serve moves at one boundary)" — is now done
+# at the V30 rebuild boundary.  ``MODEL_NATIVE_CTX_CONT_SWING_FIELDS``
+# (entry_model_native_signal_v1) is ``SWING_FEATURE_NAMES_V1 +
+# SWING_V29_ADDITION_NAMES_V1``, and ``MULTI_TF_V4_SWING_FEATURES``
+# (htf_features) carries the same nine names per TF.  The two tuples stay
+# separate because the V1 five keep the historical ``swing_``-prefixed per-TF
+# spelling and the seq513 lane routes the additions through their own
+# ``swing_structure_event_layer``.
 SWING_V29_ADDITION_NAMES_V1 = (
     "swing_high_break_event",
     "swing_low_break_event",
@@ -141,9 +149,12 @@ def compute_swing_structure_features(
     ``include_v29_additions`` appends SWING_V29_ADDITION_NAMES_V1 (break events,
     displacement, break ages, pivot-sequence deltas, run counts — see the
     tuple's comment). Default False == the accepted pre-V29 contract surface,
-    byte-identical; the stage-2 V29 wiring flips the canonical call sites
-    explicitly together with the contract/dimension updates and the V29 rebuild
-    — a call-site contract switch, never an environment gate.
+    byte-identical. V30 package 2 (2026-08-13) flipped every canonical call
+    site to True together with the contract/dimension updates (a call-site
+    contract switch, never an environment gate): the seq513 swing event layer,
+    the per-TF V4 lane, and the three ctx producers (offline dataset builder,
+    live ctx augmenter, model-native state frame). The default stays False so
+    the pre-V30 surface remains reproducible byte-for-byte from this owner.
     """
     if not isinstance(include_v29_additions, bool):
         raise RuntimeError("SWING_STRUCTURE_V29_FLAG_INVALID")

@@ -87,9 +87,12 @@ _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "session_regime_encoder": 229 + len(_V29_REGIME_NAMES),
     "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
     "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),
-    # V30 (2026-08-13): 38 = 37 + chart.local_kama_efficiency_30 (the
-    # price-derived layer's new mandatory field, trend-owned).
-    "trend_ema_encoder": 38,
+    # V30 (2026-08-13): 41 = 37 + chart.local_kama_efficiency_30 (package 1)
+    # + the three package-2 GAP-2/3 local age fields
+    # (chart.local_ema50_200_cross_age_norm,
+    # chart.local_price_above_ema{50,200}_age_norm) — all price-derived layer
+    # fields, all trend-owned.
+    "trend_ema_encoder": 41,
     "vol_compression_encoder": 41,
 }
 _TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)
@@ -264,8 +267,10 @@ def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch.delenv("GX1_RUN_MODE", raising=False)
 
     context = model_native_context_contract_metadata()
-    # V30 (2026-08-13): 143 = 142 + H4_range_compression_ratio.
-    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 143
+    # V30 (2026-08-13): 155 = 142 + H4_range_compression_ratio (package 1)
+    # + 9 adopted swing V29 ctx fields + 3 momentum-G3 RSI canon scalars
+    # (package 2).
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 155
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[

@@ -122,6 +122,7 @@ from gx1.features.micro_structure_v1 import compute_micro_structure_features
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
+    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
@@ -3092,6 +3093,10 @@ def build_dataset_canonical(
         close,
         lookback=SWING_LOOKBACK_V1,
         atr_period=SWING_ATR_PERIOD_V1,
+        # V30 (2026-08-13): the nine V29 swing event fields are ctx contract
+        # fields from this rebuild boundary on (MODEL_NATIVE_CTX_CONT_SWING_FIELDS
+        # is the 14-name surface); every ctx producer flips together (rule 6).
+        include_v29_additions=True,
     )
     for _name, _arr in _swing.items():
         tape_feat[_name] = _arr
@@ -3551,7 +3556,17 @@ def build_dataset_canonical(
         merged3.attrs.get("causal_context_warmup_rows", 0)
     )
     _causal_required = list(
-        dict.fromkeys(_group_a_required + list(_REGIME_SOURCES) + list(_REGIME_DERIVED))
+        dict.fromkeys(
+            _group_a_required
+            + list(_REGIME_SOURCES)
+            + list(_REGIME_DERIVED)
+            # V30 (2026-08-13): the adopted V29 swing ctx fields carry their own
+            # honest NaN warmup (no pivot-sequence delta before the SECOND
+            # confirmed pivot per side). They join the trim list so the prefix
+            # is removed by contract instead of being covered incidentally by
+            # the much longer D1 warmup above.
+            + list(SWING_V29_ADDITION_NAMES_V1)
+        )
     )
     _rows_before_context_trim = len(merged3)
     merged3 = _trim_context_warmup(merged3, _causal_required).reset_index(drop=True)

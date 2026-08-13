@@ -49,6 +49,8 @@ from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES
 from gx1.features.htf_features import (
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
     _atr as _htf_atr_v4,
+    _event_age_norm as _htf_event_age_norm_v4,
+    _trend_age_bars as _htf_trend_age_bars_v4,
     compute_v29_momentum_event_block_from_ohlc,
 )
 from gx1.features.level_registry_v1 import (
@@ -82,8 +84,11 @@ PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
 # (ema50_200_spread_accel) to 201. Sample rows must therefore begin at source
 # index 201 or later. Verified against the native M1 surface: index 200 fails
 # the layer's own finiteness gate and 201 passes.  The V30
-# local_kama_efficiency_30 addition needs only 30 rows (window 30), so this
-# floor is unchanged.
+# local_kama_efficiency_30 addition needs only 30 rows (window 30), and the V30
+# GAP-2/3 age fields inherit their EMA source's first valid row (index 199 for
+# the ema200-backed pair, 49 for the ema50 side), so this floor is unchanged —
+# re-verified 2026-08-13 on the full 15-column layer: index 200 still fails the
+# layer's own finiteness gate and 201 still passes.
 PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
@@ -107,6 +112,17 @@ PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema50_200_spread_delta",
     "chart.local_ema50_200_spread_accel",
     "chart.local_kama_efficiency_30",
+    # V30 Phase-A completion (2026-08-13): trend_ema GAP-2/GAP-3 on the LOCAL
+    # clock.  The per-TF lane has carried ``ema50_200_cross_age_norm`` /
+    # ``price_above_ema{50,200}_age_norm`` since the V29 stage-2 wiring, while
+    # this layer emitted the crosses and the state as 1-bar spikes with no
+    # duration — so Entry saw the spike on M5 and only the aged version on
+    # M15+ (review C.1).  Values come from the SAME two htf_features helpers
+    # that produce the per-TF fields (`_trend_age_bars` + `_event_age_norm`,
+    # imported above): one formula owner, log1p(min(age, 500))/log1p(500).
+    "chart.local_ema50_200_cross_age_norm",
+    "chart.local_price_above_ema50_age_norm",
+    "chart.local_price_above_ema200_age_norm",
 )
 
 
@@ -419,6 +435,29 @@ def build_price_derived_layer(
     kama_efficiency_30 = kama_change_30 / kama_volatility_30
     kama_efficiency_30[kama_volatility_30 < 1e-12] = 0.0
 
+    # V30 GAP-2/GAP-3 local durations (see the name-tuple comment).  Exact
+    # per-TF construction: mask the state to NaN wherever its EMA source is
+    # still inside the causal warmup (ewm min_periods already emits NaN here,
+    # so no post-hoc mask is needed), count the run with the ONE
+    # `_trend_age_bars` owner, normalize with the ONE `_event_age_norm` owner
+    # (log1p/500 cap), and re-mask the warmup rows — a NaN warmup, never a
+    # "0 bars since the state began" that reads as a fresh flip (rule 2e).
+    # First finite row per field: ema200 min_periods=200 -> index 199 for the
+    # 50/200 cross age and the ema200 side age, ema50 -> index 49; all three
+    # are inside the layer's existing 201-row floor, which is therefore
+    # unchanged (it is still set by ema50_200_spread_accel at index 201).
+    bull_state = (spread > 0).astype(np.float64).where(spread.notna())
+    ema50_200_cross_age_norm = _htf_event_age_norm_v4(
+        _htf_trend_age_bars_v4(bull_state)
+    ).where(spread.notna())
+    price_above_age_norm = {}
+    for ema_span, ema_line in ((50, ema50), (200, ema200)):
+        price_gap = close - ema_line
+        side_state = (price_gap > 0).astype(np.float64).where(price_gap.notna())
+        price_above_age_norm[ema_span] = _htf_event_age_norm_v4(
+            _htf_trend_age_bars_v4(side_state)
+        ).where(price_gap.notna())
+
     raw = pd.DataFrame(
         {
             "ema50_200_spread_bps": spread_bps,
@@ -433,6 +472,9 @@ def build_price_derived_layer(
             "ema50_200_spread_delta": spread_delta,
             "ema50_200_spread_accel": spread_accel,
             "kama_efficiency_30": kama_efficiency_30,
+            "ema50_200_cross_age_norm": ema50_200_cross_age_norm,
+            "price_above_ema50_age_norm": price_above_age_norm[50],
+            "price_above_ema200_age_norm": price_above_age_norm[200],
         },
         index=source_index,
     )
@@ -454,6 +496,11 @@ def build_price_derived_layer(
         "ema50_200_spread_accel": (-80.0, 80.0),
         # ER's algebraic domain (triangle inequality), not a chosen bound.
         "kama_efficiency_30": (0.0, 1.0),
+        # log1p(min(age, 500))/log1p(500) is in [0, 1] by construction — the
+        # normalizer's own algebraic domain, not a chosen bound.
+        "ema50_200_cross_age_norm": (0.0, 1.0),
+        "price_above_ema50_age_norm": (0.0, 1.0),
+        "price_above_ema200_age_norm": (0.0, 1.0),
     }
     for column in aligned.columns:
         lo, hi = clip_ranges.get(column, (-25.0, 25.0))

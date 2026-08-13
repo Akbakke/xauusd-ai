@@ -54,12 +54,17 @@ Features added (32 total):
     - wick_ratio                           # (high - close) / range
     - distance_ema_fast                    # close - EMA5
 
-  Swing structure (5):
+  Swing structure (14 — the 5 V1 fields + the 9 V29 event additions adopted
+  into the ctx contract by V30 package 2, 2026-08-13):
     - dist_last_swing_high_atr             # (close - last pivot-high) / ATR14
     - dist_last_swing_low_atr              # (close - last pivot-low)  / ATR14
     - bars_since_swing_high
     - bars_since_swing_low
     - retracement_from_last_impulse        # 0..1 retracement
+    - swing_high/low_break_event, swing_break_displacement_atr,
+      bars_since_swing_high/low_break, swing_high/low_sequence_delta_atr,
+      consecutive_higher_lows_count, consecutive_lower_highs_count
+      # exact names/semantics owned by swing_structure_v1
 
 The local volatility regime is causal over a fixed 288-bar window. Absolute
 ATR and spread buckets require an explicit immutable TRAIN-only rank reference;
@@ -86,6 +91,7 @@ from gx1.features.model_native_market_context_v1 import (
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
+    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 from gx1.time.session_detector import (
@@ -424,16 +430,22 @@ def _add_micro_features(cv3: pd.DataFrame) -> None:
 
 
 def _add_swing_features(cv3: pd.DataFrame) -> None:
-    """Mutates cv3 with the 5 swing-structure ctx features (dist_last_swing_high/low_atr,
-    bars_since_swing_high/low, retracement_from_last_impulse). Delegates to the ONE-TRUTH
+    """Mutates cv3 with the swing-structure ctx features (dist_last_swing_high/low_atr,
+    bars_since_swing_high/low, retracement_from_last_impulse + the nine V29 event
+    additions adopted by V30 package 2). Delegates to the ONE-TRUTH
     helper gx1.features.swing_structure_v1 (lookahead-safe confirmation lag) — do NOT
-    re-implement the math here (2026-06-24 unification; live decision bar stays causal)."""
+    re-implement the math here (2026-06-24 unification; live decision bar stays causal).
+
+    ``include_v29_additions=True`` is the V30 (2026-08-13) call-site contract
+    switch: MODEL_NATIVE_CTX_CONT_SWING_FIELDS is now the 14-name surface, and
+    every ctx producer flips at the same rebuild boundary (rule 6)."""
     feats = compute_swing_structure_features(
         cv3["high"].to_numpy(dtype=np.float64),
         cv3["low"].to_numpy(dtype=np.float64),
         cv3["close"].to_numpy(dtype=np.float64),
         lookback=SWING_LOOKBACK_V1,
         atr_period=SWING_ATR_PERIOD_V1,
+        include_v29_additions=True,
     )
     for _name, _arr in feats.items():
         cv3[_name] = _arr
@@ -579,7 +591,16 @@ def _finish_canonical_v3_context(
     ]
     out = trim_causal_context_warmup_prefix(
         out,
-        htf_required + list(REGIME_V4_SOURCE_COLS) + list(REGIME_V4_DERIVED_COLS),
+        htf_required
+        + list(REGIME_V4_SOURCE_COLS)
+        + list(REGIME_V4_DERIVED_COLS)
+        # V30 (2026-08-13): the adopted V29 swing fields carry their own honest
+        # NaN warmup (no pivot-sequence delta exists until a SECOND confirmed
+        # pivot per side), so they join the trim list instead of being left as
+        # a non-finite ctx prefix. They are far shorter than the D1 warmup
+        # above; listing all nine keeps the trim correct if another addition
+        # gains a prefix.
+        + list(SWING_V29_ADDITION_NAMES_V1),
     )
     out["trend_regime_id"] = out["trend_regime_id"].astype(np.int64)
     out["H4_trend_sign_cat"] = out["H4_trend_sign_cat"].astype(np.int64)

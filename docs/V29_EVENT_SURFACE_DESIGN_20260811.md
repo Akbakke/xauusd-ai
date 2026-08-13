@@ -304,12 +304,34 @@ Per-family additions (from §1–§3; per-TF numbers are per timeframe):
 >    **346 → 425** over **11 → 16** families (= +22 `level_*` + 30
 >    `chart.geomline_*`/`chart.geomchan_*` + 9 swing events + 10 momentum
 >    events + 8 regime flips); ranked remainder held at 133.
-> 3. **Declared by Phase A but NOT yet wired** (remaining Phase-A deltas
->    toward the 601/181 targets, own follow-up wiring): structure_swing
->    per-TF additions (`MULTI_TF_V4_SWING_FEATURES` 5→17, +9/TF), trend_ema
->    GAP-2/3 M5-local fields (+7 M5), momentum G3 raw-RSI ctx scalars
->    (+3 ctx).  With momentum 9→10 accepted, the full-Phase-A targets
->    restate as 513→602 and 111→182.
+> 3. **Declared by Phase A, wired by the V30 wave** (2026-08-13, package 2 —
+>    "Phase-A completion"; the engines already existed and only the call
+>    sites/contracts moved, at one rebuild boundary):
+>    - structure_swing per-TF additions — DONE, +9/TF (the nine
+>      `SWING_V29_ADDITION_NAMES_V1`, not the sketched 12:
+>      `MULTI_TF_V4_SWING_FEATURES` is 5→14, and the per-TF lane calls the
+>      producer with `include_v29_additions=True`).  The same nine names were
+>      adopted into `MODEL_NATIVE_CTX_CONT_SWING_FIELDS`, performing the
+>      producer's own "the stage-2 V29 wiring adopts these names into the
+>      ctx/111-surface contracts together with the V29 rebuild" declaration
+>      (+9 ctx).
+>    - momentum G3 raw-RSI ctx scalars — DONE, +3 ctx
+>      (`m5_rsi14_canon_v2`, `h1_rsi14_canon_v2`, `h4_rsi14_canon_v2`; spelled
+>      as the existing `<tf>_rsi14_canon_v2` M15/D1 siblings they mirror, not
+>      the sketched `*_raw`, and emitted by the same one `_rsi` producer on
+>      each TF's own closed bars).
+>    - trend_ema GAP-2/3 M5-local fields — PARTIAL, +3 of the declared 7: the
+>      three durations (`chart.local_ema50_200_cross_age_norm`,
+>      `chart.local_price_above_ema{50,200}_age_norm`) are wired through the
+>      same `_trend_age_bars`/`_event_age_norm` owners as the per-TF lane.
+>      **Still unwired:** the four M5-local price-vs-EMA cross EVENTS
+>      (`price_x_ema{50,200}_cross_{up,down}`), which exist per TF but not in
+>      the local price-derived layer.
+>    Derived reality after the V30 wave (package 1 emission wins + package 2):
+>    `MODEL_NATIVE_SIGNAL_DIM` **604** (34 base + 437 mandatory causal + 133
+>    ranked), ctx **155**/5, per-TF `MULTI_TF_FEATURE_COUNT_V4` **189**.  The
+>    code tuples remain the authority; these figures are recorded, not
+>    restated as a target.
 > 4. The two aux tautologies are replaced by the forward-realized
 >    `y_line_support_touch_held` / `y_line_resistance_touch_held` plus their
 >    touch-event masks (§5.2.8; head stays 6-dim, masked loss on the two
