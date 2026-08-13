@@ -41,9 +41,15 @@ _V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
 
 
 RUN_ID = "XAU_SEQ513_SOURCE_AUDIT_PYTEST_V1"
+# V30 package 3 (2026-08-13): the D1 bin opens on the trading day (22:00 UTC),
+# so a window starting at 00:00Z loses its first (incomplete) D1 bin. The old
+# 2026-01-01..2026-01-03 span left exactly ONE complete D1 bar, which makes
+# every D1 field constant and fails the cache's own liveness contract. One
+# extra day restores two complete trading-day D1 bars (2026-01-01T22:00Z and
+# 2026-01-02T22:00Z), the same count this fixture carried before.
 SOURCE_TIMES = pd.date_range(
     "2026-01-01T00:00:00Z",
-    "2026-01-03T00:00:00Z",
+    "2026-01-04T00:00:00Z",
     freq="5min",
 )
 

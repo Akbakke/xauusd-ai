@@ -125,6 +125,7 @@ def publish_multi_tf_v4_cache(
         HTF_V4_MATRIX_CONTRACT,
         MULTI_TF_FEATURE_COUNT_V4,
         MULTI_TF_PER_BAR_FEATURES_V4,
+        MULTI_TF_RESAMPLE_ORIGIN_CONTRACT,
         MULTI_TF_RESAMPLE_RULES,
         MULTI_TF_SHIFT,
         build_multi_tf_v4_closed_timestamp_indices,
@@ -209,6 +210,11 @@ def publish_multi_tf_v4_cache(
             "shift_contract": {
                 tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()
             },
+            # V30 package 3 (2026-08-13): the bin ORIGIN travels with the
+            # cadence.  Taken verbatim from the one owner
+            # (htf_features.MULTI_TF_RESAMPLE_ORIGIN_CONTRACT) so the published
+            # cache records which daily clock produced its D1 bars.
+            "resample_origin_contract": dict(MULTI_TF_RESAMPLE_ORIGIN_CONTRACT),
             "builder_version": BUILDER_VERSION,
             "m5_prebuilt_source": str(source),
             "m5_prebuilt_source_sha256": expected_source_sha256,

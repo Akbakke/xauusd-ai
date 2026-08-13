@@ -64,6 +64,7 @@ from gx1.features.htf_features import (
     HTF_V4_CACHE_BUILDER_VERSION,
     MULTI_TF_FEATURE_COUNT_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_RESAMPLE_ORIGIN_CONTRACT,
     MULTI_TF_SHIFT,
     MULTI_TF_TIMEFRAMES,
     build_multi_tf_v4_closed_timestamp_indices,
@@ -706,6 +707,12 @@ def _mtf_cache_contract(
         verified_loader_error = str(exc)
     expected_feature_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
     expected_shift = {tf: str(MULTI_TF_SHIFT[tf]) for tf in EXPECTED_MTF_TFS}
+    # V30 package 3 (2026-08-13): the cache also declares its bin ORIGIN per
+    # timeframe (the D1 trading-day clock). Mirror the one owner's contract so
+    # a cache built on the retired midnight-UTC D1 axis is not "exact" here.
+    expected_resample_origin = {
+        tf: MULTI_TF_RESAMPLE_ORIGIN_CONTRACT[tf] for tf in EXPECTED_MTF_TFS
+    }
     observed_tfs = manifest.get("tfs") if isinstance(manifest.get("tfs"), dict) else {}
     mtf_source_raw = str(manifest.get("m5_prebuilt_source") or "").strip()
     mtf_source = Path(mtf_source_raw).expanduser().resolve() if mtf_source_raw else Path("/")
@@ -873,6 +880,7 @@ def _mtf_cache_contract(
         "feature_count": manifest.get("feature_count"),
         "feature_names": manifest.get("feature_names"),
         "shift_contract": manifest.get("shift_contract"),
+        "resample_origin_contract": manifest.get("resample_origin_contract"),
         "builder_version": manifest.get("builder_version"),
         "tf_order": list(observed_tfs),
         "tf_rows": rows,
@@ -927,6 +935,7 @@ def _mtf_cache_contract(
             and manifest.get("feature_count") == MULTI_TF_FEATURE_COUNT_V4
             and manifest.get("feature_names") == expected_feature_names
             and manifest.get("shift_contract") == expected_shift
+            and manifest.get("resample_origin_contract") == expected_resample_origin
             and manifest.get("builder_version") == EXPECTED_MTF_BUILDER_VERSION
             and set(observed_tfs) == set(EXPECTED_MTF_TFS)
             and file_names == expected_files

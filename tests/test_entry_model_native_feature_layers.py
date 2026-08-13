@@ -93,12 +93,13 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
         "price": (
             price_x,
             price_names,
-            # V30 (2026-08-13): package 1 added chart.local_kama_efficiency_30
-            # and package 2 the three GAP-2/3 local age fields (15 fields);
-            # both hashes re-measured on the unchanged source fixture.
-            (240, 15),
-            "237558a7c237e9b0444294ce1c33166492cd9c0ab20c5f3d906b56851c1766d0",
-            "93e49f6577ea0ce89878dcc237b2d0431d72bcbcb54d780342386c888411e3d9",
+            # V30 (2026-08-13): package 1 added chart.local_kama_efficiency_30,
+            # package 2 the three GAP-2/3 local age fields, and package 3 the
+            # four price-vs-EMA cross events (19 fields); all hashes
+            # re-measured on the unchanged source fixture.
+            (240, 19),
+            "31eebaba49421ad2657675810185b989e4aea96b26c5a5be2b2ad7e92dacb3f5",
+            "7f0aaa17bd5628053736526dcb74ef2064f110d6a4566a49393f2d3d14118c84",
         ),
         "candle": (
             candle_x,

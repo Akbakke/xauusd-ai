@@ -356,14 +356,23 @@ def build_entry_session_regime_interaction_layer(
     us = _clip01(c("ctx_cont.is_us_only") + eu_us)
     overlap = _clip01(asia_eu + eu_us)
     # active_session (= clip01(asia + eu + us)) was removed 2026-08-09: it is
-    # identically 1.0. Proof from the named constants: is_ASIA marks the
-    # session owner's ASIA block (SESSION_BOUNDARIES: 22:00-07:00 UTC, and the
-    # owner validates at import that the four sessions partition all 1440
-    # minutes), while eu = is_eu_only + is_asia_eu_overlap + is_eu_us_overlap
-    # covers every EU_HOURS hour and us = is_us_only + is_eu_us_overlap covers
-    # every US_HOURS hour (augment_forward_outcome_v2 named hour sets), and
-    # ASIA-block ∪ EU_HOURS ∪ US_HOURS covers all 24 hours. A x1.0 factor is
-    # a no-op, so it was dropped from the seven features that multiplied it.
+    # identically 1.0.  Proof RE-DERIVED 2026-08-13 under the unified session
+    # clock (V30 package 3), which retired the second hour-set definition the
+    # original proof leaned on.  Every term above now reads the ONE
+    # SESSION_BOUNDARIES partition (via session_detector.session_overlap_flags),
+    # so the identity follows from the partition alone:
+    #   asia = 1{session == ASIA}
+    #   eu   = clip01(is_eu_only + is_asia_eu_overlap + is_eu_us_overlap)
+    #        = 1{session in {EU, OVERLAP}}   (is_eu_only and is_asia_eu_overlap
+    #          are the complementary halves of EU, is_eu_us_overlap is OVERLAP)
+    #   us   = clip01(is_us_only + is_eu_us_overlap) = 1{session in {US, OVERLAP}}
+    # The session owner validates at import that ASIA/EU/OVERLAP/US partition
+    # all 1440 minutes of the day, and each of those four states sets at least
+    # one of asia/eu/us (OVERLAP sets both eu and us), so clip01(asia+eu+us)
+    # == 1.0 on every row.  The identity is now STRICTLY stronger than the
+    # 2026-08-09 version: it no longer needs the cross-clock side condition
+    # "US_HOURS never intersects ASIA_HOURS".  A x1.0 factor is a no-op, so the
+    # removal from the seven features that multiplied it still stands.
 
     spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps")), 0.0, 5.0)
     spread_pressure = _clip01(_tanh(spread_ratio, scale=SPREAD_RATIO_TANH_SCALE_TRAIN_P90))

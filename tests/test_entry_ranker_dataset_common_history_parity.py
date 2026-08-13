@@ -8,6 +8,7 @@ from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
+    multi_tf_resample,
 )
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
 from gx1.scripts.augment_forward_outcome_v2 import (
@@ -56,9 +57,13 @@ def _minimal_valid_v4_mtf(history: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Build contract-valid lookup tables; this test targets Group-A history."""
     result: dict[str, pd.DataFrame] = {}
     width = len(MULTI_TF_PER_BAR_FEATURES_V4)
-    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items():
+    # V30 package 3 (2026-08-13): build the axis through the ONE cadence+origin
+    # owner. A bare `resample(rule)` kept pandas' midnight-UTC D1 origin and
+    # would no longer match the production freshness check, which now uses the
+    # trading-day D1 bin.
+    for timeframe in MULTI_TF_RESAMPLE_RULES:
         index = (
-            history.resample(rule)
+            multi_tf_resample(history, timeframe)
             .agg({"close": "last"})
             .dropna()
             .index

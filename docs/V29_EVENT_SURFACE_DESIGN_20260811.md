@@ -320,15 +320,19 @@ Per-family additions (from §1–§3; per-TF numbers are per timeframe):
 >      as the existing `<tf>_rsi14_canon_v2` M15/D1 siblings they mirror, not
 >      the sketched `*_raw`, and emitted by the same one `_rsi` producer on
 >      each TF's own closed bars).
->    - trend_ema GAP-2/3 M5-local fields — PARTIAL, +3 of the declared 7: the
->      three durations (`chart.local_ema50_200_cross_age_norm`,
->      `chart.local_price_above_ema{50,200}_age_norm`) are wired through the
->      same `_trend_age_bars`/`_event_age_norm` owners as the per-TF lane.
->      **Still unwired:** the four M5-local price-vs-EMA cross EVENTS
->      (`price_x_ema{50,200}_cross_{up,down}`), which exist per TF but not in
->      the local price-derived layer.
->    Derived reality after the V30 wave (package 1 emission wins + package 2):
->    `MODEL_NATIVE_SIGNAL_DIM` **604** (34 base + 437 mandatory causal + 133
+>    - trend_ema GAP-2/3 M5-local fields — DONE, all 7 (package 2 landed the
+>      three durations `chart.local_ema50_200_cross_age_norm` /
+>      `chart.local_price_above_ema{50,200}_age_norm`; package 3, 2026-08-13,
+>      landed the four cross EVENTS
+>      `chart.local_price_x_ema{50,200}_cross_{up,down}`).  All seven are wired
+>      through the same `_trend_age_bars` / `_event_age_norm` /
+>      `_cross_up_event` / `_cross_down_event` owners as the per-TF lane —
+>      imported, never duplicated.  The layer's causal warmup floor is
+>      unchanged at 201 rows (re-verified on the declared canonical_v3 M5
+>      surface: source index 199 and 200 fail the layer's own finiteness gate,
+>      201 passes, on the full 19-column layer).
+>    Derived reality after the V30 wave (packages 1-3):
+>    `MODEL_NATIVE_SIGNAL_DIM` **608** (34 base + 441 mandatory causal + 133
 >    ranked), ctx **155**/5, per-TF `MULTI_TF_FEATURE_COUNT_V4` **189**.  The
 >    code tuples remain the authority; these figures are recorded, not
 >    restated as a target.

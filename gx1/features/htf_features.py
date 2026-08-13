@@ -29,6 +29,11 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
+# The session owner is the SSoT for every named UTC clock boundary and imports
+# nothing from gx1 (numpy/pandas/typing only), so binding it here is safe and
+# keeps the trading-day origin below owned by exactly one module (rule 19).
+from gx1.time.session_detector import SESSION_BOUNDARIES as _SESSION_BOUNDARIES
+
 # Retained shared warmup floors used by the active context owner.
 D1_EMA200_MIN_BARS = 220
 H1_ATR100_MIN_BARS = 120
@@ -64,8 +69,13 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series
 
 
 
-def _resample_ohlcv(df: pd.DataFrame, rule: str) -> pd.DataFrame:
-    """Aggregate exact observed OHLCV for the V4 feature owner."""
+def _resample_ohlcv(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+    """Aggregate exact observed OHLCV for the V4 feature owner.
+
+    Keyed on the declared TIMEFRAME, not a bare rule string, so the bin origin
+    travels with the cadence (V30 package 3: the D1 bin opens on the trading
+    day, see MULTI_TF_RESAMPLE_ORIGIN_OFFSET).
+    """
     required = ("open", "high", "low", "close", "volume")
     missing = [name for name in required if name not in df.columns]
     if missing:
@@ -79,7 +89,11 @@ def _resample_ohlcv(df: pd.DataFrame, rule: str) -> pd.DataFrame:
         "close": _last_valid,
         "volume": "sum",
     }
-    return df.loc[:, list(required)].resample(rule).agg(agg).dropna(how="all")
+    return (
+        multi_tf_resample(df.loc[:, list(required)], timeframe)
+        .agg(agg)
+        .dropna(how="all")
+    )
 
 
 
@@ -474,9 +488,15 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v5"
+# v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
+# resample ORIGIN contract.  The D1 bin now opens on the trading day
+# (MULTI_TF_RESAMPLE_ORIGIN_OFFSET), so a cache written on the midnight-UTC D1
+# axis holds different bars under the same feature names — a new manifest key
+# plus a new schema version reject it before a single array is loaded rather
+# than letting it masquerade as current.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v6"
 HTF_V4_CACHE_BUILDER_VERSION = (
-    "prebuild_multi_tf_cache_v4_v29_registry_blocks_20260811"
+    "prebuild_multi_tf_cache_v4_d1_trading_day_origin_20260813"
 )
 HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v3"
 # The v2 schema (no saturated_presence_masks key) remains valid for immutable
@@ -542,6 +562,64 @@ MULTI_TF_RESAMPLE_RULES = {
     "H4": "4h",
     "D1": "1D",
 }
+
+# V30 package 3 (2026-08-13) — ONE daily clock, anchored to the trading day.
+#
+# The cadence above is a duration; it does not say WHERE the bin starts.
+# pandas defaults the "1D" origin to midnight UTC, which cut the gold tape's
+# trading day in half: the 22:00-24:00 UTC Sunday reopen became its own "D1"
+# bar and was fed to ATR-14 / EMA200 / RSI / the 252-bar percentile as one
+# complete observation, and Monday's D1 features read it as the previous day.
+#
+# MEASURED on the complete declared native M5 tape
+# (XAU_M5_NATIVE_2019_20260804_V4, 537,861 rows, 2019-01-01..2026-08-04),
+# coverage = bars present / 288 possible M5 bars per D1 bin:
+#   midnight-UTC origin : N=2,360 bins, 401 bins (16.99%) at <=10% coverage,
+#                         Sunday-bin median coverage 8.33%
+#   22:00-UTC origin    : N=1,960 bins,   1 bin  ( 0.05%) at <=10% coverage,
+#                         Sunday-bin median coverage 95.83%
+# (rule 2f: the population is the complete declared tape, not a sample, so the
+# comparison carries no sampling error; the log is
+# GX1_DATA/logs/v30_package3_20260813/d1_coverage_audit.log.)
+#
+# The 22:00 magnitude is NOT invented (rule 2a/2b): it is the session owner's
+# own named ASIA open, SESSION_BOUNDARIES["ASIA"][0], which
+# docs/V29_EVENT_SURFACE_DESIGN_20260811.md already declares as THE
+# trading-day clock for the session-anchored level registry. This change makes
+# the OHLC D1 clock agree with the clock the event surface already uses.
+#
+# Every other timeframe divides 24h evenly from midnight, so their bins are
+# unchanged and their offset is exactly zero.
+MULTI_TF_D1_TRADING_DAY_ORIGIN_HOUR = int(_SESSION_BOUNDARIES["ASIA"][0])
+MULTI_TF_RESAMPLE_ORIGIN_OFFSET = {
+    "M5": pd.Timedelta(0),
+    "M15": pd.Timedelta(0),
+    "H1": pd.Timedelta(0),
+    "H4": pd.Timedelta(0),
+    "D1": pd.Timedelta(hours=MULTI_TF_D1_TRADING_DAY_ORIGIN_HOUR),
+}
+if tuple(MULTI_TF_RESAMPLE_ORIGIN_OFFSET) != tuple(MULTI_TF_RESAMPLE_RULES):
+    raise RuntimeError(
+        "HTF_V4_RESAMPLE_ORIGIN_CONTRACT_INVALID: exact ordered "
+        "M5/M15/H1/H4/D1 origin offsets required"
+    )
+for _tf_name, _offset in MULTI_TF_RESAMPLE_ORIGIN_OFFSET.items():
+    _rule_duration = pd.Timedelta(MULTI_TF_RESAMPLE_RULES[_tf_name])
+    if (
+        not isinstance(_offset, pd.Timedelta)
+        or _offset < pd.Timedelta(0)
+        or _offset >= _rule_duration
+        or _offset % pd.Timedelta(MULTI_TF_RESAMPLE_RULES["M5"]) != pd.Timedelta(0)
+    ):
+        raise RuntimeError(
+            f"HTF_V4_RESAMPLE_ORIGIN_CONTRACT_INVALID: {_tf_name} offset={_offset!r}"
+        )
+# The exact declared origin contract, recorded in the cache manifest so a cache
+# built on another daily clock can never load against this owner.
+MULTI_TF_RESAMPLE_ORIGIN_CONTRACT = {
+    _tf: str(_off) for _tf, _off in MULTI_TF_RESAMPLE_ORIGIN_OFFSET.items()
+}
+
 MULTI_TF_TIMEFRAMES = tuple(MULTI_TF_RESAMPLE_RULES)
 MULTI_TF_TIMEFRAMES_LOWER = tuple(
     timeframe.lower() for timeframe in MULTI_TF_TIMEFRAMES
@@ -568,6 +646,42 @@ MULTI_TF_SHIFT = {
 MULTI_TF_PYRAMID_SCHEMA_VERSION = "entry_multi_tf_causal_resolution_pyramid_v1"
 
 
+def multi_tf_bar_label(values, timeframe: str):
+    """Floor UTC timestamps onto one timeframe's declared bar-opening grid.
+
+    THE flooring owner for the V4 multi-TF axis.  ``pandas`` ``floor`` has no
+    origin argument, so the declared origin offset is applied by shifting into
+    the midnight-anchored grid, flooring, and shifting back —
+    ``(t - offset).floor(rule) + offset``.  Verified equal to
+    ``resample(rule, offset=offset)``'s bin-left edges on pandas 2.3.3 for the
+    D1 offset (the audit log named at MULTI_TF_RESAMPLE_ORIGIN_OFFSET), so the
+    two mechanisms cannot drift.
+
+    Accepts anything with a ``floor`` method on the pandas datetime interface
+    (``Timestamp``, ``DatetimeIndex``, ``Series.dt`` output).
+    """
+    if timeframe not in MULTI_TF_RESAMPLE_RULES:
+        raise RuntimeError(f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}")
+    offset = MULTI_TF_RESAMPLE_ORIGIN_OFFSET[timeframe]
+    floored = (values - offset).floor(MULTI_TF_RESAMPLE_RULES[timeframe])
+    return floored + offset
+
+
+def multi_tf_resample(frame, timeframe: str):
+    """Return one timeframe's resampler on the declared cadence AND origin.
+
+    THE resampling owner for the V4 multi-TF axis; pairs with
+    :func:`multi_tf_bar_label` so a bin label produced by one is always the
+    bin label produced by the other.
+    """
+    if timeframe not in MULTI_TF_RESAMPLE_RULES:
+        raise RuntimeError(f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}")
+    return frame.resample(
+        MULTI_TF_RESAMPLE_RULES[timeframe],
+        offset=MULTI_TF_RESAMPLE_ORIGIN_OFFSET[timeframe],
+    )
+
+
 def multi_tf_last_closed_label(
     decision_bar_start: pd.Timestamp | str,
     timeframe: str,
@@ -579,7 +693,16 @@ def multi_tf_last_closed_label(
     ``decision_bar_start`` is the opening timestamp of an observed M5 candle.
     Its information becomes available five minutes later.  HTF resample labels
     are bar-opening timestamps, so the availability cutoff must be shifted by
-    the full HTF duration and then floored to that timeframe's UTC grid.
+    the full HTF duration and then floored to that timeframe's declared grid.
+
+    No-lookahead proof, unchanged by the V30 D1 trading-day origin: a bar
+    labelled ``L`` on a grid of duration ``d`` covers ``[L, L + d)`` and is
+    therefore closed at ``L + d``.  This returns the largest grid point
+    ``L <= t + base_bar_duration - d``, so ``L + d <= t + base_bar_duration``
+    — the bar is closed no later than the moment the decision bar's own
+    information becomes available.  The argument uses only "the grid points
+    are spaced ``d`` apart", never where the grid starts, so shifting the D1
+    grid's origin from 00:00 to 22:00 UTC leaves it intact.
     """
     if timeframe not in MULTI_TF_RESAMPLE_RULES:
         raise RuntimeError(
@@ -592,11 +715,10 @@ def multi_tf_last_closed_label(
         raise RuntimeError(
             "HTF_V4_DECISION_TIMESTAMP_INVALID: timezone-aware UTC required"
         )
-    return (
-        timestamp
-        + base_bar_duration
-        - MULTI_TF_SHIFT[timeframe]
-    ).floor(MULTI_TF_RESAMPLE_RULES[timeframe])
+    return multi_tf_bar_label(
+        timestamp + base_bar_duration - MULTI_TF_SHIFT[timeframe],
+        timeframe,
+    )
 
 
 def build_multi_tf_v4_closed_timestamp_indices(
@@ -628,8 +750,8 @@ def build_multi_tf_v4_closed_timestamp_indices(
         )
 
     expected: dict[str, pd.DatetimeIndex] = {}
-    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items():
-        labels = m5_index.floor(rule).drop_duplicates()
+    for timeframe in MULTI_TF_RESAMPLE_RULES:
+        labels = multi_tf_bar_label(m5_index, timeframe).drop_duplicates()
         last_closed = multi_tf_last_closed_label(
             m5_index[-1],
             timeframe,
@@ -902,8 +1024,8 @@ def fit_v29_registry_constants_from_m5(
     }
     entry_band: float | None = None
     entry_provenance: dict | None = None
-    for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
-        resampled = _resample_ohlcv(train_source, rule)
+    for tf_name in MULTI_TF_RESAMPLE_RULES:
+        resampled = _resample_ohlcv(train_source, tf_name)
         resampled = resampled.dropna(subset=["open", "high", "low", "close"])
         resampled = resampled.loc[expected_indices[tf_name]]
         fit_frame = resampled[["high", "low", "close"]].copy()
@@ -2444,8 +2566,8 @@ def build_multi_tf_per_bar_features_v4(
         source.index,
     )
     result = {}
-    for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
-        resampled = _resample_ohlcv(source, rule)
+    for tf_name in MULTI_TF_RESAMPLE_RULES:
+        resampled = _resample_ohlcv(source, tf_name)
         resampled = resampled.dropna(subset=["open", "high", "low", "close"])
         expected_index = expected_indices[tf_name]
         if not resampled.index.is_unique or not expected_index.isin(
@@ -2637,13 +2759,13 @@ def bind_model_native_mtf_scalar_owner_v4(
     source = native_m5_ohlcv.copy(deep=False)
     source.index = source.index.as_unit("ns")
     expected_indices = build_multi_tf_v4_closed_timestamp_indices(source.index)
-    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items():
+    for timeframe in MULTI_TF_RESAMPLE_RULES:
         if not features[timeframe].index.equals(expected_indices[timeframe]):
             raise RuntimeError(
                 "HTF_V4_MODEL_NATIVE_SCALAR_SOURCE_GEOMETRY_MISMATCH: "
                 f"{timeframe}"
             )
-        resampled = _resample_ohlcv(source, rule).dropna(
+        resampled = _resample_ohlcv(source, timeframe).dropna(
             subset=["open", "high", "low", "close"]
         )
         if not expected_indices[timeframe].isin(resampled.index).all():
@@ -2939,6 +3061,9 @@ _HTF_V4_CACHE_MANIFEST_KEYS = frozenset(
         "feature_count",
         "feature_names",
         "shift_contract",
+        # V30 package 3 (2026-08-13): the declared bin ORIGIN per timeframe.
+        # Cadence alone does not identify a bar; the D1 trading-day origin does.
+        "resample_origin_contract",
         "builder_version",
         "m5_prebuilt_source",
         "m5_prebuilt_source_sha256",
@@ -3195,6 +3320,7 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
             "feature_count": feature_width,
             "feature_names": list(feature_names),
             "shift_contract": expected_shift,
+            "resample_origin_contract": dict(MULTI_TF_RESAMPLE_ORIGIN_CONTRACT),
         }
         for name, expected in contracts.items():
             if manifest.get(name) != expected:

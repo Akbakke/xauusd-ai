@@ -184,27 +184,70 @@ def test_asia_mid_session_permission_is_ungated_by_session_tradable() -> None:
 
 
 def test_session_flag_union_covers_every_minute_of_day() -> None:
-    # active_session was removed from the layer because asia+eu+us is
-    # identically 1: is_ASIA marks the session owner's ASIA block, the eu flag
-    # union (is_eu_only + is_asia_eu_overlap + is_eu_us_overlap) is exactly
-    # 1{hour in EU_HOURS} (boolean tautology eu & (~us~asia | asia | us)), and
-    # the us flag union (is_us_only + is_eu_us_overlap) is exactly
-    # 1{hour in US_HOURS} provided US_HOURS never intersects ASIA_HOURS.
+    # active_session was removed from the layer because clip01(asia+eu+us) is
+    # identically 1.  V30 package 3 (2026-08-13) unified the session clock: the
+    # second hour-set definition this test used to import from
+    # augment_forward_outcome_v2 is retired, and the four overlap flags are
+    # derived from the ONE SESSION_BOUNDARIES partition by
+    # session_detector.session_overlap_flags.  The proof is re-derived on that
+    # owner here: exercise all 1440 minutes of the day and require the exact
+    # layer expressions asia / eu / us to cover every one of them.
     import pandas as pd
 
-    from gx1.scripts.augment_forward_outcome_v2 import ASIA_HOURS, EU_HOURS, US_HOURS
-    from gx1.time.session_detector import get_session
+    from gx1.time.session_detector import get_session, session_overlap_flags
 
-    assert not (set(US_HOURS) & set(ASIA_HOURS))
     for minute in range(24 * 60):
         ts = pd.Timestamp("2026-01-05", tz="UTC") + pd.Timedelta(minutes=minute)
-        hour = ts.hour
-        covered = (
-            get_session(ts) == "ASIA"
-            or hour in EU_HOURS
-            or hour in US_HOURS
+        flags = session_overlap_flags(ts)
+        asia = float(get_session(ts) == "ASIA")
+        # Exactly the layer's expressions (entry_session_regime_interactions_v1
+        # and entry_foundation_structure_v1 both build eu/us this way).
+        eu = min(
+            1.0,
+            flags["is_eu_only"]
+            + flags["is_asia_eu_overlap"]
+            + flags["is_eu_us_overlap"],
         )
-        assert covered, f"minute {minute} not covered by asia/eu/us flag union"
+        us = min(1.0, flags["is_us_only"] + flags["is_eu_us_overlap"])
+        assert min(1.0, asia + eu + us) == 1.0, (
+            f"minute {minute} not covered by asia/eu/us flag union"
+        )
+
+
+def test_session_overlap_flags_are_one_partition_and_all_live() -> None:
+    # The four flags must stay mutually exclusive, all-zero on ASIA, and each
+    # one live.  Rates are exact minute-of-day fractions of the partition, so
+    # this is a proof, not a sample (rule 2f: no sampling error to clear).
+    import pandas as pd
+
+    from gx1.time.session_detector import (
+        ASIA_EU_HANDOVER_MINUTES,
+        SESSION_OVERLAP_FLAG_NAMES,
+        get_session,
+        session_overlap_flags,
+    )
+
+    counts = {name: 0 for name in SESSION_OVERLAP_FLAG_NAMES}
+    for minute in range(24 * 60):
+        ts = pd.Timestamp("2026-01-05", tz="UTC") + pd.Timedelta(minutes=minute)
+        flags = session_overlap_flags(ts)
+        assert tuple(flags) == SESSION_OVERLAP_FLAG_NAMES
+        assert sum(flags.values()) <= 1.0, f"flags overlap at minute {minute}"
+        if get_session(ts) == "ASIA":
+            assert sum(flags.values()) == 0.0
+        else:
+            assert sum(flags.values()) == 1.0
+        for name, value in flags.items():
+            counts[name] += int(value)
+
+    # EU 07:00-12:00 splits into the 120-minute Asia/EU handover window and the
+    # 180-minute EU-only remainder; OVERLAP is 12:00-16:00 and US is 16:00-22:00.
+    assert counts["is_asia_eu_overlap"] == ASIA_EU_HANDOVER_MINUTES == 120
+    assert counts["is_eu_only"] == 180
+    assert counts["is_eu_us_overlap"] == 240
+    assert counts["is_us_only"] == 360
+    for name, count in counts.items():
+        assert count / (24 * 60) > 0.01, f"{name} below the 1% activity floor"
 
 
 def test_session_regime_interaction_layer_rejects_unprefixed_aliases() -> None:

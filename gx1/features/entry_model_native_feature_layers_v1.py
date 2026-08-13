@@ -49,6 +49,8 @@ from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES
 from gx1.features.htf_features import (
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
     _atr as _htf_atr_v4,
+    _cross_down_event as _htf_cross_down_event_v4,
+    _cross_up_event as _htf_cross_up_event_v4,
     _event_age_norm as _htf_event_age_norm_v4,
     _trend_age_bars as _htf_trend_age_bars_v4,
     compute_v29_momentum_event_block_from_ohlc,
@@ -88,7 +90,11 @@ PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
 # GAP-2/3 age fields inherit their EMA source's first valid row (index 199 for
 # the ema200-backed pair, 49 for the ema50 side), so this floor is unchanged —
 # re-verified 2026-08-13 on the full 15-column layer: index 200 still fails the
-# layer's own finiteness gate and 201 still passes.
+# layer's own finiteness gate and 201 still passes.  The V30 package-3
+# price-vs-EMA cross events add one shift(1) on top of their EMA source (first
+# finite row: index 200 for the ema200 pair, 50 for the ema50 pair), still
+# inside 201 — re-verified 2026-08-13 on the full 19-column layer: index 200
+# still fails the layer's own finiteness gate and 201 still passes.
 PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
@@ -123,6 +129,21 @@ PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema50_200_cross_age_norm",
     "chart.local_price_above_ema50_age_norm",
     "chart.local_price_above_ema200_age_norm",
+    # V30 package 3 (2026-08-13): the recorded Phase-A remainder of trend_ema
+    # GAP-3.  Package 2 landed the three age fields and left the four
+    # price-vs-EMA cross EVENTS open (see the package-2 message: "trend_ema
+    # GAP-2/3 is 3 of 7 (four M5-local cross events still open)").  The per-TF
+    # lane has emitted ``price_x_ema{50,200}_cross_{up,down}`` since the V29
+    # stage-2 wiring (htf_features.MULTI_TF_V4_TREND_EMA_EVENT_FEATURES), so
+    # without these the local M5/M1 clock carried the ema50/200 cross but not
+    # the price-through-EMA cross that the higher timeframes already had.
+    # Values come from the SAME two htf_features helpers that produce the
+    # per-TF fields (`_cross_up_event` / `_cross_down_event`, imported above):
+    # one formula owner, imported not duplicated.
+    "chart.local_price_x_ema50_cross_up",
+    "chart.local_price_x_ema50_cross_down",
+    "chart.local_price_x_ema200_cross_up",
+    "chart.local_price_x_ema200_cross_down",
 )
 
 
@@ -451,12 +472,25 @@ def build_price_derived_layer(
         _htf_trend_age_bars_v4(bull_state)
     ).where(spread.notna())
     price_above_age_norm = {}
+    # V30 package 3 (2026-08-13): the four price-vs-EMA cross events of the
+    # same GAP-3 block, from the SAME ``price_gap`` series the age fields use
+    # and the SAME htf event owner the per-TF lane calls.  ``_cross_up_event``
+    # emits NaN wherever the series or its previous bar is still inside the
+    # causal warmup, so the ema200 pair's first finite row is source index 200
+    # (ema200 min_periods=200 -> first finite gap at 199, plus one bar for the
+    # shift) and the ema50 pair's is 50 — both inside the layer's existing
+    # 201-row floor, which is therefore unchanged (still set by
+    # ema50_200_spread_accel at index 201; re-verified below on the full
+    # 19-column layer).
+    price_x_cross = {}
     for ema_span, ema_line in ((50, ema50), (200, ema200)):
         price_gap = close - ema_line
         side_state = (price_gap > 0).astype(np.float64).where(price_gap.notna())
         price_above_age_norm[ema_span] = _htf_event_age_norm_v4(
             _htf_trend_age_bars_v4(side_state)
         ).where(price_gap.notna())
+        price_x_cross[(ema_span, "up")] = _htf_cross_up_event_v4(price_gap)
+        price_x_cross[(ema_span, "down")] = _htf_cross_down_event_v4(price_gap)
 
     raw = pd.DataFrame(
         {
@@ -475,6 +509,10 @@ def build_price_derived_layer(
             "ema50_200_cross_age_norm": ema50_200_cross_age_norm,
             "price_above_ema50_age_norm": price_above_age_norm[50],
             "price_above_ema200_age_norm": price_above_age_norm[200],
+            "price_x_ema50_cross_up": price_x_cross[(50, "up")],
+            "price_x_ema50_cross_down": price_x_cross[(50, "down")],
+            "price_x_ema200_cross_up": price_x_cross[(200, "up")],
+            "price_x_ema200_cross_down": price_x_cross[(200, "down")],
         },
         index=source_index,
     )

@@ -35,13 +35,16 @@ if str(REPO) not in sys.path:
 from gx1.features.htf_features import (
     build_multi_tf_per_bar_features_v4,
     HTF_V4_MATRIX_CONTRACT,
+    multi_tf_bar_label,
+    multi_tf_resample,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_V4_GROUP_A_BASE_FEATURES,
-    MULTI_TF_RESAMPLE_RULES,
     MULTI_TF_TIMEFRAMES,
     MULTI_TF_TIMEFRAMES_LOWER,
     validate_causal_feature_matrix,
 )
+from gx1.time.session_detector import session_overlap_flags
+
 TF_NAMES = MULTI_TF_TIMEFRAMES
 _GROUP_A_MTF_SOURCE_FEATURES = MULTI_TF_V4_GROUP_A_BASE_FEATURES
 _GROUP_A_MTF_SOURCE_INDICES = tuple(
@@ -196,15 +199,14 @@ GROUP_S_SMC_FEATURE_NAMES = (
     "smc_premium_discount_canon_v1",
     "smc_premium_state_canon_v1",
 )
-# Historical session-overlap windows (UTC hours) for the is_*_overlap/only
-# flags. These hour sets are a second, older clock than the canonical
-# gx1/time/session_detector.py SESSION_BOUNDARIES and are kept byte-identical
-# pending the full session-unification recipe decision; only the timestamp
-# they are evaluated on has been aligned to the canonical decision-availability
-# convention (bar close = bar start + bar duration), 2026-08-09.
-ASIA_HOURS = set(list(range(22, 24)) + list(range(0, 9)))
-EU_HOURS   = set(range(7, 17))
-US_HOURS   = set(range(13, 22))
+# The second, older hour-set clock that used to live here (ASIA_HOURS {22..8},
+# EU_HOURS {7..16}, US_HOURS {13..21}) is RETIRED — V30 package 3, 2026-08-13.
+# It disagreed with the canonical gx1/time/session_detector.py
+# SESSION_BOUNDARIES partition at h=8, 16 and 22-23 while both fed the same
+# downstream layers.  The four is_*_overlap/only flags are now derived from the
+# one partition by the module that owns it
+# (session_detector.session_overlap_flags); see that function's comment for the
+# exact mapping and why is_asia_eu_overlap becomes a boundary-adjacent window.
 
 # --forward-outcome-dir is REQUIRED (no silent stale default; rule 8). The old hardcoded literal
 # (CANDIDATE_FORWARD_OUTCOME_V3PLUS_..._20260521 LOCK) is superseded 2x (v3+ -> COSTFIX -> fase2b)
@@ -307,9 +309,19 @@ def _indexed_m5_ohlc_frame(frame: pd.DataFrame, *, context: str) -> pd.DataFrame
     return out
 
 
-def _build_resampled_ohlc_array(df: pd.DataFrame, rule: str) -> tuple:
-    """Return (ts_int64, high, low) for resampled bars."""
-    resamp = df.resample(rule).agg({"high": "max", "low": "min"}).dropna()
+def _build_resampled_ohlc_array(df: pd.DataFrame, timeframe: str) -> tuple:
+    """Return (ts_int64, high, low) for one declared timeframe's bars.
+
+    V30 package 3 (2026-08-13): keyed on the declared TIMEFRAME through the one
+    cadence+origin owner (``htf_features.multi_tf_resample``) instead of a bare
+    rule string, so the D1 liquidity-zone highs/lows sit on the same
+    trading-day bars as the rest of the surface.
+    """
+    resamp = (
+        multi_tf_resample(df, timeframe)
+        .agg({"high": "max", "low": "min"})
+        .dropna()
+    )
     ts_ns = resamp.index.values.astype("datetime64[ns]").astype(np.int64)
     return ts_ns, resamp["high"].to_numpy(np.float64), resamp["low"].to_numpy(np.float64)
 
@@ -376,8 +388,20 @@ def _build_atr_percentile_array(df: pd.DataFrame, ts_ns: np.ndarray, window_days
 
 
 def _build_daily_pivots(df: pd.DataFrame) -> dict[pd.Timestamp, dict[str, float]]:
-    """Compute classic pivots per trading day for later prior-day lookup."""
-    daily = df.resample("1D").agg({"high": "max", "low": "min", "close": "last"}).dropna()
+    """Compute classic pivots per trading day for later prior-day lookup.
+
+    V30 package 3 (2026-08-13): the "trading day" this docstring always claimed
+    is now the actual bin.  The literal ``resample("1D")`` used pandas' default
+    midnight-UTC origin, so a Sunday 22:00-24:00 reopen stub became its own
+    "day" and its 2-hour high/low/close produced a pivot set that the next
+    session read as the previous day's.  Routed through the one cadence+origin
+    owner (``htf_features.multi_tf_resample``) with the D1 trading-day origin.
+    """
+    daily = (
+        multi_tf_resample(df, "D1")
+        .agg({"high": "max", "low": "min", "close": "last"})
+        .dropna()
+    )
     out = {}
     for ts, row in daily.iterrows():
         high, low, close = float(row["high"]), float(row["low"]), float(row["close"])
@@ -479,7 +503,7 @@ def _assert_multi_tf_cache_fresh(
             decision_bar_duration_ns=decision_bar_duration_ns,
         )
         expected = (
-            m5_df.resample(MULTI_TF_RESAMPLE_RULES[tf])
+            multi_tf_resample(m5_df, tf)
             .agg({"high": "max", "low": "min", "close": "last"})
             .dropna()
             .index.view("int64")
@@ -524,11 +548,11 @@ def build_context(
         decision_bar_duration_ns=decision_bar_duration_ns,
     )  # fail-closed on stale multi-TF cache (rule 4)
     ts_ns = m5_df.index.values.astype("datetime64[ns]").astype(np.int64)
-    h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "1h")
-    h4_ts, h4_hi, h4_lo = _build_resampled_ohlc_array(m5_df, "4h")
+    h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "H1")
+    h4_ts, h4_hi, h4_lo = _build_resampled_ohlc_array(m5_df, "H4")
     # 2026-05-24 Bug 2 fix: M15 + D1 resampled OHLC for liquidity zones
-    m15_ts, m15_hi, m15_lo = _build_resampled_ohlc_array(m5_df, "15min")
-    d1_ts, d1_hi, d1_lo = _build_resampled_ohlc_array(m5_df, "1D")
+    m15_ts, m15_hi, m15_lo = _build_resampled_ohlc_array(m5_df, "M15")
+    d1_ts, d1_hi, d1_lo = _build_resampled_ohlc_array(m5_df, "D1")
     # ATR percentile arrays
     m5_atr_pct = _build_atr_percentile_array(m5_df, ts_ns)
     # H1 ATR percentile
@@ -571,9 +595,9 @@ def _session_overlap(
     ``ts`` is the decision bar-start label. The flags are classified at the
     bar-close availability timestamp (ts + bar duration), the same clock the
     canonical session_id owner (gx1/time/session_detector.py
-    decision_availability) uses — the two clocks now agree on WHEN a bar is
-    classified. The hour sets themselves are the historical overlap windows
-    above (a separate recipe decision).
+    decision_availability) uses. V30 package 3 (2026-08-13) closed the second
+    half of that unification: the VALUES now come from the same partition too,
+    via ``session_overlap_flags`` — one session clock, one owner.
     """
     ts = _require_utc_timestamp(ts, context="CTX_SESSION")
     if (
@@ -582,14 +606,9 @@ def _session_overlap(
         or int(decision_bar_duration_ns) <= 0
     ):
         raise RuntimeError("[CTX_SESSION] decision bar duration is invalid")
-    h = (ts + pd.Timedelta(int(decision_bar_duration_ns), unit="ns")).hour
-    asia, eu, us = h in ASIA_HOURS, h in EU_HOURS, h in US_HOURS
-    return {
-        "is_asia_eu_overlap": float(asia and eu),
-        "is_eu_us_overlap":   float(eu and us),
-        "is_eu_only":         float(eu and not us and not asia),
-        "is_us_only":         float(us and not eu and not asia),
-    }
+    return session_overlap_flags(
+        ts + pd.Timedelta(int(decision_bar_duration_ns), unit="ns")
+    )
 
 
 def _tf_cache_row(ctx: AugmentContext, tf: str, ts_ns: int) -> np.ndarray:
@@ -726,7 +745,14 @@ def _pivots(ctx: AugmentContext, ts: pd.Timestamp, current_atr: float, current_p
     ts = _require_utc_timestamp(ts, context="CTX_PIVOT")
     if not np.isfinite(current_atr) or current_atr <= 0.0 or not np.isfinite(current_price):
         raise RuntimeError("[CTX_PIVOT] price and ATR must be finite; ATR must be positive")
-    target_day = ts.normalize()
+    # V30 package 3 (2026-08-13): the target day must be floored on the SAME
+    # grid the pivot keys are labelled on (``_build_daily_pivots``).  With the
+    # trading-day origin, ``ts.normalize()`` (midnight) would have selected the
+    # bin opened at 22:00 the previous calendar day — which is still OPEN for
+    # any decision before 22:00 — i.e. a lookahead.  ``multi_tf_bar_label``
+    # returns the bin containing ``ts``; a strictly-earlier key therefore
+    # closed at or before that bin's open, hence at or before ``ts``.
+    target_day = multi_tf_bar_label(ts, "D1")
     eligible_days = [day for day in ctx.daily_pivot_by_date if day < target_day]
     if not eligible_days:
         raise CausalContextWarmupError("[CTX_PIVOT_WARMUP] no completed prior trading day")

@@ -127,18 +127,27 @@ is made anywhere; the 2026-08-09 walk-forward refutation stands.
 
 ## D. DEPENDENCY DEFECTS (check before the V29 verdict)
 
-1. **Two session clocks with different hour sets** [PS]:
-   `session_detector.py` partition (ASIA 22-7/EU 7-12/OVERLAP 12-16/US
-   16-22) vs `augment_forward_outcome_v2.py` overlapping sets (ASIA
-   {22..8}, EU {7..16}, US {13..21}). They disagree at h=8, 16, 22-23; both
-   feed `entry_session_regime_interactions_v1` side by side; the
-   `active_session ≡ 1` proof is load-bearing on both. Blast radius ≈125 of
-   425 mandatory + 14 ctx. DST adds a 1-hour phase error for ~half the tape
-   (UTC-fixed boundaries). One recipe decision.
-2. **Two daily clocks** [PS]: D1 bars roll at 00:00 UTC, session-anchored
-   V29 levels at 22:00. Sunday 22-24h becomes a 2-hour "D1" bar feeding
-   ATR-14/EMA200/RSI/percentile as one full observation; Monday's D1 reads
-   it. D1 is the widest upstream dependency (9/16 families, ~24 ctx).
+1. **Two session clocks with different hour sets** [PS] — **RESOLVED, V30
+   package 3, 2026-08-13.** The `augment_forward_outcome_v2.py` hour sets
+   (ASIA {22..8}, EU {7..16}, US {13..21}) are retired; the four
+   `is_*_overlap/only` flags are derived from the ONE `session_detector.py`
+   partition by `session_overlap_flags`. Mapping: `is_eu_us_overlap` :=
+   OVERLAP, `is_us_only` := US, and EU splits into `is_asia_eu_overlap`
+   (first 120 min — the width of the retired ASIA_HOURS ∩ EU_HOURS
+   intersection, re-expressed from the surviving EU open) and `is_eu_only`
+   (the 180-min remainder). The `active_session ≡ 1` proof was re-derived on
+   the single partition and is now strictly stronger (no cross-clock side
+   condition). DST posture is UNCHANGED and still open: the boundaries remain
+   UTC-fixed, so the ~1-hour seasonal phase error is not addressed here.
+2. **Two daily clocks** [PS] — **RESOLVED, V30 package 3, 2026-08-13.** The
+   D1 bin now opens at 22:00 UTC (`MULTI_TF_RESAMPLE_ORIGIN_OFFSET`), the same
+   trading-day clock the session-anchored V29 levels use. MEASURED on the
+   complete declared native M5 tape: stub bins (<=10% of 288 M5 bars) fell
+   from 401/2,360 = 16.99% to 1/1,958 = 0.05%, and Sunday-bin median coverage
+   rose from 8.33% to 95.83%; the one remaining stub is a genuine 2019-02-15
+   tape gap, not a clock artifact. NOT covered by this decision: the intraday
+   session VWAP (`htf_features._session_vwap`) still resets at midnight UTC —
+   a third daily clock, now the only one left, and its own recipe decision.
 3. **Four ATR-14 conventions live simultaneously** [PS]; the swing
    normalizer (`min_periods=1`) inflates all `*_atr` swing fields for the
    first ~13 bars of any segment.

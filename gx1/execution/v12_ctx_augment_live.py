@@ -84,6 +84,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     causal_vol_regime_bucket,
     compute_causal_market_rank_inputs,
 )
+from gx1.features.htf_features import multi_tf_resample
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
 from gx1.features.model_native_market_context_v1 import (
     derive_model_native_trend_regime_id,
@@ -112,21 +113,27 @@ ATR_EPS = 1e-9
 # ── HTF resampling helpers ────────────────────────────────────────────────
 
 
-def _resample_ohlc(df_m5: pd.DataFrame, rule: str) -> pd.DataFrame:
-    """Resample M5 OHLC to a higher timeframe (1H/4H/15min/1D).
+def _resample_ohlc(df_m5: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+    """Resample M5 OHLC to one declared higher timeframe (M15/H1/H4/D1).
 
     Input df_m5 must be DatetimeIndex'd with columns open/high/low/close.
     Returns DataFrame with same columns, indexed at the start of each HTF bar.
+
+    V30 package 3 (2026-08-13): keyed on the declared TIMEFRAME and routed
+    through ``htf_features.multi_tf_resample``, the one cadence+origin owner.
+    Before this, the local literal ``"1D"`` kept its own midnight-UTC daily
+    clock that could not follow the trading-day origin decision, so the live
+    ``D1_dist_from_ema200_atr`` / ``D1_atr_percentile_252`` would have been
+    computed on different bars than the offline surface (rule 6).
     """
-    out = pd.DataFrame(
+    return pd.DataFrame(
         {
-            "open": df_m5["open"].resample(rule).first(),
-            "high": df_m5["high"].resample(rule).max(),
-            "low": df_m5["low"].resample(rule).min(),
-            "close": df_m5["close"].resample(rule).last(),
+            "open": multi_tf_resample(df_m5["open"], timeframe).first(),
+            "high": multi_tf_resample(df_m5["high"], timeframe).max(),
+            "low": multi_tf_resample(df_m5["low"], timeframe).min(),
+            "close": multi_tf_resample(df_m5["close"], timeframe).last(),
         }
     ).dropna()
-    return out
 
 
 def _ema(s: pd.Series, span: int) -> pd.Series:
@@ -324,7 +331,7 @@ def _add_htf_features(
             "[LIVE_HTF_SOURCE] true M5 context does not cover the decision lane"
         )
 
-    df_d1 = _resample_ohlc(m5, "1D")
+    df_d1 = _resample_ohlc(m5, "D1")
     d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
     d1_ema200 = _ema(d1_mid, 200)
     d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14)
@@ -353,7 +360,7 @@ def _add_htf_features(
     ).to_numpy(dtype=float)
 
     # H1 features (H1_ATR100_MIN_BARS=120 — ATR100 converged)
-    df_h1 = _resample_ohlc(m5, "1h")
+    df_h1 = _resample_ohlc(m5, "H1")
     h1_atr14 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 14)
     h1_atr100 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 100)
     h1_comp = h1_atr14 / np.maximum(h1_atr100, ATR_EPS)
@@ -366,7 +373,7 @@ def _add_htf_features(
     ).to_numpy(dtype=float)
 
     # M15 features (M15_ATR100_MIN_BARS=200)
-    df_m15 = _resample_ohlc(m5, "15min")
+    df_m15 = _resample_ohlc(m5, "M15")
     m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14)
     m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100)
     m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
@@ -383,7 +390,7 @@ def _add_htf_features(
     # 100-bar ATR warmup floor; htf_features owns the constant).
     from gx1.features.htf_features import H4_ATR100_MIN_BARS
 
-    df_h4 = _resample_ohlc(m5, "4h")
+    df_h4 = _resample_ohlc(m5, "H4")
     h4_atr14 = _atr(df_h4["high"], df_h4["low"], df_h4["close"], 14)
     h4_atr100 = _atr(df_h4["high"], df_h4["low"], df_h4["close"], 100)
     h4_comp = h4_atr14 / np.maximum(h4_atr100, ATR_EPS)

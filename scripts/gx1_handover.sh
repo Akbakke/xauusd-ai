@@ -202,10 +202,12 @@ echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"
 # V30 (2026-08-13): package 1 took signal 592 -> 601 (mandatory causal
 # 425 -> 434) and ctx_cont 142 -> 143 (H4_range_compression_ratio); package 2
 # (Phase-A completion: per-TF swing V29 events, ctx swing adoption, momentum-G3
-# raw-RSI ctx scalars, M5-local EMA ages) takes signal 601 -> 604 (mandatory
-# causal 434 -> 437) and ctx_cont 143 -> 155. Derived from the
+# raw-RSI ctx scalars, M5-local EMA ages) took signal 601 -> 604 (mandatory
+# causal 434 -> 437) and ctx_cont 143 -> 155; package 3 (the recorded Phase-A
+# remainder: four M5-local price-vs-EMA cross events) takes signal 604 -> 608
+# (mandatory causal 437 -> 441), ctx_cont unchanged. Derived from the
 # entry_model_native_signal_v1 owner tuples.
-echo "entry: local=M5 sequence=96 signal=604 ctx_cont=155 ctx_cat=5 mtf=M15,H1,H4,D1"
+echo "entry: local=M5 sequence=96 signal=608 ctx_cont=155 ctx_cat=5 mtf=M15,H1,H4,D1"
 echo "entry_feature_surface: HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"
 echo "exit: local=M1 sequence=480 mtf=M5,M15,H1,H4,D1 same_contract_plus_causal_path shared_encoder=true"
 echo "mtf_construction: CLOSED_OHLCV_BEFORE_FEATURES_NO_COMPUTED_M1_RESAMPLING"

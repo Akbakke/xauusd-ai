@@ -45,6 +45,75 @@ ASIA_SESSION_ID = SESSION_ID_MAP["ASIA"]
 M1_BAR_DURATION = pd.Timedelta(minutes=1)
 M5_BAR_DURATION = pd.Timedelta(minutes=5)
 
+# ── The four session-overlap flags (V30 package 3, 2026-08-13) ──────────────
+#
+# ONE session clock.  These four flags used to be produced by a SECOND,
+# overlapping hour-set definition inside gx1/scripts/augment_forward_outcome_v2
+# (ASIA_HOURS {22..8}, EU_HOURS {7..16}, US_HOURS {13..21}) that disagreed with
+# the SESSION_BOUNDARIES partition above at h=8, 16 and 22-23.  That definition
+# is retired; the flags are derived here, from the partition, by the module
+# that owns the boundaries.
+#
+# The partition already carries an EU/US overlap state, so three of the four
+# map onto it exactly:
+#     is_eu_us_overlap := session == OVERLAP   (12:00-16:00 UTC)
+#     is_eu_only       := session == EU, after the handover window below
+#     is_us_only       := session == US        (16:00-22:00 UTC)
+#
+# The partition has NO asia/eu overlap state — ASIA ends at 07:00 exactly where
+# EU begins — so `is_asia_eu_overlap := session == <asia/eu state>` would be
+# provably constant 0, which is a designed-in liveness failure and forbidden.
+# The retired flag's market content is the Tokyo/London handover, and the
+# retired definition located it precisely: ASIA_HOURS n EU_HOURS = {7, 8} =
+# 07:00-09:00 UTC = the first 120 minutes of the surviving EU session.  The
+# flag therefore becomes a boundary-adjacent window on the one partition,
+# measured with `minutes_since_session_open`, which is already a produced
+# field:
+#     is_asia_eu_overlap := session == EU and minutes_since_open < 120
+#
+# 120 is not a new magnitude (rule 2b): it is the width of the retired
+# ASIA_HOURS n EU_HOURS intersection, re-expressed as minutes from the
+# surviving EU open.  The four flags stay mutually exclusive and all-zero on
+# ASIA, exactly as the retired hour-set construction was.
+#
+# Liveness, proven from the partition (no data needed): the flags fire on
+# 120/1440 = 8.33%, 180/1440 = 12.50%, 240/1440 = 16.67% and 360/1440 = 25.00%
+# of minutes-of-day respectively — all far above the 1% activity floor, and
+# within a percentage point or two of the retired definition's own rates
+# (8.33% / 16.67% / 16.67% / 20.83%).
+ASIA_EU_HANDOVER_MINUTES = 120
+
+SESSION_OVERLAP_FLAG_NAMES = (
+    "is_asia_eu_overlap",
+    "is_eu_us_overlap",
+    "is_eu_only",
+    "is_us_only",
+)
+
+
+def session_overlap_flags(ts: pd.Timestamp) -> dict:
+    """Return the four session-overlap flags for one UTC timestamp.
+
+    ``ts`` must already be the timestamp at which the classification is taken
+    (for a bar, its close/availability time — the caller owns that shift, the
+    same convention ``decision_availability`` states).
+    """
+    if not isinstance(ts, pd.Timestamp) or ts.tzinfo is None:
+        raise RuntimeError(f"SESSION_OVERLAP_TIMESTAMP_INVALID: {ts!r}")
+    ts_utc = ts.tz_convert("UTC")
+    minute_of_day = ts_utc.hour * 60 + ts_utc.minute
+    session = _session_for_minute(minute_of_day)
+    start_hour = SESSION_BOUNDARIES[session][0]
+    minutes_since_open = (minute_of_day - start_hour * 60) % (24 * 60)
+    is_eu = session == "EU"
+    handover = is_eu and minutes_since_open < ASIA_EU_HANDOVER_MINUTES
+    return {
+        "is_asia_eu_overlap": float(handover),
+        "is_eu_us_overlap": float(session == "OVERLAP"),
+        "is_eu_only": float(is_eu and not handover),
+        "is_us_only": float(session == "US"),
+    }
+
 
 def _session_mask(
     minute_of_day: pd.Series,

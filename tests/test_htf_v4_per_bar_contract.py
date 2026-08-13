@@ -517,7 +517,13 @@ def test_shared_v4_cache_has_exact_entry_and_exit_routes_and_clocks() -> None:
 def test_v4_cache_surface_excludes_every_open_trailing_resample_bucket(
     monkeypatch,
 ) -> None:
-    source = _bars(419, seed=37)
+    # V30 package 3 (2026-08-13): the D1 bin opens on the trading day (22:00
+    # UTC), so a fixture that starts at 2021-01-04T00:00Z has no COMPLETE D1
+    # bar until the 2021-01-04T22:00Z bin closes at 2021-01-05T22:00Z. 419 M5
+    # bars (ending 2021-01-05T10:50Z) no longer contain one; 560 bars end at
+    # 2021-01-05T22:35Z and contain exactly one, keeping this test's subject
+    # (the OPEN trailing bucket must be excluded on every TF) intact.
+    source = _bars(560, seed=37)
 
     def finite_contract(
         frame: pd.DataFrame, *, timeframe: str, **_kwargs
@@ -539,12 +545,13 @@ def test_v4_cache_surface_excludes_every_open_trailing_resample_bucket(
         v29_registry_constants=V29_TEST_REGISTRY_CONSTANTS,
     )
 
-    assert source.index[-1] == pd.Timestamp("2021-01-05T10:50:00Z")
-    assert built["M5"].index[-1] == pd.Timestamp("2021-01-05T10:50:00Z")
-    assert built["M15"].index[-1] == pd.Timestamp("2021-01-05T10:30:00Z")
-    assert built["H1"].index[-1] == pd.Timestamp("2021-01-05T09:00:00Z")
-    assert built["H4"].index[-1] == pd.Timestamp("2021-01-05T04:00:00Z")
-    assert built["D1"].index[-1] == pd.Timestamp("2021-01-04T00:00:00Z")
+    assert source.index[-1] == pd.Timestamp("2021-01-05T22:35:00Z")
+    assert built["M5"].index[-1] == pd.Timestamp("2021-01-05T22:35:00Z")
+    assert built["M15"].index[-1] == pd.Timestamp("2021-01-05T22:15:00Z")
+    assert built["H1"].index[-1] == pd.Timestamp("2021-01-05T21:00:00Z")
+    assert built["H4"].index[-1] == pd.Timestamp("2021-01-05T16:00:00Z")
+    # Trading-day D1 label, not the retired midnight one (V30 package 3).
+    assert built["D1"].index[-1] == pd.Timestamp("2021-01-04T22:00:00Z")
 
 
 def test_v4_closed_geometry_floors_friday_h4_and_d1_to_real_labels() -> None:
@@ -560,7 +567,11 @@ def test_v4_closed_geometry_floors_friday_h4_and_d1_to_real_labels() -> None:
     assert expected["M15"][-1] == pd.Timestamp("2026-07-24T20:45:00Z")
     assert expected["H1"][-1] == pd.Timestamp("2026-07-24T20:00:00Z")
     assert expected["H4"][-1] == pd.Timestamp("2026-07-24T16:00:00Z")
-    assert expected["D1"][-1] == pd.Timestamp("2026-07-23T00:00:00Z")
+    # V30 package 3 (2026-08-13): the D1 grid is anchored at 22:00 UTC, so the
+    # last bar closed by the Friday 20:55Z decision (available 21:00Z) is the
+    # bin opened Wednesday 22:00Z, which closed Thursday 22:00Z. The Thursday
+    # 22:00Z bin is still open at 21:00Z Friday and is correctly excluded.
+    assert expected["D1"][-1] == pd.Timestamp("2026-07-22T22:00:00Z")
 
 
 # ---------------------------------------------------------------------------

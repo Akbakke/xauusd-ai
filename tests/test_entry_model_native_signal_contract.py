@@ -87,12 +87,13 @@ _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "session_regime_encoder": 229 + len(_V29_REGIME_NAMES),
     "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
     "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),
-    # V30 (2026-08-13): 41 = 37 + chart.local_kama_efficiency_30 (package 1)
+    # V30 (2026-08-13): 45 = 37 + chart.local_kama_efficiency_30 (package 1)
     # + the three package-2 GAP-2/3 local age fields
     # (chart.local_ema50_200_cross_age_norm,
-    # chart.local_price_above_ema{50,200}_age_norm) — all price-derived layer
-    # fields, all trend-owned.
-    "trend_ema_encoder": 41,
+    # chart.local_price_above_ema{50,200}_age_norm) + the four package-3
+    # price-vs-EMA cross events (chart.local_price_x_ema{50,200}_cross_{up,down})
+    # — all price-derived layer fields, all trend-owned.
+    "trend_ema_encoder": 45,
     "vol_compression_encoder": 41,
 }
 _TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)

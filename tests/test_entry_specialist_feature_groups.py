@@ -72,9 +72,10 @@ def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> N
 
 
 def test_local_ema_formula_family_has_one_exact_trend_owner() -> None:
-    # V30 (2026-08-13): 15 = 11 + chart.local_kama_efficiency_30 (package 1)
-    # + the three GAP-2/3 local age fields (package 2).
-    assert len(PRICE_DERIVED_FEATURE_NAMES) == len(set(PRICE_DERIVED_FEATURE_NAMES)) == 15
+    # V30 (2026-08-13): 19 = 11 + chart.local_kama_efficiency_30 (package 1)
+    # + the three GAP-2/3 local age fields (package 2) + the four
+    # price-vs-EMA cross events (package 3).
+    assert len(PRICE_DERIVED_FEATURE_NAMES) == len(set(PRICE_DERIVED_FEATURE_NAMES)) == 19
     assert {
         field: classify_entry_specialist_feature(field)
         for field in PRICE_DERIVED_FEATURE_NAMES

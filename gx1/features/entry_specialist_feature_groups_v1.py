@@ -661,7 +661,8 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
             "price_ema50_200_layer",
             {
                 # V30 (2026-08-13): counts DERIVED from the owner tuple (the
-                # layer gained chart.local_kama_efficiency_30; prefer
+                # layer gained chart.local_kama_efficiency_30, then the GAP-2/3
+                # age fields and the four price-vs-EMA cross events; prefer
                 # derive-from-owner over restated literals).
                 "expected_feature_count": len(PRICE_DERIVED_FEATURE_NAMES),
                 "expected_specialist_counts": {
@@ -669,7 +670,8 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 },
                 "owned_specialists": ("trend_ema_encoder",),
                 "purpose": (
-                    "Exact local-resolution EMA50/200 state, crosses, slopes, "
+                    "Exact local-resolution EMA50/200 state, crosses, "
+                    "price-vs-EMA crosses, side/cross durations, slopes, "
                     "acceleration, price location and the window-30 Kaufman "
                     "efficiency ratio; M5 for Entry and M1 for Exit."
                 ),
