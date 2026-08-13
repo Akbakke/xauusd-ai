@@ -412,3 +412,67 @@ order blocks / FVG (registry gives them a home, rule 21).
 - The normalization statistics fitted over any of these fields.
 - Every "would pay" claim is `[U]`. The 2026-08-09 walk-forward refutation
   stands; this audit argues representability and correctness only.
+
+---
+
+## 10. STEP-0 MEASUREMENTS — verdicts on the audit's own claims (2026-08-13)
+
+Measured on the sealed V29J bytes (TRAIN n=369,303, the exact declared
+decision rows; entry-M5 registry replay reproduced all 22 sealed level
+fields with max |diff| = 0.0). Raw logs:
+`GX1_DATA/logs/v30_step0_measurements_20260813/`.
+
+**CONFIRMED**
+- The level registry is a per-pivot crossing engine: **71.9% / 70.8%** of
+  present rows carry `touch_count == 1`, and when it is 1 the level's only
+  touch is its founding pivot (`bars_since_touch − age_bars == 3` on
+  **100.000%** of those rows). `level_break_*` fires on 5.7% / 5.3% with
+  `level_broken_touch_count` p75 = 0.
+- The ≥3-touch line validation carries ~0 bits: a line touch fires on
+  **29.85%** of rows (one per ~3.4 bars), line `touch_count` p50 = 5,
+  and `geomline_max_dev_atr` saturates exactly at the fitted band 1.2904.
+- Geometry occupancy on the entry lane: `geomline_above/below_active`
+  **98.70% / 98.72%**; M15→D1 95.9→100.0%. (Per-TF M5 is only 43.3% —
+  its `seq_len` is 16, not 96.)
+- `higher_tf_vol_expansion_pressure`: 75% of its weight is dead on
+  **every one of 369,303 rows** — `_pos(atr_ratio_m15_d1)` and
+  `_pos(atr_ratio_h1_d1)` are **exactly 0 rows**. Field max 0.2273 of [0,1].
+- The unit mismatch: measured magnitude ratio **45,004** (algebra predicted
+  44,721); `tanh(rvol_20/2.5)` is exactly 1.0 on **29.9%** and ≥0.999999 on
+  **51.5%**; `_v1_pk_sigma20` p50 = **1.64e-4**.
+- `spread_bucket_high_pressure` is exactly 1.0 on **60.0011%** of rows.
+- `_v1_atr14` is an era clock: pearson **+0.4945** vs time, spearman
+  **+0.6009**; TRAIN mean 2.177 → VAL 5.693 (**z_val +1.331**); VAL p1 sits
+  above TRAIN p50.
+
+**SOFTENED / REFUTED — the audit overstated these**
+- "`member_pivot_count ≡ 1`, clustering never happens": member==1 on
+  **98.03% / 98.32%** of present rows, not always. Clustering happens on
+  ~2%. The re-fit is still justified; the absolute was wrong.
+- "V30 `test_count` is `touch_count − 1`, an additive constant": the
+  identity is **violated on 1.97% / 1.68%** of present rows — it carries
+  genuinely new information there.
+- "`vol_term_structure_slope` is a constant ≈ −0.43": **REFUTED** — std
+  0.0880, 360,024 unique values. What IS true: it is positive on only
+  **0.077%** of rows, so it can never say "short-dated vol above
+  long-dated" in practice.
+- `_pos(center_atr_ratio(cross-TF))` ≡ 0: true for 3 of 4 pairs;
+  **`atr_ratio_m5_m15` is alive on 1.205%** of rows (max 0.882).
+- `candle.pattern_tail_rejection_risk` is **not in the sealed 592** — the
+  TRAIN ranker already dropped it (candidate #200 of 210, score 4.7e-4).
+  The rankable pool works.
+- The `_v1_atr14` bps repair removes only **26.8%** of the standardized
+  shift and **39.4%** of the era correlation — the residual is real
+  volatility-regime change, not a unit defect — and the proposed sibling
+  is **0.996-correlated** with `ctx_cont.atr_bps`, already a model input.
+  Re-scope: this is not the win the audit implied.
+
+**INCIDENTAL, unrequested (rule 25a)** — a cold-start replay of the per-TF
+level block does not reproduce the sealed cache for M5/M15/H1 (the sealed
+cache carries no NaN warmup prefix where a cold start emits 15; a handful
+of rows differ: 6/30 of 369,303 on M5). H4 and D1 reproduce bit-for-bit.
+Plausibly benign (longer warmup history feeding the cache build), but no
+gate currently asks this question. Separately: the V30 22:00 D1 origin
+yields a **completely different D1 grid** (1,734 vs 2,088 bars, zero shared
+labels) — expected, and it means V30's D1 features are a new population,
+not a perturbation of V29's.
