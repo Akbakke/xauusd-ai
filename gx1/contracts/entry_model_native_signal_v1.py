@@ -102,6 +102,12 @@ MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = (
     "H1_range_compression_ratio",
     "D1_atr_percentile_252",
     "M15_range_compression_ratio",
+    # V30 (2026-08-13): the H4 sibling of the H1/M15 compression ratio,
+    # emitted by the one native-M5 scalar owner
+    # (htf_features.MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4; the ctx_cont
+    # relative order must preserve that tuple's order per the single-owner
+    # contract test).
+    "H4_range_compression_ratio",
 )
 MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
 MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(SWING_FEATURE_NAMES_V1)
@@ -294,7 +300,9 @@ MODEL_NATIVE_SIGNAL_DIM = (
     MODEL_NATIVE_BASE_SIGNAL_DIM + MODEL_NATIVE_SELECTED_FEATURE_COUNT
 )
 MODEL_NATIVE_SEQ_LEN = 96
-MODEL_NATIVE_CTX_CONT_DIM = 142
+# 143 = the previous 142 + H4_range_compression_ratio (V30, 2026-08-13); the
+# field list above is the owner, this literal is the cross-check.
+MODEL_NATIVE_CTX_CONT_DIM = 143
 MODEL_NATIVE_CTX_CAT_DIM = 5
 
 if len(MODEL_NATIVE_BASE_FIELDS) != MODEL_NATIVE_BASE_SIGNAL_DIM:
@@ -351,7 +359,11 @@ MODEL_NATIVE_CONTEXT_TAG = (
 
 
 def model_native_context_contract_metadata() -> dict[str, Any]:
-    """Return the exact 142-continuous/5-categorical Entry context contract."""
+    """Return the exact continuous/categorical Entry context contract.
+
+    Dims derive from the declared field tuples (143 continuous / 5
+    categorical since V30 added ``H4_range_compression_ratio``).
+    """
 
     return {
         "schema_version": MODEL_NATIVE_CONTEXT_SCHEMA_VERSION,

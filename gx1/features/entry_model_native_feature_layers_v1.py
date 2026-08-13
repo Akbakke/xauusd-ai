@@ -81,9 +81,19 @@ PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
 # derivative (ema50_200_spread_delta) moves that to 200 and the second
 # (ema50_200_spread_accel) to 201. Sample rows must therefore begin at source
 # index 201 or later. Verified against the native M1 surface: index 200 fails
-# the layer's own finiteness gate and 201 passes.
+# the layer's own finiteness gate and 201 passes.  The V30
+# local_kama_efficiency_30 addition needs only 30 rows (window 30), so this
+# floor is unchanged.
 PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
 
+# V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
+# ratio ER = |close[t] - close[t-30]| / sum_{i=t-29..t} |close[i] - close[i-1]|
+# that basic_v1.kama_np already computes internally (window 30 — the window
+# `_v1_kama_slope_30`'s `_kama(close, 30)` owns) and discards.  It is emitted
+# HERE, not as a new BASE field: MODEL_NATIVE_BASE_FIELDS is the
+# accepted-contract-frozen 34-tuple (bound into
+# MODEL_NATIVE_STATIC_CONTRACT_SHA256 and the rule-4 "34 base" composition),
+# while V29/V30 additions live in the mandatory causal layers.
 PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema50_200_spread_bps",
     "chart.local_ema50_200_spread_atr",
@@ -96,6 +106,7 @@ PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema200_slope_bps",
     "chart.local_ema50_200_spread_delta",
     "chart.local_ema50_200_spread_accel",
+    "chart.local_kama_efficiency_30",
 )
 
 
@@ -394,6 +405,20 @@ def build_price_derived_layer(
     spread_delta = causal_delta(spread_bps)
     spread_accel = causal_delta(spread_delta)
 
+    # V30 Kaufman efficiency ratio, window 30 (see the name-tuple comment):
+    # the exact ER of basic_v1.kama_np — |net 30-bar change| over the summed
+    # |1-bar changes| of the same window, algebraically in [0, 1] by the
+    # triangle inequality.  The volatility<1e-12 -> ER=0.0 guard is kama_np's
+    # own zero-volatility convention (same owner, same constant); the rolling
+    # min_periods=30 warmup stays an honest NaN prefix inside the layer's
+    # existing 201-row floor.
+    kama_change_30 = (close - close.shift(30)).abs()
+    kama_volatility_30 = (
+        close.diff().abs().rolling(30, min_periods=30).sum()
+    )
+    kama_efficiency_30 = kama_change_30 / kama_volatility_30
+    kama_efficiency_30[kama_volatility_30 < 1e-12] = 0.0
+
     raw = pd.DataFrame(
         {
             "ema50_200_spread_bps": spread_bps,
@@ -407,6 +432,7 @@ def build_price_derived_layer(
             "ema200_slope_bps": ema200_slope,
             "ema50_200_spread_delta": spread_delta,
             "ema50_200_spread_accel": spread_accel,
+            "kama_efficiency_30": kama_efficiency_30,
         },
         index=source_index,
     )
@@ -426,6 +452,8 @@ def build_price_derived_layer(
         "ema200_slope_bps": (-40.0, 40.0),
         "ema50_200_spread_delta": (-80.0, 80.0),
         "ema50_200_spread_accel": (-80.0, 80.0),
+        # ER's algebraic domain (triangle inequality), not a chosen bound.
+        "kama_efficiency_30": (0.0, 1.0),
     }
     for column in aligned.columns:
         lo, hi = clip_ranges.get(column, (-25.0, 25.0))

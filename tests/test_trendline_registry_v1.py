@@ -28,10 +28,13 @@ from gx1.features.trendline_registry_v1 import (
     fit_trendline_tolerance,
 )
 
-# Stage-2 wiring contract: the exact 30-name tuple (design doc B.5) and its
-# sha.  Any drift in name, order or count must fail here first.
+# Stage-2 wiring contract: the exact 33-name tuple (design doc B.5 + the V30
+# 2026-08-13 additions: per-side ACTIVE counts beside the masks and the
+# geomline_bars_since_break memory) and its sha.  Any drift in name, order or
+# count must fail here first.
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_above_active",
+    "geomline_above_active_count",
     "geomline_above_dist_atr",
     "geomline_above_slope_atr_per_bar",
     "geomline_above_touch_count",
@@ -39,6 +42,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_above_last_touch_age_bars",
     "geomline_above_max_dev_atr",
     "geomline_below_active",
+    "geomline_below_active_count",
     "geomline_below_dist_atr",
     "geomline_below_slope_atr_per_bar",
     "geomline_below_touch_count",
@@ -55,6 +59,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_retest_fail_up",
     "geomline_retest_hold_down",
     "geomline_retest_fail_down",
+    "geomline_bars_since_break",
     "geomchan_active",
     "geomchan_width_atr",
     "geomchan_pos_0_1",
@@ -63,7 +68,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomchan_apex_proximity",
 )
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = (
-    "234762c207055c0f82bb5934fdf7bdfe4272709b222c8f2813cff1dad69a2b42"
+    "75086616223a022b3b88e3917cefc6c401ab91be724308459d7f8e8e4eacd84d"
 )
 
 WARMUP = 2 * SWING_LOOKBACK + 2  # structural NaN prefix (module contract)
@@ -126,7 +131,11 @@ def _compute(df, *, band=0.3, seq_len=200, state=None):
 
 
 def test_feature_name_tuple_and_sha_drift_guard():
-    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 30
+    # V30 (2026-08-13): 33 = 30 + 2 occupancy counts + 1 break memory.
+    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 33
+    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == len(
+        TRENDLINE_REGISTRY_FEATURE_NAMES_V1
+    )
     assert (
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1
         == EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1
@@ -141,8 +150,8 @@ def test_feature_name_tuple_and_sha_drift_guard():
         + TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1
         == TRENDLINE_REGISTRY_FEATURE_NAMES_V1
     )
-    assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 14
-    assert len(TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1) == 10
+    assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 16
+    assert len(TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1) == 11
     assert len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1) == 6
     assert TRENDLINE_RETEST_WINDOW_BARS_V1 == 2 * SWING_LOOKBACK + 1
 

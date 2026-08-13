@@ -11,6 +11,8 @@ import pytest
 from tests.htf_v29_registry_test_support import synthetic_v29_registry_constants
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTEXT_TAG,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -82,8 +84,8 @@ def _extra(tmp_path: Path) -> dict:
             "bridge_source": None,
         },
         "ctx_contract": {
-            "tag": "CTX142CAT5",
-            "ctx_cont_dim": 142,
+            "tag": MODEL_NATIVE_CONTEXT_TAG,
+            "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": 5,
             "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
             "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),

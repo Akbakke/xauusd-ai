@@ -775,9 +775,10 @@ def compute_htf_ctx_full_frame(
     cv3: pd.DataFrame,
     state_contract: ModelNativeStateContract | None = None,
 ) -> pd.DataFrame:
-    """The 5 long-lookback HTF ctx columns (D1_dist_from_ema200_atr,
+    """The 6 long-lookback HTF ctx columns (D1_dist_from_ema200_atr,
     D1_atr_percentile_252, H1_range_compression_ratio,
-    M15_range_compression_ratio, H4_trend_sign_cat) recomputed FRESH over the
+    M15_range_compression_ratio, H4_range_compression_ratio,
+    H4_trend_sign_cat) recomputed FRESH over the
     common history frame [state_contract.feature_history_start_utc, now] via the
     ONE-TRUTH mirror v12_ctx_augment_live._add_htf_features (== the offline
     add_ctx_cont HTF block). NEVER taken from B28: the daemon's incremental
@@ -805,6 +806,7 @@ def compute_htf_ctx_full_frame(
         "D1_atr_percentile_252",
         "H1_range_compression_ratio",
         "M15_range_compression_ratio",
+        "H4_range_compression_ratio",
         "H4_trend_sign_cat",
     ]
     missing = [c for c in cols if c not in work.columns]

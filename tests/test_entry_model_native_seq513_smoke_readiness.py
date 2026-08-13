@@ -12,6 +12,7 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -397,7 +398,7 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert report["full_input_liveness_validation"]["ok"] is True
     assert report["full_input_liveness_validation"]["field_counts"] == {
         "signal": MODEL_NATIVE_SIGNAL_DIM,
-        "ctx_cont": 142,
+        "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat": 5,
     }
 

@@ -18,6 +18,7 @@ sources=(
   "$REPO/SYSTEM_MAP.md"
   "$HANDOVER"
   "$REPO/docs/DATA_CONTRACT.md"
+  "$REPO/docs/FEATURE_VALUE_REVIEW_20260813.md"
   "$REPO/docs/GIT_WORKTREE_POLICY.md"
   "$REPO/docs/RECIPE_DECISION_DRAFT_20260808.md"
   "$REPO/docs/V29_EVENT_SURFACE_DESIGN_20260811.md"
@@ -198,7 +199,10 @@ echo "source_time_max: M1=$m1_time_max M5=$m5_time_max"
 echo
 echo "## Fixed architecture"
 echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"
-echo "entry: local=M5 sequence=96 signal=592 ctx_cont=142 ctx_cat=5 mtf=M15,H1,H4,D1"
+# V30 (2026-08-13): signal 592 -> 601 (mandatory causal 425 -> 434) and
+# ctx_cont 142 -> 143 (H4_range_compression_ratio); derived from
+# entry_model_native_signal_v1 owner tuples.
+echo "entry: local=M5 sequence=96 signal=601 ctx_cont=143 ctx_cat=5 mtf=M15,H1,H4,D1"
 echo "entry_feature_surface: HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"
 echo "exit: local=M1 sequence=480 mtf=M5,M15,H1,H4,D1 same_contract_plus_causal_path shared_encoder=true"
 echo "mtf_construction: CLOSED_OHLCV_BEFORE_FEATURES_NO_COMPUTED_M1_RESAMPLING"

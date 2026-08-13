@@ -19,6 +19,7 @@ from gx1.features.htf_features import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
 
@@ -46,7 +47,10 @@ def full_input_field_order() -> dict[str, list[str]]:
         "_v1h4_atr",
         "d1_regime_changed_flag_v3",
     ]
-    ctx_cont.extend(f"ctx_cont_feature_{idx:03d}" for idx in range(142 - len(ctx_cont)))
+    ctx_cont.extend(
+        f"ctx_cont_feature_{idx:03d}"
+        for idx in range(MODEL_NATIVE_CTX_CONT_DIM - len(ctx_cont))
+    )
     ctx_cat = [f"ctx_cat_feature_{idx}" for idx in range(5)]
     return {"signal": signal, "ctx_cont": ctx_cont, "ctx_cat": ctx_cat}
 

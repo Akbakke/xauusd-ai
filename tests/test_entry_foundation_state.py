@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     model_native_signal_contract_metadata,
 )
@@ -63,7 +64,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
-        "ctx_cont_dim": 142,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": 5,
         "base_signal_dim": 34,
         "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,

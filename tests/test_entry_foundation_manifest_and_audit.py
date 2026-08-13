@@ -5,6 +5,8 @@ import json
 
 import gx1.scripts.audit_entry_foundation_features_v1 as foundation_audit
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTEXT_TAG,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -190,8 +192,8 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
                 "bridge_source": None,
             },
             "ctx_contract": {
-                "tag": "CTX142CAT5",
-                "ctx_cont_dim": 142,
+                "tag": MODEL_NATIVE_CONTEXT_TAG,
+                "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
                 "ctx_cat_dim": 5,
                 "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
                 "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
@@ -223,8 +225,8 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
     )
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["feature_contract"]["ctx_tag"] == "CTX142CAT5"
-    assert manifest["feature_contract"]["ctx_cont_dim"] == 142
+    assert manifest["feature_contract"]["ctx_tag"] == MODEL_NATIVE_CONTEXT_TAG
+    assert manifest["feature_contract"]["ctx_cont_dim"] == MODEL_NATIVE_CTX_CONT_DIM
     assert manifest["feature_contract"]["ctx_cat_dim"] == 5
     assert (
         manifest["feature_contract"]["signal_bridge_id"]

@@ -65,7 +65,8 @@ Intra-bar order (fixed, documented; design B.1/B.3):
       CANDIDATE violation discard, ACTIVE first-break (edge-triggered once,
       line -> BROKEN), ACTIVE intra-band touch (first-entry-per-excursion),
       BROKEN retest hold/fail/expiry (retires the line).
-  (3) emission of the 30-field block from the post-update population.
+  (3) emission of the 33-field block from the post-update population
+      (V30 2026-08-13: + per-side ACTIVE counts and break memory).
 
 Documented design decisions inside the adopted spec:
 
@@ -161,6 +162,10 @@ TRENDLINE_STRUCTURAL_WARMUP_BARS_V1 = 2 * SWING_LOOKBACK + 2
 
 TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_above_active",
+    # V30 (2026-08-13): graded occupancy beside the mask — the number of
+    # ACTIVE lines projecting on this side of the close (the mask is its
+    # >=1 indicator), capped by this owner's single 999 count/age cap.
+    "geomline_above_active_count",
     "geomline_above_dist_atr",
     "geomline_above_slope_atr_per_bar",
     "geomline_above_touch_count",
@@ -168,6 +173,7 @@ TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_above_last_touch_age_bars",
     "geomline_above_max_dev_atr",
     "geomline_below_active",
+    "geomline_below_active_count",
     "geomline_below_dist_atr",
     "geomline_below_slope_atr_per_bar",
     "geomline_below_touch_count",
@@ -187,6 +193,12 @@ TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 = (
     "geomline_retest_fail_up",
     "geomline_retest_hold_down",
     "geomline_retest_fail_down",
+    # V30 (2026-08-13): break memory under the same 999 convention — bars
+    # since the most recent first-break of any registry line (the
+    # level-registry sibling `level_bars_since_break` semantics: 999 "no
+    # event yet" sentinel before the first observed break).  Persistent
+    # state, not a per-bar impulse; emitted from the registry carry state.
+    "geomline_bars_since_break",
 )
 
 TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1 = (
@@ -204,7 +216,9 @@ TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     + TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1
 )
 
-TRENDLINE_REGISTRY_FEATURE_COUNT_V1 = 30
+# V30 (2026-08-13): 33 = 30 + 2 graded-occupancy counts + 1 break-memory
+# field; the name tuples above are the owner, this literal is the cross-check.
+TRENDLINE_REGISTRY_FEATURE_COUNT_V1 = 33
 
 
 def _require_feature_name_integrity() -> None:
@@ -234,7 +248,10 @@ TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = hashlib.sha256(
     ).encode("utf-8")
 ).hexdigest()
 
-# Event vector layout — must mirror TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1.
+# Event vector layout — must mirror the per-bar impulse prefix of
+# TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 (geomline_bars_since_break is
+# persistent carry state, emitted from the registry state, not from this
+# per-bar-reset vector).
 _EV_TOUCH_ABOVE = 0
 _EV_TOUCH_BELOW = 1
 _EV_BREAK_UP = 2
@@ -394,6 +411,9 @@ class TrendlineRegistryStateV1:
     )
     next_line_id: int = 0
     last_index: object = None
+    # V30 break memory: registry bar index of the most recent first-break of
+    # any line; -1 = no break observed yet (emitted as the 999 sentinel).
+    last_break_bar: int = -1
 
 
 # ---------------------------------------------------------------------------
@@ -637,6 +657,7 @@ def _update_lines_for_bar(
                 line.break_bar = t
                 line.break_dir = -1
                 events[_EV_BREAK_DOWN] = 1.0
+                state.last_break_bar = t
                 broken_this_bar.append(line)
                 keep.append(line)
                 if line_log is not None:
@@ -648,6 +669,7 @@ def _update_lines_for_bar(
                 line.break_bar = t
                 line.break_dir = 1
                 events[_EV_BREAK_UP] = 1.0
+                state.last_break_bar = t
                 broken_this_bar.append(line)
                 keep.append(line)
                 if line_log is not None:
@@ -809,39 +831,55 @@ def _emit_row(
     below: TrendlineV1 | None = None
     above_key = (math.inf, math.inf)
     below_key = (math.inf, math.inf)
+    # V30 graded occupancy: the per-side ACTIVE-line population behind the
+    # nearest-slot masks (same loop, same side rule: projection-on-close ties
+    # to the ABOVE side).
+    above_count = 0
+    below_count = 0
     for line in state.active_lines:
         if line.state != TRENDLINE_STATE_ACTIVE:
             continue
         proj = line.projection(t)
         if proj >= close:
+            above_count += 1
             key = (proj - close, float(line.line_id))
             if key < above_key:
                 above_key = key
                 above = line
         else:
+            below_count += 1
             key = (close - proj, float(line.line_id))
             if key < below_key:
                 below_key = key
                 below = line
     cap = TRENDLINE_COUNT_AGE_CAP_V1
+    row[1] = min(float(above_count), cap)
+    row[9] = min(float(below_count), cap)
     if above is not None:
         row[0] = 1.0
-        row[1] = above_key[0] / atr_t
-        row[2] = above.slope / atr_t
-        row[3] = min(float(above.touch_count), cap)
-        row[4] = min(float(t - (above.anchor1_bar + swing_lookback)), cap)
-        row[5] = min(float(t - above.last_touch_bar), cap)
-        row[6] = above.max_dev_atr
+        row[2] = above_key[0] / atr_t
+        row[3] = above.slope / atr_t
+        row[4] = min(float(above.touch_count), cap)
+        row[5] = min(float(t - (above.anchor1_bar + swing_lookback)), cap)
+        row[6] = min(float(t - above.last_touch_bar), cap)
+        row[7] = above.max_dev_atr
     if below is not None:
-        row[7] = 1.0
-        row[8] = below_key[0] / atr_t
-        row[9] = below.slope / atr_t
-        row[10] = min(float(below.touch_count), cap)
-        row[11] = min(float(t - (below.anchor1_bar + swing_lookback)), cap)
-        row[12] = min(float(t - below.last_touch_bar), cap)
-        row[13] = below.max_dev_atr
-    row[14:24] = events
-    row[24:30] = _channel_block(
+        row[8] = 1.0
+        row[10] = below_key[0] / atr_t
+        row[11] = below.slope / atr_t
+        row[12] = min(float(below.touch_count), cap)
+        row[13] = min(float(t - (below.anchor1_bar + swing_lookback)), cap)
+        row[14] = min(float(t - below.last_touch_bar), cap)
+        row[15] = below.max_dev_atr
+    row[16:26] = events
+    # V30 break memory (999 "no event yet" sentinel — the level-registry
+    # sibling convention).
+    row[26] = (
+        min(float(t - state.last_break_bar), cap)
+        if state.last_break_bar >= 0
+        else cap
+    )
+    row[27:33] = _channel_block(
         state,
         above,
         above_key[0],
@@ -876,7 +914,7 @@ def compute_trendline_registry_features_v1(
     atr_col: str = "atr",
     line_event_log: list | None = None,
 ) -> tuple[pd.DataFrame, TrendlineRegistryStateV1]:
-    """Compute the 30-field trendline/channel registry block for one TF.
+    """Compute the 33-field trendline/channel registry block for one TF.
 
     Incremental and chunk-safe: pass the returned state to the next call on
     the next contiguous chunk; chunked output is exactly equal to one-shot

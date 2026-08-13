@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTEXT_TAG,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -71,7 +72,8 @@ def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> N
 
 
 def test_local_ema_formula_family_has_one_exact_trend_owner() -> None:
-    assert len(PRICE_DERIVED_FEATURE_NAMES) == len(set(PRICE_DERIVED_FEATURE_NAMES)) == 11
+    # V30 (2026-08-13): 12 = 11 + chart.local_kama_efficiency_30.
+    assert len(PRICE_DERIVED_FEATURE_NAMES) == len(set(PRICE_DERIVED_FEATURE_NAMES)) == 12
     assert {
         field: classify_entry_specialist_feature(field)
         for field in PRICE_DERIVED_FEATURE_NAMES
@@ -335,7 +337,7 @@ def _write_smart_seq513_fixture(
                     "seq_structure_extension_v1": {"features": selected},
                 },
                 "ctx_contract": {
-                    "tag": "CTX142CAT5",
+                    "tag": MODEL_NATIVE_CONTEXT_TAG,
                     "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
                     "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
                     "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),

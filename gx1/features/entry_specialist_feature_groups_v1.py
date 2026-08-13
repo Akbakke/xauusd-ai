@@ -148,6 +148,9 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "ema200_slope_atr",
                 "ema_stack_aligned_v2",
                 "adx_centered",
+                # V30 (2026-08-13): signed DI spread from the same _adx14
+                # producer as adx_centered — trend-direction evidence.
+                "di_spread_signed",
                 "trend_age_bars_norm",
             )
             # V29 Phase A: EMA50/200 spread/state/cross events + price-vs-EMA
@@ -165,6 +168,9 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
             "momentum_flow_encoder",
             (
                 "rsi14_centered",
+                # V30 (2026-08-13): raw Wilder RSI 5-bar velocity — momentum
+                # evidence beside its rsi14_centered sibling.
+                "rsi14_delta_5",
                 "mom_5_atr",
                 "mom_20_atr",
                 "bb_position",
@@ -654,12 +660,18 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
         (
             "price_ema50_200_layer",
             {
-                "expected_feature_count": 11,
-                "expected_specialist_counts": {"trend_ema_encoder": 11},
+                # V30 (2026-08-13): counts DERIVED from the owner tuple (the
+                # layer gained chart.local_kama_efficiency_30; prefer
+                # derive-from-owner over restated literals).
+                "expected_feature_count": len(PRICE_DERIVED_FEATURE_NAMES),
+                "expected_specialist_counts": {
+                    "trend_ema_encoder": len(PRICE_DERIVED_FEATURE_NAMES),
+                },
                 "owned_specialists": ("trend_ema_encoder",),
                 "purpose": (
                     "Exact local-resolution EMA50/200 state, crosses, slopes, "
-                    "acceleration and price location; M5 for Entry and M1 for Exit."
+                    "acceleration, price location and the window-30 Kaufman "
+                    "efficiency ratio; M5 for Entry and M1 for Exit."
                 ),
             },
         ),

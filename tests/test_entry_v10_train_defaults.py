@@ -6,6 +6,9 @@ from pathlib import Path
 
 import torch
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
 )
@@ -131,7 +134,7 @@ def test_unified_exit_loss_backpropagates_into_shared_entry_and_exit_head() -> N
         "exit_feature_seq_x": torch.randn(1, 4, 4, 4),
         "exit_feature_snap_x": torch.randn(1, 4, 4),
         "exit_feature_ctx_cat": torch.zeros(1, 4, 5, dtype=torch.long),
-        "exit_feature_ctx_cont": torch.randn(1, 4, 142),
+        "exit_feature_ctx_cont": torch.randn(1, 4, MODEL_NATIVE_CTX_CONT_DIM),
         **{
             f"exit_seq_{tf}": torch.randn(1, 4, 2, 3, requires_grad=True)
             for tf in ("m5", "m15", "h1", "h4", "d1")

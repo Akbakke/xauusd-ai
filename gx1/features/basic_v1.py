@@ -716,11 +716,23 @@ def build_basic_v1(
     bb_upper10 = bb_mean10_arr + 2.0 * bb_std10_arr
     bb_lower10 = bb_mean10_arr - 2.0 * bb_std10_arr
     bb_width10 = (bb_upper10 - bb_lower10) / (bb_mean10_arr + 1e-12)
-    # DEL 2: Replace .diff(3), .shift(1), .fillna() with NumPy
-    bb_width10_diff3 = np.diff(bb_width10, n=3, prepend=bb_width10[:3])
-    bb_width10_shifted = np.roll(bb_width10_diff3, 1)
-    bb_width10_shifted[0] = 0.0
-    bb_width10_shifted = np.nan_to_num(bb_width10_shifted, nan=0.0)
+    # 2026-08-13 noise-amplifier repair: ``np.diff(..., n=3)`` was the 3rd-order
+    # finite difference (coefficients 1,-3,3,-1 — a noise amplifier, the exact
+    # bug class repaired in htf_features._model_native_htf_slope_v4 on
+    # 2026-08-09), not a bandwidth change.  The intended quantity keeps the
+    # field's 3-bar timescale: the plain k-bar change x[t] - x[t-3] (k=3 is
+    # the field's own pre-existing lookback, no new number).  Convention: no
+    # further normalization — bb_width10 is already the price-relative
+    # (dimensionless) bandwidth, so its plain change stays in the same output
+    # scale class the consumer's tanh(scale=1.0) expects
+    # (entry_vol_compression_v1).  The rolling-warmup NaN prefix is kept as
+    # honest causal warmup (one contiguous prefix; the nan_to_num masking of
+    # the old code fabricated live zeros inside warmup).
+    bb_width10_delta3 = bb_width10 - np.concatenate(
+        [np.full(3, np.nan), bb_width10[:-3]]
+    )
+    bb_width10_shifted = np.roll(bb_width10_delta3, 1)
+    bb_width10_shifted[0] = np.nan
     df["_v1_bb_bandwidth_delta_10"] = bb_width10_shifted
     t_bb_end = time.perf_counter()
     perf_add("feat.basic_v1.bb_family", t_bb_end - t_bb_start)
@@ -1107,12 +1119,28 @@ def build_basic_v1(
     df["_v1_atr_z_10_100"] = atr_z_shifted
     
     # TEMA slope 20 (trend-skarphet)
+    # 2026-08-13 noise-amplifier repair: ``np.diff(..., n=3)`` was the
+    # 3rd-order finite difference (a noise amplifier — the bug class repaired
+    # in htf_features._model_native_htf_slope_v4 on 2026-08-09), not a slope.
+    # Repaired to the k-bar change x[t] - x[t-3] (k=3 is the field's own
+    # pre-existing lookback), normalized by this file's own unshifted atr14
+    # source with the additive 1e-12 epsilon — the exact ATR-multiple
+    # convention `_v1_ema_diff` above adopted on 2026-08-09.  That keeps the
+    # output O(1) in ATR units, the scale class for which the consumer's
+    # tanh(scale=1.0) is dimensionally sane (entry_trend_ema_v1 unit note),
+    # instead of a raw-USD magnitude that tracks the multi-year price level.
+    # Numerator and denominator are unshifted and shifted once together (row
+    # t reads bar t-1's value); the ATR/TEMA warmup NaN prefix is kept as
+    # honest causal warmup instead of nan_to_num zeros.
     tema20 = _tema(df["close"], 20)
     tema20_arr = tema20.to_numpy(dtype=np.float64) if hasattr(tema20, 'to_numpy') else np.asarray(tema20, dtype=np.float64)
-    tema20_diff3 = np.diff(tema20_arr, n=3, prepend=tema20_arr[:3])
-    tema20_slope_shifted = np.roll(tema20_diff3, 1)
-    tema20_slope_shifted[0] = 0.0
-    tema20_slope_shifted = np.nan_to_num(tema20_slope_shifted, nan=0.0)
+    atr14_unshifted_arr = atr14.to_numpy(dtype=np.float64)
+    tema20_change3 = tema20_arr - np.concatenate(
+        [np.full(3, np.nan), tema20_arr[:-3]]
+    )
+    tema20_slope = tema20_change3 / (atr14_unshifted_arr + 1e-12)
+    tema20_slope_shifted = np.roll(tema20_slope, 1)
+    tema20_slope_shifted[0] = np.nan
     df["_v1_tema_slope_20"] = tema20_slope_shifted
     
     # Bollinger Band squeeze 20_2 (volatilitetssqueeze)
@@ -1134,12 +1162,26 @@ def build_basic_v1(
     df["_v1_bb_squeeze_20_2"] = bb_squeeze_shifted
     
     # KAMA slope 30 (trend med støyfilter)
+    # 2026-08-13 noise-amplifier repair: ``np.diff(..., n=5)`` was the
+    # 5th-order finite difference (coefficients 1,-5,10,-10,5,-1 — the exact
+    # noise amplifier repaired in htf_features._model_native_htf_slope_v4 on
+    # 2026-08-09, measured there as ~15.9x noise), not a slope.  Repaired to
+    # the k-bar change x[t] - x[t-5] (k=5 is the field's own pre-existing
+    # lookback, the same k as the repaired HTF slope5 fields), normalized by
+    # this file's own unshifted atr14 source with the additive 1e-12 epsilon
+    # — the `_v1_ema_diff` ATR-multiple convention.  Same rationale as
+    # `_v1_tema_slope_20` directly above: O(1) ATR units keep the consumer's
+    # tanh(scale=1.0) sane (entry_trend_ema_v1 unit note) and remove the
+    # era-proxy USD magnitude.  Numerator/denominator shifted once together;
+    # honest causal NaN warmup prefix preserved.
     kama30 = _kama(df["close"], 30)
     kama30_arr = kama30.to_numpy(dtype=np.float64) if hasattr(kama30, 'to_numpy') else np.asarray(kama30, dtype=np.float64)
-    kama30_diff5 = np.diff(kama30_arr, n=5, prepend=kama30_arr[:5])
-    kama30_slope_shifted = np.roll(kama30_diff5, 1)
-    kama30_slope_shifted[0] = 0.0
-    kama30_slope_shifted = np.nan_to_num(kama30_slope_shifted, nan=0.0)
+    kama30_change5 = kama30_arr - np.concatenate(
+        [np.full(5, np.nan), kama30_arr[:-5]]
+    )
+    kama30_slope = kama30_change5 / (atr14_unshifted_arr + 1e-12)
+    kama30_slope_shifted = np.roll(kama30_slope, 1)
+    kama30_slope_shifted[0] = np.nan
     df["_v1_kama_slope_30"] = kama30_slope_shifted
     
     # Return EMA ratio 5 vs 34 (momentum vs medium trend)

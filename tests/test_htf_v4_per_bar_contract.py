@@ -51,6 +51,8 @@ def _bars(n: int, *, seed: int) -> pd.DataFrame:
 EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "atr_bps_14",
     "rsi14_centered",
+    # V30 (2026-08-13): raw Wilder RSI 5-bar velocity.
+    "rsi14_delta_5",
     "mom_5_atr",
     "mom_20_atr",
     "close_open_atr",
@@ -73,6 +75,8 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "bb_position",
     "bb_width_atr",
     "adx_centered",
+    # V30 (2026-08-13): signed DI spread from the _adx14 producer.
+    "di_spread_signed",
     "trend_age_bars_norm",
 )
 
@@ -100,6 +104,9 @@ EXPECTED_V29_MOMENTUM_EVENT_FEATURES = (
     "mom20_sign_flip_down",
     "bear_divergence_event",
     "bull_divergence_event",
+    # V30 (2026-08-13): the event-gated divergence strengths.
+    "bear_divergence_strength",
+    "bull_divergence_strength",
     "divergence_age_norm",
 )
 
@@ -111,7 +118,9 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
     )
 
     expected_width = (
-        111
+        # 113 = the audited pre-V29 111-field surface + the V30 additions
+        # rsi14_delta_5 and di_spread_signed (2026-08-13).
+        113
         + len(EXPECTED_V29_TREND_EVENT_FEATURES)
         + len(EXPECTED_V29_MOMENTUM_EVENT_FEATURES)
         + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES)
@@ -122,7 +131,9 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
         EXPECTED_V4_GROUP_A_BASE_FEATURES
     )
     assert (
-        htf.MULTI_TF_PER_BAR_FEATURES_V4[:25]
+        htf.MULTI_TF_PER_BAR_FEATURES_V4[
+            : len(EXPECTED_V4_GROUP_A_BASE_FEATURES)
+        ]
         == EXPECTED_V4_GROUP_A_BASE_FEATURES
     )
     assert len(set(htf.MULTI_TF_PER_BAR_FEATURES_V4)) == expected_width
@@ -200,10 +211,12 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
     assert {name: len(indices) for name, indices in routing.items()} == {
         "structure_swing_encoder": 5,
         "smc_liquidity_encoder": 11 + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES),
-        "trend_ema_encoder": 10
+        # V30 (2026-08-13): + di_spread_signed (trend) and rsi14_delta_5
+        # (momentum) in the explicit non-event routing tuples.
+        "trend_ema_encoder": 11
         + len(htf.MULTI_TF_V4_TREND_EVENT_FEATURES),
         "vol_compression_encoder": 2,
-        "momentum_flow_encoder": 4
+        "momentum_flow_encoder": 5
         + len(htf.MULTI_TF_V4_MOMENTUM_EVENT_FEATURES),
         "session_regime_encoder": 5,
         "chart_geometry_encoder": 10

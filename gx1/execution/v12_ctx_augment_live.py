@@ -40,11 +40,12 @@ Features added (32 total):
   H4 trend sign (1):
     - H4_trend_sign_cat                    # 0/1/2 from sign(H4 mid - H4 EMA50)
 
-  HTF derivations (4):
+  HTF derivations (5):
     - D1_dist_from_ema200_atr              # (D1 mid - D1 EMA200) / D1 ATR14
     - H1_range_compression_ratio           # H1 ATR14 / H1 ATR100
     - D1_atr_percentile_252                # rolling 252-day percentile of D1 ATR14
     - M15_range_compression_ratio          # M15 ATR14 / M15 ATR100
+    - H4_range_compression_ratio           # H4 ATR14 / H4 ATR100 (V30 2026-08-13)
 
   Microstructure on M5 close (5):
     - micro_momentum_3                     # close - close.shift(3)
@@ -242,7 +243,8 @@ def _add_htf_features(
     context_bar_duration: pd.Timedelta = M5_BAR_DURATION,
 ) -> None:
     """Mutates cv3: D1_dist_from_ema200_atr, H1_range_compression_ratio,
-    D1_atr_percentile_252, M15_range_compression_ratio, H4_trend_sign_cat.
+    D1_atr_percentile_252, M15_range_compression_ratio,
+    H4_range_compression_ratio, H4_trend_sign_cat.
 
     Existing derived columns are overwritten. Indicator convergence is exposed
     as one NaN prefix and must be trimmed by the owning common-history contract.
@@ -252,6 +254,7 @@ def _add_htf_features(
         "D1_atr_percentile_252",
         "H1_range_compression_ratio",
         "M15_range_compression_ratio",
+        "H4_range_compression_ratio",
         "H4_trend_sign_cat",
     )
     if not isinstance(cv3.index, pd.DatetimeIndex) or cv3.index.tz is None:
@@ -369,8 +372,24 @@ def _add_htf_features(
         base_bar_duration=base_bar_duration,
     ).to_numpy(dtype=float)
 
-    # H4 trend sign categorical (H4_EMA50_MIN_BARS=80 — EMA50 converged)
+    # H4 range compression (V30 2026-08-13): verbatim H1 sibling formula with
+    # the H4_ATR100_MIN_BARS gate (inherited from H1_ATR100_MIN_BARS — same
+    # 100-bar ATR warmup floor; htf_features owns the constant).
+    from gx1.features.htf_features import H4_ATR100_MIN_BARS
+
     df_h4 = _resample_ohlc(m5, "4h")
+    h4_atr14 = _atr(df_h4["high"], df_h4["low"], df_h4["close"], 14)
+    h4_atr100 = _atr(df_h4["high"], df_h4["low"], df_h4["close"], 100)
+    h4_comp = h4_atr14 / np.maximum(h4_atr100, ATR_EPS)
+    h4_comp.iloc[: H4_ATR100_MIN_BARS - 1] = np.nan
+    cv3["H4_range_compression_ratio"] = _align_last_closed(
+        cv3.index,
+        h4_comp,
+        pd.Timedelta(hours=4),
+        base_bar_duration=base_bar_duration,
+    ).to_numpy(dtype=float)
+
+    # H4 trend sign categorical (H4_EMA50_MIN_BARS=80 — EMA50 converged)
     h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
     h4_ema50 = _ema(h4_mid, 50)
     diff = h4_mid - h4_ema50
@@ -554,6 +573,7 @@ def _finish_canonical_v3_context(
         "D1_atr_percentile_252",
         "H1_range_compression_ratio",
         "M15_range_compression_ratio",
+        "H4_range_compression_ratio",
         "H4_trend_sign_cat",
         "trend_regime_id",
     ]

@@ -17,6 +17,7 @@ from typing import Any, Mapping, Sequence
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.features.htf_features import (
@@ -33,7 +34,14 @@ PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
 SURFACES = ("signal", "ctx_cont", "ctx_cat")
-EXPECTED_FIELD_COUNTS = {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
+# V30 (2026-08-13): ctx_cont derives from the signal-contract owner (142 ->
+# 143 with H4_range_compression_ratio); a restated literal here was a second
+# truth (rule 13).
+EXPECTED_FIELD_COUNTS = {
+    "signal": MODEL_NATIVE_SIGNAL_DIM,
+    "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
+    "ctx_cat": 5,
+}
 MULTI_TF_FEATURE_NAMES = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
 EXPECTED_MULTI_TF_FIELD_COUNT = len(MULTI_TF_FEATURE_NAMES)
 

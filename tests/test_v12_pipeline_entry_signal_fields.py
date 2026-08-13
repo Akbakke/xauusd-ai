@@ -439,7 +439,7 @@ def test_model_native_pocket_audit_is_exact_seq513_and_immutable_only() -> None:
 
     assert "MODEL_NATIVE_SIGNAL_DIM" in source
     assert "require_model_native_signal_contract(" in source
-    assert "EXPECTED_CTX_CONT_DIM = 142" in source
+    assert "EXPECTED_CTX_CONT_DIM = 143" in source
     assert "EXPECTED_CTX_CAT_DIM = 5" in source
     assert "MODEL_NATIVE_DIRECTION_POCKET_AUDIT" in source
     assert "MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION" in source

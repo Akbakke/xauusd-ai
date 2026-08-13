@@ -3399,6 +3399,7 @@ def build_dataset_canonical(
         "D1_atr_percentile_252",
         "H1_range_compression_ratio",
         "M15_range_compression_ratio",
+        "H4_range_compression_ratio",
         "H4_trend_sign_cat",
     )
     _missing_htf_common = [

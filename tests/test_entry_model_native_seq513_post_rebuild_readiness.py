@@ -12,6 +12,7 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     model_native_signal_contract_metadata,
 )
@@ -117,7 +118,7 @@ def _fixture(
                 "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
                 "feature_contract": {
                     "signal_bridge_fields": signal_contract["fields"],
-                    "ctx_cont_dim": 142,
+                    "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
                     "ctx_cat_dim": 5,
                 },
                 "extra": {

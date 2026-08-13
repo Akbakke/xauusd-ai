@@ -26,6 +26,7 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     write_bundle_commit_manifest,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
@@ -389,7 +390,7 @@ def test_bundle_contract_uses_strict_loader_and_proves_full_stack(
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
-        "ctx_cont_dim": 142,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": 5,
         "state_dict_sha256": state_sha,
         "model_native_signal_contract": signal,
@@ -596,7 +597,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
-        "ctx_cont_dim": 142,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": 5,
         "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
         "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),

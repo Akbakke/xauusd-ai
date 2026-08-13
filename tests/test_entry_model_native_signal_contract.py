@@ -87,7 +87,9 @@ _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "session_regime_encoder": 229 + len(_V29_REGIME_NAMES),
     "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
     "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),
-    "trend_ema_encoder": 37,
+    # V30 (2026-08-13): 38 = 37 + chart.local_kama_efficiency_30 (the
+    # price-derived layer's new mandatory field, trend-owned).
+    "trend_ema_encoder": 38,
     "vol_compression_encoder": 41,
 }
 _TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)
@@ -262,7 +264,8 @@ def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch.delenv("GX1_RUN_MODE", raising=False)
 
     context = model_native_context_contract_metadata()
-    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 142
+    # V30 (2026-08-13): 143 = 142 + H4_range_compression_ratio.
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 143
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[

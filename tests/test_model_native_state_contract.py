@@ -81,6 +81,8 @@ def test_htf_regime_override_computes_full_prefix_before_history_slice(
             "D1_atr_percentile_252",
             "H1_range_compression_ratio",
             "M15_range_compression_ratio",
+            # V30 (2026-08-13): _add_htf_features emits the H4 sibling too.
+            "H4_range_compression_ratio",
             "H4_trend_sign_cat",
         ):
             work[name] = np.arange(len(work), dtype=np.float64)

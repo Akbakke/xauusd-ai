@@ -90,8 +90,9 @@ def test_model_native_mtf_fields_match_fixed_142_5_order_once() -> None:
 
     assert continuous == expected_continuous
     assert MODEL_NATIVE_CTX_CAT_FIELDS.count("H4_trend_sign_cat") == 1
-    assert len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4) == 24
-    assert len(set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)) == 24
+    # V30 (2026-08-13): 25 = 24 + H4_range_compression_ratio.
+    assert len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4) == 25
+    assert len(set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)) == 25
 
 
 def test_m5_and_m1_projection_share_the_same_closed_v4_state() -> None:

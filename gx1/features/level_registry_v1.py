@@ -178,12 +178,18 @@ LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY = "level_registry_tol_quantile_q"
 
 # ---------------------------------------------------------------------------
 # Declared output contracts (exact names + order; stage 2 consumes these).
-# M5/513 lane: design doc §1.2 (22 = 14 slots + 6 events + 2 round).
-# Per-TF lane: design doc §1.3 (11 per TF).
+# M5/513 lane: design doc §1.2 (V30 2026-08-13: 25 = 16 slots + 7 events +
+# 2 round; the pre-V30 block was 22 = 14 slots + 6 events + 2 round).
+# Per-TF lane: design doc §1.3 (11 per TF; unchanged by V30).
 # ---------------------------------------------------------------------------
 LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_dist_atr",
     "level_above_touch_count",
+    # V30 (2026-08-13) split touch semantics: post-birth zone-entry TESTS
+    # only = touch_count - member_pivot_count (both already in state; every
+    # touch_count increment is either a founding/merged member pivot or a
+    # zone-entry test, so the difference is exact — no new counter).
+    "level_above_test_count",
     "level_above_age_bars",
     "level_above_bars_since_touch",
     "level_above_mean_reaction_atr",
@@ -191,6 +197,7 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_last_reaction_atr",
     "level_below_dist_atr",
     "level_below_touch_count",
+    "level_below_test_count",
     "level_below_age_bars",
     "level_below_bars_since_touch",
     "level_below_mean_reaction_atr",
@@ -200,6 +207,13 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_break_down_event",
     "level_broken_touch_count",
     "level_bars_since_break",
+    # V30 (2026-08-13): the same bars-since-break memory signed by the break
+    # side of the most recent break bar (+1 up / -1 down; a same-bar
+    # up+down conflict nets to 0 — the sibling signed-aggregation
+    # convention of interpretation note 6).  The unsigned sentinel field
+    # above stays byte-identical; its 999 no-event sentinel and the break
+    # event flags disambiguate the signed field's zeros (design B.5).
+    "level_bars_since_break_signed",
     "level_retest_hold_signed",
     "level_retest_fail_signed",
     "level_round_50_dist_atr",
@@ -242,7 +256,9 @@ _LEVEL_REGISTRY_MTF_SOURCE_MAP = {
 # caller owns chronological continuity of the chunks, exactly as with that
 # owner's memory_state.
 # ---------------------------------------------------------------------------
-LEVEL_REGISTRY_STATE_VERSION = "level_registry_v1_state_1"
+# V30 (2026-08-13): state schema 2 adds ``last_break_side`` (the break-side
+# memory of the most recent break bar) for the signed bars-since-break field.
+LEVEL_REGISTRY_STATE_VERSION = "level_registry_v1_state_2"
 LEVEL_REGISTRY_STATE_KEYS = (
     "state_version",
     "tf",
@@ -252,6 +268,7 @@ LEVEL_REGISTRY_STATE_KEYS = (
     "first_level_admitted",
     "next_level_id",
     "last_break_bar",
+    "last_break_side",
     "tail_high",
     "tail_low",
     "levels",
@@ -294,6 +311,7 @@ def _empty_registry_state(tf: str, tol_level_atr: float) -> dict[str, Any]:
         "first_level_admitted": False,
         "next_level_id": 0,
         "last_break_bar": -1,
+        "last_break_side": 0,
         "tail_high": [],
         "tail_low": [],
         "levels": [],
@@ -357,6 +375,12 @@ def _validate_registry_state(
         raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] next_level_id")
     if not isinstance(out["last_break_bar"], int) or out["last_break_bar"] < -1:
         raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] last_break_bar")
+    if (
+        not isinstance(out["last_break_side"], int)
+        or isinstance(out["last_break_side"], bool)
+        or out["last_break_side"] not in (-1, 0, 1)
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] last_break_side")
     tail_high, tail_low = out["tail_high"], out["tail_low"]
     if (
         not isinstance(tail_high, list)
@@ -662,6 +686,7 @@ def _slot_fields(level: dict[str, Any] | None, dist: float, t: int) -> tuple[flo
         return (
             LEVEL_REGISTRY_DIST_SATURATION_ATR,
             0.0,
+            0.0,
             LEVEL_REGISTRY_COUNT_AGE_CAP,
             LEVEL_REGISTRY_COUNT_AGE_CAP,
             0.0,
@@ -673,6 +698,11 @@ def _slot_fields(level: dict[str, Any] | None, dist: float, t: int) -> tuple[flo
     return (
         min(dist, LEVEL_REGISTRY_DIST_SATURATION_ATR),
         _cap999(float(level["touch_count"])),
+        # V30 split touch semantics: post-birth zone-entry TESTS only.  Every
+        # touch_count increment is either a member pivot (creation/merge:
+        # both counters increment together) or a zone-entry touch (touch only),
+        # so tests = touch_count - member_pivot_count exactly (>= 0).
+        _cap999(float(level["touch_count"] - level["member_pivot_count"])),
         _cap999(float(t - level["birth_bar"])),
         _cap999(float(t - level["last_touch_bar"])),
         _saturate(mean_reaction) if count > 0 else 0.0,
@@ -722,6 +752,7 @@ def _run_level_registry(
     levels: list[dict[str, Any]] = state["levels"]
     next_level_id = state["next_level_id"]
     last_break_bar = state["last_break_bar"]
+    last_break_side = state["last_break_side"]
     atr_started = state["atr_started"]
     first_level_admitted = state["first_level_admitted"]
     base = state["bars_processed"]
@@ -842,6 +873,11 @@ def _run_level_registry(
                     break_down_fired = True
                     broken_touch_count = max(broken_touch_count, lv["touch_count"])
                     last_break_bar = t
+        if break_up_fired or break_down_fired:
+            # V30 break-side memory for the signed bars-since-break field: a
+            # same-bar up+down conflict nets to 0 (the sibling signed
+            # aggregation convention of interpretation note 6).
+            last_break_side = int(break_up_fired) - int(break_down_fired)
 
         # (3) retest checks — first zone re-entry strictly after the break bar.
         hold_sign_sum = 0
@@ -942,18 +978,20 @@ def _run_level_registry(
         below_vals = _slot_fields(below, below_dist, t)
         record["level_above_dist_atr"].append(above_vals[0])
         record["level_above_touch_count"].append(above_vals[1])
-        record["level_above_age_bars"].append(above_vals[2])
-        record["level_above_bars_since_touch"].append(above_vals[3])
-        record["level_above_mean_reaction_atr"].append(above_vals[4])
-        record["level_above_max_reaction_atr"].append(above_vals[5])
-        record["level_above_last_reaction_atr"].append(above_vals[6])
+        record["level_above_test_count"].append(above_vals[2])
+        record["level_above_age_bars"].append(above_vals[3])
+        record["level_above_bars_since_touch"].append(above_vals[4])
+        record["level_above_mean_reaction_atr"].append(above_vals[5])
+        record["level_above_max_reaction_atr"].append(above_vals[6])
+        record["level_above_last_reaction_atr"].append(above_vals[7])
         record["level_below_dist_atr"].append(below_vals[0])
         record["level_below_touch_count"].append(below_vals[1])
-        record["level_below_age_bars"].append(below_vals[2])
-        record["level_below_bars_since_touch"].append(below_vals[3])
-        record["level_below_mean_reaction_atr"].append(below_vals[4])
-        record["level_below_max_reaction_atr"].append(below_vals[5])
-        record["level_below_last_reaction_atr"].append(below_vals[6])
+        record["level_below_test_count"].append(below_vals[2])
+        record["level_below_age_bars"].append(below_vals[3])
+        record["level_below_bars_since_touch"].append(below_vals[4])
+        record["level_below_mean_reaction_atr"].append(below_vals[5])
+        record["level_below_max_reaction_atr"].append(below_vals[6])
+        record["level_below_last_reaction_atr"].append(below_vals[7])
         record["level_break_up_event"].append(1.0 if break_up_fired else 0.0)
         record["level_break_down_event"].append(1.0 if break_down_fired else 0.0)
         record["level_broken_touch_count"].append(
@@ -961,6 +999,15 @@ def _run_level_registry(
         )
         record["level_bars_since_break"].append(
             _cap999(float(t - last_break_bar)) if last_break_bar >= 0 else LEVEL_REGISTRY_COUNT_AGE_CAP
+        )
+        # V30 signed break memory: sign = side of the most recent break bar
+        # (+1 up / -1 down / 0 same-bar conflict); 0.0 before any observed
+        # break — the break event flags plus the unsigned sentinel field
+        # above disambiguate the zeros (design B.5).
+        record["level_bars_since_break_signed"].append(
+            float(last_break_side) * _cap999(float(t - last_break_bar))
+            if last_break_bar >= 0
+            else 0.0
         )
         record["level_retest_hold_signed"].append(
             float((hold_sign_sum > 0) - (hold_sign_sum < 0))
@@ -984,6 +1031,7 @@ def _run_level_registry(
         "first_level_admitted": first_level_admitted,
         "next_level_id": next_level_id,
         "last_break_bar": last_break_bar,
+        "last_break_side": last_break_side,
         "tail_high": buf_high[-(2 * n):] if len(buf_high) > 2 * n else list(buf_high),
         "tail_low": buf_low[-(2 * n):] if len(buf_low) > 2 * n else list(buf_low),
         "levels": levels,
@@ -1034,7 +1082,7 @@ def compute_level_registry_m5_block_v1(
     tuple[np.ndarray, list[str]]
     | tuple[np.ndarray, list[str], dict[str, Any]]
 ):
-    """M5/513 lane: the 22-field ``level_`` block (design doc §1.2).
+    """M5/513 lane: the 25-field ``level_`` block (design doc §1.2 + V30).
 
     Runs on the entry M5 clock (tf is bound to ``"m5"``; the expiry cap is the
     M5 liquidity-zone lookback).  ``tol_level_atr`` is the TRAIN-fitted frozen

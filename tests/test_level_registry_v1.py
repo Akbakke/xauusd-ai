@@ -149,9 +149,12 @@ def _rng_df(n: int = 200, seed: int = 20260811) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def test_declared_name_tuples_match_design_doc_verbatim():
+    # V30 (2026-08-13): + level_above/below_test_count (post-birth zone-entry
+    # tests, split from touch_count) and level_bars_since_break_signed.
     assert LEVEL_REGISTRY_M5_FEATURE_NAMES == (
         "level_above_dist_atr",
         "level_above_touch_count",
+        "level_above_test_count",
         "level_above_age_bars",
         "level_above_bars_since_touch",
         "level_above_mean_reaction_atr",
@@ -159,6 +162,7 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_above_last_reaction_atr",
         "level_below_dist_atr",
         "level_below_touch_count",
+        "level_below_test_count",
         "level_below_age_bars",
         "level_below_bars_since_touch",
         "level_below_mean_reaction_atr",
@@ -168,6 +172,7 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_break_down_event",
         "level_broken_touch_count",
         "level_bars_since_break",
+        "level_bars_since_break_signed",
         "level_retest_hold_signed",
         "level_retest_fail_signed",
         "level_round_50_dist_atr",
@@ -186,7 +191,7 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "mtf_level_retest_hold_signed",
         "mtf_level_retest_fail_signed",
     )
-    assert len(LEVEL_REGISTRY_M5_FEATURE_NAMES) == 22
+    assert len(LEVEL_REGISTRY_M5_FEATURE_NAMES) == 25
     assert len(LEVEL_REGISTRY_MTF_FEATURE_NAMES) == 11
     assert all(n.startswith("level_") for n in LEVEL_REGISTRY_M5_FEATURE_NAMES)
     assert all(n.startswith("mtf_level_") for n in LEVEL_REGISTRY_MTF_FEATURE_NAMES)
@@ -196,7 +201,7 @@ def test_emitted_names_match_declared_tuples():
     df = _series_s1()
     m5, names_m5 = compute_level_registry_m5_block_v1(df, tol_level_atr=TOL)
     assert tuple(names_m5) == LEVEL_REGISTRY_M5_FEATURE_NAMES
-    assert m5.shape == (len(df), 22)
+    assert m5.shape == (len(df), 25)
     assert m5.dtype == np.float32
     mtf, names_mtf = compute_level_registry_mtf_block_v1(df, tf="m5", tol_level_atr=TOL)
     assert tuple(names_mtf) == LEVEL_REGISTRY_MTF_FEATURE_NAMES

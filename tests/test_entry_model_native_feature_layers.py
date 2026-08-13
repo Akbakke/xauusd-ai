@@ -81,15 +81,22 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 115),
-            "507451a79c08cc7991915de51050e7e658342af14a2b30582d3d4973d7890d08",
+            # Value hash re-measured 2026-08-13 (V30): the synthetic input
+            # matrix keys values off the ctx_cont column INDEX, and
+            # H4_range_compression_ratio's insertion shifts every later
+            # ctx_cont column of the fixture; the chart formulas and the
+            # 115-name identity are unchanged.
+            "8f2672ce5690a5e3b465ef3b5ca88b258cc7ef685f930565d0659845ae978806",
             "63f1cc1721db84e7f171b35c3dbb206c89749ba08cc7a07d9263c5a4061f3a4d",
         ),
         "price": (
             price_x,
             price_names,
-            (240, 11),
-            "4a3ae77465c1b599d7746c8b29b2bab6af3caa995a9e90c8769be98d449c83a2",
-            "c28fc8b5163b7ccbddf9a80f5445c4149dc5a672b0818635ea0f200b0e147b61",
+            # V30 (2026-08-13): + chart.local_kama_efficiency_30 (12 fields);
+            # both hashes re-measured on the unchanged source fixture.
+            (240, 12),
+            "af0e23ba843de4b4bf18a953f392cc0be99b82e392a91addc0902765cf96e1fe",
+            "f5fbb1ad5a7e7647aed873286b06698a139af8bc594ac2b48c7751a1ff92f765",
         ),
         "candle": (
             candle_x,

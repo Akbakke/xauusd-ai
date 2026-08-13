@@ -23,6 +23,7 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -399,7 +400,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "feature_ranking_fit_scope": "train_only",
             "feature_ranking_sha256": "a" * 64,
             "model_native_signal_contract": feature_signal_contract,
-            "ctx_cont_dim_v3": 142,
+            "ctx_cont_dim_v3": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim_v3": 5,
         },
     )

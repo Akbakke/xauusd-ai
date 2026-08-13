@@ -35,6 +35,11 @@ H1_ATR100_MIN_BARS = 120
 M15_ATR100_MIN_BARS = 200
 H4_EMA50_MIN_BARS = 80
 D1_PCTL252_MIN_BARS = 270
+# V30 (2026-08-13): warmup gate for the H4 sibling of the H1/M15 range
+# compression ratio.  Same atr14/atr100 formula, so the same 100-bar ATR
+# warmup floor applies; the value is inherited from the H1 sibling gate
+# (derived assignment, not a new magnitude — rule 2b).
+H4_ATR100_MIN_BARS = H1_ATR100_MIN_BARS
 
 def _last_valid(series: pd.Series) -> float:
     s = series.dropna()
@@ -181,6 +186,12 @@ def _candlestick_feature_names_v4() -> tuple[str, ...]:
 MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "atr_bps_14",
     "rsi14_centered",
+    # V30 emission win (2026-08-13): raw Wilder RSI k-bar velocity
+    # rsi14[t] - rsi14[t-5].  k=5 adopts this file's existing EMA-slope
+    # lookback convention (ema20/50/200_slope_atr use shift(5)); the value is
+    # algebraically bounded in [-100, 100] by the RSI domain, so no clip
+    # constant is introduced.
+    "rsi14_delta_5",
     "mom_5_atr",
     "mom_20_atr",
     "close_open_atr",
@@ -203,6 +214,11 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "bb_position",
     "bb_width_atr",
     "adx_centered",
+    # V30 emission win (2026-08-13): the signed normalized DI spread
+    # (plus_di - minus_di)/(plus_di + minus_di) computed and previously
+    # discarded inside the same _adx14 producer as adx_centered (see its
+    # docstring for the warmup/zero-denominator convention).
+    "di_spread_signed",
     "trend_age_bars_norm",
 )
 MULTI_TF_V4_CANDLESTICK_FEATURES = _candlestick_feature_names_v4()
@@ -267,6 +283,17 @@ MULTI_TF_V4_MOMENTUM_EVENT_FEATURES = (
     "mom20_sign_flip_down",
     "bear_divergence_event",
     "bull_divergence_event",
+    # V30 emission win (2026-08-13): the divergence STRENGTH the design doc
+    # declared for G1 (§3 momentum row: "event/strength/age") and the Phase-A
+    # build dropped.  Value = (RSI delta between the pivot pair / 50) x
+    # (price delta at the same pivots / ATR at the newer pivot's own bar);
+    # /50 is RSI_WILDER_MIDLINE, the existing affine-map constant the design
+    # row names, and the pivot-bar-ATR convention is the trendline registry's
+    # "deviation measured at the pivot's own bar with that bar's ATR".  Both
+    # fields are gated on their own event (0 off-event, flag-disambiguated
+    # per design B.5) and NaN over the same undefined prefix as the events.
+    "bear_divergence_strength",
+    "bull_divergence_strength",
     "divergence_age_norm",
 )
 
@@ -292,6 +319,9 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
         "_v1h1_slope5",
     ),
     "H4": (
+        # V30 (2026-08-13): verbatim sibling of H1/M15_range_compression_ratio
+        # (atr14/atr100 with the H4_ATR100_MIN_BARS warmup gate).
+        "H4_range_compression_ratio",
         "H4_trend_sign_cat",
         "_v1h4_ema_diff",
         "_v1h4_atr",
@@ -315,6 +345,10 @@ MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "H1_range_compression_ratio",
     "D1_atr_percentile_252",
     "M15_range_compression_ratio",
+    # V30 (2026-08-13): position mirrors the ctx_cont source-prefix order
+    # (the single-owner test requires the ctx_cont intersection to preserve
+    # this tuple's order).
+    "H4_range_compression_ratio",
     "_v1h1_ema_diff",
     "_v1h1_atr",
     "_v1h1_rsi14_z",
@@ -340,7 +374,7 @@ MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4 = (
     "model_native_mtf_scalar_owner_native_m5_v4"
 )
 # V29 Phase A per-TF REGISTRY blocks (stage 2 wiring, design doc §1.3/§2):
-# the 11-field pivot-cluster level block and the 30-field trendline/channel
+# the 11-field pivot-cluster level block and the 33-field trendline/channel
 # block run independently on every TF clock next to
 # compute_smc_mtf_primitives_v1.  Their exact ordered names are owned by the
 # two registry modules; this owner only sequences them.  Both blocks carry
@@ -1443,8 +1477,19 @@ def _adx14(
     low: pd.Series,
     close: pd.Series,
     n: int = 14,
-) -> pd.Series:
-    """Welles Wilder's ADX with explicit causal warmup."""
+) -> tuple[pd.Series, pd.Series]:
+    """Welles Wilder's ADX with explicit causal warmup.
+
+    Returns ``(adx, di_spread_signed)``.  V30 emission win (2026-08-13):
+    ``plus_di``/``minus_di`` were computed here and discarded — the |...| in
+    the DX numerator folded the trend DIRECTION out of the surface.  The
+    signed normalized spread ``(plus_di - minus_di) / (plus_di + minus_di)``
+    (Wilder's own DX quantity without the absolute value, algebraically
+    bounded in [-1, 1]) is now emitted next to ``adx``.  A zero denominator
+    (no directional movement observed yet) is honest NaN, and the same
+    ``2n - 1`` warmup mask this producer already applies to ``adx`` is
+    applied — no new constant.
+    """
     up = high.diff()
     dn = -low.diff()
     plus_dm = np.where((up > dn) & (up > 0), up, 0.0)
@@ -1462,7 +1507,10 @@ def _adx14(
     dx = 100.0 * (plus_di - minus_di).abs() / np.maximum(plus_di + minus_di, 1e-12)
     adx = dx.ewm(alpha=1.0/n, adjust=False).mean()
     adx.iloc[: 2 * n - 1] = np.nan
-    return adx
+    di_sum = plus_di + minus_di
+    di_spread_signed = ((plus_di - minus_di) / di_sum).where(di_sum > 0.0)
+    di_spread_signed.iloc[: 2 * n - 1] = np.nan
+    return adx, di_spread_signed
 
 
 def _regime_class(stack_aligned: pd.Series, ema200_slope: pd.Series, atr_safe: pd.Series) -> pd.Series:
@@ -1567,14 +1615,18 @@ def _compute_v29_momentum_event_frame(
     low: pd.Series,
     rsi: pd.Series,
     mom_20_atr: pd.Series,
+    atr_safe: pd.Series,
 ) -> pd.DataFrame:
     """One formula owner for the V29 momentum G1/G2 event fields.
 
     ``rsi`` is the raw Wilder 0-100 series with its 14-row warmup already
     masked; ``mom_20_atr`` is the clipped 20-bar ATR-normalized momentum this
-    file emits.  Called by :func:`compute_per_bar_features_v4` (per-TF lane)
-    and :func:`compute_v29_momentum_event_block_from_ohlc` (entry-M5/513
-    lane) so the two lanes cannot drift.
+    file emits; ``atr_safe`` is the caller's floored ATR (the identical
+    ``np.maximum(atr14, atr_floor)`` expression both callers already
+    compute), consumed at the pivot bars by the V30 divergence-strength
+    fields.  Called by :func:`compute_per_bar_features_v4` (per-TF lane) and
+    :func:`compute_v29_momentum_event_block_from_ohlc` (entry-M5/513 lane) so
+    the two lanes cannot drift.
     """
     from gx1.features.smc_v1 import (
         SWING_LOOKBACK,
@@ -1653,6 +1705,41 @@ def _compute_v29_momentum_event_frame(
     frame["bull_divergence_event"] = np.where(
         bull_defined, bull_event.astype(np.float64), np.nan
     )
+    # V30 divergence STRENGTH (design doc §3 momentum row "event/strength/
+    # age"; the Phase-A build kept event+age only).  Formula: (RSI delta
+    # between the pivot pair / RSI_WILDER_MIDLINE) x (price delta at the same
+    # pivots / atr_safe at the newer pivot's own bar).  /50 is the design
+    # row's named "/50 strength" constant (the existing rsi14_centered affine
+    # divisor); the pivot-bar ATR is the trendline-registry touch convention
+    # ("measured at the pivot's own bar with that bar's ATR").  The product's
+    # sign is the pair's own algebra: a genuine divergence has opposite-sign
+    # RSI/price deltas, so each field is negative at its own event with
+    # magnitude = strength — no synthetic sign flip is added; direction lives
+    # in the field identity exactly as in the sibling 0/1 events.  Off-event
+    # bars are flag-disambiguated 0 (design B.5); the undefined prefix is the
+    # events' own NaN prefix.  ``atr_safe`` at the newer pivot is finite
+    # wherever the pair is defined: bear/bull_defined requires a valid RSI at
+    # the OLDER pivot (RSI warmup 14 rows) and the ATR warmup is 13 rows, so
+    # no mid-series NaN can enter through the ATR read.
+    atr_safe_np = atr_safe.to_numpy(dtype=np.float64)
+    bear_strength = (
+        (rsi_np[clip_last_sh] - rsi_np[clip_prev_sh]) / RSI_WILDER_MIDLINE
+    ) * (
+        (high_np[clip_last_sh] - high_np[clip_prev_sh])
+        / atr_safe_np[clip_last_sh]
+    )
+    bull_strength = (
+        (rsi_np[clip_last_sl] - rsi_np[clip_prev_sl]) / RSI_WILDER_MIDLINE
+    ) * (
+        (low_np[clip_last_sl] - low_np[clip_prev_sl])
+        / atr_safe_np[clip_last_sl]
+    )
+    frame["bear_divergence_strength"] = np.where(
+        bear_defined, np.where(bear_event, bear_strength, 0.0), np.nan
+    )
+    frame["bull_divergence_strength"] = np.where(
+        bull_defined, np.where(bull_event, bull_strength, 0.0), np.nan
+    )
     divergence_defined = bear_defined & bull_defined
     frame["divergence_age_norm"] = _event_age_norm(
         _bars_since_event(bear_event | bull_event, divergence_defined)
@@ -1691,6 +1778,7 @@ def compute_v29_momentum_event_block_from_ohlc(
         low=low,
         rsi=rsi,
         mom_20_atr=mom_20_atr,
+        atr_safe=atr_safe,
     )
 
 
@@ -1776,6 +1864,13 @@ def compute_per_bar_features_v4(
     rsi = _rsi(close, 14)
     rsi.iloc[:14] = np.nan
     out["rsi14_centered"] = ((rsi - 50.0) / 50.0).clip(-1.0, 1.0)
+    # V30 (2026-08-13): raw Wilder RSI velocity on the masked series.  k=5 is
+    # this file's existing EMA-slope lookback convention (the shift(5) used by
+    # ema20/50/200_slope_atr below); the RSI domain bounds the delta in
+    # [-100, 100] algebraically, so no clip constant is introduced.  The
+    # masked 14-row RSI warmup plus the 5-bar shift form one honest NaN
+    # prefix.
+    out["rsi14_delta_5"] = rsi - rsi.shift(5)
     for lag in (5, 20):
         out[f"mom_{lag}_atr"] = (
             (close - close.shift(lag)) / atr_safe
@@ -1848,8 +1943,11 @@ def compute_per_bar_features_v4(
         (close - bb_lower) / np.maximum(bb_width, atr_floor)
     ).clip(0.0, 1.0)
     out["bb_width_atr"] = (bb_width / atr_safe).clip(0.0, 20.0)
-    adx = _adx14(high, low, close, 14)
+    adx, di_spread_signed = _adx14(high, low, close, 14)
     out["adx_centered"] = ((adx - 25.0) / 25.0).clip(-1.0, 3.0)
+    # V30 (2026-08-13): the signed DI spread from the same _adx14 producer
+    # (see its docstring); already normalized to [-1, 1] by construction.
+    out["di_spread_signed"] = di_spread_signed
     age = _trend_age_bars(stack).clip(upper=500.0)
     out["trend_age_bars_norm"] = np.log1p(age) / np.log1p(500.0)
 
@@ -1905,6 +2003,7 @@ def compute_per_bar_features_v4(
         low=low,
         rsi=rsi,
         mom_20_atr=out["mom_20_atr"],
+        atr_safe=atr_safe,
     )
     for name in MULTI_TF_V4_MOMENTUM_EVENT_FEATURES:
         v29[name] = momentum_events[name]
@@ -2090,6 +2189,13 @@ def _compute_model_native_mtf_scalar_frame_v4(
             compression.iloc[: H1_ATR100_MIN_BARS - 1] = np.nan
             out["H1_range_compression_ratio"] = compression
         else:
+            # V30 (2026-08-13): verbatim H1 sibling formula (atr14/atr100)
+            # with the H4_ATR100_MIN_BARS gate (inherited from
+            # H1_ATR100_MIN_BARS — same 100-bar ATR warmup, no new number).
+            atr100 = _atr(high, low, close, 100)
+            compression = atr14 / np.maximum(atr100, 1e-9)
+            compression.iloc[: H4_ATR100_MIN_BARS - 1] = np.nan
+            out["H4_range_compression_ratio"] = compression
             mid = (high + low) * 0.5
             ema50 = _ema(mid, 50)
             category = np.sign(mid - ema50) + 1.0

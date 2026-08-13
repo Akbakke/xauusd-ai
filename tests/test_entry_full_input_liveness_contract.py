@@ -18,6 +18,7 @@ from tests.entry_full_input_liveness_support import (
     write_full_input_liveness_fixture,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
 
@@ -35,8 +36,14 @@ def test_full_input_liveness_validates_660_split_fields_and_all_555_mtf_fields(
     )
 
     assert result["ok"] is True
-    assert result["field_counts"] == {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
-    assert result["field_status_row_count"] == len(SPLITS) * (MODEL_NATIVE_SIGNAL_DIM + 142 + 5)
+    assert result["field_counts"] == {
+        "signal": MODEL_NATIVE_SIGNAL_DIM,
+        "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat": 5,
+    }
+    assert result["field_status_row_count"] == len(SPLITS) * (
+        MODEL_NATIVE_SIGNAL_DIM + MODEL_NATIVE_CTX_CONT_DIM + 5
+    )
     assert result["multi_tf_field_count_per_timeframe"] == (
         MULTI_TF_FEATURE_COUNT_V4
     )

@@ -16,6 +16,8 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     validate_full_input_liveness_artifact,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTEXT_TAG,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SEQ_LEN,
@@ -129,7 +131,7 @@ def _write_split(
     pq.write_table(table, parquet_path)
 
     ctx_contract = {
-        "tag": "CTX142CAT5",
+        "tag": MODEL_NATIVE_CONTEXT_TAG,
         "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
         "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
         "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
@@ -233,9 +235,13 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
 
     assert artifact["decision"] == PASS_DECISION
     assert validation["ok"] is True
-    assert validation["field_counts"] == {"signal": MODEL_NATIVE_SIGNAL_DIM, "ctx_cont": 142, "ctx_cat": 5}
+    assert validation["field_counts"] == {
+        "signal": MODEL_NATIVE_SIGNAL_DIM,
+        "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat": 5,
+    }
     assert validation["field_status_row_count"] == len(SPLITS) * (
-        MODEL_NATIVE_SIGNAL_DIM + 142 + 5
+        MODEL_NATIVE_SIGNAL_DIM + MODEL_NATIVE_CTX_CONT_DIM + 5
     )
     from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 

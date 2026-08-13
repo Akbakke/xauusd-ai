@@ -69,7 +69,9 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 
 SCHEMA_VERSION = MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION
 EVENT_PREFIX = "MODEL_NATIVE_DIRECTION_POCKET_AUDIT"
-EXPECTED_CTX_CONT_DIM = 142
+# V30 (2026-08-13): 143 = 142 + H4_range_compression_ratio; independent
+# cross-check literal against the derived contract dim (fails closed below).
+EXPECTED_CTX_CONT_DIM = 143
 EXPECTED_CTX_CAT_DIM = 5
 
 SIDE_LONG = 0

@@ -17,6 +17,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_SEQUENCE_BARS,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_MIN_MAX,
@@ -412,7 +413,7 @@ def test_staged_surface_validation_preserves_exact_513_142_5_schema(
 
     schema = pq.read_schema(surface)
     assert schema.field("signal").type.list_size == MODEL_NATIVE_SIGNAL_DIM
-    assert schema.field("ctx_cont").type.list_size == 142
+    assert schema.field("ctx_cont").type.list_size == MODEL_NATIVE_CTX_CONT_DIM
     assert schema.field("ctx_cat").type.list_size == 5
 
     wrong_width = tmp_path / "wrong_width.parquet"

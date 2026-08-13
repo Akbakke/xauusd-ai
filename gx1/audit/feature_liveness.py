@@ -6,7 +6,8 @@ resolutions). It complements, but does not duplicate, the model-native
 training contracts.
 
 The active V10 batch gate is model-native only: its signal surface must be the
-exact 513-field contract, its 142 continuous-context inputs must be present,
+exact signal contract, its continuous-context inputs (dims derive from
+the signal-contract owner) must be present,
 and every value on both surfaces must be finite and non-constant. It never
 consults the historical ``KNOWN_ALLOWED_DEAD`` diagnostic allowlist. That
 allowlist remains only for explicitly legacy hygiene readers and cannot
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
     ordered_model_native_signal_fields,
     require_model_native_signal_contract,
@@ -76,7 +78,7 @@ def _population_alive(std: float, nunique: int) -> bool:
 # ── Legacy diagnostic structural/known-dead allowlist ──────────────────────────────────────
 # Format: bare name OR "tf:name" for a per-TF feature. This is available to
 # historical hygiene readers only. The model-native entry gate below
-# explicitly disables it for all 513 signal and 142 ctx-cont inputs.
+# explicitly disables it for all signal and ctx-cont inputs (contract dims).
 KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "vol_pct_m5_1yr": "1-year vol-percentile not computed → pinned 0.5. Hygiene wave: compute or drop.",
     "vol_pct_h1_1yr": "ditto (pinned 0.5).",
@@ -341,7 +343,9 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 batch["ctx_cont"],
                 ctx_cont_names,
                 surface="ctx_cont",
-                expected_dim=142,
+                # V30 (2026-08-13): derive from the contract owner (rule 13);
+                # the restated 142 literal was a second truth.
+                expected_dim=MODEL_NATIVE_CTX_CONT_DIM,
                 population_stats=population_stats,
             )
         )
@@ -671,10 +675,11 @@ def _main() -> int:
         )
         snap_names = list(signal_contract["fields"])
         cc = list(meta.get("ordered_ctx_cont_names") or ())
-        if len(cc) != 142:
+        if len(cc) != MODEL_NATIVE_CTX_CONT_DIM:
             raise FeatureLivenessError(
                 "[FEATURE_LIVENESS_CLI_CTX_CONT_CONTRACT_INVALID] "
-                f"ordered_ctx_cont_names={len(cc)} expected=142"
+                f"ordered_ctx_cont_names={len(cc)} "
+                f"expected={MODEL_NATIVE_CTX_CONT_DIM}"
             )
         mtf_meta = meta.get("multi_tf")
         if not isinstance(mtf_meta, dict):

@@ -284,7 +284,9 @@ def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     assert MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS == (
         MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
     )
-    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 16
+    # V30 (2026-08-13): 17 = 16 + H4_range_compression_ratio in the source
+    # prefix subgroup.
+    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 17
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == 5
 
 

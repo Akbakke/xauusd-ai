@@ -12,6 +12,7 @@ import numpy as np
 
 from gx1.audit import feature_liveness
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     ordered_model_native_signal_fields,
@@ -82,7 +83,10 @@ def _live(rows: int, width: int) -> np.ndarray:
 
 def _batch(*, rows: int = 8) -> tuple[dict, list[str], list[str]]:
     signal_names = _signal_names()
-    ctx_cont_names = [f"ctx_cont.fixture_{index:03d}" for index in range(142)]
+    ctx_cont_names = [
+        f"ctx_cont.fixture_{index:03d}"
+        for index in range(MODEL_NATIVE_CTX_CONT_DIM)
+    ]
     batch = {
         "seq_x": np.stack(
             [_live(rows, len(signal_names)), _live(rows, len(signal_names)) + 1.0],

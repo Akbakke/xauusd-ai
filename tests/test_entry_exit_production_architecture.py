@@ -24,6 +24,7 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -40,7 +41,7 @@ def test_exact_current_production_architecture_passes() -> None:
     assert expected["shared_surface"] == {
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_dim": MODEL_NATIVE_SIGNAL_DIM,
-        "ctx_cont_dim": 142,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": 5,
     }
     assert expected["mtf"]["per_tf_widths"] == {
@@ -97,7 +98,7 @@ def _preallocation_model_kwargs() -> dict[str, object]:
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "dropout": 0.0,
-        "ctx_cont_dim": 142,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": 5,
         "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
@@ -234,7 +235,7 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
-        "ctx_cont_dim": 142,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": 5,
         "model_native_signal_contract": {
             "schema_version": entry_exit_production_architecture_contract()[
