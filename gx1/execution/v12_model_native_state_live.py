@@ -53,6 +53,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
     MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
     MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
@@ -62,6 +63,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
     apply_train_rank_reference_v2,
     load_train_rank_reference_v2,
     validate_state_contract_metadata_v2,
+)
+from gx1.features.micro_structure_v1 import (
+    SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
 )
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 from gx1.features.swing_structure_v1 import (
@@ -482,19 +486,25 @@ class ModelNativeStateBuilder:
                 else:
                     frame[col] = aligned[col].to_numpy(np.float64)
 
-        # 1d) micro (5) + swing (5) + session (5) ctx. Swing uses the exact
-        #     causal confirmation-lag owner used by the dataset builder; a
-        #     pivot is never stamped before its confirming bars exist.
+        # 1d) micro (5) + spread dynamics (3) + swing (14) + session (5) ctx.
+        #     Swing uses the exact causal confirmation-lag owner used by the
+        #     dataset builder; a pivot is never stamped before its confirming
+        #     bars exist. The spread-dynamics block (V30 package 4) runs through
+        #     the SAME ctx-augmenter helper the offline producers call, so the
+        #     serve values come from one owner (rule 6).
         from gx1.execution.v12_ctx_augment_live import (
             _add_micro_features,
             _add_session_features,
+            _add_spread_dynamics_features,
         )
 
         _frame_ts = frame.set_index(pd.DatetimeIndex(frame["time"]))
         _add_micro_features(_frame_ts)
+        _add_spread_dynamics_features(_frame_ts)
         _add_session_features(_frame_ts)
         for col in (
             list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
+            + list(MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS)
             + list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)
             + ["session_id"]
         ):
@@ -553,6 +563,9 @@ class ModelNativeStateBuilder:
                 # contract, exactly as the offline builder and the live ctx
                 # augmenter now do.
                 + list(SWING_V29_ADDITION_NAMES_V1)
+                # V30 package 4 (2026-08-13): spread_bps_delta_1's 1-row NaN
+                # prefix, trimmed by the same contract on all three lanes.
+                + list(SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1)
             )
         )
         frame = trim_causal_context_warmup_prefix(frame, causal_required).reset_index(

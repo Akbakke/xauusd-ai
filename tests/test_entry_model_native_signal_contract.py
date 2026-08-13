@@ -268,10 +268,10 @@ def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch.delenv("GX1_RUN_MODE", raising=False)
 
     context = model_native_context_contract_metadata()
-    # V30 (2026-08-13): 155 = 142 + H4_range_compression_ratio (package 1)
+    # V30 (2026-08-13): 158 = 142 + H4_range_compression_ratio (package 1)
     # + 9 adopted swing V29 ctx fields + 3 momentum-G3 RSI canon scalars
-    # (package 2).
-    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 155
+    # (package 2) + 3 quote/spread-dynamics fields (package 4).
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 158
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[

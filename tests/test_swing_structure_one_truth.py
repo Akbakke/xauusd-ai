@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -10,6 +11,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
     MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
     MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS,
     MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS,
@@ -19,7 +21,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.features.micro_structure_v1 import (
     MICRO_FEATURE_NAMES_V1,
+    SPREAD_DYNAMICS_CAUSAL_WARMUP_ROWS_V1,
+    SPREAD_DYNAMICS_FEATURE_NAMES_V1,
+    SPREAD_DYNAMICS_SOURCE_COLUMNS_V1,
+    SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
     compute_micro_structure_features,
+    compute_spread_dynamics_features,
 )
 from gx1.features.entry_foundation_structure_v1 import FOUNDATION_EVENT_AGE_CAP
 from gx1.features.regime_v4_features import REGIME_V4_SOURCE_COLS
@@ -275,19 +282,142 @@ def test_micro_structure_is_causal_exact_and_strict() -> None:
         compute_micro_structure_features(high, low, close)
 
 
+def _quote_frame() -> pd.DataFrame:
+    """A quote tape with a moving spread and both asymmetry signs."""
+
+    high, low, close = _ohlc()
+    half_spread = np.array(
+        [0.05, 0.04, 0.09, 0.05, 0.20, 0.06, 0.06, 0.11, 0.05],
+        dtype=np.float64,
+    )
+    # Independent per-side extremes so the asymmetry is genuinely two-sided:
+    # the ask range is wider on some bars and the bid range on others.
+    ask_pad = np.array([0.3, 0.1, 0.4, 0.1, 0.5, 0.1, 0.2, 0.1, 0.3])
+    bid_pad = np.array([0.1, 0.4, 0.1, 0.3, 0.1, 0.5, 0.1, 0.4, 0.1])
+    return pd.DataFrame(
+        {
+            "close": close,
+            "bid_close": close - half_spread,
+            "ask_close": close + half_spread,
+            "bid_high": high - half_spread,
+            "bid_low": low - half_spread - bid_pad,
+            "ask_high": high + half_spread + ask_pad,
+            "ask_low": low + half_spread,
+        }
+    )
+
+
+def test_spread_dynamics_is_causal_exact_and_strict() -> None:
+    frame = _quote_frame()
+    observed = compute_spread_dynamics_features(frame)
+    assert tuple(observed) == SPREAD_DYNAMICS_FEATURE_NAMES_V1
+    assert set(SPREAD_DYNAMICS_SOURCE_COLUMNS_V1) <= set(frame.columns)
+    assert SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1 == ("spread_bps_delta_1",)
+
+    bid_close = frame["bid_close"].to_numpy(dtype=np.float64)
+    ask_close = frame["ask_close"].to_numpy(dtype=np.float64)
+    close = frame["close"].to_numpy(dtype=np.float64)
+    # ONE spread owner: the level is the ctx spread_bps formula
+    # ((ask - bid) / bid * 1e4), never a second definition invented here.
+    spread_bps = (ask_close - bid_close) / bid_close * 1e4
+
+    delta = observed["spread_bps_delta_1"]
+    assert np.isnan(delta[:SPREAD_DYNAMICS_CAUSAL_WARMUP_ROWS_V1]).all()
+    np.testing.assert_allclose(
+        delta[1:],
+        (spread_bps[1:] - spread_bps[:-1]).astype(np.float32),
+        rtol=1e-5,
+        atol=1e-5,
+    )
+    # It really moves on this tape - a constant field would pass a shape test.
+    assert np.count_nonzero(delta[1:]) == len(delta) - 1
+
+    np.testing.assert_allclose(
+        observed["spread_intrabar_range_bps"],
+        (
+            (frame["ask_high"].to_numpy() - frame["bid_low"].to_numpy())
+            / close
+            * 1e4
+        ).astype(np.float32),
+        rtol=1e-5,
+    )
+    np.testing.assert_allclose(
+        observed["quote_range_asymmetry_bps"],
+        (
+            (
+                (frame["ask_high"].to_numpy() - frame["ask_low"].to_numpy())
+                - (frame["bid_high"].to_numpy() - frame["bid_low"].to_numpy())
+            )
+            / close
+            * 1e4
+        ).astype(np.float32),
+        rtol=1e-5,
+    )
+    # Signed, not an absolute magnitude: both signs must survive.
+    assert observed["quote_range_asymmetry_bps"].min() < 0.0
+    assert observed["quote_range_asymmetry_bps"].max() > 0.0
+    # The envelope is non-negative by the quote geometry the producer enforces.
+    assert (observed["spread_intrabar_range_bps"] >= 0.0).all()
+
+
+def test_spread_dynamics_is_past_only_and_fails_closed() -> None:
+    frame = _quote_frame()
+    observed = compute_spread_dynamics_features(frame)
+
+    # Causality: perturbing only the LAST bar's quotes may never change any
+    # earlier row (the delta reads t and t-1; the other two read t alone).
+    changed = frame.copy()
+    changed.loc[changed.index[-1], "ask_close"] += 0.75
+    changed.loc[changed.index[-1], "ask_high"] += 0.75
+    changed.loc[changed.index[-1], "bid_low"] -= 0.75
+    perturbed = compute_spread_dynamics_features(changed)
+    for name in SPREAD_DYNAMICS_FEATURE_NAMES_V1:
+        np.testing.assert_array_equal(observed[name][:-1], perturbed[name][:-1])
+
+    for column in SPREAD_DYNAMICS_SOURCE_COLUMNS_V1:
+        missing = frame.drop(columns=[column])
+        with pytest.raises(RuntimeError, match="SOURCE_FIELDS_MISSING"):
+            compute_spread_dynamics_features(missing)
+
+    nonfinite = frame.copy()
+    nonfinite.loc[nonfinite.index[2], "ask_high"] = np.nan
+    with pytest.raises(RuntimeError, match="SPREAD_DYNAMICS_SOURCE_NONFINITE"):
+        compute_spread_dynamics_features(nonfinite)
+
+    # A crossed quote is a broken tape, not a value to smooth over.
+    crossed = frame.copy()
+    crossed.loc[crossed.index[3], "ask_high"] = (
+        float(crossed.loc[crossed.index[3], "bid_high"]) - 1.0
+    )
+    with pytest.raises(RuntimeError, match="QUOTE_GEOMETRY_INVALID"):
+        compute_spread_dynamics_features(crossed)
+
+
 def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     assert MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS == (
         MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
         + MODEL_NATIVE_CTX_CONT_MICRO_FIELDS
+        + MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS
         + MODEL_NATIVE_CTX_CONT_SWING_FIELDS
     )
     assert MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS == (
         MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
     )
-    # V30 (2026-08-13): 26 = 16 + H4_range_compression_ratio in the source
+    # V30 (2026-08-13): 29 = 16 + H4_range_compression_ratio in the source
     # prefix subgroup (package 1) + the nine V29 swing event fields adopted
-    # into MODEL_NATIVE_CTX_CONT_SWING_FIELDS (package 2).
-    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 26
+    # into MODEL_NATIVE_CTX_CONT_SWING_FIELDS (package 2) + the three
+    # quote/spread-dynamics fields (package 4).
+    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 29
+    # The spread-dynamics block is its own declared subgroup, not a silent
+    # extension of the five-field OHLC micro surface.
+    assert MODEL_NATIVE_CTX_CONT_MICRO_FIELDS == tuple(MICRO_FEATURE_NAMES_V1)
+    assert MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS == (
+        SPREAD_DYNAMICS_FEATURE_NAMES_V1
+    )
+    assert not (
+        set(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
+        & set(MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS)
+    )
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == 5
 
 

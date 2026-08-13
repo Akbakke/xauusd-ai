@@ -38,6 +38,18 @@ State of the evidence chain:
   (`ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0`, TRAIN priors, class weights 1.0)
   and mandatory multi-seed judging. Their validation resumes on the V29
   substrate.
+- Three-seed measurement 2026-08-12/13 (identical recipe, batch 64 x accum 10,
+  8 epochs, lr 3e-4, 25k rows): s1337 guard-OK 4/7 no collapse best 0.238;
+  s1338 guard-OK 1/7 FLAT drift hard-red; s1339 guard-OK 4/6 best 0.256 then
+  LONG collapse at epoch 6 hard-red — a limit cycle at a fixed step size.
+  V30 package 5 adds two recipe-owned dampers:
+  `ENTRY_TRAIN_LR_COSINE_DECAY=1` (the library cosine anneal over the declared
+  epoch budget; a switch, no magnitude) and `ENTRY_TRAIN_WEIGHT_EMA_DECAY=0.0`
+  (weight EMA read by validation/checkpoint selection, SHIPPED OFF — no
+  in-repo convention exists for a decay, so the value is an outstanding
+  operator recipe decision). Env contract 164 -> 166 pre-V29 keys. Neither
+  damper has run end to end; existing readiness/recipe artifacts bind the old
+  trainer bytes and correctly fail closed until re-materialization.
 - The first four V29 chain attempts (2026-08-11) are immutable RED/ABORTED
   evidence, each repaired in the owning contract before relaunch: V29B —
   D1 `geomline_below_active` saturates at constant 1.0 on the declared

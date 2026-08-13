@@ -25,6 +25,7 @@ AUTHORITY_PATHS = (
     # 3c84bec9 committed this review doc without extending the authority
     # fingerprint; covered here so no tracked markdown escapes the fingerprint.
     REPO / "docs/FEATURE_VALUE_REVIEW_20260813.md",
+    REPO / "docs/INDICATOR_FIDELITY_AUDIT_20260813.md",
     REPO / "docs/GIT_WORKTREE_POLICY.md",
     REPO / "docs/RECIPE_DECISION_DRAFT_20260808.md",
     REPO / "docs/V29_EVENT_SURFACE_DESIGN_20260811.md",
@@ -137,10 +138,11 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "source_regression: PASS_2078_TESTS_ZERO_SKIPS_ZERO_WARNINGS" in result.stdout
     assert "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY" in result.stdout
     # V30 (2026-08-13): signal 608 = 34 + 441 mandatory + 133 ranked (package 3
-    # added the four M5-local price-vs-EMA cross events); ctx_cont 155
+    # added the four M5-local price-vs-EMA cross events); ctx_cont 158
     # (package 1's H4_range_compression_ratio + package 2's nine adopted swing
-    # V29 ctx fields and three momentum-G3 RSI canon scalars) is unchanged.
-    assert "entry: local=M5 sequence=96 signal=608 ctx_cont=155 ctx_cat=5" in result.stdout
+    # V29 ctx fields and three momentum-G3 RSI canon scalars + package 4's
+    # three quote/spread-dynamics fields).
+    assert "entry: local=M5 sequence=96 signal=608 ctx_cont=158 ctx_cat=5" in result.stdout
     assert (
         "entry_feature_surface: "
         "HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"

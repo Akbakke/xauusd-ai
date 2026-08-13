@@ -32,7 +32,10 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
 )
 from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
-from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1
+from gx1.features.micro_structure_v1 import (
+    MICRO_FEATURE_NAMES_V1,
+    SPREAD_DYNAMICS_FEATURE_NAMES_V1,
+)
 from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 from gx1.features.swing_structure_v1 import (
     SWING_FEATURE_NAMES_V1,
@@ -113,6 +116,16 @@ MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = (
     "H4_range_compression_ratio",
 )
 MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
+# V30 package 4 (2026-08-13): the quote/spread-dynamics block.  Declared as its
+# own tuple rather than folded into MODEL_NATIVE_CTX_CONT_MICRO_FIELDS because
+# the two producers take different sources: the micro five are computed from
+# (high, low, close) ARRAYS, these three from the quote FRAME (bid/ask closes
+# and extremes).  Every ctx producer emits both blocks at the same rebuild
+# boundary (rule 6).  Purpose: abstention / execution-regime evidence, never a
+# direction signal — see the producer's own contract comment.
+MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS = tuple(
+    SPREAD_DYNAMICS_FEATURE_NAMES_V1
+)
 # V30 Phase-A completion (2026-08-13): the swing owner's own declaration is
 # performed here.  ``swing_structure_v1`` declared the nine V29 additions
 # "DECLARED SEPARATELY from SWING_FEATURE_NAMES_V1: the accepted contracts bind
@@ -134,6 +147,7 @@ MODEL_NATIVE_CTX_CONT_SESSION_FIELDS = (
 MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS = (
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
     + MODEL_NATIVE_CTX_CONT_MICRO_FIELDS
+    + MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS
     + MODEL_NATIVE_CTX_CONT_SWING_FIELDS
 )
 MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS = (
@@ -323,12 +337,13 @@ MODEL_NATIVE_SIGNAL_DIM = (
     MODEL_NATIVE_BASE_SIGNAL_DIM + MODEL_NATIVE_SELECTED_FEATURE_COUNT
 )
 MODEL_NATIVE_SEQ_LEN = 96
-# 155 = 143 (V30 package 1: + H4_range_compression_ratio) + the V30 package-2
+# 158 = 143 (V30 package 1: + H4_range_compression_ratio) + the V30 package-2
 # Phase-A completion: 9 swing V29 event fields adopted into
 # MODEL_NATIVE_CTX_CONT_SWING_FIELDS + 3 momentum-G3 raw-RSI canon scalars
-# (2026-08-13).  The field lists above are the owner, this literal is the
-# cross-check.
-MODEL_NATIVE_CTX_CONT_DIM = 155
+# (-> 155) + the V30 package-4 quote/spread-dynamics block
+# (MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS, 3 fields, 2026-08-13).  The
+# field lists above are the owner, this literal is the cross-check.
+MODEL_NATIVE_CTX_CONT_DIM = 158
 MODEL_NATIVE_CTX_CAT_DIM = 5
 
 if len(MODEL_NATIVE_BASE_FIELDS) != MODEL_NATIVE_BASE_SIGNAL_DIM:
@@ -387,10 +402,11 @@ MODEL_NATIVE_CONTEXT_TAG = (
 def model_native_context_contract_metadata() -> dict[str, Any]:
     """Return the exact continuous/categorical Entry context contract.
 
-    Dims derive from the declared field tuples (155 continuous / 5 categorical
-    after the V30 wave: package 1 added ``H4_range_compression_ratio`` and
+    Dims derive from the declared field tuples (158 continuous / 5 categorical
+    after the V30 wave: package 1 added ``H4_range_compression_ratio``,
     package 2 adopted the nine swing V29 event fields plus the three
-    momentum-G3 raw-RSI canon scalars).
+    momentum-G3 raw-RSI canon scalars, and package 4 added the three
+    quote/spread-dynamics fields).
     """
 
     return {
@@ -406,6 +422,9 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
             MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
         ),
         "ctx_cont_micro_features": list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+        "ctx_cont_spread_dynamics_features": list(
+            MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS
+        ),
         "ctx_cont_swing_features": list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
         "ctx_cont_session_features": list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS),
     }

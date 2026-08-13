@@ -81,13 +81,15 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 115),
-            # Value hash re-measured 2026-08-13 (V30 package 2): the synthetic
-            # input matrix keys values off the ctx_cont column INDEX, and the
-            # nine adopted swing V29 ctx fields plus the three momentum-G3 RSI
-            # scalars shift every later ctx_cont column of the fixture again;
-            # the chart formulas and the 115-name identity are unchanged (the
-            # name hash below is untouched).
-            "be1721f33ace67e2fa2932f14ad5fcbc4575b65d81a5ac6103572cc5f8b14de4",
+            # Value hash re-measured 2026-08-13 (V30 package 4): the synthetic
+            # input matrix keys values off the ctx_cont column INDEX, so the
+            # three quote/spread-dynamics ctx fields shift every later ctx_cont
+            # column of the fixture again — exactly as package 2's nine swing
+            # and three RSI-canon adoptions did. The chart formulas and the
+            # 115-name identity are unchanged (the name hash below is
+            # untouched), which is what proves this is a fixture-index shift
+            # and not a formula change.
+            "1a7d812de95cdfa21d9c83482c5baeed6227178d61d96357935c40bfbb9bac6f",
             "63f1cc1721db84e7f171b35c3dbb206c89749ba08cc7a07d9263c5a4061f3a4d",
         ),
         "price": (

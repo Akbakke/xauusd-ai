@@ -65,6 +65,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
     MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
     MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
     MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS,
@@ -118,7 +119,12 @@ from gx1.contracts.entry_model_native_state_v2 import (
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
 )
-from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.micro_structure_v1 import (
+    SPREAD_DYNAMICS_SOURCE_COLUMNS_V1,
+    SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
+    compute_micro_structure_features,
+    compute_spread_dynamics_features,
+)
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
@@ -3076,11 +3082,27 @@ def build_dataset_canonical(
         raise RuntimeError(
             "MICRO_FEATURES_MISSING: require close/high/low in canonical tape"
         )
-    tape_feat = merged[["time", "close", "high", "low"]].copy().sort_values("time")
+    # V30 package 4 (2026-08-13): the quote/spread-dynamics block reads the
+    # SAME canonical tape rows, so its columns join this projection. All of
+    # SPREAD_DYNAMICS_SOURCE_COLUMNS_V1 are already loaded above in
+    # ``_risk_tape_cols`` (the spread-aware risk supervision columns), so this
+    # opens no new data path — it consumes bytes the join already carries.
+    _spread_source_cols = [
+        name
+        for name in SPREAD_DYNAMICS_SOURCE_COLUMNS_V1
+        if name not in ("time", "close", "high", "low")
+    ]
+    tape_feat = (
+        merged[["time", "close", "high", "low", *_spread_source_cols]]
+        .copy()
+        .sort_values("time")
+    )
     close = tape_feat["close"].to_numpy(dtype=np.float64)
     high = tape_feat["high"].to_numpy(dtype=np.float64)
     low = tape_feat["low"].to_numpy(dtype=np.float64)
     for _name, _arr in compute_micro_structure_features(high, low, close).items():
+        tape_feat[_name] = _arr
+    for _name, _arr in compute_spread_dynamics_features(tape_feat).items():
         tape_feat[_name] = _arr
 
     # Swing-structure features (ATR-normalized) — ONE TRUTH: gx1.features.swing_structure_v1
@@ -3108,8 +3130,10 @@ def build_dataset_canonical(
 
     # Attach only canonical computed values to source rows (strict 1:1 time
     # alignment). Dropping source copies closes the former `_tape` pass-through.
-    tape_context_names = list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS) + list(
-        MODEL_NATIVE_CTX_CONT_SWING_FIELDS
+    tape_context_names = (
+        list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
+        + list(MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS)
+        + list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS)
     )
     source_context_copies = [name for name in tape_context_names if name in df.columns]
     if source_context_copies:
@@ -3131,6 +3155,7 @@ def build_dataset_canonical(
     ctx_cont_names = (
         ctx_cont_names
         + list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
+        + list(MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS)
         + list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS)
         + list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)
     )
@@ -3138,6 +3163,11 @@ def build_dataset_canonical(
         "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
         list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
         len(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+    )
+    log.info(
+        "[ENTRY_SPREAD_DYNAMICS_PROOF] names=%s count=%d",
+        list(MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS),
     )
     log.info(
         "[ENTRY_SWING_FEATURES_PROOF] names=%s count=%d",
@@ -3566,6 +3596,10 @@ def build_dataset_canonical(
             # is removed by contract instead of being covered incidentally by
             # the much longer D1 warmup above.
             + list(SWING_V29_ADDITION_NAMES_V1)
+            # V30 package 4 (2026-08-13): spread_bps_delta_1 has no value on
+            # the first row of any frame (one prior row required); trim that
+            # prefix by contract on every lane.
+            + list(SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1)
         )
     )
     _rows_before_context_trim = len(merged3)

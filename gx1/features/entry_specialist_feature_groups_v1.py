@@ -320,6 +320,20 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     "ctx_cat.spread_bucket": "session_regime_encoder",
     "spread_bps": "session_regime_encoder",
     "spread_bucket": "session_regime_encoder",
+    # V30 package 4 (2026-08-13): the quote/spread-dynamics block joins its
+    # level sibling ``spread_bps`` in the execution/session-regime specialist.
+    # Two of the three names would reach that encoder through the broad
+    # ``spread`` lexical rule anyway; ``quote_range_asymmetry_bps`` would not
+    # (``range`` is claimed earlier by the volatility owner), so all three are
+    # routed EXPLICITLY here rather than depending on keyword precedence.
+    # Semantics: how expensive and how disorderly the quote is at the decision
+    # bar — abstention/execution-regime evidence, never direction evidence.
+    "ctx_cont.spread_bps_delta_1": "session_regime_encoder",
+    "spread_bps_delta_1": "session_regime_encoder",
+    "ctx_cont.spread_intrabar_range_bps": "session_regime_encoder",
+    "spread_intrabar_range_bps": "session_regime_encoder",
+    "ctx_cont.quote_range_asymmetry_bps": "session_regime_encoder",
+    "quote_range_asymmetry_bps": "session_regime_encoder",
     "ctx_cont.is_us_only": "session_regime_encoder",
     "ctx_cont.is_eu_only": "session_regime_encoder",
     "ctx_cont.is_asia_eu_overlap": "session_regime_encoder",

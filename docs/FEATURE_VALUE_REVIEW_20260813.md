@@ -192,3 +192,71 @@ is made anywhere; the 2026-08-09 walk-forward refutation stands.
 
 Every "would pay" claim is [U] until the pre-registered evaluation ladder
 says otherwise.
+
+## V30 package 4 — spread dynamics performed (2026-08-13)
+
+Item 6 of the suggested order above ("spread dynamics") is taken, as an MVP of
+exactly three fields. Recording what IS and is NOT verified (rule 25c).
+
+**Measured** (complete declared native M5 tape, N=537,861 rows, 2026-08-13):
+`spread_bps` mean 2.23 / std 2.61 / p1 1.11 / p99 14.66 over ~3261 distinct
+rounded values; the 1-bar change is nonzero on 99.93% of rows with std 1.161;
+the intrabar quote envelope `ask_high - bid_low` is 10.21 bps mean / 8.64 std;
+the quote-range asymmetry is nonzero on 87.85% of rows with std 0.969 bps;
+hourly median spread ranges 1.62 (h11) to 2.08 (h22), a 1.3x band. This is the
+evidence that the quote surface is alive on the native tape — the legacy
+`_v1_spread_z` died CONSTANT only on the retired canonical route.
+
+**Built** — `gx1/features/micro_structure_v1.compute_spread_dynamics_features`,
+a second bounded producer beside the five-field OHLC micro surface (that
+function is untouched):
+
+| field | formula | domain |
+|---|---|---|
+| `spread_bps_delta_1` | `spread_bps[t] - spread_bps[t-1]` | signed bps, honest NaN on row 0 |
+| `spread_intrabar_range_bps` | `(ask_high - bid_low) / close * 1e4` | non-negative by the enforced quote geometry |
+| `quote_range_asymmetry_bps` | `((ask_high-ask_low) - (bid_high-bid_low)) / close * 1e4` | signed bps |
+
+**Purpose fence:** abstention and execution-regime evidence, NOT a direction
+signal. Orthogonal microstructure sources were OOS-refuted for DIRECTION on
+the retired chain and that fence stands; nothing post-model may consume these
+(rule 3).
+
+**Proven from source**
+- One spread owner. The level is not recomputed: `derive_observed_spread_bps`
+  is called on `frame[["bid_close","ask_close"]]`, the exact call
+  `entry_model_native_state_v2.compute_causal_market_rank_inputs` makes to put
+  `spread_bps` on the ctx surface, so `spread_bps_delta_1` is the difference of
+  the emitted ctx column by construction.
+- Causal: every input is an aggregate of the decision bar's OWN closed quotes;
+  the delta additionally reads `t-1` only. Same closed-bar convention as every
+  other current-bar ctx field.
+- No new magnitude: `/ close * 1e4` is this owner's own bps convention; no
+  threshold and no clip is introduced (this owner clips nothing).
+- Source availability on every offline lane: the four quote extremes are
+  members of `CANONICAL_NATIVE_REQUIRED_COLUMNS` and survive unprojected from
+  the native stage through `build_canonical_v2` (`basic_v1.build_basic_v1`
+  mutates and returns the same frame) into `_finish_canonical_v3_context`,
+  where the block is emitted; the Entry dataset builder reads them from its
+  existing `_risk_tape_cols` tape join. The M1/M5 enriched OUTPUT_COLUMNS
+  projection happens AFTER the ctx block is computed.
+- Routing: all three are pinned explicitly to `session_regime_encoder`
+  (`quote_range_asymmetry_bps` would otherwise lose the lexical race on
+  `range`).
+
+**NOT examined / unproved**
+- No real-tape values, liveness or ranking exist for these three fields yet:
+  they await the V30 rebuild chain. The distributional numbers above were
+  measured on the raw quote columns, not on the emitted ctx columns.
+- The fields enter the ctx surface, i.e. the TRAIN-ranked candidate pool
+  (like `spread_bps` itself), NOT the mandatory causal families. They may be
+  ranked out. `MODEL_NATIVE_SIGNAL_DIM` is unchanged at 608; only
+  `MODEL_NATIVE_CTX_CONT_DIM` moves 155 -> 158.
+- Whether an execution-regime signal actually improves abstention quality is
+  [U] until the pre-registered evaluation ladder says otherwise.
+- The LIVE serve lane is not exercised here. `ModelNativeStateBuilder`
+  receives the joined cv3+BASE28 frame; the four intrabar quote columns are
+  required by the persisted pair-v2 contract
+  (`CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]`) and are consumed by
+  `v12_trade_state`, but no test in this wave proves the live frame carries
+  them. A live frame without them now fails closed loudly, which is correct.

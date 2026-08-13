@@ -28,6 +28,37 @@ SCHEMA_VERSION = "entry_model_native_seq513_train_recipe_env_v1"
 # unadjusted. tau=0.0 is the exact-compatibility switch (raw CE, sqrt-softened
 # class weights); tau>0 sets the direction CE class weights to the neutral 1.0
 # because adjustment replaces reweighting (combining both double-corrects).
+#
+# ── V30 package 5 (2026-08-13): two stability dampers ────────────────────────
+# Measured cause (three seeds, identical recipe: batch 64 x accum 10, 8 epochs,
+# lr 3e-4, 25k rows, logit-adjusted CE, 2026-08-12/13): s1337 guard-OK 4/7, no
+# collapse, best 0.238; s1338 guard-OK 1/7, FLAT drift, hard-red; s1339
+# guard-OK 4/6, best 0.256 then LONG collapse at epoch 6, hard-red.  The
+# balanced checkpoint score oscillates epoch to epoch and the late epochs lean
+# hard - a limit cycle at a fixed step size, not a data problem.
+#
+# ENTRY_TRAIN_LR_COSINE_DECAY origin: a SWITCH, not a magnitude.  "1" selects
+# torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=the declared
+# --epochs budget, eta_min=0.0) - the library's own standard cosine anneal
+# (Loshchilov & Hutter 2017, SGDR, without restarts and without warmup), whose
+# two parameters are the declared epoch budget and the library default 0.0.
+# No number is chosen here.  A step size that decays to zero over the declared
+# budget shrinks the oscillation amplitude of exactly this limit-cycle class in
+# the late epochs where the leans occur.  "0" reproduces the fixed-LR behaviour
+# bit-identically: no scheduler object is constructed and no param_group is
+# ever written.
+#
+# ENTRY_TRAIN_WEIGHT_EMA_DECAY origin: 0.0 == OFF, and OFF is what this recipe
+# currently declares.  0.0 is the exact-compatibility switch (no shadow
+# weights are allocated, validation and checkpoint selection see the raw
+# training weights exactly as today).  Any ENABLING value is an OPERATOR
+# DECISION with no in-repo convention to adopt: a repository-wide search for
+# 0.999 / ema_decay / EMA_DECAY / AveragedModel / polyak / swa found no named
+# constant and no weight-averaging machinery whatsoever (2026-08-13), so
+# writing a decay here would be an invented magnitude (rule 2a/2b).  The
+# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q precedent applies: the recipe owner
+# declares the key and pins its adopted value; the value itself is supplied by
+# the operator, and until one is supplied the damper stays off.
 _RECIPE_ENV_TEXT = """
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP=20.0
 ENTRY_AUX_BAD_PATH_WEIGHT=1.25
@@ -189,6 +220,8 @@ ENTRY_TAIL_DIRECTION_MIN_BATCH=8
 ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70
 ENTRY_TEASER_LONG_CE_MULTIPLIER=1.35
 ENTRY_TEASER_LONG_PROB_PENALTY=0.16
+ENTRY_TRAIN_LR_COSINE_DECAY=1
+ENTRY_TRAIN_WEIGHT_EMA_DECAY=0.0
 ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=1.00
 ENTRY_UNIFIED_EXIT_ACTION_WEIGHT=1.00
 GX1_CTX_CONTRACT=V_NEXT
@@ -285,6 +318,8 @@ _RECIPE_BOOLEAN_KEYS = frozenset(
     {
         "ENTRY_CKPT_DIRECTION_SLICE_GUARD",
         "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER",
+        # V30 package 5: a schedule ON/OFF switch, never a magnitude.
+        "ENTRY_TRAIN_LR_COSINE_DECAY",
     }
 )
 _RECIPE_STRING_KEYS = frozenset(
@@ -360,10 +395,12 @@ DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "skips_low_label_diversity": True,
 }
 
-# The audited pre-V29 recipe surface held exactly 164 keys; the total is now
-# DERIVED as that audited base plus the declared V29 registry key tuple, so a
-# key can be neither silently dropped nor silently invented.
-_PRE_V29_RECIPE_ENV_KEY_COUNT = 164
+# The audited pre-V29 recipe surface held 164 keys; V30 package 5 added the two
+# stability-damper switches (ENTRY_TRAIN_LR_COSINE_DECAY,
+# ENTRY_TRAIN_WEIGHT_EMA_DECAY) for 166.  The total is DERIVED as that audited
+# base plus the declared V29 registry key tuple, so a key can be neither
+# silently dropped nor silently invented.
+_PRE_V29_RECIPE_ENV_KEY_COUNT = 166
 _EXPECTED_RECIPE_ENV_KEY_COUNT = _PRE_V29_RECIPE_ENV_KEY_COUNT + len(
     MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS
 )
@@ -387,6 +424,37 @@ if MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"] != (
         "document's own median convention for the sibling trendline band, "
         "docs/V29_EVENT_SURFACE_DESIGN_20260811.md B.2); changing it "
         "requires a new recipe decision"
+    )
+
+# ── V30 package 5 stability dampers (2026-08-13) ─────────────────────────────
+# ``ENTRY_TRAIN_WEIGHT_EMA_DECAY`` is REQUIRED-BY-OPERATOR-DECISION, the
+# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q pattern: the recipe owner declares the
+# key and pins the value it currently carries, and only a new recipe decision
+# may move it.  The pinned value is the DISABLED sentinel, because no in-repo
+# named constant carries a weight-EMA decay convention to adopt (searched
+# 2026-08-13: no 0.999, ema_decay, EMA_DECAY, AveragedModel, polyak or swa
+# anywhere in the repository).  Inventing one would be a guessed default
+# (rule 2a/2b), so the damper ships off until an operator supplies a decay.
+MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE = "0.0"
+MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS = (
+    "ENTRY_TRAIN_LR_COSINE_DECAY",
+    "ENTRY_TRAIN_WEIGHT_EMA_DECAY",
+)
+for _damper_key in MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS:
+    if _damper_key not in MODEL_NATIVE_RECIPE_ENV:
+        raise RuntimeError(
+            f"MODEL_NATIVE_RECIPE_ENV_STABILITY_DAMPER_KEY_MISSING: {_damper_key}"
+        )
+if MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_WEIGHT_EMA_DECAY"] != (
+    MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE
+):
+    raise RuntimeError(
+        "MODEL_NATIVE_RECIPE_ENV_WEIGHT_EMA_DECAY_UNDECLARED: the weight-EMA "
+        "decay has no in-repo convention to adopt, so any value other than the "
+        "disabled sentinel "
+        f"{MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE} is an operator recipe "
+        "decision that must be recorded in the origin comment above before it "
+        "is pinned here"
     )
 
 

@@ -97,3 +97,54 @@ key `ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0`, env count 163 → 164) and the train
   recorded); `[ENTRY_HARD_NEG_RECIPE]` now states the short-side application;
   `[ENTRY_TRAIN_RECIPE]`, `[ENTRY_DIRECTION_BALANCE_PROOF]` and the bundle
   metadata now record `direction_logit_adjust_tau`.
+
+## ADOPTED 2026-08-13 — two stability dampers (V30 package 5)
+
+- **Evidence basis (measured 2026-08-12/13, three seeds, identical recipe:
+  batch 64 x accum 10, 8 epochs, lr 3e-4, 25k rows, logit-adjusted CE):**
+  s1337 guard-OK 4/7, no collapse, best 0.238; s1338 guard-OK 1/7, FLAT drift,
+  hard-red; s1339 guard-OK 4/6, best 0.256 then LONG collapse at epoch 6,
+  hard-red. The balanced checkpoint score oscillates epoch to epoch and the
+  late epochs lean hard — a limit cycle at a fixed step size. The two dampers
+  below address the *dynamics*; neither claims to create edge.
+- **`ENTRY_TRAIN_LR_COSINE_DECAY=1` (ADOPTED ON).** A switch, not a magnitude.
+  `1` selects `torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+  T_max=<the declared --epochs budget>, eta_min=0.0)` — the library's own
+  standard cosine anneal (Loshchilov & Hutter 2017, SGDR) without restarts and
+  without warmup. Its only two inputs are the declared epoch budget and the
+  library default 0.0, so no number is chosen here. The scheduler steps once
+  per epoch AFTER that epoch's training, so epoch 0 trains at the declared
+  `lr` and the schedule reaches exactly 0 at the end of the budget.
+  Rationale: a step size decaying to zero shrinks the oscillation amplitude of
+  exactly this limit-cycle class in the late epochs where the leans occur.
+  `0` reproduces the fixed-LR behaviour bit-identically — no scheduler object
+  is constructed and no `param_group` is ever written.
+- **`ENTRY_TRAIN_WEIGHT_EMA_DECAY=0.0` (DECLARED, SHIPPED OFF — operator
+  decision outstanding).** An exponential moving average of the model weights
+  is maintained across optimizer steps; VALIDATION and checkpoint selection
+  read the averaged weights (so the gate judges the weights that will ship)
+  while the raw weights keep training. `0.0` is the exact-compatibility
+  sentinel: no shadow state is allocated, no `state_dict` is swapped, and the
+  checkpoint expression is the pre-package-5 raw clone character for
+  character.
+  **Origin status: NONE FOUND.** A repository-wide search on 2026-08-13 for
+  `0.999`, `ema_decay`, `EMA_DECAY`, `AveragedModel`, `polyak` and `swa`
+  returned no named constant and no weight-averaging machinery of any kind.
+  Writing a decay here would therefore be an invented magnitude (rule 2a/2b).
+  The `ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q` precedent applies: the recipe owner
+  declares the key and pins the value it carries
+  (`MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE`), and the enabling value is
+  an operator recipe decision. **Until an operator supplies one, this damper is
+  off and only the LR schedule is active.**
+- **Env contract:** 164 -> 166 pre-V29 keys
+  (`_PRE_V29_RECIPE_ENV_KEY_COUNT`); the total stays derived as that base plus
+  the declared V29 registry key tuple.
+- **Recorded:** `[ENTRY_TRAIN_RECIPE]` and `[TRAIN_STABILITY_DAMPERS]` log
+  both values, and bundle metadata records `train_lr_cosine_decay` and
+  `train_weight_ema_decay`.
+- **Unproved:** neither damper has been run end to end on the V30 substrate.
+  The three-seed measurement above is the *cause* evidence; that these two
+  changes remove the limit cycle is a hypothesis until a fresh multi-seed
+  smoke says otherwise. Existing readiness/recipe artifacts bind the old
+  trainer bytes and correctly fail closed; re-materialization precedes the
+  next run.

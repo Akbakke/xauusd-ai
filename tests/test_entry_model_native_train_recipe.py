@@ -31,16 +31,31 @@ WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     metadata = model_native_recipe_env_contract_metadata()
 
-    # 164 audited pre-V29 keys + the declared V29 registry recipe keys
-    # (derived, never restated as a bare literal).
+    # 166 audited keys (164 pre-V29 + the two V30 package-5 stability-damper
+    # switches) + the declared V29 registry recipe keys (derived, never
+    # restated as a bare literal).
     from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS,
         MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS,
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE,
     )
 
-    expected_count = 164 + len(MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS)
+    expected_count = 166 + len(MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS)
     assert len(MODEL_NATIVE_RECIPE_ENV) == expected_count
     assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == expected_count
     assert MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_LOGIT_ADJUST_TAU"] == "1.0"
+    # V30 package 5. The cosine switch carries no magnitude at all (T_max is
+    # the declared --epochs budget, eta_min the library default 0.0), so it is
+    # adopted ON. The weight-EMA decay has no in-repo convention to adopt, so
+    # it is pinned at the disabled sentinel until an operator supplies one.
+    assert set(MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS) <= set(
+        MODEL_NATIVE_RECIPE_ENV_KEYS
+    )
+    assert MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_LR_COSINE_DECAY"] == "1"
+    assert MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_WEIGHT_EMA_DECAY"] == (
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE
+    )
+    assert MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE == "0.0"
     # median, adopting the design document's own median convention used for
     # the sibling trendline band (docs/V29_EVENT_SURFACE_DESIGN_20260811.md
     # B.2), applied uniformly across registry tolerances; operator-adopted
@@ -407,7 +422,8 @@ def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
     with_default = re.findall(r'_env_str\(\s*"[A-Z0-9_]+"\s*,', source)
     assert with_default == [], f"trainer regained shadow defaults: {with_default}"
     single_arg = re.findall(r'_env_str\(\s*"([A-Z0-9_]+)"\s*\)', source)
-    assert len(single_arg) == 162
+    # 162 + the two V30 package-5 stability-damper switches.
+    assert len(single_arg) == 164
     # Every key the trainer reads must be owned by the recipe contract.
     unknown = sorted(set(single_arg) - set(MODEL_NATIVE_RECIPE_ENV_KEYS))
     assert unknown == [], f"trainer reads keys with no recipe owner: {unknown}"

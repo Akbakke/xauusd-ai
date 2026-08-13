@@ -205,6 +205,31 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
     continuation when that worktree identity changed; inspect the diff and
     rerun the affected contracts first.
 
+25. **Gate-green is not quality-green, and the operator must never have to
+    dig for that distinction.** The gates prove *consistency* — train==serve,
+    exact dimensions, finiteness, liveness, hash-bound lineage. They cannot
+    prove *fidelity*: that a field computes the concept its name claims, that
+    a constant has a defensible origin, that two owners agree on one clock,
+    or that an indicator carries what a trader reading it would extract. Two
+    internally consistent wrong answers pass every gate (learned 2026-08-13:
+    a whole-surface review found three unrepaired noise-amplifier "slopes",
+    two disagreeing session clocks, two daily clocks, 91 duplicated context
+    fields and a 2-bit quantization block — none of them reachable by any
+    gate, all of them found only because the operator insisted).
+
+    a. Never answer a state question with "yes" on the strength of passing
+       gates. Answer in three explicit classes: **measured** (a number, with
+       the population and date), **proven consistent** (the contract holds —
+       and say plainly that this does not prove quality), and **not
+       examined** (nobody has looked). The third class is stated
+       uninvited; silence about it is a false "yes".
+    b. Run the deep review before claiming, not after being asked. A wave
+       that adds or repairs a feature family owes a fidelity pass over that
+       family, and any defect class found in one owner is swept across every
+       other owner in the same commit wave.
+    c. Record what was and was not verified in a durable document, so the
+       next session inherits the map instead of the impression.
+
 ## Host-capacity hard stop
 
 Every heavy offline producer, dataset build, audit, train, selective-edge run

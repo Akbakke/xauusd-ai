@@ -1291,6 +1291,7 @@ def _require_persisted_model_agnostic_canonical(
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
         MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
         MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
+        MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
         MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
     )
     from gx1.features.regime_v4_features import (
@@ -1304,6 +1305,7 @@ def _require_persisted_model_agnostic_canonical(
         *PLUS5_FEATURES,
         *VOLUME_FEATURE_NAMES,
         *MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+        *MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
         *MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
         *MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
         *MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,

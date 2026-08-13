@@ -54,7 +54,13 @@ Features added (32 total):
     - wick_ratio                           # (high - close) / range
     - distance_ema_fast                    # close - EMA5
 
-  Swing structure (14 — the 5 V1 fields + the 9 V29 event additions adopted
+  Quote/spread dynamics (3 — V30 package 4, 2026-08-13; abstention and
+  execution-regime evidence, NOT a direction signal):
+    - spread_bps_delta_1                   # 1-bar change of the ctx spread_bps
+    - spread_intrabar_range_bps            # (ask_high - bid_low) / close * 1e4
+    - quote_range_asymmetry_bps            # ((ask_high-ask_low) - (bid_high-bid_low)) / close * 1e4
+
+  Swing structure (14— the 5 V1 fields + the 9 V29 event additions adopted
   into the ctx contract by V30 package 2, 2026-08-13):
     - dist_last_swing_high_atr             # (close - last pivot-high) / ATR14
     - dist_last_swing_low_atr              # (close - last pivot-low)  / ATR14
@@ -85,7 +91,11 @@ from gx1.contracts.entry_model_native_state_v2 import (
     compute_causal_market_rank_inputs,
 )
 from gx1.features.htf_features import multi_tf_resample
-from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.micro_structure_v1 import (
+    SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
+    compute_micro_structure_features,
+    compute_spread_dynamics_features,
+)
 from gx1.features.model_native_market_context_v1 import (
     derive_model_native_trend_regime_id,
 )
@@ -436,6 +446,22 @@ def _add_micro_features(cv3: pd.DataFrame) -> None:
         cv3[name] = values
 
 
+def _add_spread_dynamics_features(cv3: pd.DataFrame) -> None:
+    """Mutates cv3: spread_bps_delta_1, spread_intrabar_range_bps,
+    quote_range_asymmetry_bps (V30 package 4, 2026-08-13).
+
+    Delegates to the ONE owner ``micro_structure_v1``; the frame must carry the
+    decision bar's own closed quotes (bid/ask close plus the four extremes,
+    all members of CANONICAL_NATIVE_REQUIRED_COLUMNS). Missing columns fail
+    closed there — this block has no fallback source and never substitutes the
+    mid OHLC for a quote.
+
+    ``spread_bps_delta_1`` has an honest 1-row NaN prefix which the causal
+    warmup trim below removes, exactly like the swing pivot-delta prefixes."""
+    for name, values in compute_spread_dynamics_features(cv3).items():
+        cv3[name] = values
+
+
 def _add_swing_features(cv3: pd.DataFrame) -> None:
     """Mutates cv3 with the swing-structure ctx features (dist_last_swing_high/low_atr,
     bars_since_swing_high/low, retracement_from_last_impulse + the nine V29 event
@@ -557,6 +583,8 @@ def _finish_canonical_v3_context(
     _ctx_rss_mark("session_interactions")
     _add_micro_features(out)
     _ctx_rss_mark("micro")
+    _add_spread_dynamics_features(out)
+    _ctx_rss_mark("spread_dynamics")
     _add_swing_features(out)
     _ctx_rss_mark("swing")
     _add_regime_categoricals(out, rank_reference=rank_reference)
@@ -607,7 +635,13 @@ def _finish_canonical_v3_context(
         # a non-finite ctx prefix. They are far shorter than the D1 warmup
         # above; listing all nine keeps the trim correct if another addition
         # gains a prefix.
-        + list(SWING_V29_ADDITION_NAMES_V1),
+        + list(SWING_V29_ADDITION_NAMES_V1)
+        # V30 package 4 (2026-08-13): spread_bps_delta_1 has no value on the
+        # first row of any frame (SPREAD_DYNAMICS_CAUSAL_WARMUP_ROWS_V1 = 1).
+        # Trim it by contract instead of relying on the much longer D1 warmup
+        # above to cover it incidentally. The other two spread-dynamics fields
+        # are defined on every row and carry no prefix.
+        + list(SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1),
     )
     out["trend_regime_id"] = out["trend_regime_id"].astype(np.int64)
     out["H4_trend_sign_cat"] = out["H4_trend_sign_cat"].astype(np.int64)

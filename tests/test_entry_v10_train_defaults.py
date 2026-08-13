@@ -4,6 +4,7 @@ import ast
 import json
 from pathlib import Path
 
+import pytest
 import torch
 
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -3070,3 +3071,138 @@ def test_entry_v10_logit_adjust_is_training_loss_only_and_serving_logits_raw() -
     # adjusted logits anywhere.
     assert text.count("probs = torch.softmax(logits, dim=1)") >= 2
     assert "torch.softmax(_direction_logit_adjusted_ce_logits" not in text
+
+
+# ── V30 package 5: the two recipe-owned stability dampers ────────────────────
+
+
+def test_entry_v10_lr_cosine_decay_disabled_reproduces_the_fixed_lr_path() -> None:
+    """Switch=0 builds no scheduler and never writes a param_group.
+
+    Proven from source, not from a run: the scheduler object is created inside
+    a single ``== 1`` guard, and the only ``.step()`` on it is guarded by
+    ``lr_scheduler is not None``. With the switch off there is therefore no
+    object and no write, so every optimizer step runs at the constant ``lr``
+    the pre-package-5 trainer used.
+    """
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "lr_scheduler = None" in text
+    assert "if int(ENTRY_TRAIN_LR_COSINE_DECAY) == 1:" in text
+    assert "optim.lr_scheduler.CosineAnnealingLR(" in text
+    assert "if lr_scheduler is not None:" in text
+    # Exactly one construction and exactly one step, both guarded.
+    assert text.count("optim.lr_scheduler.CosineAnnealingLR(") == 1
+    assert text.count("lr_scheduler.step()") == 1
+    # No unguarded learning-rate write anywhere.
+    assert 'param_group["lr"] =' not in text
+    assert "param_group['lr'] =" not in text
+
+
+def test_entry_v10_lr_cosine_schedule_is_the_standard_formula_reaching_zero() -> None:
+    """The enabled schedule is the library cosine anneal over the declared
+    epoch budget: lr_t = lr * 0.5 * (1 + cos(pi * t / epochs)), starting at the
+    declared lr and reaching exactly 0 at the end of the budget. No magnitude
+    beyond ``lr`` (CLI) and ``epochs`` (CLI) enters."""
+    import math
+
+    import torch.optim as optim
+
+    base_lr = 3e-4
+    epochs = 8
+    model = torch.nn.Linear(3, 2)
+    optimizer = optim.AdamW(model.parameters(), lr=base_lr)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=epochs, eta_min=0.0
+    )
+
+    def _optimizer_step() -> None:
+        optimizer.zero_grad(set_to_none=True)
+        model(torch.ones(1, 3)).sum().backward()
+        optimizer.step()
+
+    # The trainer steps the scheduler only AFTER an epoch of optimizer steps;
+    # mirror that order here so the schedule is exercised exactly as wired.
+    observed = [float(optimizer.param_groups[0]["lr"])]
+    for _ in range(epochs):
+        _optimizer_step()
+        scheduler.step()
+        observed.append(float(optimizer.param_groups[0]["lr"]))
+
+    for step, value in enumerate(observed):
+        expected = base_lr * 0.5 * (1.0 + math.cos(math.pi * step / epochs))
+        assert abs(value - expected) < 1e-12
+    assert abs(observed[0] - base_lr) < 1e-15
+    assert abs(observed[-1]) < 1e-15
+    # Monotone decay: the amplitude of any oscillation the step size can carry
+    # shrinks every epoch, which is the whole point of the damper.
+    assert all(b <= a for a, b in zip(observed, observed[1:]))
+
+
+def test_entry_v10_weight_ema_disabled_is_bit_compatible() -> None:
+    """decay=0.0 allocates nothing and changes no code path.
+
+    The trainer constructs ``_WeightEma`` only when the recipe decay is > 0.0,
+    validates the raw model when it is None, and captures the raw
+    ``model.state_dict()`` clone for the checkpoint — the pre-package-5
+    expression, character for character.
+    """
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    assert "if float(ENTRY_TRAIN_WEIGHT_EMA_DECAY) > 0.0" in text
+    assert "else None" in text
+    assert "if weight_ema is not None:" in text
+    assert "with weight_ema.evaluating(model):" in text
+    assert "{k: v.cpu().clone() for k, v in model.state_dict().items()}" in text
+
+    # The OFF sentinel is not a constructible EMA: an enabled average needs a
+    # decay strictly inside (0, 1), so 0.0 can only mean "no averaging".
+    with pytest.raises(RuntimeError, match="WEIGHT_EMA_DECAY_INVALID"):
+        trainer._WeightEma(torch.nn.Linear(3, 2), 0.0)
+    with pytest.raises(RuntimeError, match="WEIGHT_EMA_DECAY_INVALID"):
+        trainer._WeightEma(torch.nn.Linear(3, 2), 1.0)
+
+
+def test_entry_v10_weight_ema_averages_and_restores_exactly() -> None:
+    """The EMA is the standard convex recursion, is read only for evaluation,
+    and leaves the training weights bit-identical afterwards."""
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    torch.manual_seed(0)
+    model = torch.nn.Linear(3, 2)
+    decay = 0.5  # test-local, not a recipe value: any decay in (0,1) proves it
+    ema = trainer._WeightEma(model, decay)
+
+    start = {k: v.detach().clone() for k, v in model.state_dict().items()}
+    with torch.no_grad():
+        for parameter in model.parameters():
+            parameter.add_(torch.ones_like(parameter))
+    ema.update(model)
+    assert ema.steps == 1
+
+    updated = model.state_dict()
+    for name, initial in start.items():
+        expected = decay * initial + (1.0 - decay) * updated[name]
+        assert torch.allclose(ema._shadow[name], expected, atol=0, rtol=0)
+
+    # Evaluating installs the average and restores the training weights bitwise.
+    inside = {}
+    with ema.evaluating(model):
+        inside = {k: v.detach().clone() for k, v in model.state_dict().items()}
+    for name, tensor in model.state_dict().items():
+        assert torch.equal(tensor, updated[name])
+        assert not torch.equal(inside[name], tensor)
+
+    # The raw weights keep training: the EMA never writes back into the model.
+    assert ema.state_dict_clone().keys() == set(start)
+
+
+def test_entry_v10_weight_ema_advances_once_per_optimizer_step() -> None:
+    """Both optimizer-step sites (the accumulation-gated step and the
+    end-of-epoch remainder step) update the EMA, so the decay means the same
+    thing at any accumulation width."""
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    assert text.count("weight_ema.update(model)") == 2
+    assert "weight_ema=weight_ema," in text
+    assert 'weight_ema: Optional["_WeightEma"] = None' in text

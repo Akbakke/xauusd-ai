@@ -13,6 +13,7 @@ ONE UNIVERSE (STRICT):
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import logging
@@ -951,6 +952,30 @@ if (not np.isfinite(ENTRY_DIRECTION_LOGIT_ADJUST_TAU)) or ENTRY_DIRECTION_LOGIT_
     raise RuntimeError(
         "[ENTRY_DIRECTION_LOGIT_ADJUST_TAU_INVALID] "
         f"got={ENTRY_DIRECTION_LOGIT_ADJUST_TAU!r} expected finite >= 0"
+    )
+# V30 package 5 stability dampers (measured limit cycle across three seeds,
+# 2026-08-12/13; see the recipe owner's origin comment).  Both are OFF-able to
+# exactly today's behaviour: the cosine switch at 0 constructs no scheduler and
+# never writes a param_group, and the EMA decay at 0.0 allocates no shadow
+# weights, so validation and checkpoint selection see the raw training weights.
+ENTRY_TRAIN_LR_COSINE_DECAY = int(_env_str("ENTRY_TRAIN_LR_COSINE_DECAY"))
+if ENTRY_TRAIN_LR_COSINE_DECAY not in (0, 1):
+    raise RuntimeError(
+        "[ENTRY_TRAIN_LR_COSINE_DECAY_INVALID] "
+        f"got={ENTRY_TRAIN_LR_COSINE_DECAY!r} expected 0 or 1"
+    )
+# 0.0 is the exact-compatibility OFF sentinel. An enabling decay is an operator
+# recipe decision (no in-repo convention exists to adopt); the open interval is
+# the algebraic domain of a convex EMA weight, not a chosen bound.
+ENTRY_TRAIN_WEIGHT_EMA_DECAY = float(_env_str("ENTRY_TRAIN_WEIGHT_EMA_DECAY"))
+if (
+    (not np.isfinite(ENTRY_TRAIN_WEIGHT_EMA_DECAY))
+    or ENTRY_TRAIN_WEIGHT_EMA_DECAY < 0.0
+    or ENTRY_TRAIN_WEIGHT_EMA_DECAY >= 1.0
+):
+    raise RuntimeError(
+        "[ENTRY_TRAIN_WEIGHT_EMA_DECAY_INVALID] "
+        f"got={ENTRY_TRAIN_WEIGHT_EMA_DECAY!r} expected finite in [0.0, 1.0)"
     )
 ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT"))
 ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE = float(_env_str("ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE"))
@@ -6633,12 +6658,85 @@ def _clean_edge_rank_masks(
     return clean_pos, ranked_neg
 
 
+class _WeightEma:
+    """Exponential moving average of the model weights (V30 package 5).
+
+    ``shadow <- decay*shadow + (1 - decay)*current`` after every optimizer
+    step, over the model's complete ``state_dict`` (floating tensors are
+    averaged; integer/bool buffers are carried by exact copy because an average
+    of a counter is not a counter).  The raw weights keep training untouched;
+    only VALIDATION and checkpoint selection read the averaged weights, through
+    ``evaluating``.
+
+    This object is constructed ONLY when the recipe decay is > 0.0.  At the 0.0
+    OFF sentinel no instance exists, nothing is allocated and no state_dict is
+    ever swapped, so the training path is byte-identical to the pre-package-5
+    trainer.
+    """
+
+    def __init__(self, model: nn.Module, decay: float) -> None:
+        decay = float(decay)
+        if (not math.isfinite(decay)) or decay <= 0.0 or decay >= 1.0:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_WEIGHT_EMA_DECAY_INVALID] got={decay!r} "
+                "expected finite in (0.0, 1.0) for an enabled EMA"
+            )
+        self.decay = decay
+        self._shadow: Dict[str, torch.Tensor] = {
+            name: tensor.detach().clone()
+            for name, tensor in model.state_dict().items()
+        }
+        self._steps = 0
+
+    @property
+    def steps(self) -> int:
+        return int(self._steps)
+
+    @torch.no_grad()
+    def update(self, model: nn.Module) -> None:
+        current = model.state_dict()
+        if set(current) != set(self._shadow):
+            raise RuntimeError("[ENTRY_TRAIN_WEIGHT_EMA_STATE_KEYS_CHANGED]")
+        for name, tensor in current.items():
+            shadow = self._shadow[name]
+            if tensor.is_floating_point():
+                shadow.mul_(self.decay).add_(
+                    tensor.detach(), alpha=1.0 - self.decay
+                )
+            else:
+                shadow.copy_(tensor.detach())
+        self._steps += 1
+
+    @contextlib.contextmanager
+    def evaluating(self, model: nn.Module):
+        """Temporarily install the averaged weights on ``model``."""
+
+        if self._steps <= 0:
+            raise RuntimeError(
+                "[ENTRY_TRAIN_WEIGHT_EMA_NOT_UPDATED] refusing to evaluate an "
+                "EMA that has taken no optimizer step"
+            )
+        saved = {
+            name: tensor.detach().clone()
+            for name, tensor in model.state_dict().items()
+        }
+        model.load_state_dict(self._shadow, strict=True)
+        try:
+            yield
+        finally:
+            model.load_state_dict(saved, strict=True)
+
+    def state_dict_clone(self) -> Dict[str, torch.Tensor]:
+        return {name: tensor.detach().cpu().clone() for name, tensor in self._shadow.items()}
+
+
 def _step_partial_gradient_accumulation(
     *,
     model: nn.Module,
     optimizer: optim.Optimizer,
     configured_steps: int,
     observed_steps: int,
+    weight_ema: Optional["_WeightEma"] = None,
 ) -> bool:
     """Apply a final partial accumulation with the same mean-gradient scale."""
 
@@ -6658,6 +6756,11 @@ def _step_partial_gradient_accumulation(
     torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
+    # The remainder step is a real optimizer step, so the weight EMA must see
+    # it too; skipping it here would make the average depend on the batch count
+    # modulo the accumulation width.
+    if weight_ema is not None:
+        weight_ema.update(model)
     return True
 
 
@@ -7013,6 +7116,7 @@ def train_epoch(
     hier_bad_path_pos_weight: Any,
     grad_accum_steps: int,
     direction_log_prior_offset: Optional[torch.Tensor],
+    weight_ema: Optional["_WeightEma"] = None,
 ):
     model.train()
     _accum_steps = int(grad_accum_steps)
@@ -7547,6 +7651,12 @@ def train_epoch(
             torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
+            # V30 package 5: the weight EMA advances once per OPTIMIZER step
+            # (not per micro-batch), so its decay means the same thing at any
+            # accumulation width. None when the recipe decay is the 0.0 OFF
+            # sentinel — then nothing here executes at all.
+            if weight_ema is not None:
+                weight_ema.update(model)
             _accum_count = 0
             _prior_match_buffer.reset()
             log.info("[TRAIN_STEP] batch=%d step_done", _batch_i)
@@ -7638,6 +7748,7 @@ def train_epoch(
             optimizer=optimizer,
             configured_steps=_accum_steps,
             observed_steps=_accum_count,
+            weight_ema=weight_ema,
         )
     if (
         unified_exit_rows <= 0
@@ -11686,7 +11797,9 @@ def run_train(
         balance_class_weights=pred_balance_class_weights,
     )
     log.info(
-        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f direction_logit_adjust_tau=%.3f tail_direction_w=%.3f tail_direction_q=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
+        "[ENTRY_TRAIN_RECIPE] lr_cosine_decay=%d weight_ema_decay=%.6f direction_ce_scale=%.3f direction_logit_adjust_tau=%.3f tail_direction_w=%.3f tail_direction_q=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
+        int(ENTRY_TRAIN_LR_COSINE_DECAY),
+        float(ENTRY_TRAIN_WEIGHT_EMA_DECAY),
         float(ENTRY_DIRECTION_CE_SCALE),
         float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU),
         float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
@@ -11890,6 +12003,40 @@ def run_train(
     )
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=_WEIGHT_DECAY)
 
+    # ── V30 package 5 stability dampers (recipe-owned, both exactly OFF-able) ─
+    # (i) Cosine LR decay over the DECLARED epoch budget. The scheduler is the
+    #     library's own CosineAnnealingLR with T_max = epochs and the default
+    #     eta_min = 0.0; epoch t therefore trains at
+    #     lr * 0.5 * (1 + cos(pi * t / epochs)) and the schedule reaches exactly
+    #     0 at the end of the declared budget. No warmup, no restarts, and no
+    #     magnitude is introduced here — the only inputs are `lr` (CLI) and
+    #     `epochs` (CLI). At the OFF switch `lr_scheduler` stays None: no object
+    #     is built and no param_group is ever written, so every step runs at the
+    #     same constant `lr` the pre-package-5 trainer used.
+    lr_scheduler = None
+    if int(ENTRY_TRAIN_LR_COSINE_DECAY) == 1:
+        lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=int(epochs),
+            eta_min=0.0,
+        )
+    # (ii) Weight EMA, read ONLY by validation and checkpoint selection. The raw
+    #      weights keep training. At the 0.0 OFF sentinel no instance exists.
+    weight_ema = (
+        _WeightEma(model, float(ENTRY_TRAIN_WEIGHT_EMA_DECAY))
+        if float(ENTRY_TRAIN_WEIGHT_EMA_DECAY) > 0.0
+        else None
+    )
+    log.info(
+        "[TRAIN_STABILITY_DAMPERS] lr_cosine_decay=%d epochs=%d lr=%.6g "
+        "weight_ema_decay=%.6f weight_ema_active=%d",
+        int(ENTRY_TRAIN_LR_COSINE_DECAY),
+        int(epochs),
+        float(lr),
+        float(ENTRY_TRAIN_WEIGHT_EMA_DECAY),
+        int(weight_ema is not None),
+    )
+
     best_state = None
     best_val = float("inf")
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
@@ -11974,25 +12121,52 @@ def run_train(
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
             grad_accum_steps=int(grad_accum_steps),
             direction_log_prior_offset=direction_log_prior_offset,
+            weight_ema=weight_ema,
         )
-        va_loss, auc, acc, val_short_to_long, val_stats = validate(
-            model,
-            val_loader,
-            criterion,
-            device,
-            aux_path_weight=ENTRY_AUX_PATH_WEIGHT,
-            aux_mfe_weight=ENTRY_AUX_MFE_WEIGHT,
-            aux_tradable_weight=ENTRY_AUX_TRADABLE_WEIGHT,
-            aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
-            aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
-            tradable_pos_weight=tradable_pos_weight,
-            clean_edge_pos_weight=clean_edge_pos_weight,
-            survival_pos_weight=survival_pos_weight,
-            bad_path_pos_weight=bad_path_pos_weight,
-            hier_trade_pos_weight=hier_trade_pos_weight,
-            hier_bad_path_pos_weight=hier_bad_path_pos_weight,
-            direction_log_prior_offset=direction_log_prior_offset,
-        )
+        # V30 package 5: the LR schedule advances once per epoch, AFTER that
+        # epoch's training, so epoch 0 trains at the declared `lr` exactly as
+        # before. At the OFF switch this is a no-op branch.
+        if lr_scheduler is not None:
+            lr_scheduler.step()
+            log.info(
+                "[TRAIN_LR_SCHEDULE] epoch=%d next_lr=%.8g",
+                epoch + 1,
+                float(optimizer.param_groups[0]["lr"]),
+            )
+
+        def _validate_current_weights():
+            return validate(
+                model,
+                val_loader,
+                criterion,
+                device,
+                aux_path_weight=ENTRY_AUX_PATH_WEIGHT,
+                aux_mfe_weight=ENTRY_AUX_MFE_WEIGHT,
+                aux_tradable_weight=ENTRY_AUX_TRADABLE_WEIGHT,
+                aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
+                aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
+                tradable_pos_weight=tradable_pos_weight,
+                clean_edge_pos_weight=clean_edge_pos_weight,
+                survival_pos_weight=survival_pos_weight,
+                bad_path_pos_weight=bad_path_pos_weight,
+                hier_trade_pos_weight=hier_trade_pos_weight,
+                hier_bad_path_pos_weight=hier_bad_path_pos_weight,
+                direction_log_prior_offset=direction_log_prior_offset,
+            )
+
+        # V30 package 5: when the EMA is active the checkpoint gate must judge
+        # the weights it will actually ship, so validation runs ON the averaged
+        # weights and the captured `best_state` below is the EMA state. When it
+        # is off the raw model is validated, unchanged.
+        if weight_ema is not None:
+            with weight_ema.evaluating(model):
+                va_loss, auc, acc, val_short_to_long, val_stats = (
+                    _validate_current_weights()
+                )
+        else:
+            va_loss, auc, acc, val_short_to_long, val_stats = (
+                _validate_current_weights()
+            )
         last_val_stats = dict(val_stats or {})
         last_direction_slice_stats = _direction_slice_stats_snapshot(val_stats)
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
@@ -12338,7 +12512,15 @@ def run_train(
                 )
                 if key in val_stats
             }
-            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            # V30 package 5: capture exactly the weights the gate just judged.
+            # With the EMA active that is the averaged state (validation above
+            # ran on it); with the EMA off it is the raw training state, an
+            # unchanged expression.
+            best_state = (
+                weight_ema.state_dict_clone()
+                if weight_ema is not None
+                else {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            )
             best_epoch = epoch + 1
             epochs_since_improve = 0
             log.info(
@@ -13406,6 +13588,12 @@ def run_train(
         # Training-loss-only logit adjustment (Menon et al. 2021); recorded for
         # recipe completeness. Serving logits are never adjusted.
         "direction_logit_adjust_tau": float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU),
+        # V30 package 5 stability dampers. `train_lr_cosine_decay` selects the
+        # library cosine anneal over the declared epoch budget (0 = the fixed
+        # LR); `train_weight_ema_decay` = 0.0 means no weight averaging took
+        # place and the shipped weights are the raw training weights.
+        "train_lr_cosine_decay": int(ENTRY_TRAIN_LR_COSINE_DECAY),
+        "train_weight_ema_decay": float(ENTRY_TRAIN_WEIGHT_EMA_DECAY),
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
