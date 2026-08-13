@@ -1,0 +1,185 @@
+# Feature value review — 2026-08-13
+
+Five parallel read-only reviews over the complete V29 surface (592 signal /
+142+5 ctx / 173×5 MTF), graded against the REAL sealed V29J artifacts
+(full-input liveness stats, TRAIN ranking scores, specialist audits) and the
+source owners. Evidence classes: [M] measured on the sealed artifacts,
+[PS] proven from source, [J] judgment, [U] unproven. No direction-edge claim
+is made anywhere; the 2026-08-09 walk-forward refutation stands.
+
+## A. USELESS / passengers (measured or proven)
+
+1. **[M] 91 of 142 ctx_cont fields are mirrored bit-identically into the
+   signal surface** — 15.4% of the 592 are exact copies (same std to 1e-12,
+   same active_count).
+2. **[PS] Three noise-amplifier bugs in `basic_v1.py`** (the exact class
+   repaired in `htf_features` 2026-08-09, never backported):
+   `_v1_kama_slope_30` (`np.diff n=5`), `_v1_tema_slope_20` (`n=3`),
+   `_v1_bb_bandwidth_delta_10` (`n=3`; TRAIN mean 1.8e-09 [M]). They are
+   high-pass noise, feed `slope_score` (0.08×2) and five vol composites.
+3. **[PS] `DIP_STRUCT`: 30 of 36 ctx fields are a 2-bit quantization of
+   `mom_5_atr`×`mom_20_atr` signs** (the four quadrant flags × 5 TFs, depth
+   = same ratio, agree/dip = sums/products of the flags); 25 are terminal
+   (no consumer). [M] the m5/m15/h1 ladder rungs are statistically
+   indistinguishable (active rates within 0.0011).
+4. **[PS] Six exact-affine duplicates in chart/candle**:
+   `pattern_close_pressure_signed` ≡ 2·`close_location`−1 (clip inactive);
+   `geometry_major_level_proximity_max`, `channel_position_low_to_high`,
+   `channel_center_bias`, `channel_edge_pressure`,
+   `support_minus_resistance_stack` — all exact functions of two stacks +
+   one ctx field; three are pinned mandatory.
+5. **[M] `session_tradable` ≡ ¬`is_ASIA`** (active counts sum exactly to
+   row count); `smc_choch_recent_tau12` ≡ `tau24` (bit-identical ranking
+   scores); `mtf_pattern_{body,upper,lower}_share` ≡ `*_pct` on H1/H4/D1
+   (identical values_sha256 — 6 columns the duplicate rejector missed).
+6. **[M] The 133 cut removes almost none of the measured noise floor**: 51
+   of 77 ranker-rejected candidates remain mandatory via ctx_cont —
+   including the single worst measured feature (`bars_since_swing_low`,
+   score 4.4e-06 = 5,600× below top).
+7. **[PS] `V3_EXTENSION` (5/5)**: `smc_premium_state` = exact product of two
+   BASE fields; `hour/dow_sin/cos` strictly dominated by the session group.
+8. **[M] hammer/shooting_star fire on ~51/50% of bars** (no gate) — the
+   free gate (`range_expansion_vs_prev5`) is computed and gates nothing.
+9. Already-decided removal candidates re-confirmed with stronger evidence:
+   6 candle aggregate votes + 58 chart-geometry composite pressures (incl.
+   4 misnomers containing no line/retest); the last removal blocker (aux
+   tautologies) is resolved.
+10. **[M] VAL-design defect quantified**: 18 D1/H4-regime fields have
+    exactly zero variance on the June VAL (61 D1 bars) — including the
+    top-1 ranked feature overall (`d1_trend_age_mature_flag_v3`).
+
+## B. DEFINITELY MISSING (ranked by leverage)
+
+1. **Session-anchored levels** (PDH/PDL/PDC, Asia hi/lo, week open, pwc) —
+   engine built, kind not admitted (`LEVEL_KINDS_IMPLEMENTED_V1` excludes
+   it); plus the pivot "day" uses UTC-midnight while the session owner
+   opens 22:00 (two day-clocks).
+2. **Bid/ask spread dynamics** — `bid_high/bid_low/ask_high/ask_low` are
+   read by NO feature owner; Δspread, session-conditional spread z,
+   widening events, intrabar quote geometry. Role: abstention/regime
+   evidence (fenced from the refuted microstructure-as-direction probe).
+   Ten-minute variance audit on declared bytes first (the legacy
+   `_v1_spread_z` died constant on the OLD route).
+3. **Per-TF volume normalization** — `_resample_ohlcv` already sums volume
+   per TF; zero volume fields in the 173. Declared prerequisite of
+   already-approved momentum G4 (break/sweep-on-volume).
+4. **Level density / second-nearest slot** — registry state holds the whole
+   population; emission takes nearest-per-side only. A 4-level shelf and an
+   isolated level emit identical rows. Mirror in trendlines.
+5. **Volume-at-level/touch** — one extra accumulator per level (same shape
+   as `reaction_sum_atr`).
+6. **Session-conditional baselines** — x_t vs TRAIN-fitted
+   minute-of-week/session-slot median/IQR (the
+   `SPREAD_RATIO_TANH_SCALE_TRAIN_P90` fit precedent); coarse slots per
+   rule 2f.
+7. **Squeeze state/release/duration/box** (vol G1/G2/G3/G5) — no duration
+   field exists anywhere in vol; `compression_persistence_score` is a 2-bar
+   smoother.
+8. **VWAP bands + session-clock anchor** — current VWAP dist is
+   ATR-normalized, not σ_vwap-normalized; anchor is a third clock
+   (midnight).
+9. **Measured-move projections** — range-height at break is already in
+   registry state.
+10. **Volume profile (POC/value area) from M5 candles** — largest
+    conceptual hole, highest arbitrariness (4 unsourced constants);
+    G0-style pre-measurement required before any build.
+11. Un-flipped Phase-A remnants [PS]: per-TF swing V29 events (9×5) built
+    but not composed; momentum G3 raw-RSI ctx scalars absent (M5/H1/H4 raw
+    RSI missing while M15/D1 present — inconsistency, not design).
+
+## C. MAKE SMARTER (implemented but too crude)
+
+1. **Duration everywhere it's missing**: squeeze `bars_in_squeeze` +
+   release-latch; `geomline_bars_since_break` (trendline registry has no
+   persistent break memory — levels do); M5-local EMA-cross/state ages
+   (Entry sees a 1-bar spike, Exit sees the aged version).
+2. **Momentum rate**: RSI velocity (4 RSI representations, zero
+   velocities); divergence STRENGTH (declared in design §3, built as
+   event+age only — magnitude discarded); mom_5-vs-mom_20 horizon spread
+   (impulse acceleration).
+3. **Signed DI spread** beside `adx_centered` — plus_di/minus_di computed
+   and discarded on the next line; TR-based direction, orthogonal to every
+   EMA-based sign.
+4. **Distance-to-flip per TF** for the regime enum (D1 has it —
+   `d1_dist_to_boundary_v3`; other TFs emit only the class id) + fit the
+   0.3 threshold as a TRAIN quantile (currently unsourced literal).
+5. **Graded occupancy instead of saturated masks**: count of ACTIVE lines
+   per side (cannot saturate, disambiguates the zero-attribute row, and IS
+   the density feature from B.4) — converts the D1 saturation exemption
+   into evidence.
+6. **Level registry precision**: split `touch_count` into `member_pivot_count` +
+   post-birth `test_count`; sign `level_bars_since_break` by break side.
+7. **Candle gates**: `hammer_event_quality = hammer ×
+   range_expansion_vs_prev5` (zero new constants); doji Stage-B
+   TRAIN-percentile flag; replace the tick-exact piercing/dark-cloud gap
+   gate with the family's ATR tolerance.
+8. **bps→ATR sibling emission** for the local layer + micro momentum
+   (era-proxy removed, vol-proxy not; pre-registered saturation measurement
+   first per design §6.4).
+9. **Elapsed-wall-clock ages beside bar-count ages** — every age in the
+   system counts observed bars; 12 bars = 60 min midweek or 60 hours across
+   a weekend. Correctness observation on all V29 age fields.
+10. `atr_percentile_blend` (7 hand-weighted terms) → real per-TF rolling
+    ATR percentiles (mechanism exists: `D1_atr_percentile_252`);
+    `bb_position` unclipped signed σ; `H4_range_compression_ratio` (hole in
+    the term structure); Kaufman efficiency ratio (computed inside KAMA and
+    discarded).
+
+## D. DEPENDENCY DEFECTS (check before the V29 verdict)
+
+1. **Two session clocks with different hour sets** [PS]:
+   `session_detector.py` partition (ASIA 22-7/EU 7-12/OVERLAP 12-16/US
+   16-22) vs `augment_forward_outcome_v2.py` overlapping sets (ASIA
+   {22..8}, EU {7..16}, US {13..21}). They disagree at h=8, 16, 22-23; both
+   feed `entry_session_regime_interactions_v1` side by side; the
+   `active_session ≡ 1` proof is load-bearing on both. Blast radius ≈125 of
+   425 mandatory + 14 ctx. DST adds a 1-hour phase error for ~half the tape
+   (UTC-fixed boundaries). One recipe decision.
+2. **Two daily clocks** [PS]: D1 bars roll at 00:00 UTC, session-anchored
+   V29 levels at 22:00. Sunday 22-24h becomes a 2-hour "D1" bar feeding
+   ATR-14/EMA200/RSI/percentile as one full observation; Monday's D1 reads
+   it. D1 is the widest upstream dependency (9/16 families, ~24 ctx).
+3. **Four ATR-14 conventions live simultaneously** [PS]; the swing
+   normalizer (`min_periods=1`) inflates all `*_atr` swing fields for the
+   first ~13 bars of any segment.
+4. **Regime threshold 0.3 unsourced + chatter risk**: flip events are rare
+   (421-1,543 TRAIN); denominator wobble near |slope_atr|≈0.3 could be a
+   meaningful fraction of the event population. Ten-minute diagnostic:
+   distribution of |slope_atr|−0.3 + ε-sensitivity of flip counts.
+5. **Routing findings** [PS]: vol_compression owns the
+   compression_expansion objective but receives 2 fields/TF while the
+   candle encoder holds five compression/expansion measures;
+   chart_geometry (48 mandatory incl. all trendline fields) and
+   price_action get ONE ctx dim each; BOS/CHoCH owned by smc on the MTF
+   lane and structure_swing on the M5 lane; `struct_*` (28 ctx dims) are
+   momentum quadrants wearing a structure name; two stale prose counts in
+   the signal contract ("479/346", "513-field") vs derived 558/425/592;
+   the lexical classifier disagrees with the explicit tuples on 70/173
+   names (the `_atr`-suffix-captures-ownership class).
+6. **Dead alternative normalization owner**:
+   `share_temporal_alias_stats_from_ctx` has no production caller and
+   inverts the declared direction — rule-10 removal candidate.
+7. **Weakest unprotected liveness margins** [M]: five event fields pass the
+   1% floor by 0.2-0.5pp without rare-event registration
+   (`bull/bear_divergence_event`, `rsi_cross_up_30`, `rsi_cross_down_70`,
+   `session_change_flag`, `m15_regime_changed_flag_v3`).
+
+## Suggested order (rule 22: measure → recipe value → extend owner → build)
+
+1. Ten-minute diagnostics first: regime-threshold chatter; D1 stub-bar
+   histogram; spread/quote-column variance on declared bytes.
+2. One-line bug repairs: the three `basic_v1` noise amplifiers (adopt the
+   existing k-bar-change convention).
+3. Recipe decisions: session hour-set unification (+DST posture); D1
+   rollover clock.
+4. Emission-only wins: DI spread, divergence strength, level
+   density/second slot, graded occupancy, signed break age,
+   `H4_range_compression_ratio`, efficiency ratio.
+5. Phase-A completion: swing per-TF flip, raw-RSI ctx, M5-local ages.
+6. Phase B per the design doc: session-anchored levels first (engine
+   ready), then squeeze/box, volume-z per TF, VWAP bands, spread dynamics.
+7. Reduction wave (rule 4-safe, after the V29 eval verdict): struct_* block,
+   V3_EXTENSION, exact-affine duplicates, mirrors policy for ctx→signal.
+
+Every "would pay" claim is [U] until the pre-registered evaluation ladder
+says otherwise.
