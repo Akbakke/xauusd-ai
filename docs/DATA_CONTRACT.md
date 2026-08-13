@@ -24,10 +24,10 @@ Mid-only substitution and synthetic gap filling are forbidden.
 `gx1_entry_exit_shared_feature_base_contract_v2` owns both resolutions:
 
 - instrument `XAU_USD`;
-- 592 ordered signals: 34 fixed base fields + 425 mandatory causal + 133
+- 591 ordered signals: 34 fixed base fields + 424 mandatory causal + 133
   TRAIN-ranked, over 16 mandatory families (V29 event surface; the counts
   derive from the owner tuples);
-- 142 continuous and 5 categorical context values;
+- 158 continuous and 5 categorical context values;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;
 - Entry local M5 sequence 96 plus closed M15/H1/H4/D1 context;
@@ -42,7 +42,7 @@ Resampling finished M1 indicator/feature values into M5/M15/H1/H4/D1 is
 forbidden. A forming higher-timeframe candle may never enter a decision.
 
 The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
-ordered 592 fields and TRAIN-rank reference hash used by the M5 Entry build.
+ordered 591 fields and TRAIN-rank reference hash used by the M5 Entry build.
 Any disagreement fails before dataset construction.
 
 The V29 registry layers (level and trendline registries and their event

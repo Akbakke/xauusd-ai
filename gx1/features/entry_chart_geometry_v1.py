@@ -1,9 +1,20 @@
 """Canonical Entry chart-geometry features.
 
-This layer is a causal numeric proxy for what a discretionary chart trader
-draws by hand: trend lines, support/resistance zones, Fibonacci pullback zones,
-EMA cross pressure, compression breakouts, and simple continuation/reversal
-patterns. It uses only already-materialized snap/ctx_cont inputs.
+This layer computes multi-timeframe EMA trend state, sided support/resistance
+proximity, failed-breakout reversal pressure, compression-release breakout
+pressure and late-trend reversal risk from already-materialized snap/ctx_cont
+inputs.
+
+V30 package 7 (2026-08-13), operator-authorized: the layer no longer claims to
+draw what a discretionary chart trader draws by hand.  Its input tuple is
+pre-reduced scalars — no price, no pivot coordinate, no bar index, no slope, no
+anchor — so every field it used to emit under a ``trendline`` / ``rail`` /
+``channel`` / ``triangle`` / ``flag`` / ``apex`` / ``fib`` name was NAME-ONLY by
+algebra (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1a).  Those 43 columns are
+removed here.  The real implementations already exist and are wired on every
+timeframe: ``level_registry_v1`` (touch counts, break, retest hold/fail) and
+``trendline_registry_v1`` (fitted 2-anchor lines, slope, touch counts,
+ACTIVE/BROKEN, retest window, apex solve), both shipped 2026-08-11.
 """
 from __future__ import annotations
 
@@ -20,7 +31,7 @@ from gx1.features.entry_volatility_semantics_v1 import (
 
 
 CHART_GEOMETRY_FEATURE_VERSION = (
-    "entry_chart_geometry_v4_20260809_sided_level_proximity_failclosed"
+    "entry_chart_geometry_v5_20260813_name_only_composite_removal"
 )
 CHART_GEOMETRY_FEATURE_PREFIX = "chart.geometry_"
 
@@ -54,9 +65,20 @@ CHART_GEOMETRY_SOURCE_FIELDS = (
     "ctx_cont.dist_to_h4_lo_atr",
     "ctx_cont.dist_to_d1_hi_atr",
     "ctx_cont.dist_to_d1_lo_atr",
-    "snap.smc_premium_discount",
-    "ctx_cont.retracement_from_last_impulse",
-    "ctx_cont.d1_close_pct_in_20day_range_canon_v2",
+    # V30 package 7 (2026-08-13): `snap.smc_premium_discount`,
+    # `ctx_cont.retracement_from_last_impulse` and
+    # `ctx_cont.d1_close_pct_in_20day_range_canon_v2` were declared here only to
+    # feed the removed Fibonacci block, and `snap.smc_sweep_size_atr` /
+    # `ctx_cont.smc_sweep_size_recent_tau12` only the removed
+    # `line_pattern_tail_risk`.  A declared source this layer never reads is the
+    # same name-only defect class the removal repairs, so they are dropped from
+    # the required tuple (rule 10).  All five remain model inputs elsewhere:
+    # the two sweep-size fields and `snap.smc_premium_discount` are declared
+    # sources of entry_smc_liquidity_quality_v1 / entry_foundation_structure_v1
+    # / entry_support_resistance_memory_v1, and both ctx fields are members of
+    # MODEL_NATIVE_CTX_CONT_FIELDS (`d1_close_pct_in_20day_range_canon_v2` is
+    # additionally routed to chart_geometry_encoder by
+    # entry_specialist_feature_groups_v1).
     "snap.smc_bos_up",
     "snap.smc_bos_down",
     "ctx_cont.smc_bos_pressure_last12",
@@ -68,8 +90,6 @@ CHART_GEOMETRY_SOURCE_FIELDS = (
     "snap.smc_sweep_down",
     "ctx_cont.smc_sweep_bull_pressure_last12",
     "ctx_cont.smc_sweep_bull_pressure_last48",
-    "snap.smc_sweep_size_atr",
-    "ctx_cont.smc_sweep_size_recent_tau12",
     "ctx_cont.smc_sweep_recency_tau24",
     "snap.body_pct",
     "ctx_cont.H1_range_compression_ratio",
@@ -212,10 +232,6 @@ def _cross_down(arr: np.ndarray) -> np.ndarray:
     return ((arr < 0.0) & (prev >= 0.0)).astype(np.float32)
 
 
-def _fib_proximity(position: np.ndarray, level: float) -> np.ndarray:
-    return np.exp(-np.abs(_clip01(position) - float(level)) * 12.0).astype(np.float32)
-
-
 def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray, *, lo: float = -25.0, hi: float = 25.0) -> None:
     clean = _clip(np.asarray(arr, dtype=np.float32), lo, hi)
     if clean.ndim != 1:
@@ -279,7 +295,6 @@ def build_entry_chart_geometry_layer(
         + 0.08 * d1_slope
         + 0.04 * m15_trend
     )
-    h8_proxy = _clip(0.45 * h1_ema + 0.40 * h4_ema + 0.15 * d1_slope)
     trend_up = _pos(mtf_trend)
     trend_down = _neg(mtf_trend)
     trend_delta = _delta(mtf_trend)
@@ -330,12 +345,21 @@ def build_entry_chart_geometry_layer(
         + _neg(trend_delta) * (0.65 + agreement_pressure)
         + ema_bear_confirmation
     )
+    # V30 package 7 (2026-08-13), operator-authorized removals:
+    # - `h8_proxy_trend_score`: there is no H8 timeframe in
+    #   MULTI_TF_RESAMPLE_RULES.  It was a re-weighted duplicate of
+    #   mtf_trend_score's own H1/H4/D1 terms wearing a fabricated timeframe
+    #   label.  Every input it consumed (`ctx_cont._v1h1_ema_diff`,
+    #   `ctx_cont._v1h4_ema_diff`, `ctx_cont.d1_ema_slope_20_canon_v2`) is a
+    #   ctx_cont contract field AND is still read by mtf_trend_score below.
+    # - `ema_stack_bull/bear_pressure`: hand-written products of two fields
+    #   this layer still emits (`mtf_trend_score` through _pos/_neg, and
+    #   `mtf_trend_agreement_pressure`).  They had zero consumers anywhere in
+    #   the tree; the trend specialist's own `trend.ema_stack_bull/bear_pressure`
+    #   is a different owner and is untouched.
     _add(arrays, names, "mtf_trend_score", mtf_trend, lo=-2.0, hi=2.0)
-    _add(arrays, names, "h8_proxy_trend_score", h8_proxy, lo=-2.0, hi=2.0)
     _add(arrays, names, "mtf_trend_agreement_pressure", agreement_pressure, lo=0.0, hi=1.0)
     _add(arrays, names, "mtf_trend_divergence_pressure", divergence_pressure, lo=0.0, hi=1.0)
-    _add(arrays, names, "ema_stack_bull_pressure", trend_up * agreement_pressure, lo=0.0, hi=2.0)
-    _add(arrays, names, "ema_stack_bear_pressure", trend_down * agreement_pressure, lo=0.0, hi=2.0)
     _add(
         arrays,
         names,
@@ -394,27 +418,27 @@ def build_entry_chart_geometry_layer(
     resistance_stack = resistance_sources.max(axis=0).astype(np.float32)
     level_mean = ((support_sources.mean(axis=0) + resistance_sources.mean(axis=0)) * 0.5).astype(np.float32)
     level_max = np.maximum(support_stack, resistance_stack).astype(np.float32)
+    # V30 package 7 (2026-08-13), operator-authorized removals — the five
+    # exact-affine duplicates of the two emitted stacks
+    # (docs/FEATURE_VALUE_REVIEW_20260813.md A.4).  `support_minus_resistance`,
+    # `channel_position`, `channel_center`, `channel_edge` and `level_max` are
+    # each a closed-form function of `support_stack`, `resistance_stack` and the
+    # single ctx field `ctx_cont.sr_support_minus_resistance_prox`; all three of
+    # those remain model inputs (the two stacks are still emitted below and stay
+    # in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES, and the ctx field is a
+    # MODEL_NATIVE_CTX_CONT_FIELDS member), so the model can form any of them.
+    # They survive here as LOCALS only, because `channel_edge` is a term of the
+    # retained failed-breakout pair and removing that term would change a kept
+    # field's semantics without any measurement to justify it.
     support_minus_resistance = _clip(c("ctx_cont.sr_support_minus_resistance_prox") + support_stack - resistance_stack, -2.0, 2.0)
     # Low-to-high channel position: support/lower rail -> 0, resistance/upper rail -> 1.
     # The stack balance is support-minus-resistance, so it must be inverted here.
     channel_position = _clip01(0.5 - 0.5 * support_minus_resistance)
     channel_center = _clip01(1.0 - 2.0 * np.abs(channel_position - 0.5))
     channel_edge = _clip01(level_max * (1.0 - channel_center))
-    sr_balance = _clip01(1.0 - np.abs(support_stack - resistance_stack))
-    channel_confluence = _clip01(
-        (0.50 * level_max + 0.30 * level_mean + 0.20 * sr_balance)
-        * (0.65 + 0.35 * agreement_pressure)
-        * (1.0 - 0.25 * divergence_pressure)
-    )
-    channel_edge_retest = _clip01(channel_edge * (0.50 + sr_balance) * (0.50 + agreement_pressure))
     _add(arrays, names, "support_line_proximity_stack", support_stack, lo=0.0, hi=1.0)
     _add(arrays, names, "resistance_line_proximity_stack", resistance_stack, lo=0.0, hi=1.0)
-    _add(arrays, names, "support_minus_resistance_stack", support_minus_resistance, lo=-2.0, hi=2.0)
-    _add(arrays, names, "major_level_proximity_max", level_max, lo=0.0, hi=1.0)
     _add(arrays, names, "major_level_proximity_mean", level_mean, lo=0.0, hi=1.0)
-    _add(arrays, names, "channel_position_low_to_high", channel_position, lo=0.0, hi=1.0)
-    _add(arrays, names, "channel_center_bias", channel_center, lo=0.0, hi=1.0)
-    _add(arrays, names, "channel_edge_pressure", channel_edge, lo=0.0, hi=1.0)
 
     h1_ratio = c("ctx_cont.H1_range_compression_ratio")
     m15_ratio = c("ctx_cont.M15_range_compression_ratio")
@@ -439,7 +463,6 @@ def build_entry_chart_geometry_layer(
         0.5 * c("ctx_cont.h1_trend_age_bars_norm_v2") + 0.5 * c("ctx_cont.h4_trend_age_bars_norm_v2")
     )
     d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252"))
-    compression_apex = _clip01(compression * sr_balance * level_mean)
 
     bos_up = _clip01(c("snap.smc_bos_up") + 0.5 * _pos(c("ctx_cont.smc_bos_pressure_last12")) + 0.25 * _pos(c("ctx_cont.smc_bos_pressure_last48")))
     bos_down = _clip01(c("snap.smc_bos_down") + 0.5 * _neg(c("ctx_cont.smc_bos_pressure_last12")) + 0.25 * _neg(c("ctx_cont.smc_bos_pressure_last48")))
@@ -447,7 +470,6 @@ def build_entry_chart_geometry_layer(
     sweep_up = _clip01(c("snap.smc_sweep_up") + 0.5 * _neg(c("ctx_cont.smc_sweep_bull_pressure_last12")) + 0.25 * _neg(c("ctx_cont.smc_sweep_bull_pressure_last48")))
     sweep_down = _clip01(c("snap.smc_sweep_down") + 0.5 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last12")) + 0.25 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last48")))
     sweep_recent = _clip01(c("ctx_cont.smc_sweep_recency_tau24"))
-    sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
     wick_level = _clip01(1.0 - c("snap.body_pct"))
     breakout_up_seed = _clip01(
         0.50 * bos_up + 0.20 * ema_bull_confirmation + 0.20 * release + 0.10 * _pos(regime_stack)
@@ -455,38 +477,20 @@ def build_entry_chart_geometry_layer(
     breakout_down_seed = _clip01(
         0.50 * bos_down + 0.20 * ema_bear_confirmation + 0.20 * release + 0.10 * _neg(regime_stack)
     )
-    _add(
-        arrays,
-        names,
-        "support_bounce_long_pressure",
-        support_stack * trend_up * (1.0 + sweep_down + wick_level + 0.5 * channel_confluence),
-        lo=0.0,
-        hi=5.0,
-    )
-    _add(
-        arrays,
-        names,
-        "resistance_reject_short_pressure",
-        resistance_stack * trend_down * (1.0 + sweep_up + wick_level + 0.5 * channel_confluence),
-        lo=0.0,
-        hi=5.0,
-    )
-    _add(
-        arrays,
-        names,
-        "trendline_break_up_pressure",
-        resistance_stack * breakout_up_seed * (1.0 + trend_up + agreement_pressure + 0.5 * compression),
-        lo=0.0,
-        hi=5.0,
-    )
-    _add(
-        arrays,
-        names,
-        "trendline_break_down_pressure",
-        support_stack * breakout_down_seed * (1.0 + trend_down + agreement_pressure + 0.5 * compression),
-        lo=0.0,
-        hi=5.0,
-    )
+    # V30 package 7 (2026-08-13), operator-authorized removals:
+    # `support_bounce_long_pressure` / `resistance_reject_short_pressure` were
+    # hand-written products of already-emitted evidence, and
+    # `trendline_break_up/down_pressure` contain NO LINE — the "break" term is
+    # `smc_bos_*`, a horizontal swing break, and the sided-proximity factor
+    # returns 0 once price passes the level, so the field peaked BEFORE the
+    # break and decayed AT it (audit §1a).  Every input all four consumed is
+    # still a model input: `support_stack`/`resistance_stack` are emitted above,
+    # `trend_up`/`trend_down` are _pos/_neg of the emitted `mtf_trend_score`,
+    # `sweep_up/down` and `bos_up/down` come from the ctx/snap SMC fields that
+    # remain declared sources of this layer and members of the ctx contract,
+    # `wick_level` is 1 - `snap.body_pct`, `agreement_pressure` is emitted, and
+    # `compression`/`release` still drive the retained compression-breakout
+    # pair.  The real sloped-line evidence is the per-TF trendline registry.
     _add(
         arrays,
         names,
@@ -512,112 +516,41 @@ def build_entry_chart_geometry_layer(
         hi=5.0,
     )
 
-    premium = _clip01(c("snap.smc_premium_discount"))
-    retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
-    d1_loc = _clip01(c("ctx_cont.d1_close_pct_in_20day_range_canon_v2"))
-    fib_position = _clip01(0.55 * retracement + 0.30 * premium + 0.15 * d1_loc)
-    fib236 = _fib_proximity(fib_position, 0.236)
-    fib382 = _fib_proximity(fib_position, 0.382)
-    fib500 = _fib_proximity(fib_position, 0.500)
-    fib618 = _fib_proximity(fib_position, 0.618)
-    fib786 = _fib_proximity(fib_position, 0.786)
-    golden = np.maximum(fib500, fib618).astype(np.float32)
-    extension_up = _clip01(_pos(fib_position - 0.786) * 5.0)
-    extension_down = _clip01(_pos(0.236 - fib_position) * 5.0)
-    fib_support_confluence = _clip01(
-        golden * support_stack * (0.50 + channel_confluence) * (0.50 + agreement_pressure)
-    )
-    fib_resistance_confluence = _clip01(
-        golden * resistance_stack * (0.50 + channel_confluence) * (0.50 + agreement_pressure)
-    )
-    _add(arrays, names, "fib_position_proxy", fib_position, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_retracement_236_proximity", fib236, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_retracement_382_proximity", fib382, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_retracement_500_proximity", fib500, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_retracement_618_proximity", fib618, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_retracement_786_proximity", fib786, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_golden_zone_proximity", golden, lo=0.0, hi=1.0)
-    _add(
-        arrays,
-        names,
-        "fib_pullback_long_pressure",
-        trend_up
-        * golden
-        * (0.50 + retracement)
-        * (0.50 + support_stack)
-        * (0.75 + ema_bull_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "fib_pullback_short_pressure",
-        trend_down
-        * golden
-        * (0.50 + retracement)
-        * (0.50 + resistance_stack)
-        * (0.75 + ema_bear_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "fib_extension_breakout_up_pressure",
-        extension_up * trend_up * breakout_up_seed * (0.75 + resistance_stack),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "fib_extension_breakout_down_pressure",
-        extension_down * trend_down * breakout_down_seed * (0.75 + support_stack),
-        lo=0.0,
-        hi=3.0,
-    )
+    # V30 package 7 (2026-08-13), operator-authorized removal of the ENTIRE
+    # Fibonacci block (15 columns) and the chart-pattern composites that
+    # depended on it, per docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1a:
+    # - the three `fib_extension_*` fields were ALGEBRAICALLY IMPOSSIBLE:
+    #   `fib_position` was `_clip01`-ed and an extension is by definition
+    #   > 100%, so `_pos(fib_position - 0.786)` and `_pos(0.236 - fib_position)`
+    #   could only fire inside the retracement band the name excludes;
+    # - `fib_golden_zone_proximity` was mislabelled (0.500-0.618, not the
+    #   classic 0.618-0.786);
+    # - the five `fib_retracement_*_proximity` columns carried ONE degree of
+    #   freedom (deterministic exp(-12*|p-k|) shifts of a single scalar);
+    # - `fib_position_proxy` itself was a hand-weighted 0.55/0.30/0.15 blend
+    #   (unsourced weights) of a REAL retracement with a premium proxy and a
+    #   20-DAY range position - three quantities on different ranges and
+    #   different clocks;
+    # - `ascending/descending_triangle_pressure` were identical formulas up to
+    #   the EMA sign, testing no flat resistance, no rising lows, no touch count
+    #   and no convergence; `bull/bear_flag_pullback_pressure` and
+    #   `flag_breakout_readiness_pressure` are the same construction over the
+    #   mislabelled golden zone; `triangle_apex_compression_pressure` solves no
+    #   apex.
+    # RULE-4 CHECK: `ctx_cont.retracement_from_last_impulse` is the REAL
+    # retracement and REMAINS A MODEL INPUT - it is a MODEL_NATIVE_CTX_CONT_FIELDS
+    # member (so it reaches the model on every row regardless of TRAIN ranking)
+    # and is still a declared, executed source of entry_trend_ema_v1 and
+    # entry_foundation_structure_v1.  The other two blend inputs also remain
+    # model inputs: `snap.smc_premium_discount` is a declared source of
+    # entry_smc_liquidity_quality_v1 / entry_support_resistance_memory_v1, and
+    # `ctx_cont.d1_close_pct_in_20day_range_canon_v2` is a ctx_cont contract
+    # field explicitly routed to chart_geometry_encoder.  `compression`,
+    # `support_stack`, `resistance_stack`, `trend_up/down` and the EMA
+    # follow-through terms all remain emitted or directly derived from emitted
+    # fields.  The genuine converging-line/apex evidence is the per-TF
+    # trendline registry (`geomline_*`), which is already mandatory.
 
-    _add(
-        arrays,
-        names,
-        "ascending_triangle_pressure",
-        support_stack
-        * resistance_stack
-        * compression
-        * trend_up
-        * (0.75 + _pos(_delta(support_stack)) + 0.25 * ema_bull_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "descending_triangle_pressure",
-        support_stack
-        * resistance_stack
-        * compression
-        * trend_down
-        * (0.75 + _pos(_delta(resistance_stack)) + 0.25 * ema_bear_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "bull_flag_pullback_pressure",
-        trend_up * golden * compression * channel_center * (0.75 + support_stack + 0.25 * ema_bull_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "bear_flag_pullback_pressure",
-        trend_down * golden * compression * channel_center * (0.75 + resistance_stack + 0.25 * ema_bear_follow),
-        lo=0.0,
-        hi=3.0,
-    )
     _add(
         arrays,
         names,
@@ -635,132 +568,35 @@ def build_entry_chart_geometry_layer(
         hi=5.0,
     )
     _add(arrays, names, "late_trend_reversal_risk", trend_age * choch * (0.5 + divergence_pressure + d1_atr_pct), lo=0.0, hi=5.0)
-    _add(arrays, names, "line_pattern_tail_risk", (sweep_size + wick_level + divergence_pressure + d1_atr_pct) * channel_edge, lo=0.0, hi=5.0)
-
-    prior_breakout_up = _lag1(_clip01(breakout_up_seed + extension_up * trend_up + release))
-    prior_breakout_down = _lag1(_clip01(breakout_down_seed + extension_down * trend_down + release))
-    mtf_breakout_up_quality = _clip01(
-        resistance_stack * breakout_up_seed * (0.50 + trend_up) * (0.50 + agreement_pressure + release)
-    )
-    mtf_breakout_down_quality = _clip01(
-        support_stack * breakout_down_seed * (0.50 + trend_down) * (0.50 + agreement_pressure + release)
-    )
-    mtf_retest_long_quality = _clip01(
-        support_stack * prior_breakout_up * trend_up * (0.50 + agreement_pressure) * (0.50 + compression + golden)
-    )
-    mtf_retest_short_quality = _clip01(
-        resistance_stack * prior_breakout_down * trend_down * (0.50 + agreement_pressure) * (0.50 + compression + golden)
-    )
-    fib_extension_exhaustion = _clip01(
-        (extension_up * trend_up * resistance_stack + extension_down * trend_down * support_stack)
-        * (0.50 + d1_atr_pct + divergence_pressure)
-    )
-    rising_support_rail_touch = _clip01(
-        support_stack
-        * trend_up
-        * (0.50 + channel_confluence)
-        * (0.50 + agreement_pressure)
-        * (1.0 - 0.35 * divergence_pressure)
-    )
-    falling_resistance_rail_touch = _clip01(
-        resistance_stack
-        * trend_down
-        * (0.50 + channel_confluence)
-        * (0.50 + agreement_pressure)
-        * (1.0 - 0.35 * divergence_pressure)
-    )
-    _add(
-        arrays,
-        names,
-        "trendline_channel_confluence_pressure",
-        channel_confluence * (0.50 + compression) * (0.50 + agreement_pressure),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "channel_edge_rejection_pressure",
-        channel_edge_retest * (sweep_up + sweep_down + wick_level) * (0.50 + divergence_pressure + choch),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "rising_support_rail_long_pressure",
-        rising_support_rail_touch
-        * (0.75 + ema_bull_follow + fib_support_confluence + mtf_retest_long_quality)
-        * (1.0 - 0.35 * breakout_down_seed),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "rising_support_rail_short_trap_pressure",
-        rising_support_rail_touch
-        * (0.75 + ema_bull_confirmation + support_stack + fib_support_confluence)
-        * (1.0 - 0.50 * breakout_down_seed),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "falling_resistance_rail_short_pressure",
-        falling_resistance_rail_touch
-        * (0.75 + ema_bear_follow + fib_resistance_confluence + mtf_retest_short_quality)
-        * (1.0 - 0.35 * breakout_up_seed),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "falling_resistance_rail_long_trap_pressure",
-        falling_resistance_rail_touch
-        * (0.75 + ema_bear_confirmation + resistance_stack + fib_resistance_confluence)
-        * (1.0 - 0.50 * breakout_up_seed),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "fib_support_confluence_long_pressure",
-        fib_support_confluence * trend_up * (0.75 + ema_bull_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(
-        arrays,
-        names,
-        "fib_resistance_confluence_short_pressure",
-        fib_resistance_confluence * trend_down * (0.75 + ema_bear_follow),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(arrays, names, "fib_extension_exhaustion_risk", fib_extension_exhaustion, lo=0.0, hi=1.0)
     _add(arrays, names, "ema_cross_mtf_bull_confirmation", ema_bull_confirmation, lo=0.0, hi=1.0)
     _add(arrays, names, "ema_cross_mtf_bear_confirmation", ema_bear_confirmation, lo=0.0, hi=1.0)
-    _add(arrays, names, "triangle_apex_compression_pressure", compression_apex, lo=0.0, hi=1.0)
-    _add(
-        arrays,
-        names,
-        "flag_breakout_readiness_pressure",
-        golden
-        * compression
-        * channel_confluence
-        * (0.50 + np.maximum(trend_up, trend_down))
-        * (0.50 + release + 0.25 * vol_impulse),
-        lo=0.0,
-        hi=3.0,
-    )
-    _add(arrays, names, "mtf_channel_breakout_up_quality", mtf_breakout_up_quality, lo=0.0, hi=1.0)
-    _add(arrays, names, "mtf_channel_breakout_down_quality", mtf_breakout_down_quality, lo=0.0, hi=1.0)
-    _add(arrays, names, "mtf_channel_retest_long_quality", mtf_retest_long_quality, lo=0.0, hi=1.0)
-    _add(arrays, names, "mtf_channel_retest_short_quality", mtf_retest_short_quality, lo=0.0, hi=1.0)
+    # V30 package 7 (2026-08-13), operator-authorized removal of the remaining
+    # NAME-ONLY block (audit §1a).  All of these names promised a mechanism this
+    # layer cannot compute, because its input tuple is pre-reduced scalars - one
+    # distance per side, no price, no pivot coordinate, no bar index, no slope,
+    # no anchor, and two points are required to define a line:
+    # - the four `*_rail_*` fields contained no rail and no slope; "rising" was
+    #   the sign of a 9-term EMA blend, and the "short trap" / "long trap"
+    #   variants contained no failure and no breakdown - each was a strictly
+    #   more directional rescaling of its own twin;
+    # - `mtf_channel_retest_*_quality` performed no retest: the "window" was
+    #   `_lag1` (one bar) and nothing tested that it was the SAME level that
+    #   broke; `mtf_channel_breakout_*_quality` and
+    #   `trendline_channel_confluence_pressure` / `channel_edge_rejection_pressure`
+    #   are functions of the same two proximity stacks and the breakout seed;
+    # - `fib_extension_exhaustion_risk` inherited the algebraically impossible
+    #   extension terms; `line_pattern_tail_risk` multiplied a wick/sweep sum by
+    #   the removed channel-edge duplicate.
+    # RULE-4 CHECK: every input these composites consumed is still a model
+    # input - `support_line_proximity_stack`, `resistance_line_proximity_stack`,
+    # `major_level_proximity_mean`, `mtf_trend_score`,
+    # `mtf_trend_agreement_pressure`, `mtf_trend_divergence_pressure`,
+    # `ema_cross_up/down_pressure` and `ema_cross_mtf_bull/bear_confirmation`
+    # are all still emitted by this layer; the SMC sweep/BOS/CHoCH and the
+    # compression/vol inputs remain declared sources here and members of the ctx
+    # contract.  The genuine line/channel/retest evidence is the per-TF
+    # `geomline_*` trendline registry and the `level_*` level registry, both
+    # mandatory on all five timeframes since 2026-08-11.
 
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
     if not np.isfinite(out).all():
@@ -789,36 +625,30 @@ CHART_GEOMETRY_FEATURE_NAMES = tuple(
 )
 del _CHART_GEOMETRY_NAME_PROBE, _ratio_field
 
-# The smart2 block starts at a named marker rather than a bare index so an
-# insertion before the boundary fails loudly instead of silently re-pointing
-# the set (same repair as CANDLESTICK_SMART3_START_INDEX, 2026-08-09).
-CHART_GEOMETRY_SMART2_START_INDEX = CHART_GEOMETRY_FEATURE_NAMES.index(
-    "chart.geometry_trendline_channel_confluence_pressure"
-)
-CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[
-    CHART_GEOMETRY_SMART2_START_INDEX:
-]
-
 # The model-native geometry surface retains the exact current-bar inputs used
-# by structural auxiliary supervision and pretrain polarity proof, plus the
-# causal rail/trap subset. A TRAIN ranking may never remove either dependency.
+# by structural auxiliary supervision and the pretrain polarity proof.  A TRAIN
+# ranking may never remove either dependency.
+#
+# V30 package 7 (2026-08-13): 16 of the previous 18 pins were the NAME-ONLY
+# rail / channel / retest / Fibonacci composites removed above, so the pinned
+# set is now exactly the two sided proximity stacks that the aux-label and
+# polarity contracts still bind.  The layer's remaining 13 fields stay in the
+# TRAIN-ranked candidate pool, the same status the other 40 non-pinned
+# chart-geometry fields already had.  The `CHART_GEOMETRY_SMART2_*` marker/suffix
+# pair is gone with them: its anchor field
+# (`chart.geometry_trendline_channel_confluence_pressure`) was removed, and the
+# suffix had no consumer outside its own test (rule 10).
 CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES = (
     f"{CHART_GEOMETRY_FEATURE_PREFIX}support_line_proximity_stack",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}resistance_line_proximity_stack",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}support_minus_resistance_stack",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_position_low_to_high",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_edge_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}trendline_channel_confluence_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_edge_rejection_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}rising_support_rail_long_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}rising_support_rail_short_trap_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}falling_resistance_rail_short_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}falling_resistance_rail_long_trap_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}fib_support_confluence_long_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}fib_resistance_confluence_short_pressure",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}fib_extension_exhaustion_risk",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_breakout_up_quality",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_breakout_down_quality",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_retest_long_quality",
-    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_retest_short_quality",
 )
+_missing_model_native = tuple(
+    name
+    for name in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+    if name not in CHART_GEOMETRY_FEATURE_NAMES
+)
+if _missing_model_native:
+    raise RuntimeError(
+        f"CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES_NOT_EMITTED: {_missing_model_native}"
+    )
+del _missing_model_native

@@ -8,8 +8,8 @@ Read `GX1_RULES.md` first. It is binding.
 - Architecture is fixed: the same eight code-owned feature implementations run
   independently on local M5 for Entry and local M1 for Exit, in one model and
   shared encoder. There is no combined pre-owner M1/M5 package.
-- Entry is 96×592 plus 142 continuous and 5 categorical context values (592 =
-  34 base + 425 mandatory causal + 133 TRAIN-ranked, 16 mandatory families —
+- Entry is 96×591 plus 158 continuous and 5 categorical context values (591 =
+  34 base + 424 mandatory causal + 133 TRAIN-ranked, 16 mandatory families —
   the V29 event surface with level/trendline registries and per-TF event
   primitives; counts derive from the owner tuples).
 - Entry consumes one immutable native M5 feature surface across all splits;

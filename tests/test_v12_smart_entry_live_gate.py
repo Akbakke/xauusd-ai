@@ -204,11 +204,6 @@ def _decision_head(
         "side_mae": [-3.0, -8.0],
         "mtf_dir_logits": [2.0, 0.0, -1.0],
         "mtf_dir_probs": _softmax((2.0, 0.0, -1.0)),
-        "geometry_channel_edge_pressure": 0.4,
-        "geometry_rising_support_rail_long_pressure": 0.7,
-        "geometry_rising_support_rail_short_trap_pressure": 0.2,
-        "geometry_falling_resistance_rail_short_pressure": 0.1,
-        "geometry_falling_resistance_rail_long_trap_pressure": 0.05,
         "trendline_rail_logits": rail_logits,
         "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
         "mtf_trend_evidence": 0.65,
@@ -590,17 +585,12 @@ def test_smart_decision_rejects_nonpositive_or_nonfinite_atr_evidence(
 
 def _forward_states() -> dict:
     evidence_names = [
-        "chart.geometry_channel_edge_pressure",
-        "chart.geometry_rising_support_rail_long_pressure",
-        "chart.geometry_rising_support_rail_short_trap_pressure",
-        "chart.geometry_falling_resistance_rail_short_pressure",
-        "chart.geometry_falling_resistance_rail_long_trap_pressure",
         "trend.mtf_confluence_trend_direction_score",
     ]
     return {
         "times": [pd.Timestamp("2026-07-08T18:00:00Z")],
         "seq": np.zeros((1, 2, 1), dtype=np.float32),
-        "snap": np.asarray([[0.4, 0.7, 0.2, 0.1, 0.05, 0.65]], dtype=np.float32),
+        "snap": np.asarray([[0.65]], dtype=np.float32),
         "ctx_cont": np.zeros((1, 1), dtype=np.float32),
         "ctx_cat": np.asarray([[0, 3, 4, 1, 0]], dtype=np.int64),
         "entry_trend_regime_id": np.asarray([2], dtype=np.int64),

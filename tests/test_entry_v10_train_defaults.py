@@ -3142,19 +3142,39 @@ def test_entry_v10_lr_cosine_schedule_is_the_standard_formula_reaching_zero() ->
 def test_entry_v10_weight_ema_disabled_is_bit_compatible() -> None:
     """decay=0.0 allocates nothing and changes no code path.
 
-    The trainer constructs ``_WeightEma`` only when the recipe decay is > 0.0,
-    validates the raw model when it is None, and captures the raw
+    The trainer constructs ``_WeightEma`` only when the RESOLVED decay is
+    > 0.0, validates the raw model when it is None, and captures the raw
     ``model.state_dict()`` clone for the checkpoint — the pre-package-5
-    expression, character for character.
+    expression, character for character.  V30 package 6 changed where the
+    number comes from (the recipe owner's horizon derivation, resolved once in
+    ``run_train``), never the OFF path: the "0.0" declaration still resolves to
+    exactly 0.0 and still builds no EMA object.
     """
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        resolve_weight_ema_decay,
+    )
 
     text = TRAINER_PATH.read_text(encoding="utf-8")
-    assert "if float(ENTRY_TRAIN_WEIGHT_EMA_DECAY) > 0.0" in text
+    assert "if float(train_weight_ema_decay) > 0.0" in text
     assert "else None" in text
     assert "if weight_ema is not None:" in text
     assert "with weight_ema.evaluating(model):" in text
     assert "{k: v.cpu().clone() for k, v in model.state_dict().items()}" in text
+
+    # The OFF declaration resolves to the OFF sentinel without consulting the
+    # budget at all, so the disabled path cannot be perturbed by a batch or
+    # row-budget change.
+    for rows, batch, accum in ((25_000, 64, 10), (1, 1, 1)):
+        assert (
+            resolve_weight_ema_decay(
+                "0.0",
+                train_rows=rows,
+                batch_size=batch,
+                grad_accum_steps=accum,
+            )["weight_ema_decay"]
+            == 0.0
+        )
 
     # The OFF sentinel is not a constructible EMA: an enabled average needs a
     # decay strictly inside (0, 1), so 0.0 can only mean "no averaging".
@@ -3162,6 +3182,74 @@ def test_entry_v10_weight_ema_disabled_is_bit_compatible() -> None:
         trainer._WeightEma(torch.nn.Linear(3, 2), 0.0)
     with pytest.raises(RuntimeError, match="WEIGHT_EMA_DECAY_INVALID"):
         trainer._WeightEma(torch.nn.Linear(3, 2), 1.0)
+
+
+def test_entry_v10_weight_ema_decay_is_derived_from_the_declared_budget() -> None:
+    """V30 package 6: the decay is a derivation, not a pinned magnitude.
+
+    The recipe owner is the only origin (rule 14) and the trainer applies it to
+    the run's own declared budget: one epoch of optimizer steps, so
+    ``decay = 1 - 1/ceil(train_rows / (batch_size * grad_accum_steps))``.
+    """
+    from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        MODEL_NATIVE_RECIPE_ENV,
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE,
+        derive_weight_ema_decay,
+        resolve_weight_ema_decay,
+    )
+
+    # The declared recipe value selects the derivation, not a number.
+    assert MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_WEIGHT_EMA_DECAY"] == (
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE
+    )
+
+    # The declared smoke budget of the 2026-08-12 ladder: 25,000 rows,
+    # batch 64, accumulation 10 => 40 optimizer steps per epoch.
+    smoke = derive_weight_ema_decay(
+        train_rows=25_000, batch_size=64, grad_accum_steps=10
+    )
+    assert smoke["steps_per_epoch"] == 40
+    assert smoke["weight_ema_decay"] == 1.0 - 1.0 / 40.0
+    assert (
+        resolve_weight_ema_decay(
+            MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE,
+            train_rows=25_000,
+            batch_size=64,
+            grad_accum_steps=10,
+        )
+        == smoke
+    )
+
+    # It follows the budget: a wider effective batch means fewer steps per
+    # epoch and therefore a shorter averaging horizon.
+    wider = derive_weight_ema_decay(
+        train_rows=25_000, batch_size=128, grad_accum_steps=10
+    )
+    assert wider["steps_per_epoch"] == 20
+    assert wider["weight_ema_decay"] < smoke["weight_ema_decay"]
+
+    # Ceiling division: a partial last group still counts as a step.
+    assert (
+        derive_weight_ema_decay(
+            train_rows=641, batch_size=64, grad_accum_steps=10
+        )["steps_per_epoch"]
+        == 2
+    )
+
+    # Fail closed: an undeclared value, a non-usable budget, and a budget too
+    # short to average over are all errors, never a silent decay.
+    with pytest.raises(RuntimeError, match="WEIGHT_EMA_DECAY_UNDECLARED"):
+        resolve_weight_ema_decay(
+            "0.999", train_rows=25_000, batch_size=64, grad_accum_steps=10
+        )
+    with pytest.raises(RuntimeError, match="WEIGHT_EMA_BUDGET_INVALID"):
+        derive_weight_ema_decay(
+            train_rows=0, batch_size=64, grad_accum_steps=10
+        )
+    with pytest.raises(RuntimeError, match="WEIGHT_EMA_HORIZON_DEGENERATE"):
+        derive_weight_ema_decay(
+            train_rows=640, batch_size=64, grad_accum_steps=10
+        )
 
 
 def test_entry_v10_weight_ema_averages_and_restores_exactly() -> None:

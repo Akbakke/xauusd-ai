@@ -81,9 +81,12 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 )
 
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
-    "chart_geometry_encoder": 18 + len(_V29_TRENDLINE_NAMES),
+    # V30 package 7 (2026-08-13): the chart-geometry mandatory pin fell 18 -> 2
+    # and the candle smart3 suffix 32 -> 31 (35 -> 34 here, the suffix plus the
+    # three ctx/base candle names this specialist also owns).
+    "chart_geometry_encoder": 2 + len(_V29_TRENDLINE_NAMES),
     "momentum_flow_encoder": 34 + len(_V29_MOMENTUM_NAMES),
-    "price_action_candle_encoder": 35,
+    "price_action_candle_encoder": 34,
     "session_regime_encoder": 229 + len(_V29_REGIME_NAMES),
     "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
     "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),

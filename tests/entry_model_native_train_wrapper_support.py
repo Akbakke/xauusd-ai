@@ -57,7 +57,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
-    REQUIRED_RAIL_FEATURES,
+    REQUIRED_MANDATORY_GEOMETRY_FEATURES,
     REQUIRED_SPECIALISTS,
     artifact_binding,
     canonical_json_sha256,
@@ -562,11 +562,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "failures": [],
             "dataset_dir": str(dataset_dir),
             "data_splits": ["train", "val"],
-            "require_rail_features": True,
+            "require_mandatory_geometry_features": True,
             "require_inline_seq_structure": True,
             "require_xau_provenance": True,
-            "required_rail_features": list(REQUIRED_RAIL_FEATURES),
-            "missing_rail_features": [],
+            "required_mandatory_geometry_features": list(
+                REQUIRED_MANDATORY_GEOMETRY_FEATURES
+            ),
+            "missing_mandatory_geometry_features": [],
             "tape_provenance": {
                 split: tape_provenance for split in ("train", "val")
             },

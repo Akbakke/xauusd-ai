@@ -136,11 +136,18 @@ UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH = (
 )
 
 REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
-REQUIRED_RAIL_FEATURES = tuple(
-    name
-    for name in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
-    if "_rail_" in name
+# V30 package 7 (2026-08-13): the `_rail_` substring filter would now yield an
+# EMPTY tuple (those six NAME-ONLY fields were removed from the producer), which
+# would turn the pretrain proof below into a vacuous pass.  The requirement is
+# re-pointed at the complete mandatory geometry tuple and fails closed if that
+# tuple is ever empty.
+REQUIRED_MANDATORY_GEOMETRY_FEATURES = tuple(
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
 )
+if not REQUIRED_MANDATORY_GEOMETRY_FEATURES:
+    raise RuntimeError(
+        "MODEL_NATIVE_TRAIN_LAUNCH_MANDATORY_GEOMETRY_FEATURES_EMPTY"
+    )
 
 _MISSING_REQUIRED_OBJECTIVE_WEIGHTS = sorted(
     set(REQUIRED_POSITIVE_LOSS_WEIGHTS) - set(MODEL_NATIVE_RECIPE_ENV_KEYS)
@@ -963,16 +970,16 @@ def _validate_pretrain_audit(
         "pretrain audit split contract mismatch",
     )
     _require(
-        pretrain.get("require_rail_features") is True
+        pretrain.get("require_mandatory_geometry_features") is True
         and pretrain.get("require_inline_seq_structure") is True
         and pretrain.get("require_xau_provenance") is True,
         "pretrain audit required proof toggles are not exact",
     )
     _require(
-        tuple(pretrain.get("required_rail_features") or ())
-        == REQUIRED_RAIL_FEATURES
-        and pretrain.get("missing_rail_features") == [],
-        "pretrain audit rail feature proof mismatch",
+        tuple(pretrain.get("required_mandatory_geometry_features") or ())
+        == REQUIRED_MANDATORY_GEOMETRY_FEATURES
+        and pretrain.get("missing_mandatory_geometry_features") == [],
+        "pretrain audit mandatory geometry feature proof mismatch",
     )
     split_rows = pretrain.get("splits")
     _require(

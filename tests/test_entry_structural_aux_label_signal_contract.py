@@ -17,11 +17,13 @@ from gx1.contracts.entry_structural_aux_label_signal_v1 import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
+# V30 package 7 (2026-08-13): `chart.geometry_channel_position_low_to_high` and
+# `chart.geometry_channel_edge_pressure` were removed from the producer as exact
+# affine duplicates of these two stacks, and their two requirement entries were
+# retired with them (schema v3).
 PROMOTED_GEOMETRY_REQUIREMENTS = {
     "chart.geometry_support_line_proximity_stack",
     "chart.geometry_resistance_line_proximity_stack",
-    "chart.geometry_channel_position_low_to_high",
-    "chart.geometry_channel_edge_pressure",
 }
 
 
@@ -46,7 +48,7 @@ def test_every_structural_aux_requirement_is_code_owned_and_mandatory() -> None:
 
 def test_structural_aux_contract_rejects_ranking_owned_prerequisite() -> None:
     mandatory = list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
-    mandatory.remove("chart.geometry_channel_position_low_to_high")
+    mandatory.remove("chart.geometry_support_line_proximity_stack")
     with pytest.raises(
         RuntimeError,
         match="STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS_NOT_MANDATORY",

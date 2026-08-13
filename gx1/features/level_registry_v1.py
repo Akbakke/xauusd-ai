@@ -69,6 +69,10 @@ the doc's stated conventions and is testable:
    that prefix are dropped (their admission distance is not computable; no
    fallback), and :func:`fit_level_registry_tolerance` drops the same pivots
    so the fitted population matches the admitted population (rule 2g).
+9. The tolerance fit searches the same age window as the runtime merge
+   (interpretation note 7's cap), so the fitted statistic describes the set of
+   levels a merge decision can actually see instead of the whole TRAIN history
+   (rule 2g; repaired 2026-08-13, see the fit's own docstring).
 
 Wiring: none here.  Builders/contracts consume the declared name tuples
 ``LEVEL_REGISTRY_M5_FEATURE_NAMES`` / ``LEVEL_REGISTRY_MTF_FEATURE_NAMES`` in
@@ -79,6 +83,7 @@ from __future__ import annotations
 import copy
 import math
 from bisect import bisect_left, insort
+from collections import deque
 from typing import Any, Mapping
 
 import numpy as np
@@ -508,6 +513,17 @@ def _validate_source(
 # ---------------------------------------------------------------------------
 LEVEL_REGISTRY_FIT_LANE_TFS = tuple(LEVEL_REGISTRY_AGE_CAP_BARS) + ("m1",)
 
+# Per-fit-lane age cap.  The engine TFs use their own expiry cap; the "m1" fit
+# lane uses the M5 cap because the Exit local M1 lane executes
+# ``compute_level_registry_m5_block_v1``, which binds ``tf="m5"`` and therefore
+# runs the M5 expiry cap on the native M1 clock.  No new number is introduced:
+# this maps each fit lane onto the cap its own runtime already uses (rule 2a
+# origin class 1, rule 13 — the value is read from the runtime's own table).
+LEVEL_REGISTRY_FIT_AGE_CAP_BARS = {
+    **LEVEL_REGISTRY_AGE_CAP_BARS,
+    "m1": LEVEL_REGISTRY_AGE_CAP_BARS["m5"],
+}
+
 
 def fit_level_registry_tolerance(
     df: pd.DataFrame,
@@ -525,13 +541,43 @@ def fit_level_registry_tolerance(
     For every confirmed swing pivot (in confirmation order, high before low on
     a shared confirmation bar — the same order the runtime admission uses),
     the sample is the ATR-normalized absolute distance from its price to the
-    nearest *earlier* confirmed pivot price; the tolerance is the ``q``
-    quantile of that sample.  ``q`` is a required explicit recipe input
+    nearest *earlier* confirmed pivot price **that the runtime merge could
+    still see at that bar**; the tolerance is the ``q`` quantile of that
+    sample.  ``q`` is a required explicit recipe input
     (``LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY``); the design doc declares no
     default (§8 item 4), so none exists here.
 
+    Age-window pruning (rule 2g, repaired 2026-08-13 —
+    ``docs/INDICATOR_FIDELITY_AUDIT_20260813.md`` §0a): the fit used to
+    accumulate every earlier pivot price of the whole declared window, so the
+    sample was "distance to the nearest of ALL history".  That population does
+    not exist at any decision point: ``_run_level_registry`` expires a level as
+    soon as ``t - last_touch_bar > LEVEL_REGISTRY_AGE_CAP_BARS[tf]``, so the
+    merge at the confirming bar ``t`` searches only levels inside that window.
+    An unpruned nearest-neighbour statistic shrinks as the window lengthens:
+    it measured TRAIN LENGTH, not a market property, and at ``q=0.5`` it
+    produced ~0.0094 ATR on M5 — a zone half-width of about one cent, at which
+    a merge almost never fires (measured on the sealed V29J TRAIN rows,
+    n=369,303, 2026-08-13: ``member_pivot_count == 1`` on 98.03% of present
+    rows, i.e. clustering on ~2%; audit "STEP-0 MEASUREMENTS" section).  The
+    fit now searches exactly
+    the runtime window:
+    an earlier pivot at bar ``j'`` is admissible for the measurement at
+    confirming bar ``t`` iff ``t - j' <= LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf]``.
+
+    That window is the runtime population for a level that was never touched
+    after birth (creation sets ``last_touch_bar`` to the pivot's own bar ``j``).
+    A level whose zone is re-entered has its ``last_touch_bar`` refreshed and
+    therefore lives longer at runtime, and this fit — which knows no tolerance
+    yet and so cannot replay touches without circularity — does not extend the
+    window for it.  The fitted population is therefore a strict *subset* of the
+    runtime search population, never a superset: it is the exact set for
+    untouched levels and omits the refreshed tail.  Stated here rather than
+    hidden, per rule 2d.
+
     Returns ``(tol_level_atr, provenance)`` where provenance states the sample
-    size and the quantile's sampling bound (rule 2f): ``quantile_prob_se =
+    size, the age window, the searchable-neighbour population it produced, and
+    the quantile's sampling bound (rule 2f): ``quantile_prob_se =
     sqrt(q*(1-q)/N)`` (the distribution-free binomial SE of the empirical CDF
     at ``q``) and the empirical value bracket at ``q ± quantile_prob_se``.
     """
@@ -560,13 +606,27 @@ def fit_level_registry_tolerance(
     )
     nb = len(high)
     n = SWING_LOOKBACK
+    age_cap = LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf]
     swing_high_mask, swing_low_mask = _detect_swing_pivots(high, low, n)
     distances: list[float] = []
-    earlier_prices: list[float] = []
+    # Two views of the same admitted pivots: `window_pivots` in confirmation
+    # order (so the oldest can be expired) and `window_prices` sorted (so the
+    # nearest in-window neighbour is a bisect).  Each pivot enters and leaves
+    # exactly once.
+    window_pivots: deque[tuple[int, float]] = deque()
+    window_prices: list[float] = []
     admitted = 0
     dropped_atr_unavailable = 0
+    dropped_no_in_window_neighbour = 0
+    neighbour_counts: list[int] = []
     for t in range(n, nb):
         j = t - n
+        # Expire pivots the runtime merge could no longer see at bar t: the
+        # engine drops a level once t - last_touch_bar > age_cap, and an
+        # untouched level's last_touch_bar is its own pivot bar (rule 2g).
+        while window_pivots and t - window_pivots[0][0] > age_cap:
+            _expired_bar, expired_price = window_pivots.popleft()
+            del window_prices[bisect_left(window_prices, expired_price)]
         for is_pivot, price in (
             (bool(swing_high_mask[j]), float(high[j])),
             (bool(swing_low_mask[j]), float(low[j])),
@@ -579,20 +639,28 @@ def fit_level_registry_tolerance(
                 # runtime drops this pivot, so the fit drops it too (rule 2g).
                 dropped_atr_unavailable += 1
                 continue
-            if earlier_prices:
-                pos = bisect_left(earlier_prices, price)
+            if window_prices:
+                pos = bisect_left(window_prices, price)
                 nearest = math.inf
-                if pos < len(earlier_prices):
-                    nearest = min(nearest, abs(earlier_prices[pos] - price))
+                if pos < len(window_prices):
+                    nearest = min(nearest, abs(window_prices[pos] - price))
                 if pos > 0:
-                    nearest = min(nearest, abs(earlier_prices[pos - 1] - price))
+                    nearest = min(nearest, abs(window_prices[pos - 1] - price))
                 distances.append(nearest / a)
-            insort(earlier_prices, price)
+                neighbour_counts.append(len(window_prices))
+            else:
+                # No level of any age survives here, so no merge decision is
+                # taken at this pivot and no distance exists to measure.
+                # Counted, never substituted by a placeholder (rule 2e).
+                dropped_no_in_window_neighbour += 1
+            window_pivots.append((j, price))
+            insort(window_prices, price)
             admitted += 1
     if not distances:
         raise RuntimeError(
-            "[LEVEL_REGISTRY_TOL_FIT_INSUFFICIENT] fewer than two admitted "
-            f"pivots in the declared window (admitted={admitted})"
+            "[LEVEL_REGISTRY_TOL_FIT_INSUFFICIENT] no admitted pivot had an "
+            f"earlier pivot inside the {age_cap}-bar runtime age window "
+            f"(admitted={admitted})"
         )
     sample = np.asarray(distances, dtype=np.float64)
     sample_size = int(sample.size)
@@ -619,6 +687,22 @@ def fit_level_registry_tolerance(
         "n_bars": int(nb),
         "n_pivots_admitted": admitted,
         "n_pivots_dropped_atr_unavailable": dropped_atr_unavailable,
+        # Rule 2g audit trail for the age-window fit population: the cap that
+        # pruned it, and how many earlier pivots were actually searchable per
+        # measurement.  The pre-2026-08-13 fit searched every earlier pivot of
+        # the window, so this count grew without bound with TRAIN length; under
+        # the runtime cap it is the size of the set the merge really scans.
+        "fit_population": (
+            "nearest earlier confirmed pivot within "
+            "LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf] bars of the confirming bar "
+            "(the runtime merge's own search window)"
+        ),
+        "age_cap_bars": int(age_cap),
+        "searchable_pivot_population_mean": float(
+            np.mean(np.asarray(neighbour_counts, dtype=np.float64))
+        ),
+        "searchable_pivot_population_max": int(max(neighbour_counts)),
+        "n_pivots_dropped_no_in_window_neighbour": dropped_no_in_window_neighbour,
         "sample_size": sample_size,
         "tol_level_atr": tol,
         "quantile_prob_se": prob_se,

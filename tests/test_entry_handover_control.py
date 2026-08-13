@@ -137,12 +137,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert "source_regression: PASS_2078_TESTS_ZERO_SKIPS_ZERO_WARNINGS" in result.stdout
     assert "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY" in result.stdout
-    # V30 (2026-08-13): signal 608 = 34 + 441 mandatory + 133 ranked (package 3
-    # added the four M5-local price-vs-EMA cross events); ctx_cont 158
-    # (package 1's H4_range_compression_ratio + package 2's nine adopted swing
-    # V29 ctx fields and three momentum-G3 RSI canon scalars + package 4's
-    # three quote/spread-dynamics fields).
-    assert "entry: local=M5 sequence=96 signal=608 ctx_cont=158 ctx_cat=5" in result.stdout
+    # V30 (2026-08-13): signal 591 = 34 + 424 mandatory + 133 ranked (package 7
+    # removed 16 mandatory chart-geometry pins and one mandatory candle column);
+    # ctx_cont 158 (package 1's H4_range_compression_ratio + package 2's nine
+    # adopted swing V29 ctx fields and three momentum-G3 RSI canon scalars +
+    # package 4's three quote/spread-dynamics fields).
+    assert "entry: local=M5 sequence=96 signal=591 ctx_cont=158 ctx_cat=5" in result.stdout
     assert (
         "entry_feature_surface: "
         "HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"

@@ -679,7 +679,10 @@ def _input_audit_contract(
                 == FOUNDATION_AUDIT_DATA_SPLITS,
                 "split set/order",
             ),
-            (payload.get("require_rail_features") is True, "rail feature proof"),
+            (
+                payload.get("require_mandatory_geometry_features") is True,
+                "mandatory geometry feature proof",
+            ),
             (payload.get("require_inline_seq_structure") is True, "inline structure proof"),
             (payload.get("require_xau_provenance") is True, "XAU provenance proof"),
             (payload.get("large_artifact_hashes_verified") is True, "large artifact hashes"),

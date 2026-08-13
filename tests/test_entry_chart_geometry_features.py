@@ -6,7 +6,6 @@ from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
 )
 from gx1.features.entry_chart_geometry_v1 import (
     CHART_GEOMETRY_FEATURE_NAMES,
-    CHART_GEOMETRY_SMART2_FEATURE_NAMES,
     CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
     CHART_GEOMETRY_SOURCE_FIELDS,
     build_entry_chart_geometry_layer,
@@ -16,8 +15,64 @@ from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_speci
 from gx1.features.entry_model_native_feature_layers_v1 import add_chart_feature
 
 
-EXPECTED_CHART_GEOMETRY_FEATURE_COUNT = 58
-SMART2_CHART_GEOMETRY_FEATURE_NAMES = (
+# V30 package 7 (2026-08-13): the layer emits exactly the survivors of the
+# NAME-ONLY removal wave.  The expected tuple is spelled out (not derived from
+# the owner) so a silent re-addition or reordering fails here; the COUNTS below
+# are derived from it.
+EXPECTED_CHART_GEOMETRY_FEATURE_NAMES = (
+    "chart.geometry_mtf_trend_score",
+    "chart.geometry_mtf_trend_agreement_pressure",
+    "chart.geometry_mtf_trend_divergence_pressure",
+    "chart.geometry_ema_cross_up_pressure",
+    "chart.geometry_ema_cross_down_pressure",
+    "chart.geometry_support_line_proximity_stack",
+    "chart.geometry_resistance_line_proximity_stack",
+    "chart.geometry_major_level_proximity_mean",
+    "chart.geometry_failed_breakout_high_reversal_pressure",
+    "chart.geometry_failed_breakout_low_reversal_pressure",
+    "chart.geometry_compression_breakout_up_pressure",
+    "chart.geometry_compression_breakout_down_pressure",
+    "chart.geometry_late_trend_reversal_risk",
+    "chart.geometry_ema_cross_mtf_bull_confirmation",
+    "chart.geometry_ema_cross_mtf_bear_confirmation",
+)
+EXPECTED_CHART_GEOMETRY_FEATURE_COUNT = len(EXPECTED_CHART_GEOMETRY_FEATURE_NAMES)
+
+# The mandatory pin is now exactly the pretrain-polarity requirement, which is
+# also the geometry half of the structural-aux requirement.
+MANDATORY_RAW_GEOMETRY_FEATURE_NAMES = tuple(
+    PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
+)
+
+REMOVED_CHART_GEOMETRY_FEATURE_NAMES = (
+    "chart.geometry_h8_proxy_trend_score",
+    "chart.geometry_ema_stack_bull_pressure",
+    "chart.geometry_ema_stack_bear_pressure",
+    "chart.geometry_support_minus_resistance_stack",
+    "chart.geometry_major_level_proximity_max",
+    "chart.geometry_channel_position_low_to_high",
+    "chart.geometry_channel_center_bias",
+    "chart.geometry_channel_edge_pressure",
+    "chart.geometry_support_bounce_long_pressure",
+    "chart.geometry_resistance_reject_short_pressure",
+    "chart.geometry_trendline_break_up_pressure",
+    "chart.geometry_trendline_break_down_pressure",
+    "chart.geometry_fib_position_proxy",
+    "chart.geometry_fib_retracement_236_proximity",
+    "chart.geometry_fib_retracement_382_proximity",
+    "chart.geometry_fib_retracement_500_proximity",
+    "chart.geometry_fib_retracement_618_proximity",
+    "chart.geometry_fib_retracement_786_proximity",
+    "chart.geometry_fib_golden_zone_proximity",
+    "chart.geometry_fib_pullback_long_pressure",
+    "chart.geometry_fib_pullback_short_pressure",
+    "chart.geometry_fib_extension_breakout_up_pressure",
+    "chart.geometry_fib_extension_breakout_down_pressure",
+    "chart.geometry_ascending_triangle_pressure",
+    "chart.geometry_descending_triangle_pressure",
+    "chart.geometry_bull_flag_pullback_pressure",
+    "chart.geometry_bear_flag_pullback_pressure",
+    "chart.geometry_line_pattern_tail_risk",
     "chart.geometry_trendline_channel_confluence_pressure",
     "chart.geometry_channel_edge_rejection_pressure",
     "chart.geometry_rising_support_rail_long_pressure",
@@ -27,25 +82,12 @@ SMART2_CHART_GEOMETRY_FEATURE_NAMES = (
     "chart.geometry_fib_support_confluence_long_pressure",
     "chart.geometry_fib_resistance_confluence_short_pressure",
     "chart.geometry_fib_extension_exhaustion_risk",
-    "chart.geometry_ema_cross_mtf_bull_confirmation",
-    "chart.geometry_ema_cross_mtf_bear_confirmation",
     "chart.geometry_triangle_apex_compression_pressure",
     "chart.geometry_flag_breakout_readiness_pressure",
     "chart.geometry_mtf_channel_breakout_up_quality",
     "chart.geometry_mtf_channel_breakout_down_quality",
     "chart.geometry_mtf_channel_retest_long_quality",
     "chart.geometry_mtf_channel_retest_short_quality",
-)
-
-STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES = (
-    "chart.geometry_support_line_proximity_stack",
-    "chart.geometry_resistance_line_proximity_stack",
-    "chart.geometry_channel_position_low_to_high",
-    "chart.geometry_channel_edge_pressure",
-)
-MANDATORY_RAW_GEOMETRY_FEATURE_NAMES = (
-    *PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
-    "chart.geometry_channel_edge_pressure",
 )
 
 
@@ -85,9 +127,6 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     for name in ("ctx_cont.dist_to_R1_atr", "ctx_cont.dist_to_R2_atr", "ctx_cont.dist_to_h1_hi_atr", "ctx_cont.dist_to_h4_hi_atr", "ctx_cont.dist_to_d1_hi_atr"):
         set_col(name, [3, 3, 0.4, 3, 0.1, 0.1])
 
-    set_col("snap.smc_premium_discount", [0.2, 0.4, 0.5, 0.618, 0.8, 0.8])
-    set_col("ctx_cont.retracement_from_last_impulse", [0.2, 0.4, 0.5, 0.618, 0.8, 0.8])
-    set_col("ctx_cont.d1_close_pct_in_20day_range_canon_v2", [0.2, 0.4, 0.5, 0.618, 0.8, 0.8])
     set_col("snap.smc_bos_up", [0, 1, 1, 1, 0, 0])
     set_col("snap.smc_bos_down", [0, 0, 0, 0, 1, 1])
     set_col("ctx_cont.smc_bos_pressure_last12", [-1, 1, 1, 1, -1, -1])
@@ -99,8 +138,6 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("snap.smc_sweep_down", [0, 1, 0, 1, 0, 0])
     set_col("ctx_cont.smc_sweep_bull_pressure_last12", [0, 1, 0, 1, -1, -1])
     set_col("ctx_cont.smc_sweep_bull_pressure_last48", [0, 1, 0, 1, -1, -1])
-    set_col("snap.smc_sweep_size_atr", [0, 1, 0, 1, 1, 1])
-    set_col("ctx_cont.smc_sweep_size_recent_tau12", [0, 1, 0, 1, 1, 1])
     set_col("ctx_cont.smc_sweep_recency_tau24", [0, 1, 0.5, 1, 1, 1])
     set_col("snap.body_pct", [0.8, 0.1, 0.8, 0.2, 0.1, 0.1])
     set_col("ctx_cont.H1_range_compression_ratio", [1.0, 0.8, 0.5, 0.5, 0.8, 0.8])
@@ -121,57 +158,34 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     out, out_names = build_entry_chart_geometry_layer(x, names)
     idx = {name: i for i, name in enumerate(out_names)}
 
+    assert CHART_GEOMETRY_FEATURE_NAMES == EXPECTED_CHART_GEOMETRY_FEATURE_NAMES
     assert len(CHART_GEOMETRY_FEATURE_NAMES) == EXPECTED_CHART_GEOMETRY_FEATURE_COUNT
     assert out.shape == (6, EXPECTED_CHART_GEOMETRY_FEATURE_COUNT)
     assert tuple(out_names) == CHART_GEOMETRY_FEATURE_NAMES
-    assert CHART_GEOMETRY_SMART2_FEATURE_NAMES == SMART2_CHART_GEOMETRY_FEATURE_NAMES
-    assert tuple(out_names[-len(SMART2_CHART_GEOMETRY_FEATURE_NAMES) :]) == CHART_GEOMETRY_SMART2_FEATURE_NAMES
-    assert len(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES) == 18
-    assert CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[:5] == (
+    assert (
+        set(REMOVED_CHART_GEOMETRY_FEATURE_NAMES)
+        & set(CHART_GEOMETRY_FEATURE_NAMES)
+        == set()
+    )
+    assert CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES == (
         MANDATORY_RAW_GEOMETRY_FEATURE_NAMES
     )
-    assert set(STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES).issubset(
-        set(MANDATORY_RAW_GEOMETRY_FEATURE_NAMES)
-    )
-    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[5:]).issubset(
-        set(CHART_GEOMETRY_SMART2_FEATURE_NAMES)
-    )
-    assert (
-        "chart.geometry_rising_support_rail_short_trap_pressure"
-        in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
-    )
-    assert (
-        "chart.geometry_falling_resistance_rail_long_trap_pressure"
-        in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES).issubset(
+        set(CHART_GEOMETRY_FEATURE_NAMES)
     )
     assert np.isfinite(out).all()
     assert out[1, idx["chart.geometry_ema_cross_up_pressure"]] > 0.0
-    assert out[3, idx["chart.geometry_fib_retracement_618_proximity"]] > 0.99
-    assert out[3, idx["chart.geometry_fib_pullback_long_pressure"]] > out[3, idx["chart.geometry_fib_pullback_short_pressure"]]
-    assert out[3, idx["chart.geometry_trendline_break_up_pressure"]] > 0.0
     assert out[5, idx["chart.geometry_failed_breakout_high_reversal_pressure"]] > 0.0
     assert out[1, idx["chart.geometry_ema_cross_mtf_bull_confirmation"]] > 0.0
     assert out[4, idx["chart.geometry_ema_cross_mtf_bear_confirmation"]] > 0.0
-    assert out[3, idx["chart.geometry_mtf_channel_breakout_up_quality"]] > 0.0
-    assert out[5, idx["chart.geometry_mtf_channel_retest_short_quality"]] > 0.0
-    assert out[3, idx["chart.geometry_rising_support_rail_long_pressure"]] > 0.0
-    assert out[3, idx["chart.geometry_rising_support_rail_short_trap_pressure"]] > 0.0
-    assert out[5, idx["chart.geometry_falling_resistance_rail_short_pressure"]] > 0.0
-    assert out[5, idx["chart.geometry_falling_resistance_rail_long_trap_pressure"]] > 0.0
-    assert out[3, idx["chart.geometry_fib_support_confluence_long_pressure"]] > out[3, idx["chart.geometry_fib_resistance_confluence_short_pressure"]]
-    assert out[5, idx["chart.geometry_fib_resistance_confluence_short_pressure"]] > out[5, idx["chart.geometry_fib_support_confluence_long_pressure"]]
-    assert not np.array_equal(
-        out[:, idx["chart.geometry_fib_pullback_long_pressure"]],
-        out[:, idx["chart.geometry_fib_support_confluence_long_pressure"]],
-    )
-    assert not np.array_equal(
-        out[:, idx["chart.geometry_fib_pullback_short_pressure"]],
-        out[:, idx["chart.geometry_fib_resistance_confluence_short_pressure"]],
-    )
-    assert out[2, idx["chart.geometry_triangle_apex_compression_pressure"]] > out[0, idx["chart.geometry_triangle_apex_compression_pressure"]]
-    assert out[3, idx["chart.geometry_flag_breakout_readiness_pressure"]] > 0.0
-    assert out[1, idx["chart.geometry_channel_position_low_to_high"]] < 0.42
-    assert out[5, idx["chart.geometry_channel_position_low_to_high"]] > 0.58
+    assert out[1, idx["chart.geometry_support_line_proximity_stack"]] > out[
+        1, idx["chart.geometry_resistance_line_proximity_stack"]
+    ]
+    assert out[5, idx["chart.geometry_resistance_line_proximity_stack"]] > out[
+        5, idx["chart.geometry_support_line_proximity_stack"]
+    ]
+    assert out[1, idx["chart.geometry_mtf_trend_score"]] > 0.0
+    assert out[5, idx["chart.geometry_mtf_trend_score"]] < 0.0
 
 
 def test_chart_geometry_source_contract_and_specialist_routing() -> None:
@@ -180,10 +194,8 @@ def test_chart_geometry_source_contract_and_specialist_routing() -> None:
         name for name in CHART_GEOMETRY_SOURCE_FIELDS if name != "ctx_cont.dist_to_R1_atr"
     )
     assert missing == ["ctx_cont.dist_to_R1_atr"]
-    assert classify_entry_specialist_feature("chart.geometry_fib_golden_zone_proximity") == "chart_geometry_encoder"
-    assert classify_entry_specialist_feature("chart.geometry_ascending_triangle_pressure") == "chart_geometry_encoder"
-    assert classify_entry_specialist_feature("chart.geometry_mtf_channel_retest_long_quality") == "chart_geometry_encoder"
-    assert classify_entry_specialist_feature("chart.geometry_rising_support_rail_short_trap_pressure") == "chart_geometry_encoder"
+    for name in CHART_GEOMETRY_FEATURE_NAMES:
+        assert classify_entry_specialist_feature(name) == "chart_geometry_encoder"
 
 
 def test_chart_geometry_always_rejects_missing_source_fields() -> None:

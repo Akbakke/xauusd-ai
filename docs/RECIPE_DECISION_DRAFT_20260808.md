@@ -119,29 +119,41 @@ key `ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0`, env count 163 → 164) and the train
   exactly this limit-cycle class in the late epochs where the leans occur.
   `0` reproduces the fixed-LR behaviour bit-identically — no scheduler object
   is constructed and no `param_group` is ever written.
-- **`ENTRY_TRAIN_WEIGHT_EMA_DECAY=0.0` (DECLARED, SHIPPED OFF — operator
-  decision outstanding).** An exponential moving average of the model weights
-  is maintained across optimizer steps; VALIDATION and checkpoint selection
-  read the averaged weights (so the gate judges the weights that will ship)
-  while the raw weights keep training. `0.0` is the exact-compatibility
-  sentinel: no shadow state is allocated, no `state_dict` is swapped, and the
+- **`ENTRY_TRAIN_WEIGHT_EMA_DECAY=epoch` (DECLARED ON — operator decision
+  taken 2026-08-13, V30 package 6).** An exponential moving average of the
+  model weights is maintained across optimizer steps; VALIDATION and
+  checkpoint selection read the averaged weights (so the gate judges the
+  weights that will ship) while the raw weights keep training.
+  **Origin: the key declares a HORIZON, not a magnitude.** `epoch` selects
+  `derive_weight_ema_decay` in the recipe owner — the averaging horizon is
+  exactly ONE declared epoch of optimizer steps, so
+  `steps_per_epoch = ceil(train_rows / (batch_size * grad_accum_steps))` and
+  `decay = 1 - 1/steps_per_epoch`. For the declared smoke budget (25,000 rows,
+  batch 64, accumulation 10) that is 40 steps per epoch and **decay = 0.975**.
+  The textbook `0.999` was rejected on measurement, not taste: it is a
+  PER-STEP constant with a ~1000-step horizon, while this profile's entire run
+  is 40 x 8 = 320 optimizer steps, so a 0.999 shadow would still be dominated
+  by its initialization at the last checkpoint — and it has no in-repo named
+  constant to adopt (searched 2026-08-13: no `0.999`, `ema_decay`,
+  `EMA_DECAY`, `AveragedModel`, `polyak`, `swa`), so pinning it would be an
+  invented magnitude (rule 2a/2b). A derivation also follows batch/
+  accumulation/row-budget changes automatically, which a pinned float cannot.
+  Exactly two values are declared (`MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES
+  = ("0.0", "epoch")`); a bare decay fails closed. `0.0` remains the
+  exact-compatibility sentinel: it resolves to 0.0 without consulting the
+  budget, no shadow state is allocated, no `state_dict` is swapped, and the
   checkpoint expression is the pre-package-5 raw clone character for
-  character.
-  **Origin status: NONE FOUND.** A repository-wide search on 2026-08-13 for
-  `0.999`, `ema_decay`, `EMA_DECAY`, `AveragedModel`, `polyak` and `swa`
-  returned no named constant and no weight-averaging machinery of any kind.
-  Writing a decay here would therefore be an invented magnitude (rule 2a/2b).
-  The `ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q` precedent applies: the recipe owner
-  declares the key and pins the value it carries
-  (`MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE`), and the enabling value is
-  an operator recipe decision. **Until an operator supplies one, this damper is
-  off and only the LR schedule is active.**
+  character. The tau precedent governs the split (the recipe owner owns the
+  rule and the formula; the run-dependent quantity is resolved in-trainer from
+  that owner's function, never from an ambient default — rule 14).
 - **Env contract:** 164 -> 166 pre-V29 keys
   (`_PRE_V29_RECIPE_ENV_KEY_COUNT`); the total stays derived as that base plus
   the declared V29 registry key tuple.
-- **Recorded:** `[ENTRY_TRAIN_RECIPE]` and `[TRAIN_STABILITY_DAMPERS]` log
-  both values, and bundle metadata records `train_lr_cosine_decay` and
-  `train_weight_ema_decay`.
+- **Recorded:** `[ENTRY_TRAIN_RECIPE]`, `[TRAIN_STABILITY_DAMPERS]` and
+  `[TRAIN_WEIGHT_EMA_DERIVATION]` log the resolved values, and bundle metadata
+  records `train_lr_cosine_decay`, `train_weight_ema_decay` and the complete
+  `train_weight_ema_derivation` (declared token, row budget, batch geometry,
+  steps per epoch) so the number can be reproduced from the bundle alone.
 - **Unproved:** neither damper has been run end to end on the V30 substrate.
   The three-seed measurement above is the *cause* evidence; that these two
   changes remove the limit cycle is a hypothesis until a fresh multi-seed

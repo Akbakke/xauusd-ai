@@ -12,7 +12,7 @@ import pandas as pd
 
 
 CANDLESTICK_PATTERN_FEATURE_VERSION = (
-    "entry_candlestick_patterns_v2_20260729_single_closed_bar_alignment_failclosed"
+    "entry_candlestick_patterns_v3_20260813_vote_and_affine_duplicate_removal"
 )
 CANDLESTICK_PATTERN_FEATURE_PREFIX = "candle.pattern_"
 CANDLESTICK_PATTERN_SOURCE_FIELDS = ("time", "open", "high", "low", "close")
@@ -364,42 +364,38 @@ def build_entry_candlestick_pattern_layer(frame: object) -> tuple[np.ndarray, li
         0.55 * _safe_div(prev_low - close, np.maximum(prev_range, 1e-12)) + 0.30 * _safe_div(prev_close - close, np.maximum(prev_range, 1e-12)) + 0.15 * (1.0 - close_loc)
     )
 
-    bull_reversal = _clip01(
-        hammer
-        + bullish_engulfing_quality
-        + piercing_line
-        + tweezer_bottom_quality
-        + morning_star_quality
-        + lower_rejection_quality * bull
-        + three_bar_bull_reversal
-    )
-    bear_reversal = _clip01(
-        shooting_star
-        + bearish_engulfing_quality
-        + dark_cloud
-        + tweezer_top_quality
-        + evening_star_quality
-        + upper_rejection_quality * bear
-        + three_bar_bear_reversal
-    )
-    bull_continuation = _clip01(
-        marubozu_bull
-        + three_white_soldiers
-        + outside_bar_quality * bull
-        + bull_rejection_continuation
-        + bullish_engulfing_followthrough
-        + three_bar_bull_continuation
-    )
-    bear_continuation = _clip01(
-        marubozu_bear
-        + three_black_crows
-        + outside_bar_quality * bear
-        + bear_rejection_continuation
-        + bearish_engulfing_followthrough
-        + three_bar_bear_continuation
-    )
-    indecision_setup = _clip01(doji + inside_bar_quality + inside_bar_chain + wick_dominance * small_body)
-    tail_risk = _clip01(doji + upper_share + lower_share + outside_bar_quality + wick_dominance)
+    # V30 package 7 (2026-08-13), operator-authorized rule-4 removal: the six
+    # aggregate candle VOTES (`bull/bear_reversal_pressure`,
+    # `bull/bear_continuation_pressure`, `indecision_breakout_setup`) and
+    # `tail_rejection_risk` are gone.  They were hand-written OR-sums of
+    # already-emitted columns — the exact `mtf_confluence` class rule 4
+    # retired on 2026-08-05 — and `tail_rejection_risk` is additionally
+    # saturated at exactly 1.0 over 66.7% of its feasible (body, upper, lower)
+    # simplex (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1f), i.e. a censored
+    # copy of `1 - body_share`.  Every term each vote consumed is still an
+    # emitted model input in this same layer, so the model learns the fusion
+    # instead of being handed it:
+    #   bull/bear_reversal   <- hammer_bull_reversal_score /
+    #       shooting_star_bear_reversal_score, bullish/bearish_engulfing_quality,
+    #       piercing_line_bull_score / dark_cloud_bear_score,
+    #       tweezer_bottom/top_quality, morning_star_bull/evening_star_bear_quality,
+    #       bull_lower/bear_upper_wick_rejection_quality x body_direction,
+    #       three_bar_bull/bear_reversal_quality;
+    #   bull/bear_continuation <- marubozu_bull/bear_score,
+    #       three_white_soldiers/three_black_crows_score, outside_bar_quality x
+    #       body_direction, bull/bear_rejection_continuation_score,
+    #       bullish/bearish_engulfing_followthrough_quality,
+    #       three_bar_bull/bear_continuation_quality;
+    #   indecision_breakout_setup <- doji_score, inside_bar_quality,
+    #       inside_bar_chain_compression_score, wick_dominance_score and
+    #       `small_body`, a deterministic monotone function of the emitted
+    #       body_share (and itself carried by inside_bar_compression_score);
+    #   tail_rejection_risk <- doji_score, upper_wick_share, lower_wick_share,
+    #       outside_bar_quality, wick_dominance_score.
+    # `close_pressure_signed` is likewise no longer emitted (exact affine
+    # duplicate 2*close_location - 1 with an inactive clip); the local value is
+    # retained ONLY as the |.| term inside outside_bar_quality below, which is
+    # an even function of it and therefore not a duplicate of close_location.
 
     arrays: list[np.ndarray] = []
     names: list[str] = []
@@ -425,13 +421,6 @@ def build_entry_candlestick_pattern_layer(frame: object) -> tuple[np.ndarray, li
     _add(arrays, names, "evening_star_bear_score", evening_star, lo=0.0, hi=1.0)
     _add(arrays, names, "three_white_soldiers_score", three_white_soldiers, lo=0.0, hi=1.0)
     _add(arrays, names, "three_black_crows_score", three_black_crows, lo=0.0, hi=1.0)
-    _add(arrays, names, "bull_reversal_pressure", bull_reversal, lo=0.0, hi=1.0)
-    _add(arrays, names, "bear_reversal_pressure", bear_reversal, lo=0.0, hi=1.0)
-    _add(arrays, names, "bull_continuation_pressure", bull_continuation, lo=0.0, hi=1.0)
-    _add(arrays, names, "bear_continuation_pressure", bear_continuation, lo=0.0, hi=1.0)
-    _add(arrays, names, "indecision_breakout_setup", indecision_setup, lo=0.0, hi=1.0)
-    _add(arrays, names, "tail_rejection_risk", tail_risk, lo=0.0, hi=1.0)
-    _add(arrays, names, "close_pressure_signed", close_pressure_signed, lo=-1.0, hi=1.0)
     _add(arrays, names, "wick_imbalance_signed", wick_imbalance_signed, lo=-1.0, hi=1.0)
     _add(arrays, names, "upper_wick_to_body_score", upper_wick_to_body, lo=0.0, hi=1.0)
     _add(arrays, names, "lower_wick_to_body_score", lower_wick_to_body, lo=0.0, hi=1.0)

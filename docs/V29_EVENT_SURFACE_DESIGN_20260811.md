@@ -128,7 +128,11 @@ whose conjunction the fusion learns.
 
 - Constant origins (all named in one sentence, rule 2a): pivot source
   `SWING_LOOKBACK=3` (named, smc_v1); `TOL_LEVEL_ATR[tf]` TRAIN-fitted
-  quantile of pivot-to-nearest-earlier-pivot distances, quantile `q` an
+  quantile of pivot-to-nearest-earlier-pivot distances **measured inside the
+  runtime merge's own `AGE_CAP[tf]` window** (rule 2g; the unpruned
+  whole-history version tracked TRAIN length and was repaired 2026-08-13, V30
+  package 6 — see `docs/INDICATOR_FIDELITY_AUDIT_20260813.md` §0a), quantile
+  `q` an
   immutable-recipe key, fitted values frozen bundle state (rule 18), sample
   size + sampling bound stated per TF (rule 2f); expiry `AGE_CAP[tf]` = the
   liquidity-zone lookbacks 240/192/168/168/60 (named constants in
@@ -181,7 +185,10 @@ Boundary contract:
   direction), 6 channel/triangle fields with apex proximity. Constants: band
   per TF TRAIN-fitted (median 3rd-touch |deviation|/ATR over the complete
   TRAIN candidate population, N stated; break margin = the same band — one
-  constant); retest window `2·SWING_LOOKBACK+1 = 7` bars (named constant,
+  constant; since that population is the *null* it then judges, the fit also
+  publishes the measured `implied_validation_rate` it implies, ~0.5 by
+  construction — V30 package 6, audit §0b); retest window
+  `2·SWING_LOOKBACK+1 = 7` bars (named constant,
   recipe-overridable); candidate window = `per_tf_seq_lens` (explicit recipe
   input). Aux-target replacement: §5.
 - Entry-M5 visibility: the same 30-field emission also runs on the entry M5

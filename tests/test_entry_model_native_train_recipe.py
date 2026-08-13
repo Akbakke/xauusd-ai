@@ -37,7 +37,9 @@ def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     from gx1.contracts.entry_model_native_train_recipe_v1 import (
         MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS,
         MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS,
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES,
         MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE,
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE,
     )
 
     expected_count = 166 + len(MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS)
@@ -46,16 +48,20 @@ def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     assert MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_LOGIT_ADJUST_TAU"] == "1.0"
     # V30 package 5. The cosine switch carries no magnitude at all (T_max is
     # the declared --epochs budget, eta_min the library default 0.0), so it is
-    # adopted ON. The weight-EMA decay has no in-repo convention to adopt, so
-    # it is pinned at the disabled sentinel until an operator supplies one.
+    # adopted ON.  V30 package 6: the weight-EMA key declares a HORIZON, not a
+    # magnitude — "epoch" selects the owner's derivation (one epoch of
+    # optimizer steps), "0.0" is the OFF sentinel, and nothing else is a
+    # declared value, so no bare decay can ever be pinned here.
     assert set(MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS) <= set(
         MODEL_NATIVE_RECIPE_ENV_KEYS
     )
     assert MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_LR_COSINE_DECAY"] == "1"
     assert MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_WEIGHT_EMA_DECAY"] == (
-        MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE
+        MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE
     )
     assert MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE == "0.0"
+    assert MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE == "epoch"
+    assert MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES == ("0.0", "epoch")
     # median, adopting the design document's own median convention used for
     # the sibling trendline band (docs/V29_EVENT_SURFACE_DESIGN_20260811.md
     # B.2), applied uniformly across registry tolerances; operator-adopted

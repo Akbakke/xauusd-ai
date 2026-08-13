@@ -48,17 +48,29 @@ SCHEMA_VERSION = "entry_model_native_seq513_train_recipe_env_v1"
 # bit-identically: no scheduler object is constructed and no param_group is
 # ever written.
 #
-# ENTRY_TRAIN_WEIGHT_EMA_DECAY origin: 0.0 == OFF, and OFF is what this recipe
-# currently declares.  0.0 is the exact-compatibility switch (no shadow
-# weights are allocated, validation and checkpoint selection see the raw
-# training weights exactly as today).  Any ENABLING value is an OPERATOR
-# DECISION with no in-repo convention to adopt: a repository-wide search for
-# 0.999 / ema_decay / EMA_DECAY / AveragedModel / polyak / swa found no named
-# constant and no weight-averaging machinery whatsoever (2026-08-13), so
-# writing a decay here would be an invented magnitude (rule 2a/2b).  The
-# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q precedent applies: the recipe owner
-# declares the key and pins its adopted value; the value itself is supplied by
-# the operator, and until one is supplied the damper stays off.
+# ENTRY_TRAIN_WEIGHT_EMA_DECAY origin (operator decision, 2026-08-13): the key
+# declares a HORIZON, not a magnitude.  ``epoch`` selects
+# ``derive_weight_ema_decay`` below — the EMA averaging horizon is exactly ONE
+# declared epoch of optimizer steps, so the decay is computed from the recipe's
+# own declared budget:
+#     steps_per_epoch = ceil(train_rows / (batch_size * grad_accum_steps))
+#     decay           = 1 - 1 / steps_per_epoch
+# Why a derivation and not the textbook 0.999: 0.999 is a PER-STEP constant
+# whose averaging horizon is ~1000 optimizer steps, and this profile's ENTIRE
+# run is shorter than that (25,000 rows / 640 effective batch = 40 steps per
+# epoch x 8 epochs = 320 steps), so a 0.999 shadow would still be dominated by
+# its initialization at the last checkpoint — it would damp nothing and would
+# also be an invented magnitude here (a repository-wide search for 0.999 /
+# ema_decay / EMA_DECAY / AveragedModel / polyak / swa found no named constant
+# to adopt, 2026-08-13).  Deriving from the declared budget keeps the horizon
+# meaningful and follows batch/accumulation/row-budget changes automatically,
+# which a pinned float cannot.  0.0 remains the exact-compatibility OFF
+# sentinel (no shadow weights allocated; validation and checkpoint selection
+# see the raw training weights, byte-identical to the pre-package-5 trainer).
+# The tau precedent governs the split (ENTRY_DIRECTION_LOGIT_ADJUST_TAU): the
+# recipe owner declares the rule and owns the formula, and the quantity that
+# depends on the run's declared data/budget is resolved at train time from this
+# owner's function — never from an ambient default (rule 14).
 _RECIPE_ENV_TEXT = """
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP=20.0
 ENTRY_AUX_BAD_PATH_WEIGHT=1.25
@@ -221,7 +233,7 @@ ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70
 ENTRY_TEASER_LONG_CE_MULTIPLIER=1.35
 ENTRY_TEASER_LONG_PROB_PENALTY=0.16
 ENTRY_TRAIN_LR_COSINE_DECAY=1
-ENTRY_TRAIN_WEIGHT_EMA_DECAY=0.0
+ENTRY_TRAIN_WEIGHT_EMA_DECAY=epoch
 ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=1.00
 ENTRY_UNIFIED_EXIT_ACTION_WEIGHT=1.00
 GX1_CTX_CONTRACT=V_NEXT
@@ -328,6 +340,9 @@ _RECIPE_STRING_KEYS = frozenset(
         "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES",
         "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION",
         "GX1_V10_CKPT_MONITOR",
+        # V30 package 6: a declared horizon token ("epoch") or the "0.0" OFF
+        # sentinel — never a bare magnitude, so it is a string key.
+        "ENTRY_TRAIN_WEIGHT_EMA_DECAY",
     }
 )
 
@@ -430,12 +445,21 @@ if MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"] != (
 # ``ENTRY_TRAIN_WEIGHT_EMA_DECAY`` is REQUIRED-BY-OPERATOR-DECISION, the
 # ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q pattern: the recipe owner declares the
 # key and pins the value it currently carries, and only a new recipe decision
-# may move it.  The pinned value is the DISABLED sentinel, because no in-repo
-# named constant carries a weight-EMA decay convention to adopt (searched
-# 2026-08-13: no 0.999, ema_decay, EMA_DECAY, AveragedModel, polyak or swa
-# anywhere in the repository).  Inventing one would be a guessed default
-# (rule 2a/2b), so the damper ships off until an operator supplies a decay.
+# may move it.  Exactly two values are declared — the DISABLED sentinel and
+# the epoch-horizon token that selects :func:`derive_weight_ema_decay`.  A bare
+# float is deliberately NOT accepted: a pinned decay could not follow the
+# declared batch/accumulation/row budget, which is the whole content of the
+# 2026-08-13 operator decision recorded in the origin comment above.
 MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE = "0.0"
+MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE = "epoch"
+MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES = (
+    MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE,
+    MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE,
+)
+# The horizon the operator declared: ONE epoch of optimizer steps.  It is the
+# unit of the trainer's own declared budget (--epochs counts these), not a
+# tuned number.
+MODEL_NATIVE_WEIGHT_EMA_HORIZON_EPOCHS = 1
 MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS = (
     "ENTRY_TRAIN_LR_COSINE_DECAY",
     "ENTRY_TRAIN_WEIGHT_EMA_DECAY",
@@ -445,16 +469,123 @@ for _damper_key in MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS:
         raise RuntimeError(
             f"MODEL_NATIVE_RECIPE_ENV_STABILITY_DAMPER_KEY_MISSING: {_damper_key}"
         )
-if MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_WEIGHT_EMA_DECAY"] != (
-    MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE
+if MODEL_NATIVE_RECIPE_ENV["ENTRY_TRAIN_WEIGHT_EMA_DECAY"] not in (
+    MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES
 ):
     raise RuntimeError(
         "MODEL_NATIVE_RECIPE_ENV_WEIGHT_EMA_DECAY_UNDECLARED: the weight-EMA "
-        "decay has no in-repo convention to adopt, so any value other than the "
-        "disabled sentinel "
-        f"{MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE} is an operator recipe "
-        "decision that must be recorded in the origin comment above before it "
-        "is pinned here"
+        "key carries a horizon declaration, not a magnitude, so it must be "
+        f"exactly one of {MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES}; any "
+        "other value is an operator recipe decision that must be recorded in "
+        "the origin comment above before it is declared here"
+    )
+
+
+def derive_weight_ema_decay(
+    *,
+    train_rows: int,
+    batch_size: int,
+    grad_accum_steps: int,
+) -> dict[str, Any]:
+    """Derive the weight-EMA decay from the run's declared training budget.
+
+    The operator decision of 2026-08-13 (origin comment at the top of this
+    module): the EMA averaging horizon is ONE declared epoch of optimizer
+    steps.  A convex EMA ``shadow <- d*shadow + (1-d)*current`` has mean
+    averaging horizon ``1/(1-d)`` steps, so a horizon of ``steps_per_epoch``
+    steps is exactly ``d = 1 - 1/steps_per_epoch``.  Nothing here is chosen:
+    the three inputs are the declared row budget of one epoch and the two
+    declared batch-geometry CLI values, and
+    ``MODEL_NATIVE_WEIGHT_EMA_HORIZON_EPOCHS`` is the declared horizon.
+
+    Returns the derivation payload (decay + every input and intermediate) so
+    the trainer can log and record it instead of recomputing it — one owner
+    for the formula (rule 2a origin class 1 for the horizon, class 3 for the
+    budget inputs; rule 14: training reads this function, never an ambient
+    default).  Fails closed on any non-usable budget; in particular a budget
+    that yields a single optimizer step per epoch cannot express an average at
+    all (it would produce ``d = 0``, colliding with the OFF sentinel), so it is
+    an error rather than a silent disable.
+    """
+
+    values = {
+        "train_rows": train_rows,
+        "batch_size": batch_size,
+        "grad_accum_steps": grad_accum_steps,
+    }
+    for name, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise RuntimeError(
+                f"MODEL_NATIVE_WEIGHT_EMA_BUDGET_INVALID: {name}={value!r} "
+                "must be an int"
+            )
+        if value <= 0:
+            raise RuntimeError(
+                f"MODEL_NATIVE_WEIGHT_EMA_BUDGET_INVALID: {name}={value!r} "
+                "must be > 0"
+            )
+    effective_batch = int(batch_size) * int(grad_accum_steps)
+    steps_per_epoch = -(-int(train_rows) // effective_batch)  # ceil division
+    horizon_steps = steps_per_epoch * MODEL_NATIVE_WEIGHT_EMA_HORIZON_EPOCHS
+    if horizon_steps < 2:
+        raise RuntimeError(
+            "MODEL_NATIVE_WEIGHT_EMA_HORIZON_DEGENERATE: the declared budget "
+            f"gives {horizon_steps} optimizer step(s) per epoch "
+            f"(train_rows={train_rows}, batch_size={batch_size}, "
+            f"grad_accum_steps={grad_accum_steps}); an averaging horizon needs "
+            "at least two steps"
+        )
+    decay = 1.0 - 1.0 / float(horizon_steps)
+    if not (0.0 < decay < 1.0):
+        raise RuntimeError(
+            f"MODEL_NATIVE_WEIGHT_EMA_DECAY_DERIVED_INVALID: {decay!r}"
+        )
+    return {
+        "recipe_key": "ENTRY_TRAIN_WEIGHT_EMA_DECAY",
+        "declared_value": MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE,
+        "horizon_epochs": int(MODEL_NATIVE_WEIGHT_EMA_HORIZON_EPOCHS),
+        "train_rows": int(train_rows),
+        "batch_size": int(batch_size),
+        "grad_accum_steps": int(grad_accum_steps),
+        "effective_batch_rows": int(effective_batch),
+        "steps_per_epoch": int(steps_per_epoch),
+        "horizon_optimizer_steps": int(horizon_steps),
+        "weight_ema_decay": float(decay),
+    }
+
+
+def resolve_weight_ema_decay(
+    declared_value: str,
+    *,
+    train_rows: int,
+    batch_size: int,
+    grad_accum_steps: int,
+) -> dict[str, Any]:
+    """Resolve the declared recipe value into the decay the trainer applies.
+
+    ``0.0`` resolves to ``0.0`` (OFF) without touching the budget at all, so
+    the disabled path stays exactly disable-able and bit-identical.  The
+    epoch-horizon token resolves through :func:`derive_weight_ema_decay`.  Any
+    other string fails closed — the trainer must never invent a decay.
+    """
+
+    value = str(declared_value)
+    if value == MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE:
+        return {
+            "recipe_key": "ENTRY_TRAIN_WEIGHT_EMA_DECAY",
+            "declared_value": value,
+            "weight_ema_decay": 0.0,
+        }
+    if value == MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE:
+        return derive_weight_ema_decay(
+            train_rows=train_rows,
+            batch_size=batch_size,
+            grad_accum_steps=grad_accum_steps,
+        )
+    raise RuntimeError(
+        "MODEL_NATIVE_WEIGHT_EMA_DECAY_UNDECLARED: "
+        f"{value!r} is not one of "
+        f"{MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES}"
     )
 
 

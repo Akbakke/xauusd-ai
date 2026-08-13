@@ -71,7 +71,9 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
+    MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES,
     require_model_native_recipe_env,
+    resolve_weight_ema_decay,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PrefreezeTestSealLineageError,
@@ -964,18 +966,23 @@ if ENTRY_TRAIN_LR_COSINE_DECAY not in (0, 1):
         "[ENTRY_TRAIN_LR_COSINE_DECAY_INVALID] "
         f"got={ENTRY_TRAIN_LR_COSINE_DECAY!r} expected 0 or 1"
     )
-# 0.0 is the exact-compatibility OFF sentinel. An enabling decay is an operator
-# recipe decision (no in-repo convention exists to adopt); the open interval is
-# the algebraic domain of a convex EMA weight, not a chosen bound.
-ENTRY_TRAIN_WEIGHT_EMA_DECAY = float(_env_str("ENTRY_TRAIN_WEIGHT_EMA_DECAY"))
-if (
-    (not np.isfinite(ENTRY_TRAIN_WEIGHT_EMA_DECAY))
-    or ENTRY_TRAIN_WEIGHT_EMA_DECAY < 0.0
-    or ENTRY_TRAIN_WEIGHT_EMA_DECAY >= 1.0
+# The recipe key declares a HORIZON, not a magnitude (V30 package 6, operator
+# decision 2026-08-13): "0.0" is the exact-compatibility OFF sentinel and
+# "epoch" selects the recipe owner's derivation, decay = 1 - 1/steps_per_epoch
+# over the run's declared budget. The declared string is validated here; the
+# float itself cannot exist yet because the budget is a CLI/dataset quantity,
+# so it is resolved once inside run_train through
+# `resolve_weight_ema_decay` — the recipe owner is the only origin (rule 14),
+# exactly as the logit-adjustment tau owns its rule while its data-dependent
+# priors are computed at dataset load.
+ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED = _env_str("ENTRY_TRAIN_WEIGHT_EMA_DECAY")
+if ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED not in (
+    MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES
 ):
     raise RuntimeError(
         "[ENTRY_TRAIN_WEIGHT_EMA_DECAY_INVALID] "
-        f"got={ENTRY_TRAIN_WEIGHT_EMA_DECAY!r} expected finite in [0.0, 1.0)"
+        f"got={ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED!r} expected one of "
+        f"{MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES}"
     )
 ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT"))
 ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE = float(_env_str("ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE"))
@@ -11093,6 +11100,35 @@ def run_train(
         prefetch_factor=prefetch_factor,
     )
 
+    # V30 package 6: resolve the recipe-declared weight-EMA horizon into the
+    # decay this run applies. The recipe owner owns both the declared vocabulary
+    # and the formula (rule 14); the trainer only supplies the run's declared
+    # budget. `effective_train_rows` is the rows one epoch iterates: the
+    # declared --subsample-rows budget as realized by the stratified sampler on
+    # the smoke profile, and the complete declared TRAIN population on the
+    # candidate profile (where --subsample-rows is 0 by contract). Rule 2g: the
+    # horizon is only "one epoch" if that row count is the one the optimizer
+    # actually steps through, so the loader's own micro-batch count is required
+    # to agree before the derivation is trusted.
+    _require(
+        len(train_loader) == -(-int(effective_train_rows) // int(batch_size)),
+        "[WEIGHT_EMA_EPOCH_ROWS_MISMATCH] "
+        f"train_loader batches={len(train_loader)} != "
+        f"ceil({effective_train_rows}/{batch_size}) — the EMA horizon cannot "
+        "be derived from a row budget the epoch does not iterate",
+    )
+    weight_ema_derivation = resolve_weight_ema_decay(
+        ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED,
+        train_rows=int(effective_train_rows),
+        batch_size=int(batch_size),
+        grad_accum_steps=int(grad_accum_steps),
+    )
+    train_weight_ema_decay = float(weight_ema_derivation["weight_ema_decay"])
+    log.info(
+        "[TRAIN_WEIGHT_EMA_DERIVATION] %s",
+        json.dumps(weight_ema_derivation, sort_keys=True),
+    )
+
     # Before first epoch: prove the exact model-native input contract.
     sample = next(iter(train_loader))
     seq_input_dim = int(sample["seq_x"].shape[2])
@@ -11799,7 +11835,7 @@ def run_train(
     log.info(
         "[ENTRY_TRAIN_RECIPE] lr_cosine_decay=%d weight_ema_decay=%.6f direction_ce_scale=%.3f direction_logit_adjust_tau=%.3f tail_direction_w=%.3f tail_direction_q=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
         int(ENTRY_TRAIN_LR_COSINE_DECAY),
-        float(ENTRY_TRAIN_WEIGHT_EMA_DECAY),
+        float(train_weight_ema_decay),
         float(ENTRY_DIRECTION_CE_SCALE),
         float(ENTRY_DIRECTION_LOGIT_ADJUST_TAU),
         float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
@@ -12023,8 +12059,8 @@ def run_train(
     # (ii) Weight EMA, read ONLY by validation and checkpoint selection. The raw
     #      weights keep training. At the 0.0 OFF sentinel no instance exists.
     weight_ema = (
-        _WeightEma(model, float(ENTRY_TRAIN_WEIGHT_EMA_DECAY))
-        if float(ENTRY_TRAIN_WEIGHT_EMA_DECAY) > 0.0
+        _WeightEma(model, float(train_weight_ema_decay))
+        if float(train_weight_ema_decay) > 0.0
         else None
     )
     log.info(
@@ -12033,7 +12069,7 @@ def run_train(
         int(ENTRY_TRAIN_LR_COSINE_DECAY),
         int(epochs),
         float(lr),
-        float(ENTRY_TRAIN_WEIGHT_EMA_DECAY),
+        float(train_weight_ema_decay),
         int(weight_ema is not None),
     )
 
@@ -13591,9 +13627,14 @@ def run_train(
         # V30 package 5 stability dampers. `train_lr_cosine_decay` selects the
         # library cosine anneal over the declared epoch budget (0 = the fixed
         # LR); `train_weight_ema_decay` = 0.0 means no weight averaging took
-        # place and the shipped weights are the raw training weights.
+        # place and the shipped weights are the raw training weights. V30
+        # package 6: the decay is DERIVED from this run's declared budget, so
+        # the complete derivation (declared token, row budget, batch geometry,
+        # steps per epoch) is recorded next to it — the number alone would not
+        # let a reader reproduce it.
         "train_lr_cosine_decay": int(ENTRY_TRAIN_LR_COSINE_DECAY),
-        "train_weight_ema_decay": float(ENTRY_TRAIN_WEIGHT_EMA_DECAY),
+        "train_weight_ema_decay": float(train_weight_ema_decay),
+        "train_weight_ema_derivation": dict(weight_ema_derivation),
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),

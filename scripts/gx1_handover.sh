@@ -210,8 +210,15 @@ echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"
 # quote/spread-dynamics block: spread_bps_delta_1, spread_intrabar_range_bps,
 # quote_range_asymmetry_bps) takes ctx_cont 155 -> 158 and leaves signal at 608
 # (the block is ctx evidence in the TRAIN-ranked pool, not a mandatory causal
-# family). Derived from the entry_model_native_signal_v1 owner tuples.
-echo "entry: local=M5 sequence=96 signal=608 ctx_cont=158 ctx_cat=5 mtf=M15,H1,H4,D1"
+# family); package 7 (operator-authorized NAME-ONLY / duplicate REMOVALS: 43
+# chart-geometry composites incl. the whole Fibonacci block and the H8 pseudo-
+# timeframe, plus 7 candlestick columns - 6 aggregate votes and the affine
+# duplicate close_pressure_signed) takes signal 608 -> 591 (mandatory causal
+# 441 -> 424: chart_geometry_smart2 18 -> 2, price_action_candle_smart3
+# 32 -> 31), ctx_cont unchanged, and per-TF MULTI_TF_FEATURE_COUNT_V4
+# 189 -> 182 (the 7 candle removals mirror onto all five lanes).
+# Derived from the entry_model_native_signal_v1 owner tuples.
+echo "entry: local=M5 sequence=96 signal=591 ctx_cont=158 ctx_cat=5 mtf=M15,H1,H4,D1"
 echo "entry_feature_surface: HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"
 echo "exit: local=M1 sequence=480 mtf=M5,M15,H1,H4,D1 same_contract_plus_causal_path shared_encoder=true"
 echo "mtf_construction: CLOSED_OHLCV_BEFORE_FEATURES_NO_COMPUTED_M1_RESAMPLING"

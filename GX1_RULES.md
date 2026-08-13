@@ -25,9 +25,9 @@ immutable OANDA XAU_USD M1 + M5
   source must match those market values exactly from common-history start
   through TRAIN end. M1 and M5 consumers bind that same NPZ; fitting a second
   rank state or fitting from the downstream model source is forbidden.
-- Both native surfaces use the same ordered 592 signal fields (34 base + 425
+- Both native surfaces use the same ordered 591 signal fields (34 base + 424
   mandatory causal + 133 TRAIN-ranked over 16 mandatory families; the counts
-  derive from the owner tuples), 142 continuous context fields and 5
+  derive from the owner tuples), 158 continuous context fields and 5
   categorical fields. Entry reads 96 M5 bars; Exit reads 480 M1 bars, capped
   at 512 path states, plus the frozen Entry representation.
 - Entry model inputs may come only from the exact hash-bound native M5 feature

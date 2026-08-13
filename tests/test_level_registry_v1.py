@@ -25,6 +25,7 @@ from gx1.features.level_registry_v1 import (
     LEVEL_REGISTRY_AGE_CAP_BARS,
     LEVEL_REGISTRY_COUNT_AGE_CAP,
     LEVEL_REGISTRY_DIST_SATURATION_ATR,
+    LEVEL_REGISTRY_FIT_AGE_CAP_BARS,
     LEVEL_REGISTRY_M5_FEATURE_NAMES,
     LEVEL_REGISTRY_MTF_FEATURE_NAMES,
     LEVEL_REGISTRY_REACTION_WINDOW_BARS,
@@ -560,6 +561,53 @@ def test_fit_determinism_and_provenance():
     assert prov1["n_pivots_admitted"] == n_pivots
     assert prov1["sample_size"] == n_pivots - 1
     assert prov1["n_pivots_dropped_atr_unavailable"] == 0
+
+
+def test_fit_searches_only_the_runtime_age_window():
+    """Rule 2g: the fit population is the set the runtime merge can see.
+
+    Before 2026-08-13 the fit kept every earlier pivot of the whole declared
+    window, so the searched set grew with TRAIN LENGTH and the fitted
+    nearest-neighbour statistic shrank with it.  The engine expires a level at
+    ``t - last_touch_bar > AGE_CAP``, so at most one high and one low pivot per
+    bar over ``AGE_CAP + 1`` bars can be searched — an exact bound that no
+    amount of extra TRAIN history can exceed.
+    """
+    age_cap = LEVEL_REGISTRY_FIT_AGE_CAP_BARS["m5"]
+    in_window_bound = 2 * (age_cap + 1)
+    # Long enough that the whole-history pool exceeds the in-window bound, so
+    # the two populations are genuinely distinguishable on this frame.
+    long_df = _rng_df(n=16 * age_cap, seed=11)
+    _tol, prov = fit_level_registry_tolerance(
+        long_df, q=0.5, tf="m5", declared_train_window="W"
+    )
+    assert prov["age_cap_bars"] == age_cap
+    # The window really is longer than the cap, so an unpruned fit would have
+    # searched more than the bound; the pruned fit cannot.
+    assert prov["n_pivots_admitted"] > in_window_bound
+    assert prov["searchable_pivot_population_max"] <= in_window_bound
+    assert (
+        0.0
+        < prov["searchable_pivot_population_mean"]
+        <= prov["searchable_pivot_population_max"]
+    )
+    # Every admitted pivot either measured a distance or had no in-window
+    # neighbour at all; nothing is silently substituted (rule 2e).
+    assert (
+        prov["sample_size"] + prov["n_pivots_dropped_no_in_window_neighbour"]
+        == prov["n_pivots_admitted"]
+    )
+    assert "fit_population" in prov
+
+
+def test_fit_m1_lane_uses_the_m5_runtime_cap():
+    """The Exit M1 lane executes the m5-bound block, so it fits that cap."""
+    df = _rng_df(n=300, seed=11)
+    _tol, prov = fit_level_registry_tolerance(
+        df, q=0.5, tf="m1", declared_train_window="W"
+    )
+    assert prov["age_cap_bars"] == LEVEL_REGISTRY_AGE_CAP_BARS["m5"]
+    assert LEVEL_REGISTRY_FIT_AGE_CAP_BARS["m1"] == LEVEL_REGISTRY_AGE_CAP_BARS["m5"]
 
 
 def test_fit_quantile_monotone_in_q():

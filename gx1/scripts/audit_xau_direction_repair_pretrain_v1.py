@@ -34,10 +34,8 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
 )
 import pyarrow.parquet as pq
 from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
-    CHANNEL_POSITION_FEATURE,
     PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
     RESISTANCE_STACK_FEATURE,
-    SUPPORT_MINUS_RESISTANCE_FEATURE,
     SUPPORT_STACK_FEATURE,
 )
 from gx1.features.entry_chart_geometry_v1 import (
@@ -47,11 +45,18 @@ from gx1.features.entry_chart_geometry_v1 import (
 
 DEFAULT_STEM = f"v10_6yr_dataset{DIRECTION_DATASET_STEM_SUFFIX}"
 REQUIRED_POLARITY_FEATURES = PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
-REQUIRED_RAIL_FEATURES = tuple(
-    name
-    for name in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
-    if "_rail_" in name
+# V30 package 7 (2026-08-13): the previous `REQUIRED_RAIL_FEATURES` filtered
+# the mandatory geometry tuple on the substring `_rail_`.  Those six fields
+# were removed as NAME-ONLY (no rail, no slope, no line), which would have left
+# the filter EMPTY and the proof silently vacuous - a fail-open gate.  The proof
+# is re-pointed at the complete mandatory geometry tuple, which is the property
+# it was really guarding: every code-owned mandatory chart-geometry field is
+# present in the split's signal manifest.
+REQUIRED_MANDATORY_GEOMETRY_FEATURES = tuple(
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
 )
+if not REQUIRED_MANDATORY_GEOMETRY_FEATURES:
+    raise RuntimeError("XAU_PRETRAIN_AUDIT_MANDATORY_GEOMETRY_FEATURES_EMPTY")
 REQUIRED_XAU_TARGET_COLUMNS = (
     "y_direction",
     "y_bad_path",
@@ -251,33 +256,6 @@ def _read_sample(
     return out
 
 
-def _safe_mean(values: np.ndarray, mask: np.ndarray) -> float | None:
-    if int(mask.sum()) <= 0:
-        return None
-    arr = np.asarray(values[mask], dtype=np.float64)
-    arr = arr[np.isfinite(arr)]
-    return float(arr.mean()) if arr.size else None
-
-
-def _safe_rate(mask: np.ndarray) -> float | None:
-    if mask.size <= 0:
-        return None
-    return float(np.asarray(mask, dtype=bool).mean())
-
-
-def _safe_corr(a: np.ndarray, b: np.ndarray) -> float | None:
-    x = np.asarray(a, dtype=np.float64)
-    y = np.asarray(b, dtype=np.float64)
-    ok = np.isfinite(x) & np.isfinite(y)
-    if int(ok.sum()) < 3:
-        return None
-    x = x[ok]
-    y = y[ok]
-    if float(np.std(x)) <= 1e-12 or float(np.std(y)) <= 1e-12:
-        return None
-    return float(np.corrcoef(x, y)[0, 1])
-
-
 def _audit_split(
     *,
     split: str,
@@ -309,41 +287,26 @@ def _audit_split(
     missing_features = [name for name, idx in feature_index.items() if idx is None or idx >= snap.shape[1]]
     polarity: dict[str, Any] = {"available": False}
     if not missing_features:
+        # V30 package 7 (2026-08-13): the channel-position statistics
+        # (means per pocket, the resistance-minus-support delta, the
+        # correlation against support_minus_resistance and the two 0.42/0.58
+        # rates) are GONE, not zeroed: their subject columns
+        # `chart.geometry_channel_position_low_to_high` and
+        # `chart.geometry_support_minus_resistance_stack` were removed from the
+        # producer as exact-affine duplicates of the two stacks read here.  A
+        # measurement that cannot be taken is omitted rather than emitted as a
+        # placeholder that would read as a passing result (rule 2e).  What
+        # remains is the pocket-occupancy measurement, which is still taken on
+        # the exact rows the model trains on.
         support = snap[:, int(feature_index[SUPPORT_STACK_FEATURE])]
         resistance = snap[:, int(feature_index[RESISTANCE_STACK_FEATURE])]
-        support_minus_resistance = snap[
-            :, int(feature_index[SUPPORT_MINUS_RESISTANCE_FEATURE])
-        ]
-        channel_position = snap[:, int(feature_index[CHANNEL_POSITION_FEATURE])]
         support_dom = (support - resistance) > float(support_dominance_min)
         resistance_dom = (resistance - support) > float(support_dominance_min)
-        support_mean = _safe_mean(channel_position, support_dom)
-        resistance_mean = _safe_mean(channel_position, resistance_dom)
-        delta = (
-            None
-            if support_mean is None or resistance_mean is None
-            else float(resistance_mean - support_mean)
-        )
-        corr = _safe_corr(channel_position, support_minus_resistance)
         polarity = {
             "available": True,
             "support_dominance_min": float(support_dominance_min),
             "support_dominant_rows": int(support_dom.sum()),
             "resistance_dominant_rows": int(resistance_dom.sum()),
-            "support_dominant_channel_position_mean": support_mean,
-            "resistance_dominant_channel_position_mean": resistance_mean,
-            "resistance_minus_support_channel_position_mean": delta,
-            "channel_position_vs_support_minus_resistance_corr": corr,
-            "support_dominant_channel_position_lt_042_rate": (
-                _safe_rate(channel_position[support_dom] < 0.42)
-                if int(support_dom.sum())
-                else None
-            ),
-            "resistance_dominant_channel_position_gt_058_rate": (
-                _safe_rate(channel_position[resistance_dom] > 0.58)
-                if int(resistance_dom.sum())
-                else None
-            ),
             "enough_pocket_rows": bool(
                 int(support_dom.sum()) >= int(min_pocket_rows)
                 and int(resistance_dom.sum()) >= int(min_pocket_rows)
@@ -557,7 +520,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     split_reports: list[dict[str, Any]] = []
     manifest_fields: list[str] | None = None
-    missing_rail_features: list[str] = []
+    missing_mandatory_geometry_features: list[str] = []
     if stem is not None:
         for split in splits:
             try:
@@ -566,7 +529,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 fields = _feature_fields(manifest)
                 if manifest_fields is None:
                     manifest_fields = fields
-                    missing_rail_features = [name for name in REQUIRED_RAIL_FEATURES if name not in fields]
+                    missing_mandatory_geometry_features = [
+                        name
+                        for name in REQUIRED_MANDATORY_GEOMETRY_FEATURES
+                        if name not in fields
+                    ]
                 split_report = _audit_split(
                     split=split,
                     parquet_path=parquet_path,
@@ -580,8 +547,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             except Exception as exc:
                 failures.append(f"{split}: audit failed: {exc}")
 
-    if missing_rail_features:
-        failures.append(f"missing required XAU rail features in manifest: {missing_rail_features}")
+    if missing_mandatory_geometry_features:
+        failures.append(
+            "missing required XAU mandatory geometry features in manifest: "
+            f"{missing_mandatory_geometry_features}"
+        )
 
     stale_markers = ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext")
     dataset_dir_text = str(dataset_dir).lower()
@@ -718,18 +688,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 f"(support={polarity.get('support_dominant_rows')} resistance={polarity.get('resistance_dominant_rows')})"
             )
             continue
-        delta = polarity.get("resistance_minus_support_channel_position_mean")
-        if delta is None or float(delta) < float(args.min_channel_position_delta):
-            failures.append(
-                f"{split}: channel_position polarity stale/inverted; expected resistance_mean > support_mean "
-                f"by >= {args.min_channel_position_delta}, got delta={delta}"
-            )
-        corr = polarity.get("channel_position_vs_support_minus_resistance_corr")
-        if corr is None or float(corr) > float(args.max_channel_position_support_corr):
-            failures.append(
-                f"{split}: channel_position correlates wrong with support_minus_resistance; "
-                f"expected <= {args.max_channel_position_support_corr}, got {corr}"
-            )
 
     split_state_contracts: dict[str, dict[str, Any]] = {}
     for row in split_reports:
@@ -766,18 +724,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "requested_stem": requested_stem,
         "stem": str(stem or requested_stem),
         "data_splits": splits,
-        "require_rail_features": True,
+        "require_mandatory_geometry_features": True,
         "require_inline_seq_structure": True,
         "require_xau_provenance": True,
-        "required_rail_features": list(REQUIRED_RAIL_FEATURES),
-        "missing_rail_features": missing_rail_features,
+        "required_mandatory_geometry_features": list(
+            REQUIRED_MANDATORY_GEOMETRY_FEATURES
+        ),
+        "missing_mandatory_geometry_features": (
+            missing_mandatory_geometry_features
+        ),
         "required_xau_target_columns": list(REQUIRED_XAU_TARGET_COLUMNS),
         "tape_provenance": tape_provenance_by_split,
         "thresholds": {
             "support_dominance_min": float(args.support_dominance_min),
             "min_pocket_rows": int(args.min_pocket_rows),
-            "min_channel_position_delta": float(args.min_channel_position_delta),
-            "max_channel_position_support_corr": float(args.max_channel_position_support_corr),
         },
         "splits": split_reports,
         "failures": failures,
@@ -817,8 +777,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-row-groups-per-split", type=int, default=5)
     parser.add_argument("--support-dominance-min", type=float, default=0.25)
     parser.add_argument("--min-pocket-rows", type=int, default=30)
-    parser.add_argument("--min-channel-position-delta", type=float, default=0.05)
-    parser.add_argument("--max-channel-position-support-corr", type=float, default=-0.05)
     parser.add_argument("--quiet", action="store_true")
     return parser
 

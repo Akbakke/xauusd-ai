@@ -33,7 +33,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 from gx1.scripts.audit_xau_direction_repair_pretrain_v1 import (
     DEFAULT_STEM,
     REQUIRED_POLARITY_FEATURES,
-    REQUIRED_RAIL_FEATURES,
+    REQUIRED_MANDATORY_GEOMETRY_FEATURES,
     run,
     build_parser,
 )
@@ -143,7 +143,7 @@ def _write_split(
     split: str,
     *,
     inverted: bool,
-    include_rail: bool = True,
+    include_mandatory_geometry: bool = True,
     include_inline_seq_structure: bool = True,
     bad_path_mismatch: bool = False,
     anti_short_wrong_side: bool = False,
@@ -200,8 +200,8 @@ def _write_split(
         rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
     ).hexdigest()
     selected_fields = list(REQUIRED_POLARITY_FEATURES)
-    if include_rail:
-        selected_fields.extend(REQUIRED_RAIL_FEATURES)
+    if include_mandatory_geometry:
+        selected_fields.extend(REQUIRED_MANDATORY_GEOMETRY_FEATURES)
     selected_fields = canonical_model_native_selected_fields(
         required_fields=selected_fields,
         remainder_prefix="session_regime.xau_repair_fixture",
@@ -229,16 +229,16 @@ def _write_split(
             scalar_bad = 1.0 - scalar_bad
         support = 0.90 if support_dom else 0.40
         resistance = 0.40 if support_dom else 0.90
-        sr = support - resistance
+        # V30 package 7 (2026-08-13): `inverted` now flips the two SIDED
+        # PROXIMITY STACKS themselves.  The channel-position/support-minus-
+        # resistance columns were removed from the producer as exact affine
+        # duplicates of these two, so the fixture writes only what the audit can
+        # still read.
         if inverted:
-            channel_position = 0.75 if support_dom else 0.25
-        else:
-            channel_position = 0.25 if support_dom else 0.75
+            support, resistance = resistance, support
         snap = [0.0] * len(fields)
         snap[feature_positions["chart.geometry_support_line_proximity_stack"]] = support
         snap[feature_positions["chart.geometry_resistance_line_proximity_stack"]] = resistance
-        snap[feature_positions["chart.geometry_support_minus_resistance_stack"]] = sr
-        snap[feature_positions["chart.geometry_channel_position_low_to_high"]] = channel_position
         long_mfe = 20.0 + i if support_dom else 6.0 + i
         long_mae = 2.0 + i if support_dom else 16.0 + i
         short_mfe = 4.0 + i if support_dom else 12.0 + i
@@ -418,7 +418,7 @@ def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: P
 def test_missing_polarity_field_does_not_mask_target_consistency(
     tmp_path: Path,
 ) -> None:
-    missing = "chart.geometry_support_minus_resistance_stack"
+    missing = "chart.geometry_resistance_line_proximity_stack"
     for split in ("train", "val", "test"):
         _write_split(tmp_path, split, inverted=False)
         manifest_path = tmp_path / f"{DEFAULT_STEM}_{split}.manifest.json"
@@ -447,25 +447,13 @@ def test_missing_polarity_field_does_not_mask_target_consistency(
     )
 
 
-def test_xau_direction_repair_pretrain_audit_fails_inverted_channel_position(tmp_path: Path) -> None:
-    for split in ("train", "val", "test"):
-        _write_split(tmp_path, split, inverted=True)
-
-    with pytest.raises(SystemExit):
-        run(_args(tmp_path))
-
-    report = _read_immutable_audit(tmp_path)
-    assert report["decision"] == "FAIL"
-    assert any("channel_position polarity stale/inverted" in item for item in report["failures"])
-
-
-def test_xau_direction_repair_signal_contract_requires_every_rail_feature() -> None:
+def test_xau_direction_repair_signal_contract_requires_every_mandatory_geometry_feature() -> None:
     selected = canonical_model_native_selected_fields(
         required_fields=REQUIRED_POLARITY_FEATURES,
-        remainder_prefix="session_regime.missing_rail_adversary",
+        remainder_prefix="session_regime.missing_geometry_adversary",
     )
-    selected.remove(REQUIRED_RAIL_FEATURES[0])
-    selected.append("chart.geometry_replacement_without_registered_rail")
+    selected.remove(REQUIRED_MANDATORY_GEOMETRY_FEATURES[0])
+    selected.append("chart.geometry_replacement_without_registered_mandatory")
 
     with pytest.raises(RuntimeError, match="missing_mandatory_full_stack_fields"):
         model_native_signal_contract_metadata(selected)

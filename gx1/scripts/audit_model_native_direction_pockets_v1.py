@@ -885,8 +885,6 @@ def main() -> int:
             "chart.sr_memory_support_respect_pressure_long",
             "chart.sr_memory_support_reclaim_pressure_long",
             "chart.sr_memory_liquidity_low_level_rejection_long",
-            "chart.geometry_fib_support_confluence_long_pressure",
-            "chart.geometry_rising_support_rail_long_pressure",
         ],
     )
     resistance_prox = _max_named_column(
@@ -898,19 +896,7 @@ def main() -> int:
             "chart.sr_memory_resistance_respect_pressure_short",
             "chart.sr_memory_resistance_reclaim_pressure_short",
             "chart.sr_memory_liquidity_high_level_rejection_short",
-            "chart.geometry_fib_resistance_confluence_short_pressure",
-            "chart.geometry_falling_resistance_rail_short_pressure",
         ],
-    )
-    channel_edge = _named_column(
-        snap,
-        signal_names,
-        "chart.geometry_channel_edge_pressure",
-    )
-    channel_pos = _named_column(
-        snap,
-        signal_names,
-        "chart.geometry_channel_position_low_to_high",
     )
     support_respect = _max_named_column(
         snap,
@@ -1080,17 +1066,11 @@ def main() -> int:
                 "chart.sr_memory_support_respect_pressure_long",
                 "chart.sr_memory_support_reclaim_pressure_long",
                 "chart.sr_memory_liquidity_low_level_rejection_long",
-                "chart.geometry_fib_support_confluence_long_pressure",
-                "chart.geometry_rising_support_rail_long_pressure",
                 "chart.geometry_resistance_line_proximity_stack",
                 "chart.sr_memory_resistance_level_proximity_stack",
                 "chart.sr_memory_resistance_respect_pressure_short",
                 "chart.sr_memory_resistance_reclaim_pressure_short",
                 "chart.sr_memory_liquidity_high_level_rejection_short",
-                "chart.geometry_fib_resistance_confluence_short_pressure",
-                "chart.geometry_falling_resistance_rail_short_pressure",
-                "chart.geometry_channel_edge_pressure",
-                "chart.geometry_channel_position_low_to_high",
             ],
             "future_outcome_pocket_labels": [
                 "y_line_support_touch_held",
@@ -1115,8 +1095,6 @@ def main() -> int:
             "higher_tf_composite": _finite_distribution(htf_score),
             "support_proximity_stack": _finite_distribution(support_prox),
             "resistance_proximity_stack": _finite_distribution(resistance_prox),
-            "channel_edge_pressure": _finite_distribution(channel_edge),
-            "channel_position": _finite_distribution(channel_pos),
             "support_respect": _finite_distribution(support_respect),
             "resistance_respect": _finite_distribution(resistance_respect),
         },

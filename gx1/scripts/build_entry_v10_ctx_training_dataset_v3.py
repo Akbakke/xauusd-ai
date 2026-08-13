@@ -4097,8 +4097,6 @@ def build_dataset_canonical(
             _structural_signal("resistance_reclaim"),
         ]
     )
-    _channel_edge = _structural_signal("geometry_channel_edge")
-    _channel_pos = _structural_signal("geometry_channel_position")
     _support_respect = np.maximum(
         _structural_signal("support_respect"),
         _structural_signal("support_liquidity_rejection"),
@@ -4107,9 +4105,6 @@ def build_dataset_canonical(
         _structural_signal("resistance_respect"),
         _structural_signal("resistance_liquidity_rejection"),
     )
-    _geom_long_prox = _structural_signal("geometry_long_fib_sr_proximity")
-    _geom_short_prox = _structural_signal("geometry_short_fib_sr_proximity")
-
     _intraday_up = (
         (_trend_score >= 0.0)
         & (_long_trend_bias >= _short_trend_bias)
@@ -4120,27 +4115,24 @@ def build_dataset_canonical(
         & (_short_trend_bias >= _long_trend_bias)
         & (_structure_dir <= 0.10)
     )
+    # V30 package 7 (2026-08-13): the channel-edge / channel-position / fib-S-R
+    # disjuncts are gone with their removed producers (exact-affine duplicates
+    # of the two sided proximity stacks, and the retired Fibonacci block).  The
+    # surviving disjunct and every surrounding threshold are UNCHANGED — a
+    # disjunct is removed, no constant is invented and none is re-tuned (rule
+    # 2b).  These two masks are representation/slice supervision only; they
+    # never rewrite the direction target (rule 3).
     _rising_support = (
         _intraday_up
         & (_support_prox >= 0.35)
         & (_support_prox >= _resistance_prox)
-        & (
-            (_channel_edge >= 0.15)
-            | (_channel_pos <= 0.42)
-            | (_support_respect >= 0.35)
-            | (_geom_long_prox >= 0.35)
-        )
+        & (_support_respect >= 0.35)
     )
     _falling_resistance = (
         _intraday_down
         & (_resistance_prox >= 0.35)
         & (_resistance_prox >= _support_prox)
-        & (
-            (_channel_edge >= 0.15)
-            | (_channel_pos >= 0.58)
-            | (_resistance_respect >= 0.35)
-            | (_geom_short_prox >= 0.35)
-        )
+        & (_resistance_respect >= 0.35)
     )
 
     _side_margin_bps = np.maximum(1.0, float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))

@@ -70,6 +70,46 @@ surface's value is a conclusion about degenerate constants, not about the
 mechanism. **Fix before the next chain run** — it is a fit-population
 change in the existing owner, not new mechanism (rule 22's preferred order).
 
+**REPAIRED 2026-08-13 (V30 package 6), in the existing owners:**
+
+- **0a fixed.** `fit_level_registry_tolerance` now prunes its search set to
+  the runtime merge's own window: at confirming bar `t` only pivots with
+  `t − pivot_bar ≤ LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf]` are searchable (the
+  engine's existing per-TF expiry cap; the `m1` fit lane maps to the M5 cap
+  because the Exit lane executes the m5-bound block). `q` is unchanged (the
+  recipe input) and the rule-2f bound is unchanged. The provenance payload now
+  publishes `fit_population`, `age_cap_bars`,
+  `searchable_pivot_population_mean` / `_max` and
+  `n_pivots_dropped_no_in_window_neighbour`, so the searched-set size is
+  auditable in every frozen manifest and can never silently track TRAIN
+  length again. Caveat stated in the owner: a level whose zone is re-entered
+  has its `last_touch_bar` refreshed and lives longer at runtime; the fit
+  cannot replay touches without a tolerance it has not fitted yet, so the
+  fitted population is a strict *subset* of the runtime one (exact for
+  untouched levels), never a superset.
+- **0b published, not moved.** No new quantile was invented. The band is still
+  the median of the first-subsequent-pivot deviation population, and the
+  payload now publishes `implied_validation_rate` — the measured share of
+  arbitrary 2-pivot pairs that the fitted band promotes (~0.5 by construction,
+  ≥0.5 exactly by the definition of a median). Conditioning the fit population
+  on "pairs that became lines" is **circular** and was therefore not
+  implemented: at serve a pair becomes a line exactly when a third pivot lands
+  within the band, so selecting that subpopulation needs the band being
+  fitted. Moving the statistic is now an operator decision with a measured
+  rate to choose against.
+- **Not repaired, found while repairing (`[PS]`, new):** the band fit records
+  each candidate's FIRST subsequent same-side pivot and then drops the
+  candidate, but serve keeps a non-promoted candidate alive and retests it
+  against every later same-side pivot inside the `seq_len` window
+  (`_ingest_confirmed_pivot` keeps `~promoted`). The fitted null population is
+  therefore not the serve population, and the true serve promotion rate is
+  *higher* than the published `implied_validation_rate` — the ~0 bits finding
+  is, if anything, understated. Fixing it changes the statistic (a per-
+  candidate minimum over its live window) and is left as a declared open item.
+- Both fits are re-run by the chain, so no artifact was rewritten; the V29J
+  frozen constants are now stale by construction, which is the intended
+  outcome.
+
 ---
 
 ## 1. NAME-ONLY — the name promises what the formula does not compute
@@ -352,10 +392,13 @@ threshold is `[M]` **the top-1 ranked feature overall** and `[M]` has
 3. `_v1_atr14` TRAIN-vs-VAL distribution shift. Settles §3a.
 
 **Step 1 — recipe-value fixes (no new mechanism).**
-4. Re-fit `level_tol_atr` on the AGE-CAP-pruned pivot population (the set
+4. ~~Re-fit `level_tol_atr` on the AGE-CAP-pruned pivot population (the set
    the runtime merge actually searches); publish `implied_validation_rate`
-   for `band_atr` so the null-population defect cannot recur silently.
-   Existing owners, existing constants. **Before the next chain run.**
+   for `band_atr` so the null-population defect cannot recur silently.~~
+   **DONE 2026-08-13 (V30 package 6)** — both in the existing owners, no new
+   constant; see the REPAIRED block in §0, including the one open item it
+   uncovered (the band fit's first-pivot-only population vs serve's retested
+   candidates).
 
 **Step 2 — one-line repairs, zero new numbers.**
 5. `hl_state`/`ll_state` enum re-indexing (§4a).
@@ -476,3 +519,83 @@ gate currently asks this question. Separately: the V30 22:00 D1 origin
 yields a **completely different D1 grid** (1,734 vs 2,088 bars, zero shared
 labels) — expected, and it means V30's D1 features are a new population,
 not a perturbation of V29's.
+
+---
+
+## 10. V30 PACKAGE 7 — OPERATOR-AUTHORIZED REMOVALS PERFORMED (2026-08-13)
+
+Step 5 of §8 is taken for the two owners the operator named. Recording what
+IS and is NOT verified (rule 25c).
+
+**Removed — 43 chart-geometry columns** (`entry_chart_geometry_v1`, layer
+58 → 15, version → `entry_chart_geometry_v5_20260813_name_only_composite_removal`):
+`h8_proxy_trend_score` (no H8 exists in `MULTI_TF_RESAMPLE_RULES`);
+`ema_stack_bull/bear_pressure` (products of two still-emitted fields, zero
+consumers); the five exact-affine duplicates of the two sided stacks
+(`support_minus_resistance_stack`, `major_level_proximity_max`,
+`channel_position_low_to_high`, `channel_center_bias`, `channel_edge_pressure`);
+the whole Fibonacci block (15: `fib_position_proxy`, the five
+`fib_retracement_*_proximity`, `fib_golden_zone_proximity`,
+`fib_pullback_long/short_pressure`, `fib_extension_breakout_up/down_pressure`,
+`fib_support/resistance_confluence_*_pressure`, `fib_extension_exhaustion_risk`);
+and the remaining NAME-ONLY composites (`support_bounce_long_pressure`,
+`resistance_reject_short_pressure`, `trendline_break_up/down_pressure`,
+`ascending/descending_triangle_pressure`, `bull/bear_flag_pullback_pressure`,
+`line_pattern_tail_risk`, `trendline_channel_confluence_pressure`,
+`channel_edge_rejection_pressure`, the four `*_rail_*`,
+`triangle_apex_compression_pressure`, `flag_breakout_readiness_pressure`,
+`mtf_channel_breakout_up/down_quality`, `mtf_channel_retest_long/short_quality`).
+
+**Removed — 7 candlestick columns** (`entry_candlestick_patterns_v1`, layer
+60 → 53, version → `entry_candlestick_patterns_v3_20260813_vote_and_affine_duplicate_removal`),
+each also on all five per-TF `mtf_pattern_*` lanes: the six aggregate votes
+(`bull/bear_reversal_pressure`, `bull/bear_continuation_pressure`,
+`indecision_breakout_setup`, `tail_rejection_risk`) and the exact affine
+duplicate `close_pressure_signed` (= 2·`close_location` − 1, clip inactive).
+
+**Derived counts after the removal** (owner tuples, never restated literals):
+per-TF `MULTI_TF_FEATURE_COUNT_V4` 189 → **182**; mandatory causal
+441 → **424** (chart_geometry_smart2 18 → 2, price_action_candle_smart3
+32 → 31); `MODEL_NATIVE_SIGNAL_DIM` 608 → **591** (34 base + 424 + 133 ranked
+over the same 16 families); `MODEL_NATIVE_CTX_CONT_DIM` unchanged at 158.
+
+**Rule-4 evidence retention.** `ctx_cont.retracement_from_last_impulse` — the
+REAL retracement the removed `fib_position_proxy` blended at 0.55 — remains a
+`MODEL_NATIVE_CTX_CONT_FIELDS` member and a declared, executed source of
+`entry_trend_ema_v1` and `entry_foundation_structure_v1`. The same holds for
+every other consumed input; see the removal comments in both owners.
+
+**Measured** (synthetic contract fixture, 240 rows, 2026-08-13): all 15
+surviving chart-geometry columns and all 53 surviving candlestick columns are
+**bit-identical** to their pre-removal (`f7c3a7a8`) emissions. `[M-synthetic]`
+— it proves the edit deleted emissions and unused intermediates only; it is not
+a claim about production values.
+
+**Proof coverage that was REDUCED, stated uninvited (rule 25a):**
+- The pretrain **channel-position polarity statistic is retired**, because both
+  of its subject columns were removed. `entry_pretrain_polarity_signal_v1`
+  drops to schema v2 / two required fields, and
+  `audit_xau_direction_repair_pretrain_v1` now reports only the pocket-occupancy
+  measurement it can still take (rule 2e). Nothing replaces the inversion check.
+- `REQUIRED_RAIL_FEATURES` (a `_rail_` substring filter over the mandatory
+  geometry tuple) would have become EMPTY, i.e. a silently vacuous gate. It is
+  re-pointed at the complete mandatory geometry tuple as
+  `REQUIRED_MANDATORY_GEOMETRY_FEATURES` and raises if that tuple is ever empty.
+- Four `STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS` entries (schema v3) and the
+  three OR-disjuncts they fed in `_rising_support` / `_falling_resistance` are
+  gone. Those two masks are now **strictly narrower**. No threshold was retuned.
+- Three consumer composites lost a term with no reweighting (renormalizing
+  would invent a magnitude): `momentum.flow_bodyflow_bull/bear_pressure` lost
+  the 0.24/0.16 candle-vote terms; `chart.sr_memory_liquidity_*_rejection_*`
+  lost the 0.15 geometry term (its DERIVED divisor
+  `SR_LEVEL_REJECTION_ALGEBRAIC_MAX` moves 6.09 → 5.94 to match);
+  `chart.sr_memory_liquidity_*_break_continuation_*` lost the 0.20
+  trendline-break term; `chart.sr_memory_support_minus_resistance_level_balance`
+  lost a double count of its own expression.
+
+**NOT examined / unproved.** No real-tape values, liveness, TRAIN ranking or
+saturation exist for the post-removal surface — the V30 rebuild chain has not
+run. Whether removing pre-fused evidence improves abstention quality is `[U]`
+until the pre-registered evaluation ladder says otherwise. The MTF disk-cache
+manifests bound to the old `MULTI_TF_FEATURE_NAMES_SHA256_V4` are now
+unloadable by design, and every V29J-era artifact is bound to the 608 surface.

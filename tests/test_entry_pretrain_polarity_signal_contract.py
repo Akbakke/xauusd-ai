@@ -9,7 +9,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
     PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
-    SUPPORT_MINUS_RESISTANCE_FEATURE,
+    SUPPORT_STACK_FEATURE,
     pretrain_polarity_signal_contract_metadata,
 )
 from gx1.scripts.audit_xau_direction_repair_pretrain_v1 import (
@@ -37,7 +37,7 @@ def test_every_pretrain_polarity_input_is_code_owned_and_mandatory() -> None:
 
 def test_pretrain_polarity_contract_rejects_ranking_owned_input() -> None:
     mandatory = list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
-    mandatory.remove(SUPPORT_MINUS_RESISTANCE_FEATURE)
+    mandatory.remove(SUPPORT_STACK_FEATURE)
     with pytest.raises(
         RuntimeError,
         match="PRETRAIN_POLARITY_SIGNAL_REQUIREMENTS_NOT_MANDATORY",

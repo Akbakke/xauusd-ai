@@ -11,7 +11,7 @@ import numpy as np
 
 
 MOMENTUM_FLOW_FEATURE_VERSION = (
-    "entry_momentum_flow_v2_20260729_true_candle_wick_flow"
+    "entry_momentum_flow_v3_20260813_removed_candle_vote_inputs"
 )
 MOMENTUM_FLOW_FEATURE_PREFIX = "momentum.flow_"
 
@@ -47,10 +47,12 @@ MOMENTUM_FLOW_SOURCE_FIELDS = (
     "chart.foundation_impulse_pullback_alignment",
     "chart.foundation_compression_release_up",
     "chart.foundation_compression_release_down",
-    "candle.pattern_bull_continuation_pressure",
-    "candle.pattern_bear_continuation_pressure",
-    "candle.pattern_bull_reversal_pressure",
-    "candle.pattern_bear_reversal_pressure",
+    # V30 package 7 (2026-08-13): the four aggregate candle VOTES
+    # (`candle.pattern_bull/bear_continuation_pressure`,
+    # `candle.pattern_bull/bear_reversal_pressure`) were removed from their
+    # producer as hand-written OR-sums of already-emitted candle columns
+    # (rule 4, the mtf_confluence class).  They are therefore no longer
+    # declared here.
     "candle.pattern_body_share",
     "candle.pattern_upper_wick_share",
     "candle.pattern_lower_wick_share",
@@ -293,10 +295,6 @@ def build_entry_momentum_flow_layer(
     )
     persistence_balance = _clip(bull_persistence - bear_persistence, -1.0, 1.0)
 
-    bull_cont = _clip01(c("candle.pattern_bull_continuation_pressure"))
-    bear_cont = _clip01(c("candle.pattern_bear_continuation_pressure"))
-    bull_reversal = _clip01(c("candle.pattern_bull_reversal_pressure"))
-    bear_reversal = _clip01(c("candle.pattern_bear_reversal_pressure"))
     body_share = _clip01(c("candle.pattern_body_share"))
     body_impulse = _clip01(0.55 * body_share + 0.45 * np.abs(clv))
     clv_body_bull_flow = _clip01(
@@ -311,17 +309,29 @@ def build_entry_momentum_flow_layer(
         + 0.18 * _neg(return_acceleration)
         + 0.18 * _neg(micro_impulse)
     )
+    # V30 package 7 (2026-08-13): the two pre-fused candle-vote terms
+    # (0.24 x `*_continuation_pressure` + 0.16 x `*_reversal_pressure`) are
+    # gone with their producer.  The surviving weights are kept EXACTLY as they
+    # were: renormalizing them to restore a 1.0 ceiling would invent a
+    # magnitude with no origin (rule 2b), while dropping a term is removing an
+    # exception.  What remains is what the field's name claims — body/CLV flow
+    # plus the 1- and 5-bar vol-normalized returns.  RULE-4: none of the candle
+    # evidence is lost to the model; every column the two votes summed
+    # (`bullish/bearish_engulfing_quality`, `tweezer_bottom/top_quality`,
+    # `morning_star_bull/evening_star_bear_quality`,
+    # `three_bar_bull/bear_reversal_quality`, `bull/bear_rejection_continuation_score`,
+    # `bullish/bearish_engulfing_followthrough_quality`,
+    # `three_bar_bull/bear_continuation_quality`, `outside_bar_quality`,
+    # `bull_lower/bear_upper_wick_rejection_quality`) is emitted by the
+    # candlestick layer inside its MANDATORY smart3 suffix, so the model sees
+    # the same evidence unfused on every row.
     body_flow_bull = _clip01(
         0.30 * clv_body_bull_flow
-        + 0.24 * bull_cont
-        + 0.16 * bull_reversal
         + 0.16 * _pos(ret1_norm)
         + 0.14 * _pos(ret5_norm)
     )
     body_flow_bear = _clip01(
         0.30 * clv_body_bear_flow
-        + 0.24 * bear_cont
-        + 0.16 * bear_reversal
         + 0.16 * _neg(ret1_norm)
         + 0.14 * _neg(ret5_norm)
     )

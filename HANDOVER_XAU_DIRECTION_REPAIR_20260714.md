@@ -44,12 +44,17 @@ State of the evidence chain:
   LONG collapse at epoch 6 hard-red — a limit cycle at a fixed step size.
   V30 package 5 adds two recipe-owned dampers:
   `ENTRY_TRAIN_LR_COSINE_DECAY=1` (the library cosine anneal over the declared
-  epoch budget; a switch, no magnitude) and `ENTRY_TRAIN_WEIGHT_EMA_DECAY=0.0`
-  (weight EMA read by validation/checkpoint selection, SHIPPED OFF — no
-  in-repo convention exists for a decay, so the value is an outstanding
-  operator recipe decision). Env contract 164 -> 166 pre-V29 keys. Neither
-  damper has run end to end; existing readiness/recipe artifacts bind the old
-  trainer bytes and correctly fail closed until re-materialization.
+  epoch budget; a switch, no magnitude) and `ENTRY_TRAIN_WEIGHT_EMA_DECAY`
+  (weight EMA read by validation/checkpoint selection). V30 package 6
+  (2026-08-13) took the outstanding operator decision on the second one: the
+  key declares a HORIZON, `epoch`, meaning one declared epoch of optimizer
+  steps, so the recipe owner derives
+  `decay = 1 - 1/ceil(train_rows/(batch_size*grad_accum_steps))` = **0.975**
+  on the declared smoke budget (25k rows, batch 64, accum 10 -> 40 steps per
+  epoch). `0.0` stays the exact-compatibility OFF sentinel. Env contract
+  164 -> 166 pre-V29 keys. Neither damper has run end to end; existing
+  readiness/recipe artifacts bind the old trainer bytes and correctly fail
+  closed until re-materialization.
 - The first four V29 chain attempts (2026-08-11) are immutable RED/ABORTED
   evidence, each repaired in the owning contract before relaunch: V29B —
   D1 `geomline_below_active` saturates at constant 1.0 on the declared

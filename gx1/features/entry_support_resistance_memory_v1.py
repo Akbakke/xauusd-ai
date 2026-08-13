@@ -18,7 +18,7 @@ from gx1.features.entry_smc_liquidity_quality_v1 import (
 
 
 SUPPORT_RESISTANCE_MEMORY_FEATURE_VERSION = (
-    "entry_support_resistance_memory_v3_20260809_stack_side_owner_saturation_repair"
+    "entry_support_resistance_memory_v4_20260813_removed_geometry_composite_inputs"
 )
 SUPPORT_RESISTANCE_MEMORY_FEATURE_PREFIX = "chart.sr_memory_"
 
@@ -121,11 +121,13 @@ SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS = (
     "ctx_cont.regime_stack_sum_v3",
     "chart.geometry_support_line_proximity_stack",
     "chart.geometry_resistance_line_proximity_stack",
-    "chart.geometry_support_minus_resistance_stack",
-    "chart.geometry_support_bounce_long_pressure",
-    "chart.geometry_resistance_reject_short_pressure",
-    "chart.geometry_trendline_break_up_pressure",
-    "chart.geometry_trendline_break_down_pressure",
+    # V30 package 7 (2026-08-13): `chart.geometry_support_minus_resistance_stack`,
+    # `..._support_bounce_long_pressure`, `..._resistance_reject_short_pressure`
+    # and `..._trendline_break_up/down_pressure` were removed from their
+    # producer (exact-affine duplicate of the two stacks + one ctx field, and
+    # three NAME-ONLY composites — the "trendline break" contained no line).
+    # This layer keeps the two sided proximity stacks, which are the only
+    # geometry inputs it actually needed.
     "chart.smc_liquidity_reclaim_confirmation_long",
     "chart.smc_liquidity_reclaim_confirmation_short",
     "chart.smc_liquidity_false_breakout_quality_long",
@@ -266,14 +268,15 @@ SR_RECLAIM_PRESSURE_ALGEBRAIC_MAX = 3.80
 # Algebraic maximum of the level-rejection weighted sum
 #   liquidity * stack * (0.40 + sweep + sweep_recent)
 #     * (0.35 + wick_reject + choch) * (0.80 + 0.20 * side)
-#   + 0.30 * smc_liquidity_false_breakout_quality
-#   + 0.15 * (geometry_pressure / 5.0):
+#   + 0.30 * smc_liquidity_false_breakout_quality:
 # brackets are <= 2.40, <= 2.35 and <= 1.0 with all other factors <= 1, so the
-# product is <= 5.64; the additive terms (both rescaled to [0, 1]) add
-# <= 0.30 + 0.15: total 6.09.  (Before the 2026-08-09 [0,5]-domain fix the raw
-# geometry term made this 6.69; the divisor must match the expression it
-# normalizes, so the bound for the fixed expression is 6.09.)
-SR_LEVEL_REJECTION_ALGEBRAIC_MAX = 6.09
+# product is <= 5.64; the single additive term (rescaled to [0, 1]) adds
+# <= 0.30: total 5.94.  (History: 6.69 before the 2026-08-09 [0,5]-domain fix,
+# 6.09 after it, and 5.94 from V30 package 7 on 2026-08-13, when the
+# `+ 0.15 * (geometry_pressure / 5.0)` term was dropped with its removed
+# producer.  The divisor is DERIVED from the expression it normalizes and must
+# always match it — it is not a tunable.)
+SR_LEVEL_REJECTION_ALGEBRAIC_MAX = 5.94
 
 
 def _decayed_memory(
@@ -425,8 +428,15 @@ def build_entry_support_resistance_memory_layer(
         ]
     ).astype(np.float32)
     nearest_level = np.maximum(support_stack, resistance_stack).astype(np.float32)
+    # V30 package 7 (2026-08-13): the removed
+    # `chart.geometry_support_minus_resistance_stack` term was itself
+    # `clip(sr_support_minus_resistance_prox + geometry_support_stack -
+    # geometry_resistance_stack)`, and both geometry stacks are already folded
+    # into this layer's own `support_stack`/`resistance_stack` above — so the
+    # term was a double count of exactly this expression.  Dropping it leaves
+    # the same three quantities, each still a model input.
     support_minus_resistance = _clip(
-        c("ctx_cont.sr_support_minus_resistance_prox") + c("chart.geometry_support_minus_resistance_stack") + support_stack - resistance_stack,
+        c("ctx_cont.sr_support_minus_resistance_prox") + support_stack - resistance_stack,
         -2.0,
         2.0,
     )
@@ -580,7 +590,6 @@ def build_entry_support_resistance_memory_layer(
             * (0.35 + wick_reject_long + choch)
             * (0.80 + 0.20 * discount)
             + 0.30 * c("chart.smc_liquidity_false_breakout_quality_long")
-            + 0.15 * (c("chart.geometry_support_bounce_long_pressure") / 5.0)
         )
         / SR_LEVEL_REJECTION_ALGEBRAIC_MAX
     )
@@ -592,7 +601,6 @@ def build_entry_support_resistance_memory_layer(
             * (0.35 + wick_reject_short + choch)
             * (0.80 + 0.20 * premium)
             + 0.30 * c("chart.smc_liquidity_false_breakout_quality_short")
-            + 0.15 * (c("chart.geometry_resistance_reject_short_pressure") / 5.0)
         )
         / SR_LEVEL_REJECTION_ALGEBRAIC_MAX
     )
@@ -602,10 +610,13 @@ def build_entry_support_resistance_memory_layer(
         * resistance_stack
         * (0.45 + resistance_repeated + resistance_mtf)
         * (0.45 + bos_up + trend_up + body_bull)
-        * (1.0 - 0.40 * wick_reject_short)
-        # [0, 5]-domain producer (entry_chart_geometry_v1.py:434-441); rescale
-        # to [0, 1] before the [0, 1]-weighted additive term.
-        + 0.20 * (c("chart.geometry_trendline_break_up_pressure") / 5.0),
+        # V30 package 7 (2026-08-13): the `+ 0.20 *
+        # (chart.geometry_trendline_break_up_pressure / 5.0)` term is gone with
+        # its removed producer (that field contained no line: its "break" was
+        # `smc_bos_up`, which this expression already reads directly as
+        # `bos_up`).  The surviving factors are unchanged - no weight is
+        # renormalized, because inventing a replacement magnitude is forbidden.
+        * (1.0 - 0.40 * wick_reject_short),
         0.0,
         5.0,
     )
@@ -614,10 +625,10 @@ def build_entry_support_resistance_memory_layer(
         * support_stack
         * (0.45 + support_repeated + support_mtf)
         * (0.45 + bos_down + trend_down + body_bear)
-        * (1.0 - 0.40 * wick_reject_long)
-        # [0, 5]-domain producer (entry_chart_geometry_v1.py:442-449); rescale
-        # to [0, 1] before the [0, 1]-weighted additive term.
-        + 0.20 * (c("chart.geometry_trendline_break_down_pressure") / 5.0),
+        # V30 package 7 (2026-08-13): mirror of the long side above - the
+        # removed `chart.geometry_trendline_break_down_pressure` term carried
+        # `smc_bos_down`, which this expression already reads as `bos_down`.
+        * (1.0 - 0.40 * wick_reject_long),
         0.0,
         5.0,
     )

@@ -867,19 +867,6 @@ _EXTRA_SIGMOID_HEADS = {
 }
 
 _RUNTIME_SNAPSHOT_FEATURE_SOURCES = {
-    "geometry_channel_edge_pressure": "chart.geometry_channel_edge_pressure",
-    "geometry_rising_support_rail_long_pressure": (
-        "chart.geometry_rising_support_rail_long_pressure"
-    ),
-    "geometry_rising_support_rail_short_trap_pressure": (
-        "chart.geometry_rising_support_rail_short_trap_pressure"
-    ),
-    "geometry_falling_resistance_rail_short_pressure": (
-        "chart.geometry_falling_resistance_rail_short_pressure"
-    ),
-    "geometry_falling_resistance_rail_long_trap_pressure": (
-        "chart.geometry_falling_resistance_rail_long_trap_pressure"
-    ),
     "mtf_trend_evidence": "trend.mtf_confluence_trend_direction_score",
 }
 

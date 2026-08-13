@@ -14,8 +14,19 @@ from collections.abc import Sequence
 from typing import Any
 
 
+# V30 package 7 (2026-08-13): schema v3.  The four geometry requirements
+# `geometry_channel_edge`, `geometry_channel_position`,
+# `geometry_long_fib_sr_proximity` and `geometry_short_fib_sr_proximity` are
+# retired with their producers — `chart.geometry_channel_edge_pressure` and
+# `chart.geometry_channel_position_low_to_high` were exact-affine duplicates of
+# the two sided proximity stacks (both of which remain mandatory below), and
+# the two `fib_*_confluence_*` fields were built on the algebraically
+# impossible / mislabelled Fibonacci block that was removed wholesale
+# (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1a).  The structural labels that
+# consumed them now rest on the surviving support/resistance proximity and
+# respect requirements, which are unchanged.
 STRUCTURAL_AUX_LABEL_SIGNAL_SCHEMA_VERSION = (
-    "entry_structural_aux_label_signal_v2"
+    "entry_structural_aux_label_signal_v3"
 )
 STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS = OrderedDict(
     [
@@ -74,28 +85,12 @@ STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS = OrderedDict(
             ("chart.sr_memory_resistance_reclaim_pressure_short",),
         ),
         (
-            "geometry_channel_edge",
-            ("chart.geometry_channel_edge_pressure",),
-        ),
-        (
-            "geometry_channel_position",
-            ("chart.geometry_channel_position_low_to_high",),
-        ),
-        (
             "support_liquidity_rejection",
             ("chart.sr_memory_liquidity_low_level_rejection_long",),
         ),
         (
             "resistance_liquidity_rejection",
             ("chart.sr_memory_liquidity_high_level_rejection_short",),
-        ),
-        (
-            "geometry_long_fib_sr_proximity",
-            ("chart.geometry_fib_support_confluence_long_pressure",),
-        ),
-        (
-            "geometry_short_fib_sr_proximity",
-            ("chart.geometry_fib_resistance_confluence_short_pressure",),
         ),
     ]
 )

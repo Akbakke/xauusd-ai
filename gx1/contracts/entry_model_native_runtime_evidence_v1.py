@@ -141,11 +141,11 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS = frozenset(
         "family_tf_feature_gate",
         "trendline_rail_logits",
         "trendline_rail_probs",
-        "geometry_channel_edge_pressure",
-        "geometry_rising_support_rail_long_pressure",
-        "geometry_rising_support_rail_short_trap_pressure",
-        "geometry_falling_resistance_rail_short_pressure",
-        "geometry_falling_resistance_rail_long_trap_pressure",
+        # V30 package 7 (2026-08-13): the five `geometry_*` snapshot scalars are
+        # retired with their producer columns (NAME-ONLY rail/channel
+        # composites removed from entry_chart_geometry_v1).  The learned
+        # `trendline_rail_*` head above is untouched - it is a model output, not
+        # a hand-written feature.
         "calibration_version",
         "direction_calibration_enabled",
         "direction_calibration_temperature",
@@ -884,14 +884,6 @@ def _require_model_native_evidence(
             "outside learned (0,2) contract",
         )
 
-    for key in (
-        "geometry_channel_edge_pressure",
-        "geometry_rising_support_rail_long_pressure",
-        "geometry_rising_support_rail_short_trap_pressure",
-        "geometry_falling_resistance_rail_short_pressure",
-        "geometry_falling_resistance_rail_long_trap_pressure",
-    ):
-        _finite_scalar(validated, key, context=context)
     rail_logits = _finite_vector(
         validated, "trendline_rail_logits", 6, context=context
     )

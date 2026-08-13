@@ -300,11 +300,6 @@ def runtime_head_prediction_columns(
             "trendline_rail_probs": [
                 1.0 / (1.0 + math.exp(-value)) for value in rail_logits
             ],
-            "geometry_channel_edge_pressure": 0.2,
-            "geometry_rising_support_rail_long_pressure": 0.3,
-            "geometry_rising_support_rail_short_trap_pressure": 0.1,
-            "geometry_falling_resistance_rail_short_pressure": 0.2,
-            "geometry_falling_resistance_rail_long_trap_pressure": 0.1,
             "calibration_version": direction_calibration["version"],
             "direction_calibration_enabled": True,
             "direction_calibration_temperature": direction_calibration["temperature"],

@@ -237,7 +237,7 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
     requested = [
         *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
         "ctx_cont.d1_trend_age_mature_flag_v3",
-        "chart.geometry_channel_center_bias",
+        "chart.geometry_major_level_proximity_mean",
         "candle.pattern_close_location",
     ]
 

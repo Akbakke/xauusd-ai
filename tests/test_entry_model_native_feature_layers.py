@@ -80,17 +80,13 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
         "chart": (
             chart_x,
             chart_names,
-            (240, 115),
-            # Value hash re-measured 2026-08-13 (V30 package 4): the synthetic
-            # input matrix keys values off the ctx_cont column INDEX, so the
-            # three quote/spread-dynamics ctx fields shift every later ctx_cont
-            # column of the fixture again — exactly as package 2's nine swing
-            # and three RSI-canon adoptions did. The chart formulas and the
-            # 115-name identity are unchanged (the name hash below is
-            # untouched), which is what proves this is a fixture-index shift
-            # and not a formula change.
-            "1a7d812de95cdfa21d9c83482c5baeed6227178d61d96357935c40bfbb9bac6f",
-            "63f1cc1721db84e7f171b35c3dbb206c89749ba08cc7a07d9263c5a4061f3a4d",
+            # V30 package 7 (2026-08-13): 57 foundation + 15 chart geometry.
+            # The chart-geometry layer dropped 43 NAME-ONLY / duplicate columns,
+            # so BOTH hashes move; the surviving 15 columns are bit-identical to
+            # their pre-removal emissions (verified column-by-column below).
+            (240, 72),
+            "bb4c08c942e525c0d6c19e42a13158dfc786c90575fa4112e573be37420b6261",
+            "7a19f36fda7af8e706bfddc854d092b12b9b850ce68b5ece5d3e38c6337c5843",
         ),
         "price": (
             price_x,
@@ -106,11 +102,11 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
         "candle": (
             candle_x,
             candle_names,
-            (240, 60),
-            # Value hash re-measured 2026-08-09 after the candlestick owner's
-            # in-flight wave edit; the 60-name identity is unchanged.
-            "89e8e112bae8752846b1604f0abd3bee909544248446a6e1bc5b640d7f88b3b4",
-            "102894513328840980d120ff830b1f3c76fb4617557619285107a5eb87134d47",
+            # V30 package 7 (2026-08-13): 60 -> 53 columns (six aggregate votes
+            # + the affine duplicate close_pressure_signed); both hashes move.
+            (240, 53),
+            "685415499b56b26b158d49cad2beb45fc80cc5e0902b21e1f5a0b7e982928474",
+            "abdc8e32c37e0308fbdfcf2468bb075cf45790f95d9228d9e2367c4000aaed9a",
         ),
     }
     for values, feature_names, shape, value_hash, name_hash in expected.values():

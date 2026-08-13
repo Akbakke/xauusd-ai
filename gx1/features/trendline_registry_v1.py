@@ -31,7 +31,12 @@ Constant origins (rule 2a) — every decision-affecting number named:
   population (design B.1; complete-population statistic per rule 2f, sample
   size reported in the provenance payload).  The break margin REUSES the same
   band — one constant, no second number (rule 2b).  This module has no
-  default for it; the caller must pass the frozen fitted value.
+  default for it; the caller must pass the frozen fitted value.  Since the
+  band is the median of the population it then judges, the provenance payload
+  publishes ``implied_validation_rate`` (2026-08-13): the measured share of
+  arbitrary 2-pivot pairs the band promotes to a "validated" line, ~0.5 by
+  construction.  See :func:`fit_trendline_tolerance` for why conditioning the
+  fit population on validated lines is circular.
 - ``seq_len`` (candidate window): the per-TF model sequence length —
   an explicit recipe input (``per_tf_seq_lens``, validated upstream by
   ``htf_features.require_multi_tf_resolution_pyramid``).  Line evidence never
@@ -1216,6 +1221,29 @@ def fit_trendline_tolerance(
     band-free candidate population deliberately has no violation-death
     (threshold-free by construction, design B.1).
 
+    ``implied_validation_rate`` (published 2026-08-13,
+    ``docs/INDICATOR_FIDELITY_AUDIT_20260813.md`` §0b) is the fraction of that
+    measured population whose deviation is ``<= band_atr`` — i.e. the share of
+    *arbitrary* 2-pivot pairs that the fitted band promotes to a validated
+    3-touch line at serve.  Because the band is the median of exactly this
+    population, the value is ~0.5 by construction: the "3rd touch" test carries
+    almost no information, since half of all random pairs pass it.  Measured
+    on the sealed V29J TRAIN rows (n=369,303, 2026-08-13, audit "STEP-0
+    MEASUREMENTS" section): a line
+    touch fires on 29.85% of rows — one per ~3.4 bars — and
+    ``geomline_max_dev_atr`` saturates exactly at the fitted band.  Nothing is
+    inferred from that number here and no threshold is invented to move it —
+    it is published so the degeneracy is visible in every frozen constants
+    manifest instead of provable only from source, and so a future statistic
+    decision has the measured rate to choose against (rule 2d/2e, rule 25a).
+
+    Conditioning the population on "pairs that became lines" (so the fit would
+    measure real trendlines instead of the null) is NOT implementable without
+    inventing a constant: at serve a pair *becomes* a line exactly when a third
+    pivot lands within the band, so selecting that subpopulation requires the
+    band that this function is fitting.  The circularity is stated rather than
+    broken by a guessed pre-filter.
+
     Returns a frozen provenance payload; the caller freezes ``band_atr`` as
     immutable bundle state (rule 18) and passes it to
     :func:`compute_trendline_registry_features_v1`.  This function never
@@ -1285,12 +1313,15 @@ def fit_trendline_tolerance(
             "[TRENDLINE_TOLERANCE_FIT_EMPTY] no candidate deviations on the "
             "declared window"
         )
-    band = float(np.median(np.asarray(deviations, dtype=np.float64)))
+    sample = np.asarray(deviations, dtype=np.float64)
+    band = float(np.median(sample))
     if not math.isfinite(band) or band <= 0.0:
         raise RuntimeError(
             f"[TRENDLINE_TOLERANCE_DEGENERATE] median deviation {band!r} "
             "cannot define a tolerance band"
         )
+    # Share of the measured null population the fitted band admits (docstring).
+    implied_validation_rate = float(np.mean(sample <= band))
     payload: dict = {
         "schema_version": TRENDLINE_TOLERANCE_SCHEMA_VERSION_V1,
         "contract": TRENDLINE_REGISTRY_CONTRACT_V1,
@@ -1302,6 +1333,12 @@ def fit_trendline_tolerance(
         ),
         "band_atr": band,
         "n_candidates_measured": len(deviations),
+        "implied_validation_rate": implied_validation_rate,
+        "implied_validation_rate_definition": (
+            "fraction of the measured candidate population with "
+            "deviation <= band_atr; the share of arbitrary 2-pivot pairs the "
+            "band promotes to a 3-touch validated line at serve"
+        ),
         "n_support_pivots": pivot_counts[TRENDLINE_SIDE_SUPPORT],
         "n_resistance_pivots": pivot_counts[TRENDLINE_SIDE_RESISTANCE],
         "n_bars": int(len(df)),

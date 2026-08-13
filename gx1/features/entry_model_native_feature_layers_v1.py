@@ -152,12 +152,26 @@ PRICE_DERIVED_FEATURE_NAMES = (
 # instead of a bare integer: an insertion before the boundary keeps mandatory
 # membership anchored to the marker, and a removed or renamed marker fails
 # loudly at import (ValueError) instead of silently re-pointing the mandatory
-# set.  The 32-count guard in the smart-family contract enforces the suffix
-# identity end-to-end.
-CANDLESTICK_SMART3_FIRST_FEATURE_NAME = "candle.pattern_close_pressure_signed"
+# set.  The count guard in the smart-family contract (derived from this same
+# suffix) enforces the suffix identity end-to-end.
+# V30 package 7 (2026-08-13): the previous marker
+# `candle.pattern_close_pressure_signed` was REMOVED from the producer as an
+# exact affine duplicate of `candle.pattern_close_location`
+# (2*close_location - 1, clip inactive).  The marker is re-anchored to the
+# field that now occupies the boundary, so the mandatory block is still the
+# same contiguous suffix minus exactly that one column (32 -> 31); the six
+# aggregate votes that were removed sat BEFORE the boundary and were never
+# mandatory.
+CANDLESTICK_SMART3_FIRST_FEATURE_NAME = "candle.pattern_wick_imbalance_signed"
 CANDLESTICK_SMART3_START_INDEX = CANDLESTICK_PATTERN_FEATURE_NAMES.index(
     CANDLESTICK_SMART3_FIRST_FEATURE_NAME
 )
+# One named owner for the mandatory suffix, so the smart-family count guard in
+# entry_specialist_feature_groups_v1 can DERIVE from the same tuple the
+# mandatory registry uses instead of restating a literal (rule 13).
+CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES = CANDLESTICK_PATTERN_FEATURE_NAMES[
+    CANDLESTICK_SMART3_START_INDEX:
+]
 
 # V29 Phase A stage 2 — exact emitted names of the five new mandatory event
 # families (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §§1-3, block E kept per
@@ -207,7 +221,7 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     ("chart_geometry_smart2_layer", CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES),
     (
         "price_action_candle_smart3_layer",
-        CANDLESTICK_PATTERN_FEATURE_NAMES[CANDLESTICK_SMART3_START_INDEX:],
+        CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES,
     ),
     ("support_resistance_memory_layer", SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES),
     ("price_ema50_200_layer", PRICE_DERIVED_FEATURE_NAMES),

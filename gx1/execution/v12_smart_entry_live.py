@@ -165,11 +165,9 @@ MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
     "short_validity_prob",
     "mtf_dir_logits",
     "mtf_dir_probs",
-    "geometry_channel_edge_pressure",
-    "geometry_rising_support_rail_long_pressure",
-    "geometry_rising_support_rail_short_trap_pressure",
-    "geometry_falling_resistance_rail_short_pressure",
-    "geometry_falling_resistance_rail_long_trap_pressure",
+    # V30 package 7 (2026-08-13): the five `geometry_*` journal scalars are
+    # retired with their producer columns; the learned `trendline_rail_*` head
+    # below is a model output and is untouched.
     "trendline_rail_logits",
     "trendline_rail_probs",
     "mtf_trend_evidence",
@@ -660,15 +658,7 @@ def _validate_model_native_diagnostics(
     mtf_probs = vector("mtf_dir_probs", 3)
     if not np.allclose(mtf_probs, _softmax_np(mtf_logits), rtol=1e-6, atol=1e-7):
         raise RuntimeError("[SMART_ENTRY] mtf_dir_probs do not match mtf_dir_logits")
-    for key in (
-        "geometry_channel_edge_pressure",
-        "geometry_rising_support_rail_long_pressure",
-        "geometry_rising_support_rail_short_trap_pressure",
-        "geometry_falling_resistance_rail_short_pressure",
-        "geometry_falling_resistance_rail_long_trap_pressure",
-        "mtf_trend_evidence",
-    ):
-        scalar(key)
+    scalar("mtf_trend_evidence")
     rail_logits = vector("trendline_rail_logits", 6)
     rail_probs = vector("trendline_rail_probs", 6)
     expected_rail = np.asarray([_sigmoid_float(value) for value in rail_logits])
@@ -1552,31 +1542,6 @@ class SmartEntryLiveInference:
                 short_validity_prob = _sigmoid_float(float(side_validity_logit[1]))
                 signal_names = [str(x) for x in self._meta["ordered_signal_names"]]
                 snap_row = np.asarray(states["snap"][k], dtype=np.float32).reshape(-1)
-                geometry_channel_edge = _required_feature_value(
-                    snap_row,
-                    signal_names,
-                    "chart.geometry_channel_edge_pressure",
-                )
-                geometry_rising_support_rail_long = _required_feature_value(
-                    snap_row,
-                    signal_names,
-                    "chart.geometry_rising_support_rail_long_pressure",
-                )
-                geometry_rising_support_rail_short_trap = _required_feature_value(
-                    snap_row,
-                    signal_names,
-                    "chart.geometry_rising_support_rail_short_trap_pressure",
-                )
-                geometry_falling_resistance_rail_short = _required_feature_value(
-                    snap_row,
-                    signal_names,
-                    "chart.geometry_falling_resistance_rail_short_pressure",
-                )
-                geometry_falling_resistance_rail_long_trap = _required_feature_value(
-                    snap_row,
-                    signal_names,
-                    "chart.geometry_falling_resistance_rail_long_trap_pressure",
-                )
                 mtf_trend_evidence = _required_feature_value(
                     snap_row,
                     signal_names,
@@ -1718,11 +1683,6 @@ class SmartEntryLiveInference:
                     "short_validity_prob": short_validity_prob,
                     "mtf_dir_logits": mtf_logits.tolist(),
                     "mtf_dir_probs": mtf_probs.tolist(),
-                    "geometry_channel_edge_pressure": geometry_channel_edge,
-                    "geometry_rising_support_rail_long_pressure": geometry_rising_support_rail_long,
-                    "geometry_rising_support_rail_short_trap_pressure": geometry_rising_support_rail_short_trap,
-                    "geometry_falling_resistance_rail_short_pressure": geometry_falling_resistance_rail_short,
-                    "geometry_falling_resistance_rail_long_trap_pressure": geometry_falling_resistance_rail_long_trap,
                     "trendline_rail_logits": trendline_rail_logits.tolist(),
                     "trendline_rail_probs": trendline_rail_probs,
                     "mtf_trend_evidence": mtf_trend_evidence,

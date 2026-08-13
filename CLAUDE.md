@@ -89,12 +89,20 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 4. **Keep every genuine feature family in the learned path.** Retiring a rule
    must never remove its underlying market evidence. The registered
    causal-layer outputs are mandatory; only the remaining specialist fields may
-   be selected, by deterministic TRAIN-only ranking. The active composition is
-   34 base + 425 mandatory causal + 133 TRAIN-ranked over 16 mandatory
-   families (V29 event surface, 2026-08-11: level/trendline registries plus
-   swing/momentum/regime event families joined the mandatory causal set; the
-   authoritative counts derive from the owner tuples, per
-   docs/V29_EVENT_SURFACE_DESIGN_20260811.md). Removing a hand-written vote is
+   be selected, by deterministic TRAIN-only ranking. **The authoritative
+   composition is the owner tuples in
+   `gx1/contracts/entry_model_native_signal_v1.py`, never a number restated
+   here or in any other document** (rule 13: a repeated literal is not
+   ownership, and every restated count in this repository has gone stale
+   within days). The shape is: a frozen base block + the mandatory causal
+   families + a TRAIN-ranked remainder, over the declared mandatory families.
+   As of 2026-08-13 that evaluates to 34 + 424 + 133 = 591 over 16 families
+   (V29 event surface 2026-08-11 added the level/trendline registries and the
+   swing/momentum/regime event families; V30 2026-08-13 removed the
+   NAME-ONLY chart-geometry composites, all Fibonacci fields and the candle
+   aggregate votes — see docs/INDICATOR_FIDELITY_AUDIT_20260813.md). Treat
+   that sentence as a dated observation, not as the contract.
+   Removing a hand-written vote is
    allowed and required — the
    `mtf_confluence` layer was removed on 2026-08-05 because it emitted derived
    confluence/abstain/direction-bias votes — but only while every field it

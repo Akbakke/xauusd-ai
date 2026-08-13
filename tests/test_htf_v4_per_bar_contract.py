@@ -120,9 +120,11 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
     from gx1.features.swing_structure_v1 import SWING_V29_ADDITION_NAMES_V1
 
     expected_width = (
-        # 113 = the audited pre-V29 111-field surface + the V30 package-1
-        # additions rsi14_delta_5 and di_spread_signed (2026-08-13).
-        113
+        # 106 = the audited pre-V29 111-field surface + the V30 package-1
+        # additions rsi14_delta_5 and di_spread_signed (2026-08-13), minus the
+        # seven V30 package-7 candlestick removals that mirror onto every
+        # per-TF lane (six aggregate votes + close_pressure_signed).
+        106
         + len(EXPECTED_V29_TREND_EVENT_FEATURES)
         + len(EXPECTED_V29_MOMENTUM_EVENT_FEATURES)
         + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES)
@@ -229,7 +231,8 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         "session_regime_encoder": 5,
         "chart_geometry_encoder": 10
         + len(TRENDLINE_REGISTRY_FEATURE_NAMES_V1),
-        "price_action_candle_encoder": 64,
+        # V30 package 7 (2026-08-13): 4 raw + 53 mtf_pattern_ mirrors.
+        "price_action_candle_encoder": 57,
     }
     flattened = [index for indices in routing.values() for index in indices]
     assert sorted(flattened) == list(range(htf.MULTI_TF_FEATURE_COUNT_V4))

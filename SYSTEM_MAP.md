@@ -15,7 +15,7 @@ OANDA XAU_USD complete MBA candles
                                   |
               TRAIN-only ranking + normalization
                                   |
-                    592 signal + 142 cont + 5 cat
+                    591 signal + 158 cont + 5 cat
                                   |
                     shared specialist encoder
                        /                     \
@@ -41,7 +41,7 @@ evidence and closed M5/M15/H1/H4/D1 context. OHLCV is closed and aligned before
 the same owners compute each timeframe; finished M1 features are never rolled
 up. Relevance is learned, with no handwritten confluence vote or TF weight.
 
-The signal surface is 592 ordered fields: 34 base + 425 mandatory causal + 133
+The signal surface is 591 ordered fields: 34 base + 424 mandatory causal + 133
 TRAIN-ranked over 16 mandatory families (V29 event surface; counts derive from
 the owner tuples). The V29 layer adds a level registry
 (`gx1/features/level_registry_v1.py`: level identity, touch counts, ages,
@@ -49,12 +49,12 @@ signed reaction history, break/retest events, round numbers) and a trendline
 registry (`gx1/features/trendline_registry_v1.py`: two-point sloped lines,
 ≥3-touch validation, channels), plus per-timeframe EMA-cross, RSI-threshold,
 divergence, regime-flip and swing-break event primitives on all five
-timeframes (per-TF V4 context width 173). Registry tolerances are TRAIN-fitted
+timeframes (per-TF V4 context width 182). Registry tolerances are TRAIN-fitted
 with the explicit recipe input `--level-tol-quantile-q` and frozen into the
 hash-bound build manifests (M5 lanes: V4 cache manifest; Exit M1 lane: the
 M1-enriched manifest); consumers fail closed without them.
 
-The immutable M5 surface is Entry's sole 592/142/5 input authority. It is
+The immutable M5 surface is Entry's sole 591/158/5 input authority. It is
 loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
 so no split rebuilds the specialist stack. The M1 surface is Exit's matching
 native-resolution authority; neither surface can substitute for the other.
@@ -118,7 +118,7 @@ source pair
 Failure at any arrow stops the chain. Fresh native and canonical source
 exists, and the V28 dataset chain ran GREEN end to end (369,303/5,904/6,551
 rows, TEST sealed) — those bytes are the frozen baseline for the
-pre-registered V29-vs-V28 evaluation. Current status is before the V29 (592)
+pre-registered V29-vs-V28 evaluation. Current status is before the V30 (591)
 feature-surface and dataset rebuild. No accepted candidate exists.
 
 ## Scope boundary

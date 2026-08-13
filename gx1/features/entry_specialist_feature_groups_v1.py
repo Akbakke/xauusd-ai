@@ -24,7 +24,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
 )
+from gx1.features.entry_chart_geometry_v1 import (
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
+)
 from gx1.features.entry_model_native_feature_layers_v1 import (
+    CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES,
     LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
@@ -647,17 +651,40 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
         (
             "chart_geometry_smart2_layer",
             {
-                "expected_feature_count": 18,
-                "expected_specialist_counts": {"chart_geometry_encoder": 18},
+                # V30 package 7 (2026-08-13): counts DERIVED from the owner
+                # tuple (prefer derive-from-owner over a restated literal —
+                # rule 13).  The pinned set fell 18 -> 2 when the NAME-ONLY
+                # rail/channel/retest/Fibonacci composites were removed from
+                # entry_chart_geometry_v1.
+                "expected_feature_count": len(
+                    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "chart_geometry_encoder": len(
+                        CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+                    ),
+                },
                 "owned_specialists": ("chart_geometry_encoder",),
-                "purpose": "Mandatory structural-label and pretrain-polarity geometry inputs plus curated trendline/channel/Fibonacci rail-trap evidence.",
+                "purpose": "Mandatory structural-label and pretrain-polarity sided support/resistance line-proximity inputs.",
             },
         ),
         (
             "price_action_candle_smart3_layer",
             {
-                "expected_feature_count": 32,
-                "expected_specialist_counts": {"price_action_candle_encoder": 32},
+                # V30 package 7 (2026-08-13): counts DERIVED from the same
+                # smart3 suffix the mandatory registry uses, so the guard can
+                # never describe a block the owner did not emit (rule 13).  The
+                # suffix fell 32 -> 31 when `candle.pattern_close_pressure_signed`
+                # (an exact affine duplicate of `candle.pattern_close_location`)
+                # was removed and the marker was re-anchored.
+                "expected_feature_count": len(
+                    CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "price_action_candle_encoder": len(
+                        CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES
+                    ),
+                },
                 "owned_specialists": ("price_action_candle_encoder",),
                 "purpose": "Closed-bar candle body/wick/reversal/continuation pattern fields.",
             },

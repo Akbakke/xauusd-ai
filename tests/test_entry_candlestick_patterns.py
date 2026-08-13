@@ -26,10 +26,10 @@ def test_candlestick_pattern_layer_builds_closed_bar_numeric_patterns() -> None:
     idx = {name: i for i, name in enumerate(names)}
 
     assert tuple(names) == CANDLESTICK_PATTERN_FEATURE_NAMES
-    assert len(names) == 60
+    assert len(names) == 53
     assert len(set(names)) == len(names)
     assert all(name.startswith(CANDLESTICK_PATTERN_FEATURE_PREFIX) for name in names)
-    assert out.shape == (9, 60)
+    assert out.shape == (9, 53)
     assert np.isfinite(out).all()
     assert out[0, idx["candle.pattern_body_direction"]] == 1.0
     assert out[4, idx["candle.pattern_hammer_bull_reversal_score"]] > 0.0
@@ -37,8 +37,19 @@ def test_candlestick_pattern_layer_builds_closed_bar_numeric_patterns() -> None:
     assert out[5, idx["candle.pattern_bullish_engulfing_quality"]] > 0.0
     assert out[5, idx["candle.pattern_tweezer_bottom_quality"]] > 0.0
     assert out[6, idx["candle.pattern_bull_rejection_continuation_score"]] > 0.0
-    assert out[7, idx["candle.pattern_bull_continuation_pressure"]] > 0.0
     assert out[7, idx["candle.pattern_three_bar_bull_continuation_quality"]] > 0.0
+    # V30 package 7 (2026-08-13): the six aggregate votes and the affine
+    # duplicate close_pressure_signed are no longer emitted.
+    for removed in (
+        "candle.pattern_bull_reversal_pressure",
+        "candle.pattern_bear_reversal_pressure",
+        "candle.pattern_bull_continuation_pressure",
+        "candle.pattern_bear_continuation_pressure",
+        "candle.pattern_indecision_breakout_setup",
+        "candle.pattern_tail_rejection_risk",
+        "candle.pattern_close_pressure_signed",
+    ):
+        assert removed not in idx
 
 
 def test_candlestick_pattern_layer_triple_quality_ends_on_current_closed_bar() -> None:
@@ -138,9 +149,11 @@ def test_candlestick_lag_preserves_float64_price_precision() -> None:
 
 def test_candlestick_zero_range_bar_reports_neutral_close_location() -> None:
     # high == low: close location is undefined, so it must read neutral 0.5
-    # (basic_v1 _v1_clv convention) and close_pressure_signed must read 0,
-    # not a fabricated "closed at the extreme low" of -1. Body/wick shares
-    # stay 0: a zero-range bar genuinely has zero body and zero wicks.
+    # (basic_v1 _v1_clv convention). Body/wick shares stay 0: a zero-range bar
+    # genuinely has zero body and zero wicks.  The old
+    # `close_pressure_signed == 0.0` leg of this regression is gone with the
+    # column (V30 package 7); `close_location == 0.5` is the same proof, since
+    # the removed field was exactly 2*close_location - 1.
     frame = pd.DataFrame(
         {
             "time": pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC"),
@@ -154,7 +167,6 @@ def test_candlestick_zero_range_bar_reports_neutral_close_location() -> None:
     idx = {name: i for i, name in enumerate(names)}
     row = 2  # open == high == low == close
     assert out[row, idx["candle.pattern_close_location"]] == 0.5
-    assert out[row, idx["candle.pattern_close_pressure_signed"]] == 0.0
     assert out[row, idx["candle.pattern_body_share"]] == 0.0
     assert out[row, idx["candle.pattern_upper_wick_share"]] == 0.0
     assert out[row, idx["candle.pattern_lower_wick_share"]] == 0.0

@@ -464,6 +464,23 @@ def test_tolerance_fit_deterministic_with_provenance():
     assert len(first["contract_sha256"]) == 64
 
 
+def test_tolerance_fit_publishes_the_implied_validation_rate():
+    """The band is the median of the population it then judges, so the share of
+    arbitrary 2-pivot pairs it promotes to a "validated" line is >= 0.5 by the
+    definition of a median.  Publishing the measured rate (2026-08-13) makes
+    that degeneracy visible in every frozen constants manifest instead of
+    provable only from source (audit §0b)."""
+
+    df = _random_walk_frame(1500, seed=3)
+    payload = fit_trendline_tolerance(df, timeframe="TEST", seq_len=512)
+    rate = payload["implied_validation_rate"]
+    assert 0.5 <= rate <= 1.0
+    assert "implied_validation_rate_definition" in payload
+    # It is exactly the share of the reported population under the band.
+    n_measured = payload["n_candidates_measured"]
+    assert abs(rate * n_measured - round(rate * n_measured)) < 1e-9
+
+
 def test_tolerance_fit_fails_closed_on_empty_population():
     n_bars = 120
     t = np.arange(n_bars, dtype=np.float64)
