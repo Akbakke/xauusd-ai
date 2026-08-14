@@ -52,23 +52,18 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-if TYPE_CHECKING:  # runtime imports stay lazy to keep loader startup light
-    from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
-
-# ONE-TRUTH REGIME_V4 per-TF V2 scalar projection (5-TF/9-feat). Shared with
-# immutable snapshot construction and offline build so admitted serving and
-# training project the same per-TF regime inputs (no train≠serve).
+# ONE-TRUTH raw per-TF scalar projection. Shared with immutable snapshot
+# construction and offline build so admitted serving and training project the
+# same continuous MTF evidence (no train≠serve).
 from gx1.features.htf_features import (
-    REGIME_V4_MTF_PROJECTION,
-    REGIME_V4_MTF_TIMEFRAMES,
-    REGIME_V4_MTF_SKIP,
+    MODEL_NATIVE_CONTEXT_MTF_PROJECTION,
+    MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES,
+    MODEL_NATIVE_CONTEXT_MTF_SKIP,
 )
 from gx1.features.basic_v1 import PLUS5_FEATURES, compute_plus5_features
 from gx1.contracts.xau_tape_provenance_v1 import (
@@ -104,6 +99,26 @@ def _require_v29_registry_constants_from_bound_cache() -> dict:
     )
 
 
+def _require_volatility_squeeze_artifacts_from_bound_cache():
+    """Exact six-clock TRAIN artifact set from the run-bound V4 cache."""
+
+    import os as _os
+    from pathlib import Path as _Path
+    from gx1.features.htf_features import (
+        load_volatility_squeeze_artifacts_from_cache_manifest,
+    )
+
+    raw = _os.environ.get("GX1_V10_MULTI_TF_V4_CACHE_DIR", "").strip()
+    if not raw:
+        raise RuntimeError(
+            "GX1_V10_MULTI_TF_V4_CACHE_DIR_REQUIRED: in-memory feature "
+            "builds need the bound volatility-squeeze artifact set"
+        )
+    return load_volatility_squeeze_artifacts_from_cache_manifest(
+        _Path(raw).expanduser() / "manifest.json"
+    )
+
+
 # ── Top-level subprocess workers for parallel augment (2026-06-01) ──
 # These run in subprocesses spawned by _async_full_refresh so V2 mtf and
 # GROUP-A — the two heavy augmenters — execute in true parallel rather than
@@ -127,16 +142,13 @@ def _mp_v4_mtf_worker(cv3: pd.DataFrame) -> pd.DataFrame:
 
 
 def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
-    """Run GROUP-A + DIP/STRUCT augmenter in a subprocess. Returns DataFrame
-    with ONLY the new ctx_cont columns, indexed identically to cv3 input.
-    """
+    """Run the Group-A augmenter and return its exact ctx_cont columns."""
     from gx1.contracts.entry_model_native_signal_v1 import (
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT,
     )
     loader = PrebuiltStateLoader()
-    augmented = loader._augment_cv3_with_group_a_and_dip_struct(cv3)
-    expected = list(_GROUP_A) + list(_DIP_STRUCT)
+    augmented = loader._augment_cv3_with_group_a(cv3)
+    expected = list(_GROUP_A)
     missing = [name for name in expected if name not in augmented.columns]
     if missing:
         raise RuntimeError(f"parallel group-A worker output missing: {missing}")
@@ -152,16 +164,11 @@ PREBUILT_PAIR_GENERATION_MANIFEST_FILENAME = "PAIR_MANIFEST.json"
 PAIR_PUBLISH_LOCK_FILENAME = ".canonical_v3_base28_pair_publish.lock"
 PREBUILT_PAIR_PRODUCER_OWNER = "gx1.execution.v12_canonical_incremental"
 PREBUILT_CANONICAL_BUILDER_CONTRACT = (
-    "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v2"
+    "canonical_v2_plus_v3_plus5_model_agnostic_ctx_group_a_v7"
 )
 PREBUILT_PAIR_FORMULA_CONTRACT = {
-    "rank_inputs": "shared_model_native_simple_tr14_hl_mid_bid_ask_v1",
-    "train_rank_application": "consumer_boundary_only",
-    "group_a": "shared_parallel_exact_checkpointed_v1",
-    "canonical_m5_atr_regime": (
-        "atr14_rolling5760_min2880_q333_q667_shift1_"
-        "integer_write_through_v2"
-    ),
+    "market_context": "shared_continuous_simple_tr14_hl_mid_bid_ask_v2",
+    "group_a": "shared_parallel_exact_checkpointed_v2",
     "native_m1_m5_aggregation": (
         "source_exact_dense_or_sparse_no_session_hour_rules_v1"
     ),
@@ -1287,16 +1294,12 @@ def _require_persisted_model_agnostic_canonical(
     """Prove that pair-v2 already contains the shared deterministic surface."""
 
     from gx1.contracts.entry_model_native_signal_v1 import (
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
         MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+        MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
         MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
         MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
         MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
-    )
-    from gx1.features.regime_v4_features import (
-        REGIME_V4_DERIVED_COLS,
-        REGIME_V4_SOURCE_COLS,
     )
     from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
@@ -1309,20 +1312,15 @@ def _require_persisted_model_agnostic_canonical(
         *MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
         *MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
         *MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
-        *MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
-        *REGIME_V4_SOURCE_COLS,
-        *REGIME_V4_DERIVED_COLS,
+        *MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
         "session_id",
-        "trend_regime_id",
-        "vol_regime_id",
-        "H4_trend_sign_cat",
         "atr_bps",
         "spread_bps",
         *(
             f"{timeframe}_{live_fragment}_v2"
-            for timeframe in REGIME_V4_MTF_TIMEFRAMES
-            for live_fragment, _source_column in REGIME_V4_MTF_PROJECTION
-            if (timeframe, live_fragment) not in REGIME_V4_MTF_SKIP
+            for timeframe in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES
+            for live_fragment, _source_column in MODEL_NATIVE_CONTEXT_MTF_PROJECTION
+            if (timeframe, live_fragment) not in MODEL_NATIVE_CONTEXT_MTF_SKIP
         ),
     }
     missing = sorted(required - set(frame.columns))
@@ -1331,7 +1329,15 @@ def _require_persisted_model_agnostic_canonical(
             f"CANONICAL_V3_PERSISTED_MODEL_AGNOSTIC_FIELDS_MISSING: {missing}"
         )
     forbidden = sorted(
-        {"atr_bucket", "spread_bucket"} & set(frame.columns)
+        {
+            "atr_bucket",
+            "spread_bucket",
+            "vol_regime_id",
+            "trend_regime_id",
+            "H4_trend_sign_cat",
+            "session_tradable",
+        }
+        & set(frame.columns)
     )
     if forbidden:
         raise PrebuiltIdentityError(
@@ -1396,95 +1402,6 @@ class PrebuiltStateLoader:
     # An async error invalidates the old snapshot. Every public read and future
     # refresh raises until a fresh process completes load() successfully.
     _refresh_error: RuntimeError | None = field(default=None, init=False)
-    # One immutable TRAIN-only rank reference bound by the consuming Exit
-    # contract. TRAIN-fit state is deliberately outside the persisted pair;
-    # the exact bucket fields exist only after an explicit attach.
-    _train_rank_reference: "TrainRankReferenceV2 | None" = field(
-        default=None,
-        init=False,
-    )
-
-    # ── TRAIN-rank reference binding (Exit-chain bucket ownership) ────
-    def attach_train_rank_reference(self, reference: "TrainRankReferenceV2") -> None:
-        """Bind one immutable TRAIN-rank reference and derive the exact
-        ``atr_bucket``/``spread_bucket`` fields on the loaded canonical frame.
-
-        The persisted pair is model-agnostic by contract (bucket fields are
-        forbidden on disk and validated at admission, before this call). The
-        derivation reuses the single formula owner
-        ``bucket_against_train_reference``; a second attach — same or different
-        bytes — is a wiring error and fails closed.
-        """
-
-        from gx1.contracts.entry_model_native_state_v2 import (
-            TrainRankReferenceV2,
-        )
-
-        if not isinstance(reference, TrainRankReferenceV2):
-            raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_TYPE_INVALID")
-        with self._state_lock:
-            self._raise_refresh_error()
-            if self._cv3 is None:
-                raise RuntimeError(
-                    "PREBUILT_TRAIN_RANK_REFERENCE_REQUIRES_LOAD: "
-                    "call load() or load_frozen_pair() first"
-                )
-            if self._train_rank_reference is not None:
-                raise RuntimeError(
-                    "PREBUILT_TRAIN_RANK_REFERENCE_ALREADY_ATTACHED: "
-                    f"bound_sha256={self._train_rank_reference.sha256} "
-                    f"offered_sha256={reference.sha256}"
-                )
-            self._derive_train_rank_buckets(self._cv3, reference=reference)
-            self._train_rank_reference = reference
-
-    def _derive_train_rank_buckets(
-        self,
-        cv3: pd.DataFrame,
-        *,
-        reference: "TrainRankReferenceV2",
-    ) -> pd.DataFrame:
-        """Derive both bucket fields in place via the one formula owner."""
-
-        from gx1.contracts.entry_model_native_state_v2 import (
-            bucket_against_train_reference,
-        )
-
-        missing = [
-            name for name in ("atr_bps", "spread_bps") if name not in cv3.columns
-        ]
-        if missing:
-            raise RuntimeError(
-                f"PREBUILT_TRAIN_RANK_SOURCE_FIELDS_MISSING: {missing}"
-            )
-        cv3["atr_bucket"] = bucket_against_train_reference(
-            cv3["atr_bps"].to_numpy(dtype=float),
-            reference.atr_bps_sorted,
-        )
-        cv3["spread_bucket"] = bucket_against_train_reference(
-            cv3["spread_bps"].to_numpy(dtype=float),
-            reference.spread_bps_sorted,
-        )
-        return cv3
-
-    def train_rank_reference_attached(self) -> bool:
-        """True only when one immutable reference is bound to this loader."""
-
-        with self._state_lock:
-            return self._train_rank_reference is not None
-
-    def train_rank_reference_binding(self) -> dict[str, object]:
-        """Exact bindable identity of the attached reference (fail-closed)."""
-
-        from gx1.contracts.entry_model_native_state_v2 import (
-            train_rank_reference_identity_v2,
-        )
-
-        with self._state_lock:
-            if self._train_rank_reference is None:
-                raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_UNBOUND")
-            return train_rank_reference_identity_v2(self._train_rank_reference)
-
     def _raise_refresh_error(self) -> None:
         if self._refresh_error is not None:
             raise PrebuiltIdentityError(
@@ -1647,7 +1564,6 @@ class PrebuiltStateLoader:
                 current_b28 = self._base28
                 cv3_source_schema = self._cv3_source_schema
                 base28_source_schema = self._base28_source_schema
-                train_rank_reference = self._train_rank_reference
                 had_multi_tf = self._multi_tf_feats is not None
             if admitted_parent is None or current_cv3 is None or current_b28 is None:
                 raise PrebuiltIdentityError(
@@ -1740,28 +1656,10 @@ class PrebuiltStateLoader:
                         new_cv3[col] = mtf_new[col].values
                     for col in grp_new.columns:
                         new_cv3[col] = grp_new[col].values
-                    # V1/R10 completion: run regime_v4 only after the exact
-                    # multiprocessing outputs have been merged. At
-                    # the live async hot-refresh would otherwise drop the active regime columns ->
-                    # Keep the transition explicit so a first refresh cannot
-                    # fabricate regime state.
-                    # Runs AFTER the mtf merge above (supplies the 12 {tf}_*_v2 sources); joins D1_dist + is a
-                    # no-op at flag=0 (cement bit-identical).
-                    new_cv3 = self._augment_cv3_with_regime_v4(new_cv3)
                 except Exception as exc:
                     raise RuntimeError(
                         "parallel augment failed; refusing a second transform path"
                     ) from exc
-                # A freshly loaded persisted cv3 is model-agnostic by contract.
-                # When one immutable TRAIN-rank reference is attached, the
-                # exact bucket fields must be re-derived BEFORE the atomic
-                # swap so live never loses them on a refresh cycle.
-                if cv3_advanced and train_rank_reference is not None:
-                    new_cv3 = self._derive_train_rank_buckets(
-                        new_cv3,
-                        reference=train_rank_reference,
-                    )
-
                 aug_took = (pd.Timestamp.utcnow() - t_aug).total_seconds()
                 LOG.info(
                     f"[parallel-augment] full pipeline finished in {aug_took:.1f}s "
@@ -1935,10 +1833,8 @@ class PrebuiltStateLoader:
             LOG.info(f"  effective live cutoff (min of both): {self._last_ts}")
             self._augment_cv3_with_volume_features()
             self._augment_cv3_with_v4_mtf_scalars()
-            self._augment_cv3_with_group_a_and_dip_struct()
+            self._augment_cv3_with_group_a()
             self._augment_cv3_with_v1_legacy()
-            # after v2_mtf sources; immutable active transform
-            self._augment_cv3_with_regime_v4()
             self._refresh_error = None
 
     def load_frozen_pair(self) -> dict[str, object]:
@@ -2012,9 +1908,9 @@ class PrebuiltStateLoader:
         }
         return self._cv3, self._base28, identity
 
-    _MTF_PROJECTION = REGIME_V4_MTF_PROJECTION
-    _MTF_TIMEFRAMES = REGIME_V4_MTF_TIMEFRAMES
-    _MTF_SKIP = REGIME_V4_MTF_SKIP
+    _MTF_PROJECTION = MODEL_NATIVE_CONTEXT_MTF_PROJECTION
+    _MTF_TIMEFRAMES = MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES
+    _MTF_SKIP = MODEL_NATIVE_CONTEXT_MTF_SKIP
 
     @classmethod
     def _expected_mtf_scalar_columns(cls) -> list[str]:
@@ -2025,54 +1921,10 @@ class PrebuiltStateLoader:
             if (tf, live_frag) not in cls._MTF_SKIP
         ]
 
-    # ── V1 / R10 (2026-06-04): REGIME_V4 exit-context augmentation ────────
-    def _augment_cv3_with_regime_v4(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
-        """Compute the 16 REGIME_V4 EXIT_IO_V8 features on the FULL cv3 through
-        the canonical `add_regime_v4_features` owner. Any future V3 dataset
-        builder must call the same owner and prove parity. This immutable active
-        transform MUST run AFTER
-        _augment_cv3_with_v4_mtf_scalars (supplies the persistent {tf}_*_v2 source cols) and on the FULL frame
-        (F4 d1_dist_roc_288 / F9 bars_since_d1_regime_change need >=288-bar D1 history; a 96-bar window
-        would clip them to 0 = a second-order skew). Fail-closed: raises on a missing source col.
-        """
-        in_place = cv3 is None
-        target = cv3 if cv3 is not None else self._cv3
-        if target is None:
-            raise RuntimeError("REGIME_V4 augmentation requires a loaded canonical_v3 frame")
-        from gx1.features.regime_v4_features import (
-            REGIME_V4_DERIVED_COLS as _REGIME_V4_DERIVED,
-            REGIME_V4_SOURCE_COLS as _REGIME_V4_SOURCE,
-            add_regime_v4_features as _add_rv4,
-        )
-        if set(_REGIME_V4_DERIVED).issubset(target.columns) and set(
-            _REGIME_V4_SOURCE
-        ).issubset(target.columns):
-            return target
-        # Raw BASE28 is M1 market identity only and may never own derived D1
-        # state. A v2 pair persists this field on canonical. Retained direct
-        # helper callers may derive it from the same full canonical M5 history.
-        if "D1_dist_from_ema200_atr" not in target.columns:
-            from gx1.execution.v12_ctx_augment_live import _add_htf_features
+    def _augment_cv3_with_group_a(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
+        """Add the 14 raw Group-A distance primitives to canonical-v3.
 
-            required = ("open", "high", "low", "close", "volume")
-            missing = [name for name in required if name not in target.columns]
-            if missing:
-                raise RuntimeError(
-                    "[REGIME_V4_SERVE] canonical D1 source unavailable: "
-                    f"{missing}"
-                )
-            _add_htf_features(target, target.loc[:, list(required)])
-        # add_regime_v4_features needs time-ascending order (shift/run-length); cv3 is sorted at load.
-        _add_rv4(target)  # in-place; one-truth; raises on any missing {tf}_*_v2 source col
-        if in_place:
-            self._cv3 = target
-        return target
-
-    def _augment_cv3_with_group_a_and_dip_struct(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
-        """Add 24 GROUP-A parity + 36 DIP/STRUCT ctx_cont columns to cv3
-        (defaults to self._cv3). Returns the augmented DataFrame.
-
-        One-truth: re-uses `attach_group_a_dip_struct_ctx_columns` from
+        One-truth: re-uses `attach_group_a_ctx_columns` from
         `gx1.scripts.augment_forward_outcome_v2` — same function the V10 builder
         + V3 exit builder + inference-batch candidate gen use. Train/serve skew
         impossible by construction.
@@ -2086,9 +1938,8 @@ class PrebuiltStateLoader:
             raise RuntimeError("group-A augmentation requires a loaded canonical_v3 frame")
         from gx1.contracts.entry_model_native_signal_v1 import (
             MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
-            MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT,
         )
-        expected = list(_GROUP_A) + list(_DIP_STRUCT)
+        expected = list(_GROUP_A)
         if set(expected).issubset(target.columns):
             return target
         missing_ohlc = [c for c in ("open", "high", "low", "close", "volume") if c not in target.columns]
@@ -2096,11 +1947,10 @@ class PrebuiltStateLoader:
             raise RuntimeError(
                 f"group-A augmentation requires exact canonical OHLCV sources: {missing_ohlc}"
             )
-        LOG.info(f"augmenting canonical_v3 with {len(_GROUP_A)} GROUP-A + "
-                 f"{len(_DIP_STRUCT)} DIP/STRUCT ctx_cont cols "
+        LOG.info(f"augmenting canonical_v3 with {len(_GROUP_A)} GROUP-A ctx_cont cols "
                  f"(~10-20 min for {len(target):,} M5 rows)...")
         from gx1.scripts.augment_forward_outcome_v2 import (
-            attach_group_a_dip_struct_ctx_columns,
+            attach_group_a_ctx_columns,
         )
         from gx1.features.htf_features import build_multi_tf_per_bar_features_v4
         # LIVE serve: build the multi-TF bundle IN-MEMORY from THIS cv3 and pass it, instead
@@ -2113,18 +1963,21 @@ class PrebuiltStateLoader:
         mtf_in_mem = build_multi_tf_per_bar_features_v4(
             target,
             v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+            volatility_squeeze_artifacts=(
+                _require_volatility_squeeze_artifacts_from_bound_cache()
+            ),
         )
         # The helper mutates in place via the returned DataFrame; rebind to be safe.
-        target = attach_group_a_dip_struct_ctx_columns(
+        target = attach_group_a_ctx_columns(
             target, journal_label="live_costfix", multi_tf=mtf_in_mem,
         )
-        need = list(_GROUP_A) + list(_DIP_STRUCT)
+        need = list(_GROUP_A)
         missing = [name for name in need if name not in target.columns]
         if missing:
             raise RuntimeError(f"group-A augmentation output contract incomplete: {missing}")
         if in_place:
             self._cv3 = target
-        LOG.info(f"  group_a/dip_struct augment done: cv3 now {len(target.columns)} cols")
+        LOG.info(f"  group_a augment done: cv3 now {len(target.columns)} cols")
         return target
 
     # ── Legacy canonical_v1 features Entry-IQL trained on ────────────────
@@ -2169,7 +2022,7 @@ class PrebuiltStateLoader:
         return cv3
 
     def _augment_cv3_with_volume_features(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
-        """Add 4 volume features (VOLUME_FEATURE_NAMES) to cv3 (defaults to self._cv3).
+        """Add owner-declared raw-volume features to cv3 (defaults to self._cv3).
         Pure-ish: mutates the cv3 you pass in (or self._cv3 by default) and returns it.
         Idempotent — if all are present, skip.
         """
@@ -2181,11 +2034,11 @@ class PrebuiltStateLoader:
         )
         if set(VOLUME_FEATURE_NAMES).issubset(target.columns):
             return target
-        if "volume" not in target.columns or "close" not in target.columns:
-            raise RuntimeError("volume augmentation requires exact volume and close sources")
+        if "volume" not in target.columns:
+            raise RuntimeError("volume augmentation requires exact volume source")
         LOG.info(f"augmenting canonical_v3 with {len(VOLUME_FEATURE_NAMES)} "
                  f"volume features (vol_z_20, vol_ratio_5_20, ...)")
-        feats = compute_volume_features(target[["volume", "close"]])
+        feats = compute_volume_features(target[["volume"]])
         missing = [name for name in VOLUME_FEATURE_NAMES if name not in feats]
         if missing:
             raise RuntimeError(f"volume feature owner output incomplete: {missing}")
@@ -2224,6 +2077,9 @@ class PrebuiltStateLoader:
         multi_tf = build_multi_tf_per_bar_features_v4(
             m5_df,
             v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+            volatility_squeeze_artifacts=(
+                _require_volatility_squeeze_artifacts_from_bound_cache()
+            ),
         )
         projected = project_multi_tf_v4_scalars(
             multi_tf,
@@ -2452,6 +2308,9 @@ class PrebuiltStateLoader:
         feats_dict = build_multi_tf_per_bar_features_v4(
             m5_df,
             v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+            volatility_squeeze_artifacts=(
+                _require_volatility_squeeze_artifacts_from_bound_cache()
+            ),
         )
         feat_count = MULTI_TF_FEATURE_COUNT_V4
         for tf, feats in feats_dict.items():

@@ -5,7 +5,9 @@ import inspect
 
 import numpy as np
 import pytest
+import torch
 
+from gx1.contracts import entry_model_native_input_normalization_v1 as normalization_contract
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CAT_DOMAINS,
     EXPECTED_SURFACES,
@@ -14,8 +16,16 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     build_input_normalization_contract,
     fit_ctx_cat_contract,
     fit_surface_normalization,
+    invert_surface_normalization,
     require_input_normalization_contract,
 )
+
+
+def test_retired_ctx_owned_temporal_alias_statistics_api_is_absent() -> None:
+    assert not hasattr(
+        normalization_contract,
+        "share_temporal_alias_stats_from_ctx",
+    )
 
 
 def _surface(name: str, *, width: int = 3) -> tuple[dict, list[str], np.ndarray]:
@@ -116,37 +126,64 @@ def test_robust_fit_preserves_binary_and_scales_large_and_sparse_fields() -> Non
     transformed = apply_surface_normalization(matrix, fitted)
 
     assert fitted["binary_mask"] == [0, 1, 0]
-    assert fitted["scale_source"][0] == "iqr"
+    assert fitted["scale_source"][0] == "raw_iqr"
     assert fitted["scale_source"][1] == "binary_identity"
     assert fitted["scale_source"][2] == "median_positive_abs_deviation"
     np.testing.assert_array_equal(transformed[:, 1], matrix[:, 1])
     assert np.isfinite(transformed).all()
-    assert float(np.max(np.abs(transformed))) <= 12.0
+    np.testing.assert_allclose(
+        invert_surface_normalization(transformed, fitted),
+        matrix,
+        rtol=2e-6,
+        atol=2e-6,
+    )
 
 
-def test_sparse_burst_field_scale_escalates_to_satisfy_train_clip_cap() -> None:
-    # Sparse-event evidence: robust bulk at zero with a genuine informative
-    # tail. The IQR/MAD scale alone would clip far more than the exact 2%
-    # TRAIN cap; the fitted scale must escalate deterministically so the cap
-    # holds by construction without rewriting any value.
+def test_sparse_burst_uses_data_deviation_without_tail_collapse() -> None:
+    # Sparse-event evidence has a zero raw IQR. The scale is fitted from the
+    # observed positive deviations; no tail-rate threshold changes it.
     rng = np.random.default_rng(7)
     values = np.zeros(10_000, dtype=np.float32)
     burst = rng.uniform(0.5, 1.0, size=1_500).astype(np.float32)
     values[:1_500] = burst
-    values[1_500] = 1.0
-    jitter = rng.uniform(1.0e-5, 2.0e-5, size=values.size).astype(np.float32)
-    matrix = (values + jitter).reshape(-1, 1)
+    matrix = values.reshape(-1, 1)
 
     fitted = fit_surface_normalization(
         matrix,
         surface="signal",
         field_names=["sparse_burst"],
     )
-    assert fitted["scale_source"][0].endswith("_clip_cap_quantile")
+    assert fitted["scale_source"] == ["median_positive_abs_deviation"]
     transformed = apply_surface_normalization(matrix, fitted)
-    clip_rate = float((np.abs(transformed) > 12.0).mean())
-    assert clip_rate <= 0.02
     assert np.isfinite(transformed).all()
+    positive_raw = matrix[:, 0] > 0.0
+    assert np.unique(transformed[positive_raw, 0]).size == np.unique(
+        matrix[positive_raw, 0]
+    ).size
+    order = np.argsort(matrix[:, 0], kind="stable")
+    assert np.all(np.diff(transformed[order, 0]) >= 0.0)
+
+
+def test_extreme_tails_remain_distinct_monotonic_and_invertible() -> None:
+    train = np.array([[-2.0], [-1.0], [0.0], [1.0], [2.0]], dtype=np.float32)
+    fitted = fit_surface_normalization(
+        train,
+        surface="signal",
+        field_names=["tail"],
+    )
+    runtime = np.array(
+        [[-1.0e20], [-1.0e12], [0.0], [1.0e12], [1.0e20]],
+        dtype=np.float32,
+    )
+    transformed = apply_surface_normalization(runtime, fitted)
+    assert np.isfinite(transformed).all()
+    assert np.all(np.diff(transformed[:, 0]) > 0.0)
+    assert np.unique(transformed[:, 0]).size == len(runtime)
+    np.testing.assert_allclose(
+        invert_surface_normalization(transformed, fitted),
+        runtime,
+        rtol=3e-6,
+    )
 
 
 def test_fit_rejects_nonfinite_and_constant_nonbinary_fields() -> None:
@@ -161,6 +198,24 @@ def test_fit_rejects_nonfinite_and_constant_nonbinary_fields() -> None:
             np.full((8, 1), 2.0, dtype=np.float32),
             surface="signal",
             field_names=["constant"],
+        )
+    # Constant-one presence masks are not granted a binary identity exception:
+    # TRAIN cannot learn the effect of their absent state.
+    with pytest.raises(RuntimeError, match="UNSCALEABLE"):
+        fit_surface_normalization(
+            np.ones((8, 1), dtype=np.float32),
+            surface="mtf_d1",
+            field_names=["level_present"],
+        )
+
+    fitted, names, _ = _surface("signal")
+    saturated = copy.deepcopy(fitted)
+    saturated["train_transformed_min"][1] = 1.0
+    with pytest.raises(RuntimeError, match="BINARY_TRAIN_SUPPORT_INVALID"):
+        normalization_contract.require_surface_normalization(
+            saturated,
+            surface="signal",
+            field_names=names,
         )
 
 
@@ -180,6 +235,22 @@ def test_contract_binds_all_surface_names_stats_and_fit_lineage() -> None:
     with pytest.raises(RuntimeError, match="STATS_HASH_MISMATCH"):
         require_input_normalization_contract(
             tampered,
+            expected_field_names=names,
+            expected_ctx_cat_names=list(CTX_CAT_DOMAINS),
+        )
+    support_mutation = copy.deepcopy(contract)
+    support_mutation["surfaces"]["ctx_cont"]["train_transformed_max"][0] += 1.0
+    with pytest.raises(RuntimeError, match="STATS_HASH_MISMATCH"):
+        require_input_normalization_contract(
+            support_mutation,
+            expected_field_names=names,
+            expected_ctx_cat_names=list(CTX_CAT_DOMAINS),
+        )
+    transform_mutation = copy.deepcopy(contract)
+    transform_mutation["continuous_transform"] = "clipped"
+    with pytest.raises(RuntimeError, match="CONTRACT_IDENTITY_INVALID"):
+        require_input_normalization_contract(
+            transform_mutation,
             expected_field_names=names,
             expected_ctx_cat_names=list(CTX_CAT_DOMAINS),
         )
@@ -236,7 +307,96 @@ def test_shared_population_fit_accepts_selected_sources_without_concatenation() 
     expected = np.concatenate([entry[:, 0], exit_[::2, 0]])
     assert fitted["fit_row_count"] == 80
     assert np.float32(fitted["center"][0]) == np.float32(np.median(expected))
-    assert fitted["train_clipped_rate"][0] <= fitted["max_train_clip_rate"]
+    assert fitted["train_transformed_min"][0] < fitted["train_transformed_max"][0]
+
+
+def test_numpy_torch_asinh_transform_parity_and_source_guards() -> None:
+    values = np.array(
+        [
+            [-1.0e12, 0.0, 0.0],
+            [-2.0, 1.0, 1.0],
+            [0.0, 0.0, 2.0],
+            [3.0, 1.0, 3.0],
+            [1.0e12, 0.0, 4.0],
+        ],
+        dtype=np.float32,
+    )
+    fitted = fit_surface_normalization(
+        values,
+        surface="ctx_cont",
+        field_names=["continuous", "binary", "category"],
+        semantic_categorical_domains={"category": (0, 1, 2, 3, 4)},
+    )
+    numpy_result = apply_surface_normalization(values, fitted)
+    raw = torch.from_numpy(values.copy())
+    center = torch.tensor(fitted["center"], dtype=torch.float32)
+    scale = torch.tensor(fitted["scale"], dtype=torch.float32)
+    identity = torch.tensor(
+        np.logical_or(fitted["binary_mask"], fitted["categorical_mask"]),
+        dtype=torch.bool,
+    )
+    torch_result = torch.where(
+        identity,
+        raw.to(dtype=torch.float64),
+        torch.asinh(
+            (
+                raw.to(dtype=torch.float64)
+                - center.to(dtype=torch.float64)
+            )
+            / scale.to(dtype=torch.float64)
+        ),
+    ).to(dtype=raw.dtype)
+    np.testing.assert_allclose(
+        torch_result.numpy(),
+        numpy_result,
+        rtol=2e-6,
+        atol=2e-6,
+    )
+    np.testing.assert_array_equal(numpy_result[:, 1:], values[:, 1:])
+
+    contract_source = inspect.getsource(normalization_contract)
+    for retired in (
+        "CLIP_ABS",
+        "MAX_TRAIN_CLIP_RATE",
+        "SCALE_FLOOR",
+        "clip_cap_quantile",
+        "saturated_presence_mask_identity",
+        "np.clip",
+    ):
+        assert retired not in contract_source
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+        EntryV10CtxHybridTransformer,
+    )
+
+    model_source = inspect.getsource(
+        EntryV10CtxHybridTransformer._normalize_input_surface
+    )
+    assert "torch.asinh(" in model_source
+    assert "torch.clamp(" not in model_source
+
+
+def test_asinh_affine_avoids_float32_intermediate_overflow() -> None:
+    train = np.array(
+        [[-2.0e-38], [-1.0e-38], [0.0], [1.0e-38], [2.0e-38]],
+        dtype=np.float32,
+    )
+    fitted = fit_surface_normalization(
+        train,
+        surface="signal",
+        field_names=["tiny_scale"],
+    )
+    runtime = np.array(
+        [[-np.finfo(np.float32).max], [np.finfo(np.float32).max]],
+        dtype=np.float32,
+    )
+    transformed = apply_surface_normalization(runtime, fitted)
+    assert np.isfinite(transformed).all()
+    assert transformed[0, 0] < transformed[1, 0]
+    np.testing.assert_allclose(
+        invert_surface_normalization(transformed, fitted),
+        runtime,
+        rtol=2e-5,
+    )
 
 
 def test_trainer_cgroup_preflight_rejects_uncapped_and_audit_without_training() -> None:

@@ -32,24 +32,14 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
-    MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-    model_native_aux_target_contract_metadata,
     require_model_native_aux_target_contract,
 )
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
     require_bundle_commit_manifest,
 )
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
-    ACTION_VALUE_DIM,
-    ACTION_VALUE_TARGET_COLUMNS,
-    EXPECTILE_VALUE_DIM,
-    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
-    REWARD_SCALE_BPS as OFFLINE_RL_REWARD_SCALE_BPS,
-    require_offline_rl_contract_metadata,
-)
+from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
 )
@@ -85,11 +75,6 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
     EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    CLASS_ORDER,
-    INPUTS as DIRECTION_EVIDENCE_INPUTS,
-    require_direction_evidence_fusion_metadata,
-)
 from gx1.contracts.immutable_event_authority_v1 import (
     require_newest_immutable_event,
     write_immutable_json_event,
@@ -117,7 +102,7 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 REPORT_PREFIX = "ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT"
 _SMOKE_EDGE_POLICY = foundation_audit_policy_metadata()["smoke_edge_pockets"]
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
-CLASS_NAMES = CLASS_ORDER
+CLASS_NAMES = ENTRY_FITTED_Q_ACTION_ORDER
 EXPECTED_SESSIONS = tuple(_SMOKE_EDGE_POLICY["expected_sessions"])
 CONTEXT_POCKET_FIELDS = tuple(_SMOKE_EDGE_POLICY["context_fields"])
 MIN_DIRECTION_ACCURACY = float(_SMOKE_EDGE_POLICY["min_direction_accuracy"])
@@ -181,7 +166,6 @@ MIN_NEAR_TURN_TIMING_PRECISION = float(
 MIN_NEAR_TURN_TIMING_PRECISION_WILSON_LOWER = float(
     _TURNING_POINT_POLICY["min_near_turn_timing_precision_wilson_lower"]
 )
-_OFFLINE_RL_EVIDENCE_POLICY = _SMOKE_EDGE_POLICY["offline_rl_evidence"]
 
 _STAMP_RE = re.compile(r"\d{8}T\d{6}(?:\d{6})?Z")
 _HEX64_RE = re.compile(r"[0-9a-f]{64}")
@@ -196,62 +180,27 @@ _INPUT_AUDIT_CONTRACTS = {
         "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT",
     ),
     "pretrain": (
-        "xau_direction_repair_pretrain_audit_v2",
+        "xau_direction_repair_pretrain_audit_v4",
         "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT",
     ),
 }
 
 _SCALAR_HEAD_EVIDENCE = {
-    "tradable": ("tradable_prob",),
-    "path_quality": ("path_quality_pred",),
-    "mfe_first_n": ("mfe_first_n_pred",),
-    "bad_path": ("bad_path_prob",),
-    "clean_edge": ("clean_edge_prob",),
-    "survival": ("survival_prob",),
-    "tf_agreement": ("tf_agreement_prob",),
-    "path_quality_log_var": ("path_quality_log_var",),
     "position_size": ("position_size_pred",),
 }
 _VECTOR_HEAD_EVIDENCE = {
-    "direction": {"direction_logits": 3},
+    "entry_action_q": {"entry_action_q_bps": 3},
     "dip": {"dip_pred": 18},
     "forecast": {"forecast_pred": 4},
     "timing": {"timing_pred": 12},
     "tail_risk": {"tail_risk_pred": 6},
     "vol_forecast": {"vol_forecast_pred": 3},
-    "offline_rl_action_value": {
-        "action_value": 9,
-        "action_advantage": 9,
-    },
-    "offline_rl_expectile_value": {"expectile_value": 3},
-    "mtf_direction": {"mtf_dir_logits": 3},
-    "trade_side_hierarchy": {
-        "trade_logit": 1,
-        "side_logits": 2,
-        "side_utility": 2,
-        "side_bad_path_logit": 2,
-        "side_mae": 2,
-    },
-    "trendline_rail": {"trendline_rail_logits": 6},
-    "side_validity": {"side_validity_logit": 2},
-    "model_native_evidence_fusion": {
-        **dict(DIRECTION_EVIDENCE_INPUTS),
-        "raw_direction_logits": 3,
-    },
+    "side_mae": {"side_mae_bps": 2},
+    "trendline_event": {"trendline_event_logits": 4},
 }
-_TRADE_HIERARCHY_SCALARS = ("p_trade",)
 _REQUIRED_TARGET_EVIDENCE = (
-    "path_quality_bps",
-    "y_bad_path",
-    "mfe_first_n_bps",
-    "y_tradable",
     "y_position_size_target",
-    "y_long_path_utility_bps",
-    "y_short_path_utility_bps",
-    "long_path_utility_pred_bps",
-    "short_path_utility_pred_bps",
     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-    *ACTION_VALUE_TARGET_COLUMNS,
 )
 
 
@@ -621,21 +570,6 @@ def _input_audit_contract(
             )
         except RuntimeError as exc:
             failures.append(str(exc))
-        offline_rl_target = payload.get("offline_rl_target_contract")
-        if (
-            not isinstance(offline_rl_target, Mapping)
-            or offline_rl_target.get("decision") != "PASS"
-            or offline_rl_target.get("failures") != []
-        ):
-            failures.append("target audit offline-RL target proof failed")
-        else:
-            try:
-                require_offline_rl_contract_metadata(
-                    offline_rl_target.get("offline_rl_contract"),
-                    context="SMOKE_TARGET_AUDIT",
-                )
-            except RuntimeError as exc:
-                failures.append(str(exc))
     if name == "specialist" and payload:
         exact_checks = (
             (payload.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "contract mode"),
@@ -680,8 +614,8 @@ def _input_audit_contract(
                 "split set/order",
             ),
             (
-                payload.get("require_mandatory_geometry_features") is True,
-                "mandatory geometry feature proof",
+                payload.get("require_mandatory_level_features") is True,
+                "mandatory level feature proof",
             ),
             (payload.get("require_inline_seq_structure") is True, "inline structure proof"),
             (payload.get("require_xau_provenance") is True, "XAU provenance proof"),
@@ -709,17 +643,6 @@ def _input_audit_contract(
             "foundation_audit_policy_enforcement"
         )
     return report, payload
-
-
-def _fusion_metadata_failures(value: Mapping[str, Any]) -> list[str]:
-    try:
-        require_direction_evidence_fusion_metadata(
-            value,
-            context="SMOKE_AUDIT_BUNDLE",
-        )
-    except RuntimeError as exc:
-        return [str(exc)]
-    return []
 
 
 def _bundle_contract_report(
@@ -764,16 +687,16 @@ def _bundle_contract_report(
     full_stack = {
         "multi_tf_timeframes": list(MULTI_TF_TIMEFRAMES),
         "cross_tf_attention": False,
-        "mtf_direction_head": False,
+        "retired_mtf_direction_head_absent": False,
         "positional_encoding": False,
         "regime_film": False,
         "learned_tf_input_scales": False,
         "specialist_fusion": False,
         "cross_family_cooperation": False,
-        "learned_direction_evidence_fusion": False,
-        "canonical_trade_flat_from_final_logits": False,
+        "direct_joint_entry_q": False,
+        "raw_entry_q_unique_argmax": False,
         "retired_direction_state_absent": False,
-        "final_calibrated_logits_only": False,
+        "probability_calibration_absent": False,
         "hold_horizon_blocked": False,
     }
     if loaded is not None:
@@ -789,7 +712,6 @@ def _bundle_contract_report(
             )
 
         specialist = metadata.get("specialist_fusion")
-        fusion_metadata = metadata.get("model_native_direction_evidence_fusion")
         mtf = metadata.get("multi_tf")
         full_stack.update(
             {
@@ -801,9 +723,9 @@ def _bundle_contract_report(
                     and any(key.startswith("tf_token_gate.") for key in model_keys)
                     and any(key.startswith("cross_tf_out.") for key in model_keys)
                 ),
-                "mtf_direction_head": bool(
-                    "head_mtf_direction.weight" in model_keys
-                    and "head_mtf_direction.bias" in model_keys
+                "retired_mtf_direction_head_absent": bool(
+                    "head_mtf_direction.weight" not in model_keys
+                    and "head_mtf_direction.bias" not in model_keys
                 ),
                 "positional_encoding": bool(
                     metadata.get("enable_pos_enc") is True
@@ -841,25 +763,21 @@ def _bundle_contract_report(
                     and any(key.startswith("family_tf_token_gate.") for key in model_keys)
                     and finite_nonzero_tensor("family_tf_cooperation_out.weight")
                 ),
-                "learned_direction_evidence_fusion": bool(
-                    isinstance(fusion_metadata, dict)
-                    and not _fusion_metadata_failures(fusion_metadata)
-                    and all(
+                "direct_joint_entry_q": bool(
+                    all(
                         key in model_keys
                         for key in (
-                            "evidence_fusion_norm.weight",
-                            "evidence_fusion_norm.bias",
-                            "evidence_fusion_in.weight",
-                            "evidence_fusion_in.bias",
-                            "evidence_fusion_out.weight",
-                            "evidence_fusion_out.bias",
+                            "entry_q_joint_norm.weight",
+                            "entry_q_joint_in.weight",
+                            "head_entry_action_q.weight",
+                            "head_entry_action_q.bias",
                         )
                     )
                 ),
-                "canonical_trade_flat_from_final_logits": bool(
+                "raw_entry_q_unique_argmax": bool(
                     direction_contract
-                    and direction_contract.get("public_trade_flat_formula")
-                    == "[max(direction_logits[LONG],direction_logits[SHORT]),direction_logits[FLAT]]"
+                    and direction_contract.get("direction_decision")
+                    == "unique_argmax(entry_action_q_bps_over_valid_actions)"
                 ),
                 "retired_direction_state_absent": not any(
                     key == "mtf_dir_scale"
@@ -874,12 +792,16 @@ def _bundle_contract_report(
                     )
                     for key in model_keys
                 ),
-                "final_calibrated_logits_only": bool(
+                "probability_calibration_absent": bool(
                     direction_contract
                     and direction_contract.get("selection_mode")
                     == MODEL_DIRECTION_SELECTION_MODE
                     and direction_contract.get("output_stage")
-                    == "final_model_forward_after_learned_evidence_fusion_and_calibration"
+                    == "direct_joint_local_multi_timeframe_q_head"
+                    and direction_contract.get(
+                        "probability_or_temperature_calibration_allowed"
+                    )
+                    is False
                 ),
                 "hold_horizon_blocked": bool(
                     "head_hold_horizon.weight" not in model_keys
@@ -1032,193 +954,6 @@ def _wilson_lower(successes: int, trials: int, *, z_score: float = WILSON_Z_SCOR
     return float(min(1.0, max(0.0, lower)))
 
 
-def _direction_metrics(
-    frame: pd.DataFrame,
-    *,
-    context: str,
-    support_scope: str = "global",
-) -> dict[str, Any]:
-    if support_scope not in {"global", "context"}:
-        raise ValueError(f"unknown direction support_scope={support_scope!r}")
-    failures: list[str] = []
-    rows = int(len(frame))
-    labels = _numeric(frame, "y_direction").astype(np.int64)
-    predictions = _numeric(frame, "pred_direction").astype(np.int64)
-    if not set(labels).issubset({0, 1, 2}) or not set(predictions).issubset({0, 1, 2}):
-        failures.append("direction labels/predictions contain values outside LONG/SHORT/FLAT")
-    confusion = np.zeros((3, 3), dtype=np.int64)
-    for label, prediction in zip(labels, predictions, strict=True):
-        if label in {0, 1, 2} and prediction in {0, 1, 2}:
-            confusion[int(label), int(prediction)] += 1
-    label_counts = confusion.sum(axis=1)
-    prediction_counts = confusion.sum(axis=0)
-    accuracy = float(np.trace(confusion) / rows) if rows else 0.0
-    majority = float(label_counts.max() / rows) if rows else 1.0
-    recalls = np.divide(
-        np.diag(confusion),
-        label_counts,
-        out=np.full(3, np.nan, dtype=np.float64),
-        where=label_counts > 0,
-    )
-    precisions = np.divide(
-        np.diag(confusion),
-        prediction_counts,
-        out=np.full(3, np.nan, dtype=np.float64),
-        where=prediction_counts > 0,
-    )
-    balanced_accuracy = float(np.nanmean(recalls)) if np.isfinite(recalls).all() else 0.0
-    trade_mask = predictions != 2
-    trade_rows = int(trade_mask.sum())
-    trade_precision = (
-        float(np.mean(predictions[trade_mask] == labels[trade_mask]))
-        if trade_rows
-        else 0.0
-    )
-    trade_successes = int(np.sum(predictions[trade_mask] == labels[trade_mask]))
-    trade_wilson_lower = _wilson_lower(trade_successes, trade_rows)
-    class_successes = np.diag(confusion).astype(np.int64, copy=False)
-    class_wilson_lower = np.asarray(
-        [
-            _wilson_lower(int(class_successes[index]), int(prediction_counts[index]))
-            for index in range(3)
-        ],
-        dtype=np.float64,
-    )
-    if support_scope == "global":
-        required_trade_rows = MIN_TRADE_ROWS
-        required_prediction_rows_per_class: int | None = (
-            MIN_PREDICTION_ROWS_PER_CLASS
-        )
-        required_class_precision: float | None = MIN_CLASS_PRECISION
-    else:
-        required_trade_rows = MIN_CONTEXT_TRADE_ROWS
-        required_prediction_rows_per_class = None
-        required_class_precision = None
-    probabilities = np.column_stack(
-        [_numeric(frame, "p_long"), _numeric(frame, "p_short"), _numeric(frame, "p_flat")]
-    )
-    true_prob = probabilities[np.arange(rows), labels] if rows else np.asarray([])
-    log_loss = float(-np.mean(np.log(np.clip(true_prob, 1e-12, 1.0)))) if rows else None
-
-    if rows <= 0:
-        failures.append("direction evidence has zero rows")
-    if np.any(label_counts <= 0):
-        failures.append("direction evidence does not contain all three label classes")
-    if np.any(prediction_counts <= 0):
-        failures.append("direction model does not emit all LONG/SHORT/FLAT classes")
-    if trade_rows < required_trade_rows:
-        failures.append(
-            f"trade_rows={trade_rows} below required support={required_trade_rows}"
-        )
-    for index, name in enumerate(CLASS_NAMES):
-        if (
-            required_prediction_rows_per_class is not None
-            and int(prediction_counts[index]) < required_prediction_rows_per_class
-        ):
-            failures.append(
-                f"{name} prediction_rows={int(prediction_counts[index])} below "
-                f"required support={required_prediction_rows_per_class}"
-            )
-        if not np.isfinite(precisions[index]):
-            failures.append(f"{name} precision is not finite: {precisions[index]!r}")
-        elif (
-            required_class_precision is not None
-            and float(precisions[index]) < required_class_precision
-        ):
-            failures.append(
-                f"{name} precision={float(precisions[index]):.6f} below "
-                f"required={required_class_precision:.6f}"
-            )
-    if accuracy <= majority:
-        failures.append(
-            f"accuracy={accuracy:.6f} does not beat majority={majority:.6f}"
-        )
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "failures": [f"{context}: {failure}" for failure in failures],
-        "rows": rows,
-        "accuracy": accuracy,
-        "majority_baseline_accuracy": majority,
-        "beats_majority_baseline": accuracy > majority,
-        "balanced_accuracy": balanced_accuracy,
-        "support_scope": support_scope,
-        "wilson_confidence_level": WILSON_CONFIDENCE_LEVEL,
-        "wilson_z_score": WILSON_Z_SCORE,
-        "trade_rows": trade_rows,
-        "trade_successes": trade_successes,
-        "minimum_trade_rows": required_trade_rows,
-        "trade_coverage": float(trade_rows / rows) if rows else 0.0,
-        "trade_direction_precision": trade_precision,
-        "trade_direction_precision_wilson_lower": trade_wilson_lower,
-        "minimum_prediction_rows_per_class": required_prediction_rows_per_class,
-        "log_loss": log_loss,
-        "label_counts": {name: int(label_counts[i]) for i, name in enumerate(CLASS_NAMES)},
-        "prediction_counts": {
-            name: int(prediction_counts[i]) for i, name in enumerate(CLASS_NAMES)
-        },
-        "precision": {
-            name: (float(precisions[i]) if np.isfinite(precisions[i]) else None)
-            for i, name in enumerate(CLASS_NAMES)
-        },
-        "precision_successes": {
-            name: int(class_successes[i]) for i, name in enumerate(CLASS_NAMES)
-        },
-        "precision_wilson_lower": {
-            name: float(class_wilson_lower[i])
-            for i, name in enumerate(CLASS_NAMES)
-        },
-        "recall": {
-            name: (float(recalls[i]) if np.isfinite(recalls[i]) else None)
-            for i, name in enumerate(CLASS_NAMES)
-        },
-        "confusion_matrix": confusion.tolist(),
-    }
-
-
-def _context_slice_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
-    failures: list[str] = []
-    fields: dict[str, Any] = {}
-    for field in CONTEXT_POCKET_FIELDS:
-        if field not in frame:
-            failures.append(f"{split}: context evidence missing {field}")
-            continue
-        values = sorted(str(value) for value in frame[field].dropna().unique())
-        if field == "session" and tuple(values) != tuple(sorted(EXPECTED_SESSIONS)):
-            failures.append(
-                f"{split}: session set mismatch observed={values} "
-                f"expected={sorted(EXPECTED_SESSIONS)}"
-            )
-        if field == "vol_regime" and len(values) < 2:
-            failures.append(f"{split}: fewer than two volatility regimes are represented")
-        slices: dict[str, Any] = {}
-        for value in values:
-            scoped = frame[frame[field].astype(str) == value]
-            if len(scoped) < MIN_CONTEXT_ROWS:
-                row = {
-                    "decision": "FAIL",
-                    "failures": [
-                        f"{split}/{field}={value}: rows={len(scoped)} below {MIN_CONTEXT_ROWS}"
-                    ],
-                    "rows": int(len(scoped)),
-                }
-            else:
-                row = _direction_metrics(
-                    scoped,
-                    context=f"{split}/{field}={value}",
-                    support_scope="context",
-                )
-            slices[value] = row
-            failures.extend(row["failures"])
-        fields[field] = {"values": values, "slices": slices}
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "failures": failures,
-        "minimum_rows_per_slice": MIN_CONTEXT_ROWS,
-        "minimum_trade_rows_per_slice": MIN_CONTEXT_TRADE_ROWS,
-        "fields": fields,
-    }
-
-
 def _specialist_gate_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     failures: list[str] = []
     gate = _matrix(frame, "specialist_gate", len(MODEL_NATIVE_REQUIRED_SPECIALISTS))
@@ -1270,9 +1005,8 @@ def _active_head_evidence_contract(
 ) -> dict[str, Any]:
     failures: list[str] = []
     heads: dict[str, Any] = {}
-    # p_long/p_short/p_flat are canonical final-logit prediction evidence even
-    # though fields with those names are forbidden as *model inputs*.  Only
-    # the retired bridge diagnostics and anchor/delta outputs are invalid here.
+    # Raw Q and its exact argmax are the only decision evidence. Retired bridge
+    # diagnostics and anchor/delta outputs are invalid here.
     forbidden = sorted(
         {
             "p_hat",
@@ -1322,16 +1056,6 @@ def _active_head_evidence_contract(
                     )
             except RuntimeError as exc:
                 head_failures.append(str(exc))
-        if head == "trade_side_hierarchy":
-            for column in _TRADE_HIERARCHY_SCALARS:
-                try:
-                    values = _numeric(frame, column)
-                    if float(np.std(values)) <= 1e-8:
-                        raise RuntimeError(
-                            f"prediction evidence {column} is constant/pass-through"
-                        )
-                except RuntimeError as exc:
-                    head_failures.append(str(exc))
         heads[head] = {
             "decision": "PASS" if not head_failures else "FAIL",
             "vectors": dict(vectors),
@@ -1366,408 +1090,40 @@ def _spearman(left: np.ndarray, right: np.ndarray) -> float | None:
     return float(value) if value is not None and np.isfinite(value) else None
 
 
-def _utility_evidence_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
-    failures: list[str] = []
-    for column in _REQUIRED_TARGET_EVIDENCE:
-        try:
-            _numeric(frame, column)
-        except RuntimeError as exc:
-            failures.append(f"{split}: {exc}")
-    correlations: dict[str, float | None] = {}
-    if not failures:
-        pairs = {
-            "path_quality": ("path_quality_pred", "path_quality_bps", 1),
-            "bad_path_vs_path_quality": ("bad_path_prob", "path_quality_bps", -1),
-            "mfe_first_n": ("mfe_first_n_pred", "mfe_first_n_bps", 1),
-            "position_size": ("position_size_pred", "y_position_size_target", 1),
-            "long_path_utility": (
-                "long_path_utility_pred_bps",
-                "y_long_path_utility_bps",
-                1,
-            ),
-            "short_path_utility": (
-                "short_path_utility_pred_bps",
-                "y_short_path_utility_bps",
-                1,
-            ),
-        }
-        for name, (prediction, target, sign) in pairs.items():
-            rho = _spearman(_numeric(frame, prediction), _numeric(frame, target))
-            correlations[name] = rho
-            if rho is None or sign * rho <= 0.0:
-                failures.append(
-                    f"{split}: {name} Spearman={rho} lacks required sign {sign:+d}"
-                )
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "failures": failures,
-        "spearman": correlations,
-    }
-
-
-def _turning_point_evidence_contract(
-    frame: pd.DataFrame,
-    *,
-    split: str,
-) -> dict[str, Any]:
-    """Require learned, target-aligned TOP/BOTTOM timing and precise pockets."""
-
-    failures: list[str] = []
-    alignment: list[dict[str, Any]] = []
-    pockets: dict[str, Any] = {}
-    layout = model_native_aux_target_contract_metadata()["turning_point_timing"][
-        "layout"
-    ]
-    try:
-        if "timing_pred" in frame:
-            predictions = _matrix(
-                frame,
-                "timing_pred",
-                MODEL_NATIVE_TIMING_OUTPUT_DIM,
-            )
-        else:
-            predictions = _prefixed_matrix(
-                frame,
-                "timing_pred",
-                MODEL_NATIVE_TIMING_OUTPUT_DIM,
-            )
-        targets = np.column_stack(
-            [_numeric(frame, name) for name in MODEL_NATIVE_TIMING_TARGET_COLUMNS]
-        )
-        if np.any(predictions < 0.0) or np.any(predictions > 1.0):
-            failures.append(f"{split}: timing predictions are outside [0,1]")
-        if np.any(targets < 0.0) or np.any(targets > 1.0):
-            failures.append(f"{split}: timing targets are outside [0,1]")
-
-        for item in layout:
-            index = int(item["index"])
-            rho = _spearman(predictions[:, index], targets[:, index])
-            mae = float(np.mean(np.abs(predictions[:, index] - targets[:, index])))
-            row_failures: list[str] = []
-            if rho is None or rho < MIN_TIMING_TARGET_SPEARMAN:
-                row_failures.append(
-                    f"Spearman={rho} below {MIN_TIMING_TARGET_SPEARMAN:.3f}"
-                )
-            if mae > MAX_TIMING_TARGET_MAE:
-                row_failures.append(
-                    f"MAE={mae:.6f} above {MAX_TIMING_TARGET_MAE:.6f}"
-                )
-            alignment.append(
-                {
-                    **dict(item),
-                    "spearman": rho,
-                    "mae": mae,
-                    "decision": "PASS" if not row_failures else "FAIL",
-                    "failures": row_failures,
-                }
-            )
-            failures.extend(
-                f"{split}/{item['target_column']}: {failure}"
-                for failure in row_failures
-            )
-
-        predicted_direction = _numeric(frame, "pred_direction")
-        true_direction = _numeric(frame, "y_direction")
-        if not np.array_equal(predicted_direction, np.rint(predicted_direction)):
-            raise RuntimeError("pred_direction is not integer-valued")
-        if not np.array_equal(true_direction, np.rint(true_direction)):
-            raise RuntimeError("y_direction is not integer-valued")
-        predicted_direction = predicted_direction.astype(np.int64)
-        true_direction = true_direction.astype(np.int64)
-
-        for direction_id, direction, turn in (
-            (0, "long", "BOTTOM"),
-            (1, "short", "TOP"),
-        ):
-            timing_index = next(
-                int(item["index"])
-                for item in layout
-                if item["direction"] == direction
-                and int(item["horizon_bars"])
-                == TURNING_POINT_EVALUATION_HORIZON
-                and item["target"] == "dip_bottom_frac"
-            )
-            claimed = (
-                (predicted_direction == direction_id)
-                & (predictions[:, timing_index] <= NEAR_TURN_MAX_FRACTION)
-            )
-            rows = int(claimed.sum())
-            direction_successes = int(
-                np.sum(true_direction[claimed] == direction_id)
-            )
-            timing_successes = int(
-                np.sum(targets[claimed, timing_index] <= NEAR_TURN_MAX_FRACTION)
-            )
-            direction_precision = direction_successes / rows if rows else 0.0
-            timing_precision = timing_successes / rows if rows else 0.0
-            direction_wilson = _wilson_lower(direction_successes, rows)
-            timing_wilson = _wilson_lower(timing_successes, rows)
-            pocket_failures: list[str] = []
-            if rows < MIN_NEAR_TURN_TRADE_ROWS_PER_SIDE:
-                pocket_failures.append(
-                    f"rows={rows} below {MIN_NEAR_TURN_TRADE_ROWS_PER_SIDE}"
-                )
-            if direction_precision < MIN_NEAR_TURN_DIRECTION_PRECISION:
-                pocket_failures.append(
-                    "direction precision="
-                    f"{direction_precision:.6f} below "
-                    f"{MIN_NEAR_TURN_DIRECTION_PRECISION:.6f}"
-                )
-            if direction_wilson < MIN_NEAR_TURN_PRECISION_WILSON_LOWER:
-                pocket_failures.append(
-                    f"direction Wilson={direction_wilson:.6f} below "
-                    f"{MIN_NEAR_TURN_PRECISION_WILSON_LOWER:.6f}"
-                )
-            if timing_precision < MIN_NEAR_TURN_TIMING_PRECISION:
-                pocket_failures.append(
-                    f"timing precision={timing_precision:.6f} below "
-                    f"{MIN_NEAR_TURN_TIMING_PRECISION:.6f}"
-                )
-            if timing_wilson < MIN_NEAR_TURN_TIMING_PRECISION_WILSON_LOWER:
-                pocket_failures.append(
-                    f"timing Wilson={timing_wilson:.6f} below "
-                    f"{MIN_NEAR_TURN_TIMING_PRECISION_WILSON_LOWER:.6f}"
-                )
-            pockets[turn] = {
-                "decision": "PASS" if not pocket_failures else "FAIL",
-                "failures": pocket_failures,
-                "model_direction": direction.upper(),
-                "timing_output_index": timing_index,
-                "evaluation_horizon_bars": TURNING_POINT_EVALUATION_HORIZON,
-                "near_turn_max_fraction": NEAR_TURN_MAX_FRACTION,
-                "rows": rows,
-                "direction_successes": direction_successes,
-                "direction_precision": direction_precision,
-                "direction_precision_wilson_lower": direction_wilson,
-                "timing_successes": timing_successes,
-                "timing_precision": timing_precision,
-                "timing_precision_wilson_lower": timing_wilson,
-            }
-            failures.extend(
-                f"{split}/{turn}: {failure}" for failure in pocket_failures
-            )
-    except (RuntimeError, StopIteration) as exc:
-        failures.append(f"{split}: turning-point evidence invalid: {exc}")
-
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "failures": failures,
-        "policy": dict(_TURNING_POINT_POLICY),
-        "layout": layout,
-        "target_alignment": alignment,
-        "near_turn_pockets": pockets,
-        "live_direction_rule_authority": False,
-    }
-
-
-def _offline_rl_evidence_contract(
-    frame: pd.DataFrame,
-    *,
-    split: str,
-) -> dict[str, Any]:
-    """Require Q/V/Adv target alignment without creating another policy."""
-
-    failures: list[str] = []
-    q_alignment: list[dict[str, Any]] = []
-    ranking: dict[str, Any] = {}
-    value_alignment: dict[str, Any] = {}
-    advantage_max_abs_error: float | None = None
-    try:
-        def vector(name: str, width: int) -> np.ndarray:
-            return (
-                _matrix(frame, name, width)
-                if name in frame
-                else _prefixed_matrix(frame, name, width)
-            )
-
-        q_flat = vector("action_value", ACTION_VALUE_DIM)
-        value = vector("expectile_value", EXPECTILE_VALUE_DIM)
-        advantage = vector("action_advantage", ACTION_VALUE_DIM)
-        q_values = q_flat.reshape(
-            len(frame), len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)
-        )
-        expected_advantage = (q_values - value[:, None, :]).reshape(
-            len(frame), ACTION_VALUE_DIM
-        )
-        advantage_max_abs_error = float(
-            np.max(np.abs(advantage - expected_advantage))
-        )
-        if advantage_max_abs_error > float(
-            _OFFLINE_RL_EVIDENCE_POLICY["max_advantage_parity_abs"]
-        ):
-            failures.append(
-                f"{split}: Advantage != Q-V max_abs={advantage_max_abs_error:.9g}"
-            )
-
-        rewards = np.column_stack(
-            [_numeric(frame, name) for name in ACTION_VALUE_TARGET_COLUMNS]
-        ).reshape(
-            len(frame), len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)
-        ) / float(OFFLINE_RL_REWARD_SCALE_BPS)
-        min_spearman = float(
-            _OFFLINE_RL_EVIDENCE_POLICY["min_q_target_spearman"]
-        )
-        max_mae = float(_OFFLINE_RL_EVIDENCE_POLICY["max_q_target_mae_scaled"])
-        flat_index = OFFLINE_RL_ACTION_ORDER.index("FLAT")
-        for action_index, action in enumerate(OFFLINE_RL_ACTION_ORDER):
-            for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
-                q_column = q_values[:, action_index, horizon_index]
-                target_column = rewards[:, action_index, horizon_index]
-                mae = float(np.mean(np.abs(q_column - target_column)))
-                rho = _spearman(q_column, target_column)
-                row_failures: list[str] = []
-                if action_index == flat_index:
-                    flat_abs_mean = float(np.mean(np.abs(q_column)))
-                    if flat_abs_mean > float(
-                        _OFFLINE_RL_EVIDENCE_POLICY["max_flat_q_abs_mean_scaled"]
-                    ):
-                        row_failures.append(
-                            f"flat abs mean={flat_abs_mean:.6f} above policy"
-                        )
-                elif rho is None or rho < min_spearman:
-                    row_failures.append(
-                        f"Spearman={rho} below {min_spearman:.3f}"
-                    )
-                if mae > max_mae:
-                    row_failures.append(
-                        f"MAE={mae:.6f} above {max_mae:.6f}"
-                    )
-                q_alignment.append(
-                    {
-                        "action": action,
-                        "horizon_bars": int(horizon),
-                        "spearman": rho,
-                        "mae_scaled": mae,
-                        "decision": "PASS" if not row_failures else "FAIL",
-                        "failures": row_failures,
-                    }
-                )
-                failures.extend(
-                    f"{split}/{action}/K{horizon}: {failure}"
-                    for failure in row_failures
-                )
-
-        ordered_rewards = np.sort(rewards, axis=1)
-        unique_best = ordered_rewards[:, -1, :] > ordered_rewards[:, -2, :]
-        reward_best = np.argmax(rewards, axis=1)
-        q_best = np.argmax(q_values, axis=1)
-        for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
-            valid = unique_best[:, horizon_index]
-            rows = int(valid.sum())
-            successes = int(
-                np.sum(q_best[valid, horizon_index] == reward_best[valid, horizon_index])
-            )
-            accuracy = successes / rows if rows else 0.0
-            row_failures: list[str] = []
-            if rows < int(
-                _OFFLINE_RL_EVIDENCE_POLICY["min_unique_reward_rows_per_horizon"]
-            ):
-                row_failures.append(f"unique rows={rows} below policy")
-            if accuracy < float(
-                _OFFLINE_RL_EVIDENCE_POLICY[
-                    "min_reward_argmax_accuracy_per_horizon"
-                ]
-            ):
-                row_failures.append(f"reward argmax accuracy={accuracy:.6f} below policy")
-            ranking[f"K{horizon}"] = {
-                "decision": "PASS" if not row_failures else "FAIL",
-                "failures": row_failures,
-                "unique_reward_rows": rows,
-                "successes": successes,
-                "accuracy": accuracy,
-            }
-            failures.extend(
-                f"{split}/ranking/K{horizon}: {failure}"
-                for failure in row_failures
-            )
-
-            max_q = q_values[:, :, horizon_index].max(axis=1)
-            rho = _spearman(value[:, horizon_index], max_q)
-            row_failures = []
-            if rho is None or rho < float(
-                _OFFLINE_RL_EVIDENCE_POLICY["min_value_vs_max_q_spearman"]
-            ):
-                row_failures.append(f"V/max-Q Spearman={rho} below policy")
-            value_alignment[f"K{horizon}"] = {
-                "decision": "PASS" if not row_failures else "FAIL",
-                "failures": row_failures,
-                "spearman": rho,
-            }
-            failures.extend(
-                f"{split}/value/K{horizon}: {failure}"
-                for failure in row_failures
-            )
-    except RuntimeError as exc:
-        failures.append(f"{split}: offline-RL prediction evidence invalid: {exc}")
-
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "failures": failures,
-        "policy": dict(_OFFLINE_RL_EVIDENCE_POLICY),
-        "q_target_alignment": q_alignment,
-        "reward_argmax_ranking": ranking,
-        "value_vs_max_q": value_alignment,
-        "advantage_max_abs_error": advantage_max_abs_error,
-        "separate_direction_authority": False,
-    }
-
-
 def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
-    direction = _direction_metrics(frame, context=split)
-    distribution_failures = [
-        failure
-        for failure in direction["failures"]
-        if (
-            "class" in failure
-            or "precision" in failure
-            or "emit all" in failure
-            or "prediction_rows" in failure
-            or "required support" in failure
-        )
-    ]
-    distribution = {
-        "decision": "PASS" if not distribution_failures else "FAIL",
-        "failures": distribution_failures,
-        "label_counts": direction["label_counts"],
-        "prediction_counts": direction["prediction_counts"],
-        "precision": direction["precision"],
-        "recall": direction["recall"],
-    }
-    context = _context_slice_contract(frame, split=split)
+    """Audit raw-Q structure/liveness without claiming executable economics."""
+
+    failures: list[str] = []
+    try:
+        q_values = _matrix(frame, "entry_action_q_bps", 3)
+        winner_counts = (q_values == q_values.max(axis=1, keepdims=True)).sum(axis=1)
+        if not bool(np.all(winner_counts == 1)):
+            failures.append(f"{split}: raw Entry-Q contains tied decisions")
+        predicted = _numeric(frame, "pred_direction")
+        if not np.array_equal(predicted, np.argmax(q_values, axis=1)):
+            failures.append(f"{split}: pred_direction differs from raw Entry-Q argmax")
+    except RuntimeError as exc:
+        failures.append(f"{split}: raw Entry-Q evidence invalid: {exc}")
     gate = _specialist_gate_contract(frame, split=split)
     heads = _active_head_evidence_contract(frame, split=split)
-    utility = _utility_evidence_contract(frame, split=split)
-    turning_point = _turning_point_evidence_contract(frame, split=split)
-    offline_rl = _offline_rl_evidence_contract(frame, split=split)
-    failures = [
-        *direction["failures"],
-        *distribution["failures"],
-        *context["failures"],
-        *gate["failures"],
-        *heads["failures"],
-        *utility["failures"],
-        *turning_point["failures"],
-        *offline_rl["failures"],
-    ]
+    failures.extend(gate["failures"])
+    failures.extend(heads["failures"])
+    failures.append(
+        f"{split}: production economics is not ready; net causal OOS replay is required"
+    )
     return {
-        "decision": "PASS" if not failures else "FAIL",
+        "decision": "FAIL",
         "failures": failures,
         "rows": int(len(frame)),
-        "direction": direction,
-        "direction_distribution_contract": distribution,
-        "context_slice_contract": context,
+        "raw_entry_q": {
+            "decision": "PASS" if not failures[:-1] else "FAIL",
+            "action_order": list(ENTRY_FITTED_Q_ACTION_ORDER),
+            "authority": "unique_argmax(entry_action_q_bps)",
+        },
         "specialist_gate": gate,
         "active_head_evidence": heads,
-        "utility_evidence": utility,
-        "turning_point_evidence": turning_point,
-        "offline_rl_evidence": offline_rl,
-        "public_trade_flat_contract": {
-            "decision": "PASS",
-            "failures": [],
-            "formula_exact": True,
-            "argmax_consistent": True,
-            "source": "validated immutable final-logit prediction evidence",
-        },
+        "production_economics_ready": False,
+        "edge_claim_allowed": False,
     }
 
 
@@ -2039,61 +1395,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for split in DATA_SPLITS
         for failure in (split_reports.get(split) or {}).get("failures", [])
     ]
-    direction_edge_proven = all(
-        ((split_reports.get(split) or {}).get("direction") or {}).get("decision")
-        == "PASS"
-        for split in DATA_SPLITS
-    )
-    context_slice_edge_proven = all(
-        ((split_reports.get(split) or {}).get("context_slice_contract") or {}).get(
-            "decision"
-        )
-        == "PASS"
-        for split in DATA_SPLITS
-    )
-    path_quality_edge_proven = all(
-        float(
-            (((split_reports.get(split) or {}).get("utility_evidence") or {}).get(
-                "spearman"
-            ) or {}).get("path_quality")
-            or 0.0
-        )
-        > 0.0
-        for split in DATA_SPLITS
-    )
-    bad_path_edge_proven = all(
-        float(
-            (((split_reports.get(split) or {}).get("utility_evidence") or {}).get(
-                "spearman"
-            ) or {}).get("bad_path_vs_path_quality")
-            or 0.0
-        )
-        < 0.0
-        for split in DATA_SPLITS
-    )
-    turning_point_edge_proven = all(
-        ((split_reports.get(split) or {}).get("turning_point_evidence") or {}).get(
-            "decision"
-        )
-        == "PASS"
-        for split in DATA_SPLITS
-    )
-    offline_rl_edge_proven = all(
-        ((split_reports.get(split) or {}).get("offline_rl_evidence") or {}).get(
-            "decision"
-        )
-        == "PASS"
-        for split in DATA_SPLITS
-    )
     edge_contract = {
-        "decision": "PASS" if not edge_failures else "FAIL",
+        "decision": "FAIL",
         "failures": edge_failures,
-        "direction_edge_proven": direction_edge_proven,
-        "context_slice_edge_proven": context_slice_edge_proven,
-        "path_quality_edge_proven": path_quality_edge_proven,
-        "bad_path_edge_proven": bad_path_edge_proven,
-        "turning_point_edge_proven": turning_point_edge_proven,
-        "offline_rl_edge_proven": offline_rl_edge_proven,
+        "raw_entry_q_structure_proven": all(
+            ((split_reports.get(split) or {}).get("raw_entry_q") or {}).get(
+                "decision"
+            )
+            == "PASS"
+            for split in DATA_SPLITS
+        ),
+        "production_economics_ready": False,
+        "edge_claim_allowed": False,
     }
 
     gate_liveness_proven = all(

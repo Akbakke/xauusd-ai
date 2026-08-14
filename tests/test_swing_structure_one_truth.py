@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import copy
+import hashlib
+import inspect
+import json
 from pathlib import Path
 
 import numpy as np
@@ -18,17 +22,26 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS,
+    model_native_context_contract_metadata,
 )
 from gx1.features.micro_structure_v1 import (
+    MICRO_CAUSAL_WARMUP_ROWS_V1,
     MICRO_FEATURE_NAMES_V1,
+    MICRO_WARMUP_PREFIX_FIELDS_V1,
+    MicroStructureCarryV1,
     SPREAD_DYNAMICS_CAUSAL_WARMUP_ROWS_V1,
     SPREAD_DYNAMICS_FEATURE_NAMES_V1,
     SPREAD_DYNAMICS_SOURCE_COLUMNS_V1,
     SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
+    SpreadDynamicsCarryV1,
     compute_micro_structure_features,
+    compute_micro_structure_features_chunk,
     compute_spread_dynamics_features,
+    compute_spread_dynamics_features_chunk,
+    micro_structure_contract_metadata,
+    require_micro_structure_contract_metadata,
 )
-from gx1.features.entry_foundation_structure_v1 import FOUNDATION_EVENT_AGE_CAP
+from gx1.features.technical_indicators_v1 import classic_ema
 from gx1.features.regime_v4_features import REGIME_V4_SOURCE_COLS
 from gx1.features.swing_structure_v1 import (
     SWING_FEATURE_NAMES_V1,
@@ -41,6 +54,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _model_native_artifact_owner_fields,
+)
+from gx1.scripts.augment_forward_outcome_v2 import (
+    trim_causal_context_warmup_prefix,
 )
 
 
@@ -59,7 +75,9 @@ def test_swing_structure_is_causal_and_exact() -> None:
     observed = compute_swing_structure_features(high, low, close)
     assert tuple(observed) == SWING_FEATURE_NAMES_V1
     assert all(values.shape == close.shape for values in observed.values())
-    assert all(np.isfinite(values).all() for values in observed.values())
+    for values in observed.values():
+        finite = np.isfinite(values)
+        assert not finite.any() or finite[int(np.argmax(finite)):].all()
 
     changed_high = high.copy()
     changed_low = low.copy()
@@ -102,6 +120,48 @@ def test_swing_structure_rejects_empty_or_invalid_parameters() -> None:
         compute_swing_structure_features(high, low, close, lookback=0)
     with pytest.raises(RuntimeError, match="ATR_PERIOD"):
         compute_swing_structure_features(high, low, close, atr_period=0)
+
+
+def test_swing_has_no_bar_zero_pivot_and_raw_age_is_uncapped() -> None:
+    tail = 99.95 - 0.05 * np.arange(615, dtype=np.float64)
+    close = np.concatenate(
+        (np.asarray([100.0, 101.0, 103.0, 101.0, 100.0]), tail)
+    )
+    out = compute_swing_structure_features(close + 0.5, close - 0.5, close)
+    assert np.isnan(out["bars_since_swing_high"][:4]).all()
+    assert np.isnan(out["dist_last_swing_high_atr"][:13]).all()
+    assert np.isnan(out["bars_since_swing_low"]).all()
+    assert out["bars_since_swing_high"][4] == 2.0
+    assert out["bars_since_swing_high"][-1] == float(len(close) - 1 - 2)
+    assert out["bars_since_swing_high"][-1] > 500.0
+
+
+def test_swing_retracement_is_raw_and_not_clipped_to_unit_interval() -> None:
+    high, low, close = _v29_ohlc(_V29_CLOSE_A)
+    out = compute_swing_structure_features(high, low, close)
+    assert out["swing_impulse_present"][14] == 1.0
+    assert out["retracement_from_last_impulse"][14] > 1.0
+
+
+def test_swing_owner_source_forbids_legacy_fill_cap_and_normalization() -> None:
+    source = inspect.getsource(compute_swing_structure_features)
+    helper = inspect.getsource(
+        __import__(
+            "gx1.features.event_age_v1",
+            fromlist=["raw_event_age_bars"],
+        ).raw_event_age_bars
+    )
+    for forbidden in (
+        "min_periods=1",
+        "np.clip",
+        "_event_age_norm",
+        "FOUNDATION_EVENT_AGE_CAP",
+        "last_high = float(h[0])",
+        "last_low = float(low_values[0])",
+    ):
+        assert forbidden not in source
+    assert "wilder_atr(" in source
+    assert "min(age" not in helper
 
 
 def _v29_ohlc(close_values: list[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -153,25 +213,20 @@ def test_swing_v29_break_event_fires_once_per_level_and_rearms_on_new_pivot() ->
     # 105.5 (adopted bar 12) re-arms; first close through it is bar 14.
     assert np.flatnonzero(out["swing_high_break_event"]).tolist() == [8, 14]
     assert np.flatnonzero(out["swing_low_break_event"]).tolist() == []
-    # Displacement is (close - level)/ATR at the event bar and 0 off-event.
-    # At the event bar the level is still last_high, so the displacement
-    # equals dist_last_swing_high_atr there — same formula, same ATR.
-    assert np.flatnonzero(out["swing_break_displacement_atr"]).tolist() == [8, 14]
-    for row in (8, 14):
-        assert out["swing_break_displacement_atr"][row] > 0.0
-        np.testing.assert_allclose(
-            out["swing_break_displacement_atr"][row],
-            out["dist_last_swing_high_atr"][row],
-            rtol=1e-6,
-        )
-    # G2 ages: foundation _bars_since_event convention — cap-initialized,
-    # 0 on the event bar, +1 capped after.
+    # The bar-8 break precedes the honest Wilder-14 ATR seed, so its
+    # displacement is explicitly unavailable. Bar 14 is measured exactly.
+    assert np.isnan(out["swing_high_break_displacement_atr"][:13]).all()
+    assert out["swing_high_break_displacement_atr"][14] > 0.0
+    np.testing.assert_allclose(
+        out["swing_high_break_displacement_atr"][14],
+        out["dist_last_swing_high_atr"][14],
+        rtol=1e-6,
+    )
+    # Raw age is honestly unavailable before the first break.
     ages = out["bars_since_swing_high_break"]
-    assert ages[:8].tolist() == [float(FOUNDATION_EVENT_AGE_CAP)] * 8
+    assert np.isnan(ages[:8]).all()
     assert ages[8:].tolist() == [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 1.0, 2.0]
-    assert out["bars_since_swing_low_break"].tolist() == [
-        float(FOUNDATION_EVENT_AGE_CAP)
-    ] * len(close)
+    assert np.isnan(out["bars_since_swing_low_break"]).all()
 
 
 def test_swing_v29_sequence_delta_and_counts_use_real_pivot_arithmetic() -> None:
@@ -179,16 +234,17 @@ def test_swing_v29_sequence_delta_and_counts_use_real_pivot_arithmetic() -> None
     out = compute_swing_structure_features(
         high, low, close, include_v29_additions=True
     )
-    # No delta exists before the SECOND confirmed pivot on a side: honest NaN
-    # warmup prefix, then finite forever.
+    # No delta exists before the SECOND confirmed pivot on a side and the
+    # Wilder denominator: one honest NaN prefix, then raw values.
     high_delta = out["swing_high_sequence_delta_atr"]
-    assert np.isnan(high_delta[:12]).all()
-    assert np.isfinite(high_delta[12:]).all()
+    assert np.isnan(high_delta[:13]).all()
+    assert np.isfinite(high_delta[13:]).all()
     # delta = (last - prev)/ATR shares the ATR of dist_last_swing_high_atr
-    # = (close - last)/ATR; at bar 12: last=105.5, prev=103.5, close=103.0.
+    # = (close - last)/ATR; row 13 is the first row where the second pivot and
+    # the honest Wilder-14 denominator are both available.
     np.testing.assert_allclose(
-        high_delta[12],
-        out["dist_last_swing_high_atr"][12] * ((105.5 - 103.5) / (103.0 - 105.5)),
+        high_delta[13],
+        out["dist_last_swing_high_atr"][13] * ((105.5 - 103.5) / (103.5 - 105.5)),
         rtol=1e-6,
     )
     low_delta = out["swing_low_sequence_delta_atr"]
@@ -197,10 +253,9 @@ def test_swing_v29_sequence_delta_and_counts_use_real_pivot_arithmetic() -> None
     assert (low_delta[14:] > 0.0).all()  # 102.5 is a higher low than 99.5
     # 105.5 > 103.5 is a higher high: the lower-highs run never starts.
     assert out["consecutive_lower_highs_count"].tolist() == [0.0] * len(close)
-    hl_norm_1 = np.log1p(1.0) / np.log1p(float(FOUNDATION_EVENT_AGE_CAP))
     hl = out["consecutive_higher_lows_count"]
     np.testing.assert_allclose(hl[:14], 0.0, atol=0.0)
-    np.testing.assert_allclose(hl[14:], np.float32(hl_norm_1), rtol=1e-6)
+    np.testing.assert_allclose(hl[14:], 1.0, rtol=0.0)
 
 
 def test_swing_v29_higher_low_run_counts_and_resets_on_lower_low() -> None:
@@ -208,47 +263,38 @@ def test_swing_v29_higher_low_run_counts_and_resets_on_lower_low() -> None:
     out = compute_swing_structure_features(
         high, low, close, include_v29_additions=True
     )
-    cap = float(FOUNDATION_EVENT_AGE_CAP)
-    norm = lambda k: np.float32(np.log1p(float(k)) / np.log1p(cap))  # noqa: E731
     hl = out["consecutive_higher_lows_count"]
     np.testing.assert_allclose(hl[:8], 0.0, atol=0.0)
-    np.testing.assert_allclose(hl[8:12], norm(1), rtol=1e-6)
-    np.testing.assert_allclose(hl[12:16], norm(2), rtol=1e-6)
+    np.testing.assert_allclose(hl[8:12], 1.0, rtol=0.0)
+    np.testing.assert_allclose(hl[12:16], 2.0, rtol=0.0)
     np.testing.assert_allclose(hl[16:], 0.0, atol=0.0)  # 98.5 < 101.0 resets
     # The armed level 101.0 (adopted bar 12) breaks down at bar 14 (close 99).
     assert np.flatnonzero(out["swing_low_break_event"]).tolist() == [14]
-    assert out["swing_break_displacement_atr"][14] < 0.0
+    assert out["swing_low_break_displacement_atr"][14] > 0.0
     np.testing.assert_allclose(
-        out["swing_break_displacement_atr"][14],
-        out["dist_last_swing_low_atr"][14],
+        out["swing_low_break_displacement_atr"][14],
+        -out["dist_last_swing_low_atr"][14],
         rtol=1e-6,
     )
     ages = out["bars_since_swing_low_break"]
-    assert ages[13] == cap and ages[14] == 0.0 and ages[18] == 4.0
+    assert np.isnan(ages[13])
+    assert ages[14] == 0.0 and ages[18] == 4.0
 
 
-def test_v30_package_8a_swing_emissions_are_the_discarded_loop_state() -> None:
-    """V30 package 8A (2026-08-13) — six emission-only additions.
-
-    Every assertion below ties the new field to a quantity the function
-    already computed: the mirror-image run counters, the G1 arming state and
-    the shared ``htf_features._event_age_norm`` age convention.
-    """
+def test_v30_package_8a_swing_emissions_are_raw_loop_state() -> None:
+    """The extension exposes uncapped loop state without normalized aliases."""
 
     high, low, close = _v29_ohlc(_V29_CLOSE_B)
     out = compute_swing_structure_features(
         high, low, close, include_v29_additions=True
     )
-    cap = float(FOUNDATION_EVENT_AGE_CAP)
-    norm = lambda k: np.float32(np.log1p(float(k)) / np.log1p(cap))  # noqa: E731
-
     # (1) The two MISSING run counters complete the four-counter set.  Fixture
     # B's lows run 99.5 -> 100.5 -> 101.0 -> 98.5, so the higher-lows run is
     # 1, 2 then reset and the lower-lows run stays 0 until the 98.5 pivot is
     # adopted at bar 16, where it becomes 1.
     ll = out["consecutive_lower_lows_count"]
     np.testing.assert_allclose(ll[:16], 0.0, atol=0.0)
-    np.testing.assert_allclose(ll[16:], norm(1), rtol=1e-6)
+    np.testing.assert_allclose(ll[16:], 1.0, rtol=0.0)
     # The two counters on one side are mutually exclusive by construction
     # (strict > vs strict <), so they can never both be positive on a bar.
     assert not np.any(
@@ -268,12 +314,9 @@ def test_v30_package_8a_swing_emissions_are_the_discarded_loop_state() -> None:
     assert out_a["consecutive_lower_highs_count"].tolist() == [0.0] * len(close_a)
     hh_a = out_a["consecutive_higher_highs_count"]
     np.testing.assert_allclose(hh_a[:12], 0.0, atol=0.0)
-    np.testing.assert_allclose(hh_a[12:], norm(1), rtol=1e-6)
+    np.testing.assert_allclose(hh_a[12:], 1.0, rtol=0.0)
 
-    # (2) The intact flags ARE the G1 arming state: NaN until the first
-    # confirmed pivot on that side (no level exists, so "intact" has no truth
-    # value), 1.0 while the level stands, 0.0 from the bar whose close breaks
-    # it, back to 1.0 when a new pivot re-arms.
+    # (2) The intact flags ARE the G1 arming state with one honest NaN prefix.
     intact = out["swing_low_level_intact"]
     finite = np.isfinite(intact)
     first = int(np.argmax(finite))
@@ -281,8 +324,6 @@ def test_v30_package_8a_swing_emissions_are_the_discarded_loop_state() -> None:
     assert set(np.unique(intact[finite]).tolist()) <= {0.0, 1.0}
     breaks = out["swing_low_break_event"] > 0.0
     assert (intact[finite & breaks] == 0.0).all()
-    # Its NaN prefix is a strict subset of the sequence-delta prefix on the
-    # same side, so the shared HTF warmup trim is unchanged by the addition.
     delta_first = int(np.argmax(np.isfinite(out["swing_low_sequence_delta_atr"])))
     assert first <= delta_first
     high_first = int(np.argmax(np.isfinite(out["swing_high_level_intact"])))
@@ -290,21 +331,10 @@ def test_v30_package_8a_swing_emissions_are_the_discarded_loop_state() -> None:
         np.argmax(np.isfinite(out["swing_high_sequence_delta_atr"]))
     )
 
-    # (3) The normalized ages are the ONE age convention applied to the raw
-    # V1 fields, which stay untouched.
-    from gx1.features.htf_features import _event_age_norm
-
-    for raw_name, norm_name in (
-        ("bars_since_swing_high", "bars_since_swing_high_norm"),
-        ("bars_since_swing_low", "bars_since_swing_low_norm"),
-    ):
-        np.testing.assert_allclose(
-            out[norm_name],
-            _event_age_norm(out[raw_name].astype(np.float64)).astype(np.float32),
-            rtol=0.0,
-            atol=0.0,
-        )
-        assert (out[norm_name] >= 0.0).all() and (out[norm_name] <= 1.0).all()
+    # (3) Ages and run lengths are raw and can exceed the old 96/500 caps;
+    # no normalized age aliases are emitted.
+    assert "bars_since_swing_high_norm" not in out
+    assert "bars_since_swing_low_norm" not in out
 
 
 def test_swing_v29_additions_are_causal_and_future_append_invariant() -> None:
@@ -324,24 +354,51 @@ def test_micro_structure_is_causal_exact_and_strict() -> None:
     high, low, close = _ohlc()
     observed = compute_micro_structure_features(high, low, close)
     assert tuple(observed) == MICRO_FEATURE_NAMES_V1
-    assert all(np.isfinite(values).all() for values in observed.values())
-    assert observed["micro_momentum_3"][:3].tolist() == [0.0, 0.0, 0.0]
-    assert observed["micro_momentum_5"][:5].tolist() == [0.0] * 5
-    # bps of the current close (repo ret_* convention), not raw USD diffs.
+    assert MICRO_CAUSAL_WARMUP_ROWS_V1 == 5
+    assert MICRO_WARMUP_PREFIX_FIELDS_V1 == (
+        "close_return_3_bps",
+        "close_return_5_bps",
+        "close_return_acceleration_1_bps",
+        "close_distance_from_ema5_bps",
+    )
+    assert np.isnan(observed["close_return_3_bps"][:3]).all()
+    assert np.isnan(observed["close_return_5_bps"][:5]).all()
+    assert np.isnan(observed["close_return_acceleration_1_bps"][:2]).all()
+    assert np.isnan(observed["close_distance_from_ema5_bps"][:4]).all()
+    # Exact standard lag-close return formulas; no raw USD era proxy and no
+    # misleading current-close denominator under a generic change name.
     np.testing.assert_allclose(
-        observed["micro_momentum_3"][3:],
-        (close[3:] - close[:-3]) / close[3:] * 1e4,
+        observed["close_return_3_bps"][3:],
+        (close[3:] / close[:-3] - 1.0) * 1e4,
         rtol=1e-6,
     )
     np.testing.assert_allclose(
-        observed["micro_acceleration"][2:],
-        np.diff(np.diff(close)) / close[2:] * 1e4,
+        observed["close_return_acceleration_1_bps"][2:],
+        (
+            (close[2:] / close[1:-1] - 1.0)
+            - (close[1:-1] / close[:-2] - 1.0)
+        )
+        * 1e4,
         rtol=1e-6,
     )
-    # A zero-range bar has no close-location evidence: neutral 0.5, never the
-    # fabricated "closed at high" 0.0.
+    expected_ema5 = classic_ema(pd.Series(close), 5).to_numpy(dtype=np.float64)
+    np.testing.assert_allclose(
+        observed["close_distance_from_ema5_bps"][4:],
+        (close[4:] - expected_ema5[4:]) / close[4:] * 1e4,
+        rtol=1e-6,
+    )
+    np.testing.assert_allclose(
+        observed["close_distance_below_high_range_fraction"],
+        (high - close) / (high - low),
+        rtol=1e-6,
+    )
+    # A zero-range bar stores no fabricated location: zero is paired with an
+    # explicit false availability mask, never epsilon-divided or set to 0.5.
     flat = compute_micro_structure_features(close.copy(), close.copy(), close.copy())
-    assert flat["wick_ratio"].tolist() == [0.5] * len(close)
+    assert (
+        flat["close_distance_below_high_range_fraction"] == 0.0
+    ).all()
+    assert (flat["close_range_observed"] == 0.0).all()
 
     changed_high = high.copy()
     changed_low = low.copy()
@@ -356,10 +413,163 @@ def test_micro_structure_is_causal_exact_and_strict() -> None:
     )
     for name in MICRO_FEATURE_NAMES_V1:
         np.testing.assert_array_equal(observed[name][:-1], changed[name][:-1])
+        if name == "close_range_observed":
+            assert changed[name][-1] == observed[name][-1] == 1.0
+        else:
+            assert changed[name][-1] != observed[name][-1]
 
     high[2] = np.nan
     with pytest.raises(RuntimeError, match="NONFINITE"):
         compute_micro_structure_features(high, low, close)
+
+
+def test_micro_structure_chunk_carry_is_exact_and_bounded() -> None:
+    high, low, close = _ohlc()
+    expected = compute_micro_structure_features(high, low, close)
+    boundaries = (1, 3, 4, 7, len(close))
+    start = 0
+    carry = MicroStructureCarryV1()
+    chunks: dict[str, list[np.ndarray]] = {
+        name: [] for name in MICRO_FEATURE_NAMES_V1
+    }
+    for stop in boundaries:
+        values, carry = compute_micro_structure_features_chunk(
+            high[start:stop],
+            low[start:stop],
+            close[start:stop],
+            carry=carry,
+        )
+        for name in MICRO_FEATURE_NAMES_V1:
+            chunks[name].append(values[name])
+        assert len(carry.close_history) <= 5
+        assert len(carry.ema_seed_values) < 5
+        start = stop
+    assert carry.rows_seen == len(close)
+    assert carry.ema_value is not None
+    for name in MICRO_FEATURE_NAMES_V1:
+        np.testing.assert_array_equal(np.concatenate(chunks[name]), expected[name])
+
+    with pytest.raises(RuntimeError, match="CARRY_SHAPE_INVALID"):
+        compute_micro_structure_features_chunk(
+            high[:1],
+            low[:1],
+            close[:1],
+            carry=MicroStructureCarryV1(
+                rows_seen=5,
+                close_history=(float(close[4]),),
+                ema_value=float(close[4]),
+            ),
+        )
+
+
+def test_micro_structure_warmup_is_trimmed_as_one_honest_prefix() -> None:
+    high, low, close = _ohlc()
+    frame = pd.DataFrame(compute_micro_structure_features(high, low, close))
+    trimmed = trim_causal_context_warmup_prefix(
+        frame,
+        list(MICRO_WARMUP_PREFIX_FIELDS_V1),
+    )
+    assert len(frame) - len(trimmed) == MICRO_CAUSAL_WARMUP_ROWS_V1
+    assert trimmed.index[0] == MICRO_CAUSAL_WARMUP_ROWS_V1
+    assert np.isfinite(
+        trimmed[list(MICRO_WARMUP_PREFIX_FIELDS_V1)].to_numpy()
+    ).all()
+
+
+def test_micro_structure_internal_zero_range_has_explicit_mask_not_nan() -> None:
+    high, low, close = _ohlc()
+    high[6] = close[6]
+    low[6] = close[6]
+    observed = compute_micro_structure_features(high, low, close)
+    assert observed["close_range_observed"][6] == 0.0
+    assert observed["close_distance_below_high_range_fraction"][6] == 0.0
+    for name in MICRO_FEATURE_NAMES_V1:
+        assert np.isfinite(observed[name][MICRO_CAUSAL_WARMUP_ROWS_V1:]).all()
+
+    frame = pd.DataFrame(observed)
+    trimmed = trim_causal_context_warmup_prefix(
+        frame,
+        list(MICRO_WARMUP_PREFIX_FIELDS_V1),
+    )
+    assert len(frame) - len(trimmed) == MICRO_CAUSAL_WARMUP_ROWS_V1
+    assert np.isfinite(trimmed.to_numpy(dtype=np.float64)).all()
+
+
+def test_micro_structure_metadata_binds_names_formulas_warmup_and_carry() -> None:
+    metadata = micro_structure_contract_metadata()
+    assert require_micro_structure_contract_metadata(metadata) == metadata
+    assert metadata["price_feature_names"] == list(MICRO_FEATURE_NAMES_V1)
+    assert metadata["spread_feature_names"] == list(
+        SPREAD_DYNAMICS_FEATURE_NAMES_V1
+    )
+    assert metadata["price_warmup_rows_until_all_fields_finite"] == 5
+    assert metadata["price_field_nan_prefix_rows"] == {
+        "close_return_3_bps": 3,
+        "close_return_5_bps": 5,
+        "close_return_acceleration_1_bps": 2,
+        "close_distance_below_high_range_fraction": 0,
+        "close_range_observed": 0,
+        "close_distance_from_ema5_bps": 4,
+    }
+    assert metadata["classic_ema"]["span"] == 5
+    assert len(str(metadata["formula_sha256"])) == 64
+    assert len(str(metadata["carry_contract_sha256"])) == 64
+    without_hash = copy.deepcopy(metadata)
+    observed_hash = without_hash.pop("contract_sha256")
+    expected_hash = hashlib.sha256(
+        json.dumps(
+            without_hash,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    assert observed_hash == expected_hash
+    assert model_native_context_contract_metadata()[
+        "micro_structure_owner"
+    ] == metadata
+
+    for key in (
+        "price_feature_names",
+        "formula_contract",
+        "carry_contract",
+        "classic_ema",
+    ):
+        changed = copy.deepcopy(metadata)
+        if isinstance(changed[key], list):
+            changed[key][0] = "tampered"
+        elif key == "classic_ema":
+            changed[key]["span"] = 6
+        else:
+            changed[key]["price"][0] = "tampered"
+        with pytest.raises(RuntimeError, match="CONTRACT_MISMATCH"):
+            require_micro_structure_contract_metadata(changed)
+
+
+def test_micro_structure_runs_independently_on_native_m1_and_m5_clocks() -> None:
+    rows = 30
+    m1_close = 1900.0 + np.cumsum(
+        np.sin(np.arange(rows, dtype=np.float64) / 2.0) + 0.25
+    )
+    m1_high = m1_close + 0.8
+    m1_low = m1_close - 0.6
+    m1 = compute_micro_structure_features(m1_high, m1_low, m1_close)
+
+    # Independently closed five-minute bars, then the same owner. Computed M1
+    # values are never sampled/rescaled into the M5 lane.
+    m5_close = m1_close.reshape(-1, 5)[:, -1]
+    m5_high = m1_high.reshape(-1, 5).max(axis=1)
+    m5_low = m1_low.reshape(-1, 5).min(axis=1)
+    m5 = compute_micro_structure_features(m5_high, m5_low, m5_close)
+    assert m1["close_return_5_bps"].shape == (rows,)
+    assert m5["close_return_5_bps"].shape == (rows // 5,)
+    assert np.isnan(m5["close_return_5_bps"][:5]).all()
+    np.testing.assert_allclose(
+        m5["close_return_5_bps"][5:],
+        (m5_close[5:] / m5_close[:-5] - 1.0) * 1e4,
+        rtol=1e-6,
+    )
 
 
 def _quote_frame() -> pd.DataFrame:
@@ -473,6 +683,28 @@ def test_spread_dynamics_is_past_only_and_fails_closed() -> None:
         compute_spread_dynamics_features(crossed)
 
 
+def test_spread_dynamics_chunk_carry_is_exact_and_bounded() -> None:
+    frame = _quote_frame()
+    expected = compute_spread_dynamics_features(frame)
+    carry = SpreadDynamicsCarryV1()
+    pieces: dict[str, list[np.ndarray]] = {
+        name: [] for name in SPREAD_DYNAMICS_FEATURE_NAMES_V1
+    }
+    start = 0
+    for stop in (1, 4, 6, len(frame)):
+        values, carry = compute_spread_dynamics_features_chunk(
+            frame.iloc[start:stop],
+            carry=carry,
+        )
+        for name in SPREAD_DYNAMICS_FEATURE_NAMES_V1:
+            pieces[name].append(values[name])
+        start = stop
+    assert carry.rows_seen == len(frame)
+    assert carry.previous_spread_bps is not None
+    for name in SPREAD_DYNAMICS_FEATURE_NAMES_V1:
+        np.testing.assert_array_equal(np.concatenate(pieces[name]), expected[name])
+
+
 def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     assert MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS == (
         MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
@@ -483,14 +715,8 @@ def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     assert MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS == (
         MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
     )
-    # V30 (2026-08-13): 29 = 16 + H4_range_compression_ratio in the source
-    # prefix subgroup (package 1) + the nine V29 swing event fields adopted
-    # into MODEL_NATIVE_CTX_CONT_SWING_FIELDS (package 2) + the three
-    # quote/spread-dynamics fields (package 4).  Package 8A (2026-08-13) added
-    # six more emission-only swing fields (two missing run counters, two
-    # level-intact flags, two normalized swing ages) -> 35.
     # The spread-dynamics block is its own declared subgroup, not a silent
-    # extension of the five-field OHLC micro surface.
+    # extension of the six-field OHLC micro surface.
     assert MODEL_NATIVE_CTX_CONT_MICRO_FIELDS == tuple(MICRO_FEATURE_NAMES_V1)
     assert MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS == (
         SPREAD_DYNAMICS_FEATURE_NAMES_V1
@@ -510,9 +736,13 @@ def test_active_context_has_no_future_or_soft_pass_through() -> None:
     enriched_owner = (
         ROOT / "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py"
     ).read_text(encoding="utf-8")
+    signal_owner = (
+        ROOT / "gx1/contracts/entry_model_native_signal_v1.py"
+    ).read_text(encoding="utf-8")
     builder = (
         ROOT / "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py"
     ).read_text(encoding="utf-8")
+    micro_owner = inspect.getsource(compute_micro_structure_features_chunk)
 
     for source in (htf_owner, augment_owner, enriched_owner):
         assert "shift(-" not in source
@@ -522,6 +752,16 @@ def test_active_context_has_no_future_or_soft_pass_through() -> None:
     assert 'if "is_ASIA" not in df.columns' not in builder
     assert "src_supplied" not in builder
     assert "fall back to canonical_v2" not in builder
+    for forbidden in ("fillna", "np.clip", ".ewm", "eps", "0.5"):
+        assert forbidden not in micro_owner
+    assert "classic_ema(" in micro_owner
+    assert "MICRO_WARMUP_PREFIX_FIELDS_V1" in augment_owner
+    assert "list(MICRO_WARMUP_PREFIX_FIELDS_V1)" in augment_owner
+    assert "list(MICRO_WARMUP_PREFIX_FIELDS_V1)" in builder
+    assert '"micro_structure_owner": micro_structure_contract_metadata()' in (
+        signal_owner
+    )
+    assert "if ctx_contract != exact_ctx:" in builder
 
 
 def test_builder_artifact_field_owners_are_exact_and_disjoint() -> None:

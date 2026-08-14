@@ -4,9 +4,9 @@
 The contract-admitted model bundle is the only decision authority.  Its shared
 feature encoder must emit both:
 
-* ``direction_logits`` ordered LONG/SHORT/FLAT for Entry; and
-* ``exit_action_logits`` ordered HOLD/EXIT_NOW for positions opened from that
-  exact Entry snapshot.
+* raw ``entry_action_q_bps`` ordered LONG/SHORT/FLAT for Entry; and
+* ``exit_action_q_bps`` ordered HOLD/EXIT_NOW, with an exact valid-action mask,
+  for positions opened from that exact Entry snapshot.
 
 There is no auxiliary decision model, compatibility bridge, rule overlay, or
 synthetic HOLD/FLAT path.  Until a bundle proves the unified Entry/Exit
@@ -679,6 +679,15 @@ class V12Pipeline:
                 side=next_bar_side,
             )
         )
+        if last_processed is not None and (
+            next_position < 1
+            or pd.Timestamp(source_index[next_position - 1]).tz_convert("UTC")
+            != last_processed_ts.tz_convert("UTC")
+        ):
+            raise ExitDecisionUnavailable(
+                "last_processed_m1_is_not_on_authoritative_source_grid",
+                last_processed_m1_ts=last_processed_ts.isoformat(),
+            )
         if next_position >= len(source_index):
             raise ExitDecisionUnavailable(
                 "awaiting_authoritative_closed_m1_bar",
@@ -711,13 +720,28 @@ class V12Pipeline:
                         prebuilt_snapshot=source_snapshot,
                     )
                 )
+                if (
+                    not isinstance(trade.trade_id, str)
+                    or not trade.trade_id
+                    or trade.trade_id.strip() != trade.trade_id
+                ):
+                    raise RuntimeError(
+                        "unified Exit requires exact trade identity"
+                    )
                 decision = self.smart_entry.decide_exit(
+                    decision_identity=trade.trade_id,
                     entry_snapshot=staged_snapshot,
+                    entry_decision_token_snapshot=(
+                        staged.entry_decision_token_snapshot
+                    ),
                     exit_path_envelope=path_envelope,
                     exit_feature_surface=exit_feature_surface,
                     entry_bid=staged.entry_bid,
                     entry_ask=staged.entry_ask,
                     side=staged.side,
+                    prior_incremental_carry_envelope=(
+                        trade.exit_incremental_carry_envelope
+                    ),
                 )
                 bundle_sha256 = getattr(
                     self.smart_entry,
@@ -730,10 +754,16 @@ class V12Pipeline:
                     expected_bundle_sha256=bundle_sha256,
                     entry_snapshot=staged_snapshot,
                     exit_path_envelope=path_envelope,
+                    exit_input_envelope=decision[
+                        "exit_input_envelope"
+                    ],
                 )
                 staged.bind_unified_exit_decision(
                     decision,
                     expected_bundle_sha256=bundle_sha256,
+                    exit_input_envelope=decision[
+                        "exit_input_envelope"
+                    ],
                 )
                 trade.commit_complete_exit_bar(staged)
                 # The runtime owner must persist this exact atomic state and

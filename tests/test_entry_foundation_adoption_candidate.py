@@ -25,10 +25,10 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
@@ -52,7 +52,7 @@ from gx1.scripts.verify_entry_foundation_adoption_candidate_v1 import (
     run,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
-from tests.model_native_offline_rl_support import (
+from tests.model_native_sizing_support import (
     model_native_target_audit_evidence,
 )
 
@@ -159,7 +159,9 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
         remainder_prefix="session_regime.adoption_fixture"
     )
     signal_contract = model_native_signal_contract_metadata(selected)
-    ranked_remainder = selected[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    available_candidates = selected[
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+    ]
     feature = _event(
         audit_dir,
         AUDIT_EVENT_PREFIXES["feature_audit"],
@@ -186,13 +188,15 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "manifest_mandatory_selected_feature_count": (
                 MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
             ),
-            "ranked_remainder_feature_count": (
-                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            "available_candidate_feature_count": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
             ),
-            "manifest_ranked_remainder_feature_count": (
-                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            "manifest_available_candidate_feature_count": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
             ),
-            "ranked_remainder_fields_sha256": _sha_json(ranked_remainder),
+            "available_candidate_fields_sha256": _sha_json(
+                available_candidates
+            ),
             "feature_ranking_fit_scope": "train_only",
             "feature_ranking_sha256": "a" * 64,
             "model_native_signal_contract": signal_contract,
@@ -206,7 +210,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
         AUDIT_EVENT_PREFIXES["target_audit"],
         "02.000002",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -497,7 +501,7 @@ def test_adoption_rejects_swapped_mandatory_signal_prefix(tmp_path: Path) -> Non
                 "feature audit proves exact model-native "
                 f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
                 f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
-                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+                f"{MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT} full-pool partition"
             )
     )
     assert "mandatory_registry_prefix_order_violation" in partition_failure[
@@ -528,7 +532,7 @@ def test_adoption_rejects_stale_partition_count(tmp_path: Path) -> None:
                 "feature audit proves exact model-native "
                 f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
                 f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
-                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+                f"{MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT} full-pool partition"
             )
         for row in report["failures"]
     )

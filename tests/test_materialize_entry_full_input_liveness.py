@@ -43,7 +43,7 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 
 RUN_ID = "UNIT_LIVENESS_20260717"
-STEM = "unit_seq513__DIR_H24B"
+STEM = "unit_seq513__DIR_TRAIN_FIT"
 OUTPUT_FILENAME = (
     "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260717T120000000000Z.json"
 )
@@ -83,8 +83,8 @@ def _verified_v4_cache_loader(monkeypatch) -> None:
 
 def _signal_contract() -> dict:
     required = [
-        "candle.pattern_outside_after_inside_bull_breakout_score",
-        "candle.pattern_outside_after_inside_bear_breakout_score",
+        "chart.local_ema50_200_cross_up",
+        "chart.local_ema50_200_cross_down",
         "ctx_cont.d1_atr14_canon_v2",
         "ctx_cont._v1h4_atr",
     ]
@@ -222,7 +222,7 @@ def _args(dataset_dir: Path, out_dir: Path) -> argparse.Namespace:
     )
 
 
-def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) -> None:
+def test_materializer_fullscans_and_binds_exact_owner_dimensions(tmp_path: Path) -> None:
     dataset_dir = tmp_path / "dataset"
     _write_dataset(dataset_dir)
 

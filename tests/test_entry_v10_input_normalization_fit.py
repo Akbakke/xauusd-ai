@@ -33,6 +33,9 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
     select_causal_mtf_fit_population,
 )
 from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 from tests.htf_v29_registry_test_support import (
     synthetic_v29_registry_constants,
@@ -52,7 +55,7 @@ def _sha256_file(path: Path) -> str:
 def _signal_names() -> list[str]:
     names = [f"test.signal_{index:03d}" for index in range(MODEL_NATIVE_SIGNAL_DIM)]
     names[7] = "ctx_cont.atr_bps"
-    names[311] = "ctx_cont.m5_regime_class_id_v2"
+    names[-1] = "ctx_cont.m5_regime_class_id_v2"
     return names
 
 
@@ -271,12 +274,14 @@ def _artifacts(
         ).astype(np.float32)
 
     cache_dir = tmp_path / "mtf_cache"
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     cache_manifest_path = publish_multi_tf_v4_cache(
         out_dir=cache_dir,
         m5_prebuilt=m5_prebuilt,
         expected_source_sha256=_sha256_file(m5_prebuilt),
         features=features,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
     cache_manifest = json.loads(
         cache_manifest_path.read_text(encoding="utf-8")
@@ -288,6 +293,8 @@ def _artifacts(
         "cache_identity_sha256": cache_manifest["cache_identity_sha256"],
         "m5_prebuilt_source": str(m5_prebuilt),
         "m5_prebuilt_source_sha256": _sha256_file(m5_prebuilt),
+        "v29_registry_constants": _V29_TEST_REGISTRY_CONSTANTS,
+        "volatility_squeeze_artifact_set": squeeze_artifacts.binding(),
     }
     manifest = {
         "output_data_path": str(train_parquet),
@@ -360,37 +367,35 @@ def test_lifecycle_exposes_unique_train_m1_windows_without_surface_copy() -> Non
     # This fixture's feature surface starts at the source clock's first row, so
     # source and feature coordinates coincide.
     lifecycle._feature_row_offset = 0
-    lifecycle._selected_state = np.asarray(
-        [[0, 10, -1, -1], [20, -1, -1, -1]],
-        dtype=np.int16,
-    )
-    lifecycle._selected_start = np.asarray(
-        [[500, 500, -1, -1], [520, -1, -1, -1]],
-        dtype=np.int64,
-    )
+    lifecycle._episode_pointers = {
+        (0, 0): (0, 500, 2000.0, 2000.1),
+        (0, 1): (1, 500, 2000.0, 2000.1),
+        (1, 0): (2, 520, 2000.0, 2000.1),
+        (1, 1): (3, 520, 2000.0, 2000.1),
+    }
     lifecycle._m1_times = pd.date_range(
         "2026-01-01T00:00:00Z",
-        periods=600,
+        periods=1100,
         freq="1min",
     )
     lifecycle._m1_features = {
-        "signal": np.zeros((600, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32),
+        "signal": np.zeros((1100, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32),
         "ctx_cont": np.zeros(
-            (600, len(MODEL_NATIVE_CTX_CONT_FIELDS)), dtype=np.float32
+            (1100, len(MODEL_NATIVE_CTX_CONT_FIELDS)), dtype=np.float32
         ),
         "ctx_cat": np.zeros(
-            (600, len(MODEL_NATIVE_CTX_CAT_FIELDS)), dtype=np.int64
+            (1100, len(MODEL_NATIVE_CTX_CAT_FIELDS)), dtype=np.int64
         ),
     }
 
     population = lifecycle.train_normalization_population()
     np.testing.assert_array_equal(
         population["current_row_indices"],
-        np.asarray([500, 510, 540], dtype=np.int64),
+        np.arange(500, 1032, dtype=np.int64),
     )
     np.testing.assert_array_equal(
         population["local_row_indices"],
-        np.arange(21, 541, dtype=np.int64),
+        np.arange(21, 1032, dtype=np.int64),
     )
     assert population["signal"] is lifecycle._m1_features["signal"]
     assert population["ctx_cont"] is lifecycle._m1_features["ctx_cont"]

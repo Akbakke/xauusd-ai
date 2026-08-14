@@ -17,6 +17,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
 )
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    model_native_context_temporal_alias_policy,
+)
 
 
 EVENT_ID = "v10_6yr_rebuild_20260716_fresh_xau_direction_repair"
@@ -31,9 +34,9 @@ PINNED_PATH = (
 
 
 def test_v4_family_timeframe_token_arithmetic_is_exact() -> None:
-    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) == 40
+    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) == 32
     per_tf_width = len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4)
-    expected_tokens = 5 * per_tf_width
+    expected_tokens = 4 * per_tf_width
     assert len(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) == (
         expected_tokens
     )
@@ -62,9 +65,12 @@ def _fresh_pinned_frame() -> pd.DataFrame:
         edge_score = max(probabilities[0], probabilities[1]) - probabilities[2]
         gate = [0.05] * len(specialists)
         gate[offset % len(specialists)] = 0.65
-        tf_gate = [0.05] * 5
-        tf_gate[offset % 5] = 0.80
-        family_tf_width = 5 * len(specialists)
+        tf_width = len(
+            serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+        )
+        tf_gate = [0.05] * tf_width
+        tf_gate[offset % tf_width] = 1.0 - 0.05 * (tf_width - 1)
+        family_tf_width = tf_width * len(specialists)
         family_tf_base = (1.0 - 0.76) / (family_tf_width - 1)
         family_tf_gate = [family_tf_base] * family_tf_width
         family_tf_gate[offset % len(family_tf_gate)] = 0.76
@@ -138,8 +144,6 @@ def _fresh_pinned_frame() -> pd.DataFrame:
                 "clean_edge_prob": 0.55 + 0.004 * offset,
                 "survival_logit": 0.2 + 0.01 * offset,
                 "survival_prob": 0.58 + 0.004 * offset,
-                "tf_agreement_logit": 0.05 + 0.01 * offset,
-                "tf_agreement_prob": 0.50 + 0.005 * offset,
                 "path_quality_log_var": path_log_var,
                 "path_quality_std": float(np.exp(0.5 * path_log_var)),
                 "position_size_logit": -0.4 + 0.02 * offset,
@@ -639,20 +643,73 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
         f"signal_{index:03d}"
         for index in range(serve_parity.MODEL_NATIVE_SIGNAL_DIM)
     ]
+    nominal_ctx_fields = list(
+        serve_gate.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS
+    )
+    for index, field in enumerate(nominal_ctx_fields):
+        signal_names[index] = f"ctx_cont.{field}"
+    numeric_alias_field = "atr_bps"
+    signal_names[len(nominal_ctx_fields)] = (
+        f"ctx_cont.{numeric_alias_field}"
+    )
+    alias_policy = model_native_context_temporal_alias_policy(signal_names)
 
     class AllInputModel(torch.nn.Module):
         def __init__(self) -> None:
             super().__init__()
             self.ctx_cat_embeddings = torch.nn.ModuleList(
-                torch.nn.Embedding(4, 1)
-                for _name in serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
+                torch.nn.Embedding(
+                    len(serve_gate.MODEL_NATIVE_CTX_CAT_DOMAINS[name]), 1
+                )
+                for name in serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
             )
             with torch.no_grad():
                 for index, embedding in enumerate(self.ctx_cat_embeddings):
                     embedding.weight[:, 0] = (
-                        torch.arange(4, dtype=torch.float32)
+                        torch.arange(embedding.num_embeddings, dtype=torch.float32)
                         * (0.01 + 0.01 * index)
                     )
+            signal_width = len(signal_names)
+            ctx_width = len(serve_parity.MODEL_NATIVE_CTX_CONT_FIELDS)
+            self.register_buffer(
+                "input_norm_signal_center",
+                torch.zeros(signal_width, dtype=torch.float32),
+            )
+            self.register_buffer(
+                "input_norm_signal_scale",
+                torch.ones(signal_width, dtype=torch.float32),
+            )
+            self.register_buffer(
+                "input_norm_signal_binary_mask",
+                torch.zeros(signal_width, dtype=torch.bool),
+            )
+            self.register_buffer(
+                "input_norm_signal_categorical_mask",
+                torch.zeros(signal_width, dtype=torch.bool),
+            )
+            self.register_buffer(
+                "input_norm_ctx_cont_binary_mask",
+                torch.zeros(ctx_width, dtype=torch.bool),
+            )
+            self.register_buffer(
+                "input_norm_ctx_cont_categorical_mask",
+                torch.zeros(ctx_width, dtype=torch.bool),
+            )
+            for alias in alias_policy["aliases"]:
+                if alias["ctx_cont_field"] in nominal_ctx_fields:
+                    self.input_norm_signal_categorical_mask[
+                        int(alias["signal_index"])
+                    ] = True
+                    self.input_norm_ctx_cont_categorical_mask[
+                        int(alias["ctx_cont_index"])
+                    ] = True
+            self._alias_pairs = tuple(
+                (
+                    int(alias["signal_index"]),
+                    int(alias["ctx_cont_index"]),
+                )
+                for alias in alias_policy["aliases"]
+            )
 
         @staticmethod
         def _weighted_sum(value: torch.Tensor) -> torch.Tensor:
@@ -675,6 +732,13 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
             ctx_cont: torch.Tensor,
             **multi_tf: torch.Tensor,
         ) -> dict[str, torch.Tensor]:
+            for signal_index, ctx_index in self._alias_pairs:
+                if not torch.equal(seq[:, -1, signal_index], snap[:, signal_index]):
+                    raise RuntimeError("test temporal alias seq/snap left manifold")
+                if not torch.equal(
+                    snap[:, signal_index], ctx_cont[:, ctx_index]
+                ):
+                    raise RuntimeError("test temporal alias snap/ctx left manifold")
             base = self._weighted_sum(seq.float())
             base = base + self._weighted_sum(snap.float())
             base = base + self._weighted_sum(ctx_cont.float())
@@ -710,7 +774,7 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
             self, timestamp: pd.Timestamp
         ) -> dict[str, torch.Tensor]:
             row = self._positions[pd.Timestamp(timestamp)]
-            return {
+            windows = {
                 f"seq_{timeframe.lower()}": torch.full(
                     (
                         1,
@@ -724,6 +788,12 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
                     serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
                 )
             }
+            regime_index = serve_parity.MULTI_TF_PER_BAR_FEATURES_V4.index(
+                "regime_class_id"
+            )
+            for tensor in windows.values():
+                tensor[..., regime_index] = float(row % 5)
+            return windows
 
     times = pd.date_range(
         "2026-01-01T00:00:00Z",
@@ -735,24 +805,39 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
     )
     signal_dim = serve_parity.MODEL_NATIVE_SIGNAL_DIM
     ctx_cont_dim = len(serve_parity.MODEL_NATIVE_CTX_CONT_FIELDS)
+    ctx_cont_values = np.repeat(
+        (0.30 + 0.0001 * row)[:, None], ctx_cont_dim, axis=1
+    )
+    for field in serve_gate.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS:
+        index = list(serve_parity.MODEL_NATIVE_CTX_CONT_FIELDS).index(field)
+        ctx_cont_values[:, index] = row.astype(np.int64) % 5
+    seq_values = np.repeat(
+        (0.10 + 0.0001 * row)[:, None, None],
+        2 * signal_dim,
+        axis=1,
+    ).reshape(-1, 2, signal_dim)
+    snap_values = np.repeat(
+        (0.20 + 0.0001 * row)[:, None], signal_dim, axis=1
+    )
+    for alias in alias_policy["aliases"]:
+        signal_index = int(alias["signal_index"])
+        ctx_index = int(alias["ctx_cont_index"])
+        alias_values = ctx_cont_values[:, ctx_index]
+        seq_values[:, -1, signal_index] = alias_values
+        snap_values[:, signal_index] = alias_values
     states: dict[str, object] = {
-        "seq": np.repeat(
-            (0.10 + 0.0001 * row)[:, None, None],
-            2 * signal_dim,
-            axis=1,
-        ).reshape(-1, 2, signal_dim),
-        "snap": np.repeat(
-            (0.20 + 0.0001 * row)[:, None], signal_dim, axis=1
-        ),
-        "ctx_cont": np.repeat(
-            (0.30 + 0.0001 * row)[:, None], ctx_cont_dim, axis=1
-        ),
+        "seq": seq_values,
+        "snap": snap_values,
+        "ctx_cont": ctx_cont_values,
         "ctx_cat": np.stack(
             [
                 (row.astype(np.int64) + index) % 4
-                for index in range(
-                    len(serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS)
+                % len(
+                    serve_gate.MODEL_NATIVE_CTX_CAT_DOMAINS[
+                        serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS[index]
+                    ]
                 )
+                for index in range(len(serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS))
             ],
             axis=1,
         ),
@@ -766,25 +851,38 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
     )
 
     assert report["decision"] == "PASS", report["failures"]
-    assert report["numeric_input_count"] == (
-        (2 * MODEL_NATIVE_SIGNAL_DIM)
-        + MODEL_NATIVE_CTX_CONT_DIM
-        + (5 * len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4))
+    expected_ownership = serve_gate.individual_input_influence_layout(signal_names)
+    assert report["numeric_input_count"] == sum(
+        len(row["tokens"])
+        for row in expected_ownership["numeric"].values()
     )
-    assert report["categorical_input_count"] == 5
+    assert report["categorical_input_count"] == len(
+        expected_ownership["categorical"]
+    )
+    assert report["continuous_manifold_input_count"] == len(
+        expected_ownership["continuous_manifold"]
+    )
     assert set(report["numeric"]) == {
         "seq_signal",
         "snap_signal",
         "ctx_cont",
-        "seq_m5",
         "seq_m15",
         "seq_h1",
         "seq_h4",
         "seq_d1",
     }
+    numeric_alias_token = f"temporal_alias.{numeric_alias_field}"
+    assert report["continuous_manifold"][numeric_alias_token][
+        "decision"
+    ] == "PASS"
+    assert all(
+        report["categorical"][f"temporal_alias.{field}"]["decision"]
+        == "PASS"
+        for field in nominal_ctx_fields
+    )
 
     dead_seq_route = json.loads(json.dumps(report))
-    first_signal = signal_names[0]
+    first_signal = report["numeric"]["seq_signal"]["tokens"][0]
     dead_seq_route["numeric"]["seq_signal"]["metrics"][first_signal][
         "max_abs_raw_class_margin_gradient"
     ] = 0.0
@@ -796,6 +894,95 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
             )
         )
     )
+
+    alias_misclassified = json.loads(json.dumps(report))
+    numeric_alias = next(
+        row
+        for row in expected_ownership["continuous_manifold"]
+        if row["token"] == numeric_alias_token
+    )
+    alias_misclassified["input_ownership"]["numeric"]["snap_signal"][
+        "tokens"
+    ].append(str(numeric_alias["signal_field"]))
+    alias_misclassified["input_ownership"]["numeric"]["snap_signal"][
+        "source_indices"
+    ].append(int(numeric_alias["signal_index"]))
+    assert any(
+        "input_ownership mismatch" in failure
+        for failure in (
+            serve_gate._individual_input_decision_influence_contract_failures(
+                alias_misclassified
+            )
+        )
+    )
+
+    category_misclassified = json.loads(json.dumps(report))
+    regime_index = serve_parity.MULTI_TF_PER_BAR_FEATURES_V4.index(
+        "regime_class_id"
+    )
+    category_misclassified["input_ownership"]["numeric"]["seq_m15"][
+        "tokens"
+    ].append("m15:regime_class_id")
+    category_misclassified["input_ownership"]["numeric"]["seq_m15"][
+        "source_indices"
+    ].append(regime_index)
+    assert any(
+        "input_ownership mismatch" in failure
+        for failure in (
+            serve_gate._individual_input_decision_influence_contract_failures(
+                category_misclassified
+            )
+        )
+    )
+
+
+def test_individual_input_layout_uses_physical_owners_and_nominal_manifolds() -> None:
+    signal_names = [
+        f"signal_{index:03d}" for index in range(MODEL_NATIVE_SIGNAL_DIM)
+    ]
+    nominal_ctx = list(serve_gate.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
+    for index, field in enumerate(nominal_ctx):
+        signal_names[index] = f"ctx_cont.{field}"
+    numeric_alias = "atr_bps"
+    signal_names[len(nominal_ctx)] = f"ctx_cont.{numeric_alias}"
+
+    layout = serve_gate.individual_input_influence_layout(signal_names)
+    numeric = layout["numeric"]
+    continuous_manifold = layout["continuous_manifold"]
+    categorical = layout["categorical"]
+    snap_tokens = set(numeric["snap_signal"]["tokens"])
+    seq_tokens = set(numeric["seq_signal"]["tokens"])
+    ctx_tokens = set(numeric["ctx_cont"]["tokens"])
+
+    assert f"ctx_cont.{numeric_alias}" not in seq_tokens
+    assert f"ctx_cont.{numeric_alias}" not in snap_tokens
+    assert numeric_alias not in ctx_tokens
+    numeric_owner = next(
+        row
+        for row in continuous_manifold
+        if row["token"] == f"temporal_alias.{numeric_alias}"
+    )
+    assert numeric_owner["manifold"] == "joint_seq_last_snap_ctx_cont_alias"
+    assert numeric_owner["perturbation"] == (
+        "binary_flip_or_train_frozen_center_else_one_scale"
+    )
+    for field in nominal_ctx:
+        assert f"ctx_cont.{field}" not in seq_tokens
+        assert f"ctx_cont.{field}" not in snap_tokens
+        assert field not in ctx_tokens
+        owner = next(
+            row for row in categorical if row["token"] == f"temporal_alias.{field}"
+        )
+        assert owner["manifold"] == "joint_seq_last_snap_ctx_cont_alias"
+    for timeframe in serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES:
+        assert f"{timeframe.lower()}:regime_class_id" not in set(
+            numeric[f"seq_{timeframe.lower()}"]["tokens"]
+        )
+        assert any(
+            row["token"] == f"{timeframe.lower()}:regime_class_id"
+            and row["manifold"] == "latest_closed_tf_bar_category"
+            for row in categorical
+        )
 
 
 def test_pinned_contract_rejects_direction_only_partial_head_artifact() -> None:

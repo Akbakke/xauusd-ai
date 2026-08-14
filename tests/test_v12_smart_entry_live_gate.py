@@ -8,7 +8,10 @@ import pytest
 import torch
 
 from gx1.execution import v12_smart_entry_live as live
-from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
@@ -81,15 +84,27 @@ def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Pat
             "max_trades": 3,
         },
     )
-    engine._per_tf_seq_lens = {"M5": 1}
-    engine._multi_tf_shift = {"M5": pd.Timedelta(minutes=5)}
+    engine._per_tf_seq_lens = {
+        timeframe: 1 for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    engine._multi_tf_shift = {
+        timeframe: pd.Timedelta(minutes=5)
+        for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
 
     out = engine._multi_tf_window_tensors(
         pd.Timestamp("2026-07-08T12:05:00Z"),
-        multi_tf={"M5": frame},
+        multi_tf={
+            timeframe: frame for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+        },
     )
 
-    assert float(out["seq_m5"][0, 0, 0].item()) == 2.0
+    assert set(out) == {
+        f"seq_{timeframe.lower()}"
+        for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    assert "seq_m5" not in out
+    assert float(out["seq_m15"][0, 0, 0].item()) == 2.0
 
 
 def _softmax(values: list[float] | tuple[float, ...]) -> list[float]:
@@ -131,7 +146,6 @@ def _decision_head(
     rail_logits = [1.0, -1.0, 0.5, -0.5, 0.25, -0.25]
     bad_path_logit = -1.0
     tradable_logit = 1.0
-    tf_agreement_logit = 0.5
     position_size_logit = 0.25
     clean_edge_logit = 0.75
     survival_logit = 1.25
@@ -148,7 +162,7 @@ def _decision_head(
         "direction_probs": direction_probs,
         "model_direction_index": direction_index,
         "model_direction": ("LONG", "SHORT", "FLAT")[direction_index],
-        "entry_shared_representation": [
+        "entry_decision_representation": [
             float(index - 64) / 64.0 for index in range(128)
         ],
         "p_long": direction_probs[0],
@@ -219,8 +233,6 @@ def _decision_head(
             "bad_path_temperature": 1.0,
             "bad_path_bias": 0.0,
         },
-        "tf_agreement_logit": tf_agreement_logit,
-        "tf_agreement_pred": _sigmoid(tf_agreement_logit),
         "path_quality_log_var": 0.0,
         "path_quality_std": 1.0,
         "position_size_logit": position_size_logit,
@@ -519,7 +531,6 @@ def test_smart_decision_rejects_noncanonical_pair_even_when_argmax_matches(tmp_p
         "side_utility",
         "mtf_dir_logits",
         "trendline_rail_logits",
-        "tf_agreement_logit",
         "path_quality_log_var",
         "position_size_logit",
     ],
@@ -542,7 +553,6 @@ def test_smart_decision_requires_complete_model_native_evidence_surface(
         ("bad_path_prob", 0.99, "bad_path_prob does not match"),
         ("tradable_prob", 0.01, "tradable_prob does not match"),
         ("clean_edge_prob", 0.01, "clean_edge_prob does not match"),
-        ("tf_agreement_pred", 0.01, "tf_agreement_pred does not match"),
         ("position_size_pred", 0.01, "position_size_pred does not match"),
         ("specialist_gate", [1.0] * 8, "not a probability simplex"),
     ],
@@ -584,9 +594,7 @@ def test_smart_decision_rejects_nonpositive_or_nonfinite_atr_evidence(
 
 
 def _forward_states() -> dict:
-    evidence_names = [
-        "trend.mtf_confluence_trend_direction_score",
-    ]
+    evidence_names = ["chart.local_ema50_200_spread_atr"]
     return {
         "times": [pd.Timestamp("2026-07-08T18:00:00Z")],
         "seq": np.zeros((1, 2, 1), dtype=np.float32),
@@ -602,7 +610,7 @@ def _forward_outputs() -> dict:
     return {
         "raw_direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
         "direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
-        "shared_feature_representation": torch.arange(
+        "entry_decision_representation": torch.arange(
             128, dtype=torch.float32
         ).reshape(1, 128),
         "public_trade_flat_decision_logits": torch.tensor([[5.0, 0.0]], dtype=torch.float32),
@@ -655,7 +663,6 @@ def _forward_outputs() -> dict:
             ),
             dtype=torch.float32,
         ),
-        "tf_agreement_logit": torch.tensor([[0.5]], dtype=torch.float32),
         "path_quality_log_var": torch.tensor([[0.0]], dtype=torch.float32),
         "position_size_logit": torch.tensor([[0.25]], dtype=torch.float32),
         **{
@@ -727,9 +734,8 @@ def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path
     assert len(head["vol_forecast_pred"]) == 3
     assert head["specialist_names"] == list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)
     assert sum(head["specialist_gate"]) == pytest.approx(1.0)
-    assert head["mtf_trend_evidence"] == pytest.approx(0.65)
+    assert head["mtf_trend_evidence"] == pytest.approx(2.0)
     assert not any(key.startswith("expected_utility") for key in head)
-    assert 0.0 < head["tf_agreement_pred"] < 1.0
     assert head["path_quality_std"] == pytest.approx(1.0)
     assert 0.0 < head["position_size_pred"] < 1.0
 
@@ -755,7 +761,6 @@ def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path
             "expectile_value",
             "action_advantage",
             "specialist_gate",
-        "tf_agreement_logit",
         "path_quality_log_var",
     ],
 )

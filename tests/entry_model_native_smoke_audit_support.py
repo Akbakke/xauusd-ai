@@ -187,7 +187,7 @@ def _passing_offline_rl_evidence() -> dict[str, Any]:
                 "action": action,
                 "horizon_bars": horizon,
                 "spearman": None if action == "FLAT" else 0.90,
-                "mae_scaled": 0.05,
+                "relative_mae": 0.05,
                 "decision": "PASS",
                 "failures": [],
             }
@@ -213,6 +213,7 @@ def _passing_offline_rl_evidence() -> dict[str, Any]:
             for horizon in (12, 48, 96)
         },
         "advantage_max_abs_error": 0.0,
+        "empirical_reward_evidence_scale_bps": 50.0,
         "separate_direction_authority": False,
     }
 

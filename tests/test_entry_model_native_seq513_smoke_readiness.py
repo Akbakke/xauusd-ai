@@ -25,7 +25,7 @@ from tests.model_native_context_routing_support import (
     ordered_signal_names_for_specialist_indices,
 )
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
-from tests.model_native_offline_rl_support import (
+from tests.model_native_sizing_support import (
     model_native_target_audit_evidence,
 )
 
@@ -49,10 +49,12 @@ def _model_contract() -> dict:
 
 
 def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
-    assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == manifest_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
-    assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == trainability_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
-    assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == manifest_gate.DIRECTION_BALANCE_ENV_TEMPLATE
-    assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == trainability_gate.DIRECTION_BALANCE_ENV_TEMPLATE
+    expected = readiness.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+    assert expected == manifest_gate.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+    assert expected == trainability_gate.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+    expected_env = readiness.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+    assert expected_env == manifest_gate.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+    assert expected_env == trainability_gate.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
     assert (
         readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
         == manifest_gate.DIRECTION_CONTEXT_SLICE_CONTRACT
@@ -97,11 +99,11 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     for split in ("train", "val", "test"):
         parquet_path = (
             smart_smoke_dataset_dir
-            / f"v10_smart_seq513_model_native_smoke__DIR_H24B_{split}.parquet"
+            / f"v10_smart_seq513_model_native_smoke__DIR_TRAIN_FIT_{split}.parquet"
         )
         manifest_path = (
             smart_smoke_dataset_dir
-            / f"v10_smart_seq513_model_native_smoke__DIR_H24B_{split}.manifest.json"
+            / f"v10_smart_seq513_model_native_smoke__DIR_TRAIN_FIT_{split}.manifest.json"
         )
         parquet_path.write_bytes(f"{split}-parquet".encode("utf-8"))
         manifest_path.write_text(f'{{"split":"{split}"}}\n', encoding="utf-8")
@@ -209,7 +211,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "foundation_source_field_liveness": [
                 {
                     "split": "train",
-                    "source_field": "chart.foundation_hh_state",
+                    "source_field": "chart.foundation_bos_up_event_age_bars",
                     "observed": True,
                     "nonfinite_count": 0,
                     "near_constant": False,
@@ -220,7 +222,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         tmp_path / "ENTRY_TARGET_FOUNDATION_AUDIT_20260716T120004123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -466,17 +468,17 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     )
     assert train_contract["specialist_contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
     assert train_contract["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
-    assert train_contract["requires_path_calibration_recipe_contract"] is True
-    assert train_contract["path_calibration_recipe_contract"] == readiness.PATH_CALIBRATION_RECIPE_CONTRACT
-    assert train_contract["requires_direction_balance_recipe_contract"] is True
-    assert train_contract["direction_balance_recipe_contract"] == readiness.DIRECTION_BALANCE_RECIPE_CONTRACT
-    assert train_contract["requires_tail_direction_recipe_contract"] is True
-    assert train_contract["tail_direction_recipe_contract"] == readiness.TAIL_DIRECTION_RECIPE_CONTRACT
+    assert train_contract[
+        "requires_direction_diagnostic_recipe_contract"
+    ] is True
+    assert train_contract[
+        "direction_diagnostic_recipe_contract"
+    ] == readiness.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
     assert set(train_contract["recipe_env_keys"]) == set(
         readiness.MODEL_NATIVE_RECIPE_ENV_KEYS
     )
-    assert set(train_contract["required_positive_loss_weights"]) == set(
-        readiness.REQUIRED_POSITIVE_LOSS_WEIGHTS
+    assert set(train_contract["joint_task_names"]) == set(
+        readiness.JOINT_TASK_NAMES
     )
     assert train_contract["requires_exact_model_native_training_objective"] is True
     assert train_contract["requires_direction_context_slice_contract"] is True

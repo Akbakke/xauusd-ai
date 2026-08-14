@@ -15,46 +15,106 @@ native OANDA M1/M5
   -> calibration -> untouched TEST -> same-bundle replay
 ```
 
-Entry consumes 96 local M5 bars with 538 ordered signals (34 base + 371
-mandatory causal + 133 TRAIN-ranked over 16 mandatory families — the V29
-event surface with level/trendline registries and per-timeframe event
-primitives), 164 continuous context fields, 5 categorical fields and closed
+Entry consumes 96 local M5 bars with 349 ordered signals (30 base + 164
+mandatory causal/raw + all 155 code-owned candidates = 319 specialist fields over 11 mandatory
+layer families), 159 continuous context fields, 5 categorical fields and closed
 M15/H1/H4/D1 context. Exit
 consumes the same definitions and TRAIN normalization on 480 local M1 bars,
-closed M5/M15/H1/H4/D1 context, the frozen Entry representation and its causal
-in-trade path. Higher-timeframe OHLCV closes before feature computation;
-computed M1 indicators are never resampled upward.
+closed M5/M15/H1/H4/D1 context, the frozen Entry-decision token and its causal
+in-trade path. The frozen value is a dedicated learned 128-wide Entry-decision
+token built by a learned 609-to-128 projection of the exact ordered local,
+final, MTF, raw-fusion, fusion-hidden and final-logit decision blocks; it is
+not a generic pre-head embedding. Higher-timeframe
+OHLCV closes before feature computation; computed M1 indicators are never
+resampled upward. This is signal v19 in direction mode v8; each MTF lane
+contains 171 ordered fields.
 
-Entry's 538/164/5 tensors are read from one immutable, hash-bound native M5
+Entry's 349/159/5 tensors are read from one immutable, hash-bound native M5
 surface and sliced by exact timestamp across all three splits. Exit uses the
 corresponding native M1 surface. There is no split-local alternate feature
 builder or cross-resolution value copy.
 
-The model is the only decision authority. Exact top-logit ties, missing paths,
-stale artifacts and lineage mismatches fail closed. There are no active
-handwritten direction rules, fallbacks or alternate replay selectors.
+The raw volume primitives `vol_z_20`, `vol_ratio_5_20` and `vol_pct_96` use
+the same owner on every closed timeframe, with tick volume summed during OHLCV
+resampling. Their 95-row prefix makes the native source windows 191 rows for
+the 96-row Entry slice and 575 rows for the 480-row Exit slice; warmup is never
+zero-filled.
+
+The five volatility-squeeze fields are produced by one shared state owner on
+each native clock. M1/M5/M15/H1/H4/D1 each require their own immutable
+TRAIN-fitted parameters inside one common lineage manifest; local and MTF
+consumers reject missing, stale, cross-clock or bare payloads.
+
+MTF matrix V5, cache manifest v11 and full-input liveness v6 bind one UTC
+trading-session clock: H4 bins open on 22/02/06/10/14/18 UTC and D1 opens at
+22:00 UTC. Retired H4 00/04/... and calendar-midnight D1 caches are not current
+inputs. Signal split v8 binds mandatory full-stack v13.
+
+Signal v18 binds the exact 26-field causal candle geometry/relation/carry owner
+on local and per-TF clocks. Its retained six-field local SMC event block emits
+raw displacement, sided sweep depth, one-shot events and event age, not a
+direction vote.
+
+The accepted model's unique argmax is the only runtime decision authority.
+Exact top-logit ties, missing paths, stale artifacts and lineage mismatches
+fail closed; no post-model handwritten rule, fallback or alternate replay
+selector may override it. This is not a claim that the training objective is
+free of every fixed magnitude: auxiliary task weights, rank margins and gate
+regularization remain for Wave C.
+
+Training-objective v6 and the 46-key recipe-v5 schema use plain unweighted CE
+for main/MTF/masked-side classification and plain unweighted BCE for hierarchy
+binary tasks. Waves A/B retire direction and hierarchical distribution forcing;
+Wave C is deliberately not claimed complete.
+
+The five handwritten regime composites, the handcrafted `tf_agreement` head
+and `signed_vol_z_20` are retired while their genuine raw evidence remains for
+learned interaction. Position sizing is trained only on its explicit tradable
+mask using a frozen TRAIN-only selected-side path ECDF and has no direction
+authority.
+
+Each Exit output is bound to one full-input envelope containing trade identity,
+side, entry quotes, Entry token/snapshot, path, exact M1 sequence timestamps and
+tensor-byte hashes, and all five MTF window/cache hashes.
 
 ## Current status
 
 The source architecture and contracts are substantially connected and tested,
 but the system is not empirically finished:
 
-- the current 2026-08-11 tree passes repo-wide lint/compile/shell checks and
-  all 2,078 collected tests under the 4G cgroup;
+- focused capped contract tests cover the current source changes; this document
+  makes no aggregate whole-repository green claim after concurrent repairs;
 - fresh native M1/M5 V4 sources and canonical pair generation
   `9b18e215...077232cd` (2026-08-09) are published and hash-bound;
-- the V28 dataset chain ran GREEN end to end on the repaired feature
-  substrate; it is the frozen baseline for the pre-registered V29-vs-V28
-  evaluation, not an admitted training substrate;
-- the V29 event surface (level/trendline registries, per-TF event
-  primitives; 538 signals after the V30 fidelity wave) is committed in source; its dataset rebuild has
-  not run yet;
+- the historical V28 and V29J dataset chains were retired and are not valid
+  training or comparison substrates;
+- the v19/direction-v8 source contract (349 signals) is present, but no
+  corresponding dataset rebuild has run yet;
+- objective v6/recipe v5 completes Waves A/B, while fixed auxiliary weights,
+  rank margins and gate regularization remain pending Wave C;
 - no accepted Entry/Exit checkpoint or calibrated bundle;
 - no untouched-TEST edge, historical PnL or win-rate proof;
-- no same-candidate full-TEST unified Exit proof.
+- no same-candidate full-TEST unified Exit proof;
+- Exit TRAIN/VAL state probes are now label-independent, and a bounded iterator
+  can materialize every non-tied state in both 512-row trajectories. The epoch
+  selector scores the probe population; before a candidate bundle can be
+  written, its chosen checkpoint is re-evaluated on every non-tied long/short
+  VAL state. Smoke runs explicitly cannot supply this admission proof.
 
-Every dataset built on the retired 513 surface is invalid as substrate for
-new training. A fresh V29 rebuild is required.
+Every dataset built on a retired feature surface is invalid as substrate for
+new training. A fresh current-contract V30 rebuild is required.
+
+Registry fit payloads are bound to exact TRAIN-source provenance in the M5
+cache and M1-enriched manifests. The level-registry runtime-population shadow
+is a nonempty-support check through the same owner state machine, not a second
+registry or a shadow/live-trading route.
+
+The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
+production-integrated in source, but no production squeeze artifacts have been
+fitted. A fresh per-clock fit, cache/surface/dataset rebuild and retraining are
+required before model or edge claims.
+Exit remains native closed M1. No tick-level dataset, evaluation, OOS or
+trading claim exists.
 
 ## Start here
 

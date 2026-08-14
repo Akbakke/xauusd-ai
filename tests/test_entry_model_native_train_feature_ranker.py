@@ -9,10 +9,10 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     require_model_native_manifest,
 )
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIELDS
@@ -21,6 +21,9 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as manifest_producer
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
+from tests.entry_direction_target_policy_support import (
+    entry_direction_target_policy_fixture,
+)
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
 
@@ -84,6 +87,50 @@ def _source_cascade_metadata(
     }
 
 
+def _target_policy(
+    *,
+    source_sha256: str,
+    train_start: str = "2020-11-09T00:00:00+00:00",
+    train_end: str = "2026-03-31T23:59:59+00:00",
+) -> dict[str, object]:
+    return entry_direction_target_policy_fixture(
+        source_parquet_sha256=source_sha256,
+        tape_provenance_sha256="b" * 64,
+        train_start_utc=train_start,
+        train_end_utc=train_end,
+    )
+
+
+def _availability_fixture() -> tuple[list[str], dict[str, object], dict[str, float]]:
+    names = list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    times = pd.date_range(
+        end="2026-03-31T23:55:00Z",
+        periods=256,
+        freq="5min",
+    )
+    x = np.arange(len(times), dtype=np.float32)
+    matrix = np.column_stack(
+        [
+            x * np.float32(index + 1) + np.float32(index * index + 0.125)
+            for index in range(len(names))
+        ]
+    ).astype(np.float32)
+    target = np.square(x.astype(np.float64))
+    availability = ranker.fit_feature_availability_contract(
+        matrix=matrix,
+        names=names,
+        times=times,
+        train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
+        train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
+        diagnostic_target=target,
+    )
+    scores = {
+        name: float(len(names) - index) / float(len(names))
+        for index, name in enumerate(names)
+    }
+    return names, availability, scores
+
+
 def test_ranker_feature_attachment_is_single_worker() -> None:
     assert ranker.ATTACH_WORKERS == 1
 
@@ -91,8 +138,7 @@ def test_ranker_feature_attachment_is_single_worker() -> None:
 def test_candidate_universe_is_clean_and_large_enough() -> None:
     universe = ranker._candidate_universe(list(MODEL_NATIVE_CTX_CONT_FIELDS))
 
-    assert len(universe) >= MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-    assert universe == sorted(universe)
+    assert universe == list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
     mandatory = set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
     base = set(MODEL_NATIVE_BASE_FIELDS)
     forbidden = set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
@@ -103,7 +149,27 @@ def test_candidate_universe_is_clean_and_large_enough() -> None:
         assert not manifest_producer._is_forbidden_leak_name(name)
 
 
-def test_spearman_scores_are_deterministic_with_support_floor() -> None:
+def test_candidate_availability_has_no_fixed_top_k_or_score_authority() -> None:
+    ranker_source = Path(ranker.__file__).read_text(encoding="utf-8")
+    manifest_source = Path(manifest_producer.__file__).read_text(encoding="utf-8")
+    availability_source = Path(
+        ranker.fit_feature_availability_contract.__code__.co_filename
+    ).read_text(encoding="utf-8")
+
+    for source in (ranker_source, manifest_source, availability_source):
+        assert (
+            "MODEL_NATIVE_" + "RANKED_REMAINDER_FEATURE_COUNT"
+        ) not in source
+        assert "MIN_SUPPORT_FRACTION" not in source
+        assert "SCORE_DECIMALS" not in source
+        assert "[:MODEL_NATIVE_RANKED" not in source
+    assert '"target_scores_affect_selection": False' in availability_source
+    assert "tuple(available_names) != MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS" in (
+        manifest_source
+    )
+
+
+def test_spearman_scores_are_diagnostic_without_support_cutoff() -> None:
     rows = 2000
     rng_free = np.linspace(-1.0, 1.0, rows)
     target = rng_free * 100.0
@@ -124,72 +190,64 @@ def test_spearman_scores_are_deterministic_with_support_floor() -> None:
     assert scores["session_regime.a_perfect"] == pytest.approx(1.0)
     assert scores["session_regime.b_anti"] == pytest.approx(1.0)
     assert scores["session_regime.c_noise"] < 0.2
-    assert scores["session_regime.d_sparse"] == 0.0
-    # Determinism: identical inputs give identical rounded scores.
+    assert scores["session_regime.d_sparse"] > 0.0
+    # Determinism: identical inputs give identical diagnostics.
     again = ranker._spearman_scores(matrix, names, target)
     assert again == scores
 
 
-def test_direction_utility_margin_target_is_train_capped_and_exact() -> None:
-    rows = 60
+def test_direction_executable_pnl_margin_target_is_train_capped_and_exact() -> None:
+    policy = entry_direction_target_policy_fixture()
+    horizon = int(policy["selected_direction_horizon_bars"])
+    rows = horizon + 40
     times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
     mid = np.full(rows, 100.0)
-    mid[ranker.DIRECTION_HORIZON_BARS :] = 200.0
+    mid[horizon:] = 200.0
     frame = pd.DataFrame(
         {"time": times, "bid_close": mid, "ask_close": mid}
     )
     train_start = times[10]
     train_end = times[-1]
 
-    out_times, target = ranker._direction_utility_margin_target(
-        frame, train_start=train_start, train_end=train_end
+    out_times, target = ranker._direction_executable_pnl_margin_target(
+        frame,
+        train_start=train_start,
+        train_end=train_end,
+        entry_direction_target_policy=policy,
     )
 
     assert len(out_times) == rows
-    assert np.isnan(target[-ranker.DIRECTION_HORIZON_BARS :]).all()
+    assert np.isnan(target[-horizon:]).all()
     assert np.isnan(target[:10]).all()  # before train_start
-    # Row 10 doubles over H24 while its first-10 path is flat:
-    # LONG utility=+10,000 bps, SHORT utility=-10,000 bps.
+    # Row 10 doubles over the TRAIN-fitted horizon. The ranking target is the
+    # exact executable long-minus-short PnL margin used by dataset labels.
     assert target[10] == pytest.approx(20_000.0, rel=1e-6)
 
 
-def test_direction_utility_margin_target_matches_spread_and_path_formula() -> None:
-    rows = 40
+def test_direction_executable_pnl_margin_target_matches_policy_formula() -> None:
+    policy = entry_direction_target_policy_fixture()
+    horizon = int(policy["selected_direction_horizon_bars"])
+    rows = horizon + 40
     times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
     bid = 100.0 + np.linspace(0.0, 1.2, rows)
     bid[1:11] += np.array([0.10, -0.08, 0.25, -0.15, 0.40, -0.20, 0.30, -0.05, 0.50, 0.15])
     ask = bid + 0.02
     frame = pd.DataFrame({"time": times, "bid_close": bid, "ask_close": ask})
 
-    _, target = ranker._direction_utility_margin_target(
+    _, target = ranker._direction_executable_pnl_margin_target(
         frame,
         train_start=times[0],
         train_end=times[-1],
+        entry_direction_target_policy=policy,
     )
 
     entry_bid = bid[0]
     entry_ask = ask[0]
-    pnl_long = (bid[24] - entry_ask) / entry_ask * 1e4
-    pnl_short = (entry_bid - ask[24]) / entry_bid * 1e4
-    window_bid = bid[:11]
-    window_ask = ask[:11]
-    mfe_long = (window_bid.max() - entry_ask) / entry_ask * 1e4
-    mae_long = (entry_ask - window_bid.min()) / entry_ask * 1e4
-    mfe_short = (entry_bid - window_ask.min()) / entry_bid * 1e4
-    mae_short = (window_ask.max() - entry_bid) / entry_bid * 1e4
-    long_utility = (
-        pnl_long
-        + ranker.UTILITY_MFE_WEIGHT * mfe_long
-        - ranker.UTILITY_MAE_WEIGHT * mae_long
-        + ranker.UTILITY_PATH_WEIGHT * (mfe_long - mae_long)
+    pnl_long = (bid[horizon] - entry_ask) / entry_ask * 1e4
+    pnl_short = (entry_bid - ask[horizon]) / entry_bid * 1e4
+    assert target[0] == pytest.approx(
+        np.float32(pnl_long - pnl_short).item(), rel=1e-12
     )
-    short_utility = (
-        pnl_short
-        + ranker.UTILITY_MFE_WEIGHT * mfe_short
-        - ranker.UTILITY_MAE_WEIGHT * mae_short
-        + ranker.UTILITY_PATH_WEIGHT * (mfe_short - mae_short)
-    )
-    assert target[0] == pytest.approx(long_utility - short_utility, rel=1e-12)
 
 
 def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
@@ -207,6 +265,7 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
             "open": [99.5, 100.5, 101.5, 102.5],
             "high": [100.5, 101.5, 102.5, 103.5],
             "low": [99.0, 100.0, 101.0, 102.0],
+            "volume": [10.0, 11.0, 12.0, 13.0],
         }
     )
     captured_path: Path | None = None
@@ -223,6 +282,7 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
             "open": [96.5, 97.5, 98.5],
             "high": [97.5, 98.5, 99.5],
             "low": [96.0, 97.0, 98.0],
+            "volume": [7.0, 8.0, 9.0],
         }
     )
     pd.concat([warmup, frame], ignore_index=True).to_parquet(causal_source, index=False)
@@ -232,14 +292,23 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
         *,
         requested_features,
         ctx_cont_names,
-        ctx_cat_names,
-        source_parquet,
-        source_contract_label,
+            ctx_cat_names,
+            source_parquet,
+            local_timeframe,
+            source_contract_label,
     ):
         nonlocal captured_path
         captured_path = Path(source_parquet)
         source = pd.read_parquet(captured_path)
-        assert list(source.columns) == ["time", "close", "atr", "open", "high", "low"]
+        assert list(source.columns) == [
+            "time",
+            "close",
+            "atr",
+            "open",
+            "high",
+            "low",
+            "volume",
+        ]
         assert len(source) > len(observed_frame)
         ranked = source.set_index("time").loc[observed_frame["time"]]
         np.testing.assert_array_equal(
@@ -249,6 +318,7 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
             ranked["atr"].to_numpy(), observed_frame["atr"].to_numpy()
         )
         assert source_contract_label == "train_feature_ranker_common_causal_history_v2"
+        assert local_timeframe == "M5"
         return (
             np.arange(len(observed_frame), dtype=np.float32).reshape(-1, 1),
             list(requested_features),
@@ -265,7 +335,7 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
 
     assert names == ["trend.fixture_candidate"]
     assert values.shape == (4, 1)
-    # The layers receive a bounded six-column materialization of the causal
+    # The layers receive a bounded seven-column materialization of the causal
     # source, published under a temporary path and removed afterwards.
     assert captured_path is not None
     assert captured_path != causal_source
@@ -277,14 +347,7 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     reference = _rank_reference(tmp_path)
-    candidates = [
-        f"session_regime.rank_candidate_{index:03d}"
-        for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
-    ]
-    scores = {
-        name: float(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT - index)
-        for index, name in enumerate(candidates)
-    }
+    candidates, availability, scores = _availability_fixture()
 
     ranking_path = ranker.emit_ranking(
         out_path=tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_{_stamp(RANKING_CREATED)}.json",
@@ -297,7 +360,11 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
         target_sha256="2" * 64,
         rank_reference=reference,
         source_cascade=_source_cascade_metadata(tmp_path, reference),
+        entry_direction_target_policy=_target_policy(
+            source_sha256=str(reference.sidecar["source_parquet_sha256"])
+        ),
         scores=scores,
+        feature_availability=availability,
         created=RANKING_CREATED,
     )
 
@@ -313,7 +380,7 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
     source_cascade = _source_cascade_metadata(tmp_path, reference)
     monkeypatch.setattr(
         manifest_producer,
-        "validate_seq513_source_cascade_proof",
+        "validate_current_pair_source_cascade_proof",
         lambda *args, **kwargs: dict(source_cascade),
     )
     out = tmp_path / (
@@ -342,10 +409,13 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
 def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
     reference = _rank_reference(tmp_path)
     scores = {
-        "session_regime.bbb": 0.5,
-        "session_regime.aaa": 0.5,
-        "session_regime.ccc": 0.9,
+        name: 0.1 for name in MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
     }
+    availability_names, availability, _ = _availability_fixture()
+    first, second, third = availability_names[:3]
+    scores[first] = 0.5
+    scores[second] = 0.5
+    scores[third] = 0.9
     path = ranker.emit_ranking(
         out_path=tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_{_stamp(RANKING_CREATED)}.json",
         run_id=RUN_ID,
@@ -357,18 +427,23 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
         target_sha256="2" * 64,
         rank_reference=reference,
         source_cascade=_source_cascade_metadata(tmp_path, reference),
+        entry_direction_target_policy=_target_policy(
+            source_sha256=str(reference.sidecar["source_parquet_sha256"])
+        ),
         scores=scores,
+        feature_availability=availability,
         created=RANKING_CREATED,
     )
     import json
 
     rows = json.loads(path.read_text())["ranked_features"]
     assert [row["name"] for row in rows] == [
-        "session_regime.ccc",
-        "session_regime.aaa",
-        "session_regime.bbb",
-    ]
-    assert [row["rank"] for row in rows] == [1, 2, 3]
+        third,
+        *sorted((first, second)),
+    ] + sorted(availability_names[3:])
+    assert [row["rank"] for row in rows] == list(
+        range(1, len(availability_names) + 1)
+    )
 
 
 def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
@@ -379,6 +454,7 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         "source_cascade_sha256": "9" * 64,
         "rank_reference_sha256": "5" * 64,
         "rank_reference_sidecar_sha256": "7" * 64,
+        "entry_direction_target_policy_sha256": "a" * 64,
         "history_start": pd.Timestamp("2021-01-05T00:00:00Z"),
         "train_start": pd.Timestamp("2021-03-16T00:00:00Z"),
         "train_end": pd.Timestamp("2026-03-31T23:59:59Z"),
@@ -392,6 +468,7 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         ("source_cascade_sha256", "0" * 64),
         ("rank_reference_sha256", "6" * 64),
         ("rank_reference_sidecar_sha256", "8" * 64),
+        ("entry_direction_target_policy_sha256", "b" * 64),
         ("train_start", pd.Timestamp("2021-03-17T00:00:00Z")),
     ):
         variant = dict(base)
@@ -403,6 +480,7 @@ def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path
     reference = _rank_reference(tmp_path)
     out = tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_20260718T090000000001Z.json"
     with pytest.raises(RuntimeError, match="OUTPUT_TIMESTAMP_MISMATCH"):
+        _names, availability, scores = _availability_fixture()
         ranker.emit_ranking(
             out_path=out,
             run_id=RUN_ID,
@@ -414,6 +492,10 @@ def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path
             target_sha256="2" * 64,
             rank_reference=reference,
             source_cascade=_source_cascade_metadata(tmp_path, reference),
-            scores={"session_regime.test": 1.0},
+            entry_direction_target_policy=_target_policy(
+                source_sha256=str(reference.sidecar["source_parquet_sha256"])
+            ),
+            scores=scores,
+            feature_availability=availability,
             created=datetime(2026, 7, 18, 9, 0, 0, 2, tzinfo=timezone.utc),
         )

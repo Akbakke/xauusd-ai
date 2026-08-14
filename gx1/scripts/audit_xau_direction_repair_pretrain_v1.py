@@ -24,26 +24,27 @@ from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
 )
 from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_contract,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_TARGET_COLUMNS,
+)
+from gx1.contracts.entry_position_size_target_policy_v1 import (
+    require_entry_position_size_target_manifest_binding,
+)
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-    DIRECTION_DATASET_STEM_SUFFIX,
-    V12_DIRECTION_UTILITY_MAE_WEIGHT,
-    V12_DIRECTION_UTILITY_MFE_WEIGHT,
-    V12_DIRECTION_UTILITY_MIN_BPS,
-    V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS,
-    V12_DIRECTION_UTILITY_PATH_WEIGHT,
+    ENTRY_FITTED_Q_DATASET_STEM_SUFFIX,
 )
 import pyarrow.parquet as pq
 from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
     PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
-    RESISTANCE_STACK_FEATURE,
-    SUPPORT_STACK_FEATURE,
-)
-from gx1.features.entry_chart_geometry_v1 import (
-    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
+    RESISTANCE_DISTANCE_FEATURE,
+    SUPPORT_DISTANCE_FEATURE,
 )
 
 
-DEFAULT_STEM = f"v10_6yr_dataset{DIRECTION_DATASET_STEM_SUFFIX}"
+DEFAULT_STEM = f"v10_6yr_dataset{ENTRY_FITTED_Q_DATASET_STEM_SUFFIX}"
 REQUIRED_POLARITY_FEATURES = PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
 # V30 package 7 (2026-08-13): the previous `REQUIRED_RAIL_FEATURES` filtered
 # the mandatory geometry tuple on the substring `_rail_`.  Those six fields
@@ -52,51 +53,23 @@ REQUIRED_POLARITY_FEATURES = PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
 # is re-pointed at the complete mandatory geometry tuple, which is the property
 # it was really guarding: every code-owned mandatory chart-geometry field is
 # present in the split's signal manifest.
-REQUIRED_MANDATORY_GEOMETRY_FEATURES = tuple(
-    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
-)
-if not REQUIRED_MANDATORY_GEOMETRY_FEATURES:
-    raise RuntimeError("XAU_PRETRAIN_AUDIT_MANDATORY_GEOMETRY_FEATURES_EMPTY")
+REQUIRED_MANDATORY_LEVEL_FEATURES = tuple(REQUIRED_POLARITY_FEATURES)
+if not REQUIRED_MANDATORY_LEVEL_FEATURES:
+    raise RuntimeError("XAU_PRETRAIN_AUDIT_MANDATORY_LEVEL_FEATURES_EMPTY")
 REQUIRED_XAU_TARGET_COLUMNS = (
-    "y_direction",
-    "y_bad_path",
-    "y_trade",
-    "y_tradable",
-    "y_side",
-    "y_side_mask",
-    "mae_first_n_bps",
-    "mfe_first_n_bps",
-    "path_quality_bps",
-    "y_position_size_target",
-    "mfe_long_first_n_bps",
-    "mae_long_first_n_bps",
-    "mfe_short_first_n_bps",
-    "mae_short_first_n_bps",
-    "bad_path_long_first_n",
-    "bad_path_short_first_n",
-    "y_long_final_pnl_at_direction_horizon_bps",
-    "y_short_final_pnl_at_direction_horizon_bps",
-    "y_direction_target_mode_id",
-    "y_direction_long_score_bps",
-    "y_direction_short_score_bps",
-    "y_long_path_utility_bps",
-    "y_short_path_utility_bps",
-    "y_long_bad_path",
-    "y_short_bad_path",
     "y_long_expected_mae_bps",
     "y_short_expected_mae_bps",
+    "y_position_size_target",
+    "y_position_size_mask",
     "y_line_support_touch_held",
     "y_line_support_touch_mask",
     "y_line_resistance_touch_held",
     "y_line_resistance_touch_mask",
-    "y_support_retest_continuation",
-    "y_resistance_retest_continuation",
     "y_countertrend_short_trap",
     "y_countertrend_long_trap",
-    "y_long_high_mae_low_mfe_early_failure",
-    "y_short_high_mae_low_mfe_early_failure",
+    *MODEL_NATIVE_AUX_TARGET_COLUMNS,
 )
-TARGET_CONTRACT_IDENTITY_COLUMNS = frozenset({"y_direction_target_mode_id"})
+TARGET_CONTRACT_IDENTITY_COLUMNS = frozenset()
 PREFREEZE_SPLITS = ("train", "val")
 
 
@@ -163,6 +136,13 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
         "direction_logit_mode": str(extra.get("direction_logit_mode") or ""),
         "model_native_signal_contract": extra.get("model_native_signal_contract"),
         "xau_tape_provenance": extra.get("xau_tape_provenance"),
+        "entry_fitted_q": extra.get("entry_fitted_q"),
+        "entry_position_size_target_policy": extra.get(
+            "entry_position_size_target_policy"
+        ),
+        "entry_position_size_target_policy_sha256": extra.get(
+            "entry_position_size_target_policy_sha256"
+        ),
         "fields": list(signal_surface.get("fields") or []),
         "splits": manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {},
         "model_native_state_contract": (
@@ -171,11 +151,42 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _position_size_target_policy(
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+    source_frame = (
+        extra.get("source_frame")
+        if isinstance(extra.get("source_frame"), dict)
+        else {}
+    )
+    xau_provenance = extra.get("xau_tape_provenance")
+    expected_source = str(source_frame.get("parquet_sha256") or "").strip().lower()
+    if len(expected_source) != 64:
+        raise RuntimeError("manifest source_frame parquet hash missing")
+    if not isinstance(xau_provenance, dict):
+        raise RuntimeError("manifest XAU tape provenance missing")
+    splits = manifest.get("splits")
+    train_window = (
+        splits.get("train")
+        if isinstance(splits, dict) and isinstance(splits.get("train"), dict)
+        else {}
+    )
+    return require_entry_position_size_target_manifest_binding(
+        extra,
+        expected_source_parquet_sha256=expected_source,
+        expected_tape_provenance_sha256=None,
+        expected_direction_policy_sha256=None,
+        expected_train_start=train_window.get("start"),
+        expected_train_end=train_window.get("end"),
+    )
+
+
 def _state_contract_failures(contract: dict[str, Any], *, split: str) -> list[str]:
     if not isinstance(contract, dict) or not contract:
         return [f"{split}: XAU repair requires model_native_state_contract provenance"]
     try:
-        validate_state_contract_metadata_v2(contract, require_artifact=True)
+        validate_state_contract_metadata_v2(contract)
     except (RuntimeError, TypeError, ValueError, OSError) as exc:
         return [f"{split}: model_native_state_contract v2 invalid: {exc}"]
     return []
@@ -263,10 +274,16 @@ def _audit_split(
     manifest_path: Path,
     max_rows: int,
     max_row_groups: int,
-    support_dominance_min: float,
+    distance_dominance_margin_atr: float,
     min_pocket_rows: int,
 ) -> dict[str, Any]:
     manifest = _load_json(manifest_path)
+    extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+    require_entry_fitted_q_contract(
+        extra.get("entry_fitted_q"),
+        context=f"XAU_PRETRAIN_{split.upper()}",
+    )
+    position_size_target_policy = _position_size_target_policy(manifest)
     fields = _feature_fields(manifest)
     feature_index = {name: (fields.index(name) if name in fields else None) for name in REQUIRED_POLARITY_FEATURES}
     schema_names = set(pq.read_schema(parquet_path).names)
@@ -287,24 +304,20 @@ def _audit_split(
     missing_features = [name for name, idx in feature_index.items() if idx is None or idx >= snap.shape[1]]
     polarity: dict[str, Any] = {"available": False}
     if not missing_features:
-        # V30 package 7 (2026-08-13): the channel-position statistics
-        # (means per pocket, the resistance-minus-support delta, the
-        # correlation against support_minus_resistance and the two 0.42/0.58
-        # rates) are GONE, not zeroed: their subject columns
-        # `chart.geometry_channel_position_low_to_high` and
-        # `chart.geometry_support_minus_resistance_stack` were removed from the
-        # producer as exact-affine duplicates of the two stacks read here.  A
-        # measurement that cannot be taken is omitted rather than emitted as a
-        # placeholder that would read as a passing result (rule 2e).  What
-        # remains is the pocket-occupancy measurement, which is still taken on
-        # the exact rows the model trains on.
-        support = snap[:, int(feature_index[SUPPORT_STACK_FEATURE])]
-        resistance = snap[:, int(feature_index[RESISTANCE_STACK_FEATURE])]
-        support_dom = (support - resistance) > float(support_dominance_min)
-        resistance_dom = (resistance - support) > float(support_dominance_min)
+        # The pocket is measured directly from the two raw nearest-level
+        # distances. Deleted channel/Fibonacci scorebooks are not recreated as
+        # zero placeholders or audit-side weighted composites.
+        support_distance = snap[:, int(feature_index[SUPPORT_DISTANCE_FEATURE])]
+        resistance_distance = snap[:, int(feature_index[RESISTANCE_DISTANCE_FEATURE])]
+        margin = float(distance_dominance_margin_atr)
+        support_dom = (resistance_distance - support_distance) > margin
+        resistance_dom = (support_distance - resistance_distance) > margin
         polarity = {
             "available": True,
-            "support_dominance_min": float(support_dominance_min),
+            "distance_dominance_margin_atr": margin,
+            "pocket_definition": (
+                "nearest_opposite_side_distance_minus_nearest_side_distance"
+            ),
             "support_dominant_rows": int(support_dom.sum()),
             "resistance_dominant_rows": int(resistance_dom.sum()),
             "enough_pocket_rows": bool(
@@ -318,174 +331,14 @@ def _audit_split(
         for name in REQUIRED_XAU_TARGET_COLUMNS
         if name in sample and name not in TARGET_CONTRACT_IDENTITY_COLUMNS
     }
-    y_direction = np.asarray(sample.get("y_direction", np.empty((0,), dtype=np.int32)), dtype=np.int32)
-    y_trade = np.asarray(sample.get("y_trade", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_tradable = np.asarray(sample.get("y_tradable", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_side = np.asarray(sample.get("y_side", np.empty((0,), dtype=np.int32)), dtype=np.int32)
-    y_side_mask = np.asarray(sample.get("y_side_mask", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_bad_path = np.asarray(sample.get("y_bad_path", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    mae_first = np.asarray(sample.get("mae_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    mfe_first = np.asarray(sample.get("mfe_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    path_quality = np.asarray(sample.get("path_quality_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_long_utility = np.asarray(sample.get("y_long_path_utility_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_short_utility = np.asarray(sample.get("y_short_path_utility_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_long_bad_path = np.asarray(sample.get("y_long_bad_path", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_short_bad_path = np.asarray(sample.get("y_short_bad_path", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_long_mae = np.asarray(sample.get("y_long_expected_mae_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_short_mae = np.asarray(sample.get("y_short_expected_mae_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    mfe_long = np.asarray(sample.get("mfe_long_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    mae_long = np.asarray(sample.get("mae_long_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    mfe_short = np.asarray(sample.get("mfe_short_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    mae_short = np.asarray(sample.get("mae_short_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    raw_long_bad = np.asarray(sample.get("bad_path_long_first_n", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    raw_short_bad = np.asarray(sample.get("bad_path_short_first_n", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    pnl_long = np.asarray(
-        sample.get("y_long_final_pnl_at_direction_horizon_bps", np.empty((0,), dtype=np.float32)),
-        dtype=np.float32,
-    )
-    pnl_short = np.asarray(
-        sample.get("y_short_final_pnl_at_direction_horizon_bps", np.empty((0,), dtype=np.float32)),
-        dtype=np.float32,
-    )
-    target_mode_id = np.asarray(
-        sample.get("y_direction_target_mode_id", np.empty((0,), dtype=np.float32)),
-        dtype=np.float32,
-    )
-    y_position_size = np.asarray(sample.get("y_position_size_target", np.empty((0,), dtype=np.float32)), dtype=np.float32)
-    y_direction_long_score = np.asarray(
-        sample.get("y_direction_long_score_bps", np.empty((0,), dtype=np.float32)),
-        dtype=np.float32,
-    )
-    y_direction_short_score = np.asarray(
-        sample.get("y_direction_short_score_bps", np.empty((0,), dtype=np.float32)),
-        dtype=np.float32,
-    )
-    target_consistency: dict[str, Any] = {"available": False}
-    if (
-        y_direction.size
-        and y_trade.size == y_direction.size
-        and y_tradable.size == y_direction.size
-        and y_side.size == y_direction.size
-        and y_side_mask.size == y_direction.size
-        and y_bad_path.size == y_direction.size
-        and mae_first.size == y_direction.size
-        and mfe_first.size == y_direction.size
-        and path_quality.size == y_direction.size
-        and y_long_utility.size == y_direction.size
-        and y_short_utility.size == y_direction.size
-        and y_long_bad_path.size == y_direction.size
-        and y_short_bad_path.size == y_direction.size
-        and y_long_mae.size == y_direction.size
-        and y_short_mae.size == y_direction.size
-        and mfe_long.size == y_direction.size
-        and mae_long.size == y_direction.size
-        and mfe_short.size == y_direction.size
-        and mae_short.size == y_direction.size
-        and raw_long_bad.size == y_direction.size
-        and raw_short_bad.size == y_direction.size
-        and pnl_long.size == y_direction.size
-        and pnl_short.size == y_direction.size
-        and target_mode_id.size == y_direction.size
-        and y_position_size.size == y_direction.size
-    ):
-        rounded_mode = np.rint(target_mode_id)
-        invalid_mode = (
-            ~np.isfinite(target_mode_id)
-            | (np.abs(target_mode_id - 1.0) > 1e-6)
-        )
-        mode_contract_valid = bool((~invalid_mode).all() and np.unique(rounded_mode).size == 1)
-        expected_long_utility = (
-            pnl_long
-            + float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * mfe_long
-            - float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * mae_long
-            + float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * (mfe_long - mae_long)
-        ).astype(np.float32)
-        expected_short_utility = (
-            pnl_short
-            + float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * mfe_short
-            - float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * mae_short
-            + float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * (mfe_short - mae_short)
-        ).astype(np.float32)
-        utility_margin = expected_long_utility - expected_short_utility
-        tradable_long = (
-            mode_contract_valid
-            & (expected_long_utility >= float(V12_DIRECTION_UTILITY_MIN_BPS))
-            & (utility_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
-        )
-        tradable_short = (
-            mode_contract_valid
-            & (expected_short_utility >= float(V12_DIRECTION_UTILITY_MIN_BPS))
-            & ((-utility_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
-        )
-        expected_direction = np.full_like(y_direction, 2)
-        only_long = tradable_long & (~tradable_short)
-        only_short = tradable_short & (~tradable_long)
-        both = tradable_long & tradable_short
-        expected_direction[only_long] = 0
-        expected_direction[only_short] = 1
-        expected_direction[both & (expected_long_utility >= expected_short_utility)] = 0
-        expected_direction[both & (expected_short_utility > expected_long_utility)] = 1
-
-        expected_scalar_bad = np.zeros_like(y_bad_path, dtype=np.float32)
-        long_rows = (y_trade > 0.5) & (y_side == 0)
-        short_rows = (y_trade > 0.5) & (y_side == 1)
-        flat_rows = y_trade <= 0.5
-        expected_scalar_bad[long_rows] = y_long_bad_path[long_rows]
-        expected_scalar_bad[short_rows] = y_short_bad_path[short_rows]
-        expected_mfe = np.zeros_like(mfe_first, dtype=np.float32)
-        expected_mae = np.zeros_like(mae_first, dtype=np.float32)
-        expected_mfe[long_rows] = mfe_long[long_rows]
-        expected_mae[long_rows] = mae_long[long_rows]
-        expected_mfe[short_rows] = mfe_short[short_rows]
-        expected_mae[short_rows] = mae_short[short_rows]
-        expected_path = (expected_mfe - expected_mae).astype(np.float32)
-        bad_path_mismatch = np.abs(y_bad_path - expected_scalar_bad) > 1e-5
-        tradable_mismatch = np.abs(y_tradable - y_trade) > 1e-5
-        mfe_mismatch = np.abs(mfe_first - expected_mfe) > 1e-5
-        mae_mismatch = np.abs(mae_first - expected_mae) > 1e-5
-        path_mismatch = np.abs(path_quality - expected_path) > 1e-5
-        flat_size_mismatch = np.abs(y_position_size[flat_rows] - 0.5) > 1e-5 if int(flat_rows.sum()) else np.zeros(0, dtype=bool)
-        long_alias_mismatch = (
-            np.abs(y_direction_long_score - y_long_utility) > 1e-5
-            if y_direction_long_score.size == y_direction.size
-            else np.zeros(0, dtype=bool)
-        )
-        short_alias_mismatch = (
-            np.abs(y_direction_short_score - y_short_utility) > 1e-5
-            if y_direction_short_score.size == y_direction.size
-            else np.zeros(0, dtype=bool)
-        )
-        target_consistency = {
-            "available": True,
-            "bad_path_side_consistent_rate": float(1.0 - np.mean(bad_path_mismatch)) if bad_path_mismatch.size else None,
-            "bad_path_side_mismatch_count": int(bad_path_mismatch.sum()),
-            "tradable_trade_mismatch_count": int(tradable_mismatch.sum()),
-            "selected_mfe_mismatch_count": int(mfe_mismatch.sum()),
-            "selected_mae_mismatch_count": int(mae_mismatch.sum()),
-            "selected_path_quality_mismatch_count": int(path_mismatch.sum()),
-            "flat_position_size_neutral_rate": float(1.0 - np.mean(flat_size_mismatch)) if flat_size_mismatch.size else None,
-            "flat_position_size_mismatch_count": int(flat_size_mismatch.sum()),
-            "flat_rows": int(flat_rows.sum()),
-            "target_mode_contract_invalid_count": int((~np.isfinite(rounded_mode) | invalid_mode).sum())
-            + int(np.unique(rounded_mode).size != 1),
-            "direction_outcome_mismatch_count": int(np.sum(y_direction != expected_direction)),
-            "long_utility_formula_mismatch_count": int(
-                np.sum(np.abs(y_long_utility - expected_long_utility) > 1e-4)
-            ),
-            "short_utility_formula_mismatch_count": int(
-                np.sum(np.abs(y_short_utility - expected_short_utility) > 1e-4)
-            ),
-            "long_bad_path_raw_mismatch_count": int(
-                np.sum(np.abs(y_long_bad_path - raw_long_bad) > 1e-5)
-            ),
-            "short_bad_path_raw_mismatch_count": int(
-                np.sum(np.abs(y_short_bad_path - raw_short_bad) > 1e-5)
-            ),
-            "long_mae_raw_mismatch_count": int(np.sum(np.abs(y_long_mae - mae_long) > 1e-5)),
-            "short_mae_raw_mismatch_count": int(np.sum(np.abs(y_short_mae - mae_short) > 1e-5)),
-            "direction_long_score_alias_mismatch_count": int(long_alias_mismatch.sum()),
-            "direction_short_score_alias_mismatch_count": int(short_alias_mismatch.sum()),
-        }
+    target_consistency = {
+        "authority": "none_diagnostic_active_target_liveness_only",
+        "entry_q_targets_serialized_in_dataset": False,
+        "entry_q_source": "frozen_exit_first_state_target_model",
+        "position_size_policy_sha256": position_size_target_policy[
+            "policy_sha256"
+        ],
+    }
 
     return {
         "split": split,
@@ -501,7 +354,10 @@ def _audit_split(
         "polarity": polarity,
         "target_liveness": target_liveness,
         "target_consistency": target_consistency,
-        "core_target_policy": "future_path_and_utility_outcomes_only",
+        "core_target_policy": "frozen_exit_first_state_fitted_q_only",
+        "entry_position_size_target_policy_sha256": position_size_target_policy[
+            "policy_sha256"
+        ],
     }
 
 
@@ -520,7 +376,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     split_reports: list[dict[str, Any]] = []
     manifest_fields: list[str] | None = None
-    missing_mandatory_geometry_features: list[str] = []
+    missing_mandatory_level_features: list[str] = []
     if stem is not None:
         for split in splits:
             try:
@@ -529,9 +385,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 fields = _feature_fields(manifest)
                 if manifest_fields is None:
                     manifest_fields = fields
-                    missing_mandatory_geometry_features = [
+                    missing_mandatory_level_features = [
                         name
-                        for name in REQUIRED_MANDATORY_GEOMETRY_FEATURES
+                        for name in REQUIRED_MANDATORY_LEVEL_FEATURES
                         if name not in fields
                     ]
                 split_report = _audit_split(
@@ -540,17 +396,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     manifest_path=manifest_path,
                     max_rows=int(args.max_rows_per_split),
                     max_row_groups=int(args.max_row_groups_per_split),
-                    support_dominance_min=float(args.support_dominance_min),
+                    distance_dominance_margin_atr=float(
+                        args.distance_dominance_margin_atr
+                    ),
                     min_pocket_rows=int(args.min_pocket_rows),
                 )
                 split_reports.append(split_report)
             except Exception as exc:
                 failures.append(f"{split}: audit failed: {exc}")
 
-    if missing_mandatory_geometry_features:
+    if missing_mandatory_level_features:
         failures.append(
-            "missing required XAU mandatory geometry features in manifest: "
-            f"{missing_mandatory_geometry_features}"
+            "missing required XAU mandatory level features in manifest: "
+            f"{missing_mandatory_level_features}"
         )
 
     stale_markers = ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext")
@@ -584,6 +442,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             signal_contract if isinstance(signal_contract, dict) else {}
         )
         failures.extend(f"{split}: {failure}" for failure in signal_failures)
+        try:
+            require_entry_fitted_q_contract(
+                provenance.get("entry_fitted_q"),
+                context=f"XAU_PRETRAIN_PROVENANCE_{split.upper()}",
+            )
+        except RuntimeError as exc:
+            failures.append(
+                f"{split}: Entry fitted-Q contract invalid: {exc}"
+            )
         forbidden = sorted(
             set(provenance.get("fields") or ()) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
         )
@@ -639,46 +506,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         f"does not equal TRAIN window {train_start}..{train_end}"
                     )
         for name in row.get("missing_polarity_features") or []:
-            failures.append(f"{split}: missing channel-polarity feature: {name}")
+            failures.append(f"{split}: missing level-distance polarity feature: {name}")
         for name in row.get("missing_target_columns") or []:
             failures.append(f"{split}: missing XAU future-outcome target column: {name}")
         for name, live in (row.get("target_liveness") or {}).items():
             if not bool(live.get("live")):
                 failures.append(f"{split}: XAU future-outcome target column is not live: {name}")
         consistency = row.get("target_consistency") if isinstance(row.get("target_consistency"), dict) else {}
-        if not bool(consistency.get("available")):
-            failures.append(f"{split}: XAU future-outcome target consistency audit unavailable")
-        else:
-            if int(consistency.get("bad_path_side_mismatch_count") or 0):
-                failures.append(
-                    f"{split}: scalar y_bad_path mismatches repaired side-specific bad-path targets: "
-                    f"mismatches={consistency.get('bad_path_side_mismatch_count')}"
-                )
-            if int(consistency.get("flat_position_size_mismatch_count") or 0):
-                failures.append(
-                    f"{split}: y_position_size_target is not neutral for FLAT/no-trade rows: "
-                    f"mismatches={consistency.get('flat_position_size_mismatch_count')}"
-                )
-            hard_consistency_checks = (
-                ("target_mode_contract_invalid_count", "direction target mode contract is invalid/mixed"),
-                ("direction_outcome_mismatch_count", "y_direction mismatches future outcome side selection"),
-                ("long_utility_formula_mismatch_count", "long utility is not the declared future-outcome formula"),
-                ("short_utility_formula_mismatch_count", "short utility is not the declared future-outcome formula"),
-                ("long_bad_path_raw_mismatch_count", "long bad-path target differs from raw future outcome"),
-                ("short_bad_path_raw_mismatch_count", "short bad-path target differs from raw future outcome"),
-                ("long_mae_raw_mismatch_count", "long expected MAE differs from raw future MAE"),
-                ("short_mae_raw_mismatch_count", "short expected MAE differs from raw future MAE"),
-                ("direction_long_score_alias_mismatch_count", "y_direction_long_score_bps mismatches outcome long utility"),
-                ("direction_short_score_alias_mismatch_count", "y_direction_short_score_bps mismatches outcome short utility"),
-                ("tradable_trade_mismatch_count", "y_tradable mismatches y_trade"),
-                ("selected_mfe_mismatch_count", "mfe_first_n_bps mismatches selected side-specific MFE"),
-                ("selected_mae_mismatch_count", "mae_first_n_bps mismatches selected side-specific MAE"),
-                ("selected_path_quality_mismatch_count", "path_quality_bps mismatches selected side-specific path"),
+        if (
+            consistency.get("authority")
+            != "none_diagnostic_active_target_liveness_only"
+            or consistency.get("entry_q_targets_serialized_in_dataset")
+            is not False
+            or consistency.get("entry_q_source")
+            != "frozen_exit_first_state_target_model"
+            or consistency.get("position_size_policy_sha256")
+            != row.get("entry_position_size_target_policy_sha256")
+        ):
+            failures.append(
+                f"{split}: fitted-Q/position-size target lineage is invalid"
             )
-            for key, reason in hard_consistency_checks:
-                count = int(consistency.get(key) or 0)
-                if count:
-                    failures.append(f"{split}: {reason}: mismatches={count}")
         polarity = row.get("polarity") if isinstance(row.get("polarity"), dict) else {}
         if not bool(polarity.get("available")):
             continue
@@ -688,6 +535,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 f"(support={polarity.get('support_dominant_rows')} resistance={polarity.get('resistance_dominant_rows')})"
             )
             continue
+
+    sizing_policy_hashes = {
+        str(row.get("split")): str(
+            row.get("entry_position_size_target_policy_sha256") or ""
+        )
+        for row in split_reports
+    }
+    if len(set(sizing_policy_hashes.values())) > 1:
+        failures.append(
+            "TRAIN/VAL position-size targets do not share one immutable "
+            f"TRAIN-only policy: {sizing_policy_hashes}"
+        )
 
     split_state_contracts: dict[str, dict[str, Any]] = {}
     for row in split_reports:
@@ -717,26 +576,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     report = {
-        "schema_version": "xau_direction_repair_pretrain_audit_v2",
+        "schema_version": "xau_direction_repair_pretrain_audit_v5",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         "dataset_dir": str(dataset_dir),
         "requested_stem": requested_stem,
         "stem": str(stem or requested_stem),
         "data_splits": splits,
-        "require_mandatory_geometry_features": True,
+        "require_mandatory_level_features": True,
         "require_inline_seq_structure": True,
         "require_xau_provenance": True,
-        "required_mandatory_geometry_features": list(
-            REQUIRED_MANDATORY_GEOMETRY_FEATURES
+        "required_mandatory_level_features": list(
+            REQUIRED_MANDATORY_LEVEL_FEATURES
         ),
-        "missing_mandatory_geometry_features": (
-            missing_mandatory_geometry_features
+        "missing_mandatory_level_features": (
+            missing_mandatory_level_features
         ),
         "required_xau_target_columns": list(REQUIRED_XAU_TARGET_COLUMNS),
         "tape_provenance": tape_provenance_by_split,
         "thresholds": {
-            "support_dominance_min": float(args.support_dominance_min),
+            "distance_dominance_margin_atr": float(
+                args.distance_dominance_margin_atr
+            ),
             "min_pocket_rows": int(args.min_pocket_rows),
         },
         "splits": split_reports,
@@ -775,7 +636,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--max-rows-per-split", type=int, default=25000)
     parser.add_argument("--max-row-groups-per-split", type=int, default=5)
-    parser.add_argument("--support-dominance-min", type=float, default=0.25)
+    parser.add_argument(
+        "--distance-dominance-margin-atr",
+        type=float,
+        default=0.25,
+    )
     parser.add_argument("--min-pocket-rows", type=int, default=30)
     parser.add_argument("--quiet", action="store_true")
     return parser

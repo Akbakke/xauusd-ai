@@ -59,9 +59,9 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 
 SPLITS = PREFREEZE_SPLITS
 SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
-PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v11"
+PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v13"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
-PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
+PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v4"
 CHAIN_SCHEMA = "seq513_rebuild_chain_status_v7"
 DIRECT_BUILD_PROOF_FILENAME = "DATASET_BUILD_PROOF.json"
 FORBIDDEN_TEST_INPUT_FIELDS = (

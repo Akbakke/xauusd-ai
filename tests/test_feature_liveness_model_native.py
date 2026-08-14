@@ -212,11 +212,11 @@ def test_exact_model_native_seq513_can_pass_only_when_finite_and_live(monkeypatc
     assert seen == {"allow_known_dead": False}
 
 
-def test_model_native_seq513_does_not_inherit_legacy_constant_allowlist(monkeypatch) -> None:
+def test_model_native_seq513_rejects_constant_smc_choch_without_any_allowlist(monkeypatch) -> None:
     _stub_multi_tf(monkeypatch)
     batch, signal_names, ctx_cont_names = _batch()
     smc_choch_index = signal_names.index("smc_choch")
-    assert "smc_choch" in feature_liveness.KNOWN_ALLOWED_DEAD
+    assert "smc_choch" not in feature_liveness.KNOWN_ALLOWED_DEAD
     batch["snap_x"][:, smc_choch_index] = 0.0
 
     report = feature_liveness.assert_v10_batch_liveness(
@@ -511,25 +511,6 @@ def test_multi_tf_windows_are_caller_declared_not_wrapper_defaults() -> None:
     ):
         assert f'"${variable}"' in wrapper, (wrapper_name, variable)
         assert variable in wrapper.split("; do")[0], (wrapper_name, variable)
-
-
-def test_prior_match_tolerance_cannot_demand_less_than_sampling_noise() -> None:
-    """The prior-match terms compare against the CURRENT BATCH's label rates.
-
-    A rate from n samples has standard error up to sqrt(0.25/n), so a tolerance
-    below that trains the model to chase the batch's own sampling noise. At the
-    bound batch size of 64 the floor is 0.0625 against a declared 0.02, and at
-    the slice minimum of 8 rows it is 0.1768 - nearly nine times the declared
-    tolerance.
-    """
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    assert trainer._batch_rate_sampling_floor(64) == pytest.approx(0.0625)
-    assert trainer._batch_rate_sampling_floor(8) == pytest.approx(0.176776, rel=1e-5)
-    assert trainer._batch_rate_sampling_floor(0) == 0.0
-    # Monotone: more evidence permits a tighter demand.
-    floors = [trainer._batch_rate_sampling_floor(n) for n in (8, 16, 32, 64, 256)]
-    assert floors == sorted(floors, reverse=True)
 
 
 def test_every_declared_timeframe_window_reaches_the_trainer() -> None:

@@ -4,7 +4,10 @@
 The upstream feature-ranking JSON is a required offline TRAIN-only input, not
 runtime authority and not a selected-field pass-through.  This consumer always
 places every code-owned causal full-stack field first, in registry order, then
-fills only the remaining positions from the deterministic ranking.
+consumes the TRAIN-only availability decision. Diagnostic target scores never
+select fields. Until the signal/model dimension is migrated, a data-derived
+available count different from the frozen input width fails closed instead of
+truncating the pool.
 """
 from __future__ import annotations
 
@@ -22,13 +25,15 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT,
@@ -46,56 +51,50 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    UTILITY_MAE_WEIGHT,
-    UTILITY_MFE_WEIGHT,
-    UTILITY_PATH_WEIGHT,
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    require_entry_direction_target_policy,
 )
-from gx1.contracts.entry_model_native_state_v2 import (
-    MODEL_NATIVE_RANK_TRANSFORM,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-    parse_utc as parse_state_utc,
-    validate_train_rank_reference_lineage_v2,
+from gx1.contracts.entry_model_native_feature_availability_v1 import (
+    require_feature_availability_contract,
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
     SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
 )
-from gx1.scripts.audit_seq513_source_cascade_v1 import (
-    validate_seq513_source_cascade_proof,
+from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
+    validate_current_pair_source_cascade_proof,
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v8"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v14"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v8"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v14"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v8"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v11"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v8"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v11"
 TRAIN_FEATURE_RANKING_TARGET_CONTRACT = {
-    "target": "spread_aware_direction_utility_margin_bps",
-    "direction_horizon_bars": 24,
-    "path_horizon_bars": 10,
-    "long_entry_price": "ask_close_t0",
-    "long_exit_price": "bid_close_t_plus_24",
-    "short_entry_price": "bid_close_t0",
-    "short_exit_price": "ask_close_t_plus_24",
-    "mfe_weight": float(UTILITY_MFE_WEIGHT),
-    "mae_weight": float(UTILITY_MAE_WEIGHT),
-    "path_weight": float(UTILITY_PATH_WEIGHT),
-    "utility_formula": (
-        "pnl_at_h + mfe_weight*mfe_first_10 - mae_weight*mae_first_10 "
-        "+ path_weight*(mfe_first_10-mae_first_10)"
+    "target": "train_fitted_executable_pnl_side_margin_bps",
+    "horizon_source": (
+        "entry_direction_target_policy.selected_direction_horizon_bars"
     ),
-    "ranking_target_formula": "long_utility_bps-short_utility_bps",
+    "long_entry_price": "ask_close_t0",
+    "long_exit_price": "bid_close_t_plus_fitted_horizon",
+    "short_entry_price": "bid_close_t0",
+    "short_exit_price": "ask_close_t_plus_fitted_horizon",
+    "ranking_target_formula": (
+        "long_executable_pnl_bps-short_executable_pnl_bps"
+    ),
+    "handwritten_mfe_mae_path_weights": False,
+    "target_affects_feature_availability": False,
     "fit_scope": "train_only_full_horizons",
 }
 TRAIN_FEATURE_RANKING_ORDER = {
-    "primary": "score_descending",
+    "primary": "diagnostic_abs_spearman_descending",
     "tie_break": "feature_name_ascending",
     "rank_base": 1,
+    "selection_authority": False,
 }
 TRAIN_FEATURE_CAUSALITY_CONTRACT = {
     "feature_values_from_closed_bars_only": True,
@@ -103,6 +102,8 @@ TRAIN_FEATURE_CAUSALITY_CONTRACT = {
     "test_rows_used": False,
     "future_feature_rows_used": False,
     "target_columns_in_feature_matrix": False,
+    "selection_uses_train_feature_values_only": True,
+    "target_scores_affect_selection": False,
     "leakage_columns": [],
 }
 MAX_OUTPUT_PAST_SKEW_SECONDS = 300.0
@@ -123,10 +124,12 @@ _RANKING_TOP_LEVEL_KEYS = frozenset(
         "source_sha256",
         "target_sha256",
         "target_contract",
+        "entry_direction_target_policy",
+        "entry_direction_target_policy_sha256",
         "source_cascade",
-        "rank_reference",
         "ranking_order",
         "causality_contract",
+        "feature_availability",
         "ranked_features",
     }
 )
@@ -154,24 +157,6 @@ _CURRENT_SOURCE_CASCADE_KEYS = frozenset(
         "pair_manifest_path",
         "pair_manifest_sha256",
         "pair_generation_id",
-    }
-)
-_RANK_REFERENCE_KEYS = frozenset(
-    {
-        "path",
-        "sha256",
-        "sidecar_path",
-        "sidecar_sha256",
-        "schema_version",
-        "entry_run_id",
-        "source_parquet",
-        "source_parquet_sha256",
-        "history_start_utc",
-        "fit_start_utc",
-        "fit_end_utc",
-        "fit_row_count",
-        "fit_scope",
-        "rank_transform",
     }
 )
 _RANKING_ROW_KEYS = frozenset({"rank", "name", "score"})
@@ -242,6 +227,36 @@ def _sha256_json(value: Any) -> str:
         allow_nan=False,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _feature_availability_manifest_binding(
+    availability: Mapping[str, Any],
+) -> dict[str, Any]:
+    checked = require_feature_availability_contract(availability)
+    return {
+        "schema_version": checked["schema_version"],
+        "contract_sha256": checked["contract_sha256"],
+        "fit_scope": checked["fit_scope"],
+        "fit_clock": checked["fit_clock"],
+        "consumer_clocks": checked["consumer_clocks"],
+        "train_start_utc": checked["train_start_utc"],
+        "train_end_utc": checked["train_end_utc"],
+        "train_row_count": checked["train_row_count"],
+        "candidate_pool_count": checked["candidate_pool_count"],
+        "candidate_pool_sha256": checked["candidate_pool_sha256"],
+        "train_matrix_sha256": checked["train_matrix_sha256"],
+        "selection_sha256": checked["selection_sha256"],
+        "available_feature_count": checked["available_feature_count"],
+        "excluded_feature_count": checked["excluded_feature_count"],
+        "excluded_features": checked["excluded_features"],
+        "family_coverage": checked["family_coverage"],
+        "semantic_timeframe_coverage": checked[
+            "semantic_timeframe_coverage"
+        ],
+        "selection_policy": checked["selection_policy"],
+        "semantics": checked["semantics"],
+        "reachability_decision": checked["reachability_decision"],
+    }
 
 
 def _parse_utc(value: object, *, field: str) -> datetime:
@@ -390,57 +405,25 @@ def load_and_validate_train_feature_ranking(
     target_hash = _require_sha256(ranking.get("target_sha256"), field="target_sha256")
     if source_hash == target_hash:
         raise RuntimeError("FEATURE_RANKING_SOURCE_TARGET_HASH_COLLISION")
-
-    raw_rank_reference = ranking.get("rank_reference")
+    entry_direction_target_policy = require_entry_direction_target_policy(
+        ranking.get("entry_direction_target_policy"),
+        expected_source_parquet_sha256=source_hash,
+    )
     if (
-        not isinstance(raw_rank_reference, dict)
-        or frozenset(raw_rank_reference) != _RANK_REFERENCE_KEYS
+        ranking.get("entry_direction_target_policy_sha256")
+        != entry_direction_target_policy["policy_sha256"]
+        or _parse_utc(
+            entry_direction_target_policy["train_start_utc"],
+            field="entry_direction_target_policy.train_start_utc",
+        )
+        != train_start
+        or _parse_utc(
+            entry_direction_target_policy["train_end_utc"],
+            field="entry_direction_target_policy.train_end_utc",
+        )
+        != train_end
     ):
-        raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_SCHEMA_INVALID")
-    rank_path = _absolute_without_resolving(
-        Path(str(raw_rank_reference.get("path") or ""))
-    )
-    _require_no_symlink_components(rank_path, field="FEATURE_RANKING_RANK_REFERENCE")
-    history_start = parse_state_utc(
-        raw_rank_reference.get("history_start_utc"), field="history_start_utc"
-    )
-    rank_source_sha256 = _require_sha256(
-        raw_rank_reference.get("source_parquet_sha256"),
-        field="rank_reference.source_parquet_sha256",
-    )
-    reference = validate_train_rank_reference_lineage_v2(
-        rank_path,
-        expected_run_id=entry_run_id,
-        expected_source_parquet=Path(
-            str(raw_rank_reference.get("source_parquet") or "")
-        ),
-        expected_source_sha256=rank_source_sha256,
-        expected_history_start_utc=history_start,
-        expected_fit_start_utc=train_start,
-        expected_fit_end_utc=train_end,
-    )
-    expected_rank_reference = {
-        "path": str(reference.path),
-        "sha256": reference.sha256,
-        "sidecar_path": str(
-            reference.path.with_suffix(reference.path.suffix + ".json")
-        ),
-        "sidecar_sha256": reference.sidecar_sha256,
-        "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "entry_run_id": entry_run_id,
-        "source_parquet": str(
-            Path(str(reference.sidecar["source_parquet"])).expanduser().resolve()
-        ),
-        "source_parquet_sha256": rank_source_sha256,
-        "history_start_utc": history_start.isoformat(),
-        "fit_start_utc": reference.fit_start_utc.isoformat(),
-        "fit_end_utc": reference.fit_end_utc.isoformat(),
-        "fit_row_count": reference.fit_row_count,
-        "fit_scope": "train_only",
-        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-    }
-    if raw_rank_reference != expected_rank_reference:
-        raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_METADATA_MISMATCH")
+        raise RuntimeError("FEATURE_RANKING_ENTRY_TARGET_POLICY_MISMATCH")
 
     raw_source_cascade = ranking.get("source_cascade")
     if (
@@ -480,7 +463,7 @@ def load_and_validate_train_feature_ranking(
     mtf_path = Path(
         str(raw_source_cascade["multi_tf_cache_dir"])
     ).expanduser().resolve()
-    source_cascade = validate_seq513_source_cascade_proof(
+    source_cascade = validate_current_pair_source_cascade_proof(
         Path(str(raw_source_cascade.get("path") or "")),
         expected_run_id=entry_run_id,
         expected_source_parquet=ranking_source,
@@ -516,12 +499,14 @@ def load_and_validate_train_feature_ranking(
         if isinstance(raw_score, bool) or not isinstance(raw_score, (int, float)):
             raise RuntimeError(f"FEATURE_RANKING_SCORE_INVALID: rank={index}")
         score = float(raw_score)
-        if not math.isfinite(score):
+        if not math.isfinite(score) or not 0.0 <= score <= 1.0:
             raise RuntimeError(f"FEATURE_RANKING_SCORE_NONFINITE: rank={index}")
         if name in base:
             raise RuntimeError(f"FEATURE_RANKING_BASE_FIELD_FORBIDDEN: {name}")
         if name in forbidden:
             raise RuntimeError(f"FEATURE_RANKING_LEGACY_BRIDGE_FIELD_FORBIDDEN: {name}")
+        if name in MODEL_NATIVE_MANDATORY_SELECTED_FIELDS:
+            raise RuntimeError(f"FEATURE_RANKING_MANDATORY_FIELD_FORBIDDEN: {name}")
         if _is_forbidden_leak_name(name):
             raise RuntimeError(f"FEATURE_RANKING_TARGET_OR_LEAK_FIELD_FORBIDDEN: {name}")
         specialist = classify_entry_specialist_feature(name)
@@ -537,6 +522,25 @@ def load_and_validate_train_feature_ranking(
     expected_order = sorted(scored, key=lambda item: (-item[0], item[1]))
     if scored != expected_order:
         raise RuntimeError("FEATURE_RANKING_DECLARED_ORDER_OR_TIE_BREAK_INVALID")
+    availability = require_feature_availability_contract(
+        ranking.get("feature_availability")
+    )
+    # Recompute the code-owned pool at the consumer boundary.  The local
+    # import avoids a module-load cycle because the producer imports this
+    # module's immutable schema constants.
+    from gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 import (
+        _candidate_universe,
+    )
+
+    expected_candidate_pool = _candidate_universe(MODEL_NATIVE_CTX_CONT_FIELDS)
+    if (
+        availability["candidate_pool"] != expected_candidate_pool
+        or set(names) != set(expected_candidate_pool)
+        or availability["train_start_utc"] != train_start.isoformat()
+        or availability["train_end_utc"] != train_end.isoformat()
+        or availability["source_time_max_utc"] != source_max.isoformat()
+    ):
+        raise RuntimeError("FEATURE_RANKING_AVAILABILITY_LINEAGE_MISMATCH")
     return ranking, names, ranking_file_sha256
 
 
@@ -638,7 +642,7 @@ def validate_signal_manifest_training_lineage(
             "FEATURE_RANKING_SOURCE_SHA256_MISMATCH: "
             f"ranking={ranking['source_sha256']} expected={expected_source_sha256}"
         )
-    source_cascade = validate_seq513_source_cascade_proof(
+    source_cascade = validate_current_pair_source_cascade_proof(
         Path(str(ranking["source_cascade"]["path"])),
         expected_run_id=run_id,
         expected_source_parquet=expected_source_parquet,
@@ -653,10 +657,19 @@ def validate_signal_manifest_training_lineage(
     if created <= ranking_created:
         raise RuntimeError("SIGNAL_MANIFEST_TIMESTAMP_NOT_AFTER_RANKING")
 
-    mandatory_set = set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
-    eligible_ranked_names = [name for name in ranked_names if name not in mandatory_set]
-    ranked_remainder = eligible_ranked_names[:MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT]
-    expected_selected = [*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *ranked_remainder]
+    availability = require_feature_availability_contract(
+        ranking["feature_availability"]
+    )
+    available_names = list(availability["available_features"])
+    if tuple(available_names) != MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS:
+        raise RuntimeError(
+            "FEATURE_AVAILABILITY_CODE_OWNED_SELECTION_MISMATCH"
+        )
+    available_candidates = available_names
+    expected_selected = [
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *available_candidates,
+    ]
     expected_ranking_metadata = {
         "path": str(ranking_path),
         "sha256": ranking_sha256,
@@ -670,26 +683,35 @@ def validate_signal_manifest_training_lineage(
         "source_sha256": ranking["source_sha256"],
         "target_sha256": ranking["target_sha256"],
         "target_contract": ranking["target_contract"],
+        "entry_direction_target_policy": ranking[
+            "entry_direction_target_policy"
+        ],
+        "entry_direction_target_policy_sha256": ranking[
+            "entry_direction_target_policy_sha256"
+        ],
         "source_cascade": ranking["source_cascade"],
         "ranking_order": ranking["ranking_order"],
         "causality_contract": ranking["causality_contract"],
-        "rank_reference": ranking["rank_reference"],
         "ranked_feature_count": len(ranked_names),
-        "eligible_ranked_remainder_count": len(eligible_ranked_names),
-        "mandatory_names_in_ranking_count": len(ranked_names)
-        - len(eligible_ranked_names),
+        "available_candidate_count": len(available_names),
+        "mandatory_names_in_ranking_count": 0,
         "ranked_feature_order_sha256": _sha256_json(ranked_names),
+        "feature_availability": _feature_availability_manifest_binding(
+            availability
+        ),
     }
     if manifest.get("feature_ranking") != expected_ranking_metadata:
         raise RuntimeError("SIGNAL_MANIFEST_FEATURE_RANKING_METADATA_MISMATCH")
     if manifest.get("selected_features") != expected_selected:
         raise RuntimeError("SIGNAL_MANIFEST_SELECTED_FIELDS_NOT_DERIVED_FROM_RANKING")
-    if manifest.get("ranked_remainder_features") != ranked_remainder:
-        raise RuntimeError("SIGNAL_MANIFEST_RANKED_REMAINDER_MISMATCH")
+    if manifest.get("available_candidate_features") != available_candidates:
+        raise RuntimeError("SIGNAL_MANIFEST_AVAILABLE_CANDIDATES_MISMATCH")
     if manifest.get("selected_fields_sha256") != _sha256_json(expected_selected):
         raise RuntimeError("SIGNAL_MANIFEST_SELECTED_FIELDS_SHA256_MISMATCH")
-    if manifest.get("ranked_remainder_fields_sha256") != _sha256_json(ranked_remainder):
-        raise RuntimeError("SIGNAL_MANIFEST_RANKED_REMAINDER_SHA256_MISMATCH")
+    if manifest.get("available_candidate_fields_sha256") != _sha256_json(
+        available_candidates
+    ):
+        raise RuntimeError("SIGNAL_MANIFEST_AVAILABLE_CANDIDATES_SHA256_MISMATCH")
     if _sha256_file(ranking_path) != ranking_sha256:
         raise RuntimeError("FEATURE_RANKING_CHANGED_DURING_LINEAGE_VALIDATION")
     return {
@@ -703,6 +725,12 @@ def validate_signal_manifest_training_lineage(
         "train_start_utc": expected_train_start.isoformat(),
         "train_end_utc": expected_train_end.isoformat(),
         "model_native_signal_contract": signal_contract,
+        "entry_direction_target_policy": ranking[
+            "entry_direction_target_policy"
+        ],
+        "entry_direction_target_policy_sha256": ranking[
+            "entry_direction_target_policy_sha256"
+        ],
     }
 
 
@@ -766,18 +794,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "SIGNAL_MANIFEST_TIMESTAMP_FUTURE: "
             f"manifest={created.isoformat()} now={now.isoformat()}"
         )
-    mandatory_set = set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
-    eligible_ranked_names = [name for name in ranked_names if name not in mandatory_set]
-    if len(eligible_ranked_names) < MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT:
+    availability = require_feature_availability_contract(
+        ranking["feature_availability"]
+    )
+    available_names = list(availability["available_features"])
+    if tuple(available_names) != MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS:
         raise RuntimeError(
-            "FEATURE_RANKING_ELIGIBLE_REMAINDER_INSUFFICIENT: "
-            f"observed={len(eligible_ranked_names)} "
-            f"required={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT}"
+            "FEATURE_AVAILABILITY_CODE_OWNED_SELECTION_MISMATCH"
         )
-    ranked_remainder = eligible_ranked_names[
-        :MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+    available_candidates = available_names
+    selected = [
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *available_candidates,
     ]
-    selected = [*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *ranked_remainder]
     if len(selected) != MODEL_NATIVE_SELECTED_FEATURE_COUNT:
         raise RuntimeError("SIGNAL_MANIFEST_SELECTED_FEATURE_COUNT_INTERNAL_MISMATCH")
     foundation_missing = [
@@ -790,13 +819,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     signal_contract = model_native_signal_contract_metadata(selected)
     grouped = group_features_by_specialist(selected)
-    if grouped.get("unmapped") or grouped.get("forbidden_legacy_bridge"):
+    code_owned_grouped = group_features_by_specialist(
+        (*MODEL_NATIVE_BASE_FIELDS, *selected)
+    )
+    if code_owned_grouped.get("unmapped") or code_owned_grouped.get(
+        "forbidden_legacy_bridge"
+    ):
         raise RuntimeError(
-            "SIGNAL_MANIFEST_SELECTED_ROUTING_INVALID: "
-            f"unmapped={grouped.get('unmapped')} "
-            f"forbidden={grouped.get('forbidden_legacy_bridge')}"
+            "SIGNAL_MANIFEST_CODE_OWNED_ROUTING_INVALID: "
+            f"unmapped={code_owned_grouped.get('unmapped')} "
+            "forbidden="
+            f"{code_owned_grouped.get('forbidden_legacy_bridge')}"
         )
-    if any(not grouped.get(name) for name in MODEL_NATIVE_TRAINING_SPECIALISTS):
+    if any(
+        not code_owned_grouped.get(name)
+        for name in MODEL_NATIVE_TRAINING_SPECIALISTS
+    ):
         raise RuntimeError("SIGNAL_MANIFEST_EIGHT_SPECIALIST_COVERAGE_INVALID")
 
     mandatory_metadata = model_native_mandatory_full_stack_metadata()
@@ -833,14 +871,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
         "foundation_structure_missing_feature_count": 0,
         "foundation_structure_all_required_selected": True,
-        "ranked_remainder_feature_count": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
-        "ranked_remainder_features": ranked_remainder,
-        "ranked_remainder_fields_sha256": _sha256_json(ranked_remainder),
+        "available_candidate_feature_count": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        ),
+        "available_candidate_features": available_candidates,
+        "available_candidate_fields_sha256": _sha256_json(
+            available_candidates
+        ),
         "selected_fields_sha256": _sha256_json(selected),
         "features_by_specialist": grouped,
+        "code_owned_signal_features_by_specialist": code_owned_grouped,
         "required_training_specialists": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
         "feature_counts_by_specialist": {
-            specialist: len(grouped[specialist])
+            specialist: len(code_owned_grouped[specialist])
             for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS
         },
         "smart_layers_included": True,
@@ -848,7 +891,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "source_feature_counts": {
             "smart_candidate_layers": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
             "mandatory_full_stack": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-            "ranked_remainder": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
+            "available_candidates": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+            ),
         },
         "feature_ranking": {
             "path": str(ranking_path),
@@ -863,15 +908,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "source_sha256": ranking["source_sha256"],
             "target_sha256": ranking["target_sha256"],
             "target_contract": ranking["target_contract"],
+            "entry_direction_target_policy": ranking[
+                "entry_direction_target_policy"
+            ],
+            "entry_direction_target_policy_sha256": ranking[
+                "entry_direction_target_policy_sha256"
+            ],
             "source_cascade": ranking["source_cascade"],
             "ranking_order": ranking["ranking_order"],
             "causality_contract": ranking["causality_contract"],
-            "rank_reference": ranking["rank_reference"],
             "ranked_feature_count": len(ranked_names),
-            "eligible_ranked_remainder_count": len(eligible_ranked_names),
-            "mandatory_names_in_ranking_count": len(ranked_names)
-            - len(eligible_ranked_names),
+            "available_candidate_count": len(available_names),
+            "mandatory_names_in_ranking_count": 0,
             "ranked_feature_order_sha256": _sha256_json(ranked_names),
+            "feature_availability": _feature_availability_manifest_binding(
+                availability
+            ),
         },
         "dataset_rebuild_required_before_training": True,
         "training_allowed": False,

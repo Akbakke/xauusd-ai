@@ -37,7 +37,7 @@ def _install_exact_fake_math(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int,
     calls: list[tuple[int, int]] = []
 
     def fake_context(df, **_kwargs):
-        return object(), pd.DatetimeIndex(df["time"]), ["feature_a", "feature_b"], []
+        return object(), pd.DatetimeIndex(df["time"]), ["feature_a", "feature_b"]
 
     def compact(_ctx, _ts, lo, hi, *, extract):
         calls.append((lo, hi))
@@ -73,7 +73,7 @@ def test_group_a_checkpoint_resumes_exact_chunks_without_recomputation(
     checkpoint_dir = tmp_path / "checkpoint"
     key = "a" * 64
 
-    first = owner.attach_group_a_dip_struct_ctx_columns_parallel(
+    first = owner.attach_group_a_ctx_columns_parallel(
         _frame(),
         multi_tf=_multi_tf(),
         workers=1,
@@ -91,7 +91,7 @@ def test_group_a_checkpoint_resumes_exact_chunks_without_recomputation(
     assert first.attrs["group_a_checkpoint_complete_path"] == str(complete_path)
 
     calls.clear()
-    second = owner.attach_group_a_dip_struct_ctx_columns_parallel(
+    second = owner.attach_group_a_ctx_columns_parallel(
         _frame(),
         multi_tf=_multi_tf(),
         workers=1,
@@ -116,14 +116,14 @@ def test_group_a_checkpoint_rejects_changed_identity_and_corrupt_chunk(
         "checkpoint_key": "b" * 64,
         "checkpoint_chunk_rows": 2,
     }
-    owner.attach_group_a_dip_struct_ctx_columns_parallel(_frame(), **kwargs)
+    owner.attach_group_a_ctx_columns_parallel(_frame(), **kwargs)
 
     changed = dict(kwargs)
     changed["checkpoint_key"] = "c" * 64
     with pytest.raises(RuntimeError, match="manifest identity mismatch"):
-        owner.attach_group_a_dip_struct_ctx_columns_parallel(_frame(), **changed)
+        owner.attach_group_a_ctx_columns_parallel(_frame(), **changed)
 
     chunk = checkpoint_dir / "chunk_000000000_000000002.npz"
     chunk.write_bytes(b"corrupt")
     with pytest.raises(RuntimeError, match="invalid chunk"):
-        owner.attach_group_a_dip_struct_ctx_columns_parallel(_frame(), **kwargs)
+        owner.attach_group_a_ctx_columns_parallel(_frame(), **kwargs)

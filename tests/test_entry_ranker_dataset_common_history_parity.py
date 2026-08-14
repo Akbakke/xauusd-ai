@@ -12,7 +12,7 @@ from gx1.features.htf_features import (
 )
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
 from gx1.scripts.augment_forward_outcome_v2 import (
-    attach_group_a_dip_struct_ctx_columns_parallel,
+    attach_group_a_ctx_columns_parallel,
 )
 
 
@@ -83,14 +83,14 @@ def _minimal_valid_v4_mtf(history: pd.DataFrame) -> dict[str, pd.DataFrame]:
     return result
 
 
-def test_ranker_vol_percentiles_match_dataset_with_exact_common_history() -> None:
+def test_ranker_raw_distances_match_dataset_with_exact_common_history() -> None:
     common_history = _market_history()
     multi_tf = _minimal_valid_v4_mtf(common_history)
     decision = common_history.iloc[-12:].copy()
     decision["smc_swing_state"] = 0
     decision = decision.reset_index(names="time")
 
-    dataset_values = attach_group_a_dip_struct_ctx_columns_parallel(
+    dataset_values = attach_group_a_ctx_columns_parallel(
         decision.copy(),
         multi_tf=multi_tf,
         context_m5=common_history,
@@ -104,25 +104,10 @@ def test_ranker_vol_percentiles_match_dataset_with_exact_common_history() -> Non
         workers=1,
     )
 
-    fields = ["vol_pct_m5_1yr", "vol_pct_h1_1yr"]
+    fields = ["dist_to_R1_atr", "dist_to_d1_hi_atr"]
     np.testing.assert_array_equal(
         ranker_values[fields].to_numpy(dtype=np.float32),
         dataset_values[fields].to_numpy(dtype=np.float32),
-    )
-
-    # This is the defect the regression guards: resetting the ranker context at
-    # feature_history_start changes both selected one-year volatility fields.
-    truncated_history = common_history.iloc[-61 * 24 * 12 :]
-    truncated_values = attach_group_a_dip_struct_ctx_columns_parallel(
-        decision.copy(),
-        multi_tf=multi_tf,
-        context_m5=truncated_history,
-        journal_label="ranker_truncated_history_regression",
-        workers=1,
-    )
-    assert np.any(
-        ranker_values[fields].to_numpy(dtype=np.float32)
-        != truncated_values[fields].to_numpy(dtype=np.float32)
     )
 
     with pytest.raises(RuntimeError, match="COMMON_HISTORY_REQUIRED"):

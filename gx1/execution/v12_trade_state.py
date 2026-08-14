@@ -34,16 +34,36 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     require_model_native_sizing_application_record,
 )
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+)
+from gx1.contracts.entry_decision_token_v1 import (
+    ENTRY_DECISION_TOKEN_KEY,
+    build_entry_decision_token_snapshot,
+    require_entry_decision_token_bindings,
+    require_entry_decision_token_snapshot,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     CLOSED_M1_PATH_FIELDS,
     CLOSED_M1_PATH_SCHEMA_VERSION,
     UNIFIED_EXIT_MAX_PATH_BARS,
+    UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256,
     UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
     canonical_closed_m1_bar,
     canonical_closed_m1_path_sha256,
+    canonical_closed_m1_full_path_chain_sha256,
+    canonical_unified_evidence_sha256,
+    extend_closed_m1_path_chain_sha256,
     require_model_direction_operating_point,
     require_unified_exit_output,
     require_unified_exit_path_envelope,
+)
+from gx1.contracts.unified_exit_input_v1 import (
+    require_unified_exit_input_envelope,
+)
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+    require_unified_exit_incremental_carry_envelope,
 )
 LOG = logging.getLogger("v12_trade_state")
 
@@ -51,9 +71,9 @@ SIDE_LONG = "long"
 SIDE_SHORT = "short"
 SIDES = (SIDE_LONG, SIDE_SHORT)
 
-PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v9"
+PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v13"
 TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION = (
-    "gx1_trade_state_model_bundle_binding_v1"
+    "gx1_trade_state_model_bundle_binding_v2"
 )
 TRADE_STATE_SOURCE_PAIR_BINDING_SCHEMA_VERSION = (
     "gx1_trade_state_source_pair_binding_v1"
@@ -91,6 +111,7 @@ _PERSISTED_TRADE_STATE_FIELDS = frozenset(
         "entry_ask",
         "entry_spread_bps",
         "v10_snapshot",
+        "entry_decision_token_snapshot",
         "trade_id",
         "units",
         "sizing_execution_evidence",
@@ -114,7 +135,10 @@ _PERSISTED_TRADE_STATE_FIELDS = frozenset(
         "trough_history",
         "executable_range_bps_history",
         "closed_m1_path",
+        "full_path_chain_sha256",
+        "last_exit_input_envelope",
         "last_exit_decision",
+        "exit_incremental_carry_envelope",
     }
 )
 _MODEL_BUNDLE_BINDING_FIELDS = frozenset(
@@ -122,6 +146,8 @@ _MODEL_BUNDLE_BINDING_FIELDS = frozenset(
         "schema_version",
         "bundle_dir",
         "bundle_sha256",
+        "input_normalization_sha256",
+        "contract_mode",
         "operating_point",
     }
 )
@@ -261,6 +287,8 @@ def require_trade_model_bundle_binding(
         value["operating_point"],
         context="TRADE_STATE_MODEL_BUNDLE_BINDING",
     )
+    if value["contract_mode"] != MODEL_NATIVE_CONTRACT_MODE:
+        raise ValueError("trade model bundle contract mode mismatch")
     return {
         "schema_version": TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION,
         "bundle_dir": str(path),
@@ -268,6 +296,11 @@ def require_trade_model_bundle_binding(
             value["bundle_sha256"],
             label="trade model bundle",
         ),
+        "input_normalization_sha256": _require_sha256(
+            value["input_normalization_sha256"],
+            label="trade input normalization",
+        ),
+        "contract_mode": value["contract_mode"],
         "operating_point": operating_point,
     }
 
@@ -592,6 +625,57 @@ def _validate_persisted_trade_state_payload(
         or payload["entry_source_pair_binding"] != source_pair_binding
     ):
         raise ValueError("persisted trade immutable binding is not canonical")
+    if not isinstance(trade_id, str):
+        raise ValueError(
+            "persisted trade identity is required for the Entry-decision token"
+        )
+    if bundle_binding is not None:
+        model_identity_kind = "bundle_sha256"
+        model_identity_sha256 = bundle_binding["bundle_sha256"]
+        input_normalization_sha256 = bundle_binding[
+            "input_normalization_sha256"
+        ]
+        contract_mode = bundle_binding["contract_mode"]
+    else:
+        research_token = require_entry_decision_token_snapshot(
+            payload["entry_decision_token_snapshot"]
+        )
+        model_identity_kind = research_token["model_identity_kind"]
+        model_identity_sha256 = research_token["model_identity_sha256"]
+        input_normalization_sha256 = research_token[
+            "input_normalization_sha256"
+        ]
+        contract_mode = research_token["contract_mode"]
+        if (
+            model_identity_kind == "training_state_sha256"
+            and model_identity_sha256
+            != canonical_unified_evidence_sha256(snapshot)
+        ):
+            raise ValueError(
+                "persisted research token differs from Entry state"
+            )
+    try:
+        token_snapshot = require_entry_decision_token_bindings(
+            payload["entry_decision_token_snapshot"],
+            raw_token_alias=snapshot[ENTRY_DECISION_TOKEN_KEY],
+            decision_time=snapshot["decision_ts"],
+            fill_time=entry_ts,
+            model_identity_kind=model_identity_kind,
+            model_identity_sha256=model_identity_sha256,
+            input_normalization_sha256=input_normalization_sha256,
+            contract_mode=contract_mode,
+            model_direction_index=int(snapshot["model_direction_index"]),
+            model_direction=str(snapshot["model_direction"]),
+            side=side,
+            entry_bid=entry_bid,
+            entry_ask=entry_ask,
+            trade_identity=trade_id,
+            context="TRADE_STATE_PERSISTED",
+        )
+    except RuntimeError as exc:
+        raise ValueError("persisted Entry-decision token is invalid") from exc
+    if token_snapshot != payload["entry_decision_token_snapshot"]:
+        raise ValueError("persisted Entry-decision token is not canonical")
     bars_in_trade = _nonnegative_persisted_integer(payload, "bars_in_trade")
     raw_last_processed = payload["last_processed_m1_ts"]
     if raw_last_processed is None:
@@ -741,17 +825,46 @@ def _validate_persisted_trade_state_payload(
             "persisted trade-state intrabar histories are not aligned with "
             "pnl_history/bars_in_trade/deque maxlen"
         )
-    if len(canonical_path) != bars_in_trade:
+    if len(canonical_path) != expected_trajectory_length:
         raise ValueError(
-            "persisted trade state literal path length does not match bars_in_trade"
+            "persisted trade state retained literal path length is invalid"
         )
+    full_path_chain_sha256 = payload["full_path_chain_sha256"]
+    if (
+        not isinstance(full_path_chain_sha256, str)
+        or len(full_path_chain_sha256) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in full_path_chain_sha256
+        )
+        or (
+            bars_in_trade == 0
+            and full_path_chain_sha256
+            != UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256
+        )
+        or (
+            0 < bars_in_trade <= UNIFIED_EXIT_MAX_PATH_BARS
+            and full_path_chain_sha256
+            != canonical_closed_m1_full_path_chain_sha256(canonical_path)
+        )
+    ):
+        raise ValueError("persisted trade state full path chain is invalid")
     if canonical_path:
         minimum_first = first_full_closed_m1_bar_ts(entry_ts)
         previous_ts: pd.Timestamp | None = None
         for row in canonical_path:
             observed_ts = pd.Timestamp(row["time"])
             if (
-                (previous_ts is None and observed_ts < minimum_first)
+                (
+                    previous_ts is None
+                    and (
+                        observed_ts < minimum_first
+                        or (
+                            bars_in_trade <= UNIFIED_EXIT_MAX_PATH_BARS
+                            and observed_ts != minimum_first
+                        )
+                    )
+                )
                 or (previous_ts is not None and observed_ts <= previous_ts)
             ):
                 raise ValueError(
@@ -762,7 +875,7 @@ def _validate_persisted_trade_state_payload(
             raise ValueError(
                 "persisted trade state closed_m1_path terminal timestamp mismatch"
             )
-        derived_path = canonical_path[-expected_trajectory_length:]
+        derived_path = canonical_path
         path_bid_close = np.asarray(
             [row["bid_close"] for row in derived_path], dtype=np.float64
         )
@@ -905,25 +1018,42 @@ def _validate_persisted_trade_state_payload(
                 dtype=np.float64,
             )
         ) / entry_bid * 10_000.0
-        exact_mfe = max(0.0, float(np.max(full_peak)))
-        exact_mae = min(0.0, float(np.min(full_trough)))
+        tail_mfe = max(0.0, float(np.max(full_peak)))
+        tail_mae = min(0.0, float(np.min(full_trough)))
         if (
-            not np.isclose(cum_mfe_bps, exact_mfe, rtol=1e-12, atol=1e-9)
-            or not np.isclose(cum_mae_bps, exact_mae, rtol=1e-12, atol=1e-9)
+            (
+                bars_in_trade <= UNIFIED_EXIT_MAX_PATH_BARS
+                and (
+                    not np.isclose(cum_mfe_bps, tail_mfe, rtol=1e-12, atol=1e-9)
+                    or not np.isclose(cum_mae_bps, tail_mae, rtol=1e-12, atol=1e-9)
+                )
+            )
+            or cum_mfe_bps + 1e-9 < tail_mfe
+            or cum_mae_bps - 1e-9 > tail_mae
         ):
             raise ValueError(
                 "persisted trade state cumulative excursion is not exact"
             )
     raw_last_exit_decision = payload["last_exit_decision"]
+    raw_last_exit_input = payload["last_exit_input_envelope"]
+    raw_exit_carry = payload["exit_incremental_carry_envelope"]
     if bars_in_trade == 0:
-        if raw_last_exit_decision is not None:
+        if (
+            raw_last_exit_decision is not None
+            or raw_last_exit_input is not None
+            or raw_exit_carry is not None
+        ):
             raise ValueError(
-                "zero-bar persisted state cannot contain an Exit decision"
+                "zero-bar persisted state cannot contain Exit input/decision"
             )
     else:
         if not isinstance(raw_last_exit_decision, dict):
             raise ValueError(
                 "processed persisted state requires its last Exit decision"
+            )
+        if not isinstance(raw_last_exit_input, dict):
+            raise ValueError(
+                "processed persisted state requires its last Exit input"
             )
         try:
             exit_path_envelope = require_unified_exit_path_envelope(
@@ -944,18 +1074,84 @@ def _validate_persisted_trade_state_payload(
                     "path_rows_sha256": canonical_closed_m1_path_sha256(
                         canonical_path
                     ),
+                    "full_path_chain_sha256": full_path_chain_sha256,
                 },
                 context="TRADE_STATE_PERSISTED",
             )
+            validated_exit_input = require_unified_exit_input_envelope(
+                raw_last_exit_input
+            )
+            expected_exit_bundle_sha256 = (
+                bundle_binding["bundle_sha256"]
+                if bundle_binding is not None
+                else validated_exit_input["bundle_sha256"]
+            )
+            if (
+                validated_exit_input["decision_time"]
+                != last_processed_m1_ts.isoformat()
+                or validated_exit_input["side"] != side
+                or float(validated_exit_input["entry_bid"]) != entry_bid
+                or float(validated_exit_input["entry_ask"]) != entry_ask
+                or trade_id is None
+                or validated_exit_input["decision_identity"] != trade_id
+                or validated_exit_input["entry_decision_token_snapshot"]
+                != token_snapshot
+                or (
+                    source_pair_binding is not None
+                    and validated_exit_input["m1_feature_window"][
+                        "pair_generation_id"
+                    ]
+                    != source_pair_binding["pair_generation_id"]
+                )
+            ):
+                raise RuntimeError(
+                    "persisted Exit input differs from trade identity"
+                )
             validated_exit_decision = require_unified_exit_output(
                 raw_last_exit_decision,
                 context="TRADE_STATE_PERSISTED",
-                expected_bundle_sha256=raw_last_exit_decision.get(
-                    "bundle_sha256"
-                ),
+                expected_bundle_sha256=expected_exit_bundle_sha256,
                 entry_snapshot=snapshot,
                 exit_path_envelope=exit_path_envelope,
+                exit_input_envelope=validated_exit_input,
             )
+            validated_carry = require_unified_exit_incremental_carry_envelope(
+                raw_exit_carry,
+                expected_trade_identity=trade_id,
+                expected_side=side,
+                expected_bundle_sha256=expected_exit_bundle_sha256,
+                expected_input_normalization_sha256=(
+                    token_snapshot["input_normalization_sha256"]
+                ),
+                expected_entry_token_snapshot_sha256=(
+                    canonical_unified_evidence_sha256(token_snapshot)
+                ),
+                expected_full_path_chain_sha256=full_path_chain_sha256,
+                expected_last_closed_m1_bar_ts=last_processed_m1_ts,
+                expected_step_count=bars_in_trade,
+                expected_input_envelope_sha256=validated_exit_input[
+                    "input_envelope_sha256"
+                ],
+                expected_mtf_last_row_sha256=validated_exit_input[
+                    "mtf_last_row_sha256"
+                ],
+                expected_previous_carry_envelope_sha256=(
+                    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+                    if bars_in_trade == 1
+                    else None
+                ),
+            )
+            if (
+                validated_carry
+                != validated_exit_decision[
+                    "exit_incremental_carry_envelope"
+                ]
+                or validated_carry["input_envelope_sha256"]
+                != validated_exit_input["input_envelope_sha256"]
+            ):
+                raise RuntimeError(
+                    "persisted Exit carry differs from decision/input"
+                )
         except RuntimeError as exc:
             raise ValueError(
                 "persisted last Exit decision is invalid"
@@ -981,6 +1177,7 @@ class TradeState:
     entry_ask: float                     # ask at entry minute
     entry_spread_bps: float
     v10_snapshot: dict[str, Any]         # frozen V10 outputs at entry
+    entry_decision_token_snapshot: dict[str, Any]
     units: int
     sizing_execution_evidence: dict[str, Any]
     model_bundle_binding: dict[str, Any] | None
@@ -1028,8 +1225,13 @@ class TradeState:
     executable_range_bps_history: deque = field(
         default_factory=lambda: deque(maxlen=TRAJECTORY_HISTORY_MAXLEN)
     )
-    closed_m1_path: deque = field(default_factory=deque)
+    closed_m1_path: deque = field(
+        default_factory=lambda: deque(maxlen=UNIFIED_EXIT_MAX_PATH_BARS)
+    )
+    full_path_chain_sha256: str = UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256
     last_exit_decision: dict[str, Any] | None = None
+    last_exit_input_envelope: dict[str, Any] | None = None
+    exit_incremental_carry_envelope: dict[str, Any] | None = None
 
     def require_entry_snapshot(self) -> dict[str, Any]:
         """Validate this trade's snapshot under its exact execution mode."""
@@ -1203,6 +1405,42 @@ class TradeState:
                 execution_mode=validated_sizing_evidence["mode"],
             )
         )
+        if not isinstance(trade_id, str) or not trade_id:
+            raise ValueError(
+                "trade identity is required to freeze the Entry-decision token"
+            )
+        if validated_bundle_binding is not None:
+            model_identity_kind = "bundle_sha256"
+            model_identity_sha256 = validated_bundle_binding["bundle_sha256"]
+            input_normalization_sha256 = validated_bundle_binding[
+                "input_normalization_sha256"
+            ]
+            contract_mode = validated_bundle_binding["contract_mode"]
+        else:
+            model_identity_kind = "training_state_sha256"
+            model_identity_sha256 = canonical_unified_evidence_sha256(snapshot)
+            normalization_contract = validated_sizing_evidence[
+                "research_normalization_contract"
+            ]
+            input_normalization_sha256 = hashlib.sha256(
+                str(normalization_contract).encode("utf-8")
+            ).hexdigest()
+            contract_mode = MODEL_NATIVE_CONTRACT_MODE
+        entry_decision_token_snapshot = build_entry_decision_token_snapshot(
+            token=snapshot[ENTRY_DECISION_TOKEN_KEY],
+            decision_time=snapshot["decision_ts"],
+            fill_time=parsed_entry_ts,
+            model_identity_kind=model_identity_kind,
+            model_identity_sha256=model_identity_sha256,
+            input_normalization_sha256=input_normalization_sha256,
+            contract_mode=contract_mode,
+            model_direction_index=int(snapshot["model_direction_index"]),
+            model_direction=str(snapshot["model_direction"]),
+            side=str(side),
+            entry_bid=float(entry_bid),
+            entry_ask=float(entry_ask),
+            trade_identity=trade_id,
+        )
         spread_bps = (entry_ask - entry_bid) / entry_bid * 10000.0
         return cls(
             entry_ts=parsed_entry_ts,
@@ -1211,6 +1449,7 @@ class TradeState:
             entry_ask=float(entry_ask),
             entry_spread_bps=float(spread_bps),
             v10_snapshot=dict(snapshot),
+            entry_decision_token_snapshot=entry_decision_token_snapshot,
             units=units,
             sizing_execution_evidence=validated_sizing_evidence,
             model_bundle_binding=validated_bundle_binding,
@@ -1278,6 +1517,10 @@ class TradeState:
         mid-minute broker fill can therefore never inherit pre-fill high/low.
         Literal mid prices are retained rather than reconstructed from bid/ask.
         """
+        if self.bars_in_trade >= UNIFIED_EXIT_MAX_PATH_BARS:
+            raise ValueError(
+                "unified Exit current capacity requires terminal EXIT_NOW"
+            )
         if schema_version != CLOSED_M1_PATH_SCHEMA_VERSION:
             raise ValueError("closed M1 path schema_version mismatch")
         canonical_bar = canonical_closed_m1_bar(
@@ -1354,6 +1597,10 @@ class TradeState:
         self.trough_history.append(float(trough))
         self.executable_range_bps_history.append(float(executable_range_bps))
         self.last_executable_range_bps = float(executable_range_bps)
+        self.full_path_chain_sha256 = extend_closed_m1_path_chain_sha256(
+            self.full_path_chain_sha256,
+            canonical_bar,
+        )
         self.closed_m1_path.append(canonical_bar)
         self.last_processed_m1_ts = parsed_m1_bar_ts
 
@@ -1361,7 +1608,7 @@ class TradeState:
         """Return the exact persisted path prefix and its content digest."""
 
         rows = [dict(row) for row in self.closed_m1_path]
-        if len(rows) != self.bars_in_trade:
+        if len(rows) != min(self.bars_in_trade, UNIFIED_EXIT_MAX_PATH_BARS):
             raise ValueError("closed M1 path/bar count mismatch")
         if not rows:
             raise ValueError("closed M1 path evidence requires at least one bar")
@@ -1376,6 +1623,7 @@ class TradeState:
             "retained_path_length": len(rows),
             "path_rows": rows,
             "path_rows_sha256": canonical_closed_m1_path_sha256(rows),
+            "full_path_chain_sha256": self.full_path_chain_sha256,
         }
         return require_unified_exit_path_envelope(
             envelope,
@@ -1394,6 +1642,9 @@ class TradeState:
             "entry_ask": self.entry_ask,
             "entry_spread_bps": self.entry_spread_bps,
             "v10_snapshot": _jsonable(self.v10_snapshot),
+            "entry_decision_token_snapshot": _jsonable(
+                self.entry_decision_token_snapshot
+            ),
             "trade_id": self.trade_id,
             "units": self.units,
             "sizing_execution_evidence": _jsonable(
@@ -1433,7 +1684,14 @@ class TradeState:
                 self.executable_range_bps_history
             ),
             "closed_m1_path": list(self.closed_m1_path),
+            "full_path_chain_sha256": self.full_path_chain_sha256,
+            "last_exit_input_envelope": _jsonable(
+                self.last_exit_input_envelope
+            ),
             "last_exit_decision": _jsonable(self.last_exit_decision),
+            "exit_incremental_carry_envelope": _jsonable(
+                self.exit_incremental_carry_envelope
+            ),
         })
         if not isinstance(payload, dict):  # pragma: no cover - fixed literal shape
             raise AssertionError("trade-state serialization did not produce an object")
@@ -1453,6 +1711,11 @@ class TradeState:
             entry_ask=float(d["entry_ask"]),
             entry_spread_bps=float(d["entry_spread_bps"]),
             v10_snapshot=dict(snapshot),
+            entry_decision_token_snapshot=dict(
+                require_entry_decision_token_snapshot(
+                    d["entry_decision_token_snapshot"]
+                )
+            ),
             trade_id=d["trade_id"],
             units=d["units"],
             sizing_execution_evidence=dict(d["sizing_execution_evidence"]),
@@ -1489,6 +1752,17 @@ class TradeState:
                 if d["last_exit_decision"] is not None
                 else None
             ),
+            last_exit_input_envelope=(
+                dict(d["last_exit_input_envelope"])
+                if d["last_exit_input_envelope"] is not None
+                else None
+            ),
+            exit_incremental_carry_envelope=(
+                dict(d["exit_incremental_carry_envelope"])
+                if d["exit_incremental_carry_envelope"] is not None
+                else None
+            ),
+            full_path_chain_sha256=d["full_path_chain_sha256"],
         )
         t.m1_returns_window.extend(float(v) for v in d["m1_returns_window"])
         t.pnl_history.extend(float(v) for v in d["pnl_history"])
@@ -1510,6 +1784,7 @@ class TradeState:
         decision: dict[str, Any],
         *,
         expected_bundle_sha256: str,
+        exit_input_envelope: dict[str, Any],
     ) -> None:
         """Bind one exact same-bundle decision to the current path prefix."""
 
@@ -1517,14 +1792,61 @@ class TradeState:
             raise ValueError("Exit decision requires one complete M1 bar")
         snapshot = self.require_entry_snapshot()
         path_envelope = self.build_closed_m1_path_evidence()
+        input_envelope = require_unified_exit_input_envelope(
+            exit_input_envelope
+        )
+        executable = self.sizing_execution_evidence.get("mode") in {
+            "learned_virtual_dry_run",
+            "learned_broker_fill",
+        }
+        bundle_binding = require_trade_model_bundle_binding(
+            self.model_bundle_binding,
+            executable=executable,
+        )
+        source_pair_binding = require_trade_source_pair_binding(
+            self.entry_source_pair_binding,
+            executable=executable,
+        )
+        if (
+            bundle_binding is not None
+            and expected_bundle_sha256 != bundle_binding["bundle_sha256"]
+        ):
+            raise ValueError(
+                "Exit decision bundle differs from immutable trade model bundle"
+            )
+        if (
+            input_envelope["decision_time"]
+            != self.last_processed_m1_ts.isoformat()
+            or input_envelope["side"] != self.side
+            or float(input_envelope["entry_bid"]) != self.entry_bid
+            or float(input_envelope["entry_ask"]) != self.entry_ask
+            or self.trade_id is None
+            or input_envelope["decision_identity"] != self.trade_id
+            or input_envelope["bundle_sha256"] != expected_bundle_sha256
+            or input_envelope["entry_decision_token_snapshot"]
+            != self.entry_decision_token_snapshot
+            or (
+                source_pair_binding is not None
+                and input_envelope["m1_feature_window"][
+                    "pair_generation_id"
+                ]
+                != source_pair_binding["pair_generation_id"]
+            )
+        ):
+            raise ValueError("Exit input envelope differs from trade state")
         validated = require_unified_exit_output(
             decision,
             context="TRADE_STATE_BIND_EXIT",
             expected_bundle_sha256=expected_bundle_sha256,
             entry_snapshot=snapshot,
             exit_path_envelope=path_envelope,
+            exit_input_envelope=input_envelope,
         )
         self.last_exit_decision = deepcopy(validated)
+        self.last_exit_input_envelope = deepcopy(input_envelope)
+        self.exit_incremental_carry_envelope = deepcopy(
+            validated["exit_incremental_carry_envelope"]
+        )
 
     def commit_complete_exit_bar(self, staged: "TradeState") -> None:
         """Atomically adopt one fully validated staged M1/Exit transition."""
@@ -1545,6 +1867,7 @@ class TradeState:
             "model_bundle_binding",
             "entry_source_pair_binding",
             "broker_account_binding",
+            "entry_decision_token_snapshot",
         )
         current_payload = self.to_dict()
         if any(
@@ -1554,6 +1877,18 @@ class TradeState:
             raise ValueError("staged exit state changed immutable trade identity")
         if staged.bars_in_trade != self.bars_in_trade + 1:
             raise ValueError("staged exit state must contain exactly one new M1 bar")
+        staged_carry = require_unified_exit_incremental_carry_envelope(
+            staged.exit_incremental_carry_envelope,
+            expected_previous_carry_envelope_sha256=(
+                UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+                if self.exit_incremental_carry_envelope is None
+                else self.exit_incremental_carry_envelope[
+                    "carry_envelope_sha256"
+                ]
+            ),
+        )
+        if int(staged_carry["step_count"]) != staged.bars_in_trade:
+            raise ValueError("staged Exit carry step differs from trade state")
         minimum_ts = (
             first_full_closed_m1_bar_ts(self.entry_ts)
             if self.last_processed_m1_ts is None
@@ -1568,9 +1903,12 @@ class TradeState:
             )
         ):
             raise ValueError("staged exit state M1 row clock is not forward")
-        if staged.last_exit_decision is None:
+        if (
+            staged.last_exit_decision is None
+            or staged.last_exit_input_envelope is None
+        ):
             raise ValueError(
-                "staged exit state requires its exact model decision"
+                "staged exit state requires its exact model input/decision"
             )
         self.__dict__.clear()
         self.__dict__.update(deepcopy(staged.__dict__))

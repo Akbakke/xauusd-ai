@@ -1,27 +1,17 @@
 #!/usr/bin/env python3
 """canonical_v3 augmentation — produces canonical_v3 from canonical_v2 by:
 
-  1. Pruning 11 redundant features (5 exact duplicates + 6 near-duplicates @ |corr|>0.95)
+  1. Pruning retained redundant upstream features
   2. Adding 4 cyclic time features (hour_sin, hour_cos, dow_sin, dow_cos)
-  3. Adding 1 SMC × swing-state interaction (smc_premium_state)
-  4. Adding 1 cross-TF momentum feature (m5h1_momentum)
-  5. (Future) V10 outputs as cross-bridge link — requires V10 inference pass; deferred to a
+  3. Adding 1 cross-TF momentum feature (m5h1_momentum)
+  4. (Future) V10 outputs as cross-bridge link — requires V10 inference pass; deferred to a
      follow-up step that joins this augmented parquet with V10 v2 inference.
 
 Output: `canonical_v3.parquet` in same dir as canonical_v2.
 
-Per audit findings (project_gx1_audit_findings_2026q2.md):
-    - 5 exact duplicates: _v1_r5↔_v1_int_r5_atr, _v1h4_slope5↔_v1_int_slope_h4_atr,
-      _v1_clv↔_v1_int_clv_atr, ret_20↔roc20, _v1_body_tr↔_v1_body_share_1
-    - 7 near-duplicates (|corr|>0.95): atr↔_v1_atr14, std50↔rvol_60, etc.
-
-Net feature change: -5 columns = 11 removed + 6 added. The additions are
-cyclic time (4), smc_premium_state (1), and m5h1_momentum (1).
-
 Notes:
   - This is NOT lookahead-unsafe — all derivations come from existing canonical_v2 features
     or from the timestamp itself.
-  - The pruned features remain in canonical_v2; this script does not modify v2.
   - V10 v3 / V3 v6 contracts that target canonical_v3 must be updated separately.
 """
 from __future__ import annotations
@@ -42,12 +32,7 @@ if str(REPO_ROOT) not in sys.path:
 # Pairs to prune: keep the FIRST element, drop the SECOND. Choice is principled —
 # keep the more general / canonical-naming variant, drop the alias.
 PAIRS_TO_PRUNE = [
-    # Exact duplicates (corr=1.000)
-    ("_v1_r5", "_v1_int_r5_atr"),
-    ("_v1h4_slope5", "_v1_int_slope_h4_atr"),
-    ("_v1_clv", "_v1_int_clv_atr"),
     ("ret_20", "roc20"),
-    ("_v1_body_share_1", "_v1_body_tr"),
     # Near-duplicates (|corr|>0.95)
     ("_v1_atr14", "atr"),                              # _v1 family wins (used in V3 io)
     ("rvol_60", "std50"),                              # rvol_60 is more interpretable
@@ -82,45 +67,6 @@ def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df["dow_sin"] = np.sin(2 * np.pi * dow / 7).astype(np.float32)
     df["dow_cos"] = np.cos(2 * np.pi * dow / 7).astype(np.float32)
     return df
-
-def add_smc_premium_state_interaction(df: pd.DataFrame) -> pd.DataFrame:
-    """smc_premium_state = smc_premium_discount × indicator(smc_swing_state == 0)
-
-    This is a conditional coordinate for the learned model: it exposes premium
-    position while structure is clean HH+HL. It does not prescribe direction.
-    """
-    if "smc_premium_discount" not in df.columns or "smc_swing_state" not in df.columns:
-        raise RuntimeError(
-            "[canonical_v3] smc_premium_discount and smc_swing_state are required"
-        )
-    df = df.copy()
-    pd_score = pd.to_numeric(
-        df["smc_premium_discount"], errors="coerce"
-    ).to_numpy(dtype=np.float64)
-    state_raw = pd.to_numeric(
-        df["smc_swing_state"], errors="coerce"
-    ).to_numpy(dtype=np.float64)
-    if (
-        not np.isfinite(pd_score).all()
-        or np.any(pd_score < 0.0)
-        or np.any(pd_score > 1.0)
-    ):
-        raise RuntimeError(
-            "[canonical_v3] smc_premium_discount must be finite and within [0,1]"
-        )
-    if (
-        not np.isfinite(state_raw).all()
-        or np.any(state_raw != np.floor(state_raw))
-        or np.any(state_raw < 0.0)
-        or np.any(state_raw > 4.0)
-    ):
-        raise RuntimeError(
-            "[canonical_v3] smc_swing_state must use the exact finite enum 0..4"
-        )
-    state = state_raw.astype(np.int8)
-    df["smc_premium_state"] = (pd_score * (state == 0).astype(np.float32)).astype(np.float32)
-    return df
-
 
 def _atr_normalized_h1_momentum(
     close: np.ndarray,

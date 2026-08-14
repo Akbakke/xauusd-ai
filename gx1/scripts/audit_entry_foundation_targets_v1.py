@@ -6,7 +6,7 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
@@ -29,16 +29,23 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
     model_native_aux_target_contract_metadata,
 )
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
-    ACTION_VALUE_TARGET_COLUMNS,
-    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
-    offline_rl_contract_metadata,
+from gx1.contracts.entry_fitted_q_v1 import (
+    ENTRY_FITTED_Q_ACTION_ORDER,
+    entry_fitted_q_contract,
+    entry_fitted_q_production_economics_readiness,
 )
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
     require_dataset_split_artifacts,
 )
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    require_entry_direction_target_manifest_binding,
+)
+from gx1.contracts.entry_position_size_target_policy_v1 import (
+    entry_position_size_targets_from_policy,
+    require_entry_position_size_target_manifest_binding,
+)
+from gx1.contracts.xau_tape_provenance_v1 import canonical_json_sha256
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -47,22 +54,17 @@ from gx1.time.session_detector import SESSION_NAME_BY_ID
 
 
 SESSION_NAMES = SESSION_NAME_BY_ID
-CLASS_NAMES = dict(enumerate(OFFLINE_RL_ACTION_ORDER))
+CLASS_NAMES = dict(enumerate(ENTRY_FITTED_Q_ACTION_ORDER))
 
 _TARGET_AUDIT_POLICY = foundation_audit_policy_metadata()["target_quality"]
 MAX_MAJORITY_RATE = float(_TARGET_AUDIT_POLICY["max_majority_rate"])
 MIN_TRADABLE_RATE = float(_TARGET_AUDIT_POLICY["min_tradable_rate"])
 MAX_TRADABLE_RATE = float(_TARGET_AUDIT_POLICY["max_tradable_rate"])
-DIRECTION_HORIZON_BARS = int(_TARGET_AUDIT_POLICY["direction_horizon_bars"])
-PATH_QUALITY_HORIZON_BARS = int(
-    _TARGET_AUDIT_POLICY["path_quality_horizon_bars"]
-)
 SCALAR_BAD_PATH_MAX_SPEARMAN_EXCLUSIVE = float(
     _TARGET_AUDIT_POLICY["scalar_bad_path_path_quality_max_spearman_exclusive"]
 )
 _SIDE_QUALITY_POLICY = _TARGET_AUDIT_POLICY["side_quality"]
 _POSITION_SIZE_TARGET_POLICY = _TARGET_AUDIT_POLICY["position_size_target"]
-_OFFLINE_RL_TARGET_POLICY = _TARGET_AUDIT_POLICY["offline_rl_target"]
 MAX_BAD_PATH_VS_UTILITY_SPEARMAN = float(
     _SIDE_QUALITY_POLICY["max_bad_path_vs_utility_spearman"]
 )
@@ -95,8 +97,8 @@ SIDE_TARGET_COLUMNS = [
 ADDITIONAL_TARGET_COLUMNS = [
     "y_early_move",
     "y_quality_score",
-    "y_tf_agreement_score",
     "y_position_size_target",
+    "y_position_size_mask",
     "y_hold_horizon_target",
 ]
 XAU_DIRECTION_REPAIR_TARGET_COLUMNS = [
@@ -131,7 +133,13 @@ REQUIRED_TARGET_COLUMNS = tuple(
     dict.fromkeys(
         BASE_TARGET_COLUMNS
         + XAU_DIRECTION_REPAIR_TARGET_COLUMNS
-        + ["y_position_size_target", *MODEL_NATIVE_AUX_TARGET_COLUMNS, "ctx_cat", "ctx_cont"]
+        + [
+            "y_position_size_target",
+            "y_position_size_mask",
+            *MODEL_NATIVE_AUX_TARGET_COLUMNS,
+            "ctx_cat",
+            "ctx_cont",
+        ]
     )
 )
 
@@ -145,7 +153,6 @@ BASE_ACTIVE_TRAINING_HEADS = (
     "survival",
 )
 EXPECTED_ACTIVE_AUX_HEADS = (
-    "tf_agreement",
     "path_quality_log_var",
     "position_size",
     "dip",
@@ -158,9 +165,8 @@ EXPECTED_ACTIVE_AUX_HEADS = (
 EXPECTED_BLOCKED_TARGET_HEADS = ("hold_horizon",)
 EXPECTED_EXTRA_ACTIVE_TARGET_HEADS = MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
 HEAD_TARGET_COLUMNS = {
-    "tf_agreement": ("y_tf_agreement_score",),
     "path_quality_log_var": ("path_quality_bps",),
-    "position_size": ("y_position_size_target",),
+    "position_size": ("y_position_size_target", "y_position_size_mask"),
     "hold_horizon": ("y_hold_horizon_target",),
     "dip": MODEL_NATIVE_DIP_TARGET_COLUMNS,
     "forecast": MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
@@ -256,8 +262,6 @@ def _ctx_cat_frame(ctx_cat: pd.Series) -> pd.DataFrame:
     if unknown_sessions:
         raise RuntimeError(f"model-native session_id out of contract: {unknown_sessions}")
     df["session"] = df["session_id"].map(SESSION_NAMES)
-    df["vol_regime"] = df["vol_regime_id"].astype(str)
-    df["h4_trend_regime"] = df["H4_trend_sign_cat"].astype(str)
     return df
 
 
@@ -307,55 +311,71 @@ def _load_split(path: Path, split: str) -> tuple[pd.DataFrame, list[str]]:
     return df, missing_required
 
 
-def _position_size_target_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
-    policy = dict(_POSITION_SIZE_TARGET_POLICY)
-    tolerance = float(policy["max_abs_error"])
-    flat_id = int(policy["flat_direction_id"])
-    flat_value = float(policy["flat_value"])
-    atr_floor = float(policy["atr_bps_min_exclusive"])
-    atr_multiplier = float(policy["atr_denominator_multiplier"])
-    logit_clip_abs = float(policy["logit_clip_abs"])
+def _position_size_target_contract(
+    frames: list[pd.DataFrame],
+    target_policies: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    audit_policy = dict(_POSITION_SIZE_TARGET_POLICY)
+    tolerance = float(audit_policy["max_abs_error"])
     rows: list[dict[str, Any]] = []
     failures: list[str] = []
     for df in frames:
         split = str(df["split"].iloc[0]) if "split" in df and len(df) else "UNKNOWN"
+        target_policy = target_policies.get(split)
         required = (
             "y_direction",
+            "y_trade",
+            "y_side",
+            "y_side_mask",
             "mfe_first_n_bps",
             "mae_first_n_bps",
-            "atr_bps",
             "y_position_size_target",
+            "y_position_size_mask",
         )
         missing = [name for name in required if name not in df.columns]
         row_failures: list[str] = []
         max_abs_error: float | None = None
         negative_mae_count = 0
-        nonpositive_atr_count = 0
-        flat_error: float | None = None
+        mask_mismatch_count = 0
+        inactive_sentinel_error: float | None = None
+        if target_policy is None:
+            row_failures.append("missing immutable sizing target policy")
         if missing:
             row_failures.append(f"missing sizing target inputs: {missing}")
-        else:
+        if not row_failures:
             direction = pd.to_numeric(df["y_direction"], errors="coerce").to_numpy(
                 dtype=np.float64
             )
+            trade = pd.to_numeric(df["y_trade"], errors="coerce").to_numpy(
+                dtype=np.float64
+            )
+            selected_side = pd.to_numeric(
+                df["y_side"], errors="coerce"
+            ).to_numpy(dtype=np.float64)
+            side_mask = pd.to_numeric(
+                df["y_side_mask"], errors="coerce"
+            ).to_numpy(dtype=np.float64)
             mfe = pd.to_numeric(df["mfe_first_n_bps"], errors="coerce").to_numpy(
                 dtype=np.float64
             )
             mae = pd.to_numeric(df["mae_first_n_bps"], errors="coerce").to_numpy(
                 dtype=np.float64
             )
-            atr = pd.to_numeric(df["atr_bps"], errors="coerce").to_numpy(
-                dtype=np.float64
-            )
             observed = pd.to_numeric(
                 df["y_position_size_target"], errors="coerce"
             ).to_numpy(dtype=np.float64)
+            observed_mask = pd.to_numeric(
+                df["y_position_size_mask"], errors="coerce"
+            ).to_numpy(dtype=np.float64)
             finite = (
                 np.isfinite(direction)
+                & np.isfinite(trade)
+                & np.isfinite(selected_side)
+                & np.isfinite(side_mask)
                 & np.isfinite(mfe)
                 & np.isfinite(mae)
-                & np.isfinite(atr)
                 & np.isfinite(observed)
+                & np.isfinite(observed_mask)
             )
             if not bool(finite.all()):
                 row_failures.append("sizing target inputs or outputs are non-finite")
@@ -365,37 +385,40 @@ def _position_size_target_contract(frames: list[pd.DataFrame]) -> dict[str, Any]
                     "mae_first_n_bps violates non-negative adverse-magnitude semantics: "
                     f"count={negative_mae_count}"
                 )
-            nonpositive_atr_count = int(np.count_nonzero(atr <= atr_floor))
-            if nonpositive_atr_count:
-                row_failures.append(
-                    f"atr_bps must be positive: count={nonpositive_atr_count}"
-                )
-            unknown_direction_count = int(
-                np.count_nonzero(~np.isin(direction, (0.0, 1.0, float(flat_id))))
-            )
-            if unknown_direction_count:
-                row_failures.append(
-                    f"y_direction outside LONG/SHORT/FLAT contract: count={unknown_direction_count}"
-                )
             if not row_failures:
-                logit = np.clip(
-                    (mfe - mae) / (atr_multiplier * atr),
-                    -logit_clip_abs,
-                    logit_clip_abs,
+                expected = entry_position_size_targets_from_policy(
+                    policy=target_policy,
+                    mfe_first_n_bps=mfe,
+                    mae_first_n_bps=mae,
+                    selected_side=np.where(trade > 0.5, selected_side, -1),
+                    trade_mask=trade,
                 )
-                expected = 1.0 / (1.0 + np.exp(-logit))
-                flat_mask = direction == float(flat_id)
-                expected[flat_mask] = flat_value
-                max_abs_error = float(np.max(np.abs(observed - expected))) if len(df) else 0.0
-                flat_error = (
-                    float(np.max(np.abs(observed[flat_mask] - flat_value)))
-                    if bool(flat_mask.any())
+                expected_target = expected["target"].astype(np.float64)
+                expected_mask = expected["mask"].astype(np.float64)
+                max_abs_error = (
+                    float(np.max(np.abs(observed - expected_target)))
+                    if len(df)
+                    else 0.0
+                )
+                mask_mismatch_count = int(
+                    np.count_nonzero(observed_mask != expected_mask)
+                    + np.count_nonzero(observed_mask != side_mask)
+                )
+                inactive = expected_mask == 0.0
+                inactive_sentinel_error = (
+                    float(np.max(np.abs(observed[inactive])))
+                    if bool(inactive.any())
                     else 0.0
                 )
                 if max_abs_error > tolerance:
                     row_failures.append(
-                        "position-size target formula mismatch: "
+                        "position-size target TRAIN-ECDF mismatch: "
                         f"max_abs_error={max_abs_error:.12g} tolerance={tolerance:.12g}"
+                    )
+                if mask_mismatch_count:
+                    row_failures.append(
+                        "position-size mask differs from tradable selected-side mask: "
+                        f"count={mask_mismatch_count}"
                     )
         failures.extend(f"{split}: {failure}" for failure in row_failures)
         rows.append(
@@ -404,19 +427,30 @@ def _position_size_target_contract(frames: list[pd.DataFrame]) -> dict[str, Any]
                 "n": int(len(df)),
                 "missing_columns": missing,
                 "negative_mae_count": negative_mae_count,
-                "nonpositive_atr_count": nonpositive_atr_count,
                 "max_abs_error": max_abs_error,
-                "flat_max_abs_error": flat_error,
+                "mask_mismatch_count": mask_mismatch_count,
+                "inactive_storage_sentinel_max_abs_error": (
+                    inactive_sentinel_error
+                ),
+                "target_policy_sha256": (
+                    target_policy.get("policy_sha256")
+                    if isinstance(target_policy, Mapping)
+                    else None
+                ),
                 "decision": "PASS" if not row_failures else "FAIL",
                 "failures": row_failures,
             }
         )
     return {
-        "policy": policy,
-        "formula": policy["formula"],
-        "mae_semantics": policy["mae_semantics"],
+        "audit_policy": audit_policy,
+        "formula": audit_policy["formula"],
+        "mae_semantics": audit_policy["mae_semantics"],
+        "target_population": audit_policy["target_population"],
+        "unmasked_training_allowed": bool(
+            audit_policy["unmasked_training_allowed"]
+        ),
         "live_size_application_authority": bool(
-            policy["live_size_application_authority"]
+            audit_policy["live_size_application_authority"]
         ),
         "rows": rows,
         "decision": "PASS" if rows and not failures else "FAIL",
@@ -497,137 +531,6 @@ def _head_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
         "blocked_heads": expected_blocked,
         "blocked_head_reasons": blocked_reasons,
         "head_target_liveness": head_liveness,
-    }
-
-
-def _offline_rl_target_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
-    """Prove that every counterfactual action target is present and usable.
-
-    FLAT is intentionally the exact zero-reward action, so generic variance
-    checks would incorrectly reject it.  LONG/SHORT and the derived best-action
-    value must be live, while every horizon must contain non-collapsed unique
-    winners for LONG, SHORT and FLAT.  Ambiguous reward ties are reported and
-    are never silently assigned to LONG by array order.
-    """
-
-    failures: list[str] = []
-    split_rows: list[dict[str, Any]] = []
-    expected_policy = {
-        "action_order": list(OFFLINE_RL_ACTION_ORDER),
-        "horizon_bars": list(OFFLINE_RL_HORIZON_BARS),
-        "flat_reward_bps": 0.0,
-        "min_best_action_rate_per_horizon": float(
-            _OFFLINE_RL_TARGET_POLICY["min_best_action_rate_per_horizon"]
-        ),
-        "max_best_action_rate_per_horizon": float(
-            _OFFLINE_RL_TARGET_POLICY["max_best_action_rate_per_horizon"]
-        ),
-        "all_counterfactual_actions_required": True,
-    }
-    if dict(_OFFLINE_RL_TARGET_POLICY) != expected_policy:
-        failures.append("offline-RL target policy does not match canonical action contract")
-
-    min_rate = expected_policy["min_best_action_rate_per_horizon"]
-    max_rate = expected_policy["max_best_action_rate_per_horizon"]
-    for df in frames:
-        split = str(df["split"].iloc[0]) if "split" in df and len(df) else "UNKNOWN"
-        row_failures: list[str] = []
-        missing = [name for name in ACTION_VALUE_TARGET_COLUMNS if name not in df]
-        rates_by_horizon: dict[str, dict[str, float]] = {}
-        ambiguous_by_horizon: dict[str, int] = {}
-        live_counterfactual_columns: dict[str, bool] = {}
-        max_value_live_by_horizon: dict[str, bool] = {}
-        if missing:
-            row_failures.append(f"missing action-value target columns: {missing}")
-        elif len(df) <= 0:
-            row_failures.append("action-value target split is empty")
-        else:
-            columns = []
-            for name in ACTION_VALUE_TARGET_COLUMNS:
-                values = pd.to_numeric(df[name], errors="coerce").to_numpy(
-                    dtype=np.float64
-                )
-                if values.shape != (len(df),) or not np.isfinite(values).all():
-                    row_failures.append(f"action-value target is not finite: {name}")
-                columns.append(values)
-            rewards = np.column_stack(columns).reshape(
-                len(df), len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)
-            )
-            flat = rewards[:, OFFLINE_RL_ACTION_ORDER.index("FLAT"), :]
-            if not np.array_equal(flat, np.zeros_like(flat)):
-                row_failures.append("FLAT action-value targets are not exact zero reward")
-
-            for action in ("LONG", "SHORT"):
-                for horizon in OFFLINE_RL_HORIZON_BARS:
-                    name = f"y_action_value_{action.lower()}_K{horizon}"
-                    live = bool(_column_liveness(df, name)["live"])
-                    live_counterfactual_columns[name] = live
-                    if not live:
-                        row_failures.append(f"counterfactual target is not live: {name}")
-
-            ordered = np.sort(rewards, axis=1)
-            unique = ordered[:, -1, :] > ordered[:, -2, :]
-            best = np.argmax(rewards, axis=1)
-            for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
-                horizon_key = f"K{horizon}"
-                valid = unique[:, horizon_index]
-                ambiguous = int((~valid).sum())
-                ambiguous_by_horizon[horizon_key] = ambiguous
-                if not bool(valid.any()):
-                    row_failures.append(f"{horizon_key} has no unique best action")
-                    rates = {action: 0.0 for action in OFFLINE_RL_ACTION_ORDER}
-                else:
-                    rates = {
-                        action: float(
-                            np.mean(
-                                best[valid, horizon_index]
-                                == action_index
-                            )
-                        )
-                        for action_index, action in enumerate(OFFLINE_RL_ACTION_ORDER)
-                    }
-                rates_by_horizon[horizon_key] = rates
-                for action, rate in rates.items():
-                    if rate < min_rate or rate > max_rate:
-                        row_failures.append(
-                            f"{horizon_key} best-action rate {action}={rate:.6f} "
-                            f"outside [{min_rate:.6f},{max_rate:.6f}]"
-                        )
-                max_values = rewards[:, :, horizon_index].max(axis=1)
-                max_live = bool(
-                    np.unique(max_values).size >= 2
-                    and float(np.std(max_values)) > 1e-9
-                )
-                max_value_live_by_horizon[horizon_key] = max_live
-                if not max_live:
-                    row_failures.append(
-                        f"{horizon_key} detached max-action value target is not live"
-                    )
-
-        split_rows.append(
-            {
-                "split": split,
-                "decision": "PASS" if not row_failures else "FAIL",
-                "failures": row_failures,
-                "missing_columns": missing,
-                "best_action_rate_by_horizon": rates_by_horizon,
-                "ambiguous_best_rows_by_horizon": ambiguous_by_horizon,
-                "live_counterfactual_columns": live_counterfactual_columns,
-                "max_action_value_live_by_horizon": max_value_live_by_horizon,
-            }
-        )
-        failures.extend(f"{split}: {failure}" for failure in row_failures)
-
-    all_splits_pass = bool(split_rows) and all(
-        row["decision"] == "PASS" for row in split_rows
-    )
-    return {
-        "decision": "PASS" if all_splits_pass and not failures else "FAIL",
-        "failures": failures,
-        "policy": expected_policy,
-        "offline_rl_contract": offline_rl_contract_metadata(),
-        "action_value_target_columns": list(ACTION_VALUE_TARGET_COLUMNS),
-        "splits": split_rows,
     }
 
 
@@ -821,7 +724,7 @@ def _target_metrics(df: pd.DataFrame, *, split: str, scope: str, value: str, sid
 
 def _group_metrics(df: pd.DataFrame, split: str) -> list[dict[str, Any]]:
     rows = [_target_metrics(df, split=split, scope="split", value="ALL", side="ALL")]
-    for col, scope in [("session", "session"), ("vol_regime", "vol_regime"), ("h4_trend_regime", "h4_trend_regime")]:
+    for col, scope in [("session", "session")]:
         if col in df:
             for value, part in df.groupby(col, dropna=False):
                 rows.append(_target_metrics(part, split=split, scope=scope, value=str(value), side="ALL"))
@@ -862,6 +765,64 @@ def _unique_numeric(df: pd.DataFrame, col: str) -> list[float]:
         return []
     vals = pd.to_numeric(df[col], errors="coerce").dropna().unique()
     return sorted(float(v) for v in vals)
+
+
+def _entry_direction_policy_from_split_manifest(path: Path) -> dict[str, Any]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("split manifest is not an object")
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+    source_frame = (
+        extra.get("source_frame")
+        if isinstance(extra.get("source_frame"), dict)
+        else {}
+    )
+    source_sha256 = str(source_frame.get("parquet_sha256") or "")
+    provenance = extra.get("xau_tape_provenance")
+    if len(source_sha256) != 64 or not isinstance(provenance, dict):
+        raise RuntimeError("split manifest target-policy source binding missing")
+    splits = payload.get("splits")
+    train_window = (
+        splits.get("train")
+        if isinstance(splits, dict) and isinstance(splits.get("train"), dict)
+        else {}
+    )
+    return require_entry_direction_target_manifest_binding(
+        extra,
+        expected_source_parquet_sha256=source_sha256,
+        expected_tape_provenance_sha256=canonical_json_sha256(provenance),
+        expected_train_start=train_window.get("start"),
+        expected_train_end=train_window.get("end"),
+    )
+
+
+def _entry_position_size_policy_from_split_manifest(
+    path: Path,
+    *,
+    direction_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("split manifest is not an object")
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+    splits = payload.get("splits")
+    train_window = (
+        splits.get("train")
+        if isinstance(splits, dict) and isinstance(splits.get("train"), dict)
+        else {}
+    )
+    return require_entry_position_size_target_manifest_binding(
+        extra,
+        expected_source_parquet_sha256=direction_policy[
+            "source_parquet_sha256"
+        ],
+        expected_tape_provenance_sha256=direction_policy[
+            "tape_provenance_sha256"
+        ],
+        expected_direction_policy_sha256=direction_policy["policy_sha256"],
+        expected_train_start=train_window.get("start"),
+        expected_train_end=train_window.get("end"),
+    )
 
 
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
@@ -928,6 +889,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append(f"dataset split resolution failed: {exc}")
 
     missing_required_by_split: dict[str, list[str]] = {}
+    direction_target_policies: dict[str, dict[str, Any]] = {}
+    position_size_target_policies: dict[str, dict[str, Any]] = {}
     for split in splits:
         path = files.get(split)
         if path is None:
@@ -935,6 +898,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             continue
         split_paths[split] = str(path)
         try:
+            direction_target_policies[split] = (
+                _entry_direction_policy_from_split_manifest(
+                    Path(split_artifacts[split]["manifest_path"])
+                )
+            )
+            position_size_target_policies[split] = (
+                _entry_position_size_policy_from_split_manifest(
+                    Path(split_artifacts[split]["manifest_path"]),
+                    direction_policy=direction_target_policies[split],
+                )
+            )
             df, missing = _load_split(path, split)
         except Exception as exc:
             failures.append(f"{split}: target load failed: {exc}")
@@ -954,20 +928,54 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         label_horizons[split] = _unique_numeric(df, "label_horizon_bars")
         path_quality_horizons[split] = _unique_numeric(df, "path_quality_horizon_bars")
 
+    if set(direction_target_policies) == set(splits):
+        baseline_policy = direction_target_policies[splits[0]]
+        for split in splits[1:]:
+            if direction_target_policies[split] != baseline_policy:
+                failures.append(
+                    f"{split}: Entry direction target policy differs from {splits[0]}"
+                )
+    else:
+        baseline_policy = None
+    if set(position_size_target_policies) == set(splits):
+        baseline_sizing_policy = position_size_target_policies[splits[0]]
+        for split in splits[1:]:
+            if position_size_target_policies[split] != baseline_sizing_policy:
+                failures.append(
+                    f"{split}: Entry position-size target policy differs from "
+                    f"{splits[0]}"
+                )
+    else:
+        baseline_sizing_policy = None
     for split, values in label_horizons.items():
-        if values != [float(DIRECTION_HORIZON_BARS)]:
+        policy = direction_target_policies.get(split)
+        expected = (
+            float(policy["selected_direction_horizon_bars"])
+            if policy is not None
+            else None
+        )
+        if expected is None or values != [expected]:
             failures.append(
                 f"{split}: label_horizon_bars expected "
-                f"[{DIRECTION_HORIZON_BARS}], observed {values}"
+                f"TRAIN-fitted policy value [{expected}], observed {values}"
             )
     for split, values in path_quality_horizons.items():
-        if values != [float(PATH_QUALITY_HORIZON_BARS)]:
+        policy = direction_target_policies.get(split)
+        expected = (
+            float(policy["path_quality_horizon_bars"])
+            if policy is not None
+            else None
+        )
+        if expected is None or values != [expected]:
             failures.append(
                 f"{split}: path_quality_horizon_bars expected "
-                f"[{PATH_QUALITY_HORIZON_BARS}], observed {values}"
+                f"TRAIN-fitted policy value [{expected}], observed {values}"
             )
     xau_side_quality_contract = _xau_direction_repair_side_quality_contract(frames)
-    position_size_target_contract = _position_size_target_contract(frames)
+    position_size_target_contract = _position_size_target_contract(
+        frames,
+        position_size_target_policies,
+    )
     failures.extend(position_size_target_contract["failures"])
     for row in metrics:
         if row["scope"] == "split":
@@ -988,12 +996,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 failures.append(f"{row['split']}: y_tradable near-constant: {tradable}")
 
     target_head_contract = _head_contract(frames)
-    offline_rl_target_contract = _offline_rl_target_contract(frames)
+    entry_fitted_q_target_contract = {
+        "decision": "FAIL",
+        "failures": [
+            "production economics is not ready; gross fitted-Q remains research-only"
+        ],
+        "entry_fitted_q_contract": entry_fitted_q_contract(),
+        "production_economics": (
+            entry_fitted_q_production_economics_readiness()
+        ),
+    }
     target_head_contract["extra_active_target_heads"] = list(
         EXPECTED_EXTRA_ACTIVE_TARGET_HEADS
     )
     target_head_contract["extra_active_target_head_liveness"] = {
-        head: offline_rl_target_contract["decision"] == "PASS"
+        head: bool(
+            (target_head_contract["head_target_liveness"].get(head) or {}).get(
+                "live_all_splits"
+            )
+        )
         for head in EXPECTED_EXTRA_ACTIVE_TARGET_HEADS
     }
     head_liveness = target_head_contract["head_target_liveness"]
@@ -1007,7 +1028,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append("xau direction-repair target columns are not live in all splits")
     if not xau_side_quality_contract["all_side_quality_checks_pass"]:
         failures.extend(xau_side_quality_contract["failures"])
-    failures.extend(offline_rl_target_contract["failures"])
+    failures.extend(entry_fitted_q_target_contract["failures"])
     for head in EXPECTED_ACTIVE_AUX_HEADS:
         if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
             failures.append(f"expected active optional head target is not live in all splits: {head}")
@@ -1018,9 +1039,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     drift = _drift(metrics)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     target_contract = {
-        "direction_target": "H=24 direction label; threshold bps must remain explicit in dataset builder/config before training",
-        "direction_horizon_expected_bars": DIRECTION_HORIZON_BARS,
-        "path_quality_horizon_expected_bars": PATH_QUALITY_HORIZON_BARS,
+        "direction_target": (
+            "TRAIN-fitted executable-PnL policy; no caller horizon or threshold"
+        ),
+        "entry_direction_target_policy": baseline_policy,
+        "entry_direction_target_policy_sha256": (
+            baseline_policy["policy_sha256"]
+            if baseline_policy is not None
+            else None
+        ),
+        "direction_horizon_expected_bars": (
+            baseline_policy["selected_direction_horizon_bars"]
+            if baseline_policy is not None
+            else None
+        ),
+        "path_quality_horizon_expected_bars": (
+            baseline_policy["path_quality_horizon_bars"]
+            if baseline_policy is not None
+            else None
+        ),
         "bad_path_role": "separate head plus sizing/gating diagnostic; do not fold into direction accuracy",
         "trading_objective": "offline replay/PnL/drawdown/tail-risk, not validation accuracy alone",
         "active_training_heads": target_head_contract["active_training_heads"],
@@ -1030,7 +1067,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_native_aux_target_contract": (
             model_native_aux_target_contract_metadata()
         ),
-        "offline_rl_target_contract": offline_rl_target_contract,
+        "entry_fitted_q_target_contract": entry_fitted_q_target_contract,
         "approval_status": "MACHINE_AUDITED_NOT_HUMAN_APPROVED",
     }
     report = {
@@ -1059,7 +1096,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_native_aux_target_contract": (
             model_native_aux_target_contract_metadata()
         ),
-        "offline_rl_target_contract": offline_rl_target_contract,
+        "entry_fitted_q_target_contract": entry_fitted_q_target_contract,
         "metrics": metrics,
         "drift": drift,
         "failures": failures,

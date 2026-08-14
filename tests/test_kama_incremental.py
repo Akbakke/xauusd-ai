@@ -1,138 +1,150 @@
-#!/usr/bin/env python3
-"""
-Unit test for incremental KAMA implementation.
+"""Independent formula and continuation tests for the basic-v1 KAMA owner."""
 
-Compares new incremental NumPy-based KAMA against pandas rolling-based version
-to ensure correctness.
-
-Requires pytest:
-    pip install pytest
-"""
-
-import pytest
-import numpy as np
-import pandas as pd
-import sys
 from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+import numpy as np
+import pandas as pd
+import pytest
 
-from gx1.features.basic_v1 import kama_np, _kama
+from gx1.features.basic_v1 import _kama, _kama_np_chunk, kama_np
 
 
-def kama_pandas_reference(series, period, fast=2, slow=30):
-    """
-    Reference implementation using pandas rolling (for comparison).
-    
-    This is the OLD implementation that used pandas rolling.
-    """
-    change = series.diff(period).abs()
-    diff_abs = series.diff().abs()
-    volatility = diff_abs.rolling(period, min_periods=1).sum()
-    er = change / (volatility + 1e-12)
+def _reference_kama(
+    prices: np.ndarray,
+    period: int,
+    fast: int = 2,
+    slow: int = 30,
+) -> np.ndarray:
+    """Literal independent implementation of the published KAMA recurrence."""
+
+    source = np.asarray(prices, dtype=np.float64)
+    if period == 1:
+        return source.copy()
+    out = np.full(len(source), np.nan, dtype=np.float64)
+    if len(source) <= period:
+        return out
     fast_sc = 2.0 / (fast + 1.0)
     slow_sc = 2.0 / (slow + 1.0)
-    sc_diff = fast_sc - slow_sc
-    sc = (er * sc_diff + slow_sc) ** 2
-    kama = pd.Series(0.0, index=series.index)
-    kama.iloc[0] = series.iloc[0]
-    for i in range(1, len(series)):
-        if pd.isna(sc.iloc[i]):
-            alpha = 2.0 / (i + 1.0)
-            kama.iloc[i] = kama.iloc[i-1] + alpha * (series.iloc[i] - kama.iloc[i-1])
-        else:
-            kama.iloc[i] = kama.iloc[i-1] + sc.iloc[i] * (series.iloc[i] - kama.iloc[i-1])
-    return kama
+    previous = float(source[period - 1])
+    for row in range(period, len(source)):
+        window = source[row - period : row + 1]
+        volatility = float(
+            sum(
+                abs(window[i] - window[i - 1])
+                for i in range(1, len(window))
+            )
+        )
+        change = abs(float(window[-1] - window[0]))
+        efficiency = 1.0 if volatility == 0.0 else change / volatility
+        smoothing = (
+            efficiency * (fast_sc - slow_sc) + slow_sc
+        ) ** 2
+        previous = previous + smoothing * (float(source[row]) - previous)
+        out[row] = previous
+    return out
 
 
-def test_kama_np_basic():
-    """Test basic KAMA calculation with simple series."""
-    # Simple ascending series
-    prices = np.array([100.0, 101.0, 102.0, 103.0, 104.0, 105.0])
-    kama = kama_np(prices, period=3)
-    
-    assert len(kama) == len(prices)
-    assert not np.any(np.isnan(kama))
-    assert kama[0] == prices[0]  # First value should equal first price
+def test_kama_known_monotone_vector_has_honest_prefix_and_price_seed() -> None:
+    prices = np.arange(100.0, 107.0, dtype=np.float64)
+    got = kama_np(prices, period=3)
+
+    smoothing = (2.0 / 3.0) ** 2  # ER is exactly one on this vector.
+    expected = np.full(len(prices), np.nan, dtype=np.float64)
+    previous = prices[2]
+    for row in range(3, len(prices)):
+        previous += smoothing * (prices[row] - previous)
+        expected[row] = previous
+    np.testing.assert_allclose(
+        got,
+        expected,
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
 
 
-def test_kama_np_vs_pandas():
-    """Compare incremental NumPy KAMA against pandas rolling version."""
-    # Generate synthetic price series (1000 points with some trend and noise)
-    np.random.seed(42)
-    n_points = 1000
-    trend = np.linspace(100.0, 110.0, n_points)
-    noise = np.random.randn(n_points) * 0.5
-    prices = trend + noise
-    
-    # Convert to pandas Series
-    series = pd.Series(prices)
-    
-    # Calculate with both methods
-    kama_np_result = kama_np(prices, period=30)
-    kama_pandas_result = kama_pandas_reference(series, period=30)
-    
-    # Compare results (allow small numerical differences)
-    # Skip first few points where initialization may differ
-    start_idx = 30
-    np_result = kama_np_result[start_idx:]
-    pandas_result = kama_pandas_result.values[start_idx:]
-    
-    finite = np.isfinite(np_result) & np.isfinite(pandas_result)
-    assert np.any(finite), "Expected at least one finite KAMA comparison"
-    np_result = np_result[finite]
-    pandas_result = pandas_result[finite]
+def test_kama_matches_independent_reference_on_nonmonotone_vector() -> None:
+    rng = np.random.default_rng(42)
+    prices = 100.0 + np.cumsum(rng.normal(0.03, 0.5, size=1_000))
 
-    # Calculate relative error
-    diff = np.abs(np_result - pandas_result)
-    rel_error = diff / (np.abs(pandas_result) + 1e-12)
-    
-    # Should be very close (numerical precision differences)
-    max_rel_error = np.max(rel_error)
-    mean_rel_error = np.mean(rel_error)
-    
-    # Allow up to 1% relative error (pandas and numpy may have slight numerical differences)
-    assert max_rel_error < 0.01, f"Max relative error {max_rel_error:.6f} exceeds 1%"
-    assert mean_rel_error < 0.001, f"Mean relative error {mean_rel_error:.6f} exceeds 0.1%"
+    got = kama_np(prices, period=30)
+    expected = _reference_kama(prices, period=30)
+
+    np.testing.assert_allclose(
+        got,
+        expected,
+        rtol=2e-15,
+        atol=2e-14,
+        equal_nan=True,
+    )
 
 
-def test_kama_np_with_nan():
-    """Test KAMA handles NaN/Inf values defensively."""
-    prices = np.array([100.0, 101.0, np.nan, 103.0, 104.0, 105.0])
-    kama = kama_np(prices, period=3)
-    
-    # Should not crash and should handle NaN (forward-fill)
-    assert len(kama) == len(prices)
-    # First value should be valid
-    assert not np.isnan(kama[0])
+def test_kama_chunk_state_is_exact_at_arbitrary_boundaries() -> None:
+    rng = np.random.default_rng(7)
+    prices = 2_000.0 + np.cumsum(rng.normal(0.0, 0.4, size=437))
+    expected = kama_np(prices, period=30)
+
+    chunks: list[np.ndarray] = []
+    state = None
+    boundaries = (0, 4, 29, 30, 31, 117, 203, len(prices))
+    for start, stop in zip(boundaries, boundaries[1:]):
+        values, state = _kama_np_chunk(
+            prices[start:stop],
+            period=30,
+            state=state,
+        )
+        chunks.append(values)
+    got = np.concatenate(chunks)
+
+    np.testing.assert_array_equal(got, expected)
+    assert state is not None
+    assert state.observations == len(prices)
+    assert len(state.history) == 30
 
 
-def test_kama_wrapper():
-    """Test _kama wrapper works with both Series and arrays."""
-    prices = np.array([100.0, 101.0, 102.0, 103.0, 104.0, 105.0])
-    
-    # Test with numpy array
-    kama_array = _kama(prices, period=3)
-    assert isinstance(kama_array, np.ndarray)
-    assert len(kama_array) == len(prices)
-    
-    # Test with pandas Series
-    series = pd.Series(prices)
-    kama_series = _kama(series, period=3)
-    assert isinstance(kama_series, pd.Series)
-    assert len(kama_series) == len(series)
-    assert kama_series.index.equals(series.index)
+def test_kama_period_one_is_identity_across_chunks() -> None:
+    prices = np.asarray([3.0, 1.0, 4.0, 1.5], dtype=np.float64)
+    first, state = _kama_np_chunk(prices[:2], period=1)
+    second, state = _kama_np_chunk(prices[2:], period=1, state=state)
+
+    np.testing.assert_array_equal(np.concatenate((first, second)), prices)
+    assert state.value == prices[-1]
 
 
-def test_kama_performance_small():
-    """Smoke test: ensure incremental version is fast on small data."""
-    prices = np.random.randn(100) + 100.0
-    
-    # Should complete quickly
-    kama = kama_np(prices, period=30)
-    assert len(kama) == len(prices)
+@pytest.mark.parametrize(
+    "prices,error",
+    [
+        (np.asarray([100.0, np.nan, 102.0]), "KAMA_SOURCE_INVALID"),
+        (np.asarray([100.0, np.inf, 102.0]), "KAMA_SOURCE_INVALID"),
+    ],
+)
+def test_kama_rejects_unobserved_prices_instead_of_forward_filling(
+    prices: np.ndarray,
+    error: str,
+) -> None:
+    with pytest.raises(RuntimeError, match=error):
+        kama_np(prices, period=3)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+def test_kama_wrapper_preserves_container_and_index() -> None:
+    prices = np.arange(100.0, 140.0, dtype=np.float64)
+    array_result = _kama(prices, period=3)
+    series = pd.Series(prices, index=pd.RangeIndex(10, 50))
+    series_result = _kama(series, period=3)
+
+    assert isinstance(array_result, np.ndarray)
+    assert isinstance(series_result, pd.Series)
+    assert series_result.index.equals(series.index)
+    np.testing.assert_array_equal(series_result.to_numpy(), array_result)
+
+
+def test_kama_source_has_no_partial_ema_forward_fill_or_sc_clamp() -> None:
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "gx1"
+        / "features"
+        / "basic_v1.py"
+    ).read_text(encoding="utf-8")
+    assert "use simple EMA-like initialization" not in source
+    assert "forward-fill" not in source
+    assert "max(0.0, min(1.0" not in source

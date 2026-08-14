@@ -41,15 +41,25 @@ from gx1.utils.artifact_primitives_v1 import (
 
 
 ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION = (
-    "gx1_entry_exit_m1_feature_surface_v1"
+    "gx1_entry_exit_m1_feature_surface_v10"
 )
 ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION = (
-    "gx1_entry_exit_m5_feature_surface_v1"
+    "gx1_entry_exit_m5_feature_surface_v8"
 )
 ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE = (
     "exact_hash_bound_native_m5_feature_surface_v1"
 )
 ENTRY_EXIT_FEATURE_SURFACE_COLUMNS = ("time", "signal", "ctx_cont", "ctx_cat")
+_REGISTRY_FIT_BINDING_KEYS = frozenset(
+    {
+        "lane",
+        "artifact_path",
+        "artifact_sha256",
+        "params_schema_version",
+        "params_module",
+        "params_contract_sha256",
+    }
+)
 
 def _read_json_manifest(path: Path, *, context: str) -> dict[str, Any]:
     try:
@@ -59,6 +69,71 @@ def _read_json_manifest(path: Path, *, context: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"{context}_JSON_OBJECT_REQUIRED")
     return payload
+
+
+def _require_registry_fit_binding(
+    value: Mapping[str, Any] | Any,
+    *,
+    timeframe: str,
+    expected_source: Path,
+    expected_source_sha256: str,
+) -> dict[str, str]:
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != _REGISTRY_FIT_BINDING_KEYS
+        or value.get("lane") != timeframe
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_BINDING_INVALID")
+    artifact_raw = value.get("artifact_path")
+    if not isinstance(artifact_raw, str):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_BINDING_INVALID")
+    artifact = Path(artifact_raw).expanduser()
+    if (
+        not artifact.is_absolute()
+        or artifact.is_symlink()
+        or not artifact.is_file()
+        or artifact.resolve(strict=True) != artifact
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_BINDING_INVALID")
+    from gx1.features.htf_features import (
+        load_v29_registry_constants_manifest,
+        load_v29_registry_m1_lane_params_manifest,
+    )
+
+    params = (
+        load_v29_registry_constants_manifest(artifact)
+        if timeframe == "M5"
+        else load_v29_registry_m1_lane_params_manifest(artifact)
+    )
+    container = _read_json_manifest(
+        artifact,
+        context="ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_ARTIFACT",
+    )
+    source_path_key = (
+        "m5_prebuilt_source" if timeframe == "M5" else "output_parquet"
+    )
+    source_sha_key = (
+        "m5_prebuilt_source_sha256"
+        if timeframe == "M5"
+        else "output_parquet_sha256"
+    )
+    if (
+        container.get(source_path_key) != str(expected_source)
+        or container.get(source_sha_key) != expected_source_sha256
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_SOURCE_MISMATCH")
+    provenance = params.get("provenance")
+    expected = {
+        "lane": timeframe,
+        "artifact_path": str(artifact),
+        "artifact_sha256": sha256_file(artifact),
+        "params_schema_version": str(params["schema_version"]),
+        "params_module": str(provenance["module"]),
+        "params_contract_sha256": str(params["contract_sha256"]),
+    }
+    if dict(value) != expected:
+        raise RuntimeError("ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_BINDING_INVALID")
+    return expected
 
 
 def build_entry_exit_feature_surface_manifest(
@@ -74,6 +149,8 @@ def build_entry_exit_feature_surface_manifest(
     rows: int,
     signal_contract: Mapping[str, Any],
     extension: Mapping[str, Any],
+    registry_fit_binding: Mapping[str, Any],
+    volatility_squeeze_artifact_binding: Mapping[str, Any],
     materialization: Mapping[str, Any] | None,
     causal_warmup: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -97,6 +174,19 @@ def build_entry_exit_feature_surface_manifest(
         if timeframe == "M1"
         else ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION
     )
+    exact_registry_fit_binding = _require_registry_fit_binding(
+        registry_fit_binding,
+        timeframe=timeframe,
+        expected_source=source,
+        expected_source_sha256=source_binding["source_sha256"],
+    )
+    from gx1.features.volatility_squeeze_state_v1 import (
+        require_volatility_squeeze_artifact_binding,
+    )
+
+    exact_squeeze_artifacts = require_volatility_squeeze_artifact_binding(
+        volatility_squeeze_artifact_binding
+    )
     fields = list(signal_contract["fields"])
     manifest: dict[str, Any] = {
         "schema_version": schema_version,
@@ -113,8 +203,6 @@ def build_entry_exit_feature_surface_manifest(
         "source_manifest": source_binding["manifest_path"],
         "source_manifest_sha256": source_binding["manifest_sha256"],
         "source_manifest_schema_version": source_binding["schema_version"],
-        "rank_reference_npz": source_binding["rank_reference_npz"],
-        "rank_reference_sha256": source_binding["rank_reference_sha256"],
         "alignment_parquet": None if alignment is None else str(alignment),
         "alignment_sha256": (
             None if alignment is None else sha256_file(alignment)
@@ -130,6 +218,8 @@ def build_entry_exit_feature_surface_manifest(
         "feature_field_order": fields,
         "feature_field_order_sha256": canonical_json_sha256(fields),
         "extension": dict(extension),
+        "registry_fit_binding": exact_registry_fit_binding,
+        "volatility_squeeze_artifact_set": exact_squeeze_artifacts.binding(),
         "causal_contract": {
             "future_rows_used": False,
             "closed_decision_bar_required": True,
@@ -223,15 +313,19 @@ def require_exact_m1_feature_surface_manifest(
         expected_ordered_fields=signal_contract["fields"],
         expected_signal_manifest_path=str(signal_path),
         expected_signal_manifest_sha256=signal_sha,
-        expected_rank_reference_sha256=source_binding[
-            "rank_reference_sha256"
-        ],
         context=context,
     )
     extension = payload.get("extension")
+    registry_fit_binding = payload.get("registry_fit_binding")
+    volatility_squeeze_artifact_binding = payload.get(
+        "volatility_squeeze_artifact_set"
+    )
     materialization = payload.get("materialization")
     if not isinstance(extension, Mapping) or not isinstance(
         materialization,
+        Mapping,
+    ) or not isinstance(registry_fit_binding, Mapping) or not isinstance(
+        volatility_squeeze_artifact_binding,
         Mapping,
     ):
         raise RuntimeError(f"{context}_MANIFEST_COMPONENT_INVALID")
@@ -254,6 +348,10 @@ def require_exact_m1_feature_surface_manifest(
         rows=expected_rows,
         signal_contract=signal_contract,
         extension=extension,
+        registry_fit_binding=registry_fit_binding,
+        volatility_squeeze_artifact_binding=(
+            volatility_squeeze_artifact_binding
+        ),
         materialization=materialization,
         causal_warmup=causal_warmup,
     )
@@ -305,8 +403,13 @@ def require_m1_feature_window(
     required = {
         "schema_version",
         "decision_time",
+        "sequence_first_time",
+        "sequence_last_time",
         "dataset_run_id",
+        "pair_generation_id",
         "feature_base_sha256",
+        "feature_manifest_sha256",
+        "feature_field_order_sha256",
         "sequence_bars",
         "signal",
         "snap",
@@ -317,13 +420,63 @@ def require_m1_feature_window(
         raise RuntimeError(f"{context}_M1_FEATURE_WINDOW_SCHEMA_INVALID")
     if value["schema_version"] != ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION:
         raise RuntimeError(f"{context}_M1_FEATURE_WINDOW_VERSION_INVALID")
+    try:
+        decision_time = pd.Timestamp(value["decision_time"])
+    except Exception as exc:
+        raise RuntimeError(
+            f"{context}_M1_FEATURE_WINDOW_DECISION_TIME_INVALID"
+        ) from exc
+    if (
+        pd.isna(decision_time)
+        or decision_time.tzinfo is None
+        or decision_time.utcoffset() != pd.Timedelta(0)
+        or decision_time != decision_time.floor(
+            f"{EXIT_DECISION_BAR_SECONDS}s"
+        )
+        or value["decision_time"]
+        != decision_time.tz_convert("UTC").isoformat()
+    ):
+        raise RuntimeError(
+            f"{context}_M1_FEATURE_WINDOW_DECISION_TIME_INVALID"
+        )
+    sequence_times: list[pd.Timestamp] = []
+    for field in ("sequence_first_time", "sequence_last_time"):
+        try:
+            timestamp = pd.Timestamp(value[field])
+        except Exception as exc:
+            raise RuntimeError(
+                f"{context}_M1_FEATURE_WINDOW_SEQUENCE_TIME_INVALID"
+            ) from exc
+        if (
+            pd.isna(timestamp)
+            or timestamp.tzinfo is None
+            or timestamp.utcoffset() != pd.Timedelta(0)
+            or timestamp != timestamp.floor(f"{EXIT_DECISION_BAR_SECONDS}s")
+            or value[field] != timestamp.tz_convert("UTC").isoformat()
+        ):
+            raise RuntimeError(
+                f"{context}_M1_FEATURE_WINDOW_SEQUENCE_TIME_INVALID"
+            )
+        sequence_times.append(timestamp)
+    if not sequence_times[0] < sequence_times[1] or sequence_times[1] != decision_time:
+        raise RuntimeError(
+            f"{context}_M1_FEATURE_WINDOW_SEQUENCE_CLOCK_INVALID"
+        )
     if (
         isinstance(value["dataset_run_id"], bool)
         or not isinstance(value["dataset_run_id"], str)
         or not value["dataset_run_id"]
+        or not isinstance(value["pair_generation_id"], str)
+        or not value["pair_generation_id"]
         or not isinstance(value["feature_base_sha256"], str)
         or len(value["feature_base_sha256"]) != 64
         or any(c not in "0123456789abcdef" for c in value["feature_base_sha256"])
+        or not isinstance(value["feature_manifest_sha256"], str)
+        or len(value["feature_manifest_sha256"]) != 64
+        or any(c not in "0123456789abcdef" for c in value["feature_manifest_sha256"])
+        or not isinstance(value["feature_field_order_sha256"], str)
+        or len(value["feature_field_order_sha256"]) != 64
+        or any(c not in "0123456789abcdef" for c in value["feature_field_order_sha256"])
         or value["sequence_bars"] != EXIT_FEATURE_SEQUENCE_BARS
     ):
         raise RuntimeError(f"{context}_M1_FEATURE_WINDOW_IDENTITY_INVALID")

@@ -268,7 +268,7 @@ def test_trainer_boundary_requires_exact_recipe_and_allows_only_bound_runtime_en
     trainer._enforce_canonical_train_env_contract()
 
     monkeypatch.setenv("ENTRY_DIRECTION_CE_SCALE", "999")
-    with pytest.raises(RuntimeError, match="TRAIN_RECIPE_ENV_INVALID"):
+    with pytest.raises(RuntimeError, match="AMBIENT_CONTROL_FORBIDDEN"):
         trainer._enforce_canonical_train_env_contract()
 
 
@@ -276,13 +276,13 @@ def test_trainer_boundary_rejects_missing_recipe_and_ambient_controls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _set_exact_trainer_env(monkeypatch)
-    monkeypatch.delenv("ENTRY_DIRECTION_CE_SCALE")
+    monkeypatch.delenv("ENTRY_SYMMETRIC_NEGATIVES")
     with pytest.raises(RuntimeError, match="TRAIN_RECIPE_ENV_INVALID"):
         trainer._enforce_canonical_train_env_contract()
 
     monkeypatch.setenv(
-        "ENTRY_DIRECTION_CE_SCALE",
-        MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_CE_SCALE"],
+        "ENTRY_SYMMETRIC_NEGATIVES",
+        MODEL_NATIVE_RECIPE_ENV["ENTRY_SYMMETRIC_NEGATIVES"],
     )
     monkeypatch.setenv("GX1_MTF_TAPERED", "1")
     with pytest.raises(RuntimeError, match="AMBIENT_CONTROL_FORBIDDEN"):

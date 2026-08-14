@@ -26,47 +26,45 @@ every confirmable bar (proven by the parity test in
 
 Constant origins (rule 2a) — every decision-affecting number named:
 
-- ``band_atr`` (tolerance band, ATR fraction): TRAIN-fitted statistic, one
-  per timeframe, produced by :func:`fit_trendline_tolerance` — the median
-  |first-subsequent-pivot deviation|/ATR over the complete declared candidate
-  population (design B.1; complete-population statistic per rule 2f, sample
-  size reported in the provenance payload).  The break margin REUSES the same
-  band — one constant, no second number (rule 2b).  This module has no
-  default for it; the caller must pass the frozen fitted value.  Since the
-  band is the median of the population it then judges, the provenance payload
-  publishes ``implied_validation_rate`` (2026-08-13): the measured share of
-  arbitrary 2-pivot pairs the band promotes to a "validated" line, ~0.5 by
-  construction.  See :func:`fit_trendline_tolerance` for why conditioning the
-  fit population on validated lines is circular.
+- ``band_atr`` (tolerance band, ATR fraction) and identity expiry are selected
+  per timeframe by :func:`fit_trendline_registry_hyperparameters_v1` using
+  chronological TRAIN-only competing-risk likelihood. A two-anchor
+  candidate gets exactly one validation opportunity: the next confirmed
+  same-side pivot.  Before that pivot, a close through the exact projected
+  line invalidates it.  Both lifecycle decisions are band-independent, so fit
+  and serve observe the same population without a circular bootstrap.  The
+  break margin REUSES the fitted band — one constant, no second number (rule
+  2b).  This module has no default; the caller must pass the frozen value.
 - ``seq_len`` (candidate window): the per-TF model sequence length —
   an explicit recipe input (``per_tf_seq_lens``, validated upstream by
   ``htf_features.require_multi_tf_resolution_pyramid``).  Line evidence never
   reaches beyond the receptive field the model actually sees.
-- ``TRENDLINE_RETEST_WINDOW_BARS_V1 = 2*SWING_LOOKBACK + 1 = 7``: the
-  existing named confirmation constant that already governs this family's
-  time scale (design B.3); overridable as an explicit recipe input.
-- Count/age emission caps 999: the named ``smc_bars_since_sweep = 999``
-  sentinel convention (design §1.4); chosen as this owner's ONE age
-  convention (design §3 preamble).
+- Retest has no fixed bar-window parameter. A BROKEN line remains armed for
+  its first re-entry until learned identity expiry; raw break age is emitted.
+- Counts and ages are emitted raw. Current active masks own current slot
+  absence; break age is NaN before the first genuine break, so no global
+  ever-seen mask or numeric sentinel is needed.
 - Warmup: rows are NaN while ``bar_index < 2*swing_lookback + 2`` (the
   structural earliest bar at which an ACTIVE line can exist: three adjacent
   tie pivots at bars n, n+1, n+2, third confirmed at 2n+2 — pure arithmetic
   on the pivot contract) or while ATR is unavailable (band undefined).  The
   NaN region is a single chronological prefix; afterwards absence is emitted
   as presence-flag 0 with attributes 0, the established
-  ``mtf_smc_sweep_size_atr`` flag-disambiguated-zero pattern (design B.5,
+  the sided SMC sweep-depth flag-disambiguated-zero pattern (design B.5,
   not a placeholder under rule 2e).
 
 Intra-bar order (fixed, documented; design B.1/B.3):
+  (0) prune both pivot stores and both CANDIDATE populations against bar t;
+      no validation or channel construction may observe evidence outside the
+      declared ``seq_len`` receptive field.
   (1) pivot confirmation at bar t for pivot bar j = t - lookback
       (support side first, then resistance):
-      (1a) third-or-later pivot-touch tests against same-side
-           CANDIDATE/ACTIVE lines (deviation measured at the pivot's own bar
-           with that bar's ATR — where the touch physically happened; the
-           decision is taken at t, causally);
+      (1a) the candidate's one third-touch validation test and later evidence
+           updates for same-side ACTIVE lines (deviation measured at the
+           pivot's own bar with that bar's ATR — where the touch physically
+           happened; the decision is taken at t, causally);
       (1b) new CANDIDATE lines pairing the pivot with each stored same-side
-           pivot; (1c) prune stored pivots and CANDIDATEs that left the
-           ``seq_len`` window; then the pivot enters the store.
+           pivot; then the pivot enters the store.
   (2) per-line bar update with bar t's close/extremes/ATR:
       CANDIDATE violation discard, ACTIVE first-break (edge-triggered once,
       line -> BROKEN), ACTIVE intra-band touch (first-entry-per-excursion),
@@ -77,11 +75,11 @@ Intra-bar order (fixed, documented; design B.1/B.3):
 
 Documented design decisions inside the adopted spec:
 
-- A CANDIDATE whose line is closed beyond the band on the wrong side is
-  discarded silently (no event: it never had validated identity).  Without
-  this, a candidate could later "validate" into an ACTIVE line whose first
-  break happened before its identity existed, making the first-break event
-  untruthful — the discard removes that failure mode (rule 22).
+- A CANDIDATE whose line is crossed on the exact structurally wrong side is
+  discarded silently (no event: it never had validated identity).  The exact
+  projection is an algebraic boundary, not another tolerance.  This prevents
+  later promotion of a line already broken before its identity existed while
+  keeping fit/serve population membership independent of ``band_atr``.
 - An ACTIVE line is retired silently once ``seq_len`` bars pass since its
   last touch: every bar of its evidence has then left the declared
   receptive-field window, the same bound B.1 applies to the pivot store
@@ -97,11 +95,11 @@ Documented design decisions inside the adopted spec:
   excursion (first entry only) and per bar (a bar counted as an intra-band
   touch is not re-counted when it later confirms as a pivot; the pivot's
   deviation still updates ``max_dev_atr``, the R^2 substitute).
-- Retest (design B.3): within the retest window after BREAK, first re-entry
+- Retest (design B.3): after BREAK, first re-entry
   of the band from the break side resolves the line: close still beyond the
   old line => RETEST_HOLD; close back through (or exactly on it
-  — ambiguous evidence fails closed to FAIL) => RETEST_FAIL.  Window expiry
-  retires the line silently.  V30 package 8A (2026-08-13) PERFORMS the role
+  — ambiguous evidence fails closed to FAIL) => RETEST_FAIL.  Re-entry stays
+  armed until receptive-field expiry. V30 package 8A (2026-08-13) PERFORMS the role
   flip this clause always named: a HOLD returns the line to ACTIVE with its
   ``side`` flipped and its touch history intact (the retest bar counts as
   the touch) instead of deleting it on the bar it proved itself as flipped
@@ -136,17 +134,29 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass, field
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.registry_hyperparameter_fit_v1 import (
+    REGISTRY_OUTCOME_BREAK,
+    REGISTRY_OUTCOME_REACTION,
+    RegistryOutcomeStreamV1,
+    fit_registry_competing_risk_threshold_v1,
+    require_registry_hyperparameter_payload_v1,
+)
+
 # One pivot truth (design §2, chart report B.1): predicate + confirmation lag
 # are owned by smc_v1; this registry consumes them and never re-detects.
 from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
+from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
-TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_V1"
-TRENDLINE_TOLERANCE_SCHEMA_VERSION_V1 = "trendline_tolerance_fit_v1"
+TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V3"
+TRENDLINE_HYPERPARAMETER_SCHEMA_VERSION_V1 = (
+    "trendline_registry_hyperparameter_fit_v1"
+)
 
 TRENDLINE_SIDE_SUPPORT = 1
 TRENDLINE_SIDE_RESISTANCE = -1
@@ -154,14 +164,6 @@ TRENDLINE_SIDE_RESISTANCE = -1
 TRENDLINE_STATE_CANDIDATE = "candidate"
 TRENDLINE_STATE_ACTIVE = "active"
 TRENDLINE_STATE_BROKEN = "broken"
-
-# Origin: the family's existing named confirmation constant (design B.3);
-# recipe-overridable, never silently changed here.
-TRENDLINE_RETEST_WINDOW_BARS_V1 = 2 * SWING_LOOKBACK + 1
-
-# Origin: the named smc_bars_since_sweep=999 sentinel convention (design
-# §1.4) — this owner's single count/age emission cap.
-TRENDLINE_COUNT_AGE_CAP_V1 = 999.0
 
 # Structural earliest bar (0-based) at which an ACTIVE line can exist for the
 # default lookback — pure arithmetic on the pivot contract (module docstring).
@@ -175,7 +177,7 @@ TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_above_active",
     # V30 (2026-08-13): graded occupancy beside the mask — the number of
     # ACTIVE lines projecting on this side of the close (the mask is its
-    # >=1 indicator), capped by this owner's single 999 count/age cap.
+    # >=1 indicator). The count is raw and uncapped.
     "geomline_above_active_count",
     "geomline_above_dist_atr",
     "geomline_above_slope_atr_per_bar",
@@ -204,11 +206,7 @@ TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 = (
     "geomline_retest_fail_up",
     "geomline_retest_hold_down",
     "geomline_retest_fail_down",
-    # V30 (2026-08-13): break memory under the same 999 convention — bars
-    # since the most recent first-break of any registry line (the
-    # level-registry sibling `level_bars_since_break` semantics: 999 "no
-    # event yet" sentinel before the first observed break).  Persistent
-    # state, not a per-bar impulse; emitted from the registry carry state.
+    # Raw bars since the most recent first-break of any registry line.
     "geomline_bars_since_break",
 )
 
@@ -227,9 +225,7 @@ TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     + TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1
 )
 
-# V30 (2026-08-13): 33 = 30 + 2 graded-occupancy counts + 1 break-memory
-# field; the name tuples above are the owner, this literal is the cross-check.
-TRENDLINE_REGISTRY_FEATURE_COUNT_V1 = 33
+TRENDLINE_REGISTRY_FEATURE_COUNT_V1 = len(TRENDLINE_REGISTRY_FEATURE_NAMES_V1)
 
 
 def _require_feature_name_integrity() -> None:
@@ -333,8 +329,9 @@ class _CandidateArraysV1:
     """CANDIDATE lines as parallel arrays (bounded compute).
 
     A CANDIDATE carries exactly its two anchors and no evolving evidence —
-    its first within-band pivot touch is the validating 3rd touch that
-    promotes it to an ACTIVE :class:`TrendlineV1` object.  Storing the
+    the next same-side pivot is its single validation opportunity; an
+    in-band 3rd touch promotes it to an ACTIVE :class:`TrendlineV1`, while a
+    miss retires it.  Storing the
     O(P^2) candidate population as arrays keeps the per-bar violation check
     and the per-pivot promotion test vectorized; only ACTIVE/BROKEN lines
     (few) are walked as Python objects per bar.  Semantics are identical to
@@ -430,7 +427,7 @@ class TrendlineRegistryStateV1:
     next_line_id: int = 0
     last_index: object = None
     # V30 break memory: registry bar index of the most recent first-break of
-    # any line; -1 = no break observed yet (emitted as the 999 sentinel).
+    # any line; -1 is internal state only and emits as an honest NaN age.
     last_break_bar: int = -1
 
 
@@ -536,6 +533,39 @@ def _confirmed_center_pivots(
     return bool(sh_mask[swing_lookback]), bool(sl_mask[swing_lookback])
 
 
+def _prune_receptive_field_state(
+    state: TrendlineRegistryStateV1,
+    *,
+    t: int,
+    seq_len: int,
+) -> None:
+    """Remove unobservable pivot/candidate evidence before it can be used.
+
+    The decision row at ``t`` may observe only bars ``b`` satisfying
+    ``t - b < seq_len``.  Pruning once at the beginning of every bar is
+    necessary for two independent consumers: candidate promotion on a newly
+    confirmed pivot and the parallel-channel route, which reads the
+    opposite-side pivot store even on bars with no new pivot of that side.
+    """
+
+    state.support_pivots[:] = [
+        (bar, price)
+        for bar, price in state.support_pivots
+        if t - bar < seq_len
+    ]
+    state.resistance_pivots[:] = [
+        (bar, price)
+        for bar, price in state.resistance_pivots
+        if t - bar < seq_len
+    ]
+    if len(state.cand_support):
+        state.cand_support.keep(t - state.cand_support.anchor1_bar < seq_len)
+    if len(state.cand_resistance):
+        state.cand_resistance.keep(
+            t - state.cand_resistance.anchor1_bar < seq_len
+        )
+
+
 def _ingest_confirmed_pivot(
     state: TrendlineRegistryStateV1,
     side: int,
@@ -547,6 +577,8 @@ def _ingest_confirmed_pivot(
     seq_len: int,
     events: np.ndarray,
     line_log: list | None = None,
+    candidate_deviation_log: list[float] | None = None,
+    candidate_observation_log: list[tuple] | None = None,
 ) -> None:
     if side == TRENDLINE_SIDE_SUPPORT:
         store = state.support_pivots
@@ -556,8 +588,8 @@ def _ingest_confirmed_pivot(
         store = state.resistance_pivots
         candidates = state.cand_resistance
         touch_event = _EV_TOUCH_ABOVE
-    # (1a) third-or-later pivot-touch tests: ACTIVE lines (evidence update)
-    # and CANDIDATE promotion (validating 3rd touch), same side only.
+    # (1a) ACTIVE-line evidence updates and the CANDIDATE's single validating
+    # 3rd-touch opportunity, same side only.
     for line in state.active_lines:
         if line.side != side or line.state != TRENDLINE_STATE_ACTIVE:
             continue
@@ -576,6 +608,22 @@ def _ingest_confirmed_pivot(
     if len(candidates):
         projections = candidates.intercept + candidates.slope * float(pivot_bar)
         deviations = np.abs(pivot_price - projections) / pivot_atr
+        if candidate_deviation_log is not None:
+            candidate_deviation_log.extend(
+                float(value) for value in deviations.tolist()
+            )
+        if candidate_observation_log is not None:
+            candidate_observation_log.extend(
+                (
+                    int(t),
+                    int(candidates.line_id[idx]),
+                    int(side),
+                    float(candidates.slope[idx]),
+                    float(candidates.intercept[idx]),
+                    float(deviations[idx]),
+                )
+                for idx in range(len(candidates))
+            )
         promoted = deviations <= band_atr
         if bool(promoted.any()):
             events[touch_event] = 1.0
@@ -606,7 +654,11 @@ def _ingest_confirmed_pivot(
                             promoted_line.slope,
                         )
                     )
-            candidates.keep(~promoted)
+        # The next same-side pivot is the candidate's one third-touch test.
+        # A miss is evidence against this exact two-anchor identity, not a
+        # reason to wait for an arbitrary fourth/fifth pivot and silently
+        # change the fit population.
+        candidates.keep(np.zeros(len(candidates), dtype=bool))
     # (1b) new candidates: pair the pivot with each stored same-side pivot.
     if store:
         anchor1_bars = np.array([b for b, _ in store], dtype=np.int64)
@@ -620,11 +672,34 @@ def _ingest_confirmed_pivot(
         candidates.extend_pairs(
             ids, anchor1_bars, anchor1_prices, int(pivot_bar), float(pivot_price)
         )
-    # (1c) prune stored pivots and candidates that left the window.
-    store[:] = [(b, p) for (b, p) in store if t - b < seq_len]
-    if len(candidates):
-        candidates.keep(t - candidates.anchor1_bar < seq_len)
     store.append((int(pivot_bar), float(pivot_price)))
+
+
+def _discard_violated_candidates_for_bar(
+    state: TrendlineRegistryStateV1,
+    *,
+    t: int,
+    close: float,
+) -> None:
+    """Retire unvalidated lines crossed on the structurally wrong side.
+
+    The exact projection is the algebraic support/resistance boundary.  Using
+    it here keeps candidate population membership independent of the fitted
+    tolerance while preventing a future promotion after the candidate was
+    already structurally broken.
+    """
+
+    if len(state.cand_support):
+        projections = (
+            state.cand_support.intercept + state.cand_support.slope * float(t)
+        )
+        state.cand_support.keep(~(close < projections))
+    if len(state.cand_resistance):
+        projections = (
+            state.cand_resistance.intercept
+            + state.cand_resistance.slope * float(t)
+        )
+        state.cand_resistance.keep(~(close > projections))
 
 
 def _update_lines_for_bar(
@@ -635,31 +710,24 @@ def _update_lines_for_bar(
     close: float,
     atr_t: float,
     band_atr: float,
-    retest_window_bars: int,
+    identity_expiry_bars: int,
     swing_lookback: int,
     seq_len: int,
     events: np.ndarray,
     line_log: list | None = None,
 ) -> None:
+    _discard_violated_candidates_for_bar(
+        state,
+        t=t,
+        close=close,
+    )
     margin = band_atr * atr_t
-    # CANDIDATE violation discard (vectorized; documented design decision).
-    if len(state.cand_support):
-        projections = (
-            state.cand_support.intercept + state.cand_support.slope * float(t)
-        )
-        state.cand_support.keep(~(close < projections - margin))
-    if len(state.cand_resistance):
-        projections = (
-            state.cand_resistance.intercept
-            + state.cand_resistance.slope * float(t)
-        )
-        state.cand_resistance.keep(~(close > projections + margin))
     keep: list = []
     broken_this_bar: list = []
     for line in state.active_lines:
         if (
             line.state == TRENDLINE_STATE_ACTIVE
-            and t - line.last_touch_bar >= seq_len
+            and t - line.last_touch_bar >= identity_expiry_bars
         ):
             # Staleness retirement (no event): every bar of this line's
             # evidence has left the declared receptive-field window
@@ -713,9 +781,12 @@ def _update_lines_for_bar(
                         )
                 line.in_band_prev = in_band
                 keep.append(line)
-        else:  # BROKEN — retest lifecycle
-            if t - line.break_bar > retest_window_bars:
-                continue  # window expired: retire silently
+        else:  # BROKEN — first re-entry lifecycle
+            if t - line.break_bar >= identity_expiry_bars:
+                # The broken line has no evidence inside the model's exact
+                # receptive field.  This is the same architectural identity
+                # bound as ACTIVE staleness, not a retest decision window.
+                continue
             resolved = False
             flipped = False
             if line.break_dir < 0:
@@ -753,8 +824,8 @@ def _update_lines_for_bar(
                 # bar; ``in_band_prev`` is set so the same excursion is not
                 # counted twice.  The generic touch impulse is deliberately
                 # NOT raised: the retest-hold event is this bar's specific
-                # impulse for the same physical event.  No new constant: the
-                # retest window and band are the existing ones.
+                # impulse for the same physical event.  No retest-window
+                # constant exists; only the fitted band participates.
                 line.side = (
                     TRENDLINE_SIDE_RESISTANCE
                     if line.side == TRENDLINE_SIDE_SUPPORT
@@ -779,12 +850,9 @@ def _update_lines_for_bar(
         chosen = max(
             broken_this_bar, key=lambda ln: (ln.touch_count, -ln.line_id)
         )
-        events[_EV_BREAK_LINE_TOUCH_COUNT] = min(
-            float(chosen.touch_count), TRENDLINE_COUNT_AGE_CAP_V1
-        )
-        events[_EV_BREAK_LINE_AGE_BARS] = min(
-            float(t - (chosen.anchor1_bar + swing_lookback)),
-            TRENDLINE_COUNT_AGE_CAP_V1,
+        events[_EV_BREAK_LINE_TOUCH_COUNT] = float(chosen.touch_count)
+        events[_EV_BREAK_LINE_AGE_BARS] = float(
+            t - (chosen.anchor1_bar + swing_lookback)
         )
     state.active_lines[:] = keep
 
@@ -911,33 +979,26 @@ def _emit_row(
             if key < below_key:
                 below_key = key
                 below = line
-    cap = TRENDLINE_COUNT_AGE_CAP_V1
-    row[1] = min(float(above_count), cap)
-    row[9] = min(float(below_count), cap)
+    row[1] = float(above_count)
+    row[9] = float(below_count)
     if above is not None:
         row[0] = 1.0
         row[2] = above_key[0] / atr_t
         row[3] = above.slope / atr_t
-        row[4] = min(float(above.touch_count), cap)
-        row[5] = min(float(t - (above.anchor1_bar + swing_lookback)), cap)
-        row[6] = min(float(t - above.last_touch_bar), cap)
+        row[4] = float(above.touch_count)
+        row[5] = float(t - (above.anchor1_bar + swing_lookback))
+        row[6] = float(t - above.last_touch_bar)
         row[7] = above.max_dev_atr
     if below is not None:
         row[8] = 1.0
         row[10] = below_key[0] / atr_t
         row[11] = below.slope / atr_t
-        row[12] = min(float(below.touch_count), cap)
-        row[13] = min(float(t - (below.anchor1_bar + swing_lookback)), cap)
-        row[14] = min(float(t - below.last_touch_bar), cap)
+        row[12] = float(below.touch_count)
+        row[13] = float(t - (below.anchor1_bar + swing_lookback))
+        row[14] = float(t - below.last_touch_bar)
         row[15] = below.max_dev_atr
     row[16:26] = events
-    # V30 break memory (999 "no event yet" sentinel — the level-registry
-    # sibling convention).
-    row[26] = (
-        min(float(t - state.last_break_bar), cap)
-        if state.last_break_bar >= 0
-        else cap
-    )
+    row[26] = raw_event_age_from_last_observed_row(t, state.last_break_bar)
     row[27:33] = _channel_block(
         state,
         above,
@@ -964,16 +1025,18 @@ def compute_trendline_registry_features_v1(
     timeframe: str,
     seq_len: int,
     band_atr: float,
+    identity_expiry_bars: int,
     swing_lookback: int = SWING_LOOKBACK,
-    retest_window_bars: int = TRENDLINE_RETEST_WINDOW_BARS_V1,
     state: TrendlineRegistryStateV1 | None = None,
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
     atr_col: str = "atr",
     line_event_log: list | None = None,
+    candidate_deviation_log: list[float] | None = None,
+    candidate_observation_log: list[tuple] | None = None,
 ) -> tuple[pd.DataFrame, TrendlineRegistryStateV1]:
-    """Compute the 33-field trendline/channel registry block for one TF.
+    """Compute the declared trendline/channel registry block for one TF.
 
     Incremental and chunk-safe: pass the returned state to the next call on
     the next contiguous chunk; chunked output is exactly equal to one-shot
@@ -985,14 +1048,19 @@ def compute_trendline_registry_features_v1(
     entries for the forward-realized label producer
     (:func:`compute_trendline_touch_hold_labels_v1`); it never changes the
     emitted features.
+
+    ``candidate_deviation_log`` (optional) receives every candidate deviation
+    evaluated by the runtime population, before the inclusive promotion test.
+    It is an observation hook used by the TRAIN-only tolerance fitter and
+    parity tests; it cannot alter state or emitted values.
     """
     timeframe = _require_timeframe(timeframe)
     seq_len = _require_positive_int("SEQ_LEN", seq_len)
     band_atr = _require_band(band_atr)
-    swing_lookback = _require_positive_int("SWING_LOOKBACK", swing_lookback)
-    retest_window_bars = _require_positive_int(
-        "RETEST_WINDOW", retest_window_bars
+    identity_expiry_bars = _require_positive_int(
+        "IDENTITY_EXPIRY", identity_expiry_bars
     )
+    swing_lookback = _require_positive_int("SWING_LOOKBACK", swing_lookback)
     high, low, close, atr = _validated_arrays(
         df, high_col, low_col, close_col, atr_col
     )
@@ -1002,8 +1070,8 @@ def compute_trendline_registry_features_v1(
         timeframe,
         seq_len,
         band_atr,
+        identity_expiry_bars,
         swing_lookback,
-        retest_window_bars,
         high_col,
         low_col,
         close_col,
@@ -1040,6 +1108,11 @@ def compute_trendline_registry_features_v1(
     )
     for i in range(n_rows):
         t = state.bar_count
+        # Receptive-field pruning precedes every possible consumer.  Doing
+        # this only while ingesting a same-side pivot lets an expired
+        # candidate promote before its later prune and leaves stale
+        # opposite-side pivots visible to the parallel-channel route.
+        _prune_receptive_field_state(state, t=t, seq_len=seq_len)
         state.buf_high.append(float(high[i]))
         state.buf_low.append(float(low[i]))
         state.buf_atr.append(float(atr[i]))
@@ -1072,6 +1145,8 @@ def compute_trendline_registry_features_v1(
                         seq_len,
                         events,
                         line_log=line_event_log,
+                        candidate_deviation_log=candidate_deviation_log,
+                        candidate_observation_log=candidate_observation_log,
                     )
                 if sh_center:
                     _ingest_confirmed_pivot(
@@ -1085,6 +1160,8 @@ def compute_trendline_registry_features_v1(
                         seq_len,
                         events,
                         line_log=line_event_log,
+                        candidate_deviation_log=candidate_deviation_log,
+                        candidate_observation_log=candidate_observation_log,
                     )
         # (2) per-line bar update.
         if atr_ok:
@@ -1096,7 +1173,7 @@ def compute_trendline_registry_features_v1(
                 float(close[i]),
                 float(atr_t),
                 band_atr,
-                retest_window_bars,
+                identity_expiry_bars,
                 n,
                 seq_len,
                 events,
@@ -1145,9 +1222,9 @@ def compute_trendline_touch_hold_labels_v1(
     *,
     seq_len: int,
     band_atr: float,
+    identity_expiry_bars: int,
     horizon_bars: int,
     swing_lookback: int = SWING_LOOKBACK,
-    retest_window_bars: int = TRENDLINE_RETEST_WINDOW_BARS_V1,
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
@@ -1188,8 +1265,8 @@ def compute_trendline_touch_hold_labels_v1(
         timeframe="M5",
         seq_len=seq_len,
         band_atr=band_atr,
+        identity_expiry_bars=identity_expiry_bars,
         swing_lookback=swing_lookback,
-        retest_window_bars=retest_window_bars,
         high_col=high_col,
         low_col=low_col,
         close_col=close_col,
@@ -1197,15 +1274,15 @@ def compute_trendline_touch_hold_labels_v1(
         line_event_log=line_event_log,
     )
     n_rows = len(df)
-    break_bar_by_line: dict[int, int] = {}
+    break_bars_by_line: dict[int, list[int]] = {}
     touches_support: dict[int, list[int]] = {}
     touches_resistance: dict[int, list[int]] = {}
     for entry in line_event_log:
         if entry[0] == "break":
             _kind, bar, line_id = entry
-            # First break only (a line breaks once by construction).
-            if line_id not in break_bar_by_line:
-                break_bar_by_line[line_id] = int(bar)
+            # A held retest flips polarity and can make the same line identity
+            # ACTIVE again, so every lifecycle break must remain observable.
+            break_bars_by_line.setdefault(int(line_id), []).append(int(bar))
         else:
             _kind, bar, line_id, side, slope = entry
             if side == TRENDLINE_SIDE_SUPPORT and slope > 0.0:
@@ -1235,10 +1312,9 @@ def compute_trendline_touch_hold_labels_v1(
                 continue
             out[mask_name][bar] = 1.0
             held = all(
-                (
-                    line_id not in break_bar_by_line
-                    or break_bar_by_line[line_id] > bar + horizon
-                    or break_bar_by_line[line_id] <= bar
+                not any(
+                    bar < break_bar <= bar + horizon
+                    for break_bar in break_bars_by_line.get(line_id, ())
                 )
                 for line_id in line_ids
             )
@@ -1252,57 +1328,205 @@ def compute_trendline_touch_hold_labels_v1(
 # ---------------------------------------------------------------------------
 
 
-def fit_trendline_tolerance(
+def _collect_runtime_candidate_population(
+    *,
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+    atr: np.ndarray,
+    seq_len: int,
+    swing_lookback: int,
+) -> tuple[np.ndarray, dict[int, int], list[tuple]]:
+    """Replay the exact, band-independent runtime CANDIDATE lifecycle.
+
+    ACTIVE/BROKEN line evolution cannot affect candidate creation, pruning,
+    promotion, or violation death, so promoted lines are discarded after each
+    confirmation.  All candidate-affecting operations are delegated to the
+    same helpers used by :func:`compute_trendline_registry_features_v1`.
+    """
+
+    state = TrendlineRegistryStateV1(
+        config_key=("TRENDLINE_TOLERANCE_FIT_RUNTIME_POPULATION",)
+    )
+    n = swing_lookback
+    window = 2 * n + 1
+    deviations: list[float] = []
+    observations: list[tuple] = []
+    pivot_counts = {
+        TRENDLINE_SIDE_SUPPORT: 0,
+        TRENDLINE_SIDE_RESISTANCE: 0,
+    }
+    for t in range(len(high)):
+        _prune_receptive_field_state(state, t=t, seq_len=seq_len)
+        state.buf_high.append(float(high[t]))
+        state.buf_low.append(float(low[t]))
+        state.buf_atr.append(float(atr[t]))
+        if len(state.buf_high) > window:
+            del state.buf_high[0]
+            del state.buf_low[0]
+            del state.buf_atr[0]
+        if len(state.buf_high) == window:
+            pivot_bar = t - n
+            pivot_atr = state.buf_atr[n]
+            if math.isfinite(pivot_atr):
+                sh_center, sl_center = _confirmed_center_pivots(
+                    state.buf_high,
+                    state.buf_low,
+                    n,
+                )
+                events = np.zeros(_EV_COUNT, dtype=np.float64)
+                if sl_center:
+                    _ingest_confirmed_pivot(
+                        state,
+                        TRENDLINE_SIDE_SUPPORT,
+                        pivot_bar,
+                        state.buf_low[n],
+                        pivot_atr,
+                        t,
+                        0.0,
+                        seq_len,
+                        events,
+                        candidate_deviation_log=deviations,
+                        candidate_observation_log=observations,
+                    )
+                    pivot_counts[TRENDLINE_SIDE_SUPPORT] += 1
+                if sh_center:
+                    _ingest_confirmed_pivot(
+                        state,
+                        TRENDLINE_SIDE_RESISTANCE,
+                        pivot_bar,
+                        state.buf_high[n],
+                        pivot_atr,
+                        t,
+                        0.0,
+                        seq_len,
+                        events,
+                        candidate_deviation_log=deviations,
+                        candidate_observation_log=observations,
+                    )
+                    pivot_counts[TRENDLINE_SIDE_RESISTANCE] += 1
+                # Promoted ACTIVE lines have no feedback into the candidate
+                # population.  Dropping them avoids paying unrelated O(L)
+                # serve cost in a TRAIN statistic owner.
+                state.active_lines.clear()
+        if math.isfinite(atr[t]):
+            _discard_violated_candidates_for_bar(
+                state,
+                t=t,
+                close=float(close[t]),
+            )
+    return np.asarray(deviations, dtype=np.float64), pivot_counts, observations
+
+
+def collect_trendline_threshold_outcome_stream_v1(
     df: pd.DataFrame,
     *,
-    timeframe: str,
     seq_len: int,
     swing_lookback: int = SWING_LOOKBACK,
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
     atr_col: str = "atr",
-) -> dict:
-    """Fit the per-TF tolerance band on a declared TRAIN window.
+) -> RegistryOutcomeStreamV1:
+    """Build the threshold-independent TRAIN outcome population.
 
-    Validation is temporarily defined by deviation *ranking* — no threshold:
-    every candidate line (each ordered same-side pivot pair) contributes the
-    |deviation|/ATR of its first subsequent same-side confirmed pivot,
-    measured at that pivot's own bar with that bar's ATR.  The band is the
-    median over the complete candidate population (rule 2f: complete
-    population, N reported).  Candidate creation, the confirmation lag, the
-    ATR-availability rule and window pruning are identical to serve; the
-    band-free candidate population deliberately has no violation-death
-    (threshold-free by construction, design B.1).
+    Each two-anchor candidate receives exactly one observation when the next
+    same-side confirmed pivot tests it.  Its distance is already available on
+    that closed confirmation bar.  Starting on the following bar, the first
+    exact geometric event is recorded:
 
-    ``implied_validation_rate`` (published 2026-08-13,
-    ``docs/INDICATOR_FIDELITY_AUDIT_20260813.md`` §0b) is the fraction of that
-    measured population whose deviation is ``<= band_atr`` — i.e. the share of
-    *arbitrary* 2-pivot pairs that the fitted band promotes to a validated
-    3-touch line at serve.  Because the band is the median of exactly this
-    population, the value is ~0.5 by construction: the "3rd touch" test carries
-    almost no information, since half of all random pairs pass it.  Measured
-    on the sealed V29J TRAIN rows (n=369,303, 2026-08-13, audit "STEP-0
-    MEASUREMENTS" section): a line
-    touch fires on 29.85% of rows — one per ~3.4 bars — and
-    ``geomline_max_dev_atr`` saturates exactly at the fitted band.  Nothing is
-    inferred from that number here and no threshold is invented to move it —
-    it is published so the degeneracy is visible in every frozen constants
-    manifest instead of provable only from source, and so a future statistic
-    decision has the measured rate to choose against (rule 2d/2e, rule 25a).
+    * support: ``close < projection`` is BREAK; a whole bar strictly above
+      the projection (``low > projection``) is REACTION;
+    * resistance: the exact mirror.
 
-    Conditioning the population on "pairs that became lines" (so the fit would
-    measure real trendlines instead of the null) is NOT implementable without
-    inventing a constant: at serve a pair *becomes* a line exactly when a third
-    pivot lands within the band, so selecting that subpopulation requires the
-    band that this function is fitting.  The circularity is stated rather than
-    broken by a guessed pre-filter.
-
-    Returns a frozen provenance payload; the caller freezes ``band_atr`` as
-    immutable bundle state (rule 18) and passes it to
-    :func:`compute_trendline_registry_features_v1`.  This function never
-    writes anything.
+    These zero-width boundaries are algebraic properties of the candidate
+    line, not fitted thresholds.  An unresolved observation is right-censored
+    at the declared TRAIN end.  The future event rows are consumed only by the
+    TRAIN hyperparameter fitter and never by feature computation.
     """
+
+    seq_len = _require_positive_int("SEQ_LEN", seq_len)
+    swing_lookback = _require_positive_int("SWING_LOOKBACK", swing_lookback)
+    high, low, close, atr = _validated_arrays(
+        df, high_col, low_col, close_col, atr_col
+    )
+    _require_increasing_index(df)
+    _sample, _pivot_counts, observations = _collect_runtime_candidate_population(
+        high=high,
+        low=low,
+        close=close,
+        atr=atr,
+        seq_len=seq_len,
+        swing_lookback=swing_lookback,
+    )
+    resolved: list[tuple[int, float, int, str, int]] = []
+    for origin, line_id, side, slope, intercept, deviation in observations:
+        if int(origin) >= len(df) - 1:
+            continue
+        event_row = -1
+        event_cause = REGISTRY_OUTCOME_REACTION
+        for row in range(int(origin) + 1, len(df)):
+            projection = float(intercept) + float(slope) * float(row)
+            if side == TRENDLINE_SIDE_SUPPORT:
+                if float(close[row]) < projection:
+                    event_row = row
+                    event_cause = REGISTRY_OUTCOME_BREAK
+                    break
+                if float(low[row]) > projection:
+                    event_row = row
+                    event_cause = REGISTRY_OUTCOME_REACTION
+                    break
+            else:
+                if float(close[row]) > projection:
+                    event_row = row
+                    event_cause = REGISTRY_OUTCOME_BREAK
+                    break
+                if float(high[row]) < projection:
+                    event_row = row
+                    event_cause = REGISTRY_OUTCOME_REACTION
+                    break
+        resolved.append(
+            (
+                int(origin),
+                float(deviation),
+                int(event_row),
+                event_cause,
+                int(line_id),
+            )
+        )
+    # Generic fit population order is (origin, distance, identity).  Sorting
+    # here makes chunk/replay equality independent of candidate-array layout.
+    resolved.sort(key=lambda item: (item[0], item[1], item[4]))
+    return RegistryOutcomeStreamV1(
+        origin_row=np.asarray([item[0] for item in resolved], dtype=np.int64),
+        distance_atr=np.asarray([item[1] for item in resolved], dtype=np.float64),
+        event_row=np.asarray([item[2] for item in resolved], dtype=np.int64),
+        event_cause=tuple(item[3] for item in resolved),
+    )
+
+
+def fit_trendline_registry_hyperparameters_v1(
+    df: pd.DataFrame,
+    *,
+    timeframe: str,
+    seq_len: int,
+    inner_fit_end_exclusive: int,
+    source_provenance: Mapping[str, Any],
+    swing_lookback: int = SWING_LOOKBACK,
+    high_col: str = "high",
+    low_col: str = "low",
+    close_col: str = "close",
+    atr_col: str = "atr",
+) -> dict[str, Any]:
+    """Fit band + event-time lifecycle on chronological inner-TRAIN.
+
+    This owner has no median or other operator-selected quantile. It evaluates
+    every exact empirical candidate
+    distance through the shared competing-risk likelihood contract.  The
+    returned payload is the artifact payload; callers must write/load it
+    through ``registry_hyperparameter_fit_v1`` before apply.
+    """
+
     timeframe = _require_timeframe(timeframe)
     seq_len = _require_positive_int("SEQ_LEN", seq_len)
     swing_lookback = _require_positive_int("SWING_LOOKBACK", swing_lookback)
@@ -1310,103 +1534,51 @@ def fit_trendline_tolerance(
         df, high_col, low_col, close_col, atr_col
     )
     _require_increasing_index(df)
-
-    n = swing_lookback
-    window = 2 * n + 1
-    buf_high: list = []
-    buf_low: list = []
-    buf_atr: list = []
-    stores = {TRENDLINE_SIDE_SUPPORT: [], TRENDLINE_SIDE_RESISTANCE: []}
-    candidates = {TRENDLINE_SIDE_SUPPORT: [], TRENDLINE_SIDE_RESISTANCE: []}
-    pivot_counts = {TRENDLINE_SIDE_SUPPORT: 0, TRENDLINE_SIDE_RESISTANCE: 0}
-    deviations: list = []
-    for t in range(len(df)):
-        buf_high.append(float(high[t]))
-        buf_low.append(float(low[t]))
-        buf_atr.append(float(atr[t]))
-        if len(buf_high) > window:
-            del buf_high[0]
-            del buf_low[0]
-            del buf_atr[0]
-        if len(buf_high) < window:
-            continue
-        pivot_bar = t - n
-        pivot_atr = buf_atr[n]
-        if not math.isfinite(pivot_atr):
-            continue
-        sh_center, sl_center = _confirmed_center_pivots(buf_high, buf_low, n)
-        confirmed = []
-        if sl_center:
-            confirmed.append((TRENDLINE_SIDE_SUPPORT, buf_low[n]))
-        if sh_center:
-            confirmed.append((TRENDLINE_SIDE_RESISTANCE, buf_high[n]))
-        for side, pivot_price in confirmed:
-            # (1) every open candidate of this side records its deviation.
-            for a1_bar, a1_price, a2_bar, a2_price in candidates[side]:
-                slope = (a2_price - a1_price) / float(a2_bar - a1_bar)
-                projection = a1_price + slope * float(pivot_bar - a1_bar)
-                deviations.append(abs(pivot_price - projection) / pivot_atr)
-            candidates[side] = []
-            # (2) new candidates pairing this pivot with the stored pivots.
-            for anchor_bar, anchor_price in stores[side]:
-                candidates[side].append(
-                    (anchor_bar, anchor_price, pivot_bar, float(pivot_price))
-                )
-            # (3) prune by window, then admit the pivot.
-            stores[side] = [
-                (b, p) for (b, p) in stores[side] if t - b < seq_len
-            ]
-            candidates[side] = [
-                c for c in candidates[side] if t - c[0] < seq_len
-            ]
-            stores[side].append((pivot_bar, float(pivot_price)))
-            pivot_counts[side] += 1
-
-    if not deviations:
-        raise RuntimeError(
-            "[TRENDLINE_TOLERANCE_FIT_EMPTY] no candidate deviations on the "
-            "declared window"
-        )
-    sample = np.asarray(deviations, dtype=np.float64)
-    band = float(np.median(sample))
-    if not math.isfinite(band) or band <= 0.0:
-        raise RuntimeError(
-            f"[TRENDLINE_TOLERANCE_DEGENERATE] median deviation {band!r} "
-            "cannot define a tolerance band"
-        )
-    # Share of the measured null population the fitted band admits (docstring).
-    implied_validation_rate = float(np.mean(sample <= band))
-    payload: dict = {
-        "schema_version": TRENDLINE_TOLERANCE_SCHEMA_VERSION_V1,
-        "contract": TRENDLINE_REGISTRY_CONTRACT_V1,
-        "timeframe": timeframe,
-        "statistic": "median_abs_first_subsequent_pivot_deviation_atr",
-        "population": (
-            "complete declared window; every candidate line's first "
-            "subsequent same-side confirmed pivot"
-        ),
-        "band_atr": band,
-        "n_candidates_measured": len(deviations),
-        "implied_validation_rate": implied_validation_rate,
-        "implied_validation_rate_definition": (
-            "fraction of the measured candidate population with "
-            "deviation <= band_atr; the share of arbitrary 2-pivot pairs the "
-            "band promotes to a 3-touch validated line at serve"
-        ),
-        "n_support_pivots": pivot_counts[TRENDLINE_SIDE_SUPPORT],
-        "n_resistance_pivots": pivot_counts[TRENDLINE_SIDE_RESISTANCE],
-        "n_bars": int(len(df)),
-        "first_bar": str(df.index[0]),
-        "last_bar": str(df.index[-1]),
-        "seq_len": seq_len,
-        "swing_lookback": swing_lookback,
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise RuntimeError("[TRENDLINE_FIT_DATETIME_INDEX_REQUIRED]")
+    stream = collect_trendline_threshold_outcome_stream_v1(
+        df,
+        seq_len=seq_len,
+        swing_lookback=swing_lookback,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+    )
+    atr_available = np.isfinite(atr).astype(np.float64)
+    atr_bound = np.where(np.isfinite(atr), atr, 0.0)
+    payload = fit_registry_competing_risk_threshold_v1(
+        stream,
+        registry_kind="trendline",
+        clock=timeframe,
+        n_rows=len(df),
+        inner_fit_end_exclusive=inner_fit_end_exclusive,
+        index_ns=df.index.asi8,
+        frame_columns=(high, low, close, atr_bound, atr_available),
+        source_provenance=source_provenance,
+        population_configuration={
+            "owner": "trendline_exact_runtime_candidate_population_v1",
+            "seq_len": int(seq_len),
+            "swing_lookback": int(swing_lookback),
+        },
+    )
+    payload = dict(payload)
+    payload["population_configuration"] = {
+        **dict(payload["population_configuration"]),
+        "identity_expiry_bars": int(payload["learned_expiry_bars"]),
     }
+    without_hash = dict(payload)
+    without_hash.pop("contract_sha256")
     payload["contract_sha256"] = hashlib.sha256(
         json.dumps(
-            payload,
+            without_hash,
             sort_keys=True,
             separators=(",", ":"),
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
-    return payload
+    return require_registry_hyperparameter_payload_v1(
+        payload,
+        registry_kind="trendline",
+        clock=timeframe,
+    )

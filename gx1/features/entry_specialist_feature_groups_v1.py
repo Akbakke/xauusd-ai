@@ -21,26 +21,25 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
+    RETIRED_MODEL_NATIVE_SIGNAL_FIELDS,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.features.entry_chart_geometry_v1 import (
-    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
-)
 from gx1.features.entry_model_native_feature_layers_v1 import (
-    CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES,
+    CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES,
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
     LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
     PRICE_DERIVED_FEATURE_NAMES,
-    REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+    RAW_MTF_TREND_LAYER_FEATURE_NAMES,
+    SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
     SWING_EVENT_LAYER_FEATURE_NAMES,
     TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+    VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
 )
-from gx1.features.entry_session_regime_interactions_v1 import (
-    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
-)
+from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
 
@@ -92,7 +91,7 @@ SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
             "chart_geometry_encoder",
             {
                 "encoder": "chart_geometry_encoder",
-                "role": "Numeric trendlines, support/resistance channels, Fibonacci zones, EMA crosses and chart patterns.",
+                "role": "Identified trendlines, channels and level-registry geometry.",
             },
         ),
         (
@@ -113,13 +112,16 @@ MODEL_NATIVE_TRAINING_SPECIALISTS = tuple(SPECIALIST_GROUPS)
 # every emitted name to exactly one specialist and rejects older 6/8 surfaces
 # when explicit family×timeframe routing is requested.
 from gx1.features.htf_features import (  # noqa: E402
+    LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
     MULTI_TF_PER_BAR_FEATURES_V4,
-    MULTI_TF_V4_CANDLESTICK_FEATURES,
+    MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES,
     MULTI_TF_V4_LEVEL_REGISTRY_FEATURES,
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
     MULTI_TF_V4_SWING_FEATURES,
     MULTI_TF_V4_TREND_EVENT_FEATURES,
     MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES,
+    MULTI_TF_V4_VOLUME_FEATURES,
+    MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES,
 )
 from gx1.features.smc_v1 import (  # noqa: E402
     SMC_MTF_FEATURE_NAMES_V1,
@@ -127,7 +129,7 @@ from gx1.features.smc_v1 import (  # noqa: E402
 )
 
 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION = (
-    "entry_multi_tf_eight_family_specialist_routing_v1"
+    "entry_multi_tf_eight_family_specialist_routing_v8"
 )
 MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
     [
@@ -138,7 +140,7 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
         (
             "smc_liquidity_encoder",
             tuple(SMC_MTF_FEATURE_NAMES_V1)
-            # V29 Phase A: the per-TF pivot-cluster level-registry block
+            # V29 Phase A: the per-TF immutable pivot-anchor registry block
             # (design doc §1.4 routing: level identity/touch/break/retest is
             # liquidity-level evidence).
             + tuple(MULTI_TF_V4_LEVEL_REGISTRY_FEATURES),
@@ -154,11 +156,11 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "ema50_slope_atr",
                 "ema200_slope_atr",
                 "ema_stack_aligned_v2",
-                "adx_centered",
+                "adx14",
                 # V30 (2026-08-13): signed DI spread from the same _adx14
-                # producer as adx_centered — trend-direction evidence.
+                # producer as raw adx14 — trend-direction evidence.
                 "di_spread_signed",
-                "trend_age_bars_norm",
+                "trend_state_age_bars",
             )
             # V29 Phase A: EMA50/200 spread/state/cross events + price-vs-EMA
             # cross events and ages (trend_ema GAP-1/2/3).
@@ -169,7 +171,8 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
             (
                 "atr_bps_14",
                 "bb_width_atr",
-            ),
+            )
+            + tuple(MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES),
         ),
         (
             "momentum_flow_encoder",
@@ -184,12 +187,13 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
             )
             # V29 Phase A: RSI threshold/divergence and mom20 sign-flip
             # events (momentum_flow G1/G2).
-            + tuple(MULTI_TF_V4_MOMENTUM_EVENT_FEATURES),
+            + tuple(MULTI_TF_V4_MOMENTUM_EVENT_FEATURES)
+            # Raw tick-count activity on each TF's own closed OHLCV bars.
+            + tuple(MULTI_TF_V4_VOLUME_FEATURES),
         ),
         (
             "session_regime_encoder",
             (
-                "regime_class_id",
                 "vwap_local_cycle_dist_atr",
                 "vwap20_dist_atr",
                 "vwap96_dist_atr",
@@ -208,9 +212,7 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
             (
                 "close_open_atr",
                 "body_pct",
-                "upper_wick_pct",
-                "lower_wick_pct",
-                *MULTI_TF_V4_CANDLESTICK_FEATURES,
+                *MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES,
             ),
         ),
     ]
@@ -263,19 +265,13 @@ MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT = (
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
 )
 MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_SCHEMA_VERSION = (
-    "entry_model_native_context_specialist_routing_v1"
+    "entry_model_native_context_specialist_routing_v7"
 )
 MODEL_NATIVE_CONTEXT_TEMPORAL_ALIAS_POLICY_SCHEMA_VERSION = (
     "entry_model_native_context_temporal_alias_policy_v1"
 )
-MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS = (
-    "m5_regime_class_id_v2",
-    "m15_regime_class_id_v2",
-    "h1_regime_class_id_v2",
-    "h4_regime_class_id_v2",
-    "d1_regime_class_id_v2",
-)
-MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY = 5
+MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS: tuple[str, ...] = ()
+MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY = 0
 SPECIALIST_FUSION_ACTIVE_HEADS = (
     "direction",
     "tradable",
@@ -284,7 +280,6 @@ SPECIALIST_FUSION_ACTIVE_HEADS = (
     "bad_path",
     "clean_edge",
     "survival",
-    "tf_agreement",
     "path_quality_log_var",
     "position_size",
     "dip",
@@ -316,6 +311,14 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     # ownership to the volatility specialist.
     "ctx_cont.d1_dist_from_ema200_atr": "trend_ema_encoder",
     "d1_dist_from_ema200_atr": "trend_ema_encoder",
+    # Raw one-observation change in EMA200 distance is directional momentum;
+    # ATR only supplies the unit and must not route it to volatility.
+    "ctx_cont.d1_dist_change_1bar_atr_v4": "momentum_flow_encoder",
+    "d1_dist_change_1bar_atr_v4": "momentum_flow_encoder",
+    "ctx_cont.m15_ema5_20_spread_atr_canon_v2": "trend_ema_encoder",
+    "m15_ema5_20_spread_atr_canon_v2": "trend_ema_encoder",
+    "ctx_cont.h4_mid_ema50_dist_atr_canon_v2": "trend_ema_encoder",
+    "h4_mid_ema50_dist_atr_canon_v2": "trend_ema_encoder",
     # D1 close location inside the trailing 20-day range is range-location
     # structure evidence: the chart-geometry layer declares it as a source
     # field and consumes it as its D1 range-location input.  The trailing
@@ -324,9 +327,7 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     "ctx_cont.d1_close_pct_in_20day_range_canon_v2": "chart_geometry_encoder",
     "d1_close_pct_in_20day_range_canon_v2": "chart_geometry_encoder",
     "ctx_cont.spread_bps": "session_regime_encoder",
-    "ctx_cat.spread_bucket": "session_regime_encoder",
     "spread_bps": "session_regime_encoder",
-    "spread_bucket": "session_regime_encoder",
     # V30 package 4 (2026-08-13): the quote/spread-dynamics block joins its
     # level sibling ``spread_bps`` in the execution/session-regime specialist.
     # Two of the three names would reach that encoder through the broad
@@ -351,61 +352,12 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     "swing_low_level_intact": "structure_swing_encoder",
     "ctx_cont.swing_high_level_intact": "structure_swing_encoder",
     "ctx_cont.swing_low_level_intact": "structure_swing_encoder",
-    "ctx_cont.is_us_only": "session_regime_encoder",
-    "ctx_cont.is_eu_only": "session_regime_encoder",
-    "ctx_cont.is_asia_eu_overlap": "session_regime_encoder",
-    "ctx_cont.is_eu_us_overlap": "session_regime_encoder",
-    "is_us_only": "session_regime_encoder",
-    "is_eu_only": "session_regime_encoder",
-    "is_asia_eu_overlap": "session_regime_encoder",
-    "is_eu_us_overlap": "session_regime_encoder",
     "ctx_cat.session_id": "session_regime_encoder",
-    "ctx_cat.vol_regime_id": "session_regime_encoder",
-    "ctx_cont.m5_regime_class_id_v2": "session_regime_encoder",
-    "ctx_cont.m15_regime_class_id_v2": "session_regime_encoder",
-    "ctx_cont.h1_regime_class_id_v2": "session_regime_encoder",
-    "ctx_cont.h4_regime_class_id_v2": "session_regime_encoder",
-    "ctx_cont.d1_regime_class_id_v2": "session_regime_encoder",
-    "ctx_cont.regime_tf_agreement_v3": "session_regime_encoder",
-    "ctx_cont.regime_stack_sum_v3": "session_regime_encoder",
-    "ctx_cont.regime_divergence_flag_v3": "session_regime_encoder",
-    "ctx_cont.d1_dist_to_boundary_v3": "session_regime_encoder",
-    "ctx_cont.d1_regime_changed_flag_v3": "session_regime_encoder",
-    "ctx_cont.bars_since_d1_regime_change_v3": "session_regime_encoder",
     "session_id": "session_regime_encoder",
-    "vol_regime_id": "session_regime_encoder",
-    "m5_regime_class_id_v2": "session_regime_encoder",
-    "m15_regime_class_id_v2": "session_regime_encoder",
-    "h1_regime_class_id_v2": "session_regime_encoder",
-    "h4_regime_class_id_v2": "session_regime_encoder",
-    "d1_regime_class_id_v2": "session_regime_encoder",
-    "regime_tf_agreement_v3": "session_regime_encoder",
-    "regime_stack_sum_v3": "session_regime_encoder",
-    "regime_divergence_flag_v3": "session_regime_encoder",
-    "d1_dist_to_boundary_v3": "session_regime_encoder",
-    "d1_regime_changed_flag_v3": "session_regime_encoder",
-    "bars_since_d1_regime_change_v3": "session_regime_encoder",
-    "ctx_cat.atr_bucket": "vol_compression_encoder",
-    "atr_bucket": "vol_compression_encoder",
-    "ctx_cont.dip_proximity_h1_v3": "momentum_flow_encoder",
-    "ctx_cont.dip_proximity_h4_v3": "momentum_flow_encoder",
-    "ctx_cont.dip_proximity_d1_v3": "momentum_flow_encoder",
-    "ctx_cont.dip_proximity_mean_h1h4d1": "momentum_flow_encoder",
-    "dip_proximity_h1_v3": "momentum_flow_encoder",
-    "dip_proximity_h4_v3": "momentum_flow_encoder",
-    "dip_proximity_d1_v3": "momentum_flow_encoder",
-    "dip_proximity_mean_h1h4d1": "momentum_flow_encoder",
 }
 
 FOUNDATION_REQUIREMENT_PATTERNS = OrderedDict(
     [
-        (
-            "hh_hl_lh_ll",
-            {
-                "expected_specialist": "structure_swing_encoder",
-                "tokens": ("foundation_hh_state", "foundation_hl_state", "foundation_lh_state", "foundation_ll_state"),
-            },
-        ),
         (
             "bos_choch_age",
             {
@@ -413,45 +365,12 @@ FOUNDATION_REQUIREMENT_PATTERNS = OrderedDict(
                 "tokens": ("foundation_bos_", "foundation_choch_", "foundation_bars_since_structure_break"),
             },
         ),
-        (
-            "sweep_reclaim",
-            {
-                "expected_specialist": "smc_liquidity_encoder",
-                "tokens": ("foundation_sweep", "foundation_false_breakout"),
-            },
-        ),
-        (
-            "compression_expansion",
-            {
-                "expected_specialist": "vol_compression_encoder",
-                "tokens": ("foundation_compression", "foundation_expansion"),
-            },
-        ),
-        (
-            "impulse_pullback_phase",
-            {
-                "expected_specialist": "structure_swing_encoder",
-                "tokens": ("foundation_impulse", "foundation_pullback"),
-            },
-        ),
-        (
-            "session_x_structure",
-            {
-                "expected_specialist": "session_regime_encoder",
-                "tokens": ("foundation_asia_x_", "foundation_eu_x_", "foundation_us_x_", "foundation_overlap_x_"),
-            },
-        ),
     ]
 )
 
 FOUNDATION_OBJECTIVE_SPECIALISTS = OrderedDict(
     [
-        ("hh_hl_lh_ll", "structure_swing_encoder"),
         ("bos_choch_age", "structure_swing_encoder"),
-        ("sweep_reclaim_false_breakout", "smc_liquidity_encoder"),
-        ("compression_expansion", "vol_compression_encoder"),
-        ("impulse_pullback_phase", "structure_swing_encoder"),
-        ("session_x_structure", "session_regime_encoder"),
     ]
 )
 
@@ -461,7 +380,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
             "structure_swing_encoder",
             {
                 "model_role": "market_structure_sequence_ai",
-                "owned_objectives": ("hh_hl_lh_ll", "bos_choch_age", "impulse_pullback_phase"),
+                "owned_objectives": ("bos_choch_age",),
                 "primary_signal_families": (
                     "HH/HL/LH/LL state",
                     "BOS/CHoCH age",
@@ -476,7 +395,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
             "smc_liquidity_encoder",
             {
                 "model_role": "smc_liquidity_sequence_ai",
-                "owned_objectives": ("sweep_reclaim_false_breakout",),
+                "owned_objectives": (),
                 "primary_signal_families": (
                     "sweep reclaim",
                     "false breakout",
@@ -506,7 +425,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
             "vol_compression_encoder",
             {
                 "model_role": "volatility_regime_sequence_ai",
-                "owned_objectives": ("compression_expansion",),
+                "owned_objectives": (),
                 "primary_signal_families": (
                     "ATR percentile",
                     "range compression",
@@ -536,7 +455,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
             "session_regime_encoder",
             {
                 "model_role": "session_regime_sequence_ai",
-                "owned_objectives": ("session_x_structure",),
+                "owned_objectives": (),
                 "primary_signal_families": (
                     "Asia/EU/US/overlap",
                     "session boundary",
@@ -550,14 +469,14 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
         (
             "chart_geometry_encoder",
             {
-                "model_role": "chart_geometry_line_fib_pattern_sequence_ai",
+                "model_role": "identified_chart_object_sequence_ai",
                 "owned_objectives": (),
                 "primary_signal_families": (
-                    "support/resistance line proximity",
-                    "trendline/channel break pressure",
-                    "Fibonacci retracement/extension zones",
-                    "EMA cross pressure",
-                    "triangle/flag/compression chart-pattern proxies",
+                    "identified support/resistance levels",
+                    "persistent trendline state",
+                    "line and level touch history",
+                    "break and retest events",
+                    "channel geometry",
                 ),
                 "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
@@ -565,15 +484,14 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
         (
             "price_action_candle_encoder",
             {
-                "model_role": "closed_bar_candlestick_pattern_sequence_ai",
+                "model_role": "raw_closed_bar_geometry_sequence_ai",
                 "owned_objectives": (),
                 "primary_signal_families": (
-                    "single-candle body/wick shape",
-                    "doji/indecision",
-                    "hammer/shooting-star rejection",
-                    "engulfing and two-candle reversal",
-                    "inside/outside bar compression and expansion",
-                    "three-candle continuation/reversal patterns",
+                    "signed body geometry",
+                    "upper/lower wick shares",
+                    "close location and zero-range identity",
+                    "open/close change versus previous bar",
+                    "high/low/range/body change versus previous bar",
                 ),
                 "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
@@ -586,141 +504,49 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
         (
             "foundation_cross_family_layer",
             {
-                "expected_feature_count": 57,
+                "expected_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
                 "expected_specialist_counts": {
-                    "structure_swing_encoder": 19,
-                    "smc_liquidity_encoder": 5,
-                    "vol_compression_encoder": 5,
-                    "session_regime_encoder": 28,
-                },
-                "owned_specialists": (
-                    "structure_swing_encoder",
-                    "smc_liquidity_encoder",
-                    "vol_compression_encoder",
-                    "session_regime_encoder",
-                ),
-                "purpose": (
-                    "Primitive HH/HL/LH/LL, BOS/CHoCH age, sweep/reclaim, "
-                    "compression-release, impulse/pullback and explicit "
-                    "session-by-structure evidence retained alongside its "
-                    "higher-order specialist derivations."
-                ),
-            },
-        ),
-        (
-            "trend_ema_smart_layer",
-            {
-                "expected_feature_count": 20,
-                "expected_specialist_counts": {"trend_ema_encoder": 20},
-                "owned_specialists": ("trend_ema_encoder",),
-                "purpose": "Trend/EMA stack, slope, inflection, exhaustion and MTF trend pressure.",
-            },
-        ),
-        (
-            "smc_liquidity_quality_layer",
-            {
-                "expected_feature_count": 24,
-                "expected_specialist_counts": {"smc_liquidity_encoder": 24},
-                "owned_specialists": ("smc_liquidity_encoder",),
-                "purpose": "Sweep/reclaim, false-breakout and premium/discount quality scoring.",
-            },
-        ),
-        (
-            "structure_swing_derivation_layer",
-            {
-                "expected_feature_count": 28,
-                "expected_specialist_counts": {"structure_swing_encoder": 28},
-                "owned_specialists": ("structure_swing_encoder",),
-                "purpose": "HH/HL/LH/LL consistency, swing-leg quality, BOS/CHoCH and pullback derivations.",
-            },
-        ),
-        (
-            "momentum_flow_smart_layer",
-            {
-                "expected_feature_count": 26,
-                "expected_specialist_counts": {"momentum_flow_encoder": 26},
-                "owned_specialists": ("momentum_flow_encoder",),
-                "purpose": "Vol-adjusted returns, impulse, follow-through and clean-edge momentum pressure.",
-            },
-        ),
-        (
-            "session_regime_interaction_layer",
-            {
-                # DERIVED from the mandatory subset tuple, not a restated
-                # literal (rule 13), the same way the chart-geometry, candle and
-                # price-EMA entries below already derive theirs.  V30 package 8B
-                # (2026-08-13) demoted this family's pre-fused session products
-                # to the TRAIN-ranked candidate pool: it is still produced in
-                # full, but only the measured-genuine primitives are pinned.
-                "expected_feature_count": len(
-                    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES
-                ),
-                "expected_specialist_counts": {
-                    "session_regime_encoder": len(
-                        SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES
-                    )
-                },
-                "owned_specialists": ("session_regime_encoder",),
-                "purpose": "Session age/boundaries, regime agreement and session x structure/liquidity interactions.",
-            },
-        ),
-        (
-            "vol_compression_smart_layer",
-            {
-                "expected_feature_count": 28,
-                "expected_specialist_counts": {"vol_compression_encoder": 28},
-                "owned_specialists": ("vol_compression_encoder",),
-                "purpose": "ATR percentile, squeeze state, compression-release and volatility forecast confidence.",
-            },
-        ),
-        (
-            "chart_geometry_smart2_layer",
-            {
-                # V30 package 7 (2026-08-13): counts DERIVED from the owner
-                # tuple (prefer derive-from-owner over a restated literal —
-                # rule 13).  The pinned set fell 18 -> 2 when the NAME-ONLY
-                # rail/channel/retest/Fibonacci composites were removed from
-                # entry_chart_geometry_v1.
-                "expected_feature_count": len(
-                    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
-                ),
-                "expected_specialist_counts": {
-                    "chart_geometry_encoder": len(
-                        CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+                    "structure_swing_encoder": len(
+                        FOUNDATION_STRUCTURE_FEATURE_NAMES
                     ),
                 },
-                "owned_specialists": ("chart_geometry_encoder",),
-                "purpose": "Mandatory structural-label and pretrain-polarity sided support/resistance line-proximity inputs.",
+                "owned_specialists": ("structure_swing_encoder",),
+                "purpose": (
+                    "Exact stateful local BOS-up, BOS-down and CHOCH ages; "
+                    "all former foundation scorebooks are retired."
+                ),
             },
         ),
         (
-            "price_action_candle_smart3_layer",
+            "raw_mtf_trend_layer",
             {
-                # V30 package 7 (2026-08-13): counts DERIVED from the same
-                # smart3 suffix the mandatory registry uses, so the guard can
-                # never describe a block the owner did not emit (rule 13).  The
-                # suffix fell 32 -> 31 when `candle.pattern_close_pressure_signed`
-                # (an exact affine duplicate of `candle.pattern_close_location`)
-                # was removed and the marker was re-anchored.
+                "expected_feature_count": len(RAW_MTF_TREND_LAYER_FEATURE_NAMES),
+                "expected_specialist_counts": {
+                    "trend_ema_encoder": len(RAW_MTF_TREND_LAYER_FEATURE_NAMES)
+                },
+                "owned_specialists": ("trend_ema_encoder",),
+                "purpose": (
+                    "Raw M15/H1/H4/D1 trend direction evidence; independently "
+                    "computed per closed timeframe with no hand-weighted score."
+                ),
+            },
+        ),
+        (
+            "price_action_candle_raw_layer",
+            {
                 "expected_feature_count": len(
-                    CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES
+                    CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES
                 ),
                 "expected_specialist_counts": {
                     "price_action_candle_encoder": len(
-                        CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES
+                        CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES
                     ),
                 },
                 "owned_specialists": ("price_action_candle_encoder",),
-                "purpose": "Closed-bar candle body/wick/reversal/continuation pattern fields.",
-            },
-        ),
-        (
-            "support_resistance_memory_layer",
-            {
-                "expected_feature_count": 34,
-                "expected_specialist_counts": {"smc_liquidity_encoder": 34},
-                "owned_specialists": ("smc_liquidity_encoder",),
-                "purpose": "Support/resistance level memory, repeated tests, reclaim/break pressure and trap risk.",
+                "purpose": (
+                    "Raw closed-bar body/wick/location and one-bar relative "
+                    "geometry; the temporal model learns named patterns."
+                ),
             },
         ),
         (
@@ -758,9 +584,9 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 },
                 "owned_specialists": ("smc_liquidity_encoder",),
                 "purpose": (
-                    "Persistent pivot-cluster level identity: nearest "
+                    "Persistent immutable-pivot level identity: nearest "
                     "above/below slots, touch/reaction memory, break and "
-                    "signed retest events, round-number grid distances."
+                    "signed retest events."
                 ),
             },
         ),
@@ -813,26 +639,49 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 "owned_specialists": ("momentum_flow_encoder",),
                 "purpose": (
                     "RSI threshold crosses, extreme age, mom20 sign flips and "
-                    "confirmed-pivot RSI divergence events on the entry M5 "
-                    "clock (G1/G2)."
+                    "confirmed-pivot RSI divergence plus continuous momentum "
+                    "on the native M5 Entry or M1 Exit clock (G1/G2)."
                 ),
             },
         ),
         (
-            "regime_flip_event_layer",
+            "smc_local_event_layer",
             {
                 "expected_feature_count": len(
-                    REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES
+                    SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES
                 ),
                 "expected_specialist_counts": {
-                    "session_regime_encoder": len(
-                        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES
+                    "structure_swing_encoder": 1,
+                    "smc_liquidity_encoder": (
+                        len(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES) - 1
                     ),
                 },
-                "owned_specialists": ("session_regime_encoder",),
+                "owned_specialists": (
+                    "structure_swing_encoder",
+                    "smc_liquidity_encoder",
+                ),
                 "purpose": (
-                    "Per-TF regime-class flip flags and own-TF-bar flip ages "
-                    "for m5/m15/h1/h4 (session_regime G2; D1 exists as F8/F9)."
+                    "Native M5/M1 BOS displacement, sided sweep depth, "
+                    "and level-identity sweep events; raw sweep age/seen "
+                    "live in the canonical local SMC owner."
+                ),
+            },
+        ),
+        (
+            "volatility_squeeze_local_layer",
+            {
+                "expected_feature_count": len(
+                    VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "vol_compression_encoder": len(
+                        VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES
+                    ),
+                },
+                "owned_specialists": ("vol_compression_encoder",),
+                "purpose": (
+                    "TRAIN-fitted native-clock squeeze state, raw duration, "
+                    "one-shot release edge and release memory."
                 ),
             },
         ),
@@ -903,6 +752,13 @@ def _contains_any(name: str, tokens: Iterable[str]) -> bool:
 _PRICE_DERIVED_TREND_FIELDS = frozenset(
     _norm(field) for field in PRICE_DERIVED_FEATURE_NAMES
 )
+_BASIC_V1_TREND_FIELDS = frozenset(
+    {
+        "_v1_ema3_ema6_spread_frac",
+        "_v1_kama30_change_5_atr",
+        "_v1_tema20_change_3_atr",
+    }
+)
 
 # The tick-volume family is declared PARTICIPATION evidence by its owner
 # (gx1.features.volume_features): surge detection, fast-vs-slow activity,
@@ -912,6 +768,15 @@ _PRICE_DERIVED_TREND_FIELDS = frozenset(
 # declared field set belongs to the momentum/flow owner.
 _VOLUME_PARTICIPATION_FIELDS = frozenset(
     _norm(field) for field in VOLUME_FEATURE_NAMES
+)
+_RETIRED_MODEL_NATIVE_SIGNAL_FIELDS = frozenset(
+    _norm(field) for field in RETIRED_MODEL_NATIVE_SIGNAL_FIELDS
+)
+_LOCAL_NATIVE_MOMENTUM_FIELDS = frozenset(
+    _norm(field) for field in LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES
+)
+_LOCAL_MICRO_STRUCTURE_FIELDS = frozenset(
+    _norm(field) for field in MICRO_FEATURE_NAMES_V1
 )
 
 
@@ -926,6 +791,8 @@ def classify_entry_specialist_feature(name: str) -> str:
 
     if bare in _FORBIDDEN_LEGACY_BRIDGE_FIELDS:
         return FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
+    if bare in _RETIRED_MODEL_NATIVE_SIGNAL_FIELDS:
+        return FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
     if n.startswith("momentum.flow_") or bare.startswith("momentum.flow_"):
         return "momentum_flow_encoder"
     if n in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
@@ -933,7 +800,7 @@ def classify_entry_specialist_feature(name: str) -> str:
     if bare in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
         return CONTEXT_FEATURE_SPECIALIST_OVERRIDES[bare]
 
-    if n.startswith("candle.pattern_") or bare.startswith("candle.pattern_"):
+    if n.startswith("candle.raw_") or bare.startswith("candle.raw_"):
         return "price_action_candle_encoder"
 
     # These eleven fields are one local-resolution EMA formula family.  Route
@@ -941,6 +808,18 @@ def classify_entry_specialist_feature(name: str) -> str:
     # ``spread`` as an EMA spread, not execution/session spread evidence.
     if n in _PRICE_DERIVED_TREND_FIELDS:
         return "trend_ema_encoder"
+    # Exact basic-v1 trend formulas. Their fidelity names expose either the
+    # fractional spread or ATR normalization; broad lexical routing would
+    # otherwise mistake ``spread`` for execution context and ``atr`` for a
+    # volatility target even though ATR is only the unit denominator.
+    if bare in _BASIC_V1_TREND_FIELDS:
+        return "trend_ema_encoder"
+    # The five local-price primitives form one exact micro/chart-geometry
+    # block. Route their declared names before lexical EMA/range/momentum
+    # matchers so one formula family cannot be split across specialists merely
+    # because its honest field names expose their units.
+    if bare in _LOCAL_MICRO_STRUCTURE_FIELDS:
+        return "chart_geometry_encoder"
 
     if n.startswith("chart.structure_swing_") or bare.startswith("structure_swing_"):
         return "structure_swing_encoder"
@@ -948,7 +827,6 @@ def classify_entry_specialist_feature(name: str) -> str:
     if _contains_any(
         n,
         (
-            "chart.geometry_",
             "geometry_",
             "fib_",
             "fibonacci",
@@ -959,7 +837,7 @@ def classify_entry_specialist_feature(name: str) -> str:
             "ema_cross",
             "line_pattern",
             # V29 trendline/channel registry emissions (design doc §2): the
-            # M5/513 lane carries them as chart.geomline_*/chart.geomchan_*.
+            # The local M5 lane carries them as chart.geomline_*/chart.geomchan_*.
             "geomline_",
             "geomchan_",
         ),
@@ -977,7 +855,6 @@ def classify_entry_specialist_feature(name: str) -> str:
             "foundation_overlap_x_",
             "session_regime.",
             "session_regime_",
-            "is_eu_only",
             "is_asia",
             "asia",
             "eu_x_",
@@ -987,7 +864,6 @@ def classify_entry_specialist_feature(name: str) -> str:
             "session_id",
             "hour_",
             "dow_",
-            "is_us_only",
             "spread",
             "regime",
             "dist_to_boundary",
@@ -1066,16 +942,13 @@ def classify_entry_specialist_feature(name: str) -> str:
     ):
         return "structure_swing_encoder"
 
-    # The whole declared tick-volume participation family (vol_z_20,
-    # vol_ratio_5_20, vol_pct_96, signed_vol_z_20) is order-flow evidence.
-    # Keep this before the generic "vol" matcher so the intended momentum
-    # owner is reachable; the substring rule additionally keeps any derived
-    # signed-participation interaction with the same owner.
+    # The three raw tick-volume activity primitives are flow evidence. Keep
+    # this exact owner set before the generic "vol" matcher; the retired
+    # signed-volume composite is rejected above rather than routed.
     if bare in _VOLUME_PARTICIPATION_FIELDS:
         return "momentum_flow_encoder"
-    if "signed_vol" in n:
+    if bare in _LOCAL_NATIVE_MOMENTUM_FIELDS:
         return "momentum_flow_encoder"
-
     if _contains_any(
         n,
         (
@@ -1088,6 +961,7 @@ def classify_entry_specialist_feature(name: str) -> str:
             "range_z",
             "squeeze",
             "bb_bandwidth",
+            "bandwidth",
             "sigma",
             "kurt",
         ),
@@ -1104,7 +978,6 @@ def classify_entry_specialist_feature(name: str) -> str:
             "slope",
             "pos_vs_ema",
             "price_vs_ema",
-            "tf_agreement",
         ),
     ):
         return "trend_ema_encoder"
@@ -1124,8 +997,7 @@ def classify_entry_specialist_feature(name: str) -> str:
             "pct_change",
             "dist_roc",
             # V29 momentum_flow G1 divergence events (bear/bull divergence and
-            # age; the session-owned regime_divergence_flag_v3 is routed by
-            # its explicit override/`regime` token before this rule).
+            # age).
             "divergence",
         ),
     ):
@@ -1158,7 +1030,7 @@ def _canonical_sha256(value: object) -> str:
 
 
 def model_native_context_specialist_routing_contract() -> dict[str, object]:
-    """Return the exact one-owner routing for all 142+5 context fields."""
+    """Return the exact one-owner routing for every declared context field."""
 
     ctx_cont_indices = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
     ctx_cat_indices = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
@@ -1224,7 +1096,7 @@ def model_native_context_specialist_routing_contract() -> dict[str, object]:
         "nominal_ctx_cont_cardinality": (
             MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY
         ),
-        "nominal_ctx_cont_representation": "learned_categorical_embedding",
+        "nominal_ctx_cont_representation": "none",
         "nominal_ctx_cont_hard_integer_domain_check": True,
         "nominal_ctx_cont_excluded_from_numeric_projection": True,
         "ctx_cat_domains": {

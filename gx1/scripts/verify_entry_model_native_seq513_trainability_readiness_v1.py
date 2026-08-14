@@ -24,6 +24,8 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CONTEXT_TAG,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
@@ -31,23 +33,21 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     TRAIN_WRAPPER_RELATIVE_PATH,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
-    DIRECTION_BALANCE_ENV_TEMPLATE as DIRECTION_BALANCE_ENV_TEMPLATE,
-    DIRECTION_BALANCE_ENV_KEYS,
-    DIRECTION_BALANCE_RECIPE_CONTRACT,
     DIRECTION_CONTEXT_SLICE_CONTRACT,
+    DIRECTION_DIAGNOSTIC_ENV_KEYS,
+    DIRECTION_DIAGNOSTIC_ENV_TEMPLATE,
+    DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
-    PATH_CALIBRATION_ENV_KEYS,
-    PATH_CALIBRATION_RECIPE_CONTRACT,
-    TAIL_DIRECTION_ENV_KEYS,
-    TAIL_DIRECTION_RECIPE_CONTRACT,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     READY_DECISION as POST_REBUILD_READY_DECISION,
     SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
+)
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -62,14 +62,8 @@ CONTRACT_MODE = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SIGNAL_DIM = MODEL_NATIVE_SIGNAL_DIM
 EXPECTED_SPECIALIST_COUNT = 8
 EXPECTED_CTX_TAG = MODEL_NATIVE_CONTEXT_TAG
-# V30 (2026-08-13): 164 = 142 + H4_range_compression_ratio (package 1) + the
-# 9 adopted swing V29 ctx fields + the 3 momentum-G3 raw-RSI canon scalars
-# (package 2) + the 3 quote/spread-dynamics fields (package 4) + the 6
-# emission-only swing additions of package 8A (two missing run counters, two
-# level-intact flags, two normalized swing ages); independent
-# cross-check literal against the derived contract tag/dim.
-EXPECTED_CTX_CONT_DIM = 164
-EXPECTED_CTX_CAT_DIM = 5
+EXPECTED_CTX_CONT_DIM = MODEL_NATIVE_CTX_CONT_DIM
+EXPECTED_CTX_CAT_DIM = MODEL_NATIVE_CTX_CAT_DIM
 READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
 BLOCKED_DECISION = "BLOCKED_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS"
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS"
@@ -210,44 +204,21 @@ def _future_train_contract(smoke_readiness: dict[str, Any]) -> dict[str, Any]:
     return contract if isinstance(contract, dict) else {}
 
 
-def _path_calibration_recipe_review(contract: dict[str, Any]) -> dict[str, Any]:
-    recipe = contract.get("path_calibration_recipe_contract")
-    recipe_exact = isinstance(recipe, dict) and recipe == PATH_CALIBRATION_RECIPE_CONTRACT
-    recipe_keys = set(contract.get("recipe_env_keys") or ())
-    recipe_keys_exact = recipe_keys == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-    required_rank_keys_present = {
-        "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT",
-        "ENTRY_PATH_QUALITY_RANK_WEIGHT",
-    }.issubset(recipe_keys)
-    argv = contract.get("wrapper_argv_template")
-    argv_text = " ".join(str(part) for part in argv) if isinstance(argv, list) else ""
-    argv_declares_recipe_audit = "--recipe-audit-json" in argv_text
-    return {
-        "ok": bool(
-            contract.get("requires_path_calibration_recipe_contract") is True
-            and recipe_exact
-            and recipe_keys_exact
-            and required_rank_keys_present
-            and argv_declares_recipe_audit
-        ),
-        "requires_path_calibration_recipe_contract": contract.get("requires_path_calibration_recipe_contract"),
-        "recipe_exact": recipe_exact,
-        "recipe_keys_exact": recipe_keys_exact,
-        "required_rank_keys_present": required_rank_keys_present,
-        "wrapper_argv_declares_recipe_audit": argv_declares_recipe_audit,
-        "expected_recipe": PATH_CALIBRATION_RECIPE_CONTRACT,
-        "observed_recipe": recipe,
-    }
-
-
-def _direction_balance_recipe_review(contract: dict[str, Any]) -> dict[str, Any]:
-    recipe = contract.get("direction_balance_recipe_contract")
-    recipe_exact = isinstance(recipe, dict) and recipe == DIRECTION_BALANCE_RECIPE_CONTRACT
-    recipe_keys = set(contract.get("recipe_env_keys") or ())
-    recipe_keys_exact = recipe_keys == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-    required_objective_keys_present = set(REQUIRED_POSITIVE_LOSS_WEIGHTS).issubset(
-        recipe_keys
+def _direction_diagnostic_recipe_review(
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    recipe = contract.get("direction_diagnostic_recipe_contract")
+    env_template = contract.get("direction_diagnostic_env_template")
+    recipe_exact = (
+        isinstance(recipe, dict)
+        and recipe == DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
     )
+    env_template_exact = (
+        isinstance(env_template, dict)
+        and env_template == DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+    )
+    recipe_keys = set(contract.get("recipe_env_keys") or ())
+    recipe_keys_exact = recipe_keys == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
     argv = contract.get("wrapper_argv_template")
     argv_text = " ".join(str(part) for part in argv) if isinstance(argv, list) else ""
     argv_declares_recipe_audit = "--recipe-audit-json" in argv_text
@@ -258,67 +229,45 @@ def _direction_balance_recipe_review(contract: dict[str, Any]) -> dict[str, Any]
     )
     return {
         "ok": bool(
-            contract.get("requires_direction_balance_recipe_contract") is True
+            contract.get(
+                "requires_direction_diagnostic_recipe_contract"
+            )
+            is True
             and recipe_exact
+            and env_template_exact
             and recipe_keys_exact
-            and required_objective_keys_present
             and argv_declares_recipe_audit
             and argv_uses_exact_wrapper
         ),
-        "requires_direction_balance_recipe_contract": contract.get("requires_direction_balance_recipe_contract"),
+        "requires_direction_diagnostic_recipe_contract": contract.get(
+            "requires_direction_diagnostic_recipe_contract"
+        ),
         "recipe_exact": recipe_exact,
+        "env_template_exact": env_template_exact,
         "recipe_keys_exact": recipe_keys_exact,
-        "required_objective_keys_present": required_objective_keys_present,
         "wrapper_argv_declares_recipe_audit": argv_declares_recipe_audit,
         "wrapper_argv_uses_exact_route": argv_uses_exact_wrapper,
-        "expected_recipe": DIRECTION_BALANCE_RECIPE_CONTRACT,
-        "observed_recipe": recipe,
-    }
-
-
-def _tail_direction_recipe_review(contract: dict[str, Any]) -> dict[str, Any]:
-    recipe = contract.get("tail_direction_recipe_contract")
-    recipe_exact = isinstance(recipe, dict) and recipe == TAIL_DIRECTION_RECIPE_CONTRACT
-    recipe_keys = set(contract.get("recipe_env_keys") or ())
-    recipe_keys_exact = recipe_keys == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-    argv = contract.get("wrapper_argv_template")
-    argv_text = " ".join(str(part) for part in argv) if isinstance(argv, list) else ""
-    argv_declares_recipe_audit = "--recipe-audit-json" in argv_text
-    return {
-        "ok": bool(
-            contract.get("requires_tail_direction_recipe_contract") is True
-            and recipe_exact
-            and recipe_keys_exact
-            and "ENTRY_TAIL_DIRECTION_CE_WEIGHT" in recipe_keys
-            and argv_declares_recipe_audit
-        ),
-        "requires_tail_direction_recipe_contract": contract.get("requires_tail_direction_recipe_contract"),
-        "recipe_exact": recipe_exact,
-        "recipe_keys_exact": recipe_keys_exact,
-        "wrapper_argv_declares_recipe_audit": argv_declares_recipe_audit,
-        "expected_recipe": TAIL_DIRECTION_RECIPE_CONTRACT,
+        "expected_recipe": DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT,
         "observed_recipe": recipe,
     }
 
 
 def _training_objective_future_review(contract: dict[str, Any]) -> dict[str, Any]:
     recipe_keys = set(contract.get("recipe_env_keys") or ())
-    required = set(contract.get("required_positive_loss_weights") or ())
+    tasks = set(contract.get("joint_task_names") or ())
     ok = bool(
         contract.get("recipe_audit_schema") == RECIPE_AUDIT_SCHEMA
         and contract.get("training_objective_schema") == TRAINING_OBJECTIVE_SCHEMA
         and contract.get("requires_exact_model_native_training_objective") is True
         and recipe_keys == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-        and required == set(REQUIRED_POSITIVE_LOSS_WEIGHTS)
-        and required.issubset(recipe_keys)
+        and tasks == set(JOINT_TASK_NAMES)
     )
     return {
         "ok": ok,
         "recipe_audit_schema": contract.get("recipe_audit_schema"),
         "training_objective_schema": contract.get("training_objective_schema"),
         "recipe_env_keys_exact": recipe_keys == set(MODEL_NATIVE_RECIPE_ENV_KEYS),
-        "required_positive_loss_weights_exact": required
-        == set(REQUIRED_POSITIVE_LOSS_WEIGHTS),
+        "joint_task_names_exact": tasks == set(JOINT_TASK_NAMES),
     }
 
 
@@ -391,43 +340,12 @@ def _wrapper_recipe_audit_review(text: str, required_env_keys: tuple[str, ...]) 
     }
 
 
-def _wrapper_path_calibration_env_review(text: str) -> dict[str, Any]:
+def _wrapper_direction_diagnostic_env_review(
+    text: str,
+) -> dict[str, Any]:
     return _wrapper_recipe_audit_review(
         text,
-        (
-            "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT",
-            "ENTRY_PATH_QUALITY_RANK_WEIGHT",
-        ),
-    )
-
-
-def _wrapper_direction_balance_env_review(text: str) -> dict[str, Any]:
-    return _wrapper_recipe_audit_review(
-        text,
-        (
-            "ENTRY_DIRECTION_CE_SCALE",
-            "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT",
-            "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT",
-            "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT",
-            "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT",
-            "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT",
-            "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
-            "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT",
-            "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT",
-            "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT",
-            "ENTRY_HIER_SIDE_VALIDITY_WEIGHT",
-            "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT",
-            "ENTRY_OFFLINE_RL_Q_WEIGHT",
-            "ENTRY_OFFLINE_RL_V_WEIGHT",
-            "ENTRY_OFFLINE_RL_RANK_WEIGHT",
-        ),
-    )
-
-
-def _wrapper_tail_direction_env_review(text: str) -> dict[str, Any]:
-    return _wrapper_recipe_audit_review(
-        text,
-        ("ENTRY_TAIL_DIRECTION_CE_WEIGHT",),
+        DIRECTION_DIAGNOSTIC_ENV_KEYS,
     )
 
 
@@ -645,17 +563,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         registry_training_allowed = specialist_contract_training_allowed_for_mode(CONTRACT_MODE)
     except Exception:
         registry_training_allowed = False
-    path_calibration_review = _path_calibration_recipe_review(future_train)
-    direction_balance_review = _direction_balance_recipe_review(future_train)
-    tail_direction_review = _tail_direction_recipe_review(future_train)
+    direction_diagnostic_review = (
+        _direction_diagnostic_recipe_review(future_train)
+    )
     training_objective_review = _training_objective_future_review(future_train)
     direction_context_slice_review = _direction_context_slice_review(future_train)
     canonical_direction_decision_review = _canonical_direction_decision_review(
         future_train
     )
-    train_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(train_wrapper_text)
-    train_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(train_wrapper_text)
-    train_wrapper_tail_direction_review = _wrapper_tail_direction_env_review(train_wrapper_text)
+    train_wrapper_direction_diagnostic_review = (
+        _wrapper_direction_diagnostic_env_review(
+            train_wrapper_text
+        )
+    )
 
     checks = [
         _check(
@@ -765,19 +685,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             _artifact_meta(train_wrapper),
         ),
         _check(
-            "canonical train wrapper exposes path calibration rank env",
-            bool(train_wrapper_path_calibration_review["ok"]),
-            train_wrapper_path_calibration_review,
-        ),
-        _check(
-            "canonical train wrapper exposes direction balance env",
-            bool(train_wrapper_direction_balance_review["ok"]),
-            train_wrapper_direction_balance_review,
-        ),
-        _check(
-            "canonical train wrapper exposes tail direction env",
-            bool(train_wrapper_tail_direction_review["ok"]),
-            train_wrapper_tail_direction_review,
+            "canonical train wrapper exposes diagnostic env",
+            bool(train_wrapper_direction_diagnostic_review["ok"]),
+            train_wrapper_direction_diagnostic_review,
         ),
         _check(
             "both model-native profiles use the canonical wrapper in control surface",
@@ -826,22 +736,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             future_train,
         ),
         _check(
-            "smart smoke future contract declares path calibration rank recipe",
-            bool(path_calibration_review["ok"]),
-            path_calibration_review,
+            "smart smoke future contract declares diagnostic and learned-task recipe",
+            bool(direction_diagnostic_review["ok"]),
+            direction_diagnostic_review,
         ),
         _check(
-            "smart smoke future contract declares direction balance recipe",
-            bool(direction_balance_review["ok"]),
-            direction_balance_review,
-        ),
-        _check(
-            "smart smoke future contract declares tail direction recipe",
-            bool(tail_direction_review["ok"]),
-            tail_direction_review,
-        ),
-        _check(
-            "smart smoke future contract declares exact positive training objective",
+            "smart smoke future contract declares learned joint objective",
             bool(training_objective_review["ok"]),
             training_objective_review,
         ),
@@ -856,19 +756,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             canonical_direction_decision_review,
         ),
         _check(
-            "trainer supports path calibration rank env",
-            all(key in trainer_text for key in PATH_CALIBRATION_ENV_KEYS),
-            {"required_env_keys": list(PATH_CALIBRATION_ENV_KEYS), "trainer_source": _artifact_meta(trainer_source)},
-        ),
-        _check(
-            "trainer supports direction balance env",
-            all(key in trainer_text for key in DIRECTION_BALANCE_ENV_KEYS),
-            {"required_env_keys": list(DIRECTION_BALANCE_ENV_KEYS), "trainer_source": _artifact_meta(trainer_source)},
-        ),
-        _check(
-            "trainer supports tail direction env",
-            all(key in trainer_text for key in TAIL_DIRECTION_ENV_KEYS),
-            {"required_env_keys": list(TAIL_DIRECTION_ENV_KEYS), "trainer_source": _artifact_meta(trainer_source)},
+            "trainer supports diagnostic env",
+            all(
+                key in trainer_text
+                for key in DIRECTION_DIAGNOSTIC_ENV_KEYS
+            ),
+            {
+                "required_env_keys": list(
+                    DIRECTION_DIAGNOSTIC_ENV_KEYS
+                ),
+                "trainer_source": _artifact_meta(trainer_source),
+            },
         ),
         _check(
             "candidate-readiness supports model-native seq513",

@@ -136,20 +136,20 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
     )
     runtime_declaration = runtime_report["prediction_evidence"]
     assert runtime_declaration["schema_version"] == (
-        "entry_candidate_model_direction_prediction_evidence_v7"
+        "entry_candidate_model_direction_prediction_evidence_v11"
     )
     assert runtime_declaration["evidence_stage"] == "runtime_authoritative"
     assert runtime_declaration["authoritative"] is True
     runtime_predictions = pd.read_parquet(runtime_declaration["path"])
     runtime_head = json.loads(runtime_predictions.iloc[0]["runtime_head_evidence_json"])
     assert runtime_head["runtime_evidence_schema_version"] == (
-        "entry_model_native_runtime_evidence_v7"
+        "entry_model_native_runtime_evidence_v11"
     )
     assert runtime_head["runtime_head_evidence_schema_version"] == (
-        "entry_model_native_runtime_head_evidence_v5"
+        "entry_model_native_runtime_head_evidence_v9"
     )
     assert runtime_head["model_policy"] == (
-        "xau_seq513_model_native_direction_argmax_v4"
+        "xau_seq513_model_native_direction_argmax_v7"
     )
     assert runtime_head["direction_calibration_temperature"] > 0.0
     assert "direction_calibration_bias" not in runtime_head

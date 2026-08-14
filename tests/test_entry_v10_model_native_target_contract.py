@@ -23,9 +23,6 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
     PRODUCTION_MTF_PER_TF_WINDOW_BARS,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
-from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
-)
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
@@ -99,13 +96,12 @@ def test_aux_path_regression_preserves_signed_forward_outcome_targets() -> None:
     values = torch.tensor([-10.0, 20.0, -30.0])
     positive_mask = torch.tensor([True, True, False])
 
-    scaled = trainer._signed_scaled_aux_regression_target(
+    raw = trainer._signed_aux_regression_target(
         values,
         positive_mask,
-        20.0,
     )
 
-    torch.testing.assert_close(scaled, torch.tensor([-0.5, 1.0]))
+    torch.testing.assert_close(raw, torch.tensor([-10.0, 20.0]))
 
 
 def test_mtf_direction_head_requires_the_canonical_loader_target_key() -> None:
@@ -142,55 +138,6 @@ def test_model_native_architecture_has_no_head_enable_config_surface() -> None:
     assert "train_entry_v10_ctx_depth_ladder.py" not in source
 
 
-def _valid_loss_weights() -> dict[str, float]:
-    return {
-        name: 1.0
-        for name in REQUIRED_POSITIVE_LOSS_WEIGHTS
-    }
-
-
-@pytest.mark.parametrize(
-    "weight_name",
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
-)
-def test_every_missing_model_native_active_loss_weight_fails(
-    weight_name: str,
-) -> None:
-    weights = _valid_loss_weights()
-    del weights[weight_name]
-
-    failures = trainer._model_native_active_loss_weight_failures(weights)
-
-    assert f"{weight_name}=missing" in failures
-
-
-@pytest.mark.parametrize(
-    "bad_value,expected",
-    [
-        (0.0, "expected >0"),
-        (-0.1, "expected >0"),
-        (float("nan"), "non-finite"),
-        (float("inf"), "non-finite"),
-        ("not-a-number", "non-numeric"),
-    ],
-)
-def test_model_native_active_loss_weights_reject_soft_pass_throughs(
-    bad_value: object,
-    expected: str,
-) -> None:
-    weights: dict[str, object] = _valid_loss_weights()
-    weight_name = REQUIRED_POSITIVE_LOSS_WEIGHTS[0]
-    weights[weight_name] = bad_value
-
-    failures = trainer._model_native_active_loss_weight_failures(weights)
-
-    assert any(weight_name in item and expected in item for item in failures)
-
-
-def test_model_native_active_loss_weight_contract_accepts_only_positive_surface() -> None:
-    assert trainer._model_native_active_loss_weight_failures(_valid_loss_weights()) == []
-
-
 def test_model_native_active_head_names_include_unified_exit_surface() -> None:
     heads = trainer._build_active_head_names()
 
@@ -221,32 +168,30 @@ def _valid_dip_forecast_batch(batch_size: int = 2) -> dict[str, torch.Tensor]:
     }
 
 
-def test_dip_forecast_loss_unconditionally_rejects_missing_head_and_target() -> None:
+def test_dip_forecast_task_losses_unconditionally_reject_missing_head_and_target() -> None:
     outputs = _valid_output_heads()
     batch = _valid_dip_forecast_batch()
 
     missing_head = dict(outputs)
     del missing_head["timing_pred"]
     with pytest.raises(RuntimeError, match="ACTIVE_HEAD_MISSING.*timing_pred"):
-        trainer.dip_forecast_loss(
+        trainer.dip_forecast_task_losses(
             missing_head,
             batch,
             torch.device("cpu"),
-            bps_scale=20.0,
         )
 
     missing_target = dict(batch)
     del missing_target["y_vol_fwd_K96"]
     with pytest.raises(RuntimeError, match="ACTIVE_HEAD_TARGET_MISSING.*y_vol_fwd_K96"):
-        trainer.dip_forecast_loss(
+        trainer.dip_forecast_task_losses(
             outputs,
             missing_target,
             torch.device("cpu"),
-            bps_scale=20.0,
         )
 
 
-def test_forward_bps_heads_share_one_explicit_model_unit_scale() -> None:
+def test_forward_bps_heads_use_raw_native_units() -> None:
     batch = {
         name: torch.full((2,), 40.0)
         for name in trainer._DIP_FORECAST_TARGET_COLS
@@ -254,28 +199,27 @@ def test_forward_bps_heads_share_one_explicit_model_unit_scale() -> None:
     for name in trainer._TIMING_TARGET_COLS:
         batch[name] = torch.full((2,), 0.5)
     outputs = {
-        "dip_pred": torch.full((2, 18), 2.0),
-        "forecast_pred": torch.full((2, 4), 2.0),
+        "dip_pred": torch.full((2, 18), 40.0),
+        "forecast_pred": torch.full((2, 4), 40.0),
         "timing_pred": torch.full((2, 12), 0.5),
-        "tail_risk_pred": torch.full((2, 6), 2.0),
-        "vol_forecast_pred": torch.full((2, 3), 2.0),
+        "tail_risk_pred": torch.full((2, 6), 40.0),
+        "vol_forecast_pred": torch.full((2, 3), 40.0),
     }
 
-    loss = trainer.dip_forecast_loss(
+    losses = trainer.dip_forecast_task_losses(
         outputs,
         batch,
         torch.device("cpu"),
-        bps_scale=20.0,
     )
 
-    assert float(loss.item()) == pytest.approx(0.0)
-    with pytest.raises(RuntimeError, match="FORWARD_AUX_BPS_SCALE_INVALID"):
-        trainer.dip_forecast_loss(
-            outputs,
-            batch,
-            torch.device("cpu"),
-            bps_scale=0.0,
-        )
+    assert set(losses) == {
+        "dip_bps",
+        "forecast_return_bps",
+        "dip_timing_fraction",
+        "tail_risk_bps",
+        "forward_volatility_bps",
+    }
+    assert all(float(loss.item()) == pytest.approx(0.0) for loss in losses.values())
 
 
 def test_direction_decision_contract_export_is_canonical_and_split_brain_safe() -> None:
@@ -407,16 +351,19 @@ def test_position_size_is_mandatory_and_has_no_trainer_disable_api() -> None:
     import inspect
 
     assert "enable_position_size_head" not in inspect.signature(trainer.run_train).parameters
-    assert "require_all_heads" not in inspect.signature(trainer.dip_forecast_loss).parameters
+    assert "require_all_heads" not in inspect.signature(trainer.dip_forecast_task_losses).parameters
     assert "strict_model_native_heads" not in inspect.signature(trainer.train_epoch).parameters
     assert "strict_model_native_heads" not in inspect.signature(trainer.validate).parameters
     source = TRAINER_PATH.read_text(encoding="utf-8")
     assert "strict_model_native_heads" not in source
     assert "require_all_heads" not in source
     assert "if position_size_logit is not None" not in source
-    assert "if tf_agreement_logit is not None" not in source
     heads = trainer._build_active_head_names()
     assert "position_size" in heads
+    assert "tf_agreement" not in heads
+    assert "position_size_logit" not in dict(
+        trainer.EXACT_EVIDENCE_FUSION_OUTPUTS
+    )
 
 
 def test_every_fused_evidence_head_is_required_during_train_and_validation() -> None:
@@ -437,8 +384,7 @@ def test_every_fused_evidence_head_is_required_during_train_and_validation() -> 
     ):
         assert retired_soft_branch not in source
 
-    with pytest.raises(RuntimeError, match="ACTIVE_HEAD_MISSING.*specialist_gate"):
-        trainer._specialist_gate_regularization({}, torch.device("cpu"))
+    assert not hasattr(trainer, "_specialist_gate_regularization")
 
 
 def test_cooperation_gate_epoch_health_requires_every_gate_family_live() -> None:
@@ -482,7 +428,62 @@ def test_cooperation_gate_epoch_health_requires_every_gate_family_live() -> None
     )
 
 
-def test_cooperation_gate_epoch_health_rejects_starved_specialist() -> None:
+def test_unified_exit_gate_health_covers_all_five_timeframes_and_features() -> None:
+    cooperation = trainer._new_cooperation_gate_epoch_accumulator(
+        trainer._UNIFIED_EXIT_COOPERATION_GATE_WIDTHS
+    )
+    features = trainer._new_feature_tf_gate_epoch_accumulator(
+        trainer._UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE
+    )
+    rows = 4
+    exit_out = {
+        f"exit_{name}": torch.full(
+            (rows, width),
+            1.0 / float(width),
+            dtype=torch.float32,
+        )
+        for name, width in trainer._UNIFIED_EXIT_COOPERATION_GATE_WIDTHS.items()
+    }
+    exit_out["exit_family_tf_feature_gate"] = torch.stack(
+        [
+            torch.full(
+                trainer._UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE,
+                0.95 + 0.03 * row,
+                dtype=torch.float32,
+            )
+            for row in range(rows)
+        ]
+    )
+    gate_view = trainer._unified_exit_gate_view(exit_out)
+    trainer._accumulate_cooperation_gate_epoch(
+        cooperation,
+        gate_view,
+        gate_widths=trainer._UNIFIED_EXIT_COOPERATION_GATE_WIDTHS,
+    )
+    trainer._accumulate_feature_tf_gate_epoch(
+        features,
+        gate_view,
+        gate_shape=trainer._UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE,
+    )
+    stats, failures = trainer._finalize_unified_exit_gate_epoch(
+        cooperation,
+        features,
+    )
+
+    assert failures == []
+    assert stats["exit_cooperation_gate_health_ok"] is True
+    assert stats["exit_tf_gate_rows"] == rows
+    assert len(stats["exit_tf_gate_mean_weight"]) == 5
+    assert len(stats["exit_family_tf_cooperation_gate_mean_weight"]) == 40
+    assert len(stats["exit_family_tf_feature_gate_std_weight"]) == (
+        5 * trainer.MULTI_TF_FEATURE_COUNT_V4
+    )
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    assert "_unified_exit_gate_view(exit_out)" in source
+    assert "exit_cooperation_gate_health_ok=(" in source
+
+
+def test_cooperation_gate_epoch_health_uses_empirical_liveness_not_target_share() -> None:
     accumulator = trainer._new_cooperation_gate_epoch_accumulator()
     out = {
         name: torch.full((3, width), 1.0 / float(width), dtype=torch.float32)
@@ -512,12 +513,24 @@ def test_cooperation_gate_epoch_health_rejects_starved_specialist() -> None:
         trainer._finalize_feature_tf_gate_epoch(feature_accumulator)
     )
 
-    failures = trainer._cooperation_gate_health_failures(stats)
-    assert any(
-        "specialist_gate min mean=0.001000" in failure
-        for failure in failures
+    # A small but genuinely observed routing share is live.  Admission must not
+    # encode a hand-written target distribution for learned gate weights.
+    assert trainer._cooperation_gate_health_failures(stats) == []
+
+    exactly_starved = dict(stats)
+    exactly_starved["specialist_gate_mean_weight"] = [
+        0.0,
+        *([1.0 / 7.0] * 7),
+    ]
+    exactly_starved["specialist_gate_min_mean"] = 0.0
+    exactly_starved_failures = trainer._cooperation_gate_health_failures(
+        exactly_starved
     )
-    # A starved cooperation gate must block candidate checkpoint admission.
+    assert any(
+        "specialist_gate min mean=0.000000" in failure
+        for failure in exactly_starved_failures
+    )
+    # Exact starvation must block candidate checkpoint admission.
     # At smoke it stays a logged diagnostic by user vedtak 2026-07-25; the
     # complete profile matrix lives in
     # tests/test_entry_profile_separated_checkpoint_admission.py.
@@ -527,6 +540,7 @@ def test_cooperation_gate_epoch_health_rejects_starved_specialist() -> None:
             aux_head_health_ok=True,
             active_head_health_ok=True,
             cooperation_gate_health_ok=False,
+            exit_cooperation_gate_health_ok=True,
             class_support_ok=True,
         )
         is False

@@ -271,6 +271,59 @@ def _broker_account_binding(
     }
 
 
+def test_entry_intent_identity_binds_complete_model_bundle_binding() -> None:
+    from gx1.execution import v12_paper_runner as runner
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CONTRACT_MODE,
+    )
+    from gx1.execution.v12_trade_state import (
+        TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION,
+    )
+
+    model_binding = {
+        "schema_version": TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION,
+        "bundle_dir": "/immutable/unit/bundle",
+        "bundle_sha256": "b" * 64,
+        "input_normalization_sha256": "c" * 64,
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "operating_point": {"schema_version": "unit"},
+    }
+    common = {
+        "side": "long",
+        "units": 1,
+        "decision_snapshot": {
+            "decision_ts": "2026-08-14T10:00:00+00:00",
+            "model_direction": "LONG",
+        },
+        "sizing_application": {"units": 1},
+        "entry_source_pair_binding": {
+            "pair_generation_id": "d" * 64,
+            "pair_manifest_sha256": "e" * 64,
+        },
+        "broker_account_binding": _broker_account_binding(),
+        "launch_lease": {
+            "launch_state_sha256": "f" * 64,
+            "artifact_registry_sha256": "1" * 64,
+        },
+        "created_utc": pd.Timestamp("2026-08-14T10:00:00Z"),
+    }
+    baseline = runner.build_broker_entry_intent(
+        model_bundle_binding=model_binding,
+        **common,
+    )
+    changed = runner.build_broker_entry_intent(
+        model_bundle_binding={
+            **model_binding,
+            "input_normalization_sha256": "2" * 64,
+        },
+        **common,
+    )
+
+    assert baseline["schema_version"] == "gx1_broker_entry_intent_v2"
+    assert baseline["identity_sha256"] != changed["identity_sha256"]
+    assert baseline["client_order_id"] != changed["client_order_id"]
+
+
 def test_runner_rejects_persisted_trade_from_other_broker_account() -> None:
     from gx1.execution import v12_paper_runner as runner
 
@@ -1366,6 +1419,7 @@ def test_raw_base28_rejects_missing_native_m1_field() -> None:
     ("volume", "error_code"),
     [
         (0.0, "PLUS5_VOLUME_INVALID"),
+        (10.5, "PLUS5_VOLUME_INVALID"),
         (np.nan, "PLUS5_SOURCE_NONFINITE"),
     ],
 )
@@ -1435,7 +1489,7 @@ def test_plus5_build_and_serve_delegate_to_identical_formula_owner() -> None:
             "high": close + 0.5,
             "low": close - 0.5,
             "close": close,
-            "volume": np.linspace(10.0, 100.0, n),
+            "volume": (10 + np.arange(n) % 91).astype(np.float64),
         }
     )
 

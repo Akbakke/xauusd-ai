@@ -4,7 +4,7 @@ This module owns population selection and artifact lineage only.  The
 normalization math and immutable schema remain owned by
 ``entry_model_native_input_normalization_v1``.  In particular:
 
-* the shared local 513 surface fits unique physical M5 and M1 rows once;
+* the shared local signal surface fits unique physical M5 and M1 rows once;
 * ctx_cont/ctx_cat fit Entry decisions plus unique Exit M1 decisions once;
 * current-bar signal/context aliases are derived from the routing contract,
   checked bit-for-bit, and inherit local-population statistics;
@@ -32,6 +32,7 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     EXPECTED_TFS,
     MatrixPopulationPart,
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
+    SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
     build_input_normalization_contract,
     fit_ctx_cat_contract,
     fit_surface_normalization,
@@ -62,11 +63,10 @@ from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
     MultiTFV4DiskCache,
     load_multi_tf_v4_cache,
-    require_multi_tf_v4_liveness_contract,
 )
 
 
-FIT_HELPER_SCHEMA_VERSION = "entry_v10_train_input_normalization_fit_v1"
+FIT_HELPER_SCHEMA_VERSION = "entry_v10_train_input_normalization_fit_v2_asinh"
 FIT_POPULATION_PROOF_SCHEMA_VERSION = (
     "entry_v10_train_input_normalization_population_proof_v1"
 )
@@ -105,6 +105,13 @@ MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29 = MODEL_NATIVE_MTF_CACHE_BINDING_KEYS | 
 # exact shape; a V29 binding must carry owner-valid constants.
 MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29 = frozenset(
     MODEL_NATIVE_MTF_CACHE_BINDING_KEYS | {"v29_registry_constants"}
+)
+# Current production binding: the cache also freezes the exact six-clock
+# TRAIN-fitted squeeze artifact-set binding. Historical V28/V29 shapes remain
+# readable only as their own immutable identities; new manifests require V30.
+MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30 = frozenset(
+    MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29
+    | {"volatility_squeeze_artifact_set"}
 )
 
 
@@ -238,12 +245,21 @@ def require_dataset_manifest_multi_tf_cache_binding(
     if not isinstance(raw, Mapping) or set(raw) not in (
         MODEL_NATIVE_MTF_CACHE_BINDING_KEYS,
         MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29,
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30,
     ):
         raise RuntimeError(f"[{context}_INVALID] exact cache binding is missing")
     if "v29_registry_constants" in raw:
         from gx1.features.htf_features import require_v29_registry_constants
 
         require_v29_registry_constants(raw["v29_registry_constants"])
+    if "volatility_squeeze_artifact_set" in raw:
+        from gx1.features.volatility_squeeze_state_v1 import (
+            require_volatility_squeeze_artifact_binding,
+        )
+
+        require_volatility_squeeze_artifact_binding(
+            raw["volatility_squeeze_artifact_set"]
+        )
     binding = {str(key): value for key, value in raw.items()}
     for field in (
         "manifest_sha256",
@@ -269,12 +285,21 @@ def require_multi_tf_v4_cache_binding_files(
     if not isinstance(binding, Mapping) or set(binding) not in (
         MODEL_NATIVE_MTF_CACHE_BINDING_KEYS,
         MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29,
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30,
     ):
         raise RuntimeError(f"[{context}_INVALID] exact cache binding schema mismatch")
     if "v29_registry_constants" in binding:
         from gx1.features.htf_features import require_v29_registry_constants
 
         require_v29_registry_constants(binding["v29_registry_constants"])
+    if "volatility_squeeze_artifact_set" in binding:
+        from gx1.features.volatility_squeeze_state_v1 import (
+            require_volatility_squeeze_artifact_binding,
+        )
+
+        require_volatility_squeeze_artifact_binding(
+            binding["volatility_squeeze_artifact_set"]
+        )
     data = {str(key): value for key, value in binding.items()}
     for field in (
         "manifest_sha256",
@@ -1045,7 +1070,6 @@ def select_shared_causal_mtf_fit_population(
         )
     _sel_count, _sel_names = resolve_mtf_per_bar_contract(source, tf=tf)
     ema_stack_index = list(_sel_names).index("ema_stack_aligned_v2")
-    regime_index = list(_sel_names).index("regime_class_id")
     for start in range(0, int(selected_indices.size), DEFAULT_ROW_CHUNK):
         block_indices = selected_indices[
             start : start + DEFAULT_ROW_CHUNK
@@ -1058,13 +1082,6 @@ def select_shared_causal_mtf_fit_population(
         if not np.isin(block[:, ema_stack_index], (-1.0, 0.0, 1.0)).all():
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_MTF_EMA_STACK_DOMAIN_INVALID] tf={tf}"
-            )
-        if not np.isin(
-            block[:, regime_index],
-            MTF_SEMANTIC_CATEGORICAL_DOMAINS["regime_class_id"],
-        ).all():
-            raise RuntimeError(
-                f"[ENTRY_INPUT_NORMALIZATION_MTF_REGIME_DOMAIN_INVALID] tf={tf}"
             )
 
     indices_hash = _hash_int64_indices(selected_indices, namespace=f"mtf:{tf}")
@@ -1471,13 +1488,7 @@ def fit_entry_v10_train_input_normalization(
         surface="signal",
         field_names=signal_names,
         row_count=local_row_count,
-        semantic_categorical_domains={
-            f"ctx_cont.{name}": domain
-            for name, domain in (
-                CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS.items()
-            )
-            if f"ctx_cont.{name}" in signal_names
-        },
+        semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
     )
     ctx_surface_raw = fit_surface_normalization(
         context_cont_parts,
@@ -1500,25 +1511,6 @@ def fit_entry_v10_train_input_normalization(
     }
     tf_windows: dict[str, dict[str, Any]] = {}
     tf_population_proofs: dict[str, dict[str, Any]] = {}
-    # Saturated presence masks admitted by the cache's own hash-bound
-    # liveness payload (v3): exactly those fields normalize by binary
-    # identity on TFs where they are constant 1.0 (measured saturation, see
-    # HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT). One truth: read from the
-    # same verified cache manifest the surfaces were loaded from.
-    _cache_manifest = _read_json_object(
-        Path(artifacts.mtf_cache_dir).expanduser() / "manifest.json",
-        label="mtf_cache_manifest",
-    )
-    _cache_liveness = require_multi_tf_v4_liveness_contract(
-        _cache_manifest.get("full_input_liveness")
-    )
-    _saturated_by_tf = {
-        tf: tuple(
-            _cache_liveness["timeframes"][tf].get("saturated_presence_masks")
-            or ()
-        )
-        for tf in EXPECTED_TFS
-    }
     for tf in EXPECTED_TFS:
         selected_population, window, selection_proof = (
             select_shared_causal_mtf_fit_population(
@@ -1539,7 +1531,6 @@ def fit_entry_v10_train_input_normalization(
             field_names=_fit_names,
             row_count=int(window["selected_unique_row_count"]),
             semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS,
-            saturated_presence_masks=_saturated_by_tf[tf],
         )
         tf_windows[tf] = window
         tf_population_proofs[tf] = selection_proof

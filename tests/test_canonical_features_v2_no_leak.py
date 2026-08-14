@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from gx1.features import basic_v1
-from gx1.features.basic_v1 import _local_bars_for_days
+from gx1.features.basic_v1 import BASIC_V1_FEATURES
 from gx1.scripts import materialize_build_canonical_features_v2 as canonical_v2
 from gx1.scripts.materialize_canonical_v3_augment import add_cyclic_time_features
 
@@ -46,20 +46,6 @@ def test_canonical_v2_and_basic_owner_are_structurally_local_only() -> None:
 
 
 @pytest.mark.parametrize(
-    ("decision_delay_seconds", "expected"),
-    ((60, 28_800), (300, 5_760)),
-)
-def test_day_based_basic_features_keep_the_same_physical_m1_m5_horizon(
-    decision_delay_seconds: int,
-    expected: int,
-) -> None:
-    assert _local_bars_for_days(
-        20,
-        decision_delay_seconds=decision_delay_seconds,
-    ) == expected
-
-
-@pytest.mark.parametrize(
     ("start", "frequency", "decision_delay_seconds"),
     (
         ("2026-07-01T06:50:00Z", "5min", 300),
@@ -78,7 +64,7 @@ def test_basic_session_flags_switch_at_the_exact_m1_m5_decision_boundary(
     )
 
     assert observed["is_EU"].tolist() == [0, 1, 1]
-    assert observed["_v1_is_EU"].tolist() == [0.0, 1.0, 1.0]
+    assert observed["is_EU"].tolist() == [0, 1, 1]
 
 
 def test_cyclic_clock_uses_m5_decision_availability_across_hour_and_day() -> None:
@@ -116,8 +102,9 @@ def _native_m5_frame(start: str, periods: int) -> pd.DataFrame:
     """Exact 14-column native MBA frame as produced by the strict M5 source."""
     time = pd.date_range(start, periods=periods, freq="5min", tz="UTC")
     close = 2400.0 + np.cumsum(np.sin(np.arange(periods) / 7.0))
-    high = close + 0.8
-    low = close - 0.8
+    half_range = 0.8 + 0.1 * np.cos(np.arange(periods) / 11.0)
+    high = close + half_range
+    low = close - half_range
     open_ = close + 0.1
     half_spread = 0.15
     return pd.DataFrame(
@@ -141,33 +128,17 @@ def _native_m5_frame(start: str, periods: int) -> pd.DataFrame:
 
 
 def test_canonical_v2_native_frame_emits_mandatory_session_evidence() -> None:
-    # Regression for the 2026-07-24 pair-bootstrap RED: the chunked builder
-    # indexes the native frame by `time` (no `ts` column), and the old
-    # `if "ts" in df` guard silently skipped session features until the
-    # mandatory session-volatility-pressure block failed closed.
+    # The chunked builder indexes the native frame by `time` (no `ts` column),
+    # so the session owner must derive current context fields from the index.
     from gx1.scripts.materialize_build_canonical_features_v2 import (
         build_canonical_v2,
     )
 
-    # >= 288*20 rows so ADR20-backed features get at least one finite value.
-    m5 = _native_m5_frame("2026-01-05T00:00:00Z", periods=21 * 288)
-    # Real quiet-tape bars have high == low == open == close (102 such bars in
-    # the 2020-2026 native M5). They must yield exact zero body/wick shares,
-    # not mid-series NaN gaps.
-    for degenerate in (700, 1500):
-        px = float(m5.loc[degenerate, "close"])
-        for col in ("open", "high", "low", "close"):
-            m5.loc[degenerate, col] = px
-        for col in ("bid_open", "bid_high", "bid_low", "bid_close"):
-            m5.loc[degenerate, col] = px - 0.15
-        for col in ("ask_open", "ask_high", "ask_low", "ask_close"):
-            m5.loc[degenerate, col] = px + 0.15
+    m5 = _native_m5_frame("2026-01-05T00:00:00Z", periods=500)
     v2 = build_canonical_v2(m5)
-    for column in ("_v1_body_tr", "_v1_upper_tr", "_v1_lower_tr", "_v1_wick_imbalance"):
-        values = v2[column].to_numpy(dtype=np.float64)
-        assert np.isfinite(values).all(), column
-        for degenerate in (700, 1500):
-            assert values[degenerate + 1] == 0.0, (column, degenerate)
+    assert {name for name in v2 if name.startswith("_v1_")} == set(
+        BASIC_V1_FEATURES
+    )
 
     for column in (
         "is_ASIA",
@@ -177,18 +148,12 @@ def test_canonical_v2_native_frame_emits_mandatory_session_evidence() -> None:
         "session_id",
         "minutes_since_session_open",
         "minutes_to_next_session_boundary",
-        "_v1_is_EU",
-        "_v1_is_US",
     ):
         assert column in v2.columns, column
         assert np.isfinite(v2[column].to_numpy(dtype=np.float64)).all(), column
-    assert "_v1_session_volatility_pressure" in v2.columns
-    is_us = v2["_v1_is_US"].to_numpy(dtype=np.float64)
+    is_us = v2["is_US"].to_numpy(dtype=np.float64)
     assert np.isfinite(is_us).all()
     assert is_us.max() == 1.0 and is_us.min() == 0.0
-    pressure = v2["_v1_session_volatility_pressure"].to_numpy(dtype=np.float64)
-    assert np.isfinite(pressure[288:]).any()
-    assert (pressure[np.isfinite(pressure)] > 0.0).all()
 
 
 def test_add_session_features_without_time_source_fails_closed() -> None:

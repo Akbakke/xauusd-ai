@@ -58,14 +58,11 @@ def _verified_v4_frames() -> dict[str, pd.DataFrame]:
         ]
         scalar = np.empty((rows, len(scalar_fields)), dtype=np.float32)
         for column, name in enumerate(scalar_fields):
-            if name == "H4_trend_sign_cat":
-                scalar[:, column] = np.arange(rows, dtype=np.float32) % 3.0
-            else:
-                scalar[:, column] = (
-                    offset
-                    + column * 1_000.0
-                    + np.arange(rows, dtype=np.float32)
-                )
+            scalar[:, column] = (
+                offset
+                + column * 1_000.0
+                + np.arange(rows, dtype=np.float32)
+            )
         frame.attrs["model_native_mtf_scalar_fields_v4"] = scalar_fields
         frame.attrs["model_native_mtf_scalars_np_v4"] = scalar
         frame.attrs["model_native_mtf_scalar_warmup_rows_v4"] = 0
@@ -76,24 +73,18 @@ def _verified_v4_frames() -> dict[str, pd.DataFrame]:
     return frames
 
 
-def test_model_native_mtf_fields_match_fixed_142_5_order_once() -> None:
+def test_model_native_mtf_fields_are_raw_continuous_and_ordered_once() -> None:
     continuous = tuple(
         name
         for name in MODEL_NATIVE_CTX_CONT_FIELDS
         if name in MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4
     )
-    expected_continuous = tuple(
-        name
-        for name in MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4
-        if name != "H4_trend_sign_cat"
-    )
+    expected_continuous = MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4
 
     assert continuous == expected_continuous
-    assert MODEL_NATIVE_CTX_CAT_FIELDS.count("H4_trend_sign_cat") == 1
-    # V30 (2026-08-13): 28 = 24 + H4_range_compression_ratio (package 1)
-    # + the three momentum-G3 raw-RSI canon scalars (package 2).
-    assert len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4) == 28
-    assert len(set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)) == 28
+    assert MODEL_NATIVE_CTX_CAT_FIELDS == ("session_id",)
+    assert len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4) == 25
+    assert len(set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)) == 25
 
 
 def test_m5_and_m1_projection_share_the_same_closed_v4_state() -> None:

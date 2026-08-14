@@ -24,6 +24,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_MAX_PATH_BARS,
+)
 from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS,
     ModelNativeSizingContractError,
@@ -37,19 +40,19 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v10"
+    "entry_model_native_joint_exit_sizing_proof_v12"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_unified_model_exit_head_to_exit_now_v10"
+    "full_candidate_test_exact_unified_model_exit_q_to_exit_now_v12"
 )
 CANONICAL_UNIFIED_REPLAY_PRODUCER_SCHEMA_VERSION = (
-    "canonical_unified_candidate_full_test_replay_producer_v4"
+    "canonical_unified_candidate_full_test_replay_producer_v5"
 )
 CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT = (
-    "same_candidate_bundle_unified_exit_full_test_owned_rows_v4"
+    "same_candidate_bundle_unified_exit_full_test_owned_rows_v5"
 )
 MODEL_NATIVE_UNIFIED_REPLAY_COST_POLICY_SCHEMA_VERSION = (
     "gx1_unified_replay_net_cost_policy_v1"
@@ -85,7 +88,6 @@ _CANONICAL_UNIFIED_REPLAY_PRODUCER_KEYS = frozenset(
         "failures",
         "source_tape",
         "prebuilt_pair",
-        "train_rank_reference",
         "runtime_predictions",
         "prediction_report_artifact",
         "prediction_provenance",
@@ -248,10 +250,10 @@ MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS = frozenset(
         "state_bid",
         "state_ask",
         "state_pnl_bps",
-        "exit_hold_logit",
-        "exit_now_logit",
-        "exit_hold_prob",
-        "exit_now_prob",
+        "exit_hold_q_bps",
+        "exit_now_q_bps",
+        "exit_hold_valid",
+        "exit_now_valid",
         "candidate_bundle_sha256",
         "entry_snapshot_sha256",
         "exit_path_envelope_sha256",
@@ -546,10 +548,10 @@ def joint_exit_trace_sha256(frame: pd.DataFrame, *, context: str) -> str:
                 "entry_snapshot_sha256": str(
                     row["entry_snapshot_sha256"]
                 ).lower(),
-                "exit_hold_logit": float(row["exit_hold_logit"]),
-                "exit_hold_prob": float(row["exit_hold_prob"]),
-                "exit_now_logit": float(row["exit_now_logit"]),
-                "exit_now_prob": float(row["exit_now_prob"]),
+                "exit_hold_q_bps": float(row["exit_hold_q_bps"]),
+                "exit_hold_valid": bool(row["exit_hold_valid"]),
+                "exit_now_q_bps": float(row["exit_now_q_bps"]),
+                "exit_now_valid": bool(row["exit_now_valid"]),
                 "exit_path_envelope_sha256": str(
                     row["exit_path_envelope_sha256"]
                 ).lower(),
@@ -806,21 +808,23 @@ def recompute_joint_exit_replay_coverage(
             or np.any(state_ask < state_bid)
         ):
             _fail(context, f"{reference_row_id} Exit trace prices are invalid")
-        logits = trace.loc[
-            :, ["exit_hold_logit", "exit_now_logit"]
+        q_values = trace.loc[
+            :, ["exit_hold_q_bps", "exit_now_q_bps"]
         ].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
-        probs = trace.loc[
-            :, ["exit_hold_prob", "exit_now_prob"]
-        ].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
-        shifted = logits - np.max(logits, axis=1, keepdims=True)
-        expected_probs = np.exp(shifted)
-        expected_probs /= expected_probs.sum(axis=1, keepdims=True)
+        valid = trace.loc[
+            :, ["exit_hold_valid", "exit_now_valid"]
+        ].to_numpy(dtype=np.bool_)
+        expected_valid = np.ones(q_values.shape, dtype=np.bool_)
+        expected_valid[:, 0] = trace["step"].to_numpy(dtype=np.int64) < UNIFIED_EXIT_MAX_PATH_BARS
+        masked_q = np.where(valid, q_values, -np.inf)
+        predicted_tie = valid.all(axis=1) & (q_values[:, 0] == q_values[:, 1])
         if (
-            not np.isfinite(logits).all()
-            or not np.isfinite(probs).all()
-            or np.any(logits[:, 0] == logits[:, 1])
-            or not np.allclose(probs, expected_probs, rtol=0.0, atol=1e-6)
-            or not np.array_equal(np.argmax(logits, axis=1), actions.astype(int))
+            not np.isfinite(q_values).all()
+            or not np.array_equal(valid, expected_valid)
+            or np.any(predicted_tie)
+            or not np.array_equal(
+                np.argmax(masked_q, axis=1), actions.astype(int)
+            )
         ):
             _fail(context, f"{reference_row_id} Exit model outputs are invalid")
         hash_fields = (
@@ -852,15 +856,17 @@ def recompute_joint_exit_replay_coverage(
         ):
             _fail(context, f"{reference_row_id} source binding is invalid")
         for index, row in trace.iterrows():
+            state_q = [
+                float(row["exit_hold_q_bps"]),
+                float(row["exit_now_q_bps"]),
+            ]
+            state_valid = [
+                bool(row["exit_hold_valid"]),
+                bool(row["exit_now_valid"]),
+            ]
             output = {
-                "exit_action_logits": [
-                    float(row["exit_hold_logit"]),
-                    float(row["exit_now_logit"]),
-                ],
-                "exit_action_probs": [
-                    float(row["exit_hold_prob"]),
-                    float(row["exit_now_prob"]),
-                ],
+                "exit_action_q_bps": state_q,
+                "exit_action_valid_mask": state_valid,
                 "exit_action_index": int(row["action_id"]),
                 "action": str(row["action"]),
                 "decision_source": str(row["decision_source"]),
@@ -1409,18 +1415,6 @@ def require_canonical_unified_replay_producer_evidence(
     )
     if evidence["prebuilt_pair"] != frozen_pair:
         _fail(context, "prebuilt pair evidence is noncanonical")
-    from gx1.contracts.entry_model_native_state_v2 import (
-        require_train_rank_reference_identity_v2,
-    )
-
-    try:
-        require_train_rank_reference_identity_v2(
-            evidence["train_rank_reference"],
-            context=f"{context}.train_rank_reference",
-            verify_artifact=verify_source_files,
-        )
-    except RuntimeError as exc:
-        _fail(context, f"train rank reference identity invalid: {exc}")
     raw_sources = evidence["producer_source_files"]
     if not isinstance(raw_sources, list):
         _fail(context, "producer source inventory is invalid")

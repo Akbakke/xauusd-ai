@@ -80,19 +80,12 @@ def _population_alive(std: float, nunique: int) -> bool:
 # historical hygiene readers only. The model-native entry gate below
 # explicitly disables it for all signal and ctx-cont inputs (contract dims).
 KNOWN_ALLOWED_DEAD: Dict[str, str] = {
-    "vol_pct_m5_1yr": "1-year vol-percentile not computed → pinned 0.5. Hygiene wave: compute or drop.",
-    "vol_pct_h1_1yr": "ditto (pinned 0.5).",
     # Ultra-sparse but ALIVE (91 nonzero / 396,681 rows): false-flags as dead below
     # DEAD_STD on typical sample sizes — the documented slow-varying D1 class.
-    "d1_regime_changed_flag_v3": "ultra-sparse impulse flag (0.023% nonzero) — alive on full scan 2026-07-05; sibling bars_since_d1_regime_change_v3 carries the signal.",
     # Benign by construction in the retired session-headed diagnostic:
     "session_id": "constant by construction in the retired session-headed diagnostic.",
-    "is_ASIA": "ditto.", "session_change_flag": "ditto.", "session_tradable": "ditto.",
+    "is_ASIA": "ditto.", "session_change_flag": "ditto.",
     "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
-    "_v1_is_EU": "legacy baked session one-hot; constant in the retired session-headed diagnostic.",
-    "_v1_is_US": "legacy baked session one-hot; constant in the retired session-headed diagnostic.",
-    # Known gaps tracked in the hygiene wave (NOT to be silently forgotten):
-    "smc_choch": "BUG-MASK (remove when fixed): too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",
 }

@@ -32,10 +32,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
+)
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_contract,
+    require_entry_fitted_q_iteration_state,
+    require_entry_fitted_q_production_economics_readiness,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_DECISION_BAR_SECONDS,
@@ -52,11 +56,10 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     require_training_objective_contract,
 )
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    HIDDEN_DIM as EVIDENCE_FUSION_HIDDEN_DIM,
-    INPUT_DIM as EVIDENCE_FUSION_INPUT_DIM,
-    OUTPUT_DIM as EVIDENCE_FUSION_OUTPUT_DIM,
-    require_direction_evidence_fusion_metadata,
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
+    JOINT_TASK_STATE_KEYS,
+    require_joint_task_weighting_metadata,
 )
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     require_learned_component_movement_metadata,
@@ -77,9 +80,6 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     require_bundle_commit_manifest,
 )
-from gx1.contracts.entry_model_native_calibration_v1 import (
-    require_model_native_calibration_metadata,
-)
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PrefreezeTestSealLineageError,
     require_prefreeze_test_seal_lineage,
@@ -88,6 +88,17 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     require_unified_exit_lifecycle_authority_evidence,
+)
+from gx1.contracts.unified_exit_fitted_q_v1 import (
+    require_unified_exit_fitted_q_contract,
+    require_unified_exit_fitted_q_iteration_state,
+)
+from gx1.contracts.unified_exit_gate_evidence_v1 import (
+    require_unified_exit_gate_evidence,
+)
+from gx1.contracts.unified_exit_input_influence_v1 import (
+    SCHEMA_VERSION as UNIFIED_EXIT_INPUT_INFLUENCE_SCHEMA_VERSION,
+    require_unified_exit_input_influence,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -112,6 +123,10 @@ from gx1.features.htf_features import (
     MULTI_TF_PER_BAR_FEATURES_V4,
     require_multi_tf_decision_window_coverage_metadata,
     require_multi_tf_resolution_pyramid,
+)
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    MODEL_ARCHITECTURE_SCHEMA_VERSION,
+    MODEL_OUTPUT_SCHEMA_VERSION,
 )
 
 
@@ -138,46 +153,22 @@ def _resolve_device(device: str) -> torch.device:
 
 
 _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
-    "direction": {"head_direction.weight", "head_direction.bias"},
-    "path_quality": {"head_path_quality.weight", "head_path_quality.bias"},
-    "mfe_first_n": {"head_mfe_first_n.weight", "head_mfe_first_n.bias"},
-    "tradable": {"head_tradable.weight", "head_tradable.bias"},
-    "bad_path": {"head_bad_path.weight", "head_bad_path.bias"},
-    "clean_edge": {"head_clean_edge.weight", "head_clean_edge.bias"},
-    "survival": {"head_survival.weight", "head_survival.bias"},
-    "tf_agreement": {"head_tf_agreement.weight", "head_tf_agreement.bias"},
-    "path_quality_log_var": {"head_path_quality_log_var.weight", "head_path_quality_log_var.bias"},
+    "entry_action_q": {
+        "entry_q_joint_norm.weight",
+        "entry_q_joint_norm.bias",
+        "entry_q_joint_in.weight",
+        "entry_q_joint_in.bias",
+        "head_entry_action_q.weight",
+        "head_entry_action_q.bias",
+    },
     "position_size": {"head_position_size.weight", "head_position_size.bias"},
-    "mtf_direction": {"head_mtf_direction.weight", "head_mtf_direction.bias"},
-    "trendline_rail": {"head_trendline_rail.weight", "head_trendline_rail.bias"},
-    "offline_rl_action_value": {
-        "head_action_value.weight",
-        "head_action_value.bias",
+    "trendline_event": {
+        "head_trendline_event.weight",
+        "head_trendline_event.bias",
     },
-    "offline_rl_expectile_value": {
-        "head_expectile_value.weight",
-        "head_expectile_value.bias",
-    },
-    "trade_side_hierarchy": {
-        "head_trade.weight",
-        "head_trade.bias",
-        "head_side.weight",
-        "head_side.bias",
-        "head_side_utility.weight",
-        "head_side_utility.bias",
-        "head_side_bad_path.weight",
-        "head_side_bad_path.bias",
+    "side_mae": {
         "head_side_mae.weight",
         "head_side_mae.bias",
-    },
-    "side_validity": {"head_side_validity.weight", "head_side_validity.bias"},
-    "model_native_evidence_fusion": {
-        "evidence_fusion_norm.weight",
-        "evidence_fusion_norm.bias",
-        "evidence_fusion_in.weight",
-        "evidence_fusion_in.bias",
-        "evidence_fusion_out.weight",
-        "evidence_fusion_out.bias",
     },
     "dip": {"head_dip.weight", "head_dip.bias"},
     "forecast": {"head_forecast.weight", "head_forecast.bias"},
@@ -194,28 +185,15 @@ _MODEL_NATIVE_METADATA_ONLY_COMPONENTS: frozenset[str] = frozenset()
 
 _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS = frozenset(
     {
-        "direction",
-        "tradable",
-        "path_quality",
-        "mfe_first_n",
-        "bad_path",
-        "clean_edge",
-        "survival",
-        "tf_agreement",
-        "path_quality_log_var",
+        "entry_action_q",
         "position_size",
-        "mtf_direction",
         "dip",
         "forecast",
         "timing",
         "tail_risk",
         "vol_forecast",
-        "offline_rl_action_value",
-        "offline_rl_expectile_value",
-        "trade_side_hierarchy",
-        "model_native_evidence_fusion",
-        "side_validity",
-        "trendline_rail",
+        "side_mae",
+        "trendline_event",
         "unified_exit",
     }
 )
@@ -354,7 +332,6 @@ def _require_exact_model_native_bundle_metadata(
 
     shared_exact = (
         "contract_mode",
-        "direction_logit_mode",
         "seq_input_dim",
         "snap_input_dim",
         "seq_len",
@@ -367,7 +344,10 @@ def _require_exact_model_native_bundle_metadata(
         "model_native_signal_contract",
         "aux_head_target_contract",
         "model_native_training_objective",
-        "model_native_direction_evidence_fusion",
+        "model_native_joint_task_weighting",
+        "model_native_entry_fitted_q",
+        "entry_fitted_q_production_economics",
+        "selected_entry_fitted_q_iteration_state",
         "model_native_learned_component_movement",
         "context_specialist_routing",
         "input_normalization",
@@ -377,6 +357,8 @@ def _require_exact_model_native_bundle_metadata(
         "run_lineage",
         "prefreeze_test_seal_lineage",
         "m1_feature_surface_binding",
+        "model_architecture_schema_version",
+        "model_output_schema_version",
     )
     missing_meta = [key for key in shared_exact if key not in meta]
     missing_lock = [key for key in shared_exact if key not in lock]
@@ -391,6 +373,18 @@ def _require_exact_model_native_bundle_metadata(
             "[ENTRY_BUNDLE_MODEL_NATIVE_META_LOCK_SPLIT_BRAIN] "
             f"fields={split_brain}"
         )
+    if (
+        meta.get("schema_version") != "entry_v10_ctx_bundle_metadata_v3"
+        or lock.get("version") != "entry_v10_ctx_lock_v3"
+        or meta["model_architecture_schema_version"]
+        != MODEL_ARCHITECTURE_SCHEMA_VERSION
+        or lock["model_architecture_schema_version"]
+        != MODEL_ARCHITECTURE_SCHEMA_VERSION
+        or meta["model_output_schema_version"] != MODEL_OUTPUT_SCHEMA_VERSION
+        or lock["model_output_schema_version"] != MODEL_OUTPUT_SCHEMA_VERSION
+        or meta.get("arch_id") != MODEL_ARCHITECTURE_SCHEMA_VERSION
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_OUTPUT_SCHEMA_INVALID]")
     meta_training_objective = require_training_objective_contract(
         meta["model_native_training_objective"],
         context="ENTRY_BUNDLE_META",
@@ -403,13 +397,26 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_TRAINING_OBJECTIVE_SPLIT_BRAIN]"
         )
-    require_direction_evidence_fusion_metadata(
-        meta["model_native_direction_evidence_fusion"],
+    meta_joint_task_weighting = require_joint_task_weighting_metadata(
+        meta["model_native_joint_task_weighting"],
         context="ENTRY_BUNDLE_META",
     )
-    require_direction_evidence_fusion_metadata(
-        lock["model_native_direction_evidence_fusion"],
+    lock_joint_task_weighting = require_joint_task_weighting_metadata(
+        lock["model_native_joint_task_weighting"],
         context="ENTRY_BUNDLE_LOCK",
+    )
+    if meta_joint_task_weighting != lock_joint_task_weighting:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_JOINT_TASK_WEIGHTING_SPLIT_BRAIN]"
+        )
+    require_entry_fitted_q_contract(
+        meta["model_native_entry_fitted_q"],
+        context="ENTRY_BUNDLE_META",
+    )
+    require_entry_fitted_q_production_economics_readiness(
+        meta["entry_fitted_q_production_economics"],
+        context="ENTRY_BUNDLE_META",
+        require_ready=False,
     )
     require_learned_component_movement_metadata(
         meta["model_native_learned_component_movement"],
@@ -425,8 +432,6 @@ def _require_exact_model_native_bundle_metadata(
     )
     if meta["contract_mode"] != MODEL_NATIVE_CONTRACT_MODE:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MODE_MISSING]")
-    if meta["direction_logit_mode"] != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_MODE_INVALID]")
     if int(meta["seq_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM or int(meta["snap_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM:
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_SIGNAL_DIM_INVALID] "
@@ -515,6 +520,40 @@ def _require_exact_model_native_bundle_metadata(
         "selected_checkpoint_parameter_movement"
     )
     exit_lifecycle = exit_evidence.get("lifecycle")
+    full_trajectory_validation = exit_evidence.get(
+        "full_trajectory_validation"
+    )
+    exit_input_influence = exit_evidence.get("individual_input_influence")
+    training_profile = meta.get("run_lineage", {}).get("training_profile")
+    try:
+        fitted_q_contract = require_unified_exit_fitted_q_contract(
+            exit_evidence.get("fitted_q_contract"),
+            context="ENTRY_BUNDLE",
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_FITTED_Q_CONTRACT_INVALID]"
+        ) from exc
+    fitted_q_state = exit_evidence.get("selected_fitted_q_iteration_state")
+    try:
+        fitted_q_state = require_unified_exit_fitted_q_iteration_state(
+            fitted_q_state,
+            context="ENTRY_BUNDLE",
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_FITTED_Q_STATE_INVALID]"
+        ) from exc
+    try:
+        require_entry_fitted_q_iteration_state(
+            meta["selected_entry_fitted_q_iteration_state"],
+            exit_fitted_q_iteration_state=fitted_q_state,
+            context="ENTRY_BUNDLE_ENTRY_FITTED_Q",
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_ENTRY_FITTED_Q_STATE_INVALID]"
+        ) from exc
     try:
         require_unified_exit_lifecycle_authority_evidence(exit_lifecycle)
     except RuntimeError as exc:
@@ -523,28 +562,133 @@ def _require_exact_model_native_bundle_metadata(
         ) from exc
     if (
         exit_evidence.get("schema_version")
-        != "gx1_unified_exit_training_evidence_v1"
+        != "gx1_unified_exit_training_evidence_v10"
         or exit_evidence.get("decision") != "PASS"
         or exit_evidence.get("shared_model_state_dict") is not True
         or exit_evidence.get("entry_representation_surface")
         != UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
         or exit_evidence.get("future_outcomes_used_as_model_inputs") is not False
-        or not isinstance(exit_evidence.get("exit_action_loss_weight"), (int, float))
-        or isinstance(exit_evidence.get("exit_action_loss_weight"), bool)
-        or not math.isfinite(float(exit_evidence["exit_action_loss_weight"]))
-        or float(exit_evidence["exit_action_loss_weight"]) <= 0.0
+        or exit_evidence.get("exit_action_task_name") != "unified_exit_action"
+        or exit_evidence.get("exit_action_target")
+        != "train_fitted_raw_bps_q_iteration"
+        or exit_evidence.get("exit_action_loss")
+        != "mean_squared_error_over_valid_q_cells"
+        or exit_evidence.get("gamma") != 1.0
+        or exit_evidence.get("intermediate_hold_reward_bps") != 0.0
+        or exit_evidence.get("baseline_cross_entropy_authority") is not False
+        or fitted_q_state["fitted_q_contract"] != fitted_q_contract
+        or exit_evidence.get("loss_scalarization")
+        != "model_native_joint_task_weighting"
         or not isinstance(exit_validation, Mapping)
-        or int(exit_validation.get("unified_exit_action_rows", 0)) <= 0
-        or int(exit_validation.get("unified_exit_hold_rows", 0)) <= 0
-        or int(exit_validation.get("unified_exit_now_rows", 0)) <= 0
+        or int(exit_validation.get("unified_exit_population_rows", 0)) <= 0
+        or int(exit_validation.get("unified_exit_q_valid_cells", 0)) <= 0
+        or int(exit_validation.get("unified_exit_target_equivalent_action_rows", -1)) < 0
+        or int(exit_validation.get("unified_exit_hold_target_greedy_rows", 0)) <= 0
+        or int(exit_validation.get("unified_exit_exit_now_target_greedy_rows", 0)) <= 0
+        or not math.isfinite(
+            float(exit_validation.get("unified_exit_raw_bps_q_mse_mean", float("nan")))
+        )
+        or float(exit_validation.get("unified_exit_raw_bps_q_mse_mean", -1.0)) < 0.0
         or not isinstance(exit_movement, Mapping)
         or exit_movement.get("all_exit_components_moved") is not True
         or not isinstance(exit_lifecycle, Mapping)
         or exit_lifecycle.get("future_outcomes_used_as_model_inputs") is not False
+        or not isinstance(full_trajectory_validation, Mapping)
+        or not isinstance(exit_input_influence, Mapping)
+        or (
+            training_profile == "candidate"
+            and (
+                full_trajectory_validation.get("schema_version")
+                != "gx1_unified_exit_full_trajectory_validation_v6"
+                or full_trajectory_validation.get("decision") != "PASS"
+                or full_trajectory_validation.get("population")
+                != "all_causal_states_both_sides_batched_episode_forward"
+                or int(full_trajectory_validation.get("population_rows", 0)) <= 0
+                or int(full_trajectory_validation.get("q_valid_cells", 0)) <= 0
+                or int(full_trajectory_validation.get("target_equivalent_action_rows", -1)) < 0
+                or int(full_trajectory_validation.get("predicted_tied_rows", -1)) != 0
+                or not math.isfinite(
+                    float(full_trajectory_validation.get("fitted_q_bellman_mse_mean", float("nan")))
+                )
+                or float(full_trajectory_validation.get("fitted_q_bellman_mse_mean", -1.0)) < 0.0
+                or not 0.0 <= float(
+                    full_trajectory_validation.get(
+                        "unique_target_action_agreement", float("nan")
+                    )
+                ) <= 1.0
+                or any(
+                    not math.isfinite(float(full_trajectory_validation.get(key, float("nan"))))
+                    for key in (
+                        "learned_policy_mean_realized_executable_pnl_bps",
+                        "immediate_exit_mean_realized_executable_pnl_bps",
+                        "terminal_exit_mean_realized_executable_pnl_bps",
+                    )
+                )
+                or int(full_trajectory_validation.get("long_population_rows", 0)) <= 0
+                or int(full_trajectory_validation.get("short_population_rows", 0)) <= 0
+                or int(full_trajectory_validation["long_population_rows"])
+                + int(full_trajectory_validation["short_population_rows"])
+                != int(full_trajectory_validation["population_rows"])
+                or full_trajectory_validation.get(
+                    "predicted_exact_q_tie_runtime_policy"
+                ) != "fail_closed"
+                or full_trajectory_validation.get("gamma") != 1.0
+                or full_trajectory_validation.get(
+                    "intermediate_hold_reward_bps"
+                ) != 0.0
+                or full_trajectory_validation.get(
+                    "future_outcomes_used_as_model_inputs"
+                )
+                is not False
+            )
+        )
+        or (
+            training_profile == "smoke"
+            and (
+                full_trajectory_validation.get("decision")
+                != "NOT_RUN_SMOKE_CANNOT_AUTHORIZE_CANDIDATE"
+                or full_trajectory_validation.get("required_for_candidate")
+                is not True
+                or exit_input_influence.get("schema_version")
+                != UNIFIED_EXIT_INPUT_INFLUENCE_SCHEMA_VERSION
+                or exit_input_influence.get("decision")
+                != "NOT_RUN_SMOKE_CANNOT_AUTHORIZE_CANDIDATE"
+                or exit_input_influence.get("required_for_candidate") is not True
+            )
+        )
     ):
         raise RuntimeError(
             "[ENTRY_BUNDLE_UNIFIED_EXIT_TRAINING_EVIDENCE_INVALID]"
         )
+    try:
+        require_unified_exit_gate_evidence(
+            exit_validation,
+            expected_rows=int(exit_validation["unified_exit_population_rows"]),
+            context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+        )
+        if training_profile == "candidate":
+            require_unified_exit_gate_evidence(
+                full_trajectory_validation,
+                expected_rows=int(
+                    full_trajectory_validation["population_rows"]
+                ),
+                context="ENTRY_BUNDLE_FULL_TRAJECTORY",
+            )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_UNIFIED_EXIT_GATE_EVIDENCE_INVALID]"
+        ) from exc
+    if training_profile == "candidate":
+        try:
+            require_unified_exit_input_influence(
+                exit_input_influence,
+                ordered_signal_names=meta.get("ordered_signal_names", ()),
+                context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+            )
+        except RuntimeError as exc:
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_UNIFIED_EXIT_INPUT_INFLUENCE_INVALID]"
+            ) from exc
 
     train_recipe = _require_mapping_field(meta, "train_recipe", context="meta")
     active_raw = train_recipe.get("active_heads")
@@ -937,8 +1081,8 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_RAIL_CONTRACT_INVALID]")
     if trendline.get("hand_written_direction_pressure") is not False:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_DIRECTION_PRESSURE_FORBIDDEN]")
-    if trendline.get("direction_mapping") != "direct_learned_evidence_fusion":
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_FUSION_MAPPING_INVALID]")
+    if trendline.get("direction_mapping") != "representation_only_no_entry_authority":
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_ROLE_INVALID]")
     state_contract = _require_mapping_field(meta, "model_native_state_contract", context="meta")
     if not state_contract:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_CONTRACT_MISSING]")
@@ -1140,19 +1284,13 @@ def _require_exact_model_native_bundle_metadata(
             "[ENTRY_BUNDLE_MODEL_NATIVE_CROSS_FAMILY_FUSION_SCALE_INVALID]"
         )
 
-    direction_calibration = meta.get("direction_calibration")
-    if direction_calibration is not None:
-        require_model_native_calibration_metadata(
-            direction_calibration,
-            head="direction",
-            context="ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION",
+    if "direction_calibration" in meta or "direction_calibration" in lock:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_ENTRY_Q_DIRECTION_CALIBRATION_FORBIDDEN]"
         )
-    path_calibration = meta.get("path_calibration")
-    if path_calibration is not None:
-        require_model_native_calibration_metadata(
-            path_calibration,
-            head="path",
-            context="ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION",
+    if "path_calibration" in meta or "path_calibration" in lock:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_RETIRED_PATH_CALIBRATION_FORBIDDEN]"
         )
 
 def _require_model_native_state_head_contract(
@@ -1174,6 +1312,44 @@ def _require_model_native_state_head_contract(
         )
 
 
+def _require_joint_task_weighting_state(
+    meta: Mapping[str, Any],
+    state_dict: Mapping[str, Any],
+) -> None:
+    contract = require_joint_task_weighting_metadata(
+        meta["model_native_joint_task_weighting"],
+        context="ENTRY_BUNDLE_STATE",
+    )
+    observed_keys = {
+        key for key in state_dict if key.startswith("task_log_variances.")
+    }
+    if observed_keys != set(JOINT_TASK_STATE_KEYS):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_JOINT_TASK_WEIGHTING_STATE_KEYS_INVALID] "
+            f"missing={sorted(set(JOINT_TASK_STATE_KEYS) - observed_keys)} "
+            f"unexpected={sorted(observed_keys - set(JOINT_TASK_STATE_KEYS))}"
+        )
+    failures: list[str] = []
+    selected = contract["selected_log_variances"]
+    for task_name in JOINT_TASK_NAMES:
+        key = f"task_log_variances.{task_name}"
+        tensor = state_dict.get(key)
+        if (
+            not isinstance(tensor, torch.Tensor)
+            or tensor.numel() != 1
+            or not bool(torch.isfinite(tensor).all().item())
+        ):
+            failures.append(f"{task_name}:state_invalid")
+            continue
+        if float(tensor.item()) != float(selected[task_name]):
+            failures.append(f"{task_name}:metadata_state_split_brain")
+    if failures:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_JOINT_TASK_WEIGHTING_STATE_INVALID] "
+            + "; ".join(failures)
+        )
+
+
 _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS: Dict[str, tuple[str, ...]] = {
     # These blocks are deliberately zero-initialized.  Merely finding their
     # keys in a state_dict therefore does not prove they ever joined the
@@ -1182,9 +1358,6 @@ _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS: Dict[str, tuple[str, ...]] = {
     # specialist, regime, or timeframe evidence was consumed.
     "specialist_fusion_output": (
         "specialist_out.weight",
-    ),
-    "regime_film": (
-        "regime_film.2.weight",
     ),
     "cross_tf_output": (
         "cross_tf_out.weight",
@@ -1196,6 +1369,12 @@ _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS: Dict[str, tuple[str, ...]] = {
 }
 
 _RETIRED_DIRECTION_STATE_PREFIXES = (
+    "head_direction.",
+    "head_mtf_direction.",
+    "head_action_value.",
+    "head_expectile_value.",
+    "evidence_fusion_",
+    "regime_film.",
     "head_public_trade.",
     "head_public_flat.",
     "head_public_side.",
@@ -1205,20 +1384,15 @@ _RETIRED_DIRECTION_STATE_PREFIXES = (
 _RETIRED_DIRECTION_STATE_KEYS = frozenset({"mtf_dir_scale"})
 
 
-def _require_evidence_fusion_state_contract(state_dict: Mapping[str, Any]) -> None:
+def _require_entry_q_state_contract(state_dict: Mapping[str, Any]) -> None:
+    d_model = UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM
     expected_shapes = {
-        "evidence_fusion_norm.weight": (EVIDENCE_FUSION_INPUT_DIM,),
-        "evidence_fusion_norm.bias": (EVIDENCE_FUSION_INPUT_DIM,),
-        "evidence_fusion_in.weight": (
-            EVIDENCE_FUSION_HIDDEN_DIM,
-            EVIDENCE_FUSION_INPUT_DIM,
-        ),
-        "evidence_fusion_in.bias": (EVIDENCE_FUSION_HIDDEN_DIM,),
-        "evidence_fusion_out.weight": (
-            EVIDENCE_FUSION_OUTPUT_DIM,
-            EVIDENCE_FUSION_HIDDEN_DIM,
-        ),
-        "evidence_fusion_out.bias": (EVIDENCE_FUSION_OUTPUT_DIM,),
+        "entry_q_joint_norm.weight": (4 * d_model,),
+        "entry_q_joint_norm.bias": (4 * d_model,),
+        "entry_q_joint_in.weight": (d_model, 4 * d_model),
+        "entry_q_joint_in.bias": (d_model,),
+        "head_entry_action_q.weight": (3, d_model),
+        "head_entry_action_q.bias": (3,),
     }
     failures: list[str] = []
     for key, expected_shape in expected_shapes.items():
@@ -1234,24 +1408,24 @@ def _require_evidence_fusion_state_contract(state_dict: Mapping[str, Any]) -> No
         if not bool(torch.isfinite(value).all().item()):
             failures.append(f"{key}:non_finite")
     for key in (
-        "evidence_fusion_norm.weight",
-        "evidence_fusion_in.weight",
-        "evidence_fusion_out.weight",
+        "entry_q_joint_norm.weight",
+        "entry_q_joint_in.weight",
+        "head_entry_action_q.weight",
     ):
         value = state_dict.get(key)
         if isinstance(value, torch.Tensor) and not bool(torch.count_nonzero(value).item()):
             failures.append(f"{key}:all_zero")
-    out_weight = state_dict.get("evidence_fusion_out.weight")
+    out_weight = state_dict.get("head_entry_action_q.weight")
     if isinstance(out_weight, torch.Tensor) and tuple(out_weight.shape) == (
-        EVIDENCE_FUSION_OUTPUT_DIM,
-        EVIDENCE_FUSION_HIDDEN_DIM,
+        3,
+        d_model,
     ):
         if any(
             bool(torch.equal(out_weight[i], out_weight[j]))
-            for i in range(EVIDENCE_FUSION_OUTPUT_DIM)
-            for j in range(i + 1, EVIDENCE_FUSION_OUTPUT_DIM)
+            for i in range(3)
+            for j in range(i + 1, 3)
         ):
-            failures.append("evidence_fusion_out.weight:identical_class_rows")
+            failures.append("head_entry_action_q.weight:identical_action_rows")
     stale = sorted(
         key
         for key in state_dict
@@ -1262,7 +1436,7 @@ def _require_evidence_fusion_state_contract(state_dict: Mapping[str, Any]) -> No
         failures.append(f"retired_direction_state={stale}")
     if failures:
         raise RuntimeError(
-            "[ENTRY_BUNDLE_DIRECTION_EVIDENCE_FUSION_STATE_INVALID] "
+            "[ENTRY_BUNDLE_ENTRY_FITTED_Q_STATE_INVALID] "
             + " | ".join(failures)
         )
 
@@ -1323,7 +1497,7 @@ def _require_model_native_learned_component_liveness(
                     "feature_tf_context_gate:"
                     f"{key}:zero_init_pass_through_rows={dead_rows.tolist()}"
                 )
-    _require_evidence_fusion_state_contract(state_dict)
+    _require_entry_q_state_contract(state_dict)
     if failures:
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_LEARNED_COMPONENT_LIVENESS_INVALID] "
@@ -1343,7 +1517,7 @@ def _infer_entry_bundle_capabilities(meta: Dict[str, Any], state_dict: Dict[str,
         raise RuntimeError(
             f"[ENTRY_BUNDLE_CAPABILITY_MISMATCH] metadata declares unsupported heads: {sorted(missing_declared)}"
         )
-    supported_heads = {"direction"} | declared_heads
+    supported_heads = {"entry_action_q"} | declared_heads
     unsupported_heads = sorted(set(_ENTRY_HEAD_STATE_KEYS) - supported_heads)
     return {
         "supported_heads": sorted(supported_heads),
@@ -1503,6 +1677,7 @@ def load_entry_v10_ctx_bundle(
         weights_only=True,
     )
     _require_model_native_state_head_contract(meta, state_dict_preview)
+    _require_joint_task_weighting_state(meta, state_dict_preview)
     _require_model_native_learned_component_liveness(state_dict_preview)
     required_tf_scale_keys = {
         f"tf_input_scale_{tf}" for tf in TF_INPUT_SCALE_NAMES
@@ -1582,34 +1757,6 @@ def load_entry_v10_ctx_bundle(
     model.load_state_dict(state_dict, strict=True)
     model.require_input_normalization_state()
     model.eval()
-    # Optional immutable calibrations are part of the canonical forward and
-    # were fully validated above before any model is returned.
-    _dir_cal = meta.get("direction_calibration")
-    if _dir_cal is not None:
-        _cal_temperature = float(_dir_cal["temperature"])
-        _cal_fitted_on = str(_dir_cal.get("fitted_on_split", "unspecified"))
-        model.set_direction_calibration(_cal_temperature)
-        logging.getLogger(__name__).info(
-            "[ENTRY_DIRECTION_CAL] installed argmax-preserving scalar: "
-            "temperature=%.4f fitted_on=%s",
-            _cal_temperature,
-            _cal_fitted_on,
-        )
-    _path_cal = meta.get("path_calibration")
-    if _path_cal is not None:
-        _path_values = (
-            float(_path_cal["path_quality_scale"]),
-            float(_path_cal["path_quality_shift"]),
-            float(_path_cal["bad_path_temperature"]),
-            float(_path_cal["bad_path_bias"]),
-        )
-        model.set_path_calibration(
-            *_path_values,
-        )
-        logging.getLogger(__name__).info(
-            "[ENTRY_PATH_CAL] installed: pq=%.4f*x%+.4f bad_path=x/%.4f%+.4f",
-            *_path_values,
-        )
     capabilities = _infer_entry_bundle_capabilities(meta, state_dict)
     logging.getLogger(__name__).info(
         "[ENTRY_BUNDLE_CAPABILITIES] supported_heads=%s declared_active_heads=%s unsupported_heads=%s",

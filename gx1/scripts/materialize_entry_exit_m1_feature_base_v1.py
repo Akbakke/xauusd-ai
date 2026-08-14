@@ -53,8 +53,10 @@ from gx1.contracts.entry_exit_feature_surface_v1 import (  # noqa: E402
 from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.features.entry_foundation_structure_v1 import (  # noqa: E402
     FOUNDATION_EVENT_AGE_CARRY_KEYS,
+    FOUNDATION_STRUCTURE_SOURCE_FIELDS,
     foundation_event_age_carry_scope,
 )
+from gx1.utils.artifact_primitives_v1 import sha256_file  # noqa: E402
 
 
 def _fixed_size_list_column(
@@ -298,6 +300,7 @@ def _build_bounded_extension_chunk(
     frame: pd.DataFrame,
     *,
     source_parquet: Path,
+    local_timeframe: str,
     requested_features: list[str],
     ctx_cont_names: list[str],
     ctx_cat_names: list[str],
@@ -308,16 +311,15 @@ def _build_bounded_extension_chunk(
     candle_names: list[str],
     v29_event_layers: Mapping[str, tuple[np.ndarray, list[str]]] | None = None,
     v29_registry_layer_params: Mapping[str, Any] | None = None,
+    volatility_squeeze_artifacts=None,
     emit_offset: int = 0,
-    support_memory_state: dict[str, np.float32] | None,
     foundation_event_age_state: Mapping[str, object] | None,
     source_contract_label: str,
 ) -> tuple[
     np.ndarray,
     list[str],
     dict[str, Any],
-    dict[str, np.float32],
-    dict[str, int],
+    dict[str, int | None],
 ]:
     """Use the single model-native owner path on one bounded causal slice."""
 
@@ -332,26 +334,26 @@ def _build_bounded_extension_chunk(
             len(frame),
         ),
     ) as event_age_scope:
-        result = _build_inline_seq_structure_extension(
+        extension, names, meta = _build_inline_seq_structure_extension(
             frame,
             requested_features=requested_features,
             ctx_cont_names=ctx_cont_names,
             ctx_cat_names=ctx_cat_names,
             source_parquet=source_parquet,
+            local_timeframe=local_timeframe,
             source_contract_label=source_contract_label,
             base_signal_fields=base_signal_fields,
             precomputed_price_layer=(price_layer, price_names),
             precomputed_candle_layer=(candle_layer, candle_names),
             precomputed_v29_event_layers=v29_event_layers,
             v29_registry_layer_params=v29_registry_layer_params,
+            volatility_squeeze_artifacts=volatility_squeeze_artifacts,
             emit_offset=emit_offset,
-            support_memory_state=support_memory_state,
-            return_support_memory_state=True,
         )
         if tuple(event_age_scope.next_state) != FOUNDATION_EVENT_AGE_CARRY_KEYS:
             raise RuntimeError("FOUNDATION_EVENT_AGE_CARRY_NOT_CAPTURED")
         next_event_age_state = dict(event_age_scope.next_state)
-    return (*result, next_event_age_state)
+    return extension, names, meta, next_event_age_state
 
 
 def _materialize_bounded_feature_surface(
@@ -364,36 +366,36 @@ def _materialize_bounded_feature_surface(
     bar_seconds: int,
     sequence_bars: int,
     v29_registry_layer_params: Mapping[str, Any] | None = None,
+    volatility_squeeze_artifacts=None,
 ) -> dict[str, Any]:
-    """Write one native surface without a full source/513-wide RAM frame."""
+    """Write one native surface without a full source-width RAM frame."""
 
     if (timeframe == "M1") != (alignment is not None):
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_NATIVE_ROUTE_INVALID")
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
-    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+        PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
         LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
         MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
         PRICE_DERIVED_FEATURE_NAMES,
-        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+        SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
         SWING_EVENT_LAYER_FEATURE_NAMES,
         TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
         V29_REGISTRY_LAYER_PARAM_KEYS,
+        VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
         align_v29_layer_frame,
-        build_candlestick_derived_layer,
+        build_candle_primitive_derived_layer,
         build_level_registry_m5_layer,
         build_momentum_event_m5_layer,
         build_price_derived_layer,
-        build_regime_flip_event_layer,
+        build_smc_local_event_layer,
         build_swing_event_m5_layer,
         build_trendline_registry_m5_layer,
+        build_volatility_squeeze_local_layer,
         v29_layer_first_complete_time,
     )
-    from gx1.features.entry_candlestick_patterns_v1 import (
-        CANDLESTICK_PATTERN_FEATURE_NAMES,
-    )
-    from gx1.features.entry_support_resistance_memory_v1 import (
-        SUPPORT_RESISTANCE_MEMORY_STATE_KEYS,
+    from gx1.features.entry_candle_primitives_v1 import (
+        CANDLE_PRIMITIVE_FEATURE_NAMES,
     )
 
     source_parquet = pq.ParquetFile(source)
@@ -404,6 +406,7 @@ def _materialize_bounded_feature_surface(
         "high",
         "low",
         "close",
+        "volume",
         "atr",
         *MODEL_NATIVE_BASE_FIELDS,
         *MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -509,6 +512,68 @@ def _materialize_bounded_feature_surface(
     if np.any(positions[1:] <= positions[:-1]):
         raise RuntimeError("M1_FEATURE_BASE_ALIGNMENT_POSITION_ORDER_INVALID")
 
+    # Foundation event ages are computed in bounded chunks later, but their
+    # continuation state is rooted in the complete authoritative source
+    # history.  Measure the first genuine event of every stream before any
+    # common-history trim; no ever-seen input or chunk-local zero may stand in
+    # for this history.
+    foundation_source_columns = tuple(
+        name.removeprefix("snap.") for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+    )
+    if any(name not in source_columns for name in foundation_source_columns):
+        raise RuntimeError("M1_FEATURE_BASE_FOUNDATION_EVENT_SOURCE_MISSING")
+    foundation_source_frame = pd.read_parquet(
+        source,
+        columns=list(foundation_source_columns),
+        engine="pyarrow",
+    )
+    foundation_event_arrays: dict[str, np.ndarray] = {}
+    foundation_first_event_position = 0
+    for source_name, carry_key in zip(
+        foundation_source_columns,
+        FOUNDATION_EVENT_AGE_CARRY_KEYS,
+    ):
+        raw = pd.to_numeric(
+            foundation_source_frame[source_name], errors="coerce"
+        ).to_numpy(dtype=np.float64)
+        if (
+            raw.shape != (len(source_times),)
+            or not np.isfinite(raw).all()
+            or not np.isin(raw, (0.0, 1.0)).all()
+        ):
+            raise RuntimeError(
+                "M1_FEATURE_BASE_FOUNDATION_EVENT_SOURCE_INVALID: "
+                f"{source_name}"
+            )
+        events = raw == 1.0
+        event_rows = np.flatnonzero(events)
+        if len(event_rows) == 0:
+            raise RuntimeError(
+                "M1_FEATURE_BASE_FOUNDATION_EVENT_NEVER_OBSERVED: "
+                f"{source_name}"
+            )
+        foundation_event_arrays[carry_key] = events
+        foundation_first_event_position = max(
+            foundation_first_event_position,
+            int(event_rows[0]),
+        )
+    del foundation_source_frame
+    foundation_floor_time = source_times[foundation_first_event_position]
+    foundation_rows_before_event_warmup = 0
+    if foundation_floor_time > surface_times[0]:
+        foundation_covered = surface_times >= foundation_floor_time
+        if not foundation_covered.any() or not bool(
+            foundation_covered[int(np.argmax(foundation_covered)) :].all()
+        ):
+            raise RuntimeError(
+                "M1_FEATURE_BASE_FOUNDATION_EVENT_WARMUP_NOT_LEADING"
+            )
+        foundation_rows_before_event_warmup = int(
+            np.count_nonzero(~foundation_covered)
+        )
+        surface_times = surface_times[foundation_covered]
+        positions = positions[foundation_covered]
+
     row_group_offsets = np.zeros(
         source_parquet.metadata.num_row_groups + 1,
         dtype=np.int64,
@@ -573,7 +638,14 @@ def _materialize_bounded_feature_surface(
                 lambda frame_times, raw_frame=False: build_level_registry_m5_layer(
                     frame_times,
                     source,
-                    tol_level_atr=_v29_registry_params()["level_tol_atr"],
+                    recurrence_threshold_atr=_v29_registry_params()[
+                        "level_recurrence_threshold_atr"
+                    ],
+                    max_evidence_age_bars=int(
+                        _v29_registry_params()["level_expiry_bars"]
+                    ),
+                    decision_clock="M1",
+                    decision_bar_seconds=60,
                     raw_frame=raw_frame,
                 ),
             ),
@@ -583,7 +655,11 @@ def _materialize_bounded_feature_surface(
                 lambda frame_times, raw_frame=False: build_trendline_registry_m5_layer(
                     frame_times,
                     source,
+                    timeframe=timeframe,
                     band_atr=_v29_registry_params()["trendline_band_atr"],
+                    identity_expiry_bars=int(
+                        _v29_registry_params()["trendline_expiry_bars"]
+                    ),
                     seq_len=int(_v29_registry_params()["trendline_seq_len"]),
                     raw_frame=raw_frame,
                 ),
@@ -603,10 +679,21 @@ def _materialize_bounded_feature_surface(
                 ),
             ),
             (
-                "regime_flip_event_layer",
-                REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
-                lambda frame_times, raw_frame=False: build_regime_flip_event_layer(
+                "smc_local_event_layer",
+                SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_smc_local_event_layer(
                     frame_times, source, raw_frame=raw_frame
+                ),
+            ),
+            (
+                "volatility_squeeze_local_layer",
+                VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
+                lambda frame_times, raw_frame=False: build_volatility_squeeze_local_layer(
+                    frame_times,
+                    source,
+                    timeframe=timeframe,
+                    artifact_set=volatility_squeeze_artifacts,
+                    raw_frame=raw_frame,
                 ),
             ),
         )
@@ -663,11 +750,11 @@ def _materialize_bounded_feature_surface(
         del price_values
         gc.collect()
 
-        candle_values, candle_names = build_candlestick_derived_layer(
+        candle_values, candle_names = build_candle_primitive_derived_layer(
             sample_times,
             source,
         )
-        if tuple(candle_names) != tuple(CANDLESTICK_PATTERN_FEATURE_NAMES):
+        if tuple(candle_names) != tuple(CANDLE_PRIMITIVE_FEATURE_NAMES):
             raise RuntimeError("M1_FEATURE_BASE_CANDLE_LAYER_ORDER_INVALID")
         candle_matrix = _persist_float32_matrix(
             storage / "candle_layer.mmap",
@@ -711,8 +798,18 @@ def _materialize_bounded_feature_surface(
         emitted_rows = 0
         extension_meta: dict[str, Any] | None = None
         extension_names: list[str] | None = None
-        support_state: dict[str, np.float32] | None = None
-        foundation_event_age_state: dict[str, int] | None = None
+        first_surface_position = int(positions[0])
+        foundation_event_age_state: dict[str, int | None] = {}
+        for carry_key in FOUNDATION_EVENT_AGE_CARRY_KEYS:
+            earlier = np.flatnonzero(
+                foundation_event_arrays[carry_key][:first_surface_position]
+            )
+            foundation_event_age_state[carry_key] = (
+                None
+                if len(earlier) == 0
+                else first_surface_position - 1 - int(earlier[-1])
+            )
+        del foundation_event_arrays
         try:
             for start in range(0, len(surface_times), batch_rows):
                 stop = min(start + batch_rows, len(surface_times))
@@ -767,11 +864,11 @@ def _materialize_bounded_feature_surface(
                     extension,
                     names,
                     meta,
-                    support_state,
                     foundation_event_age_state,
                 ) = _build_bounded_extension_chunk(
                     frame,
                     source_parquet=source,
+                    local_timeframe=timeframe,
                     requested_features=requested_features,
                     ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
                     ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
@@ -784,17 +881,11 @@ def _materialize_bounded_feature_surface(
                         label: (matrix[prefix:stop], list(names))
                         for label, (matrix, names) in v29_layer_store.items()
                     },
+                    volatility_squeeze_artifacts=volatility_squeeze_artifacts,
                     emit_offset=emit_offset,
-                    support_memory_state=support_state,
                     foundation_event_age_state=foundation_event_age_state,
                     source_contract_label=source_contract_label,
                 )
-                if set(support_state) != set(
-                    SUPPORT_RESISTANCE_MEMORY_STATE_KEYS
-                ):
-                    raise RuntimeError(
-                        "M1_FEATURE_BASE_SUPPORT_STATE_SCHEMA_INVALID"
-                    )
                 if tuple(foundation_event_age_state) != FOUNDATION_EVENT_AGE_CARRY_KEYS:
                     raise RuntimeError(
                         "M1_FEATURE_BASE_FOUNDATION_EVENT_AGE_STATE_SCHEMA_INVALID"
@@ -901,17 +992,20 @@ def _materialize_bounded_feature_surface(
             "alignment_rows_before_causal_warmup": pre_source_rows,
             "rows_before_v29_layer_warmup": v29_rows_before_layer_warmup,
             "v29_layer_warmup": v29_layer_warmup,
+            "rows_before_foundation_event_warmup": (
+                foundation_rows_before_event_warmup
+            ),
+            "foundation_event_warmup_floor_utc": str(foundation_floor_time),
             "first_surface_row_utc": str(surface_times[0]),
             "extension": extension_meta,
             "materialization": {
                 "mode": (
                     f"bounded_native_{timeframe.lower()}_owner_batches_"
-                    "v2_event_age_carry"
+                    "v3_event_age_carry"
                 ),
                 "batch_rows": batch_rows,
                 "causal_overlap_rows": _BOUNDED_CAUSAL_OVERLAP_ROWS,
                 "recursive_state_fields": [
-                    *SUPPORT_RESISTANCE_MEMORY_STATE_KEYS,
                     *(
                         f"foundation_event_age.{name}"
                         for name in FOUNDATION_EVENT_AGE_CARRY_KEYS
@@ -936,6 +1030,8 @@ def _publish_feature_base_manifest(
     rows: int,
     contract: dict[str, Any],
     extension_meta: dict[str, Any],
+    registry_fit_binding: dict[str, Any],
+    volatility_squeeze_artifact_binding: dict[str, Any],
     materialization: dict[str, Any] | None = None,
     causal_warmup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -961,6 +1057,10 @@ def _publish_feature_base_manifest(
         rows=rows,
         signal_contract=contract,
         extension=extension_meta,
+        registry_fit_binding=registry_fit_binding,
+        volatility_squeeze_artifact_binding=(
+            volatility_squeeze_artifact_binding
+        ),
         materialization=materialization,
         causal_warmup=causal_warmup,
     )
@@ -996,18 +1096,21 @@ def _publish_feature_base_manifest(
     return manifest
 
 
-def _resolve_v29_registry_layer_params(
-    artifact: Path | None,
+def _load_v29_registry_artifact(
+    artifact: Path,
     *,
     timeframe: str,
-) -> dict[str, Any] | None:
-    """Resolve the exact TRAIN-fitted lane params for the registry layers.
+    expected_source: Path,
+    expected_source_sha256: str,
+    expected_source_manifest: Path,
+) -> dict[str, Any]:
+    """Load one authoritative lane artifact bound to the materializer source.
 
-    M5 lane: a frozen constants payload / V4 cache manifest
-    (``require_v29_registry_constants``), from which the M5 lane's params
-    derive (level tol M5 + entry_m5 trendline band/seq).  M1 lane: the
-    M1-enriched frame manifest (or bare params payload) carrying the declared
-    M1-lane TRAIN fit with its rule-2f provenance
+    M5 lane: the authoritative V4 cache ``manifest.json``
+    (``load_v29_registry_constants_manifest``), from which the M5 lane's
+    params derive (level tol M5 + entry_m5 trendline band/seq).  M1 lane: the
+    authoritative M1-enriched frame manifest carrying the declared M1-lane
+    TRAIN fit with its rule-2f provenance
     (``require_v29_registry_m1_lane_params``).  A cross-lane payload and a
     provenance-free bare key dict both fail closed — no default exists.
     """
@@ -1016,24 +1119,105 @@ def _resolve_v29_registry_layer_params(
         load_v29_registry_m1_lane_params_manifest,
     )
 
-    if artifact is None:
-        return None
+    resolved = Path(artifact).expanduser().resolve(strict=True)
+    source = Path(expected_source).expanduser().resolve(strict=True)
+    source_manifest = (
+        Path(expected_source_manifest).expanduser().resolve(strict=True)
+    )
     if timeframe == "M5":
-        constants = load_v29_registry_constants_manifest(artifact)
+        constants = load_v29_registry_constants_manifest(resolved)
+        cache_manifest = json.loads(resolved.read_text(encoding="utf-8"))
+        if (
+            Path(str(cache_manifest.get("m5_prebuilt_source") or "")) != source
+            or cache_manifest.get("m5_prebuilt_source_sha256")
+            != expected_source_sha256
+        ):
+            raise RuntimeError(
+                "ENTRY_EXIT_FEATURE_BASE_V29_REGISTRY_SOURCE_MISMATCH"
+            )
+        return constants
+    lane_params = load_v29_registry_m1_lane_params_manifest(resolved)
+    m1_manifest = json.loads(resolved.read_text(encoding="utf-8"))
+    if (
+        resolved != source_manifest
+        or Path(str(m1_manifest.get("output_parquet") or "")) != source
+        or m1_manifest.get("output_parquet_sha256") != expected_source_sha256
+    ):
+        raise RuntimeError(
+            "ENTRY_EXIT_FEATURE_BASE_V29_REGISTRY_SOURCE_MISMATCH"
+        )
+    return lane_params
+
+
+def _v29_registry_layer_params_from_payload(
+    payload: Mapping[str, Any],
+    *,
+    timeframe: str,
+) -> dict[str, Any]:
+    if timeframe == "M5":
         return {
-            "level_tol_atr": float(constants["level_tol_atr"]["M5"]),
-            "trendline_band_atr": float(
-                constants["entry_m5"]["trendline_band_atr"]
+            "level_recurrence_threshold_atr": float(
+                payload["level_recurrence_threshold_atr"]["M5"]
             ),
-            "trendline_seq_len": int(constants["entry_m5"]["seq_len"]),
+            "level_expiry_bars": int(payload["level_expiry_bars"]["M5"]),
+            "trendline_band_atr": float(
+                payload["entry_m5"]["trendline_band_atr"]
+            ),
+            "trendline_expiry_bars": int(
+                payload["entry_m5"]["trendline_expiry_bars"]
+            ),
+            "trendline_seq_len": int(payload["entry_m5"]["seq_len"]),
         }
-    lane_params = load_v29_registry_m1_lane_params_manifest(artifact)
     return {
-        "level_tol_atr": float(lane_params["level_tol_atr"]),
-        "trendline_band_atr": float(
-            lane_params["exit_m1"]["trendline_band_atr"]
+        "level_recurrence_threshold_atr": float(
+            payload["level_recurrence_threshold_atr"]
         ),
-        "trendline_seq_len": int(lane_params["exit_m1"]["seq_len"]),
+        "level_expiry_bars": int(payload["level_expiry_bars"]),
+        "trendline_band_atr": float(
+            payload["exit_m1"]["trendline_band_atr"]
+        ),
+        "trendline_expiry_bars": int(
+            payload["exit_m1"]["trendline_expiry_bars"]
+        ),
+        "trendline_seq_len": int(payload["exit_m1"]["seq_len"]),
+    }
+
+
+def _resolve_v29_registry_layer_params(
+    artifact: Path,
+    *,
+    timeframe: str,
+    expected_source: Path,
+    expected_source_sha256: str,
+    expected_source_manifest: Path,
+) -> dict[str, Any]:
+    payload = _load_v29_registry_artifact(
+        artifact,
+        timeframe=timeframe,
+        expected_source=expected_source,
+        expected_source_sha256=expected_source_sha256,
+        expected_source_manifest=expected_source_manifest,
+    )
+    return _v29_registry_layer_params_from_payload(
+        payload,
+        timeframe=timeframe,
+    )
+
+
+def _v29_registry_artifact_binding(
+    artifact: Path,
+    *,
+    timeframe: str,
+    payload: Mapping[str, Any],
+) -> dict[str, str]:
+    resolved = Path(artifact).expanduser().resolve()
+    return {
+        "lane": timeframe,
+        "artifact_path": str(resolved),
+        "artifact_sha256": sha256_file(resolved),
+        "params_schema_version": str(payload["schema_version"]),
+        "params_module": str(payload["provenance"]["module"]),
+        "params_contract_sha256": str(payload["contract_sha256"]),
     }
 
 
@@ -1047,6 +1231,8 @@ def _materialize_feature_base(
     pair_generation_id: str,
     timeframe: str,
     v29_registry_constants_json: Path | None = None,
+    volatility_squeeze_manifest: Path | None = None,
+    expected_volatility_squeeze_manifest_sha256: str | None = None,
 ) -> dict[str, Any]:
     if timeframe not in {"M1", "M5"}:
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_TIMEFRAME_INVALID")
@@ -1117,9 +1303,36 @@ def _materialize_feature_base(
         raise RuntimeError("M1_FEATURE_BASE_BASE_FIELD_ORDER_INVALID")
     if int(contract["seq_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM:
         raise RuntimeError("M1_FEATURE_BASE_SIGNAL_DIM_INVALID")
-    v29_registry_layer_params = _resolve_v29_registry_layer_params(
+    if v29_registry_constants_json is None:
+        raise RuntimeError("M1_FEATURE_BASE_V29_REGISTRY_ARTIFACT_REQUIRED")
+    registry_payload = _load_v29_registry_artifact(
         v29_registry_constants_json,
         timeframe=timeframe,
+        expected_source=source,
+        expected_source_sha256=source_binding["source_sha256"],
+        expected_source_manifest=Path(source_binding["manifest_path"]),
+    )
+    v29_registry_layer_params = _v29_registry_layer_params_from_payload(
+        registry_payload,
+        timeframe=timeframe,
+    )
+    registry_fit_binding = _v29_registry_artifact_binding(
+        v29_registry_constants_json,
+        timeframe=timeframe,
+        payload=registry_payload,
+    )
+    if (
+        volatility_squeeze_manifest is None
+        or expected_volatility_squeeze_manifest_sha256 is None
+    ):
+        raise RuntimeError("M1_FEATURE_BASE_VOLATILITY_SQUEEZE_ARTIFACT_REQUIRED")
+    from gx1.features.volatility_squeeze_state_v1 import (
+        load_volatility_squeeze_artifact_manifest,
+    )
+
+    squeeze_artifacts = load_volatility_squeeze_artifact_manifest(
+        Path(volatility_squeeze_manifest).expanduser().resolve(strict=True),
+        expected_sha256=expected_volatility_squeeze_manifest_sha256,
     )
 
     bounded = _materialize_bounded_feature_surface(
@@ -1131,6 +1344,7 @@ def _materialize_feature_base(
         bar_seconds=bar_seconds,
         sequence_bars=sequence_bars,
         v29_registry_layer_params=v29_registry_layer_params,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
     return _publish_feature_base_manifest(
         timeframe=timeframe,
@@ -1144,6 +1358,8 @@ def _materialize_feature_base(
         rows=int(bounded["rows"]),
         contract=contract,
         extension_meta=dict(bounded["extension"]),
+        registry_fit_binding=registry_fit_binding,
+        volatility_squeeze_artifact_binding=squeeze_artifacts.binding(),
         materialization=(
             dict(bounded["materialization"])
             if timeframe == "M1"
@@ -1157,6 +1373,12 @@ def _materialize_feature_base(
                 bounded["rows_before_v29_layer_warmup"]
             ),
             "v29_layer_warmup": dict(bounded["v29_layer_warmup"]),
+            "rows_before_foundation_event_warmup": int(
+                bounded["rows_before_foundation_event_warmup"]
+            ),
+            "foundation_event_warmup_floor_utc": str(
+                bounded["foundation_event_warmup_floor_utc"]
+            ),
             "first_surface_row_utc": str(bounded["first_surface_row_utc"]),
         },
     )
@@ -1176,10 +1398,21 @@ def main() -> None:
         required=True,
         help=(
             "Explicit frozen V29 registry fit artifact (V4 cache "
-            "manifest.json / constants payload for the M5 lane; the "
+            "manifest.json for the M5 lane; the "
             "M1-enriched frame manifest.json / M1-lane params payload for "
             "the M1 lane); no default exists"
         ),
+    )
+    parser.add_argument(
+        "--volatility-squeeze-manifest",
+        type=Path,
+        required=True,
+        help="Exact immutable six-clock squeeze manifest",
+    )
+    parser.add_argument(
+        "--expected-volatility-squeeze-manifest-sha256",
+        required=True,
+        help="Exact file SHA-256 of --volatility-squeeze-manifest",
     )
     args = parser.parse_args()
     timeframe = "M1" if args.alignment_parquet is not None else "M5"
@@ -1192,6 +1425,10 @@ def main() -> None:
         pair_generation_id=args.pair_generation_id,
         timeframe=timeframe,
         v29_registry_constants_json=args.v29_registry_constants_json,
+        volatility_squeeze_manifest=args.volatility_squeeze_manifest,
+        expected_volatility_squeeze_manifest_sha256=(
+            args.expected_volatility_squeeze_manifest_sha256
+        ),
     )
     print(json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False))
 

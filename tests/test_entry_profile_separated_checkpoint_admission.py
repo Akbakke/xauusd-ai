@@ -1,4 +1,4 @@
-"""Profile-separated checkpoint admission and the rebalanced smoke objective.
+"""Profile-separated checkpoint admission under the plain direction objective.
 
 User vedtak 2026-07-25 after V8 and V9 both produced class-degenerate
 collapse while a plain unweighted-cross-entropy probe on the same substrate
@@ -6,8 +6,8 @@ cleared the majority baseline with all three classes alive:
 
 1. smoke admits a checkpoint on active-head liveness plus non-degenerate
    class support; candidate keeps every acceptance gate exactly as before;
-2. the training objective raises direction discrimination and lowers the
-   distributional/conviction penalty tower, changing objective weights only.
+2. direction distribution diagnostics remain read-only and cannot change the
+   unweighted cross-entropy loss or checkpoint score.
 
 No empirical acceptance threshold moves in either decision.
 """
@@ -33,6 +33,7 @@ def _admission(profile: str, **flags: bool) -> bool:
         "aux_head_health_ok": True,
         "active_head_health_ok": True,
         "cooperation_gate_health_ok": True,
+        "exit_cooperation_gate_health_ok": True,
         "class_support_ok": True,
     }
     base.update(flags)
@@ -45,6 +46,7 @@ def test_candidate_admission_still_requires_every_health_gate() -> None:
         "aux_head_health_ok",
         "active_head_health_ok",
         "cooperation_gate_health_ok",
+        "exit_cooperation_gate_health_ok",
     ):
         assert _admission("candidate", **{blocking: False}) is False
 
@@ -54,6 +56,7 @@ def test_smoke_admits_on_liveness_and_class_support_only() -> None:
     # Auxiliary and cooperation health stay diagnostic at smoke.
     assert _admission("smoke", aux_head_health_ok=False) is True
     assert _admission("smoke", cooperation_gate_health_ok=False) is True
+    assert _admission("smoke", exit_cooperation_gate_health_ok=False) is True
     # Liveness and non-degenerate class support remain mandatory.
     assert _admission("smoke", active_head_health_ok=False) is False
     assert _admission("smoke", class_support_ok=False) is False
@@ -80,44 +83,31 @@ def test_trainer_requires_the_exact_profile() -> None:
     assert "profile" in inspect.signature(run_train).parameters
 
 
-def test_objective_rebalance_raises_discrimination_over_conviction() -> None:
+def test_direction_objective_has_no_handwritten_distribution_forcing() -> None:
     env = MODEL_NATIVE_RECIPE_ENV
-    assert float(env["ENTRY_DIRECTION_CE_SCALE"]) == 12.00
-    assert env["ENTRY_PRED_BALANCE_CLASS_WEIGHTS"] == "1.0,1.0,1.0"
-    for key in (
-        "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT",
-        "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT",
-        "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
-    ):
-        assert float(env[key]) == 2.00
-    # Direction cross-entropy must dominate every single penalty weight.
-    ce_scale = float(env["ENTRY_DIRECTION_CE_SCALE"])
-    for key in (
-        "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT",
-        "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT",
-        "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
+    forbidden = (
+        "ENTRY_DIRECTION_CE_SCALE",
+        "ENTRY_PRED_BALANCE_CLASS_WEIGHTS",
         "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT",
         "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT",
         "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT",
-    ):
-        assert float(env[key]) <= ce_scale
+        "ENTRY_DIRECTION_LOGIT_ADJUST_TAU",
+        "ENTRY_TAIL_DIRECTION_CE_WEIGHT",
+        "ENTRY_COST_LONG_TO_FLAT",
+    )
+    assert not set(forbidden) & set(env)
 
 
-def test_no_acceptance_threshold_moved_with_the_objective_rebalance() -> None:
-    # Every empirical acceptance floor, policy and cost value stays fixed.
+def test_read_only_direction_admission_thresholds_remain_explicit() -> None:
     env = MODEL_NATIVE_RECIPE_ENV
     assert env["ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE"] == "0.05"
     assert env["ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL"] == "0.35"
     assert env["ENTRY_CKPT_DIRECTION_SLICE_GUARD"] == "1"
-    assert env["ENTRY_SPECIALIST_GATE_MIN_MEAN"] == "0.01"
-    assert env["ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS"] == "6"
-    assert env["ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE"] == "3"
-    assert env["ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR"] == "0.05"
-    assert env["ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR"] == "0.05"
-    assert env["ENTRY_COST_LONG_TO_FLAT"] == "0.45"
-    assert env["ENTRY_COST_FLAT_TO_LONG"] == "1.60"
-    assert env["ENTRY_COST_SHORT_TO_FLAT"] == "0.45"
-    assert env["ENTRY_COST_FLAT_TO_SHORT"] == "1.60"
+    # Learned gate routing is admitted from empirical liveness evidence; the
+    # recipe must not impose a hand-written target share.
+    assert "ENTRY_SPECIALIST_GATE_MIN_MEAN" not in env
+    assert env["ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE"] == "0.10"
+    assert env["ENTRY_DIRECTION_SLICE_MIN_ROWS"] == "8"
 
 
 def _bundle_gate(profile: str) -> bool:

@@ -472,7 +472,7 @@ def _disable_augmenters(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in (
         "_augment_cv3_with_volume_features",
         "_augment_cv3_with_v4_mtf_scalars",
-        "_augment_cv3_with_group_a_and_dip_struct",
+        "_augment_cv3_with_group_a",
         "_augment_cv3_with_v1_legacy",
         "_augment_cv3_with_regime_v4",
     ):

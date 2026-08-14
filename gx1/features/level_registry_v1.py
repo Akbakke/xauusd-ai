@@ -1,13 +1,12 @@
-"""V29 level registry V1 — Phase A: pivot-clustered horizontal levels + round grid.
+"""V29 level registry V1 — causal immutable-pivot horizontal levels.
 
-New bounded authority (rule 21): persistent horizontal price-level identity
-with touch/reaction memory, break/retest events, and the stateless
-round-number grid.  Design owner: ``docs/V29_EVENT_SURFACE_DESIGN_20260811.md``
+New causal authority (rule 21): persistent horizontal price-level identity
+with touch/reaction memory and break/retest events.  Design owner:
+``docs/V29_EVENT_SURFACE_DESIGN_20260811.md``
 §1; exact field/lifecycle spec: the smc_liquidity event-gap report of
 2026-08-11 (``/home/andre2/GX1_DATA/logs/event_gap_review_20260811/
-smc_liquidity.md``, CENTERPIECE §§0-5).  Phase A implements the
-``pivot_cluster`` and ``round_number`` kinds; ``session_anchored`` is declared
-in the kind enum below and is produced in Phase B.
+smc_liquidity.md``, CENTERPIECE §§0-5).  This owner implements immutable
+``pivot_anchor`` identities; ``session_anchored`` remains declared but unbuilt.
 
 Pivot truth (rule 13): swing pivots are detected by *executing*
 ``smc_v1._detect_swing_pivots`` (owner code, not a copy) on the causal
@@ -16,70 +15,72 @@ Pivot truth (rule 13): swing pivots are detected by *executing*
 ``smc_v1._track_recent_swings``.  No second pivot detector exists.
 
 Constant origins (rule 2a — one sentence each, at the constant definitions
-below): pivot lookback ``SWING_LOOKBACK`` imported from ``smc_v1``; the
-cluster tolerance ``TOL_LEVEL_ATR`` is a TRAIN-fitted statistic produced by
-:func:`fit_level_registry_tolerance` and is an *explicit input* of every
-compute function here (never a module default — no legitimate named-constant
-origin exists for it, per the smc report §2); reaction window = the tau-12
-family convention; retest window = the tau-24 family convention; expiry caps =
-the ``augment_forward_outcome_v2._liquidity_zones`` per-TF lookbacks; distance
-saturation 20 = the ``exp(-min(x, 20))`` cap convention; count/age cap 999 =
-the ``smc_bars_since_sweep = 999`` sentinel convention; round grid 50/100 USD
-= the operator-declared XAUUSD round-number convention (design doc §1.4).
+below): pivot lookback ``SWING_LOOKBACK`` imported from ``smc_v1``; recurrence
+threshold and evidence lifetime are chronological TRAIN-fitted competing-risk
+parameters produced by :func:`fit_level_registry_hyperparameters_v1` and are
+explicit inputs of every compute function (never module defaults); distance
+All distances, counts, ages, and reactions are emitted in raw units;
+current-slot presence masks encode current absence while global event ages
+remain NaN until their first genuine event. The former fixed
+50/100 USD round-number inputs are retired: no TRAIN artifact owned those
+periodicities, so they were not admissible market evidence.
 
 Interpretation notes — decisions the design doc leaves open; each stays inside
 the doc's stated conventions and is testable:
 
 1. Break check: a level's break direction is anchored to its
-   ``side_of_origin`` (high_pivot breaks UP on ``close > center + TOL*atr``,
-   low_pivot breaks DOWN on ``close < center - TOL*atr``) — the registry
+   ``side_of_origin`` (high_pivot breaks UP on ``close > center`` and
+   low_pivot breaks DOWN on ``close < center``) — the registry
    analogue of the smc_v1 BOS crossings.  Because ``status`` flips to
    ``broken`` on the first firing bar, "first bar where the condition holds"
    IS the edge trigger; a freshly created level cannot satisfy its own break
    condition at birth (the confirming bar lies inside the pivot window), and a
-   merged level whose center moved adopts the smc_v1 "level changed" refire
-   idiom (`smc_v1.compute_smc_mtf_primitives_v1` BOS).
-2. Reaction windows open on every touch-count increment (creation, pivot
-   merge, zone-entry touch), with ``t0`` = the closed bar at which the
-   registry observes the touch, ``atr[t0]`` and the level's post-update
-   ``center_price`` at ``t0`` frozen for the measurement (rule 2g: the
-   quantity is measured against the level as tested).  Windows complete at
-   ``t0 + W`` regardless of a later break (a touch that never lifts off
-   scores negative — the signed-reaction requirement).
+   immutable anchor never moves after confirmation.
+2. Reaction lifecycle opens on a touch and completes at the first subsequent
+   distinct touch or break event; the outer TRAIN boundary
+   right-censors unresolved episodes.
+   The raw event age is recorded without a fixed reaction window.
 3. Retest: the break bar itself is excluded (``t > break_bar``); the first
-   bar within ``RETEST_WINDOW`` whose range intersects the zone is the retest
+   later bar whose range intersects the exact anchor price is the retest
    bar; outcome hold requires close strictly on the break side of
-   ``center_price`` — an exact tie fails closed to ``failed``.  A HOLD now
+   ``center_price`` — an exact tie fails closed to ``failed``. A HOLD
    also FLIPS the level's polarity (V30 package 8A, 2026-08-13): broken
    resistance that is retested and holds becomes an ACTIVE support and vice
    versa, keeping its identity, member pivots, touch history and reaction
-   memory.  ``side_of_origin`` is therefore lifecycle state, not a birth
-   constant; the level's break check, merge eligibility and nearest-ACTIVE
-   slot participation all follow the new side from the flip bar onward.  A
+   memory. ``side_of_origin`` is therefore lifecycle state, not a birth
+   constant; the level's break check and nearest-ACTIVE slot participation
+   both follow the new side from the flip bar onward. A
    FAILED retest is unchanged: the break stands and the level stays broken.
-4. Absent-slot encoding (no active level on a side): distance saturates at
-   the 20 cap (the design's declared side-absence representation), the two
-   bars-since style fields (``age_bars``, ``bars_since_touch``) carry the 999
-   "no event yet" sentinel, counts and event-gated reaction stats are 0.
+4. Absent-slot encoding (no active level on a side): raw attributes are 0 and
+   explicit current ``*_present`` masks are 0. Break age is NaN before the
+   first genuine break and therefore needs no eventually constant seen mask.
 5. Nearest-slot side assignment: ``center > close`` is above, ``center <=
    close`` is below (an exact tie is measure-zero and deterministic);
    equidistant slot ties resolve to the lower ``level_id``, the same declared
-   tie-break as pivot-merge ties (smc report §2).
+   ``level_id`` tie-break.
 6. Same-bar multiple retest outcomes aggregate by the sign of the summed
    signed outcomes (net zero on an exact conflict — fail-closed neutral);
    multiple same-bar breaks keep event = 1.0 with ``level_broken_touch_count``
    taking the max (the report's declared aggregation).
-7. Expiry (``bar - last_touch_bar > AGE_CAP[tf]``, strict) is evaluated at
-   the start of each closed bar, before admissions.
+7. Learned lifetime moves an anchor out of ACTIVE/pending event and slot
+   eligibility when raw ``bar-last_eligibility_refresh_bar`` exceeds it. It
+   never deletes or mutates immutable identity or recurrence membership.
 8. ATR availability follows the ``compute_smc_mtf_primitives_v1`` contract:
    an optional contiguous NaN prefix.  Pivots whose confirmation bar falls in
    that prefix are dropped (their admission distance is not computable; no
-   fallback), and :func:`fit_level_registry_tolerance` drops the same pivots
+   fallback), and the hyperparameter fit drops the same pivots
    so the fitted population matches the admitted population (rule 2g).
-9. The tolerance fit searches the same age window as the runtime merge
-   (interpretation note 7's cap), so the fitted statistic describes the set of
-   levels a merge decision can actually see instead of the whole TRAIN history
-   (rule 2g; repaired 2026-08-13, see the fit's own docstring).
+9. Registry identity and recurrence membership form one parameter-independent
+   canonical tape: every confirmed pivot creates an immutable high- or
+   low-birth-side anchor. Nearest recurrence is found among ALL prior immutable
+   anchors of the same birth side through a price index; threshold and lifetime
+   cannot change its origin/distance bytes. Breaks, touches and retests use exact
+   anchor geometry on the eligible event set. TRAIN outcome labels come from
+   the parameter-independent exact-center reaction/break/censor lifecycle;
+   serving never consumes those future labels. The frozen threshold only marks
+   the birth recurrence flag; lifetime only gates selected event/slot
+   eligibility. Separate hashes bind recurrence fit/apply parity, canonical
+   TRAIN outcome labels, selected eligibility replay and emissions.
 
 Wiring: none here.  Builders/contracts consume the declared name tuples
 ``LEVEL_REGISTRY_M5_FEATURE_NAMES`` / ``LEVEL_REGISTRY_MTF_FEATURE_NAMES`` in
@@ -88,36 +89,43 @@ a separate stage-2 change (design doc §5.2).
 from __future__ import annotations
 
 import copy
+import hashlib
 import math
 from bisect import bisect_left, insort
-from collections import deque
 from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.registry_hyperparameter_fit_v1 import (
+    REGISTRY_OUTCOME_BREAK,
+    REGISTRY_OUTCOME_CENSORED,
+    REGISTRY_OUTCOME_REACTION,
+    RegistryOutcomeStreamV1,
+    fit_registry_competing_risk_threshold_v1,
+    require_registry_fit_source_v1,
+    require_registry_hyperparameter_payload_v1,
+)
+from gx1.utils.artifact_primitives_v1 import canonical_json_sha256
+
 from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
+from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
 LEVEL_REGISTRY_FEATURE_VERSION = (
-    "level_registry_v1_20260813_polarity_flip_second_slot_member_pivot_count"
+    "level_registry_v13_honest_raw_break_age_no_global_seen"
 )
-
 # ---------------------------------------------------------------------------
-# Level kinds — the full V29 enum (design doc §1).  Phase A implements
-# pivot_cluster + round_number; session_anchored is Phase B.
+# Level kinds — only implemented or explicitly reserved identities remain.
 # ---------------------------------------------------------------------------
-LEVEL_KIND_PIVOT_CLUSTER = "pivot_cluster"
+LEVEL_KIND_PIVOT_ANCHOR = "pivot_anchor"
 LEVEL_KIND_SESSION_ANCHORED = "session_anchored"
-LEVEL_KIND_ROUND_NUMBER = "round_number"
 LEVEL_KINDS = (
-    LEVEL_KIND_PIVOT_CLUSTER,
+    LEVEL_KIND_PIVOT_ANCHOR,
     LEVEL_KIND_SESSION_ANCHORED,
-    LEVEL_KIND_ROUND_NUMBER,
 )
 LEVEL_KINDS_IMPLEMENTED_V1 = (
-    LEVEL_KIND_PIVOT_CLUSTER,
-    LEVEL_KIND_ROUND_NUMBER,
+    LEVEL_KIND_PIVOT_ANCHOR,
 )
 
 
@@ -137,98 +145,43 @@ def require_level_kind_implemented(kind: str) -> str:
 # Named constants with declared origins (rule 2a).
 # ---------------------------------------------------------------------------
 
-# Reaction measurement window W, closed bars.  Origin: the family's tau-12
-# short-horizon evidence-window convention (smc_sweep_size_recent_tau12,
-# smc_bos_pressure_last12, smc_choch_recent_tau12 in entry_smart_context.py).
-# Recorded as an immutable-recipe key by the design doc (§1.4) and flagged
-# there for a TRAIN-fitted upgrade at the recipe decision.
-LEVEL_REGISTRY_REACTION_WINDOW_BARS = 12
-
-# Retest-after-break window, closed bars.  Origin: the family's tau-24
-# recency convention (smc_sweep_recency_tau24, smc_choch_recent_tau24 in
-# entry_smart_context.py; exp(-age/24) in entry_foundation_structure_v1).
-# Immutable-recipe key per the design doc (§1.4).
-LEVEL_REGISTRY_RETEST_WINDOW_BARS = 24
-
-# Per-TF expiry: a level with bar - last_touch_bar > AGE_CAP is removed.
-# Origin: the per-TF liquidity-zone lookbacks declared in
-# augment_forward_outcome_v2._liquidity_zones (M5 240, M15 192, H1 168,
-# H4 168, D1 60 closed bars) — named constants in an existing contract owner
-# (design doc §1.4).
-LEVEL_REGISTRY_AGE_CAP_BARS = {
-    "m5": 240,
-    "m15": 192,
-    "h1": 168,
-    "h4": 168,
-    "d1": 60,
-}
-
-# ATR-distance saturation for every emitted *_dist_atr / *_reaction_atr
-# field.  Origin: the family-wide exp(-min(x, 20.0)) proximity cap convention
-# (sr_support_proximity_exp / sr_resistance_proximity_exp in
-# entry_smart_context.py), semantics preserved monotonically (design doc §1.4).
-LEVEL_REGISTRY_DIST_SATURATION_ATR = 20.0
-
-# Count/age cap and "no event yet" sentinel.  Origin: the
-# smc_bars_since_sweep = 999 sentinel-at-cap convention (smc_v1.py).
-LEVEL_REGISTRY_COUNT_AGE_CAP = 999.0
-
-# Round-number grid steps in USD.  Origin: the instrument's operator-declared
-# round-number convention for XAUUSD (design doc §1.4; smc report §4 items
-# 21-22 — analogous in kind to the classic-pivot formula constants in
-# _build_daily_pivots).
-LEVEL_ROUND_GRID_50_USD = 50.0
-LEVEL_ROUND_GRID_100_USD = 100.0
-
-# The TRAIN-fit quantile key `q` deliberately has NO default value here: the
-# design doc defers its declared value to the immutable recipe decision (§8
-# item 4), so it is a required explicit argument of
-# fit_level_registry_tolerance (rule 2a origin class 3; inventing a default
-# would violate rule 2b).
-LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY = "level_registry_tol_quantile_q"
-
+LEVEL_REGISTRY_TIMEFRAMES = ("m1", "m5", "m15", "h1", "h4", "d1")
 
 # ---------------------------------------------------------------------------
 # Declared output contracts (exact names + order; stage 2 consumes these).
-# M5/513 lane: design doc §1.2 (V30 package 8A 2026-08-13: 29 = 20 slots +
-# 7 events + 2 round; V30 package 6 was 25 = 16 + 7 + 2 and the pre-V30 block
-# was 22 = 14 + 6 + 2).  The tuple below is the owner; these figures are a
-# dated cross-check, never the contract.
-# Per-TF lane: design doc §1.3 (11 per TF; unchanged by V30).
+# Local and per-TF native-clock lanes expose the same 31 causal
+# anchor/lifecycle primitives. Current slots retain presence masks; sparse
+# break memory is an honest NaN prefix followed by raw age.
 # ---------------------------------------------------------------------------
 # V30 package 8A (2026-08-13) appends four EMISSION-ONLY fields per the
-# fidelity audit §5 (state that exists in memory and is never emitted):
-#   level_above/below_member_pivot_count — the founding+merged pivot
-#     population of the nearest level, already carried as
-#     ``member_pivot_count`` and already used to derive ``*_test_count``.  It
-#     is the density signal: MEASURED on the sealed V29J TRAIN rows
-#     (n=369,303, 2026-08-13), member==1 on 98.03%/98.32% of present rows and
-#     ==2 on ~2% — a real, if sparse, distinction that no emitted field
-#     currently carries on its own.
+# Completed-reaction count disambiguates honest zero reaction magnitudes from
+# "no completed reaction". The second-nearest distance exposes shelf density.
 #   level_above2/below2_dist_atr — the SECOND-nearest ACTIVE level on that
 #     side.  Today a four-level shelf and an isolated level emit identical
-#     rows.  Same absent-slot convention as the nearest slot (the distance
-#     saturation cap), same side rule, same level_id tie-break.
+#     rows. Explicit presence masks carry absence, with the same side rule and
+#     level_id tie-break.
 LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_dist_atr",
+    "level_above_present",
     "level_above2_dist_atr",
+    "level_above2_present",
     "level_above_touch_count",
-    "level_above_member_pivot_count",
-    # V30 (2026-08-13) split touch semantics: post-birth zone-entry TESTS
-    # only = touch_count - member_pivot_count (both already in state; every
-    # touch_count increment is either a founding/merged member pivot or a
-    # zone-entry test, so the difference is exact — no new counter).
-    "level_above_test_count",
+    "level_above_completed_reaction_count",
+    # Confirmed same-side recurrence pivots inside the TRAIN-frozen distance;
+    # exact-center touches remain a separate primitive.
+    "level_above_recurrence_confirmed",
     "level_above_age_bars",
     "level_above_bars_since_touch",
     "level_above_mean_reaction_atr",
     "level_above_max_reaction_atr",
     "level_above_last_reaction_atr",
     "level_below_dist_atr",
+    "level_below_present",
     "level_below2_dist_atr",
+    "level_below2_present",
     "level_below_touch_count",
-    "level_below_member_pivot_count",
-    "level_below_test_count",
+    "level_below_completed_reaction_count",
+    "level_below_recurrence_confirmed",
     "level_below_age_bars",
     "level_below_bars_since_touch",
     "level_below_mean_reaction_atr",
@@ -241,49 +194,32 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     # V30 (2026-08-13): the same bars-since-break memory signed by the break
     # side of the most recent break bar (+1 up / -1 down; a same-bar
     # up+down conflict nets to 0 — the sibling signed-aggregation
-    # convention of interpretation note 6).  The unsigned sentinel field
-    # above stays byte-identical; its 999 no-event sentinel and the break
-    # event flags disambiguate the signed field's zeros (design B.5).
+    # convention of interpretation note 6). The pre-event value is NaN.
     "level_bars_since_break_signed",
     "level_retest_hold_signed",
     "level_retest_fail_signed",
-    "level_round_50_dist_atr",
-    "level_round_100_dist_atr",
 )
 
-LEVEL_REGISTRY_MTF_FEATURE_NAMES = (
-    "mtf_level_above_dist_atr",
-    "mtf_level_below_dist_atr",
-    "mtf_level_above_touch_count",
-    "mtf_level_below_touch_count",
-    "mtf_level_above_mean_reaction_atr",
-    "mtf_level_below_mean_reaction_atr",
-    "mtf_level_break_up_event",
-    "mtf_level_break_down_event",
-    "mtf_level_bars_since_break",
-    "mtf_level_retest_hold_signed",
-    "mtf_level_retest_fail_signed",
+LEVEL_REGISTRY_MTF_FEATURE_NAMES = tuple(
+    f"mtf_{name}" for name in LEVEL_REGISTRY_M5_FEATURE_NAMES
 )
 
-# Per-TF lane fields are exact renames of registry fields (design doc §1.3).
+# Per-TF lane fields are exhaustive exact renames of the local owner.  A
+# native H1/H4/D1 clock must not receive a half-indicator missing recurrence,
+# shelf density, lifecycle ages or reaction extrema.
 _LEVEL_REGISTRY_MTF_SOURCE_MAP = {
-    "mtf_level_above_dist_atr": "level_above_dist_atr",
-    "mtf_level_below_dist_atr": "level_below_dist_atr",
-    "mtf_level_above_touch_count": "level_above_touch_count",
-    "mtf_level_below_touch_count": "level_below_touch_count",
-    "mtf_level_above_mean_reaction_atr": "level_above_mean_reaction_atr",
-    "mtf_level_below_mean_reaction_atr": "level_below_mean_reaction_atr",
-    "mtf_level_break_up_event": "level_break_up_event",
-    "mtf_level_break_down_event": "level_break_down_event",
-    "mtf_level_bars_since_break": "level_bars_since_break",
-    "mtf_level_retest_hold_signed": "level_retest_hold_signed",
-    "mtf_level_retest_fail_signed": "level_retest_fail_signed",
+    mtf_name: local_name
+    for mtf_name, local_name in zip(
+        LEVEL_REGISTRY_MTF_FEATURE_NAMES,
+        LEVEL_REGISTRY_M5_FEATURE_NAMES,
+        strict=True,
+    )
 }
 
 
 # ---------------------------------------------------------------------------
 # Serializable incremental state (chunk-safe carry, the
-# build_entry_support_resistance_memory_layer memory_state pattern).  The
+# bounded feature-owner carry-state pattern). The
 # caller owns chronological continuity of the chunks, exactly as with that
 # owner's memory_state.
 # ---------------------------------------------------------------------------
@@ -295,11 +231,14 @@ _LEVEL_REGISTRY_MTF_SOURCE_MAP = {
 # (a) ``side_of_origin`` is now lifecycle state, not a birth constant (a held
 # retest flips it and returns the level to ACTIVE), and (b) each open reaction
 # window carries a fifth element, the side frozen at its own t0.
-LEVEL_REGISTRY_STATE_VERSION = "level_registry_v1_state_3"
+LEVEL_REGISTRY_STATE_VERSION = (
+    "level_registry_v1_state_9_immutable_recurrence_full_mtf"
+)
 LEVEL_REGISTRY_STATE_KEYS = (
     "state_version",
     "tf",
-    "tol_level_atr",
+    "recurrence_threshold_atr",
+    "max_evidence_age_bars",
     "bars_processed",
     "atr_started",
     "first_level_admitted",
@@ -312,14 +251,15 @@ LEVEL_REGISTRY_STATE_KEYS = (
 )
 LEVEL_REGISTRY_LEVEL_STATE_KEYS = (
     "level_id",
+    "birth_side",
     "side_of_origin",
     "center_price",
-    "member_pivot_count",
     "member_pivot_bars",
     "member_pivot_prices",
     "touch_count",
     "birth_bar",
     "last_touch_bar",
+    "last_eligibility_refresh_bar",
     "reaction_sum_atr",
     "reaction_max_atr",
     "reaction_last_atr",
@@ -328,21 +268,25 @@ LEVEL_REGISTRY_LEVEL_STATE_KEYS = (
     "break_bar",
     "break_side",
     "retest_state",
-    "prev_bar_in_zone",
+    "prev_bar_intersects_center",
+    "recurrence_confirmed",
     "open_reactions",
 )
 _SIDE_HIGH = "high_pivot"
 _SIDE_LOW = "low_pivot"
 _SIDES = (_SIDE_HIGH, _SIDE_LOW)
-_STATUSES = ("active", "broken")
-_RETEST_STATES = ("none", "pending", "held", "failed")
+_STATUSES = ("active", "broken", "expired")
+_RETEST_STATES = ("none", "pending", "held", "failed", "expired")
 
 
-def _empty_registry_state(tf: str, tol_level_atr: float) -> dict[str, Any]:
+def _empty_registry_state(
+    tf: str, recurrence_threshold_atr: float, max_evidence_age_bars: int
+) -> dict[str, Any]:
     return {
         "state_version": LEVEL_REGISTRY_STATE_VERSION,
         "tf": tf,
-        "tol_level_atr": float(tol_level_atr),
+        "recurrence_threshold_atr": float(recurrence_threshold_atr),
+        "max_evidence_age_bars": int(max_evidence_age_bars),
         "bars_processed": 0,
         "atr_started": False,
         "first_level_admitted": False,
@@ -356,28 +300,35 @@ def _empty_registry_state(tf: str, tol_level_atr: float) -> dict[str, Any]:
 
 
 def _validate_tf(tf: str) -> str:
-    if tf not in LEVEL_REGISTRY_AGE_CAP_BARS:
+    if tf not in LEVEL_REGISTRY_TIMEFRAMES:
         raise RuntimeError(
             f"[LEVEL_REGISTRY_TF_INVALID] {tf!r} not in "
-            f"{tuple(LEVEL_REGISTRY_AGE_CAP_BARS)}"
+            f"{LEVEL_REGISTRY_TIMEFRAMES}"
         )
     return tf
 
 
-def _validate_tol(tol_level_atr: float) -> float:
+def _validate_tol(recurrence_threshold_atr: float) -> float:
     try:
-        tol = float(tol_level_atr)
+        tol = float(recurrence_threshold_atr)
     except (TypeError, ValueError) as exc:
-        raise RuntimeError("[LEVEL_REGISTRY_TOL_INVALID] not a number") from exc
+        raise RuntimeError(
+            "[LEVEL_REGISTRY_RECURRENCE_THRESHOLD_INVALID] not a number"
+        ) from exc
     if not math.isfinite(tol) or tol <= 0.0:
         raise RuntimeError(
-            f"[LEVEL_REGISTRY_TOL_INVALID] tol_level_atr must be finite and > 0, got {tol!r}"
+            "[LEVEL_REGISTRY_RECURRENCE_THRESHOLD_INVALID] "
+            f"recurrence_threshold_atr must be finite and > 0, got {tol!r}"
         )
     return tol
 
 
 def _validate_registry_state(
-    state: Mapping[str, Any], *, tf: str, tol_level_atr: float
+    state: Mapping[str, Any],
+    *,
+    tf: str,
+    recurrence_threshold_atr: float,
+    max_evidence_age_bars: int,
 ) -> dict[str, Any]:
     if not isinstance(state, Mapping):
         raise RuntimeError("[LEVEL_REGISTRY_STATE_SCHEMA_INVALID] state is not a mapping")
@@ -394,12 +345,17 @@ def _validate_registry_state(
         raise RuntimeError(
             f"[LEVEL_REGISTRY_STATE_CONTRACT_MISMATCH] state tf={state['tf']!r} != {tf!r}"
         )
-    # The tolerance is frozen bundle state (rule 18): carried state must bind
+    # The recurrence threshold is frozen bundle state (rule 18): carried state must bind
     # the exact same constant, bit for bit.
-    if float(state["tol_level_atr"]) != float(tol_level_atr):
+    if float(state["recurrence_threshold_atr"]) != float(recurrence_threshold_atr):
         raise RuntimeError(
-            "[LEVEL_REGISTRY_STATE_CONTRACT_MISMATCH] state tol_level_atr="
-            f"{state['tol_level_atr']!r} != {tol_level_atr!r}"
+            "[LEVEL_REGISTRY_STATE_CONTRACT_MISMATCH] state recurrence_threshold_atr="
+            f"{state['recurrence_threshold_atr']!r} != {recurrence_threshold_atr!r}"
+        )
+    if state["max_evidence_age_bars"] != max_evidence_age_bars:
+        raise RuntimeError(
+            "[LEVEL_REGISTRY_STATE_CONTRACT_MISMATCH] state max_evidence_age_bars="
+            f"{state['max_evidence_age_bars']!r} != {max_evidence_age_bars!r}"
         )
     out = copy.deepcopy(dict(state))
     bars_processed = out["bars_processed"]
@@ -442,18 +398,21 @@ def _validate_registry_state(
                 raise RuntimeError(f"[LEVEL_REGISTRY_STATE_INVALID] level {key}")
         for key in (
             "level_id",
-            "member_pivot_count",
             "touch_count",
             "birth_bar",
             "last_touch_bar",
+            "last_eligibility_refresh_bar",
             "completed_reaction_count",
+            "recurrence_confirmed",
             "break_bar",
             "break_side",
         ):
             if not isinstance(lv[key], int) or isinstance(lv[key], bool):
                 raise RuntimeError(f"[LEVEL_REGISTRY_STATE_INVALID] level {key}")
-        if not isinstance(lv["prev_bar_in_zone"], bool):
-            raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] level prev_bar_in_zone")
+        if lv["birth_side"] not in _SIDES:
+            raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] birth_side")
+        if not isinstance(lv["prev_bar_intersects_center"], bool):
+            raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] level center memory")
         if not isinstance(lv["member_pivot_bars"], list) or not isinstance(
             lv["member_pivot_prices"], list
         ):
@@ -532,256 +491,62 @@ def _validate_source(
 
 
 # ---------------------------------------------------------------------------
-# TRAIN fit of the cluster tolerance (smc report §2 — required TRAIN-fitted
+# TRAIN fit of the nearest-same-side recurrence threshold (required TRAIN-fitted
 # statistic; rule 18 pattern: fitted once on the complete declared TRAIN
 # window, frozen as bundle state, never refitted downstream).
 #
-# Fit-lane labels: the engine TFs (the AGE_CAP table) plus "m1" — the Exit
+# Fit-lane labels: the engine TFs plus "m1" — the Exit
 # local M1 lane runs the same M5-block engine on the native M1 clock (the
 # shared local layer in entry_model_native_feature_layers_v1), so its
-# tolerance must be fitted on that clock's own confirmed-pivot population
-# (rule 2g).  "m1" is the Exit decision timeframe named in
-# entry_exit_feature_base_v1; no new number is introduced by admitting the
-# label here — the engine's per-TF age caps are untouched.
+# parameters must be fitted on that clock's own confirmed-pivot population.
 # ---------------------------------------------------------------------------
-LEVEL_REGISTRY_FIT_LANE_TFS = tuple(LEVEL_REGISTRY_AGE_CAP_BARS) + ("m1",)
-
-# Per-fit-lane age cap.  The engine TFs use their own expiry cap; the "m1" fit
-# lane uses the M5 cap because the Exit local M1 lane executes
-# ``compute_level_registry_m5_block_v1``, which binds ``tf="m5"`` and therefore
-# runs the M5 expiry cap on the native M1 clock.  No new number is introduced:
-# this maps each fit lane onto the cap its own runtime already uses (rule 2a
-# origin class 1, rule 13 — the value is read from the runtime's own table).
-LEVEL_REGISTRY_FIT_AGE_CAP_BARS = {
-    **LEVEL_REGISTRY_AGE_CAP_BARS,
-    "m1": LEVEL_REGISTRY_AGE_CAP_BARS["m5"],
-}
+LEVEL_REGISTRY_FIT_LANE_TFS = LEVEL_REGISTRY_TIMEFRAMES
 
 
-def fit_level_registry_tolerance(
+def fit_level_registry_hyperparameters_v1(
     df: pd.DataFrame,
     *,
-    q: float,
     tf: str,
-    declared_train_window: str,
+    inner_fit_end_exclusive: int,
+    source_provenance: Mapping[str, Any],
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
     atr_col: str = "atr",
-) -> tuple[float, dict[str, Any]]:
-    """Fit ``TOL_LEVEL_ATR[tf]`` on a declared TRAIN window.
+) -> dict[str, Any]:
+    """Fit recurrence threshold/lifetime on the canonical runtime event tape.
 
-    For every confirmed swing pivot (in confirmation order, high before low on
-    a shared confirmation bar — the same order the runtime admission uses),
-    the sample is the ATR-normalized absolute distance from its price to the
-    nearest *earlier* confirmed pivot price **that the runtime merge could
-    still see at that bar**; the tolerance is the ``q`` quantile of that
-    sample.  ``q`` is a required explicit recipe input
-    (``LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY``); the design doc declares no
-    default (§8 item 4), so none exists here.
-
-    Age-window pruning (rule 2g, repaired 2026-08-13 —
-    ``docs/INDICATOR_FIDELITY_AUDIT_20260813.md`` §0a): the fit used to
-    accumulate every earlier pivot price of the whole declared window, so the
-    sample was "distance to the nearest of ALL history".  That population does
-    not exist at any decision point: ``_run_level_registry`` expires a level as
-    soon as ``t - last_touch_bar > LEVEL_REGISTRY_AGE_CAP_BARS[tf]``, so the
-    merge at the confirming bar ``t`` searches only levels inside that window.
-    An unpruned nearest-neighbour statistic shrinks as the window lengthens:
-    it measured TRAIN LENGTH, not a market property, and at ``q=0.5`` it
-    produced ~0.0094 ATR on M5 — a zone half-width of about one cent, at which
-    a merge almost never fires (measured on the sealed V29J TRAIN rows,
-    n=369,303, 2026-08-13: ``member_pivot_count == 1`` on 98.03% of present
-    rows, i.e. clustering on ~2%; audit "STEP-0 MEASUREMENTS" section).  The
-    fit now searches exactly
-    the runtime window:
-    an earlier pivot at bar ``j'`` is admissible for the measurement at
-    confirming bar ``t`` iff ``t - j' <= LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf]``.
-
-    That window is the runtime population for a level that was never touched
-    after birth (creation sets ``last_touch_bar`` to the pivot's own bar ``j``).
-    A level whose zone is re-entered has its ``last_touch_bar`` refreshed and
-    therefore lives longer at runtime, and this fit — which knows no tolerance
-    yet and so cannot replay touches without circularity — does not extend the
-    window for it.  The fitted population is therefore a strict *subset* of the
-    runtime search population, never a superset: it is the exact set for
-    untouched levels and omits the refreshed tail.  Stated here rather than
-    hidden, per rule 2d.
-
-    Returns ``(tol_level_atr, provenance)`` where provenance states the sample
-    size, the age window, the searchable-neighbour population it produced, and
-    the quantile's sampling bound (rule 2f): ``quantile_prob_se =
-    sqrt(q*(1-q)/N)`` (the distribution-free binomial SE of the empirical CDF
-    at ``q``) and the empirical value bracket at ``q ± quantile_prob_se``.
+    Identity/lifecycle is materialized once, independently of both selected
+    parameters. Future outcomes are used only inside this TRAIN fit; serving
+    consumes the frozen selection as derived evidence without altering tape
+    control flow.
     """
-    if tf not in LEVEL_REGISTRY_FIT_LANE_TFS:
-        raise RuntimeError(
-            f"[LEVEL_REGISTRY_TF_INVALID] {tf!r} not in "
-            f"{LEVEL_REGISTRY_FIT_LANE_TFS}"
-        )
-    try:
-        q_value = float(q)
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError("[LEVEL_REGISTRY_TOL_FIT_Q_INVALID] not a number") from exc
-    if not math.isfinite(q_value) or not (0.0 < q_value < 1.0):
-        raise RuntimeError(
-            f"[LEVEL_REGISTRY_TOL_FIT_Q_INVALID] q must lie strictly in (0, 1), got {q_value!r}"
-        )
-    if not isinstance(declared_train_window, str) or not declared_train_window:
-        raise RuntimeError("[LEVEL_REGISTRY_TOL_FIT_WINDOW_UNDECLARED]")
-    high, low, _close, atr = _validate_source(
+
+    return _fit_level_registry_canonical_tape_v1(
         df,
+        tf=tf,
+        inner_fit_end_exclusive=inner_fit_end_exclusive,
+        source_provenance=source_provenance,
         high_col=high_col,
         low_col=low_col,
         close_col=close_col,
         atr_col=atr_col,
-        atr_started=False,
     )
-    nb = len(high)
-    n = SWING_LOOKBACK
-    age_cap = LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf]
-    swing_high_mask, swing_low_mask = _detect_swing_pivots(high, low, n)
-    distances: list[float] = []
-    # Two views of the same admitted pivots: `window_pivots` in confirmation
-    # order (so the oldest can be expired) and `window_prices` sorted (so the
-    # nearest in-window neighbour is a bisect).  Each pivot enters and leaves
-    # exactly once.
-    window_pivots: deque[tuple[int, float]] = deque()
-    window_prices: list[float] = []
-    admitted = 0
-    dropped_atr_unavailable = 0
-    dropped_no_in_window_neighbour = 0
-    neighbour_counts: list[int] = []
-    for t in range(n, nb):
-        j = t - n
-        # Expire pivots the runtime merge could no longer see at bar t: the
-        # engine drops a level once t - last_touch_bar > age_cap, and an
-        # untouched level's last_touch_bar is its own pivot bar (rule 2g).
-        while window_pivots and t - window_pivots[0][0] > age_cap:
-            _expired_bar, expired_price = window_pivots.popleft()
-            del window_prices[bisect_left(window_prices, expired_price)]
-        for is_pivot, price in (
-            (bool(swing_high_mask[j]), float(high[j])),
-            (bool(swing_low_mask[j]), float(low[j])),
-        ):
-            if not is_pivot:
-                continue
-            a = float(atr[t])
-            if not math.isfinite(a):
-                # Confirmation falls in the declared ATR warmup prefix: the
-                # runtime drops this pivot, so the fit drops it too (rule 2g).
-                dropped_atr_unavailable += 1
-                continue
-            if window_prices:
-                pos = bisect_left(window_prices, price)
-                nearest = math.inf
-                if pos < len(window_prices):
-                    nearest = min(nearest, abs(window_prices[pos] - price))
-                if pos > 0:
-                    nearest = min(nearest, abs(window_prices[pos - 1] - price))
-                distances.append(nearest / a)
-                neighbour_counts.append(len(window_prices))
-            else:
-                # No level of any age survives here, so no merge decision is
-                # taken at this pivot and no distance exists to measure.
-                # Counted, never substituted by a placeholder (rule 2e).
-                dropped_no_in_window_neighbour += 1
-            window_pivots.append((j, price))
-            insort(window_prices, price)
-            admitted += 1
-    if not distances:
-        raise RuntimeError(
-            "[LEVEL_REGISTRY_TOL_FIT_INSUFFICIENT] no admitted pivot had an "
-            f"earlier pivot inside the {age_cap}-bar runtime age window "
-            f"(admitted={admitted})"
-        )
-    sample = np.asarray(distances, dtype=np.float64)
-    sample_size = int(sample.size)
-    tol = float(np.quantile(sample, q_value))
-    if not math.isfinite(tol) or tol <= 0.0:
-        raise RuntimeError(
-            f"[LEVEL_REGISTRY_TOL_FIT_DEGENERATE] fitted tolerance {tol!r} is not "
-            "a usable zone half-width"
-        )
-    prob_se = math.sqrt(q_value * (1.0 - q_value) / sample_size)
-    bracket_q_lo = max(0.0, q_value - prob_se)
-    bracket_q_hi = min(1.0, q_value + prob_se)
-    bracket = np.quantile(sample, [bracket_q_lo, bracket_q_hi])
-    provenance = {
-        "fit_owner": "gx1.features.level_registry_v1.fit_level_registry_tolerance",
-        "module_version": LEVEL_REGISTRY_FEATURE_VERSION,
-        "level_kind": LEVEL_KIND_PIVOT_CLUSTER,
-        "tf": tf,
-        "declared_train_window": declared_train_window,
-        "swing_lookback": int(SWING_LOOKBACK),
-        "quantile_recipe_key": LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY,
-        "quantile_q": q_value,
-        "quantile_method": "linear",
-        "n_bars": int(nb),
-        "n_pivots_admitted": admitted,
-        "n_pivots_dropped_atr_unavailable": dropped_atr_unavailable,
-        # Rule 2g audit trail for the age-window fit population: the cap that
-        # pruned it, and how many earlier pivots were actually searchable per
-        # measurement.  The pre-2026-08-13 fit searched every earlier pivot of
-        # the window, so this count grew without bound with TRAIN length; under
-        # the runtime cap it is the size of the set the merge really scans.
-        "fit_population": (
-            "nearest earlier confirmed pivot within "
-            "LEVEL_REGISTRY_FIT_AGE_CAP_BARS[tf] bars of the confirming bar "
-            "(the runtime merge's own search window)"
-        ),
-        "age_cap_bars": int(age_cap),
-        "searchable_pivot_population_mean": float(
-            np.mean(np.asarray(neighbour_counts, dtype=np.float64))
-        ),
-        "searchable_pivot_population_max": int(max(neighbour_counts)),
-        "n_pivots_dropped_no_in_window_neighbour": dropped_no_in_window_neighbour,
-        "sample_size": sample_size,
-        "tol_level_atr": tol,
-        "quantile_prob_se": prob_se,
-        "tol_bracket_q_lo": float(bracket_q_lo),
-        "tol_bracket_q_hi": float(bracket_q_hi),
-        "tol_bracket_lo": float(bracket[0]),
-        "tol_bracket_hi": float(bracket[1]),
-    }
-    return tol, provenance
-
-
-# ---------------------------------------------------------------------------
-# Registry engine (one code path for full runs and chunked runs — chunk
-# invariance is by construction: scalar float64 arithmetic per closed bar).
-# ---------------------------------------------------------------------------
-def _saturate(value: float) -> float:
-    cap = LEVEL_REGISTRY_DIST_SATURATION_ATR
-    if value > cap:
-        return cap
-    if value < -cap:
-        return -cap
-    return value
-
-
-def _cap999(value: float) -> float:
-    cap = LEVEL_REGISTRY_COUNT_AGE_CAP
-    if value > cap:
-        return cap
-    if value < 0.0:
-        return 0.0
-    return value
-
 
 def _new_level(
     level_id: int, side: str, price: float, birth_bar: int, pivot_bar: int, atr_now: float
 ) -> dict[str, Any]:
     return {
         "level_id": level_id,
+        "birth_side": side,
         "side_of_origin": side,
         "center_price": price,
-        "member_pivot_count": 1,
         "member_pivot_bars": [pivot_bar],
         "member_pivot_prices": [price],
         "touch_count": 1,
         "birth_bar": birth_bar,
         "last_touch_bar": pivot_bar,
+        "last_eligibility_refresh_bar": birth_bar,
         "reaction_sum_atr": 0.0,
         "reaction_max_atr": 0.0,
         "reaction_last_atr": 0.0,
@@ -790,7 +555,8 @@ def _new_level(
         "break_bar": -1,
         "break_side": 0,
         "retest_state": "none",
-        "prev_bar_in_zone": False,
+        "prev_bar_intersects_center": False,
+        "recurrence_confirmed": 0,
         # Reaction window = [t0, atr0, center0, extreme, side_at_t0].  V30
         # package 8A froze the side alongside atr0/center0: the polarity flip
         # can now change a level's side WHILE a window is open, and the
@@ -805,79 +571,215 @@ def _slot_fields(
     t: int,
     *,
     dist2: float,
+    max_evidence_age_bars: int,
 ) -> tuple[float, ...]:
     """Return one side's slot block in declared order.
 
     ``dist2`` is the distance to the SECOND-nearest ACTIVE level on the same
     side (V30 package 8A).  It carries the same absent-slot encoding as the
-    nearest slot — the saturation cap — so "one lonely level" and "a shelf of
-    four" stop emitting identical rows.  It is a distance only: the second
+    nearest slot. Its explicit presence mask distinguishes "one lonely level"
+    from "a shelf of four". It is a distance only: the second
     level's attributes are deliberately NOT emitted (rule 22 — the density
     question is answered by the distance, and eight more columns per side
     would be mechanism without a removed failure mode).
     """
 
-    dist2_value = min(dist2, LEVEL_REGISTRY_DIST_SATURATION_ATR)
+    dist2_value = float(dist2) if math.isfinite(dist2) else 0.0
     if level is None:
-        # Absent-side encoding: distance saturates at the cap (the design's
-        # declared side-absence representation); bars-since fields carry the
-        # 999 "no event yet" sentinel; counts/reaction stats are event-gated 0.
+        # Explicit presence masks disambiguate raw zero-valued attributes.
         return (
-            LEVEL_REGISTRY_DIST_SATURATION_ATR,
+            0.0,
             dist2_value,
             0.0,
             0.0,
             0.0,
-            LEVEL_REGISTRY_COUNT_AGE_CAP,
-            LEVEL_REGISTRY_COUNT_AGE_CAP,
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
         )
     count = level["completed_reaction_count"]
     mean_reaction = level["reaction_sum_atr"] / count if count > 0 else 0.0
+    evidence_live = (
+        t - level["last_eligibility_refresh_bar"] <= max_evidence_age_bars
+    )
     return (
-        min(dist, LEVEL_REGISTRY_DIST_SATURATION_ATR),
+        float(dist),
         dist2_value,
-        _cap999(float(level["touch_count"])),
-        # V30 package 8A: the founding+merged pivot population already carried
-        # in state and already used as the subtrahend of the test count.
-        _cap999(float(level["member_pivot_count"])),
-        # V30 split touch semantics: post-birth zone-entry TESTS only.  Every
-        # touch_count increment is either a member pivot (creation/merge:
-        # both counters increment together) or a zone-entry touch (touch only),
-        # so tests = touch_count - member_pivot_count exactly (>= 0).
-        _cap999(float(level["touch_count"] - level["member_pivot_count"])),
-        _cap999(float(t - level["birth_bar"])),
-        _cap999(float(t - level["last_touch_bar"])),
-        _saturate(mean_reaction) if count > 0 else 0.0,
-        _saturate(level["reaction_max_atr"]) if count > 0 else 0.0,
-        _saturate(level["reaction_last_atr"]) if count > 0 else 0.0,
+        float(level["touch_count"]) if evidence_live else 0.0,
+        float(count) if evidence_live else 0.0,
+        # Confirmed same-side recurrence pivots inside the TRAIN-frozen
+        # distance. This is separate from exact-center touches.
+        float(level["recurrence_confirmed"]) if evidence_live else 0.0,
+        float(t - level["birth_bar"]),
+        float(t - level["last_touch_bar"]),
+        mean_reaction if count > 0 and evidence_live else 0.0,
+        float(level["reaction_max_atr"]) if count > 0 and evidence_live else 0.0,
+        float(level["reaction_last_atr"]) if count > 0 and evidence_live else 0.0,
     )
 
 
-def _round_grid_dist_atr(close: float, atr_now: float, grid_step: float) -> float:
-    nearest = round(close / grid_step) * grid_step
-    return _saturate((close - nearest) / atr_now)
+def _update_reaction_extreme(
+    window: list[Any],
+    *,
+    t: int,
+    high: float,
+    low: float,
+) -> None:
+    t0, _atr0, _center0, extreme, side0 = window
+    if t <= t0:
+        return
+    if side0 == _SIDE_LOW:
+        window[3] = high if extreme is None else max(float(extreme), high)
+    else:
+        window[3] = low if extreme is None else min(float(extreme), low)
+
+
+def _finalize_reaction_lifecycle(
+    level: dict[str, Any],
+    *,
+    t: int,
+    high: float,
+    low: float,
+    reason: str,
+    runtime_lifecycle_log: list[tuple] | None,
+) -> None:
+    """Finalize open reactions on an observed lifecycle boundary.
+
+    A reaction begins at a genuine touch and ends at the next distinct
+    touch, break, role flip or expiry.  There is no bar-count window.  A
+    same-bar duplicate admission is not a distinct duration and therefore
+    cannot manufacture a zero-length completed reaction.
+    """
+
+    keep: list[list[Any]] = []
+    for window in level["open_reactions"]:
+        t0, atr0, center0, _extreme, side0 = window
+        if t <= t0:
+            keep.append(window)
+            continue
+        _update_reaction_extreme(window, t=t, high=high, low=low)
+        extreme = window[3]
+        if extreme is None:
+            raise RuntimeError("[LEVEL_REGISTRY_REACTION_EXTREME_MISSING]")
+        if side0 == _SIDE_LOW:
+            value = (float(extreme) - center0) / atr0
+        else:
+            value = (center0 - float(extreme)) / atr0
+        level["reaction_sum_atr"] += value
+        level["completed_reaction_count"] += 1
+        level["reaction_last_atr"] = value
+        if level["completed_reaction_count"] == 1:
+            level["reaction_max_atr"] = value
+        else:
+            level["reaction_max_atr"] = max(level["reaction_max_atr"], value)
+        if runtime_lifecycle_log is not None:
+            runtime_lifecycle_log.append(
+                (
+                    "reaction_complete",
+                    t,
+                    int(level["level_id"]),
+                    int(t - t0),
+                    str(reason),
+                    float(value),
+                )
+            )
+    level["open_reactions"] = keep
+
+
+def _open_reaction_lifecycle(
+    level: dict[str, Any],
+    *,
+    t: int,
+    atr_now: float,
+    runtime_lifecycle_log: list[tuple] | None,
+) -> None:
+    if any(int(window[0]) == t for window in level["open_reactions"]):
+        return
+    level["open_reactions"].append(
+        [
+            t,
+            atr_now,
+            level["center_price"],
+            None,
+            level["side_of_origin"],
+        ]
+    )
+    if runtime_lifecycle_log is not None:
+        runtime_lifecycle_log.append(
+            (
+                "reaction_open",
+                int(t),
+                int(level["level_id"]),
+                str(level["side_of_origin"]),
+                float(level["center_price"]),
+                float(atr_now),
+            )
+        )
 
 
 def _run_level_registry(
     df: pd.DataFrame,
     *,
     tf: str,
-    tol_level_atr: float,
+    recurrence_threshold_atr: float,
+    max_evidence_age_bars: int,
     high_col: str,
     low_col: str,
     close_col: str,
     atr_col: str,
     registry_state: Mapping[str, Any] | None,
+    runtime_admission_distance_log: list[float] | None = None,
+    runtime_threshold_breakpoint_log: list[float] | None = None,
+    runtime_lifecycle_log: list[tuple] | None = None,
+    runtime_expiry_age_log: list[int] | None = None,
+    _allow_fit_boundary_values: bool = False,
+    _apply_selected_eligibility: bool = True,
 ) -> tuple[dict[str, list[float]], dict[str, Any]]:
     _validate_tf(tf)
-    tol = _validate_tol(tol_level_atr)
-    if registry_state is None:
-        state = _empty_registry_state(tf, tol)
+    if _allow_fit_boundary_values:
+        try:
+            tol = float(recurrence_threshold_atr)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("[LEVEL_REGISTRY_FIT_BOUNDARY_TOL_INVALID]") from exc
+        if math.isnan(tol) or tol < 0.0:
+            raise RuntimeError("[LEVEL_REGISTRY_FIT_BOUNDARY_TOL_INVALID]")
     else:
-        state = _validate_registry_state(registry_state, tf=tf, tol_level_atr=tol)
+        tol = _validate_tol(recurrence_threshold_atr)
+    if (
+        isinstance(max_evidence_age_bars, bool)
+        or not isinstance(max_evidence_age_bars, int)
+        or max_evidence_age_bars < (0 if _allow_fit_boundary_values else 1)
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_MAX_EVIDENCE_AGE_INVALID]")
+    if runtime_admission_distance_log is not None and not isinstance(
+        runtime_admission_distance_log, list
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_AUDIT_LOG_INVALID] admission")
+    if runtime_threshold_breakpoint_log is not None and not isinstance(
+        runtime_threshold_breakpoint_log, list
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_AUDIT_LOG_INVALID] threshold")
+    if runtime_lifecycle_log is not None and not isinstance(
+        runtime_lifecycle_log, list
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_AUDIT_LOG_INVALID] lifecycle")
+    if runtime_expiry_age_log is not None and not isinstance(
+        runtime_expiry_age_log, list
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_AUDIT_LOG_INVALID] expiry_age")
+    if not isinstance(_apply_selected_eligibility, bool):
+        raise RuntimeError("[LEVEL_REGISTRY_ELIGIBILITY_POLICY_INVALID]")
+    if registry_state is None:
+        state = _empty_registry_state(tf, tol, max_evidence_age_bars)
+    else:
+        state = _validate_registry_state(
+            registry_state,
+            tf=tf,
+            recurrence_threshold_atr=tol,
+            max_evidence_age_bars=max_evidence_age_bars,
+        )
     high, low, close, atr = _validate_source(
         df,
         high_col=high_col,
@@ -888,13 +790,30 @@ def _run_level_registry(
     )
     n = SWING_LOOKBACK
     window_len = 2 * n + 1
-    age_cap = LEVEL_REGISTRY_AGE_CAP_BARS[tf]
-    reaction_w = LEVEL_REGISTRY_REACTION_WINDOW_BARS
-    retest_w = LEVEL_REGISTRY_RETEST_WINDOW_BARS
+    age_cap = int(max_evidence_age_bars)
 
     buf_high: list[float] = list(state["tail_high"])
     buf_low: list[float] = list(state["tail_low"])
     levels: list[dict[str, Any]] = state["levels"]
+    active_by_id: dict[int, dict[str, Any]] = {
+        int(level["level_id"]): level
+        for level in levels
+        if level["status"] == "active"
+    }
+    pending_retest_by_id: dict[int, dict[str, Any]] = {
+        int(level["level_id"]): level
+        for level in levels
+        if level["status"] == "broken" and level["retest_state"] == "pending"
+    }
+    immutable_anchor_index: dict[str, list[tuple[float, int]]] = {
+        _SIDE_HIGH: [],
+        _SIDE_LOW: [],
+    }
+    for level in levels:
+        insort(
+            immutable_anchor_index[str(level["birth_side"])],
+            (float(level["center_price"]), int(level["level_id"])),
+        )
     next_level_id = state["next_level_id"]
     last_break_bar = state["last_break_bar"]
     last_break_side = state["last_break_side"]
@@ -944,13 +863,65 @@ def _run_level_registry(
             emit_nan_row()
             continue
         atr_started = True
-        half = tol * a
 
-        # (0) expiry — strict per the smc report §2 (bar - last_touch_bar > cap).
-        if levels:
-            levels[:] = [lv for lv in levels if t - lv["last_touch_bar"] <= age_cap]
+        # The canonical fit tape disables this selected-policy step. Serving
+        # expires only event/slot eligibility after the TRAIN-learned lifetime;
+        # the immutable identity remains in ``levels`` forever.
+        if _apply_selected_eligibility:
+            for level_id, level in list(active_by_id.items()):
+                if t - int(level["last_eligibility_refresh_bar"]) <= age_cap:
+                    continue
+                _finalize_reaction_lifecycle(
+                    level,
+                    t=t,
+                    high=h,
+                    low=l,
+                    reason="learned_eligibility_expiry",
+                    runtime_lifecycle_log=runtime_lifecycle_log,
+                )
+                level["status"] = "expired"
+                level["retest_state"] = "expired"
+                active_by_id.pop(level_id)
+                if runtime_lifecycle_log is not None:
+                    runtime_lifecycle_log.append(
+                        (
+                            "eligibility_expiry",
+                            t,
+                            level_id,
+                            str(level["side_of_origin"]),
+                            int(level["last_eligibility_refresh_bar"]),
+                        )
+                    )
+            for level_id, level in list(pending_retest_by_id.items()):
+                if t - int(level["last_eligibility_refresh_bar"]) <= age_cap:
+                    continue
+                level["status"] = "expired"
+                level["retest_state"] = "expired"
+                pending_retest_by_id.pop(level_id)
+                if runtime_lifecycle_log is not None:
+                    runtime_lifecycle_log.append(
+                        (
+                            "eligibility_expiry",
+                            t,
+                            level_id,
+                            str(level["side_of_origin"]),
+                            int(level["last_eligibility_refresh_bar"]),
+                        )
+                    )
+        # Canonical identity/lifecycle geometry is threshold-independent.
+        # The learned threshold is used only by the derived recurrence counter;
+        # it never changes level creation, center updates, break/flip/touch or
+        # retention control flow.
+        # (0) optional evidence-age audit. Learned lifetime gates emitted
+        # evidence only; canonical identities are never deleted by it.
+        if active_by_id:
+            if runtime_expiry_age_log is not None:
+                runtime_expiry_age_log.extend(
+                    int(t - lv["last_eligibility_refresh_bar"])
+                    for lv in active_by_id.values()
+                )
 
-        # (1) pivot admissions / merges — high before low on a shared bar.
+        # (1) immutable pivot identities — high before low on a shared bar.
         admitted_ids: set[int] = set()
         if pivot_high or pivot_low:
             j = t - n
@@ -960,86 +931,155 @@ def _run_level_registry(
             ):
                 if not is_pivot:
                     continue
-                best: dict[str, Any] | None = None
-                best_dist = math.inf
-                for lv in levels:
-                    if lv["status"] != "active":
-                        continue
-                    d = abs(price - lv["center_price"]) / a
-                    if d > tol:
-                        continue
+                # Recurrence owns an immutable per-birth-side anchor index,
+                # not the selected active/pending event indexes.  Learned
+                # expiry can therefore make an identity dormant for slot and
+                # event processing without changing the fit/apply recurrence
+                # population.  Binary search limits work to the two adjacent
+                # price anchors rather than rescanning retained history.
+                anchor_index = immutable_anchor_index[side]
+                position = bisect_left(anchor_index, (float(price), -1))
+                nearest: tuple[int, float] | None = None
+                for anchor_price, anchor_id in anchor_index[
+                    max(0, position - 1) : min(len(anchor_index), position + 1)
+                ]:
+                    distance = abs(float(price) - anchor_price) / a
+                    candidate = (int(anchor_id), float(distance))
                     if (
-                        best is None
-                        or d < best_dist
-                        or (d == best_dist and lv["level_id"] < best["level_id"])
+                        nearest is None
+                        or candidate[1] < nearest[1]
+                        or (
+                            candidate[1] == nearest[1]
+                            and candidate[0] < nearest[0]
+                        )
                     ):
-                        best = lv
-                        best_dist = d
-                if best is not None:
-                    best["touch_count"] += 1
-                    best["member_pivot_count"] += 1
-                    best["center_price"] += (price - best["center_price"]) / best[
-                        "member_pivot_count"
-                    ]
-                    best["member_pivot_bars"].append(j)
-                    best["member_pivot_prices"].append(price)
-                    best["last_touch_bar"] = j
-                    best["open_reactions"].append(
-                        [t, a, best["center_price"], None, best["side_of_origin"]]
+                        nearest = candidate
+                comparisons = [] if nearest is None else [nearest]
+                for _prior_id, distance in comparisons:
+                    if runtime_admission_distance_log is not None:
+                        runtime_admission_distance_log.append(float(distance))
+                    if runtime_threshold_breakpoint_log is not None:
+                        runtime_threshold_breakpoint_log.append(float(distance))
+
+                level = _new_level(next_level_id, side, price, t, j, a)
+                next_level_id += 1
+                level["recurrence_confirmed"] = sum(
+                    distance <= tol for _prior_id, distance in comparisons
+                )
+                levels.append(level)
+                insort(
+                    immutable_anchor_index[side],
+                    (float(price), int(level["level_id"])),
+                )
+                active_by_id[int(level["level_id"])] = level
+                admitted_ids.add(level["level_id"])
+                if runtime_lifecycle_log is not None:
+                    runtime_lifecycle_log.append(
+                        (
+                            "create",
+                            t,
+                            j,
+                            side,
+                            int(level["level_id"]),
+                            float(price),
+                        )
                     )
-                    admitted_ids.add(best["level_id"])
-                else:
-                    lv = _new_level(next_level_id, side, price, t, j, a)
-                    next_level_id += 1
-                    levels.append(lv)
-                    admitted_ids.add(lv["level_id"])
+                    runtime_lifecycle_log.append(
+                        (
+                            "reaction_open",
+                            int(t),
+                            int(level["level_id"]),
+                            str(side),
+                            float(price),
+                            float(a),
+                        )
+                    )
+                    for prior_id, distance in comparisons:
+                        runtime_lifecycle_log.append(
+                            (
+                                "recurrence",
+                                int(t),
+                                int(j),
+                                str(side),
+                                int(level["level_id"]),
+                                float(distance),
+                                int(prior_id),
+                            )
+                        )
                 first_level_admitted = True
 
         # (2) break checks — side-of-origin anchored crossings, break-once.
         break_up_fired = False
         break_down_fired = False
         broken_touch_count = 0
-        for lv in levels:
-            if lv["status"] != "active":
-                continue
+        for lv in list(active_by_id.values()):
             if lv["side_of_origin"] == _SIDE_HIGH:
-                if c > lv["center_price"] + half:
+                if c > lv["center_price"]:
+                    _finalize_reaction_lifecycle(
+                        lv,
+                        t=t,
+                        high=h,
+                        low=l,
+                        reason="break",
+                        runtime_lifecycle_log=runtime_lifecycle_log,
+                    )
                     lv["status"] = "broken"
                     lv["break_bar"] = t
                     lv["break_side"] = 1
                     lv["retest_state"] = "pending"
+                    active_by_id.pop(int(lv["level_id"]), None)
+                    pending_retest_by_id[int(lv["level_id"])] = lv
                     break_up_fired = True
                     broken_touch_count = max(broken_touch_count, lv["touch_count"])
                     last_break_bar = t
+                    if runtime_lifecycle_log is not None:
+                        runtime_lifecycle_log.append(
+                            ("break", t, int(lv["level_id"]), 1)
+                        )
             else:
-                if c < lv["center_price"] - half:
+                if c < lv["center_price"]:
+                    _finalize_reaction_lifecycle(
+                        lv,
+                        t=t,
+                        high=h,
+                        low=l,
+                        reason="break",
+                        runtime_lifecycle_log=runtime_lifecycle_log,
+                    )
                     lv["status"] = "broken"
                     lv["break_bar"] = t
                     lv["break_side"] = -1
                     lv["retest_state"] = "pending"
+                    active_by_id.pop(int(lv["level_id"]), None)
+                    pending_retest_by_id[int(lv["level_id"])] = lv
                     break_down_fired = True
                     broken_touch_count = max(broken_touch_count, lv["touch_count"])
                     last_break_bar = t
+                    if runtime_lifecycle_log is not None:
+                        runtime_lifecycle_log.append(
+                            ("break", t, int(lv["level_id"]), -1)
+                        )
         if break_up_fired or break_down_fired:
             # V30 break-side memory for the signed bars-since-break field: a
             # same-bar up+down conflict nets to 0 (the sibling signed
             # aggregation convention of interpretation note 6).
             last_break_side = int(break_up_fired) - int(break_down_fired)
 
-        # (3) retest checks — first zone re-entry strictly after the break bar.
+        # (3) retest checks — first exact-center intersection after the break bar.
         hold_sign_sum = 0
         fail_sign_sum = 0
-        for lv in levels:
-            if lv["status"] != "broken" or lv["retest_state"] != "pending":
-                continue
+        for lv in list(pending_retest_by_id.values()):
             if lv["break_bar"] == t:
                 continue
-            if t - lv["break_bar"] > retest_w:
-                # Window expiry without re-entry: none-equivalent, no event
-                # (rule 2e — no placeholder outcome).
-                lv["retest_state"] = "none"
-                continue
-            if h >= lv["center_price"] - half and l <= lv["center_price"] + half:
+            if h >= lv["center_price"] and l <= lv["center_price"]:
+                _finalize_reaction_lifecycle(
+                    lv,
+                    t=t,
+                    high=h,
+                    low=l,
+                    reason="retest_resolution",
+                    runtime_lifecycle_log=runtime_lifecycle_log,
+                )
                 if (c - lv["center_price"]) * lv["break_side"] > 0:
                     lv["retest_state"] = "held"
                     hold_sign_sum += lv["break_side"]
@@ -1053,89 +1093,98 @@ def _run_level_registry(
                     # only as a 1-bar impulse and never as an object.  It now
                     # returns to ACTIVE with its identity, anchors, member
                     # pivots, touch history and reaction memory intact and its
-                    # side_of_origin flipped, so its future break check, merge
-                    # eligibility and slot participation all run on the new
-                    # role.  No new constant: the retest window and band are
-                    # the existing ones, and the flip is a re-labelling of
+                    # side_of_origin flipped, so its future break check and
+                    # slot participation both run on the new
+                    # role.  No retest-window constant exists: first re-entry
+                    # remains armed until the level's evidence lifetime ends,
+                    # and the flip is a re-labelling of
                     # state that already exists.  The break check for THIS bar
                     # has already run (step 2 precedes step 3), so a flipped
                     # level cannot re-break on its own flip bar.
                     #
-                    # The retest bar is a genuine zone entry, so it must count
+                    # The retest bar genuinely intersects the anchor, so it counts
                     # as a touch — but through the EXISTING step-4 owner, not
-                    # a second touch path here.  ``prev_bar_in_zone`` is stale
+                    # a second touch path here. ``prev_bar_intersects_center`` is stale
                     # while a level is broken (step 6 skips broken levels), so
                     # it is cleared: step 4, which runs immediately after this
                     # step on the same bar, then sees the normal
                     # first-entry-per-excursion condition, increments
                     # touch_count, refreshes last_touch_bar (the expiry clock)
                     # and opens a reaction window measured against the level's
-                    # NEW side.  A level that also merged a pivot on this bar
-                    # is in ``admitted_ids`` and is correctly not counted twice.
+                    # NEW side. A level created on this bar is in
+                    # ``admitted_ids`` and is correctly not counted twice.
                     lv["side_of_origin"] = (
                         _SIDE_LOW if lv["side_of_origin"] == _SIDE_HIGH else _SIDE_HIGH
                     )
                     lv["status"] = "active"
-                    lv["prev_bar_in_zone"] = False
+                    lv["prev_bar_intersects_center"] = False
+                    pending_retest_by_id.pop(int(lv["level_id"]), None)
+                    active_by_id[int(lv["level_id"])] = lv
+                    if runtime_lifecycle_log is not None:
+                        runtime_lifecycle_log.append(
+                            (
+                                "flip",
+                                t,
+                                int(lv["level_id"]),
+                                int(lv["break_side"]),
+                                lv["side_of_origin"],
+                            )
+                        )
                 else:
                     # Includes the exact tie close == center (fail-closed).
                     lv["retest_state"] = "failed"
+                    pending_retest_by_id.pop(int(lv["level_id"]), None)
                     fail_sign_sum += lv["break_side"]
+                    if runtime_lifecycle_log is not None:
+                        runtime_lifecycle_log.append(
+                            ("retest_fail", t, int(lv["level_id"]), int(lv["break_side"]))
+                        )
+
+        # Failed retests remain immutable terminal identities in ``levels``.
+        # They are absent from both active and pending indexes, so retention
+        # does not make them eligible for later events or public slots.
 
         # (4) touch checks — first-entry-per-excursion; a same-bar admission
         # suppresses the touch check for that level (counts once).
-        for lv in levels:
-            if lv["status"] != "active" or lv["level_id"] in admitted_ids:
+        for lv in active_by_id.values():
+            if lv["level_id"] in admitted_ids:
                 continue
-            in_zone = h >= lv["center_price"] - half and l <= lv["center_price"] + half
-            if in_zone and not lv["prev_bar_in_zone"]:
+            intersects_center = h >= lv["center_price"] and l <= lv["center_price"]
+            if intersects_center and not lv["prev_bar_intersects_center"]:
+                _finalize_reaction_lifecycle(
+                    lv,
+                    t=t,
+                    high=h,
+                    low=l,
+                    reason="exact_center_reentry",
+                    runtime_lifecycle_log=runtime_lifecycle_log,
+                )
                 lv["touch_count"] += 1
                 lv["last_touch_bar"] = t
-                lv["open_reactions"].append(
-                    [t, a, lv["center_price"], None, lv["side_of_origin"]]
+                lv["last_eligibility_refresh_bar"] = t
+                _open_reaction_lifecycle(
+                    lv,
+                    t=t,
+                    atr_now=a,
+                    runtime_lifecycle_log=runtime_lifecycle_log,
                 )
+                if runtime_lifecycle_log is not None:
+                    runtime_lifecycle_log.append(
+                        ("touch", t, int(lv["level_id"]), lv["side_of_origin"])
+                    )
 
-        # (5) reaction-window updates and completions (confirmation-lagged at
-        # t0 + W; windows survive breaks — a touch that never lifts off scores
-        # negative).
-        for lv in levels:
+        # (5) reaction lifecycle update. Completion belongs exclusively to a
+        # genuine next touch/break boundary; no bar window exists.
+        for lv in active_by_id.values():
             if not lv["open_reactions"]:
                 continue
-            keep: list[list[Any]] = []
             for window in lv["open_reactions"]:
-                # The side is the one FROZEN at t0, not the level's current
-                # side: a polarity flip inside an open window must not rewrite
-                # the direction the window was measuring (rule 2g).
-                t0, atr0, center0, extreme, side0 = window
-                is_low_side = side0 == _SIDE_LOW
-                if t > t0:
-                    if is_low_side:
-                        extreme = h if extreme is None else max(extreme, h)
-                    else:
-                        extreme = l if extreme is None else min(extreme, l)
-                    window[3] = extreme
-                if t == t0 + reaction_w:
-                    if is_low_side:
-                        value = (extreme - center0) / atr0
-                    else:
-                        value = (center0 - extreme) / atr0
-                    lv["reaction_sum_atr"] += value
-                    lv["completed_reaction_count"] += 1
-                    lv["reaction_last_atr"] = value
-                    if lv["completed_reaction_count"] == 1:
-                        lv["reaction_max_atr"] = value
-                    else:
-                        lv["reaction_max_atr"] = max(lv["reaction_max_atr"], value)
-                else:
-                    keep.append(window)
-            lv["open_reactions"] = keep
+                _update_reaction_extreme(window, t=t, high=h, low=l)
 
         # (6) excursion memory for the next bar's touch dedup.
-        for lv in levels:
-            if lv["status"] != "active":
-                continue
-            lv["prev_bar_in_zone"] = (
-                h >= lv["center_price"] - half and l <= lv["center_price"] + half
+        for lv in active_by_id.values():
+            lv["prev_bar_intersects_center"] = (
+                h >= lv["center_price"] and l <= lv["center_price"]
             )
 
         # (7) emission (post-update state; broken levels are never "nearest
@@ -1150,9 +1199,7 @@ def _run_level_registry(
         # single pass with the same side rule and the same (distance,
         # level_id) ordering as the nearest slot.
         above_dist2 = below_dist2 = math.inf
-        for lv in levels:
-            if lv["status"] != "active":
-                continue
+        for lv in active_by_id.values():
             delta = lv["center_price"] - c
             if delta > 0.0:
                 d = delta / a
@@ -1170,23 +1217,43 @@ def _run_level_registry(
                     below_dist = d
                 elif d < below_dist2:
                     below_dist2 = d
-        above_vals = _slot_fields(above, above_dist, t, dist2=above_dist2)
-        below_vals = _slot_fields(below, below_dist, t, dist2=below_dist2)
+        above_vals = _slot_fields(
+            above,
+            above_dist,
+            t,
+            dist2=above_dist2,
+            max_evidence_age_bars=age_cap,
+        )
+        below_vals = _slot_fields(
+            below,
+            below_dist,
+            t,
+            dist2=below_dist2,
+            max_evidence_age_bars=age_cap,
+        )
         record["level_above_dist_atr"].append(above_vals[0])
+        record["level_above_present"].append(1.0 if above is not None else 0.0)
         record["level_above2_dist_atr"].append(above_vals[1])
+        record["level_above2_present"].append(
+            1.0 if math.isfinite(above_dist2) else 0.0
+        )
         record["level_above_touch_count"].append(above_vals[2])
-        record["level_above_member_pivot_count"].append(above_vals[3])
-        record["level_above_test_count"].append(above_vals[4])
+        record["level_above_completed_reaction_count"].append(above_vals[3])
+        record["level_above_recurrence_confirmed"].append(above_vals[4])
         record["level_above_age_bars"].append(above_vals[5])
         record["level_above_bars_since_touch"].append(above_vals[6])
         record["level_above_mean_reaction_atr"].append(above_vals[7])
         record["level_above_max_reaction_atr"].append(above_vals[8])
         record["level_above_last_reaction_atr"].append(above_vals[9])
         record["level_below_dist_atr"].append(below_vals[0])
+        record["level_below_present"].append(1.0 if below is not None else 0.0)
         record["level_below2_dist_atr"].append(below_vals[1])
+        record["level_below2_present"].append(
+            1.0 if math.isfinite(below_dist2) else 0.0
+        )
         record["level_below_touch_count"].append(below_vals[2])
-        record["level_below_member_pivot_count"].append(below_vals[3])
-        record["level_below_test_count"].append(below_vals[4])
+        record["level_below_completed_reaction_count"].append(below_vals[3])
+        record["level_below_recurrence_confirmed"].append(below_vals[4])
         record["level_below_age_bars"].append(below_vals[5])
         record["level_below_bars_since_touch"].append(below_vals[6])
         record["level_below_mean_reaction_atr"].append(below_vals[7])
@@ -1195,19 +1262,15 @@ def _run_level_registry(
         record["level_break_up_event"].append(1.0 if break_up_fired else 0.0)
         record["level_break_down_event"].append(1.0 if break_down_fired else 0.0)
         record["level_broken_touch_count"].append(
-            _cap999(float(broken_touch_count)) if (break_up_fired or break_down_fired) else 0.0
+            float(broken_touch_count) if (break_up_fired or break_down_fired) else 0.0
         )
-        record["level_bars_since_break"].append(
-            _cap999(float(t - last_break_bar)) if last_break_bar >= 0 else LEVEL_REGISTRY_COUNT_AGE_CAP
-        )
+        break_age = raw_event_age_from_last_observed_row(t, last_break_bar)
+        record["level_bars_since_break"].append(break_age)
         # V30 signed break memory: sign = side of the most recent break bar
-        # (+1 up / -1 down / 0 same-bar conflict); 0.0 before any observed
-        # break — the break event flags plus the unsigned sentinel field
-        # above disambiguate the zeros (design B.5).
+        # (+1 up / -1 down / 0 same-bar conflict); NaN before any observed
+        # break. The event fields disambiguate the zero-age firing row.
         record["level_bars_since_break_signed"].append(
-            float(last_break_side) * _cap999(float(t - last_break_bar))
-            if last_break_bar >= 0
-            else 0.0
+            float(last_break_side) * break_age
         )
         record["level_retest_hold_signed"].append(
             float((hold_sign_sum > 0) - (hold_sign_sum < 0))
@@ -1215,17 +1278,12 @@ def _run_level_registry(
         record["level_retest_fail_signed"].append(
             float((fail_sign_sum > 0) - (fail_sign_sum < 0))
         )
-        record["level_round_50_dist_atr"].append(
-            _round_grid_dist_atr(c, a, LEVEL_ROUND_GRID_50_USD)
-        )
-        record["level_round_100_dist_atr"].append(
-            _round_grid_dist_atr(c, a, LEVEL_ROUND_GRID_100_USD)
-        )
 
     out_state = {
         "state_version": LEVEL_REGISTRY_STATE_VERSION,
         "tf": tf,
-        "tol_level_atr": tol,
+        "recurrence_threshold_atr": tol,
+        "max_evidence_age_bars": age_cap,
         "bars_processed": base + nb,
         "atr_started": atr_started,
         "first_level_admitted": first_level_admitted,
@@ -1237,6 +1295,544 @@ def _run_level_registry(
         "levels": levels,
     }
     return record, out_state
+
+
+def _canonical_level_identity_state_sha256(state: Mapping[str, Any]) -> str:
+    """Hash only immutable anchor identity, never selected eligibility state."""
+
+    identities = [
+        {
+            "level_id": int(level["level_id"]),
+            "birth_side": str(level["birth_side"]),
+            "center_price": float(level["center_price"]),
+            "birth_bar": int(level["birth_bar"]),
+            "member_pivot_bars": list(level["member_pivot_bars"]),
+            "member_pivot_prices": list(level["member_pivot_prices"]),
+        }
+        for level in state["levels"]
+    ]
+    identities.sort(key=lambda level: int(level["level_id"]))
+    return canonical_json_sha256(
+        {
+            "tf": str(state["tf"]),
+            "bars_processed": int(state["bars_processed"]),
+            "next_level_id": int(state["next_level_id"]),
+            "tail_high": list(state["tail_high"]),
+            "tail_low": list(state["tail_low"]),
+            "identities": identities,
+        }
+    )
+
+
+def _level_record_sha256(record: Mapping[str, list[float]]) -> str:
+    digest = hashlib.sha256()
+    for name in LEVEL_REGISTRY_M5_FEATURE_NAMES:
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(
+            np.ascontiguousarray(record[name], dtype=np.float64).tobytes(order="C")
+        )
+    return digest.hexdigest()
+
+
+def _level_registry_outcome_stream_sha256(
+    stream: RegistryOutcomeStreamV1,
+) -> str:
+    digest = hashlib.sha256()
+    digest.update(
+        np.ascontiguousarray(stream.origin_row, dtype=np.int64).tobytes(order="C")
+    )
+    digest.update(
+        np.ascontiguousarray(stream.distance_atr, dtype=np.float64).tobytes(
+            order="C"
+        )
+    )
+    digest.update(
+        np.ascontiguousarray(stream.event_row, dtype=np.int64).tobytes(order="C")
+    )
+    digest.update("\n".join(stream.event_cause).encode("ascii"))
+    return digest.hexdigest()
+
+
+def _level_registry_outcome_stream_from_replay(
+    *,
+    lifecycle: list[tuple],
+    state: Mapping[str, Any],
+    last_row: int,
+) -> tuple[RegistryOutcomeStreamV1, list[dict[str, Any]]]:
+    """Build the fit population from the exact runtime lifecycle bytes."""
+
+    episodes = _runtime_replay_episodes(
+        lifecycle=lifecycle,
+        state=state,
+        last_row=last_row,
+    )
+    episode_by_identity = {
+        (int(item["level_id"]), int(item["origin_row"])): item
+        for item in episodes
+    }
+    observations: list[tuple[int, float, int, str, int]] = []
+    identity = 0
+    for event in lifecycle:
+        if str(event[0]) != "recurrence":
+            continue
+        origin = int(event[1])
+        level_id = int(event[4])
+        distance = float(event[5])
+        # A recurrence born on the final closed TRAIN row is genuine apply
+        # evidence but has zero authoritative outcome exposure. It cannot
+        # enter a competing-risk fit population and is deterministically
+        # excluded on both canonical and selected replay extraction.
+        if origin >= last_row:
+            continue
+        if not math.isfinite(distance) or distance <= 0.0:
+            continue
+        episode = episode_by_identity.get((level_id, origin))
+        if episode is None:
+            raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_TAPE_EPISODE_MISSING]")
+        cause = str(episode["event_cause"])
+        event_row = int(episode["end_row"])
+        if (
+            cause == REGISTRY_OUTCOME_CENSORED
+            and str(episode["resolution"]) == "outer_train_end"
+        ):
+            event_row = -1
+        observations.append((origin, distance, event_row, cause, identity))
+        identity += 1
+    observations.sort(key=lambda item: (item[0], item[1], item[4]))
+    return (
+        RegistryOutcomeStreamV1(
+            origin_row=np.asarray(
+                [item[0] for item in observations], dtype=np.int64
+            ),
+            distance_atr=np.asarray(
+                [item[1] for item in observations], dtype=np.float64
+            ),
+            event_row=np.asarray(
+                [item[2] for item in observations], dtype=np.int64
+            ),
+            event_cause=tuple(item[3] for item in observations),
+        ),
+        episodes,
+    )
+
+
+def _collect_level_registry_canonical_event_tape_v1(
+    df: pd.DataFrame,
+    *,
+    tf: str,
+    high_col: str,
+    low_col: str,
+    close_col: str,
+    atr_col: str,
+) -> tuple[RegistryOutcomeStreamV1, dict[str, Any]]:
+    """Materialize the threshold/lifetime-independent serving event tape."""
+
+    lifecycle: list[tuple] = []
+    _record, state = _run_level_registry(
+        df,
+        tf=tf,
+        recurrence_threshold_atr=0.0,
+        max_evidence_age_bars=0,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+        registry_state=None,
+        runtime_lifecycle_log=lifecycle,
+        _allow_fit_boundary_values=True,
+        _apply_selected_eligibility=False,
+    )
+    stream, episodes = _level_registry_outcome_stream_from_replay(
+        lifecycle=lifecycle,
+        state=state,
+        last_row=len(df) - 1,
+    )
+    tape_evidence = {
+        "canonical_lifecycle_sha256": canonical_json_sha256(lifecycle),
+        "canonical_episode_sha256": canonical_json_sha256(episodes),
+        "canonical_identity_state_sha256": _canonical_level_identity_state_sha256(
+            state
+        ),
+        "canonical_recurrence_observation_count": int(len(stream.origin_row)),
+        "canonical_outcome_stream_sha256": (
+            _level_registry_outcome_stream_sha256(stream)
+        ),
+    }
+    tape_evidence["canonical_event_tape_sha256"] = canonical_json_sha256(
+        tape_evidence
+    )
+    return stream, tape_evidence
+
+
+def _fit_level_registry_canonical_tape_v1(
+    df: pd.DataFrame,
+    *,
+    tf: str,
+    inner_fit_end_exclusive: int,
+    source_provenance: Mapping[str, Any],
+    high_col: str,
+    low_col: str,
+    close_col: str,
+    atr_col: str,
+) -> dict[str, Any]:
+    if tf not in LEVEL_REGISTRY_FIT_LANE_TFS:
+        raise RuntimeError(f"[LEVEL_REGISTRY_TF_INVALID] {tf!r}")
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise RuntimeError("[LEVEL_REGISTRY_FIT_DATETIME_INDEX_REQUIRED]")
+    high, low, close, atr = _validate_source(
+        df,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+        atr_started=False,
+    )
+    source = require_registry_fit_source_v1(
+        source_provenance,
+        clock=tf.upper(),
+    )
+    canonical_stream, tape = _collect_level_registry_canonical_event_tape_v1(
+        df,
+        tf=tf,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+    )
+    atr_available = np.isfinite(atr).astype(np.float64)
+    base_population_configuration = {
+        "owner": "level_immutable_anchor_recurrence_decomposition_v2",
+        "runtime_owner": "gx1.features.level_registry_v1._run_level_registry",
+        "identity_control": (
+            "immutable_per_confirmed_pivot_anchor_exact_center_break_touch_"
+            "and_parameter_independent_identity_retention"
+        ),
+        "threshold_selection": (
+            "recurrence_confirmed_on_nearest_same_side_distance"
+        ),
+        "lifetime_selection": (
+            "learned_expiry_of_event_and_slot_eligibility_without_identity_deletion"
+        ),
+        "swing_lookback": int(SWING_LOOKBACK),
+        **tape,
+    }
+
+    def fit_with_population(
+        outcome_stream: RegistryOutcomeStreamV1,
+        configuration: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        return fit_registry_competing_risk_threshold_v1(
+            outcome_stream,
+            registry_kind="horizontal_level",
+            clock=tf.upper(),
+            n_rows=len(df),
+            inner_fit_end_exclusive=inner_fit_end_exclusive,
+            index_ns=df.index.asi8,
+            frame_columns=(
+                high,
+                low,
+                close,
+                np.where(np.isfinite(atr), atr, 0.0),
+                atr_available,
+            ),
+            source_provenance=source,
+            population_configuration=configuration,
+        )
+
+    seed = fit_with_population(
+        canonical_stream,
+        {
+            **base_population_configuration,
+            "fit_phase": "parameter_independent_identity_tape_seed",
+        },
+    )
+    selected_threshold = float(seed["selected_threshold_atr"])
+    selected_expiry = int(seed["learned_expiry_bars"])
+    selected_lifecycle: list[tuple] = []
+    selected_record, selected_state = _run_level_registry(
+        df,
+        tf=tf,
+        recurrence_threshold_atr=selected_threshold,
+        max_evidence_age_bars=selected_expiry,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+        registry_state=None,
+        runtime_lifecycle_log=selected_lifecycle,
+    )
+    identity_sha = _canonical_level_identity_state_sha256(selected_state)
+    if identity_sha != tape["canonical_identity_state_sha256"]:
+        raise RuntimeError("[LEVEL_REGISTRY_CANONICAL_SELECTION_CHANGED_IDENTITY]")
+    selected_stream, selected_episodes = _level_registry_outcome_stream_from_replay(
+        lifecycle=selected_lifecycle,
+        state=selected_state,
+        last_row=len(df) - 1,
+    )
+
+    def recurrence_population_sha(stream: RegistryOutcomeStreamV1) -> str:
+        digest = hashlib.sha256()
+        digest.update(
+            np.ascontiguousarray(stream.origin_row, dtype=np.int64).tobytes(
+                order="C"
+            )
+        )
+        digest.update(
+            np.ascontiguousarray(stream.distance_atr, dtype=np.float64).tobytes(
+                order="C"
+            )
+        )
+        return digest.hexdigest()
+
+    fit_recurrence_sha = recurrence_population_sha(canonical_stream)
+    serve_recurrence_sha = recurrence_population_sha(selected_stream)
+    if (
+        fit_recurrence_sha != serve_recurrence_sha
+        or not np.array_equal(
+            canonical_stream.origin_row,
+            selected_stream.origin_row,
+        )
+        or not np.array_equal(
+            canonical_stream.distance_atr,
+            selected_stream.distance_atr,
+        )
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_FIT_SERVE_RECURRENCE_POPULATION_DRIFT]")
+
+    # Independent selected-policy replay proves the apply bytes and recurrence
+    # population are deterministic. Outcome labels remain on the canonical
+    # exact-cross TRAIN tape: they are fit-only future evidence and never
+    # inputs to apply. This decomposition avoids circular expiry->population
+    # refits while keeping selected expiry out of identity/recurrence control.
+    verify_lifecycle: list[tuple] = []
+    verify_record, verify_state = _run_level_registry(
+        df,
+        tf=tf,
+        recurrence_threshold_atr=selected_threshold,
+        max_evidence_age_bars=selected_expiry,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+        registry_state=None,
+        runtime_lifecycle_log=verify_lifecycle,
+    )
+    verify_stream, verify_episodes = _level_registry_outcome_stream_from_replay(
+        lifecycle=verify_lifecycle,
+        state=verify_state,
+        last_row=len(df) - 1,
+    )
+    if (
+        verify_lifecycle != selected_lifecycle
+        or canonical_json_sha256(verify_episodes)
+        != canonical_json_sha256(selected_episodes)
+        or _level_record_sha256(verify_record)
+        != _level_record_sha256(selected_record)
+        or canonical_json_sha256(verify_state)
+        != canonical_json_sha256(selected_state)
+        or recurrence_population_sha(verify_stream) != serve_recurrence_sha
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_SELECTED_SERVE_REPLAY_DRIFT]")
+
+    final_configuration = {
+        **base_population_configuration,
+        "fit_phase": "immutable_recurrence_canonical_outcome_decomposition",
+        "population_decomposition_contract": (
+            "serve_recurrence_uses_all_prior_immutable_same_birth_side_anchors_"
+            "via_price_index;train_outcomes_use_parameter_independent_exact_"
+            "cross_lifecycle;selected_expiry_gates_only_event_slot_eligibility"
+        ),
+        "selected_threshold_atr": selected_threshold,
+        "selected_expiry_bars": selected_expiry,
+        "selected_runtime_recurrence_observation_count": int(
+            len(selected_stream.origin_row)
+        ),
+        "final_fit_recurrence_population_sha256": fit_recurrence_sha,
+        "final_serve_recurrence_population_sha256": serve_recurrence_sha,
+        "canonical_fit_outcome_population_sha256": (
+            _level_registry_outcome_stream_sha256(canonical_stream)
+        ),
+        "selected_derived_outcome_population_sha256": (
+            _level_registry_outcome_stream_sha256(selected_stream)
+        ),
+        "selected_derived_lifecycle_sha256": canonical_json_sha256(
+            selected_lifecycle
+        ),
+        "selected_derived_episode_sha256": canonical_json_sha256(
+            selected_episodes
+        ),
+        "selected_derived_state_sha256": canonical_json_sha256(selected_state),
+        "selected_derived_emission_sha256": _level_record_sha256(selected_record),
+        "selected_eligibility_expiry_count": sum(
+            event[0] == "eligibility_expiry" for event in selected_lifecycle
+        ),
+    }
+    payload = fit_with_population(canonical_stream, final_configuration)
+    if (
+        float(payload["selected_threshold_atr"]) != selected_threshold
+        or int(payload["learned_expiry_bars"]) != selected_expiry
+        or payload["outcome_stream_sha256"]
+        != final_configuration["canonical_fit_outcome_population_sha256"]
+        or final_configuration["final_fit_recurrence_population_sha256"]
+        != final_configuration["final_serve_recurrence_population_sha256"]
+    ):
+        raise RuntimeError("[LEVEL_REGISTRY_FINAL_DECOMPOSITION_DRIFT]")
+    return require_registry_hyperparameter_payload_v1(
+        payload,
+        registry_kind="horizontal_level",
+        clock=tf.upper(),
+    )
+
+
+def _runtime_replay_episodes(
+    *,
+    lifecycle: list[tuple],
+    state: Mapping[str, Any],
+    last_row: int,
+) -> list[dict[str, Any]]:
+    open_episodes: set[tuple[int, int]] = set()
+    episodes: list[dict[str, Any]] = []
+    for event in lifecycle:
+        kind = str(event[0])
+        if kind == "reaction_open":
+            key = (int(event[2]), int(event[1]))
+            if key in open_episodes:
+                raise RuntimeError("[LEVEL_REGISTRY_REPLAY_DUPLICATE_OPEN]")
+            open_episodes.add(key)
+        elif kind == "reaction_complete":
+            end = int(event[1])
+            level_id = int(event[2])
+            duration = int(event[3])
+            origin = end - duration
+            key = (level_id, origin)
+            if key not in open_episodes:
+                raise RuntimeError("[LEVEL_REGISTRY_REPLAY_ORPHAN_COMPLETION]")
+            open_episodes.remove(key)
+            resolution = str(event[4])
+            episodes.append(
+                {
+                    "origin_row": origin,
+                    "end_row": end,
+                    "event_cause": (
+                        REGISTRY_OUTCOME_BREAK
+                        if resolution == "break"
+                        else (
+                            REGISTRY_OUTCOME_CENSORED
+                            if resolution == "learned_eligibility_expiry"
+                            else REGISTRY_OUTCOME_REACTION
+                        )
+                    ),
+                    "level_id": level_id,
+                    "resolution": resolution,
+                }
+            )
+        elif kind == "reaction_censored":
+            censor_boundary = int(event[1])
+            level_id = int(event[2])
+            duration = int(event[3])
+            end = censor_boundary - 1
+            origin = end - duration
+            key = (level_id, origin)
+            if key not in open_episodes:
+                raise RuntimeError("[LEVEL_REGISTRY_REPLAY_ORPHAN_CENSOR]")
+            open_episodes.remove(key)
+            if end > origin:
+                episodes.append(
+                    {
+                        "origin_row": origin,
+                        "end_row": end,
+                        "event_cause": REGISTRY_OUTCOME_CENSORED,
+                        "level_id": level_id,
+                        "resolution": str(event[4]),
+                    }
+                )
+    for level in state["levels"]:
+        level_id = int(level["level_id"])
+        for window in level["open_reactions"]:
+            origin = int(window[0])
+            key = (level_id, origin)
+            if key not in open_episodes:
+                raise RuntimeError("[LEVEL_REGISTRY_REPLAY_OPEN_STATE_MISMATCH]")
+            open_episodes.remove(key)
+            if last_row > origin:
+                episodes.append(
+                    {
+                        "origin_row": origin,
+                        "end_row": int(last_row),
+                        "event_cause": REGISTRY_OUTCOME_CENSORED,
+                        "level_id": level_id,
+                        "resolution": "outer_train_end",
+                    }
+                )
+    if open_episodes:
+        raise RuntimeError("[LEVEL_REGISTRY_REPLAY_UNRESOLVED_OPEN]")
+    episodes.sort(
+        key=lambda item: (
+            int(item["origin_row"]),
+            int(item["level_id"]),
+            int(item["end_row"]),
+            str(item["event_cause"]),
+        )
+    )
+    return episodes
+
+
+def collect_level_registry_runtime_population_v1(
+    df: pd.DataFrame,
+    *,
+    tf: str,
+    recurrence_threshold_atr: float,
+    max_evidence_age_bars: int,
+    high_col: str = "high",
+    low_col: str = "low",
+    close_col: str = "close",
+    atr_col: str = "atr",
+    strict_nonempty: bool = True,
+) -> tuple[np.ndarray, list[tuple]]:
+    """Replay the exact runtime registry and return its fit-parity evidence.
+
+    The float64 population contains every ATR-normalized nearest same-side
+    recurrence distance evaluated before a new immutable anchor is created, in
+    exact chronological order. The lifecycle log is emitted by the same loop
+    and exposes create/recurrence/touch/break/retest/flip events for
+    source-proven tests. Both hooks are observation-only.
+
+    ``tf`` is the exact closed-bar decision clock and is preserved in carried
+    state; M1 never aliases to M5.
+    """
+
+    if not isinstance(strict_nonempty, bool):
+        raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_SUPPORT_POLICY_INVALID]")
+    if tf not in LEVEL_REGISTRY_FIT_LANE_TFS:
+        raise RuntimeError(
+            f"[LEVEL_REGISTRY_TF_INVALID] {tf!r} not in "
+            f"{LEVEL_REGISTRY_FIT_LANE_TFS}"
+        )
+    distances: list[float] = []
+    lifecycle: list[tuple] = []
+    _record, _state = _run_level_registry(
+        df,
+        tf=tf,
+        recurrence_threshold_atr=recurrence_threshold_atr,
+        max_evidence_age_bars=max_evidence_age_bars,
+        high_col=high_col,
+        low_col=low_col,
+        close_col=close_col,
+        atr_col=atr_col,
+        registry_state=None,
+        runtime_admission_distance_log=distances,
+        runtime_lifecycle_log=lifecycle,
+    )
+    population = np.asarray(distances, dtype=np.float64)
+    if population.ndim != 1 or not np.isfinite(population).all():
+        raise RuntimeError("[LEVEL_REGISTRY_RUNTIME_POPULATION_INVALID]")
+    if strict_nonempty and population.size == 0:
+        raise RuntimeError(
+            "[LEVEL_REGISTRY_RUNTIME_FIT_SUPPORT_EMPTY] no nearest same-side "
+            "recurrence distance exists on the declared window"
+        )
+    return population, lifecycle
 
 
 def _finalize_block(
@@ -1257,48 +1853,54 @@ def _finalize_block(
         raise RuntimeError("[LEVEL_REGISTRY_FEATURE_NAME_DRIFT] column count")
     if np.isinf(matrix).any():
         raise RuntimeError("[LEVEL_REGISTRY_OUTPUT_NONFINITE]")
-    complete = np.isfinite(matrix).all(axis=1)
-    incomplete_any = ~np.isfinite(matrix).any(axis=1)
-    if complete.any():
-        first_complete = int(np.argmax(complete))
-        if not complete[first_complete:].all() or not incomplete_any[:first_complete].all():
+    for column in range(matrix.shape[1]):
+        finite = np.isfinite(matrix[:, column])
+        if finite.any() and not finite[int(np.argmax(finite)) :].all():
             raise RuntimeError("[LEVEL_REGISTRY_OUTPUT_AVAILABILITY_INVALID]")
-    elif not incomplete_any.all():
-        raise RuntimeError("[LEVEL_REGISTRY_OUTPUT_AVAILABILITY_INVALID]")
     return matrix, list(declared_names)
 
 
 def compute_level_registry_m5_block_v1(
     df: pd.DataFrame,
     *,
-    tol_level_atr: float,
+    recurrence_threshold_atr: float,
+    max_evidence_age_bars: int,
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
     atr_col: str = "atr",
     registry_state: Mapping[str, Any] | None = None,
     return_registry_state: bool = False,
+    runtime_admission_distance_log: list[float] | None = None,
+    runtime_lifecycle_log: list[tuple] | None = None,
+    decision_clock: str = "m5",
 ) -> (
     tuple[np.ndarray, list[str]]
     | tuple[np.ndarray, list[str], dict[str, Any]]
 ):
-    """M5/513 lane: the declared ``level_`` block (design doc §1.2 + V30).
+    """Local M5 lane: the declared ``level_`` block (design doc §1.2 + V30).
 
     Runs on the entry M5 clock (tf is bound to ``"m5"``; the expiry cap is the
-    M5 liquidity-zone lookback).  ``tol_level_atr`` is the TRAIN-fitted frozen
-    constant from :func:`fit_level_registry_tolerance`.  Rows are NaN until
+    M5 evidence horizon). ``recurrence_threshold_atr`` is the TRAIN-fitted
+    nearest-same-side recurrence threshold from
+    :func:`fit_level_registry_hyperparameters_v1`. Rows are NaN until
     the first admitted level (single chronological warmup prefix, trimmed
     downstream); afterwards no mid-series NaN is possible.
     """
+    if decision_clock not in ("m1", "m5"):
+        raise RuntimeError("[LEVEL_REGISTRY_LOCAL_DECISION_CLOCK_INVALID]")
     record, state = _run_level_registry(
         df,
-        tf="m5",
-        tol_level_atr=tol_level_atr,
+        tf=decision_clock,
+        recurrence_threshold_atr=recurrence_threshold_atr,
+        max_evidence_age_bars=max_evidence_age_bars,
         high_col=high_col,
         low_col=low_col,
         close_col=close_col,
         atr_col=atr_col,
         registry_state=registry_state,
+        runtime_admission_distance_log=runtime_admission_distance_log,
+        runtime_lifecycle_log=runtime_lifecycle_log,
     )
     matrix, names = _finalize_block(
         record, LEVEL_REGISTRY_M5_FEATURE_NAMES, LEVEL_REGISTRY_M5_FEATURE_NAMES
@@ -1312,13 +1914,16 @@ def compute_level_registry_mtf_block_v1(
     df: pd.DataFrame,
     *,
     tf: str,
-    tol_level_atr: float,
+    recurrence_threshold_atr: float,
+    max_evidence_age_bars: int,
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
     atr_col: str = "atr",
     registry_state: Mapping[str, Any] | None = None,
     return_registry_state: bool = False,
+    runtime_admission_distance_log: list[float] | None = None,
+    runtime_lifecycle_log: list[tuple] | None = None,
 ) -> (
     tuple[np.ndarray, list[str]]
     | tuple[np.ndarray, list[str], dict[str, Any]]
@@ -1326,22 +1931,26 @@ def compute_level_registry_mtf_block_v1(
     """Per-TF V4 lane: the 11-field ``mtf_level_`` block (design doc §1.3).
 
     The same registry engine runs independently on each timeframe's closed
-    bars (``tf`` selects that TF's expiry cap; ``tol_level_atr`` is that TF's
-    TRAIN-fitted frozen constant).  Field values are exact renames of the
-    registry fields — pivot_cluster kind only; round numbers and session
-    anchors do not replicate per TF.
+    bars (``tf`` selects the clock identity;
+    ``recurrence_threshold_atr`` is that TF's TRAIN-fitted frozen recurrence
+    threshold). Field values are exact renames of the
+    registry fields — immutable pivot anchors only; session anchors do not
+    replicate per TF.
     """
     if tuple(_LEVEL_REGISTRY_MTF_SOURCE_MAP) != LEVEL_REGISTRY_MTF_FEATURE_NAMES:
         raise RuntimeError("[LEVEL_REGISTRY_FEATURE_NAME_DRIFT] mtf source map")
     record, state = _run_level_registry(
         df,
         tf=tf,
-        tol_level_atr=tol_level_atr,
+        recurrence_threshold_atr=recurrence_threshold_atr,
+        max_evidence_age_bars=max_evidence_age_bars,
         high_col=high_col,
         low_col=low_col,
         close_col=close_col,
         atr_col=atr_col,
         registry_state=registry_state,
+        runtime_admission_distance_log=runtime_admission_distance_log,
+        runtime_lifecycle_log=runtime_lifecycle_log,
     )
     matrix, names = _finalize_block(
         record,

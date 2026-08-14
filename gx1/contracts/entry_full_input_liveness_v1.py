@@ -28,15 +28,14 @@ from gx1.features.htf_features import (
     require_multi_tf_v4_liveness_contract,
 )
 
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v5"
-POLICY_VERSION = "entry_full_input_liveness_policy_v6"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v7"
+POLICY_VERSION = "entry_full_input_liveness_policy_v7"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
 SURFACES = ("signal", "ctx_cont", "ctx_cat")
-# V30 (2026-08-13): ctx_cont derives from the signal-contract owner (142 ->
-# 143 with H4_range_compression_ratio); a restated literal here was a second
-# truth (rule 13).
+# Context dimensions derive from the signal-contract owner; a restated literal
+# here would create a second truth.
 EXPECTED_FIELD_COUNTS = {
     "signal": MODEL_NATIVE_SIGNAL_DIM,
     "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
@@ -65,12 +64,6 @@ CONSTANT_ALLOWLIST: dict[tuple[str, str], tuple[str, ...]] = {}
 # chronological market window.
 RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
     ("signal", "smc_choch"): {"train": 32},
-    ("signal", "candle.pattern_outside_after_inside_bull_breakout_score"): {
-        "train": 16,
-    },
-    ("signal", "candle.pattern_outside_after_inside_bear_breakout_score"): {
-        "train": 16,
-    },
     ("signal", "chart.local_ema50_200_cross_up"): {"train": 128},
     ("signal", "chart.local_ema50_200_cross_down"): {"train": 128},
     ("ctx_cont", "d1_regime_changed_flag_v3"): {"train": 32},

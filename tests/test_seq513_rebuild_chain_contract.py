@@ -19,10 +19,10 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "--preflight-out-dir",
         "--m1-lifecycle-pair-manifest-json",
         "--m1-lifecycle-pair-generation-root",
-        "--exit-target-lookahead-m1-steps",
-        "--early-move-threshold-bps",
-        "--level-tol-quantile-q",
+        "--registry-fit-inner-end",
         "--registry-fit-train-end",
+        "--volatility-squeeze-manifest",
+        "--volatility-squeeze-manifest-sha256",
         "REGISTRY_FIT_TRAIN_END=$TRAIN_END",
         'path.relative_to(event)',
         'feature ranking output must be a fresh timestamped JSON',
@@ -47,8 +47,13 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "model-native-m1-enriched-frame",
         "model-native-m5-feature-base",
         "model-native-m1-feature-base",
-        '--level-tol-quantile-q "$LEVEL_TOL_QUANTILE_Q"',
+        '--registry-fit-train-start "$TRAIN_START"',
+        '--registry-fit-inner-end "$REGISTRY_FIT_INNER_END"',
+        '--registry-fit-tape-manifest "$TAPE_MANIFEST"',
+        '--expected-registry-fit-tape-manifest-sha256 "$TAPE_MANIFEST_SHA256"',
         '--registry-fit-train-end "$REGISTRY_FIT_TRAIN_END"',
+        '--volatility-squeeze-manifest "$VOLATILITY_SQUEEZE_MANIFEST"',
+        '--expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256"',
         '--v29-registry-constants-json "$MTF/manifest.json"',
         '--v29-registry-constants-json "${M1_ENRICHED}.manifest.json"',
         '--m1-feature-base-parquet "$M1_FEATURE_BASE"',
@@ -60,6 +65,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "dataset rebuild terminal/TEST seal binding mismatch",
     ):
         assert required in source
+    assert "level-tol-quantile-q" not in source
 
     assert source.count('--feature-ranking-json "$RANKING"') == 3
     assert source.count('--run-id "$RUN_ID"') == 6
@@ -111,13 +117,14 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert '"entry_run_id": run_id' in source
     assert '"step": step' in source
     assert '"state": state' in source
-    assert '"schema_version": "seq513_rebuild_chain_status_v7"' in source
+    assert '"schema_version": "seq513_rebuild_chain_status_v8"' in source
     assert '"next_boundary": (' in source
     assert '"unified_exit_lifecycle_dir": exit_lifecycle_dir' in source
     assert "stopped before post-rebuild audits/readiness" in source
     assert '"source_cascade": {' in source
     assert '"rank_reference": {' in source
     assert '"pair_authority": {' in source
+    assert '"volatility_squeeze_artifact": {' in source
     assert '"dataset_rebuild_terminal": {' in source
     assert '"prefreeze_test_seal": {' in source
     assert '"m1_exit_feature_base": m1_feature_base_path' in source
@@ -148,7 +155,10 @@ def test_chain_cli_rejects_old_positional_interface() -> None:
     assert "--preflight-out-dir" in help_result.stdout
     assert "--m1-lifecycle-pair-manifest-json" in help_result.stdout
     assert "--m1-lifecycle-pair-generation-root" in help_result.stdout
-    assert "--early-move-threshold-bps" in help_result.stdout
+    assert "--volatility-squeeze-manifest" in help_result.stdout
+    assert "--volatility-squeeze-manifest-sha256" in help_result.stdout
+    assert "--early-move-threshold-bps" not in help_result.stdout
+    assert "--exit-target-lookahead-m1-steps" not in help_result.stdout
 
     old = subprocess.run(
         [str(SCRIPT), "XAU_SEQ513_REBUILD_UNIT_V1", "/tmp/unit-event"],
@@ -195,15 +205,12 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
             str(pair_manifest),
             "--m1-lifecycle-pair-generation-root",
             str(pair_generation_root),
-            "--exit-target-lookahead-m1-steps",
-            "30",
-            "--early-move-threshold-bps",
-            "4.0",
-            # Explicit recipe input for the V29 registry TRAIN fit;
-            # --registry-fit-train-end is deliberately omitted so the probe
-            # also exercises its one-origin default (the chain's --train-end).
-            "--level-tol-quantile-q",
-            "0.5",
+            "--registry-fit-inner-end",
+            "2024-01-01T00:00:00Z",
+            "--volatility-squeeze-manifest",
+            str(pair_manifest),
+            "--volatility-squeeze-manifest-sha256",
+            "0" * 64,
             "--history-start",
             "2021-01-05T00:00:00Z",
             "--train-start",
@@ -242,7 +249,7 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     assert re.fullmatch(r"[0-9a-f]{40}", status["git_head"])
     assert Path(status["log_path"]).is_file()
     assert status["exit_code"] == 2
-    assert status["schema_version"] == "seq513_rebuild_chain_status_v7"
+    assert status["schema_version"] == "seq513_rebuild_chain_status_v8"
     assert status["next_boundary"] == (
         "REPAIR_CURRENT_FAILED_STEP_WITHOUT_REUSING_PARTIAL_OUTPUT"
     )

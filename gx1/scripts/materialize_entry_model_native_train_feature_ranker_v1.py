@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
 """Materialize one immutable TRAIN-only feature ranking for the seq513 manifest.
 
-This is the producer side of `entry_model_native_train_feature_ranking_v1`,
+This is the producer side of the immutable TRAIN candidate-availability
+artifact historically named ``feature ranking``,
 consumed exclusively by
 `gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1`.
-The mandatory causal-layer fields are code-owned and never ranked here; this
-producer scores only the CANDIDATE pool competing for the ranked remainder
-positions.
+The mandatory causal-layer fields are code-owned and never diagnosed here;
+this producer audits the complete code-owned CANDIDATE pool that is exposed to
+the model in its declared order.
 
 Determinism contract (declared in the emitted JSON and enforced downstream):
 - fit scope is TRAIN only: every feature value and every target value comes
   from rows at or before --train-end; no validation/test rows are read;
-- the target is the exact spread-aware LONG-minus-SHORT direction-utility
-  margin used by the model-native labels: final PnL at 24 bars plus the
-  contracted first-10-bar MFE/MAE/path utility, computed only where both
-  horizons stay inside the TRAIN window;
-- score = |Spearman rank correlation| between candidate and target over rows
-  where both are finite; candidates with fewer than MIN_SUPPORT_FRACTION
-  finite rows score exactly 0.0;
-- ordering is score descending with feature-name-ascending tie-break;
+- the target is the exact LONG-minus-SHORT executable-PnL margin at the
+  direction horizon fitted once from native TRAIN M5; no handwritten
+  MFE/MAE/path weight or caller horizon participates;
+- every finite, non-constant, exactly unique TRAIN candidate is available;
+  an exact constant or duplicate invalidates the artifact and requires owner
+  repair or explicit code-level retirement;
+- |Spearman rank correlation| is read-only diagnostics and never affects
+  availability, exclusion or model-input ordering;
 - candidate values are computed by the dataset builder's own
   `_build_inline_seq_structure_extension` (one truth, no duplicated layer
   math). The ranker feeds it the ctx_cont columns present in the source
-  parquet; the dataset builder later computes the full 142-ctx surface, so
+  parquet; the dataset builder later computes the full owner-declared context surface, so
   ranking inputs are a deterministic subset, never an alternate math path.
 """
 from __future__ import annotations
@@ -45,9 +46,9 @@ import pandas as pd
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -55,6 +56,17 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
     SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
+    canonical_json_sha256,
+    validate_xau_tape_provenance_v1,
+)
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    entry_direction_targets_from_policy,
+    fit_entry_direction_target_policy,
+    require_entry_direction_target_policy,
+)
+from gx1.contracts.entry_model_native_feature_availability_v1 import (
+    fit_feature_availability_contract,
+    require_feature_availability_contract,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -71,40 +83,14 @@ from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import
     _is_forbidden_leak_name,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-from gx1.contracts.entry_model_native_state_v2 import (
-    MODEL_NATIVE_RANK_TRANSFORM,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-    TrainRankReferenceV2,
-    apply_train_rank_reference_v2,
-    parse_utc,
-    require_train_rank_source_market_identity_v2,
-    validate_train_rank_reference_lineage_v2,
-)
 from gx1.time.session_detector import ASIA_SESSION_ID
-from gx1.scripts.audit_seq513_source_cascade_v1 import (
-    validate_seq513_source_cascade_proof,
+from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
+    validate_current_pair_source_cascade_proof,
 )
 
 
 RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
-DIRECTION_HORIZON_BARS = int(
-    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["direction_horizon_bars"]
-)
-PATH_HORIZON_BARS = int(
-    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["path_horizon_bars"]
-)
-UTILITY_MFE_WEIGHT = float(
-    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["mfe_weight"]
-)
-UTILITY_MAE_WEIGHT = float(
-    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["mae_weight"]
-)
-UTILITY_PATH_WEIGHT = float(
-    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["path_weight"]
-)
-MIN_SUPPORT_FRACTION = 0.10
-SCORE_DECIMALS = 12
-RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v6"
+RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v9"
 _RANKING_OUTPUT_RE = re.compile(
     rf"^{RANKING_EVENT_PREFIX}_(\d{{8}}T\d{{6}}(?:\d{{6}})?Z)\.json$"
 )
@@ -165,8 +151,7 @@ def _ranker_checkpoint_key(
     source_sha256: str,
     mtf_cache_sha256: str,
     source_cascade_sha256: str,
-    rank_reference_sha256: str,
-    rank_reference_sidecar_sha256: str,
+    entry_direction_target_policy_sha256: str,
     history_start: pd.Timestamp,
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
@@ -177,8 +162,9 @@ def _ranker_checkpoint_key(
         "source_sha256": source_sha256,
         "mtf_cache_sha256": mtf_cache_sha256,
         "source_cascade_sha256": source_cascade_sha256,
-        "rank_reference_sha256": rank_reference_sha256,
-        "rank_reference_sidecar_sha256": rank_reference_sidecar_sha256,
+        "entry_direction_target_policy_sha256": (
+            entry_direction_target_policy_sha256
+        ),
         "history_start_utc": history_start.isoformat(),
         "train_start_utc": train_start.isoformat(),
         "train_end_utc": train_end.isoformat(),
@@ -221,21 +207,13 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     from gx1.features import entry_model_native_feature_layers_v1 as _fl
     # Rule 13: candidate ownership must come from the exact producing module,
     # not from a re-export that happens to sit in the feature-layers module's
-    # namespace.  The candlestick and foundation names were previously
+    # namespace.  The raw candle and foundation names are
     # discovered only through _fl's imports; list their owners directly.
-    import gx1.features.entry_candlestick_patterns_v1 as _cp
-    import gx1.features.entry_chart_geometry_v1 as _cg
+    import gx1.features.entry_candle_primitives_v1 as _cp
     import gx1.features.entry_foundation_structure_v1 as _fs
-    import gx1.features.entry_momentum_flow_v1 as _mf
-    import gx1.features.entry_session_regime_interactions_v1 as _sr
-    import gx1.features.entry_smc_liquidity_quality_v1 as _smc
-    import gx1.features.entry_structure_swing_derivations_v1 as _ssw
-    import gx1.features.entry_support_resistance_memory_v1 as _srm
-    import gx1.features.entry_trend_ema_v1 as _te
-    import gx1.features.entry_vol_compression_v1 as _vc
 
     union: set[str] = set()
-    for module in (_fl, _cp, _cg, _fs, _mf, _sr, _smc, _ssw, _srm, _te, _vc):
+    for module in (_fl, _cp, _fs):
         for attr in dir(module):
             if attr.isupper() and attr.endswith("_FEATURE_NAMES"):
                 values = getattr(module, attr)
@@ -251,7 +229,7 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     base = set(MODEL_NATIVE_BASE_FIELDS)
     forbidden = set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
     allowed = set(MODEL_NATIVE_TRAINING_SPECIALISTS)
-    return sorted(
+    discovered = {
         name
         for name in union
         if name not in mandatory
@@ -259,7 +237,15 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
         and name not in forbidden
         and not _is_forbidden_leak_name(name)
         and classify_entry_specialist_feature(name) in allowed
-    )
+    }
+    expected = tuple(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    if discovered != set(expected):
+        raise RuntimeError(
+            "FEATURE_RANKER_CODE_OWNED_CANDIDATE_POOL_MISMATCH: "
+            f"missing={sorted(set(expected) - discovered)[:20]} "
+            f"unexpected={sorted(discovered - set(expected))[:20]}"
+        )
+    return list(expected)
 
 
 ATTACH_WORKERS = 1
@@ -311,10 +297,10 @@ def _attach_ranker_group_a_with_common_history(
     if not isinstance(context_m5, pd.DataFrame) or context_m5.empty:
         raise RuntimeError("FEATURE_RANKER_COMMON_HISTORY_REQUIRED")
     from gx1.scripts.augment_forward_outcome_v2 import (
-        attach_group_a_dip_struct_ctx_columns_parallel,
+        attach_group_a_ctx_columns_parallel,
     )
 
-    return attach_group_a_dip_struct_ctx_columns_parallel(
+    return attach_group_a_ctx_columns_parallel(
         frame,
         multi_tf=multi_tf,
         journal_label="train_feature_ranker",
@@ -333,7 +319,6 @@ def _load_train_frame(
     mtf_cache_dir: Path,
     checkpoint_dir: Path,
     checkpoint_key: str,
-    rank_reference: TrainRankReferenceV2,
     context_m5: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, List[str]]:
     frame = pd.read_parquet(source_parquet)
@@ -345,17 +330,12 @@ def _load_train_frame(
     ].sort_values("time").reset_index(drop=True)
     if frame.empty:
         raise RuntimeError("FEATURE_RANKER_TRAIN_WINDOW_EMPTY")
-    # Apply the same immutable TRAIN-fit ECDF/ATR state before any downstream
-    # regime, GROUP_A, smart-context, or candidate construction.  Ranking on
-    # source-provided buckets while dataset/live overwrite them is forbidden.
-    frame = apply_train_rank_reference_v2(frame, rank_reference)
     frame = add_volume_features(frame)
 
-    # GROUP_A + DIP_STRUCT ctx columns are not carried by the source parquet;
-    # recompute them through the SAME one-truth augmenter the dataset builder
+    # GROUP_A ctx columns are not carried by the source parquet; recompute
+    # them through the SAME one-truth augmenter the dataset builder
     # uses (identical values by construction), then trim the causal warmup.
     from gx1.contracts.entry_model_native_signal_v1 import (
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
     )
     from gx1.features.htf_features import load_multi_tf_v4_cache
@@ -365,9 +345,7 @@ def _load_train_frame(
 
     if not mtf_cache_dir.is_dir():
         raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_MISSING: {mtf_cache_dir}")
-    group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
-    )
+    group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS)
     frame = frame.drop(
         columns=[name for name in group_a_required if name in frame.columns]
     )
@@ -385,12 +363,6 @@ def _load_train_frame(
         drop=True
     )
 
-    # ENTRY_SMART_DERIVED ctx family (smc pressures, S/R proximities, session
-    # flags) — same one-truth call the dataset builder makes after the
-    # GROUP_A attach.
-    from gx1.features.entry_smart_context import add_entry_smart_context_features
-
-    add_entry_smart_context_features(frame)
     # Session flag exactly as the dataset builder derives it
     # (build_entry_v10_ctx_training_dataset_v3.py:1799-1800).
     if "is_ASIA" not in frame.columns:
@@ -426,15 +398,23 @@ def _compute_candidate_matrix(
         _build_inline_seq_structure_extension,
     )
 
-    inline_source_columns = ["time", "close", "atr", "open", "high", "low"]
+    inline_source_columns = [
+        "time",
+        "close",
+        "atr",
+        "open",
+        "high",
+        "low",
+        "volume",
+    ]
     missing_inline = [name for name in inline_source_columns if name not in frame.columns]
     if missing_inline:
         raise RuntimeError(
             f"FEATURE_RANKER_INLINE_CAUSAL_SOURCE_MISSING: {missing_inline}"
         )
     # The price/candlestick layers need the full causal history for their
-    # EMA/derivative warmup, but only these six columns. Materializing exactly
-    # that keeps the layer inputs bounded instead of opening the whole 189-column
+    # EMA/derivative warmup, but only these seven columns. Materializing exactly
+    # that keeps the layer inputs bounded instead of opening the whole source-column
     # model source inside the 4G audit cap.
     with tempfile.NamedTemporaryFile(
         suffix="_train_feature_ranker_common_history.parquet", delete=False
@@ -450,6 +430,7 @@ def _compute_candidate_matrix(
             ctx_cont_names=list(source_ctx_cont),
             ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
             source_parquet=inline_source_path,
+            local_timeframe="M5",
             source_contract_label="train_feature_ranker_common_causal_history_v2",
         )
     finally:
@@ -466,13 +447,14 @@ def _compute_candidate_matrix(
     return ordered, list(candidates)
 
 
-def _direction_utility_margin_target(
+def _direction_executable_pnl_margin_target(
     frame: pd.DataFrame,
     *,
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
+    entry_direction_target_policy: dict[str, Any],
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Exact spread-aware direction-utility margin, capped to TRAIN.
+    """Exact fitted-horizon executable-PnL margin, capped to TRAIN.
 
     This mirrors the dataset label contract.  It is target engineering for
     offline ranking only and is never a live direction rule.
@@ -487,65 +469,33 @@ def _direction_utility_margin_target(
         or (ask < bid).any()
     ):
         raise RuntimeError("FEATURE_RANKER_BID_ASK_INVALID")
-    if len(frame) <= DIRECTION_HORIZON_BARS:
+    policy = require_entry_direction_target_policy(
+        entry_direction_target_policy
+    )
+    horizon_bars = int(policy["selected_direction_horizon_bars"])
+    if len(frame) <= horizon_bars:
         raise RuntimeError("FEATURE_RANKER_DIRECTION_HORIZON_UNAVAILABLE")
 
     target = np.full(len(frame), np.nan, dtype=np.float64)
-    usable = len(frame) - DIRECTION_HORIZON_BARS
+    usable = len(frame) - horizon_bars
     entry_bid = bid[:usable]
     entry_ask = ask[:usable]
-    exit_bid = bid[DIRECTION_HORIZON_BARS:]
-    exit_ask = ask[DIRECTION_HORIZON_BARS:]
+    exit_bid = bid[horizon_bars:]
+    exit_ask = ask[horizon_bars:]
     pnl_long = (exit_bid - entry_ask) / entry_ask * 1e4
     pnl_short = (entry_bid - exit_ask) / entry_bid * 1e4
-
-    mfe_long = np.empty(usable, dtype=np.float64)
-    mae_long = np.empty(usable, dtype=np.float64)
-    mfe_short = np.empty(usable, dtype=np.float64)
-    mae_short = np.empty(usable, dtype=np.float64)
-    for offset in range(usable):
-        window_bid = bid[offset : offset + PATH_HORIZON_BARS + 1]
-        window_ask = ask[offset : offset + PATH_HORIZON_BARS + 1]
-        mfe_long[offset] = (
-            (float(np.max(window_bid)) - entry_ask[offset])
-            / entry_ask[offset]
-            * 1e4
-        )
-        mae_long[offset] = (
-            (entry_ask[offset] - float(np.min(window_bid)))
-            / entry_ask[offset]
-            * 1e4
-        )
-        mfe_short[offset] = (
-            (entry_bid[offset] - float(np.min(window_ask)))
-            / entry_bid[offset]
-            * 1e4
-        )
-        mae_short[offset] = (
-            (float(np.max(window_ask)) - entry_bid[offset])
-            / entry_bid[offset]
-            * 1e4
-        )
-
-    long_utility = (
-        pnl_long
-        + UTILITY_MFE_WEIGHT * mfe_long
-        - UTILITY_MAE_WEIGHT * mae_long
-        + UTILITY_PATH_WEIGHT * (mfe_long - mae_long)
+    targets = entry_direction_targets_from_policy(
+        policy=policy,
+        long_executable_pnl_bps=pnl_long,
+        short_executable_pnl_bps=pnl_short,
     )
-    short_utility = (
-        pnl_short
-        + UTILITY_MFE_WEIGHT * mfe_short
-        - UTILITY_MAE_WEIGHT * mae_short
-        + UTILITY_PATH_WEIGHT * (mfe_short - mae_short)
-    )
-    target[:usable] = long_utility - short_utility
+    target[:usable] = targets["side_margin_bps"].astype(np.float64)
     times = frame["time"].to_numpy()
     in_fit = (frame["time"] >= train_start) & (frame["time"] <= train_end)
     target[~in_fit.to_numpy()] = np.nan
     full_horizon = np.arange(len(frame)) < usable
     if not np.isfinite(target[in_fit.to_numpy() & full_horizon]).all():
-        raise RuntimeError("FEATURE_RANKER_DIRECTION_UTILITY_NONFINITE")
+        raise RuntimeError("FEATURE_RANKER_DIRECTION_MARGIN_NONFINITE")
     return times, target
 
 
@@ -556,22 +506,21 @@ def _spearman_scores(
 ) -> Dict[str, float]:
     valid_target = np.isfinite(target)
     n_rows = int(valid_target.sum())
-    if n_rows < 1000:
+    if n_rows < 2:
         raise RuntimeError(f"FEATURE_RANKER_TARGET_SUPPORT_TOO_SMALL: {n_rows}")
     target_series = pd.Series(target)
     scores: Dict[str, float] = {}
     for column, name in enumerate(names):
         values = matrix[:, column].astype(np.float64)
         both = valid_target & np.isfinite(values)
-        support = int(both.sum())
-        if support < MIN_SUPPORT_FRACTION * n_rows:
+        if int(both.sum()) < 2:
             scores[name] = 0.0
             continue
         feature_rank = pd.Series(values[both]).rank(method="average")
         target_rank = target_series[both].rank(method="average")
         with np.errstate(invalid="ignore"):
             rho = float(np.corrcoef(feature_rank, target_rank)[0, 1])
-        scores[name] = 0.0 if not math.isfinite(rho) else round(abs(rho), SCORE_DECIMALS)
+        scores[name] = 0.0 if not math.isfinite(rho) else abs(rho)
     return scores
 
 
@@ -585,9 +534,10 @@ def emit_ranking(
     target_time_max: pd.Timestamp,
     source_sha256: str,
     target_sha256: str,
-    rank_reference: TrainRankReferenceV2,
     source_cascade: dict[str, Any],
+    entry_direction_target_policy: dict[str, Any],
     scores: Dict[str, float],
+    feature_availability: dict[str, Any],
     created: datetime | None = None,
 ) -> Path:
     out_path = out_path.expanduser().resolve()
@@ -603,6 +553,9 @@ def emit_ranking(
             f"filename={filename_created.isoformat()} created={created.isoformat()}"
         )
     created = filename_created
+    availability = require_feature_availability_contract(feature_availability)
+    if set(scores) != set(availability["candidate_pool"]):
+        raise RuntimeError("FEATURE_RANKER_AVAILABILITY_SCORE_POOL_MISMATCH")
     ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
     payload: Dict[str, Any] = {
         "schema_version": TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
@@ -618,32 +571,16 @@ def emit_ranking(
         "source_sha256": source_sha256,
         "target_sha256": target_sha256,
         "target_contract": dict(TRAIN_FEATURE_RANKING_TARGET_CONTRACT),
+        "entry_direction_target_policy": require_entry_direction_target_policy(
+            entry_direction_target_policy
+        ),
+        "entry_direction_target_policy_sha256": (
+            entry_direction_target_policy["policy_sha256"]
+        ),
         "source_cascade": dict(source_cascade),
-        "rank_reference": {
-            "path": str(rank_reference.path),
-            "sha256": rank_reference.sha256,
-            "sidecar_path": str(
-                rank_reference.path.with_suffix(rank_reference.path.suffix + ".json")
-            ),
-            "sidecar_sha256": rank_reference.sidecar_sha256,
-            "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-            "entry_run_id": str(rank_reference.sidecar["entry_run_id"]),
-            "source_parquet": str(rank_reference.sidecar["source_parquet"]),
-            "source_parquet_sha256": str(
-                rank_reference.sidecar["source_parquet_sha256"]
-            ),
-            "history_start_utc": parse_utc(
-                rank_reference.sidecar["history_start_utc"],
-                field="history_start_utc",
-            ).isoformat(),
-            "fit_start_utc": rank_reference.fit_start_utc.isoformat(),
-            "fit_end_utc": rank_reference.fit_end_utc.isoformat(),
-            "fit_row_count": rank_reference.fit_row_count,
-            "fit_scope": "train_only",
-            "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-        },
         "ranking_order": dict(TRAIN_FEATURE_RANKING_ORDER),
         "causality_contract": dict(TRAIN_FEATURE_CAUSALITY_CONTRACT),
+        "feature_availability": availability,
         "ranked_features": [
             {"rank": index, "name": name, "score": float(score)}
             for index, (name, score) in enumerate(ranked, start=1)
@@ -664,12 +601,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--source-parquet", type=Path, required=True)
-    parser.add_argument("--rank-source-parquet", type=Path, required=True)
     parser.add_argument("--canonical-v2-parquet", type=Path, required=True)
     parser.add_argument("--mtf-cache-dir", type=Path, required=True)
     parser.add_argument("--source-cascade-proof", type=Path, required=True)
+    parser.add_argument("--tape-root", type=Path, required=True)
     parser.add_argument("--expected-source-time-max", required=True)
-    parser.add_argument("--rank-reference-npz", type=Path, required=True)
     parser.add_argument("--history-start", required=True)
     parser.add_argument("--train-start", required=True)
     parser.add_argument("--train-end", required=True)
@@ -687,12 +623,6 @@ def main() -> None:
     if not source_parquet.is_file():
         raise RuntimeError(f"FEATURE_RANKER_SOURCE_MISSING: {source_parquet}")
     source_sha256 = _sha256_file(source_parquet)
-    rank_source_parquet = args.rank_source_parquet.expanduser().resolve()
-    if not rank_source_parquet.is_file() or rank_source_parquet.is_symlink():
-        raise RuntimeError(
-            f"FEATURE_RANKER_RANK_SOURCE_MISSING: {rank_source_parquet}"
-        )
-    rank_source_sha256 = _sha256_file(rank_source_parquet)
     canonical_v2_parquet = args.canonical_v2_parquet.expanduser().resolve()
     if (
         not canonical_v2_parquet.is_file()
@@ -701,30 +631,11 @@ def main() -> None:
         raise RuntimeError(
             f"FEATURE_RANKER_CANONICAL_SOURCE_MISSING: {canonical_v2_parquet}"
         )
-    if rank_source_parquet != canonical_v2_parquet:
-        raise RuntimeError(
-            "FEATURE_RANKER_RANK_SOURCE_CANONICAL_PATH_MISMATCH"
-        )
-    rank_reference = validate_train_rank_reference_lineage_v2(
-        args.rank_reference_npz,
-        expected_run_id=run_id,
-        expected_source_parquet=rank_source_parquet,
-        expected_source_sha256=rank_source_sha256,
-        expected_history_start_utc=history_start,
-        expected_fit_start_utc=train_start,
-        expected_fit_end_utc=train_end,
-    )
-    require_train_rank_source_market_identity_v2(
-        rank_source_parquet=rank_source_parquet,
-        model_source_parquet=source_parquet,
-        history_start_utc=history_start,
-        fit_end_utc=train_end,
-    )
     mtf_cache_dir = args.mtf_cache_dir.expanduser().resolve()
     if not mtf_cache_dir.is_dir() or mtf_cache_dir.is_symlink():
         raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_MISSING: {mtf_cache_dir}")
     mtf_cache_sha256 = _mtf_cache_sha256(mtf_cache_dir)
-    source_cascade = validate_seq513_source_cascade_proof(
+    source_cascade = validate_current_pair_source_cascade_proof(
         args.source_cascade_proof,
         expected_run_id=run_id,
         expected_source_parquet=source_parquet,
@@ -733,13 +644,37 @@ def main() -> None:
         expected_history_start_utc=history_start,
         expected_time_max_utc=args.expected_source_time_max,
     )
+    tape_provenance = validate_xau_tape_provenance_v1(
+        args.tape_root,
+        expected_run_id=run_id,
+        require_current=True,
+    )
+    policy_source = pd.read_parquet(
+        source_parquet,
+        columns=["time", "bid_close", "ask_close"],
+    )
+    policy_source["time"] = pd.to_datetime(
+        policy_source["time"], utc=True, errors="raise"
+    )
+    policy_source = policy_source.loc[
+        (policy_source["time"] >= train_start)
+        & (policy_source["time"] <= train_end)
+    ].reset_index(drop=True)
+    entry_direction_target_policy = fit_entry_direction_target_policy(
+        closed_m5=policy_source,
+        train_start=train_start,
+        train_end=train_end,
+        source_parquet_sha256=source_sha256,
+        tape_provenance_sha256=canonical_json_sha256(tape_provenance),
+    )
     checkpoint_key = _ranker_checkpoint_key(
         run_id=run_id,
         source_sha256=source_sha256,
         mtf_cache_sha256=mtf_cache_sha256,
         source_cascade_sha256=str(source_cascade["sha256"]),
-        rank_reference_sha256=rank_reference.sha256,
-        rank_reference_sidecar_sha256=rank_reference.sidecar_sha256,
+        entry_direction_target_policy_sha256=(
+            entry_direction_target_policy["policy_sha256"]
+        ),
         history_start=history_start,
         train_start=train_start,
         train_end=train_end,
@@ -781,8 +716,7 @@ def main() -> None:
                     "source_sha256",
                     "mtf_cache_sha256",
                     "source_cascade_sha256",
-                    "rank_reference_sha256",
-                    "rank_reference_sidecar_sha256",
+                    "entry_direction_target_policy_sha256",
                 }
                 if set(ck.files) != expected_keys:
                     raise RuntimeError("key set mismatch")
@@ -793,10 +727,8 @@ def main() -> None:
                     or str(ck["mtf_cache_sha256"]) != mtf_cache_sha256
                     or str(ck["source_cascade_sha256"])
                     != source_cascade["sha256"]
-                    or str(ck["rank_reference_sha256"])
-                    != rank_reference.sha256
-                    or str(ck["rank_reference_sidecar_sha256"])
-                    != rank_reference.sidecar_sha256
+                    or str(ck["entry_direction_target_policy_sha256"])
+                    != entry_direction_target_policy["policy_sha256"]
                 ):
                     raise RuntimeError("identity mismatch")
                 matrix = ck["matrix"]
@@ -824,23 +756,20 @@ def main() -> None:
             mtf_cache_dir=mtf_cache_dir,
             checkpoint_dir=group_a_checkpoint_dir,
             checkpoint_key=checkpoint_key,
-            rank_reference=rank_reference,
             context_m5=common_history_m5,
         )
         candidates = _candidate_universe(source_ctx_cont)
-        if len(candidates) < MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT:
-            raise RuntimeError(
-                "FEATURE_RANKER_CANDIDATE_POOL_TOO_SMALL: "
-                f"{len(candidates)} < {MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT}"
-            )
         matrix, names = _compute_candidate_matrix(
             frame,
             candidates=candidates,
             source_ctx_cont=source_ctx_cont,
             causal_source_parquet=Path(source_parquet),
         )
-        times, target = _direction_utility_margin_target(
-            frame, train_start=train_start, train_end=train_end
+        times, target = _direction_executable_pnl_margin_target(
+            frame,
+            train_start=train_start,
+            train_end=train_end,
+            entry_direction_target_policy=entry_direction_target_policy,
         )
         train_rows = int(len(frame))
         _stm = pd.Timestamp(frame["time"].max())
@@ -861,9 +790,8 @@ def main() -> None:
             source_sha256=np.array(source_sha256),
             mtf_cache_sha256=np.array(mtf_cache_sha256),
             source_cascade_sha256=np.array(source_cascade["sha256"]),
-            rank_reference_sha256=np.array(rank_reference.sha256),
-            rank_reference_sidecar_sha256=np.array(
-                rank_reference.sidecar_sha256
+            entry_direction_target_policy_sha256=np.array(
+                entry_direction_target_policy["policy_sha256"]
             ),
         )
         print(f"[CHECKPOINT] skrevet {checkpoint_path}", flush=True)
@@ -875,6 +803,14 @@ def main() -> None:
     if target_sha256 == source_sha256:
         raise RuntimeError("FEATURE_RANKER_HASH_COLLISION")
     scores = _spearman_scores(np.asarray(matrix, dtype=np.float32), names, target)
+    feature_availability = fit_feature_availability_contract(
+        matrix=np.asarray(matrix, dtype=np.float32),
+        names=names,
+        times=times,
+        train_start=train_start,
+        train_end=train_end,
+        diagnostic_target=np.asarray(target, dtype=np.float64),
+    )
 
     _tmax = pd.Timestamp(np.asarray(times)[finite_target].max())
     target_time_max = (
@@ -890,9 +826,10 @@ def main() -> None:
         target_time_max=target_time_max,
         source_sha256=source_sha256,
         target_sha256=target_sha256,
-        rank_reference=rank_reference,
         source_cascade=source_cascade,
+        entry_direction_target_policy=entry_direction_target_policy,
         scores=scores,
+        feature_availability=feature_availability,
     )
     nonzero = sum(1 for s in scores.values() if s > 0.0)
     print(
@@ -902,6 +839,12 @@ def main() -> None:
                 "out_path": str(out_path),
                 "candidates": len(scores),
                 "nonzero_scores": nonzero,
+                "available_candidates": feature_availability[
+                    "available_feature_count"
+                ],
+                "excluded_candidates": feature_availability[
+                    "excluded_feature_count"
+                ],
                 "train_rows": train_rows,
                 "target_rows": int(finite_target.sum()),
             },

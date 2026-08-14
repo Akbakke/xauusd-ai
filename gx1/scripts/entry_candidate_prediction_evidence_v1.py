@@ -23,18 +23,8 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
 )
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    ACTION_VALUE_DIM,
-    ACTION_VALUE_TARGET_COLUMNS,
-    EXPECTILE_VALUE_DIM,
-)
 from gx1.models.entry_v10.direction_decision_contract import (
-    MODEL_DIRECTION_FLAT_INDEX,
-    MODEL_DIRECTION_LONG_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
-    MODEL_DIRECTION_SHORT_INDEX,
-    PUBLIC_FLAT_INDEX,
-    PUBLIC_TRADE_INDEX,
     require_model_direction_decision_contract,
 )
 
@@ -43,10 +33,10 @@ PREDICTION_EVIDENCE_SCHEMA_VERSION = (
     "entry_candidate_model_direction_prediction_evidence_v3"
 )
 RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v7"
+    "entry_candidate_model_entry_fitted_q_prediction_evidence_v12"
 )
 RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_head_evidence_v5"
+    "entry_model_native_runtime_head_evidence_v10"
 )
 AUTHORITATIVE_PREDICTIONS_PREFIX = "selective_edge_predictions_"
 REPORT_PREFIX = "ENTRY_CANDIDATE_SELECTIVE_EDGE_"
@@ -64,24 +54,11 @@ REQUIRED_MODEL_DIRECTION_COLUMNS = (
     "split",
     "model",
     "time",
-    "y_direction",
     "pred_direction",
-    "p_long",
-    "p_short",
-    "p_flat",
     "selection_score_mode",
-    "public_trade_probability",
-    "public_flat_probability",
-    "public_trade_flat_margin",
-    "public_trade_flat_hard_decision",
-    "direction_logits",
-    "public_trade_flat_decision_logits",
+    "entry_action_q_bps",
     "timing_pred",
     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-    "action_value",
-    "expectile_value",
-    "action_advantage",
-    *ACTION_VALUE_TARGET_COLUMNS,
 )
 RUNTIME_HEAD_PREDICTION_COLUMNS = (
     "runtime_head_evidence_schema_version",
@@ -188,7 +165,7 @@ def validate_model_direction_parquet_semantics(
     *,
     bundle_metadata: Mapping[str, Any] | None = None,
 ) -> None:
-    """Prove that persisted classes/public pair equal the final model logits."""
+    """Prove persisted Entry decisions are the unique raw-bps Q argmax."""
 
     frame = pd.read_parquet(path, columns=list(REQUIRED_MODEL_DIRECTION_COLUMNS))
     if frame.empty:
@@ -213,23 +190,8 @@ def validate_model_direction_parquet_semantics(
             raise RuntimeError(f"prediction evidence {name} contains non-finite values")
         return out
 
-    direction_logits = matrix("direction_logits", 3)
-    public_logits = matrix("public_trade_flat_decision_logits", 2)
+    entry_action_q = matrix("entry_action_q_bps", 3)
     timing_pred = matrix("timing_pred", MODEL_NATIVE_TIMING_OUTPUT_DIM)
-    action_value = matrix("action_value", ACTION_VALUE_DIM)
-    expectile_value = matrix("expectile_value", EXPECTILE_VALUE_DIM)
-    action_advantage = matrix("action_advantage", ACTION_VALUE_DIM)
-    expected_advantage = (
-        action_value.reshape(len(frame), 3, EXPECTILE_VALUE_DIM)
-        - expectile_value[:, None, :]
-    ).reshape(len(frame), ACTION_VALUE_DIM)
-    if not np.allclose(
-        action_advantage,
-        expected_advantage,
-        rtol=1e-6,
-        atol=1e-7,
-    ):
-        raise RuntimeError("prediction evidence action_advantage does not equal Q-V")
     if np.any(timing_pred < 0.0) or np.any(timing_pred > 1.0):
         raise RuntimeError("prediction evidence timing_pred is outside [0,1]")
     for target_column in MODEL_NATIVE_TIMING_TARGET_COLUMNS:
@@ -238,78 +200,21 @@ def validate_model_direction_parquet_semantics(
             raise RuntimeError(
                 f"prediction evidence {target_column} is outside [0,1]"
             )
-    for target_column in ACTION_VALUE_TARGET_COLUMNS:
-        numeric(target_column)
-    expected_public_logits = np.column_stack(
-        [
-            np.maximum(
-                direction_logits[:, MODEL_DIRECTION_LONG_INDEX],
-                direction_logits[:, MODEL_DIRECTION_SHORT_INDEX],
-            ),
-            direction_logits[:, MODEL_DIRECTION_FLAT_INDEX],
-        ]
-    )
-    if not np.allclose(public_logits, expected_public_logits, rtol=1e-6, atol=1e-6):
-        raise RuntimeError(
-            "prediction evidence public trade/FLAT logits mismatch canonical formula"
-        )
-
-    def softmax(values: np.ndarray) -> np.ndarray:
-        shifted = values - np.max(values, axis=1, keepdims=True)
-        exp = np.exp(shifted)
-        return exp / np.sum(exp, axis=1, keepdims=True)
-
-    direction_probs = softmax(direction_logits)
-    persisted_direction_probs = np.column_stack(
-        [numeric("p_long"), numeric("p_short"), numeric("p_flat")]
-    )
-    if not np.allclose(
-        direction_probs, persisted_direction_probs, rtol=1e-5, atol=1e-6
-    ):
-        raise RuntimeError("prediction evidence direction probabilities mismatch logits")
     winner_counts = np.count_nonzero(
-        direction_logits == np.max(direction_logits, axis=1, keepdims=True),
+        entry_action_q == np.max(entry_action_q, axis=1, keepdims=True),
         axis=1,
     )
     tied_rows = int(np.count_nonzero(winner_counts != 1))
     if tied_rows:
         raise RuntimeError(
-            "prediction evidence direction logits have no unique top class; "
+            "prediction evidence Entry Q has no unique top action; "
             f"rows={tied_rows}"
         )
     pred_direction = numeric("pred_direction")
     if not np.array_equal(pred_direction, np.rint(pred_direction)) or not np.array_equal(
-        pred_direction.astype(np.int64), np.argmax(direction_logits, axis=1)
+        pred_direction.astype(np.int64), np.argmax(entry_action_q, axis=1)
     ):
-        raise RuntimeError("prediction evidence pred_direction mismatch final logits argmax")
-
-    public_probs = softmax(public_logits)
-    persisted_public_probs = np.column_stack(
-        [numeric("public_trade_probability"), numeric("public_flat_probability")]
-    )
-    if not np.allclose(public_probs, persisted_public_probs, rtol=1e-5, atol=1e-6):
-        raise RuntimeError("prediction evidence public probabilities mismatch public logits")
-    public_margin = numeric("public_trade_flat_margin")
-    if not np.allclose(
-        public_margin,
-        public_logits[:, PUBLIC_TRADE_INDEX]
-        - public_logits[:, PUBLIC_FLAT_INDEX],
-        rtol=1e-5,
-        atol=1e-6,
-    ):
-        raise RuntimeError("prediction evidence public margin mismatch public logits")
-    public_hard = numeric("public_trade_flat_hard_decision")
-    if not np.array_equal(public_hard, np.rint(public_hard)) or not np.array_equal(
-        public_hard.astype(np.int64), np.argmax(public_logits, axis=1)
-    ):
-        raise RuntimeError("prediction evidence public hard decision mismatch public logits")
-    expected_public_hard = np.where(
-        pred_direction.astype(np.int64) == MODEL_DIRECTION_FLAT_INDEX,
-        PUBLIC_FLAT_INDEX,
-        PUBLIC_TRADE_INDEX,
-    )
-    if not np.array_equal(public_hard.astype(np.int64), expected_public_hard):
-        raise RuntimeError("prediction evidence public hard decision mismatches LONG/SHORT/FLAT")
+        raise RuntimeError("prediction evidence pred_direction mismatches Entry Q argmax")
     modes = sorted({str(value) for value in frame["selection_score_mode"].to_numpy()})
     if modes != [MODEL_DIRECTION_SELECTION_MODE]:
         raise RuntimeError(
@@ -328,7 +233,6 @@ def validate_runtime_head_parquet_semantics(
         MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS,
         MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
         decode_model_native_runtime_head_evidence,
-        project_model_native_path_calibration,
     )
 
     if (
@@ -350,7 +254,7 @@ def validate_runtime_head_parquet_semantics(
                 [
                     "time",
                     "pred_direction",
-                    "direction_logits",
+                    "entry_action_q_bps",
                         *RUNTIME_HEAD_PREDICTION_COLUMNS,
                         *duplicated_head_columns,
                     ]
@@ -368,22 +272,11 @@ def validate_runtime_head_parquet_semantics(
             "prediction runtime-head schema mismatch: "
             f"observed={runtime_schema}"
         )
-    direction_calibration = bundle_metadata.get("direction_calibration")
-    path_calibration = bundle_metadata.get("path_calibration")
-    if (
-        not isinstance(direction_calibration, Mapping)
-        or direction_calibration.get("enabled") is not True
-        or not isinstance(path_calibration, Mapping)
-        or path_calibration.get("enabled") is not True
+    if any(
+        key in bundle_metadata
+        for key in ("direction_calibration", "path_calibration")
     ):
-        raise RuntimeError(
-            "prediction bundle lacks enabled direction/path calibration "
-            "for runtime-head evidence"
-        )
-    path_calibration_inference = project_model_native_path_calibration(
-        path_calibration,
-        context="PREDICTION_BUNDLE_PATH_CALIBRATION",
-    )
+        raise RuntimeError("prediction Entry-Q bundle carries retired calibration")
 
     def exact_python(value: Any) -> Any:
         if isinstance(value, np.generic):
@@ -424,13 +317,13 @@ def validate_runtime_head_parquet_semantics(
                 f"prediction runtime-head direction mismatch at row {index}"
             )
         if not np.allclose(
-            np.asarray(head["direction_logits"], dtype=np.float64),
-            np.asarray(row["direction_logits"], dtype=np.float64),
+            np.asarray(head["entry_action_q_bps"], dtype=np.float64),
+            np.asarray(row["entry_action_q_bps"], dtype=np.float64),
             rtol=0.0,
             atol=0.0,
         ):
             raise RuntimeError(
-                f"prediction runtime-head logits mismatch at row {index}"
+                f"prediction runtime-head Entry-Q mismatch at row {index}"
             )
         for field in duplicated_head_columns:
             if exact_python(row[field]) != exact_python(head[field]):
@@ -438,17 +331,6 @@ def validate_runtime_head_parquet_semantics(
                     "prediction runtime-head duplicated field mismatch at "
                     f"row {index}: {field}"
                 )
-        if (
-            head["calibration_version"]
-            != direction_calibration.get("version")
-            or head["direction_calibration_enabled"] is not True
-            or float(head["direction_calibration_temperature"])
-            != float(direction_calibration.get("temperature"))
-            or head["path_calibration"] != path_calibration_inference
-        ):
-            raise RuntimeError(
-                f"prediction runtime-head calibration mismatch at row {index}"
-            )
 
 
 def atomic_write_parquet_immutable(frame: pd.DataFrame, path: Path) -> None:

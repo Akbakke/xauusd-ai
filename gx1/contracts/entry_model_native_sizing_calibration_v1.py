@@ -49,10 +49,10 @@ MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION = (
     "entry_model_native_sizing_bundle_calibration_v2"
 )
 MODEL_NATIVE_SIZING_OOS_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_sizing_oos_proof_v5"
+    "entry_model_native_sizing_oos_proof_v6"
 )
 MODEL_NATIVE_SIZING_OOS_SOURCE_SCHEMA_VERSION = (
-    "entry_model_native_sizing_oos_source_v3"
+    "entry_model_native_sizing_oos_source_v4"
 )
 MODEL_NATIVE_SIZING_TRANSFORM_VERSION = (
     "monotone_logistic_available_margin_capacity_fraction_v2"
@@ -1419,21 +1419,21 @@ def _require_source_tape_binding(
         _fail(context, "source tape/TEST manifest missing or hash mismatch")
     manifest = _json_file(manifest_path, context=f"{context}.manifest")
     extra = manifest.get("extra") if isinstance(manifest.get("extra"), Mapping) else {}
-    state = (
-        extra.get("model_native_state_contract")
-        if isinstance(extra.get("model_native_state_contract"), Mapping)
+    source_frame = (
+        extra.get("source_frame")
+        if isinstance(extra.get("source_frame"), Mapping)
         else {}
     )
     declared_path = Path(
-        str(state.get("rank_reference_source_parquet") or "")
+        str(source_frame.get("parquet_path") or "")
     ).expanduser()
     if (
         not declared_path.is_absolute()
         or declared_path.resolve() != tape_path.resolve()
-        or str(state.get("rank_reference_source_parquet_sha256") or "").lower()
+        or str(source_frame.get("parquet_sha256") or "").lower()
         != canonical["sha256"]
     ):
-        _fail(context, "TEST manifest state contract does not bind exact source tape")
+        _fail(context, "TEST manifest source frame does not bind exact source tape")
     return canonical
 
 

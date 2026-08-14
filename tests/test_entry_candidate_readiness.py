@@ -33,9 +33,11 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
     training_objective_contract_metadata,
+)
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
@@ -63,9 +65,7 @@ def _write_json(path: Path, payload: dict) -> Path:
 
 
 def _objective() -> dict:
-    return training_objective_contract_metadata(
-        {key: 1.0 for key in REQUIRED_POSITIVE_LOSS_WEIGHTS}
-    )
+    return training_objective_contract_metadata()
 
 
 def _signal_contract() -> dict:
@@ -151,7 +151,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     target_path = _write_json(
         evidence / "ENTRY_TARGET_AUDIT_20260716T115959123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -164,7 +164,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     pretrain_path = _write_json(
         evidence / "XAU_PRETRAIN_AUDIT_20260716T115958123456Z.json",
         {
-            "schema_version": "xau_direction_repair_pretrain_audit_v2",
+            "schema_version": "xau_direction_repair_pretrain_audit_v4",
             "decision": "PASS",
             "failures": [],
         },
@@ -209,7 +209,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
                 "foundation_audit_policy_enforcement": (
                     foundation_audit_policy_enforcement("target")
                 ),
-                "schema_version": "entry_target_foundation_audit_v2",
+                "schema_version": "entry_target_foundation_audit_v3",
                 "decision": "PASS",
                 "failures": [],
                 "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
@@ -227,7 +227,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
             },
             "pretrain": {
                 **binding(pretrain_path),
-                "schema_version": "xau_direction_repair_pretrain_audit_v2",
+                "schema_version": "xau_direction_repair_pretrain_audit_v4",
                 "decision": "PASS",
                 "failures": [],
             },
@@ -395,9 +395,7 @@ def test_bundle_rehash_rejects_objective_meta_lock_split_brain(tmp_path: Path) -
 
     lock_path = paths["bundle"] / "MASTER_TRANSFORMER_LOCK.json"
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
-    lock["model_native_training_objective"]["configurable_positive_loss_weights"][
-        REQUIRED_POSITIVE_LOSS_WEIGHTS[0]
-    ] = 0.0
+    lock["model_native_training_objective"]["fixed_relative_task_weights"] = True
     lock_path.write_text(json.dumps(lock), encoding="utf-8")
 
     assert readiness._bundle_file_check(normalized)["ok"] is False
@@ -472,7 +470,7 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
         "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
         "training_objective_schema": TRAINING_OBJECTIVE_SCHEMA,
         "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
-        "required_positive_loss_weights": list(REQUIRED_POSITIVE_LOSS_WEIGHTS),
+        "joint_task_names": list(JOINT_TASK_NAMES),
     }
     trainability_path, _ = _event(
         paths["evidence"],

@@ -60,8 +60,10 @@ def _write_advanced_parquet(path: Path, *, times: list[str] | None = None) -> No
         values = [0.0, 0.0, 0.0]
         if target == "y_direction":
             values = [0, 1, 2]
-        elif target in ("y_tf_agreement_score", "y_position_size_target"):
+        elif target == "y_position_size_target":
             values = [0.5, 0.5, 0.5]
+        elif target == "y_position_size_mask":
+            values = [1.0, 1.0, 0.0]
         columns[target] = pa.array(values)
     table = pa.table(columns)
     pq.write_table(table, path)

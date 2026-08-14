@@ -24,8 +24,6 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--m1-feature-base-parquet",
         "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
-        "--exit-target-lookahead-m1-steps",
-        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--rebuild-terminal-json",
@@ -46,6 +44,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         assert required in source
 
     assert "entry_v10_ctx_train_v3" not in source
+    assert "--exit-target-lookahead-m1-steps" not in source
     assert "--base28-manifest" not in source
     assert "--base28_manifest" not in source
     assert "--epochs" not in source
@@ -66,8 +65,8 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     assert "--require-xau-provenance" not in source
     assert 'ls ' not in source
     assert 'tail -1' not in source
-    assert 'EARLY_MOVE_THRESHOLD_BPS=' in source
-    assert '--early_move_threshold_bps "$EARLY_MOVE_THRESHOLD_BPS"' in source
+    assert "EARLY_MOVE_THRESHOLD_BPS=" not in source
+    assert "--early_move_threshold_bps" not in source
 
 
 def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
@@ -86,19 +85,20 @@ def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
             and node.func.attr == "add_argument"
             and node.args
             and isinstance(node.args[0], ast.Constant)
-            and node.args[0].value in {"--seq_len", "--early_move_threshold_bps"}
+            and node.args[0].value == "--seq_len"
         ):
             continue
         observed[str(node.args[0].value)] = node
 
-    assert set(observed) == {"--seq_len", "--early_move_threshold_bps"}
+    assert set(observed) == {"--seq_len"}
     for flag, node in observed.items():
         keywords = {keyword.arg: keyword.value for keyword in node.keywords}
         assert isinstance(keywords.get("required"), ast.Constant)
         assert keywords["required"].value is True, flag
         assert "default" not in keywords, flag
-    assert "EARLY_MOVE_THRESHOLD_INVALID" in builder
-    assert "not np.isfinite(early_move_threshold_bps)" in builder
+    assert "--early_move_threshold_bps" not in builder
+    assert 'direction_target_policy["early_move_threshold_bps"]' in builder
+    assert "fit_entry_direction_target_policy(" in builder
 
 
 def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> None:

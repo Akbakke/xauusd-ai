@@ -78,11 +78,6 @@ def test_htf_regime_override_computes_full_prefix_before_history_slice(
         assert len(work) == len(m5) == len(cv3)
         for name in (
             "D1_dist_from_ema200_atr",
-            "D1_atr_percentile_252",
-            "H1_range_compression_ratio",
-            "M15_range_compression_ratio",
-            # V30 (2026-08-13): _add_htf_features emits the H4 sibling too.
-            "H4_range_compression_ratio",
             "H4_trend_sign_cat",
         ):
             work[name] = np.arange(len(work), dtype=np.float64)
@@ -102,7 +97,7 @@ def test_htf_regime_override_computes_full_prefix_before_history_slice(
 
     assert observed == {"htf_rows": len(cv3), "regime_rows": len(cv3)}
     assert result.index[0] == index[first_position]
-    assert result.iloc[0]["bars_since_d1_regime_change_v3"] == first_position
+    assert result.iloc[0]["d1_regime_flip_age_bars_v4"] == first_position
 
 
 def test_model_native_state_builder_requires_explicit_contracts() -> None:
@@ -111,6 +106,9 @@ def test_model_native_state_builder_requires_explicit_contracts() -> None:
 
 
 def _early_validation_builder(tmp_path: Path) -> ModelNativeStateBuilder:
+    from tests.volatility_squeeze_test_support import (
+        make_volatility_squeeze_artifact_set,
+    )
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields(
             remainder_prefix="session_regime.state_contract_fixture"
@@ -141,6 +139,9 @@ def _early_validation_builder(tmp_path: Path) -> ModelNativeStateBuilder:
         ordered_signal_names=list(signal_contract["fields"]),
         state_contract=state_contract,
         signal_contract=signal_contract,
+        volatility_squeeze_artifacts=(
+            make_volatility_squeeze_artifact_set(tmp_path)
+        ),
     )
 
 
@@ -173,7 +174,7 @@ def test_session_context_switches_at_m5_decision_boundary_without_extra_lag() ->
         300.0,
         295.0,
     ]
-    assert frame["_v1_is_EU"].tolist() == [0.0, 1.0, 1.0]
+    assert frame["is_ASIA"].tolist() == [1, 0, 0]
 
 
 def test_session_context_is_append_stable() -> None:

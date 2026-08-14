@@ -44,34 +44,27 @@ from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
-from gx1.contracts.entry_model_native_state_v2 import (  # noqa: E402
-    load_train_rank_reference_v2,
-)
 from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
 )
 from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.execution.v12_ctx_augment_live import (  # noqa: E402
-    augment_canonical_v3_from_v4,
+    augment_canonical_v3_model_agnostic_from_v4,
 )
 from gx1.features.htf_features import (  # noqa: E402
     HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
     attach_model_native_mtf_scalars_v4,
-    attach_default_regime_v4_scalars,
     bind_model_native_mtf_scalar_owner_v4,
     build_multi_tf_v4_closed_timestamp_indices,
     build_multi_tf_per_bar_features_v4,
     load_multi_tf_v4_cache,
     validate_causal_feature_matrix,
 )
-from gx1.features.entry_smart_context import (  # noqa: E402
-    add_entry_smart_context_features,
-)
 from gx1.time.session_detector import decision_availability  # noqa: E402
 from gx1.scripts.augment_forward_outcome_v2 import (  # noqa: E402
-    attach_group_a_dip_struct_ctx_columns_parallel,
+    attach_group_a_ctx_columns_parallel,
 )
 from gx1.scripts.materialize_build_canonical_features_v2 import (  # noqa: E402
     build_canonical_v2,
@@ -558,7 +551,6 @@ def _materialize_native_source_bounded(
 def _checkpoint_key(
     *,
     source_identity: dict[str, Any],
-    rank_reference_sha256: str,
     dataset_run_id: str,
     pair_generation_id: str,
     timeframe: str,
@@ -570,7 +562,6 @@ def _checkpoint_key(
             "timeframe": timeframe,
             "source_manifest_sha256": source_identity["manifest_sha256"],
             "part_sha256": source_identity["part_sha256"],
-            "rank_reference_sha256": rank_reference_sha256,
             "dataset_run_id": dataset_run_id,
             "pair_generation_id": pair_generation_id,
             "base_bar_seconds": spec["seconds"],
@@ -770,7 +761,6 @@ def _complete_v4_owned_context(
     canonical_holder: "list[pd.DataFrame] | pd.DataFrame",
     *,
     multi_tf: dict,
-    rank_reference: object,
     decision_bar_duration: pd.Timedelta,
 ) -> pd.DataFrame:
     """Run the sole MTF owner before every dependent context transform.
@@ -792,15 +782,8 @@ def _complete_v4_owned_context(
         decision_bar_duration=decision_bar_duration,
     )
     _log_rss("after_mtf_scalars")
-    attach_default_regime_v4_scalars(
+    out = augment_canonical_v3_model_agnostic_from_v4(
         canonical,
-        multi_tf=multi_tf,
-        decision_bar_duration=decision_bar_duration,
-    )
-    _log_rss("after_regime_scalars")
-    out = augment_canonical_v3_from_v4(
-        canonical,
-        rank_reference=rank_reference,
         base_bar_duration=decision_bar_duration,
     )
     # augment_canonical_v3_from_v4 and add_cross_tf_momentum each return a new
@@ -940,25 +923,6 @@ def _finish_model_native_surface(
     enriched["hour_cos"] = np.cos(2.0 * np.pi * hour / 24.0).astype(np.float32)
     enriched["dow_sin"] = np.sin(2.0 * np.pi * dow / 7.0).astype(np.float32)
     enriched["dow_cos"] = np.cos(2.0 * np.pi * dow / 7.0).astype(np.float32)
-    swing_state = pd.to_numeric(
-        enriched["smc_swing_state"], errors="raise"
-    ).to_numpy(dtype=np.float64)
-    premium_discount = pd.to_numeric(
-        enriched["smc_premium_discount"], errors="raise"
-    ).to_numpy(dtype=np.float64)
-    if (
-        not np.isfinite(swing_state).all()
-        or not np.isfinite(premium_discount).all()
-        or not np.equal(swing_state, np.rint(swing_state)).all()
-        or np.any((swing_state < 0.0) | (swing_state > 4.0))
-        or np.any((premium_discount < 0.0) | (premium_discount > 1.0))
-    ):
-        raise RuntimeError(f"{label}_ENRICHED_SMC_PREMIUM_STATE_SOURCE_INVALID")
-    enriched["smc_premium_state"] = (
-        premium_discount * np.equal(swing_state, 0.0)
-    ).astype(np.float32)
-    add_entry_smart_context_features(enriched)
-
     if not enriched.index.is_unique or not enriched.index.is_monotonic_increasing:
         raise RuntimeError(f"{label}_ENRICHED_OUTPUT_TIME_ORDER_INVALID")
     missing = [
@@ -987,24 +951,34 @@ def _build_enriched_stage(
     output_stage: Path,
     temporary_cache_dir: Path | None,
     source_cache_dir: Path,
-    rank_reference_npz: Path,
-    rank_reference_sha256: str,
     timeframe: str,
     checkpoint_dir: Path,
     checkpoint_key: str,
     checkpoint_chunk_rows: int,
     dataset_run_id: str,
     pair_generation_id: str,
-    level_tol_quantile_q: float | None = None,
     registry_fit_train_end: str | None = None,
+    registry_fit_inner_end: str | None = None,
+    registry_fit_source_provenance_by_clock: Mapping[str, Mapping[str, Any]] | None = None,
+    volatility_squeeze_manifest: Path | None = None,
+    expected_volatility_squeeze_manifest_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Complete MTF/context owners after the raw/canonical process has exited."""
 
     spec = TIMEFRAME_SPECS[timeframe]
     label = spec["label"].upper()
-    rank_reference = load_train_rank_reference_v2(
-        rank_reference_npz,
-        expected_sha256=rank_reference_sha256,
+    if (
+        volatility_squeeze_manifest is None
+        or expected_volatility_squeeze_manifest_sha256 is None
+    ):
+        raise RuntimeError("ENTRY_EXIT_ENRICHED_VOLATILITY_SQUEEZE_ARTIFACT_REQUIRED")
+    from gx1.features.volatility_squeeze_state_v1 import (
+        load_volatility_squeeze_artifact_manifest,
+    )
+
+    squeeze_artifacts = load_volatility_squeeze_artifact_manifest(
+        Path(volatility_squeeze_manifest).expanduser().resolve(strict=True),
+        expected_sha256=expected_volatility_squeeze_manifest_sha256,
     )
     v29_registry_m1_lane_params: dict[str, Any] | None = None
     if timeframe == "M5":
@@ -1020,13 +994,16 @@ def _build_enriched_stage(
         native_ohlcv = native_ohlcv.set_index("time")
         # The M5 enriched route is the first producer in the rebuild chain, so
         # the V29 registry constants are TRAIN-fitted here (rule 18: once, on
-        # the declared window, with the explicit recipe input q) and frozen
+        # the declared chronological inner/outer TRAIN windows) and frozen
         # into the temporary cache manifest published below.
-        if level_tol_quantile_q is None or registry_fit_train_end is None:
+        if (
+            registry_fit_train_end is None
+            or registry_fit_inner_end is None
+            or registry_fit_source_provenance_by_clock is None
+        ):
             raise RuntimeError(
                 "M5_ENRICHED_V29_REGISTRY_FIT_INPUTS_REQUIRED: "
-                "--level-tol-quantile-q and --registry-fit-train-end are "
-                "explicit recipe inputs with no default"
+                "immutable source lineage and chronological TRAIN split are required"
             )
         from gx1.contracts.entry_exit_production_architecture_v1 import (
             PRODUCTION_MTF_PER_TF_WINDOW_BARS,
@@ -1040,14 +1017,16 @@ def _build_enriched_stage(
 
         v29_registry_constants = fit_v29_registry_constants_from_m5(
             native_ohlcv,
-            level_tol_quantile_q=float(level_tol_quantile_q),
             declared_train_window_end=registry_fit_train_end,
+            declared_inner_fit_window_end=registry_fit_inner_end,
+            source_provenance_by_clock=registry_fit_source_provenance_by_clock,
             per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
             entry_m5_seq_len=MODEL_NATIVE_SEQ_LEN,
         )
         multi_tf = build_multi_tf_per_bar_features_v4(
             native_ohlcv,
             v29_registry_constants=v29_registry_constants,
+            volatility_squeeze_artifacts=squeeze_artifacts,
         )
         context_m5 = native_ohlcv[["high", "low", "close"]].copy()
         del native_ohlcv
@@ -1056,14 +1035,18 @@ def _build_enriched_stage(
         if temporary_cache_dir is not None:
             raise RuntimeError("M1_ENRICHED_TEMPORARY_CACHE_FORBIDDEN")
         # The M1 enriched route owns the Exit local lane's V29 registry fit
-        # (rule 18: once, on the declared M1 TRAIN window, with the explicit
-        # recipe input q) and freezes it into the hash-bound M1 manifest
+        # (rule 18: once, on the declared M1 chronological TRAIN split) and
+        # freezes it into the hash-bound M1 manifest
         # published below — mirroring the M5 route's cache-manifest freeze.
-        if level_tol_quantile_q is None or registry_fit_train_end is None:
+        if (
+            registry_fit_train_end is None
+            or registry_fit_inner_end is None
+            or registry_fit_source_provenance_by_clock is None
+            or set(registry_fit_source_provenance_by_clock) != {"M1"}
+        ):
             raise RuntimeError(
                 "M1_ENRICHED_V29_REGISTRY_FIT_INPUTS_REQUIRED: "
-                "--level-tol-quantile-q and --registry-fit-train-end are "
-                "explicit recipe inputs with no default"
+                "immutable source lineage and chronological TRAIN split are required"
             )
         from gx1.contracts.entry_exit_feature_base_v1 import (
             EXIT_FEATURE_SEQUENCE_BARS,
@@ -1082,8 +1065,9 @@ def _build_enriched_stage(
         native_m1_ohlcv = native_m1_ohlcv.set_index("time")
         v29_registry_m1_lane_params = fit_v29_registry_m1_lane_params_from_m1(
             native_m1_ohlcv,
-            level_tol_quantile_q=float(level_tol_quantile_q),
             declared_train_window_end=registry_fit_train_end,
+            declared_inner_fit_window_end=registry_fit_inner_end,
+            source_provenance=registry_fit_source_provenance_by_clock["M1"],
             exit_m1_seq_len=EXIT_FEATURE_SEQUENCE_BARS,
         )
         del native_m1_ohlcv
@@ -1092,15 +1076,16 @@ def _build_enriched_stage(
             dataset_run_id=dataset_run_id,
             pair_generation_id=pair_generation_id,
         )
+        if multi_tf.volatility_squeeze_artifacts.binding() != squeeze_artifacts.binding():
+            raise RuntimeError("M1_ENRICHED_VOLATILITY_SQUEEZE_BINDING_MISMATCH")
 
     canonical = _complete_v4_owned_context(
         [_load_canonical_stage(canonical_stage, timeframe=timeframe)],
         multi_tf=multi_tf,
-        rank_reference=rank_reference,
         decision_bar_duration=spec["duration"],
     )
     _log_rss("before_group_a_attach")
-    enriched = attach_group_a_dip_struct_ctx_columns_parallel(
+    enriched = attach_group_a_ctx_columns_parallel(
         canonical,
         multi_tf=multi_tf,
         journal_label=f"{spec['label']}_enriched_frame",
@@ -1133,6 +1118,7 @@ def _build_enriched_stage(
             expected_source_sha256=output_sha256,
             features=cache_features,
             v29_registry_constants=v29_registry_constants,
+            volatility_squeeze_artifacts=squeeze_artifacts,
         )
         verified = load_multi_tf_v4_cache(temporary_cache_dir)
         if (
@@ -1298,6 +1284,9 @@ def _prepare_m5_cache_stage(
             expected_source_sha256=output_sha256,
             features=temporary_features,
             v29_registry_constants=temporary_features.v29_registry_constants,
+            volatility_squeeze_artifacts=(
+                temporary_features.volatility_squeeze_artifacts
+            ),
         )
         verified = load_multi_tf_v4_cache(cache_stage)
         if (
@@ -1403,8 +1392,6 @@ def _build_enriched_frame(
     *,
     native_root: Path,
     timeframe: str,
-    rank_reference_npz: Path,
-    rank_reference_sha256: str,
     pair_manifest_path: Path,
     multi_tf_cache_dir: Path,
     output_parquet: Path,
@@ -1414,8 +1401,13 @@ def _build_enriched_frame(
     pair_generation_id: str,
     workers: int,
     checkpoint_chunk_rows: int = 4096,
-    level_tol_quantile_q: float | None = None,
+    registry_fit_train_start: str | None = None,
     registry_fit_train_end: str | None = None,
+    registry_fit_inner_end: str | None = None,
+    registry_fit_tape_manifest: Path | None = None,
+    expected_registry_fit_tape_manifest_sha256: str | None = None,
+    volatility_squeeze_manifest: Path | None = None,
+    expected_volatility_squeeze_manifest_sha256: str | None = None,
 ) -> dict[str, Any]:
     if timeframe not in TIMEFRAME_SPECS:
         raise RuntimeError(f"ENTRY_EXIT_ENRICHED_TIMEFRAME_INVALID: {timeframe}")
@@ -1451,13 +1443,6 @@ def _build_enriched_frame(
         or checkpoint_chunk_rows > SOURCE_BATCH_ROWS
     ):
         raise RuntimeError(f"{label}_ENRICHED_CHECKPOINT_CHUNK_ROWS_INVALID")
-    if (
-        not isinstance(rank_reference_sha256, str)
-        or len(rank_reference_sha256) != 64
-        or any(ch not in "0123456789abcdef" for ch in rank_reference_sha256)
-    ):
-        raise RuntimeError(f"{label}_ENRICHED_RANK_REFERENCE_SHA256_INVALID")
-
     output = Path(output_parquet).expanduser().resolve()
     manifest = Path(manifest_path).expanduser().resolve()
     cache_dir = Path(multi_tf_cache_dir).expanduser().resolve()
@@ -1485,19 +1470,6 @@ def _build_enriched_frame(
     if checkpoint.is_symlink():
         raise RuntimeError(f"{label}_ENRICHED_CHECKPOINT_SYMLINK")
     checkpoint.mkdir(parents=True, exist_ok=True)
-
-    rank_path = _require_regular(rank_reference_npz, label="RANK_REFERENCE")
-    observed_rank_sha256 = _sha256_file(rank_path)
-    if observed_rank_sha256 != rank_reference_sha256:
-        raise RuntimeError(
-            f"{label}_ENRICHED_RANK_REFERENCE_HASH_MISMATCH: "
-            f"observed={observed_rank_sha256} expected={rank_reference_sha256}"
-        )
-    rank_reference = load_train_rank_reference_v2(
-        rank_path,
-        expected_sha256=rank_reference_sha256,
-    )
-    del rank_reference
 
     cache_stage: Path | None = None
     with tempfile.TemporaryDirectory(
@@ -1527,9 +1499,55 @@ def _build_enriched_frame(
             native_summary=native_summary,
             timeframe=timeframe,
         )
+        if (
+            registry_fit_train_start is None
+            or registry_fit_train_end is None
+            or registry_fit_inner_end is None
+            or registry_fit_tape_manifest is None
+            or expected_registry_fit_tape_manifest_sha256 is None
+        ):
+            raise RuntimeError(
+                f"{label}_ENRICHED_REGISTRY_FIT_LINEAGE_REQUIRED"
+            )
+        train_start = pd.Timestamp(registry_fit_train_start)
+        inner_end = pd.Timestamp(registry_fit_inner_end)
+        train_end = pd.Timestamp(registry_fit_train_end)
+        if any(
+            stamp.tzinfo is None or stamp.utcoffset() != pd.Timedelta(0)
+            for stamp in (train_start, inner_end, train_end)
+        ) or not train_start < inner_end < train_end:
+            raise RuntimeError(f"{label}_ENRICHED_REGISTRY_FIT_SPLIT_INVALID")
+        train_start_label = train_start.isoformat()
+        inner_end_label = inner_end.isoformat()
+        train_end_label = train_end.isoformat()
+        tape_manifest = _require_regular(
+            registry_fit_tape_manifest,
+            label="REGISTRY_FIT_TAPE_MANIFEST",
+        )
+        tape_sha256 = _sha256_file(tape_manifest)
+        if tape_sha256 != expected_registry_fit_tape_manifest_sha256:
+            raise RuntimeError(
+                f"{label}_ENRICHED_REGISTRY_FIT_TAPE_HASH_MISMATCH"
+            )
+        fit_clocks = ("M1",) if timeframe == "M1" else ("M5", "M15", "H1", "H4", "D1")
+        registry_fit_source_provenance_by_clock = {
+            clock: {
+                "source_artifact": source_identity["manifest_path"],
+                "source_sha256": source_identity["manifest_sha256"],
+                "source_schema_version": "native_ohlcv_manifest_bound_frame_v1",
+                "source_lane": clock,
+                "tape_manifest_artifact": str(tape_manifest),
+                "tape_manifest_sha256": tape_sha256,
+                "split_manifest_artifact": pair_binding["manifest_path"],
+                "split_manifest_sha256": pair_binding["manifest_sha256"],
+                "train_split_id": f"{pair_generation_id}:TRAIN",
+                "declared_train_window_start": train_start_label,
+                "declared_train_window_end": train_end_label,
+            }
+            for clock in fit_clocks
+        }
         checkpoint_key = _checkpoint_key(
             source_identity=source_identity,
-            rank_reference_sha256=rank_reference_sha256,
             dataset_run_id=dataset_run_id,
             pair_generation_id=pair_generation_id,
             timeframe=timeframe,
@@ -1556,16 +1574,21 @@ def _build_enriched_frame(
                 "output_stage": output_stage,
                 "temporary_cache_dir": temporary_cache,
                 "source_cache_dir": cache_dir,
-                "rank_reference_npz": rank_path,
-                "rank_reference_sha256": rank_reference_sha256,
                 "timeframe": timeframe,
                 "checkpoint_dir": checkpoint,
                 "checkpoint_key": checkpoint_key,
                 "checkpoint_chunk_rows": checkpoint_chunk_rows,
                 "dataset_run_id": dataset_run_id,
                 "pair_generation_id": pair_generation_id,
-                "level_tol_quantile_q": level_tol_quantile_q,
-                "registry_fit_train_end": registry_fit_train_end,
+                "registry_fit_train_end": train_end_label,
+                "registry_fit_inner_end": inner_end_label,
+                "registry_fit_source_provenance_by_clock": (
+                    registry_fit_source_provenance_by_clock
+                ),
+                "volatility_squeeze_manifest": volatility_squeeze_manifest,
+                "expected_volatility_squeeze_manifest_sha256": (
+                    expected_volatility_squeeze_manifest_sha256
+                ),
             },
             report_path=work_dir / "enriched-stage.json",
         )
@@ -1625,8 +1648,6 @@ def _build_enriched_frame(
                     "v29_registry_m1_lane_params": v29_registry_m1_lane_params
                 }
             ),
-            "rank_reference_npz": str(rank_path),
-            "rank_reference_sha256": rank_reference_sha256,
             "checkpoint_dir": str(checkpoint),
             "checkpoint_key": checkpoint_key,
             "output_parquet": str(output),
@@ -1688,8 +1709,6 @@ def main() -> None:
     route = parser.add_mutually_exclusive_group(required=True)
     route.add_argument("--native-m1-root", type=Path)
     route.add_argument("--native-m5-root", type=Path)
-    parser.add_argument("--rank-reference-npz", required=True, type=Path)
-    parser.add_argument("--rank-reference-sha256", required=True)
     parser.add_argument("--pair-manifest", required=True, type=Path)
     parser.add_argument("--multi-tf-cache-dir", required=True, type=Path)
     parser.add_argument("--output-parquet", required=True, type=Path)
@@ -1699,17 +1718,7 @@ def main() -> None:
     parser.add_argument("--pair-generation-id", required=True)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--checkpoint-chunk-rows", type=int, default=4096)
-    parser.add_argument(
-        "--level-tol-quantile-q",
-        type=float,
-        default=None,
-        help=(
-            "Explicit recipe input for the V29 registry TRAIN fit "
-            "(no default exists; required on both native routes — the M5 "
-            "route fits the five-TF constants, the M1 route fits the Exit "
-            "M1-lane params)"
-        ),
-    )
+    parser.add_argument("--registry-fit-train-start", required=True)
     parser.add_argument(
         "--registry-fit-train-end",
         default=None,
@@ -1718,19 +1727,35 @@ def main() -> None:
             "fit (no default exists; required on both native routes)"
         ),
     )
+    parser.add_argument(
+        "--registry-fit-inner-end",
+        required=True,
+        help="Chronological inner-TRAIN fit/selection boundary (UTC)",
+    )
+    parser.add_argument(
+        "--registry-fit-tape-manifest",
+        type=Path,
+        required=True,
+    )
+    parser.add_argument(
+        "--expected-registry-fit-tape-manifest-sha256",
+        required=True,
+    )
+    parser.add_argument("--volatility-squeeze-manifest", type=Path, required=True)
+    parser.add_argument(
+        "--expected-volatility-squeeze-manifest-sha256",
+        required=True,
+    )
     args = parser.parse_args()
     timeframe = "M1" if args.native_m1_root is not None else "M5"
-    if args.level_tol_quantile_q is None or args.registry_fit_train_end is None:
+    if args.registry_fit_train_end is None:
         parser.error(
-            "--level-tol-quantile-q and --registry-fit-train-end are required "
-            "on both native routes (V29 registry TRAIN fit; no default exists)"
+            "--registry-fit-train-end is required on both native routes"
         )
     native_root = args.native_m1_root or args.native_m5_root
     result = _build_enriched_frame(
         native_root=native_root,
         timeframe=timeframe,
-        rank_reference_npz=args.rank_reference_npz,
-        rank_reference_sha256=args.rank_reference_sha256,
         pair_manifest_path=args.pair_manifest,
         multi_tf_cache_dir=args.multi_tf_cache_dir,
         output_parquet=args.output_parquet,
@@ -1740,8 +1765,17 @@ def main() -> None:
         pair_generation_id=args.pair_generation_id,
         workers=args.workers,
         checkpoint_chunk_rows=args.checkpoint_chunk_rows,
-        level_tol_quantile_q=args.level_tol_quantile_q,
+        registry_fit_train_start=args.registry_fit_train_start,
         registry_fit_train_end=args.registry_fit_train_end,
+        registry_fit_inner_end=args.registry_fit_inner_end,
+        registry_fit_tape_manifest=args.registry_fit_tape_manifest,
+        expected_registry_fit_tape_manifest_sha256=(
+            args.expected_registry_fit_tape_manifest_sha256
+        ),
+        volatility_squeeze_manifest=args.volatility_squeeze_manifest,
+        expected_volatility_squeeze_manifest_sha256=(
+            args.expected_volatility_squeeze_manifest_sha256
+        ),
     )
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
 

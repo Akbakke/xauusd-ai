@@ -26,13 +26,12 @@ from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
 def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
-    # Re-pinned 2026-08-12: the liveness rare-event table gained the four
-    # V29 sparse impulses (h1/h4 flip flags, geomline retest-fail events).
+    # Re-pinned after fixed-threshold candle events left the signal surface.
     assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-        "3ea7b244f1bd6db407607a101b2c653ac1f4f3eed6d1c1dc17733037c4e5384c"
+        "c8498f6a32b8ecff3b4632e20e3017ba724c7b4f3caf0ff9e0eefe4b3aecf0d1"
     )
     assert binding["foundation_audit_policy"]["schema_version"] == (
-        "entry_foundation_audit_policy_v10"
+        "entry_foundation_audit_policy_v11"
     )
     smoke = binding["foundation_audit_policy"]["smoke_edge_pockets"]
     assert smoke["wilson_confidence_level"] == 0.95
@@ -61,8 +60,6 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     specialist = binding["foundation_audit_policy"]["specialist_liveness"]
     assert specialist["train_live_statuses"] == ["LIVE", "ALLOWED_RARE_EVENT"]
     assert specialist["rare_event_minimum_active_count"] == {
-        "candle.pattern_outside_after_inside_bear_breakout_score": 16,
-        "candle.pattern_outside_after_inside_bull_breakout_score": 16,
         "chart.local_ema50_200_cross_down": 128,
         "chart.local_ema50_200_cross_up": 128,
         "smc_choch": 32,

@@ -5,13 +5,19 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_feature_availability_v1 import (
+    fit_feature_availability_contract,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT,
     require_model_native_manifest,
@@ -23,6 +29,9 @@ from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
+)
+from tests.entry_direction_target_policy_support import (
+    entry_direction_target_policy_fixture,
 )
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
@@ -42,7 +51,7 @@ def _stub_source_cascade_validation(
 ) -> None:
     monkeypatch.setattr(
         producer,
-        "validate_seq513_source_cascade_proof",
+        "validate_current_pair_source_cascade_proof",
         lambda path, **kwargs: json.loads(
             Path(path).read_text(encoding="utf-8")
         ),
@@ -57,13 +66,28 @@ def _ranking_payload(tmp_path: Path) -> dict:
         fit_start="2020-01-01T00:00:00Z",
         fit_end="2025-12-31T23:59:59Z",
     )
-    names = [
-        MODEL_NATIVE_MANDATORY_SELECTED_FIELDS[0],
-        *[
-            f"session_regime.rank_candidate_{index:03d}"
-            for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
-        ],
-    ]
+    names = list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    availability_times = pd.date_range(
+        end="2025-12-31T23:55:00Z",
+        periods=256,
+        freq="5min",
+    )
+    availability_x = np.arange(len(availability_times), dtype=np.float32)
+    availability_matrix = np.column_stack(
+        [
+            availability_x * np.float32(index + 1)
+            + np.float32(index * index + 0.125)
+            for index in range(len(names))
+        ]
+    ).astype(np.float32)
+    availability = fit_feature_availability_contract(
+        matrix=availability_matrix,
+        names=names,
+        times=availability_times,
+        train_start=pd.Timestamp("2020-01-01T00:00:00Z"),
+        train_end=pd.Timestamp("2025-12-31T23:59:59Z"),
+        diagnostic_target=np.square(availability_x.astype(np.float64)),
+    )
     source_path = (tmp_path / "FULL_PLUS_CTX_v3src.parquet").resolve()
     source_path.write_bytes(canonical_path.read_bytes())
     source_cascade = {
@@ -95,6 +119,12 @@ def _ranking_payload(tmp_path: Path) -> dict:
         json.dumps(source_cascade),
         encoding="utf-8",
     )
+    policy = entry_direction_target_policy_fixture(
+        source_parquet_sha256=str(reference.sidecar["source_parquet_sha256"]),
+        tape_provenance_sha256="b" * 64,
+        train_start_utc="2020-01-01T00:00:00+00:00",
+        train_end_utc="2025-12-31T23:59:59+00:00",
+    )
     return {
         "schema_version": producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": RANKING_CREATED.isoformat(),
@@ -109,6 +139,8 @@ def _ranking_payload(tmp_path: Path) -> dict:
         "source_sha256": str(reference.sidecar["source_parquet_sha256"]),
         "target_sha256": "2" * 64,
         "target_contract": dict(producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT),
+        "entry_direction_target_policy": policy,
+        "entry_direction_target_policy_sha256": policy["policy_sha256"],
         "source_cascade": source_cascade,
         "rank_reference": {
             "path": str(reference.path),
@@ -135,8 +167,13 @@ def _ranking_payload(tmp_path: Path) -> dict:
             **producer.TRAIN_FEATURE_CAUSALITY_CONTRACT,
             "leakage_columns": [],
         },
+        "feature_availability": availability,
         "ranked_features": [
-            {"rank": index, "name": name, "score": float(1000 - index)}
+            {
+                "rank": index,
+                "name": name,
+                "score": float(len(names) - index + 1) / float(len(names)),
+            }
             for index, name in enumerate(names, start=1)
         ],
     }
@@ -194,13 +231,12 @@ def test_producer_keeps_all_code_owned_fields_first_and_only_ranks_remainder(
         MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
     )
     assert (
-        manifest["ranked_remainder_feature_count"]
-        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        manifest["available_candidate_feature_count"]
+        == MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
     )
-    assert manifest["selected_features"][mandatory_count:] == [
-        f"session_regime.rank_candidate_{index:03d}"
-        for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
-    ]
+    assert manifest["selected_features"][mandatory_count:] == list(
+        MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+    )
     assert manifest["smart_layer_feature_counts"] == {
         family: len(features)
         for family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

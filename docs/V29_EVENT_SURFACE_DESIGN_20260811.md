@@ -216,7 +216,7 @@ two registries (§1, §2).
 | session_regime | G2 per-TF regime flip flags + bars-since for m5/m15/h1/h4 (8) — D1 exists | `regime_v4_features.py` | Ext | identical F8/F9 algorithm, class-id keyed, own-TF clock via `tf_bars` — zero new numbers | ctx per-TF flags | yes (8) | A |
 | session_regime | G1 session-anchored levels (56) → §1 registry, session_anchored kind | `level_registry_v1.py` | (in NEW file) | §1.4; θ/touch-norm TRAIN-fitted, N stated | M5 ctx only | yes (56) | B |
 | session_regime | G3 VWAP cross event, bars-since, respect count (3) | `htf_features.py` (existing VWAP owner) | Ext | pure algebra; θ TRAIN-fitted; existing anchor kept (midnight-UTC field untouched; session-clock VWAP = one more registry anchor if the operator wants it) | 5 TFs | no | B |
-| vol_compression | G1 squeeze_active state + squeeze_release event (2); G2 bars_in_squeeze + duration-at-release latch (2) | `htf_features.py` per-TF lanes + `entry_vol_compression_v1.py` consumption | Ext | percentile windows per `D1_atr_percentile_252` convention; `p_low`/`p_release` recipe inputs or TRAIN-fitted; 500-cap log1p; latch decay `SR_MEMORY_SLOW_DECAY=0.96` (named) | 5 TFs | yes (4, block E) | B |
+| vol_compression | G1 squeeze_active state + squeeze_release event (2); G2 bars_in_squeeze + duration-at-release latch (2) | `htf_features.py` per-TF lanes; direct raw/event routing (the former hand-fused `entry_vol_compression_v1.py` consumer was retired in v10) | Ext | percentile windows per `D1_atr_percentile_252` convention; `p_low`/`p_release` recipe inputs or TRAIN-fitted; 500-cap log1p | 5 TFs | yes (4, block E) | B |
 | vol_compression | G3 consolidation-box object (10: width, age, dist top/bottom, touch counts, break up/dn, displacement, edge retest) — **conditional on G0 measurement** (else interaction terms in the specialist layer instead) | same owners | Ext | τ, k recipe/TRAIN-fitted; box born at squeeze-on, causal running extrema | 5 TFs | yes (10, block E) | B |
 | vol_compression | G5 `H4_range_compression_ratio` (1) | `htf_features.py` scalar lane | Ext | exact H1/M15 sibling convention incl. `H4_ATR100_MIN_BARS` warmup gate | ctx | yes (1) | B |
 | price_action_candle | P1 `hammer_event_quality`, `shooting_star_event_quality` (Stage A, zero new numbers), `doji_event_flag` (Stage B, TRAIN-percentile) (3); P3 gap-gate repair (no new fields) | `entry_candlestick_patterns_v1.py` | Ext | Stage A: existing fields × existing composition convention; Stage B: percentile = recipe input, threshold = TRAIN-fitted (rule 18/2f) | 5 TFs (layer 60→63, candle slice 64→67) | yes (3, mandatory — hammer/doji currently have no mandatory M5 representative) | B |
@@ -452,13 +452,11 @@ adoption evidence.
    collapse evidence; the confirming 2-seed training validation is paused.
    It resumes on the first trained candidate — V29 Phase A, or earlier on
    V28 if training resumes there first. V29 does not supersede it.
-2. **trend_ema unit-comment mismatch (GAP-6).** `entry_trend_ema_v1.py` and
-   `entry_chart_geometry_v1.py` comments claim `snap.ema20_slope` /
-   `snap.pos_vs_ema200` are ATR-multiples; the only producer emits bps.
-   Folded into Phase A as a repair: fix the comments now; measure saturation
-   (gate 4 above); if repair is warranted, normalize at the producer by its
-   own atr14 (the `_v1_ema_diff` convention) or a TRAIN-fitted tanh scale —
-   never a by-eye scale.
+2. **Historical trend_ema unit-comment mismatch (GAP-6).** The comments were
+   corrected, and the hand-fused `entry_trend_ema_v1.py` layer was retired in
+   v11. Raw local and independently clocked MTF EMA evidence remains routed to
+   the learned trend specialist; any future scale must still be TRAIN-fitted,
+   never chosen by eye.
 3. **Recipe-draft deferred items** (`docs/RECIPE_DECISION_DRAFT_20260808.md`
    item 4): "V28 divergence/M5-RSI feature owners" — **ABSORBED** by V29
    momentum G1/G3 (this document is their design). "y_side FLAT-parking

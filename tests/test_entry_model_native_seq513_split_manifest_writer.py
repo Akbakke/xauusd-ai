@@ -9,6 +9,9 @@ import pandas as pd
 import pytest
 
 from tests.htf_v29_registry_test_support import synthetic_v29_registry_constants
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTEXT_TAG,
@@ -25,16 +28,32 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    require_entry_direction_target_manifest_binding,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    direction_label_contract,
+    hierarchical_direction_label_contract,
     _log_label_distribution_proof,
     _model_native_state_contract,
     write_manifest,
 )
+from gx1.utils.artifact_primitives_v1 import canonical_json_sha256
+from tests.entry_direction_target_policy_support import (
+    entry_direction_target_policy_fixture,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+
+
+_TAPE_PROVENANCE_FIXTURE = {
+    "schema_version": "xau_tape_current_snapshot_v1",
+    "instrument": "XAU_USD",
+    "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
+}
 
 
 def _splits() -> dict[str, dict[str, str]]:
@@ -60,7 +79,18 @@ def _source(tmp_path: Path) -> Path:
     return source
 
 
-def _extra(tmp_path: Path) -> dict:
+def _extra(tmp_path: Path, *, artifact_label: str = "default") -> dict:
+    source = _source(tmp_path)
+    source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    target_policy = entry_direction_target_policy_fixture(
+        source_parquet_sha256=source_sha256,
+        tape_provenance_sha256=canonical_json_sha256(
+            _TAPE_PROVENANCE_FIXTURE
+        ),
+        train_start_utc="2020-11-09T00:00:00+00:00",
+        train_end_utc="2025-09-30T23:59:59+00:00",
+    )
+    direction_contract = direction_label_contract(target_policy)
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields(
             remainder_prefix="session_regime.split_writer_fixture"
@@ -72,6 +102,15 @@ def _extra(tmp_path: Path) -> dict:
     cache_manifest.write_text('{"fixture":"v4"}\n', encoding="utf-8")
     cache_manifest_sha = hashlib.sha256(cache_manifest.read_bytes()).hexdigest()
     return {
+        "xau_tape_provenance": dict(_TAPE_PROVENANCE_FIXTURE),
+        **direction_contract,
+        "early_move_threshold_bps": float(
+            target_policy["early_move_threshold_bps"]
+        ),
+        "strict_entry_labels": {
+            **direction_contract,
+            **hierarchical_direction_label_contract(),
+        },
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
         "model_native_signal_contract": signal_contract,
@@ -121,6 +160,11 @@ def _extra(tmp_path: Path) -> dict:
             # V29 split manifests freeze the TRAIN-fitted registry constants
             # inside the binding; the writer validates them via their owner.
             "v29_registry_constants": synthetic_v29_registry_constants(),
+            "volatility_squeeze_artifact_set": (
+                make_volatility_squeeze_artifact_set(
+                    tmp_path / f"squeeze_{artifact_label}"
+                ).binding()
+            ),
         },
     }
 
@@ -130,6 +174,7 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
 ) -> None:
     for split_name in ("train", "val", "test"):
         output_path = tmp_path / f"model_native_seq513_{split_name}.parquet"
+        extra = _extra(tmp_path, artifact_label=split_name)
         manifest_path = write_manifest(
             output_path=output_path,
             build_command=[
@@ -140,7 +185,7 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
             source_parquet=_source(tmp_path),
             tape_root=tmp_path / "tape",
             splits=_splits(),
-            extra=_extra(tmp_path),
+            extra=extra,
         )
 
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -153,6 +198,20 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
             "source_parquet": str(_source(tmp_path)),
             "tape_root": str(tmp_path / "tape"),
         }
+        policy = require_entry_direction_target_manifest_binding(
+            manifest["extra"],
+            expected_source_parquet_sha256=hashlib.sha256(
+                _source(tmp_path).read_bytes()
+            ).hexdigest(),
+            expected_tape_provenance_sha256=canonical_json_sha256(
+                _TAPE_PROVENANCE_FIXTURE
+            ),
+            expected_train_start=_splits()["train"]["start"],
+            expected_train_end=_splits()["train"]["end"],
+        )
+        assert manifest["extra"]["entry_direction_target_policy_sha256"] == (
+            policy["policy_sha256"]
+        )
 
 
 def test_test_label_distribution_is_withheld_before_final_evaluation(
@@ -208,6 +267,12 @@ def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
                 {"fields": list(reversed(extra["signal_bridge"]["fields"]))}
             ),
             "MODEL_NATIVE_MANIFEST_ORDERED_FIELDS_MISMATCH",
+        ),
+        (
+            lambda extra: extra.update(
+                {"entry_direction_target_policy_sha256": "0" * 64}
+            ),
+            "ENTRY_TARGET_POLICY_MANIFEST_HASH_MISMATCH",
         ),
     ],
 )

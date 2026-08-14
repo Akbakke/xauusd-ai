@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V4,
+)
 import torch
 
 from gx1.contracts.entry_exit_production_architecture_v1 import (
@@ -120,7 +123,7 @@ def _preallocation_model_kwargs() -> dict[str, object]:
         "temporal_alias_signal_indices": [],
         "temporal_alias_ctx_cont_indices": [],
         "input_normalization": {
-            "schema_version": "entry_model_native_input_normalization_v2"
+            "schema_version": "entry_model_native_input_normalization_v5"
         },
         "specialist_num_layers": 1,
         "specialist_fusion_scale": 1.0,
@@ -243,13 +246,13 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
             ]["signal"]
         },
         "input_normalization": {
-            "schema_version": "entry_model_native_input_normalization_v2"
+            "schema_version": "entry_model_native_input_normalization_v5"
         },
         "specialist_fusion": {"input_indices": specialist_indices},
         "context_specialist_routing": {"ctx_cont_indices": specialist_indices},
         "multi_tf": {
             "v4_mode": True,
-            "matrix_contract": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
+            "matrix_contract": HTF_V4_MATRIX_CONTRACT,
             "entry_route_timeframes": ["M15", "H1", "H4", "D1"],
             "exit_route_timeframes": ["M5", "M15", "H1", "H4", "D1"],
             "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,

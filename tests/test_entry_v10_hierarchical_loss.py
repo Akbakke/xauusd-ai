@@ -14,6 +14,8 @@ def _base_hier_batch() -> dict[str, torch.Tensor]:
         "y_side_mask": torch.tensor([1.0], dtype=torch.float32),
         "y_long_path_utility_bps": torch.tensor([0.0], dtype=torch.float32),
         "y_short_path_utility_bps": torch.tensor([0.0], dtype=torch.float32),
+        "y_long_valid_trade": torch.tensor([0.0], dtype=torch.float32),
+        "y_short_valid_trade": torch.tensor([0.0], dtype=torch.float32),
         "y_long_bad_path": torch.tensor([0.0], dtype=torch.float32),
         "y_short_bad_path": torch.tensor([0.0], dtype=torch.float32),
         "y_long_expected_mae_bps": torch.tensor([0.0], dtype=torch.float32),
@@ -40,6 +42,13 @@ def _base_hier_out(**overrides: torch.Tensor) -> dict[str, torch.Tensor]:
     return out
 
 
+def _hier(out, batch):
+    tasks, stats = trainer._hierarchical_entry_task_losses(
+        out, batch, torch.device("cpu")
+    )
+    return sum(tasks.values()), stats
+
+
 def test_hierarchical_loss_does_not_rewrite_short_bad_path_from_structure() -> None:
     batch = _base_hier_batch()
     batch["y_support_retest_continuation"] = torch.tensor([1.0], dtype=torch.float32)
@@ -48,21 +57,9 @@ def test_hierarchical_loss_does_not_rewrite_short_bad_path_from_structure() -> N
         side_bad_path_logit=torch.tensor([[-4.0, -4.0]], dtype=torch.float32)
     )
 
-    structural_loss, stats = trainer._hierarchical_entry_loss(
-        out,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    structural_loss, stats = _hier(out, batch)
 
-    plain_loss, _ = trainer._hierarchical_entry_loss(
-        out,
-        _base_hier_batch(),
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    plain_loss, _ = _hier(out, _base_hier_batch())
 
     assert stats["hier_short_bad_target_rate"] == pytest.approx(0.0)
     assert stats["hier_long_bad_target_rate"] == pytest.approx(0.0)
@@ -79,21 +76,9 @@ def test_hierarchical_loss_does_not_rewrite_long_bad_path_from_structure() -> No
         side_bad_path_logit=torch.tensor([[-4.0, -4.0]], dtype=torch.float32)
     )
 
-    structural_loss, stats = trainer._hierarchical_entry_loss(
-        out,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    structural_loss, stats = _hier(out, batch)
 
-    plain_loss, _ = trainer._hierarchical_entry_loss(
-        out,
-        _base_hier_batch(),
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    plain_loss, _ = _hier(out, _base_hier_batch())
 
     assert stats["hier_long_bad_target_rate"] == pytest.approx(0.0)
     assert stats["hier_short_bad_target_rate"] == pytest.approx(0.0)
@@ -103,13 +88,8 @@ def test_hierarchical_loss_does_not_rewrite_long_bad_path_from_structure() -> No
 
 
 def test_hierarchical_side_validity_learns_side_specific_valid_trade(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", 10.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", 8.0)
     batch = _base_hier_batch()
-    batch["y_long_path_utility_bps"] = torch.tensor([25.0], dtype=torch.float32)
-    batch["y_short_path_utility_bps"] = torch.tensor([-10.0], dtype=torch.float32)
-    batch["y_short_bad_path"] = torch.tensor([1.0], dtype=torch.float32)
+    batch["y_long_valid_trade"] = torch.tensor([1.0], dtype=torch.float32)
 
     out_good = _base_hier_out(
         side_validity_logit=torch.tensor([[4.0, -4.0]], dtype=torch.float32)
@@ -118,20 +98,8 @@ def test_hierarchical_side_validity_learns_side_specific_valid_trade(monkeypatch
         side_validity_logit=torch.tensor([[-4.0, 4.0]], dtype=torch.float32)
     )
 
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    good_loss, good_stats = _hier(out_good, batch)
+    bad_loss, bad_stats = _hier(out_bad, batch)
 
     assert good_stats["hier_long_valid_target_rate"] == pytest.approx(1.0)
     assert good_stats["hier_short_valid_target_rate"] == pytest.approx(0.0)
@@ -140,10 +108,8 @@ def test_hierarchical_side_validity_learns_side_specific_valid_trade(monkeypatch
 
 
 def test_hierarchical_side_validity_uses_outcome_targets_not_structural_rewrite(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", 10.0)
     batch = _base_hier_batch()
-    batch["y_long_path_utility_bps"] = torch.tensor([40.0], dtype=torch.float32)
+    batch["y_long_valid_trade"] = torch.tensor([1.0], dtype=torch.float32)
     batch["y_long_high_mae_low_mfe_early_failure"] = torch.tensor([1.0], dtype=torch.float32)
 
     out_good = _base_hier_out(
@@ -153,20 +119,8 @@ def test_hierarchical_side_validity_uses_outcome_targets_not_structural_rewrite(
         side_validity_logit=torch.tensor([[-4.0, -4.0]], dtype=torch.float32)
     )
 
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    good_loss, good_stats = _hier(out_good, batch)
+    bad_loss, bad_stats = _hier(out_bad, batch)
 
     assert good_stats["hier_long_valid_target_rate"] == pytest.approx(1.0)
     assert bad_stats["hier_long_bad_target_rate"] == pytest.approx(0.0)
@@ -174,26 +128,13 @@ def test_hierarchical_side_validity_uses_outcome_targets_not_structural_rewrite(
 
 
 def test_side_evidence_head_receives_direct_side_supervision(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_WEIGHT", 1.0)
     batch = _base_hier_batch()
 
     out_good = _base_hier_out(side_logits=torch.tensor([[4.0, -4.0]], dtype=torch.float32))
     out_bad = _base_hier_out(side_logits=torch.tensor([[-4.0, 4.0]], dtype=torch.float32))
 
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    good_loss, good_stats = _hier(out_good, batch)
+    bad_loss, bad_stats = _hier(out_bad, batch)
 
     assert good_stats["hier_side_rows"] == pytest.approx(1.0)
     assert good_stats["hier_side_acc"] == pytest.approx(1.0)
@@ -205,26 +146,13 @@ def test_side_evidence_head_receives_direct_side_supervision(monkeypatch) -> Non
 
 
 def test_trade_evidence_head_receives_direct_outcome_supervision(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_WEIGHT", 1.0)
     batch = _base_hier_batch()
 
     out_good = _base_hier_out(trade_logit=torch.tensor([[4.0]], dtype=torch.float32))
     out_bad = _base_hier_out(trade_logit=torch.tensor([[-4.0]], dtype=torch.float32))
 
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
+    good_loss, good_stats = _hier(out_good, batch)
+    bad_loss, bad_stats = _hier(out_bad, batch)
 
     assert good_stats["hier_trade_loss"] < bad_stats["hier_trade_loss"]
     assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
@@ -233,9 +161,6 @@ def test_trade_evidence_head_receives_direct_outcome_supervision(monkeypatch) ->
 
 
 def test_hierarchical_outcome_heads_are_direct_model_evidence(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_UTILITY_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_BAD_PATH_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_MAE_WEIGHT", 1.0)
     batch = _base_hier_batch()
     batch["y_long_path_utility_bps"] = torch.tensor([20.0], dtype=torch.float32)
     batch["y_short_path_utility_bps"] = torch.tensor([-10.0], dtype=torch.float32)
@@ -243,13 +168,10 @@ def test_hierarchical_outcome_heads_are_direct_model_evidence(monkeypatch) -> No
     batch["y_short_bad_path"] = torch.tensor([1.0], dtype=torch.float32)
     batch["y_long_expected_mae_bps"] = torch.tensor([2.0], dtype=torch.float32)
     batch["y_short_expected_mae_bps"] = torch.tensor([30.0], dtype=torch.float32)
-    util_scale = max(1.0, float(trainer.ENTRY_AUX_PATH_SCALE_BPS))
-    mae_scale = max(1.0, float(trainer.ENTRY_AUX_MFE_SCALE_BPS))
-
     good = _base_hier_out(
-        side_utility=torch.tensor([[20.0 / util_scale, -10.0 / util_scale]]),
+        side_utility=torch.tensor([[20.0, -10.0]]),
         side_bad_path_logit=torch.tensor([[-8.0, 8.0]]),
-        side_mae=torch.tensor([[2.0 / mae_scale, 30.0 / mae_scale]]),
+        side_mae=torch.tensor([[2.0, 30.0]]),
     )
     bad = _base_hier_out(
         side_utility=-good["side_utility"],
@@ -257,12 +179,8 @@ def test_hierarchical_outcome_heads_are_direct_model_evidence(monkeypatch) -> No
         side_mae=torch.flip(good["side_mae"], dims=(1,)),
     )
 
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        good, batch, torch.device("cpu"), trade_pos_weight=1.0, side_bad_path_pos_weight=1.0
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        bad, batch, torch.device("cpu"), trade_pos_weight=1.0, side_bad_path_pos_weight=1.0
-    )
+    good_loss, good_stats = _hier(good, batch)
+    bad_loss, bad_stats = _hier(bad, batch)
 
     assert good_stats["hier_utility_loss"] < bad_stats["hier_utility_loss"]
     assert good_stats["hier_bad_path_loss"] < bad_stats["hier_bad_path_loss"]
@@ -275,13 +193,7 @@ def test_hierarchical_loss_fails_closed_without_mandatory_evidence_head() -> Non
     del out["side_logits"]
 
     with pytest.raises(KeyError, match="side_logits"):
-        trainer._hierarchical_entry_loss(
-            out,
-            _base_hier_batch(),
-            torch.device("cpu"),
-            trade_pos_weight=1.0,
-            side_bad_path_pos_weight=1.0,
-        )
+        _hier(out, _base_hier_batch())
 
 
 def _rail_batch() -> dict[str, torch.Tensor]:
@@ -302,7 +214,6 @@ def _rail_batch() -> dict[str, torch.Tensor]:
 
 
 def test_trendline_rail_aux_loss_supervises_exact_six_label_contract(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
     out = {
         "trendline_rail_logits": torch.tensor(
             [[8.0, -8.0, 8.0, -8.0, 8.0, -8.0]],
@@ -319,7 +230,6 @@ def test_trendline_rail_aux_loss_supervises_exact_six_label_contract(monkeypatch
 
 
 def test_trendline_rail_aux_loss_ignores_direction_and_utility_outputs(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
     rail_logits = torch.zeros((1, 6), dtype=torch.float32)
     out_long = {
         "trendline_rail_logits": rail_logits,
@@ -350,7 +260,6 @@ def test_trendline_rail_aux_loss_ignores_direction_and_utility_outputs(monkeypat
 
 
 def test_trendline_rail_aux_loss_fails_closed_on_incomplete_contract(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
     batch = _rail_batch()
     del batch["y_long_high_mae_low_mfe_early_failure"]
 

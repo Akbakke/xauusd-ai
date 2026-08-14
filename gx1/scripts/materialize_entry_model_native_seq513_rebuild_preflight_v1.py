@@ -21,22 +21,20 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
-    MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-    require_train_rank_source_market_identity_v2,
-    validate_train_rank_reference_lineage_v2,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -72,8 +70,7 @@ from gx1.features.htf_features import (
     multi_tf_last_closed_label,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-    DIRECTION_DATASET_STEM_SUFFIX,
-    final_direction_label_horizon_bars,
+    ENTRY_FITTED_Q_DATASET_STEM_SUFFIX,
     model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
@@ -117,7 +114,7 @@ EXACT_TAPE_COLUMNS = frozenset(
         "ask_low",
     }
 )
-RANK_SOURCE_COLUMNS = (
+REQUIRED_SOURCE_COLUMNS = (
     "time",
     "high",
     "low",
@@ -174,7 +171,6 @@ def _feature_base_contract(
     expected_source_path: Path | None,
     expected_pair_generation_id: str | None,
     expected_signal_manifest_path: Path,
-    expected_rank_reference_path: Path,
 ) -> dict[str, Any]:
     if timeframe not in {"M1", "M5"}:
         raise RuntimeError("SEQ513_REBUILD_PREFLIGHT_FEATURE_TIMEFRAME_INVALID")
@@ -210,8 +206,7 @@ def _feature_base_contract(
             context=f"{context}_SIGNAL_IDENTITY",
         )
         signal_manifest_sha = _sha256_file(expected_signal_manifest_path)
-        rank_reference_sha = _sha256_file(expected_rank_reference_path)
-        if signal_manifest_sha is None or rank_reference_sha is None:
+        if signal_manifest_sha is None:
             raise RuntimeError(
                 "SEQ513_REBUILD_PREFLIGHT_RESOLUTION_IDENTITY_SOURCE_MISSING"
             )
@@ -221,7 +216,6 @@ def _feature_base_contract(
             expected_ordered_fields=signal_contract["fields"],
             expected_signal_manifest_path=str(expected_signal_manifest_path),
             expected_signal_manifest_sha256=signal_manifest_sha,
-            expected_rank_reference_sha256=rank_reference_sha,
             context=f"{context}_SIGNAL_IDENTITY",
         )
         declared_source = str(manifest.get("source_parquet") or "").strip()
@@ -364,7 +358,6 @@ def _feature_base_contract(
                 "entry_exit_resolution_identity_valid": True,
                 "signal_manifest_path": str(expected_signal_manifest_path),
                 "signal_manifest_sha256": signal_manifest_sha,
-                "rank_reference_sha256": rank_reference_sha,
             }
         )
         result["exact"] = bool(
@@ -559,7 +552,8 @@ def _manifest_timestamp_matches_created(path: Path, payload: dict[str, Any]) -> 
 def _manifest_specialist_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     selected = [str(name) for name in (manifest.get("selected_features") or [])]
     selected_set = set(selected)
-    grouped = group_features_by_specialist(selected)
+    selected_grouped = group_features_by_specialist(selected)
+    grouped = group_features_by_specialist((*MODEL_NATIVE_BASE_FIELDS, *selected))
     required = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
     observed = tuple(name for name in required if grouped.get(name))
     unmapped = list(grouped.get("unmapped") or [])
@@ -568,7 +562,8 @@ def _manifest_specialist_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     declared_group_match: bool | None = None
     if isinstance(declared_groups, dict):
         declared_group_match = all(
-            list(declared_groups.get(name) or []) == list(grouped.get(name) or [])
+            list(declared_groups.get(name) or [])
+            == list(selected_grouped.get(name) or [])
             for name in required
         )
     declared_required = manifest.get("required_training_specialists")
@@ -593,7 +588,7 @@ def _manifest_specialist_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     missing_mandatory = [
         name for name in MODEL_NATIVE_MANDATORY_SELECTED_FIELDS if name not in selected_set
     ]
-    ranked_remainder = [
+    available_candidates = [
         name for name in selected if name not in set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
     ]
     declared_mandatory = manifest.get("mandatory_full_stack")
@@ -611,7 +606,7 @@ def _manifest_specialist_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     expected_source_counts = {
         "smart_candidate_layers": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
         "mandatory_full_stack": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-        "ranked_remainder": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
+        "available_candidates": MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
     }
     return {
         "required_specialists": list(required),
@@ -623,11 +618,12 @@ def _manifest_specialist_contract(manifest: dict[str, Any]) -> dict[str, Any]:
         "mandatory_family_rows": mandatory_rows,
         "mandatory_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
         "mandatory_missing_features": missing_mandatory,
-        "ranked_remainder_feature_count": len(ranked_remainder),
+        "available_candidate_feature_count": len(available_candidates),
         "mandatory_full_stack_exact": (
             not missing_mandatory
             and all(bool(row["exact"]) for row in mandatory_rows)
-            and len(ranked_remainder) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            and tuple(available_candidates)
+            == MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
         ),
         "declared_mandatory_full_stack_present": isinstance(
             declared_mandatory, dict
@@ -989,7 +985,6 @@ def _tape_contract(tape_root: Path, *, start_year: int | None, end_year: int | N
 
 def _freshness_contract(
     *,
-    rank_reference: Path,
     output: Path,
     audit_out_dir: Path,
     exit_lifecycle_dir: Path,
@@ -1005,18 +1000,10 @@ def _freshness_contract(
         ),
     ]
     existing = [str(path) for path in derived if path.exists() or path.is_symlink()]
-    rank_sidecar = rank_reference.with_suffix(rank_reference.suffix + ".json")
     return {
-        "rank_reference_npz": str(rank_reference),
-        "rank_reference_sidecar": str(rank_sidecar),
-        "rank_reference_suffix_valid": rank_reference.suffix == ".npz",
-        "rank_reference_present": rank_reference.is_file()
-        and not rank_reference.is_symlink(),
-        "rank_reference_sidecar_present": rank_sidecar.is_file()
-        and not rank_sidecar.is_symlink(),
         "output": str(output),
         "output_suffix_valid": output.name.endswith(
-            f"{DIRECTION_DATASET_STEM_SUFFIX}.parquet"
+            f"{ENTRY_FITTED_Q_DATASET_STEM_SUFFIX}.parquet"
         ),
         "existing_output_artifacts": existing,
         "output_fresh": not existing,
@@ -1041,7 +1028,6 @@ def _command_contract(
     canonical_v2_parquet: Path,
     signal_manifest: Path,
     feature_ranking_json: Path,
-    rank_reference_npz: Path,
     mtf_cache_dir: Path,
     tape_root: Path,
     m1_lifecycle_pair_manifest_json: Path,
@@ -1049,8 +1035,6 @@ def _command_contract(
     m1_feature_base_path: Path,
     m5_feature_base_path: Path,
     exit_lifecycle_dir: Path,
-    exit_target_lookahead_m1_steps: int,
-    early_move_threshold_bps: float,
     output: Path,
     audit_out_dir: Path,
     split_schedule: dict[str, dict[str, str]],
@@ -1070,9 +1054,6 @@ def _command_contract(
         str(signal_manifest),
         "--feature-ranking-json",
         str(feature_ranking_json),
-        "--rank-reference-npz",
-        str(rank_reference_npz),
-        "--existing-rank-reference",
         "--mtf-cache-dir",
         str(mtf_cache_dir),
         "--tape-root",
@@ -1087,10 +1068,6 @@ def _command_contract(
         str(m5_feature_base_path),
         "--exit-lifecycle-dir",
         str(exit_lifecycle_dir),
-        "--exit-target-lookahead-m1-steps",
-        str(exit_target_lookahead_m1_steps),
-        "--early-move-threshold-bps",
-        str(early_move_threshold_bps),
         "--output",
         str(output),
         "--audit-out-dir",
@@ -1131,10 +1108,8 @@ def _command_contract(
                 m1_lifecycle_pair_generation_root
             ),
             "output_dir": str(exit_lifecycle_dir),
-            "target_lookahead_m1_steps": (
-                exit_target_lookahead_m1_steps
-            ),
-            "early_move_threshold_bps": early_move_threshold_bps,
+            "target_policy": "fit_once_on_exact_train_native_m1_then_hash_bound",
+            "val_test_rows_used_for_target_policy_fit": 0,
             "required_m1_columns": list(
                 UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS
             ),
@@ -1161,57 +1136,24 @@ def _command_contract(
         ],
         "model_native_signal_contract": model_native_signal_contract,
         "split_schedule": split_schedule,
-        "rank_reference_contract": {
-            "producer": "gx1.scripts.materialize_model_native_train_rank_reference_v2",
-            "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-            "source_parquet": str(canonical_v2_parquet),
-            "source_parquet_sha256": canonical_v2_parquet_sha256,
-            "model_source_parquet": str(source_parquet),
-            "model_source_parquet_sha256": source_parquet_sha256,
-            "source_model_market_identity": (
-                "exact_time_high_low_close_bid_close_ask_close_history_through_train"
-            ),
-            "output_npz": str(rank_reference_npz),
-            "sidecar_json": str(
-                rank_reference_npz.with_suffix(rank_reference_npz.suffix + ".json")
-            ),
-            "materialized_before_dataset_builder": True,
-            "materialized_before_feature_ranker": True,
-            "feature_history_start_utc": split_schedule["history"]["start"],
-            "fit_start_utc": split_schedule["train"]["start"],
-            "fit_end_utc": split_schedule["train"]["end"],
-            "fit_scope": "train_only",
-            "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-            "contains_validation_or_test_rows": False,
-            "contains_per_row_state": False,
-            "sidecar_source_sha256_must_match": True,
-            "sidecar_npz_sha256_required": True,
-            "builder_must_verify_npz_and_sidecar": True,
-            "run_lineage_required": True,
-            "run_id_bound_in_npz_and_sidecar": True,
-            "dataset_builder_requires_same_run_id": True,
-            "preflight_validates_exact_existing_reference": True,
-        },
         "fixed_builder_contract": {
             "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
             "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "seq_len": MODEL_NATIVE_SEQ_LEN,
-            "early_move_threshold_bps": early_move_threshold_bps,
             "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
-            "direction_label_horizon_bars": final_direction_label_horizon_bars(),
-            "direction_target_mode": "path_utility_v2",
+            "entry_direction_target_policy": (
+                "fit_once_on_exact_train_native_m5_then_hash_bound"
+            ),
+            "direction_target_mode": "train_fitted_executable_pnl_v1",
             "aux_head_target_contract": model_native_aux_target_contract_metadata(),
             "inline_selected_features": True,
-            "rank_reference_required": True,
             "run_lineage_required": True,
-            "rank_reference_run_id_match_required": True,
             "closed_bar_multi_tf_required": True,
             "state_schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
             "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
             "split_reset_allowed": False,
-            "rank_fit_scope": "train_only",
         },
     }
 
@@ -1227,9 +1169,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     feature_ranking_path = _required_path_arg(
         args, "feature_ranking_json", "--feature-ranking-json"
-    )
-    rank_reference_npz = _required_path_arg(
-        args, "rank_reference_npz", "--rank-reference-npz"
     )
     mtf_cache_dir = _required_path_arg(args, "mtf_cache_dir", "--mtf-cache-dir")
     tape_root = _required_path_arg(args, "tape_root", "--tape-root")
@@ -1275,31 +1214,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "exit_lifecycle_dir",
         "--exit-lifecycle-dir",
     )
-    raw_exit_lookahead = getattr(
-        args,
-        "exit_target_lookahead_m1_steps",
-        None,
-    )
-    if (
-        isinstance(raw_exit_lookahead, bool)
-        or not isinstance(raw_exit_lookahead, int)
-        or raw_exit_lookahead <= 0
-    ):
-        raise RuntimeError(
-            "explicit --exit-target-lookahead-m1-steps must be a positive integer"
-        )
-    exit_target_lookahead_m1_steps = int(raw_exit_lookahead)
-    raw_early_move_threshold = getattr(args, "early_move_threshold_bps", None)
-    try:
-        early_move_threshold_bps = float(raw_early_move_threshold)
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError(
-            "explicit --early-move-threshold-bps is required and must be numeric"
-        ) from exc
-    if not np.isfinite(early_move_threshold_bps) or early_move_threshold_bps < 0.0:
-        raise RuntimeError(
-            "explicit --early-move-threshold-bps must be finite and non-negative"
-        )
     output = _required_path_arg(args, "output", "--output")
     audit_out_dir = _required_path_arg(args, "audit_out_dir", "--audit-out-dir")
     out_dir = _required_path_arg(args, "out_dir", "--out-dir")
@@ -1332,7 +1246,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "pair_generation_id"
         ),
         expected_signal_manifest_path=signal_manifest_path,
-        expected_rank_reference_path=rank_reference_npz,
     )
     m5_feature_base = _feature_base_contract(
         feature_base_path=m5_feature_base_path,
@@ -1343,7 +1256,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "pair_generation_id"
         ),
         expected_signal_manifest_path=signal_manifest_path,
-        expected_rank_reference_path=rank_reference_npz,
     )
     _check(
         checks,
@@ -1353,9 +1265,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     _check(
         checks,
-        "source parquet carries market and raw TRAIN-rank source columns",
-        set(SOURCE_MARKET_COLUMNS + RANK_SOURCE_COLUMNS).issubset(source_columns),
-        {"required": list(SOURCE_MARKET_COLUMNS + RANK_SOURCE_COLUMNS), "columns": source_columns},
+        "source parquet carries required observed market columns",
+        set(SOURCE_MARKET_COLUMNS + REQUIRED_SOURCE_COLUMNS).issubset(source_columns),
+        {"required": list(SOURCE_MARKET_COLUMNS + REQUIRED_SOURCE_COLUMNS), "columns": source_columns},
     )
     _check(
         checks,
@@ -1449,7 +1361,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         signal_contract_failures = [str(exc)]
     _check(
         checks,
-        "signal manifest proves exact ordered 34+479=513 and 142/5 intent",
+        "signal manifest proves exact current ordered signal and 168/5 intent",
         not signal_contract_failures,
         signal_contract_failures,
     )
@@ -1457,7 +1369,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     specialist = _manifest_specialist_contract(manifest)
     _check(
         checks,
-        "all 479 selected features map across the exact eight specialists",
+        "all selected features map across the exact eight specialists",
         specialist["all_eight_covered"],
         specialist,
     )
@@ -1590,62 +1502,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     freshness = _freshness_contract(
-        rank_reference=rank_reference_npz,
         output=output,
         audit_out_dir=audit_out_dir,
         exit_lifecycle_dir=exit_lifecycle_dir,
-    )
-    _check(
-        checks,
-        "rank-reference NPZ and sidecar are explicit existing immutable inputs",
-        freshness["rank_reference_suffix_valid"]
-        and freshness["rank_reference_present"]
-        and freshness["rank_reference_sidecar_present"],
-        freshness,
-    )
-    rank_reference_lineage: dict[str, Any] = {}
-    rank_reference_failures: list[str] = []
-    if split_schedule and source_sha and canonical_sha:
-        try:
-            reference = validate_train_rank_reference_lineage_v2(
-                rank_reference_npz,
-                expected_run_id=entry_run_id,
-                expected_source_parquet=canonical_v2_parquet,
-                expected_source_sha256=canonical_sha,
-                expected_history_start_utc=split_schedule["history"]["start"],
-                expected_fit_start_utc=split_schedule["train"]["start"],
-                expected_fit_end_utc=split_schedule["train"]["end"],
-            )
-            market_identity = require_train_rank_source_market_identity_v2(
-                rank_source_parquet=canonical_v2_parquet,
-                model_source_parquet=source_parquet,
-                history_start_utc=split_schedule["history"]["start"],
-                fit_end_utc=split_schedule["train"]["end"],
-            )
-            rank_reference_lineage = {
-                "path": str(reference.path),
-                "sha256": reference.sha256,
-                "sidecar_sha256": reference.sidecar_sha256,
-                "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-                "fit_start_utc": reference.fit_start_utc.isoformat(),
-                "fit_end_utc": reference.fit_end_utc.isoformat(),
-                "fit_row_count": reference.fit_row_count,
-                "market_identity": market_identity,
-            }
-        except (RuntimeError, TypeError, ValueError) as exc:
-            rank_reference_failures.append(str(exc))
-    else:
-        rank_reference_failures.append(
-            "source/canonical hashes and valid split schedule are required before rank-reference validation"
-        )
-    _check(
-        checks,
-        "rank-reference binds the exact run_id, source hash, history, and TRAIN window",
-        not rank_reference_failures,
-        {
-            "lineage": rank_reference_lineage,
-            "failures": rank_reference_failures,
-        },
     )
     _check(
         checks,
@@ -1682,7 +1541,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             canonical_v2_parquet=canonical_v2_parquet,
             signal_manifest=signal_manifest_path,
             feature_ranking_json=feature_ranking_path,
-            rank_reference_npz=rank_reference_npz,
             mtf_cache_dir=mtf_cache_dir,
             tape_root=tape_root,
             m1_lifecycle_pair_manifest_json=(
@@ -1694,10 +1552,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             m1_feature_base_path=m1_feature_base_path,
             m5_feature_base_path=m5_feature_base_path,
             exit_lifecycle_dir=exit_lifecycle_dir,
-            exit_target_lookahead_m1_steps=(
-                exit_target_lookahead_m1_steps
-            ),
-            early_move_threshold_bps=early_move_threshold_bps,
             output=output,
             audit_out_dir=audit_out_dir,
             split_schedule=split_schedule,
@@ -1709,7 +1563,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures = [row for row in checks if not row["ok"]]
     created_utc = datetime.now(timezone.utc)
     report = {
-        "schema_version": "entry_model_native_seq513_rebuild_preflight_v11",
+        "schema_version": "entry_model_native_seq513_rebuild_preflight_v13",
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,
@@ -1729,7 +1583,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "selected_features": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "seq_len": MODEL_NATIVE_SEQ_LEN,
-            "early_move_threshold_bps": early_move_threshold_bps,
             "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
             "required_specialist_count": len(MODEL_NATIVE_TRAINING_SPECIALISTS),
@@ -1756,8 +1609,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "signal_manifest": _artifact_meta(signal_manifest_path),
             "feature_ranking_json": _artifact_meta(feature_ranking_path),
-            "rank_and_output_freshness": freshness,
-            "rank_reference_lineage": rank_reference_lineage,
+            "output_freshness": freshness,
             "source_time_contract": source_time,
             "multi_tf_cache": mtf,
             "tape": tape,
@@ -1771,10 +1623,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "m5_feature_base_parquet": m5_feature_base,
             "m1_lifecycle_authority": m1_lifecycle_authority,
             "exit_lifecycle_dir": str(exit_lifecycle_dir),
-            "exit_target_lookahead_m1_steps": (
-                exit_target_lookahead_m1_steps
+            "exit_target_policy": (
+                "fit_once_on_exact_train_native_m1_then_hash_bound"
             ),
-            "early_move_threshold_bps": early_move_threshold_bps,
+            "entry_direction_target_policy": (
+                "fit_once_on_exact_train_native_m5_then_hash_bound"
+            ),
         },
         "specialist_contract": specialist,
         "signal_source_manifest_rows": source_manifest_rows,
@@ -1804,7 +1658,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--canonical-v2-parquet", required=True)
     parser.add_argument("--signal-manifest", required=True)
     parser.add_argument("--feature-ranking-json", required=True)
-    parser.add_argument("--rank-reference-npz", required=True)
     parser.add_argument("--mtf-cache-dir", required=True)
     parser.add_argument("--tape-root", required=True)
     parser.add_argument(
@@ -1818,16 +1671,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--m1-feature-base-parquet", required=True)
     parser.add_argument("--m5-feature-base-parquet", required=True)
     parser.add_argument("--exit-lifecycle-dir", required=True)
-    parser.add_argument(
-        "--exit-target-lookahead-m1-steps",
-        type=int,
-        required=True,
-    )
-    parser.add_argument(
-        "--early-move-threshold-bps",
-        type=float,
-        required=True,
-    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--audit-out-dir", required=True)
     parser.add_argument("--history-start", required=True)

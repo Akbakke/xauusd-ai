@@ -6,35 +6,12 @@ import numpy as np
 import pandas as pd
 
 
-MODEL_NATIVE_TREND_REGIME_D1_BOUNDS = (-1.0, 1.0)
-
-
 def _finite_or_fail(values: np.ndarray, *, label: str) -> None:
     if not np.isfinite(values).all():
         raise RuntimeError(
             f"[MODEL_NATIVE_CONTEXT_NONFINITE] {label}: "
             f"count={int(np.count_nonzero(~np.isfinite(values)))}"
         )
-
-
-def derive_model_native_trend_regime_id(
-    d1_distance_from_ema200_atr: np.ndarray,
-) -> np.ndarray:
-    """Derive the shared three-state trend context from exact D1 evidence."""
-
-    values = np.asarray(d1_distance_from_ema200_atr, dtype=np.float64)
-    if values.ndim != 1:
-        raise RuntimeError(
-            "[MODEL_NATIVE_TREND_REGIME_SHAPE] "
-            f"expected one dimension, observed={values.shape}"
-        )
-    _finite_or_fail(values, label="D1_dist_from_ema200_atr")
-    lower, upper = MODEL_NATIVE_TREND_REGIME_D1_BOUNDS
-    return np.where(
-        values < lower,
-        0,
-        np.where(values <= upper, 1, 2),
-    ).astype(np.int64)
 
 
 def derive_observed_spread_bps(frame: pd.DataFrame) -> np.ndarray:
@@ -83,4 +60,64 @@ def derive_observed_spread_bps(frame: pd.DataFrame) -> np.ndarray:
     raise RuntimeError(
         "[MODEL_NATIVE_CONTEXT_MISSING] observed spread requires spread_bps, "
         "bid_close+ask_close, or spread+close"
+    )
+
+
+def derive_model_native_atr_spread_bps(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return the exact raw ATR/spread context without any rank or bucket."""
+
+    if not isinstance(frame, pd.DataFrame) or frame.empty:
+        raise RuntimeError("[MODEL_NATIVE_CONTEXT_EMPTY] ATR/spread source")
+    required = ("high", "low", "close")
+    missing = [name for name in required if name not in frame.columns]
+    if missing:
+        raise RuntimeError(
+            f"[MODEL_NATIVE_CONTEXT_MISSING] ATR source fields: {missing}"
+        )
+    numeric = {
+        name: pd.to_numeric(frame[name], errors="raise").to_numpy(
+            dtype=np.float64
+        )
+        for name in required
+    }
+    for name, values in numeric.items():
+        _finite_or_fail(values, label=name)
+    high = numeric["high"]
+    low = numeric["low"]
+    close = numeric["close"]
+    invalid = (
+        (high <= 0.0)
+        | (low <= 0.0)
+        | (close <= 0.0)
+        | (high < low)
+        | (high < close)
+        | (low > close)
+    )
+    if invalid.any():
+        raise RuntimeError(
+            "[MODEL_NATIVE_CONTEXT_INVALID] OHLC rows: "
+            f"count={int(np.count_nonzero(invalid))}"
+        )
+    high_s = pd.Series(high, index=frame.index, dtype=np.float64)
+    low_s = pd.Series(low, index=frame.index, dtype=np.float64)
+    close_s = pd.Series(close, index=frame.index, dtype=np.float64)
+    true_range = pd.concat(
+        [
+            high_s - low_s,
+            (high_s - close_s.shift(1)).abs(),
+            (low_s - close_s.shift(1)).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    atr = true_range.rolling(14, min_periods=1).mean().to_numpy(
+        dtype=np.float64
+    )
+    atr_bps = atr / ((high + low) * 0.5) * 1e4
+    spread_bps = derive_observed_spread_bps(frame)
+    _finite_or_fail(atr_bps, label="atr_bps")
+    if np.any(atr_bps <= 0.0):
+        raise RuntimeError("[MODEL_NATIVE_CONTEXT_INVALID] nonpositive atr_bps")
+    return pd.DataFrame(
+        {"atr": atr, "atr_bps": atr_bps, "spread_bps": spread_bps},
+        index=frame.index,
     )

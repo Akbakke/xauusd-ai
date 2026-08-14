@@ -5,24 +5,24 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Any, Mapping
 
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    ACTION_VALUE_TARGET_COLUMNS,
-    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
-    offline_rl_contract_metadata,
-)
-
-
-MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v5"
+MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v6"
 MODEL_NATIVE_AUX_FORECAST_HORIZONS = (1, 5, 12, 24)
 MODEL_NATIVE_AUX_RISK_HORIZONS = (12, 48, 96)
+MODEL_NATIVE_DIP_DIRECTIONS = ("long", "short")
+MODEL_NATIVE_DIP_OUTPUT_TARGETS = ("dip_p50", "dip_p90", "recovery_p50")
+MODEL_NATIVE_DIP_OUTPUT_DIM = (
+    len(MODEL_NATIVE_DIP_DIRECTIONS)
+    * len(MODEL_NATIVE_AUX_RISK_HORIZONS)
+    * len(MODEL_NATIVE_DIP_OUTPUT_TARGETS)
+)
 MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS = tuple(
     f"y_dip_mae_{side}_K{horizon}"
-    for side in ("long", "short")
+    for side in MODEL_NATIVE_DIP_DIRECTIONS
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
 )
 MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS = tuple(
     f"y_dip_mfe_{side}_K{horizon}"
-    for side in ("long", "short")
+    for side in MODEL_NATIVE_DIP_DIRECTIONS
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
 )
 MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS = 1000.0
@@ -60,10 +60,7 @@ MODEL_NATIVE_TIMING_TARGET_COLUMNS = tuple(
     for target in MODEL_NATIVE_TIMING_TARGETS
 )
 MODEL_NATIVE_TIMING_OUTPUT_DIM = len(MODEL_NATIVE_TIMING_TARGET_COLUMNS)
-MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS = (
-    "offline_rl_action_value",
-    "offline_rl_expectile_value",
-)
+MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS: tuple[str, ...] = ()
 _TARGET_HORIZON_ITEMS = tuple(
     (name, horizon)
     for name in MODEL_NATIVE_DIP_TARGET_COLUMNS
@@ -88,11 +85,6 @@ _TARGET_HORIZON_ITEMS = tuple(
     (name, horizon)
     for name in MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-    if name.endswith(f"_K{horizon}")
-) + tuple(
-    (name, horizon)
-    for name in ACTION_VALUE_TARGET_COLUMNS
-    for horizon in OFFLINE_RL_HORIZON_BARS
     if name.endswith(f"_K{horizon}")
 )
 MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN = MappingProxyType(
@@ -181,7 +173,7 @@ def model_native_aux_target_contract_metadata() -> dict[str, Any]:
             "live_direction_rule_authority": False,
             "final_fusion_evidence_required": True,
         },
-        "offline_rl": offline_rl_contract_metadata(),
+        "offline_rl": "retired_replaced_by_entry_fitted_q",
         "extra_active_target_heads": list(MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS),
     }
 

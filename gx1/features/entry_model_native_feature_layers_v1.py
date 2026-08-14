@@ -1,78 +1,62 @@
 """Strict causal feature construction for the model-native Entry signal stack.
 
-This module owns the deterministic chart, price and candlestick layers
-consumed by the seq513 dataset builder.  The chart layer dispatches the
-registered foundation and chart-geometry child layers; it emits nothing of
-its own.  The module deliberately contains no research evaluator, policy,
-model or artifact-default coupling.  Every declared source is required and
-finite; missing rows or malformed market data are contract failures, never
-synthetic zero evidence.
+This module owns deterministic foundation, price and raw candle layers
+consumed by the model-native dataset builder.  It deliberately contains no
+research evaluator, policy, hand-written pattern score or artifact default.
 """
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
 
-from gx1.features.entry_candlestick_patterns_v1 import (
-    CANDLESTICK_PATTERN_FEATURE_NAMES,
-    CANDLESTICK_PATTERN_SOURCE_FIELDS,
-    build_entry_candlestick_pattern_layer,
-)
-from gx1.features.entry_chart_geometry_v1 import (
-    CHART_GEOMETRY_FEATURE_NAMES,
-    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
-    CHART_GEOMETRY_SOURCE_FIELDS,
-    build_entry_chart_geometry_layer,
+from gx1.features.entry_candle_primitives_v1 import (
+    CANDLE_PRIMITIVE_FEATURE_NAMES,
+    CANDLE_PRIMITIVE_SOURCE_FIELDS,
+    build_entry_candle_primitive_layer,
 )
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
     build_entry_foundation_structure_layer,
 )
-from gx1.features.entry_momentum_flow_v1 import MOMENTUM_FLOW_FEATURE_NAMES
-from gx1.features.entry_session_regime_interactions_v1 import (
-    SESSION_REGIME_INTERACTION_FEATURE_NAMES,
-    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
-)
-from gx1.features.entry_smc_liquidity_quality_v1 import (
-    SMC_LIQUIDITY_QUALITY_FEATURE_NAMES,
-)
-from gx1.features.entry_structure_swing_derivations_v1 import (
-    STRUCTURE_SWING_DERIVATION_FEATURE_NAMES,
-)
-from gx1.features.entry_support_resistance_memory_v1 import (
-    SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES,
-)
-from gx1.features.entry_trend_ema_v1 import TREND_EMA_FEATURE_NAMES
-from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES
 from gx1.features.htf_features import (
+    LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
     _atr as _htf_atr_v4,
     _cross_down_event as _htf_cross_down_event_v4,
     _cross_up_event as _htf_cross_up_event_v4,
-    _event_age_norm as _htf_event_age_norm_v4,
-    _trend_age_bars as _htf_trend_age_bars_v4,
     compute_v29_momentum_event_block_from_ohlc,
 )
+from gx1.features.event_age_v1 import raw_state_age_bars
 from gx1.features.level_registry_v1 import (
     LEVEL_REGISTRY_M5_FEATURE_NAMES,
     compute_level_registry_m5_block_v1,
 )
-from gx1.features.regime_v4_features import (
-    REGIME_V4_V29_ADDITION_COLS,
-    REGIME_V4_V29_FLIP_TFS,
-    compute_regime_v29_flip_frame,
+from gx1.features.smc_v1 import (
+    SMC_V30_ADDITION_NAMES_V1,
+    compute_smc_features,
 )
 from gx1.features.swing_structure_v1 import (
     SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
+from gx1.features.technical_indicators_v1 import (
+    ema50_200_spread_atr_block,
+    technical_indicator_contract_metadata,
+)
 from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
     compute_trendline_registry_features_v1,
+)
+from gx1.features.volatility_squeeze_state_v1 import (
+    VOLATILITY_SQUEEZE_FEATURE_NAMES,
+    VolatilitySqueezeArtifactSet,
+    compute_volatility_squeeze_state,
+    require_volatility_squeeze_artifact_set,
 )
 
 
@@ -80,10 +64,10 @@ from gx1.features.trendline_registry_v1 import (
 # native M5 for Entry and native M1 for Exit; neither route relabels or copies
 # the other route's values.
 PRICE_DERIVED_SOURCE_PRICE_FIELD = "close"
-PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
+PRICE_DERIVED_SOURCE_OHLC_FIELDS = ("high", "low", "close")
 
 # Leading rows of a source frame on which the price-derived layer is undefined.
-# ema200 carries min_periods=200 so its first valid row is index 199; the first
+# classic EMA200 seeds from 200 closes so its first valid row is index 199; the first
 # derivative (ema50_200_spread_delta) moves that to 200 and the second
 # (ema50_200_spread_accel) to 201. Sample rows must therefore begin at source
 # index 201 or later. Verified against the native M1 surface: index 200 fails
@@ -102,10 +86,10 @@ PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
 # ratio ER = |close[t] - close[t-30]| / sum_{i=t-29..t} |close[i] - close[i-1]|
 # that basic_v1.kama_np already computes internally (window 30 — the window
-# `_v1_kama_slope_30`'s `_kama(close, 30)` owns) and discards.  It is emitted
+# `_v1_kama30_change_5_atr`'s `_kama(close, 30)` owns) and discards.  It is emitted
 # HERE, not as a new BASE field: MODEL_NATIVE_BASE_FIELDS is the
-# accepted-contract-frozen 34-tuple (bound into
-# MODEL_NATIVE_STATIC_CONTRACT_SHA256 and the rule-4 "34 base" composition),
+# accepted contract's code-owned base tuple (bound into
+# MODEL_NATIVE_STATIC_CONTRACT_SHA256),
 # while V29/V30 additions live in the mandatory causal layers.
 PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema50_200_spread_bps",
@@ -121,16 +105,15 @@ PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_ema50_200_spread_accel",
     "chart.local_kama_efficiency_30",
     # V30 Phase-A completion (2026-08-13): trend_ema GAP-2/GAP-3 on the LOCAL
-    # clock.  The per-TF lane has carried ``ema50_200_cross_age_norm`` /
-    # ``price_above_ema{50,200}_age_norm`` since the V29 stage-2 wiring, while
+    # clock.  The per-TF lane carries the matching raw EMA-state durations,
+    # while
     # this layer emitted the crosses and the state as 1-bar spikes with no
     # duration — so Entry saw the spike on M5 and only the aged version on
     # M15+ (review C.1).  Values come from the SAME two htf_features helpers
-    # that produce the per-TF fields (`_trend_age_bars` + `_event_age_norm`,
-    # imported above): one formula owner, log1p(min(age, 500))/log1p(500).
-    "chart.local_ema50_200_cross_age_norm",
-    "chart.local_price_above_ema50_age_norm",
-    "chart.local_price_above_ema200_age_norm",
+    # that produces the per-TF fields: one raw uncapped native-clock owner.
+    "chart.local_ema50_200_state_age_bars",
+    "chart.local_price_vs_ema50_state_age_bars",
+    "chart.local_price_vs_ema200_state_age_bars",
     # V30 package 3 (2026-08-13): the recorded Phase-A remainder of trend_ema
     # GAP-3.  Package 2 landed the three age fields and left the four
     # price-vs-EMA cross EVENTS open (see the package-2 message: "trend_ema
@@ -147,33 +130,42 @@ PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_price_x_ema200_cross_up",
     "chart.local_price_x_ema200_cross_down",
 )
-
-
-# The price-action mandatory block is the exact candlestick smart3 suffix of
-# the candlestick layer.  Derive its start from the block's first feature name
-# instead of a bare integer: an insertion before the boundary keeps mandatory
-# membership anchored to the marker, and a removed or renamed marker fails
-# loudly at import (ValueError) instead of silently re-pointing the mandatory
-# set.  The count guard in the smart-family contract (derived from this same
-# suffix) enforces the suffix identity end-to-end.
-# V30 package 7 (2026-08-13): the previous marker
-# `candle.pattern_close_pressure_signed` was REMOVED from the producer as an
-# exact affine duplicate of `candle.pattern_close_location`
-# (2*close_location - 1, clip inactive).  The marker is re-anchored to the
-# field that now occupies the boundary, so the mandatory block is still the
-# same contiguous suffix minus exactly that one column (32 -> 31); the six
-# aggregate votes that were removed sat BEFORE the boundary and were never
-# mandatory.
-CANDLESTICK_SMART3_FIRST_FEATURE_NAME = "candle.pattern_wick_imbalance_signed"
-CANDLESTICK_SMART3_START_INDEX = CANDLESTICK_PATTERN_FEATURE_NAMES.index(
-    CANDLESTICK_SMART3_FIRST_FEATURE_NAME
+PRICE_DERIVED_FORMULA_SCHEMA_VERSION = "entry_local_price_raw_primitives_v2"
+PRICE_DERIVED_FORMULA_CONTRACT = (
+    "ema50_200=shared_classic_sma_seeded_technical_owner",
+    "spread_atr=raw_spread_over_positive_wilder_atr_no_clip",
+    "price_and_slope_bps=raw_over_positive_closed_bar_close_no_clip",
+    "kama_efficiency30=exact_change_over_positive_realized_path_else_unavailable",
+    "events=closed_bar_cross_edges_and_causal_age_from_shared_owner",
+    "warmup=causal_nan_prefix_then_exact_sample_alignment",
 )
-# One named owner for the mandatory suffix, so the smart-family count guard in
-# entry_specialist_feature_groups_v1 can DERIVE from the same tuple the
-# mandatory registry uses instead of restating a literal (rule 13).
-CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES = CANDLESTICK_PATTERN_FEATURE_NAMES[
-    CANDLESTICK_SMART3_START_INDEX:
-]
+PRICE_DERIVED_FORMULA_SHA256 = hashlib.sha256(
+    "\n".join(PRICE_DERIVED_FORMULA_CONTRACT).encode("utf-8")
+).hexdigest()
+PRICE_DERIVED_FEATURE_NAMES_SHA256 = hashlib.sha256(
+    "\n".join(PRICE_DERIVED_FEATURE_NAMES).encode("utf-8")
+).hexdigest()
+
+
+def price_derived_contract_metadata() -> dict[str, object]:
+    """Immutable local-price formula identity for signal artifacts."""
+
+    return {
+        "owner": "gx1.features.entry_model_native_feature_layers_v1",
+        "schema_version": PRICE_DERIVED_FORMULA_SCHEMA_VERSION,
+        "formula_sha256": PRICE_DERIVED_FORMULA_SHA256,
+        "ordered_feature_names_sha256": PRICE_DERIVED_FEATURE_NAMES_SHA256,
+        "ordered_feature_names": list(PRICE_DERIVED_FEATURE_NAMES),
+        "technical_indicator_owner": technical_indicator_contract_metadata(),
+    }
+
+
+# Every raw candle primitive is mandatory.  There is no pattern suffix and no
+# TRAIN-ranked hand-written score: the temporal candle specialist learns the
+# multi-bar pattern from the exact local sequence.
+CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES = tuple(
+    CANDLE_PRIMITIVE_FEATURE_NAMES
+)
 
 # V29 Phase A stage 2 — exact emitted names of the five new mandatory event
 # families (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §§1-3, block E kept per
@@ -187,15 +179,34 @@ TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES = tuple(
 SWING_EVENT_LAYER_FEATURE_NAMES = tuple(SWING_V29_ADDITION_NAMES_V1)
 MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES = tuple(
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES
+) + tuple(
+    LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES
 )
-REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES = tuple(REGIME_V4_V29_ADDITION_COLS)
+SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES = tuple(SMC_V30_ADDITION_NAMES_V1)
+VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES = tuple(
+    VOLATILITY_SQUEEZE_FEATURE_NAMES
+)
+
+# Raw, independently clocked trend evidence needed by the structural
+# auxiliary labels. These are existing ctx fields, not a generated score:
+# the inline builder sees them in ``all_names`` and therefore never computes a
+# second copy. Keeping the exact sources mandatory prevents TRAIN ranking from
+# changing label semantics between rebuilds.
+RAW_MTF_TREND_LAYER_FEATURE_NAMES = (
+    "ctx_cont.m15_ema5_20_spread_atr_canon_v2",
+    "ctx_cont._v1h1_ema_diff",
+    "ctx_cont._v1h4_ema_diff",
+    "ctx_cont.d1_ema_slope_20_canon_v2",
+)
 
 # The two registry layers carry TRAIN-fitted constants with no legitimate
 # default (rule 2a); the inline extension fails closed when either family is
 # requested without this explicit payload.
 V29_REGISTRY_LAYER_PARAM_KEYS = (
-    "level_tol_atr",
+    "level_recurrence_threshold_atr",
+    "level_expiry_bars",
     "trendline_band_atr",
+    "trendline_expiry_bars",
     "trendline_seq_len",
 )
 
@@ -208,31 +219,11 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     tuple[str, tuple[str, ...]], ...
 ] = (
     ("foundation_cross_family_layer", FOUNDATION_STRUCTURE_FEATURE_NAMES),
-    ("trend_ema_smart_layer", TREND_EMA_FEATURE_NAMES),
-    ("smc_liquidity_quality_layer", SMC_LIQUIDITY_QUALITY_FEATURE_NAMES),
+    ("raw_mtf_trend_layer", RAW_MTF_TREND_LAYER_FEATURE_NAMES),
     (
-        "structure_swing_derivation_layer",
-        STRUCTURE_SWING_DERIVATION_FEATURE_NAMES,
+        "price_action_candle_raw_layer",
+        CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES,
     ),
-    ("momentum_flow_smart_layer", MOMENTUM_FLOW_FEATURE_NAMES),
-    # V30 package 8B (2026-08-13): this family is PRODUCED in full and pinned in
-    # part.  Only the five measured-genuine primitives are mandatory; the rest
-    # are the pre-fused session products that now compete in the TRAIN-ranked
-    # candidate pool.  Same shape as chart_geometry_smart2_layer (2 of 15
-    # pinned) and price_action_candle_smart3_layer (31 of 53).  The full
-    # emission stays reachable through
-    # MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES below.
-    (
-        "session_regime_interaction_layer",
-        SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
-    ),
-    ("vol_compression_smart_layer", VOL_COMPRESSION_FEATURE_NAMES),
-    ("chart_geometry_smart2_layer", CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES),
-    (
-        "price_action_candle_smart3_layer",
-        CANDLESTICK_SMART3_MANDATORY_FEATURE_NAMES,
-    ),
-    ("support_resistance_memory_layer", SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES),
     ("price_ema50_200_layer", PRICE_DERIVED_FEATURE_NAMES),
     ("level_registry_m5_layer", LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES),
     (
@@ -241,13 +232,17 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     ),
     ("swing_structure_event_layer", SWING_EVENT_LAYER_FEATURE_NAMES),
     ("momentum_event_m5_layer", MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES),
-    ("regime_flip_event_layer", REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES),
+    ("smc_local_event_layer", SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES),
+    (
+        "volatility_squeeze_local_layer",
+        VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
+    ),
 )
 
 # This is the code-owned full-stack retention contract.  A feature-selection
 # artifact may rank additional evidence, but it may never rank away one of
 # these registered causal layer outputs.  Keep the flattened order stable: it
-# becomes part of the immutable seq513 signal identity.
+# becomes part of the immutable model-native signal identity.
 MODEL_NATIVE_MANDATORY_FAMILY_FEATURES = MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
 MODEL_NATIVE_MANDATORY_SELECTED_FIELDS = tuple(
     feature
@@ -256,7 +251,7 @@ MODEL_NATIVE_MANDATORY_SELECTED_FIELDS = tuple(
 )
 # Both counts are DERIVED from the declared registry (rule 13: a repeated
 # literal in a consumer is not ownership proof).  V29 Phase A stage 2 grew
-# the pre-V29 11-family/346-field registry by the five event families above.
+# the pre-V29 registry by the event families above.
 MODEL_NATIVE_MANDATORY_FAMILY_COUNT = len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
 MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = len(
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
@@ -264,22 +259,10 @@ MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = len(
 
 # The FULL emitted surface of every registered family, in the same label order.
 #
-# Three families are produced in full but pinned only in part -- chart geometry
-# (2 of 15), the candlestick smart3 suffix (31 of 53) and, from V30 package 8B,
-# the session/regime interactions (5 of 67).  The registry above is the
-# MANDATORY contract and must stay that way, but a consumer that has to decide
-# whether to RUN a layer needs the full emission: during a TRAIN-ranker pass the
-# requested set contains only candidates, i.e. never a mandatory name, so a
-# run/skip test against the mandatory tuple alone would skip the layer and leave
-# its own rankable fields uncomputable.  One owner for that question, here,
-# beside the registry it derives from.
-_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES: dict[str, tuple[str, ...]] = {
-    "chart_geometry_smart2_layer": tuple(CHART_GEOMETRY_FEATURE_NAMES),
-    "price_action_candle_smart3_layer": tuple(CANDLESTICK_PATTERN_FEATURE_NAMES),
-    "session_regime_interaction_layer": tuple(
-        SESSION_REGIME_INTERACTION_FEATURE_NAMES
-    ),
-}
+# All remaining specialist layers emit exactly their mandatory raw/event
+# surface.  The retired chart and candlestick scorebooks had separate
+# candidate-only emissions; no such hidden surface remains.
+_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES: dict[str, tuple[str, ...]] = {}
 MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES: tuple[
     tuple[str, tuple[str, ...]], ...
 ] = tuple(
@@ -333,23 +316,14 @@ def _ordered_unique(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(str(value) for value in values))
 
 
-# The chart layer is a pure dispatcher: its required sources are exactly the
-# union of its two registered child layers' declared sources.  The children
-# receive their candle inputs through the separately materialized candlestick
-# layer, never through this base matrix.
+# The chart dispatcher now contains only exact foundation event ages and
+# their observed-event masks.  The
+# retired chart scorebook has no replacement layer: genuine level/trendline
+# registry objects are already separate mandatory owners.
 CHART_LAYER_SOURCE_FIELDS = _ordered_unique(
-    (
-        *(
-            name
-            for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
-            if not name.startswith("candle.")
-        ),
-        *(
-            name
-            for name in CHART_GEOMETRY_SOURCE_FIELDS
-            if not name.startswith("candle.")
-        ),
-    )
+    name
+    for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+    if not name.startswith("candle.")
 )
 
 def _require_matrix_contract(
@@ -441,23 +415,15 @@ def _require_finite_positive_column(frame: pd.DataFrame, name: str, *, context: 
     return values
 
 
-def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    values = np.asarray(arr, dtype=np.float32)
-    if not np.isfinite(values).all():
-        raise RuntimeError("MODEL_NATIVE_GENERATED_FEATURE_NONFINITE")
-    return np.clip(values, lo, hi).astype(np.float32, copy=False)
-
-
 def add_chart_feature(
     arrays: list[np.ndarray],
     names: list[str],
     name: str,
     arr: np.ndarray,
-    *,
-    lo: float = -25.0,
-    hi: float = 25.0,
 ) -> None:
-    clean = _clip(np.asarray(arr, dtype=np.float32), lo, hi)
+    clean = np.asarray(arr, dtype=np.float32)
+    if not np.isfinite(clean).all():
+        raise RuntimeError("MODEL_NATIVE_GENERATED_FEATURE_NONFINITE")
     if clean.ndim != 1:
         raise RuntimeError(f"generated feature {name} is not 1D: {clean.shape}")
     arrays.append(clean)
@@ -477,15 +443,23 @@ def build_price_derived_layer(
     if "time" not in available:
         raise RuntimeError(f"{context}_SOURCE_FIELDS_MISSING: ['time']")
     price_field = PRICE_DERIVED_SOURCE_PRICE_FIELD
-    atr_field = PRICE_DERIVED_SOURCE_ATR_FIELD
     if price_field not in available:
         raise RuntimeError(f"{context}_SOURCE_PRICE_MISSING: required={price_field}")
-    if atr_field not in available:
-        raise RuntimeError(f"{context}_SOURCE_ATR_MISSING: required={atr_field}")
-    src = pd.read_parquet(source, columns=["time", price_field, atr_field], engine="pyarrow")
+    missing_ohlc = [
+        field for field in PRICE_DERIVED_SOURCE_OHLC_FIELDS if field not in available
+    ]
+    if missing_ohlc:
+        raise RuntimeError(f"{context}_SOURCE_OHLC_MISSING: {missing_ohlc}")
+    src = pd.read_parquet(
+        source,
+        columns=["time", *PRICE_DERIVED_SOURCE_OHLC_FIELDS],
+        engine="pyarrow",
+    )
     src = _normalize_source_times(src, context=context)
-    close_values = _require_finite_positive_column(src, price_field, context=context)
-    atr_values = _require_finite_positive_column(src, atr_field, context=context)
+    ohlc_values = {
+        field: _require_finite_positive_column(src, field, context=context)
+        for field in PRICE_DERIVED_SOURCE_OHLC_FIELDS
+    }
 
     source_index = pd.DatetimeIndex(src["time"])
     missing_times = sample_times.difference(source_index)
@@ -494,15 +468,17 @@ def build_price_derived_layer(
             f"{context}_SOURCE_ROW_GAP: missing={len(missing_times)} first={missing_times[0]}"
         )
 
-    close = pd.Series(close_values, index=source_index, dtype=np.float64)
-    atr = pd.Series(atr_values, index=source_index, dtype=np.float64)
-    ema50 = close.ewm(span=50, adjust=False, min_periods=50).mean()
-    ema200 = close.ewm(span=200, adjust=False, min_periods=200).mean()
-    spread = ema50 - ema200
+    high = pd.Series(ohlc_values["high"], index=source_index, dtype=np.float64)
+    low = pd.Series(ohlc_values["low"], index=source_index, dtype=np.float64)
+    close = pd.Series(ohlc_values[price_field], index=source_index, dtype=np.float64)
+    ema_spread_block = ema50_200_spread_atr_block(high, low, close)
+    ema50 = ema_spread_block["ema50"]
+    ema200 = ema_spread_block["ema200"]
+    spread = ema_spread_block["spread"]
     denom = close.abs()
 
     spread_bps = spread / denom * 1e4
-    spread_atr = spread / atr
+    spread_atr = ema_spread_block["spread_atr"]
     price_vs_ema50 = (close - ema50) / denom * 1e4
     price_vs_ema200 = (close - ema200) / denom * 1e4
     ema50_slope = ema50.diff() / denom * 1e4
@@ -517,39 +493,39 @@ def build_price_derived_layer(
     # V30 Kaufman efficiency ratio, window 30 (see the name-tuple comment):
     # the exact ER of basic_v1.kama_np — |net 30-bar change| over the summed
     # |1-bar changes| of the same window, algebraically in [0, 1] by the
-    # triangle inequality.  The volatility<1e-12 -> ER=0.0 guard is kama_np's
-    # own zero-volatility convention (same owner, same constant); the rolling
-    # min_periods=30 warmup stays an honest NaN prefix inside the layer's
-    # existing 201-row floor.
+    # triangle inequality. Zero realized volatility leaves the ratio
+    # unavailable; it is never replaced by an epsilon or fabricated neutral
+    # value. The rolling min_periods=30 warmup stays an honest NaN prefix
+    # inside the layer's existing 201-row floor.
     kama_change_30 = (close - close.shift(30)).abs()
     kama_volatility_30 = (
         close.diff().abs().rolling(30, min_periods=30).sum()
     )
-    kama_efficiency_30 = kama_change_30 / kama_volatility_30
-    kama_efficiency_30[kama_volatility_30 < 1e-12] = 0.0
+    kama_efficiency_30 = kama_change_30 / kama_volatility_30.where(
+        kama_volatility_30 > 0.0
+    )
 
     # V30 GAP-2/GAP-3 local durations (see the name-tuple comment).  Exact
     # per-TF construction: mask the state to NaN wherever its EMA source is
-    # still inside the causal warmup (ewm min_periods already emits NaN here,
-    # so no post-hoc mask is needed), count the run with the ONE
-    # `_trend_age_bars` owner, normalize with the ONE `_event_age_norm` owner
-    # (log1p/500 cap), and re-mask the warmup rows — a NaN warmup, never a
+    # still inside the causal warmup (the shared classic EMA owner emits NaN
+    # here), then count the raw uncapped run with the one state-age owner — a NaN warmup, never a
     # "0 bars since the state began" that reads as a fresh flip (rule 2e).
-    # First finite row per field: ema200 min_periods=200 -> index 199 for the
+    # First finite row per field: classic EMA200 seed -> index 199 for the
     # 50/200 cross age and the ema200 side age, ema50 -> index 49; all three
     # are inside the layer's existing 201-row floor, which is therefore
     # unchanged (it is still set by ema50_200_spread_accel at index 201).
     bull_state = (spread > 0).astype(np.float64).where(spread.notna())
-    ema50_200_cross_age_norm = _htf_event_age_norm_v4(
-        _htf_trend_age_bars_v4(bull_state)
-    ).where(spread.notna())
-    price_above_age_norm = {}
+    ema50_200_state_age_bars = raw_state_age_bars(
+        bull_state.to_numpy(dtype=np.float64),
+        bull_state.notna().to_numpy(dtype=bool),
+    )
+    price_state_age_bars = {}
     # V30 package 3 (2026-08-13): the four price-vs-EMA cross events of the
     # same GAP-3 block, from the SAME ``price_gap`` series the age fields use
     # and the SAME htf event owner the per-TF lane calls.  ``_cross_up_event``
     # emits NaN wherever the series or its previous bar is still inside the
     # causal warmup, so the ema200 pair's first finite row is source index 200
-    # (ema200 min_periods=200 -> first finite gap at 199, plus one bar for the
+    # (classic EMA200 first finite gap at 199, plus one bar for the
     # shift) and the ema50 pair's is 50 — both inside the layer's existing
     # 201-row floor, which is therefore unchanged (still set by
     # ema50_200_spread_accel at index 201; re-verified below on the full
@@ -558,9 +534,10 @@ def build_price_derived_layer(
     for ema_span, ema_line in ((50, ema50), (200, ema200)):
         price_gap = close - ema_line
         side_state = (price_gap > 0).astype(np.float64).where(price_gap.notna())
-        price_above_age_norm[ema_span] = _htf_event_age_norm_v4(
-            _htf_trend_age_bars_v4(side_state)
-        ).where(price_gap.notna())
+        price_state_age_bars[ema_span] = raw_state_age_bars(
+            side_state.to_numpy(dtype=np.float64),
+            side_state.notna().to_numpy(dtype=bool),
+        )
         price_x_cross[(ema_span, "up")] = _htf_cross_up_event_v4(price_gap)
         price_x_cross[(ema_span, "down")] = _htf_cross_down_event_v4(price_gap)
 
@@ -568,9 +545,9 @@ def build_price_derived_layer(
         {
             "ema50_200_spread_bps": spread_bps,
             "ema50_200_spread_atr": spread_atr,
-            "ema50_200_bull_state": (spread > 0).astype(np.float64),
-            "ema50_200_cross_up": ((spread > 0) & (spread.shift(1) <= 0)).astype(np.float64),
-            "ema50_200_cross_down": ((spread < 0) & (spread.shift(1) >= 0)).astype(np.float64),
+            "ema50_200_bull_state": bull_state,
+            "ema50_200_cross_up": _htf_cross_up_event_v4(spread),
+            "ema50_200_cross_down": _htf_cross_down_event_v4(spread),
             "price_vs_ema50_bps": price_vs_ema50,
             "price_vs_ema200_bps": price_vs_ema200,
             "ema50_slope_bps": ema50_slope,
@@ -578,9 +555,9 @@ def build_price_derived_layer(
             "ema50_200_spread_delta": spread_delta,
             "ema50_200_spread_accel": spread_accel,
             "kama_efficiency_30": kama_efficiency_30,
-            "ema50_200_cross_age_norm": ema50_200_cross_age_norm,
-            "price_above_ema50_age_norm": price_above_age_norm[50],
-            "price_above_ema200_age_norm": price_above_age_norm[200],
+            "ema50_200_state_age_bars": ema50_200_state_age_bars,
+            "price_vs_ema50_state_age_bars": price_state_age_bars[50],
+            "price_vs_ema200_state_age_bars": price_state_age_bars[200],
             "price_x_ema50_cross_up": price_x_cross[(50, "up")],
             "price_x_ema50_cross_down": price_x_cross[(50, "down")],
             "price_x_ema200_cross_up": price_x_cross[(200, "up")],
@@ -596,31 +573,12 @@ def build_price_derived_layer(
         )
     arrays: list[np.ndarray] = []
     names: list[str] = []
-    clip_ranges = {
-        "ema50_200_spread_bps": (-250.0, 250.0),
-        "price_vs_ema50_bps": (-250.0, 250.0),
-        "price_vs_ema200_bps": (-300.0, 300.0),
-        "ema50_slope_bps": (-80.0, 80.0),
-        "ema200_slope_bps": (-40.0, 40.0),
-        "ema50_200_spread_delta": (-80.0, 80.0),
-        "ema50_200_spread_accel": (-80.0, 80.0),
-        # ER's algebraic domain (triangle inequality), not a chosen bound.
-        "kama_efficiency_30": (0.0, 1.0),
-        # log1p(min(age, 500))/log1p(500) is in [0, 1] by construction — the
-        # normalizer's own algebraic domain, not a chosen bound.
-        "ema50_200_cross_age_norm": (0.0, 1.0),
-        "price_above_ema50_age_norm": (0.0, 1.0),
-        "price_above_ema200_age_norm": (0.0, 1.0),
-    }
     for column in aligned.columns:
-        lo, hi = clip_ranges.get(column, (-25.0, 25.0))
         add_chart_feature(
             arrays,
             names,
             f"local_{column}",
             aligned[column].to_numpy(dtype=np.float32),
-            lo=lo,
-            hi=hi,
         )
     out = np.column_stack(arrays).astype(np.float32, copy=False)
     if tuple(names) != PRICE_DERIVED_FEATURE_NAMES:
@@ -628,20 +586,20 @@ def build_price_derived_layer(
     return out, names
 
 
-def build_candlestick_derived_layer(
+def build_candle_primitive_derived_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build the closed-bar candlestick layer with exact timestamp/OHLC proof."""
+    """Build raw closed-bar candle geometry with exact timestamp/OHLC proof."""
 
-    context = "CANDLESTICK_DERIVED"
+    context = "CANDLE_PRIMITIVE_DERIVED"
     sample_times = _require_sample_times(sample_df, context=context)
     source = Path(source_parquet).expanduser().resolve()
     available = _read_source_schema(source, context=context)
-    missing = [name for name in CANDLESTICK_PATTERN_SOURCE_FIELDS if name not in available]
+    missing = [name for name in CANDLE_PRIMITIVE_SOURCE_FIELDS if name not in available]
     if missing:
         raise RuntimeError(f"{context}_SOURCE_FIELDS_MISSING: {missing}")
-    src = pd.read_parquet(source, columns=list(CANDLESTICK_PATTERN_SOURCE_FIELDS), engine="pyarrow")
+    src = pd.read_parquet(source, columns=list(CANDLE_PRIMITIVE_SOURCE_FIELDS), engine="pyarrow")
     src = _normalize_source_times(src, context=context)
     ohlc = {}
     for name in ("open", "high", "low", "close"):
@@ -664,7 +622,7 @@ def build_candlestick_derived_layer(
             f"{context}_SOURCE_ROW_GAP: missing={len(missing_times)} first={missing_times[0]}"
         )
 
-    candle_x, candle_names = build_entry_candlestick_pattern_layer(src)
+    candle_x, candle_names = build_entry_candle_primitive_layer(src)
     candle_x = np.asarray(candle_x, dtype=np.float32)
     if candle_x.ndim != 2 or candle_x.shape[0] != len(src) or candle_x.shape[1] != len(candle_names):
         raise RuntimeError(
@@ -672,10 +630,18 @@ def build_candlestick_derived_layer(
         )
     if not candle_names:
         raise RuntimeError(f"{context}_OUTPUT_EMPTY")
-    if not np.isfinite(candle_x).all():
-        raise RuntimeError(f"{context}_OUTPUT_NONFINITE")
+    if np.isinf(candle_x).any():
+        raise RuntimeError(f"{context}_OUTPUT_INFINITY")
+    complete = np.isfinite(candle_x).all(axis=1)
+    if not complete.any():
+        raise RuntimeError(f"{context}_OUTPUT_UNAVAILABLE")
+    first_complete = int(np.argmax(complete))
+    if first_complete != 1 or not complete[first_complete:].all():
+        raise RuntimeError(f"{context}_OUTPUT_AVAILABILITY_INVALID")
     candle_df = pd.DataFrame(candle_x, columns=candle_names, index=source_index)
     aligned = candle_df.loc[sample_times]
+    if not np.isfinite(aligned.to_numpy(dtype=np.float64)).all():
+        raise RuntimeError(f"{context}_ALIGNED_OUTPUT_NONFINITE")
     return aligned.to_numpy(dtype=np.float32), list(candle_names)
 
 
@@ -772,22 +738,80 @@ def align_v29_layer_frame(
     )
 
 
+def build_volatility_squeeze_local_layer(
+    sample_df: pd.DataFrame | None,
+    source_parquet: Path,
+    *,
+    timeframe: str,
+    artifact_set: VolatilitySqueezeArtifactSet,
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
+    """Build native M5 Entry or native M1 Exit squeeze state from one owner.
+
+    The whole exact closed-OHLCV prefix is evaluated before row alignment, so
+    bounded offline chunks and the owner's explicit live carry have identical
+    first-row/event memory.  The six-clock manifest is mandatory; accepting a
+    loose params payload here would create an unbound TRAIN/live split.
+    """
+
+    context = "VOLATILITY_SQUEEZE_LOCAL_LAYER"
+    if timeframe not in {"M1", "M5"}:
+        raise RuntimeError(f"{context}_TIMEFRAME_INVALID")
+    frozen = require_volatility_squeeze_artifact_set(artifact_set)
+    src = _read_v29_price_source(
+        source_parquet,
+        context=context,
+        columns=("time", "open", "high", "low", "close", "volume"),
+    )
+    source_index = pd.DatetimeIndex(src.pop("time"))
+    source = src.set_axis(source_index)
+    raw, _carry = compute_volatility_squeeze_state(
+        source,
+        timeframe=timeframe,
+        params=frozen.require_params(timeframe),
+    )
+    if tuple(raw.columns) != VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES:
+        raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
+    if raw_frame:
+        return raw, list(VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES)
+    if sample_df is None:
+        raise RuntimeError(f"{context}_SAMPLE_FRAME_REQUIRED")
+    sample_times = _require_sample_times(sample_df, context=context)
+    return _align_v29_layer_frame(
+        raw,
+        sample_times,
+        VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
+        context=context,
+    )
+
+
 def build_level_registry_m5_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
     *,
-    tol_level_atr: float,
+    recurrence_threshold_atr: float,
+    max_evidence_age_bars: int,
+    decision_clock: str,
+    decision_bar_seconds: int,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane level-registry block (design doc §1.2).
+    """Native M5/M1 level-registry block (design doc §1.2).
 
-    ``tol_level_atr`` is the TRAIN-fitted frozen M5 cluster tolerance
-    (``fit_level_registry_tolerance``); it has no default (rule 2a).
+    ``recurrence_threshold_atr`` is the TRAIN-fitted frozen nearest-same-side
+    pivot recurrence threshold
+    (``fit_level_registry_hyperparameters_v1``); it has no default (rule 2a).
     ``raw_frame=True`` returns the unaligned full-history frame so the
     caller can measure the layer's warmup floor before choosing sample rows.
     """
 
-    context = "LEVEL_REGISTRY_M5_LAYER"
+    expected_seconds = {"M1": 60, "M5": 300}
+    if (
+        decision_clock not in expected_seconds
+        or isinstance(decision_bar_seconds, bool)
+        or decision_bar_seconds != expected_seconds.get(decision_clock)
+    ):
+        raise RuntimeError("LEVEL_REGISTRY_LOCAL_DECISION_CLOCK_INVALID")
+    context = f"LEVEL_REGISTRY_{decision_clock}_LAYER"
     sample_times = (
         None if raw_frame else _require_sample_times(sample_df, context=context)
     )
@@ -806,7 +830,9 @@ def build_level_registry_m5_layer(
     )
     matrix, names = compute_level_registry_m5_block_v1(
         registry_source,
-        tol_level_atr=tol_level_atr,
+        recurrence_threshold_atr=recurrence_threshold_atr,
+        max_evidence_age_bars=max_evidence_age_bars,
+        decision_clock=decision_clock.lower(),
     )
     if tuple(names) != LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES:
         raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
@@ -829,16 +855,18 @@ def build_trendline_registry_m5_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
     *,
+    timeframe: str,
     band_atr: float,
+    identity_expiry_bars: int,
     seq_len: int,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane trendline/channel block (design doc §2/§4.1 block E).
+    """Native M5/M1 trendline/channel block (design doc §2/§4.1 block E).
 
-    ``band_atr`` is the TRAIN-fitted frozen M5 band for the Entry candidate
-    window ``seq_len`` (the Entry model sequence length — an explicit recipe
-    input); neither has a default (rule 2a). ``raw_frame=True`` returns the
-    unaligned full-history frame for warmup-floor measurement.
+    ``band_atr`` is the TRAIN-fitted frozen band for the explicit native
+    ``timeframe`` and candidate window ``seq_len``.  No clock, band, or window
+    has a default (rule 2a). ``raw_frame=True`` returns the unaligned
+    full-history frame for warmup-floor measurement.
     """
 
     context = "TRENDLINE_REGISTRY_M5_LAYER"
@@ -860,9 +888,10 @@ def build_trendline_registry_m5_layer(
     )
     frame, _state = compute_trendline_registry_features_v1(
         registry_source,
-        timeframe="M5",
+        timeframe=timeframe,
         seq_len=seq_len,
         band_atr=band_atr,
+        identity_expiry_bars=identity_expiry_bars,
     )
     if tuple(frame.columns) != tuple(TRENDLINE_REGISTRY_FEATURE_NAMES_V1):
         raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
@@ -884,7 +913,7 @@ def build_swing_event_m5_layer(
     *,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane structure_swing event block (G1/G2/G4 + the V30
+    """Native M5/M1 structure_swing event block (G1/G2/G4 + the V30
     package-8A emission-only additions; the name tuple is the owner).
 
     One formula owner: ``swing_structure_v1.compute_swing_structure_features``
@@ -928,11 +957,12 @@ def build_momentum_event_m5_layer(
     *,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane momentum G1/G2 event block (design §4.1 block E).
+    """Native M5/M1 momentum event and continuous block (design §4.1 block E).
 
     One formula owner:
     ``htf_features.compute_v29_momentum_event_block_from_ohlc`` — the same
-    function backing the per-TF V4 lane, run here on the entry M5 clock.
+    function backing the per-TF V4 lane, run here on the caller's native M5
+    Entry or M1 Exit clock.
     ``raw_frame=True`` returns the unaligned full-history frame for
     warmup-floor measurement.
     """
@@ -951,7 +981,10 @@ def build_momentum_event_m5_layer(
         },
         index=source_index,
     )
-    raw = compute_v29_momentum_event_block_from_ohlc(ohlc).astype(np.float64)
+    raw = compute_v29_momentum_event_block_from_ohlc(
+        ohlc,
+        include_v30_primitives=True,
+    ).astype(np.float64)
     if tuple(raw.columns) != MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES:
         raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")
     if raw_frame:
@@ -964,57 +997,52 @@ def build_momentum_event_m5_layer(
     )
 
 
-def build_regime_flip_event_layer(
+def build_smc_local_event_layer(
     sample_df: pd.DataFrame,
     source_parquet: Path,
     *,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane session_regime G2 per-TF flip block (8 fields).
+    """Native M5/M1 SMC displacement, sided sweep-depth and event block."""
 
-    One formula owner: ``regime_v4_features.compute_regime_v29_flip_frame``
-    on the exact ``{tf}_regime_class_id_v2`` columns of the complete causal
-    source history (base M5 clock). ``raw_frame=True`` returns the unaligned
-    full-history frame for warmup-floor measurement (the flip-age fields are
-    honestly NaN until each timeframe's first observed flip — a
-    data-dependent warmup no fixed row constant can bound).
-    """
-
-    context = "REGIME_FLIP_EVENT_LAYER"
+    context = "SMC_LOCAL_EVENT_LAYER"
     sample_times = (
         None if raw_frame else _require_sample_times(sample_df, context=context)
-    )
-    class_columns = tuple(
-        f"{tf}_regime_class_id_v2" for tf in REGIME_V4_V29_FLIP_TFS
     )
     src = _read_v29_price_source(
         source_parquet,
         context=context,
-        columns=("time", *class_columns),
+        columns=("time", "high", "low", "close", "atr"),
     )
     source_index = pd.DatetimeIndex(src["time"])
-    class_frame = src.drop(columns=["time"])
-    class_frame.index = source_index
-    raw = compute_regime_v29_flip_frame(class_frame).astype(np.float64)
+    smc_source = pd.DataFrame(
+        {
+            "high": _require_finite_positive_column(src, "high", context=context),
+            "low": _require_finite_positive_column(src, "low", context=context),
+            "close": _require_finite_positive_column(src, "close", context=context),
+            "atr": _require_finite_positive_column(src, "atr", context=context),
+        },
+        index=source_index,
+    )
+    computed = compute_smc_features(
+        smc_source,
+        include_v30_additions=True,
+    )
+    raw = computed.loc[:, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)].astype(
+        np.float64
+    )
     if raw_frame:
-        return raw, list(REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES)
+        return raw, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(
         raw,
         sample_times,
-        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+        SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
         context=context,
     )
 
 
 def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarray, list[str]]:
-    """Dispatch the registered foundation and chart-geometry child layers.
-
-    The retired chart-core interaction emissions were registered in no
-    feature-name constant, discoverable by no ranker and consumed by no
-    specialist layer; the two registered children below are the only chart
-    outputs that can reach the seq513 signal.  Both children read exclusively
-    from the base matrix, so their outputs are unchanged by the removal.
-    """
+    """Emit raw local BOS/CHOCH ages after the full-history event floor."""
 
     x, _idx = _require_matrix_contract(
         x,
@@ -1022,30 +1050,17 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
         CHART_LAYER_SOURCE_FIELDS,
         context="CHART_LAYER",
     )
-    arrays: list[np.ndarray] = []
-    names: list[str] = []
-
     foundation_x, foundation_names = build_entry_foundation_structure_layer(x, feature_names)
     if foundation_x.shape != (x.shape[0], len(foundation_names)) or not foundation_names:
         raise RuntimeError(
             f"CHART_LAYER_FOUNDATION_OUTPUT_INVALID: shape={foundation_x.shape} names={len(foundation_names)}"
         )
-    geometry_x, geometry_names = build_entry_chart_geometry_layer(x, feature_names)
-    if geometry_x.shape != (x.shape[0], len(geometry_names)) or not geometry_names:
-        raise RuntimeError(
-            f"CHART_LAYER_GEOMETRY_OUTPUT_INVALID: shape={geometry_x.shape} names={len(geometry_names)}"
-        )
-    if not np.isfinite(foundation_x).all() or not np.isfinite(geometry_x).all():
-        raise RuntimeError("CHART_LAYER_CHILD_OUTPUT_NONFINITE")
-    arrays.extend([foundation_x[:, i] for i in range(foundation_x.shape[1])])
-    names.extend(foundation_names)
-    arrays.extend([geometry_x[:, i] for i in range(geometry_x.shape[1])])
-    names.extend(geometry_names)
-
-    out = np.column_stack(arrays).astype(np.float32, copy=False)
+    for column in range(foundation_x.shape[1]):
+        finite = np.isfinite(foundation_x[:, column])
+        if finite.any() and not finite[int(np.argmax(finite)) :].all():
+            raise RuntimeError("CHART_LAYER_CHILD_AVAILABILITY_INVALID")
+    out = np.asarray(foundation_x, dtype=np.float32)
+    names = list(foundation_names)
     if out.shape[1] != len(names) or len(names) != len(set(names)):
         raise RuntimeError(f"CHART_LAYER_OUTPUT_CONTRACT_INVALID: shape={out.shape} names={len(names)}")
-    if not np.isfinite(out).all():
-        raise RuntimeError("CHART_LAYER_OUTPUT_NONFINITE")
     return out, names
-

@@ -2,9 +2,9 @@
 # ruff: noqa: E402
 """Build the exact model-native ENTRY_V10_CTX training dataset.
 
-The emitted Entry surface is contract-locked to 34 genuine per-bar price-state
-signals plus 479 selected specialist signals (513 total), a 96-bar sequence,
-142 continuous context values, and five categorical context values.  Structure,
+The emitted Entry surface is contract-locked to the current code-owned base
+plus selected specialist contract, a 96-bar sequence, 168 mandatory causal
+values, and five categorical context values. Structure,
 trend, liquidity, volatility, momentum, session, price action, path quality and
 utility evidence remain learned inputs/targets; no external direction model or
 runtime direction filter participates in this builder.
@@ -15,18 +15,17 @@ Missing or mismatched contracts fail closed.  No compatibility fallback exists.
 
 SECTION LINE INDEX (oppdater ved flytting; se ogsaa SYSTEM_MAP.md
 "Pipeline- og ingredienskart"):
-  ~778  exact model-native ctx142/cat5 gate
+  exact owner-declared model-native continuous/categorical context gate
   ~1155 _signal_build_contract_from_manifest
   ~1211 _build_inline_seq_structure_extension (alle specialist-lag fra merged3;
         V29 stage 2: fem event-familier via source-parquet-lag +
         v29_registry_layer_params for level/trendline)
   ~2966 is_ASIA-derivering ((session_id==0).astype(int8))
   ~3153 df_ctx_cont-konstruksjon
-  ~3434 GROUP_A/DIP_STRUCT-attach (krever env GX1_V10_MULTI_TF_V4_CACHE_DIR;
+  ~3434 GROUP_A-attach (krever env GX1_V10_MULTI_TF_V4_CACHE_DIR;
         laster ogsaa V29 registry-konstanter fra cache-manifestet;
         85 ms/rad serielt — se parallellmoenster i ranker-scriptet)
-  ~3603 entry_smart_context (ENTRY_SMART_DERIVED)
-  ~3610 ctx-komplett-sjekk (alle 142 maa finnes)
+  context completeness check (every owner-declared field must exist)
   ~4177 V29 line-hold aux-labels (compute_trendline_touch_hold_labels_v1)
   ~4724 argparse
 """
@@ -54,6 +53,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DOMAINS,
@@ -61,8 +61,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
-    MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS,
     MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+    MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
     MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
     MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS,
@@ -71,18 +71,13 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SEQ_LEN,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     model_native_context_contract_metadata,
     require_model_native_manifest,
     require_model_native_signal_contract,
-)
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
-    UTILITY_MAE_WEIGHT,
-    UTILITY_MFE_WEIGHT,
-    UTILITY_PATH_WEIGHT,
 )
 from gx1.contracts.entry_structural_aux_label_signal_v1 import (
     STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS,
@@ -106,20 +101,31 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS,
     model_native_aux_target_contract_metadata,
 )
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    entry_direction_targets_from_policy,
+    fit_entry_direction_target_policy,
+    require_entry_direction_target_policy,
+)
+from gx1.contracts.entry_position_size_target_policy_v1 import (
+    entry_position_size_target_policy_contract,
+    entry_position_size_targets_from_policy,
+    fit_entry_position_size_target_policy,
+    require_entry_position_size_target_policy,
+)
+from gx1.contracts.entry_fitted_q_v1 import (
+    entry_fitted_q_contract,
+    require_entry_fitted_q_contract,
+)
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
-    MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-    apply_train_rank_reference_v2,
-    load_train_rank_reference_v2,
-    require_train_rank_source_market_identity_v2,
     validate_state_contract_metadata_v2,
 )
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
 )
 from gx1.features.micro_structure_v1 import (
+    MICRO_WARMUP_PREFIX_FIELDS_V1,
     SPREAD_DYNAMICS_SOURCE_COLUMNS_V1,
     SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
     compute_micro_structure_features,
@@ -166,9 +172,11 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS,
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS,
+    UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
     canonical_json_sha256,
     require_unified_exit_m1_pair_authority,
-    unified_exit_future_extrema as _unified_exit_future_extrema,
+    unified_exit_state_population_arrays,
+    update_unified_exit_state_population_stream,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_SEQUENCE_BARS,
@@ -185,6 +193,7 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
     ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
     load_m1_feature_surface,
     load_m1_feature_surface_times,
@@ -196,44 +205,12 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
 )
 
-PATH_QUALITY_HORIZON_BARS = 10
-BAD_PATH_HORIZON_BARS = PATH_QUALITY_HORIZON_BARS
-BAD_PATH_MAE_THRESHOLD_BPS = 6.0
-BAD_PATH_MFE_THRESHOLD_BPS = 4.0
-# 2026-05-26 — entry direction/tradable label re-tuned (user: "89% flat uaktuelt").
-# The directional label = (pnl_at_horizon >= V11_TRADABLE_PNL_MIN_BPS) over
-# V11_DIRECTION_HORIZON_BARS. Lowered 30→15 bps + horizon 10→24 (2h) → ~60% flat
-# (was ~89%) so the model has real directional signal to learn + calibrate on.
-# 15 bps ≈ 11 bps net after ~2.25 bps spread — a solid edge, not noise. bad_path /
-# path_quality keep their own (10-bar) horizon — only the direction label changed.
-V11_TRADABLE_PNL_MIN_BPS = 15.0
-V11_DIRECTION_HORIZON_BARS = 24
-# One immutable supervision contract.  These are future-outcome label semantics,
-# never live direction rules, and callers cannot tune or replace them.
-V12_DIRECTION_TARGET_MODE = "path_utility_v2"
-# Compatibility names remain imported by immutable audit code, but the
-# offline-RL contract is the single numerical owner of path-utility weights.
-V12_DIRECTION_UTILITY_MFE_WEIGHT = UTILITY_MFE_WEIGHT
-V12_DIRECTION_UTILITY_MAE_WEIGHT = UTILITY_MAE_WEIGHT
-V12_DIRECTION_UTILITY_PATH_WEIGHT = UTILITY_PATH_WEIGHT
-V12_DIRECTION_UTILITY_MIN_BPS = 15.0
-V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS = 4.0
-
-HARD_NEG_LONG_MIN_MFE_BPS = 10.0
-HARD_NEG_LONG_MIN_MAE_BPS = 6.0
-HARD_NEG_LONG_MAX_PATH_BPS = 8.0
-DEAD_LONG_MAX_MFE_BPS = 0.5
-DEAD_LONG_MIN_MAE_BPS = 6.0
-TEASER_LONG_MIN_MFE_BPS = 0.5
-TEASER_LONG_MAX_MFE_BPS = 10.0
-TEASER_LONG_MIN_MAE_BPS = 6.0
-TEASER_LONG_MAX_PATH_BPS = 4.0
-CLEAN_EDGE_LONG_MFE_MIN_BPS = 14.0
-CLEAN_EDGE_LONG_MAE_MAX_BPS = 4.0
-CLEAN_EDGE_LONG_PATH_MIN_BPS = 16.0
-SURVIVAL_LONG_MFE_MIN_BPS = 8.0
-SURVIVAL_LONG_MAE_MAX_BPS = 6.0
-SURVIVAL_LONG_PATH_MIN_BPS = 8.0
+# The old TRAIN-fitted horizon labels remain dataset-only diagnostics for
+# outcome auxiliaries and position-size fitting.  They are never the Entry
+# action target or decision authority.  The sole Entry target is materialized
+# in the trainer from the frozen fitted-Q Exit teacher and the exact episode
+# pack bound to each dataset row.
+_DIAGNOSTIC_OUTCOME_TARGET_MODE = "train_fitted_outcome_diagnostics_v1"
 
 # The old map-derived hold-horizon target is blocked from the exact model-native
 # dataset. It belonged to a different Exit policy and previously admitted a
@@ -241,44 +218,59 @@ SURVIVAL_LONG_PATH_MIN_BPS = 8.0
 # head exists in this builder path.
 
 
-def final_direction_label_horizon_bars() -> int:
+def diagnostic_outcome_horizon_bars(
+    target_policy: Mapping[str, Any],
+) -> int:
     """Return the actual horizon used by the emitted final y_direction label."""
-    return int(V11_DIRECTION_HORIZON_BARS)
+    policy = require_entry_direction_target_policy(target_policy)
+    return int(policy["selected_direction_horizon_bars"])
 
 
-def final_direction_label_horizon_array(n_rows: int) -> np.ndarray:
+def diagnostic_outcome_horizon_array(
+    n_rows: int,
+    *,
+    target_policy: Mapping[str, Any],
+) -> np.ndarray:
     if n_rows < 0:
         raise ValueError(f"n_rows must be non-negative, got {n_rows}")
-    return np.full(int(n_rows), final_direction_label_horizon_bars(), dtype=np.int32)
+    return np.full(
+        int(n_rows),
+        diagnostic_outcome_horizon_bars(target_policy),
+        dtype=np.int32,
+    )
 
 
-DIRECTION_DATASET_STEM_SUFFIX = (
-    f"__DIR_H{final_direction_label_horizon_bars():02d}B"
-)
+ENTRY_FITTED_Q_DATASET_STEM_SUFFIX = "__ENTRY_FITTED_Q"
 
 
-def direction_label_contract() -> Dict[str, Any]:
+def diagnostic_outcome_label_contract(
+    target_policy: Mapping[str, Any],
+) -> Dict[str, Any]:
+    policy = require_entry_direction_target_policy(target_policy)
     return {
-        "direction_target_mode": V12_DIRECTION_TARGET_MODE,
-        "direction_label_source": "v12_spread_aware_path_utility_h24_plus_first10",
-        "direction_label_horizon_bars": final_direction_label_horizon_bars(),
-        "direction_tradable_pnl_min_bps": float(V11_TRADABLE_PNL_MIN_BPS),
-        "direction_utility_formula": (
-            "pnl_at_h + mfe_weight*mfe_first_n - mae_weight*mae_first_n "
-            "+ path_weight*(mfe_first_n-mae_first_n)"
+        "diagnostic_outcome_target_mode": _DIAGNOSTIC_OUTCOME_TARGET_MODE,
+        "diagnostic_outcome_label_source": (
+            "train_fitted_spread_aware_executable_pnl_at_selected_horizon"
         ),
-        "direction_utility_path_horizon_bars": int(PATH_QUALITY_HORIZON_BARS),
-        "direction_utility_mfe_weight": float(V12_DIRECTION_UTILITY_MFE_WEIGHT),
-        "direction_utility_mae_weight": float(V12_DIRECTION_UTILITY_MAE_WEIGHT),
-        "direction_utility_path_weight": float(V12_DIRECTION_UTILITY_PATH_WEIGHT),
-        "direction_utility_min_bps": float(V12_DIRECTION_UTILITY_MIN_BPS),
-        "direction_utility_min_side_margin_bps": float(
-            V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS
+        "diagnostic_outcome_horizon_bars": diagnostic_outcome_horizon_bars(
+            policy
         ),
+        "diagnostic_side_score_formula": policy["side_score_formula"],
+        "diagnostic_tradable_edge_floor_bps": float(
+            policy["tradable_edge_floor_bps"]
+        ),
+        "diagnostic_side_margin_floor_bps": float(
+            policy["side_margin_floor_bps"]
+        ),
+        "diagnostic_path_quality_horizon_bars": int(
+            policy["path_quality_horizon_bars"]
+        ),
+        "diagnostic_outcome_policy_sha256": policy["policy_sha256"],
+        "entry_action_authority": False,
     }
 
 
-def hierarchical_direction_label_contract() -> Dict[str, Any]:
+def representation_auxiliary_outcome_contract() -> Dict[str, Any]:
     """Document the outcome-only direction and side-target contract.
 
     Structure/trend/geometry remain model inputs and optional representation
@@ -286,13 +278,12 @@ def hierarchical_direction_label_contract() -> Dict[str, Any]:
     utility, MAE or bad-path outcomes.
     """
     return {
-        "hierarchical_direction_targets": {
+        "representation_auxiliary_outcomes": {
             "enabled": True,
-            "primary_head": "trade_vs_flat",
-            "conditional_side_head": "long_vs_short_given_trade",
-            "derived_compat_label": "y_direction",
+            "entry_action_authority": False,
+            "legacy_diagnostic_label": "y_direction",
             "side_order": ["long", "short"],
-            "core_target_source": "future_path_and_utility_outcomes_only",
+            "label_source": "future_executable_pnl_outcomes_only",
             "feature_derived_core_rewrites_allowed": False,
             "utility_order_forcing_allowed": False,
             "target_columns": [
@@ -301,6 +292,8 @@ def hierarchical_direction_label_contract() -> Dict[str, Any]:
                 "y_side_mask",
                 "y_long_path_utility_bps",
                 "y_short_path_utility_bps",
+                "y_long_valid_trade",
+                "y_short_valid_trade",
                 "y_long_bad_path",
                 "y_short_bad_path",
                 "y_long_expected_mae_bps",
@@ -330,6 +323,27 @@ def hierarchical_direction_label_contract() -> Dict[str, Any]:
             },
             "runtime_rule_free": True,
         }
+    }
+
+
+def entry_fitted_q_dataset_contract() -> Dict[str, Any]:
+    """Describe how immutable dataset rows receive their Entry-Q target.
+
+    No fitted-Q value is serialized into the feature parquet: the trainer reads
+    the row's hash-bound unified Exit episode pack and queries the frozen TRAIN
+    target snapshot.  This prevents a stale label copy from becoming an
+    alternative Entry authority.
+    """
+
+    return {
+        "entry_fitted_q": entry_fitted_q_contract(),
+        "entry_action_target_materialized_in_feature_parquet": False,
+        "entry_action_target_source": (
+            "frozen_train_exit_target_model_first_authoritative_post_fill_state"
+        ),
+        "flat_target_bps": 0.0,
+        "episode_fill_binding_required": True,
+        "pathwise_hindsight_target": False,
     }
 
 
@@ -643,40 +657,6 @@ def _build_model_native_aux_head_targets(
                 upper=MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS,
             )
 
-            if side == "long":
-                final_pnl_bps = (
-                    (prices["bid_close"][horizon : horizon + valid_rows] - entry_spread)
-                    / entry_spread
-                    * bps
-                )
-            else:
-                final_pnl_bps = (
-                    (entry_spread - prices["ask_close"][horizon : horizon + valid_rows])
-                    / entry_spread
-                    * bps
-                )
-            full_path_mae_bps = -run_adverse_spread
-            action_value_bps = (
-                final_pnl_bps
-                + UTILITY_MFE_WEIGHT * mfe_spread
-                - UTILITY_MAE_WEIGHT * full_path_mae_bps
-                + UTILITY_PATH_WEIGHT * (mfe_spread - full_path_mae_bps)
-            )
-            _store_prefix(
-                f"y_action_value_{side}_K{horizon}",
-                action_value_bps,
-                lower=None,
-                upper=None,
-            )
-
-    for horizon in OFFLINE_RL_HORIZON_BARS:
-        _store_prefix(
-            f"y_action_value_flat_K{horizon}",
-            np.zeros(max(0, n_rows - horizon), dtype=np.float64),
-            lower=None,
-            upper=None,
-        )
-
     ordered = {name: computed[name] for name in MODEL_NATIVE_AUX_TARGET_COLUMNS}
     complete = _validate_model_native_aux_head_targets(ordered, n_rows=n_rows)
     return ordered, complete
@@ -699,43 +679,21 @@ def _selected_side_bad_path_target(
 def _position_size_target_from_path(
     mfe_first_n_bps: np.ndarray,
     mae_first_n_bps: np.ndarray,
-    atr_bps: np.ndarray,
+    selected_side: np.ndarray,
     trade_mask: np.ndarray,
-) -> np.ndarray:
-    mfe = np.asarray(mfe_first_n_bps, dtype=np.float64)
-    mae = np.asarray(mae_first_n_bps, dtype=np.float64)
-    atr = np.asarray(atr_bps, dtype=np.float64)
-    mask = np.asarray(trade_mask, dtype=np.float64)
-    if not (mfe.shape == mae.shape == atr.shape == mask.shape):
-        raise ValueError(
-            "POSITION_SIZE_TARGET_SHAPE_MISMATCH: "
-            f"mfe={mfe.shape} mae={mae.shape} atr={atr.shape} mask={mask.shape}"
-        )
-    invalid = {
-        "mfe_first_n_bps": int(np.count_nonzero(~np.isfinite(mfe))),
-        # Path builders expose MAE as an adverse *magnitude*.  Accepting a
-        # signed/negative MAE here would silently reverse its sizing meaning.
-        "mae_first_n_bps": int(np.count_nonzero(~np.isfinite(mae) | (mae < 0.0))),
-        "atr_bps": int(np.count_nonzero(~np.isfinite(atr) | (atr <= 0.0))),
-        "trade_mask": int(
-            np.count_nonzero(~np.isfinite(mask) | ~np.isin(mask, (0.0, 1.0)))
-        ),
-    }
-    invalid = {name: count for name, count in invalid.items() if count}
-    if invalid:
-        raise ValueError(f"POSITION_SIZE_TARGET_INPUT_INVALID: {invalid}")
-    # MFE is signed favorable excursion after spread; MAE is a non-negative
-    # adverse magnitude.  Worse adverse paths must therefore reduce, never
-    # increase, the learned size target.
-    signed_edge_atr = (mfe - mae) / (atr * 2.0)
-    # Clipping the finite logit only prevents numerical exp overflow; it never
-    # substitutes for missing/zero ATR or path evidence.
-    bounded_logit = np.clip(signed_edge_atr, -80.0, 80.0)
-    out = 1.0 / (1.0 + np.exp(-bounded_logit))
-    out[mask == 0.0] = 0.5
-    if not bool(np.isfinite(out).all()):
-        raise RuntimeError("POSITION_SIZE_TARGET_NON_FINITE_OUTPUT")
-    return out.astype(np.float32)
+    *,
+    target_policy: Mapping[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply the sole immutable TRAIN ECDF sizing-target owner."""
+
+    result = entry_position_size_targets_from_policy(
+        policy=target_policy,
+        mfe_first_n_bps=mfe_first_n_bps,
+        mae_first_n_bps=mae_first_n_bps,
+        selected_side=selected_side,
+        trade_mask=trade_mask,
+    )
+    return result["target"], result["mask"]
 
 
 # -----------------------------------------------------------------------------
@@ -780,7 +738,7 @@ def _utc_now_iso() -> str:
 
 
 def _hard_gate_model_native_context() -> Dict[str, Any]:
-    """Return the exact Entry-owned 142/5 context contract or fail closed."""
+    """Return the exact Entry-owned context contract or fail closed."""
 
     ctx = model_native_context_contract_metadata()
     if tuple(ctx.get("ctx_cont_names") or ()) != MODEL_NATIVE_CTX_CONT_FIELDS:
@@ -815,7 +773,6 @@ def _model_native_artifact_owner_fields(
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Return exact (canonical-v2, source-prebuilt) field ownership."""
 
-    from gx1.features.regime_v4_features import REGIME_V4_SOURCE_COLS
     from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
     volume_derived = set(VOLUME_FEATURE_NAMES)
@@ -830,8 +787,8 @@ def _model_native_artifact_owner_fields(
             list(MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS)
             + [
                 name
-                for name in REGIME_V4_SOURCE_COLS
-                if name != "D1_dist_from_ema200_atr"
+                for name in MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
+                if name != "d1_dist_change_1bar_atr_v4"
             ]
             + ["volume"]
         )
@@ -1015,7 +972,7 @@ def publish_prefreeze_test_authority(
         "canonical_v2_parquet",
         "signal_manifest",
         "feature_ranking",
-        "rank_reference",
+        "position_size_train_ecdf",
         "multi_tf_cache",
         "xau_tape_provenance",
     }
@@ -1219,6 +1176,7 @@ def _build_inline_seq_structure_extension(
     ctx_cont_names: List[str],
     ctx_cat_names: Optional[List[str]] = None,
     source_parquet: Optional[Path],
+    local_timeframe: str,
     source_contract_label: Optional[str] = None,
     base_signal_fields: Sequence[str] = MODEL_NATIVE_BASE_FIELDS,
     precomputed_price_layer: Optional[Tuple[np.ndarray, List[str]]] = None,
@@ -1227,22 +1185,15 @@ def _build_inline_seq_structure_extension(
         Mapping[str, Tuple[np.ndarray, List[str]]]
     ] = None,
     v29_registry_layer_params: Optional[Mapping[str, Any]] = None,
+    volatility_squeeze_artifacts: Any = None,
     emit_offset: int = 0,
-    support_memory_state: Optional[Mapping[str, float]] = None,
-    return_support_memory_state: bool = False,
-) -> (
-    Tuple[np.ndarray, List[str], Dict[str, Any]]
-    | Tuple[
-        np.ndarray,
-        List[str],
-        Dict[str, Any],
-        Dict[str, np.float32],
-    ]
-):
+) -> Tuple[np.ndarray, List[str], Dict[str, Any]]:
     if not requested_features:
         raise RuntimeError("SEQ_STRUCTURE_INLINE_REQUESTED_FEATURES_EMPTY")
     if source_parquet is None:
         raise RuntimeError("SEQ_STRUCTURE_INLINE_SOURCE_PARQUET_REQUIRED")
+    if local_timeframe not in {"M1", "M5"}:
+        raise RuntimeError("SEQ_STRUCTURE_INLINE_LOCAL_TIMEFRAME_INVALID")
     if (
         isinstance(emit_offset, bool)
         or not isinstance(emit_offset, int)
@@ -1255,34 +1206,21 @@ def _build_inline_seq_structure_extension(
         LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
         MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES,
         MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
-        REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
+        SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
         SWING_EVENT_LAYER_FEATURE_NAMES,
         TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
         V29_REGISTRY_LAYER_PARAM_KEYS,
-        build_candlestick_derived_layer,
+        VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
+        build_candle_primitive_derived_layer,
         build_chart_layer,
         build_level_registry_m5_layer,
         build_momentum_event_m5_layer,
         build_price_derived_layer,
-        build_regime_flip_event_layer,
+        build_smc_local_event_layer,
         build_swing_event_m5_layer,
         build_trendline_registry_m5_layer,
+        build_volatility_squeeze_local_layer,
     )
-    from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
-    from gx1.features.entry_session_regime_interactions_v1 import (
-        build_entry_session_regime_interaction_layer,
-    )
-    from gx1.features.entry_smc_liquidity_quality_v1 import (
-        build_entry_smc_liquidity_quality_layer,
-    )
-    from gx1.features.entry_structure_swing_derivations_v1 import (
-        build_entry_structure_swing_derivation_layer,
-    )
-    from gx1.features.entry_support_resistance_memory_v1 import (
-        build_entry_support_resistance_memory_layer,
-    )
-    from gx1.features.entry_trend_ema_v1 import build_entry_trend_ema_layer
-    from gx1.features.entry_vol_compression_v1 import build_entry_vol_compression_layer
 
     base_blocks: List[np.ndarray] = []
     base_names: List[str] = []
@@ -1303,7 +1241,79 @@ def _build_inline_seq_structure_extension(
         base_names.append(f"ctx_cat.{field}")
     base_x = np.concatenate(base_blocks, axis=1).astype(np.float32, copy=False)
 
-    chart_x, chart_names = build_chart_layer(base_x, base_names)
+    # A direct full-history build commonly receives rows only after the shared
+    # causal-history trim. Seed the three sparse foundation ages from the
+    # authoritative source prefix before that first emitted row. Bounded
+    # callers already bind their exact chunk carry and must never be nested.
+    from gx1.features.entry_foundation_structure_v1 import (
+        FOUNDATION_EVENT_AGE_CARRY_KEYS,
+        FOUNDATION_STRUCTURE_SOURCE_FIELDS,
+        foundation_event_age_carry_scope,
+        foundation_event_age_carry_scope_is_active,
+    )
+
+    if foundation_event_age_carry_scope_is_active():
+        chart_x, chart_names = build_chart_layer(base_x, base_names)
+    else:
+        source_columns = [
+            "time",
+            *(
+                name.removeprefix("snap.")
+                for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+            ),
+        ]
+        source_events = pd.read_parquet(
+            Path(source_parquet),
+            columns=source_columns,
+        )
+        source_times = pd.DatetimeIndex(
+            pd.to_datetime(source_events["time"], utc=True, errors="coerce")
+        ).as_unit("ns")
+        sample_times = pd.DatetimeIndex(
+            pd.to_datetime(merged3["time"], utc=True, errors="coerce")
+        ).as_unit("ns")
+        if (
+            source_times.hasnans
+            or not source_times.is_unique
+            or not source_times.is_monotonic_increasing
+            or sample_times.hasnans
+            or len(sample_times) == 0
+        ):
+            raise RuntimeError("SEQ_STRUCTURE_FOUNDATION_SOURCE_CLOCK_INVALID")
+        first_position = int(source_times.searchsorted(sample_times[0]))
+        if (
+            first_position >= len(source_times)
+            or source_times[first_position] != sample_times[0]
+            or np.any(source_times.get_indexer(sample_times) < 0)
+        ):
+            raise RuntimeError("SEQ_STRUCTURE_FOUNDATION_SOURCE_ROW_GAP")
+        initial_state: dict[str, int | None] = {}
+        for source_name, carry_key in zip(
+            source_columns[1:],
+            FOUNDATION_EVENT_AGE_CARRY_KEYS,
+        ):
+            values = pd.to_numeric(
+                source_events[source_name], errors="coerce"
+            ).to_numpy(dtype=np.float64)
+            if (
+                not np.isfinite(values).all()
+                or not np.isin(values, (0.0, 1.0)).all()
+            ):
+                raise RuntimeError(
+                    "SEQ_STRUCTURE_FOUNDATION_EVENT_SOURCE_INVALID: "
+                    f"{source_name}"
+                )
+            prior_events = np.flatnonzero(values[:first_position] == 1.0)
+            initial_state[carry_key] = (
+                None
+                if len(prior_events) == 0
+                else first_position - 1 - int(prior_events[-1])
+            )
+        with foundation_event_age_carry_scope(
+            initial_state,
+            tail_replay_rows=0,
+        ):
+            chart_x, chart_names = build_chart_layer(base_x, base_names)
     if precomputed_price_layer is None:
         price_x, price_names = build_price_derived_layer(
             merged3[["time"]].copy(),
@@ -1322,7 +1332,7 @@ def _build_inline_seq_structure_extension(
     chart_x = np.concatenate([chart_x, price_x], axis=1).astype(np.float32, copy=False)
     chart_names = list(chart_names) + list(price_names)
     if precomputed_candle_layer is None:
-        candle_x, candle_names = build_candlestick_derived_layer(
+        candle_x, candle_names = build_candle_primitive_derived_layer(
             merged3[["time"]].copy(),
             Path(source_parquet),
         )
@@ -1415,7 +1425,12 @@ def _build_inline_seq_structure_extension(
         return build_level_registry_m5_layer(
             merged3[["time"]].copy(),
             Path(source_parquet),
-            tol_level_atr=params["level_tol_atr"],
+            recurrence_threshold_atr=params[
+                "level_recurrence_threshold_atr"
+            ],
+            max_evidence_age_bars=int(params["level_expiry_bars"]),
+            decision_clock="M5",
+            decision_bar_seconds=300,
         )
 
     def _v29_trendline_layer() -> Tuple[np.ndarray, List[str]]:
@@ -1423,7 +1438,9 @@ def _build_inline_seq_structure_extension(
         return build_trendline_registry_m5_layer(
             merged3[["time"]].copy(),
             Path(source_parquet),
+            timeframe="M5",
             band_atr=params["trendline_band_atr"],
+            identity_expiry_bars=int(params["trendline_expiry_bars"]),
             seq_len=int(params["trendline_seq_len"]),
         )
 
@@ -1453,10 +1470,20 @@ def _build_inline_seq_structure_extension(
             ),
         ),
         (
-            "regime_flip_event_layer",
-            REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
-            lambda: build_regime_flip_event_layer(
+            "smc_local_event_layer",
+            SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+            lambda: build_smc_local_event_layer(
                 merged3[["time"]].copy(), Path(source_parquet)
+            ),
+        ),
+        (
+            "volatility_squeeze_local_layer",
+            VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES,
+            lambda: build_volatility_squeeze_local_layer(
+                merged3[["time"]].copy(),
+                Path(source_parquet),
+                timeframe=local_timeframe,
+                artifact_set=volatility_squeeze_artifacts,
             ),
         ),
     )
@@ -1469,14 +1496,7 @@ def _build_inline_seq_structure_extension(
     # discarded; the loop guard below skips fully-emitted layers, and a
     # missing upstream emission fails closed instead of being rebuilt.
     smart_builders = {
-        "trend_ema_smart_layer": build_entry_trend_ema_layer,
-        "smc_liquidity_quality_layer": build_entry_smc_liquidity_quality_layer,
-        "structure_swing_derivation_layer": build_entry_structure_swing_derivation_layer,
-        "momentum_flow_smart_layer": build_entry_momentum_flow_layer,
-        "session_regime_interaction_layer": build_entry_session_regime_interaction_layer,
-        "vol_compression_smart_layer": build_entry_vol_compression_layer,
         "price_action_candle_smart3_layer": _candlestick_layer_strict,
-        "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
     }
     for _v29_label, _v29_names, _v29_builder in _v29_event_layer_plan:
         if not any(
@@ -1507,8 +1527,6 @@ def _build_inline_seq_structure_extension(
                 )
         _append_generated_layer(_v29_label, _v29_x, list(_v29_observed))
 
-    next_support_memory_state: Dict[str, np.float32] = {}
-    emit_applied = False
     # Run/skip is decided on each layer's FULL emission, not on its mandatory
     # subset (V30 package 8B, 2026-08-13).  Three families are produced in full
     # and pinned only in part, and during a TRAIN-ranker pass the requested set
@@ -1532,23 +1550,11 @@ def _build_inline_seq_structure_extension(
             )
         if label == "price_action_candle_smart3_layer":
             smart_x, smart_names = builder()
-        elif label == "support_resistance_memory_layer" and (
-            emit_offset > 0 or return_support_memory_state
-        ):
-            if emit_offset > 0:
-                all_x = all_x[emit_offset:]
-                emit_applied = True
-            smart_x, smart_names, next_support_memory_state = builder(
-                all_x,
-                all_names,
-                memory_state=support_memory_state,
-                return_memory_state=True,
-            )
         else:
             smart_x, smart_names = builder(all_x, all_names)
         _append_generated_layer(label, smart_x, list(smart_names))
 
-    if emit_offset > 0 and not emit_applied:
+    if emit_offset > 0:
         all_x = all_x[emit_offset:]
 
     index = {name: i for i, name in enumerate(all_names)}
@@ -1584,10 +1590,6 @@ def _build_inline_seq_structure_extension(
         ),
         "missing_generated_features": [],
     }
-    if return_support_memory_state:
-        if not next_support_memory_state:
-            raise RuntimeError("SEQ_STRUCTURE_INLINE_SUPPORT_STATE_MISSING")
-        return out, selected, meta, next_support_memory_state
     return out, selected, meta
 
 
@@ -1857,7 +1859,6 @@ def build_unified_exit_lifecycle_episodes(
     entry_rows: pd.DataFrame,
     closed_m1: pd.DataFrame,
     split_end: pd.Timestamp | str,
-    target_lookahead_m1_steps: int,
     market_closure_contract: str,
     min_m1_start_row: int,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
@@ -1865,8 +1866,8 @@ def build_unified_exit_lifecycle_episodes(
 
     The artifact stores no duplicated M1 paths and no precomputed model state.
     Each episode points into one hash-bound literal M1 source.  HOLD/EXIT_NOW
-    targets are recomputable from that source, while the proof binds the exact
-    target byte stream used by the trainer.
+    optimal-stopping Q targets are recomputable from that source, while the
+    proof binds their exact byte stream used by the trainer.
     """
     architecture = current_entry_exit_architecture_observation()
     architecture["exit"]["max_path_bars"] = UNIFIED_EXIT_MAX_PATH_BARS
@@ -1878,15 +1879,13 @@ def build_unified_exit_lifecycle_episodes(
         raise RuntimeError(
             "UNIFIED_EXIT_M1_MARKET_CLOSURE_PROOF_REQUIRED"
         )
-    lookahead = target_lookahead_m1_steps
     if (
-        isinstance(lookahead, bool)
-        or not isinstance(lookahead, int)
-        or lookahead <= 0
+        isinstance(min_m1_start_row, bool)
+        or not isinstance(min_m1_start_row, (int, np.integer))
+        or int(min_m1_start_row) < 0
     ):
-        raise RuntimeError(
-            "UNIFIED_EXIT_TARGET_LOOKAHEAD_INVALID: explicit positive integer required"
-        )
+        raise RuntimeError("UNIFIED_EXIT_FEATURE_FLOOR_INVALID")
+    min_m1_start_row = int(min_m1_start_row)
     if not isinstance(entry_rows, pd.DataFrame) or tuple(
         name for name in ("time",) if name in entry_rows.columns
     ) != ("time",):
@@ -1977,28 +1976,8 @@ def build_unified_exit_lifecycle_episodes(
 
     bid_open = numeric["bid_open"].to_numpy(dtype=np.float64)
     ask_open = numeric["ask_open"].to_numpy(dtype=np.float64)
-    bid_close = numeric["bid_close"].to_numpy(dtype=np.float64)
-    ask_close = numeric["ask_close"].to_numpy(dtype=np.float64)
-    future_bid, future_ask = _unified_exit_future_extrema(
-        bid=bid_close,
-        ask=ask_close,
-        lookahead=lookahead,
-    )
-    current_bid = bid_close[:-lookahead]
-    current_ask = ask_close[:-lookahead]
-    long_targets = np.where(
-        future_bid > current_bid,
-        0,
-        np.where(future_bid < current_bid, 1, -1),
-    ).astype(np.int8)
-    short_targets = np.where(
-        future_ask < current_ask,
-        0,
-        np.where(future_ask > current_ask, 1, -1),
-    ).astype(np.int8)
-
     path_state_count = int(UNIFIED_EXIT_MAX_PATH_BARS)
-    required_rows = path_state_count + lookahead
+    required_rows = path_state_count
     m1_ns = m1_time.asi8
     records: list[dict[str, Any]] = []
     skipped = {
@@ -2006,12 +1985,10 @@ def build_unified_exit_lifecycle_episodes(
         "insufficient_m1_tail": 0,
         "crosses_split_end": 0,
     }
-    target_stream = hashlib.sha256()
-    target_counts = {
-        UNIFIED_EXIT_ACTION_ORDER[0]: 0,
-        UNIFIED_EXIT_ACTION_ORDER[1]: 0,
-        "TIED_OMITTED": 0,
-    }
+    state_population_stream = hashlib.sha256()
+    state_population_stream.update(
+        UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION.encode("ascii")
+    )
     for entry_row_index, entry_timestamp in enumerate(entry_time):
         entry_available_at = entry_timestamp + pd.Timedelta(
             seconds=ENTRY_DECISION_BAR_SECONDS
@@ -2036,21 +2013,6 @@ def build_unified_exit_lifecycle_episodes(
 
         state_slice = slice(start_row, start_row + path_state_count)
         for side_index, side in enumerate(UNIFIED_EXIT_SIDE_ORDER):
-            target = (
-                long_targets[state_slice]
-                if side == "long"
-                else short_targets[state_slice]
-            )
-            hold_count = int(np.count_nonzero(target == 0))
-            exit_count = int(np.count_nonzero(target == 1))
-            tied_count = int(np.count_nonzero(target == -1))
-            non_tied_count = hold_count + exit_count
-            if non_tied_count == 0:
-                raise RuntimeError(
-                    "UNIFIED_EXIT_LIFECYCLE_EPISODE_ALL_TARGETS_TIED"
-                )
-            target_counts[UNIFIED_EXIT_ACTION_ORDER[0]] += hold_count
-            target_counts[UNIFIED_EXIT_ACTION_ORDER[1]] += exit_count
             if int(start_row) < int(min_m1_start_row):
                 # The Exit trainer slices EXIT_FEATURE_SEQUENCE_BARS of feature
                 # history behind every decision row; an episode starting before
@@ -2062,19 +2024,25 @@ def build_unified_exit_lifecycle_episodes(
                     f"min_m1_start_row={int(min_m1_start_row)} "
                     f"entry_row_index={int(entry_row_index)}"
                 )
-            target_counts["TIED_OMITTED"] += tied_count
-            target_stream.update(
-                np.asarray(
-                    [entry_row_index, side_index, start_row],
-                    dtype="<i8",
-                ).tobytes()
+            episode_index = len(records)
+            population = unified_exit_state_population_arrays(
+                m1_times=m1_time,
+                m1_start_row=start_row,
             )
-            target_stream.update(np.ascontiguousarray(target).tobytes())
+            update_unified_exit_state_population_stream(
+                state_population_stream,
+                episode_index=episode_index,
+                entry_row_index=entry_row_index,
+                side_index=side_index,
+                m1_start_row=start_row,
+                population=population,
+            )
             records.append(
                 {
                     "schema_version": (
                         UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
                     ),
+                    "episode_index": np.int64(episode_index),
                     "entry_row_index": np.int64(entry_row_index),
                     "entry_time": entry_timestamp,
                     "entry_available_at": entry_available_at,
@@ -2084,22 +2052,24 @@ def build_unified_exit_lifecycle_episodes(
                     "entry_ask": np.float64(ask_open[start_row]),
                     "m1_start_row": np.int64(start_row),
                     "m1_start_time": m1_time[start_row],
+                    "first_state_decision_time": pd.Timestamp(
+                        int(population["decision_time_ns"][0]),
+                        unit="ns",
+                        tz="UTC",
+                    ),
                     "path_state_count": np.int16(path_state_count),
-                    "target_lookahead_m1_steps": np.int16(lookahead),
-                    "non_tied_target_count": np.int16(non_tied_count),
-                    "hold_target_count": np.int16(hold_count),
-                    "exit_now_target_count": np.int16(exit_count),
-                    "tied_target_count": np.int16(tied_count),
+                    "state_indices": population["state_indices"].tolist(),
+                    "decision_row_indices": population[
+                        "decision_row_indices"
+                    ].tolist(),
+                    "state_row_time_ns": population["state_row_time_ns"].tolist(),
+                    "decision_time_ns": population["decision_time_ns"].tolist(),
+                    "state_valid_mask": population["state_valid_mask"].tolist(),
                 }
             )
 
     if not records:
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES")
-    if any(target_counts[name] <= 0 for name in UNIFIED_EXIT_ACTION_ORDER):
-        raise RuntimeError(
-            "UNIFIED_EXIT_LIFECYCLE_TARGET_CLASS_DEAD: "
-            f"{target_counts}"
-        )
     episodes = pd.DataFrame.from_records(
         records,
         columns=UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS,
@@ -2110,19 +2080,36 @@ def build_unified_exit_lifecycle_episodes(
         "entry_rows": int(len(entry_rows)),
         "eligible_entry_rows": int(len(episodes) // len(UNIFIED_EXIT_SIDE_ORDER)),
         "episode_rows": int(len(episodes)),
+        "state_population_schema_version": (
+            UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+        ),
+        "state_population_per_episode": path_state_count,
+        "state_population_rows": int(len(episodes) * path_state_count),
+        "state_population_stream_sha256": state_population_stream.hexdigest(),
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "path_state_count": path_state_count,
-        "target_lookahead_m1_steps": lookahead,
         "required_observed_m1_rows_per_episode": required_rows,
         "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "market_closure_contract": market_closure_contract,
-        "target_counts": target_counts,
         "skipped_entry_rows": skipped,
-        "target_stream_sha256": target_stream.hexdigest(),
         "split_end_utc": parsed_split_end.isoformat(),
         "entry_side_selection": "both_sides_for_every_causal_entry_snapshot",
+        "state_population": (
+            "all_authoritative_states_both_sides_every_complete_episode"
+        ),
+        "first_state_pre_entry_history_rows": int(
+            EXIT_FEATURE_SEQUENCE_BARS - 1
+        ),
+        "first_state_post_fill_closed_bars": 1,
+        "state_row_timestamp_semantics": "authoritative_m1_bar_start",
+        "decision_time_semantics": "authoritative_m1_bar_close_available_at",
+        "sample_selection_depends_on_future_target": False,
         "future_outcomes_used_as_model_inputs": False,
+        "exit_supervision_authority": (
+            "executable_exit_now_reward_plus_train_fitted_q"
+        ),
+        "extra_lookahead_beyond_trajectory": 0,
         "path_values_duplicated_into_episode_artifact": False,
     }
     return episodes, proof
@@ -2198,8 +2185,6 @@ def _compute_bad_path_first_n(
     *,
     tape: pd.DataFrame,
     horizon_bars: int,
-    adverse_threshold_bps: float,
-    favorable_threshold_bps: float,
 ) -> pd.DataFrame:
     """V11 redesign: bad_path predicts ACTUAL LOSER, not trajectory shape.
 
@@ -2246,12 +2231,6 @@ def _compute_bad_path_first_n(
             "bad_path_long_first_n": out_long,
             "bad_path_short_first_n": out_short,
             "bad_path_horizon_bars": np.int32(horizon_bars),
-            "bad_path_mae_threshold_bps": np.float32(
-                adverse_threshold_bps
-            ),  # kept for compat
-            "bad_path_mfe_threshold_bps": np.float32(
-                favorable_threshold_bps
-            ),  # kept for compat
             "v11_pnl_long_at_horizon_bps": pnl_long_at_horizon_bps.astype(np.float32),
             "v11_pnl_short_at_horizon_bps": pnl_short_at_horizon_bps.astype(np.float32),
         }
@@ -2326,46 +2305,24 @@ def _require_model_native_manifest_contract(
     if not isinstance(ctx_contract, dict):
         raise RuntimeError("MODEL_NATIVE_MANIFEST_CTX_CONTRACT_MISSING")
     exact_ctx = _model_native_ctx_contract_metadata()
-    for key in (
-        "tag",
-        "ctx_cont_dim",
-        "ctx_cat_dim",
-        "ctx_cont_names",
-        "ctx_cat_names",
-    ):
-        expected = exact_ctx[key]
-        if ctx_contract.get(key) != expected:
-            raise RuntimeError(
-                "MODEL_NATIVE_MANIFEST_CTX_CONTRACT_INVALID: "
-                f"{key}={ctx_contract.get(key)!r} expected={expected!r}"
-            )
+    if ctx_contract != exact_ctx:
+        raise RuntimeError("MODEL_NATIVE_MANIFEST_CTX_CONTRACT_INVALID")
 
     state_contract = extra.get("model_native_state_contract")
     if not isinstance(state_contract, dict):
         raise RuntimeError("MODEL_NATIVE_MANIFEST_STATE_CONTRACT_MISSING")
     try:
-        validate_state_contract_metadata_v2(state_contract, require_artifact=False)
+        validate_state_contract_metadata_v2(state_contract)
     except RuntimeError as exc:
         raise RuntimeError(
             f"MODEL_NATIVE_MANIFEST_STATE_CONTRACT_INVALID: {exc}"
         ) from exc
-    for key in (
-        "rank_reference_npz",
-        "rank_reference_sidecar_json",
-        "rank_reference_source_parquet",
-    ):
-        if not str(state_contract.get(key) or "").strip():
-            raise RuntimeError(f"MODEL_NATIVE_MANIFEST_STATE_FIELD_MISSING: {key}")
-    for key in (
-        "rank_reference_npz_sha256",
-        "rank_reference_sidecar_sha256",
-        "rank_reference_source_parquet_sha256",
-    ):
-        value = str(state_contract.get(key) or "").strip().lower()
-        if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
-            raise RuntimeError(f"MODEL_NATIVE_MANIFEST_STATE_HASH_INVALID: {key}")
-    if int(state_contract.get("rank_reference_fit_row_count") or 0) <= 0:
-        raise RuntimeError("MODEL_NATIVE_MANIFEST_STATE_ROW_COUNT_INVALID")
+    require_entry_fitted_q_contract(
+        extra.get("entry_fitted_q"),
+        context="MODEL_NATIVE_DATASET_MANIFEST",
+    )
+    if "entry_direction_target_policy" in extra:
+        raise RuntimeError("MODEL_NATIVE_MANIFEST_RETIRED_DIRECTION_POLICY_PRESENT")
     return signal_contract
 
 
@@ -2410,17 +2367,6 @@ def _require_model_native_seq513_split_manifest_contract(
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_ORDER_INVALID")
     signal_contract = _require_model_native_manifest_contract(extra)
-    state_contract = (
-        extra.get("model_native_state_contract") if isinstance(extra, dict) else {}
-    )
-    state_fit_start = _parse_ts(str(state_contract.get("rank_fit_start_utc") or ""))
-    state_fit_end = _parse_ts(str(state_contract.get("rank_fit_end_utc") or ""))
-    if state_fit_start != parsed["train_start"] or state_fit_end != parsed["train_end"]:
-        raise RuntimeError(
-            "MODEL_NATIVE_STATE_TRAIN_WINDOW_MISMATCH: "
-            f"state={state_fit_start}..{state_fit_end} "
-            f"train={parsed['train_start']}..{parsed['train_end']}"
-        )
     mtf_binding = extra.get("multi_tf_cache_binding")
     # One truth: the exact key set lives in the normalization owner. This
     # builder writes V29 manifests, so the V29 set (with the TRAIN-fitted
@@ -2429,15 +2375,22 @@ def _require_model_native_seq513_split_manifest_contract(
     # the shared validators.
     from gx1.features.htf_features import require_v29_registry_constants
     from gx1.models.entry_v10.entry_v10_input_normalization import (
-        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29,
+        MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30,
     )
 
     if (
         not isinstance(mtf_binding, dict)
-        or set(mtf_binding) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V29
+        or set(mtf_binding) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_MTF_CACHE_BINDING_INVALID")
     require_v29_registry_constants(mtf_binding["v29_registry_constants"])
+    from gx1.features.volatility_squeeze_state_v1 import (
+        require_volatility_squeeze_artifact_binding,
+    )
+
+    require_volatility_squeeze_artifact_binding(
+        mtf_binding["volatility_squeeze_artifact_set"]
+    )
     for key in (
         "manifest_sha256",
         "cache_identity_sha256",
@@ -2488,6 +2441,19 @@ def write_manifest(
         )
     else:
         signal_contract = _require_model_native_manifest_contract(extra)
+    xau_tape_provenance = (
+        extra.get("xau_tape_provenance") if isinstance(extra, dict) else None
+    )
+    if not isinstance(xau_tape_provenance, dict):
+        raise RuntimeError("MODEL_NATIVE_MANIFEST_XAU_TAPE_PROVENANCE_MISSING")
+    if not isinstance(extra, Mapping):
+        raise RuntimeError("MODEL_NATIVE_MANIFEST_ENTRY_FITTED_Q_MISSING")
+    require_entry_fitted_q_contract(
+        extra.get("entry_fitted_q"),
+        context="MODEL_NATIVE_DATASET_MANIFEST",
+    )
+    if "entry_direction_target_policy" in extra:
+        raise RuntimeError("MODEL_NATIVE_MANIFEST_RETIRED_DIRECTION_POLICY_PRESENT")
     extra_ctx = extra["ctx_contract"]
     ctx_cont_micro = list(extra_ctx.get("ctx_cont_micro_features") or [])
     ctx_cont_swing = list(extra_ctx.get("ctx_cont_swing_features") or [])
@@ -2551,116 +2517,17 @@ def _model_native_state_contract(
     train_end: pd.Timestamp,
 ) -> Dict[str, Any]:
     entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
-    raw_npz = str(getattr(args, "model_native_rank_reference_npz", "") or "").strip()
-    if not raw_npz:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_REQUIRED: pass an explicit audited NPZ"
-        )
-    npz_path = Path(raw_npz).expanduser().resolve()
-    if not npz_path.is_file():
-        raise RuntimeError(f"MODEL_NATIVE_RANK_REFERENCE_MISSING: {npz_path}")
-    sidecar_path = npz_path.with_suffix(npz_path.suffix + ".json")
-    if not sidecar_path.is_file():
-        raise RuntimeError(
-            f"MODEL_NATIVE_RANK_REFERENCE_SIDECAR_MISSING: {sidecar_path}"
-        )
-    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
-    if not isinstance(sidecar, dict):
-        raise RuntimeError("MODEL_NATIVE_RANK_REFERENCE_SIDECAR_INVALID")
-    npz_sha = _sha256_file(npz_path)
-    sidecar_npz = Path(str(sidecar.get("out_npz") or "")).expanduser().resolve()
-    if sidecar_npz != npz_path:
-        raise RuntimeError(
-            f"MODEL_NATIVE_RANK_REFERENCE_PATH_MISMATCH: sidecar={sidecar_npz} actual={npz_path}"
-        )
-    if str(sidecar.get("out_npz_sha256") or "").strip().lower() != npz_sha:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_SHA_MISMATCH: "
-            f"sidecar={sidecar.get('out_npz_sha256')!r} actual={npz_sha} path={npz_path}"
-        )
-    source_path = Path(str(sidecar.get("source_parquet") or "")).expanduser().resolve()
-    if not source_path.is_file():
-        raise RuntimeError(f"MODEL_NATIVE_RANK_REFERENCE_SOURCE_MISSING: {source_path}")
-    source_sha = _sha256_file(source_path)
-    if str(sidecar.get("source_parquet_sha256") or "").strip().lower() != source_sha:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_SOURCE_SHA_MISMATCH: "
-            f"sidecar={sidecar.get('source_parquet_sha256')!r} actual={source_sha} path={source_path}"
-        )
-    declared_builder_source = (
-        Path(str(getattr(args, "source_parquet", "") or "")).expanduser().resolve()
-    )
-    declared_rank_source = (
-        Path(str(getattr(args, "canonical_v2_parquet", "") or ""))
-        .expanduser()
-        .resolve()
-    )
-    if declared_rank_source != source_path:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_CANONICAL_SOURCE_MISMATCH: "
-            f"rank_source={source_path} canonical_source={declared_rank_source}"
-        )
-    market_identity = require_train_rank_source_market_identity_v2(
-        rank_source_parquet=source_path,
-        model_source_parquet=declared_builder_source,
-        history_start_utc=feature_history_start,
-        fit_end_utc=train_end,
-    )
-    reference = load_train_rank_reference_v2(npz_path, expected_sha256=npz_sha)
-    rank_run_id = str(reference.sidecar.get("entry_run_id") or "").strip()
-    if rank_run_id != entry_run_id:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_RUN_ID_MISMATCH: "
-            f"rank={rank_run_id!r} build={entry_run_id!r}"
-        )
-    sidecar_history_start = _parse_ts(str(sidecar.get("history_start_utc") or ""))
-    if sidecar_history_start != feature_history_start:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_HISTORY_START_MISMATCH: "
-            f"sidecar={sidecar_history_start} build={feature_history_start}"
-        )
-    if reference.fit_start_utc != train_start:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_FIT_START_MISMATCH: "
-            f"sidecar={reference.fit_start_utc} build={train_start}"
-        )
-    if reference.fit_end_utc != train_end:
-        raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_FIT_END_MISMATCH: "
-            f"sidecar={reference.fit_end_utc} build={train_end}"
-        )
     if not feature_history_start <= train_start <= train_end:
         raise RuntimeError("MODEL_NATIVE_STATE_CONTRACT_TIME_ORDER_INVALID")
-    if (
-        not str(sidecar.get("fit_time_min") or "").strip()
-        or not str(sidecar.get("fit_time_max") or "").strip()
-    ):
-        raise RuntimeError("MODEL_NATIVE_RANK_REFERENCE_TIME_RANGE_MISSING")
-    return {
+    return validate_state_contract_metadata_v2({
         "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
         "source": "entry_v10_ctx_dataset_manifest",
         "feature_history_start_utc": str(feature_history_start),
-        "rank_fit_start_utc": str(train_start),
-        "rank_fit_end_utc": str(train_end),
-        "rank_reference_npz": str(npz_path),
-        "rank_reference_npz_sha256": npz_sha,
-        "rank_reference_sidecar_sha256": reference.sidecar_sha256,
-        "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "rank_reference_sidecar_json": str(sidecar_path),
-        "rank_reference_fit_row_count": int(reference.fit_row_count),
-        "rank_reference_fit_time_min": str(sidecar["fit_time_min"]),
-        "rank_reference_fit_time_max": str(sidecar["fit_time_max"]),
-        "rank_reference_source_parquet": str(source_path),
-        "rank_reference_source_parquet_sha256": source_sha,
-        "rank_reference_model_source_market_identity": market_identity,
-        "rank_reference_fit_scope": "train_only",
-        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
         "split_reset_allowed": False,
-        "post_fit_rows_in_rank_reference": False,
         "runtime_rule_free": True,
         "entry_run_id": entry_run_id,
-    }
+    })
 
 
 # -----------------------------------------------------------------------------
@@ -2748,7 +2615,7 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # and allocates only one bounded 4096-row result at a time. This is a capacity
 # contract, not a tunable throughput preference.
 _MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 1
-_MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpoint_v3"
+_MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpoint_v5"
 _MODEL_NATIVE_STREAMING_BATCH_SIZE = 512
 
 
@@ -2826,10 +2693,10 @@ def build_dataset_canonical(
     start: pd.Timestamp,
     end: pd.Timestamp,
     seq_len: int,
-    early_move_threshold_bps: float,
+    entry_direction_target_policy: Mapping[str, Any],
+    entry_position_size_target_policy: Mapping[str, Any],
     canonical_v2_parquet: Path,
     seq_structure_manifest_path: Path,
-    model_native_rank_reference_npz: Path,
     m5_feature_surface_times: pd.DatetimeIndex,
     m5_feature_surface_arrays: Mapping[str, np.ndarray],
     m5_feature_surface_binding: Mapping[str, Any],
@@ -2850,6 +2717,35 @@ def build_dataset_canonical(
         architecture,
         context="ENTRY_V10_DATASET_BUILD",
     )
+    direction_target_policy = require_entry_direction_target_policy(
+        entry_direction_target_policy
+    )
+    position_size_target_policy = require_entry_position_size_target_policy(
+        entry_position_size_target_policy,
+        expected_source_parquet_sha256=direction_target_policy[
+            "source_parquet_sha256"
+        ],
+        expected_tape_provenance_sha256=direction_target_policy[
+            "tape_provenance_sha256"
+        ],
+        expected_direction_policy_sha256=direction_target_policy["policy_sha256"],
+    )
+    direction_horizon_bars = int(
+        direction_target_policy["selected_direction_horizon_bars"]
+    )
+    path_quality_horizon_bars = int(
+        direction_target_policy["path_quality_horizon_bars"]
+    )
+    path_aux_thresholds = direction_target_policy["path_aux_thresholds_bps"]
+    mfe_low_threshold_bps = float(path_aux_thresholds["mfe_low_bps"])
+    mfe_median_threshold_bps = float(path_aux_thresholds["mfe_median_bps"])
+    mfe_high_threshold_bps = float(path_aux_thresholds["mfe_high_bps"])
+    mae_low_threshold_bps = float(path_aux_thresholds["mae_low_bps"])
+    mae_median_threshold_bps = float(path_aux_thresholds["mae_median_bps"])
+    mae_high_threshold_bps = float(path_aux_thresholds["mae_high_bps"])
+    path_low_threshold_bps = float(path_aux_thresholds["path_low_bps"])
+    path_median_threshold_bps = float(path_aux_thresholds["path_median_bps"])
+    path_high_threshold_bps = float(path_aux_thresholds["path_high_bps"])
     ctx = _hard_gate_model_native_context()
     signal_build_contract = _signal_build_contract_from_manifest(
         seq_structure_manifest_path
@@ -2924,19 +2820,6 @@ def build_dataset_canonical(
 
     if df["time"].duplicated().any() or not df["time"].is_monotonic_increasing:
         raise RuntimeError("MODEL_NATIVE_HISTORY_TIME_ORDER_INVALID")
-    train_rank_reference = load_train_rank_reference_v2(
-        Path(model_native_rank_reference_npz).expanduser().resolve()
-    )
-    df = apply_train_rank_reference_v2(df, train_rank_reference)
-    log.info(
-        "[MODEL_NATIVE_TRAIN_ONLY_RANK] fit=%s..%s rows=%d history=%s..%s",
-        train_rank_reference.fit_start_utc,
-        train_rank_reference.fit_end_utc,
-        train_rank_reference.fit_row_count,
-        start,
-        end,
-    )
-
     # 3) Validate the contracted session state and derive additional learned
     # session-context inputs from canonical UTC timestamps. Missing or malformed
     # session state is an upstream contract failure, never an ASIA/default value.
@@ -3003,23 +2886,21 @@ def build_dataset_canonical(
             canonical_session_id[1:] != canonical_session_id[:-1]
         ).astype(np.int8)
     df["session_change_flag"] = session_change
-    df["session_tradable"] = (
-        canonical_session_id != ASIA_SESSION_ID
-    ).astype(np.int8)
-
-    # The train-rank state contract above is the sole owner of exact ATR/spread
-    # evidence. Never synthesize a second clipped volatility surface here.
-    rank_context_names = ("atr", "atr_bps", "spread_bps")
-    rank_context_missing = [
-        name for name in rank_context_names if name not in df.columns
+    # Exact continuous ATR/spread evidence must already exist in the canonical
+    # source. Never replace it with learned ranks or hand-cut buckets.
+    market_context_names = ("atr", "atr_bps", "spread_bps")
+    market_context_missing = [
+        name for name in market_context_names if name not in df.columns
     ]
-    if rank_context_missing:
-        raise RuntimeError(f"MODEL_NATIVE_RANK_CONTEXT_MISSING: {rank_context_missing}")
-    rank_context = df[list(rank_context_names)].to_numpy(dtype=np.float64)
-    if not np.isfinite(rank_context).all():
-        raise RuntimeError("MODEL_NATIVE_RANK_CONTEXT_NONFINITE")
-    if np.any(rank_context[:, :2] <= 0.0) or np.any(rank_context[:, 2] < 0.0):
-        raise RuntimeError("MODEL_NATIVE_RANK_CONTEXT_OUT_OF_RANGE")
+    if market_context_missing:
+        raise RuntimeError(
+            f"MODEL_NATIVE_MARKET_CONTEXT_MISSING: {market_context_missing}"
+        )
+    market_context = df[list(market_context_names)].to_numpy(dtype=np.float64)
+    if not np.isfinite(market_context).all():
+        raise RuntimeError("MODEL_NATIVE_MARKET_CONTEXT_NONFINITE")
+    if np.any(market_context[:, :2] <= 0.0) or np.any(market_context[:, 2] < 0.0):
+        raise RuntimeError("MODEL_NATIVE_MARKET_CONTEXT_OUT_OF_RANGE")
 
     log.info(
         "[MODEL_NATIVE_SIGNAL] exact base fields=%d selected fields=%d total=%d rows=%d",
@@ -3031,11 +2912,8 @@ def build_dataset_canonical(
 
     # 6) Build ctx features
     ctx_cont_names = list(ctx["ctx_cont_source_prefix_names"])
-    # ctx_cat is the unconditional five-field model-native contract; the stale
-    # degenerate trend_regime_id base anchor is excluded. This also fixes the
-    # H4 case: the v3 contract uses capital "H4_trend_sign_cat" exactly as add_ctx_cont emits it
-    # (the v1 base used lowercase "h4_trend_sign_cat", which mismatched the prebuilt column).
-    # Symmetric with the ctx_cont_names = MODEL_NATIVE_CTX_CONT_FIELDS upgrade later in this builder.
+    # ctx_cat contains only the factual session enum. Continuous market state
+    # remains in ctx_cont and is never re-bucketed here.
     ctx_cat_names = list(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     # 7) Assemble per-bar signal dataframe (time aligned)
@@ -3086,7 +2964,7 @@ def build_dataset_canonical(
             f"TAPE_JOIN_STRICT_FAIL: rows_source={rows_source} rows_tape={rows_tape} rows_joined={rows_joined}"
         )
 
-    # Micro-structure features (canonical tape OHLC), recomputed by their only
+    # Local price primitives (canonical tape OHLC), recomputed by their only
     # formula owner. Source copies are discarded below and can never win.
     if not all(c in merged.columns for c in ("close", "high", "low")):
         raise RuntimeError(
@@ -3126,8 +3004,8 @@ def build_dataset_canonical(
         lookback=SWING_LOOKBACK_V1,
         atr_period=SWING_ATR_PERIOD_V1,
         # V30 (2026-08-13): the V29/V30 swing event fields are ctx contract
-        # fields from this rebuild boundary on (MODEL_NATIVE_CTX_CONT_SWING_FIELDS
-        # is the 14-name surface); every ctx producer flips together (rule 6).
+        # fields from this rebuild boundary on; every ctx producer consumes
+        # the same complete source-owned tuple (rule 6).
         include_v29_additions=True,
     )
     for _name, _arr in _swing.items():
@@ -3170,7 +3048,7 @@ def build_dataset_canonical(
         + list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)
     )
     log.info(
-        "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
+        "[ENTRY_LOCAL_PRICE_PRIMITIVES_PROOF] names=%s count=%d",
         list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
         len(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
     )
@@ -3229,7 +3107,7 @@ def build_dataset_canonical(
                 if c in ("bid_close", "ask_close", "bid", "ask")
             ]
         ].copy(),
-        horizon_bars=PATH_QUALITY_HORIZON_BARS,
+        horizon_bars=path_quality_horizon_bars,
     )
     bad_path = _compute_bad_path_first_n(
         tape=merged[
@@ -3240,14 +3118,12 @@ def build_dataset_canonical(
                 if c in ("bid_close", "ask_close", "bid", "ask")
             ]
         ].copy(),
-        horizon_bars=BAD_PATH_HORIZON_BARS,
-        adverse_threshold_bps=BAD_PATH_MAE_THRESHOLD_BPS,
-        favorable_threshold_bps=BAD_PATH_MFE_THRESHOLD_BPS,
+        horizon_bars=path_quality_horizon_bars,
     )
 
     # Direction, early-move, quality and bad-path targets are selected below
-    # from the final spread-aware H=24 direction side. No bootstrap direction
-    # or fixed-duration Exit label is admitted.
+    # from the final spread-aware side at the exact TRAIN-fitted horizon. No
+    # bootstrap direction or caller-selected fixed duration is admitted.
     merged2 = merged.merge(
         path_quality[
             [
@@ -3270,19 +3146,17 @@ def build_dataset_canonical(
                 "bad_path_long_first_n",
                 "bad_path_short_first_n",
                 "bad_path_horizon_bars",
-                "bad_path_mae_threshold_bps",
-                "bad_path_mfe_threshold_bps",
-                # NOTE: the H=10 v11_pnl_*_at_horizon_bps are NOT merged — the direction
-                # label uses the dedicated H=24 v11_pnl_*_at_dir_horizon_bps below
-                # (2026-05-26). bad_path head still uses its own bad_path_*_first_n.
+                # The generic PnL columns are not merged: direction uses the
+                # dedicated fitted-horizon columns below. bad_path still uses
+                # its own side-specific outcome at that same fitted horizon.
             ]
         ],
         on="time",
         how="inner",
         validate="one_to_one",
     )
-    # 2026-05-26: dedicated H=24 (2h) pnl-at-horizon for the DIRECTION/tradable label
-    # (decoupled from bad_path's 10-bar horizon). Reuses the same spread-aware pnl fn.
+    # Dedicated fitted-horizon executable PnL for DIRECTION/tradable. The
+    # horizon is learned once on TRAIN and shared by every split.
     _dir_pnl = _compute_bad_path_first_n(
         tape=merged[
             ["time"]
@@ -3292,9 +3166,7 @@ def build_dataset_canonical(
                 if c in ("bid_close", "ask_close", "bid", "ask")
             ]
         ].copy(),
-        horizon_bars=V11_DIRECTION_HORIZON_BARS,
-        adverse_threshold_bps=BAD_PATH_MAE_THRESHOLD_BPS,
-        favorable_threshold_bps=BAD_PATH_MFE_THRESHOLD_BPS,
+        horizon_bars=direction_horizon_bars,
     )[["time", "v11_pnl_long_at_horizon_bps", "v11_pnl_short_at_horizon_bps"]].rename(
         columns={
             "v11_pnl_long_at_horizon_bps": "v11_pnl_long_at_dir_horizon_bps",
@@ -3404,15 +3276,10 @@ def build_dataset_canonical(
             "V2_CANONICAL_JOIN_EMPTY: no time overlap between merged3 and canonical_v2"
         )
 
-    # Recompute long-lookback HTF and REGIME_V4 derived state on this exact
-    # common-history frame. Canonical/source copies are never passed through as
-    # model-native truth; both calls use the same owners as serving.
+    # Recompute long-lookback continuous HTF state on this exact common-history
+    # frame. Canonical/source copies are never passed through as model-native
+    # truth; the call uses the same owner as serving.
     from gx1.execution.v12_ctx_augment_live import _add_htf_features as _add_htf_common
-    from gx1.features.regime_v4_features import (
-        REGIME_V4_DERIVED_COLS as _REGIME_DERIVED,
-        REGIME_V4_SOURCE_COLS as _REGIME_SOURCES,
-        add_regime_v4_features as _add_regime_common,
-    )
 
     _common_index = pd.DatetimeIndex(
         pd.to_datetime(merged3["time"], utc=True, errors="raise")
@@ -3425,8 +3292,8 @@ def build_dataset_canonical(
         raise RuntimeError("MODEL_NATIVE_COMMON_HISTORY_TIME_INVALID")
     # The HTF recompute must see the FULL tape history exactly like serving
     # does (live computes HTF state from complete canonical history): sourcing
-    # it from the truncated common frame would leave the 252-day D1 percentile
-    # NaN across the first ~year of TRAIN and fail the extension head.
+    # it from the truncated common frame would reset the retained D1 EMA200
+    # distance history and skew the extension head.
     _htf_m5_src = _load_canonical_tape(
         tape_root=tape_root,
         tape_provenance=tape_provenance,
@@ -3441,11 +3308,8 @@ def build_dataset_canonical(
     _add_htf_common(_htf_common, _common_m5)
     _htf_common_cols = (
         "D1_dist_from_ema200_atr",
-        "D1_atr_percentile_252",
-        "H1_range_compression_ratio",
-        "M15_range_compression_ratio",
-        "H4_range_compression_ratio",
-        "H4_trend_sign_cat",
+        "d1_dist_change_1bar_atr_v4",
+        "h4_mid_ema50_dist_atr_canon_v2",
     )
     _missing_htf_common = [
         name for name in _htf_common_cols if name not in _htf_common.columns
@@ -3457,44 +3321,19 @@ def build_dataset_canonical(
     for _name in _htf_common_cols:
         merged3[_name] = _htf_common[_name].to_numpy()
 
-    _regime_source_without_d1 = [
-        name for name in _REGIME_SOURCES if name != "D1_dist_from_ema200_atr"
-    ]
-    _missing_regime_sources = [
-        name for name in _regime_source_without_d1 if name not in merged3.columns
-    ]
-    if _missing_regime_sources:
-        raise RuntimeError(
-            "MODEL_NATIVE_COMMON_HISTORY_REGIME_SOURCES_MISSING: "
-            f"{_missing_regime_sources}"
-        )
-    _regime_common = merged3[_regime_source_without_d1].copy()
-    _regime_common.index = _common_index
-    _regime_common["D1_dist_from_ema200_atr"] = _htf_common[
-        "D1_dist_from_ema200_atr"
-    ].to_numpy()
-    _add_regime_common(_regime_common)
-    for _name in _REGIME_DERIVED:
-        merged3[_name] = _regime_common[_name].to_numpy()
-    _causal_regime_v4_warmup_rows = int(
-        _regime_common.attrs.get("causal_regime_v4_warmup_rows", 0)
-    )
-
-    # ── GROUP-A market-parity (24) — 2026-05-26 ──────────────────────────────
-    # Compute the 24 ctx_cont parity features (dip-distance, pivots, vol-term,
-    # vol-percentile, session-overlap) through the shared
-    # augment_forward_outcome_v2.augment_candidate owner. ATR is derived from
-    # the same M5 multi-TF cache, so dataset surfaces remain identical.
+    # ── GROUP-A raw distance parity (14) ─────────────────────────────────────
+    # Compute the fourteen pivot/liquidity distances through the shared
+    # augment_forward_outcome_v2 owner. ATR comes from the same raw M5
+    # multi-TF cache, so dataset and serving surfaces remain identical.
     from gx1.contracts.entry_model_native_signal_v1 import (
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
     )
 
     # Recompute unconditionally over the explicit common-history frame.  Source
     # parquets may carry older/full-range derived values; trusting those would
     # make TRAIN and SERVE history semantics depend on an external build.
     from gx1.scripts.augment_forward_outcome_v2 import (
-        attach_group_a_dip_struct_ctx_columns_parallel as _attach_group_a,
+        attach_group_a_ctx_columns_parallel as _attach_group_a,
         trim_causal_context_warmup_prefix as _trim_context_warmup,
     )
     from gx1.features.htf_features import load_multi_tf_v4_cache as _ga_load_cache
@@ -3526,10 +3365,11 @@ def build_dataset_canonical(
             _verified_mtf_cache.m5_prebuilt_source_sha256
         ),
         "v29_registry_constants": _v29_registry_constants,
+        "volatility_squeeze_artifact_set": (
+            _verified_mtf_cache.volatility_squeeze_artifacts.binding()
+        ),
     }
-    _group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
-    )
+    _group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS)
     merged3 = merged3.drop(
         columns=[name for name in _group_a_required if name in merged3.columns]
     )
@@ -3551,9 +3391,6 @@ def build_dataset_canonical(
         "multi_tf_cache_identity_sha256": _multi_tf_cache_binding[
             "cache_identity_sha256"
         ],
-        "rank_reference_sha256": _sha256_file(
-            Path(model_native_rank_reference_npz).expanduser().resolve()
-        ),
         "feature_history_start_utc": start.isoformat(),
         "feature_computation_end_utc": end.isoformat(),
         "emission_start_utc": emit_start.isoformat(),
@@ -3598,14 +3435,16 @@ def build_dataset_canonical(
     _causal_required = list(
         dict.fromkeys(
             _group_a_required
-            + list(_REGIME_SOURCES)
-            + list(_REGIME_DERIVED)
+            + list(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
             # V30 (2026-08-13): the adopted V29 swing ctx fields carry their own
             # honest NaN warmup (no pivot-sequence delta before the SECOND
             # confirmed pivot per side). They join the trim list so the prefix
             # is removed by contract instead of being covered incidentally by
             # the much longer D1 warmup above.
             + list(SWING_V29_ADDITION_NAMES_V1)
+            # Honest five-row local change/EMA prefix from the sole micro
+            # owner; never rely on a longer unrelated warmup to hide it.
+            + list(MICRO_WARMUP_PREFIX_FIELDS_V1)
             # V30 package 4 (2026-08-13): spread_bps_delta_1 has no value on
             # the first row of any frame (one prior row required); trim that
             # prefix by contract on every lane.
@@ -3616,17 +3455,16 @@ def build_dataset_canonical(
     merged3 = _trim_context_warmup(merged3, _causal_required).reset_index(drop=True)
     _causal_context_warmup_rows_trimmed = _rows_before_context_trim - len(merged3)
     log.info(
-        "[V10_GROUP_A_PARITY] computed %d parity + %d dip/struct features; trimmed warmup rows=%d",
+        "[V10_GROUP_A_PARITY] computed %d raw parity features; trimmed warmup rows=%d",
         len(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS),
-        len(MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS),
         _causal_context_warmup_rows_trimmed,
     )
 
     # ── Volume / order-flow per-bar features (2026-05-26) ────────────────────
     # Derived from raw `volume` (+ `close`) via the SAME helper the live ctx
     # augmenter calls (gx1.features.volume_features) → identical train/serve
-    # values. Adds vol_z_20 / vol_ratio_5_20 / vol_pct_96 / signed_vol_z_20 to
-    # the genuine model-native per-bar base surface.
+    # values. Adds the current code-owned volume contract to the genuine
+    # model-native per-bar base surface.
     if any(f not in merged3.columns for f in _VOLUME_FEAT_NAMES):
         from gx1.features.volume_features import add_volume_features as _add_vol
 
@@ -3657,19 +3495,6 @@ def build_dataset_canonical(
         MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
         int(_head_target_complete_mask.sum()),
         int((~_head_target_complete_mask).sum()),
-    )
-
-    # ENTRY smart-context features promoted from audit-only candidates. These are
-    # computed after SMC + Group-A + dip/struct source columns exist, before the
-    # ctx_cont contract gate below.
-    from gx1.features.entry_smart_context import (
-        add_entry_smart_context_features as _add_entry_smart,
-    )
-
-    _add_entry_smart(merged3)
-    log.info(
-        "[V10_ENTRY_SMART_CTX] computed %d promoted ctx_cont features",
-        len(MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS),
     )
 
     # Verify all contracted signal and ctx_cont names are present after join.
@@ -3762,33 +3587,16 @@ def build_dataset_canonical(
     y_mfe_first_n = np.zeros(target_rows, dtype=np.float32)
     y_path_quality = np.zeros(target_rows, dtype=np.float32)
     y_bad_path = np.zeros(target_rows, dtype=np.float32)
-    y_label_horizon = final_direction_label_horizon_array(len(merged3))
-    y_path_horizon = merged3["path_quality_horizon_bars"].astype(np.int32).to_numpy()
-
-    # V10 v3+ TARGET 1: multi-TF trend-agreement score.
-    # Computed from D1/H4/H1/M15/M5 sign signals; fraction of non-D1 TFs
-    # whose sign matches D1's. Aux label for training (loss-weighting when
-    # direction prediction is wrong under high TF-disagreement).
-    # Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 1.
-    from gx1.features.tf_agreement_score import compute_tf_agreement_score
-
-    y_tf_agreement = compute_tf_agreement_score(merged3).astype(np.float32).to_numpy()
-    if len(y_tf_agreement) != len(merged3) or not np.isfinite(y_tf_agreement).all():
-        raise RuntimeError("V3_TF_AGREEMENT_INVALID: target is missing or non-finite")
-    if np.unique(y_tf_agreement).size < 2:
-        raise RuntimeError("V3_TF_AGREEMENT_DEAD: target is constant")
-    log.info(
-        "[V3_TF_AGREEMENT] computed n=%d  mean=%.3f  std=%.3f  frac_full=%.3f  frac_zero=%.3f",
-        len(y_tf_agreement),
-        float(y_tf_agreement.mean()),
-        float(y_tf_agreement.std()),
-        float((y_tf_agreement == 1.0).mean()),
-        float((y_tf_agreement == 0.0).mean()),
+    y_label_horizon = diagnostic_outcome_horizon_array(
+        len(merged3),
+        target_policy=direction_target_policy,
     )
+    y_path_horizon = merged3["path_quality_horizon_bars"].astype(np.int32).to_numpy()
 
     # Position-size depends on selected future MFE/MAE and tradable side, so the
     # real target is materialized after outcome-side selection below.
-    y_position_size = np.full(len(merged3), 0.5, dtype=np.float32)
+    y_position_size = np.zeros(len(merged3), dtype=np.float32)
+    y_position_size_mask = np.zeros(len(merged3), dtype=np.float32)
 
     # ---------------------------------------------------------------------------
     # Quality/tradability targets:
@@ -3815,74 +3623,30 @@ def build_dataset_canonical(
     _mfe_lead_long = (_mfe_long - _mfe_short).astype(np.float32)
     _mfe_lead_short = (_mfe_short - _mfe_long).astype(np.float32)
 
-    # V11 redesign: tradable target is OUTCOME-based (final PnL ≥ threshold).
-    # Old (V10): tradable required 6 trajectory conditions (mfe/mae/path/lead/...).
-    #            Resulted in head_tradable being saturated (median pred ≈ 0.91)
-    #            despite only ~5% of dataset being tradable. Anti-calibrated head.
-    # New (V11): tradable = (final_pnl_at_horizon >= V11_TRADABLE_PNL_MIN_BPS).
-    #            Direct outcome target, head learns to predict P(profitable trade).
-    # 2026-05-26: threshold 30→15 bps + dedicated H=24 (2h) direction horizon
-    # (V11_TRADABLE_PNL_MIN_BPS / V11_DIRECTION_HORIZON_BARS module consts) → ~60%
-    # flat (was ~89%). Uses the v11_pnl_*_at_DIR_horizon_bps columns (H=24), NOT the
-    # bad_path H=10 columns. (rule: 89% flat uaktuelt — give the model real signal.)
+    # Core direction is an executable outcome under the immutable TRAIN-fitted
+    # policy. No caller-selected horizon, hand-weighted MFE/MAE utility, target
+    # class ratio, or fixed edge threshold participates.
     _dir_long_col = "v11_pnl_long_at_dir_horizon_bps"
     _dir_short_col = "v11_pnl_short_at_dir_horizon_bps"
     if _dir_long_col not in merged3.columns or _dir_short_col not in merged3.columns:
         raise RuntimeError(
-            f"V11_DIRECTION_PNL_MISSING: need {_dir_long_col}/{_dir_short_col} (H={V11_DIRECTION_HORIZON_BARS})"
+            f"ENTRY_DIRECTION_PNL_MISSING: need {_dir_long_col}/{_dir_short_col} "
+            f"(H={direction_horizon_bars})"
         )
     _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
     _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
 
-    # Learned target engineering, not a live rule: labels are chosen by one
-    # immutable future side-utility formula.  There is no legacy target mode.
-    _side_score_long = (
-        _pnl_long_at_h
-        + (float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * _mfe_long)
-        - (float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * _mae_long)
-        + (float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * _path_long)
-    ).astype(np.float32)
-    _side_score_short = (
-        _pnl_short_at_h
-        + (float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * _mfe_short)
-        - (float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * _mae_short)
-        + (float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * _path_short)
-    ).astype(np.float32)
-    if (
-        not np.isfinite(_side_score_long).all()
-        or not np.isfinite(_side_score_short).all()
-    ):
-        raise RuntimeError(
-            "V12_DIRECTION_UTILITY_NONFINITE: future outcome components must be finite; "
-            "no sentinel/fallback replacement is allowed"
-        )
-    _side_margin = (_side_score_long - _side_score_short).astype(np.float32)
-    _tradable_long = (_side_score_long >= float(V12_DIRECTION_UTILITY_MIN_BPS)) & (
-        _side_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS)
+    _direction_targets = entry_direction_targets_from_policy(
+        policy=direction_target_policy,
+        long_executable_pnl_bps=_pnl_long_at_h,
+        short_executable_pnl_bps=_pnl_short_at_h,
     )
-    _tradable_short = (_side_score_short >= float(V12_DIRECTION_UTILITY_MIN_BPS)) & (
-        (-_side_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS)
-    )
-    if (
-        not np.isfinite(_side_score_long).all()
-        or not np.isfinite(_side_score_short).all()
-    ):
-        raise RuntimeError(
-            "V12_DIRECTION_SCORE_NONFINITE: future side outcomes must be finite; "
-            "no direction-label fallback is allowed"
-        )
-    # Side selection follows the better path-aware future utility target.
-    _side = np.full(len(merged3), -1, dtype=np.int8)
-    _only_long = _tradable_long & ~_tradable_short
-    _only_short = _tradable_short & ~_tradable_long
-    _both = _tradable_long & _tradable_short
-    _side[_only_long] = MODEL_DIRECTION_LONG_INDEX
-    _side[_only_short] = MODEL_DIRECTION_SHORT_INDEX
-    if _both.any():
-        _prefer_long = _side_score_long >= _side_score_short
-        _prefer_short = _side_score_short > _side_score_long
-        _side[_both & _prefer_long] = MODEL_DIRECTION_LONG_INDEX
-        _side[_both & _prefer_short] = MODEL_DIRECTION_SHORT_INDEX
+    _side_score_long = _direction_targets["long_score_bps"]
+    _side_score_short = _direction_targets["short_score_bps"]
+    _side_margin = _direction_targets["side_margin_bps"]
+    _tradable_long = _direction_targets["tradable_long"]
+    _tradable_short = _direction_targets["tradable_short"]
+    _side = _direction_targets["side"]
 
     _direction_side = _side.copy()
 
@@ -3894,18 +3658,18 @@ def build_dataset_canonical(
     _dead_negative_long = (
         _long_path_candidate
         & (_side != MODEL_DIRECTION_LONG_INDEX)
-        & (_mfe_long <= float(DEAD_LONG_MAX_MFE_BPS))
-        & (_mae_long >= float(DEAD_LONG_MIN_MAE_BPS))
+        & (_mfe_long <= mfe_low_threshold_bps)
+        & (_mae_long >= mae_high_threshold_bps)
     )
     _teaser_negative_long = (
         _long_path_candidate
         & (_side != MODEL_DIRECTION_LONG_INDEX)
-        & (_mfe_long > float(TEASER_LONG_MIN_MFE_BPS))
-        & (_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS))
+        & (_mfe_long > mfe_low_threshold_bps)
+        & (_mfe_long <= mfe_high_threshold_bps)
         & (
             _bad_path_long
-            | (_mae_long >= float(TEASER_LONG_MIN_MAE_BPS))
-            | (_path_long <= float(TEASER_LONG_MAX_PATH_BPS))
+            | (_mae_long >= mae_median_threshold_bps)
+            | (_path_long <= path_low_threshold_bps)
         )
     )
     _hard_negative_long = (
@@ -3916,10 +3680,10 @@ def build_dataset_canonical(
         & (
             _bad_path_long
             | (
-                (_mfe_long >= float(HARD_NEG_LONG_MIN_MFE_BPS))
+                (_mfe_long >= mfe_high_threshold_bps)
                 & (
-                    (_mae_long >= float(HARD_NEG_LONG_MIN_MAE_BPS))
-                    | (_path_long <= float(HARD_NEG_LONG_MAX_PATH_BPS))
+                    (_mae_long >= mae_high_threshold_bps)
+                    | (_path_long <= path_low_threshold_bps)
                 )
             )
         )
@@ -3929,17 +3693,17 @@ def build_dataset_canonical(
     y_hard_negative_long = _hard_negative_long.astype(np.float32)
     _clean_edge_intrinsic = (
         (_direction_side == MODEL_DIRECTION_LONG_INDEX)
-        & (_mfe_long >= float(CLEAN_EDGE_LONG_MFE_MIN_BPS))
-        & (_mae_long <= float(CLEAN_EDGE_LONG_MAE_MAX_BPS))
-        & (_path_long >= float(CLEAN_EDGE_LONG_PATH_MIN_BPS))
+        & (_mfe_long >= mfe_high_threshold_bps)
+        & (_mae_long <= mae_low_threshold_bps)
+        & (_path_long >= path_high_threshold_bps)
         & (~_bad_path_long)
     )
     y_clean_edge_long = _clean_edge_intrinsic.astype(np.float32)
     _survival_intrinsic = (
         (_direction_side == MODEL_DIRECTION_LONG_INDEX)
-        & (_mfe_long >= float(SURVIVAL_LONG_MFE_MIN_BPS))
-        & (_mae_long <= float(SURVIVAL_LONG_MAE_MAX_BPS))
-        & (_path_long >= float(SURVIVAL_LONG_PATH_MIN_BPS))
+        & (_mfe_long >= mfe_median_threshold_bps)
+        & (_mae_long <= mae_median_threshold_bps)
+        & (_path_long >= path_median_threshold_bps)
     )
     y_survival_long = _survival_intrinsic.astype(np.float32)
     y_selector_long_mask = (
@@ -3958,18 +3722,18 @@ def build_dataset_canonical(
     _dead_negative_short = (
         _short_path_candidate
         & (_side != MODEL_DIRECTION_SHORT_INDEX)
-        & (_mfe_short <= float(DEAD_LONG_MAX_MFE_BPS))
-        & (_mae_short >= float(DEAD_LONG_MIN_MAE_BPS))
+        & (_mfe_short <= mfe_low_threshold_bps)
+        & (_mae_short >= mae_high_threshold_bps)
     )
     _teaser_negative_short = (
         _short_path_candidate
         & (_side != MODEL_DIRECTION_SHORT_INDEX)
-        & (_mfe_short > float(TEASER_LONG_MIN_MFE_BPS))
-        & (_mfe_short <= float(TEASER_LONG_MAX_MFE_BPS))
+        & (_mfe_short > mfe_low_threshold_bps)
+        & (_mfe_short <= mfe_high_threshold_bps)
         & (
             _bad_path_short
-            | (_mae_short >= float(TEASER_LONG_MIN_MAE_BPS))
-            | (_path_short <= float(TEASER_LONG_MAX_PATH_BPS))
+            | (_mae_short >= mae_median_threshold_bps)
+            | (_path_short <= path_low_threshold_bps)
         )
     )
     _hard_negative_short = (
@@ -3980,10 +3744,10 @@ def build_dataset_canonical(
         & (
             _bad_path_short
             | (
-                (_mfe_short >= float(HARD_NEG_LONG_MIN_MFE_BPS))
+                (_mfe_short >= mfe_high_threshold_bps)
                 & (
-                    (_mae_short >= float(HARD_NEG_LONG_MIN_MAE_BPS))
-                    | (_path_short <= float(HARD_NEG_LONG_MAX_PATH_BPS))
+                    (_mae_short >= mae_high_threshold_bps)
+                    | (_path_short <= path_low_threshold_bps)
                 )
             )
         )
@@ -3993,17 +3757,17 @@ def build_dataset_canonical(
     y_hard_negative_short = _hard_negative_short.astype(np.float32)
     _clean_edge_short_intrinsic = (
         (_direction_side == MODEL_DIRECTION_SHORT_INDEX)
-        & (_mfe_short >= float(CLEAN_EDGE_LONG_MFE_MIN_BPS))
-        & (_mae_short <= float(CLEAN_EDGE_LONG_MAE_MAX_BPS))
-        & (_path_short >= float(CLEAN_EDGE_LONG_PATH_MIN_BPS))
+        & (_mfe_short >= mfe_high_threshold_bps)
+        & (_mae_short <= mae_low_threshold_bps)
+        & (_path_short >= path_high_threshold_bps)
         & (~_bad_path_short)
     )
     y_clean_edge_short = _clean_edge_short_intrinsic.astype(np.float32)
     _survival_short_intrinsic = (
         (_direction_side == MODEL_DIRECTION_SHORT_INDEX)
-        & (_mfe_short >= float(SURVIVAL_LONG_MFE_MIN_BPS))
-        & (_mae_short <= float(SURVIVAL_LONG_MAE_MAX_BPS))
-        & (_path_short >= float(SURVIVAL_LONG_PATH_MIN_BPS))
+        & (_mfe_short >= mfe_median_threshold_bps)
+        & (_mae_short <= mae_median_threshold_bps)
+        & (_path_short >= path_median_threshold_bps)
     )
     y_survival_short = _survival_short_intrinsic.astype(np.float32)
     y_selector_short_mask = (
@@ -4057,7 +3821,8 @@ def build_dataset_canonical(
     # Early move: align to the directional-quality side instead of tradability side.
     y_early = np.zeros_like(y_early)
     y_early[_quality_side != -1] = (
-        y_mfe_first_n[_quality_side != -1] >= float(early_move_threshold_bps)
+        y_mfe_first_n[_quality_side != -1]
+        > float(direction_target_policy["early_move_threshold_bps"])
     ).astype(np.float32)
 
     # Quality score stays non-negative but now reflects directional path quality.
@@ -4086,102 +3851,39 @@ def build_dataset_canonical(
             ) from exc
         return _sig_col(candidates)
 
-    _trend_score = _structural_signal("trend_score")
-    _trend_conflict = _structural_signal("trend_conflict")
-    _long_trend_bias = _structural_signal("long_trend_bias")
-    _short_trend_bias = _structural_signal("short_trend_bias")
-    _structure_dir = _structural_signal("structure_direction")
-    _support_prox = np.maximum.reduce(
+    _trend_parts = np.vstack(
         [
-            _structural_signal("geometry_support_line_proximity"),
-            _structural_signal("support_level_proximity"),
-            _structural_signal("support_respect"),
-            _structural_signal("support_reclaim"),
+            _structural_signal("trend_m5"),
+            _structural_signal("trend_m15"),
+            _structural_signal("trend_h1"),
+            _structural_signal("trend_h4"),
+            _structural_signal("trend_d1"),
         ]
     )
-    _resistance_prox = np.maximum.reduce(
-        [
-            _structural_signal("geometry_resistance_line_proximity"),
-            _structural_signal("resistance_level_proximity"),
-            _structural_signal("resistance_respect"),
-            _structural_signal("resistance_reclaim"),
-        ]
+    _trend_signs = np.sign(_trend_parts).astype(np.float32, copy=False)
+    _trend_score = _trend_signs.mean(axis=0).astype(np.float32, copy=False)
+    _long_trend_bias = (_trend_signs > 0.0).mean(axis=0).astype(
+        np.float32, copy=False
     )
-    _support_respect = np.maximum(
-        _structural_signal("support_respect"),
-        _structural_signal("support_liquidity_rejection"),
+    _short_trend_bias = (_trend_signs < 0.0).mean(axis=0).astype(
+        np.float32, copy=False
     )
-    _resistance_respect = np.maximum(
-        _structural_signal("resistance_respect"),
-        _structural_signal("resistance_liquidity_rejection"),
+    _trend_conflict = (
+        (_long_trend_bias > 0.0) & (_short_trend_bias > 0.0)
     )
-    _intraday_up = (
-        (_trend_score >= 0.0)
-        & (_long_trend_bias >= _short_trend_bias)
-        & (_structure_dir >= -0.10)
+    _side_margin_bps = float(direction_target_policy["side_margin_floor_bps"])
+    _long_high_mae_low_mfe = (_mae_long >= mae_high_threshold_bps) & (
+        (_mfe_long <= mfe_high_threshold_bps)
+        | (_path_long <= path_low_threshold_bps)
     )
-    _intraday_down = (
-        (_trend_score <= 0.0)
-        & (_short_trend_bias >= _long_trend_bias)
-        & (_structure_dir <= 0.10)
-    )
-    # V30 package 7 (2026-08-13): the channel-edge / channel-position / fib-S-R
-    # disjuncts are gone with their removed producers (exact-affine duplicates
-    # of the two sided proximity stacks, and the retired Fibonacci block).  The
-    # surviving disjunct and every surrounding threshold are UNCHANGED — a
-    # disjunct is removed, no constant is invented and none is re-tuned (rule
-    # 2b).  These two masks are representation/slice supervision only; they
-    # never rewrite the direction target (rule 3).
-    _rising_support = (
-        _intraday_up
-        & (_support_prox >= 0.35)
-        & (_support_prox >= _resistance_prox)
-        & (_support_respect >= 0.35)
-    )
-    _falling_resistance = (
-        _intraday_down
-        & (_resistance_prox >= 0.35)
-        & (_resistance_prox >= _support_prox)
-        & (_resistance_respect >= 0.35)
-    )
-
-    _side_margin_bps = np.maximum(1.0, float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
-    _long_high_mae_low_mfe = (_mae_long >= float(HARD_NEG_LONG_MIN_MAE_BPS)) & (
-        (_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS))
-        | (_path_long <= float(HARD_NEG_LONG_MAX_PATH_BPS))
-    )
-    _short_high_mae_low_mfe = (_mae_short >= float(HARD_NEG_LONG_MIN_MAE_BPS)) & (
-        (_mfe_short <= float(TEASER_LONG_MAX_MFE_BPS))
-        | (_path_short <= float(HARD_NEG_LONG_MAX_PATH_BPS))
-    )
-    _support_retest_continuation = (
-        _rising_support
-        & (_side_score_long >= float(V12_DIRECTION_UTILITY_MIN_BPS))
-        & ((_side_score_long - _side_score_short) >= _side_margin_bps)
-        & (~_bad_path_long)
-    )
-    _resistance_retest_continuation = (
-        _falling_resistance
-        & (_side_score_short >= float(V12_DIRECTION_UTILITY_MIN_BPS))
-        & ((_side_score_short - _side_score_long) >= _side_margin_bps)
-        & (~_bad_path_short)
-    )
-    _countertrend_short_trap = _rising_support & (
-        _bad_path_short
-        | _short_high_mae_low_mfe
-        | ((_side_score_long - _side_score_short) >= _side_margin_bps)
-        | (_direction_side == MODEL_DIRECTION_LONG_INDEX)
-    )
-    _countertrend_long_trap = _falling_resistance & (
-        _bad_path_long
-        | _long_high_mae_low_mfe
-        | ((_side_score_short - _side_score_long) >= _side_margin_bps)
-        | (_direction_side == MODEL_DIRECTION_SHORT_INDEX)
+    _short_high_mae_low_mfe = (_mae_short >= mae_high_threshold_bps) & (
+        (_mfe_short <= mfe_high_threshold_bps)
+        | (_path_short <= path_low_threshold_bps)
     )
     _mtf_conflict_m5_vs_higher = (
-        (_trend_conflict >= 0.45)
-        | ((_trend_score > 0.15) & (_short_trend_bias > _long_trend_bias))
-        | ((_trend_score < -0.15) & (_long_trend_bias > _short_trend_bias))
+        _trend_conflict
+        | ((_trend_score > 0.0) & (_short_trend_bias > _long_trend_bias))
+        | ((_trend_score < 0.0) & (_long_trend_bias > _short_trend_bias))
     )
 
     # Structure/trend labels below are representation/slice supervision only.
@@ -4196,6 +3898,11 @@ def build_dataset_canonical(
     y_side_mask = y_trade.astype(np.float32)
     y_long_path_utility_bps = _side_score_long.astype(np.float32)
     y_short_path_utility_bps = _side_score_short.astype(np.float32)
+    # Counterfactual side-validity is the exact per-side output of the same
+    # immutable TRAIN-fitted executable-PnL policy that owns y_direction.  It
+    # replaces the retired trainer-local 15 bps + bad-path threshold rule.
+    y_long_valid_trade = _tradable_long.astype(np.float32)
+    y_short_valid_trade = _tradable_short.astype(np.float32)
     y_long_bad_path = _bad_path_long.astype(np.float32)
     y_short_bad_path = _bad_path_short.astype(np.float32)
     y_long_expected_mae_bps = _mae_long.astype(np.float32)
@@ -4209,25 +3916,29 @@ def build_dataset_canonical(
         y_long_bad_path,
         y_short_bad_path,
     )
-    if "atr_bps" not in merged3.columns:
-        raise RuntimeError("V3_POSITION_SIZE_INPUT_MISSING: atr_bps")
-    y_position_size = _position_size_target_from_path(
+    y_position_size, y_position_size_mask = _position_size_target_from_path(
         y_mfe_first_n,
         y_mae_first_n,
-        merged3["atr_bps"].astype(np.float32).to_numpy(),
+        _quality_side,
         y_trade,
+        target_policy=position_size_target_policy,
     )
-    if len(y_position_size) != len(merged3) or not np.isfinite(y_position_size).all():
+    if (
+        len(y_position_size) != len(merged3)
+        or not np.isfinite(y_position_size).all()
+        or not np.array_equal(y_position_size_mask, y_trade)
+    ):
         raise RuntimeError("V3_POSITION_SIZE_INVALID: target is missing or non-finite")
-    if np.unique(y_position_size).size < 2:
+    if np.unique(y_position_size[y_position_size_mask > 0.5]).size < 2:
         raise RuntimeError("V3_POSITION_SIZE_DEAD: target is constant")
     log.info(
-        "[V3_POSITION_SIZE] source=selected_future_path n=%d mean=%.3f p10=%.3f p50=%.3f p90=%.3f",
-        len(y_position_size),
-        float(y_position_size.mean()),
-        float(np.percentile(y_position_size, 10)),
-        float(np.percentile(y_position_size, 50)),
-        float(np.percentile(y_position_size, 90)),
+        "[V3_POSITION_SIZE] source=train_ecdf_selected_future_path "
+        "tradable_n=%d p10=%.3f p50=%.3f p90=%.3f policy_sha256=%s",
+        int(np.count_nonzero(y_position_size_mask)),
+        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 10)),
+        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 50)),
+        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 90)),
+        position_size_target_policy["policy_sha256"],
     )
     # ── V29 aux rail-target replacement (chart report B.8; design §5.2.8) ──
     # The retired y_rising_channel_support_touch /
@@ -4236,7 +3947,7 @@ def build_dataset_canonical(
     # line-hold labels: defined only on real trendline-registry touch events
     # (event mask per the y_side_mask pattern), label = that same registry
     # line not BROKEN within the existing named first-N forward horizon
-    # (PATH_QUALITY_HORIZON_BARS — the declared first-N label owner).  The
+    # (the TRAIN-fitted path horizon — the declared first-N label owner). The
     # registry runs on the complete canonical tape with the entry-M5 lane's
     # TRAIN-fitted frozen constants from the cache manifest, so the labelled
     # lines are the exact objects the chart.geomline_* features describe.
@@ -4258,7 +3969,7 @@ def build_dataset_canonical(
         band_atr=float(
             _v29_registry_constants["entry_m5"]["trendline_band_atr"]
         ),
-        horizon_bars=int(PATH_QUALITY_HORIZON_BARS),
+        horizon_bars=path_quality_horizon_bars,
     )
     _v29_label_times = pd.DatetimeIndex(
         pd.to_datetime(merged3["time"], utc=True, errors="raise")
@@ -4308,7 +4019,51 @@ def build_dataset_canonical(
         )
         if (y_line_resistance_touch_mask > 0.5).any()
         else 0.0,
-        int(PATH_QUALITY_HORIZON_BARS),
+        path_quality_horizon_bars,
+    )
+    # Outcome-grounded support/resistance auxiliaries. The former labels were
+    # gated by hand-fused same-bar S/R scores and therefore partly taught the
+    # model to reproduce those scorebooks. A row now qualifies only when the
+    # causal registry observed a real line touch and the forward label proves
+    # that exact line held over the named horizon. Directional continuation or
+    # trap status then comes solely from the already-owned future path outcome.
+    _support_line_held = (
+        (y_line_support_touch_mask > 0.5)
+        & (y_line_support_touch_held > 0.5)
+    )
+    _resistance_line_held = (
+        (y_line_resistance_touch_mask > 0.5)
+        & (y_line_resistance_touch_held > 0.5)
+    )
+    _support_retest_continuation = (
+        _support_line_held
+        & (
+            _side_score_long
+            > float(direction_target_policy["tradable_edge_floor_bps"])
+        )
+        & ((_side_score_long - _side_score_short) >= _side_margin_bps)
+        & (~_bad_path_long)
+    )
+    _resistance_retest_continuation = (
+        _resistance_line_held
+        & (
+            _side_score_short
+            > float(direction_target_policy["tradable_edge_floor_bps"])
+        )
+        & ((_side_score_short - _side_score_long) >= _side_margin_bps)
+        & (~_bad_path_short)
+    )
+    _countertrend_short_trap = _support_line_held & (
+        _bad_path_short
+        | _short_high_mae_low_mfe
+        | ((_side_score_long - _side_score_short) >= _side_margin_bps)
+        | (_direction_side == MODEL_DIRECTION_LONG_INDEX)
+    )
+    _countertrend_long_trap = _resistance_line_held & (
+        _bad_path_long
+        | _long_high_mae_low_mfe
+        | ((_side_score_short - _side_score_long) >= _side_margin_bps)
+        | (_direction_side == MODEL_DIRECTION_SHORT_INDEX)
     )
     y_support_retest_continuation = _support_retest_continuation.astype(np.float32)
     y_resistance_retest_continuation = _resistance_retest_continuation.astype(
@@ -4348,10 +4103,10 @@ def build_dataset_canonical(
         else 0.0
     )
     log.info(
-        "[ENTRY_DIRECTION_TARGET_SEMANTICS] split=%s source=future_path_utility_only "
+        "[ENTRY_DIAGNOSTIC_OUTCOME_SEMANTICS] split=%s source=executable_pnl_only "
         "target_mode=%s long_rate=%.6f short_rate=%.6f flat_rate=%.6f",
         _split_tag,
-        V12_DIRECTION_TARGET_MODE,
+        _DIAGNOSTIC_OUTCOME_TARGET_MODE,
         _directional_long_rate,
         _directional_short_rate,
         _directional_flat_rate,
@@ -4359,17 +4114,17 @@ def build_dataset_canonical(
     log.info(
         "[ENTRY_DEAD_LONG_RULES] split=%s mfe_max=%.2f mae_min=%.2f rate=%.6f",
         _split_tag,
-        float(DEAD_LONG_MAX_MFE_BPS),
-        float(DEAD_LONG_MIN_MAE_BPS),
+        mfe_low_threshold_bps,
+        mae_high_threshold_bps,
         float(np.mean(y_dead_negative_long)) if len(y_dead_negative_long) else 0.0,
     )
     log.info(
         "[ENTRY_TEASER_LONG_RULES] split=%s mfe_min=%.2f mfe_max=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
         _split_tag,
-        float(TEASER_LONG_MIN_MFE_BPS),
-        float(TEASER_LONG_MAX_MFE_BPS),
-        float(TEASER_LONG_MIN_MAE_BPS),
-        float(TEASER_LONG_MAX_PATH_BPS),
+        mfe_low_threshold_bps,
+        mfe_high_threshold_bps,
+        mae_median_threshold_bps,
+        path_low_threshold_bps,
         float(np.mean(y_teaser_negative_long)) if len(y_teaser_negative_long) else 0.0,
     )
     log.info(
@@ -4377,25 +4132,25 @@ def build_dataset_canonical(
         "mfe_min=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
         _split_tag,
         _hard_negative_candidate_source,
-        float(HARD_NEG_LONG_MIN_MFE_BPS),
-        float(HARD_NEG_LONG_MIN_MAE_BPS),
-        float(HARD_NEG_LONG_MAX_PATH_BPS),
+        mfe_high_threshold_bps,
+        mae_high_threshold_bps,
+        path_low_threshold_bps,
         float(np.mean(y_hard_negative_long)) if len(y_hard_negative_long) else 0.0,
     )
     log.info(
         "[ENTRY_CLEAN_EDGE_LONG_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f rate=%.6f",
         _split_tag,
-        float(CLEAN_EDGE_LONG_MFE_MIN_BPS),
-        float(CLEAN_EDGE_LONG_MAE_MAX_BPS),
-        float(CLEAN_EDGE_LONG_PATH_MIN_BPS),
+        mfe_high_threshold_bps,
+        mae_low_threshold_bps,
+        path_high_threshold_bps,
         float(np.mean(y_clean_edge_long)) if len(y_clean_edge_long) else 0.0,
     )
     log.info(
         "[ENTRY_SURVIVAL_LONG_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f rate=%.6f",
         _split_tag,
-        float(SURVIVAL_LONG_MFE_MIN_BPS),
-        float(SURVIVAL_LONG_MAE_MAX_BPS),
-        float(SURVIVAL_LONG_PATH_MIN_BPS),
+        mfe_median_threshold_bps,
+        mae_median_threshold_bps,
+        path_median_threshold_bps,
         float(np.mean(y_survival_long)) if len(y_survival_long) else 0.0,
     )
     # Tradable rate proof (split-aware)
@@ -4572,8 +4327,8 @@ def build_dataset_canonical(
                 "y_trade": y_trade[i],
                 "y_side": y_side[i],
                 "y_side_mask": y_side_mask[i],
-                "y_tf_agreement_score": y_tf_agreement[i],
                 "y_position_size_target": y_position_size[i],
+                "y_position_size_mask": y_position_size_mask[i],
                 "mae_first_n_bps": y_mae_first_n[i],
                 "mfe_first_n_bps": y_mfe_first_n[i],
                 "path_quality_bps": y_path_quality[i],
@@ -4590,6 +4345,8 @@ def build_dataset_canonical(
                 "y_direction_short_score_bps": y_short_path_utility_bps[i],
                 "y_long_path_utility_bps": y_long_path_utility_bps[i],
                 "y_short_path_utility_bps": y_short_path_utility_bps[i],
+                "y_long_valid_trade": y_long_valid_trade[i],
+                "y_short_valid_trade": y_short_valid_trade[i],
                 "y_long_bad_path": y_long_bad_path[i],
                 "y_short_bad_path": y_short_bad_path[i],
                 "y_long_expected_mae_bps": y_long_expected_mae_bps[i],
@@ -4679,7 +4436,6 @@ def build_dataset_canonical(
         "causal_group_a_warmup_rows": int(_causal_group_a_warmup_rows),
         "group_a_checkpoint": _group_a_checkpoint_meta,
         "multi_tf_cache_binding": _multi_tf_cache_binding,
-        "causal_regime_v4_warmup_rows": int(_causal_regime_v4_warmup_rows),
         "clean_history_rows_before_emission": int(pre_emit_history_rows),
         "seq_len": int(seq_len),
         "aux_head_target_contract": {
@@ -4695,9 +4451,13 @@ def build_dataset_canonical(
             ),
             "complete_rows_emitted": int(emitted_candidate_count),
         },
-        **direction_label_contract(),
-        **hierarchical_direction_label_contract(),
-        "early_move_threshold_bps": float(early_move_threshold_bps),
+        **entry_fitted_q_dataset_contract(),
+        **diagnostic_outcome_label_contract(direction_target_policy),
+        **entry_position_size_target_policy_contract(position_size_target_policy),
+        **representation_auxiliary_outcome_contract(),
+        "early_move_threshold_bps": float(
+            direction_target_policy["early_move_threshold_bps"]
+        ),
         "source_frame": {
             "mode": "exact_source_parquet",
             "parquet_path": str(parquet_path),
@@ -4734,38 +4494,31 @@ def build_dataset_canonical(
             },
         },
         "ctx_contract": _model_native_ctx_contract_metadata(),
-        "strict_entry_labels": {
-            **direction_label_contract(),
-            **hierarchical_direction_label_contract(),
-            "direction_follows_tradable_side": True,
+        "diagnostic_outcome_labels": {
+            **diagnostic_outcome_label_contract(direction_target_policy),
+            **representation_auxiliary_outcome_contract(),
+            "entry_action_authority": False,
             "hard_negative_candidate_source": _hard_negative_candidate_source,
-            "core_direction_target_provenance": {
-                "source": "future_path_and_utility_outcomes_only",
+            "diagnostic_outcome_target_provenance": {
+                "source": "future_executable_pnl_outcomes_only",
                 "feature_derived_rewrite_count": 0,
                 "forced_utility_order_count": 0,
             },
-            "hard_negative_long_mfe_min_bps": float(HARD_NEG_LONG_MIN_MFE_BPS),
-            "hard_negative_long_mae_min_bps": float(HARD_NEG_LONG_MIN_MAE_BPS),
-            "hard_negative_long_path_max_bps": float(HARD_NEG_LONG_MAX_PATH_BPS),
-            "dead_long_mfe_max_bps": float(DEAD_LONG_MAX_MFE_BPS),
-            "dead_long_mae_min_bps": float(DEAD_LONG_MIN_MAE_BPS),
-            "teaser_long_mfe_min_bps": float(TEASER_LONG_MIN_MFE_BPS),
-            "teaser_long_mfe_max_bps": float(TEASER_LONG_MAX_MFE_BPS),
-            "teaser_long_mae_min_bps": float(TEASER_LONG_MIN_MAE_BPS),
-            "teaser_long_path_max_bps": float(TEASER_LONG_MAX_PATH_BPS),
-            "clean_edge_long_mfe_min_bps": float(CLEAN_EDGE_LONG_MFE_MIN_BPS),
-            "clean_edge_long_mae_max_bps": float(CLEAN_EDGE_LONG_MAE_MAX_BPS),
-            "clean_edge_long_path_min_bps": float(CLEAN_EDGE_LONG_PATH_MIN_BPS),
-            "survival_long_mfe_min_bps": float(SURVIVAL_LONG_MFE_MIN_BPS),
-            "survival_long_mae_max_bps": float(SURVIVAL_LONG_MAE_MAX_BPS),
-            "survival_long_path_min_bps": float(SURVIVAL_LONG_PATH_MIN_BPS),
+            "path_aux_threshold_fit_scope": "TRAIN_ONLY",
+            "path_aux_threshold_fit_method": direction_target_policy[
+                "path_threshold_fit_method"
+            ],
+            "path_aux_thresholds_bps": dict(path_aux_thresholds),
+            "path_aux_threshold_stream_sha256": direction_target_policy[
+                "path_threshold_stream_sha256"
+            ],
+            "handwritten_path_aux_thresholds": False,
             "tradable_excludes_bad_path": True,
         },
         "parked_targets": {
             "bad_path": {
-                "horizon_bars": int(BAD_PATH_HORIZON_BARS),
-                "mae_threshold_bps": float(BAD_PATH_MAE_THRESHOLD_BPS),
-                "mfe_threshold_bps": float(BAD_PATH_MFE_THRESHOLD_BPS),
+                "horizon_bars": path_quality_horizon_bars,
+                "definition": "executable_pnl_at_fitted_horizon_below_zero",
             }
         },
     }
@@ -4778,7 +4531,10 @@ def build_dataset_canonical(
 # -----------------------------------------------------------------------------
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Build the exact model-native ENTRY_V10_CTX seq513/ctx142+5 dataset",
+        description=(
+            "Build the exact model-native ENTRY_V10_CTX seq513/"
+            f"ctx{MODEL_NATIVE_CTX_CONT_DIM}+{MODEL_NATIVE_CTX_CAT_DIM} dataset"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
@@ -4842,20 +4598,17 @@ def main() -> None:
         "--seq-structure-manifest",
         type=str,
         required=True,
-        help="Exact model-native selection manifest (34 + 479 = 513 ordered signals).",
+        help=(
+            "Exact model-native selection manifest "
+            f"({MODEL_NATIVE_BASE_SIGNAL_DIM} + {MODEL_NATIVE_SELECTED_FEATURE_COUNT} "
+            f"= {MODEL_NATIVE_SIGNAL_DIM} ordered signals)."
+        ),
     )
     parser.add_argument(
         "--feature-ranking-json",
         type=str,
         required=True,
         help="Exact immutable TRAIN-only feature-ranking JSON bound by the signal manifest.",
-    )
-
-    parser.add_argument(
-        "--early_move_threshold_bps",
-        type=float,
-        required=True,
-        help="Explicit early-move target threshold in bps, bound into the dataset contract.",
     )
 
     # Tape lane
@@ -4886,7 +4639,7 @@ def main() -> None:
         required=True,
         help=(
             "Exact row-level shared feature-base surface at M1; it must use "
-            "the same ordered 513/142/5 contract as Entry."
+            "the same owner-declared ordered signal/context contract as Entry."
         ),
     )
     parser.add_argument(
@@ -4904,13 +4657,6 @@ def main() -> None:
         required=True,
         help="Fresh immutable output directory for unified Exit episode envelopes.",
     )
-    parser.add_argument(
-        "--exit-target-lookahead-m1-steps",
-        type=int,
-        required=True,
-        help="Exact positive future M1 target lookahead owned by this dataset event.",
-    )
-
     # Output splitting scaffolding (kept for parity)
     parser.add_argument(
         "--time_split",
@@ -4941,15 +4687,6 @@ def main() -> None:
     parser.add_argument(
         "--test_end", type=str, default=None, help="Explicit test split end (ISO)."
     )
-    parser.add_argument(
-        "--model-native-rank-reference-npz",
-        type=str,
-        required=True,
-        help=(
-            "Audited model-native live-state rank reference produced from the same source frame."
-        ),
-    )
-
     parser.add_argument(
         "--dry_run",
         action="store_true",
@@ -4986,12 +4723,6 @@ def main() -> None:
         raise RuntimeError(
             f"MODEL_NATIVE_SEQ_LEN_INVALID: got={args.seq_len} expected={MODEL_NATIVE_SEQ_LEN}"
         )
-    early_move_threshold_bps = float(args.early_move_threshold_bps)
-    if not np.isfinite(early_move_threshold_bps) or early_move_threshold_bps < 0.0:
-        raise RuntimeError(
-            "EARLY_MOVE_THRESHOLD_INVALID: explicit finite non-negative bps value required"
-        )
-
     start = _parse_ts(args.start)
     end = _parse_ts(args.end)
     if start is None or end is None or start > end:
@@ -5075,8 +4806,8 @@ def main() -> None:
         "ctx_contract": ctx_contract,
         "model_native_state_contract": state_contract,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
-        **direction_label_contract(),
-        **hierarchical_direction_label_contract(),
+        **entry_fitted_q_dataset_contract(),
+        **representation_auxiliary_outcome_contract(),
         "group_a_recompute_workers": _MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS,
         "seq_structure_extension_v1": {
             "manifest_path": str(
@@ -5094,9 +4825,9 @@ def main() -> None:
     proof_payload.update({"truth_source": "exact_source_parquet"})
 
     output_path = Path(args.output).resolve()
-    if DIRECTION_DATASET_STEM_SUFFIX not in output_path.stem:
+    if ENTRY_FITTED_Q_DATASET_STEM_SUFFIX not in output_path.stem:
         output_path = output_path.with_name(
-            f"{output_path.stem}{DIRECTION_DATASET_STEM_SUFFIX}{output_path.suffix}"
+            f"{output_path.stem}{ENTRY_FITTED_Q_DATASET_STEM_SUFFIX}{output_path.suffix}"
         )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     rebuild_terminal_path = Path(args.rebuild_terminal_json).expanduser()
@@ -5152,14 +4883,6 @@ def main() -> None:
             "UNIFIED_EXIT_LIFECYCLE_OUTPUT_INVALID: fresh absolute directory "
             f"with an existing real parent required: {exit_lifecycle_dir}"
         )
-    if (
-        isinstance(args.exit_target_lookahead_m1_steps, bool)
-        or int(args.exit_target_lookahead_m1_steps) <= 0
-    ):
-        raise RuntimeError(
-            "UNIFIED_EXIT_TARGET_LOOKAHEAD_INVALID: explicit positive integer required"
-        )
-    exit_target_lookahead = int(args.exit_target_lookahead_m1_steps)
     m1_lifecycle_source_sha256 = _sha256_file(
         m1_lifecycle_source_path
     )
@@ -5182,7 +4905,7 @@ def main() -> None:
     )
     if (
         m1_feature_base_manifest.get("schema_version")
-        != "gx1_entry_exit_m1_feature_surface_v1"
+        != ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
         or m1_feature_base_manifest.get("decision") != "PASS"
         or m1_feature_base_manifest.get("dataset_run_id") != entry_run_id
         or m1_feature_base_manifest.get("pair_generation_id")
@@ -5206,9 +4929,6 @@ def main() -> None:
         ]["fields"],
         expected_signal_manifest_path=str(signal_manifest_path),
         expected_signal_manifest_sha256=_sha256_file(signal_manifest_path),
-        expected_rank_reference_sha256=state_contract[
-            "rank_reference_npz_sha256"
-        ],
         context="DATASET_BUILDER_M1_VS_ENTRY_M5",
     )
     m1_feature_times = load_m1_feature_surface_times(
@@ -5287,9 +5007,6 @@ def main() -> None:
         ]["fields"],
         expected_signal_manifest_path=str(signal_manifest_path),
         expected_signal_manifest_sha256=_sha256_file(signal_manifest_path),
-        expected_rank_reference_sha256=state_contract[
-            "rank_reference_npz_sha256"
-        ],
         context="DATASET_BUILDER_ENTRY_M5_FEATURE_SURFACE",
     )
     m5_feature_times_expected = load_m1_feature_surface_times(
@@ -5316,15 +5033,25 @@ def main() -> None:
     m5_warmup_block = m5_feature_base_manifest.get("causal_warmup")
     m5_declared_ok = True
     if isinstance(m5_warmup_block, dict):
+        m5_foundation_excluded = m5_warmup_block.get(
+            "rows_before_foundation_event_warmup"
+        )
         m5_v29_excluded = m5_warmup_block.get("rows_before_v29_layer_warmup")
         m5_declared_first = m5_warmup_block.get("first_surface_row_utc")
         m5_declared_ok = (
+            not isinstance(m5_foundation_excluded, bool)
+            and isinstance(m5_foundation_excluded, int)
+            and 0 <= m5_foundation_excluded < len(m5_usable_source_times)
+            and
             not isinstance(m5_v29_excluded, bool)
             and isinstance(m5_v29_excluded, int)
             and 0 <= m5_v29_excluded < len(m5_usable_source_times)
             and isinstance(m5_declared_first, str)
         )
         if m5_declared_ok:
+            m5_usable_source_times = m5_usable_source_times[
+                m5_foundation_excluded:
+            ]
             m5_usable_source_times = m5_usable_source_times[m5_v29_excluded:]
             try:
                 m5_declared_first_ts = pd.Timestamp(m5_declared_first)
@@ -5354,7 +5081,6 @@ def main() -> None:
         "rows": len(m5_feature_times_expected),
         "time_alignment": "exact_entry_m5_source_timeline",
         "signal_manifest_sha256": _sha256_file(signal_manifest_path),
-        "rank_reference_sha256": state_contract["rank_reference_npz_sha256"],
         "inline_split_recomputation": False,
     }
     proof_payload["entry_m5_feature_surface"] = m5_feature_surface_binding
@@ -5375,9 +5101,12 @@ def main() -> None:
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "output_dir": str(exit_lifecycle_dir),
-        "target_lookahead_m1_steps": exit_target_lookahead,
         "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),
+        "state_population_schema_version": (
+            UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+        ),
+        "state_population_per_episode": int(UNIFIED_EXIT_MAX_PATH_BARS),
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "shared_feature_base_contract": (
@@ -5403,6 +5132,77 @@ def main() -> None:
             "time_start_utc": str(start),
             "time_end_utc": str(end),
         }
+    )
+    train_m5_source_times = m5_source_times[
+        (m5_source_times >= train_start) & (m5_source_times <= train_end)
+    ]
+    if len(train_m5_source_times) <= MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS:
+        raise RuntimeError("ENTRY_TARGET_POLICY_TRAIN_SOURCE_TOO_SHORT")
+    train_direction_tape = _load_canonical_tape(
+        tape_root=tape_root,
+        tape_provenance=xau_tape_provenance,
+        t_min=train_m5_source_times[0],
+        t_max=train_m5_source_times[-1],
+        required_cols=["bid_close", "ask_close"],
+    ).loc[:, ["time", "bid_close", "ask_close"]]
+    train_direction_tape_times = pd.DatetimeIndex(
+        pd.to_datetime(
+            train_direction_tape["time"],
+            utc=True,
+            errors="coerce",
+        )
+    ).as_unit("ns")
+    if not train_direction_tape_times.equals(train_m5_source_times):
+        raise RuntimeError("ENTRY_TARGET_POLICY_TRAIN_TAPE_TIME_MISMATCH")
+    tape_provenance_sha256 = canonical_json_sha256(xau_tape_provenance)
+    entry_direction_target_policy = fit_entry_direction_target_policy(
+        closed_m5=train_direction_tape,
+        train_start=train_start,
+        train_end=train_end,
+        source_parquet_sha256=_sha256_file(source_parquet_path),
+        tape_provenance_sha256=tape_provenance_sha256,
+    )
+    if (
+        signal_lineage.get("entry_direction_target_policy")
+        != entry_direction_target_policy
+        or signal_lineage.get("entry_direction_target_policy_sha256")
+        != entry_direction_target_policy["policy_sha256"]
+    ):
+        raise RuntimeError(
+            "ENTRY_TARGET_POLICY_RANKING_DATASET_MISMATCH: feature ranking, "
+            "signal manifest and dataset labels must share one exact TRAIN fit"
+        )
+    entry_position_size_target_policy = fit_entry_position_size_target_policy(
+        closed_m5=train_direction_tape,
+        entry_direction_target_policy=entry_direction_target_policy,
+        source_parquet_sha256=_sha256_file(source_parquet_path),
+        tape_provenance_sha256=tape_provenance_sha256,
+        ecdf_artifact_path=(
+            output_path.parent
+            / f"{output_path.stem}.entry_position_size_train_ecdf.npy"
+        ),
+    )
+    proof_payload.update(entry_fitted_q_dataset_contract())
+    proof_payload.update(
+        diagnostic_outcome_label_contract(entry_direction_target_policy)
+    )
+    proof_payload.update(
+        entry_position_size_target_policy_contract(
+            entry_position_size_target_policy
+        )
+    )
+    # Read the authoritative M1 source once. Exit targets are exact dynamic-
+    # programming results for each sealed trajectory and fit no distribution.
+    closed_m1_lifecycle = pd.read_parquet(
+        m1_lifecycle_source_path,
+        columns=list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
+    )
+    assert_no_price_scale_glitch(
+        closed_m1_lifecycle,
+        context="UNIFIED_EXIT_M1_SOURCE",
+    )
+    _m1_covered_offset = len(m1_source_times) - len(
+        m1_comparable_source_times
     )
     proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
     proof_bytes = (
@@ -5451,9 +5251,17 @@ def main() -> None:
                 "time_split": bool(args.time_split),
                 "seq_len": int(args.seq_len),
                 "aux_head_target_contract": model_native_aux_target_contract_metadata(),
-                **direction_label_contract(),
-                **hierarchical_direction_label_contract(),
-                "early_move_threshold_bps": early_move_threshold_bps,
+                **entry_fitted_q_dataset_contract(),
+                **diagnostic_outcome_label_contract(entry_direction_target_policy),
+                **entry_position_size_target_policy_contract(
+                    entry_position_size_target_policy
+                ),
+                **representation_auxiliary_outcome_contract(),
+                "early_move_threshold_bps": float(
+                    entry_direction_target_policy[
+                        "early_move_threshold_bps"
+                    ]
+                ),
                 "contract_mode": main_signal_build_contract["contract_mode"],
                 "direction_logit_mode": main_signal_build_contract[
                     "direction_logit_mode"
@@ -5487,6 +5295,21 @@ def main() -> None:
                 "model_native_state_contract": state_contract,
                 "xau_tape_provenance": xau_tape_provenance,
                 "entry_run_id": entry_run_id,
+                "source_frame": {
+                    "mode": "exact_source_parquet",
+                    "parquet_path": str(source_parquet_path),
+                    "parquet_sha256": _sha256_file(source_parquet_path),
+                },
+                "diagnostic_outcome_labels": {
+                    **diagnostic_outcome_label_contract(entry_direction_target_policy),
+                    **representation_auxiliary_outcome_contract(),
+                    "entry_action_authority": False,
+                    "diagnostic_outcome_target_provenance": {
+                        "source": "future_executable_pnl_outcomes_only",
+                        "feature_derived_rewrite_count": 0,
+                        "forced_utility_order_count": 0,
+                    },
+                },
             },
         )
         return
@@ -5515,17 +5338,6 @@ def main() -> None:
 
     metas: Dict[str, Any] = {}
     ts_min_max_by_split: Dict[str, Dict[str, Optional[str]]] = {}
-    rank_reference_path = (
-        Path(args.model_native_rank_reference_npz).expanduser().resolve()
-    )
-    closed_m1_lifecycle = pd.read_parquet(
-        m1_lifecycle_source_path,
-        columns=list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
-    )
-    assert_no_price_scale_glitch(
-        closed_m1_lifecycle,
-        context="UNIFIED_EXIT_M1_SOURCE",
-    )
     lifecycle_staging = tempfile.TemporaryDirectory(
         prefix=f".{exit_lifecycle_dir.name}.staging.",
         dir=str(exit_lifecycle_dir.parent),
@@ -5557,12 +5369,14 @@ def main() -> None:
             end=s1,
             emit_start=s0,
             emit_end=s1,
-            model_native_rank_reference_npz=rank_reference_path,
             m5_feature_surface_times=m5_feature_surface_times,
             m5_feature_surface_arrays=m5_feature_surface_arrays,
             m5_feature_surface_binding=m5_feature_surface_binding,
             seq_len=int(args.seq_len),
-            early_move_threshold_bps=early_move_threshold_bps,
+            entry_direction_target_policy=entry_direction_target_policy,
+            entry_position_size_target_policy=(
+                entry_position_size_target_policy
+            ),
             split_name=split_name,
             canonical_v2_parquet=canonical_v2_path,
             output_path=out,
@@ -5575,15 +5389,11 @@ def main() -> None:
         # source clock, and the trainer needs EXIT_FEATURE_SEQUENCE_BARS of
         # surface history behind every decision row. Episodes below that floor
         # cannot be served; guard at build time instead of trainer time.
-        _m1_covered_offset = len(m1_source_times) - len(
-            m1_comparable_source_times
-        )
         lifecycle_episodes, lifecycle_proof = (
             build_unified_exit_lifecycle_episodes(
                 entry_rows=df_built,
                 closed_m1=closed_m1_lifecycle,
                 split_end=s1,
-                target_lookahead_m1_steps=exit_target_lookahead,
                 market_closure_contract=m1_lifecycle_authority[
                     "native_m1_market_closure_contract"
                 ],
@@ -5655,9 +5465,11 @@ def main() -> None:
                 lifecycle_manifest
             ),
             "episode_rows": int(len(lifecycle_episodes)),
-            "target_counts": lifecycle_proof["target_counts"],
-            "target_stream_sha256": lifecycle_proof[
-                "target_stream_sha256"
+            "state_population_rows": lifecycle_proof[
+                "state_population_rows"
+            ],
+            "state_population_stream_sha256": lifecycle_proof[
+                "state_population_stream_sha256"
             ],
         }
         metas[split_name] = deepcopy(meta)
@@ -5699,7 +5511,10 @@ def main() -> None:
         "m1_authority": m1_lifecycle_authority,
         "m1_authority_sha256": m1_lifecycle_authority_sha256,
         "path_state_count": int(UNIFIED_EXIT_MAX_PATH_BARS),
-        "target_lookahead_m1_steps": exit_target_lookahead,
+        "state_population_schema_version": (
+            UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+        ),
+        "state_population_per_episode": int(UNIFIED_EXIT_MAX_PATH_BARS),
         "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "shared_feature_base_contract": (
             entry_exit_shared_feature_base_contract()
@@ -5753,9 +5568,6 @@ def main() -> None:
     lifecycle_root_manifest_published = (
         exit_lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
     ).resolve(strict=True)
-    rank_reference_sidecar_path = rank_reference_path.with_suffix(
-        rank_reference_path.suffix + ".json"
-    )
     source_lineage = {
         "dataset_build_proof": _artifact_binding(
             proof_path,
@@ -5777,14 +5589,10 @@ def main() -> None:
             Path(args.feature_ranking_json).expanduser().resolve(),
             label="feature ranking",
         ),
-        "rank_reference": {
-            **_artifact_binding(
-                rank_reference_path,
-                label="TRAIN rank reference",
-            ),
-            "sidecar_path": str(rank_reference_sidecar_path),
-            "sidecar_sha256": _sha256_file(rank_reference_sidecar_path),
-        },
+        "position_size_train_ecdf": _artifact_binding(
+            Path(entry_position_size_target_policy["ecdf_artifact_path"]),
+            label="position-size TRAIN ECDF",
+        ),
         "multi_tf_cache": metas["test"]["multi_tf_cache_binding"],
         "xau_tape_provenance": xau_tape_provenance,
     }

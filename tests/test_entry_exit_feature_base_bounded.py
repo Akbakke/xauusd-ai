@@ -24,28 +24,22 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.features.entry_candlestick_patterns_v1 import (
-    CANDLESTICK_PATTERN_FEATURE_NAMES,
+from gx1.features.entry_candle_primitives_v1 import (
+    CANDLE_PRIMITIVE_FEATURE_NAMES,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     PRICE_DERIVED_FEATURE_NAMES,
-    build_candlestick_derived_layer,
+    build_candle_primitive_derived_layer,
     build_price_derived_layer,
 )
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_EVENT_AGE_CARRY_KEYS,
+    FOUNDATION_STRUCTURE_SOURCE_FIELDS,
     foundation_event_age_carry_scope,
 )
-from gx1.features.entry_session_regime_interactions_v1 import (
-    SESSION_LENGTH_MINUTES,
-)
-from gx1.features.entry_support_resistance_memory_v1 import (
-    SUPPORT_RESISTANCE_MEMORY_STATE_KEYS,
-    SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS,
-    build_entry_support_resistance_memory_layer,
-)
+from gx1.time.session_detector import SESSION_BOUNDARIES
 from gx1.features import entry_model_native_feature_layers_v1 as feature_layers
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _build_inline_seq_structure_extension,
@@ -59,7 +53,10 @@ from gx1.scripts.materialize_entry_exit_m1_feature_base_v1 import (
 
 def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
     index = np.arange(rows, dtype=np.float32)
-    close = 2_000.0 + 0.08 * index + 0.35 * np.sin(index * 0.31)
+    dispersion = np.where((index.astype(np.int64) // 50) % 2 == 0, 0.02, 1.2)
+    close = 2_000.0 + np.cumsum(
+        0.08 + dispersion * np.sin(index * 0.31)
+    )
     open_ = close - 0.12 * np.cos(index * 0.17)
     columns: dict[str, object] = {
         "time": pd.date_range(
@@ -72,6 +69,7 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
         "high": np.maximum(open_, close) + 0.3,
         "low": np.minimum(open_, close) - 0.3,
         "close": close,
+        "volume": 100 + (index.astype(np.int64) % 37),
         "atr": np.full(rows, 1.25, dtype=np.float32),
     }
     numeric_fields = [
@@ -85,20 +83,11 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
             0.2 * np.sin(index * np.float32(0.013 + offset * 0.0001))
             + 0.1 * np.cos(index * np.float32(0.021 + offset * 0.00007))
         ).astype(np.float32)
-    for name in (
-        "H1_range_compression_ratio",
-        "M15_range_compression_ratio",
-        # ATR ratios are strictly positive quantities; the volatility
-        # semantics owner fails closed on non-positive input, so the fixture
-        # must provide a physically valid positive ratio pattern.
-        "atr_ratio_m5_m15",
-        "atr_ratio_m5_h4",
-        "atr_ratio_m15_d1",
-        "atr_ratio_h1_d1",
-    ):
-        columns[name] = (
-            1.0 + 0.05 * np.sin(index * np.float32(0.017))
-        ).astype(np.float32)
+    for offset, source_name in enumerate(FOUNDATION_STRUCTURE_SOURCE_FIELDS):
+        name = source_name.removeprefix("snap.")
+        event = np.zeros(rows, dtype=np.float32)
+        event[17 + offset :: 43 + offset] = 1.0
+        columns[name] = event
     # V30 package 8B (2026-08-13): the two realized-volatility magnitudes are
     # non-negative by construction (``rvol_20`` = std(pct_change)*1e4*sqrt(20),
     # ``_v1_pk_sigma20`` = a Parkinson sigma from log(high/low)), and the
@@ -113,11 +102,10 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
     columns["_v1_pk_sigma20"] = (
         4.10e-4 + 1.30e-4 * np.sin(index * np.float32(0.023))
     ).astype(np.float32)
-    # The session-regime owner fails closed unless the two session clocks sum
-    # to a named session length (SESSION_LENGTH_MINUTES); derive both clocks
-    # from the owner's EU constant so the fixture satisfies the producer
-    # contract instead of feeding sinusoidal pseudo-clocks.
-    session_length = float(SESSION_LENGTH_MINUTES["EU"])
+    # Keep the two raw session clocks physically consistent with the shared
+    # session boundary owner.
+    session_start, session_end = SESSION_BOUNDARIES["EU"]
+    session_length = float(((session_end - session_start) % 24) * 60)
     minutes_since_open = np.mod(index, session_length).astype(np.float32)
     columns["minutes_since_session_open"] = minutes_since_open
     columns["minutes_to_next_session_boundary"] = (
@@ -147,8 +135,10 @@ def _synthetic_enriched_sample_with_price_warmup(
 # Synthetic-execution registry params (rule 2c: prove the code runs; never
 # production values).
 _V29_TEST_LAYER_PARAMS = {
-    "level_tol_atr": 1.0,
+    "level_recurrence_threshold_atr": 1.0,
+    "level_expiry_bars": 96,
     "trendline_band_atr": 0.5,
+    "trendline_expiry_bars": 96,
     "trendline_seq_len": 96,
 }
 
@@ -159,15 +149,48 @@ def _build_bounded_in_batches(
     requested: list[str],
     *,
     batch_rows: int,
+    volatility_squeeze_artifacts,
 ) -> tuple[np.ndarray, list[str], dict[str, object]]:
     sample_times = frame[["time"]].copy()
     price, price_names = build_price_derived_layer(sample_times, source)
-    candle, candle_names = build_candlestick_derived_layer(
+    candle, candle_names = build_candle_primitive_derived_layer(
         sample_times,
         source,
     )
-    support_state = None
-    foundation_event_age_state = None
+    source_events = pd.read_parquet(
+        source,
+        columns=[
+            "time",
+            *(
+                name.removeprefix("snap.")
+                for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+            ),
+        ],
+    )
+    source_times = pd.DatetimeIndex(
+        pd.to_datetime(source_events["time"], utc=True)
+    ).as_unit("ns")
+    first_sample = pd.Timestamp(frame["time"].iloc[0]).as_unit("ns")
+    first_position = int(source_times.get_loc(first_sample))
+    foundation_event_age_state: dict[str, int | None] = {}
+    for source_name, carry_key in zip(
+        (
+            name.removeprefix("snap.")
+            for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+        ),
+        FOUNDATION_EVENT_AGE_CARRY_KEYS,
+    ):
+        prior = np.flatnonzero(
+            source_events[source_name].to_numpy(dtype=np.float64)[
+                :first_position
+            ]
+            == 1.0
+        )
+        foundation_event_age_state[carry_key] = (
+            None
+            if len(prior) == 0
+            else first_position - 1 - int(prior[-1])
+        )
     observed: list[np.ndarray] = []
     observed_meta = None
     observed_names = None
@@ -178,11 +201,11 @@ def _build_bounded_in_batches(
             chunk,
             names,
             meta,
-            support_state,
             foundation_event_age_state,
         ) = _build_bounded_extension_chunk(
             frame.iloc[prefix:stop].reset_index(drop=True),
             source_parquet=source,
+            local_timeframe="M1",
             requested_features=requested,
             ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
             ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
@@ -192,8 +215,8 @@ def _build_bounded_in_batches(
             candle_layer=candle[prefix:stop],
             candle_names=candle_names,
             v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
+            volatility_squeeze_artifacts=volatility_squeeze_artifacts,
             emit_offset=start - prefix,
-            support_memory_state=support_state,
             foundation_event_age_state=foundation_event_age_state,
             source_contract_label="causal_enriched_m1_frame_v1",
         )
@@ -210,49 +233,45 @@ def _build_bounded_in_batches(
     return np.concatenate(observed), observed_names, observed_meta
 
 
-def test_support_resistance_memory_state_is_exact_across_batches() -> None:
-    rows = 97
-    index = np.arange(rows, dtype=np.float32)
-    matrix = np.column_stack(
-        [
-            0.25 * np.sin(index * np.float32(0.03 + column * 0.001))
-            for column in range(len(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS))
-        ]
-    ).astype(np.float32)
-    names = list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS)
+def _stub_sparse_registry_age_layer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep bounded-orchestration tests scoped to chunk/carry mechanics.
 
-    expected, expected_names = build_entry_support_resistance_memory_layer(
-        matrix,
-        names,
+    The synthetic monotone tape never forms and breaks a validated trendline,
+    so the real raw break age is correctly all-NaN. Registry semantics have
+    their own focused suite; these tests provide an explicitly finite layer
+    instead of fabricating a break in production code.
+    """
+
+    def build_stub(sample: pd.DataFrame, _source: Path, **_kwargs: object):
+        names = list(feature_layers.TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+        return np.zeros((len(sample), len(names)), dtype=np.float32), names
+
+    monkeypatch.setattr(
+        feature_layers,
+        "build_trendline_registry_m5_layer",
+        build_stub,
     )
-    state = None
-    pieces: list[np.ndarray] = []
-    for start, stop in ((0, 19), (19, 53), (53, 71), (71, rows)):
-        piece, piece_names, state = (
-            build_entry_support_resistance_memory_layer(
-                matrix[start:stop],
-                names,
-                memory_state=state,
-                return_memory_state=True,
-            )
-        )
-        assert piece_names == expected_names
-        pieces.append(piece)
-
-    np.testing.assert_array_equal(np.concatenate(pieces), expected)
 
 
 def test_bounded_owner_orchestration_matches_full_history_exactly(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from tests.volatility_squeeze_test_support import (
+        make_volatility_squeeze_artifact_set,
+    )
+
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
+    _stub_sparse_registry_age_layer(monkeypatch)
     frame, source_frame = _synthetic_enriched_sample_with_price_warmup(89)
     source = tmp_path / "synthetic_enriched_m1.parquet"
     source_frame.to_parquet(source, index=False)
     requested = [
         *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-        "ctx_cont.d1_trend_age_mature_flag_v3",
-        "chart.geometry_major_level_proximity_mean",
-        "candle.pattern_close_location",
+        "ctx_cont.d1_dist_change_1bar_atr_v4",
+        "candle.raw_close_location",
     ]
 
     expected, expected_names, expected_meta = (
@@ -262,9 +281,11 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
             ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
             ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
             source_parquet=source,
+            local_timeframe="M1",
             source_contract_label="causal_enriched_m1_frame_v1",
             base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
             v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
+            volatility_squeeze_artifacts=squeeze_artifacts,
         )
     )
     observed, observed_names, observed_meta = _build_bounded_in_batches(
@@ -272,6 +293,7 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
         source,
         requested,
         batch_rows=23,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
 
     assert observed_names == expected_names
@@ -281,23 +303,30 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
 
 def test_foundation_event_ages_match_full_history_across_batch_boundary(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from tests.volatility_squeeze_test_support import (
+        make_volatility_squeeze_artifact_set,
+    )
+
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
+    _stub_sparse_registry_age_layer(monkeypatch)
     rows = 251
     boundary = 120
     events = (
         (
             "smc_bos_up",
-            "chart.foundation_bos_up_age_bars",
+            "chart.foundation_bos_up_event_age_bars",
             9,
         ),
         (
             "smc_bos_down",
-            "chart.foundation_bos_down_age_bars",
+            "chart.foundation_bos_down_event_age_bars",
             52,
         ),
         (
             "smc_choch",
-            "chart.foundation_choch_age_bars",
+            "chart.foundation_choch_event_age_bars",
             95,
         ),
     )
@@ -324,9 +353,11 @@ def test_foundation_event_ages_match_full_history_across_batch_boundary(
             ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
             ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
             source_parquet=source,
+            local_timeframe="M1",
             source_contract_label="causal_enriched_m1_frame_v1",
             base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
             v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
+            volatility_squeeze_artifacts=squeeze_artifacts,
         )
     )
     observed, observed_names, observed_meta = _build_bounded_in_batches(
@@ -334,6 +365,7 @@ def test_foundation_event_ages_match_full_history_across_batch_boundary(
         source,
         requested,
         batch_rows=boundary,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
 
     assert observed_names == expected_names
@@ -345,7 +377,7 @@ def test_foundation_event_ages_match_full_history_across_batch_boundary(
 
 
 def test_foundation_event_age_carry_state_fails_closed() -> None:
-    valid = {name: 0 for name in FOUNDATION_EVENT_AGE_CARRY_KEYS}
+    valid = {name: None for name in FOUNDATION_EVENT_AGE_CARRY_KEYS}
     malformed_states = (
         {},
         {**valid, "unexpected": 0},
@@ -413,7 +445,7 @@ def _write_tiny_surface(
     return pd.DatetimeIndex(times).as_unit("ns")
 
 
-def test_staged_surface_validation_preserves_exact_513_142_5_schema(
+def test_staged_surface_validation_preserves_current_derived_schema(
     tmp_path: Path,
 ) -> None:
     surface = tmp_path / "surface.parquet"
@@ -428,7 +460,7 @@ def test_staged_surface_validation_preserves_exact_513_142_5_schema(
     schema = pq.read_schema(surface)
     assert schema.field("signal").type.list_size == MODEL_NATIVE_SIGNAL_DIM
     assert schema.field("ctx_cont").type.list_size == MODEL_NATIVE_CTX_CONT_DIM
-    assert schema.field("ctx_cat").type.list_size == 5
+    assert schema.field("ctx_cat").type.list_size == len(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     wrong_width = tmp_path / "wrong_width.parquet"
     _write_tiny_surface(wrong_width, signal_width=512)
@@ -493,14 +525,20 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
         "open": close - 0.1,
         "high": close + 0.2,
         "low": close - 0.2,
-        "close": close,
-        "atr": np.ones(rows, dtype=np.float32),
+            "close": close,
+            "volume": 100 + (np.arange(rows, dtype=np.int64) % 37),
+            "atr": np.ones(rows, dtype=np.float32),
     }
     for name in (*MODEL_NATIVE_BASE_FIELDS, *MODEL_NATIVE_CTX_CONT_FIELDS):
         columns.setdefault(name, np.zeros(rows, dtype=np.float32))
     for index, name in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS):
         lower, _upper = tuple(MODEL_NATIVE_CTX_CAT_MIN_MAX.values())[index]
         columns[name] = np.full(rows, lower, dtype=np.int64)
+    for offset, source_name in enumerate(FOUNDATION_STRUCTURE_SOURCE_FIELDS):
+        name = source_name.removeprefix("snap.")
+        event = np.zeros(rows, dtype=np.float32)
+        event[offset + 1] = 1.0
+        columns[name] = event
     source = tmp_path / f"{timeframe.lower()}_source.parquet"
     pq.write_table(
         pa.Table.from_pandas(pd.DataFrame(columns), preserve_index=False),
@@ -538,10 +576,10 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
     ) -> tuple[np.ndarray, list[str]]:
         return (
             np.zeros(
-                (len(sample), len(CANDLESTICK_PATTERN_FEATURE_NAMES)),
+                (len(sample), len(CANDLE_PRIMITIVE_FEATURE_NAMES)),
                 dtype=np.float32,
             ),
-            list(CANDLESTICK_PATTERN_FEATURE_NAMES),
+            list(CANDLE_PRIMITIVE_FEATURE_NAMES),
         )
 
     selected = [
@@ -556,8 +594,7 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
         np.ndarray,
         list[str],
         dict[str, object],
-        dict[str, np.float32],
-        dict[str, int],
+        dict[str, int | None],
     ]:
         emit_offset = int(kwargs["emit_offset"])
         emitted_rows = len(frame) - emit_offset
@@ -565,11 +602,7 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
             np.zeros((emitted_rows, len(selected)), dtype=np.float32),
             selected,
             {"mode": "synthetic_exact_owner_test", "features": selected},
-            {
-                name: np.float32(0.0)
-                for name in SUPPORT_RESISTANCE_MEMORY_STATE_KEYS
-            },
-            {name: 0 for name in FOUNDATION_EVENT_AGE_CARRY_KEYS},
+            {name: None for name in FOUNDATION_EVENT_AGE_CARRY_KEYS},
         )
 
     monkeypatch.setattr(
@@ -579,7 +612,7 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
     )
     monkeypatch.setattr(
         feature_layers,
-        "build_candlestick_derived_layer",
+        "build_candle_primitive_derived_layer",
         fake_candle_layer,
     )
     monkeypatch.setattr(
@@ -700,6 +733,8 @@ def test_manifest_is_validated_and_admitted_last(
         pair_generation_id="a" * 64,
         source=tmp_path / "source.parquet",
         source_binding={},
+            registry_fit_binding={},
+            volatility_squeeze_artifact_binding={},
         alignment=None,
         seq_structure_manifest=tmp_path / "signal.json",
         output=output,
@@ -739,6 +774,8 @@ def test_stale_or_failed_manifest_cannot_form_an_admissible_pair(
         "pair_generation_id": "a" * 64,
         "source": tmp_path / "source.parquet",
         "source_binding": {},
+        "registry_fit_binding": {},
+        "volatility_squeeze_artifact_binding": {},
         "alignment": None,
         "seq_structure_manifest": tmp_path / "signal.json",
         "output": output,

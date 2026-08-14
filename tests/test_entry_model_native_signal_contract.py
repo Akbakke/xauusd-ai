@@ -10,7 +10,10 @@ import torch
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_BASIC_V1_CONTRACT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -21,7 +24,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+    RETIRED_HANDCRAFTED_CTX_CONT_FIELDS,
+    RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS,
+    RETIRED_SMC_CTX_COMPOSITE_FIELDS,
+    RETIRED_MODEL_NATIVE_SIGNAL_FIELDS,
     model_native_context_contract_metadata,
     model_native_mandatory_full_stack_metadata,
     model_native_signal_contract_metadata,
@@ -44,11 +54,23 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    PRICE_DERIVED_FEATURE_NAMES_SHA256,
+    PRICE_DERIVED_FORMULA_SHA256,
+    PRICE_DERIVED_FORMULA_SCHEMA_VERSION,
     PRICE_DERIVED_FEATURE_NAMES,
+    price_derived_contract_metadata,
 )
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
+    foundation_structure_contract_metadata,
 )
+from gx1.features.swing_structure_v1 import swing_structure_contract_metadata
+from gx1.features.entry_candle_primitives_v1 import (
+    CANDLE_PRIMITIVE_FEATURE_NAMES,
+    CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256,
+    CANDLE_PRIMITIVE_FEATURE_VERSION,
+)
+from gx1.features.smc_v1 import smc_primitive_contract_metadata
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_CTX_CAT_DOMAINS,
     EXACT_SPECIALIST_NAMES,
@@ -65,51 +87,20 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 
 
 # The code-owned family fields plus ranked fixture fields form the exact
-# selected surface. The genuine 34-field base produces these totals.
-# 2026-08-09: the three unsigned tick-volume participation fields in the base
-# (vol_z_20, vol_ratio_5_20, vol_pct_96) moved from the volatility owner to
-# the momentum/flow owner alongside signed_vol_z_20 (declared order-flow in
-# gx1.features.volume_features), shifting 44/31 -> 41/34.
+# selected surface. The genuine base owner produces these totals.
+# The three unsigned tick-volume primitives belong to momentum/flow; the
+# hand-composed signed-volume interaction is retired.
 # Pre-V29 audited per-specialist counts plus the V29 stage-2 event-family
 # additions, derived from the declared owner tuples (rule 13).
-from gx1.features.entry_model_native_feature_layers_v1 import (
-    LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES as _V29_LEVEL_NAMES,
-    MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES as _V29_MOMENTUM_NAMES,
-    REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES as _V29_REGIME_NAMES,
-    SWING_EVENT_LAYER_FEATURE_NAMES as _V29_SWING_NAMES,
-    TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES as _V29_TRENDLINE_NAMES,
-)
-from gx1.features.entry_session_regime_interactions_v1 import (
-    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
-)
-
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
-    # V30 package 7 (2026-08-13): the chart-geometry mandatory pin fell 18 -> 2
-    # and the candle smart3 suffix 32 -> 31 (35 -> 34 here, the suffix plus the
-    # three ctx/base candle names this specialist also owns).
-    "chart_geometry_encoder": 2 + len(_V29_TRENDLINE_NAMES),
-    "momentum_flow_encoder": 34 + len(_V29_MOMENTUM_NAMES),
-    "price_action_candle_encoder": 34,
-    # V30 package 8B (2026-08-13): 161 is the ctx/base part of this specialist,
-    # unchanged by the package.  The session/regime LAYER part is no longer a
-    # restated literal: the layer is produced in full but pinned only to its
-    # five measured-genuine primitives, so it is derived from the owner tuple
-    # (68 -> 5, and the emitted set also lost the hand-written abstain vote).
-    "session_regime_encoder": (
-        161
-        + len(SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES)
-        + len(_V29_REGIME_NAMES)
-    ),
-    "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
-    "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),
-    # V30 (2026-08-13): 45 = 37 + chart.local_kama_efficiency_30 (package 1)
-    # + the three package-2 GAP-2/3 local age fields
-    # (chart.local_ema50_200_cross_age_norm,
-    # chart.local_price_above_ema{50,200}_age_norm) + the four package-3
-    # price-vs-EMA cross events (chart.local_price_x_ema{50,200}_cross_{up,down})
-    # — all price-derived layer fields, all trend-owned.
-    "trend_ema_encoder": 45,
-    "vol_compression_encoder": 41,
+    "chart_geometry_encoder": 40,
+    "momentum_flow_encoder": 31,
+    "price_action_candle_encoder": 27,
+    "session_regime_encoder": 28,
+    "smc_liquidity_encoder": 53,
+    "structure_swing_encoder": 42,
+    "trend_ema_encoder": 39,
+    "vol_compression_encoder": 19,
 }
 _TEST_MTF_DIM = len(EXACT_SPECIALIST_NAMES)
 
@@ -215,23 +206,77 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
     }
 
 
-def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live() -> (
+def test_model_native_signal_contract_has_exact_derived_width_and_all_groups_live() -> (
     None
 ):
     selected = _selected_fields()
     fields = ordered_model_native_signal_fields(selected)
     contract = model_native_signal_contract_metadata(selected)
 
-    assert len(selected) == MODEL_NATIVE_SELECTED_FEATURE_COUNT
-    assert len(fields) == MODEL_NATIVE_SIGNAL_DIM == MODEL_NATIVE_SIGNAL_DIM
-    assert fields[:34] == MODEL_NATIVE_BASE_FIELDS
-    assert fields[34:] == tuple(selected)
+    assert len(selected) == MODEL_NATIVE_SELECTED_FEATURE_COUNT == 250
+    assert len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) == 164
+    assert len(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS) == (
+        MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+    ) == 86
+    assert len(fields) == MODEL_NATIVE_SIGNAL_DIM == 279
+    assert MODEL_NATIVE_SIGNAL_SCHEMA_VERSION == "entry_model_native_signal_v29"
+    assert MODEL_NATIVE_CONTRACT_MODE == "xau_seq513_model_native_direction_v18"
+    assert MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION == (
+        "entry_model_native_seq513_split_manifest_v18"
+    )
+    assert MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION == (
+        "entry_model_native_mandatory_full_stack_v20"
+    )
+    assert fields[: len(MODEL_NATIVE_BASE_FIELDS)] == MODEL_NATIVE_BASE_FIELDS
+    assert fields[len(MODEL_NATIVE_BASE_FIELDS) :] == tuple(selected)
     assert not (set(fields) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS))
+    assert not (set(fields) & set(RETIRED_MODEL_NATIVE_SIGNAL_FIELDS))
+    assert contract["retired_signal_fields"] == list(RETIRED_MODEL_NATIVE_SIGNAL_FIELDS)
+    assert tuple(contract["retired_handcrafted_ctx_cont_fields"]) == (
+        RETIRED_HANDCRAFTED_CTX_CONT_FIELDS
+    )
+    assert tuple(contract["retired_operator_ctx_cont_composite_fields"]) == (
+        RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS
+    )
+    assert tuple(contract["retired_smc_ctx_composite_fields"]) == (
+        RETIRED_SMC_CTX_COMPOSITE_FIELDS
+    )
     assert contract["bridge_dim"] == 0
     assert contract["bridge_source"] is None
     assert contract["anchor_source"] is None
     require_model_native_signal_contract(contract, context="TEST")
     assert require_model_native_manifest(_native_manifest(), context="TEST") == contract
+
+    candle_owner = contract["mandatory_full_stack"]["candle_primitive_owner"]
+    assert candle_owner == {
+        "owner": "gx1.features.entry_candle_primitives_v1",
+        "feature_version": CANDLE_PRIMITIVE_FEATURE_VERSION,
+        "feature_count": 26,
+        "ordered_feature_names_sha256": CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256,
+        "ordered_feature_names": list(CANDLE_PRIMITIVE_FEATURE_NAMES),
+    }
+    assert CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256 == (
+        "e099255c02a80471066fec98a98b3c071764e6d696f596fe69899bbdec0999b0"
+    )
+    price_owner = contract["mandatory_full_stack"]["price_derived_owner"]
+    assert price_owner == price_derived_contract_metadata()
+    assert price_owner["schema_version"] == PRICE_DERIVED_FORMULA_SCHEMA_VERSION
+    assert PRICE_DERIVED_FORMULA_SHA256 == (
+        "62a2cb37fde1e0b0bc654aa39430deb6c4e309acab9d00139f948057b407bdee"
+    )
+    assert (
+        price_owner["ordered_feature_names_sha256"]
+        == PRICE_DERIVED_FEATURE_NAMES_SHA256
+    )
+    assert contract["mandatory_full_stack"]["smc_primitive_owner"] == (
+        smc_primitive_contract_metadata()
+    )
+    assert contract["mandatory_full_stack"]["foundation_structure_owner"] == (
+        foundation_structure_contract_metadata()
+    )
+    assert contract["mandatory_full_stack"]["swing_structure_owner"] == (
+        swing_structure_contract_metadata()
+    )
 
     counts = Counter(classify_entry_specialist_feature(field) for field in fields)
     assert counts == _EXPECTED_FULL_SPECIALIST_COUNTS
@@ -243,6 +288,17 @@ def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live()
         specialist_contract_training_allowed_for_mode(MODEL_NATIVE_CONTRACT_MODE)
         is True
     )
+
+
+def test_retired_signed_volume_cannot_reenter_ranked_signal_surface() -> None:
+    selected = _selected_fields()
+    selected[-1] = "signed_vol_z_20"
+
+    with pytest.raises(
+        RuntimeError,
+        match="retired_model_native_signal_fields",
+    ):
+        ordered_model_native_signal_fields(selected)
 
 
 def test_exact_local_ema50_200_evidence_is_mandatory_and_trend_owned() -> None:
@@ -261,18 +317,17 @@ def test_all_foundation_cross_family_evidence_is_mandatory_and_routed() -> None:
     assert families["foundation_cross_family_layer"] == (
         FOUNDATION_STRUCTURE_FEATURE_NAMES
     )
-    assert tuple(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS[:57]) == (
+    assert tuple(
+        MODEL_NATIVE_MANDATORY_SELECTED_FIELDS[
+            : len(FOUNDATION_STRUCTURE_FEATURE_NAMES)
+        ]
+    ) == (
         FOUNDATION_STRUCTURE_FEATURE_NAMES
     )
     assert Counter(
         classify_entry_specialist_feature(name)
         for name in FOUNDATION_STRUCTURE_FEATURE_NAMES
-    ) == {
-        "structure_swing_encoder": 19,
-        "smc_liquidity_encoder": 5,
-        "vol_compression_encoder": 5,
-        "session_regime_encoder": 28,
-    }
+    ) == {"structure_swing_encoder": len(FOUNDATION_STRUCTURE_FEATURE_NAMES)}
 
 
 def test_active_context_contract_always_contains_full_regime_stack(
@@ -283,13 +338,8 @@ def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch.delenv("GX1_RUN_MODE", raising=False)
 
     context = model_native_context_contract_metadata()
-    # V30 (2026-08-13): 164 = 142 + H4_range_compression_ratio (package 1)
-    # + 9 adopted swing V29 ctx fields + 3 momentum-G3 RSI canon scalars
-    # (package 2) + 3 quote/spread-dynamics fields (package 4) + the 6
-    # emission-only swing additions of package 8A (two missing run counters,
-    # two level-intact flags, two normalized swing ages).
-    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 164
-    assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM
+    assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[
         -len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) :
@@ -352,8 +402,8 @@ def test_manifest_rejects_same_size_same_group_replacement_of_one_mandatory_fiel
 ):
     manifest = _native_manifest()
     selected = list(manifest["selected_features"])
-    victim = "trend.ema_mtf_score"
-    replacement = "trend.ema_ranked_replacement_fixture"
+    victim = "ctx_cont._v1h1_ema_diff"
+    replacement = "ctx_cont.adversarial_ema_diff_fixture"
     before = Counter(classify_entry_specialist_feature(name) for name in selected)
     selected[selected.index(victim)] = replacement
     after = Counter(classify_entry_specialist_feature(name) for name in selected)
@@ -378,29 +428,88 @@ def test_signal_contract_rejects_scattered_mandatory_registry_prefix() -> None:
 def test_signal_contract_rejects_stale_mandatory_family_metadata() -> None:
     contract = model_native_signal_contract_metadata(_selected_fields())
     contract["mandatory_full_stack"]["family_feature_counts"][
-        "trend_ema_smart_layer"
+        "raw_mtf_trend_layer"
     ] -= 1
 
     with pytest.raises(RuntimeError, match="mandatory_full_stack metadata mismatch"):
         require_model_native_signal_contract(contract, context="STALE")
 
 
+def test_signal_contract_rejects_basic_v1_formula_mutation() -> None:
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    assert contract["basic_v1_contract"] == MODEL_NATIVE_BASIC_V1_CONTRACT
+    contract["basic_v1_contract"]["formula_sha256"] = "0" * 64
+
+    with pytest.raises(RuntimeError, match="basic_v1_contract metadata mismatch"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+
+def test_signal_contract_rejects_v16_v5_or_unbound_candle_owner() -> None:
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    contract["schema_version"] = "entry_model_native_signal_v16"
+    with pytest.raises(RuntimeError, match="schema_version"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    contract["contract_mode"] = "xau_seq513_model_native_direction_v5"
+    with pytest.raises(RuntimeError, match="contract_mode"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    del contract["mandatory_full_stack"]["candle_primitive_owner"]
+    with pytest.raises(RuntimeError, match="mandatory_full_stack metadata mismatch"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    del contract["mandatory_full_stack"]["price_derived_owner"]
+    with pytest.raises(RuntimeError, match="mandatory_full_stack metadata mismatch"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    del contract["mandatory_full_stack"]["smc_primitive_owner"]
+    with pytest.raises(RuntimeError, match="mandatory_full_stack metadata mismatch"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    del contract["mandatory_full_stack"]["foundation_structure_owner"]
+    with pytest.raises(RuntimeError, match="mandatory_full_stack metadata mismatch"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    del contract["mandatory_full_stack"]["swing_structure_owner"]
+    with pytest.raises(RuntimeError, match="mandatory_full_stack metadata mismatch"):
+        require_model_native_signal_contract(contract, context="STALE")
+
+
 def test_manifest_rejects_stale_top_level_mandatory_family_metadata() -> None:
     manifest = _native_manifest()
-    manifest["mandatory_full_stack"]["family_features"]["trend_ema_smart_layer"].append(
-        "trend.ema_unknown_stale_member"
+    manifest["mandatory_full_stack"]["family_features"]["raw_mtf_trend_layer"].append(
+        "ctx_cont.unknown_stale_trend_member"
     )
 
     with pytest.raises(RuntimeError, match="MANDATORY_FULL_STACK_METADATA_STALE"):
         require_model_native_manifest(manifest, context="STALE")
 
 
-def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
+def test_model_native_transformer_entry_q_is_direct_and_anchor_free() -> None:
     torch.manual_seed(7)
+    model_kwargs = _exact_model_kwargs()
     model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
-        **_exact_model_kwargs()
+        **model_kwargs
     ).eval()
     seq_x = torch.randn(2, 4, MODEL_NATIVE_SIGNAL_DIM)
+    ordered_signal_names = list(
+        ordered_model_native_signal_fields(_selected_fields())
+    )
+    for name, domain in model_kwargs["input_normalization"]["surfaces"][
+        "signal"
+    ]["categorical_domains"].items():
+        signal_index = ordered_signal_names.index(name)
+        seq_x[:, :, signal_index] = torch.randint(
+            min(domain),
+            max(domain) + 1,
+            (2, 4),
+        ).float()
     snap_x = seq_x[:, -1, :].clone()
     ctx_cont = torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM)
     nominal_indices = [
@@ -415,6 +524,12 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
         5,
         (2, len(nominal_indices)),
     ).float()
+    alias_policy = model_native_context_temporal_alias_policy(
+        ordered_model_native_signal_fields(_selected_fields())
+    )
+    alias_signal_idx = torch.tensor(alias_policy["signal_indices"], dtype=torch.long)
+    alias_ctx_idx = torch.tensor(alias_policy["ctx_cont_indices"], dtype=torch.long)
+    ctx_cont[:, alias_ctx_idx] = snap_x[:, alias_signal_idx]
     ctx_cat = torch.stack(
         [
             torch.randint(0, len(domain), (2,))
@@ -429,10 +544,12 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
     }
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
-    assert out["direction_logits"].shape == out["model_native_logits"].shape == (2, 3)
-    assert torch.isfinite(out["direction_logits"]).all()
-    assert torch.equal(out["direction_logits"], out["raw_direction_logits"])
-    assert "model_native_evidence_fusion_active" not in out
+    assert out["entry_action_q_bps"].shape == (2, 3)
+    assert torch.isfinite(out["entry_action_q_bps"]).all()
+    assert out["entry_q_joint_hidden"].shape == (2, model.cfg.d_model)
+    assert "direction_logits" not in out
+    assert "raw_direction_logits" not in out
+    assert "model_native_logits" not in out
     assert not any("hierarchical_direction" in key for key in out)
     assert "anchor_logits" not in out
     assert "delta_logits" not in out
@@ -442,7 +559,7 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
     assert not hasattr(model.cfg, "direction_logit_mode")
     assert "head_position_size.weight" in model.state_dict()
     assert out["position_size_logit"].shape == (2, 1)
-    assert torch.count_nonzero(model.head_direction.weight).item() > 0
+    assert torch.count_nonzero(model.head_entry_action_q.weight).item() > 0
 
     with pytest.raises(TypeError, match="seq_m5"):
         model(
@@ -476,7 +593,7 @@ def test_model_native_transformer_rejects_noncanonical_context_dimensions() -> N
         )
 
 
-def test_state_builder_exposes_only_model_native_513_symbols(tmp_path) -> None:
+def test_state_builder_exposes_only_current_model_native_symbols(tmp_path) -> None:
     selected = _selected_fields()
     contract = model_native_signal_contract_metadata(selected)
     fit_start = pd.Timestamp("2026-01-01", tz="UTC")
@@ -500,11 +617,26 @@ def test_state_builder_exposes_only_model_native_513_symbols(tmp_path) -> None:
         rank_reference=reference,
     )
 
+    from tests.volatility_squeeze_test_support import (
+        make_volatility_squeeze_artifact_set,
+    )
+
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     builder = state_module.ModelNativeStateBuilder(
         ordered_signal_names=list(contract["fields"]),
         state_contract=state_contract,
         signal_contract=contract,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
+
+    stale_contract = {**contract, "schema_version": "entry_model_native_signal_v16"}
+    with pytest.raises(RuntimeError, match="schema_version"):
+        state_module.ModelNativeStateBuilder(
+            ordered_signal_names=list(contract["fields"]),
+            state_contract=state_contract,
+            signal_contract=stale_contract,
+            volatility_squeeze_artifacts=squeeze_artifacts,
+        )
 
     assert len(builder.ordered_signal_names) == MODEL_NATIVE_SIGNAL_DIM
     assert len(builder._ext_names) == MODEL_NATIVE_SELECTED_FEATURE_COUNT

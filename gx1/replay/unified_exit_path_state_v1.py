@@ -16,11 +16,24 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     CLOSED_M1_PATH_SCHEMA_VERSION,
     UNIFIED_EXIT_MAX_PATH_BARS,
+    UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256,
     UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
     canonical_closed_m1_bar,
     canonical_closed_m1_path_sha256,
+    extend_closed_m1_path_chain_sha256,
     require_unified_exit_output,
     require_unified_exit_path_envelope,
+)
+from gx1.contracts.unified_exit_input_v1 import (
+    require_unified_exit_input_envelope,
+)
+from gx1.contracts.entry_decision_token_v1 import (
+    ENTRY_DECISION_TOKEN_KEY,
+    build_entry_decision_token_snapshot,
+    require_entry_decision_token_snapshot,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
 )
 
 
@@ -66,6 +79,7 @@ class UnifiedExitPathState:
     entry_bid: float
     entry_ask: float
     entry_snapshot: dict[str, Any]
+    entry_decision_token_snapshot: dict[str, Any]
     normalization_contract: str
     bars_in_trade: int = 0
     last_processed_m1_ts: pd.Timestamp | None = None
@@ -73,7 +87,9 @@ class UnifiedExitPathState:
     current_ask: float = 0.0
     current_pnl_bps: float = 0.0
     closed_m1_path: list[dict[str, Any]] = field(default_factory=list)
+    full_path_chain_sha256: str = UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256
     last_exit_decision: dict[str, Any] | None = None
+    last_exit_input_envelope: dict[str, Any] | None = None
 
     @classmethod
     def open_unit_normalized_research(
@@ -86,11 +102,17 @@ class UnifiedExitPathState:
         v10_snapshot: dict[str, Any],
         replay_id: str,
         normalization_contract: str,
+        model_identity_kind: str,
+        model_identity_sha256: str,
+        input_normalization_sha256: str,
+        contract_mode: str,
     ) -> "UnifiedExitPathState":
         """Open the sole non-executable state admitted by offline replay."""
 
         if normalization_contract != _UNIT_NORMALIZATION_CONTRACT:
             raise ValueError("exact unit-normalized research contract is required")
+        if contract_mode != MODEL_NATIVE_CONTRACT_MODE:
+            raise ValueError("offline replay token contract mode is stale")
         if side not in _SIDES:
             raise ValueError(f"side must be one of {_SIDES}")
         if (
@@ -123,6 +145,22 @@ class UnifiedExitPathState:
         if expected_side != side:
             raise ValueError("offline replay side differs from model direction")
 
+        token_snapshot = build_entry_decision_token_snapshot(
+            token=snapshot[ENTRY_DECISION_TOKEN_KEY],
+            decision_time=snapshot["decision_ts"],
+            fill_time=raw_entry,
+            model_identity_kind=model_identity_kind,
+            model_identity_sha256=model_identity_sha256,
+            input_normalization_sha256=input_normalization_sha256,
+            contract_mode=contract_mode,
+            model_direction_index=int(snapshot["model_direction_index"]),
+            model_direction=str(snapshot["model_direction"]),
+            side=side,
+            entry_bid=bid,
+            entry_ask=ask,
+            trade_identity=replay_id,
+        )
+
         return cls(
             replay_id=replay_id,
             entry_fill_ts=raw_entry,
@@ -130,6 +168,7 @@ class UnifiedExitPathState:
             entry_bid=bid,
             entry_ask=ask,
             entry_snapshot=deepcopy(snapshot),
+            entry_decision_token_snapshot=token_snapshot,
             normalization_contract=normalization_contract,
             current_bid=bid,
             current_ask=ask,
@@ -171,8 +210,6 @@ class UnifiedExitPathState:
 
         if schema_version != CLOSED_M1_PATH_SCHEMA_VERSION:
             raise ValueError("closed M1 path schema_version mismatch")
-        if self.bars_in_trade >= UNIFIED_EXIT_MAX_PATH_BARS:
-            raise ValueError("closed M1 path exceeds unified Exit model capacity")
         canonical_bar = canonical_closed_m1_bar(
             m1_bar_ts=pd.Timestamp(time),
             complete=complete,
@@ -205,7 +242,13 @@ class UnifiedExitPathState:
         next_bid = float(canonical_bar["bid_close"])
         next_ask = float(canonical_bar["ask_close"])
         next_pnl = float(self._pnl_bps(next_bid, next_ask))
+        self.full_path_chain_sha256 = extend_closed_m1_path_chain_sha256(
+            self.full_path_chain_sha256,
+            canonical_bar,
+        )
         self.closed_m1_path.append(canonical_bar)
+        if len(self.closed_m1_path) > UNIFIED_EXIT_MAX_PATH_BARS:
+            self.closed_m1_path.pop(0)
         self.bars_in_trade += 1
         self.last_processed_m1_ts = observed_ts
         self.current_bid = next_bid
@@ -219,7 +262,7 @@ class UnifiedExitPathState:
         if (
             not rows
             or self.last_processed_m1_ts is None
-            or len(rows) != self.bars_in_trade
+            or len(rows) != min(self.bars_in_trade, UNIFIED_EXIT_MAX_PATH_BARS)
         ):
             raise ValueError("closed M1 path/bar count mismatch")
         envelope = {
@@ -233,6 +276,7 @@ class UnifiedExitPathState:
             "retained_path_length": len(rows),
             "path_rows": rows,
             "path_rows_sha256": canonical_closed_m1_path_sha256(rows),
+            "full_path_chain_sha256": self.full_path_chain_sha256,
         }
         return require_unified_exit_path_envelope(
             envelope,
@@ -244,6 +288,7 @@ class UnifiedExitPathState:
         decision: dict[str, Any],
         *,
         expected_bundle_sha256: str,
+        exit_input_envelope: dict[str, Any],
     ) -> None:
         """Content-bind one same-bundle model decision to this path prefix."""
 
@@ -252,14 +297,30 @@ class UnifiedExitPathState:
             context="UNIFIED_EXIT_PATH_STATE_BIND",
         )
         envelope = self.build_closed_m1_path_evidence()
+        input_envelope = require_unified_exit_input_envelope(
+            exit_input_envelope
+        )
+        if (
+            input_envelope["decision_identity"] != self.replay_id
+            or input_envelope["decision_time"]
+            != self.last_processed_m1_ts.isoformat()
+            or input_envelope["side"] != self.side
+            or float(input_envelope["entry_bid"]) != self.entry_bid
+            or float(input_envelope["entry_ask"]) != self.entry_ask
+            or input_envelope["entry_decision_token_snapshot"]
+            != self.entry_decision_token_snapshot
+        ):
+            raise ValueError("Exit input envelope differs from replay state")
         validated = require_unified_exit_output(
             decision,
             context="UNIFIED_EXIT_PATH_STATE_BIND",
             expected_bundle_sha256=expected_bundle_sha256,
             entry_snapshot=snapshot,
             exit_path_envelope=envelope,
+            exit_input_envelope=input_envelope,
         )
         self.last_exit_decision = deepcopy(validated)
+        self.last_exit_input_envelope = deepcopy(input_envelope)
 
     def commit_complete_exit_bar(
         self,
@@ -278,6 +339,7 @@ class UnifiedExitPathState:
             "entry_bid",
             "entry_ask",
             "entry_snapshot",
+            "entry_decision_token_snapshot",
             "normalization_contract",
         )
         if any(
@@ -287,24 +349,37 @@ class UnifiedExitPathState:
             raise ValueError("staged Exit state changed offline replay identity")
         if (
             staged.bars_in_trade != self.bars_in_trade + 1
-            or len(staged.closed_m1_path) != len(self.closed_m1_path) + 1
-            or staged.closed_m1_path[:-1] != self.closed_m1_path
+            or not staged.closed_m1_path
+            or staged.closed_m1_path
+            != (self.closed_m1_path + [staged.closed_m1_path[-1]])[
+                -UNIFIED_EXIT_MAX_PATH_BARS:
+            ]
         ):
             raise ValueError("staged Exit state must contain exactly one new M1 bar")
-        if staged.last_exit_decision is None:
-            raise ValueError("staged Exit state lacks its model decision")
+        if (
+            staged.last_exit_decision is None
+            or staged.last_exit_input_envelope is None
+        ):
+            raise ValueError("staged Exit state lacks its model decision/input")
 
         snapshot = require_model_native_runtime_head_evidence(
             staged.entry_snapshot,
             context="UNIFIED_EXIT_PATH_STATE_COMMIT",
         )
         envelope = staged.build_closed_m1_path_evidence()
+        input_envelope = require_unified_exit_input_envelope(
+            staged.last_exit_input_envelope
+        )
+        require_entry_decision_token_snapshot(
+            staged.entry_decision_token_snapshot
+        )
         require_unified_exit_output(
             staged.last_exit_decision,
             context="UNIFIED_EXIT_PATH_STATE_COMMIT",
             expected_bundle_sha256=expected_bundle_sha256,
             entry_snapshot=snapshot,
             exit_path_envelope=envelope,
+            exit_input_envelope=input_envelope,
         )
         self.__dict__.clear()
         self.__dict__.update(deepcopy(staged.__dict__))

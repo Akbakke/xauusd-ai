@@ -27,8 +27,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 def full_input_field_order() -> dict[str, list[str]]:
     signal = [
         "smc_choch",
-        "candle.pattern_outside_after_inside_bull_breakout_score",
-        "candle.pattern_outside_after_inside_bear_breakout_score",
         "ctx_cont.d1_atr14_canon_v2",
         "ctx_cont._v1h4_atr",
         "chart.local_ema50_200_cross_up",

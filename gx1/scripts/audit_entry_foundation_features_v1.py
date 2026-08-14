@@ -28,11 +28,12 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_manifest,
@@ -74,68 +75,14 @@ SELECTED_FEATURE_LEARNABILITY_SPLITS = tuple(
 )
 
 REQUIRED_FOUNDATION_LIVENESS_FAMILIES = (
-    "foundation_hh_hl_lh_ll",
     "foundation_bos_choch_age",
-    "foundation_sweep_reclaim",
-    "foundation_compression_expansion",
-    "foundation_impulse_pullback",
-    "foundation_session_x_structure",
-)
-
-_SESSION_X_STRUCTURE_SIGNALS = (
-    "hh_state",
-    "hl_state",
-    "lh_state",
-    "ll_state",
-    "bos_balance",
-    "choch_recent",
-    "sweep_reclaim_balance",
 )
 
 REQUIRED_FOUNDATION_OBJECTIVE_FEATURES = {
-    "hh_hl_lh_ll": (
-        "chart.foundation_hh_state",
-        "chart.foundation_hl_state",
-        "chart.foundation_lh_state",
-        "chart.foundation_ll_state",
-        "chart.foundation_structure_up_minus_down",
-    ),
     "bos_choch_age": (
-        "chart.foundation_bos_up_age_bars",
-        "chart.foundation_bos_down_age_bars",
-        "chart.foundation_bos_up_recent_tau24",
-        "chart.foundation_bos_down_recent_tau24",
-        "chart.foundation_bos_recent_balance",
-        "chart.foundation_choch_age_bars",
-        "chart.foundation_choch_recent_tau24",
-        "chart.foundation_bars_since_structure_break_min",
-    ),
-    "sweep_reclaim_false_breakout": (
-        "chart.foundation_sweep_low_reclaim_up_proxy",
-        "chart.foundation_sweep_high_reclaim_down_proxy",
-        "chart.foundation_false_breakout_high_followthrough_down_proxy",
-        "chart.foundation_false_breakout_low_followthrough_up_proxy",
-        "chart.foundation_sweep_reclaim_balance_proxy",
-    ),
-    "compression_expansion": (
-        "chart.foundation_compression_state",
-        "chart.foundation_expansion_state",
-        "chart.foundation_compression_release_trigger",
-        "chart.foundation_compression_release_up",
-        "chart.foundation_compression_release_down",
-    ),
-    "impulse_pullback_phase": (
-        "chart.foundation_impulse_direction",
-        "chart.foundation_impulse_age_proxy",
-        "chart.foundation_pullback_phase_up",
-        "chart.foundation_pullback_phase_down",
-        "chart.foundation_pullback_depth_norm",
-        "chart.foundation_impulse_pullback_alignment",
-    ),
-    "session_x_structure": tuple(
-        f"chart.foundation_{session}_x_{signal}"
-        for session in ("asia", "eu", "us", "overlap")
-        for signal in _SESSION_X_STRUCTURE_SIGNALS
+        "chart.foundation_bos_up_event_age_bars",
+        "chart.foundation_bos_down_event_age_bars",
+        "chart.foundation_choch_event_age_bars",
     ),
 }
 
@@ -203,8 +150,10 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
     contract = require_model_native_manifest(manifest, context="FOUNDATION_FEATURE_AUDIT")
     features = list(contract["selected_fields"])
     mandatory_prefix = features[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]
-    ranked_remainder = features[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
-    declared_ranked_remainder = manifest.get("ranked_remainder_features")
+    available_candidates = features[
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+    ]
+    declared_available_candidates = manifest.get("available_candidate_features")
     feature_ranking = manifest.get("feature_ranking")
     partition_failures: list[str] = []
     exact_scalars = {
@@ -212,8 +161,8 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
         "mandatory_selected_feature_count": (
             MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
         ),
-        "ranked_remainder_feature_count": (
-            MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        "available_candidate_feature_count": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
         ),
     }
     for key, expected in exact_scalars.items():
@@ -223,17 +172,18 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
             )
     if mandatory_prefix != list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS):
         partition_failures.append("mandatory_selected_fields prefix/order mismatch")
-    if len(ranked_remainder) != MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT:
+    if tuple(available_candidates) != MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS:
         partition_failures.append(
-            "ranked remainder width mismatch: "
-            f"observed={len(ranked_remainder)} "
-            f"expected={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT}"
+            "available candidate order mismatch"
         )
-    if declared_ranked_remainder != ranked_remainder:
-        partition_failures.append("ranked_remainder_features order mismatch")
-    ranked_remainder_sha256 = _sha256_json(ranked_remainder)
-    if manifest.get("ranked_remainder_fields_sha256") != ranked_remainder_sha256:
-        partition_failures.append("ranked_remainder_fields_sha256 mismatch")
+    if declared_available_candidates != available_candidates:
+        partition_failures.append("available_candidate_features order mismatch")
+    available_candidate_sha256 = _sha256_json(available_candidates)
+    if (
+        manifest.get("available_candidate_fields_sha256")
+        != available_candidate_sha256
+    ):
+        partition_failures.append("available_candidate_fields_sha256 mismatch")
     selected_fields_sha256 = _sha256_json(features)
     if manifest.get("selected_fields_sha256") != selected_fields_sha256:
         partition_failures.append("selected_fields_sha256 mismatch")
@@ -251,11 +201,11 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
     ):
         partition_failures.append("feature_ranking.sha256 is not lowercase sha256")
     if (
-        int(feature_ranking.get("eligible_ranked_remainder_count") or 0)
-        < MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        int(feature_ranking.get("available_candidate_count") or 0)
+        != MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
     ):
         partition_failures.append(
-            "feature_ranking eligible remainder count is insufficient"
+            "feature availability candidate count is not exact"
         )
     if manifest.get(
         "ranking_artifact_is_upstream_prerequisite_not_runtime_authority"
@@ -277,10 +227,10 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
         "manifest_mandatory_selected_feature_count": (
             manifest.get("mandatory_selected_feature_count")
         ),
-        "manifest_ranked_remainder_feature_count": (
-            manifest.get("ranked_remainder_feature_count")
+        "manifest_available_candidate_feature_count": (
+            manifest.get("available_candidate_feature_count")
         ),
-        "ranked_remainder_fields_sha256": ranked_remainder_sha256,
+        "available_candidate_fields_sha256": available_candidate_sha256,
         "feature_ranking_fit_scope": feature_ranking.get("fit_scope"),
         "feature_ranking_sha256": ranking_sha256,
         "model_native_signal_contract": contract,
@@ -1179,8 +1129,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "mandatory_selected_feature_count": (
             MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
         ),
-        "ranked_remainder_feature_count": (
-            MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        "available_candidate_feature_count": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
         ),
         "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
         "foundation_required_feature_count": int(len(foundation_required)),

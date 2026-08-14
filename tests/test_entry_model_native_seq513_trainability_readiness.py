@@ -75,17 +75,16 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
         ],
         "recipe_audit_schema": gate.RECIPE_AUDIT_SCHEMA,
         "recipe_env_keys": list(gate.MODEL_NATIVE_RECIPE_ENV_KEYS),
-        "required_positive_loss_weights": list(
-            gate.REQUIRED_POSITIVE_LOSS_WEIGHTS
-        ),
+        "joint_task_names": list(gate.JOINT_TASK_NAMES),
         "training_objective_schema": gate.TRAINING_OBJECTIVE_SCHEMA,
         "requires_exact_model_native_training_objective": True,
-        "requires_path_calibration_recipe_contract": True,
-        "path_calibration_recipe_contract": dict(gate.PATH_CALIBRATION_RECIPE_CONTRACT),
-        "requires_direction_balance_recipe_contract": True,
-        "direction_balance_recipe_contract": dict(gate.DIRECTION_BALANCE_RECIPE_CONTRACT),
-        "requires_tail_direction_recipe_contract": True,
-        "tail_direction_recipe_contract": dict(gate.TAIL_DIRECTION_RECIPE_CONTRACT),
+        "requires_direction_diagnostic_recipe_contract": True,
+        "direction_diagnostic_recipe_contract": dict(
+            gate.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+        ),
+        "direction_diagnostic_env_template": dict(
+            gate.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+        ),
         "requires_direction_context_slice_contract": True,
         "direction_context_slice_contract": dict(gate.DIRECTION_CONTEXT_SLICE_CONTRACT),
         "requires_canonical_direction_decision_contract": True,
@@ -232,11 +231,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
         smart_script_text = "challenger_seq215 215\n"
     trainer_text = (
         "--specialist-contract-mode\n"
-        + "\n".join(gate.PATH_CALIBRATION_ENV_KEYS)
-        + "\n"
-        + "\n".join(gate.DIRECTION_BALANCE_ENV_KEYS)
-        + "\n"
-        + "\n".join(gate.TAIL_DIRECTION_ENV_KEYS)
+        + "\n".join(gate.DIRECTION_DIAGNOSTIC_ENV_KEYS)
         + "\n"
     )
     return argparse.Namespace(

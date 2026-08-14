@@ -8,8 +8,8 @@ restated), routes Entry on M15/H1/H4/D1 and Exit on M5/M15/H1/H4/D1, and fails
 closed on any schema, byte, chronology, warmup, or feature-order mismatch. No
 historical cache contract or computed-feature fallback is exposed.
 
-The V29 registry blocks carry TRAIN-fitted per-TF constants (level cluster
-tolerance, trendline band).  Those constants have no legitimate default (rule
+The V29 registry blocks carry TRAIN-fitted per-TF constants (level recurrence
+threshold, trendline band). Those constants have no legitimate default (rule
 2a): every surface computation requires an explicit
 ``v29_registry_constants`` payload produced by
 :func:`fit_v29_registry_constants_from_m5` on the declared TRAIN window and
@@ -29,10 +29,38 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
-# The session owner is the SSoT for every named UTC clock boundary and imports
-# nothing from gx1 (numpy/pandas/typing only), so binding it here is safe and
-# keeps the trading-day origin below owned by exactly one module (rule 19).
-from gx1.time.session_detector import SESSION_BOUNDARIES as _SESSION_BOUNDARIES
+# The session owner is the SSoT for the UTC trading-session boundary and its
+# causal day ids.  Do not derive a second clock from calendar midnight here.
+from gx1.time.session_detector import (
+    TRADING_SESSION_BOUNDARY_OFFSET,
+    TRADING_SESSION_BOUNDARY_UTC_HOUR,
+    TRADING_SESSION_CLOCK_SCHEMA_VERSION,
+    trading_session_id_vectorized,
+    trading_session_label,
+)
+from gx1.features.technical_indicators_v1 import (
+    classic_ema,
+    ema50_200_spread_atr_block,
+    technical_indicator_contract_metadata,
+    wilder_atr,
+    wilder_atr14_positive,
+    wilder_rsi,
+)
+from gx1.features.event_age_v1 import (
+    raw_event_age_bars,
+    raw_state_age_bars,
+)
+from gx1.features.volume_features import (
+    VOLUME_FEATURE_NAMES,
+    compute_volume_features,
+)
+from gx1.features.volatility_squeeze_state_v1 import (
+    VOLATILITY_SQUEEZE_FEATURE_NAMES,
+    VolatilitySqueezeArtifactSet,
+    compute_volatility_squeeze_state,
+    require_volatility_squeeze_artifact_binding,
+    require_volatility_squeeze_artifact_set,
+)
 
 # Retained shared warmup floors used by the active context owner.
 D1_EMA200_MIN_BARS = 220
@@ -52,20 +80,15 @@ def _last_valid(series: pd.Series) -> float:
 
 
 def _ema(series: pd.Series, span: int) -> pd.Series:
-    return series.ewm(span=span, adjust=False).mean()
+    """Compatibility route to the canonical classic SMA-seeded EMA."""
+
+    return classic_ema(series, span)
 
 
 def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series:
-    prev_close = close.shift(1)
-    tr = pd.concat(
-        [
-            high - low,
-            (high - prev_close).abs(),
-            (low - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-    return tr.rolling(n, min_periods=n).mean()
+    """Compatibility route to the one canonical Wilder ATR owner."""
+
+    return wilder_atr(high, low, close, n)
 
 
 
@@ -157,10 +180,22 @@ def _validate_m5_input(
         or (require_volume and np.any(low_values > open_values))
     ):
         raise RuntimeError("HTF_INPUT_FAIL: OHLC geometry is invalid")
-    if require_volume and np.any(numeric["volume"].to_numpy(dtype=np.float64) <= 0.0):
-        raise RuntimeError(
-            "HTF_V4_VOLUME_SOURCE_INVALID: observed volume must be finite and positive"
-        )
+    if require_volume:
+        if m5_candles["volume"].map(
+            lambda value: isinstance(value, (bool, np.bool_))
+        ).any():
+            raise RuntimeError(
+                "HTF_V4_VOLUME_SOURCE_INVALID: observed volume must be a "
+                "positive integer tick count"
+            )
+        volume_values = numeric["volume"].to_numpy(dtype=np.float64)
+        if np.any(volume_values <= 0.0) or not np.equal(
+            volume_values, np.floor(volume_values)
+        ).all():
+            raise RuntimeError(
+                "HTF_V4_VOLUME_SOURCE_INVALID: observed volume must be a "
+                "positive integer tick count"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -170,35 +205,41 @@ def _validate_m5_input(
 # Exact ordered V4 feature contract. Persistent field names ending in _v2 are
 # model fields and remain unchanged; they are not compatibility APIs.
 from gx1.features.smc_v1 import (  # noqa: E402
+    SMC_CAUSAL_REPLAY_SCHEMA_VERSION,
     SMC_MTF_FEATURE_NAMES_V1,
     SMC_MTF_GEOMETRY_FEATURE_NAMES_V1,
+    SWING_LOOKBACK,
 )
 from gx1.features.level_registry_v1 import (  # noqa: E402
     LEVEL_REGISTRY_MTF_FEATURE_NAMES,
-    LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY,
     compute_level_registry_mtf_block_v1,
-    fit_level_registry_tolerance,
+    fit_level_registry_hyperparameters_v1,
 )
 from gx1.features.trendline_registry_v1 import (  # noqa: E402
     TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
     compute_trendline_registry_features_v1,
-    fit_trendline_tolerance,
+    fit_trendline_registry_hyperparameters_v1,
+)
+from gx1.contracts.registry_hyperparameter_fit_v1 import (  # noqa: E402
+    REGISTRY_HYPERPARAMETER_FIT_SCHEMA_V1,
+    require_registry_hyperparameter_payload_v1,
 )
 from gx1.features.swing_structure_v1 import (  # noqa: E402
     SWING_FEATURE_NAMES_V1,
     SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
+    swing_structure_contract_metadata,
 )
 
 
-def _candlestick_feature_names_v4() -> tuple[str, ...]:
-    from gx1.features.entry_candlestick_patterns_v1 import (
-        CANDLESTICK_PATTERN_FEATURE_NAMES,
+def _candle_primitive_feature_names_v4() -> tuple[str, ...]:
+    from gx1.features.entry_candle_primitives_v1 import (
+        CANDLE_PRIMITIVE_FEATURE_NAMES,
     )
 
     return tuple(
-        f"mtf_{name.split('.', 1)[1] if '.' in name else name}"
-        for name in CANDLESTICK_PATTERN_FEATURE_NAMES
+        f"mtf_{name.replace('.', '_')}"
+        for name in CANDLE_PRIMITIVE_FEATURE_NAMES
     )
 
 
@@ -215,8 +256,6 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "mom_20_atr",
     "close_open_atr",
     "body_pct",
-    "upper_wick_pct",
-    "lower_wick_pct",
     "ema20_dist_atr",
     "ema50_dist_atr",
     "ema100_dist_atr",
@@ -225,31 +264,27 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "ema50_slope_atr",
     "ema200_slope_atr",
     "ema_stack_aligned_v2",
-    "regime_class_id",
     "vwap_local_cycle_dist_atr",
     "vwap20_dist_atr",
     "vwap96_dist_atr",
     "vwap_local_cycle_slope_atr",
     "bb_position",
     "bb_width_atr",
-    "adx_centered",
+    "adx14",
     # V30 emission win (2026-08-13): the signed normalized DI spread
     # (plus_di - minus_di)/(plus_di + minus_di) computed and previously
-    # discarded inside the same _adx14 producer as adx_centered (see its
+    # discarded inside the same _adx14 producer as adx14 (see its
     # docstring for the warmup/zero-denominator convention).
     "di_spread_signed",
-    "trend_age_bars_norm",
+    "trend_state_age_bars",
 )
-MULTI_TF_V4_CANDLESTICK_FEATURES = _candlestick_feature_names_v4()
-# V30 Phase-A completion (2026-08-13): the V29 swing-event additions join
-# the per-TF lane (nine at package 2; package 8A appended six more — the two
-# MISSING run counters, the two "last confirmed pivot not closed through"
-# intact flags and the two normalized siblings of the raw V1 swing ages).  The design doc's STAGE-2 CORRECTION item 3 declared this
-# ("structure_swing per-TF additions (``MULTI_TF_V4_SWING_FEATURES`` 5->17,
-# +9/TF)") and the stage-2 wiring wave did not perform it; the producer has
-# emitted them behind ``include_v29_additions`` since the Phase-A build.
+MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES = _candle_primitive_feature_names_v4()
+# The exact swing-v2 local owner is projected independently on every native TF:
+# no bar-zero pseudo-level, no partial ATR, no age/run cap and no normalized
+# alias. Prefix-unavailable pivot measurements remain NaN until the shared
+# causal-history trim; event ages remain NaN until their first genuine event.
 #
-# Per-TF spelling: the five pre-V29 fields keep their historical ``swing_``
+# Per-TF spelling: base fields keep their historical ``swing_``
 # prefix (their source names — ``bars_since_swing_high`` … — are ambiguous
 # without it); the V29/V30 addition names are emitted VERBATIM, because they already
 # carry their own ``swing_``/``bars_since_swing_``/``consecutive_`` identity
@@ -257,11 +292,10 @@ MULTI_TF_V4_CANDLESTICK_FEATURES = _candlestick_feature_names_v4()
 # per-TF-name -> producer-field mapping is therefore declared explicitly here
 # instead of being recovered by a prefix strip at the emission site.
 MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE = {
-    "swing_bars_since_swing_high": "bars_since_swing_high",
-    "swing_bars_since_swing_low": "bars_since_swing_low",
-    "swing_dist_last_swing_high_atr": "dist_last_swing_high_atr",
-    "swing_dist_last_swing_low_atr": "dist_last_swing_low_atr",
-    "swing_retracement_from_last_impulse": "retracement_from_last_impulse",
+    **{
+        (name if name.startswith("swing_") else f"swing_{name}"): name
+        for name in SWING_FEATURE_NAMES_V1
+    },
     **{name: name for name in SWING_V29_ADDITION_NAMES_V1},
 }
 MULTI_TF_V4_SWING_FEATURES = tuple(MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE)
@@ -283,20 +317,16 @@ if set(MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE.values()) != set(
 #   this file already uses for rsi14_centered.  RSI_EXTREME_BAND_WIDTH is
 #   derived arithmetic over those published constants (50 - 30), not a new
 #   magnitude.
-# - EMA event warmups mirror the local price-derived layer's exact
-#   ewm(span=k, adjust=False, min_periods=k) convention
-#   (entry_model_native_feature_layers_v1.build_price_derived_layer).
-# - Event ages reuse this file's own trend_age_bars_norm convention
-#   (500-bar cap + log1p normalization, compute_per_bar_features_v4).
+# - EMA event warmups come from the shared classic SMA-seeded EMA owner
+#   (technical_indicators_v1.classic_ema).
+# - Every age uses the shared raw observed-native-row age owner. Event ages
+#   stay NaN until the first genuine event; state durations start at the first
+#   valid state. Neither path is capped or log transformed.
 # - The divergence pivot source is smc_v1's confirmed-pivot machinery with
 #   its named SWING_LOOKBACK = 3 (the one pivot truth; no second detector).
 #
-# Stage-2 wiring note: these two groups extend the per-TF V4 surface
-# 111 -> 132.  Routing (entry_specialist_feature_groups_v1:
-# trend_ema_encoder 10 -> 21, momentum_flow_encoder 4 -> 14), the 513
-# contract dims and the MTF disk-cache rebuild are owned by the V29 stage-2
-# wiring change; until it lands, the routing owner's import-time coverage
-# proof fails closed on these names by design.
+# Routing and disk-cache widths derive from the declared feature tuples; no
+# consumer may restate the historical surface widths.
 RSI_WILDER_OVERSOLD = 30.0
 RSI_WILDER_OVERBOUGHT = 70.0
 RSI_WILDER_MIDLINE = 50.0
@@ -307,20 +337,20 @@ MULTI_TF_V4_TREND_EVENT_FEATURES = (
     "ema50_200_bull_state",
     "ema50_200_cross_up",
     "ema50_200_cross_down",
-    "ema50_200_cross_age_norm",
+    "ema50_200_state_age_bars",
     "price_x_ema50_cross_up",
     "price_x_ema50_cross_down",
     "price_x_ema200_cross_up",
     "price_x_ema200_cross_down",
-    "price_above_ema50_age_norm",
-    "price_above_ema200_age_norm",
+    "price_vs_ema50_state_age_bars",
+    "price_vs_ema200_state_age_bars",
 )
 MULTI_TF_V4_MOMENTUM_EVENT_FEATURES = (
     "rsi_cross_up_30",
     "rsi_cross_down_70",
     "rsi_cross_up_50",
     "rsi_cross_down_50",
-    "rsi_extreme_age_norm",
+    "rsi_extreme_event_age_bars",
     "mom20_sign_flip_up",
     "mom20_sign_flip_down",
     "bear_divergence_event",
@@ -336,7 +366,17 @@ MULTI_TF_V4_MOMENTUM_EVENT_FEATURES = (
     # per design B.5) and NaN over the same undefined prefix as the events.
     "bear_divergence_strength",
     "bull_divergence_strength",
-    "divergence_age_norm",
+    "divergence_event_age_bars",
+)
+
+# Native-clock continuous momentum evidence. These are appended to the local
+# M5 Entry / M1 Exit event block so each decision sequence sees its own RSI
+# level, RSI velocity and short/medium momentum.
+LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES = (
+    "rsi14_centered",
+    "rsi14_delta_5",
+    "mom_5_atr",
+    "mom_20_atr",
 )
 
 # Persistent model inputs that historically came from three separate HTF
@@ -364,13 +404,11 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
     # decision bar closes, the same closed-bar rule every other TF uses here.
     "M5": ("m5_rsi14_canon_v2",),
     "M15": (
-        "M15_range_compression_ratio",
         "m15_rsi14_canon_v2",
         "m15_range_z_20_canon_v2",
-        "m15_trend_sign_canon_v2",
+        "m15_ema5_20_spread_atr_canon_v2",
     ),
     "H1": (
-        "H1_range_compression_ratio",
         "_v1h1_ema_diff",
         "_v1h1_atr",
         "_v1h1_rsi14_z",
@@ -379,10 +417,7 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
         "h1_rsi14_canon_v2",
     ),
     "H4": (
-        # V30 (2026-08-13): verbatim sibling of H1/M15_range_compression_ratio
-        # (atr14/atr100 with the H4_ATR100_MIN_BARS warmup gate).
-        "H4_range_compression_ratio",
-        "H4_trend_sign_cat",
+        "h4_mid_ema50_dist_atr_canon_v2",
         "_v1h4_ema_diff",
         "_v1h4_atr",
         "_v1h4_rsi14_z",
@@ -392,24 +427,17 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
     ),
     "D1": (
         "D1_dist_from_ema200_atr",
-        "D1_atr_percentile_252",
         "d1_atr14_canon_v2",
         "d1_rsi14_canon_v2",
         "d1_ema_slope_20_canon_v2",
         "d1_range_z_20_canon_v2",
         "d1_close_pct_in_20day_range_canon_v2",
         "d1_pct_change_5_canon_v2",
+        "d1_dist_change_1bar_atr_v4",
     ),
 }
 MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "D1_dist_from_ema200_atr",
-    "H1_range_compression_ratio",
-    "D1_atr_percentile_252",
-    "M15_range_compression_ratio",
-    # V30 (2026-08-13): position mirrors the ctx_cont source-prefix order
-    # (the single-owner test requires the ctx_cont intersection to preserve
-    # this tuple's order).
-    "H4_range_compression_ratio",
     "_v1h1_ema_diff",
     "_v1h1_atr",
     "_v1h1_rsi14_z",
@@ -428,7 +456,7 @@ MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "d1_pct_change_5_canon_v2",
     "m15_rsi14_canon_v2",
     "m15_range_z_20_canon_v2",
-    "m15_trend_sign_canon_v2",
+    "m15_ema5_20_spread_atr_canon_v2",
     # V30 (2026-08-13): the three momentum-G3 raw-RSI siblings, ordered M5 ->
     # H1 -> H4 as the design row lists them; the ctx_cont contract appends the
     # same three names in the same order (the single-owner test requires the
@@ -436,10 +464,11 @@ MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "m5_rsi14_canon_v2",
     "h1_rsi14_canon_v2",
     "h4_rsi14_canon_v2",
-    "H4_trend_sign_cat",
+    "h4_mid_ema50_dist_atr_canon_v2",
+    "d1_dist_change_1bar_atr_v4",
 )
 MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4 = (
-    "model_native_mtf_scalar_owner_native_m5_v4"
+    "model_native_mtf_scalar_owner_native_m5_v7"
 )
 # V30 (2026-08-13): the scalar-projection route per decision clock, previously
 # repeated as two identical literals inside the projection function and the
@@ -455,21 +484,30 @@ MODEL_NATIVE_MTF_SCALAR_ROUTES_V4 = {
     pd.Timedelta(minutes=1): ("M5", "M15", "H1", "H4", "D1"),
 }
 # V29 Phase A per-TF REGISTRY blocks (stage 2 wiring, design doc §1.3/§2):
-# the 11-field pivot-cluster level block and the 33-field trendline/channel
+# the 31-field immutable pivot-anchor block and the 33-field trendline/channel
 # block run independently on every TF clock next to
 # compute_smc_mtf_primitives_v1.  Their exact ordered names are owned by the
 # two registry modules; this owner only sequences them.  Both blocks carry
-# TRAIN-fitted constants (level cluster tolerance / trendline band) that must
+# TRAIN-fitted constants (level recurrence threshold / trendline band) that must
 # arrive through an explicit ``v29_registry_constants`` payload — no default
 # exists here (rule 2a).
 MULTI_TF_V4_LEVEL_REGISTRY_FEATURES = tuple(LEVEL_REGISTRY_MTF_FEATURE_NAMES)
 MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES = tuple(
     TRENDLINE_REGISTRY_FEATURE_NAMES_V1
 )
+# Raw tick-count activity primitives.  The exact same owner computes these on
+# every already-resampled closed OHLCV frame; computed feature values are never
+# resampled between clocks.
+MULTI_TF_V4_VOLUME_FEATURES = tuple(VOLUME_FEATURE_NAMES)
+MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES = tuple(
+    VOLATILITY_SQUEEZE_FEATURE_NAMES
+)
 
 MULTI_TF_PER_BAR_FEATURES_V4 = (
     MULTI_TF_V4_GROUP_A_BASE_FEATURES
-    + MULTI_TF_V4_CANDLESTICK_FEATURES
+    + MULTI_TF_V4_VOLUME_FEATURES
+    + MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES
+    + MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES
     + MULTI_TF_V4_SWING_FEATURES
     + SMC_MTF_FEATURE_NAMES_V1
     + SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
@@ -487,7 +525,7 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
         allow_nan=False,
     ).encode("utf-8")
 ).hexdigest()
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2"
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V13"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -496,56 +534,18 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2"
 # axis holds different bars under the same feature names — a new manifest key
 # plus a new schema version reject it before a single array is loaded rather
 # than letting it masquerade as current.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v6"
+# v7 adds the shared per-TF volume primitives. v8 preserves those fields and
+# phases H4/D1 from the one UTC trading-session owner. v9 binds the shared SMC
+# causal replay and one-shot level-identity sweeps. v18 replaces capped age and
+# premium aliases with raw event ages and raw pivot-envelope position. v19
+# binds the swing-v2 formula owner and its wider raw current-state surface.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v22"
 HTF_V4_CACHE_BUILDER_VERSION = (
-    "prebuild_multi_tf_cache_v4_d1_trading_day_origin_20260813"
+    "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
 )
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v3"
-# The v2 schema (no saturated_presence_masks key) remains valid for immutable
-# artifacts published before 2026-08-11 (the V28 baseline cache); the
-# validator accepts exactly these two versions, each with its own exact key
-# set — no soft tolerance inside either version.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION_V2 = "htf_v4_full_input_liveness_v2"
-
-# Presence-mask saturation contract (rule 2d evidence class: measured on real
-# declared data, 2026-08-11, native-M5 V4 tape resampled to D1, TRAIN fit
-# band 1.2207 ATR, N=2304 D1 TRAIN bars): at D1 scale the trendline
-# slot-occupancy masks saturate — an ACTIVE >=3-touch line above/below the
-# close almost always exists inside the 252-bar candidate window, so
-# geomline_below_active is exactly 1.0 on every declared 2021-2026 D1 row
-# (871 touch events fired; all six sibling attributes non-constant) and
-# geomline_above_active escapes constancy only through a handful of 2024
-# zero-days. A saturated occupancy mask is the flag-disambiguated-zero
-# pattern's degenerate-but-honest limit (design B.5): the mask must stay (a
-# 0-attribute row is only readable through it) and its constancy at 1.0 with
-# live siblings and firing paired touch events is a measured market
-# property, not wiring death. Constant 0.0 (never occupied), dead sibling
-# attributes or a silent paired event remain RED exactly as before.
-HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT = {
-    "geomline_above_active": {
-        "attributes": (
-            "geomline_above_dist_atr",
-            "geomline_above_slope_atr_per_bar",
-            "geomline_above_touch_count",
-            "geomline_above_age_bars",
-            "geomline_above_last_touch_age_bars",
-            "geomline_above_max_dev_atr",
-        ),
-        "event": "geomline_touch_above",
-    },
-    "geomline_below_active": {
-        "attributes": (
-            "geomline_below_dist_atr",
-            "geomline_below_slope_atr_per_bar",
-            "geomline_below_touch_count",
-            "geomline_below_age_bars",
-            "geomline_below_last_touch_age_bars",
-            "geomline_below_max_dev_atr",
-        ),
-        "event": "geomline_touch_below",
-    },
-}
-
+# v12 re-proves support for raw uncapped event ages without persistent global
+# ever-seen masks; earlier payloads cannot describe this width.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v14"
 # These are deliberate aliases inside the fixed per-bar V4 model surface.
 HTF_V4_DECLARED_ALIAS_PAIRS = frozenset(
     {
@@ -584,21 +584,14 @@ MULTI_TF_RESAMPLE_RULES = {
 # comparison carries no sampling error; the log is
 # GX1_DATA/logs/v30_package3_20260813/d1_coverage_audit.log.)
 #
-# The 22:00 magnitude is NOT invented (rule 2a/2b): it is the session owner's
-# own named ASIA open, SESSION_BOUNDARIES["ASIA"][0], which
-# docs/V29_EVENT_SURFACE_DESIGN_20260811.md already declares as THE
-# trading-day clock for the session-anchored level registry. This change makes
-# the OHLC D1 clock agree with the clock the event surface already uses.
-#
-# Every other timeframe divides 24h evenly from midnight, so their bins are
-# unchanged and their offset is exactly zero.
-MULTI_TF_D1_TRADING_DAY_ORIGIN_HOUR = int(_SESSION_BOUNDARIES["ASIA"][0])
+# The magnitude is inherited from the session owner, never restated here.
+# Every TF derives its phase as ``boundary % duration``.  M1/M5/M15/H1 remain
+# on their UTC grids; H4 becomes 22/02/06/10/14/18 so no H4 observation spans
+# two trading-session ids; D1 opens on the boundary itself.
+MULTI_TF_D1_TRADING_DAY_ORIGIN_HOUR = TRADING_SESSION_BOUNDARY_UTC_HOUR
 MULTI_TF_RESAMPLE_ORIGIN_OFFSET = {
-    "M5": pd.Timedelta(0),
-    "M15": pd.Timedelta(0),
-    "H1": pd.Timedelta(0),
-    "H4": pd.Timedelta(0),
-    "D1": pd.Timedelta(hours=MULTI_TF_D1_TRADING_DAY_ORIGIN_HOUR),
+    timeframe: TRADING_SESSION_BOUNDARY_OFFSET % pd.Timedelta(rule)
+    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items()
 }
 if tuple(MULTI_TF_RESAMPLE_ORIGIN_OFFSET) != tuple(MULTI_TF_RESAMPLE_RULES):
     raise RuntimeError(
@@ -664,6 +657,8 @@ def multi_tf_bar_label(values, timeframe: str):
     """
     if timeframe not in MULTI_TF_RESAMPLE_RULES:
         raise RuntimeError(f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}")
+    if timeframe == "D1":
+        return trading_session_label(values, context="HTF_V4_D1_BAR_LABEL")
     offset = MULTI_TF_RESAMPLE_ORIGIN_OFFSET[timeframe]
     floored = (values - offset).floor(MULTI_TF_RESAMPLE_RULES[timeframe])
     return floored + offset
@@ -818,27 +813,265 @@ def require_multi_tf_resolution_pyramid(
 
 # ---------------------------------------------------------------------------
 # V29 registry constants — the one payload carrying the TRAIN-fitted level
-# tolerance and trendline band per TF (rule 18: fitted once on the declared
+# recurrence threshold and trendline band per TF (rule 18: fitted once on the declared
 # TRAIN window, frozen, never refitted downstream) plus the entry-M5-lane
 # trendline fit (candidate window = the Entry model sequence length).  The
-# quantile ``q`` is an explicit recipe input
-# (LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY); no default exists anywhere.
+# Both operators are selected by immutable chronological inner-TRAIN
+# competing-risk artifacts. No q/reaction/retest recipe input exists.
 # ---------------------------------------------------------------------------
-V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v1"
+V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v6"
+V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION = (
+    "htf_v4_v29_registry_constants_provenance_v5"
+)
 _V29_REGISTRY_CONSTANTS_KEYS = frozenset(
     {
         "schema_version",
-        "level_tol_quantile_recipe_key",
-        "level_tol_quantile_q",
         "declared_train_window_end",
-        "level_tol_atr",
+        "declared_inner_fit_window_end",
+        "level_recurrence_threshold_atr",
+        "level_expiry_bars",
         "trendline_band_atr",
+        "trendline_expiry_bars",
         "per_tf_seq_lens",
         "entry_m5",
         "provenance",
+        "contract_sha256",
     }
 )
-_V29_REGISTRY_ENTRY_M5_KEYS = frozenset({"seq_len", "trendline_band_atr"})
+_V29_REGISTRY_ENTRY_M5_KEYS = frozenset(
+    {"seq_len", "trendline_band_atr", "trendline_expiry_bars"}
+)
+_V29_REGISTRY_CONSTANTS_PROVENANCE_KEYS = frozenset(
+    {
+        "schema_version",
+        "lane",
+        "module",
+        "payload_schema_version",
+        "fit_owner",
+        "declared_train_window_end",
+        "declared_inner_fit_window_end",
+        "n_train_m5_rows",
+        "inner_fit_end_exclusive_by_clock",
+        "level_recurrence_threshold",
+        "trendline_band",
+        "entry_m5_trendline_band",
+    }
+)
+
+
+def _contract_sha256_without_field(value: Mapping) -> str:
+    payload = dict(value)
+    payload.pop("contract_sha256", None)
+    return hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _sha256_file_exact(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _require_contract_sha256(value: Mapping, *, context: str) -> None:
+    observed = value.get("contract_sha256")
+    expected = _contract_sha256_without_field(value)
+    if (
+        not isinstance(observed, str)
+        or len(observed) != 64
+        or any(character not in "0123456789abcdef" for character in observed)
+        or observed != expected
+    ):
+        raise RuntimeError(f"{context}: contract_sha256")
+
+
+def _require_nonnegative_int(value: object, *, context: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+        raise RuntimeError(context)
+    observed = int(value)
+    if observed < 0:
+        raise RuntimeError(context)
+    return observed
+
+
+def _require_finite_number(value: object, *, context: str) -> float:
+    if isinstance(value, bool) or not isinstance(
+        value, (int, float, np.integer, np.floating)
+    ):
+        raise RuntimeError(context)
+    observed = float(value)
+    if not math.isfinite(observed):
+        raise RuntimeError(context)
+    return observed
+
+
+def _require_canonical_utc_timestamp_label(
+    value: object,
+    *,
+    context: str,
+) -> str:
+    if not isinstance(value, str) or not value:
+        raise RuntimeError(context)
+    try:
+        timestamp = pd.Timestamp(value)
+    except Exception as exc:
+        raise RuntimeError(context) from exc
+    if (
+        pd.isna(timestamp)
+        or timestamp.tzinfo is None
+        or timestamp.utcoffset() != pd.Timedelta(0)
+        or timestamp.isoformat() != value
+    ):
+        raise RuntimeError(context)
+    return value
+
+
+def _require_registry_hyperfit_provenance(
+    value: object,
+    *,
+    registry_kind: str,
+    timeframe: str,
+    selected_threshold_atr: float,
+    learned_expiry_bars: int,
+    source_row_count: int,
+    inner_fit_end_exclusive: int,
+    window_end: str,
+    population_configuration: Mapping[str, object] | None,
+    context: str,
+) -> None:
+    try:
+        payload = require_registry_hyperparameter_payload_v1(
+            value,
+            registry_kind=registry_kind,
+            clock=timeframe.upper(),
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(f"{context}: registry hyperfit provenance") from exc
+    source = payload["source_provenance"]
+    observed_population = payload["population_configuration"]
+    if registry_kind == "horizontal_level":
+        expected_level_keys = {
+            "owner",
+            "runtime_owner",
+            "identity_control",
+            "threshold_selection",
+            "lifetime_selection",
+            "swing_lookback",
+            "canonical_lifecycle_sha256",
+            "canonical_episode_sha256",
+            "canonical_identity_state_sha256",
+            "canonical_recurrence_observation_count",
+            "canonical_outcome_stream_sha256",
+            "canonical_event_tape_sha256",
+            "fit_phase",
+            "population_decomposition_contract",
+            "selected_threshold_atr",
+            "selected_expiry_bars",
+            "selected_runtime_recurrence_observation_count",
+            "final_fit_recurrence_population_sha256",
+            "final_serve_recurrence_population_sha256",
+            "canonical_fit_outcome_population_sha256",
+            "selected_derived_outcome_population_sha256",
+            "selected_derived_lifecycle_sha256",
+            "selected_derived_episode_sha256",
+            "selected_derived_state_sha256",
+            "selected_derived_emission_sha256",
+            "selected_eligibility_expiry_count",
+        }
+        if (
+            not isinstance(observed_population, Mapping)
+            or set(observed_population) != expected_level_keys
+            or observed_population["owner"]
+            != "level_immutable_anchor_recurrence_decomposition_v2"
+            or observed_population["runtime_owner"]
+            != "gx1.features.level_registry_v1._run_level_registry"
+            or observed_population["identity_control"]
+            != (
+                "immutable_per_confirmed_pivot_anchor_exact_center_break_touch_"
+                "and_parameter_independent_identity_retention"
+            )
+            or observed_population["threshold_selection"]
+            != "recurrence_confirmed_on_nearest_same_side_distance"
+            or observed_population["lifetime_selection"]
+            != (
+                "learned_expiry_of_event_and_slot_eligibility_without_"
+                "identity_deletion"
+            )
+            or observed_population["swing_lookback"] != int(SWING_LOOKBACK)
+            or observed_population["fit_phase"]
+            != "immutable_recurrence_canonical_outcome_decomposition"
+            or observed_population["population_decomposition_contract"]
+            != (
+                "serve_recurrence_uses_all_prior_immutable_same_birth_side_"
+                "anchors_via_price_index;train_outcomes_use_parameter_"
+                "independent_exact_cross_lifecycle;selected_expiry_gates_"
+                "only_event_slot_eligibility"
+            )
+            or float(observed_population["selected_threshold_atr"])
+            != float(selected_threshold_atr)
+            or int(observed_population["selected_expiry_bars"])
+            != int(learned_expiry_bars)
+            or not isinstance(
+                observed_population["canonical_recurrence_observation_count"], int
+            )
+            or observed_population["canonical_recurrence_observation_count"] <= 0
+            or observed_population["selected_runtime_recurrence_observation_count"]
+            != observed_population["canonical_recurrence_observation_count"]
+            or observed_population["final_fit_recurrence_population_sha256"]
+            != observed_population["final_serve_recurrence_population_sha256"]
+            or observed_population["canonical_fit_outcome_population_sha256"]
+            != payload["outcome_stream_sha256"]
+            or not isinstance(
+                observed_population["selected_eligibility_expiry_count"], int
+            )
+            or observed_population["selected_eligibility_expiry_count"] < 0
+        ):
+            raise RuntimeError(f"{context}: canonical level tape binding")
+        for hash_key in (
+            "canonical_lifecycle_sha256",
+            "canonical_episode_sha256",
+            "canonical_identity_state_sha256",
+            "canonical_outcome_stream_sha256",
+            "canonical_event_tape_sha256",
+            "final_fit_recurrence_population_sha256",
+            "final_serve_recurrence_population_sha256",
+            "canonical_fit_outcome_population_sha256",
+            "selected_derived_outcome_population_sha256",
+            "selected_derived_lifecycle_sha256",
+            "selected_derived_episode_sha256",
+            "selected_derived_state_sha256",
+            "selected_derived_emission_sha256",
+        ):
+            value_hash = observed_population[hash_key]
+            if (
+                not isinstance(value_hash, str)
+                or len(value_hash) != 64
+                or any(char not in "0123456789abcdef" for char in value_hash)
+            ):
+                raise RuntimeError(f"{context}: canonical level tape hash")
+    elif observed_population != dict(population_configuration or {}):
+        raise RuntimeError(f"{context}: registry hyperfit binding")
+    if (
+        payload["schema_version"] != REGISTRY_HYPERPARAMETER_FIT_SCHEMA_V1
+        or float(payload["selected_threshold_atr"])
+        != float(selected_threshold_atr)
+        or int(payload["learned_expiry_bars"])
+        != int(learned_expiry_bars)
+        or int(payload["outer_train_rows"]) != int(source_row_count)
+        or int(payload["inner_fit_end_exclusive"])
+        != int(inner_fit_end_exclusive)
+        or source["declared_train_window_end"] != window_end
+        or payload["future_outcomes_usage"]
+        != "TRAIN_hyperparameter_fit_only_not_apply_features"
+    ):
+        raise RuntimeError(f"{context}: registry hyperfit binding")
 
 
 def _require_positive_finite_float(value: object, *, label: str) -> float:
@@ -870,23 +1103,23 @@ def require_v29_registry_constants(value: object) -> dict:
             "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: schema_version="
             f"{observed['schema_version']!r}"
         )
-    if observed["level_tol_quantile_recipe_key"] != (
-        LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY
-    ):
-        raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: level_tol_quantile_recipe_key"
-        )
-    q = _require_positive_finite_float(
-        observed["level_tol_quantile_q"], label="level_tol_quantile_q"
+    window_end = _require_canonical_utc_timestamp_label(
+        observed["declared_train_window_end"],
+        context=(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: "
+            "declared_train_window_end"
+        ),
     )
-    if not q < 1.0:
+    inner_window_end = _require_canonical_utc_timestamp_label(
+        observed["declared_inner_fit_window_end"],
+        context=(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: "
+            "declared_inner_fit_window_end"
+        ),
+    )
+    if pd.Timestamp(inner_window_end) >= pd.Timestamp(window_end):
         raise RuntimeError(
-            f"HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: level_tol_quantile_q={q!r}"
-        )
-    window_end = observed["declared_train_window_end"]
-    if not isinstance(window_end, str) or not window_end:
-        raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: declared_train_window_end"
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: inner split must precede TRAIN end"
         )
     expected_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
     # Exact key SET, canonical iteration order for the value checks. Key
@@ -895,7 +1128,7 @@ def require_v29_registry_constants(value: object) -> dict:
     # hash-bound split manifests), which reorders mapping keys — demanding
     # insertion order made the first V29 smoke launch fail on a payload whose
     # content was exact (2026-08-12).
-    for mapping_name in ("level_tol_atr", "trendline_band_atr"):
+    for mapping_name in ("level_recurrence_threshold_atr", "trendline_band_atr"):
         mapping = observed[mapping_name]
         if not isinstance(mapping, Mapping) or set(mapping) != set(expected_tfs):
             raise RuntimeError(
@@ -906,6 +1139,21 @@ def require_v29_registry_constants(value: object) -> dict:
             _require_positive_finite_float(
                 mapping[tf_name], label=f"{mapping_name}.{tf_name}"
             )
+    for mapping_name in ("level_expiry_bars", "trendline_expiry_bars"):
+        mapping = observed[mapping_name]
+        if not isinstance(mapping, Mapping) or set(mapping) != set(expected_tfs):
+            raise RuntimeError(
+                f"HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: {mapping_name} keys"
+            )
+        for tf_name in expected_tfs:
+            if (
+                isinstance(mapping[tf_name], bool)
+                or not isinstance(mapping[tf_name], (int, np.integer))
+                or int(mapping[tf_name]) <= 0
+            ):
+                raise RuntimeError(
+                    f"HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: {mapping_name}.{tf_name}"
+                )
     seq_lens = observed["per_tf_seq_lens"]
     if not isinstance(seq_lens, Mapping) or set(seq_lens) != set(expected_tfs):
         raise RuntimeError(
@@ -930,41 +1178,178 @@ def require_v29_registry_constants(value: object) -> dict:
     _require_positive_finite_float(
         entry_m5["trendline_band_atr"], label="entry_m5.trendline_band_atr"
     )
-    if not isinstance(observed["provenance"], Mapping) or not observed["provenance"]:
+    if (
+        isinstance(entry_m5["trendline_expiry_bars"], bool)
+        or not isinstance(entry_m5["trendline_expiry_bars"], (int, np.integer))
+        or int(entry_m5["trendline_expiry_bars"]) <= 0
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: entry_m5.trendline_expiry_bars"
+        )
+    provenance = observed["provenance"]
+    if (
+        not isinstance(provenance, Mapping)
+        or set(provenance) != _V29_REGISTRY_CONSTANTS_PROVENANCE_KEYS
+    ):
         raise RuntimeError("HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: provenance")
+    n_train_rows = _require_nonnegative_int(
+        provenance["n_train_m5_rows"],
+        context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: provenance binding",
+    )
+    if (
+        provenance["schema_version"]
+        != V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION
+        or provenance["lane"] != "M5"
+        or provenance["module"] != "gx1.features.htf_features"
+        or provenance["payload_schema_version"]
+        != V29_REGISTRY_CONSTANTS_SCHEMA_VERSION
+        or provenance["fit_owner"]
+        != "gx1.features.htf_features.fit_v29_registry_constants_from_m5"
+        or provenance["declared_train_window_end"] != window_end
+        or provenance["declared_inner_fit_window_end"] != inner_window_end
+        or n_train_rows <= 0
+        or not isinstance(provenance["inner_fit_end_exclusive_by_clock"], Mapping)
+        or set(provenance["inner_fit_end_exclusive_by_clock"]) != set(expected_tfs)
+        or not isinstance(provenance["level_recurrence_threshold"], Mapping)
+        or set(provenance["level_recurrence_threshold"]) != set(expected_tfs)
+        or not isinstance(provenance["trendline_band"], Mapping)
+        or set(provenance["trendline_band"]) != set(expected_tfs)
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: provenance binding"
+        )
+    for tf_name in expected_tfs:
+        inner_end = provenance["inner_fit_end_exclusive_by_clock"][tf_name]
+        if (
+            isinstance(inner_end, bool)
+            or not isinstance(inner_end, (int, np.integer))
+            or not 1 < int(inner_end) < int(
+                provenance["level_recurrence_threshold"][tf_name].get(
+                    "outer_train_rows", 0
+                )
+            ) - 1
+        ):
+            raise RuntimeError(
+                "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: inner split binding"
+            )
+        _require_registry_hyperfit_provenance(
+            provenance["level_recurrence_threshold"][tf_name],
+            registry_kind="horizontal_level",
+            timeframe=tf_name,
+            window_end=window_end,
+            selected_threshold_atr=float(
+                observed["level_recurrence_threshold_atr"][tf_name]
+            ),
+            learned_expiry_bars=int(observed["level_expiry_bars"][tf_name]),
+            source_row_count=int(
+                provenance["level_recurrence_threshold"][tf_name][
+                    "outer_train_rows"
+                ]
+            ),
+            inner_fit_end_exclusive=int(inner_end),
+            population_configuration=None,
+            context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID",
+        )
+        _require_registry_hyperfit_provenance(
+            provenance["trendline_band"][tf_name],
+            registry_kind="trendline",
+            timeframe=tf_name,
+            window_end=window_end,
+            selected_threshold_atr=float(observed["trendline_band_atr"][tf_name]),
+            learned_expiry_bars=int(observed["trendline_expiry_bars"][tf_name]),
+            source_row_count=int(provenance["trendline_band"][tf_name]["outer_train_rows"]),
+            inner_fit_end_exclusive=int(inner_end),
+            population_configuration={
+                "owner": "trendline_exact_runtime_candidate_population_v1",
+                "seq_len": int(seq_lens[tf_name]),
+                "swing_lookback": int(SWING_LOOKBACK),
+                "identity_expiry_bars": int(
+                    observed["trendline_expiry_bars"][tf_name]
+                ),
+            },
+            context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID",
+        )
+    _require_registry_hyperfit_provenance(
+        provenance["entry_m5_trendline_band"],
+        registry_kind="trendline",
+        timeframe="M5",
+        window_end=window_end,
+        selected_threshold_atr=float(entry_m5["trendline_band_atr"]),
+        learned_expiry_bars=int(entry_m5["trendline_expiry_bars"]),
+        source_row_count=int(provenance["entry_m5_trendline_band"]["outer_train_rows"]),
+        inner_fit_end_exclusive=int(
+            provenance["inner_fit_end_exclusive_by_clock"]["M5"]
+        ),
+        population_configuration={
+            "owner": "trendline_exact_runtime_candidate_population_v1",
+            "seq_len": int(entry_seq_len),
+            "swing_lookback": int(SWING_LOOKBACK),
+            "identity_expiry_bars": int(entry_m5["trendline_expiry_bars"]),
+        },
+        context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID",
+    )
+    _require_contract_sha256(
+        observed,
+        context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID",
+    )
     return observed
 
 
 def load_v29_registry_constants_manifest(path) -> dict:
     """Load frozen V29 registry constants from an explicit JSON artifact.
 
-    Accepts either a V4 cache ``manifest.json`` (the constants live under its
-    ``v29_registry_constants`` key) or a bare constants payload.  The payload
-    is validated by :func:`require_v29_registry_constants`; there is no
-    fallback and no default.
+    Accepts only a V4 cache ``manifest.json`` whose constants live under its
+    ``v29_registry_constants`` key. Bare payloads and synthetic test evidence
+    are forbidden at this production artifact boundary.
     """
 
     artifact = Path(path).expanduser()
-    if not artifact.is_file():
+    if artifact.is_symlink() or not artifact.is_file():
         raise RuntimeError(
             f"HTF_V4_V29_REGISTRY_CONSTANTS_ARTIFACT_MISSING: {artifact}"
         )
+    artifact = artifact.resolve(strict=True)
+    if artifact != artifact.parent / "manifest.json":
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_CONTAINER_REQUIRED"
+        )
+    cache = load_multi_tf_v4_cache(artifact.parent)
+    return dict(cache.v29_registry_constants)
+
+
+def load_volatility_squeeze_artifacts_from_cache_manifest(
+    path,
+) -> VolatilitySqueezeArtifactSet:
+    """Load the exact squeeze artifact set bound by one current V4 cache."""
+
+    artifact = Path(path).expanduser()
+    if artifact.is_symlink() or not artifact.is_file():
+        raise RuntimeError("HTF_V4_VOLATILITY_SQUEEZE_CACHE_MANIFEST_MISSING")
     try:
         payload = json.loads(artifact.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(
-            f"HTF_V4_V29_REGISTRY_CONSTANTS_ARTIFACT_INVALID: {artifact}"
+            "HTF_V4_VOLATILITY_SQUEEZE_CACHE_MANIFEST_INVALID"
         ) from exc
-    if isinstance(payload, dict) and "v29_registry_constants" in payload:
-        payload = payload["v29_registry_constants"]
-    return require_v29_registry_constants(payload)
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != HTF_V4_CACHE_SCHEMA_VERSION
+        or set(payload) != _HTF_V4_CACHE_MANIFEST_KEYS
+    ):
+        raise RuntimeError(
+            "HTF_V4_VOLATILITY_SQUEEZE_CACHE_MANIFEST_INVALID"
+        )
+    return require_volatility_squeeze_artifact_binding(
+        payload.get("volatility_squeeze_artifact_set")
+    )
 
 
 def fit_v29_registry_constants_from_m5(
     m5_df: pd.DataFrame,
     *,
-    level_tol_quantile_q: float,
     declared_train_window_end,
+    declared_inner_fit_window_end,
+    source_provenance_by_clock: Mapping[str, Mapping[str, object]],
     per_tf_seq_lens: dict[str, int],
     entry_m5_seq_len: int,
 ) -> dict:
@@ -985,12 +1370,14 @@ def fit_v29_registry_constants_from_m5(
             "HTF_V4_V29_REGISTRY_FIT_WINDOW_INVALID: declared_train_window_end "
             "must be timezone-aware UTC"
         )
-    q = _require_positive_finite_float(
-        level_tol_quantile_q, label="level_tol_quantile_q"
-    )
-    if not q < 1.0:
+    inner_window_end = pd.Timestamp(declared_inner_fit_window_end)
+    if (
+        inner_window_end.tzinfo is None
+        or inner_window_end.utcoffset() != pd.Timedelta(0)
+        or inner_window_end >= window_end
+    ):
         raise RuntimeError(
-            f"HTF_V4_V29_REGISTRY_FIT_Q_INVALID: {level_tol_quantile_q!r}"
+            "HTF_V4_V29_REGISTRY_FIT_INNER_WINDOW_INVALID"
         )
     if (
         isinstance(entry_m5_seq_len, bool)
@@ -1002,6 +1389,11 @@ def fit_v29_registry_constants_from_m5(
         )
     pyramid = require_multi_tf_resolution_pyramid(dict(per_tf_seq_lens))
     lengths = dict(pyramid["per_tf_seq_lens"])
+    if (
+        not isinstance(source_provenance_by_clock, Mapping)
+        or set(source_provenance_by_clock) != set(MULTI_TF_RESAMPLE_RULES)
+    ):
+        raise RuntimeError("HTF_V4_V29_REGISTRY_FIT_SOURCE_PROVENANCE_INVALID")
 
     source = m5_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
@@ -1015,13 +1407,22 @@ def fit_v29_registry_constants_from_m5(
         train_source.index
     )
     window_label = str(window_end.isoformat())
-    level_tol_atr: dict[str, float] = {}
+    inner_window_label = str(inner_window_end.isoformat())
+    level_recurrence_threshold_atr: dict[str, float] = {}
+    level_expiry_bars: dict[str, int] = {}
     trendline_band_atr: dict[str, float] = {}
+    trendline_expiry_bars: dict[str, int] = {}
     provenance: dict[str, object] = {
+        "schema_version": V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION,
+        "lane": "M5",
+        "module": "gx1.features.htf_features",
+        "payload_schema_version": V29_REGISTRY_CONSTANTS_SCHEMA_VERSION,
         "fit_owner": "gx1.features.htf_features.fit_v29_registry_constants_from_m5",
         "declared_train_window_end": window_label,
+        "declared_inner_fit_window_end": inner_window_label,
         "n_train_m5_rows": int(len(train_source)),
-        "level_tol": {},
+        "inner_fit_end_exclusive_by_clock": {},
+        "level_recurrence_threshold": {},
         "trendline_band": {},
     }
     entry_band: float | None = None
@@ -1034,46 +1435,75 @@ def fit_v29_registry_constants_from_m5(
         fit_frame["atr"] = _atr(
             resampled["high"], resampled["low"], resampled["close"], 14
         )
-        tol, tol_provenance = fit_level_registry_tolerance(
-            fit_frame,
-            q=q,
-            tf=tf_name.lower(),
-            declared_train_window=window_label,
+        inner_fit_end_exclusive = int(
+            fit_frame.index.searchsorted(inner_window_end, side="right")
         )
-        level_tol_atr[tf_name] = float(tol)
-        provenance["level_tol"][tf_name] = tol_provenance
-        band_payload = fit_trendline_tolerance(
+        if not 1 < inner_fit_end_exclusive < len(fit_frame) - 1:
+            raise RuntimeError(
+                f"HTF_V4_V29_REGISTRY_FIT_INNER_SUPPORT_INVALID: {tf_name}"
+            )
+        provenance["inner_fit_end_exclusive_by_clock"][tf_name] = (
+            inner_fit_end_exclusive
+        )
+        tol_provenance = fit_level_registry_hyperparameters_v1(
+            fit_frame,
+            tf=tf_name.lower(),
+            inner_fit_end_exclusive=inner_fit_end_exclusive,
+            source_provenance=source_provenance_by_clock[tf_name],
+        )
+        level_recurrence_threshold_atr[tf_name] = float(
+            tol_provenance["selected_threshold_atr"]
+        )
+        level_expiry_bars[tf_name] = int(
+            tol_provenance["learned_expiry_bars"]
+        )
+        provenance["level_recurrence_threshold"][tf_name] = tol_provenance
+        band_payload = fit_trendline_registry_hyperparameters_v1(
             fit_frame,
             timeframe=tf_name,
             seq_len=int(lengths[tf_name]),
+            inner_fit_end_exclusive=inner_fit_end_exclusive,
+            source_provenance=source_provenance_by_clock[tf_name],
         )
-        trendline_band_atr[tf_name] = float(band_payload["band_atr"])
+        trendline_band_atr[tf_name] = float(
+            band_payload["selected_threshold_atr"]
+        )
+        trendline_expiry_bars[tf_name] = int(
+            band_payload["learned_expiry_bars"]
+        )
         provenance["trendline_band"][tf_name] = band_payload
         if tf_name == "M5":
-            entry_payload = fit_trendline_tolerance(
+            entry_payload = fit_trendline_registry_hyperparameters_v1(
                 fit_frame,
                 timeframe="M5",
                 seq_len=int(entry_m5_seq_len),
+                inner_fit_end_exclusive=inner_fit_end_exclusive,
+                source_provenance=source_provenance_by_clock[tf_name],
             )
-            entry_band = float(entry_payload["band_atr"])
+            entry_band = float(entry_payload["selected_threshold_atr"])
             entry_provenance = entry_payload
     if entry_band is None or entry_provenance is None:
         raise RuntimeError("HTF_V4_V29_REGISTRY_FIT_ENTRY_M5_MISSING")
     provenance["entry_m5_trendline_band"] = entry_provenance
     constants = {
         "schema_version": V29_REGISTRY_CONSTANTS_SCHEMA_VERSION,
-        "level_tol_quantile_recipe_key": LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY,
-        "level_tol_quantile_q": q,
         "declared_train_window_end": window_label,
-        "level_tol_atr": level_tol_atr,
+        "declared_inner_fit_window_end": inner_window_label,
+        "level_recurrence_threshold_atr": level_recurrence_threshold_atr,
+        "level_expiry_bars": level_expiry_bars,
         "trendline_band_atr": trendline_band_atr,
+        "trendline_expiry_bars": trendline_expiry_bars,
         "per_tf_seq_lens": {tf: int(lengths[tf]) for tf in MULTI_TF_RESAMPLE_RULES},
         "entry_m5": {
             "seq_len": int(entry_m5_seq_len),
             "trendline_band_atr": entry_band,
+            "trendline_expiry_bars": int(
+                entry_provenance["learned_expiry_bars"]
+            ),
         },
         "provenance": provenance,
     }
+    constants["contract_sha256"] = _contract_sha256_without_field(constants)
     return require_v29_registry_constants(constants)
 
 
@@ -1082,27 +1512,48 @@ def fit_v29_registry_constants_from_m5(
 # level/trendline local-layer blocks on the native M1 clock (the shared local
 # layer in entry_model_native_feature_layers_v1), so it needs its own TRAIN
 # fit on that clock (rule 2g: measure where the decision is made).  Same fit
-# owners (fit_level_registry_tolerance / fit_trendline_tolerance), same
+# competing-risk hyperparameter owners, same
 # rule-18/2f pattern as the M5 constants above.  The payload is frozen into
 # the M1-enriched frame manifest (the M1-side hash-bound artifact) and
 # consumed fail-closed by the M1 materializer.  No default exists anywhere.
 # ---------------------------------------------------------------------------
 V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_m1_lane_params_v1"
+    "htf_v4_v29_registry_m1_lane_params_v6"
+)
+V29_REGISTRY_M1_LANE_PROVENANCE_SCHEMA_VERSION = (
+    "htf_v4_v29_registry_m1_lane_provenance_v5"
 )
 V29_REGISTRY_M1_LANE_MANIFEST_KEY = "v29_registry_m1_lane_params"
 _V29_REGISTRY_M1_LANE_PARAMS_KEYS = frozenset(
     {
         "schema_version",
-        "level_tol_quantile_recipe_key",
-        "level_tol_quantile_q",
         "declared_train_window_end",
-        "level_tol_atr",
+        "declared_inner_fit_window_end",
+        "level_recurrence_threshold_atr",
+        "level_expiry_bars",
         "exit_m1",
         "provenance",
+        "contract_sha256",
     }
 )
-_V29_REGISTRY_EXIT_M1_KEYS = frozenset({"seq_len", "trendline_band_atr"})
+_V29_REGISTRY_EXIT_M1_KEYS = frozenset(
+    {"seq_len", "trendline_band_atr", "trendline_expiry_bars"}
+)
+_V29_REGISTRY_M1_LANE_PROVENANCE_KEYS = frozenset(
+    {
+        "schema_version",
+        "lane",
+        "module",
+        "payload_schema_version",
+        "fit_owner",
+        "declared_train_window_end",
+        "declared_inner_fit_window_end",
+        "n_train_m1_rows",
+        "inner_fit_end_exclusive",
+        "level_recurrence_threshold",
+        "trendline_band",
+    }
+)
 
 
 def require_v29_registry_m1_lane_params(value: object) -> dict:
@@ -1126,30 +1577,36 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
             "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: schema_version="
             f"{observed['schema_version']!r}"
         )
-    if observed["level_tol_quantile_recipe_key"] != (
-        LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY
-    ):
-        raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
-            "level_tol_quantile_recipe_key"
-        )
-    q = _require_positive_finite_float(
-        observed["level_tol_quantile_q"], label="level_tol_quantile_q"
-    )
-    if not q < 1.0:
-        raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
-            f"level_tol_quantile_q={q!r}"
-        )
-    window_end = observed["declared_train_window_end"]
-    if not isinstance(window_end, str) or not window_end:
-        raise RuntimeError(
+    window_end = _require_canonical_utc_timestamp_label(
+        observed["declared_train_window_end"],
+        context=(
             "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
             "declared_train_window_end"
+        ),
+    )
+    inner_window_end = _require_canonical_utc_timestamp_label(
+        observed["declared_inner_fit_window_end"],
+        context=(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
+            "declared_inner_fit_window_end"
+        ),
+    )
+    if pd.Timestamp(inner_window_end) >= pd.Timestamp(window_end):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: inner split"
         )
     _require_positive_finite_float(
-        observed["level_tol_atr"], label="level_tol_atr"
+        observed["level_recurrence_threshold_atr"],
+        label="level_recurrence_threshold_atr",
     )
+    if (
+        isinstance(observed["level_expiry_bars"], bool)
+        or not isinstance(observed["level_expiry_bars"], (int, np.integer))
+        or int(observed["level_expiry_bars"]) <= 0
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: level_expiry_bars"
+        )
     exit_m1 = observed["exit_m1"]
     if (
         not isinstance(exit_m1, Mapping)
@@ -1172,43 +1629,180 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
     _require_positive_finite_float(
         exit_m1["trendline_band_atr"], label="exit_m1.trendline_band_atr"
     )
-    if not isinstance(observed["provenance"], Mapping) or not observed["provenance"]:
+    if (
+        isinstance(exit_m1["trendline_expiry_bars"], bool)
+        or not isinstance(exit_m1["trendline_expiry_bars"], (int, np.integer))
+        or int(exit_m1["trendline_expiry_bars"]) <= 0
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: trendline_expiry_bars"
+        )
+    provenance = observed["provenance"]
+    if (
+        not isinstance(provenance, Mapping)
+        or set(provenance) != _V29_REGISTRY_M1_LANE_PROVENANCE_KEYS
+    ):
         raise RuntimeError(
             "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: provenance"
         )
+    n_train_rows = _require_nonnegative_int(
+        provenance["n_train_m1_rows"],
+        context=(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: provenance binding"
+        ),
+    )
+    if (
+        provenance["schema_version"]
+        != V29_REGISTRY_M1_LANE_PROVENANCE_SCHEMA_VERSION
+        or provenance["lane"] != "M1"
+        or provenance["module"] != "gx1.features.htf_features"
+        or provenance["payload_schema_version"]
+        != V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION
+        or provenance["fit_owner"]
+        != "gx1.features.htf_features.fit_v29_registry_m1_lane_params_from_m1"
+        or provenance["declared_train_window_end"] != window_end
+        or provenance["declared_inner_fit_window_end"] != inner_window_end
+        or n_train_rows <= 0
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: provenance binding"
+        )
+    inner_end = provenance["inner_fit_end_exclusive"]
+    if (
+        isinstance(inner_end, bool)
+        or not isinstance(inner_end, (int, np.integer))
+        or not 1 < int(inner_end) < n_train_rows - 1
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: inner split binding"
+        )
+    _require_registry_hyperfit_provenance(
+        provenance["level_recurrence_threshold"],
+        registry_kind="horizontal_level",
+        timeframe="M1",
+        window_end=window_end,
+        selected_threshold_atr=float(observed["level_recurrence_threshold_atr"]),
+        learned_expiry_bars=int(observed["level_expiry_bars"]),
+        source_row_count=n_train_rows,
+        inner_fit_end_exclusive=int(inner_end),
+        population_configuration=None,
+        context="HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID",
+    )
+    _require_registry_hyperfit_provenance(
+        provenance["trendline_band"],
+        registry_kind="trendline",
+        timeframe="M1",
+        window_end=window_end,
+        selected_threshold_atr=float(exit_m1["trendline_band_atr"]),
+        learned_expiry_bars=int(exit_m1["trendline_expiry_bars"]),
+        source_row_count=n_train_rows,
+        inner_fit_end_exclusive=int(inner_end),
+        population_configuration={
+            "owner": "trendline_exact_runtime_candidate_population_v1",
+            "seq_len": int(exit_seq_len),
+            "swing_lookback": int(SWING_LOOKBACK),
+            "identity_expiry_bars": int(exit_m1["trendline_expiry_bars"]),
+        },
+        context="HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID",
+    )
+    _require_contract_sha256(
+        observed,
+        context="HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID",
+    )
     return observed
 
 
 def load_v29_registry_m1_lane_params_manifest(path) -> dict:
     """Load frozen V29 M1-lane registry params from an explicit JSON artifact.
 
-    Accepts either the M1-enriched frame ``manifest.json`` (the params live
-    under its ``v29_registry_m1_lane_params`` key) or a bare params payload.
-    The payload is validated by :func:`require_v29_registry_m1_lane_params`;
-    there is no fallback and no default.
+    Accepts only the M1-enriched frame ``manifest.json`` carrying the params
+    under ``v29_registry_m1_lane_params``. Bare payloads and synthetic test
+    evidence are forbidden at this production artifact boundary.
     """
 
     artifact = Path(path).expanduser()
-    if not artifact.is_file():
+    if artifact.is_symlink() or not artifact.is_file():
         raise RuntimeError(
             f"HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_ARTIFACT_MISSING: {artifact}"
         )
+    artifact = artifact.resolve(strict=True)
     try:
-        payload = json.loads(artifact.read_text(encoding="utf-8"))
+        payload = json.loads(
+            artifact.read_text(encoding="utf-8"),
+            object_pairs_hook=_json_object_without_duplicate_keys,
+        )
     except (OSError, UnicodeError, ValueError) as exc:
         raise RuntimeError(
             f"HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_ARTIFACT_INVALID: {artifact}"
         ) from exc
-    if isinstance(payload, dict) and V29_REGISTRY_M1_LANE_MANIFEST_KEY in payload:
-        payload = payload[V29_REGISTRY_M1_LANE_MANIFEST_KEY]
-    return require_v29_registry_m1_lane_params(payload)
+    if (
+        not isinstance(payload, dict)
+        or V29_REGISTRY_M1_LANE_MANIFEST_KEY not in payload
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_CONTAINER_REQUIRED"
+        )
+    from gx1.contracts.entry_exit_feature_base_v1 import (
+        ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
+        EXIT_DECISION_BAR_SECONDS,
+        require_entry_exit_shared_feature_base_contract,
+    )
+
+    manifest_without_hash = dict(payload)
+    declared_manifest_sha256 = manifest_without_hash.pop(
+        "manifest_sha256", None
+    )
+    output_raw = payload.get("output_parquet")
+    output_sha256 = payload.get("output_parquet_sha256")
+    if not isinstance(output_raw, str):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_CONTAINER_REQUIRED"
+        )
+    output = Path(output_raw).expanduser()
+    if (
+        not output.is_absolute()
+        or output.is_symlink()
+        or not output.is_file()
+        or output.resolve(strict=True) != output
+        or artifact != Path(f"{output}.manifest.json")
+        or payload.get("schema_version")
+        != ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION
+        or payload.get("decision") != "PASS"
+        or payload.get("timeframe") != "M1"
+        or payload.get("base_bar_seconds") != EXIT_DECISION_BAR_SECONDS
+        or not isinstance(output_sha256, str)
+        or len(output_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in output_sha256)
+        or _sha256_file_exact(output) != output_sha256
+        or declared_manifest_sha256
+        != hashlib.sha256(
+            json.dumps(
+                manifest_without_hash,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+        ).hexdigest()
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_CONTAINER_IDENTITY_INVALID"
+        )
+    require_entry_exit_shared_feature_base_contract(
+        payload.get("shared_feature_base_contract"),
+        context="HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_CONTAINER",
+    )
+    params = require_v29_registry_m1_lane_params(
+        payload[V29_REGISTRY_M1_LANE_MANIFEST_KEY]
+    )
+    return params
 
 
 def fit_v29_registry_m1_lane_params_from_m1(
     m1_df: pd.DataFrame,
     *,
-    level_tol_quantile_q: float,
     declared_train_window_end,
+    declared_inner_fit_window_end,
+    source_provenance: Mapping[str, object],
     exit_m1_seq_len: int,
 ) -> dict:
     """Fit the Exit M1-lane registry params once on the declared TRAIN window.
@@ -1235,13 +1829,13 @@ def fit_v29_registry_m1_lane_params_from_m1(
             "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_INVALID: "
             "declared_train_window_end must be timezone-aware UTC"
         )
-    q = _require_positive_finite_float(
-        level_tol_quantile_q, label="level_tol_quantile_q"
-    )
-    if not q < 1.0:
-        raise RuntimeError(
-            f"HTF_V4_V29_REGISTRY_M1_FIT_Q_INVALID: {level_tol_quantile_q!r}"
-        )
+    inner_window_end = pd.Timestamp(declared_inner_fit_window_end)
+    if (
+        inner_window_end.tzinfo is None
+        or inner_window_end.utcoffset() != pd.Timedelta(0)
+        or inner_window_end >= window_end
+    ):
+        raise RuntimeError("HTF_V4_V29_REGISTRY_M1_FIT_INNER_WINDOW_INVALID")
     if (
         isinstance(exit_m1_seq_len, bool)
         or not isinstance(exit_m1_seq_len, (int, np.integer))
@@ -1260,42 +1854,64 @@ def fit_v29_registry_m1_lane_params_from_m1(
             f"before {window_end.isoformat()}"
         )
     window_label = str(window_end.isoformat())
+    inner_window_label = str(inner_window_end.isoformat())
     fit_frame = train_source[["high", "low", "close"]].copy()
     fit_frame["atr"] = _atr(
         train_source["high"], train_source["low"], train_source["close"], 14
     )
-    tol, tol_provenance = fit_level_registry_tolerance(
-        fit_frame,
-        q=q,
-        tf="m1",
-        declared_train_window=window_label,
+    inner_fit_end_exclusive = int(
+        fit_frame.index.searchsorted(inner_window_end, side="right")
     )
-    band_payload = fit_trendline_tolerance(
+    if not 1 < inner_fit_end_exclusive < len(fit_frame) - 1:
+        raise RuntimeError("HTF_V4_V29_REGISTRY_M1_FIT_INNER_SUPPORT_INVALID")
+    tol_provenance = fit_level_registry_hyperparameters_v1(
+        fit_frame,
+        tf="m1",
+        inner_fit_end_exclusive=inner_fit_end_exclusive,
+        source_provenance=source_provenance,
+    )
+    band_payload = fit_trendline_registry_hyperparameters_v1(
         fit_frame,
         timeframe="M1",
         seq_len=int(exit_m1_seq_len),
+        inner_fit_end_exclusive=inner_fit_end_exclusive,
+        source_provenance=source_provenance,
     )
     params = {
         "schema_version": V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
-        "level_tol_quantile_recipe_key": LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY,
-        "level_tol_quantile_q": q,
         "declared_train_window_end": window_label,
-        "level_tol_atr": float(tol),
+        "declared_inner_fit_window_end": inner_window_label,
+        "level_recurrence_threshold_atr": float(
+            tol_provenance["selected_threshold_atr"]
+        ),
+        "level_expiry_bars": int(tol_provenance["learned_expiry_bars"]),
         "exit_m1": {
             "seq_len": int(exit_m1_seq_len),
-            "trendline_band_atr": float(band_payload["band_atr"]),
+            "trendline_band_atr": float(
+                band_payload["selected_threshold_atr"]
+            ),
+            "trendline_expiry_bars": int(
+                band_payload["learned_expiry_bars"]
+            ),
         },
         "provenance": {
+            "schema_version": V29_REGISTRY_M1_LANE_PROVENANCE_SCHEMA_VERSION,
+            "lane": "M1",
+            "module": "gx1.features.htf_features",
+            "payload_schema_version": V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
             "fit_owner": (
                 "gx1.features.htf_features."
                 "fit_v29_registry_m1_lane_params_from_m1"
             ),
             "declared_train_window_end": window_label,
+            "declared_inner_fit_window_end": inner_window_label,
             "n_train_m1_rows": int(len(train_source)),
-            "level_tol": tol_provenance,
+            "inner_fit_end_exclusive": inner_fit_end_exclusive,
+            "level_recurrence_threshold": tol_provenance,
             "trendline_band": band_payload,
         },
     }
+    params["contract_sha256"] = _contract_sha256_without_field(params)
     return require_v29_registry_m1_lane_params(params)
 
 
@@ -1369,41 +1985,7 @@ def build_multi_tf_v4_liveness_contract(
                 "nonzero_fraction": nonzero_fraction,
                 "values_sha256": digest,
             }
-        # Presence-mask saturation: a constant column is admitted as a
-        # saturated occupancy mask only under the exact contract above —
-        # constant value 1.0, every sibling attribute non-constant on this
-        # same TF, and the paired touch event firing. Everything else stays
-        # a constant-field failure exactly as before.
-        constant_fields = []
-        saturated_presence_masks: list[str] = []
-        for candidate in constant_candidates:
-            rule = HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT.get(candidate)
-            stats = field_stats[candidate]
-            if (
-                rule is not None
-                and stats["minimum"] == 1.0
-                and stats["maximum"] == 1.0
-                and all(
-                    field_stats[attribute]["unique_count"] > 1
-                    for attribute in rule["attributes"]
-                )
-                and field_stats[rule["event"]]["nonzero_fraction"] > 0.0
-            ):
-                saturated_presence_masks.append(candidate)
-            else:
-                constant_fields.append(candidate)
-        # Two admitted saturated masks are necessarily byte-identical
-        # constant-1.0 columns; each admission already proved independent
-        # wiring (own live siblings, own firing event), so that exact pair is
-        # not a copy defect. Every other duplicate stays RED.
-        duplicate_pairs = [
-            pair
-            for pair in duplicate_pairs
-            if not (
-                pair[0] in saturated_presence_masks
-                and pair[1] in saturated_presence_masks
-            )
-        ]
+        constant_fields = list(constant_candidates)
         if constant_fields:
             failures.append(
                 f"{tf_name}:constant_fields={constant_fields}"
@@ -1417,7 +1999,6 @@ def build_multi_tf_v4_liveness_contract(
             "warmup_rows": warmup,
             "live_rows": int(len(live)),
             "constant_fields": constant_fields,
-            "saturated_presence_masks": saturated_presence_masks,
             "exact_duplicate_pairs": duplicate_pairs,
             "fields": field_stats,
         }
@@ -1474,11 +2055,7 @@ def require_multi_tf_v4_liveness_contract(
     if value.get("contract_sha256") != expected_sha:
         raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_IDENTITY_INVALID")
     if (
-        value.get("schema_version")
-        not in (
-            HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION,
-            HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION_V2,
-        )
+        value.get("schema_version") != HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION
         or value.get("matrix_contract") != HTF_V4_MATRIX_CONTRACT
         or value.get("feature_names_sha256")
         != MULTI_TF_FEATURE_NAMES_SHA256_V4
@@ -1487,14 +2064,6 @@ def require_multi_tf_v4_liveness_contract(
         or value.get("failures") != []
     ):
         raise RuntimeError("HTF_V4_LIVENESS_CONTRACT_DECISION_INVALID")
-    # v2 payloads are the pre-2026-08-11 immutable artifacts (V28 baseline):
-    # exact old key set, no saturation claims. v3 payloads must carry the
-    # saturated_presence_masks key and every claim is re-proved below from
-    # the payload's own field statistics.
-    is_v2 = (
-        value.get("schema_version")
-        == HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION_V2
-    )
     timeframes = value.get("timeframes")
     if not isinstance(timeframes, dict) or set(timeframes) != set(
         MULTI_TF_RESAMPLE_RULES
@@ -1508,8 +2077,6 @@ def require_multi_tf_v4_liveness_contract(
         "exact_duplicate_pairs",
         "fields",
     }
-    if not is_v2:
-        expected_tf_keys.add("saturated_presence_masks")
     expected_stat_keys = {
         "unique_count",
         "mean",
@@ -1542,41 +2109,6 @@ def require_multi_tf_v4_liveness_contract(
             MULTI_TF_PER_BAR_FEATURES_V4
         ):
             raise RuntimeError(f"HTF_V4_LIVENESS_FIELDS_INVALID: {tf_name}")
-        if not is_v2:
-            claimed = row.get("saturated_presence_masks")
-            if not isinstance(claimed, list) or len(set(claimed)) != len(
-                claimed
-            ):
-                raise RuntimeError(
-                    f"HTF_V4_LIVENESS_SATURATION_CLAIM_INVALID: {tf_name}"
-                )
-            for mask_name in claimed:
-                rule = HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT.get(mask_name)
-                mask_stats = fields.get(mask_name)
-                if (
-                    rule is None
-                    or not isinstance(mask_stats, dict)
-                    or mask_stats.get("unique_count") != 1
-                    or mask_stats.get("minimum") != 1.0
-                    or mask_stats.get("maximum") != 1.0
-                    or any(
-                        not isinstance(fields.get(attribute), dict)
-                        or fields[attribute].get("unique_count", 0) <= 1
-                        for attribute in rule["attributes"]
-                    )
-                    or not isinstance(fields.get(rule["event"]), dict)
-                    or not fields[rule["event"]].get("nonzero_fraction", 0.0)
-                    > 0.0
-                ):
-                    raise RuntimeError(
-                        "HTF_V4_LIVENESS_SATURATION_CLAIM_INVALID: "
-                        f"{tf_name}:{mask_name}"
-                    )
-        claimed_masks = (
-            frozenset()
-            if is_v2
-            else frozenset(row.get("saturated_presence_masks") or ())
-        )
         for field_name, stats in fields.items():
             if not isinstance(stats, dict) or set(stats) != expected_stat_keys:
                 raise RuntimeError(
@@ -1593,22 +2125,17 @@ def require_multi_tf_v4_liveness_contract(
                     "nonzero_fraction",
                 )
             ]
-            # An admitted saturated mask is the ONE exact case where a
-            # degenerate distribution is legal: unique_count 1, std 0.0,
-            # min == max == 1.0 (proved in the claim block above). Every
-            # other field keeps the strict live-distribution requirement.
-            saturated = field_name in claimed_masks
             if (
                 isinstance(unique_count, bool)
                 or not isinstance(unique_count, int)
-                or (unique_count <= 1) != saturated
+                or unique_count <= 1
                 or any(
                     isinstance(item, bool)
                     or not isinstance(item, (int, float))
                     or not math.isfinite(float(item))
                     for item in numeric
                 )
-                or (float(stats["std"]) <= 0.0) != saturated
+                or float(stats["std"]) <= 0.0
                 or not 0.0 < float(stats["nonzero_fraction"]) <= 1.0
                 or float(stats["minimum"]) > float(stats["maximum"])
                 or not isinstance(stats.get("values_sha256"), str)
@@ -1625,40 +2152,163 @@ def require_multi_tf_v4_liveness_contract(
 
 
 def _rsi(close: pd.Series, n: int = 14) -> pd.Series:
-    """Wilder-style RSI on close series. Returns Series indexed like close."""
-    diff = close.diff()
-    gain = diff.where(diff > 0, 0.0)
-    loss = -diff.where(diff < 0, 0.0)
-    avg_gain = gain.ewm(alpha=1.0 / n, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1.0 / n, adjust=False).mean()
-    rs = avg_gain / np.maximum(avg_loss, 1e-12)
-    return 100.0 - 100.0 / (1.0 + rs)
+    """Compatibility route to the one canonical Wilder RSI owner."""
+
+    try:
+        return wilder_rsi(close, n)
+    except RuntimeError as exc:
+        message = str(exc)
+        if "WILDER_RSI_PERIOD_INVALID" in message:
+            raise RuntimeError("HTF_RSI_PERIOD_INVALID") from exc
+        if "WILDER_RSI_SOURCE_NONFINITE" in message:
+            raise RuntimeError("HTF_RSI_SOURCE_NONFINITE") from exc
+        raise
 
 
 def _rolling_vwap(close: pd.Series, volume: pd.Series, window: int) -> pd.Series:
     """Rolling N-bar VWAP from observed volume only."""
+    if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
+        raise RuntimeError("HTF_V4_ROLLING_VWAP_WINDOW_INVALID")
+    if not (
+        isinstance(close, pd.Series)
+        and isinstance(volume, pd.Series)
+        and close.index.equals(volume.index)
+    ):
+        raise RuntimeError("HTF_V4_ROLLING_VWAP_SOURCE_INVALID")
+    close_values = close.to_numpy(dtype=np.float64)
+    if not np.isfinite(close_values).all():
+        raise RuntimeError("HTF_V4_ROLLING_VWAP_SOURCE_INVALID")
     if volume.isna().any() or (~np.isfinite(volume.to_numpy(dtype=np.float64))).any():
         raise RuntimeError("HTF_V4_VOLUME_SOURCE_INVALID: rolling VWAP volume is non-finite")
     if (volume <= 0.0).any():
         raise RuntimeError("HTF_V4_VOLUME_SOURCE_INVALID: rolling VWAP volume must be positive")
     pv = close * volume
-    pv_sum = pv.rolling(window, min_periods=1).sum()
-    v_sum = volume.rolling(window, min_periods=1).sum()
+    pv_sum = pv.rolling(window, min_periods=window).sum()
+    v_sum = volume.rolling(window, min_periods=window).sum()
     return pv_sum / v_sum
 
 
-def _session_vwap(close: pd.Series, volume: pd.Series) -> pd.Series:
-    """VWAP reset at each calendar day's midnight UTC."""
-    if volume.isna().any() or (~np.isfinite(volume.to_numpy(dtype=np.float64))).any():
-        raise RuntimeError("HTF_V4_VOLUME_SOURCE_INVALID: session VWAP volume is non-finite")
-    if (volume <= 0.0).any():
-        raise RuntimeError("HTF_V4_VOLUME_SOURCE_INVALID: session VWAP volume must be positive")
-    pv = close * volume
-    # Group by date — cumulative within day
-    grp = close.index.normalize()
-    pv_cs = pv.groupby(grp).cumsum()
-    v_cs = volume.groupby(grp).cumsum()
-    return pv_cs / v_cs
+_SESSION_VWAP_STATE_SCHEMA_VERSION = "htf_v4_session_vwap_state_v1"
+_SESSION_VWAP_STATE_KEYS = frozenset(
+    {
+        "schema_version",
+        "clock_schema_version",
+        "bar_duration_ns",
+        "last_index_ns",
+        "last_session_id",
+        "price_volume_sum",
+        "volume_sum",
+    }
+)
+
+
+def _session_vwap(
+    close: pd.Series,
+    volume: pd.Series,
+    *,
+    bar_duration: pd.Timedelta,
+    state: Mapping | None = None,
+    return_state: bool = False,
+):
+    """Causal VWAP on the shared UTC trading-session clock.
+
+    The recurrence is identical for one-shot, prefix, and chunked execution.
+    Missing weekend/holiday rows advance the session id without synthesizing
+    observations; the first observed row in a new id resets the accumulators.
+    """
+
+    if not isinstance(close, pd.Series) or not isinstance(volume, pd.Series):
+        raise RuntimeError("HTF_V4_SESSION_VWAP_SOURCE_INVALID")
+    if close.empty or volume.empty or not close.index.equals(volume.index):
+        raise RuntimeError("HTF_V4_SESSION_VWAP_SOURCE_GEOMETRY_INVALID")
+    if not isinstance(close.index, pd.DatetimeIndex):
+        raise RuntimeError("HTF_V4_SESSION_VWAP_CLOCK_INVALID")
+    if not isinstance(bar_duration, pd.Timedelta) or bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("HTF_V4_SESSION_VWAP_BAR_DURATION_INVALID")
+    close_values = close.to_numpy(dtype=np.float64)
+    volume_values = volume.to_numpy(dtype=np.float64)
+    if not np.isfinite(close_values).all():
+        raise RuntimeError("HTF_V4_SESSION_VWAP_SOURCE_INVALID: close is non-finite")
+    if not np.isfinite(volume_values).all():
+        raise RuntimeError(
+            "HTF_V4_VOLUME_SOURCE_INVALID: session VWAP volume is non-finite"
+        )
+    if np.any(volume_values <= 0.0):
+        raise RuntimeError(
+            "HTF_V4_VOLUME_SOURCE_INVALID: session VWAP volume must be positive"
+        )
+    session_ids = trading_session_id_vectorized(
+        close.index,
+        context="HTF_V4_SESSION_VWAP",
+    )
+    bar_duration_ns = int(bar_duration.value)
+    grid_offset_ns = int((TRADING_SESSION_BOUNDARY_OFFSET % bar_duration).value)
+    if np.any((close.index.asi8 - grid_offset_ns) % bar_duration_ns != 0):
+        raise RuntimeError("HTF_V4_SESSION_VWAP_BAR_OFF_GRID")
+
+    if state is None:
+        previous_index_ns: int | None = None
+        previous_session_id: int | None = None
+        price_volume_sum = 0.0
+        volume_sum = 0.0
+    else:
+        if not isinstance(state, Mapping) or set(state) != _SESSION_VWAP_STATE_KEYS:
+            raise RuntimeError("HTF_V4_SESSION_VWAP_STATE_INVALID")
+        if (
+            state.get("schema_version") != _SESSION_VWAP_STATE_SCHEMA_VERSION
+            or state.get("clock_schema_version")
+            != TRADING_SESSION_CLOCK_SCHEMA_VERSION
+            or state.get("bar_duration_ns") != bar_duration_ns
+        ):
+            raise RuntimeError("HTF_V4_SESSION_VWAP_STATE_CONTRACT_MISMATCH")
+        previous_index_ns = state.get("last_index_ns")
+        previous_session_id = state.get("last_session_id")
+        price_volume_sum = state.get("price_volume_sum")
+        volume_sum = state.get("volume_sum")
+        integer_state = (previous_index_ns, previous_session_id)
+        numeric_state = (price_volume_sum, volume_sum)
+        if (
+            any(isinstance(value, (bool, np.bool_)) for value in integer_state)
+            or not all(isinstance(value, (int, np.integer)) for value in integer_state)
+            or any(isinstance(value, (bool, np.bool_)) for value in numeric_state)
+            or not all(
+                isinstance(value, (int, float, np.integer, np.floating))
+                for value in numeric_state
+            )
+            or not np.isfinite(np.asarray(numeric_state, dtype=np.float64)).all()
+            or float(volume_sum) <= 0.0
+            or int(close.index.asi8[0]) <= int(previous_index_ns)
+        ):
+            raise RuntimeError("HTF_V4_SESSION_VWAP_STATE_INVALID")
+        previous_index_ns = int(previous_index_ns)
+        previous_session_id = int(previous_session_id)
+        price_volume_sum = float(price_volume_sum)
+        volume_sum = float(volume_sum)
+
+    observed = np.empty(len(close_values), dtype=np.float64)
+    for row, (session_id, price, row_volume) in enumerate(
+        zip(session_ids, close_values, volume_values, strict=True)
+    ):
+        current_session_id = int(session_id)
+        if previous_session_id != current_session_id:
+            price_volume_sum = 0.0
+            volume_sum = 0.0
+        price_volume_sum += float(price) * float(row_volume)
+        volume_sum += float(row_volume)
+        observed[row] = price_volume_sum / volume_sum
+        previous_session_id = current_session_id
+
+    result = pd.Series(observed, index=close.index, name=close.name)
+    next_state = {
+        "schema_version": _SESSION_VWAP_STATE_SCHEMA_VERSION,
+        "clock_schema_version": TRADING_SESSION_CLOCK_SCHEMA_VERSION,
+        "bar_duration_ns": bar_duration_ns,
+        "last_index_ns": int(close.index.asi8[-1]),
+        "last_session_id": int(previous_session_id),
+        "price_volume_sum": float(price_volume_sum),
+        "volume_sum": float(volume_sum),
+    }
+    return (result, next_state) if return_state else result
 
 
 def _adx14(
@@ -1667,80 +2317,108 @@ def _adx14(
     close: pd.Series,
     n: int = 14,
 ) -> tuple[pd.Series, pd.Series]:
-    """Welles Wilder's ADX with explicit causal warmup.
+    """Classic Wilder ADX and signed DI spread with SMA/Wilder seeds.
 
     Returns ``(adx, di_spread_signed)``.  V30 emission win (2026-08-13):
     ``plus_di``/``minus_di`` were computed here and discarded — the |...| in
     the DX numerator folded the trend DIRECTION out of the surface.  The
     signed normalized spread ``(plus_di - minus_di) / (plus_di + minus_di)``
     (Wilder's own DX quantity without the absolute value, algebraically
-    bounded in [-1, 1]) is now emitted next to ``adx``.  A zero denominator
-    (no directional movement observed yet) is honest NaN, and the same
-    ``2n - 1`` warmup mask this producer already applies to ``adx`` is
-    applied — no new constant.
+    bounded in [-1, 1]) is now emitted next to raw ``adx14``. A zero
+    denominator (no directional movement observed yet) is honest NaN. The
+    first DI/DX observation is row ``n`` after smoothing rows 1..n.
+    The first ADX is the arithmetic mean of DX rows n..2n-1 and is emitted at
+    row ``2n-1``; subsequent values use Wilder's recurrence. Zero TR or DI
+    sums are unavailable, never parked on an epsilon.
     """
-    up = high.diff()
-    dn = -low.diff()
-    plus_dm = np.where((up > dn) & (up > 0), up, 0.0)
-    minus_dm = np.where((dn > up) & (dn > 0), dn, 0.0)
-    plus_dm = pd.Series(plus_dm, index=close.index)
-    minus_dm = pd.Series(minus_dm, index=close.index)
-    tr = pd.concat([
-        (high - low).abs(),
-        (high - close.shift(1)).abs(),
-        (low - close.shift(1)).abs(),
-    ], axis=1).max(axis=1)
-    atr = tr.ewm(alpha=1.0/n, adjust=False).mean()
-    plus_di = 100.0 * plus_dm.ewm(alpha=1.0/n, adjust=False).mean() / np.maximum(atr, 1e-12)
-    minus_di = 100.0 * minus_dm.ewm(alpha=1.0/n, adjust=False).mean() / np.maximum(atr, 1e-12)
-    dx = 100.0 * (plus_di - minus_di).abs() / np.maximum(plus_di + minus_di, 1e-12)
-    adx = dx.ewm(alpha=1.0/n, adjust=False).mean()
-    adx.iloc[: 2 * n - 1] = np.nan
+    if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
+        raise RuntimeError("HTF_ADX_PERIOD_INVALID")
+    if not (
+        isinstance(high, pd.Series)
+        and isinstance(low, pd.Series)
+        and isinstance(close, pd.Series)
+        and high.index.equals(low.index)
+        and high.index.equals(close.index)
+    ):
+        raise RuntimeError("HTF_ADX_SOURCE_INVALID")
+    highs = high.to_numpy(dtype=np.float64)
+    lows = low.to_numpy(dtype=np.float64)
+    closes = close.to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(highs).all()
+        or not np.isfinite(lows).all()
+        or not np.isfinite(closes).all()
+        or np.any(highs < lows)
+        or np.any(highs < closes)
+        or np.any(lows > closes)
+    ):
+        raise RuntimeError("HTF_ADX_SOURCE_INVALID")
+    rows = len(closes)
+    tr = np.full(rows, np.nan, dtype=np.float64)
+    plus_dm = np.zeros(rows, dtype=np.float64)
+    minus_dm = np.zeros(rows, dtype=np.float64)
+    if rows:
+        tr[0] = highs[0] - lows[0]
+    for row in range(1, rows):
+        tr[row] = max(
+            highs[row] - lows[row],
+            abs(highs[row] - closes[row - 1]),
+            abs(lows[row] - closes[row - 1]),
+        )
+        up = highs[row] - highs[row - 1]
+        down = lows[row - 1] - lows[row]
+        plus_dm[row] = up if up > down and up > 0.0 else 0.0
+        minus_dm[row] = down if down > up and down > 0.0 else 0.0
+
+    smoothed_tr = np.full(rows, np.nan, dtype=np.float64)
+    smoothed_plus = np.full(rows, np.nan, dtype=np.float64)
+    smoothed_minus = np.full(rows, np.nan, dtype=np.float64)
+    if rows > n:
+        smoothed_tr[n] = float(np.sum(tr[1 : n + 1], dtype=np.float64))
+        smoothed_plus[n] = float(
+            np.sum(plus_dm[1 : n + 1], dtype=np.float64)
+        )
+        smoothed_minus[n] = float(
+            np.sum(minus_dm[1 : n + 1], dtype=np.float64)
+        )
+        for row in range(n + 1, rows):
+            smoothed_tr[row] = (
+                smoothed_tr[row - 1]
+                - smoothed_tr[row - 1] / n
+                + tr[row]
+            )
+            smoothed_plus[row] = (
+                smoothed_plus[row - 1]
+                - smoothed_plus[row - 1] / n
+                + plus_dm[row]
+            )
+            smoothed_minus[row] = (
+                smoothed_minus[row - 1]
+                - smoothed_minus[row - 1] / n
+                + minus_dm[row]
+            )
+
+    positive_tr = np.where(smoothed_tr > 0.0, smoothed_tr, np.nan)
+    plus_di = 100.0 * smoothed_plus / positive_tr
+    minus_di = 100.0 * smoothed_minus / positive_tr
     di_sum = plus_di + minus_di
-    di_spread_signed = ((plus_di - minus_di) / di_sum).where(di_sum > 0.0)
-    di_spread_signed.iloc[: 2 * n - 1] = np.nan
-    return adx, di_spread_signed
-
-
-def _regime_class(stack_aligned: pd.Series, ema200_slope: pd.Series, atr_safe: pd.Series) -> pd.Series:
-    """Combine EMA-stack alignment + EMA200 slope into 5-class regime enum.
-
-    0 = range (stack=0)
-    1 = uptrend_low (stack=+1, slope <= +0.3 ATR)
-    2 = uptrend_high (stack=+1, slope > +0.3 ATR)
-    3 = downtrend_low (stack=-1, slope >= -0.3 ATR)
-    4 = downtrend_high (stack=-1, slope < -0.3 ATR)
-    """
-    slope_atr = ema200_slope / atr_safe
-    valid = stack_aligned.notna() & slope_atr.notna()
-    out = pd.Series(np.nan, index=stack_aligned.index, dtype=np.float64)
-    out.loc[valid] = 0.0
-    up = valid & (stack_aligned == 1)
-    down = valid & (stack_aligned == -1)
-    out.loc[up] = np.where(slope_atr.loc[up] > 0.3, 2.0, 1.0)
-    out.loc[down] = np.where(slope_atr.loc[down] < -0.3, 4.0, 3.0)
-    return out
-
-
-def _trend_age_bars(stack_aligned: pd.Series) -> pd.Series:
-    """Number of consecutive bars since the EMA stack last changed sign."""
-    # Convert to int sign sequence; count runs
-    chg = (stack_aligned != stack_aligned.shift(1)).cumsum()
-    return stack_aligned.groupby(chg).cumcount().astype(float)
-
-
-def _mask_ewm_min_periods(series: pd.Series, min_periods: int) -> pd.Series:
-    """Replicate ``ewm(..., min_periods=k)``'s exact output mask post hoc.
-
-    pandas ``min_periods`` only masks the first ``k - 1`` outputs; the emitted
-    values are the same recursion.  Masking after the fact is therefore
-    bit-identical to the local price-derived layer's
-    ``ewm(span=k, adjust=False, min_periods=k)`` on the same finite closes
-    (entry_model_native_feature_layers_v1.build_price_derived_layer).
-    """
-    masked = series.copy()
-    masked.iloc[: int(min_periods) - 1] = np.nan
-    return masked
+    positive_di_sum = np.where(di_sum > 0.0, di_sum, np.nan)
+    di_spread = (plus_di - minus_di) / positive_di_sum
+    dx = 100.0 * np.abs(plus_di - minus_di) / positive_di_sum
+    adx = np.full(rows, np.nan, dtype=np.float64)
+    first_adx = 2 * n - 1
+    if rows > first_adx and np.isfinite(dx[n : first_adx + 1]).all():
+        adx[first_adx] = float(
+            np.mean(dx[n : first_adx + 1], dtype=np.float64)
+        )
+        for row in range(first_adx + 1, rows):
+            if not np.isfinite(dx[row]):
+                break
+            adx[row] = ((n - 1) * adx[row - 1] + dx[row]) / n
+    return (
+        pd.Series(adx, index=close.index, dtype=np.float64),
+        pd.Series(di_spread, index=close.index, dtype=np.float64),
+    )
 
 
 def _cross_up_event(series: pd.Series) -> pd.Series:
@@ -1764,57 +2442,22 @@ def _cross_down_event(series: pd.Series) -> pd.Series:
     return event.where(series.notna() & previous.notna())
 
 
-def _bars_since_event(event_mask, valid_mask) -> np.ndarray:
-    """Bars elapsed since the last True event, counted on the valid suffix.
-
-    Adopts ``_trend_age_bars``' age-since-first-observation convention: before
-    the first observed event the count runs from the first valid row.  Rows in
-    the invalid prefix return NaN; a non-prefix validity shape is a hard
-    failure (the surface admits exactly one chronological warmup prefix).
-    """
-    event = np.asarray(event_mask, dtype=bool)
-    valid = np.asarray(valid_mask, dtype=bool)
-    if event.shape != valid.shape or event.ndim != 1:
-        raise RuntimeError("HTF_V4_EVENT_AGE_INPUT_INVALID")
-    ages = np.full(len(event), np.nan, dtype=np.float64)
-    if not valid.any():
-        return ages
-    first_valid = int(np.argmax(valid))
-    if not valid[first_valid:].all():
-        raise RuntimeError("HTF_V4_EVENT_AGE_VALIDITY_NOT_ONE_PREFIX")
-    row_index = np.arange(len(event), dtype=np.int64)
-    marks = np.where(event & valid, row_index, -1)
-    anchor = np.maximum(np.maximum.accumulate(marks), first_valid)
-    ages[first_valid:] = (row_index - anchor)[first_valid:].astype(np.float64)
-    return ages
-
-
-def _event_age_norm(age_bars):
-    """Exact ``trend_age_bars_norm`` convention: log1p(min(age, 500))/log1p(500).
-
-    The 500-bar cap and log1p normalization are the ones this file already
-    owns in compute_per_bar_features_v4; NaN warmup rows pass through.
-    """
-    return np.log1p(np.minimum(age_bars, 500.0)) / np.log1p(500.0)
-
-
 def _compute_v29_momentum_event_frame(
     *,
     high: pd.Series,
     low: pd.Series,
     rsi: pd.Series,
     mom_20_atr: pd.Series,
-    atr_safe: pd.Series,
+    atr_positive: pd.Series,
 ) -> pd.DataFrame:
     """One formula owner for the V29 momentum G1/G2 event fields.
 
     ``rsi`` is the raw Wilder 0-100 series with its 14-row warmup already
-    masked; ``mom_20_atr`` is the clipped 20-bar ATR-normalized momentum this
-    file emits; ``atr_safe`` is the caller's floored ATR (the identical
-    ``np.maximum(atr14, atr_floor)`` expression both callers already
-    compute), consumed at the pivot bars by the V30 divergence-strength
+    masked; ``mom_20_atr`` is the raw 20-bar ATR-normalized momentum this
+    file emits; ``atr_positive`` is the caller's positive-only Wilder ATR,
+    consumed at the pivot bars by the V30 divergence-strength
     fields.  Called by :func:`compute_per_bar_features_v4` (per-TF lane) and
-    :func:`compute_v29_momentum_event_block_from_ohlc` (entry-M5/513 lane) so
+    :func:`compute_v29_momentum_event_block_from_ohlc` (native M5/M1 lane) so
     the two lanes cannot drift.
     """
     from gx1.features.smc_v1 import (
@@ -1837,13 +2480,13 @@ def _compute_v29_momentum_event_frame(
     rsi_extreme = rsi_valid & (
         np.abs(rsi_np - RSI_WILDER_MIDLINE) >= RSI_EXTREME_BAND_WIDTH
     )
-    frame["rsi_extreme_age_norm"] = _event_age_norm(
-        _bars_since_event(rsi_extreme, rsi_valid)
+    frame["rsi_extreme_event_age_bars"] = raw_event_age_bars(
+        rsi_extreme.astype(np.bool_), rsi_valid
     )
 
     # Momentum G2: mom_20_atr zero-line sign flips.  Zero is the natural
-    # named constant of a signed difference; the symmetric +-10 clip
-    # preserves the sign, so the crossing series is the emitted field itself.
+    # named constant of a signed difference, so the crossing series is the
+    # emitted raw field itself.
     frame["mom20_sign_flip_up"] = _cross_up_event(mom_20_atr)
     frame["mom20_sign_flip_down"] = _cross_down_event(mom_20_atr)
 
@@ -1897,31 +2540,29 @@ def _compute_v29_momentum_event_frame(
     # V30 divergence STRENGTH (design doc §3 momentum row "event/strength/
     # age"; the Phase-A build kept event+age only).  Formula: (RSI delta
     # between the pivot pair / RSI_WILDER_MIDLINE) x (price delta at the same
-    # pivots / atr_safe at the newer pivot's own bar).  /50 is the design
+    # pivots / positive ATR at the newer pivot's own bar).  /50 is the design
     # row's named "/50 strength" constant (the existing rsi14_centered affine
     # divisor); the pivot-bar ATR is the trendline-registry touch convention
-    # ("measured at the pivot's own bar with that bar's ATR").  The product's
-    # sign is the pair's own algebra: a genuine divergence has opposite-sign
-    # RSI/price deltas, so each field is negative at its own event with
-    # magnitude = strength — no synthetic sign flip is added; direction lives
-    # in the field identity exactly as in the sibling 0/1 events.  Off-event
+    # ("measured at the pivot's own bar with that bar's ATR"). Each side emits
+    # a non-negative magnitude; direction lives in the field identity exactly
+    # as in the sibling 0/1 events. Off-event
     # bars are flag-disambiguated 0 (design B.5); the undefined prefix is the
-    # events' own NaN prefix.  ``atr_safe`` at the newer pivot is finite
+    # events' own NaN prefix.  ``atr_positive`` at the newer pivot is finite
     # wherever the pair is defined: bear/bull_defined requires a valid RSI at
     # the OLDER pivot (RSI warmup 14 rows) and the ATR warmup is 13 rows, so
     # no mid-series NaN can enter through the ATR read.
-    atr_safe_np = atr_safe.to_numpy(dtype=np.float64)
+    atr_positive_np = atr_positive.to_numpy(dtype=np.float64)
     bear_strength = (
-        (rsi_np[clip_last_sh] - rsi_np[clip_prev_sh]) / RSI_WILDER_MIDLINE
+        (rsi_np[clip_prev_sh] - rsi_np[clip_last_sh]) / RSI_WILDER_MIDLINE
     ) * (
         (high_np[clip_last_sh] - high_np[clip_prev_sh])
-        / atr_safe_np[clip_last_sh]
+        / atr_positive_np[clip_last_sh]
     )
     bull_strength = (
         (rsi_np[clip_last_sl] - rsi_np[clip_prev_sl]) / RSI_WILDER_MIDLINE
     ) * (
-        (low_np[clip_last_sl] - low_np[clip_prev_sl])
-        / atr_safe_np[clip_last_sl]
+        (low_np[clip_prev_sl] - low_np[clip_last_sl])
+        / atr_positive_np[clip_last_sl]
     )
     frame["bear_divergence_strength"] = np.where(
         bear_defined, np.where(bear_event, bear_strength, 0.0), np.nan
@@ -1930,23 +2571,29 @@ def _compute_v29_momentum_event_frame(
         bull_defined, np.where(bull_event, bull_strength, 0.0), np.nan
     )
     divergence_defined = bear_defined & bull_defined
-    frame["divergence_age_norm"] = _event_age_norm(
-        _bars_since_event(bear_event | bull_event, divergence_defined)
+    frame["divergence_event_age_bars"] = raw_event_age_bars(
+        (bear_event | bull_event).astype(np.bool_), divergence_defined
     )
     return frame.loc[:, list(MULTI_TF_V4_MOMENTUM_EVENT_FEATURES)]
 
 
 def compute_v29_momentum_event_block_from_ohlc(
     ohlc: pd.DataFrame,
+    *,
+    include_v30_primitives: bool = False,
 ) -> pd.DataFrame:
-    """Entry-M5/513-lane momentum event block (design doc §5.1 block E).
+    """Native M5/M1 momentum block (design doc §5.1 block E).
 
     Computes the exact ``MULTI_TF_V4_MOMENTUM_EVENT_FEATURES`` fields on the
     provided closed-bar OHLC clock with this owner's own input conventions
-    (Wilder RSI with the 14-row mask, ``mom_20_atr`` with the atr_safe floor
-    and symmetric clip — the identical expressions
-    :func:`compute_per_bar_features_v4` uses, in this same file).
+    (Wilder RSI with the 14-row mask and raw ``mom_20_atr`` over the
+    positive-only Wilder ATR — the identical expressions
+    :func:`compute_per_bar_features_v4` uses, in this same file). When
+    ``include_v30_primitives`` is true, the four native-clock continuous
+    primitives in ``LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES`` are appended.
     """
+    if not isinstance(include_v30_primitives, bool):
+        raise RuntimeError("HTF_V4_LOCAL_MOMENTUM_PRIMITIVE_FLAG_INVALID")
     required = ("high", "low", "close")
     missing = [name for name in required if name not in ohlc.columns]
     if missing:
@@ -1956,19 +2603,39 @@ def compute_v29_momentum_event_block_from_ohlc(
     high = ohlc["high"].astype(np.float64)
     low = ohlc["low"].astype(np.float64)
     close = ohlc["close"].astype(np.float64)
-    atr14 = _atr(high, low, close, 14)
-    atr_floor = np.maximum(close * 1e-4, 1e-3)
-    atr_safe = np.maximum(atr14, atr_floor)
+    _atr14, atr_positive = wilder_atr14_positive(high, low, close)
     rsi = _rsi(close, 14)
     rsi.iloc[:14] = np.nan
-    mom_20_atr = ((close - close.shift(20)) / atr_safe).clip(-10.0, 10.0)
-    return _compute_v29_momentum_event_frame(
+    mom_5_atr = (close - close.shift(5)) / atr_positive
+    mom_20_atr = (close - close.shift(20)) / atr_positive
+    events = _compute_v29_momentum_event_frame(
         high=high,
         low=low,
         rsi=rsi,
         mom_20_atr=mom_20_atr,
-        atr_safe=atr_safe,
+        atr_positive=atr_positive,
     )
+    if not include_v30_primitives:
+        return events
+    primitives = pd.DataFrame(
+        {
+            "rsi14_centered": (
+                (rsi - RSI_WILDER_MIDLINE) / RSI_WILDER_MIDLINE
+            ),
+            "rsi14_delta_5": rsi - rsi.shift(5),
+            "mom_5_atr": mom_5_atr,
+            "mom_20_atr": mom_20_atr,
+        },
+        index=ohlc.index,
+    )
+    out = pd.concat([events, primitives], axis=1)
+    expected = (
+        *MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
+        *LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
+    )
+    if tuple(out.columns) != expected:
+        raise RuntimeError("HTF_V4_LOCAL_MOMENTUM_OUTPUT_ORDER_INVALID")
+    return out
 
 
 def validate_causal_feature_matrix(
@@ -2011,12 +2678,13 @@ def compute_per_bar_features_v4(
     *,
     timeframe: str,
     v29_registry_constants,
+    volatility_squeeze_artifacts: VolatilitySqueezeArtifactSet,
 ) -> pd.DataFrame:
     """Compute the exact fixed-width V4 surface directly from one OHLCV TF.
 
     ``timeframe`` is the declared MULTI_TF_RESAMPLE_RULES key of ``ohlcv``. It
     selects the local-cycle VWAP owner (D1 → rolling 5-bar, intraday TFs →
-    calendar-day session VWAP); the retired median-bar-spacing inference is
+    shared trading-session VWAP); the retired median-bar-spacing inference is
     gone.  ``v29_registry_constants`` is the TRAIN-fitted registry-constants
     payload (:func:`require_v29_registry_constants`); the level/trendline
     registry blocks cannot be computed without it and no default exists.
@@ -2027,9 +2695,12 @@ def compute_per_bar_features_v4(
             f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}"
         )
     registry_constants = require_v29_registry_constants(v29_registry_constants)
+    squeeze_artifacts = require_volatility_squeeze_artifact_set(
+        volatility_squeeze_artifacts
+    )
 
-    from gx1.features.entry_candlestick_patterns_v1 import (
-        build_entry_candlestick_pattern_layer,
+    from gx1.features.entry_candle_primitives_v1 import (
+        build_entry_candle_primitive_layer,
     )
     from gx1.features.smc_v1 import compute_smc_mtf_primitives_v1
 
@@ -2044,14 +2715,14 @@ def compute_per_bar_features_v4(
     high = df["high"]
     low = df["low"]
     volume = df["volume"]
-    atr14 = _atr(high, low, close, 14)
-    atr_floor = np.maximum(close * 1e-4, 1e-3)
-    atr_safe = np.maximum(atr14, atr_floor)
+    ema_spread_block = ema50_200_spread_atr_block(high, low, close)
+    atr14 = ema_spread_block["atr14"]
+    atr_positive = ema_spread_block["atr14_positive"]
 
-    out["atr_bps_14"] = (atr14 / close * 1e4).clip(0, 500)
+    out["atr_bps_14"] = atr14 / close * 1e4
     rsi = _rsi(close, 14)
     rsi.iloc[:14] = np.nan
-    out["rsi14_centered"] = ((rsi - 50.0) / 50.0).clip(-1.0, 1.0)
+    out["rsi14_centered"] = (rsi - 50.0) / 50.0
     # V30 (2026-08-13): raw Wilder RSI velocity on the masked series.  k=5 is
     # this file's existing EMA-slope lookback convention (the shift(5) used by
     # ema20/50/200_slope_atr below); the RSI domain bounds the delta in
@@ -2061,47 +2732,44 @@ def compute_per_bar_features_v4(
     out["rsi14_delta_5"] = rsi - rsi.shift(5)
     for lag in (5, 20):
         out[f"mom_{lag}_atr"] = (
-            (close - close.shift(lag)) / atr_safe
-        ).clip(-10.0, 10.0)
-    out["close_open_atr"] = ((close - open_) / atr_safe).clip(-10.0, 10.0)
+            (close - close.shift(lag)) / atr_positive
+        )
+    out["close_open_atr"] = (close - open_) / atr_positive
 
-    bar_range = np.maximum(high - low, atr_floor)
+    bar_range = (high - low).where((high - low) > 0.0)
     body = (close - open_).abs()
     upper_wick = high - df[["open", "close"]].max(axis=1)
     lower_wick = df[["open", "close"]].min(axis=1) - low
-    out["body_pct"] = (body / bar_range).clip(0.0, 1.0)
-    out["upper_wick_pct"] = (upper_wick / bar_range).clip(0.0, 1.0)
-    out["lower_wick_pct"] = (lower_wick / bar_range).clip(0.0, 1.0)
+    out["body_pct"] = body / bar_range
+    out["upper_wick_pct"] = upper_wick / bar_range
+    out["lower_wick_pct"] = lower_wick / bar_range
 
     ema20 = _ema(close, 20)
-    ema50 = _ema(close, 50)
+    ema50 = ema_spread_block["ema50"]
     ema100 = _ema(close, 100)
-    ema200 = _ema(close, 200)
-    out["ema20_dist_atr"] = ((close - ema20) / atr_safe).clip(-10.0, 10.0)
-    out["ema50_dist_atr"] = ((close - ema50) / atr_safe).clip(-15.0, 15.0)
-    out["ema100_dist_atr"] = ((close - ema100) / atr_safe).clip(-20.0, 20.0)
-    out["ema200_dist_atr"] = ((close - ema200) / atr_safe).clip(-30.0, 30.0)
+    ema200 = ema_spread_block["ema200"]
+    out["ema20_dist_atr"] = (close - ema20) / atr_positive
+    out["ema50_dist_atr"] = (close - ema50) / atr_positive
+    out["ema100_dist_atr"] = (close - ema100) / atr_positive
+    out["ema200_dist_atr"] = (close - ema200) / atr_positive
     out["ema20_slope_atr"] = (
-        (ema20 - ema20.shift(5)) / atr_safe
-    ).clip(-5.0, 5.0)
+        (ema20 - ema20.shift(5)) / atr_positive
+    )
     out["ema50_slope_atr"] = (
-        (ema50 - ema50.shift(5)) / atr_safe
-    ).clip(-5.0, 5.0)
+        (ema50 - ema50.shift(5)) / atr_positive
+    )
     out["ema200_slope_atr"] = (
-        (ema200 - ema200.shift(5)) / atr_safe
-    ).clip(-5.0, 5.0)
+        (ema200 - ema200.shift(5)) / atr_positive
+    )
 
     bull = (ema20 > ema50) & (ema50 > ema100) & (ema100 > ema200)
     bear = (ema20 < ema50) & (ema50 < ema100) & (ema100 < ema200)
-    stack = pd.Series(0, index=close.index)
+    stack_defined = ema20.notna() & ema50.notna() & ema100.notna() & ema200.notna()
+    stack = pd.Series(np.nan, index=close.index, dtype=np.float64)
+    stack.loc[stack_defined] = 0.0
     stack[bull] = 1
     stack[bear] = -1
-    out["ema_stack_aligned_v2"] = stack.astype(float)
-    out["regime_class_id"] = _regime_class(
-        stack,
-        ema200 - ema200.shift(5),
-        atr_safe,
-    )
+    out["ema_stack_aligned_v2"] = stack
 
     # Declared-TF selection (2026-08-09): value-identical to the retired
     # >=23h median-spacing inference for the five declared timeframes, without
@@ -2109,35 +2777,39 @@ def compute_per_bar_features_v4(
     local_cycle_vwap = (
         _rolling_vwap(close, volume, 5)
         if timeframe == "D1"
-        else _session_vwap(close, volume)
+        else _session_vwap(
+            close,
+            volume,
+            bar_duration=pd.Timedelta(MULTI_TF_RESAMPLE_RULES[timeframe]),
+        )
     )
     out["vwap_local_cycle_dist_atr"] = (
-        (close - local_cycle_vwap) / atr_safe
-    ).clip(-15.0, 15.0)
+        (close - local_cycle_vwap) / atr_positive
+    )
     vwap20 = _rolling_vwap(close, volume, 20)
-    out["vwap20_dist_atr"] = ((close - vwap20) / atr_safe).clip(-10.0, 10.0)
+    out["vwap20_dist_atr"] = (close - vwap20) / atr_positive
     vwap96 = _rolling_vwap(close, volume, 96)
-    out["vwap96_dist_atr"] = ((close - vwap96) / atr_safe).clip(-15.0, 15.0)
+    out["vwap96_dist_atr"] = (close - vwap96) / atr_positive
     out["vwap_local_cycle_slope_atr"] = (
-        (local_cycle_vwap - local_cycle_vwap.shift(5)) / atr_safe
-    ).clip(-5.0, 5.0)
+        (local_cycle_vwap - local_cycle_vwap.shift(5)) / atr_positive
+    )
 
     sma20 = close.rolling(20, min_periods=20).mean()
     std20 = close.rolling(20, min_periods=20).std()
     bb_upper = sma20 + 2.0 * std20
     bb_lower = sma20 - 2.0 * std20
     bb_width = bb_upper - bb_lower
-    out["bb_position"] = (
-        (close - bb_lower) / np.maximum(bb_width, atr_floor)
-    ).clip(0.0, 1.0)
-    out["bb_width_atr"] = (bb_width / atr_safe).clip(0.0, 20.0)
+    out["bb_position"] = (close - bb_lower) / bb_width.where(bb_width > 0.0)
+    out["bb_width_atr"] = bb_width / atr_positive
     adx, di_spread_signed = _adx14(high, low, close, 14)
-    out["adx_centered"] = ((adx - 25.0) / 25.0).clip(-1.0, 3.0)
+    out["adx14"] = adx
     # V30 (2026-08-13): the signed DI spread from the same _adx14 producer
     # (see its docstring); already normalized to [-1, 1] by construction.
     out["di_spread_signed"] = di_spread_signed
-    age = _trend_age_bars(stack).clip(upper=500.0)
-    out["trend_age_bars_norm"] = np.log1p(age) / np.log1p(500.0)
+    out["trend_state_age_bars"] = raw_state_age_bars(
+        stack.to_numpy(dtype=np.float64),
+        stack.notna().to_numpy(dtype=bool),
+    )
 
     # ------------------------------------------------------------------
     # V29 Phase A per-TF EVENT additions (trend_ema GAP-1/2/3 + momentum
@@ -2148,50 +2820,46 @@ def compute_per_bar_features_v4(
     # ------------------------------------------------------------------
     v29 = pd.DataFrame(index=df.index, dtype=np.float64)
 
-    # GAP-1: EMA50/200 spread + state + cross events.  Formula origin:
-    # entry_model_native_feature_layers_v1.build_price_derived_layer
-    # (ema50/ema200 with min_periods=span, spread = ema50 - ema200,
-    # cross_up = (spread > 0) & (spread.shift(1) <= 0), mirrored down); the
-    # min_periods output mask is replicated exactly by _mask_ewm_min_periods.
-    # Clip bound +-30 adopts the widest EMA-family clip in this block
-    # (ema200_dist_atr above), per the GAP-1 spec; no new magnitude.
-    spread_50_200 = _mask_ewm_min_periods(ema50 - ema200, 200)
-    v29["ema50_200_spread_atr"] = (spread_50_200 / atr_safe).clip(-30.0, 30.0)
+    # GAP-1: local and per-TF routes consume the exact same float64 EMA50/200
+    # + positive-only Wilder ATR block, then cast once at storage boundary.
+    spread_50_200 = ema_spread_block["spread"]
+    v29["ema50_200_spread_atr"] = ema_spread_block["spread_atr"]
     bull_state_50_200 = (spread_50_200 > 0).astype(np.float64).where(
         spread_50_200.notna()
     )
     v29["ema50_200_bull_state"] = bull_state_50_200
     v29["ema50_200_cross_up"] = _cross_up_event(spread_50_200)
     v29["ema50_200_cross_down"] = _cross_down_event(spread_50_200)
-    # GAP-2: bars-since-50/200-cross memory — exact reuse of _trend_age_bars
-    # plus the 500-cap log1p normalization owned by trend_age_bars_norm above.
-    v29["ema50_200_cross_age_norm"] = _event_age_norm(
-        _trend_age_bars(bull_state_50_200)
-    ).where(bull_state_50_200.notna())
+    # GAP-2: raw duration of the current 50/200 state on this native clock.
+    v29["ema50_200_state_age_bars"] = raw_state_age_bars(
+        bull_state_50_200.to_numpy(dtype=np.float64),
+        bull_state_50_200.notna().to_numpy(dtype=bool),
+    )
 
     # GAP-3: price-vs-EMA cross events + side age (same sign-flip construction
     # as GAP-1, same age convention as GAP-2).  The side's sign is already
     # carried by ema50_dist_atr/ema200_dist_atr above, so the age is emitted
     # unsigned in [0, 1] (rule 2e: no synthetic signed-zero packing).
     for ema_span, ema_line in ((50, ema50), (200, ema200)):
-        price_gap = _mask_ewm_min_periods(close - ema_line, ema_span)
+        price_gap = close - ema_line
         v29[f"price_x_ema{ema_span}_cross_up"] = _cross_up_event(price_gap)
         v29[f"price_x_ema{ema_span}_cross_down"] = _cross_down_event(price_gap)
         side_state = (price_gap > 0).astype(np.float64).where(price_gap.notna())
-        v29[f"price_above_ema{ema_span}_age_norm"] = _event_age_norm(
-            _trend_age_bars(side_state)
-        ).where(price_gap.notna())
+        v29[f"price_vs_ema{ema_span}_state_age_bars"] = raw_state_age_bars(
+            side_state.to_numpy(dtype=np.float64),
+            side_state.notna().to_numpy(dtype=bool),
+        )
 
     # Momentum G1/G2 events: computed by the one owner function below, from
-    # the exact same masked-RSI and clipped mom_20_atr series this owner just
+    # the exact same masked-RSI and raw mom_20_atr series this owner just
     # produced (bit-identical inputs, one formula owner for both the per-TF
-    # lane and the entry-M5/513 lane).
+    # lane and the native M5/M1 lane).
     momentum_events = _compute_v29_momentum_event_frame(
         high=high,
         low=low,
         rsi=rsi,
         mom_20_atr=out["mom_20_atr"],
-        atr_safe=atr_safe,
+        atr_positive=atr_positive,
     )
     for name in MULTI_TF_V4_MOMENTUM_EVENT_FEATURES:
         v29[name] = momentum_events[name]
@@ -2204,25 +2872,44 @@ def compute_per_bar_features_v4(
     v29 = v29.loc[:, list(v29_names)]
 
     out = out.loc[:, list(MULTI_TF_V4_GROUP_A_BASE_FEATURES)]
+    volume_features = compute_volume_features(df[["volume"]])
+    if tuple(volume_features) != MULTI_TF_V4_VOLUME_FEATURES:
+        raise RuntimeError("HTF_V4_VOLUME_FEATURE_CONTRACT_INVALID")
+    for name in MULTI_TF_V4_VOLUME_FEATURES:
+        out[name] = volume_features[name]
+
+    squeeze_frame, _squeeze_carry = compute_volatility_squeeze_state(
+        df[["open", "high", "low", "close", "volume"]],
+        timeframe=timeframe,
+        params=squeeze_artifacts.require_params(timeframe),
+    )
+    if (
+        tuple(squeeze_frame.columns)
+        != MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES
+        or not squeeze_frame.index.equals(out.index)
+    ):
+        raise RuntimeError("HTF_V4_VOLATILITY_SQUEEZE_CONTRACT_INVALID")
+    for name in MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES:
+        out[name] = squeeze_frame[name]
 
     candle_source = df[["open", "high", "low", "close"]].copy()
     candle_source.index.name = "time"
-    candle_values, candle_names = build_entry_candlestick_pattern_layer(
+    candle_values, candle_names = build_entry_candle_primitive_layer(
         candle_source.reset_index()
     )
     observed_candle_names = tuple(
-        f"mtf_{name.split('.', 1)[1] if '.' in name else name}"
+        f"mtf_{name.replace('.', '_')}"
         for name in candle_names
     )
     candle_values = np.asarray(candle_values, dtype=np.float64)
     if (
         candle_values.shape
-        != (len(out), len(MULTI_TF_V4_CANDLESTICK_FEATURES))
-        or observed_candle_names != MULTI_TF_V4_CANDLESTICK_FEATURES
+        != (len(out), len(MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES))
+        or observed_candle_names != MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES
     ):
-        raise RuntimeError("HTF_V4_CANDLESTICK_CONTRACT_INVALID")
+        raise RuntimeError("HTF_V4_CANDLE_PRIMITIVE_CONTRACT_INVALID")
     for name, values in zip(
-        MULTI_TF_V4_CANDLESTICK_FEATURES,
+        MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES,
         candle_values.T,
         strict=True,
     ):
@@ -2274,7 +2961,12 @@ def compute_per_bar_features_v4(
     level_matrix, level_names = compute_level_registry_mtf_block_v1(
         smc_source,
         tf=timeframe.lower(),
-        tol_level_atr=registry_constants["level_tol_atr"][timeframe],
+        recurrence_threshold_atr=registry_constants[
+            "level_recurrence_threshold_atr"
+        ][timeframe],
+        max_evidence_age_bars=int(
+            registry_constants["level_expiry_bars"][timeframe]
+        ),
     )
     if tuple(level_names) != MULTI_TF_V4_LEVEL_REGISTRY_FEATURES:
         raise RuntimeError("HTF_V4_LEVEL_REGISTRY_NAME_DRIFT")
@@ -2288,6 +2980,9 @@ def compute_per_bar_features_v4(
         timeframe=timeframe,
         seq_len=int(registry_constants["per_tf_seq_lens"][timeframe]),
         band_atr=registry_constants["trendline_band_atr"][timeframe],
+        identity_expiry_bars=int(
+            registry_constants["trendline_expiry_bars"][timeframe]
+        ),
     )
     if tuple(trendline_frame.columns) != MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES:
         raise RuntimeError("HTF_V4_TRENDLINE_REGISTRY_NAME_DRIFT")
@@ -2322,16 +3017,9 @@ def compute_per_bar_features_v4(
 
 def _model_native_rsi_z48_v4(close: pd.Series) -> pd.Series:
     rsi = _rsi(close, 14)
-    mean = rsi.rolling(48, min_periods=24).mean()
-    std = rsi.rolling(48, min_periods=24).std(ddof=0).replace(0.0, np.nan)
+    mean = rsi.rolling(48, min_periods=48).mean()
+    std = rsi.rolling(48, min_periods=48).std(ddof=0).replace(0.0, np.nan)
     return (rsi - mean) / std
-
-
-def _model_native_percentile_last_v4(values: np.ndarray) -> float:
-    observed = np.asarray(values, dtype=np.float64)
-    if not np.isfinite(observed).all():
-        return float("nan")
-    return float(np.mean(observed <= observed[-1]))
 
 
 def _model_native_htf_slope_v4(
@@ -2344,9 +3032,10 @@ def _model_native_htf_slope_v4(
     2026-08-09 repair: the previous ``np.diff(source, n=order, prepend=...)``
     was the ORDER-th finite difference (coefficients 1,-5,10,-10,5,-1 for
     order 5) — a noise amplifier, not a slope. The intended quantity is the
-    k-bar change ``x[i] - x[i-order]``. The pre-existing one-bar publish lag
-    (np.roll semantics) is kept exactly. The first ``order + 1`` outputs are an
-    honest NaN warmup prefix: the scalar-frame consumer asserts it through
+    k-bar change ``x[i] - x[i-order]``. Closed-bar availability is owned by
+    the MTF projection, so the formula itself carries no second publish lag.
+    The first ``order`` outputs are an honest NaN warmup prefix: the
+    scalar-frame consumer asserts it through
     ``validate_causal_feature_matrix`` (one contiguous warmup prefix, hard
     failure on any later NaN) instead of masking with ``nan_to_num``.
     """
@@ -2357,10 +3046,8 @@ def _model_native_htf_slope_v4(
     slope = source - np.concatenate(
         [np.full(order, np.nan), source[:-order]]
     )
-    shifted = np.roll(slope, 1)
-    shifted[0] = np.nan
     return pd.Series(
-        shifted,
+        slope,
         index=values.index,
         dtype=np.float64,
     )
@@ -2385,35 +3072,19 @@ def _compute_model_native_mtf_scalar_frame_v4(
     high = source["high"]
     low = source["low"]
     close = source["close"]
-    atr14 = _atr(high, low, close, 14)
-    # Same ATR flooring convention as compute_per_bar_features_v4 (its
-    # atr_floor/atr_safe at the top of that owner) — not a bare epsilon.
-    atr_floor = np.maximum(close * 1e-4, 1e-3)
-    atr_safe = np.maximum(atr14, atr_floor)
+    atr14, atr14_positive = wilder_atr14_positive(high, low, close)
     out = pd.DataFrame(index=source.index)
 
     if timeframe in {"H1", "H4"}:
         prefix = "_v1h1" if timeframe == "H1" else "_v1h4"
         ema12 = _ema(close, 12)
         ema26 = _ema(close, 26)
-        if timeframe == "H1":
-            atr100 = _atr(high, low, close, 100)
-            compression = atr14 / np.maximum(atr100, 1e-9)
-            compression.iloc[: H1_ATR100_MIN_BARS - 1] = np.nan
-            out["H1_range_compression_ratio"] = compression
-        else:
-            # V30 (2026-08-13): verbatim H1 sibling formula (atr14/atr100)
-            # with the H4_ATR100_MIN_BARS gate (inherited from
-            # H1_ATR100_MIN_BARS — same 100-bar ATR warmup, no new number).
-            atr100 = _atr(high, low, close, 100)
-            compression = atr14 / np.maximum(atr100, 1e-9)
-            compression.iloc[: H4_ATR100_MIN_BARS - 1] = np.nan
-            out["H4_range_compression_ratio"] = compression
+        if timeframe == "H4":
             mid = (high + low) * 0.5
             ema50 = _ema(mid, 50)
-            category = np.sign(mid - ema50) + 1.0
-            category.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
-            out["H4_trend_sign_cat"] = category
+            distance = (mid - ema50) / atr14_positive
+            distance.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
+            out["h4_mid_ema50_dist_atr_canon_v2"] = distance
         # 2026-08-09 era-proxy repair: these fields were raw USD magnitudes and
         # tracked the multi-year gold price level instead of market state.
         # Units now follow this file's own conventions (names unchanged):
@@ -2422,7 +3093,7 @@ def _compute_model_native_mtf_scalar_frame_v4(
         #   they are ATR-multiple changes, not USD changes.
         # - atr in bps of price (the atr_bps_14 convention). Normalization
         #   statistics are refitted at the next dataset rebuild.
-        ema_diff = (ema12 - ema26) / atr_safe
+        ema_diff = (ema12 - ema26) / atr14_positive
         out[f"{prefix}_ema_diff"] = ema_diff
         out[f"{prefix}_atr"] = atr14 / close * 1e4
         out[f"{prefix}_rsi14_z"] = _model_native_rsi_z48_v4(close)
@@ -2446,55 +3117,48 @@ def _compute_model_native_mtf_scalar_frame_v4(
         # `m15_rsi14_canon_v2` — same producer, same unit, this TF's clock.
         out["m5_rsi14_canon_v2"] = _rsi(close, 14)
     elif timeframe == "M15":
-        atr100 = _atr(high, low, close, 100)
-        compression = atr14 / np.maximum(atr100, 1e-9)
-        compression.iloc[: M15_ATR100_MIN_BARS - 1] = np.nan
-        out["M15_range_compression_ratio"] = compression
         out["m15_rsi14_canon_v2"] = _rsi(close, 14)
         bar_range = high - low
-        range_mean = bar_range.rolling(20, min_periods=5).mean()
-        range_std = bar_range.rolling(20, min_periods=5).std().replace(
+        range_mean = bar_range.rolling(20, min_periods=20).mean()
+        range_std = bar_range.rolling(20, min_periods=20).std(ddof=0).replace(
             0.0, np.nan
         )
         out["m15_range_z_20_canon_v2"] = (
             bar_range - range_mean
         ) / range_std
-        out["m15_trend_sign_canon_v2"] = np.sign(
+        out["m15_ema5_20_spread_atr_canon_v2"] = (
             _ema(close, 5) - _ema(close, 20)
-        )
+        ) / atr14_positive
     elif timeframe == "D1":
         mid = (high + low) * 0.5
         ema200 = _ema(mid, 200)
-        distance = (mid - ema200) / np.maximum(atr14, 1e-9)
+        distance = (mid - ema200) / atr14_positive
         distance.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
         out["D1_dist_from_ema200_atr"] = distance
-        percentile = atr14.rolling(252, min_periods=252).apply(
-            _model_native_percentile_last_v4,
-            raw=True,
-        )
-        percentile.iloc[: D1_PCTL252_MIN_BARS - 1] = np.nan
-        out["D1_atr_percentile_252"] = percentile
         # 2026-08-09 era-proxy repair (names unchanged): d1_atr14_canon_v2 in
         # bps of price (atr_bps_14 convention); d1_ema_slope_20_canon_v2 in
-        # ATR-multiples (D1_dist_from_ema200_atr convention, atr_safe floor).
+        # ATR-multiples (D1_dist_from_ema200_atr convention, positive ATR only).
         out["d1_atr14_canon_v2"] = atr14 / close * 1e4
         out["d1_rsi14_canon_v2"] = _rsi(close, 14)
         ema20 = _ema(close, 20)
-        out["d1_ema_slope_20_canon_v2"] = (ema20 - ema20.shift(5)) / atr_safe
+        out["d1_ema_slope_20_canon_v2"] = (
+            ema20 - ema20.shift(5)
+        ) / atr14_positive
         bar_range = high - low
-        range_mean = bar_range.rolling(20, min_periods=5).mean()
-        range_std = bar_range.rolling(20, min_periods=5).std().replace(
+        range_mean = bar_range.rolling(20, min_periods=20).mean()
+        range_std = bar_range.rolling(20, min_periods=20).std(ddof=0).replace(
             0.0, np.nan
         )
         out["d1_range_z_20_canon_v2"] = (
             bar_range - range_mean
         ) / range_std
-        high20 = high.rolling(20, min_periods=5).max()
-        low20 = low.rolling(20, min_periods=5).min()
+        high20 = high.rolling(20, min_periods=20).max()
+        low20 = low.rolling(20, min_periods=20).min()
         out["d1_close_pct_in_20day_range_canon_v2"] = (
             close - low20
         ) / (high20 - low20).replace(0.0, np.nan)
         out["d1_pct_change_5_canon_v2"] = close.pct_change(5) * 10000.0
+        out["d1_dist_change_1bar_atr_v4"] = distance.diff()
 
     if tuple(out.columns) != expected_fields:
         raise RuntimeError(
@@ -2549,6 +3213,7 @@ def build_multi_tf_per_bar_features_v4(
     m5_df: pd.DataFrame,
     *,
     v29_registry_constants,
+    volatility_squeeze_artifacts: VolatilitySqueezeArtifactSet,
 ) -> dict:
     """Build all eight causal specialist families from native M5 only.
 
@@ -2557,6 +3222,9 @@ def build_multi_tf_per_bar_features_v4(
     computation.  There is no default (rule 2a).
     """
     registry_constants = require_v29_registry_constants(v29_registry_constants)
+    squeeze_artifacts = require_volatility_squeeze_artifact_set(
+        volatility_squeeze_artifacts
+    )
     base_bar_duration = pd.Timedelta(minutes=5)
     _validate_m5_input(
         m5_df,
@@ -2588,6 +3256,7 @@ def build_multi_tf_per_bar_features_v4(
             resampled,
             timeframe=tf_name,
             v29_registry_constants=registry_constants,
+            volatility_squeeze_artifacts=squeeze_artifacts,
         )
         # Retain the exact float32 matrix used to construct the DataFrame so
         # every in-memory V4 consumer sees the same verified bytes as attrs.
@@ -3016,45 +3685,20 @@ def project_multi_tf_v4_scalars(
     return out
 
 
-# REGIME_V4 projection fields. Output names ending in _v2 are persistent model fields.
-REGIME_V4_MTF_PROJECTION = (
+# Raw continuous MTF context projection. Output names ending in _v2 are
+# persistent model fields; no categorical regime is derived here.
+MODEL_NATIVE_CONTEXT_MTF_PROJECTION = (
     ("ema20_slope_atr", "ema20_slope_atr"),
     ("ema_stack_aligned", "ema_stack_aligned_v2"),
-    ("regime_class_id", "regime_class_id"),
-    ("trend_age_bars_norm", "trend_age_bars_norm"),
+    ("trend_state_age_bars", "trend_state_age_bars"),
     ("mom_5_atr", "mom_5_atr"),
     ("mom_20_atr", "mom_20_atr"),
     ("rsi14_centered", "rsi14_centered"),
     ("atr_bps_14", "atr_bps_14"),
     ("lower_wick_pct", "lower_wick_pct"),
 )
-REGIME_V4_MTF_TIMEFRAMES = MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
-REGIME_V4_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
-
-
-def attach_default_regime_v4_scalars(
-    frame: pd.DataFrame,
-    *,
-    multi_tf: Mapping[str, pd.DataFrame],
-    decision_bar_duration: pd.Timedelta,
-) -> pd.DataFrame:
-    """Overwrite persistent regime scalars from the explicit shared V4 cache."""
-
-    _validate_m5_input(
-        frame,
-        require_volume=True,
-        bar_duration=decision_bar_duration,
-    )
-    for name, values in project_multi_tf_v4_scalars(
-        multi_tf,
-        frame.index.asi8.astype(np.int64, copy=False),
-        REGIME_V4_MTF_PROJECTION,
-        REGIME_V4_MTF_TIMEFRAMES,
-        REGIME_V4_MTF_SKIP,
-        decision_bar_duration=decision_bar_duration,
-    ).items():
-        frame[name] = values
-    return frame
+MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES = MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
+MODEL_NATIVE_CONTEXT_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
 
 
 _HTF_V4_CACHE_MANIFEST_KEYS = frozenset(
@@ -3068,9 +3712,13 @@ _HTF_V4_CACHE_MANIFEST_KEYS = frozenset(
         # Cadence alone does not identify a bar; the D1 trading-day origin does.
         "resample_origin_contract",
         "builder_version",
+        "smc_causal_replay_schema_version",
+        "technical_indicator_owner",
+        "swing_structure_owner",
         "m5_prebuilt_source",
         "m5_prebuilt_source_sha256",
         "v29_registry_constants",
+        "volatility_squeeze_artifact_set",
         "full_input_liveness",
         "tfs",
     }
@@ -3103,6 +3751,7 @@ class MultiTFV4DiskCache(dict):
         m5_prebuilt_source: str,
         m5_prebuilt_source_sha256: str,
         v29_registry_constants: dict,
+        volatility_squeeze_artifacts: VolatilitySqueezeArtifactSet,
     ) -> None:
         super().__init__()
         self.cache_identity_sha256 = cache_identity_sha256
@@ -3110,6 +3759,7 @@ class MultiTFV4DiskCache(dict):
         self.m5_prebuilt_source = m5_prebuilt_source
         self.m5_prebuilt_source_sha256 = m5_prebuilt_source_sha256
         self.v29_registry_constants = v29_registry_constants
+        self.volatility_squeeze_artifacts = volatility_squeeze_artifacts
 
 
 def compute_htf_v4_cache_identity(manifest: dict) -> str:
@@ -3320,6 +3970,11 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
         contracts = {
             "schema_version": schema_version,
             "builder_version": builder_version,
+            "smc_causal_replay_schema_version": (
+                SMC_CAUSAL_REPLAY_SCHEMA_VERSION
+            ),
+            "technical_indicator_owner": technical_indicator_contract_metadata(),
+            "swing_structure_owner": swing_structure_contract_metadata(),
             "feature_count": feature_width,
             "feature_names": list(feature_names),
             "shift_contract": expected_shift,
@@ -3340,6 +3995,16 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
             manifest["m5_prebuilt_source_sha256"],
             label="m5_prebuilt_source_sha256",
         )
+        if (
+            source_path.is_symlink()
+            or not source_path.is_file()
+            or source_path.resolve(strict=True) != source_path
+            or _sha256_file_exact(source_path) != m5_prebuilt_source_sha256
+        ):
+            raise RuntimeError(
+                "HTF_V4_CACHE_SOURCE_IDENTITY_MISMATCH: the declared M5 "
+                "source bytes do not match the cache manifest"
+            )
         cache_identity_sha256 = _exact_cache_sha256(
             manifest["cache_identity_sha256"],
             label="cache_identity_sha256",
@@ -3392,12 +4057,21 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
             raise RuntimeError(
                 "HTF_V4_CACHE_V29_REGISTRY_CONSTANTS_INVALID"
             ) from exc
+        try:
+            manifest_squeeze_artifacts = require_volatility_squeeze_artifact_binding(
+                manifest.get("volatility_squeeze_artifact_set")
+            )
+        except RuntimeError as exc:
+            raise RuntimeError(
+                "HTF_V4_CACHE_VOLATILITY_SQUEEZE_ARTIFACT_SET_INVALID"
+            ) from exc
         out = MultiTFV4DiskCache(
             cache_identity_sha256=cache_identity_sha256,
             manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
             m5_prebuilt_source=str(source_path),
             m5_prebuilt_source_sha256=m5_prebuilt_source_sha256,
             v29_registry_constants=manifest_registry_constants,
+            volatility_squeeze_artifacts=manifest_squeeze_artifacts,
         )
         for tf_name in MULTI_TF_RESAMPLE_RULES:
             info = tf_manifest[tf_name]
