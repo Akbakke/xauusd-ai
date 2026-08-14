@@ -69,6 +69,63 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     return x
 
 
+def test_swing_state_enum_decomposition_is_literal_and_not_a_direction_bias() -> None:
+    """V30 package 8A (2026-08-13) — the §4a live-bug regression guard.
+
+    ``snap.smc_swing_state`` is a partition of the four two-sided pivot
+    comparisons (smc_v1): 0 = HH+HL, 1 = HH+LL, 2 = LH+HL, 3 = LH+LL,
+    4 = tie/warmup.  The layer used to read state 1 as "up bias" and state 2 as
+    "down bias" and weighted state 1 at 0.55 into ``hl_state`` (a HIGHER LOW)
+    although state 1 carries a LOWER low, and state 2 at 0.45 into ``ll_state``
+    although state 2 carries a HIGHER low.
+
+    This isolates the enum terms exactly: with every other source field zero
+    the trend, context, BOS-pressure and pullback terms are all zero, so each
+    emitted state is precisely the sum of the two enum indicators that
+    contain it.  Every weight is the pre-repair weight — only the state each
+    weight multiplies changed.
+    """
+
+    names = list(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
+    x = np.zeros((5, len(names)), dtype=np.float32)
+    idx = {name: i for i, name in enumerate(names)}
+    x[:, idx["snap.smc_swing_state"]] = np.asarray([0, 1, 2, 3, 4], dtype=np.float32)
+    for ratio_field in (
+        "ctx_cont.H1_range_compression_ratio",
+        "ctx_cont.M15_range_compression_ratio",
+    ):
+        x[:, idx[ratio_field]] = 1.0
+
+    out, out_names = build_entry_foundation_structure_layer(x, names)
+    col = {name: out[:, i] for i, name in enumerate(out_names)}
+
+    # HH in {0, 1}: clean-up weight 0.85, mixed weight 0.45.
+    assert col["chart.foundation_hh_state"] == pytest.approx(
+        [0.85, 0.45, 0.0, 0.0, 0.0], abs=1e-6
+    )
+    # HL in {0, 2}: clean-up weight 0.75, mixed weight 0.55 — the mixed weight
+    # sits on state 2 (LH+HL), the state that actually carries a higher low.
+    assert col["chart.foundation_hl_state"] == pytest.approx(
+        [0.75, 0.0, 0.55, 0.0, 0.0], abs=1e-6
+    )
+    # LH in {1, 3}: mixed weight 0.55 on state 1 (HH+LL), clean-down 0.45.
+    assert col["chart.foundation_lh_state"] == pytest.approx(
+        [0.0, 0.55, 0.0, 0.45, 0.0], abs=1e-6
+    )
+    # LL in {2, 3}: clean-down weight 0.85, mixed weight 0.45.
+    assert col["chart.foundation_ll_state"] == pytest.approx(
+        [0.0, 0.0, 0.45, 0.85, 0.0], abs=1e-6
+    )
+    # The inherited aggregate: state 1 (a lower low) is net bearish and state 2
+    # (a higher low) net bullish.  The pre-repair layer emitted exactly the
+    # opposite signs here (+1.00 for state 1, -1.00 for state 2).
+    assert col["chart.foundation_structure_up_minus_down"] == pytest.approx(
+        [1.60, -0.10, 0.10, -1.30, 0.0], abs=1e-6
+    )
+    # State 4 (exact tie or warmup) contributes to no indicator.
+    assert col["chart.foundation_structure_up_minus_down"][4] == 0.0
+
+
 def test_foundation_structure_layer_exposes_required_families_and_age_logic() -> None:
     names = [
         "snap.smc_swing_state",

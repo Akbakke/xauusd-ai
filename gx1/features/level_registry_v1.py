@@ -49,7 +49,14 @@ the doc's stated conventions and is testable:
 3. Retest: the break bar itself is excluded (``t > break_bar``); the first
    bar within ``RETEST_WINDOW`` whose range intersects the zone is the retest
    bar; outcome hold requires close strictly on the break side of
-   ``center_price`` — an exact tie fails closed to ``failed``.
+   ``center_price`` — an exact tie fails closed to ``failed``.  A HOLD now
+   also FLIPS the level's polarity (V30 package 8A, 2026-08-13): broken
+   resistance that is retested and holds becomes an ACTIVE support and vice
+   versa, keeping its identity, member pivots, touch history and reaction
+   memory.  ``side_of_origin`` is therefore lifecycle state, not a birth
+   constant; the level's break check, merge eligibility and nearest-ACTIVE
+   slot participation all follow the new side from the flip bar onward.  A
+   FAILED retest is unchanged: the break stands and the level stays broken.
 4. Absent-slot encoding (no active level on a side): distance saturates at
    the 20 cap (the design's declared side-absence representation), the two
    bars-since style fields (``age_bars``, ``bars_since_touch``) carry the 999
@@ -93,7 +100,7 @@ from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
 
 
 LEVEL_REGISTRY_FEATURE_VERSION = (
-    "level_registry_v1_20260811_phase_a_pivot_cluster_round_number"
+    "level_registry_v1_20260813_polarity_flip_second_slot_member_pivot_count"
 )
 
 # ---------------------------------------------------------------------------
@@ -183,13 +190,30 @@ LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY = "level_registry_tol_quantile_q"
 
 # ---------------------------------------------------------------------------
 # Declared output contracts (exact names + order; stage 2 consumes these).
-# M5/513 lane: design doc §1.2 (V30 2026-08-13: 25 = 16 slots + 7 events +
-# 2 round; the pre-V30 block was 22 = 14 slots + 6 events + 2 round).
+# M5/513 lane: design doc §1.2 (V30 package 8A 2026-08-13: 29 = 20 slots +
+# 7 events + 2 round; V30 package 6 was 25 = 16 + 7 + 2 and the pre-V30 block
+# was 22 = 14 + 6 + 2).  The tuple below is the owner; these figures are a
+# dated cross-check, never the contract.
 # Per-TF lane: design doc §1.3 (11 per TF; unchanged by V30).
 # ---------------------------------------------------------------------------
+# V30 package 8A (2026-08-13) appends four EMISSION-ONLY fields per the
+# fidelity audit §5 (state that exists in memory and is never emitted):
+#   level_above/below_member_pivot_count — the founding+merged pivot
+#     population of the nearest level, already carried as
+#     ``member_pivot_count`` and already used to derive ``*_test_count``.  It
+#     is the density signal: MEASURED on the sealed V29J TRAIN rows
+#     (n=369,303, 2026-08-13), member==1 on 98.03%/98.32% of present rows and
+#     ==2 on ~2% — a real, if sparse, distinction that no emitted field
+#     currently carries on its own.
+#   level_above2/below2_dist_atr — the SECOND-nearest ACTIVE level on that
+#     side.  Today a four-level shelf and an isolated level emit identical
+#     rows.  Same absent-slot convention as the nearest slot (the distance
+#     saturation cap), same side rule, same level_id tie-break.
 LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_dist_atr",
+    "level_above2_dist_atr",
     "level_above_touch_count",
+    "level_above_member_pivot_count",
     # V30 (2026-08-13) split touch semantics: post-birth zone-entry TESTS
     # only = touch_count - member_pivot_count (both already in state; every
     # touch_count increment is either a founding/merged member pivot or a
@@ -201,7 +225,9 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_max_reaction_atr",
     "level_above_last_reaction_atr",
     "level_below_dist_atr",
+    "level_below2_dist_atr",
     "level_below_touch_count",
+    "level_below_member_pivot_count",
     "level_below_test_count",
     "level_below_age_bars",
     "level_below_bars_since_touch",
@@ -263,7 +289,13 @@ _LEVEL_REGISTRY_MTF_SOURCE_MAP = {
 # ---------------------------------------------------------------------------
 # V30 (2026-08-13): state schema 2 adds ``last_break_side`` (the break-side
 # memory of the most recent break bar) for the signed bars-since-break field.
-LEVEL_REGISTRY_STATE_VERSION = "level_registry_v1_state_2"
+# V30 package 8A (2026-08-13): schema 3 — the top-level key set is unchanged,
+# but two per-level semantics moved, so carried schema-2 state is no longer
+# interchangeable and must be rejected rather than silently reinterpreted:
+# (a) ``side_of_origin`` is now lifecycle state, not a birth constant (a held
+# retest flips it and returns the level to ACTIVE), and (b) each open reaction
+# window carries a fifth element, the side frozen at its own t0.
+LEVEL_REGISTRY_STATE_VERSION = "level_registry_v1_state_3"
 LEVEL_REGISTRY_STATE_KEYS = (
     "state_version",
     "tf",
@@ -431,7 +463,7 @@ def _validate_registry_state(
         for window in lv["open_reactions"]:
             if (
                 not isinstance(window, list)
-                or len(window) != 4
+                or len(window) != 5
                 or not isinstance(window[0], int)
                 or not isinstance(window[1], float)
                 or not math.isfinite(window[1])
@@ -439,6 +471,7 @@ def _validate_registry_state(
                 or not isinstance(window[2], float)
                 or not math.isfinite(window[2])
                 or not (window[3] is None or (isinstance(window[3], float) and math.isfinite(window[3])))
+                or window[4] not in _SIDES
             ):
                 raise RuntimeError("[LEVEL_REGISTRY_STATE_INVALID] level reaction window")
     return out
@@ -758,17 +791,41 @@ def _new_level(
         "break_side": 0,
         "retest_state": "none",
         "prev_bar_in_zone": False,
-        "open_reactions": [[birth_bar, atr_now, price, None]],
+        # Reaction window = [t0, atr0, center0, extreme, side_at_t0].  V30
+        # package 8A froze the side alongside atr0/center0: the polarity flip
+        # can now change a level's side WHILE a window is open, and the
+        # measurement must stay "against the level as tested" (rule 2g).
+        "open_reactions": [[birth_bar, atr_now, price, None, side]],
     }
 
 
-def _slot_fields(level: dict[str, Any] | None, dist: float, t: int) -> tuple[float, ...]:
+def _slot_fields(
+    level: dict[str, Any] | None,
+    dist: float,
+    t: int,
+    *,
+    dist2: float,
+) -> tuple[float, ...]:
+    """Return one side's slot block in declared order.
+
+    ``dist2`` is the distance to the SECOND-nearest ACTIVE level on the same
+    side (V30 package 8A).  It carries the same absent-slot encoding as the
+    nearest slot — the saturation cap — so "one lonely level" and "a shelf of
+    four" stop emitting identical rows.  It is a distance only: the second
+    level's attributes are deliberately NOT emitted (rule 22 — the density
+    question is answered by the distance, and eight more columns per side
+    would be mechanism without a removed failure mode).
+    """
+
+    dist2_value = min(dist2, LEVEL_REGISTRY_DIST_SATURATION_ATR)
     if level is None:
         # Absent-side encoding: distance saturates at the cap (the design's
         # declared side-absence representation); bars-since fields carry the
         # 999 "no event yet" sentinel; counts/reaction stats are event-gated 0.
         return (
             LEVEL_REGISTRY_DIST_SATURATION_ATR,
+            dist2_value,
+            0.0,
             0.0,
             0.0,
             LEVEL_REGISTRY_COUNT_AGE_CAP,
@@ -781,7 +838,11 @@ def _slot_fields(level: dict[str, Any] | None, dist: float, t: int) -> tuple[flo
     mean_reaction = level["reaction_sum_atr"] / count if count > 0 else 0.0
     return (
         min(dist, LEVEL_REGISTRY_DIST_SATURATION_ATR),
+        dist2_value,
         _cap999(float(level["touch_count"])),
+        # V30 package 8A: the founding+merged pivot population already carried
+        # in state and already used as the subtrahend of the test count.
+        _cap999(float(level["member_pivot_count"])),
         # V30 split touch semantics: post-birth zone-entry TESTS only.  Every
         # touch_count increment is either a member pivot (creation/merge:
         # both counters increment together) or a zone-entry touch (touch only),
@@ -923,7 +984,9 @@ def _run_level_registry(
                     best["member_pivot_bars"].append(j)
                     best["member_pivot_prices"].append(price)
                     best["last_touch_bar"] = j
-                    best["open_reactions"].append([t, a, best["center_price"], None])
+                    best["open_reactions"].append(
+                        [t, a, best["center_price"], None, best["side_of_origin"]]
+                    )
                     admitted_ids.add(best["level_id"])
                 else:
                     lv = _new_level(next_level_id, side, price, t, j, a)
@@ -980,6 +1043,40 @@ def _run_level_registry(
                 if (c - lv["center_price"]) * lv["break_side"] > 0:
                     lv["retest_state"] = "held"
                     hold_sign_sum += lv["break_side"]
+                    # V30 package 8A — POLARITY FLIP ("old support is new
+                    # resistance", fidelity audit §5).  A held retest is the
+                    # proof that the level still governs price from the OTHER
+                    # side: the level was broken up and price came back to it
+                    # and closed above, or vice versa.  Before this repair the
+                    # level stayed status="broken" forever and was excluded
+                    # from the nearest-ACTIVE scan, so the construct existed
+                    # only as a 1-bar impulse and never as an object.  It now
+                    # returns to ACTIVE with its identity, anchors, member
+                    # pivots, touch history and reaction memory intact and its
+                    # side_of_origin flipped, so its future break check, merge
+                    # eligibility and slot participation all run on the new
+                    # role.  No new constant: the retest window and band are
+                    # the existing ones, and the flip is a re-labelling of
+                    # state that already exists.  The break check for THIS bar
+                    # has already run (step 2 precedes step 3), so a flipped
+                    # level cannot re-break on its own flip bar.
+                    #
+                    # The retest bar is a genuine zone entry, so it must count
+                    # as a touch — but through the EXISTING step-4 owner, not
+                    # a second touch path here.  ``prev_bar_in_zone`` is stale
+                    # while a level is broken (step 6 skips broken levels), so
+                    # it is cleared: step 4, which runs immediately after this
+                    # step on the same bar, then sees the normal
+                    # first-entry-per-excursion condition, increments
+                    # touch_count, refreshes last_touch_bar (the expiry clock)
+                    # and opens a reaction window measured against the level's
+                    # NEW side.  A level that also merged a pivot on this bar
+                    # is in ``admitted_ids`` and is correctly not counted twice.
+                    lv["side_of_origin"] = (
+                        _SIDE_LOW if lv["side_of_origin"] == _SIDE_HIGH else _SIDE_HIGH
+                    )
+                    lv["status"] = "active"
+                    lv["prev_bar_in_zone"] = False
                 else:
                     # Includes the exact tie close == center (fail-closed).
                     lv["retest_state"] = "failed"
@@ -994,7 +1091,9 @@ def _run_level_registry(
             if in_zone and not lv["prev_bar_in_zone"]:
                 lv["touch_count"] += 1
                 lv["last_touch_bar"] = t
-                lv["open_reactions"].append([t, a, lv["center_price"], None])
+                lv["open_reactions"].append(
+                    [t, a, lv["center_price"], None, lv["side_of_origin"]]
+                )
 
         # (5) reaction-window updates and completions (confirmation-lagged at
         # t0 + W; windows survive breaks — a touch that never lifts off scores
@@ -1002,10 +1101,13 @@ def _run_level_registry(
         for lv in levels:
             if not lv["open_reactions"]:
                 continue
-            is_low_side = lv["side_of_origin"] == _SIDE_LOW
             keep: list[list[Any]] = []
             for window in lv["open_reactions"]:
-                t0, atr0, center0, extreme = window
+                # The side is the one FROZEN at t0, not the level's current
+                # side: a polarity flip inside an open window must not rewrite
+                # the direction the window was measuring (rule 2g).
+                t0, atr0, center0, extreme, side0 = window
+                is_low_side = side0 == _SIDE_LOW
                 if t > t0:
                     if is_low_side:
                         extreme = h if extreme is None else max(extreme, h)
@@ -1044,6 +1146,10 @@ def _run_level_registry(
         above: dict[str, Any] | None = None
         below: dict[str, Any] | None = None
         above_dist = below_dist = math.inf
+        # V30 package 8A: the runner-up distance per side, tracked in the same
+        # single pass with the same side rule and the same (distance,
+        # level_id) ordering as the nearest slot.
+        above_dist2 = below_dist2 = math.inf
         for lv in levels:
             if lv["status"] != "active":
                 continue
@@ -1051,31 +1157,41 @@ def _run_level_registry(
             if delta > 0.0:
                 d = delta / a
                 if d < above_dist or (d == above_dist and above is not None and lv["level_id"] < above["level_id"]):
+                    above_dist2 = above_dist
                     above = lv
                     above_dist = d
+                elif d < above_dist2:
+                    above_dist2 = d
             else:
                 d = -delta / a
                 if d < below_dist or (d == below_dist and below is not None and lv["level_id"] < below["level_id"]):
+                    below_dist2 = below_dist
                     below = lv
                     below_dist = d
-        above_vals = _slot_fields(above, above_dist, t)
-        below_vals = _slot_fields(below, below_dist, t)
+                elif d < below_dist2:
+                    below_dist2 = d
+        above_vals = _slot_fields(above, above_dist, t, dist2=above_dist2)
+        below_vals = _slot_fields(below, below_dist, t, dist2=below_dist2)
         record["level_above_dist_atr"].append(above_vals[0])
-        record["level_above_touch_count"].append(above_vals[1])
-        record["level_above_test_count"].append(above_vals[2])
-        record["level_above_age_bars"].append(above_vals[3])
-        record["level_above_bars_since_touch"].append(above_vals[4])
-        record["level_above_mean_reaction_atr"].append(above_vals[5])
-        record["level_above_max_reaction_atr"].append(above_vals[6])
-        record["level_above_last_reaction_atr"].append(above_vals[7])
+        record["level_above2_dist_atr"].append(above_vals[1])
+        record["level_above_touch_count"].append(above_vals[2])
+        record["level_above_member_pivot_count"].append(above_vals[3])
+        record["level_above_test_count"].append(above_vals[4])
+        record["level_above_age_bars"].append(above_vals[5])
+        record["level_above_bars_since_touch"].append(above_vals[6])
+        record["level_above_mean_reaction_atr"].append(above_vals[7])
+        record["level_above_max_reaction_atr"].append(above_vals[8])
+        record["level_above_last_reaction_atr"].append(above_vals[9])
         record["level_below_dist_atr"].append(below_vals[0])
-        record["level_below_touch_count"].append(below_vals[1])
-        record["level_below_test_count"].append(below_vals[2])
-        record["level_below_age_bars"].append(below_vals[3])
-        record["level_below_bars_since_touch"].append(below_vals[4])
-        record["level_below_mean_reaction_atr"].append(below_vals[5])
-        record["level_below_max_reaction_atr"].append(below_vals[6])
-        record["level_below_last_reaction_atr"].append(below_vals[7])
+        record["level_below2_dist_atr"].append(below_vals[1])
+        record["level_below_touch_count"].append(below_vals[2])
+        record["level_below_member_pivot_count"].append(below_vals[3])
+        record["level_below_test_count"].append(below_vals[4])
+        record["level_below_age_bars"].append(below_vals[5])
+        record["level_below_bars_since_touch"].append(below_vals[6])
+        record["level_below_mean_reaction_atr"].append(below_vals[7])
+        record["level_below_max_reaction_atr"].append(below_vals[8])
+        record["level_below_last_reaction_atr"].append(below_vals[9])
         record["level_break_up_event"].append(1.0 if break_up_fired else 0.0)
         record["level_break_down_event"].append(1.0 if break_down_fired else 0.0)
         record["level_broken_touch_count"].append(
@@ -1166,7 +1282,7 @@ def compute_level_registry_m5_block_v1(
     tuple[np.ndarray, list[str]]
     | tuple[np.ndarray, list[str], dict[str, Any]]
 ):
-    """M5/513 lane: the 25-field ``level_`` block (design doc §1.2 + V30).
+    """M5/513 lane: the declared ``level_`` block (design doc §1.2 + V30).
 
     Runs on the entry M5 clock (tf is bound to ``"m5"``; the expiry cap is the
     M5 liquidity-zone lookback).  ``tol_level_atr`` is the TRAIN-fitted frozen

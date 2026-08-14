@@ -25,9 +25,9 @@ immutable OANDA XAU_USD M1 + M5
   source must match those market values exactly from common-history start
   through TRAIN end. M1 and M5 consumers bind that same NPZ; fitting a second
   rank state or fitting from the downstream model source is forbidden.
-- Both native surfaces use the same ordered 591 signal fields (34 base + 424
+- Both native surfaces use the same ordered 538 signal fields (34 base + 371
   mandatory causal + 133 TRAIN-ranked over 16 mandatory families; the counts
-  derive from the owner tuples), 158 continuous context fields and 5
+  derive from the owner tuples), 164 continuous context fields and 5
   categorical fields. Entry reads 96 M5 bars; Exit reads 480 M1 bars, capped
   at 512 path states, plus the frozen Entry representation.
 - Entry model inputs may come only from the exact hash-bound native M5 feature
@@ -107,7 +107,11 @@ git status --short --untracked-files=all
 
 Then read `AGENTS.md`, `SYSTEM_MAP.md`,
 `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md` and the relevant code contracts.
-Every artifact built on the retired 513 surface (including the GREEN V28
-baseline dataset) is invalid as substrate for new training; V28 remains the
-frozen comparison baseline only. The V29 rebuild is required; no recipe or
-model is currently admitted.
+Every artifact built on the retired 513 and 592 surfaces is invalid as
+substrate for new training. The GREEN V28 (513) and sealed V29J (592) datasets
+were retired on 2026-08-14 through the retention owner: no model, bundle,
+calibration event or metric was ever derived from either, and the "frozen
+comparison baseline" role they were given could never be executed, because
+producing that arm requires training on a forbidden surface. The evaluation
+reference is the coin-flip null (-13.16 bps TRAIN / -18.58 bps VAL), not a
+dataset. The V30 rebuild is required; no recipe or model is currently admitted.

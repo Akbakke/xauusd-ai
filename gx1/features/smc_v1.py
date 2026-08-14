@@ -21,6 +21,13 @@ Lookahead safety: a swing pivot at bar j is only considered "confirmed" once
 j + SWING_LOOKBACK bars have elapsed. So features at bar i only use swings
 confirmed up to bar (i - SWING_LOOKBACK), no future leakage.
 
+2026-08-13 (V30 package 8A): the M5 owner gained six OPTIONAL owner-parity
+emissions behind ``include_v30_additions`` (``SMC_V30_ADDITION_NAMES_V1``) and
+the MTF owner gained three mandatory ones (signed BOS displacement and the two
+de-duplicated sweep events).  Both are emission-only: every value is a quantity
+the owner already computed and discarded, or the sided/de-duplicated form its
+sibling already emitted.  No accepted field changed.
+
 2026-08-09 backport: four defects in this M5 owner were repaired from the
 mechanisms already proven in :func:`compute_smc_mtf_primitives_v1` below —
 CHOCH now compares the last observed non-zero structure sign instead of
@@ -101,12 +108,30 @@ def compute_smc_features(
     close_col: str = "close",
     atr_col: str = "atr",
     swing_lookback: int = SWING_LOOKBACK,
+    include_v30_additions: bool = False,
 ) -> pd.DataFrame:
-    """Compute SMC features. Returns DataFrame with 9 new columns indexed same as input.
+    """Compute SMC features. Returns the 9 ``SMC_FEATURE_NAMES`` columns.
 
     Required columns on df: high, low, close and atr. All are exact observed or
     causally computed inputs; no ATR sentinel is permitted.
+
+    ``include_v30_additions`` appends ``SMC_V30_ADDITION_NAMES_V1`` — the six
+    2026-08-13 owner-parity emissions (see that tuple's comment). Default False
+    == the accepted canonical surface, byte-identical; the flag is a call-site
+    CONTRACT switch (the ``swing_structure_v1.include_v29_additions``
+    precedent), never an environment gate. No call site flips it yet: the
+    canonical M5 frame is bound to per-artifact column-count contracts
+    (``audit_seq513_source_cascade_v1``, ``materialize_cv3_modelrange_v1``)
+    and a raw canonical column has no route into the model surface anyway —
+    ``materialize_entry_model_native_train_feature_ranker_v1._candidate_universe``
+    scans only specialist-layer owners, and
+    ``build_entry_v10_ctx_training_dataset_v3._build_inline_seq_structure_extension``
+    exposes only the frozen base block plus specialist-layer outputs. The three
+    quantities themselves DO reach the model today on every timeframe through
+    :func:`compute_smc_mtf_primitives_v1`, which carries their per-TF siblings.
     """
+    if not isinstance(include_v30_additions, bool):
+        raise RuntimeError("[SMC_V30_ADDITION_FLAG_INVALID]")
     nb = len(df)
     if nb == 0:
         raise RuntimeError("[SMC_SOURCE_EMPTY] cannot produce SMC features from zero rows")
@@ -188,6 +213,34 @@ def compute_smc_features(
     bos_up = (cond_up & ~prev_cond_up).astype(np.float32)
     bos_down = (cond_down & ~prev_cond_down).astype(np.float32)
 
+    # 3b. BOS displacement — V30 package 8A (2026-08-13), EMISSION ONLY.
+    # Signed (close - broken level)/atr AT the firing bar, 0 off-event: the
+    # flag-disambiguated-zero convention the sibling break-displacement
+    # geometry already uses in compute_smc_mtf_primitives_v1 below
+    # ((close - last_high)/atr, (last_low - close)/atr), reused rather than
+    # re-derived. The sign is not a second direction rule: a BOS up closes
+    # ABOVE its level (positive) and a BOS down BELOW its level (negative) by
+    # construction of cond_up/cond_down. When both fire on one bar (possible
+    # when the armed low level sits above the armed high level) the more
+    # recently CONFIRMED level is carried, tie to the high side — the exact
+    # documented rule swing_structure_v1's G1 displacement already uses.
+    # The tie-break is taken on the EVENTS, not on the raw conditions: a bar
+    # where the up-event fires while the down CONDITION merely persists is a
+    # one-sided event and must not be routed to the low level (which would
+    # leave a firing flag with a 0 displacement).
+    fired_up = bos_up > 0.0
+    fired_down = bos_down > 0.0
+    fire_high = fired_up & (~fired_down | (last_sh >= last_sl))
+    fire_low = fired_down & ~fire_high
+    bos_displacement_atr = np.zeros(nb, dtype=np.float64)
+    bos_displacement_atr[fire_high] = (
+        close[fire_high] - last_sh_price[fire_high]
+    ) / atr[fire_high]
+    bos_displacement_atr[fire_low] = (
+        close[fire_low] - last_sl_price[fire_low]
+    ) / atr[fire_low]
+    bos_displacement_atr = bos_displacement_atr.astype(np.float32)
+
     # 4. CHOCH — structure flip.  A high and a low pivot normally confirm on
     # different bars, so every up↔down transition passes through a mixed
     # state (1/2/4); comparing only adjacent rows therefore made CHOCH
@@ -212,6 +265,15 @@ def compute_smc_features(
     sweep_up = np.zeros(nb, dtype=np.float32)
     sweep_down = np.zeros(nb, dtype=np.float32)
     sweep_size_atr = np.zeros(nb, dtype=np.float32)
+    # V30 package 8A (2026-08-13), EMISSION ONLY: the two SIDED depths the
+    # combined field already computes and then collapses with max().  A bar
+    # that sweeps BOTH sides emits one magnitude today and drops which side it
+    # belongs to; the MTF sibling below has emitted the sided pair since its
+    # first version (mtf_smc_sweep_up_depth_atr / _down_depth_atr) — this is
+    # the same construction, not a new one.  ``smc_sweep_size_atr`` itself is
+    # untouched and stays byte-identical (build on, never remove).
+    sweep_up_depth_atr = np.zeros(nb, dtype=np.float32)
+    sweep_down_depth_atr = np.zeros(nb, dtype=np.float32)
     last_sweep_at = -1
     bars_since_sweep = np.full(nb, 999, dtype=np.float32)
     for i in range(nb):
@@ -222,12 +284,14 @@ def compute_smc_features(
             if high[i] > sh_price and close[i] <= sh_price:
                 sweep_up[i] = 1.0
                 sweep_size_atr[i] = float((high[i] - sh_price) / a)
+                sweep_up_depth_atr[i] = float((high[i] - sh_price) / a)
                 any_sweep = True
         if has_sl[i]:
             sl_price = last_sl_price[i]
             if low[i] < sl_price and close[i] >= sl_price:
                 sweep_down[i] = 1.0
                 sd = float((sl_price - low[i]) / a)
+                sweep_down_depth_atr[i] = sd
                 if sd > sweep_size_atr[i]:
                     sweep_size_atr[i] = sd
                 any_sweep = True
@@ -235,6 +299,25 @@ def compute_smc_features(
             last_sweep_at = i
         bars_since_sweep[i] = float(i - last_sweep_at) if last_sweep_at >= 0 else 999.0
     bars_since_sweep = np.clip(bars_since_sweep, 0, 999).astype(np.float32)
+
+    # 5b. Sweep EVENT de-duplication — V30 package 8A, EMISSION ONLY.  The
+    # flags above are per-bar CONDITIONS: the same unchanged swing level poked
+    # on five consecutive bars raises the flag five times and resets
+    # bars_since_sweep each time, exactly the defect BOS was repaired for on
+    # 2026-08-09.  The repair idiom is reused verbatim from the BOS block
+    # above (`cond & ~prev_cond` with the first bar guarded against np.roll's
+    # wrap), and — like BOS — it fires only on the first bar of a run, so a
+    # level that CHANGES while the condition stays true does not refire.  The
+    # de-duplicated events are emitted as NEW fields; the repeating flags stay
+    # untouched so no existing consumer changes silently.
+    cond_sweep_up = sweep_up > 0.0
+    cond_sweep_down = sweep_down > 0.0
+    prev_cond_sweep_up = np.roll(cond_sweep_up, 1)
+    prev_cond_sweep_down = np.roll(cond_sweep_down, 1)
+    prev_cond_sweep_up[0] = False
+    prev_cond_sweep_down[0] = False
+    sweep_up_event = (cond_sweep_up & ~prev_cond_sweep_up).astype(np.float32)
+    sweep_down_event = (cond_sweep_down & ~prev_cond_sweep_down).astype(np.float32)
 
     # 6. Premium/discount score — close position inside the causal 4-pivot
     # envelope (backported 2026-08-09 from compute_smc_mtf_primitives_v1:
@@ -271,6 +354,29 @@ def compute_smc_features(
         "smc_bars_since_sweep": bars_since_sweep,
         "smc_premium_discount": pd_score,
     }
+    if include_v30_additions:
+        # ONE age convention: log1p(min(age, 500))/log1p(500), the
+        # trend_age_bars_norm convention owned by htf_features._event_age_norm
+        # (imported, never re-derived — rule 13).  The import is function-local
+        # because htf_features imports this module at module scope
+        # (SMC_MTF_FEATURE_NAMES_V1); a module-level import would be circular.
+        # The 999 "no sweep yet" sentinel maps to the cap, i.e. 1.0 = maximally
+        # stale, which is exactly what it means.  The raw field is untouched.
+        from gx1.features.htf_features import _event_age_norm
+
+        out_cols["smc_bos_displacement_atr"] = bos_displacement_atr
+        out_cols["smc_sweep_up_depth_atr"] = sweep_up_depth_atr
+        out_cols["smc_sweep_down_depth_atr"] = sweep_down_depth_atr
+        out_cols["smc_sweep_up_event"] = sweep_up_event
+        out_cols["smc_sweep_down_event"] = sweep_down_event
+        out_cols["smc_bars_since_sweep_norm"] = _event_age_norm(
+            bars_since_sweep.astype(np.float64)
+        ).astype(np.float32)
+    expected_columns = tuple(SMC_FEATURE_NAMES) + (
+        SMC_V30_ADDITION_NAMES_V1 if include_v30_additions else ()
+    )
+    if tuple(out_cols) != expected_columns:
+        raise RuntimeError("[SMC_OUTPUT_ORDER_INVALID]")
     out = pd.DataFrame(out_cols, index=df.index)
     return out
 
@@ -286,6 +392,32 @@ SMC_FEATURE_NAMES = [
     "smc_bars_since_sweep",
     "smc_premium_discount",
 ]
+# V30 package 8A (2026-08-13) — owner-parity emissions for the M5 SMC block,
+# declared SEPARATELY from SMC_FEATURE_NAMES because that 9-name list is the
+# accepted canonical-M5 column contract and several artifact column-count
+# audits are bound to it.  Each name is a quantity this owner already computes
+# and discards, or the sided/de-duplicated form its own MTF sibling already
+# emits (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §4b: "a fix landed in one
+# owner and not its sibling"):
+#   smc_bos_displacement_atr   signed (close - broken level)/atr at the firing
+#                              bar, 0 off-event (flag-disambiguated zero)
+#   smc_sweep_up/down_depth_atr  the sided depths behind the max()-collapsed
+#                              smc_sweep_size_atr
+#   smc_sweep_up/down_event    the BOS-style de-duplicated first-bar events
+#   smc_bars_since_sweep_norm  the one age convention applied to the raw 999
+#                              sentinel count
+SMC_V30_ADDITION_NAMES_V1 = (
+    "smc_bos_displacement_atr",
+    "smc_sweep_up_depth_atr",
+    "smc_sweep_down_depth_atr",
+    "smc_sweep_up_event",
+    "smc_sweep_down_event",
+    "smc_bars_since_sweep_norm",
+)
+if set(SMC_V30_ADDITION_NAMES_V1) & set(SMC_FEATURE_NAMES) or len(
+    set(SMC_V30_ADDITION_NAMES_V1)
+) != len(SMC_V30_ADDITION_NAMES_V1):
+    raise RuntimeError("[SMC_V30_ADDITION_NAMES_INVALID]")
 # Exact fixed-width primitives for the multi-resolution Entry surface.  Unlike
 # the historical M5 contract above, this contract is independent of ambient
 # environment flags and never emits numeric unknown/sentinel values.  Rows are
@@ -304,6 +436,21 @@ SMC_MTF_FEATURE_NAMES_V1 = (
     "mtf_smc_sweep_down_depth_atr",
     "mtf_smc_premium_discount",
     "mtf_smc_range_width_atr",
+    # V30 package 8A (2026-08-13), EMISSION ONLY — appended so the pre-existing
+    # per-TF column order is byte-stable ahead of them:
+    #   mtf_smc_bos_displacement_atr  signed (close - broken level)/atr at the
+    #     BOS bar, 0 off-event.  Same construction as the
+    #     mtf_geometry_*_break_displacement_atr siblings below, event-gated;
+    #     the BOS flags already tell 0-the-value from 0-the-non-event.
+    #   mtf_smc_sweep_up/down_event  the sweep flags above are per-bar
+    #     CONDITIONS, so one unchanged level poked on five consecutive bars
+    #     emits five sweeps.  These are the de-duplicated first-bar events,
+    #     the exact `cond & ~prev_cond` idiom BOS already uses in this file.
+    #     The repeating flags stay untouched (rule 25b sweeps the defect class
+    #     across the sibling owner without changing an accepted field).
+    "mtf_smc_bos_displacement_atr",
+    "mtf_smc_sweep_up_event",
+    "mtf_smc_sweep_down_event",
 )
 
 SMC_MTF_GEOMETRY_FEATURE_NAMES_V1 = (
@@ -489,10 +636,33 @@ def compute_smc_mtf_primitives_v1(
             choch_down[row] = 1.0
         prior_nonzero_sign = current_sign
 
+    # V30 package 8A: signed BOS displacement at the firing bar.  Both sides
+    # can fire on one bar (the causal envelope allows last_low > last_high);
+    # the more recently CONFIRMED level is carried, tie to the high side — the
+    # documented rule swing_structure_v1's G1 displacement already uses.
+    use_high_level = (bos_up > 0.0) & (
+        (bos_down <= 0.0) | (last_high_idx >= last_low_idx)
+    )
+    use_low_level = (bos_down > 0.0) & ~use_high_level
+    bos_displacement = np.zeros(n_rows, dtype=np.float64)
+    np.divide(close - last_high, atr, out=bos_displacement, where=use_high_level)
+    np.divide(close - last_low, atr, out=bos_displacement, where=use_low_level)
+
     sweep_up = (high > last_high) & (close <= last_high)
     sweep_down = (low < last_low) & (close >= last_low)
     sweep_up_depth = np.where(sweep_up, (high - last_high) / atr, 0.0)
     sweep_down_depth = np.where(sweep_down, (last_low - low) / atr, 0.0)
+    # V30 package 8A: de-duplicated first-bar sweep events (the BOS
+    # `cond & ~prev_cond` idiom).  Gated by `available` on both bars so an
+    # unavailable warmup predecessor cannot manufacture a rising edge.
+    sweep_up_cond = sweep_up & available
+    sweep_down_cond = sweep_down & available
+    prev_sweep_up_cond = np.roll(sweep_up_cond, 1)
+    prev_sweep_down_cond = np.roll(sweep_down_cond, 1)
+    prev_sweep_up_cond[0] = False
+    prev_sweep_down_cond[0] = False
+    sweep_up_event = sweep_up_cond & ~prev_sweep_up_cond
+    sweep_down_event = sweep_down_cond & ~prev_sweep_down_cond
     premium_discount = np.zeros(n_rows, dtype=np.float64)
     np.divide(
         close - range_low,
@@ -540,6 +710,9 @@ def compute_smc_mtf_primitives_v1(
         "mtf_smc_sweep_down_depth_atr": sweep_down_depth,
         "mtf_smc_premium_discount": premium_discount,
         "mtf_smc_range_width_atr": channel_width / atr,
+        "mtf_smc_bos_displacement_atr": bos_displacement,
+        "mtf_smc_sweep_up_event": sweep_up_event.astype(np.float64),
+        "mtf_smc_sweep_down_event": sweep_down_event.astype(np.float64),
         "mtf_geometry_support_dist_atr": support_dist,
         "mtf_geometry_resistance_dist_atr": resistance_dist,
         "mtf_geometry_support_age_bars": support_age,

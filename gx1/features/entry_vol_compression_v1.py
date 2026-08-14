@@ -12,11 +12,14 @@ import numpy as np
 from gx1.features.entry_volatility_semantics_v1 import (
     atr_ratio_compression_pressure,
     bollinger_squeeze_pressure,
-    center_atr_ratio,
+    center_cross_tf_atr_ratio,
+    pk_sigma20_per_bar_bps,
+    rvol_20_per_bar_bps,
+    vol_per_bar_bps_pressure,
 )
 
 
-VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v3_20260809_owner_ratio_center_signed_confidence_derived_bounds"
+VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v4_20260813_cross_tf_scaling_law_center_and_volatility_unit_repair"
 VOL_COMPRESSION_FEATURE_PREFIX = "vol_compression."
 
 VOL_COMPRESSION_SOURCE_FIELDS = (
@@ -234,7 +237,17 @@ def build_entry_vol_compression_layer(
 
     atr_unit = _unit_from_z(c("snap.atr_z"), scale=2.5)
     range_unit = _unit_from_z(c("snap._v1_range_z"), scale=2.5)
-    rvol_unit = _unit_from_z(c("snap.rvol_20"), scale=2.5)
+    # ``rvol_20`` is NOT a z-score: it is a LEVEL in bps*sqrt(20) (TRAIN p50
+    # 18.44).  Feeding it to the z-score scale 2.5 made
+    # ``tanh(rvol_20 / 2.5)`` exactly 1.0 on 29.90% of the 369,303 TRAIN rows
+    # and >= 0.999999 on 51.51%, i.e. this term was a constant over half the
+    # population, while ``_v1_pk_sigma20`` -- the SAME physical quantity as a
+    # dimensionless fraction -- went through the SAME 2.5 and stayed pinned at
+    # ~1.6e-4, a measured 45,004x magnitude mismatch inside the single 7-term
+    # ``high_vol_tail_risk`` sum below.  Both legs are now put on ONE declared
+    # unit (per-bar bps) by the semantics owner and share ONE TRAIN-fitted p90
+    # scale.  See entry_volatility_semantics_v1 for the population and log.
+    rvol_unit = vol_per_bar_bps_pressure(rvol_20_per_bar_bps(c("snap.rvol_20")))
     vol_z_unit = _unit_from_z(c("snap.vol_z_20"), scale=2.5)
     vol_pct_96 = _clip01(c("snap.vol_pct_96"))
     m5_vol_pct = _clip01(c("ctx_cont.vol_pct_m5_1yr"))
@@ -245,9 +258,34 @@ def build_entry_vol_compression_layer(
     # per field, verified contiguous zero-based in _ctx_cat_domain_max.
     atr_bucket = _clip01(c("ctx_cat.atr_bucket") / _ctx_cat_domain_max("atr_bucket"))
     vol_regime = _clip01(c("ctx_cat.vol_regime_id") / _ctx_cat_domain_max("vol_regime_id"))
-    m5_m15_ratio = _tanh(c("ctx_cont.atr_ratio_m5_m15") - 1.0, scale=1.0)
-    m15_d1_ratio = _tanh(c("ctx_cont.atr_ratio_m15_d1") - 1.0, scale=1.0)
-    h1_d1_ratio = _tanh(c("ctx_cont.atr_ratio_h1_d1") - 1.0, scale=1.0)
+    # CROSS-TF ATR ratios, centred by the ONE owner transform
+    # (entry_volatility_semantics_v1.center_cross_tf_atr_ratio) on each pair's
+    # own sqrt(bar-duration) scaling expectation, so 0 means "short-dated vol
+    # exactly at its scaling expectation" and the sign is the term-structure
+    # statement.  Two separate wrong centres were used here before (2026-08-13,
+    # V30 package 8B):
+    #   * ``_tanh(ratio - 1.0)`` (the three lines this block replaces) assumed
+    #     centre 1, so with measured TRAIN
+    #     means 0.5697/0.1064/0.2182 it returned -0.406/-0.891/-0.782 on almost
+    #     every row -- a sign that could never flip;
+    #   * ``center_atr_ratio`` (the SAME-TF transform) further down left
+    #     ``_pos(...)`` alive on 0 of 369,303 rows for (m15,d1) and (h1,d1),
+    #     0.007% for (m5,h4) and 1.205% for (m5,m15), which is the measured 75%
+    #     dead weight in ``higher_tf_vol_expansion_pressure``.
+    # One centred value per pair now serves both consumers; the duplicate
+    # transform is gone rather than re-weighted (no magnitude invented).
+    atr_ratio_m5_m15 = center_cross_tf_atr_ratio(
+        c("ctx_cont.atr_ratio_m5_m15"), short_timeframe="M5", long_timeframe="M15"
+    )
+    atr_ratio_m5_h4 = center_cross_tf_atr_ratio(
+        c("ctx_cont.atr_ratio_m5_h4"), short_timeframe="M5", long_timeframe="H4"
+    )
+    atr_ratio_m15_d1 = center_cross_tf_atr_ratio(
+        c("ctx_cont.atr_ratio_m15_d1"), short_timeframe="M15", long_timeframe="D1"
+    )
+    atr_ratio_h1_d1 = center_cross_tf_atr_ratio(
+        c("ctx_cont.atr_ratio_h1_d1"), short_timeframe="H1", long_timeframe="D1"
+    )
 
     atr_percentile = _clip01(
         0.20 * atr_unit
@@ -266,9 +304,9 @@ def build_entry_vol_compression_layer(
     high_atr_pressure = _clip01((atr_percentile - 0.5) * 2.0)
     atr_m5_h1_spread = _clip(
         0.55 * (m5_vol_pct - h1_vol_pct)
-        + 0.25 * m5_m15_ratio
-        - 0.10 * m15_d1_ratio
-        - 0.10 * h1_d1_ratio,
+        + 0.25 * atr_ratio_m5_m15
+        - 0.10 * atr_ratio_m15_d1
+        - 0.10 * atr_ratio_h1_d1,
         -1.0,
         1.0,
     )
@@ -309,13 +347,7 @@ def build_entry_vol_compression_layer(
     )
     compression_persistence = _clip01(compression_depth * (0.55 + 0.45 * _lag1(compression_depth)))
 
-    # One-truth owner transform (entry_volatility_semantics_v1.center_atr_ratio):
-    # fails closed on non-positive ratios instead of the retired local copy's
-    # silent 1e-4 floor, which read corrupt input as maximal compression.
-    atr_ratio_m5_m15 = center_atr_ratio(c("ctx_cont.atr_ratio_m5_m15"))
-    atr_ratio_m5_h4 = center_atr_ratio(c("ctx_cont.atr_ratio_m5_h4"))
-    atr_ratio_m15_d1 = center_atr_ratio(c("ctx_cont.atr_ratio_m15_d1"))
-    atr_ratio_h1_d1 = center_atr_ratio(c("ctx_cont.atr_ratio_h1_d1"))
+    # The four centred cross-TF ratios are computed once above.
     short_tf_expansion = _clip01(
         0.35 * _pos(atr_ratio_m5_m15)
         + 0.35 * _pos(atr_ratio_m5_h4)
@@ -453,7 +485,14 @@ def build_entry_vol_compression_layer(
     )
 
     kurt_pressure = _clip01(np.abs(_tanh(c("snap._v1_kurt_r"), scale=4.0)))
-    sigma_pressure = _clip01(np.abs(_tanh(c("snap._v1_pk_sigma20"), scale=2.5)))
+    # Same unit repair as ``rvol_unit``: the Parkinson sigma is a dimensionless
+    # fraction (TRAIN p50 4.097e-4), so the shared 2.5 scale pinned it at
+    # ~1.6e-4 -- five orders of magnitude below the ``rvol_unit`` term it is
+    # summed with.  ``np.abs`` is dropped because the owner fails closed on a
+    # negative volatility magnitude instead of silently folding it.
+    sigma_pressure = vol_per_bar_bps_pressure(
+        pk_sigma20_per_bar_bps(c("snap._v1_pk_sigma20"))
+    )
     high_vol_tail_risk = _clip01(
         0.26 * high_atr_pressure
         + 0.18 * range_unit

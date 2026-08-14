@@ -54,7 +54,15 @@ def _matrix(names: list[str], n: int = 7) -> np.ndarray:
         x[:, idx[name]] = np.asarray(values, dtype=np.float32)
 
     set_col("snap.atr_z", [-1.0, -1.4, -1.6, 1.1, 3.0, 1.3, -0.2])
-    set_col("snap.rvol_20", [-1.0, -1.3, -1.5, 1.6, 3.5, 1.8, 0.2])
+    # V30 package 8B (2026-08-13): ``rvol_20`` is std(pct_change)*1e4*sqrt(20),
+    # a non-negative LEVEL in bps*sqrt(20) -- NOT a z-score.  The old fixture
+    # values were z-score shaped (and negative), encoding the same
+    # misunderstanding the layer itself had; the layer now routes this field
+    # through the fail-closed per-bar-bps owner.  The values below keep the
+    # original low->high RANKING exactly and place it on the measured TRAIN
+    # quantile scale (V29J, 369,303 rows: p1 5.6 / p25 13.0 / p50 18.4 /
+    # p75 27.5 / p99 89.7).
+    set_col("snap.rvol_20", [13.0, 9.0, 7.0, 30.0, 60.0, 33.0, 19.0])
     set_col("snap._v1_range_z", [-0.8, -1.2, -1.5, 1.7, 3.3, 1.8, 0.4])
     set_col("snap._v1_bb_squeeze_20_2", [0.0, -0.7, -0.9, 0.5, 0.8, 0.5, -0.6])
     set_col("snap._v1_bb_bandwidth_delta_10", [0.0, -0.9, -1.0, 1.0, 1.3, 1.0, -0.6])
@@ -92,7 +100,13 @@ def _matrix(names: list[str], n: int = 7) -> np.ndarray:
     set_col("chart.foundation_compression_release_down", [0.0, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0])
     set_col("chart.foundation_impulse_direction", [0.0, 0.1, 0.2, 1.5, 0.0, -1.5, 0.0])
     set_col("snap._v1_kurt_r", [0.0, 0.1, 0.1, 1.0, 6.0, 1.0, 0.2])
-    set_col("snap._v1_pk_sigma20", [0.0, -0.5, -0.8, 1.0, 4.0, 1.0, 0.0])
+    # Same repair: the Parkinson sigma is a non-negative dimensionless fraction.
+    # Original ranking preserved, on the measured TRAIN quantile scale
+    # (p1 1.27e-4 / p25 2.91e-4 / p50 4.10e-4 / p75 6.16e-4 / p99 1.92e-3).
+    set_col(
+        "snap._v1_pk_sigma20",
+        [4.1e-4, 2.9e-4, 1.3e-4, 6.2e-4, 1.9e-3, 6.2e-4, 4.1e-4],
+    )
     return x
 
 
@@ -172,10 +186,15 @@ def test_vol_compression_layer_is_future_row_invariant_and_ignores_targets() -> 
             "ctx_cont.atr_ratio_m5_h4",
             "ctx_cont.atr_ratio_m15_d1",
             "ctx_cont.atr_ratio_h1_d1",
+            # V30 package 8B: same treatment for the two realized-volatility
+            # magnitudes, which are non-negative by construction and now go
+            # through the same fail-closed owner.
+            "snap.rvol_20",
+            "snap._v1_pk_sigma20",
         ):
-            # These ratio fields go through fail-closed owner transforms that
-            # reject non-positive values, so the blanket *-7+3 mutation above
-            # would abort the build.  Keep the strictly-positive domain while
+            # These fields go through fail-closed owner transforms that
+            # reject non-positive (resp. negative) values, so the blanket *-7+3
+            # mutation above would abort the build.  Keep the valid domain while
             # still changing every future row away from the baseline.
             col = source_idx[ratio_name]
             changed[:, col] = x[:, col]

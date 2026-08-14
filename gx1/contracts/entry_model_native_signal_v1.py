@@ -127,7 +127,7 @@ MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS = tuple(
     SPREAD_DYNAMICS_FEATURE_NAMES_V1
 )
 # V30 Phase-A completion (2026-08-13): the swing owner's own declaration is
-# performed here.  ``swing_structure_v1`` declared the nine V29 additions
+# performed here.  ``swing_structure_v1`` declared its V29/V30 additions
 # "DECLARED SEPARATELY from SWING_FEATURE_NAMES_V1: the accepted contracts bind
 # the 5-name V1 surface; the stage-2 V29 wiring adopts these names into the
 # ctx/111-surface contracts together with the V29 rebuild (rule 6: train==serve
@@ -341,9 +341,14 @@ MODEL_NATIVE_SEQ_LEN = 96
 # Phase-A completion: 9 swing V29 event fields adopted into
 # MODEL_NATIVE_CTX_CONT_SWING_FIELDS + 3 momentum-G3 raw-RSI canon scalars
 # (-> 155) + the V30 package-4 quote/spread-dynamics block
-# (MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS, 3 fields, 2026-08-13).  The
-# field lists above are the owner, this literal is the cross-check.
-MODEL_NATIVE_CTX_CONT_DIM = 158
+# (MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS, 3 fields, 2026-08-13).
+# 164 = 158 + the V30 package-8A emission-only swing additions (2026-08-13):
+# the two MISSING run counters, the two "last confirmed pivot not yet closed
+# through" intact flags and the two normalized siblings of the raw V1 swing
+# ages — all six inside MODEL_NATIVE_CTX_CONT_SWING_FIELDS, which reads
+# swing_structure_v1's own tuple.  The field lists above are the owner, this
+# literal is the cross-check.
+MODEL_NATIVE_CTX_CONT_DIM = 164
 MODEL_NATIVE_CTX_CAT_DIM = 5
 
 if len(MODEL_NATIVE_BASE_FIELDS) != MODEL_NATIVE_BASE_SIGNAL_DIM:
@@ -404,7 +409,7 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
 
     Dims derive from the declared field tuples (158 continuous / 5 categorical
     after the V30 wave: package 1 added ``H4_range_compression_ratio``,
-    package 2 adopted the nine swing V29 event fields plus the three
+    package 2 adopted the swing V29 event fields plus the three
     momentum-G3 raw-RSI canon scalars, and package 4 added the three
     quote/spread-dynamics fields).
     """

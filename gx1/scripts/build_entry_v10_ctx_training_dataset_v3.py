@@ -1253,7 +1253,7 @@ def _build_inline_seq_structure_extension(
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
         LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES,
-        MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
+        MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES,
         MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
         REGIME_FLIP_EVENT_LAYER_FEATURE_NAMES,
         SWING_EVENT_LAYER_FEATURE_NAMES,
@@ -1509,7 +1509,17 @@ def _build_inline_seq_structure_extension(
 
     next_support_memory_state: Dict[str, np.float32] = {}
     emit_applied = False
-    for label, feature_names in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES:
+    # Run/skip is decided on each layer's FULL emission, not on its mandatory
+    # subset (V30 package 8B, 2026-08-13).  Three families are produced in full
+    # and pinned only in part, and during a TRAIN-ranker pass the requested set
+    # contains ONLY candidates -- never a mandatory name.  Testing the mandatory
+    # tuple would therefore skip exactly the layers whose own rankable fields
+    # were requested, and the ranker would fail with
+    # FEATURE_RANKER_EXTENSION_MISSING_CANDIDATES.  The emitted registry is the
+    # one owner of "what does this layer produce";
+    # ``_append_generated_layer`` still admits only requested names, so a
+    # non-requested field is computed and dropped, never emitted.
+    for label, feature_names in MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES:
         if not any(
             name in requested_set and name not in set(all_names)
             for name in feature_names
@@ -3115,7 +3125,7 @@ def build_dataset_canonical(
         close,
         lookback=SWING_LOOKBACK_V1,
         atr_period=SWING_ATR_PERIOD_V1,
-        # V30 (2026-08-13): the nine V29 swing event fields are ctx contract
+        # V30 (2026-08-13): the V29/V30 swing event fields are ctx contract
         # fields from this rebuild boundary on (MODEL_NATIVE_CTX_CONT_SWING_FIELDS
         # is the 14-name surface); every ctx producer flips together (rule 6).
         include_v29_additions=True,

@@ -599,3 +599,313 @@ run. Whether removing pre-fused evidence improves abstention quality is `[U]`
 until the pre-registered evaluation ladder says otherwise. The MTF disk-cache
 manifests bound to the old `MULTI_TF_FEATURE_NAMES_SHA256_V4` are now
 unloadable by design, and every V29J-era artifact is bound to the 608 surface.
+
+---
+
+## 11. V30 PACKAGE 8B — the 75 hand-fused composites (2026-08-13)
+
+Operator decision: **nothing is amputated.** The SMC quality fields keep their
+concepts, the session products stay but stop being mandatory, and only what is
+provably nothing is removed. Recording what IS and is NOT verified (rule 25c).
+
+### 11.1 Measured-dead math, repaired
+
+**Cross-TF ATR centring** (`entry_volatility_semantics_v1`, new owner
+`center_cross_tf_atr_ratio` + `cross_tf_atr_ratio_scaling_expectation`).
+`center_atr_ratio = tanh(log2(r))` is correct only for a SAME-TF ratio
+(centred at 1). ATR scales as sqrt(bar duration), so a cross-TF ratio is
+centred at `sqrt(bars_short/bars_long)`. MEASURED on the complete declared
+TRAIN population (V29J, 369,303 rows — complete, so no sampling error):
+
+| pair | mean | p50 | `sqrt(bars_s/bars_l)` | old `_pos(...)` alive |
+|---|---|---|---|---|
+| m5/m15 | 0.5697 | 0.5471 | 0.5774 | 1.205% |
+| m5/h4 | 0.1435 | 0.1256 | 0.1443 | 0.007% |
+| m15/d1 | 0.1064 | 0.0936 | 0.1021 | **0 of 369,303** |
+| h1/d1 | 0.2182 | 0.2072 | 0.2041 | **0 of 369,303** |
+
+The observed centres ARE the scaling law. The bar counts come from the existing
+named per-TF constant `htf_features.MULTI_TF_BARS_IN_M5` (itself derived from
+`MULTI_TF_RESAMPLE_RULES`), so **no magnitude was introduced**. The original
+function's docstring is narrowed to same-TF ratios so the misuse cannot recur.
+Consumers updated: `entry_vol_compression_v1` (which also carried a SECOND
+wrong centre, `tanh(ratio - 1.0)`, pinned at -0.406/-0.891/-0.782 — the two
+duplicate transforms are collapsed into one centred value per pair) and, swept
+in the same wave per rule 25b, `entry_session_regime_interactions_v1`, whose
+`atr_ratio_pressure` used `tanh(ratio/2.0)` on raw cross-TF ratios and sat near
++0.148 on every row.
+
+**Volatility unit mismatch.** `rvol_20` is bps*sqrt(20) (TRAIN p50 18.4375);
+`_v1_pk_sigma20` is a dimensionless Parkinson sigma (TRAIN p50 4.0968e-4) — a
+measured **45,004x** magnitude ratio inside the single 7-term
+`high_vol_tail_risk` sum, both through the same z-score scale 2.5.
+`tanh(rvol_20/2.5)` was exactly 1.0 on **29.90%** of rows and >= 0.999999 on
+**51.51%**. Both legs are now put on ONE declared unit (per-bar bps) by the
+semantics owner:
+
+- `rvol_20 / sqrt(20)` — the sqrt(window) is the producer's own declared factor
+  (`materialize_build_canonical_features_v1.rvol_window`), not a fitted number;
+- `_v1_pk_sigma20 * 1e4` — the repo's bps convention (the `atr_bps` precedent).
+
+After the repair the two estimators agree to **0.6% at p50** (4.1227 vs 4.0968)
+and **1.1% at p90** (9.1725 vs 9.0751) — the proof that they are one quantity
+and may share one scale. `VOL_PER_BAR_BPS_TANH_SCALE_TRAIN_P90 = 9.172530` is
+the p90 of `rvol_20/sqrt(20)` on that complete TRAIN population, the same role
+and naming as the existing `SPREAD_RATIO_TANH_SCALE_TRAIN_P90`. Raw log:
+`GX1_DATA/logs/v30_package8b_20260813/train_vol_unit_scale_fit.json`.
+
+> Correction to §10: it recorded "`_v1_pk_sigma20` p50 = 1.64e-4". That is the
+> p50 of `tanh(_v1_pk_sigma20/2.5)`, not of the field. The field's measured p50
+> is **4.0968e-4**; 18.4375 / 4.0968e-4 = 45,004, which is the ratio §10 also
+> reports. `[M]`
+
+**`spread_bucket_high_pressure`** was `0.50*1{b>=1} + 0.50*1{b>=2}` over a
+five-code declared domain, so codes 2, 3 and 4 all mapped to 1.0 — measured
+exactly 1.0 on **60.0011%** of rows. It now uses the graded form its own
+sibling `atr_bucket_pressure` uses (one indicator per bucket step) over the
+domain owner `MODEL_NATIVE_CTX_CAT_DOMAINS`, so bucket b reads b/4.
+
+**Stale `/5.0` divisor** on `chart.foundation_compression_release_trigger`
+removed. Its producer declares `[0, 1]` (`entry_foundation_structure_v1._add`
+bounds) and `entry_vol_compression_v1` already states "no rescale is needed".
+Three features were capped at 0.2 of their declared range:
+`eu_structure_breakout_readiness`, `session_vol_spread_breakout_readiness`,
+`session_vol_spread_tail_risk`. **Checked and NOT changed:** the sibling
+divisors are correct — `structure_up_minus_down` is declared `[-2, 2]` and
+`sweep_reclaim_balance_proxy` `[-5, 5]`.
+
+### 11.2 The session products became rankable, not deleted
+
+`SESSION_REGIME_INTERACTION_FEATURE_NAMES` still emits every field. What
+changed is the registry entry in
+`entry_model_native_feature_layers_v1.MODEL_NATIVE_SPECIALIST_LAYER_FEATURES`,
+which now points at `SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES` — the
+five measured-genuine primitives (`spread_cost_ratio`,
+`session_age_progress_norm`, `mtf_regime_class_vote_agreement`,
+`mtf_regime_short_long_mismatch`, `h4_d1_regime_sign_agreement`). The other 62
+drop into the TRAIN-ranked candidate pool, where the ranker discovers them by
+its `*_FEATURE_NAMES` reflection. **VERIFIED by execution:** the pool contains
+exactly those 62 `session_regime.*` names.
+
+This is the shape two families already had (chart geometry 2 of 15, candlestick
+smart3 31 of 53), so the contract expresses it without deleting the family.
+**One wiring gap had to be closed**: both precedents are unconditionally
+emitted layers, while session/regime is a gated `smart_builder` whose run/skip
+guard in `build_entry_v10_ctx_training_dataset_v3` tested the MANDATORY tuple.
+During a ranker pass the requested set contains only candidates — never a
+mandatory name — so the layer would have been skipped and its own rankable
+fields left uncomputable (`FEATURE_RANKER_EXTENSION_MISSING_CANDIDATES`). The
+guard now iterates the new `MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES`
+registry (full emission per family, with an import-time guard that every
+mandatory name is a member of its family's emission).
+
+**`regime_transition_abstain_score` was removed outright** — a hand-written
+abstain vote, and abstention is the model's own decision authority (rule 3).
+Rule 4 holds: all five of its inputs remain model inputs. The expression
+survives only as an internal factor of three composites that are themselves now
+rankable, so no hand-written abstain vote is pinned into the surface. **Stated
+uninvited (rule 25a):** `spread_atr_boundary_abstain_score` is also an
+abstain-named product; it was not in scope, it is now rankable rather than
+mandatory, and nobody has judged it.
+
+### 11.3 SMC quality: concepts kept, two honest changes
+
+No SMC field removed; all 24 still emitted. A fidelity header now records, in
+the owner, that these are hand-authored scoring rulebooks over approximate
+ingredients (no reclaim, no pool identity, an unanchored dealing range) and
+names the bounded upgrade path (a real reclaim event; pool identity from the
+level registry; a BOS-anchored dealing range).
+
+`_count_proxy` was the fraction of twelve DIFFERENT proximity rows exceeding
+0.55 on the SINGLE CURRENT bar — a cross-sectional confluence share with no
+time axis — consumed under the names `support_touch_count` /
+`resistance_touch_count`. It is replaced by the level registry's genuine
+temporal counts `level_{below,above}_touch_count`, added to
+`SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS` (they are emitted unprefixed on the
+entry-M5 surface by `level_registry_m5_layer`, which the inline extension
+materializes before this layer runs). The bounded map is
+`n / (1 + n)` — the exact algebraic complement of this file's own `_recency`
+owner, so no magnitude was introduced. The orphaned 12-row confluence stack was
+then removed: every one of its rows is an independent model input in its own
+right and the side-specific maxima of the same rows are still computed as
+`support_stack` / `resistance_stack`.
+
+### 11.4 Derived counts
+
+`MODEL_NATIVE_SIGNAL_DIM` **drops by exactly the number demoted**, and that is
+correct rather than a defect. The dim is `34 + mandatory + 133`, where 133
+(`MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT`) is a pinned literal with its
+own tripwire: the ranked remainder is a fixed-size top-N selection from the
+pool, not "everything in the pool". Demoting 62 fields enlarges the pool, not
+the selection. Holding the dim constant would require raising 133 to 195, which
+is inventing a magnitude to preserve a number (rule 2b) and would hand the
+demoted fields guaranteed slots again through a different door.
+
+This package's own delta on the mandatory count is **-63** (62 demoted + 1
+removed). The absolute values in the working tree at the time of writing also
+carry a concurrent agent's in-flight registry growth (+10) and are therefore
+not attributable to this package alone; read them from the owner tuples.
+
+### 11.5 NOT examined / unproved
+
+- **No real-tape values exist for any repaired field.** Every "this is now
+  alive" statement is proven from source and algebra plus the pre-repair
+  measurement; the post-repair distributions are `[U]` until the V30 rebuild
+  runs.
+- Whether any of this improves abstention quality or bps is `[U]`. The
+  2026-08-09 walk-forward refutation stands.
+- The ranker has not been RUN against the enlarged pool; the pool membership
+  was verified by executing `_candidate_universe`, the ranking was not.
+- No claim is made that the five kept primitives are the right five. The
+  partition is the operator's explicit list; the audit's supporting statement
+  is `[PS]` (structure of the expressions), not a measured ablation.
+- The `two_sided_liquidity_pressure` weights (0.50/0.25/0.25) were NOT retuned
+  when the quantity they weigh changed from a same-bar confluence share to a
+  registry touch count. Re-tuning would have invented magnitudes; the value
+  change is real and unmeasured.
+
+---
+
+## 11. V30 PACKAGE 8A — LIVE BUG + EMISSION-ONLY WINS (2026-08-13)
+
+§4a is repaired and §5 is emitted. Recording what IS and is NOT verified
+(rule 25c). Evidence class of every claim below: **proven from source** unless
+it says otherwise; every execution result is `[M-synthetic]` (rule 2c — it
+proves the code runs and the algebra holds, never a production claim).
+
+**§4a LIVE BUG — repaired.** `entry_foundation_structure_v1` read the
+`smc_swing_state` enum as a direction bias: state 1 (HH+**LL**) was weighted
+0.55 into `hl_state` — evidence AGAINST a higher low — and state 2
+(LH+**HL**) 0.45 into `ll_state`. The repair is the literal decomposition of
+the enum (HH ∈ {0,1}, HL ∈ {0,2}, LH ∈ {1,3}, LL ∈ {2,3}); every weight keeps
+its original clean/mixed role and only the state it multiplies moves, so no
+magnitude was invented (rule 2b). `hh_state` and `ll_state` were already the
+correct pairs and are byte-identical; `hl_state` and `lh_state` swap states 1
+and 2. `[M-synthetic]` with all other sources zeroed the four emissions are
+exactly `[0.85,0.45,0,0,0]`, `[0.75,0,0.55,0,0]`, `[0,0.55,0,0.45,0]`,
+`[0,0,0.45,0.85,0]` over states 0..4, so
+`structure_up_minus_down` reads +1.60 / −0.10 / +0.10 / −1.30 / 0 — the
+pre-repair layer emitted **+1.00 for state 1 and −1.00 for state 2**, i.e.
+exactly inverted on the two states the 2026-08-09 partition repair made live.
+Five emitted foundation fields, `structure_up_minus_down` and every
+`chart.structure_swing_*` derivation carried the inversion. Layer version →
+`entry_foundation_structure_v5_20260813_swing_state_enum_decomposition_repair`.
+
+**§5 STATE THAT EXISTED IN MEMORY — now emitted.**
+
+- `swing_structure_v1` (+6, on the ctx surface, the M5 mandatory event layer
+  and all five per-TF lanes): `consecutive_higher_highs_count` /
+  `consecutive_lower_lows_count` (the two MISSING run counters — same
+  arithmetic, opposite strict comparison, same cap and log1p normalization as
+  the two that existed, so "uptrend structure unbroken for N pivots" is now
+  formable); `swing_high_level_intact` / `swing_low_level_intact` (the G1
+  `armed_*` loop state = "the last confirmed swing high/low has not been
+  closed through"); `bars_since_swing_high_norm` / `_low_norm` (the ONE age
+  convention, `htf_features._event_age_norm`, imported — the raw V1 fields are
+  untouched). The intact flags are honestly NaN before the first confirmed
+  pivot on their side; that prefix is a strict SUBSET of the sequence-delta
+  prefix, so the shared HTF warmup trim is unchanged.
+- `level_registry_v1` (+4, M5/513 lane): `level_above/below_member_pivot_count`
+  (already in state, already the subtrahend of `*_test_count`; the §10
+  measurement said member==1 on 98.0/98.3% and ==2 on ~2%, so it is sparse but
+  real) and `level_above2/below2_dist_atr` (the SECOND-nearest ACTIVE level per
+  side — a four-level shelf and an isolated level emitted identical rows).
+  Same absent-slot convention as the nearest slot; no new constant.
+- `smc_v1` MTF owner (+3, on all five per-TF lanes):
+  `mtf_smc_bos_displacement_atr` (signed `(close − level)/atr` at the firing
+  bar, 0 off-event) and `mtf_smc_sweep_up/down_event` (the de-duplicated
+  first-bar sweep events — the repeating flags fired once per bar of an
+  excursion and are left untouched).
+- `smc_v1` M5 owner (+6, **declared but not wired**): the same three
+  quantities plus the sided sweep depths and the normalized sweep age, behind
+  an explicit `include_v30_additions` call-site contract switch
+  (`SMC_V30_ADDITION_NAMES_V1`), default off. See "NOT wired" below.
+
+**POLARITY FLIP — performed in both registries.** "Old support is new
+resistance" existed as a one-bar impulse and never as an object: the level
+registry kept `status="broken"` forever and excluded the level from the
+nearest-ACTIVE scan, and the trendline registry DELETED the line on the very
+bar it proved itself. A held retest now flips the level's `side_of_origin` /
+the line's `side` and returns it to ACTIVE with identity, anchors, member
+pivots, touch history and reaction memory preserved. A FAILED retest is
+unchanged. No new constant — the existing retest window and band decide it.
+Two consequences stated uninvited:
+
+- The level registry's reaction window now freezes the level's side at its own
+  `t0` alongside `atr0`/`center0`, so a flip inside an open window cannot
+  rewrite the direction that window was measuring (rule 2g). That is a
+  per-level state-schema change → `LEVEL_REGISTRY_STATE_VERSION` = `..._state_3`.
+- `side_of_origin` / `TrendlineV1.side` are no longer immutable identity; the
+  immutable identity is the level/line id and the anchors.
+
+**POLARITY FLIP COST — measured, stated uninvited.** The trendline flip keeps
+held-retest lines alive instead of deleting them, so the ACTIVE-line
+population grows. `[M-synthetic]` on the 5000-bar random-walk fixture,
+before → after (ms/bar, final ACTIVE lines):
+
+| `seq_len` | before | after |
+|---|---|---|
+| 16 (per-TF M5 lane) | 0.040 (0) | 0.042 (1) |
+| 96 (`MODEL_NATIVE_SEQ_LEN`, the declared `trendline_seq_len`) | 0.109 (41) | 0.169 (65) |
+| 512 (no lane uses this) | 0.954 (1110) | **2.546 (2584)** |
+
+The loose 1.5 ms/bar guard is unchanged and still passes at both declared
+windows with 8.9x and 36x headroom. At 512 the flip is 2.65x over it. The
+benchmark's WINDOW moved to `MODEL_NATIVE_SEQ_LEN` (rule 2g — the measurement
+must be taken where the decision is made; no lane runs at 512), and the 512
+numbers are recorded in the test docstring so the superlinear scaling is not
+hidden. If a lane is ever configured at that window, this cost is real and the
+guard must be re-derived from a declared budget, never relaxed.
+
+The LEVEL registry flip costs almost nothing by the same measurement: on a
+5000-bar synthetic M5 walk (`q=0.5` fitted tolerance) it moves 0.0415 →
+0.0444 ms/bar with the level population unchanged (37 → 36). Its population is
+bounded by the merge tolerance and the per-TF expiry cap; the trendline
+registry has no merge, so every validated pivot PAIR is a distinct line.
+
+**Derived counts after the package** (owner tuples, never restated literals):
+per-TF `MULTI_TF_FEATURE_COUNT_V4` 182 → **191** (+6 swing, +3 mtf_smc);
+`MODEL_NATIVE_CTX_CONT_DIM` 158 → **164**; the M5 level block 25 → **29**, the
+M5 swing event layer 9 → **15** and the mtf_smc block 11 → **14**. The
+mandatory causal count and `MODEL_NATIVE_SIGNAL_DIM` therefore grow by **10**
+relative to package 7; their absolute values also move with the concurrent
+package 8B in the same worktree, so read them from the owner tuples.
+
+**NOT wired / NOT examined (rule 25a), stated uninvited:**
+
+- The six M5 `smc_*` additions are computed but reach no model input. A raw
+  canonical column cannot: the ranker's `_candidate_universe` scans only
+  specialist-layer owners and the dataset builder's inline extension exposes
+  only the frozen 34 base fields plus specialist-layer outputs. Enabling the
+  flag would also move five artifact column-count contracts
+  (`audit_seq513_source_cascade_v1`, `materialize_cv3_modelrange_v1`) that
+  describe artifacts the V30 chain has not built. The same three quantities DO
+  reach the model on every timeframe through the MTF owner.
+- No rare-event floor was registered for any new event. Floors must come from
+  a measured TRAIN build (the 2026-08-12 precedent); a new event that lands
+  below the 1% liveness floor on the next real build is a correct fail-loud.
+- No real-tape values, liveness, TRAIN ranking, saturation or abstention
+  effect exist for any field in this package. Whether the polarity flip or the
+  repaired enum improves direction quality is `[U]`.
+
+### 11.6 Test state at hand-off
+
+Full capped suite (`scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M`,
+`pytest tests/`) run after the repair: **2 failures, both outside this package
+and proven so by authorship** —
+`test_evidence_retention_v1.py::test_resume_refuses_a_target_whose_source_is_still_present`
+(the concurrent retention-`resume` work: +358 lines in
+`gx1/scripts/cleanup_gx1_evidence_v1.py` and +336 in its test, none of them from
+this package) and
+`test_guard_hooks_versioned.py::test_guard_artifact_matches_versioned_reference[settings.reference.json]`
+(drift between the live `~/.claude/settings.json` and the tracked reference; both
+files are untouched here and `.claude/` is unmodified in the tree).
+
+The eight failures this package DID cause were all repaired and re-verified:
+two vol-compression fixtures and one bounded-orchestration fixture that
+fabricated NEGATIVE values for `rvol_20` / `_v1_pk_sigma20` — encoding the exact
+misunderstanding this package removed, since both quantities are non-negative by
+construction — plus the `session_regime_encoder` specialist count, which is now
+derived from the owner tuple instead of restated. `tests/` fixtures were moved
+onto the measured TRAIN quantile scale with their original rank order preserved.
+Raw log: `GX1_DATA/logs/v30_package8b_20260813/full_suite.log`.

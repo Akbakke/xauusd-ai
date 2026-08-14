@@ -69,11 +69,13 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 
 SCHEMA_VERSION = MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION
 EVENT_PREFIX = "MODEL_NATIVE_DIRECTION_POCKET_AUDIT"
-# V30 (2026-08-13): 158 = 142 + H4_range_compression_ratio (package 1) + the
+# V30 (2026-08-13): 164 = 142 + H4_range_compression_ratio (package 1) + the
 # 9 adopted swing V29 ctx fields + the 3 momentum-G3 raw-RSI canon scalars
-# (package 2) + the 3 quote/spread-dynamics fields (package 4); independent
+# (package 2) + the 3 quote/spread-dynamics fields (package 4) + the 6
+# emission-only swing additions of package 8A (two missing run counters, two
+# level-intact flags, two normalized swing ages); independent
 # cross-check literal against the derived contract dim (fails closed below).
-EXPECTED_CTX_CONT_DIM = 158
+EXPECTED_CTX_CONT_DIM = 164
 EXPECTED_CTX_CAT_DIM = 5
 
 SIDE_LONG = 0

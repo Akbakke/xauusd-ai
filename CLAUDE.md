@@ -96,11 +96,14 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    ownership, and every restated count in this repository has gone stale
    within days). The shape is: a frozen base block + the mandatory causal
    families + a TRAIN-ranked remainder, over the declared mandatory families.
-   As of 2026-08-13 that evaluates to 34 + 424 + 133 = 591 over 16 families
+   As of 2026-08-13 that evaluates to 34 + 371 + 133 = 538 over 16 families
    (V29 event surface 2026-08-11 added the level/trendline registries and the
    swing/momentum/regime event families; V30 2026-08-13 removed the
-   NAME-ONLY chart-geometry composites, all Fibonacci fields and the candle
-   aggregate votes — see docs/INDICATOR_FIDELITY_AUDIT_20260813.md). Treat
+   NAME-ONLY chart-geometry composites, all Fibonacci fields, the candle
+   aggregate votes and the pre-fused session products, repaired the
+   smc_swing_state enum live bug and emitted the structure/level/SMC state
+   that existed only in memory — see
+   docs/INDICATOR_FIDELITY_AUDIT_20260813.md). Treat
    that sentence as a dated observation, not as the contract.
    Removing a hand-written vote is
    allowed and required — the
@@ -137,6 +140,31 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    the provenance owner, see docs/DATA_CONTRACT.md "Retired ancestors").
    Preserve valid active collectors and unrelated dashboards; never
    restart a retired daemon merely because its name still exists.
+
+   a. **Reclamation is a standing duty, not an occasional errand** (operator
+      directive 2026-08-13: *"husk kontinuerlig opprydding parallelt dette
+      gjelder hele tiden — slett unødvendige GB"*). Every wave that supersedes
+      a surface, a dataset generation or a bundle owes, in the same wave, a
+      retention pass over what it just orphaned. Do not wait to be asked, do
+      not wait for the disk to fill, and do not defer it to the end of a
+      campaign — run it in parallel with the work that created the garbage.
+      A superseded artifact that no longer has a named future use is
+      unnecessary gigabytes, and its cost is measured in disk, in backup time
+      and in the risk that a later session mistakes it for authority.
+   b. The retention owner `gx1.scripts.cleanup_gx1_evidence_v1` is the only
+      route: plan → approve → execute, hash-bound per-file inventory, no `rm`.
+      An execution interrupted after its STAGED event is finished with
+      `resume` (added 2026-08-13 after a foreground kill left 112 GB in
+      quarantine that neither `execute` nor `recover` could complete);
+      `recover` restores a staged transaction and cannot finish one.
+      Retention runs re-hash every byte twice, so launch them in the
+      background — a tool-timeout kill mid-delete is the exact state `resume`
+      exists to repair.
+   c. An artifact named as a baseline, comparison arm or authority in a
+      current document is not garbage merely because its surface is retired.
+      Reclaim it only after that document is changed and the operator has
+      made the call explicitly. State the reclaimable size so the choice is
+      informed.
 
 10. **Remove disconnected repository code and stale docs** once call-site
     scans, tests and evidence ownership show they are unnecessary.

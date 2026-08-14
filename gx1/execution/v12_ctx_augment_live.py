@@ -464,7 +464,7 @@ def _add_spread_dynamics_features(cv3: pd.DataFrame) -> None:
 
 def _add_swing_features(cv3: pd.DataFrame) -> None:
     """Mutates cv3 with the swing-structure ctx features (dist_last_swing_high/low_atr,
-    bars_since_swing_high/low, retracement_from_last_impulse + the nine V29 event
+    bars_since_swing_high/low, retracement_from_last_impulse + the V29/V30 event
     additions adopted by V30 package 2). Delegates to the ONE-TRUTH
     helper gx1.features.swing_structure_v1 (lookahead-safe confirmation lag) — do NOT
     re-implement the math here (2026-06-24 unification; live decision bar stays causal).

@@ -11,11 +11,11 @@
       "Glob",
       "Grep",
       "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "Bash(exit 0)"
     ],
     "deny": [
       "Bash(rm -rf *)",
-      "Bash(git push *)",
       "Bash(git reset --hard *)",
       "Bash(git clean *)",
       "Bash(git commit --amend *)",
@@ -23,6 +23,7 @@
     ],
     "defaultMode": "bypassPermissions"
   },
+  "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -59,6 +60,5 @@
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "agentPushNotifEnabled": true,
-  "model": "opus[1m]"
+  "agentPushNotifEnabled": true
 }

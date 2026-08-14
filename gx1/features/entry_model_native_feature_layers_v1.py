@@ -22,6 +22,7 @@ from gx1.features.entry_candlestick_patterns_v1 import (
     build_entry_candlestick_pattern_layer,
 )
 from gx1.features.entry_chart_geometry_v1 import (
+    CHART_GEOMETRY_FEATURE_NAMES,
     CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
     CHART_GEOMETRY_SOURCE_FIELDS,
     build_entry_chart_geometry_layer,
@@ -34,6 +35,7 @@ from gx1.features.entry_foundation_structure_v1 import (
 from gx1.features.entry_momentum_flow_v1 import MOMENTUM_FLOW_FEATURE_NAMES
 from gx1.features.entry_session_regime_interactions_v1 import (
     SESSION_REGIME_INTERACTION_FEATURE_NAMES,
+    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
 )
 from gx1.features.entry_smc_liquidity_quality_v1 import (
     SMC_LIQUIDITY_QUALITY_FEATURE_NAMES,
@@ -213,9 +215,16 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
         STRUCTURE_SWING_DERIVATION_FEATURE_NAMES,
     ),
     ("momentum_flow_smart_layer", MOMENTUM_FLOW_FEATURE_NAMES),
+    # V30 package 8B (2026-08-13): this family is PRODUCED in full and pinned in
+    # part.  Only the five measured-genuine primitives are mandatory; the rest
+    # are the pre-fused session products that now compete in the TRAIN-ranked
+    # candidate pool.  Same shape as chart_geometry_smart2_layer (2 of 15
+    # pinned) and price_action_candle_smart3_layer (31 of 53).  The full
+    # emission stays reachable through
+    # MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES below.
     (
         "session_regime_interaction_layer",
-        SESSION_REGIME_INTERACTION_FEATURE_NAMES,
+        SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
     ),
     ("vol_compression_smart_layer", VOL_COMPRESSION_FEATURE_NAMES),
     ("chart_geometry_smart2_layer", CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES),
@@ -252,6 +261,55 @@ MODEL_NATIVE_MANDATORY_FAMILY_COUNT = len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
 MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = len(
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
 )
+
+# The FULL emitted surface of every registered family, in the same label order.
+#
+# Three families are produced in full but pinned only in part -- chart geometry
+# (2 of 15), the candlestick smart3 suffix (31 of 53) and, from V30 package 8B,
+# the session/regime interactions (5 of 67).  The registry above is the
+# MANDATORY contract and must stay that way, but a consumer that has to decide
+# whether to RUN a layer needs the full emission: during a TRAIN-ranker pass the
+# requested set contains only candidates, i.e. never a mandatory name, so a
+# run/skip test against the mandatory tuple alone would skip the layer and leave
+# its own rankable fields uncomputable.  One owner for that question, here,
+# beside the registry it derives from.
+_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES: dict[str, tuple[str, ...]] = {
+    "chart_geometry_smart2_layer": tuple(CHART_GEOMETRY_FEATURE_NAMES),
+    "price_action_candle_smart3_layer": tuple(CANDLESTICK_PATTERN_FEATURE_NAMES),
+    "session_regime_interaction_layer": tuple(
+        SESSION_REGIME_INTERACTION_FEATURE_NAMES
+    ),
+}
+MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES: tuple[
+    tuple[str, tuple[str, ...]], ...
+] = tuple(
+    (label, _SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES.get(label, tuple(features)))
+    for label, features in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
+)
+_emitted_labels = {label for label, _features in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES}
+if set(_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES) - _emitted_labels:
+    raise RuntimeError(
+        "MODEL_NATIVE_SPECIALIST_LAYER_EMISSION_OVERRIDE_UNKNOWN_LABEL: "
+        f"{sorted(set(_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES) - _emitted_labels)}"
+    )
+for (
+    (_mandatory_label, _mandatory_features),
+    (_emitted_label, _emitted_features),
+) in zip(
+    MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
+    MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES,
+):
+    if _mandatory_label != _emitted_label:
+        raise RuntimeError(
+            "MODEL_NATIVE_SPECIALIST_LAYER_EMISSION_ORDER_MISMATCH: "
+            f"{_mandatory_label} != {_emitted_label}"
+        )
+    if not set(_mandatory_features).issubset(set(_emitted_features)):
+        raise RuntimeError(
+            "MODEL_NATIVE_SPECIALIST_LAYER_MANDATORY_NOT_EMITTED: "
+            f"{_mandatory_label} "
+            f"{sorted(set(_mandatory_features) - set(_emitted_features))[:10]}"
+        )
 
 _mandatory_family_labels = tuple(
     family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
@@ -721,7 +779,7 @@ def build_level_registry_m5_layer(
     tol_level_atr: float,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane level-registry block (design doc §1.2, 22 fields).
+    """Entry-M5/513-lane level-registry block (design doc §1.2).
 
     ``tol_level_atr`` is the TRAIN-fitted frozen M5 cluster tolerance
     (``fit_level_registry_tolerance``); it has no default (rule 2a).
@@ -826,7 +884,8 @@ def build_swing_event_m5_layer(
     *,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Entry-M5/513-lane structure_swing G1/G2/G4 event block (9 fields).
+    """Entry-M5/513-lane structure_swing event block (G1/G2/G4 + the V30
+    package-8A emission-only additions; the name tuple is the owner).
 
     One formula owner: ``swing_structure_v1.compute_swing_structure_features``
     with ``include_v29_additions=True`` on the complete causal source history.

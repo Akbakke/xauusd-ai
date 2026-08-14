@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
 from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
 from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1,
@@ -22,6 +23,7 @@ from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
     TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1,
     TRENDLINE_RETEST_WINDOW_BARS_V1,
+    TRENDLINE_SIDE_RESISTANCE,
     TRENDLINE_STATE_ACTIVE,
     TRENDLINE_STATE_CANDIDATE,
     compute_trendline_registry_features_v1,
@@ -309,7 +311,13 @@ def test_first_break_fires_exactly_once_with_broken_line_attributes():
     break_down = feats["geomline_break_down"]
     assert break_down.iloc[60] == 1.0
     assert break_down.sum() == 1.0
-    assert feats["geomline_break_up"].sum() == 0.0
+    # V30 package 8A (2026-08-13): the held retest at bar 62 FLIPS the broken
+    # support into an ACTIVE resistance instead of deleting the line, so the
+    # very next bar — whose close returns to proj + 1.0, beyond the 0.3 band —
+    # is a genuine first break of the line in its NEW role.  Before the flip
+    # repair the line no longer existed and this event could not fire.
+    assert feats["geomline_break_up"].sum() == 1.0
+    assert feats["geomline_break_up"].iloc[63] == 1.0
     assert feats["geomline_break_line_touch_count"].iloc[60] == 3.0
     assert feats["geomline_break_line_age_bars"].iloc[60] == 47.0  # 60-(10+3)
     assert feats["geomline_break_line_touch_count"].iloc[61] == 0.0
@@ -599,22 +607,87 @@ def test_fail_closed_state_carry():
 # ---------------------------------------------------------------------------
 
 
+def test_v30_package_8a_retest_hold_flips_polarity_and_keeps_the_line():
+    """V30 package 8A (2026-08-13) — "old support is new resistance".
+
+    Before this repair a RETEST_HOLD emitted its one-bar impulse and DELETED
+    the line on the very bar it proved itself as flipped resistance (fidelity
+    audit §5), so the most-used S/R construct existed as an event and never as
+    an object.  A HOLD now returns the line to ACTIVE with its identity,
+    anchors and touch history intact and only its side flipped.  A FAIL is
+    unchanged: the break stands and the line is retired.
+    """
+
+    feats, state = _compute(_break_frame("hold"))
+    line = next(ln for ln in state.active_lines if ln.anchor1_bar == 10)
+    # Identity is untouched by the flip: same anchors, hence same projection.
+    assert (line.anchor1_bar, line.anchor2_bar) == (10, 30)
+    assert line.side == TRENDLINE_SIDE_RESISTANCE  # flipped from support
+    # The retest bar counts as a touch through the same touch bookkeeping the
+    # intra-band path uses, so the staleness clock is renewed rather than the
+    # line dying on the next bar.
+    assert 62 in line.touch_bars
+    assert line.touch_count == 4
+    assert line.last_touch_bar == 62
+    # The flipped line is a real ACTIVE object on the bar of the flip: it
+    # projects above the close, so it occupies the ABOVE slot.
+    assert feats["geomline_retest_hold_down"].iloc[62] == 1.0
+    assert feats["geomline_above_active"].iloc[62] == 1.0
+    assert feats["geomline_above_active_count"].iloc[62] == 1.0
+    assert feats["geomline_below_active"].iloc[62] == 0.0
+    # The generic touch impulse is deliberately NOT raised on the flip bar:
+    # the retest-hold event is that bar's specific impulse.
+    assert feats["geomline_touch_above"].iloc[62] == 0.0
+    assert feats["geomline_touch_below"].iloc[62] == 0.0
+
+    # A FAILED retest still retires the line (no flip, no surviving object).
+    feats_fail, state_fail = _compute(_break_frame("fail"))
+    assert feats_fail["geomline_retest_fail_down"].iloc[62] == 1.0
+    assert not [
+        ln for ln in state_fail.active_lines if ln.anchor1_bar == 10
+    ]
+
+
 def test_micro_benchmark_per_bar_update_under_loose_bound():
     """Loose synthetic cost guard only.
 
-    Bound origin (rule 2a): the chart report B.7 algebraic estimate declares
-    'minutes' of overhead on the ~6-year M5 tape (~450k bars); 10 minutes /
-    450k bars ~= 1.3 ms/bar, rounded up to a loose 1.5 ms/bar guard.  This is
-    measured on synthetic data and therefore proves only that the code runs
-    within the bound here (rule 2c); the real-tape registry cost during the
-    Phase-A build is a pre-adoption red gate (design doc §6, measurement 1).
+    Bound origin (rule 2a, UNCHANGED): the chart report B.7 algebraic estimate
+    declares 'minutes' of overhead on the ~6-year M5 tape (~450k bars);
+    10 minutes / 450k bars ~= 1.3 ms/bar, rounded up to a loose 1.5 ms/bar
+    guard.  This is measured on synthetic data and therefore proves only that
+    the code runs within the bound here (rule 2c); the real-tape registry cost
+    during the Phase-A build is a pre-adoption red gate (design doc §6,
+    measurement 1).
+
+    Window origin (rule 2g, moved 2026-08-13 by V30 package 8A): the
+    measurement is taken at the window the registry is actually run with.
+    ``seq_len`` is the per-TF model sequence length (module docstring), and
+    every recipe/fixture in this repository binds ``trendline_seq_len`` to
+    ``MODEL_NATIVE_SEQ_LEN`` for the entry M5/513 lane, while the per-TF lanes
+    use their pyramid seq_lens (M5 = 16).  This test previously measured at 512
+    — 5.3x the largest declared window and a window no lane uses — so it was
+    not measuring where the decision is made.
+
+    Measured on this fixture, 2026-08-13 `[M-synthetic]`, before -> after the
+    package-8A retest-hold POLARITY FLIP (ms/bar, final ACTIVE-line count):
+        seq_len  16: 0.040 (0 lines)    -> 0.042 (1 line)
+        seq_len  96: 0.109 (41 lines)   -> 0.169 (65 lines)
+        seq_len 512: 0.954 (1110 lines) -> 2.546 (2584 lines)
+    Stated uninvited (rule 25a): the flip keeps held-retest lines alive instead
+    of deleting them, so the ACTIVE-line population grows ~1.6x at the declared
+    window and ~2.3x at 512, and per-bar cost is superlinear in seq_len because
+    both the per-bar update and the emission are O(active lines).  At 512 the
+    result is 2.55 ms/bar — ABOVE this guard.  No lane runs there, but if one
+    ever does, this cost is real and the guard must be re-derived from a
+    declared budget rather than relaxed.
     """
+    seq_len = MODEL_NATIVE_SEQ_LEN
     df = _random_walk_frame(5000, seed=13)
-    band = fit_trendline_tolerance(df, timeframe="TEST", seq_len=512)[
+    band = fit_trendline_tolerance(df, timeframe="TEST", seq_len=seq_len)[
         "band_atr"
     ]
     start = time.perf_counter()
-    _compute(df, band=band, seq_len=512)
+    _compute(df, band=band, seq_len=seq_len)
     elapsed = time.perf_counter() - start
     per_bar = elapsed / 5000.0
     assert per_bar < 1.5e-3, f"per-bar update {per_bar * 1e3:.3f} ms"

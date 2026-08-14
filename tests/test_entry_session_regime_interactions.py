@@ -3,6 +3,7 @@ import pytest
 
 from gx1.features.entry_session_regime_interactions_v1 import (
     SESSION_REGIME_INTERACTION_FEATURE_NAMES,
+    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
     SESSION_REGIME_INTERACTION_SOURCE_FIELDS,
     build_entry_session_regime_interaction_layer,
     missing_session_regime_interaction_source_fields,
@@ -81,7 +82,20 @@ def test_session_regime_interaction_layer_is_finite_and_causal_shape() -> None:
     idx = {name: i for i, name in enumerate(out_names)}
 
     assert tuple(out_names) == SESSION_REGIME_INTERACTION_FEATURE_NAMES
-    assert len(SESSION_REGIME_INTERACTION_FEATURE_NAMES) == 68
+    # 67 after V30 package 8B removed the hand-written abstain vote
+    # ``regime_transition_abstain_score`` (rule 3: abstention is the model's own
+    # decision authority).  Only five of these are still MANDATORY; the rest are
+    # produced and compete in the TRAIN-ranked candidate pool.
+    assert len(SESSION_REGIME_INTERACTION_FEATURE_NAMES) == 67
+    assert "session_regime.regime_transition_abstain_score" not in out_names
+    assert set(SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES).issubset(
+        set(SESSION_REGIME_INTERACTION_FEATURE_NAMES)
+    )
+    assert SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES == tuple(
+        name
+        for name in SESSION_REGIME_INTERACTION_FEATURE_NAMES
+        if name in set(SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES)
+    )
     assert out.shape == (6, len(SESSION_REGIME_INTERACTION_FEATURE_NAMES))
     assert np.isfinite(out).all()
     assert out[0, idx["session_regime.session_opening_risk"]] == 1.0
@@ -333,6 +347,17 @@ def test_session_regime_interaction_layer_does_not_read_future_rows() -> None:
     # DIFFERENT valid pair than base so the row still changes.
     changed_future[-1, idx["ctx_cont.minutes_since_session_open"]] = 30.0
     changed_future[-1, idx["ctx_cont.minutes_to_next_session_boundary"]] = 210.0
+    # Same reason for the cross-TF ATR ratios: an ATR ratio is a quotient of two
+    # non-negative ranges, so the one-truth centring owner
+    # (entry_volatility_semantics_v1) fails closed on a non-positive value
+    # rather than reading corrupt input as maximal compression.  Keep the
+    # perturbed row positive but DIFFERENT from base.
+    for _ratio_field, _value in (
+        ("ctx_cont.atr_ratio_m5_m15", 0.91),
+        ("ctx_cont.atr_ratio_m15_d1", 0.17),
+        ("ctx_cont.atr_ratio_h1_d1", 0.33),
+    ):
+        changed_future[-1, idx[_ratio_field]] = _value
 
     base_out, _ = build_entry_session_regime_interaction_layer(base, names)
     changed_out, _ = build_entry_session_regime_interaction_layer(changed_future, names)

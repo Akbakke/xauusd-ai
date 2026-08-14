@@ -73,6 +73,25 @@ SWING_ATR_PERIOD_V1 = 14
 # separate because the V1 five keep the historical ``swing_``-prefixed per-TF
 # spelling and the seq513 lane routes the additions through their own
 # ``swing_structure_event_layer``.
+# V30 package 8A (2026-08-13) appends six EMISSION-ONLY additions — every one
+# of them is a quantity this function already computes (or already holds in a
+# loop variable) and then throws away; no new mechanism, no new magnitude
+# (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §5):
+#   consecutive_higher_highs_count / consecutive_lower_lows_count: the two
+#     MISSING members of the four-run-counter set. Identical arithmetic to the
+#     two G4 counters above with the opposite strict comparison, the same
+#     FOUNDATION_EVENT_AGE_CAP and the same log1p(min(run,cap))/log1p(cap)
+#     normalization. Without them "uptrend structure unbroken for N pivots" is
+#     not formable from any emitted field.
+#   swing_high_level_intact / swing_low_level_intact: the G1 ``armed_high`` /
+#     ``armed_low`` loop state, which IS exactly "the last confirmed swing
+#     high/low has not been closed through" — structure intact. Set on
+#     adoption, cleared on the break bar, previously never emitted.
+#   bars_since_swing_high_norm / bars_since_swing_low_norm: the ONE age
+#     convention (log1p(min(age, 500))/log1p(500)) applied to the two raw
+#     unbounded V1 ages, using the existing owner helper
+#     ``htf_features._event_age_norm`` (imported, never re-derived). The raw
+#     V1 fields stay byte-identical.
 SWING_V29_ADDITION_NAMES_V1 = (
     "swing_high_break_event",
     "swing_low_break_event",
@@ -83,14 +102,29 @@ SWING_V29_ADDITION_NAMES_V1 = (
     "swing_low_sequence_delta_atr",
     "consecutive_higher_lows_count",
     "consecutive_lower_highs_count",
+    "consecutive_higher_highs_count",
+    "consecutive_lower_lows_count",
+    "swing_high_level_intact",
+    "swing_low_level_intact",
+    "bars_since_swing_high_norm",
+    "bars_since_swing_low_norm",
 )
 # Columns whose honest warmup is a leading NaN prefix (no delta exists until a
 # SECOND pivot on that side is confirmed; emitting 0 would fabricate "equal
 # pivots", rule 2e). The shared HTF matrix owner trims a single chronological
 # prefix, so NaN is legal only as that prefix — enforced in the output guard.
+#
+# The two V30 intact flags join the set for the same reason: before the FIRST
+# confirmed pivot on that side there is no level, so "intact" has no truth
+# value and a 0 would read as "the level has been broken" (rule 2e). Their
+# prefix is a strict SUBSET of the sequence-delta prefix on the same side (the
+# delta needs a SECOND pivot, the intact flag only the first), so the shared
+# HTF matrix owner's single-prefix trim length is unchanged by their addition.
 _SWING_V29_NAN_PREFIX_NAMES = (
     "swing_high_sequence_delta_atr",
     "swing_low_sequence_delta_atr",
+    "swing_high_level_intact",
+    "swing_low_level_intact",
 )
 if len(set(SWING_V29_ADDITION_NAMES_V1)) != len(SWING_V29_ADDITION_NAMES_V1) or (
     set(SWING_V29_ADDITION_NAMES_V1) & set(SWING_FEATURE_NAMES_V1)
@@ -244,6 +278,10 @@ def compute_swing_structure_features(
     last_low_adopt_i = -1
     lh_run = 0  # consecutive lower highs (updates on high-pivot adoption)
     hl_run = 0  # consecutive higher lows (updates on low-pivot adoption)
+    # V30 package 8A: the two MISSING members of the run-counter set, same
+    # arithmetic, opposite strict comparison.
+    hh_run = 0  # consecutive higher highs (updates on high-pivot adoption)
+    ll_run = 0  # consecutive lower lows (updates on low-pivot adoption)
     high_break = np.zeros(n, dtype=np.float64)
     low_break = np.zeros(n, dtype=np.float64)
     displacement = np.zeros(n, dtype=np.float64)
@@ -251,6 +289,13 @@ def compute_swing_structure_features(
     prev_low_vals = np.full(n, np.nan, dtype=np.float64)
     lh_run_vals = np.zeros(n, dtype=np.float64)
     hl_run_vals = np.zeros(n, dtype=np.float64)
+    hh_run_vals = np.zeros(n, dtype=np.float64)
+    ll_run_vals = np.zeros(n, dtype=np.float64)
+    # V30 package 8A: the post-update ``armed_*`` state per bar (NaN before the
+    # first confirmed pivot on that side — no level exists, so "intact" has no
+    # truth value).
+    high_intact_vals = np.full(n, np.nan, dtype=np.float64)
+    low_intact_vals = np.full(n, np.nan, dtype=np.float64)
     for i in range(n):
         j = i - lookback
         if j >= 0 and pivot_high[j]:
@@ -259,6 +304,7 @@ def compute_swing_structure_features(
                 # G4: strict pivot-vs-pivot comparison (strictness matches the
                 # strict pivot detector above; an equal high is not a lower high).
                 lh_run = lh_run + 1 if new_high < last_high else 0
+                hh_run = hh_run + 1 if new_high > last_high else 0
                 prev_high_val = last_high
             last_high = new_high
             last_hi_i = j
@@ -269,6 +315,7 @@ def compute_swing_structure_features(
             new_low = float(low_values[j])
             if low_adoptions > 0:
                 hl_run = hl_run + 1 if new_low > last_low else 0
+                ll_run = ll_run + 1 if new_low < last_low else 0
                 prev_low_val = last_low
             last_low = new_low
             last_lo_i = j
@@ -283,6 +330,8 @@ def compute_swing_structure_features(
         prev_low_vals[i] = prev_low_val
         lh_run_vals[i] = float(lh_run)
         hl_run_vals[i] = float(hl_run)
+        hh_run_vals[i] = float(hh_run)
+        ll_run_vals[i] = float(ll_run)
         # G1 break checks: strictly causal — the armed level is a confirmed
         # pivot and the trigger is THIS closed bar's close (strict crossing,
         # the smc_bos "close first crosses" convention). At the adoption bar
@@ -312,6 +361,16 @@ def compute_swing_structure_features(
             displacement[i] = (c[i] - last_high) / atr_safe[i]
         elif fired_low:
             displacement[i] = (c[i] - last_low) / atr_safe[i]
+        # V30 package 8A: emit the post-update G1 arming state — "the last
+        # confirmed swing high/low has not been closed through" = structure
+        # intact. It is read AFTER the break check on this bar, so the bar
+        # whose close breaks the level already reads 0 (that close IS the
+        # break). Before the first adoption on that side no level exists, so
+        # the value stays NaN (one leading prefix, rule 2e).
+        if high_adoptions > 0:
+            high_intact_vals[i] = 1.0 if armed_high else 0.0
+        if low_adoptions > 0:
+            low_intact_vals[i] = 1.0 if armed_low else 0.0
 
     idx = np.arange(n, dtype=np.int64)
     denom = np.maximum(last_high_vals - last_low_vals, eps)
@@ -368,6 +427,33 @@ def compute_swing_structure_features(
         ).astype(np.float32)
         result["consecutive_lower_highs_count"] = (
             np.log1p(np.minimum(lh_run_vals, float(cap))) / log_cap
+        ).astype(np.float32)
+        # V30 package 8A: the two MISSING run counters, byte-for-byte the same
+        # arithmetic/cap/normalization as the two above (rule 2b: no new
+        # magnitude — the cap and the log1p convention are the imported ones).
+        result["consecutive_higher_highs_count"] = (
+            np.log1p(np.minimum(hh_run_vals, float(cap))) / log_cap
+        ).astype(np.float32)
+        result["consecutive_lower_lows_count"] = (
+            np.log1p(np.minimum(ll_run_vals, float(cap))) / log_cap
+        ).astype(np.float32)
+        result["swing_high_level_intact"] = high_intact_vals.astype(np.float32)
+        result["swing_low_level_intact"] = low_intact_vals.astype(np.float32)
+        # V30 package 8A — ONE age convention. The two raw V1 ages above are
+        # unbounded bar counts; the system convention for an event age is
+        # htf_features._event_age_norm = log1p(min(age, 500))/log1p(500) (the
+        # trend_age_bars_norm convention, also used by regime_v4_features).
+        # The helper is IMPORTED from its owner, never re-derived (rule 13).
+        # The import is function-local because htf_features imports this
+        # module at module scope (SWING_V29_ADDITION_NAMES_V1); a module-level
+        # import here would be circular. The raw fields are untouched.
+        from gx1.features.htf_features import _event_age_norm
+
+        result["bars_since_swing_high_norm"] = _event_age_norm(
+            result["bars_since_swing_high"].astype(np.float64)
+        ).astype(np.float32)
+        result["bars_since_swing_low_norm"] = _event_age_norm(
+            result["bars_since_swing_low"].astype(np.float64)
         ).astype(np.float32)
         expected_names = SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
     if tuple(result) != expected_names or any(

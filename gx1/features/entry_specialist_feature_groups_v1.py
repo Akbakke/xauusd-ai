@@ -38,6 +38,9 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     SWING_EVENT_LAYER_FEATURE_NAMES,
     TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
 )
+from gx1.features.entry_session_regime_interactions_v1 import (
+    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
+)
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
 
@@ -338,6 +341,16 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     "spread_intrabar_range_bps": "session_regime_encoder",
     "ctx_cont.quote_range_asymmetry_bps": "session_regime_encoder",
     "quote_range_asymmetry_bps": "session_regime_encoder",
+    # V30 package 8A (2026-08-13): the two swing-structure "level intact"
+    # flags (swing_structure_v1.SWING_V29_ADDITION_NAMES_V1) name the state of
+    # the last CONFIRMED SWING PIVOT, i.e. structure, not a horizontal S/R
+    # level.  The substring ``level`` is claimed earlier by the liquidity
+    # owner, so — exactly like the quote/spread block above — they are routed
+    # EXPLICITLY here instead of depending on keyword precedence.
+    "swing_high_level_intact": "structure_swing_encoder",
+    "swing_low_level_intact": "structure_swing_encoder",
+    "ctx_cont.swing_high_level_intact": "structure_swing_encoder",
+    "ctx_cont.swing_low_level_intact": "structure_swing_encoder",
     "ctx_cont.is_us_only": "session_regime_encoder",
     "ctx_cont.is_eu_only": "session_regime_encoder",
     "ctx_cont.is_asia_eu_overlap": "session_regime_encoder",
@@ -633,8 +646,20 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
         (
             "session_regime_interaction_layer",
             {
-                "expected_feature_count": 68,
-                "expected_specialist_counts": {"session_regime_encoder": 68},
+                # DERIVED from the mandatory subset tuple, not a restated
+                # literal (rule 13), the same way the chart-geometry, candle and
+                # price-EMA entries below already derive theirs.  V30 package 8B
+                # (2026-08-13) demoted this family's pre-fused session products
+                # to the TRAIN-ranked candidate pool: it is still produced in
+                # full, but only the measured-genuine primitives are pinned.
+                "expected_feature_count": len(
+                    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES
+                ),
+                "expected_specialist_counts": {
+                    "session_regime_encoder": len(
+                        SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES
+                    )
+                },
                 "owned_specialists": ("session_regime_encoder",),
                 "purpose": "Session age/boundaries, regime agreement and session x structure/liquidity interactions.",
             },
@@ -1032,8 +1057,11 @@ def classify_entry_specialist_feature(name: str) -> str:
             "ll_x_",
             # V29 structure_swing G4 run counts (swing_structure_v1
             # SWING_V29_ADDITION_NAMES_V1): pivot-sequence structure evidence.
+            # V30 package 8A completed the set with the two MISSING counters.
             "consecutive_higher_lows",
             "consecutive_lower_highs",
+            "consecutive_higher_highs",
+            "consecutive_lower_lows",
         ),
     ):
         return "structure_swing_encoder"

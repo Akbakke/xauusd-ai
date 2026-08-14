@@ -23,7 +23,7 @@ from gx1.features.entry_volatility_semantics_v1 import (
 
 
 FOUNDATION_STRUCTURE_FEATURE_VERSION = (
-    "entry_foundation_structure_v4_20260809_bounded_amplifier_release_domain_failclosed"
+    "entry_foundation_structure_v5_20260813_swing_state_enum_decomposition_repair"
 )
 FOUNDATION_STRUCTURE_FEATURE_PREFIX = "chart.foundation_"
 FOUNDATION_EVENT_AGE_CAP = 96
@@ -353,11 +353,35 @@ def build_entry_foundation_structure_layer(
     high_context = _clip01(near_high * (0.50 + recent_high))
     low_context = _clip01(near_low * (0.50 + recent_low))
 
+    # ``snap.smc_swing_state`` enum (owner: gx1/features/smc_v1.py, the
+    # ``swing_state`` block): 0 = HH+HL (clean up), 1 = HH+LL (two-sided
+    # expansion), 2 = LH+HL (contraction/inside), 3 = LH+LL (clean down),
+    # 4 = exact tie or warmup.  The four indicators below are named after the
+    # enum's own two-sided decomposition, never after a direction bias.
+    #
+    # V30 package 8A (2026-08-13) — LIVE-BUG REPAIR, no new magnitude
+    # (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §4a).  States 1 and 2 were
+    # read as ``up_bias``/``down_bias``: state 1 was weighted 0.55 into
+    # ``hl_state`` although state 1 carries a LOWER low (evidence AGAINST a
+    # higher low), and state 2 was weighted 0.45 into ``ll_state`` although
+    # state 2 carries a HIGHER low.  Before the 2026-08-09 smc partition
+    # repair both states were reachable only on exact float ties, so the
+    # mislabel was inert; that repair made them live.  The repair here is the
+    # literal decomposition of the enum — each of the four HH/HL/LH/LL
+    # indicators is the sum of the two states that actually contain it:
+    #     HH in {0, 1}   HL in {0, 2}   LH in {1, 3}   LL in {2, 3}
+    # Every weight below is UNCHANGED and keeps its original role (the
+    # "clean" state of the pair keeps the clean-state weight, the mixed state
+    # keeps the mixed-state weight); only the state each weight multiplies is
+    # corrected.  Re-weighting would invent magnitudes (rule 2b).  Net effect:
+    # ``hh_state`` and ``ll_state`` were already the correct pairs and are
+    # byte-identical; ``hl_state`` swaps state 1 -> state 2 and ``lh_state``
+    # swaps state 2 -> state 1.
     swing_state = c("snap.smc_swing_state")
-    clean_up = _state_eq(swing_state, 0)
-    up_bias = _state_eq(swing_state, 1)
-    down_bias = _state_eq(swing_state, 2)
-    clean_down = _state_eq(swing_state, 3)
+    state_hh_hl = _state_eq(swing_state, 0)
+    state_hh_ll = _state_eq(swing_state, 1)
+    state_lh_hl = _state_eq(swing_state, 2)
+    state_lh_ll = _state_eq(swing_state, 3)
 
     bos_up_event = _clip01(c("snap.smc_bos_up"))
     bos_down_event = _clip01(c("snap.smc_bos_down"))
@@ -370,14 +394,20 @@ def build_entry_foundation_structure_layer(
     pullback = _clip01(0.60 * c("ctx_cont.struct_pullback_depth_h1_v3") + 0.40 * c("ctx_cont.struct_pullback_depth_h4_v3"))
     retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
 
-    hh_state = _clip01(0.85 * clean_up + 0.45 * up_bias + 0.50 * high_context * trend_up + 0.35 * bos_up_pressure)
+    # HH in {0, 1}: unchanged pairing (0.85 clean / 0.45 mixed).
+    hh_state = _clip01(0.85 * state_hh_hl + 0.45 * state_hh_ll + 0.50 * high_context * trend_up + 0.35 * bos_up_pressure)
     # Pullback/retracement amplifier normalized by its algebraic max: pullback
     # and retracement are each _clip01-bounded, so (1+pullback+retracement) is
     # in [1,3]; dividing by 3.0 maps it to [1/3,1] so the amplified term can no
     # longer saturate _clip01 exactly in the informative region.
-    hl_state = _clip01(0.75 * clean_up + 0.55 * up_bias + 0.60 * low_context * trend_up * ((1.0 + pullback + retracement) / 3.0))
-    lh_state = _clip01(0.55 * down_bias + 0.45 * clean_down + 0.60 * high_context * trend_down * ((1.0 + pullback + retracement) / 3.0))
-    ll_state = _clip01(0.85 * clean_down + 0.45 * down_bias + 0.50 * low_context * trend_down + 0.35 * bos_down_pressure)
+    # HL in {0, 2}: the 0.55 mixed-state weight moves off state 1 (HH+LL) onto
+    # state 2 (LH+HL), the state that actually carries a higher low.
+    hl_state = _clip01(0.75 * state_hh_hl + 0.55 * state_lh_hl + 0.60 * low_context * trend_up * ((1.0 + pullback + retracement) / 3.0))
+    # LH in {1, 3}: the 0.55 mixed-state weight moves off state 2 (LH+HL) onto
+    # state 1 (HH+LL), the state that actually carries a lower high.
+    lh_state = _clip01(0.55 * state_hh_ll + 0.45 * state_lh_ll + 0.60 * high_context * trend_down * ((1.0 + pullback + retracement) / 3.0))
+    # LL in {2, 3}: unchanged pairing (0.85 clean / 0.45 mixed).
+    ll_state = _clip01(0.85 * state_lh_ll + 0.45 * state_lh_hl + 0.50 * low_context * trend_down + 0.35 * bos_down_pressure)
     _add(arrays, names, "hh_state", hh_state, lo=0.0, hi=1.0)
     _add(arrays, names, "hl_state", hl_state, lo=0.0, hi=1.0)
     _add(arrays, names, "lh_state", lh_state, lo=0.0, hi=1.0)

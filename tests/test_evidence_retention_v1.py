@@ -24,6 +24,7 @@ from gx1.scripts.cleanup_gx1_evidence_v1 import (
     execute_cleanup,
     publish_cleanup_approval,
     recover_interrupted_cleanup,
+    resume_interrupted_cleanup,
 )
 
 
@@ -654,6 +655,343 @@ def test_interrupted_pre_staged_cleanup_restores_exact_source_paths(
     assert recovery["decision"] == "RESTORE_COMPLETE"
     assert len(recovery["restored"]) == 1
     assert recovery["failure"] is None
+
+
+def _staged_transaction(tmp_path: Path) -> dict[str, object]:
+    """Build the exact post-STAGED state an interrupted execution leaves behind."""
+
+    targets = [
+        tmp_path / "evidence" / "obsolete-a.bin",
+        tmp_path / "evidence" / "obsolete-b.bin",
+    ]
+    targets[0].parent.mkdir()
+    for index, target in enumerate(targets):
+        target.write_bytes(f"obsolete-{index}".encode())
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan_many(
+        tmp_path,
+        targets=targets,
+        registry=registry,
+        launch=launch,
+    )
+    approval_path, approval_sha = publish_cleanup_approval(
+        plan_json=plan_path,
+        plan_sha256=plan_sha,
+        vedtak=VEDTAK,
+        approved_by="test-operator",
+        out_dir=tmp_path / "approvals",
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    validated = validate_cleanup_plan(
+        plan_path,
+        plan_sha,
+        vedtak=VEDTAK,
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    stage_plan = cleanup_script._stage_plan(validated["targets"], plan_sha256=plan_sha)
+    staged = [
+        cleanup_script._stage_exact_target(target, mapping)
+        for target, mapping in zip(validated["targets"], stage_plan, strict=True)
+    ]
+    staged_path, _ = write_immutable_json_event(
+        tmp_path / "reports",
+        STAGED_PREFIX,
+        {
+            "schema_version": "gx1_evidence_cleanup_staged_v1",
+            "created_utc": CREATED_UTC,
+            "decision": "EXACT_TARGETS_STAGED_AND_REVALIDATED",
+            "plan_json": str(plan_path),
+            "plan_sha256": plan_sha,
+            "approval_json": str(approval_path),
+            "approval_sha256": approval_sha,
+            "vedtak": VEDTAK,
+            "stage_plan": stage_plan,
+            "staged": staged,
+            "direction_authority": False,
+            "launch_authority": False,
+        },
+    )
+    return {
+        "targets": targets,
+        "registry": registry,
+        "launch": launch,
+        "plan_path": plan_path,
+        "plan_sha": plan_sha,
+        "approval_path": approval_path,
+        "approval_sha": approval_sha,
+        "stage_plan": stage_plan,
+        "staged_path": staged_path,
+        "validated_targets": validated["targets"],
+    }
+
+
+def _resume(
+    state: dict[str, object],
+    tmp_path: Path,
+    *,
+    allow_interrupted_payload: bool = False,
+) -> int:
+    return resume_interrupted_cleanup(
+        plan_json=state["plan_path"],
+        plan_sha256=state["plan_sha"],
+        vedtak=VEDTAK,
+        approval_json=state["approval_path"],
+        approval_sha256=state["approval_sha"],
+        staged_json=state["staged_path"],
+        staged_sha256=sha256_file(state["staged_path"]),
+        out_dir=tmp_path / "reports",
+        resume=True,
+        quiet=True,
+        allow_interrupted_payload=allow_interrupted_payload,
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=state["registry"],
+        required_launch_contract_json=state["launch"],
+    )
+
+
+def _staged_tree_transaction(tmp_path: Path) -> dict[str, object]:
+    """A single directory target, staged, so a partial delete can be simulated."""
+
+    target = tmp_path / "evidence" / "obsolete-tree"
+    (target / "nested").mkdir(parents=True)
+    (target / "keep.bin").write_bytes(b"keep-payload")
+    (target / "nested" / "gone.bin").write_bytes(b"gone-payload")
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan_many(
+        tmp_path,
+        targets=[target],
+        registry=registry,
+        launch=launch,
+    )
+    approval_path, approval_sha = publish_cleanup_approval(
+        plan_json=plan_path,
+        plan_sha256=plan_sha,
+        vedtak=VEDTAK,
+        approved_by="test-operator",
+        out_dir=tmp_path / "approvals",
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    validated = validate_cleanup_plan(
+        plan_path,
+        plan_sha,
+        vedtak=VEDTAK,
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    stage_plan = cleanup_script._stage_plan(validated["targets"], plan_sha256=plan_sha)
+    staged = [cleanup_script._stage_exact_target(validated["targets"][0], stage_plan[0])]
+    staged_path, _ = write_immutable_json_event(
+        tmp_path / "reports",
+        STAGED_PREFIX,
+        {
+            "schema_version": "gx1_evidence_cleanup_staged_v1",
+            "created_utc": CREATED_UTC,
+            "decision": "EXACT_TARGETS_STAGED_AND_REVALIDATED",
+            "plan_json": str(plan_path),
+            "plan_sha256": plan_sha,
+            "approval_json": str(approval_path),
+            "approval_sha256": approval_sha,
+            "vedtak": VEDTAK,
+            "stage_plan": stage_plan,
+            "staged": staged,
+            "direction_authority": False,
+            "launch_authority": False,
+        },
+    )
+    return {
+        "targets": [target],
+        "registry": registry,
+        "launch": launch,
+        "plan_path": plan_path,
+        "plan_sha": plan_sha,
+        "approval_path": approval_path,
+        "approval_sha": approval_sha,
+        "stage_plan": stage_plan,
+        "staged_path": staged_path,
+    }
+
+
+def test_resume_finishes_a_payload_the_interrupted_run_died_inside(
+    tmp_path: Path,
+) -> None:
+    state = _staged_tree_transaction(tmp_path)
+    quarantine = Path(state["stage_plan"][0]["quarantine_path"])
+    # The killed run had already unlinked one file and removed its directory.
+    (quarantine / "nested" / "gone.bin").unlink()
+    (quarantine / "nested").rmdir()
+
+    # Without the explicit flag this state must fail closed and delete nothing.
+    with pytest.raises(RuntimeError, match="quarantine inventory differs"):
+        _resume(state, tmp_path)
+    assert (quarantine / "keep.bin").read_bytes() == b"keep-payload"
+
+    assert _resume(state, tmp_path, allow_interrupted_payload=True) == 0
+    assert not quarantine.exists()
+    assert not Path(state["stage_plan"][0]["quarantine_wrapper"]).exists()
+    assert not state["targets"][0].exists()
+    execution_path = max((tmp_path / "reports").glob(f"{EXECUTION_PREFIX}_*.json"))
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    assert execution["decision"] == "DELETE_COMPLETE"
+    assert execution["failure"] is None
+    assert len(execution["interrupted_payloads"]) == 1
+    assert execution["interrupted_payloads"][0]["absent_relative_paths"] == [
+        "nested",
+        "nested/gone.bin",
+    ]
+
+
+def test_interrupted_payload_mode_still_rejects_a_foreign_path(
+    tmp_path: Path,
+) -> None:
+    state = _staged_tree_transaction(tmp_path)
+    quarantine = Path(state["stage_plan"][0]["quarantine_path"])
+    (quarantine / "nested" / "gone.bin").unlink()
+    (quarantine / "nested" / "planted.bin").write_bytes(b"planted")
+    with pytest.raises(RuntimeError, match="foreign file"):
+        _resume(state, tmp_path, allow_interrupted_payload=True)
+    assert (quarantine / "keep.bin").read_bytes() == b"keep-payload"
+    assert (quarantine / "nested" / "planted.bin").exists()
+
+
+def test_interrupted_payload_mode_still_rejects_changed_surviving_bytes(
+    tmp_path: Path,
+) -> None:
+    state = _staged_tree_transaction(tmp_path)
+    quarantine = Path(state["stage_plan"][0]["quarantine_path"])
+    (quarantine / "nested" / "gone.bin").unlink()
+    (quarantine / "nested").rmdir()
+    (quarantine / "keep.bin").write_bytes(b"keep-payloaD")
+    with pytest.raises(RuntimeError, match="bytes changed"):
+        _resume(state, tmp_path, allow_interrupted_payload=True)
+    assert (quarantine / "keep.bin").exists()
+
+
+def test_interrupted_payload_mode_rejects_a_complete_payload(
+    tmp_path: Path,
+) -> None:
+    # An intact payload is not an interrupted delete; the normal exact-inventory
+    # path already handles it, so the relaxed proof must refuse to be invoked.
+    state = _staged_tree_transaction(tmp_path)
+    quarantine = Path(state["stage_plan"][0]["quarantine_path"])
+    assert (
+        cleanup_script._prove_interrupted_payload_subset.__name__
+        == "_prove_interrupted_payload_subset"
+    )
+    validated = validate_cleanup_plan(
+        state["plan_path"],
+        state["plan_sha"],
+        vedtak=VEDTAK,
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=state["registry"],
+        required_launch_contract_json=state["launch"],
+        verify_target_bytes=False,
+        require_targets_exist=False,
+    )
+    with pytest.raises(RuntimeError, match="not an interrupted delete"):
+        cleanup_script._prove_interrupted_payload_subset(
+            quarantine,
+            validated["targets"][0],
+        )
+
+
+def test_resume_finishes_a_delete_loop_interrupted_after_staging(
+    tmp_path: Path,
+) -> None:
+    state = _staged_transaction(tmp_path)
+    stage_plan = state["stage_plan"]
+    # The interrupted execution deleted the first staged target, then died
+    # before the second one and before writing any execution event.
+    cleanup_script._delete_staged_manifest_exact(
+        {
+            "quarantine_path": stage_plan[0]["quarantine_path"],
+            "kind": "file",
+        },
+        validate_cleanup_plan(
+            state["plan_path"],
+            state["plan_sha"],
+            vedtak=VEDTAK,
+            allowed_roots=(tmp_path,),
+            required_artifact_registry_json=state["registry"],
+            required_launch_contract_json=state["launch"],
+            verify_target_bytes=False,
+            require_targets_exist=False,
+        )["targets"][0],
+    )
+    Path(stage_plan[0]["quarantine_wrapper"]).rmdir()
+
+    assert _resume(state, tmp_path) == 0
+
+    assert all(not target.exists() for target in state["targets"])
+    assert not Path(stage_plan[1]["quarantine_wrapper"]).exists()
+    execution_path = max((tmp_path / "reports").glob(f"{EXECUTION_PREFIX}_*.json"))
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    assert execution["decision"] == "DELETE_COMPLETE"
+    assert execution["failure"] is None
+    assert execution["deleted"] == [str(state["targets"][1])]
+    assert execution["already_deleted_before_resume"] == [str(state["targets"][0])]
+    assert execution["resumed_from_staged_json"] == str(state["staged_path"])
+
+
+def test_resume_refuses_a_target_whose_source_is_still_present(
+    tmp_path: Path,
+) -> None:
+    # A transaction someone partially restored: the second target is back at its
+    # source path, so this is no longer a delete to finish. Resume must refuse
+    # it whole rather than delete the half that is still staged.
+    state = _staged_transaction(tmp_path)
+    cleanup_script._restore_staged_target(
+        state["validated_targets"][1],
+        state["stage_plan"][1],
+    )
+    with pytest.raises(RuntimeError, match="source is present"):
+        _resume(state, tmp_path)
+    assert state["targets"][1].read_bytes() == b"obsolete-1"
+    assert (
+        Path(state["stage_plan"][0]["quarantine_path"]).read_bytes() == b"obsolete-0"
+    )
+
+
+def test_resume_rejects_quarantined_bytes_that_changed_after_staging(
+    tmp_path: Path,
+) -> None:
+    state = _staged_transaction(tmp_path)
+    Path(state["stage_plan"][1]["quarantine_path"]).write_bytes(b"tampered")
+    with pytest.raises(RuntimeError, match="quarantine inventory differs"):
+        _resume(state, tmp_path)
+    # Fail closed before the first delete: the untampered payload survives too.
+    assert (
+        Path(state["stage_plan"][0]["quarantine_path"]).read_bytes() == b"obsolete-0"
+    )
+
+
+def test_resume_requires_the_explicit_flag(tmp_path: Path) -> None:
+    state = _staged_transaction(tmp_path)
+    with pytest.raises(RuntimeError, match="requires explicit --resume"):
+        resume_interrupted_cleanup(
+            plan_json=state["plan_path"],
+            plan_sha256=state["plan_sha"],
+            vedtak=VEDTAK,
+            approval_json=state["approval_path"],
+            approval_sha256=state["approval_sha"],
+            staged_json=state["staged_path"],
+            staged_sha256=sha256_file(state["staged_path"]),
+            out_dir=tmp_path / "reports",
+            resume=False,
+            quiet=True,
+            allowed_roots=(tmp_path,),
+            required_artifact_registry_json=state["registry"],
+            required_launch_contract_json=state["launch"],
+        )
+    assert (
+        Path(state["stage_plan"][0]["quarantine_path"]).read_bytes() == b"obsolete-0"
+    )
 
 
 def test_changed_target_bytes_invalidate_published_plan(tmp_path: Path) -> None:

@@ -84,8 +84,12 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # The chart-geometry layer dropped 43 NAME-ONLY / duplicate columns,
             # so BOTH hashes move; the surviving 15 columns are bit-identical to
             # their pre-removal emissions (verified column-by-column below).
+            # V30 package 8A (2026-08-13): the VALUE hash moves again (the name
+            # hash does not) because the foundation layer's smc_swing_state enum
+            # live bug was repaired — hl_state/lh_state now read the states that
+            # actually contain a higher low / lower high (audit §4a).
             (240, 72),
-            "bb4c08c942e525c0d6c19e42a13158dfc786c90575fa4112e573be37420b6261",
+            "2c1912ea7b790f6e21d43badc921a58689f8632e533655c65efe2a2a73e8552e",
             "7a19f36fda7af8e706bfddc854d092b12b9b850ce68b5ece5d3e38c6337c5843",
         ),
         "price": (

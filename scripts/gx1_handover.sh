@@ -190,7 +190,11 @@ echo "dataset_contract: CURRENT_PAIR_READY_FEATURE_DATASET_REBUILD_PENDING"
 echo "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
-echo "source_regression: PASS_2078_TESTS_ZERO_SKIPS_ZERO_WARNINGS"
+# A restated test count goes stale the moment anyone adds a test — and
+# every restated number in this repository has (rule 13/25). State the
+# standing requirement, which cannot rot, and date the last verification.
+echo "source_regression: FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
+echo "source_regression_last_verified: 2026-08-13 at 52e57533 (V30 packages 1-7)"
 echo "pair_generation_id: $pair_generation_id"
 echo "native_m1_root: $native_m1_root"
 echo "native_m5_root: $native_m5_root"
@@ -216,9 +220,13 @@ echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"
 # duplicate close_pressure_signed) takes signal 608 -> 591 (mandatory causal
 # 441 -> 424: chart_geometry_smart2 18 -> 2, price_action_candle_smart3
 # 32 -> 31), ctx_cont unchanged, and per-TF MULTI_TF_FEATURE_COUNT_V4
-# 189 -> 182 (the 7 candle removals mirror onto all five lanes).
+# 189 -> 182 (the 7 candle removals mirror onto all five lanes); package 8A
+# (the swing_state enum live-bug repair plus the emission-only additions: 6
+# swing fields on the ctx surface / the M5 event layer / all five per-TF lanes,
+# 4 level-registry M5 slot fields, 3 mtf_smc fields) takes ctx_cont 158 -> 164
+# and per-TF MULTI_TF_FEATURE_COUNT_V4 182 -> 191.
 # Derived from the entry_model_native_signal_v1 owner tuples.
-echo "entry: local=M5 sequence=96 signal=591 ctx_cont=158 ctx_cat=5 mtf=M15,H1,H4,D1"
+echo "entry: local=M5 sequence=96 signal=538 ctx_cont=164 ctx_cat=5 mtf=M15,H1,H4,D1"
 echo "entry_feature_surface: HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"
 echo "exit: local=M1 sequence=480 mtf=M5,M15,H1,H4,D1 same_contract_plus_causal_path shared_encoder=true"
 echo "mtf_construction: CLOSED_OHLCV_BEFORE_FEATURES_NO_COMPUTED_M1_RESAMPLING"

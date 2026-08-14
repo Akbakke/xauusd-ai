@@ -24,10 +24,17 @@ Mid-only substitution and synthetic gap filling are forbidden.
 `gx1_entry_exit_shared_feature_base_contract_v2` owns both resolutions:
 
 - instrument `XAU_USD`;
-- 591 ordered signals: 34 fixed base fields + 424 mandatory causal + 133
-  TRAIN-ranked, over 16 mandatory families (V29 event surface; the counts
-  derive from the owner tuples);
-- 158 continuous and 5 categorical context values;
+- ordered signals: 34 fixed base fields + the mandatory causal families + 133
+  TRAIN-ranked, over 16 mandatory families. **The counts are DERIVED from the
+  owner tuples (`MODEL_NATIVE_SIGNAL_DIM` in
+  `gx1/contracts/entry_model_native_signal_v1.py`, flattened from
+  `MODEL_NATIVE_SPECIALIST_LAYER_FEATURES` in
+  `gx1/features/entry_model_native_feature_layers_v1.py`) and are deliberately
+  NOT restated here** — every restated count in this repository has gone stale
+  within days (rule 13). Three families are produced in full and pinned only in
+  part; their unpinned fields compete in the TRAIN-ranked candidate pool, so
+  the mandatory count is strictly smaller than the emitted count;
+- 164 continuous and 5 categorical context values;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;
 - Entry local M5 sequence 96 plus closed M15/H1/H4/D1 context;
@@ -42,7 +49,8 @@ Resampling finished M1 indicator/feature values into M5/M15/H1/H4/D1 is
 forbidden. A forming higher-timeframe candle may never enter a decision.
 
 The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
-ordered 591 fields and TRAIN-rank reference hash used by the M5 Entry build.
+the same ordered field list at `MODEL_NATIVE_SIGNAL_DIM` width, and the
+TRAIN-rank reference hash used by the M5 Entry build.
 Any disagreement fails before dataset construction.
 
 The V29 registry layers (level and trendline registries and their event

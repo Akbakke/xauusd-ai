@@ -241,15 +241,17 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "trend_age_bars_norm",
 )
 MULTI_TF_V4_CANDLESTICK_FEATURES = _candlestick_feature_names_v4()
-# V30 Phase-A completion (2026-08-13): the nine V29 swing-event additions join
-# the per-TF lane.  The design doc's STAGE-2 CORRECTION item 3 declared this
+# V30 Phase-A completion (2026-08-13): the V29 swing-event additions join
+# the per-TF lane (nine at package 2; package 8A appended six more — the two
+# MISSING run counters, the two "last confirmed pivot not closed through"
+# intact flags and the two normalized siblings of the raw V1 swing ages).  The design doc's STAGE-2 CORRECTION item 3 declared this
 # ("structure_swing per-TF additions (``MULTI_TF_V4_SWING_FEATURES`` 5->17,
 # +9/TF)") and the stage-2 wiring wave did not perform it; the producer has
 # emitted them behind ``include_v29_additions`` since the Phase-A build.
 #
 # Per-TF spelling: the five pre-V29 fields keep their historical ``swing_``
 # prefix (their source names — ``bars_since_swing_high`` … — are ambiguous
-# without it); the nine V29 names are emitted VERBATIM, because they already
+# without it); the V29/V30 addition names are emitted VERBATIM, because they already
 # carry their own ``swing_``/``bars_since_swing_``/``consecutive_`` identity
 # and re-prefixing would spell ``swing_swing_high_break_event``.  The
 # per-TF-name -> producer-field mapping is therefore declared explicitly here
@@ -2243,9 +2245,10 @@ def compute_per_bar_features_v4(
     ]
     if missing_swing:
         raise RuntimeError(f"HTF_V4_SWING_FIELD_MISSING: {missing_swing}")
-    # Built as one block and concatenated below (14 columns, not 5, since the
-    # V30 adoption): a per-column insert into the already-wide `out` frame
-    # fragments its BlockManager past pandas' 100-block warning threshold.
+    # Built as one block and concatenated below (the full
+    # MULTI_TF_V4_SWING_FEATURES width, not the pre-V30 five): a per-column
+    # insert into the already-wide `out` frame fragments its BlockManager past
+    # pandas' 100-block warning threshold.
     swing_frame = pd.DataFrame(
         {
             name: np.asarray(

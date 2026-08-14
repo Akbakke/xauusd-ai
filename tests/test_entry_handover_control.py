@@ -135,14 +135,32 @@ def test_handover_viewer_prints_current_goal() -> None:
         "9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd"
         in result.stdout
     )
-    assert "source_regression: PASS_2078_TESTS_ZERO_SKIPS_ZERO_WARNINGS" in result.stdout
+    # The status owner states the standing requirement and dates the last
+    # verification instead of restating a count that goes stale on the
+    # next added test (rule 13/25).
+    assert (
+        "source_regression: "
+        "FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
+        in result.stdout
+    )
+    assert "source_regression_last_verified: " in result.stdout
     assert "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY" in result.stdout
-    # V30 (2026-08-13): signal 591 = 34 + 424 mandatory + 133 ranked (package 7
-    # removed 16 mandatory chart-geometry pins and one mandatory candle column);
-    # ctx_cont 158 (package 1's H4_range_compression_ratio + package 2's nine
-    # adopted swing V29 ctx fields and three momentum-G3 RSI canon scalars +
-    # package 4's three quote/spread-dynamics fields).
-    assert "entry: local=M5 sequence=96 signal=591 ctx_cont=158 ctx_cat=5" in result.stdout
+    # The dims are DERIVED from the contract owner, so this assertion reads the
+    # owner rather than restating the numbers (rule 13: every restated count in
+    # this repository has gone stale within days).
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CAT_DIM,
+        MODEL_NATIVE_CTX_CONT_DIM,
+        MODEL_NATIVE_SEQ_LEN,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
+
+    assert (
+        f"entry: local=M5 sequence={MODEL_NATIVE_SEQ_LEN} "
+        f"signal={MODEL_NATIVE_SIGNAL_DIM} "
+        f"ctx_cont={MODEL_NATIVE_CTX_CONT_DIM} "
+        f"ctx_cat={MODEL_NATIVE_CTX_CAT_DIM}" in result.stdout
+    )
     assert (
         "entry_feature_surface: "
         "HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"

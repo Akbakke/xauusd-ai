@@ -99,6 +99,20 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
         columns[name] = (
             1.0 + 0.05 * np.sin(index * np.float32(0.017))
         ).astype(np.float32)
+    # V30 package 8B (2026-08-13): the two realized-volatility magnitudes are
+    # non-negative by construction (``rvol_20`` = std(pct_change)*1e4*sqrt(20),
+    # ``_v1_pk_sigma20`` = a Parkinson sigma from log(high/low)), and the
+    # volatility semantics owner now fails closed on a negative one instead of
+    # reading it through a z-score scale.  The sinusoidal default above is
+    # signed, so the fixture must supply each field's own physically valid
+    # domain -- centred on the measured TRAIN medians (V29J, 369,303 rows:
+    # rvol_20 p50 = 18.44, _v1_pk_sigma20 p50 = 4.10e-4).
+    columns["rvol_20"] = (
+        18.44 + 6.0 * np.sin(index * np.float32(0.017))
+    ).astype(np.float32)
+    columns["_v1_pk_sigma20"] = (
+        4.10e-4 + 1.30e-4 * np.sin(index * np.float32(0.023))
+    ).astype(np.float32)
     # The session-regime owner fails closed unless the two session clocks sum
     # to a named session length (SESSION_LENGTH_MINUTES); derive both clocks
     # from the owner's EU constant so the fixture satisfies the producer

@@ -65,6 +65,7 @@ _STARTED_KEYS = {
     "direction_authority",
     "launch_authority",
 }
+_STAGED_KEYS = _STARTED_KEYS | {"staged"}
 _INVENTORY_FIELDS = (
     "kind",
     "file_count",
@@ -285,6 +286,85 @@ def _validate_cleanup_started_event(
     return path, event
 
 
+def _validate_cleanup_staged_event(
+    staged_json: Path,
+    staged_sha256: str,
+    *,
+    validated_plan: dict[str, Any],
+    approval_json: Path,
+    approval_sha256: str,
+    expected_stage_plan: Sequence[dict[str, str]],
+) -> tuple[Path, dict[str, Any]]:
+    """Bind the immutable STAGED event of an interrupted execution.
+
+    The event records every target's post-staging inventory, re-verified by the
+    execution that wrote it. It is the only admissible authority for resuming a
+    delete loop that was interrupted after staging.
+    """
+
+    raw_path = Path(staged_json).expanduser()
+    if not raw_path.is_absolute() or raw_path.is_symlink():
+        raise RuntimeError("cleanup staged event path must be absolute and not a symlink")
+    path = raw_path.resolve(strict=True)
+    if raw_path != path or not path.is_file():
+        raise RuntimeError("cleanup staged event is not an exact regular file")
+    expected_sha = staged_sha256.strip().lower()
+    if len(expected_sha) != 64 or any(
+        char not in "0123456789abcdef" for char in expected_sha
+    ):
+        raise RuntimeError("cleanup staged event SHA-256 is invalid")
+    if sha256_file(path) != expected_sha:
+        raise RuntimeError("cleanup staged event SHA-256 mismatch")
+    try:
+        event = json.loads(
+            path.read_text(encoding="utf-8"),
+            parse_constant=lambda token: (_ for _ in ()).throw(
+                ValueError(f"non-finite JSON token {token}")
+            ),
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError(f"cleanup staged event is not strict JSON: {exc}") from exc
+    if not isinstance(event, dict) or set(event) != _STAGED_KEYS:
+        raise RuntimeError("cleanup staged event keys are invalid")
+    require_newest_immutable_event(path, STAGED_PREFIX)
+    required = {
+        "schema_version": "gx1_evidence_cleanup_staged_v1",
+        "decision": "EXACT_TARGETS_STAGED_AND_REVALIDATED",
+        "json_path": str(path),
+        "plan_json": validated_plan["plan_json"],
+        "plan_sha256": validated_plan["plan_sha256"],
+        "approval_json": str(Path(approval_json).expanduser().resolve(strict=True)),
+        "approval_sha256": approval_sha256.strip().lower(),
+        "vedtak": validated_plan["vedtak"],
+        "stage_plan": list(expected_stage_plan),
+        "direction_authority": False,
+        "launch_authority": False,
+    }
+    for field, expected in required.items():
+        if event.get(field) != expected:
+            raise RuntimeError(f"cleanup staged event {field} does not match plan")
+    staged = event.get("staged")
+    targets = validated_plan["targets"]
+    if not isinstance(staged, list) or len(staged) != len(targets):
+        raise RuntimeError("cleanup staged event does not cover every plan target")
+    for entry, mapping, target in zip(staged, expected_stage_plan, targets, strict=True):
+        if not isinstance(entry, dict):
+            raise RuntimeError("cleanup staged event entry is invalid")
+        for field, expected in mapping.items():
+            if entry.get(field) != expected:
+                raise RuntimeError(
+                    f"cleanup staged event entry {field} does not match the stage plan"
+                )
+        if not _same_inventory(target, entry):
+            raise RuntimeError(
+                "cleanup staged event inventory differs from the plan target: "
+                f"{mapping['source_path']}"
+            )
+    if sha256_file(path) != expected_sha:
+        raise RuntimeError("cleanup staged event changed during validation")
+    return path, event
+
+
 def _require_staged_delete_authority_unchanged(
     *,
     validated_plan: dict[str, Any],
@@ -484,9 +564,62 @@ def _delete_manifest_file(root: Path, row: dict[str, Any]) -> None:
         os.close(parent_fd)
 
 
+def _prove_interrupted_payload_subset(
+    quarantine: Path,
+    plan_target: dict[str, Any],
+) -> set[str]:
+    """Prove a mid-deletion quarantine holds only plan-manifest paths.
+
+    A delete loop killed part-way through leaves a payload that can never match
+    its plan inventory again: some entries are already unlinked. The surviving
+    bytes are still admissible for deletion — they were hash-verified into the
+    plan and approved — but only once it is proven that nothing foreign appeared
+    in their place. Returns the manifest-relative paths proven absent.
+    """
+
+    rows = _inventory_manifest_rows(plan_target)
+    declared_files = {
+        str(row["relative_path"]) for row in rows if row.get("kind") == "file"
+    }
+    declared_dirs = {
+        str(row["relative_path"]) for row in rows if row.get("kind") == "directory"
+    }
+    present_files: set[str] = set()
+    present_dirs: set[str] = {"."}
+    for path in quarantine.rglob("*"):
+        relative = str(PurePosixPath(path.relative_to(quarantine)))
+        if path.is_symlink():
+            raise RuntimeError(
+                f"cleanup interrupted payload holds a symlink: {relative}"
+            )
+        if path.is_file():
+            if relative not in declared_files:
+                raise RuntimeError(
+                    f"cleanup interrupted payload holds a foreign file: {relative}"
+                )
+            present_files.add(relative)
+        elif path.is_dir():
+            if relative not in declared_dirs:
+                raise RuntimeError(
+                    f"cleanup interrupted payload holds a foreign directory: {relative}"
+                )
+            present_dirs.add(relative)
+        else:
+            raise RuntimeError(
+                f"cleanup interrupted payload holds a non-regular entry: {relative}"
+            )
+    if not (declared_files - present_files) and not (declared_dirs - present_dirs):
+        raise RuntimeError(
+            "cleanup interrupted payload is complete; it is not an interrupted delete"
+        )
+    return (declared_files - present_files) | (declared_dirs - present_dirs)
+
+
 def _delete_staged_manifest_exact(
     staged_target: dict[str, Any],
     plan_target: dict[str, Any],
+    *,
+    absent_relative_paths: frozenset[str] = frozenset(),
 ) -> None:
     root = Path(staged_target["quarantine_path"])
     rows = _inventory_manifest_rows(plan_target)
@@ -500,11 +633,14 @@ def _delete_staged_manifest_exact(
         raise RuntimeError("cleanup directory manifest root is invalid")
     for row in rows:
         if row.get("kind") == "file":
+            if str(row["relative_path"]) in absent_relative_paths:
+                continue
             _delete_manifest_file(root, row)
     directories = [
         PurePosixPath(str(row["relative_path"]))
         for row in rows[1:]
         if row.get("kind") == "directory"
+        and str(row["relative_path"]) not in absent_relative_paths
     ]
     for relative in sorted(directories, key=lambda path: len(path.parts), reverse=True):
         directory = root.joinpath(*relative.parts)
@@ -930,6 +1066,214 @@ def execute_cleanup(
     return 0
 
 
+def resume_interrupted_cleanup(
+    *,
+    plan_json: Path,
+    plan_sha256: str,
+    vedtak: str,
+    approval_json: Path,
+    approval_sha256: str,
+    staged_json: Path,
+    staged_sha256: str,
+    out_dir: Path,
+    resume: bool,
+    quiet: bool,
+    allow_interrupted_payload: bool = False,
+    allowed_roots: Sequence[Path] = (GX1_DATA_ROOT,),
+    required_artifact_registry_json: Path = DEFAULT_REGISTRY,
+    required_launch_contract_json: Path = DEFAULT_LAUNCH,
+) -> int:
+    """Finish the delete loop of an execution interrupted after STAGED.
+
+    `execute` stages every target, revalidates it by content hash, writes the
+    immutable STAGED event and only then removes bytes. An execution killed
+    inside that final loop leaves a transaction that `execute` cannot repeat
+    (its sources are gone) and that `recover` cannot restore (some targets are
+    already deleted, so its exactly-one-copy invariant fails). This completes
+    it from the STAGED event, which carries the already-revalidated inventory
+    of every target.
+
+    Fail-closed states: a present source (nothing to resume — that target was
+    never staged or was recovered), a source and a quarantine copy at once, a
+    quarantine whose inventory no longer matches the plan, or any authority
+    byte changed since the plan was approved.
+
+    `allow_interrupted_payload` admits the one remaining state: a target the
+    interrupted run died *inside*, whose payload is a strict subset of its plan
+    manifest. It can never match its inventory again, so it is admitted only
+    after proving every surviving entry is a declared manifest path and that no
+    foreign path appeared; every surviving file is still hash-checked against
+    the plan immediately before it is unlinked. It never widens what may be
+    deleted — only which already-approved bytes may still be reached.
+    """
+
+    if not resume:
+        raise RuntimeError("cleanup resume requires explicit --resume")
+    validated = validate_cleanup_plan(
+        plan_json,
+        plan_sha256,
+        vedtak=vedtak,
+        allowed_roots=allowed_roots,
+        required_artifact_registry_json=required_artifact_registry_json,
+        required_launch_contract_json=required_launch_contract_json,
+        verify_target_bytes=False,
+        require_targets_exist=False,
+    )
+    _validate_cleanup_approval(
+        approval_json,
+        approval_sha256,
+        validated_plan=validated,
+    )
+    stage_plan = _stage_plan(
+        validated["targets"],
+        plan_sha256=validated["plan_sha256"],
+    )
+    staged_path, staged_event = _validate_cleanup_staged_event(
+        staged_json,
+        staged_sha256,
+        validated_plan=validated,
+        approval_json=approval_json,
+        approval_sha256=approval_sha256,
+        expected_stage_plan=stage_plan,
+    )
+    report_dir = _validated_output_dir(
+        out_dir,
+        validated["targets"],
+        context="cleanup resume report",
+    )
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    # Classify and revalidate every target before removing a single byte.
+    pending: list[tuple[dict[str, Any], dict[str, Any], frozenset[str]]] = []
+    already_deleted: list[str] = []
+    interrupted: list[dict[str, Any]] = []
+    for target, mapping, entry in zip(
+        validated["targets"],
+        stage_plan,
+        staged_event["staged"],
+        strict=True,
+    ):
+        source = Path(mapping["source_path"])
+        wrapper = Path(mapping["quarantine_wrapper"])
+        quarantine = Path(mapping["quarantine_path"])
+        source_present = source.exists() or source.is_symlink()
+        wrapper_present = wrapper.exists() or wrapper.is_symlink()
+        if source_present and wrapper_present:
+            raise RuntimeError(
+                f"cleanup resume found a source and a quarantine copy: {source}"
+            )
+        if source_present:
+            raise RuntimeError(
+                "cleanup resume requires every target staged or already deleted; "
+                f"source is present: {source}"
+            )
+        if not wrapper_present:
+            already_deleted.append(str(source))
+            continue
+        if (
+            wrapper.is_symlink()
+            or not wrapper.is_dir()
+            or quarantine.is_symlink()
+            or not quarantine.exists()
+        ):
+            raise RuntimeError(f"cleanup resume quarantine is invalid: {quarantine}")
+        observed = inventory_path(quarantine)
+        if _same_inventory(target, observed):
+            pending.append(
+                (
+                    target,
+                    {**entry, **{f: observed[f] for f in _INVENTORY_FIELDS}},
+                    frozenset(),
+                )
+            )
+            continue
+        if not allow_interrupted_payload:
+            raise RuntimeError(
+                f"cleanup resume quarantine inventory differs: {quarantine}"
+            )
+        absent = _prove_interrupted_payload_subset(quarantine, target)
+        interrupted.append(
+            {
+                **entry,
+                **{f: observed[f] for f in _INVENTORY_FIELDS},
+                "absent_relative_paths": sorted(absent),
+            }
+        )
+        pending.append(
+            (
+                target,
+                {**entry, **{f: observed[f] for f in _INVENTORY_FIELDS}},
+                frozenset(absent),
+            )
+        )
+
+    deleted: list[str] = []
+    failure: str | None = None
+    try:
+        for plan_target, staged_target, absent in pending:
+            _require_staged_delete_authority_unchanged(
+                validated_plan=validated,
+                approval_json=approval_json,
+                approval_sha256=approval_sha256,
+            )
+            _delete_staged_manifest_exact(
+                staged_target,
+                plan_target,
+                absent_relative_paths=absent,
+            )
+            deleted.append(staged_target["source_path"])
+            Path(staged_target["quarantine_wrapper"]).rmdir()
+    except Exception as exc:
+        failure = f"{type(exc).__name__}: {exc}"
+
+    _, execution = write_immutable_json_event(
+        report_dir,
+        EXECUTION_PREFIX,
+        {
+            "schema_version": "gx1_evidence_cleanup_execution_v1",
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "decision": (
+                "DELETE_COMPLETE" if failure is None else "CLEANUP_PARTIAL_FAILURE"
+            ),
+            "plan_json": validated["plan_json"],
+            "plan_sha256": validated["plan_sha256"],
+            "vedtak": validated["vedtak"],
+            "resumed_from_staged_json": str(staged_path),
+            "resumed_from_staged_sha256": staged_sha256.strip().lower(),
+            "approval_json": str(Path(approval_json).expanduser().resolve()),
+            "approval_sha256": approval_sha256.strip().lower(),
+            "stage_plan": stage_plan,
+            "staged": [staged_target for _, staged_target, _absent in pending],
+            "deleted": deleted,
+            "already_deleted_before_resume": already_deleted,
+            "interrupted_payloads": interrupted,
+            "failure": failure,
+            "direction_authority": False,
+            "launch_authority": False,
+        },
+    )
+    _json(execution, quiet=quiet)
+    if failure is not None:
+        raise RuntimeError(f"cleanup resume stopped after partial failure: {failure}")
+    return 0
+
+
+def _resume(args: argparse.Namespace) -> int:
+    return resume_interrupted_cleanup(
+        plan_json=Path(args.plan_json),
+        plan_sha256=args.plan_sha256,
+        vedtak=args.vedtak,
+        approval_json=Path(args.approval_json),
+        approval_sha256=args.approval_sha256,
+        staged_json=Path(args.staged_json),
+        staged_sha256=args.staged_sha256,
+        out_dir=Path(args.out_dir),
+        resume=args.resume,
+        quiet=args.quiet,
+        allow_interrupted_payload=args.allow_interrupted_payload,
+    )
+
+
 def _execute(args: argparse.Namespace) -> int:
     return execute_cleanup(
         plan_json=Path(args.plan_json),
@@ -1007,6 +1351,20 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--execute", action="store_true")
     execute.add_argument("--quiet", action="store_true")
     execute.set_defaults(handler=_execute)
+
+    resume = subparsers.add_parser("resume")
+    resume.add_argument("--plan-json", required=True)
+    resume.add_argument("--plan-sha256", required=True)
+    resume.add_argument("--vedtak", required=True)
+    resume.add_argument("--approval-json", required=True)
+    resume.add_argument("--approval-sha256", required=True)
+    resume.add_argument("--staged-json", required=True)
+    resume.add_argument("--staged-sha256", required=True)
+    resume.add_argument("--out-dir", default=str(DEFAULT_REPORT_DIR))
+    resume.add_argument("--resume", action="store_true")
+    resume.add_argument("--allow-interrupted-payload", action="store_true")
+    resume.add_argument("--quiet", action="store_true")
+    resume.set_defaults(handler=_resume)
 
     recover = subparsers.add_parser("recover")
     recover.add_argument("--plan-json", required=True)

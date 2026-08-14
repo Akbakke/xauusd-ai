@@ -5,11 +5,13 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.features.entry_volatility_semantics_v1 import center_cross_tf_atr_ratio
 from gx1.time.session_detector import SESSION_BOUNDARIES
 
 
 SESSION_REGIME_INTERACTION_FEATURE_VERSION = (
-    "entry_session_regime_interactions_v1_20260809_causal_clock_fitted_spread_scale"
+    "entry_session_regime_interactions_v2_20260813_"
+    "graded_spread_bucket_producer_bound_release_cross_tf_center"
 )
 
 # Exact per-session length in minutes, derived from the session owner's named
@@ -87,7 +89,17 @@ SESSION_REGIME_INTERACTION_FEATURE_SUFFIXES = (
     "h4_d1_stack_bear_pressure",
     "h4_d1_trend_age_exhaustion_pressure",
     "h4_d1_d1_roc_reversal_pressure",
-    "regime_transition_abstain_score",
+    # ``regime_transition_abstain_score`` was REMOVED here on 2026-08-13 (V30
+    # package 8B).  It was a hand-written ABSTAIN vote -- a weighted sum of five
+    # risk terms whose only meaning is "do not trade now" -- and abstention is
+    # the model's own decision authority (rule 3: FLAT comes from the calibrated
+    # logits, never from a pre-computed vote handed to the encoder).  Rule 4 is
+    # satisfied because every input it consumed is still a model input:
+    # ``regime_change_pressure``, ``mtf_regime_divergence_pressure``,
+    # ``h4_d1_regime_sign_mismatch`` and ``h4_d1_d1_roc_reversal_pressure`` are
+    # still emitted by this layer, and ``regime_boundary_pressure`` is
+    # 1 - ``ctx_cont.d1_dist_to_boundary_v3``, a declared context field.  The
+    # model learns the fusion instead of being handed it.
     "regime_transition_tail_risk",
     "regime_transition_x_overlap_risk",
     "asia_range_liquidity_reversal_pressure",
@@ -118,6 +130,61 @@ SESSION_REGIME_INTERACTION_FEATURE_NAMES = tuple(
     f"{SESSION_REGIME_INTERACTION_FEATURE_PREFIX}{suffix}"
     for suffix in SESSION_REGIME_INTERACTION_FEATURE_SUFFIXES
 )
+
+# --- MANDATORY subset vs the TRAIN-ranked remainder --------------------------
+# V30 package 8B, 2026-08-13.  Every field above is still PRODUCED; what changes
+# is which of them are PINNED into the mandatory causal surface.
+#
+# docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1c: of this layer's fields, only
+# these carry information the model's own fusion cannot form from inputs it
+# already has.  Everything else is a mask x pressure product, a pressure x
+# pressure product or a hand-weighted vote over fields that are themselves model
+# inputs -- exactly the ``mtf_confluence`` class rule 4 retired on 2026-08-05.
+# Those fields are NOT deleted: they drop into the TRAIN-only ranked candidate
+# pool (they are discovered there by the ranker's ``*_FEATURE_NAMES``
+# reflection, see
+# gx1/scripts/materialize_entry_model_native_train_feature_ranker_v1
+# ._candidate_universe), where they compete with ``spread_bps`` and every other
+# ctx field on measured TRAIN evidence instead of being handed a slot.
+#
+# The five kept:
+#   spread_cost_ratio               cost per unit of expected movement -- a real
+#                                   ratio of two units, not a re-weighting
+#   session_age_progress_norm       position inside the OWNING session, using
+#                                   the per-row session length; not derivable
+#                                   from either clock alone
+#   mtf_regime_class_vote_agreement discrete cross-TF class agreement over five
+#                                   categorical ids
+#   mtf_regime_short_long_mismatch  the discrete disagreement predicate
+#   h4_d1_regime_sign_agreement     discrete H4/D1 regime-sign identity
+#
+# The order is DERIVED from the emission tuple, never hand-sequenced: the
+# mandatory registry prefix must stay byte-stable in emission order.
+SESSION_REGIME_INTERACTION_MANDATORY_SUFFIXES = frozenset(
+    {
+        "spread_cost_ratio",
+        "session_age_progress_norm",
+        "mtf_regime_class_vote_agreement",
+        "mtf_regime_short_long_mismatch",
+        "h4_d1_regime_sign_agreement",
+    }
+)
+SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES = tuple(
+    name
+    for name, suffix in zip(
+        SESSION_REGIME_INTERACTION_FEATURE_NAMES,
+        SESSION_REGIME_INTERACTION_FEATURE_SUFFIXES,
+    )
+    if suffix in SESSION_REGIME_INTERACTION_MANDATORY_SUFFIXES
+)
+if len(SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES) != len(
+    SESSION_REGIME_INTERACTION_MANDATORY_SUFFIXES
+):
+    raise RuntimeError(
+        "ENTRY_SESSION_REGIME_MANDATORY_SUFFIX_NOT_EMITTED: "
+        f"declared={sorted(SESSION_REGIME_INTERACTION_MANDATORY_SUFFIXES)} "
+        f"resolved={list(SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES)}"
+    )
 
 SESSION_REGIME_INTERACTION_SOURCE_FIELDS = (
     "snap.ret_1",
@@ -230,6 +297,50 @@ def _lag1(arr: np.ndarray) -> np.ndarray:
 
 def _bucket_ge(arr: np.ndarray, threshold: int) -> np.ndarray:
     return (np.rint(arr) >= int(threshold)).astype(np.float32)
+
+
+def _ctx_cat_domain_max(field: str) -> int:
+    """Return the max categorical code for ``field`` from the domain owner.
+
+    Deferred import: ``gx1.contracts.entry_model_native_signal_v1`` imports the
+    feature-layers registry, which imports this module for its name tuple, so a
+    module-level import here would be circular.  Same pattern and same
+    contiguity check as ``entry_vol_compression_v1._ctx_cat_domain_max``.
+    """
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CAT_DOMAINS,
+    )
+
+    domain = MODEL_NATIVE_CTX_CAT_DOMAINS[field]
+    if tuple(domain) != tuple(range(len(domain))):
+        raise RuntimeError(
+            f"ENTRY_SESSION_REGIME_CTX_CAT_DOMAIN_NOT_CONTIGUOUS: {field}"
+        )
+    return int(len(domain) - 1)
+
+
+def _bucket_graded_pressure(arr: np.ndarray, *, field: str) -> np.ndarray:
+    """Return [0,1] pressure with ONE indicator per declared bucket step.
+
+    This is the form ``atr_bucket_pressure`` already uses (a separate
+    ``_bucket_ge`` indicator per step, summed to 1.0 at the top bucket),
+    generalized to the field's declared domain so no step can be collapsed.
+    The weight is ``1 / n_steps`` with ``n_steps`` read from the domain owner
+    (MODEL_NATIVE_CTX_CAT_DOMAINS) -- the same derived-divisor convention
+    ``entry_vol_compression_v1`` uses -- so no magnitude is introduced.
+    """
+
+    steps = _ctx_cat_domain_max(field)
+    if steps <= 0:
+        raise RuntimeError(
+            f"ENTRY_SESSION_REGIME_CTX_CAT_DOMAIN_DEGENERATE: {field}"
+        )
+    weight = 1.0 / float(steps)
+    graded = np.zeros_like(np.asarray(arr, dtype=np.float32))
+    for step in range(1, steps + 1):
+        graded = graded + weight * _bucket_ge(arr, step)
+    return _clip01(graded)
 
 
 def _bucket_le(arr: np.ndarray, threshold: int) -> np.ndarray:
@@ -377,9 +488,22 @@ def build_entry_session_regime_interaction_layer(
     spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps")), 0.0, 5.0)
     spread_pressure = _clip01(_tanh(spread_ratio, scale=SPREAD_RATIO_TANH_SCALE_TRAIN_P90))
     spread_bucket = c("ctx_cat.spread_bucket")
-    spread_bucket_high = _bucket_ge(spread_bucket, 2)
-    spread_bucket_medium_or_high = _bucket_ge(spread_bucket, 1)
-    spread_bucket_pressure = _clip01(np.maximum(spread_pressure, 0.50 * spread_bucket_medium_or_high + 0.50 * spread_bucket_high))
+    # V30 package 8B (2026-08-13): the previous form was
+    #   0.50 * 1{bucket >= 1} + 0.50 * 1{bucket >= 2}
+    # over a FIVE-code declared domain (0..4), so codes 2, 3 and 4 all mapped to
+    # 1.0 and every rollover spike collapsed into the same value as an ordinary
+    # elevated spread.  MEASURED on the complete declared TRAIN population
+    # (XAU_ENTRY_EXIT_M15_20260811_V29J, 369,303 rows):
+    # ``session_regime.spread_bucket_high_pressure`` was exactly 1.0 on
+    # 60.0011% of rows.  It now uses the GRADED form its sibling
+    # ``atr_bucket_pressure`` uses two blocks below -- one indicator per bucket
+    # step -- over the field's own declared domain, so bucket b reads b/4.
+    spread_bucket_pressure = _clip01(
+        np.maximum(
+            spread_pressure,
+            _bucket_graded_pressure(spread_bucket, field="spread_bucket"),
+        )
+    )
     low_spread_permission = _clip01(1.0 - spread_pressure)
     bucket_low_spread_permission = _clip01((1.0 - spread_bucket_pressure) * low_spread_permission)
     atr_bucket = c("ctx_cat.atr_bucket")
@@ -399,10 +523,41 @@ def build_entry_session_regime_interaction_layer(
     vol_regime_extreme = _bucket_ge(vol_regime, 3)
     vol_pressure = _clip01(0.45 * vol_m5 + 0.35 * vol_h1 + 0.20 * d1_atr_pct)
     vol_regime_pressure = _clip01(np.maximum(vol_pressure, 0.65 * vol_regime_high + 0.35 * vol_regime_extreme))
+    # Same cross-TF centring defect as entry_vol_compression_v1, swept here in
+    # the same wave (rule 25b).  ``_tanh(ratio, scale=2.0)`` treats a raw
+    # cross-TF ATR ratio as if it were centred at 0, but ATR scales as the
+    # square root of bar duration, so on the complete declared TRAIN population
+    # (369,303 rows) the three ratios have means 0.5697 / 0.1064 / 0.2182 and
+    # this term was pinned near +0.148 on every row -- it could never say "short
+    # -dated volatility is contracting relative to the higher timeframe".  The
+    # owner transform re-centres each pair on its own scaling-law expectation;
+    # ``_pos`` then makes this the expansion pressure its consumer
+    # (``vol_expansion_pressure``) reads it as.  Weights are unchanged.
     atr_ratio_pressure = _clip01(
-        0.34 * _tanh(c("ctx_cont.atr_ratio_m5_m15"), scale=2.0)
-        + 0.33 * _tanh(c("ctx_cont.atr_ratio_m15_d1"), scale=2.0)
-        + 0.33 * _tanh(c("ctx_cont.atr_ratio_h1_d1"), scale=2.0)
+        0.34
+        * _pos(
+            center_cross_tf_atr_ratio(
+                c("ctx_cont.atr_ratio_m5_m15"),
+                short_timeframe="M5",
+                long_timeframe="M15",
+            )
+        )
+        + 0.33
+        * _pos(
+            center_cross_tf_atr_ratio(
+                c("ctx_cont.atr_ratio_m15_d1"),
+                short_timeframe="M15",
+                long_timeframe="D1",
+            )
+        )
+        + 0.33
+        * _pos(
+            center_cross_tf_atr_ratio(
+                c("ctx_cont.atr_ratio_h1_d1"),
+                short_timeframe="H1",
+                long_timeframe="D1",
+            )
+        )
     )
     vol_expansion_pressure = _clip01(0.70 * vol_pressure + 0.30 * _pos(vol_pressure - _lag1(vol_pressure)) + 0.20 * atr_ratio_pressure)
 
@@ -492,7 +647,17 @@ def build_entry_session_regime_interaction_layer(
     bos_balance = _clip(c("chart.foundation_bos_recent_balance"), -1.0, 1.0)
     choch_recent = _clip01(c("chart.foundation_choch_recent_tau24"))
     sweep_balance = _clip(c("chart.foundation_sweep_reclaim_balance_proxy") / 5.0, -1.0, 1.0)
-    compression_release = _clip01(c("chart.foundation_compression_release_trigger") / 5.0)
+    # The sibling divisors above and below normalize by the PRODUCER's declared
+    # range (entry_foundation_structure_v1 ``_add`` bounds): structure_up_minus_down
+    # is [-2, 2] and sweep_reclaim_balance_proxy is [-5, 5], so /2.0 and /5.0 are
+    # correct there.  ``compression_release_trigger`` is declared [0, 1] at its
+    # producer -- the [0, 5] clip it once carried was proved unreachable in the
+    # 2026-08-09 wave, and entry_vol_compression_v1 already states "no rescale is
+    # needed" for the same field.  The stale /5.0 therefore capped this term, and
+    # the three features built on it (``eu_structure_breakout_readiness``,
+    # ``session_vol_spread_breakout_readiness``, ``session_vol_spread_tail_risk``),
+    # at 0.2 of their declared range.  V30 package 8B, 2026-08-13.
+    compression_release = _clip01(c("chart.foundation_compression_release_trigger"))
     impulse_direction = _clip(c("chart.foundation_impulse_direction") / 2.0, -1.0, 1.0)
     pullback_depth = _clip01(c("chart.foundation_pullback_depth_norm"))
     structure_alignment = _clip(structure_bias * regime_stack_signed * mtf_agreement_pressure, -1.0, 1.0)
@@ -579,7 +744,10 @@ def build_entry_session_regime_interaction_layer(
     _add(arrays, names, "h4_d1_stack_bear_pressure", h4_d1_stack_bear, lo=0.0, hi=1.0)
     _add(arrays, names, "h4_d1_trend_age_exhaustion_pressure", h4_d1_age_exhaustion, lo=0.0, hi=1.0)
     _add(arrays, names, "h4_d1_d1_roc_reversal_pressure", h4_d1_roc_reversal, lo=0.0, hi=1.0)
-    _add(arrays, names, "regime_transition_abstain_score", regime_transition_abstain, lo=0.0, hi=1.0)
+    # regime_transition_abstain_score: emission removed 2026-08-13, see the
+    # suffix tuple.  ``regime_transition_abstain`` survives only as an internal
+    # factor of the three RANKABLE composites below, so no hand-written abstain
+    # vote is pinned into the mandatory surface any more.
     _add(arrays, names, "regime_transition_tail_risk", regime_transition_tail, lo=0.0, hi=1.0)
     _add(arrays, names, "regime_transition_x_overlap_risk", overlap * regime_transition_tail * (0.50 + vol_pressure), lo=0.0, hi=2.0)
 

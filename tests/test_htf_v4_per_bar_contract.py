@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from gx1.features import htf_features as htf
 from tests.htf_v29_registry_test_support import (
@@ -119,12 +120,18 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
 
     from gx1.features.swing_structure_v1 import SWING_V29_ADDITION_NAMES_V1
 
+    from gx1.features.smc_v1 import SMC_MTF_FEATURE_NAMES_V1
+
     expected_width = (
-        # 106 = the audited pre-V29 111-field surface + the V30 package-1
+        # 95 = the audited pre-V29 111-field surface + the V30 package-1
         # additions rsi14_delta_5 and di_spread_signed (2026-08-13), minus the
         # seven V30 package-7 candlestick removals that mirror onto every
-        # per-TF lane (six aggregate votes + close_pressure_signed).
-        106
+        # per-TF lane (six aggregate votes + close_pressure_signed), minus the
+        # 11-name mtf_smc block, which is DERIVED from its owner tuple below
+        # (V30 package 8A grew it by the signed BOS displacement and the two
+        # de-duplicated sweep events).
+        95
+        + len(SMC_MTF_FEATURE_NAMES_V1)
         + len(EXPECTED_V29_TREND_EVENT_FEATURES)
         + len(EXPECTED_V29_MOMENTUM_EVENT_FEATURES)
         + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES)
@@ -201,6 +208,7 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         MODEL_NATIVE_TRAINING_SPECIALISTS,
         require_multi_tf_specialist_routing_v4,
     )
+    from gx1.features import smc_v1
     from gx1.features.level_registry_v1 import LEVEL_REGISTRY_MTF_FEATURE_NAMES
     from gx1.features.trendline_registry_v1 import (
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
@@ -220,7 +228,11 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         # plus the 9 adopted V29 swing-event names; the routing tuple is the
         # feature tuple itself, so the count derives from the owner.
         "structure_swing_encoder": len(htf.MULTI_TF_V4_SWING_FEATURES),
-        "smc_liquidity_encoder": 11 + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES),
+        # V30 package 8A (2026-08-13): the mtf_smc block count derives from
+        # its owner tuple (it grew by mtf_smc_bos_displacement_atr and the two
+        # de-duplicated sweep events).
+        "smc_liquidity_encoder": len(smc_v1.SMC_MTF_FEATURE_NAMES_V1)
+        + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES),
         # V30 (2026-08-13): + di_spread_signed (trend) and rsi14_delta_5
         # (momentum) in the explicit non-event routing tuples.
         "trend_ema_encoder": 11
@@ -315,6 +327,118 @@ def test_v4_equal_latest_high_low_pivots_use_confirmed_pivot_envelope(
     assert np.isfinite(matrix[5:]).all()
     assert built.loc[5, "mtf_smc_premium_discount"] == 0.5
     assert built.loc[5, "mtf_smc_range_width_atr"] == 10.0
+
+
+def test_v30_package_8a_smc_owner_parity_emissions() -> None:
+    """V30 package 8A (2026-08-13): sided sweep depth, de-duplicated sweep
+    events and signed BOS displacement, in BOTH smc owners.
+
+    The M5 owner lagged its own MTF sibling on all three (fidelity audit §4b).
+    Nothing accepted changes: the M5 additions are opt-in behind an explicit
+    call-site contract switch and the MTF additions are appended after the
+    pre-existing per-TF column order.
+    """
+    import numpy as np
+
+    from gx1.features.smc_v1 import (
+        SMC_FEATURE_NAMES,
+        SMC_MTF_FEATURE_NAMES_V1,
+        SMC_V30_ADDITION_NAMES_V1,
+        compute_smc_features,
+        compute_smc_mtf_primitives_v1,
+    )
+
+    bars = _bars(4000, seed=23)
+    frame = bars[["high", "low", "close"]].copy()
+    frame["atr"] = htf._atr(frame["high"], frame["low"], frame["close"], 14)
+    frame = frame.iloc[20:].reset_index(drop=True)
+
+    # ── M5 owner: the accepted 9-column surface is byte-identical with the
+    # additions on, and the flag is a bool contract switch.
+    base = compute_smc_features(frame)
+    extended = compute_smc_features(frame, include_v30_additions=True)
+    assert list(base.columns) == SMC_FEATURE_NAMES
+    assert tuple(extended.columns) == tuple(SMC_FEATURE_NAMES) + (
+        SMC_V30_ADDITION_NAMES_V1
+    )
+    for name in SMC_FEATURE_NAMES:
+        np.testing.assert_array_equal(base[name].to_numpy(), extended[name].to_numpy())
+    with pytest.raises(RuntimeError, match="SMC_V30_ADDITION_FLAG_INVALID"):
+        compute_smc_features(frame, include_v30_additions=1)  # type: ignore[arg-type]
+
+    # The combined magnitude is exactly the max of the two sided depths (the
+    # collapse the split undoes), and each sided depth is gated by its flag.
+    up_depth = extended["smc_sweep_up_depth_atr"].to_numpy()
+    down_depth = extended["smc_sweep_down_depth_atr"].to_numpy()
+    np.testing.assert_allclose(
+        extended["smc_sweep_size_atr"].to_numpy(),
+        np.maximum(up_depth, down_depth),
+        rtol=0.0,
+        atol=0.0,
+    )
+    assert (up_depth[extended["smc_sweep_up"].to_numpy() == 0.0] == 0.0).all()
+    assert (down_depth[extended["smc_sweep_down"].to_numpy() == 0.0] == 0.0).all()
+    assert (up_depth >= 0.0).all() and (down_depth >= 0.0).all()
+
+    # The de-duplicated events are the rising edges of the repeating flags:
+    # a strict subset, never more, and the repeating flags are unchanged.
+    for flag_name, event_name in (
+        ("smc_sweep_up", "smc_sweep_up_event"),
+        ("smc_sweep_down", "smc_sweep_down_event"),
+    ):
+        flag = extended[flag_name].to_numpy() > 0.0
+        event = extended[event_name].to_numpy() > 0.0
+        expected = flag & ~np.concatenate(([False], flag[:-1]))
+        np.testing.assert_array_equal(event, expected)
+        assert event.sum() <= flag.sum()
+    assert (
+        (extended["smc_sweep_up"].to_numpy() > 0.0).sum()
+        > (extended["smc_sweep_up_event"].to_numpy() > 0.0).sum()
+    ), "the fixture must actually contain a repeated sweep run"
+
+    # Signed BOS displacement: zero off-event, sign = break side.
+    disp = extended["smc_bos_displacement_atr"].to_numpy()
+    up = extended["smc_bos_up"].to_numpy() > 0.0
+    down = extended["smc_bos_down"].to_numpy() > 0.0
+    assert (disp[~(up | down)] == 0.0).all()
+    assert (disp[up & ~down] > 0.0).all()
+    assert (disp[down & ~up] < 0.0).all()
+
+    # The one age convention on the raw 999-sentinel count.
+    np.testing.assert_allclose(
+        extended["smc_bars_since_sweep_norm"].to_numpy(),
+        htf._event_age_norm(
+            extended["smc_bars_since_sweep"].to_numpy(dtype=np.float64)
+        ).astype(np.float32),
+        rtol=0.0,
+        atol=0.0,
+    )
+
+    # ── MTF owner: the three additions are appended, so the pre-existing
+    # per-TF column order is byte-stable ahead of them.
+    assert SMC_MTF_FEATURE_NAMES_V1[-3:] == (
+        "mtf_smc_bos_displacement_atr",
+        "mtf_smc_sweep_up_event",
+        "mtf_smc_sweep_down_event",
+    )
+    mtf = compute_smc_mtf_primitives_v1(frame)
+    valid = np.isfinite(mtf["mtf_smc_premium_discount"].to_numpy())
+    m_disp = mtf["mtf_smc_bos_displacement_atr"].to_numpy()[valid]
+    m_up = mtf["mtf_smc_bos_up"].to_numpy()[valid] > 0.0
+    m_down = mtf["mtf_smc_bos_down"].to_numpy()[valid] > 0.0
+    assert (m_disp[~(m_up | m_down)] == 0.0).all()
+    assert (m_disp[m_up & ~m_down] > 0.0).all()
+    assert (m_disp[m_down & ~m_up] < 0.0).all()
+    for flag_name, event_name in (
+        ("mtf_smc_sweep_up", "mtf_smc_sweep_up_event"),
+        ("mtf_smc_sweep_down", "mtf_smc_sweep_down_event"),
+    ):
+        flag = np.nan_to_num(mtf[flag_name].to_numpy()) > 0.0
+        event = np.nan_to_num(mtf[event_name].to_numpy()) > 0.0
+        np.testing.assert_array_equal(
+            event, flag & ~np.concatenate(([False], flag[:-1]))
+        )
+        assert event.sum() < flag.sum()
 
 
 def test_v4_removes_cross_owner_duplicate_smc_geometry_fields() -> None:

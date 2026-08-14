@@ -1,4 +1,54 @@
-"""Strict closed-bar SMC/liquidity quality features for model-native Entry."""
+"""Strict closed-bar SMC/liquidity quality features for model-native Entry.
+
+FIDELITY NOTE (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1b, recorded here
+2026-08-13 by V30 package 8B so the next session inherits the map instead of the
+impression -- rule 25c).  These 24 fields are hand-authored SCORING RULEBOOKS
+over APPROXIMATE ingredients, and a rulebook can never be more faithful than its
+inputs.  Concretely, and proven from source:
+
+* **The sweep has no reclaim.**  ``snap.smc_sweep_up/down`` marks a wick beyond a
+  prior extreme.  Nothing here detects the *return* inside the range that makes a
+  sweep a sweep; ``chart.foundation_sweep_low_reclaim_up_proxy`` is a continuous
+  blend, hence the ``_proxy`` in its name.  Every ``reclaim_*`` and
+  ``sweep_reclaim_*`` field is therefore a confidence over a sweep candidate, not
+  a confirmed reclaim event.
+* **The pool has no pool.**  ``liquidity_pool_proximity_*`` is a weighted blend
+  of distances to swing extremes and per-TF highs/lows.  There is no object with
+  an identity, a size, or a life-cycle -- nothing that can be "swept and gone".
+* **The dealing range is not anchored.**  ``snap.smc_premium_discount`` splits a
+  rolling window, not a BOS-anchored impulse leg, so "premium"/"discount" is
+  relative to a window boundary that moves every bar.
+* **The touch count was not a touch count.**  ``_count_proxy`` was the fraction
+  of twelve DIFFERENT proximity rows (pivots, pivot points, per-TF highs/lows,
+  swing, geometry) exceeding 0.55 on the SINGLE CURRENT bar -- a cross-sectional
+  confluence share with no time axis at all -- and it was consumed under the
+  names ``support_touch_count`` / ``resistance_touch_count``.  Twelve different
+  things being close once is confluence; one thing being close twelve times is a
+  touch count.  Repaired 2026-08-13: the genuine temporal counts
+  ``level_{above,below}_touch_count`` are now consumed from the level registry
+  (see ``_touch_count_strength``).
+
+UPGRADE PATH (the named, bounded work that would raise the ceiling; none of it
+is done here):
+
+1. **A real reclaim event.**  Emit a discrete "swept the extreme at bar t-k and
+   closed back inside the range by bar t" event with its own age, replacing the
+   ``*_reclaim_*_proxy`` blends.  The swing/level machinery to detect it already
+   exists in ``swing_structure_v1`` and ``level_registry_v1``.
+2. **Pool identity from the level registry.**  ``level_registry_v1`` already
+   maintains per-level identity, ``touch_count``, ``test_count``,
+   ``bars_since_touch``, ``age_bars`` and reaction magnitudes, plus
+   ``level_break_*`` and ``level_retest_{hold,fail}_signed``.  A liquidity pool
+   should BE a registry level with an identity that can be broken, not a
+   distance blend.  Step one of that migration is taken below for the touch
+   counts.
+3. **A BOS-anchored dealing range.**  Anchor premium/discount to the last
+   ``foundation_bos_*`` impulse leg (low -> high of the leg that broke
+   structure), not to a rolling window.
+
+Evidence class: PROVEN FROM SOURCE (the structure of these expressions).  Whether
+the approximations cost measurable edge is UNPROVEN -- no ablation exists.
+"""
 from __future__ import annotations
 
 from typing import Iterable
@@ -7,7 +57,7 @@ import numpy as np
 
 
 SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = (
-    "entry_smc_liquidity_quality_v3_20260809_stack_side_owner_saturation_repair"
+    "entry_smc_liquidity_quality_v4_20260813_registry_touch_counts_and_honest_confluence_name"
 )
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
 
@@ -95,6 +145,13 @@ SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
     "candle.pattern_close_location",
     "candle.pattern_body_direction",
     "candle.pattern_body_share",
+    # V30 package 8B (2026-08-13): the level registry's GENUINE temporal touch
+    # counts, adopted in place of the cross-sectional confluence share that used
+    # to be consumed under the name ``*_touch_count``.  These are emitted
+    # unprefixed on the entry-M5 surface by ``level_registry_m5_layer``, which
+    # the inline extension materializes BEFORE this layer runs.
+    "level_above_touch_count",
+    "level_below_touch_count",
 )
 
 
@@ -180,8 +237,17 @@ def _tanh(arr: np.ndarray, scale: float = 1.0) -> np.ndarray:
     return np.tanh(arr / max(float(scale), 1e-6)).astype(np.float32, copy=False)
 
 
-def _count_proxy(sources: np.ndarray, threshold: float = 0.55) -> np.ndarray:
-    return (sources > float(threshold)).mean(axis=0).astype(np.float32, copy=False)
+def _touch_count_strength(counts: np.ndarray) -> np.ndarray:
+    """Map a non-negative touch count onto [0, 1): ``n / (1 + n)``.
+
+    This is the exact algebraic complement of this file's own ``_recency``
+    owner (``1 / (1 + max(x, 0))``), reused rather than re-parameterized so no
+    magnitude is introduced (rule 2b): 0 touches -> 0.0, 1 -> 0.5, 2 -> 0.667.
+    The level registry encodes an absent side as ``touch_count = 0``, which maps
+    to 0.0 -- "no evidence", not a fabricated middle value.
+    """
+
+    return (1.0 - _recency(counts)).astype(np.float32, copy=False)
 
 
 def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray, *, lo: float = -25.0, hi: float = 25.0) -> None:
@@ -355,43 +421,29 @@ def build_entry_smc_liquidity_quality_layer(
         ]
     ).astype(np.float32)
 
-    # Touch-count proxy: semantics deliberately unchanged (documented for
-    # later).  It still counts over the full original 12-row source set —
-    # rows that are dead as *max* inputs remain individual touch evidence here.
-    support_sources = np.vstack(
-        [
-            _clip01(c("ctx_cont.sr_support_proximity_exp")),
-            _prox_abs(c("ctx_cont.sr_nearest_pivot_abs_atr")),
-            _prox_abs(c("ctx_cont.dist_to_S1_atr")),
-            _prox_abs(c("ctx_cont.dist_to_S2_atr")),
-            _prox_abs(c("ctx_cont.dist_to_m5_lo_atr")),
-            _prox_abs(c("ctx_cont.dist_to_m15_lo_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h1_lo_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h4_lo_atr")),
-            _prox_abs(c("ctx_cont.dist_to_d1_lo_atr")),
-            low_liquidity_proximity,
-            swing_low_row,
-            support_geometry_row,
-        ]
-    )
-    resistance_sources = np.vstack(
-        [
-            _clip01(c("ctx_cont.sr_resistance_proximity_exp")),
-            _prox_abs(c("ctx_cont.sr_nearest_pivot_abs_atr")),
-            _prox_abs(c("ctx_cont.dist_to_R1_atr")),
-            _prox_abs(c("ctx_cont.dist_to_R2_atr")),
-            _prox_abs(c("ctx_cont.dist_to_m5_hi_atr")),
-            _prox_abs(c("ctx_cont.dist_to_m15_hi_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h1_hi_atr")),
-            _prox_abs(c("ctx_cont.dist_to_h4_hi_atr")),
-            _prox_abs(c("ctx_cont.dist_to_d1_hi_atr")),
-            high_liquidity_proximity,
-            swing_high_row,
-            resistance_geometry_row,
-        ]
-    )
-    support_touch_count = _count_proxy(support_sources)
-    resistance_touch_count = _count_proxy(resistance_sources)
+    # V30 package 8B (2026-08-13).  The two variables consumed below used to be
+    # ``_count_proxy`` over a 12-row proximity stack — a CROSS-SECTIONAL
+    # confluence share at the current bar, wearing a temporal "touch count"
+    # name.  They now carry the GENUINE temporal counts from the level
+    # registry's per-level crossing engine (level_registry_v1): how many times
+    # price has come back to THIS identified level.  ``level_below_*`` is the
+    # nearest level below price (support), ``level_above_*`` the nearest above
+    # (resistance); an absent side is encoded as touch_count = 0 by the
+    # registry, which maps to 0.0 here.
+    #
+    # Rule 4: the 12-row confluence stack is not evidence that was removed —
+    # every one of its rows is an independent model input in its own right
+    # (``ctx_cont.sr_{support,resistance}_proximity_exp``,
+    # ``sr_nearest_pivot_abs_atr``, ``dist_to_{S1,S2,R1,R2}_atr``, the ten
+    # per-TF ``dist_to_*_{hi,lo}_atr`` fields, ``liquidity_{hi,lo}_nearest_abs_atr``,
+    # the swing-distance/age fields and
+    # ``chart.geometry_{support,resistance}_line_proximity_stack``), and the
+    # side-specific maxima of the same rows are still computed above as
+    # ``support_stack`` / ``resistance_stack``.  What is gone is only a
+    # hand-authored fraction-over-a-threshold that no longer had a consumer once
+    # the real count arrived; the model can form it from the inputs if it helps.
+    support_touch_count = _touch_count_strength(c("level_below_touch_count"))
+    resistance_touch_count = _touch_count_strength(c("level_above_touch_count"))
 
     # A liquidity pool is not the same object as generic support/resistance.
     # The previous max(support_stack, liquidity_proximity) expression was
@@ -527,6 +579,9 @@ def build_entry_smc_liquidity_quality_layer(
     liquidity_pool_balance = _clip(low_pool - high_pool, -1.0, 1.0)
     two_sided_liquidity_pressure = _clip01(
         np.minimum(low_pool, high_pool)
+        # Both sides tested repeatedly = a real two-sided pool.  The weights are
+        # unchanged; only the quantity they weigh became honest (a registry
+        # touch count instead of a same-bar confluence share).
         * (0.50 + 0.25 * support_touch_count + 0.25 * resistance_touch_count)
         * (0.75 + 0.25 * sweep_recent)
     )

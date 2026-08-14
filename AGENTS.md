@@ -8,8 +8,8 @@ Read `GX1_RULES.md` first. It is binding.
 - Architecture is fixed: the same eight code-owned feature implementations run
   independently on local M5 for Entry and local M1 for Exit, in one model and
   shared encoder. There is no combined pre-owner M1/M5 package.
-- Entry is 96×591 plus 158 continuous and 5 categorical context values (591 =
-  34 base + 424 mandatory causal + 133 TRAIN-ranked, 16 mandatory families —
+- Entry is 96×538 plus 164 continuous and 5 categorical context values (538 =
+  34 base + 371 mandatory causal + 133 TRAIN-ranked, 16 mandatory families —
   the V29 event surface with level/trendline registries and per-TF event
   primitives; counts derive from the owner tuples).
 - Entry consumes one immutable native M5 feature surface across all splits;
@@ -21,9 +21,12 @@ Read `GX1_RULES.md` first. It is binding.
   M5/M15/H1/H4/D1. Build closed OHLCV bars before features; never resample
   already computed M1 indicator values into a higher timeframe.
 - Unique model argmax is the only Entry/Exit authority; ties fail closed.
-- There is no admitted model, recipe, edge, win-rate or PnL proof. The V28
-  dataset chain ran GREEN (frozen comparison baseline, retired 513 surface);
-  no V29 dataset exists yet.
+- There is no admitted model, recipe, edge, win-rate or PnL proof, and no
+  dataset. The V28 (513) and V29J (592) chains both ran GREEN but were retired
+  on 2026-08-14 through the retention owner: nothing was ever trained on
+  either, so neither could serve as the comparison baseline it was named as.
+  The evaluation reference is the coin-flip null (-13.16 bps TRAIN /
+  -18.58 bps VAL). No V30 dataset exists yet.
 - Fresh native M1/M5 V4 sources and canonical pair generation
   `9b18e215...077232cd` (2026-08-09) exist; the 2026-08-04 parent
   `64d62c1f...a11b84c` is untouched history. They are source authority only.

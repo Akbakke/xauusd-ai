@@ -5,8 +5,9 @@ Bounded authority for SLOPED lines and channels, per
 `docs/V29_EVENT_SURFACE_DESIGN_20260811.md` §2 and the chart_geometry report
 Part B (`/home/andre2/GX1_DATA/logs/event_gap_review_20260811/chart_geometry.md`).
 The level registry owns HORIZONTAL levels; this module owns two-point-anchored
-lines with immutable identity, a CANDIDATE -> ACTIVE -> BROKEN ->
-retired-after-retest state machine, and parallel/converging channel pairs.
+lines with immutable anchors, a CANDIDATE -> ACTIVE -> BROKEN ->
+(role-flipped back to ACTIVE | retired) state machine, and
+parallel/converging channel pairs.
 
 This module is stage 1 only: it declares the exact emission name tuples and
 the computation, and is NOT wired into any producer, contract owner or
@@ -69,7 +70,8 @@ Intra-bar order (fixed, documented; design B.1/B.3):
   (2) per-line bar update with bar t's close/extremes/ATR:
       CANDIDATE violation discard, ACTIVE first-break (edge-triggered once,
       line -> BROKEN), ACTIVE intra-band touch (first-entry-per-excursion),
-      BROKEN retest hold/fail/expiry (retires the line).
+      BROKEN retest hold (role flip back to ACTIVE) / fail / expiry
+      (the last two retire the line).
   (3) emission of the 33-field block from the post-update population
       (V30 2026-08-13: + per-side ACTIVE counts and break memory).
 
@@ -97,9 +99,13 @@ Documented design decisions inside the adopted spec:
   deviation still updates ``max_dev_atr``, the R^2 substitute).
 - Retest (design B.3): within the retest window after BREAK, first re-entry
   of the band from the break side resolves the line: close still beyond the
-  old line => RETEST_HOLD (role flip); close back through (or exactly on it
+  old line => RETEST_HOLD; close back through (or exactly on it
   — ambiguous evidence fails closed to FAIL) => RETEST_FAIL.  Window expiry
-  retires the line silently.
+  retires the line silently.  V30 package 8A (2026-08-13) PERFORMS the role
+  flip this clause always named: a HOLD returns the line to ACTIVE with its
+  ``side`` flipped and its touch history intact (the retest bar counts as
+  the touch) instead of deleting it on the bar it proved itself as flipped
+  resistance/support.  A FAIL still retires the line.
 - Break-bar attribute fields: if several lines break on one bar, the
   reported touch_count/age belong to the line with the highest touch count
   (strongest evidence), ties to the older line (smaller line_id).  The
@@ -279,10 +285,17 @@ _EV_COUNT = 10
 class TrendlineV1:
     """One registry line.
 
-    Identity — ``side`` and the two anchors — is immutable from creation
-    (design B.1: an event source must not rewrite its own history).  Only
-    evidence attributes (touch_count, last_touch_bar, max_dev_atr,
-    touch_bars, in_band_prev) and lifecycle state evolve.
+    Identity — ``line_id`` and the two anchors, hence the projection itself —
+    is immutable from creation (design B.1: an event source must not rewrite
+    its own history).  Evidence attributes (touch_count, last_touch_bar,
+    max_dev_atr, touch_bars, in_band_prev) and lifecycle state evolve.
+
+    ``side`` was part of the immutable identity until V30 package 8A
+    (2026-08-13).  It is now lifecycle state: a RETEST_HOLD flips it once, in
+    place, because that is precisely what the event proves — the line still
+    governs price, from the other side ("old support is new resistance").  The
+    anchors, and therefore every historical claim the line has made, are
+    untouched by the flip.
     """
 
     line_id: int
@@ -704,10 +717,12 @@ def _update_lines_for_bar(
             if t - line.break_bar > retest_window_bars:
                 continue  # window expired: retire silently
             resolved = False
+            flipped = False
             if line.break_dir < 0:
                 if high >= proj - margin:  # re-entry from below
                     if close < proj:
                         events[_EV_RETEST_HOLD_DOWN] = 1.0
+                        flipped = True
                     else:
                         # includes the exact tie: hold unproven -> FAIL
                         events[_EV_RETEST_FAIL_DOWN] = 1.0
@@ -716,10 +731,49 @@ def _update_lines_for_bar(
                 if low <= proj + margin:  # re-entry from above
                     if close > proj:
                         events[_EV_RETEST_HOLD_UP] = 1.0
+                        flipped = True
                     else:
                         events[_EV_RETEST_FAIL_UP] = 1.0
                     resolved = True
-            if not resolved:
+            if flipped:
+                # V30 package 8A (2026-08-13) — POLARITY FLIP.  The module
+                # docstring has always called a RETEST_HOLD a "role flip", but
+                # the line was DELETED on the very bar it proved itself as
+                # flipped resistance/support, so the construct existed only as
+                # a one-bar impulse and never as an object (fidelity audit
+                # §5).  A held retest is exactly the chartist's "old support is
+                # new resistance": the line still governs price, from the other
+                # side.  The line therefore returns to ACTIVE with its
+                # line_id, anchors, projection, touch history and max_dev_atr
+                # preserved, and only its ``side`` — lifecycle state, not
+                # identity — flipped.  The retest bar is counted as the touch
+                # it is (same touch_bars/touch_count/last_touch_bar update the
+                # intra-band touch path uses), which is also what stops the
+                # staleness rule from retiring the flipped line on the next
+                # bar; ``in_band_prev`` is set so the same excursion is not
+                # counted twice.  The generic touch impulse is deliberately
+                # NOT raised: the retest-hold event is this bar's specific
+                # impulse for the same physical event.  No new constant: the
+                # retest window and band are the existing ones.
+                line.side = (
+                    TRENDLINE_SIDE_RESISTANCE
+                    if line.side == TRENDLINE_SIDE_SUPPORT
+                    else TRENDLINE_SIDE_SUPPORT
+                )
+                line.state = TRENDLINE_STATE_ACTIVE
+                line.break_bar = -1
+                line.break_dir = 0
+                if t not in line.touch_bars:
+                    line.touch_count += 1
+                    line.touch_bars.add(t)
+                line.last_touch_bar = t
+                line.in_band_prev = True
+                keep.append(line)
+                if line_log is not None:
+                    line_log.append(
+                        ("touch", t, line.line_id, line.side, line.slope)
+                    )
+            elif not resolved:
                 keep.append(line)
     if broken_this_bar:
         chosen = max(

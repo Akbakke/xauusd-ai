@@ -15,17 +15,17 @@ native OANDA M1/M5
   -> calibration -> untouched TEST -> same-bundle replay
 ```
 
-Entry consumes 96 local M5 bars with 591 ordered signals (34 base + 424
+Entry consumes 96 local M5 bars with 538 ordered signals (34 base + 371
 mandatory causal + 133 TRAIN-ranked over 16 mandatory families — the V29
 event surface with level/trendline registries and per-timeframe event
-primitives), 158 continuous context fields, 5 categorical fields and closed
+primitives), 164 continuous context fields, 5 categorical fields and closed
 M15/H1/H4/D1 context. Exit
 consumes the same definitions and TRAIN normalization on 480 local M1 bars,
 closed M5/M15/H1/H4/D1 context, the frozen Entry representation and its causal
 in-trade path. Higher-timeframe OHLCV closes before feature computation;
 computed M1 indicators are never resampled upward.
 
-Entry's 591/158/5 tensors are read from one immutable, hash-bound native M5
+Entry's 538/164/5 tensors are read from one immutable, hash-bound native M5
 surface and sliced by exact timestamp across all three splits. Exit uses the
 corresponding native M1 surface. There is no split-local alternate feature
 builder or cross-resolution value copy.
@@ -47,7 +47,7 @@ but the system is not empirically finished:
   substrate; it is the frozen baseline for the pre-registered V29-vs-V28
   evaluation, not an admitted training substrate;
 - the V29 event surface (level/trendline registries, per-TF event
-  primitives; 591 signals after the V30 fidelity wave) is committed in source; its dataset rebuild has
+  primitives; 538 signals after the V30 fidelity wave) is committed in source; its dataset rebuild has
   not run yet;
 - no accepted Entry/Exit checkpoint or calibrated bundle;
 - no untouched-TEST edge, historical PnL or win-rate proof;

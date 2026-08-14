@@ -152,9 +152,15 @@ def _rng_df(n: int = 200, seed: int = 20260811) -> pd.DataFrame:
 def test_declared_name_tuples_match_design_doc_verbatim():
     # V30 (2026-08-13): + level_above/below_test_count (post-birth zone-entry
     # tests, split from touch_count) and level_bars_since_break_signed.
+    # V30 package 8A (2026-08-13): + level_above/below2_dist_atr (the
+    # second-nearest ACTIVE level per side) and
+    # level_above/below_member_pivot_count (the founding+merged pivot
+    # population already carried in state).
     assert LEVEL_REGISTRY_M5_FEATURE_NAMES == (
         "level_above_dist_atr",
+        "level_above2_dist_atr",
         "level_above_touch_count",
+        "level_above_member_pivot_count",
         "level_above_test_count",
         "level_above_age_bars",
         "level_above_bars_since_touch",
@@ -162,7 +168,9 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_above_max_reaction_atr",
         "level_above_last_reaction_atr",
         "level_below_dist_atr",
+        "level_below2_dist_atr",
         "level_below_touch_count",
+        "level_below_member_pivot_count",
         "level_below_test_count",
         "level_below_age_bars",
         "level_below_bars_since_touch",
@@ -192,7 +200,7 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "mtf_level_retest_hold_signed",
         "mtf_level_retest_fail_signed",
     )
-    assert len(LEVEL_REGISTRY_M5_FEATURE_NAMES) == 25
+    assert len(LEVEL_REGISTRY_M5_FEATURE_NAMES) == 29
     assert len(LEVEL_REGISTRY_MTF_FEATURE_NAMES) == 11
     assert all(n.startswith("level_") for n in LEVEL_REGISTRY_M5_FEATURE_NAMES)
     assert all(n.startswith("mtf_level_") for n in LEVEL_REGISTRY_MTF_FEATURE_NAMES)
@@ -202,11 +210,11 @@ def test_emitted_names_match_declared_tuples():
     df = _series_s1()
     m5, names_m5 = compute_level_registry_m5_block_v1(df, tol_level_atr=TOL)
     assert tuple(names_m5) == LEVEL_REGISTRY_M5_FEATURE_NAMES
-    assert m5.shape == (len(df), 25)
+    assert m5.shape == (len(df), len(LEVEL_REGISTRY_M5_FEATURE_NAMES))
     assert m5.dtype == np.float32
     mtf, names_mtf = compute_level_registry_mtf_block_v1(df, tf="m5", tol_level_atr=TOL)
     assert tuple(names_mtf) == LEVEL_REGISTRY_MTF_FEATURE_NAMES
-    assert mtf.shape == (len(df), 11)
+    assert mtf.shape == (len(df), len(LEVEL_REGISTRY_MTF_FEATURE_NAMES))
 
 
 def test_convention_constants_pinned_to_origins():
@@ -362,17 +370,30 @@ def test_s2_break_once_retest_hold_and_signed_reactions():
     # retest: break bar excluded; first re-entry at t=15 holds (close < center)
     assert hold[15] == -1.0 and hold[8:].sum() == -1.0
     assert fail[8:].sum() == 0.0
-    lv = next(l for l in state["levels"] if l["side_of_origin"] == "low_pivot")
-    assert lv["status"] == "broken"
+    lv = next(l for l in state["levels"] if l["break_bar"] == 14)
+    # V30 package 8A POLARITY FLIP: a held retest returns the level to ACTIVE
+    # with its side flipped ("old support is new resistance").  Identity,
+    # anchors, member pivots and reaction memory are preserved; the break bar
+    # and break side stay on record.
+    assert lv["status"] == "active"
+    assert lv["side_of_origin"] == "high_pivot"
     assert lv["break_bar"] == 14 and lv["break_side"] == -1
     assert lv["retest_state"] == "held"
-    # signed reactions on the support level: creation window t0=8 completes at
-    # 20 with +7.11 (price lifted off); touch window t0=12 completes at 24
-    # with -0.1 (touch never lifted off -> negative, sign-blindness repaired)
-    assert lv["completed_reaction_count"] == 2
+    assert lv["member_pivot_count"] == 1
+    # The retest bar counts as a touch through the normal step-4 owner (the
+    # flip clears the stale prev_bar_in_zone), so the expiry clock and the
+    # touch count both advance and a reaction window opens on the NEW side.
+    assert lv["touch_count"] == 3 and lv["last_touch_bar"] == 15
+    # signed reactions: creation window t0=8 completes at 20 with +7.11 (price
+    # lifted off); touch window t0=12 completes at 24 with -0.1 (touch never
+    # lifted off -> negative, sign-blindness repaired); the flip-bar window
+    # t0=15 completes at 27 and is measured against the FROZEN side of its own
+    # t0 (high_pivot after the flip) -> +1.90 lift-off away from the new
+    # resistance.
+    assert lv["completed_reaction_count"] == 3
     assert lv["reaction_max_atr"] == pytest.approx(7.11, abs=1e-3)
-    assert lv["reaction_last_atr"] == pytest.approx(-0.1, abs=1e-6)
-    assert lv["reaction_sum_atr"] == pytest.approx(7.01, abs=1e-3)
+    assert lv["reaction_last_atr"] == pytest.approx(1.9, abs=1e-3)
+    assert lv["reaction_sum_atr"] == pytest.approx(8.91, abs=1e-3)
 
 
 def test_s3_retest_fail_signed_carries_break_direction():

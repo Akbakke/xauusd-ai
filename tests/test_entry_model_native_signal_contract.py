@@ -79,6 +79,9 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     SWING_EVENT_LAYER_FEATURE_NAMES as _V29_SWING_NAMES,
     TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES as _V29_TRENDLINE_NAMES,
 )
+from gx1.features.entry_session_regime_interactions_v1 import (
+    SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES,
+)
 
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
     # V30 package 7 (2026-08-13): the chart-geometry mandatory pin fell 18 -> 2
@@ -87,7 +90,16 @@ _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "chart_geometry_encoder": 2 + len(_V29_TRENDLINE_NAMES),
     "momentum_flow_encoder": 34 + len(_V29_MOMENTUM_NAMES),
     "price_action_candle_encoder": 34,
-    "session_regime_encoder": 229 + len(_V29_REGIME_NAMES),
+    # V30 package 8B (2026-08-13): 161 is the ctx/base part of this specialist,
+    # unchanged by the package.  The session/regime LAYER part is no longer a
+    # restated literal: the layer is produced in full but pinned only to its
+    # five measured-genuine primitives, so it is derived from the owner tuple
+    # (68 -> 5, and the emitted set also lost the hand-written abstain vote).
+    "session_regime_encoder": (
+        161
+        + len(SESSION_REGIME_INTERACTION_MANDATORY_FEATURE_NAMES)
+        + len(_V29_REGIME_NAMES)
+    ),
     "smc_liquidity_encoder": 68 + len(_V29_LEVEL_NAMES),
     "structure_swing_encoder": 51 + len(_V29_SWING_NAMES),
     # V30 (2026-08-13): 45 = 37 + chart.local_kama_efficiency_30 (package 1)
@@ -271,10 +283,12 @@ def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch.delenv("GX1_RUN_MODE", raising=False)
 
     context = model_native_context_contract_metadata()
-    # V30 (2026-08-13): 158 = 142 + H4_range_compression_ratio (package 1)
+    # V30 (2026-08-13): 164 = 142 + H4_range_compression_ratio (package 1)
     # + 9 adopted swing V29 ctx fields + 3 momentum-G3 RSI canon scalars
-    # (package 2) + 3 quote/spread-dynamics fields (package 4).
-    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 158
+    # (package 2) + 3 quote/spread-dynamics fields (package 4) + the 6
+    # emission-only swing additions of package 8A (two missing run counters,
+    # two level-intact flags, two normalized swing ages).
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 164
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[

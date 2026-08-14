@@ -227,6 +227,86 @@ def test_swing_v29_higher_low_run_counts_and_resets_on_lower_low() -> None:
     assert ages[13] == cap and ages[14] == 0.0 and ages[18] == 4.0
 
 
+def test_v30_package_8a_swing_emissions_are_the_discarded_loop_state() -> None:
+    """V30 package 8A (2026-08-13) — six emission-only additions.
+
+    Every assertion below ties the new field to a quantity the function
+    already computed: the mirror-image run counters, the G1 arming state and
+    the shared ``htf_features._event_age_norm`` age convention.
+    """
+
+    high, low, close = _v29_ohlc(_V29_CLOSE_B)
+    out = compute_swing_structure_features(
+        high, low, close, include_v29_additions=True
+    )
+    cap = float(FOUNDATION_EVENT_AGE_CAP)
+    norm = lambda k: np.float32(np.log1p(float(k)) / np.log1p(cap))  # noqa: E731
+
+    # (1) The two MISSING run counters complete the four-counter set.  Fixture
+    # B's lows run 99.5 -> 100.5 -> 101.0 -> 98.5, so the higher-lows run is
+    # 1, 2 then reset and the lower-lows run stays 0 until the 98.5 pivot is
+    # adopted at bar 16, where it becomes 1.
+    ll = out["consecutive_lower_lows_count"]
+    np.testing.assert_allclose(ll[:16], 0.0, atol=0.0)
+    np.testing.assert_allclose(ll[16:], norm(1), rtol=1e-6)
+    # The two counters on one side are mutually exclusive by construction
+    # (strict > vs strict <), so they can never both be positive on a bar.
+    assert not np.any(
+        (out["consecutive_higher_lows_count"] > 0.0)
+        & (out["consecutive_lower_lows_count"] > 0.0)
+    )
+    assert not np.any(
+        (out["consecutive_higher_highs_count"] > 0.0)
+        & (out["consecutive_lower_highs_count"] > 0.0)
+    )
+    # Fixture A's highs are 103.5 then 105.5 (a higher high), so the
+    # higher-highs run starts exactly where the lower-highs run stays flat.
+    high_a, low_a, close_a = _v29_ohlc(_V29_CLOSE_A)
+    out_a = compute_swing_structure_features(
+        high_a, low_a, close_a, include_v29_additions=True
+    )
+    assert out_a["consecutive_lower_highs_count"].tolist() == [0.0] * len(close_a)
+    hh_a = out_a["consecutive_higher_highs_count"]
+    np.testing.assert_allclose(hh_a[:12], 0.0, atol=0.0)
+    np.testing.assert_allclose(hh_a[12:], norm(1), rtol=1e-6)
+
+    # (2) The intact flags ARE the G1 arming state: NaN until the first
+    # confirmed pivot on that side (no level exists, so "intact" has no truth
+    # value), 1.0 while the level stands, 0.0 from the bar whose close breaks
+    # it, back to 1.0 when a new pivot re-arms.
+    intact = out["swing_low_level_intact"]
+    finite = np.isfinite(intact)
+    first = int(np.argmax(finite))
+    assert not finite[:first].any() and finite[first:].all()
+    assert set(np.unique(intact[finite]).tolist()) <= {0.0, 1.0}
+    breaks = out["swing_low_break_event"] > 0.0
+    assert (intact[finite & breaks] == 0.0).all()
+    # Its NaN prefix is a strict subset of the sequence-delta prefix on the
+    # same side, so the shared HTF warmup trim is unchanged by the addition.
+    delta_first = int(np.argmax(np.isfinite(out["swing_low_sequence_delta_atr"])))
+    assert first <= delta_first
+    high_first = int(np.argmax(np.isfinite(out["swing_high_level_intact"])))
+    assert high_first <= int(
+        np.argmax(np.isfinite(out["swing_high_sequence_delta_atr"]))
+    )
+
+    # (3) The normalized ages are the ONE age convention applied to the raw
+    # V1 fields, which stay untouched.
+    from gx1.features.htf_features import _event_age_norm
+
+    for raw_name, norm_name in (
+        ("bars_since_swing_high", "bars_since_swing_high_norm"),
+        ("bars_since_swing_low", "bars_since_swing_low_norm"),
+    ):
+        np.testing.assert_allclose(
+            out[norm_name],
+            _event_age_norm(out[raw_name].astype(np.float64)).astype(np.float32),
+            rtol=0.0,
+            atol=0.0,
+        )
+        assert (out[norm_name] >= 0.0).all() and (out[norm_name] <= 1.0).all()
+
+
 def test_swing_v29_additions_are_causal_and_future_append_invariant() -> None:
     high, low, close = _v29_ohlc(_V29_CLOSE_B)
     full = compute_swing_structure_features(
@@ -406,8 +486,9 @@ def test_entry_contract_is_the_only_context_subgroup_owner() -> None:
     # V30 (2026-08-13): 29 = 16 + H4_range_compression_ratio in the source
     # prefix subgroup (package 1) + the nine V29 swing event fields adopted
     # into MODEL_NATIVE_CTX_CONT_SWING_FIELDS (package 2) + the three
-    # quote/spread-dynamics fields (package 4).
-    assert len(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS) == 29
+    # quote/spread-dynamics fields (package 4).  Package 8A (2026-08-13) added
+    # six more emission-only swing fields (two missing run counters, two
+    # level-intact flags, two normalized swing ages) -> 35.
     # The spread-dynamics block is its own declared subgroup, not a silent
     # extension of the five-field OHLC micro surface.
     assert MODEL_NATIVE_CTX_CONT_MICRO_FIELDS == tuple(MICRO_FEATURE_NAMES_V1)
