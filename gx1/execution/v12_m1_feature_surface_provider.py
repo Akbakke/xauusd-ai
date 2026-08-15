@@ -92,7 +92,7 @@ class M1SharedFeatureSurfaceProvider:
             raise RuntimeError("M1_FEATURE_PROVIDER_PARQUET_EMPTY")
 
         # The timestamp column is the only column read at construction.  It
-        # gives a cheap exact row index while keeping the 513-wide surface
+        # gives a cheap exact row index while keeping the full signal surface
         # out of memory until a live Exit decision asks for one window.
         times = pd.DatetimeIndex(
             pd.to_datetime(
@@ -274,8 +274,19 @@ class M1SharedFeatureSurfaceProvider:
         value = {
             "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
             "decision_time": timestamp.isoformat(),
+            "sequence_first_time": pd.Timestamp(
+                int(selected_times[0]), unit="ns", tz="UTC"
+            ).isoformat(),
+            "sequence_last_time": pd.Timestamp(
+                int(selected_times[-1]), unit="ns", tz="UTC"
+            ).isoformat(),
             "dataset_run_id": self._binding.dataset_run_id,
+            "pair_generation_id": self._binding.pair_generation_id,
             "feature_base_sha256": self._binding.parquet_sha256,
+            "feature_manifest_sha256": self._binding.manifest_sha256,
+            "feature_field_order_sha256": (
+                self._binding.feature_field_order_sha256
+            ),
             "sequence_bars": EXIT_FEATURE_SEQUENCE_BARS,
             "signal": signal,
             "snap": signal[-1].copy(),

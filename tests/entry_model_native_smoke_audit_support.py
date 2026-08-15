@@ -174,49 +174,6 @@ def _passing_turning_point_evidence() -> dict[str, Any]:
     }
 
 
-def _passing_offline_rl_evidence() -> dict[str, Any]:
-    policy = copy.deepcopy(POLICY["offline_rl_evidence"])
-    rows = 200
-    successes = 190
-    return {
-        "decision": "PASS",
-        "failures": [],
-        "policy": policy,
-        "q_target_alignment": [
-            {
-                "action": action,
-                "horizon_bars": horizon,
-                "spearman": None if action == "FLAT" else 0.90,
-                "mae_scaled": 0.05,
-                "decision": "PASS",
-                "failures": [],
-            }
-            for action in ("LONG", "SHORT", "FLAT")
-            for horizon in (12, 48, 96)
-        ],
-        "reward_argmax_ranking": {
-            f"K{horizon}": {
-                "decision": "PASS",
-                "failures": [],
-                "unique_reward_rows": rows,
-                "successes": successes,
-                "accuracy": successes / rows,
-            }
-            for horizon in (12, 48, 96)
-        },
-        "value_vs_max_q": {
-            f"K{horizon}": {
-                "decision": "PASS",
-                "failures": [],
-                "spearman": 0.90,
-            }
-            for horizon in (12, 48, 96)
-        },
-        "advantage_max_abs_error": 0.0,
-        "separate_direction_authority": False,
-    }
-
-
 def passing_smoke_audit_splits() -> dict[str, Any]:
     split = {
         "decision": "PASS",
@@ -228,7 +185,6 @@ def passing_smoke_audit_splits() -> dict[str, Any]:
         ),
         "context_slice_contract": _passing_context_slices(),
         "turning_point_evidence": _passing_turning_point_evidence(),
-        "offline_rl_evidence": _passing_offline_rl_evidence(),
     }
     return {
         name: copy.deepcopy(split)

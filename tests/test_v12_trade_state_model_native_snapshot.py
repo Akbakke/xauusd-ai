@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,11 +11,9 @@ import pytest
 import torch
 
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
-from tests.model_native_offline_rl_support import (
-    model_native_mtf_cooperation_evidence,
-    offline_rl_evidence,
-)
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
@@ -44,17 +43,38 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
+    UNIFIED_EXIT_PATH_FEATURE_DIM,
     canonical_unified_evidence_sha256,
     unified_entry_exit_contract_metadata,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
 )
-from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_COUNT,
+    EXIT_FEATURE_SEQUENCE_BARS,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+from tests.unified_exit_input_support import unified_exit_input_fixture
 from gx1.monitoring.trade_journal import TradeJournal
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    EntryV10CtxHybridTransformer,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.contracts.entry_decision_token_v1 import (
+    build_entry_decision_token_snapshot,
+)
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+    build_unified_exit_incremental_carry_envelope,
 )
 def _softmax(values: list[float]) -> list[float]:
     array = np.asarray(values, dtype=np.float64)
@@ -71,108 +91,58 @@ def _logit(value: float) -> float:
 
 
 def _snapshot() -> dict:
-    direction_logits = [5.0, 1.0, 0.0]
-    public_logits = [5.0, 0.0]
-    side_logits = [1.0, -0.5]
-    side_bad_logits = [-1.2, 0.7]
-    side_validity_logits = [1.4, -0.3]
-    mtf_logits = [0.8, -0.2, -0.6]
-    rail_logits = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
-    tf_logit = 0.5
+    """One complete, current runtime-evidence snapshot.
+
+    Every field comes from the runtime-evidence owner's required set; the
+    retired calibrated-probability / hierarchy / rail fragments are forbidden
+    by RETIRED_RUNTIME_EVIDENCE_FRAGMENTS and must not appear here.
+    """
+
+    entry_q = [12.0, -3.0, 0.0]
+    ordered = sorted(entry_q)
     size_logit = 0.25
+    specialist_weight = 1.0 / len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    tf_weight = 1.0 / ENTRY_MTF_CONTEXT_COUNT
+    family_tf_weight = 1.0 / (
+        ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    )
     return {
         "decision_ts": "2026-07-16T11:55:00+00:00",
         "runtime_evidence_schema_version": MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
         "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
         "session_id": 2,
         "session": "OVERLAP",
-        "entry_vol_regime_id": 2,
-        "entry_vol_regime": "MEDIUM",
-        "entry_atr_bucket": 2,
-        "entry_spread_bucket": 1,
-        "entry_h4_trend_sign_cat": 2,
-        "entry_trend_regime_id": 1,
-        "entry_trend_regime": "TREND_NEUTRAL",
         "decision_available_ts": "2026-07-16T12:00:00+00:00",
         "entry_signal_latency_sec": 0.0,
         "context_cutoff_ts": "2026-07-16T11:55:00+00:00",
         "context_age_m5_bars": 0,
-        "raw_direction_logits": [5.5, 1.1, 0.0],
-        "direction_logits": direction_logits,
-        "direction_probs": _softmax(direction_logits),
-        "model_direction_index": 0,
-        "model_direction": "LONG",
-        "entry_shared_representation": [
+        "entry_action_q_bps": list(entry_q),
+        "entry_action_q_margin_bps": float(ordered[-1] - ordered[-2]),
+        "entry_decision_representation": [
             float(index - 64) / 64.0 for index in range(128)
         ],
-        "public_trade_flat_decision_logits": public_logits,
-        "public_trade_flat_decision_probs": _softmax(public_logits),
-        "public_trade_flat_decision_index": 0,
-        "public_trade_flat_decision": "TRADE",
+        "entry_q_joint_hidden": [0.02] * 128,
+        "model_direction_index": 0,
+        "model_direction": "LONG",
         "selected_side": 0,
-        "model_native_logits": [0.5, -0.25, 0.1],
-        "path_quality_raw": 1.5,
-        "path_quality": 1.5,
-        "path_quality_pred": 1.5,
-        "mfe_first_n": 12.0,
-        "mfe_first_n_pred": 12.0,
-        "tradable_logit": 1.0,
-        "tradable_prob": _sigmoid(1.0),
-        "trade_logit": 0.7,
-        "bad_path_logit_raw": -1.0,
-        "bad_path_logit": -1.0,
-        "bad_path_prob": _sigmoid(-1.0),
-        "clean_edge_logit": _logit(0.76),
-        "clean_edge_prob": 0.76,
-        "survival_logit": _logit(0.68),
-        "survival_prob": 0.68,
+        "side_mae_bps": [3.2, 8.1],
+        "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
         "dip_pred": [0.0] * 18,
         "forecast_pred": [0.0] * 4,
         "timing_pred": [0.0] * 12,
         "tail_risk_pred": [0.0] * 6,
         "vol_forecast_pred": [0.0] * 3,
-        **offline_rl_evidence(),
-        "p_trade": _softmax(public_logits)[0],
-        "p_flat_hier": _softmax(public_logits)[1],
         "atr_bps": 9.0,
-        "tf_agreement_logit": tf_logit,
-        "tf_agreement_pred": _sigmoid(tf_logit),
-        "path_quality_log_var": 0.0,
-        "path_quality_std": 1.0,
         "position_size_logit": size_logit,
         "position_size_pred": _sigmoid(size_logit),
-        "p_long_given_trade": _softmax(side_logits)[0],
-        "p_short_given_trade": _softmax(side_logits)[1],
-        "side_logits": side_logits,
-        "side_probs": _softmax(side_logits),
-        "side_utility": [2.4, -0.8],
-        "side_bad_path_logit": side_bad_logits,
-        "long_bad_path_prob": _sigmoid(side_bad_logits[0]),
-        "short_bad_path_prob": _sigmoid(side_bad_logits[1]),
-        "side_validity_logit": side_validity_logits,
-        "long_validity_prob": _sigmoid(side_validity_logits[0]),
-        "short_validity_prob": _sigmoid(side_validity_logits[1]),
-        "side_mae": [-3.2, -8.1],
-        "mtf_dir_logits": mtf_logits,
-        "mtf_dir_probs": _softmax(mtf_logits),
-        "mtf_trend_evidence": 0.69,
         "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
-        "specialist_gate": [0.125] * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
-        **model_native_mtf_cooperation_evidence(),
-        "trendline_rail_logits": rail_logits,
-        "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
-        "calibration_version": "direction-cal-v1",
-        "direction_calibration_enabled": True,
-        "direction_calibration_temperature": 1.1,
-        "path_calibration_enabled": True,
-        "path_calibration": {
-            "enabled": True,
-            "version": "path-cal-v1",
-            "path_quality_scale": 1.0,
-            "path_quality_shift": 0.0,
-            "bad_path_temperature": 1.0,
-            "bad_path_bias": 0.0,
-        },
+        "specialist_gate": [specialist_weight]
+        * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        "tf_gate": [tf_weight] * ENTRY_MTF_CONTEXT_COUNT,
+        "family_tf_cooperation_gate": [family_tf_weight]
+        * (ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)),
+        "family_tf_feature_gate": [1.0]
+        * (ENTRY_MTF_CONTEXT_COUNT * len(MULTI_TF_PER_BAR_FEATURES_V4)),
     }
 
 
@@ -180,24 +150,34 @@ def _exit_feature_surface() -> dict:
     signal = np.zeros((EXIT_FEATURE_SEQUENCE_BARS, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
     return {
         "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
-        "decision_time": "2026-07-16T12:01:00+00:00",
+        "decision_time": "2026-07-16T12:00:00+00:00",
+        "sequence_first_time": "2026-07-16T04:01:00+00:00",
+        "sequence_last_time": "2026-07-16T12:00:00+00:00",
         "dataset_run_id": "EXIT_TEST_RUN",
+        "pair_generation_id": "EXIT_TEST_PAIR",
         "feature_base_sha256": "c" * 64,
+        "feature_manifest_sha256": "d" * 64,
+        "feature_field_order_sha256": "e" * 64,
         "sequence_bars": EXIT_FEATURE_SEQUENCE_BARS,
         "signal": signal,
         "snap": signal[-1].copy(),
         "ctx_cont": np.zeros(MODEL_NATIVE_CTX_CONT_DIM, dtype=np.float32),
-        "ctx_cat": np.zeros(5, dtype=np.int64),
+        "ctx_cat": np.zeros(MODEL_NATIVE_CTX_CAT_DIM, dtype=np.int64),
     }
 
 
-def _open(snapshot: dict | None = None) -> TradeState:
+def _open(
+    snapshot: dict | None = None,
+    *,
+    trade_id: str = "unit-trade",
+) -> TradeState:
     return TradeState.open_unit_normalized_research(
         entry_ts=pd.Timestamp("2026-07-16T12:00:00Z"),
         side="long",
         entry_bid=3300.0,
         entry_ask=3300.2,
         v10_snapshot=_snapshot() if snapshot is None else snapshot,
+        trade_id=trade_id,
         normalization_contract="unit_normalized_direction_exit_research_v1",
     )
 
@@ -209,6 +189,8 @@ def _model_bundle_binding() -> dict[str, object]:
         ),
         "bundle_dir": "/immutable/test/model_bundle",
         "bundle_sha256": "b" * 64,
+        "input_normalization_sha256": "6" * 64,
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "operating_point": {
             "selection_score": MODEL_DIRECTION_SELECTION_MODE,
             "max_trades": 1,
@@ -279,16 +261,42 @@ class _UnifiedExitModel:
             "head_exit_action.bias": torch.zeros(2),
         }
 
-    def forward_exit_action(
+    def forward_exit_incremental_step(
         self,
-        **inputs: torch.Tensor,
-    ) -> dict[str, torch.Tensor]:
-        self.calls.append(inputs)
-        logits = torch.tensor([self.logits], dtype=torch.float32)
-        return {
-            "exit_action_logits": logits,
-            "exit_action_probs": torch.softmax(logits, dim=-1),
+        *,
+        entry_decision_representation: torch.Tensor,
+        exit_local_rows_x: torch.Tensor,
+        exit_state_ctx_cat: torch.Tensor,
+        exit_state_ctx_cont: torch.Tensor,
+        exit_path_row_x: torch.Tensor,
+        exit_mtf_new_rows: dict[str, torch.Tensor],
+        carry: object | None,
+    ) -> tuple[dict[str, torch.Tensor], object]:
+        inputs = {
+            "entry_decision_representation": entry_decision_representation,
+            "exit_local_rows_x": exit_local_rows_x,
+            "exit_state_ctx_cat": exit_state_ctx_cat,
+            "exit_state_ctx_cont": exit_state_ctx_cont,
+            "exit_path_row_x": exit_path_row_x,
+            "exit_mtf_new_rows": exit_mtf_new_rows,
+            "carry": carry,
         }
+        self.calls.append(inputs)
+        logits = torch.tensor(self.logits, dtype=torch.float32).view(1, 1, 1, 2).expand(1, 2, 1, 2).clone()
+        valid_mask = torch.ones_like(logits, dtype=torch.bool)
+        return {
+            "exit_action_q_bps": logits,
+            "exit_action_valid_mask": valid_mask,
+        }, SimpleNamespace(step_count=1 if carry is None else carry.step_count + 1)
+
+    def export_exit_incremental_carry_tensor_state(self, carry):
+        return {"fake_hidden": torch.tensor([[[float(carry.step_count)]]])}
+
+    def restore_exit_incremental_carry_tensor_state(
+        self, *, step_count: int, batch_size: int, tensors
+    ):
+        assert batch_size == 1 and set(tensors) == {"fake_hidden"}
+        return SimpleNamespace(step_count=step_count)
 
 
 def _unified_exit_adapter(
@@ -309,45 +317,144 @@ def _unified_exit_adapter(
             "unified_entry_exit_contract": (
                 unified_entry_exit_contract_metadata()
             ),
+            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+            "input_normalization": {"contract_sha256": "6" * 64},
         },
     )
     def _provider(*, decision_time: object, prebuilt_snapshot: object) -> dict:
         del prebuilt_snapshot
         value = _exit_feature_surface()
-        value["decision_time"] = pd.Timestamp(decision_time).isoformat()
+        decision_timestamp = pd.Timestamp(decision_time)
+        value["decision_time"] = decision_timestamp.isoformat()
+        value["sequence_first_time"] = (
+            decision_timestamp - pd.Timedelta(minutes=479)
+        ).isoformat()
+        value["sequence_last_time"] = decision_timestamp.isoformat()
         return value
 
     # Unit tests admit an explicit fixture provider. Production binds the
     # hash- and pair-bound parquet provider from model metadata instead.
     adapter._exit_feature_surface_provider = _provider
+    per_tf_seq_lens = {
+        timeframe: 2 for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES
+    }
+    adapter.build_exit_mtf_feature_windows = lambda **_kwargs: {
+        "windows": {
+            timeframe: np.zeros(
+                (
+                    per_tf_seq_lens[timeframe],
+                    len(MULTI_TF_PER_BAR_FEATURES_V4),
+                ),
+                dtype=np.float32,
+            )
+            for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES
+        },
+        "cache_binding": {
+            "cache_identity_sha256": "4" * 64,
+            "manifest_sha256": "5" * 64,
+        },
+        "per_tf_seq_lens": per_tf_seq_lens,
+    }
     return adapter, model
 
 
-def _bind_test_hold_decision(trade: TradeState) -> None:
+def _bundle_bound_entry_token(trade: TradeState) -> dict[str, object]:
+    snapshot = trade.require_entry_snapshot()
+    return build_entry_decision_token_snapshot(
+        token=snapshot["entry_decision_representation"],
+        decision_time=snapshot["decision_ts"],
+        fill_time=trade.entry_ts,
+        model_identity_kind="bundle_sha256",
+        model_identity_sha256="b" * 64,
+        input_normalization_sha256="6" * 64,
+        contract_mode=MODEL_NATIVE_CONTRACT_MODE,
+        model_direction_index=int(snapshot["model_direction_index"]),
+        model_direction=str(snapshot["model_direction"]),
+        side=trade.side,
+        entry_bid=trade.entry_bid,
+        entry_ask=trade.entry_ask,
+        trade_identity=str(trade.trade_id),
+    )
+
+
+def _bind_bundle_entry_token(trade: TradeState) -> None:
+    trade.entry_decision_token_snapshot = _bundle_bound_entry_token(trade)
+
+
+def _bind_test_hold_decision(
+    trade: TradeState,
+    *,
+    bundle_sha256: str = "b" * 64,
+    pair_generation_id: str = "UNIT_EXIT_INPUT_PAIR",
+) -> None:
     logits = [2.0, -1.0]
-    probabilities = _softmax(logits)
     snapshot = trade.require_entry_snapshot()
     path_envelope = trade.build_closed_m1_path_evidence()
+    input_envelope = unified_exit_input_fixture(
+        entry_snapshot=snapshot,
+        exit_path_envelope=path_envelope,
+        bundle_sha256=bundle_sha256,
+        decision_identity=str(trade.trade_id),
+        side=trade.side,
+        entry_bid=trade.entry_bid,
+        entry_ask=trade.entry_ask,
+        pair_generation_id=pair_generation_id,
+        entry_decision_token_snapshot=(
+            trade.entry_decision_token_snapshot
+        ),
+    )
+    carry_envelope = build_unified_exit_incremental_carry_envelope(
+        tensor_state={"fake_hidden": torch.tensor([[[float(trade.bars_in_trade)]]])},
+        step_count=trade.bars_in_trade,
+        last_closed_m1_bar_ts=trade.last_processed_m1_ts,
+        trade_identity=str(trade.trade_id),
+        side=trade.side,
+        bundle_sha256=bundle_sha256,
+        input_normalization_sha256=(
+            trade.entry_decision_token_snapshot[
+                "input_normalization_sha256"
+            ]
+        ),
+        entry_token_snapshot_sha256=canonical_unified_evidence_sha256(
+            trade.entry_decision_token_snapshot
+        ),
+        full_path_chain_sha256=path_envelope["full_path_chain_sha256"],
+        input_envelope_sha256=input_envelope["input_envelope_sha256"],
+        previous_carry_envelope_sha256=(
+            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+            if trade.exit_incremental_carry_envelope is None
+            else trade.exit_incremental_carry_envelope[
+                "carry_envelope_sha256"
+            ]
+        ),
+        mtf_last_row_sha256=input_envelope["mtf_last_row_sha256"],
+    )
     decision = {
-        "exit_action_logits": logits,
-        "exit_action_probs": probabilities,
+        "exit_action_q_bps": logits,
+        "exit_action_valid_mask": [True, True],
         "exit_action_index": 0,
         "action": "HOLD",
         "decision_source": "unified_model",
-        "bundle_sha256": "b" * 64,
+        "exit_input_envelope": input_envelope,
+        "exit_incremental_carry_envelope": carry_envelope,
+        "bundle_sha256": bundle_sha256,
         "entry_snapshot_sha256": canonical_unified_evidence_sha256(
             snapshot
         ),
         "exit_path_envelope_sha256": (
             canonical_unified_evidence_sha256(path_envelope)
         ),
+        "exit_input_envelope_sha256": input_envelope[
+            "input_envelope_sha256"
+        ],
     }
     decision["output_evidence_sha256"] = (
         canonical_unified_evidence_sha256(decision)
     )
     trade.bind_unified_exit_decision(
         decision,
-        expected_bundle_sha256="b" * 64,
+        expected_bundle_sha256=bundle_sha256,
+        exit_input_envelope=input_envelope,
     )
 
 
@@ -362,32 +469,55 @@ def test_unified_exit_uses_frozen_entry_representation_and_exact_path(
     )
 
     output = adapter.decide_exit(
+        decision_identity=str(trade.trade_id),
         entry_snapshot=trade.require_entry_snapshot(),
+        entry_decision_token_snapshot=_bundle_bound_entry_token(trade),
         exit_path_envelope=trade.build_closed_m1_path_evidence(),
         exit_feature_surface=_exit_feature_surface(),
         entry_bid=trade.entry_bid,
-        entry_ask=trade.entry_ask,
-        side=trade.side,
-    )
+            entry_ask=trade.entry_ask,
+            side=trade.side,
+            prior_incremental_carry_envelope=None,
+        )
 
     assert output["action"] == "EXIT_NOW"
     assert output["exit_action_index"] == 1
     assert output["decision_source"] == "unified_model"
     assert output["bundle_sha256"] == "b" * 64
     assert len(model.calls) == 1
-    assert model.calls[0]["entry_shared_representation"].shape == (1, 128)
-    assert model.calls[0]["exit_feature_seq_x"].shape == (1, EXIT_FEATURE_SEQUENCE_BARS, MODEL_NATIVE_SIGNAL_DIM)
-    assert model.calls[0]["exit_feature_snap_x"].shape == (1, MODEL_NATIVE_SIGNAL_DIM)
-    assert model.calls[0]["exit_feature_ctx_cat"].shape == (1, 5)
-    assert model.calls[0]["exit_feature_ctx_cont"].shape == (
+    assert model.calls[0]["entry_decision_representation"].shape == (1, 128)
+    assert model.calls[0]["exit_local_rows_x"].shape == (1, EXIT_FEATURE_SEQUENCE_BARS, MODEL_NATIVE_SIGNAL_DIM)
+    assert model.calls[0]["exit_state_ctx_cat"].shape == (
+        1,
+        MODEL_NATIVE_CTX_CAT_DIM,
+    )
+    assert model.calls[0]["exit_state_ctx_cont"].shape == (
         1,
         MODEL_NATIVE_CTX_CONT_DIM,
     )
-    assert model.calls[0]["exit_path_x"].shape == (1, 1, 14)
-    assert model.calls[0]["exit_path_lengths"].tolist() == [1]
-    assert model.calls[0]["exit_side_index"].tolist() == [0]
-    assert model.calls[0]["entry_shared_representation"][0].tolist() == (
-        pytest.approx(_snapshot()["entry_shared_representation"])
+    for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES:
+        assert model.calls[0]["exit_mtf_new_rows"][timeframe.lower()].shape == (
+            1,
+            2,
+            len(MULTI_TF_PER_BAR_FEATURES_V4),
+        )
+    assert model.calls[0]["exit_path_row_x"].shape == (
+        1,
+        2,
+        UNIFIED_EXIT_PATH_FEATURE_DIM,
+    )
+    assert model.calls[0]["entry_decision_representation"][0].tolist() == (
+        pytest.approx(_snapshot()["entry_decision_representation"])
+    )
+
+
+def test_live_exit_adapter_mock_has_exact_production_model_signature() -> None:
+    assert tuple(
+        inspect.signature(_UnifiedExitModel.forward_exit_incremental_step).parameters
+    ) == tuple(
+        inspect.signature(
+            EntryV10CtxHybridTransformer.forward_exit_incremental_step
+        ).parameters
     )
 
 
@@ -402,12 +532,15 @@ def test_unified_exit_replay_accepts_exact_pre_sizing_head_snapshot(
     )
 
     output = adapter.decide_exit(
+        decision_identity=str(trade.trade_id),
         entry_snapshot=trade.require_entry_snapshot(),
+        entry_decision_token_snapshot=_bundle_bound_entry_token(trade),
         exit_path_envelope=trade.build_closed_m1_path_evidence(),
         exit_feature_surface=_exit_feature_surface(),
         entry_bid=trade.entry_bid,
         entry_ask=trade.entry_ask,
         side=trade.side,
+        prior_incremental_carry_envelope=None,
     )
 
     assert output["action"] == "EXIT_NOW"
@@ -420,6 +553,7 @@ def test_pipeline_commits_one_bar_only_after_same_bundle_exit_decision(
     tmp_path: Path,
 ) -> None:
     trade = _open()
+    _bind_bundle_entry_token(trade)
     adapter, model = _unified_exit_adapter(
         tmp_path,
         logits=(2.0, -1.0),
@@ -474,6 +608,7 @@ def test_pipeline_catches_up_every_contiguous_authoritative_m1_bar(
     tmp_path: Path,
 ) -> None:
     trade = _open()
+    _bind_bundle_entry_token(trade)
     adapter, model = _unified_exit_adapter(
         tmp_path,
         logits=(2.0, -1.0),
@@ -528,6 +663,7 @@ def test_pipeline_catches_up_consecutive_source_rows_across_market_closure(
     tmp_path: Path,
 ) -> None:
     trade = _open()
+    _bind_bundle_entry_token(trade)
     adapter, model = _unified_exit_adapter(
         tmp_path,
         logits=(2.0, -1.0),
@@ -574,8 +710,8 @@ def test_pipeline_catches_up_consecutive_source_rows_across_market_closure(
 def test_pipeline_durably_journals_each_catch_up_bar_before_advancing(
     tmp_path: Path,
 ) -> None:
-    trade = _open()
-    trade.trade_id = "trade-batch-journal"
+    trade = _open(trade_id="trade-batch-journal")
+    _bind_bundle_entry_token(trade)
     adapter, model = _unified_exit_adapter(
         tmp_path,
         logits=(2.0, -1.0),
@@ -658,8 +794,7 @@ def test_pipeline_durably_journals_each_catch_up_bar_before_advancing(
         "2026-07-16T12:00:00+00:00",
         "2026-07-16T12:01:00+00:00",
     ]
-    assert all(row["exit_action_logits"] for row in decisions)
-    assert all(row["exit_action_probs"] for row in decisions)
+    assert all(row["exit_action_q_bps"] for row in decisions)
     assert all(row["output_evidence_sha256"] for row in decisions)
     assert len({row["output_evidence_sha256"] for row in decisions}) == 2
 
@@ -668,6 +803,7 @@ def test_pipeline_handles_two_five_minute_source_publication_batches(
     tmp_path: Path,
 ) -> None:
     trade = _open()
+    _bind_bundle_entry_token(trade)
     adapter, model = _unified_exit_adapter(
         tmp_path,
         logits=(2.0, -1.0),
@@ -924,18 +1060,16 @@ def test_broker_account_binding_is_exact_and_mode_owned() -> None:
 
 @pytest.mark.parametrize(
     "missing_key",
-    [
-        "direction_logits",
-        "path_quality",
-        "tf_agreement_logit",
-        "path_quality_log_var",
-        "position_size_logit",
-        "decision_available_ts",
-        "model_policy",
-        "session_id",
-    ],
+    sorted(MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS),
 )
 def test_trade_state_rejects_missing_model_native_entry_evidence(missing_key: str) -> None:
+    """Every field the runtime-evidence owner requires must fail closed.
+
+    Parametrized from the owner's own set, so a newly required field is
+    covered the moment it is declared instead of when someone remembers to
+    restate it here.
+    """
+
     snapshot = _snapshot()
     del snapshot[missing_key]
 
@@ -944,13 +1078,28 @@ def test_trade_state_rejects_missing_model_native_entry_evidence(missing_key: st
 
 
 @pytest.mark.parametrize(
+    "missing_key",
+    sorted(MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS),
+)
+def test_trade_state_rejects_partial_executable_timing_evidence(
+    missing_key: str,
+) -> None:
+    """Executable timing evidence is all-or-nothing and never partial."""
+
+    snapshot = _snapshot()
+    del snapshot[missing_key]
+
+    with pytest.raises(RuntimeError, match="must be absent or complete"):
+        _open(snapshot)
+
+
+@pytest.mark.parametrize(
     ("key", "value"),
     [
-        ("direction_probs", [0.1, 0.8, 0.1]),
-        ("public_trade_flat_decision_logits", [4.0, 0.0]),
-        ("tf_agreement_pred", 0.01),
-        ("path_quality_std", 2.0),
+        # An inconsistent derived value, and a retired calibrated-probability
+        # fragment that may never re-enter the runtime evidence.
         ("position_size_pred", 0.01),
+        ("entry_action_q_margin_bps", 0.5),
     ],
 )
 def test_trade_state_rejects_inconsistent_model_native_entry_evidence(
@@ -1226,7 +1375,7 @@ def test_trade_state_binds_bar_count_to_all_persisted_history_lengths() -> None:
         TradeState.from_dict(payload)
 
 
-def test_trade_state_accepts_exact_unified_exit_path_capacity() -> None:
+def test_trade_state_current_capacity_requires_terminal_exit() -> None:
     trade = _open()
     start = pd.Timestamp("2026-07-16T12:00:00Z")
     for offset in range(TRAJECTORY_HISTORY_MAXLEN):
@@ -1235,14 +1384,22 @@ def test_trade_state_accepts_exact_unified_exit_path_capacity() -> None:
                 (start + pd.Timedelta(minutes=offset)).isoformat()
             )
         )
-    _bind_test_hold_decision(trade)
+    with pytest.raises(
+        ValueError,
+        match="current capacity requires terminal EXIT_NOW",
+    ):
+        trade.update_bar(
+            **_valid_closed_m1_bar(
+                (start + pd.Timedelta(minutes=TRAJECTORY_HISTORY_MAXLEN)).isoformat()
+            )
+        )
 
-    restored = TradeState.from_dict(trade.to_dict())
-
-    assert len(restored.m1_returns_window) == M1_RETURNS_WINDOW_MAXLEN
-    assert len(restored.pnl_history) == TRAJECTORY_HISTORY_MAXLEN
-    assert len(restored.closed_m1_path) == TRAJECTORY_HISTORY_MAXLEN
-    assert restored.bars_in_trade == TRAJECTORY_HISTORY_MAXLEN
+    assert len(trade.m1_returns_window) == M1_RETURNS_WINDOW_MAXLEN
+    assert len(trade.pnl_history) == TRAJECTORY_HISTORY_MAXLEN
+    assert len(trade.closed_m1_path) == TRAJECTORY_HISTORY_MAXLEN
+    assert trade.bars_in_trade == TRAJECTORY_HISTORY_MAXLEN
+    assert trade.closed_m1_path[0]["time"] == start.isoformat()
+    assert len(trade.full_path_chain_sha256) == 64
 
 
 @pytest.mark.parametrize(
@@ -1357,11 +1514,108 @@ def test_trade_state_rejects_tampered_or_missing_persisted_exit_decision() -> No
         TradeState.from_dict(tampered)
 
 
+def test_trade_state_bind_uses_immutable_bundle_and_pair_authorities() -> None:
+    trade = _open()
+    trade.update_bar(**_valid_closed_m1_bar())
+    trade.sizing_execution_evidence["mode"] = "learned_virtual_dry_run"
+    trade.model_bundle_binding = _model_bundle_binding()
+    trade.entry_source_pair_binding = _source_pair_binding()
+
+    with pytest.raises(ValueError, match="immutable trade model bundle"):
+        _bind_test_hold_decision(
+            trade,
+            bundle_sha256="a" * 64,
+            pair_generation_id="c" * 64,
+        )
+    with pytest.raises(ValueError, match="input envelope differs"):
+        _bind_test_hold_decision(
+            trade,
+            bundle_sha256="b" * 64,
+            pair_generation_id="e" * 64,
+        )
+
+
+def test_persisted_executable_exit_cannot_self_authorize_another_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_trade_state as trade_state_module
+
+    monkeypatch.setattr(
+        trade_state_module,
+        "require_model_native_sizing_application_record",
+        lambda application, *, context: dict(application),
+    )
+    sizing_application = {
+        "authorized_order": True,
+        "units": 1,
+        "model_direction": "LONG",
+    }
+    trade = TradeState.open(
+        entry_ts=pd.Timestamp("2026-07-16T12:00:00Z"),
+        side="long",
+        entry_bid=3300.0,
+        entry_ask=3300.2,
+        v10_snapshot=_snapshot(),
+        trade_id="unit-trade",
+        units=1,
+        sizing_application=sizing_application,
+        fill_transaction_id="virtual:unit-trade",
+        execution_mode="learned_virtual_dry_run",
+        model_bundle_binding=_model_bundle_binding(),
+        entry_source_pair_binding=_source_pair_binding(),
+    )
+    trade.update_bar(**_valid_closed_m1_bar())
+    _bind_test_hold_decision(
+        trade,
+        pair_generation_id="c" * 64,
+    )
+
+    payload = trade.to_dict()
+    assert TradeState.from_dict(payload).model_bundle_binding == (
+        _model_bundle_binding()
+    )
+
+    wrong_input = unified_exit_input_fixture(
+        entry_snapshot=trade.require_entry_snapshot(),
+        exit_path_envelope=trade.build_closed_m1_path_evidence(),
+        bundle_sha256="a" * 64,
+        decision_identity=str(trade.trade_id),
+        side=trade.side,
+        entry_bid=trade.entry_bid,
+        entry_ask=trade.entry_ask,
+        pair_generation_id="c" * 64,
+    )
+    wrong_decision = dict(payload["last_exit_decision"])
+    wrong_decision.update(
+        {
+            "exit_input_envelope": wrong_input,
+            "exit_input_envelope_sha256": wrong_input[
+                "input_envelope_sha256"
+            ],
+            "bundle_sha256": "a" * 64,
+        }
+    )
+    wrong_decision["output_evidence_sha256"] = (
+        canonical_unified_evidence_sha256(
+            {
+                key: value
+                for key, value in wrong_decision.items()
+                if key != "output_evidence_sha256"
+            }
+        )
+    )
+    tampered = dict(payload)
+    tampered["last_exit_input_envelope"] = wrong_input
+    tampered["last_exit_decision"] = wrong_decision
+
+    with pytest.raises(ValueError, match="last Exit decision is invalid"):
+        TradeState.from_dict(tampered)
+
+
 def test_persisted_exit_decision_journal_recovery_is_idempotent(
     tmp_path: Path,
 ) -> None:
-    trade = _open()
-    trade.trade_id = "trade-unified-exit-recovery"
+    trade = _open(trade_id="trade-unified-exit-recovery")
     trade.update_bar(**_valid_closed_m1_bar())
     _bind_test_hold_decision(trade)
     journal = TradeJournal(
@@ -1404,11 +1658,10 @@ def test_trade_state_load_all_requires_filename_identity_and_sorts(tmp_path: Pat
         entry_bid=3300.0,
         entry_ask=3300.2,
         v10_snapshot=later_snapshot,
+        trade_id="later",
         normalization_contract="unit_normalized_direction_exit_research_v1",
     )
-    later.trade_id = "later"
-    earlier = _open()
-    earlier.trade_id = "earlier"
+    earlier = _open(trade_id="earlier")
     later.save(state_dir)
     earlier.save(state_dir)
 
@@ -1417,8 +1670,7 @@ def test_trade_state_load_all_requires_filename_identity_and_sorts(tmp_path: Pat
     assert [trade.trade_id for trade in restored] == ["earlier", "later"]
 
     bad_path = state_dir / "open_trade_wrong.json"
-    bad_payload = _open().to_dict()
-    bad_payload["trade_id"] = "actual"
+    bad_payload = _open(trade_id="actual").to_dict()
     bad_path.write_text(json.dumps(bad_payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="filename/identity mismatch"):
         TradeState.load_all(state_dir)

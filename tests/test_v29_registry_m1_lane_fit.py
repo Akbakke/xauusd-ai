@@ -1,252 +1,122 @@
-"""Contract tests for the V29 Exit M1-lane registry fit orchestration.
-
-Mirrors the M5-side fit tests for the M1 lane: the one fit owner in
-``gx1.features.htf_features`` fits the Exit local lane's level tolerance and
-trendline band on the declared native-M1 TRAIN window (same underlying fit
-owners ``fit_level_registry_tolerance`` / ``fit_trendline_tolerance``), the
-payload carries the rule-2f provenance shape, and the M1 materializer
-resolves it fail-closed (cross-lane payloads and provenance-free bare key
-dicts rejected; no default exists).
-
-All series here are synthetic: per rule 2c they prove code properties
-(determinism, contract shapes, fail-closed behaviour), never production
-behaviour.
-"""
+"""Registry artifact and M1-lane fail-closed integration tests."""
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import sys
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import pytest
 
-from gx1.contracts.entry_exit_feature_base_v1 import (
-    EXIT_FEATURE_SEQUENCE_BARS,
-)
+from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
 from gx1.features.htf_features import (
-    V29_REGISTRY_M1_LANE_MANIFEST_KEY,
     V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
-    fit_v29_registry_m1_lane_params_from_m1,
+    require_v29_registry_constants,
     require_v29_registry_m1_lane_params,
 )
-from gx1.scripts import materialize_entry_exit_m1_feature_base_v1 as feature_producer
 from gx1.scripts import build_entry_exit_m1_enriched_frame_v1 as enriched_producer
-from tests.htf_v29_registry_test_support import synthetic_v29_registry_constants
+from gx1.scripts import materialize_entry_exit_m1_feature_base_v1 as feature_producer
+from gx1.utils.artifact_primitives_v1 import canonical_json_sha256
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_constants,
+    synthetic_v29_registry_m1_lane_params,
+    write_synthetic_m1_registry_manifest,
+)
 
 
-_TEST_Q = 0.5  # explicit test input mirroring the adopted recipe value
-
-
-def _m1_frame(n: int = 720, seed: int = 7) -> pd.DataFrame:
-    """Synthetic native-M1 OHLCV on the exact 1-minute UTC grid."""
-
-    rng = np.random.default_rng(seed)
-    close = 4000.0 + np.cumsum(rng.normal(0.0, 0.8, size=n))
-    spread = np.abs(rng.normal(0.6, 0.25, size=n)) + 0.05
-    high = close + spread
-    low = close - spread
-    open_ = np.concatenate(([close[0]], close[:-1]))
-    index = pd.date_range("2026-01-05", periods=n, freq="1min", tz="UTC")
-    return pd.DataFrame(
-        {
-            "open": open_,
-            "high": high,
-            "low": low,
-            "close": close,
-            "volume": rng.integers(1, 50, size=n).astype(np.int64),
-        },
-        index=index,
+def _rehash(payload: dict) -> None:
+    payload["contract_sha256"] = canonical_json_sha256(
+        {key: value for key, value in payload.items() if key != "contract_sha256"}
     )
 
 
-def _fit(frame: pd.DataFrame, *, window_end=None, q: float = _TEST_Q) -> dict:
-    return fit_v29_registry_m1_lane_params_from_m1(
-        frame,
-        level_tol_quantile_q=q,
-        declared_train_window_end=(
-            frame.index[-1] if window_end is None else window_end
-        ),
-        exit_m1_seq_len=EXIT_FEATURE_SEQUENCE_BARS,
+def test_m1_lane_payload_binds_exact_hyperfit_and_lifetimes() -> None:
+    payload = synthetic_v29_registry_m1_lane_params()
+    assert require_v29_registry_m1_lane_params(payload) == payload
+    assert payload["schema_version"] == V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION
+    assert payload["level_recurrence_threshold_atr"] > 0.0
+    assert payload["level_expiry_bars"] > 0
+    assert payload["exit_m1"]["seq_len"] == EXIT_FEATURE_SEQUENCE_BARS
+    assert payload["exit_m1"]["trendline_band_atr"] > 0.0
+    assert payload["exit_m1"]["trendline_expiry_bars"] > 0
+    assert not any(
+        "quantile" in key or "reaction_window" in key or "retest_window" in key
+        for key in payload
     )
-
-
-def test_m1_lane_fit_deterministic_with_rule2f_provenance() -> None:
-    frame = _m1_frame()
-    first = _fit(frame)
-    second = _fit(frame)
-    assert first == second
-    assert require_v29_registry_m1_lane_params(first) == first
-
-    assert first["schema_version"] == V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION
-    assert first["level_tol_quantile_q"] == _TEST_Q
-    assert first["level_tol_atr"] > 0.0
-    assert first["exit_m1"]["seq_len"] == EXIT_FEATURE_SEQUENCE_BARS
-    assert first["exit_m1"]["trendline_band_atr"] > 0.0
-
-    provenance = first["provenance"]
-    assert provenance["fit_owner"] == (
-        "gx1.features.htf_features.fit_v29_registry_m1_lane_params_from_m1"
-    )
-    assert provenance["n_train_m1_rows"] == len(frame)
-    # rule 2f: the level fit states sample size and sampling bound on the
-    # native M1 clock; the trendline fit states its complete population size.
-    level_tol = provenance["level_tol"]
-    assert level_tol["tf"] == "m1"
-    assert level_tol["sample_size"] > 0
-    assert level_tol["quantile_prob_se"] > 0.0
-    assert level_tol["tol_level_atr"] == first["level_tol_atr"]
-    band = provenance["trendline_band"]
-    assert band["timeframe"] == "M1"
-    assert band["seq_len"] == EXIT_FEATURE_SEQUENCE_BARS
-    assert band["n_candidates_measured"] > 0
-    assert band["band_atr"] == first["exit_m1"]["trendline_band_atr"]
-
-
-def test_m1_lane_fit_uses_only_declared_train_window_rows() -> None:
-    frame = _m1_frame()
-    cut = len(frame) // 2
-    window_end = frame.index[cut - 1]
-    sliced = _fit(frame, window_end=window_end)
-    truncated = _fit(frame.iloc[:cut], window_end=window_end)
-    # rule 18/2g: only rows at or before the declared end participate, so the
-    # fit on the full frame with an early window equals the truncated fit.
-    assert sliced == truncated
-    assert sliced["provenance"]["n_train_m1_rows"] == cut
-    assert sliced != _fit(frame)
-
-
-def test_m1_lane_fit_fail_closed() -> None:
-    frame = _m1_frame()
-    with pytest.raises(RuntimeError, match="V29_REGISTRY"):
-        _fit(frame, q=0.0)
-    with pytest.raises(RuntimeError, match="M1_FIT_Q_INVALID"):
-        _fit(frame, q=1.0)
-    with pytest.raises(RuntimeError, match="M1_FIT_WINDOW_INVALID"):
-        _fit(frame, window_end=pd.Timestamp("2026-01-05 00:30:00"))
-    with pytest.raises(RuntimeError, match="M1_FIT_WINDOW_EMPTY"):
-        _fit(frame, window_end=pd.Timestamp("2020-01-01", tz="UTC"))
-    with pytest.raises(RuntimeError, match="M1_FIT_EXIT_SEQ_LEN_INVALID"):
-        fit_v29_registry_m1_lane_params_from_m1(
-            frame,
-            level_tol_quantile_q=_TEST_Q,
-            declared_train_window_end=frame.index[-1],
-            exit_m1_seq_len=True,
+    for nested in (
+        payload["provenance"]["level_recurrence_threshold"],
+        payload["provenance"]["trendline_band"],
+    ):
+        assert nested["future_outcomes_usage"] == (
+            "TRAIN_hyperparameter_fit_only_not_apply_features"
         )
-    off_grid = frame.copy()
-    off_grid.index = pd.date_range(
-        "2026-01-05", periods=len(frame), freq="30s", tz="UTC"
+        assert nested["candidate_count_total_empirical"] > 0
+        assert nested["candidate_count_scoreable"] > 0
+
+
+def test_m1_lane_validator_rejects_old_keys_and_nested_mutation() -> None:
+    valid = synthetic_v29_registry_m1_lane_params()
+    old_named = copy.deepcopy(valid)
+    old_named["level_tol_atr"] = old_named.pop(
+        "level_recurrence_threshold_atr"
     )
-    with pytest.raises(RuntimeError, match="HTF_INPUT_FAIL"):
-        _fit(off_grid)
-    naive = frame.copy()
-    naive.index = naive.index.tz_localize(None)
-    with pytest.raises((RuntimeError, TypeError)):
-        _fit(naive)
-
-
-def test_m1_lane_params_validator_fail_closed() -> None:
-    valid = _fit(_m1_frame(n=480))
-
-    with pytest.raises(RuntimeError, match="M1_LANE_PARAMS_MISSING"):
-        require_v29_registry_m1_lane_params(None)
+    _rehash(old_named)
     with pytest.raises(RuntimeError, match="exact keys differ"):
-        require_v29_registry_m1_lane_params(
-            {k: v for k, v in valid.items() if k != "provenance"}
-        )
+        require_v29_registry_m1_lane_params(old_named)
     with pytest.raises(RuntimeError, match="exact keys differ"):
-        require_v29_registry_m1_lane_params({**valid, "extra": 1})
-    with pytest.raises(RuntimeError, match="schema_version"):
-        require_v29_registry_m1_lane_params(
-            {**valid, "schema_version": "htf_v4_v29_registry_constants_v1"}
-        )
-    with pytest.raises(RuntimeError, match="level_tol_quantile_recipe_key"):
-        require_v29_registry_m1_lane_params(
-            {**valid, "level_tol_quantile_recipe_key": "guessed"}
-        )
-    with pytest.raises(RuntimeError, match="level_tol_atr"):
-        require_v29_registry_m1_lane_params({**valid, "level_tol_atr": 0.0})
-    with pytest.raises(RuntimeError, match="exit_m1"):
-        require_v29_registry_m1_lane_params(
-            {**valid, "exit_m1": {"seq_len": EXIT_FEATURE_SEQUENCE_BARS}}
-        )
-    with pytest.raises(RuntimeError, match="seq_len"):
-        require_v29_registry_m1_lane_params(
-            {
-                **valid,
-                "exit_m1": {**valid["exit_m1"], "seq_len": True},
-            }
-        )
-    with pytest.raises(RuntimeError, match="provenance"):
-        require_v29_registry_m1_lane_params({**valid, "provenance": {}})
-    # The M5 constants payload is a different lane and a different shape; it
-    # must never satisfy the M1-lane contract.
-    with pytest.raises(RuntimeError, match="M1_LANE_PARAMS_INVALID"):
-        require_v29_registry_m1_lane_params(synthetic_v29_registry_constants())
+        require_v29_registry_m1_lane_params({**valid, "level_tol_quantile_q": 0.5})
+    with pytest.raises(RuntimeError, match="exact keys differ"):
+        require_v29_registry_m1_lane_params({**valid, "reaction_window_bars": 12})
 
-
-def test_materializer_resolves_each_lane_fail_closed(tmp_path: Path) -> None:
-    resolve = feature_producer._resolve_v29_registry_layer_params
-    constants = synthetic_v29_registry_constants()
-    lane = _fit(_m1_frame(n=480))
-
-    constants_json = tmp_path / "constants.json"
-    constants_json.write_text(json.dumps(constants), encoding="utf-8")
-    cache_manifest_json = tmp_path / "cache_manifest.json"
-    cache_manifest_json.write_text(
-        json.dumps({"v29_registry_constants": constants}), encoding="utf-8"
+    mutated = copy.deepcopy(valid)
+    source = Path(
+        mutated["provenance"]["level_recurrence_threshold"]
+        ["source_provenance"]["source_artifact"]
     )
-    lane_json = tmp_path / "m1_lane.json"
-    lane_json.write_text(json.dumps(lane), encoding="utf-8")
-    m1_manifest_json = tmp_path / "m1_enriched.manifest.json"
-    m1_manifest_json.write_text(
-        json.dumps({V29_REGISTRY_M1_LANE_MANIFEST_KEY: lane}), encoding="utf-8"
-    )
-    bare_json = tmp_path / "bare.json"
-    bare_json.write_text(
-        json.dumps(
-            {
-                "level_tol_atr": 1.0,
-                "trendline_band_atr": 0.5,
-                "trendline_seq_len": 96,
-            }
-        ),
-        encoding="utf-8",
-    )
+    source.write_text("mutated\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="registry hyperfit provenance"):
+        require_v29_registry_m1_lane_params(mutated)
 
-    expected_m5 = {
-        "level_tol_atr": float(constants["level_tol_atr"]["M5"]),
-        "trendline_band_atr": float(constants["entry_m5"]["trendline_band_atr"]),
-        "trendline_seq_len": int(constants["entry_m5"]["seq_len"]),
+
+def test_m5_registry_validator_rejects_resealed_population_tamper() -> None:
+    valid = synthetic_v29_registry_constants()
+    tampered = copy.deepcopy(valid)
+    tampered["provenance"]["trendline_band"]["H4"][
+        "population_configuration"
+    ]["identity_expiry_bars"] += 1
+    nested = tampered["provenance"]["trendline_band"]["H4"]
+    _rehash(nested)
+    _rehash(tampered)
+    with pytest.raises(RuntimeError, match="registry hyperfit binding"):
+        require_v29_registry_constants(tampered)
+
+
+def test_materializer_resolves_m1_lifetime_params_fail_closed(tmp_path: Path) -> None:
+    lane = synthetic_v29_registry_m1_lane_params()
+    manifest = write_synthetic_m1_registry_manifest(tmp_path, params=lane)
+    manifest_payload = json.loads(manifest.read_text(encoding="utf-8"))
+    source = Path(manifest_payload["output_parquet"])
+    resolved = feature_producer._resolve_v29_registry_layer_params(
+        manifest,
+        timeframe="M1",
+        expected_source=source,
+        expected_source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
+        expected_source_manifest=manifest,
+    )
+    assert resolved == {
+        "level_recurrence_threshold_atr": lane[
+            "level_recurrence_threshold_atr"
+        ],
+        "level_expiry_bars": lane["level_expiry_bars"],
+        "trendline_band_atr": lane["exit_m1"]["trendline_band_atr"],
+        "trendline_expiry_bars": lane["exit_m1"]["trendline_expiry_bars"],
+        "trendline_seq_len": lane["exit_m1"]["seq_len"],
     }
-    assert resolve(constants_json, timeframe="M5") == expected_m5
-    assert resolve(cache_manifest_json, timeframe="M5") == expected_m5
-
-    expected_m1 = {
-        "level_tol_atr": float(lane["level_tol_atr"]),
-        "trendline_band_atr": float(lane["exit_m1"]["trendline_band_atr"]),
-        "trendline_seq_len": int(lane["exit_m1"]["seq_len"]),
-    }
-    assert resolve(lane_json, timeframe="M1") == expected_m1
-    assert resolve(m1_manifest_json, timeframe="M1") == expected_m1
-
-    # Cross-lane payloads fail closed: the M5 constants cannot supply the M1
-    # lane and the M1-lane params cannot supply the M5 lane.
-    with pytest.raises(RuntimeError, match="V29_REGISTRY"):
-        resolve(constants_json, timeframe="M1")
-    with pytest.raises(RuntimeError, match="V29_REGISTRY"):
-        resolve(lane_json, timeframe="M5")
-    # A provenance-free bare key dict is hand-authored evidence; both lanes
-    # reject it (rule 2a/14 — no default, no soft pass-through).
-    with pytest.raises(RuntimeError, match="V29_REGISTRY"):
-        resolve(bare_json, timeframe="M5")
-    with pytest.raises(RuntimeError, match="V29_REGISTRY"):
-        resolve(bare_json, timeframe="M1")
 
 
 @pytest.mark.parametrize("root_flag", ["--native-m1-root", "--native-m5-root"])
-def test_enriched_cli_requires_fit_inputs_on_both_routes(
+def test_enriched_cli_requires_complete_registry_fit_lineage(
     monkeypatch: pytest.MonkeyPatch, root_flag: str
 ) -> None:
     called: list[dict[str, object]] = []
@@ -255,10 +125,8 @@ def test_enriched_cli_requires_fit_inputs_on_both_routes(
         "_build_enriched_frame",
         lambda **kwargs: called.append(kwargs) or {"decision": "PASS"},
     )
-    argv = [
+    base = [
         "producer", root_flag, "/tmp/native",
-        "--rank-reference-npz", "/tmp/rank.npz",
-        "--rank-reference-sha256", "a" * 64,
         "--pair-manifest", "/tmp/pair.json",
         "--multi-tf-cache-dir", "/tmp/cache",
         "--output-parquet", "/tmp/enriched.parquet",
@@ -266,8 +134,14 @@ def test_enriched_cli_requires_fit_inputs_on_both_routes(
         "--checkpoint-dir", "/tmp/checkpoint",
         "--dataset-run-id", "run",
         "--pair-generation-id", "b" * 64,
+        "--registry-fit-train-start", "2026-01-01T00:00:00+00:00",
+        "--registry-fit-train-end", "2026-01-31T00:00:00+00:00",
+        "--registry-fit-tape-manifest", "/tmp/tape.json",
+        "--expected-registry-fit-tape-manifest-sha256", "c" * 64,
+        "--volatility-squeeze-manifest", "/tmp/squeeze.json",
+        "--expected-volatility-squeeze-manifest-sha256", "d" * 64,
     ]
-    monkeypatch.setattr(sys, "argv", list(argv))
+    monkeypatch.setattr(sys, "argv", list(base))
     with pytest.raises(SystemExit):
         enriched_producer.main()
     assert called == []
@@ -275,15 +149,9 @@ def test_enriched_cli_requires_fit_inputs_on_both_routes(
     monkeypatch.setattr(
         sys,
         "argv",
-        [
-            *argv,
-            "--level-tol-quantile-q", "0.5",
-            "--registry-fit-train-end", "2026-01-05T00:00:00Z",
-        ],
+        [*base, "--registry-fit-inner-end", "2026-01-15T00:00:00+00:00"],
     )
     enriched_producer.main()
-    assert [call["timeframe"] for call in called] == [
-        "M1" if root_flag == "--native-m1-root" else "M5"
-    ]
-    assert called[0]["level_tol_quantile_q"] == 0.5
-    assert called[0]["registry_fit_train_end"] == "2026-01-05T00:00:00Z"
+    assert len(called) == 1
+    assert called[0]["registry_fit_inner_end"] == "2026-01-15T00:00:00+00:00"
+    assert "level_tol_quantile_q" not in called[0]

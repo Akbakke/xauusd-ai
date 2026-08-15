@@ -11,12 +11,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -28,19 +30,18 @@ from gx1.features.htf_features import (
     require_multi_tf_v4_liveness_contract,
 )
 
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v5"
-POLICY_VERSION = "entry_full_input_liveness_policy_v6"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v7"
+POLICY_VERSION = "entry_full_input_liveness_policy_v7"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
 SURFACES = ("signal", "ctx_cont", "ctx_cat")
-# V30 (2026-08-13): ctx_cont derives from the signal-contract owner (142 ->
-# 143 with H4_range_compression_ratio); a restated literal here was a second
-# truth (rule 13).
+# Context dimensions derive from the signal-contract owner; a restated literal
+# here would create a second truth.
 EXPECTED_FIELD_COUNTS = {
     "signal": MODEL_NATIVE_SIGNAL_DIM,
     "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
-    "ctx_cat": 5,
+    "ctx_cat": MODEL_NATIVE_CTX_CAT_DIM,
 }
 MULTI_TF_FEATURE_NAMES = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
 EXPECTED_MULTI_TF_FIELD_COUNT = len(MULTI_TF_FEATURE_NAMES)
@@ -59,31 +60,123 @@ ATR_MAX_STD_RATIO = 4.0
 # variation.  Direction edge is decided later by the OOS performance gates.
 CONSTANT_ALLOWLIST: dict[tuple[str, str], tuple[str, ...]] = {}
 
+# ---------------------------------------------------------------------------
+# Name-declared value semantics (V30 fidelity gate, 2026-08-15)
+#
+# A field NAME is a promise about the values behind it. The existing liveness
+# rules cannot see a field that keeps that promise broken: `std > 1e-9` and
+# `active_rate >= 1%` are both satisfied by a "slope" that never crosses zero,
+# by a signed spread pinned to one side, and by a `_neg(...)` term that is
+# identically zero. Every one of those shipped, passed every gate, and was
+# found only by hand in the 2026-08-13 fidelity review.
+#
+# These rules introduce NO threshold and NO magnitude. They are exact
+# structural facts on the complete declared TRAIN population, read from the
+# `min`/`max` the producer already emits:
+#   * a signed field must observe BOTH signs;
+#   * a non-negative field must never observe a negative value;
+#   * a unit-interval field must stay inside [0, 1].
+#
+# `_atr` is deliberately absent from the non-negative markers: it denotes
+# "expressed in ATR units", a normalisation, not a magnitude — `ema50_slope_atr`
+# is signed. Measured against the current surface these markers cover 192 of
+# 537 field slots with exactly two names matching both classes, and in both the
+# explicit `_signed` suffix is the author's own declaration and wins.
+FIELD_SEMANTIC_SIGNED_PATTERN = (
+    r"(_signed$|_signed_|_delta|_change_|_slope|_spread|_minus_|_diff|_skew"
+    r"|_asym|(^|_)z_|_z$)"
+)
+FIELD_SEMANTIC_NON_NEGATIVE_PATTERN = (
+    r"(_count$|_count_|_age_bars$|^bars_since_|_bars_since_|_depth_atr$|_mae"
+    r"|_share$|_fraction$)"
+)
+FIELD_SEMANTIC_UNIT_INTERVAL_PATTERN = r"(_share$|_fraction$|_prob$|_rate$)"
+
+# A field that legitimately contradicts its own name must be named here with a
+# stated reason. Empty is the fail-closed default: an exception must be
+# declared, never silent.
+FIELD_SEMANTIC_EXEMPTIONS: dict[tuple[str, str], str] = {}
+
+FIELD_SEMANTIC_SIGNED = "signed"
+FIELD_SEMANTIC_NON_NEGATIVE = "non_negative"
+FIELD_SEMANTIC_UNIT_INTERVAL = "unit_interval"
+
+
+def classify_field_name_semantics(field: str) -> str | None:
+    """Return the value semantics the field's own name declares, if any.
+
+    An explicit ``_signed`` suffix is the author's declaration and outranks a
+    structural marker (``level_bars_since_break_signed`` is signed, not a
+    non-negative bar count).
+    """
+
+    name = str(field).rsplit(".", 1)[-1]
+    if re.search(r"_signed$|_signed_", name):
+        return FIELD_SEMANTIC_SIGNED
+    if re.search(FIELD_SEMANTIC_UNIT_INTERVAL_PATTERN, name):
+        return FIELD_SEMANTIC_UNIT_INTERVAL
+    if re.search(FIELD_SEMANTIC_NON_NEGATIVE_PATTERN, name):
+        return FIELD_SEMANTIC_NON_NEGATIVE
+    if re.search(FIELD_SEMANTIC_SIGNED_PATTERN, name):
+        return FIELD_SEMANTIC_SIGNED
+    return None
+
+
+def field_name_semantics_failure(
+    *,
+    surface: str,
+    field: str,
+    stats: Mapping[str, Any],
+) -> str | None:
+    """Return a failure reason when TRAIN values contradict the field's name.
+
+    Exact on the complete declared population; no tolerance is applied, so
+    there is no sampling-error question (rule 2f does not arise).
+    """
+
+    if (surface, field) in FIELD_SEMANTIC_EXEMPTIONS:
+        return None
+    semantics = classify_field_name_semantics(field)
+    if semantics is None:
+        return None
+    observed_min = _float(stats.get("min"))
+    observed_max = _float(stats.get("max"))
+    if semantics == FIELD_SEMANTIC_SIGNED:
+        if not (observed_min < 0.0 < observed_max):
+            return "signed_field_never_observes_both_signs"
+        return None
+    if semantics == FIELD_SEMANTIC_NON_NEGATIVE:
+        if observed_min < 0.0:
+            return "non_negative_field_observes_negative_value"
+        return None
+    if semantics == FIELD_SEMANTIC_UNIT_INTERVAL:
+        if observed_min < 0.0 or observed_max > 1.0:
+            return "unit_interval_field_outside_zero_one"
+        return None
+    return None
+
 # Semantically sparse impulses bypass the generic one-percent TRAIN activity
 # rule only after meeting an explicit support floor.  OOS event counts are
 # reported exactly but never manufactured or used to invalidate a genuine
 # chronological market window.
 RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
     ("signal", "smc_choch"): {"train": 32},
-    ("signal", "candle.pattern_outside_after_inside_bull_breakout_score"): {
-        "train": 16,
-    },
-    ("signal", "candle.pattern_outside_after_inside_bear_breakout_score"): {
-        "train": 16,
-    },
     ("signal", "chart.local_ema50_200_cross_up"): {"train": 128},
     ("signal", "chart.local_ema50_200_cross_down"): {"train": 128},
-    ("ctx_cont", "d1_regime_changed_flag_v3"): {"train": 32},
     # V29 sparse impulses (registered 2026-08-12 from the first real V29
-    # TRAIN build, N=393,602 rows): the slow-clock flip flags are the same
-    # field family as the registered d1_regime_changed_flag_v3 and adopt its
-    # exact floor unchanged; the trendline retest-FAIL events are the rare
-    # complement of retest-hold (~32k) and adopt the structural-event floor
-    # (smc_choch). Measured TRAIN counts: h1 flip 1,543; h4 flip 421;
-    # retest_fail_up 1,142; retest_fail_down 1,180 — 13x-48x the floor, so
-    # the floor proves genuine firing without training on noise (rule 2f).
-    ("signal", "h1_regime_changed_flag_v3"): {"train": 32},
-    ("signal", "h4_regime_changed_flag_v3"): {"train": 32},
+    # TRAIN build, N=393,602 rows): the trendline retest-FAIL events are the
+    # rare complement of retest-hold (~32k) and adopt the structural-event
+    # floor (smc_choch). Measured TRAIN counts: retest_fail_up 1,142;
+    # retest_fail_down 1,180 — 35x the floor, so the floor proves genuine
+    # firing without training on noise (rule 2f).
+    #
+    # The three `*_regime_changed_flag_v3` floors registered alongside them
+    # (d1 on ctx_cont, h1/h4 on signal) are removed here because the V30
+    # surface retired those fields entirely — `entry_model_native_signal_v1.
+    # RETIRED_STATIC_REGIME_BUCKET_FIELDS` names them. A floor on a field the
+    # surface no longer emits is not a support requirement, it is a guaranteed
+    # `required_policy_field_missing` on every build. Their raw per-timeframe
+    # regime evidence survives in the MTF lanes.
     ("signal", "chart.geomline_retest_fail_up"): {"train": 32},
     ("signal", "chart.geomline_retest_fail_down"): {"train": 32},
 }
@@ -268,6 +361,17 @@ def classify_field_status(
         if active_rate < MIN_ACTIVE_RATE:
             return "OBSERVED_RARE_EVENT", "numeric_oos_below_training_activity_floor"
         return "OBSERVED_VARIABLE", "numeric_oos_variability_and_activity"
+    # A field can be variable and active while still contradicting its own
+    # name. That is the exact blind spot the 2026-08-13 fidelity review found,
+    # so the name contract is checked on TRAIN — the complete declared
+    # population — before any LIVE verdict is granted.
+    semantic_failure = field_name_semantics_failure(
+        surface=surface,
+        field=field,
+        stats=stats,
+    )
+    if semantic_failure is not None:
+        return "FAIL", semantic_failure
     if variable and active_rate >= MIN_ACTIVE_RATE:
         return "LIVE", "numeric_variability_and_activity"
     rare_minimum = RARE_EVENT_MINIMUMS.get((surface, field), {}).get(split)

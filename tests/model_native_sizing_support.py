@@ -22,8 +22,24 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
     write_bundle_commit_manifest,
 )
-from gx1.contracts.entry_model_native_calibration_v1 import (
-    IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
+    encode_model_native_runtime_head_evidence,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_OUTPUT_DIM,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
+    MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
+    model_native_aux_target_contract_metadata,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -33,6 +49,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     build_prediction_evidence_declaration,
 )
+from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
+    VAL_EVIDENCE_STAGE,
+)
 from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     bind_bundle_sizing_calibration,
     finalize_test_sizing_proof,
@@ -40,11 +59,10 @@ from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     materialize_test_sizing_oos_source,
 )
 from tests.model_native_turning_point_support import turning_point_prediction_row
-from tests.model_native_offline_rl_support import (
-    add_test_runtime_calibration_metadata,
-    offline_rl_prediction_row,
-    runtime_head_prediction_columns,
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -101,12 +119,6 @@ def unverified_learned_sizing_authority() -> dict[str, Any]:
     )
 
 
-def _softmax(values: np.ndarray) -> np.ndarray:
-    shifted = values - np.max(values)
-    exp = np.exp(shifted)
-    return exp / exp.sum()
-
-
 def _prediction_row(
     *,
     timestamp: pd.Timestamp,
@@ -117,38 +129,36 @@ def _prediction_row(
     session: str,
     regime: str,
 ) -> dict[str, Any]:
-    direction_logits = np.full(3, -2.0, dtype=np.float64)
-    direction_logits[direction] = 2.0
-    direction_probs = _softmax(direction_logits)
-    public_logits = np.asarray(
-        [max(direction_logits[0], direction_logits[1]), direction_logits[2]],
-        dtype=np.float64,
-    )
-    public_probs = _softmax(public_logits)
+    entry_q = np.full(3, -2.0, dtype=np.float64)
+    entry_q[direction] = 2.0
+    ordered_q = np.sort(entry_q)
     return {
         "split": split,
         "model": "candidate",
         "time": timestamp.isoformat(),
-        "y_direction": direction,
         "pred_direction": direction,
-        "p_long": float(direction_probs[0]),
-        "p_short": float(direction_probs[1]),
-        "p_flat": float(direction_probs[2]),
+        # `y_direction` (realized side) and `vol_regime` (sizing slice) are
+        # required by `derive_canonical_sizing_oos_rows` and the sizing slice
+        # contract. NOTE: no production producer emits either any more — the
+        # selective-edge evaluator stopped computing `y_direction` from
+        # `batch["y"]`, and nothing derives `vol_regime` since the regime
+        # categorical was retired. This fixture supplies them so the contract's
+        # own logic is exercised; closing the producer gap is a separate,
+        # still-open change and is recorded as such.
+        "y_direction": direction,
+        "vol_regime": regime,
         "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
-        "public_trade_probability": float(public_probs[0]),
-        "public_flat_probability": float(public_probs[1]),
-        "public_trade_flat_margin": float(public_logits[0] - public_logits[1]),
-        "public_trade_flat_hard_decision": int(np.argmax(public_logits)),
-        "direction_logits": direction_logits.tolist(),
-        "public_trade_flat_decision_logits": public_logits.tolist(),
+        "selection_score": float(entry_q[direction]),
+        "entry_action_q_bps": entry_q.tolist(),
+        "entry_action_q_margin_bps": float(ordered_q[-1] - ordered_q[-2]),
+        "model_direction_index": direction,
+        "model_direction": ("LONG", "SHORT", "FLAT")[direction],
         "position_size_logit": float(logit),
         "position_size_pred": float(1.0 / (1.0 + np.exp(-logit))),
         "y_position_size_target": float(target),
         "session": session,
         "session_id": ("ASIA", "EU", "OVERLAP", "US").index(session),
-        "vol_regime": regime,
         **turning_point_prediction_row(0),
-        **offline_rl_prediction_row(0),
     }
 
 
@@ -168,13 +178,179 @@ def _write_dataset_manifest(
                 for split, bounds in coverage.items()
             },
             "extra": {
-                "model_native_state_contract": {
-                    "rank_reference_source_parquet": str(source_tape.resolve()),
-                    "rank_reference_source_parquet_sha256": _sha(source_tape),
+                "source_frame": {
+                    "parquet_path": str(source_tape.resolve()),
+                    "parquet_sha256": _sha(source_tape),
                 }
             },
         },
     )
+
+
+def model_native_mtf_cooperation_evidence() -> dict[str, list[float]]:
+    timeframe_count = ENTRY_MTF_CONTEXT_COUNT
+    specialist_count = len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    return {
+        "tf_gate": [1.0 / timeframe_count] * timeframe_count,
+        "family_tf_cooperation_gate": [
+            1.0 / (timeframe_count * specialist_count)
+        ]
+        * (timeframe_count * specialist_count),
+        "family_tf_feature_gate": [1.0]
+        * (timeframe_count * len(MULTI_TF_PER_BAR_FEATURES_V4)),
+    }
+
+
+def model_native_runtime_evidence_fixture(
+    *,
+    timestamp: str | pd.Timestamp = "2026-07-08T17:55:00Z",
+    entry_action_q_bps: tuple[float, float, float] = (2.0, -1.0, 0.0),
+    position_size_logit: float = 0.0,
+    session: str = "OVERLAP",
+    include_head_schema: bool = False,
+    include_execution_timing: bool = False,
+) -> dict[str, Any]:
+    q_values = np.asarray(entry_action_q_bps, dtype=np.float64)
+    winner = int(np.argmax(q_values))
+    if int(np.count_nonzero(q_values == q_values[winner])) != 1:
+        raise ValueError("entry_action_q_bps must have one unique winner")
+    ordered = np.sort(q_values)
+    session_id = ("ASIA", "EU", "OVERLAP", "US").index(session)
+    evidence: dict[str, Any] = {
+        "decision_ts": str(pd.Timestamp(timestamp)),
+        "runtime_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION
+        ),
+        "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
+        "session_id": session_id,
+        "session": session,
+        "entry_decision_representation": [0.01] * 128,
+        "entry_action_q_bps": q_values.tolist(),
+        "entry_action_q_margin_bps": float(ordered[-1] - ordered[-2]),
+        "entry_q_joint_hidden": [0.02] * 128,
+        "model_direction_index": winner,
+        "model_direction": ("LONG", "SHORT", "FLAT")[winner],
+        "selected_side": winner if winner in (0, 1) else None,
+        "side_mae_bps": [2.0, 3.0],
+        "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
+        "dip_pred": [0.1] * MODEL_NATIVE_DIP_OUTPUT_DIM,
+        "forecast_pred": [0.1] * len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+        "timing_pred": [0.1] * len(MODEL_NATIVE_TIMING_TARGET_COLUMNS),
+        "tail_risk_pred": [0.1] * len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
+        "vol_forecast_pred": [0.1]
+        * len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
+        "atr_bps": 12.0,
+        "position_size_logit": float(position_size_logit),
+        "position_size_pred": float(
+            1.0 / (1.0 + np.exp(-float(position_size_logit)))
+        ),
+        "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        "specialist_gate": [1.0 / len(MODEL_NATIVE_TRAINING_SPECIALISTS)]
+        * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        **model_native_mtf_cooperation_evidence(),
+    }
+    if include_head_schema:
+        evidence["runtime_head_evidence_schema_version"] = (
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        )
+    if include_execution_timing:
+        decision_ts = pd.Timestamp(timestamp)
+        evidence.update(
+            {
+                "decision_available_ts": str(decision_ts + pd.Timedelta(minutes=5)),
+                "entry_signal_latency_sec": 0.0,
+                "context_cutoff_ts": str(decision_ts),
+                "context_age_m5_bars": 0,
+            }
+        )
+    return evidence
+
+
+def model_native_target_audit_evidence() -> dict[str, object]:
+    return {
+        "model_native_aux_target_contract": (
+            model_native_aux_target_contract_metadata()
+        ),
+        "target_head_contract": {
+            "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
+            "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+            "extra_active_target_heads": [],
+            "extra_active_target_head_liveness": {},
+        },
+    }
+
+
+def runtime_head_prediction_columns(
+    frame: pd.DataFrame,
+) -> dict[str, list[Any]]:
+    payloads: list[str] = []
+    hashes: list[str] = []
+    specialist_weight = 1.0 / len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    tf_weight = 1.0 / ENTRY_MTF_CONTEXT_COUNT
+    family_tf_weight = 1.0 / (
+        ENTRY_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    )
+    for row in frame.to_dict(orient="records"):
+        direction = int(row["model_direction_index"])
+        evidence = {
+            "runtime_head_evidence_schema_version": (
+                MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+            ),
+            "decision_ts": str(pd.Timestamp(row["time"])),
+            "runtime_evidence_schema_version": (
+                MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION
+            ),
+            "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
+            "session_id": int(row["session_id"]),
+            "session": str(row["session"]),
+            "entry_decision_representation": [0.01] * 128,
+            "entry_action_q_bps": list(row["entry_action_q_bps"]),
+            "entry_action_q_margin_bps": float(
+                row["entry_action_q_margin_bps"]
+            ),
+            "entry_q_joint_hidden": [0.02] * 128,
+            "model_direction_index": direction,
+            "model_direction": ("LONG", "SHORT", "FLAT")[direction],
+            "selected_side": direction if direction in (0, 1) else None,
+            "side_mae_bps": [2.0, 3.0],
+            "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
+            "dip_pred": [0.1] * 18,
+            "forecast_pred": [0.1] * 4,
+            "timing_pred": list(row["timing_pred"]),
+            "tail_risk_pred": [0.1] * 6,
+            "vol_forecast_pred": [0.1] * 3,
+            "atr_bps": 12.0,
+            "position_size_logit": float(row["position_size_logit"]),
+            "position_size_pred": float(row["position_size_pred"]),
+            "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
+            "specialist_gate": [specialist_weight]
+            * len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+            "tf_gate": [tf_weight] * ENTRY_MTF_CONTEXT_COUNT,
+            "family_tf_cooperation_gate": [family_tf_weight]
+            * (
+                ENTRY_MTF_CONTEXT_COUNT
+                * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+            ),
+            "family_tf_feature_gate": [1.0]
+            * (
+                ENTRY_MTF_CONTEXT_COUNT
+                * len(MULTI_TF_PER_BAR_FEATURES_V4)
+            ),
+        }
+        payload, payload_sha = encode_model_native_runtime_head_evidence(
+            evidence,
+            context="SIZING_TEST_RUNTIME_HEAD",
+        )
+        payloads.append(payload)
+        hashes.append(payload_sha)
+    return {
+        "runtime_head_evidence_schema_version": [
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        ]
+        * len(frame),
+        "runtime_head_evidence_json": payloads,
+        "runtime_head_evidence_sha256": hashes,
+    }
 
 
 def _write_prediction_event(
@@ -191,10 +367,7 @@ def _write_prediction_event(
     metadata = json.loads((bundle_dir / "bundle_metadata.json").read_text())
     frame = frame.copy()
     if evidence_stage == "runtime_authoritative":
-        for name, values in runtime_head_prediction_columns(
-            frame,
-            metadata,
-        ).items():
+        for name, values in runtime_head_prediction_columns(frame).items():
             frame[name] = values
     frame.to_parquet(predictions, index=False)
     splits = sorted(frame["split"].astype(str).unique())
@@ -269,7 +442,6 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         "direction_decision_contract": direction_contract,
         "run_lineage": run_lineage,
     }
-    add_test_runtime_calibration_metadata(source_metadata)
     _write_json(source_bundle / "bundle_metadata.json", source_metadata)
     _write_json(
         source_bundle / "MASTER_TRANSFORMER_LOCK.json",
@@ -280,24 +452,10 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             "run_lineage": run_lineage,
         },
     )
-    calibration_event_names = (
-        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T090000123456Z.json",
-        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T093000123456Z.json",
-    )
-    for head, name in zip(("direction", "path"), calibration_event_names, strict=True):
-        _write_json(
-            source_bundle / name,
-            {
-                "schema_version": IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
-                "decision": "PASS",
-                "head": head,
-                "calibration": source_metadata[f"{head}_calibration"],
-            },
-        )
     write_bundle_commit_manifest(
         bundle_dir=source_bundle.resolve(),
-        artifact_names=(*BUNDLE_COMMIT_CORE_ARTIFACTS, *calibration_event_names),
-        bundle_kind="calibrated",
+        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+        bundle_kind="trained",
         created_at_utc="2026-07-17T00:00:00+00:00",
     )
 
@@ -408,7 +566,7 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         bundle_dir=source_bundle,
         dataset_dir=dataset_dir,
         stamp="20260717T100000123456Z",
-        evidence_stage="pre_calibration",
+        evidence_stage=VAL_EVIDENCE_STAGE,
     )
     calibration_path, calibration = fit_val_sizing_calibration(
         predictions_path=fit_predictions,
@@ -535,16 +693,16 @@ def write_passing_unified_replay_fixture(root: Path) -> dict[str, Any]:
                 * 10_000.0
             )
             exit_now = step == int(row["exit_steps"])
-            logits = [-2.0, 2.0] if exit_now else [2.0, -2.0]
-            probs = _softmax(np.asarray(logits, dtype=np.float64)).tolist()
+            q_values = [-2.0, 2.0] if exit_now else [2.0, -2.0]
+            valid_mask = [True, True]
             action_id = 1 if exit_now else 0
             action = "EXIT_NOW" if exit_now else "HOLD"
             path_sha = hashlib.sha256(
                 f"{row['reference_row_id']}:{step}".encode("utf-8")
             ).hexdigest()
             output = {
-                "exit_action_logits": logits,
-                "exit_action_probs": probs,
+                "exit_action_q_bps": q_values,
+                "exit_action_valid_mask": valid_mask,
                 "exit_action_index": action_id,
                 "action": action,
                 "decision_source": "unified_model",
@@ -570,10 +728,10 @@ def write_passing_unified_replay_fixture(root: Path) -> dict[str, Any]:
                     "state_pnl_bps": state_pnl_bps,
                     "state_bid": state_bid,
                     "state_ask": state_ask,
-                    "exit_hold_logit": logits[0],
-                    "exit_now_logit": logits[1],
-                    "exit_hold_prob": probs[0],
-                    "exit_now_prob": probs[1],
+                    "exit_hold_q_bps": q_values[0],
+                    "exit_now_q_bps": q_values[1],
+                    "exit_hold_valid": valid_mask[0],
+                    "exit_now_valid": valid_mask[1],
                     "candidate_bundle_sha256": candidate_bundle_sha,
                     "entry_snapshot_sha256": entry_snapshot_sha,
                     "exit_path_envelope_sha256": path_sha,

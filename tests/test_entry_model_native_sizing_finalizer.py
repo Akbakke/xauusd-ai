@@ -6,7 +6,23 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
+)
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
+    RETIRED_RUNTIME_EVIDENCE_FRAGMENTS,
+)
 from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    PRE_CALIBRATION_EVIDENCE_STAGE,
+    RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+)
 from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     SizingFinalizationError,
     bind_bundle_sizing_calibration,
@@ -76,13 +92,12 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
     evidence = write_passing_sizing_calibration_and_proof(tmp_path)
     source_bundle = tmp_path / "source_bundle"
     final_bundle = evidence["bundle_dir"]
+    # The bundle inventory is exactly the commit owner's core artifacts plus
+    # its manifest.  The retired direction/path calibration events are gone,
+    # so nothing else may appear beside them.
     required_inventory = {
-        "bundle_metadata.json",
-        "MASTER_TRANSFORMER_LOCK.json",
-        "model_state_dict.pt",
-        "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json",
-        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T090000123456Z.json",
-        "ENTRY_MODEL_NATIVE_CALIBRATION_20260717T093000123456Z.json",
+        *BUNDLE_COMMIT_CORE_ARTIFACTS,
+        BUNDLE_COMMIT_MANIFEST_NAME,
     }
 
     source_metadata = json.loads(
@@ -119,9 +134,11 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
         ).read_text(encoding="utf-8")
     )
     assert fit_report["prediction_evidence"]["schema_version"] == (
-        "entry_candidate_model_direction_prediction_evidence_v3"
+        PREDICTION_EVIDENCE_SCHEMA_VERSION
     )
-    assert fit_report["prediction_evidence"]["evidence_stage"] == "pre_calibration"
+    assert fit_report["prediction_evidence"]["evidence_stage"] == (
+        PRE_CALIBRATION_EVIDENCE_STAGE
+    )
     assert fit_report["prediction_evidence"]["authoritative"] is False
     proof = evidence["proof"]
     assert proof["direction_edge_policy"]["enforced_core"][
@@ -136,23 +153,29 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
     )
     runtime_declaration = runtime_report["prediction_evidence"]
     assert runtime_declaration["schema_version"] == (
-        "entry_candidate_model_direction_prediction_evidence_v7"
+        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
     )
-    assert runtime_declaration["evidence_stage"] == "runtime_authoritative"
+    assert runtime_declaration["evidence_stage"] == (
+        RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE
+    )
     assert runtime_declaration["authoritative"] is True
     runtime_predictions = pd.read_parquet(runtime_declaration["path"])
     runtime_head = json.loads(runtime_predictions.iloc[0]["runtime_head_evidence_json"])
     assert runtime_head["runtime_evidence_schema_version"] == (
-        "entry_model_native_runtime_evidence_v7"
+        MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION
     )
     assert runtime_head["runtime_head_evidence_schema_version"] == (
-        "entry_model_native_runtime_head_evidence_v5"
+        MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
     )
-    assert runtime_head["model_policy"] == (
-        "xau_seq513_model_native_direction_argmax_v4"
-    )
-    assert runtime_head["direction_calibration_temperature"] > 0.0
-    assert "direction_calibration_bias" not in runtime_head
+    assert runtime_head["model_policy"] == MODEL_NATIVE_RUNTIME_POLICY
+    # Calibration is retired: no runtime-head field may carry any retired
+    # evidence fragment back into the sealed envelope.
+    assert not [
+        field
+        for field in runtime_head
+        for fragment in RETIRED_RUNTIME_EVIDENCE_FRAGMENTS
+        if fragment in field
+    ]
     assert proof["account_capacity_grid"]["decision"] == "PASS"
     assert set(proof["account_capacity_grid"]["scenarios"]) == {
         "small",

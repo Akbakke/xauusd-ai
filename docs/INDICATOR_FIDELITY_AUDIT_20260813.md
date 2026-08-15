@@ -1,5 +1,13 @@
 # Indicator fidelity audit — 2026-08-13
 
+> Historical-scope notice, 2026-08-14: this document records the 608/158/189
+> audit substrate and must not be read as the active contract. Current schema,
+> dimensions, retirements and empirical status are owned by `AGENTS.md`,
+> `SYSTEM_MAP.md` and `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`; do not infer
+> them from any count or proposed surface below. No current-contract dataset,
+> model, OOS/edge result or tick-resolution claim is established by this
+> historical audit.
+
 Five parallel read-only audits over EVERY emitted field in the surface
 (608 signal / 158 ctx_cont / 5 ctx_cat / 189×5 per-TF), one question per
 field: **does it carry what the real trading concept carries, or only its
@@ -877,10 +885,10 @@ package 8B in the same worktree, so read them from the owner tuples.
   canonical column cannot: the ranker's `_candidate_universe` scans only
   specialist-layer owners and the dataset builder's inline extension exposes
   only the frozen 34 base fields plus specialist-layer outputs. Enabling the
-  flag would also move five artifact column-count contracts
-  (`audit_seq513_source_cascade_v1`, `materialize_cv3_modelrange_v1`) that
-  describe artifacts the V30 chain has not built. The same three quantities DO
-  reach the model on every timeframe through the MTF owner.
+  historical fixed-width source-cascade artifacts. Those obsolete artifacts
+  are now retired; the current-pair canonical owner binds its dynamic ordered
+  column hash instead. The same three quantities DO reach the model on every
+  timeframe through the MTF owner.
 - No rare-event floor was registered for any new event. Floors must come from
   a measured TRAIN build (the 2026-08-12 precedent); a new event that lands
   below the 1% liveness floor on the next real build is a correct fail-loud.

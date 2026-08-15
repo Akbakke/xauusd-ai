@@ -7,6 +7,10 @@ from pathlib import Path
 
 import pytest
 
+from gx1.contracts.entry_fitted_q_v1 import (
+    entry_fitted_q_contract,
+    entry_fitted_q_production_economics_readiness,
+)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     FOUNDATION_AUDIT_POLICY_SHA256,
@@ -25,10 +29,10 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
@@ -52,7 +56,7 @@ from gx1.scripts.verify_entry_foundation_adoption_candidate_v1 import (
     run,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
-from tests.model_native_offline_rl_support import (
+from tests.model_native_sizing_support import (
     model_native_target_audit_evidence,
 )
 
@@ -159,7 +163,9 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
         remainder_prefix="session_regime.adoption_fixture"
     )
     signal_contract = model_native_signal_contract_metadata(selected)
-    ranked_remainder = selected[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    available_candidates = selected[
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+    ]
     feature = _event(
         audit_dir,
         AUDIT_EVENT_PREFIXES["feature_audit"],
@@ -186,13 +192,15 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "manifest_mandatory_selected_feature_count": (
                 MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
             ),
-            "ranked_remainder_feature_count": (
-                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            "available_candidate_feature_count": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
             ),
-            "manifest_ranked_remainder_feature_count": (
-                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            "manifest_available_candidate_feature_count": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
             ),
-            "ranked_remainder_fields_sha256": _sha_json(ranked_remainder),
+            "available_candidate_fields_sha256": _sha_json(
+                available_candidates
+            ),
             "feature_ranking_fit_scope": "train_only",
             "feature_ranking_sha256": "a" * 64,
             "model_native_signal_contract": signal_contract,
@@ -206,7 +214,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
         AUDIT_EVENT_PREFIXES["target_audit"],
         "02.000002",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -224,9 +232,20 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
                     "model_native_aux_target_contract"
                 ]
             ),
-            "offline_rl_target_contract": model_native_target_audit_evidence()[
-                "offline_rl_target_contract"
-            ],
+            # The dataset no longer serializes action-value targets: the audit
+            # publishes the fitted-Q contract plus its production-economics
+            # readiness, exactly as the audit owner emits them.
+            "entry_fitted_q_target_contract": {
+                "decision": "FAIL",
+                "failures": [
+                    "production economics is not ready; gross fitted-Q remains "
+                    "research-only"
+                ],
+                "entry_fitted_q_contract": entry_fitted_q_contract(),
+                "production_economics": (
+                    entry_fitted_q_production_economics_readiness()
+                ),
+            },
         },
     )
     specialist = _event(
@@ -358,21 +377,53 @@ def _args(
     )
 
 
-def test_model_native_adoption_produces_one_report_only_immutable_event(
+ENTRY_Q_ECONOMICS_GATE = (
+    "target audit proves canonical aux targets and production-ready Entry-Q"
+)
+
+
+def _entry_q_economics_failures(report: dict) -> list[dict]:
+    return [
+        row
+        for row in report["failures"]
+        if row["gate"] == "target_audit" and row["check"] == ENTRY_Q_ECONOMICS_GATE
+    ]
+
+
+def test_model_native_adoption_is_blocked_only_by_entry_q_production_economics(
     tmp_path: Path,
 ) -> None:
+    """Every other adoption gate is green; Entry-Q economics is the one block.
+
+    The fitted-Q owner declares gross, spread-inclusive research targets and
+    refuses production authority until executable bid/ask, commission,
+    slippage and financing are bound.  The adoption verifier requires that
+    readiness, so a fully green foundation chain must still come out BLOCKED,
+    with exactly one failure naming that gate.
+    """
+
     dataset, rows = _dataset(tmp_path)
     audits = _audits(tmp_path, dataset)
     smoke = _smoke_event(tmp_path, dataset, rows)
 
     report = run(_args(tmp_path, dataset, audits, smoke))
 
-    assert report["decision"] == "READY_FOR_MODEL_NATIVE_ADOPTION_REVIEW"
-    assert report["adoption_evidence_ready"] is True
+    economics = entry_fitted_q_production_economics_readiness()
+    assert economics["production_authority_ready"] is False
+    assert economics["candidate_ready_allowed"] is False
+    assert economics["gross_q_production_decision_authority_allowed"] is False
+
+    assert report["decision"] == "BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW"
+    assert report["adoption_evidence_ready"] is False
     assert report["candidate_ready_for_activation"] is False
     assert report["training_allowed"] is False
     assert report["direction_selection_authority"] is False
-    assert report["failures"] == []
+    blocking = _entry_q_economics_failures(report)
+    assert len(blocking) == 1
+    assert blocking[0]["details"]["entry_fitted_q_target_valid"] is False
+    # Nothing else may hide behind that block: the rest of the chain is green.
+    assert blocking[0]["details"]["aux_contract_valid"] is True
+    assert report["failures"] == blocking
     assert report["model_native_readiness_contract"] == (
         model_native_readiness_contract_metadata()
     )
@@ -397,7 +448,10 @@ def test_adoption_uses_smoke_bound_split_identity_not_directory_inventory(
 
     report = run(_args(tmp_path, dataset, audits, smoke))
 
-    assert report["adoption_evidence_ready"] is True
+    # An unbound sibling in the dataset directory must never be resolved, and
+    # must never add a failure of its own: the only block stays Entry-Q
+    # production economics.
+    assert report["failures"] == _entry_q_economics_failures(report)
     assert all(
         "unbound_decoy" not in value for value in report["artifacts"].values()
     )
@@ -497,7 +551,7 @@ def test_adoption_rejects_swapped_mandatory_signal_prefix(tmp_path: Path) -> Non
                 "feature audit proves exact model-native "
                 f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
                 f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
-                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+                f"{MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT} full-pool partition"
             )
     )
     assert "mandatory_registry_prefix_order_violation" in partition_failure[
@@ -528,7 +582,7 @@ def test_adoption_rejects_stale_partition_count(tmp_path: Path) -> None:
                 "feature audit proves exact model-native "
                 f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
                 f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
-                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+                f"{MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT} full-pool partition"
             )
         for row in report["failures"]
     )

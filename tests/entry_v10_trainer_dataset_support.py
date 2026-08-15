@@ -66,6 +66,9 @@ def install_multi_tf_stub(
     from tests.htf_v29_registry_test_support import (
         synthetic_v29_registry_constants,
     )
+    from tests.volatility_squeeze_test_support import (
+        make_volatility_squeeze_artifact_set,
+    )
 
     frames = MultiTFV4DiskCache(
         cache_identity_sha256="0" * 64,
@@ -73,6 +76,9 @@ def install_multi_tf_stub(
         m5_prebuilt_source=str(m5_path.resolve()),
         m5_prebuilt_source_sha256=trainer._sha256_file(m5_path),
         v29_registry_constants=synthetic_v29_registry_constants(),
+        volatility_squeeze_artifacts=(
+            make_volatility_squeeze_artifact_set(tmp_path)
+        ),
     )
     for tf in ("M5", "M15", "H1", "H4", "D1"):
         frame = pd.DataFrame(

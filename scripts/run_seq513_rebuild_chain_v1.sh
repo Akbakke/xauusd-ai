@@ -2,7 +2,7 @@
 # One fail-closed chain for the current shared Entry/Exit feature architecture:
 #   canonical-pair TRAIN rank -> native M5/M1 owner surfaces (one worker)
 #   -> M5 model source + M5/M15/H1/H4/D1 cache -> TRAIN ranking
-#   -> one signal manifest -> M1/M5 513-field feature surfaces
+#   -> one signal manifest -> contract-derived M1/M5 feature surfaces
 #   -> preflight -> combined Entry/Exit dataset rebuild.
 #
 # The driver never discovers artifacts, waits for an external producer, resumes
@@ -30,10 +30,10 @@ TEST_START=
 TEST_END=
 M1_LIFECYCLE_PAIR_MANIFEST=
 M1_LIFECYCLE_PAIR_GENERATION_ROOT=
-EXIT_TARGET_LOOKAHEAD_M1_STEPS=
-EARLY_MOVE_THRESHOLD_BPS=
-LEVEL_TOL_QUANTILE_Q=
 REGISTRY_FIT_TRAIN_END=
+REGISTRY_FIT_INNER_END=
+VOLATILITY_SQUEEZE_MANIFEST=
+VOLATILITY_SQUEEZE_MANIFEST_SHA256=
 
 usage() {
   printf '%s\n' \
@@ -42,10 +42,12 @@ usage() {
     "  --preflight-out-dir /absolute/event/root/fresh-preflight-dir" \
     "  --m1-lifecycle-pair-manifest-json /absolute/immutable/generation/PAIR_MANIFEST.json" \
     "  --m1-lifecycle-pair-generation-root /absolute/immutable/generations" \
-    "  --exit-target-lookahead-m1-steps N" \
-    "  --early-move-threshold-bps BPS" \
-    "  --level-tol-quantile-q Q (explicit recipe input for the V29 registry TRAIN fit)" \
+    "  Exit target policy is fit and hash-bound from TRAIN native M1" \
+    "  Entry direction/early-move policy is fit on TRAIN native M5" \
+    "  --registry-fit-inner-end UTC (required chronological inner-TRAIN boundary)" \
     "  [--registry-fit-train-end UTC (defaults to --train-end: same value, one origin)]" \
+    "  --volatility-squeeze-manifest /absolute/immutable/six-clock/manifest.json" \
+    "  --volatility-squeeze-manifest-sha256 SHA256" \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -139,28 +141,28 @@ while (($#)); do
       M1_LIFECYCLE_PAIR_GENERATION_ROOT=$2
       shift 2
       ;;
-    --exit-target-lookahead-m1-steps)
-      (($# >= 2)) || die_args "--exit-target-lookahead-m1-steps requires a value"
-      [[ -z $EXIT_TARGET_LOOKAHEAD_M1_STEPS ]] || die_args "duplicate --exit-target-lookahead-m1-steps"
-      EXIT_TARGET_LOOKAHEAD_M1_STEPS=$2
-      shift 2
-      ;;
-    --early-move-threshold-bps)
-      (($# >= 2)) || die_args "--early-move-threshold-bps requires a value"
-      [[ -z $EARLY_MOVE_THRESHOLD_BPS ]] || die_args "duplicate --early-move-threshold-bps"
-      EARLY_MOVE_THRESHOLD_BPS=$2
-      shift 2
-      ;;
-    --level-tol-quantile-q)
-      (($# >= 2)) || die_args "--level-tol-quantile-q requires a value"
-      [[ -z $LEVEL_TOL_QUANTILE_Q ]] || die_args "duplicate --level-tol-quantile-q"
-      LEVEL_TOL_QUANTILE_Q=$2
+    --registry-fit-inner-end)
+      (($# >= 2)) || die_args "--registry-fit-inner-end requires a value"
+      [[ -z $REGISTRY_FIT_INNER_END ]] || die_args "duplicate --registry-fit-inner-end"
+      REGISTRY_FIT_INNER_END=$2
       shift 2
       ;;
     --registry-fit-train-end)
       (($# >= 2)) || die_args "--registry-fit-train-end requires a value"
       [[ -z $REGISTRY_FIT_TRAIN_END ]] || die_args "duplicate --registry-fit-train-end"
       REGISTRY_FIT_TRAIN_END=$2
+      shift 2
+      ;;
+    --volatility-squeeze-manifest)
+      (($# >= 2)) || die_args "--volatility-squeeze-manifest requires a value"
+      [[ -z $VOLATILITY_SQUEEZE_MANIFEST ]] || die_args "duplicate --volatility-squeeze-manifest"
+      VOLATILITY_SQUEEZE_MANIFEST=$2
+      shift 2
+      ;;
+    --volatility-squeeze-manifest-sha256)
+      (($# >= 2)) || die_args "--volatility-squeeze-manifest-sha256 requires a value"
+      [[ -z $VOLATILITY_SQUEEZE_MANIFEST_SHA256 ]] || die_args "duplicate --volatility-squeeze-manifest-sha256"
+      VOLATILITY_SQUEEZE_MANIFEST_SHA256=$2
       shift 2
       ;;
     -h|--help)
@@ -176,9 +178,9 @@ done
 for name in \
   RUN_ID EVENT RANKING PRE_OUT HISTORY_START TRAIN_START TRAIN_END \
   VAL_START VAL_END TEST_START TEST_END M1_LIFECYCLE_PAIR_MANIFEST \
-  M1_LIFECYCLE_PAIR_GENERATION_ROOT \
-  EXIT_TARGET_LOOKAHEAD_M1_STEPS EARLY_MOVE_THRESHOLD_BPS \
-  LEVEL_TOL_QUANTILE_Q; do
+  M1_LIFECYCLE_PAIR_GENERATION_ROOT REGISTRY_FIT_INNER_END \
+  VOLATILITY_SQUEEZE_MANIFEST \
+  VOLATILITY_SQUEEZE_MANIFEST_SHA256; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
 # The V29 registry TRAIN-fit window end defaults to the chain's one declared
@@ -198,17 +200,16 @@ fi
 
 SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
 MTF="$EVENT/MULTI_TF_V4_CACHE"
-RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
 M1_ENRICHED="$EVENT/m1_enriched.parquet"
 M5_ENRICHED="$EVENT/m5_enriched.parquet"
 M1_FEATURE_BASE="$EVENT/m1_feature_base.parquet"
 M5_FEATURE_BASE="$EVENT/m5_feature_base.parquet"
 M1_CHECKPOINT="$EVENT/m1_enriched_checkpoint"
 M5_CHECKPOINT="$EVENT/m5_enriched_checkpoint"
-OUTPUT="$EVENT/dataset/v10_seq513_dataset__DIR_H24B.parquet"
+OUTPUT="$EVENT/dataset/v10_seq513_dataset__DIR_TRAIN_FIT.parquet"
 AUDIT="$EVENT/audit"
 EXIT_LIFECYCLE="$EVENT/exit_lifecycle"
-TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__DIR_H24B_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
+TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__DIR_TRAIN_FIT_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
 STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 DATASET_REBUILD_TERMINAL="$EVENT/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_${STAMP}.json"
 PREFREEZE_TEST_SEAL="$EVENT/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_${STAMP}.json"
@@ -224,8 +225,6 @@ STATUS_INITIALIZED=1
 GIT_HEAD=
 WORKTREE_STATUS=
 RANKING_SHA256=
-RANK_REFERENCE_SHA256=
-RANK_REFERENCE_SIDECAR_SHA256=
 MANIFEST_SHA256=
 PREFLIGHT_JSON=
 PREFLIGHT_SHA256=
@@ -264,12 +263,12 @@ write_status() {
     "$step" "$state" "$reason" "$exit_code" "$STATUS" "$RUN_ID" "$EVENT" \
     "$LOG" "$GIT_HEAD" "$RANKING" "$RANKING_SHA256" "$MANIFEST" \
     "$MANIFEST_SHA256" "$PRE_OUT" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" \
-    "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" "$RANK_NPZ" \
-    "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" \
+    "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" \
     "$SOURCE_CASCADE" "$SOURCE_CASCADE_SHA256" "$OUTPUT" "$AUDIT" \
     "$EXIT_LIFECYCLE" "$M1_FEATURE_BASE" "$M5_FEATURE_BASE" \
     "$M1_LIFECYCLE_PAIR_MANIFEST" "$PAIR_MANIFEST_SHA256" \
-    "$PAIR_GENERATION_ID" "$DATASET_REBUILD_TERMINAL" \
+    "$PAIR_GENERATION_ID" "$VOLATILITY_SQUEEZE_MANIFEST" \
+    "$VOLATILITY_SQUEEZE_MANIFEST_SHA256" "$DATASET_REBUILD_TERMINAL" \
     "$DATASET_REBUILD_TERMINAL_SHA256" "$PREFREEZE_TEST_SEAL" \
     "$PREFREEZE_TEST_SEAL_SHA256" <<'PYEOF'
 import json
@@ -298,9 +297,6 @@ from pathlib import Path
     started_utc,
     boot_id,
     chain_pid,
-    rank_reference_path,
-    rank_reference_sha256,
-    rank_reference_sidecar_sha256,
     source_cascade_path,
     source_cascade_sha256,
     dataset_output_path,
@@ -311,6 +307,8 @@ from pathlib import Path
     pair_manifest_path,
     pair_manifest_sha256,
     pair_generation_id,
+    volatility_squeeze_manifest_path,
+    volatility_squeeze_manifest_sha256,
     dataset_rebuild_terminal_path,
     dataset_rebuild_terminal_sha256,
     prefreeze_test_seal_path,
@@ -324,7 +322,7 @@ if state in terminal_states:
     stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     terminal_path = path.with_name(f"CHAIN_TERMINAL_{stamp}_{state}.json")
 payload = {
-    "schema_version": "seq513_rebuild_chain_status_v7",
+    "schema_version": "seq513_rebuild_chain_status_v9",
     "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
@@ -343,16 +341,14 @@ payload = {
         "path": source_cascade_path,
         "sha256": source_cascade_sha256 or None,
     },
-    "rank_reference": {
-        "path": rank_reference_path,
-        "sha256": rank_reference_sha256 or None,
-        "sidecar_path": f"{rank_reference_path}.json",
-        "sidecar_sha256": rank_reference_sidecar_sha256 or None,
-    },
     "pair_authority": {
         "manifest_path": pair_manifest_path,
         "manifest_sha256": pair_manifest_sha256 or None,
         "pair_generation_id": pair_generation_id or None,
+    },
+    "volatility_squeeze_artifact": {
+        "manifest_path": volatility_squeeze_manifest_path,
+        "manifest_sha256": volatility_squeeze_manifest_sha256,
     },
     "dataset_rebuild_terminal": {
         "path": dataset_rebuild_terminal_path,
@@ -584,6 +580,8 @@ if sha256(base28) != base28_meta.get("parquet_sha256"):
     raise RuntimeError("pair base28 parquet hash mismatch")
 
 roots = []
+tape_manifest = None
+tape_manifest_sha256 = None
 for timeframe in ("m1", "m5"):
     meta = native.get(timeframe)
     if not isinstance(meta, dict):
@@ -595,6 +593,12 @@ for timeframe in ("m1", "m5"):
     if native_manifest.parent != root or sha256(native_manifest) != meta.get("manifest_sha256"):
         raise RuntimeError(f"pair native {timeframe} manifest mismatch")
     roots.append(root)
+    if timeframe == "m5":
+        tape_manifest = native_manifest
+        tape_manifest_sha256 = str(meta.get("manifest_sha256") or "")
+
+if tape_manifest is None or not re.fullmatch(r"[0-9a-f]{64}", tape_manifest_sha256 or ""):
+    raise RuntimeError("native M5 tape manifest binding is missing")
 
 print(
     "\t".join(
@@ -605,6 +609,8 @@ print(
             str(base28),
             str(roots[0]),
             str(roots[1]),
+            str(tape_manifest),
+            str(tape_manifest_sha256),
         )
     )
 )
@@ -613,10 +619,11 @@ PYEOF
   fail "current pair authority validation failed"
 fi
 IFS=$'\t' read -r PAIR_MANIFEST_SHA256 PAIR_GENERATION_ID CV2 BASE28 \
-  NATIVE_M1_ROOT NATIVE_M5_ROOT <<<"$PAIR_BINDING"
+  NATIVE_M1_ROOT NATIVE_M5_ROOT TAPE_MANIFEST TAPE_MANIFEST_SHA256 <<<"$PAIR_BINDING"
 TAPE=$NATIVE_M5_ROOT
 [[ -n $PAIR_MANIFEST_SHA256 && -n $PAIR_GENERATION_ID && -n $CV2 \
-   && -n $BASE28 && -n $NATIVE_M1_ROOT && -n $NATIVE_M5_ROOT ]] \
+   && -n $BASE28 && -n $NATIVE_M1_ROOT && -n $NATIVE_M5_ROOT \
+   && -n $TAPE_MANIFEST && -n $TAPE_MANIFEST_SHA256 ]] \
   || fail "current pair authority emitted an incomplete binding"
 require_source_identity
 write_status "$CURRENT_STEP" RUNNING
@@ -627,32 +634,57 @@ write_status "$CURRENT_STEP" RUNNING
 # latest names, pre-existing outputs, and implicit resume debris all fail.
 CURRENT_STEP=contract-validation
 write_status "$CURRENT_STEP" RUNNING
-[[ $EXIT_TARGET_LOOKAHEAD_M1_STEPS =~ ^[1-9][0-9]*$ ]] \
-  || fail "--exit-target-lookahead-m1-steps must be a positive integer"
-if ! "$PY" - "$EARLY_MOVE_THRESHOLD_BPS" <<'PYEOF'
-import math
+if ! "$PY" - \
+  "$VOLATILITY_SQUEEZE_MANIFEST" \
+  "$VOLATILITY_SQUEEZE_MANIFEST_SHA256" \
+  "$M1_LIFECYCLE_PAIR_MANIFEST" "$PAIR_MANIFEST_SHA256" \
+  "$PAIR_GENERATION_ID" "$TRAIN_START" "$TRAIN_END" >>"$LOG" 2>&1 <<'PYEOF'
+import json
 import sys
+from pathlib import Path
 
-value = float(sys.argv[1])
-if not math.isfinite(value) or value <= 0.0:
-    raise RuntimeError("early move threshold must be finite and positive")
+import pandas as pd
+
+from gx1.features.volatility_squeeze_state_v1 import (
+    load_volatility_squeeze_artifact_manifest,
+)
+
+manifest_path = Path(sys.argv[1]).expanduser()
+loaded = load_volatility_squeeze_artifact_manifest(
+    manifest_path,
+    expected_sha256=sys.argv[2],
+)
+payload = json.loads(loaded.manifest_path.read_text(encoding="utf-8"))
+lineage = payload["common_train_lineage"]
+if (
+    lineage["pair_manifest_artifact"] != str(Path(sys.argv[3]).resolve(strict=True))
+    or lineage["pair_manifest_sha256"] != sys.argv[4]
+    or lineage["pair_generation_id"] != sys.argv[5]
+    or pd.Timestamp(lineage["declared_train_window_start"]) != pd.Timestamp(sys.argv[6])
+    or pd.Timestamp(lineage["declared_train_window_end"]) != pd.Timestamp(sys.argv[7])
+):
+    raise RuntimeError(
+        "VOLATILITY_SQUEEZE_CHAIN_TRAIN_OR_PAIR_LINEAGE_MISMATCH"
+    )
 PYEOF
 then
-  fail "--early-move-threshold-bps must be finite and positive"
+  fail "volatility-squeeze six-clock artifact identity validation failed"
 fi
-if ! "$PY" - "$LEVEL_TOL_QUANTILE_Q" <<'PYEOF'
-import math
+if ! "$PY" - "$TRAIN_START" "$REGISTRY_FIT_INNER_END" "$REGISTRY_FIT_TRAIN_END" <<'PYEOF'
 import sys
+import pandas as pd
 
-value = float(sys.argv[1])
-if not math.isfinite(value) or not (0.0 < value < 1.0):
-    raise RuntimeError("level tol quantile q must lie strictly in (0, 1)")
+start, inner, end = (pd.Timestamp(value) for value in sys.argv[1:])
+if any(value.tzinfo is None or value.utcoffset() != pd.Timedelta(0) for value in (start, inner, end)):
+    raise RuntimeError("registry fit split must use timezone-aware UTC timestamps")
+if not start < inner < end:
+    raise RuntimeError("registry fit inner boundary must lie strictly inside TRAIN")
 PYEOF
 then
-  fail "--level-tol-quantile-q must lie strictly in (0,1)"
+  fail "registry chronological inner-TRAIN boundary is invalid"
 fi
 if ! "$PY" - \
-  "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
+  "$EVENT" "$RANKING" "$PRE_OUT" "$OUTPUT" "$AUDIT" \
   "$SRC" "$CV2" "$MTF" "$TAPE" "$M1_LIFECYCLE_PAIR_MANIFEST" \
   "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" "$EXIT_LIFECYCLE" \
   "$BASE28" "$NATIVE_M1_ROOT" "$NATIVE_M5_ROOT" \
@@ -671,7 +703,6 @@ import pandas as pd
     raw_event,
     raw_ranking,
     raw_preflight,
-    raw_rank_npz,
     raw_output,
     raw_audit,
     raw_source,
@@ -721,7 +752,6 @@ if not event.is_dir() or event.is_symlink():
 
 ranking = exact_path(raw_ranking, label="feature ranking")
 preflight = exact_path(raw_preflight, label="preflight output directory")
-rank_npz = exact_path(raw_rank_npz, label="rank reference")
 output = exact_path(raw_output, label="dataset output")
 audit = exact_path(raw_audit, label="audit output directory")
 source = exact_path(raw_source, label="source parquet")
@@ -776,7 +806,6 @@ if (
 for label, path in (
     ("feature ranking", ranking),
     ("preflight output directory", preflight),
-    ("rank reference", rank_npz),
     ("dataset output", output),
     ("audit output directory", audit),
     ("source parquet", source),
@@ -891,8 +920,6 @@ fresh_paths = [
     ranking,
     event / "_ranker_checkpoint.npz",
     event / "_ranker_group_a_checkpoint",
-    rank_npz,
-    Path(f"{rank_npz}.json"),
     source,
     Path(f"{source}.manifest.json"),
     mtf,
@@ -953,50 +980,15 @@ require_pair_unchanged() {
     "$PAIR_MANIFEST_SHA256"
 }
 
-require_rank_reference_unchanged() {
-  require_unchanged "rank reference" "$RANK_NPZ" "$RANK_REFERENCE_SHA256"
-  require_unchanged "rank reference sidecar" "${RANK_NPZ}.json" \
-    "$RANK_REFERENCE_SIDECAR_SHA256"
-}
-
-# The one TRAIN rank state is fitted from canonical M5 market fields before
-# either native feature lane starts.  Both lanes bind the same NPZ bytes.
-CURRENT_STEP=train-rank-reference
-write_status "$CURRENT_STEP" RUNNING
-require_source_identity
-require_pair_unchanged
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
-  "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
-  --run-id "$RUN_ID" \
-  --source-parquet "$CV2" \
-  --out "$RANK_NPZ" \
-  --history-start "$HISTORY_START" \
-  --fit-start "$TRAIN_START" \
-  --fit-end "$TRAIN_END") >>"$LOG" 2>&1; then
-  fail "TRAIN rank-reference materialization failed"
-fi
-[[ -f $RANK_NPZ && ! -L $RANK_NPZ && -f ${RANK_NPZ}.json && ! -L ${RANK_NPZ}.json ]] \
-  || fail "TRAIN rank-reference output/sidecar missing or non-regular"
-RANK_REFERENCE_SHA256=$(hash_file "$RANK_NPZ")
-RANK_REFERENCE_SIDECAR_SHA256=$(hash_file "${RANK_NPZ}.json")
-require_source_identity
-require_pair_unchanged
-write_status "$CURRENT_STEP" RUNNING
-printf '[chain] rank-reference=%s sha256=%s sidecar_sha256=%s\n' \
-  "$RANK_NPZ" "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" >>"$LOG"
-
 # Build Entry locally on native M5.  The producer itself rejects workers != 1
 # and constructs M15/H1/H4/D1 from closed OHLCV before feature ownership.
 CURRENT_STEP=m5-enriched-feature-lane
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-enriched-frame \
   --native-m5-root "$NATIVE_M5_ROOT" \
-  --rank-reference-npz "$RANK_NPZ" \
-  --rank-reference-sha256 "$RANK_REFERENCE_SHA256" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
   --multi-tf-cache-dir "$MTF" \
   --output-parquet "$M5_ENRICHED" \
@@ -1004,8 +996,13 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --checkpoint-dir "$M5_CHECKPOINT" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
-  --level-tol-quantile-q "$LEVEL_TOL_QUANTILE_Q" \
+  --registry-fit-train-start "$TRAIN_START" \
   --registry-fit-train-end "$REGISTRY_FIT_TRAIN_END" \
+  --registry-fit-inner-end "$REGISTRY_FIT_INNER_END" \
+  --registry-fit-tape-manifest "$TAPE_MANIFEST" \
+  --expected-registry-fit-tape-manifest-sha256 "$TAPE_MANIFEST_SHA256" \
+  --volatility-squeeze-manifest "$VOLATILITY_SQUEEZE_MANIFEST" \
+  --expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256" \
   --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
   fail "native M5 enriched feature lane failed"
 fi
@@ -1018,7 +1015,6 @@ CURRENT_STEP=m5-model-source
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-source-frame \
   --enriched-parquet "$M5_ENRICHED" \
@@ -1044,11 +1040,8 @@ if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
-
-from gx1.contracts.entry_model_native_state_v2 import (
-    require_train_rank_source_market_identity_v2,
-)
 
 canonical, source = map(Path, sys.argv[1:3])
 history_start = pd.Timestamp(sys.argv[3])
@@ -1076,12 +1069,25 @@ if times[0] > history_start or times[-1] != test_end or pre_train_rows < 96:
         f"first={times[0]} last={times[-1]} test_end={test_end} "
         f"pre_train_rows={pre_train_rows}"
     )
-require_train_rank_source_market_identity_v2(
-    rank_source_parquet=canonical,
-    model_source_parquet=source,
-    history_start_utc=history_start,
-    fit_end_utc=train_end,
-)
+identity_columns = ["time", "high", "low", "close", "bid_close", "ask_close"]
+canonical_frame = pd.read_parquet(canonical, columns=identity_columns)
+source_frame = pd.read_parquet(source, columns=identity_columns)
+for frame in (canonical_frame, source_frame):
+    frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="raise")
+    frame.drop(
+        frame.index[
+            (frame["time"] < history_start) | (frame["time"] > train_end)
+        ],
+        inplace=True,
+    )
+    frame.reset_index(drop=True, inplace=True)
+if not canonical_frame["time"].equals(source_frame["time"]):
+    raise RuntimeError("canonical/model source timestamp identity mismatch")
+if not np.array_equal(
+    canonical_frame[identity_columns[1:]].to_numpy(dtype=np.float64),
+    source_frame[identity_columns[1:]].to_numpy(dtype=np.float64),
+):
+    raise RuntimeError("canonical/model source market identity mismatch")
 PYEOF
   fail "final M5 model-source identity failed"
 fi
@@ -1091,7 +1097,6 @@ CURRENT_STEP=source-cascade
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
   "$PY" -m gx1.scripts.materialize_current_pair_source_cascade_proof_v1 \
   --run-id "$RUN_ID" \
@@ -1132,12 +1137,11 @@ run_feature_ranker() {
     "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \
-    --rank-source-parquet "$CV2" \
     --canonical-v2-parquet "$CV2" \
     --mtf-cache-dir "$MTF" \
     --source-cascade-proof "$SOURCE_CASCADE" \
+    --tape-root "$TAPE" \
     --expected-source-time-max "$TEST_END" \
-    --rank-reference-npz "$RANK_NPZ" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" \
     --train-end "$TRAIN_END" \
@@ -1162,7 +1166,6 @@ RANKING_SHA256=$(hash_file "$RANKING")
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-require_rank_reference_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
 
@@ -1178,7 +1181,6 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
   --feature-ranking-json "$RANKING" \
   --out "$MANIFEST" \
@@ -1199,12 +1201,9 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
 require_source_cascade_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m1-enriched-frame \
   --native-m1-root "$NATIVE_M1_ROOT" \
-  --rank-reference-npz "$RANK_NPZ" \
-  --rank-reference-sha256 "$RANK_REFERENCE_SHA256" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
   --multi-tf-cache-dir "$MTF" \
   --output-parquet "$M1_ENRICHED" \
@@ -1212,8 +1211,13 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --checkpoint-dir "$M1_CHECKPOINT" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
-  --level-tol-quantile-q "$LEVEL_TOL_QUANTILE_Q" \
+  --registry-fit-train-start "$TRAIN_START" \
   --registry-fit-train-end "$REGISTRY_FIT_TRAIN_END" \
+  --registry-fit-inner-end "$REGISTRY_FIT_INNER_END" \
+  --registry-fit-tape-manifest "$TAPE_MANIFEST" \
+  --expected-registry-fit-tape-manifest-sha256 "$TAPE_MANIFEST_SHA256" \
+  --volatility-squeeze-manifest "$VOLATILITY_SQUEEZE_MANIFEST" \
+  --expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256" \
   --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
   fail "native M1 enriched feature lane failed"
 fi
@@ -1221,14 +1225,13 @@ fi
    && -f ${M1_ENRICHED}.manifest.json && ! -L ${M1_ENRICHED}.manifest.json ]] \
   || fail "native M1 enriched feature output is missing/non-regular"
 
-# Project the same ordered 513 fields into each native clock.  M1 is aligned
+# Project the same ordered current-contract fields into each native clock. M1 is aligned
 # to the pair-bound closed-M1 lifecycle rows; M5 retains its native timeline.
 CURRENT_STEP=entry-exit-feature-surfaces
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
 require_source_cascade_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m1-feature-base \
   --source-parquet "$M1_ENRICHED" \
@@ -1237,7 +1240,9 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --output-parquet "$M1_FEATURE_BASE" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
-  --v29-registry-constants-json "${M1_ENRICHED}.manifest.json") >>"$LOG" 2>&1; then
+  --v29-registry-constants-json "${M1_ENRICHED}.manifest.json" \
+  --volatility-squeeze-manifest "$VOLATILITY_SQUEEZE_MANIFEST" \
+  --expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256") >>"$LOG" 2>&1; then
   fail "M1 Exit feature-surface materialization failed"
 fi
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
@@ -1247,7 +1252,9 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --output-parquet "$M5_FEATURE_BASE" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
-  --v29-registry-constants-json "$MTF/manifest.json") >>"$LOG" 2>&1; then
+  --v29-registry-constants-json "$MTF/manifest.json" \
+  --volatility-squeeze-manifest "$VOLATILITY_SQUEEZE_MANIFEST" \
+  --expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256") >>"$LOG" 2>&1; then
   fail "M5 Entry feature-surface materialization failed"
 fi
 for path in "$M1_FEATURE_BASE" "$M5_FEATURE_BASE"; do
@@ -1263,20 +1270,17 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
   --run-id "$RUN_ID" \
   --feature-ranking-json "$RANKING" \
   --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
-  --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
+  --signal-manifest "$MANIFEST" \
   --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
   --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST" \
   --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
   --m1-feature-base-parquet "$M1_FEATURE_BASE" \
   --m5-feature-base-parquet "$M5_FEATURE_BASE" \
   --exit-lifecycle-dir "$EXIT_LIFECYCLE" \
-  --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
-  --early-move-threshold-bps "$EARLY_MOVE_THRESHOLD_BPS" \
   --output "$OUTPUT" --audit-out-dir "$AUDIT" \
   --history-start "$HISTORY_START" \
   --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
@@ -1322,7 +1326,6 @@ IFS=$'\t' read -r PREFLIGHT_JSON PREFLIGHT_SHA256 <<<"$PREFLIGHT_ID"
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_source_cascade_unchanged
 require_pair_unchanged
-require_rank_reference_unchanged
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
 write_status "$CURRENT_STEP" RUNNING
@@ -1336,7 +1339,6 @@ tg "GX1 seq513: preflight GREEN; dataset rebuild startet. run_id=$RUN_ID"
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
@@ -1347,19 +1349,16 @@ run_dataset_rebuild() {
     resume_args+=(--resume-exact-checkpoints)
   fi
   (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \
-    --existing-rank-reference \
     --run-id "$RUN_ID" \
     --feature-ranking-json "$RANKING" \
     --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
-    --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
+    --signal-manifest "$MANIFEST" \
     --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
     --m1-lifecycle-pair-manifest-json "$M1_LIFECYCLE_PAIR_MANIFEST" \
     --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
     --m1-feature-base-parquet "$M1_FEATURE_BASE" \
     --m5-feature-base-parquet "$M5_FEATURE_BASE" \
     --exit-lifecycle-dir "$EXIT_LIFECYCLE" \
-    --exit-target-lookahead-m1-steps "$EXIT_TARGET_LOOKAHEAD_M1_STEPS" \
-    --early-move-threshold-bps "$EARLY_MOVE_THRESHOLD_BPS" \
     --output "$OUTPUT" --audit-out-dir "$AUDIT" \
     --rebuild-terminal-json "$DATASET_REBUILD_TERMINAL" \
     --prefreeze-test-seal-json "$PREFREEZE_TEST_SEAL" \
@@ -1380,20 +1379,19 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
     DATASET_OUTPUT_STARTED=1
   fi
   for split in train val test; do
-    if [[ -e "$EVENT/dataset/v10_seq513_dataset__DIR_H24B_${split}.parquet" \
-       || -e "$EVENT/dataset/v10_seq513_dataset__DIR_H24B_${split}.manifest.json" ]]; then
+    if [[ -e "$EVENT/dataset/v10_seq513_dataset__DIR_TRAIN_FIT_${split}.parquet" \
+       || -e "$EVENT/dataset/v10_seq513_dataset__DIR_TRAIN_FIT_${split}.manifest.json" ]]; then
       DATASET_OUTPUT_STARTED=1
     fi
   done
   if [[ $DATASET_OUTPUT_STARTED -eq 1 ]]; then
     fail "dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required"
-  elif [[ -f $TRAIN_GROUP_A_CHECKPOINT_MANIFEST && -f $RANK_NPZ && -f ${RANK_NPZ}.json && -f $EVENT/dataset/DATASET_BUILD_PROOF.json ]]; then
+  elif [[ -f $TRAIN_GROUP_A_CHECKPOINT_MANIFEST && -f $EVENT/dataset/DATASET_BUILD_PROOF.json ]]; then
     CURRENT_STEP=dataset-rebuild-exact-checkpoint-resume
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity
     require_source_cascade_unchanged
     require_pair_unchanged
-    require_rank_reference_unchanged
     require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
     require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
     require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
@@ -1491,7 +1489,6 @@ IFS=$'\t' read -r DATASET_REBUILD_TERMINAL_SHA256 \
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"

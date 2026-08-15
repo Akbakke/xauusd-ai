@@ -18,6 +18,7 @@ from gx1.execution import v12_canonical_incremental as incremental
 from gx1.scripts import backfill_xauusd_m5_from_oanda as native_publisher
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_RISK_HORIZONS,
+    MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
     MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
     MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
     MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
@@ -26,10 +27,14 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS,
+    UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
     UnifiedExitLifecycleCorpus,
+    UnifiedExitLifecycleSplit,
     canonical_json_sha256,
     require_unified_exit_m1_pair_authority,
     sha256_file,
+    unified_exit_state_population_arrays,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
@@ -59,11 +64,21 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _selected_side_bad_path_target,
     _validate_model_native_aux_head_targets,
     build_unified_exit_lifecycle_episodes,
-    hierarchical_direction_label_contract,
+    representation_auxiliary_outcome_contract,
     model_native_aux_target_contract_metadata,
 )
+from gx1.features.htf_features import V29_REGISTRY_M1_LANE_MANIFEST_KEY
 from tests.test_oanda_backfill_vedtak_gate import _FakeOandaClient
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.htf_v29_registry_test_support import (
+    synthetic_v29_registry_m1_lane_params,
+)
+from tests.entry_position_size_target_policy_support import (
+    entry_position_size_target_policy_fixture,
+)
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 
 BUILDER_PATH = Path("gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py")
@@ -130,8 +145,7 @@ def test_aux_targets_have_exact_horizons_and_no_fake_tail_values() -> None:
 def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     contract = model_native_aux_target_contract_metadata()
 
-    assert contract["schema_version"] == "entry_model_native_aux_targets_v5"
-    assert len(contract["columns"]) == 46
+    assert contract["schema_version"] == MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION
     assert contract["columns"] == list(MODEL_NATIVE_AUX_TARGET_COLUMNS)
     assert contract["max_future_horizon_bars"] == 96
     assert contract["spread_aware_risk_magnitudes_required"] is True
@@ -152,7 +166,13 @@ def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     assert domains["dip_mae"]["lower_bound_bps"] == 0.0
     assert contract["mid_price_timing_reference_only"] is True
     assert contract["incomplete_rows_may_be_emitted"] is False
-    assert contract["offline_rl"]["action_value_layout"] == "action_major_then_horizon"
+    # The offline-RL counterfactual action-value block is retired; the Entry
+    # action value is the frozen fitted-Q teacher (gx1/contracts/entry_fitted_q_v1.py,
+    # covered by tests/test_entry_fitted_q_v1.py).
+    assert contract["offline_rl"] == "retired_replaced_by_entry_fitted_q"
+    assert not [
+        name for name in contract["columns"] if name.startswith("y_action_value_")
+    ]
     timing = contract["turning_point_timing"]
     assert timing["output_dim"] == 12
     assert timing["layout"][0]["market_turn"] == "BOTTOM"
@@ -270,26 +290,6 @@ def test_aux_target_validator_rejects_negative_dip_mae_but_accepts_negative_mfe(
         _validate_model_native_aux_head_targets(broken, n_rows=130)
 
 
-def test_action_values_are_full_counterfactual_spread_aware_path_utilities() -> None:
-    frame = _spread_tape()
-    targets, _ = _build_model_native_aux_head_targets(frame)
-
-    entry_ask = frame.loc[0, "ask_close"]
-    long_pnl = (frame.loc[12, "bid_close"] - entry_ask) / entry_ask * 1e4
-    long_mfe = (frame.loc[12, "bid_high"] - entry_ask) / entry_ask * 1e4
-    long_mae = max(
-        0.0,
-        (entry_ask - frame.loc[1:12, "bid_low"].min()) / entry_ask * 1e4,
-    )
-    expected_long = long_pnl + 0.35 * long_mfe - 1.15 * long_mae + 0.25 * (
-        long_mfe - long_mae
-    )
-
-    assert targets["y_action_value_long_K12"][0] == pytest.approx(expected_long)
-    assert targets["y_action_value_short_K12"][0] < 0.0
-    assert targets["y_action_value_flat_K12"][0] == 0.0
-
-
 def test_aux_target_validator_rejects_finite_incomplete_tail() -> None:
     targets, _ = _build_model_native_aux_head_targets(_spread_tape())
     broken = {name: values.copy() for name, values in targets.items()}
@@ -299,7 +299,7 @@ def test_aux_target_validator_rejects_finite_incomplete_tail() -> None:
         _validate_model_native_aux_head_targets(broken, n_rows=130)
 
 
-def _closed_m1_lifecycle_source(n_rows: int = 560) -> pd.DataFrame:
+def _closed_m1_lifecycle_source(n_rows: int = 640) -> pd.DataFrame:
     time = pd.date_range(
         "2026-01-01T00:05:00Z",
         periods=n_rows,
@@ -329,6 +329,80 @@ def _closed_m1_lifecycle_source(n_rows: int = 560) -> pd.DataFrame:
             "volume": np.arange(n_rows, dtype=np.int64) + 1,
         }
     )
+
+
+def _in_memory_full_exit_split(
+    *,
+    source: pd.DataFrame | None = None,
+    episodes: pd.DataFrame | None = None,
+    proof: dict[str, object] | None = None,
+    entry_row_count: int = 1,
+) -> tuple[
+    UnifiedExitLifecycleSplit,
+    pd.DataFrame,
+    dict[str, object],
+    pd.DataFrame,
+]:
+    """Build a file-free full-population split for lifecycle unit tests."""
+
+    frame = (
+        _closed_m1_lifecycle_source(n_rows=1800)
+        if source is None
+        else source.copy()
+    )
+    if episodes is None or proof is None:
+        entry_time = pd.Timestamp(frame["time"].iloc[600]) - pd.Timedelta(
+            minutes=5
+        )
+        episodes, proof = build_unified_exit_lifecycle_episodes(
+            min_m1_start_row=0,
+            entry_rows=pd.DataFrame({"time": [entry_time]}),
+            closed_m1=frame,
+            split_end=pd.Timestamp(frame["time"].iloc[-1])
+            + pd.Timedelta(minutes=1),
+            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+        )
+    times = pd.DatetimeIndex(
+        pd.to_datetime(frame["time"], utc=True, errors="raise")
+    ).as_unit("ns")
+    m1_arrays = {
+        name: pd.to_numeric(frame[name], errors="raise").to_numpy(
+            dtype=np.float64
+        )
+        for name in UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS
+        if name != "time"
+    }
+    row_value = np.arange(len(frame), dtype=np.float32)
+    signal = np.zeros(
+        (len(frame), MODEL_NATIVE_SIGNAL_DIM),
+        dtype=np.float32,
+    )
+    signal[:, 0] = row_value
+    ctx_cont = np.zeros(
+        (len(frame), MODEL_NATIVE_CTX_CONT_DIM),
+        dtype=np.float32,
+    )
+    ctx_cont[:, 0] = row_value
+    ctx_cat = np.zeros(
+        (len(frame), MODEL_NATIVE_CTX_CAT_DIM),
+        dtype=np.int64,
+    )
+    split = UnifiedExitLifecycleSplit(
+        split="val",
+        entry_row_count=entry_row_count,
+        feature_row_offset=0,
+        episodes=episodes,
+        split_manifest=proof,
+        m1_times=times,
+        m1_arrays=m1_arrays,
+        m1_feature_times=times,
+        m1_feature_arrays={
+            "signal": signal,
+            "ctx_cont": ctx_cont,
+            "ctx_cat": ctx_cat,
+        },
+    )
+    return split, episodes, proof, frame
 
 
 class _LifecycleTrendOandaClient(_FakeOandaClient):
@@ -515,6 +589,7 @@ def _write_exact_m1_feature_surface_fixture(
     m1_frame.to_parquet(enriched_source, index=False)
     rank_reference = (tmp_path / "train_rank_reference.npz").resolve()
     rank_reference.write_bytes(b"exact-m1-surface-rank-reference-v1")
+    registry_params = synthetic_v29_registry_m1_lane_params()
     enriched_manifest = Path(f"{enriched_source}.manifest.json")
     enriched_payload = {
         "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
@@ -528,6 +603,7 @@ def _write_exact_m1_feature_surface_fixture(
         "rank_reference_sha256": sha256_file(rank_reference),
         "output_parquet": str(enriched_source),
         "output_parquet_sha256": sha256_file(enriched_source),
+        V29_REGISTRY_M1_LANE_MANIFEST_KEY: registry_params,
     }
     enriched_payload["manifest_sha256"] = canonical_json_sha256(
         enriched_payload
@@ -607,6 +683,8 @@ def _write_exact_m1_feature_surface_fixture(
         row_group_size=480,
     )
     surface_manifest = Path(f"{surface}.manifest.json")
+    registry_artifact = enriched_manifest
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     manifest = build_entry_exit_feature_surface_manifest(
         timeframe="M1",
         dataset_run_id=dataset_run_id,
@@ -622,6 +700,15 @@ def _write_exact_m1_feature_surface_fixture(
             "mode": "exact_test_fixture_v1",
             "ordered_fields_sha256": signal_contract["ordered_fields_sha256"],
         },
+        registry_fit_binding={
+            "lane": "M1",
+            "artifact_path": str(registry_artifact),
+            "artifact_sha256": sha256_file(registry_artifact),
+            "params_schema_version": registry_params["schema_version"],
+            "params_module": registry_params["provenance"]["module"],
+            "params_contract_sha256": registry_params["contract_sha256"],
+        },
+        volatility_squeeze_artifact_binding=squeeze_artifacts.binding(),
         materialization={
             "mode": "bounded_native_m1_owner_batches_v2_event_age_carry",
             "batch_rows": rows,
@@ -674,6 +761,48 @@ def test_exact_m1_feature_surface_rejects_resealed_row_tamper(
         )
 
 
+def test_exact_m1_feature_surface_rejects_registry_source_params_mismatch(
+    tmp_path: Path,
+) -> None:
+    m1_frame = _closed_m1_lifecycle_source(n_rows=16)
+    m1_source = (tmp_path / "authoritative_m1.parquet").resolve()
+    m1_frame.to_parquet(m1_source, index=False)
+    dataset_run_id = "EXACT_M1_REGISTRY_BINDING_PYTEST_V1"
+    pair_generation_id = "d" * 64
+    surface, manifest_path = _write_exact_m1_feature_surface_fixture(
+        tmp_path,
+        m1_source=m1_source,
+        m1_frame=m1_frame,
+        dataset_run_id=dataset_run_id,
+        pair_generation_id=pair_generation_id,
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["registry_fit_binding"]["params_contract_sha256"] = "0" * 64
+    manifest.pop("manifest_sha256")
+    manifest["manifest_sha256"] = canonical_json_sha256(manifest)
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_EXIT_FEATURE_SURFACE_REGISTRY_BINDING_INVALID",
+    ):
+        require_exact_m1_feature_surface_manifest(
+            manifest_path=manifest_path,
+            expected_manifest_sha256=sha256_file(manifest_path),
+            expected_parquet_path=surface,
+            expected_parquet_sha256=sha256_file(surface),
+            expected_dataset_run_id=dataset_run_id,
+            expected_pair_generation_id=pair_generation_id,
+            expected_rows=len(m1_frame),
+            expected_m1_source_path=m1_source,
+            expected_m1_source_sha256=sha256_file(m1_source),
+            context="TEST_M1_REGISTRY_BINDING",
+        )
+
+
 def test_unified_exit_m1_authority_revalidates_native_complete_source(
     tmp_path: Path,
 ) -> None:
@@ -720,13 +849,11 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
     )
     source = _closed_m1_lifecycle_source()
     split_end = source["time"].iloc[-1] + pd.Timedelta(minutes=1)
-
     episodes, proof = build_unified_exit_lifecycle_episodes(
         min_m1_start_row=0,
         entry_rows=entries,
         closed_m1=source,
         split_end=split_end,
-        target_lookahead_m1_steps=3,
         market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
     repeated, repeated_proof = build_unified_exit_lifecycle_episodes(
@@ -734,7 +861,6 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
         entry_rows=entries,
         closed_m1=source,
         split_end=split_end,
-        target_lookahead_m1_steps=3,
         market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
 
@@ -745,24 +871,174 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
         ["long", "short"],
     ]
     assert (episodes["entry_available_at"] == episodes["m1_start_time"]).all()
-    assert (episodes["path_state_count"] == 512).all()
     assert (
-        episodes["non_tied_target_count"]
-        + episodes["tied_target_count"]
-        == episodes["path_state_count"]
+        episodes["first_state_decision_time"]
+        == episodes["entry_available_at"] + pd.Timedelta(minutes=1)
     ).all()
+    assert (episodes["path_state_count"] == 512).all()
+    assert proof["state_population_rows"] == len(episodes) * 512
+    assert proof["state_population_per_episode"] == 512
+    assert proof["state_population"] == (
+        "all_authoritative_states_both_sides_every_complete_episode"
+    )
+    assert proof["exit_supervision_authority"] == (
+        "executable_exit_now_reward_plus_train_fitted_q"
+    )
+    assert proof["extra_lookahead_beyond_trajectory"] == 0
     assert proof["decision"] == "PASS"
     assert proof["entry_side_selection"] == (
         "both_sides_for_every_causal_entry_snapshot"
     )
     assert proof["path_values_duplicated_into_episode_artifact"] is False
-    assert proof["target_counts"]["HOLD"] > 0
-    assert proof["target_counts"]["EXIT_NOW"] > 0
-    assert len(proof["target_stream_sha256"]) == 64
+    assert len(proof["state_population_stream_sha256"]) == 64
     assert (
-        proof["target_stream_sha256"]
-        == repeated_proof["target_stream_sha256"]
+        proof["state_population_stream_sha256"]
+        == repeated_proof["state_population_stream_sha256"]
     )
+
+
+def test_unified_exit_builder_has_no_policy_horizon_or_hindsight_targets() -> None:
+    builder_source = BUILDER_PATH.read_text(encoding="utf-8")
+    assert "--exit-target-lookahead-m1-steps" not in builder_source
+    assert "fit_unified_exit_target_policy(" not in builder_source
+    assert "unified_exit_optimal_stopping_targets(" not in builder_source
+
+
+def test_unified_exit_full_state_population_is_outcome_independent() -> None:
+    times = pd.date_range("2026-01-01", periods=1400, freq="1min", tz="UTC")
+    baseline = unified_exit_state_population_arrays(
+        m1_times=times,
+        m1_start_row=800,
+    )
+
+    assert UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION == (
+        "gx1_unified_exit_full_authoritative_state_population_v1"
+    )
+    np.testing.assert_array_equal(baseline["state_indices"], np.arange(512))
+    assert baseline["state_valid_mask"].all()
+
+    appended = unified_exit_state_population_arrays(
+        m1_times=times.append(
+            pd.date_range(
+                times[-1] + pd.Timedelta(minutes=1),
+                periods=200,
+                freq="1min",
+                tz="UTC",
+            )
+        ),
+        m1_start_row=800,
+    )
+    for name, values in baseline.items():
+        np.testing.assert_array_equal(values, appended[name])
+    with pytest.raises(RuntimeError, match="STATE_POPULATION_INPUT_INVALID"):
+        unified_exit_state_population_arrays(
+            m1_times=times,
+            m1_start_row=800.5,
+        )
+    with pytest.raises(RuntimeError, match="STATE_POPULATION_INPUT_INVALID"):
+        unified_exit_state_population_arrays(
+            m1_times=times.tz_localize(None),
+            m1_start_row=800,
+        )
+
+
+def test_unified_exit_population_rejects_omit_reorder_and_state_512() -> None:
+    _split, episodes, proof, source = _in_memory_full_exit_split()
+
+    mutations: list[pd.DataFrame] = []
+    omitted = episodes.copy()
+    omitted.at[0, "decision_row_indices"] = list(
+        omitted.at[0, "decision_row_indices"][:-1]
+    )
+    mutations.append(omitted)
+    reordered = episodes.copy()
+    state_indices = list(reordered.at[0, "state_indices"])
+    state_indices[-2:] = state_indices[-2:][::-1]
+    reordered.at[0, "state_indices"] = state_indices
+    mutations.append(reordered)
+    state_512 = episodes.copy()
+    state_indices = list(state_512.at[0, "state_indices"])
+    state_indices[-1] = 512
+    state_512.at[0, "state_indices"] = state_indices
+    mutations.append(state_512)
+
+    for mutated in mutations:
+        with pytest.raises(
+            RuntimeError,
+            match="STATE_POPULATION",
+        ):
+            _in_memory_full_exit_split(
+                source=source,
+                episodes=mutated,
+                proof=proof,
+            )
+
+    episode_reordered = episodes.iloc[::-1].reset_index(drop=True)
+    with pytest.raises(RuntimeError, match="EPISODE_ORDER_INVALID"):
+        _in_memory_full_exit_split(
+            source=source,
+            episodes=episode_reordered,
+            proof=proof,
+        )
+
+    ordered_population = [
+        (int(row.side_index), int(state))
+        for row in episodes.itertuples(index=False)
+        for state in row.state_indices
+    ]
+    assert len(ordered_population) == 1024
+    assert ordered_population[511] == (0, 511)
+    assert ordered_population[512] == (1, 0)
+    assert all(state < 512 for _side, state in ordered_population)
+
+
+def test_unified_exit_first_state_has_full_history_and_executable_pnl() -> None:
+    split, episodes, _proof, source = _in_memory_full_exit_split()
+    start = int(episodes.iloc[0]["m1_start_row"])
+    episode = split.materialize_causal_episode_core(0)
+    assert episode is not None
+
+    assert start == 600
+    assert episode["exit_local_history_x"].shape == (
+        479 + 512,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
+    np.testing.assert_array_equal(
+        episode["exit_local_history_x"][:480, 0],
+        np.arange(start - 479, start + 1, dtype=np.float32),
+    )
+    assert episode["exit_path_x"].shape[:2] == (2, 512)
+    assert np.any(episode["exit_path_x"][:, 0] != 0.0)
+    expected_state_time = pd.Timestamp(source["time"].iloc[start]).value
+    assert episode["exit_state_row_time_ns"][0] == expected_state_time
+    assert episode["exit_decision_time_ns"][0] == (
+        expected_state_time + pd.Timedelta(minutes=1).value
+    )
+
+    entry_ask = float(episodes.iloc[0]["entry_ask"])
+    long_exit = float(source["bid_close"].iloc[start])
+    expected_long_pnl = (long_exit - entry_ask) / entry_ask * 10_000.0
+    entry_bid = float(episodes.iloc[1]["entry_bid"])
+    short_exit = float(source["ask_close"].iloc[start])
+    expected_short_pnl = (entry_bid - short_exit) / entry_bid * 10_000.0
+    assert episode["exit_entry_bid_ask"][0, 1] == pytest.approx(entry_ask)
+    assert episode["exit_entry_bid_ask"][1, 0] == pytest.approx(entry_bid)
+    assert episode["exit_now_reward_bps"][0, 0] == pytest.approx(expected_long_pnl)
+    assert episode["exit_now_reward_bps"][1, 0] == pytest.approx(expected_short_pnl)
+    assert episode["exit_action_valid_mask"][:, :-1].all()
+    assert not episode["exit_action_valid_mask"][:, -1, 0].any()
+    assert episode["exit_action_valid_mask"][:, -1, 1].all()
+
+
+def test_unified_exit_ineligible_entry_is_empty_but_half_pair_fails() -> None:
+    split, _episodes, _proof, _source = _in_memory_full_exit_split(
+        entry_row_count=2
+    )
+    assert split.materialize_causal_episode_core(1) is None
+
+    split._episode_pointers.pop((0, 1))
+    with pytest.raises(RuntimeError, match="EPISODE_PAIR_MISSING"):
+        split.materialize_causal_episode_core(0)
 
 
 def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() -> None:
@@ -771,17 +1047,15 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
     )
     source = _closed_m1_lifecycle_source()
     gapped = source.drop(index=200).reset_index(drop=True)
-
     episodes, proof = build_unified_exit_lifecycle_episodes(
         min_m1_start_row=0,
         entry_rows=entries,
         closed_m1=gapped,
         split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
-        target_lookahead_m1_steps=3,
         market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
     assert len(episodes) == 2
-    assert proof["required_observed_m1_rows_per_episode"] == 515
+    assert proof["required_observed_m1_rows_per_episode"] == 512
     assert proof["m1_row_clock"] == (
         "consecutive_authoritative_closed_m1_source_rows"
     )
@@ -791,7 +1065,6 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
             entry_rows=entries,
             closed_m1=gapped,
             split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
-            target_lookahead_m1_steps=3,
             market_closure_contract="unproven",
         )
     with pytest.raises(
@@ -803,8 +1076,7 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
             entry_rows=entries,
             closed_m1=source,
             split_end=source["time"].iloc[400],
-            target_lookahead_m1_steps=3,
-            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+                market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
         )
 
 
@@ -824,7 +1096,6 @@ def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
             entry_rows=entries,
             closed_m1=source,
             split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
-            target_lookahead_m1_steps=3,
             market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
         )
 
@@ -845,7 +1116,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     )
     generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
         tmp_path,
-        successor_end="2026-01-01T20:00:00Z",
+        successor_end="2026-01-02T06:00:00Z",
         trend_prices=True,
     )
     m1_source, m1_authority = require_unified_exit_m1_pair_authority(
@@ -853,7 +1124,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         pair_generation_root=generation_root,
     )
     source = pd.read_parquet(m1_source)
-    assert len(source) == m1_authority["m1_source_rows"] == 1200
+    assert len(source) == m1_authority["m1_source_rows"] == 1800
     m1_feature_base, m1_feature_manifest = (
         _write_exact_m1_feature_surface_fixture(
             tmp_path,
@@ -873,11 +1144,10 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         entries.to_parquet(entry_path, index=False)
         entry_paths[split] = entry_path
         episodes, proof = build_unified_exit_lifecycle_episodes(
-        min_m1_start_row=0,
+            min_m1_start_row=0,
             entry_rows=entries,
             closed_m1=source,
             split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
-            target_lookahead_m1_steps=3,
             market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
         )
         lifecycle_path = (
@@ -920,8 +1190,10 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
             "lifecycle_manifest": split_manifest.name,
             "lifecycle_manifest_sha256": sha256_file(split_manifest),
             "episode_rows": len(episodes),
-            "target_counts": proof["target_counts"],
-            "target_stream_sha256": proof["target_stream_sha256"],
+            "state_population_rows": proof["state_population_rows"],
+            "state_population_stream_sha256": proof[
+                "state_population_stream_sha256"
+            ],
         }
     root_manifest = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
     root_manifest.write_text(
@@ -940,15 +1212,18 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
                 ),
                 "m1_authority": m1_authority,
                 "m1_authority_sha256": m1_authority_sha256,
-                    "path_state_count": 512,
-                    "target_lookahead_m1_steps": 3,
-                    "m1_row_clock": (
-                        "consecutive_authoritative_closed_m1_source_rows"
-                    ),
-                    "shared_feature_base_contract": (
-                        entry_exit_shared_feature_base_contract()
-                    ),
-                    "side_order": ["long", "short"],
+                "path_state_count": 512,
+                "state_population_schema_version": (
+                    UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+                ),
+                "state_population_per_episode": 512,
+                "m1_row_clock": (
+                    "consecutive_authoritative_closed_m1_source_rows"
+                ),
+                "shared_feature_base_contract": (
+                    entry_exit_shared_feature_base_contract()
+                ),
+                "side_order": ["long", "short"],
                 "action_order": ["HOLD", "EXIT_NOW"],
                 "splits": bindings,
             },
@@ -963,28 +1238,77 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         entry_parquets={name: entry_paths[name] for name in ("train", "val")},
         dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
     )
-    sample = corpus.splits["train"].sample(0)
-    valid = sample["exit_sample_valid"]
-
-    assert valid.any()
-    assert set(sample["exit_action_target"][valid]) == {0, 1}
-    assert set(sample["exit_side_index"][valid]) == {0, 1}
-    assert np.all(sample["exit_decision_time_ns"][valid] > 0)
-    assert np.all(
-        sample["exit_decision_time_ns"][~valid] == np.iinfo(np.int64).min
+    with pytest.raises(RuntimeError, match="STATE_SAMPLE_RETIRED"):
+        corpus.splits["train"].sample(0)
+    episode = corpus.splits["val"].materialize_causal_episode_core(0)
+    assert episode is not None
+    full_action_valid = episode["exit_action_valid_mask"]
+    expected_full_rows = 2 * 512
+    assert int(episode["exit_state_valid_mask"].sum()) == expected_full_rows
+    assert episode["exit_local_history_x"].shape[0] == 479 + 512
+    assert episode["exit_path_x"].shape[:2] == (2, 512)
+    np.testing.assert_array_equal(
+        episode["exit_decision_time_ns"],
+        episode["exit_state_row_time_ns"] + pd.Timedelta(minutes=1).value,
     )
-    for slot in np.flatnonzero(valid):
-        length = int(sample["exit_path_lengths"][slot])
-        assert 1 <= length <= 512
-        assert np.any(sample["exit_path_x"][slot, :length] != 0.0)
-        assert np.all(sample["exit_path_x"][slot, length:] == 0.0)
+    assert np.isfinite(episode["exit_now_reward_bps"]).all()
+    assert int(full_action_valid.sum()) == 2046
+    assert full_action_valid[0, 511].tolist() == [False, True]
+    assert full_action_valid[1, 511].tolist() == [False, True]
     assert corpus.evidence["future_outcomes_used_as_model_inputs"] is False
-    assert corpus.evidence["splits"]["train"]["selected_target_counts"][
-        "HOLD"
-    ] > 0
-    assert corpus.evidence["splits"]["train"]["selected_target_counts"][
-        "EXIT_NOW"
-    ] > 0
+    assert corpus.evidence["sample_selection_depends_on_future_target"] is False
+    assert corpus.evidence["training_population"] == (
+        "gx1_unified_exit_full_authoritative_state_population_v1"
+    )
+    assert corpus.evidence["validation_population"] == "all_authoritative_states"
+    assert corpus.evidence["test_population"] == "all_authoritative_states"
+    assert corpus.evidence["splits"]["train"]["state_population_rows"] == (
+        len(episodes) * 512
+    )
+
+    # TEST is sealed and semantically validated even though this consumer only
+    # selected TRAIN/VAL. Re-sealing every ordinary file hash cannot bless an
+    # omitted/reordered state against the source-recomputed population proof.
+    test_lifecycle_path = (
+        lifecycle_dir / "test_unified_exit_lifecycle.parquet"
+    )
+    tampered_test = pd.read_parquet(test_lifecycle_path)
+    tampered_states = list(tampered_test.at[0, "state_indices"])
+    tampered_states[-2:] = tampered_states[-2:][::-1]
+    tampered_test.at[0, "state_indices"] = tampered_states
+    tampered_test.to_parquet(test_lifecycle_path, index=False)
+    test_manifest_path = (
+        lifecycle_dir / "test_unified_exit_lifecycle.manifest.json"
+    )
+    test_manifest = json.loads(
+        test_manifest_path.read_text(encoding="utf-8")
+    )
+    test_manifest["lifecycle_parquet_sha256"] = sha256_file(
+        test_lifecycle_path
+    )
+    test_manifest_path.write_text(
+        json.dumps(test_manifest, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    resealed_root = json.loads(root_manifest.read_text(encoding="utf-8"))
+    resealed_root["splits"]["test"]["lifecycle_parquet_sha256"] = (
+        sha256_file(test_lifecycle_path)
+    )
+    resealed_root["splits"]["test"]["lifecycle_manifest_sha256"] = (
+        sha256_file(test_manifest_path)
+    )
+    root_manifest.write_text(
+        json.dumps(resealed_root, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="STATE_POPULATION_MISMATCH"):
+        UnifiedExitLifecycleCorpus(
+            root_manifest_path=root_manifest,
+            entry_parquets={
+                name: entry_paths[name] for name in ("train", "val")
+            },
+            dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
+        )
 
 
 def test_aux_target_builder_requires_bid_ask_high_low() -> None:
@@ -1005,62 +1329,70 @@ def test_selected_side_bad_path_is_copied_from_future_outcome() -> None:
 
 
 def test_position_size_target_uses_selected_future_path() -> None:
-    size = _position_size_target_from_path(
+    size, mask = _position_size_target_from_path(
         mfe_first_n_bps=np.array([30.0, 5.0, 0.0, 1.0], dtype=np.float32),
         mae_first_n_bps=np.array([5.0, 20.0, 0.0, 1.0], dtype=np.float32),
-        atr_bps=np.array([10.0, 10.0, 10.0, 10.0], dtype=np.float32),
+        selected_side=np.array([0, 1, -1, 0], dtype=np.int8),
         trade_mask=np.array([1.0, 1.0, 0.0, 1.0], dtype=np.float32),
+        target_policy=entry_position_size_target_policy_fixture(),
     )
 
-    assert size[0] > 0.5
-    assert size[1] < 0.5
-    assert size[2] == 0.5
-    assert size[3] == 0.5
+    assert size[0] > size[3] > size[1]
+    assert size[2] == 0.0
+    assert mask.tolist() == [1.0, 1.0, 0.0, 1.0]
 
 
 def test_position_size_target_decreases_monotonically_with_adverse_excursion() -> None:
-    size = _position_size_target_from_path(
+    size, mask = _position_size_target_from_path(
         mfe_first_n_bps=np.full(4, 20.0, dtype=np.float32),
         mae_first_n_bps=np.array([0.0, 10.0, 20.0, 40.0], dtype=np.float32),
-        atr_bps=np.full(4, 10.0, dtype=np.float32),
+        selected_side=np.zeros(4, dtype=np.int8),
         trade_mask=np.ones(4, dtype=np.float32),
+        target_policy=entry_position_size_target_policy_fixture(),
     )
 
-    assert np.all(np.diff(size) < 0.0)
+    assert np.all(np.diff(size) <= 0.0)
+    assert mask.tolist() == [1.0] * 4
 
 
 @pytest.mark.parametrize(
-    ("atr", "mask"),
+    ("mfe", "side", "mask"),
     [
-        (np.array([0.0], dtype=np.float32), np.array([1.0], dtype=np.float32)),
-        (np.array([np.nan], dtype=np.float32), np.array([1.0], dtype=np.float32)),
-        (np.array([10.0], dtype=np.float32), np.array([0.5], dtype=np.float32)),
+        (np.array([np.nan], dtype=np.float32), np.array([0]), np.array([1.0])),
+        (np.array([3.0], dtype=np.float32), np.array([0]), np.array([0.5])),
+        (np.array([3.0], dtype=np.float32), np.array([0]), np.array([0.0])),
     ],
 )
-def test_position_size_target_fails_closed_on_invalid_evidence(atr, mask) -> None:
-    with pytest.raises(ValueError, match="POSITION_SIZE_TARGET_INPUT_INVALID"):
+def test_position_size_target_fails_closed_on_invalid_evidence(
+    mfe, side, mask
+) -> None:
+    with pytest.raises(RuntimeError, match="POSITION_SIZE_TARGET"):
         _position_size_target_from_path(
-            mfe_first_n_bps=np.array([3.0], dtype=np.float32),
+            mfe_first_n_bps=mfe,
             mae_first_n_bps=np.array([1.0], dtype=np.float32),
-            atr_bps=atr,
+            selected_side=side,
             trade_mask=mask,
+            target_policy=entry_position_size_target_policy_fixture(),
         )
 
 
 def test_position_size_target_rejects_signed_negative_mae() -> None:
-    with pytest.raises(ValueError, match="mae_first_n_bps"):
+    with pytest.raises(RuntimeError, match="POSITION_SIZE_TARGET_INPUT_INVALID"):
         _position_size_target_from_path(
             mfe_first_n_bps=np.array([3.0], dtype=np.float32),
             mae_first_n_bps=np.array([-1.0], dtype=np.float32),
-            atr_bps=np.array([10.0], dtype=np.float32),
+            selected_side=np.array([0], dtype=np.int8),
             trade_mask=np.array([1.0], dtype=np.float32),
+            target_policy=entry_position_size_target_policy_fixture(),
         )
 
 
 def test_contract_forbids_feature_derived_core_target_rewrites() -> None:
-    target = hierarchical_direction_label_contract()["hierarchical_direction_targets"]
+    target = representation_auxiliary_outcome_contract()[
+        "representation_auxiliary_outcomes"
+    ]
 
-    assert target["core_target_source"] == "future_path_and_utility_outcomes_only"
+    assert target["label_source"] == "future_executable_pnl_outcomes_only"
     assert target["feature_derived_core_rewrites_allowed"] is False
     assert target["utility_order_forcing_allowed"] is False
     assert target["structural_context_auxiliaries"]["may_change_core_targets"] is False

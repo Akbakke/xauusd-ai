@@ -7,13 +7,19 @@ red gate (design doc §6, measurement 1).
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    PRODUCTION_EXIT_SEQUENCE_BARS,
+)
 from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
 from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1,
@@ -22,15 +28,15 @@ from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1,
     TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
     TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1,
-    TRENDLINE_RETEST_WINDOW_BARS_V1,
     TRENDLINE_SIDE_RESISTANCE,
+    TRENDLINE_SIDE_SUPPORT,
     TRENDLINE_STATE_ACTIVE,
-    TRENDLINE_STATE_CANDIDATE,
-    compute_trendline_registry_features_v1,
-    fit_trendline_tolerance,
+    TrendlineV1,
+    compute_trendline_registry_features_v1 as _compute_trendline,
+    fit_trendline_registry_hyperparameters_v1,
 )
 
-# Stage-2 wiring contract: the exact 33-name tuple (design doc B.5 + the V30
+# Stage-2 wiring contract: the exact 34-name tuple (design doc B.5 + the V30
 # 2026-08-13 additions: per-side ACTIVE counts beside the masks and the
 # geomline_bars_since_break memory) and its sha.  Any drift in name, order or
 # count must fail here first.
@@ -74,6 +80,11 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = (
 )
 
 WARMUP = 2 * SWING_LOOKBACK + 2  # structural NaN prefix (module contract)
+
+
+def compute_trendline_registry_features_v1(df, *, seq_len, **kwargs):
+    kwargs.setdefault("identity_expiry_bars", seq_len)
+    return _compute_trendline(df, seq_len=seq_len, **kwargs)
 
 
 def _support_line_frame(
@@ -121,6 +132,27 @@ def _random_walk_frame(n_bars: int, seed: int) -> pd.DataFrame:
     )
 
 
+def _fit_source(tmp_path: Path, *, clock: str) -> dict:
+    paths = {}
+    for name in ("source", "tape", "split"):
+        path = (tmp_path / f"{name}.json").resolve()
+        path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
+        paths[name] = path
+    return {
+        "source_artifact": str(paths["source"]),
+        "source_sha256": hashlib.sha256(paths["source"].read_bytes()).hexdigest(),
+        "source_schema_version": "synthetic_closed_ohlcv_v1",
+        "source_lane": clock,
+        "tape_manifest_artifact": str(paths["tape"]),
+        "tape_manifest_sha256": hashlib.sha256(paths["tape"].read_bytes()).hexdigest(),
+        "split_manifest_artifact": str(paths["split"]),
+        "split_manifest_sha256": hashlib.sha256(paths["split"].read_bytes()).hexdigest(),
+        "train_split_id": "synthetic:TRAIN",
+        "declared_train_window_start": "2020-01-01T00:00:00+00:00",
+        "declared_train_window_end": "2020-01-06T04:55:00+00:00",
+    }
+
+
 def _compute(df, *, band=0.3, seq_len=200, state=None):
     return compute_trendline_registry_features_v1(
         df, timeframe="TEST", seq_len=seq_len, band_atr=band, state=state
@@ -133,7 +165,6 @@ def _compute(df, *, band=0.3, seq_len=200, state=None):
 
 
 def test_feature_name_tuple_and_sha_drift_guard():
-    # V30 (2026-08-13): 33 = 30 + 2 occupancy counts + 1 break memory.
     assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 33
     assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == len(
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1
@@ -155,7 +186,6 @@ def test_feature_name_tuple_and_sha_drift_guard():
     assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 16
     assert len(TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1) == 11
     assert len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1) == 6
-    assert TRENDLINE_RETEST_WINDOW_BARS_V1 == 2 * SWING_LOOKBACK + 1
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +220,9 @@ def test_three_touch_validation_and_promotion_bar():
     assert feats.index.equals(df.index)
     # structural NaN warmup prefix, then a single fully-finite region
     assert feats.iloc[:WARMUP].isna().all().all()
-    assert feats.iloc[WARMUP:].notna().all().all()
+    assert feats.iloc[WARMUP:].drop(
+        columns=["geomline_bars_since_break"]
+    ).notna().all().all()
     below_active = feats["geomline_below_active"].to_numpy()
     # third pivot lies at bar 50 but participates only from its confirmation
     # bar 53 (= 50 + SWING_LOOKBACK): nothing is ACTIVE before that
@@ -212,6 +244,53 @@ def test_three_touch_validation_and_promotion_bar():
     assert (active[0].anchor1_bar, active[0].anchor2_bar) == (10, 30)
 
 
+def test_exact_line_violation_death_prevents_later_candidate_promotion():
+    intact = _support_line_frame(60, {10: 0.0, 30: 0.0, 50: 0.0})
+    intact_population: list[float] = []
+    _intact_features, intact_state = compute_trendline_registry_features_v1(
+        intact,
+        timeframe="TEST",
+        seq_len=200,
+        band_atr=0.3,
+        candidate_deviation_log=intact_population,
+    )
+    assert intact_population == [0.0]
+    assert any(
+        line.state == TRENDLINE_STATE_ACTIVE
+        and (line.anchor1_bar, line.anchor2_bar) == (10, 30)
+        for line in intact_state.active_lines
+    )
+
+    violated = intact.copy()
+    projection = 100.0 + 0.05 * (40.0 - 10.0)
+    violated.loc[40, ["close", "high", "low"]] = [
+        projection - 1.0,
+        projection - 0.8,
+        projection - 1.2,
+    ]
+    violated_population: list[float] = []
+    _violated_features, violated_state = (
+        compute_trendline_registry_features_v1(
+            violated,
+            timeframe="TEST",
+            seq_len=200,
+            band_atr=0.3,
+            candidate_deviation_log=violated_population,
+        )
+    )
+    # The break bar itself becomes a later confirmed swing low and creates new
+    # two-anchor identities.  Their later deviations remain observable, but
+    # the violated (10, 30) identity's otherwise exact 0.0 validation is gone.
+    assert violated_population
+    assert 0.0 not in violated_population
+    assert all(value > 0.3 for value in violated_population)
+    assert not [
+        line
+        for line in violated_state.active_lines
+        if (line.anchor1_bar, line.anchor2_bar) == (10, 30)
+    ]
+
+
 def test_two_touches_never_activate():
     df = _support_line_frame(60, {10: 0.0, 30: 0.0})
     feats, state = _compute(df)
@@ -219,6 +298,81 @@ def test_two_touches_never_activate():
     assert (feats["geomline_above_active"].iloc[WARMUP:] == 0.0).all()
     assert not state.active_lines
     assert len(state.cand_support) > 0  # the 2-anchor candidate exists
+
+
+def test_expired_trendline_candidate_cannot_promote_before_prune():
+    """A later matching pivot cannot revive anchors outside ``seq_len``."""
+
+    seed = pd.DataFrame(
+        {"high": [102.0], "low": [101.0], "close": [101.5], "atr": [1.0]},
+        index=[0],
+    )
+    _, state = _compute(seed, seq_len=20)
+    state.bar_count = 100
+    state.last_index = 0
+    # Six carried bars plus the call's bar form the confirmation window.  Its
+    # center (registry bar 97) is a support pivot exactly on the old line.
+    state.buf_high[:] = [102.0] * 6
+    state.buf_low[:] = [101.0, 101.0, 101.0, 100.0, 101.0, 101.0]
+    state.buf_atr[:] = [1.0] * 6
+    state.cand_support.extend_pairs(
+        np.asarray([0], dtype=np.int64),
+        np.asarray([0], dtype=np.int64),
+        np.asarray([100.0], dtype=np.float64),
+        5,
+        100.0,
+    )
+    state.next_line_id = 1
+
+    row = pd.DataFrame(
+        {"high": [102.0], "low": [101.0], "close": [101.5], "atr": [1.0]},
+        index=[100],
+    )
+    features, state = _compute(row, seq_len=20, state=state)
+
+    assert not [line for line in state.active_lines if line.line_id == 0]
+    assert features.loc[100, "geomline_touch_below"] == 0.0
+
+
+def test_parallel_channel_ignores_opposite_pivots_outside_seq_len():
+    """The parallel-rail route cannot consume stale opposite-side pivots."""
+
+    seed = pd.DataFrame(
+        {"high": [102.0], "low": [101.0], "close": [101.5], "atr": [1.0]},
+        index=[0],
+    )
+    _, state = _compute(seed, seq_len=20)
+    state.bar_count = 100
+    state.last_index = 0
+    state.buf_high.clear()
+    state.buf_low.clear()
+    state.buf_atr.clear()
+    state.resistance_pivots[:] = [(0, 102.0), (5, 102.0)]
+    state.active_lines[:] = [
+        TrendlineV1(
+            line_id=0,
+            side=TRENDLINE_SIDE_SUPPORT,
+            anchor1_bar=90,
+            anchor1_price=100.0,
+            anchor2_bar=95,
+            anchor2_price=100.0,
+            state=TRENDLINE_STATE_ACTIVE,
+            touch_count=3,
+            last_touch_bar=99,
+            max_dev_atr=0.0,
+            touch_bars={90, 95, 99},
+        )
+    ]
+    row = pd.DataFrame(
+        {"high": [101.2], "low": [100.8], "close": [101.0], "atr": [1.0]},
+        index=[100],
+    )
+
+    features, state = _compute(row, seq_len=20, state=state)
+
+    assert state.resistance_pivots == []
+    assert features.loc[100, "geomline_below_active"] == 1.0
+    assert features.loc[100, "geomchan_active"] == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +386,31 @@ def test_future_invariance_prefix_rows_never_change():
     part, _ = _compute(df.iloc[:800], band=0.3, seq_len=512)
     np.testing.assert_array_equal(
         part.to_numpy(), full.to_numpy()[:800], strict=True
+    )
+
+
+def test_runtime_candidate_population_is_prefix_causal():
+    df = _random_walk_frame(1200, seed=17)
+    full_population: list[float] = []
+    prefix_population: list[float] = []
+    compute_trendline_registry_features_v1(
+        df,
+        timeframe="TEST",
+        seq_len=512,
+        band_atr=0.3,
+        candidate_deviation_log=full_population,
+    )
+    compute_trendline_registry_features_v1(
+        df.iloc[:800],
+        timeframe="TEST",
+        seq_len=512,
+        band_atr=0.3,
+        candidate_deviation_log=prefix_population,
+    )
+    np.testing.assert_array_equal(
+        np.asarray(prefix_population, dtype=np.float64),
+        np.asarray(full_population[: len(prefix_population)], dtype=np.float64),
+        strict=True,
     )
 
 
@@ -321,6 +500,9 @@ def test_first_break_fires_exactly_once_with_broken_line_attributes():
     assert feats["geomline_break_line_touch_count"].iloc[60] == 3.0
     assert feats["geomline_break_line_age_bars"].iloc[60] == 47.0  # 60-(10+3)
     assert feats["geomline_break_line_touch_count"].iloc[61] == 0.0
+    assert np.isnan(feats["geomline_bars_since_break"].iloc[59])
+    assert feats["geomline_bars_since_break"].iloc[60] == 0.0
+    assert feats["geomline_bars_since_break"].iloc[61] == 1.0
     # a BROKEN line leaves the nearest-ACTIVE slots immediately
     assert feats["geomline_below_active"].iloc[60] == 0.0
     assert feats["geomline_above_active"].iloc[60] == 0.0
@@ -345,11 +527,13 @@ def test_retest_fail_after_break():
     assert feats["geomline_retest_hold_down"].sum() == 0.0
 
 
-def test_retest_window_expiry_retires_line_silently():
+def test_retest_stays_armed_past_old_seven_bar_window():
     feats, state = _compute(_break_frame("expiry"))
     assert feats["geomline_retest_hold_down"].sum() == 0.0
     assert feats["geomline_retest_fail_down"].sum() == 0.0
-    assert not [ln for ln in state.active_lines if ln.break_bar == 60]
+    pending = [ln for ln in state.active_lines if ln.break_bar == 60]
+    assert len(pending) == 1
+    assert state.bar_count - 1 - pending[0].break_bar == 9
 
 
 def test_resistance_mirror_break_up_and_retest_hold_up():
@@ -452,75 +636,20 @@ def test_converging_pair_triangle_with_apex_proximity():
     )
 
 
-# ---------------------------------------------------------------------------
-# Tolerance fit
-# ---------------------------------------------------------------------------
-
-
-def test_tolerance_fit_deterministic_with_provenance():
-    df = _random_walk_frame(1500, seed=3)
-    first = fit_trendline_tolerance(df, timeframe="TEST", seq_len=512)
-    second = fit_trendline_tolerance(df, timeframe="TEST", seq_len=512)
-    assert first == second
-    assert first["band_atr"] > 0.0
-    assert first["n_candidates_measured"] > 0
-    assert first["n_support_pivots"] > 0
-    assert first["n_resistance_pivots"] > 0
-    assert first["n_bars"] == 1500
-    assert first["statistic"] == "median_abs_first_subsequent_pivot_deviation_atr"
-    assert first["schema_version"] == "trendline_tolerance_fit_v1"
-    assert len(first["contract_sha256"]) == 64
-
-
-def test_tolerance_fit_publishes_the_implied_validation_rate():
-    """The band is the median of the population it then judges, so the share of
-    arbitrary 2-pivot pairs it promotes to a "validated" line is >= 0.5 by the
-    definition of a median.  Publishing the measured rate (2026-08-13) makes
-    that degeneracy visible in every frozen constants manifest instead of
-    provable only from source (audit §0b)."""
-
-    df = _random_walk_frame(1500, seed=3)
-    payload = fit_trendline_tolerance(df, timeframe="TEST", seq_len=512)
-    rate = payload["implied_validation_rate"]
-    assert 0.5 <= rate <= 1.0
-    assert "implied_validation_rate_definition" in payload
-    # It is exactly the share of the reported population under the band.
-    n_measured = payload["n_candidates_measured"]
-    assert abs(rate * n_measured - round(rate * n_measured)) < 1e-9
-
-
-def test_tolerance_fit_fails_closed_on_empty_population():
-    n_bars = 120
-    t = np.arange(n_bars, dtype=np.float64)
-    close = 100.0 + 0.1 * t  # strictly trending: no swing pivots at all
-    df = pd.DataFrame(
-        {
-            "high": close + 0.1,
-            "low": close - 0.05,
-            "close": close,
-            "atr": np.ones(n_bars),
-        }
-    )
-    with pytest.raises(RuntimeError, match="TRENDLINE_TOLERANCE_FIT_EMPTY"):
-        fit_trendline_tolerance(df, timeframe="TEST", seq_len=64)
-
-
-# ---------------------------------------------------------------------------
-# Chunk-carry exactness
-# ---------------------------------------------------------------------------
-
-
-def test_chunked_processing_bit_identical_to_one_shot():
+@pytest.mark.parametrize(
+    "seq_len",
+    (MODEL_NATIVE_SEQ_LEN, PRODUCTION_EXIT_SEQUENCE_BARS),
+    ids=("entry_m5_96", "exit_m1_480"),
+)
+def test_chunked_processing_bit_identical_to_one_shot(seq_len: int):
     df = _random_walk_frame(1200, seed=7)
-    band = fit_trendline_tolerance(df, timeframe="TEST", seq_len=512)[
-        "band_atr"
-    ]
-    one_shot, _ = _compute(df, band=band, seq_len=512)
+    band = 0.3
+    one_shot, _ = _compute(df, band=band, seq_len=seq_len)
     state = None
     pieces = []
     # boundaries deliberately inside pivot-confirmation windows
     for chunk in (df.iloc[:400], df.iloc[400:407], df.iloc[407:]):
-        feats, state = _compute(chunk, band=band, seq_len=512, state=state)
+        feats, state = _compute(chunk, band=band, seq_len=seq_len, state=state)
         pieces.append(feats)
     np.testing.assert_array_equal(
         pd.concat(pieces).to_numpy(), one_shot.to_numpy(), strict=True
@@ -529,6 +658,36 @@ def test_chunked_processing_bit_identical_to_one_shot():
     assert one_shot["geomline_below_active"].sum() > 0.0 or (
         one_shot["geomline_above_active"].sum() > 0.0
     )
+
+
+def test_hyperfit_binds_runtime_population_and_learned_expiry(tmp_path: Path):
+    df = _random_walk_frame(1500, seed=3)
+    df.index = pd.date_range(
+        "2020-01-01", periods=len(df), freq="5min", tz="UTC"
+    )
+    payload = fit_trendline_registry_hyperparameters_v1(
+        df,
+        timeframe="M5",
+        seq_len=512,
+        inner_fit_end_exclusive=900,
+        source_provenance=_fit_source(tmp_path, clock="M5"),
+    )
+    assert payload["selected_threshold_atr"] > 0.0
+    assert payload["learned_expiry_bars"] > 0
+    assert payload["population_configuration"] == {
+        "owner": "trendline_exact_runtime_candidate_population_v1",
+        "seq_len": 512,
+        "swing_lookback": SWING_LOOKBACK,
+        "identity_expiry_bars": payload["learned_expiry_bars"],
+    }
+    features, _state = compute_trendline_registry_features_v1(
+        df,
+        timeframe="M5",
+        seq_len=512,
+        band_atr=payload["selected_threshold_atr"],
+        identity_expiry_bars=payload["learned_expiry_bars"],
+    )
+    assert features.shape == (len(df), TRENDLINE_REGISTRY_FEATURE_COUNT_V1)
 
 
 # ---------------------------------------------------------------------------
@@ -543,7 +702,9 @@ def test_atr_warmup_prefix_is_nan_and_registry_starts_after():
     df["atr"] = atr
     feats, _ = _compute(df)
     assert feats.iloc[:30].isna().all().all()
-    assert feats.iloc[30:].notna().all().all()
+    assert feats.iloc[30:].drop(
+        columns=["geomline_bars_since_break"]
+    ).notna().all().all()
     # pivots inside the ATR-unavailable prefix never enter the registry:
     # the first ACTIVE line is (30, 50) validated by pivot 70 at bar 73
     assert (feats["geomline_below_active"].iloc[30:73] == 0.0).all()
@@ -648,7 +809,12 @@ def test_v30_package_8a_retest_hold_flips_polarity_and_keeps_the_line():
     ]
 
 
-def test_micro_benchmark_per_bar_update_under_loose_bound():
+@pytest.mark.parametrize(
+    "seq_len",
+    (MODEL_NATIVE_SEQ_LEN, PRODUCTION_EXIT_SEQUENCE_BARS),
+    ids=("entry_m5_96", "exit_m1_480"),
+)
+def test_micro_benchmark_per_bar_update_under_loose_bound(seq_len: int):
     """Loose synthetic cost guard only.
 
     Bound origin (rule 2a, UNCHANGED): the chart report B.7 algebraic estimate
@@ -661,31 +827,23 @@ def test_micro_benchmark_per_bar_update_under_loose_bound():
 
     Window origin (rule 2g, moved 2026-08-13 by V30 package 8A): the
     measurement is taken at the window the registry is actually run with.
-    ``seq_len`` is the per-TF model sequence length (module docstring), and
-    every recipe/fixture in this repository binds ``trendline_seq_len`` to
-    ``MODEL_NATIVE_SEQ_LEN`` for the entry M5/513 lane, while the per-TF lanes
-    use their pyramid seq_lens (M5 = 16).  This test previously measured at 512
-    — 5.3x the largest declared window and a window no lane uses — so it was
-    not measuring where the decision is made.
+    ``seq_len`` is the exact native-lane receptive field.  Both production
+    local clocks are measured here: Entry M5 uses ``MODEL_NATIVE_SEQ_LEN``
+    (96), while Exit M1 uses ``PRODUCTION_EXIT_SEQUENCE_BARS`` (480).  The
+    per-TF lanes retain their separately declared pyramid lengths.
 
     Measured on this fixture, 2026-08-13 `[M-synthetic]`, before -> after the
     package-8A retest-hold POLARITY FLIP (ms/bar, final ACTIVE-line count):
         seq_len  16: 0.040 (0 lines)    -> 0.042 (1 line)
         seq_len  96: 0.109 (41 lines)   -> 0.169 (65 lines)
         seq_len 512: 0.954 (1110 lines) -> 2.546 (2584 lines)
-    Stated uninvited (rule 25a): the flip keeps held-retest lines alive instead
-    of deleting them, so the ACTIVE-line population grows ~1.6x at the declared
-    window and ~2.3x at 512, and per-bar cost is superlinear in seq_len because
-    both the per-bar update and the emission are O(active lines).  At 512 the
-    result is 2.55 ms/bar — ABOVE this guard.  No lane runs there, but if one
-    ever does, this cost is real and the guard must be re-derived from a
-    declared budget rather than relaxed.
+    The historical 512 result is close to the production Exit window, so the
+    old 96-only guard did not measure where the Exit decision is made.  The
+    same existing per-bar bound is now enforced at 480; no new threshold is
+    introduced.
     """
-    seq_len = MODEL_NATIVE_SEQ_LEN
     df = _random_walk_frame(5000, seed=13)
-    band = fit_trendline_tolerance(df, timeframe="TEST", seq_len=seq_len)[
-        "band_atr"
-    ]
+    band = 0.3
     start = time.perf_counter()
     _compute(df, band=band, seq_len=seq_len)
     elapsed = time.perf_counter() - start
@@ -709,7 +867,7 @@ def test_touch_hold_labels_are_event_masked_and_forward_realized():
     # touch, so the touch did NOT hold.
     broken = _break_frame("expiry")
     labels = compute_trendline_touch_hold_labels_v1(
-        broken, seq_len=200, band_atr=0.3, horizon_bars=10
+        broken, seq_len=200, band_atr=0.3, identity_expiry_bars=200, horizon_bars=10
     )
     assert tuple(labels.columns) == TRENDLINE_TOUCH_HOLD_LABEL_COLUMNS_V1
     support_mask = labels["y_line_support_touch_mask"].to_numpy()
@@ -723,7 +881,7 @@ def test_touch_hold_labels_are_event_masked_and_forward_realized():
     # Same line, no break within the horizon: the touch held.
     intact = _support_line_frame(70, {10: 0.0, 30: 0.0, 50: 0.0})
     held_labels = compute_trendline_touch_hold_labels_v1(
-        intact, seq_len=200, band_atr=0.3, horizon_bars=10
+        intact, seq_len=200, band_atr=0.3, identity_expiry_bars=200, horizon_bars=10
     )
     assert held_labels["y_line_support_touch_mask"].to_numpy()[53] == 1.0
     assert held_labels["y_line_support_touch_held"].to_numpy()[53] == 1.0
@@ -731,6 +889,59 @@ def test_touch_hold_labels_are_event_masked_and_forward_realized():
     # An unobserved forward window is undecidable: masked out, never a
     # placeholder outcome (rule 2e).
     undecidable = compute_trendline_touch_hold_labels_v1(
-        intact, seq_len=200, band_atr=0.3, horizon_bars=30
+        intact, seq_len=200, band_atr=0.3, identity_expiry_bars=200, horizon_bars=30
     )
     assert undecidable["y_line_support_touch_mask"].to_numpy().sum() == 0.0
+
+
+def test_touch_hold_label_observes_break_after_polarity_flip():
+    from gx1.features.trendline_registry_v1 import (
+        compute_trendline_touch_hold_labels_v1,
+    )
+
+    # One rising support line completes two role flips with the same line_id:
+    # support --break(60)/hold(62)--> resistance
+    #         --break(63)/hold(65)--> support --break(67)--> BROKEN.
+    # The support touch at the second flip must therefore be judged against
+    # break(67), not the already-past first break(60) for that line identity.
+    frame = _support_line_frame(75, {10: 0.0, 30: 0.0, 50: 0.0})
+    t = np.arange(len(frame), dtype=np.float64)
+    proj = 100.0 + 0.05 * (t - 10.0)
+    for bar in (60, 61):
+        frame.loc[bar, ["close", "high", "low"]] = (
+            proj[bar] - 0.8,
+            proj[bar] - 0.6,
+            proj[bar] - 1.0,
+        )
+    frame.loc[62, ["close", "high", "low"]] = (
+        proj[62] - 0.5,
+        proj[62] - 0.2,
+        proj[62] - 0.7,
+    )
+    frame.loc[65, ["close", "high", "low"]] = (
+        proj[65] + 0.5,
+        proj[65] + 0.7,
+        proj[65] + 0.2,
+    )
+    frame.loc[67, ["close", "high", "low"]] = (
+        proj[67] - 0.8,
+        proj[67] - 0.6,
+        proj[67] - 1.0,
+    )
+
+    features, _ = _compute(frame, seq_len=200, band=0.3)
+    assert features.loc[60, "geomline_break_down"] == 1.0
+    assert features.loc[62, "geomline_retest_hold_down"] == 1.0
+    assert features.loc[63, "geomline_break_up"] == 1.0
+    assert features.loc[65, "geomline_retest_hold_up"] == 1.0
+    assert features.loc[67, "geomline_break_down"] == 1.0
+
+    labels = compute_trendline_touch_hold_labels_v1(
+        frame,
+        seq_len=200,
+        band_atr=0.3,
+        identity_expiry_bars=200,
+        horizon_bars=5,
+    )
+    assert labels.loc[65, "y_line_support_touch_mask"] == 1.0
+    assert labels.loc[65, "y_line_support_touch_held"] == 0.0

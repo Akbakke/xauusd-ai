@@ -7,6 +7,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    PRETRAIN_AUDIT_SCHEMA,
+)
 from gx1.features.htf_features import (
     HTF_V4_CACHE_BUILDER_VERSION,
     HTF_V4_MATRIX_CONTRACT,
@@ -23,13 +26,14 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
@@ -44,6 +48,7 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
 )
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     model_native_readiness_contract_metadata,
@@ -52,12 +57,12 @@ from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     SCHEMA_VERSION as SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
-    TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS,
-    TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
+    MODEL_NATIVE_HISTORY_MODE,
+    MODEL_NATIVE_STATE_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
-    REQUIRED_MANDATORY_GEOMETRY_FEATURES,
+    REQUIRED_MANDATORY_LEVEL_FEATURES,
     REQUIRED_SPECIALISTS,
     artifact_binding,
     canonical_json_sha256,
@@ -69,12 +74,12 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     model_native_recipe_env_contract_metadata,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
     training_objective_contract_metadata,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+    UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
@@ -88,12 +93,23 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
+from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    diagnostic_outcome_label_contract,
+    entry_fitted_q_dataset_contract,
+    representation_auxiliary_outcome_contract,
+)
+from tests.entry_direction_target_policy_support import (
+    entry_direction_target_policy_fixture,
+)
+from tests.entry_position_size_target_policy_support import (
+    entry_position_size_target_policy_fixture,
+)
+from gx1.contracts.entry_position_size_target_policy_v1 import (
+    entry_position_size_target_policy_contract,
+)
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
 from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
 from tests.model_native_signal_support import canonical_model_native_selected_fields
-from tests.model_native_offline_rl_support import (
-    model_native_target_audit_evidence,
-)
 from tests.model_native_test_seal_support import (
     write_prefreeze_test_seal_fixture,
 )
@@ -103,6 +119,31 @@ REPO = Path(__file__).resolve().parents[1]
 RUN_ID = "MODEL_NATIVE_SEQ513_PYTEST_V1"
 DATASET_RUN_ID = "MODEL_NATIVE_SEQ513_DATASET_PYTEST_V1"
 STAMP = "20260716T010203123456Z"
+TAPE_PROVENANCE_FIXTURE = {
+    "schema_version": "xau_tape_current_snapshot_v1",
+    "instrument": "XAU_USD",
+    "entry_run_id": DATASET_RUN_ID,
+}
+
+
+def model_native_target_audit_evidence() -> dict[str, object]:
+    """Return the exact current auxiliary-head audit surface.
+
+    Entry fitted-Q lineage is carried by the dataset manifests.  The retired
+    fixed-horizon offline-RL proof must not be reintroduced into target audits.
+    """
+
+    return {
+        "model_native_aux_target_contract": (
+            model_native_aux_target_contract_metadata()
+        ),
+        "target_head_contract": {
+            "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
+            "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+            "extra_active_target_heads": [],
+            "extra_active_target_head_liveness": {},
+        },
+    }
 
 
 def _write_json(path: Path, payload: dict) -> Path:
@@ -144,13 +185,31 @@ def _split_manifest(
     parquet: Path,
     *,
     m5_prebuilt: Path,
-    rank_source: Path,
-    profile: str,
 ) -> Path:
     selected = canonical_model_native_selected_fields(
         remainder_prefix="session_regime.train_wrapper_fixture"
     )
     contract = model_native_signal_contract_metadata(selected)
+    m5_sha256 = artifact_binding(m5_prebuilt)["sha256"]
+    direction_target_policy = entry_direction_target_policy_fixture(
+        source_parquet_sha256=m5_sha256,
+        tape_provenance_sha256=canonical_json_sha256(
+            TAPE_PROVENANCE_FIXTURE
+        ),
+        train_start_utc="2021-01-05T00:00:00+00:00",
+        train_end_utc="2026-05-31T23:59:59+00:00",
+    )
+    diagnostic_outcomes = diagnostic_outcome_label_contract(
+        direction_target_policy
+    )
+    position_size_target_policy = entry_position_size_target_policy_fixture(
+        source_parquet_sha256=m5_sha256,
+        tape_provenance_sha256=canonical_json_sha256(
+            TAPE_PROVENANCE_FIXTURE
+        ),
+        train_start_utc="2021-01-05T00:00:00+00:00",
+        train_end_utc="2026-05-31T23:59:59+00:00",
+    )
     return _write_json(
         path,
         {
@@ -159,6 +218,20 @@ def _split_manifest(
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "output_data_path": str(parquet.resolve()),
             "inputs": {"source_parquet": str(m5_prebuilt.resolve())},
+            "splits": {
+                "train": {
+                    "start": "2021-01-05T00:00:00+00:00",
+                    "end": "2026-05-31T23:59:59+00:00",
+                },
+                "val": {
+                    "start": "2026-06-01T00:00:00+00:00",
+                    "end": "2026-06-15T23:59:59+00:00",
+                },
+                "test": {
+                    "start": "2026-06-16T00:00:00+00:00",
+                    "end": "2026-06-30T23:59:59+00:00",
+                },
+            },
             "extra": {
                 "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                 "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -175,33 +248,39 @@ def _split_manifest(
                     "incomplete_candidate_rows_excluded": 96,
                     "complete_rows_emitted": 4,
                 },
+                # Every rank_* key this block used to carry is now in
+                # RETIRED_RANK_STATE_FIELDS, which the state contract rejects.
+                # What remains is exactly the owner's required set, with the
+                # schema version and history mode taken from the owner rather
+                # than restated.
                 "model_native_state_contract": {
+                    "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
                     "entry_run_id": DATASET_RUN_ID,
                     "feature_history_start_utc": "2021-01-05T00:00:00Z",
-                    "rank_fit_end_utc": "2026-05-31T23:59:59Z",
-                    "rank_reference_source_parquet": str(rank_source.resolve()),
-                    "rank_reference_source_parquet_sha256": artifact_binding(
-                        rank_source
-                    )["sha256"],
-                    "rank_reference_model_source_market_identity": {
-                        "contract": TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
-                        "rank_source_parquet": str(rank_source.resolve()),
-                        "rank_source_sha256": artifact_binding(rank_source)[
-                            "sha256"
-                        ],
-                        "model_source_parquet": str(m5_prebuilt.resolve()),
-                        "model_source_sha256": artifact_binding(m5_prebuilt)[
-                            "sha256"
-                        ],
-                        "history_start_utc": "2021-01-05T00:00:00+00:00",
-                        "fit_end_utc": "2026-05-31T23:59:59+00:00",
-                        "compared_rows": 4,
-                        "columns": list(
-                            TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS
-                        ),
-                    },
+                    "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
+                    "split_reset_allowed": False,
+                    "runtime_rule_free": True,
                 },
                 "entry_run_id": DATASET_RUN_ID,
+                "xau_tape_provenance": TAPE_PROVENANCE_FIXTURE,
+                "source_frame": {
+                    "mode": "exact_source_parquet",
+                    "parquet_path": str(m5_prebuilt.resolve()),
+                    "parquet_sha256": m5_sha256,
+                },
+                **entry_fitted_q_dataset_contract(),
+                **diagnostic_outcomes,
+                **representation_auxiliary_outcome_contract(),
+                **entry_position_size_target_policy_contract(
+                    position_size_target_policy
+                ),
+                "early_move_threshold_bps": float(
+                    direction_target_policy["early_move_threshold_bps"]
+                ),
+                "diagnostic_outcome_labels": {
+                    **diagnostic_outcomes,
+                    **representation_auxiliary_outcome_contract(),
+                },
             },
         },
     )
@@ -223,8 +302,6 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     m5_path = m5_dir / "xau_m5.parquet"
     m5_path.write_bytes(b"xau-m5-fixture")
     artifacts["m5_prebuilt_path"] = m5_path.resolve()
-    rank_source = m5_dir / "canonical_rank_source.parquet"
-    rank_source.write_bytes(b"canonical-rank-source-fixture")
 
     mtf_cache_dir = (tmp_path / f"MULTI_TF_V4_CACHE_{STAMP}").resolve()
     mtf_cache_dir.mkdir()
@@ -249,8 +326,6 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             manifest,
             parquet,
             m5_prebuilt=m5_path,
-            rank_source=rank_source,
-            profile=profile,
         )
 
     lifecycle_dir = (tmp_path / f"exit_lifecycle_{STAMP}").resolve()
@@ -290,6 +365,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "m1_source_path": str(lifecycle_m1),
         "m1_source_sha256": artifact_binding(lifecycle_m1)["sha256"],
     }
+    lifecycle_authority_sha256 = canonical_json_sha256(lifecycle_authority)
     lifecycle_splits = {
         split: {
             "entry_dataset_path": str(artifacts[f"{split}_parquet"]),
@@ -305,12 +381,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             ),
             "lifecycle_manifest_sha256": "2" * 64,
             "episode_rows": 2,
-            "target_counts": {
-                "HOLD": 1,
-                "EXIT_NOW": 1,
-                "TIED_OMITTED": 0,
-            },
-            "target_stream_sha256": "3" * 64,
+            "state_population_rows": 1024,
+            "state_population_stream_sha256": "3" * 64,
         }
         for split in ("train", "val", "test")
     }
@@ -333,11 +405,12 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 lifecycle_feature_manifest
             )["sha256"],
             "m1_authority": lifecycle_authority,
-            "m1_authority_sha256": canonical_json_sha256(
-                lifecycle_authority
-            ),
+            "m1_authority_sha256": lifecycle_authority_sha256,
             "path_state_count": 512,
-            "target_lookahead_m1_steps": 3,
+            "state_population_schema_version": (
+                UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+            ),
+            "state_population_per_episode": 512,
             "m1_row_clock": (
                 "consecutive_authoritative_closed_m1_source_rows"
             ),
@@ -362,7 +435,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         remainder_prefix="session_regime.train_wrapper_fixture"
     )
     feature_signal_contract = model_native_signal_contract_metadata(feature_selected)
-    ranked_remainder = feature_selected[
+    available_candidates = feature_selected[
         MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
     ]
     artifacts["feature_audit_json"] = _write_json(
@@ -388,26 +461,29 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "manifest_mandatory_selected_feature_count": (
                 MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
             ),
-            "ranked_remainder_feature_count": (
-                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            "available_candidate_feature_count": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
             ),
-            "manifest_ranked_remainder_feature_count": (
-                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            "manifest_available_candidate_feature_count": (
+                MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
             ),
-            "ranked_remainder_fields_sha256": canonical_json_sha256(
-                ranked_remainder
+            "available_candidate_fields_sha256": canonical_json_sha256(
+                available_candidates
             ),
             "feature_ranking_fit_scope": "train_only",
             "feature_ranking_sha256": "a" * 64,
             "model_native_signal_contract": feature_signal_contract,
+            # Both context widths are read from the signal owner.  The
+            # categorical width was a restated ``5`` until the V30 wave retired
+            # every regime/bucket categorical, leaving exactly ``session_id``.
             "ctx_cont_dim_v3": MODEL_NATIVE_CTX_CONT_DIM,
-            "ctx_cat_dim_v3": 5,
+            "ctx_cat_dim_v3": MODEL_NATIVE_CTX_CAT_DIM,
         },
     )
     artifacts["target_audit_json"] = _write_json(
         evidence_dir / f"ENTRY_TARGET_AUDIT_{STAMP}.json",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -522,11 +598,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         key: artifact_binding(artifacts[key])["sha256"]
         for key in sorted(("train_parquet", "val_parquet", "m5_prebuilt_path"))
     }
-    tape_provenance = {
-        "schema_version": "xau_tape_current_snapshot_v1",
-        "instrument": "XAU_USD",
-        "entry_run_id": DATASET_RUN_ID,
-    }
+    tape_provenance = TAPE_PROVENANCE_FIXTURE
     pretrain_splits = []
     for split in ("train", "val"):
         manifest = json.loads(
@@ -539,7 +611,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "manifest_path": str(artifacts[f"{split}_manifest_json"]),
                 "parquet_path": str(artifacts[f"{split}_parquet"]),
                 "feature_count": MODEL_NATIVE_SIGNAL_DIM,
-                "core_target_policy": "future_path_and_utility_outcomes_only",
+                "core_target_policy": "frozen_exit_first_state_fitted_q_only",
                 "seq_structure_extension_mode": (
                     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE
                 ),
@@ -549,6 +621,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                     "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
                     "xau_tape_provenance": tape_provenance,
+                    "entry_fitted_q": manifest["extra"]["entry_fitted_q"],
                     "fields": signal_contract["fields"],
                     "model_native_signal_contract": signal_contract,
                 },
@@ -557,18 +630,18 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     artifacts["pretrain_audit_json"] = _write_json(
         evidence_dir / f"XAU_PRETRAIN_AUDIT_{STAMP}.json",
         {
-            "schema_version": "xau_direction_repair_pretrain_audit_v2",
+            "schema_version": PRETRAIN_AUDIT_SCHEMA,
             "decision": "PASS",
             "failures": [],
             "dataset_dir": str(dataset_dir),
             "data_splits": ["train", "val"],
-            "require_mandatory_geometry_features": True,
+            "require_mandatory_level_features": True,
             "require_inline_seq_structure": True,
             "require_xau_provenance": True,
-            "required_mandatory_geometry_features": list(
-                REQUIRED_MANDATORY_GEOMETRY_FEATURES
+            "required_mandatory_level_features": list(
+                REQUIRED_MANDATORY_LEVEL_FEATURES
             ),
-            "missing_mandatory_geometry_features": [],
+            "missing_mandatory_level_features": [],
             "tape_provenance": {
                 split: tape_provenance for split in ("train", "val")
             },
@@ -665,9 +738,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     )
 
     if profile == "candidate":
-        training_objective = training_objective_contract_metadata(
-            {key: 1.0 for key in REQUIRED_POSITIVE_LOSS_WEIGHTS}
-        )
+        training_objective = training_objective_contract_metadata()
         smoke_bundle_dir = (tmp_path / f"smoke_bundle_{STAMP}").resolve()
         smoke_bundle_dir.mkdir()
         smoke_metadata = _write_json(
@@ -734,7 +805,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                         "foundation_audit_policy_enforcement": (
                             foundation_audit_policy_enforcement("target")
                         ),
-                        "schema_version": "entry_target_foundation_audit_v2",
+                        "schema_version": "entry_target_foundation_audit_v3",
                         "decision": "PASS",
                         "failures": [],
                         "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
@@ -752,7 +823,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     },
                     "pretrain": {
                         **simple_binding(artifacts["pretrain_audit_json"]),
-                        "schema_version": "xau_direction_repair_pretrain_audit_v2",
+                        "schema_version": PRETRAIN_AUDIT_SCHEMA,
                         "decision": "PASS",
                         "failures": [],
                     },
@@ -786,15 +857,19 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     "all_specialist_gates_live": True,
                     "strict_bundle_components_live": True,
                 },
+                # Exactly the key set the only smoke-bundle audit producer
+                # emits (audit_entry_foundation_smoke_bundle_v1.py
+                # ``edge_contract``).  The retired per-family edge proofs and
+                # ``offline_rl_edge_proven`` are gone with the offline-RL
+                # contract, and the producer pins the two economics booleans
+                # to False, so the fixture carries the producer's values
+                # rather than an invented True.
                 "edge_contract": {
                     "decision": "PASS",
                     "failures": [],
-                    "direction_edge_proven": True,
-                    "context_slice_edge_proven": True,
-                    "path_quality_edge_proven": True,
-                    "bad_path_edge_proven": True,
-                    "turning_point_edge_proven": True,
-                    "offline_rl_edge_proven": True,
+                    "raw_entry_q_structure_proven": True,
+                    "production_economics_ready": False,
+                    "edge_claim_allowed": False,
                 },
                 "splits": passing_smoke_audit_splits(),
                 "prediction_evidence": {

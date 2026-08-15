@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import numpy as np
@@ -8,13 +9,15 @@ import pytest
 import torch
 
 from gx1.execution import v12_smart_entry_live as live
-from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_COUNT,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
 )
-from tests.model_native_offline_rl_support import offline_rl_evidence
 from gx1.contracts.model_native_serve_gate_v1 import (
     DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS,
     UTC_TIME_COVERAGE_SCHEMA_VERSION,
@@ -81,15 +84,27 @@ def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Pat
             "max_trades": 3,
         },
     )
-    engine._per_tf_seq_lens = {"M5": 1}
-    engine._multi_tf_shift = {"M5": pd.Timedelta(minutes=5)}
+    engine._per_tf_seq_lens = {
+        timeframe: 1 for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    engine._multi_tf_shift = {
+        timeframe: pd.Timedelta(minutes=5)
+        for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
 
     out = engine._multi_tf_window_tensors(
         pd.Timestamp("2026-07-08T12:05:00Z"),
-        multi_tf={"M5": frame},
+        multi_tf={
+            timeframe: frame for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+        },
     )
 
-    assert float(out["seq_m5"][0, 0, 0].item()) == 2.0
+    assert set(out) == {
+        f"seq_{timeframe.lower()}"
+        for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    assert "seq_m5" not in out
+    assert float(out["seq_m15"][0, 0, 0].item()) == 2.0
 
 
 def _softmax(values: list[float] | tuple[float, ...]) -> list[float]:
@@ -118,128 +133,61 @@ def _decision_engine(tmp_path: Path, selection_mode: str = live.MODEL_DIRECTION_
 
 
 def _decision_head(
-    direction_logits: tuple[float, float, float] = (5.0, 1.0, 0.0),
-    public_logits: tuple[float, float] = (5.0, 0.0),
+    entry_action_q_bps: tuple[float, float, float] = (12.0, -3.0, 0.0),
 ) -> dict:
-    direction_probs = _softmax(direction_logits)
-    public_probs = _softmax(public_logits)
-    direction_index = int(np.argmax(np.asarray(direction_logits, dtype=np.float64)))
-    public_index = int(np.argmax(np.asarray(public_logits, dtype=np.float64)))
-    side_logits = [2.0, 0.0]
-    side_bad_path_logits = [-2.0, 1.0]
-    side_validity_logits = [2.5, -1.0]
-    rail_logits = [1.0, -1.0, 0.5, -0.5, 0.25, -0.25]
-    bad_path_logit = -1.0
-    tradable_logit = 1.0
-    tf_agreement_logit = 0.5
+    """One complete decision head at the exact Fitted-Q contract.
+
+    Direction is the unique argmax of raw ``entry_action_q_bps``; the retired
+    calibrated-probability, hierarchy, utility and rail surfaces are forbidden
+    live overlay fields and must not appear here.
+    """
+
+    q_values = np.asarray(entry_action_q_bps, dtype=np.float64)
+    direction_index = int(np.argmax(q_values))
+    ordered = np.sort(q_values)
     position_size_logit = 0.25
-    clean_edge_logit = 0.75
-    survival_logit = 1.25
+    specialists = list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)
+    cooperation_width = ENTRY_MTF_CONTEXT_COUNT * len(specialists)
+    feature_width = ENTRY_MTF_CONTEXT_COUNT * live.MULTI_TF_FEATURE_COUNT_V4
     return {
         "time": pd.Timestamp("2026-07-08T18:00:00Z"),
         "session_id": 0,  # ASIA is outside the legacy sessions=[US] gate.
-        "entry_vol_regime_id": 3,
-        "entry_atr_bucket": 4,
-        "entry_spread_bucket": 1,
-        "entry_h4_trend_sign_cat": 0,
-        "entry_trend_regime_id": 2,
-        "raw_direction_logits": list(direction_logits),
-        "direction_logits": list(direction_logits),
-        "direction_probs": direction_probs,
+        "entry_action_q_bps": list(entry_action_q_bps),
+        "entry_action_q_margin_bps": float(ordered[-1] - ordered[-2]),
         "model_direction_index": direction_index,
         "model_direction": ("LONG", "SHORT", "FLAT")[direction_index],
-        "entry_shared_representation": [
+        "entry_decision_representation": [
             float(index - 64) / 64.0 for index in range(128)
         ],
-        "p_long": direction_probs[0],
-        "p_short": direction_probs[1],
-        "p_flat": direction_probs[2],
-        "edge_score": max(direction_probs[0], direction_probs[1]) - direction_probs[2],
-        "public_trade_flat_decision_logits": list(public_logits),
-        "public_trade_flat_decision_probs": public_probs,
-        "public_trade_flat_decision_index": public_index,
-        "public_trade_flat_decision": ("TRADE", "FLAT")[public_index],
-        "p_trade": public_probs[0],
-        "p_flat_hier": public_probs[1],
-        "model_native_logits": [0.4, -0.2, 0.1],
-        "path_quality_raw": 1.5,
-        "path_quality": 1.5,
-        "path_quality_pred": 1.5,
-        "mfe_first_n": 12.0,
-        "bad_path_logit_raw": bad_path_logit,
-        "bad_path_logit": bad_path_logit,
-        "bad_path_prob": _sigmoid(bad_path_logit),
-        "tradable_logit": tradable_logit,
-        "tradable_prob": _sigmoid(tradable_logit),
-        "mfe_first_n_pred": 12.0,
-        "clean_edge_logit": clean_edge_logit,
-        "clean_edge_prob": _sigmoid(clean_edge_logit),
-        "survival_logit": survival_logit,
-        "survival_prob": _sigmoid(survival_logit),
+        "entry_q_joint_hidden": [0.02] * 128,
+        "side_mae_bps": [3.0, 8.0],
+        "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
         "dip_pred": [float(value) / 10.0 for value in range(18)],
         "forecast_pred": [0.1, 0.2, 0.3, 0.4],
         "timing_pred": [float(value) / 20.0 for value in range(12)],
         "tail_risk_pred": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06],
         "vol_forecast_pred": [0.5, 0.75, 1.0],
-        **offline_rl_evidence(),
-        "specialist_names": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
-        "specialist_gate": [1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)]
-        * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "specialist_names": specialists,
+        "specialist_gate": [1.0 / len(specialists)] * len(specialists),
         "tf_gate": [1.0 / ENTRY_MTF_CONTEXT_COUNT] * ENTRY_MTF_CONTEXT_COUNT,
-        "family_tf_cooperation_gate": [1.0 / (ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS))]
-        * (ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
-        "family_tf_feature_gate": [1.0] * (ENTRY_MTF_CONTEXT_COUNT * live.MULTI_TF_FEATURE_COUNT_V4),
-        "p_long_given_trade": _softmax(side_logits)[0],
-        "p_short_given_trade": _softmax(side_logits)[1],
-        "side_logits": side_logits,
-        "trade_logit": tradable_logit,
-        "side_probs": _softmax(side_logits),
-        "side_utility": [12.0, -4.0],
-        "side_bad_path_logit": side_bad_path_logits,
-        "long_bad_path_prob": _sigmoid(side_bad_path_logits[0]),
-        "short_bad_path_prob": _sigmoid(side_bad_path_logits[1]),
-        "side_validity_logit": side_validity_logits,
-        "long_validity_prob": _sigmoid(side_validity_logits[0]),
-        "short_validity_prob": _sigmoid(side_validity_logits[1]),
-        "side_mae": [-3.0, -8.0],
-        "mtf_dir_logits": [2.0, 0.0, -1.0],
-        "mtf_dir_probs": _softmax((2.0, 0.0, -1.0)),
-        "trendline_rail_logits": rail_logits,
-        "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
-        "mtf_trend_evidence": 0.65,
-        "calibration_version": "test-v1",
-        "direction_calibration_enabled": True,
-        "direction_calibration_temperature": 1.0,
-        "path_calibration_enabled": True,
-        "path_calibration": {
-            "enabled": True,
-            "version": "test-v1",
-            "path_quality_scale": 1.0,
-            "path_quality_shift": 0.0,
-            "bad_path_temperature": 1.0,
-            "bad_path_bias": 0.0,
-        },
-        "tf_agreement_logit": tf_agreement_logit,
-        "tf_agreement_pred": _sigmoid(tf_agreement_logit),
-        "path_quality_log_var": 0.0,
-        "path_quality_std": 1.0,
+        "family_tf_cooperation_gate": [1.0 / cooperation_width] * cooperation_width,
+        "family_tf_feature_gate": [1.0] * feature_width,
         "position_size_logit": position_size_logit,
         "position_size_pred": _sigmoid(position_size_logit),
     }
 
 
 @pytest.mark.parametrize(
-    ("direction_logits", "public_logits", "expected_direction", "expected_action", "expected_side"),
+    ("entry_action_q_bps", "expected_direction", "expected_action", "expected_side"),
     [
-        ((5.0, 1.0, 0.0), (5.0, 0.0), "LONG", "TAKE_LONG_NOW", 0),
-        ((1.0, 5.0, 0.0), (5.0, 0.0), "SHORT", "TAKE_SHORT_NOW", 1),
-        ((0.0, 1.0, 5.0), (1.0, 5.0), "FLAT", "SKIP", None),
+        ((12.0, -3.0, 0.0), "LONG", "TAKE_LONG_NOW", 0),
+        ((-4.0, 9.5, 0.0), "SHORT", "TAKE_SHORT_NOW", 1),
+        ((-2.0, -6.0, 0.0), "FLAT", "SKIP", None),
     ],
 )
 def test_smart_decision_follows_final_model_argmax_exactly(
     tmp_path: Path,
-    direction_logits: tuple[float, float, float],
-    public_logits: tuple[float, float],
+    entry_action_q_bps: tuple[float, float, float],
     expected_direction: str,
     expected_action: str,
     expected_side: int | None,
@@ -247,7 +195,7 @@ def test_smart_decision_follows_final_model_argmax_exactly(
     engine = _decision_engine(tmp_path)
 
     decision = engine.decide(
-        _decision_head(direction_logits=direction_logits, public_logits=public_logits),
+        _decision_head(entry_action_q_bps=entry_action_q_bps),
         atr_bps=9.0,
     )
     snapshot = decision["_v10_snapshot"]
@@ -269,8 +217,8 @@ def test_smart_decision_follows_final_model_argmax_exactly(
     assert snapshot["session"] == decision["session"]
     assert snapshot["model_direction"] == expected_direction
     assert snapshot["selected_side"] == expected_side
-    assert decision["side_utility"] == [12.0, -4.0]
-    assert decision["trendline_rail_logits"] == [1.0, -1.0, 0.5, -0.5, 0.25, -0.25]
+    assert decision["entry_action_q_bps"] == list(entry_action_q_bps)
+    assert decision["side_mae_bps"] == [3.0, 8.0]
     assert not any(key.startswith("expected_utility") for key in decision)
     assert not any(key.startswith("expected_utility") for key in snapshot)
 
@@ -315,21 +263,21 @@ def test_actual_smart_decision_keyset_forms_exact_executable_pipeline_envelope(
 
 
 @pytest.mark.parametrize(
-    "retired_key",
-    [
-        "expected_utility_long_bps",
-        "expected_utility_short_bps",
-        "expected_utility_side",
-        "selection_score_threshold",
-        "q_take_long",
-    ],
+    "fragment",
+    sorted(live.RETIRED_RUNTIME_EVIDENCE_FRAGMENTS),
 )
 def test_smart_decision_rejects_retired_live_overlay_fields(
     tmp_path: Path,
-    retired_key: str,
+    fragment: str,
 ) -> None:
+    """Every retired evidence fragment is refused by name, not by luck.
+
+    Parametrized from the runtime-evidence owner's own retired-fragment set,
+    so a fragment added there is covered immediately.
+    """
+
     head = _decision_head()
-    head[retired_key] = 0.0
+    head[f"{fragment}_probe"] = 0.0
 
     with pytest.raises(RuntimeError, match="retired live overlay fields are forbidden"):
         _decision_engine(tmp_path).decide(head, atr_bps=9.0)
@@ -363,10 +311,7 @@ def test_smart_decision_rejects_partial_context_evidence_envelope(
     [
         ("model_direction", "SHORT"),
         ("model_direction_index", 1),
-        ("public_trade_flat_decision", "FLAT"),
-        ("public_trade_flat_decision_index", 1),
-        ("p_trade", 0.1),
-        ("edge_score", -100.0),
+        ("entry_action_q_margin_bps", 0.5),
     ],
 )
 def test_smart_decision_rejects_reported_ssot_metadata_mismatch(
@@ -377,7 +322,7 @@ def test_smart_decision_rejects_reported_ssot_metadata_mismatch(
     head = _decision_head()
     head[field] = replacement
 
-    with pytest.raises(RuntimeError, match="decision SSOT"):
+    with pytest.raises(RuntimeError, match="mismatches raw"):
         _decision_engine(tmp_path).decide(head, atr_bps=9.0)
 
 
@@ -411,118 +356,35 @@ def test_smart_entry_rejects_stale_runtime_direction_operating_point_keys(
         )
 
 
-@pytest.mark.parametrize(
-    "missing_field",
-    [
-        "direction_logits",
-        "direction_probs",
-        "public_trade_flat_decision_logits",
-        "public_trade_flat_decision_probs",
-    ],
-)
-def test_smart_decision_rejects_missing_direction_ssot(
-    tmp_path: Path,
-    missing_field: str,
-) -> None:
+def test_smart_decision_rejects_missing_direction_ssot(tmp_path: Path) -> None:
     engine = _decision_engine(tmp_path)
     head = _decision_head()
-    del head[missing_field]
+    del head["entry_action_q_bps"]
 
-    with pytest.raises(RuntimeError, match=missing_field):
+    with pytest.raises(RuntimeError, match="entry_action_q_bps"):
         engine.decide(head, atr_bps=9.0)
 
 
-@pytest.mark.parametrize(
-    "field",
-    [
-        "direction_logits",
-        "direction_probs",
-        "public_trade_flat_decision_logits",
-        "public_trade_flat_decision_probs",
-    ],
-)
-def test_smart_decision_rejects_nonfinite_direction_ssot(tmp_path: Path, field: str) -> None:
+def test_smart_decision_rejects_nonfinite_direction_ssot(tmp_path: Path) -> None:
     engine = _decision_engine(tmp_path)
     head = _decision_head()
-    head[field][0] = float("nan")
+    head["entry_action_q_bps"][0] = float("nan")
 
     with pytest.raises(RuntimeError, match="non-finite"):
         engine.decide(head, atr_bps=9.0)
 
 
-@pytest.mark.parametrize(
-    ("field", "replacement", "error"),
-    [
-        ("direction_probs", [0.1, 0.8, 0.1], "direction_probs do not match"),
-        (
-            "public_trade_flat_decision_probs",
-            [0.1, 0.9],
-            "public_trade_flat_decision_probs do not match",
-        ),
-    ],
-)
-def test_smart_decision_rejects_logits_probability_mismatch(
-    tmp_path: Path,
-    field: str,
-    replacement: list[float],
-    error: str,
-) -> None:
+def test_smart_decision_rejects_tied_top_action_values(tmp_path: Path) -> None:
     engine = _decision_engine(tmp_path)
-    head = _decision_head()
-    head[field] = replacement
+    head = _decision_head(entry_action_q_bps=(5.0, 5.0, 0.0))
 
-    with pytest.raises(RuntimeError, match=error):
-        engine.decide(head, atr_bps=9.0)
-
-
-def test_smart_decision_rejects_trade_flat_vs_three_class_surface_mismatch(tmp_path: Path) -> None:
-    engine = _decision_engine(tmp_path)
-    head = _decision_head(direction_logits=(5.0, 1.0, 0.0), public_logits=(0.0, 3.0))
-
-    with pytest.raises(RuntimeError, match="not the canonical"):
-        engine.decide(head, atr_bps=9.0)
-
-
-def test_smart_decision_rejects_tied_top_direction_logits(tmp_path: Path) -> None:
-    engine = _decision_engine(tmp_path)
-    head = _decision_head(
-        direction_logits=(2.0, 2.0, 0.0),
-        public_logits=(2.0, 0.0),
-    )
-
-    with pytest.raises(RuntimeError, match="no unique top class"):
-        engine.decide(head, atr_bps=9.0)
-
-
-def test_smart_decision_rejects_noncanonical_pair_even_when_argmax_matches(tmp_path: Path) -> None:
-    engine = _decision_engine(tmp_path)
-    head = _decision_head(direction_logits=(5.0, 1.0, 0.0), public_logits=(4.0, 0.0))
-
-    with pytest.raises(RuntimeError, match="not the canonical"):
+    with pytest.raises(RuntimeError, match="no unique top action"):
         engine.decide(head, atr_bps=9.0)
 
 
 @pytest.mark.parametrize(
     "missing_field",
-    [
-        "path_quality_pred",
-        "bad_path_logit",
-        "tradable_logit",
-        "clean_edge_logit",
-        "survival_logit",
-        "dip_pred",
-        "forecast_pred",
-        "timing_pred",
-        "tail_risk_pred",
-        "vol_forecast_pred",
-        "specialist_gate",
-        "side_utility",
-        "mtf_dir_logits",
-        "trendline_rail_logits",
-        "tf_agreement_logit",
-        "path_quality_log_var",
-        "position_size_logit",
-    ],
+    sorted(live.MODEL_NATIVE_DECISION_HEAD_REQUIRED_FIELDS),
 )
 def test_smart_decision_requires_complete_model_native_evidence_surface(
     tmp_path: Path,
@@ -539,12 +401,17 @@ def test_smart_decision_requires_complete_model_native_evidence_surface(
 @pytest.mark.parametrize(
     ("field", "replacement", "error"),
     [
-        ("bad_path_prob", 0.99, "bad_path_prob does not match"),
-        ("tradable_prob", 0.01, "tradable_prob does not match"),
-        ("clean_edge_prob", 0.01, "clean_edge_prob does not match"),
-        ("tf_agreement_pred", 0.01, "tf_agreement_pred does not match"),
         ("position_size_pred", 0.01, "position_size_pred does not match"),
-        ("specialist_gate", [1.0] * 8, "not a probability simplex"),
+        (
+            "specialist_gate",
+            [1.0] * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            "not a probability simplex",
+        ),
+        (
+            "tf_gate",
+            [1.0] * ENTRY_MTF_CONTEXT_COUNT,
+            "not a probability simplex",
+        ),
     ],
 )
 def test_smart_decision_rejects_inconsistent_learned_diagnostics(
@@ -584,47 +451,36 @@ def test_smart_decision_rejects_nonpositive_or_nonfinite_atr_evidence(
 
 
 def _forward_states() -> dict:
-    evidence_names = [
-        "trend.mtf_confluence_trend_direction_score",
-    ]
+    evidence_names = ["chart.local_ema50_200_spread_atr"]
     return {
         "times": [pd.Timestamp("2026-07-08T18:00:00Z")],
         "seq": np.zeros((1, 2, 1), dtype=np.float32),
         "snap": np.asarray([[0.65]], dtype=np.float32),
         "ctx_cont": np.zeros((1, 1), dtype=np.float32),
-        "ctx_cat": np.asarray([[0, 3, 4, 1, 0]], dtype=np.int64),
-        "entry_trend_regime_id": np.asarray([2], dtype=np.int64),
+        "ctx_cat": np.zeros(
+            (1, len(live.MODEL_NATIVE_CTX_CAT_FIELDS)), dtype=np.int64
+        ),
         "_evidence_names": evidence_names,
     }
 
 
 def _forward_outputs() -> dict:
+    """The exact head tensors the current model forward must emit."""
+
+    specialists = list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)
+    cooperation_width = ENTRY_MTF_CONTEXT_COUNT * len(specialists)
     return {
-        "raw_direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
-        "direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
-        "shared_feature_representation": torch.arange(
+        "entry_action_q_bps": torch.tensor(
+            [[12.0, -3.0, 0.0]], dtype=torch.float32
+        ),
+        "entry_q_joint_hidden": torch.full((1, 128), 0.02, dtype=torch.float32),
+        "entry_decision_representation": torch.arange(
             128, dtype=torch.float32
         ).reshape(1, 128),
-        "public_trade_flat_decision_logits": torch.tensor([[5.0, 0.0]], dtype=torch.float32),
-        "model_native_logits": torch.tensor([[0.4, -0.2, 0.1]], dtype=torch.float32),
-        "mtf_dir_logits": torch.tensor([[2.0, 0.0, -1.0]], dtype=torch.float32),
-        "side_logits": torch.tensor([[2.0, 0.0]], dtype=torch.float32),
-        "side_utility": torch.tensor([[12.0, -4.0]], dtype=torch.float32),
-        "side_bad_path_logit": torch.tensor([[-2.0, 1.0]], dtype=torch.float32),
-        "side_mae": torch.tensor([[-3.0, -8.0]], dtype=torch.float32),
-        "side_validity_logit": torch.tensor([[2.5, -1.0]], dtype=torch.float32),
-        "trendline_rail_logits": torch.tensor(
-            [[1.0, -1.0, 0.5, -0.5, 0.25, -0.25]], dtype=torch.float32
+        "side_mae_bps": torch.tensor([[3.0, 8.0]], dtype=torch.float32),
+        "trendline_event_logits": torch.tensor(
+            [[0.1, -0.1, 0.2, -0.2]], dtype=torch.float32
         ),
-        "path_quality": torch.tensor([[1.5]], dtype=torch.float32),
-        "path_quality_raw": torch.tensor([[1.5]], dtype=torch.float32),
-        "bad_path_logit": torch.tensor([[-1.0]], dtype=torch.float32),
-        "bad_path_logit_raw": torch.tensor([[-1.0]], dtype=torch.float32),
-        "tradable_logit": torch.tensor([[1.0]], dtype=torch.float32),
-        "trade_logit": torch.tensor([[1.0]], dtype=torch.float32),
-        "mfe_first_n": torch.tensor([[12.0]], dtype=torch.float32),
-        "clean_edge_logit": torch.tensor([[0.75]], dtype=torch.float32),
-        "survival_logit": torch.tensor([[1.25]], dtype=torch.float32),
         "dip_pred": torch.arange(18, dtype=torch.float32).reshape(1, 18) / 10.0,
         "forecast_pred": torch.tensor([[0.1, 0.2, 0.3, 0.4]], dtype=torch.float32),
         "timing_pred": torch.arange(12, dtype=torch.float32).reshape(1, 12) / 20.0,
@@ -633,8 +489,8 @@ def _forward_outputs() -> dict:
         ),
         "vol_forecast_pred": torch.tensor([[0.5, 0.75, 1.0]], dtype=torch.float32),
         "specialist_gate": torch.full(
-            (1, len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
-            1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            (1, len(specialists)),
+            1.0 / len(specialists),
             dtype=torch.float32,
         ),
         "tf_gate": torch.full(
@@ -643,8 +499,8 @@ def _forward_outputs() -> dict:
             dtype=torch.float32,
         ),
         "family_tf_cooperation_gate": torch.full(
-            (1, ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
-            1.0 / (ENTRY_MTF_CONTEXT_COUNT * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
+            (1, cooperation_width),
+            1.0 / cooperation_width,
             dtype=torch.float32,
         ),
         "family_tf_feature_gate": torch.ones(
@@ -655,13 +511,7 @@ def _forward_outputs() -> dict:
             ),
             dtype=torch.float32,
         ),
-        "tf_agreement_logit": torch.tensor([[0.5]], dtype=torch.float32),
-        "path_quality_log_var": torch.tensor([[0.0]], dtype=torch.float32),
         "position_size_logit": torch.tensor([[0.25]], dtype=torch.float32),
-        **{
-            name: torch.tensor([values], dtype=torch.float32)
-            for name, values in offline_rl_evidence().items()
-        },
     }
 
 
@@ -696,12 +546,14 @@ def _prepare_forward_engine(tmp_path: Path, outputs: dict) -> live.SmartEntryLiv
     return engine
 
 
-def test_forward_states_requires_model_public_trade_flat_ssot(tmp_path: Path) -> None:
+def test_forward_states_requires_model_entry_q_ssot(tmp_path: Path) -> None:
     outputs = _forward_outputs()
-    del outputs["public_trade_flat_decision_logits"]
+    del outputs["entry_action_q_bps"]
     engine = _prepare_forward_engine(tmp_path, outputs)
 
-    with pytest.raises(RuntimeError, match="missing required SSOT 'public_trade_flat_decision_logits'"):
+    with pytest.raises(
+        RuntimeError, match="missing required SSOT 'entry_action_q_bps'"
+    ):
         engine.forward_states(_forward_states())
 
 
@@ -712,14 +564,12 @@ def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path
 
     assert set(head) == set(live.MODEL_NATIVE_DECISION_HEAD_REQUIRED_FIELDS)
     assert head["model_direction"] == "LONG"
-    assert head["public_trade_flat_decision"] == "TRADE"
-    assert len(head["mtf_dir_logits"]) == 3
-    assert len(head["side_probs"]) == 2
-    assert head["side_utility"] == [12.0, -4.0]
-    assert len(head["side_bad_path_logit"]) == 2
-    assert len(head["side_validity_logit"]) == 2
-    assert len(head["side_mae"]) == 2
-    assert len(head["trendline_rail_logits"]) == 6
+    assert head["entry_action_q_bps"] == [12.0, -3.0, 0.0]
+    assert head["entry_action_q_margin_bps"] == pytest.approx(12.0)
+    assert len(head["entry_decision_representation"]) == 128
+    assert len(head["entry_q_joint_hidden"]) == 128
+    assert len(head["side_mae_bps"]) == 2
+    assert len(head["trendline_event_logits"]) == 4
     assert len(head["dip_pred"]) == 18
     assert len(head["forecast_pred"]) == 4
     assert len(head["timing_pred"]) == 12
@@ -727,47 +577,28 @@ def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path
     assert len(head["vol_forecast_pred"]) == 3
     assert head["specialist_names"] == list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)
     assert sum(head["specialist_gate"]) == pytest.approx(1.0)
-    assert head["mtf_trend_evidence"] == pytest.approx(0.65)
+    assert sum(head["tf_gate"]) == pytest.approx(1.0)
     assert not any(key.startswith("expected_utility") for key in head)
-    assert 0.0 < head["tf_agreement_pred"] < 1.0
-    assert head["path_quality_std"] == pytest.approx(1.0)
     assert 0.0 < head["position_size_pred"] < 1.0
 
 
-@pytest.mark.parametrize(
-    "missing_head",
-    [
-        "mtf_dir_logits",
-        "side_logits",
-        "side_utility",
-        "side_bad_path_logit",
-        "side_mae",
-        "side_validity_logit",
-        "trendline_rail_logits",
-        "clean_edge_logit",
-        "survival_logit",
-        "dip_pred",
-        "forecast_pred",
-        "timing_pred",
-        "tail_risk_pred",
-            "vol_forecast_pred",
-            "action_value",
-            "expectile_value",
-            "action_advantage",
-            "specialist_gate",
-        "tf_agreement_logit",
-        "path_quality_log_var",
-    ],
-)
+@pytest.mark.parametrize("missing_head", sorted(_forward_outputs()))
 def test_forward_states_fails_closed_on_missing_model_native_evidence_head(
     tmp_path: Path,
     missing_head: str,
 ) -> None:
+    """Every tensor the forward owner reads must fail closed when absent.
+
+    Parametrized from the fixture's own key set, which mirrors exactly the
+    tensors ``forward_states`` requires, so a newly required head cannot be
+    added without a matching fail-closed case.
+    """
+
     outputs = _forward_outputs()
     del outputs[missing_head]
     engine = _prepare_forward_engine(tmp_path, outputs)
 
-    with pytest.raises(RuntimeError, match=rf"missing required SSOT '{missing_head}'"):
+    with pytest.raises(RuntimeError, match=re.escape(missing_head)):
         engine.forward_states(_forward_states())
 
 

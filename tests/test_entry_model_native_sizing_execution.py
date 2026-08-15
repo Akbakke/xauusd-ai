@@ -257,7 +257,5 @@ def test_canonical_replay_producer_fails_closed_on_missing_chain(
             prebuilt_pair_manifest_path=tmp_path / "pair.json",
             prebuilt_generation_root=tmp_path / "generations",
             multi_tf_cache_dir=tmp_path / "multi_tf_cache",
-            train_rank_reference_npz=tmp_path / "rank.npz",
-            train_rank_reference_sha256="0" * 64,
             authority_root=tmp_path,
         )

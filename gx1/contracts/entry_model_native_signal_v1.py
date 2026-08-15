@@ -6,11 +6,14 @@ with constants, while the Transformer still interpreted three of them as
 direction-anchor probabilities.  This contract removes that dead bridge from
 the input surface and makes the Transformer direction logits model-native.
 
-Of the selected 479 specialist fields, all 346 registered causal full-stack
-layer outputs are code-owned and mandatory.  Only the remaining 133 positions
-are ranking-owned.  The emitted manifest still owns the audited exact order,
-while this module owns the immutable base order, mandatory registry identity,
-dimensions, forbidden legacy fields, and validation of the combined surface.
+The selected specialist surface contains every code-owned causal primitive and
+continuous-context candidate. Handwritten volatility, trend, momentum, structure,
+SMC-quality, support/resistance, foundation and session/regime scorebooks are
+not part of the surface:
+their exact raw evidence is already routed
+to the shared model, which learns the cross-feature/MTF interaction. The emitted manifest owns exact
+order, while this module owns base order, mandatory registry identity,
+dimensions, forbidden legacy fields, and combined-surface validation.
 """
 
 from __future__ import annotations
@@ -20,6 +23,11 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from gx1.features.basic_v1 import (
+    BASIC_V1_FEATURES_SHA256,
+    BASIC_V1_FORMULA_SHA256,
+    BASIC_V1_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_structural_aux_label_signal_v1 import (
     structural_aux_label_signal_contract_metadata,
 )
@@ -30,26 +38,85 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    price_derived_contract_metadata,
 )
-from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
+from gx1.features.entry_candle_primitives_v1 import (
+    candle_primitive_contract_metadata,
+)
+from gx1.features.entry_foundation_structure_v1 import (
+    foundation_structure_contract_metadata,
+)
 from gx1.features.micro_structure_v1 import (
     MICRO_FEATURE_NAMES_V1,
     SPREAD_DYNAMICS_FEATURE_NAMES_V1,
+    micro_structure_contract_metadata,
 )
-from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
+from gx1.features.htf_features import MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES
 from gx1.features.swing_structure_v1 import (
     SWING_FEATURE_NAMES_V1,
     SWING_V29_ADDITION_NAMES_V1,
+    swing_structure_contract_metadata,
 )
+from gx1.features.smc_v1 import smc_primitive_contract_metadata
 
 
-# v8: V29 Phase-A stage-2 event families extended the mandatory registry
-# (level/trendline registries, swing/momentum/regime events); dims derive.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v8"
+# v14: retire the remaining 15 chart votes and 53 fixed-threshold candle
+# patterns.  Eleven raw candle primitives replace them.  Three base aliases
+# (wick_asym, shifted CLV and shifted body share) are removed because the raw
+# current-bar sequence contains their complete source information.
+# v15: retire five handwritten regime votes/threshold aliases while preserving
+# the raw per-TF regime class, trend age, EMA-stack evidence and D1 distance.
+# v16: retire signed_vol_z_20.  It hand-composed direction with activity even
+# though the sequence already carries raw ret_1 and vol_z_20 for learned
+# interaction.  The three unsigned tick-count primitives remain code-owned.
+# v17: replace the eleven provisional candle measurements with the exact
+# 26-field causal geometry/relation/carry owner. Its ordered names, version
+# and hash are embedded below so a v16 artifact cannot silently reinterpret
+# the wider local candle surface.
+# v18: adopt the five native-clock TRAIN-fitted volatility-squeeze state
+# primitives on both local and MTF surfaces. Their six-clock manifest is an
+# external immutable input; older signal/split identities cannot omit it.
+# v19: retire the fixed Spearman top-k. Every code-owned context
+# candidate is jointly available; TRAIN liveness is evidence, never a silent
+# dataset-specific removal authority.
+# v20: retire two operator-declared XAUUSD round-grid distances. Neither 50 nor
+# 100 USD was owned by a TRAIN-fit artifact. The registry now exposes immutable
+# per-pivot anchors and explicitly named TRAIN-fitted recurrence evidence;
+# learned lifetime expires event/slot eligibility without deleting identity.
+# v21: replace every registry cap/sentinel with raw measurements plus explicit
+# current-slot presence on both local and per-TF surfaces.
+# v22: exact no-alias names for four basic-v1 formulas that were previously
+# mislabeled as slopes or omitted the actual change horizon/normalization.
+# v23: retire 36 hand-composed dip/structure fields and 19 smart-context
+# score fields. Their raw local/MTF momentum, slope, level, distance and SMC
+# sources remain model inputs; learned layers own every interaction.
+# v24: raw technical primitives replace partial VWAP warmup, ewm-first EMA,
+# ATR floors and clipped ADX/momentum/distance outputs. The local price owner
+# metadata below binds the exact shared formula version and hashes.
+# v25: retire fourteen operator-composed context values whose raw sources are
+# already available: four session votes, four ATR ratios, two trailing
+# volatility percentiles and four HTF compression/percentile scalars.  Only
+# raw context and distance measurements remain; learned layers own relations.
+# v26: replace SMC sentinel/normalized/composite aliases with raw sweep age and
+# raw four-pivot-envelope position on every native clock.
+# v27: remove the bar-zero swing pseudo-pivot, partial ATR, age/count caps and
+# normalized aliases. Raw swing and foundation event memory is uncapped and
+# honestly unavailable before the first event; current-structure presence
+# masks remain where they describe an actually current object.
+# v28: make zero-range microstructure explicit. The range fraction is observed
+# only when high > low; a separate binary mask distinguishes its storage zero
+# from an actual close-at-high observation.
+# v29: replace every capped/log age with raw native-clock state/event age,
+# retire global ever-seen fields and the saturated SMC-envelope availability
+# mask, and bind the narrower registry/MTF surfaces.
+# v30: retire deterministic regime enums, class-flip aliases and volatility /
+# spread buckets. Preserve raw native-clock trend ages and D1 distance change;
+# replace the lossy M15/H4 signs with their exact continuous pre-sign sources.
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v30"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
-    "entry_model_native_seq513_split_manifest_v4"
+    "entry_model_native_seq513_split_manifest_v19"
 )
-MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v4"
+MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v19"
 RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE = "smart_seq520_candidate"
 MODEL_NATIVE_DIRECTION_LOGIT_MODE = "model_native"
 # The model-native contract owns these fields directly. No decision authority
@@ -63,6 +130,26 @@ FORBIDDEN_LEGACY_BRIDGE_FIELDS = (
     "margin_top1_top2",
     "entropy",
 )
+RETIRED_MODEL_NATIVE_SIGNAL_FIELDS = (
+    "signed_vol_z_20",
+    "smc_sweep_size_atr",
+    "smc_bars_since_sweep",
+    "smc_premium_discount",
+    "smc_bars_since_sweep_norm",
+)
+RETIRED_STATIC_REGIME_BUCKET_FIELDS = (
+    "session_tradable",
+    "m15_trend_sign_canon_v2",
+    "vol_regime_id",
+    "atr_bucket",
+    "spread_bucket",
+    "H4_trend_sign_cat",
+    *(f"{tf}_regime_class_id_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES),
+    "d1_regime_changed_flag_v3",
+    "d1_regime_flip_age_bars_v4",
+    *(f"{tf}_regime_changed_flag_v3" for tf in ("m5", "m15", "h1", "h4")),
+    *(f"{tf}_regime_flip_age_bars" for tf in ("m5", "m15", "h1", "h4")),
+)
 
 MODEL_NATIVE_BASE_FIELDS = (
     "_v1_atr14",
@@ -72,19 +159,16 @@ MODEL_NATIVE_BASE_FIELDS = (
     "ret_20",
     "rvol_20",
     "body_pct",
-    "wick_asym",
     "ema20_slope",
     "pos_vs_ema200",
     "_v1_pk_sigma20",
     "_v1_ema_diff",
-    "_v1_close_ema_slope_3",
-    "_v1_clv",
+    "_v1_ema3_ema6_spread_frac",
     "_v1_range_z",
-    "_v1_kama_slope_30",
-    "_v1_tema_slope_20",
+    "_v1_kama30_change_5_atr",
+    "_v1_tema20_change_3_atr",
     "_v1_bb_squeeze_20_2",
-    "_v1_bb_bandwidth_delta_10",
-    "_v1_body_share_1",
+    "_v1_bb10_bandwidth_change_3",
     "_v1_kurt_r",
     "smc_swing_state",
     "smc_bos_up",
@@ -92,33 +176,22 @@ MODEL_NATIVE_BASE_FIELDS = (
     "smc_choch",
     "smc_sweep_up",
     "smc_sweep_down",
-    "smc_sweep_size_atr",
-    "smc_bars_since_sweep",
-    "smc_premium_discount",
+    "smc_sweep_event_age_bars",
+    "smc_pivot_envelope_position",
     "vol_z_20",
     "vol_ratio_5_20",
     "vol_pct_96",
-    "signed_vol_z_20",
 )
 
 MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = (
     "atr_bps",
     "spread_bps",
     "D1_dist_from_ema200_atr",
-    "H1_range_compression_ratio",
-    "D1_atr_percentile_252",
-    "M15_range_compression_ratio",
-    # V30 (2026-08-13): the H4 sibling of the H1/M15 compression ratio,
-    # emitted by the one native-M5 scalar owner
-    # (htf_features.MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4; the ctx_cont
-    # relative order must preserve that tuple's order per the single-owner
-    # contract test).
-    "H4_range_compression_ratio",
 )
 MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
 # V30 package 4 (2026-08-13): the quote/spread-dynamics block.  Declared as its
 # own tuple rather than folded into MODEL_NATIVE_CTX_CONT_MICRO_FIELDS because
-# the two producers take different sources: the micro five are computed from
+# the two producers take different sources: the six micro fields are computed from
 # (high, low, close) ARRAYS, these three from the quote FRAME (bid/ask closes
 # and extremes).  Every ctx producer emits both blocks at the same rebuild
 # boundary (rule 6).  Purpose: abstention / execution-regime evidence, never a
@@ -126,14 +199,9 @@ MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
 MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS = tuple(
     SPREAD_DYNAMICS_FEATURE_NAMES_V1
 )
-# V30 Phase-A completion (2026-08-13): the swing owner's own declaration is
-# performed here.  ``swing_structure_v1`` declared its V29/V30 additions
-# "DECLARED SEPARATELY from SWING_FEATURE_NAMES_V1: the accepted contracts bind
-# the 5-name V1 surface; the stage-2 V29 wiring adopts these names into the
-# ctx/111-surface contracts together with the V29 rebuild (rule 6: train==serve
-# moves at one boundary)."  This is that adoption, taken at the V30 rebuild
-# boundary together with the per-TF flip; all four ctx producers switch to
-# ``include_v29_additions=True`` in the same change.
+# The complete swing-v2 owner is present in local context and on every MTF
+# clock. Prefix-unavailable pivot measurements are trimmed, while persistent
+# event memory uses raw ages after its honest full-history event floor.
 MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(
     SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
 )
@@ -142,7 +210,6 @@ MODEL_NATIVE_CTX_CONT_SESSION_FIELDS = (
     "minutes_since_session_open",
     "minutes_to_next_session_boundary",
     "session_change_flag",
-    "session_tradable",
 )
 MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS = (
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
@@ -173,7 +240,7 @@ MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
     "d1_pct_change_5_canon_v2",
     "m15_rsi14_canon_v2",
     "m15_range_z_20_canon_v2",
-    "m15_trend_sign_canon_v2",
+    "m15_ema5_20_spread_atr_canon_v2",
     # V30 Phase-A completion (2026-08-13): momentum G3 raw-RSI ctx scalars.
     # Verbatim siblings of m15_rsi14_canon_v2 / d1_rsi14_canon_v2 — one
     # `_rsi(close, 14)` owner, raw 0-100 unit, each TF's own closed bars,
@@ -184,6 +251,7 @@ MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
     "m5_rsi14_canon_v2",
     "h1_rsi14_canon_v2",
     "h4_rsi14_canon_v2",
+    "h4_mid_ema50_dist_atr_canon_v2",
 )
 
 MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS = (
@@ -191,20 +259,9 @@ MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS = (
     "hour_cos",
     "dow_sin",
     "dow_cos",
-    "smc_premium_state",
 )
 
 MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS = (
-    "is_asia_eu_overlap",
-    "is_eu_us_overlap",
-    "is_eu_only",
-    "is_us_only",
-    "atr_ratio_m5_h4",
-    "atr_ratio_m15_d1",
-    "atr_ratio_h1_d1",
-    "atr_ratio_m5_m15",
-    "vol_pct_m5_1yr",
-    "vol_pct_h1_1yr",
     "dist_to_R1_atr",
     "dist_to_R2_atr",
     "dist_to_S1_atr",
@@ -221,7 +278,7 @@ MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS = (
     "dist_to_d1_lo_atr",
 )
 
-MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS = (
+RETIRED_HANDCRAFTED_CTX_CONT_FIELDS = (
     "dip_confirmed_m5_v3",
     "dip_confirmed_m15_v3",
     "dip_proximity_h1_v3",
@@ -258,17 +315,60 @@ MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS = (
     "struct_tf_agree_count_v3",
     "struct_dip_x_uptrend_v3",
     "struct_smc_swing_x_dip_v3",
+    "smc_choch_recent_tau12",
+    "smc_choch_recent_tau24",
+    "smc_bos_pressure_last12",
+    "smc_bos_pressure_last48",
+    "smc_sweep_bull_pressure_last12",
+    "smc_sweep_bull_pressure_last48",
+    "smc_sweep_size_recent_tau12",
+    "smc_sweep_recency_tau24",
+    "smc_premium_extreme_snap",
+    "sr_nearest_pivot_abs_atr",
+    "sr_support_proximity_exp",
+    "sr_resistance_proximity_exp",
+    "sr_support_minus_resistance_prox",
+    "liquidity_hi_nearest_abs_atr",
+    "liquidity_lo_nearest_abs_atr",
+    "liquidity_lo_minus_hi_prox",
+    "dip_confirmed_mean_5tf",
+    "dip_confirmed_max_5tf",
+    "dip_proximity_mean_h1h4d1",
 )
-
-MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS = tuple(ENTRY_SMART_CTX_FEATURE_NAMES)
-MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = tuple(REGIME_V4_FEATURE_NAMES)
+if len(RETIRED_HANDCRAFTED_CTX_CONT_FIELDS) != 55 or len(
+    set(RETIRED_HANDCRAFTED_CTX_CONT_FIELDS)
+) != len(RETIRED_HANDCRAFTED_CTX_CONT_FIELDS):
+    raise RuntimeError("RETIRED_HANDCRAFTED_CTX_CONT_FIELDS_INVALID")
+RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS = (
+    "is_asia_eu_overlap",
+    "is_eu_us_overlap",
+    "is_eu_only",
+    "is_us_only",
+    "atr_ratio_m5_m15",
+    "atr_ratio_m5_h4",
+    "atr_ratio_m15_d1",
+    "atr_ratio_h1_d1",
+    "vol_pct_m5_1yr",
+    "vol_pct_h1_1yr",
+    "H1_range_compression_ratio",
+    "M15_range_compression_ratio",
+    "H4_range_compression_ratio",
+    "D1_atr_percentile_252",
+)
+if len(RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS) != 14 or len(
+    set(RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS)
+) != len(RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS):
+    raise RuntimeError("RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS_INVALID")
+RETIRED_SMC_CTX_COMPOSITE_FIELDS = ("smc_premium_state",)
+MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = (
+    *(f"{tf}_trend_state_age_bars_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES),
+    "d1_dist_change_1bar_atr_v4",
+)
 MODEL_NATIVE_CTX_CONT_FIELDS = (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS
     + MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS
     + MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS
     + MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
-    + MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
-    + MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS
     + MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
 )
 MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME = {
@@ -276,17 +376,9 @@ MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME = {
 }
 MODEL_NATIVE_CTX_CAT_FIELDS = (
     "session_id",
-    "vol_regime_id",
-    "atr_bucket",
-    "spread_bucket",
-    "H4_trend_sign_cat",
 )
 MODEL_NATIVE_CTX_CAT_DOMAINS = {
     "session_id": (0, 1, 2, 3),
-    "vol_regime_id": (0, 1, 2, 3, 4),
-    "atr_bucket": (0, 1, 2, 3, 4),
-    "spread_bucket": (0, 1, 2, 3, 4),
-    "H4_trend_sign_cat": (0, 1, 2),
 }
 if tuple(MODEL_NATIVE_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
     raise RuntimeError("MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_INVALID")
@@ -302,18 +394,6 @@ MODEL_NATIVE_TREND_REGIME_NAMES = (
     "TREND_NEUTRAL",
     "TREND_UP",
 )
-if len(MODEL_NATIVE_VOL_REGIME_NAMES) != len(
-    MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"]
-):
-    raise RuntimeError("MODEL_NATIVE_VOL_REGIME_NAME_DOMAIN_MISMATCH")
-if len(set(MODEL_NATIVE_VOL_REGIME_NAMES)) != len(
-    MODEL_NATIVE_VOL_REGIME_NAMES
-):
-    raise RuntimeError("MODEL_NATIVE_VOL_REGIME_NAMES_NOT_UNIQUE")
-if len(MODEL_NATIVE_TREND_REGIME_NAMES) != len(
-    MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"]
-):
-    raise RuntimeError("MODEL_NATIVE_TREND_REGIME_NAME_DOMAIN_MISMATCH")
 MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME = {
     name: index for index, name in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS)
 }
@@ -322,34 +402,29 @@ MODEL_NATIVE_CTX_CAT_MIN_MAX = {
     for name, domain in MODEL_NATIVE_CTX_CAT_DOMAINS.items()
 }
 
-# Dimensions are DERIVED from the declared field owners (rule 13).  The
-# TRAIN-ranked remainder is held constant at 133 and re-ranked TRAIN-only on
-# the V29 substrate (design doc §5.1); the mandatory causal count grew with
-# the V29 Phase-A stage-2 event families, so the selected and total signal
-# dims follow from the registry, never from a restated literal.
+# Dimensions are DERIVED from declared field owners (rule 13). Every
+# continuous-context field not already present in the mandatory causal prefix
+# is exposed to the local sequence/snapshot path. No fixed count, score cutoff
+# or family quota can remove one.
 MODEL_NATIVE_BASE_SIGNAL_DIM = len(MODEL_NATIVE_BASE_FIELDS)
-MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT = 133
+MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS = tuple(
+    f"ctx_cont.{name}"
+    for name in MODEL_NATIVE_CTX_CONT_FIELDS
+    if f"ctx_cont.{name}" not in set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+)
+MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT = len(
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+)
 MODEL_NATIVE_SELECTED_FEATURE_COUNT = (
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
-    + MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+    + MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
 )
 MODEL_NATIVE_SIGNAL_DIM = (
     MODEL_NATIVE_BASE_SIGNAL_DIM + MODEL_NATIVE_SELECTED_FEATURE_COUNT
 )
 MODEL_NATIVE_SEQ_LEN = 96
-# 158 = 143 (V30 package 1: + H4_range_compression_ratio) + the V30 package-2
-# Phase-A completion: 9 swing V29 event fields adopted into
-# MODEL_NATIVE_CTX_CONT_SWING_FIELDS + 3 momentum-G3 raw-RSI canon scalars
-# (-> 155) + the V30 package-4 quote/spread-dynamics block
-# (MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS, 3 fields, 2026-08-13).
-# 164 = 158 + the V30 package-8A emission-only swing additions (2026-08-13):
-# the two MISSING run counters, the two "last confirmed pivot not yet closed
-# through" intact flags and the two normalized siblings of the raw V1 swing
-# ages — all six inside MODEL_NATIVE_CTX_CONT_SWING_FIELDS, which reads
-# swing_structure_v1's own tuple.  The field lists above are the owner, this
-# literal is the cross-check.
-MODEL_NATIVE_CTX_CONT_DIM = 164
-MODEL_NATIVE_CTX_CAT_DIM = 5
+MODEL_NATIVE_CTX_CONT_DIM = len(MODEL_NATIVE_CTX_CONT_FIELDS)
+MODEL_NATIVE_CTX_CAT_DIM = len(MODEL_NATIVE_CTX_CAT_FIELDS)
 
 if len(MODEL_NATIVE_BASE_FIELDS) != MODEL_NATIVE_BASE_SIGNAL_DIM:
     raise RuntimeError(
@@ -368,17 +443,32 @@ if len(MODEL_NATIVE_CTX_CAT_FIELDS) != MODEL_NATIVE_CTX_CAT_DIM:
     )
 if len(set(MODEL_NATIVE_CTX_CONT_FIELDS)) != len(MODEL_NATIVE_CTX_CONT_FIELDS):
     raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_DUPLICATE")
+if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(RETIRED_HANDCRAFTED_CTX_CONT_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_HANDCRAFTED_FIELDS")
+if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(
+    RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS
+):
+    raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_OPERATOR_COMPOSITES")
+if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(RETIRED_SMC_CTX_COMPOSITE_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_SMC_COMPOSITES")
+if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(RETIRED_STATIC_REGIME_BUCKET_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_STATIC_REGIME_BUCKETS")
 if len(set(MODEL_NATIVE_CTX_CAT_FIELDS)) != len(MODEL_NATIVE_CTX_CAT_FIELDS):
     raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_DUPLICATE")
 if "trend_regime_id" in MODEL_NATIVE_CTX_CAT_FIELDS:
     raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_CONTAIN_RETIRED_TREND_BUCKET")
+if set(MODEL_NATIVE_CTX_CAT_FIELDS) & set(RETIRED_STATIC_REGIME_BUCKET_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_CONTAIN_RETIRED_STATIC_REGIME_BUCKETS")
 if set(MODEL_NATIVE_BASE_FIELDS) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_BASE_FIELDS_CONTAIN_FORBIDDEN_BRIDGE_FIELDS")
-if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 133:
-    raise RuntimeError(
-        "MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT_MISMATCH: "
-        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=133"
-    )
+if set(MODEL_NATIVE_BASE_FIELDS) & set(RETIRED_MODEL_NATIVE_SIGNAL_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_BASE_FIELDS_CONTAIN_RETIRED_SIGNAL_FIELDS")
+if (
+    not MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+    or len(set(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS))
+    != MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+):
+    raise RuntimeError("MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_INVALID")
 if set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) & set(MODEL_NATIVE_BASE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_FIELDS_OVERLAP_BASE_FIELDS")
 if set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS):
@@ -396,9 +486,17 @@ def _sha256_json(value: Any) -> str:
 
 
 MODEL_NATIVE_BASE_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_BASE_FIELDS)
+MODEL_NATIVE_BASIC_V1_CONTRACT = {
+    "schema_version": BASIC_V1_SCHEMA_VERSION,
+    "features_sha256": BASIC_V1_FEATURES_SHA256,
+    "formula_sha256": BASIC_V1_FORMULA_SHA256,
+}
 MODEL_NATIVE_CTX_CONT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CONT_FIELDS)
 MODEL_NATIVE_CTX_CAT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CAT_FIELDS)
-MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v2"
+MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256 = _sha256_json(
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+)
+MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v10"
 MODEL_NATIVE_CONTEXT_TAG = (
     f"CTX{MODEL_NATIVE_CTX_CONT_DIM}CAT{MODEL_NATIVE_CTX_CAT_DIM}"
 )
@@ -407,11 +505,9 @@ MODEL_NATIVE_CONTEXT_TAG = (
 def model_native_context_contract_metadata() -> dict[str, Any]:
     """Return the exact continuous/categorical Entry context contract.
 
-    Dims derive from the declared field tuples (158 continuous / 5 categorical
-    after the V30 wave: package 1 added ``H4_range_compression_ratio``,
-    package 2 adopted the swing V29 event fields plus the three
-    momentum-G3 raw-RSI canon scalars, and package 4 added the three
-    quote/spread-dynamics fields).
+    Dims derive from the declared field tuples. The raw per-TF evidence remains
+    available after the hand-composed dip/structure and smart-context score
+    fields are retired.
     """
 
     return {
@@ -427,16 +523,26 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
             MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
         ),
         "ctx_cont_micro_features": list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+        "micro_structure_owner": micro_structure_contract_metadata(),
         "ctx_cont_spread_dynamics_features": list(
             MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS
         ),
         "ctx_cont_swing_features": list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
         "ctx_cont_session_features": list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS),
+        "retired_handcrafted_ctx_cont_fields": list(
+            RETIRED_HANDCRAFTED_CTX_CONT_FIELDS
+        ),
+        "retired_operator_ctx_cont_composite_fields": list(
+            RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS
+        ),
+        "retired_smc_ctx_composite_fields": list(
+            RETIRED_SMC_CTX_COMPOSITE_FIELDS
+        ),
     }
 
 
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v6"
+    "entry_model_native_mandatory_full_stack_v21"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
@@ -449,9 +555,19 @@ def model_native_mandatory_full_stack_metadata() -> dict[str, Any]:
     return {
         "schema_version": MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION,
         "ordered_family_fields_sha256": MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256,
+        "foundation_structure_owner": foundation_structure_contract_metadata(),
+        "swing_structure_owner": swing_structure_contract_metadata(),
+        "candle_primitive_owner": candle_primitive_contract_metadata(),
+        "price_derived_owner": price_derived_contract_metadata(),
+        "smc_primitive_owner": smc_primitive_contract_metadata(),
         "family_count": len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES),
         "mandatory_selected_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-        "ranked_remainder_feature_count": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
+        "available_candidate_feature_count": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        ),
+        "available_candidate_fields_sha256": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256
+        ),
         "family_order": [
             family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
         ],
@@ -487,7 +603,9 @@ MODEL_NATIVE_STATIC_CONTRACT_SHA256 = _sha256_json(
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
         "base_fields": MODEL_NATIVE_BASE_FIELDS,
         "base_fields_sha256": MODEL_NATIVE_BASE_FIELDS_SHA256,
+        "basic_v1_contract": MODEL_NATIVE_BASIC_V1_CONTRACT,
         "forbidden_legacy_bridge_fields": FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+        "retired_signal_fields": RETIRED_MODEL_NATIVE_SIGNAL_FIELDS,
         "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
@@ -507,7 +625,7 @@ MODEL_NATIVE_STATIC_CONTRACT_SHA256 = _sha256_json(
 def ordered_model_native_signal_fields(
     selected_fields: Sequence[str],
 ) -> tuple[str, ...]:
-    """Return the exact 513-field surface or fail on any soft compatibility."""
+    """Return the exact model-native surface or fail on soft compatibility."""
 
     selected = tuple(str(name).strip() for name in selected_fields)
     failures: list[str] = []
@@ -525,6 +643,9 @@ def ordered_model_native_signal_fields(
     forbidden = sorted(set(selected) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS))
     if forbidden:
         failures.append(f"forbidden_legacy_bridge_fields={forbidden}")
+    retired = sorted(set(selected) & set(RETIRED_MODEL_NATIVE_SIGNAL_FIELDS))
+    if retired:
+        failures.append(f"retired_model_native_signal_fields={retired}")
     base_overlap = sorted(set(selected) & set(MODEL_NATIVE_BASE_FIELDS))
     if base_overlap:
         failures.append(f"selected_fields_duplicate_base_fields={base_overlap[:20]}")
@@ -557,6 +678,11 @@ def ordered_model_native_signal_fields(
                 "mandatory_registry_prefix_order_violation="
                 f"positions{wrong_positions[:10]} total={len(wrong_positions)}"
             )
+    candidate_suffix = tuple(
+        selected[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    )
+    if candidate_suffix != MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS:
+        failures.append("available_candidate_suffix_order_mismatch")
     fields = MODEL_NATIVE_BASE_FIELDS + selected
     if len(fields) != MODEL_NATIVE_SIGNAL_DIM:
         failures.append(f"signal_dim={len(fields)} expected={MODEL_NATIVE_SIGNAL_DIM}")
@@ -579,12 +705,18 @@ def model_native_signal_contract_metadata(
         "static_contract_sha256": MODEL_NATIVE_STATIC_CONTRACT_SHA256,
         "ordered_fields_sha256": _sha256_json(fields),
         "base_fields": list(MODEL_NATIVE_BASE_FIELDS),
+        "basic_v1_contract": dict(MODEL_NATIVE_BASIC_V1_CONTRACT),
         "selected_fields": list(selected),
         "fields": list(fields),
         "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "mandatory_selected_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-        "ranked_remainder_feature_count": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
+        "available_candidate_feature_count": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        ),
+        "available_candidate_fields_sha256": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256
+        ),
         "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
         "structural_aux_label_signal_contract": (
             MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
@@ -601,7 +733,17 @@ def model_native_signal_contract_metadata(
         "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         "ctx_cont_fields_sha256": MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
         "ctx_cat_fields_sha256": MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
+        "retired_handcrafted_ctx_cont_fields": list(
+            RETIRED_HANDCRAFTED_CTX_CONT_FIELDS
+        ),
+        "retired_operator_ctx_cont_composite_fields": list(
+            RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS
+        ),
+        "retired_smc_ctx_composite_fields": list(
+            RETIRED_SMC_CTX_COMPOSITE_FIELDS
+        ),
         "forbidden_legacy_bridge_fields": list(FORBIDDEN_LEGACY_BRIDGE_FIELDS),
+        "retired_signal_fields": list(RETIRED_MODEL_NATIVE_SIGNAL_FIELDS),
         "bridge_dim": 0,
         "bridge_source": None,
         "anchor_source": None,
@@ -623,7 +765,12 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
         "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "mandatory_selected_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-        "ranked_remainder_feature_count": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
+        "available_candidate_feature_count": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        ),
+        "available_candidate_fields_sha256": (
+            MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256
+        ),
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
@@ -645,8 +792,30 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
     forbidden_declared = tuple(
         str(value) for value in (contract.get("forbidden_legacy_bridge_fields") or ())
     )
+    retired_declared = tuple(
+        str(value) for value in (contract.get("retired_signal_fields") or ())
+    )
+    retired_ctx_declared = tuple(
+        str(value)
+        for value in (contract.get("retired_handcrafted_ctx_cont_fields") or ())
+    )
+    retired_operator_ctx_declared = tuple(
+        str(value)
+        for value in (
+            contract.get("retired_operator_ctx_cont_composite_fields") or ()
+        )
+    )
+    retired_smc_ctx_declared = tuple(
+        str(value)
+        for value in (contract.get("retired_smc_ctx_composite_fields") or ())
+    )
     if base_fields != MODEL_NATIVE_BASE_FIELDS:
         failures.append("base_fields order mismatch")
+    basic_v1_declared = contract.get("basic_v1_contract")
+    if not isinstance(basic_v1_declared, Mapping):
+        failures.append("basic_v1_contract missing")
+    elif dict(basic_v1_declared) != MODEL_NATIVE_BASIC_V1_CONTRACT:
+        failures.append("basic_v1_contract metadata mismatch")
     ctx_cont_fields = tuple(
         str(value) for value in (contract.get("ctx_cont_names") or ())
     )
@@ -659,6 +828,14 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
         failures.append("ctx_cat_names order mismatch")
     if forbidden_declared != FORBIDDEN_LEGACY_BRIDGE_FIELDS:
         failures.append("forbidden_legacy_bridge_fields order mismatch")
+    if retired_declared != RETIRED_MODEL_NATIVE_SIGNAL_FIELDS:
+        failures.append("retired_signal_fields order mismatch")
+    if retired_ctx_declared != RETIRED_HANDCRAFTED_CTX_CONT_FIELDS:
+        failures.append("retired_handcrafted_ctx_cont_fields order mismatch")
+    if retired_operator_ctx_declared != RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS:
+        failures.append("retired_operator_ctx_cont_composite_fields order mismatch")
+    if retired_smc_ctx_declared != RETIRED_SMC_CTX_COMPOSITE_FIELDS:
+        failures.append("retired_smc_ctx_composite_fields order mismatch")
     mandatory_declared = contract.get("mandatory_full_stack")
     mandatory_expected = model_native_mandatory_full_stack_metadata()
     if not isinstance(mandatory_declared, Mapping):

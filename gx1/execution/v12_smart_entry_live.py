@@ -2,41 +2,29 @@
 """LIVE model-native seq513 XAU Entry adapter.
 
 Loads a contract-resolved, launch-admitted model-native v10_entry bundle through
-the one-truth offline loader (gx1.models.entry_v10.entry_v10_bundle.
-load_entry_v10_ctx_bundle — strict load + direction/path calibration installed
-into the forward), forwards it per M5 close on the exact 513-signal state
+the one-truth offline loader, forwards it per M5 close on the exact
+owner-declared signal state
 (ModelNativeStateBuilder) + live multi-TF windows, and requires the PINNED
 operating point read from PROJECT_STATE_artifacts.json to select
-``model_direction_argmax``. The final calibrated model ``direction_logits`` are
-the only LONG/SHORT/FLAT decision. No live session, threshold, utility, rail, or
-side overlay may change that direction.
+``entry_fitted_q_unique_argmax``. The three raw-bps
+``entry_action_q_bps`` values are the only LONG/SHORT/FLAT decision. No live
+session, threshold, calibration, utility, rail, or side overlay may change it.
 
 Serving architecture: the only live Entry load path is
-load_entry_v10_ctx_bundle (calibration plus full active-head reconstruction),
+load_entry_v10_ctx_bundle (full active-head reconstruction),
 which the offline evaluator
 (evaluate_entry_candidate_selective_edge_v1._predict_bundle) also uses. This
 adapter mirrors that forward exactly, so serve must equal the admitted evidence
 path.
 
-Direction SSOT:
-    direction_probs = softmax(direction_logits)  # calibrated inside the model
-    direction       = argmax(direction_probs)    # LONG=0, SHORT=1, FLAT=2
+Entry SSOT:
+    action = unique_argmax(entry_action_q_bps)  # LONG=0, SHORT=1, FLAT=2
 
-The model must also emit ``public_trade_flat_decision_logits`` ordered as
-``[TRADE, FLAT]``. Its binary argmax must agree with the three-class direction
-argmax or live inference fails closed. Auxiliary utility and rail heads are
-journaled only as direct model diagnostics.
-
-The frozen Entry snapshot carries the model diagnostics required by the
-same-bundle Exit head:
-    direction_probs=[p_long,p_short,p_flat], path_quality=path_quality_pred,
-    mfe_first_n=mfe_first_n_pred (raw), tradable_prob, bad_path_prob, and the
-    real learned
-    tf_agreement_pred/path_quality_std diagnostics. ``position_size_logit`` is
-    the sole learned sizing input and changes execution units only through the
-    separately adopted, fail-closed sizing calibration. atr_bps is the exact
-    value at prediction bar T. No hold horizon or post-model Exit rule is
-    synthesized.
+An exact Q tie fails closed. Genuine auxiliary outcome heads remain learned
+representation diagnostics only. ``position_size_logit`` changes execution
+units only through the separately admitted sizing owner. The frozen snapshot
+binds raw Q, the learned Entry token representation, exact categorical state,
+and decision timing; it carries no probability/calibration alias.
 """
 from __future__ import annotations
 
@@ -57,33 +45,36 @@ from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
     require_newest_immutable_event,
 )
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_production_economics_readiness,
+)
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
-    MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
-    MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES,
-    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
     RETIRED_RUNTIME_EVIDENCE_FRAGMENTS,
-    project_model_native_path_calibration,
     require_model_native_runtime_head_evidence,
     require_model_native_runtime_evidence,
+)
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    DIP_HEAD_DIM,
+    EXACT_TRENDLINE_EVENT_OUTPUT_DIM,
+    FORECAST_HEAD_DIM,
+    TAIL_RISK_HEAD_DIM,
+    TIMING_HEAD_DIM,
+    VOL_FORECAST_HEAD_DIM,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     MODEL_NATIVE_SIZING_MODE_LEARNED,
     prepare_model_native_sizing_authority,
     require_model_native_sizing_authority_contract,
-)
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_ACTION_BY_INDEX,
@@ -94,11 +85,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     MODEL_DIRECTION_SHORT_INDEX,
     MODEL_DIRECTION_TRADE_INDICES,
-    PUBLIC_FLAT_INDEX,
-    PUBLIC_TRADE_INDEX,
     UNIFIED_EXIT_ACTION_ORDER,
     UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
     UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
+    UNIFIED_EXIT_MAX_PATH_BARS,
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
     UNIFIED_EXIT_SIDE_ORDER,
     canonical_unified_evidence_sha256,
@@ -119,6 +109,23 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import require_m1_feature_window
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+    build_unified_exit_incremental_carry_envelope,
+    decode_unified_exit_incremental_carry_tensors,
+    require_unified_exit_incremental_carry_envelope,
+)
+from gx1.contracts.unified_exit_input_v1 import (
+    build_unified_exit_input_envelope,
+)
+from gx1.contracts.entry_decision_token_v1 import (
+    entry_decision_token_tensor,
+    require_entry_decision_token_snapshot,
+)
 from gx1.time.session_detector import SESSION_NAME_BY_ID
 
 LOG = logging.getLogger("v12_smart_entry_live")
@@ -128,22 +135,13 @@ MODEL_DIRECTION_NAMES = MODEL_DIRECTION_NAME_BY_INDEX
 MODEL_DIRECTION_ACTIONS = MODEL_DIRECTION_ACTION_BY_INDEX
 MODEL_NATIVE_REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 MODEL_NATIVE_FORWARD_PARITY_EVIDENCE_KEYS = tuple(dict.fromkeys((
-    "raw_direction_logits",
-    "path_quality",
-    *(name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS),
+    "entry_action_q_bps",
+    "entry_q_joint_hidden",
+    "side_mae_bps",
+    "trendline_event_logits",
 )))
 MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
     *MODEL_NATIVE_FORWARD_PARITY_EVIDENCE_KEYS,
-    "path_quality_pred",
-    "mfe_first_n_pred",
-    "bad_path_logit",
-    "bad_path_prob",
-    "tradable_logit",
-    "tradable_prob",
-    "clean_edge_logit",
-    "clean_edge_prob",
-    "survival_logit",
-    "survival_prob",
     "dip_pred",
     "forecast_pred",
     "timing_pred",
@@ -154,32 +152,6 @@ MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
     "tf_gate",
     "family_tf_cooperation_gate",
     "family_tf_feature_gate",
-    "p_long_given_trade",
-    "p_short_given_trade",
-    "side_logits",
-    "side_probs",
-    "long_bad_path_prob",
-    "short_bad_path_prob",
-    "side_validity_logit",
-    "long_validity_prob",
-    "short_validity_prob",
-    "mtf_dir_logits",
-    "mtf_dir_probs",
-    # V30 package 7 (2026-08-13): the five `geometry_*` journal scalars are
-    # retired with their producer columns; the learned `trendline_rail_*` head
-    # below is a model output and is untouched.
-    "trendline_rail_logits",
-    "trendline_rail_probs",
-    "mtf_trend_evidence",
-    "calibration_version",
-    "direction_calibration_enabled",
-    "direction_calibration_temperature",
-    "path_calibration_enabled",
-    "path_calibration",
-    "tf_agreement_logit",
-    "tf_agreement_pred",
-    "path_quality_log_var",
-    "path_quality_std",
     "position_size_pred",
     "position_size_logit",
     UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
@@ -187,26 +159,11 @@ MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS = tuple(dict.fromkeys((
 MODEL_NATIVE_DECISION_HEAD_REQUIRED_FIELDS = frozenset(
     {
         "time",
-        "direction_logits",
-        "direction_probs",
+        "entry_action_q_bps",
+        "entry_action_q_margin_bps",
         "model_direction_index",
         "model_direction",
-        "public_trade_flat_decision_logits",
-        "public_trade_flat_decision_probs",
-        "public_trade_flat_decision_index",
-        "public_trade_flat_decision",
-        "p_long",
-        "p_short",
-        "p_flat",
-        "p_trade",
-        "p_flat_hier",
-        "edge_score",
         "session_id",
-        "entry_vol_regime_id",
-        "entry_atr_bucket",
-        "entry_spread_bucket",
-        "entry_h4_trend_sign_cat",
-        "entry_trend_regime_id",
         *MODEL_NATIVE_FORWARD_PARITY_EVIDENCE_KEYS,
         *MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS,
     }
@@ -318,18 +275,6 @@ def _np1d(value: Any) -> np.ndarray | None:
     return np.asarray(value, dtype=np.float32).reshape(-1)
 
 
-def _softmax_np(values: np.ndarray | None) -> np.ndarray | None:
-    if values is None or len(values) == 0:
-        return None
-    arr = values.astype(np.float64, copy=False)
-    arr = arr - np.nanmax(arr)
-    exp = np.exp(arr)
-    denom = float(np.nansum(exp))
-    if denom <= 0.0 or not np.isfinite(denom):
-        return None
-    return (exp / denom).astype(np.float32)
-
-
 def _optional_finite_vector(
     value: Any,
     *,
@@ -369,192 +314,60 @@ def _require_finite_vector(value: Any, *, name: str, size: int, context: str) ->
     return arr
 
 
-def _strict_softmax(logits: np.ndarray, *, name: str, context: str) -> np.ndarray:
-    shifted = logits - float(np.max(logits))
-    exp = np.exp(shifted)
-    denom = float(np.sum(exp))
-    if not np.isfinite(denom) or denom <= 0.0:
-        raise RuntimeError(f"[SMART_ENTRY] {context} SSOT '{name}' softmax is invalid")
-    probs = exp / denom
-    if not bool(np.isfinite(probs).all()):
-        raise RuntimeError(f"[SMART_ENTRY] {context} SSOT '{name}' probabilities are non-finite")
-    return probs
-
-
-def _direction_ssot_from_logits(
-    direction_logits_value: Any,
-    public_trade_flat_logits_value: Any,
+def _entry_q_ssot(
+    entry_action_q_bps_value: Any,
     *,
     context: str,
 ) -> dict[str, Any]:
-    direction_logits = _require_finite_vector(
-        direction_logits_value,
-        name="direction_logits",
+    """Validate and select the sole Entry authority: unique raw-bps Q argmax."""
+
+    q_values = _require_finite_vector(
+        entry_action_q_bps_value,
+        name="entry_action_q_bps",
         size=3,
         context=context,
     )
-    public_logits = _require_finite_vector(
-        public_trade_flat_logits_value,
-        name="public_trade_flat_decision_logits",
-        size=2,
-        context=context,
-    )
-    expected_public_logits = np.asarray(
-        [
-            max(
-                float(direction_logits[MODEL_DIRECTION_LONG_INDEX]),
-                float(direction_logits[MODEL_DIRECTION_SHORT_INDEX]),
-            ),
-            float(direction_logits[MODEL_DIRECTION_FLAT_INDEX]),
-        ],
-        dtype=np.float64,
-    )
-    if not np.array_equal(public_logits, expected_public_logits):
-        max_delta = float(np.max(np.abs(public_logits - expected_public_logits)))
+    winner_count = int(np.count_nonzero(q_values == np.max(q_values)))
+    if winner_count != 1:
         raise RuntimeError(
-            "[SMART_ENTRY] public_trade_flat_decision_logits are not the canonical "
-            "[max(final LONG/SHORT), final FLAT] surface; "
-            f"max_abs_delta={max_delta:.9g}"
+            f"[SMART_ENTRY] {context} Entry Q has no unique top action"
         )
-    if int(np.count_nonzero(direction_logits == np.max(direction_logits))) != 1:
-        raise RuntimeError(
-            f"[SMART_ENTRY] {context} SSOT direction_logits have no unique top class"
-        )
-    direction_probs = _strict_softmax(
-        direction_logits,
-        name="direction_logits",
-        context=context,
-    )
-    public_probs = _strict_softmax(
-        public_logits,
-        name="public_trade_flat_decision_logits",
-        context=context,
-    )
-    direction_index = int(np.argmax(direction_probs))
-    public_index = int(np.argmax(public_probs))
-    expected_public_index = (
-        PUBLIC_FLAT_INDEX
-        if direction_index == MODEL_DIRECTION_FLAT_INDEX
-        else PUBLIC_TRADE_INDEX
-    )
-    if public_index != expected_public_index:
-        raise RuntimeError(
-            "[SMART_ENTRY] model direction SSOT mismatch: "
-            f"direction={MODEL_DIRECTION_NAMES[direction_index]}({direction_index}) "
-            f"public_trade_flat={'FLAT' if public_index == PUBLIC_FLAT_INDEX else 'TRADE'}"
-            f"({public_index})"
-        )
+    action_index = int(np.argmax(q_values))
+    runner_up = float(np.partition(q_values, -2)[-2])
     return {
-        "direction_logits": direction_logits,
-        "direction_probs": direction_probs,
-        "model_direction_index": direction_index,
-        "model_direction": MODEL_DIRECTION_NAMES[direction_index],
-        "public_trade_flat_decision_logits": public_logits,
-        "public_trade_flat_decision_probs": public_probs,
-        "public_trade_flat_decision_index": public_index,
-        "public_trade_flat_decision": (
-            "FLAT" if public_index == PUBLIC_FLAT_INDEX else "TRADE"
-        ),
+        "entry_action_q_bps": q_values,
+        "model_direction_index": action_index,
+        "model_direction": MODEL_DIRECTION_NAMES[action_index],
+        "entry_action_q_margin_bps": float(q_values[action_index]) - runner_up,
     }
 
 
-def _validate_reported_direction_ssot(head_out: dict[str, Any]) -> dict[str, Any]:
-    ssot = _direction_ssot_from_logits(
-        head_out.get("direction_logits"),
-        head_out.get("public_trade_flat_decision_logits"),
+def _validate_reported_entry_q_ssot(
+    head_out: dict[str, Any],
+) -> dict[str, Any]:
+    ssot = _entry_q_ssot(
+        head_out.get("entry_action_q_bps"),
         context="decision",
     )
-    reported_direction_probs = _require_finite_vector(
-        head_out.get("direction_probs"),
-        name="direction_probs",
-        size=3,
-        context="decision",
-    )
-    if not np.allclose(reported_direction_probs, ssot["direction_probs"], rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] decision SSOT direction_probs do not match direction_logits")
-    reported_public_probs = _require_finite_vector(
-        head_out.get("public_trade_flat_decision_probs"),
-        name="public_trade_flat_decision_probs",
-        size=2,
-        context="decision",
-    )
-    if not np.allclose(
-        reported_public_probs,
-        ssot["public_trade_flat_decision_probs"],
-        rtol=1e-6,
-        atol=1e-7,
-    ):
-        raise RuntimeError(
-            "[SMART_ENTRY] decision SSOT public_trade_flat_decision_probs do not match "
-            "public_trade_flat_decision_logits"
-        )
-    reported_scalars = _require_finite_vector(
-        [head_out.get("p_long"), head_out.get("p_short"), head_out.get("p_flat")],
-        name="p_long/p_short/p_flat",
-        size=3,
-        context="decision",
-    )
-    if not np.allclose(reported_scalars, ssot["direction_probs"], rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] decision SSOT p_long/p_short/p_flat do not match direction_logits")
-    reported_public_scalars = _require_finite_vector(
-        [head_out.get("p_trade"), head_out.get("p_flat_hier")],
-        name="p_trade/p_flat_hier",
-        size=2,
-        context="decision",
-    )
-    if not np.allclose(
-        reported_public_scalars,
-        ssot["public_trade_flat_decision_probs"],
-        rtol=1e-6,
-        atol=1e-7,
-    ):
-        raise RuntimeError(
-            "[SMART_ENTRY] decision SSOT p_trade/p_flat_hier do not match "
-            "direction_logits"
-        )
-    for index_key, expected in (
-        ("model_direction_index", ssot["model_direction_index"]),
-        (
-            "public_trade_flat_decision_index",
-            ssot["public_trade_flat_decision_index"],
-        ),
-    ):
-        observed = head_out.get(index_key)
-        if (
-            isinstance(observed, bool)
-            or not isinstance(observed, (int, np.integer))
-            or int(observed) != int(expected)
-        ):
+    for key in ("model_direction_index", "model_direction"):
+        if head_out.get(key) != ssot[key]:
             raise RuntimeError(
-                f"[SMART_ENTRY] decision SSOT {index_key} does not match logits"
+                f"[SMART_ENTRY] decision {key} mismatches raw Entry-Q argmax"
             )
-    for name_key, expected in (
-        ("model_direction", ssot["model_direction"]),
-        (
-            "public_trade_flat_decision",
-            ssot["public_trade_flat_decision"],
-        ),
-    ):
-        if head_out.get(name_key) != expected:
-            raise RuntimeError(
-                f"[SMART_ENTRY] decision SSOT {name_key} does not match logits"
-            )
-    reported_edge = _require_finite_vector(
-        [head_out.get("edge_score")],
-        name="edge_score",
+    observed_margin = _require_finite_vector(
+        [head_out.get("entry_action_q_margin_bps")],
+        name="entry_action_q_margin_bps",
         size=1,
         context="decision",
     )[0]
-    expected_edge = (
-        max(
-            ssot["direction_probs"][MODEL_DIRECTION_LONG_INDEX],
-            ssot["direction_probs"][MODEL_DIRECTION_SHORT_INDEX],
-        )
-        - ssot["direction_probs"][MODEL_DIRECTION_FLAT_INDEX]
-    )
-    if not np.isclose(reported_edge, expected_edge, rtol=1e-6, atol=1e-7):
+    if not np.isclose(
+        observed_margin,
+        ssot["entry_action_q_margin_bps"],
+        rtol=1e-6,
+        atol=1e-7,
+    ):
         raise RuntimeError(
-            "[SMART_ENTRY] decision SSOT edge_score does not match direction_logits"
+            "[SMART_ENTRY] decision Entry-Q margin mismatches raw Q"
         )
     return ssot
 
@@ -562,20 +375,6 @@ def _validate_reported_direction_ssot(head_out: dict[str, Any]) -> dict[str, Any
 def _sigmoid_float(value: float) -> float:
     value = float(np.clip(value, -80.0, 80.0))
     return float(1.0 / (1.0 + np.exp(-value)))
-
-
-def _required_feature_value(row: np.ndarray, names: list[str], name: str) -> float:
-    if name not in names:
-        raise RuntimeError(f"[SMART_ENTRY] required model-native evidence feature missing: {name}")
-    idx = int(names.index(name))
-    if idx < 0 or idx >= len(row):
-        raise RuntimeError(
-            f"[SMART_ENTRY] evidence feature index out of bounds: {name} index={idx} width={len(row)}"
-        )
-    value = float(row[idx])
-    if not np.isfinite(value):
-        raise RuntimeError(f"[SMART_ENTRY] evidence feature is non-finite: {name}={value!r}")
-    return value
 
 
 def _validate_model_native_diagnostics(
@@ -595,86 +394,10 @@ def _validate_model_native_diagnostics(
     def scalar(key: str) -> float:
         return float(vector(key, 1)[0])
 
-    vector("raw_direction_logits", 3)
-    for fusion_name, fusion_width in DIRECTION_EVIDENCE_FUSION_INPUTS:
-        vector(fusion_name, fusion_width)
-    scalar("path_quality")
-    scalar("bad_path_logit_raw")
-
-    # Core path/tradability regressions are mandatory learned evidence even
-    # though none of them may act as a post-model direction veto.
-    scalar("path_quality_pred")
-    scalar("mfe_first_n_pred")
-    bad_path_logit = scalar("bad_path_logit")
-    if not np.isclose(
-        scalar("bad_path_prob"),
-        _sigmoid_float(bad_path_logit),
-        rtol=1e-6,
-        atol=1e-7,
-    ):
-        raise RuntimeError("[SMART_ENTRY] bad_path_prob does not match bad_path_logit")
-    tradable_logit = scalar("tradable_logit")
-    if not np.isclose(
-        scalar("tradable_prob"),
-        _sigmoid_float(tradable_logit),
-        rtol=1e-6,
-        atol=1e-7,
-    ):
-        raise RuntimeError("[SMART_ENTRY] tradable_prob does not match tradable_logit")
-
-    side_logits = vector("side_logits", 2)
-    side_probs = vector("side_probs", 2)
-    expected_side_probs = _softmax_np(side_logits)
-    if not np.allclose(side_probs, expected_side_probs, rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] side_probs do not match side_logits")
-    conditional = np.asarray(
-        [scalar("p_long_given_trade"), scalar("p_short_given_trade")],
-        dtype=np.float64,
-    )
-    if not np.allclose(conditional, side_probs, rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] conditional side probabilities do not match side_logits")
-    vector("side_utility", 2)
-    side_bad_logits = vector("side_bad_path_logit", 2)
-    side_bad_probs = np.asarray(
-        [scalar("long_bad_path_prob"), scalar("short_bad_path_prob")],
-        dtype=np.float64,
-    )
-    expected_bad = np.asarray([_sigmoid_float(value) for value in side_bad_logits])
-    if not np.allclose(side_bad_probs, expected_bad, rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] side bad-path probabilities do not match logits")
-    side_validity_logits = vector("side_validity_logit", 2)
-    side_validity_probs = np.asarray(
-        [scalar("long_validity_prob"), scalar("short_validity_prob")],
-        dtype=np.float64,
-    )
-    expected_validity = np.asarray(
-        [_sigmoid_float(value) for value in side_validity_logits]
-    )
-    if not np.allclose(side_validity_probs, expected_validity, rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] side validity probabilities do not match logits")
-    vector("side_mae", 2)
-
-    mtf_logits = vector("mtf_dir_logits", 3)
-    mtf_probs = vector("mtf_dir_probs", 3)
-    if not np.allclose(mtf_probs, _softmax_np(mtf_logits), rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] mtf_dir_probs do not match mtf_dir_logits")
-    scalar("mtf_trend_evidence")
-    rail_logits = vector("trendline_rail_logits", 6)
-    rail_probs = vector("trendline_rail_probs", 6)
-    expected_rail = np.asarray([_sigmoid_float(value) for value in rail_logits])
-    if not np.allclose(rail_probs, expected_rail, rtol=1e-6, atol=1e-7):
-        raise RuntimeError("[SMART_ENTRY] trendline_rail_probs do not match trendline_rail_logits")
-
-    clean_edge_logit = scalar("clean_edge_logit")
-    survival_logit = scalar("survival_logit")
-    if not np.isclose(
-        scalar("clean_edge_prob"), _sigmoid_float(clean_edge_logit), rtol=1e-6, atol=1e-7
-    ):
-        raise RuntimeError("[SMART_ENTRY] clean_edge_prob does not match clean_edge_logit")
-    if not np.isclose(
-        scalar("survival_prob"), _sigmoid_float(survival_logit), rtol=1e-6, atol=1e-7
-    ):
-        raise RuntimeError("[SMART_ENTRY] survival_prob does not match survival_logit")
+    vector("entry_action_q_bps", 3)
+    vector("entry_q_joint_hidden", UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM)
+    vector("side_mae_bps", 2)
+    vector("trendline_event_logits", 4)
     vector("dip_pred", 18)
     vector("forecast_pred", 4)
     vector("timing_pred", 12)
@@ -719,71 +442,6 @@ def _validate_model_native_diagnostics(
             "[SMART_ENTRY] family_tf_feature_gate is outside learned (0,2) contract"
         )
 
-    calibration_version = head_out.get("calibration_version")
-    if not isinstance(calibration_version, str) or not calibration_version.strip():
-        raise RuntimeError("[SMART_ENTRY] direction calibration version is missing")
-    if head_out.get("direction_calibration_enabled") is not True:
-        raise RuntimeError("[SMART_ENTRY] direction calibration must be enabled")
-    direction_temperature = scalar("direction_calibration_temperature")
-    if direction_temperature <= 0.0:
-        raise RuntimeError("[SMART_ENTRY] direction calibration temperature must be positive")
-    # Calibration is one positive scalar temperature only. A per-class bias
-    # could remap the winning class, which would be an external direction rule.
-    expected_direction_logits = (
-        vector("raw_direction_logits", 3) / direction_temperature
-    )
-    if not np.allclose(
-        vector("direction_logits", 3),
-        expected_direction_logits,
-        rtol=1e-6,
-        atol=1e-6,
-    ):
-        raise RuntimeError(
-            "[SMART_ENTRY] final direction logits do not match raw/temperature"
-        )
-    if head_out.get("path_calibration_enabled") is not True:
-        raise RuntimeError("[SMART_ENTRY] path calibration must be enabled")
-    path_calibration = head_out.get("path_calibration")
-    if not isinstance(path_calibration, dict) or path_calibration.get("enabled") is not True:
-        raise RuntimeError("[SMART_ENTRY] path calibration contract is missing or disabled")
-    for key in (
-        "version",
-        "path_quality_scale",
-        "path_quality_shift",
-        "bad_path_temperature",
-        "bad_path_bias",
-    ):
-        if key not in path_calibration:
-            raise RuntimeError(f"[SMART_ENTRY] path calibration field missing: {key}")
-    path_cal_values = _require_finite_vector(
-        [
-            path_calibration["path_quality_scale"],
-            path_calibration["path_quality_shift"],
-            path_calibration["bad_path_temperature"],
-            path_calibration["bad_path_bias"],
-        ],
-        name="path_calibration values",
-        size=4,
-        context="decision diagnostic",
-    )
-    if float(path_cal_values[0]) <= 0.0 or float(path_cal_values[2]) <= 0.0:
-        raise RuntimeError("[SMART_ENTRY] path calibration scales must be positive")
-    if not isinstance(path_calibration["version"], str) or not path_calibration["version"].strip():
-        raise RuntimeError("[SMART_ENTRY] path calibration version is missing")
-
-    tf_logit = scalar("tf_agreement_logit")
-    if not np.isclose(
-        scalar("tf_agreement_pred"), _sigmoid_float(tf_logit), rtol=1e-6, atol=1e-7
-    ):
-        raise RuntimeError("[SMART_ENTRY] tf_agreement_pred does not match tf_agreement_logit")
-    path_log_var = scalar("path_quality_log_var")
-    expected_std = float(path_cal_values[0]) * float(
-        np.exp(0.5 * path_log_var)
-    )
-    if not np.isfinite(expected_std) or not np.isclose(
-        scalar("path_quality_std"), expected_std, rtol=1e-6, atol=1e-7
-    ):
-        raise RuntimeError("[SMART_ENTRY] path_quality_std does not match path_quality_log_var")
     size_logit = scalar("position_size_logit")
     if not np.isclose(
         scalar("position_size_pred"), _sigmoid_float(size_logit), rtol=1e-6, atol=1e-7
@@ -951,11 +609,11 @@ class SmartEntryLiveInference:
             meta,
             context=f"[SMART_ENTRY] {load_context} bundle",
         )
-        if str(meta["direction_logit_mode"]) != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
-            raise RuntimeError(
-                "[SMART_ENTRY] bundle direction_logit_mode must be model_native; got "
-                f"{meta['direction_logit_mode']!r}"
-            )
+        require_entry_fitted_q_production_economics_readiness(
+            meta.get("entry_fitted_q_production_economics"),
+            context=f"SMART_ENTRY_{load_context}_SERVING",
+            require_ready=True,
+        )
         signal_contract = meta["model_native_signal_contract"]
         require_model_native_signal_contract(
             signal_contract,
@@ -973,28 +631,14 @@ class SmartEntryLiveInference:
             raise RuntimeError(
                 f"[SMART_ENTRY] bundle seq_len={meta['seq_len']} != {SEQ_LEN_MODEL_NATIVE}"
             )
-        direction_calibration = meta["direction_calibration"]
-        if (
-            not isinstance(direction_calibration, dict)
-            or direction_calibration.get("enabled") is not True
-        ):
+        if "direction_calibration" in meta:
             raise RuntimeError(
-                "[SMART_ENTRY] bundle lacks enabled direction_calibration — refusing an "
-                "uncalibrated model-direction load"
+                "[SMART_ENTRY] Entry-Q bundles must not carry direction calibration"
             )
-        path_calibration = meta["path_calibration"]
-        if (
-            not isinstance(path_calibration, dict)
-            or path_calibration.get("enabled") is not True
-        ):
+        if "path_calibration" in meta:
             raise RuntimeError(
-                "[SMART_ENTRY] bundle lacks enabled path_calibration — live/replay path heads "
-                "must be calibrated before serving"
+                "[SMART_ENTRY] Entry-Q bundles must not carry retired path calibration"
             )
-        project_model_native_path_calibration(
-            path_calibration,
-            context="SMART_ENTRY_BUNDLE_PATH_CALIBRATION",
-        )
         mtf = meta["multi_tf"]
         if not isinstance(mtf, dict):
             raise RuntimeError(
@@ -1019,10 +663,17 @@ class SmartEntryLiveInference:
             "D1": int(mtf["d1_seq_len"]),
         }
         names = [str(x) for x in meta["ordered_signal_names"]]
+        from gx1.execution.v12_state_from_prebuilt import (
+            _require_volatility_squeeze_artifacts_from_bound_cache,
+        )
+
         builder = ModelNativeStateBuilder(
             ordered_signal_names=names,
             state_contract=state_contract,
             signal_contract=dict(signal_contract),
+            volatility_squeeze_artifacts=(
+                _require_volatility_squeeze_artifacts_from_bound_cache()
+            ),
         )
         LOG.info(
             "[SMART_ENTRY] loaded %s %s (mode=%s, selection=%s, history_start=%s)",
@@ -1064,7 +715,6 @@ class SmartEntryLiveInference:
         """The FULL context build (unchanged math — same one-truth functions the
         blocking path always used). Runs on local state only; safe in a thread."""
         from gx1.execution.v12_model_native_state_live import (
-            compute_bucket_ctx_cat_full_frame,
             compute_htf_ctx_full_frame,
         )
         if self._state_contract is None:
@@ -1082,15 +732,12 @@ class SmartEntryLiveInference:
             ],
         )
         # full-frame overrides: ctx_cat buckets (offline frame-global-rank
-        # convention) + the 5 long-lookback HTF ctx cols (fresh full-frame
+        # convention) + the long-lookback raw HTF ctx cols (fresh full-frame
         # recompute; B28's incremental M1-lane stamping is one M5 bar behind
         # the offline convention — parity gate finding 2026-07-08)
-        overrides = pd.concat(
-            [
-                compute_bucket_ctx_cat_full_frame(cv3, self._state_contract),
-                compute_htf_ctx_full_frame(cv3, self._state_contract),
-            ],
-            axis=1,
+        overrides = compute_htf_ctx_full_frame(
+            cv3,
+            self._state_contract,
         )
         return SmartCtxSnapshot(
             multi_tf=multi_tf, frame_overrides=overrides,
@@ -1223,7 +870,7 @@ class SmartEntryLiveInference:
             )
         return self._builder.prepare_frame(
             joined,
-            bucket_ctx_cat=overrides,
+            context_overrides=overrides,
             multi_tf=multi_tf,
             context_m5=cv3.loc[:end_ts, ["high", "low", "close"]],
         )
@@ -1269,7 +916,13 @@ class SmartEntryLiveInference:
         from gx1.features.htf_features import slice_multi_tf_v4_window
         out: dict[str, torch.Tensor] = {}
         availability_ts = pd.Timestamp(ts) + self._multi_tf_target_availability_shift
-        for tf, feats in multi_tf.items():
+        missing = [tf for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES if tf not in multi_tf]
+        if missing:
+            raise RuntimeError(
+                f"[SMART_ENTRY] Entry MTF cache is incomplete: missing={missing}"
+            )
+        for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES:
+            feats = multi_tf[tf]
             n = int(self._per_tf_seq_lens[tf])
             arr = slice_multi_tf_v4_window(
                 feats,
@@ -1317,68 +970,48 @@ class SmartEntryLiveInference:
                         "[SMART_ENTRY] model-native bundle emitted forbidden legacy anchor outputs: "
                         + ",".join(stale_anchor_outputs)
                     )
-                fusion_evidence: dict[str, Any] = {}
-                for output_name, output_width in DIRECTION_EVIDENCE_FUSION_INPUTS:
-                    output_value = _require_finite_vector(
-                        out.get(output_name),
-                        name=output_name,
-                        size=output_width,
-                        context=f"model forward at {ts}",
-                    )
-                    fusion_evidence[output_name] = (
-                        float(output_value[0])
-                        if output_width == 1
-                        else output_value.tolist()
-                    )
-                raw_direction_logits = _require_finite_vector(
-                    out.get("raw_direction_logits"),
-                    name="raw_direction_logits",
+                entry_action_q_bps = _require_finite_vector(
+                    out.get("entry_action_q_bps"),
+                    name="entry_action_q_bps",
                     size=3,
                     context=f"model forward at {ts}",
                 )
-                ssot = _direction_ssot_from_logits(
-                    out.get("direction_logits"),
-                    out.get("public_trade_flat_decision_logits"),
+                entry_q_joint_hidden = _require_finite_vector(
+                    out.get("entry_q_joint_hidden"),
+                    name="entry_q_joint_hidden",
+                    size=UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
                     context=f"model forward at {ts}",
                 )
-                probs = ssot["direction_probs"]
-                public_trade_flat_probs = ssot["public_trade_flat_decision_probs"]
-                p_long = float(probs[MODEL_DIRECTION_LONG_INDEX])
-                p_short = float(probs[MODEL_DIRECTION_SHORT_INDEX])
-                p_flat = float(probs[MODEL_DIRECTION_FLAT_INDEX])
-                edge_score = max(p_long, p_short) - p_flat
-                path_quality_raw = _require_finite_vector(
-                    out.get("path_quality"), name="path_quality", size=1, context=f"model forward at {ts}"
+                ssot = _entry_q_ssot(
+                    entry_action_q_bps,
+                    context=f"model forward at {ts}",
                 )
-                bad_path_logit = _require_finite_vector(
-                    out.get("bad_path_logit"), name="bad_path_logit", size=1, context=f"model forward at {ts}"
+                side_mae_bps = _require_finite_vector(
+                    out.get("side_mae_bps"),
+                    name="side_mae_bps",
+                    size=2,
+                    context=f"model forward at {ts}",
                 )
-                tradable_logit = _require_finite_vector(
-                    out.get("tradable_logit"), name="tradable_logit", size=1, context=f"model forward at {ts}"
-                )
-                mfe_first_n_raw = _require_finite_vector(
-                    out.get("mfe_first_n"), name="mfe_first_n", size=1, context=f"model forward at {ts}"
-                )
-                clean_edge_logit = _require_finite_vector(
-                    out.get("clean_edge_logit"), name="clean_edge_logit", size=1, context=f"model forward at {ts}"
-                )
-                survival_logit = _require_finite_vector(
-                    out.get("survival_logit"), name="survival_logit", size=1, context=f"model forward at {ts}"
+                trendline_event_logits = _require_finite_vector(
+                    out.get("trendline_event_logits"),
+                    name="trendline_event_logits",
+                    size=EXACT_TRENDLINE_EVENT_OUTPUT_DIM,
+                    context=f"model forward at {ts}",
                 )
                 dip_pred = _require_finite_vector(
-                    out.get("dip_pred"), name="dip_pred", size=18, context=f"model forward at {ts}"
+                    out.get("dip_pred"), name="dip_pred", size=DIP_HEAD_DIM, context=f"model forward at {ts}"
                 )
                 forecast_pred = _require_finite_vector(
-                    out.get("forecast_pred"), name="forecast_pred", size=4, context=f"model forward at {ts}"
+                    out.get("forecast_pred"), name="forecast_pred", size=FORECAST_HEAD_DIM, context=f"model forward at {ts}"
                 )
                 timing_pred = _require_finite_vector(
-                    out.get("timing_pred"), name="timing_pred", size=12, context=f"model forward at {ts}"
+                    out.get("timing_pred"), name="timing_pred", size=TIMING_HEAD_DIM, context=f"model forward at {ts}"
                 )
                 tail_risk_pred = _require_finite_vector(
-                    out.get("tail_risk_pred"), name="tail_risk_pred", size=6, context=f"model forward at {ts}"
+                    out.get("tail_risk_pred"), name="tail_risk_pred", size=TAIL_RISK_HEAD_DIM, context=f"model forward at {ts}"
                 )
                 vol_forecast_pred = _require_finite_vector(
-                    out.get("vol_forecast_pred"), name="vol_forecast_pred", size=3, context=f"model forward at {ts}"
+                    out.get("vol_forecast_pred"), name="vol_forecast_pred", size=VOL_FORECAST_HEAD_DIM, context=f"model forward at {ts}"
                 )
                 specialist_names = [
                     str(value)
@@ -1463,192 +1096,43 @@ class SmartEntryLiveInference:
                         f"[SMART_ENTRY] model forward at {ts} "
                         "family_tf_feature_gate token contract invalid"
                     )
-                mtf_logits = _require_finite_vector(
-                    out.get("mtf_dir_logits"),
-                    name="mtf_dir_logits",
-                    size=3,
-                    context=f"model forward at {ts}",
-                )
-                mtf_probs = _softmax_np(mtf_logits)
-                side_logits = _require_finite_vector(
-                    out.get("side_logits"), name="side_logits", size=2, context=f"model forward at {ts}"
-                )
-                side_bad_path_logit = _require_finite_vector(
-                    out.get("side_bad_path_logit"),
-                    name="side_bad_path_logit",
-                    size=2,
-                    context=f"model forward at {ts}",
-                )
-                side_validity_logit = _require_finite_vector(
-                    out.get("side_validity_logit"),
-                    name="side_validity_logit",
-                    size=2,
-                    context=f"model forward at {ts}",
-                )
-                trendline_rail_logits = _require_finite_vector(
-                    out.get("trendline_rail_logits"),
-                    name="trendline_rail_logits",
-                    size=6,
-                    context=f"model forward at {ts}",
-                )
-                tf_agreement_logit = _require_finite_vector(
-                    out.get("tf_agreement_logit"),
-                    name="tf_agreement_logit",
-                    size=1,
-                    context=f"model forward at {ts}",
-                )
-                path_quality_log_var = _require_finite_vector(
-                    out.get("path_quality_log_var"),
-                    name="path_quality_log_var",
-                    size=1,
-                    context=f"model forward at {ts}",
-                )
                 position_size_logit = _require_finite_vector(
                     out.get("position_size_logit"),
                     name="position_size_logit",
                     size=1,
                     context=f"model forward at {ts}",
                 )
-                entry_shared_representation = _require_finite_vector(
+                entry_decision_representation = _require_finite_vector(
                     out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY),
                     name=UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
                     size=UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
                     context=f"model forward at {ts}",
                 )
-                tf_agreement_pred = _sigmoid_float(float(tf_agreement_logit[0]))
                 position_size_pred = _sigmoid_float(float(position_size_logit[0]))
-                clean_edge_prob = _sigmoid_float(float(clean_edge_logit[0]))
-                survival_prob = _sigmoid_float(float(survival_logit[0]))
-                path_calibration = project_model_native_path_calibration(
-                    self._meta["path_calibration"],
-                    context="SMART_ENTRY_FORWARD_PATH_CALIBRATION",
-                )
-                path_quality_std = float(
-                    path_calibration["path_quality_scale"]
-                ) * float(np.exp(0.5 * float(path_quality_log_var[0])))
-                if not np.isfinite(path_quality_std):
-                    raise RuntimeError(
-                        f"[SMART_ENTRY] model forward at {ts} path_quality_std is non-finite"
-                    )
-                side_probs = _softmax_np(side_logits)
-                trendline_rail_probs = [_sigmoid_float(float(x)) for x in trendline_rail_logits]
-                p_trade_hier = float(public_trade_flat_probs[0])
-                p_flat_hier = float(public_trade_flat_probs[1])
-                p_long_given_trade = float(side_probs[0])
-                p_short_given_trade = float(side_probs[1])
-                long_bad_path_prob = _sigmoid_float(float(side_bad_path_logit[0]))
-                short_bad_path_prob = _sigmoid_float(float(side_bad_path_logit[1]))
-                long_validity_prob = _sigmoid_float(float(side_validity_logit[0]))
-                short_validity_prob = _sigmoid_float(float(side_validity_logit[1]))
-                signal_names = [str(x) for x in self._meta["ordered_signal_names"]]
-                snap_row = np.asarray(states["snap"][k], dtype=np.float32).reshape(-1)
-                mtf_trend_evidence = _required_feature_value(
-                    snap_row,
-                    signal_names,
-                    "trend.mtf_confluence_trend_direction_score",
-                )
                 ctx_cat_values = np.asarray(
                     states["ctx_cat"][k],
                     dtype=np.int64,
                 ).reshape(-1)
                 if ctx_cat_values.shape != (len(MODEL_NATIVE_CTX_CAT_FIELDS),):
                     raise RuntimeError(
-                        "[SMART_ENTRY] exact five-field ctx_cat state is required"
-                    )
-                entry_vol_regime_id = int(
-                    ctx_cat_values[
-                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["vol_regime_id"]
-                    ]
-                )
-                entry_atr_bucket = int(
-                    ctx_cat_values[
-                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["atr_bucket"]
-                    ]
-                )
-                entry_spread_bucket = int(
-                    ctx_cat_values[
-                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["spread_bucket"]
-                    ]
-                )
-                entry_h4_trend_sign_cat = int(
-                    ctx_cat_values[
-                        MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["H4_trend_sign_cat"]
-                    ]
-                )
-                trend_regime_values = np.asarray(
-                    states.get("entry_trend_regime_id"),
-                    dtype=np.int64,
-                ).reshape(-1)
-                if trend_regime_values.shape != (n,):
-                    raise RuntimeError(
-                        "[SMART_ENTRY] entry trend-regime state is incomplete"
-                    )
-                entry_trend_regime_id = int(trend_regime_values[k])
-                if entry_vol_regime_id not in MODEL_NATIVE_CTX_CAT_DOMAINS[
-                    "vol_regime_id"
-                ]:
-                    raise RuntimeError(
-                        "[SMART_ENTRY] entry vol-regime category is invalid"
-                    )
-                if entry_h4_trend_sign_cat not in MODEL_NATIVE_CTX_CAT_DOMAINS[
-                    "H4_trend_sign_cat"
-                ]:
-                    raise RuntimeError(
-                        "[SMART_ENTRY] entry H4 trend category is invalid"
-                    )
-                if (
-                    entry_atr_bucket
-                    not in MODEL_NATIVE_CTX_CAT_DOMAINS["atr_bucket"]
-                    or entry_spread_bucket
-                    not in MODEL_NATIVE_CTX_CAT_DOMAINS["spread_bucket"]
-                    or entry_trend_regime_id not in range(
-                        len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
-                    )
-                ):
-                    raise RuntimeError(
-                        "[SMART_ENTRY] entry categorical evidence is invalid"
+                        "[SMART_ENTRY] exact factual-session ctx_cat state is required"
                     )
                 res = {
                     "time": ts,
-                    **fusion_evidence,
-                    "raw_direction_logits": raw_direction_logits.tolist(),
-                    "direction_logits": ssot["direction_logits"].tolist(),
-                    "direction_probs": ssot["direction_probs"].tolist(),
+                    "entry_action_q_bps": ssot["entry_action_q_bps"].tolist(),
+                    "entry_action_q_margin_bps": ssot[
+                        "entry_action_q_margin_bps"
+                    ],
+                    "entry_q_joint_hidden": entry_q_joint_hidden.tolist(),
                     "model_direction_index": ssot["model_direction_index"],
                     "model_direction": ssot["model_direction"],
-                    "public_trade_flat_decision_logits": ssot[
-                        "public_trade_flat_decision_logits"
-                    ].tolist(),
-                    "public_trade_flat_decision_probs": ssot[
-                        "public_trade_flat_decision_probs"
-                    ].tolist(),
-                    "public_trade_flat_decision_index": ssot[
-                        "public_trade_flat_decision_index"
-                    ],
-                    "public_trade_flat_decision": ssot["public_trade_flat_decision"],
-                    "p_long": p_long, "p_short": p_short, "p_flat": p_flat,
-                    "edge_score": float(edge_score),
                     "session_id": int(
                         states["ctx_cat"][k][
                             MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["session_id"]
                         ]
                     ),
-                    "entry_vol_regime_id": entry_vol_regime_id,
-                    "entry_atr_bucket": entry_atr_bucket,
-                    "entry_spread_bucket": entry_spread_bucket,
-                    "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
-                    "entry_trend_regime_id": entry_trend_regime_id,
-                    "path_quality_pred": float(path_quality_raw[0]),
-                    "path_quality": float(path_quality_raw[0]),
-                    "bad_path_logit": float(bad_path_logit[0]),
-                    "bad_path_prob": _sigmoid_float(float(bad_path_logit[0])),
-                    "tradable_logit": float(tradable_logit[0]),
-                    "tradable_prob": _sigmoid_float(float(tradable_logit[0])),
-                    "mfe_first_n_pred": float(mfe_first_n_raw[0]),
-                    "clean_edge_logit": float(clean_edge_logit[0]),
-                    "clean_edge_prob": clean_edge_prob,
-                    "survival_logit": float(survival_logit[0]),
-                    "survival_prob": survival_prob,
+                    "side_mae_bps": side_mae_bps.tolist(),
+                    "trendline_event_logits": trendline_event_logits.tolist(),
                     "dip_pred": dip_pred.tolist(),
                     "forecast_pred": forecast_pred.tolist(),
                     "timing_pred": timing_pred.tolist(),
@@ -1661,36 +1145,11 @@ class SmartEntryLiveInference:
                         family_tf_cooperation_gate.tolist()
                     ),
                     "family_tf_feature_gate": family_tf_feature_gate.tolist(),
-                    "tf_agreement_logit": float(tf_agreement_logit[0]),
-                    "tf_agreement_pred": tf_agreement_pred,
-                    "path_quality_log_var": float(path_quality_log_var[0]),
-                    "path_quality_std": path_quality_std,
                     "position_size_pred": position_size_pred,
                     "position_size_logit": float(position_size_logit[0]),
                     UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY: (
-                        entry_shared_representation.tolist()
+                        entry_decision_representation.tolist()
                     ),
-                    "p_trade": p_trade_hier,
-                    "p_flat_hier": p_flat_hier,
-                    "p_long_given_trade": p_long_given_trade,
-                    "p_short_given_trade": p_short_given_trade,
-                    "side_logits": side_logits.tolist(),
-                    "side_probs": side_probs.tolist(),
-                    "long_bad_path_prob": long_bad_path_prob,
-                    "short_bad_path_prob": short_bad_path_prob,
-                    "side_validity_logit": side_validity_logit.tolist(),
-                    "long_validity_prob": long_validity_prob,
-                    "short_validity_prob": short_validity_prob,
-                    "mtf_dir_logits": mtf_logits.tolist(),
-                    "mtf_dir_probs": mtf_probs.tolist(),
-                    "trendline_rail_logits": trendline_rail_logits.tolist(),
-                    "trendline_rail_probs": trendline_rail_probs,
-                    "mtf_trend_evidence": mtf_trend_evidence,
-                    "calibration_version": self._meta["direction_calibration"]["version"],
-                    "direction_calibration_enabled": bool(self._meta["direction_calibration"]["enabled"]),
-                    "direction_calibration_temperature": self._meta["direction_calibration"]["temperature"],
-                    "path_calibration_enabled": bool(self._meta["path_calibration"]["enabled"]),
-                    "path_calibration": path_calibration,
                 }
                 results.append(res)
         return results
@@ -1759,14 +1218,17 @@ class SmartEntryLiveInference:
     def decide_exit(
         self,
         *,
+        decision_identity: str,
         entry_snapshot: Mapping[str, Any],
+        entry_decision_token_snapshot: Mapping[str, Any],
         exit_path_envelope: Mapping[str, Any],
         exit_feature_surface: Mapping[str, Any],
         entry_bid: float,
         entry_ask: float,
         side: str,
+        prior_incremental_carry_envelope: Mapping[str, Any] | None,
     ) -> dict[str, Any]:
-        """Emit exact same-bundle HOLD/EXIT_NOW from one frozen Entry state."""
+        """Emit same-bundle HOLD/EXIT_NOW from one frozen Entry-decision token."""
 
         if self._model is None or self._meta is None:
             raise RuntimeError("[SMART_EXIT] unified model is not loaded")
@@ -1797,6 +1259,44 @@ class SmartEntryLiveInference:
             dict(exit_feature_surface),
             context="SMART_EXIT",
         )
+        mtf_evidence = self.build_exit_mtf_feature_windows(
+            decision_time=feature_window["decision_time"]
+        )
+        exit_mtf_windows = mtf_evidence["windows"]
+        token_snapshot = require_entry_decision_token_snapshot(
+            entry_decision_token_snapshot
+        )
+        normalization = self._meta.get("input_normalization")
+        expected_normalization_sha256 = (
+            normalization.get("contract_sha256")
+            if isinstance(normalization, Mapping)
+            else None
+        )
+        if (
+            token_snapshot["model_identity_kind"] != "bundle_sha256"
+            or token_snapshot["model_identity_sha256"] != self._bundle_sha256
+            or token_snapshot["input_normalization_sha256"]
+            != expected_normalization_sha256
+            or token_snapshot["contract_mode"] != MODEL_NATIVE_CONTRACT_MODE
+        ):
+            raise RuntimeError(
+                "[SMART_EXIT] frozen Entry-decision token model binding mismatch"
+            )
+        exit_input_envelope = build_unified_exit_input_envelope(
+            decision_time=feature_window["decision_time"],
+            decision_identity=decision_identity,
+            side=side,
+            entry_bid=entry_bid,
+            entry_ask=entry_ask,
+            bundle_sha256=self._bundle_sha256,
+            entry_snapshot=snapshot,
+            entry_decision_token_snapshot=token_snapshot,
+            exit_path_envelope=envelope,
+            m1_feature_window=feature_window,
+            mtf_windows=exit_mtf_windows,
+            mtf_cache_binding=mtf_evidence["cache_binding"],
+            per_tf_seq_lens=mtf_evidence["per_tf_seq_lens"],
+        )
         if side not in UNIFIED_EXIT_SIDE_ORDER:
             raise RuntimeError("[SMART_EXIT] side is outside the unified contract")
         side_index = UNIFIED_EXIT_SIDE_ORDER.index(side)
@@ -1808,98 +1308,181 @@ class SmartEntryLiveInference:
             raise RuntimeError(
                 "[SMART_EXIT] trade side differs from frozen Entry argmax"
             )
-        representation = np.asarray(
-            snapshot[UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY],
-            dtype=np.float32,
+        representation = entry_decision_token_tensor(
+            exit_input_envelope["entry_decision_token_snapshot"]
         )
         if (
             representation.shape != (UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,)
             or not np.isfinite(representation).all()
         ):
             raise RuntimeError(
-                "[SMART_EXIT] frozen Entry representation is invalid"
+                "[SMART_EXIT] frozen Entry-decision token is invalid"
             )
         path_values = unified_exit_path_tensor(
             path_rows=envelope["path_rows"],
+            bars_in_trade=int(envelope["bars_in_trade"]),
             entry_bid=entry_bid,
             entry_ask=entry_ask,
         )
+        bars_in_trade = int(envelope["bars_in_trade"])
+        if not 1 <= bars_in_trade <= UNIFIED_EXIT_MAX_PATH_BARS:
+            raise RuntimeError("[SMART_EXIT] path state is outside current capacity")
+        token_sha256 = canonical_unified_evidence_sha256(token_snapshot)
+        previous_carry_sha256 = UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+        prior_carry = None
+        prior_mtf_hashes: Mapping[str, str] = {}
+        if prior_incremental_carry_envelope is None:
+            if bars_in_trade != 1:
+                raise RuntimeError("[SMART_EXIT] missing recurrent carry after state zero")
+        else:
+            prior = require_unified_exit_incremental_carry_envelope(
+                prior_incremental_carry_envelope,
+                expected_trade_identity=decision_identity,
+                expected_side=side,
+                expected_bundle_sha256=self._bundle_sha256,
+                expected_input_normalization_sha256=(
+                    expected_normalization_sha256
+                ),
+                expected_entry_token_snapshot_sha256=token_sha256,
+                expected_step_count=bars_in_trade - 1,
+            )
+            if pd.Timestamp(prior["last_closed_m1_bar_ts"]) >= pd.Timestamp(
+                feature_window["decision_time"]
+            ):
+                raise RuntimeError(
+                    "[SMART_EXIT] recurrent carry clock is not forward"
+                )
+            previous_carry_sha256 = prior["carry_envelope_sha256"]
+            prior_mtf_hashes = prior["mtf_last_row_sha256"]
+            prior_carry = self._model.restore_exit_incremental_carry_tensor_state(
+                step_count=int(prior["step_count"]),
+                batch_size=1,
+                tensors=decode_unified_exit_incremental_carry_tensors(
+                    prior, device=self.device
+                ),
+            )
+
+        current_mtf_hashes: dict[str, str] = {}
+        incremental_mtf: dict[str, torch.Tensor] = {}
+        for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES:
+            tf_name = timeframe.lower()
+            window = np.ascontiguousarray(
+                np.asarray(exit_mtf_windows[timeframe], dtype=np.dtype("<f4"))
+            )
+            row = np.ascontiguousarray(window[-1], dtype=np.dtype("<f4"))
+            row_sha256 = hashlib.sha256(row.tobytes(order="C")).hexdigest()
+            current_mtf_hashes[tf_name] = row_sha256
+            if prior_carry is None:
+                new_rows = window
+            elif prior_mtf_hashes.get(tf_name) == row_sha256:
+                new_rows = window[:0]
+            else:
+                new_rows = window[-1:]
+            incremental_mtf[tf_name] = torch.from_numpy(
+                np.ascontiguousarray(new_rows, dtype=np.float32)
+            ).unsqueeze(0).to(self.device)
+
+        local_rows = (
+            np.asarray(feature_window["signal"], dtype=np.float32)
+            if prior_carry is None
+            else np.asarray(feature_window["signal"][-1:], dtype=np.float32)
+        )
+        latest_path_row = torch.from_numpy(path_values[-1]).to(self.device)
         with torch.no_grad():
-            model_output = self._model.forward_exit_action(
-                entry_shared_representation=torch.from_numpy(
+            model_output, next_carry = self._model.forward_exit_incremental_step(
+                entry_decision_representation=torch.from_numpy(
                     representation
                 )
                 .view(1, -1)
                 .to(self.device),
-                exit_feature_seq_x=torch.from_numpy(
-                    feature_window["signal"]
-                )
-                .unsqueeze(0)
-                .to(self.device),
-                exit_feature_snap_x=torch.from_numpy(
-                    feature_window["snap"]
-                )
-                .unsqueeze(0)
-                .to(self.device),
-                exit_feature_ctx_cat=torch.from_numpy(
+                exit_local_rows_x=torch.from_numpy(local_rows).unsqueeze(0).to(
+                    self.device
+                ),
+                exit_state_ctx_cat=torch.from_numpy(
                     feature_window["ctx_cat"]
                 )
                 .unsqueeze(0)
                 .to(self.device),
-                exit_feature_ctx_cont=torch.from_numpy(
+                exit_state_ctx_cont=torch.from_numpy(
                     feature_window["ctx_cont"]
                 )
                 .unsqueeze(0)
                 .to(self.device),
-                exit_path_x=torch.from_numpy(path_values)
-                .unsqueeze(0)
-                .to(self.device),
-                exit_path_lengths=torch.tensor(
-                    [len(path_values)],
-                    dtype=torch.int64,
-                    device=self.device,
+                exit_path_row_x=latest_path_row.view(1, 1, -1).expand(
+                    -1, 2, -1
                 ),
-                exit_side_index=torch.tensor(
-                    [side_index],
-                    dtype=torch.int64,
-                    device=self.device,
-                ),
+                exit_mtf_new_rows=incremental_mtf,
+                carry=prior_carry,
             )
-        logits = _require_finite_vector(
-            model_output.get("exit_action_logits"),
-            name="exit_action_logits",
+        next_carry_envelope = build_unified_exit_incremental_carry_envelope(
+            tensor_state=(
+                self._model.export_exit_incremental_carry_tensor_state(
+                    next_carry
+                )
+            ),
+            step_count=int(next_carry.step_count),
+            last_closed_m1_bar_ts=feature_window["decision_time"],
+            trade_identity=decision_identity,
+            side=side,
+            bundle_sha256=self._bundle_sha256,
+            input_normalization_sha256=expected_normalization_sha256,
+            entry_token_snapshot_sha256=token_sha256,
+            full_path_chain_sha256=envelope["full_path_chain_sha256"],
+            input_envelope_sha256=exit_input_envelope[
+                "input_envelope_sha256"
+            ],
+            previous_carry_envelope_sha256=previous_carry_sha256,
+            mtf_last_row_sha256=current_mtf_hashes,
+        )
+        require_unified_exit_incremental_carry_envelope(
+            next_carry_envelope,
+            expected_input_envelope_sha256=exit_input_envelope[
+                "input_envelope_sha256"
+            ],
+            expected_mtf_last_row_sha256=exit_input_envelope[
+                "mtf_last_row_sha256"
+            ],
+            expected_last_closed_m1_bar_ts=feature_window["decision_time"],
+            expected_step_count=bars_in_trade,
+            expected_previous_carry_envelope_sha256=previous_carry_sha256,
+        )
+        model_output = {
+            name: value[0, side_index, 0]
+            for name, value in model_output.items()
+            if name in {
+                "exit_action_q_bps",
+                "exit_action_valid_mask",
+            }
+        }
+        q_values = _require_finite_vector(
+            model_output.get("exit_action_q_bps"),
+            name="exit_action_q_bps",
             size=2,
             context="unified Exit forward",
         )
-        model_probs = _require_finite_vector(
-            model_output.get("exit_action_probs"),
-            name="exit_action_probs",
-            size=2,
-            context="unified Exit forward",
-        )
-        if float(logits[0]) == float(logits[1]):
-            raise RuntimeError("[SMART_EXIT] tied Exit logits have no decision")
-        probabilities = _strict_softmax(
-            logits,
-            name="exit_action_logits",
-            context="unified Exit forward",
-        )
-        if not np.allclose(
-            model_probs,
-            probabilities,
-            rtol=0.0,
-            atol=1e-6,
+        valid_mask = np.asarray(
+            model_output.get("exit_action_valid_mask"), dtype=np.bool_
+        ).reshape(-1)
+        if (
+            valid_mask.shape != (2,)
+            or not valid_mask.any()
+            or not bool(valid_mask[1])
+            or bool(valid_mask[0]) != (len(path_values) < UNIFIED_EXIT_MAX_PATH_BARS)
         ):
-            raise RuntimeError(
-                "[SMART_EXIT] model probabilities disagree with Exit logits"
-            )
-        action_index = int(np.argmax(logits))
+            raise RuntimeError("[SMART_EXIT] invalid optimal-stopping action mask")
+        valid_q = q_values[valid_mask]
+        if len(valid_q) > 1 and float(valid_q[0]) == float(valid_q[1]):
+            raise RuntimeError("[SMART_EXIT] tied valid Exit Q values have no decision")
+        masked_q = np.where(valid_mask, q_values, -np.inf)
+        action_index = int(np.argmax(masked_q))
         output = {
-            "exit_action_logits": logits.tolist(),
-            "exit_action_probs": probabilities.tolist(),
+            "exit_action_q_bps": q_values.tolist(),
+            "exit_action_valid_mask": valid_mask.tolist(),
             "exit_action_index": action_index,
             "action": UNIFIED_EXIT_ACTION_ORDER[action_index],
             "decision_source": "unified_model",
+            "exit_input_envelope": exit_input_envelope,
+            "exit_incremental_carry_envelope": next_carry_envelope,
             "bundle_sha256": self._bundle_sha256,
             "entry_snapshot_sha256": canonical_unified_evidence_sha256(
                 snapshot
@@ -1907,6 +1490,9 @@ class SmartEntryLiveInference:
             "exit_path_envelope_sha256": (
                 canonical_unified_evidence_sha256(envelope)
             ),
+            "exit_input_envelope_sha256": exit_input_envelope[
+                "input_envelope_sha256"
+            ],
         }
         output["output_evidence_sha256"] = canonical_unified_evidence_sha256(
             output
@@ -1917,7 +1503,50 @@ class SmartEntryLiveInference:
             expected_bundle_sha256=self._bundle_sha256,
             entry_snapshot=snapshot,
             exit_path_envelope=envelope,
+            exit_input_envelope=exit_input_envelope,
         )
+
+    def build_exit_mtf_feature_windows(
+        self,
+        *,
+        decision_time: Any,
+    ) -> dict[str, Any]:
+        """Slice the exact closed M5/M15/H1/H4/D1 Exit route."""
+
+        if self._ctx is None or self._meta is None:
+            raise RuntimeError("[SMART_EXIT] complete MTF cache is unavailable")
+        from gx1.contracts.entry_exit_feature_base_v1 import (
+            EXIT_DECISION_BAR_SECONDS,
+            EXIT_MTF_CONTEXT_TIMEFRAMES,
+        )
+        from gx1.features.htf_features import (
+            get_model_native_multi_tf_route_windows,
+        )
+
+        windows = get_model_native_multi_tf_route_windows(
+            self._ctx.multi_tf,
+            decision_bar_start=pd.Timestamp(decision_time),
+            per_tf_seq_lens=self._per_tf_seq_lens,
+            route_timeframes=EXIT_MTF_CONTEXT_TIMEFRAMES,
+            base_bar_duration=pd.Timedelta(
+                seconds=EXIT_DECISION_BAR_SECONDS
+            ),
+        )
+        mtf_meta = self._meta.get("multi_tf")
+        if not isinstance(mtf_meta, Mapping):
+            raise RuntimeError("[SMART_EXIT] MTF bundle binding is unavailable")
+        return {
+            "windows": windows,
+            "cache_binding": {
+                "cache_identity_sha256": mtf_meta.get(
+                    "shared_cache_identity_sha256"
+                ),
+                "manifest_sha256": mtf_meta.get(
+                    "shared_cache_manifest_sha256"
+                ),
+            },
+            "per_tf_seq_lens": dict(self._per_tf_seq_lens),
+        }
 
     # ── live per-M5 forward (async-context path — serving-wave gap 3) ────────
 
@@ -1972,7 +1601,7 @@ class SmartEntryLiveInference:
 
     # ── decision (operating point from the contract — ONE truth) ─────────────
 
-    def _validated_direction_ssot(
+    def _validated_entry_q_ssot(
         self,
         head_out: Mapping[str, Any],
     ) -> tuple[dict[str, Any], str, str]:
@@ -2019,7 +1648,7 @@ class SmartEntryLiveInference:
                 "[SMART_ENTRY] operating_point.selection_score must be exactly "
                 f"{MODEL_DIRECTION_SELECTION_MODE!r}; got {selection_mode!r}"
             )
-        ssot = _validate_reported_direction_ssot(head_out)
+        ssot = _validate_reported_entry_q_ssot(dict(head_out))
         direction_index = int(ssot["model_direction_index"])
         action = MODEL_DIRECTION_ACTIONS[direction_index]
         return ssot, selection_mode, action
@@ -2035,43 +1664,34 @@ class SmartEntryLiveInference:
         direction.
         """
 
-        ssot, selection_mode, action = self._validated_direction_ssot(head_out)
+        ssot, selection_mode, action = self._validated_entry_q_ssot(head_out)
         direction_index = int(ssot["model_direction_index"])
-        direction_probs = ssot["direction_probs"]
         return {
             "action": action,
             "model_direction_index": direction_index,
             "model_direction": str(ssot["model_direction"]),
-            "direction_logits": ssot["direction_logits"].tolist(),
-            "direction_probs": direction_probs.tolist(),
-            "public_trade_flat_decision_logits": ssot[
-                "public_trade_flat_decision_logits"
-            ].tolist(),
-            "public_trade_flat_decision_probs": ssot[
-                "public_trade_flat_decision_probs"
-            ].tolist(),
-            "public_trade_flat_decision_index": int(
-                ssot["public_trade_flat_decision_index"]
-            ),
-            "public_trade_flat_decision": str(
-                ssot["public_trade_flat_decision"]
-            ),
+            "entry_action_q_bps": ssot["entry_action_q_bps"].tolist(),
+            "entry_action_q_margin_bps": ssot[
+                "entry_action_q_margin_bps"
+            ],
             "selection_score_mode": selection_mode,
-            "selection_score": float(direction_probs[direction_index]),
+            "selection_score": float(
+                ssot["entry_action_q_bps"][direction_index]
+            ),
         }
 
     def decide(self, head_out: dict[str, Any], atr_bps: float) -> dict[str, Any]:
         """Emit the runner action from the model's final direction argmax.
 
-        ``direction_logits`` plus ``public_trade_flat_decision_logits`` are
-        validated again here so no caller can inject a parallel side, threshold,
-        or session decision between model forward and live action.
+        Raw ``entry_action_q_bps`` is validated again here so no caller can
+        inject a parallel side, threshold, or session decision between model
+        forward and live action.
         """
 
-        ssot, selection_mode, action = self._validated_direction_ssot(head_out)
+        ssot, selection_mode, action = self._validated_entry_q_ssot(head_out)
         direction_index = int(ssot["model_direction_index"])
         model_direction = str(ssot["model_direction"])
-        direction_probs = ssot["direction_probs"]
+        entry_action_q_bps = ssot["entry_action_q_bps"]
         selected_side = (
             direction_index
             if direction_index in MODEL_DIRECTION_TRADE_INDICES
@@ -2090,84 +1710,14 @@ class SmartEntryLiveInference:
                 f"in {sorted(SESSION_NAMES)}; got {head_out.get('session_id')!r}"
             )
         session = SESSION_NAMES[session_id]
-        entry_vol_regime_id_raw = _require_finite_vector(
-            head_out.get("entry_vol_regime_id"),
-            name="entry_vol_regime_id",
-            size=1,
-            context="decision",
-        )[0]
-        entry_vol_regime_id = int(entry_vol_regime_id_raw)
-        if (
-            float(entry_vol_regime_id_raw) != float(entry_vol_regime_id)
-            or entry_vol_regime_id
-            not in MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"]
-        ):
-            raise RuntimeError(
-                "[SMART_ENTRY] entry_vol_regime_id is outside the exact "
-                "model-native category domain"
-            )
-        entry_h4_trend_sign_raw = _require_finite_vector(
-            head_out.get("entry_h4_trend_sign_cat"),
-            name="entry_h4_trend_sign_cat",
-            size=1,
-            context="decision",
-        )[0]
-        entry_h4_trend_sign_cat = int(entry_h4_trend_sign_raw)
-        if (
-            float(entry_h4_trend_sign_raw) != float(entry_h4_trend_sign_cat)
-            or entry_h4_trend_sign_cat
-            not in MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"]
-        ):
-            raise RuntimeError(
-                "[SMART_ENTRY] entry_h4_trend_sign_cat is outside the exact "
-                "model-native category domain"
-            )
-        entry_atr_bucket_raw = _require_finite_vector(
-            head_out.get("entry_atr_bucket"),
-            name="entry_atr_bucket",
-            size=1,
-            context="decision",
-        )[0]
-        entry_atr_bucket = int(entry_atr_bucket_raw)
-        entry_spread_bucket_raw = _require_finite_vector(
-            head_out.get("entry_spread_bucket"),
-            name="entry_spread_bucket",
-            size=1,
-            context="decision",
-        )[0]
-        entry_spread_bucket = int(entry_spread_bucket_raw)
-        entry_trend_regime_id_raw = _require_finite_vector(
-            head_out.get("entry_trend_regime_id"),
-            name="entry_trend_regime_id",
-            size=1,
-            context="decision",
-        )[0]
-        entry_trend_regime_id = int(entry_trend_regime_id_raw)
-        if (
-            float(entry_atr_bucket_raw) != float(entry_atr_bucket)
-            or entry_atr_bucket
-            not in MODEL_NATIVE_CTX_CAT_DOMAINS["atr_bucket"]
-            or float(entry_spread_bucket_raw) != float(entry_spread_bucket)
-            or entry_spread_bucket
-            not in MODEL_NATIVE_CTX_CAT_DOMAINS["spread_bucket"]
-            or float(entry_trend_regime_id_raw)
-            != float(entry_trend_regime_id)
-            or entry_trend_regime_id not in range(
-                len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
-            )
-        ):
-            raise RuntimeError(
-                "[SMART_ENTRY] entry bucket/trend evidence is outside its "
-                "exact model-native category domain"
-            )
         edge = float(
             max(
-                direction_probs[MODEL_DIRECTION_LONG_INDEX],
-                direction_probs[MODEL_DIRECTION_SHORT_INDEX],
+                entry_action_q_bps[MODEL_DIRECTION_LONG_INDEX],
+                entry_action_q_bps[MODEL_DIRECTION_SHORT_INDEX],
             )
-            - direction_probs[MODEL_DIRECTION_FLAT_INDEX]
+            - entry_action_q_bps[MODEL_DIRECTION_FLAT_INDEX]
         )
-        selection_score = float(direction_probs[direction_index])
+        selection_score = float(entry_action_q_bps[direction_index])
         atr_bps_value = float(atr_bps)
         if not np.isfinite(atr_bps_value) or atr_bps_value <= 0.0:
             raise RuntimeError(f"[SMART_ENTRY] atr_bps must be finite and positive; got {atr_bps!r}")
@@ -2182,8 +1732,8 @@ class SmartEntryLiveInference:
             required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
         )
 
-        # Frozen Entry snapshot. Direction fields come only from the validated
-        # SSOT; no hold-horizon or post-model Exit rule is synthesized.
+        # Frozen Entry snapshot. Raw Q and the learned token representation are
+        # the only decision evidence consumed by the same-bundle Exit owner.
         snapshot = {
             "decision_ts": str(head_out["time"]),
             "runtime_evidence_schema_version": (
@@ -2192,38 +1742,11 @@ class SmartEntryLiveInference:
             "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
             "session_id": session_id,
             "session": session,
-            "entry_vol_regime_id": entry_vol_regime_id,
-            "entry_vol_regime": MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[
-                entry_vol_regime_id
-            ],
-            "entry_atr_bucket": entry_atr_bucket,
-            "entry_spread_bucket": entry_spread_bucket,
-            "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
-            "entry_trend_regime_id": entry_trend_regime_id,
-            "entry_trend_regime": MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES[
-                entry_trend_regime_id
-            ],
-            "direction_logits": ssot["direction_logits"].tolist(),
-            "direction_probs": direction_probs.tolist(),
+            "entry_action_q_bps": entry_action_q_bps.tolist(),
+            "entry_action_q_margin_bps": ssot["entry_action_q_margin_bps"],
             "model_direction_index": direction_index,
             "model_direction": model_direction,
-            "public_trade_flat_decision_logits": ssot[
-                "public_trade_flat_decision_logits"
-            ].tolist(),
-            "public_trade_flat_decision_probs": ssot[
-                "public_trade_flat_decision_probs"
-            ].tolist(),
-            "public_trade_flat_decision_index": ssot[
-                "public_trade_flat_decision_index"
-            ],
-            "public_trade_flat_decision": ssot["public_trade_flat_decision"],
             "selected_side": selected_side,
-            "path_quality": head_out["path_quality_pred"],
-            "mfe_first_n": head_out["mfe_first_n_pred"],
-            "tradable_prob": head_out["tradable_prob"],
-            "bad_path_prob": head_out["bad_path_prob"],
-            "p_trade": float(ssot["public_trade_flat_decision_probs"][0]),
-            "p_flat_hier": float(ssot["public_trade_flat_decision_probs"][1]),
             "atr_bps": atr_bps_value,
             **diagnostics,
         }
@@ -2236,45 +1759,15 @@ class SmartEntryLiveInference:
             "action_id": MODEL_DIRECTION_ACTION_ID_BY_INDEX[direction_index],
             "model_direction_index": direction_index,
             "model_direction": model_direction,
-            "direction_logits": ssot["direction_logits"].tolist(),
-            "direction_probs": direction_probs.tolist(),
-            "public_trade_flat_decision_logits": ssot[
-                "public_trade_flat_decision_logits"
-            ].tolist(),
-            "public_trade_flat_decision_probs": ssot[
-                "public_trade_flat_decision_probs"
-            ].tolist(),
-            "public_trade_flat_decision_index": ssot[
-                "public_trade_flat_decision_index"
-            ],
-            "public_trade_flat_decision": ssot["public_trade_flat_decision"],
+            "entry_action_q_bps": entry_action_q_bps.tolist(),
+            "entry_action_q_margin_bps": ssot["entry_action_q_margin_bps"],
             "edge_score": edge,
             "selection_score_mode": selection_mode,
             "selection_score": selection_score,
             "session_id": session_id,
             "session": session,
-            "entry_vol_regime_id": entry_vol_regime_id,
-            "entry_vol_regime": snapshot["entry_vol_regime"],
-            "entry_atr_bucket": entry_atr_bucket,
-            "entry_spread_bucket": entry_spread_bucket,
-            "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
-            "entry_trend_regime_id": entry_trend_regime_id,
-            "entry_trend_regime": snapshot["entry_trend_regime"],
-            "p_long": float(direction_probs[MODEL_DIRECTION_LONG_INDEX]),
-            "p_short": float(direction_probs[MODEL_DIRECTION_SHORT_INDEX]),
-            "p_flat": float(direction_probs[MODEL_DIRECTION_FLAT_INDEX]),
-            "p_trade": float(
-                ssot["public_trade_flat_decision_probs"][PUBLIC_TRADE_INDEX]
-            ),
-            "p_flat_hier": float(
-                ssot["public_trade_flat_decision_probs"][PUBLIC_FLAT_INDEX]
-            ),
             "selected_side": selected_side,
             **diagnostics,
-            "v10_path_quality_pred": head_out["path_quality_pred"],
-            "v10_mfe_pred_at_entry": head_out["mfe_first_n_pred"],
-            "v10_tradable_prob": head_out["tradable_prob"],
-            "v10_bad_path_prob": head_out["bad_path_prob"],
             "decision_ts": str(head_out["time"]),
             "_v10_snapshot": snapshot,
             "policy": MODEL_NATIVE_RUNTIME_POLICY,

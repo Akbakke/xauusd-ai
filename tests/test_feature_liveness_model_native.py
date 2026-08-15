@@ -212,11 +212,11 @@ def test_exact_model_native_seq513_can_pass_only_when_finite_and_live(monkeypatc
     assert seen == {"allow_known_dead": False}
 
 
-def test_model_native_seq513_does_not_inherit_legacy_constant_allowlist(monkeypatch) -> None:
+def test_model_native_seq513_rejects_constant_smc_choch_without_any_allowlist(monkeypatch) -> None:
     _stub_multi_tf(monkeypatch)
     batch, signal_names, ctx_cont_names = _batch()
     smc_choch_index = signal_names.index("smc_choch")
-    assert "smc_choch" in feature_liveness.KNOWN_ALLOWED_DEAD
+    assert "smc_choch" not in feature_liveness.KNOWN_ALLOWED_DEAD
     batch["snap_x"][:, smc_choch_index] = 0.0
 
     report = feature_liveness.assert_v10_batch_liveness(
@@ -513,25 +513,6 @@ def test_multi_tf_windows_are_caller_declared_not_wrapper_defaults() -> None:
         assert variable in wrapper.split("; do")[0], (wrapper_name, variable)
 
 
-def test_prior_match_tolerance_cannot_demand_less_than_sampling_noise() -> None:
-    """The prior-match terms compare against the CURRENT BATCH's label rates.
-
-    A rate from n samples has standard error up to sqrt(0.25/n), so a tolerance
-    below that trains the model to chase the batch's own sampling noise. At the
-    bound batch size of 64 the floor is 0.0625 against a declared 0.02, and at
-    the slice minimum of 8 rows it is 0.1768 - nearly nine times the declared
-    tolerance.
-    """
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    assert trainer._batch_rate_sampling_floor(64) == pytest.approx(0.0625)
-    assert trainer._batch_rate_sampling_floor(8) == pytest.approx(0.176776, rel=1e-5)
-    assert trainer._batch_rate_sampling_floor(0) == 0.0
-    # Monotone: more evidence permits a tighter demand.
-    floors = [trainer._batch_rate_sampling_floor(n) for n in (8, 16, 32, 64, 256)]
-    assert floors == sorted(floors, reverse=True)
-
-
 def test_every_declared_timeframe_window_reaches_the_trainer() -> None:
     """A CLI window that never reaches the call site silently falls back.
 
@@ -567,17 +548,26 @@ def test_smoke_audit_measures_edge_and_gates_only_on_validity() -> None:
     """
     repo = Path(__file__).resolve().parents[1]
     audit = (repo / "gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py").read_text()
+    # V30 moved the smoke direction gates out of the CLI script and into the
+    # contract owner, so the gate proof reads the owner that now raises.
+    owner = (
+        repo / "gx1/contracts/entry_model_native_smoke_bundle_audit_v1.py"
+    ).read_text()
 
-    # The honest, data-derived gate stays.
-    assert "if accuracy <= majority:" in audit
-    assert "does not beat majority" in audit
+    # The honest, data-derived gate stays: the split's own majority baseline,
+    # computed from its label counts, must be strictly beaten.
+    assert "majority_baseline_accuracy" in owner
+    assert "max(label_counts.values()) / rows" in owner
+    assert "accuracy > majority" in owner
+    assert "_MAJORITY_BASELINE_EDGE_UNPROVEN]" in owner
 
     # Validity gates stay.
-    assert "below required support={required_trade_rows}" in audit
-    assert "does not contain all three label classes" in audit
-    assert "does not emit all LONG/SHORT/FLAT classes" in audit
+    assert "_TRADE_SUPPORT_BELOW_POLICY]" in owner
+    assert "_PREDICTION_SUPPORT_BELOW_POLICY]" in owner
+    assert "_CLASS_SUPPORT_MISSING]" in owner
 
-    # Ambition gates are gone: no failure is raised against these bars.
+    # Ambition gates are gone: no failure is raised against these bars, in
+    # either the CLI script or the contract owner that now holds the gates.
     for retired in (
         "below {MIN_DIRECTION_ACCURACY",
         "below {MIN_BALANCED_ACCURACY",
@@ -586,6 +576,20 @@ def test_smoke_audit_measures_edge_and_gates_only_on_validity() -> None:
         "below {required_class_wilson_lower",
     ):
         assert retired not in audit, retired
+        assert retired not in owner, retired
+
+    # The unreachable ambition policy keys reach no comparison in the owner.
+    for ambition in (
+        "min_direction_accuracy",
+        "min_balanced_accuracy",
+        "min_trade_direction_precision",
+        "min_class_precision",
+        "min_trade_precision_wilson_lower",
+        "min_class_precision_wilson_lower",
+        "min_context_trade_direction_precision",
+        "min_context_trade_precision_wilson_lower",
+    ):
+        assert ambition not in owner, ambition
 
     # And nothing reports an unenforced bound as if it were a minimum.
     for stale in (
@@ -594,6 +598,7 @@ def test_smoke_audit_measures_edge_and_gates_only_on_validity() -> None:
         '"minimum_class_precision_wilson_lower"',
     ):
         assert stale not in audit, stale
+        assert stale not in owner, stale
 
 
 def test_model_seq_lens_read_the_same_resolution_as_the_data() -> None:

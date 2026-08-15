@@ -15,7 +15,7 @@ OANDA XAU_USD complete MBA candles
                                   |
               TRAIN-only ranking + normalization
                                   |
-         signal (MODEL_NATIVE_SIGNAL_DIM) + 164 cont + 5 cat
+             signal v19 (349) + 159 cont + 5 cat
                                   |
                     shared specialist encoder
                        /                     \
@@ -41,24 +41,52 @@ evidence and closed M5/M15/H1/H4/D1 context. OHLCV is closed and aligned before
 the same owners compute each timeframe; finished M1 features are never rolled
 up. Relevance is learned, with no handwritten confluence vote or TF weight.
 
-The signal surface is `MODEL_NATIVE_SIGNAL_DIM` ordered fields: 34 base + the
-mandatory causal families + 133 TRAIN-ranked, over 16 mandatory families. The
-counts derive from the owner tuples (`MODEL_NATIVE_SPECIALIST_LAYER_FEATURES`)
-and are deliberately not restated here (rule 13). Three families are produced
-in full and pinned only in part -- chart geometry, the candlestick smart3
-suffix and, from V30 package 8B, the session/regime interactions -- so their
-unpinned fields are still emitted and compete in the TRAIN-ranked pool. The V29 layer adds a level registry
+Every MTF lane has 171 ordered fields. The volume owner computes
+`vol_z_20`, `vol_ratio_5_20` and `vol_pct_96` independently on every closed
+timeframe after OHLCV resampling with tick volume summed. The 96-bar Entry
+slice is computed from 191 native M5 rows and the 480-bar Exit slice from 575
+native M1 rows: both include the required 95-row volume prefix and neither is
+zero padded.
+
+The five-field volatility-squeeze state uses the same owner independently on
+local M1/M5 and every native MTF clock. One immutable six-clock manifest binds
+the separate TRAIN-only parameters, source/pair/split/tape lineage, exact bar
+grids and file/payload hashes; there is no default or cross-clock reuse.
+
+MTF matrix V5, cache manifest v11 and full-input liveness v6 bind the single UTC
+trading-session clock. Its H4 bins open on 22/02/06/10/14/18 UTC and D1 opens
+at 22:00 UTC, so the retired H4 00/04/... and calendar-midnight D1 axes cannot
+pass as current cache identity. Signal split v8 binds mandatory stack v13.
+
+The signal v19/direction-mode-v8 surface has 349 ordered fields: 30 code-owned
+base, 164 mandatory causal/raw and all 155 code-owned candidates (319 specialist fields
+total).
+
+Signal v18 binds the same exact 26-field causal candle
+geometry/relation/carry owner locally and on every TF. The retained six-field
+local SMC addition exposes displacement, sided sweep depth, one-shot sweep
+events and event age as raw evidence rather than a direction score.
+
+Exact counts and order derive from `MODEL_NATIVE_SPECIALIST_LAYER_FEATURES`;
+there is no second hand-maintained schema. Every active emitted owner field is
+available to the learned model; no fixed top-k/ranker has selection authority.
+The historically named V29 addition introduced the retained level
+registry
 (`gx1/features/level_registry_v1.py`: level identity, touch counts, ages,
 signed reaction history, break/retest events, round numbers) and a trendline
 registry (`gx1/features/trendline_registry_v1.py`: two-point sloped lines,
 ≥3-touch validation, channels), plus per-timeframe EMA-cross, RSI-threshold,
 divergence, regime-flip and swing-break event primitives on all five
-timeframes (per-TF V4 context width 191). Registry tolerances are TRAIN-fitted
+timeframes. The 171-field per-TF width is derived from
+`MULTI_TF_PER_BAR_FEATURES_V4`. Registry tolerances are TRAIN-fitted
 with the explicit recipe input `--level-tol-quantile-q` and frozen into the
 hash-bound build manifests (M5 lanes: V4 cache manifest; Exit M1 lane: the
-M1-enriched manifest); consumers fail closed without them.
+M1-enriched manifest) with exact fit-source provenance; consumers fail closed
+without them. The level registry's post-fit runtime-population shadow uses the
+same state machine as serving and is only a nonempty-support/provenance gate,
+not a duplicate registry or a shadow/live execution route.
 
-The immutable M5 surface is Entry's sole signal/164/5 input authority. It is
+The immutable M5 surface is Entry's sole signal/159/5 input authority. It is
 loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
 so no split rebuilds the specialist stack. The M1 surface is Exit's matching
 native-resolution authority; neither surface can substitute for the other.
@@ -71,6 +99,12 @@ the exact ordered signal-manifest identity, while their computed values remain
 native to each clock. Exit episodes point into the hash-bound M1 surface; they
 do not duplicate paths.
 
+Exit supervision has no caller-selected lookahead. The dataset event fits one
+hash-bound target policy on native TRAIN M1 only, learns its indifference band
+from executable spread and selects its horizon from the observed 1..512-row
+material-improvement discovery curve. VAL/TEST reuse the frozen policy and
+contribute zero fit rows; corpus load recomputes the TRAIN fit from source.
+
 The current published source authority is pair generation
 `9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd`
 (published 2026-08-09; the 2026-08-04 parent `64d62c1f…` is untouched
@@ -81,7 +115,9 @@ market identity through TRAIN before either ranking or dataset construction.
 The Exit row clock is consecutive authoritative observed M1 rows. Weekend and
 market-closure gaps are allowed only when the native OANDA manifest proves
 source absence; no synthetic candle is inserted. A lifecycle episode has 480
-feature rows and may hold at most 512 causal path states.
+feature rows and 512 supervised path states. Runtime/replay retains the latest
+512 detailed path rows but carries all-time elapsed age and an incremental hash
+over every prior row, so 512 is not a forced trade-duration limit.
 
 Direction labels are future-outcome supervision, not live rules. Their horizon
 is 24 observed M5 bars. Any M1 reconstruction resolves those M5 buckets first;
@@ -95,7 +131,7 @@ all shared evidence -> encoder -> calibrated direction logits
                        unique argmax or failure
                          LONG / SHORT / FLAT
 
-frozen Entry state + M1 features + path -> Exit logits
+learned Entry-decision token + M1 features + five-TF context + path -> Exit logits
                                            |
                                unique argmax or failure
                                   HOLD / EXIT_NOW
@@ -104,6 +140,39 @@ frozen Entry state + M1 features + path -> Exit logits
 Auxiliary, utility, path-quality and sizing heads train the representation and
 produce evidence. They cannot vote, veto, threshold or replace the direction
 argmax. Sizing cannot create an order when direction is FLAT or invalid.
+Its target is an exact selected-side path-quality ECDF fitted on TRAIN
+tradable rows; only explicitly masked rows train the size head, VAL/TEST use
+the frozen ECDF, and the size output has no direction authority.
+The Entry-decision token is a learned 609-to-128 projection of the exact ordered
+local, final, MTF, raw-fusion, fusion-hidden and final-logit decision blocks.
+It is frozen once at fill as exact little-endian float32 bytes. Every Exit result additionally binds the exact M1
+and five-TF tensor bytes, their clocks/cache identity, side, quotes, path and
+trade identity in one persisted full-input envelope.
+
+Lifecycle TRAIN/VAL probes are chosen without looking at HOLD/EXIT_NOW labels;
+future outcomes are attached only after state selection. The lifecycle owner
+also exposes a bounded full-trajectory iterator over every non-tied long/short
+state. Epoch selection uses probes for tractable training, then the selected
+candidate checkpoint must pass a streaming evaluation of every non-tied VAL
+state before bundle creation. Smoke runs cannot authorize this gate.
+
+The five handwritten regime composites, the handcrafted `tf_agreement`
+auxiliary objective/head and `signed_vol_z_20` are absent from the active
+surface. Raw per-TF regime/EMA/trend-age/D1-distance evidence, genuine change
+events, local return and the three unsigned volume primitives remain available
+for learned fusion.
+
+Training-objective v6 and the 46-key recipe-v5 schema use plain unweighted CE
+for main/MTF/masked-side classification and plain unweighted BCE for hierarchy
+binary tasks. Waves A/B retired direction and hierarchical distribution
+forcing. Fixed auxiliary task weights, rank margins and gate regularization
+remain for Wave C, so this is not a claim that every static objective magnitude
+has been eliminated.
+
+The TRAIN-fit squeeze owner is implemented but not connected to the production
+surface. Adoption requires separately fitted artifacts for every clock plus
+manifest/materializer plumbing. Exit remains a closed-M1 system; no tick-level
+feature, dataset, OOS result or trading claim exists.
 
 ## Evidence sequence
 
@@ -120,10 +189,10 @@ source pair
 ```
 
 Failure at any arrow stops the chain. Fresh native and canonical source
-exists, and the V28 dataset chain ran GREEN end to end (369,303/5,904/6,551
-rows, TEST sealed) — those bytes are the frozen baseline for the
-pre-registered V29-vs-V28 evaluation. Current status is before the V30
-feature-surface and dataset rebuild. No accepted candidate exists.
+exists. Historical V28/V29J datasets were retired with their superseded
+feature contracts and have no training or comparison authority. Current
+status is before the current-contract V30 feature-surface and dataset rebuild.
+No accepted candidate exists.
 
 ## Scope boundary
 

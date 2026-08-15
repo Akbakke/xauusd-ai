@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -49,7 +48,6 @@ from gx1.execution.v12_state_from_prebuilt import (
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_ACTION_ORDER,
     UNIFIED_EXIT_MAX_PATH_BARS,
-    UNIFIED_EXIT_PATH_FEATURE_DIM,
     UNIFIED_EXIT_PATH_PRICE_FIELDS,
     UNIFIED_EXIT_SIDE_ORDER,
     unified_exit_path_tensor_from_values,
@@ -58,7 +56,10 @@ from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 
 
 UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION = (
-    "gx1_unified_exit_lifecycle_episode_envelope_v3"
+    "gx1_unified_exit_lifecycle_episode_envelope_v9"
+)
+UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION = (
+    "gx1_unified_exit_full_authoritative_state_population_v1"
 )
 UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION = (
     "gx1_unified_exit_native_pair_m1_authority_v1"
@@ -81,6 +82,7 @@ UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS = (
 )
 UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS = (
     "schema_version",
+    "episode_index",
     "entry_row_index",
     "entry_time",
     "entry_available_at",
@@ -90,14 +92,17 @@ UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS = (
     "entry_ask",
     "m1_start_row",
     "m1_start_time",
+    "first_state_decision_time",
     "path_state_count",
-    "target_lookahead_m1_steps",
-    "non_tied_target_count",
-    "hold_target_count",
-    "exit_now_target_count",
-    "tied_target_count",
+    "state_indices",
+    "decision_row_indices",
+    "state_row_time_ns",
+    "decision_time_ns",
+    "state_valid_mask",
 )
-UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY = 4
+UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY = (
+    len(UNIFIED_EXIT_SIDE_ORDER) * UNIFIED_EXIT_MAX_PATH_BARS
+)
 UNIFIED_EXIT_INVALID_DECISION_TIME_NS = np.iinfo(np.int64).min
 
 
@@ -124,6 +129,133 @@ def canonical_json_sha256(value: Any) -> str:
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def unified_exit_state_population_arrays(
+    *,
+    m1_times: pd.DatetimeIndex,
+    m1_start_row: int,
+) -> dict[str, np.ndarray]:
+    """Build the exact full 512-state population for one episode.
+
+    M1 source timestamps label bar starts.  A decision state becomes available
+    only after that authoritative bar has closed, so ``decision_time_ns`` is
+    one full M1 bar later than ``state_row_time_ns``.  No target value controls
+    state membership. Outcome values never enter this population owner.
+    """
+
+    times = pd.DatetimeIndex(m1_times).as_unit("ns")
+    count = int(UNIFIED_EXIT_MAX_PATH_BARS)
+    if (
+        times.empty
+        or times.hasnans
+        or not times.is_unique
+        or not times.is_monotonic_increasing
+        or times.tz is None
+        or times[0].utcoffset() != pd.Timedelta(0)
+        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
+        or isinstance(m1_start_row, bool)
+        or not isinstance(m1_start_row, (int, np.integer))
+    ):
+        raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_INPUT_INVALID")
+    start = int(m1_start_row)
+    if (
+        start < 0
+        or start + count > len(times)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_INPUT_INVALID")
+    state_indices = np.arange(count, dtype=np.int32)
+    decision_rows = np.arange(start, start + count, dtype=np.int64)
+    state_row_time_ns = np.asarray(times.asi8[decision_rows], dtype=np.int64)
+    decision_time_ns = state_row_time_ns + np.int64(
+        pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
+    )
+    if np.any(decision_time_ns <= state_row_time_ns):
+        raise RuntimeError("UNIFIED_EXIT_STATE_DECISION_CLOCK_INVALID")
+    return {
+        "state_indices": state_indices,
+        "decision_row_indices": decision_rows,
+        "state_row_time_ns": state_row_time_ns,
+        "decision_time_ns": decision_time_ns,
+        "state_valid_mask": np.ones(count, dtype=np.bool_),
+    }
+
+
+def update_unified_exit_state_population_stream(
+    digest: Any,
+    *,
+    episode_index: int,
+    entry_row_index: int,
+    side_index: int,
+    m1_start_row: int,
+    population: Mapping[str, np.ndarray],
+) -> None:
+    """Append one exact episode population to a SHA256 stream."""
+
+    if not hasattr(digest, "update"):
+        raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_DIGEST_INVALID")
+    expected = unified_exit_state_population_arrays(
+        m1_times=pd.DatetimeIndex(
+            np.asarray(population["state_row_time_ns"], dtype=np.int64),
+            tz="UTC",
+        ),
+        m1_start_row=0,
+    )
+    # The reconstruction above uses a local 0..511 clock and therefore only
+    # validates vector lengths/target domain.  Validate the absolute arrays
+    # explicitly before hashing them in declared order.
+    count = int(UNIFIED_EXIT_MAX_PATH_BARS)
+    arrays: tuple[tuple[str, str], ...] = (
+        ("state_indices", "<i4"),
+        ("decision_row_indices", "<i8"),
+        ("state_row_time_ns", "<i8"),
+        ("decision_time_ns", "<i8"),
+        ("state_valid_mask", "u1"),
+    )
+    normalized: dict[str, np.ndarray] = {}
+    for name, dtype in arrays:
+        raw_values = np.asarray(population.get(name))
+        values = np.asarray(raw_values, dtype=dtype)
+        if values.shape != (count,):
+            raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_VECTOR_INVALID")
+        # Never let numpy's integer/bool cast turn a malformed persisted value
+        # (for example state 512.5 or mask value 2) into a valid-looking one.
+        # Parquet physical types may differ across engines, so compare values
+        # rather than requiring one implementation-specific dtype.
+        if not np.array_equal(raw_values, values):
+            raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_VECTOR_INVALID")
+        normalized[name] = values
+    if (
+        not np.array_equal(normalized["state_indices"], expected["state_indices"])
+        or not np.array_equal(
+            normalized["decision_row_indices"],
+            np.arange(
+                int(m1_start_row),
+                int(m1_start_row) + count,
+                dtype=np.int64,
+            ),
+        )
+        or not normalized["state_valid_mask"].all()
+        or np.any(
+            normalized["decision_time_ns"]
+            - normalized["state_row_time_ns"]
+            != int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
+        )
+    ):
+        raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_VECTOR_INVALID")
+    header = np.asarray(
+        [
+            int(episode_index),
+            int(entry_row_index),
+            int(side_index),
+            int(m1_start_row),
+            count,
+        ],
+        dtype="<i8",
+    )
+    digest.update(header.tobytes(order="C"))
+    for name, _dtype in arrays:
+        digest.update(np.ascontiguousarray(normalized[name]).tobytes(order="C"))
 
 
 def _require_base28_native_m1_subset_identity(
@@ -342,6 +474,13 @@ def require_unified_exit_lifecycle_authority_evidence(
         value.get("schema_version")
         != UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
         or value.get("future_outcomes_used_as_model_inputs") is not False
+        or value.get("sample_selection_depends_on_future_target") is not False
+        or value.get("training_population")
+        != UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+        or value.get("validation_population") != "all_authoritative_states"
+        or value.get("test_population") != "all_authoritative_states"
+        or value.get("exit_supervision_authority")
+        != "executable_exit_now_reward_plus_train_fitted_q"
         or not isinstance(authority, Mapping)
         or authority.get("schema_version")
         != UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION
@@ -350,6 +489,7 @@ def require_unified_exit_lifecycle_authority_evidence(
         or value.get("m1_source_path") != authority.get("m1_source_path")
         or value.get("m1_source_sha256")
         != authority.get("m1_source_sha256")
+        or value.get("extra_lookahead_beyond_trajectory") != 0
     ):
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_AUTHORITY_EVIDENCE_INVALID")
     subset = authority.get("base28_native_m1_subset_proof")
@@ -366,33 +506,6 @@ def require_unified_exit_lifecycle_authority_evidence(
     ):
         raise RuntimeError("UNIFIED_EXIT_M1_NATIVE_SUBSET_EVIDENCE_INVALID")
     return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
-
-
-def unified_exit_future_extrema(
-    *,
-    bid: np.ndarray,
-    ask: np.ndarray,
-    lookahead: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Return next-L executable extrema for every non-censored state."""
-
-    if (
-        isinstance(lookahead, bool)
-        or not isinstance(lookahead, int)
-        or lookahead <= 0
-        or len(bid) != len(ask)
-        or len(bid) <= lookahead
-    ):
-        raise RuntimeError("UNIFIED_EXIT_TARGET_RIGHT_CENSORED_EPISODE")
-    future_bid = np.lib.stride_tricks.sliding_window_view(
-        np.asarray(bid)[1:],
-        lookahead,
-    ).max(axis=1)
-    future_ask = np.lib.stride_tricks.sliding_window_view(
-        np.asarray(ask)[1:],
-        lookahead,
-    ).min(axis=1)
-    return future_bid, future_ask
 
 
 def _read_exact_json(path: Path) -> dict[str, Any]:
@@ -496,7 +609,7 @@ def _validated_m1_arrays(
 
 
 class UnifiedExitLifecycleSplit:
-    """Validated split-local episode pointers and deterministic training samples."""
+    """Validated episodes containing every authoritative lifecycle state."""
 
     def __init__(
         self,
@@ -521,6 +634,19 @@ class UnifiedExitLifecycleSplit:
         self.entry_row_count = int(entry_row_count)
         self._m1_times = m1_times
         self._m1 = dict(m1_arrays)
+        # The canonical native tape names midpoint OHLC ``open/high/low/close``.
+        # The path tensor uses explicit ``mid_*`` ownership to distinguish it
+        # from executable bid/ask.  Bind those names to the exact same arrays;
+        # never reconstruct midpoint from bid/ask.
+        for suffix in ("open", "high", "low", "close"):
+            source_name = suffix
+            target_name = f"mid_{suffix}"
+            source_values = self._m1.get(source_name)
+            if not isinstance(source_values, np.ndarray):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_M1_MID_{suffix.upper()}_SOURCE_MISSING"
+                )
+            self._m1[target_name] = source_values
         # The Exit feature surface begins later than the source clock, so a
         # source row r is feature row r - feature_row_offset. The surface must
         # be exactly the tail of the source clock from that offset; anything
@@ -550,26 +676,9 @@ class UnifiedExitLifecycleSplit:
                 raise RuntimeError(
                     f"UNIFIED_EXIT_M1_FEATURE_SURFACE_{name.upper()}_SHAPE_INVALID"
                 )
-        self._selected_state = np.full(
-            (self.entry_row_count, UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY),
-            -1,
-            dtype=np.int16,
-        )
-        self._selected_start = np.full_like(
-            self._selected_state,
-            -1,
-            dtype=np.int64,
-        )
-        self._selected_side = np.zeros_like(self._selected_state, dtype=np.int8)
-        self._selected_target = np.zeros_like(
-            self._selected_state,
-            dtype=np.int8,
-        )
-        self._entry_bid = np.zeros_like(self._selected_state, dtype=np.float64)
-        self._entry_ask = np.zeros_like(self._selected_state, dtype=np.float64)
-        self._validate_and_select(episodes, split_manifest)
+        self._validate_full_population(episodes, split_manifest)
 
-    def _validate_and_select(
+    def _validate_full_population(
         self,
         episodes: pd.DataFrame,
         manifest: Mapping[str, Any],
@@ -588,59 +697,52 @@ class UnifiedExitLifecycleSplit:
             raise RuntimeError(
                 f"UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_INVALID: {self.split}"
             )
-        lookahead = manifest.get("target_lookahead_m1_steps")
-        if (
-            isinstance(lookahead, bool)
-            or not isinstance(lookahead, int)
-            or lookahead <= 0
-        ):
-            raise RuntimeError(
-                f"UNIFIED_EXIT_LIFECYCLE_LOOKAHEAD_INVALID: {self.split}"
-            )
-        future_bid, future_ask = unified_exit_future_extrema(
-            bid=self._m1["bid_close"],
-            ask=self._m1["ask_close"],
-            lookahead=lookahead,
+        self._episode_pointers: dict[
+            tuple[int, int], tuple[int, int, float, float]
+        ] = {}
+        state_population_stream = hashlib.sha256()
+        state_population_stream.update(
+            UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION.encode("ascii")
         )
-        current_bid = self._m1["bid_close"][:-lookahead]
-        current_ask = self._m1["ask_close"][:-lookahead]
-        long_targets = np.where(
-            future_bid > current_bid,
-            0,
-            np.where(future_bid < current_bid, 1, -1),
-        ).astype(np.int8)
-        short_targets = np.where(
-            future_ask < current_ask,
-            0,
-            np.where(future_ask > current_ask, 1, -1),
-        ).astype(np.int8)
-
-        target_stream = hashlib.sha256()
-        target_counts = {
-            UNIFIED_EXIT_ACTION_ORDER[0]: 0,
-            UNIFIED_EXIT_ACTION_ORDER[1]: 0,
-            "TIED_OMITTED": 0,
-        }
         observed_pairs: set[tuple[int, int]] = set()
-        selected_counts = np.zeros(2, dtype=np.int64)
-        selected_side_counts = np.zeros(2, dtype=np.int64)
+        sides_by_entry: dict[int, list[int]] = {}
+        side_population_counts = np.zeros(2, dtype=np.int64)
         for raw in episodes.to_dict(orient="records"):
+            integer_fields = (
+                "episode_index",
+                "entry_row_index",
+                "side_index",
+                "m1_start_row",
+                "path_state_count",
+            )
+            if any(
+                isinstance(raw[name], bool)
+                or not isinstance(raw[name], (int, np.integer))
+                for name in integer_fields
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_INTEGER_INVALID: {self.split}"
+                )
+            episode_index = int(raw["episode_index"])
             entry_index = int(raw["entry_row_index"])
             side_index = int(raw["side_index"])
             start = int(raw["m1_start_row"])
             state_count = int(raw["path_state_count"])
-            episode_lookahead = int(raw["target_lookahead_m1_steps"])
             if (
-                not 0 <= entry_index < self.entry_row_count
+                episode_index < 0
+                or not 0 <= entry_index < self.entry_row_count
                 or side_index not in (0, 1)
                 or raw["side"] != UNIFIED_EXIT_SIDE_ORDER[side_index]
                 or state_count != UNIFIED_EXIT_MAX_PATH_BARS
-                or episode_lookahead != lookahead
                 or start < 0
-                or start + state_count + lookahead > len(self._m1_times)
+                or start + state_count > len(self._m1_times)
             ):
                 raise RuntimeError(
                     f"UNIFIED_EXIT_LIFECYCLE_EPISODE_VALUE_INVALID: {self.split}"
+                )
+            if episode_index != len(observed_pairs):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_ORDER_INVALID: {self.split}"
                 )
             pair = (entry_index, side_index)
             if pair in observed_pairs:
@@ -648,11 +750,15 @@ class UnifiedExitLifecycleSplit:
                     f"UNIFIED_EXIT_LIFECYCLE_EPISODE_DUPLICATE: {self.split} {pair}"
                 )
             observed_pairs.add(pair)
+            sides_by_entry.setdefault(entry_index, []).append(side_index)
             if (
                 pd.Timestamp(raw["m1_start_time"])
                 != self._m1_times[start]
                 or pd.Timestamp(raw["entry_available_at"])
                 != self._m1_times[start]
+                or pd.Timestamp(raw["first_state_decision_time"])
+                != self._m1_times[start]
+                + pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS)
             ):
                 raise RuntimeError(
                     f"UNIFIED_EXIT_LIFECYCLE_POINTER_TIME_MISMATCH: {self.split}"
@@ -666,105 +772,107 @@ class UnifiedExitLifecycleSplit:
                 raise RuntimeError(
                     f"UNIFIED_EXIT_LIFECYCLE_ENTRY_QUOTE_MISMATCH: {self.split}"
                 )
-            target = (
-                long_targets[start : start + state_count]
-                if side_index == 0
-                else short_targets[start : start + state_count]
+            self._episode_pointers[pair] = (
+                episode_index,
+                start,
+                expected_bid,
+                expected_ask,
             )
-            counts = {
-                0: int(np.count_nonzero(target == 0)),
-                1: int(np.count_nonzero(target == 1)),
-                -1: int(np.count_nonzero(target == -1)),
-            }
-            if (
-                int(raw["hold_target_count"]) != counts[0]
-                or int(raw["exit_now_target_count"]) != counts[1]
-                or int(raw["tied_target_count"]) != counts[-1]
-                or int(raw["non_tied_target_count"]) != counts[0] + counts[1]
-            ):
-                raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_TARGET_COUNT_MISMATCH: {self.split}"
-                )
-            target_counts[UNIFIED_EXIT_ACTION_ORDER[0]] += counts[0]
-            target_counts[UNIFIED_EXIT_ACTION_ORDER[1]] += counts[1]
-            target_counts["TIED_OMITTED"] += counts[-1]
-            target_stream.update(
-                np.asarray(
-                    [entry_index, side_index, start],
-                    dtype="<i8",
-                ).tobytes()
+            expected_population = unified_exit_state_population_arrays(
+                m1_times=self._m1_times,
+                m1_start_row=start,
             )
-            target_stream.update(np.ascontiguousarray(target).tobytes())
+            observed_population: dict[str, np.ndarray] = {}
+            for name, expected in expected_population.items():
+                observed = np.asarray(raw[name], dtype=expected.dtype)
+                if observed.shape != expected.shape or not np.array_equal(
+                    observed,
+                    expected,
+                ):
+                    raise RuntimeError(
+                        "UNIFIED_EXIT_LIFECYCLE_STATE_POPULATION_MISMATCH: "
+                        f"{self.split} episode={episode_index} field={name}"
+                    )
+                observed_population[name] = observed
+            update_unified_exit_state_population_stream(
+                state_population_stream,
+                episode_index=episode_index,
+                entry_row_index=entry_index,
+                side_index=side_index,
+                m1_start_row=start,
+                population=observed_population,
+            )
+            side_population_counts[side_index] += state_count
 
-            for action_index in (0, 1):
-                candidates = np.flatnonzero(target == action_index)
-                if len(candidates) == 0:
-                    continue
-                slot = side_index * 2 + action_index
-                selector = hashlib.sha256(
-                    (
-                        f"{self.split}|{entry_index}|{side_index}|"
-                        f"{action_index}|{manifest['target_stream_sha256']}"
-                    ).encode("ascii")
-                ).digest()
-                selected = int(
-                    candidates[
-                        int.from_bytes(selector[:8], "little") % len(candidates)
-                    ]
-                )
-                self._selected_state[entry_index, slot] = selected
-                self._selected_start[entry_index, slot] = start
-                self._selected_side[entry_index, slot] = side_index
-                self._selected_target[entry_index, slot] = action_index
-                self._entry_bid[entry_index, slot] = expected_bid
-                self._entry_ask[entry_index, slot] = expected_ask
-                selected_counts[action_index] += 1
-                selected_side_counts[side_index] += 1
-
-        expected_target_stream = manifest.get("target_stream_sha256")
-        if target_stream.hexdigest() != expected_target_stream:
+        if any(sides != [0, 1] for sides in sides_by_entry.values()):
             raise RuntimeError(
-                f"UNIFIED_EXIT_LIFECYCLE_TARGET_STREAM_MISMATCH: {self.split}"
-            )
-        if manifest.get("target_counts") != target_counts:
-            raise RuntimeError(
-                f"UNIFIED_EXIT_LIFECYCLE_TARGET_PROOF_MISMATCH: {self.split}"
+                f"UNIFIED_EXIT_LIFECYCLE_ENTRY_SIDE_POPULATION_INVALID: {self.split}"
             )
         if int(manifest.get("episode_rows", -1)) != len(episodes):
             raise RuntimeError(
                 f"UNIFIED_EXIT_LIFECYCLE_EPISODE_ROWS_MISMATCH: {self.split}"
             )
-        if np.any(selected_counts <= 0) or np.any(selected_side_counts <= 0):
+        expected_population_rows = len(episodes) * UNIFIED_EXIT_MAX_PATH_BARS
+        if (
+            manifest.get("state_population_schema_version")
+            != UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+            or manifest.get("state_population")
+            != "all_authoritative_states_both_sides_every_complete_episode"
+            or manifest.get("state_population_per_episode")
+            != UNIFIED_EXIT_MAX_PATH_BARS
+            or manifest.get("state_population_rows") != expected_population_rows
+            or manifest.get("state_population_stream_sha256")
+            != state_population_stream.hexdigest()
+            or manifest.get("first_state_pre_entry_history_rows")
+            != EXIT_FEATURE_SEQUENCE_BARS - 1
+            or manifest.get("first_state_post_fill_closed_bars") != 1
+            or manifest.get("sample_selection_depends_on_future_target") is not False
+            or int(side_population_counts.sum()) != expected_population_rows
+            or np.any(side_population_counts <= 0)
+        ):
             raise RuntimeError(
-                f"UNIFIED_EXIT_LIFECYCLE_SELECTED_CLASS_OR_SIDE_DEAD: "
-                f"split={self.split} classes={selected_counts.tolist()} "
-                f"sides={selected_side_counts.tolist()}"
+                f"UNIFIED_EXIT_LIFECYCLE_FULL_POPULATION_PROOF_INVALID: {self.split}"
             )
-        self.selected_target_counts = {
-            UNIFIED_EXIT_ACTION_ORDER[index]: int(selected_counts[index])
+        self.state_side_counts = {
+            UNIFIED_EXIT_SIDE_ORDER[index]: int(side_population_counts[index])
             for index in range(2)
         }
-        self.selected_side_counts = {
-            UNIFIED_EXIT_SIDE_ORDER[index]: int(selected_side_counts[index])
-            for index in range(2)
-        }
+        self.state_population_rows = expected_population_rows
+        self.state_population_sha256 = state_population_stream.hexdigest()
 
-    def selected_current_decision_times_ns(self) -> np.ndarray:
-        """Return unique selected decision clocks for route coverage proof."""
-
-        valid = self._selected_state >= 0
-        current_indices = np.unique(
-            self._selected_start[valid].astype(np.int64, copy=False)
-            + self._selected_state[valid].astype(np.int64, copy=False)
+    def _full_current_indices(self) -> np.ndarray:
+        intervals = sorted(
+            {
+                (int(pointer[1]), int(pointer[1]) + UNIFIED_EXIT_MAX_PATH_BARS)
+                for pointer in self._episode_pointers.values()
+            }
         )
-        if current_indices.size < 1:
-            raise RuntimeError(
-                "UNIFIED_EXIT_SELECTED_CURRENT_POPULATION_EMPTY"
-            )
+        merged: list[tuple[int, int]] = []
+        for left, right in intervals:
+            if not merged or left > merged[-1][1]:
+                merged.append((left, right))
+            else:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], right))
+        if not merged:
+            raise RuntimeError("UNIFIED_EXIT_FULL_CURRENT_POPULATION_EMPTY")
+        return np.concatenate(
+            [np.arange(left, right, dtype=np.int64) for left, right in merged]
+        )
+
+    def authoritative_current_decision_times_ns(self) -> np.ndarray:
+        """Return every unique full-population bar-close decision clock."""
+
+        current_indices = self._full_current_indices()
         return np.asarray(
-            self._m1_times.asi8[current_indices],
+            self._m1_times.asi8[current_indices]
+            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
             dtype=np.int64,
         )
+
+    def selected_current_decision_times_ns(self) -> np.ndarray:
+        """Compatibility spelling; the returned population is no longer sampled."""
+
+        return self.authoritative_current_decision_times_ns()
 
     def train_normalization_population(self) -> dict[str, Any]:
         """Expose exact unique physical M1 rows consumed by TRAIN Exit.
@@ -772,19 +880,14 @@ class UnifiedExitLifecycleSplit:
         The returned feature matrices remain the lifecycle-owned disk-backed
         arrays.  Only sorted int64 row selections are materialized, so the
         normalization fit can scan them repeatedly without copying the full
-        513/142/5 surfaces into RAM.
+        full owner-declared signal/context surfaces into RAM.
         """
 
         if self.split != "train":
             raise RuntimeError(
                 "UNIFIED_EXIT_NORMALIZATION_TRAIN_SPLIT_REQUIRED"
             )
-        valid = self._selected_state >= 0
-        selected_current = (
-            self._selected_start[valid].astype(np.int64, copy=False)
-            + self._selected_state[valid].astype(np.int64, copy=False)
-        )
-        current_indices = np.unique(selected_current)
+        current_indices = self._full_current_indices()
         if current_indices.size < 1:
             raise RuntimeError(
                 "UNIFIED_EXIT_NORMALIZATION_CURRENT_POPULATION_EMPTY"
@@ -846,7 +949,8 @@ class UnifiedExitLifecycleSplit:
             "local_row_indices": local_feature_indices,
             "current_row_indices": current_feature_indices,
             "current_decision_times_ns": np.asarray(
-                self._m1_times.asi8[current_indices],
+                self._m1_times.asi8[current_indices]
+                + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
                 dtype=np.int64,
             ),
             "source_times_ns": np.asarray(
@@ -856,128 +960,175 @@ class UnifiedExitLifecycleSplit:
         }
 
     def sample(self, entry_row_index: int) -> dict[str, np.ndarray]:
+        raise RuntimeError(
+            "UNIFIED_EXIT_STATE_SAMPLE_RETIRED: consume "
+            "materialize_causal_episode_core"
+        )
+
+    def materialize_causal_episode_core(
+        self,
+        entry_row_index: int,
+    ) -> dict[str, Any] | None:
+        """Materialize one non-repeated local/path/target episode pair.
+
+        The local feature timeline contains 479 pre-entry owner rows followed
+        by exactly 512 newly closed M1 rows.  Both side paths are complete and
+        unpadded.  MTF unique histories are attached by the dataset cache owner.
+        """
+
+        if (
+            isinstance(entry_row_index, bool)
+            or not isinstance(entry_row_index, (int, np.integer))
+        ):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_REQUEST_INVALID")
         index = int(entry_row_index)
         if not 0 <= index < self.entry_row_count:
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_REQUEST_INVALID")
+        pointers = tuple(
+            self._episode_pointers.get((index, side_index))
+            for side_index in (0, 1)
+        )
+        if pointers == (None, None):
+            return None
+        if any(pointer is None for pointer in pointers):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_PAIR_MISSING")
+        long_pointer = pointers[0]
+        short_pointer = pointers[1]
+        if long_pointer is None or short_pointer is None:
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_PAIR_MISSING")
+        if (
+            int(long_pointer[1]) != int(short_pointer[1])
+            or float(long_pointer[2]) != float(short_pointer[2])
+            or float(long_pointer[3]) != float(short_pointer[3])
+        ):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_SIDE_SOURCE_SPLIT_BRAIN")
+        start = int(long_pointer[1])
+        warm_rows = EXIT_FEATURE_SEQUENCE_BARS - 1
+        local_source_start = start - warm_rows
+        local_source_stop = start + UNIFIED_EXIT_MAX_PATH_BARS
+        local_feature_start = local_source_start - self._feature_row_offset
+        local_feature_stop = local_source_stop - self._feature_row_offset
+        if local_feature_start < 0 or local_feature_stop > len(
+            self._m1_feature_times
+        ):
             raise RuntimeError(
-                f"UNIFIED_EXIT_LIFECYCLE_ENTRY_INDEX_INVALID: {index}"
+                "UNIFIED_EXIT_EPISODE_M1_FEATURE_HISTORY_INSUFFICIENT"
             )
-        paths = np.zeros(
-            (
-                UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
-                UNIFIED_EXIT_MAX_PATH_BARS,
-                UNIFIED_EXIT_PATH_FEATURE_DIM,
-            ),
-            dtype=np.float32,
+        source_slice = slice(start, local_source_stop)
+        price_arrays = tuple(
+            self._m1[name] for name in UNIFIED_EXIT_PATH_PRICE_FIELDS
         )
-        lengths = np.zeros(
-            UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
-            dtype=np.int64,
-        )
-        feature_seq = np.zeros(
-            (
-                UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
-                EXIT_FEATURE_SEQUENCE_BARS,
-                MODEL_NATIVE_SIGNAL_DIM,
-            ),
-            dtype=np.float32,
-        )
-        feature_snap = np.zeros(
-            (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_SIGNAL_DIM),
-            dtype=np.float32,
-        )
-        feature_ctx_cont = np.zeros(
-            (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_CTX_CONT_DIM),
-            dtype=np.float32,
-        )
-        feature_ctx_cat = np.zeros(
-            (UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY, MODEL_NATIVE_CTX_CAT_DIM),
-            dtype=np.int64,
-        )
-        decision_time_ns = np.full(
-            UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY,
-            UNIFIED_EXIT_INVALID_DECISION_TIME_NS,
-            dtype=np.int64,
-        )
-        valid = self._selected_state[index] >= 0
-        for slot in np.flatnonzero(valid):
-            state = int(self._selected_state[index, slot])
-            start = int(self._selected_start[index, slot])
-            length = state + 1
-            entry_bid = float(self._entry_bid[index, slot])
-            entry_ask = float(self._entry_ask[index, slot])
-            if (
-                not math.isfinite(entry_bid)
-                or not math.isfinite(entry_ask)
-                or entry_bid <= 0.0
-                or entry_ask <= entry_bid
-            ):
-                raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ENTRY_QUOTE_INVALID")
-            source_slice = slice(start, start + length)
-            current_row = start + state
-            decision_time_ns[slot] = int(self._m1_times[current_row].value)
-            feature_row = current_row - self._feature_row_offset
-            feature_start = feature_row - EXIT_FEATURE_SEQUENCE_BARS + 1
-            if feature_start < 0:
-                raise RuntimeError(
-                    "UNIFIED_EXIT_LIFECYCLE_M1_FEATURE_HISTORY_INSUFFICIENT"
+        if len(price_arrays) != len(UNIFIED_EXIT_PATH_PRICE_FIELDS):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_PATH_LAYOUT_INVALID")
+        path_by_side = []
+        for side_index, pointer in enumerate((long_pointer, short_pointer)):
+            del side_index
+            path_by_side.append(
+                unified_exit_path_tensor_from_values(
+                    price_values=np.column_stack(
+                        [values[source_slice] for values in price_arrays]
+                    ),
+                    volumes=self._m1["volume"][source_slice],
+                    bars_in_trade=UNIFIED_EXIT_MAX_PATH_BARS,
+                    entry_bid=float(pointer[2]),
+                    entry_ask=float(pointer[3]),
                 )
-            feature_slice = slice(
-                feature_start,
-                feature_row + 1,
             )
-            feature_seq[slot] = self._m1_features["signal"][feature_slice]
-            feature_snap[slot] = feature_seq[slot, -1]
-            feature_ctx_cont[slot] = self._m1_features["ctx_cont"][feature_row]
-            feature_ctx_cat[slot] = self._m1_features["ctx_cat"][feature_row]
-            price_arrays = (
-                self._m1["bid_open"],
-                self._m1["bid_high"],
-                self._m1["bid_low"],
-                self._m1["bid_close"],
-                self._m1["ask_open"],
-                self._m1["ask_high"],
-                self._m1["ask_low"],
-                self._m1["ask_close"],
-                self._m1["open"],
-                self._m1["high"],
-                self._m1["low"],
-                self._m1["close"],
-            )
-            if len(price_arrays) != len(UNIFIED_EXIT_PATH_PRICE_FIELDS):
-                raise RuntimeError("UNIFIED_EXIT_PATH_PRICE_LAYOUT_INVALID")
-            paths[slot, :length] = unified_exit_path_tensor_from_values(
-                price_values=np.column_stack(
-                    [
-                        values[source_slice]
-                        for values in price_arrays
-                    ]
-                ),
-                volumes=self._m1["volume"][source_slice],
-                entry_bid=entry_bid,
-                entry_ask=entry_ask,
-            )
-            lengths[slot] = length
-        if not np.isfinite(paths).all():
-            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_PATH_TENSOR_NONFINITE")
+        long_exit_reward = (
+            np.asarray(self._m1["bid_close"][source_slice], dtype=np.float64)
+            - float(long_pointer[3])
+        ) / float(long_pointer[3]) * 10_000.0
+        short_exit_reward = (
+            float(short_pointer[2])
+            - np.asarray(self._m1["ask_close"][source_slice], dtype=np.float64)
+        ) / float(short_pointer[2]) * 10_000.0
+        exit_now_reward = np.stack(
+            [long_exit_reward, short_exit_reward], axis=0
+        )
+        state_valid = np.ones(
+            (2, UNIFIED_EXIT_MAX_PATH_BARS), dtype=np.bool_
+        )
+        terminal = np.zeros_like(state_valid)
+        terminal[:, -1] = True
+        action_valid = np.repeat(state_valid[..., None], 2, axis=2)
+        action_valid[..., 0] &= ~terminal
+        terminal_reason = np.zeros_like(state_valid, dtype=np.int64)
+        terminal_reason[:, -1] = 1
+        if not np.isfinite(exit_now_reward).all():
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_EXIT_REWARD_NONFINITE")
+        local_times = np.asarray(
+            self._m1_feature_times.asi8[
+                local_feature_start:local_feature_stop
+            ],
+            dtype=np.int64,
+        )
+        state_times = np.asarray(
+            self._m1_times.asi8[start:local_source_stop], dtype=np.int64
+        )
         return {
-            "exit_feature_seq_x": feature_seq,
-            "exit_feature_snap_x": feature_snap,
-            "exit_feature_ctx_cat": feature_ctx_cat,
-            "exit_feature_ctx_cont": feature_ctx_cont,
-            "exit_decision_time_ns": decision_time_ns,
-            "exit_path_x": paths,
-            "exit_path_lengths": lengths,
-            "exit_side_index": self._selected_side[index].astype(
-                np.int64,
-                copy=True,
+            "entry_row_index": index,
+            "episode_index_by_side": [
+                int(long_pointer[0]),
+                int(short_pointer[0]),
+            ],
+            "m1_start_row": start,
+            "lifecycle_state_population_sha256": self.state_population_sha256,
+            "exit_local_history_x": np.ascontiguousarray(
+                self._m1_features["signal"][
+                    local_feature_start:local_feature_stop
+                ],
+                dtype=np.float32,
             ),
-            "exit_action_target": self._selected_target[index].astype(
-                np.int64,
-                copy=True,
+            "exit_local_history_time_ns": local_times,
+            "exit_state_ctx_cont": np.ascontiguousarray(
+                self._m1_features["ctx_cont"][
+                    start
+                    - self._feature_row_offset : local_source_stop
+                    - self._feature_row_offset
+                ],
+                dtype=np.float32,
             ),
-            "exit_sample_valid": valid.astype(np.bool_, copy=True),
+            "exit_state_ctx_cat": np.ascontiguousarray(
+                self._m1_features["ctx_cat"][
+                    start
+                    - self._feature_row_offset : local_source_stop
+                    - self._feature_row_offset
+                ],
+                dtype=np.int64,
+            ),
+            "exit_state_row_time_ns": state_times,
+            "exit_decision_time_ns": np.ascontiguousarray(
+                state_times
+                + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
+                dtype=np.int64,
+            ),
+            "exit_path_x": np.ascontiguousarray(
+                np.stack(path_by_side, axis=0), dtype=np.float32
+            ),
+            "exit_entry_bid_ask": np.asarray(
+                [
+                    [float(long_pointer[2]), float(long_pointer[3])],
+                    [float(short_pointer[2]), float(short_pointer[3])],
+                ],
+                dtype=np.float64,
+            ),
+            "exit_now_reward_bps": np.ascontiguousarray(
+                exit_now_reward, dtype=np.float32
+            ),
+            "exit_action_valid_mask": np.ascontiguousarray(
+                action_valid, dtype=np.bool_
+            ),
+            "exit_state_valid_mask": np.ascontiguousarray(
+                state_valid, dtype=np.bool_
+            ),
+            "exit_terminal_mask": np.ascontiguousarray(
+                terminal, dtype=np.bool_
+            ),
+            "exit_terminal_reason_index": np.ascontiguousarray(
+                terminal_reason, dtype=np.int64
+            ),
+            "exit_episode_lengths": np.full(2, UNIFIED_EXIT_MAX_PATH_BARS, dtype=np.int64),
         }
-
 
 class UnifiedExitLifecycleCorpus:
     """Load and cryptographically validate one immutable lifecycle directory."""
@@ -1001,7 +1152,7 @@ class UnifiedExitLifecycleCorpus:
             not selected_splits
             or len(selected_splits) != len(set(selected_splits))
             or any(
-                split not in {"train", "val"}
+                split not in {"train", "val", "test"}
                 for split in selected_splits
             )
         ):
@@ -1047,7 +1198,8 @@ class UnifiedExitLifecycleCorpus:
                 "m1_authority",
                 "m1_authority_sha256",
                 "path_state_count",
-                "target_lookahead_m1_steps",
+                "state_population_schema_version",
+                "state_population_per_episode",
                 "m1_row_clock",
                 "shared_feature_base_contract",
                 "side_order",
@@ -1062,9 +1214,14 @@ class UnifiedExitLifecycleCorpus:
             or root_manifest["decision"] != "PASS"
             or root_manifest["entry_run_id"] != dataset_run_id
             or root_manifest["path_state_count"] != UNIFIED_EXIT_MAX_PATH_BARS
+            or root_manifest["state_population_schema_version"]
+            != UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+            or root_manifest["state_population_per_episode"]
+            != UNIFIED_EXIT_MAX_PATH_BARS
             or root_manifest["m1_row_clock"] != EXIT_FEATURE_ROW_CLOCK
             or root_manifest["side_order"] != list(UNIFIED_EXIT_SIDE_ORDER)
             or root_manifest["action_order"] != list(UNIFIED_EXIT_ACTION_ORDER)
+            or not isinstance(root_manifest["splits"], Mapping)
             or set(root_manifest["splits"]) != {"train", "val", "test"}
         ):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ROOT_CONTRACT_INVALID")
@@ -1185,7 +1342,7 @@ class UnifiedExitLifecycleCorpus:
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
         # The source clock is NOT advanced. Episode pointers are absolute rows
-        # written against it and sealed into target_stream_sha256, so moving it
+        # written against it and sealed into the population streams, so moving it
         # would invalidate immutable evidence. The offset is carried instead and
         # applied wherever the feature surface is indexed.
 
@@ -1195,8 +1352,11 @@ class UnifiedExitLifecycleCorpus:
             )
         self.splits: dict[str, UnifiedExitLifecycleSplit] = {}
         split_evidence: dict[str, Any] = {}
-        for split in selected_splits:
-            entry_path = Path(entry_parquets[split]).expanduser().absolute()
+        # Validate every sealed split, including TEST when a TRAIN/VAL consumer
+        # elects not to materialize it.  A root manifest must never bless an
+        # omitted/reordered TEST population merely because the caller selected
+        # fewer runtime splits.
+        for split in ("train", "val", "test"):
             binding = root_manifest["splits"][split]
             _require_exact_keys(
                 binding,
@@ -1208,13 +1368,22 @@ class UnifiedExitLifecycleCorpus:
                     "lifecycle_manifest",
                     "lifecycle_manifest_sha256",
                     "episode_rows",
-                    "target_counts",
-                    "target_stream_sha256",
+                    "state_population_rows",
+                    "state_population_stream_sha256",
                 },
                 context=f"UNIFIED_EXIT_LIFECYCLE_{split.upper()}_BINDING",
             )
+            entry_path = Path(
+                binding["entry_dataset_path"]
+            ).expanduser().absolute()
             if (
-                Path(binding["entry_dataset_path"]).absolute() != entry_path
+                split in entry_parquets
+                and Path(entry_parquets[split]).expanduser().absolute()
+                != entry_path
+            ) or (
+                not entry_path.is_absolute()
+                or entry_path.is_symlink()
+                or not entry_path.is_file()
                 or sha256_file(entry_path) != binding["entry_dataset_sha256"]
             ):
                 raise RuntimeError(
@@ -1252,8 +1421,11 @@ class UnifiedExitLifecycleCorpus:
                 ("lifecycle_parquet", lifecycle_path.name),
                 ("lifecycle_parquet_sha256", binding["lifecycle_parquet_sha256"]),
                 ("lifecycle_parquet_rows", binding["episode_rows"]),
-                ("target_counts", binding["target_counts"]),
-                ("target_stream_sha256", binding["target_stream_sha256"]),
+                ("state_population_rows", binding["state_population_rows"]),
+                (
+                    "state_population_stream_sha256",
+                    binding["state_population_stream_sha256"],
+                ),
                 ("m1_row_clock", EXIT_FEATURE_ROW_CLOCK),
             ):
                 if split_manifest.get(key) != expected:
@@ -1300,7 +1472,8 @@ class UnifiedExitLifecycleCorpus:
                 m1_feature_times=m1_feature_times,
                 m1_feature_arrays=m1_feature_arrays,
             )
-            self.splits[split] = split_contract
+            if split in selected_splits:
+                self.splits[split] = split_contract
             split_evidence[split] = {
                 "entry_dataset_sha256": binding["entry_dataset_sha256"],
                 "lifecycle_parquet_sha256": binding[
@@ -1310,14 +1483,9 @@ class UnifiedExitLifecycleCorpus:
                     "lifecycle_manifest_sha256"
                 ],
                 "episode_rows": int(binding["episode_rows"]),
-                "target_counts": dict(binding["target_counts"]),
-                "selected_target_counts": dict(
-                    split_contract.selected_target_counts
-                ),
-                "selected_side_counts": dict(
-                    split_contract.selected_side_counts
-                ),
-                "target_stream_sha256": binding["target_stream_sha256"],
+                "state_population_rows": int(binding["state_population_rows"]),
+                "state_population_sha256": split_contract.state_population_sha256,
+                "state_side_counts": dict(split_contract.state_side_counts),
             }
         self.evidence = {
             "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
@@ -1337,16 +1505,24 @@ class UnifiedExitLifecycleCorpus:
                 "m1_authority_sha256"
             ],
             "path_state_count": UNIFIED_EXIT_MAX_PATH_BARS,
-            "target_lookahead_m1_steps": int(
-                root_manifest["target_lookahead_m1_steps"]
+            "state_population_schema_version": (
+                UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
             ),
+            "state_population_per_episode": UNIFIED_EXIT_MAX_PATH_BARS,
             "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
             "shared_feature_base_contract": (
                 entry_exit_shared_feature_base_contract()
             ),
-            "training_sample_selection": (
-                "deterministic_one_state_per_available_side_and_action_class"
+            "training_population": (
+                UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
             ),
+            "sample_selection_depends_on_future_target": False,
+            "validation_population": "all_authoritative_states",
+            "test_population": "all_authoritative_states",
+            "exit_supervision_authority": (
+                "executable_exit_now_reward_plus_train_fitted_q"
+            ),
+            "extra_lookahead_beyond_trajectory": 0,
             "future_outcomes_used_as_model_inputs": False,
             "splits": split_evidence,
         }

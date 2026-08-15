@@ -12,6 +12,7 @@ from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_BASE_SIGNAL_
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     LaunchContractError,
     _validate_feature_audit_signal_partition,
+    _validate_unified_exit_lifecycle_root,
     artifact_binding,
     canonical_json_sha256,
 )
@@ -268,6 +269,50 @@ def test_train_launch_rejects_nonproduction_mtf_window(tmp_path: Path) -> None:
     assert "Capped smoke train command:" not in result.stdout
 
 
+def test_train_launch_rejects_old_or_incomplete_exit_population_binding(
+    tmp_path: Path,
+) -> None:
+    _args, paths = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    lifecycle = json.loads(
+        paths["unified_exit_lifecycle_manifest_json"].read_text(
+            encoding="utf-8"
+        )
+    )
+    _validate_unified_exit_lifecycle_root(
+        lifecycle,
+        artifacts=paths,
+        dataset_run_id=DATASET_RUN_ID,
+    )
+
+    incomplete = json.loads(json.dumps(lifecycle))
+    incomplete["splits"]["train"]["state_population_rows"] -= 1
+    with pytest.raises(
+        LaunchContractError,
+        match="full population binding invalid",
+    ):
+        _validate_unified_exit_lifecycle_root(
+            incomplete,
+            artifacts=paths,
+            dataset_run_id=DATASET_RUN_ID,
+        )
+
+    old = json.loads(json.dumps(lifecycle))
+    train_binding = old["splits"]["train"]
+    train_binding["optimal_stopping_target_counts"] = {
+        "state_rows": train_binding["state_population_rows"],
+    }
+    with pytest.raises(LaunchContractError, match="binding schema mismatch"):
+        _validate_unified_exit_lifecycle_root(
+            old,
+            artifacts=paths,
+            dataset_run_id=DATASET_RUN_ID,
+        )
+
+
 def test_train_launch_rejects_legacy_base_field_and_swapped_mandatory_prefix(
     tmp_path: Path,
 ) -> None:
@@ -310,14 +355,15 @@ def test_smoke_wrapper_rejects_incomplete_recipe_env(tmp_path: Path) -> None:
     args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
     recipe_path = paths["recipe_audit_json"]
     recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
-    recipe["trainer_env"].pop("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT")
+    missing_key = next(iter(sorted(recipe["trainer_env"])))
+    recipe["trainer_env"].pop(missing_key)
     recipe_path.write_text(json.dumps(recipe, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     result = _run(*args, "--dry-run")
 
     assert result.returncode == 2
     assert "MODEL_NATIVE_RECIPE_ENV_MISMATCH" in result.stderr
-    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT" in result.stderr
+    assert missing_key in result.stderr
 
 
 def test_smoke_wrapper_rejects_recipe_from_unrelated_source_commit(
@@ -360,9 +406,9 @@ def test_smoke_wrapper_source_is_exact_model_native_and_has_no_stale_launch_path
     text = WRAPPER.read_text(encoding="utf-8")
     lowered = text.lower()
 
-    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v4" in text
+    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v18" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
-    assert "MODEL_NATIVE_SIGNAL_DIM=513" in text
+    assert "MODEL_NATIVE_SIGNAL_DIM=279" in text
     assert "PROFILE=smoke" not in text
     assert "PROFILE=candidate" not in text
     assert "--profile" in text

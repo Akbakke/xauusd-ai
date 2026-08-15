@@ -64,6 +64,30 @@ import subprocess
 import sys
 from pathlib import Path
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+)
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+)
+from gx1.features.htf_features import (
+    HTF_V4_CACHE_SCHEMA_VERSION,
+    HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION,
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+)
+
 repo = Path(sys.argv[1])
 launch_path = Path(sys.argv[2])
 pair_path = Path(sys.argv[3])
@@ -74,6 +98,31 @@ if not isinstance(state, dict) or state.get("decision") != "BLOCK":
     raise SystemExit("FATAL: launch authority must remain BLOCK")
 if state.get("accepted_bundle_dir") is not None:
     raise SystemExit("FATAL: blocked launch authority carries an accepted bundle")
+expected_state = {
+    "required_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+    "required_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+    "required_base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
+    "required_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    "required_mandatory_causal_layer_feature_count": (
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+    ),
+    "required_available_candidate_feature_count": (
+        MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+    ),
+    "required_mandatory_causal_layer_count": len(
+        MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
+    ),
+    "required_ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+    "required_ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+}
+for key, expected in expected_state.items():
+    if state.get(key) != expected:
+        raise SystemExit(
+            f"FATAL: launch authority {key}={state.get(key)!r} "
+            f"does not match source owner {expected!r}"
+        )
+if len(MULTI_TF_PER_BAR_FEATURES_V4) != MULTI_TF_FEATURE_COUNT_V4:
+    raise SystemExit("FATAL: MTF tuple/count owner mismatch")
 pair = json.loads(pair_path.read_text(encoding="utf-8"))
 pair_id = str(pair.get("pair_generation_id") or "")
 artifacts = pair.get("artifacts")
@@ -141,6 +190,21 @@ print(native["m1"]["root"])
 print(native["m5"]["root"])
 print(lineage["coverage"]["base28_time_max_utc"])
 print(lineage["coverage"]["canonical_time_max_utc"])
+print(
+    "local=M5 sequence=96 "
+    f"signal={MODEL_NATIVE_SIGNAL_DIM} "
+    f"ctx_cont={MODEL_NATIVE_CTX_CONT_DIM} "
+    f"ctx_cat={MODEL_NATIVE_CTX_CAT_DIM} "
+    f"mtf_per_tf={MULTI_TF_FEATURE_COUNT_V4} mtf=M15,H1,H4,D1"
+)
+print(
+    f"signal={MODEL_NATIVE_SIGNAL_SCHEMA_VERSION} "
+    f"split={MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION} "
+    f"mandatory={MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION} "
+    f"matrix={HTF_V4_MATRIX_CONTRACT} "
+    f"cache={HTF_V4_CACHE_SCHEMA_VERSION} "
+    f"liveness={HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION}"
+)
 PY
 )
 
@@ -157,6 +221,8 @@ native_m1_root=${identity[9]}
 native_m5_root=${identity[10]}
 m1_time_max=${identity[11]}
 m5_time_max=${identity[12]}
+entry_contract_summary=${identity[13]}
+feature_contract_summary=${identity[14]}
 head_commit=$(git rev-parse HEAD)
 
 if [[ "$mode" == check ]]; then
@@ -187,14 +253,14 @@ echo "dataset_event_id: $dataset_event_id"
 echo "dataset_admission_stage: $dataset_admission_stage"
 echo "accepted_bundle_dir: NONE"
 echo "dataset_contract: CURRENT_PAIR_READY_FEATURE_DATASET_REBUILD_PENDING"
-echo "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION"
+echo "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 # A restated test count goes stale the moment anyone adds a test — and
 # every restated number in this repository has (rule 13/25). State the
 # standing requirement, which cannot rot, and date the last verification.
 echo "source_regression: FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
-echo "source_regression_last_verified: 2026-08-13 at 52e57533 (V30 packages 1-7)"
+echo "source_regression_last_verified: NOT_RUN_AFTER_CONCURRENT_2026-08-14_REPAIR_WAVE"
 echo "pair_generation_id: $pair_generation_id"
 echo "native_m1_root: $native_m1_root"
 echo "native_m5_root: $native_m5_root"
@@ -204,29 +270,11 @@ echo "source_time_max: M1=$m1_time_max M5=$m5_time_max"
 echo
 echo "## Fixed architecture"
 echo "feature_owners: SAME_8_IMPLEMENTATIONS_NATIVE_M5_AND_M1_NO_VALUE_COPY"
-# V30 (2026-08-13): package 1 took signal 592 -> 601 (mandatory causal
-# 425 -> 434) and ctx_cont 142 -> 143 (H4_range_compression_ratio); package 2
-# (Phase-A completion: per-TF swing V29 events, ctx swing adoption, momentum-G3
-# raw-RSI ctx scalars, M5-local EMA ages) took signal 601 -> 604 (mandatory
-# causal 434 -> 437) and ctx_cont 143 -> 155; package 3 (the recorded Phase-A
-# remainder: four M5-local price-vs-EMA cross events) takes signal 604 -> 608
-# (mandatory causal 437 -> 441), ctx_cont unchanged; package 4 (the
-# quote/spread-dynamics block: spread_bps_delta_1, spread_intrabar_range_bps,
-# quote_range_asymmetry_bps) takes ctx_cont 155 -> 158 and leaves signal at 608
-# (the block is ctx evidence in the TRAIN-ranked pool, not a mandatory causal
-# family); package 7 (operator-authorized NAME-ONLY / duplicate REMOVALS: 43
-# chart-geometry composites incl. the whole Fibonacci block and the H8 pseudo-
-# timeframe, plus 7 candlestick columns - 6 aggregate votes and the affine
-# duplicate close_pressure_signed) takes signal 608 -> 591 (mandatory causal
-# 441 -> 424: chart_geometry_smart2 18 -> 2, price_action_candle_smart3
-# 32 -> 31), ctx_cont unchanged, and per-TF MULTI_TF_FEATURE_COUNT_V4
-# 189 -> 182 (the 7 candle removals mirror onto all five lanes); package 8A
-# (the swing_state enum live-bug repair plus the emission-only additions: 6
-# swing fields on the ctx surface / the M5 event layer / all five per-TF lanes,
-# 4 level-registry M5 slot fields, 3 mtf_smc fields) takes ctx_cont 158 -> 164
-# and per-TF MULTI_TF_FEATURE_COUNT_V4 182 -> 191.
-# Derived from the entry_model_native_signal_v1 owner tuples.
-echo "entry: local=M5 sequence=96 signal=538 ctx_cont=164 ctx_cat=5 mtf=M15,H1,H4,D1"
+# Current counts and identities are imported above from the code-owned signal
+# and feature owners. The local surface exposes the entire candidate pool in
+# owner order; no shell-restated top-k, quota or score cutoff is authoritative.
+echo "entry: $entry_contract_summary"
+echo "feature_contracts: $feature_contract_summary"
 echo "entry_feature_surface: HASH_BOUND_NATIVE_M5_LOADED_ONCE_EXACT_ZERO_COPY_SPLIT_WINDOWS"
 echo "exit: local=M1 sequence=480 mtf=M5,M15,H1,H4,D1 same_contract_plus_causal_path shared_encoder=true"
 echo "mtf_construction: CLOSED_OHLCV_BEFORE_FEATURES_NO_COMPUTED_M1_RESAMPLING"

@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
+from gx1.features.htf_features import (
+    HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V4,
+)
 import torch
 
 from gx1.contracts.entry_exit_production_architecture_v1 import (
@@ -23,7 +26,11 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
 )
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    SCHEMA_VERSION as INPUT_NORMALIZATION_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -42,7 +49,7 @@ def test_exact_current_production_architecture_passes() -> None:
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_dim": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat_dim": 5,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
     }
     assert expected["mtf"]["per_tf_widths"] == {
         "M5": MULTI_TF_FEATURE_COUNT_V4,
@@ -99,7 +106,7 @@ def _preallocation_model_kwargs() -> dict[str, object]:
         "seq_len": 96,
         "dropout": 0.0,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat_dim": 5,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
         "h1_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
@@ -120,7 +127,7 @@ def _preallocation_model_kwargs() -> dict[str, object]:
         "temporal_alias_signal_indices": [],
         "temporal_alias_ctx_cont_indices": [],
         "input_normalization": {
-            "schema_version": "entry_model_native_input_normalization_v2"
+            "schema_version": INPUT_NORMALIZATION_SCHEMA_VERSION
         },
         "specialist_num_layers": 1,
         "specialist_fusion_scale": 1.0,
@@ -236,20 +243,20 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat_dim": 5,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "model_native_signal_contract": {
             "schema_version": entry_exit_production_architecture_contract()[
                 "schemas"
             ]["signal"]
         },
         "input_normalization": {
-            "schema_version": "entry_model_native_input_normalization_v2"
+            "schema_version": INPUT_NORMALIZATION_SCHEMA_VERSION
         },
         "specialist_fusion": {"input_indices": specialist_indices},
         "context_specialist_routing": {"ctx_cont_indices": specialist_indices},
         "multi_tf": {
             "v4_mode": True,
-            "matrix_contract": "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V2",
+            "matrix_contract": HTF_V4_MATRIX_CONTRACT,
             "entry_route_timeframes": ["M15", "H1", "H4", "D1"],
             "exit_route_timeframes": ["M5", "M15", "H1", "H4", "D1"],
             "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,

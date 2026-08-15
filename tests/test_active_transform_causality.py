@@ -17,40 +17,42 @@ from gx1.features.htf_features import (
 from tests.htf_v29_registry_test_support import (
     synthetic_v29_registry_constants,
 )
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 from gx1.features import basic_v1
-from gx1.features.regime_v4_features import (
-    REGIME_V4_DERIVED_COLS,
-    REGIME_V4_FEATURE_NAMES,
-    REGIME_V4_SOURCE_COLS,
-    REGIME_V4_V29_ADDITION_COLS,
-    REGIME_V4_V29_FLIP_TFS,
-    _class_flip_flag_and_age,
-    add_regime_v4_features,
-)
 from gx1.execution.v12_ctx_augment_live import (
     _add_htf_features,
-    _add_regime_categoricals,
     _align_last_closed as _align_live_last_closed,
 )
 from gx1.scripts.augment_forward_outcome_v2 import (
-    _build_atr_percentile_array,
+    CausalContextWarmupError,
     _cache_cutoff_ns,
     _tf_cache_row,
-    attach_group_a_dip_struct_ctx_columns,
+    attach_group_a_ctx_columns,
     augment_candidate,
     build_context,
-    compute_smc_swing_dip_interaction,
     trim_causal_context_warmup_prefix,
 )
 
 _V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
+_SQUEEZE_TEST_ARTIFACTS = None
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _bind_squeeze_artifacts(tmp_path_factory):
+    global _SQUEEZE_TEST_ARTIFACTS
+    _SQUEEZE_TEST_ARTIFACTS = make_volatility_squeeze_artifact_set(
+        tmp_path_factory.mktemp("squeeze-artifacts")
+    )
 
 
 def build_multi_tf_per_bar_features_v4(m5_df):
     return _build_multi_tf_v4(
         m5_df,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
 
 
@@ -59,6 +61,7 @@ def compute_per_bar_features_v4(ohlcv, *, timeframe):
         ohlcv,
         timeframe=timeframe,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
 
 
@@ -105,10 +108,8 @@ def test_basic_v1_has_one_environment_independent_feature_path() -> None:
         "FEATURE_BUILD_TIMEOUT_MS",
     ):
         assert forbidden not in source
-    assert 'df["_v1_r1_q90_48"]' in source
-    assert 'df["_v1_r1_q10_48"]' in source
-    assert "regime_id[valid_idx[low_mask]] = 0.0" in source
-    assert "regime_id[valid_idx[high_mask]] = 2.0" in source
+    for name in basic_v1.BASIC_V1_FEATURES:
+        assert f'df["{name}"]' in source
 
 
 def test_basic_v1_rejects_non_float_ohlc_without_mode_dependent_conversion() -> None:
@@ -166,60 +167,12 @@ def _market_frame(periods: int = 900) -> pd.DataFrame:
             "high": close + half_range,
             "low": close - half_range,
             "close": close,
-            "volume": np.linspace(100.0, 300.0, periods),
+            # OANDA candle volume is an exact positive integer tick count.
+            "volume": 100 + (np.arange(periods, dtype=np.int64) % 201),
             "smc_swing_state": np.arange(periods) % 5,
         },
         index=index,
     )
-
-
-def test_smc_swing_dip_interaction_is_static_and_prefix_invariant() -> None:
-    state = np.asarray([0, 1, 2, 3], dtype=np.float64)
-    dip = np.asarray([1.0, 0.8, 0.6, 0.4], dtype=np.float64)
-    prefix = compute_smc_swing_dip_interaction(state, dip)
-    extended = compute_smc_swing_dip_interaction(
-        np.append(state, 4.0),
-        np.append(dip, 0.2),
-    )
-
-    np.testing.assert_allclose(prefix, [0.0, 0.2, 0.3, 0.3])
-    np.testing.assert_array_equal(prefix, extended[: len(prefix)])
-
-
-@pytest.mark.parametrize(
-    ("state", "dip"),
-    [
-        ([0.0, np.nan], [0.2, 0.3]),
-        ([0.0, 5.0], [0.2, 0.3]),
-        ([0.0, 1.5], [0.2, 0.3]),
-        ([0.0, 1.0], [0.2, 1.1]),
-        ([0.0], [0.2, 0.3]),
-    ],
-)
-def test_smc_swing_dip_interaction_rejects_invalid_sources(
-    state: list[float], dip: list[float]
-) -> None:
-    with pytest.raises(RuntimeError, match="CTX_CAUSALITY"):
-        compute_smc_swing_dip_interaction(np.asarray(state), np.asarray(dip))
-
-
-def test_atr_percentile_is_exactly_causal_when_future_rows_are_appended() -> None:
-    frame = _market_frame(500)
-    prefix = frame.iloc[:400]
-    prefix_pct = _build_atr_percentile_array(
-        prefix,
-        prefix.index.view("int64"),
-        window_days=365,
-    )
-    full_pct = _build_atr_percentile_array(
-        frame,
-        frame.index.view("int64"),
-        window_days=365,
-    )
-
-    np.testing.assert_array_equal(prefix_pct, full_pct[: len(prefix)])
-    assert prefix_pct[0] == 0.0
-    assert np.unique(prefix_pct).size > 2
 
 
 def test_closed_bar_cutoff_is_immutable_and_excludes_forming_h1(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -232,7 +185,9 @@ def test_closed_bar_cutoff_is_immutable_and_excludes_forming_h1(monkeypatch: pyt
     assert pd.Timestamp("2026-07-08T18:00:00Z") > cutoff
 
 
-def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
+def test_full_group_a_transform_rejects_history_without_every_genuine_event(
+    tmp_path: Path,
+) -> None:
     # V29: the D1 trend-event fields carry an exact 200-bar min_periods
     # mask, so a fully-warmed D1 row needs >= 201 D1 days of tape.
     frame = _market_frame(60_000)
@@ -252,12 +207,10 @@ def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
         journal_dir=tmp_path / "missing_full_journal",
     )
 
-    before = augment_candidate(prefix_ctx, target, include_portfolio=False)
-    after = augment_candidate(full_ctx, target, include_portfolio=False)
-
-    assert set(before) == set(after)
-    for name in before:
-        assert after[name] == pytest.approx(before[name], abs=1e-7), name
+    with pytest.raises(CausalContextWarmupError, match="MTF_WARMUP"):
+        augment_candidate(prefix_ctx, target, include_portfolio=False)
+    with pytest.raises(CausalContextWarmupError, match="MTF_WARMUP"):
+        augment_candidate(full_ctx, target, include_portfolio=False)
 
 
 def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) -> None:
@@ -265,25 +218,12 @@ def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) ->
     multi_tf = build_multi_tf_per_bar_features_v4(frame)
     decision = frame.iloc[-12:].reset_index(names="time")
 
-    augmented = attach_group_a_dip_struct_ctx_columns(
-        decision,
-        multi_tf=multi_tf,
-        context_m5=frame,
-    )
-    full_ctx = build_context(
-        frame[["high", "low", "close"]],
-        multi_tf,
-        journal_dir=tmp_path / "missing_full_history_journal",
-    )
-    expected = augment_candidate(
-        full_ctx,
-        pd.Timestamp(decision.loc[0, "time"]),
-        include_portfolio=False,
-    )
-
-    assert int(augmented.attrs["causal_context_warmup_rows"]) == 0
-    for name in ("dist_to_d1_hi_atr", "atr_ratio_m5_h4", "dip_proximity_d1_v3"):
-        assert float(augmented.loc[0, name]) == pytest.approx(expected[name], abs=1e-7)
+    with pytest.raises(RuntimeError, match="no complete causal context row"):
+        attach_group_a_ctx_columns(
+            decision,
+            multi_tf=multi_tf,
+            context_m5=frame,
+        )
 
 
 def test_native_m1_decisions_use_true_closed_m5_context(tmp_path: Path) -> None:
@@ -302,30 +242,13 @@ def test_native_m1_decisions_use_true_closed_m5_context(tmp_path: Path) -> None:
         }
     )
 
-    augmented = attach_group_a_dip_struct_ctx_columns(
-        local_m1,
-        multi_tf=multi_tf,
-        context_m5=m5,
-        base_bar_duration=pd.Timedelta(minutes=1),
-    )
-    direct = build_context(
-        m5[["high", "low", "close"]],
-        multi_tf,
-        journal_dir=tmp_path / "missing_m1_journal",
-        decision_frame=local_m1.set_index("time")[["high", "low", "close"]],
-        decision_bar_duration=pd.Timedelta(minutes=1),
-    )
-    expected = augment_candidate(
-        direct,
-        times[0],
-        include_portfolio=False,
-    )
-
-    assert float(augmented.loc[0, "atr_ratio_m5_h4"]) == pytest.approx(
-        expected["atr_ratio_m5_h4"], abs=1e-7
-    )
-    assert augmented["atr_ratio_m5_h4"].nunique() == 1
-    assert augmented["dist_to_m5_hi_atr"].nunique() > 1
+    with pytest.raises(RuntimeError, match="no complete causal context row"):
+        attach_group_a_ctx_columns(
+            local_m1,
+            multi_tf=multi_tf,
+            context_m5=m5,
+            base_bar_duration=pd.Timedelta(minutes=1),
+        )
 
 
 def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
@@ -335,7 +258,7 @@ def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
     decision.loc[0, "close"] += 0.01
 
     with pytest.raises(RuntimeError, match="decision OHLC differs"):
-        attach_group_a_dip_struct_ctx_columns(
+        attach_group_a_ctx_columns(
             decision,
             multi_tf=multi_tf,
             context_m5=frame,
@@ -347,26 +270,25 @@ def test_attach_marks_only_real_warmup_and_shared_trim_removes_it() -> None:
     multi_tf = build_multi_tf_per_bar_features_v4(frame)
     source = frame.reset_index(names="time")
 
-    augmented = attach_group_a_dip_struct_ctx_columns(source, multi_tf=multi_tf)
-    required = ["dist_to_R1_atr", "dip_confirmed_h1_v3", "struct_smc_swing_x_dip_v3"]
-    trimmed = trim_causal_context_warmup_prefix(augmented, required)
-
-    assert int(augmented.attrs["causal_context_warmup_rows"]) > 0
-    assert len(trimmed) < len(augmented)
-    assert np.isfinite(trimmed[required].to_numpy(dtype=np.float64)).all()
+    with pytest.raises(RuntimeError, match="no complete causal context row"):
+        attach_group_a_ctx_columns(source, multi_tf=multi_tf)
 
 
-def test_attach_requires_explicit_mtf_and_exact_smc_source() -> None:
-    frame = _market_frame(4_500)
+def test_attach_requires_explicit_mtf_and_not_smc_score_source() -> None:
+    # Supply enough closed M5 history for the genuine D1 Group-A primitives,
+    # then attach only the final decision rows.  A short all-warmup frame would
+    # test warmup length rather than the absence of the retired SMC score.
+    frame = _market_frame(60_000)
     multi_tf = build_multi_tf_per_bar_features_v4(frame)
-    source = frame.reset_index(names="time")
+    source = frame.iloc[-2:].reset_index(names="time")
 
     with pytest.raises(RuntimeError, match="explicit multi_tf"):
-        attach_group_a_dip_struct_ctx_columns(source, multi_tf=None)  # type: ignore[arg-type]
-    with pytest.raises(RuntimeError, match="exact SMC source missing"):
-        attach_group_a_dip_struct_ctx_columns(
+        attach_group_a_ctx_columns(source, multi_tf=None)  # type: ignore[arg-type]
+    with pytest.raises(RuntimeError, match="no complete causal context row"):
+        attach_group_a_ctx_columns(
             source.drop(columns="smc_swing_state"),
             multi_tf=multi_tf,
+            context_m5=frame,
         )
 
 
@@ -396,9 +318,9 @@ def test_htf_v4_warmup_is_explicit_and_future_append_is_prefix_invariant() -> No
     after = compute_per_bar_features_v4(frame, timeframe="M5")
 
     assert before.iloc[0].isna().any()
-    warmup = int(np.argmax(np.isfinite(before.to_numpy()).all(axis=1)))
-    assert warmup > 0
-    assert np.isfinite(before.iloc[warmup:].to_numpy()).all()
+    complete = np.isfinite(before.to_numpy()).all(axis=1)
+    assert not complete.any()
+    assert before["geomline_bars_since_break"].isna().all()
     np.testing.assert_allclose(
         before.to_numpy(),
         after.iloc[: len(before)].to_numpy(),
@@ -418,11 +340,10 @@ def test_htf_window_refuses_padding_and_returns_only_exact_finite_history() -> N
     )
 
     target = frame.index[-1] + pd.Timedelta(minutes=5)
-    window = slice_multi_tf_v4_window(
-        feats, target, n=32, tf_shift=MULTI_TF_SHIFT["M5"]
-    )
-    assert window.shape == (32, feats.shape[1])
-    assert np.isfinite(window).all()
+    with pytest.raises(RuntimeError, match="HTF_WINDOW_WARMUP_INCOMPLETE"):
+        slice_multi_tf_v4_window(
+            feats, target, n=32, tf_shift=MULTI_TF_SHIFT["M5"]
+        )
 
     with pytest.raises(RuntimeError, match="WARMUP|HISTORY"):
         slice_multi_tf_v4_window(
@@ -439,201 +360,58 @@ def test_htf_window_refuses_padding_and_returns_only_exact_finite_history() -> N
         )
 
 
-def _regime_source_frame(periods: int) -> pd.DataFrame:
-    index = pd.date_range("2025-01-01T00:00:00Z", periods=periods, freq="5min")
-    block = (np.arange(periods) // 80) % 2
-    classes = np.where(block == 0, 1.0, 3.0)
-    stacks = np.where(block == 0, 1.0, -1.0)
-    payload: dict[str, np.ndarray] = {}
-    for tf in ("m15", "h1", "h4", "d1", "m5"):
-        payload[f"{tf}_regime_class_id_v2"] = classes.copy()
-        payload[f"{tf}_trend_age_bars_norm_v2"] = (np.arange(periods) % 501) / 500.0
-        payload[f"{tf}_ema_stack_aligned_v2"] = stacks.copy()
-    payload["D1_dist_from_ema200_atr"] = np.sin(np.arange(periods) / 50.0) * 2.0
-    frame = pd.DataFrame(payload, index=index)
-    frame.loc[frame.index[:20], REGIME_V4_SOURCE_COLS] = np.nan
-    return frame
+def test_retired_regime_v4_composites_are_gone_and_raw_evidence_remains() -> None:
+    """The regime_v4 producer is retired; its raw evidence stays in the lanes.
 
+    ``gx1/features/regime_v4_features.py`` computed handwritten cross-timeframe
+    regime composites on top of per-timeframe evidence.  The module is deleted:
+    neither its composites nor its derived columns may reappear on any active
+    contract, and the raw per-timeframe trend/EMA/D1 evidence it consumed must
+    still be exposed to the learned model.
+    """
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_FIELDS,
+    )
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 
-def test_regime_v4_uses_causal_warmup_and_is_future_append_invariant() -> None:
-    prefix = _regime_source_frame(600)
-    full = _regime_source_frame(700)
-
-    before = add_regime_v4_features(prefix.copy())
-    after = add_regime_v4_features(full.copy())
-
-    warmup = int(before.attrs["causal_regime_v4_warmup_rows"])
-    assert warmup >= 20 + 288
-    assert before.loc[:, REGIME_V4_DERIVED_COLS].iloc[:warmup].isna().any(axis=1).all()
-    assert np.isfinite(before.loc[:, REGIME_V4_DERIVED_COLS].iloc[warmup:].to_numpy()).all()
-    np.testing.assert_allclose(
-        before.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(),
-        after.loc[:, REGIME_V4_DERIVED_COLS].iloc[: len(before)].to_numpy(),
-        rtol=0.0,
-        atol=0.0,
-        equal_nan=True,
+    retired = {
+        # pre-V29 handwritten composites
+        "regime_tf_agreement_v3",
+        "regime_stack_sum_v3",
+        "regime_divergence_flag_v3",
+        "d1_dist_to_boundary_v3",
+        "d1_trend_age_mature_flag_v3",
+        # regime_v4 derived/addition columns retired with the module
+        "d1_regime_changed_flag_v3",
+        "d1_regime_flip_age_bars_v4",
+        "m5_regime_changed_flag_v3",
+        "m15_regime_changed_flag_v3",
+        "h1_regime_changed_flag_v3",
+        "h4_regime_changed_flag_v3",
+        "m5_regime_flip_age_bars",
+        "m15_regime_flip_age_bars",
+        "h1_regime_flip_age_bars",
+        "h4_regime_flip_age_bars",
+    }
+    assert retired.isdisjoint(MODEL_NATIVE_CTX_CONT_FIELDS)
+    assert retired.isdisjoint(MULTI_TF_PER_BAR_FEATURES_V4)
+    assert not any(
+        name.endswith("_regime_class_id_v2") for name in MODEL_NATIVE_CTX_CONT_FIELDS
     )
 
+    # Raw evidence the retired composites consumed is still model input.
+    for tf in ("m5", "m15", "h1", "h4", "d1"):
+        assert f"{tf}_trend_state_age_bars_v2" in MODEL_NATIVE_CTX_CONT_FIELDS
+    assert "D1_dist_from_ema200_atr" in MODEL_NATIVE_CTX_CONT_FIELDS
+    assert "d1_dist_change_1bar_atr_v4" in MODEL_NATIVE_CTX_CONT_FIELDS
+    assert "ema_stack_aligned_v2" in MULTI_TF_PER_BAR_FEATURES_V4
+    assert "trend_state_age_bars" in MULTI_TF_PER_BAR_FEATURES_V4
 
-def test_regime_v4_agreement_is_strict_non_d1_vote_and_age_is_in_d1_bars() -> None:
-    periods = 400
-    index = pd.date_range("2025-01-01T00:00:00Z", periods=periods, freq="5min")
-    d1_classes = np.zeros(periods, dtype=np.float64)
-    d1_classes[100:] = 1.0  # single D1 regime change at absolute row 100
-    payload: dict[str, np.ndarray] = {}
-    for tf in ("m15", "h1", "h4", "d1", "m5"):
-        payload[f"{tf}_regime_class_id_v2"] = (
-            d1_classes.copy() if tf == "d1" else np.ones(periods, dtype=np.float64)
-        )
-        payload[f"{tf}_trend_age_bars_norm_v2"] = np.full(periods, 0.5)
-        payload[f"{tf}_ema_stack_aligned_v2"] = np.ones(periods, dtype=np.float64)
-    payload["D1_dist_from_ema200_atr"] = np.full(periods, 1.0)
-    frame = pd.DataFrame(payload, index=index)
-    frame.loc[frame.index[:20], REGIME_V4_SOURCE_COLS] = np.nan
-
-    out = add_regime_v4_features(frame.copy())
-
-    agree = out["regime_tf_agreement_v3"].to_numpy(dtype=np.float64)
-    diverge = out["regime_divergence_flag_v3"].to_numpy(dtype=np.float64)
-    # Neutral D1 (class 0): zero agreement — the old count paid a guaranteed
-    # 1/5 D1 self-vote and would count 0==0 as agreement.
-    np.testing.assert_allclose(agree[20:100], 0.0, rtol=0.0, atol=0.0)
-    np.testing.assert_allclose(diverge[20:100], 1.0, rtol=0.0, atol=0.0)
-    # Signed D1 with all four non-D1 TFs matching: full agreement.
-    np.testing.assert_allclose(agree[100:], 1.0, rtol=0.0, atol=0.0)
-    np.testing.assert_allclose(diverge[100:], 0.0, rtol=0.0, atol=0.0)
-
-    # F9 ages in D1 bars: k base rows after the change = k/288 D1 bars.
-    bars_norm = out["bars_since_d1_regime_change_v3"].to_numpy(dtype=np.float64)
-    assert np.isnan(bars_norm[:100]).all()
-    for k in (0, 20, 288):
-        expected = np.log1p(min(k / 288.0, 500.0)) / np.log1p(500.0)
-        np.testing.assert_allclose(
-            bars_norm[100 + k], expected, rtol=1e-6, atol=1e-7
-        )
-
-
-def test_regime_v4_v29_additions_are_opt_in_and_mirror_f8_f9() -> None:
-    frame = _regime_source_frame(600)
-
-    base = add_regime_v4_features(frame.copy())
-    assert not set(REGIME_V4_V29_ADDITION_COLS) & set(base.columns)
-    assert not set(REGIME_V4_V29_ADDITION_COLS) & set(REGIME_V4_FEATURE_NAMES)
-
-    out = add_regime_v4_features(frame.copy(), include_v29_additions=True)
-    assert set(REGIME_V4_V29_ADDITION_COLS) <= set(out.columns)
-    # The bound pre-V29 surface is byte-identical with the additions on.
-    np.testing.assert_allclose(
-        base.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64),
-        out.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64),
-        rtol=0.0,
-        atol=0.0,
-        equal_nan=True,
-    )
-
-    # Drift guard: the vectorized helper reproduces the F8/F9 originals
-    # exactly on the D1 lane (its declared origin), suffix rows onward.
-    source_start = 20
-    d1c = (
-        frame["d1_regime_class_id_v2"]
-        .iloc[source_start:]
-        .to_numpy(dtype=np.int64)
-    )
-    flag, age_norm = _class_flip_flag_and_age(d1c, tf_bars_per_row=288.0)
-    np.testing.assert_allclose(
-        out["d1_regime_changed_flag_v3"].to_numpy(dtype=np.float64)[source_start:],
-        flag,
-        rtol=0.0,
-        atol=0.0,
-        equal_nan=True,
-    )
-    np.testing.assert_allclose(
-        out["bars_since_d1_regime_change_v3"].to_numpy(dtype=np.float64)[
-            source_start:
-        ],
-        age_norm,
-        rtol=1e-6,
-        equal_nan=True,
-    )
-
-    # Per-TF ages are measured in the TF's OWN bars (F9 unit-repair
-    # precedent). The fixture flips every TF at absolute row 80; at row 100
-    # the age is 20 base rows = 20/tf_bars own-TF bars.
-    for tf, tf_bars in (("m5", 1.0), ("m15", 3.0), ("h1", 12.0), ("h4", 48.0)):
-        flag_col = out[f"{tf}_regime_changed_flag_v3"].to_numpy(dtype=np.float64)
-        age_col = out[f"{tf}_regime_flip_age_norm"].to_numpy(dtype=np.float64)
-        assert flag_col[80] == 1.0
-        assert flag_col[81] == 0.0  # edge-triggered, not level-triggered
-        assert np.isnan(age_col[:80]).all()  # unknown until the first flip
-        np.testing.assert_allclose(
-            age_col[100],
-            np.log1p(min(20.0 / tf_bars, 500.0)) / np.log1p(500.0),
-            rtol=1e-6,
-        )
-
-    # Future-append invariance of the additions (causality).
-    longer = add_regime_v4_features(
-        _regime_source_frame(700), include_v29_additions=True
-    )
-    np.testing.assert_allclose(
-        out.loc[:, REGIME_V4_V29_ADDITION_COLS].to_numpy(dtype=np.float64),
-        longer.loc[:, REGIME_V4_V29_ADDITION_COLS]
-        .iloc[: len(out)]
-        .to_numpy(dtype=np.float64),
-        rtol=0.0,
-        atol=0.0,
-        equal_nan=True,
-    )
-
-    with pytest.raises(RuntimeError, match="include_v29_additions"):
-        add_regime_v4_features(frame.copy(), include_v29_additions=1)  # type: ignore[arg-type]
-
-
-def test_regime_v4_v29_flip_flag_catches_sub_flips_the_age_proxy_misses() -> None:
-    periods = 400
-    index = pd.date_range("2025-01-01T00:00:00Z", periods=periods, freq="5min")
-    m15_classes = np.ones(periods, dtype=np.float64)
-    m15_classes[300:] = 2.0  # 1 -> 2 sub-flip: SAME sign, SAME EMA stack
-    payload: dict[str, np.ndarray] = {}
-    for tf in ("m15", "h1", "h4", "d1", "m5"):
-        payload[f"{tf}_regime_class_id_v2"] = (
-            m15_classes.copy() if tf == "m15" else np.ones(periods, dtype=np.float64)
-        )
-        payload[f"{tf}_trend_age_bars_norm_v2"] = np.full(periods, 0.5)
-        payload[f"{tf}_ema_stack_aligned_v2"] = np.ones(periods, dtype=np.float64)
-    payload["D1_dist_from_ema200_atr"] = np.full(periods, 1.0)
-    frame = pd.DataFrame(payload, index=index)
-    frame.loc[frame.index[:20], REGIME_V4_SOURCE_COLS] = np.nan
-
-    out = add_regime_v4_features(frame.copy(), include_v29_additions=True)
-
-    flag = out["m15_regime_changed_flag_v3"].to_numpy(dtype=np.float64)
-    age = out["m15_regime_flip_age_norm"].to_numpy(dtype=np.float64)
-    assert np.isnan(flag[:21]).all()  # source warmup + first-row unknown
-    np.testing.assert_allclose(flag[21:300], 0.0, rtol=0.0, atol=0.0)
-    assert flag[300] == 1.0
-    np.testing.assert_allclose(flag[301:], 0.0, rtol=0.0, atol=0.0)
-    assert np.isnan(age[:300]).all()
-    assert age[300] == 0.0
-    np.testing.assert_allclose(
-        age[303],
-        np.log1p(3.0 / 3.0) / np.log1p(500.0),  # 3 base rows = 1 m15 bar
-        rtol=1e-6,
-    )
-    # The trend-age proxy carried by the frame never resets across the
-    # sub-flip (constant 0.5) — the exact gap the class-keyed flag closes.
-    assert (
-        out["m15_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)[300] == 0.5
-    )
-    assert tuple(REGIME_V4_V29_FLIP_TFS) == ("m5", "m15", "h1", "h4")
-
-
-def test_regime_v4_rejects_nonfinite_source_gap_after_warmup() -> None:
-    frame = _regime_source_frame(400)
-    frame.loc[frame.index[300], "h1_regime_class_id_v2"] = np.nan
-
-    with pytest.raises(RuntimeError, match="causal warmup prefix"):
-        add_regime_v4_features(frame)
+    for module_path in (
+        "gx1/features/regime_v4_features.py",
+        "gx1/features/entry_session_regime_interactions_v1.py",
+    ):
+        assert not (Path(__file__).resolve().parents[1] / module_path).exists()
 
 
 def test_htf_context_owner_overwrites_stale_values_with_causal_prefix() -> None:
@@ -641,10 +419,8 @@ def test_htf_context_owner_overwrites_stale_values_with_causal_prefix() -> None:
     prefix = frame.iloc[:80_000]
     cols = [
         "D1_dist_from_ema200_atr",
-        "D1_atr_percentile_252",
-        "H1_range_compression_ratio",
-        "M15_range_compression_ratio",
-        "H4_trend_sign_cat",
+        "d1_dist_change_1bar_atr_v4",
+        "h4_mid_ema50_dist_atr_canon_v2",
     ]
     before = pd.DataFrame(999.0, index=prefix.index, columns=cols)
     after = pd.DataFrame(999.0, index=frame.index, columns=cols)
@@ -675,16 +451,6 @@ def test_closed_htf_alignment_matches_active_htf_owner() -> None:
     live = _align_live_last_closed(target, source, pd.Timedelta(hours=1))
     assert float(live.iloc[0]) == 2.0
     assert multi_tf_last_closed_label(target[0], "H1") == source.index[-1]
-
-
-def test_trend_regime_has_no_price_or_neutral_fallback() -> None:
-    frame = pd.DataFrame(
-        {"price_vs_ema50_atr": [2.0]},
-        index=pd.DatetimeIndex(["2026-07-08T12:00:00Z"]),
-    )
-
-    with pytest.raises(RuntimeError, match="exact D1_dist"):
-        _add_regime_categoricals(frame)
 
 
 def test_active_regime_call_sites_have_no_environment_selected_surface() -> None:

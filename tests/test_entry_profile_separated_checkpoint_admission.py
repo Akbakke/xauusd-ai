@@ -1,21 +1,28 @@
-"""Profile-separated checkpoint admission and the rebalanced smoke objective.
+"""Profile-separated checkpoint admission under the plain direction objective.
 
 User vedtak 2026-07-25 after V8 and V9 both produced class-degenerate
 collapse while a plain unweighted-cross-entropy probe on the same substrate
 cleared the majority baseline with all three classes alive:
 
-1. smoke admits a checkpoint on active-head liveness plus non-degenerate
-   class support; candidate keeps every acceptance gate exactly as before;
-2. the training objective raises direction discrimination and lowers the
-   distributional/conviction penalty tower, changing objective weights only.
+1. ``smoke`` admits a checkpoint on active-head liveness; ``candidate`` keeps
+   every acceptance gate exactly as before;
+2. direction distribution diagnostics remain read-only and cannot change the
+   unweighted cross-entropy loss or checkpoint score.
 
 No empirical acceptance threshold moves in either decision.
+
+V30 (2026-08-14) retired the hand-written checkpoint class-balance guard, the
+direction-slice acceptance contract and the ``aux_head_health_ok`` /
+``class_support_ok`` admission inputs together with the recipe keys that
+configured them. The admission surface is now exactly the three health gates
+the trainer computes, and this file binds that surface by signature rather
+than by a restated keyword list.
 """
 
 from __future__ import annotations
 
 import inspect
-from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -28,43 +35,68 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
 )
 
 
-def _admission(profile: str, **flags: bool) -> bool:
-    base = {
-        "aux_head_health_ok": True,
-        "active_head_health_ok": True,
-        "cooperation_gate_health_ok": True,
-        "class_support_ok": True,
-    }
+def _admission_health_keywords() -> tuple[str, ...]:
+    """Derive the admission health inputs from the owner's own signature."""
+
+    parameters = inspect.signature(_checkpoint_admission_ok).parameters
+    names = tuple(
+        name
+        for name, parameter in parameters.items()
+        if name != "profile"
+        and parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    )
+    assert names, "admission owner exposes no health keyword"
+    return names
+
+
+def _admission(profile: str, **flags: Any) -> bool:
+    base = {name: True for name in _admission_health_keywords()}
+    unknown = sorted(set(flags) - set(base))
+    assert not unknown, f"test used non-owner admission keywords: {unknown}"
     base.update(flags)
     return _checkpoint_admission_ok(profile=profile, **base)
 
 
+def test_admission_takes_only_keyword_health_evidence() -> None:
+    parameters = inspect.signature(_checkpoint_admission_ok).parameters
+    assert "profile" in parameters
+    positional = [
+        name
+        for name, parameter in parameters.items()
+        if parameter.kind
+        in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+    ]
+    assert positional == []
+    assert all(
+        parameter.default is inspect.Parameter.empty
+        for parameter in parameters.values()
+    ), "admission health evidence must never carry a default"
+
+
 def test_candidate_admission_still_requires_every_health_gate() -> None:
     assert _admission("candidate") is True
-    for blocking in (
-        "aux_head_health_ok",
-        "active_head_health_ok",
-        "cooperation_gate_health_ok",
-    ):
+    for blocking in _admission_health_keywords():
         assert _admission("candidate", **{blocking: False}) is False
 
 
-def test_smoke_admits_on_liveness_and_class_support_only() -> None:
+def test_smoke_admits_on_active_head_liveness_only() -> None:
     assert _admission("smoke") is True
-    # Auxiliary and cooperation health stay diagnostic at smoke.
-    assert _admission("smoke", aux_head_health_ok=False) is True
+    # Cooperation health stays diagnostic at smoke.
     assert _admission("smoke", cooperation_gate_health_ok=False) is True
-    # Liveness and non-degenerate class support remain mandatory.
+    assert _admission("smoke", exit_cooperation_gate_health_ok=False) is True
+    # Active-head liveness remains mandatory.
     assert _admission("smoke", active_head_health_ok=False) is False
-    assert _admission("smoke", class_support_ok=False) is False
 
 
-def test_class_support_is_not_a_candidate_shortcut() -> None:
-    # Candidate never admits on class support alone.
+def test_cooperation_health_is_not_a_candidate_shortcut() -> None:
+    # Candidate never admits while any single health gate is red.
     assert (
         _admission(
             "candidate",
-            aux_head_health_ok=False,
+            active_head_health_ok=False,
             cooperation_gate_health_ok=False,
         )
         is False
@@ -80,78 +112,25 @@ def test_trainer_requires_the_exact_profile() -> None:
     assert "profile" in inspect.signature(run_train).parameters
 
 
-def test_objective_rebalance_raises_discrimination_over_conviction() -> None:
+def test_direction_objective_has_no_handwritten_distribution_forcing() -> None:
     env = MODEL_NATIVE_RECIPE_ENV
-    assert float(env["ENTRY_DIRECTION_CE_SCALE"]) == 12.00
-    assert env["ENTRY_PRED_BALANCE_CLASS_WEIGHTS"] == "1.0,1.0,1.0"
-    for key in (
-        "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT",
-        "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT",
-        "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
-    ):
-        assert float(env[key]) == 2.00
-    # Direction cross-entropy must dominate every single penalty weight.
-    ce_scale = float(env["ENTRY_DIRECTION_CE_SCALE"])
-    for key in (
-        "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT",
-        "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT",
-        "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
+    forbidden = (
+        "ENTRY_DIRECTION_CE_SCALE",
+        "ENTRY_PRED_BALANCE_CLASS_WEIGHTS",
         "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT",
         "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT",
         "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT",
-    ):
-        assert float(env[key]) <= ce_scale
-
-
-def test_no_acceptance_threshold_moved_with_the_objective_rebalance() -> None:
-    # Every empirical acceptance floor, policy and cost value stays fixed.
-    env = MODEL_NATIVE_RECIPE_ENV
-    assert env["ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE"] == "0.05"
-    assert env["ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL"] == "0.35"
-    assert env["ENTRY_CKPT_DIRECTION_SLICE_GUARD"] == "1"
-    assert env["ENTRY_SPECIALIST_GATE_MIN_MEAN"] == "0.01"
-    assert env["ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS"] == "6"
-    assert env["ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE"] == "3"
-    assert env["ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR"] == "0.05"
-    assert env["ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR"] == "0.05"
-    assert env["ENTRY_COST_LONG_TO_FLAT"] == "0.45"
-    assert env["ENTRY_COST_FLAT_TO_LONG"] == "1.60"
-    assert env["ENTRY_COST_SHORT_TO_FLAT"] == "0.45"
-    assert env["ENTRY_COST_FLAT_TO_SHORT"] == "1.60"
-
-
-def _bundle_gate(profile: str) -> bool:
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    return trainer._bundle_write_acceptance_gates_required(profile)
-
-
-def test_candidate_still_refuses_a_slice_failed_bundle() -> None:
-    assert _bundle_gate("candidate") is True
-
-
-def test_smoke_writes_the_bundle_as_trainability_evidence() -> None:
-    # Vedtak A is only fulfilled if a smoke run yields a measurable artifact.
-    # The failure evidence file is still written for both profiles; only the
-    # raise is separated.
-    assert _bundle_gate("smoke") is False
-
-
-def test_bundle_gate_rejects_an_unknown_profile() -> None:
-    with pytest.raises(RuntimeError, match="PROFILE_INVALID"):
-        _bundle_gate("shadow")
-
-
-def test_class_balance_bundle_guard_is_not_profile_separated() -> None:
-    """Non-degenerate class support is what smoke requires, so that gate stays.
-
-    Only the direction-slice contract — an acceptance metric — is separated.
-    """
-    trainer_path = (
-        Path(__file__).resolve().parents[1]
-        / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+        "ENTRY_DIRECTION_LOGIT_ADJUST_TAU",
+        "ENTRY_TAIL_DIRECTION_CE_WEIGHT",
+        "ENTRY_COST_LONG_TO_FLAT",
+        # Learned gate routing is admitted from empirical liveness evidence;
+        # the recipe must not impose a hand-written target share.
+        "ENTRY_SPECIALIST_GATE_MIN_MEAN",
+        # V30 retired the hand-written checkpoint class-balance and
+        # direction-slice acceptance thresholds; they may not come back.
+        "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE",
+        "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL",
+        "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE",
+        "ENTRY_DIRECTION_SLICE_MIN_ROWS",
     )
-    source = trainer_path.read_text(encoding="utf-8")
-    balance_raise = source.index("TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD")
-    window = source[max(0, balance_raise - 2000) : balance_raise]
-    assert "_bundle_write_acceptance_gates_required" not in window
+    assert not set(forbidden) & set(env)

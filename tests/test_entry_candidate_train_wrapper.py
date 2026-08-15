@@ -6,6 +6,10 @@ import shlex
 import subprocess
 from pathlib import Path
 
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV,
+    MODEL_NATIVE_RECIPE_ENV_KEYS,
+)
 from tests.entry_model_native_train_wrapper_support import (
     DATASET_RUN_ID,
     RUN_ID,
@@ -114,16 +118,24 @@ def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Pat
 
 def test_candidate_wrapper_rejects_zero_mandatory_recipe_value(tmp_path: Path) -> None:
     args, paths = build_wrapper_contract(tmp_path, profile="candidate", wrapper=WRAPPER)
+    # The zeroed key is taken from the recipe owner, not named here: the
+    # hard-coded key this test used to zero was retired by Wave C, and a test
+    # that names a key cannot notice when the surface moves under it.
+    zeroed_key = next(
+        key
+        for key in MODEL_NATIVE_RECIPE_ENV_KEYS
+        if MODEL_NATIVE_RECIPE_ENV[key] != "0"
+    )
     recipe_path = paths["recipe_audit_json"]
     recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
-    recipe["trainer_env"]["ENTRY_MTF_DIR_AUX_WEIGHT"] = "0"
+    recipe["trainer_env"][zeroed_key] = "0"
     recipe_path.write_text(json.dumps(recipe, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     result = _run(*args, "--dry-run")
 
     assert result.returncode == 2
     assert "MODEL_NATIVE_RECIPE_ENV_MISMATCH" in result.stderr
-    assert "ENTRY_MTF_DIR_AUX_WEIGHT" in result.stderr
+    assert zeroed_key in result.stderr
 
 
 def test_candidate_wrapper_rejects_mutated_readiness_binding(tmp_path: Path) -> None:
@@ -144,9 +156,9 @@ def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_
     text = WRAPPER.read_text(encoding="utf-8")
     lowered = text.lower()
 
-    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v4" in text
+    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v18" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
-    assert "MODEL_NATIVE_SIGNAL_DIM=513" in text
+    assert "MODEL_NATIVE_SIGNAL_DIM=279" in text
     assert "PROFILE=smoke" not in text
     assert "PROFILE=candidate" not in text
     assert "--profile" in text

@@ -58,10 +58,10 @@ def _write_advanced_parquet(path: Path, *, times: list[str] | None = None) -> No
         }
     for target in trainer._MODEL_NATIVE_ACTIVE_TARGET_COLS:
         values = [0.0, 0.0, 0.0]
-        if target == "y_direction":
-            values = [0, 1, 2]
-        elif target in ("y_tf_agreement_score", "y_position_size_target"):
+        if target == "y_position_size_target":
             values = [0.5, 0.5, 0.5]
+        elif target == "y_position_size_mask":
+            values = [1.0, 1.0, 0.0]
         columns[target] = pa.array(values)
     table = pa.table(columns)
     pq.write_table(table, path)
@@ -139,9 +139,12 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
     assert tuple(sample["snap_x"].shape) == (MODEL_NATIVE_SIGNAL_DIM,)
     assert tuple(sample["ctx_cont"].shape) == (MODEL_NATIVE_CTX_CONT_DIM,)
     assert tuple(sample["ctx_cat"].shape) == (MODEL_NATIVE_CTX_CAT_DIM,)
-    assert int(sample["y"].item()) == 1
-    assert "y_teacher_bad_long" not in sample
-    assert "y_teacher_winner_long" not in sample
+    # The retired `y_direction` -> `y` class-tensor conversion is gone with
+    # the hierarchy heads; the row identity is the immutable entry row index
+    # and no alias target may be manufactured to satisfy a head check.
+    assert int(sample["entry_row_index"].item()) == 1
+    for forbidden in ("y", "y_direction", "y_teacher_bad_long", "y_teacher_winner_long"):
+        assert forbidden not in sample
     assert memmap_root.exists()
     assert flush_calls == 2
 
@@ -216,7 +219,7 @@ def test_compact_materialized_rows_preserves_original_row_lookup(tmp_path, monke
     )
     assert np.array_equal(ds._compact_row_indices, np.asarray([0, 2]))
     sample = ds[1]
-    assert int(sample["y"].item()) == 2
+    assert int(sample["entry_row_index"].item()) == 2
     np.testing.assert_allclose(
         sample["snap_x"].numpy(),
         np.arange(MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32) + 2.0,

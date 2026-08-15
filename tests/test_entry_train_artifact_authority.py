@@ -22,8 +22,9 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
-    TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS,
-    TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
+    MODEL_NATIVE_HISTORY_MODE,
+    MODEL_NATIVE_STATE_SCHEMA_VERSION,
+    RETIRED_RANK_STATE_FIELDS,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
@@ -75,24 +76,12 @@ def _artifacts(
     )
     signal_contract = model_native_signal_contract_metadata(selected)
     state_contract = {
-        "schema_version": "entry_model_native_state_contract_v2",
+        "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
         "entry_run_id": DATASET_RUN_ID,
         "feature_history_start_utc": "2021-01-05T00:00:00Z",
-        "rank_fit_start_utc": "2021-03-16T00:00:00Z",
-        "rank_fit_end_utc": "2026-03-31T23:59:59Z",
-        "rank_reference_source_parquet": str(m5_prebuilt),
-        "rank_reference_source_parquet_sha256": _sha(m5_prebuilt),
-        "rank_reference_model_source_market_identity": {
-            "contract": TRAIN_RANK_SOURCE_MARKET_IDENTITY_CONTRACT,
-            "rank_source_parquet": str(m5_prebuilt),
-            "rank_source_sha256": _sha(m5_prebuilt),
-            "model_source_parquet": str(m5_prebuilt),
-            "model_source_sha256": _sha(m5_prebuilt),
-            "history_start_utc": "2021-01-05T00:00:00+00:00",
-            "fit_end_utc": "2026-03-31T23:59:59+00:00",
-            "compared_rows": 4,
-            "columns": list(TRAIN_RANK_SOURCE_MARKET_IDENTITY_COLUMNS),
-        },
+        "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
+        "split_reset_allowed": False,
+        "runtime_rule_free": True,
     }
     cache_dir = root / "MULTI_TF_V4_CACHE"
     cache_dir.mkdir()
@@ -268,22 +257,34 @@ def test_trainer_boundary_requires_exact_recipe_and_allows_only_bound_runtime_en
     trainer._enforce_canonical_train_env_contract()
 
     monkeypatch.setenv("ENTRY_DIRECTION_CE_SCALE", "999")
+    with pytest.raises(RuntimeError, match="AMBIENT_CONTROL_FORBIDDEN"):
+        trainer._enforce_canonical_train_env_contract()
+
+
+@pytest.mark.parametrize("recipe_key", sorted(MODEL_NATIVE_RECIPE_ENV))
+def test_trainer_boundary_rejects_every_missing_recipe_key(
+    monkeypatch: pytest.MonkeyPatch,
+    recipe_key: str,
+) -> None:
+    """Each declared recipe key is mandatory; the set comes from the owner.
+
+    Naming a key literally here is the stale-gate class rule 13 forbids: the
+    recipe schema is the authority, so the parametrization derives from it.
+    """
+    _set_exact_trainer_env(monkeypatch)
+    monkeypatch.delenv(recipe_key)
+
     with pytest.raises(RuntimeError, match="TRAIN_RECIPE_ENV_INVALID"):
         trainer._enforce_canonical_train_env_contract()
 
 
-def test_trainer_boundary_rejects_missing_recipe_and_ambient_controls(
+def test_trainer_boundary_rejects_ambient_controls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _set_exact_trainer_env(monkeypatch)
-    monkeypatch.delenv("ENTRY_DIRECTION_CE_SCALE")
-    with pytest.raises(RuntimeError, match="TRAIN_RECIPE_ENV_INVALID"):
-        trainer._enforce_canonical_train_env_contract()
 
-    monkeypatch.setenv(
-        "ENTRY_DIRECTION_CE_SCALE",
-        MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_CE_SCALE"],
-    )
+    trainer._enforce_canonical_train_env_contract()
+
     monkeypatch.setenv("GX1_MTF_TAPERED", "1")
     with pytest.raises(RuntimeError, match="AMBIENT_CONTROL_FORBIDDEN"):
         trainer._enforce_canonical_train_env_contract()
@@ -392,7 +393,7 @@ def test_manifest_self_path_and_run_lineage_are_exact(
 
 @pytest.mark.parametrize(
     "mutation",
-    ("hash_env", "manifest_source", "state_path", "state_hash"),
+    ("hash_env", "manifest_source", "state_invalid"),
 )
 def test_m5_source_is_hash_and_manifest_bound(
     tmp_path: Path,
@@ -413,16 +414,11 @@ def test_m5_source_is_hash_and_manifest_bound(
         if mutation == "manifest_source":
             payload["inputs"]["source_parquet"] = str(parquets["train"])
             expected = "M5_SOURCE_PATH_MISMATCH"
-        elif mutation == "state_path":
-            payload["extra"]["model_native_state_contract"][
-                "rank_reference_source_parquet"
-            ] = str(parquets["train"])
-            expected = "M5_STATE_BINDING_MISMATCH"
         else:
             payload["extra"]["model_native_state_contract"][
-                "rank_reference_source_parquet_sha256"
-            ] = "0" * 64
-            expected = "M5_STATE_BINDING_MISMATCH"
+                "feature_history_mode"
+            ] = "per_split_reset"
+            expected = "STATE_BINDING_MISMATCH"
         manifest.write_text(
             json.dumps(payload, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -436,32 +432,33 @@ def test_m5_source_is_hash_and_manifest_bound(
         _resolve(manifests, parquets, m5_prebuilt)
 
 
-def test_distinct_rank_source_is_allowed_only_with_exact_market_identity_proof(
+@pytest.mark.parametrize("retired_field", sorted(RETIRED_RANK_STATE_FIELDS))
+def test_split_state_carrying_a_retired_rank_field_fails_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    retired_field: str,
 ) -> None:
-    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
-    rank_source = m5_prebuilt.parent / "canonical_rank_source.parquet"
-    rank_source.write_bytes(b"separate-rank-source")
-    for split, manifest in manifests.items():
-        payload = json.loads(manifest.read_text(encoding="utf-8"))
-        state = payload["extra"]["model_native_state_contract"]
-        state["rank_reference_source_parquet"] = str(rank_source)
-        state["rank_reference_source_parquet_sha256"] = _sha(rank_source)
-        proof = state["rank_reference_model_source_market_identity"]
-        proof["rank_source_parquet"] = str(rank_source)
-        proof["rank_source_sha256"] = _sha(rank_source)
-        manifest.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
-        monkeypatch.setenv(
-            trainer._TRAIN_ARTIFACT_HASH_ENV[f"{split}_manifest"],
-            _sha(manifest),
-        )
+    """A split built against the retired fixed top-k rank subsystem is rejected.
 
-    resolved_manifests, resolved_parquets = _resolve(
-        manifests, parquets, m5_prebuilt
+    The rank reference no longer exists, so a manifest still declaring one is a
+    stale artifact from a superseded dataset generation. Training on it would
+    silently mix two feature-selection contracts.
+    """
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
+    manifest = manifests["val"]
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["extra"]["model_native_state_contract"][retired_field] = "stale-value"
+    manifest.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setenv(
+        trainer._TRAIN_ARTIFACT_HASH_ENV["val_manifest"],
+        _sha(manifest),
     )
-    assert resolved_manifests == manifests
-    assert resolved_parquets == parquets
+
+    with pytest.raises(
+        RuntimeError,
+        match=rf"STATE_BINDING_MISMATCH.*RETIRED_FIELDS_FORBIDDEN.*{retired_field}",
+    ):
+        _resolve(manifests, parquets, m5_prebuilt)
 
 
 def test_wrappers_forward_train_val_artifacts_without_inference() -> None:

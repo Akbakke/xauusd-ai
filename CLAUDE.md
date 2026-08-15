@@ -88,22 +88,41 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 
 4. **Keep every genuine feature family in the learned path.** Retiring a rule
    must never remove its underlying market evidence. The registered
-   causal-layer outputs are mandatory; only the remaining specialist fields may
-   be selected, by deterministic TRAIN-only ranking. **The authoritative
+   causal-layer outputs are mandatory; all code-owned remaining specialist
+   fields are exposed to the learned model. **The authoritative
    composition is the owner tuples in
    `gx1/contracts/entry_model_native_signal_v1.py`, never a number restated
    here or in any other document** (rule 13: a repeated literal is not
    ownership, and every restated count in this repository has gone stale
    within days). The shape is: a frozen base block + the mandatory causal
-   families + a TRAIN-ranked remainder, over the declared mandatory families.
-   As of 2026-08-13 that evaluates to 34 + 371 + 133 = 538 over 16 families
+   families + the complete code-owned candidate remainder, over the declared
+   mandatory families. As of 2026-08-14 that evaluates to 30 + 164 + 155 = 349
+   over 11 mandatory
+   layer families
    (V29 event surface 2026-08-11 added the level/trendline registries and the
    swing/momentum/regime event families; V30 2026-08-13 removed the
    NAME-ONLY chart-geometry composites, all Fibonacci fields, the candle
    aggregate votes and the pre-fused session products, repaired the
    smc_swing_state enum live bug and emitted the structure/level/SMC state
    that existed only in memory — see
-   docs/INDICATOR_FIDELITY_AUDIT_20260813.md). Treat
+   docs/INDICATOR_FIDELITY_AUDIT_20260813.md; v9 then wired the six native
+   SMC emissions plus four continuous native momentum primitives; v10 retires
+   28 handwritten volatility votes and v11 retires 74 handwritten trend,
+   momentum and structure votes, and v12 retires 58 SMC-quality/S/R scorebook
+   fields; v13 retires 54 foundation scores and all 67 session/regime
+   scorebook fields while retaining raw context and three exact event ages;
+   v14 retires the final chart votes and fixed-threshold candle-pattern
+   scorebook, replaces it with eleven raw candle primitives, and removes three
+   redundant base aliases; v15 retires five handwritten regime composites
+   while preserving the raw per-TF regime/EMA/trend-age/D1 evidence; v16
+   retires `signed_vol_z_20` while preserving local return and the three raw
+   unsigned tick-volume primitives; v17 replaces the provisional eleven-field
+   candle block with the exact 26-field causal geometry/relation/carry owner;
+   v18 adopts five TRAIN-fitted native-clock squeeze-state fields locally and
+   on every MTF lane; v19 retires fixed top-133 availability and exposes all
+   155 code-owned candidates to learned selection/interaction).
+   Signal split v8 binds mandatory full-stack v13; MTF matrix V5 binds cache v11
+   and full-input liveness v6. Treat
    that sentence as a dated observation, not as the contract.
    Removing a hand-written vote is
    allowed and required — the
@@ -113,8 +132,24 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    being handed it.
 
 5. **The learned size head is mandatory evidence.** Label-horizon sizing proof
-   is diagnostic only. Fixed size is not a fallback, and sizing may never
-   create an order when direction is FLAT or invalid.
+   is diagnostic only. Its target is trained only under the explicit tradable
+   row mask against the exact selected-side path ECDF fitted on TRAIN; VAL/TEST
+   apply that frozen ECDF. Fixed size is not a fallback, and sizing has no
+   direction authority and may never create an order when direction is FLAT or
+   invalid.
+
+   Training-objective v6 and the 46-key recipe-v5 schema use plain unweighted
+   CE for main/MTF/masked-side classification and plain unweighted BCE for
+   hierarchy binary tasks. Waves A/B retire direction and hierarchical
+   distribution forcing. Fixed auxiliary task weights, rank margins and gate
+   regularization remain for Wave C; never claim all static objective
+   magnitudes have been removed.
+
+   The TRAIN-fit squeeze owner and fail-closed six-clock plumbing are integrated
+   in source, but no production artifacts have been fitted. Each native clock
+   requires its exact immutable TRAIN artifact before rebuild or use. Exit is
+   currently native closed M1; no tick-level dataset, OOS result or trading
+   claim exists.
 
 6. **Train equals serve.** Exact ordered fields, dimensions, normalization,
    timeframe construction, hashes and final-logit semantics must match.

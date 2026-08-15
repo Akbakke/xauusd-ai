@@ -12,6 +12,7 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     model_native_signal_contract_metadata,
@@ -106,9 +107,9 @@ def _fixture(
 
     split_values: dict[str, str] = {}
     for index, split in enumerate(("train", "val", "test"), start=1):
-        parquet = dataset_dir / f"v10_seq513_dataset__DIR_H24B_{split}.parquet"
+        parquet = dataset_dir / f"v10_seq513_dataset__DIR_TRAIN_FIT_{split}.parquet"
         parquet.write_bytes(f"parquet-{split}".encode())
-        manifest = dataset_dir / f"v10_seq513_dataset__DIR_H24B_{split}.manifest.json"
+        manifest = dataset_dir / f"v10_seq513_dataset__DIR_TRAIN_FIT_{split}.manifest.json"
         _write_json(
             manifest,
             {
@@ -119,7 +120,7 @@ def _fixture(
                 "feature_contract": {
                     "signal_bridge_fields": signal_contract["fields"],
                     "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-                    "ctx_cat_dim": 5,
+                    "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
                 },
                 "extra": {
                     "rows": index,
@@ -151,7 +152,7 @@ def _fixture(
     authority = publish_prefreeze_test_authority(
         entry_run_id=run_id,
         dataset_dir=dataset_dir,
-        dataset_stem="v10_seq513_dataset__DIR_H24B",
+        dataset_stem="v10_seq513_dataset__DIR_TRAIN_FIT",
         pair_lineage={
             "pair_generation_id": "1" * 64,
             "pair_manifest": {"path": "/immutable/pair.json", "sha256": "2" * 64},
@@ -173,15 +174,20 @@ def _fixture(
             "canonical_v2_parquet": {"path": "/immutable/v2.parquet", "sha256": "9" * 64},
             "signal_manifest": {"path": "/immutable/signal.json", "sha256": "a" * 64},
             "feature_ranking": {"path": "/immutable/rank.json", "sha256": "b" * 64},
-            "rank_reference": {"path": "/immutable/rank.npz", "sha256": "c" * 64},
+            # The TRAIN rank-reference artifact is retired; the producer's
+            # exact source-lineage key set no longer accepts it.
+            "position_size_train_ecdf": {
+                "path": "/immutable/position-size-ecdf.npy",
+                "sha256": "e" * 64,
+            },
             "multi_tf_cache": {"path": "/immutable/mtf", "sha256": "d" * 64},
             "xau_tape_provenance": xau,
         },
         rebuild_terminal_json=rebuild_terminal_path,
         test_seal_json=seal_path,
     )
-    test_manifest = dataset_dir / "v10_seq513_dataset__DIR_H24B_test.manifest.json"
-    test_parquet = dataset_dir / "v10_seq513_dataset__DIR_H24B_test.parquet"
+    test_manifest = dataset_dir / "v10_seq513_dataset__DIR_TRAIN_FIT_test.manifest.json"
+    test_parquet = dataset_dir / "v10_seq513_dataset__DIR_TRAIN_FIT_test.parquet"
     test_manifest.unlink()
     test_parquet.unlink()
 
@@ -294,8 +300,8 @@ def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
 
     forbidden_test_paths = {
         Path(args.dataset_dir)
-        / "v10_seq513_dataset__DIR_H24B_test.manifest.json",
-        Path(args.dataset_dir) / "v10_seq513_dataset__DIR_H24B_test.parquet",
+        / "v10_seq513_dataset__DIR_TRAIN_FIT_test.manifest.json",
+        Path(args.dataset_dir) / "v10_seq513_dataset__DIR_TRAIN_FIT_test.parquet",
     }
     original_open = Path.open
     original_stat = Path.stat
@@ -556,7 +562,7 @@ def test_post_rebuild_readiness_rejects_legacy_caller_test_artifacts(
 ) -> None:
     args, _ = _fixture(tmp_path)
     args.test_parquet = str(
-        Path(args.dataset_dir) / "v10_seq513_dataset__DIR_H24B_test.parquet"
+        Path(args.dataset_dir) / "v10_seq513_dataset__DIR_TRAIN_FIT_test.parquet"
     )
 
     with pytest.raises(RuntimeError, match="caller-supplied TEST artifacts"):

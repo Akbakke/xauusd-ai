@@ -275,7 +275,7 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
         },
     )
     assert "specialist_gate" in out
-    assert out["model_native_logits"].shape == (2, 3)
+    assert out["entry_action_q_bps"].shape == (2, 3)
     assert not ({"anchor_logits", "delta_logits", "anchor_gate"} & set(out))
 
 
@@ -340,8 +340,7 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
     )
 
     assert model._specialist_names == MODEL_NATIVE_TRAINING_SPECIALISTS
-    assert out["direction_logits"].shape == (2, 3)
-    assert out["model_native_logits"].shape == (2, 3)
+    assert out["entry_action_q_bps"].shape == (2, 3)
     assert not ({"anchor_logits", "delta_logits", "anchor_gate"} & set(out))
     assert out["specialist_gate"].shape == (2, len(MODEL_NATIVE_TRAINING_SPECIALISTS))
     assert torch.allclose(out["specialist_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
@@ -446,59 +445,18 @@ def test_all_147_context_fields_move_only_their_pre_cross_owner_token() -> None:
                 ).item() == 0
 
 
-@pytest.mark.parametrize("invalid_value", (1.5, -1.0, 5.0))
-def test_nominal_ctx_cont_regime_ids_fail_closed_outside_integer_domain(
-    invalid_value: float,
-) -> None:
-    specialist_indices = _specialist_indices(16)
+def test_no_nominal_ctx_cont_owner_remains_after_regime_id_retirement() -> None:
+    # The per-timeframe `*_regime_class_id_v2` fields were the only nominal
+    # (integer-domain) continuous context owners.  They are retired, so the
+    # nominal routing must be empty everywhere rather than carrying a
+    # placeholder index that no longer names a categorical.
     routing = _context_routing(_specialist_indices())
-    ctx_cont_indices, ctx_cat_indices = _context_indices()
-    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
-        seq_input_dim=16,
-        snap_input_dim=16,
-        seq_len=4,
-        dropout=0.05,
-        multi_tf_num_layers=1,
-        multi_tf_scale=0.5,
-        specialist_num_layers=1,
-        specialist_fusion_scale=0.25,
-        cross_family_fusion_scale=0.25,
-        ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
-        ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=MTF_DIM,
-        m15_seq_dim=MTF_DIM,
-        h1_seq_dim=MTF_DIM,
-        h4_seq_dim=MTF_DIM,
-        d1_seq_dim=MTF_DIM,
-        m5_seq_len=4,
-        m15_seq_len=4,
-        h1_seq_len=4,
-        h4_seq_len=4,
-        d1_seq_len=4,
-        specialist_input_indices=specialist_indices,
-        specialist_ctx_cont_indices=ctx_cont_indices,
-        specialist_ctx_cont_nominal_indices=routing[
-            "ctx_cont_nominal_indices"
-        ],
-        specialist_ctx_cat_indices=ctx_cat_indices,
-        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
-        temporal_alias_signal_indices=[],
-        temporal_alias_ctx_cont_indices=[],
-        input_normalization=_input_normalization(specialist_indices),
-    ).eval()
-    ctx_cont = _valid_ctx_cont(1)
-    nominal_index = next(
-        index
-        for values in routing["ctx_cont_nominal_indices"].values()
-        for index in values
-    )
-    ctx_cont[0, nominal_index] = invalid_value
-
-    with pytest.raises(RuntimeError, match="CTX_CONT_NOMINAL_DOMAIN_INVALID"):
-        model._build_family_context_tokens(
-            ctx_cont,
-            torch.zeros(1, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long),
-        )
+    for owner in (
+        routing["ctx_cont_nominal_indices"],
+        MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT["ctx_cont_nominal_indices"],
+    ):
+        assert set(owner) == set(MODEL_NATIVE_TRAINING_SPECIALISTS)
+        assert not [index for values in owner.values() for index in values]
 
 
 def test_temporal_alias_current_snap_copies_are_excluded_from_generic_projection() -> None:
@@ -542,8 +500,12 @@ def test_temporal_alias_current_snap_copies_are_excluded_from_generic_projection
         input_normalization=_input_normalization(specialist_indices),
     ).eval()
     generic = model.generic_snap_idx.tolist()
-    assert len(aliases) == 82
-    assert len(generic) == MODEL_NATIVE_SIGNAL_DIM - 82
+    # Every alias is a current-bar copy of a ctx_cont owner, discovered from
+    # the ordered signal manifest — the count is derived, never restated.
+    assert len(aliases) == len(
+        context_routing["temporal_alias_policy"]["ctx_cont_indices"]
+    )
+    assert len(generic) == MODEL_NATIVE_SIGNAL_DIM - len(aliases)
     assert set(aliases).isdisjoint(generic)
 
     snap = torch.randn(2, MODEL_NATIVE_SIGNAL_DIM)

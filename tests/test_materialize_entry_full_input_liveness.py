@@ -11,12 +11,14 @@ import pyarrow.parquet as pq
 import pytest
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
+    classify_field_name_semantics,
     PASS_DECISION,
     SPLITS,
     validate_full_input_liveness_artifact,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTEXT_TAG,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -43,7 +45,7 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 
 RUN_ID = "UNIT_LIVENESS_20260717"
-STEM = "unit_seq513__DIR_H24B"
+STEM = "unit_seq513__DIR_TRAIN_FIT"
 OUTPUT_FILENAME = (
     "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260717T120000000000Z.json"
 )
@@ -83,8 +85,8 @@ def _verified_v4_cache_loader(monkeypatch) -> None:
 
 def _signal_contract() -> dict:
     required = [
-        "candle.pattern_outside_after_inside_bull_breakout_score",
-        "candle.pattern_outside_after_inside_bear_breakout_score",
+        "chart.local_ema50_200_cross_up",
+        "chart.local_ema50_200_cross_down",
         "ctx_cont.d1_atr14_canon_v2",
         "ctx_cont._v1h4_atr",
     ]
@@ -109,11 +111,46 @@ def _write_split(
     row_axis = np.linspace(0.0, 1.0, rows, dtype=np.float32)[:, None]
     signal_axis = np.arange(MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32)[None, :]
     snap = 1.0 + row_axis * 0.25 + signal_axis * 0.001
+    # Shift the signed columns below zero so the synthetic surface honours each
+    # field's own name contract. An all-positive ramp declares every `_slope`,
+    # `_delta` and `_spread` field one-sided, which the semantics gate rejects
+    # exactly as it would on real bytes.
+    _signal_names = signal_contract["fields"]
+    _signed_cols = [
+        index
+        for index, name in enumerate(_signal_names)
+        if classify_field_name_semantics(name) == "signed"
+    ]
+    _unit_cols = [
+        index
+        for index, name in enumerate(_signal_names)
+        if classify_field_name_semantics(name) == "unit_interval"
+    ]
+    if _signed_cols:
+        # Straddle zero: a constant shift merely makes the column one-sided in
+        # the other direction, which the contract rejects just as hard.
+        snap[:, _signed_cols] = row_axis * np.float32(0.5) - np.float32(0.25)
+    if _unit_cols:
+        snap[:, _unit_cols] = row_axis
     seq = np.repeat(snap[:, None, :], MODEL_NATIVE_SEQ_LEN, axis=1)
     if break_seq_snap_parity:
         seq[0, -1, 0] += np.float32(1.0)
     cont_axis = np.arange(len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32)[None, :]
     ctx_cont = 2.0 + row_axis * 0.125 + cont_axis * 0.001
+    _cont_signed = [
+        index
+        for index, name in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
+        if classify_field_name_semantics(name) == "signed"
+    ]
+    _cont_unit = [
+        index
+        for index, name in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
+        if classify_field_name_semantics(name) == "unit_interval"
+    ]
+    if _cont_signed:
+        ctx_cont[:, _cont_signed] = row_axis * np.float32(0.5) - np.float32(0.25)
+    if _cont_unit:
+        ctx_cont[:, _cont_unit] = row_axis
     ctx_cat = np.column_stack(
         [
             (np.arange(rows, dtype=np.int64) + index) % 3
@@ -222,7 +259,7 @@ def _args(dataset_dir: Path, out_dir: Path) -> argparse.Namespace:
     )
 
 
-def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) -> None:
+def test_materializer_fullscans_and_binds_exact_owner_dimensions(tmp_path: Path) -> None:
     dataset_dir = tmp_path / "dataset"
     _write_dataset(dataset_dir)
 
@@ -238,10 +275,10 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
     assert validation["field_counts"] == {
         "signal": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat": 5,
+        "ctx_cat": MODEL_NATIVE_CTX_CAT_DIM,
     }
     assert validation["field_status_row_count"] == len(SPLITS) * (
-        MODEL_NATIVE_SIGNAL_DIM + MODEL_NATIVE_CTX_CONT_DIM + 5
+        MODEL_NATIVE_SIGNAL_DIM + MODEL_NATIVE_CTX_CONT_DIM + MODEL_NATIVE_CTX_CAT_DIM
     )
     from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 

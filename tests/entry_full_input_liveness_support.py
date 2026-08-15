@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
+    classify_field_name_semantics,
     MULTI_TF_FEATURE_NAMES,
     MULTI_TF_TIMEFRAMES,
     build_full_input_liveness_artifact,
@@ -19,6 +20,7 @@ from gx1.features.htf_features import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -27,8 +29,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 def full_input_field_order() -> dict[str, list[str]]:
     signal = [
         "smc_choch",
-        "candle.pattern_outside_after_inside_bull_breakout_score",
-        "candle.pattern_outside_after_inside_bear_breakout_score",
         "ctx_cont.d1_atr14_canon_v2",
         "ctx_cont._v1h4_atr",
         "chart.local_ema50_200_cross_up",
@@ -51,7 +51,9 @@ def full_input_field_order() -> dict[str, list[str]]:
         f"ctx_cont_feature_{idx:03d}"
         for idx in range(MODEL_NATIVE_CTX_CONT_DIM - len(ctx_cont))
     )
-    ctx_cat = [f"ctx_cat_feature_{idx}" for idx in range(5)]
+    ctx_cat = [
+        f"ctx_cat_feature_{idx}" for idx in range(MODEL_NATIVE_CTX_CAT_DIM)
+    ]
     return {"signal": signal, "ctx_cont": ctx_cont, "ctx_cat": ctx_cat}
 
 
@@ -76,15 +78,26 @@ def full_input_stats(
                         "unique_values": [0, 1, 2],
                     }
                     continue
+                # Synthetic values must honour the field's own name contract,
+                # otherwise the fixture asserts a surface the contract forbids.
+                # A monotone all-positive ramp silently violated every signed
+                # field the moment the semantics gate landed.
+                semantics = classify_field_name_semantics(field)
+                if semantics == "signed":
+                    low, high = -1.0 - idx * 0.001, 1.5 + idx * 0.001
+                elif semantics == "unit_interval":
+                    low, high = 0.0, 1.0
+                else:
+                    low, high = 0.5 + idx * 0.001, 1.5 + idx * 0.001
                 surface_rows[field] = {
                     "row_count": rows,
                     "finite_count": rows,
                     "nonfinite_count": 0,
-                    "mean": 1.0 + idx * 0.001,
+                    "mean": (low + high) / 2.0,
                     "std": 0.5,
-                    "min": 0.5 + idx * 0.001,
-                    "max": 1.5 + idx * 0.001,
-                    "value_range": 1.0,
+                    "min": low,
+                    "max": high,
+                    "value_range": high - low,
                     "active_count": rows,
                     "active_rate": 1.0,
                 }

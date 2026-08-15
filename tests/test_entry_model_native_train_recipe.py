@@ -12,6 +12,7 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     MODEL_NATIVE_RECIPE_ENV_SHA256,
+    SCHEMA_VERSION as MODEL_NATIVE_RECIPE_ENV_SCHEMA_VERSION,
     model_native_recipe_env_contract_metadata,
     require_model_native_recipe_env,
 )
@@ -31,9 +32,8 @@ WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     metadata = model_native_recipe_env_contract_metadata()
 
-    # 166 audited keys (164 pre-V29 + the two V30 package-5 stability-damper
-    # switches) + the declared V29 registry recipe keys (derived, never
-    # restated as a bare literal).
+    # Wave C leaves only diagnostics/admission and optimization switches.
+    # Registry operator parameters come only from immutable TRAIN-fit artifacts.
     from gx1.contracts.entry_model_native_train_recipe_v1 import (
         MODEL_NATIVE_STABILITY_DAMPER_RECIPE_ENV_KEYS,
         MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS,
@@ -42,10 +42,23 @@ def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
         MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE,
     )
 
-    expected_count = 166 + len(MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS)
-    assert len(MODEL_NATIVE_RECIPE_ENV) == expected_count
+    # The key COUNT is owned and enforced by the recipe module itself
+    # (``_EXPECTED_RECIPE_ENV_KEY_COUNT`` raises at import).  Restating it here
+    # was a second origin that went stale the moment Wave C retired keys, so
+    # the count is derived and what is asserted is the live invariant: the
+    # published key tuple is exactly the declared mapping's key set, with no
+    # duplicate, omission or extra.
+    expected_count = len(MODEL_NATIVE_RECIPE_ENV)
     assert len(MODEL_NATIVE_RECIPE_ENV_KEYS) == expected_count
-    assert MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_LOGIT_ADJUST_TAU"] == "1.0"
+    assert set(MODEL_NATIVE_RECIPE_ENV_KEYS) == set(MODEL_NATIVE_RECIPE_ENV)
+    assert list(MODEL_NATIVE_RECIPE_ENV_KEYS) == sorted(MODEL_NATIVE_RECIPE_ENV)
+    assert "ENTRY_DIRECTION_LOGIT_ADJUST_TAU" not in MODEL_NATIVE_RECIPE_ENV
+    assert "ENTRY_DIRECTION_CE_SCALE" not in MODEL_NATIVE_RECIPE_ENV
+    assert "ENTRY_TAIL_DIRECTION_CE_WEIGHT" not in MODEL_NATIVE_RECIPE_ENV
+    assert "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT" not in MODEL_NATIVE_RECIPE_ENV
+    assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT" not in MODEL_NATIVE_RECIPE_ENV
+    assert "ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP" not in MODEL_NATIVE_RECIPE_ENV
+    assert not any(key.endswith("_POS_WEIGHT_CAP") for key in MODEL_NATIVE_RECIPE_ENV)
     # V30 package 5. The cosine switch carries no magnitude at all (T_max is
     # the declared --epochs budget, eta_min the library default 0.0), so it is
     # adopted ON.  V30 package 6: the weight-EMA key declares a HORIZON, not a
@@ -62,16 +75,15 @@ def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     assert MODEL_NATIVE_WEIGHT_EMA_DECAY_DISABLED_VALUE == "0.0"
     assert MODEL_NATIVE_WEIGHT_EMA_DECAY_EPOCH_HORIZON_VALUE == "epoch"
     assert MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES == ("0.0", "epoch")
-    # median, adopting the design document's own median convention used for
-    # the sibling trendline band (docs/V29_EVENT_SURFACE_DESIGN_20260811.md
-    # B.2), applied uniformly across registry tolerances; operator-adopted
-    # 2026-08-11.
-    assert (
-        MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"]
-        == "0.5"
+    # Registry tolerance/lifecycle decisions are immutable TRAIN artifacts, so
+    # the owner declares an empty registry key tuple and no registry operator
+    # key may reappear on the trainer recipe surface by either route.
+    assert MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS == ()
+    assert not any(
+        "REGISTRY" in key for key in MODEL_NATIVE_RECIPE_ENV
     )
     assert metadata == {
-        "schema_version": "entry_model_native_seq513_train_recipe_env_v1",
+        "schema_version": MODEL_NATIVE_RECIPE_ENV_SCHEMA_VERSION,
         "count": expected_count,
         "sha256": MODEL_NATIVE_RECIPE_ENV_SHA256,
         "keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
@@ -95,15 +107,27 @@ def test_every_recipe_value_is_consumed_by_the_only_trainer_source() -> None:
 @pytest.mark.parametrize("mutation", ("missing", "extra", "changed"))
 def test_recipe_env_rejects_every_non_exact_surface(mutation: str) -> None:
     candidate = dict(MODEL_NATIVE_RECIPE_ENV)
+    # The mutated key comes from the owner's own key tuple.  Naming a key here
+    # made this test die the day Wave C retired it, and it also let the
+    # "changed" arm silently degrade into a second "extra" arm because the
+    # named key was no longer present to change.
+    owned_key = MODEL_NATIVE_RECIPE_ENV_KEYS[0]
     if mutation == "missing":
-        candidate.pop("ENTRY_MTF_DIR_AUX_WEIGHT")
+        mutated_key = owned_key
+        candidate.pop(owned_key)
     elif mutation == "extra":
-        candidate["ENTRY_UNAUDITED_PASS_THROUGH"] = "1"
+        mutated_key = "ENTRY_UNAUDITED_PASS_THROUGH"
+        candidate[mutated_key] = "1"
     else:
-        candidate["ENTRY_MTF_DIR_AUX_WEIGHT"] = "0"
+        mutated_key = owned_key
+        candidate[owned_key] = f"{candidate[owned_key]}_NOT_THE_DECLARED_VALUE"
+    assert candidate != dict(MODEL_NATIVE_RECIPE_ENV)
 
-    with pytest.raises(RuntimeError, match="MODEL_NATIVE_RECIPE_ENV_MISMATCH"):
+    with pytest.raises(
+        RuntimeError, match="MODEL_NATIVE_RECIPE_ENV_MISMATCH"
+    ) as rejected:
         require_model_native_recipe_env(candidate)
+    assert mutated_key in str(rejected.value)
 
 
 def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
@@ -189,8 +213,8 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
 
     assert result.returncode == 0, result.stderr
     assert "Validated model-native seq513 smoke contract" in result.stdout
-    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in result.stdout
-    assert "ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35" in result.stdout
+    assert "ENTRY_HIER_TRADE_WEIGHT" not in result.stdout
+    assert "ENTRY_MTF_DIR_AUX_WEIGHT" not in result.stdout
 
 
 @pytest.mark.parametrize("invalid_dropout", ("-0.01", "1.0", "nan"))
@@ -421,6 +445,9 @@ def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
     A second origin can never be allowed back.
     """
     import re
+    from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS,
+    )
 
     source = (REPO / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py").read_text(
         encoding="utf-8"
@@ -428,11 +455,11 @@ def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
     with_default = re.findall(r'_env_str\(\s*"[A-Z0-9_]+"\s*,', source)
     assert with_default == [], f"trainer regained shadow defaults: {with_default}"
     single_arg = re.findall(r'_env_str\(\s*"([A-Z0-9_]+)"\s*\)', source)
-    # 162 + the two V30 package-5 stability-damper switches.
-    assert len(single_arg) == 164
-    # Every key the trainer reads must be owned by the recipe contract.
-    unknown = sorted(set(single_arg) - set(MODEL_NATIVE_RECIPE_ENV_KEYS))
-    assert unknown == [], f"trainer reads keys with no recipe owner: {unknown}"
+    indirect_keys = {
+        *MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS,
+        "GX1_CTX_CONTRACT",
+    }
+    assert set(single_arg) == set(MODEL_NATIVE_RECIPE_ENV_KEYS) - indirect_keys
 
 
 def test_trainer_cli_has_no_numeric_execution_defaults() -> None:

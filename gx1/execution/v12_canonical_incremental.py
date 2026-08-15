@@ -75,6 +75,10 @@ from gx1.execution.v12_m1_to_m5_downsample import (  # noqa: E402
     closed_m5_start_for_m1_bar_labels,
 )
 from gx1.features.basic_v1 import (  # noqa: E402
+    BASIC_V1_FEATURES,
+    BASIC_V1_FEATURES_SHA256,
+    BASIC_V1_FORMULA_SHA256,
+    BASIC_V1_SCHEMA_VERSION,
     PLUS5_FEATURES,
     compute_plus5_features,
 )
@@ -84,7 +88,6 @@ from gx1.scripts.materialize_build_canonical_features_v2 import (  # noqa: E402
 from gx1.scripts.materialize_canonical_v3_augment import (  # noqa: E402
     DROP_COLUMNS,
     add_cyclic_time_features,
-    add_smc_premium_state_interaction,
     add_cross_tf_momentum,
 )
 
@@ -92,7 +95,7 @@ LOG = logging.getLogger("v12_incr")
 
 PAIR_CANONICAL_FILENAME = "canonical_v3.parquet"
 PAIR_BASE28_FILENAME = "base28.parquet"
-MODEL_AGNOSTIC_CACHE_SCHEMA = "gx1_model_agnostic_canonical_cache_v2"
+MODEL_AGNOSTIC_CACHE_SCHEMA = "gx1_model_agnostic_canonical_cache_v6"
 _PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
 # Historical PLUS5 lane now retains four genuinely local auxiliary fields.
@@ -829,7 +832,7 @@ def _apply_local_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
         v3 = v3.set_index("time")
     v3 = v3.drop(columns=[name for name in DROP_COLUMNS if name in v3.columns])
     v3 = add_cyclic_time_features(v3)
-    return add_smc_premium_state_interaction(v3)
+    return v3
 
 
 def _canonical_cache_paths(
@@ -870,6 +873,16 @@ def _validate_model_agnostic_canonical(canonical: pd.DataFrame) -> pd.DataFrame:
         raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_INDEX_OR_SCHEMA_INVALID")
     if "m5h1_momentum" not in canonical.columns:
         raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_V4_MOMENTUM_MISSING")
+    basic_fields = tuple(
+        name for name in canonical.columns if name.startswith("_v1_")
+    )
+    if len(basic_fields) != len(BASIC_V1_FEATURES) or set(basic_fields) != set(
+        BASIC_V1_FEATURES
+    ):
+        raise RuntimeError(
+            "PAIR_BOOTSTRAP_CANONICAL_BASIC_V1_SURFACE_INVALID: "
+            f"actual={basic_fields} expected={BASIC_V1_FEATURES}"
+        )
     if "_v1h1_vwap_drift" in canonical.columns:
         raise RuntimeError("PAIR_BOOTSTRAP_CANONICAL_DUPLICATE_H1_OWNER")
     numeric = canonical.apply(pd.to_numeric, errors="coerce")
@@ -907,6 +920,11 @@ def _load_model_agnostic_canonical_cache(
     if (
         not isinstance(manifest, dict)
         or manifest.get("schema_version") != MODEL_AGNOSTIC_CACHE_SCHEMA
+        or manifest.get("basic_v1_schema_version") != BASIC_V1_SCHEMA_VERSION
+        or manifest.get("basic_v1_features_sha256")
+        != BASIC_V1_FEATURES_SHA256
+        or manifest.get("basic_v1_formula_sha256")
+        != BASIC_V1_FORMULA_SHA256
         or manifest.get("checkpoint_key") != checkpoint_key
         or manifest.get("parquet_path") != str(parquet_path)
         or manifest.get("parquet_sha256")
@@ -953,6 +971,9 @@ def _write_model_agnostic_canonical_cache(
         _fsync_directory(parquet_path.parent)
         manifest = {
             "schema_version": MODEL_AGNOSTIC_CACHE_SCHEMA,
+            "basic_v1_schema_version": BASIC_V1_SCHEMA_VERSION,
+            "basic_v1_features_sha256": BASIC_V1_FEATURES_SHA256,
+            "basic_v1_formula_sha256": BASIC_V1_FORMULA_SHA256,
             "checkpoint_key": checkpoint_key,
             "parquet_path": str(parquet_path),
             "parquet_sha256": _sha256_regular_file(
@@ -1007,19 +1028,19 @@ def _build_model_agnostic_canonical(
 
     from gx1.features.htf_features import (
         attach_model_native_mtf_scalars_v4,
-        attach_default_regime_v4_scalars,
         build_multi_tf_per_bar_features_v4,
     )
     from gx1.execution.v12_ctx_augment_live import (
         augment_canonical_v3_model_agnostic_from_v4,
     )
     from gx1.scripts.augment_forward_outcome_v2 import (
-        attach_group_a_dip_struct_ctx_columns_parallel,
+        attach_group_a_ctx_columns_parallel,
         trim_causal_context_warmup_prefix,
     )
 
     from gx1.execution.v12_state_from_prebuilt import (
         _require_v29_registry_constants_from_bound_cache,
+        _require_volatility_squeeze_artifacts_from_bound_cache,
     )
 
     multi_tf = build_multi_tf_per_bar_features_v4(
@@ -1028,13 +1049,11 @@ def _build_model_agnostic_canonical(
             ["open", "high", "low", "close", "volume"],
         ],
         v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
+        volatility_squeeze_artifacts=(
+            _require_volatility_squeeze_artifacts_from_bound_cache()
+        ),
     )
     attach_model_native_mtf_scalars_v4(
-        canonical,
-        multi_tf=multi_tf,
-        decision_bar_duration=pd.Timedelta(minutes=5),
-    )
-    attach_default_regime_v4_scalars(
         canonical,
         multi_tf=multi_tf,
         decision_bar_duration=pd.Timedelta(minutes=5),
@@ -1052,7 +1071,7 @@ def _build_model_agnostic_canonical(
     # warmup-trimmed decision slice — resetting it at the trim boundary was
     # the exact V11 failure mode.
     pre_attach_columns = set(canonical.columns)
-    canonical = attach_group_a_dip_struct_ctx_columns_parallel(
+    canonical = attach_group_a_ctx_columns_parallel(
         canonical,
         multi_tf=multi_tf,
         journal_label="native_pair_generation",

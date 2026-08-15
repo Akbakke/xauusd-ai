@@ -13,6 +13,8 @@ import pytest
 
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION,
+    ENTRY_FEATURE_SOURCE_HISTORY_BARS,
+    EXIT_FEATURE_SOURCE_HISTORY_BARS,
     entry_exit_feature_owner_resolution_contract,
     entry_exit_shared_feature_base_contract,
     require_entry_exit_feature_surface_identity,
@@ -23,11 +25,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.features.entry_candlestick_patterns_v1 import (
-    build_entry_candlestick_pattern_layer,
-)
-from gx1.features.entry_model_native_feature_layers_v1 import (
-    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+from gx1.features.entry_candle_primitives_v1 import (
+    build_entry_candle_primitive_layer,
 )
 from gx1.features.basic_v1 import PLUS5_FEATURES
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -36,6 +35,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.scripts import build_entry_exit_m1_enriched_frame_v1 as enriched_producer
 from gx1.scripts import materialize_entry_exit_m1_feature_base_v1 as feature_producer
 from gx1.execution import v12_canonical_incremental as canonical_incremental
+from gx1.execution import v12_model_native_state_live as native_state
+from gx1.features.volume_features import VOLUME_FEATURE_PREFIX_ROWS
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _align_native_m5_feature_surface,
 )
@@ -95,11 +96,11 @@ def test_all_eight_owners_are_bound_to_local_m5_and_m1_with_closed_mtf() -> None
         "mtf_context_timeframes": ["M5", "M15", "H1", "H4", "D1"],
     }
     assert (
-        sum(contract["mandatory_feature_count_by_owner"].values())
-        == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        sum(contract["code_owned_feature_count_by_owner"].values())
+        == contract["code_owned_feature_count"]
     )
     for owner in MODEL_NATIVE_TRAINING_SPECIALISTS:
-        assert contract["mandatory_feature_count_by_owner"][owner] > 0
+        assert contract["code_owned_feature_count_by_owner"][owner] > 0
         assert contract["owners"][owner] == {
             "M5": {
                 "consumer": "ENTRY",
@@ -117,6 +118,13 @@ def test_all_eight_owners_are_bound_to_local_m5_and_m1_with_closed_mtf() -> None
 def test_shared_contract_rejects_one_owner_missing_one_resolution() -> None:
     contract = entry_exit_shared_feature_base_contract()
     assert contract["schema_version"] == ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION
+    assert contract["volume_feature_prefix_rows"] == VOLUME_FEATURE_PREFIX_ROWS == 95
+    assert contract["entry_feature_source_history_bars"] == (
+        ENTRY_FEATURE_SOURCE_HISTORY_BARS
+    ) == 191
+    assert contract["exit_feature_source_history_bars"] == (
+        EXIT_FEATURE_SOURCE_HISTORY_BARS
+    ) == 575
 
     stale = copy.deepcopy(contract)
     del stale["feature_owner_resolution_contract"]["owners"][
@@ -132,18 +140,27 @@ def test_shared_contract_rejects_one_owner_missing_one_resolution() -> None:
         )
 
 
-def test_exit_surface_must_match_entry_field_manifest_and_rank_state() -> None:
+def test_native_live_volume_owner_runs_before_shared_warmup_trim() -> None:
+    source = inspect.getsource(native_state.ModelNativeStateBuilder.prepare_frame)
+    compute_position = source.index("add_volume_features(frame)")
+    trim_position = source.index(
+        "frame = trim_causal_context_warmup_prefix(frame, causal_required)"
+    )
+
+    assert compute_position < trim_position
+    assert "+ list(VOLUME_FEATURE_NAMES)" in source
+
+
+def test_exit_surface_must_match_entry_field_manifest() -> None:
     fields = ["snap.a", "chart.b"]
     signal_manifest = "/immutable/signal.json"
     signal_sha = "a" * 64
-    rank_sha = "b" * 64
     surface = {
         "anchor_timeframe": "M1",
         "feature_field_order": fields,
         "feature_field_order_sha256": _canonical_sha256(fields),
         "seq_structure_manifest": signal_manifest,
         "seq_structure_manifest_sha256": signal_sha,
-        "rank_reference_sha256": rank_sha,
         "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
     }
     assert require_entry_exit_feature_surface_identity(
@@ -152,14 +169,12 @@ def test_exit_surface_must_match_entry_field_manifest_and_rank_state() -> None:
         expected_ordered_fields=fields,
         expected_signal_manifest_path=signal_manifest,
         expected_signal_manifest_sha256=signal_sha,
-        expected_rank_reference_sha256=rank_sha,
         context="PYTEST",
     ) == surface
 
     for field in (
         "feature_field_order",
         "seq_structure_manifest_sha256",
-        "rank_reference_sha256",
     ):
         stale = copy.deepcopy(surface)
         stale[field] = [] if field == "feature_field_order" else "c" * 64
@@ -173,7 +188,6 @@ def test_exit_surface_must_match_entry_field_manifest_and_rank_state() -> None:
                 expected_ordered_fields=fields,
                 expected_signal_manifest_path=signal_manifest,
                 expected_signal_manifest_sha256=signal_sha,
-                expected_rank_reference_sha256=rank_sha,
                 context="PYTEST",
             )
 
@@ -196,8 +210,6 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
     monkeypatch.setattr(feature_producer, "_materialize_feature_base", fake_feature)
 
     common_enriched = [
-        "--rank-reference-npz", "/tmp/rank.npz",
-        "--rank-reference-sha256", "a" * 64,
         "--pair-manifest", "/tmp/pair.json",
         "--multi-tf-cache-dir", "/tmp/cache",
         "--output-parquet", "/tmp/enriched.parquet",
@@ -209,11 +221,16 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
     for root_flag in ("--native-m1-root", "--native-m5-root"):
         route_args = ["producer", root_flag, "/tmp/native", *common_enriched]
         # Both native routes TRAIN-fit V29 registry state (M5: the five-TF
-        # constants; M1: the Exit M1-lane params); both fit inputs are
-        # explicit recipe inputs with no default.
+        # constants; M1: the Exit M1-lane params); immutable lineage and the
+        # chronological inner-TRAIN split are explicit.
         route_args += [
-            "--level-tol-quantile-q", "0.25",
-            "--registry-fit-train-end", "2026-01-05T00:00:00Z",
+            "--registry-fit-train-start", "2026-01-01T00:00:00+00:00",
+            "--registry-fit-inner-end", "2026-01-03T00:00:00+00:00",
+            "--registry-fit-train-end", "2026-01-05T00:00:00+00:00",
+            "--registry-fit-tape-manifest", "/tmp/tape.json",
+            "--expected-registry-fit-tape-manifest-sha256", "d" * 64,
+            "--volatility-squeeze-manifest", "/tmp/squeeze.json",
+            "--expected-volatility-squeeze-manifest-sha256", "c" * 64,
         ]
         monkeypatch.setattr(sys, "argv", route_args)
         enriched_producer.main()
@@ -225,6 +242,8 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
         "--dataset-run-id", "run",
         "--pair-generation-id", "b" * 64,
         "--v29-registry-constants-json", "/tmp/v29_constants.json",
+        "--volatility-squeeze-manifest", "/tmp/squeeze.json",
+        "--expected-volatility-squeeze-manifest-sha256", "c" * 64,
     ]
     monkeypatch.setattr(
         sys,
@@ -259,11 +278,7 @@ def test_enriched_producer_runs_v4_before_every_cross_tf_consumer(
         calls.append(("attach_v4", decision_bar_duration))
         return frame
 
-    def attach_regime(frame, *, multi_tf, decision_bar_duration):
-        calls.append(("attach_regime", decision_bar_duration))
-        return frame
-
-    def augment(frame, *, rank_reference, base_bar_duration):
+    def augment(frame, *, base_bar_duration):
         calls.append(("augment", base_bar_duration))
         return frame
 
@@ -280,12 +295,7 @@ def test_enriched_producer_runs_v4_before_every_cross_tf_consumer(
     )
     monkeypatch.setattr(
         enriched_producer,
-        "attach_default_regime_v4_scalars",
-        attach_regime,
-    )
-    monkeypatch.setattr(
-        enriched_producer,
-        "augment_canonical_v3_from_v4",
+        "augment_canonical_v3_model_agnostic_from_v4",
         augment,
     )
     monkeypatch.setattr(
@@ -297,13 +307,11 @@ def test_enriched_producer_runs_v4_before_every_cross_tf_consumer(
     out = enriched_producer._complete_v4_owned_context(
         pd.DataFrame({"close": np.arange(8, dtype=np.float64)}),
         multi_tf={},
-        rank_reference=object(),
         decision_bar_duration=duration,
     )
 
     assert calls == [
         ("attach_v4", duration),
-        ("attach_regime", duration),
         ("augment", duration),
         ("momentum", duration),
     ]
@@ -330,6 +338,58 @@ def test_current_pair_build_cannot_run_cross_tf_before_v4_projection() -> None:
     assert build_source.count("add_cross_tf_momentum(") == 1
 
 
+def test_canonical_context_exposes_only_v4_augmentation_entrypoints() -> None:
+    """Keep ``htf_features.py`` as the sole production MTF feature owner.
+
+    The five private names below are a temporary, closed compatibility set for
+    active historical state/dataset callers.  Freezing that set prevents a new
+    local HTF implementation while those callers are migrated; it does not
+    admit another public context-augmentation route.
+    """
+    from gx1.execution import v12_ctx_augment_live
+    from gx1.features import htf_features
+
+    local_functions = {
+        name
+        for name, value in vars(v12_ctx_augment_live).items()
+        if inspect.isfunction(value)
+        and value.__module__ == v12_ctx_augment_live.__name__
+    }
+    augmentation_entrypoints = {
+        name for name in local_functions if name.startswith("augment_canonical_v3")
+    }
+    assert augmentation_entrypoints == {
+        "augment_canonical_v3_model_agnostic_from_v4",
+    }
+
+    legacy_htf_compatibility = {
+        "_resample_ohlc",
+        "_ema",
+        "_atr",
+        "_align_last_closed",
+        "_add_htf_features",
+    }
+    assert legacy_htf_compatibility <= local_functions
+    possible_local_htf_owners = {
+        name
+        for name in local_functions
+        if name in legacy_htf_compatibility
+        or name.startswith(("_atr", "_ema", "_resample"))
+        or "htf" in name
+        or "higher_tf" in name
+        or "multi_tf" in name
+        or "resample_ohlc" in name
+        or "last_closed" in name
+    }
+    assert possible_local_htf_owners == legacy_htf_compatibility
+    assert Path(htf_features.__file__).resolve() == (
+        Path("gx1/features/htf_features.py").resolve()
+    )
+    assert "V4-only causal multi-timeframe feature" in (
+        inspect.getdoc(htf_features) or ""
+    )
+
+
 def test_misnamed_local_rolling_288_h1_owner_is_physically_absent() -> None:
     from gx1.features import basic_v1
 
@@ -337,22 +397,22 @@ def test_misnamed_local_rolling_288_h1_owner_is_physically_absent() -> None:
     assert "_v1h1_vwap_drift" not in inspect.getsource(basic_v1)
 
 
-def test_candlestick_owner_computes_native_m1_and_m5_values_causally() -> None:
+def test_candle_owner_computes_native_m1_and_m5_values_causally() -> None:
     m1 = _candle_frame(freq="min", falling=False)
     m5 = _candle_frame(freq="5min", falling=True)
 
-    m1_values, m1_names = build_entry_candlestick_pattern_layer(m1)
-    m5_values, m5_names = build_entry_candlestick_pattern_layer(m5)
+    m1_values, m1_names = build_entry_candle_primitive_layer(m1)
+    m5_values, m5_names = build_entry_candle_primitive_layer(m5)
 
     assert m1_names == m5_names
     assert m1_values.shape == m5_values.shape == (12, len(m1_names))
     assert not np.array_equal(m1_values, m5_values)
 
-    m1_prefix, prefix_names = build_entry_candlestick_pattern_layer(m1.iloc[:8])
-    m5_prefix, _ = build_entry_candlestick_pattern_layer(m5.iloc[:8])
+    m1_prefix, prefix_names = build_entry_candle_primitive_layer(m1.iloc[:8])
+    m5_prefix, _ = build_entry_candle_primitive_layer(m5.iloc[:8])
     assert prefix_names == m1_names
-    np.testing.assert_array_equal(m1_values[:8], m1_prefix)
-    np.testing.assert_array_equal(m5_values[:8], m5_prefix)
+    np.testing.assert_allclose(m1_values[:8], m1_prefix, equal_nan=True)
+    np.testing.assert_allclose(m5_values[:8], m5_prefix, equal_nan=True)
 
 
 def _m5_surface_arrays(rows: int) -> dict[str, np.ndarray]:

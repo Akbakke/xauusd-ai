@@ -24,8 +24,9 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
 )
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    require_offline_rl_contract_metadata,
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_contract,
+    require_entry_fitted_q_production_economics_readiness,
 )
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
@@ -46,9 +47,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
@@ -372,7 +374,9 @@ def _feature_checks(
         str(value) for value in signal_contract.get("selected_fields", [])
     )
     mandatory_prefix = selected_fields[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]
-    ranked_remainder = selected_fields[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    available_candidates = selected_fields[
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+    ]
     ranking_sha256 = str(report.get("feature_ranking_sha256") or "")
     partition_exact = (
         not contract_error
@@ -392,13 +396,13 @@ def _feature_checks(
         and int(report.get("manifest_mandatory_selected_feature_count") or 0)
         == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
         and mandatory_prefix == MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
-        and int(report.get("ranked_remainder_feature_count") or 0)
-        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-        and int(report.get("manifest_ranked_remainder_feature_count") or 0)
-        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-        and len(ranked_remainder) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-        and report.get("ranked_remainder_fields_sha256")
-        == _sha256_json(list(ranked_remainder))
+        and int(report.get("available_candidate_feature_count") or 0)
+        == MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        and int(report.get("manifest_available_candidate_feature_count") or 0)
+        == MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        and tuple(available_candidates) == MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+        and report.get("available_candidate_fields_sha256")
+        == _sha256_json(list(available_candidates))
         and report.get("feature_ranking_fit_scope") == "train_only"
         and len(ranking_sha256) == 64
         and all(character in "0123456789abcdef" for character in ranking_sha256)
@@ -416,7 +420,7 @@ def _feature_checks(
                 "feature audit proves exact model-native "
                 f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
                 f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
-                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+                f"{MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT} full-pool partition"
             ),
             partition_exact,
             {
@@ -437,16 +441,16 @@ def _feature_checks(
                 "mandatory_prefix_exact": (
                     mandatory_prefix == MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
                 ),
-                "ranked_remainder_feature_count": report.get(
-                    "ranked_remainder_feature_count"
+                "available_candidate_feature_count": report.get(
+                    "available_candidate_feature_count"
                 ),
-                "manifest_ranked_remainder_feature_count": report.get(
-                    "manifest_ranked_remainder_feature_count"
+                "manifest_available_candidate_feature_count": report.get(
+                    "manifest_available_candidate_feature_count"
                 ),
-                "ranked_remainder_observed_count": len(ranked_remainder),
-                "ranked_remainder_hash_exact": (
-                    report.get("ranked_remainder_fields_sha256")
-                    == _sha256_json(list(ranked_remainder))
+                "available_candidate_observed_count": len(available_candidates),
+                "available_candidate_hash_exact": (
+                    report.get("available_candidate_fields_sha256")
+                    == _sha256_json(list(available_candidates))
                 ),
                 "feature_ranking_fit_scope": report.get(
                     "feature_ranking_fit_scope"
@@ -500,20 +504,21 @@ def _target_checks(
     except RuntimeError as exc:
         aux_contract_valid = False
         aux_contract_error = str(exc)
-    offline_rl_target = report.get("offline_rl_target_contract")
-    offline_rl_valid = bool(
-        isinstance(offline_rl_target, dict)
-        and offline_rl_target.get("decision") == "PASS"
-        and offline_rl_target.get("failures") == []
-    )
-    if offline_rl_valid:
+    entry_q_target = report.get("entry_fitted_q_target_contract")
+    entry_q_contract_valid = isinstance(entry_q_target, dict)
+    if entry_q_contract_valid:
         try:
-            require_offline_rl_contract_metadata(
-                offline_rl_target.get("offline_rl_contract"),
+            require_entry_fitted_q_contract(
+                entry_q_target.get("entry_fitted_q_contract"),
                 context="ADOPTION_TARGET_AUDIT",
             )
+            require_entry_fitted_q_production_economics_readiness(
+                entry_q_target.get("production_economics"),
+                context="ADOPTION_TARGET_AUDIT",
+                require_ready=True,
+            )
         except RuntimeError:
-            offline_rl_valid = False
+            entry_q_contract_valid = False
     return [
         *_base_evidence_checks(
             report,
@@ -534,9 +539,9 @@ def _target_checks(
             },
         ),
         _check(
-            "target audit proves canonical aux-v3 and offline-RL targets",
+            "target audit proves canonical aux targets and production-ready Entry-Q",
             aux_contract_valid
-            and offline_rl_valid
+            and entry_q_contract_valid
             and extra == MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
             and isinstance(extra_liveness, dict)
             and all(
@@ -546,7 +551,7 @@ def _target_checks(
             {
                 "aux_contract_valid": aux_contract_valid,
                 "aux_contract_error": aux_contract_error,
-                "offline_rl_target_valid": offline_rl_valid,
+                "entry_fitted_q_target_valid": entry_q_contract_valid,
                 "expected_extra_active_target_heads": list(
                     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
                 ),

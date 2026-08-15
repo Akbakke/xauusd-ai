@@ -6,6 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    PRETRAIN_AUDIT_SCHEMA,
+)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,
@@ -21,6 +24,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
 )
@@ -33,9 +37,11 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
     training_objective_contract_metadata,
+)
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
@@ -63,9 +69,7 @@ def _write_json(path: Path, payload: dict) -> Path:
 
 
 def _objective() -> dict:
-    return training_objective_contract_metadata(
-        {key: 1.0 for key in REQUIRED_POSITIVE_LOSS_WEIGHTS}
-    )
+    return training_objective_contract_metadata()
 
 
 def _signal_contract() -> dict:
@@ -151,7 +155,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     target_path = _write_json(
         evidence / "ENTRY_TARGET_AUDIT_20260716T115959123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -164,7 +168,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     pretrain_path = _write_json(
         evidence / "XAU_PRETRAIN_AUDIT_20260716T115958123456Z.json",
         {
-            "schema_version": "xau_direction_repair_pretrain_audit_v2",
+            "schema_version": PRETRAIN_AUDIT_SCHEMA,
             "decision": "PASS",
             "failures": [],
         },
@@ -187,7 +191,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         "decision": "PASS",
         "failures": [],
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-        "sequence_length": 96,
+        "sequence_length": MODEL_NATIVE_SEQ_LEN,
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "bundle_dir": str(bundle),
         "dataset_dir": str(dataset),
@@ -209,7 +213,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
                 "foundation_audit_policy_enforcement": (
                     foundation_audit_policy_enforcement("target")
                 ),
-                "schema_version": "entry_target_foundation_audit_v2",
+                "schema_version": "entry_target_foundation_audit_v3",
                 "decision": "PASS",
                 "failures": [],
                 "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
@@ -227,7 +231,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
             },
             "pretrain": {
                 **binding(pretrain_path),
-                "schema_version": "xau_direction_repair_pretrain_audit_v2",
+                "schema_version": PRETRAIN_AUDIT_SCHEMA,
                 "decision": "PASS",
                 "failures": [],
             },
@@ -261,15 +265,16 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
             "all_specialist_gates_live": True,
             "strict_bundle_components_live": True,
         },
+        # The six per-family edge proofs are retired with the handwritten edge
+        # scorebook; the producer now emits the fitted-Q block. The two
+        # economics booleans stay False exactly as the producer pins them —
+        # the audit may run clean while an edge CLAIM remains disallowed.
         "edge_contract": {
             "decision": "PASS",
             "failures": [],
-            "direction_edge_proven": True,
-            "context_slice_edge_proven": True,
-            "path_quality_edge_proven": True,
-            "bad_path_edge_proven": True,
-            "turning_point_edge_proven": True,
-            "offline_rl_edge_proven": True,
+            "raw_entry_q_structure_proven": True,
+            "production_economics_ready": False,
+            "edge_claim_allowed": False,
         },
         "splits": passing_smoke_audit_splits(),
         "prediction_evidence": {
@@ -305,7 +310,7 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
     normalized = require_smoke_bundle_audit_contract(report, context="TEST")
 
     assert normalized["contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
-    assert normalized["sequence_length"] == 96
+    assert normalized["sequence_length"] == MODEL_NATIVE_SEQ_LEN
     assert normalized["signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
     assert normalized["model_native_training_objective_contract"][
         "meta_lock_exact"
@@ -342,7 +347,9 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
     "mutation",
     [
         lambda report: report.update({"contract_mode": "smart_seq520_candidate"}),
-        lambda report: report.update({"sequence_length": 30}),
+        lambda report: report.update(
+            {"sequence_length": MODEL_NATIVE_SEQ_LEN - 1}
+        ),
         lambda report: report["head_contract"]["active_heads"].pop(),
         lambda report: report["specialist_contract"].update(
             {"gate_liveness_proven": False}
@@ -351,7 +358,7 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
             {"strict_bundle_components_live": False}
         ),
         lambda report: report["edge_contract"].update(
-            {"direction_edge_proven": False}
+            {"raw_entry_q_structure_proven": False}
         ),
         lambda report: report["splits"].pop("val"),
         lambda report: report["splits"]["val"]["direction"].update(
@@ -395,9 +402,7 @@ def test_bundle_rehash_rejects_objective_meta_lock_split_brain(tmp_path: Path) -
 
     lock_path = paths["bundle"] / "MASTER_TRANSFORMER_LOCK.json"
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
-    lock["model_native_training_objective"]["configurable_positive_loss_weights"][
-        REQUIRED_POSITIVE_LOSS_WEIGHTS[0]
-    ] = 0.0
+    lock["model_native_training_objective"]["fixed_relative_task_weights"] = True
     lock_path.write_text(json.dumps(lock), encoding="utf-8")
 
     assert readiness._bundle_file_check(normalized)["ok"] is False
@@ -472,7 +477,7 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
         "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
         "training_objective_schema": TRAINING_OBJECTIVE_SCHEMA,
         "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
-        "required_positive_loss_weights": list(REQUIRED_POSITIVE_LOSS_WEIGHTS),
+        "joint_task_names": list(JOINT_TASK_NAMES),
     }
     trainability_path, _ = _event(
         paths["evidence"],

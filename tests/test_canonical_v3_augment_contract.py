@@ -10,7 +10,6 @@ from gx1.features.htf_features import (
 )
 from gx1.scripts.materialize_canonical_v3_augment import (
     add_cross_tf_momentum,
-    add_smc_premium_state_interaction,
 )
 
 
@@ -139,42 +138,3 @@ def test_cross_tf_momentum_routes_one_hour_as_12_m5_or_60_m1_rows() -> None:
     np.testing.assert_allclose(
         float(m1["m5h1_momentum"].iloc[-1]), m1_expected, rtol=1e-6
     )
-
-
-def test_smc_premium_state_is_conditional_and_unknown_is_not_uptrend() -> None:
-    frame = pd.DataFrame(
-        {
-            "smc_premium_discount": [0.8, 0.8, 0.8],
-            "smc_swing_state": [0, 3, 4],
-        }
-    )
-
-    out = add_smc_premium_state_interaction(frame)["smc_premium_state"]
-
-    np.testing.assert_allclose(out, [0.8, 0.0, 0.0], rtol=0.0, atol=1e-7)
-
-
-@pytest.mark.parametrize(
-    "column,value,error",
-    (
-        ("smc_premium_discount", np.nan, "must be finite"),
-        ("smc_premium_discount", 1.1, "within"),
-        ("smc_swing_state", np.nan, "finite enum"),
-        ("smc_swing_state", 5.0, "enum 0..4"),
-    ),
-)
-def test_smc_premium_state_fails_closed_on_invalid_source(
-    column: str,
-    value: float,
-    error: str,
-) -> None:
-    frame = pd.DataFrame(
-        {
-            "smc_premium_discount": [0.4, 0.7],
-            "smc_swing_state": [0, 3],
-        }
-    )
-    frame.loc[1, column] = value
-
-    with pytest.raises(RuntimeError, match=error):
-        add_smc_premium_state_interaction(frame)

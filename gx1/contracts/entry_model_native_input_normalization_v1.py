@@ -4,7 +4,8 @@ The model consumes raw, finite XAU feature tensors. This contract fits the
 shared local encoder on the deduplicated physical M5+M1 TRAIN union, context on
 the Entry+Exit TRAIN decision union, and MTF surfaces on actual +5m/+1m route
 consumption. Binary fields remain exact 0/1 evidence; every other field is
-median-centered, robustly scaled, and clipped by one model-owned bound.
+median-centered, robustly scaled, then mapped by an invertible ``asinh``.
+No tail observation is clipped, saturated or collapsed onto a boundary.
 """
 
 from __future__ import annotations
@@ -23,19 +24,15 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES,
-    MULTI_TF_TIMEFRAMES_LOWER,
 )
 
-SCHEMA_VERSION = "entry_model_native_input_normalization_v2"
-TRANSFORM = "shared_entry_exit_train_only_median_iqr_or_sparse_deviation_v2"
+SCHEMA_VERSION = "entry_model_native_input_normalization_v6"
+TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v3"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
-CLIP_ABS = 12.0
-SCALE_FLOOR = 1.0e-6
-IQR_TO_SIGMA = 1.349
+CONTINUOUS_TRANSFORM = "asinh_affine_invertible_non_saturating"
 FIT_COLUMN_CHUNK = 32
 FIT_ROW_CHUNK = 4096
 FIT_MAX_WORKING_BLOCK_BYTES = 128 * 1024 * 1024
-MAX_TRAIN_CLIP_RATE = 0.02
 EXPECTED_SURFACES = (
     "signal",
     "ctx_cont",
@@ -47,13 +44,11 @@ EXPECTED_SURFACES = (
 )
 EXPECTED_TFS = MULTI_TF_TIMEFRAMES
 CTX_CAT_DOMAINS = MODEL_NATIVE_CTX_CAT_DOMAINS
-CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS = {
-    f"{tf}_regime_class_id_v2": (0, 1, 2, 3, 4)
-    for tf in (*MULTI_TF_TIMEFRAMES_LOWER[1:], MULTI_TF_TIMEFRAMES_LOWER[0])
+SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS = {
+    "smc_swing_state": (0, 1, 2, 3, 4),
 }
-MTF_SEMANTIC_CATEGORICAL_DOMAINS = {
-    "regime_class_id": (0, 1, 2, 3, 4),
-}
+CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
+MTF_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _LINEAGE_KEYS = {
     "dataset_run_id",
@@ -365,15 +360,30 @@ def _stats_sha256(
     binary_mask: np.ndarray,
     categorical_mask: np.ndarray,
     categorical_domains: Mapping[str, Sequence[int]],
+    train_transformed_min: np.ndarray,
+    train_transformed_max: np.ndarray,
 ) -> str:
     digest = hashlib.sha256()
-    digest.update(b"entry_model_native_input_normalization_surface_v1\0")
+    digest.update(b"entry_model_native_input_normalization_surface_v2_asinh\0")
+    digest.update(CONTINUOUS_TRANSFORM.encode("ascii") + b"\0")
     digest.update(bytes.fromhex(_field_names_sha256(field_names)))
     digest.update(np.ascontiguousarray(center, dtype="<f4").tobytes(order="C"))
     digest.update(np.ascontiguousarray(scale, dtype="<f4").tobytes(order="C"))
     digest.update(np.ascontiguousarray(binary_mask, dtype=np.uint8).tobytes(order="C"))
     digest.update(
         np.ascontiguousarray(categorical_mask, dtype=np.uint8).tobytes(order="C")
+    )
+    digest.update(
+        np.ascontiguousarray(
+            train_transformed_min,
+            dtype="<f8",
+        ).tobytes(order="C")
+    )
+    digest.update(
+        np.ascontiguousarray(
+            train_transformed_max,
+            dtype="<f8",
+        ).tobytes(order="C")
     )
     digest.update(
         json.dumps(
@@ -625,7 +635,7 @@ def _materialize_population_columns(
     return block
 
 
-def _population_clip_counts(
+def _population_transformed_extrema(
     parts: Sequence[tuple[np.ndarray, np.ndarray | None, str]],
     *,
     width: int,
@@ -634,8 +644,11 @@ def _population_clip_counts(
     binary_mask: np.ndarray,
     categorical_mask: np.ndarray,
     column_chunk: int,
-) -> np.ndarray:
-    clipped_count = np.zeros(int(width), dtype=np.int64)
+) -> tuple[np.ndarray, np.ndarray]:
+    """Measure exact TRAIN output support without changing any observation."""
+
+    transformed_min = np.full(int(width), np.inf, dtype=np.float64)
+    transformed_max = np.full(int(width), -np.inf, dtype=np.float64)
     for start in range(0, int(width), int(column_chunk)):
         stop = min(int(width), start + int(column_chunk))
         for block in _iter_population_column_blocks(
@@ -648,7 +661,7 @@ def _population_clip_counts(
                     "[ENTRY_INPUT_NORMALIZATION_NONFINITE] "
                     f"field_offset={start}"
                 )
-            normalized = (
+            transformed = (
                 block - center[start:stop].astype(np.float64)
             ) / scale[start:stop].astype(np.float64)
             identity = np.logical_or(
@@ -656,12 +669,32 @@ def _population_clip_counts(
                 categorical_mask[start:stop].astype(bool),
             )
             if identity.any():
-                normalized[:, identity] = block[:, identity]
-            clipped_count[start:stop] += np.count_nonzero(
-                np.abs(normalized) > float(CLIP_ABS),
-                axis=0,
+                transformed[:, identity] = block[:, identity]
+            continuous = ~identity
+            if continuous.any():
+                transformed[:, continuous] = np.arcsinh(
+                    transformed[:, continuous]
+                )
+            if not np.isfinite(transformed).all():
+                raise RuntimeError(
+                    "[ENTRY_INPUT_NORMALIZATION_TRANSFORM_NONFINITE] "
+                    f"field_offset={start}"
+                )
+            transformed_min[start:stop] = np.minimum(
+                transformed_min[start:stop],
+                transformed.min(axis=0),
             )
-    return clipped_count
+            transformed_max[start:stop] = np.maximum(
+                transformed_max[start:stop],
+                transformed.max(axis=0),
+            )
+    if (
+        not np.isfinite(transformed_min).all()
+        or not np.isfinite(transformed_max).all()
+        or np.any(transformed_min > transformed_max)
+    ):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_TRAIN_SUPPORT_INVALID]")
+    return transformed_min, transformed_max
 
 
 def fit_surface_normalization(
@@ -672,12 +705,15 @@ def fit_surface_normalization(
     row_count: int | None = None,
     column_chunk: int = FIT_COLUMN_CHUNK,
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
-    saturated_presence_masks: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    """Fit a bounded robust transform without materializing the full matrix.
+    """Fit an invertible robust transform without materializing the matrix.
 
     The input may be a memmap.  Columns are copied in small chunks so fitting
-    the 513-wide TRAIN snapshot does not create another multi-gigabyte array.
+    the full TRAIN snapshot does not create another multi-gigabyte array.
+    Continuous values use ``asinh((x - median) / scale)``. The scale is the
+    raw TRAIN IQR, falling back only when that exact IQR is zero to the median
+    strictly-positive deviation observed in TRAIN. There is no numeric floor,
+    quantile cap, clipping or saturated-mask exception.
     """
 
     parts, population_rows, width = _as_population_parts(
@@ -777,80 +813,23 @@ def fit_surface_normalization(
                 binary_mask[index] = np.uint8(1)
                 scale_source[index] = "binary_identity"
                 continue
-            # A presence mask admitted as SATURATED by the cache's own
-            # hash-bound liveness payload is constant 1.0 on the declared
-            # population (measured market property, see
-            # HTF_V4_PRESENCE_MASK_SATURATION_CONTRACT). It receives the
-            # same binary identity affine the varying masks on faster TFs
-            # receive — no invented magnitude, and a serve-time zero-day
-            # flows through honestly. Any value outside {0,1}, or a mask
-            # that never fires, stays a hard failure.
-            if names[index] in (saturated_presence_masks or ()):
-                if not bool(
-                    np.isfinite(column).all()
-                    and np.logical_or(column == 0.0, column == 1.0).all()
-                    and (column == 1.0).any()
-                ):
-                    raise RuntimeError(
-                        "[ENTRY_INPUT_NORMALIZATION_SATURATED_MASK_INVALID] "
-                        f"surface={surface} field={names[index]}"
-                    )
-                center[index] = np.float32(0.0)
-                scale[index] = np.float32(1.0)
-                binary_mask[index] = np.uint8(1)
-                scale_source[index] = "saturated_presence_mask_identity"
-                continue
-
-            field_center = float(median[local])
-            field_scale = float((q75[local] - q25[local]) / IQR_TO_SIGMA)
-            source = "iqr"
-            if not np.isfinite(field_scale) or field_scale <= SCALE_FLOOR:
-                deviations = np.abs(column - field_center)
-                positive = deviations[deviations > SCALE_FLOOR]
+            field_center = np.float32(median[local])
+            field_scale = np.float32(q75[local] - q25[local])
+            source = "raw_iqr"
+            if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
+                deviations = np.abs(column - float(field_center))
+                positive = deviations[deviations > 0.0]
                 if positive.size:
-                    field_scale = float(np.median(positive))
+                    field_scale = np.float32(np.median(positive))
                     source = "median_positive_abs_deviation"
-            if not np.isfinite(field_scale) or field_scale <= SCALE_FLOOR:
+            if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 raise RuntimeError(
                     "[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE] "
                     f"surface={surface} field={names[index]} "
-                    f"center={field_center!r} scale={field_scale!r}"
+                    f"center={float(field_center)!r} scale={float(field_scale)!r}"
                 )
-            # Sparse-event and heavy-tailed evidence families concentrate the
-            # robust bulk on one value, so an IQR/MAD scale can put the
-            # informative bursts beyond the clip boundary and reject the
-            # mandatory feature surface wholesale. When the fitted scale
-            # would clip more than the exact TRAIN cap, escalate it
-            # deterministically to the smallest scale whose TRAIN clip rate
-            # satisfies the cap by construction. The statistic is still
-            # fitted once on the complete physical TRAIN population and
-            # remains immutable bundle state; no value is rewritten.
-            rounded_center = float(np.float32(field_center))
-            deviations = np.abs(column - rounded_center)
-            implied_clip_rate = float(
-                (deviations > float(np.float32(field_scale)) * CLIP_ABS).mean()
-            )
-            if implied_clip_rate > MAX_TRAIN_CLIP_RATE:
-                allowed = int(MAX_TRAIN_CLIP_RATE * deviations.size)
-                order = deviations.size - 1 - allowed
-                threshold = float(
-                    np.partition(deviations, order)[order]
-                )
-                cap_scale = np.float32(threshold / CLIP_ABS)
-                while (
-                    np.isfinite(cap_scale)
-                    and float(cap_scale) * CLIP_ABS < threshold
-                ):
-                    cap_scale = np.nextafter(cap_scale, np.float32(np.inf))
-                if (
-                    np.isfinite(cap_scale)
-                    and float(cap_scale) > field_scale
-                    and float(cap_scale) > SCALE_FLOOR
-                ):
-                    field_scale = float(cap_scale)
-                    source = f"{source}_clip_cap_quantile"
-            center[index] = np.float32(field_center)
-            scale[index] = np.float32(field_scale)
+            center[index] = field_center
+            scale[index] = field_scale
             scale_source[index] = source
 
     if (
@@ -861,15 +840,7 @@ def fit_surface_normalization(
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_FLOAT32_STATS_INVALID] surface={surface}"
         )
-    stats_hash = _stats_sha256(
-        field_names=names,
-        center=center,
-        scale=scale,
-        binary_mask=binary_mask,
-        categorical_mask=categorical_mask,
-        categorical_domains=categorical_domains,
-    )
-    clipped_count = _population_clip_counts(
+    transformed_min, transformed_max = _population_transformed_extrema(
         parts,
         width=width,
         center=center,
@@ -878,18 +849,19 @@ def fit_surface_normalization(
         categorical_mask=categorical_mask,
         column_chunk=effective_column_chunk,
     )
-    clipped_rate = clipped_count.astype(np.float64) / float(population_rows)
-    excessive = np.flatnonzero(clipped_rate > float(MAX_TRAIN_CLIP_RATE))
-    if excessive.size:
-        index = int(excessive[0])
-        raise RuntimeError(
-            "[ENTRY_INPUT_NORMALIZATION_TRAIN_CLIP_RATE_EXCESSIVE] "
-            f"surface={surface} field={names[index]} "
-            f"rate={float(clipped_rate[index]):.9f} "
-            f"max={float(MAX_TRAIN_CLIP_RATE):.9f}"
-        )
+    stats_hash = _stats_sha256(
+        field_names=names,
+        center=center,
+        scale=scale,
+        binary_mask=binary_mask,
+        categorical_mask=categorical_mask,
+        categorical_domains=categorical_domains,
+        train_transformed_min=transformed_min,
+        train_transformed_max=transformed_max,
+    )
     return {
         "surface": str(surface),
+        "continuous_transform": CONTINUOUS_TRANSFORM,
         "field_count": width,
         "field_names": names,
         "field_names_sha256": _field_names_sha256(names),
@@ -904,9 +876,8 @@ def fit_surface_normalization(
             name: list(domain) for name, domain in categorical_domains.items()
         },
         "scale_source": scale_source,
-        "train_clipped_count": [int(value) for value in clipped_count],
-        "train_clipped_rate": [float(value) for value in clipped_rate],
-        "max_train_clip_rate": float(MAX_TRAIN_CLIP_RATE),
+        "train_transformed_min": [float(value) for value in transformed_min],
+        "train_transformed_max": [float(value) for value in transformed_max],
         "stats_sha256": stats_hash,
     }
 
@@ -924,6 +895,7 @@ def require_surface_normalization(
     data = dict(value)
     expected_keys = {
         "surface",
+        "continuous_transform",
         "field_count",
         "field_names",
         "field_names_sha256",
@@ -936,9 +908,8 @@ def require_surface_normalization(
         "categorical_field_count",
         "categorical_domains",
         "scale_source",
-        "train_clipped_count",
-        "train_clipped_rate",
-        "max_train_clip_rate",
+        "train_transformed_min",
+        "train_transformed_max",
         "stats_sha256",
     }
     if set(data) != expected_keys:
@@ -950,6 +921,7 @@ def require_surface_normalization(
     names = [str(name) for name in field_names]
     if (
         data["surface"] != surface
+        or data["continuous_transform"] != CONTINUOUS_TRANSFORM
         or data["field_names"] != names
         or int(data["field_count"]) != len(names)
         or data["field_names_sha256"] != _field_names_sha256(names)
@@ -964,8 +936,8 @@ def require_surface_normalization(
     categorical_mask = np.asarray(data["categorical_mask"], dtype=np.uint8)
     categorical_domains = data["categorical_domains"]
     scale_source = [str(item) for item in data["scale_source"]]
-    clipped_count = np.asarray(data["train_clipped_count"], dtype=np.int64)
-    clipped_rate = np.asarray(data["train_clipped_rate"], dtype=np.float64)
+    transformed_min = np.asarray(data["train_transformed_min"], dtype=np.float64)
+    transformed_max = np.asarray(data["train_transformed_max"], dtype=np.float64)
     expected_shape = (len(names),)
     if (
         center.shape != expected_shape
@@ -973,8 +945,8 @@ def require_surface_normalization(
         or binary_mask.shape != expected_shape
         or categorical_mask.shape != expected_shape
         or len(scale_source) != len(names)
-        or clipped_count.shape != expected_shape
-        or clipped_rate.shape != expected_shape
+        or transformed_min.shape != expected_shape
+        or transformed_max.shape != expected_shape
         or not np.isfinite(center).all()
         or not np.isfinite(scale).all()
         or not (scale > 0.0).all()
@@ -986,34 +958,29 @@ def require_surface_normalization(
         or not isinstance(categorical_domains, Mapping)
         or set(categorical_domains)
         != {names[index] for index in np.flatnonzero(categorical_mask)}
-        or (clipped_count < 0).any()
-        or not np.isfinite(clipped_rate).all()
-        or (clipped_rate < 0.0).any()
-        or (clipped_rate > float(MAX_TRAIN_CLIP_RATE)).any()
-        or not np.allclose(
-            clipped_rate,
-            clipped_count.astype(np.float64) / float(data["fit_row_count"]),
-            rtol=0.0,
-            atol=1e-15,
-        )
-        or float(data["max_train_clip_rate"]) != float(MAX_TRAIN_CLIP_RATE)
+        or not np.isfinite(transformed_min).all()
+        or not np.isfinite(transformed_max).all()
+        or np.any(transformed_min > transformed_max)
     ):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_VALUES_INVALID] surface={surface}"
         )
     for index, is_binary in enumerate(binary_mask.astype(bool)):
-        # Both admitted binary provenances carry the exact same identity
-        # affine; saturated_presence_mask_identity records that the field
-        # was constant 1.0 on the fit population under the attested
-        # saturation contract (see fit_surface_normalization).
         if is_binary and (
             center[index] != np.float32(0.0)
             or scale[index] != np.float32(1.0)
-            or scale_source[index]
-            not in ("binary_identity", "saturated_presence_mask_identity")
+            or scale_source[index] != "binary_identity"
         ):
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_BINARY_CONTRACT_INVALID] "
+                f"surface={surface} field={names[index]}"
+            )
+        if is_binary and (
+            transformed_min[index] != 0.0
+            or transformed_max[index] != 1.0
+        ):
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_BINARY_TRAIN_SUPPORT_INVALID] "
                 f"surface={surface} field={names[index]}"
             )
         is_categorical = bool(categorical_mask[index])
@@ -1032,14 +999,29 @@ def require_surface_normalization(
                     f"[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_CONTRACT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
+            if (
+                transformed_min[index] not in domain
+                or transformed_max[index] not in domain
+            ):
+                raise RuntimeError(
+                    "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
+                    f"surface={surface} field={names[index]}"
+                )
         if not is_binary and not is_categorical and scale_source[index] not in {
-            "iqr",
+            "raw_iqr",
             "median_positive_abs_deviation",
-            "iqr_clip_cap_quantile",
-            "median_positive_abs_deviation_clip_cap_quantile",
         }:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_SCALE_SOURCE_INVALID] "
+                f"surface={surface} field={names[index]}"
+            )
+        if (
+            not is_binary
+            and not is_categorical
+            and transformed_min[index] >= transformed_max[index]
+        ):
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_CONTINUOUS_TRAIN_SUPPORT_INVALID] "
                 f"surface={surface} field={names[index]}"
             )
     expected_hash = _stats_sha256(
@@ -1049,93 +1031,14 @@ def require_surface_normalization(
         binary_mask=binary_mask,
         categorical_mask=categorical_mask,
         categorical_domains=categorical_domains,
+        train_transformed_min=transformed_min,
+        train_transformed_max=transformed_max,
     )
     if data["stats_sha256"] != expected_hash:
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_STATS_HASH_MISMATCH] surface={surface}"
         )
     return data
-
-
-def share_temporal_alias_stats_from_ctx(
-    signal_surface: Mapping[str, Any],
-    ctx_cont_surface: Mapping[str, Any],
-    *,
-    temporal_aliases: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    """Make ctx_cont the sole numerical-statistics owner for signal aliases."""
-
-    signal = dict(signal_surface)
-    ctx_cont = dict(ctx_cont_surface)
-    signal_names = [str(name) for name in signal["field_names"]]
-    ctx_names = [str(name) for name in ctx_cont["field_names"]]
-    center = np.asarray(signal["center"], dtype=np.float32).copy()
-    scale = np.asarray(signal["scale"], dtype=np.float32).copy()
-    binary = np.asarray(signal["binary_mask"], dtype=np.uint8).copy()
-    categorical = np.asarray(signal["categorical_mask"], dtype=np.uint8).copy()
-    scale_source = [str(value) for value in signal["scale_source"]]
-    clipped_count = [int(value) for value in signal["train_clipped_count"]]
-    clipped_rate = [float(value) for value in signal["train_clipped_rate"]]
-    categorical_domains = {
-        str(name): [int(item) for item in domain]
-        for name, domain in signal["categorical_domains"].items()
-    }
-    ctx_center = np.asarray(ctx_cont["center"], dtype=np.float32)
-    ctx_scale = np.asarray(ctx_cont["scale"], dtype=np.float32)
-    ctx_binary = np.asarray(ctx_cont["binary_mask"], dtype=np.uint8)
-    ctx_categorical = np.asarray(ctx_cont["categorical_mask"], dtype=np.uint8)
-    for raw in temporal_aliases:
-        alias = dict(raw)
-        signal_index = int(alias["signal_index"])
-        ctx_index = int(alias["ctx_cont_index"])
-        if (
-            signal_names[signal_index] != alias["signal_field"]
-            or ctx_names[ctx_index] != alias["ctx_cont_field"]
-            or alias["signal_field"] != f"ctx_cont.{alias['ctx_cont_field']}"
-        ):
-            raise RuntimeError(
-                "[ENTRY_INPUT_NORMALIZATION_ALIAS_IDENTITY_INVALID]"
-            )
-        center[signal_index] = ctx_center[ctx_index]
-        scale[signal_index] = ctx_scale[ctx_index]
-        binary[signal_index] = ctx_binary[ctx_index]
-        categorical[signal_index] = ctx_categorical[ctx_index]
-        scale_source[signal_index] = ctx_cont["scale_source"][ctx_index]
-        clipped_count[signal_index] = int(
-            ctx_cont["train_clipped_count"][ctx_index]
-        )
-        clipped_rate[signal_index] = float(
-            ctx_cont["train_clipped_rate"][ctx_index]
-        )
-        categorical_domains.pop(alias["signal_field"], None)
-        ctx_domain = ctx_cont["categorical_domains"].get(alias["ctx_cont_field"])
-        if ctx_domain is not None:
-            categorical_domains[alias["signal_field"]] = [
-                int(item) for item in ctx_domain
-            ]
-    signal.update(
-        {
-            "center": [float(value) for value in center],
-            "scale": [float(value) for value in scale],
-            "binary_mask": [int(value) for value in binary],
-            "binary_field_count": int(binary.sum()),
-            "categorical_mask": [int(value) for value in categorical],
-            "categorical_field_count": int(categorical.sum()),
-            "categorical_domains": categorical_domains,
-            "scale_source": scale_source,
-            "train_clipped_count": clipped_count,
-            "train_clipped_rate": clipped_rate,
-        }
-    )
-    signal["stats_sha256"] = _stats_sha256(
-        field_names=signal_names,
-        center=center,
-        scale=scale,
-        binary_mask=binary,
-        categorical_mask=categorical,
-        categorical_domains=categorical_domains,
-    )
-    return signal
 
 
 def share_temporal_alias_stats_from_signal(
@@ -1145,12 +1048,12 @@ def share_temporal_alias_stats_from_signal(
     temporal_aliases: Sequence[Mapping[str, Any]],
     ctx_cont_values: Any,
 ) -> dict[str, Any]:
-    """Make the shared local 513 population own temporal-alias statistics.
+    """Make the shared local signal population own temporal-alias statistics.
 
     Entry/Exit local rows are a superset of their current decision rows.  The
     local encoder therefore owns each duplicated temporal field once; the
-    ctx_cont surface reuses those exact center/scale values while retaining a
-    clip proof measured on its own TRAIN-only decision population.
+    ctx_cont surface reuses those exact center/scale values while recording
+    its own TRAIN-only transformed support without modifying observations.
     """
 
     ctx_cont = dict(ctx_cont_surface)
@@ -1215,7 +1118,7 @@ def share_temporal_alias_stats_from_signal(
         1,
         int(FIT_MAX_WORKING_BLOCK_BYTES) // (int(population_rows) * 8),
     )
-    clipped_count = _population_clip_counts(
+    transformed_min, transformed_max = _population_transformed_extrema(
         parts,
         width=width,
         center=center,
@@ -1224,14 +1127,6 @@ def share_temporal_alias_stats_from_signal(
         categorical_mask=categorical,
         column_chunk=min(FIT_COLUMN_CHUNK, max_columns_by_budget),
     )
-    clipped_rate = clipped_count.astype(np.float64) / float(population_rows)
-    excessive = np.flatnonzero(clipped_rate > float(MAX_TRAIN_CLIP_RATE))
-    if excessive.size:
-        index = int(excessive[0])
-        raise RuntimeError(
-            "[ENTRY_INPUT_NORMALIZATION_SHARED_ALIAS_CLIP_RATE_EXCESSIVE] "
-            f"field={ctx_names[index]} rate={float(clipped_rate[index]):.9f}"
-        )
     ctx_cont.update(
         {
             "center": [float(value) for value in center],
@@ -1242,8 +1137,12 @@ def share_temporal_alias_stats_from_signal(
             "categorical_field_count": int(categorical.sum()),
             "categorical_domains": categorical_domains,
             "scale_source": scale_source,
-            "train_clipped_count": [int(value) for value in clipped_count],
-            "train_clipped_rate": [float(value) for value in clipped_rate],
+            "train_transformed_min": [
+                float(value) for value in transformed_min
+            ],
+            "train_transformed_max": [
+                float(value) for value in transformed_max
+            ],
         }
     )
     ctx_cont["stats_sha256"] = _stats_sha256(
@@ -1253,6 +1152,8 @@ def share_temporal_alias_stats_from_signal(
         binary_mask=binary,
         categorical_mask=categorical,
         categorical_domains=categorical_domains,
+        train_transformed_min=transformed_min,
+        train_transformed_max=transformed_max,
     )
     return ctx_cont
 
@@ -1340,8 +1241,8 @@ def build_input_normalization_contract(
         "fit_population": FIT_POPULATION,
         "fit_start_utc": str(fit_start_utc),
         "fit_end_utc": str(fit_end_utc),
-        "clip_abs": float(CLIP_ABS),
-        "scale_floor": float(SCALE_FLOOR),
+        "continuous_transform": CONTINUOUS_TRANSFORM,
+        "continuous_inverse": "x=sinh(z)*scale+center",
         "lineage": normalized_lineage,
         "ctx_cat": normalized_ctx_cat,
         "temporal_aliases": normalized_aliases,
@@ -1371,8 +1272,8 @@ def require_input_normalization_contract(
         "fit_population",
         "fit_start_utc",
         "fit_end_utc",
-        "clip_abs",
-        "scale_floor",
+        "continuous_transform",
+        "continuous_inverse",
         "lineage",
         "ctx_cat",
         "temporal_aliases",
@@ -1388,8 +1289,8 @@ def require_input_normalization_contract(
         "transform": TRANSFORM,
         "fit_scope": "train_only",
         "fit_population": FIT_POPULATION,
-        "clip_abs": float(CLIP_ABS),
-        "scale_floor": float(SCALE_FLOOR),
+        "continuous_transform": CONTINUOUS_TRANSFORM,
+        "continuous_inverse": "x=sinh(z)*scale+center",
     }
     if any(data.get(key) != expected for key, expected in exact.items()):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_IDENTITY_INVALID]")
@@ -1470,8 +1371,6 @@ def require_input_normalization_contract(
 def apply_surface_normalization(
     values: Any,
     surface_contract: Mapping[str, Any],
-    *,
-    clip_abs: float = CLIP_ABS,
 ) -> np.ndarray:
     """Reference NumPy transform used by tests and offline parity audits."""
 
@@ -1483,6 +1382,8 @@ def apply_surface_normalization(
         surface_contract["categorical_mask"], dtype=np.uint8
     ).astype(bool)
     field_names = [str(name) for name in surface_contract["field_names"]]
+    if surface_contract.get("continuous_transform") != CONTINUOUS_TRANSFORM:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_TRANSFORM_MISMATCH]")
     if matrix.shape[-1] != center.shape[0]:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_WIDTH_MISMATCH]")
     if not np.isfinite(matrix).all():
@@ -1504,10 +1405,54 @@ def apply_surface_normalization(
                 raise RuntimeError(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_VALUE_INVALID]"
                 )
-    normalized = (matrix - center) / scale
-    normalized[..., binary] = matrix[..., binary]
-    normalized[..., categorical] = matrix[..., categorical]
-    normalized = np.clip(normalized, -float(clip_abs), float(clip_abs))
+    # Compute the affine ratio in float64.  Both the observation and fitted
+    # statistics are exact float32 values, but their mathematically finite
+    # ratio may exceed float32 before ``asinh`` compresses it back into a
+    # small finite number (for example a valid tail against a tiny learned
+    # scale).  Float32 intermediate overflow would silently reintroduce a
+    # numeric tail boundary even though the transform itself is non-saturating.
+    normalized = (
+        matrix.astype(np.float64) - center.astype(np.float64)
+    ) / scale.astype(np.float64)
+    identity = binary | categorical
+    continuous = ~identity
+    normalized[..., continuous] = np.arcsinh(normalized[..., continuous])
+    normalized[..., identity] = matrix[..., identity].astype(np.float64)
     if not np.isfinite(normalized).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_OUTPUT_NONFINITE]")
     return np.asarray(normalized, dtype=np.float32)
+
+
+def invert_surface_normalization(
+    normalized_values: Any,
+    surface_contract: Mapping[str, Any],
+) -> np.ndarray:
+    """Invert the continuous TRAIN-fitted transform exactly up to FP32 error."""
+
+    normalized = np.asarray(normalized_values, dtype=np.float32)
+    center = np.asarray(surface_contract["center"], dtype=np.float32)
+    scale = np.asarray(surface_contract["scale"], dtype=np.float32)
+    binary = np.asarray(surface_contract["binary_mask"], dtype=np.uint8).astype(bool)
+    categorical = np.asarray(
+        surface_contract["categorical_mask"], dtype=np.uint8
+    ).astype(bool)
+    if surface_contract.get("continuous_transform") != CONTINUOUS_TRANSFORM:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_TRANSFORM_MISMATCH]")
+    if normalized.shape[-1] != center.shape[0]:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_WIDTH_MISMATCH]")
+    if not np.isfinite(normalized).all():
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_NONFINITE]")
+    identity = binary | categorical
+    continuous = ~identity
+    # ``sinh(z) * scale`` is evaluated in float64 for the inverse reason: the
+    # intermediate may exceed float32 while the final restored value remains
+    # a valid float32 observation after multiplication by a tiny scale.
+    restored = normalized.astype(np.float64)
+    restored[..., continuous] = (
+        np.sinh(restored[..., continuous])
+        * scale[continuous].astype(np.float64)
+        + center[continuous].astype(np.float64)
+    )
+    if not np.isfinite(restored).all():
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_OUTPUT_NONFINITE]")
+    return np.asarray(restored, dtype=np.float32)

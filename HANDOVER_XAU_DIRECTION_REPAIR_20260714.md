@@ -1,13 +1,15 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-11. Run `bash scripts/gx1_handover.sh` before relying on this
+Updated 2026-08-14. Run `bash scripts/gx1_handover.sh` before relying on this
 document. `GX1_RULES.md` is binding.
 
 ## Current verdict
 
 Launch remains `BLOCK`. The offline source architecture is connected, repaired
-and heavily tested, and one GREEN baseline dataset exists, but no model,
-calibration, untouched-TEST edge, PnL or win-rate proof exists.
+at the contract/source level and has focused capped-test evidence. No final
+whole-repository result is asserted after the concurrent repair wave, and no
+current-contract dataset, model, calibration, untouched-TEST edge, PnL or
+win-rate proof exists.
 
 State of the evidence chain:
 
@@ -15,30 +17,29 @@ State of the evidence chain:
   `9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd`
   (published 2026-08-09, bootstrap mode; the 2026-08-04 parent generation
   `64d62c1f…a11b84c` is untouched history).
-- The V28 dataset chain (event root `XAU_ENTRY_EXIT_M15_20260809_V28`) ran
-  GREEN end to end on the repaired feature substrate: 369,303 TRAIN / 5,904
-  VAL / 6,551 TEST rows, TEST sealed. Per rule 7 those exact bytes are
-  admitted evidence for the next gate only; they admit no model. V28 is the
-  frozen comparison baseline for the pre-registered V29-vs-V28 evaluation.
-- The 2026-08-11 event-gap review proved the pre-V29 surface carried almost
-  no true level/break/retest events (~700 features, effectively one genuine
-  break event). The V29 event surface is designed
-  (`docs/V29_EVENT_SURFACE_DESIGN_20260811.md`), built and committed: level
-  and trendline registries plus per-TF event primitives on all five
-  timeframes. The signal contract is now 592 ordered signals = 34 base + 425
-  mandatory causal + 133 TRAIN-ranked over 16 mandatory families (counts
-  derive from the owner tuples). The V29 dataset rebuild has not run yet;
-  every dataset built on the 513 surface is invalid as substrate for new
-  training.
-- Training-dynamics evidence to date: a V8-config smoke on the repaired
+- Historical V28/V29J datasets were retired with their superseded feature
+  contracts. They have no training, baseline or comparison authority.
+- The current signal-v19/direction-mode-v8 V30 contract has 349 ordered signals:
+  30 base, 164 mandatory causal/raw and all 155 code-owned candidates across 11
+  mandatory families (319 specialist fields); context is 159 continuous plus 5
+  categorical fields and every higher-timeframe lane has 171 fields. Handwritten
+  scorebooks, five regime composites, the `tf_agreement` auxiliary
+  objective/head and `signed_vol_z_20` were removed; genuine raw primitives,
+  identified level/line state and causal events remain. No current-contract
+  dataset has been built.
+- Historical training-dynamics evidence: a V8-config smoke on the then-current
   substrate ended in total FLAT collapse; walk-forward probes refuted the
   snapshot direction edge and fixed the null-skill baseline (coin flip
   −13.16 bps TRAIN); seed variance flips collapse direction, so single-seed
-  judging is invalid. The adopted repairs are logit-adjusted CE
-  (`ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0`, TRAIN priors, class weights 1.0)
-  and mandatory multi-seed judging. Their validation resumes on the V29
-  substrate.
-- Three-seed measurement 2026-08-12/13 (identical recipe, batch 64 x accum 10,
+  judging is invalid. The logit-adjusted CE and class-forcing recipe adopted at
+  that time is now retired; those runs are history, not a current prescription.
+  Objective v6/recipe-schema v5 uses plain unweighted CE for main, MTF and
+  masked-side classification plus plain unweighted BCE for hierarchy binary
+  tasks. Waves A/B retired direction and hierarchical distribution forcing.
+  Fixed auxiliary task weights, rank margins and gate regularization remain
+  for Wave C, and no materialized run recipe is admitted.
+- Historical three-seed measurement 2026-08-12/13 (identical retired recipe,
+  batch 64 x accum 10,
   8 epochs, lr 3e-4, 25k rows): s1337 guard-OK 4/7 no collapse best 0.238;
   s1338 guard-OK 1/7 FLAT drift hard-red; s1339 guard-OK 4/6 best 0.256 then
   LONG collapse at epoch 6 hard-red — a limit cycle at a fixed step size.
@@ -76,10 +77,22 @@ State of the evidence chain:
 - the same eight feature owners use one implementation each, run independently
   at native M5 for Entry and native M1 for Exit; no combined pre-owner M1/M5
   package;
-- 592 ordered signals (34 base + 425 mandatory causal + 133 TRAIN-ranked,
-  16 mandatory families), 142 continuous and 5 categorical context fields;
-- per-timeframe V4 context width is 173, including trend/momentum event
+- signal v19/direction mode v8: 349 ordered signals (30 base + 164 mandatory
+  causal/raw + all 155 code-owned candidates = 319 specialist fields over 11 mandatory
+  families), 159
+  continuous and 5 categorical context fields;
+- per-timeframe V4 context width is 171, including raw volume and the five
+  native-clock TRAIN-fitted squeeze-state fields plus
+  trend/momentum event
   primitives, regime-flip flags and registry projections;
+- signal v19 retains the exact 26-field causal candle
+  geometry/relation/carry owner locally and per TF. The retained six-field
+  local SMC addition emits raw displacement, sided sweep depth, one-shot
+  events and event age rather than direction votes;
+- MTF matrix V5, cache manifest v11 and full-input liveness v6 bind one UTC
+  trading-session clock: H4 bins open on 22/02/06/10/14/18 UTC and D1 at
+  22:00 UTC. Retired H4 00/04/... and calendar-midnight D1 caches are rejected;
+  signal split v8 binds mandatory full-stack v13;
 - V29 level and trendline registries (`gx1/features/level_registry_v1.py`,
   `gx1/features/trendline_registry_v1.py`) carry level identity, touch
   counts, ages, signed reaction history, break/retest events, sloped lines
@@ -88,17 +101,39 @@ State of the evidence chain:
   the explicit recipe input `--level-tol-quantile-q` (adopted value 0.5,
   median, recipe owner `ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q`); the M5-lane
   constants freeze into the V4 cache manifest and the Exit M1-lane params
-  freeze with provenance into the hash-bound M1-enriched manifest; both
-  consumers fail closed without them;
-- Entry: 96 local M5 bars plus leak-safe M15/H1/H4/D1 context;
+  freeze with exact fit-source provenance into the hash-bound M1-enriched
+  manifest; both consumers fail closed without them. The post-fit level
+  runtime-population shadow uses the exact owner state machine only as a
+  nonempty-support/provenance gate; it is not a duplicate registry or a
+  shadow/live route;
+- the same volume owner computes `vol_z_20`, `vol_ratio_5_20` and `vol_pct_96`
+  independently on each closed timeframe, after OHLCV resampling with tick
+  volume summed. Computed features are never resampled;
+- Entry: 191 native M5 source rows (95-row volume prefix) produce the exact
+  96-row local slice plus leak-safe M15/H1/H4/D1 context;
 - Exit: the same ordered fields on a 480-bar M1 local sequence plus leak-safe
-  M5/M15/H1/H4/D1 context, frozen 128-value Entry representation and additive
-  causal path;
+  M5/M15/H1/H4/D1 context, frozen learned 128-value Entry-decision token and
+  additive causal path; its source request is 575 native M1 rows, including
+  the same 95-row volume prefix, with no zero-filled warmup. The token is the
+  frozen 128-wide output of the exact learned 609-to-128 six-block pre-argmax
+  Entry decision projection, not a generic pre-head embedding;
 - closed OHLCV is built before each timeframe's features; finished M1 features
   are never resampled upward or copied into Entry;
-- one shared encoder, one committed bundle, unique calibrated argmax for
+- one shared encoder and one-bundle contract, with unique calibrated argmax for
   Entry (LONG/SHORT/FLAT) and Exit (HOLD/EXIT_NOW); ties and missing
   evidence fail closed.
+- the five handwritten regime composites, `tf_agreement` auxiliary
+  objective/head and `signed_vol_z_20` are retired. Raw per-TF regime class,
+  EMA stack, trend age, D1 distance/rate of change, genuine change events,
+  local return and unsigned tick-volume primitives remain for learned fusion;
+- position-size targets are masked exact ECDF ranks of selected-side path
+  evidence fitted only on TRAIN tradable rows. VAL/TEST apply the frozen ECDF;
+  unmasked size training is forbidden and sizing has no direction authority.
+- the TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
+  production-integrated in source. No production artifacts have been fitted;
+  a fresh M1/M5/M15/H1/H4/D1 fit and all downstream rebuilds are required;
+- Exit remains native closed M1. No tick-resolution feature surface, dataset,
+  OOS evaluation or trading claim exists.
 
 ## What is implemented
 
@@ -107,43 +142,52 @@ State of the evidence chain:
 - the 2026-08-09 feature repair wave across all eight families (CLV
   recentering, USD→bps/ATR encodings, SMC backports, session fixes, dead
   column removal, routing fixes);
-- V29 Phase A event surface: both registries, per-TF trend/momentum event
-  primitives, regime-flip and swing-break events, forward-realized aux rail
-  labels replacing the old tautologies;
+- the historical V29 Phase A addition, whose retained owners provide both
+  registries, per-TF trend/momentum event primitives, regime-flip and
+  swing-break events, and forward-realized aux rail labels replacing the old
+  tautologies;
 - V29 stage-3 prerequisites: the Exit M1-lane registry fit
   (`fit_v29_registry_m1_lane_params_from_m1`, same fit truths on the native
   M1 clock), chain plumbing of `--level-tol-quantile-q` and
   `--registry-fit-train-end` (defaults to the chain's `--train-end`; one
   origin), and lane-correct fail-closed resolution in both materializers;
-- one required immutable M5 Entry surface loaded once through bounded memmaps
-  and shared as exact zero-copy timestamp windows across TRAIN/VAL/TEST;
+- a contract requiring one immutable M5 Entry surface loaded once through
+  bounded memmaps and shared as exact zero-copy timestamp windows across
+  TRAIN/VAL/TEST;
 - TRAIN-only ranking and normalization contracts; model-native Entry
   direction and unified Exit heads; M1 lifecycle builder/loader and
-  same-bundle replay path; immutable calibration provenance; learned sizing
+  same-bundle replay path; TRAIN-fitted/hash-bound Exit target horizon and
+  executable-spread indifference policy (no CLI lookahead); immutable
+  calibration provenance; learned sizing
   and serve/replay parity contracts;
-- anti-collapse machinery with the grad-accum window buffer
-  (`_PriorMatchAccumBuffer`), making the batch-640 statistical floor
-  reachable at batch 64 × accum 10; logit-adjusted CE wired at every
-  criterion site with recipe-owned tau;
+- training-objective v6 metadata and 46-key recipe-schema v5: plain unweighted
+  main/MTF/masked-side CE and plain unweighted hierarchy BCE, with direction
+  and hierarchical distribution forcing retired in Waves A/B. Fixed auxiliary
+  task weights, rank margins and gate regularization remain for Wave C;
 - capped-run resource owner (4G audits, 20G producers/trainer, raised from
   10G on 2026-08-09 on real batch-640 RSS measurement) and immutable event
   machinery.
 
 ## What remains empirically unproven or unadmitted
 
-1. The V29 dataset rebuild (registry fits, both feature lanes, lifecycle,
-   splits) on the current pair generation.
+1. The current-contract V30 dataset rebuild (registry fits, both feature lanes,
+   lifecycle and splits) on the current pair generation.
 2. Real-tape registry compute cost, event base rates, D1 warmup cost and
    liveness on declared TRAIN bytes (pre-adoption red gates).
-3. A stable multi-seed smoke under logit-adjusted CE on the V29 substrate.
-4. A full candidate trained on all TRAIN rows.
-5. Immutable calibration using only its declared non-TEST split.
-6. Untouched-TEST precision, PnL, drawdown and slice evidence, judged against
+3. Wave-C audit of fixed auxiliary task weights, rank margins and gate
+   regularization, followed by an exact objective-v6/recipe-v5 run recipe.
+4. Per-clock TRAIN squeeze artifacts and full adoption plumbing, if the owner
+   passes its source/data gates.
+5. A stable multi-seed smoke under the objective-v6 unweighted CE/BCE contract
+   on the V30 substrate.
+6. A full candidate trained on all TRAIN rows.
+7. Immutable calibration using only its declared non-TEST split.
+8. Untouched-TEST precision, PnL, drawdown and slice evidence, judged against
    the pre-registered protocol (walk-forward, coin-flip null −13.16 bps,
-   ≥2 seeds, abstention criterion, V29 vs V28).
-7. Same-candidate unified Entry/Exit full-TEST replay and runtime parity.
+   ≥2 seeds and the abstention criterion).
+9. Same-candidate unified Entry/Exit full-TEST replay and runtime parity.
 
-Until all seven exist, practical precision and profitability are unknown.
+Until all nine exist, practical precision and profitability are unknown.
 
 ## Machine and process safety
 
@@ -164,25 +208,28 @@ inspect, clean or delete it. Preserve all unrelated user changes.
 ## Next implementation sequence
 
 1. Verify the current commit with `scripts/gx1_handover.sh --check`.
-2. Run the V29 rebuild chain (`scripts/run_seq513_rebuild_chain_v1.sh`) from
-   the published pair with one new dataset run ID and the explicit
+2. Run the current-contract V30 rebuild chain
+   (`scripts/run_seq513_rebuild_chain_v1.sh`) from the published pair with one
+   new dataset run ID and the explicit
    `--level-tol-quantile-q 0.5`; the chain TRAIN-fits both registry lanes
    in-run and builds both native feature lanes one capped job at a time.
 3. Admit the resulting M1/M5 surfaces, lifecycle and TRAIN/VAL/TEST only if
    all preflight/liveness/identity gates pass, including the registry
    pre-adoption gates (compute cost, event rates, warmup, liveness).
-4. Produce a distinct smoke training run ID and exact capped recipe.
-5. Run multi-seed smoke (≥2 seeds; batch 64 × accum 10; logit-adjusted CE)
-   and audit every class, head, gate and Exit path.
+4. Close objective Wave C and squeeze adoption gates, then produce a distinct
+   smoke training run ID and exact objective-v6/recipe-v5 capped run recipe.
+5. Run multi-seed smoke (≥2 seeds; batch 64 × accum 10; unweighted
+   CE/BCE contract) and audit every class, head, gate and Exit path.
 6. If smoke passes, train one full candidate, calibrate and freeze it.
-7. Open TEST once, evaluate under the pre-registered V29-vs-V28 protocol and
-   run the same bundle's unified Exit replay.
+7. Open TEST once, evaluate under the pre-registered current-contract protocol
+   and run the same bundle's unified Exit replay.
 
 No architecture redesign is planned. Failures should be repaired in the
 existing owner, with the smallest exact change that preserves the full model.
-Remaining recorded backlog (Phase B: session-anchored levels, VWAP events,
-squeeze/box, candle rarity gates, vote removals; DST unification; D1
-rollover) is deferred until the V29 evaluation verdict.
+The squeeze owner is implemented but awaits adoption as stated above. Other
+recorded backlog (session-anchored levels, VWAP events, box/candle rarity
+gates and remaining fidelity work) stays outside the current rebuild until a
+separate source/data-backed decision.
 
 ## Takeover
 

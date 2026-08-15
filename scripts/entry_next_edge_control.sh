@@ -26,19 +26,19 @@ Model-native seq513 evidence:
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
-  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --multi-tf-cache-dir <immutable-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --level-tol-quantile-q <q> --registry-fit-train-end <UTC> [--workers 1 --checkpoint-chunk-rows <n>]
-  model-native-m5-enriched-frame --native-m5-root <immutable-dir> --rank-reference-npz <npz> --rank-reference-sha256 <sha256> --pair-manifest <json> --multi-tf-cache-dir <new-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --level-tol-quantile-q <q> --registry-fit-train-end <UTC> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-fit-volatility-squeeze-artifacts --m1-source <immutable-parquet> --m1-source-sha256 <sha256> --m5-source <immutable-parquet> --m5-source-sha256 <sha256> --tape-manifest <json> --tape-manifest-sha256 <sha256> --split-manifest <json> --split-manifest-sha256 <sha256> --pair-manifest <json> --pair-manifest-sha256 <sha256> --pair-generation-id <sha256> --train-window-start <UTC> --train-window-end <UTC> --output-dir <existing-empty-dir>
+  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --pair-manifest <json> --multi-tf-cache-dir <immutable-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --registry-fit-train-start <UTC> --registry-fit-inner-end <UTC> --registry-fit-train-end <UTC> --registry-fit-tape-manifest <json> --expected-registry-fit-tape-manifest-sha256 <sha256> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-m5-enriched-frame --native-m5-root <immutable-dir> --pair-manifest <json> --multi-tf-cache-dir <new-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --registry-fit-train-start <UTC> --registry-fit-inner-end <UTC> --registry-fit-train-end <UTC> --registry-fit-tape-manifest <json> --expected-registry-fit-tape-manifest-sha256 <sha256> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
   model-native-m5-source-frame --enriched-parquet <immutable-parquet> --multi-tf-cache-dir <immutable-v4-dir> --native-m5-root <immutable-dir> --pair-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-current-source-cascade-proof --run-id <id> --source-parquet <immutable-parquet> --canonical-v2-parquet <immutable-parquet> --mtf-cache-dir <immutable-dir> --pair-manifest <json> --required-history-start <UTC> --out <new-json>
-  model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <m1-enriched-manifest-json>
-  model-native-m5-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <v4-cache-manifest-json>
+  model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <m1-enriched-manifest-json> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256>
+  model-native-m5-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <v4-cache-manifest-json> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256>
   model-native-rebuild-preflight \
     --run-id <id> \
     --source-parquet <immutable-parquet> \
     --canonical-v2-parquet <immutable-parquet> \
     --signal-manifest <json> \
     --feature-ranking-json <json> \
-    --rank-reference-npz <npz> \
     --mtf-cache-dir <schema-v3-dir> \
     --tape-root <dir> \
     --m1-lifecycle-pair-manifest-json <json> \
@@ -46,8 +46,8 @@ Model-native seq513 evidence:
     --m1-feature-base-parquet <immutable-parquet> \
     --m5-feature-base-parquet <immutable-parquet> \
     --exit-lifecycle-dir <new-dir> \
-    --exit-target-lookahead-m1-steps <n> \
-    --early-move-threshold-bps <bps> \
+    # Exit target policy is fit on exact TRAIN native M1 and hash-bound. \
+    # Entry direction/early-move policy is fit on exact TRAIN native M5. \
     --output <new-parquet> \
     --audit-out-dir <new-dir> \
     --history-start <UTC> \
@@ -287,13 +287,34 @@ case "$cmd" in
       "$PY" -m gx1.execution.v12_canonical_incremental "$@"
     ;;
 
+  model-native-fit-volatility-squeeze-artifacts)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --m1-source \
+      --m1-source-sha256 \
+      --m5-source \
+      --m5-source-sha256 \
+      --tape-manifest \
+      --tape-manifest-sha256 \
+      --split-manifest \
+      --split-manifest-sha256 \
+      --pair-manifest \
+      --pair-manifest-sha256 \
+      --pair-generation-id \
+      --train-window-start \
+      --train-window-end \
+      --output-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${PRODUCER_CAP[@]}" \
+      "$PY" -m gx1.scripts.fit_volatility_squeeze_artifacts_v1 "$@"
+    ;;
+
   model-native-m1-enriched-frame)
     reject_non_authoritative_args "$@"
     reject_flags "$cmd" --timeframe --native-root --native-m5-root
     for flag in \
       --native-m1-root \
-      --rank-reference-npz \
-      --rank-reference-sha256 \
       --pair-manifest \
       --multi-tf-cache-dir \
       --output-parquet \
@@ -301,8 +322,13 @@ case "$cmd" in
       --checkpoint-dir \
       --dataset-run-id \
       --pair-generation-id \
-      --level-tol-quantile-q \
-      --registry-fit-train-end; do
+      --registry-fit-train-start \
+      --registry-fit-inner-end \
+      --registry-fit-train-end \
+      --registry-fit-tape-manifest \
+      --expected-registry-fit-tape-manifest-sha256 \
+      --volatility-squeeze-manifest \
+      --expected-volatility-squeeze-manifest-sha256; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" \
@@ -314,8 +340,6 @@ case "$cmd" in
     reject_flags "$cmd" --timeframe --native-m1-root --native-root
     for flag in \
       --native-m5-root \
-      --rank-reference-npz \
-      --rank-reference-sha256 \
       --pair-manifest \
       --multi-tf-cache-dir \
       --output-parquet \
@@ -323,8 +347,13 @@ case "$cmd" in
       --checkpoint-dir \
       --dataset-run-id \
       --pair-generation-id \
-      --level-tol-quantile-q \
-      --registry-fit-train-end; do
+      --registry-fit-train-start \
+      --registry-fit-inner-end \
+      --registry-fit-train-end \
+      --registry-fit-tape-manifest \
+      --expected-registry-fit-tape-manifest-sha256 \
+      --volatility-squeeze-manifest \
+      --expected-volatility-squeeze-manifest-sha256; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" \
@@ -373,7 +402,9 @@ case "$cmd" in
       --output-parquet \
       --dataset-run-id \
       --pair-generation-id \
-      --v29-registry-constants-json; do
+      --v29-registry-constants-json \
+      --volatility-squeeze-manifest \
+      --expected-volatility-squeeze-manifest-sha256; do
       require_flag "$cmd" "$flag" "$@"
     done
     # The complete 2.3m-row M1 inline signal extension needs more than the
@@ -391,7 +422,9 @@ case "$cmd" in
       --output-parquet \
       --dataset-run-id \
       --pair-generation-id \
-      --v29-registry-constants-json; do
+      --v29-registry-constants-json \
+      --volatility-squeeze-manifest \
+      --expected-volatility-squeeze-manifest-sha256; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" \
@@ -406,7 +439,6 @@ case "$cmd" in
       --canonical-v2-parquet \
       --signal-manifest \
       --feature-ranking-json \
-      --rank-reference-npz \
       --mtf-cache-dir \
       --tape-root \
       --m1-lifecycle-pair-manifest-json \
@@ -414,8 +446,6 @@ case "$cmd" in
       --m1-feature-base-parquet \
       --m5-feature-base-parquet \
       --exit-lifecycle-dir \
-      --exit-target-lookahead-m1-steps \
-      --early-move-threshold-bps \
       --output \
       --audit-out-dir \
       --history-start \
@@ -767,8 +797,6 @@ case "$cmd" in
       --prebuilt-pair-manifest \
       --prebuilt-generation-root \
       --multi-tf-cache-dir \
-      --train-rank-reference-npz \
-      --train-rank-reference-sha256 \
       --authority-root \
       --device; do
       require_flag "$cmd" "$flag" "$@"

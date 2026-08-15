@@ -1,7 +1,7 @@
 """Exact source-owned environment for model-native seq513 training.
 
-Readiness used to advertise direction-balance, path-quality and tail-direction
-settings that were not all admitted by the launch recipe.  The wrappers clear
+Readiness advertises the exact supervised, diagnostic and base-task settings
+admitted by the launch recipe.  The wrappers clear
 every ambient ``ENTRY_*``/``GX1_*`` variable, so an omitted key silently fell
 back to a trainer default.  This contract is now the one complete owner of the
 values that readiness advertises and the trainer actually receives.
@@ -13,29 +13,16 @@ import hashlib
 import json
 from typing import Any, Mapping
 
-from gx1.contracts.entry_model_native_signal_v1 import (
-    MODEL_NATIVE_CTX_CAT_FIELDS,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+from gx1.contracts.entry_fitted_q_v1 import entry_fitted_q_contract
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    joint_task_weighting_objective_contract,
 )
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_recipe_env_v1"
+SCHEMA_VERSION = "entry_model_native_seq513_train_recipe_env_v9"
 
-# ENTRY_DIRECTION_LOGIT_ADJUST_TAU origin (adopted 2026-08-11): tau=1.0 is the
-# standard value of the published method (Menon et al. 2021, "Long-tail
-# learning via logit adjustment"); the class priors it scales are the physical
-# TRAIN label rates computed in-trainer at dataset load, never a stored guess.
-# The adjustment is a training-loss device only; emitted/serving logits stay
-# unadjusted. tau=0.0 is the exact-compatibility switch (raw CE, sqrt-softened
-# class weights); tau>0 sets the direction CE class weights to the neutral 1.0
-# because adjustment replaces reweighting (combining both double-corrects).
-#
-# ── V30 package 5 (2026-08-13): two stability dampers ────────────────────────
-# Measured cause (three seeds, identical recipe: batch 64 x accum 10, 8 epochs,
-# lr 3e-4, 25k rows, logit-adjusted CE, 2026-08-12/13): s1337 guard-OK 4/7, no
-# collapse, best 0.238; s1338 guard-OK 1/7, FLAT drift, hard-red; s1339
-# guard-OK 4/6, best 0.256 then LONG collapse at epoch 6, hard-red.  The
-# balanced checkpoint score oscillates epoch to epoch and the late epochs lean
-# hard - a limit cycle at a fixed step size, not a data problem.
+# ── V30 package 5 (2026-08-13): two optimizer stability dampers ──────────────
+# These switches own optimizer scheduling only.  They do not alter direction
+# labels, class sampling, class weights, logits, losses, or checkpoint scores.
 #
 # ENTRY_TRAIN_LR_COSINE_DECAY origin: a SWITCH, not a magnitude.  "1" selects
 # torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=the declared
@@ -67,202 +54,19 @@ SCHEMA_VERSION = "entry_model_native_seq513_train_recipe_env_v1"
 # which a pinned float cannot.  0.0 remains the exact-compatibility OFF
 # sentinel (no shadow weights allocated; validation and checkpoint selection
 # see the raw training weights, byte-identical to the pre-package-5 trainer).
-# The tau precedent governs the split (ENTRY_DIRECTION_LOGIT_ADJUST_TAU): the
-# recipe owner declares the rule and owns the formula, and the quantity that
-# depends on the run's declared data/budget is resolved at train time from this
-# owner's function — never from an ambient default (rule 14).
+# The recipe owner declares the rule and owns the formula, while the quantity
+# that depends on the run's declared data/budget is resolved at train time from
+# this owner's function — never from an ambient default (rule 14).
 _RECIPE_ENV_TEXT = """
-ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP=20.0
-ENTRY_AUX_BAD_PATH_WEIGHT=1.25
-ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP=16.0
-ENTRY_AUX_CLEAN_EDGE_WEIGHT=0.45
-ENTRY_AUX_MFE_SCALE_BPS=20.0
-ENTRY_AUX_MFE_WEIGHT=0.25
-ENTRY_AUX_PATH_SCALE_BPS=50.0
-ENTRY_AUX_PATH_WEIGHT=0.90
-ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP=10.0
-ENTRY_AUX_SURVIVAL_WEIGHT=0.10
-ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP=12.0
-ENTRY_AUX_TRADABLE_WEIGHT=1.15
-ENTRY_BAD_PATH_CE_MULTIPLIER=1.50
-ENTRY_BAD_PATH_PROB_PENALTY=0.24
-ENTRY_BAD_PATH_QUALITY_RANK_MARGIN=0.25
-ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE=0.25
-ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=2.00
-ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50
-ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05
-ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35
-ENTRY_CKPT_DIRECTION_SLICE_GUARD=1
-ENTRY_CLEAN_EDGE_RANKING_MARGIN=0.12
-ENTRY_CLEAN_EDGE_RANKING_WEIGHT=0.25
-ENTRY_COST_FLAT_TO_LONG=1.60
-ENTRY_COST_FLAT_TO_SHORT=1.60
-ENTRY_COST_LONG_TO_FLAT=0.45
-ENTRY_COST_LONG_TO_SHORT=2.00
-ENTRY_COST_SENSITIVE_LOSS=1
-ENTRY_COST_SENSITIVE_SCALE=0.25
-ENTRY_COST_SHORT_TO_FLAT=0.45
-ENTRY_COST_SHORT_TO_LONG=2.00
-ENTRY_DEAD_LONG_CE_MULTIPLIER=1.80
-ENTRY_DEAD_LONG_PROB_PENALTY=0.40
-ENTRY_DIRECTION_CE_SCALE=12.00
-ENTRY_DIRECTION_CLASS_WEIGHT_CAP=8.0
-ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10
-ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8
-ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR=0.10
-ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION=0.50
-ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00
-ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02
-ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00
-ENTRY_DIRECTION_LOGIT_ADJUST_TAU=1.0
-ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.05
-ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.50
-ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00
-ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.05
-ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=0.10
-ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=15.0
-ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=2.00
-ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN=0.02
-ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT=4.00
-ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT=2.00
-ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=0
-ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN=0.02
-ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT=4.00
-ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES=0,1,2,3,4
-ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6
-ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3
-ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max
-ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05
-ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50
-ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00
-ENTRY_DIRECTION_SLICE_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02
-ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00
-ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00
-ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR=0.30
-ENTRY_DIRECTION_SLICE_TRUE_MARGIN=0.10
-ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE=0.10
-ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=8
-ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT=2.00
-ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10
-ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00
-ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0
-ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN=0.10
-ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH=0.50
-ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS=15.0
-ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS=0.0
-ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT=2.00
-ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0
-ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=0.50
-ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS=15.0
-ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=0.0
-ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT=2.00
-ENTRY_DIRECTION_VS_FLAT_MARGIN=0.10
-ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00
-ENTRY_FLAT_CLASS_WEIGHT_FLOOR=1.0
-ENTRY_HARD_NEG_LONG_CE_MULTIPLIER=1.35
-ENTRY_HARD_NEG_LONG_PROB_PENALTY=0.20
-ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP=20.0
-ENTRY_HIER_BAD_PATH_WEIGHT=1.25
-ENTRY_HIER_FLAT_LOGIT_MARGIN=0.10
-ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=0.10
-ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT=8.00
-ENTRY_HIER_MAE_WEIGHT=0.35
-ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10
-ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02
-ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=4.00
-ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=15.0
-ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=8.0
-ENTRY_HIER_SIDE_VALIDITY_WEIGHT=1.50
-ENTRY_HIER_SIDE_WEIGHT=1.75
-ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN=0.10
-ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=0.10
-ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS=8
-ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT=8.00
-ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN=0.02
-ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT=4.00
-ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=4.00
-ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=0.10
-ENTRY_HIER_SLICE_SIDE_MIN_ROWS=8
-ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE=0.10
-ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS=8
-ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE=0.02
-ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT=4.00
-ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10
-ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00
-ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN=0.02
-ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT=4.00
-ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE=0.10
-ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS=8
-ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE=0.02
-ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT=4.00
-ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10
-ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02
-ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT=4.00
-ENTRY_HIER_TRADE_WEIGHT=2.00
-ENTRY_HIER_UTILITY_WEIGHT=1.00
-ENTRY_MTF_DIR_AUX_WEIGHT=0.30
-ENTRY_OFFLINE_RL_Q_WEIGHT=0.50
-ENTRY_OFFLINE_RL_RANK_WEIGHT=0.05
-ENTRY_OFFLINE_RL_V_WEIGHT=0.20
-ENTRY_PATH_QUALITY_RANK_MARGIN=0.25
-ENTRY_PATH_QUALITY_RANK_QUANTILE=0.25
-ENTRY_PATH_QUALITY_RANK_WEIGHT=2.00
-ENTRY_PRED_BALANCE_ALPHA=0.50
-ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,1.0
-ENTRY_PRED_BALANCE_TARGET=label
-ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT=0.50
-ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=0.05
-ENTRY_SPECIALIST_GATE_MIN_MEAN=0.01
-ENTRY_SYMMETRIC_NEGATIVES=1
-ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35
-ENTRY_TAIL_DIRECTION_MIN_BATCH=8
-ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70
-ENTRY_TEASER_LONG_CE_MULTIPLIER=1.35
-ENTRY_TEASER_LONG_PROB_PENALTY=0.16
 ENTRY_TRAIN_LR_COSINE_DECAY=1
 ENTRY_TRAIN_WEIGHT_EMA_DECAY=epoch
-ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=1.00
-ENTRY_UNIFIED_EXIT_ACTION_WEIGHT=1.00
 GX1_CTX_CONTRACT=V_NEXT
-GX1_V10_CKPT_MONITOR=dir_acc
-ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q=0.5
-ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS=12
-ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS=24
-ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS=7
+GX1_V10_CKPT_MONITOR=entry_policy_pnl
 """.strip()
 
-# ── V29 registry recipe keys (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §1.4,
-# §8 item 4; stage-1 owners: level_registry_v1 / trendline_registry_v1) ──────
-# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q = 0.5.  Origin: median, adopting the
-# design document's own median convention used for the sibling trendline band
-# (docs/V29_EVENT_SURFACE_DESIGN_20260811.md B.2), applied uniformly across
-# registry tolerances; operator-adopted 2026-08-11.  The dataset rebuild still
-# receives it as an explicit CLI input (`--level-tol-quantile-q` on the
-# rebuild chain, both enriched producers and the cache prebuild) and the
-# fitted tolerances are frozen with provenance in the rebuild authority
-# artifacts (rule 18).  The three window keys restate the stage-1 owners'
-# named convention constants and are equality-checked against them below —
-# the module constants stay the single numerical truth (rule 2a/13).
-MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS = (
-    "ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q",
-    "ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS",
-    "ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS",
-    "ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS",
-)
-MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_ADOPTED_VALUE = "0.5"
+# Registry tolerance and lifecycle decisions are immutable TRAIN artifacts.
+# No q/reaction/retest operator key remains on the trainer recipe surface.
+MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS: tuple[str, ...] = ()
 
 
 def _parse_recipe_env(text: str) -> dict[str, str]:
@@ -288,57 +92,28 @@ MODEL_NATIVE_RECIPE_ENV_SHA256 = hashlib.sha256(
     ).encode("utf-8")
 ).hexdigest()
 
-PATH_CALIBRATION_ENV_KEYS = tuple(
+DIRECTION_DIAGNOSTIC_ENV_KEYS = tuple(
     key
     for key in MODEL_NATIVE_RECIPE_ENV_KEYS
-    if key.startswith("ENTRY_PATH_QUALITY_RANK_")
-    or key.startswith("ENTRY_BAD_PATH_QUALITY_RANK_")
-)
-DIRECTION_BALANCE_ENV_KEYS = tuple(
-    key
-    for key in MODEL_NATIVE_RECIPE_ENV_KEYS
-    if key.startswith(
-        (
-            "ENTRY_PRED_BALANCE_",
-            "ENTRY_DIRECTION_",
-            "ENTRY_CKPT_",
-            "ENTRY_HIER_",
-            "ENTRY_TRENDLINE_RAIL_",
-            "ENTRY_OFFLINE_RL_",
-        )
-    )
-    or key == "GX1_V10_CKPT_MONITOR"
-)
-TAIL_DIRECTION_ENV_KEYS = tuple(
-    key
-    for key in MODEL_NATIVE_RECIPE_ENV_KEYS
-    if key.startswith("ENTRY_TAIL_DIRECTION_")
+    if key == "GX1_V10_CKPT_MONITOR"
 )
 
-PATH_CALIBRATION_ENV_TEMPLATE = {
-    key: MODEL_NATIVE_RECIPE_ENV[key] for key in PATH_CALIBRATION_ENV_KEYS
-}
-DIRECTION_BALANCE_ENV_TEMPLATE = {
-    key: MODEL_NATIVE_RECIPE_ENV[key] for key in DIRECTION_BALANCE_ENV_KEYS
-}
-TAIL_DIRECTION_ENV_TEMPLATE = {
-    key: MODEL_NATIVE_RECIPE_ENV[key] for key in TAIL_DIRECTION_ENV_KEYS
+DIRECTION_DIAGNOSTIC_ENV_TEMPLATE = {
+    key: MODEL_NATIVE_RECIPE_ENV[key]
+    for key in DIRECTION_DIAGNOSTIC_ENV_KEYS
 }
 
-_RECIPE_LIST_FLOAT_KEYS = frozenset({"ENTRY_PRED_BALANCE_CLASS_WEIGHTS"})
+_RECIPE_LIST_FLOAT_KEYS: frozenset[str] = frozenset()
 _RECIPE_BOOLEAN_KEYS = frozenset(
     {
         "ENTRY_CKPT_DIRECTION_SLICE_GUARD",
-        "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER",
         # V30 package 5: a schedule ON/OFF switch, never a magnitude.
         "ENTRY_TRAIN_LR_COSINE_DECAY",
     }
 )
 _RECIPE_STRING_KEYS = frozenset(
     {
-        "ENTRY_PRED_BALANCE_TARGET",
         "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES",
-        "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION",
         "GX1_V10_CKPT_MONITOR",
         # V30 package 6: a declared horizon token ("epoch") or the "0.0" OFF
         # sentinel — never a bare magnitude, so it is a string key.
@@ -385,37 +160,32 @@ def _recipe_projection(keys: tuple[str, ...]) -> dict[str, object]:
     return projected
 
 
-PATH_CALIBRATION_RECIPE_CONTRACT = {
-    "path_quality_rank_full_batch": True,
-    **_recipe_projection(PATH_CALIBRATION_ENV_KEYS),
-}
-DIRECTION_BALANCE_RECIPE_CONTRACT = {
-    **_recipe_projection(DIRECTION_BALANCE_ENV_KEYS),
-    "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-    "hierarchical_entry_heads_enabled": True,
-    "side_validity_head_enabled": True,
-    "trendline_rail_head_enabled": True,
-    "anchor_gate_enabled": False,
-}
-TAIL_DIRECTION_RECIPE_CONTRACT = {
-    **_recipe_projection(TAIL_DIRECTION_ENV_KEYS),
-    "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT = {
+    **_recipe_projection(DIRECTION_DIAGNOSTIC_ENV_KEYS),
+    "entry_action_q_loss": "masked_raw_bps_mean_squared_error",
+    "entry_fitted_q": entry_fitted_q_contract(),
+    "fixed_relative_task_weights": False,
+    "handwritten_rank_losses": False,
+    "handwritten_composite_weights": False,
+    "handwritten_gate_regularization": False,
+    "fixed_target_normalization_scales": False,
+    "joint_task_weighting": joint_task_weighting_objective_contract(),
+    "checkpoint_monitor": (
+        "val_realized_gross_spread_inclusive_entry_policy_pnl_bps_research_only"
+    ),
+    "production_authority_ready": False,
 }
 DIRECTION_CONTEXT_SLICE_CONTRACT = {
-    "source": "post_smoke_audit.direction_slice_contract",
-    "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
-    "min_rows": 64,
-    "requires_majority_baseline": True,
-    "requires_class_distribution_coverage": True,
-    "skips_low_label_diversity": True,
+    "retired": True,
+    "entry_authority": False,
+    "replacement": "raw_entry_fitted_q_and_net_oos_policy_replay",
 }
 
-# The audited pre-V29 recipe surface held 164 keys; V30 package 5 added the two
-# stability-damper switches (ENTRY_TRAIN_LR_COSINE_DECAY,
-# ENTRY_TRAIN_WEIGHT_EMA_DECAY) for 166.  The total is DERIVED as that audited
-# base plus the declared V29 registry key tuple, so a key can be neither
-# silently dropped nor silently invented.
-_PRE_V29_RECIPE_ENV_KEY_COUNT = 166
+# Waves A-C retire every handcrafted loss magnitude, rank margin/quantile,
+# target-normalization scale and gate-gradient control from the prior 170-key
+# surface. The remaining pre-V29 keys are diagnostics/admission, label-mode and
+# optimizer switches; none changes relative task influence.
+_PRE_V29_RECIPE_ENV_KEY_COUNT = 4
 _EXPECTED_RECIPE_ENV_KEY_COUNT = _PRE_V29_RECIPE_ENV_KEY_COUNT + len(
     MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS
 )
@@ -430,22 +200,11 @@ for _v29_key in MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS:
         raise RuntimeError(
             f"MODEL_NATIVE_RECIPE_ENV_V29_KEY_MISSING: {_v29_key}"
         )
-if MODEL_NATIVE_RECIPE_ENV["ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q"] != (
-    MODEL_NATIVE_V29_REGISTRY_TOL_QUANTILE_ADOPTED_VALUE
-):
-    raise RuntimeError(
-        "MODEL_NATIVE_RECIPE_ENV_V29_TOL_QUANTILE_INVALID: the adopted "
-        "value is the operator decision of 2026-08-11 (median, the design "
-        "document's own median convention for the sibling trendline band, "
-        "docs/V29_EVENT_SURFACE_DESIGN_20260811.md B.2); changing it "
-        "requires a new recipe decision"
-    )
 
 # ── V30 package 5 stability dampers (2026-08-13) ─────────────────────────────
-# ``ENTRY_TRAIN_WEIGHT_EMA_DECAY`` is REQUIRED-BY-OPERATOR-DECISION, the
-# ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q pattern: the recipe owner declares the
-# key and pins the value it currently carries, and only a new recipe decision
-# may move it.  Exactly two values are declared — the DISABLED sentinel and
+# ``ENTRY_TRAIN_WEIGHT_EMA_DECAY`` is REQUIRED-BY-OPERATOR-DECISION: the
+# recipe owner declares the key and pins the value it currently carries, and
+# only a new recipe decision may move it. Exactly two values are declared — the DISABLED sentinel and
 # the epoch-horizon token that selects :func:`derive_weight_ema_decay`.  A bare
 # float is deliberately NOT accepted: a pinned decay could not follow the
 # declared batch/accumulation/row budget, which is the whole content of the
@@ -587,40 +346,6 @@ def resolve_weight_ema_decay(
         f"{value!r} is not one of "
         f"{MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES}"
     )
-
-
-def _require_v29_registry_recipe_window_consistency() -> None:
-    """The window keys must equal the stage-1 owners' named constants."""
-
-    from gx1.features.level_registry_v1 import (
-        LEVEL_REGISTRY_REACTION_WINDOW_BARS,
-        LEVEL_REGISTRY_RETEST_WINDOW_BARS,
-    )
-    from gx1.features.trendline_registry_v1 import (
-        TRENDLINE_RETEST_WINDOW_BARS_V1,
-    )
-
-    expected = {
-        "ENTRY_LEVEL_REGISTRY_REACTION_WINDOW_BARS": (
-            LEVEL_REGISTRY_REACTION_WINDOW_BARS
-        ),
-        "ENTRY_LEVEL_REGISTRY_RETEST_WINDOW_BARS": (
-            LEVEL_REGISTRY_RETEST_WINDOW_BARS
-        ),
-        "ENTRY_TRENDLINE_REGISTRY_RETEST_WINDOW_BARS": (
-            TRENDLINE_RETEST_WINDOW_BARS_V1
-        ),
-    }
-    for key, owner_value in expected.items():
-        if int(MODEL_NATIVE_RECIPE_ENV[key]) != int(owner_value):
-            raise RuntimeError(
-                "MODEL_NATIVE_RECIPE_ENV_V29_WINDOW_MISMATCH: "
-                f"{key}={MODEL_NATIVE_RECIPE_ENV[key]!r} "
-                f"owner={owner_value!r}"
-            )
-
-
-_require_v29_registry_recipe_window_consistency()
 
 
 def require_model_native_recipe_env(value: Mapping[str, Any]) -> dict[str, str]:

@@ -24,17 +24,16 @@ Mid-only substitution and synthetic gap filling are forbidden.
 `gx1_entry_exit_shared_feature_base_contract_v2` owns both resolutions:
 
 - instrument `XAU_USD`;
-- ordered signals: 34 fixed base fields + the mandatory causal families + 133
-  TRAIN-ranked, over 16 mandatory families. **The counts are DERIVED from the
-  owner tuples (`MODEL_NATIVE_SIGNAL_DIM` in
+- ordered signals: fixed base fields + mandatory causal/raw families + the
+  complete code-owned candidate remainder. **All counts are DERIVED from the owner tuples
+  (`MODEL_NATIVE_SIGNAL_DIM` in
   `gx1/contracts/entry_model_native_signal_v1.py`, flattened from
   `MODEL_NATIVE_SPECIALIST_LAYER_FEATURES` in
   `gx1/features/entry_model_native_feature_layers_v1.py`) and are deliberately
   NOT restated here** — every restated count in this repository has gone stale
-  within days (rule 13). Three families are produced in full and pinned only in
-  part; their unpinned fields compete in the TRAIN-ranked candidate pool, so
-  the mandatory count is strictly smaller than the emitted count;
-- 164 continuous and 5 categorical context values;
+  within days (rule 13). Every emitted active owner field is available to the
+  learned model; no fixed top-k/ranker has feature-selection authority;
+- 159 continuous and 5 categorical context values;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;
 - Entry local M5 sequence 96 plus closed M15/H1/H4/D1 context;
@@ -63,6 +62,15 @@ M1-lane params freeze into the hash-bound M1-enriched frame manifest
 (`v29_registry_m1_lane_params`). Both materializers resolve the lane-correct
 frozen artifact fail-closed; cross-lane payloads and provenance-free bare
 values are rejected. VAL, TEST and serve never refit.
+
+The five-field volatility-squeeze owner is applied independently on native
+closed OHLCV for M1/M5/M15/H1/H4/D1. Production consumers require one exact
+immutable TRAIN-only artifact per clock through the common six-clock manifest;
+the manifest binds source, tape, split, pair, clock/bar-grid, file/payload
+hashes and common TRAIN lineage. Bare/default/cross-clock parameters, fitting
+on VAL/TEST/live and resampling computed squeeze fields are forbidden. The
+source plumbing exists, but no production squeeze artifacts or downstream V30
+rebuild are admitted yet.
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through
@@ -94,15 +102,38 @@ all content hashes. A training run ID must differ from the dataset run ID.
 
 ## Exit lifecycle
 
-Lifecycle schema is `gx1_unified_exit_lifecycle_episode_envelope_v3`. Episodes
+Lifecycle schema is `gx1_unified_exit_lifecycle_episode_envelope_v5`. Episodes
 point into the immutable M1 feature artifact rather than duplicating paths.
 The row clock is `consecutive_authoritative_closed_m1_source_rows` under
 `oanda_complete_true_source_absence_no_synthesis_v1`.
 
 Weekend/closure gaps therefore advance to the next observed row. Duplicates,
 reversals or unexplained absence fail. The current closed M1 row is included.
-Entry and Exit consume the exact same feature definitions; the causal 14-field
+Entry and Exit consume the exact same feature definitions; the causal 15-field
 in-trade path is additive and never replaces the shared M1 surface.
+Two state probes per side are selected by entry/side/source coordinates before
+the target is inspected. Tied targets are omitted without inventing a class.
+The Exit target horizon is not a CLI constant. One
+`gx1_unified_exit_target_policy_v1` is fit on feature-ready native TRAIN M1
+rows only: its economic indifference band is the TRAIN median executable
+spread, and its horizon is the exact maximum-chord knee of the cumulative
+1..512-row material-improvement discovery curve. The fit population, source,
+curve, selected horizon and policy hash are frozen before VAL/TEST; the corpus
+recomputes the policy from the bound TRAIN bytes and fails on any drift.
+The owner can stream every non-tied state in bounded chunks; until checkpoint
+selection evaluates that full stream, probe-only validation is not acceptance
+evidence. Candidate training performs that complete post-selection VAL pass;
+smoke metadata records that the gate was intentionally not run and cannot be
+promoted.
+
+The persisted Exit full-input envelope binds the exact first/last M1 sequence
+timestamps and signal/context tensor hashes, all five MTF tensor/cache hashes,
+and the frozen little-endian float32 bytes/hash of the learned 609-to-128
+six-block Entry-decision token projection, plus path, side, entry quotes, trade ID,
+bundle and dataset/pair identities.
+The detailed in-trade path is a latest-512 rolling tail. A learned input sees
+the absolute elapsed bar index, while `full_path_chain_sha256` commits every
+dropped row. Neither serving nor offline replay forces EXIT_NOW at row 512.
 
 ## Targets and replay
 

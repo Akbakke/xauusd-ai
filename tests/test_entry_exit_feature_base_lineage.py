@@ -23,8 +23,6 @@ PAIR_GENERATION_ID = "ENTRY_EXIT_PAIR_PYTEST_V1"
 def _source_fixture(tmp_path: Path) -> tuple[Path, Path]:
     source = (tmp_path / "enriched_m1.parquet").resolve()
     source.write_bytes(b"immutable-enriched-m1")
-    rank = (tmp_path / "train_rank_reference.npz").resolve()
-    rank.write_bytes(b"immutable-train-rank")
     payload = {
         "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
         "decision": "PASS",
@@ -33,8 +31,6 @@ def _source_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "pair_generation_id": PAIR_GENERATION_ID,
         "timeframe": "M1",
         "base_bar_seconds": 60,
-        "rank_reference_npz": str(rank),
-        "rank_reference_sha256": sha256_file(rank),
         "output_parquet": str(source),
         "output_parquet_sha256": sha256_file(source),
     }
@@ -71,17 +67,16 @@ def test_feature_base_requires_exact_enriched_source_lineage(
         ("dataset_run_id", "RELABELLED_DATASET_RUN", "SOURCE_LINEAGE_INVALID"),
         ("pair_generation_id", "RELABELLED_PAIR", "SOURCE_LINEAGE_INVALID"),
         ("schema_version", "legacy_enriched_schema", "SOURCE_LINEAGE_INVALID"),
-        (
-            "rank_reference_sha256",
-            "0" * 64,
-            "SOURCE_RANK_IMMUTABLE_ARTIFACT_INVALID",
-        ),
+        ("timeframe", "M5", "SOURCE_LINEAGE_INVALID"),
+        ("base_bar_seconds", 300, "SOURCE_LINEAGE_INVALID"),
+        ("output_parquet", "/other/enriched_m1.parquet", "SOURCE_LINEAGE_INVALID"),
+        ("output_parquet_sha256", "0" * 64, "SOURCE_LINEAGE_INVALID"),
     ),
 )
 def test_feature_base_rejects_relabelled_or_unbound_source(
     tmp_path: Path,
     field: str,
-    value: str,
+    value: object,
     error: str,
 ) -> None:
     source, manifest = _source_fixture(tmp_path)

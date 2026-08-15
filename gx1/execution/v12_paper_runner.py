@@ -73,6 +73,9 @@ from gx1.models.entry_v10.direction_decision_contract import (  # noqa: E402
     MODEL_DIRECTION_SELECTION_MODE,
 )
 from gx1.time.session_detector import SESSION_ORDER  # noqa: E402
+from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
+    MODEL_NATIVE_CONTRACT_MODE,
+)
 
 ENV_FILE = REPO_ROOT / ".env"
 if ENV_FILE.is_file():
@@ -189,7 +192,7 @@ TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # LEGACY single-trade 
 TRADE_STATE_DIR = JOURNAL_DIR / "open_trades"             # one JSON file per open virtual trade
 ENTRY_INTENT_DIR = TRADE_STATE_DIR / "entry_intents"
 RESOLVED_ENTRY_INTENT_DIR = TRADE_STATE_DIR / "resolved_entry_intents"
-BROKER_ENTRY_INTENT_SCHEMA_VERSION = "gx1_broker_entry_intent_v1"
+BROKER_ENTRY_INTENT_SCHEMA_VERSION = "gx1_broker_entry_intent_v2"
 CLOSE_INTENT_DIR = TRADE_STATE_DIR / "close_intents"
 RESOLVED_CLOSE_INTENT_DIR = TRADE_STATE_DIR / "resolved_close_intents"
 REJECTED_CLOSE_INTENT_DIR = TRADE_STATE_DIR / "rejected_close_intents"
@@ -352,6 +355,9 @@ def build_broker_entry_intent(
         "model_bundle_sha256": model_bundle_binding.get(
             "bundle_sha256"
         ),
+        "model_bundle_binding_sha256": hashlib.sha256(
+            _canonical_json_bytes(model_bundle_binding)
+        ).hexdigest(),
         "pair_generation_id": entry_source_pair_binding.get(
             "pair_generation_id"
         ),
@@ -971,6 +977,9 @@ def load_broker_entry_intent(path: Path) -> dict[str, Any]:
         "model_bundle_sha256": intent[
             "model_bundle_binding"
         ].get("bundle_sha256"),
+        "model_bundle_binding_sha256": hashlib.sha256(
+            _canonical_json_bytes(intent["model_bundle_binding"])
+        ).hexdigest(),
         "pair_generation_id": intent[
             "entry_source_pair_binding"
         ].get("pair_generation_id"),
@@ -1275,13 +1284,13 @@ MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS = frozenset(
         "selection_score_mode",
         "selection_score",
         "session",
-        "p_long",
-        "p_short",
-        "p_flat",
-        "v10_path_quality_pred",
-        "v10_mfe_pred_at_entry",
-        "v10_tradable_prob",
-        "v10_bad_path_prob",
+        # `v10_path_quality_pred`, `v10_mfe_pred_at_entry`, `v10_tradable_prob`
+        # and `v10_bad_path_prob` stood here. Their heads — path_quality,
+        # mfe_first_n, tradable and bad_path — are all in
+        # MODEL_NATIVE_BLOCKED_HEADS now, so no producer emits the fields and
+        # this required set could never be satisfied. Requiring a field whose
+        # only producer is retired is not a fail-closed check, it is a gate
+        # that always fails.
         "_v10_snapshot",
         "policy",
         "stub",
@@ -1436,15 +1445,12 @@ def require_executable_model_native_entry_decision(
                 "[RUNNER_MODEL_NATIVE_DECISION_INVALID] "
                 f"{field} is not an exact lowercase sha256 identity"
             )
-    probabilities = snapshot["direction_probs"]
-    expected_edge = max(probabilities[0], probabilities[1]) - probabilities[2]
-    expected_selection = probabilities[direction_index]
+    entry_q = snapshot["entry_action_q_bps"]
+    expected_edge = max(entry_q[0], entry_q[1]) - entry_q[2]
+    expected_selection = entry_q[direction_index]
     for field, expected in (
         ("edge_score", expected_edge),
         ("selection_score", expected_selection),
-        ("p_long", probabilities[0]),
-        ("p_short", probabilities[1]),
-        ("p_flat", probabilities[2]),
     ):
         observed = _float_or_none(decision[field])
         if observed is None or not math.isclose(
@@ -1833,16 +1839,23 @@ def journal_v12_exit_decision(journal: Any, trade: TradeState) -> None:
         executable_range_bps=trade.last_executable_range_bps,
         exit_action=decision["action"],
         exit_action_index=decision["exit_action_index"],
-        exit_action_logits=decision["exit_action_logits"],
-        exit_action_probs=decision["exit_action_probs"],
+        exit_action_q_bps=decision["exit_action_q_bps"],
+        exit_action_valid_mask=decision["exit_action_valid_mask"],
         exit_decision_source=decision["decision_source"],
         bundle_sha256=decision["bundle_sha256"],
         entry_snapshot_sha256=decision["entry_snapshot_sha256"],
         exit_path_envelope_sha256=decision[
             "exit_path_envelope_sha256"
         ],
+        exit_input_envelope_sha256=decision[
+            "exit_input_envelope_sha256"
+        ],
         output_evidence_sha256=decision["output_evidence_sha256"],
         exit_path_envelope=trade.build_closed_m1_path_evidence(),
+        exit_input_envelope=decision["exit_input_envelope"],
+        exit_incremental_carry_envelope=decision[
+            "exit_incremental_carry_envelope"
+        ],
     )
 
 
@@ -2662,6 +2675,7 @@ def runtime_trade_immutable_bindings(
         getattr(model, "_bundle_sha256", "") or ""
     )
     operating_point = getattr(model, "operating_point", None)
+    model_metadata = getattr(model, "_meta", None)
     if bundle_dir_raw is None:
         raise RuntimeError("TRADE_MODEL_BUNDLE_PATH_MISSING")
     bundle_dir = Path(bundle_dir_raw).expanduser().resolve(strict=True)
@@ -2673,8 +2687,28 @@ def runtime_trade_immutable_bindings(
             for character in bundle_sha256
         )
         or not isinstance(operating_point, dict)
+        or not isinstance(model_metadata, dict)
     ):
         raise RuntimeError("TRADE_MODEL_BUNDLE_IDENTITY_INVALID")
+    input_normalization = model_metadata.get("input_normalization")
+    input_normalization_sha256 = (
+        input_normalization.get("contract_sha256")
+        if isinstance(input_normalization, dict)
+        else None
+    )
+    contract_mode = model_metadata.get("contract_mode")
+    if (
+        not isinstance(input_normalization_sha256, str)
+        or len(input_normalization_sha256) != 64
+        or input_normalization_sha256.lower()
+        != input_normalization_sha256
+        or any(
+            character not in "0123456789abcdef"
+            for character in input_normalization_sha256
+        )
+        or contract_mode != MODEL_NATIVE_CONTRACT_MODE
+    ):
+        raise RuntimeError("TRADE_MODEL_TOKEN_BINDING_INVALID")
     pair_generation_id = str(
         decision.get("entry_source_pair_generation_id") or ""
     )
@@ -2701,6 +2735,8 @@ def runtime_trade_immutable_bindings(
             ),
             "bundle_dir": str(bundle_dir),
             "bundle_sha256": bundle_sha256,
+            "input_normalization_sha256": input_normalization_sha256,
+            "contract_mode": contract_mode,
             "operating_point": dict(operating_point),
         },
         {
@@ -4007,26 +4043,18 @@ def main() -> int:
                             f"spread={spread_bps:.1f}bps  units={trade_units}  "
                             f"open_count={len(open_trades)}/{args.max_trades}  "
                             f"direction={model_direction}  "
-                            f"p_long={_as_float(decision.get('p_long')):.3f}  "
-                            f"p_short={_as_float(decision.get('p_short')):.3f}  "
-                            f"p_flat={_as_float(decision.get('p_flat')):.3f}  "
-                            f"edge={_as_float(decision.get('edge_score')):+.3f}  "
+                            f"q_margin={_as_float(decision.get('entry_action_q_margin_bps')):+.3f}bps  "
                             f"mode={decision.get('selection_score_mode','')}  "
                             f"score={_fmt_optional_float(decision.get('selection_score'), '+.2f')}  "
-                            f"p_trade={_as_float(decision.get('p_trade')):.3f}  "
                             f"lat={_fmt_optional_float(decision.get('entry_signal_latency_sec'), '.0f')}s"
                         )
                         LOG.info(f"opened trade  id={new_trade.trade_id}  side={side}  "
                                   f"entry={ask if side=='long' else bid}  "
                                   f"open_count={len(open_trades)}/{args.max_trades}  "
                                   f"direction={model_direction}  "
-                                  f"p_long={_as_float(decision.get('p_long')):.3f}  "
-                                  f"p_short={_as_float(decision.get('p_short')):.3f}  "
-                                  f"p_flat={_as_float(decision.get('p_flat')):.3f}  "
-                                  f"edge={_as_float(decision.get('edge_score')):+.3f}  "
+                                  f"q_margin={_as_float(decision.get('entry_action_q_margin_bps')):+.3f}bps  "
                                   f"mode={decision.get('selection_score_mode','')}  "
                                   f"score={_fmt_optional_float(decision.get('selection_score'), '+.2f')}  "
-                                  f"p_trade={_as_float(decision.get('p_trade')):.3f}  "
                                   f"entry_latency={_fmt_optional_float(decision.get('entry_signal_latency_sec'), '.0f')}s")
                     elif order_result.get("status") == "rejected":
                         # Reject without a trade_id — log via run-level JSONL so reject stream
@@ -4042,7 +4070,10 @@ def main() -> int:
                                 "model_action": expected_action,
                                 "model_direction": model_direction,
                                 "model_direction_index": expected_index,
-                                "direction_probs": decision.get("direction_probs"),
+                                "entry_action_q_bps": decision.get("entry_action_q_bps"),
+                                "entry_action_q_margin_bps": decision.get(
+                                    "entry_action_q_margin_bps"
+                                ),
                                 "bid": bid, "ask": ask,
                                 "n_open_trades": len(open_trades),
                             },

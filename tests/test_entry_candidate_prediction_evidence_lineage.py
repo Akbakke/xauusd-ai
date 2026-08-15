@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     model_direction_decision_contract_metadata,
@@ -25,17 +28,22 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 from tests.model_native_turning_point_support import (
     turning_point_prediction_columns,
 )
-from tests.model_native_offline_rl_support import offline_rl_prediction_columns
-from tests.model_native_offline_rl_support import (
-    add_test_runtime_calibration_metadata,
-    runtime_head_prediction_columns,
-)
+from tests.model_native_sizing_support import runtime_head_prediction_columns
 
 
 STAMP = "20260716T120000123456Z"
+# Row 0 is a unique LONG argmax, row 1 a unique FLAT argmax, in raw bps.
+ENTRY_ACTION_Q_BPS = [[2.0, -1.0, 0.0], [-1.0, -2.0, 1.5]]
+
+
+def _entry_q_margin(values: list[float]) -> float:
+    ordered = sorted(float(value) for value in values)
+    return ordered[-1] - ordered[-2]
 
 
 def _predictions(splits: tuple[str, ...] = ("val",)) -> pd.DataFrame:
+    entry_q = [list(row) for row in ENTRY_ACTION_Q_BPS]
+    directions = [int(np.argmax(np.asarray(row))) for row in entry_q]
     frame = pd.DataFrame(
         {
             "split": ["val", "test"],
@@ -43,26 +51,19 @@ def _predictions(splits: tuple[str, ...] = ("val",)) -> pd.DataFrame:
             "time": pd.to_datetime(
                 ["2026-07-01T00:00:00Z", "2026-07-02T00:00:00Z"], utc=True
             ),
-            "y_direction": [0, 2],
-            "pred_direction": [0, 2],
-            "p_long": [0.7, 0.1],
-            "p_short": [0.1, 0.1],
-            "p_flat": [0.2, 0.8],
+            "pred_direction": directions,
             "selection_score_mode": [MODEL_DIRECTION_SELECTION_MODE] * 2,
-            "public_trade_probability": [0.7 / 0.9, 0.1 / 0.9],
-            "public_flat_probability": [0.2 / 0.9, 0.8 / 0.9],
-            "public_trade_flat_margin": [np.log(0.7 / 0.2), np.log(0.1 / 0.8)],
-            "public_trade_flat_hard_decision": [0, 1],
-            "direction_logits": [
-                [np.log(0.7), np.log(0.1), np.log(0.2)],
-                [np.log(0.1), np.log(0.1), np.log(0.8)],
-            ],
-            "public_trade_flat_decision_logits": [
-                [np.log(0.7), np.log(0.2)],
-                [np.log(0.1), np.log(0.8)],
+            "entry_action_q_bps": entry_q,
+            "entry_action_q_margin_bps": [_entry_q_margin(row) for row in entry_q],
+            "model_direction_index": directions,
+            "session_id": [2, 3],
+            "session": ["OVERLAP", "US"],
+            "position_size_logit": [-0.1, 0.4],
+            "position_size_pred": [
+                float(1.0 / (1.0 + np.exp(0.1))),
+                float(1.0 / (1.0 + np.exp(-0.4))),
             ],
             **turning_point_prediction_columns(2),
-            **offline_rl_prediction_columns(2),
         }
     )
     return frame.loc[frame["split"].isin(splits)].reset_index(drop=True)
@@ -90,33 +91,26 @@ def _event(
         "state_dict_sha256": "a" * 64,
         "direction_decision_contract": model_direction_decision_contract_metadata(),
     }
-    if runtime_head:
-        add_test_runtime_calibration_metadata(metadata)
     (bundle / "bundle_metadata.json").write_text(
         json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8"
     )
     predictions = out / f"selective_edge_predictions_{STAMP}.parquet"
     frame = _predictions(splits)
     if runtime_head:
-        runtime_columns = runtime_head_prediction_columns(
-            frame,
-            metadata,
-        )
-        for name, values in runtime_columns.items():
-            frame[name] = values
-        decoded_heads = [
+        runtime_columns = runtime_head_prediction_columns(frame)
+        heads = [
             json.loads(payload)
             for payload in runtime_columns["runtime_head_evidence_json"]
         ]
-        frame["position_size_logit"] = [
-            head["position_size_logit"] for head in decoded_heads
-        ]
-        frame["position_size_pred"] = [
-            head["position_size_pred"] for head in decoded_heads
-        ]
-        frame["path_quality_pred"] = [
-            head["path_quality"] for head in decoded_heads
-        ]
+        # Every parquet column that is also a runtime-head field is a
+        # *duplicate* of the sealed envelope and must be bit-identical to it,
+        # so the fixture republishes the head's own values rather than a
+        # second, independently authored copy.
+        for name in frame.columns:
+            if name in MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS:
+                frame[name] = [head[name] for head in heads]
+        for name, values in runtime_columns.items():
+            frame[name] = values
     atomic_write_parquet_immutable(frame, predictions)
     evidence = build_prediction_evidence_declaration(
         predictions_path=predictions,
@@ -391,7 +385,7 @@ def test_runtime_head_rejects_divergent_flat_sizing_truth(
         )
 
 
-def test_runtime_head_rejects_divergent_path_quality_alias(
+def test_runtime_head_rejects_divergent_entry_q_column(
     tmp_path: Path,
 ) -> None:
     event = _event(
@@ -399,9 +393,12 @@ def test_runtime_head_rejects_divergent_path_quality_alias(
         evidence_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
     )
     tampered = pd.read_parquet(event["predictions"])
-    tampered.loc[0, "path_quality_pred"] = (
-        float(tampered.loc[0, "path_quality_pred"]) + 0.25
-    )
+    # Keep the same winning action so the argmax/pred_direction check passes
+    # and only the sealed-envelope comparison can reject the row.
+    diverged = list(tampered.loc[0, "entry_action_q_bps"])
+    diverged[int(tampered.loc[0, "pred_direction"])] += 1.0
+    tampered.at[0, "entry_action_q_bps"] = diverged
+    tampered.loc[0, "entry_action_q_margin_bps"] = _entry_q_margin(diverged)
     tampered.to_parquet(event["predictions"], index=False)
     report = dict(event["report"])
     evidence = dict(report["prediction_evidence"])
@@ -409,10 +406,7 @@ def test_runtime_head_rejects_divergent_path_quality_alias(
     report["prediction_evidence"] = evidence
     _rewrite_report(event, report)
 
-    with pytest.raises(
-        RuntimeError,
-        match="duplicated field mismatch.*path_quality_pred",
-    ):
+    with pytest.raises(RuntimeError, match="Entry-Q mismatch"):
         _resolve(
             event,
             expected_sha256=evidence["sha256"],
@@ -559,25 +553,16 @@ def test_consumer_rejects_mode_even_when_attacker_rehashes_parquet(tmp_path: Pat
         )
 
 
-def test_consumer_rejects_tied_direction_even_when_parquet_is_rehashed(
+def test_consumer_rejects_tied_entry_q_even_when_parquet_is_rehashed(
     tmp_path: Path,
 ) -> None:
     event = _event(tmp_path)
     tampered = _predictions()
-    probabilities = np.asarray([0.45, 0.45, 0.10], dtype=np.float64)
-    logits = np.log(probabilities)
-    public_probability = float(probabilities[0] / (probabilities[0] + probabilities[2]))
-    tampered.at[0, "direction_logits"] = logits.tolist()
-    tampered.at[0, "public_trade_flat_decision_logits"] = [
-        float(logits[0]),
-        float(logits[2]),
-    ]
-    tampered.loc[0, ["p_long", "p_short", "p_flat"]] = probabilities
-    tampered.loc[0, ["public_trade_probability", "public_flat_probability"]] = [
-        public_probability,
-        1.0 - public_probability,
-    ]
-    tampered.loc[0, "public_trade_flat_margin"] = float(logits[0] - logits[2])
+    # An exact LONG/FLAT tie in raw bps has no unique argmax and must fail
+    # closed even when the attacker republishes a matching hash.
+    tied = [2.0, -1.0, 2.0]
+    tampered.at[0, "entry_action_q_bps"] = tied
+    tampered.loc[0, "entry_action_q_margin_bps"] = _entry_q_margin(tied)
     tampered.to_parquet(event["predictions"], index=False)
     report = dict(event["report"])
     evidence = dict(report["prediction_evidence"])
@@ -585,10 +570,52 @@ def test_consumer_rejects_tied_direction_even_when_parquet_is_rehashed(
     report["prediction_evidence"] = evidence
     _rewrite_report(event, report)
 
-    with pytest.raises(RuntimeError, match="no unique top class"):
+    with pytest.raises(RuntimeError, match="no unique top action"):
         _resolve(
             event,
             expected_sha256=evidence["sha256"],
+        )
+
+
+def test_consumer_rejects_direction_that_is_not_the_entry_q_argmax(
+    tmp_path: Path,
+) -> None:
+    event = _event(tmp_path)
+    tampered = _predictions()
+    tampered.loc[0, "pred_direction"] = 1
+    tampered.to_parquet(event["predictions"], index=False)
+    report = dict(event["report"])
+    evidence = dict(report["prediction_evidence"])
+    evidence["sha256"] = sha256_file(event["predictions"])
+    report["prediction_evidence"] = evidence
+    _rewrite_report(event, report)
+
+    with pytest.raises(RuntimeError, match="mismatches Entry Q argmax"):
+        _resolve(
+            event,
+            expected_sha256=evidence["sha256"],
+        )
+
+
+def test_runtime_declaration_rejects_bundle_carrying_retired_calibration(
+    tmp_path: Path,
+) -> None:
+    event = _event(
+        tmp_path,
+        evidence_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+    )
+    metadata = json.loads(
+        (event["bundle"] / "bundle_metadata.json").read_text(encoding="utf-8")
+    )
+    metadata["direction_calibration"] = {"enabled": True, "temperature": 1.0}
+
+    with pytest.raises(RuntimeError, match="retired calibration"):
+        build_prediction_evidence_declaration(
+            predictions_path=event["predictions"],
+            bundle_dir=event["bundle"],
+            bundle_metadata=metadata,
+            evidence_stage=RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE,
+            requested_splits=["test"],
         )
 
 

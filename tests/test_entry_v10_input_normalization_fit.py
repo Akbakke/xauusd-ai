@@ -19,6 +19,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.unified_exit_lifecycle_v1 import UnifiedExitLifecycleSplit
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
+    SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
     fit_surface_normalization,
 )
 from gx1.features.htf_features import (
@@ -33,6 +34,9 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
     select_causal_mtf_fit_population,
 )
 from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 from tests.htf_v29_registry_test_support import (
     synthetic_v29_registry_constants,
@@ -52,8 +56,44 @@ def _sha256_file(path: Path) -> str:
 def _signal_names() -> list[str]:
     names = [f"test.signal_{index:03d}" for index in range(MODEL_NATIVE_SIGNAL_DIM)]
     names[7] = "ctx_cont.atr_bps"
-    names[311] = "ctx_cont.m5_regime_class_id_v2"
+    names[-1] = "ctx_cont.spread_bps"
+    # The one declared semantic categorical on the signal surface must be
+    # present so its exact integer domain is fitted, not standardized.
+    for position, name in enumerate(SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS):
+        names[3 + position] = name
     return names
+
+
+def _semantic_categorical_signal_indices(signal_names: list[str]) -> list[int]:
+    return [
+        signal_names.index(name) for name in SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS
+    ]
+
+
+def _fill_semantic_categoricals(
+    matrix: np.ndarray,
+    signal_names: list[str],
+    *,
+    axis_rows: int,
+) -> None:
+    """Write exact in-domain integer values into every categorical column.
+
+    A 2D snapshot/decision matrix gets one domain value per row; a 3D sequence
+    matrix repeats each row's value across every step, so the last sequence
+    step stays bit-identical to its snapshot.
+    """
+    for index, name in zip(
+        _semantic_categorical_signal_indices(signal_names),
+        SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
+    ):
+        domain = np.asarray(
+            SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS[name], dtype=np.float32
+        )
+        values = domain[np.arange(axis_rows) % len(domain)]
+        if matrix.ndim == 3:
+            matrix[:, :, index] = values[:, None]
+        else:
+            matrix[:, index] = values
 
 
 def _mtf_values(rows: int) -> np.ndarray:
@@ -66,9 +106,7 @@ def _mtf_values(rows: int) -> np.ndarray:
         + np.sin((row + column) * np.float32(0.17)).astype(np.float32)
     ).astype(np.float32)
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
-    regime = list(MULTI_TF_PER_BAR_FEATURES_V4).index("regime_class_id")
     values[:, ema_stack] = (np.arange(rows) % 3 - 1).astype(np.float32)
-    values[:, regime] = (np.arange(rows) % 5).astype(np.float32)
     return values
 
 
@@ -116,23 +154,12 @@ def _train_arrays(
         row * (np.float32(0.3) + (ctx_column % 13.0) * np.float32(0.01))
         + ctx_column * np.float32(0.002)
     ).astype(np.float32)
-    for field in (
-        "m5_regime_class_id_v2",
-        "m15_regime_class_id_v2",
-        "h1_regime_class_id_v2",
-        "h4_regime_class_id_v2",
-        "d1_regime_class_id_v2",
-    ):
-        index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)
-        ctx_cont[:, index] = (np.arange(rows) % 5).astype(np.float32)
-
     signal_names = _signal_names()
-    snap[:, signal_names.index("ctx_cont.atr_bps")] = ctx_cont[
-        :, list(MODEL_NATIVE_CTX_CONT_FIELDS).index("atr_bps")
-    ]
-    snap[:, signal_names.index("ctx_cont.m5_regime_class_id_v2")] = ctx_cont[
-        :, list(MODEL_NATIVE_CTX_CONT_FIELDS).index("m5_regime_class_id_v2")
-    ]
+    _fill_semantic_categoricals(snap, signal_names, axis_rows=rows)
+    for field in ("atr_bps", "spread_bps"):
+        snap[:, signal_names.index(f"ctx_cont.{field}")] = ctx_cont[
+            :, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)
+        ]
 
     # Deliberately make earlier temporal rows unlike snapshots.  They are
     # validated but must never be flattened into the signal fit population.
@@ -142,20 +169,14 @@ def _train_arrays(
     )
     seq[:, :-1, :] = snap[:, None, :] - np.float32(50.0)
     seq[:, -1, :] = snap
-    categorical_alias = signal_names.index(
-        "ctx_cont.m5_regime_class_id_v2"
-    )
-    seq[:, :-1, categorical_alias] = 0.0
-    atr_alias = signal_names.index("ctx_cont.atr_bps")
-    seq[:, :-1, atr_alias] = 0.0
+    for field in ("atr_bps", "spread_bps"):
+        seq[:, :-1, signal_names.index(f"ctx_cont.{field}")] = 0.0
+    _fill_semantic_categoricals(seq, signal_names, axis_rows=rows)
 
     ctx_cat = np.column_stack(
         [
-            np.arange(rows) % 4,
-            np.arange(rows) % 5,
-            (np.arange(rows) + 1) % 5,
-            (np.arange(rows) + 2) % 5,
-            np.arange(rows) % 3,
+            (np.arange(rows) + offset) % 4
+            for offset in range(len(MODEL_NATIVE_CTX_CAT_FIELDS))
         ]
     ).astype(np.int64)
     times = pd.date_range(
@@ -182,32 +203,17 @@ class _FakeTrainExitLifecycle:
             row * (np.float32(0.05) + ctx_column % 11 * np.float32(0.002))
             + ctx_column * np.float32(0.0011)
         ).astype(np.float32)
-        for field in (
-            "m5_regime_class_id_v2",
-            "m15_regime_class_id_v2",
-            "h1_regime_class_id_v2",
-            "h4_regime_class_id_v2",
-            "d1_regime_class_id_v2",
-        ):
-            index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)
-            self.ctx_cont[:, index] = np.arange(rows) % 5
-        self.signal[:, signal_names.index("ctx_cont.atr_bps")] = self.ctx_cont[
-            :, list(MODEL_NATIVE_CTX_CONT_FIELDS).index("atr_bps")
-        ]
-        self.signal[
-            :, signal_names.index("ctx_cont.m5_regime_class_id_v2")
-        ] = self.ctx_cont[
-            :, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(
-                "m5_regime_class_id_v2"
-            )
-        ]
+        _fill_semantic_categoricals(self.signal, signal_names, axis_rows=rows)
+        for field in ("atr_bps", "spread_bps"):
+            self.signal[
+                :, signal_names.index(f"ctx_cont.{field}")
+            ] = self.ctx_cont[
+                :, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)
+            ]
         self.ctx_cat = np.column_stack(
             [
-                np.arange(rows) % 4,
-                np.arange(rows) % 5,
-                (np.arange(rows) + 1) % 5,
-                (np.arange(rows) + 2) % 5,
-                np.arange(rows) % 3,
+                (np.arange(rows) + offset) % 4
+                for offset in range(len(MODEL_NATIVE_CTX_CAT_FIELDS))
             ]
         ).astype(np.int64)
         self.source_times_ns = pd.date_range(
@@ -261,22 +267,20 @@ def _artifacts(
     }
     # Restore exact categorical domains after the harmless per-TF offset.
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
-    regime = list(MULTI_TF_PER_BAR_FEATURES_V4).index("regime_class_id")
     for frame in features.values():
         frame.attrs["feats_np"][:, ema_stack] = (
             np.arange(len(frame)) % 3 - 1
         ).astype(np.float32)
-        frame.attrs["feats_np"][:, regime] = (
-            np.arange(len(frame)) % 5
-        ).astype(np.float32)
 
     cache_dir = tmp_path / "mtf_cache"
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     cache_manifest_path = publish_multi_tf_v4_cache(
         out_dir=cache_dir,
         m5_prebuilt=m5_prebuilt,
         expected_source_sha256=_sha256_file(m5_prebuilt),
         features=features,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
     cache_manifest = json.loads(
         cache_manifest_path.read_text(encoding="utf-8")
@@ -288,6 +292,8 @@ def _artifacts(
         "cache_identity_sha256": cache_manifest["cache_identity_sha256"],
         "m5_prebuilt_source": str(m5_prebuilt),
         "m5_prebuilt_source_sha256": _sha256_file(m5_prebuilt),
+        "v29_registry_constants": _V29_TEST_REGISTRY_CONSTANTS,
+        "volatility_squeeze_artifact_set": squeeze_artifacts.binding(),
     }
     manifest = {
         "output_data_path": str(train_parquet),
@@ -360,37 +366,35 @@ def test_lifecycle_exposes_unique_train_m1_windows_without_surface_copy() -> Non
     # This fixture's feature surface starts at the source clock's first row, so
     # source and feature coordinates coincide.
     lifecycle._feature_row_offset = 0
-    lifecycle._selected_state = np.asarray(
-        [[0, 10, -1, -1], [20, -1, -1, -1]],
-        dtype=np.int16,
-    )
-    lifecycle._selected_start = np.asarray(
-        [[500, 500, -1, -1], [520, -1, -1, -1]],
-        dtype=np.int64,
-    )
+    lifecycle._episode_pointers = {
+        (0, 0): (0, 500, 2000.0, 2000.1),
+        (0, 1): (1, 500, 2000.0, 2000.1),
+        (1, 0): (2, 520, 2000.0, 2000.1),
+        (1, 1): (3, 520, 2000.0, 2000.1),
+    }
     lifecycle._m1_times = pd.date_range(
         "2026-01-01T00:00:00Z",
-        periods=600,
+        periods=1100,
         freq="1min",
     )
     lifecycle._m1_features = {
-        "signal": np.zeros((600, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32),
+        "signal": np.zeros((1100, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32),
         "ctx_cont": np.zeros(
-            (600, len(MODEL_NATIVE_CTX_CONT_FIELDS)), dtype=np.float32
+            (1100, len(MODEL_NATIVE_CTX_CONT_FIELDS)), dtype=np.float32
         ),
         "ctx_cat": np.zeros(
-            (600, len(MODEL_NATIVE_CTX_CAT_FIELDS)), dtype=np.int64
+            (1100, len(MODEL_NATIVE_CTX_CAT_FIELDS)), dtype=np.int64
         ),
     }
 
     population = lifecycle.train_normalization_population()
     np.testing.assert_array_equal(
         population["current_row_indices"],
-        np.asarray([500, 510, 540], dtype=np.int64),
+        np.arange(500, 1032, dtype=np.int64),
     )
     np.testing.assert_array_equal(
         population["local_row_indices"],
-        np.arange(21, 541, dtype=np.int64),
+        np.arange(21, 1032, dtype=np.int64),
     )
     assert population["signal"] is lifecycle._m1_features["signal"]
     assert population["ctx_cont"] is lifecycle._m1_features["ctx_cont"]
@@ -440,9 +444,7 @@ def test_unconsumed_future_does_not_change_selection_but_consumed_row_does() -> 
     future_time = pd.Timestamp("2027-01-01T00:00:00Z").value
     future_values = np.vstack([base_values, _mtf_values(1) + np.float32(99.0)])
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
-    regime = list(MULTI_TF_PER_BAR_FEATURES_V4).index("regime_class_id")
     future_values[-1, ema_stack] = 0.0
-    future_values[-1, regime] = 2.0
     selected_b, window_b, _ = select_causal_mtf_fit_population(
         tf="M5",
         source=_mtf_frame(
@@ -591,7 +593,7 @@ def test_alias_stats_are_shared_local_owned_and_dynamic(fit_fixture: dict) -> No
     contract = _fit(fit_fixture)["normalization_contract"]
     assert [alias["signal_field"] for alias in contract["temporal_aliases"]] == [
         "ctx_cont.atr_bps",
-        "ctx_cont.m5_regime_class_id_v2",
+        "ctx_cont.spread_bps",
     ]
     for alias in contract["temporal_aliases"]:
         signal_index = alias["signal_index"]

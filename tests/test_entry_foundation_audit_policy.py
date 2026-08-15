@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 
 import pytest
 
+from gx1.contracts.entry_fitted_q_v1 import (
+    ENTRY_FITTED_Q_ACTION_ORDER,
+    ENTRY_FITTED_Q_TARGET_UNIT,
+)
+from gx1.contracts.entry_full_input_liveness_v1 import RARE_EVENT_MINIMUMS
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
+    FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION,
     FOUNDATION_AUDIT_POLICY_SHA256,
     foundation_audit_policy_binding,
     foundation_audit_policy_enforcement,
@@ -26,13 +34,25 @@ from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
 def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
-    # Re-pinned 2026-08-12: the liveness rare-event table gained the four
-    # V29 sparse impulses (h1/h4 flip flags, geomline retest-fail events).
-    assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-        "3ea7b244f1bd6db407607a101b2c653ac1f4f3eed6d1c1dc17733037c4e5384c"
-    )
+    # Identity: the published digest must be the canonical hash of the exact
+    # published payload, so no binding can advertise a policy it does not
+    # carry.  The previous hand-pinned literal duplicated a value no owner
+    # declares and went stale twice in one day (v11 -> v13, then again when
+    # the liveness owner's rare-event registry moved), so the drift tripwire
+    # is carried by the explicit per-threshold assertions below plus the
+    # derivation proofs, not by a restated digest.
+    assert FOUNDATION_AUDIT_POLICY_SHA256 == hashlib.sha256(
+        json.dumps(
+            binding["foundation_audit_policy"],
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    assert binding["foundation_audit_policy_sha256"] == FOUNDATION_AUDIT_POLICY_SHA256
     assert binding["foundation_audit_policy"]["schema_version"] == (
-        "entry_foundation_audit_policy_v10"
+        FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION
     )
     smoke = binding["foundation_audit_policy"]["smoke_edge_pockets"]
     assert smoke["wilson_confidence_level"] == 0.95
@@ -51,28 +71,37 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     assert turning["min_near_turn_direction_precision"] == 0.98
     assert turning["min_near_turn_precision_wilson_lower"] == 0.90
     assert turning["min_near_turn_timing_precision"] == 0.80
-    offline_rl = binding["foundation_audit_policy"]["target_quality"][
-        "offline_rl_target"
-    ]
-    assert offline_rl["action_order"] == ["LONG", "SHORT", "FLAT"]
-    learned_qv = smoke["offline_rl_evidence"]
-    assert learned_qv["min_reward_argmax_accuracy_per_horizon"] == 0.70
-    assert learned_qv["separate_direction_authority"] is False
+    target_quality = binding["foundation_audit_policy"]["target_quality"]
+    # The retired offline-RL per-horizon action-value target policy is replaced
+    # by the fitted-Q declarations; the target is no longer serialized in the
+    # dataset, so no fixed-horizon reward surface may reappear here.
+    assert "offline_rl_target" not in target_quality
+    assert "offline_rl_evidence" not in smoke
+    assert target_quality["entry_q_action_order"] == list(
+        ENTRY_FITTED_Q_ACTION_ORDER
+    )
+    assert target_quality["entry_q_unit"] == ENTRY_FITTED_Q_TARGET_UNIT
+    assert target_quality["entry_q_target_source"] == (
+        "frozen_exit_first_state_target_model"
+    )
+    assert target_quality["entry_q_serialized_in_dataset"] is False
+    assert target_quality["static_direction_or_path_horizon_allowed"] is False
+    # Direction authority stays the single raw-bps Q argmax: the smoke evidence
+    # surface may never publish a second direction source.
+    assert turning["direction_authority"] == (
+        "unique_raw_entry_action_q_bps_argmax_only"
+    )
     specialist = binding["foundation_audit_policy"]["specialist_liveness"]
     assert specialist["train_live_statuses"] == ["LIVE", "ALLOWED_RARE_EVENT"]
+    # The rare-event floors are owned by the full-input liveness registry, not
+    # restated here: the policy must expose exactly that owner's TRAIN floors
+    # for the signal surface, and nothing else may inject a floor.
     assert specialist["rare_event_minimum_active_count"] == {
-        "candle.pattern_outside_after_inside_bear_breakout_score": 16,
-        "candle.pattern_outside_after_inside_bull_breakout_score": 16,
-        "chart.local_ema50_200_cross_down": 128,
-        "chart.local_ema50_200_cross_up": 128,
-        "smc_choch": 32,
-        # V29 sparse impulses, registered 2026-08-12 from the first real
-        # V29 TRAIN build (measured counts 13x-48x these floors).
-        "chart.geomline_retest_fail_down": 32,
-        "chart.geomline_retest_fail_up": 32,
-        "h1_regime_changed_flag_v3": 32,
-        "h4_regime_changed_flag_v3": 32,
+        field: int(minimums["train"])
+        for (surface, field), minimums in sorted(RARE_EVENT_MINIMUMS.items())
+        if surface == "signal" and "train" in minimums
     }
+    assert specialist["rare_event_minimum_active_count"]
     assert binding["foundation_audit_policy"]["audit_data_splits"] == list(
         FOUNDATION_AUDIT_DATA_SPLITS
     )

@@ -79,7 +79,9 @@ def _artifact(
                 for i in range(rows)
             ],
             "ctx_cat": [
-                [0, 0, 0, 0, 1]
+                # session_id is the only categorical owner; width comes from
+                # the contract, never from a restated literal.
+                [1] * MODEL_NATIVE_CTX_CAT_DIM
                 for _ in range(rows)
             ],
         }

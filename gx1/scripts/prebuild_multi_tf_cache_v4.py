@@ -8,18 +8,16 @@ timestamps, byte hashes, full-input liveness evidence, the immutable
 TRAIN-fitted V29 registry constants, and one canonical identity. There is no
 contract switch and no historical publisher.
 
-The V29 registry constants (level cluster tolerance / trendline band per TF)
-are fitted here, once, on the declared TRAIN window (rule 18) with the
-explicit recipe input ``--level-tol-quantile-q`` (the quantile is owned by
-the recipe key ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q in the recipe owner and
-must still arrive as this explicit CLI input — no ambient default here) and
-frozen with full provenance in the cache manifest.
+The V29 registry constants (level cluster tolerance / trendline band and
+lifecycle expiry per TF) are fitted here once on an immutable chronological
+inner/outer TRAIN split and frozen with full provenance in the cache manifest.
 
 Usage:
     python -m gx1.scripts.prebuild_multi_tf_cache_v4 \
         --m5-prebuilt /absolute/xauusd_m5_enriched.parquet \
         --expected-source-sha256 <exact-lowercase-sha256> \
-        --level-tol-quantile-q <q in (0,1), explicit recipe input> \
+        --registry-fit-train-start <UTC timestamp> \
+        --registry-fit-inner-end <UTC timestamp> \
         --registry-fit-train-end <UTC timestamp of the declared TRAIN end> \
         --out-dir /absolute/MULTI_TF_V4_CACHE
 """
@@ -118,6 +116,7 @@ def publish_multi_tf_v4_cache(
     expected_source_sha256: str,
     features: dict,
     v29_registry_constants: dict,
+    volatility_squeeze_artifacts,
 ) -> Path:
     from gx1.features.htf_features import (
         HTF_V4_CACHE_BUILDER_VERSION,
@@ -128,6 +127,7 @@ def publish_multi_tf_v4_cache(
         MULTI_TF_RESAMPLE_ORIGIN_CONTRACT,
         MULTI_TF_RESAMPLE_RULES,
         MULTI_TF_SHIFT,
+        SMC_CAUSAL_REPLAY_SCHEMA_VERSION,
         build_multi_tf_v4_closed_timestamp_indices,
         build_multi_tf_v4_liveness_contract,
         compute_htf_v4_cache_identity,
@@ -135,9 +135,21 @@ def publish_multi_tf_v4_cache(
         require_v29_registry_constants,
         validate_causal_feature_matrix,
     )
+    from gx1.features.technical_indicators_v1 import (
+        technical_indicator_contract_metadata,
+    )
+    from gx1.features.swing_structure_v1 import (
+        swing_structure_contract_metadata,
+    )
+    from gx1.features.volatility_squeeze_state_v1 import (
+        require_volatility_squeeze_artifact_set,
+    )
 
     v29_registry_constants = require_v29_registry_constants(
         v29_registry_constants
+    )
+    volatility_squeeze_artifacts = require_volatility_squeeze_artifact_set(
+        volatility_squeeze_artifacts
     )
 
     SCHEMA_VERSION = HTF_V4_CACHE_SCHEMA_VERSION
@@ -216,9 +228,17 @@ def publish_multi_tf_v4_cache(
             # cache records which daily clock produced its D1 bars.
             "resample_origin_contract": dict(MULTI_TF_RESAMPLE_ORIGIN_CONTRACT),
             "builder_version": BUILDER_VERSION,
+            "smc_causal_replay_schema_version": (
+                SMC_CAUSAL_REPLAY_SCHEMA_VERSION
+            ),
+            "technical_indicator_owner": technical_indicator_contract_metadata(),
+            "swing_structure_owner": swing_structure_contract_metadata(),
             "m5_prebuilt_source": str(source),
             "m5_prebuilt_source_sha256": expected_source_sha256,
             "v29_registry_constants": v29_registry_constants,
+            "volatility_squeeze_artifact_set": (
+                volatility_squeeze_artifacts.binding()
+            ),
             "tfs": {},
         }
         for tf in MULTI_TF_RESAMPLE_RULES:
@@ -349,16 +369,8 @@ def main() -> int:
         required=True,
         help="New immutable V4 cache directory",
     )
-    parser.add_argument(
-        "--level-tol-quantile-q",
-        type=float,
-        required=True,
-        help=(
-            "Explicit recipe input: quantile q for the level-registry "
-            "cluster-tolerance TRAIN fit (design doc §8 item 4 declares no "
-            "default; recipe key ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q)"
-        ),
-    )
+    parser.add_argument("--registry-fit-train-start", required=True)
+    parser.add_argument("--registry-fit-inner-end", required=True)
     parser.add_argument(
         "--registry-fit-train-end",
         required=True,
@@ -367,6 +379,26 @@ def main() -> int:
             "constants are fitted once on source rows at or before this "
             "boundary and frozen in the cache manifest (rule 18)"
         ),
+    )
+    parser.add_argument(
+        "--volatility-squeeze-manifest",
+        type=Path,
+        required=True,
+        help="Exact immutable six-clock volatility-squeeze manifest",
+    )
+    parser.add_argument("--registry-fit-tape-manifest", type=Path, required=True)
+    parser.add_argument(
+        "--expected-registry-fit-tape-manifest-sha256", required=True
+    )
+    parser.add_argument("--registry-fit-split-manifest", type=Path, required=True)
+    parser.add_argument(
+        "--expected-registry-fit-split-manifest-sha256", required=True
+    )
+    parser.add_argument("--registry-fit-train-split-id", required=True)
+    parser.add_argument(
+        "--expected-volatility-squeeze-manifest-sha256",
+        required=True,
+        help="Predeclared exact file SHA-256 of the squeeze manifest",
     )
     args = parser.parse_args()
 
@@ -382,6 +414,9 @@ def main() -> int:
         fit_v29_registry_constants_from_m5,
     )
     import pyarrow.parquet as pq
+    from gx1.features.volatility_squeeze_state_v1 import (
+        load_volatility_squeeze_artifact_manifest,
+    )
 
     source = args.m5_prebuilt.expanduser()
     if not source.is_absolute() or source.is_symlink() or not source.is_file():
@@ -403,6 +438,55 @@ def main() -> int:
             "[CACHE_V4_SOURCE_SHA256_MISMATCH] "
             f"source={source} expected={expected_source_sha256}"
         )
+
+    def _bound_manifest(raw: Path, expected: str, *, label: str) -> tuple[Path, str]:
+        path = raw.expanduser()
+        digest = _require_exact_sha256(expected, label=f"{label}_SHA256_INVALID")
+        if (
+            not path.is_absolute()
+            or path.is_symlink()
+            or not path.is_file()
+        ):
+            raise RuntimeError(f"[{label}_INVALID] exact immutable file required")
+        path = path.resolve(strict=True)
+        if _sha256_file(path) != digest:
+            raise RuntimeError(f"[{label}_HASH_MISMATCH]")
+        return path, digest
+
+    tape_manifest, tape_manifest_sha256 = _bound_manifest(
+        args.registry_fit_tape_manifest,
+        args.expected_registry_fit_tape_manifest_sha256,
+        label="CACHE_V4_REGISTRY_TAPE_MANIFEST",
+    )
+    split_manifest, split_manifest_sha256 = _bound_manifest(
+        args.registry_fit_split_manifest,
+        args.expected_registry_fit_split_manifest_sha256,
+        label="CACHE_V4_REGISTRY_SPLIT_MANIFEST",
+    )
+    train_start = pd.Timestamp(args.registry_fit_train_start)
+    inner_end = pd.Timestamp(args.registry_fit_inner_end)
+    train_end = pd.Timestamp(args.registry_fit_train_end)
+    if any(
+        stamp.tzinfo is None or stamp.utcoffset() != pd.Timedelta(0)
+        for stamp in (train_start, inner_end, train_end)
+    ) or not train_start < inner_end < train_end:
+        raise RuntimeError("[CACHE_V4_REGISTRY_TRAIN_SPLIT_INVALID]")
+    source_provenance_by_clock = {
+        clock: {
+            "source_artifact": str(source),
+            "source_sha256": expected_source_sha256,
+            "source_schema_version": "native_m5_enriched_ohlcv_v1",
+            "source_lane": clock,
+            "tape_manifest_artifact": str(tape_manifest),
+            "tape_manifest_sha256": tape_manifest_sha256,
+            "split_manifest_artifact": str(split_manifest),
+            "split_manifest_sha256": split_manifest_sha256,
+            "train_split_id": args.registry_fit_train_split_id,
+            "declared_train_window_start": train_start.isoformat(),
+            "declared_train_window_end": train_end.isoformat(),
+        }
+        for clock in ("M5", "M15", "H1", "H4", "D1")
+    }
 
     columns = ["time", "open", "high", "low", "close", "volume"]
     missing = [
@@ -430,20 +514,30 @@ def main() -> int:
     # constants, not new numbers).
     registry_constants = fit_v29_registry_constants_from_m5(
         m5,
-        level_tol_quantile_q=args.level_tol_quantile_q,
-        declared_train_window_end=args.registry_fit_train_end,
+        declared_train_window_end=train_end.isoformat(),
+        declared_inner_fit_window_end=inner_end.isoformat(),
+        source_provenance_by_clock=source_provenance_by_clock,
         per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
         entry_m5_seq_len=MODEL_NATIVE_SEQ_LEN,
     )
+    squeeze_artifacts = load_volatility_squeeze_artifact_manifest(
+        args.volatility_squeeze_manifest.expanduser().resolve(strict=True),
+        expected_sha256=_require_exact_sha256(
+            args.expected_volatility_squeeze_manifest_sha256,
+            label="CACHE_V4_VOLATILITY_SQUEEZE_MANIFEST_SHA256_INVALID",
+        ),
+    )
     print(
         "[CACHE_V4] v29 registry constants fitted: "
-        f"level_tol_atr={registry_constants['level_tol_atr']} "
+        "level_recurrence_threshold_atr="
+        f"{registry_constants['level_recurrence_threshold_atr']} "
         f"trendline_band_atr={registry_constants['trendline_band_atr']} "
         f"entry_m5={registry_constants['entry_m5']}"
     )
     features = build_multi_tf_per_bar_features_v4(
         m5,
         v29_registry_constants=registry_constants,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
     manifest_path = publish_multi_tf_v4_cache(
         out_dir=out_dir,
@@ -451,6 +545,7 @@ def main() -> int:
         expected_source_sha256=expected_source_sha256,
         features=features,
         v29_registry_constants=registry_constants,
+        volatility_squeeze_artifacts=squeeze_artifacts,
     )
     for timeframe, frame in features.items():
         print(

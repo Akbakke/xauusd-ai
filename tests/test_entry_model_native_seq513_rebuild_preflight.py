@@ -9,9 +9,13 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
@@ -21,7 +25,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
-    model_native_signal_contract_metadata,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
+    MODEL_NATIVE_AUX_TARGET_COLUMNS,
+    MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
+)
+from gx1.contracts.entry_model_native_feature_availability_v1 import (
+    fit_feature_availability_contract,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
@@ -29,11 +40,13 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
 )
+from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
+    ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
-    MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
@@ -52,6 +65,9 @@ from gx1.features.htf_features import (
     build_multi_tf_v4_closed_timestamp_indices,
     multi_tf_last_closed_label,
 )
+from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    ENTRY_FITTED_Q_DATASET_STEM_SUFFIX,
+)
 from gx1.scripts import (
     materialize_entry_model_native_seq513_rebuild_preflight_v1 as preflight,
 )
@@ -60,7 +76,9 @@ from gx1.scripts import (
 )
 from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
 from tests.model_native_signal_support import canonical_model_native_selected_fields
-from tests.model_native_rank_reference_support import materialize_test_rank_reference
+from tests.entry_direction_target_policy_support import (
+    entry_direction_target_policy_fixture,
+)
 
 from tests.htf_v29_registry_test_support import (
     synthetic_v29_registry_constants,
@@ -72,6 +90,9 @@ _V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
 STAMP = "20260716T120000123456Z"
 CREATED = "2026-07-16T12:00:00.123456+00:00"
 RUN_ID = "XAU_SEQ513_REBUILD_TEST_V1"
+# The rebuild output name must carry the dataset stem suffix owned by the
+# builder, never a restated literal.
+DATASET_OUTPUT_NAME = f"model_native{ENTRY_FITTED_Q_DATASET_STEM_SUFFIX}.parquet"
 SPLITS = {
     "history_start": "2020-11-08T00:00:00+00:00",
     "train_start": "2020-11-09T00:00:00+00:00",
@@ -111,7 +132,7 @@ def _stub_source_cascade_validation(
 ) -> None:
     monkeypatch.setattr(
         signal_manifest_producer,
-        "validate_seq513_source_cascade_proof",
+        "validate_current_pair_source_cascade_proof",
         lambda path, **kwargs: json.loads(
             Path(path).read_text(encoding="utf-8")
         ),
@@ -264,7 +285,7 @@ def _build_fixture(
     _write_json(
         m1_feature_manifest_path,
         {
-            "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
+            "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
             "decision": "PASS",
             "dataset_run_id": RUN_ID,
             "output_parquet": str(m1_feature_base),
@@ -287,7 +308,7 @@ def _build_fixture(
     _write_json(
         m5_feature_manifest_path,
         {
-            "schema_version": "gx1_entry_exit_m5_feature_surface_v1",
+            "schema_version": ENTRY_EXIT_M5_FEATURE_SURFACE_SCHEMA_VERSION,
             "decision": "PASS",
             "dataset_run_id": RUN_ID,
             "output_parquet": str(m5_feature_base),
@@ -308,7 +329,6 @@ def _build_fixture(
         tmp_path / f"inputs/MODEL_NATIVE_SIGNAL_LAYER_{STAMP}.json",
         {"created_utc": CREATED, "proof": True},
     )
-    selected = _selected_features()
     now = datetime.now(timezone.utc)
     # Keep event ordering stable even if the host clock is corrected backwards
     # by tens of seconds while this intentionally heavy fixture is built.
@@ -316,14 +336,6 @@ def _build_fixture(
     ranking_path = tmp_path / "inputs" / (
         "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_"
         f"{_stamp(ranking_created)}.json"
-    )
-    _rank_source, rank_reference = materialize_test_rank_reference(
-        tmp_path / "run/rank",
-        run_id=RUN_ID,
-        history_start=SPLITS["history_start"],
-        fit_start=SPLITS["train_start"],
-        fit_end=SPLITS["train_end"],
-        source_path=canonical,
     )
     source_cascade = {
         "path": str((source.parent / "SOURCE_CASCADE_PROOF.json").resolve()),
@@ -347,6 +359,35 @@ def _build_fixture(
         "time_max_utc": SPLITS["test_end"],
     }
     _write_json(Path(source_cascade["path"]), source_cascade)
+    direction_target_policy = entry_direction_target_policy_fixture(
+        source_parquet_sha256=_sha256(source),
+        tape_provenance_sha256="b" * 64,
+        train_start_utc=datetime.fromisoformat(SPLITS["train_start"]).isoformat(),
+        train_end_utc=datetime.fromisoformat(SPLITS["train_end"]).isoformat(),
+    )
+    candidate_names = list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    train_time_max = pd.Timestamp(SPLITS["train_end"]).floor("5min")
+    availability_times = pd.date_range(
+        end=train_time_max,
+        periods=256,
+        freq="5min",
+    )
+    availability_x = np.arange(len(availability_times), dtype=np.float32)
+    availability_matrix = np.column_stack(
+        [
+            availability_x * np.float32(index + 1)
+            + np.float32(index * index + 0.125)
+            for index in range(len(candidate_names))
+        ]
+    ).astype(np.float32)
+    availability = fit_feature_availability_contract(
+        matrix=availability_matrix,
+        names=candidate_names,
+        times=availability_times,
+        train_start=pd.Timestamp(SPLITS["train_start"]),
+        train_end=pd.Timestamp(SPLITS["train_end"]),
+        diagnostic_target=np.square(availability_x.astype(np.float64)),
+    )
     ranking = {
         "schema_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": ranking_created.isoformat(),
@@ -356,43 +397,31 @@ def _build_fixture(
         "fit_scope": "train_only",
         "train_start_utc": SPLITS["train_start"],
         "train_end_utc": SPLITS["train_end"],
-        "source_time_max_utc": SPLITS["train_end"],
-        "target_time_max_utc": SPLITS["train_end"],
+        "source_time_max_utc": train_time_max.isoformat(),
+        "target_time_max_utc": train_time_max.isoformat(),
         "source_sha256": _sha256(source),
         "target_sha256": "2" * 64,
         "target_contract": dict(
             signal_manifest_producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT
         ),
+        "entry_direction_target_policy": direction_target_policy,
+        "entry_direction_target_policy_sha256": direction_target_policy[
+            "policy_sha256"
+        ],
         "source_cascade": source_cascade,
-        "rank_reference": {
-            "path": str(rank_reference.path),
-            "sha256": rank_reference.sha256,
-            "sidecar_path": str(
-                rank_reference.path.with_suffix(rank_reference.path.suffix + ".json")
-            ),
-            "sidecar_sha256": rank_reference.sidecar_sha256,
-            "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-            "entry_run_id": RUN_ID,
-            "source_parquet": str(canonical.resolve()),
-            "source_parquet_sha256": _sha256(canonical),
-            "history_start_utc": datetime.fromisoformat(
-                SPLITS["history_start"]
-            ).isoformat(),
-            "fit_start_utc": datetime.fromisoformat(
-                SPLITS["train_start"]
-            ).isoformat(),
-            "fit_end_utc": datetime.fromisoformat(SPLITS["train_end"]).isoformat(),
-            "fit_row_count": rank_reference.fit_row_count,
-            "fit_scope": "train_only",
-            "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-        },
         "ranking_order": dict(signal_manifest_producer.TRAIN_FEATURE_RANKING_ORDER),
         "causality_contract": dict(
             signal_manifest_producer.TRAIN_FEATURE_CAUSALITY_CONTRACT
         ),
+        "feature_availability": availability,
         "ranked_features": [
-            {"rank": index, "name": name, "score": float(1000 - index)}
-            for index, name in enumerate(selected, start=1)
+            {
+                "rank": index,
+                "name": name,
+                "score": float(len(candidate_names) - index + 1)
+                / float(len(candidate_names)),
+            }
+            for index, name in enumerate(candidate_names, start=1)
         ],
     }
     _write_json(ranking_path, ranking)
@@ -421,15 +450,15 @@ def _build_fixture(
     if break_signal_contract:
         manifest["model_native_signal_contract"]["seq_input_dim"] = 512
     if break_specialist_coverage:
-        broken_selected = list(manifest["selected_features"])
-        broken_selected[-1] = "unmapped_fixture_field"
-        manifest["selected_features"] = broken_selected
-        manifest["model_native_signal_contract"] = model_native_signal_contract_metadata(
-            broken_selected
+        broken_groups = {
+            name: list(features)
+            for name, features in manifest["features_by_specialist"].items()
+        }
+        victim_group = next(
+            name for name, features in broken_groups.items() if features
         )
-        manifest["features_by_specialist"] = group_features_by_specialist(
-            broken_selected
-        )
+        broken_groups[victim_group] = broken_groups[victim_group][1:]
+        manifest["features_by_specialist"] = broken_groups
 
     manifest_path = immutable_manifest_path
     if mutable_manifest:
@@ -448,7 +477,6 @@ def _build_fixture(
             "feature_field_order_sha256": _canonical_sha256(ordered_fields),
             "seq_structure_manifest": str(manifest_path.resolve()),
             "seq_structure_manifest_sha256": _sha256(manifest_path),
-            "rank_reference_sha256": rank_reference.sha256,
         }
     )
     if break_m1_feature_identity:
@@ -473,11 +501,10 @@ def _build_fixture(
             "feature_field_order_sha256": _canonical_sha256(ordered_fields),
             "seq_structure_manifest": str(manifest_path.resolve()),
             "seq_structure_manifest_sha256": _sha256(manifest_path),
-            "rank_reference_sha256": rank_reference.sha256,
         }
     )
     if break_m5_feature_identity:
-        m5_feature_manifest["rank_reference_sha256"] = "7" * 64
+        m5_feature_manifest["seq_structure_manifest_sha256"] = "7" * 64
     m5_feature_manifest["manifest_sha256"] = _canonical_sha256(
         m5_feature_manifest
     )
@@ -533,6 +560,9 @@ def _build_fixture(
         expected_source_sha256=_sha256(source),
         features=mtf_frames,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=(
+            make_volatility_squeeze_artifact_set(tmp_path)
+        ),
     )
     if break_mtf:
         mtf_manifest = json.loads(
@@ -568,7 +598,6 @@ def _build_fixture(
         canonical_v2_parquet=str(canonical),
         signal_manifest=str(manifest_path),
         feature_ranking_json=str(ranking_path),
-        rank_reference_npz=str(rank_reference.path),
         mtf_cache_dir=str(mtf_cache),
         tape_root=str(tape_root),
         m1_lifecycle_pair_manifest_json=str(m1_pair_manifest),
@@ -578,9 +607,7 @@ def _build_fixture(
         m1_feature_base_parquet=str(m1_feature_base),
         m5_feature_base_parquet=str(m5_feature_base),
         exit_lifecycle_dir=str(tmp_path / "run/exit_lifecycle"),
-        exit_target_lookahead_m1_steps=30,
-        early_move_threshold_bps=4.0,
-        output=str(tmp_path / "run/dataset/model_native__DIR_H24B.parquet"),
+        output=str(tmp_path / "run/dataset" / DATASET_OUTPUT_NAME),
         audit_out_dir=str(tmp_path / "run/pretrain_audit"),
         out_dir=str(tmp_path / "reports"),
         **SPLITS,
@@ -595,14 +622,13 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     report = preflight.run(args)
 
     assert report["decision"] == preflight.READY_DECISION
-    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v11"
+    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v13"
     assert not report["failures"]
     assert report["counts"] == {
         "base_signal_features": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_features": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
-        "early_move_threshold_bps": 4.0,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "required_specialist_count": 8,
@@ -685,7 +711,6 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "--canonical-v2-parquet",
         "--signal-manifest",
         "--feature-ranking-json",
-        "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
@@ -693,8 +718,6 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "--m1-feature-base-parquet",
         "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
-        "--exit-target-lookahead-m1-steps",
-        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--history-start",
@@ -717,8 +740,8 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
             Path(args.m1_lifecycle_pair_generation_root)
         ),
         "output_dir": str(Path(args.exit_lifecycle_dir).resolve()),
-        "target_lookahead_m1_steps": 30,
-        "early_move_threshold_bps": 4.0,
+        "target_policy": "fit_once_on_exact_train_native_m1_then_hash_bound",
+        "val_test_rows_used_for_target_policy_fit": 0,
         "required_m1_columns": [
             "time",
             "open",
@@ -740,44 +763,27 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     }
     assert command["run_id_validated"] is True
     assert "<EXPLICIT_RUN_ID_ID>" not in argv
-    assert command["rank_reference_contract"] == {
-        "producer": "gx1.scripts.materialize_model_native_train_rank_reference_v2",
-        "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "source_parquet": str(Path(args.canonical_v2_parquet).resolve()),
-        "source_parquet_sha256": _sha256(Path(args.canonical_v2_parquet)),
-        "model_source_parquet": str(Path(args.source_parquet).resolve()),
-        "model_source_parquet_sha256": _sha256(Path(args.source_parquet)),
-        "source_model_market_identity": (
-            "exact_time_high_low_close_bid_close_ask_close_history_through_train"
-        ),
-        "output_npz": str(Path(args.rank_reference_npz).resolve()),
-        "sidecar_json": str(Path(args.rank_reference_npz).resolve()) + ".json",
-        "materialized_before_dataset_builder": True,
-        "materialized_before_feature_ranker": True,
-        "feature_history_start_utc": SPLITS["history_start"],
-        "fit_start_utc": SPLITS["train_start"],
-        "fit_end_utc": SPLITS["train_end"],
-        "fit_scope": "train_only",
-        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-        "contains_validation_or_test_rows": False,
-        "contains_per_row_state": False,
-        "sidecar_source_sha256_must_match": True,
-        "sidecar_npz_sha256_required": True,
-        "builder_must_verify_npz_and_sidecar": True,
-        "run_lineage_required": True,
-        "run_id_bound_in_npz_and_sidecar": True,
-        "dataset_builder_requires_same_run_id": True,
-        "preflight_validates_exact_existing_reference": True,
-    }
+    # V30 retired the TRAIN rank-reference subsystem: the rebuild command may
+    # not declare or require it again.
+    assert "--rank-reference-npz" not in argv
+    assert "rank_reference_contract" not in command
+    assert "rank_reference_run_id_match_required" not in (
+        command["fixed_builder_contract"]
+    )
     assert command["fixed_builder_contract"]["state_schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
-    assert command["fixed_builder_contract"]["early_move_threshold_bps"] == 4.0
-    assert command["fixed_builder_contract"]["direction_target_mode"] == "path_utility_v2"
+    assert command["fixed_builder_contract"]["entry_direction_target_policy"] == (
+        "fit_once_on_exact_train_native_m5_then_hash_bound"
+    )
+    assert command["fixed_builder_contract"]["direction_target_mode"] == (
+        "train_fitted_executable_pnl_v1"
+    )
     assert command["fixed_builder_contract"]["run_lineage_required"] is True
-    assert command["fixed_builder_contract"]["rank_reference_run_id_match_required"] is True
     aux_contract = command["fixed_builder_contract"]["aux_head_target_contract"]
-    assert aux_contract["schema_version"] == "entry_model_native_aux_targets_v5"
-    assert len(aux_contract["columns"]) == 46
-    assert aux_contract["max_future_horizon_bars"] == 96
+    assert aux_contract["schema_version"] == MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION
+    assert len(aux_contract["columns"]) == len(MODEL_NATIVE_AUX_TARGET_COLUMNS)
+    assert aux_contract["max_future_horizon_bars"] == int(
+        MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS
+    )
     assert aux_contract["spread_aware_risk_magnitudes_required"] is True
     assert aux_contract["target_value_domains"]["dip_mfe"]["signed"] is True
     assert (
@@ -858,11 +864,11 @@ def test_mtf_cache_contract_fails_closed_without_borrowing_seq513_length(
     [
         (
             {"break_signal_contract": True},
-            "signal manifest proves exact ordered 34+479=513 and 142/5 intent",
+            "signal manifest proves exact current ordered signal and 168/5 intent",
         ),
         (
             {"break_specialist_coverage": True},
-            "all 479 selected features map across the exact eight specialists",
+            "declared specialist feature groups match derived routing",
         ),
         (
             {"break_source_manifest_hash": True},
@@ -909,11 +915,11 @@ def test_preflight_blocks_incomplete_contracts(
         ),
         (
             {"break_ranking_source_hash": True},
-            "FEATURE_RANKING_SOURCE_SHA256_MISMATCH",
+            "ENTRY_TARGET_POLICY_SOURCE_MISMATCH",
         ),
         (
             {"break_ranking_train_window": True},
-            "MODEL_NATIVE_TRAIN_RANK_LINEAGE_FIT_WINDOW_MISMATCH",
+            "FEATURE_RANKING_ENTRY_TARGET_POLICY_MISMATCH",
         ),
     ],
 )
@@ -978,7 +984,7 @@ def test_preflight_rejects_stale_duplicate_family_count_metadata(
     args = _build_fixture(tmp_path)
     manifest_path = Path(args.signal_manifest)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["smart_layer_feature_counts"]["trend_ema_smart_layer"] -= 1
+    manifest["smart_layer_feature_counts"]["raw_mtf_trend_layer"] -= 1
     _write_json(manifest_path, manifest)
 
     report = preflight.run(args)
@@ -997,9 +1003,6 @@ def test_preflight_rejects_mutable_manifest_and_existing_outputs(tmp_path: Path)
     }
 
     args = _build_fixture(tmp_path / "existing")
-    rank = Path(args.rank_reference_npz)
-    rank.parent.mkdir(parents=True, exist_ok=True)
-    rank.write_bytes(b"stale")
     output = Path(args.output)
     output.parent.mkdir(parents=True)
     output.with_name(f"{output.stem}_train.manifest.json").write_text("{}\n")
@@ -1007,10 +1010,8 @@ def test_preflight_rejects_mutable_manifest_and_existing_outputs(tmp_path: Path)
     report = preflight.run(args)
     failure_names = {row["name"] for row in report["failures"]}
     assert report["decision"] == preflight.BLOCKED_DECISION
-    assert (
-        "rank-reference binds the exact run_id, source hash, history, and TRAIN window"
-        in failure_names
-    )
+    # V30 retired the rank-reference binding, so no such check may reappear.
+    assert not any("rank-reference" in name for name in failure_names)
     assert "dataset output path and derived split artifacts are fresh" in failure_names
     assert "audit output directory is fresh" in failure_names
 
@@ -1043,8 +1044,6 @@ def _explicit_cli_args(tmp_path: Path) -> list[str]:
             tmp_path
             / f"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_{STAMP}.json"
         ),
-        "--rank-reference-npz",
-        str(tmp_path / "rank.npz"),
         "--mtf-cache-dir",
         str(tmp_path / "mtf"),
         "--tape-root",
@@ -1059,12 +1058,8 @@ def _explicit_cli_args(tmp_path: Path) -> list[str]:
         str(tmp_path / "m5_feature_base.parquet"),
         "--exit-lifecycle-dir",
         str(tmp_path / "exit_lifecycle"),
-        "--exit-target-lookahead-m1-steps",
-        "30",
-        "--early-move-threshold-bps",
-        "4.0",
         "--output",
-        str(tmp_path / "dataset/model_native__DIR_H24B.parquet"),
+        str(tmp_path / "dataset" / DATASET_OUTPUT_NAME),
         "--audit-out-dir",
         str(tmp_path / "audit"),
     ]
@@ -1099,8 +1094,7 @@ def test_parser_requires_exact_rebuild_inputs_and_rejects_retired_arguments(
     assert parsed.feature_ranking_json == str(
         tmp_path / f"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_{STAMP}.json"
     )
-    assert parsed.rank_reference_npz == str(tmp_path / "rank.npz")
-    assert parsed.early_move_threshold_bps == 4.0
+    assert not hasattr(parsed, "early_move_threshold_bps")
 
 
 def test_run_lineage_required(tmp_path: Path) -> None:

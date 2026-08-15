@@ -295,7 +295,10 @@ def test_rejects_mutable_latest_input_before_artifact_reads(tmp_path: Path) -> N
     ("dataset_kwargs", "blocker"),
     [
         ({"missing_manifest_split": "val"}, "exact train val split artifacts exist"),
-        ({"width": 512}, "split signal seq and snap dims are 513"),
+        (
+            {"width": MODEL_NATIVE_SIGNAL_DIM - 1},
+            "split signal seq and snap dims match the owner contract",
+        ),
         ({"schema_version": "stale_split_schema_v1"}, "split manifests use model-native seq513 split schema"),
         ({"exact_signal_contract": False}, "split manifests carry exact model-native signal contract"),
     ],

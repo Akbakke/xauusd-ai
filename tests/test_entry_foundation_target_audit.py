@@ -1,17 +1,26 @@
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    foundation_audit_policy_metadata,
+)
+from gx1.contracts.entry_position_size_target_policy_v1 import (
+    entry_position_size_targets_from_policy,
+)
 from gx1.scripts.audit_entry_foundation_targets_v1 import (
     EXPECTED_ACTIVE_AUX_HEADS,
     EXPECTED_BLOCKED_TARGET_HEADS,
+    HEAD_TARGET_COLUMNS,
     XAU_DIRECTION_REPAIR_TARGET_COLUMNS,
     _drift,
     _head_contract,
-    _offline_rl_target_contract,
     _position_size_target_contract,
     _target_metrics,
     _xau_direction_repair_side_quality_contract,
     _xau_direction_repair_liveness,
+)
+from tests.entry_position_size_target_policy_support import (
+    entry_position_size_target_policy_fixture,
 )
 
 
@@ -58,8 +67,8 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
             "split": [split, split, split],
             "y_direction": [0, 1, 2],
             "path_quality_bps": [3.0, 7.0, 11.0],
-            "y_tf_agreement_score": [0.0, 0.5, 1.0],
             "y_position_size_target": [0.50, 0.75, 1.0],
+            "y_position_size_mask": [1.0, 1.0, 0.0],
             "y_hold_horizon_target": [0.5, 0.5, 0.5],
             "y_forecast_ret_K1": [1.0, 2.0, 3.0],
             "y_forecast_ret_K5": [1.0, 2.0, 3.0],
@@ -76,10 +85,6 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
                 frame[f"y_dip_bottom_frac_{side}_K{horizon}"] = [0.0, 0.5, 1.0]
                 frame[f"y_time_to_mfe_frac_{side}_K{horizon}"] = [0.1, 0.6, 0.9]
                 frame[f"y_tail_mae_{side}_K{horizon}"] = [1.0, 2.0, 3.0]
-        for horizon in (12, 48, 96):
-            frame[f"y_action_value_long_K{horizon}"] = [10.0, -5.0, -5.0]
-            frame[f"y_action_value_short_K{horizon}"] = [-5.0, 10.0, -5.0]
-            frame[f"y_action_value_flat_K{horizon}"] = [0.0, 0.0, 0.0]
         rows.append(pd.DataFrame(frame))
 
     contract = _head_contract(rows)
@@ -91,23 +96,30 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
         assert head in contract["blocked_heads"]
         assert contract["head_target_liveness"][head]["live_all_splits"] is False
 
-    offline_rl = _offline_rl_target_contract(rows)
-    assert offline_rl["decision"] == "PASS"
-    assert offline_rl["failures"] == []
 
+def test_entry_fitted_q_targets_are_never_serialized_in_the_dataset() -> None:
+    """The Entry action-value target is built at train time, never stored.
 
-def test_offline_rl_target_contract_rejects_missing_q_and_nonzero_flat() -> None:
-    missing = pd.DataFrame({"split": ["train", "train", "train"]})
-    assert _offline_rl_target_contract([missing])["decision"] == "FAIL"
+    The retired offline-RL surface wrote fixed-horizon ``y_action_value_*``
+    columns into the dataset and audited them per row.  The fitted-Q owner
+    replaces them with a frozen TRAIN Exit-teacher continuation value, so no
+    head may claim a serialized action-value column and the policy must say so.
+    """
 
-    frame = {"split": ["train", "train", "train"]}
-    for horizon in (12, 48, 96):
-        frame[f"y_action_value_long_K{horizon}"] = [10.0, -5.0, -5.0]
-        frame[f"y_action_value_short_K{horizon}"] = [-5.0, 10.0, -5.0]
-        frame[f"y_action_value_flat_K{horizon}"] = [0.0, 0.0, 1.0]
-    failed = _offline_rl_target_contract([pd.DataFrame(frame)])
-    assert failed["decision"] == "FAIL"
-    assert any("FLAT" in failure for failure in failed["failures"])
+    target_quality = foundation_audit_policy_metadata()["target_quality"]
+
+    assert target_quality["entry_q_serialized_in_dataset"] is False
+    assert target_quality["entry_q_target_source"] == (
+        "frozen_exit_first_state_target_model"
+    )
+    assert target_quality["static_direction_or_path_horizon_allowed"] is False
+    serialized = [
+        column
+        for columns in HEAD_TARGET_COLUMNS.values()
+        for column in columns
+        if str(column).startswith("y_action_value_")
+    ]
+    assert serialized == []
 
 
 def test_xau_direction_repair_liveness_rejects_dead_present_columns() -> None:
@@ -188,37 +200,61 @@ def test_xau_direction_repair_side_quality_replaces_scalar_bad_path_monotonicity
     assert not contract["failures"]
 
 
-def test_position_size_target_requires_exact_formula_and_positive_mae_magnitude() -> None:
+def test_position_size_target_requires_exact_train_ecdf_and_trade_mask() -> None:
     direction = np.asarray([0, 1, 2], dtype=np.int64)
     mfe = np.asarray([10.0, 2.0, 0.0], dtype=np.float64)
     mae = np.asarray([2.0, 6.0, 0.0], dtype=np.float64)
-    atr = np.asarray([4.0, 4.0, 4.0], dtype=np.float64)
-    expected = 1.0 / (1.0 + np.exp(-((mfe - mae) / (2.0 * atr))))
-    expected[direction == 2] = 0.5
+    trade = np.asarray([1.0, 1.0, 0.0], dtype=np.float64)
+    side = np.asarray([0, 1, 0], dtype=np.int64)
+    policy = entry_position_size_target_policy_fixture()
+    expected = entry_position_size_targets_from_policy(
+        policy=policy,
+        mfe_first_n_bps=mfe,
+        mae_first_n_bps=mae,
+        selected_side=np.asarray([0, 1, -1]),
+        trade_mask=trade,
+    )
     frame = pd.DataFrame(
         {
             "split": ["train"] * 3,
             "y_direction": direction,
+            "y_trade": trade,
+            "y_side": side,
+            "y_side_mask": trade,
             "mfe_first_n_bps": mfe,
             "mae_first_n_bps": mae,
-            "atr_bps": atr,
-            "y_position_size_target": expected.astype(np.float32),
+            "y_position_size_target": expected["target"],
+            "y_position_size_mask": expected["mask"],
         }
     )
 
-    passed = _position_size_target_contract([frame])
+    passed = _position_size_target_contract([frame], {"train": policy})
     assert passed["decision"] == "PASS"
     assert passed["mae_semantics"] == "non_negative_adverse_magnitude"
+    assert passed["target_population"] == "tradable_selected_side_rows_only"
+    assert passed["unmasked_training_allowed"] is False
     assert passed["live_size_application_authority"] is False
 
     negative_mae = frame.copy()
     negative_mae.loc[0, "mae_first_n_bps"] = -2.0
-    failed_mae = _position_size_target_contract([negative_mae])
+    failed_mae = _position_size_target_contract(
+        [negative_mae], {"train": policy}
+    )
     assert failed_mae["decision"] == "FAIL"
     assert any("non-negative adverse-magnitude" in row for row in failed_mae["failures"])
 
     wrong_formula = frame.copy()
-    wrong_formula.loc[0, "y_position_size_target"] = 0.5
-    failed_formula = _position_size_target_contract([wrong_formula])
+    wrong_formula.loc[0, "y_position_size_target"] = 0.0
+    failed_formula = _position_size_target_contract(
+        [wrong_formula], {"train": policy}
+    )
     assert failed_formula["decision"] == "FAIL"
-    assert any("formula mismatch" in row for row in failed_formula["failures"])
+    assert any("TRAIN-ECDF mismatch" in row for row in failed_formula["failures"])
+
+    wrong_mask = frame.copy()
+    wrong_mask.loc[0, "y_position_size_mask"] = 0.0
+    failed_mask = _position_size_target_contract(
+        [wrong_mask], {"train": policy}
+    )
+    assert failed_mask["decision"] == "FAIL"
+    assert any("mask differs" in row for row in failed_mask["failures"])

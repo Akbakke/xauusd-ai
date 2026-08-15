@@ -39,6 +39,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-native-m5-source",
     "model-native-native-m1-source",
     "model-native-canonical-pair",
+    "model-native-fit-volatility-squeeze-artifacts",
     "model-native-m1-enriched-frame",
     "model-native-m5-enriched-frame",
     "model-native-m5-source-frame",
@@ -119,7 +120,15 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "decision: BLOCK" in result.stdout
-    assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
+    # Read the contract mode from its owner: a restated mode literal has gone
+    # stale on every surface bump (rule 13).
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CONTRACT_MODE,
+    )
+
+    assert (
+        f"required_contract_mode: {MODEL_NATIVE_CONTRACT_MODE}" in result.stdout
+    )
     assert "dataset_event_id: NONE" in result.stdout
     assert "dataset_admission_stage: NO_ADMITTED_UNIFIED_DATASET" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
@@ -128,7 +137,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         "CURRENT_PAIR_READY_FEATURE_DATASET_REBUILD_PENDING"
         in result.stdout
     )
-    assert "train_recipe: NONE_VALID_V18_RETIRED_RUN_ID_COLLISION" in result.stdout
+    assert "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED" in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     assert (
         "pair_generation_id: "
@@ -206,7 +215,14 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert state["decision"] == "BLOCK"
     assert state["latest_terminal_event_id"] == "NO_CURRENT_ADMITTED_EVENT"
     assert state["latest_terminal_event_decision"] == "BLOCK"
-    assert state["required_unified_entry_exit_contract"] == "gx1_unified_entry_exit_v2"
+    from gx1.models.entry_v10.direction_decision_contract import (
+        UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION,
+    )
+
+    assert (
+        state["required_unified_entry_exit_contract"]
+        == UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
+    )
     assert state["required_entry_action_order"] == ["LONG", "SHORT", "FLAT"]
     assert state["required_exit_action_order"] == ["HOLD", "EXIT_NOW"]
     assert state["required_same_bundle_shared_encoder"] is True
@@ -602,7 +618,6 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
         "--canonical-v2-parquet",
         "--signal-manifest",
         "--feature-ranking-json",
-        "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
@@ -610,8 +625,6 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
         "--m1-feature-base-parquet",
         "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
-        "--exit-target-lookahead-m1-steps",
-        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--history-start",
@@ -625,6 +638,9 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
     ):
         assert flag in route
     for retired in (
+        # V30 retired the whole TRAIN-rank-reference subsystem; the route may
+        # not accept its artifact again.
+        "--rank-reference-npz",
         "--smart-report",
         "--smart-manifest",
         "--inventory-report",
@@ -656,7 +672,6 @@ def test_rebuild_preflight_help_exposes_every_required_lineage_input() -> None:
         "--canonical-v2-parquet",
         "--signal-manifest",
         "--feature-ranking-json",
-        "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
@@ -664,8 +679,6 @@ def test_rebuild_preflight_help_exposes_every_required_lineage_input() -> None:
         "--m1-feature-base-parquet",
         "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
-        "--exit-target-lookahead-m1-steps",
-        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--history-start",
@@ -687,7 +700,6 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         "--canonical-v2-parquet": "/tmp/canonical.parquet",
         "--signal-manifest": "/tmp/signal.json",
         "--feature-ranking-json": "/tmp/ranking.json",
-        "--rank-reference-npz": "/tmp/rank.npz",
         "--mtf-cache-dir": "/tmp/mtf",
         "--tape-root": "/tmp/tape",
         "--m1-lifecycle-pair-manifest-json": "/tmp/pair/PAIR_MANIFEST.json",
@@ -695,9 +707,7 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         "--m1-feature-base-parquet": "/tmp/m1-feature-base.parquet",
         "--m5-feature-base-parquet": "/tmp/m5-feature-base.parquet",
         "--exit-lifecycle-dir": "/tmp/exit-lifecycle",
-        "--exit-target-lookahead-m1-steps": "30",
-        "--early-move-threshold-bps": "4.0",
-        "--output": "/tmp/output__DIR_H24B.parquet",
+        "--output": "/tmp/output__DIR_TRAIN_FIT.parquet",
         "--audit-out-dir": "/tmp/audit",
         "--history-start": "2020-01-01T00:00:00Z",
         "--train-start": "2020-01-02T00:00:00Z",

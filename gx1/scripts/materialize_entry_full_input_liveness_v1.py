@@ -2,7 +2,7 @@
 """Materialize the exact full-input liveness contract for one fresh dataset.
 
 The scan is deliberately exhaustive.  Signal statistics are computed from the
-513-wide snapshot surface (one value per emitted row), while every value in the
+owner-declared snapshot surface (one value per emitted row), while every value in the
 96x513 sequence is also checked for shape, finiteness and exact last-step parity
 with ``snap``.  The artifact binds all split manifests, the dataset build proof
 and the stat identity of every fully scanned parquet.
@@ -628,7 +628,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Full-scan and bind exact seq513 + ctx142+5 input liveness."
+        description=(
+            "Full-scan and bind exact seq513 + "
+            f"ctx{MODEL_NATIVE_CTX_CONT_DIM}+{MODEL_NATIVE_CTX_CAT_DIM} input liveness."
+        )
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--dataset-dir", required=True)

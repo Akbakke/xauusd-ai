@@ -16,7 +16,6 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--canonical-v2-parquet",
         "--signal-manifest",
         "--feature-ranking-json",
-        "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
         "--m1-lifecycle-pair-manifest-json",
@@ -24,20 +23,16 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--m1-feature-base-parquet",
         "--m5-feature-base-parquet",
         "--exit-lifecycle-dir",
-        "--exit-target-lookahead-m1-steps",
-        "--early-move-threshold-bps",
         "--output",
         "--audit-out-dir",
         "--rebuild-terminal-json",
         "--prefreeze-test-seal-json",
         "--history-start",
-        "validate_train_rank_reference_lineage_v2",
         "validate_signal_manifest_training_lineage",
         "expected_run_id",
         "expected_source_sha256",
         "expected_train_start_utc",
         "expected_train_end_utc",
-        "--model-native-rank-reference-npz",
         "materialize_entry_full_input_liveness_v1",
         "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_",
         "validate_full_input_liveness_artifact",
@@ -46,6 +41,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         assert required in source
 
     assert "entry_v10_ctx_train_v3" not in source
+    assert "--exit-target-lookahead-m1-steps" not in source
     assert "--base28-manifest" not in source
     assert "--base28_manifest" not in source
     assert "--epochs" not in source
@@ -57,7 +53,13 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     assert "smart_seq520" not in source.lower()
     assert "neutral_uniform_proba" not in source
     assert "v10_6yr_rebuild_20260626" not in source
+    # The fixed top-133 TRAIN rank subsystem is retired end to end: the
+    # rebuild script may not name its producer, artifact or CLI surface.
     assert "materialize_model_native_rank_reference_v1" not in source
+    assert "materialize_model_native_train_rank_reference" not in source
+    assert "validate_train_rank_reference_lineage" not in source
+    assert "rank-reference" not in source
+    assert "RANK_NPZ" not in source
     assert "--seq-structure-features-parquet" not in source
     assert "--seq-structure-compute-inline" not in source
     assert "--fail-on-audit-fail" not in source
@@ -66,8 +68,8 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     assert "--require-xau-provenance" not in source
     assert 'ls ' not in source
     assert 'tail -1' not in source
-    assert 'EARLY_MOVE_THRESHOLD_BPS=' in source
-    assert '--early_move_threshold_bps "$EARLY_MOVE_THRESHOLD_BPS"' in source
+    assert "EARLY_MOVE_THRESHOLD_BPS=" not in source
+    assert "--early_move_threshold_bps" not in source
 
 
 def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
@@ -86,19 +88,20 @@ def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
             and node.func.attr == "add_argument"
             and node.args
             and isinstance(node.args[0], ast.Constant)
-            and node.args[0].value in {"--seq_len", "--early_move_threshold_bps"}
+            and node.args[0].value == "--seq_len"
         ):
             continue
         observed[str(node.args[0].value)] = node
 
-    assert set(observed) == {"--seq_len", "--early_move_threshold_bps"}
+    assert set(observed) == {"--seq_len"}
     for flag, node in observed.items():
         keywords = {keyword.arg: keyword.value for keyword in node.keywords}
         assert isinstance(keywords.get("required"), ast.Constant)
         assert keywords["required"].value is True, flag
         assert "default" not in keywords, flag
-    assert "EARLY_MOVE_THRESHOLD_INVALID" in builder
-    assert "not np.isfinite(early_move_threshold_bps)" in builder
+    assert "--early_move_threshold_bps" not in builder
+    assert 'direction_target_policy["early_move_threshold_bps"]' in builder
+    assert "fit_entry_direction_target_policy(" in builder
 
 
 def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> None:
@@ -113,18 +116,17 @@ def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> Non
     assert "export GX1_TREND_REGIME_FROM_D1" not in source
     assert "output split already exists" in source
     assert "dataset build proof already exists" in source
-    assert "--existing-rank-reference is required" in source
     assert "audit output directory already exists" in source
     assert source.count('--run-id "$RUN_ID"') == 2
     assert source.count('--feature-ranking-json "$FEATURE_RANKING_JSON"') == 1
     assert "SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON" in source
     assert "--run-id has invalid format" in source
     assert "--resume-exact-checkpoints" in source
-    assert "--existing-rank-reference" in source
-    assert "validate_train_rank_reference_lineage_v2" in source
-    assert "expected_run_id=run_id" in source
+    # The signal/ranking lineage gate binds the explicit chain run id and the
+    # freshly hashed source bytes; it now receives the run id positionally.
+    assert "expected_run_id=sys.argv[3]" in source
+    assert '"$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$RUN_ID"' in source
     assert "expected_source_sha256=digest.hexdigest()" in source
-    assert "expected_fit_start_utc=fit_start" in source
 
 
 def test_seq513_rebuild_full_input_liveness_precedes_target_preflight() -> None:

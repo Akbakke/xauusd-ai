@@ -427,7 +427,7 @@ def _smart_contract_failures(
     expected_source_counts = {
         "smart_candidate_layers": MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
         "mandatory_full_stack": MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
-        "ranked_remainder": (
+        "available_candidates": (
             MODEL_NATIVE_SELECTED_FEATURE_COUNT
             - MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT
         ),
@@ -994,7 +994,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ]
     if train_dead_features:
         failures.append(
-            "train: every one of the 513 signal fields must satisfy canonical "
+            "train: every owner-declared signal field must satisfy canonical "
             "finite/variable/activity support; unlearnable fields="
             f"{train_dead_features[:30]} total={len(train_dead_features)}"
         )

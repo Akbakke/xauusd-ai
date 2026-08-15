@@ -1,50 +1,37 @@
-"""Exact post-training movement proof for the sole direction fusion."""
+"""Exact post-training movement proof for the fitted-Q Entry authority."""
 
 from __future__ import annotations
 
 import math
 from typing import Any, Mapping
 
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    HIDDEN_DIM,
-    INPUT_DIM,
-    OUTPUT_DIM,
+from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
 )
 
 
-SCHEMA_VERSION = "entry_model_native_learned_component_movement_v1"
-REFERENCE = "post_initialization_pre_optimizer_step"
+SCHEMA_VERSION = "gx1_entry_fitted_q_parameter_movement_v1"
+REFERENCE = "direct_joint_representation_raw_bps_q_head"
+_HIDDEN_DIM = UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM
+_JOINT_DIM = 4 * _HIDDEN_DIM
 PARAMETER_SHAPES = {
-    "evidence_fusion_norm.weight": [INPUT_DIM],
-    "evidence_fusion_norm.bias": [INPUT_DIM],
-    "evidence_fusion_in.weight": [HIDDEN_DIM, INPUT_DIM],
-    "evidence_fusion_in.bias": [HIDDEN_DIM],
-    "evidence_fusion_out.weight": [OUTPUT_DIM, HIDDEN_DIM],
-    "evidence_fusion_out.bias": [OUTPUT_DIM],
-    # The specialist cross-attention residual output. Zero-initialized by
-    # design, so post-training movement here proves the eight-family branch
-    # received gradients and left initialization. Movement is necessary, not
-    # sufficient, for margin influence; a run whose specialist branch never
-    # moved fails closed instead of passing silently.
-    "specialist_out.weight": [HIDDEN_DIM, HIDDEN_DIM],
-    "specialist_out.bias": [HIDDEN_DIM],
+    "entry_q_joint_norm.weight": [_JOINT_DIM],
+    "entry_q_joint_norm.bias": [_JOINT_DIM],
+    "entry_q_joint_in.weight": [_HIDDEN_DIM, _JOINT_DIM],
+    "entry_q_joint_in.bias": [_HIDDEN_DIM],
+    "head_entry_action_q.weight": [3, _HIDDEN_DIM],
+    "head_entry_action_q.bias": [3],
 }
 COMPONENT_PARAMETERS = {
-    "evidence_fusion_norm": (
-        "evidence_fusion_norm.weight",
-        "evidence_fusion_norm.bias",
+    "joint_projection": (
+        "entry_q_joint_norm.weight",
+        "entry_q_joint_norm.bias",
+        "entry_q_joint_in.weight",
+        "entry_q_joint_in.bias",
     ),
-    "evidence_fusion_in": (
-        "evidence_fusion_in.weight",
-        "evidence_fusion_in.bias",
-    ),
-    "evidence_fusion_out": (
-        "evidence_fusion_out.weight",
-        "evidence_fusion_out.bias",
-    ),
-    "specialist_out": (
-        "specialist_out.weight",
-        "specialist_out.bias",
+    "raw_q_head": (
+        "head_entry_action_q.weight",
+        "head_entry_action_q.bias",
     ),
 }
 

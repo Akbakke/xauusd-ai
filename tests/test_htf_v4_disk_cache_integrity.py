@@ -18,8 +18,20 @@ from gx1.scripts import prebuild_multi_tf_cache_v4 as producer
 from tests.htf_v29_registry_test_support import (
     synthetic_v29_registry_constants,
 )
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 _V29_TEST_REGISTRY_CONSTANTS = synthetic_v29_registry_constants()
+_SQUEEZE_TEST_ARTIFACTS = None
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _bind_squeeze_artifacts(tmp_path_factory):
+    global _SQUEEZE_TEST_ARTIFACTS
+    _SQUEEZE_TEST_ARTIFACTS = make_volatility_squeeze_artifact_set(
+        tmp_path_factory.mktemp("squeeze-artifacts")
+    )
 
 
 def _sha256(path: Path) -> str:
@@ -84,6 +96,7 @@ def _publish(tmp_path: Path) -> Path:
         expected_source_sha256=_sha256(source),
         features=frames,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
     assert manifest_path == cache_dir / "manifest.json"
     return cache_dir
@@ -114,6 +127,7 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
         expected_source_sha256=_sha256(source),
         features=expected_frames,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
     manifest = _manifest(cache_dir)
     assert {path.name for path in cache_dir.iterdir()} == {
@@ -122,9 +136,37 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
     }
     assert manifest["schema_version"] == htf.HTF_V4_CACHE_SCHEMA_VERSION
     assert manifest["builder_version"] == htf.HTF_V4_CACHE_BUILDER_VERSION
+    assert manifest["smc_causal_replay_schema_version"] == (
+        htf.SMC_CAUSAL_REPLAY_SCHEMA_VERSION
+    )
+    from gx1.features.technical_indicators_v1 import (
+        technical_indicator_contract_metadata,
+    )
+
+    assert manifest["technical_indicator_owner"] == (
+        technical_indicator_contract_metadata()
+    )
+    from gx1.features.swing_structure_v1 import (
+        swing_structure_contract_metadata,
+    )
+
+    assert manifest["swing_structure_owner"] == (
+        swing_structure_contract_metadata()
+    )
     assert manifest["feature_count"] == htf.MULTI_TF_FEATURE_COUNT_V4
     assert manifest["feature_names"] == list(
         htf.MULTI_TF_PER_BAR_FEATURES_V4
+    )
+    # v8 binds the additive volume surface and the shared 22-anchored H4/D1
+    # clock in the same immutable identity; neither repair can mask the other.
+    assert set(htf.MULTI_TF_V4_VOLUME_FEATURES).issubset(
+        manifest["feature_names"]
+    )
+    assert manifest["resample_origin_contract"]["H4"] == str(
+        pd.Timedelta(hours=2)
+    )
+    assert manifest["resample_origin_contract"]["D1"] == str(
+        pd.Timedelta(hours=22)
     )
     assert manifest["cache_identity_sha256"] == (
         htf.compute_htf_v4_cache_identity(manifest)
@@ -148,6 +190,10 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
     assert loaded.m5_prebuilt_source_sha256 == _sha256(source)
 
     for timeframe in htf.MULTI_TF_RESAMPLE_RULES:
+        np.testing.assert_array_equal(
+            loaded[timeframe].index.asi8,
+            expected_frames[timeframe].index.asi8,
+        )
         frame_values = loaded[timeframe].to_numpy(
             dtype=np.float32,
             copy=False,
@@ -159,6 +205,62 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
             frame_values,
             expected_frames[timeframe].attrs["feats_np"],
         )
+
+
+def test_registry_resolver_accepts_only_the_authoritative_cache_manifest(
+    tmp_path: Path,
+) -> None:
+    cache_dir = _publish(tmp_path)
+    manifest_path = cache_dir / "manifest.json"
+    assert htf.load_v29_registry_constants_manifest(manifest_path) == (
+        _V29_TEST_REGISTRY_CONSTANTS
+    )
+
+    bare_payload = tmp_path / "bare-production-params.json"
+    bare_payload.write_text(
+        json.dumps(_V29_TEST_REGISTRY_CONSTANTS), encoding="utf-8"
+    )
+    with pytest.raises(RuntimeError, match="CONTAINER_REQUIRED"):
+        htf.load_v29_registry_constants_manifest(bare_payload)
+
+
+def test_registry_resolver_rejects_cache_source_bytes_mismatch(
+    tmp_path: Path,
+) -> None:
+    cache_dir = _publish(tmp_path)
+    manifest = _manifest(cache_dir)
+    source = Path(manifest["m5_prebuilt_source"])
+    source.write_bytes(b"changed-after-cache-publication")
+    with pytest.raises(RuntimeError, match="CACHE_SOURCE_IDENTITY_MISMATCH"):
+        htf.load_v29_registry_constants_manifest(cache_dir / "manifest.json")
+
+
+def test_loader_rejects_bound_squeeze_params_mutation(
+    tmp_path: Path,
+) -> None:
+    artifacts = make_volatility_squeeze_artifact_set(
+        tmp_path / "squeeze"
+    )
+    source, _source_index, frames = _source_and_frames(tmp_path / "source")
+    cache_dir = tmp_path / "cache"
+    producer.publish_multi_tf_v4_cache(
+        out_dir=cache_dir,
+        m5_prebuilt=source,
+        expected_source_sha256=_sha256(source),
+        features=frames,
+        v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=artifacts,
+    )
+    params_path = artifacts.manifest_path.parent / "m5_params.json"
+    mutated = bytearray(params_path.read_bytes())
+    mutated[-2] ^= 0x01
+    params_path.write_bytes(mutated)
+
+    with pytest.raises(
+        RuntimeError,
+        match="HTF_V4_CACHE_VOLATILITY_SQUEEZE_ARTIFACT_SET_INVALID",
+    ):
+        htf.load_multi_tf_v4_cache(cache_dir)
 
 
 @pytest.mark.parametrize("array_name", _all_array_names())
@@ -224,12 +326,15 @@ def test_loader_rejects_cache_directory_symlink(tmp_path: Path) -> None:
     (
         ("schema_version", "htf_v4_disk_cache_manifest_v3"),
         ("builder_version", "prebuild_multi_tf_cache_v4_legacy"),
+        ("smc_causal_replay_schema_version", "smc_causal_replay_v1"),
+        ("technical_indicator_owner", {}),
+        ("swing_structure_owner", {}),
     ),
 )
 def test_loader_rejects_legacy_schema_or_builder_before_use(
     tmp_path: Path,
     field: str,
-    replacement: str,
+    replacement: object,
 ) -> None:
     cache_dir = _publish(tmp_path)
     manifest_path = cache_dir / "manifest.json"
@@ -250,6 +355,21 @@ def test_loader_rejects_manifest_identity_tamper(tmp_path: Path) -> None:
     manifest["cache_identity_sha256"] = "0" * 64
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(RuntimeError, match="HTF_V4_CACHE_IDENTITY_MISMATCH"):
+        htf.load_multi_tf_v4_cache(cache_dir)
+
+
+def test_loader_rejects_retired_midnight_h4_origin_even_with_rehashed_identity(
+    tmp_path: Path,
+) -> None:
+    cache_dir = _publish(tmp_path)
+    manifest_path = cache_dir / "manifest.json"
+    manifest = _manifest(cache_dir)
+    manifest["resample_origin_contract"]["H4"] = str(pd.Timedelta(0))
+    manifest["cache_identity_sha256"] = htf.compute_htf_v4_cache_identity(
+        manifest
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="resample_origin_contract"):
         htf.load_multi_tf_v4_cache(cache_dir)
 
 
@@ -277,6 +397,7 @@ def test_publisher_never_replaces_existing_cache(tmp_path: Path) -> None:
             expected_source_sha256=_sha256(source),
             features=frames,
             v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+            volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
         )
     assert _sha256(cache_dir / "manifest.json") == before
 
@@ -305,11 +426,19 @@ def test_cli_rejects_wrong_source_hash_before_parquet_read(
             "0" * 64,
             "--out-dir",
             str((tmp_path / "cache").resolve()),
-            "--level-tol-quantile-q",
-            "0.25",
-            "--registry-fit-train-end",
-            "2026-01-05T00:00:00Z",
-        ],
+                "--registry-fit-train-start", "2026-01-01T00:00:00+00:00",
+                "--registry-fit-inner-end", "2026-01-03T00:00:00+00:00",
+                "--registry-fit-train-end", "2026-01-05T00:00:00+00:00",
+                "--registry-fit-tape-manifest", str(source),
+                "--expected-registry-fit-tape-manifest-sha256", "0" * 64,
+                "--registry-fit-split-manifest", str(source),
+                "--expected-registry-fit-split-manifest-sha256", "0" * 64,
+                "--registry-fit-train-split-id", "synthetic:TRAIN",
+                "--volatility-squeeze-manifest",
+                str(_SQUEEZE_TEST_ARTIFACTS.manifest_path),
+                "--expected-volatility-squeeze-manifest-sha256",
+                _SQUEEZE_TEST_ARTIFACTS.manifest_file_sha256,
+            ],
     )
     with pytest.raises(RuntimeError, match="CACHE_V4_SOURCE_SHA256_MISMATCH"):
         producer.main()
@@ -346,6 +475,7 @@ def test_publisher_rejects_timestamps_not_derived_from_native_m5(
             expected_source_sha256=_sha256(source),
             features=frames,
             v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+            volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
         )
 
 
@@ -376,6 +506,7 @@ def test_parent_fsync_failure_reports_visible_inadmissible_output(
             expected_source_sha256=_sha256(source),
             features=frames,
             v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+            volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
         )
     assert destination.is_dir()
     assert (destination / "manifest.json").is_file()
@@ -392,6 +523,7 @@ def test_v4_disk_projection_matches_in_memory_verified_bytes(
         expected_source_sha256=_sha256(source),
         features=in_memory,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
+        volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
     from_disk = htf.load_multi_tf_v4_cache(cache_dir)
     targets = pd.date_range(

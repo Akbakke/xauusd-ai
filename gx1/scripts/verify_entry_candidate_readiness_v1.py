@@ -32,8 +32,10 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
     TRAIN_WRAPPER_RELATIVE_PATH,
 )
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
+)
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
     require_training_objective_contract,
 )
@@ -288,8 +290,8 @@ def _trainability_contract_check(payload: dict[str, Any]) -> dict[str, Any]:
             or future.get("training_objective_schema") != TRAINING_OBJECTIVE_SCHEMA
             or set(future.get("recipe_env_keys") or ())
             != set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-            or set(future.get("required_positive_loss_weights") or ())
-            != set(REQUIRED_POSITIVE_LOSS_WEIGHTS)
+            or set(future.get("joint_task_names") or ())
+            != set(JOINT_TASK_NAMES)
         ):
             raise RuntimeError("trainability exact wrapper/objective contract mismatch")
         details = {
@@ -297,10 +299,10 @@ def _trainability_contract_check(payload: dict[str, Any]) -> dict[str, Any]:
             "recipe_audit_schema": future["recipe_audit_schema"],
             "training_objective_schema": future["training_objective_schema"],
         }
-        return _check("trainability proves exact wrapper and positive objective", True, details)
+        return _check("trainability proves exact wrapper and learned joint objective", True, details)
     except Exception as exc:
         details["error"] = str(exc)
-        return _check("trainability proves exact wrapper and positive objective", False, details)
+        return _check("trainability proves exact wrapper and learned joint objective", False, details)
 
 
 def _specialist_contract_check(payload: dict[str, Any]) -> dict[str, Any]:

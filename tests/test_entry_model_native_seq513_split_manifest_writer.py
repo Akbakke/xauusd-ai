@@ -4,37 +4,45 @@ import hashlib
 import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pytest
 
 from tests.htf_v29_registry_test_support import synthetic_v29_registry_constants
+from tests.volatility_squeeze_test_support import (
+    make_volatility_squeeze_artifact_set,
+)
 
 from gx1.contracts.entry_model_native_signal_v1 import (
-    MODEL_NATIVE_CONTEXT_TAG,
-    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+    model_native_context_contract_metadata,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
-    MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+    RETIRED_RANK_STATE_FIELDS,
 )
-from gx1.contracts.entry_model_native_signal_v1 import (
-    MODEL_NATIVE_CTX_CAT_FIELDS,
-    MODEL_NATIVE_CTX_CONT_FIELDS,
-)
+from gx1.contracts.entry_fitted_q_v1 import require_entry_fitted_q_contract
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _log_label_distribution_proof,
     _model_native_state_contract,
+    entry_fitted_q_dataset_contract,
     write_manifest,
 )
+from gx1.utils.artifact_primitives_v1 import canonical_json_sha256
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+
+
+_TAPE_PROVENANCE_FIXTURE = {
+    "schema_version": "xau_tape_current_snapshot_v1",
+    "instrument": "XAU_USD",
+    "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
+}
 
 
 def _splits() -> dict[str, dict[str, str]]:
@@ -60,7 +68,8 @@ def _source(tmp_path: Path) -> Path:
     return source
 
 
-def _extra(tmp_path: Path) -> dict:
+def _extra(tmp_path: Path, *, artifact_label: str = "default") -> dict:
+    _source(tmp_path)
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields(
             remainder_prefix="session_regime.split_writer_fixture"
@@ -72,6 +81,11 @@ def _extra(tmp_path: Path) -> dict:
     cache_manifest.write_text('{"fixture":"v4"}\n', encoding="utf-8")
     cache_manifest_sha = hashlib.sha256(cache_manifest.read_bytes()).hexdigest()
     return {
+        "xau_tape_provenance": dict(_TAPE_PROVENANCE_FIXTURE),
+        # The retired direction/hierarchical label contracts are replaced by
+        # the fitted-Q dataset contract; the writer now rejects a manifest that
+        # still carries `entry_direction_target_policy`.
+        **entry_fitted_q_dataset_contract(),
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
         "model_native_signal_contract": signal_contract,
@@ -83,31 +97,13 @@ def _extra(tmp_path: Path) -> dict:
             "bridge_dim": 0,
             "bridge_source": None,
         },
-        "ctx_contract": {
-            "tag": MODEL_NATIVE_CONTEXT_TAG,
-            "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-            "ctx_cat_dim": 5,
-            "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
-            "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
-        },
+        # The writer compares this against its owner byte for byte.
+        "ctx_contract": model_native_context_contract_metadata(),
         "model_native_state_contract": {
             "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
             "feature_history_start_utc": "2020-11-01T00:00:00Z",
-            "rank_fit_start_utc": "2020-11-09T00:00:00Z",
-            "rank_fit_end_utc": "2025-09-30T23:59:59Z",
-            "rank_reference_npz": "/immutable/rank_reference.npz",
-            "rank_reference_npz_sha256": "a" * 64,
-            "rank_reference_sidecar_sha256": "c" * 64,
-            "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-            "rank_reference_sidecar_json": "/immutable/rank_reference.npz.json",
-            "rank_reference_source_parquet": "/immutable/source.parquet",
-            "rank_reference_source_parquet_sha256": "b" * 64,
-            "rank_reference_fit_row_count": 123,
-            "rank_reference_fit_scope": "train_only",
-            "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
             "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
             "split_reset_allowed": False,
-            "post_fit_rows_in_rank_reference": False,
             "runtime_rule_free": True,
             "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
         },
@@ -121,6 +117,11 @@ def _extra(tmp_path: Path) -> dict:
             # V29 split manifests freeze the TRAIN-fitted registry constants
             # inside the binding; the writer validates them via their owner.
             "v29_registry_constants": synthetic_v29_registry_constants(),
+            "volatility_squeeze_artifact_set": (
+                make_volatility_squeeze_artifact_set(
+                    tmp_path / f"squeeze_{artifact_label}"
+                ).binding()
+            ),
         },
     }
 
@@ -130,6 +131,7 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
 ) -> None:
     for split_name in ("train", "val", "test"):
         output_path = tmp_path / f"model_native_seq513_{split_name}.parquet"
+        extra = _extra(tmp_path, artifact_label=split_name)
         manifest_path = write_manifest(
             output_path=output_path,
             build_command=[
@@ -140,7 +142,7 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
             source_parquet=_source(tmp_path),
             tape_root=tmp_path / "tape",
             splits=_splits(),
-            extra=_extra(tmp_path),
+            extra=extra,
         )
 
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -153,6 +155,36 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
             "source_parquet": str(_source(tmp_path)),
             "tape_root": str(tmp_path / "tape"),
         }
+        # The Entry action target is owned by the fitted-Q contract; the
+        # manifest declares the binding and never materializes a label copy.
+        require_entry_fitted_q_contract(
+            manifest["extra"]["entry_fitted_q"],
+            context="SPLIT_MANIFEST_WRITER_TEST",
+        )
+        assert manifest["extra"][
+            "entry_action_target_materialized_in_feature_parquet"
+        ] is False
+        assert manifest["extra"]["episode_fill_binding_required"] is True
+        assert manifest["extra"]["pathwise_hindsight_target"] is False
+        assert manifest["extra"]["xau_tape_provenance"] == _TAPE_PROVENANCE_FIXTURE
+        assert canonical_json_sha256(
+            manifest["extra"]["xau_tape_provenance"]
+        ) == canonical_json_sha256(_TAPE_PROVENANCE_FIXTURE)
+        # The retired direction-target policy may never reappear in extra.
+        assert "entry_direction_target_policy" not in manifest["extra"]
+        assert not (
+            RETIRED_RANK_STATE_FIELDS
+            & set(manifest["extra"]["model_native_state_contract"])
+        )
+        assert manifest["feature_contract"]["ctx_cat_names"] == list(
+            MODEL_NATIVE_CTX_CAT_FIELDS
+        )
+        assert manifest["feature_contract"]["ctx_cat_dim"] == len(
+            MODEL_NATIVE_CTX_CAT_FIELDS
+        )
+        assert manifest["feature_contract"]["ctx_cont_names"] == list(
+            MODEL_NATIVE_CTX_CONT_FIELDS
+        )
 
 
 def test_test_label_distribution_is_withheld_before_final_evaluation(
@@ -209,6 +241,24 @@ def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
             ),
             "MODEL_NATIVE_MANIFEST_ORDERED_FIELDS_MISMATCH",
         ),
+        (
+            # The retired direction-target policy is rejected outright, so a
+            # stale builder cannot smuggle a second label authority back in.
+            lambda extra: extra.update({"entry_direction_target_policy": {}}),
+            "MODEL_NATIVE_MANIFEST_RETIRED_DIRECTION_POLICY_PRESENT",
+        ),
+        (
+            lambda extra: extra.pop("entry_fitted_q"),
+            "MODEL_NATIVE_DATASET_MANIFEST",
+        ),
+        (
+            lambda extra: extra["ctx_contract"].update({"ctx_cat_dim": 5}),
+            "MODEL_NATIVE_MANIFEST_CTX_CONTRACT_INVALID",
+        ),
+        (
+            lambda extra: extra.pop("xau_tape_provenance"),
+            "MODEL_NATIVE_MANIFEST_XAU_TAPE_PROVENANCE_MISSING",
+        ),
     ],
 )
 def test_canonical_split_writer_rejects_soft_or_legacy_contracts(
@@ -232,128 +282,42 @@ def test_canonical_split_writer_rejects_soft_or_legacy_contracts(
     assert not list(tmp_path.glob("*.manifest.json"))
 
 
-def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict, Path]:
-    source = tmp_path / "canonical_source.parquet"
-    model_source = tmp_path / "model_source.parquet"
-    times = pd.to_datetime(
-        [
-            "2020-11-01T00:00:00Z",
-            "2020-11-09T00:00:00Z",
-            "2025-09-30T23:59:59Z",
-        ],
-        utc=True,
-    )
-    close = np.asarray([1800.0, 1801.0, 2300.0], dtype=np.float64)
-    market = pd.DataFrame(
-        {
-            "time": times,
-            "high": close + 1.0,
-            "low": close - 1.0,
-            "close": close,
-            "bid_close": close - 0.05,
-            "ask_close": close + 0.05,
-        }
-    )
-    market.assign(canonical_only=[1.0, 2.0, 3.0]).to_parquet(
-        source, index=False
-    )
-    market.assign(model_only=[4.0, 5.0, 6.0]).to_parquet(
-        model_source, index=False
-    )
-    rank_reference = tmp_path / "model_native_rank_reference.npz"
-    fit_start = pd.Timestamp("2020-11-09T00:00:00Z")
-    fit_end = pd.Timestamp("2025-09-30T23:59:59Z")
-    np.savez_compressed(
-        rank_reference,
-        schema_version=np.asarray([MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION]),
-        fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
-        fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
-        fit_row_count=np.asarray([3], dtype=np.int64),
-        entry_run_id=np.asarray(["MODEL_NATIVE_DATASET_BUILD_PYTEST"]),
-        atr_bps_sorted=np.asarray([9.0, 10.0, 11.0], dtype=np.float64),
-        spread_bps_sorted=np.asarray([0.8, 1.0, 1.2], dtype=np.float64),
-    )
-    payload = {
-        "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "fit_scope": "train_only",
-        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
-        "row_level_state_present": False,
-        "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
-        "source_parquet": str(source),
-        "source_parquet_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-        "out_npz": str(rank_reference.resolve()),
-        "out_npz_sha256": hashlib.sha256(rank_reference.read_bytes()).hexdigest(),
-        "history_start_utc": "2020-11-01T00:00:00Z",
-        "fit_start_utc": str(fit_start),
-        "fit_end_utc": str(fit_end),
-        "fit_row_count": 3,
-        "fit_time_min": str(fit_start),
-        "fit_time_max": str(fit_end),
-    }
-    rank_reference.with_suffix(".npz.json").write_text(
-        json.dumps(payload),
-        encoding="utf-8",
-    )
-    return rank_reference, payload, model_source
-
-
-def test_builder_requires_audited_rank_reference_and_source_hashes(
+def test_builder_state_contract_is_the_exact_live_common_history_surface(
     tmp_path: Path,
 ) -> None:
-    rank_reference, payload, model_source = _rank_reference_fixture(tmp_path)
-
+    """The builder emits the v2 state contract: history only, no rank artifact."""
     contract = _model_native_state_contract(
-        args=argparse.Namespace(
-            model_native_rank_reference_npz=str(rank_reference),
-            source_parquet=str(model_source),
-            canonical_v2_parquet=payload["source_parquet"],
-            run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
-        ),
+        args=argparse.Namespace(run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST"),
         feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
         train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
         train_end=pd.Timestamp("2025-09-30T23:59:59Z"),
     )
 
-    assert contract["rank_reference_npz_sha256"] == payload["out_npz_sha256"]
-    assert (
-        contract["rank_reference_source_parquet_sha256"]
-        == payload["source_parquet_sha256"]
-    )
-    assert contract["rank_reference_fit_row_count"] == 3
-    assert contract["rank_reference_fit_scope"] == "train_only"
+    assert contract["schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
+    assert contract["feature_history_mode"] == MODEL_NATIVE_HISTORY_MODE
     assert contract["split_reset_allowed"] is False
+    assert contract["runtime_rule_free"] is True
     assert contract["entry_run_id"] == "MODEL_NATIVE_DATASET_BUILD_PYTEST"
+    # The retired fixed top-k rank reference must not be re-emitted here.
+    assert not (RETIRED_RANK_STATE_FIELDS & set(contract))
 
 
-def test_builder_rejects_missing_or_tampered_rank_reference_contract(
+def test_builder_state_contract_requires_run_id_and_ordered_window(
     tmp_path: Path,
 ) -> None:
-    with pytest.raises(RuntimeError, match="MODEL_NATIVE_RANK_REFERENCE_REQUIRED"):
+    with pytest.raises(Exception):
         _model_native_state_contract(
-            args=argparse.Namespace(
-                model_native_rank_reference_npz="",
-                run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
-            ),
+            args=argparse.Namespace(run_id=""),
             feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
             train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
             train_end=pd.Timestamp("2025-09-30T23:59:59Z"),
         )
 
-    rank_reference, payload, model_source = _rank_reference_fixture(tmp_path)
-    payload["source_parquet_sha256"] = "0" * 64
-    rank_reference.with_suffix(".npz.json").write_text(
-        json.dumps(payload),
-        encoding="utf-8",
-    )
-    with pytest.raises(RuntimeError, match="SOURCE_SHA_MISMATCH"):
+    with pytest.raises(RuntimeError, match="STATE_CONTRACT_TIME_ORDER_INVALID"):
         _model_native_state_contract(
-            args=argparse.Namespace(
-                model_native_rank_reference_npz=str(rank_reference),
-                source_parquet=str(model_source),
-                canonical_v2_parquet=payload["source_parquet"],
-                run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
-            ),
-            feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
+            args=argparse.Namespace(run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST"),
+            # history starts AFTER train_start: the causal prefix would be cut.
+            feature_history_start=pd.Timestamp("2021-01-01T00:00:00Z"),
             train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
             train_end=pd.Timestamp("2025-09-30T23:59:59Z"),
         )

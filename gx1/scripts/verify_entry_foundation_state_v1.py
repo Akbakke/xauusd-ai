@@ -18,12 +18,12 @@ from typing import Any
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -56,7 +56,7 @@ EVIDENCE_SPECS = (
         "rebuild_preflight",
         "rebuild_preflight_json",
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
-        "entry_model_native_seq513_rebuild_preflight_v11",
+        "entry_model_native_seq513_rebuild_preflight_v13",
         "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
     ),
     EvidenceSpec(
@@ -333,19 +333,16 @@ def _validate_evidence(spec: EvidenceSpec, raw_path: str) -> dict[str, Any]:
 def _selftest() -> dict[str, Any]:
     selected = [
         *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-        *[
-            f"session_regime.state_selftest_{index:03d}"
-            for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
-        ],
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     ]
     contract = model_native_signal_contract_metadata(selected)
     checks: list[dict[str, Any]] = []
     try:
         require_model_native_signal_contract(contract, context="STATE_SELFTEST")
-        checks.append({"name": "exact 34+479=513 contract passes", "ok": True})
+        checks.append({"name": "exact current signal contract passes", "ok": True})
     except RuntimeError as exc:
         checks.append(
-            {"name": "exact 34+479=513 contract passes", "ok": False, "error": str(exc)}
+            {"name": "exact current signal contract passes", "ok": False, "error": str(exc)}
         )
 
     broken = json.loads(json.dumps(contract))

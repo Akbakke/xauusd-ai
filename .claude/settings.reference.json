@@ -12,7 +12,8 @@
       "Grep",
       "WebFetch",
       "WebSearch",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash([ -s \"$f\" ])"
     ],
     "deny": [
       "Bash(rm -rf *)",

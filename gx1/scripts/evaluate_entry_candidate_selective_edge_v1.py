@@ -2,9 +2,9 @@
 """Evaluate selective edge for an exact model-native seq513 candidate bundle.
 
 This is a post-candidate evidence writer with two exact, fail-closed stages:
-pre_calibration reads only VAL, while runtime_authoritative reads only TEST
-after the frozen bundle and both immutable VAL calibrations have been proven.
-It ranks the model's own LONG/SHORT/FLAT choices by selected-class probability
+pre-adoption reads only VAL, while runtime_authoritative reads only TEST after
+the frozen bundle has been proven. It ranks the model's own LONG/SHORT/FLAT
+choices by selected raw-bps Q
 and writes evidence for replay-readiness.
 
 It never trains, promotes, shadows, starts live, or writes adapter artifacts.
@@ -28,49 +28,38 @@ from torch.utils.data import DataLoader
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
-    MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME,
-    MODEL_NATIVE_CTX_CONT_FIELDS,
-    MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
 )
-from gx1.contracts.entry_model_native_calibration_v1 import (
-    require_model_native_calibration_metadata,
-)
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_production_economics_readiness,
+)
 from gx1.contracts.entry_exit_production_architecture_v1 import (
     current_entry_exit_architecture_observation,
     require_entry_exit_production_architecture,
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
-    MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES,
-    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES,
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
     encode_model_native_runtime_head_evidence,
-    project_model_native_path_calibration,
-)
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    INPUTS as DIRECTION_EVIDENCE_INPUTS,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-)
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    ACTION_VALUE_TARGET_COLUMNS,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     required_training_specialists_for_mode,
     specialist_model_contract_for_mode,
-)
-from gx1.features.model_native_market_context_v1 import (
-    derive_model_native_trend_regime_id,
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -80,12 +69,13 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     MODEL_DIRECTION_SHORT_INDEX,
     MODEL_DIRECTION_TRADE_INDICES,
-    PUBLIC_FLAT_INDEX,
-    PUBLIC_TRADE_INDEX,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
     require_model_direction_decision_contract,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    PREDICTION_EVIDENCE_STAGE_SPLITS,
     atomic_write_parquet_immutable,
     atomic_write_text,
     build_prediction_evidence_declaration,
@@ -99,11 +89,17 @@ from gx1.time.session_detector import SESSION_NAME_BY_ID
 SESSION_NAMES = SESSION_NAME_BY_ID
 SIDE_NAMES = MODEL_DIRECTION_NAME_BY_INDEX
 CONTRACT_SIGNAL_DIMS = {MODEL_NATIVE_CONTRACT_MODE: MODEL_NATIVE_SIGNAL_DIM}
-EVIDENCE_STAGES = ("pre_calibration", "runtime_authoritative")
-SELECTIVE_EDGE_STAGE_SPLITS = {
-    "pre_calibration": ("val",),
-    "runtime_authoritative": ("test",),
-}
+# Stage names and their splits have one owner: the prediction-evidence
+# declaration builder this module calls. They were duplicated here and the
+# copy drifted to "validation_research", which the owner rejects — so the
+# whole VAL selective-edge lane raised on every declaration it built.
+EVIDENCE_STAGES = tuple(PREDICTION_EVIDENCE_STAGE_SPLITS)
+VAL_EVIDENCE_STAGE = next(
+    stage
+    for stage, splits in PREDICTION_EVIDENCE_STAGE_SPLITS.items()
+    if tuple(splits) == ("val",)
+)
+SELECTIVE_EDGE_STAGE_SPLITS = dict(PREDICTION_EVIDENCE_STAGE_SPLITS)
 EVALUATION_SPLITS = tuple(
     split
     for stage in EVIDENCE_STAGES
@@ -137,85 +133,36 @@ def _reject_retired_selection_environment() -> None:
         )
 
 
-def _require_model_direction_ssot(
+def _require_entry_q_ssot(
     out: dict[str, torch.Tensor],
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Return the sole public decision tensors or fail closed.
-
-    ``public_trade_flat_decision_logits`` must be derived by the model from the
-    final, calibrated three-class logits.  Rechecking the equality here keeps
-    candidate evidence on exactly the same surface as training gates and live.
-    """
+) -> torch.Tensor:
+    """Return the sole unique raw-bps Entry-Q decision tensor."""
 
     forbidden = sorted({"anchor_logits", "delta_logits", "anchor_gate"}.intersection(out))
     if forbidden:
         raise RuntimeError(
             f"model-native direction output contains forbidden legacy keys: {forbidden}"
         )
-    missing = [
-        key
-        for key in ("direction_logits", "public_trade_flat_decision_logits")
-        if key not in out
-    ]
-    if missing:
+    q_values = out.get("entry_action_q_bps")
+    if not isinstance(q_values, torch.Tensor):
+        raise RuntimeError("model-native Entry-Q output is missing")
+    if q_values.ndim != 2 or q_values.shape[1] != 3:
         raise RuntimeError(
-            "model-native direction contract missing outputs: " + ",".join(missing)
+            "entry_action_q_bps must have shape (B,3); "
+            f"got {tuple(q_values.shape)}"
         )
-    direction_logits = out["direction_logits"]
-    public_pair_logits = out["public_trade_flat_decision_logits"]
-    if direction_logits.ndim != 2 or direction_logits.shape[1] != 3:
-        raise RuntimeError(
-            "direction_logits must have shape (B,3); "
-            f"got {tuple(direction_logits.shape)}"
-        )
-    if public_pair_logits.ndim != 2 or public_pair_logits.shape != (
-        direction_logits.shape[0],
-        2,
-    ):
-        raise RuntimeError(
-            "public_trade_flat_decision_logits must have shape (B,2); "
-            f"got {tuple(public_pair_logits.shape)}"
-        )
-    if not bool(torch.isfinite(direction_logits).all().item()) or not bool(
-        torch.isfinite(public_pair_logits).all().item()
-    ):
-        raise RuntimeError("model-native direction contract contains non-finite logits")
-    expected_pair = torch.stack(
-        (
-            direction_logits[
-                :, list(MODEL_DIRECTION_TRADE_INDICES)
-            ].amax(dim=1),
-            direction_logits[:, MODEL_DIRECTION_FLAT_INDEX],
-        ),
-        dim=1,
-    )
-    if not torch.equal(public_pair_logits, expected_pair):
-        max_delta = float((public_pair_logits - expected_pair).abs().max().item())
-        raise RuntimeError(
-            "public trade/FLAT logits do not match final direction logits; "
-            f"max_abs_delta={max_delta:.9g}"
-        )
-    winner_counts = direction_logits.eq(
-        direction_logits.amax(dim=1, keepdim=True)
+    if not bool(torch.isfinite(q_values).all().item()):
+        raise RuntimeError("model-native Entry-Q contains non-finite values")
+    winner_counts = q_values.eq(
+        q_values.amax(dim=1, keepdim=True)
     ).sum(dim=1)
     tied_rows = int((winner_counts != 1).sum().item())
     if tied_rows:
         raise RuntimeError(
-            "final direction logits have no unique top class; "
+            "Entry-Q has no unique top action; "
             f"rows={tied_rows}"
         )
-    direction_decision = torch.argmax(direction_logits, dim=1)
-    public_pair_decision = torch.argmax(public_pair_logits, dim=1)
-    expected_pair_decision = torch.where(
-        direction_decision == MODEL_DIRECTION_FLAT_INDEX,
-        PUBLIC_FLAT_INDEX,
-        PUBLIC_TRADE_INDEX,
-    ).to(dtype=torch.long)
-    if not torch.equal(public_pair_decision, expected_pair_decision):
-        raise RuntimeError(
-            "public trade/FLAT argmax does not match final LONG/SHORT/FLAT argmax"
-        )
-    return direction_logits, public_pair_logits
+    return q_values
 
 
 def _json_default(obj: Any) -> Any:
@@ -254,45 +201,24 @@ def _softmax_np(values: np.ndarray) -> np.ndarray:
 def _canonical_live_decision_evidence(
     out: dict[str, torch.Tensor],
 ) -> dict[str, np.ndarray]:
-    """Materialize the exact probability/argmax surface consumed by live."""
-    direction_logits_t, public_pair_logits_t = _require_model_direction_ssot(out)
-    direction_logits = direction_logits_t.detach().cpu().float().numpy()
-    public_pair_logits = public_pair_logits_t.detach().cpu().float().numpy()
-    direction_probs = _softmax_np(direction_logits)
-    public_pair_probs = _softmax_np(public_pair_logits)
-    direction_index = np.argmax(direction_probs, axis=1).astype(np.int64)
-    public_pair_index = np.argmax(public_pair_probs, axis=1).astype(np.int64)
-    expected_public_index = np.where(
-        direction_index == MODEL_DIRECTION_FLAT_INDEX,
-        PUBLIC_FLAT_INDEX,
-        PUBLIC_TRADE_INDEX,
-    ).astype(np.int64)
-    if not np.array_equal(public_pair_index, expected_public_index):
-        raise RuntimeError(
-            "canonical public TRADE/FLAT probability argmax does not match "
-            "final LONG/SHORT/FLAT probability argmax"
-        )
+    """Materialize the exact raw-Q/argmax surface consumed by live."""
+    q_tensor = _require_entry_q_ssot(out)
+    q_values = q_tensor.detach().cpu().float().numpy()
+    direction_index = np.argmax(q_values, axis=1).astype(np.int64)
     row_index = np.arange(direction_index.shape[0], dtype=np.int64)
-    selection_score = direction_probs[row_index, direction_index].astype(np.float32)
+    selection_score = q_values[row_index, direction_index].astype(np.float32)
     edge_score = (
         np.maximum(
-            direction_probs[:, MODEL_DIRECTION_LONG_INDEX],
-            direction_probs[:, MODEL_DIRECTION_SHORT_INDEX],
+            q_values[:, MODEL_DIRECTION_LONG_INDEX],
+            q_values[:, MODEL_DIRECTION_SHORT_INDEX],
         )
-        - direction_probs[:, MODEL_DIRECTION_FLAT_INDEX]
+        - q_values[:, MODEL_DIRECTION_FLAT_INDEX]
     ).astype(np.float32)
+    ordered = np.sort(q_values, axis=1)
     return {
-        "direction_logits": direction_logits,
-        "direction_probs": direction_probs,
+        "entry_action_q_bps": q_values,
+        "entry_action_q_margin_bps": (ordered[:, -1] - ordered[:, -2]).astype(np.float32),
         "model_direction_index": direction_index,
-        "public_trade_flat_decision_logits": public_pair_logits,
-        "public_trade_flat_decision_probs": public_pair_probs,
-        "public_trade_flat_decision_index": public_pair_index,
-        "p_long": direction_probs[:, MODEL_DIRECTION_LONG_INDEX],
-        "p_short": direction_probs[:, MODEL_DIRECTION_SHORT_INDEX],
-        "p_flat": direction_probs[:, MODEL_DIRECTION_FLAT_INDEX],
-        "p_trade": public_pair_probs[:, PUBLIC_TRADE_INDEX],
-        "p_flat_hier": public_pair_probs[:, PUBLIC_FLAT_INDEX],
         "edge_score": edge_score,
         "selection_score": selection_score,
     }
@@ -338,20 +264,6 @@ def _concatenate_evidence_chunks(
             )
         combined[column] = value
     return combined
-
-
-def _entry_trend_regime_ids_from_ctx_cont(ctx_cont: np.ndarray) -> np.ndarray:
-    values = np.asarray(ctx_cont)
-    expected_width = len(MODEL_NATIVE_CTX_CONT_FIELDS)
-    if values.ndim != 2 or values.shape[1] != expected_width:
-        raise RuntimeError(
-            "candidate ctx_cont is not the exact context contract: "
-            f"observed={values.shape} expected=(*,{expected_width})"
-        )
-    source = values[
-        :, MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME["D1_dist_from_ema200_atr"]
-    ]
-    return derive_model_native_trend_regime_id(source)
 
 
 def _normalize_contract_mode(value: Any) -> str:
@@ -474,28 +386,37 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
     }
 
 
-def _pnl_proxy_for_side(frame: pd.DataFrame) -> np.ndarray:
-    """Score the final model argmax against the canonical two-sided utility target."""
+def _realized_net_policy_pnl(frame: pd.DataFrame) -> np.ndarray:
+    """Select immutable net executable OOS PnL for the raw-Q action.
 
-    required = {"pred_direction", "y_long_path_utility_bps", "y_short_path_utility_bps"}
+    These columns are intentionally not synthesized from old path-utility
+    labels. Until the causal quote/cost replay owner emits them, evaluation
+    fails closed rather than reporting a gross same-close proxy as PnL.
+    """
+
+    required = {
+        "pred_direction",
+        "realized_net_long_pnl_bps",
+        "realized_net_short_pnl_bps",
+    }
     missing = sorted(required - set(frame.columns))
     if missing:
         raise RuntimeError(
-            f"selective-edge frame lacks canonical utility evidence: {missing}"
+            f"selective-edge frame lacks executable net OOS evidence: {missing}"
         )
     side = pd.to_numeric(frame["pred_direction"], errors="coerce").to_numpy(
         dtype=np.float64
     )
     long_score = pd.to_numeric(
-        frame["y_long_path_utility_bps"], errors="coerce"
+        frame["realized_net_long_pnl_bps"], errors="coerce"
     ).to_numpy(dtype=np.float64)
     short_score = pd.to_numeric(
-        frame["y_short_path_utility_bps"], errors="coerce"
+        frame["realized_net_short_pnl_bps"], errors="coerce"
     ).to_numpy(dtype=np.float64)
     if not np.isfinite(side).all() or not np.isfinite(long_score).all() or not np.isfinite(
         short_score
     ).all():
-        raise RuntimeError("canonical utility evidence contains non-finite values")
+        raise RuntimeError("executable net OOS evidence contains non-finite values")
     if not set(side.astype(np.int64)).issubset(
         set(MODEL_DIRECTION_NAME_BY_INDEX)
     ) or not np.array_equal(side, side.astype(np.int64)):
@@ -510,14 +431,6 @@ def _pnl_proxy_for_side(frame: pd.DataFrame) -> np.ndarray:
             short_score,
         ),
     )
-
-
-def _direction_precision(frame: pd.DataFrame) -> float | None:
-    if frame.empty:
-        return None
-    if "pred_direction" not in frame.columns:
-        raise RuntimeError("direction precision lacks final pred_direction")
-    return float((frame["pred_direction"].astype(int) == frame["y_direction"].astype(int)).mean())
 
 
 def _metrics_for_group(
@@ -539,12 +452,9 @@ def _metrics_for_group(
             "n": 0,
             "mean_pnl_bps": None,
             "win_rate": None,
-            "direction_precision": None,
             "mean_edge_score": None,
-            "mean_bad_path_prob": None,
-            "mean_path_quality_pred": None,
         }
-    pnl = pd.to_numeric(frame["pnl_proxy_bps"], errors="coerce")
+    pnl = pd.to_numeric(frame["realized_net_policy_pnl_bps"], errors="coerce")
     return {
         "split": split,
         "model": model,
@@ -554,10 +464,7 @@ def _metrics_for_group(
         "n": int(len(frame)),
         "mean_pnl_bps": _safe_mean(pnl),
         "win_rate": _safe_mean((pnl > 0.0).astype(float)),
-        "direction_precision": _direction_precision(frame),
         "mean_edge_score": _safe_mean(frame["edge_score"]),
-        "mean_bad_path_prob": _safe_mean(frame["bad_path_prob"]) if "bad_path_prob" in frame.columns else None,
-        "mean_path_quality_pred": _safe_mean(frame["path_quality_pred"]) if "path_quality_pred" in frame.columns else None,
     }
 
 
@@ -631,17 +538,6 @@ def build_metric_rows(
                         scope="top_score",
                         top_frac=top_frac,
                         group=f"side={side}",
-                    )
-                )
-            for vol, group in top.groupby("vol_regime", sort=True):
-                rows.append(
-                    _metrics_for_group(
-                        group,
-                        split=str(split),
-                        model=str(model),
-                        scope="top_score",
-                        top_frac=top_frac,
-                        group=f"vol_regime={vol}",
                     )
                 )
     return rows
@@ -855,21 +751,11 @@ def _iter_split_chunks(
 
 # Persist learned auxiliary-head outputs as parity diagnostics. They may
 # explain or audit the model, but none may rewrite the sole serving authority:
-# ``argmax(direction_logits)``.
+# ``unique_argmax(entry_action_q_bps)``.
 _EXTRA_SIGMOID_HEADS = {
     # forward-output key -> persisted probability column (sigmoid of raw logit)
-    "tradable_logit": "tradable_prob",
-    "bad_path_logit": "bad_path_prob",
-    "clean_edge_logit": "clean_edge_prob",
-    "survival_logit": "survival_prob",
-    "tf_agreement_logit": "tf_agreement_pred",
     "position_size_logit": "position_size_pred",
 }
-
-_RUNTIME_SNAPSHOT_FEATURE_SOURCES = {
-    "mtf_trend_evidence": "trend.mtf_confluence_trend_direction_score",
-}
-
 
 def _python_value(value: Any) -> Any:
     if isinstance(value, np.generic):
@@ -893,22 +779,8 @@ def _runtime_head_evidence_for_row(
         raise RuntimeError(
             f"runtime head evidence has invalid direction index {direction_index}"
         )
-    direction_calibration = bundle_metadata.get("direction_calibration")
-    path_calibration = bundle_metadata.get("path_calibration")
-    if (
-        not isinstance(direction_calibration, Mapping)
-        or direction_calibration.get("enabled") is not True
-    ):
-        raise RuntimeError(
-            "candidate bundle lacks enabled direction_calibration for runtime evidence"
-        )
-    if (
-        not isinstance(path_calibration, Mapping)
-        or path_calibration.get("enabled") is not True
-    ):
-        raise RuntimeError(
-            "candidate bundle lacks enabled path_calibration for runtime evidence"
-        )
+    if any(key in bundle_metadata for key in ("direction_calibration", "path_calibration")):
+        raise RuntimeError("candidate Entry-Q bundle carries retired calibration")
 
     evidence: dict[str, Any] = {
         "runtime_head_evidence_schema_version": (
@@ -921,13 +793,6 @@ def _runtime_head_evidence_for_row(
         "decision_ts": str(pd.Timestamp(row["time"])),
         "session_id": int(row["session_id"]),
         "session": str(row["session"]),
-        "entry_vol_regime_id": int(row["vol_regime_id"]),
-        "entry_vol_regime": str(row["vol_regime"]),
-        "entry_atr_bucket": int(row["atr_bucket"]),
-        "entry_spread_bucket": int(row["spread_bucket"]),
-        "entry_h4_trend_sign_cat": int(row["H4_trend_sign_cat"]),
-        "entry_trend_regime_id": int(row["trend_regime_id"]),
-        "entry_trend_regime": str(row["trend_regime"]),
         "model_direction_index": direction_index,
         "model_direction": str(row["model_direction"]),
         "selected_side": (
@@ -935,20 +800,7 @@ def _runtime_head_evidence_for_row(
             if direction_index in MODEL_DIRECTION_TRADE_INDICES
             else None
         ),
-        "public_trade_flat_decision": str(
-            row["public_trade_flat_decision"]
-        ),
         "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
-        "calibration_version": str(direction_calibration["version"]),
-        "direction_calibration_enabled": True,
-        "direction_calibration_temperature": float(
-            direction_calibration["temperature"]
-        ),
-        "path_calibration_enabled": True,
-        "path_calibration": project_model_native_path_calibration(
-            path_calibration,
-            context="SELECTIVE_EDGE_RUNTIME_PATH_CALIBRATION",
-        ),
     }
     same_name_fields = (
         MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
@@ -963,49 +815,14 @@ def _runtime_head_evidence_for_row(
     for field in sorted(same_name_fields):
         evidence[field] = _python_value(row[field])
     return evidence
-_EXTRA_RAW_HEADS = {
-    # forward-output key -> persisted raw-value column
-    "mfe_first_n": "mfe_first_n_pred",
-    "path_quality_log_var": "path_quality_log_var",
-}
-# Multi-dim heads -> per-index columns <key>_{i} (widths: dip 18, forecast 4,
-# timing 12, tail_risk 6, vol_forecast 3 — taken from the tensor itself).
+# Multi-dimensional genuine auxiliary heads; widths derive from target owners.
 _EXTRA_VECTOR_HEADS = {
-    "dip_pred": 18,
-    "forecast_pred": 4,
+    "dip_pred": len(MODEL_NATIVE_DIP_TARGET_COLUMNS),
+    "forecast_pred": len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
     "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
-    "tail_risk_pred": 6,
-    "vol_forecast_pred": 3,
+    "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
+    "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
 }
-
-
-def _derived_serve_parity_outputs(
-    outputs: Mapping[str, torch.Tensor],
-    *,
-    path_quality_scale: float,
-) -> dict[str, np.ndarray]:
-    """Return exact derived tensors required by the live forward parity schema."""
-
-    if not np.isfinite(path_quality_scale) or path_quality_scale <= 0.0:
-        raise RuntimeError("path_quality_scale must be finite-positive")
-    path_log_var = _tensor_np(
-        outputs, "path_quality_log_var", width=1
-    ).reshape(-1)
-    path_std = (
-        float(path_quality_scale) * np.exp(0.5 * path_log_var)
-    ).astype(np.float32)
-    if not np.isfinite(path_std).all():
-        raise RuntimeError(
-            "path_quality_log_var produced non-finite path_quality_std"
-        )
-    mtf_logits = _tensor_np(outputs, "mtf_dir_logits", width=3)
-    mtf_probs = _softmax_np(mtf_logits).astype(np.float32)
-    if not np.isfinite(mtf_probs).all():
-        raise RuntimeError("mtf_dir_logits produced non-finite mtf_dir_probs")
-    return {
-        "path_quality_std": path_std,
-        "mtf_dir_probs": mtf_probs,
-    }
 
 
 def _require_evaluation_lineage(
@@ -1044,11 +861,11 @@ def _require_evaluation_lineage(
             "runtime-authoritative evaluation requires a full-population "
             "candidate-profile bundle"
         )
-    if evidence_stage == "pre_calibration" and not (
+    if evidence_stage == VAL_EVIDENCE_STAGE and not (
         full_candidate or bounded_smoke
     ):
         raise RuntimeError(
-            "pre-calibration evaluation requires either a bounded smoke-profile "
+            "validation research requires either a bounded smoke-profile "
             "bundle or a full-population candidate-profile bundle"
         )
 
@@ -1063,7 +880,8 @@ def _require_selective_edge_stage_split(
     stage = str(evidence_stage or "")
     if stage not in SELECTIVE_EDGE_STAGE_SPLITS:
         raise RuntimeError(
-            "SELECTIVE_EDGE_STAGE_INVALID: expected pre_calibration or "
+            "SELECTIVE_EDGE_STAGE_INVALID: expected "
+            f"{VAL_EVIDENCE_STAGE} or "
             "runtime_authoritative"
         )
     expected = SELECTIVE_EDGE_STAGE_SPLITS[stage]
@@ -1133,28 +951,6 @@ def _require_stage_split_bindings(
     }
 
 
-def _require_runtime_authoritative_calibrations(
-    bundle_metadata: Mapping[str, Any],
-) -> dict[str, dict[str, Any]]:
-    """Validate both immutable VAL calibration contracts for TEST authority."""
-
-    validated: dict[str, dict[str, Any]] = {}
-    for head in ("direction", "path"):
-        key = f"{head}_calibration"
-        calibration = require_model_native_calibration_metadata(
-            bundle_metadata.get(key),
-            head=head,
-            context=f"SELECTIVE_EDGE_RUNTIME_{head.upper()}_CALIBRATION",
-        )
-        if calibration["fitted_on_split"] != "val":
-            raise RuntimeError(
-                "SELECTIVE_EDGE_RUNTIME_CALIBRATION_SPLIT_INVALID: "
-                f"{key} must be fitted on val"
-            )
-        validated[head] = calibration
-    return validated
-
-
 def _load_selective_edge_stage_bundle(
     *,
     bundle_dir: Path,
@@ -1179,8 +975,13 @@ def _load_selective_edge_stage_bundle(
         metadata.get("run_lineage"),
         evidence_stage=evidence_stage,
     )
-    if evidence_stage == "runtime_authoritative":
-        _require_runtime_authoritative_calibrations(metadata)
+    if any(key in metadata for key in ("direction_calibration", "path_calibration")):
+        raise RuntimeError("SELECTIVE_EDGE_RETIRED_CALIBRATION_FORBIDDEN")
+    require_entry_fitted_q_production_economics_readiness(
+        metadata.get("entry_fitted_q_production_economics"),
+        context="SELECTIVE_EDGE_CANDIDATE",
+        require_ready=True,
+    )
     return bundle
 
 
@@ -1230,35 +1031,14 @@ def _predict_bundle(
         raise RuntimeError("candidate bundle lacks a positive contracted seq_len")
     seq_len = int(meta["seq_len"])
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt_path)
-    hier_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
-    utility_scale_bps = (
-        float(hier_meta["side_utility_scale_bps"])
-        if "side_utility_scale_bps" in hier_meta
-        else None
-    )
-    mae_scale_bps = (
-        float(hier_meta["side_mae_scale_bps"])
-        if "side_mae_scale_bps" in hier_meta
-        else None
-    )
-    path_calibration = meta.get("path_calibration")
-    if evidence_stage == "runtime_authoritative":
-        _require_runtime_authoritative_calibrations(meta)
+    if "hierarchical_entry_heads" in meta:
+        raise RuntimeError("candidate bundle carries retired hierarchical Entry heads")
+    if any(key in meta for key in ("direction_calibration", "path_calibration")):
+        raise RuntimeError("candidate Entry-Q bundle carries retired calibration")
     runtime_head_ready = evidence_stage == "runtime_authoritative"
-    path_inference_calibration = (
-        project_model_native_path_calibration(
-            path_calibration,
-            context="SELECTIVE_EDGE_BUNDLE_PATH_CALIBRATION",
-        )
-        if runtime_head_ready
-        else None
-    )
     ordered_signal_names = tuple(
         str(name) for name in meta.get("ordered_signal_names") or ()
     )
-    signal_positions = {
-        name: index for index, name in enumerate(ordered_signal_names)
-    }
     if runtime_head_ready:
         if len(ordered_signal_names) != MODEL_NATIVE_SIGNAL_DIM or len(
             set(ordered_signal_names)
@@ -1266,15 +1046,6 @@ def _predict_bundle(
             raise RuntimeError(
                 "candidate bundle ordered_signal_names is not the exact unique "
                 f"{MODEL_NATIVE_SIGNAL_DIM}-signal contract"
-            )
-        missing_runtime_features = sorted(
-            set(_RUNTIME_SNAPSHOT_FEATURE_SOURCES.values())
-            - set(signal_positions)
-        )
-        if missing_runtime_features:
-            raise RuntimeError(
-                "candidate bundle lacks runtime snapshot signal features: "
-                f"{missing_runtime_features}"
             )
     rows: list[pd.DataFrame] = []
 
@@ -1294,16 +1065,10 @@ def _predict_bundle(
                 )
                 loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
                 chunks: dict[str, list[np.ndarray]] = {
-                    "p_long": [],
-                    "p_short": [],
-                    "p_flat": [],
                     "edge_score": [],
                     "trade_side": [],
                     "pred_direction": [],
-                    "y_direction": [],
                     "ctx_cat": [],
-                    "ctx_cont": [],
-                    "path_quality_pred": [],
                 }
                 # Dynamic per-head buffers retain learned auxiliary evidence.
                 extra_chunks: dict[str, list[np.ndarray]] = {}
@@ -1332,132 +1097,43 @@ def _predict_bundle(
                                 f"outputs: {forbidden_outputs}"
                             )
                         decision = _canonical_live_decision_evidence(out)
-                        if runtime_head_ready:
-                            snap_values = (
-                                batch["snap_x"].detach().cpu().float().numpy()
-                            )
-                            if (
-                                snap_values.ndim != 2
-                                or snap_values.shape[1]
-                                != MODEL_NATIVE_SIGNAL_DIM
-                                or not np.isfinite(snap_values).all()
-                            ):
-                                raise RuntimeError(
-                                    "candidate snap_x is not the exact finite "
-                                    f"{MODEL_NATIVE_SIGNAL_DIM}-signal state"
-                                )
-                            for (
-                                evidence_name,
-                                signal_name,
-                            ) in _RUNTIME_SNAPSHOT_FEATURE_SOURCES.items():
-                                extra_chunks.setdefault(
-                                    evidence_name, []
-                                ).append(
-                                    snap_values[:, signal_positions[signal_name]]
-                                )
                         pred_direction = decision["model_direction_index"]
-                        public_pair_decision = decision[
-                            "public_trade_flat_decision_index"
-                        ]
-                        chunks["p_long"].append(decision["p_long"])
-                        chunks["p_short"].append(decision["p_short"])
-                        chunks["p_flat"].append(decision["p_flat"])
                         chunks["edge_score"].append(decision["edge_score"])
                         chunks["trade_side"].append(pred_direction)
                         chunks["pred_direction"].append(pred_direction)
-                        chunks["y_direction"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
                         chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
-                        chunks["ctx_cont"].append(
-                            batch["ctx_cont"]
-                            .detach()
-                            .cpu()
-                            .float()
-                            .numpy()
+                        extra_chunks.setdefault("entry_action_q_bps", []).append(
+                            decision["entry_action_q_bps"]
                         )
-                        chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
-                        extra_chunks.setdefault("direction_logits", []).append(
-                            decision["direction_logits"]
-                        )
-                        extra_chunks.setdefault("direction_probs", []).append(
-                            decision["direction_probs"]
-                        )
+                        extra_chunks.setdefault(
+                            "entry_action_q_margin_bps", []
+                        ).append(decision["entry_action_q_margin_bps"])
                         extra_chunks.setdefault("model_direction_index", []).append(
                             decision["model_direction_index"]
                         )
-                        extra_chunks.setdefault("public_trade_flat_decision_logits", []).append(
-                            decision["public_trade_flat_decision_logits"]
-                        )
-                        extra_chunks.setdefault("public_trade_flat_decision_probs", []).append(
-                            decision["public_trade_flat_decision_probs"]
-                        )
-                        extra_chunks.setdefault("public_trade_flat_decision_index", []).append(
-                            decision["public_trade_flat_decision_index"]
-                        )
-                        extra_chunks.setdefault("public_trade_probability", []).append(
-                            decision["p_trade"]
-                        )
-                        extra_chunks.setdefault("public_flat_probability", []).append(
-                            decision["p_flat_hier"]
-                        )
-                        extra_chunks.setdefault("public_trade_flat_margin", []).append(
-                            decision["public_trade_flat_decision_logits"][:, 0]
-                            - decision["public_trade_flat_decision_logits"][:, 1]
-                        )
-                        extra_chunks.setdefault("public_trade_flat_hard_decision", []).append(
-                            public_pair_decision
-                        )
                         for _out_key, _width in (
-                            ("raw_direction_logits", 3),
-                            ("path_quality", 1),
-                            ("bad_path_logit", 1),
-                            *DIRECTION_EVIDENCE_INPUTS,
+                            ("entry_q_joint_hidden", UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM),
+                            (UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY, UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM),
+                            ("side_mae_bps", 2),
+                            ("trendline_event_logits", 4),
                         ):
                             extra_chunks.setdefault(_out_key, []).append(
                                 _tensor_np(out, _out_key, width=_width)
                             )
-                        # Persist auxiliary-head diagnostics without composing
-                        # another direction decision.
+                        # Persist genuine auxiliary diagnostics without
+                        # composing another direction decision.
                         for _out_key, _col in _EXTRA_SIGMOID_HEADS.items():
                             _raw = _tensor_np(out, _out_key, width=1)
                             extra_chunks.setdefault(_col, []).append(
                                 _sigmoid_np(_raw.reshape(-1))
                             )
-                            if _out_key == "tf_agreement_logit":
-                                extra_chunks.setdefault(
-                                    "tf_agreement_prob", []
-                                ).append(_sigmoid_np(_raw.reshape(-1)))
-                        for _out_key, _col in _EXTRA_RAW_HEADS.items():
-                            _raw = _tensor_np(out, _out_key, width=1).reshape(-1)
-                            if _col != _out_key:
-                                extra_chunks.setdefault(_col, []).append(_raw)
-                        _derived_parity = _derived_serve_parity_outputs(
-                            out,
-                            path_quality_scale=(
-                                float(
-                                    path_inference_calibration[
-                                        "path_quality_scale"
-                                    ]
-                                )
-                                if path_inference_calibration is not None
-                                else 1.0
-                            ),
-                        )
-                        extra_chunks.setdefault("path_quality_std", []).append(
-                            _derived_parity["path_quality_std"]
+                        extra_chunks.setdefault("position_size_logit", []).append(
+                            _tensor_np(out, "position_size_logit", width=1).reshape(-1)
                         )
                         for _out_key, _width in _EXTRA_VECTOR_HEADS.items():
                             _vec = _tensor_np(out, _out_key, width=_width)
                             for _i in range(_width):
                                 extra_chunks.setdefault(f"{_out_key}_{_i}", []).append(_vec[:, _i])
-                        _mtf_logits = _tensor_np(out, "mtf_dir_logits", width=3)
-                        extra_chunks.setdefault("mtf_long_minus_short", []).append(
-                            (_mtf_logits[:, 0] - _mtf_logits[:, 1]).astype(np.float32)
-                        )
-                        _mtf = _derived_parity["mtf_dir_probs"]
-                        extra_chunks.setdefault("mtf_dir_probs", []).append(_mtf)
-                        extra_chunks.setdefault("mtf_p_long", []).append(_mtf[:, 0])
-                        extra_chunks.setdefault("mtf_p_short", []).append(_mtf[:, 1])
-                        extra_chunks.setdefault("mtf_p_flat", []).append(_mtf[:, 2])
                         specialist_gate = _tensor_np(
                             out,
                             "specialist_gate",
@@ -1511,59 +1187,9 @@ def _predict_bundle(
                             .numpy()
                             .reshape(int(_feature_gate.shape[0]), -1)
                         )
-                        trendline_rail_logits = _tensor_np(out, "trendline_rail_logits", width=6)
-                        trendline_rail_probs = _sigmoid_np(trendline_rail_logits)
-                        extra_chunks.setdefault("trendline_rail_probs", []).append(
-                            trendline_rail_probs
-                        )
-                        for _name, _index in (
-                            ("trendline_rail_rising_support_prob", 0),
-                            ("trendline_rail_falling_resistance_prob", 1),
-                            ("trendline_rail_countertrend_short_trap_prob", 2),
-                            ("trendline_rail_countertrend_long_trap_prob", 3),
-                            ("trendline_rail_short_early_failure_prob", 4),
-                            ("trendline_rail_long_early_failure_prob", 5),
-                        ):
-                            extra_chunks.setdefault(_name, []).append(trendline_rail_probs[:, _index])
-                        _tensor_np(out, "trade_logit", width=1)
-                        side_logits = _tensor_np(out, "side_logits", width=2)
-                        side_utility = _tensor_np(out, "side_utility", width=2)
-                        side_bad_path_logit = _tensor_np(out, "side_bad_path_logit", width=2)
-                        side_mae = _tensor_np(out, "side_mae", width=2)
-                        side_validity_logit = _tensor_np(out, "side_validity_logit", width=2)
-                        extra_chunks.setdefault("p_trade", []).append(decision["p_trade"])
-                        extra_chunks.setdefault("p_flat_hier", []).append(
-                            decision["p_flat_hier"]
-                        )
-                        side_probs = _softmax_np(side_logits)
-                        extra_chunks.setdefault("side_probs", []).append(side_probs)
-                        extra_chunks.setdefault("p_long_given_trade", []).append(side_probs[:, 0])
-                        extra_chunks.setdefault("p_short_given_trade", []).append(side_probs[:, 1])
-                        side_uncertainty = (1.0 - np.maximum(side_probs[:, 0], side_probs[:, 1])).astype(np.float32)
-                        extra_chunks.setdefault("side_uncertainty", []).append(side_uncertainty)
-                        side_bad = _sigmoid_np(side_bad_path_logit)
-                        extra_chunks.setdefault("long_bad_path_prob", []).append(side_bad[:, 0])
-                        extra_chunks.setdefault("short_bad_path_prob", []).append(side_bad[:, 1])
-                        side_validity = _sigmoid_np(side_validity_logit)
-                        extra_chunks.setdefault("long_validity_prob", []).append(side_validity[:, 0])
-                        extra_chunks.setdefault("short_validity_prob", []).append(side_validity[:, 1])
-                        if utility_scale_bps is None or not np.isfinite(utility_scale_bps) or utility_scale_bps <= 0.0:
-                            raise RuntimeError("side_utility output lacks a finite positive contracted scale")
-                        long_util = (side_utility[:, 0] * utility_scale_bps).astype(np.float32)
-                        short_util = (side_utility[:, 1] * utility_scale_bps).astype(np.float32)
-                        extra_chunks.setdefault("long_path_utility_pred_bps", []).append(long_util)
-                        extra_chunks.setdefault("short_path_utility_pred_bps", []).append(short_util)
-                        if mae_scale_bps is None or not np.isfinite(mae_scale_bps) or mae_scale_bps <= 0.0:
-                            raise RuntimeError("side_mae output lacks a finite positive contracted scale")
-                        extra_chunks.setdefault("long_expected_mae_bps", []).append(
-                            np.maximum(side_mae[:, 0] * mae_scale_bps, 0.0).astype(np.float32)
-                        )
-                        extra_chunks.setdefault("short_expected_mae_bps", []).append(
-                            np.maximum(side_mae[:, 1] * mae_scale_bps, 0.0).astype(np.float32)
-                        )
 
                 arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
-                n = int(len(arrays["y_direction"]))
+                n = int(len(arrays["pred_direction"]))
                 extra_arrays = _concatenate_evidence_chunks(
                     extra_chunks,
                     expected_rows=n,
@@ -1571,17 +1197,11 @@ def _predict_bundle(
                 frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
                 frame = frame.iloc[:n].copy()
                 ctx_cat = np.asarray(arrays["ctx_cat"], dtype=np.int64)
-                ctx_cont = np.asarray(arrays["ctx_cont"], dtype=np.float32)
                 frame["split"] = split
                 frame["model"] = model_name
-                frame["p_long"] = arrays["p_long"]
-                frame["p_short"] = arrays["p_short"]
-                frame["p_flat"] = arrays["p_flat"]
                 frame["edge_score"] = arrays["edge_score"]
                 frame["trade_side"] = arrays["trade_side"].astype(np.int64)
                 frame["pred_direction"] = arrays["pred_direction"].astype(np.int64)
-                frame["y_direction"] = arrays["y_direction"].astype(np.int64)
-                frame["path_quality_pred"] = arrays["path_quality_pred"]
                 # Auxiliary outputs are evidence columns only. Add them in one
                 # block to avoid fragmented frames and needless memory churn.
                 evidence_columns: dict[str, Any] = {}
@@ -1595,7 +1215,6 @@ def _predict_bundle(
                     elif (
                         _col.endswith("_side")
                         or _col.endswith("_index")
-                        or _col == "public_trade_flat_hard_decision"
                     ):
                         evidence_columns[_col] = _arr.astype(np.int64)
                     else:
@@ -1614,33 +1233,24 @@ def _predict_bundle(
                     axis=1,
                 )
                 frame["selection_score_mode"] = MODEL_DIRECTION_SELECTION_MODE
-                direction_probabilities = frame[
-                    ["p_long", "p_short", "p_flat"]
-                ].to_numpy(dtype=np.float32)
                 direction_indices = frame["pred_direction"].to_numpy(dtype=np.int64)
                 if np.any((direction_indices < 0) | (direction_indices > 2)):
                     raise RuntimeError(
                         f"{model_name}/{split}: invalid model direction index"
                     )
-                frame["selection_score"] = direction_probabilities[
+                entry_q = np.stack(
+                    frame["entry_action_q_bps"].map(
+                        lambda value: np.asarray(value, dtype=np.float32)
+                    )
+                )
+                frame["selection_score"] = entry_q[
                     np.arange(n, dtype=np.int64), direction_indices
                 ].astype(np.float32)
                 frame["model_direction"] = frame["pred_direction"].map(SIDE_NAMES)
-                frame["public_trade_flat_decision"] = np.where(
-                    frame["public_trade_flat_decision_index"].to_numpy(
-                        dtype=np.int64
-                    )
-                    == 0,
-                    "TRADE",
-                    "FLAT",
-                )
                 required_targets = {
-                    "y_long_path_utility_bps",
-                    "y_short_path_utility_bps",
-                    "path_quality_bps",
-                    "y_bad_path",
+                    "realized_net_long_pnl_bps",
+                    "realized_net_short_pnl_bps",
                     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-                    *ACTION_VALUE_TARGET_COLUMNS,
                 }
                 missing_targets = sorted(required_targets - set(frame.columns))
                 if missing_targets:
@@ -1665,65 +1275,6 @@ def _predict_bundle(
                     )
                 frame["session"] = [SESSION_NAMES[int(x)] for x in session_ids]
                 frame["session_id"] = session_ids
-                vol_regime_ids = ctx_cat[
-                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["vol_regime_id"]
-                ].astype(np.int64)
-                h4_trend_ids = ctx_cat[
-                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["H4_trend_sign_cat"]
-                ].astype(np.int64)
-                trend_regime_ids = _entry_trend_regime_ids_from_ctx_cont(
-                    ctx_cont
-                )
-                if not np.isin(
-                    vol_regime_ids,
-                    MODEL_NATIVE_CTX_CAT_DOMAINS["vol_regime_id"],
-                ).all():
-                    raise RuntimeError(
-                        f"{model_name}/{split}: invalid entry vol-regime ids"
-                    )
-                if not np.isin(
-                    h4_trend_ids,
-                    MODEL_NATIVE_CTX_CAT_DOMAINS["H4_trend_sign_cat"],
-                ).all():
-                    raise RuntimeError(
-                        f"{model_name}/{split}: invalid entry H4-trend ids"
-                    )
-                if not np.isin(
-                    trend_regime_ids,
-                    np.arange(len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)),
-                ).all():
-                    raise RuntimeError(
-                        f"{model_name}/{split}: invalid entry trend-regime ids"
-                    )
-                frame["vol_regime_id"] = vol_regime_ids
-                frame["vol_regime"] = [
-                    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[int(value)]
-                    for value in vol_regime_ids
-                ]
-                atr_bucket_ids = ctx_cat[
-                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["atr_bucket"]
-                ].astype(np.int64)
-                spread_bucket_ids = ctx_cat[
-                    :, MODEL_NATIVE_CTX_CAT_INDEX_BY_NAME["spread_bucket"]
-                ].astype(np.int64)
-                if not np.isin(
-                    atr_bucket_ids,
-                    MODEL_NATIVE_CTX_CAT_DOMAINS["atr_bucket"],
-                ).all() or not np.isin(
-                    spread_bucket_ids,
-                    MODEL_NATIVE_CTX_CAT_DOMAINS["spread_bucket"],
-                ).all():
-                    raise RuntimeError(
-                        f"{model_name}/{split}: invalid entry rank-bucket ids"
-                    )
-                frame["atr_bucket"] = atr_bucket_ids
-                frame["spread_bucket"] = spread_bucket_ids
-                frame["H4_trend_sign_cat"] = h4_trend_ids
-                frame["trend_regime_id"] = trend_regime_ids
-                frame["trend_regime"] = [
-                    MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES[int(value)]
-                    for value in trend_regime_ids
-                ]
                 direction_ids = frame["pred_direction"].to_numpy(dtype=np.int64)
                 if not set(direction_ids).issubset(SIDE_NAMES):
                     raise RuntimeError(
@@ -1731,7 +1282,7 @@ def _predict_bundle(
                         f"{sorted(set(direction_ids) - set(SIDE_NAMES))}"
                     )
                 frame["side"] = [SIDE_NAMES[int(x)] for x in direction_ids]
-                frame["pnl_proxy_bps"] = _pnl_proxy_for_side(frame)
+                frame["realized_net_policy_pnl_bps"] = _realized_net_policy_pnl(frame)
                 if runtime_head_ready:
                     if "atr_bps" not in frame.columns:
                         raise RuntimeError(
@@ -1774,30 +1325,17 @@ def _predict_bundle(
                     "split",
                     "model",
                     "time",
-                    "y_direction",
                     "pred_direction",
                     "trade_side",
                     "side",
                     "session",
                     "session_id",
-                    "vol_regime_id",
-                    "vol_regime",
-                    "atr_bucket",
-                    "spread_bucket",
-                    "H4_trend_sign_cat",
-                    "trend_regime_id",
-                    "trend_regime",
                     "edge_score",
-                    "p_long",
-                    "p_short",
-                    "p_flat",
+                    "entry_action_q_bps",
+                    "entry_action_q_margin_bps",
                     "selection_score_mode",
                     "selection_score",
-                    "path_quality_pred",
-                    "bad_path_prob",
-                    "path_quality_bps",
-                    "y_bad_path",
-                    "pnl_proxy_bps",
+                    "realized_net_policy_pnl_bps",
                 ]
                 if runtime_head_ready:
                     keep_cols.extend(
@@ -1811,13 +1349,8 @@ def _predict_bundle(
                 # Immutable smoke audit targets.  These remain evidence only;
                 # none is allowed to rewrite the model's final direction.
                 for target_col in (
-                    "mfe_first_n_bps",
-                    "y_tradable",
-                    "y_selector_long_mask",
-                    "y_selector_short_mask",
                     "y_position_size_target",
                     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-                    *ACTION_VALUE_TARGET_COLUMNS,
                 ):
                     if target_col not in frame.columns:
                         raise RuntimeError(
@@ -1827,14 +1360,9 @@ def _predict_bundle(
                     keep_cols.append(target_col)
                 if "y_forecast_ret_K24" in frame.columns:
                     keep_cols.append("y_forecast_ret_K24")
-                for utility_col in (
-                    "y_long_path_utility_bps",
-                    "y_short_path_utility_bps",
-                    "y_direction_long_score_bps",
-                    "y_direction_short_score_bps",
-                ):
-                    if utility_col in frame.columns:
-                        keep_cols.append(utility_col)
+                keep_cols.extend(
+                    ["realized_net_long_pnl_bps", "realized_net_short_pnl_bps"]
+                )
                 # Keep every persisted auxiliary evidence column.
                 keep_cols.extend(c for c in extra_arrays.keys() if c not in keep_cols)
                 rows.append(frame[[c for c in keep_cols if c in frame.columns]])
@@ -1953,12 +1481,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append("no selective-edge predictions were produced")
     # FORBIDDEN_LEGACY_BRIDGE_FIELDS names input features the retired IQL bridge
     # model consumed (self-referential leakage), not this writer's canonical
-    # decision-evidence output columns. _canonical_live_decision_evidence
-    # (line ~292) legitimately emits p_long/p_short/p_flat as the argmax-
-    # consistent LONG/SHORT/FLAT probability surface - the same fields the
-    # bridge-input list happens to name. Only the retired direct model OUTPUTS
-    # are forbidden here; the input-feature list is checked where it applies,
-    # at feature selection (entry_model_native_signal_v1.py:451).
+    # decision-evidence output columns. Entry authority is raw Q, so no
+    # probability compatibility surface is emitted.
     forbidden_prediction_columns = sorted(
         {"anchor_logits", "delta_logits", "anchor_gate"}.intersection(
             predictions.columns
@@ -2112,7 +1636,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--splits",
         required=True,
         help=(
-            "Exactly one stage-owned split: use val with pre_calibration or "
+            "Exactly one stage-owned split: use val with "
+            f"{VAL_EVIDENCE_STAGE} or "
             "test with runtime_authoritative."
         ),
     )
@@ -2121,9 +1646,9 @@ def build_parser() -> argparse.ArgumentParser:
         choices=EVIDENCE_STAGES,
         required=True,
         help=(
-            "pre_calibration is VAL-only and non-authorizing; "
+            f"{VAL_EVIDENCE_STAGE} is VAL-only and non-authorizing; "
             "runtime_authoritative is TEST-only and requires a strict-loaded "
-            "full candidate bundle with frozen direction/path calibration."
+            "full candidate bundle with frozen fitted-Q lineage."
         ),
     )
     for split in EVALUATION_SPLITS:

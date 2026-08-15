@@ -30,13 +30,9 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     model_native_readiness_contract_metadata,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
-    DIRECTION_BALANCE_ENV_TEMPLATE,
-    DIRECTION_BALANCE_RECIPE_CONTRACT,
     DIRECTION_CONTEXT_SLICE_CONTRACT,
-    PATH_CALIBRATION_ENV_TEMPLATE,
-    PATH_CALIBRATION_RECIPE_CONTRACT,
-    TAIL_DIRECTION_ENV_TEMPLATE,
-    TAIL_DIRECTION_RECIPE_CONTRACT,
+    DIRECTION_DIAGNOSTIC_ENV_TEMPLATE,
+    DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     TRAIN_WRAPPER_RELATIVE_PATH,
@@ -51,7 +47,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-    DIRECTION_DATASET_STEM_SUFFIX,
+    ENTRY_FITTED_Q_DATASET_STEM_SUFFIX,
 )
 
 
@@ -61,7 +57,7 @@ SPLIT_SCHEMA_VERSION = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v3"
 MANIFEST_VARIANT = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SEQ_SNAP_WIDTH = MODEL_NATIVE_SIGNAL_DIM
-DEFAULT_STEM = f"v10_model_native_seq513_smoke{DIRECTION_DATASET_STEM_SUFFIX}"
+DEFAULT_STEM = f"v10_model_native_seq513_smoke{ENTRY_FITTED_Q_DATASET_STEM_SUFFIX}"
 SMART_SPECIALIST_CONTRACT_MODE = MODEL_NATIVE_CONTRACT_MODE
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
 _TIMESTAMPED_JSON_RE = re.compile(
@@ -149,34 +145,19 @@ def _check(name: str, ok: bool, details: Any = None) -> dict[str, Any]:
     return {"name": name, "ok": bool(ok), "details": details if details is not None else {}}
 
 
-def _path_calibration_recipe_ok(contract: dict[str, Any]) -> bool:
-    recipe = contract.get("path_calibration_recipe_contract")
-    env_template = contract.get("path_calibration_env_template")
+def _direction_diagnostic_recipe_ok(
+    contract: dict[str, Any],
+) -> bool:
+    recipe = contract.get("direction_diagnostic_recipe_contract")
+    env_template = contract.get("direction_diagnostic_env_template")
     if not isinstance(recipe, dict) or not isinstance(env_template, dict):
         return False
-    if recipe != PATH_CALIBRATION_RECIPE_CONTRACT:
+    if recipe != DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT:
         return False
-    return all(env_template.get(key) == value for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items())
-
-
-def _direction_balance_recipe_ok(contract: dict[str, Any]) -> bool:
-    recipe = contract.get("direction_balance_recipe_contract")
-    env_template = contract.get("direction_balance_env_template")
-    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
-        return False
-    if recipe != DIRECTION_BALANCE_RECIPE_CONTRACT:
-        return False
-    return all(env_template.get(key) == value for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items())
-
-
-def _tail_direction_recipe_ok(contract: dict[str, Any]) -> bool:
-    recipe = contract.get("tail_direction_recipe_contract")
-    env_template = contract.get("tail_direction_env_template")
-    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
-        return False
-    if recipe != TAIL_DIRECTION_RECIPE_CONTRACT:
-        return False
-    return all(env_template.get(key) == value for key, value in TAIL_DIRECTION_ENV_TEMPLATE.items())
+    return all(
+        env_template.get(key) == value
+        for key, value in DIRECTION_DIAGNOSTIC_ENV_TEMPLATE.items()
+    )
 
 
 def _direction_context_slice_ok(contract: dict[str, Any]) -> bool:
@@ -462,9 +443,7 @@ def _future_command_contracts(
         # Per-timeframe lookback. Each band is owned by the coarsest timeframe
         # that covers it, so no branch spends bars on a span a cheaper one
         # already sees: M5 the last hour and a half, M15 out to two thirds of a
-        # day, H1 four days, H4 sixteen days, D1 a full trading year. 252 is not
-        # a new number - it is the window D1_atr_percentile_252 already uses,
-        # and 64 is the M15 length this repo chose to drop the M5 overlap.
+        # day, H1 four days, H4 sixteen days and D1 a full trading year.
         "--per-tf-seq-len-m5",
         "16",
         "--per-tf-seq-len-m15",
@@ -516,15 +495,13 @@ def _future_command_contracts(
             "swap_cap": swap_cap,
             "num_workers": 0,
             "starts_trainer": True,
-            "requires_path_calibration_recipe_contract": True,
-            "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
-            "path_calibration_env_template": dict(PATH_CALIBRATION_ENV_TEMPLATE),
-            "requires_direction_balance_recipe_contract": True,
-            "direction_balance_recipe_contract": dict(DIRECTION_BALANCE_RECIPE_CONTRACT),
-            "direction_balance_env_template": dict(DIRECTION_BALANCE_ENV_TEMPLATE),
-            "requires_tail_direction_recipe_contract": True,
-            "tail_direction_recipe_contract": dict(TAIL_DIRECTION_RECIPE_CONTRACT),
-            "tail_direction_env_template": dict(TAIL_DIRECTION_ENV_TEMPLATE),
+            "requires_direction_diagnostic_recipe_contract": True,
+            "direction_diagnostic_recipe_contract": dict(
+                DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+            ),
+            "direction_diagnostic_env_template": dict(
+                DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+            ),
             "requires_direction_context_slice_contract": True,
             "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
             "requires_canonical_direction_decision_contract": True,
@@ -757,22 +734,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {split: row["manifest_variant"] for split, row in splits.items()},
         ),
         _check(
-            "split manifests pin expected seq snap width 513",
+            "split manifests pin the owner-declared seq/snap width",
             all(row["expected_seq_snap_width"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
             {split: row["expected_seq_snap_width"] for split, row in splits.items()},
         ),
         _check(
-            "split signal seq and snap dims are 513",
+            "split signal seq and snap dims match the owner contract",
             all(row["seq_input_dim"] == EXPECTED_SEQ_SNAP_WIDTH and row["snap_input_dim"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
             splits,
         ),
         _check(
-            "split signal field counts are 513",
+            "split signal field counts match the owner contract",
             all(row["field_count"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
             {split: row["field_count"] for split, row in splits.items()},
         ),
         _check(
-            "split parquet seq and snap samples have width 513",
+            "split parquet seq and snap samples match the owner width",
             all(bool(row["shape_probe"].get("ok")) for row in splits.values()),
             {split: row["shape_probe"] for split, row in splits.items()},
         ),
@@ -847,18 +824,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             future_command_contracts["smart_smoke_train"],
         ),
         _check(
-            "future train contract declares path-quality and bad-path rank recipe",
-            _path_calibration_recipe_ok(future_command_contracts["smart_smoke_train"]),
-            future_command_contracts["smart_smoke_train"],
-        ),
-        _check(
-            "future train contract declares direction balance recipe",
-            _direction_balance_recipe_ok(future_command_contracts["smart_smoke_train"]),
-            future_command_contracts["smart_smoke_train"],
-        ),
-        _check(
-            "future train contract declares tail direction recipe",
-            _tail_direction_recipe_ok(future_command_contracts["smart_smoke_train"]),
+            "future train contract declares diagnostic and learned-task recipe",
+            _direction_diagnostic_recipe_ok(
+                future_command_contracts["smart_smoke_train"]
+            ),
             future_command_contracts["smart_smoke_train"],
         ),
         _check(

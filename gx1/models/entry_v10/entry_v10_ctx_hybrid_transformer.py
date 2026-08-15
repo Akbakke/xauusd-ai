@@ -18,20 +18,18 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_MTF_CONTEXT_TIMEFRAMES,
     ENTRY_EXIT_RESOLUTION_RATIO,
     EXIT_FEATURE_MAX_SEQUENCE_BARS,
+    EXIT_FEATURE_SEQUENCE_BARS,
     EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    HIDDEN_DIM as EXACT_EVIDENCE_FUSION_HIDDEN_DIM,
-    INPUT_DIM as EXACT_EVIDENCE_FUSION_INPUT_DIM,
-    INPUTS as EXACT_EVIDENCE_FUSION_OUTPUTS,
-)
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    ACTION_COUNT as OFFLINE_RL_ACTION_COUNT,
-    ACTION_VALUE_DIM,
-    EXPECTILE_VALUE_DIM,
-    HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
+from gx1.contracts.entry_decision_token_v1 import (
+    ENTRY_DECISION_TOKEN_COMPONENTS,
+    ENTRY_DECISION_TOKEN_DIM,
+    ENTRY_DECISION_TOKEN_SOURCE_DIM,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_DIRECTIONS as DIP_DIRECTIONS,  # noqa: F401
+    MODEL_NATIVE_DIP_OUTPUT_DIM as DIP_HEAD_DIM,
+    MODEL_NATIVE_DIP_OUTPUT_TARGETS as DIP_TARGETS,  # noqa: F401
     MODEL_NATIVE_AUX_RISK_HORIZONS as TIMING_HORIZONS,  # noqa: F401
     MODEL_NATIVE_TIMING_DIRECTIONS as TIMING_DIRECTIONS,  # noqa: F401
     MODEL_NATIVE_TIMING_OUTPUT_DIM as TIMING_HEAD_DIM,
@@ -44,9 +42,15 @@ from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
     raw_tf_input_scale_from_effective,
 )
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
-    CLIP_ABS as INPUT_NORMALIZATION_CLIP_ABS,
     EXPECTED_SURFACES as INPUT_NORMALIZATION_SURFACES,
     require_input_normalization_contract,
+)
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
+)
+from gx1.contracts.unified_exit_episode_pack_v1 import (
+    UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS,
+    UNIFIED_EXIT_EPISODE_STATE_COUNT,
 )
 from gx1.contracts.entry_exit_production_architecture_v1 import (
     current_entry_exit_architecture_observation,
@@ -58,8 +62,6 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
-    MODEL_DIRECTION_FLAT_INDEX,
-    MODEL_DIRECTION_TRADE_INDICES,
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
     UNIFIED_EXIT_MAX_PATH_BARS,
     UNIFIED_EXIT_PATH_ENCODER_LAYERS,
@@ -79,51 +81,63 @@ def _assert_finite(name: str, t: torch.Tensor) -> None:
         raise RuntimeError(f"NONFINITE: {name} contains NaN/Inf")
 
 
-def _apply_argmax_preserving_direction_temperature(
-    raw_direction_logits: torch.Tensor,
-    temperature: float,
+_EXIT_TOKEN_AXIS_KERNEL_ROW_CHUNK = 32_768
+
+
+def _apply_exit_token_axis_encoder(
+    encoder: nn.Module,
+    rows: torch.Tensor,
+    *,
+    row_chunk_size: int = _EXIT_TOKEN_AXIS_KERNEL_ROW_CHUNK,
 ) -> torch.Tensor:
-    """Apply scalar temperature without granting calibration direction authority."""
+    """Apply a token-axis encoder without exceeding CUDA batch-grid limits.
 
-    _assert_shape("raw_direction_logits", raw_direction_logits, 2)
-    if int(raw_direction_logits.shape[1]) != 3:
-        raise RuntimeError(
-            "ENTRY_DIRECTION_CAL_LOGIT_SHAPE_INVALID: "
-            f"observed={tuple(raw_direction_logits.shape)} expected=(B,3)"
-        )
-    _assert_finite("raw_direction_logits", raw_direction_logits)
-    parsed_temperature = float(temperature)
-    if not math.isfinite(parsed_temperature) or parsed_temperature <= 0.0:
-        raise RuntimeError(
-            "ENTRY_DIRECTION_CAL_TEMPERATURE_INVALID: "
-            f"temperature={temperature!r}"
-        )
+    Rows are independent batch items. Concatenating differentiable encoder
+    calls is algebraically identical to one call in eval mode and preserves
+    the complete graph in training; no state, feature or target is sampled or
+    detached.
+    """
 
-    raw_winner_mask = raw_direction_logits.eq(
-        raw_direction_logits.amax(dim=1, keepdim=True)
+    _assert_shape("exit_token_axis_rows", rows, 3)
+    if (
+        isinstance(row_chunk_size, bool)
+        or not isinstance(row_chunk_size, int)
+        or row_chunk_size < 1
+    ):
+        raise RuntimeError("UNIFIED_EXIT_TOKEN_AXIS_CHUNK_INVALID")
+    if int(rows.shape[0]) <= row_chunk_size:
+        return encoder(rows)
+    return torch.cat(
+        [
+            encoder(rows[left : left + row_chunk_size])
+            for left in range(
+                0,
+                int(rows.shape[0]),
+                row_chunk_size,
+            )
+        ],
+        dim=0,
     )
-    raw_winner_counts = raw_winner_mask.sum(dim=1)
-    raw_tied_rows = int((raw_winner_counts != 1).sum().item())
-    if raw_tied_rows:
-        raise RuntimeError(
-            "ENTRY_DIRECTION_CAL_RAW_ARGMAX_NOT_UNIQUE: "
-            f"ties_fail_closed rows={raw_tied_rows}"
-        )
 
-    calibrated = raw_direction_logits / parsed_temperature
-    _assert_finite("calibrated_direction_logits", calibrated)
-    calibrated_winner_mask = calibrated.eq(calibrated.amax(dim=1, keepdim=True))
-    if not torch.equal(raw_winner_mask, calibrated_winner_mask):
-        raise RuntimeError(
-            "ENTRY_DIRECTION_CAL_ARGMAX_INVARIANT_VIOLATION: "
-            "scalar temperature changed or collapsed a raw winner"
-        )
-    return calibrated
+
+@dataclass(frozen=True)
+class UnifiedExitIncrementalCarry:
+    """Learned recurrent state carried between authoritative M1 closures."""
+
+    step_count: int
+    batch_size: int
+    local_global_hidden: torch.Tensor
+    local_family_hidden: Mapping[str, torch.Tensor]
+    mtf_family_hidden: Mapping[str, Mapping[str, torch.Tensor]]
+    mtf_current_raw: Mapping[str, torch.Tensor]
+    path_hidden: torch.Tensor
 
 
 TRAIN_ACTIVATION_CHECKPOINT_POLICY = (
     "per_transformer_layer_non_reentrant_preserve_rng_v1"
 )
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v8"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v8"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -173,7 +187,7 @@ def _memory_bounded_transformer_encoder(
     return hidden
 
 
-EXACT_TRENDLINE_RAIL_OUTPUT_DIM = 6
+EXACT_TRENDLINE_EVENT_OUTPUT_DIM = 4
 EXACT_SPECIALIST_NAMES = MODEL_NATIVE_TRAINING_SPECIALISTS
 EXACT_CTX_CAT_DOMAINS = MODEL_NATIVE_CTX_CAT_DOMAINS
 if tuple(EXACT_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
@@ -185,10 +199,7 @@ if tuple(EXACT_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
 # not magic numbers). dip_p50/p90 = conditional quantiles of mae_before_mfe (dip
 # depth if taking now); recovery_p50 = median mfe-after-dip. See memory
 # project_gx1_dip_aware_entry_timing.
-DIP_DIRECTIONS = ("long", "short")
-DIP_HORIZONS = (12, 48, 96)                       # M5 bars
-DIP_TARGETS = ("dip_p50", "dip_p90", "recovery_p50")
-DIP_HEAD_DIM = len(DIP_DIRECTIONS) * len(DIP_HORIZONS) * len(DIP_TARGETS)  # = 18
+DIP_HORIZONS = TIMING_HORIZONS
 
 # ── Self-supervised forecast head (#5) — predict cumulative future return (bps)
 # at several M5 horizons. Self-supervised (target = realized future return, no
@@ -274,14 +285,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             seq_h4=seq_h4,
             seq_d1=seq_d1,
         )
-        out["direction_logits"]  -> (B, 3)  # classes: 0=LONG, 1=SHORT, 2=FLAT
-        out["public_trade_flat_decision_logits"] -> (B, 2)  # TRADE=max(LONG,SHORT), FLAT
-        out["path_quality"]      -> (B, 1)  # auxiliary learned path evidence
-        out["mfe_first_n"]       -> (B, 1)  # auxiliary learned excursion evidence
-        out["tradable_logit"]    -> (B, 1)  # auxiliary (binary) tradable head
-        out["bad_path_logit"]    -> (B, 1)  # auxiliary (binary) early-adverse / MAE-first head
-        out["clean_edge_logit"]  -> (B, 1)  # auxiliary (binary) premium clean-edge head
-        out["survival_logit"]    -> (B, 1)  # auxiliary (binary) survives-first-adverse head
+        out["entry_action_q_bps"] -> (B, 3)  # LONG, SHORT, FLAT raw bps
+        out["side_mae_bps"]      -> (B, 2)  # raw LONG/SHORT adverse excursion
+        out["trendline_event_logits"] -> (B, EXACT_TRENDLINE_EVENT_OUTPUT_DIM)
     """
 
     def __init__(
@@ -454,6 +460,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
 
         d_model = int(self.cfg.d_model)
+        if d_model != ENTRY_DECISION_TOKEN_DIM:
+            raise RuntimeError(
+                "ENTRY_DECISION_TOKEN_MODEL_WIDTH_MISMATCH: "
+                f"d_model={d_model} token_dim={ENTRY_DECISION_TOKEN_DIM}"
+            )
         n_heads = int(self.cfg.n_heads)
         num_layers = int(self.cfg.num_layers)
         dropout = float(self.cfg.dropout)
@@ -1011,61 +1022,49 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.tensor(float(self.cfg.specialist_fusion_scale)),
         )
 
-        # Exact direction and supervised evidence heads.
-        self.head_direction = nn.Linear(d_model, 3)
-        self._direction_cal: Optional[float] = None
-        self._path_cal: Optional[Tuple[float, float, float, float]] = None
-        self.regime_film = nn.Sequential(
-            nn.Linear(d_model, d_model),
-            nn.GELU(),
-            nn.Linear(d_model, 2 * d_model),
-        )
-        nn.init.zeros_(self.regime_film[-1].weight)
-        nn.init.zeros_(self.regime_film[-1].bias)
-
-        self.head_path_quality = nn.Linear(d_model, 1)
-        self.head_mfe_first_n = nn.Linear(d_model, 1)
-        self.head_tradable = nn.Linear(d_model, 1)
-        self.head_bad_path = nn.Linear(d_model, 1)
-        self.head_clean_edge = nn.Linear(d_model, 1)
-        self.head_survival = nn.Linear(d_model, 1)
-        self.head_trade = nn.Linear(d_model, 1)
-        self.head_side = nn.Linear(d_model, 2)
-        self.head_side_utility = nn.Linear(d_model, 2)
-        self.head_side_bad_path = nn.Linear(d_model, 2)
+        # Sole Entry authority.  The raw-bps Q head consumes the learned local,
+        # final local+MTF, MTF-only and family-context representations directly.
+        # No auxiliary prediction, handcrafted evidence vector or calibrated
+        # probability can sit between this joint representation and argmax.
+        self.entry_q_joint_norm = nn.LayerNorm(4 * d_model)
+        self.entry_q_joint_in = nn.Linear(4 * d_model, d_model)
+        self.head_entry_action_q = nn.Linear(d_model, 3)
         self.head_side_mae = nn.Linear(d_model, 2)
-        self.head_side_validity = nn.Linear(d_model, 2)
-        self.head_trendline_rail = nn.Linear(d_model, EXACT_TRENDLINE_RAIL_OUTPUT_DIM)
-        self.head_mtf_direction = nn.Linear(d_model, 3)
-        self.head_tf_agreement = nn.Linear(d_model, 1)
-        self.head_path_quality_log_var = nn.Linear(d_model, 1)
+        self.head_trendline_event = nn.Linear(
+            d_model, EXACT_TRENDLINE_EVENT_OUTPUT_DIM
+        )
         self.head_position_size = nn.Linear(d_model, 1)
         self.head_dip = nn.Linear(d_model, DIP_HEAD_DIM)
         self.head_forecast = nn.Linear(d_model, FORECAST_HEAD_DIM)
         self.head_timing = nn.Linear(d_model, TIMING_HEAD_DIM)
         self.head_tail_risk = nn.Linear(d_model, TAIL_RISK_HEAD_DIM)
         self.head_vol_forecast = nn.Linear(d_model, VOL_FORECAST_HEAD_DIM)
-        self.head_action_value = nn.Linear(d_model, ACTION_VALUE_DIM)
-        self.head_expectile_value = nn.Linear(d_model, EXPECTILE_VALUE_DIM)
-        self.evidence_fusion_norm = nn.LayerNorm(EXACT_EVIDENCE_FUSION_INPUT_DIM)
-        self.evidence_fusion_in = nn.Linear(
-            EXACT_EVIDENCE_FUSION_INPUT_DIM, EXACT_EVIDENCE_FUSION_HIDDEN_DIM
+        # Neutral equal initialization carries no task or direction preference.
+        # The trainer applies the one contract-owned uncertainty formula and
+        # these parameters travel inside the ordinary model state_dict.
+        self.task_log_variances = nn.ParameterDict(
+            {
+                task_name: nn.Parameter(torch.zeros((), dtype=torch.float32))
+                for task_name in JOINT_TASK_NAMES
+            }
         )
-        self.evidence_fusion_out = nn.Linear(EXACT_EVIDENCE_FUSION_HIDDEN_DIM, 3)
+        self.entry_decision_token = nn.Sequential(
+            nn.LayerNorm(ENTRY_DECISION_TOKEN_SOURCE_DIM),
+            nn.Linear(
+                ENTRY_DECISION_TOKEN_SOURCE_DIM,
+                ENTRY_DECISION_TOKEN_DIM,
+            ),
+            nn.GELU(),
+        )
 
-        nn.init.zeros_(self.head_trade.bias)
-        nn.init.zeros_(self.head_side.bias)
-        for head in (self.head_side_utility, self.head_side_bad_path, self.head_side_mae):
-            nn.init.zeros_(head.bias)
-        nn.init.zeros_(self.head_side_validity.bias)
-        nn.init.zeros_(self.head_trendline_rail.bias)
-        nn.init.normal_(self.head_mtf_direction.weight, std=0.02)
-        nn.init.zeros_(self.head_mtf_direction.bias)
-        nn.init.zeros_(self.head_path_quality_log_var.bias)
-        nn.init.xavier_uniform_(self.evidence_fusion_in.weight)
-        nn.init.zeros_(self.evidence_fusion_in.bias)
-        nn.init.xavier_uniform_(self.evidence_fusion_out.weight)
-        nn.init.zeros_(self.evidence_fusion_out.bias)
+        nn.init.zeros_(self.head_side_mae.bias)
+        nn.init.zeros_(self.head_trendline_event.bias)
+        nn.init.xavier_uniform_(self.entry_q_joint_in.weight)
+        nn.init.zeros_(self.entry_q_joint_in.bias)
+        nn.init.xavier_uniform_(self.head_entry_action_q.weight)
+        nn.init.zeros_(self.head_entry_action_q.bias)
+        nn.init.xavier_uniform_(self.entry_decision_token[1].weight)
+        nn.init.zeros_(self.entry_decision_token[1].bias)
 
         # One shared five-timeframe-capable, eight-family multi-resolution
         # stack. Entry consumes M15/H1/H4/D1; Exit consumes
@@ -1224,6 +1223,59 @@ class EntryV10CtxHybridTransformer(nn.Module):
             nn.GELU(),
         )
         self.head_exit_action = nn.Linear(d_model, 2)
+
+        # Episode-native Exit. Entry retains its transformer semantics above;
+        # these causal GRU scans are dedicated to the long-lived Exit state.
+        # The global route sees the complete signal only to learn cross-family
+        # residuals. Each of the eight disjoint family routes sees only its
+        # owner fields. No pooled/static temporal summary is used.
+        self.exit_episode_global_gru = nn.GRU(
+            d_model, d_model, batch_first=True
+        )
+        self.exit_episode_family_gru = nn.ModuleDict(
+            {
+                name: nn.GRU(d_model, d_model, batch_first=True)
+                for name in self._specialist_names
+            }
+        )
+        self.exit_episode_family_cross_attn = _mk_encoder(1)
+        self.exit_episode_family_gate = nn.Linear(
+            d_model, len(self._specialist_names)
+        )
+        self.exit_episode_family_token_gate = nn.Linear(d_model, 1)
+        self.exit_episode_family_out = nn.Linear(d_model, d_model)
+        self.exit_episode_local_fuse = nn.Sequential(
+            nn.LayerNorm(3 * d_model),
+            nn.Linear(3 * d_model, d_model),
+            nn.GELU(),
+        )
+        # Family encoders are shared across native clocks while each history is
+        # scanned independently. Exact per-state gathers happen only after the
+        # causal scan, so no configured rolling window is re-encoded.
+        self.exit_episode_mtf_family_gru = nn.ModuleDict(
+            {
+                name: nn.GRU(d_model, d_model, batch_first=True)
+                for name in self._specialist_names
+            }
+        )
+        self.exit_episode_family_axis_attn = _mk_encoder(1)
+        self.exit_episode_timeframe_axis_attn = _mk_encoder(1)
+        self.exit_episode_family_tf_context_gate = nn.Linear(
+            d_model, 5 * len(self._specialist_names)
+        )
+        self.exit_episode_family_tf_token_gate = nn.Linear(d_model, 1)
+        self.exit_episode_family_tf_out = nn.Linear(d_model, d_model)
+        self.exit_episode_path_gru = nn.GRU(
+            d_model, d_model, batch_first=True
+        )
+        self.exit_episode_fuse = nn.Sequential(
+            nn.LayerNorm(5 * d_model),
+            nn.Linear(5 * d_model, d_model),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, d_model),
+            nn.GELU(),
+        )
 
         # Strict markers (useful for debugging)
         self._expected_seq_dim = int(seq_input_dim)
@@ -1444,21 +1496,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         "ENTRY_INPUT_NORMALIZATION_CATEGORICAL_VALUE_INVALID: "
                         f"surface={surface} field={field_names[index]}"
                     )
-        normalized = (raw_float - center) / scale
         identity_mask = binary_mask | categorical_mask
-        if bool(identity_mask.any().item()):
-            normalized[..., identity_mask] = raw_float[..., identity_mask]
-        # Clipping at the exact boundary IS the declared handling: the fit
-        # contract caps TRAIN clipping at 2%, so heavy-tail evidence rows
-        # legitimately exceed the boundary in every split and at serve.
-        # Input sanity is owned upstream by the hash-bound evidence,
-        # finiteness and freshness contracts; train and serve apply one
-        # identical clamp.
-        normalized = torch.clamp(
-            normalized,
-            -float(INPUT_NORMALIZATION_CLIP_ABS),
-            float(INPUT_NORMALIZATION_CLIP_ABS),
-        )
+        # Preserve the mathematical asinh transform over the full finite
+        # float32 input domain.  A float32 affine ratio can overflow before
+        # asinh maps it back to a small finite value when TRAIN learned a very
+        # small but non-zero scale.  The float64 intermediate is converted
+        # straight back to the model's float32 activation surface; no input is
+        # clipped, saturated or otherwise rewritten.
+        affine = (
+            raw_float.to(dtype=torch.float64)
+            - center.to(dtype=torch.float64)
+        ) / scale.to(dtype=torch.float64)
+        normalized = torch.where(
+            identity_mask,
+            raw_float.to(dtype=torch.float64),
+            torch.asinh(affine),
+        ).to(dtype=raw_float.dtype)
         _assert_finite(f"normalized.{surface}", normalized)
         return normalized
 
@@ -1561,82 +1614,59 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite("global_context_h", global_context_h)
         return family_context_tokens, global_context_h
 
-    def set_direction_calibration(self, temperature: float) -> None:
-        """Install VAL-fitted scalar temperature; it has no direction authority."""
-
-        t = float(temperature)
-        if not math.isfinite(t) or t <= 0.0:
-            raise ValueError(
-                "[ENTRY_DIRECTION_CAL] invalid strictly-positive scalar "
-                f"temperature={temperature!r}"
-            )
-        self._direction_cal = t
-
-    def set_path_calibration(
+    def _assemble_entry_decision_token_source(
         self,
-        path_quality_scale: float,
-        path_quality_shift: float,
-        bad_path_temperature: float,
-        bad_path_bias: float,
-    ) -> None:
-        """Install post-hoc path-head calibration (fitted on held-out val,
-        stored in bundle_metadata["path_calibration"], applied by the loader).
-        path_quality -> scale*x + shift; bad_path_logit -> x/T + b.
-        Identity when never called. Calibration is report-only for direction
-        fusion, which always consumes the raw pre-calibration tensors."""
-        vals = (float(path_quality_scale), float(path_quality_shift), float(bad_path_temperature), float(bad_path_bias))
-        import math as _math
-        if not all(_math.isfinite(v) for v in vals) or vals[0] <= 0.0 or vals[2] <= 0.0:
-            raise ValueError(f"[ENTRY_PATH_CAL] invalid calibration: {vals}")
-        self._path_cal = vals
-
-    def _assemble_direction_evidence(
-        self,
-        pre_fusion_outputs: Mapping[str, torch.Tensor],
+        components: Mapping[str, torch.Tensor],
     ) -> torch.Tensor:
-        """Assemble the immutable ordered 96-wide evidence contract."""
-        evidence_parts: list[torch.Tensor] = []
-        batch_size: Optional[int] = None
-        for output_name, expected_width in EXACT_EVIDENCE_FUSION_OUTPUTS:
-            if output_name not in pre_fusion_outputs:
-                raise RuntimeError(
-                    f"EVIDENCE_FUSION_INPUT_MISSING: output={output_name}"
-                )
-            value = pre_fusion_outputs[output_name]
-            if value.ndim != 2 or int(value.shape[1]) != expected_width:
-                raise RuntimeError(
-                    "EVIDENCE_FUSION_INPUT_SHAPE_INVALID: "
-                    f"{output_name} shape={tuple(value.shape)} expected=(B,{expected_width})"
-                )
-            if batch_size is None:
-                batch_size = int(value.shape[0])
-            elif int(value.shape[0]) != batch_size:
-                raise RuntimeError(
-                    "EVIDENCE_FUSION_BATCH_MISMATCH: "
-                    f"{output_name} rows={int(value.shape[0])} expected={batch_size}"
-                )
-            _assert_finite(f"evidence_fusion.{output_name}", value)
-            evidence_parts.append(value)
-        evidence_vector = torch.cat(evidence_parts, dim=1)
-        if int(evidence_vector.shape[1]) != EXACT_EVIDENCE_FUSION_INPUT_DIM:
+        """Assemble all declared pre-argmax Entry evidence in exact order.
+
+        Component order and widths come from the immutable token contract.  No
+        block receives a handwritten scale, vote or direction preference.
+        """
+
+        expected_names = tuple(name for name, _width in ENTRY_DECISION_TOKEN_COMPONENTS)
+        if tuple(components) != expected_names:
             raise RuntimeError(
-                "EVIDENCE_FUSION_WIDTH_INVALID: "
-                f"got={int(evidence_vector.shape[1])} "
-                f"expected={EXACT_EVIDENCE_FUSION_INPUT_DIM}"
+                "ENTRY_DECISION_TOKEN_COMPONENT_ORDER_INVALID: "
+                f"observed={tuple(components)} expected={expected_names}"
             )
-        return evidence_vector
+        rows: int | None = None
+        ordered: list[torch.Tensor] = []
+        for name, width in ENTRY_DECISION_TOKEN_COMPONENTS:
+            value = components[name]
+            _assert_shape(f"entry_decision_token.{name}", value, 2)
+            if int(value.shape[1]) != int(width):
+                raise RuntimeError(
+                    "ENTRY_DECISION_TOKEN_COMPONENT_WIDTH_INVALID: "
+                    f"name={name} observed={tuple(value.shape)} width={width}"
+                )
+            if rows is None:
+                rows = int(value.shape[0])
+            elif int(value.shape[0]) != rows:
+                raise RuntimeError(
+                    "ENTRY_DECISION_TOKEN_COMPONENT_BATCH_MISMATCH: "
+                    f"name={name} rows={int(value.shape[0])} expected={rows}"
+                )
+            _assert_finite(f"entry_decision_token.{name}", value)
+            ordered.append(value)
+        source = torch.cat(ordered, dim=1)
+        if int(source.shape[1]) != ENTRY_DECISION_TOKEN_SOURCE_DIM:
+            raise RuntimeError("ENTRY_DECISION_TOKEN_SOURCE_WIDTH_INVALID")
+        return source
 
-    def _fuse_direction_evidence(
+    def _project_entry_decision_token(
         self,
-        pre_fusion_outputs: Mapping[str, torch.Tensor],
+        components: Mapping[str, torch.Tensor],
     ) -> torch.Tensor:
-        evidence_vector = self._assemble_direction_evidence(pre_fusion_outputs)
-        evidence_hidden = nn.functional.gelu(
-            self.evidence_fusion_in(self.evidence_fusion_norm(evidence_vector))
-        )
-        raw_direction_logits = self.evidence_fusion_out(evidence_hidden)
-        _assert_finite("raw_direction_logits", raw_direction_logits)
-        return raw_direction_logits
+        """Apply the sole learned projection to the exact assembled source."""
+
+        source = self._assemble_entry_decision_token_source(components)
+        rows = int(source.shape[0])
+        token = self.entry_decision_token(source)
+        if tuple(token.shape) != (rows, ENTRY_DECISION_TOKEN_DIM):
+            raise RuntimeError("ENTRY_DECISION_TOKEN_OUTPUT_SHAPE_INVALID")
+        _assert_finite(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY, token)
+        return token
 
     def _encode_shared_feature_base(
         self,
@@ -2029,209 +2059,996 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "family_tf_feature_gate": family_tf_feature_gate,
         }
 
-    def forward_exit_action(
+    def _forward_exit_causal_episode(
         self,
         *,
-        entry_shared_representation: torch.Tensor,
-        exit_feature_seq_x: torch.Tensor,
-        exit_feature_snap_x: torch.Tensor,
-        exit_feature_ctx_cat: torch.Tensor,
-        exit_feature_ctx_cont: torch.Tensor,
-        exit_seq_m5: torch.Tensor,
-        exit_seq_m15: torch.Tensor,
-        exit_seq_h1: torch.Tensor,
-        exit_seq_h4: torch.Tensor,
-        exit_seq_d1: torch.Tensor,
+        entry_decision_representation: torch.Tensor,
+        exit_local_history_x: torch.Tensor,
+        exit_state_ctx_cat: torch.Tensor,
+        exit_state_ctx_cont: torch.Tensor,
         exit_path_x: torch.Tensor,
-        exit_path_lengths: torch.Tensor,
-        exit_side_index: torch.Tensor,
+        exit_mtf_histories: Mapping[str, torch.Tensor],
+        exit_mtf_gathers: Mapping[str, torch.Tensor],
+        exit_mtf_history_lengths: Mapping[str, torch.Tensor],
+        require_full_episode: bool,
     ) -> Dict[str, torch.Tensor]:
-        """Emit learned HOLD/EXIT_NOW logits from one exact lifecycle state.
-
-        ``entry_shared_representation`` must be the frozen output produced by
-        this model's full 513+context+4x8 cooperation encoder at Entry. Every
-        Exit call must also carry the exact shared feature base at M1 and the
-        explicit M5/M15/H1/H4/D1 V4 grid. The M1
-        surface is encoded by the same signal/context projections and all eight
-        specialist modules; the literal M1 path is additive execution evidence.
-        Every valid path row must be present; only right-zero padding declared
-        by the exact integer lengths is accepted.
-        """
+        """Shared causal scan for full episodes and online prefix replay."""
 
         _assert_shape(
-            "entry_shared_representation",
-            entry_shared_representation,
+            "entry_decision_representation",
+            entry_decision_representation,
             2,
         )
-        _assert_shape("exit_feature_seq_x", exit_feature_seq_x, 3)
-        _assert_shape("exit_feature_snap_x", exit_feature_snap_x, 2)
-        _assert_shape("exit_feature_ctx_cat", exit_feature_ctx_cat, 2)
-        _assert_shape("exit_feature_ctx_cont", exit_feature_ctx_cont, 2)
-        _assert_shape("exit_path_x", exit_path_x, 3)
-        _assert_shape("exit_path_lengths", exit_path_lengths, 1)
-        _assert_shape("exit_side_index", exit_side_index, 1)
-        batch_size, path_bars, path_dim = exit_path_x.shape
+        _assert_shape("exit_local_history_x", exit_local_history_x, 3)
+        _assert_shape("exit_state_ctx_cat", exit_state_ctx_cat, 3)
+        _assert_shape("exit_state_ctx_cont", exit_state_ctx_cont, 3)
+        _assert_shape("exit_path_x", exit_path_x, 4)
+        batch_size = int(entry_decision_representation.shape[0])
+        state_count = int(exit_state_ctx_cont.shape[1])
+        warm_rows = EXIT_FEATURE_SEQUENCE_BARS - 1
         d_model = int(self.cfg.d_model)
-        if tuple(entry_shared_representation.shape) != (
-            batch_size,
-            d_model,
-        ):
-            raise RuntimeError(
-                "UNIFIED_EXIT_ENTRY_REPRESENTATION_SHAPE_MISMATCH: "
-                f"observed={tuple(entry_shared_representation.shape)} "
-                f"expected=({batch_size},{d_model})"
-            )
-        exit_feature_base_local, exit_specialist_gate, _exit_global_context = (
-            self._encode_shared_feature_base(
-                seq_x=exit_feature_seq_x,
-                snap_x=exit_feature_snap_x,
-                ctx_cat=exit_feature_ctx_cat,
-                ctx_cont=exit_feature_ctx_cont,
-                surface_label="exit_m1",
-                expected_seq_len=(
-                    self._expected_seq_len * int(ENTRY_EXIT_RESOLUTION_RATIO)
-                ),
-                positional_encoding="pos_enc_exit_feature",
-            )
-        )
-        exit_mtf = self._encode_multi_tf_route(
-            base_representation=exit_feature_base_local,
-            tf_inputs=(
-                ("m5", exit_seq_m5, self.cfg.m5_seq_len, self._expected_m5_seq_dim),
-                ("m15", exit_seq_m15, self.cfg.m15_seq_len, self._expected_m15_seq_dim),
-                ("h1", exit_seq_h1, self.cfg.h1_seq_len, self._expected_h1_seq_dim),
-                ("h4", exit_seq_h4, self.cfg.h4_seq_len, self._expected_h4_seq_dim),
-                ("d1", exit_seq_d1, self.cfg.d1_seq_len, self._expected_d1_seq_dim),
-            ),
-            route_timeframes=EXIT_MTF_CONTEXT_TIMEFRAMES,
-            route_label="exit",
-        )
-        exit_feature_base = exit_mtf["representation"]
-        if tuple(exit_feature_base.shape) != (batch_size, d_model):
-            raise RuntimeError("UNIFIED_EXIT_FEATURE_BASE_REPRESENTATION_SHAPE_INVALID")
-        if int(path_dim) != UNIFIED_EXIT_PATH_FEATURE_DIM:
-            raise RuntimeError(
-                "UNIFIED_EXIT_PATH_DIM_MISMATCH: "
-                f"observed={int(path_dim)} "
-                f"expected={UNIFIED_EXIT_PATH_FEATURE_DIM}"
-            )
-        if not 1 <= int(path_bars) <= UNIFIED_EXIT_MAX_PATH_BARS:
-            raise RuntimeError(
-                "UNIFIED_EXIT_PATH_LENGTH_CAPACITY_INVALID: "
-                f"observed={int(path_bars)} "
-                f"capacity=1..{UNIFIED_EXIT_MAX_PATH_BARS}"
-            )
         if (
-            exit_path_lengths.dtype
-            not in (torch.int64, torch.int32, torch.int16, torch.int8)
-            or exit_side_index.dtype
-            not in (torch.int64, torch.int32, torch.int16, torch.int8)
-        ):
-            raise RuntimeError(
-                "UNIFIED_EXIT_INDEX_DTYPE_INVALID: integer tensors required"
+            int(entry_decision_representation.shape[1]) != d_model
+            or not 1 <= state_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or tuple(exit_local_history_x.shape)
+            != (
+                batch_size,
+                warm_rows + state_count,
+                self._expected_seq_dim,
             )
-        if (
-            int(exit_path_lengths.shape[0]) != batch_size
-            or int(exit_side_index.shape[0]) != batch_size
-        ):
-            raise RuntimeError("UNIFIED_EXIT_BATCH_DIM_MISMATCH")
-        _assert_finite(
-            "entry_shared_representation",
-            entry_shared_representation,
-        )
-        _assert_finite("exit_path_x", exit_path_x)
-        if bool(
-            ((exit_path_lengths < 1) | (exit_path_lengths > path_bars))
-            .any()
-            .item()
-        ):
-            raise RuntimeError("UNIFIED_EXIT_PATH_LENGTH_VALUE_INVALID")
-        if bool(
-            ((exit_side_index < 0) | (exit_side_index > 1)).any().item()
-        ):
-            raise RuntimeError("UNIFIED_EXIT_SIDE_INDEX_INVALID")
-
-        positions = torch.arange(
-            path_bars,
-            device=exit_path_x.device,
-        ).view(1, -1)
-        padding_mask = positions >= exit_path_lengths.view(-1, 1)
-        padded_values = exit_path_x.masked_select(padding_mask.unsqueeze(-1))
-        if int(padded_values.numel()) and not bool(
-            torch.equal(padded_values, torch.zeros_like(padded_values))
-        ):
-            raise RuntimeError(
-                "UNIFIED_EXIT_NONZERO_RIGHT_PADDING_FORBIDDEN"
+            or tuple(exit_state_ctx_cont.shape)
+            != (batch_size, state_count, self._expected_ctx_cont_dim)
+            or tuple(exit_state_ctx_cat.shape)
+            != (batch_size, state_count, self._expected_ctx_cat_dim)
+            or tuple(exit_path_x.shape)
+            != (
+                batch_size,
+                2,
+                state_count,
+                UNIFIED_EXIT_PATH_FEATURE_DIM,
             )
-
-        path_hidden = self.exit_path_proj(exit_path_x)
-        path_hidden = self._add_pe(path_hidden, "pos_enc_exit")
-        path_hidden = _memory_bounded_transformer_encoder(
-            self.exit_path_encoder,
-            path_hidden,
-            src_key_padding_mask=padding_mask,
-        )
-        side_hidden = self.exit_side_embedding(exit_side_index.long())
-        entry_query = self.exit_entry_query_norm(
-            entry_shared_representation + side_hidden
-        ).unsqueeze(1)
-        attended_path, attention_weights = self.exit_entry_path_attention(
-            entry_query,
-            path_hidden,
-            path_hidden,
-            key_padding_mask=padding_mask,
-            need_weights=True,
-        )
-        last_indices = (exit_path_lengths.long() - 1).view(
-            batch_size,
-            1,
-            1,
-        ).expand(-1, 1, d_model)
-        last_path_hidden = path_hidden.gather(1, last_indices).squeeze(1)
-        exit_hidden = self.exit_fuse(
-            torch.cat(
-                (
-                    entry_shared_representation,
-                    exit_feature_base,
-                    side_hidden,
-                    attended_path.squeeze(1),
-                    last_path_hidden,
-                ),
-                dim=1,
+            or (
+                require_full_episode
+                and (
+                    state_count != UNIFIED_EXIT_EPISODE_STATE_COUNT
+                    or int(exit_local_history_x.shape[1])
+                    != UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS
+                )
             )
-        )
-        exit_action_logits = self.head_exit_action(exit_hidden)
-        exit_action_probs = torch.softmax(exit_action_logits, dim=1)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_INPUT_SHAPE_INVALID")
         for name, value in (
-            ("exit_feature_base_representation", exit_feature_base),
-            ("exit_specialist_gate", exit_specialist_gate),
-            ("exit_tf_gate", exit_mtf["tf_gate"]),
-            (
-                "exit_family_tf_cooperation_gate",
-                exit_mtf["family_tf_cooperation_gate"],
-            ),
-            (
-                "exit_family_tf_feature_gate",
-                exit_mtf["family_tf_feature_gate"],
-            ),
-            ("exit_path_hidden", path_hidden),
-            ("exit_path_attention", attention_weights),
-            ("exit_action_logits", exit_action_logits),
-            ("exit_action_probs", exit_action_probs),
+            ("entry_decision_representation", entry_decision_representation),
+            ("exit_local_history_x", exit_local_history_x),
+            ("exit_state_ctx_cont", exit_state_ctx_cont),
+            ("exit_path_x", exit_path_x),
+        ):
+            _assert_finite(name, value)
+        if exit_state_ctx_cat.dtype not in (
+            torch.int64,
+            torch.int32,
+            torch.int16,
+            torch.int8,
+            torch.uint8,
+        ):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_CTX_CAT_DTYPE_INVALID")
+
+        signal_n = self._normalize_input_surface(
+            exit_local_history_x, surface="signal"
+        )
+        categorical_mask = self.input_norm_signal_categorical_mask.to(
+            signal_n.device
+        )
+        signal_numeric = signal_n.masked_fill(
+            categorical_mask.view(1, 1, -1), 0.0
+        )
+        global_input = self.seq_proj(signal_numeric)
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            global_input = global_input + embedding(
+                exit_local_history_x[..., index].long()
+            )
+        global_sequence, _ = self.exit_episode_global_gru(global_input)
+        global_state = global_sequence[:, warm_rows:, :]
+
+        family_sequences: list[torch.Tensor] = []
+        for name in self._specialist_names:
+            indices = getattr(self, f"specialist_idx_{name}").to(
+                signal_numeric.device
+            )
+            family_input = self.specialist_proj[name](
+                signal_numeric.index_select(2, indices)
+            )
+            owned = set(indices.tolist())
+            for index_text, embedding in self.signal_nominal_embeddings.items():
+                index = int(index_text)
+                if index in owned:
+                    family_input = family_input + embedding(
+                        exit_local_history_x[..., index].long()
+                    )
+            family_sequence, _ = self.exit_episode_family_gru[name](
+                family_input
+            )
+            family_sequences.append(family_sequence[:, warm_rows:, :])
+        family_temporal = torch.stack(family_sequences, dim=2)
+
+        flat_ctx_cont = exit_state_ctx_cont.reshape(
+            batch_size * state_count, -1
+        )
+        flat_ctx_cat = exit_state_ctx_cat.reshape(batch_size * state_count, -1)
+        ctx_cont_n = self._normalize_input_surface(
+            flat_ctx_cont, surface="ctx_cont"
+        )
+        family_context, global_context = self._build_family_context_tokens(
+            ctx_cont_n,
+            flat_ctx_cat,
+        )
+        family_context = family_context.reshape(
+            batch_size, state_count, len(self._specialist_names), d_model
+        )
+        global_context = global_context.reshape(
+            batch_size, state_count, d_model
+        )
+        family_tokens = family_temporal + family_context
+        family_tokens = self.exit_episode_family_cross_attn(
+            family_tokens.reshape(
+                batch_size * state_count,
+                len(self._specialist_names),
+                d_model,
+            )
+            + self.specialist_token_identity
+        ).reshape(
+            batch_size, state_count, len(self._specialist_names), d_model
+        )
+        current_raw = exit_local_history_x[:, warm_rows:, :]
+        current_n = signal_n[:, warm_rows:, :]
+        current_numeric = current_n.masked_fill(
+            categorical_mask.view(1, 1, -1), 0.0
+        )
+        generic_idx = self.generic_snap_idx.to(current_numeric.device)
+        current_snap = self.snap_proj(
+            current_numeric.index_select(2, generic_idx)
+        )
+        generic_set = set(generic_idx.tolist())
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            if index in generic_set:
+                current_snap = current_snap + embedding(
+                    current_raw[..., index].long()
+                )
+        local_state = self.exit_episode_local_fuse(
+            torch.cat((global_state, current_snap, global_context), dim=2)
+        )
+        family_gate = torch.softmax(
+            self.exit_episode_family_gate(local_state)
+            + self.exit_episode_family_token_gate(family_tokens).squeeze(-1),
+            dim=2,
+        )
+        family_correction = self.exit_episode_family_out(
+            (family_tokens * family_gate.unsqueeze(-1)).sum(dim=2)
+        )
+        local_state = local_state + self.specialist_fusion_scale.to(
+            local_state.dtype
+        ) * family_correction
+
+        expected_tf_names = tuple(
+            timeframe.lower() for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES
+        )
+        if (
+            tuple(exit_mtf_histories) != expected_tf_names
+            or tuple(exit_mtf_gathers) != expected_tf_names
+            or tuple(exit_mtf_history_lengths) != expected_tf_names
+        ):
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_MTF_ORDER_INVALID")
+        tf_family_states: list[torch.Tensor] = []
+        tf_feature_gate_rows: list[torch.Tensor] = []
+        for tf_name in expected_tf_names:
+            history = exit_mtf_histories[tf_name]
+            gather = exit_mtf_gathers[tf_name]
+            history_lengths = exit_mtf_history_lengths[tf_name]
+            _assert_shape(f"exit_mtf_history_{tf_name}", history, 3)
+            _assert_shape(f"exit_mtf_gather_{tf_name}", gather, 2)
+            if (
+                int(history.shape[0]) != batch_size
+                or int(history.shape[2])
+                != getattr(self, f"_expected_{tf_name}_seq_dim")
+                or tuple(gather.shape) != (batch_size, state_count)
+                or tuple(history_lengths.shape) != (batch_size,)
+                or history_lengths.dtype not in (torch.int64, torch.int32)
+                or bool((history_lengths < 1).any().item())
+                or bool((history_lengths > int(history.shape[1])).any().item())
+                or gather.dtype not in (torch.int64, torch.int32)
+                or bool((gather < 0).any().item())
+                or bool((gather >= int(history.shape[1])).any().item())
+                or bool((gather >= history_lengths[:, None]).any().item())
+                or bool((gather[:, 1:] < gather[:, :-1]).any().item())
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_EPISODE_MTF_INPUT_INVALID:{tf_name}"
+                )
+            for row_index, observed_length in enumerate(
+                history_lengths.detach().cpu().tolist()
+            ):
+                if int(observed_length) < int(history.shape[1]) and bool(
+                    (history[row_index, int(observed_length) :] != 0).any().item()
+                ):
+                    raise RuntimeError(
+                        f"UNIFIED_EXIT_EPISODE_MTF_PADDING_INVALID:{tf_name}"
+                    )
+            _assert_finite(f"exit_mtf_history_{tf_name}", history)
+            surface = f"mtf_{tf_name}"
+            normalized = self._normalize_input_surface(
+                history, surface=surface
+            )
+            mtf_cat_mask = getattr(
+                self, f"input_norm_{surface}_categorical_mask"
+            ).to(normalized.device)
+            numeric = normalized.masked_fill(
+                mtf_cat_mask.view(1, 1, -1), 0.0
+            )
+            family_states: list[torch.Tensor] = []
+            current_field_index = gather.unsqueeze(-1).expand(
+                -1, -1, int(history.shape[2])
+            )
+            current_numeric_fields = numeric.gather(1, current_field_index)
+            current_raw_fields = history.gather(1, current_field_index)
+            full_feature_gate = torch.zeros(
+                batch_size,
+                state_count,
+                int(history.shape[2]),
+                dtype=numeric.dtype,
+                device=numeric.device,
+            )
+            for name in self._specialist_names:
+                indices = getattr(
+                    self, f"multi_tf_specialist_idx_{name}"
+                ).to(numeric.device)
+                projected = self.mtf_family_proj[name](
+                    numeric.index_select(2, indices)
+                )
+                owned = set(indices.tolist())
+                for index in torch.nonzero(
+                    mtf_cat_mask, as_tuple=False
+                ).flatten().tolist():
+                    if index in owned:
+                        projected = projected + self.mtf_nominal_embeddings[
+                            f"{tf_name}_{index}"
+                        ](history[..., index].long())
+                encoded, _ = self.exit_episode_mtf_family_gru[name](
+                    projected
+                    * self._effective_tf_input_scale(tf_name).to(
+                        projected.dtype
+                    )
+                )
+                gather_index = gather.unsqueeze(-1).expand(-1, -1, d_model)
+                gathered_state = encoded.gather(1, gather_index)
+                feature_gate = 2.0 * torch.sigmoid(
+                    self.mtf_feature_context_gate[f"{tf_name}__{name}"](
+                        local_state.reshape(batch_size * state_count, d_model)
+                    )
+                ).reshape(batch_size, state_count, -1)
+                full_feature_gate = full_feature_gate.scatter(
+                    2,
+                    indices.view(1, 1, -1).expand(
+                        batch_size, state_count, -1
+                    ),
+                    feature_gate,
+                )
+                current_owned_numeric = current_numeric_fields.index_select(
+                    2, indices
+                )
+                current_residual = self.mtf_family_proj[name](
+                    current_owned_numeric
+                    * feature_gate
+                    * self._effective_tf_input_scale(tf_name).to(
+                        current_owned_numeric.dtype
+                    )
+                )
+                for local_position, global_index in enumerate(indices.tolist()):
+                    if not bool(mtf_cat_mask[global_index].item()):
+                        continue
+                    nominal = self.mtf_nominal_embeddings[
+                        f"{tf_name}_{global_index}"
+                    ](current_raw_fields[..., global_index].long())
+                    current_residual = current_residual + nominal * (
+                        feature_gate[..., local_position].unsqueeze(-1)
+                    )
+                family_states.append(gathered_state + current_residual)
+            tf_family_states.append(torch.stack(family_states, dim=2))
+            tf_feature_gate_rows.append(full_feature_gate)
+        family_tf = torch.stack(tf_family_states, dim=2)
+        identity = self.family_tf_token_identity[:, : len(expected_tf_names)]
+        family_tf = family_tf + identity.unsqueeze(1)
+        family_rows = family_tf.reshape(
+            batch_size * state_count * len(expected_tf_names),
+            len(self._specialist_names),
+            d_model,
+        )
+        family_rows = _apply_exit_token_axis_encoder(
+            self.exit_episode_family_axis_attn,
+            family_rows,
+        )
+        family_axis = family_rows.reshape(
+            batch_size,
+            state_count,
+            len(expected_tf_names),
+            len(self._specialist_names),
+            d_model,
+        )
+        timeframe_rows = family_axis.permute(0, 1, 3, 2, 4).reshape(
+            batch_size * state_count * len(self._specialist_names),
+            len(expected_tf_names),
+            d_model,
+        )
+        timeframe_rows = _apply_exit_token_axis_encoder(
+            self.exit_episode_timeframe_axis_attn,
+            timeframe_rows,
+        )
+        cooperation_tokens = timeframe_rows.reshape(
+            batch_size,
+            state_count,
+            len(self._specialist_names),
+            len(expected_tf_names),
+            d_model,
+        ).permute(0, 1, 3, 2, 4)
+        cooperation_logits = self.exit_episode_family_tf_context_gate(
+            local_state
+        ).reshape(
+            batch_size,
+            state_count,
+            len(expected_tf_names),
+            len(self._specialist_names),
+        ) + self.exit_episode_family_tf_token_gate(
+            cooperation_tokens
+        ).squeeze(-1)
+        cooperation_gate = torch.softmax(
+            cooperation_logits.reshape(batch_size, state_count, -1), dim=2
+        ).reshape_as(cooperation_logits)
+        family_tf_feature_gate = torch.stack(tf_feature_gate_rows, dim=2)
+        mtf_correction = self.exit_episode_family_tf_out(
+            (cooperation_tokens * cooperation_gate.unsqueeze(-1)).sum(
+                dim=(2, 3)
+            )
+        )
+        market_state = local_state + self.multi_tf_scale.to(
+            local_state.dtype
+        ) * mtf_correction
+
+        path_flat = exit_path_x.reshape(
+            batch_size * 2, state_count, UNIFIED_EXIT_PATH_FEATURE_DIM
+        )
+        path_encoded, _ = self.exit_episode_path_gru(
+            self.exit_path_proj(path_flat)
+        )
+        path_encoded = path_encoded.reshape(
+            batch_size, 2, state_count, d_model
+        )
+        side_index = torch.arange(2, device=exit_path_x.device).view(1, 2)
+        side_state = self.exit_side_embedding(side_index).view(
+            1, 2, 1, d_model
+        ).expand(batch_size, -1, state_count, -1)
+        token = entry_decision_representation.view(
+            batch_size, 1, 1, d_model
+        ).expand(-1, 2, state_count, -1)
+        local_side = local_state.unsqueeze(1).expand(-1, 2, -1, -1)
+        mtf_side = mtf_correction.unsqueeze(1).expand(-1, 2, -1, -1)
+        hidden = self.exit_episode_fuse(
+            torch.cat(
+                (token, local_side, mtf_side, side_state, path_encoded), dim=3
+            )
+        )
+        q_values = self.head_exit_action(hidden)
+        valid = torch.ones_like(q_values, dtype=torch.bool)
+        terminal_mask = torch.zeros(
+            (batch_size, 2, state_count),
+            dtype=torch.bool,
+            device=q_values.device,
+        )
+        terminal_reason_index = torch.zeros(
+            (batch_size, 2, state_count),
+            dtype=torch.long,
+            device=q_values.device,
+        )
+        if state_count == UNIFIED_EXIT_EPISODE_STATE_COUNT:
+            valid[:, :, -1, 0] = False
+            terminal_mask[:, :, -1] = True
+            # 1 = current capacity terminal. Zero means non-terminal. This is
+            # explicit so a later economic/data terminal contract can replace
+            # capacity without changing recurrent encoder semantics.
+            terminal_reason_index[:, :, -1] = 1
+        for name, value in (
+            ("exit_episode_local_state", local_state),
+            ("exit_episode_family_gate", family_gate),
+            ("exit_episode_family_tf_gate", cooperation_gate),
+            ("exit_episode_path_state", path_encoded),
+            ("exit_action_q_bps", q_values),
         ):
             _assert_finite(name, value)
         return {
-            "exit_action_logits": exit_action_logits,
-            "exit_action_probs": exit_action_probs,
-            "exit_feature_base_representation": exit_feature_base,
-            "exit_specialist_gate": exit_specialist_gate,
-            "exit_tf_gate": exit_mtf["tf_gate"],
-            "exit_family_tf_cooperation_gate": exit_mtf[
-                "family_tf_cooperation_gate"
-            ],
-            "exit_family_tf_feature_gate": exit_mtf["family_tf_feature_gate"],
-            "exit_path_attention": attention_weights,
+            "exit_action_q_bps": q_values,
+            "exit_action_valid_mask": valid,
+            "exit_episode_lengths": torch.full(
+                (batch_size, 2),
+                state_count,
+                dtype=torch.long,
+                device=q_values.device,
+            ),
+            "exit_terminal_mask": terminal_mask,
+            "exit_terminal_reason_index": terminal_reason_index,
+            "exit_specialist_gate": family_gate,
+            "exit_tf_gate": cooperation_gate.sum(dim=3),
+            "exit_family_tf_cooperation_gate": cooperation_gate,
+            "exit_family_tf_feature_gate": family_tf_feature_gate,
+            "exit_episode_market_state": market_state,
+            "exit_episode_path_state": path_encoded,
         }
+
+    def forward_exit_episode(
+        self,
+        *,
+        entry_decision_representation: torch.Tensor,
+        exit_local_history_x: torch.Tensor,
+        exit_state_ctx_cat: torch.Tensor,
+        exit_state_ctx_cont: torch.Tensor,
+        exit_path_x: torch.Tensor,
+        exit_mtf_histories: Mapping[str, torch.Tensor],
+        exit_mtf_gathers: Mapping[str, torch.Tensor],
+        exit_mtf_history_lengths: Mapping[str, torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
+        """Emit [B,2,512,2] Q values from one causal episode scan."""
+
+        return self._forward_exit_causal_episode(
+            entry_decision_representation=entry_decision_representation,
+            exit_local_history_x=exit_local_history_x,
+            exit_state_ctx_cat=exit_state_ctx_cat,
+            exit_state_ctx_cont=exit_state_ctx_cont,
+            exit_path_x=exit_path_x,
+            exit_mtf_histories=exit_mtf_histories,
+            exit_mtf_gathers=exit_mtf_gathers,
+            exit_mtf_history_lengths=exit_mtf_history_lengths,
+            require_full_episode=True,
+        )
+
+    def forward_exit_incremental_prefix(
+        self,
+        *,
+        entry_decision_representation: torch.Tensor,
+        exit_local_history_x: torch.Tensor,
+        exit_state_ctx_cat: torch.Tensor,
+        exit_state_ctx_cont: torch.Tensor,
+        exit_path_x: torch.Tensor,
+        exit_mtf_histories: Mapping[str, torch.Tensor],
+        exit_mtf_gathers: Mapping[str, torch.Tensor],
+        exit_mtf_history_lengths: Mapping[str, torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
+        """Online/replay prefix owner with the exact episode weights/state."""
+
+        return self._forward_exit_causal_episode(
+            entry_decision_representation=entry_decision_representation,
+            exit_local_history_x=exit_local_history_x,
+            exit_state_ctx_cat=exit_state_ctx_cat,
+            exit_state_ctx_cont=exit_state_ctx_cont,
+            exit_path_x=exit_path_x,
+            exit_mtf_histories=exit_mtf_histories,
+            exit_mtf_gathers=exit_mtf_gathers,
+            exit_mtf_history_lengths=exit_mtf_history_lengths,
+            require_full_episode=False,
+        )
+
+    def export_exit_incremental_carry_tensor_state(
+        self, carry: UnifiedExitIncrementalCarry
+    ) -> dict[str, torch.Tensor]:
+        """Flatten one recurrent carry into its exact persistence surface."""
+
+        if not isinstance(carry, UnifiedExitIncrementalCarry):
+            raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_CARRY_TYPE_INVALID")
+        tensors = {
+            "local_global_hidden": carry.local_global_hidden,
+            "path_hidden": carry.path_hidden,
+        }
+        tensors.update(
+            {
+                f"local_family_hidden/{family}": carry.local_family_hidden[
+                    family
+                ]
+                for family in self._specialist_names
+            }
+        )
+        for tf_name in ("m5", "m15", "h1", "h4", "d1"):
+            tensors[f"mtf_current_raw/{tf_name}"] = carry.mtf_current_raw[
+                tf_name
+            ]
+            tensors.update(
+                {
+                    f"mtf_family_hidden/{tf_name}/{family}": (
+                        carry.mtf_family_hidden[tf_name][family]
+                    )
+                    for family in self._specialist_names
+                }
+            )
+        self._require_exit_incremental_carry_tensor_state(
+            tensors,
+            batch_size=carry.batch_size,
+        )
+        return {name: value.detach() for name, value in tensors.items()}
+
+    def _require_exit_incremental_carry_tensor_state(
+        self,
+        tensors: Mapping[str, torch.Tensor],
+        *,
+        batch_size: int,
+    ) -> None:
+        d_model = int(self.cfg.d_model)
+        expected_shapes: dict[str, tuple[int, ...]] = {
+            "local_global_hidden": (1, batch_size, d_model),
+            "path_hidden": (1, batch_size * 2, d_model),
+        }
+        expected_shapes.update(
+            {
+                f"local_family_hidden/{family}": (1, batch_size, d_model)
+                for family in self._specialist_names
+            }
+        )
+        for tf_name in ("m5", "m15", "h1", "h4", "d1"):
+            expected_shapes[f"mtf_current_raw/{tf_name}"] = (
+                batch_size,
+                int(getattr(self, f"_expected_{tf_name}_seq_dim")),
+            )
+            expected_shapes.update(
+                {
+                    f"mtf_family_hidden/{tf_name}/{family}": (
+                        1,
+                        batch_size,
+                        d_model,
+                    )
+                    for family in self._specialist_names
+                }
+            )
+        if set(tensors) != set(expected_shapes):
+            raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_CARRY_KEYS_INVALID")
+        for name, expected_shape in expected_shapes.items():
+            value = tensors[name]
+            if (
+                not isinstance(value, torch.Tensor)
+                or tuple(value.shape) != expected_shape
+                or value.dtype != torch.float32
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_INCREMENTAL_CARRY_TENSOR_INVALID:{name}"
+                )
+            _assert_finite(name, value)
+
+    def restore_exit_incremental_carry_tensor_state(
+        self,
+        *,
+        step_count: int,
+        batch_size: int,
+        tensors: Mapping[str, torch.Tensor],
+    ) -> UnifiedExitIncrementalCarry:
+        """Restore only a byte-validated exact model-shaped carry."""
+
+        if (
+            isinstance(step_count, bool)
+            or not isinstance(step_count, int)
+            or not 1 <= step_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or isinstance(batch_size, bool)
+            or not isinstance(batch_size, int)
+            or batch_size < 1
+        ):
+            raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_CARRY_IDENTITY_INVALID")
+        values = {name: value.to(torch.float32) for name, value in tensors.items()}
+        self._require_exit_incremental_carry_tensor_state(
+            values, batch_size=batch_size
+        )
+        return UnifiedExitIncrementalCarry(
+            step_count=step_count,
+            batch_size=batch_size,
+            local_global_hidden=values["local_global_hidden"],
+            local_family_hidden={
+                family: values[f"local_family_hidden/{family}"]
+                for family in self._specialist_names
+            },
+            mtf_family_hidden={
+                tf_name: {
+                    family: values[
+                        f"mtf_family_hidden/{tf_name}/{family}"
+                    ]
+                    for family in self._specialist_names
+                }
+                for tf_name in ("m5", "m15", "h1", "h4", "d1")
+            },
+            mtf_current_raw={
+                tf_name: values[f"mtf_current_raw/{tf_name}"]
+                for tf_name in ("m5", "m15", "h1", "h4", "d1")
+            },
+            path_hidden=values["path_hidden"],
+        )
+
+    def forward_exit_incremental_step(
+        self,
+        *,
+        entry_decision_representation: torch.Tensor,
+        exit_local_rows_x: torch.Tensor,
+        exit_state_ctx_cat: torch.Tensor,
+        exit_state_ctx_cont: torch.Tensor,
+        exit_path_row_x: torch.Tensor,
+        exit_mtf_new_rows: Mapping[str, torch.Tensor],
+        carry: Optional[UnifiedExitIncrementalCarry],
+    ) -> tuple[Dict[str, torch.Tensor], UnifiedExitIncrementalCarry]:
+        """Advance one closed M1 state with genuine recurrent carry.
+
+        The first call consumes exactly 479 pre-entry rows plus state zero.
+        Later calls consume one new M1 row.  Each MTF value contains only bars
+        newly closed since the previous call and may therefore have length
+        zero.  Hidden tensors are never detached by this owner.
+        """
+
+        if self.training:
+            raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_STEP_REQUIRES_EVAL")
+        _assert_shape("entry_decision_representation", entry_decision_representation, 2)
+        _assert_shape("exit_local_rows_x", exit_local_rows_x, 3)
+        _assert_shape("exit_state_ctx_cat", exit_state_ctx_cat, 2)
+        _assert_shape("exit_state_ctx_cont", exit_state_ctx_cont, 2)
+        _assert_shape("exit_path_row_x", exit_path_row_x, 3)
+        batch_size = int(entry_decision_representation.shape[0])
+        d_model = int(self.cfg.d_model)
+        first = carry is None
+        expected_local_rows = EXIT_FEATURE_SEQUENCE_BARS if first else 1
+        step_count = 1 if first else int(carry.step_count) + 1
+        expected_tf_names = tuple(
+            timeframe.lower() for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES
+        )
+        if (
+            int(entry_decision_representation.shape[1]) != d_model
+            or tuple(exit_local_rows_x.shape)
+            != (batch_size, expected_local_rows, self._expected_seq_dim)
+            or tuple(exit_state_ctx_cat.shape)
+            != (batch_size, self._expected_ctx_cat_dim)
+            or tuple(exit_state_ctx_cont.shape)
+            != (batch_size, self._expected_ctx_cont_dim)
+            or tuple(exit_path_row_x.shape)
+            != (batch_size, 2, UNIFIED_EXIT_PATH_FEATURE_DIM)
+            or not 1 <= step_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or tuple(exit_mtf_new_rows) != expected_tf_names
+            or (
+                carry is not None
+                and (
+                    carry.batch_size != batch_size
+                    or carry.step_count != step_count - 1
+                )
+            )
+        ):
+            raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_STEP_INPUT_INVALID")
+        for name, value in (
+            ("entry_decision_representation", entry_decision_representation),
+            ("exit_local_rows_x", exit_local_rows_x),
+            ("exit_state_ctx_cont", exit_state_ctx_cont),
+            ("exit_path_row_x", exit_path_row_x),
+        ):
+            _assert_finite(name, value)
+
+        signal_n = self._normalize_input_surface(
+            exit_local_rows_x, surface="signal"
+        )
+        categorical_mask = self.input_norm_signal_categorical_mask.to(
+            signal_n.device
+        )
+        signal_numeric = signal_n.masked_fill(
+            categorical_mask.view(1, 1, -1), 0.0
+        )
+        global_input = self.seq_proj(signal_numeric)
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            global_input = global_input + embedding(
+                exit_local_rows_x[..., index].long()
+            )
+        prior_global = None if first else carry.local_global_hidden
+        global_sequence, global_hidden = self.exit_episode_global_gru(
+            global_input, prior_global
+        )
+        global_state = global_sequence[:, -1:, :]
+
+        family_temporal_rows: list[torch.Tensor] = []
+        next_local_family_hidden: dict[str, torch.Tensor] = {}
+        for family_name in self._specialist_names:
+            indices = getattr(self, f"specialist_idx_{family_name}").to(
+                signal_numeric.device
+            )
+            family_input = self.specialist_proj[family_name](
+                signal_numeric.index_select(2, indices)
+            )
+            owned = set(indices.tolist())
+            for index_text, embedding in self.signal_nominal_embeddings.items():
+                index = int(index_text)
+                if index in owned:
+                    family_input = family_input + embedding(
+                        exit_local_rows_x[..., index].long()
+                    )
+            prior = (
+                None
+                if first
+                else carry.local_family_hidden[family_name]
+            )
+            family_sequence, family_hidden = self.exit_episode_family_gru[
+                family_name
+            ](family_input, prior)
+            family_temporal_rows.append(family_sequence[:, -1:, :])
+            next_local_family_hidden[family_name] = family_hidden
+        family_temporal = torch.stack(family_temporal_rows, dim=2)
+
+        ctx_cont_n = self._normalize_input_surface(
+            exit_state_ctx_cont, surface="ctx_cont"
+        )
+        family_context, global_context = self._build_family_context_tokens(
+            ctx_cont_n, exit_state_ctx_cat
+        )
+        family_context = family_context.view(
+            batch_size, 1, len(self._specialist_names), d_model
+        )
+        global_context = global_context.view(batch_size, 1, d_model)
+        family_tokens = self.exit_episode_family_cross_attn(
+            (family_temporal + family_context).reshape(
+                batch_size, len(self._specialist_names), d_model
+            )
+            + self.specialist_token_identity
+        ).view(batch_size, 1, len(self._specialist_names), d_model)
+        current_raw = exit_local_rows_x[:, -1:, :]
+        current_n = signal_n[:, -1:, :]
+        current_numeric = current_n.masked_fill(
+            categorical_mask.view(1, 1, -1), 0.0
+        )
+        generic_idx = self.generic_snap_idx.to(current_numeric.device)
+        current_snap = self.snap_proj(
+            current_numeric.index_select(2, generic_idx)
+        )
+        generic_set = set(generic_idx.tolist())
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            if index in generic_set:
+                current_snap = current_snap + embedding(
+                    current_raw[..., index].long()
+                )
+        local_state = self.exit_episode_local_fuse(
+            torch.cat((global_state, current_snap, global_context), dim=2)
+        )
+        family_gate = torch.softmax(
+            self.exit_episode_family_gate(local_state)
+            + self.exit_episode_family_token_gate(family_tokens).squeeze(-1),
+            dim=2,
+        )
+        local_state = local_state + self.specialist_fusion_scale.to(
+            local_state.dtype
+        ) * self.exit_episode_family_out(
+            (family_tokens * family_gate.unsqueeze(-1)).sum(dim=2)
+        )
+
+        next_mtf_hidden: dict[str, dict[str, torch.Tensor]] = {}
+        next_mtf_current_raw: dict[str, torch.Tensor] = {}
+        tf_family_states: list[torch.Tensor] = []
+        tf_feature_gate_rows: list[torch.Tensor] = []
+        for tf_name in expected_tf_names:
+            new_rows = exit_mtf_new_rows[tf_name]
+            _assert_shape(f"exit_mtf_new_rows_{tf_name}", new_rows, 3)
+            if (
+                int(new_rows.shape[0]) != batch_size
+                or int(new_rows.shape[2])
+                != getattr(self, f"_expected_{tf_name}_seq_dim")
+                or (first and int(new_rows.shape[1]) < 1)
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_INCREMENTAL_MTF_INPUT_INVALID:{tf_name}"
+                )
+            _assert_finite(f"exit_mtf_new_rows_{tf_name}", new_rows)
+            if int(new_rows.shape[1]) > 0:
+                current_tf_raw = new_rows[:, -1, :]
+            elif first:
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_INCREMENTAL_MTF_INITIAL_HISTORY_EMPTY:{tf_name}"
+                )
+            else:
+                current_tf_raw = carry.mtf_current_raw[tf_name]
+            next_mtf_current_raw[tf_name] = current_tf_raw
+            surface = f"mtf_{tf_name}"
+            current_tf_n = self._normalize_input_surface(
+                current_tf_raw[:, None, :], surface=surface
+            )[:, 0, :]
+            mtf_cat_mask = getattr(
+                self, f"input_norm_{surface}_categorical_mask"
+            ).to(current_tf_n.device)
+            current_tf_numeric = current_tf_n.masked_fill(mtf_cat_mask, 0.0)
+            full_feature_gate = torch.zeros(
+                batch_size,
+                1,
+                int(current_tf_raw.shape[1]),
+                dtype=current_tf_n.dtype,
+                device=current_tf_n.device,
+            )
+            family_states: list[torch.Tensor] = []
+            next_mtf_hidden[tf_name] = {}
+            if int(new_rows.shape[1]) > 0:
+                normalized_new = self._normalize_input_surface(
+                    new_rows, surface=surface
+                )
+                numeric_new = normalized_new.masked_fill(
+                    mtf_cat_mask.view(1, 1, -1), 0.0
+                )
+            for family_name in self._specialist_names:
+                indices = getattr(
+                    self, f"multi_tf_specialist_idx_{family_name}"
+                ).to(current_tf_n.device)
+                prior = (
+                    None
+                    if first
+                    else carry.mtf_family_hidden[tf_name][family_name]
+                )
+                if int(new_rows.shape[1]) > 0:
+                    projected = self.mtf_family_proj[family_name](
+                        numeric_new.index_select(2, indices)
+                    )
+                    owned = set(indices.tolist())
+                    for index in torch.nonzero(
+                        mtf_cat_mask, as_tuple=False
+                    ).flatten().tolist():
+                        if index in owned:
+                            projected = projected + self.mtf_nominal_embeddings[
+                                f"{tf_name}_{index}"
+                            ](new_rows[..., index].long())
+                    encoded, hidden = self.exit_episode_mtf_family_gru[
+                        family_name
+                    ](
+                        projected
+                        * self._effective_tf_input_scale(tf_name).to(
+                            projected.dtype
+                        ),
+                        prior,
+                    )
+                    gathered_state = encoded[:, -1:, :]
+                else:
+                    hidden = prior
+                    gathered_state = hidden[-1].unsqueeze(1)
+                if hidden is None:
+                    raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_MTF_HIDDEN_MISSING")
+                next_mtf_hidden[tf_name][family_name] = hidden
+                feature_gate = 2.0 * torch.sigmoid(
+                    self.mtf_feature_context_gate[
+                        f"{tf_name}__{family_name}"
+                    ](local_state[:, 0, :])
+                ).unsqueeze(1)
+                full_feature_gate = full_feature_gate.scatter(
+                    2,
+                    indices.view(1, 1, -1).expand(batch_size, 1, -1),
+                    feature_gate,
+                )
+                current_residual = self.mtf_family_proj[family_name](
+                    current_tf_numeric.index_select(1, indices).unsqueeze(1)
+                    * feature_gate
+                    * self._effective_tf_input_scale(tf_name).to(
+                        current_tf_n.dtype
+                    )
+                )
+                for local_position, global_index in enumerate(indices.tolist()):
+                    if not bool(mtf_cat_mask[global_index].item()):
+                        continue
+                    current_residual = current_residual + self.mtf_nominal_embeddings[
+                        f"{tf_name}_{global_index}"
+                    ](current_tf_raw[:, global_index].long()).unsqueeze(1) * (
+                        feature_gate[..., local_position].unsqueeze(-1)
+                    )
+                family_states.append(gathered_state + current_residual)
+            tf_family_states.append(torch.stack(family_states, dim=2))
+            tf_feature_gate_rows.append(full_feature_gate)
+
+        family_tf = torch.stack(tf_family_states, dim=2)
+        identity = self.family_tf_token_identity[:, : len(expected_tf_names)]
+        family_rows = self.exit_episode_family_axis_attn(
+            (family_tf + identity.unsqueeze(1)).reshape(
+                batch_size * len(expected_tf_names),
+                len(self._specialist_names),
+                d_model,
+            )
+        )
+        family_axis = family_rows.reshape(
+            batch_size,
+            1,
+            len(expected_tf_names),
+            len(self._specialist_names),
+            d_model,
+        )
+        timeframe_rows = self.exit_episode_timeframe_axis_attn(
+            family_axis.permute(0, 1, 3, 2, 4).reshape(
+                batch_size * len(self._specialist_names),
+                len(expected_tf_names),
+                d_model,
+            )
+        )
+        cooperation_tokens = timeframe_rows.reshape(
+            batch_size,
+            1,
+            len(self._specialist_names),
+            len(expected_tf_names),
+            d_model,
+        ).permute(0, 1, 3, 2, 4)
+        cooperation_logits = self.exit_episode_family_tf_context_gate(
+            local_state
+        ).reshape(
+            batch_size,
+            1,
+            len(expected_tf_names),
+            len(self._specialist_names),
+        ) + self.exit_episode_family_tf_token_gate(
+            cooperation_tokens
+        ).squeeze(-1)
+        cooperation_gate = torch.softmax(
+            cooperation_logits.reshape(batch_size, 1, -1), dim=2
+        ).reshape_as(cooperation_logits)
+        mtf_correction = self.exit_episode_family_tf_out(
+            (cooperation_tokens * cooperation_gate.unsqueeze(-1)).sum(
+                dim=(2, 3)
+            )
+        )
+
+        path_flat = exit_path_row_x.reshape(
+            batch_size * 2, 1, UNIFIED_EXIT_PATH_FEATURE_DIM
+        )
+        prior_path = None if first else carry.path_hidden
+        path_encoded, path_hidden = self.exit_episode_path_gru(
+            self.exit_path_proj(path_flat), prior_path
+        )
+        path_encoded = path_encoded.reshape(batch_size, 2, 1, d_model)
+        side_index = torch.arange(2, device=exit_path_row_x.device).view(1, 2)
+        side_state = self.exit_side_embedding(side_index).view(
+            1, 2, 1, d_model
+        ).expand(batch_size, -1, -1, -1)
+        token = entry_decision_representation.view(
+            batch_size, 1, 1, d_model
+        ).expand(-1, 2, -1, -1)
+        local_side = local_state.unsqueeze(1).expand(-1, 2, -1, -1)
+        mtf_side = mtf_correction.unsqueeze(1).expand(-1, 2, -1, -1)
+        hidden = self.exit_episode_fuse(
+            torch.cat(
+                (token, local_side, mtf_side, side_state, path_encoded), dim=3
+            )
+        )
+        q_values = self.head_exit_action(hidden)
+        valid = torch.ones_like(q_values, dtype=torch.bool)
+        terminal_mask = torch.zeros(
+            batch_size, 2, 1, dtype=torch.bool, device=q_values.device
+        )
+        terminal_reason_index = torch.zeros(
+            batch_size, 2, 1, dtype=torch.long, device=q_values.device
+        )
+        if step_count == UNIFIED_EXIT_EPISODE_STATE_COUNT:
+            valid[..., 0] = False
+            terminal_mask[..., 0] = True
+            terminal_reason_index[..., 0] = 1
+        output = {
+            "exit_action_q_bps": q_values,
+            "exit_action_valid_mask": valid,
+            "exit_episode_lengths": torch.full(
+                (batch_size, 2),
+                step_count,
+                dtype=torch.long,
+                device=q_values.device,
+            ),
+            "exit_terminal_mask": terminal_mask,
+            "exit_terminal_reason_index": terminal_reason_index,
+            "exit_specialist_gate": family_gate,
+            "exit_tf_gate": cooperation_gate.sum(dim=3),
+            "exit_family_tf_cooperation_gate": cooperation_gate,
+            "exit_family_tf_feature_gate": torch.stack(
+                tf_feature_gate_rows, dim=2
+            ),
+        }
+        next_carry = UnifiedExitIncrementalCarry(
+            step_count=step_count,
+            batch_size=batch_size,
+            local_global_hidden=global_hidden,
+            local_family_hidden=next_local_family_hidden,
+            mtf_family_hidden=next_mtf_hidden,
+            mtf_current_raw=next_mtf_current_raw,
+            path_hidden=path_hidden,
+        )
+        return output, next_carry
 
     def forward(
         self,
@@ -2254,7 +3071,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
             expected_seq_len=self._expected_seq_len,
             positional_encoding="pos_enc",
         )
-        B = int(seq_x.shape[0])
         entry_mtf = self._encode_multi_tf_route(
             base_representation=z_v3,
             tf_inputs=(
@@ -2271,171 +3087,67 @@ class EntryV10CtxHybridTransformer(nn.Module):
         tf_gate = entry_mtf["tf_gate"]
         family_tf_cooperation_gate = entry_mtf["family_tf_cooperation_gate"]
         family_tf_feature_gate = entry_mtf["family_tf_feature_gate"]
-        # Regime FiLM (BIG-9): modulate a SEPARATE z_dir for the direction head only,
-        # leaving z untouched for the aux heads + downstream. Zero-init -> z_dir==z at cold
-        # start (bit-parity). FiLM consumes the same family-derived global
-        # context token; there is no independent raw categorical bypass.
-        film = self.regime_film(global_context_h)
-        gamma, beta = film.chunk(2, dim=1)
-        z_dir = (1.0 + gamma) * z + beta
-        model_native_logits = self.head_direction(z_dir)   # (B,3)
-        mtf_dir_logits = self.head_mtf_direction(mtf_repr)
-        _assert_finite("model_native_logits", model_native_logits)
-        _assert_finite("mtf_dir_logits", mtf_dir_logits)
-
-        path_quality_raw = self.head_path_quality(z)
-        mfe_first_n = self.head_mfe_first_n(z)
-        tradable_logit = self.head_tradable(z)
-        bad_path_logit_raw = self.head_bad_path(z)
-        clean_edge_logit = self.head_clean_edge(z)
-        survival_logit = self.head_survival(z)
-        path_quality = path_quality_raw
-        bad_path_logit = bad_path_logit_raw
-        if self._path_cal is not None:
-            _pq_a, _pq_b, _bp_t, _bp_b = self._path_cal
-            path_quality = path_quality * _pq_a + _pq_b
-            bad_path_logit = bad_path_logit / _bp_t + _bp_b
-        _assert_finite("path_quality_raw", path_quality_raw)
-        _assert_finite("bad_path_logit_raw", bad_path_logit_raw)
-        _assert_finite("path_quality", path_quality)
-        _assert_finite("mfe_first_n", mfe_first_n)
-        _assert_finite("tradable_logit", tradable_logit)
-        _assert_finite("bad_path_logit", bad_path_logit)
-        _assert_finite("clean_edge_logit", clean_edge_logit)
-        _assert_finite("survival_logit", survival_logit)
+        entry_q_joint_source = torch.cat(
+            (z_v3, z, mtf_repr, global_context_h), dim=1
+        )
+        entry_q_joint_hidden = nn.functional.gelu(
+            self.entry_q_joint_in(
+                self.entry_q_joint_norm(entry_q_joint_source)
+            )
+        )
+        entry_action_q_bps = self.head_entry_action_q(entry_q_joint_hidden)
+        _assert_finite("entry_q_joint_hidden", entry_q_joint_hidden)
+        _assert_finite("entry_action_q_bps", entry_action_q_bps)
 
         out = {
-            "model_native_logits": model_native_logits,
-            "mtf_dir_logits": mtf_dir_logits,
-            UNIFIED_EXIT_MODEL_REPRESENTATION_KEY: z,
-            "path_quality_raw": path_quality_raw,
-            "path_quality": path_quality,
-            "mfe_first_n": mfe_first_n,
-            "tradable_logit": tradable_logit,
-            "bad_path_logit_raw": bad_path_logit_raw,
-            "bad_path_logit": bad_path_logit,
-            "clean_edge_logit": clean_edge_logit,
-            "survival_logit": survival_logit,
+            "entry_action_q_bps": entry_action_q_bps,
+            "entry_q_joint_hidden": entry_q_joint_hidden,
         }
         out["specialist_gate"] = specialist_gate
         out["tf_gate"] = tf_gate
         out["family_tf_cooperation_gate"] = family_tf_cooperation_gate
         out["family_tf_feature_gate"] = family_tf_feature_gate
-        trade_logit = self.head_trade(z)
-        side_logits = self.head_side(z)
-
-        side_utility = self.head_side_utility(z)
-        side_bad_path_logit = self.head_side_bad_path(z)
-        side_mae = self.head_side_mae(z)
-        side_validity_logit = self.head_side_validity(z)
-
-        for output_name, value in (
-            ("trade_logit", trade_logit),
-            ("side_logits", side_logits),
-            ("side_utility", side_utility),
-            ("side_bad_path_logit", side_bad_path_logit),
-            ("side_mae", side_mae),
-            ("side_validity_logit", side_validity_logit),
-        ):
-            _assert_finite(output_name, value)
-
-        # Compute every remaining supervised head from the pre-fusion shared
-        # representation.  These raw causal outputs then enter exactly one
-        # learned three-class evidence projector; the projector never consumes
-        # final direction logits or post-fit path calibration.
+        # Genuine numeric outcomes and forward events remain representation
+        # auxiliaries. Threshold-derived trade/side/clean-edge/survival heads
+        # are intentionally absent, so they cannot shape the Entry Q backbone.
         exact_outputs = {
-            "trendline_rail_logits": self.head_trendline_rail(z),
-            "tf_agreement_logit": self.head_tf_agreement(z),
-            "path_quality_log_var": self.head_path_quality_log_var(z),
+            "side_mae_bps": self.head_side_mae(z),
+            "trendline_event_logits": self.head_trendline_event(z),
             "position_size_logit": self.head_position_size(z),
             "dip_pred": self.head_dip(z),
             "forecast_pred": self.head_forecast(z),
             "timing_pred": torch.sigmoid(self.head_timing(z)),
             "tail_risk_pred": self.head_tail_risk(z),
             "vol_forecast_pred": self.head_vol_forecast(z),
-            "action_value": self.head_action_value(z),
-            "expectile_value": self.head_expectile_value(z),
         }
-        action_value_cube = exact_outputs["action_value"].reshape(
-            B,
-            OFFLINE_RL_ACTION_COUNT,
-            OFFLINE_RL_HORIZON_COUNT,
-        )
-        action_advantage = (
-            action_value_cube - exact_outputs["expectile_value"].unsqueeze(1)
-        ).reshape(B, ACTION_VALUE_DIM)
-        _assert_finite("action_advantage", action_advantage)
-        exact_outputs["action_advantage"] = action_advantage
         for output_name, value in exact_outputs.items():
             _assert_finite(output_name, value)
 
-        pre_fusion_outputs = {
-            "model_native_logits": model_native_logits,
-            "mtf_dir_logits": mtf_dir_logits,
-            "path_quality_raw": path_quality_raw,
-            "mfe_first_n": mfe_first_n,
-            "tradable_logit": tradable_logit,
-            "bad_path_logit_raw": bad_path_logit_raw,
-            "clean_edge_logit": clean_edge_logit,
-            "survival_logit": survival_logit,
-            "trade_logit": trade_logit,
-            "side_logits": side_logits,
-            "side_utility": side_utility,
-            "side_bad_path_logit": side_bad_path_logit,
-            "side_mae": side_mae,
-            "side_validity_logit": side_validity_logit,
-            **exact_outputs,
-        }
-        raw_direction_logits = self._fuse_direction_evidence(pre_fusion_outputs)
-
-        # Sole model-native decision path.  No sibling head, context head or
-        # base-direction head can bypass this learned fusion, and no handwritten
-        # sign/penalty/cap changes a class margin.
-        direction_logits = raw_direction_logits
-
-        out.update(
-            {
-                "direction_logits": direction_logits,
-                "raw_direction_logits": raw_direction_logits,
-                "trade_logit": trade_logit,
-                "side_logits": side_logits,
-                "side_utility": side_utility,
-                "side_bad_path_logit": side_bad_path_logit,
-                "side_mae": side_mae,
-                "side_validity_logit": side_validity_logit,
-            }
-        )
         out.update(exact_outputs)
-        # Post-hoc direction calibration (identity unless the bundle loader
-        # installed one immutable VAL-fitted positive scalar temperature).
-        # Runtime equality checks prove that calibration cannot remap LONG,
-        # SHORT, or FLAT; raw ties fail closed instead of being broken post hoc.
-        if self._direction_cal is not None:
-            direction_logits = _apply_argmax_preserving_direction_temperature(
-                raw_direction_logits,
-                self._direction_cal,
+        entry_token_components = {
+            "local_model_native_representation": z_v3,
+            "final_model_native_representation": z,
+            "multi_timeframe_representation": mtf_repr,
+            "family_context_representation": global_context_h,
+            "entry_q_joint_hidden": entry_q_joint_hidden,
+            "entry_action_q_bps": entry_action_q_bps,
+        }
+        entry_decision_representation = self._project_entry_decision_token(
+            entry_token_components
+        )
+        entry_decision_token_source = (
+            self._assemble_entry_decision_token_source(
+                entry_token_components
             )
-            out["direction_logits"] = direction_logits
-
-        _assert_finite("direction_logits", direction_logits)
-        # Canonical public trade-vs-FLAT decision surface. This is deliberately
-        # derived from the final LONG/SHORT/FLAT logits after the sole learned
-        # fusion and immutable fitted calibration so training guards cannot prove a
-        # different binary policy than the public three-class output.
-        public_trade_flat_decision_logits = torch.stack(
-            (
-                direction_logits[
-                    :, list(MODEL_DIRECTION_TRADE_INDICES)
-                ].max(dim=1).values,
-                direction_logits[:, MODEL_DIRECTION_FLAT_INDEX],
-            ),
-            dim=1,
         )
         _assert_finite(
-            "public_trade_flat_decision_logits",
-            public_trade_flat_decision_logits,
+            UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
+            entry_decision_representation,
         )
-        out["public_trade_flat_decision_logits"] = public_trade_flat_decision_logits
+        out[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY] = (
+            entry_decision_representation
+        )
+        out["entry_decision_token_source"] = entry_decision_token_source
         return out
 
 

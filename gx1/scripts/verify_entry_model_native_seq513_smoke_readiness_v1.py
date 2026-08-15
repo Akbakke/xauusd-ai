@@ -31,8 +31,9 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
 )
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    require_offline_rl_contract_metadata,
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_contract,
+    require_entry_fitted_q_production_economics_readiness,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -45,20 +46,20 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     TRAIN_WRAPPER_RELATIVE_PATH,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
-    DIRECTION_BALANCE_ENV_TEMPLATE as DIRECTION_BALANCE_ENV_TEMPLATE,
-    DIRECTION_BALANCE_RECIPE_CONTRACT,
     DIRECTION_CONTEXT_SLICE_CONTRACT,
+    DIRECTION_DIAGNOSTIC_ENV_TEMPLATE,
+    DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
-    PATH_CALIBRATION_RECIPE_CONTRACT,
-    TAIL_DIRECTION_RECIPE_CONTRACT,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     READY_DECISION as POST_REBUILD_READY_DECISION,
     SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
+)
+from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+    JOINT_TASK_NAMES,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -167,45 +168,26 @@ def _gate(name: str, checks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _path_calibration_recipe_ok(contract: dict[str, Any]) -> bool:
-    recipe = contract.get("path_calibration_recipe_contract")
+def _direction_diagnostic_recipe_ok(
+    contract: dict[str, Any],
+) -> bool:
+    recipe = contract.get("direction_diagnostic_recipe_contract")
+    env_template = contract.get("direction_diagnostic_env_template")
     recipe_keys = contract.get("recipe_env_keys")
-    if not isinstance(recipe, dict) or not isinstance(recipe_keys, list):
+    if (
+        not isinstance(recipe, dict)
+        or not isinstance(env_template, dict)
+        or not isinstance(recipe_keys, list)
+    ):
         return False
-    if recipe != PATH_CALIBRATION_RECIPE_CONTRACT:
+    if recipe != DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT:
         return False
     return (
         set(recipe_keys) == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-        and {
-            "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT",
-            "ENTRY_PATH_QUALITY_RANK_WEIGHT",
-        }.issubset(recipe_keys)
-    )
-
-
-def _direction_balance_recipe_ok(contract: dict[str, Any]) -> bool:
-    recipe = contract.get("direction_balance_recipe_contract")
-    recipe_keys = contract.get("recipe_env_keys")
-    if not isinstance(recipe, dict) or not isinstance(recipe_keys, list):
-        return False
-    if recipe != DIRECTION_BALANCE_RECIPE_CONTRACT:
-        return False
-    return (
-        set(recipe_keys) == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-        and set(REQUIRED_POSITIVE_LOSS_WEIGHTS).issubset(recipe_keys)
-    )
-
-
-def _tail_direction_recipe_ok(contract: dict[str, Any]) -> bool:
-    recipe = contract.get("tail_direction_recipe_contract")
-    recipe_keys = contract.get("recipe_env_keys")
-    if not isinstance(recipe, dict) or not isinstance(recipe_keys, list):
-        return False
-    if recipe != TAIL_DIRECTION_RECIPE_CONTRACT:
-        return False
-    return (
-        set(recipe_keys) == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-        and "ENTRY_TAIL_DIRECTION_CE_WEIGHT" in recipe_keys
+        and all(
+            env_template.get(key) == value
+            for key, value in DIRECTION_DIAGNOSTIC_ENV_TEMPLATE.items()
+        )
     )
 
 
@@ -216,8 +198,7 @@ def _training_objective_recipe_ok(contract: dict[str, Any]) -> bool:
         and contract.get("requires_exact_model_native_training_objective") is True
         and set(contract.get("recipe_env_keys") or ())
         == set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-        and set(contract.get("required_positive_loss_weights") or ())
-        == set(REQUIRED_POSITIVE_LOSS_WEIGHTS)
+        and set(contract.get("joint_task_names") or ()) == set(JOINT_TASK_NAMES)
     )
 
 
@@ -382,18 +363,19 @@ def _target_aux_contract_report(report: dict[str, Any]) -> dict[str, Any]:
         )
     except RuntimeError as exc:
         failures.append(str(exc))
-    offline_rl = report.get("offline_rl_target_contract")
-    if (
-        not isinstance(offline_rl, dict)
-        or offline_rl.get("decision") != "PASS"
-        or offline_rl.get("failures") != []
-    ):
-        failures.append("offline-RL target proof is not a zero-failure PASS")
+    entry_q = report.get("entry_fitted_q_target_contract")
+    if not isinstance(entry_q, dict):
+        failures.append("Entry fitted-Q target proof is missing")
     else:
         try:
-            require_offline_rl_contract_metadata(
-                offline_rl.get("offline_rl_contract"),
+            require_entry_fitted_q_contract(
+                entry_q.get("entry_fitted_q_contract"),
                 context="SMOKE_READINESS_TARGET_AUDIT",
+            )
+            require_entry_fitted_q_production_economics_readiness(
+                entry_q.get("production_economics"),
+                context="SMOKE_READINESS_TARGET_AUDIT",
+                require_ready=True,
             )
         except RuntimeError as exc:
             failures.append(str(exc))
@@ -724,15 +706,16 @@ def _future_contracts(
         "post_smoke_audit_argv_template": post_smoke_audit_argv,
         "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
         "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
-        "required_positive_loss_weights": list(REQUIRED_POSITIVE_LOSS_WEIGHTS),
+        "joint_task_names": list(JOINT_TASK_NAMES),
         "training_objective_schema": TRAINING_OBJECTIVE_SCHEMA,
         "requires_exact_model_native_training_objective": True,
-        "requires_path_calibration_recipe_contract": True,
-        "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
-        "requires_direction_balance_recipe_contract": True,
-        "direction_balance_recipe_contract": dict(DIRECTION_BALANCE_RECIPE_CONTRACT),
-        "requires_tail_direction_recipe_contract": True,
-        "tail_direction_recipe_contract": dict(TAIL_DIRECTION_RECIPE_CONTRACT),
+        "requires_direction_diagnostic_recipe_contract": True,
+        "direction_diagnostic_recipe_contract": dict(
+            DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+        ),
+        "direction_diagnostic_env_template": dict(
+            DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+        ),
         "requires_direction_context_slice_contract": True,
         "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
         "requires_canonical_direction_decision_contract": True,
@@ -1441,25 +1424,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
-                    "smart smoke train contract declares path-quality and bad-path rank recipe",
-                    future_contracts["smart_smoke_train"]["requires_path_calibration_recipe_contract"] is True
-                    and _path_calibration_recipe_ok(future_contracts["smart_smoke_train"]),
+                    "smart smoke train contract declares diagnostic and learned-task recipe",
+                    future_contracts["smart_smoke_train"][
+                        "requires_direction_diagnostic_recipe_contract"
+                    ]
+                    is True
+                    and _direction_diagnostic_recipe_ok(
+                        future_contracts["smart_smoke_train"]
+                    ),
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
-                    "smart smoke train contract declares direction balance recipe",
-                    future_contracts["smart_smoke_train"]["requires_direction_balance_recipe_contract"] is True
-                    and _direction_balance_recipe_ok(future_contracts["smart_smoke_train"]),
-                    future_contracts["smart_smoke_train"],
-                ),
-                _check(
-                    "smart smoke train contract declares tail direction recipe",
-                    future_contracts["smart_smoke_train"]["requires_tail_direction_recipe_contract"] is True
-                    and _tail_direction_recipe_ok(future_contracts["smart_smoke_train"]),
-                    future_contracts["smart_smoke_train"],
-                ),
-                _check(
-                    "smart smoke train contract requires the exact positive training objective",
+                    "smart smoke train contract requires the learned joint objective",
                     _training_objective_recipe_ok(
                         future_contracts["smart_smoke_train"]
                     ),

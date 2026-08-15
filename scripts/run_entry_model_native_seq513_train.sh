@@ -4,9 +4,9 @@
 # shared trainer path.
 set -euo pipefail
 
-MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v4
+MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v18
 MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native
-MODEL_NATIVE_SIGNAL_DIM=513
+MODEL_NATIVE_SIGNAL_DIM=279
 PROFILE=
 
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"

@@ -23,13 +23,13 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     require_foundation_audit_report_policy,
 )
+from gx1.contracts.entry_fitted_q_v1 import (
+    require_entry_fitted_q_contract,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
-)
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    require_offline_rl_contract_metadata,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION,
@@ -44,9 +44,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -54,10 +55,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    PRETRAIN_AUDIT_SCHEMA,
     require_smoke_bundle_audit_contract,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
-    validate_train_rank_source_market_identity_metadata_v2,
+    validate_state_contract_metadata_v2,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
@@ -65,13 +67,11 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     model_native_recipe_env_contract_metadata,
     require_model_native_recipe_env,
 )
-from gx1.contracts.entry_model_native_training_objective_v1 import (
-    REQUIRED_POSITIVE_LOSS_WEIGHTS,
-)
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
     UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+    UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_ROW_CLOCK,
@@ -91,17 +91,17 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES_LOWER,
     require_multi_tf_v4_liveness_contract,
 )
-from gx1.features.entry_chart_geometry_v1 import (
-    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
+from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
+    PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v5"
-RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v4"
-PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v6"
+RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v6"
+
 TRAINING_DATA_SPLITS = ("train", "val")
 SEALED_DATA_SPLITS = (*TRAINING_DATA_SPLITS, "test")
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
@@ -141,21 +141,12 @@ REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 # would turn the pretrain proof below into a vacuous pass.  The requirement is
 # re-pointed at the complete mandatory geometry tuple and fails closed if that
 # tuple is ever empty.
-REQUIRED_MANDATORY_GEOMETRY_FEATURES = tuple(
-    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+REQUIRED_MANDATORY_LEVEL_FEATURES = tuple(
+    PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
 )
-if not REQUIRED_MANDATORY_GEOMETRY_FEATURES:
+if not REQUIRED_MANDATORY_LEVEL_FEATURES:
     raise RuntimeError(
-        "MODEL_NATIVE_TRAIN_LAUNCH_MANDATORY_GEOMETRY_FEATURES_EMPTY"
-    )
-
-_MISSING_REQUIRED_OBJECTIVE_WEIGHTS = sorted(
-    set(REQUIRED_POSITIVE_LOSS_WEIGHTS) - set(MODEL_NATIVE_RECIPE_ENV_KEYS)
-)
-if _MISSING_REQUIRED_OBJECTIVE_WEIGHTS:
-    raise RuntimeError(
-        "MODEL_NATIVE_TRAIN_LAUNCH_OBJECTIVE_WEIGHTS_MISSING: "
-        + ",".join(_MISSING_REQUIRED_OBJECTIVE_WEIGHTS)
+        "MODEL_NATIVE_TRAIN_LAUNCH_MANDATORY_LEVEL_FEATURES_EMPTY"
     )
 
 _STAMP_RE = re.compile(r"(?:^|[^0-9])20[0-9]{6}T[0-9]{6}(?:[0-9]{6})?Z(?:[^0-9]|$)")
@@ -291,11 +282,11 @@ def _validate_unified_exit_lifecycle_root(
     )
     _require(
         payload.get("path_state_count") == 512
-        and payload.get("m1_row_clock") == EXIT_FEATURE_ROW_CLOCK
-        and isinstance(payload.get("target_lookahead_m1_steps"), int)
-        and not isinstance(payload.get("target_lookahead_m1_steps"), bool)
-        and int(payload["target_lookahead_m1_steps"]) > 0,
-        "unified Exit lifecycle path/target horizon invalid",
+        and payload.get("state_population_schema_version")
+        == UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION
+        and payload.get("state_population_per_episode") == 512
+        and payload.get("m1_row_clock") == EXIT_FEATURE_ROW_CLOCK,
+        "unified Exit lifecycle path contract invalid",
     )
     require_entry_exit_shared_feature_base_contract(
         payload.get("shared_feature_base_contract"),
@@ -389,10 +380,37 @@ def _validate_unified_exit_lifecycle_root(
             f"unified Exit lifecycle {split} Entry binding mismatch",
         )
         _require(
-            isinstance(binding.get("target_counts"), Mapping)
-            and int(binding["target_counts"].get("HOLD", 0)) > 0
-            and int(binding["target_counts"].get("EXIT_NOW", 0)) > 0,
-            f"unified Exit lifecycle {split} target class is dead",
+            set(binding)
+            == {
+                "entry_dataset_path",
+                "entry_dataset_sha256",
+                "lifecycle_parquet",
+                "lifecycle_parquet_sha256",
+                "lifecycle_manifest",
+                "lifecycle_manifest_sha256",
+                "episode_rows",
+                "state_population_rows",
+                "state_population_stream_sha256",
+            },
+            f"unified Exit lifecycle {split} binding schema mismatch",
+        )
+        episode_rows = binding.get("episode_rows")
+        population_rows = binding.get("state_population_rows")
+        population_sha = binding.get("state_population_stream_sha256")
+        _require(
+            not isinstance(episode_rows, bool)
+            and isinstance(episode_rows, int)
+            and episode_rows > 0
+            and not isinstance(population_rows, bool)
+            and isinstance(population_rows, int)
+            and population_rows == episode_rows * 512
+            and isinstance(population_sha, str)
+            and len(population_sha) == 64
+            and all(
+                character in "0123456789abcdef"
+                for character in population_sha
+            ),
+            f"unified Exit lifecycle {split} full population binding invalid",
         )
 
 
@@ -596,6 +614,21 @@ def _validate_split_manifest(
         raise LaunchContractError(
             f"split manifest aux-target emission contract invalid: {path}: {exc}"
         ) from exc
+    source_sha256 = sha256_file(m5_prebuilt)
+    source_frame = (
+        extra.get("source_frame")
+        if isinstance(extra.get("source_frame"), Mapping)
+        else {}
+    )
+    _require(
+        source_frame.get("parquet_sha256") == source_sha256,
+        f"split manifest Entry policy source-frame hash mismatch: {path}",
+    )
+    provenance = extra.get("xau_tape_provenance")
+    _require(
+        isinstance(provenance, Mapping),
+        f"split manifest XAU tape provenance missing: {path}",
+    )
     inputs = manifest.get("inputs")
     _require(isinstance(inputs, dict), f"split manifest inputs missing: {path}")
     _require(
@@ -607,32 +640,16 @@ def _validate_split_manifest(
         isinstance(state_contract, dict),
         f"split manifest model-native state contract missing: {path}",
     )
-    rank_source = Path(
-        str(state_contract.get("rank_reference_source_parquet") or "")
-    ).expanduser()
-    rank_source_sha256 = str(
-        state_contract.get("rank_reference_source_parquet_sha256") or ""
-    ).strip().lower()
-    _require(
-        rank_source.is_absolute() and _SHA_RE.fullmatch(rank_source_sha256) is not None,
-        f"split manifest rank-reference source binding missing: {path}",
-    )
     try:
-        validate_train_rank_source_market_identity_metadata_v2(
-            state_contract.get("rank_reference_model_source_market_identity"),
-            expected_rank_source_parquet=rank_source,
-            expected_rank_source_sha256=rank_source_sha256,
-            expected_model_source_parquet=m5_prebuilt,
-            expected_model_source_sha256=None,
-            expected_history_start_utc=state_contract.get(
-                "feature_history_start_utc"
-            ),
-            expected_fit_end_utc=state_contract.get("rank_fit_end_utc"),
-        )
+        validate_state_contract_metadata_v2(state_contract)
     except RuntimeError as exc:
         raise LaunchContractError(
-            f"split manifest rank/model market identity invalid: {path}: {exc}"
+            f"split manifest state contract invalid: {path}: {exc}"
         ) from exc
+    if "entry_direction_target_policy" in extra:
+        raise LaunchContractError(
+            f"split manifest contains retired Entry direction target policy: {path}"
+        )
 
 
 def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None:
@@ -656,7 +673,9 @@ def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None
         str(value) for value in signal_contract.get("selected_fields", ())
     )
     mandatory_prefix = selected_fields[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]
-    ranked_remainder = selected_fields[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    available_candidates = selected_fields[
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+    ]
     ranking_sha256 = str(feature.get("feature_ranking_sha256") or "")
 
     _require(
@@ -689,14 +708,14 @@ def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None
         "feature audit mandatory full-stack prefix/order mismatch",
     )
     _require(
-        int(feature.get("ranked_remainder_feature_count") or 0)
-        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-        and int(feature.get("manifest_ranked_remainder_feature_count") or 0)
-        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-        and len(ranked_remainder) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
-        and feature.get("ranked_remainder_fields_sha256")
-        == canonical_json_sha256(list(ranked_remainder)),
-        "feature audit ranked remainder mismatch",
+        int(feature.get("available_candidate_feature_count") or 0)
+        == MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        and int(feature.get("manifest_available_candidate_feature_count") or 0)
+        == MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT
+        and tuple(available_candidates) == MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+        and feature.get("available_candidate_fields_sha256")
+        == canonical_json_sha256(list(available_candidates)),
+        "feature audit available candidate surface mismatch",
     )
     _require(
         feature.get("feature_ranking_fit_scope") == "train_only"
@@ -910,35 +929,13 @@ def _model_source_hash_from_manifests(
     source_hashes: set[str] = set()
     for split in TRAINING_DATA_SPLITS:
         manifest = payloads[f"{split}_manifest_json"]
-        inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), Mapping) else {}
         extra = manifest.get("extra") if isinstance(manifest.get("extra"), Mapping) else {}
-        state = (
-            extra.get("model_native_state_contract")
-            if isinstance(extra.get("model_native_state_contract"), Mapping)
+        source_frame = (
+            extra.get("source_frame")
+            if isinstance(extra.get("source_frame"), Mapping)
             else {}
         )
-        rank_source = Path(
-            str(state.get("rank_reference_source_parquet") or "")
-        ).expanduser()
-        rank_source_sha256 = str(
-            state.get("rank_reference_source_parquet_sha256") or ""
-        ).strip().lower()
-        model_source = Path(str(inputs.get("source_parquet") or "")).expanduser()
-        try:
-            proof = validate_train_rank_source_market_identity_metadata_v2(
-                state.get("rank_reference_model_source_market_identity"),
-                expected_rank_source_parquet=rank_source,
-                expected_rank_source_sha256=rank_source_sha256,
-                expected_model_source_parquet=model_source,
-                expected_model_source_sha256=None,
-                expected_history_start_utc=state.get("feature_history_start_utc"),
-                expected_fit_end_utc=state.get("rank_fit_end_utc"),
-            )
-        except RuntimeError as exc:
-            raise LaunchContractError(
-                f"{split} split rank/model market identity invalid: {exc}"
-            ) from exc
-        source_hashes.add(str(proof.get("model_source_sha256") or ""))
+        source_hashes.add(str(source_frame.get("parquet_sha256") or ""))
     _require(
         len(source_hashes) == 1
         and _SHA_RE.fullmatch(next(iter(source_hashes))) is not None,
@@ -970,16 +967,16 @@ def _validate_pretrain_audit(
         "pretrain audit split contract mismatch",
     )
     _require(
-        pretrain.get("require_mandatory_geometry_features") is True
+        pretrain.get("require_mandatory_level_features") is True
         and pretrain.get("require_inline_seq_structure") is True
         and pretrain.get("require_xau_provenance") is True,
         "pretrain audit required proof toggles are not exact",
     )
     _require(
-        tuple(pretrain.get("required_mandatory_geometry_features") or ())
-        == REQUIRED_MANDATORY_GEOMETRY_FEATURES
-        and pretrain.get("missing_mandatory_geometry_features") == [],
-        "pretrain audit mandatory geometry feature proof mismatch",
+        tuple(pretrain.get("required_mandatory_level_features") or ())
+        == REQUIRED_MANDATORY_LEVEL_FEATURES
+        and pretrain.get("missing_mandatory_level_features") == [],
+        "pretrain audit mandatory level feature proof mismatch",
     )
     split_rows = pretrain.get("splits")
     _require(
@@ -1005,6 +1002,15 @@ def _validate_pretrain_audit(
     for split in TRAINING_DATA_SPLITS:
         row = reports[split]
         provenance = row.get("provenance")
+        split_manifest = _read_json(
+            artifacts[f"{split}_manifest_json"],
+            f"{split}_manifest_json",
+        )
+        split_extra = (
+            split_manifest.get("extra")
+            if isinstance(split_manifest.get("extra"), Mapping)
+            else {}
+        )
         _require(
             row.get("manifest_path") == str(artifacts[f"{split}_manifest_json"])
             and row.get("parquet_path") == str(artifacts[f"{split}_parquet"]),
@@ -1013,7 +1019,7 @@ def _validate_pretrain_audit(
         _require(
             int(row.get("feature_count") or 0) == MODEL_NATIVE_SIGNAL_DIM
             and row.get("core_target_policy")
-            == "future_path_and_utility_outcomes_only"
+            == "frozen_exit_first_state_fitted_q_only"
             and row.get("seq_structure_extension_mode")
             == ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE
             and row.get("missing_polarity_features") == []
@@ -1028,6 +1034,24 @@ def _validate_pretrain_audit(
             and provenance.get("xau_tape_provenance")
             == tape_provenance[split],
             f"pretrain audit {split} provenance mismatch",
+        )
+        _require(
+            "entry_direction_target_policy" not in provenance
+            and "entry_direction_target_policy" not in split_extra,
+            f"pretrain audit {split} contains retired Entry target policy",
+        )
+        try:
+            fitted_q = require_entry_fitted_q_contract(
+                provenance.get("entry_fitted_q"),
+                context=f"TRAIN_LAUNCH_PRETRAIN_{split.upper()}",
+            )
+        except RuntimeError as exc:
+            raise LaunchContractError(
+                f"pretrain audit {split} Entry fitted-Q contract invalid: {exc}"
+            ) from exc
+        _require(
+            fitted_q == split_extra.get("entry_fitted_q"),
+            f"pretrain audit {split} Entry fitted-Q lineage mismatch",
         )
         signal_contract = provenance.get("model_native_signal_contract")
         _require(
@@ -1129,16 +1153,9 @@ def _validate_audits(
         target.get("model_native_aux_target_contract"),
         context="TRAIN_LAUNCH_TARGET_AUDIT",
     )
-    offline_rl_target = target.get("offline_rl_target_contract")
     _require(
-        isinstance(offline_rl_target, Mapping)
-        and offline_rl_target.get("decision") == "PASS"
-        and not offline_rl_target.get("failures"),
-        "target audit offline-RL target proof failed",
-    )
-    require_offline_rl_contract_metadata(
-        offline_rl_target.get("offline_rl_contract"),
-        context="TRAIN_LAUNCH_TARGET_AUDIT",
+        "offline_rl_target_contract" not in target,
+        "target audit contains retired fixed-horizon offline-RL proof",
     )
     target_heads = target.get("target_head_contract")
     _require(

@@ -3,344 +3,80 @@ from __future__ import annotations
 import pytest
 import torch
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
+)
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
 
-def _base_hier_batch() -> dict[str, torch.Tensor]:
+# The Entry hierarchy heads (trade_logit / side_logits / side_utility /
+# side_bad_path_logit / side_validity_logit) and their
+# ``_hierarchical_entry_task_losses`` owner are retired: the Entry action
+# target is the frozen fitted-Q teacher (``entry_action_q_bps``) and the
+# decision authority is its unique argmax.  What survives here is the
+# registry event auxiliary, whose loss must stay outcome-only.
+
+
+def _event_batch() -> dict[str, torch.Tensor]:
     return {
-        "ctx_cat": torch.zeros((1, 5), dtype=torch.long),
-        "y_trade": torch.tensor([1.0], dtype=torch.float32),
-        "y_side": torch.tensor([0], dtype=torch.long),
-        "y_side_mask": torch.tensor([1.0], dtype=torch.float32),
-        "y_long_path_utility_bps": torch.tensor([0.0], dtype=torch.float32),
-        "y_short_path_utility_bps": torch.tensor([0.0], dtype=torch.float32),
-        "y_long_bad_path": torch.tensor([0.0], dtype=torch.float32),
-        "y_short_bad_path": torch.tensor([0.0], dtype=torch.float32),
-        "y_long_expected_mae_bps": torch.tensor([0.0], dtype=torch.float32),
-        "y_short_expected_mae_bps": torch.tensor([0.0], dtype=torch.float32),
-        "y_support_retest_continuation": torch.tensor([0.0], dtype=torch.float32),
-        "y_resistance_retest_continuation": torch.tensor([0.0], dtype=torch.float32),
-        "y_countertrend_short_trap": torch.tensor([0.0], dtype=torch.float32),
+        "ctx_cat": torch.zeros((1, MODEL_NATIVE_CTX_CAT_DIM), dtype=torch.long),
+        "y_line_support_touch_held": torch.tensor([1.0], dtype=torch.float32),
+        "y_line_support_touch_mask": torch.tensor([1.0], dtype=torch.float32),
+        "y_line_resistance_touch_held": torch.tensor([0.0], dtype=torch.float32),
+        "y_line_resistance_touch_mask": torch.tensor([0.0], dtype=torch.float32),
+        "y_countertrend_short_trap": torch.tensor([1.0], dtype=torch.float32),
         "y_countertrend_long_trap": torch.tensor([0.0], dtype=torch.float32),
-        "y_short_high_mae_low_mfe_early_failure": torch.tensor([0.0], dtype=torch.float32),
-        "y_long_high_mae_low_mfe_early_failure": torch.tensor([0.0], dtype=torch.float32),
     }
 
 
-def _base_hier_out(**overrides: torch.Tensor) -> dict[str, torch.Tensor]:
-    out = {
-        "trade_logit": torch.zeros((1, 1), dtype=torch.float32),
-        "side_logits": torch.zeros((1, 2), dtype=torch.float32),
-        "side_utility": torch.zeros((1, 2), dtype=torch.float32),
-        "side_bad_path_logit": torch.zeros((1, 2), dtype=torch.float32),
-        "side_mae": torch.zeros((1, 2), dtype=torch.float32),
-        "side_validity_logit": torch.zeros((1, 2), dtype=torch.float32),
-    }
-    out.update(overrides)
-    return out
-
-
-def test_hierarchical_loss_does_not_rewrite_short_bad_path_from_structure() -> None:
-    batch = _base_hier_batch()
-    batch["y_support_retest_continuation"] = torch.tensor([1.0], dtype=torch.float32)
-    batch["y_countertrend_short_trap"] = torch.tensor([1.0], dtype=torch.float32)
-    out = _base_hier_out(
-        side_bad_path_logit=torch.tensor([[-4.0, -4.0]], dtype=torch.float32)
+def _event_width() -> int:
+    return int(
+        trainer._MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS["trendline_event_logits"]
     )
 
-    structural_loss, stats = trainer._hierarchical_entry_loss(
-        out,
-        batch,
+
+def test_trendline_event_aux_loss_supervises_exact_label_contract() -> None:
+    width = _event_width()
+    # Targets are (support_held, resistance_held, short_trap, long_trap) =
+    # (1, 0, 1, 0); a confidently correct prediction must drive the masked
+    # BCE to ~0.
+    logits = torch.tensor([[8.0, -8.0, 8.0, -8.0]], dtype=torch.float32)
+    assert logits.shape[1] == width
+
+    loss, stats = trainer._trendline_event_aux_loss(
+        {"trendline_event_logits": logits},
+        _event_batch(),
         torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
     )
-
-    plain_loss, _ = trainer._hierarchical_entry_loss(
-        out,
-        _base_hier_batch(),
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    assert stats["hier_short_bad_target_rate"] == pytest.approx(0.0)
-    assert stats["hier_long_bad_target_rate"] == pytest.approx(0.0)
-    assert float(structural_loss.detach().cpu().item()) == pytest.approx(
-        float(plain_loss.detach().cpu().item())
-    )
-
-
-def test_hierarchical_loss_does_not_rewrite_long_bad_path_from_structure() -> None:
-    batch = _base_hier_batch()
-    batch["y_resistance_retest_continuation"] = torch.tensor([1.0], dtype=torch.float32)
-    batch["y_countertrend_long_trap"] = torch.tensor([1.0], dtype=torch.float32)
-    out = _base_hier_out(
-        side_bad_path_logit=torch.tensor([[-4.0, -4.0]], dtype=torch.float32)
-    )
-
-    structural_loss, stats = trainer._hierarchical_entry_loss(
-        out,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    plain_loss, _ = trainer._hierarchical_entry_loss(
-        out,
-        _base_hier_batch(),
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    assert stats["hier_long_bad_target_rate"] == pytest.approx(0.0)
-    assert stats["hier_short_bad_target_rate"] == pytest.approx(0.0)
-    assert float(structural_loss.detach().cpu().item()) == pytest.approx(
-        float(plain_loss.detach().cpu().item())
-    )
-
-
-def test_hierarchical_side_validity_learns_side_specific_valid_trade(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", 10.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", 8.0)
-    batch = _base_hier_batch()
-    batch["y_long_path_utility_bps"] = torch.tensor([25.0], dtype=torch.float32)
-    batch["y_short_path_utility_bps"] = torch.tensor([-10.0], dtype=torch.float32)
-    batch["y_short_bad_path"] = torch.tensor([1.0], dtype=torch.float32)
-
-    out_good = _base_hier_out(
-        side_validity_logit=torch.tensor([[4.0, -4.0]], dtype=torch.float32)
-    )
-    out_bad = _base_hier_out(
-        side_validity_logit=torch.tensor([[-4.0, 4.0]], dtype=torch.float32)
-    )
-
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    assert good_stats["hier_long_valid_target_rate"] == pytest.approx(1.0)
-    assert good_stats["hier_short_valid_target_rate"] == pytest.approx(0.0)
-    assert good_stats["hier_side_validity_loss"] < bad_stats["hier_side_validity_loss"]
-    assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
-
-
-def test_hierarchical_side_validity_uses_outcome_targets_not_structural_rewrite(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", 10.0)
-    batch = _base_hier_batch()
-    batch["y_long_path_utility_bps"] = torch.tensor([40.0], dtype=torch.float32)
-    batch["y_long_high_mae_low_mfe_early_failure"] = torch.tensor([1.0], dtype=torch.float32)
-
-    out_good = _base_hier_out(
-        side_validity_logit=torch.tensor([[4.0, -4.0]], dtype=torch.float32)
-    )
-    out_bad = _base_hier_out(
-        side_validity_logit=torch.tensor([[-4.0, -4.0]], dtype=torch.float32)
-    )
-
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    assert good_stats["hier_long_valid_target_rate"] == pytest.approx(1.0)
-    assert bad_stats["hier_long_bad_target_rate"] == pytest.approx(0.0)
-    assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
-
-
-def test_side_evidence_head_receives_direct_side_supervision(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_WEIGHT", 1.0)
-    batch = _base_hier_batch()
-
-    out_good = _base_hier_out(side_logits=torch.tensor([[4.0, -4.0]], dtype=torch.float32))
-    out_bad = _base_hier_out(side_logits=torch.tensor([[-4.0, 4.0]], dtype=torch.float32))
-
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    assert good_stats["hier_side_rows"] == pytest.approx(1.0)
-    assert good_stats["hier_side_acc"] == pytest.approx(1.0)
-    assert bad_stats["hier_side_acc"] == pytest.approx(0.0)
-    assert good_stats["hier_side_loss"] < bad_stats["hier_side_loss"]
-    assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
-
-
-
-
-def test_trade_evidence_head_receives_direct_outcome_supervision(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_WEIGHT", 1.0)
-    batch = _base_hier_batch()
-
-    out_good = _base_hier_out(trade_logit=torch.tensor([[4.0]], dtype=torch.float32))
-    out_bad = _base_hier_out(trade_logit=torch.tensor([[-4.0]], dtype=torch.float32))
-
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        out_good,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        out_bad,
-        batch,
-        torch.device("cpu"),
-        trade_pos_weight=1.0,
-        side_bad_path_pos_weight=1.0,
-    )
-
-    assert good_stats["hier_trade_loss"] < bad_stats["hier_trade_loss"]
-    assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
-
-
-
-
-def test_hierarchical_outcome_heads_are_direct_model_evidence(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_HIER_UTILITY_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_BAD_PATH_WEIGHT", 1.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_MAE_WEIGHT", 1.0)
-    batch = _base_hier_batch()
-    batch["y_long_path_utility_bps"] = torch.tensor([20.0], dtype=torch.float32)
-    batch["y_short_path_utility_bps"] = torch.tensor([-10.0], dtype=torch.float32)
-    batch["y_long_bad_path"] = torch.tensor([0.0], dtype=torch.float32)
-    batch["y_short_bad_path"] = torch.tensor([1.0], dtype=torch.float32)
-    batch["y_long_expected_mae_bps"] = torch.tensor([2.0], dtype=torch.float32)
-    batch["y_short_expected_mae_bps"] = torch.tensor([30.0], dtype=torch.float32)
-    util_scale = max(1.0, float(trainer.ENTRY_AUX_PATH_SCALE_BPS))
-    mae_scale = max(1.0, float(trainer.ENTRY_AUX_MFE_SCALE_BPS))
-
-    good = _base_hier_out(
-        side_utility=torch.tensor([[20.0 / util_scale, -10.0 / util_scale]]),
-        side_bad_path_logit=torch.tensor([[-8.0, 8.0]]),
-        side_mae=torch.tensor([[2.0 / mae_scale, 30.0 / mae_scale]]),
-    )
-    bad = _base_hier_out(
-        side_utility=-good["side_utility"],
-        side_bad_path_logit=-good["side_bad_path_logit"],
-        side_mae=torch.flip(good["side_mae"], dims=(1,)),
-    )
-
-    good_loss, good_stats = trainer._hierarchical_entry_loss(
-        good, batch, torch.device("cpu"), trade_pos_weight=1.0, side_bad_path_pos_weight=1.0
-    )
-    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
-        bad, batch, torch.device("cpu"), trade_pos_weight=1.0, side_bad_path_pos_weight=1.0
-    )
-
-    assert good_stats["hier_utility_loss"] < bad_stats["hier_utility_loss"]
-    assert good_stats["hier_bad_path_loss"] < bad_stats["hier_bad_path_loss"]
-    assert good_stats["hier_mae_loss"] < bad_stats["hier_mae_loss"]
-    assert float(good_loss.item()) < float(bad_loss.item())
-
-
-def test_hierarchical_loss_fails_closed_without_mandatory_evidence_head() -> None:
-    out = _base_hier_out()
-    del out["side_logits"]
-
-    with pytest.raises(KeyError, match="side_logits"):
-        trainer._hierarchical_entry_loss(
-            out,
-            _base_hier_batch(),
-            torch.device("cpu"),
-            trade_pos_weight=1.0,
-            side_bad_path_pos_weight=1.0,
-        )
-
-
-def _rail_batch() -> dict[str, torch.Tensor]:
-    batch = _base_hier_batch()
-    batch.update(
-        {
-            "y_line_support_touch_held": torch.tensor([1.0], dtype=torch.float32),
-            "y_line_support_touch_mask": torch.tensor([1.0], dtype=torch.float32),
-            "y_line_resistance_touch_held": torch.tensor([0.0], dtype=torch.float32),
-            "y_line_resistance_touch_mask": torch.tensor([0.0], dtype=torch.float32),
-            "y_countertrend_short_trap": torch.tensor([1.0], dtype=torch.float32),
-            "y_countertrend_long_trap": torch.tensor([0.0], dtype=torch.float32),
-            "y_short_high_mae_low_mfe_early_failure": torch.tensor([1.0], dtype=torch.float32),
-            "y_long_high_mae_low_mfe_early_failure": torch.tensor([0.0], dtype=torch.float32),
-        }
-    )
-    return batch
-
-
-def test_trendline_rail_aux_loss_supervises_exact_six_label_contract(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
-    out = {
-        "trendline_rail_logits": torch.tensor(
-            [[8.0, -8.0, 8.0, -8.0, 8.0, -8.0]],
-            dtype=torch.float32,
-        )
-    }
-
-    loss, stats = trainer._trendline_rail_aux_loss(out, _rail_batch(), torch.device("cpu"))
 
     assert float(loss.detach().cpu().item()) < 0.001
-    assert stats["trendline_rail_rows"] == pytest.approx(1.0)
-    assert stats["trendline_rising_rows"] == pytest.approx(1.0)
-    assert stats["trendline_falling_rows"] == pytest.approx(0.0)
+    assert stats["trendline_event_rows"] == pytest.approx(1.0)
+    assert stats["trendline_support_rows"] == pytest.approx(1.0)
+    assert stats["trendline_resistance_rows"] == pytest.approx(0.0)
 
 
-def test_trendline_rail_aux_loss_ignores_direction_and_utility_outputs(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
-    rail_logits = torch.zeros((1, 6), dtype=torch.float32)
+def test_trendline_event_aux_loss_ignores_direction_and_utility_outputs() -> None:
+    event_logits = torch.zeros((1, _event_width()), dtype=torch.float32)
     out_long = {
-        "trendline_rail_logits": rail_logits,
-        "direction_logits": torch.tensor([[20.0, -20.0, -20.0]], dtype=torch.float32),
-        "side_logits": torch.tensor([[20.0, -20.0]], dtype=torch.float32),
-        "side_utility": torch.tensor([[20.0, -20.0]], dtype=torch.float32),
-        "trade_logit": torch.tensor([[20.0]], dtype=torch.float32),
+        "trendline_event_logits": event_logits,
+        "entry_action_q_bps": torch.tensor(
+            [[20.0, -20.0, -20.0]], dtype=torch.float32
+        ),
+        "position_size_logit": torch.tensor([[20.0]], dtype=torch.float32),
     }
     out_short = {
-        "trendline_rail_logits": rail_logits,
-        "direction_logits": torch.tensor([[-20.0, 20.0, -20.0]], dtype=torch.float32),
-        "side_logits": torch.tensor([[-20.0, 20.0]], dtype=torch.float32),
-        "side_utility": torch.tensor([[-20.0, 20.0]], dtype=torch.float32),
-        "trade_logit": torch.tensor([[-20.0]], dtype=torch.float32),
+        "trendline_event_logits": event_logits,
+        "entry_action_q_bps": torch.tensor(
+            [[-20.0, 20.0, -20.0]], dtype=torch.float32
+        ),
+        "position_size_logit": torch.tensor([[-20.0]], dtype=torch.float32),
     }
 
-    long_loss, long_stats = trainer._trendline_rail_aux_loss(
-        out_long, _rail_batch(), torch.device("cpu")
+    long_loss, long_stats = trainer._trendline_event_aux_loss(
+        out_long, _event_batch(), torch.device("cpu")
     )
-    short_loss, short_stats = trainer._trendline_rail_aux_loss(
-        out_short, _rail_batch(), torch.device("cpu")
+    short_loss, short_stats = trainer._trendline_event_aux_loss(
+        out_short, _event_batch(), torch.device("cpu")
     )
 
     assert float(long_loss.detach().cpu().item()) == pytest.approx(
@@ -349,24 +85,84 @@ def test_trendline_rail_aux_loss_ignores_direction_and_utility_outputs(monkeypat
     assert long_stats == short_stats
 
 
-def test_trendline_rail_aux_loss_fails_closed_on_incomplete_contract(monkeypatch) -> None:
-    monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
-    batch = _rail_batch()
-    del batch["y_long_high_mae_low_mfe_early_failure"]
+def test_trendline_event_aux_loss_fails_closed_on_incomplete_contract() -> None:
+    width = _event_width()
+    batch = _event_batch()
+    del batch["y_countertrend_long_trap"]
 
     with pytest.raises(
         RuntimeError,
-        match="ENTRY_MODEL_NATIVE_ACTIVE_HEAD_TARGET_MISSING.*y_long_high_mae_low_mfe_early_failure",
+        match=(
+            "ENTRY_MODEL_NATIVE_ACTIVE_HEAD_TARGET_MISSING.*"
+            "y_countertrend_long_trap"
+        ),
     ):
-        trainer._trendline_rail_aux_loss(
-            {"trendline_rail_logits": torch.zeros((1, 6), dtype=torch.float32)},
+        trainer._trendline_event_aux_loss(
+            {
+                "trendline_event_logits": torch.zeros(
+                    (1, width), dtype=torch.float32
+                )
+            },
             batch,
             torch.device("cpu"),
         )
 
-    with pytest.raises(RuntimeError, match="ENTRY_TRENDLINE_RAIL_OUTPUT_DIM_MISMATCH"):
-        trainer._trendline_rail_aux_loss(
-            {"trendline_rail_logits": torch.zeros((1, 4), dtype=torch.float32)},
-            _rail_batch(),
+    with pytest.raises(
+        RuntimeError, match="ENTRY_TRENDLINE_EVENT_OUTPUT_DIM_MISMATCH"
+    ):
+        trainer._trendline_event_aux_loss(
+            {
+                "trendline_event_logits": torch.zeros(
+                    (1, width - 1), dtype=torch.float32
+                )
+            },
+            _event_batch(),
             torch.device("cpu"),
         )
+
+
+def test_trendline_event_loss_is_masked_on_registry_touch_rows_only() -> None:
+    # The two line-hold dims are supervised ONLY on registry touch-event rows.
+    # Flipping the support prediction to a wrong answer must not move the loss
+    # once that row carries no support touch event.
+    logits = torch.tensor([[8.0, -8.0, 8.0, -8.0]], dtype=torch.float32)
+    flipped = torch.tensor([[-8.0, -8.0, 8.0, -8.0]], dtype=torch.float32)
+    batch = _event_batch()
+    batch["y_line_support_touch_mask"] = torch.tensor(
+        [0.0], dtype=torch.float32
+    )
+
+    masked_loss, _ = trainer._trendline_event_aux_loss(
+        {"trendline_event_logits": logits}, batch, torch.device("cpu")
+    )
+    flipped_loss, _ = trainer._trendline_event_aux_loss(
+        {"trendline_event_logits": flipped}, batch, torch.device("cpu")
+    )
+    assert float(masked_loss.detach().cpu().item()) == pytest.approx(
+        float(flipped_loss.detach().cpu().item())
+    )
+
+    # On a genuine touch row the same flip is penalised.
+    supervised_loss, _ = trainer._trendline_event_aux_loss(
+        {"trendline_event_logits": flipped}, _event_batch(), torch.device("cpu")
+    )
+    assert float(supervised_loss.detach().cpu().item()) > float(
+        flipped_loss.detach().cpu().item()
+    )
+
+
+def test_retired_entry_hierarchy_heads_cannot_reenter_the_trainer() -> None:
+    for retired in (
+        "_hierarchical_entry_task_losses",
+        "_trendline_rail_aux_loss",
+    ):
+        assert not hasattr(trainer, retired)
+    for retired_output in (
+        "trade_logit",
+        "side_logits",
+        "side_utility",
+        "side_bad_path_logit",
+        "side_validity_logit",
+        "trendline_rail_logits",
+    ):
+        assert retired_output not in trainer._MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS

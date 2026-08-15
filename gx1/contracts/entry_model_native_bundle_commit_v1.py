@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "entry_model_native_bundle_commit_v1"
+SCHEMA_VERSION = "entry_model_native_bundle_commit_v3"
 MANIFEST_NAME = "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json"
 CORE_ARTIFACTS = (
     "MASTER_TRANSFORMER_LOCK.json",

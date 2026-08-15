@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import argparse
-import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -9,45 +7,44 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
-    MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
-    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-    TrainRankReferenceV2,
-    bucket_against_train_reference,
-    causal_vol_regime_bucket,
+    RETIRED_RANK_STATE_FIELDS,
+    STALE_STATE_CONTRACT_FIELDS,
+    validate_state_contract_metadata_v2,
 )
 from gx1.execution.v12_model_native_state_live import (
     ModelNativeStateBuilder,
     ModelNativeStateContract,
+    _ENTRY_SESSION_CONT_DOMAINS,
     _require_model_native_entry_context_frame,
-    compute_bucket_ctx_cat_full_frame,
     compute_htf_ctx_full_frame,
 )
 from gx1.execution.v12_ctx_augment_live import _add_session_features
 from tests.model_native_signal_support import canonical_model_native_selected_fields
-from gx1.scripts.materialize_model_native_train_rank_reference_v2 import run as materialize_rank
 
 
 def test_model_native_full_frame_helpers_require_explicit_state_contract() -> None:
     frame = pd.DataFrame(index=pd.date_range("2026-07-08T18:00:00Z", periods=2, freq="5min"))
 
     with pytest.raises(RuntimeError, match="explicit model-native state contract required"):
-        compute_bucket_ctx_cat_full_frame(frame)
-
-    with pytest.raises(RuntimeError, match="explicit model-native state contract required"):
         compute_htf_ctx_full_frame(frame)
 
 
-def test_htf_regime_override_computes_full_prefix_before_history_slice(
+def test_htf_ctx_computes_full_prefix_before_history_slice(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The HTF block is computed over the complete causal prefix, then sliced.
+
+    Starting the computation at feature_history_start would discard prior D1
+    transitions and make the carried HTF distances frame-dependent.
+    """
     from gx1.execution import v12_ctx_augment_live as live_ctx
-    from gx1.features import regime_v4_features as regime
 
     contract = _early_validation_builder(tmp_path).state_contract
     index = pd.date_range("2025-11-30T23:30:00Z", periods=20, freq="5min")
@@ -61,48 +58,34 @@ def test_htf_regime_override_computes_full_prefix_before_history_slice(
         },
         index=index,
     )
-    for name in regime.REGIME_V4_SOURCE_COLS:
-        if name == "D1_dist_from_ema200_atr":
-            continue
-        if name.endswith("_regime_class_id_v2"):
-            cv3[name] = 0
-        elif name.endswith("_ema_stack_aligned_v2"):
-            cv3[name] = 0
-        else:
-            cv3[name] = 0.25
 
+    # The exact columns compute_htf_ctx_full_frame requires from the HTF owner.
+    htf_cols = (
+        "D1_dist_from_ema200_atr",
+        "d1_dist_change_1bar_atr_v4",
+        "h4_mid_ema50_dist_atr_canon_v2",
+    )
     observed: dict[str, int] = {}
 
     def fake_htf(work: pd.DataFrame, m5: pd.DataFrame) -> None:
         observed["htf_rows"] = len(work)
         assert len(work) == len(m5) == len(cv3)
-        for name in (
-            "D1_dist_from_ema200_atr",
-            "D1_atr_percentile_252",
-            "H1_range_compression_ratio",
-            "M15_range_compression_ratio",
-            # V30 (2026-08-13): _add_htf_features emits the H4 sibling too.
-            "H4_range_compression_ratio",
-            "H4_trend_sign_cat",
-        ):
+        for name in htf_cols:
             work[name] = np.arange(len(work), dtype=np.float64)
 
-    def fake_regime(work: pd.DataFrame) -> pd.DataFrame:
-        observed["regime_rows"] = len(work)
-        assert len(work) == len(cv3)
-        for name in regime.REGIME_V4_DERIVED_COLS:
-            work[name] = np.arange(len(work), dtype=np.float32)
-        return work
-
     monkeypatch.setattr(live_ctx, "_add_htf_features", fake_htf)
-    monkeypatch.setattr(regime, "add_regime_v4_features", fake_regime)
 
     result = compute_htf_ctx_full_frame(cv3, contract)
     first_position = int(index.searchsorted(contract.feature_history_start_utc))
 
-    assert observed == {"htf_rows": len(cv3), "regime_rows": len(cv3)}
+    assert observed == {"htf_rows": len(cv3)}
+    assert list(result.columns) == list(htf_cols)
     assert result.index[0] == index[first_position]
-    assert result.iloc[0]["bars_since_d1_regime_change_v3"] == first_position
+    # Values were stamped over the full prefix, so the first retained row
+    # carries its absolute position, not zero.
+    assert first_position > 0
+    for name in htf_cols:
+        assert result.iloc[0][name] == first_position
 
 
 def test_model_native_state_builder_requires_explicit_contracts() -> None:
@@ -111,36 +94,25 @@ def test_model_native_state_builder_requires_explicit_contracts() -> None:
 
 
 def _early_validation_builder(tmp_path: Path) -> ModelNativeStateBuilder:
+    from tests.volatility_squeeze_test_support import (
+        make_volatility_squeeze_artifact_set,
+    )
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields(
             remainder_prefix="session_regime.state_contract_fixture"
         )
     )
-    fit_start = pd.Timestamp("2026-01-01T00:00:00Z")
-    fit_end = pd.Timestamp("2026-01-02T00:00:00Z")
-    reference = TrainRankReferenceV2(
-        path=tmp_path / "unused_for_early_validation.npz",
-        sha256="0" * 64,
-        sidecar_sha256="0" * 64,
-        sidecar={},
-        fit_start_utc=fit_start,
-        fit_end_utc=fit_end,
-        fit_row_count=1,
-        atr_bps_sorted=np.asarray([10.0], dtype=np.float64),
-        spread_bps_sorted=np.asarray([1.0], dtype=np.float64),
-    )
     state_contract = ModelNativeStateContract(
         feature_history_start_utc=pd.Timestamp("2025-12-01T00:00:00Z"),
-        rank_fit_start_utc=fit_start,
-        rank_fit_end_utc=fit_end,
-        rank_reference_npz=reference.path,
-        rank_reference=reference,
         raw={},
     )
     return ModelNativeStateBuilder(
         ordered_signal_names=list(signal_contract["fields"]),
         state_contract=state_contract,
         signal_contract=signal_contract,
+        volatility_squeeze_artifacts=(
+            make_volatility_squeeze_artifact_set(tmp_path)
+        ),
     )
 
 
@@ -149,11 +121,26 @@ def _valid_entry_context_frame() -> pd.DataFrame:
     frame = pd.DataFrame(index=times)
     _add_session_features(frame)
     frame.insert(0, "time", times)
-    frame["vol_regime_id"] = 1
-    frame["atr_bucket"] = 2
-    frame["spread_bucket"] = 1
-    frame["H4_trend_sign_cat"] = 1
     return frame.reset_index(drop=True)
+
+
+def test_entry_context_boundary_requires_exactly_the_contract_categoricals() -> None:
+    """ctx_cat is owned by the signal contract; the boundary may not add its own.
+
+    The retired percentile categoricals (vol_regime_id, atr_bucket,
+    spread_bucket, H4_trend_sign_cat) must not reappear as required Entry
+    context: their evidence is carried continuously in the per-TF lanes.
+    """
+    assert tuple(MODEL_NATIVE_CTX_CAT_FIELDS) == ("session_id",)
+    retired = {
+        "vol_regime_id",
+        "atr_bucket",
+        "spread_bucket",
+        "H4_trend_sign_cat",
+        "session_tradable",
+    }
+    required = set(MODEL_NATIVE_CTX_CAT_FIELDS) | set(_ENTRY_SESSION_CONT_DOMAINS)
+    assert not (required & retired)
 
 
 def test_session_context_switches_at_m5_decision_boundary_without_extra_lag() -> None:
@@ -173,7 +160,7 @@ def test_session_context_switches_at_m5_decision_boundary_without_extra_lag() ->
         300.0,
         295.0,
     ]
-    assert frame["_v1_is_EU"].tolist() == [0.0, 1.0, 1.0]
+    assert frame["is_ASIA"].tolist() == [1, 0, 0]
 
 
 def test_session_context_is_append_stable() -> None:
@@ -200,11 +187,10 @@ def test_model_native_entry_context_accepts_exact_categorical_session_frame() ->
     "missing_field",
     [
         "session_id",
-        "vol_regime_id",
-        "atr_bucket",
-        "spread_bucket",
-        "H4_trend_sign_cat",
-        "session_tradable",
+        "is_ASIA",
+        "minutes_since_session_open",
+        "minutes_to_next_session_boundary",
+        "session_change_flag",
     ],
 )
 def test_model_native_entry_boundary_rejects_missing_context_before_feature_build(
@@ -226,15 +212,16 @@ def test_model_native_entry_boundary_rejects_missing_context_before_feature_buil
     [
         ("session_id", np.nan, "missing/non-finite"),
         ("session_id", 4, "outside semantic domain"),
-        ("vol_regime_id", np.inf, "missing/non-finite"),
-        ("atr_bucket", 5, "outside semantic domain"),
-        ("spread_bucket", 1.5, "non-integral category"),
-        ("H4_trend_sign_cat", -1, "outside semantic domain"),
+        ("session_id", -1, "outside semantic domain"),
+        ("session_id", 1.5, "non-integral category"),
         ("is_ASIA", np.nan, "missing/non-finite"),
+        ("is_ASIA", 2, "outside semantic domain"),
+        ("is_ASIA", 0.5, "non-integral flag"),
         ("minutes_since_session_open", np.nan, "missing/non-finite"),
+        ("minutes_since_session_open", -1, "disagrees with UTC-derived"),
+        ("minutes_to_next_session_boundary", np.inf, "missing/non-finite"),
         ("minutes_to_next_session_boundary", -1, "disagrees with UTC-derived"),
         ("session_change_flag", 0, "disagrees with UTC-derived"),
-        ("session_tradable", 2, "outside semantic domain"),
     ],
 )
 def test_model_native_entry_boundary_rejects_invalid_context_without_coercion(
@@ -263,7 +250,6 @@ def test_model_native_entry_boundary_never_turns_unknown_session_into_asia(
     # exactly the retired unknown-session -> ASIA soft fallback.
     frame.loc[frame.index[-1], "session_id"] = 0
     frame.loc[frame.index[-1], "is_ASIA"] = 1
-    frame.loc[frame.index[-1], "session_tradable"] = 0
     builder = _early_validation_builder(tmp_path)
 
     with pytest.raises(
@@ -271,27 +257,6 @@ def test_model_native_entry_boundary_never_turns_unknown_session_into_asia(
         match=r"session_id disagrees.*ASIA fallback forbidden",
     ):
         builder.build_states(frame, [frame["time"].iloc[-1]])
-
-
-def test_model_native_entry_boundary_accepts_distinct_vol_regime_and_atr_level() -> None:
-    frame = _valid_entry_context_frame()
-
-    _require_model_native_entry_context_frame(frame, context="distinct-vol-context")
-
-
-def test_causal_vol_regime_is_append_invariant_and_not_absolute_atr_alias() -> None:
-    values = np.concatenate(
-        [
-            np.linspace(1.0, 4.0, 300),
-            np.linspace(8.0, 4.0, 300),
-        ]
-    )
-    prefix = causal_vol_regime_bucket(values[:450])
-    complete = causal_vol_regime_bucket(values)
-    absolute = bucket_against_train_reference(values, np.sort(values[:300]))
-
-    np.testing.assert_array_equal(prefix, complete[:450])
-    assert not np.array_equal(complete, absolute)
 
 
 @pytest.mark.parametrize(
@@ -316,79 +281,68 @@ def test_model_native_state_rejects_invalid_time_before_feature_build(
         builder.prepare_frame(pd.DataFrame({"time": times}))
 
 
-def _rank_artifact(tmp_path: Path) -> tuple[Path, dict]:
-    source = tmp_path / "fresh_xau_source.parquet"
-    times = pd.date_range("2026-05-20T23:00:00Z", periods=40, freq="5min")
-    close = 2300.0 + np.linspace(0.0, 7.8, len(times))
-    pd.DataFrame(
-        {
-            "time": times,
-            "high": close + 0.8,
-            "low": close - 0.7,
-            "close": close,
-            "bid_close": close - 0.05,
-            "ask_close": close + 0.05,
-        }
-    ).to_parquet(source, index=False)
-    out = tmp_path / "model_native_train_rank_reference_v2.npz"
-    report = materialize_rank(
-        argparse.Namespace(
-            source_parquet=source,
-            out=out,
-            history_start="2026-05-20T23:00:00Z",
-            fit_start="2026-05-21T00:00:00Z",
-            fit_end="2026-05-21T01:00:00Z",
-            min_rows=1,
-            run_id="MODEL_NATIVE_STATE_CONTRACT_PYTEST",
-        )
-    )
-    return out, report
-
-
-def _state_metadata(rank_ref: Path, report: dict, *, sha256: str | None = None) -> dict:
+def _state_metadata() -> dict:
+    """The exact live state-contract surface: common history, no rank artifact."""
     return {
         "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
         "feature_history_start_utc": "2026-05-20T23:00:00Z",
-        "rank_fit_start_utc": "2026-05-21T00:00:00Z",
-        "rank_fit_end_utc": "2026-05-21T01:00:00Z",
-        "rank_reference_npz": str(rank_ref),
-        "rank_reference_npz_sha256": sha256 or report["out_npz_sha256"],
-        "rank_reference_sidecar_sha256": hashlib.sha256(
-            rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
-        ).hexdigest(),
-        "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "rank_reference_fit_scope": "train_only",
-        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
         "split_reset_allowed": False,
-        "post_fit_rows_in_rank_reference": False,
         "runtime_rule_free": True,
         "entry_run_id": "MODEL_NATIVE_STATE_CONTRACT_PYTEST",
     }
 
 
-def test_model_native_state_contract_verifies_train_rank_reference_sha(tmp_path: Path) -> None:
-    rank_ref, report = _rank_artifact(tmp_path)
-    raw = _state_metadata(rank_ref, report, sha256="0" * 64)
+def test_model_native_state_contract_accepts_the_exact_live_surface() -> None:
+    contract = ModelNativeStateContract.from_metadata(_state_metadata())
 
-    with pytest.raises(RuntimeError, match="TRAIN_RANK_REFERENCE_SHA_MISMATCH"):
+    assert contract.feature_history_start_utc == pd.Timestamp("2026-05-20T23:00:00Z")
+    assert contract.raw["feature_history_mode"] == MODEL_NATIVE_HISTORY_MODE
+    assert contract.as_report()["schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
+
+
+@pytest.mark.parametrize("retired_field", sorted(RETIRED_RANK_STATE_FIELDS))
+def test_model_native_state_contract_rejects_every_retired_rank_field(
+    retired_field: str,
+) -> None:
+    """The retired TRAIN-rank state surface must fail closed, never pass through.
+
+    A stale bundle carrying any rank-reference key is evidence that it was
+    built against the retired fixed top-k ranking subsystem; admitting it
+    would silently serve a contract the code no longer implements.
+    """
+    raw = _state_metadata()
+    raw[retired_field] = "any-value"
+
+    with pytest.raises(
+        RuntimeError,
+        match=rf"STATE_RETIRED_FIELDS_FORBIDDEN.*{retired_field}",
+    ):
         ModelNativeStateContract.from_metadata(raw)
 
-    raw["rank_reference_npz_sha256"] = report["out_npz_sha256"]
-    contract = ModelNativeStateContract.from_metadata(raw)
-    assert contract.rank_reference_npz == rank_ref.resolve()
-    assert contract.rank_reference.fit_row_count == report["fit_row_count"]
+
+@pytest.mark.parametrize("stale_field", sorted(STALE_STATE_CONTRACT_FIELDS))
+def test_model_native_state_contract_rejects_every_stale_field(
+    stale_field: str,
+) -> None:
+    raw = _state_metadata()
+    raw[stale_field] = "any-value"
+
+    with pytest.raises(
+        RuntimeError,
+        match=rf"STATE_RETIRED_FIELDS_FORBIDDEN.*{stale_field}",
+    ):
+        validate_state_contract_metadata_v2(raw)
 
 
-def test_model_native_state_contract_rejects_mutated_rank_sidecar(tmp_path: Path) -> None:
-    rank_ref, report = _rank_artifact(tmp_path)
-    raw = _state_metadata(rank_ref, report)
-    sidecar_path = rank_ref.with_suffix(rank_ref.suffix + ".json")
-    sidecar = sidecar_path.read_text(encoding="utf-8")
-    sidecar_path.write_text(sidecar + "\n", encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="STATE_RANK_SIDECAR_SHA_MISMATCH"):
-        ModelNativeStateContract.from_metadata(raw)
+def test_retired_rank_state_fields_cover_the_whole_rank_reference_surface() -> None:
+    """Every retired key names the rank subsystem; none collide with live keys."""
+    assert RETIRED_RANK_STATE_FIELDS
+    assert all(
+        "rank" in name for name in RETIRED_RANK_STATE_FIELDS
+    ), sorted(RETIRED_RANK_STATE_FIELDS)
+    assert not (RETIRED_RANK_STATE_FIELDS & set(_state_metadata()))
+    assert not (RETIRED_RANK_STATE_FIELDS & STALE_STATE_CONTRACT_FIELDS)
 
 
 @pytest.mark.parametrize(
@@ -396,13 +350,41 @@ def test_model_native_state_contract_rejects_mutated_rank_sidecar(tmp_path: Path
     ["model_native_state_contract_v1", "model_native_state_contract_v2"],
 )
 def test_model_native_state_contract_rejects_retired_schema_and_stale_fields(
-    tmp_path: Path,
     retired_schema: str,
 ) -> None:
-    rank_ref, report = _rank_artifact(tmp_path)
-    raw = _state_metadata(rank_ref, report)
+    raw = _state_metadata()
     raw["schema_version"] = retired_schema
     raw["frame_anchor_utc"] = "2026-05-21T00:00:00Z"
 
     with pytest.raises(RuntimeError, match="STATE_SCHEMA_INVALID"):
         ModelNativeStateContract.from_metadata(raw)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("feature_history_mode", "per_split_reset", "STATE_HISTORY_MODE_INVALID"),
+        ("split_reset_allowed", True, "STATE_SPLIT_RESET_FORBIDDEN"),
+        ("runtime_rule_free", False, "STATE_RUNTIME_RULE_FREE_REQUIRED"),
+        ("entry_run_id", "  ", "STATE_EXPLICIT_RUN_ID_MISSING"),
+        ("feature_history_start_utc", "not-a-time", "STATE_TIMESTAMP_INVALID"),
+    ],
+)
+def test_model_native_state_contract_fails_closed_on_invalid_live_field(
+    field: str, value: object, message: str
+) -> None:
+    raw = _state_metadata()
+    raw[field] = value
+
+    with pytest.raises(RuntimeError, match=message):
+        ModelNativeStateContract.from_metadata(raw)
+
+
+def test_model_native_state_contract_requires_every_live_field() -> None:
+    for field in sorted(_state_metadata()):
+        if field == "schema_version":
+            continue
+        raw = _state_metadata()
+        raw.pop(field)
+        with pytest.raises(RuntimeError, match="STATE_FIELDS_MISSING|STATE_"):
+            ModelNativeStateContract.from_metadata(raw)

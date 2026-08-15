@@ -4,8 +4,11 @@ import json
 from pathlib import Path
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
+    FIELD_SEMANTIC_EXEMPTIONS,
     PASS_DECISION,
     SPLITS,
+    classify_field_name_semantics,
+    classify_field_status,
     sha256_file,
     validate_full_input_liveness_artifact,
 )
@@ -18,12 +21,16 @@ from tests.entry_full_input_liveness_support import (
     write_full_input_liveness_fixture,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
+    ordered_model_native_signal_fields,
 )
 
 
-def test_full_input_liveness_validates_660_split_fields_and_all_555_mtf_fields(
+def test_full_input_liveness_validates_every_split_field_and_all_mtf_fields(
     tmp_path,
 ) -> None:
     path, artifact, _ = write_full_input_liveness_fixture(tmp_path)
@@ -39,10 +46,12 @@ def test_full_input_liveness_validates_660_split_fields_and_all_555_mtf_fields(
     assert result["field_counts"] == {
         "signal": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat": 5,
+        "ctx_cat": MODEL_NATIVE_CTX_CAT_DIM,
     }
     assert result["field_status_row_count"] == len(SPLITS) * (
-        MODEL_NATIVE_SIGNAL_DIM + MODEL_NATIVE_CTX_CONT_DIM + 5
+        MODEL_NATIVE_SIGNAL_DIM
+        + MODEL_NATIVE_CTX_CONT_DIM
+        + MODEL_NATIVE_CTX_CAT_DIM
     )
     assert result["multi_tf_field_count_per_timeframe"] == (
         MULTI_TF_FEATURE_COUNT_V4
@@ -297,3 +306,135 @@ def test_full_input_liveness_fails_when_bound_manifest_or_scanned_parquet_change
         row["code"] == "fullscan_proof_invalid" and row.get("split") == scanned_split
         for row in parquet_result["failures"]
     )
+
+
+def _semantic_stats(
+    *,
+    minimum: float,
+    maximum: float,
+    std: float = 1.0,
+    value_range: float | None = None,
+) -> dict[str, float | int]:
+    """Minimal TRAIN stats row: variable and active unless stated otherwise."""
+
+    return {
+        "row_count": 1000,
+        "finite_count": 1000,
+        "nonfinite_count": 0,
+        "mean": (minimum + maximum) / 2.0,
+        "std": std,
+        "min": minimum,
+        "max": maximum,
+        "value_range": maximum - minimum if value_range is None else value_range,
+        "active_count": 1000,
+        "active_rate": 1.0,
+    }
+
+# ---------------------------------------------------------------------------
+# Name-declared value semantics (V30 fidelity gate)
+
+
+def test_field_name_semantics_classifies_from_the_name_alone() -> None:
+    assert classify_field_name_semantics("vol_term_structure_slope") == "signed"
+    assert classify_field_name_semantics("chart.local_ema50_200_spread_atr") == "signed"
+    assert classify_field_name_semantics("swing_high_break_count") == "non_negative"
+    assert classify_field_name_semantics("bars_since_swing_high") == "non_negative"
+    assert classify_field_name_semantics("candle.raw_upper_wick_share") == "unit_interval"
+    # An explicit ``_signed`` suffix is the author's own declaration and
+    # outranks a structural marker in the same name.
+    assert classify_field_name_semantics("level_bars_since_break_signed") == "signed"
+    # A name that declares nothing must not acquire a contract by accident.
+    assert classify_field_name_semantics("smc_bos_up") is None
+
+
+def test_signed_field_that_never_crosses_zero_fails_closed() -> None:
+    """The exact 2026-08-13 cross-timeframe ATR defect.
+
+    A slope centred on the wrong constant kept `std > 0` and an active rate far
+    above the floor, so every existing liveness rule passed it while it never
+    took a negative value.
+    """
+
+    status, reason = classify_field_status(
+        split="train",
+        surface="signal",
+        field="vol_term_structure_slope",
+        stats=_semantic_stats(minimum=0.02, maximum=0.54),
+    )
+    assert (status, reason) == ("FAIL", "signed_field_never_observes_both_signs")
+
+    status, reason = classify_field_status(
+        split="train",
+        surface="signal",
+        field="vol_term_structure_slope",
+        stats=_semantic_stats(minimum=-0.41, maximum=0.54),
+    )
+    assert status == "LIVE"
+
+
+def test_identically_zero_signed_term_fails_closed() -> None:
+    """`_neg(clv)` was identically zero and shipped (found 2026-08-09)."""
+
+    status, reason = classify_field_status(
+        split="train",
+        surface="ctx_cont",
+        field="foundation_neg_clv_signed",
+        stats=_semantic_stats(minimum=0.0, maximum=0.0, std=0.0, value_range=0.0),
+    )
+    assert status == "FAIL"
+    assert reason in {
+        "signed_field_never_observes_both_signs",
+        "unallowed_near_constant",
+    }
+
+
+def test_non_negative_and_unit_interval_contracts_fail_closed() -> None:
+    status, reason = classify_field_status(
+        split="train",
+        surface="signal",
+        field="swing_high_break_count",
+        stats=_semantic_stats(minimum=-3.0, maximum=10.0),
+    )
+    assert (status, reason) == (
+        "FAIL",
+        "non_negative_field_observes_negative_value",
+    )
+
+    status, reason = classify_field_status(
+        split="train",
+        surface="signal",
+        field="candle.raw_upper_wick_share",
+        stats=_semantic_stats(minimum=0.0, maximum=1.4),
+    )
+    assert (status, reason) == ("FAIL", "unit_interval_field_outside_zero_one")
+
+
+def test_semantic_contract_is_train_only_and_exemptions_must_be_declared() -> None:
+    # VAL may legitimately not observe both signs in a short window, so the
+    # contract binds the complete declared TRAIN population only.
+    status, _ = classify_field_status(
+        split="val",
+        surface="signal",
+        field="vol_term_structure_slope",
+        stats=_semantic_stats(minimum=0.02, maximum=0.54),
+    )
+    assert status != "FAIL"
+    # Fail-closed default: an exception exists only when it is declared.
+    assert FIELD_SEMANTIC_EXEMPTIONS == {}
+
+
+def test_every_declared_surface_field_gets_a_stable_semantic_class() -> None:
+    """The classifier must be total and deterministic over the real surface."""
+
+    selected = (
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    )
+    declared = 0
+    for name in ordered_model_native_signal_fields(selected):
+        semantics = classify_field_name_semantics(name)
+        assert semantics in {None, "signed", "non_negative", "unit_interval"}
+        assert semantics == classify_field_name_semantics(name)
+        declared += semantics is not None
+    # The gate is worthless if it happens to bind nothing.
+    assert declared > 0

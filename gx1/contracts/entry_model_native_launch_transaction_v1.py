@@ -99,7 +99,7 @@ _LAUNCH_STATE_KEYS = frozenset(
         "required_base_signal_dim",
         "required_selected_feature_count",
         "required_mandatory_causal_layer_feature_count",
-        "required_train_ranked_remainder_feature_count",
+        "required_available_candidate_feature_count",
         "required_mandatory_causal_layer_count",
         "required_ctx_cont_dim",
         "required_ctx_cat_dim",

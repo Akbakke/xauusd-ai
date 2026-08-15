@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import copy
 import inspect
 
 import pytest
@@ -19,24 +18,27 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_MTF_CONTEXT_COUNT,
     ENTRY_MTF_CONTEXT_TIMEFRAMES,
     EXIT_FEATURE_SEQUENCE_BARS,
-    EXIT_MTF_CONTEXT_COUNT,
     EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import INPUTS
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
     MIN_EFFECTIVE_SCALE,
     build_tf_input_scale_contract,
     require_tf_input_scale_state,
+)
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+    build_unified_exit_incremental_carry_envelope,
+    decode_unified_exit_incremental_carry_tensors,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_CTX_CAT_DOMAINS,
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
     _build_unit_test_entry_v10_ctx_hybrid_transformer,
-    _apply_argmax_preserving_direction_temperature,
 )
 from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as model_module
 from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_MAX_PATH_BARS,
     UNIFIED_EXIT_PATH_FEATURE_DIM,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -170,19 +172,50 @@ def _forward(model: EntryV10CtxHybridTransformer, batch_size: int = 2) -> dict:
     return model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
 
-def _make_exit_feature_inputs(batch_size: int = 2) -> dict[str, torch.Tensor]:
-    _entry_seq, _entry_snap, ctx_cat, ctx_cont, _mtf = _make_inputs(batch_size)
-    seq = torch.randn(batch_size, SEQ_LEN * 5, SEQ_DIM)
+def _make_exit_episode_inputs(
+    *,
+    state_count: int = UNIFIED_EXIT_MAX_PATH_BARS,
+    batch_size: int = 1,
+) -> dict[str, object]:
+    warm_rows = EXIT_FEATURE_SEQUENCE_BARS - 1
+    _seq, _snap, ctx_cat, ctx_cont, _mtf = _make_inputs(batch_size)
+    history_rows = warm_rows + state_count
+    mtf_history_rows = SEQ_LEN + state_count - 1
     return {
-        "exit_feature_seq_x": seq,
-        "exit_feature_snap_x": seq[:, -1, :].clone(),
-        "exit_feature_ctx_cat": ctx_cat,
-        "exit_feature_ctx_cont": ctx_cont,
-        **{
-            f"exit_seq_{tf.lower()}": torch.randn(
-                batch_size,
-                SEQ_LEN,
-                TF_DIM,
+        "entry_decision_representation": torch.randn(batch_size, 128),
+        "exit_local_history_x": torch.randn(
+            batch_size, history_rows, SEQ_DIM
+        ),
+        "exit_state_ctx_cat": ctx_cat[:, None, :].expand(
+            -1, state_count, -1
+        ).clone(),
+        "exit_state_ctx_cont": ctx_cont[:, None, :].expand(
+            -1, state_count, -1
+        ).clone(),
+        "exit_path_x": torch.randn(
+            batch_size,
+            2,
+            state_count,
+            UNIFIED_EXIT_PATH_FEATURE_DIM,
+        ),
+        "exit_mtf_histories": {
+            tf.lower(): torch.randn(
+                batch_size, mtf_history_rows, TF_DIM
+            )
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        },
+        "exit_mtf_gathers": {
+            tf.lower(): torch.arange(
+                SEQ_LEN - 1, mtf_history_rows, dtype=torch.long
+            )
+            .view(1, -1)
+            .expand(batch_size, -1)
+            .contiguous()
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        },
+        "exit_mtf_history_lengths": {
+            tf.lower(): torch.full(
+                (batch_size,), mtf_history_rows, dtype=torch.long
             )
             for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
         },
@@ -193,43 +226,23 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
     model = _make_model().eval()
     out = _forward(model, batch_size=2)
     widths = {
-        "direction_logits": 3,
-        "raw_direction_logits": 3,
-        "model_native_logits": 3,
-        "mtf_dir_logits": 3,
-        "path_quality_raw": 1,
-        "path_quality": 1,
-        "mfe_first_n": 1,
-        "tradable_logit": 1,
-        "bad_path_logit_raw": 1,
-        "bad_path_logit": 1,
-        "clean_edge_logit": 1,
-        "survival_logit": 1,
+        "entry_action_q_bps": 3,
+        "entry_q_joint_hidden": 128,
         "specialist_gate": 8,
         "tf_gate": ENTRY_MTF_CONTEXT_COUNT,
         "family_tf_cooperation_gate": (
             ENTRY_MTF_CONTEXT_COUNT * len(EXACT_SPECIALIST_NAMES)
         ),
-        "trade_logit": 1,
-        "side_logits": 2,
-        "side_utility": 2,
-        "side_bad_path_logit": 2,
-        "side_mae": 2,
-        "side_validity_logit": 2,
-        "trendline_rail_logits": 6,
-        "tf_agreement_logit": 1,
-        "path_quality_log_var": 1,
+        "side_mae_bps": 2,
+        "trendline_event_logits": 4,
         "position_size_logit": 1,
         "dip_pred": 18,
         "forecast_pred": 4,
         "timing_pred": 12,
         "tail_risk_pred": 6,
         "vol_forecast_pred": 3,
-        "action_value": 9,
-        "expectile_value": 3,
-        "action_advantage": 9,
-        "public_trade_flat_decision_logits": 2,
-        "shared_feature_representation": 128,
+        "entry_decision_representation": 128,
+        "entry_decision_token_source": 643,
     }
     for name, width in widths.items():
         assert out[name].shape == (2, width), name
@@ -250,7 +263,7 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
     assert torch.isfinite(out["family_tf_feature_gate"]).all()
 
 
-def test_context_inputs_materially_change_direction_logits() -> None:
+def test_context_inputs_materially_change_entry_action_q() -> None:
     torch.manual_seed(1337)
     model = _make_model(dropout=0.0).eval()
     seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=1)
@@ -270,426 +283,144 @@ def test_context_inputs_materially_change_direction_logits() -> None:
             ctx_cat=ctx_cat,
             ctx_cont=ctx_cont,
             **mtf,
-        )["direction_logits"]
+        )["entry_action_q_bps"]
         changed = model(
             seq_x,
             snap_x,
             ctx_cat=changed_ctx_cat,
             ctx_cont=changed_ctx_cont,
             **mtf,
-        )["direction_logits"]
+        )["entry_action_q_bps"]
 
     assert torch.max(torch.abs(baseline - changed)).item() > 1e-6
 
 
-def test_unified_exit_head_consumes_shared_entry_state_and_exact_m1_prefix() -> None:
-    model = _make_model().train()
-    out = _forward(model, batch_size=2)
-    exit_features = _make_exit_feature_inputs(2)
-    path = torch.randn(2, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
-    path[1, 2:, :] = 0.0
-    exit_out = model.forward_exit_action(
-        entry_shared_representation=out["shared_feature_representation"],
-        **exit_features,
-        exit_path_x=path,
-        exit_path_lengths=torch.tensor([4, 2], dtype=torch.long),
-        exit_side_index=torch.tensor([0, 1], dtype=torch.long),
-    )
-    assert exit_out["exit_action_logits"].shape == (2, 2)
-    assert exit_out["exit_action_probs"].shape == (2, 2)
-    assert exit_out["exit_path_attention"].shape == (2, 1, 4)
-    assert exit_out["exit_tf_gate"].shape == (2, EXIT_MTF_CONTEXT_COUNT)
-    assert exit_out["exit_family_tf_cooperation_gate"].shape == (
-        2,
-        EXIT_MTF_CONTEXT_COUNT * len(EXACT_SPECIALIST_NAMES),
-    )
-    assert exit_out["exit_family_tf_feature_gate"].shape == (
-        2,
-        EXIT_MTF_CONTEXT_COUNT,
-        TF_DIM,
-    )
-    assert torch.isfinite(exit_out["exit_action_logits"]).all()
-    assert torch.allclose(
-        exit_out["exit_action_probs"].sum(dim=1),
-        torch.ones(2),
-        atol=1e-6,
+def test_each_declared_entry_decision_component_block_moves_token() -> None:
+    from gx1.contracts.entry_decision_token_v1 import (
+        ENTRY_DECISION_TOKEN_COMPONENTS,
     )
 
-    torch.nn.functional.cross_entropy(
-        exit_out["exit_action_logits"],
-        torch.tensor([0, 1], dtype=torch.long),
+    torch.manual_seed(916)
+    model = _make_model(dropout=0.0).eval()
+    with torch.no_grad():
+        forward = _forward(model, batch_size=2)
+        source = forward["entry_decision_token_source"]
+        components = {}
+        start = 0
+        for name, width in ENTRY_DECISION_TOKEN_COMPONENTS:
+            components[name] = source[:, start : start + width]
+            start += width
+        baseline = model._project_entry_decision_token(components)
+        assert torch.equal(
+            baseline,
+            forward["entry_decision_representation"],
+        )
+        for name, _width in ENTRY_DECISION_TOKEN_COMPONENTS:
+            # Replace exactly one block with the same block emitted for another
+            # genuine forward row.  Both source values are therefore on the
+            # model's own evidence manifold; no synthetic score scale is used.
+            perturbed = {
+                key: value.clone() for key, value in components.items()
+            }
+            perturbed[name][0:1] = components[name][1:2]
+            assert not torch.equal(
+                perturbed[name][0:1], components[name][0:1]
+            ), name
+            changed = model._project_entry_decision_token(perturbed)
+            assert not torch.equal(changed[0:1], baseline[0:1]), name
+            assert (
+                torch.max(torch.abs(changed[0:1] - baseline[0:1])).item()
+                > 0.0
+            ), name
+
+
+def test_cold_start_training_preserves_token_influence_on_exit_margin() -> None:
+    from gx1.contracts.entry_decision_token_v1 import (
+        ENTRY_DECISION_TOKEN_COMPONENTS,
+    )
+
+    torch.manual_seed(917)
+    model = _make_model(dropout=0.0).train()
+    components = {
+        name: torch.randn(2, width)
+        for name, width in ENTRY_DECISION_TOKEN_COMPONENTS
+    }
+    components["local_model_native_representation"][1] = (
+        components["local_model_native_representation"][0] + 0.5
+    )
+    tokens = model._project_entry_decision_token(components)
+    exit_inputs = _make_exit_episode_inputs(state_count=3, batch_size=2)
+    exit_inputs["entry_decision_representation"] = tokens
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.02)
+    optimizer.zero_grad(set_to_none=True)
+    # A 3-state prefix is the incremental owner's domain; `forward_exit_episode`
+    # now requires the complete 512-state pack.  Both routes share the exact
+    # same weights and causal scan (proved in
+    # test_exit_episode_one_pass_prefix_and_future_append_parity_all_states).
+    trained = model.forward_exit_incremental_prefix(**exit_inputs)
+    target = torch.zeros_like(trained["exit_action_q_bps"])
+    target[0, :, :, 0] = 1.0
+    target[1, :, :, 1] = 1.0
+    torch.nn.functional.mse_loss(
+        trained["exit_action_q_bps"], target
     ).backward()
-    for parameter_name in (
-        "seq_proj.weight",
-        "exit_path_proj.weight",
-        "exit_entry_path_attention.in_proj_weight",
-        "head_exit_action.weight",
-    ):
-        parameter = dict(model.named_parameters())[parameter_name]
-        assert parameter.grad is not None, parameter_name
-        assert bool(torch.count_nonzero(parameter.grad).item()), parameter_name
+    assert model.entry_decision_token[1].weight.grad is not None
+    assert model.entry_decision_token[1].weight.grad.abs().sum().item() > 0.0
+    optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        post = model.forward_exit_incremental_prefix(**exit_inputs)[
+            "exit_action_q_bps"
+        ]
+    margins = post[:, 0, 0, 1] - post[:, 0, 0, 0]
+    assert not torch.equal(margins[0], margins[1])
 
 
-def test_exit_loss_reaches_its_m5_specific_shared_encoder_inputs() -> None:
-    torch.manual_seed(914)
+
+def test_entry_q_gradient_reaches_joint_local_mtf_and_family_representations() -> None:
+    torch.manual_seed(1307)
     model = _make_model(dropout=0.0).train()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
-    targets = torch.tensor([0, 1], dtype=torch.long)
-
+    target = torch.tensor(
+        [[2.0, -1.0, 0.0], [-1.0, 2.0, 0.0], [1.0, 0.0, 0.0]],
+        dtype=torch.float32,
+    )
     for _ in range(2):
         optimizer.zero_grad(set_to_none=True)
-        entry = _forward(model, batch_size=2)
-        exit_out = model.forward_exit_action(
-            entry_shared_representation=entry["shared_feature_representation"],
-            **_make_exit_feature_inputs(2),
-            exit_path_x=torch.randn(2, 3, UNIFIED_EXIT_PATH_FEATURE_DIM),
-            exit_path_lengths=torch.tensor([3, 3], dtype=torch.long),
-            exit_side_index=torch.tensor([0, 1], dtype=torch.long),
-        )
-        torch.nn.functional.cross_entropy(
-            exit_out["exit_action_logits"],
-            targets,
+        output = _forward(model, batch_size=3)
+        torch.nn.functional.mse_loss(
+            output["entry_action_q_bps"], target
         ).backward()
         optimizer.step()
 
     optimizer.zero_grad(set_to_none=True)
-    entry = _forward(model, batch_size=2)
-    exit_out = model.forward_exit_action(
-        entry_shared_representation=entry["shared_feature_representation"],
-        **_make_exit_feature_inputs(2),
-        exit_path_x=torch.randn(2, 3, UNIFIED_EXIT_PATH_FEATURE_DIM),
-        exit_path_lengths=torch.tensor([3, 3], dtype=torch.long),
-        exit_side_index=torch.tensor([0, 1], dtype=torch.long),
-    )
-    torch.nn.functional.cross_entropy(
-        exit_out["exit_action_logits"],
-        targets,
+    output = _forward(model, batch_size=3)
+    torch.nn.functional.mse_loss(
+        output["entry_action_q_bps"], target
     ).backward()
-
-    m5_gate = model.mtf_feature_context_gate[
-        f"m5__{EXACT_SPECIALIST_NAMES[0]}"
-    ].weight
-    for parameter in (model.tf_input_scale_m5, m5_gate):
-        assert parameter.grad is not None
-        assert torch.isfinite(parameter.grad).all()
-        assert parameter.grad.abs().sum().item() > 0.0
-
-
-def test_memory_bounded_transformers_preserve_full_entry_exit_outputs_and_gradients(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    checkpointed = _make_model(dropout=0.05).train()
-    direct = copy.deepcopy(checkpointed).train()
-    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=2)
-    exit_features = _make_exit_feature_inputs(2)
-    path = torch.randn(2, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
-    path[1, 2:, :] = 0.0
-    path_lengths = torch.tensor([4, 2], dtype=torch.long)
-    side_index = torch.tensor([0, 1], dtype=torch.long)
-
-    def _run(model: EntryV10CtxHybridTransformer) -> tuple[dict, dict]:
-        torch.manual_seed(4242)
-        entry = model(
-            seq_x,
-            snap_x,
-            ctx_cat=ctx_cat,
-            ctx_cont=ctx_cont,
-            **mtf,
-        )
-        exit_out = model.forward_exit_action(
-            entry_shared_representation=entry["shared_feature_representation"],
-            **exit_features,
-            exit_path_x=path,
-            exit_path_lengths=path_lengths,
-            exit_side_index=side_index,
-        )
-        loss = torch.nn.functional.cross_entropy(
-            entry["direction_logits"],
-            torch.tensor([0, 1]),
-        ) + torch.nn.functional.cross_entropy(
-            exit_out["exit_action_logits"],
-            torch.tensor([0, 1]),
-        )
-        loss.backward()
-        return entry, exit_out
-
-    checkpointed_entry, checkpointed_exit = _run(checkpointed)
-
-    direct_layer_calls = 0
-
-    def _direct_layer(function, *args, **_kwargs):
-        nonlocal direct_layer_calls
-        direct_layer_calls += 1
-        return function(*args)
-
-    monkeypatch.setattr(model_module, "_torch_checkpoint", _direct_layer)
-    direct_entry, direct_exit = _run(direct)
-    assert direct_layer_calls > 0
-    for name in ("direction_logits", "shared_feature_representation"):
-        assert torch.equal(checkpointed_entry[name], direct_entry[name]), name
-    assert torch.equal(
-        checkpointed_exit["exit_action_logits"],
-        direct_exit["exit_action_logits"],
-    )
-    for (name, checkpointed_parameter), (
-        direct_name,
-        direct_parameter,
-    ) in zip(checkpointed.named_parameters(), direct.named_parameters()):
-        assert name == direct_name
-        if checkpointed_parameter.grad is None or direct_parameter.grad is None:
-            assert checkpointed_parameter.grad is direct_parameter.grad is None, name
-            continue
-        assert torch.equal(
-            checkpointed_parameter.grad,
-            direct_parameter.grad,
-        ), name
-
-
-def test_memory_checkpointing_is_training_only(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls = 0
-    real_checkpoint = model_module._torch_checkpoint
-
-    def _counting_checkpoint(function, *args, **kwargs):
-        nonlocal calls
-        calls += 1
-        return real_checkpoint(function, *args, **kwargs)
-
-    monkeypatch.setattr(
-        model_module,
-        "_torch_checkpoint",
-        _counting_checkpoint,
-    )
-    model = _make_model(dropout=0.0).train()
-    _forward(model, batch_size=1)
-    assert calls > 0
-
-    calls = 0
-    model.eval()
-    _forward(model, batch_size=1)
-    assert calls == 0
-
-    model.train()
-    with torch.no_grad():
-        _forward(model, batch_size=1)
-    assert calls == 0
-
-
-def test_unified_exit_head_padding_is_exact_and_cannot_hide_path_values() -> None:
-    model = _make_model(dropout=0.0).eval()
-    shared = _forward(model, batch_size=1)["shared_feature_representation"]
-    exit_features = _make_exit_feature_inputs(1)
-    prefix = torch.randn(1, 2, UNIFIED_EXIT_PATH_FEATURE_DIM)
-    exact = model.forward_exit_action(
-        entry_shared_representation=shared,
-        **exit_features,
-        exit_path_x=prefix,
-        exit_path_lengths=torch.tensor([2], dtype=torch.long),
-        exit_side_index=torch.tensor([0], dtype=torch.long),
-    )
-    padded = torch.zeros(1, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
-    padded[:, :2, :] = prefix
-    padded_out = model.forward_exit_action(
-        entry_shared_representation=shared,
-        **exit_features,
-        exit_path_x=padded,
-        exit_path_lengths=torch.tensor([2], dtype=torch.long),
-        exit_side_index=torch.tensor([0], dtype=torch.long),
-    )
-    assert torch.allclose(
-        exact["exit_action_logits"],
-        padded_out["exit_action_logits"],
-        atol=1e-6,
-    )
-
-    padded[0, 3, 0] = 1.0
-    with pytest.raises(
-        RuntimeError,
-        match="UNIFIED_EXIT_NONZERO_RIGHT_PADDING_FORBIDDEN",
-    ):
-        model.forward_exit_action(
-            entry_shared_representation=shared,
-            **exit_features,
-            exit_path_x=padded,
-            exit_path_lengths=torch.tensor([2], dtype=torch.long),
-            exit_side_index=torch.tensor([0], dtype=torch.long),
-        )
-
-
-def test_public_trade_flat_decision_is_post_calibration_argmax_ssot() -> None:
-    model = _make_model().eval()
-    model.set_direction_calibration(2.0)
-    out = _forward(model, batch_size=4)
-    final_logits = out["direction_logits"]
-    expected_final = out["raw_direction_logits"] / 2.0
-    expected_pair = torch.stack(
-        (final_logits[:, :2].max(dim=1).values, final_logits[:, 2]), dim=1
-    )
-    assert torch.allclose(final_logits, expected_final, atol=1e-6)
-    assert torch.equal(
-        out["raw_direction_logits"].argmax(dim=1),
-        final_logits.argmax(dim=1),
-    )
-    assert torch.allclose(out["public_trade_flat_decision_logits"], expected_pair, atol=1e-6)
-    assert torch.equal(
-        out["public_trade_flat_decision_logits"].argmax(dim=1) == 0,
-        final_logits.argmax(dim=1) != 2,
-    )
-
-
-def test_direction_temperature_preserves_long_short_flat_and_ties_fail_closed() -> None:
-    raw_logits = torch.tensor(
-        [
-            [4.0, 2.0, 1.0],
-            [-3.0, 5.0, 2.0],
-            [-8.0, -2.0, 0.5],
-        ],
-        dtype=torch.float32,
-    )
-    calibrated = _apply_argmax_preserving_direction_temperature(raw_logits, 3.5)
-
-    assert torch.equal(raw_logits.argmax(dim=1), torch.tensor([0, 1, 2]))
-    assert torch.equal(calibrated.argmax(dim=1), torch.tensor([0, 1, 2]))
-
-    with pytest.raises(
-        RuntimeError,
-        match="ENTRY_DIRECTION_CAL_RAW_ARGMAX_NOT_UNIQUE",
-    ):
-        _apply_argmax_preserving_direction_temperature(
-            torch.tensor([[1.0, 1.0, 0.0]], dtype=torch.float32),
-            2.0,
-        )
-
-
-def test_public_direction_gradient_reaches_every_fused_evidence_head() -> None:
-    model = _make_model().train()
-    out = _forward(model, batch_size=4)
-    loss = torch.nn.functional.cross_entropy(
-        out["direction_logits"],
-        torch.tensor([0, 1, 2, 0]),
-    )
-    loss.backward()
     for parameter in (
-        model.head_direction.weight,
-        model.head_mtf_direction.weight,
-        model.head_path_quality.weight,
-        model.head_path_quality_log_var.weight,
-        model.head_mfe_first_n.weight,
-        model.head_tradable.weight,
-        model.head_bad_path.weight,
-        model.head_clean_edge.weight,
-        model.head_survival.weight,
-        model.head_trade.weight,
-        model.head_side.weight,
-        model.head_side_utility.weight,
-        model.head_side_bad_path.weight,
-        model.head_side_mae.weight,
-        model.head_side_validity.weight,
-        model.head_trendline_rail.weight,
-        model.head_tf_agreement.weight,
-        model.head_position_size.weight,
-        model.head_dip.weight,
-        model.head_forecast.weight,
-        model.head_timing.weight,
-        model.head_tail_risk.weight,
-        model.head_vol_forecast.weight,
-        model.head_action_value.weight,
-        model.head_expectile_value.weight,
-        model.evidence_fusion_in.weight,
-        model.evidence_fusion_out.weight,
-        model.regime_film[-1].weight,
-        model.cross_tf_out.weight,
+        model.seq_proj.weight,
         model.specialist_out.weight,
+        model.cross_tf_out.weight,
         model.family_tf_cooperation_out.weight,
+        model.entry_q_joint_in.weight,
+        model.head_entry_action_q.weight,
     ):
         assert parameter.grad is not None
         assert torch.isfinite(parameter.grad).all()
         assert parameter.grad.abs().sum().item() > 0.0
 
 
-def test_public_direction_reaches_every_specialist_tf_and_cooperation_branch_after_cold_start() -> None:
-    torch.manual_seed(1307)
+def test_position_size_head_has_no_entry_q_decision_authority() -> None:
     model = _make_model().train()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
-    targets = torch.tensor([0, 1, 2, 0])
+    output = _forward(model, batch_size=4)
+    torch.sigmoid(output["position_size_logit"]).mean().backward()
+    assert model.head_position_size.weight.grad is not None
+    assert model.head_position_size.weight.grad.abs().sum().item() > 0.0
+    assert model.head_entry_action_q.weight.grad is None
+    assert model.entry_q_joint_in.weight.grad is None
 
-    # The three residual outputs are intentionally zero-initialized.  The first
-    # step must move their output projections; the second then proves gradient
-    # reachability through every upstream cooperation branch.
-    for _ in range(2):
-        optimizer.zero_grad(set_to_none=True)
-        out = _forward(model, batch_size=4)
-        torch.nn.functional.cross_entropy(out["direction_logits"], targets).backward()
-        optimizer.step()
-
-    optimizer.zero_grad(set_to_none=True)
-    out = _forward(model, batch_size=4)
-    torch.nn.functional.cross_entropy(out["direction_logits"], targets).backward()
-    parameters = [
-        model.specialist_cross_attn.layers[0].self_attn.in_proj_weight,
-        model.family_axis_attn.layers[0].self_attn.in_proj_weight,
-        model.timeframe_axis_attn.layers[0].self_attn.in_proj_weight,
-        model.cross_tf_attn.layers[0].self_attn.in_proj_weight,
-        model.specialist_gate.weight,
-        model.specialist_token_gate.weight,
-        model.tf_context_gate.weight,
-        model.tf_token_gate.weight,
-        model.family_tf_context_gate.weight,
-        model.family_tf_token_gate.weight,
-        *(projection.weight for projection in model.specialist_proj.values()),
-        *(projection.weight for projection in model.mtf_family_proj.values()),
-        *(
-            encoder.layers[0].self_attn.in_proj_weight
-            for encoder in model.mtf_family_encoder.values()
-        ),
-        *(
-            gate.weight
-            for key, gate in model.mtf_feature_context_gate.items()
-            if not key.startswith("m5__")
-        ),
-    ]
-    for parameter in parameters:
-        assert parameter.grad is not None
-        assert torch.isfinite(parameter.grad).all()
-        assert parameter.grad.abs().sum().item() > 0.0
-
-
-def test_each_of_26_evidence_groups_changes_a_direction_class_margin() -> None:
-    torch.manual_seed(90210)
-    model = _make_model().eval()
-    with torch.no_grad():
-        out = _forward(model, batch_size=3)
-        evidence = {name: out[name] for name, _ in INPUTS}
-        baseline = model._fuse_direction_evidence(evidence)
-        baseline_centered = baseline - baseline.mean(dim=1, keepdim=True)
-        assert len(INPUTS) == 26
-        for name, _ in INPUTS:
-            ablated = dict(evidence)
-            ablated[name] = torch.zeros_like(evidence[name])
-            changed = model._fuse_direction_evidence(ablated)
-            changed_centered = changed - changed.mean(dim=1, keepdim=True)
-            assert not torch.allclose(
-                baseline_centered,
-                changed_centered,
-                atol=1e-9,
-                rtol=1e-7,
-            ), name
-
-
-def test_report_only_path_calibration_cannot_change_direction_fusion() -> None:
-    model = _make_model().eval()
-    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=3)
-    with torch.no_grad():
-        before = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
-        model.set_path_calibration(1.7, 0.4, 2.3, -0.6)
-        after = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
-    assert torch.equal(before["path_quality_raw"], after["path_quality_raw"])
-    assert torch.equal(before["bad_path_logit_raw"], after["bad_path_logit_raw"])
-    assert torch.equal(before["raw_direction_logits"], after["raw_direction_logits"])
-    assert torch.equal(before["direction_logits"], after["direction_logits"])
-    assert not torch.equal(before["path_quality"], after["path_quality"])
-    assert not torch.equal(before["bad_path_logit"], after["bad_path_logit"])
 
 
 @pytest.mark.parametrize(
@@ -717,26 +448,7 @@ def test_exact_entry_architecture_requires_all_four_tf_inputs(
         model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
 
-@pytest.mark.parametrize("missing_timeframe", EXIT_MTF_CONTEXT_TIMEFRAMES)
-def test_exact_exit_architecture_requires_all_five_tf_inputs(
-    missing_timeframe: str,
-) -> None:
-    model = _make_model().eval()
-    shared = _forward(model, batch_size=1)["shared_feature_representation"]
-    exit_features = _make_exit_feature_inputs(1)
-    missing_key = f"exit_seq_{missing_timeframe.lower()}"
-    del exit_features[missing_key]
-    with pytest.raises(TypeError, match=missing_key):
-        model.forward_exit_action(
-            entry_shared_representation=shared,
-            **exit_features,
-            exit_path_x=torch.randn(1, 2, UNIFIED_EXIT_PATH_FEATURE_DIM),
-            exit_path_lengths=torch.tensor([2], dtype=torch.long),
-            exit_side_index=torch.tensor([0], dtype=torch.long),
-        )
-
-
-def test_exact_production_entry_and_exit_shapes_fit_one_shared_model() -> None:
+def test_exact_production_entry_shape_uses_raw_q_authority() -> None:
     tf_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
     tf_width = len(tf_names)
     tf_lengths = {"M5": 16, "M15": 64, "H1": 96, "H4": 96, "D1": 252}
@@ -808,16 +520,6 @@ def test_exact_production_entry_and_exit_shapes_fit_one_shared_model() -> None:
         f"seq_{tf.lower()}": torch.zeros(1, tf_lengths[tf], tf_width)
         for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
     }
-    exit_seq = torch.randn(
-        1,
-        EXIT_FEATURE_SEQUENCE_BARS,
-        MODEL_NATIVE_SIGNAL_DIM,
-    )
-    exit_mtf = {
-        f"exit_seq_{tf.lower()}": torch.zeros(1, tf_lengths[tf], tf_width)
-        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
-    }
-
     with torch.no_grad():
         entry = model(
             entry_seq,
@@ -826,22 +528,8 @@ def test_exact_production_entry_and_exit_shapes_fit_one_shared_model() -> None:
             ctx_cont=ctx_cont,
             **entry_mtf,
         )
-        exit_out = model.forward_exit_action(
-            entry_shared_representation=entry["shared_feature_representation"],
-            exit_feature_seq_x=exit_seq,
-            exit_feature_snap_x=exit_seq[:, -1, :],
-            exit_feature_ctx_cat=ctx_cat,
-            exit_feature_ctx_cont=ctx_cont,
-            **exit_mtf,
-            exit_path_x=torch.randn(1, 3, UNIFIED_EXIT_PATH_FEATURE_DIM),
-            exit_path_lengths=torch.tensor([3], dtype=torch.long),
-            exit_side_index=torch.tensor([0], dtype=torch.long),
-        )
-
-    assert entry["direction_logits"].shape == (1, 3)
+    assert entry["entry_action_q_bps"].shape == (1, 3)
     assert entry["tf_gate"].shape == (1, ENTRY_MTF_CONTEXT_COUNT)
-    assert exit_out["exit_action_logits"].shape == (1, 2)
-    assert exit_out["exit_tf_gate"].shape == (1, EXIT_MTF_CONTEXT_COUNT)
 
 
 @pytest.mark.parametrize(
@@ -959,25 +647,45 @@ def test_input_normalization_buffers_are_persistent_and_hash_bound() -> None:
         model.require_input_normalization_state()
 
 
-def test_input_normalization_applies_one_identical_clip_in_train_and_eval() -> None:
-    # Clipping at the exact boundary IS the declared handling: the fit
-    # contract caps TRAIN clipping at 2%, so beyond-boundary rows
-    # legitimately occur in every split and at serve. Train and eval must
-    # apply the one identical clamp.
+def test_input_normalization_applies_identical_non_saturating_asinh_in_train_and_eval() -> None:
     model = _make_model()
     center = model.input_norm_signal_center
     scale = model.input_norm_signal_scale
-    raw = center.clone().view(1, 1, -1)
-    raw[..., 0] = center[0] + scale[0] * 13.0
+    raw = center.clone().view(1, 1, -1).repeat(2, 1, 1)
+    raw[0, ..., 0] = center[0] + scale[0] * 13.0
+    raw[1, ..., 0] = center[0] + scale[0] * 130.0
 
     model.eval()
     normalized_eval = model._normalize_input_surface(raw, surface="signal")
-    assert float(normalized_eval[..., 0].item()) == 12.0
+    torch.testing.assert_close(
+        normalized_eval[:, 0, 0],
+        torch.asinh(torch.tensor([13.0, 130.0])),
+    )
+    assert normalized_eval[1, 0, 0] > normalized_eval[0, 0, 0]
 
     model.train()
     normalized_train = model._normalize_input_surface(raw, surface="signal")
-    assert float(normalized_train[..., 0].item()) == 12.0
     assert torch.equal(normalized_eval, normalized_train)
+
+
+def test_entry_exit_and_incremental_replay_share_one_normalization_owner() -> None:
+    shared_entry_exit = inspect.getsource(
+        EntryV10CtxHybridTransformer._encode_shared_feature_base
+    )
+    exit_episode = inspect.getsource(
+        EntryV10CtxHybridTransformer._forward_exit_causal_episode
+    )
+    exit_incremental = inspect.getsource(
+        EntryV10CtxHybridTransformer.forward_exit_incremental_step
+    )
+
+    assert shared_entry_exit.count("self._normalize_input_surface(") == 3
+    assert 'surface="signal"' in shared_entry_exit
+    assert 'surface="ctx_cont"' in shared_entry_exit
+    assert 'surface="signal"' in exit_episode
+    assert 'surface="ctx_cont"' in exit_episode
+    assert 'surface="signal"' in exit_incremental
+    assert 'surface="ctx_cont"' in exit_incremental
 
 
 @pytest.mark.parametrize(
@@ -988,7 +696,9 @@ def test_input_normalization_applies_one_identical_clip_in_train_and_eval() -> N
             2.0,
             "MTF_EMA_STACK_DOMAIN_INVALID",
         ),
-        ("regime_class_id", 5.0, "CATEGORICAL_VALUE_INVALID"),
+        # V30 (2026-08-14): `regime_class_id` was the only MTF semantic
+        # categorical; it is retired and MTF_SEMANTIC_CATEGORICAL_DOMAINS is
+        # empty, so the EMA-stack ternary is the remaining domain guard.
     ),
 )
 def test_mtf_semantic_domains_fail_closed_at_model_boundary(
@@ -1030,47 +740,331 @@ def test_model_rejects_invalid_explicit_dropout(invalid_dropout: object) -> None
         _make_model(dropout=invalid_dropout)
 
 
-def test_exit_action_row_chunking_is_exact_against_a_single_call() -> None:
-    """Chunking the exit-action forward over rows must not change the logits.
-
-    ``_unified_exit_action_loss`` runs the valid exit rows through the encoder in
-    fixed-size chunks so the 480-bar attention peak stays under the trainer cap.
-    ``forward_exit_action`` has no cross-row operation (self-attention within a
-    sequence, LayerNorm per sample), so concatenating per-chunk logits must equal
-    the single-call logits exactly. Dropout is disabled here so the comparison is
-    bit-identical rather than only training-equivalent.
-    """
-    torch.manual_seed(2026)
+def test_exit_episode_one_pass_prefix_and_future_append_parity_all_states() -> None:
+    torch.manual_seed(20260814)
     model = _make_model(dropout=0.0).eval()
-    rows = 5
-    entry = _forward(model, batch_size=rows)
-    exit_features = _make_exit_feature_inputs(rows)
-    path = torch.randn(rows, 4, UNIFIED_EXIT_PATH_FEATURE_DIM)
-    common = dict(
-        entry_shared_representation=entry["shared_feature_representation"],
-        **exit_features,
-        exit_path_x=path,
-        exit_path_lengths=torch.full((rows,), 4, dtype=torch.long),
-        exit_side_index=torch.tensor([0, 1, 0, 1, 0], dtype=torch.long),
+    inputs = _make_exit_episode_inputs()
+    with torch.no_grad():
+        episode = model.forward_exit_episode(**inputs)
+        same_owner = model.forward_exit_incremental_prefix(**inputs)
+    assert episode["exit_action_q_bps"].shape == (
+        1,
+        2,
+        UNIFIED_EXIT_MAX_PATH_BARS,
+        2,
+    )
+    assert torch.equal(
+        episode["exit_action_q_bps"], same_owner["exit_action_q_bps"]
+    )
+    assert episode["exit_episode_lengths"].tolist() == [
+        [UNIFIED_EXIT_MAX_PATH_BARS, UNIFIED_EXIT_MAX_PATH_BARS]
+    ]
+    assert episode["exit_terminal_mask"][:, :, :-1].sum().item() == 0
+    assert episode["exit_terminal_mask"][:, :, -1].all()
+    assert episode["exit_terminal_reason_index"][:, :, -1].eq(1).all()
+
+    # The shorter online prefix sees exactly the same causal owner state at
+    # every included row.  Future state/path/MTF appends cannot alter it.
+    for boundary in (1, 127, 128, 129, UNIFIED_EXIT_MAX_PATH_BARS - 1):
+        prefix_inputs = {
+            **inputs,
+            "exit_local_history_x": inputs["exit_local_history_x"][
+                :, : EXIT_FEATURE_SEQUENCE_BARS - 1 + boundary
+            ],
+            "exit_state_ctx_cat": inputs["exit_state_ctx_cat"][:, :boundary],
+            "exit_state_ctx_cont": inputs["exit_state_ctx_cont"][:, :boundary],
+            "exit_path_x": inputs["exit_path_x"][:, :, :boundary],
+            "exit_mtf_histories": {
+                tf: values[:, : SEQ_LEN + boundary - 1]
+                for tf, values in inputs["exit_mtf_histories"].items()
+            },
+            "exit_mtf_gathers": {
+                tf: values[:, :boundary]
+                for tf, values in inputs["exit_mtf_gathers"].items()
+            },
+            "exit_mtf_history_lengths": {
+                tf: torch.full((1,), SEQ_LEN + boundary - 1, dtype=torch.long)
+                for tf in inputs["exit_mtf_history_lengths"]
+            },
+        }
+        with torch.no_grad():
+            prefix = model.forward_exit_incremental_prefix(**prefix_inputs)
+        assert torch.allclose(
+            prefix["exit_action_q_bps"],
+            episode["exit_action_q_bps"][:, :, :boundary],
+            rtol=1e-6,
+            atol=1e-6,
+        )
+        assert prefix["exit_episode_lengths"].tolist() == [
+            [boundary, boundary]
+        ]
+        assert not prefix["exit_terminal_mask"].any()
+
+
+def test_exit_incremental_hidden_carry_matches_all_512_offline_states() -> None:
+    torch.manual_seed(20260815)
+    model = _make_model(dropout=0.0).eval()
+    inputs = _make_exit_episode_inputs()
+    # MTF closes only every fifth M1 state. Repeated gathers therefore exercise
+    # the zero-new-row carry path, while the close boundary supplies one row.
+    gathers = torch.div(
+        torch.arange(UNIFIED_EXIT_MAX_PATH_BARS), 5, rounding_mode="floor"
+    ) + (SEQ_LEN - 1)
+    mtf_rows = int(gathers[-1].item()) + 1
+    inputs["exit_mtf_histories"] = {
+        tf: values[:, :mtf_rows]
+        for tf, values in inputs["exit_mtf_histories"].items()
+    }
+    inputs["exit_mtf_gathers"] = {
+        tf: gathers.view(1, -1).clone()
+        for tf in inputs["exit_mtf_gathers"]
+    }
+    inputs["exit_mtf_history_lengths"] = {
+        tf: torch.full((1,), mtf_rows, dtype=torch.long)
+        for tf in inputs["exit_mtf_history_lengths"]
+    }
+    with torch.no_grad():
+        offline = model.forward_exit_episode(**inputs)["exit_action_q_bps"]
+        carry = None
+        pieces = []
+        prior_gather = {tf: -1 for tf in inputs["exit_mtf_gathers"]}
+        for state in range(UNIFIED_EXIT_MAX_PATH_BARS):
+            new_mtf = {}
+            for tf, history in inputs["exit_mtf_histories"].items():
+                current = int(inputs["exit_mtf_gathers"][tf][0, state])
+                start = 0 if state == 0 else prior_gather[tf] + 1
+                new_mtf[tf] = history[:, start : current + 1]
+                prior_gather[tf] = current
+            local_start = 0 if state == 0 else EXIT_FEATURE_SEQUENCE_BARS - 1 + state
+            step, carry = model.forward_exit_incremental_step(
+                entry_decision_representation=inputs[
+                    "entry_decision_representation"
+                ],
+                exit_local_rows_x=inputs["exit_local_history_x"][:, local_start : EXIT_FEATURE_SEQUENCE_BARS + state],
+                exit_state_ctx_cat=inputs["exit_state_ctx_cat"][:, state],
+                exit_state_ctx_cont=inputs["exit_state_ctx_cont"][:, state],
+                exit_path_row_x=inputs["exit_path_x"][:, :, state],
+                exit_mtf_new_rows=new_mtf,
+                carry=carry,
+            )
+            assert carry.step_count == state + 1
+            pieces.append(step["exit_action_q_bps"])
+        online = torch.cat(pieces, dim=2)
+    assert online.shape == offline.shape
+    assert torch.allclose(online, offline, rtol=1e-5, atol=1e-5)
+
+
+def test_exit_incremental_persisted_carry_restart_matches_uninterrupted_step() -> None:
+    torch.manual_seed(20260817)
+    model = _make_model(dropout=0.0).eval()
+    inputs = _make_exit_episode_inputs()
+    first_mtf = {
+        tf: history[:, :SEQ_LEN]
+        for tf, history in inputs["exit_mtf_histories"].items()
+    }
+    with torch.no_grad():
+        _, first_carry = model.forward_exit_incremental_step(
+            entry_decision_representation=inputs[
+                "entry_decision_representation"
+            ],
+            exit_local_rows_x=inputs["exit_local_history_x"][
+                :, :EXIT_FEATURE_SEQUENCE_BARS
+            ],
+            exit_state_ctx_cat=inputs["exit_state_ctx_cat"][:, 0],
+            exit_state_ctx_cont=inputs["exit_state_ctx_cont"][:, 0],
+            exit_path_row_x=inputs["exit_path_x"][:, :, 0],
+            exit_mtf_new_rows=first_mtf,
+            carry=None,
+        )
+    envelope = build_unified_exit_incremental_carry_envelope(
+        tensor_state=model.export_exit_incremental_carry_tensor_state(
+            first_carry
+        ),
+        step_count=1,
+        last_closed_m1_bar_ts="2026-01-01T00:00:00Z",
+        trade_identity="trade-restart",
+        side="long",
+        bundle_sha256="1" * 64,
+        input_normalization_sha256="2" * 64,
+        entry_token_snapshot_sha256="3" * 64,
+        full_path_chain_sha256="4" * 64,
+        input_envelope_sha256="5" * 64,
+        previous_carry_envelope_sha256=(
+            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+        ),
+        mtf_last_row_sha256={tf: "6" * 64 for tf in first_mtf},
+    )
+    restored = model.restore_exit_incremental_carry_tensor_state(
+        step_count=1,
+        batch_size=1,
+        tensors=decode_unified_exit_incremental_carry_tensors(
+            envelope, device=torch.device("cpu")
+        ),
+    )
+    second_mtf = {
+        tf: history[:, SEQ_LEN : SEQ_LEN + 1]
+        for tf, history in inputs["exit_mtf_histories"].items()
+    }
+    kwargs = {
+        "entry_decision_representation": inputs[
+            "entry_decision_representation"
+        ],
+        "exit_local_rows_x": inputs["exit_local_history_x"][
+            :, EXIT_FEATURE_SEQUENCE_BARS : EXIT_FEATURE_SEQUENCE_BARS + 1
+        ],
+        "exit_state_ctx_cat": inputs["exit_state_ctx_cat"][:, 1],
+        "exit_state_ctx_cont": inputs["exit_state_ctx_cont"][:, 1],
+        "exit_path_row_x": inputs["exit_path_x"][:, :, 1],
+        "exit_mtf_new_rows": second_mtf,
+    }
+    with torch.no_grad():
+        uninterrupted, _ = model.forward_exit_incremental_step(
+            **kwargs, carry=first_carry
+        )
+        restarted, _ = model.forward_exit_incremental_step(
+            **kwargs, carry=restored
+        )
+    assert torch.equal(
+        uninterrupted["exit_action_q_bps"], restarted["exit_action_q_bps"]
     )
 
-    with torch.no_grad():
-        whole = model.forward_exit_action(**common)["exit_action_logits"]
-        chunks = []
-        for start in range(0, rows, 2):
-            end = min(start + 2, rows)
-            piece = model.forward_exit_action(
-                **{
-                    key: value[start:end]
-                    for key, value in common.items()
-                }
-            )["exit_action_logits"]
-            chunks.append(piece)
-        chunked = torch.cat(chunks, dim=0)
 
-    assert chunked.shape == whole.shape == (rows, 2)
-    # Exact in math; the only difference is floating-point reduction order when
-    # the batch dimension differs between the chunked and single call, which is
-    # inherent to matmul/attention kernels and not a cross-row dependency.
-    max_abs = float((chunked - whole).abs().max())
-    assert max_abs < 1e-4, f"max_abs={max_abs}"
+def test_exit_episode_feature_tf_gate_is_genuine_per_field_not_family_broadcast() -> None:
+    model = _make_model(dropout=0.0).eval()
+    with torch.no_grad():
+        for position, gate in enumerate(model.mtf_feature_context_gate.values()):
+            gate.bias.copy_(
+                torch.linspace(-1.0, 1.0, gate.out_features)
+                + position / 100.0
+            )
+    inputs = _make_exit_episode_inputs(state_count=3)
+    with torch.no_grad():
+        output = model.forward_exit_incremental_prefix(**inputs)
+    feature_gate = output["exit_family_tf_feature_gate"]
+    assert feature_gate.shape == (1, 3, 5, TF_DIM)
+    for family_name in EXACT_SPECIALIST_NAMES:
+        indices = getattr(model, f"multi_tf_specialist_idx_{family_name}")
+        if int(indices.numel()) > 1:
+            owned = feature_gate[0, :, :, indices]
+            assert not torch.equal(
+                owned[..., 0], owned[..., 1]
+            ), family_name
+    source = inspect.getsource(
+        EntryV10CtxHybridTransformer._forward_exit_causal_episode
+    )
+    assert "mtf_feature_context_gate" in source
+    assert "current_owned_numeric" in source
+    assert "= cooperation_gate[..., family_position]" not in source
+
+
+def test_exit_episode_batch_right_padding_matches_individually_trimmed_histories() -> None:
+    torch.manual_seed(20260816)
+    model = _make_model(dropout=0.0).eval()
+    left = _make_exit_episode_inputs(state_count=3)
+    right = _make_exit_episode_inputs(state_count=3)
+    batched = {
+        name: torch.cat((left[name], right[name]), dim=0)
+        for name in (
+            "entry_decision_representation",
+            "exit_local_history_x",
+            "exit_state_ctx_cat",
+            "exit_state_ctx_cont",
+            "exit_path_x",
+        )
+    }
+    batched["exit_mtf_histories"] = {}
+    batched["exit_mtf_gathers"] = {}
+    batched["exit_mtf_history_lengths"] = {}
+    for tf in left["exit_mtf_histories"]:
+        full_right = right["exit_mtf_histories"][tf]
+        left_trimmed = left["exit_mtf_histories"][tf][:, :SEQ_LEN]
+        left_padded = torch.cat(
+            (left_trimmed, torch.zeros_like(full_right[:, SEQ_LEN:])), dim=1
+        )
+        batched["exit_mtf_histories"][tf] = torch.cat(
+            (left_padded, full_right), dim=0
+        )
+        batched["exit_mtf_gathers"][tf] = torch.cat(
+            (
+                torch.full((1, 3), SEQ_LEN - 1, dtype=torch.long),
+                right["exit_mtf_gathers"][tf],
+            ),
+            dim=0,
+        )
+        batched["exit_mtf_history_lengths"][tf] = torch.tensor(
+            [SEQ_LEN, SEQ_LEN + 2], dtype=torch.long
+        )
+
+    left["exit_mtf_histories"] = {
+        tf: values[:, :SEQ_LEN]
+        for tf, values in left["exit_mtf_histories"].items()
+    }
+    left["exit_mtf_gathers"] = {
+        tf: torch.full((1, 3), SEQ_LEN - 1, dtype=torch.long)
+        for tf in left["exit_mtf_gathers"]
+    }
+    left["exit_mtf_history_lengths"] = {
+        tf: torch.tensor([SEQ_LEN], dtype=torch.long)
+        for tf in left["exit_mtf_history_lengths"]
+    }
+    with torch.no_grad():
+        combined = model.forward_exit_incremental_prefix(**batched)[
+            "exit_action_q_bps"
+        ]
+        left_q = model.forward_exit_incremental_prefix(**left)[
+            "exit_action_q_bps"
+        ]
+        right_q = model.forward_exit_incremental_prefix(**right)[
+            "exit_action_q_bps"
+        ]
+    assert torch.allclose(combined[:1], left_q, rtol=1e-5, atol=1e-5)
+    assert torch.allclose(combined[1:], right_q, rtol=1e-5, atol=1e-5)
+
+
+def test_exit_token_axis_transport_chunk_preserves_outputs_and_gradients() -> None:
+    torch.manual_seed(20260814)
+    layer = torch.nn.TransformerEncoderLayer(
+        d_model=8,
+        nhead=2,
+        dim_feedforward=16,
+        dropout=0.0,
+        batch_first=True,
+        norm_first=False,
+    )
+    encoder = torch.nn.TransformerEncoder(layer, num_layers=1).eval()
+    full_input = torch.randn(7, 5, 8, requires_grad=True)
+    full = model_module._apply_exit_token_axis_encoder(
+        encoder,
+        full_input,
+        row_chunk_size=64,
+    )
+    full.square().sum().backward()
+    full_input_gradient = full_input.grad.detach().clone()
+    parameter_gradients = {
+        name: parameter.grad.detach().clone()
+        for name, parameter in encoder.named_parameters()
+    }
+
+    encoder.zero_grad(set_to_none=True)
+    chunked_input = full_input.detach().clone().requires_grad_(True)
+    chunked = model_module._apply_exit_token_axis_encoder(
+        encoder,
+        chunked_input,
+        row_chunk_size=3,
+    )
+    chunked.square().sum().backward()
+
+    assert torch.allclose(chunked, full, atol=1e-6, rtol=0.0)
+    assert torch.allclose(
+        chunked_input.grad,
+        full_input_gradient,
+        atol=1e-6,
+        rtol=0.0,
+    )
+    for name, parameter in encoder.named_parameters():
+        assert torch.allclose(
+            parameter.grad,
+            parameter_gradients[name],
+            atol=1e-5,
+            rtol=0.0,
+        )

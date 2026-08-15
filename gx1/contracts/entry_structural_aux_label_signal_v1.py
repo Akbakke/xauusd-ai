@@ -14,83 +14,35 @@ from collections.abc import Sequence
 from typing import Any
 
 
-# V30 package 7 (2026-08-13): schema v3.  The four geometry requirements
-# `geometry_channel_edge`, `geometry_channel_position`,
-# `geometry_long_fib_sr_proximity` and `geometry_short_fib_sr_proximity` are
-# retired with their producers — `chart.geometry_channel_edge_pressure` and
-# `chart.geometry_channel_position_low_to_high` were exact-affine duplicates of
-# the two sided proximity stacks (both of which remain mandatory below), and
-# the two `fib_*_confluence_*` fields were built on the algebraically
-# impossible / mislabelled Fibonacci block that was removed wholesale
-# (docs/INDICATOR_FIDELITY_AUDIT_20260813.md §1a).  The structural labels that
-# consumed them now rest on the surviving support/resistance proximity and
-# respect requirements, which are unchanged.
+# V30 clock/source repair (2026-08-14): schema v5 retires the five
+# hand-weighted trend/structure score prerequisites. The label builder now
+# consumes one genuine signed source per closed timeframe. Support/resistance
+# auxiliaries use forward-realized trendline-registry touch/hold labels, not
+# same-bar hand-fused S/R score fields, so they have no signal prerequisite.
 STRUCTURAL_AUX_LABEL_SIGNAL_SCHEMA_VERSION = (
-    "entry_structural_aux_label_signal_v3"
+    "entry_structural_aux_label_signal_v6"
 )
 STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS = OrderedDict(
     [
         (
-            "trend_score",
-            (
-                "trend.ema_stack_alignment_score",
-            ),
+            "trend_m5",
+            ("chart.local_ema50_200_spread_atr",),
         ),
         (
-            "trend_conflict",
-            ("trend.ema_mtf_divergence_pressure",),
+            "trend_m15",
+            ("ctx_cont.m15_ema5_20_spread_atr_canon_v2",),
         ),
         (
-            "long_trend_bias",
-            ("trend.ema_stack_bull_pressure",),
+            "trend_h1",
+            ("ctx_cont._v1h1_ema_diff",),
         ),
         (
-            "short_trend_bias",
-            ("trend.ema_stack_bear_pressure",),
+            "trend_h4",
+            ("ctx_cont._v1h4_ema_diff",),
         ),
         (
-            "structure_direction",
-            ("chart.structure_swing_market_structure_regime_state",),
-        ),
-        (
-            "geometry_support_line_proximity",
-            ("chart.geometry_support_line_proximity_stack",),
-        ),
-        (
-            "support_level_proximity",
-            ("chart.sr_memory_support_level_proximity_stack",),
-        ),
-        (
-            "support_respect",
-            ("chart.sr_memory_support_respect_pressure_long",),
-        ),
-        (
-            "support_reclaim",
-            ("chart.sr_memory_support_reclaim_pressure_long",),
-        ),
-        (
-            "geometry_resistance_line_proximity",
-            ("chart.geometry_resistance_line_proximity_stack",),
-        ),
-        (
-            "resistance_level_proximity",
-            ("chart.sr_memory_resistance_level_proximity_stack",),
-        ),
-        (
-            "resistance_respect",
-            ("chart.sr_memory_resistance_respect_pressure_short",),
-        ),
-        (
-            "resistance_reclaim",
-            ("chart.sr_memory_resistance_reclaim_pressure_short",),
-        ),
-        (
-            "support_liquidity_rejection",
-            ("chart.sr_memory_liquidity_low_level_rejection_long",),
-        ),
-        (
-            "resistance_liquidity_rejection",
-            ("chart.sr_memory_liquidity_high_level_rejection_short",),
+            "trend_d1",
+            ("ctx_cont.d1_ema_slope_20_canon_v2",),
         ),
     ]
 )

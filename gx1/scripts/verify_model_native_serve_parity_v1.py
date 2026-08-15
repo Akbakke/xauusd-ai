@@ -10,7 +10,7 @@ the complete, hash-bound offline TEST split:
   (gx1.execution.v12_model_native_state_live.ModelNativeStateBuilder) run on the LIVE
   cv3/BASE28 prebuilts reproduces the OFFLINE dataset rows named by
   --dataset-dir and the active bundle's model_native_state_contract exactly:
-  seq (96,513) + snap (513) + ctx_cont (142) + ctx_cat (5). FAIL-LOUD per
+  owner-declared seq + snap + continuous/categorical context. FAIL-LOUD per
   column name on any deviation.
   The frame-end decision bar is held to the same hard contract as every other
   bar. Any offline feature that needs future bars is leakage and fails parity.
@@ -18,11 +18,10 @@ the complete, hash-bound offline TEST split:
   LEG 2 (FORWARD, hard tolerance 1e-3): the LIVE adapter
   (gx1.execution.v12_smart_entry_live.SmartEntryLiveInference) forwards those
   live states through the contract-resolved calibrated bundle and must
-  reproduce fresh-event-pinned model_direction_argmax predictions: the final
-  direction_logits, their canonical public trade/flat pair, the direct
-  LONG/SHORT/FLAT argmax, probabilities, and auxiliary path heads. Legacy
-  expected-utility or edge/session decision evidence is rejected before any
-  live state/model work begins.
+  reproduce fresh-event-pinned raw ``entry_action_q_bps`` predictions, the
+  exact unique LONG/SHORT/FLAT argmax, and auxiliary path heads. Probability,
+  calibration, evidence-fusion, and legacy utility decision surfaces are
+  rejected before any live state/model work begins.
   NOTE: the pinned predictions were computed on CUDA; this gate runs the live
   CPU path, so LEG 2 tolerance covers numeric-backend drift ONLY — LEG 1 is the
   bit-level state proof.
@@ -62,8 +61,6 @@ from gx1.contracts.model_native_serve_gate_v1 import (
     MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
     MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
     SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS,
-    SERVE_PARITY_CALIBRATION_EQUATION,
-    SERVE_PARITY_CALIBRATION_TOL,
     SERVE_PARITY_ENV_PINS,
     SERVE_PARITY_FORWARD_FIELD_WIDTHS,
     SERVE_PARITY_FORWARD_HEADS,
@@ -73,20 +70,6 @@ from gx1.contracts.model_native_serve_gate_v1 import (
     SERVE_PARITY_FEATURE_GATE_MAX_EXCLUSIVE,
     SERVE_PARITY_FEATURE_GATE_MIN_EXCLUSIVE,
     SERVE_PARITY_FEATURE_GATE_MIN_STD_EXCLUSIVE,
-    SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE,
-    SERVE_PARITY_FUSION_INFLUENCE_ABLATION,
-    SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
-    SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS,
-    SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
-    SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS,
-    SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT,
-    SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS,
-    SERVE_PARITY_FUSION_DERIVED_ABLATION_SURFACES,
-    SERVE_PARITY_FUSION_DERIVED_REFERENCE_INPUTS,
-    SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL,
-    SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON,
-    SERVE_PARITY_FUSION_REFERENCE_AGGREGATION,
-    SERVE_PARITY_FUSION_REFERENCE_SPLIT,
     SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON,
     SERVE_PARITY_INDIVIDUAL_INPUT_COMPARISON_SURFACE,
     SERVE_PARITY_INDIVIDUAL_INPUT_GRADIENT_EPSILON,
@@ -124,14 +107,8 @@ from gx1.contracts.model_native_serve_gate_v1 import (
     SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLING_CONTRACT,
     UTC_TIME_COVERAGE_SCHEMA_VERSION,
     build_serve_source_identity,
+    individual_input_influence_layout,
     serve_gate_event_contract_failures,
-)
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
-    INPUTS_SHA256 as DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
-    INPUT_DIM as DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
-    ORDERED_INPUT_LAYOUT as DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT,
-    direction_evidence_fusion_metadata,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
@@ -151,12 +128,7 @@ from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_ACTION_BY_INDEX,
-    MODEL_DIRECTION_FLAT_INDEX,
-    MODEL_DIRECTION_LONG_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
-    MODEL_DIRECTION_SHORT_INDEX,
-    PUBLIC_FLAT_INDEX,
-    PUBLIC_TRADE_INDEX,
     require_model_direction_decision_contract,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
@@ -172,11 +144,7 @@ _TIMESTAMPED_PREDICTION_RE = re.compile(
 # runtime-authoritative prediction event, never the pre-calibration one.
 MODEL_NATIVE_REQUIRED_EVIDENCE_STAGE = "runtime_authoritative"
 STATE_BLOCKS = ("seq", "snap", "ctx_cont", "ctx_cat")
-_FORWARD_LIVE_KEY_OVERRIDES = {
-    "public_trade_probability": "p_trade",
-    "public_flat_probability": "p_flat_hier",
-    "tf_agreement_prob": "tf_agreement_pred",
-}
+_FORWARD_LIVE_KEY_OVERRIDES: dict[str, str] = {}
 FORWARD_FIELD_MAP = {
     column: _FORWARD_LIVE_KEY_OVERRIDES.get(column, column)
     for column in SERVE_PARITY_FORWARD_FIELD_WIDTHS
@@ -216,7 +184,6 @@ PINNED_REQUIRED_COLS = tuple(
             "selection_score",
             "pred_direction",
             "trade_side",
-            "public_trade_flat_hard_decision",
             *FORWARD_COLS,
             *FULL_STACK_REQUIRED_PREDICTION_COLS,
         )
@@ -229,6 +196,16 @@ FORBIDDEN_LEGACY_DECISION_COLS = (
     "anchor_logits",
     "delta_logits",
     "anchor_gate",
+    "direction_logits",
+    "raw_direction_logits",
+    "direction_probs",
+    "public_trade_flat_decision_logits",
+    "public_trade_flat_hard_decision",
+    "public_trade_probability",
+    "public_flat_probability",
+    "p_long",
+    "p_short",
+    "p_flat",
 )
 MODEL_DIRECTION_ACTIONS = MODEL_DIRECTION_ACTION_BY_INDEX
 
@@ -295,17 +272,17 @@ def _subset_state_rows(
     return rows
 
 
-def _batched_direction_logits(
+def _batched_entry_action_q(
     adapter: object,
     states: dict[str, object],
     *,
     hook_specialist: str | None = None,
-    fusion_input_replacement: tuple[str, dict[str, np.ndarray]] | None = None,
     zero_mtf_key: str | None = None,
     zero_mtf_indices: tuple[str, tuple[int, ...]] | None = None,
-    ctx_cat_perturb_index: int | None = None,
+    continuous_alias_perturbation: dict[str, object] | None = None,
+    categorical_perturbation: dict[str, object] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return raw and calibrated logits for one audit-only perturbation batch."""
+    """Return the sole raw-bps Q surface twice for existing delta helpers."""
 
     import torch
 
@@ -321,22 +298,150 @@ def _batched_direction_logits(
     ctx_cat_t = torch.from_numpy(np.asarray(states["ctx_cat"], dtype=np.int64)).to(
         device
     )
-    if ctx_cat_perturb_index is not None:
-        embeddings = getattr(model, "ctx_cat_embeddings", None)
-        if (
-            embeddings is None
-            or not 0 <= ctx_cat_perturb_index < len(embeddings)
-            or int(embeddings[ctx_cat_perturb_index].num_embeddings) < 2
+    if (
+        continuous_alias_perturbation is not None
+        and categorical_perturbation is not None
+    ):
+        raise RuntimeError(
+            "individual input influence accepts one perturbation owner at a time"
+        )
+
+    def _next_valid_category(values, domain_values: object):
+        domain = tuple(int(value) for value in domain_values)
+        if len(domain) < 2 or len(domain) != len(set(domain)):
+            raise RuntimeError("categorical influence domain is invalid")
+        result = values.clone()
+        covered = torch.zeros_like(values, dtype=torch.bool)
+        for position, value in enumerate(domain):
+            mask = values == int(value)
+            result[mask] = int(domain[(position + 1) % len(domain)])
+            covered = covered | mask
+        if not bool(covered.all().item()):
+            raise RuntimeError(
+                "categorical influence source contains a value outside its domain"
+            )
+        return result
+
+    if continuous_alias_perturbation is not None:
+        owner = str(continuous_alias_perturbation.get("owner") or "")
+        if owner != "signal_ctx_temporal_alias_numeric_manifold":
+            raise RuntimeError(
+                f"continuous alias influence owner is invalid: {owner!r}"
+            )
+        signal_index = int(continuous_alias_perturbation["signal_index"])
+        ctx_index = int(continuous_alias_perturbation["ctx_cont_index"])
+        seq_value = seq_t[:, -1, signal_index]
+        snap_value = snap_t[:, signal_index]
+        ctx_value = ctx_cont_t[:, ctx_index]
+        if not torch.equal(seq_value, snap_value) or not torch.equal(
+            snap_value, ctx_value
         ):
             raise RuntimeError(
-                "categorical influence perturbation lacks a valid embedding domain: "
-                f"index={ctx_cat_perturb_index}"
+                "continuous temporal alias source is off its exact physical manifold"
             )
-        ctx_cat_t = ctx_cat_t.clone()
-        domain = int(embeddings[ctx_cat_perturb_index].num_embeddings)
-        ctx_cat_t[:, ctx_cat_perturb_index] = (
-            ctx_cat_t[:, ctx_cat_perturb_index] + 1
-        ) % domain
+        required_buffers = (
+            "input_norm_signal_center",
+            "input_norm_signal_scale",
+            "input_norm_signal_binary_mask",
+            "input_norm_signal_categorical_mask",
+            "input_norm_ctx_cont_binary_mask",
+            "input_norm_ctx_cont_categorical_mask",
+        )
+        missing_buffers = [
+            name for name in required_buffers if not hasattr(model, name)
+        ]
+        if missing_buffers:
+            raise RuntimeError(
+                "continuous temporal alias normalization state is missing: "
+                f"{missing_buffers}"
+            )
+        signal_binary = bool(
+            model.input_norm_signal_binary_mask[signal_index].item()
+        )
+        ctx_binary = bool(
+            model.input_norm_ctx_cont_binary_mask[ctx_index].item()
+        )
+        signal_categorical = bool(
+            model.input_norm_signal_categorical_mask[signal_index].item()
+        )
+        ctx_categorical = bool(
+            model.input_norm_ctx_cont_categorical_mask[ctx_index].item()
+        )
+        if signal_binary != ctx_binary or signal_categorical != ctx_categorical:
+            raise RuntimeError(
+                "continuous temporal alias normalization masks disagree"
+            )
+        if signal_categorical:
+            raise RuntimeError(
+                "nominal temporal alias was misclassified as continuous"
+            )
+        if signal_binary:
+            if bool(((seq_value != 0.0) & (seq_value != 1.0)).any().item()):
+                raise RuntimeError(
+                    "binary temporal alias source is outside {0,1}"
+                )
+            next_value = 1.0 - seq_value
+        else:
+            center = model.input_norm_signal_center[signal_index].to(
+                device=device,
+                dtype=seq_value.dtype,
+            )
+            scale = model.input_norm_signal_scale[signal_index].to(
+                device=device,
+                dtype=seq_value.dtype,
+            )
+            if not bool(torch.isfinite(center).item()) or not bool(
+                torch.isfinite(scale).item()
+            ) or float(scale.item()) <= 0.0:
+                raise RuntimeError(
+                    "continuous temporal alias center/scale is invalid"
+                )
+            next_value = torch.where(
+                seq_value == center,
+                center + scale,
+                center,
+            )
+        seq_t = seq_t.clone()
+        snap_t = snap_t.clone()
+        ctx_cont_t = ctx_cont_t.clone()
+        seq_t[:, -1, signal_index] = next_value.to(seq_t.dtype)
+        snap_t[:, signal_index] = next_value.to(snap_t.dtype)
+        ctx_cont_t[:, ctx_index] = next_value.to(ctx_cont_t.dtype)
+    elif categorical_perturbation is not None:
+        owner = str(categorical_perturbation.get("owner") or "")
+        domain = categorical_perturbation.get("domain")
+        if owner == "ctx_cat_embedding":
+            index = int(categorical_perturbation["source_index"])
+            ctx_cat_t = ctx_cat_t.clone()
+            ctx_cat_t[:, index] = _next_valid_category(ctx_cat_t[:, index], domain)
+        elif owner == "ctx_cont_nominal_embedding":
+            index = int(categorical_perturbation["source_index"])
+            ctx_cont_t = ctx_cont_t.clone()
+            ctx_cont_t[:, index] = _next_valid_category(
+                ctx_cont_t[:, index], domain
+            ).to(ctx_cont_t.dtype)
+        elif owner == "signal_ctx_temporal_alias_nominal_embedding":
+            signal_index = int(categorical_perturbation["signal_index"])
+            ctx_index = int(categorical_perturbation["ctx_cont_index"])
+            if not torch.equal(
+                seq_t[:, -1, signal_index], snap_t[:, signal_index]
+            ) or not torch.equal(
+                snap_t[:, signal_index], ctx_cont_t[:, ctx_index]
+            ):
+                raise RuntimeError(
+                    "nominal temporal alias source is off its exact physical manifold"
+                )
+            next_value = _next_valid_category(ctx_cont_t[:, ctx_index], domain)
+            seq_t = seq_t.clone()
+            snap_t = snap_t.clone()
+            ctx_cont_t = ctx_cont_t.clone()
+            seq_t[:, -1, signal_index] = next_value.to(seq_t.dtype)
+            snap_t[:, signal_index] = next_value.to(snap_t.dtype)
+            ctx_cont_t[:, ctx_index] = next_value.to(ctx_cont_t.dtype)
+        elif owner != "mtf_nominal_embedding":
+            raise RuntimeError(
+                f"categorical influence owner is invalid: {owner!r}"
+            )
     per_row_mtf = [
         adapter._multi_tf_window_tensors(pd.Timestamp(ts))
         for ts in np.asarray(states["times"], dtype=object)
@@ -347,6 +452,21 @@ def _batched_direction_logits(
         key: torch.cat([row[key] for row in per_row_mtf], dim=0)
         for key in per_row_mtf[0]
     }
+    if (
+        categorical_perturbation is not None
+        and categorical_perturbation.get("owner") == "mtf_nominal_embedding"
+    ):
+        surface = str(categorical_perturbation["surface"])
+        index = int(categorical_perturbation["source_index"])
+        if surface not in mtf_kwargs:
+            raise RuntimeError(
+                f"categorical influence MTF surface is missing: {surface}"
+            )
+        tensor = mtf_kwargs[surface].clone()
+        tensor[:, -1, index] = _next_valid_category(
+            tensor[:, -1, index], categorical_perturbation.get("domain")
+        ).to(tensor.dtype)
+        mtf_kwargs[surface] = tensor
     if zero_mtf_key is not None:
         if zero_mtf_key not in mtf_kwargs:
             raise RuntimeError(f"multi-TF audit key is missing: {zero_mtf_key}")
@@ -383,81 +503,6 @@ def _batched_direction_logits(
         hooks.append(
             encoders[hook_specialist].register_forward_hook(_zero_encoder_output)
         )
-    if fusion_input_replacement is not None:
-        replacement_name, replacement_means = fusion_input_replacement
-        fusion_norm = getattr(model, "evidence_fusion_norm", None)
-        if fusion_norm is None:
-            raise RuntimeError("direction evidence fusion LayerNorm is missing")
-        layouts = {
-            str(row["name"]): row
-            for row in DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT
-        }
-        if replacement_name not in layouts:
-            raise RuntimeError(
-                f"direction evidence fusion replacement is unknown: {replacement_name}"
-            )
-        required_names = (
-            SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS
-            if replacement_name in SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS
-            else (replacement_name,)
-        )
-        replacement_tensors: dict[str, object] = {}
-        for name in required_names:
-            layout = layouts[name]
-            replacement_array = np.asarray(
-                replacement_means[name], dtype=np.float32
-            ).reshape(-1)
-            if replacement_array.shape != (int(layout["width"]),):
-                raise RuntimeError(
-                    "direction evidence fusion replacement width mismatch: "
-                    f"{name}={replacement_array.shape}"
-                )
-            replacement_tensors[name] = torch.from_numpy(
-                replacement_array
-            ).to(device)
-
-        def _replace_fusion_slice(_module, inputs):
-            if len(inputs) != 1 or not torch.is_tensor(inputs[0]):
-                raise RuntimeError("direction evidence fusion input hook shape invalid")
-            value = inputs[0]
-            if value.ndim != 2 or int(value.shape[1]) != DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
-                raise RuntimeError(
-                    "direction evidence fusion hook width mismatch: "
-                    f"got={tuple(value.shape)}"
-                )
-            replaced = value.clone()
-            if replacement_name not in SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS:
-                layout = layouts[replacement_name]
-                replaced[:, int(layout["start"]):int(layout["stop"])] = (
-                    replacement_tensors[replacement_name].to(
-                        device=value.device, dtype=value.dtype
-                    ).reshape(1, -1)
-                )
-            else:
-                q_layout = layouts["action_value"]
-                v_layout = layouts["expectile_value"]
-                a_layout = layouts["action_advantage"]
-                q = value[:, int(q_layout["start"]):int(q_layout["stop"])]
-                v = value[:, int(v_layout["start"]):int(v_layout["stop"])]
-                if replacement_name in ("action_value", "action_advantage"):
-                    q = replacement_tensors["action_value"].to(
-                        device=value.device, dtype=value.dtype
-                    ).reshape(1, -1).expand_as(q)
-                if replacement_name in ("expectile_value", "action_advantage"):
-                    v = replacement_tensors["expectile_value"].to(
-                        device=value.device, dtype=value.dtype
-                    ).reshape(1, -1).expand_as(v)
-                advantage = (q.reshape(-1, 3, 3) - v.unsqueeze(1)).reshape(
-                    -1, 9
-                )
-                replaced[:, int(q_layout["start"]):int(q_layout["stop"])] = q
-                replaced[:, int(v_layout["start"]):int(v_layout["stop"])] = v
-                replaced[:, int(a_layout["start"]):int(a_layout["stop"])] = (
-                    advantage
-                )
-            return (replaced,)
-
-        hooks.append(fusion_norm.register_forward_pre_hook(_replace_fusion_slice))
     try:
         with torch.no_grad():
             out = model(
@@ -467,25 +512,20 @@ def _batched_direction_logits(
                 ctx_cont=ctx_cont_t,
                 **mtf_kwargs,
             )
-            raw_t = out.get("raw_direction_logits")
-            final_t = out.get("direction_logits")
-            if not torch.is_tensor(raw_t) or not torch.is_tensor(final_t):
-                raise RuntimeError(
-                    "decision influence audit lacks raw/final direction logits"
-                )
-            raw_logits = raw_t.detach().cpu().to(torch.float64).numpy()
-            final_logits = final_t.detach().cpu().to(torch.float64).numpy()
+            q_t = out.get("entry_action_q_bps")
+            if not torch.is_tensor(q_t):
+                raise RuntimeError("decision influence audit lacks raw Entry Q")
+            entry_q = q_t.detach().cpu().to(torch.float64).numpy()
     finally:
         for hook in reversed(hooks):
             hook.remove()
     expected = (len(np.asarray(states["times"])), 3)
-    for name, logits in (("raw_direction_logits", raw_logits), ("direction_logits", final_logits)):
-        if logits.shape != expected or not np.isfinite(logits).all():
+    if entry_q.shape != expected or not np.isfinite(entry_q).all():
             raise RuntimeError(
-                f"decision influence {name} must be finite shape {expected}; "
-                f"got {logits.shape}"
+                f"decision influence entry_action_q_bps must be finite shape {expected}; "
+                f"got {entry_q.shape}"
             )
-    return raw_logits, final_logits
+    return entry_q, entry_q
 
 
 def _specialist_model_input_indices(
@@ -572,7 +612,7 @@ def _specialist_decision_influence_contract(
     )
     failures.extend(index_failures)
     try:
-        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_entry_action_q(adapter, subset)
         baseline_raw_centered = baseline_raw - baseline_raw.mean(axis=1, keepdims=True)
         baseline_final_centered = (
             baseline_final - baseline_final.mean(axis=1, keepdims=True)
@@ -606,12 +646,12 @@ def _specialist_decision_influence_contract(
                     row_indices = indices[specialist]
                     np.asarray(ablated_states["seq"])[:, :, row_indices] = 0.0
                     np.asarray(ablated_states["snap"])[:, row_indices] = 0.0
-                    ablated_raw, ablated_final = _batched_direction_logits(
+                    ablated_raw, ablated_final = _batched_entry_action_q(
                         adapter, ablated_states
                     )
                     target = f"signal_indices:{specialist}"
                 else:
-                    ablated_raw, ablated_final = _batched_direction_logits(
+                    ablated_raw, ablated_final = _batched_entry_action_q(
                         adapter,
                         subset,
                         hook_specialist=specialist,
@@ -675,9 +715,9 @@ def _specialist_decision_influence_contract(
                 "failures": specialist_failures,
                 "target": target,
                 "input_indices_sha256": _canonical_sha256(indices[specialist]),
-                "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+                "max_abs_entry_action_q_delta_bps": raw_max_delta,
                 "raw_changed_rows": raw_changed_rows,
-                "max_abs_class_centered_logit_delta": final_max_delta,
+                "max_abs_entry_action_q_margin_delta_bps": final_max_delta,
                 "changed_rows": final_changed_rows,
                 "total_rows": SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT,
             }
@@ -749,7 +789,7 @@ def _decision_influence_subset(
     return subset, sampled_targets, failures
 
 
-def _class_centered_delta_metrics(
+def _entry_q_delta_metrics(
     *,
     baseline: np.ndarray,
     ablated: np.ndarray,
@@ -811,15 +851,12 @@ def _batched_direction_input_margin_gradients(
         ctx_cont=ctx_cont_t,
         **mtf_kwargs,
     )
-    raw = out.get("raw_direction_logits")
-    final = out.get("direction_logits")
+    entry_q = out.get("entry_action_q_bps")
     if (
-        not torch.is_tensor(raw)
-        or not torch.is_tensor(final)
-        or tuple(raw.shape) != (len(np.asarray(states["times"])), 3)
-        or tuple(final.shape) != tuple(raw.shape)
+        not torch.is_tensor(entry_q)
+        or tuple(entry_q.shape) != (len(np.asarray(states["times"])), 3)
     ):
-        raise RuntimeError("individual input influence direction logits are invalid")
+        raise RuntimeError("individual input influence Entry Q is invalid")
 
     input_names = (
         "seq",
@@ -868,18 +905,17 @@ def _batched_direction_input_margin_gradients(
                 maxima[name] = np.maximum(maxima[name], array)
         return maxima
 
-    raw_gradients = _surface(raw)
-    final_gradients = _surface(final)
+    q_gradients = _surface(entry_q)
     return {
         "raw": {
-            "seq_signal": raw_gradients.pop("seq"),
-            "snap_signal": raw_gradients.pop("snap"),
-            **raw_gradients,
+            "seq_signal": q_gradients["seq"],
+            "snap_signal": q_gradients["snap"],
+            **{key: value for key, value in q_gradients.items() if key not in {"seq", "snap"}},
         },
         "final": {
-            "seq_signal": final_gradients.pop("seq"),
-            "snap_signal": final_gradients.pop("snap"),
-            **final_gradients,
+            "seq_signal": q_gradients["seq"],
+            "snap_signal": q_gradients["snap"],
+            **{key: value for key, value in q_gradients.items() if key not in {"seq", "snap"}},
         },
     }
 
@@ -918,18 +954,18 @@ def _individual_input_decision_influence_contract(
     if ctx_cat_names != list(MODEL_NATIVE_CTX_CAT_FIELDS):
         failures.append("bundle ordered_ctx_cat_names contract mismatch")
 
-    expected_numeric_tokens = {
-        "seq_signal": signal_names,
-        "snap_signal": signal_names,
-        "ctx_cont": ctx_cont_names,
-        **{
-            f"seq_{timeframe.lower()}": [
-                f"{timeframe.lower()}:{name}"
-                for name in MULTI_TF_PER_BAR_FEATURES_V4
-            ]
-            for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
-        },
-    }
+    try:
+        ownership = individual_input_influence_layout(signal_names)
+    except Exception as exc:
+        failures.append(f"input ownership layout failed: {exc}")
+        ownership = {
+            "numeric": {},
+            "continuous_manifold": [],
+            "categorical": [],
+        }
+    expected_numeric = ownership["numeric"]
+    expected_continuous_manifold = ownership["continuous_manifold"]
+    expected_categorical = ownership["categorical"]
     numeric_metrics: dict[str, object] = {}
     try:
         gradient_surfaces = _batched_direction_input_margin_gradients(
@@ -940,23 +976,37 @@ def _individual_input_decision_influence_contract(
         gradient_surfaces = {
             surface: {
                 key: np.zeros(len(tokens), dtype=np.float64)
-                for key, tokens in expected_numeric_tokens.items()
+                for key, row in expected_numeric.items()
+                for tokens in (row["tokens"],)
             }
             for surface in ("raw", "final")
         }
-    for surface_key, tokens in expected_numeric_tokens.items():
+    for surface_key, owner_row in expected_numeric.items():
+        tokens = [str(token) for token in owner_row["tokens"]]
+        source_indices = np.asarray(owner_row["source_indices"], dtype=np.int64)
         raw_values = np.asarray(
             gradient_surfaces["raw"].get(surface_key, ()), dtype=np.float64
         ).reshape(-1)
         final_values = np.asarray(
             gradient_surfaces["final"].get(surface_key, ()), dtype=np.float64
         ).reshape(-1)
-        if raw_values.shape != (len(tokens),) or final_values.shape != (
-            len(tokens),
+        source_width = (
+            MODEL_NATIVE_SIGNAL_DIM
+            if surface_key in {"seq_signal", "snap_signal"}
+            else len(MODEL_NATIVE_CTX_CONT_FIELDS)
+            if surface_key == "ctx_cont"
+            else len(MULTI_TF_PER_BAR_FEATURES_V4)
+        )
+        if (
+            raw_values.shape != (source_width,)
+            or final_values.shape != (source_width,)
+            or source_indices.shape != (len(tokens),)
         ):
             failures.append(f"{surface_key}: gradient width mismatch")
-            raw_values = np.zeros(len(tokens), dtype=np.float64)
-            final_values = np.zeros(len(tokens), dtype=np.float64)
+            raw_values = np.zeros(source_width, dtype=np.float64)
+            final_values = np.zeros(source_width, dtype=np.float64)
+        raw_values = raw_values[source_indices]
+        final_values = final_values[source_indices]
         metrics: dict[str, object] = {}
         for index, token in enumerate(tokens):
             raw_value = float(raw_values[index])
@@ -986,12 +1036,13 @@ def _individual_input_decision_influence_contract(
             )
         numeric_metrics[surface_key] = {
             "tokens": tokens,
+            "source_indices": source_indices.tolist(),
             "metrics": metrics,
         }
 
     categorical_metrics: dict[str, object] = {}
     try:
-        baseline_raw, baseline_final = _batched_direction_logits(
+        baseline_raw, baseline_final = _batched_entry_action_q(
             adapter, subset
         )
     except Exception as exc:
@@ -1001,20 +1052,70 @@ def _individual_input_decision_influence_contract(
             dtype=np.float64,
         )
         baseline_final = np.zeros_like(baseline_raw)
-    for index, name in enumerate(ctx_cat_names):
+    continuous_manifold_metrics: dict[str, object] = {}
+    for owner in expected_continuous_manifold:
+        token = str(owner["token"])
         row_failures: list[str] = []
         try:
-            perturbed_raw, perturbed_final = _batched_direction_logits(
+            perturbed_raw, perturbed_final = _batched_entry_action_q(
                 adapter,
                 subset,
-                ctx_cat_perturb_index=index,
+                continuous_alias_perturbation=dict(owner),
             )
-            raw_delta, raw_changed = _class_centered_delta_metrics(
+            raw_delta, raw_changed = _entry_q_delta_metrics(
                 baseline=baseline_raw,
                 ablated=perturbed_raw,
                 epsilon=SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON,
             )
-            final_delta, final_changed = _class_centered_delta_metrics(
+            final_delta, final_changed = _entry_q_delta_metrics(
+                baseline=baseline_final,
+                ablated=perturbed_final,
+                epsilon=SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON,
+            )
+            if raw_changed < 1:
+                row_failures.append("raw continuous manifold counterfactual is dead")
+            if final_changed < 1:
+                row_failures.append("final continuous manifold counterfactual is dead")
+        except Exception as exc:
+            raw_delta = 0.0
+            raw_changed = 0
+            final_delta = 0.0
+            final_changed = 0
+            row_failures.append(
+                f"continuous manifold counterfactual failed: {exc}"
+            )
+        continuous_manifold_metrics[token] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "counterfactual": (
+                "joint_seq_last_snap_ctx_cont_binary_flip_or_train_center"
+            ),
+            "max_abs_entry_action_q_delta_bps": raw_delta,
+            "raw_changed_rows": raw_changed,
+            "max_abs_entry_action_q_margin_delta_bps": final_delta,
+            "changed_rows": final_changed,
+            "total_rows": SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT,
+        }
+        failures.extend(
+            f"continuous_manifold/{token}: {failure}"
+            for failure in row_failures
+        )
+
+    for owner in expected_categorical:
+        token = str(owner["token"])
+        row_failures: list[str] = []
+        try:
+            perturbed_raw, perturbed_final = _batched_entry_action_q(
+                adapter,
+                subset,
+                categorical_perturbation=dict(owner),
+            )
+            raw_delta, raw_changed = _entry_q_delta_metrics(
+                baseline=baseline_raw,
+                ablated=perturbed_raw,
+                epsilon=SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON,
+            )
+            final_delta, final_changed = _entry_q_delta_metrics(
                 baseline=baseline_final,
                 ablated=perturbed_final,
                 epsilon=SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON,
@@ -1029,17 +1130,19 @@ def _individual_input_decision_influence_contract(
             final_delta = 0.0
             final_changed = 0
             row_failures.append(f"categorical counterfactual failed: {exc}")
-        categorical_metrics[name] = {
+        categorical_metrics[token] = {
             "decision": "PASS" if not row_failures else "FAIL",
             "failures": row_failures,
-            "counterfactual": "next_valid_embedding_category_modulo_domain",
-            "max_abs_class_centered_raw_logit_delta": raw_delta,
+            "counterfactual": "next_valid_category_on_exact_owner_manifold",
+            "max_abs_entry_action_q_delta_bps": raw_delta,
             "raw_changed_rows": raw_changed,
-            "max_abs_class_centered_logit_delta": final_delta,
+            "max_abs_entry_action_q_margin_delta_bps": final_delta,
             "changed_rows": final_changed,
             "total_rows": SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT,
         }
-        failures.extend(f"ctx_cat/{name}: {failure}" for failure in row_failures)
+        failures.extend(
+            f"categorical/{token}: {failure}" for failure in row_failures
+        )
 
     return {
         "decision": "PASS" if not failures else "FAIL",
@@ -1062,13 +1165,20 @@ def _individual_input_decision_influence_contract(
             SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON
         ),
         "numeric_input_count": sum(
-            len(tokens) for tokens in expected_numeric_tokens.values()
+            len(row["tokens"]) for row in expected_numeric.values()
         ),
-        "categorical_input_count": len(ctx_cat_names),
+        "continuous_manifold_input_count": len(
+            expected_continuous_manifold
+        ),
+        "categorical_input_count": len(expected_categorical),
+        "ordered_signal_names": signal_names,
         "signal_names_sha256": _canonical_sha256(signal_names),
         "ctx_cont_names_sha256": _canonical_sha256(ctx_cont_names),
         "ctx_cat_names_sha256": _canonical_sha256(ctx_cat_names),
+        "input_ownership": ownership,
+        "input_ownership_sha256": _canonical_sha256(ownership),
         "numeric": numeric_metrics,
+        "continuous_manifold": continuous_manifold_metrics,
         "categorical": categorical_metrics,
     }
 
@@ -1089,7 +1199,7 @@ def _multi_tf_decision_influence_contract(
         audit_name="multi-TF influence audit",
     )
     try:
-        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_entry_action_q(adapter, subset)
     except Exception as exc:
         failures.append(f"baseline forward failed: {exc}")
         baseline_raw = np.zeros(
@@ -1103,17 +1213,17 @@ def _multi_tf_decision_influence_contract(
     for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES:
         row_failures: list[str] = []
         try:
-            ablated_raw, ablated_final = _batched_direction_logits(
+            ablated_raw, ablated_final = _batched_entry_action_q(
                 adapter,
                 subset,
                 zero_mtf_key=f"seq_{timeframe.lower()}",
             )
-            raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
+            raw_max_delta, raw_changed_rows = _entry_q_delta_metrics(
                 baseline=baseline_raw,
                 ablated=ablated_raw,
                 epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
             )
-            max_delta, changed_rows = _class_centered_delta_metrics(
+            max_delta, changed_rows = _entry_q_delta_metrics(
                 baseline=baseline_final,
                 ablated=ablated_final,
                 epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
@@ -1145,9 +1255,9 @@ def _multi_tf_decision_influence_contract(
             "failures": row_failures,
             "target": f"model.input.seq_{timeframe.lower()}",
             "ablation_surface": "full_tensor_zero_mask",
-            "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+            "max_abs_entry_action_q_delta_bps": raw_max_delta,
             "raw_changed_rows": raw_changed_rows,
-            "max_abs_class_centered_logit_delta": max_delta,
+            "max_abs_entry_action_q_margin_delta_bps": max_delta,
             "changed_rows": changed_rows,
             "total_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
         }
@@ -1191,7 +1301,7 @@ def _family_tf_decision_influence_contract(
         MULTI_TF_PER_BAR_FEATURES_V4
     )
     try:
-        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_entry_action_q(adapter, subset)
     except Exception as exc:
         failures.append(f"baseline forward failed: {exc}")
         baseline_raw = np.zeros(
@@ -1207,17 +1317,17 @@ def _family_tf_decision_influence_contract(
             token = f"{timeframe.lower()}:{specialist}"
             row_failures: list[str] = []
             try:
-                ablated_raw, ablated_final = _batched_direction_logits(
+                ablated_raw, ablated_final = _batched_entry_action_q(
                     adapter,
                     subset,
                     zero_mtf_indices=(key, tuple(indices)),
                 )
-                raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
+                raw_max_delta, raw_changed_rows = _entry_q_delta_metrics(
                     baseline=baseline_raw,
                     ablated=ablated_raw,
                     epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
                 )
-                max_delta, changed_rows = _class_centered_delta_metrics(
+                max_delta, changed_rows = _entry_q_delta_metrics(
                     baseline=baseline_final,
                     ablated=ablated_final,
                     epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
@@ -1256,9 +1366,9 @@ def _family_tf_decision_influence_contract(
                     f"model.input.{key}[{','.join(str(i) for i in indices)}]"
                 ),
                 "ablation_surface": "exact_family_feature_indices_zero_mask",
-                "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+                "max_abs_entry_action_q_delta_bps": raw_max_delta,
                 "raw_changed_rows": raw_changed_rows,
-                "max_abs_class_centered_logit_delta": max_delta,
+                "max_abs_entry_action_q_margin_delta_bps": max_delta,
                 "changed_rows": changed_rows,
                 "total_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
             }
@@ -1307,7 +1417,7 @@ def _upstream_context_decision_influence_contract(
         audit_name="upstream context influence audit",
     )
     try:
-        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_entry_action_q(adapter, subset)
     except Exception as exc:
         failures.append(f"baseline forward failed: {exc}")
         baseline_raw = np.zeros(
@@ -1327,15 +1437,15 @@ def _upstream_context_decision_influence_contract(
                 np.arange(SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT, dtype=np.int64),
             )
             np.asarray(ablated_states[target])[...] = 0
-            ablated_raw, ablated_final = _batched_direction_logits(
+            ablated_raw, ablated_final = _batched_entry_action_q(
                 adapter, ablated_states
             )
-            raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
+            raw_max_delta, raw_changed_rows = _entry_q_delta_metrics(
                 baseline=baseline_raw,
                 ablated=ablated_raw,
                 epsilon=SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
             )
-            max_delta, changed_rows = _class_centered_delta_metrics(
+            max_delta, changed_rows = _entry_q_delta_metrics(
                 baseline=baseline_final,
                 ablated=ablated_final,
                 epsilon=SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
@@ -1367,9 +1477,9 @@ def _upstream_context_decision_influence_contract(
             "failures": row_failures,
             "target": f"model.input.{target}",
             "ablation_surface": "full_tensor_zero_mask",
-            "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+            "max_abs_entry_action_q_delta_bps": raw_max_delta,
             "raw_changed_rows": raw_changed_rows,
-            "max_abs_class_centered_logit_delta": max_delta,
+            "max_abs_entry_action_q_margin_delta_bps": max_delta,
             "changed_rows": changed_rows,
             "total_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
         }
@@ -1436,463 +1546,6 @@ def _vector_prediction_column(
             f"prediction evidence {column} must be finite shape ({len(frame)},{width})"
         )
     return values
-
-
-def _validate_fusion_reference_prediction_contract(
-    frame: pd.DataFrame,
-) -> pd.DataFrame:
-    """Return the immutable candidate VAL rows used only as ablation references."""
-
-    required = {
-        "time",
-        "split",
-        "model",
-        *(name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS),
-    }
-    missing = sorted(required.difference(frame.columns))
-    if missing:
-        raise RuntimeError(
-            "fresh prediction evidence lacks candidate VAL fusion reference columns: "
-            + ",".join(missing)
-        )
-    candidate_val = frame.loc[
-        (frame["model"].astype(str) == MODEL_NATIVE_REQUIRED_MODEL_NAME)
-        & (frame["split"].astype(str) == SERVE_PARITY_FUSION_REFERENCE_SPLIT)
-    ].copy()
-    if candidate_val.empty:
-        raise RuntimeError(
-            "fresh prediction evidence contains no candidate VAL rows for fusion influence"
-        )
-    try:
-        candidate_val["time"] = pd.to_datetime(
-            candidate_val["time"], utc=True, errors="raise"
-        )
-    except Exception as exc:
-        raise RuntimeError(
-            "candidate VAL fusion reference contains invalid UTC times"
-        ) from exc
-    if candidate_val["time"].duplicated().any():
-        raise RuntimeError("candidate VAL fusion reference contains duplicate times")
-    for name, width in DIRECTION_EVIDENCE_FUSION_INPUTS:
-        if width == 1:
-            _numeric_prediction_column(candidate_val, name)
-        else:
-            _vector_prediction_column(candidate_val, name, width)
-    _require_action_value_manifold(candidate_val)
-    return candidate_val.set_index("time").sort_index()
-
-
-def _require_action_value_manifold(frame: pd.DataFrame) -> float:
-    """Reject impossible Q/V/A evidence states before any fusion audit."""
-
-    action_value = _vector_prediction_column(frame, "action_value", 9)
-    expectile_value = _vector_prediction_column(frame, "expectile_value", 3)
-    action_advantage = _vector_prediction_column(
-        frame, "action_advantage", 9
-    )
-    expected = (
-        action_value.reshape(len(frame), 3, 3)
-        - expectile_value[:, None, :]
-    ).reshape(len(frame), 9)
-    max_abs_error = float(np.max(np.abs(action_advantage - expected)))
-    if (
-        not np.isfinite(max_abs_error)
-        or max_abs_error > SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL
-    ):
-        raise RuntimeError(
-            "candidate fusion reference violates action_advantage=Q-V: "
-            f"max_abs_error={max_abs_error:.12g}"
-        )
-    return max_abs_error
-
-
-def _direction_evidence_fusion_reference_contract(
-    frame: pd.DataFrame,
-) -> dict[str, object]:
-    """Materialize exact finite candidate-VAL column means in fusion order."""
-
-    relation_error = _require_action_value_manifold(frame)
-    mean_by_input: dict[str, list[float]] = {}
-    ordered: list[float] = []
-    for name, width in DIRECTION_EVIDENCE_FUSION_INPUTS:
-        values = (
-            _numeric_prediction_column(frame, name)
-            if width == 1
-            else _vector_prediction_column(frame, name, width)
-        )
-        mean = np.mean(values, axis=0, dtype=np.float64)
-        if mean.shape != (width,) or not np.isfinite(mean).all():
-            raise RuntimeError(f"candidate VAL fusion mean is invalid for {name}")
-        row = [float(item) for item in mean]
-        mean_by_input[name] = row
-        ordered.extend(row)
-    if len(ordered) != DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
-        raise RuntimeError(
-            "candidate VAL fusion reference width mismatch: "
-            f"{len(ordered)} != {DIRECTION_EVIDENCE_FUSION_INPUT_DIM}"
-        )
-    return {
-        "split": SERVE_PARITY_FUSION_REFERENCE_SPLIT,
-        "aggregation": SERVE_PARITY_FUSION_REFERENCE_AGGREGATION,
-        "coverage": _time_coverage_contract(
-            frame.index, label="candidate VAL direction fusion reference"
-        ),
-        "input_dim": DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
-        "inputs_sha256": DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
-        "derived_relation": {
-            "equation": "action_advantage=action_value-expectile_value_by_horizon",
-            "max_abs_error": relation_error,
-            "atol": SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL,
-        },
-        "mean_by_input": mean_by_input,
-        "ordered_mean_sha256": _canonical_sha256(ordered),
-    }
-
-
-def _batched_fusion_input_margin_gradients(
-    adapter: object,
-    states: dict[str, object],
-) -> dict[str, np.ndarray]:
-    """Measure each learned fusion coordinate on real, manifold-valid states."""
-
-    import torch
-
-    model = adapter._model
-    if model is None:
-        raise RuntimeError("fusion input influence model is unavailable")
-    fusion_norm = getattr(model, "evidence_fusion_norm", None)
-    if fusion_norm is None:
-        raise RuntimeError("direction evidence fusion LayerNorm is missing")
-    device = adapter.device
-    seq_t = (
-        torch.from_numpy(np.asarray(states["seq"], dtype=np.float32))
-        .to(device)
-        .requires_grad_(True)
-    )
-    snap_t = torch.from_numpy(
-        np.asarray(states["snap"], dtype=np.float32)
-    ).to(device)
-    ctx_cont_t = torch.from_numpy(
-        np.asarray(states["ctx_cont"], dtype=np.float32)
-    ).to(device)
-    ctx_cat_t = torch.from_numpy(
-        np.asarray(states["ctx_cat"], dtype=np.int64)
-    ).to(device)
-    per_row_mtf = [
-        adapter._multi_tf_window_tensors(pd.Timestamp(ts))
-        for ts in np.asarray(states["times"], dtype=object)
-    ]
-    if not per_row_mtf:
-        raise RuntimeError("fusion input influence state subset is empty")
-    mtf_kwargs = {
-        key: torch.cat([row[key] for row in per_row_mtf], dim=0)
-        for key in per_row_mtf[0]
-    }
-    captured: list[object] = []
-
-    def _capture_fusion_input(_module, inputs):
-        if len(inputs) != 1 or not torch.is_tensor(inputs[0]):
-            raise RuntimeError("direction evidence fusion input capture invalid")
-        captured.append(inputs[0])
-
-    hook = fusion_norm.register_forward_pre_hook(_capture_fusion_input)
-    try:
-        out = model(
-            seq_t,
-            snap_t,
-            ctx_cat=ctx_cat_t,
-            ctx_cont=ctx_cont_t,
-            **mtf_kwargs,
-        )
-    finally:
-        hook.remove()
-    if len(captured) != 1 or not torch.is_tensor(captured[0]):
-        raise RuntimeError("direction evidence fusion input was not captured once")
-    fusion_input = captured[0]
-    if tuple(fusion_input.shape) != (
-        len(np.asarray(states["times"])),
-        DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
-    ):
-        raise RuntimeError(
-            "direction evidence fusion captured input shape mismatch: "
-            f"{tuple(fusion_input.shape)}"
-        )
-
-    def _surface(logits: object) -> np.ndarray:
-        if (
-            not torch.is_tensor(logits)
-            or tuple(logits.shape)
-            != (len(np.asarray(states["times"])), 3)
-        ):
-            raise RuntimeError("fusion input direction logits are invalid")
-        maximum = np.zeros(
-            DIRECTION_EVIDENCE_FUSION_INPUT_DIM, dtype=np.float64
-        )
-        for left, right in ((0, 1), (0, 2), (1, 2)):
-            gradient = torch.autograd.grad(
-                (logits[:, left] - logits[:, right]).sum(),
-                fusion_input,
-                retain_graph=True,
-            )[0]
-            values = (
-                gradient.detach()
-                .abs()
-                .amax(dim=0)
-                .cpu()
-                .to(torch.float64)
-                .numpy()
-            )
-            if (
-                values.shape != maximum.shape
-                or not np.isfinite(values).all()
-            ):
-                raise RuntimeError("fusion input gradient is invalid")
-            maximum = np.maximum(maximum, values)
-        return maximum
-
-    return {
-        "raw": _surface(out.get("raw_direction_logits")),
-        "final": _surface(out.get("direction_logits")),
-    }
-
-
-def _direction_evidence_fusion_influence_contract(
-    *,
-    adapter: object,
-    states: dict[str, object],
-    parity_targets: pd.DatetimeIndex,
-    val_reference_frame: pd.DataFrame,
-) -> dict[str, object]:
-    """Prove all 26 exact learned-fusion slices move raw and final margins."""
-
-    subset, sampled_targets, failures = _decision_influence_subset(
-        states=states,
-        parity_targets=parity_targets,
-        positions=SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS,
-        expected_count=SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
-        audit_name="direction evidence fusion influence audit",
-    )
-    reference = _direction_evidence_fusion_reference_contract(val_reference_frame)
-    expected_metadata = direction_evidence_fusion_metadata()
-    bundle_dir = Path(adapter.bundle_dir).expanduser().resolve()
-    metadata_path = bundle_dir / "bundle_metadata.json"
-    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
-    metadata_exact = False
-    lock_exact = False
-    try:
-        metadata_payload = json.loads(metadata_path.read_text(encoding="utf-8"))
-        metadata_exact = (
-            metadata_payload.get("model_native_direction_evidence_fusion")
-            == expected_metadata
-            == adapter._meta.get("model_native_direction_evidence_fusion")
-        )
-        if not metadata_exact:
-            failures.append("bundle metadata direction fusion contract mismatch")
-    except Exception as exc:
-        failures.append(f"bundle metadata direction fusion binding failed: {exc}")
-    try:
-        lock_payload = json.loads(lock_path.read_text(encoding="utf-8"))
-        lock_exact = (
-            lock_payload.get("model_native_direction_evidence_fusion")
-            == expected_metadata
-        )
-        if not lock_exact:
-            failures.append("MASTER_TRANSFORMER_LOCK direction fusion contract mismatch")
-    except Exception as exc:
-        failures.append(f"MASTER_TRANSFORMER_LOCK direction fusion binding failed: {exc}")
-    metadata_sha = sha256_file(metadata_path) if metadata_path.is_file() else ""
-    lock_sha = sha256_file(lock_path) if lock_path.is_file() else ""
-
-    try:
-        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
-    except Exception as exc:
-        failures.append(f"baseline forward failed: {exc}")
-        baseline_raw = np.zeros(
-            (SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
-        )
-        baseline_final = np.zeros(
-            (SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
-        )
-    try:
-        fusion_gradients = _batched_fusion_input_margin_gradients(
-            adapter, subset
-        )
-    except Exception as exc:
-        failures.append(f"fusion input gradient execution failed: {exc}")
-        fusion_gradients = {
-            "raw": np.zeros(
-                DIRECTION_EVIDENCE_FUSION_INPUT_DIM, dtype=np.float64
-            ),
-            "final": np.zeros(
-                DIRECTION_EVIDENCE_FUSION_INPUT_DIM, dtype=np.float64
-            ),
-        }
-
-    groups: dict[str, object] = {}
-    means = reference["mean_by_input"]
-    for layout in DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT:
-        name = str(layout["name"])
-        start = int(layout["start"])
-        stop = int(layout["stop"])
-        width = int(layout["width"])
-        row_failures: list[str] = []
-        if name in SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS:
-            reference_inputs = list(
-                SERVE_PARITY_FUSION_DERIVED_REFERENCE_INPUTS[name]
-            )
-            ablation_surface = (
-                SERVE_PARITY_FUSION_DERIVED_ABLATION_SURFACES[name]
-            )
-            target = (
-                "model.evidence_fusion_norm.input["
-                + "+".join(
-                    (
-                        "action_value",
-                        "action_advantage",
-                    )
-                    if name == "action_value"
-                    else (
-                        ("expectile_value", "action_advantage")
-                        if name == "expectile_value"
-                        else (
-                            "action_value",
-                            "expectile_value",
-                            "action_advantage",
-                        )
-                    )
-                )
-                + "]"
-            )
-        else:
-            reference_inputs = [name]
-            ablation_surface = "exact_fusion_slice_val_mean_replacement"
-            target = f"model.evidence_fusion_norm.input[{start}:{stop}]"
-        reference_values = [
-            item
-            for reference_name in reference_inputs
-            for item in means[reference_name]
-        ]
-        raw_gradient = float(
-            np.max(np.asarray(fusion_gradients["raw"])[start:stop])
-        )
-        final_gradient = float(
-            np.max(np.asarray(fusion_gradients["final"])[start:stop])
-        )
-        if (
-            not np.isfinite(raw_gradient)
-            or raw_gradient <= SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON
-        ):
-            row_failures.append("raw fusion input class-margin gradient is dead")
-        if (
-            not np.isfinite(final_gradient)
-            or final_gradient <= SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON
-        ):
-            row_failures.append(
-                "final fusion input class-margin gradient is dead"
-            )
-        try:
-            ablated_raw, ablated_final = _batched_direction_logits(
-                adapter,
-                subset,
-                fusion_input_replacement=(
-                    name,
-                    {
-                        reference_name: np.asarray(
-                            means[reference_name], dtype=np.float64
-                        )
-                        for reference_name in (
-                            SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS
-                            if name
-                            in SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS
-                            else (name,)
-                        )
-                    },
-                ),
-            )
-            raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
-                baseline=baseline_raw,
-                ablated=ablated_raw,
-                epsilon=SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
-            )
-            max_delta, changed_rows = _class_centered_delta_metrics(
-                baseline=baseline_final,
-                ablated=ablated_final,
-                epsilon=SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
-            )
-            if raw_max_delta <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON:
-                row_failures.append(
-                    "class-centered raw logits did not move > epsilon"
-                )
-            if raw_changed_rows < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS:
-                row_failures.append(
-                    f"raw_changed_rows={raw_changed_rows} below "
-                    f"{SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS}"
-                )
-            if max_delta <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON:
-                row_failures.append(
-                    "class-centered final calibrated logits did not move > epsilon"
-                )
-            if changed_rows < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS:
-                row_failures.append(
-                    f"changed_rows={changed_rows} below "
-                    f"{SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS}"
-                )
-        except Exception as exc:
-            raw_max_delta = 0.0
-            raw_changed_rows = 0
-            max_delta = 0.0
-            changed_rows = 0
-            row_failures.append(f"VAL-mean slice replacement failed: {exc}")
-        groups[name] = {
-            "decision": "PASS" if not row_failures else "FAIL",
-            "failures": row_failures,
-            "target": target,
-            "ablation_surface": ablation_surface,
-            "start": start,
-            "stop": stop,
-            "width": width,
-            "reference_inputs": reference_inputs,
-            "reference_values_sha256": _canonical_sha256(reference_values),
-            "max_abs_raw_class_margin_input_gradient": raw_gradient,
-            "max_abs_final_class_margin_input_gradient": final_gradient,
-            "max_abs_class_centered_raw_logit_delta": raw_max_delta,
-            "raw_changed_rows": raw_changed_rows,
-            "max_abs_class_centered_logit_delta": max_delta,
-            "changed_rows": changed_rows,
-            "total_rows": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
-        }
-        failures.extend(f"{name}: {failure}" for failure in row_failures)
-
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "failures": failures,
-        "sample_count": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
-        "sampling_contract": SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT,
-        "sample_positions": list(SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS),
-        "sampled_test_coverage": _time_coverage_contract(
-            sampled_targets,
-            label="direction fusion influence sampled TEST parity positions",
-        ),
-        "comparison_surface": SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE,
-        "epsilon": SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
-        "fusion_input_gradient_epsilon": (
-            SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON
-        ),
-        "min_changed_rows": SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS,
-        "ablation": SERVE_PARITY_FUSION_INFLUENCE_ABLATION,
-        "fusion_metadata": expected_metadata,
-        "ordered_input_layout": DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT,
-        "inputs_sha256": DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
-        "input_dim": DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
-        "bundle_metadata_path": str(metadata_path),
-        "bundle_metadata_sha256": metadata_sha,
-        "bundle_metadata_exact_match": metadata_exact,
-        "master_transformer_lock_path": str(lock_path),
-        "master_transformer_lock_sha256": lock_sha,
-        "master_transformer_lock_exact_match": lock_exact,
-        "reference": reference,
-        "groups": groups,
-    }
 
 
 def _cooperation_gate_liveness_contract(
@@ -2211,26 +1864,36 @@ def _validate_pinned_prediction_contract(
     dataset_dir: Path,
     pinned_path: Path,
 ) -> pd.DataFrame:
-    """Return indexed candidate rows after strict model-direction SSOT validation."""
+    """Return indexed TEST rows after strict fitted-Q SSOT validation."""
+    del dataset_dir
     _require_timestamped_prediction_identity(pinned_path)
     if frame.empty:
         raise RuntimeError("fresh event-pinned predictions are empty")
     missing = [column for column in PINNED_REQUIRED_COLS if column not in frame.columns]
     if missing:
         raise RuntimeError(
-            "fresh serve-parity predictions are missing required model-direction columns: "
+            "fresh serve-parity predictions are missing fitted-Q columns: "
             + ",".join(missing)
         )
-    legacy = [column for column in FORBIDDEN_LEGACY_DECISION_COLS if column in frame.columns]
+    legacy = [
+        column for column in FORBIDDEN_LEGACY_DECISION_COLS if column in frame.columns
+    ]
+    # Match the head's own namespace, not any substring of it: head outputs are
+    # named `<head>` or `<head>_<suffix>` (`dip_pred`, `position_size_logit`,
+    # `trendline_event_probs`). A substring test also rejects `pred_direction`,
+    # which this same contract requires as the canonical model-direction column.
     legacy.extend(
         column
         for column in frame.columns
-        if any(blocked in str(column) for blocked in MODEL_NATIVE_BLOCKED_HEADS)
+        if any(
+            str(column) == blocked or str(column).startswith(f"{blocked}_")
+            for blocked in MODEL_NATIVE_BLOCKED_HEADS
+        )
     )
     if legacy:
         raise RuntimeError(
-            "legacy expected-utility decision columns are forbidden in serve parity: "
-            + ",".join(legacy)
+            "retired Entry decision columns are forbidden in serve parity: "
+            + ",".join(sorted(set(legacy)))
         )
 
     candidate = frame.loc[
@@ -2238,9 +1901,7 @@ def _validate_pinned_prediction_contract(
         & (frame["split"].astype(str) == MODEL_NATIVE_REQUIRED_TEST_SPLIT)
     ].copy()
     if candidate.empty:
-        raise RuntimeError(
-            "fresh event-pinned predictions contain no candidate TEST rows"
-        )
+        raise RuntimeError("fresh event-pinned predictions contain no candidate TEST rows")
     observed_modes = set(candidate["selection_score_mode"].astype(str))
     if observed_modes != {MODEL_DIRECTION_SELECTION_MODE}:
         raise RuntimeError(
@@ -2252,108 +1913,62 @@ def _validate_pinned_prediction_contract(
     except Exception as exc:
         raise RuntimeError("fresh event-pinned predictions contain invalid UTC times") from exc
     if candidate["time"].duplicated().any():
-        duplicates = candidate.loc[candidate["time"].duplicated(), "time"].astype(str).tolist()
-        raise RuntimeError(f"fresh event-pinned candidate times are duplicated: {duplicates[:3]}")
+        duplicates = candidate.loc[
+            candidate["time"].duplicated(), "time"
+        ].astype(str).tolist()
+        raise RuntimeError(
+            f"fresh event-pinned candidate times are duplicated: {duplicates[:3]}"
+        )
 
     for row_number, row in candidate.iterrows():
         row_label = row.get("time", row_number)
-        direction_logits = _finite_vector(
-            row["direction_logits"], name="direction_logits", size=3, row_label=row_label
-        )
-        public_logits = _finite_vector(
-            row["public_trade_flat_decision_logits"],
-            name="public_trade_flat_decision_logits",
-            size=2,
+        entry_q = _finite_vector(
+            row["entry_action_q_bps"],
+            name="entry_action_q_bps",
+            size=3,
             row_label=row_label,
         )
-        canonical_public = np.asarray(
-            [
-                max(
-                    float(direction_logits[MODEL_DIRECTION_LONG_INDEX]),
-                    float(direction_logits[MODEL_DIRECTION_SHORT_INDEX]),
-                ),
-                float(direction_logits[MODEL_DIRECTION_FLAT_INDEX]),
-            ],
-            dtype=np.float64,
-        )
-        if not np.array_equal(public_logits, canonical_public):
+        maximum = float(np.max(entry_q))
+        if int(np.count_nonzero(entry_q == maximum)) != 1:
             raise RuntimeError(
-                "pinned public_trade_flat_decision_logits are not the canonical pair "
-                f"[max(direction LONG,SHORT), direction FLAT] at {row_label}"
+                f"pinned entry_action_q_bps has no unique top action at {row_label}"
             )
-
-        direction_probs = _softmax(direction_logits)
-        public_probs = _softmax(public_logits)
-        pinned_direction_probs = np.asarray(
-            [row["p_long"], row["p_short"], row["p_flat"]], dtype=np.float64
-        )
-        pinned_public_probs = np.asarray(
-            [row["public_trade_probability"], row["public_flat_probability"]],
-            dtype=np.float64,
-        )
-        if not np.isfinite(pinned_direction_probs).all() or not np.allclose(
-            pinned_direction_probs, direction_probs, rtol=0.0, atol=2e-6
-        ):
-            raise RuntimeError(f"pinned p_long/p_short/p_flat do not match direction_logits at {row_label}")
-        if not np.isfinite(pinned_public_probs).all() or not np.allclose(
-            pinned_public_probs, public_probs, rtol=0.0, atol=2e-6
-        ):
-            raise RuntimeError(
-                "pinned public trade/flat probabilities do not match canonical logits "
-                f"at {row_label}"
-            )
-
-        if int(np.count_nonzero(direction_logits == np.max(direction_logits))) != 1:
-            raise RuntimeError(
-                f"pinned direction_logits have no unique top class at {row_label}"
-            )
-        direction_index = int(np.argmax(direction_logits))
-        public_index = int(np.argmax(public_logits))
+        action_index = int(np.argmax(entry_q))
         pred_direction = _strict_class_index(
             row["pred_direction"], name="pred_direction", size=3, row_label=row_label
         )
         trade_side = _strict_class_index(
             row["trade_side"], name="trade_side", size=3, row_label=row_label
         )
-        pinned_public_index = _strict_class_index(
-            row["public_trade_flat_hard_decision"],
-            name="public_trade_flat_hard_decision",
-            size=2,
-            row_label=row_label,
-        )
-        if pred_direction != direction_index or trade_side != direction_index:
+        if pred_direction != action_index or trade_side != action_index:
             raise RuntimeError(
-                "pinned pred_direction/trade_side do not equal final direction argmax "
+                "pinned pred_direction/trade_side do not equal raw-Q argmax "
                 f"at {row_label}"
-            )
-        if pinned_public_index != public_index:
-            raise RuntimeError(
-                "pinned public_trade_flat_hard_decision does not equal canonical pair argmax "
-                f"at {row_label}"
-            )
-        expected_public_index = (
-            PUBLIC_FLAT_INDEX
-            if direction_index == MODEL_DIRECTION_FLAT_INDEX
-            else PUBLIC_TRADE_INDEX
-        )
-        if public_index != expected_public_index:
-            raise RuntimeError(
-                f"pinned direction/public decisions disagree at {row_label}: "
-                f"direction={direction_index}, public={public_index}"
             )
         for column in (*FORWARD_SCALAR_MAP, "selection_score"):
             try:
                 value = float(row[column])
             except (TypeError, ValueError, OverflowError) as exc:
-                raise RuntimeError(f"pinned {column} is not numeric at {row_label}") from exc
+                raise RuntimeError(
+                    f"pinned {column} is not numeric at {row_label}"
+                ) from exc
             if not np.isfinite(value):
                 raise RuntimeError(f"pinned {column} is non-finite at {row_label}")
-        expected_edge = max(
-            float(direction_probs[MODEL_DIRECTION_LONG_INDEX]),
-            float(direction_probs[MODEL_DIRECTION_SHORT_INDEX]),
-        ) - float(direction_probs[MODEL_DIRECTION_FLAT_INDEX])
-        if not np.isclose(float(row["edge_score"]), expected_edge, rtol=0.0, atol=2e-6):
-            raise RuntimeError(f"pinned edge_score does not match direction probabilities at {row_label}")
+        ordered = np.sort(entry_q)
+        margin = float(ordered[-1] - ordered[-2])
+        if not np.isclose(
+            float(row["entry_action_q_margin_bps"]),
+            margin,
+            rtol=0.0,
+            atol=2e-6,
+        ):
+            raise RuntimeError(
+                f"pinned entry_action_q_margin_bps mismatch at {row_label}"
+            )
+        if not np.isclose(
+            float(row["selection_score"]), maximum, rtol=0.0, atol=2e-6
+        ):
+            raise RuntimeError(f"pinned selection_score is not selected raw Q at {row_label}")
 
     return candidate.set_index("time").sort_index()
 
@@ -2364,7 +1979,7 @@ def _load_pinned_predictions(
     pinned_path: Path,
     prediction_report_path: Path,
     expected_predictions_sha256: str,
-) -> tuple[pd.DataFrame, pd.DataFrame, Path, dict, dict, dict[str, str]]:
+) -> tuple[pd.DataFrame, Path, dict, dict, dict[str, str]]:
     """Resolve and revalidate one explicitly named immutable prediction event.
 
     The fixed ``selective_edge_predictions.parquet`` mirror is deliberately not
@@ -2398,12 +2013,8 @@ def _load_pinned_predictions(
         dataset_dir=dataset_dir,
         pinned_path=authoritative,
     )
-    val_reference_frame = _validate_fusion_reference_prediction_contract(
-        complete_frame
-    )
     return (
         frame,
-        val_reference_frame,
         authoritative,
         prediction_report,
         prediction_evidence,
@@ -2504,7 +2115,7 @@ def _prediction_report_test_parquet(
 def _load_offline_rows(parquet_path: Path, times: pd.DatetimeIndex) -> pd.DataFrame:
     """Stream the split parquet batch-wise and keep ONLY the target rows.
     (A one-shot filtered to_table materializes every row group's nested
-    (96,513) seq lists ≈ 14+GB — OOM'd the 34G-capped gate 2026-07-08.)"""
+    nested seq lists can exceed the capped gate's memory budget.)"""
     import pyarrow.parquet as pq
     want = set(times.tz_convert("UTC").asi8)
     pf = pq.ParquetFile(parquet_path)
@@ -2573,7 +2184,6 @@ def main() -> int:
     requested_pinned_path = args.pinned_predictions.expanduser().resolve()
     (
         pinned,
-        val_reference_frame,
         pinned_path,
         prediction_report,
         prediction_evidence,
@@ -2613,7 +2223,7 @@ def main() -> int:
             "dataset_dir": str(dataset_dir),
             "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
             "candidate_test_rows": int(len(pinned)),
-            "canonical_public_pair": True,
+            "entry_action_q_unique_argmax": True,
         },
         "env_pins": {name: os.environ[name] for name in SERVE_PARITY_ENV_PINS},
         "serve_source_identity": build_serve_source_identity(
@@ -2868,25 +2478,10 @@ def main() -> int:
     fwd_max: dict[str, float] = {c: 0.0 for c in FORWARD_COLS}
     fwd_worst: dict[str, str] = {}
     n_fwd = 0
-    direction_calibration = adapter._meta.get("direction_calibration")
-    if not isinstance(direction_calibration, dict) or direction_calibration.get("enabled") is not True:
-        raise RuntimeError("serve parity requires enabled direction calibration metadata")
-    calibration_temperature = float(direction_calibration.get("temperature"))
-    calibration_bias = np.asarray(
-        direction_calibration.get("bias"), dtype=np.float64
-    ).reshape(-1)
-    if (
-        not np.isfinite(calibration_temperature)
-        or calibration_temperature <= 0.0
-        or calibration_bias.shape != (3,)
-        or not np.isfinite(calibration_bias).all()
-    ):
-        raise RuntimeError("serve parity direction calibration parameters are invalid")
-    calibration_max_abs_diff = 0.0
-    calibration_worst_ts: str | None = None
+    if "direction_calibration" in adapter._meta:
+        raise RuntimeError("serve parity rejects retired direction calibration")
     atr_bps_values: list[float] = []
     direction_mismatch: list[str] = []
-    public_pair_mismatch: list[str] = []
     action_mismatch: list[str] = []
     target_positions = {pd.Timestamp(ts): index for index, ts in enumerate(targets)}
     atr_ctx_index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index("atr_bps")
@@ -2900,29 +2495,14 @@ def main() -> int:
             continue
         p = pinned.loc[ts]
         deltas = _forward_row_deltas(h, p)
-        raw_logits = _finite_vector(
-            h.get("raw_direction_logits"),
-            name="live raw_direction_logits",
+        live_entry_q = _finite_vector(
+            h.get("entry_action_q_bps"),
+            name="live entry_action_q_bps",
             size=3,
             row_label=ts,
         )
-        final_logits = _finite_vector(
-            h.get("direction_logits"),
-            name="live direction_logits",
-            size=3,
-            row_label=ts,
-        )
-        calibration_delta = float(
-            np.max(
-                np.abs(
-                    final_logits
-                    - (raw_logits / calibration_temperature + calibration_bias)
-                )
-            )
-        )
-        if calibration_delta > calibration_max_abs_diff:
-            calibration_max_abs_diff = calibration_delta
-            calibration_worst_ts = str(ts)
+        if int(np.count_nonzero(live_entry_q == np.max(live_entry_q))) != 1:
+            raise RuntimeError(f"{ts}: live Entry Q has no unique top action")
         atr_bps = float(
             states["ctx_cont"][target_positions[ts]][atr_ctx_index]
         )
@@ -2939,7 +2519,6 @@ def main() -> int:
                 f"{decision.get('selection_score_mode')!r}"
             )
         pinned_direction = int(p["pred_direction"])
-        pinned_public = int(p["public_trade_flat_hard_decision"])
         pinned_action = MODEL_DIRECTION_ACTIONS[pinned_direction]
         n_fwd += 1
         for c, d in deltas.items():
@@ -2948,8 +2527,6 @@ def main() -> int:
                 fwd_worst[c] = str(ts)
         if int(decision["model_direction_index"]) != pinned_direction:
             direction_mismatch.append(str(ts))
-        if int(decision["public_trade_flat_decision_index"]) != pinned_public:
-            public_pair_mismatch.append(str(ts))
         if decision["action"] != pinned_action:
             action_mismatch.append(str(ts))
     if n_fwd != SERVE_PARITY_SAMPLE_COUNT:
@@ -2961,11 +2538,10 @@ def main() -> int:
     report["forward_parity"] = {
         "n_compared": n_fwd, "max_abs_diff": fwd_max, "worst_ts": fwd_worst,
         "model_direction_mismatches": direction_mismatch,
-        "public_trade_flat_decision_mismatches": public_pair_mismatch,
         "model_argmax_action_mismatches": action_mismatch,
         "selection_score_mode": selection_mode,
         "direction_decision": direction_decision_contract["direction_decision"],
-        "canonical_public_pair": direction_decision_contract["public_trade_flat_formula"],
+        "entry_q_authority": direction_decision_contract["direction_decision"],
         "tolerance": SERVE_PARITY_FORWARD_TOL,
         "per_head_tolerance": per_head_tol,
         "atr_bps_source": "live_state.ctx_cont.atr_bps",
@@ -2973,33 +2549,6 @@ def main() -> int:
         "atr_bps_max": float(max(atr_bps_values)) if atr_bps_values else None,
         "note": "pinned=CUDA fp32 evidence run; live=CPU fp32 — LEG2 bounds backend drift only",
     }
-    report["direction_calibration_parity"] = {
-        "decision": (
-            "PASS"
-            if n_fwd == SERVE_PARITY_SAMPLE_COUNT
-            and calibration_max_abs_diff <= SERVE_PARITY_CALIBRATION_TOL
-            else "FAIL"
-        ),
-        "failures": (
-            []
-            if n_fwd == SERVE_PARITY_SAMPLE_COUNT
-            and calibration_max_abs_diff <= SERVE_PARITY_CALIBRATION_TOL
-            else ["raw-to-final direction calibration equation mismatch"]
-        ),
-        "n_compared": n_fwd,
-        "equation": SERVE_PARITY_CALIBRATION_EQUATION,
-        "enabled": True,
-        "temperature": calibration_temperature,
-        "bias": calibration_bias.tolist(),
-        "tolerance": SERVE_PARITY_CALIBRATION_TOL,
-        "max_abs_diff": calibration_max_abs_diff,
-        "worst_ts": calibration_worst_ts,
-    }
-    if calibration_max_abs_diff > SERVE_PARITY_CALIBRATION_TOL:
-        failures.append(
-            "DIRECTION CALIBRATION max_abs_diff="
-            f"{calibration_max_abs_diff:.3e} > {SERVE_PARITY_CALIBRATION_TOL:.3e}"
-        )
     for c, v in fwd_max.items():
         if v > per_head_tol[c]:
             failures.append(f"FORWARD '{c}' max_abs_diff={v:.3e} > tol={per_head_tol[c]:.3e} "
@@ -3008,11 +2557,6 @@ def main() -> int:
         failures.append(
             f"FORWARD model direction argmax mismatches: {len(direction_mismatch)} "
             f"({direction_mismatch[:3]})"
-        )
-    if public_pair_mismatch:
-        failures.append(
-            f"FORWARD public trade/flat decision mismatches: {len(public_pair_mismatch)} "
-            f"({public_pair_mismatch[:3]})"
         )
     if action_mismatch:
         failures.append(
@@ -3058,7 +2602,7 @@ def main() -> int:
         flush=True,
     )
 
-    # ── LEG 4: upstream, all-TF and exact fusion influence ──────────────────
+    # ── LEG 4: upstream and all-TF raw-Q influence ──────────────────────────
     upstream_influence = _upstream_context_decision_influence_contract(
         adapter=adapter,
         states=states,
@@ -3089,23 +2633,11 @@ def main() -> int:
         f"family×timeframe decision influence: {failure}"
         for failure in family_tf_influence["failures"]
     )
-    fusion_influence = _direction_evidence_fusion_influence_contract(
-        adapter=adapter,
-        states=states,
-        parity_targets=targets,
-        val_reference_frame=val_reference_frame,
-    )
-    report["direction_evidence_fusion_influence"] = fusion_influence
-    failures.extend(
-        f"direction evidence fusion influence: {failure}"
-        for failure in fusion_influence["failures"]
-    )
     print(
-        "[parity] LEG4 upstream/TF/fusion influence: "
+        "[parity] LEG4 upstream/TF raw-Q influence: "
         f"{upstream_influence['decision']}/"
         f"{multi_tf_influence['decision']}/"
-        f"{family_tf_influence['decision']}/"
-        f"{fusion_influence['decision']} ({time.time()-t0:.0f}s)",
+        f"{family_tf_influence['decision']} ({time.time()-t0:.0f}s)",
         flush=True,
     )
 

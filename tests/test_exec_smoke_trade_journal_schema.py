@@ -6,7 +6,6 @@ Test Execution Smoke Test Trade Journal Schema.
 Verifies that a "test trade" JSON has test_mode=true, execution_events
 are appended in correct order, and client_ext_id format is correct.
 """
-import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,12 +16,10 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gx1.monitoring.trade_journal import TradeJournal
-from tests.model_native_offline_rl_support import (
-    model_native_mtf_cooperation_evidence,
-    offline_rl_evidence,
+from tests.model_native_sizing_support import (
+    model_native_runtime_evidence_fixture,
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
-    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
 )
 
@@ -146,135 +143,13 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
 
     def test_journal_rejects_unadopted_model_native_sizing_evidence(self):
         """Complete Entry evidence cannot invent executable sizing authority."""
-        logits = [2.0, 0.2, -1.0]
-
-        def softmax(values):
-            shifted = [value - max(values) for value in values]
-            exp_values = [math.exp(value) for value in shifted]
-            total = sum(exp_values)
-            return [value / total for value in exp_values]
-
-        def sigmoid(value):
-            return 1.0 / (1.0 + math.exp(-value))
-
-        def logit(value):
-            return math.log(value / (1.0 - value))
-
-        direction_probs = softmax(logits)
-        public_logits = [2.0, -1.0]
-        public_probs = softmax(public_logits)
-        side_logits = [1.0, -0.5]
-        side_probs = softmax(side_logits)
-        side_bad_path_logits = [-2.0, 0.2]
-        side_validity_logits = [1.2, -0.4]
-        mtf_logits = [1.0, -0.2, 0.1]
-        rail_logits = [0.1, 0.2, -0.1, 0.3, -0.2, 0.4]
-        tf_logit = -0.2
-        size_logit = 0.4
-        path_log_var = -0.3
-        evidence = {
-            "decision_ts": "2026-07-08T17:55:00Z",
-            "runtime_evidence_schema_version": MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
-            "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
-            "session_id": 3,
-            "session": "US",
-            "entry_vol_regime_id": 3,
-            "entry_vol_regime": "HIGH",
-            "entry_atr_bucket": 4,
-            "entry_spread_bucket": 1,
-            "entry_h4_trend_sign_cat": 0,
-            "entry_trend_regime_id": 2,
-            "entry_trend_regime": "TREND_UP",
-            "decision_available_ts": "2026-07-08T18:00:00Z",
-            "entry_signal_latency_sec": 0.0,
-            "context_cutoff_ts": "2026-07-08T17:55:00Z",
-            "context_age_m5_bars": 0,
-            "raw_direction_logits": [2.185, 0.345, -1.15],
-            "direction_logits": logits,
-            "direction_probs": direction_probs,
-            "model_direction_index": 0,
-            "model_direction": "LONG",
-            "entry_shared_representation": [
-                float(index - 64) / 64.0 for index in range(128)
-            ],
-            "selected_side": 0,
-            "public_trade_flat_decision_logits": public_logits,
-            "public_trade_flat_decision_probs": public_probs,
-            "public_trade_flat_decision_index": 0,
-            "public_trade_flat_decision": "TRADE",
-            "model_native_logits": [0.5, -0.25, 0.1],
-            "path_quality_raw": 1.25,
-            "path_quality": 1.25,
-            "path_quality_pred": 1.25,
-            "mfe_first_n": 7.0,
-            "mfe_first_n_pred": 7.0,
-            "tradable_logit": logit(0.81),
-            "tradable_prob": 0.81,
-            "trade_logit": 0.7,
-            "bad_path_logit_raw": logit(0.09),
-            "bad_path_logit": logit(0.09),
-            "bad_path_prob": 0.09,
-            "clean_edge_logit": logit(0.76),
-            "clean_edge_prob": 0.76,
-            "survival_logit": logit(0.68),
-            "survival_prob": 0.68,
-            "dip_pred": [0.0] * 18,
-            "forecast_pred": [0.0] * 4,
-            "timing_pred": [0.0] * 12,
-            "tail_risk_pred": [0.0] * 6,
-            "vol_forecast_pred": [0.0] * 3,
-            **offline_rl_evidence(),
-            "p_trade": public_probs[0],
-            "p_flat_hier": public_probs[1],
-            "atr_bps": 12.5,
-            "tf_agreement_logit": tf_logit,
-            "tf_agreement_pred": 1.0 / (1.0 + math.exp(-tf_logit)),
-            "path_quality_log_var": path_log_var,
-            "path_quality_std": math.exp(0.5 * path_log_var),
-            "position_size_logit": size_logit,
-            "position_size_pred": sigmoid(size_logit),
-            "p_long_given_trade": side_probs[0],
-            "p_short_given_trade": side_probs[1],
-            "side_logits": side_logits,
-            "side_probs": side_probs,
-            "side_utility": [18.5, -7.0],
-            "side_bad_path_logit": side_bad_path_logits,
-            "long_bad_path_prob": sigmoid(side_bad_path_logits[0]),
-            "short_bad_path_prob": sigmoid(side_bad_path_logits[1]),
-            "side_validity_logit": side_validity_logits,
-            "long_validity_prob": sigmoid(side_validity_logits[0]),
-            "short_validity_prob": sigmoid(side_validity_logits[1]),
-            "side_mae": [4.0, 11.0],
-            "mtf_dir_logits": mtf_logits,
-            "mtf_dir_probs": softmax(mtf_logits),
-            "mtf_trend_evidence": 0.69,
-            "specialist_names": [
-                "structure_swing_encoder",
-                "smc_liquidity_encoder",
-                "trend_ema_encoder",
-                "vol_compression_encoder",
-                "momentum_flow_encoder",
-                "session_regime_encoder",
-                "chart_geometry_encoder",
-                "price_action_candle_encoder",
-            ],
-            "specialist_gate": [0.125] * 8,
-            **model_native_mtf_cooperation_evidence(),
-            "trendline_rail_logits": rail_logits,
-            "trendline_rail_probs": [sigmoid(value) for value in rail_logits],
-            "calibration_version": "dircal_v2",
-            "direction_calibration_enabled": True,
-            "direction_calibration_temperature": 1.15,
-            "path_calibration_enabled": True,
-            "path_calibration": {
-                "enabled": True,
-                "version": "path-cal-v1",
-                "path_quality_scale": 1.0,
-                "path_quality_shift": 0.0,
-                "bad_path_temperature": 1.0,
-                "bad_path_bias": 0.0,
-            },
-        }
+        evidence = model_native_runtime_evidence_fixture(
+            timestamp="2026-07-08T17:55:00Z",
+            entry_action_q_bps=(2.0, 0.2, -1.0),
+            position_size_logit=0.4,
+            session="US",
+            include_execution_timing=True,
+        )
         with self.assertRaisesRegex(RuntimeError, "TRADE_JOURNAL_ENTRY"):
             self.trade_journal.log_entry_snapshot(
                 trade_id=self.trade_id,
@@ -295,5 +170,5 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
                 units=1,
                 applied_size_multiplier=1.0,
                 sizing_application={},
-                atr_bps=12.5,
+                atr_bps=float(evidence["atr_bps"]),
             )

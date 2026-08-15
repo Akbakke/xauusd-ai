@@ -5,7 +5,17 @@ from pathlib import Path
 
 import pytest
 
-from gx1.contracts.entry_full_input_liveness_v1 import SCHEMA_VERSION as LIVENESS_SCHEMA
+from gx1.contracts.entry_fitted_q_v1 import (
+    entry_fitted_q_contract,
+    entry_fitted_q_production_economics_readiness,
+)
+from gx1.contracts.entry_full_input_liveness_v1 import (
+    EXPECTED_FIELD_COUNTS,
+    SCHEMA_VERSION as LIVENESS_SCHEMA,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
+)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,
@@ -24,10 +34,28 @@ from tests.model_native_context_routing_support import (
     context_routing_for_ordered_signal_names,
     ordered_signal_names_for_specialist_indices,
 )
-from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
-from tests.model_native_offline_rl_support import (
+from tests.entry_full_input_liveness_support import (
+    full_input_field_order,
+    write_full_input_liveness_fixture,
+)
+from tests.model_native_sizing_support import (
     model_native_target_audit_evidence,
 )
+
+
+def _liveness_field_order() -> dict[str, list[str]]:
+    """Trim the shared liveness fixture to the owner's exact ctx_cat width.
+
+    ``tests/entry_full_input_liveness_support.full_input_field_order`` still
+    emits five synthetic ``ctx_cat`` names from the retired five-categorical
+    surface; the contract owner declares exactly
+    ``EXPECTED_FIELD_COUNTS['ctx_cat']``. Trimming here keeps the fixture at
+    the owner's width without restating it.
+    """
+
+    order = full_input_field_order()
+    order["ctx_cat"] = order["ctx_cat"][: EXPECTED_FIELD_COUNTS["ctx_cat"]]
+    return order
 
 
 def _write_json(path: Path, data: dict) -> Path:
@@ -49,10 +77,12 @@ def _model_contract() -> dict:
 
 
 def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
-    assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == manifest_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
-    assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == trainability_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
-    assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == manifest_gate.DIRECTION_BALANCE_ENV_TEMPLATE
-    assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == trainability_gate.DIRECTION_BALANCE_ENV_TEMPLATE
+    expected = readiness.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+    assert expected == manifest_gate.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+    assert expected == trainability_gate.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+    expected_env = readiness.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+    assert expected_env == manifest_gate.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+    assert expected_env == trainability_gate.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
     assert (
         readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
         == manifest_gate.DIRECTION_CONTEXT_SLICE_CONTRACT
@@ -71,6 +101,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     full_input_liveness_path, full_input_liveness, _ = write_full_input_liveness_fixture(
         tmp_path / "full_input_liveness",
         dataset_dir=smart_dataset_dir,
+        field_order=_liveness_field_order(),
     )
     stamped_liveness_path = (
         tmp_path
@@ -97,11 +128,11 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     for split in ("train", "val", "test"):
         parquet_path = (
             smart_smoke_dataset_dir
-            / f"v10_smart_seq513_model_native_smoke__DIR_H24B_{split}.parquet"
+            / f"v10_smart_seq513_model_native_smoke__DIR_TRAIN_FIT_{split}.parquet"
         )
         manifest_path = (
             smart_smoke_dataset_dir
-            / f"v10_smart_seq513_model_native_smoke__DIR_H24B_{split}.manifest.json"
+            / f"v10_smart_seq513_model_native_smoke__DIR_TRAIN_FIT_{split}.manifest.json"
         )
         parquet_path.write_bytes(f"{split}-parquet".encode("utf-8"))
         manifest_path.write_text(f'{{"split":"{split}"}}\n', encoding="utf-8")
@@ -209,7 +240,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "foundation_source_field_liveness": [
                 {
                     "split": "train",
-                    "source_field": "chart.foundation_hh_state",
+                    "source_field": "chart.foundation_bos_up_event_age_bars",
                     "observed": True,
                     "nonfinite_count": 0,
                     "near_constant": False,
@@ -220,7 +251,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         tmp_path / "ENTRY_TARGET_FOUNDATION_AUDIT_20260716T120004123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v2",
+            "schema_version": "entry_target_foundation_audit_v3",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -230,6 +261,34 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "failures": [],
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
             **model_native_target_audit_evidence(),
+            # Mirror what the real target audit emits: the specialist-fusion
+            # head sets and the Entry fitted-Q target proof, both read from
+            # their owners rather than restated.
+            "target_head_contract": {
+                "active_training_heads": list(
+                    readiness.SPECIALIST_FUSION_ACTIVE_HEADS
+                ),
+                "blocked_heads": list(
+                    readiness.SPECIALIST_FUSION_BLOCKED_HEADS
+                ),
+                "extra_active_target_heads": list(
+                    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                ),
+                "extra_active_target_head_liveness": {
+                    head: True for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                },
+            },
+            "entry_fitted_q_target_contract": {
+                "decision": "FAIL",
+                "failures": [
+                    "production economics is not ready; gross fitted-Q "
+                    "remains research-only"
+                ],
+                "entry_fitted_q_contract": entry_fitted_q_contract(),
+                "production_economics": (
+                    entry_fitted_q_production_economics_readiness()
+                ),
+            },
         },
     )
     specialist_indices = {name: [] for name in readiness.REQUIRED_SPECIALISTS}
@@ -381,13 +440,37 @@ def _run_blocked(args: argparse.Namespace) -> dict:
     return json.loads(paths[0].read_text(encoding="utf-8"))
 
 
-def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, tmp_path: Path) -> None:
+# The one gate the fitted-Q owner deliberately keeps closed: gross raw-bps Q
+# targets carry no production authority until executable bid/ask, commission,
+# slippage and financing are bound.
+ENTRY_Q_ECONOMICS_CHECK = (
+    "smart_dataset_audit: "
+    "smart target audit proves exact aux-v3 and offline-RL targets"
+)
+
+
+def test_model_native_seq513_smoke_readiness_is_blocked_only_by_entry_q_economics(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    """Every readiness surface is wired; Entry-Q economics is the one block.
+
+    The fitted-Q owner refuses production authority for gross, spread-only
+    targets, and the smoke readiness gate requires that readiness, so a fully
+    wired chain must still come out BLOCKED with exactly one blocker naming
+    that gate. Nothing else may hide behind it, so the remainder of this test
+    asserts the report-only contract exactly as before.
+    """
+
     args = _build_fixture(tmp_path)
     monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
 
-    report = readiness.run(args)
+    report = _run_blocked(args)
 
-    assert report["decision"] == "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
+    economics = entry_fitted_q_production_economics_readiness()
+    assert economics["production_authority_ready"] is False
+    assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
+    assert report["blockers"] == [ENTRY_Q_ECONOMICS_CHECK]
     assert report["report_only"] is True
     assert report["training_allowed"] is False
     assert report["smart_smoke_training_allowed"] is False
@@ -397,10 +480,15 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert not any(report["side_effects_started"].values())
     assert report["full_input_liveness_validation"]["ok"] is True
     assert report["full_input_liveness_validation"]["field_counts"] == {
-        "signal": MODEL_NATIVE_SIGNAL_DIM,
-        "ctx_cont": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat": 5,
+        surface: len(names)
+        for surface, names in _liveness_field_order().items()
     }
+    assert report["full_input_liveness_validation"]["field_counts"][
+        "signal"
+    ] == MODEL_NATIVE_SIGNAL_DIM
+    assert report["full_input_liveness_validation"]["field_counts"][
+        "ctx_cont"
+    ] == MODEL_NATIVE_CTX_CONT_DIM
 
     train_contract = report["future_command_contracts"]["smart_smoke_train"]
     assert train_contract["implemented_in_control_surface"] is True
@@ -466,17 +554,17 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     )
     assert train_contract["specialist_contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
     assert train_contract["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
-    assert train_contract["requires_path_calibration_recipe_contract"] is True
-    assert train_contract["path_calibration_recipe_contract"] == readiness.PATH_CALIBRATION_RECIPE_CONTRACT
-    assert train_contract["requires_direction_balance_recipe_contract"] is True
-    assert train_contract["direction_balance_recipe_contract"] == readiness.DIRECTION_BALANCE_RECIPE_CONTRACT
-    assert train_contract["requires_tail_direction_recipe_contract"] is True
-    assert train_contract["tail_direction_recipe_contract"] == readiness.TAIL_DIRECTION_RECIPE_CONTRACT
+    assert train_contract[
+        "requires_direction_diagnostic_recipe_contract"
+    ] is True
+    assert train_contract[
+        "direction_diagnostic_recipe_contract"
+    ] == readiness.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
     assert set(train_contract["recipe_env_keys"]) == set(
         readiness.MODEL_NATIVE_RECIPE_ENV_KEYS
     )
-    assert set(train_contract["required_positive_loss_weights"]) == set(
-        readiness.REQUIRED_POSITIVE_LOSS_WEIGHTS
+    assert set(train_contract["joint_task_names"]) == set(
+        readiness.JOINT_TASK_NAMES
     )
     assert train_contract["requires_exact_model_native_training_objective"] is True
     assert train_contract["requires_direction_context_slice_contract"] is True
@@ -610,11 +698,12 @@ def test_model_native_seq513_smoke_readiness_allows_specialist_near_constant_whe
     _write_json(specialist_path, specialist)
     monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
 
-    report = readiness.run(args)
+    report = _run_blocked(args)
 
-    blockers = "\n".join(report["blockers"])
-    assert report["decision"] == "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
-    assert "smart specialist input has no NaN inf or liveness collapse" not in blockers
+    # A near-constant specialist feature must not become a blocker while the
+    # live-feature count clears its floor; the only blocker stays Entry-Q
+    # production economics.
+    assert report["blockers"] == [ENTRY_Q_ECONOMICS_CHECK]
 
 
 def test_model_native_seq513_smoke_readiness_fails_closed_on_blocked_manifest_readiness(

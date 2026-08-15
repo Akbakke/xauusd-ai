@@ -5,42 +5,65 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from gx1.scripts.audit_model_native_direction_pockets_v1 import (
+    MODEL_DIRECTION_REQUIRED_COLUMNS,
     MODEL_DIRECTION_SELECTION_MODE,
+    SIDE_FLAT,
+    SIDE_LONG,
+    SIDE_SHORT,
     _assert_selection_score_mode,
     _decision,
     _model_direction_contract_failures,
     _side_from_predictions,
     _selected_from_predictions,
 )
+from gx1.scripts.verify_model_native_serve_parity_v1 import (
+    FORBIDDEN_LEGACY_DECISION_COLS,
+)
 from tests.model_native_serve_gate_support import passing_direction_repair_pockets
 
 
+def _q_margin(entry_q: np.ndarray) -> np.ndarray:
+    """Top-minus-second raw-bps Q margin, exactly as the audit owner defines it."""
+
+    ordered = np.sort(entry_q, axis=1)
+    return ordered[:, -1] - ordered[:, -2]
+
+
 def _canonical_model_direction_predictions() -> pd.DataFrame:
-    probabilities = np.asarray(
-        [
-            [0.80, 0.10, 0.10],
-            [0.10, 0.75, 0.15],
-            [0.10, 0.10, 0.80],
-        ],
-        dtype=np.float64,
+    """One unique-argmax row per Entry action, with no probability surface.
+
+    Direction authority is the raw-bps action-value argmax over
+    ``[LONG, SHORT, FLAT]``; the retired calibrated-probability columns are
+    forbidden legacy decision columns and must not appear here.
+    """
+
+    # Row i is written through the action index constants, so the fixture stays
+    # correct if the owner ever reorders [LONG, SHORT, FLAT].
+    entry_q = np.zeros((3, 3), dtype=np.float64)
+    entry_q[0, SIDE_LONG], entry_q[0, SIDE_SHORT], entry_q[0, SIDE_FLAT] = (
+        12.0,
+        -3.0,
+        0.0,
     )
-    direction_logits = np.log(probabilities)
-    public_logits = np.column_stack(
-        [np.max(direction_logits[:, :2], axis=1), direction_logits[:, 2]]
+    entry_q[1, SIDE_LONG], entry_q[1, SIDE_SHORT], entry_q[1, SIDE_FLAT] = (
+        -4.0,
+        9.5,
+        0.0,
+    )
+    entry_q[2, SIDE_LONG], entry_q[2, SIDE_SHORT], entry_q[2, SIDE_FLAT] = (
+        -2.0,
+        -6.0,
+        0.0,
+    )
+    pred_direction = np.asarray(
+        [SIDE_LONG, SIDE_SHORT, SIDE_FLAT], dtype=np.int64
     )
     return pd.DataFrame(
         {
             "selection_score_mode": [MODEL_DIRECTION_SELECTION_MODE] * 3,
-            "pred_direction": [0, 1, 2],
-            "direction_logits": direction_logits.tolist(),
-            "public_trade_flat_decision_logits": public_logits.tolist(),
-            "p_long": probabilities[:, 0],
-            "p_short": probabilities[:, 1],
-            "p_flat": probabilities[:, 2],
-            "public_trade_probability": [0.88888889, 0.83333333, 0.11111111],
-            "public_flat_probability": [0.11111111, 0.16666667, 0.88888889],
-            "public_trade_flat_margin": [2.07944154, 1.60943791, -2.07944154],
-            "public_trade_flat_hard_decision": [0, 0, 1],
+            "pred_direction": pred_direction,
+            "entry_action_q_bps": entry_q.tolist(),
+            "entry_action_q_margin_bps": _q_margin(entry_q),
         }
     )
 
@@ -322,7 +345,11 @@ def test_direction_audits_use_model_argmax_including_flat_without_threshold() ->
     frame["action"] = ["SHORT", "LONG", "LONG"]
 
     assert _model_direction_contract_failures(frame) == []
-    assert _side_from_predictions(frame).tolist() == [0, 1, 2]
+    assert _side_from_predictions(frame).tolist() == [
+        SIDE_LONG,
+        SIDE_SHORT,
+        SIDE_FLAT,
+    ]
     assert _selected_from_predictions(frame).tolist() == [True, True, False]
 
 
@@ -337,88 +364,81 @@ def test_direction_audits_require_model_direction_selection_mode() -> None:
     assert _assert_selection_score_mode(frame)
 
 
-def test_direction_audits_require_canonical_public_trade_flat_columns() -> None:
-    frame = _canonical_model_direction_predictions().drop(
-        columns=["public_trade_flat_margin"]
-    )
+@pytest.mark.parametrize("column", MODEL_DIRECTION_REQUIRED_COLUMNS)
+def test_direction_audits_require_every_canonical_fitted_q_column(
+    column: str,
+) -> None:
+    frame = _canonical_model_direction_predictions().drop(columns=[column])
 
     failures = _model_direction_contract_failures(frame)
 
     assert any("missing prediction columns" in item for item in failures)
-    assert any("public_trade_flat_margin" in item for item in failures)
+    assert any(column in item for item in failures)
 
 
-def test_direction_audits_reject_pred_direction_probability_argmax_mismatch() -> None:
+def test_direction_audit_requires_no_retired_probability_surface() -> None:
+    """The audit may never require a retired calibrated-probability column."""
+
+    assert not set(MODEL_DIRECTION_REQUIRED_COLUMNS) & set(
+        FORBIDDEN_LEGACY_DECISION_COLS
+    )
+    # A frame carrying the retired surface is still judged only on the Q
+    # columns: the legacy columns can neither rescue nor veto the decision.
     frame = _canonical_model_direction_predictions()
-    frame.loc[0, "pred_direction"] = 1
+    for legacy in FORBIDDEN_LEGACY_DECISION_COLS:
+        frame[legacy] = 1.0
+
+    assert _model_direction_contract_failures(frame) == []
+
+
+def test_direction_audits_reject_pred_direction_q_argmax_mismatch() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame.loc[0, "pred_direction"] = SIDE_SHORT
 
     failures = _model_direction_contract_failures(frame)
 
     assert any("pred_direction mismatches" in item for item in failures)
 
 
-def test_direction_audits_reject_tied_top_direction_logits() -> None:
+def test_direction_audits_reject_tied_top_action_values() -> None:
     frame = _canonical_model_direction_predictions()
-    tied_probabilities = np.asarray([0.45, 0.45, 0.10], dtype=np.float64)
-    tied_logits = np.log(tied_probabilities)
-    frame.at[0, "direction_logits"] = tied_logits.tolist()
-    frame.at[0, "public_trade_flat_decision_logits"] = [
-        float(tied_logits[0]),
-        float(tied_logits[2]),
-    ]
-    frame.loc[0, ["p_long", "p_short", "p_flat"]] = tied_probabilities
-    public_trade_probability = float(
-        tied_probabilities[0] / (tied_probabilities[0] + tied_probabilities[2])
+    tied = np.zeros(3, dtype=np.float64)
+    tied[SIDE_LONG] = 5.0
+    tied[SIDE_SHORT] = 5.0
+    tied[SIDE_FLAT] = 0.0
+    frame.at[0, "entry_action_q_bps"] = tied.tolist()
+    frame.loc[0, "entry_action_q_margin_bps"] = float(
+        _q_margin(tied[None, :])[0]
     )
-    frame.loc[0, ["public_trade_probability", "public_flat_probability"]] = [
-        public_trade_probability,
-        1.0 - public_trade_probability,
-    ]
-    frame.loc[0, "public_trade_flat_margin"] = float(tied_logits[0] - tied_logits[2])
 
     failures = _model_direction_contract_failures(frame)
 
-    assert any("no unique top class" in item for item in failures)
+    assert any("no unique top action" in item for item in failures)
 
 
-def test_direction_audits_reject_public_hard_decision_vs_pred_direction() -> None:
+def test_direction_audits_reject_margin_that_does_not_match_raw_q() -> None:
     frame = _canonical_model_direction_predictions()
-    frame.loc[2, "public_trade_flat_hard_decision"] = 0
-    frame.loc[2, "public_trade_probability"] = 0.80
-    frame.loc[2, "public_flat_probability"] = 0.20
-    frame.loc[2, "public_trade_flat_margin"] = 1.0
-
-    failures = _model_direction_contract_failures(frame)
-
-    assert any("hard_decision mismatches pred_direction" in item for item in failures)
-
-
-def test_direction_audits_reject_public_probability_and_margin_disagreement() -> None:
-    frame = _canonical_model_direction_predictions()
-    frame.loc[0, "public_trade_flat_hard_decision"] = 1
-
-    failures = _model_direction_contract_failures(frame)
-
-    assert any("hard_decision mismatches canonical public probabilities" in item for item in failures)
-    assert any("hard_decision mismatches canonical public margin" in item for item in failures)
-
-
-def test_direction_audits_reject_noncanonical_public_pair_surface() -> None:
-    frame = _canonical_model_direction_predictions()
-    frame.loc[0, "public_trade_probability"] = 0.80
-    frame.loc[0, "public_flat_probability"] = 0.20
-    frame.loc[0, "public_trade_flat_margin"] = 1.38629436
+    frame.loc[0, "entry_action_q_margin_bps"] = float(
+        frame.loc[0, "entry_action_q_margin_bps"]
+    ) + 1.0
 
     failures = _model_direction_contract_failures(frame)
 
     assert any(
-        "public trade/FLAT probabilities do not match final direction" in item
+        "entry_action_q_margin_bps mismatches raw Q" in item
         for item in failures
     )
-    assert any(
-        "public trade/FLAT margin does not match final direction" in item
-        for item in failures
-    )
+
+
+def test_direction_audits_reject_nonfinite_action_values() -> None:
+    frame = _canonical_model_direction_predictions()
+    broken = np.asarray(frame.at[0, "entry_action_q_bps"], dtype=np.float64)
+    broken[SIDE_FLAT] = np.nan
+    frame.at[0, "entry_action_q_bps"] = broken.tolist()
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any("non-finite values" in item for item in failures)
 
 
 def test_direction_audit_sources_expose_no_selection_threshold_cli() -> None:
@@ -439,8 +459,8 @@ def test_model_native_pocket_audit_is_exact_seq513_and_immutable_only() -> None:
 
     assert "MODEL_NATIVE_SIGNAL_DIM" in source
     assert "require_model_native_signal_contract(" in source
-    assert "EXPECTED_CTX_CONT_DIM = 164" in source
-    assert "EXPECTED_CTX_CAT_DIM = 5" in source
+    assert "EXPECTED_CTX_CONT_DIM = MODEL_NATIVE_CTX_CONT_DIM" in source
+    assert "EXPECTED_CTX_CAT_DIM = MODEL_NATIVE_CTX_CAT_DIM" in source
     assert "MODEL_NATIVE_DIRECTION_POCKET_AUDIT" in source
     assert "MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION" in source
     assert '"--dataset-parquet"' in source
@@ -457,4 +477,7 @@ def test_model_native_pocket_audit_is_exact_seq513_and_immutable_only() -> None:
     assert "required=False" not in source
     assert "smart520" not in source.lower()
     assert "audit_thresholds_are_live_direction_rules" in source
-    assert "argmax(final_model_forward_after_learned_evidence_fusion_and_calibration.direction_logits)" in source
+    # One decision authority: the unique raw-bps action-value argmax. The
+    # retired calibrated-probability phrasing may not come back.
+    assert "unique_argmax(entry_action_q_bps)" in source
+    assert "direction_logits" not in source

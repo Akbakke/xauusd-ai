@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     model_native_signal_contract_metadata,
@@ -65,8 +67,8 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": 96,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat_dim": 5,
-        "base_signal_dim": 34,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "bridge_dim": 0,
         "bridge_source": None,
@@ -78,7 +80,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "preflight",
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
         {
-            "schema_version": "entry_model_native_seq513_rebuild_preflight_v11",
+            "schema_version": "entry_model_native_seq513_rebuild_preflight_v13",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
             "report_only": True,
             "side_effects_started": {"dataset_rebuild": False, "training": False},

@@ -282,17 +282,20 @@ def build_status() -> dict:
     if dec:
         vd = dec["v12_decision"]
         try:
-            probs = [float(value) for value in vd["direction_probs"]]
-            if len(probs) != 3 or not all(math.isfinite(value) for value in probs):
-                raise ValueError("direction_probs must contain three finite values")
-            if any(value < 0.0 or value > 1.0 for value in probs) or not math.isclose(
-                sum(probs), 1.0, rel_tol=1e-6, abs_tol=1e-7
+            q_values = [float(value) for value in vd["entry_action_q_bps"]]
+            if len(q_values) != 3 or not all(
+                math.isfinite(value) for value in q_values
             ):
-                raise ValueError("direction_probs is not a probability simplex")
-            direction_index = max(
-                MODEL_DIRECTION_NAME_BY_INDEX,
-                key=probs.__getitem__,
-            )
+                raise ValueError(
+                    "entry_action_q_bps must contain three finite values"
+                )
+            best_q = max(q_values)
+            winners = [
+                index for index, value in enumerate(q_values) if value == best_q
+            ]
+            if len(winners) != 1:
+                raise ValueError("entry_action_q_bps has no unique argmax")
+            direction_index = winners[0]
             direction = str(vd["model_direction"])
             if (
                 direction != MODEL_DIRECTION_NAME_BY_INDEX[direction_index]
@@ -304,33 +307,24 @@ def build_status() -> dict:
                 raise ValueError("model action disagrees with direction argmax")
             required_scalars = {}
             for key in (
-                "p_trade",
-                "p_flat_hier",
-                "path_quality_pred",
-                "tradable_prob",
-                "bad_path_prob",
-                "tf_agreement_pred",
+                "entry_action_q_margin_bps",
+                "atr_bps",
                 "position_size_pred",
             ):
                 value = float(vd[key])
                 if not math.isfinite(value):
                     raise ValueError(f"{key} is non-finite")
                 required_scalars[key] = value
-            ordered = sorted(probs, reverse=True)
             model = {
                 "contract_error": None,
                 "direction": direction,
                 "direction_index": direction_index,
                 "action": expected_action,
-                "p_long": probs[0],
-                "p_short": probs[1],
-                "p_flat": probs[2],
-                "argmax_prob": probs[direction_index],
-                "argmax_margin": ordered[0] - ordered[1],
-                "public_decision": vd["public_trade_flat_decision"],
+                "q_long_bps": q_values[0],
+                "q_short_bps": q_values[1],
+                "q_flat_bps": q_values[2],
+                "selected_q_bps": q_values[direction_index],
                 "specialist_gate": vd["specialist_gate"],
-                "mtf_trend_evidence": vd["mtf_trend_evidence"],
-                "side_utility": vd["side_utility"],
                 **required_scalars,
             }
         except (KeyError, TypeError, ValueError) as exc:
@@ -538,15 +532,13 @@ async function refresh(){
   if(c && !c.contract_error){
     const cls=c.direction==="LONG"?"grn":(c.direction==="SHORT"?"red":"amb");
     $("dirBig").textContent=c.direction;$("dirBig").className="big "+cls;
-    $("dirSub").textContent="modellens eneste retning · offentlig beslutning "+c.public_decision+" · argmax-margin "+pct(c.argmax_margin);
-    const prob=Math.max(0,Math.min(100,100*c.argmax_prob));
-    const g=$("gfill");g.style.width=prob+"%";
+    $("dirSub").textContent="modellens eneste rå-Q handling · margin "+num(c.entry_action_q_margin_bps)+" bps";
+    const g=$("gfill");g.style.width="100%";
     g.style.background=c.direction==="LONG"?"linear-gradient(90deg,#1b8f6e,var(--grn))":(c.direction==="SHORT"?"linear-gradient(90deg,#6b1e2b,var(--red))":"linear-gradient(90deg,#8a6a1e,var(--amb))");
-    $("probScale").textContent="argmax "+pct(c.argmax_prob)+" · p(trade) "+pct(c.p_trade)+" · p(flat|hierarki) "+pct(c.p_flat_hier);
-    const pl=100*c.p_long, ps=100*c.p_short, pf=100*c.p_flat;
-    $("leanL").style.width=pl+"%";$("leanS").style.width=ps+"%";
-    $("leanTxt").textContent="long "+pl.toFixed(1)+"% · short "+ps.toFixed(1)+"% · flat "+pf.toFixed(1)+"%";
-    $("modelEvidence").textContent="path "+num(c.path_quality_pred)+" · tradable "+pct(c.tradable_prob)+" · bad-path "+pct(c.bad_path_prob)+" · TF "+pct(c.tf_agreement_pred)+" · size-head "+pct(c.position_size_pred)+" (evidens)";
+    $("probScale").textContent="valgt Q "+num(c.selected_q_bps)+" bps · margin "+num(c.entry_action_q_margin_bps)+" bps";
+    $("leanL").style.width="0%";$("leanS").style.width="0%";
+    $("leanTxt").textContent="Q long "+num(c.q_long_bps)+" · short "+num(c.q_short_bps)+" · flat "+num(c.q_flat_bps)+" bps";
+    $("modelEvidence").textContent="ATR "+num(c.atr_bps)+" bps · size-head "+pct(c.position_size_pred)+" (evidens)";
   } else if(c && c.contract_error){
     $("dirBig").textContent="BLOCK";$("dirBig").className="big red";
     $("dirSub").textContent="modellkontrakt ugyldig: "+c.contract_error;

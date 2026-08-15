@@ -15,16 +15,24 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_NAME_BY_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
     UNIFIED_EXIT_ACTION_ORDER,
+    UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
     UNIFIED_EXIT_PATH_FEATURE_DIM,
     UNIFIED_EXIT_PATH_FEATURE_ORDER,
     canonical_closed_m1_bar,
+    canonical_closed_m1_full_path_chain_sha256,
+    canonical_closed_m1_path_sha256,
     canonical_unified_evidence_sha256,
     model_direction_decision_contract_metadata,
     require_model_direction_decision_contract,
     require_model_direction_operating_point,
     require_unified_exit_output,
+    require_unified_exit_path_envelope,
     unified_exit_path_tensor,
     unified_entry_exit_contract_metadata,
+)
+from tests.unified_exit_input_support import (
+    unified_exit_carry_fixture,
+    unified_exit_input_fixture,
 )
 
 
@@ -32,8 +40,8 @@ def test_model_direction_decision_contract_is_exact_and_rule_free() -> None:
     contract = model_direction_decision_contract_metadata()
 
     assert contract["selection_mode"] == MODEL_DIRECTION_SELECTION_MODE
-    assert contract["direction_class_order"] == ["LONG", "SHORT", "FLAT"]
-    assert contract["public_trade_flat_class_order"] == ["TRADE", "FLAT"]
+    assert contract["action_order"] == ["LONG", "SHORT", "FLAT"]
+    assert contract["target_unit"] == "raw_bps"
     assert contract["auxiliary_heads_direction_authority"] == "none"
     assert contract["runtime_direction_overrides_allowed"] is False
     assert contract["sizing_authority"] == "separate_top_level_bundle_contract"
@@ -45,12 +53,26 @@ def test_model_direction_decision_contract_is_exact_and_rule_free() -> None:
 
 
 def _unified_exit_output() -> dict[str, object]:
+    input_envelope = unified_exit_input_fixture(
+        entry_snapshot=_entry_snapshot(),
+        exit_path_envelope=_path_envelope(),
+        bundle_sha256="a" * 64,
+        decision_identity="unit-exit-contract",
+        side="long",
+        entry_bid=100.0,
+        entry_ask=100.04,
+    )
     output = {
-        "exit_action_logits": [-1.0, 2.0],
-        "exit_action_probs": [0.047425873, 0.952574127],
+        "exit_action_q_bps": [-1.0, 2.0],
+        "exit_action_valid_mask": [True, True],
         "exit_action_index": 1,
         "action": "EXIT_NOW",
         "decision_source": "unified_model",
+        "exit_input_envelope": input_envelope,
+        "exit_incremental_carry_envelope": unified_exit_carry_fixture(
+            input_envelope=input_envelope,
+            exit_path_envelope=_path_envelope(),
+        ),
         "bundle_sha256": "a" * 64,
         "entry_snapshot_sha256": canonical_unified_evidence_sha256(
             _entry_snapshot()
@@ -58,6 +80,9 @@ def _unified_exit_output() -> dict[str, object]:
         "exit_path_envelope_sha256": canonical_unified_evidence_sha256(
             _path_envelope()
         ),
+        "exit_input_envelope_sha256": input_envelope[
+            "input_envelope_sha256"
+        ],
     }
     output["output_evidence_sha256"] = canonical_unified_evidence_sha256(
         output
@@ -66,11 +91,35 @@ def _unified_exit_output() -> dict[str, object]:
 
 
 def _entry_snapshot() -> dict[str, object]:
-    return {"schema_version": "entry-test-v1", "shared_latent": [0.1, -0.2]}
+    return {
+        "schema_version": "entry-test-v2",
+        "decision_ts": "2026-07-17T11:55:00+00:00",
+        "model_direction_index": 0,
+        "model_direction": "LONG",
+        "entry_decision_representation": [
+            float(index - 64) / 64.0 for index in range(128)
+        ],
+    }
 
 
 def _path_envelope() -> dict[str, object]:
-    return {"schema_version": "path-test-v1", "path_length": 3}
+    rows = [_closed_m1_row("2026-07-17T12:00:00Z")]
+    return require_unified_exit_path_envelope(
+        {
+            "schema_version": UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
+            "entry_fill_ts": "2026-07-17T12:00:00+00:00",
+            "first_full_m1_bar_ts": "2026-07-17T12:00:00+00:00",
+            "last_closed_m1_bar_ts": "2026-07-17T12:00:00+00:00",
+            "bars_in_trade": 1,
+            "retained_path_length": 1,
+            "path_rows": rows,
+            "path_rows_sha256": canonical_closed_m1_path_sha256(rows),
+            "full_path_chain_sha256": (
+                canonical_closed_m1_full_path_chain_sha256(rows)
+            ),
+        },
+        context="UNIT_EXIT_PATH",
+    )
 
 
 def _validate_exit(output: dict[str, object]) -> dict[str, object]:
@@ -80,6 +129,7 @@ def _validate_exit(output: dict[str, object]) -> dict[str, object]:
         expected_bundle_sha256="a" * 64,
         entry_snapshot=_entry_snapshot(),
         exit_path_envelope=_path_envelope(),
+        exit_input_envelope=output["exit_input_envelope"],
     )
 
 
@@ -89,7 +139,9 @@ def test_unified_entry_exit_contract_has_one_rule_free_owner() -> None:
     assert contract["single_model_bundle"] is True
     assert contract["shared_feature_encoder"] is True
     assert contract["exit_action_order"] == list(UNIFIED_EXIT_ACTION_ORDER)
-    assert contract["exit_decision"] == "argmax(exit_action_logits)"
+    assert contract["exit_decision"] == (
+        "unique_argmax(exit_action_q_bps over valid actions)"
+    )
     assert contract["external_decision_models_allowed"] is False
     assert contract["runtime_entry_overrides_allowed"] is False
     assert contract["runtime_exit_overrides_allowed"] is False
@@ -98,7 +150,7 @@ def test_unified_entry_exit_contract_has_one_rule_free_owner() -> None:
     )
     assert contract["exit_path_feature_dim"] == UNIFIED_EXIT_PATH_FEATURE_DIM
     assert contract["exit_frozen_entry_surface"] == (
-        "shared_feature_representation"
+        "entry_decision_representation"
     )
 
 
@@ -139,6 +191,7 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
     ]
     tensor = unified_exit_path_tensor(
         path_rows=rows,
+        bars_in_trade=2,
         entry_bid=99.98,
         entry_ask=100.02,
     )
@@ -147,12 +200,16 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
     assert tensor.dtype == np.float32
     assert np.isfinite(tensor).all()
     assert tensor[0, 0] == pytest.approx(0.0)
-    assert tensor[0, -2] == pytest.approx(np.log1p(100))
+    assert tensor[0, -3] == pytest.approx(np.log1p(100))
+    assert tensor[:, -2].tolist() == pytest.approx(
+        [np.log1p(1), np.log1p(2)]
+    )
     assert tensor[0, -1] == pytest.approx(4.0)
 
     gapped = [rows[0], _closed_m1_row("2026-07-29T12:02:00Z")]
     gapped_tensor = unified_exit_path_tensor(
         path_rows=gapped,
+        bars_in_trade=2,
         entry_bid=99.98,
         entry_ask=100.02,
     )
@@ -162,6 +219,7 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
     with pytest.raises(ValueError, match="row clock duplicate/reversal"):
         unified_exit_path_tensor(
             path_rows=reversed_rows,
+            bars_in_trade=2,
             entry_bid=99.98,
             entry_ask=100.02,
         )
@@ -171,19 +229,19 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
     with pytest.raises(ValueError, match="not canonical"):
         unified_exit_path_tensor(
             path_rows=noncanonical,
+            bars_in_trade=1,
             entry_bid=99.98,
             entry_ask=100.02,
         )
 
 
-def test_unified_exit_output_requires_logit_probability_action_parity() -> None:
+def test_unified_exit_output_requires_raw_q_validity_and_action_parity() -> None:
     output = _unified_exit_output()
     assert _validate_exit(output) == output
 
     for key, replacement in (
         ("exit_action_index", 0),
         ("action", "HOLD"),
-        ("exit_action_probs", [0.8, 0.2]),
         ("entry_snapshot_sha256", "not-a-hash"),
     ):
         malformed = dict(output)
@@ -192,29 +250,39 @@ def test_unified_exit_output_requires_logit_probability_action_parity() -> None:
             _validate_exit(malformed)
 
     tied = dict(output)
-    tied["exit_action_logits"] = [1.0, 1.0]
-    with pytest.raises(RuntimeError, match="tied Exit logits"):
+    tied["exit_action_q_bps"] = [1.0, 1.0]
+    with pytest.raises(RuntimeError, match="tied valid Exit Q"):
         _validate_exit(tied)
 
+    terminal = dict(output)
+    terminal["exit_action_q_bps"] = [1.0, 1.0]
+    terminal["exit_action_valid_mask"] = [False, True]
+    terminal["output_evidence_sha256"] = canonical_unified_evidence_sha256(
+        {
+            key: value
+            for key, value in terminal.items()
+            if key != "output_evidence_sha256"
+        }
+    )
+    assert _validate_exit(terminal)["action"] == "EXIT_NOW"
+
     unexpected = dict(output)
-    unexpected["compatibility_hint"] = "HOLD"
+    unexpected["exit_action_probs"] = [0.0, 1.0]
     with pytest.raises(RuntimeError, match="exact schema mismatch"):
         _validate_exit(unexpected)
 
 
 def test_direction_class_and_action_layout_have_one_active_owner() -> None:
-    from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-        CLASS_ORDER,
+    from gx1.contracts.entry_fitted_q_v1 import (
+        ENTRY_FITTED_Q_ACTION_ORDER,
     )
-    from gx1.contracts.entry_model_native_offline_rl_v1 import ACTION_ORDER
     from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
         MODEL_DIRECTION_NAMES,
     )
 
-    assert MODEL_DIRECTION_CLASS_ORDER is CLASS_ORDER
-    assert ACTION_ORDER is CLASS_ORDER
-    assert MODEL_DIRECTION_NAMES is CLASS_ORDER
-    assert tuple(MODEL_DIRECTION_NAME_BY_INDEX.values()) == CLASS_ORDER
+    assert MODEL_DIRECTION_CLASS_ORDER is ENTRY_FITTED_Q_ACTION_ORDER
+    assert tuple(MODEL_DIRECTION_NAMES) == ENTRY_FITTED_Q_ACTION_ORDER
+    assert tuple(MODEL_DIRECTION_NAME_BY_INDEX.values()) == ENTRY_FITTED_Q_ACTION_ORDER
     assert tuple(MODEL_DIRECTION_ACTION_BY_INDEX.values()) == (
         MODEL_DIRECTION_ACTION_ORDER
     )
@@ -270,7 +338,7 @@ def test_trainer_writes_contract_and_no_longer_advertises_utility_selection() ->
     assert "direction_decision_contract = model_direction_decision_contract_metadata()" in source
     assert source.count('"direction_decision_contract": direction_decision_contract') >= 2
     assert "_direction_decision_contract_export_failures(lock, meta)" in source
-    assert '"selection_score": MODEL_DIRECTION_SELECTION_MODE' in source
+    assert '"entry_action_q_loss": "masked_raw_bps_mean_squared_error"' in source
     assert '"selection_score": "expected_utility_side"' not in source
 
 
@@ -549,4 +617,3 @@ def test_model_native_context_gap_has_no_partial_mtf_splice_surface() -> None:
     )
     assert "raise SmartContextStaleError" in effective_source
     assert "append_multi_tf_incremental" not in effective_source
-

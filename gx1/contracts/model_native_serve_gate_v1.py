@@ -1,8 +1,8 @@
 """Exact launch-admission contract for model-native XAU Entry evidence.
 
 This module contains evidence-admission constants only.  None of the values
-are live direction rules: LONG/SHORT/FLAT remains the model's final calibrated
-``direction_logits`` argmax.  The constants make the offline TEST proof
+are live direction rules: LONG/SHORT/FLAT remains the model's unique raw-bps
+``entry_action_q_bps`` argmax. The constants make the offline TEST proof
 surface immutable and prevent callers from weakening its scope.
 """
 
@@ -22,31 +22,40 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
+    MTF_SEMANTIC_CATEGORICAL_DOMAINS,
+)
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    EXIT_MTF_CONTEXT_TIMEFRAMES,
+)
 from gx1.features.htf_features import (
     MULTI_TF_PER_BAR_FEATURES_V4,
-    MULTI_TF_TIMEFRAMES,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    model_native_context_temporal_alias_policy,
     require_multi_tf_specialist_routing_v4,
 )
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
-    INPUTS_SHA256 as DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
-    INPUT_DIM as DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
-    ORDERED_INPUT_LAYOUT as DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT,
-    direction_evidence_fusion_metadata,
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    EXACT_TRENDLINE_EVENT_OUTPUT_DIM,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+    UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
 )
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
-    "xau_model_native_exact_test_full_stack_serve_gate_v11"
+    "xau_model_native_exact_test_full_stack_serve_gate_v14"
 )
-MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v11"
+MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v14"
 MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION = (
     "model_native_direction_pocket_audit_v2"
 )
@@ -83,7 +92,7 @@ SERVE_SOURCE_IDENTITY_UNTRACKED_SOURCE_ROOTS = (
     "gx1_guards/",
     "scripts/",
 )
-SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES = MULTI_TF_TIMEFRAMES
+SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES = ENTRY_MTF_CONTEXT_TIMEFRAMES
 SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_POSITIONS = (
     0,
     36,
@@ -100,7 +109,7 @@ SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT = len(
 SERVE_PARITY_INDIVIDUAL_INPUT_GRADIENT_EPSILON = 1e-12
 SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON = 1e-7
 SERVE_PARITY_INDIVIDUAL_INPUT_COMPARISON_SURFACE = (
-    "all_class_margin_input_gradients_plus_valid_categorical_counterfactual_v1"
+    "owner_numeric_gradients_plus_on_manifold_alias_and_categorical_counterfactual_v3"
 )
 SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS = tuple(
     f"{timeframe.lower()}:{specialist}"
@@ -112,7 +121,9 @@ SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS = tuple(
     for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
     for feature in MULTI_TF_PER_BAR_FEATURES_V4
 )
-if len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) != 40:
+if len(SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) != (
+    len(ENTRY_MTF_CONTEXT_TIMEFRAMES) * len(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+):
     raise RuntimeError("SERVE_PARITY_FAMILY_TF_COOPERATION_TOKEN_COUNT_INVALID")
 # Token width is DERIVED from the one ordered per-TF surface owner (rule 13;
 # V29 stage 2 grew the surface, so a restated literal would drift).
@@ -122,48 +133,216 @@ if len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) != (
 ):
     raise RuntimeError("SERVE_PARITY_FAMILY_TF_FEATURE_TOKEN_COUNT_INVALID")
 
+
+def individual_input_influence_layout(
+    ordered_signal_names: list[str] | tuple[str, ...],
+    *,
+    mtf_timeframes: tuple[str, ...] = ENTRY_MTF_CONTEXT_TIMEFRAMES,
+) -> dict[str, object]:
+    """Return exact physical-owner inputs for the field-level influence audit.
+
+    Non-aliased numeric fields are tested by class-margin gradients. Nominal
+    fields travel through integer embeddings and are therefore tested by a
+    valid-category counterfactual. Temporal signal/context aliases are one
+    physical current-bar observation: numeric/binary aliases use a continuous
+    manifold counterfactual and nominal aliases use a categorical manifold
+    counterfactual, but both change ``seq[-1]``, ``snap`` and ``ctx_cont``
+    together. Alias copies are deliberately absent from all independent
+    numeric-owner lists.
+    """
+
+    signal_names = [str(name) for name in ordered_signal_names]
+    resolved_timeframes = tuple(str(value) for value in mtf_timeframes)
+    if resolved_timeframes not in (
+        ENTRY_MTF_CONTEXT_TIMEFRAMES,
+        EXIT_MTF_CONTEXT_TIMEFRAMES,
+    ):
+        raise RuntimeError(
+            "SERVE_PARITY_INDIVIDUAL_INPUT_TIMEFRAME_ROUTE_INVALID"
+        )
+    if (
+        len(signal_names) != MODEL_NATIVE_SIGNAL_DIM
+        or len(signal_names) != len(set(signal_names))
+        or any(not name for name in signal_names)
+    ):
+        raise RuntimeError("SERVE_PARITY_INDIVIDUAL_INPUT_SIGNAL_ORDER_INVALID")
+    alias_policy = model_native_context_temporal_alias_policy(signal_names)
+    aliases = [dict(item) for item in alias_policy["aliases"]]
+    alias_by_ctx = {str(item["ctx_cont_field"]): item for item in aliases}
+    alias_signal_fields = {str(item["signal_field"]) for item in aliases}
+    alias_ctx_fields = set(alias_by_ctx)
+    nominal_ctx_fields = set(CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
+    numeric: dict[str, dict[str, list[object]]] = {
+        "seq_signal": {
+            "tokens": [
+                name for name in signal_names if name not in alias_signal_fields
+            ],
+            "source_indices": [
+                index
+                for index, name in enumerate(signal_names)
+                if name not in alias_signal_fields
+            ],
+        },
+        "snap_signal": {
+            "tokens": [
+                name for name in signal_names if name not in alias_signal_fields
+            ],
+            "source_indices": [
+                index
+                for index, name in enumerate(signal_names)
+                if name not in alias_signal_fields
+            ],
+        },
+        "ctx_cont": {
+            "tokens": [
+                name
+                for name in MODEL_NATIVE_CTX_CONT_FIELDS
+                if name not in nominal_ctx_fields and name not in alias_ctx_fields
+            ],
+            "source_indices": [
+                index
+                for index, name in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
+                if name not in nominal_ctx_fields and name not in alias_ctx_fields
+            ],
+        },
+    }
+    mtf_nominal_fields = set(MTF_SEMANTIC_CATEGORICAL_DOMAINS)
+    for timeframe in resolved_timeframes:
+        surface = f"seq_{timeframe.lower()}"
+        numeric[surface] = {
+            "tokens": [
+                f"{timeframe.lower()}:{name}"
+                for name in MULTI_TF_PER_BAR_FEATURES_V4
+                if name not in mtf_nominal_fields
+            ],
+            "source_indices": [
+                index
+                for index, name in enumerate(MULTI_TF_PER_BAR_FEATURES_V4)
+                if name not in mtf_nominal_fields
+            ],
+        }
+
+    continuous_manifold: list[dict[str, object]] = []
+    for alias in aliases:
+        ctx_field = str(alias["ctx_cont_field"])
+        if ctx_field in nominal_ctx_fields:
+            continue
+        continuous_manifold.append(
+            {
+                "token": f"temporal_alias.{ctx_field}",
+                "owner": "signal_ctx_temporal_alias_numeric_manifold",
+                "surface": "temporal_alias",
+                "signal_index": int(alias["signal_index"]),
+                "ctx_cont_index": int(alias["ctx_cont_index"]),
+                "signal_field": str(alias["signal_field"]),
+                "ctx_cont_field": ctx_field,
+                "manifold": "joint_seq_last_snap_ctx_cont_alias",
+                "perturbation": "binary_flip_or_train_frozen_center_else_one_scale",
+            }
+        )
+
+    categorical: list[dict[str, object]] = []
+    for index, field in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS):
+        categorical.append(
+            {
+                "token": f"ctx_cat.{field}",
+                "owner": "ctx_cat_embedding",
+                "surface": "ctx_cat",
+                "source_index": index,
+                "field": field,
+                "domain": list(MODEL_NATIVE_CTX_CAT_DOMAINS[field]),
+                "manifold": "single_exact_categorical_owner",
+            }
+        )
+    for ctx_index, field in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS):
+        if field not in nominal_ctx_fields:
+            continue
+        alias = alias_by_ctx.get(field)
+        if alias is None:
+            categorical.append(
+                {
+                    "token": f"ctx_cont.{field}",
+                    "owner": "ctx_cont_nominal_embedding",
+                    "surface": "ctx_cont",
+                    "source_index": ctx_index,
+                    "field": field,
+                    "domain": list(CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS[field]),
+                    "manifold": "single_exact_categorical_owner",
+                }
+            )
+            continue
+        categorical.append(
+            {
+                "token": f"temporal_alias.{field}",
+                "owner": "signal_ctx_temporal_alias_nominal_embedding",
+                "surface": "temporal_alias",
+                "signal_index": int(alias["signal_index"]),
+                "ctx_cont_index": int(alias["ctx_cont_index"]),
+                "signal_field": str(alias["signal_field"]),
+                "ctx_cont_field": field,
+                "domain": list(CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS[field]),
+                "manifold": "joint_seq_last_snap_ctx_cont_alias",
+            }
+        )
+    mtf_field_index = {
+        name: index for index, name in enumerate(MULTI_TF_PER_BAR_FEATURES_V4)
+    }
+    for timeframe in resolved_timeframes:
+        for field, domain in MTF_SEMANTIC_CATEGORICAL_DOMAINS.items():
+            categorical.append(
+                {
+                    "token": f"{timeframe.lower()}:{field}",
+                    "owner": "mtf_nominal_embedding",
+                    "surface": f"seq_{timeframe.lower()}",
+                    "source_index": mtf_field_index[field],
+                    "field": field,
+                    "timeframe": timeframe,
+                    "domain": list(domain),
+                    "manifold": "latest_closed_tf_bar_category",
+                }
+            )
+    tokens = [str(item["token"]) for item in categorical]
+    if len(tokens) != len(set(tokens)):
+        raise RuntimeError("SERVE_PARITY_INDIVIDUAL_INPUT_CATEGORY_DUPLICATE")
+    continuous_tokens = [
+        str(item["token"]) for item in continuous_manifold
+    ]
+    if (
+        len(continuous_tokens) != len(set(continuous_tokens))
+        or set(continuous_tokens).intersection(tokens)
+    ):
+        raise RuntimeError(
+            "SERVE_PARITY_INDIVIDUAL_INPUT_MANIFOLD_OWNER_DUPLICATE"
+        )
+    return {
+        "mtf_timeframes": list(resolved_timeframes),
+        "numeric": numeric,
+        "continuous_manifold": continuous_manifold,
+        "categorical": categorical,
+    }
+
 # Exact retained model tensors plus every numeric diagnostic consumed by the
 # live head schema.  Width one is scalar; wider values are dense vectors.  This
 # is TRAIN==SERVE comparison evidence only and never modifies a direction.
 SERVE_PARITY_FORWARD_FIELD_WIDTHS = {
-    **dict(DIRECTION_EVIDENCE_FUSION_INPUTS),
-    "path_quality": 1,
-    "bad_path_logit": 1,
+    "entry_action_q_bps": 3,
+    "entry_q_joint_hidden": UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
     "specialist_gate": len(MODEL_NATIVE_REQUIRED_SPECIALISTS),
-    "tf_gate": 5,
+    "tf_gate": len(SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES),
     "family_tf_cooperation_gate": len(
         SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS
     ),
     "family_tf_feature_gate": len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS),
-    "raw_direction_logits": 3,
-    "direction_logits": 3,
-    "public_trade_flat_decision_logits": 2,
-    "direction_probs": 3,
-    "public_trade_flat_decision_probs": 2,
-    "p_long": 1,
-    "p_short": 1,
-    "p_flat": 1,
+    "entry_action_q_margin_bps": 1,
     "edge_score": 1,
-    "public_trade_probability": 1,
-    "public_flat_probability": 1,
-    "path_quality_pred": 1,
-    "tradable_prob": 1,
-    "mfe_first_n_pred": 1,
-    "bad_path_prob": 1,
-    "clean_edge_prob": 1,
-    "survival_prob": 1,
-    "tf_agreement_prob": 1,
-    "path_quality_std": 1,
     "position_size_pred": 1,
-    "p_long_given_trade": 1,
-    "p_short_given_trade": 1,
-    "side_probs": 2,
-    "long_bad_path_prob": 1,
-    "short_bad_path_prob": 1,
-    "long_validity_prob": 1,
-    "short_validity_prob": 1,
-    "mtf_dir_probs": 3,
-    "trendline_rail_probs": 6,
+    "side_mae_bps": 2,
+    # Width comes from the head that emits it, never a restated literal: the
+    # model, the trainer's output-width table and the aux loss all use
+    # EXACT_TRENDLINE_EVENT_OUTPUT_DIM. This gate had drifted to 6 against a
+    # head of 4 — a train!=serve break (rule 6) that no gate could see,
+    # because every fixture built the column at the gate's own width.
+    "trendline_event_probs": EXACT_TRENDLINE_EVENT_OUTPUT_DIM,
 }
 SERVE_PARITY_FORWARD_HEADS = tuple(SERVE_PARITY_FORWARD_FIELD_WIDTHS)
 
@@ -171,49 +350,20 @@ SERVE_PARITY_FORWARD_HEADS = tuple(SERVE_PARITY_FORWARD_FIELD_WIDTHS)
 # complete, hash-bound candidate TEST prediction artifact.  Width one denotes
 # a scalar column; wider values are dense vector columns with that exact width.
 SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS = {
-    "direction": {
-        "model_native_logits": 3,
-        "raw_direction_logits": 3,
-        "direction_logits": 3,
+    "entry_action_q": {
+        "entry_action_q_bps": 3,
+        "entry_q_joint_hidden": UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
     },
-    "tradable": {"tradable_logit": 1, "tradable_prob": 1},
-    "path_quality": {
-        "path_quality_raw": 1,
-        "path_quality": 1,
-        "path_quality_pred": 1,
-    },
-    "mfe_first_n": {"mfe_first_n": 1, "mfe_first_n_pred": 1},
-    "bad_path": {
-        "bad_path_logit_raw": 1,
-        "bad_path_logit": 1,
-        "bad_path_prob": 1,
-    },
-    "clean_edge": {"clean_edge_logit": 1, "clean_edge_prob": 1},
-    "survival": {"survival_logit": 1, "survival_prob": 1},
-    "tf_agreement": {"tf_agreement_logit": 1, "tf_agreement_prob": 1},
-    "path_quality_log_var": {"path_quality_log_var": 1},
     "position_size": {"position_size_logit": 1, "position_size_pred": 1},
     "dip": {"dip_pred": 18},
     "forecast": {"forecast_pred": 4},
     "timing": {"timing_pred": 12},
     "tail_risk": {"tail_risk_pred": 6},
     "vol_forecast": {"vol_forecast_pred": 3},
-    "mtf_direction": {"mtf_dir_logits": 3},
-    "trade_side_hierarchy": {
-        "trade_logit": 1,
-        "side_logits": 2,
-        "side_utility": 2,
-        "side_bad_path_logit": 2,
-        "side_mae": 2,
+    "side_mae": {"side_mae_bps": 2},
+    "trendline_event": {
+        "trendline_event_logits": EXACT_TRENDLINE_EVENT_OUTPUT_DIM,
     },
-    "trendline_rail": {"trendline_rail_logits": 6},
-    "side_validity": {"side_validity_logit": 2},
-    "offline_rl_action_value": {
-        "action_value": 9,
-        "action_advantage": 9,
-    },
-    "offline_rl_expectile_value": {"expectile_value": 3},
-    "model_native_evidence_fusion": dict(DIRECTION_EVIDENCE_FUSION_INPUTS),
 }
 SERVE_PARITY_HEAD_VARIATION_EPSILON = 1e-8
 SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR = 1e-5
@@ -226,16 +376,15 @@ SERVE_PARITY_FEATURE_GATE_MAX_EXCLUSIVE = 2.0
 SERVE_PARITY_FEATURE_GATE_MIN_STD_EXCLUSIVE = 1e-6
 
 # Direct decision influence is audited on a deterministic subset of the same
-# 256 parity states.  Both evidence-family masking and an isolated specialist
-# encoder-output hook ablation must move both class-centred raw and final
-# calibrated logits.
+# 256 parity states. Both evidence-family masking and an isolated specialist
+# encoder-output hook ablation must move the sole raw-bps Entry Q surface.
 SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT = 16
 SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS = tuple(range(0, 256, 17))
 SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLING_CONTRACT = (
     "deterministic_even_positions_over_exact_256_parity_states_v1"
 )
 SERVE_PARITY_SPECIALIST_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_raw_and_final_calibrated_direction_logits_v2"
+    "raw_entry_action_q_bps_v1"
 )
 SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -243,50 +392,6 @@ SERVE_PARITY_SPECIALIST_INFLUENCE_METHODS = (
     "input_family_mask",
     "encoder_output_hook_ablation",
 )
-SERVE_PARITY_CALIBRATION_EQUATION = (
-    "direction_logits=raw_direction_logits/temperature+bias"
-)
-SERVE_PARITY_CALIBRATION_TOL = 1e-6
-SERVE_PARITY_FUSION_REFERENCE_SPLIT = "val"
-SERVE_PARITY_FUSION_REFERENCE_AGGREGATION = "finite_column_mean_v1"
-SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT = 16
-SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS = (
-    SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS
-)
-SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT = (
-    "deterministic_even_positions_over_exact_256_parity_states_v1"
-)
-SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_raw_and_final_calibrated_direction_logits_v2"
-)
-SERVE_PARITY_FUSION_INFLUENCE_EPSILON = 1e-6
-SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS = 8
-SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON = 1e-12
-SERVE_PARITY_FUSION_DERIVED_MANIFOLD_INPUTS = (
-    "action_value",
-    "expectile_value",
-    "action_advantage",
-)
-SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL = 1e-6
-SERVE_PARITY_FUSION_INFLUENCE_ABLATION = (
-    "exact_slice_or_q_v_a_manifold_preserving_candidate_val_mean_v2"
-)
-SERVE_PARITY_FUSION_DERIVED_ABLATION_SURFACES = {
-    "action_value": (
-        "q_val_mean_plus_recomputed_advantage_preserving_q_minus_v"
-    ),
-    "expectile_value": (
-        "v_val_mean_plus_recomputed_advantage_preserving_q_minus_v"
-    ),
-    "action_advantage": (
-        "joint_q_v_val_means_plus_recomputed_advantage_preserving_q_minus_v"
-    ),
-}
-SERVE_PARITY_FUSION_DERIVED_REFERENCE_INPUTS = {
-    "action_value": ("action_value",),
-    "expectile_value": ("expectile_value",),
-    "action_advantage": ("action_value", "expectile_value"),
-}
 SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT = (
     SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT
 )
@@ -301,7 +406,7 @@ SERVE_PARITY_UPSTREAM_INFLUENCE_METHODS = (
     "ctx_cat_zero_mask",
 )
 SERVE_PARITY_UPSTREAM_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_raw_and_final_calibrated_direction_logits_v2"
+    "raw_entry_action_q_bps_v1"
 )
 SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -315,7 +420,7 @@ SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLING_CONTRACT = (
     SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLING_CONTRACT
 )
 SERVE_PARITY_MULTI_TF_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_raw_and_final_calibrated_direction_logits_v2"
+    "raw_entry_action_q_bps_v1"
 )
 SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -1083,9 +1188,9 @@ def _specialist_decision_influence_contract_failures(
                 "failures",
                 "target",
                 "input_indices_sha256",
-                "max_abs_class_centered_raw_logit_delta",
+                "max_abs_entry_action_q_delta_bps",
                 "raw_changed_rows",
-                "max_abs_class_centered_logit_delta",
+                "max_abs_entry_action_q_margin_delta_bps",
                 "changed_rows",
                 "total_rows",
             }:
@@ -1100,12 +1205,12 @@ def _specialist_decision_influence_contract_failures(
             expected_hash = index_hashes.get(specialist)
             if not expected_hash or metric.get("input_indices_sha256") != expected_hash:
                 failures.append(f"{metric_label}.input_indices_sha256 mismatch")
-            delta = metric.get("max_abs_class_centered_logit_delta")
+            delta = metric.get("max_abs_entry_action_q_margin_delta_bps")
             if not _is_finite_number(delta) or float(delta) <= (
                 SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON
             ):
                 failures.append(f"{metric_label} lacks >epsilon influence")
-            raw_delta = metric.get("max_abs_class_centered_raw_logit_delta")
+            raw_delta = metric.get("max_abs_entry_action_q_delta_bps")
             if not _is_finite_number(raw_delta) or float(raw_delta) <= (
                 SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON
             ):
@@ -1201,9 +1306,9 @@ def _masked_input_influence_contract_failures(
         "failures",
         "target",
         "ablation_surface",
-        "max_abs_class_centered_raw_logit_delta",
+        "max_abs_entry_action_q_delta_bps",
         "raw_changed_rows",
-        "max_abs_class_centered_logit_delta",
+        "max_abs_entry_action_q_margin_delta_bps",
         "changed_rows",
         "total_rows",
     }
@@ -1219,7 +1324,7 @@ def _masked_input_influence_contract_failures(
             failures.append(f"{metric_label}.target mismatch")
         if metric.get("ablation_surface") != metric_ablation_surface:
             failures.append(f"{metric_label}.ablation_surface mismatch")
-        delta = metric.get("max_abs_class_centered_raw_logit_delta")
+        delta = metric.get("max_abs_entry_action_q_delta_bps")
         if not _is_finite_number(delta) or float(delta) <= epsilon:
             failures.append(f"{metric_label} lacks >epsilon raw influence")
         raw_changed = metric.get("raw_changed_rows")
@@ -1230,7 +1335,7 @@ def _masked_input_influence_contract_failures(
             or raw_changed > sample_count
         ):
             failures.append(f"{metric_label}.raw_changed_rows violates contract")
-        final_delta = metric.get("max_abs_class_centered_logit_delta")
+        final_delta = metric.get("max_abs_entry_action_q_margin_delta_bps")
         if not _is_finite_number(final_delta) or float(final_delta) <= epsilon:
             failures.append(f"{metric_label} lacks >epsilon final influence")
         changed = metric.get("changed_rows")
@@ -1340,11 +1445,16 @@ def _individual_input_decision_influence_contract_failures(
         "gradient_epsilon",
         "categorical_delta_epsilon",
         "numeric_input_count",
+        "continuous_manifold_input_count",
         "categorical_input_count",
+        "ordered_signal_names",
         "signal_names_sha256",
         "ctx_cont_names_sha256",
         "ctx_cat_names_sha256",
+        "input_ownership",
+        "input_ownership_sha256",
         "numeric",
+        "continuous_manifold",
         "categorical",
     }
     if set(value) != expected_keys:
@@ -1378,42 +1488,43 @@ def _individual_input_decision_influence_contract_failures(
     ):
         failures.append(f"{label}.categorical_delta_epsilon mismatch")
 
-    numeric = value.get("numeric")
-    signal_row = numeric.get("seq_signal") if isinstance(numeric, dict) else None
-    raw_signal_names = (
-        signal_row.get("tokens") if isinstance(signal_row, dict) else None
-    )
+    raw_signal_names = value.get("ordered_signal_names")
     signal_names = (
-        list(raw_signal_names) if isinstance(raw_signal_names, list) else []
+        [str(item) for item in raw_signal_names]
+        if isinstance(raw_signal_names, list)
+        else []
     )
-    if (
-        len(signal_names) != MODEL_NATIVE_SIGNAL_DIM
-        or len(signal_names) != len(set(signal_names))
-        or not all(isinstance(item, str) and item for item in signal_names)
-    ):
-        failures.append(f"{label} signal tokens are not exact unique seq513")
+    try:
+        expected_ownership = individual_input_influence_layout(signal_names)
+    except Exception as exc:
+        failures.append(f"{label} signal ownership is invalid: {exc}")
+        expected_ownership = {
+            "numeric": {},
+            "continuous_manifold": [],
+            "categorical": [],
+        }
     ctx_cont_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
     ctx_cat_names = list(MODEL_NATIVE_CTX_CAT_FIELDS)
-    expected_numeric_tokens = {
-        "seq_signal": signal_names,
-        "snap_signal": signal_names,
-        "ctx_cont": ctx_cont_names,
-        **{
-            f"seq_{timeframe.lower()}": [
-                f"{timeframe.lower()}:{feature}"
-                for feature in MULTI_TF_PER_BAR_FEATURES_V4
-            ]
-            for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
-        },
-    }
-    expected_numeric_count = (
-        (2 * MODEL_NATIVE_SIGNAL_DIM)
-        + len(MODEL_NATIVE_CTX_CONT_FIELDS)
-        + len(SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS)
-    )
-    if value.get("numeric_input_count") != expected_numeric_count:
+    if value.get("input_ownership") != expected_ownership:
+        failures.append(f"{label}.input_ownership mismatch")
+    if value.get("input_ownership_sha256") != _canonical_sha256(
+        expected_ownership
+    ):
+        failures.append(f"{label}.input_ownership_sha256 mismatch")
+    expected_numeric = expected_ownership["numeric"]
+    expected_continuous_manifold = expected_ownership[
+        "continuous_manifold"
+    ]
+    expected_categorical = expected_ownership["categorical"]
+    if value.get("numeric_input_count") != sum(
+        len(row["tokens"]) for row in expected_numeric.values()
+    ):
         failures.append(f"{label}.numeric_input_count mismatch")
-    if value.get("categorical_input_count") != len(ctx_cat_names):
+    if value.get("continuous_manifold_input_count") != len(
+        expected_continuous_manifold
+    ):
+        failures.append(f"{label}.continuous_manifold_input_count mismatch")
+    if value.get("categorical_input_count") != len(expected_categorical):
         failures.append(f"{label}.categorical_input_count mismatch")
     for field, names in (
         ("signal_names_sha256", signal_names),
@@ -1423,19 +1534,25 @@ def _individual_input_decision_influence_contract_failures(
         if value.get(field) != _canonical_sha256(names):
             failures.append(f"{label}.{field} mismatch")
 
-    if not isinstance(numeric, dict) or set(numeric) != set(
-        expected_numeric_tokens
-    ):
+    numeric = value.get("numeric")
+    if not isinstance(numeric, dict) or set(numeric) != set(expected_numeric):
         failures.append(f"{label}.numeric surface set mismatch")
     else:
-        for surface, tokens in expected_numeric_tokens.items():
+        for surface, owner_row in expected_numeric.items():
+            tokens = owner_row["tokens"]
             surface_label = f"{label}.numeric.{surface}"
             row = numeric.get(surface)
-            if not isinstance(row, dict) or set(row) != {"tokens", "metrics"}:
+            if not isinstance(row, dict) or set(row) != {
+                "tokens",
+                "source_indices",
+                "metrics",
+            }:
                 failures.append(f"{surface_label} keys mismatch")
                 continue
             if row.get("tokens") != tokens:
                 failures.append(f"{surface_label}.tokens mismatch")
+            if row.get("source_indices") != owner_row["source_indices"]:
+                failures.append(f"{surface_label}.source_indices mismatch")
             metrics = row.get("metrics")
             if not isinstance(metrics, dict) or set(metrics) != set(tokens):
                 failures.append(f"{surface_label}.metrics set mismatch")
@@ -1464,35 +1581,42 @@ def _individual_input_decision_influence_contract_failures(
                     ):
                         failures.append(f"{metric_label}.{field} is dead")
 
-    categorical = value.get("categorical")
-    if not isinstance(categorical, dict) or set(categorical) != set(ctx_cat_names):
-        failures.append(f"{label}.categorical set mismatch")
+    exact_counterfactual_metric_keys = {
+        "decision",
+        "failures",
+        "counterfactual",
+        "max_abs_entry_action_q_delta_bps",
+        "raw_changed_rows",
+        "max_abs_entry_action_q_margin_delta_bps",
+        "changed_rows",
+        "total_rows",
+    }
+    continuous_manifold = value.get("continuous_manifold")
+    continuous_tokens = [
+        str(row["token"]) for row in expected_continuous_manifold
+    ]
+    if not isinstance(continuous_manifold, dict) or set(
+        continuous_manifold
+    ) != set(continuous_tokens):
+        failures.append(f"{label}.continuous_manifold set mismatch")
     else:
-        exact_metric_keys = {
-            "decision",
-            "failures",
-            "counterfactual",
-            "max_abs_class_centered_raw_logit_delta",
-            "raw_changed_rows",
-            "max_abs_class_centered_logit_delta",
-            "changed_rows",
-            "total_rows",
-        }
-        for name in ctx_cat_names:
-            metric_label = f"{label}.categorical.{name}"
-            metric = categorical[name]
+        for token in continuous_tokens:
+            metric_label = f"{label}.continuous_manifold.{token}"
+            metric = continuous_manifold[token]
             failures.extend(_zero_failure_pass(metric, label=metric_label))
-            if not isinstance(metric, dict) or set(metric) != exact_metric_keys:
+            if (
+                not isinstance(metric, dict)
+                or set(metric) != exact_counterfactual_metric_keys
+            ):
                 failures.append(f"{metric_label} keys mismatch")
                 continue
-            if (
-                metric.get("counterfactual")
-                != "next_valid_embedding_category_modulo_domain"
+            if metric.get("counterfactual") != (
+                "joint_seq_last_snap_ctx_cont_binary_flip_or_train_center"
             ):
                 failures.append(f"{metric_label}.counterfactual mismatch")
             for field in (
-                "max_abs_class_centered_raw_logit_delta",
-                "max_abs_class_centered_logit_delta",
+                "max_abs_entry_action_q_delta_bps",
+                "max_abs_entry_action_q_margin_delta_bps",
             ):
                 observed = metric.get(field)
                 if (
@@ -1514,340 +1638,53 @@ def _individual_input_decision_influence_contract_failures(
                 SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT
             ):
                 failures.append(f"{metric_label}.total_rows mismatch")
-    return failures
 
-
-def _direction_evidence_fusion_influence_contract_failures(
-    value: object,
-    *,
-    bundle_dir: object,
-    prediction_evidence: object,
-) -> list[str]:
-    label = "serve parity direction_evidence_fusion_influence"
-    failures = _zero_failure_pass(value, label=label)
-    if not isinstance(value, dict):
-        return failures
-    exact_keys = {
-        "decision",
-        "failures",
-        "sample_count",
-        "sampling_contract",
-        "sample_positions",
-        "sampled_test_coverage",
-        "comparison_surface",
-        "epsilon",
-        "fusion_input_gradient_epsilon",
-        "min_changed_rows",
-        "ablation",
-        "fusion_metadata",
-        "ordered_input_layout",
-        "inputs_sha256",
-        "input_dim",
-        "bundle_metadata_path",
-        "bundle_metadata_sha256",
-        "bundle_metadata_exact_match",
-        "master_transformer_lock_path",
-        "master_transformer_lock_sha256",
-        "master_transformer_lock_exact_match",
-        "reference",
-        "groups",
-    }
-    if set(value) != exact_keys:
-        failures.append(f"{label} keys mismatch")
-    if value.get("sample_count") != SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT:
-        failures.append(f"{label}.sample_count mismatch")
-    if (
-        value.get("sampling_contract")
-        != SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT
+    categorical = value.get("categorical")
+    categorical_tokens = [str(row["token"]) for row in expected_categorical]
+    if not isinstance(categorical, dict) or set(categorical) != set(
+        categorical_tokens
     ):
-        failures.append(f"{label}.sampling_contract mismatch")
-    if value.get("sample_positions") != list(
-        SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS
-    ):
-        failures.append(f"{label}.sample_positions mismatch")
-    failures.extend(
-        time_coverage_contract_failures(
-            value.get("sampled_test_coverage"),
-            label=f"{label}.sampled_test_coverage",
-            expected_rows=SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
-        )
-    )
-    if (
-        value.get("comparison_surface")
-        != SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE
-    ):
-        failures.append(f"{label}.comparison_surface mismatch")
-    if not _is_exact_number(
-        value.get("epsilon"), SERVE_PARITY_FUSION_INFLUENCE_EPSILON
-    ):
-        failures.append(f"{label}.epsilon mismatch")
-    if not _is_exact_number(
-        value.get("fusion_input_gradient_epsilon"),
-        SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON,
-    ):
-        failures.append(f"{label}.fusion_input_gradient_epsilon mismatch")
-    if (
-        value.get("min_changed_rows")
-        != SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
-    ):
-        failures.append(f"{label}.min_changed_rows mismatch")
-    if (
-        value.get("ablation")
-        != SERVE_PARITY_FUSION_INFLUENCE_ABLATION
-    ):
-        failures.append(f"{label}.ablation mismatch")
-    expected_metadata = direction_evidence_fusion_metadata()
-    if value.get("fusion_metadata") != expected_metadata:
-        failures.append(f"{label}.fusion_metadata mismatch")
-    if value.get("ordered_input_layout") != DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT:
-        failures.append(f"{label}.ordered_input_layout mismatch")
-    if value.get("inputs_sha256") != DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256:
-        failures.append(f"{label}.inputs_sha256 mismatch")
-    if value.get("input_dim") != DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
-        failures.append(f"{label}.input_dim mismatch")
-    if value.get("bundle_metadata_exact_match") is not True:
-        failures.append(f"{label}.bundle_metadata_exact_match is not true")
-    if value.get("master_transformer_lock_exact_match") is not True:
-        failures.append(f"{label}.master_transformer_lock_exact_match is not true")
-
-    resolved_bundle = Path(str(bundle_dir or "")).expanduser()
-    expected_metadata_path = resolved_bundle / "bundle_metadata.json"
-    expected_lock_path = resolved_bundle / "MASTER_TRANSFORMER_LOCK.json"
-    for field, expected_path in (
-        ("bundle_metadata_path", expected_metadata_path),
-        ("master_transformer_lock_path", expected_lock_path),
-    ):
-        raw_path = Path(str(value.get(field) or "")).expanduser()
-        if (
-            not resolved_bundle.is_absolute()
-            or not raw_path.is_absolute()
-            or raw_path != expected_path
-        ):
-            failures.append(f"{label}.{field} bundle binding mismatch")
-    metadata_sha = value.get("bundle_metadata_sha256")
-    lock_sha = value.get("master_transformer_lock_sha256")
-    if not _is_sha256(metadata_sha):
-        failures.append(f"{label}.bundle_metadata_sha256 invalid")
-    if not _is_sha256(lock_sha):
-        failures.append(f"{label}.master_transformer_lock_sha256 invalid")
-    if (
-        not isinstance(prediction_evidence, dict)
-        or prediction_evidence.get("bundle_metadata_sha256") != metadata_sha
-        or prediction_evidence.get("bundle_metadata_path")
-        != value.get("bundle_metadata_path")
-    ):
-        failures.append(f"{label} prediction/bundle metadata binding mismatch")
-
-    reference = value.get("reference")
-    reference_label = f"{label}.reference"
-    expected_reference_keys = {
-        "split",
-        "aggregation",
-        "coverage",
-        "input_dim",
-        "inputs_sha256",
-        "derived_relation",
-        "mean_by_input",
-        "ordered_mean_sha256",
-    }
-    means: dict[str, list[float]] = {}
-    if not isinstance(reference, dict) or set(reference) != expected_reference_keys:
-        failures.append(f"{reference_label} keys mismatch")
+        failures.append(f"{label}.categorical set mismatch")
     else:
-        if reference.get("split") != SERVE_PARITY_FUSION_REFERENCE_SPLIT:
-            failures.append(f"{reference_label}.split mismatch")
-        if (
-            reference.get("aggregation")
-            != SERVE_PARITY_FUSION_REFERENCE_AGGREGATION
-        ):
-            failures.append(f"{reference_label}.aggregation mismatch")
-        failures.extend(
-            time_coverage_contract_failures(
-                reference.get("coverage"), label=f"{reference_label}.coverage"
-            )
-        )
-        if reference.get("input_dim") != DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
-            failures.append(f"{reference_label}.input_dim mismatch")
-        if reference.get("inputs_sha256") != DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256:
-            failures.append(f"{reference_label}.inputs_sha256 mismatch")
-        relation = reference.get("derived_relation")
-        if not isinstance(relation, dict) or set(relation) != {
-            "equation",
-            "max_abs_error",
-            "atol",
-        }:
-            failures.append(f"{reference_label}.derived_relation keys mismatch")
-        else:
-            if relation.get("equation") != (
-                "action_advantage=action_value-expectile_value_by_horizon"
-            ):
-                failures.append(
-                    f"{reference_label}.derived_relation.equation mismatch"
-                )
-            if not _is_exact_number(
-                relation.get("atol"),
-                SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL,
-            ):
-                failures.append(
-                    f"{reference_label}.derived_relation.atol mismatch"
-                )
-            relation_error = relation.get("max_abs_error")
+        for token in categorical_tokens:
+            metric_label = f"{label}.categorical.{token}"
+            metric = categorical[token]
+            failures.extend(_zero_failure_pass(metric, label=metric_label))
             if (
-                not _is_finite_number(relation_error)
-                or float(relation_error)
-                > SERVE_PARITY_FUSION_DERIVED_RELATION_ATOL
+                not isinstance(metric, dict)
+                or set(metric) != exact_counterfactual_metric_keys
             ):
-                failures.append(
-                    f"{reference_label}.derived_relation exceeds tolerance"
-                )
-        raw_means = reference.get("mean_by_input")
-        if not isinstance(raw_means, dict) or set(raw_means) != {
-            name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS
-        }:
-            failures.append(f"{reference_label}.mean_by_input set mismatch")
-        else:
-            ordered_means: list[float] = []
-            for name, width in DIRECTION_EVIDENCE_FUSION_INPUTS:
-                mean = raw_means.get(name)
+                failures.append(f"{metric_label} keys mismatch")
+                continue
+            if (
+                metric.get("counterfactual")
+                != "next_valid_category_on_exact_owner_manifold"
+            ):
+                failures.append(f"{metric_label}.counterfactual mismatch")
+            for field in (
+                "max_abs_entry_action_q_delta_bps",
+                "max_abs_entry_action_q_margin_delta_bps",
+            ):
+                observed = metric.get(field)
                 if (
-                    not isinstance(mean, list)
-                    or len(mean) != width
-                    or not all(_is_finite_number(item) for item in mean)
+                    not _is_finite_number(observed)
+                    or float(observed)
+                    <= SERVE_PARITY_INDIVIDUAL_INPUT_CAT_DELTA_EPSILON
                 ):
-                    failures.append(f"{reference_label}.mean_by_input.{name} invalid")
-                    continue
-                means[name] = [float(item) for item in mean]
-                ordered_means.extend(means[name])
-            if len(ordered_means) == DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
-                if reference.get("ordered_mean_sha256") != _canonical_sha256(
-                    ordered_means
+                    failures.append(f"{metric_label}.{field} is dead")
+            for field in ("raw_changed_rows", "changed_rows"):
+                observed = metric.get(field)
+                if (
+                    isinstance(observed, bool)
+                    or not isinstance(observed, int)
+                    or observed < 1
+                    or observed > SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT
                 ):
-                    failures.append(f"{reference_label}.ordered_mean_sha256 mismatch")
-
-    groups = value.get("groups")
-    if not isinstance(groups, dict) or set(groups) != {
-        name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS
-    }:
-        failures.append(f"{label}.groups set mismatch")
-        return failures
-    metric_keys = {
-        "decision",
-        "failures",
-        "target",
-        "ablation_surface",
-        "start",
-        "stop",
-        "width",
-        "reference_inputs",
-        "reference_values_sha256",
-        "max_abs_raw_class_margin_input_gradient",
-        "max_abs_final_class_margin_input_gradient",
-        "max_abs_class_centered_raw_logit_delta",
-        "raw_changed_rows",
-        "max_abs_class_centered_logit_delta",
-        "changed_rows",
-        "total_rows",
-    }
-    for layout in DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT:
-        name = str(layout["name"])
-        metric_label = f"{label}.groups.{name}"
-        metric = groups.get(name)
-        failures.extend(_zero_failure_pass(metric, label=metric_label))
-        if not isinstance(metric, dict):
-            continue
-        if set(metric) != metric_keys:
-            failures.append(f"{metric_label} keys mismatch")
-        for field in ("start", "stop", "width"):
-            if metric.get(field) != layout[field]:
-                failures.append(f"{metric_label}.{field} mismatch")
-        if name == "action_value":
-            expected_target = (
-                "model.evidence_fusion_norm.input["
-                "action_value+action_advantage]"
-            )
-        elif name == "expectile_value":
-            expected_target = (
-                "model.evidence_fusion_norm.input["
-                "expectile_value+action_advantage]"
-            )
-        elif name == "action_advantage":
-            expected_target = (
-                "model.evidence_fusion_norm.input["
-                "action_value+expectile_value+action_advantage]"
-            )
-        else:
-            expected_target = (
-                f"model.evidence_fusion_norm.input["
-                f"{layout['start']}:{layout['stop']}]"
-            )
-        if metric.get("target") != expected_target:
-            failures.append(f"{metric_label}.target mismatch")
-        expected_surface = SERVE_PARITY_FUSION_DERIVED_ABLATION_SURFACES.get(
-            name, "exact_fusion_slice_val_mean_replacement"
-        )
-        if metric.get("ablation_surface") != expected_surface:
-            failures.append(f"{metric_label}.ablation_surface mismatch")
-        expected_reference_inputs = list(
-            SERVE_PARITY_FUSION_DERIVED_REFERENCE_INPUTS.get(name, (name,))
-        )
-        if metric.get("reference_inputs") != expected_reference_inputs:
-            failures.append(f"{metric_label}.reference_inputs mismatch")
-        reference_values = [
-            item
-            for reference_name in expected_reference_inputs
-            for item in means.get(reference_name, ())
-        ]
-        if (
-            len(reference_values)
-            == sum(
-                dict(DIRECTION_EVIDENCE_FUSION_INPUTS)[reference_name]
-                for reference_name in expected_reference_inputs
-            )
-            and metric.get("reference_values_sha256")
-            != _canonical_sha256(reference_values)
-        ):
-            failures.append(f"{metric_label}.reference_values_sha256 mismatch")
-        for field in (
-            "max_abs_raw_class_margin_input_gradient",
-            "max_abs_final_class_margin_input_gradient",
-        ):
-            gradient = metric.get(field)
-            if (
-                not _is_finite_number(gradient)
-                or float(gradient)
-                <= SERVE_PARITY_FUSION_INPUT_GRADIENT_EPSILON
+                    failures.append(f"{metric_label}.{field} invalid")
+            if metric.get("total_rows") != (
+                SERVE_PARITY_INDIVIDUAL_INPUT_SAMPLE_COUNT
             ):
-                failures.append(f"{metric_label}.{field} is dead")
-        raw_delta = metric.get("max_abs_class_centered_raw_logit_delta")
-        if (
-            not _is_finite_number(raw_delta)
-            or float(raw_delta) <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON
-        ):
-            failures.append(f"{metric_label} lacks >epsilon raw influence")
-        raw_changed = metric.get("raw_changed_rows")
-        if (
-            isinstance(raw_changed, bool)
-            or not isinstance(raw_changed, int)
-            or raw_changed < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
-            or raw_changed > SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT
-        ):
-            failures.append(f"{metric_label}.raw_changed_rows violates contract")
-        delta = metric.get("max_abs_class_centered_logit_delta")
-        if (
-            not _is_finite_number(delta)
-            or float(delta) <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON
-        ):
-            failures.append(f"{metric_label} lacks >epsilon final influence")
-        changed = metric.get("changed_rows")
-        if (
-            isinstance(changed, bool)
-            or not isinstance(changed, int)
-            or changed < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
-            or changed > SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT
-        ):
-            failures.append(f"{metric_label}.changed_rows violates contract")
-        if metric.get("total_rows") != SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT:
-            failures.append(f"{metric_label}.total_rows mismatch")
+                failures.append(f"{metric_label}.total_rows mismatch")
     return failures
 
 
@@ -1992,7 +1829,7 @@ def serve_gate_event_contract_failures(
             not isinstance(operating_point, dict)
             or set(operating_point) != {"selection_score", "max_trades"}
             or operating_point.get("selection_score")
-            != "model_direction_argmax"
+            != MODEL_DIRECTION_SELECTION_MODE
             or isinstance(operating_point.get("max_trades"), bool)
             or not isinstance(operating_point.get("max_trades"), int)
             or int(operating_point["max_trades"]) <= 0
@@ -2037,51 +1874,8 @@ def serve_gate_event_contract_failures(
                 for value in per_head.values()
             ):
                 failures.append("serve parity per-head tolerances are not exact")
-        calibration = payload.get("direction_calibration_parity")
-        calibration_label = "serve parity direction_calibration_parity"
-        failures.extend(_zero_failure_pass(calibration, label=calibration_label))
-        if isinstance(calibration, dict):
-            exact_calibration_keys = {
-                "decision",
-                "failures",
-                "n_compared",
-                "equation",
-                "enabled",
-                "temperature",
-                "bias",
-                "tolerance",
-                "max_abs_diff",
-                "worst_ts",
-            }
-            if set(calibration) != exact_calibration_keys:
-                failures.append(f"{calibration_label} keys mismatch")
-            if calibration.get("n_compared") != SERVE_PARITY_SAMPLE_COUNT:
-                failures.append(f"{calibration_label}.n_compared mismatch")
-            if calibration.get("equation") != SERVE_PARITY_CALIBRATION_EQUATION:
-                failures.append(f"{calibration_label}.equation mismatch")
-            if calibration.get("enabled") is not True:
-                failures.append(f"{calibration_label}.enabled is not true")
-            temperature = calibration.get("temperature")
-            if not _is_finite_number(temperature) or float(temperature) <= 0.0:
-                failures.append(f"{calibration_label}.temperature invalid")
-            bias = calibration.get("bias")
-            if (
-                not isinstance(bias, list)
-                or len(bias) != 3
-                or not all(_is_finite_number(item) for item in bias)
-            ):
-                failures.append(f"{calibration_label}.bias invalid")
-            if not _is_exact_number(
-                calibration.get("tolerance"), SERVE_PARITY_CALIBRATION_TOL
-            ):
-                failures.append(f"{calibration_label}.tolerance mismatch")
-            max_diff = calibration.get("max_abs_diff")
-            if (
-                not _is_finite_number(max_diff)
-                or float(max_diff) < 0.0
-                or float(max_diff) > SERVE_PARITY_CALIBRATION_TOL
-            ):
-                failures.append(f"{calibration_label}.max_abs_diff exceeds contract")
+        if "direction_calibration_parity" in payload:
+            failures.append("serve parity contains retired direction calibration")
         expected_rows = None
         if isinstance(coverage, dict):
             dataset_coverage = coverage.get("dataset")
@@ -2123,13 +1917,8 @@ def serve_gate_event_contract_failures(
                 payload.get("family_tf_decision_influence")
             )
         )
-        failures.extend(
-            _direction_evidence_fusion_influence_contract_failures(
-                payload.get("direction_evidence_fusion_influence"),
-                bundle_dir=payload.get("bundle_dir"),
-                prediction_evidence=payload.get("prediction_evidence"),
-            )
-        )
+        if "direction_evidence_fusion_influence" in payload:
+            failures.append("serve parity contains retired evidence fusion")
     elif evidence_name == "model_native_direction_pocket_audit":
         if (
             payload.get("schema_version")

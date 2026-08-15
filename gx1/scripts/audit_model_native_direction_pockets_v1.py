@@ -11,8 +11,8 @@ The July 2026 XAU issue lives in the first pocket. The inverse pocket is kept
 in the same immutable event so a fix does not reintroduce the previous
 long-in-short failure mode.
 
-Direction/action is the persisted final calibrated ``direction_logits`` argmax
-only.  The pocket thresholds are offline launch-evidence gates; they are not
+Direction/action is the persisted raw ``entry_action_q_bps`` unique argmax.
+The pocket thresholds are offline launch-evidence gates; they are not
 live direction thresholds.  Utility, trend, session, path, structure, and rail
 evidence may define audited slices but never select, suppress, or replace
 LONG/SHORT/FLAT.
@@ -32,7 +32,8 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
 )
@@ -69,14 +70,8 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 
 SCHEMA_VERSION = MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION
 EVENT_PREFIX = "MODEL_NATIVE_DIRECTION_POCKET_AUDIT"
-# V30 (2026-08-13): 164 = 142 + H4_range_compression_ratio (package 1) + the
-# 9 adopted swing V29 ctx fields + the 3 momentum-G3 raw-RSI canon scalars
-# (package 2) + the 3 quote/spread-dynamics fields (package 4) + the 6
-# emission-only swing additions of package 8A (two missing run counters, two
-# level-intact flags, two normalized swing ages); independent
-# cross-check literal against the derived contract dim (fails closed below).
-EXPECTED_CTX_CONT_DIM = 164
-EXPECTED_CTX_CAT_DIM = 5
+EXPECTED_CTX_CONT_DIM = MODEL_NATIVE_CTX_CONT_DIM
+EXPECTED_CTX_CAT_DIM = MODEL_NATIVE_CTX_CAT_DIM
 
 SIDE_LONG = 0
 SIDE_SHORT = 1
@@ -84,15 +79,8 @@ SIDE_FLAT = 2
 MODEL_DIRECTION_REQUIRED_COLUMNS = (
     "pred_direction",
     "selection_score_mode",
-    "direction_logits",
-    "public_trade_flat_decision_logits",
-    "p_long",
-    "p_short",
-    "p_flat",
-    "public_trade_probability",
-    "public_flat_probability",
-    "public_trade_flat_margin",
-    "public_trade_flat_hard_decision",
+    "entry_action_q_bps",
+    "entry_action_q_margin_bps",
 )
 
 
@@ -193,20 +181,6 @@ def _named_column(
     if not np.isfinite(values).all():
         raise RuntimeError(f"required feature {name!r} contains non-finite values")
     return values
-
-
-def _max_named_column(
-    matrix: np.ndarray,
-    names: list[str],
-    candidates: list[str],
-) -> np.ndarray:
-    missing = [name for name in candidates if name not in names]
-    if missing:
-        raise RuntimeError(
-            f"required model-native pocket features missing: {missing}"
-        )
-    values = [_named_column(matrix, names, name) for name in candidates]
-    return np.maximum.reduce(values).astype(np.float32)
 
 
 def _rate(mask: np.ndarray) -> float:
@@ -332,168 +306,53 @@ def _assert_selection_score_mode(frame: pd.DataFrame) -> list[str]:
 
 
 def _model_direction_contract_failures(frame: pd.DataFrame) -> list[str]:
-    """Validate final calibrated logits as the sole direction authority."""
+    """Validate unique raw-bps Q argmax as the sole Entry authority."""
 
-    missing = [name for name in MODEL_DIRECTION_REQUIRED_COLUMNS if name not in frame.columns]
+    missing = [
+        name for name in MODEL_DIRECTION_REQUIRED_COLUMNS if name not in frame.columns
+    ]
     if missing:
-        return [f"model_direction_argmax audit missing prediction columns: {missing}"]
+        return [f"fitted-Q audit missing prediction columns: {missing}"]
 
     failures = _assert_selection_score_mode(frame)
     try:
         pred_direction = _side_from_predictions(frame)
-        public_hard = _strict_integer_column(
-            frame,
-            "public_trade_flat_hard_decision",
-            {0, 1},
-        )
-        direction_logits = _strict_vector_column(frame, "direction_logits", 3)
-        public_logits = _strict_vector_column(
-            frame,
-            "public_trade_flat_decision_logits",
-            2,
-        )
+        entry_q = _strict_vector_column(frame, "entry_action_q_bps", 3)
     except RuntimeError as exc:
         failures.append(str(exc))
         return failures
 
-    expected_public_logits = np.column_stack(
-        [
-            np.maximum(direction_logits[:, SIDE_LONG], direction_logits[:, SIDE_SHORT]),
-            direction_logits[:, SIDE_FLAT],
-        ]
-    )
-    if not np.allclose(public_logits, expected_public_logits, rtol=1e-6, atol=1e-6):
-        failures.append(
-            "public_trade_flat_decision_logits do not match the canonical final "
-            "direction-logit pair"
-        )
-
-    expected_direction_probabilities = _softmax_rows(direction_logits)
-    persisted_direction_probabilities = np.column_stack(
-        [
-            pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=np.float64)
-            for name in ("p_long", "p_short", "p_flat")
-        ]
-    )
-    if not np.isfinite(persisted_direction_probabilities).all():
-        failures.append("model direction probabilities contain non-finite values")
-    elif bool(
-        (
-            (persisted_direction_probabilities < 0.0)
-            | (persisted_direction_probabilities > 1.0)
-        ).any()
-    ):
-        failures.append("model direction probabilities fall outside [0,1]")
-    else:
-        sums = persisted_direction_probabilities.sum(axis=1)
-        if not np.allclose(sums, 1.0, rtol=1e-5, atol=1e-5):
-            failures.append("model direction probabilities do not sum to one")
-        if not np.allclose(
-            persisted_direction_probabilities,
-            expected_direction_probabilities,
-            rtol=1e-5,
-            atol=1e-6,
-        ):
-            failures.append(
-                "persisted direction probabilities do not match final calibrated logits"
-            )
-
     winner_counts = np.count_nonzero(
-        direction_logits == np.max(direction_logits, axis=1, keepdims=True),
+        entry_q == np.max(entry_q, axis=1, keepdims=True),
         axis=1,
     )
     tied_rows = int(np.count_nonzero(winner_counts != 1))
     if tied_rows:
         failures.append(
-            "final calibrated direction_logits have no unique top class: "
-            f"rows={tied_rows}"
+            f"entry_action_q_bps has no unique top action: rows={tied_rows}"
         )
-    logit_argmax = np.argmax(direction_logits, axis=1).astype(np.int8)
-    logit_mismatches = int(np.sum(logit_argmax != pred_direction))
-    if logit_mismatches:
-        failures.append(
-            "pred_direction mismatches final calibrated direction_logits argmax: "
-            f"mismatches={logit_mismatches}"
-        )
-    probability_argmax = np.argmax(
-        persisted_direction_probabilities,
-        axis=1,
-    ).astype(np.int8)
-    probability_mismatches = int(np.sum(probability_argmax != pred_direction))
-    if probability_mismatches:
-        failures.append(
-            "pred_direction mismatches final LONG/SHORT/FLAT probability argmax: "
-            f"mismatches={probability_mismatches}"
-        )
-
-    expected_public_probabilities = _softmax_rows(public_logits)
-    public_trade = pd.to_numeric(
-        frame["public_trade_probability"], errors="coerce"
-    ).to_numpy(dtype=np.float64)
-    public_flat = pd.to_numeric(
-        frame["public_flat_probability"], errors="coerce"
-    ).to_numpy(dtype=np.float64)
-    public_margin = pd.to_numeric(
-        frame["public_trade_flat_margin"], errors="coerce"
-    ).to_numpy(dtype=np.float64)
-    public_probabilities = np.column_stack([public_trade, public_flat])
-    if not np.isfinite(public_probabilities).all():
-        failures.append("canonical public trade/FLAT probabilities contain non-finite values")
-    elif bool(((public_probabilities < 0.0) | (public_probabilities > 1.0)).any()):
-        failures.append("canonical public trade/FLAT probabilities fall outside [0,1]")
-    else:
-        sums = public_probabilities.sum(axis=1)
-        if not np.allclose(sums, 1.0, rtol=1e-5, atol=1e-5):
-            failures.append("canonical public trade/FLAT probabilities do not sum to one")
-        if not np.allclose(
-            public_probabilities,
-            expected_public_probabilities,
-            rtol=1e-5,
-            atol=1e-6,
-        ):
-            failures.append(
-                "canonical public trade/FLAT probabilities do not match final direction logits"
-            )
-        probability_hard = np.argmax(public_probabilities, axis=1).astype(np.int8)
-        mismatches = int(np.sum(probability_hard != public_hard))
-        if mismatches:
-            failures.append(
-                "public_trade_flat_hard_decision mismatches canonical public probabilities: "
-                f"mismatches={mismatches}"
-            )
-    if not np.isfinite(public_margin).all():
-        failures.append("canonical public trade/FLAT margin contains non-finite values")
-    else:
-        expected_public_margin = public_logits[:, 0] - public_logits[:, 1]
-        if not np.allclose(
-            public_margin,
-            expected_public_margin,
-            rtol=1e-5,
-            atol=1e-6,
-        ):
-            failures.append(
-                "canonical public trade/FLAT margin does not match final direction logits"
-            )
-        margin_hard = np.where(public_margin >= 0.0, 0, 1).astype(np.int8)
-        mismatches = int(np.sum(margin_hard != public_hard))
-        if mismatches:
-            failures.append(
-                "public_trade_flat_hard_decision mismatches canonical public margin: "
-                f"mismatches={mismatches}"
-            )
-
-    expected_public_hard = np.where(pred_direction == SIDE_FLAT, 1, 0).astype(np.int8)
-    mismatches = int(np.sum(public_hard != expected_public_hard))
+    q_argmax = np.argmax(entry_q, axis=1).astype(np.int8)
+    mismatches = int(np.sum(q_argmax != pred_direction))
     if mismatches:
         failures.append(
-            "public_trade_flat_hard_decision mismatches pred_direction trade/FLAT state: "
+            "pred_direction mismatches raw entry_action_q_bps argmax: "
             f"mismatches={mismatches}"
         )
+    persisted_margin = pd.to_numeric(
+        frame["entry_action_q_margin_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    ordered = np.sort(entry_q, axis=1)
+    expected_margin = ordered[:, -1] - ordered[:, -2]
+    if (
+        not np.isfinite(persisted_margin).all()
+        or not np.allclose(
+            persisted_margin, expected_margin, rtol=0.0, atol=2e-6
+        )
+    ):
+        failures.append("entry_action_q_margin_bps mismatches raw Q")
     return failures
-
-
 def _pnl_proxy_for_side(frame: pd.DataFrame, side: np.ndarray) -> np.ndarray:
-    """Return diagnostic outcome evidence; never choose or suppress a direction."""
+    """Return diagnostic outcome evidence; never choose a direction."""
 
     required = ("y_long_path_utility_bps", "y_short_path_utility_bps")
     missing = [name for name in required if name not in frame.columns]
@@ -533,13 +392,15 @@ def _summarize(frame: pd.DataFrame, mask: np.ndarray, selected: np.ndarray) -> d
     mae = pd.to_numeric(sub_sel["mae_first_n_bps"], errors="coerce")
     mfe = pd.to_numeric(sub_sel["mfe_first_n_bps"], errors="coerce")
     path = pd.to_numeric(sub_sel["path_quality_bps"], errors="coerce")
-    p_long = pd.to_numeric(sub_sel["p_long"], errors="coerce")
-    p_short = pd.to_numeric(sub_sel["p_short"], errors="coerce")
-    p_flat = pd.to_numeric(sub_sel["p_flat"], errors="coerce")
-    edge_diagnostic = np.maximum(
-        p_long.to_numpy(dtype=np.float64),
-        p_short.to_numpy(dtype=np.float64),
-    ) - p_flat.to_numpy(dtype=np.float64)
+    entry_q = (
+        _strict_vector_column(sub_sel, "entry_action_q_bps", 3)
+        if len(sub_sel)
+        else np.empty((0, 3), dtype=np.float64)
+    )
+    edge_diagnostic = (
+        np.maximum(entry_q[:, SIDE_LONG], entry_q[:, SIDE_SHORT])
+        - entry_q[:, SIDE_FLAT]
+    )
     selected_rows = int(len(sub_sel))
     long_count = int(np.sum(side == SIDE_LONG))
     short_count = int(np.sum(side == SIDE_SHORT))
@@ -573,9 +434,9 @@ def _summarize(frame: pd.DataFrame, mask: np.ndarray, selected: np.ndarray) -> d
         "selected_label_short_rate": _rate(label == SIDE_SHORT),
         "selected_label_flat_rate": _rate(label == SIDE_FLAT),
         "selected_mean_edge_score_diagnostic": _safe_mean(edge_diagnostic),
-        "selected_mean_p_long": _safe_mean(p_long),
-        "selected_mean_p_short": _safe_mean(p_short),
-        "selected_mean_p_flat": _safe_mean(p_flat),
+        "selected_mean_q_long_bps": _safe_mean(entry_q[:, SIDE_LONG]),
+        "selected_mean_q_short_bps": _safe_mean(entry_q[:, SIDE_SHORT]),
+        "selected_mean_q_flat_bps": _safe_mean(entry_q[:, SIDE_FLAT]),
         "selected_mean_proxy_pnl_bps": _safe_mean(pnl),
         "selected_mean_mfe_first_n_bps": _safe_mean(mfe),
         "selected_mean_mae_first_n_bps": _safe_mean(mae),
@@ -872,74 +733,60 @@ def main() -> int:
             f"model-native dataset matrix widths mismatch: {bad_matrix_widths}"
         )
 
-    ema_stack = _named_column(snap, signal_names, "trend.ema_stack_alignment_score")
-    long_bias = _named_column(snap, signal_names, "trend.mtf_confluence_long_trend_bias")
-    short_bias = _named_column(snap, signal_names, "trend.mtf_confluence_short_trend_bias")
-    h4d1_bull = _named_column(snap, signal_names, "session_regime.h4_d1_stack_bull_pressure")
-    h4d1_bear = _named_column(snap, signal_names, "session_regime.h4_d1_stack_bear_pressure")
-    trend_direction = _named_column(snap, signal_names, "trend.mtf_confluence_trend_direction_score")
-    support_prox = _max_named_column(
-        snap,
-        signal_names,
-        [
-            "chart.geometry_support_line_proximity_stack",
-            "chart.sr_memory_support_level_proximity_stack",
-            "chart.sr_memory_support_respect_pressure_long",
-            "chart.sr_memory_support_reclaim_pressure_long",
-            "chart.sr_memory_liquidity_low_level_rejection_long",
-        ],
+    # Audit-only market slices are defined by exact signed primitives.  They
+    # do not enter inference and do not reproduce the retired hand-weighted
+    # trend/session/chart scorebooks.
+    local_spread_atr = _named_column(
+        snap, signal_names, "chart.local_ema50_200_spread_atr"
     )
-    resistance_prox = _max_named_column(
-        snap,
-        signal_names,
-        [
-            "chart.geometry_resistance_line_proximity_stack",
-            "chart.sr_memory_resistance_level_proximity_stack",
-            "chart.sr_memory_resistance_respect_pressure_short",
-            "chart.sr_memory_resistance_reclaim_pressure_short",
-            "chart.sr_memory_liquidity_high_level_rejection_short",
-        ],
+    local_price_vs_ema50 = _named_column(
+        snap, signal_names, "chart.local_price_vs_ema50_bps"
     )
-    support_respect = _max_named_column(
-        snap,
-        signal_names,
-        [
-            "chart.sr_memory_support_respect_pressure_long",
-            "chart.sr_memory_liquidity_low_level_rejection_long",
-        ],
+    local_price_vs_ema200 = _named_column(
+        snap, signal_names, "chart.local_price_vs_ema200_bps"
     )
-    resistance_respect = _max_named_column(
-        snap,
-        signal_names,
-        [
-            "chart.sr_memory_resistance_respect_pressure_short",
-            "chart.sr_memory_liquidity_high_level_rejection_short",
-        ],
+    m15_ema_spread = _named_column(
+        ctx_cont, ctx_cont_names, "m15_ema5_20_spread_atr_canon_v2"
     )
+    h1_ema = _named_column(ctx_cont, ctx_cont_names, "_v1h1_ema_diff")
     d1_slope = _named_column(ctx_cont, ctx_cont_names, "d1_ema_slope_20_canon_v2")
     h4_ema = _named_column(ctx_cont, ctx_cont_names, "_v1h4_ema_diff")
-    h4_trend_cat = _named_column(ctx_cat, ctx_cat_names, "H4_trend_sign_cat")
-    invalid_h4_categories = sorted(
-        set(float(value) for value in h4_trend_cat) - {0.0, 1.0, 2.0}
+    h4_mid_ema50_distance = _named_column(
+        ctx_cont, ctx_cont_names, "h4_mid_ema50_dist_atr_canon_v2"
     )
-    if invalid_h4_categories:
-        raise RuntimeError(
-            "H4_trend_sign_cat contains values outside the exact categorical "
-            f"contract: {invalid_h4_categories[:10]}"
-        )
-
+    level_below_dist = _named_column(snap, signal_names, "level_below_dist_atr")
+    level_above_dist = _named_column(snap, signal_names, "level_above_dist_atr")
+    line_below_dist = _named_column(
+        snap, signal_names, "chart.geomline_below_dist_atr"
+    )
+    line_above_dist = _named_column(
+        snap, signal_names, "chart.geomline_above_dist_atr"
+    )
     selected = _selected_from_predictions(frame)
-    intraday_bull = (ema_stack > 0.0) & (long_bias > short_bias) & (trend_direction >= 0.0)
-    intraday_bear = (ema_stack < 0.0) & (short_bias > long_bias) & (trend_direction <= 0.0)
-    h4_trend_cat_sign = np.where(h4_trend_cat == 2, 1.0, np.where(h4_trend_cat == 0, -1.0, 0.0))
-    htf_score = (
-        (h4d1_bull - h4d1_bear)
-        + (0.25 * np.sign(d1_slope))
-        + (0.25 * np.sign(h4_ema))
-        + (0.25 * h4_trend_cat_sign)
+    intraday_bull = (
+        (local_spread_atr > 0.0)
+        & (local_price_vs_ema50 > 0.0)
+        & (local_price_vs_ema200 > 0.0)
     )
-    htf_bull = htf_score >= 0.25
-    htf_bear = htf_score <= -0.25
+    intraday_bear = (
+        (local_spread_atr < 0.0)
+        & (local_price_vs_ema50 < 0.0)
+        & (local_price_vs_ema200 < 0.0)
+    )
+    htf_bull = (
+        (m15_ema_spread > 0.0)
+        & (h1_ema > 0.0)
+        & (h4_ema > 0.0)
+        & (d1_slope > 0.0)
+        & (h4_mid_ema50_distance > 0.0)
+    )
+    htf_bear = (
+        (m15_ema_spread < 0.0)
+        & (h1_ema < 0.0)
+        & (h4_ema < 0.0)
+        & (d1_slope < 0.0)
+        & (h4_mid_ema50_distance < 0.0)
+    )
     def label_mask(name: str) -> np.ndarray:
         values = pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=np.float64)
         if not np.isfinite(values).all():
@@ -999,14 +846,14 @@ def main() -> int:
         "decision": decision,
         "failures": failures,
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-        "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+        "entry_decision_mode": MODEL_DIRECTION_SELECTION_MODE,
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont_dim": EXPECTED_CTX_CONT_DIM,
         "ctx_cat_dim": EXPECTED_CTX_CAT_DIM,
         "model_native_signal_contract": signal_contract,
         "direction_decision_contract": meta["direction_decision_contract"],
         "live_direction_authority": (
-            "argmax(final_model_forward_after_learned_evidence_fusion_and_calibration.direction_logits)"
+            "unique_argmax(entry_action_q_bps)"
         ),
         "audit_gate_scope": "offline_launch_evidence_only",
         "audit_thresholds_are_live_direction_rules": False,
@@ -1028,7 +875,7 @@ def main() -> int:
         "required_selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
         "observed_selection_score_modes": _selection_score_mode_values(frame),
         "required_prediction_columns": list(MODEL_DIRECTION_REQUIRED_COLUMNS),
-        "selection_policy": "argmax(direction_logits) != FLAT",
+        "selection_policy": "unique_argmax(entry_action_q_bps) != FLAT",
         "max_selected_label_error_rate": (
             DIRECTION_POCKET_MAX_SELECTED_LABEL_ERROR_RATE
         ),
@@ -1050,29 +897,22 @@ def main() -> int:
         },
         "features": {
             "intraday": [
-                "trend.ema_stack_alignment_score",
-                "trend.mtf_confluence_long_trend_bias",
-                "trend.mtf_confluence_short_trend_bias",
-                "trend.mtf_confluence_trend_direction_score",
+                "chart.local_ema50_200_spread_atr",
+                "chart.local_price_vs_ema50_bps",
+                "chart.local_price_vs_ema200_bps",
             ],
             "higher_tf": [
-                "session_regime.h4_d1_stack_bull_pressure",
-                "session_regime.h4_d1_stack_bear_pressure",
+                "m15_ema5_20_spread_atr_canon_v2",
+                "_v1h1_ema_diff",
                 "d1_ema_slope_20_canon_v2",
                 "_v1h4_ema_diff",
-                "H4_trend_sign_cat",
+                "h4_mid_ema50_dist_atr_canon_v2",
             ],
-            "geometry_support_resistance": [
-                "chart.geometry_support_line_proximity_stack",
-                "chart.sr_memory_support_level_proximity_stack",
-                "chart.sr_memory_support_respect_pressure_long",
-                "chart.sr_memory_support_reclaim_pressure_long",
-                "chart.sr_memory_liquidity_low_level_rejection_long",
-                "chart.geometry_resistance_line_proximity_stack",
-                "chart.sr_memory_resistance_level_proximity_stack",
-                "chart.sr_memory_resistance_respect_pressure_short",
-                "chart.sr_memory_resistance_reclaim_pressure_short",
-                "chart.sr_memory_liquidity_high_level_rejection_short",
+            "identified_support_resistance_distances": [
+                "level_below_dist_atr",
+                "level_above_dist_atr",
+                "chart.geomline_below_dist_atr",
+                "chart.geomline_above_dist_atr",
             ],
             "future_outcome_pocket_labels": [
                 "y_line_support_touch_held",
@@ -1088,17 +928,20 @@ def main() -> int:
             ],
         },
         "diagnostic_model_input_evidence": {
-            "ema_stack_alignment": _finite_distribution(ema_stack),
-            "mtf_long_trend_bias": _finite_distribution(long_bias),
-            "mtf_short_trend_bias": _finite_distribution(short_bias),
-            "mtf_trend_direction": _finite_distribution(trend_direction),
-            "h4_d1_bull_pressure": _finite_distribution(h4d1_bull),
-            "h4_d1_bear_pressure": _finite_distribution(h4d1_bear),
-            "higher_tf_composite": _finite_distribution(htf_score),
-            "support_proximity_stack": _finite_distribution(support_prox),
-            "resistance_proximity_stack": _finite_distribution(resistance_prox),
-            "support_respect": _finite_distribution(support_respect),
-            "resistance_respect": _finite_distribution(resistance_respect),
+            "local_ema50_200_spread_atr": _finite_distribution(local_spread_atr),
+            "local_price_vs_ema50_bps": _finite_distribution(local_price_vs_ema50),
+            "local_price_vs_ema200_bps": _finite_distribution(local_price_vs_ema200),
+            "m15_ema5_20_spread_atr": _finite_distribution(m15_ema_spread),
+            "h1_ema_diff": _finite_distribution(h1_ema),
+            "h4_ema_diff": _finite_distribution(h4_ema),
+            "h4_mid_ema50_dist_atr": _finite_distribution(
+                h4_mid_ema50_distance
+            ),
+            "d1_ema_slope_20": _finite_distribution(d1_slope),
+            "level_below_dist_atr": _finite_distribution(level_below_dist),
+            "level_above_dist_atr": _finite_distribution(level_above_dist),
+            "geomline_below_dist_atr": _finite_distribution(line_below_dist),
+            "geomline_above_dist_atr": _finite_distribution(line_above_dist),
         },
         "pockets": summaries,
     }

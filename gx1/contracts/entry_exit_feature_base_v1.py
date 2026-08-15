@@ -23,8 +23,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     group_features_by_specialist,
 )
+from gx1.features.volume_features import VOLUME_FEATURE_PREFIX_ROWS
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SEQ_LEN,
@@ -33,19 +37,18 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_CLOSURE_CONTRACT,
 )
 from gx1.utils.artifact_primitives_v1 import (
-    require_immutable_artifact,
     sha256_file,
 )
 
 
 ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION = (
-    "gx1_entry_exit_shared_feature_base_contract_v4"
+    "gx1_entry_exit_shared_feature_base_contract_v10"
 )
 ENTRY_EXIT_FEATURE_OWNER_RESOLUTION_SCHEMA_VERSION = (
-    "gx1_entry_exit_feature_owner_resolution_contract_v3"
+    "gx1_entry_exit_feature_owner_resolution_contract_v9"
 )
 ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION = (
-    "gx1_entry_exit_enriched_causal_frame_v3"
+    "gx1_entry_exit_enriched_causal_frame_v9"
 )
 ENTRY_DECISION_TIMEFRAME = "M5"
 EXIT_DECISION_TIMEFRAME = "M1"
@@ -61,6 +64,12 @@ EXIT_FEATURE_MAX_SEQUENCE_BARS = 512
 ENTRY_FEATURE_SEQUENCE_BARS = MODEL_NATIVE_SEQ_LEN
 EXIT_FEATURE_SEQUENCE_BARS = (
     ENTRY_FEATURE_SEQUENCE_BARS * ENTRY_EXIT_RESOLUTION_RATIO
+)
+ENTRY_FEATURE_SOURCE_HISTORY_BARS = (
+    ENTRY_FEATURE_SEQUENCE_BARS + VOLUME_FEATURE_PREFIX_ROWS
+)
+EXIT_FEATURE_SOURCE_HISTORY_BARS = (
+    EXIT_FEATURE_SEQUENCE_BARS + VOLUME_FEATURE_PREFIX_ROWS
 )
 EXIT_FEATURE_ROW_CLOCK = "consecutive_authoritative_closed_m1_source_rows"
 
@@ -80,9 +89,17 @@ def _canonical_sha256(value: Any) -> str:
 def entry_exit_feature_owner_resolution_contract() -> dict[str, Any]:
     """Bind every specialist owner to independent native M5 and M1 runs."""
 
-    grouped = group_features_by_specialist(
-        MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+    # The owner contract covers the complete code-owned local surface.  Raw
+    # volatility primitives already live in the code-owned base and must not be
+    # duplicated in the mandatory extension merely to make an owner counter
+    # non-zero after the handwritten volatility scorebook was retired.
+    code_owned_fields = (
+        *MODEL_NATIVE_BASE_FIELDS,
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *(f"ctx_cont.{name}" for name in MODEL_NATIVE_CTX_CONT_FIELDS),
+        *(f"ctx_cat.{name}" for name in MODEL_NATIVE_CTX_CAT_FIELDS),
     )
+    grouped = group_features_by_specialist(code_owned_fields)
     invalid_groups = {
         name: fields
         for name, fields in grouped.items()
@@ -96,7 +113,7 @@ def entry_exit_feature_owner_resolution_contract() -> dict[str, Any]:
         invalid_groups
         or any(count <= 0 for count in owner_counts.values())
         or sum(owner_counts.values())
-        != MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        != len(code_owned_fields)
     ):
         raise RuntimeError("ENTRY_EXIT_FEATURE_OWNER_COVERAGE_INVALID")
 
@@ -123,7 +140,9 @@ def entry_exit_feature_owner_resolution_contract() -> dict[str, Any]:
             "mtf_context_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
         },
         "mandatory_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
-        "mandatory_feature_count_by_owner": owner_counts,
+        "base_feature_count": len(MODEL_NATIVE_BASE_FIELDS),
+        "code_owned_feature_count": len(code_owned_fields),
+        "code_owned_feature_count_by_owner": owner_counts,
         "owners": {
             owner: {
                 "M5": {
@@ -194,6 +213,9 @@ def entry_exit_shared_feature_base_contract() -> dict[str, Any]:
         "exit_feature_max_sequence_bars": EXIT_FEATURE_MAX_SEQUENCE_BARS,
         "entry_feature_sequence_bars": ENTRY_FEATURE_SEQUENCE_BARS,
         "exit_feature_sequence_bars": EXIT_FEATURE_SEQUENCE_BARS,
+        "volume_feature_prefix_rows": VOLUME_FEATURE_PREFIX_ROWS,
+        "entry_feature_source_history_bars": ENTRY_FEATURE_SOURCE_HISTORY_BARS,
+        "exit_feature_source_history_bars": EXIT_FEATURE_SOURCE_HISTORY_BARS,
     }
 
 
@@ -265,22 +287,11 @@ def require_entry_exit_enriched_source_binding(
         payload.get("shared_feature_base_contract"),
         context=context,
     )
-    rank_raw = payload.get("rank_reference_npz")
-    rank_hash = payload.get("rank_reference_sha256")
-    if not isinstance(rank_raw, str) or not isinstance(rank_hash, str):
-        raise RuntimeError(f"{context}_SOURCE_RANK_LINEAGE_INVALID")
-    rank_path = require_immutable_artifact(
-        Path(rank_raw),
-        expected_sha256=rank_hash,
-        context=f"{context}_SOURCE_RANK",
-    )
     return {
         "manifest_path": str(sidecar),
         "manifest_sha256": sha256_file(sidecar),
         "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
         "source_sha256": source_hash,
-        "rank_reference_npz": str(rank_path),
-        "rank_reference_sha256": rank_hash,
     }
 
 
@@ -291,7 +302,6 @@ def require_entry_exit_feature_surface_identity(
     expected_ordered_fields: Sequence[str],
     expected_signal_manifest_path: str,
     expected_signal_manifest_sha256: str,
-    expected_rank_reference_sha256: str,
     context: str,
 ) -> dict[str, Any]:
     """Prove one native-resolution surface matches the shared Entry contract."""
@@ -307,7 +317,6 @@ def require_entry_exit_feature_surface_identity(
         "feature_field_order_sha256": _canonical_sha256(fields),
         "seq_structure_manifest": expected_signal_manifest_path,
         "seq_structure_manifest_sha256": expected_signal_manifest_sha256,
-        "rank_reference_sha256": expected_rank_reference_sha256,
         "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
     }
     if not isinstance(value, Mapping):

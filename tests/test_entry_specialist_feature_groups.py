@@ -4,10 +4,15 @@ import json
 from pathlib import Path
 
 import numpy as np
+
+from gx1.contracts.entry_full_input_liveness_v1 import (
+    classify_field_name_semantics,
+)
 import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CONTEXT_TAG,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -42,30 +47,32 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     PRICE_DERIVED_FEATURE_NAMES,
 )
-from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
+from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1
 from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
     _context_taxonomy_failures,
     _specialist_input_liveness_rows,
     run,
 )
 from tests.model_native_context_routing_support import (
-    V24_TEMPORAL_ALIAS_SIGNAL_FIELDS,
+    TEMPORAL_ALIAS_SIGNAL_FIELDS,
 )
 
 
 def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> None:
-    assert classify_entry_specialist_feature("chart.foundation_hh_state") == "structure_swing_encoder"
-    assert classify_entry_specialist_feature("chart.foundation_bos_up_age_bars") == "structure_swing_encoder"
-    assert classify_entry_specialist_feature("chart.foundation_choch_recent_tau24") == "structure_swing_encoder"
-    assert classify_entry_specialist_feature("chart.foundation_sweep_low_reclaim_up_proxy") == "smc_liquidity_encoder"
-    assert classify_entry_specialist_feature("chart.foundation_compression_release_up") == "vol_compression_encoder"
-    assert classify_entry_specialist_feature("chart.foundation_impulse_pullback_alignment") == "structure_swing_encoder"
-    assert classify_entry_specialist_feature("chart.foundation_eu_x_bos_balance") == "session_regime_encoder"
+    assert classify_entry_specialist_feature("chart.foundation_bos_up_event_age_bars") == "structure_swing_encoder"
+    assert classify_entry_specialist_feature("chart.foundation_choch_event_age_bars") == "structure_swing_encoder"
     assert classify_entry_specialist_feature("ema20_slope") == "trend_ema_encoder"
     assert classify_entry_specialist_feature("ret_5") == "momentum_flow_encoder"
+
+
+def test_local_micro_block_has_one_exact_chart_geometry_route() -> None:
+    assert {
+        classify_entry_specialist_feature(f"ctx_cont.{name}")
+        for name in MICRO_FEATURE_NAMES_V1
+    } == {"chart_geometry_encoder"}
     assert (
         classify_entry_specialist_feature("signed_vol_z_20")
-        == "momentum_flow_encoder"
+        == FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
     )
     assert classify_entry_specialist_feature("p_long") == FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
     assert FORBIDDEN_LEGACY_BRIDGE_SPECIALIST not in SPECIALIST_GROUPS
@@ -94,26 +101,18 @@ def test_local_ema_formula_family_has_one_exact_trend_owner() -> None:
 def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
     expected = {
         "ctx_cont.spread_bps": "session_regime_encoder",
-        "ctx_cat.spread_bucket": "session_regime_encoder",
-        "ctx_cat.vol_regime_id": "session_regime_encoder",
-        "ctx_cat.atr_bucket": "vol_compression_encoder",
-        "ctx_cont.is_us_only": "session_regime_encoder",
-        "ctx_cont.is_eu_us_overlap": "session_regime_encoder",
-        "ctx_cont.m5_regime_class_id_v2": "session_regime_encoder",
-        "ctx_cont.m15_regime_class_id_v2": "session_regime_encoder",
-        "ctx_cont.h1_regime_class_id_v2": "session_regime_encoder",
-        "ctx_cont.h4_regime_class_id_v2": "session_regime_encoder",
-        "ctx_cont.d1_regime_class_id_v2": "session_regime_encoder",
-        "ctx_cont.regime_tf_agreement_v3": "session_regime_encoder",
-        "ctx_cont.regime_stack_sum_v3": "session_regime_encoder",
-        "ctx_cont.regime_divergence_flag_v3": "session_regime_encoder",
-        "ctx_cont.d1_regime_changed_flag_v3": "session_regime_encoder",
-        "ctx_cont.bars_since_d1_regime_change_v3": "session_regime_encoder",
-        "ctx_cont.d1_dist_to_boundary_v3": "session_regime_encoder",
+        "ctx_cat.session_id": "session_regime_encoder",
+        "ctx_cont.m5_trend_state_age_bars_v2": "trend_ema_encoder",
+        "ctx_cont.m15_trend_state_age_bars_v2": "trend_ema_encoder",
+        "ctx_cont.h1_trend_state_age_bars_v2": "trend_ema_encoder",
+        "ctx_cont.h4_trend_state_age_bars_v2": "trend_ema_encoder",
+        "ctx_cont.d1_trend_state_age_bars_v2": "trend_ema_encoder",
+        "ctx_cont.m15_ema5_20_spread_atr_canon_v2": "trend_ema_encoder",
+        "ctx_cont.h4_mid_ema50_dist_atr_canon_v2": "trend_ema_encoder",
         "ctx_cont.retracement_from_last_impulse": "structure_swing_encoder",
         "ctx_cont.D1_dist_from_ema200_atr": "trend_ema_encoder",
         "ctx_cont.d1_pct_change_5_canon_v2": "momentum_flow_encoder",
-        "ctx_cont.d1_dist_roc_288_v3": "momentum_flow_encoder",
+        "ctx_cont.d1_dist_change_1bar_atr_v4": "momentum_flow_encoder",
         "ctx_cont.d1_rsi14_canon_v2": "momentum_flow_encoder",
         "ctx_cont.m15_rsi14_canon_v2": "momentum_flow_encoder",
         "ctx_cont.dip_proximity_h1_v3": "momentum_flow_encoder",
@@ -162,26 +161,21 @@ def test_context_routing_partitions_numeric_and_nominal_semantics_exactly() -> N
     assert routing["ctx_cont_nominal_indices"]["session_regime_encoder"] == sorted(
         nominal
     )
-    assert routing["nominal_ctx_cont_cardinality"] == 5
-    assert routing["nominal_ctx_cont_representation"] == (
-        "learned_categorical_embedding"
-    )
+    assert routing["nominal_ctx_cont_cardinality"] == 0
+    assert routing["nominal_ctx_cont_representation"] == "none"
 
 
-def test_temporal_alias_policy_is_artifact_derived_not_fixed_to_v24_count() -> None:
-    v24 = model_native_context_temporal_alias_policy(
-        V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
+def test_temporal_alias_policy_is_artifact_derived_not_fixed_to_fixture_count() -> None:
+    baseline = model_native_context_temporal_alias_policy(
+        TEMPORAL_ALIAS_SIGNAL_FIELDS
     )
-    future_fields = [
-        *V24_TEMPORAL_ALIAS_SIGNAL_FIELDS[:-1],
-        "ctx_cont.h1_regime_class_id_v2",
-    ]
+    future_fields = list(TEMPORAL_ALIAS_SIGNAL_FIELDS[:-1])
     future = model_native_context_temporal_alias_policy(future_fields)
 
-    assert v24["alias_count"] == 82
-    assert future["alias_count"] == 82
-    assert future["signal_fields"] != v24["signal_fields"]
-    assert future["signal_fields_sha256"] != v24["signal_fields_sha256"]
+    assert baseline["alias_count"] == len(TEMPORAL_ALIAS_SIGNAL_FIELDS)
+    assert future["alias_count"] == len(TEMPORAL_ALIAS_SIGNAL_FIELDS) - 1
+    assert future["signal_fields"] != baseline["signal_fields"]
+    assert future["signal_fields_sha256"] != baseline["signal_fields_sha256"]
 
 
 def test_specialist_liveness_uses_exact_sparse_event_support_contract(
@@ -189,12 +183,10 @@ def test_specialist_liveness_uses_exact_sparse_event_support_contract(
 ) -> None:
     fields = [
         "smc_choch",
-        "candle.pattern_outside_after_inside_bull_breakout_score",
-        "candle.pattern_outside_after_inside_bear_breakout_score",
         "chart.local_ema50_200_cross_up",
         "chart.local_ema50_200_cross_down",
     ]
-    event_counts = [32, 16, 16, 128, 128]
+    event_counts = [32, 128, 128]
     split_artifacts: dict[str, dict[str, str]] = {}
     for split in ("train", "val"):
         values = np.zeros((20_000, len(fields)), dtype=np.float32)
@@ -267,42 +259,15 @@ def test_only_model_native_seq513_specialist_contract_is_registered() -> None:
             require_model_native_specialist_contract_mode(stale_mode)
 
 
-def _foundation_selected_features() -> list[str]:
-    return list(
-        dict.fromkeys(
-            feature
-            for features in REQUIRED_FOUNDATION_OBJECTIVE_FEATURES.values()
-            for feature in features
-        )
-    )
-
-
-def _fill_features(prefix: str, count: int) -> list[str]:
-    return [f"{prefix}{i:03d}" for i in range(count)]
-
-
 def _smart_seq513_fields() -> tuple[list[str], list[str]]:
-    selected = list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
-    selected.extend(
-        feature
-        for feature in _foundation_selected_features()
-        if feature not in set(selected)
-    )
-    selected.extend(
-        feature
-        for feature in V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
-        if feature not in set(selected)
-    )
-    selected.extend(
-        _fill_features(
-            "session_regime.smart_contract_ranked_fill_",
-            MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT - len(selected),
-        )
-    )
+    selected = [
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    ]
     assert len(selected) == MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT
 
     base = list(MODEL_NATIVE_BASE_FIELDS)
-    assert len(base) == 34
+    assert len(base) == len(MODEL_NATIVE_BASE_FIELDS)
     fields = base + selected
     assert len(fields) == MODEL_NATIVE_EXPECTED_SIGNAL_DIM
     assert len(set(fields)) == len(fields)
@@ -353,10 +318,32 @@ def _write_smart_seq513_fixture(
                 },
             }
         }
-        snap = [
-            (np.linspace(0.1, 1.0, len(fields), dtype=np.float32) * float(i + 1)).tolist()
-            for i in range(8)
-        ]
+        # The synthetic ramp must honour each field's own name contract: an
+        # all-positive column declares every `_slope`/`_delta`/`_spread`/`_z`
+        # field one-sided, which the liveness semantics gate rejects exactly as
+        # it would on real bytes.
+        _rows = 8
+        _snap = np.stack(
+            [
+                np.linspace(0.1, 1.0, len(fields), dtype=np.float32)
+                * np.float32(i + 1)
+                for i in range(_rows)
+            ]
+        )
+        _row_ramp = np.linspace(0.0, 1.0, _rows, dtype=np.float32)[:, None]
+        for _index, _name in enumerate(fields):
+            _semantics = classify_field_name_semantics(_name)
+            # Each column must straddle zero AND stay distinct: a shared
+            # ramp would make every signed field an exact duplicate, which the
+            # audit rejects for its own (correct) reason.
+            _scale = np.float32(1.0 + _index * 0.001)
+            if _semantics == "signed":
+                _snap[:, _index] = (_row_ramp[:, 0] - np.float32(0.5)) * _scale
+            elif _semantics == "unit_interval":
+                _snap[:, _index] = _row_ramp[:, 0] * np.float32(
+                    1.0 - _index * 1e-5
+                )
+        snap = _snap.tolist()
         pd.DataFrame({"snap": snap}).to_parquet(parquet_path, index=False)
         (dataset_dir / f"sample_{split}.manifest.json").write_text(
             json.dumps(manifest),
@@ -377,7 +364,7 @@ def _write_smart_seq513_fixture(
                 "source_feature_counts": {
                     "smart_candidate_layers": MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
                     "mandatory_full_stack": MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
-                    "ranked_remainder": (
+                    "available_candidates": (
                         MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT
                         - MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT
                     ),
@@ -462,11 +449,12 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     alias_policy = report["architecture_contract"][
         "context_specialist_routing"
     ]["temporal_alias_policy"]
-    assert alias_policy["alias_count"] == 82
+    assert alias_policy["alias_count"] == len(MODEL_NATIVE_CTX_CONT_FIELDS)
     assert alias_policy["signal_fields"] == [
         field
         for field in _smart_seq513_fields()[0]
-        if field in V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
+        if field.startswith("ctx_cont.")
+        and field.removeprefix("ctx_cont.") in MODEL_NATIVE_CTX_CONT_FIELDS
     ]
     # The executable owner (share_temporal_alias_stats_from_signal) copies
     # signal-fitted statistics into ctx_cont; the declaration names that
@@ -482,7 +470,7 @@ def test_specialist_feature_group_audit_fails_closed_on_model_native_family_coun
     tmp_path: Path,
 ) -> None:
     family_counts = _smart_family_counts()
-    family_counts["trend_ema_smart_layer"] -= 1
+    family_counts["raw_mtf_trend_layer"] -= 1
     dataset_dir, seq_manifest = _write_smart_seq513_fixture(
         tmp_path,
         family_counts=family_counts,
@@ -523,8 +511,13 @@ def test_specialist_audit_recomputes_and_rejects_same_group_mandatory_swap(
     dataset_dir, seq_manifest = _write_smart_seq513_fixture(tmp_path)
     payload = json.loads(seq_manifest.read_text(encoding="utf-8"))
     selected = list(payload["selected_features"])
-    victim = "trend.ema_mtf_score"
-    replacement = "trend.ema_adversarial_same_group_replacement"
+    victim = next(
+        feature
+        for family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
+        if family == "raw_mtf_trend_layer"
+        for feature in features
+    )
+    replacement = "ctx_cont.adversarial_ema_diff_same_group_replacement"
     assert classify_entry_specialist_feature(victim) == classify_entry_specialist_feature(
         replacement
     )
@@ -550,8 +543,13 @@ def test_specialist_audit_recomputes_and_rejects_same_group_mandatory_swap(
     trend_row = next(
         row
         for row in report["smart_family_contract_rows"]
-        if row["family"] == "trend_ema_smart_layer"
+        if row["family"] == "raw_mtf_trend_layer"
     )
-    assert trend_row["selected_feature_count"] == 19
-    assert trend_row["emitted_signal_feature_count"] == 20
+    expected_count = len(
+        dict(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)[
+            "raw_mtf_trend_layer"
+        ]
+    )
+    assert trend_row["selected_feature_count"] == expected_count - 1
+    assert trend_row["emitted_signal_feature_count"] == expected_count
     assert trend_row["feature_count_matches"] is False

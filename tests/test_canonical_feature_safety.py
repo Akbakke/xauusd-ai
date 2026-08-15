@@ -1,24 +1,19 @@
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+)
 from gx1.features.basic_v1 import (
-    BASIC_V1_OBSERVED_SPREAD_FEATURES,
     _require_observed_spread_input,
     _validate_causal_feature_column,
 )
 from gx1.features.model_native_market_context_v1 import (
-    derive_model_native_trend_regime_id,
     derive_observed_spread_bps,
 )
 from gx1.features.smc_v1 import compute_smc_features
-from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
-from gx1.execution.v12_ctx_augment_live import (
-    _add_regime_categoricals,
-    _add_spread_atr_bps,
-)
+from gx1.execution.v12_ctx_augment_live import _add_spread_atr_bps
 from gx1.scripts.materialize_build_canonical_features_v1 import add_high_level_basics
 
 
@@ -123,7 +118,9 @@ def test_live_ctx_rejects_missing_atr_source_before_producing_features() -> None
         }
     )
 
-    with pytest.raises(RuntimeError, match="MODEL_NATIVE_RANK_SOURCE_FIELDS_MISSING"):
+    with pytest.raises(
+        RuntimeError, match=r"MODEL_NATIVE_CONTEXT_MISSING\] ATR source fields"
+    ):
         _add_spread_atr_bps(df)
 
 
@@ -145,58 +142,33 @@ def test_live_ctx_rank_formula_does_not_overwrite_canonical_atr() -> None:
     assert np.isfinite(frame[["atr_bps", "spread_bps"]]).all().all()
 
 
-def test_regime_categories_omit_train_fit_buckets_without_reference() -> None:
+def test_live_ctx_emits_no_regime_or_bucket_categorical() -> None:
+    # The derived regime categoricals (trend_regime_id, atr_bucket,
+    # spread_bucket) and the TRAIN rank reference that fitted the buckets are
+    # retired: the live context augmenter emits raw continuous ATR/spread
+    # evidence only, and the categorical contract is session_id alone.
     frame = pd.DataFrame(
         {
-            "D1_dist_from_ema200_atr": [-2.0, 0.0, 2.0],
-            "atr_bps": [1.0, 2.0, 3.0],
-            "spread_bps": [0.1, 0.2, 0.3],
-            "atr_bucket": [4, 4, 4],
-            "spread_bucket": [4, 4, 4],
+            "high": [101.0, 102.0, 103.0],
+            "low": [99.0, 100.0, 101.0],
+            "close": [100.0, 101.0, 102.0],
+            "bid_close": [99.9, 100.9, 101.9],
+            "ask_close": [100.1, 101.1, 102.1],
         }
     )
 
-    _add_regime_categoricals(frame)
+    _add_spread_atr_bps(frame)
 
-    assert "atr_bucket" not in frame
-    assert "spread_bucket" not in frame
-    assert frame["trend_regime_id"].tolist() == [0, 1, 2]
-
-
-def test_shared_trend_regime_formula_is_strict_at_exact_boundaries() -> None:
-    values = np.asarray([-2.0, -1.0, 1.0, 2.0], dtype=np.float64)
-    assert derive_model_native_trend_regime_id(values).tolist() == [0, 1, 1, 2]
-
-    with pytest.raises(RuntimeError, match="MODEL_NATIVE_CONTEXT_NONFINITE"):
-        derive_model_native_trend_regime_id(np.asarray([np.nan]))
-    with pytest.raises(RuntimeError, match="MODEL_NATIVE_TREND_REGIME_SHAPE"):
-        derive_model_native_trend_regime_id(values[:, None])
-
-
-def test_regime_categories_use_one_explicit_train_reference() -> None:
-    reference = TrainRankReferenceV2(
-        path=Path("unused.npz"),
-        sha256="0" * 64,
-        sidecar_sha256="1" * 64,
-        sidecar={},
-        fit_start_utc=pd.Timestamp("2026-01-01T00:00:00Z"),
-        fit_end_utc=pd.Timestamp("2026-01-02T00:00:00Z"),
-        fit_row_count=5,
-        atr_bps_sorted=np.asarray([1, 2, 3, 4, 5], dtype=np.float64),
-        spread_bps_sorted=np.asarray([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float64),
-    )
-    frame = pd.DataFrame(
-        {
-            "D1_dist_from_ema200_atr": [-2.0, 0.0, 2.0],
-            "atr_bps": [1.0, 3.0, 5.0],
-            "spread_bps": [0.1, 0.3, 0.5],
-        }
-    )
-
-    _add_regime_categoricals(frame, rank_reference=reference)
-
-    assert frame["atr_bucket"].tolist() == [1, 3, 4]
-    assert frame["spread_bucket"].tolist() == [1, 3, 4]
+    for retired in (
+        "trend_regime_id",
+        "atr_bucket",
+        "spread_bucket",
+        "vol_regime_id",
+        "H4_trend_sign_cat",
+    ):
+        assert retired not in frame.columns
+        assert retired not in MODEL_NATIVE_CTX_CAT_FIELDS
+    assert np.isfinite(frame[["atr_bps", "spread_bps"]]).all().all()
 
 
 def test_basic_v1_spread_owner_does_not_require_slippage() -> None:
@@ -214,10 +186,7 @@ def test_basic_v1_spread_owner_does_not_require_slippage() -> None:
 
     _require_observed_spread_input(df)
 
-    assert BASIC_V1_OBSERVED_SPREAD_FEATURES == (
-        "_v1_spread_p",
-        "_v1_spread_z",
-    )
+    assert "spread_pct" in df.columns
     assert "_v1_slip_bps" not in df.columns
     assert "_v1_cost_bps_est" not in df.columns
 
@@ -289,6 +258,23 @@ def test_smc_rejects_missing_atr_instead_of_using_one() -> None:
         compute_smc_features(frame)
 
 
+def test_smc_preserves_only_a_causal_atr_warmup_prefix() -> None:
+    frame = pd.DataFrame(
+        {
+            "high": [101.0, 102.0, 103.0, 104.0],
+            "low": [99.0, 100.0, 101.0, 102.0],
+            "close": [100.0, 101.0, 102.0, 103.0],
+            "atr": [np.nan, np.nan, 1.0, 1.0],
+        }
+    )
+
+    observed = compute_smc_features(frame, include_v30_additions=True)
+
+    assert observed["smc_sweep_up_depth_atr"].iloc[:2].isna().all()
+    assert np.isfinite(observed["smc_sweep_up_depth_atr"].iloc[2:]).all()
+    assert np.isfinite(observed["smc_bos_up"]).all()
+
+
 def _smc_frame(bars: list[tuple[float, float, float]]) -> pd.DataFrame:
     """Build an OHLC+ATR frame from (high, low, close) rows; ATR=1.0 is an
     explicit test input (it only scales sweep size, unasserted here)."""
@@ -324,11 +310,10 @@ def test_smc_swing_state_partition_reaches_expansion_and_contraction() -> None:
     assert out["smc_swing_state"].tolist() == [4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 3, 2]
 
 
-def test_smc_choch_fires_on_flip_through_mixed_state() -> None:
-    # Structure goes clean-up (state 0) → mixed (state 2, sign 0) → clean-down
-    # (state 3): the retired adjacent-row comparison saw 0→2→3 and never
-    # fired; the non-zero-sign comparison fires exactly once, on the state-3
-    # bar.
+def test_smc_choch_requires_opposing_bos_not_pivot_pattern_flip() -> None:
+    # Structure goes clean-up → mixed → clean-down, but that descriptive
+    # pivot-pattern transition is not CHOCH. The next bar closes through the
+    # opposing confirmed swing low; only that actual BOS changes character.
     frame = _smc_frame(
         [
             (105.0, 104.0, 104.5),
@@ -343,21 +328,24 @@ def test_smc_choch_fires_on_flip_through_mixed_state() -> None:
             (112.0, 106.0, 109.0),    # SH pivot 112 (LH) → state 2 (mixed)
             (108.0, 103.0, 105.0),    # SL pivot 103 (LL) → state 3
             (107.0, 103.5, 105.0),
+            (104.0, 98.0, 99.0),      # opposing swing-low BOS → CHOCH down
         ]
     )
     out = compute_smc_features(frame, swing_lookback=1)
     state = out["smc_swing_state"].tolist()
     assert state[8] == 0 and state[10] == 2 and state[11] == 3
     choch = out["smc_choch"].to_numpy()
-    assert choch[11] == 1.0
+    assert choch[11] == 0.0
+    assert out.loc[12, "smc_bos_down"] == 1.0
+    assert choch[12] == 1.0
     assert float(choch.sum()) == 1.0
 
 
-def test_smc_premium_discount_valid_in_trend_geometry() -> None:
+def test_smc_pivot_envelope_position_has_nan_warmup_and_raw_domain() -> None:
     # Strong uptrend: at b9 the confirmed swings are last_sh=110 (b4 pivot)
     # and last_sl=110.5 (b8 pivot) — last swing LOW above last swing HIGH.
     # The retired last_sh>last_sl validity fabricated 0.5 here; the 4-pivot
-    # envelope [min(110.5, 99), max(110, 105)] = [99, 110] stays valid.
+    # envelope [min(110.5, 99), max(110, 105)] = [99, 110.5] stays valid.
     frame = _smc_frame(
         [
             (101.0, 99.0, 100.0),
@@ -374,14 +362,13 @@ def test_smc_premium_discount_valid_in_trend_geometry() -> None:
         ]
     )
     out = compute_smc_features(frame, swing_lookback=1)
-    pd_score = out["smc_premium_discount"].to_numpy()
-    # Warmup prefix (prev_sl unconfirmed until b9) keeps the 0.5 midpoint.
-    assert (pd_score[:9] == 0.5).all()
-    # b9: close 115 above the [99, 110] envelope → clipped premium 1.0,
-    # not a fabricated 0.5.
-    assert pd_score[9] == 1.0
+    position = out["smc_pivot_envelope_position"].to_numpy()
+    # Warmup is genuinely unavailable until both pivot pairs are confirmed.
+    assert np.isnan(position[:9]).all()
+    # b9: close 115 is above [99, 110.5], so the raw value remains >1.
+    assert position[9] == pytest.approx((115.0 - 99.0) / 11.5, rel=1e-6)
     # b10: envelope [99, 116] (SH 116 confirmed) → interior value.
-    assert pd_score[10] == pytest.approx((106.0 - 99.0) / 17.0, rel=1e-6)
+    assert position[10] == pytest.approx((106.0 - 99.0) / 17.0, rel=1e-6)
 
 
 def test_smc_bos_fires_exactly_once_per_crossing() -> None:
@@ -403,3 +390,33 @@ def test_smc_bos_fires_exactly_once_per_crossing() -> None:
     assert out["smc_bos_up"].tolist() == [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
     # No swing low ever confirms in this monotone series.
     assert float(out["smc_bos_down"].to_numpy().sum()) == 0.0
+
+
+def test_smc_sweep_event_refires_for_a_new_level_identity(monkeypatch) -> None:
+    import gx1.features.smc_v1 as smc
+
+    frame = _smc_frame(
+        [
+            (101.0, 99.0, 100.0),
+            (105.0, 100.0, 104.0),   # first high level
+            (104.0, 99.0, 103.0),
+            (110.0, 100.0, 104.0),   # sweep first level; next high level
+            (111.0, 101.0, 109.0),   # sweep newly confirmed level
+            (109.0, 100.0, 108.0),
+        ]
+    )
+
+    def fixed_pivots(_high, _low, _lookback):
+        high_mask = np.zeros(len(frame), dtype=bool)
+        low_mask = np.zeros(len(frame), dtype=bool)
+        high_mask[[1, 3]] = True
+        return high_mask, low_mask
+
+    monkeypatch.setattr(smc, "_detect_swing_pivots", fixed_pivots)
+    out = smc.compute_smc_features(
+        frame,
+        swing_lookback=1,
+        include_v30_additions=True,
+    )
+    assert out.loc[3:4, "smc_sweep_up"].tolist() == [1.0, 1.0]
+    assert out.loc[3:4, "smc_sweep_up_event"].tolist() == [1.0, 1.0]

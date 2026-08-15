@@ -14,14 +14,11 @@ from typing import Any
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
-    direction_evidence_fusion_metadata,
-)
-from gx1.contracts.entry_model_native_offline_rl_v1 import (
-    offline_rl_contract_metadata,
+from gx1.contracts.entry_fitted_q_v1 import (
+    entry_fitted_q_contract,
+    entry_fitted_q_production_economics_readiness,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
@@ -31,22 +28,49 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-MODEL_NATIVE_READINESS_SCHEMA_VERSION = "entry_model_native_readiness_v2"
+MODEL_NATIVE_READINESS_SCHEMA_VERSION = "entry_model_native_readiness_v5"
 MODEL_NATIVE_REQUIRED_SPECIALISTS = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
-MODEL_NATIVE_BASE_ACTIVE_HEADS = tuple(SPECIALIST_FUSION_ACTIVE_HEADS)
+MODEL_NATIVE_BASE_ACTIVE_HEADS = (
+    "entry_action_q",
+    "position_size",
+    "dip",
+    "forecast",
+    "timing",
+    "tail_risk",
+    "vol_forecast",
+)
 MODEL_NATIVE_EXTRA_ACTIVE_HEADS = (
-    "trade_side_hierarchy",
-    "trendline_rail",
-    "side_validity",
-    "offline_rl_action_value",
-    "offline_rl_expectile_value",
-    "model_native_evidence_fusion",
+    "side_mae",
+    "trendline_event",
 )
 MODEL_NATIVE_ACTIVE_HEADS = (
     *MODEL_NATIVE_BASE_ACTIVE_HEADS,
     *MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
 )
-MODEL_NATIVE_BLOCKED_HEADS = tuple(SPECIALIST_FUSION_BLOCKED_HEADS)
+# A head is blocked because it is RETIRED, never because it appears in the
+# pre-V30 fusion list: `SPECIALIST_FUSION_ACTIVE_HEADS` predates the V30
+# surface and still names heads this contract declares active. Subtracting the
+# current active tuple keeps the two sets disjoint by construction, so serve
+# parity can never both require and forbid the same column.
+_MODEL_NATIVE_CANDIDATE_BLOCKED_HEADS = (
+    *SPECIALIST_FUSION_BLOCKED_HEADS,
+    *SPECIALIST_FUSION_ACTIVE_HEADS,
+    "trade_side_hierarchy",
+    "side_validity",
+    "path_quality",
+    "mfe_first_n",
+    "bad_path",
+    "clean_edge",
+    "survival",
+    "path_quality_log_var",
+)
+MODEL_NATIVE_BLOCKED_HEADS = tuple(
+    dict.fromkeys(
+        name
+        for name in _MODEL_NATIVE_CANDIDATE_BLOCKED_HEADS
+        if name not in set(MODEL_NATIVE_ACTIVE_HEADS)
+    )
+)
 
 
 def _canonical_json(value: Any) -> str:
@@ -70,7 +94,7 @@ def model_native_readiness_contract_metadata() -> dict[str, Any]:
     return {
         "schema_version": MODEL_NATIVE_READINESS_SCHEMA_VERSION,
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-        "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+        "direction_logit_mode": "retired_entry_fitted_q_raw_bps",
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "required_specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
         "base_active_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
@@ -80,10 +104,12 @@ def model_native_readiness_contract_metadata() -> dict[str, Any]:
         "specialist_model_contract_sha256": (
             MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT_SHA256
         ),
-        "model_native_direction_evidence_fusion": (
-            direction_evidence_fusion_metadata()
+        "entry_fitted_q": entry_fitted_q_contract(),
+        "entry_fitted_q_production_economics": (
+            entry_fitted_q_production_economics_readiness()
         ),
-        "model_native_offline_rl": offline_rl_contract_metadata(),
+        "candidate_ready_allowed": False,
+        "bundle_serving_admission_allowed": False,
         "secondary_direction_authority_allowed": False,
         "mutable_latest_evidence_allowed": False,
     }

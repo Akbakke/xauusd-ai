@@ -10,12 +10,32 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTEXT_TAG,
+    MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.scripts import verify_entry_model_native_seq513_trainability_readiness_v1 as gate
-from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
+from gx1.contracts.entry_full_input_liveness_v1 import EXPECTED_FIELD_COUNTS
+from tests.entry_full_input_liveness_support import (
+    full_input_field_order,
+    write_full_input_liveness_fixture,
+)
+
+
+def _liveness_field_order() -> dict[str, list[str]]:
+    """Trim the shared liveness fixture to the owner's exact ctx_cat width.
+
+    ``tests/entry_full_input_liveness_support.full_input_field_order`` still
+    emits five synthetic ``ctx_cat`` names from the retired five-categorical
+    surface; the contract owner declares exactly
+    ``EXPECTED_FIELD_COUNTS['ctx_cat']``. Trimming here keeps the fixture at
+    the owner's width without restating it.
+    """
+
+    order = full_input_field_order()
+    order["ctx_cat"] = order["ctx_cat"][: EXPECTED_FIELD_COUNTS["ctx_cat"]]
+    return order
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -75,17 +95,16 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
         ],
         "recipe_audit_schema": gate.RECIPE_AUDIT_SCHEMA,
         "recipe_env_keys": list(gate.MODEL_NATIVE_RECIPE_ENV_KEYS),
-        "required_positive_loss_weights": list(
-            gate.REQUIRED_POSITIVE_LOSS_WEIGHTS
-        ),
+        "joint_task_names": list(gate.JOINT_TASK_NAMES),
         "training_objective_schema": gate.TRAINING_OBJECTIVE_SCHEMA,
         "requires_exact_model_native_training_objective": True,
-        "requires_path_calibration_recipe_contract": True,
-        "path_calibration_recipe_contract": dict(gate.PATH_CALIBRATION_RECIPE_CONTRACT),
-        "requires_direction_balance_recipe_contract": True,
-        "direction_balance_recipe_contract": dict(gate.DIRECTION_BALANCE_RECIPE_CONTRACT),
-        "requires_tail_direction_recipe_contract": True,
-        "tail_direction_recipe_contract": dict(gate.TAIL_DIRECTION_RECIPE_CONTRACT),
+        "requires_direction_diagnostic_recipe_contract": True,
+        "direction_diagnostic_recipe_contract": dict(
+            gate.DIRECTION_DIAGNOSTIC_RECIPE_CONTRACT
+        ),
+        "direction_diagnostic_env_template": dict(
+            gate.DIRECTION_DIAGNOSTIC_ENV_TEMPLATE
+        ),
         "requires_direction_context_slice_contract": True,
         "direction_context_slice_contract": dict(gate.DIRECTION_CONTEXT_SLICE_CONTRACT),
         "requires_canonical_direction_decision_contract": True,
@@ -132,6 +151,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
     full_input_liveness_path, full_input_liveness, _ = write_full_input_liveness_fixture(
         tmp_path / "full_input_liveness",
         dataset_dir=Path(source_dataset),
+        field_order=_liveness_field_order(),
     )
     stamped_liveness_path = (
         tmp_path / "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260716T120002123456Z.json"
@@ -172,7 +192,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
                     "ctx_contract": {
                         "tag": ctx_tag,
                         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-                        "ctx_cat_dim": 5,
+                        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
                     }
                 }
                 for split in ("train", "val", "test")
@@ -232,11 +252,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
         smart_script_text = "challenger_seq215 215\n"
     trainer_text = (
         "--specialist-contract-mode\n"
-        + "\n".join(gate.PATH_CALIBRATION_ENV_KEYS)
-        + "\n"
-        + "\n".join(gate.DIRECTION_BALANCE_ENV_KEYS)
-        + "\n"
-        + "\n".join(gate.TAIL_DIRECTION_ENV_KEYS)
+        + "\n".join(gate.DIRECTION_DIAGNOSTIC_ENV_KEYS)
         + "\n"
     )
     return argparse.Namespace(

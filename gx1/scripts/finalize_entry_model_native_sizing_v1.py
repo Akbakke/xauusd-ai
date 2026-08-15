@@ -90,11 +90,6 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     require_bundle_commit_manifest,
     write_bundle_commit_manifest,
 )
-from gx1.contracts.entry_model_native_calibration_v1 import (
-    CALIBRATION_EVENT_PREFIX as ENTRY_CALIBRATION_EVENT_PREFIX,
-    IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION,
-    require_model_native_calibration_metadata,
-)
 
 
 CALIBRATION_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_CALIBRATION"
@@ -661,49 +656,16 @@ def bind_bundle_sizing_calibration(
             raise SizingFinalizationError(f"source bundle file missing: {path}")
     source_metadata_payload = _read_json(source_metadata, label="source bundle metadata")
     source_lock_payload = _read_json(source_lock, label="source transformer lock")
-    for head in ("direction", "path"):
-        key = f"{head}_calibration"
-        try:
-            require_model_native_calibration_metadata(
-                source_metadata_payload.get(key),
-                head=head,
-                context=f"SIZING_SOURCE_{head.upper()}_CALIBRATION",
-            )
-        except RuntimeError as exc:
-            raise SizingFinalizationError(str(exc)) from exc
-    calibration_events = [
-        name
-        for name in inherited_artifacts
-        if name.startswith(ENTRY_CALIBRATION_EVENT_PREFIX) and name.endswith(".json")
-    ]
-    if source_commit["bundle_kind"] != "calibrated" or len(calibration_events) < 2:
+    if source_commit["bundle_kind"] != "trained":
         raise SizingFinalizationError(
-            "source must be the canonical direction+path calibrated bundle "
-            "with both committed calibration events"
+            "source must be the canonical trained raw Entry-Q bundle"
         )
-    calibrated_heads: set[str] = set()
-    for event_name in calibration_events:
-        event = _read_json(
-            source_bundle_dir / event_name,
-            label=f"source calibration event {event_name}",
-        )
-        head = event.get("head")
-        if (
-            event.get("schema_version")
-            != IMMUTABLE_CALIBRATION_EVENT_SCHEMA_VERSION
-            or event.get("decision") != "PASS"
-            or head not in {"direction", "path"}
-            or head in calibrated_heads
-            or event.get("calibration")
-            != source_metadata_payload.get(f"{head}_calibration")
-        ):
-            raise SizingFinalizationError(
-                f"source calibration event is not canonical: {event_name}"
-            )
-        calibrated_heads.add(str(head))
-    if calibrated_heads != {"direction", "path"}:
+    if any(
+        key in source_metadata_payload or key in source_lock_payload
+        for key in ("direction_calibration", "path_calibration")
+    ):
         raise SizingFinalizationError(
-            "source calibration events do not prove both direction and path"
+            "trained Entry-Q source contains retired calibration metadata"
         )
     if str(source_metadata_payload.get("state_dict_sha256") or "").lower() != checkpoint_sha:
         raise SizingFinalizationError("source metadata state_dict_sha256 mismatch")
@@ -1149,8 +1111,6 @@ def produce_canonical_unified_joint_sizing_proof(
     prebuilt_pair_manifest_path: Path,
     prebuilt_generation_root: Path,
     multi_tf_cache_dir: Path,
-    train_rank_reference_npz: Path,
-    train_rank_reference_sha256: str,
     authority_root: Path,
     device: str = "cpu",
 ) -> tuple[Path, dict[str, Any]]:
@@ -1158,17 +1118,13 @@ def produce_canonical_unified_joint_sizing_proof(
 
     Direction is replayed from the persisted model head envelope. Every
     non-FLAT row then advances the offline path state one complete M1 bar at
-    a time and calls the same bundle's ``forward_exit_action`` path until the
-    model itself emits EXIT_NOW. Missing bars, 512-bar non-exits, byte drift,
+    a time and advances the same bundle's persisted recurrent Exit owner until the
+    model itself emits EXIT_NOW. Missing source tail, byte drift,
     direction mismatch, or a noncanonical lineage artifact fail closed.
     """
 
     from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
         decode_model_native_runtime_head_evidence,
-    )
-    from gx1.contracts.entry_model_native_state_v2 import (
-        load_train_rank_reference_v2,
-        train_rank_reference_identity_v2,
     )
     from gx1.replay.source_tape_v1 import SourceTape
     from gx1.execution.v12_m1_feature_surface_provider import (
@@ -1197,6 +1153,16 @@ def produce_canonical_unified_joint_sizing_proof(
     from gx1.contracts.entry_exit_feature_base_v1 import (
         EXIT_DECISION_BAR_SECONDS,
         EXIT_MTF_CONTEXT_TIMEFRAMES,
+    )
+    from gx1.contracts.unified_exit_input_v1 import (
+        build_unified_exit_input_envelope,
+    )
+    from gx1.contracts.entry_decision_token_v1 import (
+        entry_decision_token_tensor,
+    )
+    from gx1.contracts.unified_exit_incremental_carry_v1 import (
+        UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+        build_unified_exit_incremental_carry_envelope,
     )
     import torch
 
@@ -1335,27 +1301,6 @@ def produce_canonical_unified_joint_sizing_proof(
             "refresh_enabled": False,
         },
     }
-    rank_reference = load_train_rank_reference_v2(
-        train_rank_reference_npz,
-        expected_sha256=train_rank_reference_sha256,
-    )
-    train_rank_reference = train_rank_reference_identity_v2(rank_reference)
-    state_contract = bundle.metadata["model_native_state_contract"]
-    if (
-        str(Path(state_contract["rank_reference_npz"]).resolve())
-        != train_rank_reference["path"]
-        or state_contract["rank_reference_npz_sha256"]
-        != train_rank_reference["sha256"]
-        or state_contract["rank_reference_sidecar_sha256"]
-        != train_rank_reference["sidecar_sha256"]
-        or pd.Timestamp(state_contract["rank_fit_start_utc"])
-        != pd.Timestamp(train_rank_reference["fit_start_utc"])
-        or pd.Timestamp(state_contract["rank_fit_end_utc"])
-        != pd.Timestamp(train_rank_reference["fit_end_utc"])
-    ):
-        raise SizingFinalizationError(
-            "train-rank reference differs from candidate bundle state contract"
-        )
     lifecycle = bundle.metadata["unified_exit_training_evidence"]["lifecycle"]
     lifecycle_m1 = lifecycle["m1_authority"]
     if (
@@ -1505,6 +1450,14 @@ def produce_canonical_unified_joint_sizing_proof(
             v10_snapshot=head,
             replay_id=str(oos_row["reference_row_id"]),
             normalization_contract="unit_normalized_direction_exit_research_v1",
+            model_identity_kind="bundle_sha256",
+            model_identity_sha256=bundle_authority[
+                "bundle_commit_sha256"
+            ],
+            input_normalization_sha256=bundle.metadata[
+                "input_normalization"
+            ]["contract_sha256"],
+            contract_mode=bundle.metadata["contract_mode"],
         )
         first_bar_time = first_full_closed_m1_bar_ts(entry_fill_time)
         first_bar_position = int(tape.index.searchsorted(first_bar_time, side="left"))
@@ -1516,12 +1469,13 @@ def produce_canonical_unified_joint_sizing_proof(
                 f"source tape lacks first closed Entry M1 row {row_index}"
             )
         row_trace: list[dict[str, Any]] = []
-        for step in range(1, UNIFIED_EXIT_MAX_PATH_BARS + 1):
-            tape_position = first_bar_position + step - 1
-            if tape_position >= len(tape.index):
-                raise SizingFinalizationError(
-                    f"source tape lacks Exit M1 tail for row {row_index}"
-                )
+        incremental_carry = None
+        previous_carry_sha256 = UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+        prior_mtf_hashes: dict[str, str] = {}
+        for step, tape_position in enumerate(
+            range(first_bar_position, len(tape.index)),
+            start=1,
+        ):
             closed_bar_time = pd.Timestamp(tape.index[tape_position])
             closed_bar = tape.get_closed_m1_bar(closed_bar_time)
             staged = state.clone_for_exit_decision()
@@ -1540,90 +1494,161 @@ def produce_canonical_unified_joint_sizing_proof(
                     seconds=EXIT_DECISION_BAR_SECONDS
                 ),
             )
-            entry_representation = np.asarray(
-                head["entry_shared_representation"],
-                dtype=np.float32,
+            exit_input_envelope = build_unified_exit_input_envelope(
+                decision_time=closed_bar_time,
+                decision_identity=state.replay_id,
+                side=state.side,
+                entry_bid=state.entry_bid,
+                entry_ask=state.entry_ask,
+                bundle_sha256=bundle_authority["bundle_commit_sha256"],
+                entry_snapshot=head,
+                entry_decision_token_snapshot=(
+                    state.entry_decision_token_snapshot
+                ),
+                exit_path_envelope=envelope,
+                m1_feature_window=exit_feature_surface,
+                mtf_windows=exit_mtf_windows,
+                mtf_cache_binding={
+                    "cache_identity_sha256": mtf_cache.cache_identity_sha256,
+                    "manifest_sha256": mtf_cache.manifest_sha256,
+                },
+                per_tf_seq_lens=per_tf_seq_lens,
+            )
+            entry_representation = entry_decision_token_tensor(
+                exit_input_envelope["entry_decision_token_snapshot"]
             )
             path_values = unified_exit_path_tensor(
                 path_rows=envelope["path_rows"],
+                bars_in_trade=int(envelope["bars_in_trade"]),
                 entry_bid=state.entry_bid,
                 entry_ask=state.entry_ask,
             )
             side_index = 0 if state.side == "long" else 1
+            current_mtf_hashes: dict[str, str] = {}
+            incremental_mtf: dict[str, torch.Tensor] = {}
+            for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES:
+                tf_name = timeframe.lower()
+                window = np.ascontiguousarray(
+                    np.asarray(
+                        exit_mtf_windows[timeframe], dtype=np.dtype("<f4")
+                    )
+                )
+                row_sha256 = hashlib.sha256(
+                    np.ascontiguousarray(window[-1]).tobytes(order="C")
+                ).hexdigest()
+                current_mtf_hashes[tf_name] = row_sha256
+                new_rows = (
+                    window
+                    if incremental_carry is None
+                    else (
+                        window[:0]
+                        if prior_mtf_hashes.get(tf_name) == row_sha256
+                        else window[-1:]
+                    )
+                )
+                incremental_mtf[tf_name] = torch.from_numpy(
+                    np.ascontiguousarray(new_rows, dtype=np.float32)
+                ).unsqueeze(0).to(replay_device)
+            local_rows = (
+                np.asarray(exit_feature_surface["signal"], dtype=np.float32)
+                if incremental_carry is None
+                else np.asarray(
+                    exit_feature_surface["signal"][-1:], dtype=np.float32
+                )
+            )
             with torch.no_grad():
-                model_output = model.forward_exit_action(
-                    entry_shared_representation=torch.from_numpy(
+                model_output, incremental_carry = (
+                    model.forward_exit_incremental_step(
+                    entry_decision_representation=torch.from_numpy(
                         entry_representation
                     ).view(1, -1).to(replay_device),
-                    exit_feature_seq_x=torch.from_numpy(
-                        exit_feature_surface["signal"]
-                    ).unsqueeze(0).to(replay_device),
-                    exit_feature_snap_x=torch.from_numpy(
-                        exit_feature_surface["snap"]
-                    ).unsqueeze(0).to(replay_device),
-                    exit_feature_ctx_cat=torch.from_numpy(
+                    exit_local_rows_x=torch.from_numpy(local_rows)
+                    .unsqueeze(0).to(replay_device),
+                    exit_state_ctx_cat=torch.from_numpy(
                         exit_feature_surface["ctx_cat"]
                     ).unsqueeze(0).to(replay_device),
-                    exit_feature_ctx_cont=torch.from_numpy(
+                    exit_state_ctx_cont=torch.from_numpy(
                         exit_feature_surface["ctx_cont"]
                     ).unsqueeze(0).to(replay_device),
-                    **{
-                        f"exit_seq_{tf.lower()}": torch.from_numpy(values)
-                        .unsqueeze(0)
-                        .to(replay_device)
-                        for tf, values in exit_mtf_windows.items()
-                    },
-                    exit_path_x=torch.from_numpy(path_values)
-                    .unsqueeze(0)
-                    .to(replay_device),
-                    exit_path_lengths=torch.tensor(
-                        [len(path_values)],
-                        dtype=torch.int64,
-                        device=replay_device,
-                    ),
-                    exit_side_index=torch.tensor(
-                        [side_index],
-                        dtype=torch.int64,
-                        device=replay_device,
+                    exit_mtf_new_rows=incremental_mtf,
+                    exit_path_row_x=torch.from_numpy(path_values[-1])
+                    .view(1, 1, -1).expand(-1, 2, -1).to(replay_device),
+                    carry=incremental_carry,
                     ),
                 )
-            logits_tensor = model_output.get("exit_action_logits")
-            probs_tensor = model_output.get("exit_action_probs")
+            next_carry_envelope = build_unified_exit_incremental_carry_envelope(
+                tensor_state=model.export_exit_incremental_carry_tensor_state(
+                    incremental_carry
+                ),
+                step_count=step,
+                last_closed_m1_bar_ts=closed_bar_time,
+                trade_identity=state.replay_id,
+                side=state.side,
+                bundle_sha256=bundle_authority["bundle_commit_sha256"],
+                input_normalization_sha256=bundle.metadata[
+                    "input_normalization"
+                ]["contract_sha256"],
+                entry_token_snapshot_sha256=(
+                    canonical_unified_evidence_sha256(
+                        state.entry_decision_token_snapshot
+                    )
+                ),
+                full_path_chain_sha256=envelope["full_path_chain_sha256"],
+                input_envelope_sha256=exit_input_envelope[
+                    "input_envelope_sha256"
+                ],
+                previous_carry_envelope_sha256=previous_carry_sha256,
+                mtf_last_row_sha256=current_mtf_hashes,
+            )
+            previous_carry_sha256 = next_carry_envelope[
+                "carry_envelope_sha256"
+            ]
+            prior_mtf_hashes = current_mtf_hashes
+            q_tensor = model_output.get("exit_action_q_bps")[:, side_index, 0]
+            valid_tensor = model_output.get("exit_action_valid_mask")[:, side_index, 0]
             if (
-                not isinstance(logits_tensor, torch.Tensor)
-                or tuple(logits_tensor.shape) != (1, 2)
-                or not isinstance(probs_tensor, torch.Tensor)
-                or tuple(probs_tensor.shape) != (1, 2)
-                or not bool(torch.isfinite(logits_tensor).all().item())
-                or not bool(torch.isfinite(probs_tensor).all().item())
+                not isinstance(q_tensor, torch.Tensor)
+                or tuple(q_tensor.shape) != (1, 2)
+                or not isinstance(valid_tensor, torch.Tensor)
+                or tuple(valid_tensor.shape) != (1, 2)
+                or valid_tensor.dtype != torch.bool
+                or not bool(torch.isfinite(q_tensor).all().item())
             ):
                 raise SizingFinalizationError(
                     f"unified Exit output is invalid at row {row_index} step {step}"
                 )
-            logits = logits_tensor[0].detach().cpu().to(torch.float64).numpy()
-            model_probs = probs_tensor[0].detach().cpu().to(torch.float64).numpy()
-            if float(logits[0]) == float(logits[1]):
+            q_values = q_tensor[0].detach().cpu().to(torch.float64).numpy()
+            valid_mask = valid_tensor[0].detach().cpu().numpy().astype(np.bool_)
+            expected_valid = np.asarray(
+                [len(path_values) < UNIFIED_EXIT_MAX_PATH_BARS, True],
+                dtype=np.bool_,
+            )
+            if not np.array_equal(valid_mask, expected_valid):
                 raise SizingFinalizationError(
-                    f"unified Exit logits tie at row {row_index} step {step}"
+                    f"unified Exit validity drift at row {row_index} step {step}"
                 )
-            shifted = logits - float(np.max(logits))
-            probabilities = np.exp(shifted) / float(np.exp(shifted).sum())
-            if not np.allclose(model_probs, probabilities, rtol=0.0, atol=1e-6):
+            if valid_mask.all() and float(q_values[0]) == float(q_values[1]):
                 raise SizingFinalizationError(
-                    f"unified Exit probabilities drift at row {row_index} step {step}"
+                    f"unified Exit Q tie at row {row_index} step {step}"
                 )
-            action_index = int(np.argmax(logits))
+            masked_q = np.where(valid_mask, q_values, -np.inf)
+            action_index = int(np.argmax(masked_q))
             exit_decision = {
-                "exit_action_logits": logits.tolist(),
-                "exit_action_probs": probabilities.tolist(),
+                "exit_action_q_bps": q_values.tolist(),
+                "exit_action_valid_mask": valid_mask.tolist(),
                 "exit_action_index": action_index,
                 "action": UNIFIED_EXIT_ACTION_ORDER[action_index],
                 "decision_source": "unified_model",
+                "exit_input_envelope": exit_input_envelope,
+                "exit_incremental_carry_envelope": next_carry_envelope,
                 "bundle_sha256": bundle_authority["bundle_commit_sha256"],
                 "entry_snapshot_sha256": canonical_unified_evidence_sha256(head),
                 "exit_path_envelope_sha256": canonical_unified_evidence_sha256(
                     envelope
                 ),
+                "exit_input_envelope_sha256": exit_input_envelope[
+                    "input_envelope_sha256"
+                ],
             }
             exit_decision["output_evidence_sha256"] = (
                 canonical_unified_evidence_sha256(exit_decision)
@@ -1636,12 +1661,14 @@ def produce_canonical_unified_joint_sizing_proof(
                 ],
                 entry_snapshot=head,
                 exit_path_envelope=envelope,
+                exit_input_envelope=exit_input_envelope,
             )
             staged.bind_unified_exit_decision(
                 exit_decision,
                 expected_bundle_sha256=bundle_authority[
                     "bundle_commit_sha256"
                 ],
+                exit_input_envelope=exit_input_envelope,
             )
             state.commit_complete_exit_bar(
                 staged,
@@ -1666,17 +1693,17 @@ def produce_canonical_unified_joint_sizing_proof(
                     "state_bid": float(state.current_bid),
                     "state_ask": float(state.current_ask),
                     "state_pnl_bps": float(state.current_pnl_bps),
-                    "exit_hold_logit": float(
-                        exit_decision["exit_action_logits"][0]
+                    "exit_hold_q_bps": float(
+                        exit_decision["exit_action_q_bps"][0]
                     ),
-                    "exit_now_logit": float(
-                        exit_decision["exit_action_logits"][1]
+                    "exit_now_q_bps": float(
+                        exit_decision["exit_action_q_bps"][1]
                     ),
-                    "exit_hold_prob": float(
-                        exit_decision["exit_action_probs"][0]
+                    "exit_hold_valid": bool(
+                        exit_decision["exit_action_valid_mask"][0]
                     ),
-                    "exit_now_prob": float(
-                        exit_decision["exit_action_probs"][1]
+                    "exit_now_valid": bool(
+                        exit_decision["exit_action_valid_mask"][1]
                     ),
                     "candidate_bundle_sha256": str(
                         exit_decision["bundle_sha256"]
@@ -1686,6 +1713,9 @@ def produce_canonical_unified_joint_sizing_proof(
                     ),
                     "exit_path_envelope_sha256": str(
                         exit_decision["exit_path_envelope_sha256"]
+                    ),
+                    "exit_input_envelope_sha256": str(
+                        exit_decision["exit_input_envelope_sha256"]
                     ),
                     "output_evidence_sha256": str(
                         exit_decision["output_evidence_sha256"]
@@ -1700,8 +1730,8 @@ def produce_canonical_unified_joint_sizing_proof(
                 break
         else:
             raise SizingFinalizationError(
-                f"unified Exit never emitted EXIT_NOW within "
-                f"{UNIFIED_EXIT_MAX_PATH_BARS} bars for OOS row {row_index}"
+                "unified Exit never emitted EXIT_NOW before the immutable "
+                f"source tail for OOS row {row_index}"
             )
         trace_frame = pd.DataFrame(
             row_trace,
@@ -1764,7 +1794,6 @@ def produce_canonical_unified_joint_sizing_proof(
             "sha256": tape.source_sha256,
         },
         "prebuilt_pair": prebuilt_pair,
-        "train_rank_reference": train_rank_reference,
         "runtime_predictions": _source_binding(runtime_predictions_path),
         "prediction_report_artifact": report_binding,
         "prediction_provenance": provenance,
@@ -1834,8 +1863,6 @@ def _parser() -> argparse.ArgumentParser:
     unified.add_argument("--prebuilt-pair-manifest", type=Path, required=True)
     unified.add_argument("--prebuilt-generation-root", type=Path, required=True)
     unified.add_argument("--multi-tf-cache-dir", type=Path, required=True)
-    unified.add_argument("--train-rank-reference-npz", type=Path, required=True)
-    unified.add_argument("--train-rank-reference-sha256", required=True)
     unified.add_argument("--authority-root", type=Path, required=True)
     unified.add_argument("--device", default="cpu")
     return parser
@@ -1886,10 +1913,6 @@ def main() -> int:
             prebuilt_pair_manifest_path=args.prebuilt_pair_manifest,
             prebuilt_generation_root=args.prebuilt_generation_root,
             multi_tf_cache_dir=args.multi_tf_cache_dir,
-            train_rank_reference_npz=args.train_rank_reference_npz,
-            train_rank_reference_sha256=(
-                args.train_rank_reference_sha256
-            ),
             authority_root=args.authority_root,
             device=args.device,
         )
