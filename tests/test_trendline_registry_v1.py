@@ -20,6 +20,9 @@ from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
 from gx1.contracts.entry_exit_production_architecture_v1 import (
     PRODUCTION_EXIT_SEQUENCE_BARS,
 )
+from gx1.contracts.registry_hyperparameter_fit_v1 import (
+    require_registry_outcome_stream_v1,
+)
 from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
 from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1,
@@ -33,6 +36,7 @@ from gx1.features.trendline_registry_v1 import (
     TRENDLINE_STATE_ACTIVE,
     TrendlineV1,
     compute_trendline_registry_features_v1 as _compute_trendline,
+    collect_trendline_threshold_outcome_stream_v1,
     fit_trendline_registry_hyperparameters_v1,
 )
 
@@ -944,3 +948,44 @@ def test_touch_hold_label_observes_break_after_polarity_flip():
     )
     assert labels.loc[65, "y_line_support_touch_mask"] == 1.0
     assert labels.loc[65, "y_line_support_touch_held"] == 0.0
+
+
+def test_zero_deviation_candidate_is_excluded_from_the_fit_population():
+    """A pivot landing exactly on the projected line must not enter the fit.
+
+    ``deviation = |pivot_price - projection| / pivot_atr`` is exactly 0.0 when
+    a confirmed pivot lands on the line.  That is a real geometric coincidence
+    -- measured once in 11,820 M15 candidates on the declared 2025-06..2026-05
+    TRAIN tape, where it aborted the whole V30 build.  It cannot enter a
+    *tolerance* fit population: the fitter's candidate support is every
+    distinct observed distance, so a 0.0 observation is itself selectable as
+    the threshold, and a fitted tolerance of 0.0 ATR would admit a touch only
+    on exact float equality.  ``level_registry_v1`` has always excluded
+    non-positive distances; both owners of ``RegistryOutcomeStreamV1`` must
+    agree, and the contract requires strictly positive distances.
+    """
+
+    # Carved pivots sit exactly on the projection (dev == 0.0), so every
+    # candidate observation this frame can produce has deviation 0.0.
+    df = _support_line_frame(60, {10: 0.0, 30: 0.0, 50: 0.0})
+    stream = collect_trendline_threshold_outcome_stream_v1(df, seq_len=200)
+    assert np.all(stream.distance_atr > 0.0), (
+        "zero-deviation candidates reached the fit population: "
+        f"min={stream.distance_atr.min() if len(stream.distance_atr) else None}"
+    )
+
+    # The gate the chain actually runs must accept what the owner emits.
+    # It requires at least four observations, so only assert the gate when the
+    # surviving population is admissible at all; an empty survivor set is the
+    # correct outcome for a frame whose every pivot is exactly on the line.
+    if len(stream.origin_row) >= 4:
+        require_registry_outcome_stream_v1(stream, n_rows=len(df))
+
+    # Positive deviations are unaffected: the same frame with pivots carved
+    # off the line keeps every observation.
+    off_line = _support_line_frame(60, {10: 0.10, 30: 0.15, 50: 0.05})
+    off_stream = collect_trendline_threshold_outcome_stream_v1(
+        off_line, seq_len=200
+    )
+    assert np.all(off_stream.distance_atr > 0.0)
+    assert len(off_stream.origin_row) >= len(stream.origin_row)

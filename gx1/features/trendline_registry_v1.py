@@ -1560,6 +1560,20 @@ def collect_trendline_threshold_outcome_stream_v1(
     for origin, line_id, side, slope, intercept, deviation in observations:
         if int(origin) >= len(df) - 1:
             continue
+        # ``deviation`` is ``|pivot_price - projection| / pivot_atr``, so it is
+        # exactly 0.0 when a pivot lands on the projected line.  That is a real
+        # geometric coincidence, not an error -- but it cannot enter a
+        # *tolerance* fit population.  The fitter's candidate support is every
+        # distinct observed distance, so a 0.0 observation is itself selectable
+        # as the threshold, and a fitted trendline tolerance of 0.0 ATR would
+        # admit a touch only on exact float equality, silently killing the
+        # feature at serve.  ``level_registry_v1`` already excludes
+        # non-positive and non-finite distances for this reason; both owners of
+        # ``RegistryOutcomeStreamV1`` must agree, and the contract requires
+        # strictly positive distances (rule 25: two internally consistent
+        # owners disagreeing is exactly what no gate can see).
+        if not math.isfinite(float(deviation)) or float(deviation) <= 0.0:
+            continue
         event_row = -1
         event_cause = REGISTRY_OUTCOME_REACTION
         for row in range(int(origin) + 1, len(df)):

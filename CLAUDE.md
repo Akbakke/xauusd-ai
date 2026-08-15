@@ -96,9 +96,17 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    ownership, and every restated count in this repository has gone stale
    within days). The shape is: a frozen base block + the mandatory causal
    families + the complete code-owned candidate remainder, over the declared
-   mandatory families. As of 2026-08-14 that evaluates to 30 + 164 + 155 = 349
-   over 11 mandatory
-   layer families
+   mandatory families. **Read the numbers by executing the owner, never from
+   this file**:
+   `MODEL_NATIVE_BASE_SIGNAL_DIM`, `MODEL_NATIVE_MANDATORY_SELECTED_FIELDS`,
+   `MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS`, `MODEL_NATIVE_SIGNAL_DIM` and
+   `MODEL_NATIVE_MANDATORY_FAMILY_FEATURES`. This rule previously restated
+   "30 + 164 + 155 = 349 over 11 families" as a dated observation; on
+   2026-08-15 the owner evaluated to 29 + 153 + 79 = 261 over 10 families, an
+   88-field gap, and the restatement was removed rather than refreshed. A
+   number written here is wrong within days by construction; that is the whole
+   point of the rule, and this paragraph was the rule breaking itself.
+   The surface history is
    (V29 event surface 2026-08-11 added the level/trendline registries and the
    swing/momentum/regime event families; V30 2026-08-13 removed the
    NAME-ONLY chart-geometry composites, all Fibonacci fields, the candle
