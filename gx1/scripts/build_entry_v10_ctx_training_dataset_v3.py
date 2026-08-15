@@ -1444,7 +1444,6 @@ def _build_inline_seq_structure_extension(
             Path(source_parquet),
             timeframe="M5",
             band_atr=params["trendline_band_atr"],
-            identity_expiry_bars=int(params["trendline_expiry_bars"]),
             seq_len=int(params["trendline_seq_len"]),
         )
 

@@ -216,7 +216,7 @@ def test_m1_lane_payload_binds_exact_hyperfit_and_lifetimes() -> None:
     assert payload["level_expiry_bars"] > 0
     assert payload["exit_m1"]["seq_len"] == EXIT_FEATURE_SEQUENCE_BARS
     assert payload["exit_m1"]["trendline_band_atr"] > 0.0
-    assert payload["exit_m1"]["trendline_expiry_bars"] > 0
+    assert "trendline_expiry_bars" not in payload["exit_m1"]
     assert not any(
         "quantile" in key or "reaction_window" in key or "retest_window" in key
         for key in payload
@@ -261,7 +261,7 @@ def test_m5_registry_validator_rejects_resealed_population_tamper() -> None:
     tampered = copy.deepcopy(valid)
     tampered["provenance"]["trendline_band"]["H4"][
         "population_configuration"
-    ]["identity_expiry_bars"] += 1
+    ]["seq_len"] += 1
     nested = tampered["provenance"]["trendline_band"]["H4"]
     _rehash(nested)
     _rehash(tampered)
@@ -287,7 +287,6 @@ def test_materializer_resolves_m1_lifetime_params_fail_closed(tmp_path: Path) ->
         ],
         "level_expiry_bars": lane["level_expiry_bars"],
         "trendline_band_atr": lane["exit_m1"]["trendline_band_atr"],
-        "trendline_expiry_bars": lane["exit_m1"]["trendline_expiry_bars"],
         "trendline_seq_len": lane["exit_m1"]["seq_len"],
     }
 

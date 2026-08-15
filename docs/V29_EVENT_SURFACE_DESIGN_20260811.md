@@ -188,9 +188,25 @@ Boundary contract:
   constant; since that population is the *null* it then judges, the fit also
   publishes the measured `implied_validation_rate` it implies, ~0.5 by
   construction — V30 package 6, audit §0b); retest window
-  `2·SWING_LOOKBACK+1 = 7` bars (named constant,
-  recipe-overridable); candidate window = `per_tf_seq_lens` (explicit recipe
-  input). Aux-target replacement: §5.
+  `TRENDLINE_RETEST_WINDOW_BARS_V1 = 2·SWING_LOOKBACK+1` bars (named constant
+  in the registry owner, derived from a named constant — read it by executing
+  the owner, never from this line); candidate window AND the ACTIVE staleness
+  bound = `per_tf_seq_lens` (explicit recipe input). Aux-target replacement:
+  §5.
+  - 2026-08-15: `a94f5c6e` replaced BOTH of those bounds with one TRAIN-fitted
+    `identity_expiry_bars` (`ceil(RMST)`, 2 on M5/M15/H1/H4 and the entry-M5
+    lane, 1 on D1). Since the promotion path stamps
+    `last_touch_bar = t - SWING_LOOKBACK`, every fitted value was `<= 3` and
+    deleted each line on its own promotion bar: 28 of the emitted fields went
+    constant 0.0, `geomline_bars_since_break` went all-NaN, and the M5 lane
+    died on `HTF_V4_CACHE_WARMUP_INVALID`. Both bounds are restored to the
+    state this paragraph always described, and the fitted lifetime is no longer
+    consumed anywhere. Measured after the repair on the complete declared tape
+    (`XAU_M5_NATIVE_2019_20260804_V4`, 537,861 M5 rows, M5 lane): 0 of 31
+    trendline columns constant, 537,657 complete rows, no all-NaN column.
+  - The emitted block is 31 fields, not the 30 written above; the authoritative
+    tuple is `TRENDLINE_REGISTRY_FEATURE_NAMES_V1` (rule 13 — this document may
+    not restate it). That drift predates the 2026-08-15 repair.
 - Entry-M5 visibility: the same 30-field emission also runs on the entry M5
   clock into the 513 lane (`chart.geomline_*`) — see §4.1 block E.
 

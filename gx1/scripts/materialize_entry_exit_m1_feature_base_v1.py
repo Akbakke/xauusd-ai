@@ -657,9 +657,6 @@ def _materialize_bounded_feature_surface(
                     source,
                     timeframe=timeframe,
                     band_atr=_v29_registry_params()["trendline_band_atr"],
-                    identity_expiry_bars=int(
-                        _v29_registry_params()["trendline_expiry_bars"]
-                    ),
                     seq_len=int(_v29_registry_params()["trendline_seq_len"]),
                     raw_frame=raw_frame,
                 ),
@@ -1163,9 +1160,6 @@ def _v29_registry_layer_params_from_payload(
             "trendline_band_atr": float(
                 payload["entry_m5"]["trendline_band_atr"]
             ),
-            "trendline_expiry_bars": int(
-                payload["entry_m5"]["trendline_expiry_bars"]
-            ),
             "trendline_seq_len": int(payload["entry_m5"]["seq_len"]),
         }
     return {
@@ -1175,9 +1169,6 @@ def _v29_registry_layer_params_from_payload(
         "level_expiry_bars": int(payload["level_expiry_bars"]),
         "trendline_band_atr": float(
             payload["exit_m1"]["trendline_band_atr"]
-        ),
-        "trendline_expiry_bars": int(
-            payload["exit_m1"]["trendline_expiry_bars"]
         ),
         "trendline_seq_len": int(payload["exit_m1"]["seq_len"]),
     }

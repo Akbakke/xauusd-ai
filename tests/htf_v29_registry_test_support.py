@@ -22,7 +22,6 @@ from gx1.contracts.registry_hyperparameter_fit_v1 import (
     REGISTRY_OUTCOME_REACTION,
     RegistryOutcomeStreamV1,
     fit_registry_competing_risk_threshold_v1,
-    require_registry_hyperparameter_payload_v1,
 )
 from gx1.features.htf_features import (
     V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION,
@@ -127,7 +126,11 @@ def _level_fit(*, source: dict, clock: str) -> dict:
 
 
 def _trend_fit(*, source: dict, clock: str, seq_len: int) -> dict:
-    payload = _fit(
+    # Mirrors fit_trendline_registry_hyperparameters_v1 exactly: the runtime
+    # population is the declared receptive field plus the pivot look-around.
+    # No identity_expiry_bars is injected — the registry stopped consuming a
+    # fitted identity lifetime on 2026-08-15.
+    return _fit(
         source=source,
         clock=clock,
         registry_kind="trendline",
@@ -136,17 +139,6 @@ def _trend_fit(*, source: dict, clock: str, seq_len: int) -> dict:
             "seq_len": int(seq_len),
             "swing_lookback": SWING_LOOKBACK,
         },
-    )
-    payload = dict(payload)
-    payload["population_configuration"] = {
-        **dict(payload["population_configuration"]),
-        "identity_expiry_bars": int(payload["learned_expiry_bars"]),
-    }
-    payload["contract_sha256"] = canonical_json_sha256(
-        {key: value for key, value in payload.items() if key != "contract_sha256"}
-    )
-    return require_registry_hyperparameter_payload_v1(
-        payload, registry_kind="trendline", clock=clock
     )
 
 
@@ -185,14 +177,10 @@ def synthetic_v29_registry_constants() -> dict:
         "trendline_band_atr": {
             clock: value["selected_threshold_atr"] for clock, value in trend.items()
         },
-        "trendline_expiry_bars": {
-            clock: value["learned_expiry_bars"] for clock, value in trend.items()
-        },
         "per_tf_seq_lens": seq_lens,
         "entry_m5": {
             "seq_len": MODEL_NATIVE_SEQ_LEN,
             "trendline_band_atr": entry["selected_threshold_atr"],
-            "trendline_expiry_bars": entry["learned_expiry_bars"],
         },
         "provenance": {
             "schema_version": V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION,
@@ -236,7 +224,6 @@ def synthetic_v29_registry_m1_lane_params() -> dict:
         "exit_m1": {
             "seq_len": EXIT_FEATURE_SEQUENCE_BARS,
             "trendline_band_atr": trend["selected_threshold_atr"],
-            "trendline_expiry_bars": trend["learned_expiry_bars"],
         },
         "provenance": {
             "schema_version": V29_REGISTRY_M1_LANE_PROVENANCE_SCHEMA_VERSION,

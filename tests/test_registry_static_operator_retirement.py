@@ -33,7 +33,12 @@ RETIRED_TOKENS = (
     "LEVEL_REGISTRY_AGE_CAP_BARS",
     "LEVEL_REGISTRY_FIT_AGE_CAP_BARS",
     "LEVEL_REGISTRY_TOL_QUANTILE_RECIPE_KEY",
-    "TRENDLINE_RETEST_WINDOW_BARS",
+    # TRENDLINE_RETEST_WINDOW_BARS is deliberately NOT listed. It was declared
+    # retired by a94f5c6e (2026-08-15), which collapsed the BROKEN retest clock
+    # into the fitted trendline identity expiry; that same commit made the
+    # ACTIVE staleness bound <= SWING_LOOKBACK and killed every promoted line
+    # on its own promotion bar. The named constant is restored (its origin is
+    # SWING_LOOKBACK, a named constant in smc_v1), so it is live, not retired.
     "fit_level_registry_tolerance",
     "fit_trendline_tolerance",
     "level_tol_quantile_q",
@@ -68,10 +73,15 @@ def test_active_registry_sources_have_no_retired_static_operator() -> None:
 SUPERSEDED_CACHE_IDENTITIES = (
     "htf_v4_disk_cache_manifest_v18",
     "htf_v4_disk_cache_manifest_v19",
+    # v24 carried the trendline block that a94f5c6e left constant 0.0 on 28 of
+    # its 31 fields; a v24 cache must never load into the repaired surface.
+    "htf_v4_disk_cache_manifest_v24",
 )
 SUPERSEDED_MATRIX_IDENTITIES = (
     "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V9",
     "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V10",
+    # V15 emitted the dead trendline block under the current column names.
+    "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V15",
 )
 # The two TRAIN-fit payload identities carry the same reuse role: a payload
 # frozen under a superseded identity must never load into a current surface.
@@ -82,6 +92,11 @@ SUPERSEDED_REGISTRY_PAYLOAD_IDENTITIES = (
     "htf_v4_v29_registry_constants_v6",
     "htf_v4_v29_registry_m1_lane_params_v5",
     "htf_v4_v29_registry_m1_lane_params_v6",
+    # ``..._v7`` was superseded on 2026-08-15 when trendline_expiry_bars left
+    # both payloads: the trendline registry no longer consumes a fitted
+    # identity lifetime, so a v7 payload declares a key the surface rejects.
+    "htf_v4_v29_registry_constants_v7",
+    "htf_v4_v29_registry_m1_lane_params_v7",
 )
 
 

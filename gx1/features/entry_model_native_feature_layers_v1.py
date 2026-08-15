@@ -206,7 +206,6 @@ V29_REGISTRY_LAYER_PARAM_KEYS = (
     "level_recurrence_threshold_atr",
     "level_expiry_bars",
     "trendline_band_atr",
-    "trendline_expiry_bars",
     "trendline_seq_len",
 )
 
@@ -857,7 +856,6 @@ def build_trendline_registry_m5_layer(
     *,
     timeframe: str,
     band_atr: float,
-    identity_expiry_bars: int,
     seq_len: int,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
@@ -891,7 +889,6 @@ def build_trendline_registry_m5_layer(
         timeframe=timeframe,
         seq_len=seq_len,
         band_atr=band_atr,
-        identity_expiry_bars=identity_expiry_bars,
     )
     if tuple(frame.columns) != tuple(TRENDLINE_REGISTRY_FEATURE_NAMES_V1):
         raise RuntimeError(f"{context}_FEATURE_ORDER_INVALID")

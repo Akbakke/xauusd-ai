@@ -31,11 +31,12 @@ from gx1.features.trendline_registry_v1 import (
     TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1,
     TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
     TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1,
+    TRENDLINE_RETEST_WINDOW_BARS_V1,
     TRENDLINE_SIDE_RESISTANCE,
     TRENDLINE_SIDE_SUPPORT,
     TRENDLINE_STATE_ACTIVE,
     TrendlineV1,
-    compute_trendline_registry_features_v1 as _compute_trendline,
+    compute_trendline_registry_features_v1,
     collect_trendline_threshold_outcome_stream_v1,
     fit_trendline_registry_hyperparameters_v1,
 )
@@ -84,11 +85,6 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = (
 )
 
 WARMUP = 2 * SWING_LOOKBACK + 2  # structural NaN prefix (module contract)
-
-
-def compute_trendline_registry_features_v1(df, *, seq_len, **kwargs):
-    kwargs.setdefault("identity_expiry_bars", seq_len)
-    return _compute_trendline(df, seq_len=seq_len, **kwargs)
 
 
 def _support_line_frame(
@@ -246,6 +242,55 @@ def test_three_touch_validation_and_promotion_bar():
     ]
     assert len(active) == 1
     assert (active[0].anchor1_bar, active[0].anchor2_bar) == (10, 30)
+
+
+def test_promoted_line_survives_its_own_promotion_bar_and_emits():
+    """Regression guard for the 2026-08-15 staleness-bound substitution.
+
+    ``_ingest_confirmed_pivot`` promotes with
+    ``last_touch_bar = pivot_bar = t - SWING_LOOKBACK``, and
+    ``_update_lines_for_bar`` runs on that SAME bar ``t``.  Its first test is
+    therefore ``SWING_LOOKBACK >= <bound>``.  Any bound ``<= SWING_LOOKBACK``
+    deletes every line on its own promotion bar, which is exactly what
+    a94f5c6e did by substituting the TRAIN-fitted trendline expiry (2 on
+    M5/M15/H1/H4 and the entry-M5 lane, 1 on D1): 28 of the 31 emitted fields
+    went constant 0.0, ``geomline_bars_since_break`` went all-NaN, and only
+    ``geomline_touch_above/below`` survived because the promotion path sets
+    them before the deletion.
+
+    The restored bound is the declared receptive field ``seq_len``, whose
+    smallest declared value on any lane is the M5 MTF window.  The inequality
+    below is data-independent arithmetic, which is why this repair needs no
+    measurement to be correct.
+    """
+
+    from gx1.contracts.entry_exit_production_architecture_v1 import (
+        PRODUCTION_MTF_PER_TF_WINDOW_BARS,
+    )
+
+    smallest_declared_seq_len = min(
+        *(int(bars) for _tf, bars in PRODUCTION_MTF_PER_TF_WINDOW_BARS),
+        MODEL_NATIVE_SEQ_LEN,
+        PRODUCTION_EXIT_SEQUENCE_BARS,
+    )
+    assert SWING_LOOKBACK < smallest_declared_seq_len
+
+    df = _support_line_frame(60, {10: 0.0, 30: 0.0, 50: 0.0})
+    feats, state = _compute(df)
+    promotion_bar = 50 + SWING_LOOKBACK  # 53
+    # the promoted line is alive ON its promotion bar and stays alive after
+    assert feats["geomline_below_active_count"].iloc[promotion_bar] == 1.0
+    assert (feats["geomline_below_active_count"].iloc[promotion_bar:] > 0.0).all()
+    assert [
+        ln for ln in state.active_lines if ln.state == TRENDLINE_STATE_ACTIVE
+    ]
+    # ...and the emitted block is not the all-zero surface the defect produced
+    post = feats.iloc[promotion_bar:].drop(columns=["geomline_bars_since_break"])
+    live_columns = [name for name in post.columns if post[name].abs().max() > 0.0]
+    assert "geomline_below_dist_atr" in live_columns
+    assert "geomline_below_slope_atr_per_bar" in live_columns
+    assert "geomline_below_last_touch_age_bars" in live_columns
+    assert len(live_columns) > 2
 
 
 def test_exact_line_violation_death_prevents_later_candidate_promotion():
@@ -531,13 +576,30 @@ def test_retest_fail_after_break():
     assert feats["geomline_retest_hold_down"].sum() == 0.0
 
 
-def test_retest_stays_armed_past_old_seven_bar_window():
-    feats, state = _compute(_break_frame("expiry"))
+def test_retest_is_armed_for_exactly_the_named_window_then_expires():
+    """The BROKEN retest clock is its own named constant, not seq_len.
+
+    Non-vacuity: on the pre-repair source (a94f5c6e) no line could reach the
+    BROKEN state at all — the ACTIVE staleness bound was the fitted expiry
+    (<= SWING_LOOKBACK), so every promoted line died on its promotion bar and
+    ``pending`` was empty on BOTH slices below.  The armed assertion therefore
+    cannot pass without the repair.
+    """
+
+    assert TRENDLINE_RETEST_WINDOW_BARS_V1 == 2 * SWING_LOOKBACK + 1
+    frame = _break_frame("expiry")  # break at bar 60, no re-entry afterwards
+    last_armed_bar = 60 + TRENDLINE_RETEST_WINDOW_BARS_V1
+    feats, state = _compute(frame.iloc[: last_armed_bar + 1])
     assert feats["geomline_retest_hold_down"].sum() == 0.0
     assert feats["geomline_retest_fail_down"].sum() == 0.0
     pending = [ln for ln in state.active_lines if ln.break_bar == 60]
     assert len(pending) == 1
-    assert state.bar_count - 1 - pending[0].break_bar == 9
+    assert state.bar_count - 1 - pending[0].break_bar == (
+        TRENDLINE_RETEST_WINDOW_BARS_V1
+    )
+    # one bar further the unresolved retest window has passed
+    _feats, expired = _compute(frame.iloc[: last_armed_bar + 2])
+    assert not [ln for ln in expired.active_lines if ln.break_bar == 60]
 
 
 def test_resistance_mirror_break_up_and_retest_hold_up():
@@ -678,18 +740,20 @@ def test_hyperfit_binds_runtime_population_and_learned_expiry(tmp_path: Path):
     )
     assert payload["selected_threshold_atr"] > 0.0
     assert payload["learned_expiry_bars"] > 0
+    # The runtime population is exactly the declared receptive field and the
+    # pivot look-around. ``learned_expiry_bars`` stays an internally validated
+    # payload key of the shared fit contract, but the registry does not consume
+    # it and it must not reappear in the population description.
     assert payload["population_configuration"] == {
         "owner": "trendline_exact_runtime_candidate_population_v1",
         "seq_len": 512,
         "swing_lookback": SWING_LOOKBACK,
-        "identity_expiry_bars": payload["learned_expiry_bars"],
     }
     features, _state = compute_trendline_registry_features_v1(
         df,
         timeframe="M5",
         seq_len=512,
         band_atr=payload["selected_threshold_atr"],
-        identity_expiry_bars=payload["learned_expiry_bars"],
     )
     assert features.shape == (len(df), TRENDLINE_REGISTRY_FEATURE_COUNT_V1)
 
@@ -870,7 +934,7 @@ def test_touch_hold_labels_are_event_masked_and_forward_realized():
     # touch, so the touch did NOT hold.
     broken = _break_frame("expiry")
     labels = compute_trendline_touch_hold_labels_v1(
-        broken, seq_len=200, band_atr=0.3, identity_expiry_bars=200, horizon_bars=10
+        broken, seq_len=200, band_atr=0.3, horizon_bars=10
     )
     assert tuple(labels.columns) == TRENDLINE_TOUCH_HOLD_LABEL_COLUMNS_V1
     support_mask = labels["y_line_support_touch_mask"].to_numpy()
@@ -884,7 +948,7 @@ def test_touch_hold_labels_are_event_masked_and_forward_realized():
     # Same line, no break within the horizon: the touch held.
     intact = _support_line_frame(70, {10: 0.0, 30: 0.0, 50: 0.0})
     held_labels = compute_trendline_touch_hold_labels_v1(
-        intact, seq_len=200, band_atr=0.3, identity_expiry_bars=200, horizon_bars=10
+        intact, seq_len=200, band_atr=0.3, horizon_bars=10
     )
     assert held_labels["y_line_support_touch_mask"].to_numpy()[53] == 1.0
     assert held_labels["y_line_support_touch_held"].to_numpy()[53] == 1.0
@@ -892,7 +956,7 @@ def test_touch_hold_labels_are_event_masked_and_forward_realized():
     # An unobserved forward window is undecidable: masked out, never a
     # placeholder outcome (rule 2e).
     undecidable = compute_trendline_touch_hold_labels_v1(
-        intact, seq_len=200, band_atr=0.3, identity_expiry_bars=200, horizon_bars=30
+        intact, seq_len=200, band_atr=0.3, horizon_bars=30
     )
     assert undecidable["y_line_support_touch_mask"].to_numpy().sum() == 0.0
 
@@ -943,7 +1007,6 @@ def test_touch_hold_label_observes_break_after_polarity_flip():
         frame,
         seq_len=200,
         band_atr=0.3,
-        identity_expiry_bars=200,
         horizon_bars=5,
     )
     assert labels.loc[65, "y_line_support_touch_mask"] == 1.0

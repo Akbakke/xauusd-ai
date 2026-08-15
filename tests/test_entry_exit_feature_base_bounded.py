@@ -138,7 +138,6 @@ _V29_TEST_LAYER_PARAMS = {
     "level_recurrence_threshold_atr": 1.0,
     "level_expiry_bars": 96,
     "trendline_band_atr": 0.5,
-    "trendline_expiry_bars": 96,
     "trendline_seq_len": 96,
 }
 

@@ -542,7 +542,6 @@ def test_native_trendline_builder_preserves_explicit_clock_identity(
             timeframe=timeframe,
             band_atr=0.25,
             seq_len=480 if timeframe == "M1" else 96,
-            identity_expiry_bars=480 if timeframe == "M1" else 96,
             raw_frame=True,
         )
         assert tuple(names) == TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES

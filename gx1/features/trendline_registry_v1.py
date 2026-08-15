@@ -141,6 +141,7 @@ import pandas as pd
 
 from gx1.contracts.registry_hyperparameter_fit_v1 import (
     REGISTRY_OUTCOME_BREAK,
+    REGISTRY_OUTCOME_CENSORED,
     REGISTRY_OUTCOME_REACTION,
     RegistryOutcomeStreamV1,
     fit_registry_competing_risk_threshold_v1,
@@ -155,7 +156,12 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 # V4 (2026-08-15): the geomline_{above,below}_active presence masks are retired
 # from the emitted block; the graded per-side ACTIVE counts remain.
-TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V4"
+# V5 (2026-08-15): the ACTIVE staleness bound returns to the declared receptive
+# field ``seq_len`` and the BROKEN retest clock returns to its own named
+# constant, so ``config_key`` loses the retired ``identity_expiry_bars`` member
+# and every emitted value changes; chunk-carry state from a V4 run must not
+# interoperate silently.
+TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V5"
 TRENDLINE_HYPERPARAMETER_SCHEMA_VERSION_V1 = (
     "trendline_registry_hyperparameter_fit_v1"
 )
@@ -170,6 +176,14 @@ TRENDLINE_STATE_BROKEN = "broken"
 # Structural earliest bar (0-based) at which an ACTIVE line can exist for the
 # default lookback — pure arithmetic on the pivot contract (module docstring).
 TRENDLINE_STRUCTURAL_WARMUP_BARS_V1 = 2 * SWING_LOOKBACK + 2
+
+# How long a BROKEN line stays armed for its single re-entry decision.
+# Origin (rule 2a): the family's own named ``SWING_LOOKBACK`` — the full
+# look-around span of one swing pivot is the shortest interval in which a
+# re-entry can itself produce a confirmable pivot.  This is a lifecycle clock
+# of the retest event and is deliberately NOT the ACTIVE staleness bound: the
+# two measure different things and must not collapse into one number.
+TRENDLINE_RETEST_WINDOW_BARS_V1: int = 2 * SWING_LOOKBACK + 1
 
 # ---------------------------------------------------------------------------
 # Exact emission name tuples (design B.5) — the stage-2 wiring contract.
@@ -794,7 +808,6 @@ def _update_lines_for_bar(
     close: float,
     atr_t: float,
     band_atr: float,
-    identity_expiry_bars: int,
     swing_lookback: int,
     seq_len: int,
     events: np.ndarray,
@@ -811,14 +824,32 @@ def _update_lines_for_bar(
     for line in state.active_lines:
         if (
             line.state == TRENDLINE_STATE_ACTIVE
-            and t - line.last_touch_bar >= identity_expiry_bars
+            and t - line.last_touch_bar >= seq_len
         ):
             # Staleness retirement (no event): every bar of this line's
             # evidence has left the declared receptive-field window
             # (design B.1 — "line evidence never reaches beyond the
             # receptive field the model actually sees"); this is also what
             # makes the report's O(L) ~ O(P) per-bar cost bound true (B.7).
-            # Bound origin: the same seq_len recipe input, no new constant.
+            #
+            # Bound origin (rule 2a): the declared receptive field ``seq_len``
+            # itself — the same explicit recipe input this call already
+            # carries, no new constant.  This is an INFORMATION bound, not a
+            # claim about how long a trendline lives in the market: a line
+            # whose most recent evidence lies outside the model's own input
+            # window cannot be corroborated by the model, so keeping it would
+            # publish a state the model cannot see the basis for.
+            #
+            # It must never be replaced by a fitted event-time lifetime.  A
+            # learned trendline expiry was substituted here on 2026-08-15
+            # (a94f5c6e) and, being <= SWING_LOOKBACK on every clock, deleted
+            # every promoted line on its own promotion bar — the promotion
+            # path stamps ``last_touch_bar = t - SWING_LOOKBACK``, so the very
+            # first test on bar t reads an age of SWING_LOOKBACK.  28 of the
+            # 31 emitted fields went constant 0.0 and the build died on
+            # HTF_V4_CACHE_WARMUP_INVALID.  ``seq_len >= 16 > SWING_LOOKBACK``
+            # on every declared lane, which is what makes this bound safe, and
+            # that is arithmetic, not a measurement.
             continue
         proj = line.projection(t)
         if line.state == TRENDLINE_STATE_ACTIVE:
@@ -866,10 +897,15 @@ def _update_lines_for_bar(
                 line.in_band_prev = in_band
                 keep.append(line)
         else:  # BROKEN — first re-entry lifecycle
-            if t - line.break_bar >= identity_expiry_bars:
-                # The broken line has no evidence inside the model's exact
-                # receptive field.  This is the same architectural identity
-                # bound as ACTIVE staleness, not a retest decision window.
+            if t - line.break_bar > TRENDLINE_RETEST_WINDOW_BARS_V1:
+                # The single re-entry opportunity has passed unresolved: this
+                # IS the retest decision window and it owns its own named
+                # constant (origin at the definition).  It is deliberately not
+                # the ACTIVE staleness bound: widening it to seq_len would
+                # silently redefine geomline_retest_{hold,fail}_{up,down},
+                # whose only real measurement (the registered liveness floors
+                # in entry_full_input_liveness_v1) was taken under exactly
+                # this window.
                 continue
             resolved = False
             flipped = False
@@ -1122,7 +1158,6 @@ def compute_trendline_registry_features_v1(
     timeframe: str,
     seq_len: int,
     band_atr: float,
-    identity_expiry_bars: int,
     swing_lookback: int = SWING_LOOKBACK,
     state: TrendlineRegistryStateV1 | None = None,
     high_col: str = "high",
@@ -1154,9 +1189,6 @@ def compute_trendline_registry_features_v1(
     timeframe = _require_timeframe(timeframe)
     seq_len = _require_positive_int("SEQ_LEN", seq_len)
     band_atr = _require_band(band_atr)
-    identity_expiry_bars = _require_positive_int(
-        "IDENTITY_EXPIRY", identity_expiry_bars
-    )
     swing_lookback = _require_positive_int("SWING_LOOKBACK", swing_lookback)
     high, low, close, atr = _validated_arrays(
         df, high_col, low_col, close_col, atr_col
@@ -1167,7 +1199,6 @@ def compute_trendline_registry_features_v1(
         timeframe,
         seq_len,
         band_atr,
-        identity_expiry_bars,
         swing_lookback,
         high_col,
         low_col,
@@ -1270,7 +1301,6 @@ def compute_trendline_registry_features_v1(
                 float(close[i]),
                 float(atr_t),
                 band_atr,
-                identity_expiry_bars,
                 n,
                 seq_len,
                 events,
@@ -1319,7 +1349,6 @@ def compute_trendline_touch_hold_labels_v1(
     *,
     seq_len: int,
     band_atr: float,
-    identity_expiry_bars: int,
     horizon_bars: int,
     swing_lookback: int = SWING_LOOKBACK,
     high_col: str = "high",
@@ -1362,7 +1391,6 @@ def compute_trendline_touch_hold_labels_v1(
         timeframe="M5",
         seq_len=seq_len,
         band_atr=band_atr,
-        identity_expiry_bars=identity_expiry_bars,
         swing_lookback=swing_lookback,
         high_col=high_col,
         low_col=low_col,
@@ -1574,8 +1602,18 @@ def collect_trendline_threshold_outcome_stream_v1(
         # owners disagreeing is exactly what no gate can see).
         if not math.isfinite(float(deviation)) or float(deviation) <= 0.0:
             continue
+        # An observation that never resolves before the declared TRAIN end is
+        # right-censored, which is exactly what the docstring above promises
+        # and what the shared contract requires: ``event_row == -1`` is only
+        # legal with ``REGISTRY_OUTCOME_CENSORED``.  Leaving the REACTION
+        # placeholder here emitted an unresolved row as a resolved reaction at
+        # row -1, which ``require_registry_outcome_stream_v1`` rejects with the
+        # unrelated ``REGISTRY_OUTCOME_STREAM_INVALID``.  Measured 2026-08-15:
+        # zero censored observations on all six declared clocks, so no emitted
+        # value and no fitted hash moves — the defect is latent, not active,
+        # and this closes it before it can fire.
         event_row = -1
-        event_cause = REGISTRY_OUTCOME_REACTION
+        event_cause = REGISTRY_OUTCOME_CENSORED
         for row in range(int(origin) + 1, len(df)):
             projection = float(intercept) + float(slope) * float(row)
             if side == TRENDLINE_SIDE_SUPPORT:
@@ -1673,21 +1711,15 @@ def fit_trendline_registry_hyperparameters_v1(
             "swing_lookback": int(swing_lookback),
         },
     )
-    payload = dict(payload)
-    payload["population_configuration"] = {
-        **dict(payload["population_configuration"]),
-        "identity_expiry_bars": int(payload["learned_expiry_bars"]),
-    }
-    without_hash = dict(payload)
-    without_hash.pop("contract_sha256")
-    payload["contract_sha256"] = hashlib.sha256(
-        json.dumps(
-            without_hash,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        ).encode("utf-8")
-    ).hexdigest()
+    # The runtime population is described by the two values that actually
+    # define it — the declared receptive field and the pivot look-around.
+    # ``learned_expiry_bars`` stays an internally validated payload key of the
+    # shared fit contract, but it is no longer injected here and no longer
+    # consumed by the registry: it was re-declared as an identity lifetime on
+    # 2026-08-15 (a94f5c6e) and, being <= SWING_LOOKBACK, killed every line on
+    # its promotion bar.  It measures bars-to-projection-break, not bars since
+    # a promoted identity was last touched (rule 2g: different quantity,
+    # different population).
     return require_registry_hyperparameter_payload_v1(
         payload,
         registry_kind="trendline",

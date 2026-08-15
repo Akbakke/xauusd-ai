@@ -536,7 +536,12 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # [ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]. Its two inputs, high and low,
 # remain model inputs on every lane. See the CANDLE_PRIMITIVE_FEATURE_VERSION
 # note in gx1.features.entry_candle_primitives_v1 for the measurements.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V15"
+# V16 (2026-08-15): the trendline registry's ACTIVE staleness bound returns to
+# the declared receptive field, so 29 previously constant/all-NaN geomline_*
+# columns now carry real values under unchanged names. A V15 matrix holds
+# different numbers under the same feature-name hash and must not be read as
+# current.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V16"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -554,7 +559,10 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V15"
 # zero-range bars; a v22 cache holds different columns under the same names.
 # v24 retires mtf_candle_raw_zero_range_flag; a v23 cache is one column wider
 # under the same feature-name hash key and must not be read as current.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v24"
+# v25 (2026-08-15) carries the repaired trendline staleness bound: the manifest
+# embeds the v29_registry_constants payload, whose key set just lost
+# trendline_expiry_bars, and the emitted geomline_* values change.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v25"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
 )
@@ -847,9 +855,14 @@ def require_multi_tf_resolution_pyramid(
 # Both operators are selected by immutable chronological inner-TRAIN
 # competing-risk artifacts. No q/reaction/retest recipe input exists.
 # ---------------------------------------------------------------------------
-V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v7"
+# v8 / provenance v7 (2026-08-15): trendline_expiry_bars leaves both the
+# per-clock payload and the entry_m5 block. The trendline registry stopped
+# consuming a fitted identity lifetime (it measures bars-to-projection-break,
+# not bars since a promoted line was touched, and every fitted value was
+# <= SWING_LOOKBACK, which deleted each line on its own promotion bar).
+V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v8"
 V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_constants_provenance_v6"
+    "htf_v4_v29_registry_constants_provenance_v7"
 )
 _V29_REGISTRY_CONSTANTS_KEYS = frozenset(
     {
@@ -860,16 +873,13 @@ _V29_REGISTRY_CONSTANTS_KEYS = frozenset(
         "level_recurrence_threshold_atr",
         "level_expiry_bars",
         "trendline_band_atr",
-        "trendline_expiry_bars",
         "per_tf_seq_lens",
         "entry_m5",
         "provenance",
         "contract_sha256",
     }
 )
-_V29_REGISTRY_ENTRY_M5_KEYS = frozenset(
-    {"seq_len", "trendline_band_atr", "trendline_expiry_bars"}
-)
+_V29_REGISTRY_ENTRY_M5_KEYS = frozenset({"seq_len", "trendline_band_atr"})
 _V29_REGISTRY_CONSTANTS_PROVENANCE_KEYS = frozenset(
     {
         "schema_version",
@@ -969,7 +979,12 @@ def _require_registry_hyperfit_provenance(
     registry_kind: str,
     timeframe: str,
     selected_threshold_atr: float,
-    learned_expiry_bars: int,
+    # ``None`` means the caller's payload carries no second copy of the fitted
+    # lifetime to cross-check against (the trendline lanes since 2026-08-15:
+    # the registry stopped consuming it, so the constants payload stopped
+    # declaring it).  Keyword-only WITHOUT a default on purpose — a default
+    # would let a lane that does own a copy drop the binding silently.
+    learned_expiry_bars: int | None,
     source_row_count: int,
     inner_fit_end_exclusive: int,
     window_start: str,
@@ -987,6 +1002,8 @@ def _require_registry_hyperfit_provenance(
         raise RuntimeError(f"{context}: registry hyperfit provenance") from exc
     source = payload["source_provenance"]
     observed_population = payload["population_configuration"]
+    if registry_kind == "horizontal_level" and learned_expiry_bars is None:
+        raise RuntimeError(f"{context}: level lifetime binding required")
     if registry_kind == "horizontal_level":
         expected_level_keys = {
             "owner",
@@ -1093,8 +1110,10 @@ def _require_registry_hyperfit_provenance(
         payload["schema_version"] != REGISTRY_HYPERPARAMETER_FIT_SCHEMA_V1
         or float(payload["selected_threshold_atr"])
         != float(selected_threshold_atr)
-        or int(payload["learned_expiry_bars"])
-        != int(learned_expiry_bars)
+        or (
+            learned_expiry_bars is not None
+            and int(payload["learned_expiry_bars"]) != int(learned_expiry_bars)
+        )
         or int(payload["outer_train_rows"]) != int(source_row_count)
         or int(payload["inner_fit_end_exclusive"])
         != int(inner_fit_end_exclusive)
@@ -1183,7 +1202,7 @@ def require_v29_registry_constants(value: object) -> dict:
             _require_positive_finite_float(
                 mapping[tf_name], label=f"{mapping_name}.{tf_name}"
             )
-    for mapping_name in ("level_expiry_bars", "trendline_expiry_bars"):
+    for mapping_name in ("level_expiry_bars",):
         mapping = observed[mapping_name]
         if not isinstance(mapping, Mapping) or set(mapping) != set(expected_tfs):
             raise RuntimeError(
@@ -1222,14 +1241,6 @@ def require_v29_registry_constants(value: object) -> dict:
     _require_positive_finite_float(
         entry_m5["trendline_band_atr"], label="entry_m5.trendline_band_atr"
     )
-    if (
-        isinstance(entry_m5["trendline_expiry_bars"], bool)
-        or not isinstance(entry_m5["trendline_expiry_bars"], (int, np.integer))
-        or int(entry_m5["trendline_expiry_bars"]) <= 0
-    ):
-        raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: entry_m5.trendline_expiry_bars"
-        )
     provenance = observed["provenance"]
     if (
         not isinstance(provenance, Mapping)
@@ -1303,16 +1314,13 @@ def require_v29_registry_constants(value: object) -> dict:
             window_start=window_start,
             window_end=window_end,
             selected_threshold_atr=float(observed["trendline_band_atr"][tf_name]),
-            learned_expiry_bars=int(observed["trendline_expiry_bars"][tf_name]),
+            learned_expiry_bars=None,
             source_row_count=int(provenance["trendline_band"][tf_name]["outer_train_rows"]),
             inner_fit_end_exclusive=int(inner_end),
             population_configuration={
                 "owner": "trendline_exact_runtime_candidate_population_v1",
                 "seq_len": int(seq_lens[tf_name]),
                 "swing_lookback": int(SWING_LOOKBACK),
-                "identity_expiry_bars": int(
-                    observed["trendline_expiry_bars"][tf_name]
-                ),
             },
             context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID",
         )
@@ -1323,7 +1331,7 @@ def require_v29_registry_constants(value: object) -> dict:
         window_start=window_start,
         window_end=window_end,
         selected_threshold_atr=float(entry_m5["trendline_band_atr"]),
-        learned_expiry_bars=int(entry_m5["trendline_expiry_bars"]),
+        learned_expiry_bars=None,
         source_row_count=int(provenance["entry_m5_trendline_band"]["outer_train_rows"]),
         inner_fit_end_exclusive=int(
             provenance["inner_fit_end_exclusive_by_clock"]["M5"]
@@ -1332,7 +1340,6 @@ def require_v29_registry_constants(value: object) -> dict:
             "owner": "trendline_exact_runtime_candidate_population_v1",
             "seq_len": int(entry_seq_len),
             "swing_lookback": int(SWING_LOOKBACK),
-            "identity_expiry_bars": int(entry_m5["trendline_expiry_bars"]),
         },
         context="HTF_V4_V29_REGISTRY_CONSTANTS_INVALID",
     )
@@ -1480,7 +1487,6 @@ def fit_v29_registry_constants_from_m5(
     level_recurrence_threshold_atr: dict[str, float] = {}
     level_expiry_bars: dict[str, int] = {}
     trendline_band_atr: dict[str, float] = {}
-    trendline_expiry_bars: dict[str, int] = {}
     provenance: dict[str, object] = {
         "schema_version": V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION,
         "lane": "M5",
@@ -1538,9 +1544,6 @@ def fit_v29_registry_constants_from_m5(
         trendline_band_atr[tf_name] = float(
             band_payload["selected_threshold_atr"]
         )
-        trendline_expiry_bars[tf_name] = int(
-            band_payload["learned_expiry_bars"]
-        )
         provenance["trendline_band"][tf_name] = band_payload
         if tf_name == "M5":
             entry_payload = fit_trendline_registry_hyperparameters_v1(
@@ -1563,14 +1566,10 @@ def fit_v29_registry_constants_from_m5(
         "level_recurrence_threshold_atr": level_recurrence_threshold_atr,
         "level_expiry_bars": level_expiry_bars,
         "trendline_band_atr": trendline_band_atr,
-        "trendline_expiry_bars": trendline_expiry_bars,
         "per_tf_seq_lens": {tf: int(lengths[tf]) for tf in MULTI_TF_RESAMPLE_RULES},
         "entry_m5": {
             "seq_len": int(entry_m5_seq_len),
             "trendline_band_atr": entry_band,
-            "trendline_expiry_bars": int(
-                entry_provenance["learned_expiry_bars"]
-            ),
         },
         "provenance": provenance,
     }
@@ -1588,11 +1587,13 @@ def fit_v29_registry_constants_from_m5(
 # the M1-enriched frame manifest (the M1-side hash-bound artifact) and
 # consumed fail-closed by the M1 materializer.  No default exists anywhere.
 # ---------------------------------------------------------------------------
+# v8 / provenance v7 (2026-08-15): the exit_m1 block loses
+# trendline_expiry_bars, mirroring the M5 constants payload above.
 V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_m1_lane_params_v7"
+    "htf_v4_v29_registry_m1_lane_params_v8"
 )
 V29_REGISTRY_M1_LANE_PROVENANCE_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_m1_lane_provenance_v6"
+    "htf_v4_v29_registry_m1_lane_provenance_v7"
 )
 V29_REGISTRY_M1_LANE_MANIFEST_KEY = "v29_registry_m1_lane_params"
 _V29_REGISTRY_M1_LANE_PARAMS_KEYS = frozenset(
@@ -1608,9 +1609,7 @@ _V29_REGISTRY_M1_LANE_PARAMS_KEYS = frozenset(
         "contract_sha256",
     }
 )
-_V29_REGISTRY_EXIT_M1_KEYS = frozenset(
-    {"seq_len", "trendline_band_atr", "trendline_expiry_bars"}
-)
+_V29_REGISTRY_EXIT_M1_KEYS = frozenset({"seq_len", "trendline_band_atr"})
 _V29_REGISTRY_M1_LANE_PROVENANCE_KEYS = frozenset(
     {
         "schema_version",
@@ -1713,14 +1712,6 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
     _require_positive_finite_float(
         exit_m1["trendline_band_atr"], label="exit_m1.trendline_band_atr"
     )
-    if (
-        isinstance(exit_m1["trendline_expiry_bars"], bool)
-        or not isinstance(exit_m1["trendline_expiry_bars"], (int, np.integer))
-        or int(exit_m1["trendline_expiry_bars"]) <= 0
-    ):
-        raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: trendline_expiry_bars"
-        )
     provenance = observed["provenance"]
     if (
         not isinstance(provenance, Mapping)
@@ -1781,14 +1772,13 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
         window_start=window_start,
         window_end=window_end,
         selected_threshold_atr=float(exit_m1["trendline_band_atr"]),
-        learned_expiry_bars=int(exit_m1["trendline_expiry_bars"]),
+        learned_expiry_bars=None,
         source_row_count=n_train_rows,
         inner_fit_end_exclusive=int(inner_end),
         population_configuration={
             "owner": "trendline_exact_runtime_candidate_population_v1",
             "seq_len": int(exit_seq_len),
             "swing_lookback": int(SWING_LOOKBACK),
-            "identity_expiry_bars": int(exit_m1["trendline_expiry_bars"]),
         },
         context="HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID",
     )
@@ -1997,9 +1987,6 @@ def fit_v29_registry_m1_lane_params_from_m1(
             "seq_len": int(exit_m1_seq_len),
             "trendline_band_atr": float(
                 band_payload["selected_threshold_atr"]
-            ),
-            "trendline_expiry_bars": int(
-                band_payload["learned_expiry_bars"]
             ),
         },
         "provenance": {
@@ -3124,9 +3111,6 @@ def compute_per_bar_features_v4(
         timeframe=timeframe,
         seq_len=int(registry_constants["per_tf_seq_lens"][timeframe]),
         band_atr=registry_constants["trendline_band_atr"][timeframe],
-        identity_expiry_bars=int(
-            registry_constants["trendline_expiry_bars"][timeframe]
-        ),
     )
     if tuple(trendline_frame.columns) != MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES:
         raise RuntimeError("HTF_V4_TRENDLINE_REGISTRY_NAME_DRIFT")
