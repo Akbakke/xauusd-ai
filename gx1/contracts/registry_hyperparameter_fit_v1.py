@@ -24,7 +24,7 @@ time of the selected near population. This is an explicitly declared modelling
 convention; no percentile or guessed bar count is involved.
 
 Artifacts are immutable JSON.  The payload hash binds the exact source file,
-source frame, tape/split lineage, chronological split, candidate population,
+source frame, tape and pair lineage, chronological split, candidate population,
 outcome stream, selected parameter and complete hazard tables.  The separate
 file hash is verified on every load, so a payload copied into another file is
 not silently interchangeable with the declared artifact.
@@ -62,6 +62,19 @@ REGISTRY_OUTCOMES_V1 = (
 )
 
 _HEX = frozenset("0123456789abcdef")
+# ``declared_train_window_start`` / ``declared_train_window_end`` are the
+# TRAIN-population authority here, and the rebuild chain re-checks the frozen
+# values against its own --train-start / --registry-fit-train-end /
+# --registry-fit-inner-end by exact timestamp equality once each lane has
+# published.  A ``split_manifest_*`` pointer was additionally required until
+# 2026-08-15; the producers bound the *pair* manifest under that name, so the
+# name was a lie while the hash check itself was real and ran on every V4 cache
+# load.  Removing it left the fit with no hash-bound pointer to the pair
+# generation at all: a retention pass that reclaimed the generation used to
+# fail every consumer closed, and afterwards only the free-text
+# ``train_split_id`` remained.  The pointer is therefore restored on
+# 2026-08-15 under its honest name and validated by ``_require_immutable_file``
+# exactly as before; the retired names stay retired.
 _SOURCE_KEYS = frozenset(
     {
         "source_artifact",
@@ -70,12 +83,19 @@ _SOURCE_KEYS = frozenset(
         "source_lane",
         "tape_manifest_artifact",
         "tape_manifest_sha256",
-        "split_manifest_artifact",
-        "split_manifest_sha256",
+        "pair_manifest_artifact",
+        "pair_manifest_sha256",
         "train_split_id",
         "declared_train_window_start",
         "declared_train_window_end",
     }
+)
+# Lineage keys retired on 2026-08-15. They may never re-enter the payload; the
+# owner's tests assert their absence from ``_SOURCE_KEYS``.  The binding they
+# mislabelled now lives under ``pair_manifest_artifact`` /
+# ``pair_manifest_sha256`` above.
+RETIRED_SOURCE_KEYS = frozenset(
+    {"split_manifest_artifact", "split_manifest_sha256"}
 )
 
 
@@ -171,9 +191,9 @@ def require_registry_fit_source_v1(
         label="REGISTRY_FIT_TAPE_MANIFEST",
     )
     _require_immutable_file(
-        observed["split_manifest_artifact"],
-        expected_sha256=observed["split_manifest_sha256"],
-        label="REGISTRY_FIT_SPLIT_MANIFEST",
+        observed["pair_manifest_artifact"],
+        expected_sha256=observed["pair_manifest_sha256"],
+        label="REGISTRY_FIT_PAIR_MANIFEST",
     )
     return observed
 
@@ -1249,6 +1269,7 @@ __all__ = [
     "REGISTRY_HYPERPARAMETER_FIT_SCHEMA_V1",
     "REGISTRY_OUTCOME_BREAK",
     "REGISTRY_OUTCOME_REACTION",
+    "RETIRED_SOURCE_KEYS",
     "RegistryOutcomeStreamV1",
     "fit_registry_competing_risk_threshold_v1",
     "load_registry_hyperparameter_artifact_v1",

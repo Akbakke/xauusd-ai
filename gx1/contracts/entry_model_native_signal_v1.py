@@ -112,7 +112,23 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 # v30: retire deterministic regime enums, class-flip aliases and volatility /
 # spread buckets. Preserve raw native-clock trend ages and D1 distance change;
 # replace the lossy M15/H4 signs with their exact continuous pre-sign sources.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v30"
+# v31: retire the trendline-registry presence masks
+# chart.geomline_{above,below}_active. Their owner emitted them from the same
+# branch as geomline_{above,below}_active_count, so each was exactly the
+# ">= 1" indicator of the count beside it — no evidence is lost, and the
+# guaranteed exact_duplicate on any lane whose per-side ACTIVE population never
+# exceeds 1 is gone. The graded counts stay.
+# v32: retire candle.raw_zero_range_flag from the mandatory candle family (and
+# mtf_candle_raw_zero_range_flag from every per-TF lane). It is constant 0.0
+# post-warmup on H4 and D1 — a market fact about gold, not dead wiring — so it
+# can never reach a liveness verdict there, and a declared-constant exemption
+# only moves the failure to [ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]. Rule 4
+# holds with room to spare: the flag is an EXACT algebraic function of three
+# shares that stay on the surface, since those three partition the bar range,
+# so `high == low` iff body_signed_range, upper_wick_share and
+# lower_wick_share are all zero. See the CANDLE_PRIMITIVE_FEATURE_VERSION note
+# in gx1.features.entry_candle_primitives_v1 for the proof and the counts.
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v32"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v19"
 )
@@ -541,8 +557,11 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
     }
 
 
+# v22 (2026-08-15): the price_action_candle_raw_layer family loses
+# candle.raw_zero_range_flag, so the ordered family registry and its hash
+# change. Widths are never restated here; they derive from the owner tuples.
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v21"
+    "entry_model_native_mandatory_full_stack_v22"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

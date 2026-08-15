@@ -1484,3 +1484,134 @@ def test_v4_closed_geometry_rejects_off_grid_source_timestamp() -> None:
         "HTF_V4_SOURCE_TIMESTAMP_GEOMETRY_INVALID",
     ):
         htf.build_multi_tf_v4_closed_timestamp_indices(source_index)
+
+
+def _declared_alias_pair_defects(
+    pairs, emitted: tuple[str, ...]
+) -> list[str]:
+    """Report every way a declared alias pair fails to bind on this surface.
+
+    ``build_multi_tf_v4_liveness_contract`` walks
+    ``MULTI_TF_PER_BAR_FEATURES_V4`` in order and builds the duplicate pair as
+    ``(already_seen_name, later_name)``.  A declared pair therefore only ever
+    matches when both names are emitted AND they are written in that order.
+    """
+
+    order = {name: index for index, name in enumerate(emitted)}
+    defects: list[str] = []
+    for pair in pairs:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            defects.append(f"malformed:{pair!r}")
+            continue
+        first, second = pair
+        missing = [name for name in (first, second) if name not in order]
+        if missing:
+            defects.append(f"not_emitted:{pair!r}:{missing}")
+            continue
+        if first == second:
+            defects.append(f"self_pair:{pair!r}")
+            continue
+        if order[first] > order[second]:
+            defects.append(f"reversed_against_surface_order:{pair!r}")
+    return defects
+
+
+def test_declared_alias_pairs_name_fields_the_surface_emits() -> None:
+    """A declared alias may exist, but never silently and never stale.
+
+    Same shape as
+    ``test_every_semantic_exemption_is_declared_justified_and_still_real`` in
+    tests/test_entry_full_input_liveness_contract.py.  Until 2026-08-15
+    ``HTF_V4_DECLARED_ALIAS_PAIRS`` held three pairs of which five of the six
+    names had already left ``MULTI_TF_PER_BAR_FEATURES_V4``: the exemption
+    branch in the duplicate check could not fire for any of them, so the
+    declaration had silently stopped protecting anything.  A stale entry is
+    how a gate quietly stops binding.
+    """
+
+    emitted = htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert (
+        _declared_alias_pair_defects(htf.HTF_V4_DECLARED_ALIAS_PAIRS, emitted)
+        == []
+    )
+
+    # The check must be able to FAIL, or an empty declaration would make this
+    # test vacuous: the exact three pairs retired on 2026-08-15 are rejected.
+    retired = (
+        ("body_pct", "mtf_pattern_body_share"),
+        ("upper_wick_pct", "mtf_pattern_upper_wick_share"),
+        ("lower_wick_pct", "mtf_pattern_lower_wick_share"),
+    )
+    assert len(_declared_alias_pair_defects(retired, emitted)) == len(retired)
+
+
+def test_mid_series_zero_range_bar_takes_the_sibling_share_convention() -> None:
+    """A high == low bar after warmup must not abort the per-TF build.
+
+    ``body_pct`` used to divide by ``(high - low).where((high - low) > 0.0)``,
+    so one zero-range bar put a NaN in the MIDDLE of the surface and
+    ``validate_causal_feature_matrix`` — which this producer runs on its own
+    output — rejected the whole timeframe as "not one causal warmup prefix".
+    MEASURED on the complete declared native M5 tape
+    (XAU_M5_NATIVE_2019_20260804_V4, 537,861 rows, 2019-01-01..2026-08-04):
+    215 zero-range M5 bars, 24 after M15 resampling and 14 after H1
+    resampling, all of them past the warmup prefix — so the abort was real,
+    not hypothetical.
+
+    The convention adopted is the one the sibling candle owner
+    ``gx1.features.entry_candle_primitives_v1`` already uses (and
+    ``compute_micro_structure_features`` after it): the range SHARE is an
+    explicit 0.0.
+
+    ``mtf_candle_raw_zero_range_flag`` used to sit beside it and mark the row.
+    It was retired on 2026-08-15 (constant post-warmup on H4/D1, hence a hard
+    liveness RED with no scaleable exemption).  The distinction survives it
+    exactly: the three range shares partition the range, so all three are zero
+    if and only if ``high == low``.  That biconditional is asserted here on
+    the per-TF surface, where the flag used to be read.
+    """
+
+    bars = _bars(4000, seed=77)
+    zero_row = 3000
+    close_price = float(bars["close"].iloc[zero_row])
+    for column in ("open", "high", "low", "close"):
+        bars.iloc[zero_row, bars.columns.get_loc(column)] = close_price
+
+    observed = _compute_v4(bars, timeframe="M5")
+
+    assert "mtf_candle_raw_zero_range_flag" not in observed.columns
+    assert observed["body_pct"].iloc[zero_row] == 0.0
+    # The two owners agree on the same row: the unsigned twin of the sibling's
+    # signed body share.
+    assert observed["mtf_candle_raw_body_signed_range"].iloc[zero_row] == 0.0
+
+    share_columns = (
+        "mtf_candle_raw_body_signed_range",
+        "mtf_candle_raw_upper_wick_share",
+        "mtf_candle_raw_lower_wick_share",
+    )
+    shares = observed[list(share_columns)].to_numpy(dtype=np.float64)
+    recovered = (shares == 0.0).all(axis=1)
+    truth = (
+        bars["high"].to_numpy(dtype=np.float64)
+        == bars["low"].to_numpy(dtype=np.float64)
+    )
+    np.testing.assert_array_equal(recovered, truth)
+    assert bool(recovered[zero_row])
+
+    # body_pct has no warmup of its own (both operands are finite from row 0),
+    # so ANY NaN in it is a mid-series hole by construction.
+    body_pct = observed["body_pct"].to_numpy(dtype=np.float64)
+    assert np.isfinite(body_pct).all()
+
+    # And a hole at exactly this row is what the gate rejects — the failure
+    # the retired NaN mask produced on every real timeframe that contains a
+    # zero-range bar.
+    holed = body_pct.reshape(-1, 1).copy()
+    holed[zero_row, 0] = np.nan
+    with np.testing.assert_raises_regex(
+        RuntimeError, "not one causal warmup prefix"
+    ):
+        htf.validate_causal_feature_matrix(
+            holed, expected_width=1, context="HTF_V4_ZERO_RANGE_TEST"
+        )

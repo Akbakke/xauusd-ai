@@ -75,8 +75,6 @@ def make_volatility_squeeze_artifact_set(
     common = {
         "tape_manifest_artifact": str(bound),
         "tape_manifest_sha256": bound_sha,
-        "split_manifest_artifact": str(bound),
-        "split_manifest_sha256": bound_sha,
         "pair_manifest_artifact": str(bound),
         "pair_manifest_sha256": bound_sha,
         "pair_generation_id": "synthetic-test-pair-generation-v1",

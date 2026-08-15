@@ -72,7 +72,7 @@ def _mk_df(high, low, close, atr=None) -> pd.DataFrame:
 
 def _fit_source(tmp_path: Path, *, clock: str) -> dict:
     paths = {}
-    for name in ("source", "tape", "split"):
+    for name in ("source", "tape", "pair"):
         path = (tmp_path / f"{name}.json").resolve()
         path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
         paths[name] = path
@@ -84,8 +84,8 @@ def _fit_source(tmp_path: Path, *, clock: str) -> dict:
         "source_lane": clock,
         "tape_manifest_artifact": str(paths["tape"]),
         "tape_manifest_sha256": digest(paths["tape"]),
-        "split_manifest_artifact": str(paths["split"]),
-        "split_manifest_sha256": digest(paths["split"]),
+        "pair_manifest_artifact": str(paths["pair"]),
+        "pair_manifest_sha256": digest(paths["pair"]),
         "train_split_id": "synthetic:TRAIN",
         "declared_train_window_start": "2020-01-01T00:00:00+00:00",
         "declared_train_window_end": "2020-01-03T10:15:00+00:00",

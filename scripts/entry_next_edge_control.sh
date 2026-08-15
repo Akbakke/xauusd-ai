@@ -26,9 +26,9 @@ Model-native seq513 evidence:
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-native-m5-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M5 UTC>] --end-utc <exclusive M5 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
   model-native-canonical-pair --publication-mode bootstrap|successor --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <json> --generation-root <dir> [--expected-pair-generation-id <sha256> --expected-manifest-sha256 <sha256>] [--workers <n>]
-  model-native-fit-volatility-squeeze-artifacts --m1-source <immutable-parquet> --m1-source-sha256 <sha256> --m5-source <immutable-parquet> --m5-source-sha256 <sha256> --tape-manifest <json> --tape-manifest-sha256 <sha256> --split-manifest <json> --split-manifest-sha256 <sha256> --pair-manifest <json> --pair-manifest-sha256 <sha256> --pair-generation-id <sha256> --train-window-start <UTC> --train-window-end <UTC> --output-dir <existing-empty-dir>
-  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --pair-manifest <json> --multi-tf-cache-dir <immutable-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --registry-fit-train-start <UTC> --registry-fit-inner-end <UTC> --registry-fit-train-end <UTC> --registry-fit-tape-manifest <json> --expected-registry-fit-tape-manifest-sha256 <sha256> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
-  model-native-m5-enriched-frame --native-m5-root <immutable-dir> --pair-manifest <json> --multi-tf-cache-dir <new-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --registry-fit-train-start <UTC> --registry-fit-inner-end <UTC> --registry-fit-train-end <UTC> --registry-fit-tape-manifest <json> --expected-registry-fit-tape-manifest-sha256 <sha256> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-fit-volatility-squeeze-artifacts --m1-source <immutable-parquet> --m1-source-sha256 <sha256> --m5-source <immutable-parquet> --m5-source-sha256 <sha256> --tape-manifest <json> --tape-manifest-sha256 <sha256> --pair-manifest <json> --pair-manifest-sha256 <sha256> --pair-generation-id <sha256> --train-window-start <UTC> --train-window-end <UTC> --output-dir <existing-empty-dir>
+  model-native-m1-enriched-frame --native-m1-root <immutable-dir> --pair-manifest <json> --expected-pair-manifest-sha256 <sha256> --multi-tf-cache-dir <immutable-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --registry-fit-train-start <UTC> --registry-fit-inner-end <UTC> --registry-fit-train-end <UTC> --registry-fit-tape-manifest <json> --expected-registry-fit-tape-manifest-sha256 <sha256> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
+  model-native-m5-enriched-frame --native-m5-root <immutable-dir> --pair-manifest <json> --expected-pair-manifest-sha256 <sha256> --multi-tf-cache-dir <new-dir> --output-parquet <new-parquet> --manifest-path <new-json> --checkpoint-dir <new-dir> --dataset-run-id <id> --pair-generation-id <sha256> --registry-fit-train-start <UTC> --registry-fit-inner-end <UTC> --registry-fit-train-end <UTC> --registry-fit-tape-manifest <json> --expected-registry-fit-tape-manifest-sha256 <sha256> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256> [--workers 1 --checkpoint-chunk-rows <n>]
   model-native-m5-source-frame --enriched-parquet <immutable-parquet> --multi-tf-cache-dir <immutable-v4-dir> --native-m5-root <immutable-dir> --pair-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256>
   model-native-current-source-cascade-proof --run-id <id> --source-parquet <immutable-parquet> --canonical-v2-parquet <immutable-parquet> --mtf-cache-dir <immutable-dir> --pair-manifest <json> --required-history-start <UTC> --out <new-json>
   model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <m1-enriched-manifest-json> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256>
@@ -296,8 +296,6 @@ case "$cmd" in
       --m5-source-sha256 \
       --tape-manifest \
       --tape-manifest-sha256 \
-      --split-manifest \
-      --split-manifest-sha256 \
       --pair-manifest \
       --pair-manifest-sha256 \
       --pair-generation-id \
@@ -316,6 +314,7 @@ case "$cmd" in
     for flag in \
       --native-m1-root \
       --pair-manifest \
+      --expected-pair-manifest-sha256 \
       --multi-tf-cache-dir \
       --output-parquet \
       --manifest-path \
@@ -341,6 +340,7 @@ case "$cmd" in
     for flag in \
       --native-m5-root \
       --pair-manifest \
+      --expected-pair-manifest-sha256 \
       --multi-tf-cache-dir \
       --output-parquet \
       --manifest-path \

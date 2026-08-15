@@ -273,3 +273,148 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     terminal = Path(status["terminal_event_path"])
     assert terminal.is_file()
     assert json.loads(terminal.read_text(encoding="utf-8")) == status
+
+
+def test_registry_fit_train_window_is_bound_to_the_chain_split_authority() -> None:
+    """Both TRAIN-fit owners must be checked against the chain's own windows.
+
+    The volatility-squeeze artifacts are a chain INPUT, so their declared TRAIN
+    window is compared at contract-validation. The V29 registry operators are
+    fitted INSIDE the chain, so their equivalent boundary is the first moment
+    the frozen payload exists: right after each enriched lane publishes. Before
+    2026-08-15 the registry side had no such check at all — it carried a
+    split-manifest pointer instead, which could never be satisfied because the
+    chain produces split manifests downstream of this fit.
+    """
+
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    for required in (
+        # Operator-input bound: the registry fit may not reach past TRAIN.
+        "registry fit TRAIN end must not exceed the chain's declared --train-end",
+        # One owner for the published-artifact equality check, both lanes.
+        "require_registry_fit_windows() {",
+        'require_registry_fit_windows M5 "$MTF/manifest.json"',
+        'require_registry_fit_windows M1 "${M1_ENRICHED}.manifest.json"',
+        # Validated through the payload owners, not by re-reading raw keys.
+        "require_v29_registry_constants",
+        "require_v29_registry_m1_lane_params",
+        "V29_REGISTRY_{lane}_CHAIN_TRAIN_WINDOW_MISMATCH",
+        # BOTH declared bounds are compared, not only the end. The lower bound
+        # was missing from the fit owners entirely until 2026-08-15.
+        'declared_train_window_start',
+        'pd.Timestamp(raw_train_start)',
+        # The hash-bound pair pointer the fit freezes is re-checked against
+        # the pair authority this chain validated at pair-authority.
+        "V29_REGISTRY_{lane}_CHAIN_PAIR_BINDING_MISMATCH",
+        '--expected-pair-manifest-sha256 "$PAIR_MANIFEST_SHA256"',
+        # The squeeze equality check stays exactly where it was.
+        "VOLATILITY_SQUEEZE_CHAIN_TRAIN_OR_PAIR_LINEAGE_MISMATCH",
+    ):
+        assert required in source, required
+
+    # Both enriched lanes must supply the pair hash the producer now requires.
+    assert source.count('--expected-pair-manifest-sha256 "$PAIR_MANIFEST_SHA256"') == 2
+
+    # The M5 lane must be checked before the M5 model source is materialized,
+    # and the M1 lane before the feature surfaces consume it.
+    assert source.index(
+        'require_registry_fit_windows M5 "$MTF/manifest.json"'
+    ) < source.index("CURRENT_STEP=m5-model-source")
+    assert source.index(
+        'require_registry_fit_windows M1 "${M1_ENRICHED}.manifest.json"'
+    ) < source.index("CURRENT_STEP=entry-exit-feature-surfaces")
+
+
+def _required_flags(relative: str) -> set[str]:
+    """Every ``add_argument(..., required=True)`` flag a producer declares."""
+
+    import ast
+
+    tree = ast.parse((REPO / relative).read_text(encoding="utf-8"))
+    flags: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not (isinstance(func, ast.Attribute) and func.attr == "add_argument"):
+            continue
+        if not any(
+            keyword.arg == "required"
+            and isinstance(keyword.value, ast.Constant)
+            and keyword.value.value is True
+            for keyword in node.keywords
+        ):
+            continue
+        for argument in node.args:
+            if (
+                isinstance(argument, ast.Constant)
+                and isinstance(argument.value, str)
+                and argument.value.startswith("--")
+            ):
+                flags.add(argument.value)
+    return flags
+
+
+def test_chain_supplies_every_argument_the_enriched_producer_requires() -> None:
+    """A required flag the chain never passes makes the producer unrunnable.
+
+    That is exactly what ``--registry-fit-split-manifest`` was on
+    ``prebuild_multi_tf_cache_v4.py``: declared ``required=True`` while no
+    caller supplied it. Derive the required set from the producer's own parser
+    (rule 13: never restate the flag list here) and prove each chain route
+    passes it.
+    """
+
+    source = SCRIPT.read_text(encoding="utf-8")
+    required = _required_flags(
+        "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py"
+    )
+    assert required
+
+    for route in ("model-native-m5-enriched-frame", "model-native-m1-enriched-frame"):
+        start = source.index(route)
+        end = source.index('>>"$LOG" 2>&1', start)
+        invocation = source[start:end]
+        missing = sorted(flag for flag in required if flag not in invocation)
+        assert not missing, f"{route}: chain never passes {missing}"
+
+
+def test_no_producer_route_binds_a_split_manifest_it_runs_before() -> None:
+    """The retired split pointers may not re-enter any chain-facing surface.
+
+    Derived from the owners' retired-key constants (rule 13: never restate the
+    key names here).
+    """
+
+    from gx1.contracts.registry_hyperparameter_fit_v1 import RETIRED_SOURCE_KEYS
+    from gx1.features.volatility_squeeze_state_v1 import (
+        RETIRED_TRAIN_LINEAGE_KEYS,
+    )
+
+    retired_keys = RETIRED_SOURCE_KEYS | RETIRED_TRAIN_LINEAGE_KEYS
+    assert retired_keys
+
+    # Producers and control surfaces only. The two contract owners are excluded
+    # on purpose: they are where the retired-key constants are declared.
+    for relative in (
+        "scripts/run_seq513_rebuild_chain_v1.sh",
+        "scripts/entry_next_edge_control.sh",
+        "gx1/scripts/prebuild_multi_tf_cache_v4.py",
+        "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py",
+        "gx1/scripts/benchmark_level_registry_v1.py",
+        "gx1/features/level_registry_v1.py",
+        "gx1/features/trendline_registry_v1.py",
+        "gx1/features/htf_features.py",
+    ):
+        text = (REPO / relative).read_text(encoding="utf-8")
+        for key in sorted(retired_keys):
+            assert key not in text, f"{relative}: retired lineage key {key}"
+
+    control = (REPO / "scripts/entry_next_edge_control.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "split-manifest" not in control
+    # The tape and pair bindings are real source authority and must remain.
+    assert "--tape-manifest" in control
+    assert "--pair-manifest" in control

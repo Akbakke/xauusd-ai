@@ -73,6 +73,16 @@ SUPERSEDED_MATRIX_IDENTITIES = (
     "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V9",
     "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V10",
 )
+# The two TRAIN-fit payload identities carry the same reuse role: a payload
+# frozen under a superseded identity must never load into a current surface.
+# ``..._v6`` was superseded on 2026-08-15 when the declared TRAIN window
+# became an ordered PAIR (the fit had no lower bound before that).
+SUPERSEDED_REGISTRY_PAYLOAD_IDENTITIES = (
+    "htf_v4_v29_registry_constants_v5",
+    "htf_v4_v29_registry_constants_v6",
+    "htf_v4_v29_registry_m1_lane_params_v5",
+    "htf_v4_v29_registry_m1_lane_params_v6",
+)
 
 
 def test_registry_artifact_cache_and_full_mtf_matrix_identity_are_bumped() -> None:
@@ -86,8 +96,20 @@ def test_registry_artifact_cache_and_full_mtf_matrix_identity_are_bumped() -> No
     """
 
     assert MODEL_NATIVE_V29_REGISTRY_RECIPE_ENV_KEYS == ()
-    assert V29_REGISTRY_CONSTANTS_SCHEMA_VERSION.endswith("_v6")
-    assert V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION.endswith("_v6")
+    assert (
+        V29_REGISTRY_CONSTANTS_SCHEMA_VERSION
+        not in SUPERSEDED_REGISTRY_PAYLOAD_IDENTITIES
+    )
+    assert V29_REGISTRY_CONSTANTS_SCHEMA_VERSION.startswith(
+        "htf_v4_v29_registry_constants_v"
+    )
+    assert (
+        V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION
+        not in SUPERSEDED_REGISTRY_PAYLOAD_IDENTITIES
+    )
+    assert V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION.startswith(
+        "htf_v4_v29_registry_m1_lane_params_v"
+    )
     assert HTF_V4_CACHE_SCHEMA_VERSION not in SUPERSEDED_CACHE_IDENTITIES
     assert HTF_V4_MATRIX_CONTRACT not in SUPERSEDED_MATRIX_IDENTITIES
     assert HTF_V4_CACHE_SCHEMA_VERSION.startswith("htf_v4_disk_cache_manifest_v")
@@ -107,5 +129,6 @@ def test_registry_artifact_cache_and_full_mtf_matrix_identity_are_bumped() -> No
         for stale in (
             *SUPERSEDED_CACHE_IDENTITIES,
             *SUPERSEDED_MATRIX_IDENTITIES,
+            *SUPERSEDED_REGISTRY_PAYLOAD_IDENTITIES,
         ):
             assert stale not in source, f"{relative}: stale {stale}"

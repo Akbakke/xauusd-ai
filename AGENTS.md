@@ -8,18 +8,27 @@ Read `GX1_RULES.md` first. It is binding.
 - Architecture is fixed: the same eight code-owned feature implementations run
   independently on local M5 for Entry and local M1 for Exit, in one model and
   shared encoder. There is no combined pre-owner M1/M5 package.
-- Entry is 96×349 plus 159 continuous and 5 categorical context values (349 =
-  30 base + 164 mandatory causal/raw + all 155 code-owned candidates; 319
-  specialist fields across 11 mandatory layer families). The active contract
-  is signal v19 in direction mode v8. It keeps the raw local/MTF evidence and retires handwritten
+- Entry is one M5 sequence plus continuous and categorical context. **Every
+  dimension derives from `gx1/contracts/entry_model_native_signal_v1.py`; this
+  document restates none of them** (CLAUDE.md rule 4 — every count restated in
+  this repository has gone stale within days, and on 2026-08-15 all eight of
+  them in this file were wrong at once). Read them with:
+  `MODEL_NATIVE_SIGNAL_DIM`, `MODEL_NATIVE_BASE_SIGNAL_DIM`,
+  `MODEL_NATIVE_MANDATORY_SELECTED_FIELDS`,
+  `MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS`,
+  `model_native_context_contract_metadata()`, `MODEL_NATIVE_SEQ_LEN`, and
+  `htf_features.MULTI_TF_FEATURE_COUNT_V4`. The shape is: a frozen base block +
+  the mandatory causal families + the complete code-owned candidate remainder.
+  The contract keeps the raw local/MTF evidence and retires handwritten
   scorebooks, the five regime composites, the `tf_agreement` auxiliary
   objective/head and `signed_vol_z_20`.
-- Signal v18 binds the exact 26-field causal candle geometry/relation/carry
-  owner on local and per-TF clocks. The retained local SMC event block has six
+- Signal binds the exact causal candle geometry/relation/carry owner on local
+  and per-TF clocks; its width derives from
+  `gx1/features/entry_candle_primitives_v1.CANDLE_PRIMITIVE_FEATURE_NAMES`. The retained local SMC event block has six
   exact displacement/depth/event/age outputs; neither is a scorebook vote.
 - Entry consumes one immutable native M5 feature surface across all splits;
   exact contiguous timestamp views are required. Never restore per-split
-  inline reconstruction of the 319 specialist fields.
+  inline reconstruction of the specialist fields.
 - Exit is the same feature contract at M1, a 480-bar M1 sequence, a dedicated
   learned Entry-decision token (one learned 609-to-128 projection of the exact
   six-block pre-argmax decision source) and the additive 15-field causal path.
@@ -28,14 +37,18 @@ Read `GX1_RULES.md` first. It is binding.
 - Entry context is closed M15/H1/H4/D1. Exit context is closed
   M5/M15/H1/H4/D1. Build closed OHLCV bars before features; never resample
   already computed M1 indicator values into a higher timeframe.
-- Every MTF lane has 171 ordered fields. Its three raw tick-volume primitives
+- Every MTF lane has `MULTI_TF_FEATURE_COUNT_V4` ordered fields. Its three raw
+  tick-volume primitives
   (`vol_z_20`, `vol_ratio_5_20`, `vol_pct_96`) are computed by the same volume
   owner from that timeframe's closed OHLCV; volume aggregates by sum. The
-  96/480-row local slices require 95 earlier owner rows, so Entry and Exit
-  request 191 and 575 native source rows respectively. No zero-filled warmup
+  local slices require earlier owner rows for the volume window, so Entry and
+  Exit request more native source rows than they slice; the exact counts derive
+  from the sequence lengths and the volume owner's window. No zero-filled warmup
   or resampling of computed volume features is allowed.
-- The current MTF matrix is V5, cache manifest v11 and full-input liveness v6;
-  the signal split schema is v7 and mandatory full-stack schema is v13. One
+- The MTF matrix, cache-manifest, liveness, signal-split and mandatory-stack
+  schema versions are owned by their contracts and printed by
+  `bash scripts/gx1_handover.sh` under `feature_contracts:` — never restated
+  here. One
   UTC trading-session clock phases H4 bars on 22/02/06/10/14/18 UTC and D1 at
   22:00 UTC; the retired H4 00/04/... and D1 midnight grids are not
   current-contract inputs.
@@ -60,10 +73,15 @@ Read `GX1_RULES.md` first. It is binding.
 - Fresh native M1/M5 V4 sources and canonical pair generation
   `9b18e215...077232cd` (2026-08-09) exist; the 2026-08-04 parent
   `64d62c1f...a11b84c` is untouched history. They are source authority only.
-- The current-contract rebuild chain requires the explicit registry-fit inputs
-  (`--level-tol-quantile-q 0.5` adopted 2026-08-11; fit window defaults to
-  the chain's `--train-end`). Registry fits freeze into the hash-bound build
-  manifests with their exact TRAIN source provenance; both lanes fail closed
+- The current-contract rebuild chain requires the explicit registry-fit window
+  inputs `--registry-fit-train-start`, `--registry-fit-train-end` and
+  `--registry-fit-inner-end`. The fit population is the closed interval
+  [start, end] with the inner boundary strictly inside it; the chain proves all
+  three equal its own split authority by exact timestamp before the next step
+  consumes either lane. `--level-tol-quantile-q` was retired and no longer
+  exists — passing it aborts the chain. Registry fits freeze into the hash-bound
+  build manifests with their exact TRAIN source provenance, including one
+  immutable-file-checked pointer to the pair generation; both lanes fail closed
   without it. The level-registry runtime-population shadow is an
   observation-only support check through the same state machine, not a second
   implementation or a live/shadow-trading route.

@@ -1,4 +1,9 @@
-"""Strict V4 liveness: no constant-field or saturation exception exists."""
+"""Strict V4 liveness: no constant-field or saturation exception exists.
+
+``geomline_above_active_count`` is used purely as a representative emitted
+column to force constancy on; it replaced ``geomline_above_active``, retired
+2026-08-15 for being the ">= 1" indicator of that very count.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -69,7 +74,7 @@ def test_variable_surface_passes_without_saturation_schema() -> None:
 @pytest.mark.parametrize("value", [0.0, 1.0])
 def test_every_constant_numeric_field_is_red(value: float) -> None:
     frames = _frames()
-    field = "geomline_above_active"
+    field = "geomline_above_active_count"
     _set_constant(frames, "D1", field, value)
     payload = htf.build_multi_tf_v4_liveness_contract(frames)
     assert payload["decision"] == "FAIL"
@@ -80,7 +85,7 @@ def test_every_constant_numeric_field_is_red(value: float) -> None:
 
 def test_validator_rejects_forged_constant_stats() -> None:
     payload = htf.build_multi_tf_v4_liveness_contract(_frames())
-    stats = payload["timeframes"]["D1"]["fields"]["geomline_above_active"]
+    stats = payload["timeframes"]["D1"]["fields"]["geomline_above_active_count"]
     stats["unique_count"] = 1
     stats["std"] = 0.0
     _reseal(payload)

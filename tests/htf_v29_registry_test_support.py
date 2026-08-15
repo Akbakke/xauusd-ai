@@ -1,7 +1,7 @@
 """Genuine synthetic TRAIN-fit registry artifacts shared by tests.
 
 Every fixture executes the canonical competing-risk fitter and binds real
-temporary source/tape/split files. Production validators have no test bypass.
+temporary source/tape files. Production validators have no test bypass.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ _INNER_ROW = 400
 def _source(root: Path, *, clock: str) -> dict:
     root.mkdir(parents=True, exist_ok=True)
     paths: dict[str, Path] = {}
-    for name in ("source", "tape", "split"):
+    for name in ("source", "tape", "pair"):
         path = (root / f"{name}.json").resolve()
         path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
         paths[name] = path
@@ -59,8 +59,8 @@ def _source(root: Path, *, clock: str) -> dict:
         "source_lane": clock,
         "tape_manifest_artifact": str(paths["tape"]),
         "tape_manifest_sha256": sha256_file(paths["tape"]),
-        "split_manifest_artifact": str(paths["split"]),
-        "split_manifest_sha256": sha256_file(paths["split"]),
+        "pair_manifest_artifact": str(paths["pair"]),
+        "pair_manifest_sha256": sha256_file(paths["pair"]),
         "train_split_id": "synthetic_chronological_train_only",
         "declared_train_window_start": _WINDOW_START,
         "declared_train_window_end": _WINDOW_END,
@@ -173,6 +173,7 @@ def synthetic_v29_registry_constants() -> dict:
     )
     payload = {
         "schema_version": V29_REGISTRY_CONSTANTS_SCHEMA_VERSION,
+        "declared_train_window_start": _WINDOW_START,
         "declared_train_window_end": _WINDOW_END,
         "declared_inner_fit_window_end": _INNER_END,
         "level_recurrence_threshold_atr": {
@@ -199,6 +200,7 @@ def synthetic_v29_registry_constants() -> dict:
             "module": "gx1.features.htf_features",
             "payload_schema_version": V29_REGISTRY_CONSTANTS_SCHEMA_VERSION,
             "fit_owner": "gx1.features.htf_features.fit_v29_registry_constants_from_m5",
+            "declared_train_window_start": _WINDOW_START,
             "declared_train_window_end": _WINDOW_END,
             "declared_inner_fit_window_end": _INNER_END,
             "n_train_m5_rows": int(level["M5"]["outer_train_rows"]),
@@ -226,6 +228,7 @@ def synthetic_v29_registry_m1_lane_params() -> dict:
     )
     payload = {
         "schema_version": V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
+        "declared_train_window_start": _WINDOW_START,
         "declared_train_window_end": _WINDOW_END,
         "declared_inner_fit_window_end": _INNER_END,
         "level_recurrence_threshold_atr": level["selected_threshold_atr"],
@@ -241,6 +244,7 @@ def synthetic_v29_registry_m1_lane_params() -> dict:
             "module": "gx1.features.htf_features",
             "payload_schema_version": V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
             "fit_owner": "gx1.features.htf_features.fit_v29_registry_m1_lane_params_from_m1",
+            "declared_train_window_start": _WINDOW_START,
             "declared_train_window_end": _WINDOW_END,
             "declared_inner_fit_window_end": _INNER_END,
             "n_train_m1_rows": int(level["outer_train_rows"]),

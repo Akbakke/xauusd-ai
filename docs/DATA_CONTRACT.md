@@ -54,14 +54,33 @@ Any disagreement fails before dataset construction.
 
 The V29 registry layers (level and trendline registries and their event
 projections) consume TRAIN-fitted tolerances only. The rebuild chain fits
-them once per lane on the declared TRAIN window from the explicit recipe
-input `--level-tol-quantile-q` (recipe owner
-`ENTRY_LEVEL_REGISTRY_TOL_QUANTILE_Q`; no default exists): the five-TF
-constants freeze with provenance into the V4 cache manifest, and the Exit
-M1-lane params freeze into the hash-bound M1-enriched frame manifest
-(`v29_registry_m1_lane_params`). Both materializers resolve the lane-correct
-frozen artifact fail-closed; cross-lane payloads and provenance-free bare
-values are rejected. VAL, TEST and serve never refit.
+them once per lane by immutable chronological inner-TRAIN competing-risk
+selection over the whole empirical threshold support (no quantile or window
+recipe input exists): the five-TF constants freeze with provenance into the
+V4 cache manifest, and the Exit M1-lane params freeze into the hash-bound
+M1-enriched frame manifest (`v29_registry_m1_lane_params`). Both
+materializers resolve the lane-correct frozen artifact fail-closed;
+cross-lane payloads and provenance-free bare values are rejected. VAL, TEST
+and serve never refit.
+
+The declared TRAIN population of that fit is an ordered PAIR —
+`declared_train_window_start` and `declared_train_window_end`, plus the
+inner boundary strictly between them. Both bounds are required arguments of
+both fit owners, both are frozen into the payload and its provenance, and the
+chain re-reads each published payload through its own validator and requires
+exact timestamp equality against `--train-start` /
+`--registry-fit-train-end` / `--registry-fit-inner-end` before the next step
+consumes it. Until 2026-08-15 the owners took only the upper bound, so the
+fit silently ran from the first source row (2019) and recorded the result as
+a TRAIN fit — see `docs/INDICATOR_FIDELITY_AUDIT_20260813.md` §0.
+
+Each hyperfit source provenance additionally carries
+`pair_manifest_artifact` / `pair_manifest_sha256`: one hash-bound pointer to
+the pair generation the fit actually read, re-verified as an immutable file
+on every V4 cache load. A retention pass that reclaims that generation must
+therefore fail every consumer closed. The retired names
+`split_manifest_artifact` / `split_manifest_sha256` (which carried this same
+binding under a false label) may never re-enter the payload.
 
 The five-field volatility-squeeze owner is applied independently on native
 closed OHLCV for M1/M5/M15/H1/H4/D1. Production consumers require one exact

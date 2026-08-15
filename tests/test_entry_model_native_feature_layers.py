@@ -128,14 +128,20 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             "bf143b30872d6513d47a9232ae25beea3f13946a98f8703d9e15250a5097e32a",
             "af300b1db50c88411851bbc82c69e78ece640acfa293f09c3fd9593d74e26d0e",
         ),
-            "candle": (
-                candle_x,
-                candle_names,
-                # Raw one-/two-bar geometry plus exact causal relation-state
-                # durations; no named/thresholded candlestick patterns.
-                (240, 26),
-                "7cdc42e2c64f9ee8d21234ef1d2089d534a67edf67a5136cb594bd207618f596",
-                "e099255c02a80471066fec98a98b3c071764e6d696f596fe69899bbdec0999b0",
+        "candle": (
+            candle_x,
+            candle_names,
+            # Raw one-/two-bar geometry plus exact causal relation-state
+            # durations; no named/thresholded candlestick patterns.
+            # 2026-08-15: candle.raw_zero_range_flag retired (constant
+            # post-warmup on H4/D1, hence a hard liveness RED with no
+            # scaleable exemption). Both hashes re-measured on the unchanged
+            # source fixture AFTER proving every surviving column is
+            # bit-identical to the pre-removal emission of the same column,
+            # so this is a narrower surface, not a changed one.
+            (240, 25),
+            "40f1d379a170dbc893f1c1ee40a18d131940c1d5f6544969b55e0d6fa7498f43",
+            "e5939326c93334be7ed799baf8c45b9264a7206b2b8e9518c181342f07ab91bd",
         ),
     }
     for values, feature_names, shape, value_hash, name_hash in expected.values():

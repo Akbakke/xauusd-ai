@@ -25,24 +25,27 @@ immutable OANDA XAU_USD M1 + M5
   source must match those market values exactly from common-history start
   through TRAIN end. M1 and M5 consumers bind that same NPZ; fitting a second
   rank state or fitting from the downstream model source is forbidden.
-- Both native surfaces use the same ordered 349 signal fields (30 base + 164
-  mandatory causal/raw + all 155 code-owned candidates = 319 specialist fields over 11
-  mandatory layer families; the counts derive from the owner tuples), 159
-  continuous context fields and 5 categorical fields. This is signal v19 in
-  direction contract mode v8. Entry reads 96 M5 bars; Exit reads 480 M1 bars
+- Both native surfaces use the same ordered signal fields, continuous context
+  and categorical context. **The composition is the owner tuples in
+  `gx1/contracts/entry_model_native_signal_v1.py` and nothing here restates a
+  count** (rule 4; on 2026-08-15 every count this file carried was stale).
+  The shape is a frozen base block + the mandatory causal families + the
+  complete code-owned candidate remainder. Entry reads `MODEL_NATIVE_SEQ_LEN`
+  M5 bars; Exit reads 480 M1 bars
   and the latest 512 detailed path rows plus an all-time elapsed-bar feature
   and full-path hash chain; total trade duration is not capped. Exit also
   consumes the learned frozen 128-wide Entry-decision token projected from the
   exact ordered 609-wide six-block pre-argmax decision source.
-- Each closed higher-timeframe lane has 171 ordered fields. Raw tick-volume
+- Each closed higher-timeframe lane has `MULTI_TF_FEATURE_COUNT_V4` ordered
+  fields. Raw tick-volume
   primitives are computed by the one volume owner after OHLCV resampling with
   `volume=sum`; computed volume features are never resampled. The local volume
-  window needs 95 preceding rows, so the Entry owner reads 191 native M5 rows
-  before slicing 96 and the Exit owner reads 575 native M1 rows before slicing
-  480. Missing warmup is an error, not a zero fill.
-- MTF matrix V5, cache manifest v11 and full-input liveness v6 bind the single
-  UTC trading-session owner. The signal split is v7 and mandatory stack v13.
-  H4 bins open on 22/02/06/10/14/18 UTC and D1 opens at 22:00 UTC; the retired
+  window needs preceding rows, so each owner reads more native rows than it
+  slices; the counts derive from the sequence length and the volume window.
+  Missing warmup is an error, not a zero fill.
+- The MTF matrix, cache manifest and full-input liveness bind the single UTC
+  trading-session owner; their exact schema versions are printed by
+  `bash scripts/gx1_handover.sh` and are never restated here. H4 bins open on 22/02/06/10/14/18 UTC and D1 opens at 22:00 UTC; the retired
   H4 00/04/... and calendar-midnight D1 grids are forbidden.
 - Entry model inputs may come only from the exact hash-bound native M5 feature
   surface. It is loaded once and sliced by exact timestamp for TRAIN/VAL/TEST;
@@ -51,8 +54,11 @@ immutable OANDA XAU_USD M1 + M5
   surface plus its additive path.
 - The eight specialists are structure, SMC/liquidity, trend, volatility,
   momentum, session/regime, chart geometry and price action/candles.
-- Signal v18 uses the exact 26-field causal candle geometry/relation/carry
-  owner locally and per TF. The retained six-field local SMC addition carries
+- Signal binds the exact causal candle geometry/relation/carry owner
+  (`gx1/features/entry_candle_primitives_v1.CANDLE_PRIMITIVE_FEATURE_NAMES`,
+  which owns its width) locally and per TF; `candle.raw_zero_range_flag` left
+  it on 2026-08-15 and is exactly recoverable from the three surviving range
+  shares. The retained six-field local SMC addition carries
   raw displacement, sided sweep depth, one-shot events and event age; these
   are evidence, not direction votes.
 - Direction has one authority: unique argmax of the accepted model's calibrated
@@ -96,9 +102,11 @@ immutable OANDA XAU_USD M1 + M5
 - The only admitted dataset rebuild orchestration is the current-pair chain in
   `scripts/run_seq513_rebuild_chain_v1.sh`. It resolves canonical, BASE28 and
   native M1/M5 from one pair manifest, TRAIN-fits the V29 registry state on
-  both lanes from the explicit recipe input `--level-tol-quantile-q` (frozen
-  with exact TRAIN-source provenance into the hash-bound build manifests; no
-  default exists),
+  both lanes over the closed window `[--registry-fit-train-start,
+  --registry-fit-train-end]` with `--registry-fit-inner-end` strictly inside it
+  (frozen with exact TRAIN-source provenance and a hash-bound pair-generation
+  pointer into the build manifests; no default exists, and the chain proves the
+  three boundaries equal its own split authority),
   builds both feature lanes, and passes both feature surfaces to
   preflight/rebuild. The retired event-local
   `canonical_features_v2.parquet`/legacy source-cascade route is forbidden.

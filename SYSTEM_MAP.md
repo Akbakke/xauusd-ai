@@ -62,8 +62,9 @@ The signal v19/direction-mode-v8 surface has 349 ordered fields: 30 code-owned
 base, 164 mandatory causal/raw and all 155 code-owned candidates (319 specialist fields
 total).
 
-Signal v18 binds the same exact 26-field causal candle
-geometry/relation/carry owner locally and on every TF. The retained six-field
+Signal binds the same exact causal candle geometry/relation/carry owner locally
+and on every TF; its width derives from
+`gx1/features/entry_candle_primitives_v1.CANDLE_PRIMITIVE_FEATURE_NAMES`. The retained six-field
 local SMC addition exposes displacement, sided sweep depth, one-shot sweep
 events and event age as raw evidence rather than a direction score.
 
@@ -79,10 +80,16 @@ registry (`gx1/features/trendline_registry_v1.py`: two-point sloped lines,
 divergence, regime-flip and swing-break event primitives on all five
 timeframes. The 171-field per-TF width is derived from
 `MULTI_TF_PER_BAR_FEATURES_V4`. Registry tolerances are TRAIN-fitted
-with the explicit recipe input `--level-tol-quantile-q` and frozen into the
+by immutable chronological inner-TRAIN competing-risk selection (no quantile
+or window recipe input exists) on the declared TRAIN window — an ordered
+`declared_train_window_start`/`declared_train_window_end` pair, both required
+and both re-checked against the chain's own `--train-start` /
+`--registry-fit-train-end` by exact timestamp equality once each lane
+publishes — and frozen into the
 hash-bound build manifests (M5 lanes: V4 cache manifest; Exit M1 lane: the
-M1-enriched manifest) with exact fit-source provenance; consumers fail closed
-without them. The level registry's post-fit runtime-population shadow uses the
+M1-enriched manifest) with exact fit-source provenance, including a
+hash-bound `pair_manifest_artifact`/`pair_manifest_sha256` pointer to the
+generation the fit read; consumers fail closed without them. The level registry's post-fit runtime-population shadow uses the
 same state machine as serving and is only a nonempty-support/provenance gate,
 not a duplicate registry or a shadow/live execution route.
 

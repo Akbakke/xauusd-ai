@@ -431,8 +431,8 @@ def test_cli_rejects_wrong_source_hash_before_parquet_read(
                 "--registry-fit-train-end", "2026-01-05T00:00:00+00:00",
                 "--registry-fit-tape-manifest", str(source),
                 "--expected-registry-fit-tape-manifest-sha256", "0" * 64,
-                "--registry-fit-split-manifest", str(source),
-                "--expected-registry-fit-split-manifest-sha256", "0" * 64,
+                "--registry-fit-pair-manifest", str(source),
+                "--expected-registry-fit-pair-manifest-sha256", "0" * 64,
                 "--registry-fit-train-split-id", "synthetic:TRAIN",
                 "--volatility-squeeze-manifest",
                 str(_SQUEEZE_TEST_ARTIFACTS.manifest_path),
@@ -585,3 +585,45 @@ def test_v4_cache_rejects_hash_valid_false_liveness_claim(
         match="HTF_V4_CACHE_FULL_INPUT_LIVENESS_INVALID",
     ):
         htf.load_multi_tf_v4_cache(cache_dir)
+
+
+def test_cli_rejects_the_retired_registry_split_manifest_flag(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The V29 registry fit cannot bind a split manifest it runs before.
+
+    ``--registry-fit-split-manifest`` was required until 2026-08-15 and pointed
+    at an artifact the rebuild chain only publishes after this cache exists.
+    The flag is retired; the declared TRAIN window is the population authority.
+    """
+
+    source = (tmp_path / "not-even-parquet.bin").resolve()
+    source.write_bytes(b"exact source bytes")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prebuild_multi_tf_cache_v4",
+            "--m5-prebuilt",
+            str(source),
+            "--expected-source-sha256",
+            "0" * 64,
+            "--out-dir",
+            str((tmp_path / "cache").resolve()),
+            "--registry-fit-train-start", "2026-01-01T00:00:00+00:00",
+            "--registry-fit-inner-end", "2026-01-03T00:00:00+00:00",
+            "--registry-fit-train-end", "2026-01-05T00:00:00+00:00",
+            "--registry-fit-tape-manifest", str(source),
+            "--expected-registry-fit-tape-manifest-sha256", "0" * 64,
+            "--registry-fit-train-split-id", "synthetic:TRAIN",
+            "--registry-fit-split-manifest", str(source),
+            "--expected-registry-fit-split-manifest-sha256", "0" * 64,
+            "--volatility-squeeze-manifest",
+            str(_SQUEEZE_TEST_ARTIFACTS.manifest_path),
+            "--expected-volatility-squeeze-manifest-sha256",
+            _SQUEEZE_TEST_ARTIFACTS.manifest_file_sha256,
+        ],
+    )
+    with pytest.raises(SystemExit):
+        producer.main()

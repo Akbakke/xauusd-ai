@@ -670,15 +670,26 @@ PYEOF
 then
   fail "volatility-squeeze six-clock artifact identity validation failed"
 fi
-if ! "$PY" - "$TRAIN_START" "$REGISTRY_FIT_INNER_END" "$REGISTRY_FIT_TRAIN_END" <<'PYEOF'
+if ! "$PY" - "$TRAIN_START" "$REGISTRY_FIT_INNER_END" "$REGISTRY_FIT_TRAIN_END" \
+  "$TRAIN_END" <<'PYEOF'
 import sys
 import pandas as pd
 
-start, inner, end = (pd.Timestamp(value) for value in sys.argv[1:])
-if any(value.tzinfo is None or value.utcoffset() != pd.Timedelta(0) for value in (start, inner, end)):
+start, inner, end, train_end = (pd.Timestamp(value) for value in sys.argv[1:])
+if any(
+    value.tzinfo is None or value.utcoffset() != pd.Timedelta(0)
+    for value in (start, inner, end, train_end)
+):
     raise RuntimeError("registry fit split must use timezone-aware UTC timestamps")
 if not start < inner < end:
     raise RuntimeError("registry fit inner boundary must lie strictly inside TRAIN")
+# --registry-fit-train-end defaults to --train-end but may be supplied
+# explicitly. It may never reach past the chain's declared TRAIN end: the
+# registry operators would then be fitted on VAL/TEST rows.
+if end > train_end:
+    raise RuntimeError(
+        "registry fit TRAIN end must not exceed the chain's declared --train-end"
+    )
 PYEOF
 then
   fail "registry chronological inner-TRAIN boundary is invalid"
@@ -980,6 +991,98 @@ require_pair_unchanged() {
     "$PAIR_MANIFEST_SHA256"
 }
 
+# The V29 registry operators are fitted INSIDE this chain, so unlike the
+# volatility-squeeze artifacts they cannot be checked at contract-validation --
+# they do not exist yet.  This is the equivalent boundary: the first moment the
+# frozen payload exists on disk, re-read the published bytes through the one
+# payload owner and require exact timestamp equality against the chain's own
+# split authority -- BOTH bounds and the inner boundary.  Without it nothing
+# proved that the window the chain declared is the window the lane actually
+# froze.  The same pass re-checks the hash-bound pair pointer every nested
+# hyperfit source provenance carries against the pair authority this chain
+# validated at its pair-authority step.
+require_registry_fit_windows() {
+  local lane=$1
+  local manifest=$2
+  if ! "$PY" - "$lane" "$manifest" "$TRAIN_START" "$REGISTRY_FIT_TRAIN_END" \
+    "$REGISTRY_FIT_INNER_END" "$M1_LIFECYCLE_PAIR_MANIFEST" \
+    "$PAIR_MANIFEST_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
+import json
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+from gx1.features.htf_features import (
+    require_v29_registry_constants,
+    require_v29_registry_m1_lane_params,
+)
+
+(
+    lane,
+    raw_manifest,
+    raw_train_start,
+    raw_train_end,
+    raw_inner_end,
+    raw_pair_manifest,
+    raw_pair_sha256,
+) = sys.argv[1:]
+payload = json.loads(
+    Path(raw_manifest).resolve(strict=True).read_text(encoding="utf-8")
+)
+if lane == "M5":
+    frozen = require_v29_registry_constants(payload["v29_registry_constants"])
+elif lane == "M1":
+    frozen = require_v29_registry_m1_lane_params(
+        payload["v29_registry_m1_lane_params"]
+    )
+else:
+    raise RuntimeError(f"V29_REGISTRY_FIT_LANE_INVALID: {lane!r}")
+if (
+    pd.Timestamp(frozen["declared_train_window_start"])
+    != pd.Timestamp(raw_train_start)
+    or pd.Timestamp(frozen["declared_train_window_end"])
+    != pd.Timestamp(raw_train_end)
+    or pd.Timestamp(frozen["declared_inner_fit_window_end"])
+    != pd.Timestamp(raw_inner_end)
+):
+    raise RuntimeError(
+        f"V29_REGISTRY_{lane}_CHAIN_TRAIN_WINDOW_MISMATCH: "
+        f"frozen_train_start={frozen['declared_train_window_start']} "
+        f"frozen_train_end={frozen['declared_train_window_end']} "
+        f"frozen_inner_end={frozen['declared_inner_fit_window_end']} "
+        f"chain_train_start={raw_train_start} "
+        f"chain_train_end={raw_train_end} chain_inner_end={raw_inner_end}"
+    )
+
+
+def _pair_bindings(node):
+    if isinstance(node, dict):
+        if "pair_manifest_artifact" in node and "pair_manifest_sha256" in node:
+            yield (node["pair_manifest_artifact"], node["pair_manifest_sha256"])
+        for value in node.values():
+            yield from _pair_bindings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _pair_bindings(value)
+
+
+expected_pair = (
+    str(Path(raw_pair_manifest).resolve(strict=True)),
+    raw_pair_sha256,
+)
+observed_pairs = set(_pair_bindings(frozen))
+if not observed_pairs or observed_pairs != {expected_pair}:
+    raise RuntimeError(
+        f"V29_REGISTRY_{lane}_CHAIN_PAIR_BINDING_MISMATCH: "
+        f"observed={sorted(observed_pairs)} expected={expected_pair}"
+    )
+PYEOF
+  then
+    fail "$lane V29 registry fit window does not match the chain's declared TRAIN split"
+  fi
+}
+
 # Build Entry locally on native M5.  The producer itself rejects workers != 1
 # and constructs M15/H1/H4/D1 from closed OHLCV before feature ownership.
 CURRENT_STEP=m5-enriched-feature-lane
@@ -990,6 +1093,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-enriched-frame \
   --native-m5-root "$NATIVE_M5_ROOT" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --expected-pair-manifest-sha256 "$PAIR_MANIFEST_SHA256" \
   --multi-tf-cache-dir "$MTF" \
   --output-parquet "$M5_ENRICHED" \
   --manifest-path "${M5_ENRICHED}.manifest.json" \
@@ -1010,6 +1114,7 @@ fi
    && -f ${M5_ENRICHED}.manifest.json && ! -L ${M5_ENRICHED}.manifest.json \
    && -d $MTF && ! -L $MTF && -f $MTF/manifest.json ]] \
   || fail "native M5 enriched output or its one V4 cache is missing/non-regular"
+require_registry_fit_windows M5 "$MTF/manifest.json"
 
 CURRENT_STEP=m5-model-source
 write_status "$CURRENT_STEP" RUNNING
@@ -1205,6 +1310,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m1-enriched-frame \
   --native-m1-root "$NATIVE_M1_ROOT" \
   --pair-manifest "$M1_LIFECYCLE_PAIR_MANIFEST" \
+  --expected-pair-manifest-sha256 "$PAIR_MANIFEST_SHA256" \
   --multi-tf-cache-dir "$MTF" \
   --output-parquet "$M1_ENRICHED" \
   --manifest-path "${M1_ENRICHED}.manifest.json" \
@@ -1224,6 +1330,7 @@ fi
 [[ -f $M1_ENRICHED && ! -L $M1_ENRICHED \
    && -f ${M1_ENRICHED}.manifest.json && ! -L ${M1_ENRICHED}.manifest.json ]] \
   || fail "native M1 enriched feature output is missing/non-regular"
+require_registry_fit_windows M1 "${M1_ENRICHED}.manifest.json"
 
 # Project the same ordered current-contract fields into each native clock. M1 is aligned
 # to the pair-bound closed-M1 lifecycle rows; M5 retains its native timeline.

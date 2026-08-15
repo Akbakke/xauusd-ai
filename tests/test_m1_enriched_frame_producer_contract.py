@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -52,6 +53,10 @@ def _write_pair_manifest(
     )
 
 
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def test_m1_producer_requires_exact_pair_native_m1_binding(tmp_path: Path) -> None:
     builder = _load_builder()
     pair_id = "a" * 64
@@ -76,6 +81,7 @@ def test_m1_producer_requires_exact_pair_native_m1_binding(tmp_path: Path) -> No
 
     result = builder._require_pair_binding(
         pair_manifest_path=pair_manifest,
+        expected_pair_manifest_sha256=_sha256_file(pair_manifest),
         pair_generation_id=pair_id,
         source_identity=source,
         native_summary={
@@ -97,6 +103,29 @@ def test_m1_producer_requires_exact_pair_native_m1_binding(tmp_path: Path) -> No
     with pytest.raises(RuntimeError, match="M1_ENRICHED_PAIR_NATIVE_M1_BINDING_MISMATCH"):
         builder._require_pair_binding(
             pair_manifest_path=pair_manifest,
+            expected_pair_manifest_sha256=_sha256_file(pair_manifest),
+            pair_generation_id=pair_id,
+            source_identity=source,
+            native_summary={
+                "row_count": len(frame),
+                "time_min_utc": frame["time"].iloc[0].isoformat(),
+                "time_max_utc": frame["time"].iloc[-1].isoformat(),
+            },
+        )
+
+    # The chain's validated pair hash is the authority; a producer that
+    # measured its own would silently accept a swapped manifest.
+    _write_pair_manifest(
+        pair_manifest,
+        pair_generation_id=pair_id,
+        native_m1=expected,
+    )
+    with pytest.raises(
+        RuntimeError, match="M1_ENRICHED_PAIR_MANIFEST_SHA256_MISMATCH"
+    ):
+        builder._require_pair_binding(
+            pair_manifest_path=pair_manifest,
+            expected_pair_manifest_sha256="d" * 64,
             pair_generation_id=pair_id,
             source_identity=source,
             native_summary={

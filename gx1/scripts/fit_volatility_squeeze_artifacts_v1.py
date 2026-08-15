@@ -52,7 +52,13 @@ def main() -> int:
     for lane in ("m1", "m5"):
         parser.add_argument(f"--{lane}-source", type=Path, required=True)
         parser.add_argument(f"--{lane}-source-sha256", required=True)
-    for name in ("tape", "split", "pair"):
+    # tape + pair only. Both exist before this fit runs. A --split-manifest was
+    # additionally required until 2026-08-15; the rebuild chain PRODUCES its
+    # split manifests from the dataset this fit feeds, so the flag demanded an
+    # artifact that cannot exist at fit time. The TRAIN-window invariant it was
+    # supposed to carry is enforced by exact timestamp equality against the
+    # chain's own --train-start/--train-end at contract-validation.
+    for name in ("tape", "pair"):
         parser.add_argument(f"--{name}-manifest", type=Path, required=True)
         parser.add_argument(f"--{name}-manifest-sha256", required=True)
     parser.add_argument("--pair-generation-id", required=True)
@@ -77,7 +83,7 @@ def main() -> int:
             getattr(args, f"{name}_manifest_sha256"),
             label=f"VOLATILITY_SQUEEZE_{name.upper()}_MANIFEST",
         )
-        for name in ("tape", "split", "pair")
+        for name in ("tape", "pair")
     }
 
     from gx1.features.htf_features import (
@@ -107,8 +113,6 @@ def main() -> int:
     common = {
         "tape_manifest_artifact": str(lineage_paths["tape"]),
         "tape_manifest_sha256": args.tape_manifest_sha256,
-        "split_manifest_artifact": str(lineage_paths["split"]),
-        "split_manifest_sha256": args.split_manifest_sha256,
         "pair_manifest_artifact": str(lineage_paths["pair"]),
         "pair_manifest_sha256": args.pair_manifest_sha256,
         "pair_generation_id": args.pair_generation_id,

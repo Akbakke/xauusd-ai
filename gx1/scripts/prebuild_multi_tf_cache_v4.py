@@ -19,6 +19,13 @@ Usage:
         --registry-fit-train-start <UTC timestamp> \
         --registry-fit-inner-end <UTC timestamp> \
         --registry-fit-train-end <UTC timestamp of the declared TRAIN end> \
+        --registry-fit-tape-manifest /absolute/TAPE_MANIFEST.json \
+        --expected-registry-fit-tape-manifest-sha256 <exact-lowercase-sha256> \
+        --registry-fit-pair-manifest /absolute/PAIR_MANIFEST.json \
+        --expected-registry-fit-pair-manifest-sha256 <exact-lowercase-sha256> \
+        --registry-fit-train-split-id <declared TRAIN split id> \
+        --volatility-squeeze-manifest /absolute/SQUEEZE_MANIFEST.json \
+        --expected-volatility-squeeze-manifest-sha256 <exact-lowercase-sha256> \
         --out-dir /absolute/MULTI_TF_V4_CACHE
 """
 from __future__ import annotations
@@ -390,9 +397,16 @@ def main() -> int:
     parser.add_argument(
         "--expected-registry-fit-tape-manifest-sha256", required=True
     )
-    parser.add_argument("--registry-fit-split-manifest", type=Path, required=True)
+    # A --registry-fit-split-manifest was required here until 2026-08-15. It
+    # pointed at an artifact the rebuild chain only produces AFTER this cache
+    # exists, so it could never be satisfied on a first build. The declared
+    # TRAIN window below is the population authority instead, and the pair
+    # manifest below restores the hash-bound pointer to the generation the fit
+    # actually read (the split pointer was bound to the pair manifest under a
+    # false name; removing it left no immutable-file binding at all).
+    parser.add_argument("--registry-fit-pair-manifest", type=Path, required=True)
     parser.add_argument(
-        "--expected-registry-fit-split-manifest-sha256", required=True
+        "--expected-registry-fit-pair-manifest-sha256", required=True
     )
     parser.add_argument("--registry-fit-train-split-id", required=True)
     parser.add_argument(
@@ -458,10 +472,10 @@ def main() -> int:
         args.expected_registry_fit_tape_manifest_sha256,
         label="CACHE_V4_REGISTRY_TAPE_MANIFEST",
     )
-    split_manifest, split_manifest_sha256 = _bound_manifest(
-        args.registry_fit_split_manifest,
-        args.expected_registry_fit_split_manifest_sha256,
-        label="CACHE_V4_REGISTRY_SPLIT_MANIFEST",
+    pair_manifest, pair_manifest_sha256 = _bound_manifest(
+        args.registry_fit_pair_manifest,
+        args.expected_registry_fit_pair_manifest_sha256,
+        label="CACHE_V4_REGISTRY_PAIR_MANIFEST",
     )
     train_start = pd.Timestamp(args.registry_fit_train_start)
     inner_end = pd.Timestamp(args.registry_fit_inner_end)
@@ -479,8 +493,8 @@ def main() -> int:
             "source_lane": clock,
             "tape_manifest_artifact": str(tape_manifest),
             "tape_manifest_sha256": tape_manifest_sha256,
-            "split_manifest_artifact": str(split_manifest),
-            "split_manifest_sha256": split_manifest_sha256,
+            "pair_manifest_artifact": str(pair_manifest),
+            "pair_manifest_sha256": pair_manifest_sha256,
             "train_split_id": args.registry_fit_train_split_id,
             "declared_train_window_start": train_start.isoformat(),
             "declared_train_window_end": train_end.isoformat(),
@@ -514,6 +528,7 @@ def main() -> int:
     # constants, not new numbers).
     registry_constants = fit_v29_registry_constants_from_m5(
         m5,
+        declared_train_window_start=train_start.isoformat(),
         declared_train_window_end=train_end.isoformat(),
         declared_inner_fit_window_end=inner_end.isoformat(),
         source_provenance_by_clock=source_provenance_by_clock,

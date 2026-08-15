@@ -211,6 +211,7 @@ def test_m1_and_m5_cli_routes_call_one_shared_owner_implementation(
 
     common_enriched = [
         "--pair-manifest", "/tmp/pair.json",
+        "--expected-pair-manifest-sha256", "e" * 64,
         "--multi-tf-cache-dir", "/tmp/cache",
         "--output-parquet", "/tmp/enriched.parquet",
         "--manifest-path", "/tmp/enriched.json",

@@ -264,8 +264,11 @@ def test_model_native_signal_contract_has_exact_derived_width_and_all_groups_liv
         "ordered_feature_names_sha256": CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256,
         "ordered_feature_names": list(CANDLE_PRIMITIVE_FEATURE_NAMES),
     }
+    # 2026-08-15: candle.raw_zero_range_flag retired from the ordered tuple
+    # (constant post-warmup on H4/D1 -> hard liveness RED, and unscaleable as
+    # a declared constant). Re-measured over the narrowed tuple.
     assert CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256 == (
-        "e099255c02a80471066fec98a98b3c071764e6d696f596fe69899bbdec0999b0"
+        "e5939326c93334be7ed799baf8c45b9264a7206b2b8e9518c181342f07ab91bd"
     )
     price_owner = contract["mandatory_full_stack"]["price_derived_owner"]
     assert price_owner == price_derived_contract_metadata()

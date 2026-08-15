@@ -525,7 +525,18 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
         allow_nan=False,
     ).encode("utf-8")
 ).hexdigest()
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V13"
+# V14 (2026-08-15): the trendline-registry presence masks
+# geomline_{above,below}_active leave the per-TF surface (they were the ">= 1"
+# indicator of the counts beside them), and body_pct adopts the sibling candle
+# owner's zero-range share convention instead of a mid-series NaN.
+# V15 (2026-08-15): mtf_candle_raw_zero_range_flag leaves the per-TF surface.
+# It is constant 0.0 post-warmup on H4 and D1 (gold prints no zero-range
+# 4-hour or daily bar), which build_multi_tf_v4_liveness_contract fails closed
+# on, and a declared-constant exemption would only move the failure to
+# [ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]. Its two inputs, high and low,
+# remain model inputs on every lane. See the CANDLE_PRIMITIVE_FEATURE_VERSION
+# note in gx1.features.entry_candle_primitives_v1 for the measurements.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V15"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -539,21 +550,38 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V13"
 # causal replay and one-shot level-identity sweeps. v18 replaces capped age and
 # premium aliases with raw event ages and raw pivot-envelope position. v19
 # binds the swing-v2 formula owner and its wider raw current-state surface.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v22"
+# v23 retires the two trendline presence masks and rewrites body_pct on
+# zero-range bars; a v22 cache holds different columns under the same names.
+# v24 retires mtf_candle_raw_zero_range_flag; a v23 cache is one column wider
+# under the same feature-name hash key and must not be read as current.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v24"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
 )
 # v12 re-proves support for raw uncapped event ages without persistent global
 # ever-seen masks; earlier payloads cannot describe this width.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v14"
-# These are deliberate aliases inside the fixed per-bar V4 model surface.
-HTF_V4_DECLARED_ALIAS_PAIRS = frozenset(
-    {
-        ("body_pct", "mtf_pattern_body_share"),
-        ("upper_wick_pct", "mtf_pattern_upper_wick_share"),
-        ("lower_wick_pct", "mtf_pattern_lower_wick_share"),
-    }
-)
+# v15 describes the surface without the two trendline presence masks.
+# v16 describes the surface without mtf_candle_raw_zero_range_flag — the only
+# per-TF field that could not reach a liveness verdict on H4/D1 at all.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v16"
+# Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
+# exempted from the duplicate-column failure in
+# :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered
+# pair ``(first_emitted_name, later_emitted_name)`` in
+# MULTI_TF_PER_BAR_FEATURES_V4 order — that is the order the duplicate check
+# builds the pair in.
+#
+# 2026-08-15: emptied.  The three pairs declared here had gone stale — five of
+# their six names had already left MULTI_TF_PER_BAR_FEATURES_V4
+# (`mtf_pattern_*_share` never existed on this surface; `upper_wick_pct` and
+# `lower_wick_pct` were retired in favour of the causal candle owner's
+# `mtf_candle_raw_{upper,lower}_wick_share`), so no emitted pair could ever
+# match and the exemption silently protected nothing.  The surface currently
+# declares no alias at all; every duplicated column is therefore a hard
+# failure.  ``test_declared_alias_pairs_name_fields_the_surface_emits`` in
+# tests/test_htf_v4_per_bar_contract.py keeps a future entry from going stale
+# the same way.
+HTF_V4_DECLARED_ALIAS_PAIRS: frozenset[tuple[str, str]] = frozenset()
 
 MULTI_TF_RESAMPLE_RULES = {
     # Resample cadence only. Entry window lengths are explicit recipe inputs
@@ -819,13 +847,14 @@ def require_multi_tf_resolution_pyramid(
 # Both operators are selected by immutable chronological inner-TRAIN
 # competing-risk artifacts. No q/reaction/retest recipe input exists.
 # ---------------------------------------------------------------------------
-V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v6"
+V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v7"
 V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_constants_provenance_v5"
+    "htf_v4_v29_registry_constants_provenance_v6"
 )
 _V29_REGISTRY_CONSTANTS_KEYS = frozenset(
     {
         "schema_version",
+        "declared_train_window_start",
         "declared_train_window_end",
         "declared_inner_fit_window_end",
         "level_recurrence_threshold_atr",
@@ -848,6 +877,7 @@ _V29_REGISTRY_CONSTANTS_PROVENANCE_KEYS = frozenset(
         "module",
         "payload_schema_version",
         "fit_owner",
+        "declared_train_window_start",
         "declared_train_window_end",
         "declared_inner_fit_window_end",
         "n_train_m5_rows",
@@ -942,6 +972,7 @@ def _require_registry_hyperfit_provenance(
     learned_expiry_bars: int,
     source_row_count: int,
     inner_fit_end_exclusive: int,
+    window_start: str,
     window_end: str,
     population_configuration: Mapping[str, object] | None,
     context: str,
@@ -1067,6 +1098,7 @@ def _require_registry_hyperfit_provenance(
         or int(payload["outer_train_rows"]) != int(source_row_count)
         or int(payload["inner_fit_end_exclusive"])
         != int(inner_fit_end_exclusive)
+        or source["declared_train_window_start"] != window_start
         or source["declared_train_window_end"] != window_end
         or payload["future_outcomes_usage"]
         != "TRAIN_hyperparameter_fit_only_not_apply_features"
@@ -1103,6 +1135,13 @@ def require_v29_registry_constants(value: object) -> dict:
             "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: schema_version="
             f"{observed['schema_version']!r}"
         )
+    window_start = _require_canonical_utc_timestamp_label(
+        observed["declared_train_window_start"],
+        context=(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: "
+            "declared_train_window_start"
+        ),
+    )
     window_end = _require_canonical_utc_timestamp_label(
         observed["declared_train_window_end"],
         context=(
@@ -1117,9 +1156,14 @@ def require_v29_registry_constants(value: object) -> dict:
             "declared_inner_fit_window_end"
         ),
     )
-    if pd.Timestamp(inner_window_end) >= pd.Timestamp(window_end):
+    if not (
+        pd.Timestamp(window_start)
+        < pd.Timestamp(inner_window_end)
+        < pd.Timestamp(window_end)
+    ):
         raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: inner split must precede TRAIN end"
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: inner split must lie "
+            "strictly inside the declared TRAIN window"
         )
     expected_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
     # Exact key SET, canonical iteration order for the value checks. Key
@@ -1205,6 +1249,7 @@ def require_v29_registry_constants(value: object) -> dict:
         != V29_REGISTRY_CONSTANTS_SCHEMA_VERSION
         or provenance["fit_owner"]
         != "gx1.features.htf_features.fit_v29_registry_constants_from_m5"
+        or provenance["declared_train_window_start"] != window_start
         or provenance["declared_train_window_end"] != window_end
         or provenance["declared_inner_fit_window_end"] != inner_window_end
         or n_train_rows <= 0
@@ -1236,6 +1281,7 @@ def require_v29_registry_constants(value: object) -> dict:
             provenance["level_recurrence_threshold"][tf_name],
             registry_kind="horizontal_level",
             timeframe=tf_name,
+            window_start=window_start,
             window_end=window_end,
             selected_threshold_atr=float(
                 observed["level_recurrence_threshold_atr"][tf_name]
@@ -1254,6 +1300,7 @@ def require_v29_registry_constants(value: object) -> dict:
             provenance["trendline_band"][tf_name],
             registry_kind="trendline",
             timeframe=tf_name,
+            window_start=window_start,
             window_end=window_end,
             selected_threshold_atr=float(observed["trendline_band_atr"][tf_name]),
             learned_expiry_bars=int(observed["trendline_expiry_bars"][tf_name]),
@@ -1273,6 +1320,7 @@ def require_v29_registry_constants(value: object) -> dict:
         provenance["entry_m5_trendline_band"],
         registry_kind="trendline",
         timeframe="M5",
+        window_start=window_start,
         window_end=window_end,
         selected_threshold_atr=float(entry_m5["trendline_band_atr"]),
         learned_expiry_bars=int(entry_m5["trendline_expiry_bars"]),
@@ -1347,6 +1395,7 @@ def load_volatility_squeeze_artifacts_from_cache_manifest(
 def fit_v29_registry_constants_from_m5(
     m5_df: pd.DataFrame,
     *,
+    declared_train_window_start,
     declared_train_window_end,
     declared_inner_fit_window_end,
     source_provenance_by_clock: Mapping[str, Mapping[str, object]],
@@ -1355,26 +1404,42 @@ def fit_v29_registry_constants_from_m5(
 ) -> dict:
     """Fit the V29 registry constants once on the declared TRAIN window.
 
-    ``m5_df`` is the exact native-M5 OHLCV source; only rows at or before
-    ``declared_train_window_end`` participate (rule 18: fit on the physical
-    TRAIN population, freeze, never refit).  Every TF is resampled through the
-    same closed-bar geometry the surface computation uses, so the fitted
-    population equals the admitted population (rule 2g).  Sample sizes and
-    sampling bounds are recorded in the provenance payload (rule 2f).
+    ``m5_df`` is the exact native-M5 OHLCV source; only rows inside the closed
+    interval ``[declared_train_window_start, declared_train_window_end]``
+    participate (rule 18: fit on the physical TRAIN population, freeze, never
+    refit).  Both bounds are required and are the only TRAIN-population
+    authority here — the lower bound was missing until 2026-08-15, which
+    silently fitted the four decision-bearing constants per clock on the whole
+    source history instead of the declared TRAIN rows (rule 2g).  Every TF is
+    resampled through the same closed-bar geometry the surface computation
+    uses, so the fitted population equals the admitted population (rule 2g).
+    Sample sizes and sampling bounds are recorded in the provenance payload
+    (rule 2f).
     """
 
     _validate_m5_input(m5_df, require_volume=True)
+    window_start = pd.Timestamp(declared_train_window_start)
+    if window_start.tzinfo is None or window_start.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_FIT_WINDOW_INVALID: "
+            "declared_train_window_start must be timezone-aware UTC"
+        )
     window_end = pd.Timestamp(declared_train_window_end)
     if window_end.tzinfo is None or window_end.utcoffset() != pd.Timedelta(0):
         raise RuntimeError(
             "HTF_V4_V29_REGISTRY_FIT_WINDOW_INVALID: declared_train_window_end "
             "must be timezone-aware UTC"
         )
+    if window_start >= window_end:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_FIT_WINDOW_INVALID: "
+            "declared_train_window_start must precede declared_train_window_end"
+        )
     inner_window_end = pd.Timestamp(declared_inner_fit_window_end)
     if (
         inner_window_end.tzinfo is None
         or inner_window_end.utcoffset() != pd.Timedelta(0)
-        or inner_window_end >= window_end
+        or not window_start < inner_window_end < window_end
     ):
         raise RuntimeError(
             "HTF_V4_V29_REGISTRY_FIT_INNER_WINDOW_INVALID"
@@ -1397,15 +1462,19 @@ def fit_v29_registry_constants_from_m5(
 
     source = m5_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
-    train_source = source[source.index <= window_end]
+    train_source = source[
+        (source.index >= window_start) & (source.index <= window_end)
+    ]
     if train_source.empty:
         raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_FIT_WINDOW_EMPTY: no source rows at or before "
-            f"{window_end.isoformat()}"
+            "HTF_V4_V29_REGISTRY_FIT_WINDOW_EMPTY: no source rows inside the "
+            f"declared TRAIN window [{window_start.isoformat()}, "
+            f"{window_end.isoformat()}]"
         )
     expected_indices = build_multi_tf_v4_closed_timestamp_indices(
         train_source.index
     )
+    window_start_label = str(window_start.isoformat())
     window_label = str(window_end.isoformat())
     inner_window_label = str(inner_window_end.isoformat())
     level_recurrence_threshold_atr: dict[str, float] = {}
@@ -1418,6 +1487,7 @@ def fit_v29_registry_constants_from_m5(
         "module": "gx1.features.htf_features",
         "payload_schema_version": V29_REGISTRY_CONSTANTS_SCHEMA_VERSION,
         "fit_owner": "gx1.features.htf_features.fit_v29_registry_constants_from_m5",
+        "declared_train_window_start": window_start_label,
         "declared_train_window_end": window_label,
         "declared_inner_fit_window_end": inner_window_label,
         "n_train_m5_rows": int(len(train_source)),
@@ -1487,6 +1557,7 @@ def fit_v29_registry_constants_from_m5(
     provenance["entry_m5_trendline_band"] = entry_provenance
     constants = {
         "schema_version": V29_REGISTRY_CONSTANTS_SCHEMA_VERSION,
+        "declared_train_window_start": window_start_label,
         "declared_train_window_end": window_label,
         "declared_inner_fit_window_end": inner_window_label,
         "level_recurrence_threshold_atr": level_recurrence_threshold_atr,
@@ -1518,15 +1589,16 @@ def fit_v29_registry_constants_from_m5(
 # consumed fail-closed by the M1 materializer.  No default exists anywhere.
 # ---------------------------------------------------------------------------
 V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_m1_lane_params_v6"
+    "htf_v4_v29_registry_m1_lane_params_v7"
 )
 V29_REGISTRY_M1_LANE_PROVENANCE_SCHEMA_VERSION = (
-    "htf_v4_v29_registry_m1_lane_provenance_v5"
+    "htf_v4_v29_registry_m1_lane_provenance_v6"
 )
 V29_REGISTRY_M1_LANE_MANIFEST_KEY = "v29_registry_m1_lane_params"
 _V29_REGISTRY_M1_LANE_PARAMS_KEYS = frozenset(
     {
         "schema_version",
+        "declared_train_window_start",
         "declared_train_window_end",
         "declared_inner_fit_window_end",
         "level_recurrence_threshold_atr",
@@ -1546,6 +1618,7 @@ _V29_REGISTRY_M1_LANE_PROVENANCE_KEYS = frozenset(
         "module",
         "payload_schema_version",
         "fit_owner",
+        "declared_train_window_start",
         "declared_train_window_end",
         "declared_inner_fit_window_end",
         "n_train_m1_rows",
@@ -1577,6 +1650,13 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
             "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: schema_version="
             f"{observed['schema_version']!r}"
         )
+    window_start = _require_canonical_utc_timestamp_label(
+        observed["declared_train_window_start"],
+        context=(
+            "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: "
+            "declared_train_window_start"
+        ),
+    )
     window_end = _require_canonical_utc_timestamp_label(
         observed["declared_train_window_end"],
         context=(
@@ -1591,7 +1671,11 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
             "declared_inner_fit_window_end"
         ),
     )
-    if pd.Timestamp(inner_window_end) >= pd.Timestamp(window_end):
+    if not (
+        pd.Timestamp(window_start)
+        < pd.Timestamp(inner_window_end)
+        < pd.Timestamp(window_end)
+    ):
         raise RuntimeError(
             "HTF_V4_V29_REGISTRY_M1_LANE_PARAMS_INVALID: inner split"
         )
@@ -1660,6 +1744,7 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
         != V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION
         or provenance["fit_owner"]
         != "gx1.features.htf_features.fit_v29_registry_m1_lane_params_from_m1"
+        or provenance["declared_train_window_start"] != window_start
         or provenance["declared_train_window_end"] != window_end
         or provenance["declared_inner_fit_window_end"] != inner_window_end
         or n_train_rows <= 0
@@ -1680,6 +1765,7 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
         provenance["level_recurrence_threshold"],
         registry_kind="horizontal_level",
         timeframe="M1",
+        window_start=window_start,
         window_end=window_end,
         selected_threshold_atr=float(observed["level_recurrence_threshold_atr"]),
         learned_expiry_bars=int(observed["level_expiry_bars"]),
@@ -1692,6 +1778,7 @@ def require_v29_registry_m1_lane_params(value: object) -> dict:
         provenance["trendline_band"],
         registry_kind="trendline",
         timeframe="M1",
+        window_start=window_start,
         window_end=window_end,
         selected_threshold_atr=float(exit_m1["trendline_band_atr"]),
         learned_expiry_bars=int(exit_m1["trendline_expiry_bars"]),
@@ -1800,6 +1887,7 @@ def load_v29_registry_m1_lane_params_manifest(path) -> dict:
 def fit_v29_registry_m1_lane_params_from_m1(
     m1_df: pd.DataFrame,
     *,
+    declared_train_window_start,
     declared_train_window_end,
     declared_inner_fit_window_end,
     source_provenance: Mapping[str, object],
@@ -1807,9 +1895,13 @@ def fit_v29_registry_m1_lane_params_from_m1(
 ) -> dict:
     """Fit the Exit M1-lane registry params once on the declared TRAIN window.
 
-    ``m1_df`` is the exact native-M1 OHLCV source; only rows at or before
-    ``declared_train_window_end`` participate (rule 18: fit on the physical
-    TRAIN population, freeze, never refit).  The fit population is the native
+    ``m1_df`` is the exact native-M1 OHLCV source; only rows inside the closed
+    interval ``[declared_train_window_start, declared_train_window_end]``
+    participate (rule 18: fit on the physical TRAIN population, freeze, never
+    refit).  Both bounds are required and are the only TRAIN-population
+    authority here — the lower bound was missing until 2026-08-15, which
+    silently fitted the decision-bearing constants on the whole source history
+    instead of the declared TRAIN rows (rule 2g).  The fit population is the native
     M1 clock itself — the same clock, ATR convention (``_atr``, 14) and pivot
     admission the shared local layer uses at serve (rule 2g).  The trendline
     candidate window is the Exit model sequence length (named contract
@@ -1823,17 +1915,28 @@ def fit_v29_registry_m1_lane_params_from_m1(
         require_volume=False,
         bar_duration=pd.Timedelta(minutes=1),
     )
+    window_start = pd.Timestamp(declared_train_window_start)
+    if window_start.tzinfo is None or window_start.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_INVALID: "
+            "declared_train_window_start must be timezone-aware UTC"
+        )
     window_end = pd.Timestamp(declared_train_window_end)
     if window_end.tzinfo is None or window_end.utcoffset() != pd.Timedelta(0):
         raise RuntimeError(
             "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_INVALID: "
             "declared_train_window_end must be timezone-aware UTC"
         )
+    if window_start >= window_end:
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_INVALID: "
+            "declared_train_window_start must precede declared_train_window_end"
+        )
     inner_window_end = pd.Timestamp(declared_inner_fit_window_end)
     if (
         inner_window_end.tzinfo is None
         or inner_window_end.utcoffset() != pd.Timedelta(0)
-        or inner_window_end >= window_end
+        or not window_start < inner_window_end < window_end
     ):
         raise RuntimeError("HTF_V4_V29_REGISTRY_M1_FIT_INNER_WINDOW_INVALID")
     if (
@@ -1847,12 +1950,16 @@ def fit_v29_registry_m1_lane_params_from_m1(
         )
     source = m1_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
-    train_source = source[source.index <= window_end]
+    train_source = source[
+        (source.index >= window_start) & (source.index <= window_end)
+    ]
     if train_source.empty:
         raise RuntimeError(
-            "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_EMPTY: no source rows at or "
-            f"before {window_end.isoformat()}"
+            "HTF_V4_V29_REGISTRY_M1_FIT_WINDOW_EMPTY: no source rows inside "
+            f"the declared TRAIN window [{window_start.isoformat()}, "
+            f"{window_end.isoformat()}]"
         )
+    window_start_label = str(window_start.isoformat())
     window_label = str(window_end.isoformat())
     inner_window_label = str(inner_window_end.isoformat())
     fit_frame = train_source[["high", "low", "close"]].copy()
@@ -1879,6 +1986,7 @@ def fit_v29_registry_m1_lane_params_from_m1(
     )
     params = {
         "schema_version": V29_REGISTRY_M1_LANE_PARAMS_SCHEMA_VERSION,
+        "declared_train_window_start": window_start_label,
         "declared_train_window_end": window_label,
         "declared_inner_fit_window_end": inner_window_label,
         "level_recurrence_threshold_atr": float(
@@ -1903,6 +2011,7 @@ def fit_v29_registry_m1_lane_params_from_m1(
                 "gx1.features.htf_features."
                 "fit_v29_registry_m1_lane_params_from_m1"
             ),
+            "declared_train_window_start": window_start_label,
             "declared_train_window_end": window_label,
             "declared_inner_fit_window_end": inner_window_label,
             "n_train_m1_rows": int(len(train_source)),
@@ -2736,13 +2845,48 @@ def compute_per_bar_features_v4(
         )
     out["close_open_atr"] = (close - open_) / atr_positive
 
-    bar_range = (high - low).where((high - low) > 0.0)
+    # Zero-range convention (2026-08-15) — ADOPTED VERBATIM from the sibling
+    # candle owner in this same repository,
+    # gx1.features.entry_candle_primitives_v1.
+    # compute_entry_candle_primitive_chunk: on a ``high == low`` bar every
+    # range SHARE is mathematically undefined, and that owner emits share 0.0
+    # there.  No magnitude is invented: ``body_pct`` is the unsigned twin of
+    # ``mtf_candle_raw_body_signed_range``, which the sibling already sets to
+    # 0.0 on exactly these rows.
+    #
+    # WHAT CARRIES THE DISTINCTION NOW (2026-08-15).  This comment used to
+    # name ``candle.raw_zero_range_flag`` / ``mtf_candle_raw_zero_range_flag``
+    # as the field that separated the storage zero from a real observation.
+    # That flag has been RETIRED — it was constant 0.0 post-warmup on H4 and
+    # D1 (liveness RED) and unscaleable as a declared constant; the argument
+    # is in the CANDLE_PRIMITIVE_FEATURE_VERSION note of the sibling owner.
+    # The distinction did not leave with it.  PROVEN FROM ALGEBRA there and
+    # true on this surface for the same reason: the three range shares
+    # partition the range exactly, so on any lane
+    #     mtf_candle_raw_body_signed_range == 0
+    #     and mtf_candle_raw_upper_wick_share == 0
+    #     and mtf_candle_raw_lower_wick_share == 0
+    # holds if and only if ``high == low`` on that bar — those three are
+    # emitted by the sibling owner from this very frame, beside body_pct.  A
+    # real-range doji has a zero body share but nonzero wick shares.
+    # MEASURED, so a future reader can re-judge the trade rather than
+    # re-measure it: on the complete declared native M5 tape
+    # XAU_M5_NATIVE_2019_20260804_V4 (537,861 rows, 2019-01-01..2026-08-04),
+    # resampled by this owner and counted after the >=199-row causal warmup,
+    # zero-range bars number 215 on M5 (0.040%), 24 on M15 (0.013%), 14 on H1
+    # (0.031%), 0 on H4 and 0 on D1 — 253 rows of the whole tape.
+    #
+    # The retired ``(high - low).where((high - low) > 0.0)`` mask made
+    # ``body_pct`` NaN on a zero-range bar, i.e. a hole in the MIDDLE of the
+    # series, which validate_causal_feature_matrix rejects as "not one causal
+    # warmup prefix" — a single such bar aborted the entire per-timeframe
+    # build.  Only an exact 0.0 range takes the convention: a NaN or negative
+    # (invalid-geometry) range still propagates NaN and still fails closed.
+    bar_range = high - low
     body = (close - open_).abs()
-    upper_wick = high - df[["open", "close"]].max(axis=1)
-    lower_wick = df[["open", "close"]].min(axis=1) - low
-    out["body_pct"] = body / bar_range
-    out["upper_wick_pct"] = upper_wick / bar_range
-    out["lower_wick_pct"] = lower_wick / bar_range
+    out["body_pct"] = body.div(bar_range.where(bar_range > 0.0)).mask(
+        bar_range.eq(0.0), 0.0
+    )
 
     ema20 = _ema(close, 20)
     ema50 = ema_spread_block["ema50"]

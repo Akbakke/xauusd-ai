@@ -74,8 +74,6 @@ def _provenance(timeframe: str) -> dict[str, str]:
         "source_lane": timeframe,
         "tape_manifest_artifact": str(immutable_test_source),
         "tape_manifest_sha256": source_sha,
-        "split_manifest_artifact": str(immutable_test_source),
-        "split_manifest_sha256": source_sha,
         "pair_manifest_artifact": str(immutable_test_source),
         "pair_manifest_sha256": source_sha,
         "pair_generation_id": "test-pair-generation-v1",
@@ -354,8 +352,6 @@ def test_mutated_bound_source_manifest_invalidates_frozen_params(
         "source_lane": "M5",
         "tape_manifest_artifact": str(bound),
         "tape_manifest_sha256": sha,
-        "split_manifest_artifact": str(bound),
-        "split_manifest_sha256": sha,
         "pair_manifest_artifact": str(bound),
         "pair_manifest_sha256": sha,
         "pair_generation_id": "test-pair-generation-v1",
@@ -403,3 +399,109 @@ def test_routing_names_are_adopted_on_both_manifest_bound_surfaces() -> None:
     assert set(VOLATILITY_SQUEEZE_FEATURE_NAMES).isdisjoint(
         set(MODEL_NATIVE_BASE_FIELDS)
     )
+
+
+def test_retired_split_manifest_keys_can_never_re_enter_the_lineage() -> None:
+    """The squeeze fit is a chain PREREQUISITE, so it cannot bind a split manifest.
+
+    Until 2026-08-15 the source provenance and the six-clock manifest's
+    ``common_train_lineage`` both required a hash-bound
+    ``split_manifest_artifact``/``split_manifest_sha256``. No split manifest can
+    exist when this fit runs — the chain produces them from the dataset this
+    fit feeds — so the binding was unsatisfiable. Both payload key sets must
+    now reject those keys outright.
+    """
+
+    from gx1.features.volatility_squeeze_state_v1 import (
+        RETIRED_TRAIN_LINEAGE_KEYS,
+        _COMMON_TRAIN_LINEAGE_KEYS,
+        _SOURCE_PROVENANCE_KEYS,
+        _require_source_provenance,
+    )
+
+    assert RETIRED_TRAIN_LINEAGE_KEYS
+    assert RETIRED_TRAIN_LINEAGE_KEYS.isdisjoint(_SOURCE_PROVENANCE_KEYS)
+    assert RETIRED_TRAIN_LINEAGE_KEYS.isdisjoint(_COMMON_TRAIN_LINEAGE_KEYS)
+
+    provenance = _provenance("M5")
+    assert _require_source_provenance(provenance, timeframe="M5")
+
+    for retired in sorted(RETIRED_TRAIN_LINEAGE_KEYS):
+        polluted = dict(provenance)
+        polluted[retired] = provenance["tape_manifest_artifact"]
+        with pytest.raises(
+            RuntimeError, match="VOLATILITY_SQUEEZE_SOURCE_PROVENANCE_INVALID"
+        ):
+            _require_source_provenance(polluted, timeframe="M5")
+
+
+def test_common_train_lineage_rejects_a_reintroduced_split_pointer(tmp_path) -> None:
+    from gx1.features.volatility_squeeze_state_v1 import (
+        RETIRED_TRAIN_LINEAGE_KEYS,
+        _require_common_train_lineage,
+        _train_lineage_payload,
+    )
+
+    provenance = _provenance("M5")
+    lineage = _train_lineage_payload(
+        provenance,
+        declared_train_window_start=pd.Timestamp("2020-01-01T00:00:00Z"),
+        declared_train_window_end=pd.Timestamp("2020-06-01T00:00:00Z"),
+    )
+    assert _require_common_train_lineage(lineage) == lineage
+    assert RETIRED_TRAIN_LINEAGE_KEYS.isdisjoint(lineage)
+
+    for retired in sorted(RETIRED_TRAIN_LINEAGE_KEYS):
+        polluted = dict(lineage)
+        polluted[retired] = lineage["tape_manifest_artifact"]
+        with pytest.raises(
+            RuntimeError, match="VOLATILITY_SQUEEZE_COMMON_TRAIN_LINEAGE_INVALID"
+        ):
+            _require_common_train_lineage(polluted)
+
+
+def test_fit_cli_has_no_split_manifest_flag_and_still_binds_tape_and_pair(
+    tmp_path, monkeypatch
+) -> None:
+    """The producer CLI must expose exactly the lineage the fit can satisfy.
+
+    A retired ``--split-manifest``/``--split-manifest-sha256`` pair must be
+    rejected as unrecognized, while ``--tape-manifest``/``--pair-manifest``
+    stay required: those two artifacts exist before the fit and are real source
+    authority.
+    """
+
+    import sys
+
+    from gx1.scripts import fit_volatility_squeeze_artifacts_v1 as producer
+
+    bound = Path(__file__).resolve(strict=True)
+    sha = hashlib.sha256(bound.read_bytes()).hexdigest()
+    base = [
+        "fit_volatility_squeeze_artifacts_v1",
+        "--m1-source", str(bound), "--m1-source-sha256", sha,
+        "--m5-source", str(bound), "--m5-source-sha256", sha,
+        "--tape-manifest", str(bound), "--tape-manifest-sha256", sha,
+        "--pair-manifest", str(bound), "--pair-manifest-sha256", sha,
+        "--pair-generation-id", "test-pair-generation-v1",
+        "--train-window-start", "2020-01-01T00:00:00+00:00",
+        "--train-window-end", "2020-06-01T00:00:00+00:00",
+        "--output-dir", str(tmp_path),
+    ]
+
+    monkeypatch.setattr(sys, "argv", [*base, "--split-manifest", str(bound)])
+    with pytest.raises(SystemExit):
+        producer.main()
+
+    monkeypatch.setattr(sys, "argv", [*base, "--split-manifest-sha256", sha])
+    with pytest.raises(SystemExit):
+        producer.main()
+
+    # Dropping a lineage flag that IS satisfiable must still fail closed.
+    for retired_flag in ("--tape-manifest", "--pair-manifest"):
+        pruned = list(base)
+        index = pruned.index(retired_flag)
+        del pruned[index : index + 2]
+        monkeypatch.setattr(sys, "argv", pruned)
+        with pytest.raises(SystemExit):
+            producer.main()

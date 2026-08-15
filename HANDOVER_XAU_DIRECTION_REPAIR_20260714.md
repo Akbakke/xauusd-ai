@@ -71,28 +71,129 @@ State of the evidence chain:
   ancestor retention attestation in the provenance owner (identity
   continuity via the executed DELETE_COMPLETE inventory; see
   docs/DATA_CONTRACT.md "Retired ancestors").
+- 2026-08-15 — the V29B repair above is superseded: the saturation exemption
+  it introduced had already been retired (see
+  tests/test_htf_v4_liveness_saturation_contract.py, "no constant-field or
+  saturation exception exists"), and `geomline_{above,below}_active` are now
+  retired from the trendline-registry emission itself. PROVEN FROM SOURCE in
+  `trendline_registry_v1._emit_row`: the mask was written by the same branch
+  as `geomline_*_active_count` and was exactly its `>= 1` indicator, so it
+  carried no evidence the surviving count does not carry. The mask/count pair
+  is also bit-identical wherever a side's ACTIVE population never exceeds 1,
+  but that would NOT have been caught by
+  `entry_model_native_feature_availability_v1` — its `exact_duplicate` path
+  sees only the candidate pool, which excludes mandatory fields — so do not
+  inherit that mechanism as the reason. Counts derive from the owner tuples;
+  none is restated here.
+- 2026-08-15, RESOLVED BY RETIREMENT (was OPEN AND BLOCKING the same day) —
+  `candle.raw_zero_range_flag` and its per-lane twin
+  `mtf_candle_raw_zero_range_flag` are removed from the feature surface.
+  MEASURED on the complete declared native M5 tape
+  (XAU_M5_NATIVE_2019_20260804_V4, 537,861 rows, 2019-01-01..2026-08-04)
+  resampled by the declared owner: zero-range (high == low) bars number 215 on
+  M5, 24 on M15, 14 on H1, and exactly ONE on H4 (row 196 of 11,728) and ONE
+  on D1 (row 32 of 1,958) — both at 2019-02-15 22:00 UTC, i.e. strictly inside
+  the causal warmup prefix, whose artifact-free lower bound is 199 rows
+  (`classic_ema(close, 200)`, the same owner the surface uses). Post-warmup the
+  flag is therefore constant 0.0 on H4 and D1, which
+  `build_multi_tf_v4_liveness_contract` fails closed on (`unique_count <= 1`)
+  and `prebuild_multi_tf_cache_v4` turns into a hard
+  `HTF_V4_CACHE_FULL_INPUT_LIVENESS_FAIL`. Gold prints no zero-range 4-hour or
+  daily bar after 2019: a live-market fact, not dead wiring, and no window or
+  warmup choice changes it.
+  WHY AN EXEMPTION WAS NOT THE ANSWER, PROVEN FROM SOURCE
+  (`gx1/contracts/entry_model_native_input_normalization_v1.py`): the
+  `is_binary` identity path requires the column to hold BOTH 0.0 and 1.0, so a
+  constant-0 column falls through to the IQR path where `q75 - q25 == 0`, the
+  positive-absolute-deviation fallback is empty, and
+  `[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]` is raised. A declared-constant
+  allowlist only moves the failure one stage downstream. On the lanes where it
+  is not constant the rate is an order of magnitude under the
+  `MIN_ACTIVE_RATE` floor, and the M15/H1 counts are already under the
+  smallest floor `entry_full_input_liveness_v1` registers; a 9-month TRAIN
+  leaves ~19 M5 events, also under it. Registering a lower floor would be
+  inventing a magnitude (rule 2b).
+  NO EVIDENCE WAS LOST — PROVEN FROM ALGEBRA, not merely from rule 4's "its
+  inputs survive" test. The three range shares partition the bar range
+  exactly, so on a positive-range bar they sum to one and cannot all be zero,
+  while a zero-range bar emits all three as the storage zero. Hence
+  `high == low` **iff** `body_signed_range`, `upper_wick_share` and
+  `lower_wick_share` are all 0 — an exact biconditional over inputs the model
+  still receives, locally and on every lane. It is asserted in
+  `tests/test_entry_candle_primitives.py` and, on the per-TF surface, in
+  `tests/test_htf_v4_per_bar_contract.py`. A real-range doji is NOT confusable
+  with a zero-range bar: it has a zero body share but nonzero wick shares.
+  HAZARD REMOVED PERMANENTLY, not survived once: the candle owner wrote its
+  output through hand-numbered `matrix[:, 0..25]` indices, so removing one
+  field silently renumbered 21 later assignments. The writes now derive every
+  offset from the declared name tuples and an import-time
+  `_require_emitted_row_layout()` proves the offsets are a bijection onto the
+  declared column order — the same pattern `gx1/features/trendline_registry_v1.py`
+  adopted this session. Bit-parity of all 25 surviving columns against the
+  pre-change owner was checked before the guard was trusted.
+  Schema versions bumped: candle feature version v2→v3, signal v31→v32,
+  mandatory full-stack v21→v22, HTF matrix contract V14→V15, cache manifest
+  v23→v24, per-TF full-input liveness v15→v16. Counts derive from the owner
+  tuples; none is restated here.
+  BLAST RADIUS BOUNDED, same population and method: sweeping every field of
+  the causal candle block per lane, `raw_zero_range_flag` on H4 and D1 was the
+  ONLY field constant post-warmup; all the others are live on all five lanes.
+  NOT EXAMINED (rule 25a, stated uninvited — nobody has looked):
+  (a) the same per-lane constancy sweep over the rest of the per-timeframe
+  surface (level/trendline registry, squeeze, SMC, event families) cannot be
+  run today; it needs the TRAIN-fitted registry-constants and squeeze
+  artifacts, and none has been fitted.
+  (b) the candle block still contains eight {0,1} binaries — the two
+  body-containment flags, the two range-containment flags, the two
+  body-cover events and the two rejection events (names derive from
+  `CANDLE_PRIMITIVE_FEATURE_NAMES`). The sweep above proves them NON-CONSTANT,
+  which is the per-TF matrix gate's criterion, but that is a WEAKER test than
+  the `MIN_ACTIVE_RATE` = 0.01 floor `entry_full_input_liveness_v1` applies to
+  the same names on the LOCAL signal surface: a variable field under that
+  floor with no registered rare-event minimum returns
+  FAIL/`active_rate_below_minimum`. Their TRAIN active rates have not been
+  measured. Proven from source only, and it is an argument rather than
+  evidence: all eight are ordinary two-bar chart relations (inside/outside
+  bars, engulfings, extreme rejections) that fire far more often than a
+  zero-range print, so none is structurally in the same class as the retired
+  flag. Measure them on the next real TRAIN build before treating this as
+  settled.
 
 ## Current feature architecture
 
 - the same eight feature owners use one implementation each, run independently
   at native M5 for Entry and native M1 for Exit; no combined pre-owner M1/M5
   package;
-- signal v19/direction mode v8: 349 ordered signals (30 base + 164 mandatory
-  causal/raw + all 155 code-owned candidates = 319 specialist fields over 11 mandatory
-  families), 159
-  continuous and 5 categorical context fields;
-- per-timeframe V4 context width is 171, including raw volume and the five
-  native-clock TRAIN-fitted squeeze-state fields plus
-  trend/momentum event
-  primitives, regime-flip flags and registry projections;
-- signal v19 retains the exact 26-field causal candle
-  geometry/relation/carry owner locally and per TF. The retained six-field
-  local SMC addition emits raw displacement, sided sweep depth, one-shot
-  events and event age rather than direction votes;
-- MTF matrix V5, cache manifest v11 and full-input liveness v6 bind one UTC
-  trading-session clock: H4 bins open on 22/02/06/10/14/18 UTC and D1 at
+- the surface shape is: a frozen base block + the mandatory causal families +
+  the complete code-owned candidate remainder. EVERY WIDTH AND VERSION BELOW
+  DERIVES FROM THE OWNER TUPLES AND IS DELIBERATELY NOT RESTATED HERE (rule 4
+  and rule 13 — every restated count in this repository has gone stale within
+  days, and the ones that used to live in this bullet were stale again inside
+  48 hours). Read them, do not remember them:
+
+  ```bash
+  .venv/bin/python -c "import gx1.contracts.entry_model_native_signal_v1 as s, gx1.features.htf_features as h; \
+    print('signal', s.MODEL_NATIVE_SIGNAL_DIM, s.MODEL_NATIVE_SIGNAL_SCHEMA_VERSION); \
+    print('ctx', s.MODEL_NATIVE_CTX_CONT_DIM, s.MODEL_NATIVE_CTX_CAT_DIM, s.MODEL_NATIVE_CONTEXT_SCHEMA_VERSION); \
+    print('mandatory', s.MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT, s.MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION); \
+    print('candidates', s.MODEL_NATIVE_AVAILABLE_CANDIDATE_FEATURE_COUNT); \
+    print('per_tf', h.MULTI_TF_FEATURE_COUNT_V4, h.HTF_V4_MATRIX_CONTRACT); \
+    print('cache', h.HTF_V4_CACHE_SCHEMA_VERSION, h.HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION); \
+    [print(' fam', n, len(f)) for n, f in s.MODEL_NATIVE_MANDATORY_FAMILY_FEATURES]"
+  ```
+
+- the per-timeframe V4 surface carries raw volume, the five native-clock
+  TRAIN-fitted squeeze-state fields, trend/momentum event primitives,
+  regime-flip flags and registry projections;
+- the exact causal candle geometry/relation/carry owner
+  (`gx1/features/entry_candle_primitives_v1.py`) is retained locally and per
+  TF; its width, and the `mtf_`-prefixed per-lane spelling, derive from
+  `CANDLE_PRIMITIVE_FEATURE_NAMES`. The retained six-field local SMC addition
+  emits raw displacement, sided sweep depth, one-shot events and event age
+  rather than direction votes;
+- the MTF matrix, cache manifest and full-input liveness contracts bind one
+  UTC trading-session clock: H4 bins open on 22/02/06/10/14/18 UTC and D1 at
   22:00 UTC. Retired H4 00/04/... and calendar-midnight D1 caches are rejected;
-  signal split v8 binds mandatory full-stack v13;
 - V29 level and trendline registries (`gx1/features/level_registry_v1.py`,
   `gx1/features/trendline_registry_v1.py`) carry level identity, touch
   counts, ages, signed reaction history, break/retest events, sloped lines

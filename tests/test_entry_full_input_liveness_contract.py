@@ -23,6 +23,7 @@ from tests.entry_full_input_liveness_support import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -419,8 +420,37 @@ def test_semantic_contract_is_train_only_and_exemptions_must_be_declared() -> No
         stats=_semantic_stats(minimum=0.02, maximum=0.54),
     )
     assert status != "FAIL"
-    # Fail-closed default: an exception exists only when it is declared.
-    assert FIELD_SEMANTIC_EXEMPTIONS == {}
+
+
+def test_every_semantic_exemption_is_declared_justified_and_still_real() -> None:
+    """An exemption may exist, but never silently and never stale.
+
+    The tuple used to be locked empty. It cannot stay empty — the first real
+    build measured `session_change_flag` as a boolean {0,1} field that the
+    `_change_` marker classifies as signed. So the invariant moves from "no
+    exemptions" to "every exemption is justified, and still names a field the
+    surface actually emits". A stale entry is how a gate quietly stops binding.
+    """
+
+    selected = (
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    )
+    signal_fields = set(ordered_model_native_signal_fields(selected))
+    ctx_cont_fields = set(MODEL_NATIVE_CTX_CONT_FIELDS)
+
+    for (surface, field), reason in FIELD_SEMANTIC_EXEMPTIONS.items():
+        assert surface in {"signal", "ctx_cont", "ctx_cat"}, (surface, field)
+        assert isinstance(reason, str) and len(reason.strip()) >= 20, (
+            f"{surface}.{field} needs a stated reason, not a placeholder"
+        )
+        # The exemption must still apply to something: a field that no longer
+        # exists, or that no longer trips the gate, must be deleted from here.
+        pool = signal_fields if surface == "signal" else ctx_cont_fields
+        assert field in pool, f"{surface}.{field} is exempted but not emitted"
+        assert classify_field_name_semantics(field) is not None, (
+            f"{surface}.{field} is exempted but the gate no longer classifies it"
+        )
 
 
 def test_every_declared_surface_field_gets_a_stable_semantic_class() -> None:

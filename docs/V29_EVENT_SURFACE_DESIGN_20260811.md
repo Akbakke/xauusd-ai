@@ -520,3 +520,38 @@ non-mask constants remain RED. Two admitted masks are necessarily identical
 constant columns; exactly that pair is exempt from the duplicate check
 (each admission proved independent wiring). v2 payloads (the immutable V28
 baseline cache) stay valid under their own exact key set.
+
+## 11. Stage-4 amendment superseded (2026-08-15): the masks are retired
+
+§10's resolution no longer holds and its mechanism no longer exists. The
+`saturated_presence_masks` admission was withdrawn (the V4 liveness owner now
+carries a strict "no constant-field or saturation exception exists" contract,
+bound by `tests/test_htf_v4_liveness_saturation_contract.py`), which left the
+saturating masks with no route to green.
+
+`geomline_above_active` and `geomline_below_active` are therefore retired from
+`TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1` and from every surface derived from
+it. PROVEN FROM SOURCE in `trendline_registry_v1._emit_row`: one branch wrote
+both the mask and `geomline_*_active_count`, and the mask was set exactly when
+that side's ACTIVE population was non-zero — the mask WAS the count's `>= 1`
+indicator, which is also what §10's own B.5 note said. Nothing the mask
+carried is lost (CLAUDE.md rule 4): the graded, raw, uncapped count stays and
+strictly dominates it, and the "0-attribute row" §10 wanted the mask for is
+now read as `count == 0`.
+
+One thing this is NOT: a repair of an `exact_duplicate` failure in
+`entry_model_native_feature_availability_v1`. Mask and count are bit-identical
+on any lane whose per-side ACTIVE population never exceeds 1, but that owner's
+duplicate check is fed only the CANDIDATE pool
+(`materialize_entry_model_native_train_feature_ranker_v1` builds it with
+`name not in mandatory`), and both fields are MANDATORY. The duplicate would
+have surfaced in the per-TF liveness owner instead. Stated here so a later
+session does not inherit a mechanism that was never reachable.
+
+Everything §10 measured about the market stands as of its own date — at D1
+scale an ACTIVE three-touch line above or below the close almost always exists
+inside the 252-bar candidate window. Note that §10 was measured on the
+midnight-UTC D1 origin, which V30 package 3 replaced with the trading-day
+origin on 2026-08-13; it has NOT been re-measured on the current axis, which
+would require a TRAIN-fitted registry-constants artifact that does not exist.
+Only the representation changed.

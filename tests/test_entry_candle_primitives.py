@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+import importlib
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from gx1.features.entry_candle_primitives_v1 import (
     CANDLE_PRIMITIVE_FEATURE_NAMES,
+    CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES,
+    CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES,
     CandlePrimitiveCarryState,
     build_entry_candle_primitive_layer,
     compute_entry_candle_primitive_chunk,
 )
+
+# The block boundary derives from the owner's declared tuples; restating it as
+# a literal here is exactly the stale-index hazard the owner's
+# ``_require_emitted_row_layout`` guard exists to remove.
+_RELATIONAL_BASE = len(CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES)
 
 
 def _frame() -> pd.DataFrame:
@@ -33,18 +42,19 @@ def test_raw_candle_geometry_has_exact_units_and_one_honest_prefix() -> None:
     assert tuple(names) == CANDLE_PRIMITIVE_FEATURE_NAMES
     assert values.shape == (4, len(names))
     assert all("pattern" not in name and "score" not in name for name in names)
-    assert np.isfinite(values[:, :5]).all()
+    assert np.isfinite(values[:, :_RELATIONAL_BASE]).all()
     relational = [
         column
         for column, name in enumerate(names)
-        if column >= 5 and "body_direction_duration" not in name
+        if column >= _RELATIONAL_BASE
+        and "body_direction_duration" not in name
     ]
     assert np.isnan(values[0, relational]).all()
     assert values[
         0,
         index["candle.raw_observed_body_direction_duration_bars"],
     ] == 1.0
-    assert np.isfinite(values[1:, 5:]).all()
+    assert np.isfinite(values[1:, _RELATIONAL_BASE:]).all()
 
     assert values[0, index["candle.raw_body_signed_range"]] == pytest.approx(
         1.0 / 3.0
@@ -63,15 +73,69 @@ def test_raw_candle_geometry_has_exact_units_and_one_honest_prefix() -> None:
     )
 
 
-def test_zero_range_is_explicit_and_not_a_false_extreme_close() -> None:
+def test_zero_range_takes_the_storage_zero_and_stays_exactly_recoverable() -> None:
+    """A ``high == low`` bar emits the storage zero and needs no flag column.
+
+    ``candle.raw_zero_range_flag`` was retired on 2026-08-15: it is constant
+    0.0 post-warmup on the H4 and D1 lanes of the declared tape, so it can
+    never reach a liveness verdict there, and a declared-constant exemption
+    only moves the failure to [ENTRY_INPUT_NORMALIZATION_UNSCALEABLE].
+
+    Nothing was lost with it.  The three range shares partition the bar range
+    exactly (``upper_wick + lower_wick + |body| == high - low``), so on a
+    positive-range bar they divide to sum to one and cannot all be zero, while
+    a zero-range bar emits all three as the storage zero.  The biconditional
+    asserted below is therefore exact, not approximate, and it is what makes
+    the retirement evidence-preserving under CLAUDE.md rule 4.
+    """
+
     values, names = build_entry_candle_primitive_layer(_frame())
     index = {name: i for i, name in enumerate(names)}
 
-    assert values[2, index["candle.raw_zero_range_flag"]] == 1.0
+    assert "candle.raw_zero_range_flag" not in index
+    assert not any("zero_range" in name for name in names)
+
     assert values[2, index["candle.raw_body_signed_range"]] == 0.0
     assert values[2, index["candle.raw_upper_wick_share"]] == 0.0
     assert values[2, index["candle.raw_lower_wick_share"]] == 0.0
     assert values[2, index["candle.raw_close_location"]] == 0.5
+
+    # A real-range doji shares the zero body and the 0.5 close location, so
+    # neither field alone identifies a zero-range bar — the wick shares do.
+    doji = _frame()
+    doji.loc[2, ["open", "high", "low", "close"]] = [12.0, 13.0, 11.0, 12.0]
+    doji_values, _ = build_entry_candle_primitive_layer(doji)
+    assert doji_values[2, index["candle.raw_body_signed_range"]] == 0.0
+    assert doji_values[2, index["candle.raw_close_location"]] == 0.5
+    assert doji_values[2, index["candle.raw_upper_wick_share"]] == 0.5
+    assert doji_values[2, index["candle.raw_lower_wick_share"]] == 0.5
+
+    # The exact recovery, over zero-range, doji, marubozu and both
+    # extreme-touching shapes in one frame.
+    shapes = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-02-01", periods=5, freq="5min", tz="UTC"),
+            "open": [12.0, 12.0, 11.0, 11.0, 13.0],
+            "high": [12.0, 13.0, 13.0, 13.0, 13.0],
+            "low": [12.0, 11.0, 11.0, 10.0, 11.0],
+            "close": [12.0, 12.0, 13.0, 13.0, 11.0],
+        }
+    )
+    shape_values, shape_names = build_entry_candle_primitive_layer(shapes)
+    shape_index = {name: i for i, name in enumerate(shape_names)}
+    body = shape_values[:, shape_index["candle.raw_body_signed_range"]]
+    upper = shape_values[:, shape_index["candle.raw_upper_wick_share"]]
+    lower = shape_values[:, shape_index["candle.raw_lower_wick_share"]]
+    recovered = (body == 0.0) & (upper == 0.0) & (lower == 0.0)
+    truth = (
+        shapes["high"].to_numpy(dtype=np.float64)
+        == shapes["low"].to_numpy(dtype=np.float64)
+    )
+    np.testing.assert_array_equal(recovered, truth)
+    # And the partition identity the recovery rests on, on every other bar.
+    np.testing.assert_allclose(
+        np.abs(body[~truth]) + upper[~truth] + lower[~truth], 1.0, atol=1e-6
+    )
 
 
 def test_candle_primitive_owner_is_prefix_invariant() -> None:
@@ -176,7 +240,7 @@ def test_state_duration_identity_and_polarity_are_exact() -> None:
     np.testing.assert_array_equal(range_duration[1:4], [1.0, 1.0, 1.0])
 
 
-def test_zero_range_and_gap_after_zero_range_are_finite_and_flagged() -> None:
+def test_zero_range_and_gap_after_zero_range_are_finite_and_recoverable() -> None:
     frame = pd.DataFrame(
         {
             "time": pd.date_range("2026-01-01", periods=3, freq="5min", tz="UTC"),
@@ -188,10 +252,46 @@ def test_zero_range_and_gap_after_zero_range_are_finite_and_flagged() -> None:
     )
     values, names = build_entry_candle_primitive_layer(frame)
     index = {name: i for i, name in enumerate(names)}
-    assert (values[:, index["candle.raw_zero_range_flag"]] == 1.0).all()
+    # Every bar here is zero-range, and every bar is recoverable as such from
+    # the three surviving shares alone.
+    assert (values[:, index["candle.raw_body_signed_range"]] == 0.0).all()
+    assert (values[:, index["candle.raw_upper_wick_share"]] == 0.0).all()
+    assert (values[:, index["candle.raw_lower_wick_share"]] == 0.0).all()
     assert values[2, index["candle.raw_open_gap_local_geometry"]] == 1.0
     assert values[2, index["candle.raw_open_above_previous_high_local_geometry"]] == 1.0
     assert np.isfinite(values[1:]).all()
+
+
+def test_emitted_column_layout_is_derived_from_the_declared_name_tuples() -> None:
+    """The write offsets must be a bijection onto the declared column order.
+
+    This is the hazard the 26 hand-numbered ``matrix[:, k]`` writes carried: a
+    field entering or leaving the tuple silently renumbered every write after
+    it, and every column kept its dtype, name and finiteness prefix, so no
+    downstream gate could see two fields swap meanings.
+    """
+
+    module = importlib.import_module(
+        "gx1.features.entry_candle_primitives_v1"
+    )
+    width = len(CANDLE_PRIMITIVE_FEATURE_NAMES)
+    assert module._EMITTED_COLUMN_INDICES == tuple(range(width))
+    assert (
+        CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES
+        + CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES
+        == CANDLE_PRIMITIVE_FEATURE_NAMES
+    )
+    assert len(set(CANDLE_PRIMITIVE_FEATURE_NAMES)) == width
+
+    # The guard is executable, not decorative: a stale offset must raise.
+    original = module._EMITTED_COLUMN_INDICES
+    try:
+        module._EMITTED_COLUMN_INDICES = original[:-1] + (original[-1] - 1,)
+        with pytest.raises(RuntimeError, match="CANDLE_PRIMITIVE_ROW_LAYOUT_INVALID"):
+            module._require_emitted_row_layout()
+    finally:
+        module._EMITTED_COLUMN_INDICES = original
+    module._require_emitted_row_layout()
 
 
 @pytest.mark.parametrize("split", [1, 2, 4, 8])

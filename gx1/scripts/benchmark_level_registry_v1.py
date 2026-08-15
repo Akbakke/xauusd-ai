@@ -45,7 +45,7 @@ def _frame(rows: int) -> pd.DataFrame:
 
 def _source(root: Path, *, frame: pd.DataFrame) -> dict[str, str]:
     paths: dict[str, Path] = {}
-    for name in ("source", "tape", "split"):
+    for name in ("source", "tape", "pair"):
         path = (root / f"{name}.json").resolve()
         path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
         paths[name] = path
@@ -60,8 +60,8 @@ def _source(root: Path, *, frame: pd.DataFrame) -> dict[str, str]:
         "source_lane": "M1",
         "tape_manifest_artifact": str(paths["tape"]),
         "tape_manifest_sha256": sha(paths["tape"]),
-        "split_manifest_artifact": str(paths["split"]),
-        "split_manifest_sha256": sha(paths["split"]),
+        "pair_manifest_artifact": str(paths["pair"]),
+        "pair_manifest_sha256": sha(paths["pair"]),
         "train_split_id": "synthetic_benchmark_chronological_train_only",
         "declared_train_window_start": frame.index[0].isoformat(),
         "declared_train_window_end": frame.index[-1].isoformat(),

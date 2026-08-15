@@ -67,6 +67,14 @@ VOLATILITY_SQUEEZE_FEATURE_NAMES = (
     "volatility.squeeze_release_age_bars",
 )
 
+# The declared TRAIN window is carried by ``declared_train_window_start`` /
+# ``declared_train_window_end`` and re-checked against the rebuild chain's own
+# split authority at the chain's contract-validation step. A split-manifest
+# pointer was additionally required here until 2026-08-15; it was removed
+# because the chain PRODUCES its split manifests from the dataset this fit
+# feeds, so the pointer could never be satisfied on a first build (circular
+# lineage), and the invariant it named — "this fit saw exactly the declared
+# TRAIN rows" — is owned by the window equality, not by a file pointer.
 _SOURCE_PROVENANCE_KEYS = frozenset(
     {
         "source_artifact",
@@ -75,8 +83,6 @@ _SOURCE_PROVENANCE_KEYS = frozenset(
         "source_lane",
         "tape_manifest_artifact",
         "tape_manifest_sha256",
-        "split_manifest_artifact",
-        "split_manifest_sha256",
         "pair_manifest_artifact",
         "pair_manifest_sha256",
         "pair_generation_id",
@@ -85,6 +91,11 @@ _SOURCE_PROVENANCE_KEYS = frozenset(
         "clock_contract",
         "bar_grid",
     }
+)
+# Lineage keys retired on 2026-08-15. Nothing may reintroduce them: they are
+# asserted absent from every payload key set by the owner's own tests.
+RETIRED_TRAIN_LINEAGE_KEYS = frozenset(
+    {"split_manifest_artifact", "split_manifest_sha256"}
 )
 _BAR_GRID_KEYS = frozenset(
     {"timeframe", "duration_ns", "origin_offset_ns", "clock_contract"}
@@ -125,8 +136,6 @@ _COMMON_TRAIN_LINEAGE_KEYS = frozenset(
         "train_split_id",
         "tape_manifest_artifact",
         "tape_manifest_sha256",
-        "split_manifest_artifact",
-        "split_manifest_sha256",
         "pair_manifest_artifact",
         "pair_manifest_sha256",
         "pair_generation_id",
@@ -476,7 +485,6 @@ def _require_source_provenance(
     artifact_bindings = (
         ("source_artifact", "source_sha256"),
         ("tape_manifest_artifact", "tape_manifest_sha256"),
-        ("split_manifest_artifact", "split_manifest_sha256"),
         ("pair_manifest_artifact", "pair_manifest_sha256"),
     )
     if (
@@ -516,8 +524,6 @@ def _train_lineage_payload(
         "train_split_id": provenance["train_split_id"],
         "tape_manifest_artifact": provenance["tape_manifest_artifact"],
         "tape_manifest_sha256": provenance["tape_manifest_sha256"],
-        "split_manifest_artifact": provenance["split_manifest_artifact"],
-        "split_manifest_sha256": provenance["split_manifest_sha256"],
         "pair_manifest_artifact": provenance["pair_manifest_artifact"],
         "pair_manifest_sha256": provenance["pair_manifest_sha256"],
         "pair_generation_id": provenance["pair_generation_id"],
@@ -873,8 +879,6 @@ def _require_common_train_lineage(value: Any) -> dict[str, Any]:
             "train_split_id",
             "tape_manifest_artifact",
             "tape_manifest_sha256",
-            "split_manifest_artifact",
-            "split_manifest_sha256",
             "pair_manifest_artifact",
             "pair_manifest_sha256",
             "pair_generation_id",
@@ -1306,6 +1310,7 @@ def compute_volatility_squeeze_state(
 __all__ = [
     "BOLLINGER_PERIOD_BARS",
     "BOLLINGER_STD_MULTIPLIER",
+    "RETIRED_TRAIN_LINEAGE_KEYS",
     "VOLATILITY_SQUEEZE_CLOCKS",
     "VOLATILITY_SQUEEZE_CLOCK_CONTRACT",
     "VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION",

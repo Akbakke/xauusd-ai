@@ -50,8 +50,10 @@ trading-session clock: H4 bins open on 22/02/06/10/14/18 UTC and D1 opens at
 22:00 UTC. Retired H4 00/04/... and calendar-midnight D1 caches are not current
 inputs. Signal split v8 binds mandatory full-stack v13.
 
-Signal v18 binds the exact 26-field causal candle geometry/relation/carry owner
-on local and per-TF clocks. Its retained six-field local SMC event block emits
+Signal binds the exact causal candle geometry/relation/carry owner on local and
+per-TF clocks; its width derives from
+`gx1/features/entry_candle_primitives_v1.CANDLE_PRIMITIVE_FEATURE_NAMES` and is
+not restated here. Its retained six-field local SMC event block emits
 raw displacement, sided sweep depth, one-shot events and event age, not a
 direction vote.
 

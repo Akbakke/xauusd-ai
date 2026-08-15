@@ -573,6 +573,7 @@ def _checkpoint_key(
 def _require_pair_binding(
     *,
     pair_manifest_path: Path,
+    expected_pair_manifest_sha256: str,
     pair_generation_id: str,
     source_identity: dict[str, Any],
     native_summary: Mapping[str, Any],
@@ -596,6 +597,21 @@ def _require_pair_binding(
     ):
         raise RuntimeError(f"{label}_ENRICHED_NATIVE_SUMMARY_INVALID")
     manifest_path = _require_regular(pair_manifest_path, label="PAIR_MANIFEST")
+    # The chain validated this manifest at its pair-authority step and carries
+    # the exact hash; the producer may not substitute its own observation for
+    # the declared one (rule 2a: an explicit CLI input, never a self-measured
+    # default).
+    manifest_sha256 = _sha256_file(manifest_path)
+    if (
+        not isinstance(expected_pair_manifest_sha256, str)
+        or len(expected_pair_manifest_sha256) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in expected_pair_manifest_sha256
+        )
+        or manifest_sha256 != expected_pair_manifest_sha256
+    ):
+        raise RuntimeError(f"{label}_ENRICHED_PAIR_MANIFEST_SHA256_MISMATCH")
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -631,7 +647,7 @@ def _require_pair_binding(
         )
     return {
         "manifest_path": str(manifest_path),
-        "manifest_sha256": _sha256_file(manifest_path),
+        "manifest_sha256": manifest_sha256,
         "pair_generation_id": pair_generation_id,
         f"native_{spec['lineage_key']}": expected,
     }
@@ -957,6 +973,7 @@ def _build_enriched_stage(
     checkpoint_chunk_rows: int,
     dataset_run_id: str,
     pair_generation_id: str,
+    registry_fit_train_start: str | None = None,
     registry_fit_train_end: str | None = None,
     registry_fit_inner_end: str | None = None,
     registry_fit_source_provenance_by_clock: Mapping[str, Mapping[str, Any]] | None = None,
@@ -997,7 +1014,8 @@ def _build_enriched_stage(
         # the declared chronological inner/outer TRAIN windows) and frozen
         # into the temporary cache manifest published below.
         if (
-            registry_fit_train_end is None
+            registry_fit_train_start is None
+            or registry_fit_train_end is None
             or registry_fit_inner_end is None
             or registry_fit_source_provenance_by_clock is None
         ):
@@ -1017,6 +1035,7 @@ def _build_enriched_stage(
 
         v29_registry_constants = fit_v29_registry_constants_from_m5(
             native_ohlcv,
+            declared_train_window_start=registry_fit_train_start,
             declared_train_window_end=registry_fit_train_end,
             declared_inner_fit_window_end=registry_fit_inner_end,
             source_provenance_by_clock=registry_fit_source_provenance_by_clock,
@@ -1039,7 +1058,8 @@ def _build_enriched_stage(
         # freezes it into the hash-bound M1 manifest
         # published below — mirroring the M5 route's cache-manifest freeze.
         if (
-            registry_fit_train_end is None
+            registry_fit_train_start is None
+            or registry_fit_train_end is None
             or registry_fit_inner_end is None
             or registry_fit_source_provenance_by_clock is None
             or set(registry_fit_source_provenance_by_clock) != {"M1"}
@@ -1065,6 +1085,7 @@ def _build_enriched_stage(
         native_m1_ohlcv = native_m1_ohlcv.set_index("time")
         v29_registry_m1_lane_params = fit_v29_registry_m1_lane_params_from_m1(
             native_m1_ohlcv,
+            declared_train_window_start=registry_fit_train_start,
             declared_train_window_end=registry_fit_train_end,
             declared_inner_fit_window_end=registry_fit_inner_end,
             source_provenance=registry_fit_source_provenance_by_clock["M1"],
@@ -1393,6 +1414,7 @@ def _build_enriched_frame(
     native_root: Path,
     timeframe: str,
     pair_manifest_path: Path,
+    expected_pair_manifest_sha256: str,
     multi_tf_cache_dir: Path,
     output_parquet: Path,
     manifest_path: Path,
@@ -1494,6 +1516,7 @@ def _build_enriched_frame(
         )
         pair_binding = _require_pair_binding(
             pair_manifest_path=pair_manifest_path,
+            expected_pair_manifest_sha256=expected_pair_manifest_sha256,
             pair_generation_id=pair_generation_id,
             source_identity=source_identity,
             native_summary=native_summary,
@@ -1538,8 +1561,12 @@ def _build_enriched_frame(
                 "source_lane": clock,
                 "tape_manifest_artifact": str(tape_manifest),
                 "tape_manifest_sha256": tape_sha256,
-                "split_manifest_artifact": pair_binding["manifest_path"],
-                "split_manifest_sha256": pair_binding["manifest_sha256"],
+                # The hash-bound pointer to the pair generation this fit read.
+                # It was carried under the false name ``split_manifest_*``
+                # until 2026-08-15; the binding is real (it is re-checked on
+                # every V4 cache load), only the name was wrong.
+                "pair_manifest_artifact": pair_binding["manifest_path"],
+                "pair_manifest_sha256": pair_binding["manifest_sha256"],
                 "train_split_id": f"{pair_generation_id}:TRAIN",
                 "declared_train_window_start": train_start_label,
                 "declared_train_window_end": train_end_label,
@@ -1580,6 +1607,7 @@ def _build_enriched_frame(
                 "checkpoint_chunk_rows": checkpoint_chunk_rows,
                 "dataset_run_id": dataset_run_id,
                 "pair_generation_id": pair_generation_id,
+                "registry_fit_train_start": train_start_label,
                 "registry_fit_train_end": train_end_label,
                 "registry_fit_inner_end": inner_end_label,
                 "registry_fit_source_provenance_by_clock": (
@@ -1710,6 +1738,15 @@ def main() -> None:
     route.add_argument("--native-m1-root", type=Path)
     route.add_argument("--native-m5-root", type=Path)
     parser.add_argument("--pair-manifest", required=True, type=Path)
+    parser.add_argument(
+        "--expected-pair-manifest-sha256",
+        required=True,
+        help=(
+            "Exact lowercase SHA-256 of --pair-manifest as validated by the "
+            "chain's pair-authority step; the registry TRAIN fit freezes this "
+            "hash-bound pointer into its source provenance"
+        ),
+    )
     parser.add_argument("--multi-tf-cache-dir", required=True, type=Path)
     parser.add_argument("--output-parquet", required=True, type=Path)
     parser.add_argument("--manifest-path", required=True, type=Path)
@@ -1757,6 +1794,7 @@ def main() -> None:
         native_root=native_root,
         timeframe=timeframe,
         pair_manifest_path=args.pair_manifest,
+        expected_pair_manifest_sha256=args.expected_pair_manifest_sha256,
         multi_tf_cache_dir=args.multi_tf_cache_dir,
         output_parquet=args.output_parquet,
         manifest_path=args.manifest_path,

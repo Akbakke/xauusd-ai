@@ -95,7 +95,28 @@ FIELD_SEMANTIC_UNIT_INTERVAL_PATTERN = r"(_share$|_fraction$|_prob$|_rate$)"
 # A field that legitimately contradicts its own name must be named here with a
 # stated reason. Empty is the fail-closed default: an exception must be
 # declared, never silent.
-FIELD_SEMANTIC_EXEMPTIONS: dict[tuple[str, str], str] = {}
+#
+# Adding an entry here is the ONLY sanctioned way to exempt a field. Widening
+# the marker patterns instead would blind a gate that has already caught three
+# real defects (a slope that never crossed zero, an identically-zero negative
+# term, and a spread pinned to one side), so the patterns stay strict and the
+# exceptions stay visible and countable.
+FIELD_SEMANTIC_EXEMPTIONS: dict[tuple[str, str], str] = {
+    # `_change_` marks this as signed, but the field is a boolean session
+    # transition, not a signed delta: `basic_v1.py:541` computes
+    # `(session_id.diff().fillna(0) != 0).astype(int)`, so its domain is
+    # exactly {0, 1}. Measured on the complete 476,113-row native population:
+    # min=0, max=1, std=0.1197, active 1.45%. It would fail the signed
+    # contract on every window, in both the ctx_cont slot and its signal
+    # alias. The canonical column name is bound into the pair generation's
+    # hash and cannot be renamed.
+    ("ctx_cont", "session_change_flag"): (
+        "boolean session transition; basic_v1.py:541 emits exactly {0,1}"
+    ),
+    ("signal", "ctx_cont.session_change_flag"): (
+        "boolean session transition; basic_v1.py:541 emits exactly {0,1}"
+    ),
+}
 
 FIELD_SEMANTIC_SIGNED = "signed"
 FIELD_SEMANTIC_NON_NEGATIVE = "non_negative"

@@ -36,12 +36,13 @@ from gx1.features.trendline_registry_v1 import (
     fit_trendline_registry_hyperparameters_v1,
 )
 
-# Stage-2 wiring contract: the exact 34-name tuple (design doc B.5 + the V30
-# 2026-08-13 additions: per-side ACTIVE counts beside the masks and the
-# geomline_bars_since_break memory) and its sha.  Any drift in name, order or
-# count must fail here first.
+# Stage-2 wiring contract: the exact declared name tuple (design doc B.5, the
+# V30 2026-08-13 additions — per-side ACTIVE counts and the
+# geomline_bars_since_break memory — and the 2026-08-15 retirement of the
+# geomline_{above,below}_active presence masks, which were by construction the
+# ">= 1" indicator of the count beside them) and its sha.  Any drift in name,
+# order or count must fail here first.
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
-    "geomline_above_active",
     "geomline_above_active_count",
     "geomline_above_dist_atr",
     "geomline_above_slope_atr_per_bar",
@@ -49,7 +50,6 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_above_age_bars",
     "geomline_above_last_touch_age_bars",
     "geomline_above_max_dev_atr",
-    "geomline_below_active",
     "geomline_below_active_count",
     "geomline_below_dist_atr",
     "geomline_below_slope_atr_per_bar",
@@ -76,7 +76,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomchan_apex_proximity",
 )
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = (
-    "75086616223a022b3b88e3917cefc6c401ab91be724308459d7f8e8e4eacd84d"
+    "9415d0e2757579b717e2c5335fdbb8c3fab41a68c642c7054b1836214379ad0c"
 )
 
 WARMUP = 2 * SWING_LOOKBACK + 2  # structural NaN prefix (module contract)
@@ -134,7 +134,7 @@ def _random_walk_frame(n_bars: int, seed: int) -> pd.DataFrame:
 
 def _fit_source(tmp_path: Path, *, clock: str) -> dict:
     paths = {}
-    for name in ("source", "tape", "split"):
+    for name in ("source", "tape", "pair"):
         path = (tmp_path / f"{name}.json").resolve()
         path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
         paths[name] = path
@@ -145,8 +145,8 @@ def _fit_source(tmp_path: Path, *, clock: str) -> dict:
         "source_lane": clock,
         "tape_manifest_artifact": str(paths["tape"]),
         "tape_manifest_sha256": hashlib.sha256(paths["tape"].read_bytes()).hexdigest(),
-        "split_manifest_artifact": str(paths["split"]),
-        "split_manifest_sha256": hashlib.sha256(paths["split"].read_bytes()).hexdigest(),
+        "pair_manifest_artifact": str(paths["pair"]),
+        "pair_manifest_sha256": hashlib.sha256(paths["pair"].read_bytes()).hexdigest(),
         "train_split_id": "synthetic:TRAIN",
         "declared_train_window_start": "2020-01-01T00:00:00+00:00",
         "declared_train_window_end": "2020-01-06T04:55:00+00:00",
@@ -165,7 +165,7 @@ def _compute(df, *, band=0.3, seq_len=200, state=None):
 
 
 def test_feature_name_tuple_and_sha_drift_guard():
-    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 33
+    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 31
     assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == len(
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1
     )
@@ -183,7 +183,7 @@ def test_feature_name_tuple_and_sha_drift_guard():
         + TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1
         == TRENDLINE_REGISTRY_FEATURE_NAMES_V1
     )
-    assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 16
+    assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 14
     assert len(TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1) == 11
     assert len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1) == 6
 
@@ -223,11 +223,11 @@ def test_three_touch_validation_and_promotion_bar():
     assert feats.iloc[WARMUP:].drop(
         columns=["geomline_bars_since_break"]
     ).notna().all().all()
-    below_active = feats["geomline_below_active"].to_numpy()
+    below_active_count = feats["geomline_below_active_count"].to_numpy()
     # third pivot lies at bar 50 but participates only from its confirmation
     # bar 53 (= 50 + SWING_LOOKBACK): nothing is ACTIVE before that
-    assert (below_active[WARMUP:53] == 0.0).all()
-    assert below_active[53] == 1.0
+    assert (below_active_count[WARMUP:53] == 0.0).all()
+    assert below_active_count[53] == 1.0
     row = feats.iloc[53]
     assert row["geomline_touch_below"] == 1.0
     assert row["geomline_below_touch_count"] == 3.0
@@ -294,8 +294,8 @@ def test_exact_line_violation_death_prevents_later_candidate_promotion():
 def test_two_touches_never_activate():
     df = _support_line_frame(60, {10: 0.0, 30: 0.0})
     feats, state = _compute(df)
-    assert (feats["geomline_below_active"].iloc[WARMUP:] == 0.0).all()
-    assert (feats["geomline_above_active"].iloc[WARMUP:] == 0.0).all()
+    assert (feats["geomline_below_active_count"].iloc[WARMUP:] == 0.0).all()
+    assert (feats["geomline_above_active_count"].iloc[WARMUP:] == 0.0).all()
     assert not state.active_lines
     assert len(state.cand_support) > 0  # the 2-anchor candidate exists
 
@@ -371,7 +371,7 @@ def test_parallel_channel_ignores_opposite_pivots_outside_seq_len():
     features, state = _compute(row, seq_len=20, state=state)
 
     assert state.resistance_pivots == []
-    assert features.loc[100, "geomline_below_active"] == 1.0
+    assert features.loc[100, "geomline_below_active_count"] == 1.0
     assert features.loc[100, "geomchan_active"] == 0.0
 
 
@@ -504,8 +504,8 @@ def test_first_break_fires_exactly_once_with_broken_line_attributes():
     assert feats["geomline_bars_since_break"].iloc[60] == 0.0
     assert feats["geomline_bars_since_break"].iloc[61] == 1.0
     # a BROKEN line leaves the nearest-ACTIVE slots immediately
-    assert feats["geomline_below_active"].iloc[60] == 0.0
-    assert feats["geomline_above_active"].iloc[60] == 0.0
+    assert feats["geomline_below_active_count"].iloc[60] == 0.0
+    assert feats["geomline_above_active_count"].iloc[60] == 0.0
 
 
 def test_retest_hold_after_break():
@@ -549,7 +549,7 @@ def test_resistance_mirror_break_up_and_retest_hold_up():
     df.loc[62, "low"] = proj[62] + 0.2
     feats, _ = _compute(df)
     row53 = feats.iloc[53]
-    assert row53["geomline_above_active"] == 1.0
+    assert row53["geomline_above_active_count"] == 1.0
     assert row53["geomline_touch_above"] == 1.0
     assert float(row53["geomline_above_slope_atr_per_bar"]) == pytest.approx(
         -0.05
@@ -588,7 +588,7 @@ def test_parallel_channel_pairing_via_return_rail():
     # support ACTIVE at 53 + two parallel opposite pivots stored => channel,
     # even though the above slot is still empty (route: parallel return rail)
     row55 = feats.iloc[55]
-    assert row55["geomline_above_active"] == 0.0
+    assert row55["geomline_above_active_count"] == 0.0
     assert row55["geomchan_active"] == 1.0
     assert float(row55["geomchan_width_atr"]) == pytest.approx(3.0)
     assert float(row55["geomchan_pos_0_1"]) == pytest.approx(0.5)
@@ -598,7 +598,7 @@ def test_parallel_channel_pairing_via_return_rail():
     # resistance line promotes at 63 (its own 3rd touch)
     assert feats["geomline_touch_above"].iloc[63] == 1.0
     row64 = feats.iloc[64]
-    assert row64["geomline_above_active"] == 1.0
+    assert row64["geomline_above_active_count"] == 1.0
     assert row64["geomline_above_touch_count"] == 3.0
     assert row64["geomchan_active"] == 1.0
     assert float(row64["geomchan_width_atr"]) == pytest.approx(3.0)
@@ -622,8 +622,8 @@ def test_converging_pair_triangle_with_apex_proximity():
     )
     feats, _ = _compute(df, band=0.15)
     row = feats.iloc[64]
-    assert row["geomline_below_active"] == 1.0
-    assert row["geomline_above_active"] == 1.0
+    assert row["geomline_below_active_count"] == 1.0
+    assert row["geomline_above_active_count"] == 1.0
     assert row["geomchan_active"] == 1.0
     assert row["geomchan_converging"] == 1.0
     assert float(row["geomchan_width_atr"]) == pytest.approx(1.1)
@@ -655,8 +655,8 @@ def test_chunked_processing_bit_identical_to_one_shot(seq_len: int):
         pd.concat(pieces).to_numpy(), one_shot.to_numpy(), strict=True
     )
     # the fitted band must actually exercise the registry on this tape
-    assert one_shot["geomline_below_active"].sum() > 0.0 or (
-        one_shot["geomline_above_active"].sum() > 0.0
+    assert one_shot["geomline_below_active_count"].sum() > 0.0 or (
+        one_shot["geomline_above_active_count"].sum() > 0.0
     )
 
 
@@ -707,8 +707,8 @@ def test_atr_warmup_prefix_is_nan_and_registry_starts_after():
     ).notna().all().all()
     # pivots inside the ATR-unavailable prefix never enter the registry:
     # the first ACTIVE line is (30, 50) validated by pivot 70 at bar 73
-    assert (feats["geomline_below_active"].iloc[30:73] == 0.0).all()
-    assert feats["geomline_below_active"].iloc[73] == 1.0
+    assert (feats["geomline_below_active_count"].iloc[30:73] == 0.0).all()
+    assert feats["geomline_below_active_count"].iloc[73] == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -793,9 +793,8 @@ def test_v30_package_8a_retest_hold_flips_polarity_and_keeps_the_line():
     # The flipped line is a real ACTIVE object on the bar of the flip: it
     # projects above the close, so it occupies the ABOVE slot.
     assert feats["geomline_retest_hold_down"].iloc[62] == 1.0
-    assert feats["geomline_above_active"].iloc[62] == 1.0
     assert feats["geomline_above_active_count"].iloc[62] == 1.0
-    assert feats["geomline_below_active"].iloc[62] == 0.0
+    assert feats["geomline_below_active_count"].iloc[62] == 0.0
     # The generic touch impulse is deliberately NOT raised on the flip bar:
     # the retest-hold event is that bar's specific impulse.
     assert feats["geomline_touch_above"].iloc[62] == 0.0

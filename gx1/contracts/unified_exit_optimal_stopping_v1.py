@@ -5,6 +5,27 @@ only while constructing supervision for one already-declared 512-state
 trajectory.  HOLD has zero reward and transitions to the next state; EXIT_NOW
 terminates at the current executable quote.  The terminal state admits only
 EXIT_NOW.  No discount, margin, indifference band or lookahead window exists.
+
+Role.  What the backward recursion returns is the *pathwise hindsight optimum*
+of one already realized executable path: it maximizes over the quotes that path
+actually printed.  That is an upper bound attainable only with knowledge of the
+future, not an estimate of the optimal-stopping value under the information
+available at the decision.  Fitting a policy to these numbers would supervise
+the model with quotes it cannot observe and would bias every state value upward
+by the pathwise maximum.  This owner is therefore never a training target, and
+that is not a local opinion: each owner named in ``NON_TRAINING_ROLE_OWNERS``
+independently declares the same role for a pathwise hindsight maximum, and
+``_observe_declared_non_training_role`` reads those declarations rather than
+restating them, so the contract cannot be constructed at all once any of them
+stops declaring it.
+
+Integration.  ``DECISION`` is deliberately not integrated.  The Exit training
+supervision authority is ``unified_exit_fitted_q_v1``, which bootstraps HOLD
+from a frozen target-network snapshot at the next causal state; it supersedes
+this owner as *supervision* while depending on it for nothing, which is why the
+import edge runs from here to there and never back.  The ``integration`` block
+in the contract states exactly what must become true before this owner may be
+wired as the diagnostic upper bound it is declared to be.
 """
 
 from __future__ import annotations
@@ -17,6 +38,11 @@ from typing import Any
 
 import numpy as np
 
+from gx1.contracts.entry_fitted_q_v1 import entry_fitted_q_contract
+from gx1.contracts.unified_exit_fitted_q_v1 import (
+    replay_unified_exit_fitted_q_policy,
+    unified_exit_fitted_q_contract,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_ACTION_ORDER,
     UNIFIED_EXIT_MAX_PATH_BARS,
@@ -26,6 +52,11 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 UNIFIED_EXIT_OPTIMAL_STOPPING_SCHEMA_VERSION = (
     "gx1_unified_exit_finite_horizon_optimal_stopping_v1"
+)
+DECISION = "HINDSIGHT_UPPER_BOUND_NOT_INTEGRATED"
+NON_TRAINING_ROLE_OWNERS = (
+    "gx1.contracts.unified_exit_fitted_q_v1.unified_exit_fitted_q_contract",
+    "gx1.contracts.entry_fitted_q_v1.entry_fitted_q_contract",
 )
 UNIFIED_EXIT_OPTIMAL_STOPPING_TARGET_STREAM_SCHEMA_VERSION = (
     "gx1_unified_exit_optimal_stopping_target_stream_v1"
@@ -50,9 +81,63 @@ def _canonical_json_sha256(value: Any) -> str:
     ).hexdigest()
 
 
+def _observe_declared_non_training_role() -> dict[str, Any]:
+    """Read the live owners that declare this owner's role, and fail closed.
+
+    No literal owned elsewhere is restated here.  The role string is copied out
+    of the Exit supervision owner and hash-bound; the action order is compared
+    between two independently derived owners rather than against a local copy;
+    and the only asserted values are the negations these owners exist to
+    express -- that a pathwise hindsight maximum is not a training target.
+    """
+
+    exit_contract = unified_exit_fitted_q_contract()
+    entry_contract = entry_fitted_q_contract()
+    role = exit_contract.get("pathwise_hindsight_role")
+    if (
+        exit_contract.get("pathwise_hindsight_max_is_training_target") is not False
+        or entry_contract.get("pathwise_hindsight_target") is not False
+        or not isinstance(role, str)
+        or not role
+        or exit_contract.get("action_order") != list(UNIFIED_EXIT_ACTION_ORDER)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_OPTIMAL_STOPPING_ROLE_OWNER_INVALID")
+    return {
+        "declared_role": role,
+        "declared_by_owners": list(NON_TRAINING_ROLE_OWNERS),
+        "unified_exit_fitted_q_contract_sha256": exit_contract["contract_sha256"],
+        "entry_fitted_q_contract_sha256": entry_contract["contract_sha256"],
+    }
+
+
 def unified_exit_optimal_stopping_contract() -> dict[str, Any]:
     payload = {
         "schema_version": UNIFIED_EXIT_OPTIMAL_STOPPING_SCHEMA_VERSION,
+        "decision": DECISION,
+        "role": {
+            "computes": (
+                "pathwise_hindsight_optimum_of_one_realized_executable_path"
+            ),
+            "value_semantics": "upper_bound_requiring_future_executable_quotes",
+            "is_training_target": False,
+            "supersedes_supervision_owner": False,
+            **_observe_declared_non_training_role(),
+        },
+        "integration": {
+            "integrated": False,
+            "supervision_authority_owner": (
+                "gx1.contracts.unified_exit_fitted_q_v1."
+                "build_unified_exit_fitted_q_targets"
+            ),
+            "forbidden_as_training_or_serving_target": True,
+            "only_permitted_future_role": "diagnostic_upper_bound",
+            "requires_named_diagnostic_consumer_owner": True,
+            "requires_hash_bound_episode_and_split_lineage": True,
+            "requires_same_replay_operator_as_production": True,
+            "requires_reporting_restricted_to_declared_split": True,
+            "requires_production_source_scan_allowlist_extension": True,
+            "no_production_default_changes_in_this_wave": True,
+        },
         "state_count": UNIFIED_EXIT_OPTIMAL_STOPPING_STATE_COUNT,
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
@@ -293,7 +378,15 @@ def replay_unified_exit_q_policy(
     predicted_q_bps: Any,
     targets: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Replay one learned Q policy until EXIT_NOW or the forced terminal."""
+    """Replay one learned Q policy against this owner's hindsight trajectory.
+
+    Shape and finiteness are enforced here, at this owner's exact 512-state
+    trajectory.  The stopping decision itself is delegated to the production
+    replay operator in ``unified_exit_fitted_q_v1`` so that a learned policy
+    and this upper bound are always scored through one argmax, tie and terminal
+    semantics; a private second copy would fold replay differences into the
+    measured gap and make the bound unattributable.
+    """
 
     q = np.asarray(predicted_q_bps, dtype=np.float64)
     valid = np.asarray(targets.get("action_valid_mask"), dtype=np.bool_)
@@ -310,28 +403,16 @@ def replay_unified_exit_q_policy(
         or not np.isfinite(exit_pnl).all()
     ):
         raise RuntimeError("UNIFIED_EXIT_Q_POLICY_REPLAY_INPUT_INVALID")
-    actions: list[int] = []
-    for state in range(UNIFIED_EXIT_OPTIMAL_STOPPING_STATE_COUNT):
-        valid_indices = np.flatnonzero(valid[state])
-        if valid_indices.size == 0:
-            raise RuntimeError("UNIFIED_EXIT_Q_POLICY_ACTION_MASK_EMPTY")
-        state_q = q[state, valid_indices]
-        if np.count_nonzero(state_q == np.max(state_q)) != 1:
-            raise RuntimeError("UNIFIED_EXIT_Q_POLICY_TIED_ACTION")
-        action = int(valid_indices[int(np.argmax(state_q))])
-        actions.append(action)
-        if action == UNIFIED_EXIT_EXIT_NOW_ACTION_INDEX:
-            return {
-                "exit_state_index": state,
-                "action_indices": actions,
-                "realized_executable_pnl_bps": float(exit_pnl[state]),
-                "terminal_forced": state
-                == UNIFIED_EXIT_OPTIMAL_STOPPING_STATE_COUNT - 1,
-            }
-    raise RuntimeError("UNIFIED_EXIT_Q_POLICY_DID_NOT_TERMINATE")
+    return replay_unified_exit_fitted_q_policy(
+        predicted_q_bps=q,
+        action_valid_mask=valid,
+        exit_now_reward_bps=exit_pnl,
+    )
 
 
 __all__ = (
+    "DECISION",
+    "NON_TRAINING_ROLE_OWNERS",
     "UNIFIED_EXIT_EXIT_NOW_ACTION_INDEX",
     "UNIFIED_EXIT_HOLD_ACTION_INDEX",
     "UNIFIED_EXIT_OPTIMAL_STOPPING_GAMMA",

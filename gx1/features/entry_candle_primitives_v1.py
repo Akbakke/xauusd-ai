@@ -7,8 +7,13 @@ continuous measurements without inheriting a hand-written definition.
 
 Row ``t`` describes the bar that closes at that row's authoritative close.
 Relational fields need row ``t-1`` and therefore preserve one honest NaN
-prefix.  A zero-range bar is explicitly identified; its otherwise undefined
-close location uses the neutral encoding 0.5 only together with that flag.
+prefix.  On a zero-range (``high == low``) bar every range SHARE is
+mathematically undefined, so the shares are the storage zero and the close
+location the neutral 0.5.  The separate ``candle.raw_zero_range_flag`` that
+used to mark that encoding was retired on 2026-08-15; it was an exact
+algebraic function of three shares that remain model inputs.  The reason, the
+identity and the measured event counts are in the
+``CANDLE_PRIMITIVE_FEATURE_VERSION`` note below.
 """
 from __future__ import annotations
 
@@ -19,17 +24,82 @@ import numpy as np
 import pandas as pd
 
 
+# v3 (2026-08-15): ``candle.raw_zero_range_flag`` is RETIRED, here and on
+# every MTF lane (``mtf_candle_raw_zero_range_flag``).
+#
+# MEASURED on the complete declared native M5 tape
+# ``XAU_M5_NATIVE_2019_20260804_V4`` (537,861 rows, 2019-01-01..2026-08-04),
+# resampled by the declared per-timeframe owner and counted after the >=199-row
+# causal warmup: 215 zero-range (``high == low``) bars on M5 (0.040%), 24 on
+# M15 (0.013%), 14 on H1 (0.031%), and ZERO on H4 and D1.  Two independent
+# failure modes follow, neither of them fixable:
+#
+# 1. Constant post-warmup on H4 and D1, so
+#    ``htf_features.build_multi_tf_v4_liveness_contract`` fails closed on
+#    ``unique_count <= 1`` and ``prebuild_multi_tf_cache_v4`` turns that into a
+#    hard ``HTF_V4_CACHE_FULL_INPUT_LIVENESS_FAIL``.  Gold prints no zero-range
+#    4-hour or daily bar; that is a market fact, not a wiring defect, and no
+#    window or warmup choice changes it.
+# 2. Declaring it an allowed constant does NOT rescue it.  PROVEN FROM SOURCE
+#    in ``gx1/contracts/entry_model_native_input_normalization_v1.py``: the
+#    ``is_binary`` identity fast path requires the column to contain BOTH 0.0
+#    and 1.0, so a constant-0 column falls through to the IQR path where
+#    ``q75 - q25 == 0``, the positive-absolute-deviation fallback is empty, and
+#    ``[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]`` is raised.  An allowlist entry
+#    only moves the failure one stage downstream.
+#
+# On the lanes where it is not constant the rate is an order of magnitude
+# below the ``MIN_ACTIVE_RATE`` = 0.01 floor of
+# ``gx1/contracts/entry_full_input_liveness_v1.py``, and the M15/H1 counts (24,
+# 14) are already under the smallest floor that owner registers (32); a 9-month
+# TRAIN leaves ~19 M5 events, also under it.  Registering a lower floor would
+# be inventing a magnitude, which CLAUDE.md rule 2b forbids.
+#
+# CLAUDE.md rule 4 is satisfied twice over.  The flag consumed only ``high``
+# and ``low`` of its own bar, and both remain model inputs on every lane — but
+# the stronger statement is that NO evidence at all is lost, because the flag
+# is an EXACT algebraic function of three shares that stay on the surface.
+#
+# PROVEN FROM SOURCE AND ALGEBRA, independent of any data.  For every bar,
+# ``upper_wick + lower_wick + |body| == high - low == R`` identically
+# (``upper_wick = high - max(open, close)``, ``lower_wick = min(open, close) -
+# low``, ``|body| = |close - open|``; the three are the exact partition of the
+# range).  When ``R > 0`` this owner emits those three quantities divided by
+# ``R``, so ``|body_signed_range| + upper_wick_share + lower_wick_share == 1``
+# and at least one of the three is >= 1/3 — none of them can round to zero
+# under the float32 cast.  When ``R == 0`` the owner emits all three as the
+# storage zero.  Therefore
+#
+#     high == low   <==>   body_signed_range == 0
+#                          and upper_wick_share == 0
+#                          and lower_wick_share == 0
+#
+# is an exact biconditional over the surviving inputs, on every lane and at
+# every timeframe.  MEASURED corroboration on 200,000 synthetic rows seeded
+# with zero-range, marubozu and extreme-touching bars: the recovered mask
+# equals ``high == low`` on every row, and the share sum is 1.0 +/- 4.5e-8 on
+# positive-range rows against exactly 0.0 on zero-range rows.  A doji is NOT
+# confusable with a zero-range bar: a real-range doji has
+# ``body_signed_range == 0`` but nonzero wick shares summing to 1.
+# ``candle.raw_close_location``'s neutral 0.5 is likewise disambiguated by the
+# same conjunction, so no encoding is left ambiguous.
 CANDLE_PRIMITIVE_FEATURE_VERSION = (
-    "entry_candle_primitives_v2_20260814_exact_relations_and_carry"
+    "entry_candle_primitives_v3_20260815_zero_range_flag_retired"
 )
 CANDLE_PRIMITIVE_FEATURE_PREFIX = "candle.raw_"
 CANDLE_PRIMITIVE_SOURCE_FIELDS = ("time", "open", "high", "low", "close")
-CANDLE_PRIMITIVE_FEATURE_NAMES = (
+# Whole-bar geometry: row ``t`` alone, finite from the first row, emitted as
+# whole vectorized columns.
+CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES = (
     "candle.raw_body_signed_range",
     "candle.raw_upper_wick_share",
     "candle.raw_lower_wick_share",
     "candle.raw_close_location",
-    "candle.raw_zero_range_flag",
+)
+# Relational/carry block: emitted from the two-bar carry loop, therefore
+# preceded by the one honest NaN prefix row (or continued exactly from a carry
+# state).
+CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES = (
     # These six use the exact two-bar geometry envelope (ranges and absolute
     # OHLC/body displacements).  The retired *_prev_range spelling falsely
     # claimed an exact previous-range denominator, including after a
@@ -60,10 +130,173 @@ CANDLE_PRIMITIVE_FEATURE_NAMES = (
     "candle.raw_observed_body_direction_duration_bars",
     "candle.raw_observed_range_relation_duration_bars",
 )
-CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES = CANDLE_PRIMITIVE_FEATURE_NAMES[5:]
+CANDLE_PRIMITIVE_FEATURE_NAMES = (
+    CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES
+    + CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES
+)
 CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256 = hashlib.sha256(
     "\n".join(CANDLE_PRIMITIVE_FEATURE_NAMES).encode("utf-8")
 ).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Emitted-column layout, DERIVED from the name tuples above rather than
+# restated as literals (CLAUDE.md rule 13: a repeated literal is not
+# ownership).  The hand-numbered ``matrix[:, 0] .. matrix[:, 25]`` writes this
+# replaces had to be renumbered by hand every time a field entered or left the
+# tuple, and a missed renumber is SILENT: every column keeps its dtype, its
+# finiteness prefix and its name, so two fields swap meanings without any
+# downstream gate being able to see it.  Each constant is a lookup into the
+# declared tuple, so a removed name raises ``ValueError`` at import.
+# ---------------------------------------------------------------------------
+_IX_BODY_SIGNED_RANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_body_signed_range"
+)
+_IX_UPPER_WICK_SHARE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_upper_wick_share"
+)
+_IX_LOWER_WICK_SHARE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_lower_wick_share"
+)
+_IX_CLOSE_LOCATION = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_close_location"
+)
+_IX_OPEN_GAP = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_open_gap_local_geometry"
+)
+_IX_CLOSE_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_close_change_local_geometry"
+)
+_IX_HIGH_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_high_change_local_geometry"
+)
+_IX_LOW_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_low_change_local_geometry"
+)
+_IX_RANGE_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_range_change_local_geometry"
+)
+_IX_BODY_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_body_change_local_geometry"
+)
+_IX_OPEN_ABOVE_PREVIOUS_HIGH = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_open_above_previous_high_local_geometry"
+)
+_IX_OPEN_BELOW_PREVIOUS_LOW = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_open_below_previous_low_local_geometry"
+)
+_IX_BODY_OVERLAP_PREVIOUS = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_body_overlap_previous_local_geometry"
+)
+_IX_BODY_CONTAINS_PREVIOUS = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_body_contains_previous_flag"
+)
+_IX_BODY_CONTAINED_BY_PREVIOUS = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_body_contained_by_previous_flag"
+)
+_IX_RANGE_CONTAINS_PREVIOUS = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_range_contains_previous_flag"
+)
+_IX_RANGE_CONTAINED_BY_PREVIOUS = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_range_contained_by_previous_flag"
+)
+_IX_BULL_BODY_COVERS_PREVIOUS_BEAR = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_bull_body_covers_previous_bear_body_event"
+)
+_IX_BEAR_BODY_COVERS_PREVIOUS_BULL = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_bear_body_covers_previous_bull_body_event"
+)
+_IX_HIGH_REJECTION_EVENT = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_high_rejection_previous_high_event"
+)
+_IX_LOW_REJECTION_EVENT = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_low_rejection_previous_low_event"
+)
+_IX_HIGH_REJECTION_DEPTH = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_high_rejection_depth_local_geometry"
+)
+_IX_LOW_REJECTION_DEPTH = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_low_rejection_depth_local_geometry"
+)
+_IX_BODY_DIRECTION_DURATION = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_observed_body_direction_duration_bars"
+)
+_IX_RANGE_RELATION_DURATION = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
+    "candle.raw_observed_range_relation_duration_bars"
+)
+
+# The complete write inventory, listed in declared-emission order.  Every
+# assignment in :func:`compute_entry_candle_primitive_chunk` targets exactly
+# one of these constants.
+_EMITTED_COLUMN_INDICES = (
+    _IX_BODY_SIGNED_RANGE,
+    _IX_UPPER_WICK_SHARE,
+    _IX_LOWER_WICK_SHARE,
+    _IX_CLOSE_LOCATION,
+    _IX_OPEN_GAP,
+    _IX_CLOSE_CHANGE,
+    _IX_HIGH_CHANGE,
+    _IX_LOW_CHANGE,
+    _IX_RANGE_CHANGE,
+    _IX_BODY_CHANGE,
+    _IX_OPEN_ABOVE_PREVIOUS_HIGH,
+    _IX_OPEN_BELOW_PREVIOUS_LOW,
+    _IX_BODY_OVERLAP_PREVIOUS,
+    _IX_BODY_CONTAINS_PREVIOUS,
+    _IX_BODY_CONTAINED_BY_PREVIOUS,
+    _IX_RANGE_CONTAINS_PREVIOUS,
+    _IX_RANGE_CONTAINED_BY_PREVIOUS,
+    _IX_BULL_BODY_COVERS_PREVIOUS_BEAR,
+    _IX_BEAR_BODY_COVERS_PREVIOUS_BULL,
+    _IX_HIGH_REJECTION_EVENT,
+    _IX_LOW_REJECTION_EVENT,
+    _IX_HIGH_REJECTION_DEPTH,
+    _IX_LOW_REJECTION_DEPTH,
+    _IX_BODY_DIRECTION_DURATION,
+    _IX_RANGE_RELATION_DURATION,
+)
+
+
+def _require_emitted_row_layout() -> None:
+    """Prove the derived write offsets reproduce the declared name order.
+
+    Listing the constants in emission order and demanding they equal
+    ``range(width)`` proves a bijection onto the declared columns: no gap, no
+    duplicate, no stale offset and no reordering.  A name that leaves
+    :data:`CANDLE_PRIMITIVE_FEATURE_NAMES` has already raised ``ValueError`` at
+    its ``.index`` lookup above; a name that joins it without a write site is
+    caught here.
+    """
+
+    width = len(CANDLE_PRIMITIVE_FEATURE_NAMES)
+    if _EMITTED_COLUMN_INDICES != tuple(range(width)):
+        raise RuntimeError(
+            "CANDLE_PRIMITIVE_ROW_LAYOUT_INVALID: write plan "
+            f"{_EMITTED_COLUMN_INDICES} is not the declared column order"
+        )
+    if len(set(CANDLE_PRIMITIVE_FEATURE_NAMES)) != width:
+        raise RuntimeError("CANDLE_PRIMITIVE_ROW_LAYOUT_INVALID: duplicate name")
+    if not all(
+        isinstance(name, str)
+        and name.startswith(CANDLE_PRIMITIVE_FEATURE_PREFIX)
+        for name in CANDLE_PRIMITIVE_FEATURE_NAMES
+    ):
+        raise RuntimeError("CANDLE_PRIMITIVE_ROW_LAYOUT_INVALID: name prefix")
+    if CANDLE_PRIMITIVE_FEATURE_NAMES[
+        : len(CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES)
+    ] != CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES:
+        raise RuntimeError(
+            "CANDLE_PRIMITIVE_ROW_LAYOUT_INVALID: whole-bar block moved"
+        )
+    if CANDLE_PRIMITIVE_FEATURE_NAMES[
+        len(CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES) :
+    ] != CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES:
+        raise RuntimeError(
+            "CANDLE_PRIMITIVE_ROW_LAYOUT_INVALID: relational block moved"
+        )
+
+
+_require_emitted_row_layout()
 
 
 def candle_primitive_contract_metadata() -> dict[str, object]:
@@ -271,11 +504,10 @@ def compute_entry_candle_primitive_chunk(
         np.nan,
         dtype=np.float64,
     )
-    matrix[:, 0] = body_signed_range
-    matrix[:, 1] = upper_wick_share
-    matrix[:, 2] = lower_wick_share
-    matrix[:, 3] = close_location
-    matrix[:, 4] = zero_range.astype(np.float64)
+    matrix[:, _IX_BODY_SIGNED_RANGE] = body_signed_range
+    matrix[:, _IX_UPPER_WICK_SHARE] = upper_wick_share
+    matrix[:, _IX_LOWER_WICK_SHARE] = lower_wick_share
+    matrix[:, _IX_CLOSE_LOCATION] = close_location
 
     previous_open_value = state.previous_open
     previous_high_value = state.previous_high
@@ -292,7 +524,7 @@ def compute_entry_candle_primitive_chunk(
             body_direction_duration += 1
         else:
             body_direction_duration = 1
-        matrix[row, 24] = float(body_direction_duration)
+        matrix[row, _IX_BODY_DIRECTION_DURATION] = float(body_direction_duration)
 
         if previous_close_value is not None:
             previous_range = float(previous_high_value - previous_low_value)
@@ -319,14 +551,30 @@ def compute_entry_candle_primitive_chunk(
                 abs(float(body[row]) - previous_body),
                 price_scale * np.finfo(np.float64).eps,
             )
-            matrix[row, 5] = (open_[row] - previous_close_value) / local_geometry_scale
-            matrix[row, 6] = (close[row] - previous_close_value) / local_geometry_scale
-            matrix[row, 7] = (high[row] - previous_high_value) / local_geometry_scale
-            matrix[row, 8] = (low[row] - previous_low_value) / local_geometry_scale
-            matrix[row, 9] = (bar_range[row] - previous_range) / local_geometry_scale
-            matrix[row, 10] = (body[row] - previous_body) / local_geometry_scale
-            matrix[row, 11] = max(open_[row] - previous_high_value, 0.0) / local_geometry_scale
-            matrix[row, 12] = max(previous_low_value - open_[row], 0.0) / local_geometry_scale
+            matrix[row, _IX_OPEN_GAP] = (
+                open_[row] - previous_close_value
+            ) / local_geometry_scale
+            matrix[row, _IX_CLOSE_CHANGE] = (
+                close[row] - previous_close_value
+            ) / local_geometry_scale
+            matrix[row, _IX_HIGH_CHANGE] = (
+                high[row] - previous_high_value
+            ) / local_geometry_scale
+            matrix[row, _IX_LOW_CHANGE] = (
+                low[row] - previous_low_value
+            ) / local_geometry_scale
+            matrix[row, _IX_RANGE_CHANGE] = (
+                bar_range[row] - previous_range
+            ) / local_geometry_scale
+            matrix[row, _IX_BODY_CHANGE] = (
+                body[row] - previous_body
+            ) / local_geometry_scale
+            matrix[row, _IX_OPEN_ABOVE_PREVIOUS_HIGH] = (
+                max(open_[row] - previous_high_value, 0.0) / local_geometry_scale
+            )
+            matrix[row, _IX_OPEN_BELOW_PREVIOUS_LOW] = (
+                max(previous_low_value - open_[row], 0.0) / local_geometry_scale
+            )
 
             body_low = min(open_[row], close[row])
             body_high = max(open_[row], close[row])
@@ -337,7 +585,9 @@ def compute_entry_candle_primitive_chunk(
                 - max(body_low, previous_body_low),
                 0.0,
             )
-            matrix[row, 13] = body_overlap / local_geometry_scale
+            matrix[row, _IX_BODY_OVERLAP_PREVIOUS] = (
+                body_overlap / local_geometry_scale
+            )
             body_equal = (
                 body_low == previous_body_low
                 and body_high == previous_body_high
@@ -352,8 +602,8 @@ def compute_entry_candle_primitive_chunk(
                 and body_high <= previous_body_high
                 and not body_equal
             )
-            matrix[row, 14] = float(body_contains)
-            matrix[row, 15] = float(body_contained)
+            matrix[row, _IX_BODY_CONTAINS_PREVIOUS] = float(body_contains)
+            matrix[row, _IX_BODY_CONTAINED_BY_PREVIOUS] = float(body_contained)
 
             range_equal = (
                 high[row] == previous_high_value
@@ -369,27 +619,27 @@ def compute_entry_candle_primitive_chunk(
                 and low[row] >= previous_low_value
                 and not range_equal
             )
-            matrix[row, 16] = float(range_contains)
-            matrix[row, 17] = float(range_contained)
+            matrix[row, _IX_RANGE_CONTAINS_PREVIOUS] = float(range_contains)
+            matrix[row, _IX_RANGE_CONTAINED_BY_PREVIOUS] = float(range_contained)
 
             previous_direction = int(previous_close_value > previous_open_value) - int(
                 previous_close_value < previous_open_value
             )
             bull_cover = body_contains and body_direction == 1 and previous_direction == -1
             bear_cover = body_contains and body_direction == -1 and previous_direction == 1
-            matrix[row, 18] = float(bull_cover)
-            matrix[row, 19] = float(bear_cover)
+            matrix[row, _IX_BULL_BODY_COVERS_PREVIOUS_BEAR] = float(bull_cover)
+            matrix[row, _IX_BEAR_BODY_COVERS_PREVIOUS_BULL] = float(bear_cover)
 
             high_rejection = high[row] > previous_high_value and close[row] <= previous_high_value
             low_rejection = low[row] < previous_low_value and close[row] >= previous_low_value
-            matrix[row, 20] = float(high_rejection)
-            matrix[row, 21] = float(low_rejection)
-            matrix[row, 22] = (
+            matrix[row, _IX_HIGH_REJECTION_EVENT] = float(high_rejection)
+            matrix[row, _IX_LOW_REJECTION_EVENT] = float(low_rejection)
+            matrix[row, _IX_HIGH_REJECTION_DEPTH] = (
                 (high[row] - previous_high_value) / local_geometry_scale
                 if high_rejection
                 else 0.0
             )
-            matrix[row, 23] = (
+            matrix[row, _IX_LOW_REJECTION_DEPTH] = (
                 (previous_low_value - low[row]) / local_geometry_scale
                 if low_rejection
                 else 0.0
@@ -408,7 +658,9 @@ def compute_entry_candle_primitive_chunk(
                 range_relation_duration += 1
             else:
                 range_relation_duration = 1
-            matrix[row, 25] = float(range_relation_duration)
+            matrix[row, _IX_RANGE_RELATION_DURATION] = float(
+                range_relation_duration
+            )
             previous_range_relation = range_relation
 
         previous_open_value = float(open_[row])
@@ -461,6 +713,7 @@ __all__ = [
     "CANDLE_PRIMITIVE_FEATURE_VERSION",
     "CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES",
     "CANDLE_PRIMITIVE_SOURCE_FIELDS",
+    "CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES",
     "CandlePrimitiveCarryState",
     "build_entry_candle_primitive_layer",
     "candle_primitive_contract_metadata",

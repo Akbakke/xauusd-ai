@@ -153,7 +153,9 @@ from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
 from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
-TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V3"
+# V4 (2026-08-15): the geomline_{above,below}_active presence masks are retired
+# from the emitted block; the graded per-side ACTIVE counts remain.
+TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V4"
 TRENDLINE_HYPERPARAMETER_SCHEMA_VERSION_V1 = (
     "trendline_registry_hyperparameter_fit_v1"
 )
@@ -173,11 +175,40 @@ TRENDLINE_STRUCTURAL_WARMUP_BARS_V1 = 2 * SWING_LOOKBACK + 2
 # Exact emission name tuples (design B.5) — the stage-2 wiring contract.
 # ---------------------------------------------------------------------------
 
+# V30 (2026-08-13) added the graded per-side occupancy
+# ``geomline_{above,below}_active_count``: the number of ACTIVE lines
+# projecting on that side of the close.  It is raw and uncapped.
+#
+# 2026-08-15: the presence MASKS ``geomline_{above,below}_active`` are retired.
+#
+# PROVEN FROM SOURCE, and this alone carries the change: in :func:`_emit_row`
+# the mask and the count beside it were written from the same branch over the
+# same loop, so the mask was exactly the count's ``>= 1`` indicator and
+# carried no evidence the count does not carry.  CLAUDE.md rule 4 permits
+# retiring a derived field only while every field it consumed stays a model
+# input: the ACTIVE-line population it read IS the count, and the count stays.
+# Rule 22 then prefers the smaller surface.
+#
+# CORROBORATING, MEASURED but on a SUPERSEDED axis
+# (docs/V29_EVENT_SURFACE_DESIGN_20260811.md §10, native-M5 V4 tape -> D1,
+# N=2304 declared D1 TRAIN bars, measured 2026-08-11 on the midnight-UTC D1
+# origin that V30 package 3 replaced with the trading-day origin two days
+# later): ``geomline_below_active`` was exactly 1.0 on EVERY row and took the
+# V29B chain RED on ``D1:constant_fields=['geomline_below_active']`` while all
+# six sibling attributes stayed non-constant.  The saturation exemption
+# written for that RED has since been retired (see
+# tests/test_htf_v4_liveness_saturation_contract.py), leaving the mask with no
+# route to green at D1 scale.  NOT RE-MEASURED on the trading-day axis — that
+# needs a TRAIN-fitted registry-constants artifact, and none has been fitted.
+#
+# NOT the reason, despite looking like one: mask and count are bit-identical
+# on any lane whose per-side ACTIVE population never exceeds 1, but both are
+# MANDATORY selected fields and the ``exact_duplicate`` path in
+# ``entry_model_native_feature_availability_v1`` only ever sees the CANDIDATE
+# pool, which excludes mandatory fields by construction.  That duplicate would
+# have been caught by the per-TF liveness owner, not by the availability
+# owner.
 TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
-    "geomline_above_active",
-    # V30 (2026-08-13): graded occupancy beside the mask — the number of
-    # ACTIVE lines projecting on this side of the close (the mask is its
-    # >=1 indicator). The count is raw and uncapped.
     "geomline_above_active_count",
     "geomline_above_dist_atr",
     "geomline_above_slope_atr_per_bar",
@@ -185,7 +216,6 @@ TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_above_age_bars",
     "geomline_above_last_touch_age_bars",
     "geomline_above_max_dev_atr",
-    "geomline_below_active",
     "geomline_below_active_count",
     "geomline_below_dist_atr",
     "geomline_below_slope_atr_per_bar",
@@ -270,6 +300,60 @@ _EV_RETEST_FAIL_UP = 7
 _EV_RETEST_HOLD_DOWN = 8
 _EV_RETEST_FAIL_DOWN = 9
 _EV_COUNT = 10
+
+# Emitted-row layout, DERIVED from the name tuples above rather than restated
+# as literals (CLAUDE.md rule 13: a repeated literal is not ownership — the
+# hand-numbered ``row[0]..row[32]`` writes that this replaced had to be
+# renumbered by hand every time a field entered or left the tuple).  Each side
+# block is the same ordered septet, so one base index per side is enough.
+_SLOT_SIDE_FIELD_COUNT = len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) // 2
+_IX_ABOVE_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index(
+    "geomline_above_active_count"
+)
+_IX_BELOW_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index(
+    "geomline_below_active_count"
+)
+_SLOT_ACTIVE_COUNT = 0
+_SLOT_DIST_ATR = 1
+_SLOT_SLOPE_ATR_PER_BAR = 2
+_SLOT_TOUCH_COUNT = 3
+_SLOT_AGE_BARS = 4
+_SLOT_LAST_TOUCH_AGE_BARS = 5
+_SLOT_MAX_DEV_ATR = 6
+_IX_EVENT_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index("geomline_touch_above")
+_IX_BARS_SINCE_BREAK = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index(
+    "geomline_bars_since_break"
+)
+_IX_CHANNEL_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index("geomchan_active")
+
+
+def _require_emitted_row_layout() -> None:
+    """Prove the derived write offsets reproduce the declared name order."""
+
+    if _SLOT_SIDE_FIELD_COUNT * 2 != len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1):
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] slot block not paired")
+    above = TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1[:_SLOT_SIDE_FIELD_COUNT]
+    below = TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1[_SLOT_SIDE_FIELD_COUNT:]
+    if tuple(
+        name.replace("_above_", "_", 1) for name in above
+    ) != tuple(name.replace("_below_", "_", 1) for name in below):
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] side blocks differ")
+    if (_IX_ABOVE_BASE, _IX_BELOW_BASE) != (0, _SLOT_SIDE_FIELD_COUNT):
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] side bases moved")
+    if _IX_EVENT_BASE != len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1):
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] event block moved")
+    if _IX_BARS_SINCE_BREAK != _IX_EVENT_BASE + _EV_COUNT:
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] event vector width")
+    if _IX_CHANNEL_BASE != _IX_BARS_SINCE_BREAK + 1:
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] channel block moved")
+    if (
+        _IX_CHANNEL_BASE + len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1)
+        != TRENDLINE_REGISTRY_FEATURE_COUNT_V1
+    ):
+        raise RuntimeError("[TRENDLINE_ROW_LAYOUT_INVALID] trailing width")
+
+
+_require_emitted_row_layout()
 
 
 # ---------------------------------------------------------------------------
@@ -958,9 +1042,11 @@ def _emit_row(
     below: TrendlineV1 | None = None
     above_key = (math.inf, math.inf)
     below_key = (math.inf, math.inf)
-    # V30 graded occupancy: the per-side ACTIVE-line population behind the
-    # nearest-slot masks (same loop, same side rule: projection-on-close ties
-    # to the ABOVE side).
+    # V30 graded occupancy: the per-side ACTIVE-line population for the
+    # nearest-slot evidence below (same loop, same side rule:
+    # projection-on-close ties to the ABOVE side).  A zero count is exactly
+    # "no ACTIVE line on this side", which is what the retired
+    # geomline_*_active masks used to say and nothing more.
     above_count = 0
     below_count = 0
     for line in state.active_lines:
@@ -979,27 +1065,38 @@ def _emit_row(
             if key < below_key:
                 below_key = key
                 below = line
-    row[1] = float(above_count)
-    row[9] = float(below_count)
+    row[_IX_ABOVE_BASE + _SLOT_ACTIVE_COUNT] = float(above_count)
+    row[_IX_BELOW_BASE + _SLOT_ACTIVE_COUNT] = float(below_count)
     if above is not None:
-        row[0] = 1.0
-        row[2] = above_key[0] / atr_t
-        row[3] = above.slope / atr_t
-        row[4] = float(above.touch_count)
-        row[5] = float(t - (above.anchor1_bar + swing_lookback))
-        row[6] = float(t - above.last_touch_bar)
-        row[7] = above.max_dev_atr
+        row[_IX_ABOVE_BASE + _SLOT_DIST_ATR] = above_key[0] / atr_t
+        row[_IX_ABOVE_BASE + _SLOT_SLOPE_ATR_PER_BAR] = above.slope / atr_t
+        row[_IX_ABOVE_BASE + _SLOT_TOUCH_COUNT] = float(above.touch_count)
+        row[_IX_ABOVE_BASE + _SLOT_AGE_BARS] = float(
+            t - (above.anchor1_bar + swing_lookback)
+        )
+        row[_IX_ABOVE_BASE + _SLOT_LAST_TOUCH_AGE_BARS] = float(
+            t - above.last_touch_bar
+        )
+        row[_IX_ABOVE_BASE + _SLOT_MAX_DEV_ATR] = above.max_dev_atr
     if below is not None:
-        row[8] = 1.0
-        row[10] = below_key[0] / atr_t
-        row[11] = below.slope / atr_t
-        row[12] = float(below.touch_count)
-        row[13] = float(t - (below.anchor1_bar + swing_lookback))
-        row[14] = float(t - below.last_touch_bar)
-        row[15] = below.max_dev_atr
-    row[16:26] = events
-    row[26] = raw_event_age_from_last_observed_row(t, state.last_break_bar)
-    row[27:33] = _channel_block(
+        row[_IX_BELOW_BASE + _SLOT_DIST_ATR] = below_key[0] / atr_t
+        row[_IX_BELOW_BASE + _SLOT_SLOPE_ATR_PER_BAR] = below.slope / atr_t
+        row[_IX_BELOW_BASE + _SLOT_TOUCH_COUNT] = float(below.touch_count)
+        row[_IX_BELOW_BASE + _SLOT_AGE_BARS] = float(
+            t - (below.anchor1_bar + swing_lookback)
+        )
+        row[_IX_BELOW_BASE + _SLOT_LAST_TOUCH_AGE_BARS] = float(
+            t - below.last_touch_bar
+        )
+        row[_IX_BELOW_BASE + _SLOT_MAX_DEV_ATR] = below.max_dev_atr
+    row[_IX_EVENT_BASE : _IX_EVENT_BASE + _EV_COUNT] = events
+    row[_IX_BARS_SINCE_BREAK] = raw_event_age_from_last_observed_row(
+        t, state.last_break_bar
+    )
+    row[
+        _IX_CHANNEL_BASE : _IX_CHANNEL_BASE
+        + len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1)
+    ] = _channel_block(
         state,
         above,
         above_key[0],

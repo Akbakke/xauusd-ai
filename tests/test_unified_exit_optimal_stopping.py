@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 import pytest
 
+import gx1.contracts.unified_exit_optimal_stopping_v1 as optimal_stopping_owner
+from gx1.contracts.entry_fitted_q_v1 import entry_fitted_q_contract
+from gx1.contracts.unified_exit_fitted_q_v1 import (
+    replay_unified_exit_fitted_q_policy,
+    unified_exit_fitted_q_contract,
+)
 from gx1.contracts.unified_exit_optimal_stopping_v1 import (
+    DECISION,
     UNIFIED_EXIT_OPTIMAL_STOPPING_STATE_COUNT,
     replay_unified_exit_q_policy,
     require_unified_exit_optimal_stopping_contract,
@@ -169,3 +177,112 @@ def test_future_quote_mutation_changes_targets_but_never_contract_inputs() -> No
     assert unified_exit_optimal_stopping_contract()[
         "future_outcomes_used_as_model_inputs"
     ] is False
+
+
+def test_role_is_read_from_the_live_supervision_owners_not_restated() -> None:
+    contract = unified_exit_optimal_stopping_contract()
+    role = contract["role"]
+    exit_owner = unified_exit_fitted_q_contract()
+    entry_owner = entry_fitted_q_contract()
+
+    assert contract["decision"] == DECISION
+    assert role["is_training_target"] is False
+    assert role["supersedes_supervision_owner"] is False
+    assert exit_owner["pathwise_hindsight_max_is_training_target"] is False
+    assert entry_owner["pathwise_hindsight_target"] is False
+    assert role["declared_role"] == exit_owner["pathwise_hindsight_role"]
+    assert (
+        role["unified_exit_fitted_q_contract_sha256"]
+        == exit_owner["contract_sha256"]
+    )
+    assert (
+        role["entry_fitted_q_contract_sha256"] == entry_owner["contract_sha256"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("owner_attribute", "source", "key", "value"),
+    (
+        (
+            "unified_exit_fitted_q_contract",
+            unified_exit_fitted_q_contract,
+            "pathwise_hindsight_max_is_training_target",
+            True,
+        ),
+        (
+            "unified_exit_fitted_q_contract",
+            unified_exit_fitted_q_contract,
+            "pathwise_hindsight_role",
+            "",
+        ),
+        (
+            "unified_exit_fitted_q_contract",
+            unified_exit_fitted_q_contract,
+            "action_order",
+            ["EXIT_NOW", "HOLD"],
+        ),
+        (
+            "entry_fitted_q_contract",
+            entry_fitted_q_contract,
+            "pathwise_hindsight_target",
+            True,
+        ),
+    ),
+)
+def test_contract_fails_closed_when_a_role_owner_stops_declaring_it(
+    monkeypatch: pytest.MonkeyPatch,
+    owner_attribute: str,
+    source,
+    key: str,
+    value,
+) -> None:
+    flipped = dict(source())
+    flipped[key] = value
+    monkeypatch.setattr(
+        optimal_stopping_owner, owner_attribute, lambda: flipped
+    )
+    with pytest.raises(RuntimeError, match="ROLE_OWNER_INVALID"):
+        optimal_stopping_owner.unified_exit_optimal_stopping_contract()
+
+
+def test_replay_uses_the_production_operator_not_a_private_second_copy() -> None:
+    bid, ask = _quotes()
+    target = unified_exit_optimal_stopping_targets(
+        side_index=0,
+        entry_bid=99.98,
+        entry_ask=100.02,
+        bid_close=bid,
+        ask_close=ask,
+    )
+    predicted = np.zeros((UNIFIED_EXIT_OPTIMAL_STOPPING_STATE_COUNT, 2))
+    predicted[:, 0] = 1.0
+    predicted[19, 1] = 2.0
+
+    assert replay_unified_exit_q_policy(
+        predicted_q_bps=predicted,
+        targets=target,
+    ) == replay_unified_exit_fitted_q_policy(
+        predicted_q_bps=predicted,
+        action_valid_mask=target["action_valid_mask"],
+        exit_now_reward_bps=target["exit_pnl_bps"],
+    )
+
+
+def test_declared_non_integration_matches_the_production_source_scan() -> None:
+    root = Path(__file__).resolve().parents[1]
+    owner = root / "gx1/contracts/unified_exit_optimal_stopping_v1.py"
+    token = "unified_exit_optimal_stopping_targets("
+    callers = sorted(
+        str(path.relative_to(root))
+        for path in root.glob("gx1/**/*.py")
+        if path != owner and token in path.read_text(encoding="utf-8")
+    )
+    integration = unified_exit_optimal_stopping_contract()["integration"]
+
+    assert integration["integrated"] is False
+    assert integration["forbidden_as_training_or_serving_target"] is True
+    assert callers == [], (
+        "a production caller appeared while the contract still declares "
+        "integrated=False; wire the declaration and the call site as one "
+        f"transaction: {callers}"
+    )

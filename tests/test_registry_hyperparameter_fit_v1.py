@@ -27,7 +27,7 @@ def _sha(path: Path) -> str:
 def _source(tmp_path: Path, *, clock: str = "M5") -> dict:
     tmp_path.mkdir(parents=True, exist_ok=True)
     paths = {}
-    for name in ("source", "tape", "split"):
+    for name in ("source", "tape", "pair"):
         path = (tmp_path / f"{name}.json").resolve()
         path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
         paths[name] = path
@@ -38,8 +38,8 @@ def _source(tmp_path: Path, *, clock: str = "M5") -> dict:
         "source_lane": clock,
         "tape_manifest_artifact": str(paths["tape"]),
         "tape_manifest_sha256": _sha(paths["tape"]),
-        "split_manifest_artifact": str(paths["split"]),
-        "split_manifest_sha256": _sha(paths["split"]),
+        "pair_manifest_artifact": str(paths["pair"]),
+        "pair_manifest_sha256": _sha(paths["pair"]),
         "train_split_id": "chronological_train_only",
         "declared_train_window_start": "2020-01-01T00:00:00Z",
         "declared_train_window_end": "2020-01-01T00:39:00Z",
@@ -235,3 +235,117 @@ def test_frame_future_append_changes_only_fit_identity_not_apply_payload(tmp_pat
     # accepted by the payload validator or artifact loader.
     assert validated["selected_threshold_atr"] == payload["selected_threshold_atr"]
     assert "future_rows" not in validated
+
+
+def test_retired_split_manifest_keys_can_never_re_enter_the_lineage(tmp_path):
+    """The registry fit runs INSIDE the chain that produces split manifests.
+
+    A ``split_manifest_artifact``/``split_manifest_sha256`` pointer was required
+    here until 2026-08-15 while the producers actually bound the PAIR manifest
+    to it, so the name named an artifact the chain only produces after the
+    dataset this fit feeds. The names are retired and the exact-key-set
+    contract must keep them out — both directions, so neither a stale producer
+    nor a helpful default can slip one back in. The real binding they carried
+    lives on under ``pair_manifest_artifact``/``pair_manifest_sha256``.
+    """
+
+    from gx1.contracts.registry_hyperparameter_fit_v1 import (
+        RETIRED_SOURCE_KEYS,
+        _SOURCE_KEYS,
+        require_registry_fit_source_v1,
+    )
+
+    assert RETIRED_SOURCE_KEYS
+    assert RETIRED_SOURCE_KEYS.isdisjoint(_SOURCE_KEYS)
+
+    source = _source(tmp_path / "retired")
+    # The live contract accepts the payload without any split pointer.
+    assert require_registry_fit_source_v1(source, clock="M5") == source
+
+    for retired in sorted(RETIRED_SOURCE_KEYS):
+        polluted = dict(source)
+        polluted[retired] = source["tape_manifest_artifact"]
+        with pytest.raises(RuntimeError, match="REGISTRY_FIT_SOURCE_SCHEMA_INVALID"):
+            require_registry_fit_source_v1(polluted, clock="M5")
+
+
+def test_pair_manifest_binding_is_hash_bound_and_fails_closed(tmp_path):
+    """The registry fit must hold one immutable pointer to its pair generation.
+
+    The pointer existed under the misleading name ``split_manifest_*`` (the
+    producers bound the PAIR manifest to it) and was removed on 2026-08-15,
+    which left the fit with no hash-bound reference to the generation at all:
+    a retention pass that reclaimed the generation would no longer fail any
+    consumer closed, and only the free-text ``train_split_id`` remained. The
+    binding is restored under its honest name and is re-validated on every
+    load, so all three failure modes below must raise.
+    """
+
+    from gx1.contracts.registry_hyperparameter_fit_v1 import (
+        RETIRED_SOURCE_KEYS,
+        _SOURCE_KEYS,
+        require_registry_fit_source_v1,
+    )
+
+    assert {"pair_manifest_artifact", "pair_manifest_sha256"} <= _SOURCE_KEYS
+    assert RETIRED_SOURCE_KEYS.isdisjoint(_SOURCE_KEYS)
+
+    source = _source(tmp_path / "pair")
+    assert require_registry_fit_source_v1(source, clock="M5") == source
+
+    for key in ("pair_manifest_artifact", "pair_manifest_sha256"):
+        missing = dict(source)
+        missing.pop(key)
+        with pytest.raises(RuntimeError, match="REGISTRY_FIT_SOURCE_SCHEMA_INVALID"):
+            require_registry_fit_source_v1(missing, clock="M5")
+
+    wrong_hash = dict(source)
+    wrong_hash["pair_manifest_sha256"] = "0" * 64
+    with pytest.raises(
+        RuntimeError, match="REGISTRY_FIT_PAIR_MANIFEST_IMMUTABLE_SOURCE_INVALID"
+    ):
+        require_registry_fit_source_v1(wrong_hash, clock="M5")
+
+    # Retention reclaimed the pair generation: every consumer must fail closed.
+    Path(source["pair_manifest_artifact"]).unlink()
+    with pytest.raises(
+        RuntimeError, match="REGISTRY_FIT_PAIR_MANIFEST_IMMUTABLE_SOURCE_INVALID"
+    ):
+        require_registry_fit_source_v1(source, clock="M5")
+
+
+def test_declared_train_window_remains_the_only_train_population_authority(tmp_path):
+    """What the retired split pointer was supposed to protect lives here.
+
+    The invariant is "this fit saw exactly the declared TRAIN rows", and it is
+    carried by the declared window — the pair pointer proves *which generation*
+    was read, not *which rows*. The window must therefore be validated as an
+    exact ordered UTC pair, and the rebuild chain compares these same values
+    against its own split authority.
+    """
+
+    from gx1.contracts.registry_hyperparameter_fit_v1 import (
+        require_registry_fit_source_v1,
+    )
+
+    source = _source(tmp_path / "window")
+    for key in ("declared_train_window_start", "declared_train_window_end"):
+        broken = dict(source)
+        broken[key] = "not-a-timestamp"
+        with pytest.raises(RuntimeError, match="REGISTRY_FIT_TRAIN_WINDOW_INVALID"):
+            require_registry_fit_source_v1(broken, clock="M5")
+
+    reversed_window = dict(source)
+    reversed_window["declared_train_window_start"] = source[
+        "declared_train_window_end"
+    ]
+    reversed_window["declared_train_window_end"] = source[
+        "declared_train_window_start"
+    ]
+    with pytest.raises(RuntimeError, match="REGISTRY_FIT_TRAIN_WINDOW_INVALID"):
+        require_registry_fit_source_v1(reversed_window, clock="M5")
+
+    naive = dict(source)
+    naive["declared_train_window_end"] = "2020-01-01T00:39:00"
+    with pytest.raises(RuntimeError, match="REGISTRY_FIT_TRAIN_WINDOW_INVALID"):
+        require_registry_fit_source_v1(naive, clock="M5")
