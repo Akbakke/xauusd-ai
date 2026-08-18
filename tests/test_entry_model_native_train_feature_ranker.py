@@ -246,6 +246,12 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
             "high": [100.5, 101.5, 102.5, 103.5],
             "low": [99.0, 100.0, 101.0, 102.0],
             "volume": [10.0, 11.0, 12.0, 13.0],
+            # The inline seq-structure extension reads these by name off the
+            # temporary causal parquet, so the fixture must carry them exactly
+            # as the real FULL_PLUS_CTX source does.
+            "smc_bos_up": [0.0, 1.0, 0.0, 0.0],
+            "smc_bos_down": [0.0, 0.0, 0.0, 1.0],
+            "smc_choch": [0.0, 0.0, 1.0, 0.0],
         }
     )
     captured_path: Path | None = None
@@ -263,6 +269,9 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
             "high": [97.5, 98.5, 99.5],
             "low": [96.0, 97.0, 98.0],
             "volume": [7.0, 8.0, 9.0],
+            "smc_bos_up": [0.0, 0.0, 1.0],
+            "smc_bos_down": [1.0, 0.0, 0.0],
+            "smc_choch": [0.0, 1.0, 0.0],
         }
     )
     pd.concat([warmup, frame], ignore_index=True).to_parquet(causal_source, index=False)
@@ -280,6 +289,10 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
         nonlocal captured_path
         captured_path = Path(source_parquet)
         source = pd.read_parquet(captured_path)
+        from gx1.features.entry_foundation_structure_v1 import (
+            FOUNDATION_STRUCTURE_SOURCE_FIELDS,
+        )
+
         assert list(source.columns) == [
             "time",
             "close",
@@ -288,6 +301,10 @@ def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
             "high",
             "low",
             "volume",
+            *(
+                name.removeprefix("snap.")
+                for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+            ),
         ]
         assert len(source) > len(observed_frame)
         ranked = source.set_index("time").loc[observed_frame["time"]]

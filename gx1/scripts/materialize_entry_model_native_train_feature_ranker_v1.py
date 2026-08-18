@@ -395,7 +395,22 @@ def _compute_candidate_matrix(
         _build_inline_seq_structure_extension,
     )
 
-    inline_source_columns = [
+    # The inline seq-structure extension reads FOUNDATION_STRUCTURE_SOURCE_FIELDS
+    # off this temporary parquet, so the column list must be DERIVED from that
+    # owner rather than restated here (rule 13: a repeated literal is not
+    # ownership). The hardcoded seven-name list this replaces omitted every
+    # foundation structure column, so the extension raised
+    # ArrowInvalid: No match for FieldRef.Name(smc_bos_up) the moment a
+    # foundation candidate was requested.
+    from gx1.features.entry_foundation_structure_v1 import (
+        FOUNDATION_STRUCTURE_SOURCE_FIELDS,
+    )
+
+    # Two different requirements, deliberately not merged. The ranked frame must
+    # carry the price columns the layers align against; the temporary causal
+    # parquet must ALSO carry the foundation structure columns, because
+    # _build_inline_seq_structure_extension reads them off it by name.
+    inline_price_columns = [
         "time",
         "close",
         "atr",
@@ -404,7 +419,13 @@ def _compute_candidate_matrix(
         "low",
         "volume",
     ]
-    missing_inline = [name for name in inline_source_columns if name not in frame.columns]
+    foundation_columns = [
+        name.removeprefix("snap.") for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+    ]
+    inline_source_columns = [*inline_price_columns, *foundation_columns]
+    missing_inline = [
+        name for name in inline_price_columns if name not in frame.columns
+    ]
     if missing_inline:
         raise RuntimeError(
             f"FEATURE_RANKER_INLINE_CAUSAL_SOURCE_MISSING: {missing_inline}"
