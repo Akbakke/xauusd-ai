@@ -84,8 +84,8 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     # DEAD_STD on typical sample sizes — the documented slow-varying D1 class.
     # Benign by construction in the retired session-headed diagnostic:
     "session_id": "constant by construction in the retired session-headed diagnostic.",
-    "is_ASIA": "ditto.", "session_change_flag": "ditto.",
-    "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
+    "session_change_flag": "ditto.",
+    "minutes_since_session_open": "ditto.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",
 }

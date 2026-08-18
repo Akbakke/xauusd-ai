@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+)
 from gx1.features import smc_v1 as smc
 
 
@@ -222,11 +225,11 @@ def test_local_and_mtf_surfaces_are_projections_of_same_native_replay() -> None:
     for local_name, mtf_name in (
         ("smc_bos_up", "mtf_smc_bos_up"),
         ("smc_bos_down", "mtf_smc_bos_down"),
-        # The MTF spelling gained a ``_state`` suffix on 2026-08-18; the
-        # local twin keeps its name until the contract commit renames it, and
-        # the values must remain identical across the rename.
-        ("smc_sweep_up", "mtf_smc_sweep_up_state"),
-        ("smc_sweep_down", "mtf_smc_sweep_down_state"),
+        # Both spellings gained ``_state`` on 2026-08-18 (MTF first, the local
+        # twin in the contract commit that follows); the values must remain
+        # identical across the rename.
+        ("smc_sweep_up_state", "mtf_smc_sweep_up_state"),
+        ("smc_sweep_down_state", "mtf_smc_sweep_down_state"),
         ("smc_sweep_up_depth_atr", "mtf_smc_sweep_up_depth_atr"),
         ("smc_sweep_down_depth_atr", "mtf_smc_sweep_down_depth_atr"),
         ("smc_sweep_up_event", "mtf_smc_sweep_up_event"),
@@ -328,6 +331,19 @@ def test_v30_wave2_sweep_state_rename_keeps_values_and_drops_old_spelling() -> N
     assert "mtf_smc_sweep_down" not in smc.SMC_MTF_FEATURE_NAMES_V1
     assert "mtf_smc_sweep_up_state" in smc.SMC_MTF_FEATURE_NAMES_V1
     assert "mtf_smc_sweep_down_state" in smc.SMC_MTF_FEATURE_NAMES_V1
+    # 2026-08-18 contract commit: the LOCAL twins follow, position preserved.
+    # They are declared in entry_model_native_signal_v1.MODEL_NATIVE_BASE_FIELDS,
+    # which is why they could not move in the owner-only commit.
+    assert "smc_sweep_up" not in smc.SMC_FEATURE_NAMES
+    assert "smc_sweep_down" not in smc.SMC_FEATURE_NAMES
+    assert smc.SMC_FEATURE_NAMES.index("smc_sweep_up_state") == 4
+    assert smc.SMC_FEATURE_NAMES.index("smc_sweep_down_state") == 5
+    assert "smc_sweep_up" not in MODEL_NATIVE_BASE_FIELDS
+    assert "smc_sweep_down" not in MODEL_NATIVE_BASE_FIELDS
+    assert MODEL_NATIVE_BASE_FIELDS.index("smc_sweep_up_state") == (
+        smc.SMC_FEATURE_NAMES.index("smc_sweep_up_state")
+        + MODEL_NATIVE_BASE_FIELDS.index("smc_swing_state")
+    )
     # Position is preserved, so the per-TF column order ahead of the rename is
     # byte-stable and only the label moved.
     assert smc.SMC_MTF_FEATURE_NAMES_V1.index("mtf_smc_sweep_up_state") == 5
@@ -339,12 +355,18 @@ def test_v30_wave2_sweep_state_rename_keeps_values_and_drops_old_spelling() -> N
     local = smc.compute_smc_features(frame, include_v30_additions=True)
     assert "mtf_smc_sweep_up" not in mtf.columns
     assert "mtf_smc_sweep_down" not in mtf.columns
+    assert "smc_sweep_up" not in local.columns
+    assert "smc_sweep_down" not in local.columns
 
     valid = np.isfinite(mtf["mtf_smc_pivot_envelope_position"].to_numpy())
     for local_name, state_name, event_name in (
-        ("smc_sweep_up", "mtf_smc_sweep_up_state", "mtf_smc_sweep_up_event"),
         (
-            "smc_sweep_down",
+            "smc_sweep_up_state",
+            "mtf_smc_sweep_up_state",
+            "mtf_smc_sweep_up_event",
+        ),
+        (
+            "smc_sweep_down_state",
             "mtf_smc_sweep_down_state",
             "mtf_smc_sweep_down_event",
         ),

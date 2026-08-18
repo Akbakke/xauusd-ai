@@ -111,7 +111,7 @@ def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
         "ctx_cont.h4_mid_ema50_dist_atr_canon_v2": "trend_ema_encoder",
         "ctx_cont.retracement_from_last_impulse": "structure_swing_encoder",
         "ctx_cont.D1_dist_from_ema200_atr": "trend_ema_encoder",
-        "ctx_cont.d1_pct_change_5_canon_v2": "momentum_flow_encoder",
+        "ctx_cont.d1_change_5_bps_canon_v2": "momentum_flow_encoder",
         "ctx_cont.d1_dist_change_1bar_atr_v4": "momentum_flow_encoder",
         "ctx_cont.d1_rsi14_canon_v2": "momentum_flow_encoder",
         "ctx_cont.m15_rsi14_canon_v2": "momentum_flow_encoder",

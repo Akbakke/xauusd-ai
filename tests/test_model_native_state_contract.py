@@ -155,12 +155,11 @@ def test_session_context_switches_at_m5_decision_boundary_without_extra_lag() ->
     assert frame["session_id"].tolist() == [0, 1, 1]
     assert frame["session_change_flag"].tolist() == [1, 1, 0]
     assert frame["minutes_since_session_open"].tolist() == [535.0, 0.0, 5.0]
-    assert frame["minutes_to_next_session_boundary"].tolist() == [
-        5.0,
-        300.0,
-        295.0,
-    ]
-    assert frame["is_ASIA"].tolist() == [1, 0, 0]
+    # V30 wave 2 (2026-08-18): `is_ASIA` and `minutes_to_next_session_boundary`
+    # left MODEL_NATIVE_CTX_CONT_SESSION_FIELDS and their producer went with
+    # them; the boundary clock is still pinned by the two survivors above.
+    assert "is_ASIA" not in frame.columns
+    assert "minutes_to_next_session_boundary" not in frame.columns
 
 
 def test_session_context_is_append_stable() -> None:
@@ -187,9 +186,7 @@ def test_model_native_entry_context_accepts_exact_categorical_session_frame() ->
     "missing_field",
     [
         "session_id",
-        "is_ASIA",
         "minutes_since_session_open",
-        "minutes_to_next_session_boundary",
         "session_change_flag",
     ],
 )
@@ -214,13 +211,12 @@ def test_model_native_entry_boundary_rejects_missing_context_before_feature_buil
         ("session_id", 4, "outside semantic domain"),
         ("session_id", -1, "outside semantic domain"),
         ("session_id", 1.5, "non-integral category"),
-        ("is_ASIA", np.nan, "missing/non-finite"),
-        ("is_ASIA", 2, "outside semantic domain"),
-        ("is_ASIA", 0.5, "non-integral flag"),
+        ("session_change_flag", np.nan, "missing/non-finite"),
+        ("session_change_flag", 2, "outside semantic domain"),
+        ("session_change_flag", 0.5, "non-integral flag"),
         ("minutes_since_session_open", np.nan, "missing/non-finite"),
+        ("minutes_since_session_open", np.inf, "missing/non-finite"),
         ("minutes_since_session_open", -1, "disagrees with UTC-derived"),
-        ("minutes_to_next_session_boundary", np.inf, "missing/non-finite"),
-        ("minutes_to_next_session_boundary", -1, "disagrees with UTC-derived"),
         ("session_change_flag", 0, "disagrees with UTC-derived"),
     ],
 )
@@ -249,7 +245,6 @@ def test_model_native_entry_boundary_never_turns_unknown_session_into_asia(
     # The final bar becomes available at 16:00 UTC (US). Zero is in-domain, but accepting it would be
     # exactly the retired unknown-session -> ASIA soft fallback.
     frame.loc[frame.index[-1], "session_id"] = 0
-    frame.loc[frame.index[-1], "is_ASIA"] = 1
     builder = _early_validation_builder(tmp_path)
 
     with pytest.raises(

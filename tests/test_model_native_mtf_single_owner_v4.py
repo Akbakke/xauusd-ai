@@ -151,7 +151,7 @@ def test_v4_attachment_rejects_any_preexisting_mtf_field_owner() -> None:
             "low": close - 0.1,
             "close": close,
             "volume": np.full(rows, 10.0),
-            "_v1h1_atr": np.ones(rows),
+            "_v1h1_atr_bps": np.ones(rows),
         },
         index=index,
     )

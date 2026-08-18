@@ -10,8 +10,8 @@ Features (all per-bar, lookahead-safe):
   smc_bos_up             float32  1.0 only on the bar where close first crosses above the last confirmed swing high
   smc_bos_down           float32  1.0 only on the bar where close first crosses below the last confirmed swing low
   smc_choch              float32  1.0 only on an opposing BOS while a structural side is armed
-  smc_sweep_up           float32  1.0 if high > last swing high but close <= it (false breakout / liquidity hunt)
-  smc_sweep_down         float32  1.0 if low  < last swing low  but close >= it
+  smc_sweep_up_state     float32  1.0 if high > last swing high but close <= it (false breakout / liquidity hunt)
+  smc_sweep_down_state   float32  1.0 if low  < last swing low  but close >= it
   smc_sweep_event_age_bars float32 raw bars since the most recent one-shot sweep event; NaN before it
   smc_pivot_envelope_position float32 raw close position in the causal 4-pivot envelope
 
@@ -47,7 +47,12 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 SWING_LOOKBACK = 3  # bars look-around for swing pivot detection (3 → 7-bar window centered)
 SMC_CAUSAL_REPLAY_SCHEMA_VERSION = "smc_causal_replay_v4"
-SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION = "smc_raw_primitives_v2"
+# v3 (2026-08-18, V30 wave 2): the two emitted local sweep CONDITIONS are
+# renamed smc_sweep_{up,down}_state, matching their MTF siblings. Only the
+# emitted column spelling moves; SMC_CAUSAL_REPLAY_SCHEMA_VERSION and the
+# carried replay state keys are deliberately unchanged, so bounded-chunk state
+# written by the previous generation stays exchangeable.
+SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION = "smc_raw_primitives_v3"
 
 
 SMCLevelIdentity = tuple[str, int]
@@ -683,8 +688,8 @@ def compute_smc_features(
         "smc_bos_up": bos_up,
         "smc_bos_down": bos_down,
         "smc_choch": choch,
-        "smc_sweep_up": sweep_up,
-        "smc_sweep_down": sweep_down,
+        "smc_sweep_up_state": sweep_up,
+        "smc_sweep_down_state": sweep_down,
         "smc_sweep_event_age_bars": sweep_event_age_bars,
         "smc_pivot_envelope_position": envelope_position.astype(np.float32),
     }
@@ -708,8 +713,17 @@ SMC_FEATURE_NAMES = [
     "smc_bos_up",
     "smc_bos_down",
     "smc_choch",
-    "smc_sweep_up",
-    "smc_sweep_down",
+    # 2026-08-18 (V30 wave 2) RENAME, no value change, position preserved.
+    # The local twins of mtf_smc_sweep_{up,down}_state, renamed for the same
+    # reason and deferred out of that commit only because they are declared in
+    # entry_model_native_signal_v1.MODEL_NATIVE_BASE_FIELDS: they re-assert on
+    # EVERY qualifying bar, so they are a per-bar STATE, while
+    # smc_sweep_{up,down}_event (SMC_V30_ADDITION_NAMES_V1 below) fire once per
+    # confirmed pivot identity. Both are kept -- the state answers "is price
+    # outside the level right now", the event answers "did this identity just
+    # get swept" -- and neither is a function of the other.
+    "smc_sweep_up_state",
+    "smc_sweep_down_state",
     "smc_sweep_event_age_bars",
     "smc_pivot_envelope_position",
 ]

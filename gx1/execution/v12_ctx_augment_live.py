@@ -23,11 +23,7 @@ Features added by the local context owner include:
   Session features — see gx1.time.session_detector for the SSoT:
     - session_id                           # 0/1/2/3 = ASIA/EU/OVERLAP/US
     - minutes_since_session_open
-    - minutes_to_next_session_boundary
     - session_change_flag                  # 1 if session changed vs prev bar
-
-  Session flag (1):
-    - is_ASIA
 
   HTF derivations:
     - D1_dist_from_ema200_atr              # (D1 mid - D1 EMA200) / D1 ATR14
@@ -81,17 +77,17 @@ from gx1.features.micro_structure_v1 import (
 from gx1.features.model_native_market_context_v1 import (
     derive_model_native_atr_spread_bps,
 )
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    SWING_EVENT_LAYER_FEATURE_NAMES,
+)
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
-    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 from gx1.time.session_detector import (
-    ASIA_SESSION_ID,
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
-    get_session_minutes_to_next_boundary_vectorized,
     get_session_vectorized,
     decision_availability,
     M5_BAR_DURATION,
@@ -186,15 +182,14 @@ def _add_session_features(
     )
     session_id = get_session_id_vectorized(idx).to_numpy(dtype=np.int64)
     cv3["session_id"] = session_id
-    cv3["is_ASIA"] = (
-        cv3["session_id"] == ASIA_SESSION_ID
-    ).astype(np.int64)
+    # V30 wave 2 (2026-08-18): `is_ASIA` and `minutes_to_next_session_boundary`
+    # left MODEL_NATIVE_CTX_CONT_SESSION_FIELDS -- both are exactly recoverable
+    # per bar inside session_regime_encoder from fields that stay (the injective
+    # (hour_sin, hour_cos) pair, and minutes_since_session_open plus the session
+    # length that pair determines). This producer existed to satisfy the ctx
+    # contract, so the derivations go with it (rule 10).
     cv3["minutes_since_session_open"] = (
         get_session_minutes_since_open_vectorized(idx)
-        .to_numpy(dtype=np.float32)
-    )
-    cv3["minutes_to_next_session_boundary"] = (
-        get_session_minutes_to_next_boundary_vectorized(idx)
         .to_numpy(dtype=np.float32)
     )
     sess_tag = get_session_vectorized(idx)
@@ -440,13 +435,19 @@ def _finish_canonical_v3_context(
     out = trim_causal_context_warmup_prefix(
         out,
         htf_required
-        # V30 (2026-08-13): the adopted V29 swing fields carry their own honest
-        # NaN warmup (no pivot-sequence delta exists until a SECOND confirmed
-        # pivot per side), so they join the trim list instead of being left as
-        # a non-finite ctx prefix. They are far shorter than the D1 warmup
-        # above; listing the owner tuple keeps the trim correct if another
-        # addition gains a prefix.
-        + list(SWING_V29_ADDITION_NAMES_V1)
+        # V30 wave 2 (2026-08-18): these fourteen are NO LONGER ctx contract
+        # fields (entry_model_native_signal_v1 v33 retired the ctx copies in
+        # favour of their mandatory swing_structure_event_layer twins), but this
+        # producer still emits them and this lane still trims on them -- for a
+        # different, now explicitly stated reason. Unlike the offline builder,
+        # which consumes a precomputed M5 feature surface whose materializer
+        # measured the layer warmup on the declared source bytes, this lane
+        # hands its OWN (already trimmed) frame to
+        # _build_inline_seq_structure_extension as a temp parquet, so the
+        # swing-layer warmup has no other owner here. The name tuple is the
+        # producer's, so the trim stays correct if another addition gains a
+        # prefix.
+        + list(SWING_EVENT_LAYER_FEATURE_NAMES)
         # The local price owner needs five preceding rows for change-5 and a
         # classic SMA-seeded EMA5.  Missing history is NaN, never a parked
         # zero or a first-observation EMA.

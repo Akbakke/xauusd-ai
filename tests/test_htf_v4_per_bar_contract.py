@@ -154,7 +154,7 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "vwap_local_cycle_dist_atr",
     "vwap20_dist_atr",
     "vwap96_dist_atr",
-    "vwap_local_cycle_slope_atr",
+    "vwap_rolling5_slope_atr",
     "bb_position",
     "bb_width_atr",
     "adx14",
@@ -613,23 +613,27 @@ def test_v30_package_8a_smc_owner_parity_emissions() -> None:
     # Sided depths preserve double-sided sweep evidence and are flag-gated.
     up_depth = extended["smc_sweep_up_depth_atr"].to_numpy()
     down_depth = extended["smc_sweep_down_depth_atr"].to_numpy()
-    assert (up_depth[extended["smc_sweep_up"].to_numpy() == 0.0] == 0.0).all()
-    assert (down_depth[extended["smc_sweep_down"].to_numpy() == 0.0] == 0.0).all()
+    assert (
+        up_depth[extended["smc_sweep_up_state"].to_numpy() == 0.0] == 0.0
+    ).all()
+    assert (
+        down_depth[extended["smc_sweep_down_state"].to_numpy() == 0.0] == 0.0
+    ).all()
     assert (up_depth >= 0.0).all() and (down_depth >= 0.0).all()
 
     # Events are a subset of conditions. They consume confirmed level identity
     # once, so a later rising edge on the same pivot is deliberately not a new
     # event; only a newly confirmed level can rearm it.
     for flag_name, event_name in (
-        ("smc_sweep_up", "smc_sweep_up_event"),
-        ("smc_sweep_down", "smc_sweep_down_event"),
+        ("smc_sweep_up_state", "smc_sweep_up_event"),
+        ("smc_sweep_down_state", "smc_sweep_down_event"),
     ):
         flag = extended[flag_name].to_numpy() > 0.0
         event = extended[event_name].to_numpy() > 0.0
         assert np.logical_or(~event, flag).all()
         assert event.sum() <= flag.sum()
     assert (
-        (extended["smc_sweep_up"].to_numpy() > 0.0).sum()
+        (extended["smc_sweep_up_state"].to_numpy() > 0.0).sum()
         > (extended["smc_sweep_up_event"].to_numpy() > 0.0).sum()
     ), "the fixture must actually contain a repeated sweep run"
 
@@ -1620,3 +1624,79 @@ def test_mid_series_zero_range_bar_takes_the_sibling_share_convention() -> None:
         htf.validate_causal_feature_matrix(
             holed, expected_width=1, context="HTF_V4_ZERO_RANGE_TEST"
         )
+
+
+def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator() -> None:
+    """The per-TF VWAP slope is the 5-bar difference of a ROLLING 5-bar VWAP.
+
+    Until 2026-08-18 the emitted column differenced ``local_cycle_vwap``, which
+    is a CUMULATIVE session VWAP on every intraday lane and resets at each
+    session boundary, so on any window straddling a reset the subtrahend
+    belonged to a different accumulation.  Both halves fail against the
+    pre-change owner: the old name is asserted absent, and on the intraday lanes
+    the emitted values must equal the rolling-5 difference, which the session
+    accumulator demonstrably does not produce.
+    """
+
+    assert "vwap_local_cycle_slope_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert "vwap_rolling5_slope_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    # The distance field still reads the session accumulator; only the slope moved.
+    assert "vwap_local_cycle_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
+
+    bars = _bars(4_000, seed=515)
+    closed_indices = htf.build_multi_tf_v4_closed_timestamp_indices(bars.index)
+    distinguishable = 0
+    for timeframe in htf.MULTI_TF_RESAMPLE_RULES:
+        resampled = htf._resample_ohlcv(bars, timeframe).loc[
+            closed_indices[timeframe]
+        ]
+        close = resampled["close"].astype(np.float64)
+        volume = resampled["volume"].astype(np.float64)
+        _atr14, atr_positive = htf.wilder_atr14_positive(
+            resampled["high"].astype(np.float64),
+            resampled["low"].astype(np.float64),
+            close,
+        )
+        rolling5 = htf._rolling_vwap(close, volume, 5)
+        expected = ((rolling5 - rolling5.shift(5)) / atr_positive).to_numpy(
+            dtype=np.float64
+        )
+        observed = _compute_v4(resampled, timeframe=timeframe)[
+            "vwap_rolling5_slope_atr"
+        ].to_numpy(dtype=np.float64)
+        # The repaired column no longer depends on which local-cycle owner the
+        # timeframe selects: the same formula, with the same honest warmup, on
+        # every lane. Where the fixture is too short for a lane to define a
+        # single row (D1 needs ~25 daily bars for rolling-5 + shift(5) + Wilder
+        # ATR14), the emitted column must be entirely unavailable there rather
+        # than parked at zero.
+        assert np.array_equal(np.isfinite(observed), np.isfinite(expected)), timeframe
+        defined = np.isfinite(expected) & np.isfinite(observed)
+        if not defined.any():
+            continue
+        np.testing.assert_allclose(
+            observed[defined], expected[defined], rtol=1e-6, atol=1e-9
+        )
+
+        if timeframe == "D1":
+            # D1's retired operand already WAS the rolling 5-bar VWAP, so the
+            # emitted float there is unchanged and nothing distinguishes them.
+            continue
+        session = htf._session_vwap(
+            close,
+            volume,
+            bar_duration=pd.Timedelta(htf.MULTI_TF_RESAMPLE_RULES[timeframe]),
+        )
+        retired = ((session - session.shift(5)) / atr_positive).to_numpy(
+            dtype=np.float64
+        )
+        comparable = defined & np.isfinite(retired)
+        if not comparable.any():
+            continue
+        assert not np.allclose(
+            observed[comparable], retired[comparable], rtol=1e-6, atol=1e-9
+        ), timeframe
+        distinguishable += 1
+    # The fixture must actually exercise the difference on intraday lanes,
+    # otherwise the repair claim rests on nothing.
+    assert distinguishable >= 2

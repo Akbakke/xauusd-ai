@@ -28,7 +28,7 @@ def _v4_projected_frame(
         index=pd.date_range("2026-01-01", periods=len(close), freq=freq, tz="UTC"),
     )
     frame["close"] = close
-    frame["_v1h1_atr"] = h1_atr
+    frame["_v1h1_atr_bps"] = h1_atr
     frame.attrs["model_native_mtf_owner_v4"] = model_native_mtf_owner_marker_v4(
         decision_bar_duration=decision_bar_duration
     )
@@ -81,8 +81,8 @@ def test_cross_tf_momentum_carries_causal_nan_warmup_prefix() -> None:
 @pytest.mark.parametrize(
     "column,value,error",
     (
-        ("_v1h1_atr", -1.0, "H1 ATR must be non-negative"),
-        ("_v1h1_atr", np.nan, "non-finite values after causal warmup"),
+        ("_v1h1_atr_bps", -1.0, "H1 ATR must be non-negative"),
+        ("_v1h1_atr_bps", np.nan, "non-finite values after causal warmup"),
         ("close", np.nan, "close must be finite"),
     ),
 )

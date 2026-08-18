@@ -197,7 +197,10 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "vwap_local_cycle_dist_atr",
                 "vwap20_dist_atr",
                 "vwap96_dist_atr",
-                "vwap_local_cycle_slope_atr",
+                # 2026-08-18 (V30 wave 2): renamed with its repair — the slope
+                # now differences a rolling 5-bar VWAP instead of a cumulative
+                # session VWAP. Same specialist, same position.
+                "vwap_rolling5_slope_atr",
             ),
         ),
         (
@@ -315,6 +318,15 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     # ATR only supplies the unit and must not route it to volatility.
     "ctx_cont.d1_dist_change_1bar_atr_v4": "momentum_flow_encoder",
     "d1_dist_change_1bar_atr_v4": "momentum_flow_encoder",
+    # 2026-08-18 (V30 wave 2): the D1 five-bar return. It reached the momentum
+    # owner through the ``pct_change`` lexical token, which the rename to
+    # ``d1_change_5_bps_canon_v2`` removes (pandas' pct_change is a FRACTION and
+    # the producer multiplies by 1e4, so ``pct`` was the wrong word). Routed
+    # EXPLICITLY here, exactly like its ``d1_dist_change_1bar_atr_v4`` sibling
+    # above, rather than adding a ``change`` token that would also claim
+    # ``session_change_flag`` and every ``*_change_local_geometry`` candle field.
+    "ctx_cont.d1_change_5_bps_canon_v2": "momentum_flow_encoder",
+    "d1_change_5_bps_canon_v2": "momentum_flow_encoder",
     "ctx_cont.m15_ema5_20_spread_atr_canon_v2": "trend_ema_encoder",
     "m15_ema5_20_spread_atr_canon_v2": "trend_ema_encoder",
     "ctx_cont.h4_mid_ema50_dist_atr_canon_v2": "trend_ema_encoder",

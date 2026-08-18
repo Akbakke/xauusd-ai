@@ -128,11 +128,30 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 # so `high == low` iff body_signed_range, upper_wick_share and
 # lower_wick_share are all zero. See the CANDLE_PRIMITIVE_FEATURE_VERSION note
 # in gx1.features.entry_candle_primitives_v1 for the proof and the counts.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v32"
+# v33 (2026-08-18): the V30 wave-2 surface generation, landed as ONE identity
+# because every part of it invalidates the same field-order hash, the same
+# canonical re-materialisation on BOTH native clocks, the same MTF cache
+# generation and the same dataset rebuild. It covers the nine owner-local
+# retirements committed in the previous step (candle x4, SMC geometry x3, level
+# x2, plus the level above-side presence mask) AND, here:
+#   - 17 ctx_cont retirements: the 14 SWING_V29 duplicates of the mandatory
+#     swing event layer, is_ASIA, minutes_to_next_session_boundary, dow_cos;
+#   - 5 ctx_cont additions: the {tf}_ema_stack_aligned_v2 companions that make
+#     the five {tf}_trend_state_age_bars_v2 readable;
+#   - 6 renames with no value change: smc_sweep_{up,down} ->
+#     smc_sweep_{up,down}_state on the base surface, and the four MTF scalars
+#     whose unit and name disagreed (_v1h{1,4}_atr -> _atr_bps,
+#     d1_atr14_canon_v2 -> d1_atr14_bps_canon_v2, d1_pct_change_5_canon_v2 ->
+#     d1_change_5_bps_canon_v2);
+#   - 1 repair that DOES change values: the per-TF VWAP slope now differences a
+#     rolling 5-bar VWAP instead of a cumulative session VWAP, and is renamed
+#     vwap_rolling5_slope_atr accordingly.
+# Widths are never restated here; execute the owner tuples.
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v33"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
-    "entry_model_native_seq513_split_manifest_v19"
+    "entry_model_native_seq513_split_manifest_v20"
 )
-MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v19"
+MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v20"
 RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE = "smart_seq520_candidate"
 MODEL_NATIVE_DIRECTION_LOGIT_MODE = "model_native"
 # The model-native contract owns these fields directly. No decision authority
@@ -190,8 +209,13 @@ MODEL_NATIVE_BASE_FIELDS = (
     "smc_bos_up",
     "smc_bos_down",
     "smc_choch",
-    "smc_sweep_up",
-    "smc_sweep_down",
+    # v33 rename, no value change, position preserved: these two re-assert on
+    # every qualifying bar (a per-bar STATE), while the smc_sweep_*_event
+    # siblings on the mandatory surface fire once per confirmed pivot identity.
+    # The MTF twins were renamed in the previous commit; the local twins had to
+    # wait for this contract edit because they are declared here.
+    "smc_sweep_up_state",
+    "smc_sweep_down_state",
     "smc_sweep_event_age_bars",
     "smc_pivot_envelope_position",
     "vol_z_20",
@@ -215,16 +239,51 @@ MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
 MODEL_NATIVE_CTX_CONT_SPREAD_DYNAMICS_FIELDS = tuple(
     SPREAD_DYNAMICS_FEATURE_NAMES_V1
 )
-# The complete swing-v2 owner is present in local context and on every MTF
-# clock. Prefix-unavailable pivot measurements are trimmed, while persistent
-# event memory uses raw ages after its honest full-history event floor.
-MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(
-    SWING_FEATURE_NAMES_V1 + SWING_V29_ADDITION_NAMES_V1
-)
+# The swing-v2 BASE owner is present in local context and on every MTF clock.
+# Prefix-unavailable pivot measurements are trimmed by contract.
+#
+# v33 (2026-08-18, V30 wave 2): the 14 SWING_V29_ADDITION_NAMES_V1 leave this
+# tuple. Every one of them is ALSO an emitted column of the mandatory
+# swing_structure_event_layer (entry_model_native_feature_layers_v1 ->
+# MODEL_NATIVE_MANDATORY_SELECTED_FIELDS), computed by the same
+# ``compute_swing_structure_features`` owner under the same default constants
+# on the same sample rows, so holding a ctx_cont copy was a second price
+# authority for one name inside one input vector, not a second piece of
+# evidence. Rule 4 is satisfied by the mandatory twin, which stays.
+#
+# THE LINE IS DELIBERATELY ``tuple(SWING_FEATURE_NAMES_V1)`` AND NOT AN
+# EXCLUSION LIST. ``retracement_from_last_impulse`` was proposed for retirement
+# in the same wave and REFUSED (see the CONTRACT NOTE in swing_structure_v1:
+# its recovery is a quotient whose denominator is not bounded away from zero,
+# and per-field normalization means the family projection never sees the two
+# operands in raw units). Writing it into an explicit keep-list here would
+# restate a name this file does not own -- rule 13.
+#
+# Evidence class: the mandatory twin is [PS] byte-identical in FORMULA. That
+# the two paths also agree in VALUE was [M] on 2026-08-18 -- the canonical tape
+# OHLC and the V29 source parquet are bit-identical on open/high/low/close over
+# all 476,113 shared rows (0 differing rows, max abs diff 0.0) -- which is what
+# unblocked this retirement. Pivot features are discontinuous in one tick, so
+# that measurement, not the shared formula, is the load-bearing fact.
+MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(SWING_FEATURE_NAMES_V1)
+# v33 (2026-08-18, V30 wave 2): two hand-composed session values leave this
+# tuple; both are exactly recoverable, per bar, inside the SAME specialist
+# (session_regime_encoder), from fields that stay.
+#   is_ASIA -- every SESSION_BOUNDARIES value is a whole hour, and the pair
+#     (hour_sin, hour_cos) is injective on {0..23}, so the hour is exactly
+#     recoverable and is_ASIA is its indicator. ctx_cat.session_id carries the
+#     same partition as a learned embedding.
+#   minutes_to_next_session_boundary -- mtnsb + minutes_since_session_open is
+#     the current session's LENGTH, a function of the recoverable hour alone;
+#     the measured sum takes exactly {240, 300, 360, 540} with zero residual
+#     over the declared 476,113-row native population [M, inherited]. Rule 4's
+#     own sentence applies verbatim: a handwritten fusion is retired while both
+#     of its inputs stay model inputs.
+# The producers in basic_v1 are NOT touched: is_ASIA there is one quarter of a
+# legacy is_ASIA/is_EU/is_OVERLAP/is_US one-hot block, none of whose members is
+# a model field, and deleting one quarter of a block is not a retirement.
 MODEL_NATIVE_CTX_CONT_SESSION_FIELDS = (
-    "is_ASIA",
     "minutes_since_session_open",
-    "minutes_to_next_session_boundary",
     "session_change_flag",
 )
 MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS = (
@@ -237,23 +296,28 @@ MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS = (
     MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
 )
 
+# v33 (2026-08-18, V30 wave 2): four names change, no value moves. The order of
+# this tuple must stay the order of
+# htf_features.MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 (the single-owner test
+# checks the intersection order), and that owner carries the full rename
+# rationale.
 MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
     "_v1h1_ema_diff",
-    "_v1h1_atr",
+    "_v1h1_atr_bps",
     "_v1h1_rsi14_z",
     "_v1h1_slope3",
     "_v1h1_slope5",
     "_v1h4_ema_diff",
-    "_v1h4_atr",
+    "_v1h4_atr_bps",
     "_v1h4_rsi14_z",
     "_v1h4_slope3",
     "_v1h4_slope5",
-    "d1_atr14_canon_v2",
+    "d1_atr14_bps_canon_v2",
     "d1_rsi14_canon_v2",
     "d1_ema_slope_20_canon_v2",
     "d1_range_z_20_canon_v2",
     "d1_close_pct_in_20day_range_canon_v2",
-    "d1_pct_change_5_canon_v2",
+    "d1_change_5_bps_canon_v2",
     "m15_rsi14_canon_v2",
     "m15_range_z_20_canon_v2",
     "m15_ema5_20_spread_atr_canon_v2",
@@ -270,11 +334,17 @@ MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
     "h4_mid_ema50_dist_atr_canon_v2",
 )
 
+# v33 (2026-08-18, V30 wave 2): dow_cos leaves. sin(2*pi*d/7) is INJECTIVE on
+# the integer domain {0..6} -- sin a = sin b would need d + d' = 3.5 -- so the
+# day index is exactly recoverable from dow_sin and cos is then determined on
+# the same row, inside the same specialist. cos is the half that goes because
+# cos(2*pi*d/7) is NOT injective there ((1,6), (2,5), (3,4) collide).
+# DO NOT TRANSFER THIS TO hour_cos: sin(2*pi*h/24) collides h with 12-h, so the
+# hour pair is injective only TOGETHER and both must stay.
 MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS = (
     "hour_sin",
     "hour_cos",
     "dow_sin",
-    "dow_cos",
 )
 
 MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS = (
@@ -376,8 +446,48 @@ if len(RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS) != 14 or len(
 ) != len(RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS):
     raise RuntimeError("RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS_INVALID")
 RETIRED_SMC_CTX_COMPOSITE_FIELDS = ("smc_premium_state",)
+# v33 (2026-08-18, V30 wave 2). A THIRD retirement class, declared as its own
+# tuple because this file's convention is one tuple + one guard per class, and
+# because these names are NOT handcrafted composites: every one of them is
+# either an exact duplicate of a column that stays on another surface, or an
+# exact per-row function of columns that stay in the SAME specialist family.
+#
+# Appending them to RETIRED_HANDCRAFTED_CTX_CONT_FIELDS (the wave's original
+# plan) was refused: fourteen of these names are LIVE members of
+# MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, and this module publishes
+# `retired_handcrafted_ctx_cont_fields` in its context metadata. A future
+# session reading `swing_high_break_event` out of a tuple spelled "retired"
+# would have every reason to delete the mandatory swing layer. The guard below
+# is scoped to ctx_cont exactly like the other three, so the fail-closed
+# behaviour the wave asked for is unchanged.
+RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS = (
+    # Exact duplicates of the mandatory swing_structure_event_layer columns.
+    *SWING_V29_ADDITION_NAMES_V1,
+    # Recoverable inside session_regime_encoder from the hour pair / from
+    # minutes_since_session_open (see MODEL_NATIVE_CTX_CONT_SESSION_FIELDS).
+    "is_ASIA",
+    "minutes_to_next_session_boundary",
+    # Determined by dow_sin, which is injective on {0..6}.
+    "dow_cos",
+)
+if len(set(RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS)) != len(
+    RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS
+):
+    raise RuntimeError("RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS_INVALID")
+# v33 (2026-08-18, V30 wave 2) REPAIR: the five `{tf}_trend_state_age_bars_v2`
+# ages are unreadable without the state they age. `raw_state_age_bars` resets on
+# EVERY state change, including a change INTO unaligned, so "this state is 47
+# M15 bars old" could mean a mature bull stack or a mature range with equal
+# probability. The companion is the existing per-TF
+# `ema_stack_aligned_v2` in {-1, 0, +1} (+1 iff ema20>ema50>ema100>ema200, -1
+# strictly descending, else 0), already emitted for all five lanes by
+# htf_features.MODEL_NATIVE_CONTEXT_MTF_PROJECTION -- no new producer, no new
+# number. Normalization safety [PS]: MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS is
+# empty, so a three-level integer cannot be routed to a nominal embedding or
+# trip the 0..4 domain check; the asinh branch is well defined on three levels.
 MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = (
     *(f"{tf}_trend_state_age_bars_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES),
+    *(f"{tf}_ema_stack_aligned_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES),
     "d1_dist_change_1bar_atr_v4",
 )
 MODEL_NATIVE_CTX_CONT_FIELDS = (
@@ -467,6 +577,12 @@ if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(
     raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_OPERATOR_COMPOSITES")
 if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(RETIRED_SMC_CTX_COMPOSITE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_SMC_COMPOSITES")
+if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(
+    RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS
+):
+    raise RuntimeError(
+        "MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_EXACTLY_RECOVERABLE_FIELDS"
+    )
 if set(MODEL_NATIVE_CTX_CONT_FIELDS) & set(RETIRED_STATIC_REGIME_BUCKET_FIELDS):
     raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_CONTAIN_RETIRED_STATIC_REGIME_BUCKETS")
 if len(set(MODEL_NATIVE_CTX_CAT_FIELDS)) != len(MODEL_NATIVE_CTX_CAT_FIELDS):
@@ -512,7 +628,8 @@ MODEL_NATIVE_CTX_CAT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CAT_FIELDS)
 MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256 = _sha256_json(
     MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
 )
-MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v10"
+# v11 (2026-08-18, V30 wave 2): 17 ctx_cont names retired, 5 added, 4 renamed.
+MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v11"
 MODEL_NATIVE_CONTEXT_TAG = (
     f"CTX{MODEL_NATIVE_CTX_CONT_DIM}CAT{MODEL_NATIVE_CTX_CAT_DIM}"
 )
@@ -554,14 +671,20 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
         "retired_smc_ctx_composite_fields": list(
             RETIRED_SMC_CTX_COMPOSITE_FIELDS
         ),
+        "retired_exactly_recoverable_ctx_cont_fields": list(
+            RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS
+        ),
     }
 
 
 # v22 (2026-08-15): the price_action_candle_raw_layer family loses
 # candle.raw_zero_range_flag, so the ordered family registry and its hash
 # change. Widths are never restated here; they derive from the owner tuples.
+# v23 (2026-08-18, V30 wave 2): the candle, SMC-geometry and level-registry
+# families lost nine columns in the previous commit and this commit is where
+# their family registry gets its own identity; no family gains a member here.
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v22"
+    "entry_model_native_mandatory_full_stack_v23"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

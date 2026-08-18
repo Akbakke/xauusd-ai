@@ -30,8 +30,14 @@ from gx1.features.htf_features import (
     require_multi_tf_v4_liveness_contract,
 )
 
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v7"
-POLICY_VERSION = "entry_full_input_liveness_policy_v7"
+# v8 (2026-08-18, V30 wave 2): the name-semantics classifier now strips a
+# trailing `_v<N>` generation marker before matching, which brings five
+# `{tf}_trend_state_age_bars_v2` ctx_cont fields and their five signal aliases
+# under the non-negative rule for the first time; and the two ATR OOD pairs are
+# renamed to `_bps`. A v7 artifact was produced by a policy that could not see
+# those ten slots and names two fields that no longer exist.
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v8"
+POLICY_VERSION = "entry_full_input_liveness_policy_v8"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -79,9 +85,16 @@ CONSTANT_ALLOWLIST: dict[tuple[str, str], tuple[str, ...]] = {}
 #
 # `_atr` is deliberately absent from the non-negative markers: it denotes
 # "expressed in ATR units", a normalisation, not a magnitude — `ema50_slope_atr`
-# is signed. Measured against the current surface these markers cover 192 of
-# 537 field slots with exactly two names matching both classes, and in both the
-# explicit `_signed` suffix is the author's own declaration and wins.
+# is signed.
+#
+# COVERAGE IS DERIVED, NEVER RESTATED (rule 13). This comment used to carry
+# "192 of 537 field slots"; the surface moved twice in the following three days
+# and the sentence was wrong both times. To obtain the current numbers, run
+# `classify_field_name_semantics` over the four declared populations —
+# entry_model_native_signal_v1's base/mandatory/candidate fields, its
+# `MODEL_NATIVE_CTX_CONT_FIELDS` and `MODEL_NATIVE_CTX_CAT_FIELDS`, and
+# `htf_features.MULTI_TF_PER_BAR_FEATURES_V4` — which are exactly the
+# populations `EXPECTED_FIELD_COUNTS` and `MULTI_TF_FEATURE_NAMES` above bind.
 FIELD_SEMANTIC_SIGNED_PATTERN = (
     r"(_signed$|_signed_|_delta|_change_|_slope|_spread|_minus_|_diff|_skew"
     r"|_asym|(^|_)z_|_z$)"
@@ -123,22 +136,40 @@ FIELD_SEMANTIC_NON_NEGATIVE = "non_negative"
 FIELD_SEMANTIC_UNIT_INTERVAL = "unit_interval"
 
 
+# A trailing generation marker is not part of the field's semantics. Every one
+# of the nine `$`-anchored markers in the three patterns above is defeated by a
+# `_v<N>` suffix, so `m15_trend_state_age_bars_v2` classified as NOTHING while
+# the identically-computed `mtf_..._age_bars` classified as non-negative — the
+# gate was blind to five ctx_cont fields and their five signal aliases purely
+# because of a version tag. Stripping the marker once, here, repairs all three
+# patterns at the same time; widening the marker vocabularies instead is
+# explicitly forbidden by the block comment above, and the exemption registry
+# is the only sanctioned escape hatch. `\d+` is a version matcher, not a
+# threshold: no magnitude and no tolerance is introduced.
+_FIELD_VERSION_SUFFIX_PATTERN = r"_v\d+$"
+
+
 def classify_field_name_semantics(field: str) -> str | None:
     """Return the value semantics the field's own name declares, if any.
 
     An explicit ``_signed`` suffix is the author's declaration and outranks a
     structural marker (``level_bars_since_break_signed`` is signed, not a
-    non-negative bar count).
+    non-negative bar count).  A trailing ``_v<N>`` generation marker is removed
+    before any marker is matched, so a versioned name and its unversioned twin
+    classify identically; the strip is applied to the explicit ``_signed``
+    test as well, or a name like ``..._age_bars_signed_v2`` would lose the
+    author declaration to a structural marker.
     """
 
     name = str(field).rsplit(".", 1)[-1]
-    if re.search(r"_signed$|_signed_", name):
+    probe = re.sub(_FIELD_VERSION_SUFFIX_PATTERN, "", name)
+    if re.search(r"_signed$|_signed_", probe):
         return FIELD_SEMANTIC_SIGNED
-    if re.search(FIELD_SEMANTIC_UNIT_INTERVAL_PATTERN, name):
+    if re.search(FIELD_SEMANTIC_UNIT_INTERVAL_PATTERN, probe):
         return FIELD_SEMANTIC_UNIT_INTERVAL
-    if re.search(FIELD_SEMANTIC_NON_NEGATIVE_PATTERN, name):
+    if re.search(FIELD_SEMANTIC_NON_NEGATIVE_PATTERN, probe):
         return FIELD_SEMANTIC_NON_NEGATIVE
-    if re.search(FIELD_SEMANTIC_SIGNED_PATTERN, name):
+    if re.search(FIELD_SEMANTIC_SIGNED_PATTERN, probe):
         return FIELD_SEMANTIC_SIGNED
     return None
 
@@ -202,11 +233,16 @@ RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
     ("signal", "chart.geomline_retest_fail_down"): {"train": 32},
 }
 
+# 2026-08-18 (V30 wave 2): both names carry `_bps` now. The values are
+# unchanged; the 2026-08-09 era-proxy repair had already converted them to bps
+# and left `_atr` in the name. These pairs are enforced by
+# `required_policy_field_missing`, so the liveness artifact must be
+# re-materialised with the new surface before it can be read again.
 ATR_OOD_FIELDS = (
-    ("signal", "ctx_cont.d1_atr14_canon_v2"),
-    ("signal", "ctx_cont._v1h4_atr"),
-    ("ctx_cont", "d1_atr14_canon_v2"),
-    ("ctx_cont", "_v1h4_atr"),
+    ("signal", "ctx_cont.d1_atr14_bps_canon_v2"),
+    ("signal", "ctx_cont._v1h4_atr_bps"),
+    ("ctx_cont", "d1_atr14_bps_canon_v2"),
+    ("ctx_cont", "_v1h4_atr_bps"),
 )
 
 

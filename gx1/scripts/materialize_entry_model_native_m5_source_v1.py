@@ -110,12 +110,29 @@ SOURCE_OWNED_FIELDS = tuple(
 RANKER_OWNED_DERIVATIONS = tuple(
     dict.fromkeys(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS)
 )
-TREND_AGE_PROJECTED_FIELDS = tuple(
-    name
-    for name in SOURCE_OWNED_FIELDS
-    if name.endswith("_trend_state_age_bars_v2")
+# 2026-08-18 (V30 wave 2) — renamed from TREND_AGE_* because the block no
+# longer contains only trend ages: the contract added the five
+# `{tf}_ema_stack_aligned_v2` companions that make the five
+# `{tf}_trend_state_age_bars_v2` readable at all, and both are produced by the
+# same compact projection. Keeping the old name would have been a restated
+# claim about the contents (rule 13).
+#
+# The field list is DERIVED from the contract's regime tuple rather than
+# matched by name suffix: `d1_dist_change_1bar_atr_v4` is the single member of
+# that tuple which is not a per-TF projection output (it is the D1 distance
+# owner's own first difference, computed upstream), so it is named as the one
+# exclusion. A suffix filter would silently drop any future companion whose
+# spelling nobody thought to add here — which is exactly how the ema-stack
+# columns would have skipped the cross-check below.
+REGIME_COMPACT_PROJECTION = (
+    ("trend_state_age_bars", "trend_state_age_bars"),
+    ("ema_stack_aligned", "ema_stack_aligned_v2"),
 )
-TREND_AGE_COMPACT_PROJECTION = (("trend_state_age_bars", "trend_state_age_bars"),)
+REGIME_PROJECTED_FIELDS = tuple(
+    name
+    for name in MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
+    if name != "d1_dist_change_1bar_atr_v4"
+)
 OUTPUT_COLUMNS = tuple(
     dict.fromkeys(
         (
@@ -127,7 +144,7 @@ OUTPUT_COLUMNS = tuple(
                 if name not in {"time", *RAW_MARKET_COLUMNS}
                 and name not in RANKER_OWNED_DERIVATIONS
             ),
-            *TREND_AGE_PROJECTED_FIELDS,
+            *REGIME_PROJECTED_FIELDS,
         )
     )
 )
@@ -814,7 +831,7 @@ def _exact_contiguous_positions(
     return positions.astype(np.int64, copy=False)
 
 
-def _compact_trend_age_projection(
+def _compact_regime_projection(
     *,
     multi_tf: Mapping[str, pd.DataFrame],
     enriched_times_ns: np.ndarray,
@@ -822,15 +839,15 @@ def _compact_trend_age_projection(
     projected = project_multi_tf_v4_scalars(
         multi_tf,
         enriched_times_ns,
-        TREND_AGE_COMPACT_PROJECTION,
+        REGIME_COMPACT_PROJECTION,
         MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
         frozenset(),
         decision_bar_duration=pd.Timedelta(minutes=5),
     )
-    if set(projected) != set(TREND_AGE_PROJECTED_FIELDS):
-        raise RuntimeError("M5_SOURCE_TREND_AGE_PROJECTION_FIELDS_MISMATCH")
+    if set(projected) != set(REGIME_PROJECTED_FIELDS):
+        raise RuntimeError("M5_SOURCE_REGIME_PROJECTION_FIELDS_MISMATCH")
     compact = np.empty(
-        (len(enriched_times_ns), len(TREND_AGE_PROJECTED_FIELDS)),
+        (len(enriched_times_ns), len(REGIME_PROJECTED_FIELDS)),
         dtype=np.float64,
     )
     # A decision row that precedes the first closed bar of a declared context
@@ -839,21 +856,21 @@ def _compact_trend_age_projection(
     # filled. Anything non-finite AFTER that leading warmup is real corruption
     # and still fails closed.
     warmup_rows = 0
-    for index, name in enumerate(TREND_AGE_PROJECTED_FIELDS):
+    for index, name in enumerate(REGIME_PROJECTED_FIELDS):
         values = np.asarray(projected[name], dtype=np.float64)
         if values.shape != (len(enriched_times_ns),):
-            raise RuntimeError(f"M5_SOURCE_TREND_AGE_SHAPE_INVALID: {name}")
+            raise RuntimeError(f"M5_SOURCE_REGIME_SHAPE_INVALID: {name}")
         finite = np.isfinite(values)
         if not finite.all():
             first_finite = int(np.argmax(finite)) if finite.any() else len(values)
             if not finite[first_finite:].all():
                 raise RuntimeError(
-                    f"M5_SOURCE_TREND_AGE_NONFINITE_AFTER_WARMUP: {name}"
+                    f"M5_SOURCE_REGIME_NONFINITE_AFTER_WARMUP: {name}"
                 )
             warmup_rows = max(warmup_rows, first_finite)
         compact[:, index] = values
     if warmup_rows >= len(enriched_times_ns):
-        raise RuntimeError("M5_SOURCE_TREND_AGE_WARMUP_CONSUMES_WHOLE_SOURCE")
+        raise RuntimeError("M5_SOURCE_REGIME_WARMUP_CONSUMES_WHOLE_SOURCE")
     return compact, warmup_rows
 
 
@@ -958,7 +975,7 @@ def _write_output_partial(
     enriched_times_ns: np.ndarray,
     native: _NativeArrays,
     native_positions: np.ndarray,
-    trend_age_compact: np.ndarray,
+    regime_compact: np.ndarray,
     partial: Path,
     batch_rows: int,
 ) -> tuple[pa.Schema, int]:
@@ -966,7 +983,7 @@ def _write_output_partial(
         name for name in ENRICHED_COLUMNS if name not in RANKER_OWNED_DERIVATIONS
     )
     projected_index = {
-        name: index for index, name in enumerate(TREND_AGE_PROJECTED_FIELDS)
+        name: index for index, name in enumerate(REGIME_PROJECTED_FIELDS)
     }
     writer: pq.ParquetWriter | None = None
     output_schema: pa.Schema | None = None
@@ -1013,15 +1030,15 @@ def _write_output_partial(
             ]
             if np.any(ask_close < bid_close):
                 raise RuntimeError("M5_SOURCE_BID_ASK_GEOMETRY_INVALID")
-            for name in TREND_AGE_PROJECTED_FIELDS:
+            for name in REGIME_PROJECTED_FIELDS:
                 if name not in by_name:
                     continue
                 existing = _numeric_array(
                     by_name[name],
-                    label=f"TREND_AGE_{name.upper()}",
+                    label=f"REGIME_{name.upper()}",
                     dtype=np.dtype(np.float64),
                 )
-                incoming = trend_age_compact[offset:end, projected_index[name]]
+                incoming = regime_compact[offset:end, projected_index[name]]
                 # The verified V4 cache owns these scalars and publishes only
                 # closed raw states, so it is the authority. Where it defines a
                 # value the enriched frame must match it exactly. Where it does
@@ -1032,7 +1049,7 @@ def _write_output_partial(
                 defined = np.isfinite(incoming)
                 if not np.array_equal(existing[defined], incoming[defined]):
                     raise RuntimeError(
-                        f"M5_SOURCE_TREND_AGE_{name.upper()}_MISMATCH"
+                        f"M5_SOURCE_REGIME_{name.upper()}_MISMATCH"
                     )
 
             arrays: list[pa.Array] = []
@@ -1048,7 +1065,7 @@ def _write_output_partial(
                     )
                 elif name in projected_index:
                     array = pa.array(
-                        trend_age_compact[offset:end, projected_index[name]],
+                        regime_compact[offset:end, projected_index[name]],
                         type=pa.float64(),
                     )
                 elif name in by_name:
@@ -1227,7 +1244,7 @@ def materialize_m5_source(
         native.times_ns,
         enriched_times_ns,
     )
-    trend_age_compact, trend_age_warmup_rows = _compact_trend_age_projection(
+    regime_compact, regime_warmup_rows = _compact_regime_projection(
         multi_tf=multi_tf,
         enriched_times_ns=enriched_times_ns,
     )
@@ -1242,7 +1259,7 @@ def materialize_m5_source(
             enriched_times_ns=enriched_times_ns,
             native=native,
             native_positions=native_positions,
-            trend_age_compact=trend_age_compact,
+            regime_compact=regime_compact,
             partial=parquet_partial,
             batch_rows=batch_rows,
         )
@@ -1282,17 +1299,17 @@ def materialize_m5_source(
             "output_parquet_size_bytes": output_size_bytes,
             "output_arrow_schema_sha256": output_schema_sha256,
             "rows": int(len(enriched_times_ns)),
-            "context_warmup_rows": int(trend_age_warmup_rows),
+            "context_warmup_rows": int(regime_warmup_rows),
             "first_fully_defined_context_row_utc": str(
                 pd.Timestamp(
-                    int(enriched_times_ns[trend_age_warmup_rows]), tz="UTC"
+                    int(enriched_times_ns[regime_warmup_rows]), tz="UTC"
                 )
             ),
             "columns": list(OUTPUT_COLUMNS),
             "raw_market_columns": list(RAW_MARKET_COLUMNS),
             "market_identity_columns": list(MARKET_IDENTITY_COLUMNS),
             "source_owned_fields": list(SOURCE_OWNED_FIELDS),
-            "trend_age_source_rehydrated_from_native_m5": True,
+            "regime_source_rehydrated_from_native_m5": True,
             "ranker_owned_derivations_removed": list(RANKER_OWNED_DERIVATIONS),
             "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
             "model_surface_dimensions": {
@@ -1308,7 +1325,7 @@ def materialize_m5_source(
                 "output_max_observed_batch_rows": output_max_batch,
                 "native_compact_array_bytes": native.nbytes,
                 "native_compact_array_cap_bytes": MAX_NATIVE_COMPACT_BYTES,
-                "trend_age_compact_array_bytes": int(trend_age_compact.nbytes),
+                "regime_compact_array_bytes": int(regime_compact.nbytes),
                 "use_threads": False,
             },
             "causal_contract": {
@@ -1320,7 +1337,7 @@ def materialize_m5_source(
                 "native_bid_ask_reused": True,
                 "resample_or_fill": False,
                 "same_feature_owner_as_entry_exit": True,
-                "trend_age_projection_uses_full_cache_history": True,
+                "regime_projection_uses_full_cache_history": True,
             },
         }
         manifest["manifest_sha256"] = _canonical_sha256(manifest)

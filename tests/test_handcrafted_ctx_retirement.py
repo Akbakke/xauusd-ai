@@ -145,3 +145,134 @@ def test_usefulness_layout_covers_only_current_context_without_selection() -> No
                 + RETIRED_OPERATOR_CTX_CONT_COMPOSITE_FIELDS
             )
         )
+
+
+def test_v31_ctx_cont_retirements_additions_and_renames_are_exact() -> None:
+    """V30 wave 2 moved the ctx_cont surface; every move is checked here.
+
+    Non-vacuous against the pre-change contract in both directions: each retired
+    name is asserted ABSENT (it was present), each added name is asserted
+    PRESENT (it was absent), and each renamed name is asserted present under the
+    new spelling and absent under the old one.
+    """
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
+        MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
+        MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
+        MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS,
+        RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS,
+    )
+    from gx1.features.htf_features import (
+        MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES,
+        MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4,
+    )
+    from gx1.features.swing_structure_v1 import (
+        SWING_FEATURE_NAMES_V1,
+        SWING_V29_ADDITION_NAMES_V1,
+    )
+
+    ctx = set(MODEL_NATIVE_CTX_CONT_FIELDS)
+
+    # 1. The fourteen SWING_V29 duplicates are gone from ctx_cont and every one
+    #    of them still exists on the mandatory surface, so rule 4 holds by
+    #    construction rather than by claim.
+    assert MODEL_NATIVE_CTX_CONT_SWING_FIELDS == tuple(SWING_FEATURE_NAMES_V1)
+    mandatory = set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    for name in SWING_V29_ADDITION_NAMES_V1:
+        assert name not in ctx, name
+        assert name in mandatory, name
+    # retracement_from_last_impulse was proposed for retirement and REFUSED
+    # (its recovery is an unbounded quotient); it must still be a ctx field.
+    assert "retracement_from_last_impulse" in ctx
+
+    # 2. The three exactly-recoverable context values are gone, and the fields
+    #    that recover them are still there.
+    for name in ("is_ASIA", "minutes_to_next_session_boundary", "dow_cos"):
+        assert name not in ctx, name
+    assert MODEL_NATIVE_CTX_CONT_SESSION_FIELDS == (
+        "minutes_since_session_open",
+        "session_change_flag",
+    )
+    for witness in ("hour_sin", "hour_cos", "dow_sin", "minutes_since_session_open"):
+        assert witness in ctx, witness
+
+    # 3. Every retired name is registered, and the registry guard is live.
+    assert set(RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS) == (
+        set(SWING_V29_ADDITION_NAMES_V1)
+        | {"is_ASIA", "minutes_to_next_session_boundary", "dow_cos"}
+    )
+    assert not (ctx & set(RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS))
+    metadata = model_native_context_contract_metadata()
+    assert metadata["retired_exactly_recoverable_ctx_cont_fields"] == list(
+        RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS
+    )
+    # The mandatory swing twins must NOT be reachable through the tuple that
+    # publishes "handcrafted" retirements, or a later session reads them as
+    # deleted everywhere.
+    assert not (
+        set(RETIRED_HANDCRAFTED_CTX_CONT_FIELDS) & set(SWING_V29_ADDITION_NAMES_V1)
+    )
+
+    # 4. The five ema-stack companions are present, one per declared context
+    #    timeframe, beside the trend ages they make readable.
+    for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES:
+        assert f"{tf}_ema_stack_aligned_v2" in ctx, tf
+        assert f"{tf}_trend_state_age_bars_v2" in ctx, tf
+    assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS[-1] == "d1_dist_change_1bar_atr_v4"
+
+    # 5. The four unit/name renames, in both owners, with position preserved.
+    for old, new in (
+        ("_v1h1_atr", "_v1h1_atr_bps"),
+        ("_v1h4_atr", "_v1h4_atr_bps"),
+        ("d1_atr14_canon_v2", "d1_atr14_bps_canon_v2"),
+        ("d1_pct_change_5_canon_v2", "d1_change_5_bps_canon_v2"),
+    ):
+        assert old not in ctx, old
+        assert new in ctx, new
+        assert old not in MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4, old
+        assert new in MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4, new
+    # The ctx_cont V2 block must keep the scalar owner's tuple order.
+    shared = [
+        name
+        for name in MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4
+        if name in set(MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS)
+    ]
+    assert shared == [
+        name
+        for name in MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS
+        if name in set(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)
+    ]
+
+
+def test_v31_m5_source_projects_the_regime_companions_it_cross_checks() -> None:
+    """The compact projection must carry BOTH regime fragments on all five lanes.
+
+    Before the repair the projection was a single ``trend_state_age_bars`` entry
+    filtered by name suffix, so the five new ``{tf}_ema_stack_aligned_v2``
+    columns would have been copied without ever reaching the enriched-vs-projected
+    cross-check (or raised M5_SOURCE_OUTPUT_FIELD_UNRESOLVED). This asserts the
+    projection, the derived field list and the output schema together.
+    """
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
+    )
+    from gx1.features.htf_features import MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES
+
+    outputs = {output for output, _source in m5_source.REGIME_COMPACT_PROJECTION}
+    assert outputs == {"trend_state_age_bars", "ema_stack_aligned"}
+    assert set(m5_source.REGIME_PROJECTED_FIELDS) == {
+        f"{tf}_{output}_v2"
+        for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES
+        for output in outputs
+    }
+    # The list is derived from the contract, not from a name-suffix filter.
+    assert set(m5_source.REGIME_PROJECTED_FIELDS) == (
+        set(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) - {"d1_dist_change_1bar_atr_v4"}
+    )
+    for name in m5_source.REGIME_PROJECTED_FIELDS:
+        assert name in m5_source.OUTPUT_COLUMNS, name
+        assert name in m5_source.SOURCE_OWNED_FIELDS, name
+    assert not hasattr(m5_source, "TREND_AGE_PROJECTED_FIELDS")
+    assert not hasattr(m5_source, "TREND_AGE_COMPACT_PROJECTION")

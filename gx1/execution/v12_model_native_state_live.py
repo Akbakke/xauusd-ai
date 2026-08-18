@@ -63,10 +63,12 @@ from gx1.features.micro_structure_v1 import (
     SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
 )
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    SWING_EVENT_LAYER_FEATURE_NAMES,
+)
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
-    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 
@@ -116,12 +118,23 @@ if tuple(_MODEL_NATIVE_CTX_CAT_DOMAINS) != tuple(MODEL_NATIVE_CTX_CAT_FIELDS):
         f"contract={list(MODEL_NATIVE_CTX_CAT_FIELDS)}"
     )
 
+# V30 wave 2 (2026-08-18): `is_ASIA` and `minutes_to_next_session_boundary`
+# left MODEL_NATIVE_CTX_CONT_SESSION_FIELDS, so their verification entries go
+# with them. The guard below is new and is the reason this drift can only
+# happen once: this table is a hand-written duplicate of the contract tuple, in
+# the same style as the categorical check above it.
 _ENTRY_SESSION_CONT_DOMAINS: dict[str, tuple[int, int] | None] = {
-    "is_ASIA": (0, 1),
     "minutes_since_session_open": None,
-    "minutes_to_next_session_boundary": None,
     "session_change_flag": (0, 1),
 }
+if tuple(_ENTRY_SESSION_CONT_DOMAINS) != tuple(
+    MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
+):
+    raise RuntimeError(
+        "MODEL_NATIVE_SESSION_CONT_DOMAIN_ORDER_MISMATCH: "
+        f"domains={list(_ENTRY_SESSION_CONT_DOMAINS)} "
+        f"contract={list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)}"
+    )
 
 
 def _require_model_native_entry_context_frame(
@@ -184,7 +197,6 @@ def _require_model_native_entry_context_frame(
     from gx1.time.session_detector import (
         SESSION_ID_MAP,
         get_session_minutes_since_open_vectorized,
-        get_session_minutes_to_next_boundary_vectorized,
         get_session_vectorized,
     )
 
@@ -230,15 +242,9 @@ def _require_model_native_entry_context_frame(
         session_values[name] = values
 
     expected_session_values = {
-        "is_ASIA": (expected_session == SESSION_ID_MAP["ASIA"]).astype(np.float64),
         "minutes_since_session_open": get_session_minutes_since_open_vectorized(
             decision_times
         ).to_numpy(dtype=np.float64),
-        "minutes_to_next_session_boundary": (
-            get_session_minutes_to_next_boundary_vectorized(decision_times).to_numpy(
-                dtype=np.float64
-            )
-        ),
         "session_change_flag": labels.ne(labels.shift(1)).to_numpy(dtype=np.float64),
     }
     for name, expected in expected_session_values.items():
@@ -462,9 +468,12 @@ class ModelNativeStateBuilder:
             frame["close"].to_numpy(dtype=np.float64),
             lookback=SWING_LOOKBACK_V1,
             atr_period=SWING_ATR_PERIOD_V1,
-            # The ctx swing surface is the complete source-owned contract
-            # (MODEL_NATIVE_CTX_CONT_SWING_FIELDS); flipped together with the
-            # dataset builder and the live ctx augmenter (rule 6).
+            # V30 wave 2 (2026-08-18): the fourteen additions are no longer ctx
+            # contract fields, but they are still needed HERE -- unlike the
+            # offline builder, this lane hands its own frame to
+            # _build_inline_seq_structure_extension, which rebuilds the
+            # mandatory swing_structure_event_layer from it, and the trim below
+            # is what keeps that layer's honest NaN prefix off the served rows.
             include_v29_additions=True,
         ).items():
             frame[col] = arr
@@ -512,11 +521,14 @@ class ModelNativeStateBuilder:
                 ga_cols
                 + list(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
                 + list(VOLUME_FEATURE_NAMES)
-                # V30 (2026-08-13): the adopted V29 swing ctx fields have their
-                # own honest NaN warmup prefix (see the producer); trim it by
-                # contract, exactly as the offline builder and the live ctx
-                # augmenter now do.
-                + list(SWING_V29_ADDITION_NAMES_V1)
+                # V30 wave 2 (2026-08-18): no longer ctx contract fields, still
+                # emitted by the shared swing owner and still trimmed here --
+                # this lane feeds its own frame to
+                # _build_inline_seq_structure_extension, so the mandatory
+                # swing_structure_event_layer's honest NaN prefix has no other
+                # owner on this route. Named from the LAYER tuple, which is what
+                # consumes them.
+                + list(SWING_EVENT_LAYER_FEATURE_NAMES)
                 # Five-row honest local price/EMA warmup. This must be
                 # explicit even when a longer family currently covers it.
                 + list(MICRO_WARMUP_PREFIX_FIELDS_V1)

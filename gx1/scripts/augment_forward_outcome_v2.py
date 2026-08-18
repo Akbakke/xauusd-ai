@@ -136,7 +136,7 @@ PORTFOLIO_FEATURE_NAMES = (
 )
 # 2026-05-24 GROUP_S: SMC features from canonical_v3 (joined by decision_ts).
 # These ARE in canonical_v3 prebuilt with real signal (smc_choch 421 non-zero,
-# smc_bos_down 76K, smc_sweep_up/down 25K each) but were NEVER joined into
+# smc_bos_down 76K, smc_sweep_up/down_state 25K each) but were NEVER joined into
 # forward_outcome → all zero downstream. Fix: load canonical_v3 once, asof-join
 # by time to add SMC cols (with _canon_v1 suffix to match downstream expectations).
 GROUP_S_SMC_FEATURE_NAMES = (
@@ -144,8 +144,12 @@ GROUP_S_SMC_FEATURE_NAMES = (
     "smc_bos_up_canon_v1",
     "smc_bos_down_canon_v1",
     "smc_choch_canon_v1",
-    "smc_sweep_up_canon_v1",
-    "smc_sweep_down_canon_v1",
+    # 2026-08-18 (V30 wave 2): follow the smc_v1 owner's rename so the alias
+    # cannot claim an "event" the source column never was. These names are
+    # local to this file (defined here, used only in the column set and the
+    # source->destination zip below); no consumer reads the old spelling.
+    "smc_sweep_up_state_canon_v1",
+    "smc_sweep_down_state_canon_v1",
     "smc_sweep_event_age_bars_canon_v2",
     "smc_pivot_envelope_position_canon_v1",
 )
@@ -1374,7 +1378,9 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
         merged = merged.set_index("decision_ts_utc").reindex(cand_idx).reset_index(drop=True)
         smc_sources = [
             "smc_swing_state", "smc_bos_up", "smc_bos_down", "smc_choch",
-            "smc_sweep_up", "smc_sweep_down",
+            # 2026-08-18 (V30 wave 2): renamed by the smc_v1 owner (per-bar
+            # STATE, not an event); these read the canonical parquet columns.
+            "smc_sweep_up_state", "smc_sweep_down_state",
             "smc_sweep_event_age_bars",
             "smc_pivot_envelope_position",
         ]
@@ -1470,7 +1476,7 @@ def main() -> int:
     t_smc = time.time()
     smc_cols = ["time"] + [
         "smc_swing_state","smc_bos_up","smc_bos_down","smc_choch",
-        "smc_sweep_up","smc_sweep_down",
+        "smc_sweep_up_state","smc_sweep_down_state",
         "smc_sweep_event_age_bars",
         "smc_pivot_envelope_position",
     ]

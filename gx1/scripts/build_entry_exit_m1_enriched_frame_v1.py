@@ -937,8 +937,11 @@ def _finish_model_native_surface(
     dow = decision_ts.dayofweek.to_numpy(dtype=np.float32)
     enriched["hour_sin"] = np.sin(2.0 * np.pi * hour / 24.0).astype(np.float32)
     enriched["hour_cos"] = np.cos(2.0 * np.pi * hour / 24.0).astype(np.float32)
+    # V30 wave 2 (2026-08-18): dow_cos left the ctx contract -- sin(2*pi*d/7) is
+    # injective on {0..6}, so the day index and therefore cos are exactly
+    # recoverable from dow_sin on the same row. The hour pair is NOT injective
+    # separately and both members stay.
     enriched["dow_sin"] = np.sin(2.0 * np.pi * dow / 7.0).astype(np.float32)
-    enriched["dow_cos"] = np.cos(2.0 * np.pi * dow / 7.0).astype(np.float32)
     if not enriched.index.is_unique or not enriched.index.is_monotonic_increasing:
         raise RuntimeError(f"{label}_ENRICHED_OUTPUT_TIME_ORDER_INVALID")
     missing = [

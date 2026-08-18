@@ -2,7 +2,7 @@
 """canonical_v3 augmentation — produces canonical_v3 from canonical_v2 by:
 
   1. Pruning retained redundant upstream features
-  2. Adding 4 cyclic time features (hour_sin, hour_cos, dow_sin, dow_cos)
+  2. Adding 3 cyclic time features (hour_sin, hour_cos, dow_sin)
   3. Adding 1 cross-TF momentum feature (m5h1_momentum)
   4. (Future) V10 outputs as cross-bridge link — requires V10 inference pass; deferred to a
      follow-up step that joins this augmented parquet with V10 v2 inference.
@@ -64,8 +64,9 @@ def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["hour_sin"] = np.sin(2 * np.pi * hour / 24).astype(np.float32)
     df["hour_cos"] = np.cos(2 * np.pi * hour / 24).astype(np.float32)
+    # V30 wave 2 (2026-08-18): dow_cos left the ctx contract; sin(2*pi*d/7) is
+    # injective on {0..6} so cos is exactly determined on the same row.
     df["dow_sin"] = np.sin(2 * np.pi * dow / 7).astype(np.float32)
-    df["dow_cos"] = np.cos(2 * np.pi * dow / 7).astype(np.float32)
     return df
 
 def _atr_normalized_h1_momentum(
@@ -107,8 +108,9 @@ def _atr_normalized_h1_momentum(
         )
     if np.any(h1_atr[first_finite:] < 0.0):
         raise RuntimeError("[canonical_v3] H1 ATR must be non-negative")
-    # 2026-08-09 unit repair: _v1h1_atr changed from raw USD to bps in
-    # htf_features (era-proxy repair). The numerator must match: convert the
+    # 2026-08-09 unit repair: _v1h1_atr_bps changed from raw USD to bps in
+    # htf_features (era-proxy repair; the name gained `_bps` on 2026-08-18).
+    # The numerator must match: convert the
     # close change to bps of price (the repo's ret_* convention,
     # materialize_build_canonical_features_v1 pct_change*1e4) so the ratio
     # stays a dimensionless ATR-multiple of the one-hour move.
@@ -136,9 +138,9 @@ def add_cross_tf_momentum(
     )
     if "m5h1_momentum" in df.columns:
         raise RuntimeError("[canonical_v3] duplicate m5h1_momentum owner")
-    if "close" not in df.columns or "_v1h1_atr" not in df.columns:
+    if "close" not in df.columns or "_v1h1_atr_bps" not in df.columns:
         raise RuntimeError(
-            "[canonical_v3] exact close and V4-projected _v1h1_atr are required"
+            "[canonical_v3] exact close and V4-projected _v1h1_atr_bps are required"
         )
     if decision_bar_duration not in {
         pd.Timedelta(minutes=1),
@@ -154,7 +156,7 @@ def add_cross_tf_momentum(
     out = df.copy(deep=False)
     close = pd.to_numeric(out["close"], errors="coerce").to_numpy(np.float64)
     h1_atr = pd.to_numeric(
-        out["_v1h1_atr"], errors="coerce"
+        out["_v1h1_atr_bps"], errors="coerce"
     ).to_numpy(np.float64)
     out["m5h1_momentum"] = _atr_normalized_h1_momentum(
         close,

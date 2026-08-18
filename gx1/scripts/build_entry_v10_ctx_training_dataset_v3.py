@@ -20,7 +20,6 @@ SECTION LINE INDEX (oppdater ved flytting; se ogsaa SYSTEM_MAP.md
   ~1211 _build_inline_seq_structure_extension (alle specialist-lag fra merged3;
         V29 stage 2: fem event-familier via source-parquet-lag +
         v29_registry_layer_params for level/trendline)
-  ~2966 is_ASIA-derivering ((session_id==0).astype(int8))
   ~3153 df_ctx_cont-konstruksjon
   ~3434 GROUP_A-attach (krever env GX1_V10_MULTI_TF_V4_CACHE_DIR;
         laster ogsaa V29 registry-konstanter fra cache-manifestet;
@@ -134,18 +133,15 @@ from gx1.features.micro_structure_v1 import (
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
-    SWING_V29_ADDITION_NAMES_V1,
     compute_swing_structure_features,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
 )
 from gx1.time.session_detector import (
-    ASIA_SESSION_ID,
     SESSION_NAME_BY_ID,
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
-    get_session_minutes_to_next_boundary_vectorized,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
@@ -2868,20 +2864,17 @@ def build_dataset_canonical(
     # Log distribution proof
     _sess_counts = pd.Series(df["session_id"]).value_counts(dropna=False).sort_index()
     log.info("[SESSION_ID_DISTRIBUTION_PROOF] %s", _sess_counts.to_dict())
-    df["is_ASIA"] = (
-        canonical_session_id == ASIA_SESSION_ID
-    ).astype(np.int8)
+    # 2026-08-18 (V30 wave 2): `is_ASIA` and `minutes_to_next_session_boundary`
+    # left MODEL_NATIVE_CTX_CONT_SESSION_FIELDS (both exactly recoverable inside
+    # session_regime_encoder from the hour pair / from
+    # minutes_since_session_open), and this builder was the only consumer that
+    # produced them for the contract, so the derivations go with them (rule 10).
     # decision_ts is a DatetimeIndex, so the session helpers return Series
     # indexed by timestamp; df carries the window-filtered integer index.
     # Assign positionally — label alignment here silently yields all-NaN.
     df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
         decision_ts
     ).to_numpy(dtype=np.float32)
-    df["minutes_to_next_session_boundary"] = (
-        get_session_minutes_to_next_boundary_vectorized(decision_ts).to_numpy(
-            dtype=np.float32
-        )
-    )
     session_change = np.zeros(len(canonical_session_id), dtype=np.int8)
     if len(canonical_session_id) > 1:
         session_change[1:] = (
@@ -3005,10 +2998,15 @@ def build_dataset_canonical(
         close,
         lookback=SWING_LOOKBACK_V1,
         atr_period=SWING_ATR_PERIOD_V1,
-        # V30 (2026-08-13): the V29/V30 swing event fields are ctx contract
-        # fields from this rebuild boundary on; every ctx producer consumes
-        # the same complete source-owned tuple (rule 6).
-        include_v29_additions=True,
+        # V30 wave 2 (2026-08-18): back to the BASE tuple. The fourteen V29
+        # additions left MODEL_NATIVE_CTX_CONT_SWING_FIELDS -- every one of
+        # them is an emitted column of the mandatory swing_structure_event_layer
+        # already, so a ctx copy computed here from the canonical tape was a
+        # second price authority for one name, and the columns were discarded by
+        # the tape_context_names projection below anyway. The flag is additive
+        # only (the six base columns are computed identically either way), so
+        # this changes no emitted value.
+        include_v29_additions=False,
     )
     for _name, _arr in _swing.items():
         tape_feat[_name] = _arr
@@ -3438,12 +3436,6 @@ def build_dataset_canonical(
         dict.fromkeys(
             _group_a_required
             + list(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
-            # V30 (2026-08-13): the adopted V29 swing ctx fields carry their own
-            # honest NaN warmup (no pivot-sequence delta before the SECOND
-            # confirmed pivot per side). They join the trim list so the prefix
-            # is removed by contract instead of being covered incidentally by
-            # the much longer D1 warmup above.
-            + list(SWING_V29_ADDITION_NAMES_V1)
             # Honest five-row local change/EMA prefix from the sole micro
             # owner; never rely on a longer unrelated warmup to hide it.
             + list(MICRO_WARMUP_PREFIX_FIELDS_V1)
@@ -3455,6 +3447,25 @@ def build_dataset_canonical(
     )
     _rows_before_context_trim = len(merged3)
     merged3 = _trim_context_warmup(merged3, _causal_required).reset_index(drop=True)
+    # V30 wave 2 (2026-08-18): the fourteen SWING_V29 names used to be listed
+    # above, as ctx columns with an honest NaN prefix. They are no longer ctx
+    # contract fields, so they are no longer joined onto this frame and cannot
+    # be trimmed on.
+    #
+    # NOTHING REPLACES THEM HERE, and that is a finding, not an omission. The
+    # wave's plan assumed this builder computes the mandatory
+    # swing_structure_event_layer inline and would therefore lose its warmup
+    # guarantee. It does not: since the M5 feature-surface cutover this builder
+    # CONSUMES a precomputed surface (_align_native_m5_feature_surface below),
+    # and that surface is produced by
+    # materialize_entry_exit_m1_feature_base_v1, which measures
+    # v29_layer_first_complete_time for all six V29 layers -- the swing layer
+    # included -- on the exact declared source bytes and excludes the leading
+    # rows it cannot honestly produce. If a dataset row still preceded that
+    # floor, _align_native_m5_feature_surface raises
+    # ENTRY_M5_FEATURE_SURFACE_TIME_MISSING. Re-measuring the same floor here
+    # would be a second full-history swing computation inside the capped build
+    # for a guarantee that already has an owner (rule 22).
     _causal_context_warmup_rows_trimmed = _rows_before_context_trim - len(merged3)
     log.info(
         "[V10_GROUP_A_PARITY] computed %d raw parity features; trimmed warmup rows=%d",

@@ -418,5 +418,5 @@ def test_smc_sweep_event_refires_for_a_new_level_identity(monkeypatch) -> None:
         swing_lookback=1,
         include_v30_additions=True,
     )
-    assert out.loc[3:4, "smc_sweep_up"].tolist() == [1.0, 1.0]
+    assert out.loc[3:4, "smc_sweep_up_state"].tolist() == [1.0, 1.0]
     assert out.loc[3:4, "smc_sweep_up_event"].tolist() == [1.0, 1.0]

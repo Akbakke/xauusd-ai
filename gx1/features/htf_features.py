@@ -267,7 +267,7 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "vwap_local_cycle_dist_atr",
     "vwap20_dist_atr",
     "vwap96_dist_atr",
-    "vwap_local_cycle_slope_atr",
+    "vwap_rolling5_slope_atr",
     "bb_position",
     "bb_width_atr",
     "adx14",
@@ -395,6 +395,42 @@ LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES = (
 # follows the existing canon convention (`<tf>_rsi14_canon_v2`) rather than the
 # design doc's pre-implementation `*_raw` sketch (the code tuples are the
 # authority, design doc STAGE-2 CORRECTION).
+#
+# KEEP-REASON for the five `*_rsi14_canon_v2` scalars (2026-08-18, V30 wave 2).
+# All five were proposed for retirement as "the affine image
+# 50*rsi14_centered + 50 of the MTF lane column"; all five were REFUSED, for
+# two independent reasons, and the reasons are written here so the next
+# session inherits them instead of re-deriving a wrong lemma.
+#
+# 1. THE AFFINE LEMMA DOES NOT REACH A LANE. The retirement argument was that
+#    the input normalizer's `asinh((x - median)/IQR)` is affine-equivariant,
+#    so a positive affine image of an already-present column is redundant.
+#    Equivariance requires the SAME fitted (median, IQR) pair. Normalization
+#    is fitted PER SURFACE: the bundle carries separate `input_norm_{surface}_*`
+#    statistics and separate `mtf_m5..mtf_d1` field-name sets, fitted on
+#    different row populations -- M5 decision rows, where a D1 value is a step
+#    function held across a whole day, against each lane's own window
+#    (`PRODUCTION_MTF_PER_TF_WINDOW_BARS` owns those window lengths; they are
+#    not restated here). Two different fitted pairs are two different maps,
+#    and the algebra never runs.
+# 2. POOLING. The lane column `rsi14_centered` reaches the model only through
+#    `encoded.mean(dim=1)` over that lane's window, while the ctx scalar enters
+#    `_build_family_context_tokens` -> `z_v3`, which is computed BEFORE the MTF
+#    route and gates it. The ctx scalar is the only un-pooled current-bar
+#    reading of that timeframe's Wilder RSI level. M15 additionally has no
+#    `_v1m15_rsi14_z` at all, so there the ctx scalar is the lane's only
+#    momentum oscillator.
+# 3. `m5_rsi14_canon_v2` HAS A THIRD, DECISIVE REASON: the ctx_cont tuple is
+#    SHARED by the native-M5 Entry surface and the native-M1 Exit surface
+#    (build_entry_exit_m1_enriched_frame_v1). `MODEL_NATIVE_MTF_SCALAR_ROUTES_V4`
+#    routes "M5" on the 1-minute clock too, where this scalar is the LAST
+#    CLOSED M5 bar, while that surface's own `rsi14_centered` is native M1
+#    (the entry/exit feature-owner resolution contract declares
+#    `independent_native_resolution_computation_required` and forbids
+#    cross-resolution value copying). On the Exit clock the identity
+#    `= 50*rsi14_centered + 50` is simply FALSE. Partial retirement is not
+#    expressible either: `project_model_native_mtf_scalars_v4` fails closed
+#    unless the projected set equals the output tuple exactly.
 MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
     # The M5 slot was empty, not forbidden: the compact scalar surface is
     # "computed from the same closed OHLCV bars and projected onto either local
@@ -410,7 +446,7 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
     ),
     "H1": (
         "_v1h1_ema_diff",
-        "_v1h1_atr",
+        "_v1h1_atr_bps",
         "_v1h1_rsi14_z",
         "_v1h1_slope3",
         "_v1h1_slope5",
@@ -419,7 +455,7 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
     "H4": (
         "h4_mid_ema50_dist_atr_canon_v2",
         "_v1h4_ema_diff",
-        "_v1h4_atr",
+        "_v1h4_atr_bps",
         "_v1h4_rsi14_z",
         "_v1h4_slope3",
         "_v1h4_slope5",
@@ -427,33 +463,33 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
     ),
     "D1": (
         "D1_dist_from_ema200_atr",
-        "d1_atr14_canon_v2",
+        "d1_atr14_bps_canon_v2",
         "d1_rsi14_canon_v2",
         "d1_ema_slope_20_canon_v2",
         "d1_range_z_20_canon_v2",
         "d1_close_pct_in_20day_range_canon_v2",
-        "d1_pct_change_5_canon_v2",
+        "d1_change_5_bps_canon_v2",
         "d1_dist_change_1bar_atr_v4",
     ),
 }
 MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "D1_dist_from_ema200_atr",
     "_v1h1_ema_diff",
-    "_v1h1_atr",
+    "_v1h1_atr_bps",
     "_v1h1_rsi14_z",
     "_v1h1_slope3",
     "_v1h1_slope5",
     "_v1h4_ema_diff",
-    "_v1h4_atr",
+    "_v1h4_atr_bps",
     "_v1h4_rsi14_z",
     "_v1h4_slope3",
     "_v1h4_slope5",
-    "d1_atr14_canon_v2",
+    "d1_atr14_bps_canon_v2",
     "d1_rsi14_canon_v2",
     "d1_ema_slope_20_canon_v2",
     "d1_range_z_20_canon_v2",
     "d1_close_pct_in_20day_range_canon_v2",
-    "d1_pct_change_5_canon_v2",
+    "d1_change_5_bps_canon_v2",
     "m15_rsi14_canon_v2",
     "m15_range_z_20_canon_v2",
     "m15_ema5_20_spread_atr_canon_v2",
@@ -467,8 +503,19 @@ MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "h4_mid_ema50_dist_atr_canon_v2",
     "d1_dist_change_1bar_atr_v4",
 )
+# v8 (2026-08-18, V30 wave 2): four names in the tuple above change, no value
+# moves. `_v1h{1,4}_atr` -> `_v1h{1,4}_atr_bps` and `d1_atr14_canon_v2` ->
+# `d1_atr14_bps_canon_v2` because the 2026-08-09 era-proxy repair converted
+# those three to bps and left `_atr` in the name, which means "in ATR units"
+# everywhere else here; `d1_pct_change_5_canon_v2` ->
+# `d1_change_5_bps_canon_v2` because pandas' pct_change is a FRACTION and the
+# producer multiplies by 1e4. Positions are preserved, so
+# `field_order_sha256` changes but the projection order does not. All four are
+# atomic: they sit in the same two hash-bound tuples, so landing three and
+# deferring one invalidates every canonical artifact anyway, on BOTH clocks
+# (MODEL_NATIVE_MTF_SCALAR_ROUTES_V4 is keyed on decision_bar_duration).
 MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4 = (
-    "model_native_mtf_scalar_owner_native_m5_v7"
+    "model_native_mtf_scalar_owner_native_m5_v8"
 )
 # V30 (2026-08-13): the scalar-projection route per decision clock, previously
 # repeated as two identical literals inside the projection function and the
@@ -484,8 +531,8 @@ MODEL_NATIVE_MTF_SCALAR_ROUTES_V4 = {
     pd.Timedelta(minutes=1): ("M5", "M15", "H1", "H4", "D1"),
 }
 # V29 Phase A per-TF REGISTRY blocks (stage 2 wiring, design doc §1.3/§2):
-# the 31-field immutable pivot-anchor block and the 33-field trendline/channel
-# block run independently on every TF clock next to
+# the immutable pivot-anchor block and the trendline/channel block run
+# independently on every TF clock next to
 # compute_smc_mtf_primitives_v1.  Their exact ordered names are owned by the
 # two registry modules; this owner only sequences them.  Both blocks carry
 # TRAIN-fitted constants (level recurrence threshold / trendline band) that must
@@ -550,7 +597,15 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # retired column was an exact continuous function of columns that remain in
 # the same specialist family, so nothing left the learned path -- but a V16
 # matrix is 10 columns per lane wider and MUST NOT be read as current.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V17"
+# V18 (2026-08-18, V30 wave 2, contract step): the per-lane WIDTH is unchanged
+# from V17, but one column's VALUES change and its name with them.
+# `vwap_local_cycle_slope_atr` -> `vwap_rolling5_slope_atr`: the old field
+# differenced a CUMULATIVE session VWAP across a fixed row count, so on H4 a
+# measured 83.47% of its defined rows straddled a session reset and the
+# subtrahend belonged to a different accumulation. The repaired field
+# differences the rolling 5-bar VWAP the D1 branch already used. A V17 matrix
+# holds the broken numbers under a name that no longer exists.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V18"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -574,7 +629,7 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V17"
 # v26 (2026-08-18) carries the V30 wave-2 narrowing: a v25 cache is 10 columns
 # per lane wider and carries two per-TF sweep columns under their pre-rename
 # names.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v26"
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v27"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
 )
@@ -586,7 +641,7 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # v17 (2026-08-18) describes the V30 wave-2 surface: 10 fewer columns per lane
 # and the two renamed sweep-state columns. A v16 artifact answers liveness for
 # names this surface no longer emits.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v17"
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v18"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered
@@ -2914,8 +2969,9 @@ def compute_per_bar_features_v4(
     # Declared-TF selection (2026-08-09): value-identical to the retired
     # >=23h median-spacing inference for the five declared timeframes, without
     # inferring the clock from data or swallowing NaT spacing.
+    vwap_rolling5 = _rolling_vwap(close, volume, 5)
     local_cycle_vwap = (
-        _rolling_vwap(close, volume, 5)
+        vwap_rolling5
         if timeframe == "D1"
         else _session_vwap(
             close,
@@ -2930,8 +2986,29 @@ def compute_per_bar_features_v4(
     out["vwap20_dist_atr"] = (close - vwap20) / atr_positive
     vwap96 = _rolling_vwap(close, volume, 96)
     out["vwap96_dist_atr"] = (close - vwap96) / atr_positive
-    out["vwap_local_cycle_slope_atr"] = (
-        (local_cycle_vwap - local_cycle_vwap.shift(5)) / atr_positive
+    # 2026-08-18 (V30 wave 2) REPAIR + RENAME. Until now this emitted
+    # `vwap_local_cycle_slope_atr` = the 5-bar difference of
+    # `local_cycle_vwap`, which is a CUMULATIVE session VWAP on every intraday
+    # lane (reset at each session boundary) and a ROLLING 5-bar VWAP only on
+    # D1. Differencing a cumulative series over a fixed row count is not a
+    # slope of anything when the window straddles a reset: the subtrahend
+    # belongs to a different accumulation. [M, INHERITED] share of defined rows
+    # whose shift(5) crosses a session-id change: H4 83.47%, H1 21.83%,
+    # M15 5.46%, M5 1.82%.
+    #
+    # Masking those rows fails closed on H4 (most of the lane would be NaN),
+    # and branching per lane is forbidden (one owner, one formula). The only
+    # union that invents nothing is to adopt the D1 branch's OWN operand
+    # everywhere: `_rolling_vwap(close, volume, 5)` is already this function's
+    # local-cycle VWAP for D1, and `shift(5)` is already this file's EMA-slope
+    # lookback (ema20/50/200_slope_atr). No new magnitude is chosen.
+    #
+    # The rename is mandatory, not cosmetic: keeping `vwap_local_cycle_slope_atr`
+    # over a rolling operand would trade a hollow field for a lying one. On D1
+    # the emitted float is unchanged (the operand is the same series there);
+    # on M5/M15/H1/H4 the value changes, which is the repair.
+    out["vwap_rolling5_slope_atr"] = (
+        (vwap_rolling5 - vwap_rolling5.shift(5)) / atr_positive
     )
 
     sma20 = close.rolling(20, min_periods=20).mean()
@@ -3224,15 +3301,21 @@ def _compute_model_native_mtf_scalar_frame_v4(
             out["h4_mid_ema50_dist_atr_canon_v2"] = distance
         # 2026-08-09 era-proxy repair: these fields were raw USD magnitudes and
         # tracked the multi-year gold price level instead of market state.
-        # Units now follow this file's own conventions (names unchanged):
+        # Units now follow this file's own conventions:
         # - ema_diff in ATR-multiples (the D1_dist_from_ema200_atr convention);
         #   the slope3/slope5 fields below inherit the normalized series so
         #   they are ATR-multiple changes, not USD changes.
         # - atr in bps of price (the atr_bps_14 convention). Normalization
         #   statistics are refitted at the next dataset rebuild.
+        # 2026-08-18 (V30 wave 2): the NAME now carries that unit too. The
+        # 2026-08-09 repair changed the value and left the name saying `_atr`,
+        # which reads as "in ATR units" everywhere else in this file
+        # (ema50_slope_atr, mom_5_atr, ...) -- the exact opposite of a bps
+        # ratio. `_bps` is copied verbatim from the sibling owner `atr_bps_14`
+        # in this same file; the emitted float is bit-identical.
         ema_diff = (ema12 - ema26) / atr14_positive
         out[f"{prefix}_ema_diff"] = ema_diff
-        out[f"{prefix}_atr"] = atr14 / close * 1e4
+        out[f"{prefix}_atr_bps"] = atr14 / close * 1e4
         out[f"{prefix}_rsi14_z"] = _model_native_rsi_z48_v4(close)
         out[f"{prefix}_slope3"] = _model_native_htf_slope_v4(
             ema_diff,
@@ -3272,10 +3355,19 @@ def _compute_model_native_mtf_scalar_frame_v4(
         distance = (mid - ema200) / atr14_positive
         distance.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
         out["D1_dist_from_ema200_atr"] = distance
-        # 2026-08-09 era-proxy repair (names unchanged): d1_atr14_canon_v2 in
-        # bps of price (atr_bps_14 convention); d1_ema_slope_20_canon_v2 in
-        # ATR-multiples (D1_dist_from_ema200_atr convention, positive ATR only).
-        out["d1_atr14_canon_v2"] = atr14 / close * 1e4
+        # 2026-08-09 era-proxy repair: d1_atr14_bps_canon_v2 in bps of price
+        # (atr_bps_14 convention); d1_ema_slope_20_canon_v2 in ATR-multiples
+        # (D1_dist_from_ema200_atr convention, positive ATR only).
+        # 2026-08-18 (V30 wave 2) rename, no value change: the ATR field was
+        # `d1_atr14_canon_v2` while carrying bps, and `d1_pct_change_5_canon_v2`
+        # multiplies pandas' FRACTIONAL pct_change by 1e4 -- a 100x gap between
+        # the name and the number. `_bps` is inserted BEFORE the `_canon_v2`
+        # generation marker so that marker keeps its position. The `_change_`
+        # token is load-bearing and must survive any future rename: it is the
+        # only token in entry_full_input_liveness_v1.FIELD_SEMANTIC_SIGNED_PATTERN
+        # that this field matches, so a spelling like `d1_ret_5_bps` would
+        # silently drop it out of the signed-semantics gate.
+        out["d1_atr14_bps_canon_v2"] = atr14 / close * 1e4
         out["d1_rsi14_canon_v2"] = _rsi(close, 14)
         ema20 = _ema(close, 20)
         out["d1_ema_slope_20_canon_v2"] = (
@@ -3294,7 +3386,7 @@ def _compute_model_native_mtf_scalar_frame_v4(
         out["d1_close_pct_in_20day_range_canon_v2"] = (
             close - low20
         ) / (high20 - low20).replace(0.0, np.nan)
-        out["d1_pct_change_5_canon_v2"] = close.pct_change(5) * 10000.0
+        out["d1_change_5_bps_canon_v2"] = close.pct_change(5) * 10000.0
         out["d1_dist_change_1bar_atr_v4"] = distance.diff()
 
     if tuple(out.columns) != expected_fields:

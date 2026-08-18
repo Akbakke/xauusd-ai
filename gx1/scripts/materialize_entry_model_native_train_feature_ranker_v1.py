@@ -83,7 +83,6 @@ from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import
     _is_forbidden_leak_name,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-from gx1.time.session_detector import ASIA_SESSION_ID
 from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
     validate_current_pair_source_cascade_proof,
 )
@@ -363,12 +362,10 @@ def _load_train_frame(
         drop=True
     )
 
-    # Session flag exactly as the dataset builder derives it
-    # (build_entry_v10_ctx_training_dataset_v3.py:1799-1800).
-    if "is_ASIA" not in frame.columns:
-        frame["is_ASIA"] = (
-            frame["session_id"].astype(int) == ASIA_SESSION_ID
-        ).astype(np.int8)
+    # V30 wave 2 (2026-08-18): the `is_ASIA` back-fill is gone with the field.
+    # It left MODEL_NATIVE_CTX_CONT_SESSION_FIELDS as exactly recoverable inside
+    # session_regime_encoder, and this was a mirror of the dataset builder's
+    # derivation, which is also gone (rule 10).
     missing_ctx = [n for n in MODEL_NATIVE_CTX_CONT_FIELDS if n not in frame.columns]
     if missing_ctx:
         raise RuntimeError(

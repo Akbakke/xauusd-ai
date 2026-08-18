@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
@@ -262,7 +263,7 @@ def test_full_input_liveness_fails_on_missing_field_and_hash_tamper_but_records_
     assert validate_full_input_liveness_artifact(missing_path)["ok"] is False
 
     def red_atr(stats) -> None:
-        stats["val"]["signal"]["ctx_cont.d1_atr14_canon_v2"].update(
+        stats["val"]["signal"]["ctx_cont.d1_atr14_bps_canon_v2"].update(
             {"mean": 10.0, "std": 0.05, "min": 9.5, "max": 10.5, "value_range": 1.0}
         )
 
@@ -468,3 +469,63 @@ def test_every_declared_surface_field_gets_a_stable_semantic_class() -> None:
         declared += semantics is not None
     # The gate is worthless if it happens to bind nothing.
     assert declared > 0
+
+
+def test_v31_version_suffix_does_not_defeat_the_semantic_markers() -> None:
+    """A trailing ``_v<N>`` generation marker is not part of a field's semantics.
+
+    Every one of the nine ``$``-anchored markers in the three patterns is
+    defeated by a version suffix, so ``{tf}_trend_state_age_bars_v2`` used to
+    classify as NOTHING while the identically-computed unversioned twin
+    classified as non-negative. Fails against the pre-change classifier on the
+    first assertion.
+    """
+
+    assert classify_field_name_semantics("m15_trend_state_age_bars_v2") == (
+        "non_negative"
+    )
+    assert classify_field_name_semantics("m15_trend_state_age_bars") == (
+        "non_negative"
+    )
+    # The strip is applied to the explicit ``_signed`` declaration too, or a
+    # versioned name would lose the author's declaration to a structural marker.
+    assert classify_field_name_semantics("x_age_bars_signed_v2") == "signed"
+    assert classify_field_name_semantics("x_age_bars_signed") == "signed"
+    # It is a version matcher, not a general digit strip: a horizon is not a
+    # generation marker.
+    assert classify_field_name_semantics("d1_change_5_bps_canon_v2") == "signed"
+    assert classify_field_name_semantics("close_return_3_bps") is None
+
+    # The exact set of surface slots whose class MOVES is the five per-timeframe
+    # trend ages and their five signal aliases -- enumerated, not assumed, so a
+    # future marker change cannot silently reclassify something else.
+    from gx1.features.htf_features import (
+        MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES,
+        MULTI_TF_PER_BAR_FEATURES_V4,
+    )
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CAT_FIELDS,
+        MODEL_NATIVE_CTX_CONT_FIELDS,
+    )
+
+    expected_moved = {
+        f"{tf}_trend_state_age_bars_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES
+    }
+    versioned = {
+        name
+        for name in (
+            *MODEL_NATIVE_CTX_CONT_FIELDS,
+            *MODEL_NATIVE_CTX_CAT_FIELDS,
+            *MULTI_TF_PER_BAR_FEATURES_V4,
+        )
+        if re.search(r"_v\d+$", name)
+    }
+    moved = {
+        name
+        for name in versioned
+        if classify_field_name_semantics(name)
+        != classify_field_name_semantics(re.sub(r"_v\d+$", "", name) + "_vX")
+    }
+    # `_vX` is not a version marker, so the right-hand side reproduces the
+    # pre-strip behaviour of the marker patterns on the same stem.
+    assert moved == expected_moved

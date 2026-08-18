@@ -87,8 +87,8 @@ def _signal_contract() -> dict:
     required = [
         "chart.local_ema50_200_cross_up",
         "chart.local_ema50_200_cross_down",
-        "ctx_cont.d1_atr14_canon_v2",
-        "ctx_cont._v1h4_atr",
+        "ctx_cont.d1_atr14_bps_canon_v2",
+        "ctx_cont._v1h4_atr_bps",
     ]
     selected = canonical_model_native_selected_fields(
         required_fields=required,
