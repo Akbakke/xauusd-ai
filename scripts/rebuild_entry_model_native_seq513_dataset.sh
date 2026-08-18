@@ -44,7 +44,7 @@ usage() {
     "  --m5-feature-base-parquet /immutable/M5_FEATURE_BASE.parquet" \
     "  --exit-lifecycle-dir /new/dir (Exit target policy is fit on TRAIN)" \
     "  Entry direction/early-move policy is fit on TRAIN native M5" \
-    "  --output /new/dir/STEM__DIR_TRAIN_FIT.parquet --audit-out-dir /new/report/dir" \
+    "  --output /new/dir/STEM<stem-suffix>.parquet --audit-out-dir /new/report/dir" \
     "  --rebuild-terminal-json /event/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_<UTC>.json" \
     "  --prefreeze-test-seal-json /event/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_<UTC>.json" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
@@ -98,8 +98,16 @@ for name in "${required_values[@]}"; do
   fi
 done
 
-if [[ $OUTPUT != *.parquet || $OUTPUT != *"__DIR_TRAIN_FIT.parquet" ]]; then
-  printf '[ABORT] --output must end in __DIR_TRAIN_FIT.parquet: %s\n' "$OUTPUT" >&2
+# The dataset stem suffix is owned by the builder this wrapper invokes:
+# build_entry_v10_ctx_training_dataset_v3.ENTRY_FITTED_Q_DATASET_STEM_SUFFIX,
+# which the builder itself enforces on its output stem. This check used to
+# hardcode "__DIR_TRAIN_FIT" while the owner said "__ENTRY_FITTED_Q" -- both
+# introduced by the same commit (a94f5c6e), so the wrapper and the builder could
+# never be satisfied at once and the chain was unrunnable to the dataset step
+# from that commit onward. Derive it; never restate it.
+DATASET_STEM_SUFFIX=$("$PY" -c 'from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import ENTRY_FITTED_Q_DATASET_STEM_SUFFIX as s; print(s)')
+if [[ $OUTPUT != *.parquet || $OUTPUT != *"${DATASET_STEM_SUFFIX}.parquet" ]]; then
+  printf '[ABORT] --output must end in %s.parquet: %s\n' "$DATASET_STEM_SUFFIX" "$OUTPUT" >&2
   exit 2
 fi
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
