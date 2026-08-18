@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import inspect
 import json
 import os
 from pathlib import Path
@@ -333,3 +334,138 @@ def test_full_frame_phases_run_in_disposable_child_processes(
     assert result["kwargs"] == {"sentinel": "exact"}
     assert isinstance(result["pid"], int)
     assert result["pid"] != parent_pid
+
+
+def test_enriched_producer_can_satisfy_every_declared_ctx_cont_field() -> None:
+    """The declared output contract must have a producer, not only a name.
+
+    ``OUTPUT_COLUMNS`` requires every ``MODEL_NATIVE_CTX_CONT_FIELDS`` name on
+    the emitted frame.  Ten of them --- ``{tf}_trend_state_age_bars_v2`` and
+    ``{tf}_ema_stack_aligned_v2`` on the five declared context lanes --- are
+    created by exactly one expression in the repository, the
+    ``out[f"{tf_lower}_{output_name}_v2"]`` assignment inside
+    ``htf_features.project_multi_tf_v4_scalars``.  Before this producer called
+    it, the ten names were declared and unproducible, and
+    ``_finish_model_native_surface`` could only have raised
+    ``*_ENRICHED_OUTPUT_FIELDS_MISSING``; every chain run died earlier, on the
+    V4 cache warmup, so the gate was never reached.
+    """
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_FIELDS,
+    )
+
+    builder = _load_builder()
+    assert set(MODEL_NATIVE_CTX_CONT_FIELDS).issubset(builder.OUTPUT_COLUMNS)
+
+    stage_source = inspect.getsource(builder._build_enriched_stage)
+    ordered_calls = (
+        "_complete_v4_owned_context(",
+        "_attach_ctx_cont_regime_projection(",
+        "attach_group_a_ctx_columns_parallel(",
+    )
+    positions = [stage_source.index(call) for call in ordered_calls]
+    assert positions == sorted(positions)
+    assert stage_source.count("_attach_ctx_cont_regime_projection(") == 1
+
+    projection_source = inspect.getsource(builder._attach_ctx_cont_regime_projection)
+    assert "project_multi_tf_v4_scalars(" in projection_source
+
+
+def test_enriched_regime_projection_binds_the_one_m5_source_owner() -> None:
+    """One projection map, imported --- not a second tuple spelled the same.
+
+    Rule 13: a consumer that restates the pairs is not an owner.  The producer
+    must hold the *same objects* the M5 source materializer cross-checks its
+    output against, or the two routes can drift into two formulas for one name.
+    """
+
+    from gx1.scripts import materialize_entry_model_native_m5_source_v1 as m5_source
+
+    builder = _load_builder()
+    assert builder.REGIME_COMPACT_PROJECTION is m5_source.REGIME_COMPACT_PROJECTION
+    assert builder.REGIME_PROJECTED_FIELDS is m5_source.REGIME_PROJECTED_FIELDS
+    assert set(builder.REGIME_PROJECTED_FIELDS).issubset(builder.OUTPUT_COLUMNS)
+    assert set(builder.REGIME_PROJECTED_FIELDS).issubset(m5_source.ENRICHED_COLUMNS)
+
+
+@pytest.mark.parametrize(
+    "duration",
+    [pd.Timedelta(minutes=1), pd.Timedelta(minutes=5)],
+)
+def test_enriched_regime_projection_forwards_the_contract_and_trims_warmup(
+    monkeypatch: pytest.MonkeyPatch,
+    duration: pd.Timedelta,
+) -> None:
+    builder = _load_builder()
+    index = pd.date_range("2026-01-01", periods=6, freq=duration, tz="UTC")
+    captured: dict[str, object] = {}
+
+    def fake_projection(multi_tf, target_ts_ns, per_tf_map, tfs, skip, **kwargs):
+        captured["multi_tf"] = multi_tf
+        captured["target_ts_ns"] = np.asarray(target_ts_ns)
+        captured["per_tf_map"] = per_tf_map
+        captured["tfs"] = tfs
+        captured["skip"] = skip
+        captured["kwargs"] = kwargs
+        column = np.arange(len(index), dtype=np.float64)
+        column[:2] = np.nan
+        return {name: column.copy() for name in builder.REGIME_PROJECTED_FIELDS}
+
+    monkeypatch.setattr(builder, "project_multi_tf_v4_scalars", fake_projection)
+    frame = pd.DataFrame({"close": np.arange(len(index), dtype=np.float64)}, index=index)
+
+    out = builder._attach_ctx_cont_regime_projection(
+        frame,
+        multi_tf={"sentinel": "exact"},
+        decision_bar_duration=duration,
+    )
+
+    # The exact declared objects reach the projection owner, with this route's
+    # own decision clock and the empty skip set the M5 source route uses.
+    assert captured["per_tf_map"] is builder.REGIME_COMPACT_PROJECTION
+    assert captured["tfs"] is builder.MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
+    assert captured["skip"] == frozenset()
+    assert captured["kwargs"] == {"decision_bar_duration": duration}
+    assert np.array_equal(captured["target_ts_ns"], index.asi8)
+
+    # Warmup absence is removed by the shared trim owner, never filled.
+    assert set(builder.REGIME_PROJECTED_FIELDS).issubset(out.columns)
+    assert len(out) == len(index) - 2
+    assert out.index[0] == index[2]
+    assert np.isfinite(out[list(builder.REGIME_PROJECTED_FIELDS)].to_numpy()).all()
+
+
+def test_enriched_regime_projection_fails_closed_on_owner_and_field_conflicts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    builder = _load_builder()
+    index = pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC")
+    frame = pd.DataFrame({"close": np.arange(4, dtype=np.float64)}, index=index)
+
+    duplicate = frame.copy()
+    duplicate[builder.REGIME_PROJECTED_FIELDS[0]] = 0.0
+    with pytest.raises(
+        RuntimeError, match="ENTRY_EXIT_ENRICHED_DUPLICATE_REGIME_OWNER"
+    ):
+        builder._attach_ctx_cont_regime_projection(
+            duplicate,
+            multi_tf={},
+            decision_bar_duration=pd.Timedelta(minutes=5),
+        )
+
+    def short_projection(multi_tf, target_ts_ns, per_tf_map, tfs, skip, **kwargs):
+        return {
+            name: np.zeros(len(index), dtype=np.float64)
+            for name in builder.REGIME_PROJECTED_FIELDS[1:]
+        }
+
+    monkeypatch.setattr(builder, "project_multi_tf_v4_scalars", short_projection)
+    with pytest.raises(
+        RuntimeError, match="ENTRY_EXIT_ENRICHED_REGIME_PROJECTION_FIELDS_MISMATCH"
+    ):
+        builder._attach_ctx_cont_regime_projection(
+            frame,
+            multi_tf={},
+            decision_bar_duration=pd.Timedelta(minutes=5),
+        )

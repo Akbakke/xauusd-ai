@@ -55,22 +55,34 @@ from gx1.features.htf_features import (  # noqa: E402
     HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
+    MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
     attach_model_native_mtf_scalars_v4,
     bind_model_native_mtf_scalar_owner_v4,
     build_multi_tf_v4_closed_timestamp_indices,
     build_multi_tf_per_bar_features_v4,
     load_multi_tf_v4_cache,
+    project_multi_tf_v4_scalars,
     validate_causal_feature_matrix,
 )
 from gx1.time.session_detector import decision_availability  # noqa: E402
 from gx1.scripts.augment_forward_outcome_v2 import (  # noqa: E402
     attach_group_a_ctx_columns_parallel,
+    trim_causal_context_warmup_prefix,
 )
 from gx1.scripts.materialize_build_canonical_features_v2 import (  # noqa: E402
     build_canonical_v2,
 )
 from gx1.scripts.materialize_canonical_v3_augment import (  # noqa: E402
     add_cross_tf_momentum,
+)
+# The ten `{tf}_trend_state_age_bars_v2` / `{tf}_ema_stack_aligned_v2` ctx_cont
+# fields have exactly one projection map (rule 19).  It is declared beside the
+# cross-check that consumes it in the M5 source materializer; this producer
+# imports that same object rather than restating the pairs, so the two routes
+# cannot drift into two formulas for one name (rule 6, rule 13).
+from gx1.scripts.materialize_entry_model_native_m5_source_v1 import (  # noqa: E402
+    REGIME_COMPACT_PROJECTION,
+    REGIME_PROJECTED_FIELDS,
 )
 from gx1.scripts.prebuild_multi_tf_cache_v4 import (  # noqa: E402
     _rename_dir_noreplace,
@@ -821,6 +833,72 @@ def _complete_v4_owned_context(
     return out
 
 
+def _attach_ctx_cont_regime_projection(
+    frame: pd.DataFrame,
+    *,
+    multi_tf: Mapping[str, pd.DataFrame],
+    decision_bar_duration: pd.Timedelta,
+) -> pd.DataFrame:
+    """Attach the ten per-TF ctx_cont regime projections from the one V4 owner.
+
+    ``MODEL_NATIVE_CTX_CONT_FIELDS`` declares ``{tf}_trend_state_age_bars_v2``
+    and ``{tf}_ema_stack_aligned_v2`` on all five declared context lanes, and
+    ``OUTPUT_COLUMNS`` therefore requires them on this frame.  Their only
+    producer in the repository is
+    :func:`gx1.features.htf_features.project_multi_tf_v4_scalars`, and no stage
+    of this build reached it, so ``_finish_model_native_surface`` could only
+    ever have raised ``*_ENRICHED_OUTPUT_FIELDS_MISSING`` for those ten names.
+
+    The call is the M5 source materializer's ``_compact_regime_projection``
+    with the same arguments: the same imported projection map, the same
+    declared timeframe tuple, the same empty skip set, and this route's own
+    decision clock.  That materializer re-projects the same ten fields and
+    fails closed on any disagreement with the values written here, so a second
+    formula cannot survive the next stage.  Its ``multi_tf`` is the PUBLISHED
+    cache, whose per-TF axis is this frame's index sliced by
+    ``_slice_multi_tf_to_output_source`` and therefore starts later than the
+    in-memory axis projected here; on the leading rows whose context cutoff
+    predates that axis the materializer's undefined value wins and is recorded
+    as its ``context_warmup_rows``.  That asymmetry is the materializer's
+    declared behaviour and predates this producer; it is not a second formula.
+
+    Causality is the projection owner's, not this producer's: the cutoff is
+    ``t + decision_bar_duration - MULTI_TF_SHIFT[tf]``, i.e. the last context
+    bar that had already CLOSED when this decision bar closed, which is the
+    identical rule ``attach_model_native_mtf_scalars_v4`` applies a few lines
+    above.  A context lane that has not closed a usable bar yet yields NaN, and
+    that absence is removed by the shared causal-warmup trim owner rather than
+    filled.
+    """
+
+    conflicts = sorted(set(REGIME_PROJECTED_FIELDS) & set(frame.columns))
+    if conflicts:
+        raise RuntimeError(
+            f"ENTRY_EXIT_ENRICHED_DUPLICATE_REGIME_OWNER: {conflicts}"
+        )
+    projected = project_multi_tf_v4_scalars(
+        multi_tf,
+        frame.index.asi8.astype(np.int64, copy=False),
+        REGIME_COMPACT_PROJECTION,
+        MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
+        frozenset(),
+        decision_bar_duration=decision_bar_duration,
+    )
+    if set(projected) != set(REGIME_PROJECTED_FIELDS):
+        raise RuntimeError(
+            "ENTRY_EXIT_ENRICHED_REGIME_PROJECTION_FIELDS_MISMATCH: "
+            f"missing={sorted(set(REGIME_PROJECTED_FIELDS) - set(projected))} "
+            f"unexpected={sorted(set(projected) - set(REGIME_PROJECTED_FIELDS))}"
+        )
+    for name in REGIME_PROJECTED_FIELDS:
+        frame[name] = projected[name]
+    del projected
+    return trim_causal_context_warmup_prefix(
+        frame,
+        list(REGIME_PROJECTED_FIELDS),
+    )
+
+
 def _slice_multi_tf_to_output_source(
     multi_tf: Mapping[str, pd.DataFrame],
     output_index: pd.DatetimeIndex,
@@ -1105,6 +1183,11 @@ def _build_enriched_stage(
 
     canonical = _complete_v4_owned_context(
         [_load_canonical_stage(canonical_stage, timeframe=timeframe)],
+        multi_tf=multi_tf,
+        decision_bar_duration=spec["duration"],
+    )
+    canonical = _attach_ctx_cont_regime_projection(
+        canonical,
         multi_tf=multi_tf,
         decision_bar_duration=spec["duration"],
     )
