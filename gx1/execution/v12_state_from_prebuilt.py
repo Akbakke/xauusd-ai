@@ -656,6 +656,7 @@ def pair_generation_id_for_artifacts(
     *,
     lineage: dict[str, object],
     schema_version: str = PREBUILT_PAIR_SCHEMA_VERSION,
+    require_current_derivation_contract: bool = True,
 ) -> str:
     """Return the only pair generation id.
 
@@ -664,7 +665,10 @@ def pair_generation_id_for_artifacts(
     feature-column count and full Arrow schema. Paths and wall-clock time are
     excluded, so identity means content contract rather than publication site.
     """
-    validated_lineage = validate_prebuilt_pair_lineage(lineage)
+    validated_lineage = validate_prebuilt_pair_lineage(
+        lineage,
+        require_current_derivation_contract=require_current_derivation_contract,
+    )
     return _sha256_json(
         _artifact_generation_identity(
             artifacts,
@@ -929,10 +933,17 @@ def read_prebuilt_pair_manifest(
         require_current_derivation_contract=require_current_derivation_contract,
     )
     try:
+        # `lineage` here was already validated a few lines above with the
+        # caller's chosen strictness; this recomputation must inherit it, or a
+        # relaxed read validates once loosely and once strictly and can never
+        # succeed. The id equality check below is unaffected and still exact.
         observed_generation_id = pair_generation_id_for_artifacts(
             artifacts,
             lineage=lineage,
             schema_version=str(schema_version),
+            require_current_derivation_contract=(
+                require_current_derivation_contract
+            ),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise PrebuiltIdentityError(
