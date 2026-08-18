@@ -3040,6 +3040,33 @@ def build_dataset_canonical(
         raise RuntimeError(
             f"MICRO_FEATURE_JOIN_FAIL: rows_source={rows_source} rows_after={len(df)}"
         )
+    # These three blocks are RECOMPUTED above from `tape_feat`, which is built
+    # from the already history-sliced `merged`. Their honest warmup prefix
+    # therefore starts at --history-start, not at the canonical's own start, even
+    # though the canonical carries finite values on those rows (measured
+    # 2026-08-18: every one of the nine columns is finite in canonical at the
+    # first decision row, and the builder's own recompute is what introduces the
+    # NaN). Trim it here, through the same shared owner used later for the
+    # Group-A/regime blocks, because the ctx finiteness contract below runs
+    # BEFORE that later trim.
+    #
+    # Before wave 2 this was masked: the fourteen SWING_V29 ctx names shared the
+    # same NaN prefix and were listed in the later `_causal_required`, so the
+    # frame happened to be trimmed deep enough. Removing them from the ctx
+    # contract exposed the ordering, exactly as the note at that trim predicted.
+    from gx1.features.htf_features import (
+        trim_causal_context_warmup_prefix as _trim_recomputed_warmup,
+    )
+
+    _rows_before_recompute_trim = len(df)
+    df = _trim_recomputed_warmup(df, tape_context_names).reset_index(drop=True)
+    if len(df) != _rows_before_recompute_trim:
+        log.info(
+            "[ENTRY_TAPE_CONTEXT_RECOMPUTE] warmup_prefix_trimmed rows_before=%d rows_after=%d",
+            _rows_before_recompute_trim,
+            len(df),
+        )
+    rows_source = len(df)
     ctx_cont_names = (
         ctx_cont_names
         + list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
