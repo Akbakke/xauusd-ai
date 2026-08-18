@@ -302,6 +302,56 @@ def compute_swing_structure_features(
     row_index = np.arange(n, dtype=np.int64)
     high_present = high_present_vals > 0.0
     low_present = low_present_vals > 0.0
+    # ------------------------------------------------------------------
+    # CONTRACT NOTE (2026-08-18, V30 wave 2) — ``retracement_from_last_impulse``
+    # is DELIBERATELY kept, deliberately unclipped, and its denominator guard
+    # is deliberately a bare presence test.  Written down here because the
+    # column was proposed for retirement and for an epsilon floor in the same
+    # wave, and both were refused; the next session should inherit the reason
+    # instead of re-litigating it.
+    #
+    # 1. VALUES OUTSIDE [0, 1] ARE THE HONEST STATES, NOT ERRORS.  Above 1 is
+    #    "price has taken out the impulse origin"; below 0 is "price has
+    #    extended past the impulse extreme".  Both are real structure, and the
+    #    only reading a trader would object to is one that hides them.  The
+    #    live-route docstring that still calls this a "0..1 retracement" is
+    #    wrong about its own field, not about the arithmetic here.
+    # 2. THE STRICT ``impulse_width > 0.0`` GUARD MAY NOT BE GIVEN A FLOOR.  A
+    #    floor is a magnitude, and no contract owner, TRAIN-fitted statistic or
+    #    recipe input supplies one; choosing a "reasonable" epsilon or an ATR
+    #    fraction is exactly the invented default CLAUDE.md rule 2a/2b
+    #    forbids.  A near-degenerate impulse producing a very large ratio is a
+    #    true report of a monotone run in which no lookback-2 pivot has
+    #    confirmed.  Scale is owned downstream: the input normalizer's
+    #    ``field_scale = q75 - q25`` is invariant to everything outside the
+    #    quartiles, and its ``arcsinh`` transform exists precisely to compress
+    #    a valid tail while preserving order, so the tail cannot poison the
+    #    learned scale.
+    # 3. THE PARKED ZERO IS DISAMBIGUATED, so rule 2e is satisfied without a
+    #    sentinel: ``impulse_present`` is emitted beside it as
+    #    ``swing_impulse_present`` and ``up_mask | down_mask == impulse_present``
+    #    exactly, so ``impulse_present == 0`` is the parked zero and
+    #    ``impulse_present == 1 and value == 0`` is the genuine zero (close
+    #    exactly at the newer pivot).
+    # 4. RULE 4 — THE COLUMN IS NOT RECOVERABLE, so retiring it would remove
+    #    evidence.  With ``H = dist_last_swing_high_atr`` and
+    #    ``L = dist_last_swing_low_atr`` the same-row algebra gives
+    #    ``retracement = -H/|L-H|`` (up) and ``L/|L-H|`` (down), i.e. a
+    #    QUOTIENT whose denominator is not bounded away from zero.  Every
+    #    retirement this wave accepted was affine, ReLU, min/abs or a product
+    #    with an exactly binary flag; a quotient is strictly worse conditioned
+    #    than the sign tests that were REFUSED as unrecoverable.  It is also
+    #    not formable in practice: the input normalizer fits
+    #    ``asinh((x - median)/IQR)`` with PER-FIELD statistics, so the family
+    #    projection never sees H and L in raw units and would have to invert
+    #    two different asinh maps before dividing.
+    #
+    # [M, INHERITED 2026-08, NOT RE-TAKEN HERE] on the declared 537,861-row
+    # native M5 population: max 3012.67 against p99 5.20, above 1.0 on 26.07%
+    # of rows and below 0.0 on ~7.4%, zeros 2.0659% against impulse-absent
+    # 2.0342%.  [NOT EXAMINED] the per-lane (M5/M15/H1/H4/D1) ranges: nobody
+    # has measured them, and this note must not be read as if they had been.
+    # ------------------------------------------------------------------
     impulse_width = np.abs(last_high_vals - last_low_vals)
     impulse_present = (
         high_present

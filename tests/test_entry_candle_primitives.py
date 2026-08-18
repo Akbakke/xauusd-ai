@@ -65,9 +65,6 @@ def test_raw_candle_geometry_has_exact_units_and_one_honest_prefix() -> None:
     assert values[0, index["candle.raw_lower_wick_share"]] == pytest.approx(
         1.0 / 3.0
     )
-    assert values[0, index["candle.raw_close_location"]] == pytest.approx(
-        2.0 / 3.0
-    )
     assert values[1, index["candle.raw_close_change_local_geometry"]] == pytest.approx(
         1.0 / 3.0
     )
@@ -98,15 +95,13 @@ def test_zero_range_takes_the_storage_zero_and_stays_exactly_recoverable() -> No
     assert values[2, index["candle.raw_body_signed_range"]] == 0.0
     assert values[2, index["candle.raw_upper_wick_share"]] == 0.0
     assert values[2, index["candle.raw_lower_wick_share"]] == 0.0
-    assert values[2, index["candle.raw_close_location"]] == 0.5
 
-    # A real-range doji shares the zero body and the 0.5 close location, so
-    # neither field alone identifies a zero-range bar — the wick shares do.
+    # A real-range doji shares the zero body, so the body alone does not
+    # identify a zero-range bar — the wick shares do.
     doji = _frame()
     doji.loc[2, ["open", "high", "low", "close"]] = [12.0, 13.0, 11.0, 12.0]
     doji_values, _ = build_entry_candle_primitive_layer(doji)
     assert doji_values[2, index["candle.raw_body_signed_range"]] == 0.0
-    assert doji_values[2, index["candle.raw_close_location"]] == 0.5
     assert doji_values[2, index["candle.raw_upper_wick_share"]] == 0.5
     assert doji_values[2, index["candle.raw_lower_wick_share"]] == 0.5
 
@@ -136,6 +131,140 @@ def test_zero_range_takes_the_storage_zero_and_stays_exactly_recoverable() -> No
     np.testing.assert_allclose(
         np.abs(body[~truth]) + upper[~truth] + lower[~truth], 1.0, atol=1e-6
     )
+
+
+def test_v30_wave2_retired_columns_are_absent_and_exactly_recoverable() -> None:
+    """The four v4 retirements are gone AND their algebra survives.
+
+    The absence assertions are the regression half: every one of them fails
+    against the pre-v4 owner, where all four names are declared and written.
+    The identity assertions are the CLAUDE.md rule 4 half: each retired column
+    is reproduced, bit for bit or to float tolerance, out of columns that are
+    still emitted by this same owner and therefore reach the same specialist
+    family.
+    """
+
+    retired = (
+        "candle.raw_close_location",
+        "candle.raw_range_change_local_geometry",
+        "candle.raw_high_rejection_depth_local_geometry",
+        "candle.raw_low_rejection_depth_local_geometry",
+    )
+    for name in retired:
+        assert name not in CANDLE_PRIMITIVE_FEATURE_NAMES
+        assert name not in CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES
+        assert name not in CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES
+
+    frame = _relation_frame()
+    values, names = build_entry_candle_primitive_layer(frame)
+    index = {name: i for i, name in enumerate(names)}
+    for name in retired:
+        assert name not in index
+
+    high = frame["high"].to_numpy(dtype=np.float64)
+    low = frame["low"].to_numpy(dtype=np.float64)
+    open_ = frame["open"].to_numpy(dtype=np.float64)
+    close = frame["close"].to_numpy(dtype=np.float64)
+    bar_range = high - low
+    positive = bar_range > 0.0
+
+    # 1. close_location == lower_wick_share + max(body_signed_range, 0)
+    body = values[:, index["candle.raw_body_signed_range"]].astype(np.float64)
+    lower = values[:, index["candle.raw_lower_wick_share"]].astype(np.float64)
+    recovered_location = lower + np.maximum(body, 0.0)
+    np.testing.assert_allclose(
+        recovered_location[positive],
+        (close[positive] - low[positive]) / bar_range[positive],
+        atol=1e-6,
+    )
+
+    # 2. range_change == high_change - low_change, same denominator, exactly.
+    high_change = values[
+        :, index["candle.raw_high_change_local_geometry"]
+    ].astype(np.float64)
+    low_change = values[
+        :, index["candle.raw_low_change_local_geometry"]
+    ].astype(np.float64)
+    body_change = values[
+        :, index["candle.raw_body_change_local_geometry"]
+    ].astype(np.float64)
+    previous_range = bar_range[:-1]
+    # The shared scalar is recovered from a sibling that divides by it, so the
+    # identity is checked against the raw geometry, not against itself.
+    abs_body = np.abs(close - open_)
+    usable = body_change[1:] != 0.0
+    scale = (abs_body[1:][usable] - abs_body[:-1][usable]) / body_change[1:][usable]
+    expected_range_change = (bar_range[1:][usable] - previous_range[usable]) / scale
+    assert usable.any()
+    np.testing.assert_allclose(
+        (high_change - low_change)[1:][usable],
+        expected_range_change,
+        atol=1e-6,
+    )
+
+    # 3./4. the two rejection depths are the product of a retained change
+    # column and a retained exactly-binary event column.
+    high_event = values[
+        :, index["candle.raw_high_rejection_previous_high_event"]
+    ].astype(np.float64)
+    low_event = values[
+        :, index["candle.raw_low_rejection_previous_low_event"]
+    ].astype(np.float64)
+    assert set(np.unique(high_event[1:])) <= {0.0, 1.0}
+    assert set(np.unique(low_event[1:])) <= {0.0, 1.0}
+    assert high_event[5] == 1.0 and low_event[6] == 1.0
+    # On the firing bar the depth WAS exactly the change column (up) and its
+    # negation (down); off-event it was the storage zero, which the flag
+    # already announces.
+    assert high_change[5] > 0.0
+    assert -low_change[6] > 0.0
+    np.testing.assert_allclose(
+        high_change[1:] * high_event[1:],
+        np.where(high_event[1:] > 0.0, high_change[1:], 0.0),
+        atol=0.0,
+    )
+    np.testing.assert_allclose(
+        -low_change[1:] * low_event[1:],
+        np.where(low_event[1:] > 0.0, -low_change[1:], 0.0),
+        atol=0.0,
+    )
+
+
+def test_upper_wick_share_is_not_recoverable_and_therefore_stays() -> None:
+    """A gravestone and a zero-range bar agree on body and lower wick.
+
+    ``upper_wick_share`` is the only column that separates them, so the
+    apparent recovery ``1 - lower - |body|`` is wrong on exactly the rows the
+    v3 zero-range retirement depends on.  This test is the standing block
+    against a later wave retiring it by the same argument that carried the
+    four v4 retirements.
+    """
+
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-03-01", periods=2, freq="5min", tz="UTC"),
+            # bar 0: gravestone -- open == close == low < high
+            # bar 1: zero range  -- open == close == low == high
+            "open": [11.0, 11.0],
+            "high": [13.0, 11.0],
+            "low": [11.0, 11.0],
+            "close": [11.0, 11.0],
+        }
+    )
+    values, names = build_entry_candle_primitive_layer(frame)
+    index = {name: i for i, name in enumerate(names)}
+    body = values[:, index["candle.raw_body_signed_range"]]
+    lower = values[:, index["candle.raw_lower_wick_share"]]
+    upper = values[:, index["candle.raw_upper_wick_share"]]
+
+    assert body[0] == 0.0 and lower[0] == 0.0
+    assert body[1] == 0.0 and lower[1] == 0.0
+    assert upper[0] == 1.0
+    assert upper[1] == 0.0
+    # The proposed recovery collapses the two shapes onto the gravestone.
+    recovered = 1.0 - lower - np.abs(body)
+    assert recovered[0] == pytest.approx(upper[0])
+    assert recovered[1] != pytest.approx(upper[1])
 
 
 def test_candle_primitive_owner_is_prefix_invariant() -> None:
@@ -212,9 +341,11 @@ def test_exact_relation_events_have_no_textbook_pattern_aliases() -> None:
     assert values[3, index["candle.raw_low_change_local_geometry"]] == 0.0
     assert values[4, index["candle.raw_open_above_previous_high_local_geometry"]] > 0.0
     assert values[5, index["candle.raw_high_rejection_previous_high_event"]] == 1.0
-    assert values[5, index["candle.raw_high_rejection_depth_local_geometry"]] > 0.0
+    # The retired depth column WAS high_change on exactly this bar, and
+    # high_change stays; the magnitude is still on the surface.
+    assert values[5, index["candle.raw_high_change_local_geometry"]] > 0.0
     assert values[6, index["candle.raw_low_rejection_previous_low_event"]] == 1.0
-    assert values[6, index["candle.raw_low_rejection_depth_local_geometry"]] > 0.0
+    assert values[6, index["candle.raw_low_change_local_geometry"]] < 0.0
     assert (
         values[
             7,

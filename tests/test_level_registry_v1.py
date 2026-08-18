@@ -197,15 +197,16 @@ def _rng_df(n: int = 200, seed: int = 20260811) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def test_declared_name_tuples_match_design_doc_verbatim():
-    # Raw uncapped measurements use explicit slot/break masks. Completed
-    # reaction counts disambiguate real zero reactions from no reaction.
+    # Raw uncapped measurements use explicit slot/break masks where absence is
+    # not otherwise readable. 2026-08-18 (V30 wave 2): the two
+    # *_completed_reaction_count columns and level_above_present are RETIRED
+    # as exact functions of the touch counts beside them; level_below_present
+    # and both runner-up masks stay (see the owner's tuple note).
     assert LEVEL_REGISTRY_M5_FEATURE_NAMES == (
         "level_above_dist_atr",
-        "level_above_present",
         "level_above2_dist_atr",
         "level_above2_present",
         "level_above_touch_count",
-        "level_above_completed_reaction_count",
         "level_above_recurrence_confirmed",
         "level_above_age_bars",
         "level_above_bars_since_touch",
@@ -217,7 +218,6 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_below2_dist_atr",
         "level_below2_present",
         "level_below_touch_count",
-        "level_below_completed_reaction_count",
         "level_below_recurrence_confirmed",
         "level_below_age_bars",
         "level_below_bars_since_touch",
@@ -235,10 +235,152 @@ def test_declared_name_tuples_match_design_doc_verbatim():
     assert LEVEL_REGISTRY_MTF_FEATURE_NAMES == tuple(
         f"mtf_{name}" for name in LEVEL_REGISTRY_M5_FEATURE_NAMES
     )
-    assert len(LEVEL_REGISTRY_M5_FEATURE_NAMES) == 31
-    assert len(LEVEL_REGISTRY_MTF_FEATURE_NAMES) == 31
+    # The width is DERIVED from the tuple asserted above, never restated as a
+    # literal (rule 13): a restated count is what went stale on every previous
+    # narrowing of this surface.
+    assert len(LEVEL_REGISTRY_MTF_FEATURE_NAMES) == len(
+        LEVEL_REGISTRY_M5_FEATURE_NAMES
+    )
+    assert len(set(LEVEL_REGISTRY_M5_FEATURE_NAMES)) == len(
+        LEVEL_REGISTRY_M5_FEATURE_NAMES
+    )
     assert all(n.startswith("level_") for n in LEVEL_REGISTRY_M5_FEATURE_NAMES)
     assert all(n.startswith("mtf_level_") for n in LEVEL_REGISTRY_MTF_FEATURE_NAMES)
+
+
+def test_v30_wave2_retired_slot_columns_are_absent_and_exactly_recoverable(
+    monkeypatch,
+) -> None:
+    """Three slot columns left the tuple; the evidence did not leave with them.
+
+    The ``not in`` assertions are the regression half — every one of them
+    fails against the pre-2026-08-18 owner, where all three names are
+    declared, written and asserted. The invariant assertions are the
+    CLAUDE.md rule 4 half: they are checked on EVERY emitted slot of a real
+    run of this engine, which is where the recovery has to hold.
+    """
+
+    import gx1.features.level_registry_v1 as module
+
+    retired = (
+        "level_above_present",
+        "level_above_completed_reaction_count",
+        "level_below_completed_reaction_count",
+    )
+    for name in retired:
+        assert name not in LEVEL_REGISTRY_M5_FEATURE_NAMES
+        assert f"mtf_{name}" not in LEVEL_REGISTRY_MTF_FEATURE_NAMES
+    # The witnesses that carry them must all still be on the surface.
+    for name in (
+        "level_above_touch_count",
+        "level_below_touch_count",
+        "level_below_present",
+        "level_above2_present",
+        "level_below2_present",
+    ):
+        assert name in LEVEL_REGISTRY_M5_FEATURE_NAMES
+    # The internal state key stays: only the emitted column was retired, so
+    # carried chunk state is still interchangeable.
+    assert "completed_reaction_count" in module.LEVEL_REGISTRY_LEVEL_STATE_KEYS
+
+    seen: list[tuple[int, int, bool]] = []
+    original = module._slot_fields
+
+    def recording_slot_fields(level, dist, t, **kwargs):
+        if level is not None:
+            seen.append(
+                (
+                    int(level["touch_count"]),
+                    int(level["completed_reaction_count"]),
+                    bool(level["open_reactions"]),
+                )
+            )
+        return original(level, dist, t, **kwargs)
+
+    monkeypatch.setattr(module, "_slot_fields", recording_slot_fields)
+    df = _rng_df(n=600)
+    m5, names = compute_level_registry_m5_block_v1(
+        df, recurrence_threshold_atr=0.6
+    )
+    monkeypatch.undo()
+
+    for name in retired:
+        assert name not in names
+
+    # (b) of the owner's proof, on every occupied slot this run produced.
+    assert len(seen) > 0
+    assert any(touch > 1 for touch, _completed, _open in seen)
+    for touch, completed, has_open_window in seen:
+        assert touch >= 1
+        assert completed == touch - 1
+        assert completed == max(touch - 1, 0)
+        assert has_open_window
+
+    # (a) of the owner's proof, read off the emitted rows: an occupied above
+    # slot is exactly a strictly positive above distance (the branch requires
+    # delta > 0 and atr > 0), and the integer touch count agrees with it on
+    # every emitted row.  The empty slot parks both at 0.0.
+    finite = np.isfinite(m5).all(axis=1)
+    rows = m5[finite]
+    assert finite.any()
+    above_dist = _col(rows, names, "level_above_dist_atr")
+    above_touch = _col(rows, names, "level_above_touch_count")
+    below_present = _col(rows, names, "level_below_present")
+    below_touch = _col(rows, names, "level_below_touch_count")
+    assert (above_dist == 0.0).any() and (above_dist > 0.0).any()
+    np.testing.assert_array_equal(above_touch > 0.0, above_dist > 0.0)
+    assert set(np.unique(above_touch[above_dist > 0.0])) >= {1.0}
+    assert (above_touch[above_dist == 0.0] == 0.0).all()
+    # The below-side mask is KEPT, and it must still agree with its own count
+    # -- the asymmetry is a float32 negative-zero argument about the DISTANCE
+    # column, not a claim that the count is unreliable on that side.
+    np.testing.assert_array_equal(below_present > 0.0, below_touch > 0.0)
+
+
+def test_same_bar_two_sided_break_fails_closed_instead_of_netting_to_zero(
+    monkeypatch,
+) -> None:
+    """The signed break memory has no 0 branch any more.
+
+    The unreachability is proven from the pivot-window extremum property and
+    the break/flip ordering, so no input to the public engine can reach the
+    raise -- that is the point of it. What is testable, and what fails against
+    the pre-change owner, is that the netting expression is gone: the guard
+    exists, it raises the declared error, and the emitted sign is exactly
+    +/-1 on every row that carries a finite break age.
+    """
+
+    import inspect
+
+    import gx1.features.level_registry_v1 as module
+
+    source = inspect.getsource(module._run_level_registry)
+    assert "LEVEL_REGISTRY_SAME_BAR_TWO_SIDED_BREAK" in source
+    assert "if break_up_fired and break_down_fired:" in source
+    # The guard must precede the sign assignment, or it would net first and
+    # raise afterwards.
+    assert source.index("LEVEL_REGISTRY_SAME_BAR_TWO_SIDED_BREAK") < source.index(
+        "last_break_side = int(break_up_fired) - int(break_down_fired)"
+    )
+    # NOT ATTEMPTED, deliberately: driving the engine into the raise. Two
+    # levels admitted on the same bar take that bar's own high and low, so
+    # center_high >= center_low; two levels admitted on different bars cannot
+    # both stay active, because staying active demands close <= center_high
+    # AND close >= center_low, which is the ordering that makes the
+    # simultaneous break impossible. Faking the pivot detector does not open
+    # the state either, since the centres are read from the real bar buffer.
+
+    df = _rng_df(n=600)
+    m5, names = compute_level_registry_m5_block_v1(
+        df, recurrence_threshold_atr=0.6
+    )
+    age = _col(m5, names, "level_bars_since_break")
+    signed = _col(m5, names, "level_bars_since_break_signed")
+    live = np.isfinite(age) & (age > 0.0)
+    assert live.any()
+    np.testing.assert_array_equal(np.abs(signed[live]), age[live])
+    assert set(np.unique(np.sign(signed[live]))) <= {-1.0, 1.0}
+    np.testing.assert_array_equal(np.isnan(signed), np.isnan(age))
 
 
 def test_emitted_names_match_declared_tuples():
@@ -510,7 +652,10 @@ def test_learned_lifetime_expires_eligibility_without_deleting_identity():
     # immutable anchor survives in the internal identity archive.
     assert dist[248] != 0.0 and age[248] == 240.0 and bst[248] == 243.0
     assert dist[249] == 0.0 and age[249] == 0.0 and bst[249] == 0.0
-    assert _col(m5, names, "level_above_present")[249] == 0.0
+    # The above-side presence mask was retired on 2026-08-18; the integer
+    # touch count is what now separates the parked row from an occupied one,
+    # and it reads 0 on exactly the row the mask used to.
+    assert "level_above_present" not in names
     assert _col(m5, names, "level_above_touch_count")[249] == 0.0
     expired = [lv for lv in state["levels"] if lv["status"] == "expired"]
     assert len(expired) == 1 and expired[0]["center_price"] == SHIFT + 12.0
@@ -740,7 +885,6 @@ def test_emitted_value_domains_on_generic_series():
     for name in (
         "level_break_up_event",
         "level_break_down_event",
-        "level_above_present",
         "level_above2_present",
         "level_below_present",
         "level_below2_present",

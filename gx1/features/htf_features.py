@@ -541,7 +541,16 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # columns now carry real values under unchanged names. A V15 matrix holds
 # different numbers under the same feature-name hash and must not be read as
 # current.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V16"
+# V17 (2026-08-18, V30 wave 2): the per-lane surface NARROWS. The candle owner
+# retired 4 columns (close_location, range_change, the two rejection depths),
+# the SMC geometry owner retired 3 (both *_break_displacement_atr ReLUs and
+# nearest_level_abs), and the level registry retired 3
+# (both *_completed_reaction_count and the above-side presence mask); the two
+# per-bar sweep CONDITIONS are renamed to mtf_smc_sweep_{up,down}_state. Every
+# retired column was an exact continuous function of columns that remain in
+# the same specialist family, so nothing left the learned path -- but a V16
+# matrix is 10 columns per lane wider and MUST NOT be read as current.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V17"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -562,7 +571,10 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V16"
 # v25 (2026-08-15) carries the repaired trendline staleness bound: the manifest
 # embeds the v29_registry_constants payload, whose key set just lost
 # trendline_expiry_bars, and the emitted geomline_* values change.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v25"
+# v26 (2026-08-18) carries the V30 wave-2 narrowing: a v25 cache is 10 columns
+# per lane wider and carries two per-TF sweep columns under their pre-rename
+# names.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v26"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
 )
@@ -571,7 +583,10 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # v15 describes the surface without the two trendline presence masks.
 # v16 describes the surface without mtf_candle_raw_zero_range_flag — the only
 # per-TF field that could not reach a liveness verdict on H4/D1 at all.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v16"
+# v17 (2026-08-18) describes the V30 wave-2 surface: 10 fewer columns per lane
+# and the two renamed sweep-state columns. A v16 artifact answers liveness for
+# names this surface no longer emits.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v17"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered

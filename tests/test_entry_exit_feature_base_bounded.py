@@ -270,7 +270,11 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
     requested = [
         *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
         "ctx_cont.d1_dist_change_1bar_atr_v4",
-        "candle.raw_close_location",
+        # A non-mandatory candle column, to prove the bounded orchestration
+        # resolves optional requests too. It was candle.raw_close_location
+        # until the v4 retirement; upper_wick_share is the sibling that the
+        # same wave proved is NOT recoverable and therefore stays.
+        "candle.raw_upper_wick_share",
     ]
 
     expected, expected_names, expected_meta = (

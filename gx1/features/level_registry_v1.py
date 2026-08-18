@@ -113,7 +113,7 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
 LEVEL_REGISTRY_FEATURE_VERSION = (
-    "level_registry_v13_honest_raw_break_age_no_global_seen"
+    "level_registry_v14_exact_function_slot_columns_retired"
 )
 # ---------------------------------------------------------------------------
 # Level kinds — only implemented or explicitly reserved identities remain.
@@ -149,24 +149,71 @@ LEVEL_REGISTRY_TIMEFRAMES = ("m1", "m5", "m15", "h1", "h4", "d1")
 
 # ---------------------------------------------------------------------------
 # Declared output contracts (exact names + order; stage 2 consumes these).
-# Local and per-TF native-clock lanes expose the same 31 causal
-# anchor/lifecycle primitives. Current slots retain presence masks; sparse
-# break memory is an honest NaN prefix followed by raw age.
+# Local and per-TF native-clock lanes expose the SAME causal anchor/lifecycle
+# primitives; the width is the length of this tuple and is never restated
+# (rule 13). Current slots retain presence masks where absence is not
+# otherwise readable; sparse break memory is an honest NaN prefix followed by
+# raw age.
 # ---------------------------------------------------------------------------
-# V30 package 8A (2026-08-13) appends four EMISSION-ONLY fields per the
-# Completed-reaction count disambiguates honest zero reaction magnitudes from
-# "no completed reaction". The second-nearest distance exposes shelf density.
 #   level_above2/below2_dist_atr — the SECOND-nearest ACTIVE level on that
-#     side.  Today a four-level shelf and an isolated level emit identical
-#     rows. Explicit presence masks carry absence, with the same side rule and
-#     level_id tie-break.
+#     side.  Without it a four-level shelf and an isolated level emit
+#     identical rows. Explicit presence masks carry absence, with the same
+#     side rule and level_id tie-break.
+#
+# 2026-08-18 (V30 wave 2) — THREE COLUMNS RETIRED, ×5 MTF lanes and the local
+# lane.  This is the SHARED local layer: the narrowing applies to the native
+# M1 Exit surface exactly as much as to the native M5 Entry surface, and they
+# are two separate admission surfaces.
+#
+#   level_above_completed_reaction_count   = max(level_above_touch_count-1, 0)
+#   level_below_completed_reaction_count   = max(level_below_touch_count-1, 0)
+#   level_above_present                    = 1[level_above_touch_count > 0]
+#
+# PROVEN FROM SOURCE, on every emitted row of the serving path:
+#   (a) The eligibility sweep at the top of every ATR-live bar pops any level
+#       with ``t - last_eligibility_refresh_bar > age_cap`` out of
+#       ``active_by_id``, and emission (step 7) scans only ``active_by_id``.
+#       Nothing between the sweep and emission can make a level stale (the
+#       only write to that field sets it to ``t``). So ``evidence_live`` is
+#       TRUE for every level that reaches a slot, and an occupied slot always
+#       emits ``touch_count >= 1`` — seeded 1 in ``_new_level`` and only ever
+#       incremented. An empty slot emits 0.0. touch_count is an INTEGER with a
+#       unit gap, which is what makes the discontinuous ``> 0`` recovery of
+#       the above-side presence mask admissible here and nowhere else.
+#   (b) ``completed == touch - 1`` for every level in ``active_by_id``, by
+#       induction over the step order: birth sets touch=1/completed=0 with one
+#       open reaction window; a touch (step 4) finalizes that window
+#       (completed+1), increments touch and opens exactly one new window; a
+#       break finalizes the window and REMOVES the level from ``active_by_id``
+#       (so it is never emitted with completed==touch); a held retest returns
+#       it to ACTIVE with ``prev_bar_intersects_center`` cleared, and step 4 —
+#       which runs immediately after on the same bar and sees the same
+#       intersection — supplies the compensating touch. Combined with the
+#       empty-slot row (0-0) the recovery is the single expression
+#       ``max(touch-1, 0)``, which is continuous and needs no presence mask,
+#       so it survives the above-side mask leaving in the same wave.
+#
+# NOT RETIRED, and the reason is asymmetric on purpose:
+#   * ``level_below_present`` stays.  The below branch computes
+#     ``d = -delta/a`` with ``delta <= 0``, so a level sitting EXACTLY on the
+#     close emits negative zero, and -0.0 is indistinguishable from the
+#     absent-slot parking value 0.0 in float32 and after
+#     ``asinh((x-median)/IQR)``. XAUUSD trades on a 0.01 grid and a level
+#     centre IS a previous bar's exact high or low, so this is a grid
+#     collision, not a measure-zero event. Removing the above mask without the
+#     below mask is a layout asymmetry by construction; it is accepted here
+#     because the above side has an exact integer witness and the below side
+#     does not, and that asymmetry is stated rather than hidden.
+#   * ``level_above2_present`` / ``level_below2_present`` stay.  The runner-up
+#     slot deliberately emits a DISTANCE ONLY, so it has no integer sibling to
+#     read presence from, and the runner-up distance can be arbitrarily small
+#     (two active levels one tick apart). The mask is the declared
+#     disambiguator for the runner-up parking value.
 LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_dist_atr",
-    "level_above_present",
     "level_above2_dist_atr",
     "level_above2_present",
     "level_above_touch_count",
-    "level_above_completed_reaction_count",
     # Confirmed same-side recurrence pivots inside the TRAIN-frozen distance;
     # exact-center touches remain a separate primitive.
     "level_above_recurrence_confirmed",
@@ -180,7 +227,6 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_below2_dist_atr",
     "level_below2_present",
     "level_below_touch_count",
-    "level_below_completed_reaction_count",
     "level_below_recurrence_confirmed",
     "level_below_age_bars",
     "level_below_bars_since_touch",
@@ -192,9 +238,12 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_broken_touch_count",
     "level_bars_since_break",
     # V30 (2026-08-13): the same bars-since-break memory signed by the break
-    # side of the most recent break bar (+1 up / -1 down; a same-bar
-    # up+down conflict nets to 0 — the sibling signed-aggregation
-    # convention of interpretation note 6). The pre-event value is NaN.
+    # side of the most recent break bar (+1 up / -1 down). 2026-08-18: the
+    # "a same-bar up+down conflict nets to 0" clause is WITHDRAWN — that
+    # state is proven unreachable from the pivot-window extremum property and
+    # the break/flip ordering, and the producer now raises
+    # [LEVEL_REGISTRY_SAME_BAR_TWO_SIDED_BREAK] instead of netting. The sign
+    # is therefore exactly +/-1 and the pre-event value is NaN.
     "level_bars_since_break_signed",
     "level_retest_hold_signed",
     "level_retest_fail_signed",
@@ -545,6 +594,17 @@ def _new_level(
         "member_pivot_prices": [price],
         "touch_count": 1,
         "birth_bar": birth_bar,
+        # DELIBERATELY A DIFFERENT CLOCK from ``birth_bar``, which is
+        # ``pivot_bar + SWING_LOOKBACK`` (the confirmation bar). Price touched
+        # the anchor on the PIVOT bar; it demonstrably did not touch it on the
+        # confirmation bar, and setting the two equal would assert that it
+        # did. The consequence -- ``bars_since_touch == age_bars +
+        # SWING_LOOKBACK`` on a level that is never retouched -- is the
+        # confirmation delay itself, not a duplicated column: the two decouple
+        # permanently at the first retest, and they are not even bounded alike
+        # (``t - last_touch_bar <= max_evidence_age_bars + SWING_LOOKBACK``
+        # while ``t - birth_bar`` is unbounded). SWING_LOOKBACK is imported
+        # from smc_v1, the same constant the pivot detector actually runs.
         "last_touch_bar": pivot_bar,
         "last_eligibility_refresh_bar": birth_bar,
         "reaction_sum_atr": 0.0,
@@ -586,11 +646,21 @@ def _slot_fields(
 
     dist2_value = float(dist2) if math.isfinite(dist2) else 0.0
     if level is None:
-        # Explicit presence masks disambiguate raw zero-valued attributes.
+        # The absent slot parks every attribute at 0.0. What separates a
+        # parked zero from a real zero differs per column and is named
+        # explicitly:
+        #   above side  -> ``level_above_touch_count`` (>= 1 iff occupied; an
+        #                  integer with a unit gap, which is why the above
+        #                  presence mask could be retired in V30 wave 2)
+        #   below side  -> ``level_below_present`` (KEPT: the below distance
+        #                  can emit -0.0 for an exactly-on-close level, which
+        #                  float32 cannot separate from the parking value)
+        #   runner-up   -> ``level_above2_present`` / ``level_below2_present``
+        #                  (KEPT: the runner-up slot emits a distance only and
+        #                  has no integer sibling to read presence from)
         return (
             0.0,
             dist2_value,
-            0.0,
             0.0,
             0.0,
             0.0,
@@ -604,11 +674,15 @@ def _slot_fields(
     evidence_live = (
         t - level["last_eligibility_refresh_bar"] <= max_evidence_age_bars
     )
+    # ``count`` stays INTERNAL state: it still divides ``mean_reaction`` and
+    # still gates mean/max/last. Only its emitted column left in V30 wave 2
+    # (it is exactly ``max(touch_count - 1, 0)`` on every emitted row), so
+    # LEVEL_REGISTRY_STATE_VERSION and LEVEL_REGISTRY_LEVEL_STATE_KEYS are
+    # UNCHANGED and carried chunk state stays interchangeable.
     return (
         float(dist),
         dist2_value,
         float(level["touch_count"]) if evidence_live else 0.0,
-        float(count) if evidence_live else 0.0,
         # Confirmed same-side recurrence pivots inside the TRAIN-frozen
         # distance. This is separate from exact-center touches.
         float(level["recurrence_confirmed"]) if evidence_live else 0.0,
@@ -667,6 +741,20 @@ def _finalize_reaction_lifecycle(
             value = (float(extreme) - center0) / atr0
         else:
             value = (center0 - float(extreme)) / atr0
+        # CONTRACT NOTE (2026-08-18): mean/max/last over completed reactions
+        # collapse onto one another whenever ``completed_reaction_count <= 1``.
+        # That is order statistics on a set of size <= 1, not a coding defect,
+        # and it is why none of the three may be retired as a duplicate of the
+        # others: [0, 4, 2] and [1, 3, 2] share mean AND last but differ in
+        # MAX; [3, 1] and [1, 3] share mean AND max but differ in LAST. The
+        # three are independent as soon as the set is non-degenerate.
+        # Do NOT cite the V30 package 8A ``side_at_t0`` freeze as active
+        # protection of this measurement against a polarity flip: a break
+        # finalizes every open window before the flip can happen and a level
+        # born on bar t cannot break on bar t, so no window can survive into
+        # broken state and no window can straddle a flip. The freeze stays as
+        # a guard against a future step reordering, but it is unreachable
+        # today and must not be quoted as if it were doing work.
         level["reaction_sum_atr"] += value
         level["completed_reaction_count"] += 1
         level["reaction_last_atr"] = value
@@ -1059,10 +1147,29 @@ def _run_level_registry(
                         runtime_lifecycle_log.append(
                             ("break", t, int(lv["level_id"]), -1)
                         )
+        if break_up_fired and break_down_fired:
+            # PROVEN UNREACHABLE, therefore a fail-closed assertion rather
+            # than a netting rule (2026-08-18, V30 wave 2).  Both sides firing
+            # on one bar needs an active high-side centre H and an active
+            # low-side centre L with H < close[t] < L, i.e. H < L.  But both
+            # levels survived the previous bar's break scan, which requires
+            # close[t-1] <= H and close[t-1] >= L, i.e. L <= H.
+            # Contradiction.  The boundary cases close the argument rather
+            # than opening it: a level admitted on bar t is centred on
+            # high[j]/low[j] for j = t - SWING_LOOKBACK, and the pivot window
+            # containing t forces high[j] >= high[t] >= close[t] (and
+            # low[j] <= low[t] <= close[t]), so a level cannot break on its
+            # own birth bar; a level that flips side at a held retest closes
+            # strictly through its own centre on the flip bar, which
+            # re-establishes the same ordering against every level that was
+            # active at that bar, and step 2 precedes step 3 so a flipped
+            # level cannot re-break on its flip bar.
+            # If this ever raises, the level geometry has changed and the
+            # signed break memory below has no defined sign -- which is a
+            # reason to stop, not to emit 0.
+            raise RuntimeError("[LEVEL_REGISTRY_SAME_BAR_TWO_SIDED_BREAK]")
         if break_up_fired or break_down_fired:
-            # V30 break-side memory for the signed bars-since-break field: a
-            # same-bar up+down conflict nets to 0 (the sibling signed
-            # aggregation convention of interpretation note 6).
+            # V30 break-side memory for the signed bars-since-break field.
             last_break_side = int(break_up_fired) - int(break_down_fired)
 
         # (3) retest checks — first exact-center intersection after the break bar.
@@ -1232,19 +1339,17 @@ def _run_level_registry(
             max_evidence_age_bars=age_cap,
         )
         record["level_above_dist_atr"].append(above_vals[0])
-        record["level_above_present"].append(1.0 if above is not None else 0.0)
         record["level_above2_dist_atr"].append(above_vals[1])
         record["level_above2_present"].append(
             1.0 if math.isfinite(above_dist2) else 0.0
         )
         record["level_above_touch_count"].append(above_vals[2])
-        record["level_above_completed_reaction_count"].append(above_vals[3])
-        record["level_above_recurrence_confirmed"].append(above_vals[4])
-        record["level_above_age_bars"].append(above_vals[5])
-        record["level_above_bars_since_touch"].append(above_vals[6])
-        record["level_above_mean_reaction_atr"].append(above_vals[7])
-        record["level_above_max_reaction_atr"].append(above_vals[8])
-        record["level_above_last_reaction_atr"].append(above_vals[9])
+        record["level_above_recurrence_confirmed"].append(above_vals[3])
+        record["level_above_age_bars"].append(above_vals[4])
+        record["level_above_bars_since_touch"].append(above_vals[5])
+        record["level_above_mean_reaction_atr"].append(above_vals[6])
+        record["level_above_max_reaction_atr"].append(above_vals[7])
+        record["level_above_last_reaction_atr"].append(above_vals[8])
         record["level_below_dist_atr"].append(below_vals[0])
         record["level_below_present"].append(1.0 if below is not None else 0.0)
         record["level_below2_dist_atr"].append(below_vals[1])
@@ -1252,13 +1357,12 @@ def _run_level_registry(
             1.0 if math.isfinite(below_dist2) else 0.0
         )
         record["level_below_touch_count"].append(below_vals[2])
-        record["level_below_completed_reaction_count"].append(below_vals[3])
-        record["level_below_recurrence_confirmed"].append(below_vals[4])
-        record["level_below_age_bars"].append(below_vals[5])
-        record["level_below_bars_since_touch"].append(below_vals[6])
-        record["level_below_mean_reaction_atr"].append(below_vals[7])
-        record["level_below_max_reaction_atr"].append(below_vals[8])
-        record["level_below_last_reaction_atr"].append(below_vals[9])
+        record["level_below_recurrence_confirmed"].append(below_vals[3])
+        record["level_below_age_bars"].append(below_vals[4])
+        record["level_below_bars_since_touch"].append(below_vals[5])
+        record["level_below_mean_reaction_atr"].append(below_vals[6])
+        record["level_below_max_reaction_atr"].append(below_vals[7])
+        record["level_below_last_reaction_atr"].append(below_vals[8])
         record["level_break_up_event"].append(1.0 if break_up_fired else 0.0)
         record["level_break_down_event"].append(1.0 if break_down_fired else 0.0)
         record["level_broken_touch_count"].append(
@@ -1266,9 +1370,11 @@ def _run_level_registry(
         )
         break_age = raw_event_age_from_last_observed_row(t, last_break_bar)
         record["level_bars_since_break"].append(break_age)
-        # V30 signed break memory: sign = side of the most recent break bar
-        # (+1 up / -1 down / 0 same-bar conflict); NaN before any observed
-        # break. The event fields disambiguate the zero-age firing row.
+        # V30 signed break memory: sign = side of the most recent break bar,
+        # exactly +1 (up) or -1 (down); NaN before any observed break. There
+        # is no 0 sign: a same-bar two-sided break is proven unreachable and
+        # now raises at the break scan above, so the product is never a
+        # netted zero. The event fields disambiguate the zero-AGE firing row.
         record["level_bars_since_break_signed"].append(
             float(last_break_side) * break_age
         )

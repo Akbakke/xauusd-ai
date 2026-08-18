@@ -747,8 +747,15 @@ SMC_MTF_FEATURE_NAMES_V1 = (
     "mtf_smc_bos_down",
     "mtf_smc_choch_up",
     "mtf_smc_choch_down",
-    "mtf_smc_sweep_up",
-    "mtf_smc_sweep_down",
+    # 2026-08-18 (V30 wave 2) RENAME, no value change: these two re-assert on
+    # EVERY qualifying bar, so they are a per-bar STATE, while the
+    # mtf_smc_sweep_{up,down}_event siblings below fire once per confirmed
+    # pivot identity. The owner already applies exactly that distinction to
+    # BOS in this same file (an event, with the persistent form deliberately
+    # not emitted); carrying two spellings of one distinction under one naming
+    # convention is how a reader mistakes a state for an event.
+    "mtf_smc_sweep_up_state",
+    "mtf_smc_sweep_down_state",
     "mtf_smc_sweep_up_depth_atr",
     "mtf_smc_sweep_down_depth_atr",
     "mtf_smc_pivot_envelope_position",
@@ -759,17 +766,51 @@ SMC_MTF_FEATURE_NAMES_V1 = (
     #     BOS bar, 0 off-event.  Same construction as the
     #     mtf_geometry_*_break_displacement_atr siblings below, event-gated;
     #     the BOS flags already tell 0-the-value from 0-the-non-event.
-    #   mtf_smc_sweep_up/down_event  the sweep flags above are per-bar
+    #   mtf_smc_sweep_up/down_event  the sweep STATE flags above are per-bar
     #     CONDITIONS. Events consume the confirmed pivot identity once and
-    #     rearm only when a new identity is confirmed.
-    #     The repeating flags stay untouched (rule 25b sweeps the defect class
-    #     across the sibling owner without changing an accepted field).
+    #     rearm only when a new identity is confirmed. Both are kept: the
+    #     state answers "is price outside the level right now", the event
+    #     answers "did this identity just get swept", and neither is a
+    #     function of the other.
     "mtf_smc_bos_displacement_atr",
     "mtf_smc_sweep_up_event",
     "mtf_smc_sweep_down_event",
     "mtf_smc_sweep_event_age_bars",
 )
 
+# 2026-08-18 (V30 wave 2): three columns are RETIRED from this tuple because
+# each is an exact, continuous function of two columns that remain in THIS
+# SAME tuple -- so the recovery stays inside one specialist family
+# (chart_geometry_encoder), which is what makes it reachable by the model at
+# all. PROVEN FROM SOURCE AND ALGEBRA below, independent of data; every
+# retired column shared the same atr denominator and the same ``available``
+# mask as its witnesses, so no availability or warmup edge moves.
+#
+#   mtf_geometry_support_break_displacement_atr
+#       = max(-mtf_geometry_support_dist_atr, 0)
+#     source: max(last_low - close, 0)/atr against support_dist =
+#     (close - last_low)/atr, with atr > 0 wherever the row is available.
+#     ReLU is 1-Lipschitz and its kink sits exactly where the recovered value
+#     is itself 0, which is why this is retirable where a bare sign indicator
+#     on a dense field is not.
+#   mtf_geometry_resistance_break_displacement_atr
+#       = max(-mtf_geometry_resistance_dist_atr, 0)
+#     mirrored -- note the sign convention is OPPOSITE on the two sides
+#     (support is close-level, resistance is level-close); each was checked
+#     separately against its own source line rather than assumed symmetric.
+#   mtf_geometry_nearest_level_abs_atr
+#       = min(|mtf_geometry_support_dist_atr|, |mtf_geometry_resistance_dist_atr|)
+#     the retired line was literally that expression over the same two
+#     operands. min and abs are 1-Lipschitz.
+#
+# NOT retired, deliberately: ``mtf_geometry_range_mid_dist_atr`` is the exact
+# affine image (env - 0.5) * range_width / atr of two columns that ARE emitted
+# -- but they live in SMC_MTF_FEATURE_NAMES_V1 (mtf_smc_pivot_envelope_position
+# and mtf_smc_range_width_atr), which routes to smc_liquidity_encoder, while
+# this tuple routes to chart_geometry_encoder. Every per-TF field reaches
+# exactly ONE family projection and the families are only combined after each
+# has been collapsed to d_model, so the algebra never runs. Inside
+# chart_geometry_encoder the four-pivot envelope is otherwise invisible.
 SMC_MTF_GEOMETRY_FEATURE_NAMES_V1 = (
     "mtf_geometry_support_dist_atr",
     "mtf_geometry_resistance_dist_atr",
@@ -777,9 +818,6 @@ SMC_MTF_GEOMETRY_FEATURE_NAMES_V1 = (
     "mtf_geometry_resistance_age_bars",
     "mtf_geometry_support_rail_slope_atr_per_bar",
     "mtf_geometry_resistance_rail_slope_atr_per_bar",
-    "mtf_geometry_support_break_displacement_atr",
-    "mtf_geometry_resistance_break_displacement_atr",
-    "mtf_geometry_nearest_level_abs_atr",
     "mtf_geometry_range_mid_dist_atr",
 )
 
@@ -938,9 +976,13 @@ def compute_smc_mtf_primitives_v1(
 
     # BOS is a causal crossing event, not a persistent "price remains outside
     # the last swing" state.  The latter is already represented continuously
-    # by the support/resistance break-displacement geometry fields; keeping it
-    # here as well would duplicate evidence and turn one break into many
-    # identical event observations.
+    # and with a sign by mtf_geometry_{support,resistance}_dist_atr, which go
+    # negative for exactly as long as price stays through the level; keeping a
+    # persistent BOS state here as well would duplicate that evidence and turn
+    # one break into many identical event observations.  (Until 2026-08-18 this
+    # comment named mtf_geometry_*_break_displacement_atr, which was itself the
+    # ReLU of those two distances and was retired for that reason -- the
+    # distances, not the rectified copies, are what carries the state.)
     bos_up = replay["bos_up"].copy()
     bos_down = replay["bos_down"].copy()
     choch_up = replay["choch_up"].copy()
@@ -994,9 +1036,6 @@ def compute_smc_mtf_primitives_v1(
         out=resistance_slope,
         where=available & (resistance_rail_span > 0),
     )
-    support_break = np.maximum(last_low - close, 0.0) / atr
-    resistance_break = np.maximum(close - last_high, 0.0) / atr
-    nearest_level = np.minimum(np.abs(support_dist), np.abs(resistance_dist))
     range_mid_dist = (close - ((range_high + range_low) / 2.0)) / atr
 
     values = {
@@ -1005,8 +1044,8 @@ def compute_smc_mtf_primitives_v1(
         "mtf_smc_bos_down": bos_down,
         "mtf_smc_choch_up": choch_up,
         "mtf_smc_choch_down": choch_down,
-        "mtf_smc_sweep_up": sweep_up.astype(np.float64),
-        "mtf_smc_sweep_down": sweep_down.astype(np.float64),
+        "mtf_smc_sweep_up_state": sweep_up.astype(np.float64),
+        "mtf_smc_sweep_down_state": sweep_down.astype(np.float64),
         "mtf_smc_sweep_up_depth_atr": sweep_up_depth,
         "mtf_smc_sweep_down_depth_atr": sweep_down_depth,
         "mtf_smc_pivot_envelope_position": envelope_position,
@@ -1021,9 +1060,6 @@ def compute_smc_mtf_primitives_v1(
         "mtf_geometry_resistance_age_bars": resistance_age,
         "mtf_geometry_support_rail_slope_atr_per_bar": support_slope,
         "mtf_geometry_resistance_rail_slope_atr_per_bar": resistance_slope,
-        "mtf_geometry_support_break_displacement_atr": support_break,
-        "mtf_geometry_resistance_break_displacement_atr": resistance_break,
-        "mtf_geometry_nearest_level_abs_atr": nearest_level,
         "mtf_geometry_range_mid_dist_atr": range_mid_dist,
     }
     expected_names = (

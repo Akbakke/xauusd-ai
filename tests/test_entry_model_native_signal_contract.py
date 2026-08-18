@@ -266,9 +266,14 @@ def test_model_native_signal_contract_has_exact_derived_width_and_all_groups_liv
     }
     # 2026-08-15: candle.raw_zero_range_flag retired from the ordered tuple
     # (constant post-warmup on H4/D1 -> hard liveness RED, and unscaleable as
-    # a declared constant). Re-measured over the narrowed tuple.
+    # a declared constant).
+    # 2026-08-18 (V30 wave 2): candle.raw_close_location,
+    # candle.raw_range_change_local_geometry and the two
+    # candle.raw_*_rejection_depth_local_geometry columns retired -- each an
+    # exact function of columns that stay in this owner. Re-derived over the
+    # narrowed tuple; the literal is the drift guard, not the source.
     assert CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256 == (
-        "e5939326c93334be7ed799baf8c45b9264a7206b2b8e9518c181342f07ab91bd"
+        "c72093fed2e8eef17917bf92fc4a2742ecd6f5a3967834b416216e2ba776f475"
     )
     price_owner = contract["mandatory_full_stack"]["price_derived_owner"]
     assert price_owner == price_derived_contract_metadata()

@@ -8,12 +8,12 @@ continuous measurements without inheriting a hand-written definition.
 Row ``t`` describes the bar that closes at that row's authoritative close.
 Relational fields need row ``t-1`` and therefore preserve one honest NaN
 prefix.  On a zero-range (``high == low``) bar every range SHARE is
-mathematically undefined, so the shares are the storage zero and the close
-location the neutral 0.5.  The separate ``candle.raw_zero_range_flag`` that
-used to mark that encoding was retired on 2026-08-15; it was an exact
-algebraic function of three shares that remain model inputs.  The reason, the
-identity and the measured event counts are in the
-``CANDLE_PRIMITIVE_FEATURE_VERSION`` note below.
+mathematically undefined, so the shares are the storage zero.  The separate
+``candle.raw_zero_range_flag`` that used to mark that encoding was retired on
+2026-08-15; it was an exact algebraic function of three shares that remain
+model inputs.  The reason, the identity and the measured event counts are in
+the ``CANDLE_PRIMITIVE_FEATURE_VERSION`` note below, together with the four
+V30 wave-2 retirements that followed the same rule.
 """
 from __future__ import annotations
 
@@ -81,10 +81,78 @@ import pandas as pd
 # positive-range rows against exactly 0.0 on zero-range rows.  A doji is NOT
 # confusable with a zero-range bar: a real-range doji has
 # ``body_signed_range == 0`` but nonzero wick shares summing to 1.
-# ``candle.raw_close_location``'s neutral 0.5 is likewise disambiguated by the
-# same conjunction, so no encoding is left ambiguous.
+# ``candle.raw_close_location``'s neutral 0.5 was likewise disambiguated by
+# the same conjunction; that field is itself RETIRED in v4 below, so no
+# encoding is left ambiguous and none is left unread.
+# v4 (2026-08-18, V30 wave 2): four RELATIONAL/whole-bar columns are RETIRED
+# because each is an EXACT function of columns that stay on this surface, in
+# this same owner and therefore in the same specialist family.  Nothing is
+# measured away; the model forms the same quantity if the quantity helps.
+# Every statement below is PROVEN FROM SOURCE AND ALGEBRA at this commit and
+# holds independent of any data (CLAUDE.md rule 2c/2d).  The denominators are
+# untouched: ``local_geometry_scale`` still carries its
+# ``abs(bar_range - previous_range)`` term, so every surviving relational
+# column keeps a bit-identical value.
+#
+# 1. ``candle.raw_close_location`` = ``lower_wick_share + max(body_signed_range, 0)``
+#    On a positive-range bar, with ``R = high - low``:
+#      close >= open  ->  lower = (open-low)/R, max(body,0) = (close-open)/R,
+#                         sum = (close-low)/R = close_location
+#      close <  open  ->  lower = (close-low)/R = close_location, max(body,0)=0
+#    The ONLY rows the identity misses are zero-range bars, where the retired
+#    field emitted a hard-coded 0.5 for an undefined 0/0 — a placeholder that
+#    reads as "close at mid-range" and carries no observation at all
+#    (rule 2e).  Those rows are exactly the rows the surviving biconditional in
+#    the v3 note already identifies, so removing the placeholder removes an
+#    ambiguity rather than an observation.
+#
+# 2. ``candle.raw_range_change_local_geometry`` = ``high_change - low_change``
+#    ``(R[t] - R[t-1]) = (high[t]-high[t-1]) - (low[t]-low[t-1])`` identically,
+#    and all three columns divide by the SAME ``local_geometry_scale`` scalar
+#    of that row and share the same NaN prefix.  This is an AFFINE recovery —
+#    the strongest class — so it is formable by the per-family linear
+#    projection itself, not merely by the encoder above it.
+#
+# 3. ``candle.raw_high_rejection_depth_local_geometry``
+#      = ``high_change_local_geometry * high_rejection_previous_high_event``
+#    The emitted depth IS ``(high[t]-high[t-1])/local_geometry_scale`` on an
+#    event bar and 0.0 otherwise, i.e. the bit-identical product of two
+#    retained columns.  The event column is exactly binary, so the two
+#    branches are separated by a unit gap and the recovery is Lipschitz.  The
+#    direction of the recovery matters: the event is NOT recoverable from the
+#    depth (``1[depth > 0]`` would be a sign test at 0 on a dense field), which
+#    is why the flag stays and the magnitude goes.
+#
+# 4. ``candle.raw_low_rejection_depth_local_geometry``
+#      = ``-1 * low_change_local_geometry * low_rejection_previous_low_event``
+#    Same statement mirrored; the emitted depth is
+#    ``(low[t-1]-low[t])/local_geometry_scale``, the sign flip against
+#    ``low_change`` being the only difference.  Negation is affine.
+#
+# WHAT IS NOT RETIRED, and why the neighbouring near-misses stay:
+#   * ``candle.raw_upper_wick_share`` looks recoverable as
+#     ``1 - lower_wick_share - abs(body_signed_range)``, and on a POSITIVE
+#     range bar it is.  It stays because of the zero-range branch: a gravestone
+#     bar with ``open == close == low < high`` emits body = 0 and lower = 0,
+#     which is the identical pair a zero-range bar emits, and ONLY
+#     ``upper_wick_share`` separates them (1 against 0).  The recovery
+#     ``1 - lower - |body|`` would hand a zero-range bar the value 1, which is
+#     the gravestone's answer, not its own.  The v3 retirement of
+#     ``candle.raw_zero_range_flag`` rests on the biconditional over all THREE
+#     shares, so removing one of the three would silently withdraw that
+#     retirement's proof as well.
+#   * ``candle.raw_range_contains_previous_flag`` and
+#     ``..._range_contained_by_previous_flag`` stay for two independent
+#     reasons.  (a) STATE: ``candle.raw_observed_range_relation_duration_bars``
+#     is an emitted run length over the four-state label {2, 1, -1, 0} whose
+#     identity lives ONLY in these two columns; retiring them orphans a
+#     retained emitted field.  (b) CONDITIONING: the recovery is three sign
+#     tests at exactly 0 on two continuous ratios with no integer witness, and
+#     the pair already cannot separate state 2 from state 0 (both press 0/0),
+#     so it is a lossy encoding already — dropping one half collapses a
+#     four-state variable to two.
 CANDLE_PRIMITIVE_FEATURE_VERSION = (
-    "entry_candle_primitives_v3_20260815_zero_range_flag_retired"
+    "entry_candle_primitives_v4_20260818_exact_function_columns_retired"
 )
 CANDLE_PRIMITIVE_FEATURE_PREFIX = "candle.raw_"
 CANDLE_PRIMITIVE_SOURCE_FIELDS = ("time", "open", "high", "low", "close")
@@ -94,7 +162,6 @@ CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES = (
     "candle.raw_body_signed_range",
     "candle.raw_upper_wick_share",
     "candle.raw_lower_wick_share",
-    "candle.raw_close_location",
 )
 # Relational/carry block: emitted from the two-bar carry loop, therefore
 # preceded by the one honest NaN prefix row (or continued exactly from a carry
@@ -108,7 +175,6 @@ CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES = (
     "candle.raw_close_change_local_geometry",
     "candle.raw_high_change_local_geometry",
     "candle.raw_low_change_local_geometry",
-    "candle.raw_range_change_local_geometry",
     "candle.raw_body_change_local_geometry",
     # Exact two-bar geometry. Magnitudes are zero off-event and accompanied
     # by either an algebraically readable sign or an explicit flag.
@@ -123,8 +189,6 @@ CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES = (
     "candle.raw_bear_body_covers_previous_bull_body_event",
     "candle.raw_high_rejection_previous_high_event",
     "candle.raw_low_rejection_previous_low_event",
-    "candle.raw_high_rejection_depth_local_geometry",
-    "candle.raw_low_rejection_depth_local_geometry",
     # Raw observed-bar duration of the current exact state.  No cap, tanh or
     # threshold is applied; TRAIN-only input normalization owns scale.
     "candle.raw_observed_body_direction_duration_bars",
@@ -158,9 +222,6 @@ _IX_UPPER_WICK_SHARE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
 _IX_LOWER_WICK_SHARE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
     "candle.raw_lower_wick_share"
 )
-_IX_CLOSE_LOCATION = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
-    "candle.raw_close_location"
-)
 _IX_OPEN_GAP = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
     "candle.raw_open_gap_local_geometry"
 )
@@ -172,9 +233,6 @@ _IX_HIGH_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
 )
 _IX_LOW_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
     "candle.raw_low_change_local_geometry"
-)
-_IX_RANGE_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
-    "candle.raw_range_change_local_geometry"
 )
 _IX_BODY_CHANGE = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
     "candle.raw_body_change_local_geometry"
@@ -212,12 +270,6 @@ _IX_HIGH_REJECTION_EVENT = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
 _IX_LOW_REJECTION_EVENT = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
     "candle.raw_low_rejection_previous_low_event"
 )
-_IX_HIGH_REJECTION_DEPTH = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
-    "candle.raw_high_rejection_depth_local_geometry"
-)
-_IX_LOW_REJECTION_DEPTH = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
-    "candle.raw_low_rejection_depth_local_geometry"
-)
 _IX_BODY_DIRECTION_DURATION = CANDLE_PRIMITIVE_FEATURE_NAMES.index(
     "candle.raw_observed_body_direction_duration_bars"
 )
@@ -232,12 +284,10 @@ _EMITTED_COLUMN_INDICES = (
     _IX_BODY_SIGNED_RANGE,
     _IX_UPPER_WICK_SHARE,
     _IX_LOWER_WICK_SHARE,
-    _IX_CLOSE_LOCATION,
     _IX_OPEN_GAP,
     _IX_CLOSE_CHANGE,
     _IX_HIGH_CHANGE,
     _IX_LOW_CHANGE,
-    _IX_RANGE_CHANGE,
     _IX_BODY_CHANGE,
     _IX_OPEN_ABOVE_PREVIOUS_HIGH,
     _IX_OPEN_BELOW_PREVIOUS_LOW,
@@ -250,8 +300,6 @@ _EMITTED_COLUMN_INDICES = (
     _IX_BEAR_BODY_COVERS_PREVIOUS_BULL,
     _IX_HIGH_REJECTION_EVENT,
     _IX_LOW_REJECTION_EVENT,
-    _IX_HIGH_REJECTION_DEPTH,
-    _IX_LOW_REJECTION_DEPTH,
     _IX_BODY_DIRECTION_DURATION,
     _IX_RANGE_RELATION_DURATION,
 )
@@ -411,7 +459,6 @@ def compute_entry_candle_primitive_chunk(
     body_signed_range = np.zeros(n_rows, dtype=np.float64)
     upper_wick_share = np.zeros(n_rows, dtype=np.float64)
     lower_wick_share = np.zeros(n_rows, dtype=np.float64)
-    close_location = np.full(n_rows, 0.5, dtype=np.float64)
     body_signed_range[positive_range] = (
         body_signed[positive_range] / bar_range[positive_range]
     )
@@ -420,10 +467,6 @@ def compute_entry_candle_primitive_chunk(
     )
     lower_wick_share[positive_range] = (
         lower_wick[positive_range] / bar_range[positive_range]
-    )
-    close_location[positive_range] = (
-        (close[positive_range] - low[positive_range])
-        / bar_range[positive_range]
     )
 
     if carry is None:
@@ -507,7 +550,6 @@ def compute_entry_candle_primitive_chunk(
     matrix[:, _IX_BODY_SIGNED_RANGE] = body_signed_range
     matrix[:, _IX_UPPER_WICK_SHARE] = upper_wick_share
     matrix[:, _IX_LOWER_WICK_SHARE] = lower_wick_share
-    matrix[:, _IX_CLOSE_LOCATION] = close_location
 
     previous_open_value = state.previous_open
     previous_high_value = state.previous_high
@@ -562,9 +604,6 @@ def compute_entry_candle_primitive_chunk(
             ) / local_geometry_scale
             matrix[row, _IX_LOW_CHANGE] = (
                 low[row] - previous_low_value
-            ) / local_geometry_scale
-            matrix[row, _IX_RANGE_CHANGE] = (
-                bar_range[row] - previous_range
             ) / local_geometry_scale
             matrix[row, _IX_BODY_CHANGE] = (
                 body[row] - previous_body
@@ -634,16 +673,6 @@ def compute_entry_candle_primitive_chunk(
             low_rejection = low[row] < previous_low_value and close[row] >= previous_low_value
             matrix[row, _IX_HIGH_REJECTION_EVENT] = float(high_rejection)
             matrix[row, _IX_LOW_REJECTION_EVENT] = float(low_rejection)
-            matrix[row, _IX_HIGH_REJECTION_DEPTH] = (
-                (high[row] - previous_high_value) / local_geometry_scale
-                if high_rejection
-                else 0.0
-            )
-            matrix[row, _IX_LOW_REJECTION_DEPTH] = (
-                (previous_low_value - low[row]) / local_geometry_scale
-                if low_rejection
-                else 0.0
-            )
 
             range_relation = (
                 2

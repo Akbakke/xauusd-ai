@@ -135,13 +135,18 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # durations; no named/thresholded candlestick patterns.
             # 2026-08-15: candle.raw_zero_range_flag retired (constant
             # post-warmup on H4/D1, hence a hard liveness RED with no
-            # scaleable exemption). Both hashes re-measured on the unchanged
-            # source fixture AFTER proving every surviving column is
-            # bit-identical to the pre-removal emission of the same column,
-            # so this is a narrower surface, not a changed one.
-            (240, 25),
-            "40f1d379a170dbc893f1c1ee40a18d131940c1d5f6544969b55e0d6fa7498f43",
-            "e5939326c93334be7ed799baf8c45b9264a7206b2b8e9518c181342f07ab91bd",
+            # scaleable exemption).
+            # 2026-08-18 (V30 wave 2): candle.raw_close_location,
+            # candle.raw_range_change_local_geometry and the two
+            # candle.raw_*_rejection_depth_local_geometry columns retired,
+            # each an exact function of columns that stay in this owner.
+            # Both hashes re-derived on the unchanged source fixture AFTER
+            # proving every surviving column is bit-identical to the
+            # pre-removal emission of the same column, so this is a narrower
+            # surface, not a changed one.
+            (240, 21),
+            "95882cf125b3152876ab3f2b7b6788af3fc1789b8bd618c895781799756d0955",
+            "c72093fed2e8eef17917bf92fc4a2742ecd6f5a3967834b416216e2ba776f475",
         ),
     }
     for values, feature_names, shape, value_hash, name_hash in expected.values():

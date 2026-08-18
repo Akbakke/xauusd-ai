@@ -222,8 +222,11 @@ def test_local_and_mtf_surfaces_are_projections_of_same_native_replay() -> None:
     for local_name, mtf_name in (
         ("smc_bos_up", "mtf_smc_bos_up"),
         ("smc_bos_down", "mtf_smc_bos_down"),
-        ("smc_sweep_up", "mtf_smc_sweep_up"),
-        ("smc_sweep_down", "mtf_smc_sweep_down"),
+        # The MTF spelling gained a ``_state`` suffix on 2026-08-18; the
+        # local twin keeps its name until the contract commit renames it, and
+        # the values must remain identical across the rename.
+        ("smc_sweep_up", "mtf_smc_sweep_up_state"),
+        ("smc_sweep_down", "mtf_smc_sweep_down_state"),
         ("smc_sweep_up_depth_atr", "mtf_smc_sweep_up_depth_atr"),
         ("smc_sweep_down_depth_atr", "mtf_smc_sweep_down_depth_atr"),
         ("smc_sweep_up_event", "mtf_smc_sweep_up_event"),
@@ -252,6 +255,109 @@ def test_local_and_mtf_surfaces_are_projections_of_same_native_replay() -> None:
         "mtf_smc_sweep_down_event",
     ):
         assert float(mtf[name].sum()) > 0.0, name
+
+
+def test_v30_wave2_geometry_retirements_are_absent_and_exactly_recoverable() -> None:
+    """The three retired geometry columns are gone AND their algebra survives.
+
+    Every ``not in`` below fails against the pre-2026-08-18 owner, where all
+    three names are declared and written -- that is what makes this a
+    regression test and not a restatement. The identities are the CLAUDE.md
+    rule 4 half: each retired column is reproduced exactly from two columns
+    that stay in the SAME tuple, hence in the same specialist projection.
+    """
+
+    retired = (
+        "mtf_geometry_support_break_displacement_atr",
+        "mtf_geometry_resistance_break_displacement_atr",
+        "mtf_geometry_nearest_level_abs_atr",
+    )
+    for name in retired:
+        assert name not in smc.SMC_MTF_GEOMETRY_FEATURE_NAMES_V1
+        assert name not in smc.SMC_MTF_FEATURE_NAMES_V1
+
+    high, low, close = _random_ohlc(2_000, seed=414)
+    mtf = smc.compute_smc_mtf_primitives_v1(_frame(high, low, close))
+    for name in retired:
+        assert name not in mtf.columns
+
+    support = mtf["mtf_geometry_support_dist_atr"].to_numpy(dtype=np.float64)
+    resistance = mtf["mtf_geometry_resistance_dist_atr"].to_numpy(
+        dtype=np.float64
+    )
+    live = np.isfinite(support) & np.isfinite(resistance)
+    assert live.any()
+
+    # The fixture must actually exercise the ReLU kink on both sides, or the
+    # recovery would be proven only on the trivial branch.
+    assert (support[live] < 0.0).any() and (support[live] > 0.0).any()
+    assert (resistance[live] < 0.0).any() and (resistance[live] > 0.0).any()
+
+    support_break = np.maximum(-support[live], 0.0)
+    resistance_break = np.maximum(-resistance[live], 0.0)
+    nearest = np.minimum(np.abs(support[live]), np.abs(resistance[live]))
+    assert (support_break >= 0.0).all() and (support_break > 0.0).any()
+    assert (resistance_break >= 0.0).all() and (resistance_break > 0.0).any()
+    assert (nearest >= 0.0).all()
+    # Recovered break displacement is non-zero exactly while price sits
+    # through the level -- the persistent state the retired column encoded.
+    np.testing.assert_array_equal(support_break > 0.0, support[live] < 0.0)
+    np.testing.assert_array_equal(
+        resistance_break > 0.0, resistance[live] < 0.0
+    )
+    np.testing.assert_array_equal(
+        nearest,
+        np.where(
+            np.abs(support[live]) <= np.abs(resistance[live]),
+            np.abs(support[live]),
+            np.abs(resistance[live]),
+        ),
+    )
+
+
+def test_v30_wave2_sweep_state_rename_keeps_values_and_drops_old_spelling() -> None:
+    """The two per-bar sweep conditions are renamed, not changed.
+
+    ``mtf_smc_sweep_{up,down}`` re-assert on every qualifying bar while the
+    ``_event`` siblings fire once per confirmed pivot identity; the ``_state``
+    suffix is the only thing that separates the two readings in the name.
+    The absence assertions fail against the pre-rename owner.
+    """
+
+    assert "mtf_smc_sweep_up" not in smc.SMC_MTF_FEATURE_NAMES_V1
+    assert "mtf_smc_sweep_down" not in smc.SMC_MTF_FEATURE_NAMES_V1
+    assert "mtf_smc_sweep_up_state" in smc.SMC_MTF_FEATURE_NAMES_V1
+    assert "mtf_smc_sweep_down_state" in smc.SMC_MTF_FEATURE_NAMES_V1
+    # Position is preserved, so the per-TF column order ahead of the rename is
+    # byte-stable and only the label moved.
+    assert smc.SMC_MTF_FEATURE_NAMES_V1.index("mtf_smc_sweep_up_state") == 5
+    assert smc.SMC_MTF_FEATURE_NAMES_V1.index("mtf_smc_sweep_down_state") == 6
+
+    high, low, close = _random_ohlc(2_000, seed=414)
+    frame = _frame(high, low, close)
+    mtf = smc.compute_smc_mtf_primitives_v1(frame)
+    local = smc.compute_smc_features(frame, include_v30_additions=True)
+    assert "mtf_smc_sweep_up" not in mtf.columns
+    assert "mtf_smc_sweep_down" not in mtf.columns
+
+    valid = np.isfinite(mtf["mtf_smc_pivot_envelope_position"].to_numpy())
+    for local_name, state_name, event_name in (
+        ("smc_sweep_up", "mtf_smc_sweep_up_state", "mtf_smc_sweep_up_event"),
+        (
+            "smc_sweep_down",
+            "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_down_event",
+        ),
+    ):
+        state = mtf[state_name].to_numpy()
+        event = mtf[event_name].to_numpy()
+        np.testing.assert_array_equal(
+            local[local_name].to_numpy()[valid], state[valid]
+        )
+        # The rename is honest: the state genuinely repeats where the event
+        # does not, so the two are not two spellings of one column.
+        assert np.logical_or(~(event[valid] > 0.0), state[valid] > 0.0).all()
+        assert (state[valid] > 0.0).sum() > (event[valid] > 0.0).sum()
 
 
 def test_equal_width_envelope_is_honestly_unavailable(monkeypatch) -> None:

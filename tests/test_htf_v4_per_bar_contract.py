@@ -479,7 +479,12 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         # V30 (2026-08-14): the handwritten `regime_class_id` discretization is
         # retired, leaving the four raw VWAP session-cycle fields.
         "session_regime_encoder": 4,
-        "chart_geometry_encoder": 10
+        # 2026-08-18 (V30 wave 2): the geometry block count derives from its
+        # owner tuple, which lost the two *_break_displacement_atr ReLUs and
+        # nearest_level_abs (each an exact continuous function of the two
+        # distance columns beside them). A restated literal here is exactly
+        # what CLAUDE.md rule 13 forbids.
+        "chart_geometry_encoder": len(smc_v1.SMC_MTF_GEOMETRY_FEATURE_NAMES_V1)
         + len(TRENDLINE_REGISTRY_FEATURE_NAMES_V1),
             "price_action_candle_encoder": 2
             + len(htf.MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES),
@@ -658,8 +663,8 @@ def test_v30_package_8a_smc_owner_parity_emissions() -> None:
     assert (m_disp[m_up & ~m_down] > 0.0).all()
     assert (m_disp[m_down & ~m_up] < 0.0).all()
     for flag_name, event_name in (
-        ("mtf_smc_sweep_up", "mtf_smc_sweep_up_event"),
-        ("mtf_smc_sweep_down", "mtf_smc_sweep_down_event"),
+        ("mtf_smc_sweep_up_state", "mtf_smc_sweep_up_event"),
+        ("mtf_smc_sweep_down_state", "mtf_smc_sweep_down_event"),
     ):
         flag = np.nan_to_num(mtf[flag_name].to_numpy()) > 0.0
         event = np.nan_to_num(mtf[event_name].to_numpy()) > 0.0
