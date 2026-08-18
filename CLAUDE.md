@@ -130,11 +130,18 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    regularization remain for Wave C; never claim all static objective
    magnitudes have been removed.
 
-   The TRAIN-fit squeeze owner and fail-closed six-clock plumbing are integrated
-   in source, but no production artifacts have been fitted. Each native clock
-   requires its exact immutable TRAIN artifact before rebuild or use. Exit is
-   currently native closed M1; no tick-level dataset, OOS result or trading
-   claim exists.
+   Six-clock TRAIN squeeze artifacts exist and are admissible as of 2026-08-18.
+   The first set, fitted 2026-08-15, was rejected: its fit decoded globally
+   (Viterbi/hard-EM) while serve decoded one step at a time, which made the
+   high-volatility state absorbing on all six clocks -- M1 spent 33 of 352,193
+   TRAIN rows in squeeze, emitted one release, and never returned. Fit and serve
+   now share one causal forward filter, and re-estimating from the served
+   sequence returns the published parameters bit-exactly. That episode is the
+   standing example of rule 6 failing at the artifact level rather than in code:
+   every gate was green and every contract held. Each native clock still
+   requires its own exact immutable TRAIN artifact before rebuild or use;
+   admitted parameters are not an admitted dataset. Exit is currently native
+   closed M1; no tick-level dataset, OOS result or trading claim exists.
 
 6. **Train equals serve.** Exact ordered fields, dimensions, normalization,
    timeframe construction, hashes and final-logit semantics must match.

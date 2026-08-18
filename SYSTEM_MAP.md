@@ -183,9 +183,11 @@ forcing. Fixed auxiliary task weights, rank margins and gate regularization
 remain for Wave C, so this is not a claim that every static objective magnitude
 has been eliminated.
 
-The TRAIN-fit squeeze owner is implemented but not connected to the production
-surface. Adoption requires separately fitted artifacts for every clock plus
-manifest/materializer plumbing. Exit remains a closed-M1 system; no tick-level
+The TRAIN-fit squeeze owner is implemented and its six per-clock artifacts are
+fitted and admissible (`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`), but no surface,
+cache or dataset has yet been built on them. Fit and serve share one causal
+forward-filter decoder; a second decoder in this owner is what made the
+2026-08-15 artifacts absorbing. Exit remains a closed-M1 system; no tick-level
 feature, dataset, OOS result or trading claim exists.
 
 ## Evidence sequence

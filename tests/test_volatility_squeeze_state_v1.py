@@ -24,7 +24,11 @@ from gx1.features.volatility_squeeze_state_v1 import (
     volatility_squeeze_bar_grid,
     write_volatility_squeeze_params,
 )
-from gx1.features.volatility_squeeze_state_v1 import _fit_two_state_model
+from gx1.features.volatility_squeeze_state_v1 import (
+    _canonical_sha256,
+    _estimate_hard_state_parameters,
+    _fit_two_state_model,
+)
 
 
 _FREQ = {
@@ -505,3 +509,102 @@ def test_fit_cli_has_no_split_manifest_flag_and_still_binds_tape_and_pair(
         monkeypatch.setattr(sys, "argv", pruned)
         with pytest.raises(SystemExit):
             producer.main()
+
+
+def test_admission_gate_rejects_an_unreachable_low_state() -> None:
+    """A parameter set whose decoder can never return to low is inadmissible.
+
+    ``require_volatility_squeeze_params`` validates payloads that arrive from
+    disk, so it is the only thing standing between a hand-authored or
+    externally produced params file and the runtime.  As the two fitted
+    emission distributions collapse toward each other the decoder loses the
+    per-bar evidence it needs to ever commit to the low state again, and four
+    of the five emitted fields would silently become constants.  Every other
+    contract still holds along this path: the means stay ordered, both
+    variances stay positive, both transition rows stay persistent and
+    normalized, and the payload hash stays exact.
+
+    The knob is collapsed by halving, which is a search for the boundary
+    rather than a chosen magnitude: the loop stops on the rejection itself.
+
+    Non-vacuity: against the pre-2026-08-18 owner no reachability check exists,
+    so this collapses the two states until the interpolation underflows to zero
+    without the gate ever objecting, and ends on the explicit ``pytest.fail``.
+    """
+
+    frame = _closed_ohlcv("M5")
+    params = _fit(frame, "M5")
+    # The fit's own fixed point must stay admissible.
+    require_volatility_squeeze_params(params, timeframe="M5")
+
+    low_mean, high_mean = params["fit"]["bandwidth_mean"]
+    low_variance, high_variance = params["fit"]["bandwidth_variance"]
+    separation = 1.0
+    while separation > 0.0:
+        separation /= 2.0
+        candidate = json.loads(json.dumps(params))
+        candidate["fit"]["bandwidth_mean"] = [
+            high_mean + separation * (low_mean - high_mean),
+            high_mean,
+        ]
+        candidate["fit"]["bandwidth_variance"] = [
+            high_variance + separation * (low_variance - high_variance),
+            high_variance,
+        ]
+        candidate["contract_sha256"] = _canonical_sha256(candidate)
+        try:
+            require_volatility_squeeze_params(candidate, timeframe="M5")
+        except RuntimeError as exc:
+            assert "VOLATILITY_SQUEEZE_PARAMS_ABSORBING_STATE" in str(exc)
+            break
+    else:
+        pytest.fail(
+            "the admission gate accepted two indistinguishable emission "
+            "states, so an unreachable low state is admissible"
+        )
+
+
+def test_served_state_sequence_is_a_fixed_point_of_its_own_fit() -> None:
+    """Train equals serve at the artifact level, not merely in field order.
+
+    The fit converges when its E-step reproduces the state assignment its
+    M-step was estimated from.  If the decoder that produced that assignment is
+    the decoder serve runs, then re-estimating the parameters from the sequence
+    serve emits must return the fitted parameters exactly.  Two different
+    decoders cannot satisfy this, which is the whole content of the defect.
+
+    Non-vacuity: against the pre-2026-08-18 owner the fit decoded globally and
+    serve decoded one step at a time, so the re-estimated parameters differ and
+    every assertion below fails.
+    """
+
+    for timeframe in ("M1", "M5"):
+        frame = _closed_ohlcv(timeframe)
+        params = _fit(frame, timeframe)
+        out, _ = compute_volatility_squeeze_state(
+            frame,
+            timeframe=timeframe,
+            params=params,
+        )
+        active = out["volatility.squeeze_active"].to_numpy(dtype=np.float64)
+        served = active[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
+        assert np.isfinite(served).all()
+        states = (served == 0.0).astype(np.int8)
+        assert set(np.unique(states).tolist()) == {0, 1}
+
+        values = bollinger_relative_bandwidth(
+            frame["close"].to_numpy(dtype=np.float64)
+        )[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
+        means, variances, transition, initial = _estimate_hard_state_parameters(
+            values,
+            states,
+        )
+        fitted = params["fit"]
+        assert means.tolist() == fitted["bandwidth_mean"]
+        assert variances.tolist() == fitted["bandwidth_variance"]
+        assert transition.tolist() == fitted["transition_probability"]
+        assert initial.tolist() == fitted["initial_probability"]
+
+        # Both directions actually occur, so no emitted field is a constant.
+        event = out["volatility.squeeze_release_event"].to_numpy(dtype=np.float64)
+        assert np.nansum(event) >= 2.0

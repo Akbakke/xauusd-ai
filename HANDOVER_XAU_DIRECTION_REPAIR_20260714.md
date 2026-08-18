@@ -83,11 +83,28 @@ Relevance is learned — no handwritten confluence vote or timeframe weight exis
   local signal surface are unproven — that surface has never materialised.
 - A decided repair wave covering 86 defective fields (55 repair, 29 retire, 2
   deferred) exists and is **not implemented**.
-- **Six-clock squeeze artifacts were fitted 2026-08-15 but are not admissible.**
-  The high-volatility state is absorbing under the causal runtime decoder on all
-  six clocks: the fit decodes globally (Viterbi/hard-EM) while serve decodes one
-  step at a time. That is a rule-6 train≠serve defect at the artifact level and
-  needs a preflight, a decode fix, then a refit.
+- **Six-clock squeeze decode mismatch: repaired and refitted 2026-08-18.** The
+  2026-08-15 artifacts were absorbing under the runtime decoder on all six
+  clocks (reproduced margins, nats: M1 −1.2528, M5 −1.1015, M15 −0.9372, H1
+  −1.0991, H4 −1.0279, D1 −0.5260; M1 emitted **one** release in 352,193 TRAIN
+  bars). Root cause was **not** the parameters: serve replaced the accumulated
+  posterior with a one-hot on the previous argmax, so every state switch had to
+  be paid for by a single bar's emission evidence (bounded by the Gaussian
+  overlap, ≈2.3 nats) against the fitted persistence penalty log(t11/t10)
+  (≈3.5 nats). Refitting under that decoder is impossible — hard-EM with a
+  one-step E-step collapses to a single state from the median, memoryless and
+  Viterbi starts alike, and the margin stays negative under every reachable
+  parameter set. Fit and serve now share one decoder, the causal forward
+  filter, which carries the state log-odds and uses no future. `_viterbi_path`
+  is deleted, `VOLATILITY_SQUEEZE_FIT_METHOD` is bumped so the old files are
+  rejected at load before any data is read, and
+  `require_volatility_squeeze_params` proves low-state reachability.
+  New artifact `VOLATILITY_SQUEEZE_SIXCLOCK_20260818`, manifest sha256
+  `dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`.
+  Measured on real TRAIN bytes: release rate 0.0097–0.0167/bar, squeeze
+  episodes median 21–36 bars, no constant field and no exact-duplicate pair on
+  any clock. **Not yet proven**: the artifacts have never been through the
+  rebuild chain, so no surface, cache or dataset has been built on them.
 - Fixed auxiliary task weights, rank margins and gate regularization remain a
   Wave-C audit; never claim all static objective magnitudes are gone.
 
@@ -123,7 +140,12 @@ Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
    commit, one canonical re-materialisation on both clocks, one cache generation,
    one dataset rebuild, one retention pass. Landing it piecemeal pays the same
    invalidation cost N times.
-2. Fix the squeeze decode mismatch and refit the six clocks.
+2. ~~Fix the squeeze decode mismatch and refit the six clocks.~~ Done
+   2026-08-18. Chain invocations must now pass
+   `--volatility-squeeze-manifest .../VOLATILITY_SQUEEZE_SIXCLOCK_20260818/manifest.json`
+   with `--expected-volatility-squeeze-manifest-sha256 dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`;
+   the 2026-08-15 path and its `ee7fab3b…` hash are retired and would now fail
+   closed at load on the fit-method check regardless.
 3. Run the rebuild chain to GREEN and materialise the surface once.
 4. Re-measure every field against real bytes for a final liveness verdict.
 5. Then a **pre-registered cheap test** of whether direction signal exists at all

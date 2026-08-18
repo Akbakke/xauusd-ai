@@ -89,9 +89,11 @@ closed OHLCV for M1/M5/M15/H1/H4/D1. Production consumers require one exact
 immutable TRAIN-only artifact per clock through the common six-clock manifest;
 the manifest binds source, tape, split, pair, clock/bar-grid, file/payload
 hashes and common TRAIN lineage. Bare/default/cross-clock parameters, fitting
-on VAL/TEST/live and resampling computed squeeze fields are forbidden. The
-source plumbing exists, but no production squeeze artifacts or downstream V30
-rebuild are admitted yet.
+on VAL/TEST/live and resampling computed squeeze fields are forbidden. Fit and
+serve must decode with the same causal filter, and the admission gate rejects
+parameters whose low state is unreachable. The six production artifacts
+(`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`) are fitted and admitted; no downstream
+V30/V31 rebuild on them is admitted yet.
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through

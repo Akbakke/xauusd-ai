@@ -67,9 +67,13 @@ Read `GX1_RULES.md` first. It is binding.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
-  production-integrated in source. No production squeeze artifact exists yet;
-  separately fit immutable TRAIN artifacts for M1/M5/M15/H1/H4/D1, then rebuild
-  caches/surfaces/dataset and retrain before making any model or edge claim.
+  production-integrated in source, and the six immutable TRAIN artifacts are
+  fitted and admissible as of 2026-08-18
+  (`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`, manifest sha256
+  `dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`). The
+  2026-08-15 set is retired and now fails closed at load. Rebuild
+  caches/surfaces/dataset on the new manifest and retrain before making any
+  model or edge claim.
 - Fresh native M1/M5 V4 sources and canonical pair generation
   `9b18e215...077232cd` (2026-08-09) exist; the 2026-08-04 parent
   `64d62c1f...a11b84c` is untouched history. They are source authority only.

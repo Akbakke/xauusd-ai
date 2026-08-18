@@ -7,12 +7,31 @@ relative Bollinger bandwidth.  The lower fitted emission mean is the squeeze
 state.  Its fitted transition matrix supplies persistence (hysteresis), so
 there is no hand-picked bandwidth, percentile, duration or release threshold.
 
-Runtime is a causal one-step MAP filter.  ``release_event`` is emitted exactly
-once on a low-volatility -> high-volatility transition.  Durations and ages
-are raw native-bar counts; TRAIN-only model-input normalization owns their
-scale.  Before enough close history, or before the first observed release for
-release-memory fields, absence of knowledge is NaN rather than a fabricated
-zero/sentinel.
+Fit and runtime share exactly one decoder: the causal forward filter.  It
+carries the accumulated state log-odds and uses no future observation, so the
+TRAIN state sequence the fit converges on is the sequence serve reproduces.
+``release_event`` is emitted exactly once on a low-volatility ->
+high-volatility transition.  Durations and ages are raw native-bar counts;
+TRAIN-only model-input normalization owns their scale.  Before enough close
+history, or before the first observed release for release-memory fields,
+absence of knowledge is NaN rather than a fabricated zero/sentinel.
+
+Until 2026-08-18 the fit decoded globally (Viterbi) while serve decoded with a
+one-step argmax over ``log transition[previous_state] + emission``, which
+discards the accumulated evidence and forces every state switch to be paid for
+by a single bar.  The low state is then reachable from the high state only if
+``max_w (log N(w|mu0,var0) - log N(w|mu1,var1)) >= log(t11/t10)``: an emission
+separation bounded by the overlap of the two fitted Gaussians against an
+unbounded persistence penalty.  Measured on the 2026-08-15 six-clock TRAIN fit
+that margin was -1.2528 (M1), -1.1015 (M5), -0.9372 (M15), -1.0991 (H1),
+-1.0279 (H4) and -0.5260 (D1) nats, so the high state was absorbing on every
+clock and M1 emitted one release in 352,193 TRAIN bars.  Refitting under the
+one-step decoder does not repair it -- hard-EM with that E-step collapses to a
+single state from the median, memoryless and Viterbi starts alike, and the
+margin stays negative under every reachable parameter set.  The decoder, not
+the parameters, was the defect; the forward filter is the causal decoder that
+can represent a persistent chain, and ``require_volatility_squeeze_params``
+now proves reachability before any parameters are admitted.
 """
 from __future__ import annotations
 
@@ -40,7 +59,7 @@ VOLATILITY_SQUEEZE_STATE_OWNER = (
     "gx1.features.volatility_squeeze_state_v1"
 )
 VOLATILITY_SQUEEZE_FIT_METHOD = (
-    "two_state_gaussian_viterbi_hard_em_on_relative_bb_bandwidth_v1"
+    "two_state_gaussian_causal_forward_filter_hard_em_on_relative_bb_bandwidth_v1"
 )
 
 # Existing Bollinger 20/2 identity used by both basic_v1 and htf_features.
@@ -349,6 +368,65 @@ def _log_normal_density(values: np.ndarray, means: np.ndarray, variances: np.nda
     )
 
 
+def _emission_log_odds(
+    values: np.ndarray,
+    means: np.ndarray,
+    variances: np.ndarray,
+) -> np.ndarray:
+    """Per-row ``log N(w|low) - log N(w|high)``; the decoder's only data term."""
+
+    density = _log_normal_density(values, means, variances)
+    return density[:, 0] - density[:, 1]
+
+
+def _log_sum_exp(left: float, right: float) -> float:
+    largest = left if left > right else right
+    return largest + math.log(
+        math.exp(left - largest) + math.exp(right - largest)
+    )
+
+
+def _advance_state_log_odds(
+    previous_log_odds: float | None,
+    emission_log_odds: float,
+    *,
+    log_transition: np.ndarray,
+    log_initial: np.ndarray,
+) -> float:
+    """Advance the causal filter by exactly one already-closed bar.
+
+    The forward recursion ``alpha_t(j) = sum_i alpha_{t-1}(i) T[i][j] * N_j(w_t)``
+    is carried in log-odds form.  Only ``delta = log alpha(0) - log alpha(1)``
+    matters for the decision and for propagation, because the shared
+    normalizer cancels in the subtraction:
+
+        delta_t = LSE(delta_{t-1} + logT00, logT10)
+                - LSE(delta_{t-1} + logT01, logT11)
+                + (log N(w_t|low) - log N(w_t|high))
+
+    This is the single decoder.  ``_fit_two_state_model`` runs it over the
+    TRAIN population as its E-step and ``compute_volatility_squeeze_state``
+    runs the identical step per bar at serve, so train and serve decode the
+    same sequence by construction rather than by agreement of two algorithms.
+    It reads no future observation: bar ``t`` enters only through its own
+    emission and the log-odds accumulated strictly before it.
+    """
+
+    if previous_log_odds is None:
+        return float(log_initial[0] - log_initial[1]) + emission_log_odds
+    return (
+        _log_sum_exp(
+            previous_log_odds + float(log_transition[0, 0]),
+            float(log_transition[1, 0]),
+        )
+        - _log_sum_exp(
+            previous_log_odds + float(log_transition[0, 1]),
+            float(log_transition[1, 1]),
+        )
+        + emission_log_odds
+    )
+
+
 def _estimate_hard_state_parameters(
     values: np.ndarray,
     states: np.ndarray,
@@ -392,27 +470,108 @@ def _estimate_hard_state_parameters(
     return means, variances, transition, initial
 
 
-def _viterbi_path(
+def _causal_state_path(
     values: np.ndarray,
     means: np.ndarray,
     variances: np.ndarray,
     transition: np.ndarray,
     initial: np.ndarray,
 ) -> np.ndarray:
-    emissions = _log_normal_density(values, means, variances)
+    """Decode the whole TRAIN population with the serve-identical filter."""
+
+    emissions = _emission_log_odds(values, means, variances)
     log_transition = np.log(transition)
-    scores = np.empty((len(values), 2), dtype=np.float64)
-    parent = np.zeros((len(values), 2), dtype=np.int8)
-    scores[0] = np.log(initial) + emissions[0]
-    for row in range(1, len(values)):
-        candidates = scores[row - 1][:, None] + log_transition
-        parent[row] = np.argmax(candidates, axis=0).astype(np.int8)
-        scores[row] = candidates[parent[row], np.arange(2)] + emissions[row]
+    log_initial = np.log(initial)
     states = np.empty(len(values), dtype=np.int8)
-    states[-1] = int(np.argmax(scores[-1]))
-    for row in range(len(values) - 1, 0, -1):
-        states[row - 1] = parent[row, states[row]]
+    log_odds: float | None = None
+    for row in range(len(values)):
+        log_odds = _advance_state_log_odds(
+            log_odds,
+            float(emissions[row]),
+            log_transition=log_transition,
+            log_initial=log_initial,
+        )
+        states[row] = 0 if log_odds >= 0.0 else 1
     return states
+
+
+def _emission_log_odds_supremum(
+    means: np.ndarray,
+    variances: np.ndarray,
+) -> float:
+    """Exact ``sup_{w>=0} (log N(w|low) - log N(w|high))``.
+
+    The difference is the quadratic ``a*w^2 + b*w + c`` with
+    ``a = 1/(2*var1) - 1/(2*var0)``, ``b = mu0/var0 - mu1/var1`` and
+    ``c = 0.5*log(var1/var0) - mu0^2/(2*var0) + mu1^2/(2*var1)``.  A fitted
+    squeeze has ``var0 < var1``, so ``a < 0`` and the supremum is attained at
+    the vertex when the vertex is physical, otherwise at ``w = 0``.  When
+    ``var0 >= var1`` the difference is unbounded above and the supremum is
+    infinite, which the caller treats as trivially reachable.
+    """
+
+    mu_low, mu_high = float(means[0]), float(means[1])
+    var_low, var_high = float(variances[0]), float(variances[1])
+    quadratic = 1.0 / (2.0 * var_high) - 1.0 / (2.0 * var_low)
+    linear = mu_low / var_low - mu_high / var_high
+    constant = (
+        0.5 * math.log(var_high / var_low)
+        - mu_low**2 / (2.0 * var_low)
+        + mu_high**2 / (2.0 * var_high)
+    )
+    if quadratic > 0.0:
+        return math.inf
+    if quadratic == 0.0:
+        return math.inf if linear > 0.0 else constant
+    vertex = -linear / (2.0 * quadratic)
+    if vertex < 0.0:
+        return constant
+    return constant - linear * linear / (4.0 * quadratic)
+
+
+def _low_state_reachable_from_high(
+    means: np.ndarray,
+    variances: np.ndarray,
+    transition: np.ndarray,
+) -> bool:
+    """Prove the low state is reachable from an arbitrarily deep high state.
+
+    This is a reachability question, not a margin: does there exist any
+    admissible bandwidth history that returns the decoder to the low state?
+    A margin would need a tolerance, and a tolerance on a log-odds quantity
+    would be a chosen magnitude with no origin.  Reachability needs none.
+
+    Write the one-step map at the emission supremum as ``F(x)`` and let
+    ``G(x) = F(x) - x``.  Then
+
+        F'(x) = sigma(x + logT00 - logT10) - sigma(x + logT01 - logT11)
+
+    which lies strictly inside ``(-1, 1)`` because each logistic term does, so
+    ``G'(x) < 0`` everywhere: ``G`` is strictly decreasing, and ``G(x) -> +inf``
+    as ``x -> -inf``.  ``G`` therefore has at most one zero, and the decoder is
+    trapped below the boundary exactly when that zero lies below it.  Since
+    ``F`` is increasing in both arguments, the constant-supremum history
+    dominates every admissible history, and the whole reachability question
+    collapses to the sign of ``G`` at the decision boundary ``x = 0``:
+
+        reachable  <=>  F(0) >= 0
+                   <=>  log((t00 + t10) / (t01 + t11)) + sup >= 0
+
+    That is one exact comparison, not an iteration: an admission gate must not
+    be able to spin.  It is threshold-free -- the boundary is the decoder's own
+    ``>= 0.0``, and the tie is resolved toward the low state exactly as the
+    decoder resolves it.
+    """
+
+    supremum = _emission_log_odds_supremum(means, variances)
+    if not math.isfinite(supremum):
+        return True
+    stay_low, leave_low = float(transition[0, 0]), float(transition[0, 1])
+    enter_low, stay_high = float(transition[1, 0]), float(transition[1, 1])
+    boundary = math.log(
+        (stay_low + enter_low) / (leave_low + stay_high)
+    ) + supremum
+    return boundary >= 0.0
 
 
 def _fit_two_state_model(relative_bandwidth: np.ndarray) -> dict[str, Any]:
@@ -437,7 +596,7 @@ def _fit_two_state_model(relative_bandwidth: np.ndarray) -> dict[str, Any]:
             values,
             states,
         )
-        updated = _viterbi_path(
+        updated = _causal_state_path(
             values,
             means,
             variances,
@@ -446,6 +605,14 @@ def _fit_two_state_model(relative_bandwidth: np.ndarray) -> dict[str, Any]:
         )
         if np.array_equal(updated, states):
             break
+        if len(np.unique(updated)) != 2:
+            # The decoder held one state over the whole TRAIN population, so
+            # there is no two-state model to estimate.  Report the collapse
+            # instead of letting the next M-step divide by an empty class.
+            raise RuntimeError(
+                "VOLATILITY_SQUEEZE_TRAIN_FIT_COLLAPSED: the causal decoder "
+                "assigned a single state to every TRAIN observation"
+            )
         # Keep state 0 semantically bound to the lower emission mean.
         updated_means = np.asarray(
             [values[updated == state].mean() for state in (0, 1)]
@@ -702,6 +869,23 @@ def require_volatility_squeeze_params(
         != int(fit["train_observation_count"]) + VOLATILITY_SQUEEZE_PREFIX_ROWS
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_PARAMS_VALUES_INVALID")
+    if not _low_state_reachable_from_high(means, variances, transition):
+        # A parameter set can satisfy every contract above and still encode a
+        # decoder that can never return to the squeeze state, which silently
+        # turns four of the five emitted fields into constants.  This does NOT
+        # re-detect the 2026-08-15 defect: under the forward filter those same
+        # parameters are reachable, because that defect lived in the decoder,
+        # not in the numbers.  The fit-method identity above is what rejects
+        # them.  This guard covers the residual case of a params file that
+        # reaches the runtime without coming from this fitter.  The high state
+        # is the only one that can trap: the emission log-odds are bounded
+        # above by the overlap of the two fitted Gaussians but fall without
+        # bound as the bandwidth grows, so the high state is always reachable
+        # and needs no symmetric check.
+        raise RuntimeError(
+            "VOLATILITY_SQUEEZE_PARAMS_ABSORBING_STATE: no admissible "
+            "bandwidth history returns the causal decoder to the low state"
+        )
     return observed
 
 
@@ -1154,7 +1338,11 @@ class VolatilitySqueezeCarryState:
     timeframe: str
     params_sha256: str
     trailing_closes: tuple[float, ...] = ()
-    latent_state: int | None = None
+    # The causal filter's carried state is its accumulated log-odds, not the
+    # decoded label: the label alone would discard the evidence the filter
+    # needs and would not reproduce the fit's own TRAIN sequence across a
+    # chunk boundary.  ``None`` means no bar has been decoded yet.
+    state_log_odds: float | None = None
     bars_in_squeeze: int = 0
     last_release_duration: int | None = None
     release_age_bars: int | None = None
@@ -1162,22 +1350,33 @@ class VolatilitySqueezeCarryState:
     last_timestamp_ns: int | None = None
 
 
-def _next_latent_state(
+def _serve_state_log_odds(
     relative_bandwidth: float,
     *,
-    previous_state: int | None,
+    previous_log_odds: float | None,
     means: np.ndarray,
     variances: np.ndarray,
-    transition: np.ndarray,
-    initial: np.ndarray,
-) -> int:
-    emission = _log_normal_density(
+    log_transition: np.ndarray,
+    log_initial: np.ndarray,
+) -> float:
+    """One serve bar through the same step ``_causal_state_path`` iterates.
+
+    The emission term is computed by the identical vectorised owner on a
+    length-one array, so a served bar and the same bar inside the fit's TRAIN
+    decode produce bit-identical log-odds.
+    """
+
+    emission = _emission_log_odds(
         np.asarray([relative_bandwidth], dtype=np.float64),
         means,
         variances,
-    )[0]
-    prior = initial if previous_state is None else transition[previous_state]
-    return int(np.argmax(np.log(prior) + emission))
+    )
+    return _advance_state_log_odds(
+        previous_log_odds,
+        float(emission[0]),
+        log_transition=log_transition,
+        log_initial=log_initial,
+    )
 
 
 def compute_volatility_squeeze_state(
@@ -1216,7 +1415,13 @@ def compute_volatility_squeeze_state(
             or carry.timeframe != clock
             or carry.params_sha256 != params_sha
             or len(carry.trailing_closes) > VOLATILITY_SQUEEZE_PREFIX_ROWS
-            or carry.latent_state not in {None, 0, 1}
+            or not (
+                carry.state_log_odds is None
+                or (
+                    isinstance(carry.state_log_odds, float)
+                    and math.isfinite(carry.state_log_odds)
+                )
+            )
             or carry.rows_seen < len(carry.trailing_closes)
             or carry.bars_in_squeeze < 0
             or (carry.last_release_duration is not None and carry.last_release_duration <= 0)
@@ -1245,7 +1450,12 @@ def compute_volatility_squeeze_state(
         np.nan,
         dtype=np.float64,
     )
-    latent_state = state.latent_state
+    log_transition = np.log(transition)
+    log_initial = np.log(initial)
+    state_log_odds = state.state_log_odds
+    latent_state = None if state_log_odds is None else (
+        0 if state_log_odds >= 0.0 else 1
+    )
     bars_in_squeeze = int(state.bars_in_squeeze)
     last_release_duration = state.last_release_duration
     release_age = state.release_age_bars
@@ -1253,14 +1463,15 @@ def compute_volatility_squeeze_state(
         if not np.isfinite(width):
             continue
         previous_state = latent_state
-        latent_state = _next_latent_state(
+        state_log_odds = _serve_state_log_odds(
             float(width),
-            previous_state=previous_state,
+            previous_log_odds=state_log_odds,
             means=means,
             variances=variances,
-            transition=transition,
-            initial=initial,
+            log_transition=log_transition,
+            log_initial=log_initial,
         )
+        latent_state = 0 if state_log_odds >= 0.0 else 1
         release_age = 0 if release_age is None else release_age + 1
         active = latent_state == 0
         released = previous_state == 0 and latent_state == 1
@@ -1297,7 +1508,7 @@ def compute_volatility_squeeze_state(
         trailing_closes=tuple(
             float(value) for value in history[-VOLATILITY_SQUEEZE_PREFIX_ROWS:]
         ),
-        latent_state=latent_state,
+        state_log_odds=state_log_odds,
         bars_in_squeeze=bars_in_squeeze,
         last_release_duration=last_release_duration,
         release_age_bars=release_age,

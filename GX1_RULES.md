@@ -81,9 +81,14 @@ immutable OANDA XAU_USD M1 + M5
   remain a Wave-C audit, so no claim that all static magnitudes are gone is
   allowed.
 - The squeeze owner and exact six-clock manifest/materializer plumbing are
-  production-integrated in source. No production artifact has been fitted;
-  M1/M5/M15/H1/H4/D1 each require their exact immutable TRAIN-only artifact
-  before rebuild or use. Bare/default/cross-clock parameters are forbidden.
+  production-integrated in source, and the six per-clock TRAIN artifacts are
+  fitted and admissible as of 2026-08-18
+  (`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`). M1/M5/M15/H1/H4/D1 each require
+  their exact immutable TRAIN-only artifact before rebuild or use.
+  Bare/default/cross-clock parameters are forbidden. Fit and serve must decode
+  with one causal filter; two decoders in that owner is what made the
+  2026-08-15 artifacts absorbing on all six clocks. No rebuild has yet been run
+  on the new artifacts.
 - Tick resolution is outside the current evidence surface. Exit remains closed
   native M1; no tick dataset, evaluation or trading claim is admitted.
 

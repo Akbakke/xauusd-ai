@@ -112,12 +112,18 @@ cache and M1-enriched manifests. The level-registry runtime-population shadow
 is a nonempty-support check through the same owner state machine, not a second
 registry or a shadow/live-trading route.
 
-Six-clock TRAIN squeeze artifacts were fitted on 2026-08-15 — the first in the
-project's history. They are NOT admissible: an audit found the high-volatility
-state is absorbing under the causal runtime decoder on all six clocks, because
-the fit decodes globally while serve decodes one step at a time (a rule-6
-train-equals-serve defect at the artifact level). A decode fix and refit are
-required before any model or edge claim.
+Six-clock TRAIN squeeze artifacts were first fitted on 2026-08-15 and were NOT
+admissible: the high-volatility state was absorbing under the runtime decoder
+on all six clocks. The cause was the decoder, not the parameters — serve
+replaced the accumulated posterior with a one-hot on the previous decoded
+state, so a switch had to be bought with one bar's emission evidence against
+the fitted persistence penalty. Fit and serve now share one causal
+forward-filter decoder, the fit method identity is bumped so the old artifacts
+fail closed at load, and the admission gate proves low-state reachability. The
+refit `VOLATILITY_SQUEEZE_SIXCLOCK_20260818`
+(`dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`) is
+admissible and measured live on real TRAIN bytes. No surface, cache or dataset
+has been built on it, so no model or edge claim follows.
 Exit remains native closed M1. No tick-level dataset, evaluation, OOS or
 trading claim exists.
 
