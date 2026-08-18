@@ -1977,3 +1977,77 @@ def test_prebuilt_lineage_requires_rank_fit_fields_absent(
     assert not {"atr_bucket", "spread_bucket", "vol_regime_id"} & set(
         loader._cv3.columns
     )
+
+
+def test_superseded_derivation_contract_is_readable_only_when_explicitly_relaxed():
+    """A parent being replaced must stay readable by the route that replaces it.
+
+    Regression for a real deadlock, 2026-08-18. Commit a94f5c6e advanced the
+    canonical builder contract (v2 -> v7): it stopped emitting
+    ``smc_premium_state``/``smc_premium_discount``, both since moved into the
+    contract's RETIRED tuples. The published 2026-08-09 pair generation had been
+    built by the older builder, so ``validate_prebuilt_pair_lineage`` raised
+    PREBUILT_PAIR_DERIVATION_CONTRACT_IDENTITY_MISMATCH on it -- and
+    ``publish_prebuilt_pair_successor`` had to read that pointer before it could
+    replace it. The chain could not advance its own source once the builder
+    moved.
+
+    The derivation contract describes how an artifact WAS built. Admission as a
+    current source keeps the full check; reading a parent in order to supersede
+    it does not. This test pins both halves: strict by default, relaxed only when
+    asked.
+    """
+
+    from gx1.execution.v12_state_from_prebuilt import (
+        PREBUILT_CANONICAL_BUILDER_CONTRACT,
+        PrebuiltIdentityError,
+        validate_prebuilt_pair_lineage,
+    )
+
+    fixture = _lineage()
+    # Strict default accepts the current contract...
+    validate_prebuilt_pair_lineage(fixture)
+
+    superseded = json.loads(json.dumps(fixture))
+    superseded["derivation_contract"]["canonical_builder"] = (
+        PREBUILT_CANONICAL_BUILDER_CONTRACT.replace("_v7", "_v2")
+    )
+    assert (
+        superseded["derivation_contract"]["canonical_builder"]
+        != PREBUILT_CANONICAL_BUILDER_CONTRACT
+    ), "fixture must actually differ, or this test proves nothing"
+
+    # ...and rejects a superseded one. This is the non-vacuity half.
+    with pytest.raises(PrebuiltIdentityError):
+        validate_prebuilt_pair_lineage(superseded)
+
+    # Relaxed accepts it, and returns the same envelope.
+    relaxed = validate_prebuilt_pair_lineage(
+        superseded, require_current_derivation_contract=False
+    )
+    assert relaxed["derivation_contract"]["canonical_builder"] != (
+        PREBUILT_CANONICAL_BUILDER_CONTRACT
+    )
+
+
+def test_relaxing_the_derivation_contract_does_not_relax_anything_else():
+    """The switch must be narrow: every other lineage rule still fails closed."""
+
+    from gx1.execution.v12_state_from_prebuilt import (
+        PrebuiltIdentityError,
+        validate_prebuilt_pair_lineage,
+    )
+
+    broken = json.loads(json.dumps(_lineage()))
+    broken["schema_version"] = "gx1_native_pair_lineage_v_does_not_exist"
+    with pytest.raises(PrebuiltIdentityError):
+        validate_prebuilt_pair_lineage(
+            broken, require_current_derivation_contract=False
+        )
+
+    missing_sources = json.loads(json.dumps(_lineage()))
+    missing_sources.pop("native_sources")
+    with pytest.raises(PrebuiltIdentityError):
+        validate_prebuilt_pair_lineage(
+            missing_sources, require_current_derivation_contract=False
+        )

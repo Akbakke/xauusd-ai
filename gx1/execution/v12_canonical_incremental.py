@@ -394,9 +394,21 @@ def _publish_prebuilt_pair_generation(
                 expected_parent_manifest_sha256=None,
             )
         else:
+            # The pointer being replaced may have been built by a superseded
+            # builder contract -- that is the normal reason to replace it -- so
+            # requiring it to satisfy the CURRENT contract here is a deadlock
+            # (2026-08-18: the v2->v7 builder change left the only route that can
+            # supersede the 2026-08-09 generation unable to read it). Only that
+            # one check is relaxed. `current` MUST stay bound: the successor
+            # arrow-schema comparison below is guarded by `current is not None`,
+            # so dropping the binding silently skips it -- which is exactly what
+            # an earlier attempt at this fix did, and what
+            # test_publisher_rejects_exact_schema_drift_before_pointer_visibility
+            # caught.
             current = read_prebuilt_pair_manifest(
                 pair_manifest_path,
                 generation_root=generation_root,
+                require_current_derivation_contract=False,
             )
             if (
                 current.pair_generation_id != expected_pair_generation_id
@@ -1615,9 +1627,15 @@ def publish_prebuilt_pair_successor(
     require_offline_scope("featurebase_build")
     vedtak = require_retrain_vedtak(vedtak_id)
     commit = _clean_repository_commit(Path(repo_root))
+    # Reading the parent in order to supersede it. Its derivation contract is
+    # the OLD builder's by definition -- that is why it is being replaced -- so
+    # the current-contract check is off here and only here. Identity, lineage
+    # ancestry and every artifact hash below are still verified exactly, and the
+    # successor's own lineage is validated in full when it is published.
     current = read_prebuilt_pair_manifest(
         pair_manifest_path,
         generation_root=generation_root,
+        require_current_derivation_contract=False,
     )
     if (
         current.pair_generation_id != expected_pair_generation_id

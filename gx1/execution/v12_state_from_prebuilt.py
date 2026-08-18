@@ -311,6 +311,8 @@ def _valid_sha256(value: object) -> bool:
 
 def validate_prebuilt_pair_lineage(
     raw: object,
+    *,
+    require_current_derivation_contract: bool = True,
 ) -> dict[str, object]:
     """Validate the source/formula envelope included in pair identity."""
 
@@ -543,7 +545,16 @@ def validate_prebuilt_pair_lineage(
         raise PrebuiltIdentityError(
             "PREBUILT_PAIR_DERIVATION_CONTRACT_INVALID"
         )
-    if lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+    # The derivation contract describes how THIS artifact was built. A parent
+    # being superseded was, by definition, built by an older builder, so
+    # requiring it to satisfy the CURRENT contract deadlocks the only route that
+    # can replace it (2026-08-18, builder v2 -> v7). Admission as a current
+    # source keeps the full check; reading a parent in order to supersede it
+    # does not. Default is strict, so every existing caller is unchanged.
+    if (
+        require_current_derivation_contract
+        and lineage_schema_version == PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION
+    ):
         expected_raw_sha = _sha256_json(list(RAW_BASE28_COLUMNS))
         if (
             derivation["canonical_builder"]
@@ -835,6 +846,7 @@ def read_prebuilt_pair_manifest(
     manifest_path: Path,
     *,
     generation_root: Path,
+    require_current_derivation_contract: bool = True,
 ) -> _PrebuiltPairBinding:
     """Read one stable atomic pair pointer; individual manifests are inadmissible."""
     manifest_path = Path(manifest_path)
@@ -912,7 +924,10 @@ def read_prebuilt_pair_manifest(
         "base28",
     }:
         raise PrebuiltIdentityError("PREBUILT_PAIR_ARTIFACT_SET_INVALID")
-    lineage = validate_prebuilt_pair_lineage(manifest["lineage"])
+    lineage = validate_prebuilt_pair_lineage(
+        manifest["lineage"],
+        require_current_derivation_contract=require_current_derivation_contract,
+    )
     try:
         observed_generation_id = pair_generation_id_for_artifacts(
             artifacts,
