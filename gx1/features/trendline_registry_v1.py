@@ -162,9 +162,6 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 # and every emitted value changes; chunk-carry state from a V4 run must not
 # interoperate silently.
 TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V5"
-TRENDLINE_HYPERPARAMETER_SCHEMA_VERSION_V1 = (
-    "trendline_registry_hyperparameter_fit_v1"
-)
 
 TRENDLINE_SIDE_SUPPORT = 1
 TRENDLINE_SIDE_RESISTANCE = -1

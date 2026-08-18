@@ -659,12 +659,6 @@ MULTI_TF_TIMEFRAMES_LOWER_M5_LAST = (
     *MULTI_TF_TIMEFRAMES_LOWER[1:],
     MULTI_TF_TIMEFRAMES_LOWER[0],
 )
-MULTI_TF_BARS_IN_M5 = {
-    timeframe.lower(): int(
-        pd.Timedelta(rule) / pd.Timedelta(MULTI_TF_RESAMPLE_RULES["M5"])
-    )
-    for timeframe, rule in MULTI_TF_RESAMPLE_RULES.items()
-}
 
 # Pandas-Timedelta shift per TF: ensures we use only CLOSED bars at-or-before t
 MULTI_TF_SHIFT = {
@@ -3823,10 +3817,15 @@ MODEL_NATIVE_CONTEXT_MTF_PROJECTION = (
     ("mom_20_atr", "mom_20_atr"),
     ("rsi14_centered", "rsi14_centered"),
     ("atr_bps_14", "atr_bps_14"),
-    ("lower_wick_pct", "lower_wick_pct"),
 )
 MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES = MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
-MODEL_NATIVE_CONTEXT_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
+# ``lower_wick_pct`` left this tuple on 2026-08-18: its source column was
+# retired from MULTI_TF_PER_BAR_FEATURES_V4 in favour of
+# ``mtf_candle_raw_{upper,lower}_wick_share``, so the projection's own
+# HTF_V4_PROJECTION_SOURCE_MISSING guard would have raised on m5/m15/h1/h4 --
+# the D1 skip below was the only lane exempted. The sole consumer is a
+# frozen-scope live route, which is why nothing noticed.
+MODEL_NATIVE_CONTEXT_MTF_SKIP = frozenset()
 
 
 _HTF_V4_CACHE_MANIFEST_KEYS = frozenset(
