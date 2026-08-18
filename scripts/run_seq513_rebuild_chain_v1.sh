@@ -206,10 +206,18 @@ M1_FEATURE_BASE="$EVENT/m1_feature_base.parquet"
 M5_FEATURE_BASE="$EVENT/m5_feature_base.parquet"
 M1_CHECKPOINT="$EVENT/m1_enriched_checkpoint"
 M5_CHECKPOINT="$EVENT/m5_enriched_checkpoint"
-OUTPUT="$EVENT/dataset/v10_seq513_dataset__DIR_TRAIN_FIT.parquet"
+# The dataset stem suffix is owned by
+# gx1.scripts.materialize_entry_model_native_seq513_rebuild_preflight_v1
+# .ENTRY_FITTED_Q_DATASET_STEM_SUFFIX, and the preflight rejects any output whose
+# name does not end with it (output_suffix_valid). This line used to hardcode
+# "__DIR_TRAIN_FIT" while the owner said "__ENTRY_FITTED_Q" -- a shell literal and
+# a Python constant that had to agree and did not. Derive it; never restate it.
+DATASET_STEM_SUFFIX=$("$PY" -c 'from gx1.scripts.materialize_entry_model_native_seq513_rebuild_preflight_v1 import ENTRY_FITTED_Q_DATASET_STEM_SUFFIX as s; print(s)')
+DATASET_STEM="v10_seq513_dataset${DATASET_STEM_SUFFIX}"
+OUTPUT="$EVENT/dataset/${DATASET_STEM}.parquet"
 AUDIT="$EVENT/audit"
 EXIT_LIFECYCLE="$EVENT/exit_lifecycle"
-TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__DIR_TRAIN_FIT_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
+TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_${DATASET_STEM}_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
 STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 DATASET_REBUILD_TERMINAL="$EVENT/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_${STAMP}.json"
 PREFREEZE_TEST_SEAL="$EVENT/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_${STAMP}.json"
@@ -1486,8 +1494,8 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
     DATASET_OUTPUT_STARTED=1
   fi
   for split in train val test; do
-    if [[ -e "$EVENT/dataset/v10_seq513_dataset__DIR_TRAIN_FIT_${split}.parquet" \
-       || -e "$EVENT/dataset/v10_seq513_dataset__DIR_TRAIN_FIT_${split}.manifest.json" ]]; then
+    if [[ -e "$EVENT/dataset/${DATASET_STEM}_${split}.parquet" \
+       || -e "$EVENT/dataset/${DATASET_STEM}_${split}.manifest.json" ]]; then
       DATASET_OUTPUT_STARTED=1
     fi
   done
