@@ -3054,7 +3054,7 @@ def build_dataset_canonical(
     # same NaN prefix and were listed in the later `_causal_required`, so the
     # frame happened to be trimmed deep enough. Removing them from the ctx
     # contract exposed the ordering, exactly as the note at that trim predicted.
-    from gx1.features.htf_features import (
+    from gx1.scripts.augment_forward_outcome_v2 import (
         trim_causal_context_warmup_prefix as _trim_recomputed_warmup,
     )
 
