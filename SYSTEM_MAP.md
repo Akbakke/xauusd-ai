@@ -15,7 +15,7 @@ OANDA XAU_USD complete MBA candles
                                   |
               TRAIN-only ranking + normalization
                                   |
-             signal v19 (349) + 159 cont + 5 cat
+        signal + continuous ctx + categorical ctx (widths: run the owner)
                                   |
                     shared specialist encoder
                        /                     \
@@ -41,7 +41,7 @@ evidence and closed M5/M15/H1/H4/D1 context. OHLCV is closed and aligned before
 the same owners compute each timeframe; finished M1 features are never rolled
 up. Relevance is learned, with no handwritten confluence vote or TF weight.
 
-Every MTF lane has 171 ordered fields. The volume owner computes
+Every MTF lane has `MULTI_TF_FEATURE_COUNT_V4` ordered fields. The volume owner computes
 `vol_z_20`, `vol_ratio_5_20` and `vol_pct_96` independently on every closed
 timeframe after OHLCV resampling with tick volume summed. The 96-bar Entry
 slice is computed from 191 native M5 rows and the 480-bar Exit slice from 575
@@ -53,14 +53,22 @@ local M1/M5 and every native MTF clock. One immutable six-clock manifest binds
 the separate TRAIN-only parameters, source/pair/split/tape lineage, exact bar
 grids and file/payload hashes; there is no default or cross-clock reuse.
 
-MTF matrix V5, cache manifest v11 and full-input liveness v6 bind the single UTC
-trading-session clock. Its H4 bins open on 22/02/06/10/14/18 UTC and D1 opens
+The MTF matrix, cache manifest and full-input liveness contracts bind the single
+UTC trading-session clock (their schema versions are printed by
+`bash scripts/gx1_handover.sh`, never restated here). Its H4 bins open on 22/02/06/10/14/18 UTC and D1 opens
 at 22:00 UTC, so the retired H4 00/04/... and calendar-midnight D1 axes cannot
-pass as current cache identity. Signal split v8 binds mandatory stack v13.
+pass as current cache identity.
 
-The signal v19/direction-mode-v8 surface has 349 ordered fields: 30 code-owned
-base, 164 mandatory causal/raw and all 155 code-owned candidates (319 specialist fields
-total).
+The signal surface is a frozen base block + the mandatory causal families + the
+complete code-owned candidate remainder. **The widths are not restated here**
+(rule 4/13): the counts this paragraph used to carry were stale by 88 fields
+within two days. Read them from the owner:
+`gx1/contracts/entry_model_native_signal_v1.py` —
+`MODEL_NATIVE_SIGNAL_DIM`, `MODEL_NATIVE_BASE_SIGNAL_DIM`,
+`MODEL_NATIVE_MANDATORY_SELECTED_FIELDS`,
+`MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS`,
+`MODEL_NATIVE_MANDATORY_FAMILY_FEATURES`. The runnable one-liner is in
+`HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`.
 
 Signal binds the same exact causal candle geometry/relation/carry owner locally
 and on every TF; its width derives from
@@ -78,8 +86,7 @@ signed reaction history, break/retest events, round numbers) and a trendline
 registry (`gx1/features/trendline_registry_v1.py`: two-point sloped lines,
 ≥3-touch validation, channels), plus per-timeframe EMA-cross, RSI-threshold,
 divergence, regime-flip and swing-break event primitives on all five
-timeframes. The 171-field per-TF width is derived from
-`MULTI_TF_PER_BAR_FEATURES_V4`. Registry tolerances are TRAIN-fitted
+timeframes. The per-TF width is derived from `MULTI_TF_PER_BAR_FEATURES_V4`. Registry tolerances are TRAIN-fitted
 by immutable chronological inner-TRAIN competing-risk selection (no quantile
 or window recipe input exists) on the declared TRAIN window — an ordered
 `declared_train_window_start`/`declared_train_window_end` pair, both required
@@ -93,7 +100,7 @@ generation the fit read; consumers fail closed without them. The level registry'
 same state machine as serving and is only a nonempty-support/provenance gate,
 not a duplicate registry or a shadow/live execution route.
 
-The immutable M5 surface is Entry's sole signal/159/5 input authority. It is
+The immutable M5 surface is Entry's sole signal/context input authority. It is
 loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
 so no split rebuilds the specialist stack. The M1 surface is Exit's matching
 native-resolution authority; neither surface can substitute for the other.

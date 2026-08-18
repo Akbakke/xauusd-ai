@@ -106,38 +106,15 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    88-field gap, and the restatement was removed rather than refreshed. A
    number written here is wrong within days by construction; that is the whole
    point of the rule, and this paragraph was the rule breaking itself.
-   The surface history is
-   (V29 event surface 2026-08-11 added the level/trendline registries and the
-   swing/momentum/regime event families; V30 2026-08-13 removed the
-   NAME-ONLY chart-geometry composites, all Fibonacci fields, the candle
-   aggregate votes and the pre-fused session products, repaired the
-   smc_swing_state enum live bug and emitted the structure/level/SMC state
-   that existed only in memory — see
-   docs/INDICATOR_FIDELITY_AUDIT_20260813.md; v9 then wired the six native
-   SMC emissions plus four continuous native momentum primitives; v10 retires
-   28 handwritten volatility votes and v11 retires 74 handwritten trend,
-   momentum and structure votes, and v12 retires 58 SMC-quality/S/R scorebook
-   fields; v13 retires 54 foundation scores and all 67 session/regime
-   scorebook fields while retaining raw context and three exact event ages;
-   v14 retires the final chart votes and fixed-threshold candle-pattern
-   scorebook, replaces it with eleven raw candle primitives, and removes three
-   redundant base aliases; v15 retires five handwritten regime composites
-   while preserving the raw per-TF regime/EMA/trend-age/D1 evidence; v16
-   retires `signed_vol_z_20` while preserving local return and the three raw
-   unsigned tick-volume primitives; v17 replaces the provisional eleven-field
-   candle block with the exact 26-field causal geometry/relation/carry owner;
-   v18 adopts five TRAIN-fitted native-clock squeeze-state fields locally and
-   on every MTF lane; v19 retires fixed top-133 availability and exposes all
-   155 code-owned candidates to learned selection/interaction).
-   Signal split v8 binds mandatory full-stack v13; MTF matrix V5 binds cache v11
-   and full-input liveness v6. Treat
-   that sentence as a dated observation, not as the contract.
-   Removing a hand-written vote is
-   allowed and required — the
-   `mtf_confluence` layer was removed on 2026-08-05 because it emitted derived
-   confluence/abstain/direction-bias votes — but only while every field it
-   consumed remains a model input, so the model learns the fusion instead of
-   being handed it.
+   The direction of travel across v9–v19 was one thing repeated: every
+   handwritten vote, scorebook and pre-fused composite was retired and replaced
+   by the raw primitive or identified state it was built from — roughly 280
+   fields in total, including all Fibonacci, all candle-pattern votes and the
+   five regime composites. Removing a handwritten vote is allowed and required,
+   but only while every field it consumed remains a model input, so the model
+   learns the fusion instead of being handed it. The per-version detail is in
+   git history and `docs/`; it is archaeology and does not belong in a file
+   loaded into every session.
 
 5. **The learned size head is mandatory evidence.** Label-horizon sizing proof
    is diagnostic only. Its target is trained only under the explicit tradable

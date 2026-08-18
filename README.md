@@ -15,10 +15,12 @@ native OANDA M1/M5
   -> calibration -> untouched TEST -> same-bundle replay
 ```
 
-Entry consumes 96 local M5 bars with 349 ordered signals (30 base + 164
-mandatory causal/raw + all 155 code-owned candidates = 319 specialist fields over 11 mandatory
-layer families), 159 continuous context fields, 5 categorical fields and closed
-M15/H1/H4/D1 context. Exit
+Entry consumes `MODEL_NATIVE_SEQ_LEN` local M5 bars plus continuous and
+categorical context and closed M15/H1/H4/D1 lanes. **No width is restated here**
+(rule 4/13) — the counts this paragraph carried were stale by 88 fields within
+two days. Derive them by executing
+`gx1/contracts/entry_model_native_signal_v1.py`; the runnable one-liner is in
+`HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`. Exit
 consumes the same definitions and TRAIN normalization on 480 local M1 bars,
 closed M5/M15/H1/H4/D1 context, the frozen Entry-decision token and its causal
 in-trade path. The frozen value is a dedicated learned 128-wide Entry-decision
@@ -26,11 +28,10 @@ token built by a learned 609-to-128 projection of the exact ordered local,
 final, MTF, raw-fusion, fusion-hidden and final-logit decision blocks; it is
 not a generic pre-head embedding. Higher-timeframe
 OHLCV closes before feature computation; computed M1 indicators are never
-resampled upward. This is signal v19 in direction mode v8; each MTF lane
-contains 171 ordered fields.
+resampled upward. Each MTF lane carries `htf_features.MULTI_TF_FEATURE_COUNT_V4` ordered fields;
+the schema versions are printed by `bash scripts/gx1_handover.sh`.
 
-Entry's 349/159/5 tensors are read from one immutable, hash-bound native M5
-surface and sliced by exact timestamp across all three splits. Exit uses the
+Entry's tensors are read from one immutable, hash-bound native M5 surface and sliced by exact timestamp across all three splits. Exit uses the
 corresponding native M1 surface. There is no split-local alternate feature
 builder or cross-resolution value copy.
 
@@ -45,10 +46,10 @@ each native clock. M1/M5/M15/H1/H4/D1 each require their own immutable
 TRAIN-fitted parameters inside one common lineage manifest; local and MTF
 consumers reject missing, stale, cross-clock or bare payloads.
 
-MTF matrix V5, cache manifest v11 and full-input liveness v6 bind one UTC
-trading-session clock: H4 bins open on 22/02/06/10/14/18 UTC and D1 opens at
+The MTF matrix, cache manifest and full-input liveness contracts bind one UTC
+trading-session clock (versions printed by the handover script): H4 bins open on 22/02/06/10/14/18 UTC and D1 opens at
 22:00 UTC. Retired H4 00/04/... and calendar-midnight D1 caches are not current
-inputs. Signal split v8 binds mandatory full-stack v13.
+inputs.
 
 Signal binds the exact causal candle geometry/relation/carry owner on local and
 per-TF clocks; its width derives from
@@ -90,7 +91,7 @@ but the system is not empirically finished:
   `9b18e215...077232cd` (2026-08-09) are published and hash-bound;
 - the historical V28 and V29J dataset chains were retired and are not valid
   training or comparison substrates;
-- the v19/direction-v8 source contract (349 signals) is present, but no
+- the current source contract is present, but no
   corresponding dataset rebuild has run yet;
 - objective v6/recipe v5 completes Waves A/B, while fixed auxiliary weights,
   rank margins and gate regularization remain pending Wave C;
@@ -111,10 +112,12 @@ cache and M1-enriched manifests. The level-registry runtime-population shadow
 is a nonempty-support check through the same owner state machine, not a second
 registry or a shadow/live-trading route.
 
-The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
-production-integrated in source, but no production squeeze artifacts have been
-fitted. A fresh per-clock fit, cache/surface/dataset rebuild and retraining are
-required before model or edge claims.
+Six-clock TRAIN squeeze artifacts were fitted on 2026-08-15 — the first in the
+project's history. They are NOT admissible: an audit found the high-volatility
+state is absorbing under the causal runtime decoder on all six clocks, because
+the fit decodes globally while serve decodes one step at a time (a rule-6
+train-equals-serve defect at the artifact level). A decode fix and refit are
+required before any model or edge claim.
 Exit remains native closed M1. No tick-level dataset, evaluation, OOS or
 trading claim exists.
 

@@ -33,7 +33,9 @@ Mid-only substitution and synthetic gap filling are forbidden.
   NOT restated here** — every restated count in this repository has gone stale
   within days (rule 13). Every emitted active owner field is available to the
   learned model; no fixed top-k/ranker has feature-selection authority;
-- 159 continuous and 5 categorical context values;
+- the continuous and categorical context widths as the owner reports them
+  (`MODEL_NATIVE_CTX_CONT_DIM` / `MODEL_NATIVE_CTX_CAT_DIM`) — restated counts
+  here were stale by a factor of two within days;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
 - same dataset run ID, split boundaries and TRAIN normalization;
 - Entry local M5 sequence 96 plus closed M15/H1/H4/D1 context;
