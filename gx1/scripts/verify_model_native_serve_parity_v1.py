@@ -33,7 +33,10 @@ Run under the capped runner (heavy: full prebuilt load + augmenters ~7 min):
       --pair-manifest-path /absolute/CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json \
       --pair-generation-root /absolute/CANONICAL_V3_BASE28_GENERATIONS \
       --pinned-predictions /absolute/selective_edge_predictions_<microstamp>.parquet \
+      --pinned-predictions-sha256 <exact sha256 of that parquet> \
       --prediction-report-json /absolute/ENTRY_CANDIDATE_SELECTIVE_EDGE_<microstamp>.json \
+      --bundle-dir /absolute/candidate_bundle \
+      --max-trades <explicit execution exposure cap> \
       --out-dir /absolute/immutable/parity/events
 
 Writes an immutable MODEL_NATIVE_SERVE_PARITY_<microstamp>.json event under
@@ -1976,6 +1979,7 @@ def _validate_pinned_prediction_contract(
 def _load_pinned_predictions(
     *,
     dataset_dir: Path,
+    bundle_dir: Path,
     pinned_path: Path,
     prediction_report_path: Path,
     expected_predictions_sha256: str,
@@ -1986,6 +1990,14 @@ def _load_pinned_predictions(
     accepted here: a mutable locator cannot decide which evidence launch proves.
     The caller must name the timestamped parquet, whose timestamped report binds
     bundle, dataset, physical schema, semantics, and exact hashes.
+
+    ``bundle_dir`` is the operator's explicit ``--bundle-dir`` candidate, not a
+    value read back out of the evidence: the resolver compares it against the
+    report's declared ``bundle_dir`` and then binds that directory's
+    ``bundle_metadata.json`` hash, ``state_dict_sha256`` and direction-decision
+    contract to the prediction event. Letting the report name its own bundle
+    would be a self-declared authority, so there is deliberately no ``None``
+    branch here.
     """
 
     requested = pinned_path.expanduser().resolve()
@@ -1994,7 +2006,7 @@ def _load_pinned_predictions(
         resolve_and_validate_prediction_evidence(
             requested,
             prediction_report_path=requested_report,
-            bundle_dir=None,
+            bundle_dir=bundle_dir,
             dataset_dir=dataset_dir,
             expected_sha256=expected_predictions_sha256,
             expected_stage=MODEL_NATIVE_REQUIRED_EVIDENCE_STAGE,
@@ -2181,6 +2193,7 @@ def main() -> int:
     # Reject stale identity/schema before loading the active bundle or live
     # prebuilts. There is deliberately no legacy pinned-prediction fallback.
     dataset_dir = args.dataset_dir.expanduser().resolve()
+    requested_bundle_dir = args.bundle_dir.expanduser().resolve()
     requested_pinned_path = args.pinned_predictions.expanduser().resolve()
     (
         pinned,
@@ -2190,6 +2203,7 @@ def main() -> int:
         prediction_report_evidence,
     ) = _load_pinned_predictions(
         dataset_dir=dataset_dir,
+        bundle_dir=requested_bundle_dir,
         pinned_path=args.pinned_predictions,
         prediction_report_path=args.prediction_report_json,
         expected_predictions_sha256=str(args.pinned_predictions_sha256),
@@ -2237,16 +2251,12 @@ def main() -> int:
     from gx1.contracts.entry_model_native_signal_v1 import (
         MODEL_NATIVE_CTX_CONT_FIELDS, MODEL_NATIVE_CTX_CAT_FIELDS,
     )
-    requested_bundle_dir = args.bundle_dir.expanduser().resolve()
-    prediction_bundle_dir = Path(
-        str(prediction_report.get("bundle_dir") or "")
-    ).expanduser().resolve()
-    if prediction_bundle_dir != requested_bundle_dir:
-        raise RuntimeError(
-            "[parity] prediction evidence bundle does not equal the explicit "
-            f"candidate bundle: prediction={prediction_bundle_dir} "
-            f"candidate={requested_bundle_dir}"
-        )
+    # `requested_bundle_dir` was already handed to
+    # `resolve_and_validate_prediction_evidence` above, which is the single
+    # owner of the "prediction evidence bundle_dir mismatch" comparison and
+    # additionally binds the bundle metadata hash, state-dict hash and
+    # direction-decision contract. A second copy of that comparison here would
+    # be a duplicated contract, not a stronger one (rule 13).
     operating_point = {
         "selection_score": MODEL_DIRECTION_SELECTION_MODE,
         "max_trades": args.max_trades,

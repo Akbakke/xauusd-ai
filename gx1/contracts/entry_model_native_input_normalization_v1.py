@@ -3,9 +3,11 @@
 The model consumes raw, finite XAU feature tensors. This contract fits the
 shared local encoder on the deduplicated physical M5+M1 TRAIN union, context on
 the Entry+Exit TRAIN decision union, and MTF surfaces on actual +5m/+1m route
-consumption. Binary fields remain exact 0/1 evidence; every other field is
-median-centered, robustly scaled, then mapped by an invertible ``asinh``.
-No tail observation is clipped, saturated or collapsed onto a boundary.
+consumption. A field is scaled as a nominal category only when a contract owner
+DECLARES its exact integral domain; every other field -- including a field whose
+fit window happens to show two values -- is median-centered, robustly scaled,
+then mapped by an invertible ``asinh``. No tail observation is clipped,
+saturated or collapsed onto a boundary.
 """
 
 from __future__ import annotations
@@ -26,8 +28,8 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES,
 )
 
-SCHEMA_VERSION = "entry_model_native_input_normalization_v6"
-TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v3"
+SCHEMA_VERSION = "entry_model_native_input_normalization_v7"
+TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v4"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
 CONTINUOUS_TRANSFORM = "asinh_affine_invertible_non_saturating"
 FIT_COLUMN_CHUNK = 32
@@ -364,7 +366,7 @@ def _stats_sha256(
     train_transformed_max: np.ndarray,
 ) -> str:
     digest = hashlib.sha256()
-    digest.update(b"entry_model_native_input_normalization_surface_v2_asinh\0")
+    digest.update(b"entry_model_native_input_normalization_surface_v3_asinh\0")
     digest.update(CONTINUOUS_TRANSFORM.encode("ascii") + b"\0")
     digest.update(bytes.fromhex(_field_names_sha256(field_names)))
     digest.update(np.ascontiguousarray(center, dtype="<f4").tobytes(order="C"))
@@ -762,6 +764,19 @@ def fit_surface_normalization(
             not domain or len(domain) != len(set(domain))
             for domain in categorical_domains.values()
         )
+        # A declared domain must be the exact 0-based range ``0..len-1``.
+        # Origin (rule 2a): every consumer of a declared domain builds
+        # ``nn.Embedding(len(domain), d_model)`` and indexes it with the RAW
+        # field value cast by ``.long()`` -- entry_v10_ctx_hybrid_transformer
+        # does this for the signal surface, for the per-specialist ctx_cont
+        # nominal block and for every MTF lane. A domain such as (-1, 0, 1)
+        # passes every other check here and in the runtime value guard (which
+        # compares against ``min(domain)``/``max(domain)``), then indexes an
+        # embedding table out of range. Fail at declaration instead.
+        or any(
+            tuple(domain) != tuple(range(len(domain)))
+            for domain in categorical_domains.values()
+        )
     ):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_FIELDS_INVALID] "
@@ -802,17 +817,48 @@ def fit_surface_normalization(
                 categorical_mask[index] = np.uint8(1)
                 scale_source[index] = "categorical_embedding_identity"
                 continue
-            is_binary = bool(
-                np.logical_or(column == 0.0, column == 1.0).all()
-                and (column == 0.0).any()
-                and (column == 1.0).any()
-            )
-            if is_binary:
-                center[index] = np.float32(0.0)
-                scale[index] = np.float32(1.0)
-                binary_mask[index] = np.uint8(1)
-                scale_source[index] = "binary_identity"
-                continue
+            # v7 (2026-08-19): the sample-inferred binary branch is REMOVED.
+            # It read ``all(x in {0,1}) and any(x==0) and any(x==1)`` off the
+            # fit window and stamped ``binary_mask``, which
+            # ``apply_surface_normalization`` and the runtime encoder then
+            # enforce as a hard {0,1} domain for the life of the bundle. That
+            # made a window statistic into immutable bundle state with no
+            # declared origin (rule 2a) and no way to fail closed (rule 18).
+            #
+            # PROVEN FROM SOURCE: ``ema_stack_aligned_v2`` emits exactly
+            # {-1.0, 0.0, +1.0} post-warmup -- htf_features fills every defined
+            # row with 0.0, then ``stack[bull] = 1`` / ``stack[bear] = -1`` over
+            # two mutually exclusive strict EMA orderings. Three further signed
+            # ternaries share that construction: ``mtf_level_retest_hold_signed``
+            # and ``mtf_level_retest_fail_signed`` (level_registry_v1, a pure
+            # ``(s > 0) - (s < 0)`` sign extraction), and the five ctx_cont
+            # projections ``{tf}_ema_stack_aligned_v2`` of the first field.
+            # REPORTED MEASUREMENT, not taken by this change (operator, on the
+            # declared TRAIN window 2025-06-01..2026-05-31): the two
+            # ``ema_stack`` names observed only {0, +1} there, were fitted as
+            # binary, and the first D1 bear stack at serve raised
+            # [ENTRY_INPUT_NORMALIZATION_BINARY_VALUE_INVALID] instead of
+            # producing a decision -- so the system could not emit any Entry
+            # action, not even FLAT, in a daily downtrend. Which of the signed
+            # ternaries is captured depends only on which sign the window
+            # happens to contain, which is the defect, not the field.
+            #
+            # No branch replaces it. A field is scaled as a nominal category
+            # only where a contract owner DECLARES its exact domain above;
+            # everything else -- including a genuinely two-valued flag -- takes
+            # the continuous branch below. Two properties of that branch are
+            # proven from the algebra, not assumed:
+            #   * it is injective on two points (a positive affine map followed
+            #     by the strictly increasing asinh), so no evidence is lost and
+            #     the first Linear layer absorbs the change of units; and
+            #   * it cannot newly raise UNSCALEABLE on a two-valued column. If
+            #     at least 75% of the rows share one value the IQR is 0 and the
+            #     median positive absolute deviation is the gap to the other
+            #     value; otherwise the IQR is that same gap. Either way the
+            #     scale is the gap, which is strictly positive whenever the
+            #     column holds two distinct values.
+            # Removing this exception is what rule 2b permits; inferring a
+            # domain from a sample is what it forbids.
             field_center = np.float32(median[local])
             field_scale = np.float32(q75[local] - q25[local])
             source = "raw_iqr"
@@ -965,24 +1011,22 @@ def require_surface_normalization(
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_VALUES_INVALID] surface={surface}"
         )
-    for index, is_binary in enumerate(binary_mask.astype(bool)):
-        if is_binary and (
-            center[index] != np.float32(0.0)
-            or scale[index] != np.float32(1.0)
-            or scale_source[index] != "binary_identity"
-        ):
-            raise RuntimeError(
-                f"[ENTRY_INPUT_NORMALIZATION_BINARY_CONTRACT_INVALID] "
-                f"surface={surface} field={names[index]}"
-            )
-        if is_binary and (
-            transformed_min[index] != 0.0
-            or transformed_max[index] != 1.0
-        ):
-            raise RuntimeError(
-                f"[ENTRY_INPUT_NORMALIZATION_BINARY_TRAIN_SUPPORT_INVALID] "
-                f"surface={surface} field={names[index]}"
-            )
+    # v7 (2026-08-19): no fit may stamp ``binary_mask`` any more (see the
+    # removed inference in ``fit_surface_normalization``), so a surface that
+    # carries one was fitted by the pre-v7 owner and its center/scale for that
+    # field is an identity chosen from a window, not a fitted statistic. That
+    # is stale immutable bundle state (rule 18) and is rejected here rather
+    # than silently re-admitted. The key itself stays in the schema because the
+    # runtime encoder registers an ``input_norm_{surface}_binary_mask`` buffer
+    # from it and applies the same identity rule; retiring the key belongs to
+    # that owner's wave, not this contract's.
+    if int(binary_mask.sum()) != 0:
+        raise RuntimeError(
+            f"[ENTRY_INPUT_NORMALIZATION_INFERRED_BINARY_MASK_FORBIDDEN] "
+            f"surface={surface} "
+            f"fields={[names[index] for index in np.flatnonzero(binary_mask)][:10]}"
+        )
+    for index in range(len(names)):
         is_categorical = bool(categorical_mask[index])
         if is_categorical:
             domain = categorical_domains.get(names[index])
@@ -994,6 +1038,11 @@ def require_surface_normalization(
                 or not domain
                 or any(isinstance(item, bool) or not isinstance(item, int) for item in domain)
                 or len(domain) != len(set(domain))
+                # Same 0-based-range requirement the fit enforces: the runtime
+                # encoder indexes an ``nn.Embedding(len(domain), d_model)`` with
+                # the raw value, so a stored domain outside ``0..len-1`` is an
+                # out-of-range table lookup, not a strict-load failure.
+                or domain != list(range(len(domain)))
             ):
                 raise RuntimeError(
                     f"[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_CONTRACT_INVALID] "
@@ -1007,7 +1056,7 @@ def require_surface_normalization(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
-        if not is_binary and not is_categorical and scale_source[index] not in {
+        if not is_categorical and scale_source[index] not in {
             "raw_iqr",
             "median_positive_abs_deviation",
         }:
@@ -1016,8 +1065,7 @@ def require_surface_normalization(
                 f"surface={surface} field={names[index]}"
             )
         if (
-            not is_binary
-            and not is_categorical
+            not is_categorical
             and transformed_min[index] >= transformed_max[index]
         ):
             raise RuntimeError(
@@ -1388,6 +1436,10 @@ def apply_surface_normalization(
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_WIDTH_MISMATCH]")
     if not np.isfinite(matrix).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_NONFINITE]")
+    # v7: no fit stamps ``binary_mask`` and ``require_surface_normalization``
+    # rejects a surface that carries one, so this guard is reached only from a
+    # caller that hands in an unvalidated payload. It stays because the key is
+    # still in the schema and the runtime encoder still honours it.
     if binary.any():
         binary_values = matrix[..., binary]
         if not np.logical_or(binary_values == 0.0, binary_values == 1.0).all():

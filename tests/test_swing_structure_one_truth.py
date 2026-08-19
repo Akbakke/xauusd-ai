@@ -626,15 +626,31 @@ def test_spread_dynamics_is_causal_exact_and_strict() -> None:
     # It really moves on this tape - a constant field would pass a shape test.
     assert np.count_nonzero(delta[1:]) == len(delta) - 1
 
+    # Quote width at the bar's own extremes, summed. Read by CONTRACT POSITION
+    # so this assertion measures the emitted VALUE, not the field's spelling:
+    # the retired `spread_intrabar_range_bps` envelope sat in this same slot.
+    ask_high = frame["ask_high"].to_numpy(dtype=np.float64)
+    ask_low = frame["ask_low"].to_numpy(dtype=np.float64)
+    bid_high = frame["bid_high"].to_numpy(dtype=np.float64)
+    bid_low = frame["bid_low"].to_numpy(dtype=np.float64)
+    quote_width_field = SPREAD_DYNAMICS_FEATURE_NAMES_V1[1]
     np.testing.assert_allclose(
-        observed["spread_intrabar_range_bps"],
+        observed[quote_width_field],
         (
-            (frame["ask_high"].to_numpy() - frame["bid_low"].to_numpy())
-            / close
-            * 1e4
+            ((ask_high - bid_high) + (ask_low - bid_low)) / close * 1e4
         ).astype(np.float32),
         rtol=1e-5,
     )
+    # The retired `(ask_high - bid_low)` envelope carried the mid bar range on
+    # top of the spread (measured on the complete declared native M5 tape
+    # 2026-08-19: r=0.9259 with the mid range). It is a different number here,
+    # so this slot can never silently fall back to it.
+    assert not np.allclose(
+        observed[quote_width_field],
+        ((ask_high - bid_low) / close * 1e4).astype(np.float32),
+        rtol=1e-3,
+    )
+    assert quote_width_field == "spread_extremes_sum_bps"
     np.testing.assert_allclose(
         observed["quote_range_asymmetry_bps"],
         (
@@ -650,8 +666,9 @@ def test_spread_dynamics_is_causal_exact_and_strict() -> None:
     # Signed, not an absolute magnitude: both signs must survive.
     assert observed["quote_range_asymmetry_bps"].min() < 0.0
     assert observed["quote_range_asymmetry_bps"].max() > 0.0
-    # The envelope is non-negative by the quote geometry the producer enforces.
-    assert (observed["spread_intrabar_range_bps"] >= 0.0).all()
+    # Non-negative by the ask_high>=bid_high / ask_low>=bid_low geometry the
+    # producer already enforces — each term is a quote width, not a range.
+    assert (observed[quote_width_field] >= 0.0).all()
 
 
 def test_spread_dynamics_is_past_only_and_fails_closed() -> None:

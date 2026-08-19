@@ -37,6 +37,18 @@ Mid-only substitution and synthetic gap filling are forbidden.
   (`MODEL_NATIVE_CTX_CONT_DIM` / `MODEL_NATIVE_CTX_CAT_DIM`) — restated counts
   here were stale by a factor of two within days;
 - same eight specialist owners, formulas, taxonomy, field order and lineage;
+- the exact schema-version identities, **named here but never restated**:
+  `MODEL_NATIVE_SIGNAL_SCHEMA_VERSION`,
+  `MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION` and
+  `MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION` in the signal owner;
+  `HTF_V4_MATRIX_CONTRACT`, `HTF_V4_CACHE_SCHEMA_VERSION` and
+  `HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION` in `gx1/features/htf_features.py`;
+  `CANDLE_PRIMITIVE_FEATURE_VERSION` in
+  `gx1/features/entry_candle_primitives_v1.py`; and `SCHEMA_VERSION` /
+  `TRANSFORM` in `gx1/contracts/entry_model_native_input_normalization_v1.py`.
+  `bash scripts/gx1_handover.sh` prints them, and an artifact whose version
+  differs fails closed before a byte is read. Six of them moved on 2026-08-19
+  in one uncommitted wave, which is precisely why none is written down here;
 - same dataset run ID, split boundaries and TRAIN normalization;
 - Entry local M5 sequence 96 plus closed M15/H1/H4/D1 context;
 - Exit local M1 sequence 480 plus closed M5/M15/H1/H4/D1 context, maximum path
@@ -91,9 +103,17 @@ the manifest binds source, tape, split, pair, clock/bar-grid, file/payload
 hashes and common TRAIN lineage. Bare/default/cross-clock parameters, fitting
 on VAL/TEST/live and resampling computed squeeze fields are forbidden. Fit and
 serve must decode with the same causal filter, and the admission gate rejects
-parameters whose low state is unreachable. The six production artifacts
-(`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`) are fitted and admitted; no downstream
-V30/V31 rebuild on them is admitted yet.
+parameters whose low state is unreachable. Six per-clock production artifacts
+are fitted and admitted, but **no artifact path or hash is named here** (rule
+13): three non-retired six-clock sets sit under
+`/home/andre2/GX1_DATA/data/data/prebuilt/VOLATILITY_SQUEEZE_SIXCLOCK_*` with
+three different `contract_sha256`, and the V31 chains bound
+`..._GEN1f9424_20260818T160532Z`, not the `..._20260818` set the documents named
+until 2026-08-19. Resolve the binding from the consuming run's own V4 cache
+manifest key `volatility_squeeze_artifact_set`. No downstream rebuild is
+admitted: V31 chains have run repeatedly since 2026-08-18 and every one that
+reached a terminal event ended RED, while the newest has no terminal event at
+all, so its partial output is invalid (rule 7).
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through
@@ -119,9 +139,44 @@ fits feature ranking and input normalization. Recipe/model selection cannot
 read TEST. Calibration may use only its declared held-out non-TEST split. TEST
 opens once after a candidate and all calibration bytes are frozen.
 
+A fit window may observe a field's values but may never define its domain. The
+sample-inferred binary branch was REMOVED from input normalization on
+2026-08-19: it stamped `binary_mask` from `all(x in {0,1})` over the fit window,
+turning a window statistic into immutable bundle state with no declared origin
+(rule 2a) and no way to fail closed (rule 18). Proven from source, several
+signed ternaries emit `{-1, 0, +1}`; on the then-declared TRAIN window two
+`ema_stack_aligned_v2` names happened to contain only `{0, +1}`, were fitted as
+binary, and the first bear stack at serve raised
+`[ENTRY_INPUT_NORMALIZATION_BINARY_VALUE_INVALID]` — no Entry action at all, not
+even FLAT, in a daily downtrend. A field is now scaled as a nominal category
+only where a contract owner DECLARES its exact domain; everything else,
+including a genuinely two-valued flag, takes the continuous branch. No branch
+replaces the removed one.
+
 Every split manifest binds source/pair identity, builder commit, dataset run
 ID, exact fields/order, row count, time range, target contract, lifecycle and
 all content hashes. A training run ID must differ from the dataset run ID.
+
+`--history-start` is not free. It must precede `--train-start` by at least the
+widest per-timeframe receptive field in `PRODUCTION_MTF_PER_TF_WINDOW_BARS`
+(`gx1/contracts/entry_exit_production_architecture_v1.py`) — the D1 lane —
+counted as real closed D1 bars on the same axis the V4 cache uses, never as
+calendar days, because the row clock skips weekends and closures. The chain
+enforces this at `model-source-identity` alongside the existing 96-row local M5
+sequence warmup; a `--history-start` that satisfies the M5 warmup can still
+leave the first TRAIN rows with an incomplete daily receptive field, and until
+2026-08-19 nothing said so. The measured consequence for the current tape, and
+the derivation of the declared TRAIN window, are in
+`docs/TRAIN_WINDOW_WIDENING_20260819.md`.
+
+Forward label purging at a split boundary needs no separate owner and must not
+acquire one: the builder rebuilds each split with its own computation end, so
+the direction/path horizon truncation, the auxiliary union-completeness mask
+and the Exit lifecycle `crosses_split_end` guard all bite at every window end,
+each measured in rows on that split's own clock. There is no backward embargo
+and none is required — feature lookback is causal and is exactly what serving
+does, so the D1 receptive field is the warmup requirement above, not a leakage
+one.
 
 ## Exit lifecycle
 
@@ -136,13 +191,18 @@ Entry and Exit consume the exact same feature definitions; the causal 15-field
 in-trade path is additive and never replaces the shared M1 surface.
 Two state probes per side are selected by entry/side/source coordinates before
 the target is inspected. Tied targets are omitted without inventing a class.
-The Exit target horizon is not a CLI constant. One
-`gx1_unified_exit_target_policy_v1` is fit on feature-ready native TRAIN M1
-rows only: its economic indifference band is the TRAIN median executable
-spread, and its horizon is the exact maximum-chord knee of the cumulative
-1..512-row material-improvement discovery curve. The fit population, source,
-curve, selected horizon and policy hash are frozen before VAL/TEST; the corpus
-recomputes the policy from the bound TRAIN bytes and fails on any drift.
+Exit supervision has no caller-selected lookahead and **no fitted horizon at
+all**. Every supervised state of every episode is owned by
+`gx1/contracts/unified_exit_fitted_q_v1.py`: HOLD bootstraps from a frozen
+TRAIN target-network snapshot at the next causal state, EXIT_NOW terminates at
+the current executable quote. There is no discount, indifference band or
+lookahead window, and the pathwise hindsight optimum in
+`gx1/contracts/unified_exit_optimal_stopping_v1.py` is explicitly never a
+training target. Until 2026-08-19 this paragraph described a
+`gx1_unified_exit_target_policy_v1` with a TRAIN-median-spread indifference
+band and a 1..512 discovery-curve knee; no such owner has ever existed in
+source, and `tests/test_entry_v10_outcome_targets.py` asserts its absence in
+the builder.
 The owner can stream every non-tied state in bounded chunks; until checkpoint
 selection evaluates that full stream, probe-only validation is not acceptance
 evidence. Candidate training performs that complete post-selection VAL pass;
@@ -151,19 +211,29 @@ promoted.
 
 The persisted Exit full-input envelope binds the exact first/last M1 sequence
 timestamps and signal/context tensor hashes, all five MTF tensor/cache hashes,
-and the frozen little-endian float32 bytes/hash of the learned 609-to-128
-six-block Entry-decision token projection, plus path, side, entry quotes, trade ID,
-bundle and dataset/pair identities.
+and the frozen little-endian float32 bytes/hash of the learned six-block
+Entry-decision token projection, plus path, side, entry quotes, trade ID,
+bundle and dataset/pair identities. **The projection's block names and both
+widths are owned by `gx1/contracts/entry_decision_token_v1.py`
+(`ENTRY_DECISION_TOKEN_SOURCE_DIM`, `ENTRY_DECISION_TOKEN_DIM`) and are not
+restated here** (rule 13): this sentence said "609-to-128" until 2026-08-19,
+by which date the owner reported a different source width.
 The detailed in-trade path is a latest-512 rolling tail. A learned input sees
 the absolute elapsed bar index, while `full_path_chain_sha256` commits every
 dropped row. Neither serving nor offline replay forces EXIT_NOW at row 512.
 
 ## Targets and replay
 
-Future outcomes are supervision only and are never model inputs. Direction's
-declared horizon is 24 observed M5 bars. When higher-resolution M1 prices are
-used, replay resolves the target M5 bucket and then its last observed M1 row;
-it must not add 24 M1 rows.
+Future outcomes are supervision only and are never model inputs. **Direction's
+horizon is not a constant and is not restated here**: it is TRAIN-fitted per
+build by the maximum-chord knee of the cumulative material-profit discovery
+curve over candidates `1..ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS`
+(`gx1/contracts/entry_direction_target_policy_v1.py`), and each build freezes
+the selected value into its own `DATASET_BUILD_PROOF.json` as
+`diagnostic_outcome_horizon_bars`. This paragraph claimed a fixed 24 M5 bars
+until 2026-08-19; there is no 24 in the owner. The horizon is always M5 bars —
+when higher-resolution M1 prices are used, replay resolves the target M5 bucket
+and then its last observed M1 row, and may never count M1 rows as M5 bars.
 
 The accepted final evidence route freezes one candidate, evaluates untouched
 TEST and replays that same bundle's Exit head from exact T+5 fills. Caller-made
@@ -189,7 +259,14 @@ canonical trainer at 20G (raised from 10G on 2026-08-09 on real batch-640
 RSS measurement; see CLAUDE.md); swap at 512 MiB and CPU at 0-1. Feature production uses one worker; model DataLoaders use zero
 subprocess workers. Training is deterministic FP32 without compile, autocast or
 TF32. Memmap scheduling is fixed in source, not environment-tunable. Generated
-evidence is deleted only after retention/reachability proof.
+evidence is deleted only after retention/reachability proof. **That proof is
+partly UNIMPLEMENTED** (CLAUDE.md rule 9): `authority_protected_paths` in
+`gx1/contracts/evidence_retention_v1.py` harvests absolute path strings from
+three repo-root `PROJECT_STATE_*.json` files and never opens a manifest under
+`GX1_DATA`, so no successor parent pointer and no lineage binding is ever
+followed. Measured 2026-08-19 by executing that function: 3 protected paths,
+one of them already gone, over a 34 GB tree. Data-to-data reachability must be
+proven by hand until the owner covers it.
 
 ## Retired ancestors
 

@@ -214,7 +214,7 @@ function is untouched):
 | field | formula | domain |
 |---|---|---|
 | `spread_bps_delta_1` | `spread_bps[t] - spread_bps[t-1]` | signed bps, honest NaN on row 0 |
-| `spread_intrabar_range_bps` | `(ask_high - bid_low) / close * 1e4` | non-negative by the enforced quote geometry |
+| `spread_extremes_sum_bps` | `((ask_high - bid_high) + (ask_low - bid_low)) / close * 1e4` | non-negative by the enforced quote geometry (repaired 2026-08-19: the retired `spread_intrabar_range_bps` envelope was r=0.9259 with the mid bar range) |
 | `quote_range_asymmetry_bps` | `((ask_high-ask_low) - (bid_high-bid_low)) / close * 1e4` | signed bps |
 
 **Purpose fence:** abstention and execution-regime evidence, NOT a direction

@@ -35,14 +35,14 @@ BASIC_V1_FEATURES = (
     "_v1_ema_diff",
     "_v1_vwap_drift48",
     "_v1_bb10_bandwidth_change_3",
-    "_v1_ema3_ema6_spread_frac",
+    "_v1_ema3_ema6_spread_atr",
     "_v1_range_z",
     "_v1_kurt_r",
     "_v1_tema20_change_3_atr",
     "_v1_bb_squeeze_20_2",
     "_v1_kama30_change_5_atr",
 )
-BASIC_V1_SCHEMA_VERSION = "gx1_basic_v1_active_surface_v3"
+BASIC_V1_SCHEMA_VERSION = "gx1_basic_v1_active_surface_v4"
 BASIC_V1_FEATURES_SHA256 = hashlib.sha256(
     "\n".join(BASIC_V1_FEATURES).encode("utf-8")
 ).hexdigest()
@@ -52,7 +52,7 @@ BASIC_V1_FORMULA_CONTRACT = (
     "ema_diff=classic_ema_sma_seed_spans12_26_over_wilder_atr14_current_closed_bar",
     "vwap_drift48=full_volume_weighted_window48",
     "bb10_bandwidth_change3=full_window10_change3_current_closed_bar",
-    "ema3_ema6_spread_frac=classic_ema_sma_seed_spans3_6_current_closed_bar",
+    "ema3_ema6_spread_atr=classic_ema_sma_seed_spans3_6_over_wilder_atr14_current_closed_bar",
     "range_z=full_window48_ddof0_current_closed_bar",
     "kurt_r=48_observed_returns_unbiased_fisher_current_closed_bar",
     "tema20_change3_atr=three_classic_ema_sma_seed_layers_change3_over_atr_current_closed_bar",
@@ -71,7 +71,7 @@ BASIC_V1_FIRST_FINITE_ROW = {
     "_v1_ema_diff": 25,
     "_v1_vwap_drift48": 47,
     "_v1_bb10_bandwidth_change_3": 12,
-    "_v1_ema3_ema6_spread_frac": 5,
+    "_v1_ema3_ema6_spread_atr": 13,
     "_v1_range_z": 47,
     "_v1_kurt_r": 48,
     "_v1_tema20_change_3_atr": 60,
@@ -651,13 +651,48 @@ def build_basic_v1(
     t_bb_end = time.perf_counter()
     perf_add("feat.basic_v1.bb_family", t_bb_end - t_bb_start)
 
-    # 3) Pre-trend booster: kort EMA-slope på close (3 vs 6)
+    # 3) Pre-trend booster: kort EMA-spread på close (3 vs 6)
+    # 2026-08-19 volatility-coupling repair. The field was
+    # (ema3 - ema6) / ema6 -- a PRICE fraction, hence its retired ``_frac``
+    # name; the retired literal itself is not restated inside ``gx1/`` because
+    # the stale-path scanner in tests/test_basic_v1_features.py owns it.
+    # A price fraction of a trend displacement carries the volatility regime
+    # inside its magnitude: over the declared TRAIN window the realised
+    # volatility roughly doubles, and the measured IQR width of this field
+    # doubled with it (last third / first third = 1.96 on 70,554 TRAIN rows,
+    # 2026-08-19), while every ATR-normalized sibling in this file stayed flat
+    # (_v1_ema_diff 0.93, _v1_tema20_change_3_atr 0.94,
+    # _v1_kama30_change_5_atr 0.94). "45 bps above the slow EMA" cannot be
+    # told apart from "a loud market"; "1.2 ATR" can.
+    #
+    # No magnitude is invented: the denominator is switched to the exact
+    # ATR-multiple convention this file already uses three times above -
+    # ``_divide_where_positive(numerator, atr14_arr)`` on the file's own single
+    # ``wilder_atr(high, low, close, 14)`` source. That construct is bit-identical
+    # to technical_indicators_v1.wilder_atr14_positive (same wilder_atr call,
+    # same strictly-positive mask, NaN where ATR <= 0, never an epsilon floor);
+    # calling it here would create a second ATR evaluation for one clock, so the
+    # in-file owner is reused (rule 19).
+    #
+    # Rule 4 - no market evidence is removed. The retired denominator ema6 is
+    # a smoothing of ``close``, which stays a model input in its own right, and
+    # the numerator (ema3 - ema6) is preserved exactly; only the unit changes,
+    # from price-fraction to ATR multiples. The price-relative view of the same
+    # displacement family is still carried by _v1_vwap_drift48 and
+    # _v1_bb10_bandwidth_change_3, and the volatility level itself by
+    # _v1_atr14 / _v1_pk_sigma20 / _v1_range_z, so the model can still recover
+    # (ema3 - ema6)/close as (ATR-multiple) x (_v1_atr14 / close) if that is
+    # what it wants.
+    #
+    # Warmup: the numerator is finite from row 5 (ema6 SMA seed) and atr14 from
+    # row 13 (Wilder SMA seed, BASIC_V1_FIRST_FINITE_ROW["_v1_atr14"]), so the
+    # emitted first finite row is max(5, 13) = 13. Both derived, not chosen.
     ema3 = _ema(df["close"], 3)
     ema6 = _ema(df["close"], 6)
     ema3_arr = ema3.to_numpy(dtype=np.float64) if hasattr(ema3, 'to_numpy') else np.asarray(ema3, dtype=np.float64)
     ema6_arr = ema6.to_numpy(dtype=np.float64) if hasattr(ema6, 'to_numpy') else np.asarray(ema6, dtype=np.float64)
-    ema_slope = _divide_where_positive(ema3_arr - ema6_arr, ema6_arr)
-    df["_v1_ema3_ema6_spread_frac"] = ema_slope
+    ema_spread_atr = _divide_where_positive(ema3_arr - ema6_arr, atr14_arr)
+    df["_v1_ema3_ema6_spread_atr"] = ema_spread_atr
 
     # Local range state.
     high_arr = df["high"].to_numpy(dtype=np.float64)

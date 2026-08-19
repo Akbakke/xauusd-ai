@@ -29,6 +29,8 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         'feature ranking timestamp cannot be in the future',
         'source does not cover the declared common history/test window',
         'pre_train_rows < 96',
+        'declared common history does not cover the D1 receptive field',
+        'pre_train_d1_bars < required_d1_warmup_bars',
         'MANIFEST="$EVENT/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_${MANIFEST_STAMP}.json"',
         'fresh signal manifest allocation collided',
         'preflight output directory must be fresh',
@@ -122,7 +124,24 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert '"entry_run_id": run_id' in source
     assert '"step": step' in source
     assert '"state": state' in source
-    assert '"schema_version": "seq513_rebuild_chain_status_v9"' in source
+    # ONE OWNER (rule 13): the chain status schema string is imported from the
+    # readiness gate, never restated. It was restated here as
+    # "seq513_rebuild_chain_status_v9" while the gate required a different
+    # version, which made post-rebuild readiness permanently RED with both test
+    # suites green.
+    from gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 import (
+        CHAIN_SCHEMA,
+    )
+
+    assert (
+        "from gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 import"
+        in source
+    )
+    assert '"schema_version": CHAIN_SCHEMA' in source
+    code = "\n".join(
+        line for line in source.splitlines() if not line.lstrip().startswith("#")
+    )
+    assert f'"{CHAIN_SCHEMA}"' not in code
     assert '"next_boundary": (' in source
     assert '"unified_exit_lifecycle_dir": exit_lifecycle_dir' in source
     assert "stopped before post-rebuild audits/readiness" in source
@@ -418,3 +437,46 @@ def test_no_producer_route_binds_a_split_manifest_it_runs_before() -> None:
     # The tape and pair bindings are real source authority and must remain.
     assert "--tape-manifest" in control
     assert "--pair-manifest" in control
+
+
+def test_chain_enforces_the_d1_receptive_field_warmup_from_its_owner() -> None:
+    """--history-start must clear the widest per-TF receptive field, not 96 M5 rows.
+
+    The 96-row check only covers the local M5 sequence. The dominant warmup is
+    the D1 lane of PRODUCTION_MTF_PER_TF_WINDOW_BARS, and nothing checked it
+    until 2026-08-19, so a --history-start that passed could still leave the
+    first TRAIN rows with an incomplete daily receptive field.
+    """
+
+    from gx1.contracts.entry_exit_production_architecture_v1 import (
+        PRODUCTION_MTF_PER_TF_WINDOW_BARS,
+    )
+
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    # Rule 13: the width is imported and evaluated, never restated as a literal.
+    assert (
+        "from gx1.contracts.entry_exit_production_architecture_v1 import" in source
+    )
+    assert "PRODUCTION_MTF_PER_TF_WINDOW_BARS" in source
+    assert (
+        'required_d1_warmup_bars = int(dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)["D1"])'
+        in source
+    )
+    required = int(dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)["D1"])
+    assert f"< {required}" not in source
+    assert f"= {required}" not in source
+
+    # Bars are counted on the V4 closed-D1 axis, never as calendar days: the row
+    # clock skips weekends and closures, so a day rule overstates the warmup.
+    assert (
+        "from gx1.features.htf_features import "
+        "build_multi_tf_v4_closed_timestamp_indices" in source
+    )
+    assert 'build_multi_tf_v4_closed_timestamp_indices(times.as_unit("ns"))["D1"]' in (
+        source
+    )
+    assert "(d1_axis >= history_start) & (d1_axis < train_start)" in source
+
+    # The pre-existing local M5 sequence check is kept, not replaced.
+    assert "pre_train_rows < 96" in source

@@ -4,14 +4,28 @@
 # shared trainer path.
 set -euo pipefail
 
-MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v18
 MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native
-MODEL_NATIVE_SIGNAL_DIM=279
 PROFILE=
 
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd -P)"
 PY="$REPO/.venv/bin/python"
+
+# Rule 13/14: these two were hand-written literals here and went stale by
+# construction -- on 2026-08-19 they read v18/279 while the owner evaluated to
+# v20/238, so --specialist-contract-mode failed exact equality and the training
+# chain could not start at all.  The width was worse than stale: it was printed
+# by --dry-run as "Validated ... width=279", a diagnostic that reads as a
+# validation result for a number nothing had checked (rule 2e).  Both are now
+# read from the one contract owner at launch, so a contract bump cannot leave
+# this wrapper behind again.
+read -r MODEL_NATIVE_CONTRACT_MODE MODEL_NATIVE_SIGNAL_DIM < <(
+  "$PY" -c 'import gx1.contracts.entry_model_native_signal_v1 as s; print(s.MODEL_NATIVE_CONTRACT_MODE, s.MODEL_NATIVE_SIGNAL_DIM)'
+) || { echo "FATAL: cannot read model-native signal contract owner" >&2; exit 1; }
+if [[ -z "$MODEL_NATIVE_CONTRACT_MODE" || -z "$MODEL_NATIVE_SIGNAL_DIM" ]]; then
+  echo "FATAL: model-native signal contract owner returned no identity" >&2
+  exit 1
+fi
 CAPPED_RUNNER="$REPO/scripts/gx1_capped_run.sh"
 ENV_BIN=/usr/bin/env
 

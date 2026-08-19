@@ -127,8 +127,12 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
 def _synthetic_enriched_sample_with_price_warmup(
     rows: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    source_frame = _synthetic_enriched_frame(rows + 202)
-    sample_frame = source_frame.iloc[202:].reset_index(drop=True).copy()
+    # Derived from the producing owner, never restated (rule 13): the local
+    # EMA-slope repair of 2026-08-19 moved this floor 201 -> 204 and a literal
+    # 202 here silently emitted rows the layer declares undefined.
+    warmup = PRICE_DERIVED_CAUSAL_WARMUP_ROWS
+    source_frame = _synthetic_enriched_frame(rows + warmup)
+    sample_frame = source_frame.iloc[warmup:].reset_index(drop=True).copy()
     return sample_frame, source_frame
 
 

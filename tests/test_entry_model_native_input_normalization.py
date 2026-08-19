@@ -121,15 +121,22 @@ def _contract() -> tuple[dict, dict[str, list[str]], dict[str, np.ndarray]]:
     )
 
 
-def test_robust_fit_preserves_binary_and_scales_large_and_sparse_fields() -> None:
+def test_robust_fit_scales_large_two_valued_and_sparse_fields_alike() -> None:
+    # v7: a two-valued column has no identity exception any more. It is fitted
+    # by the same median/IQR route as everything else, which is injective on
+    # two points, so nothing about the evidence changes -- only the claim that
+    # the fit knew the field's domain.
     fitted, _, matrix = _surface("signal")
     transformed = apply_surface_normalization(matrix, fitted)
 
-    assert fitted["binary_mask"] == [0, 1, 0]
+    assert fitted["binary_mask"] == [0, 0, 0]
+    assert fitted["binary_field_count"] == 0
     assert fitted["scale_source"][0] == "raw_iqr"
-    assert fitted["scale_source"][1] == "binary_identity"
+    assert fitted["scale_source"][1] == "raw_iqr"
     assert fitted["scale_source"][2] == "median_positive_abs_deviation"
-    np.testing.assert_array_equal(transformed[:, 1], matrix[:, 1])
+    assert np.unique(transformed[:, 1]).size == np.unique(matrix[:, 1]).size
+    order = np.argsort(matrix[:, 1], kind="stable")
+    assert np.all(np.diff(transformed[order, 1]) >= 0.0)
     assert np.isfinite(transformed).all()
     np.testing.assert_allclose(
         invert_surface_normalization(transformed, fitted),
@@ -208,12 +215,25 @@ def test_fit_rejects_nonfinite_and_constant_nonbinary_fields() -> None:
             field_names=["level_present"],
         )
 
+
+def test_require_rejects_a_surface_that_carries_an_inferred_binary_mask() -> None:
+    # A pre-v7 surface stamped ``binary_mask`` from its fit window. Those
+    # center/scale values are a window artefact, not a fitted statistic, so the
+    # surface is stale immutable bundle state and must not be re-admitted. The
+    # mask is checked before the stats hash, so this test fails -- on the wrong
+    # error code -- if the check is removed.
     fitted, names, _ = _surface("signal")
-    saturated = copy.deepcopy(fitted)
-    saturated["train_transformed_min"][1] = 1.0
-    with pytest.raises(RuntimeError, match="BINARY_TRAIN_SUPPORT_INVALID"):
+    stale = copy.deepcopy(fitted)
+    stale["binary_mask"][1] = 1
+    stale["binary_field_count"] = 1
+    stale["center"][1] = 0.0
+    stale["scale"][1] = 1.0
+    stale["scale_source"][1] = "binary_identity"
+    stale["train_transformed_min"][1] = 0.0
+    stale["train_transformed_max"][1] = 1.0
+    with pytest.raises(RuntimeError, match="INFERRED_BINARY_MASK_FORBIDDEN"):
         normalization_contract.require_surface_normalization(
-            saturated,
+            stale,
             surface="signal",
             field_names=names,
         )
@@ -256,12 +276,85 @@ def test_contract_binds_all_surface_names_stats_and_fit_lineage() -> None:
         )
 
 
-def test_binary_contract_rejects_unseen_nonbinary_runtime_value() -> None:
-    fitted, _, matrix = _surface("signal")
-    changed = matrix.copy()
-    changed[0, 1] = 0.5
-    with pytest.raises(RuntimeError, match="BINARY_VALUE_INVALID"):
-        apply_surface_normalization(changed, fitted)
+def test_two_valued_fit_window_never_becomes_an_immutable_binary_domain() -> None:
+    # THE regression this contract version exists for.
+    #
+    # ``ema_stack_aligned_v2`` emits exactly {-1.0, 0.0, +1.0} by construction:
+    # htf_features fills every EMA-defined row with 0.0, then writes 1 on a
+    # strictly ascending EMA stack and -1 on a strictly descending one. A TRAIN
+    # window containing no bear stack therefore shows only {0, +1}. The pre-v7
+    # fit read that window, stamped ``binary_mask``, and the first served -1
+    # raised [ENTRY_INPUT_NORMALIZATION_BINARY_VALUE_INVALID] -- so no Entry
+    # action at all, not even FLAT, could be produced in a daily downtrend.
+    train = np.where(
+        np.arange(256) % 3 == 0,
+        1.0,
+        0.0,
+    ).astype(np.float32).reshape(-1, 1)
+    fitted = fit_surface_normalization(
+        train,
+        surface="mtf_d1",
+        field_names=["ema_stack_aligned_v2"],
+    )
+    assert fitted["binary_mask"] == [0]
+    assert fitted["categorical_mask"] == [0]
+    assert fitted["scale_source"] == ["raw_iqr"]
+
+    served = np.array([[-1.0], [0.0], [1.0]], dtype=np.float32)
+    transformed = apply_surface_normalization(served, fitted)
+    assert np.isfinite(transformed).all()
+    assert np.all(np.diff(transformed[:, 0]) > 0.0)
+    assert np.unique(transformed[:, 0]).size == 3
+    np.testing.assert_allclose(
+        invert_surface_normalization(transformed, fitted),
+        served,
+        rtol=2e-6,
+        atol=2e-6,
+    )
+
+
+def test_declared_domain_must_be_the_zero_based_range_the_embedding_indexes() -> None:
+    # The runtime encoder builds ``nn.Embedding(len(domain), d_model)`` and
+    # indexes it with the raw field value, so a signed domain is an
+    # out-of-range table lookup rather than a strict-load failure. Declaring
+    # one must fail at the contract, both on fit and on load.
+    signed = np.array([[-1.0], [0.0], [1.0]] * 8, dtype=np.float32)
+    with pytest.raises(RuntimeError, match="CATEGORICAL_FIELDS_INVALID"):
+        fit_surface_normalization(
+            signed,
+            surface="mtf_d1",
+            field_names=["signed_state"],
+            semantic_categorical_domains={"signed_state": (-1, 0, 1)},
+        )
+    gapped = np.array([[0.0], [1.0], [3.0]] * 8, dtype=np.float32)
+    with pytest.raises(RuntimeError, match="CATEGORICAL_FIELDS_INVALID"):
+        fit_surface_normalization(
+            gapped,
+            surface="mtf_d1",
+            field_names=["gapped_state"],
+            semantic_categorical_domains={"gapped_state": (0, 1, 3)},
+        )
+
+    values = np.column_stack(
+        [
+            np.arange(25, dtype=np.float32),
+            np.arange(25, dtype=np.float32) % 5,
+        ]
+    )
+    fitted = fit_surface_normalization(
+        values,
+        surface="mtf_m5",
+        field_names=["momentum", "regime_class_id"],
+        semantic_categorical_domains={"regime_class_id": (0, 1, 2, 3, 4)},
+    )
+    stored = copy.deepcopy(fitted)
+    stored["categorical_domains"]["regime_class_id"] = [0, 1, 2, 3, 5]
+    with pytest.raises(RuntimeError, match="CATEGORICAL_CONTRACT_INVALID"):
+        normalization_contract.require_surface_normalization(
+            stored,
+            surface="mtf_m5",
+            field_names=["momentum", "regime_class_id"],
+        )
 
 
 def test_semantic_categorical_field_is_domain_checked_and_not_scaled() -> None:
@@ -324,7 +417,7 @@ def test_numpy_torch_asinh_transform_parity_and_source_guards() -> None:
     fitted = fit_surface_normalization(
         values,
         surface="ctx_cont",
-        field_names=["continuous", "binary", "category"],
+        field_names=["continuous", "two_valued", "category"],
         semantic_categorical_domains={"category": (0, 1, 2, 3, 4)},
     )
     numpy_result = apply_surface_normalization(values, fitted)
@@ -352,7 +445,10 @@ def test_numpy_torch_asinh_transform_parity_and_source_guards() -> None:
         rtol=2e-6,
         atol=2e-6,
     )
-    np.testing.assert_array_equal(numpy_result[:, 1:], values[:, 1:])
+    # Only the DECLARED categorical passes through as identity. The
+    # two-valued column is fitted and transformed like any other field.
+    np.testing.assert_array_equal(numpy_result[:, 2], values[:, 2])
+    assert not np.array_equal(numpy_result[:, 1], values[:, 1])
 
     contract_source = inspect.getsource(normalization_contract)
     for retired in (

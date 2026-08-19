@@ -114,6 +114,7 @@ MODEL_NATIVE_TRAINING_SPECIALISTS = tuple(SPECIALIST_GROUPS)
 from gx1.features.htf_features import (  # noqa: E402
     LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
     MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES,
     MULTI_TF_V4_LEVEL_REGISTRY_FEATURES,
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
@@ -214,7 +215,12 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
             "price_action_candle_encoder",
             (
                 "close_open_atr",
-                "body_pct",
+                # ``body_pct`` left this group on 2026-08-19 with the per-TF
+                # surface: it was exactly
+                # ``abs(mtf_candle_raw_body_signed_range)`` on every row of
+                # every lane, and that signed twin is already routed here by
+                # MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES below, so the
+                # specialist keeps the same evidence with the sign added.
                 *MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES,
             ),
         ),
@@ -350,8 +356,8 @@ CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     # bar — abstention/execution-regime evidence, never direction evidence.
     "ctx_cont.spread_bps_delta_1": "session_regime_encoder",
     "spread_bps_delta_1": "session_regime_encoder",
-    "ctx_cont.spread_intrabar_range_bps": "session_regime_encoder",
-    "spread_intrabar_range_bps": "session_regime_encoder",
+    "ctx_cont.spread_extremes_sum_bps": "session_regime_encoder",
+    "spread_extremes_sum_bps": "session_regime_encoder",
     "ctx_cont.quote_range_asymmetry_bps": "session_regime_encoder",
     "quote_range_asymmetry_bps": "session_regime_encoder",
     # V30 package 8A (2026-08-13): the two swing-structure "level intact"
@@ -766,7 +772,13 @@ _PRICE_DERIVED_TREND_FIELDS = frozenset(
 )
 _BASIC_V1_TREND_FIELDS = frozenset(
     {
-        "_v1_ema3_ema6_spread_frac",
+        # 2026-08-19: renamed with its volatility-coupling repair in
+        # gx1.features.basic_v1 (price-fraction -> ATR multiple). The name must
+        # be routed exactly here: it still contains "spread", and the lexical
+        # fallback below maps "spread" to session_regime_encoder, so a stale
+        # literal in this set would SILENTLY move an EMA trend field into the
+        # execution/session specialist.
+        "_v1_ema3_ema6_spread_atr",
         "_v1_kama30_change_5_atr",
         "_v1_tema20_change_3_atr",
     }
@@ -787,9 +799,97 @@ _RETIRED_MODEL_NATIVE_SIGNAL_FIELDS = frozenset(
 _LOCAL_NATIVE_MOMENTUM_FIELDS = frozenset(
     _norm(field) for field in LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES
 )
-_LOCAL_MICRO_STRUCTURE_FIELDS = frozenset(
-    _norm(field) for field in MICRO_FEATURE_NAMES_V1
+# The local price/quote primitives are ONE producer module
+# (gx1.features.micro_structure_v1) but not one specialist concept.  Each name
+# is routed to the specialist whose declared role in
+# MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT above matches the formula that module
+# declares for it, not to whichever encoder the producer happens to live next
+# to.  Routing them as one block sent three returns, one price-vs-EMA distance
+# and two single-bar close-location fields to chart_geometry_encoder, whose
+# declared role is "identified support/resistance levels, persistent trendline
+# state, line and level touch history, break and retest events, channel
+# geometry" -- none of which any of the six computes.  Splitting one PRODUCER
+# across specialists is required here; the rule these sets exist to enforce is
+# that a UNIT suffix (``_atr``, ``_bps``, ``spread``) must not decide the owner,
+# not that a module's outputs must stay together.
+#
+# close_return_3_bps[t]      = (close[t]/close[t-3]-1)*10000
+# close_return_5_bps[t]      = (close[t]/close[t-5]-1)*10000
+# close_return_acceleration_1_bps[t]
+#                            = ((close[t]/close[t-1]-1)-(close[t-1]/close[t-2]-1))*10000
+# -> momentum_flow_encoder declares "recent returns" and "acceleration".
+_LOCAL_MICRO_MOMENTUM_FIELDS = frozenset(
+    {
+        "close_return_3_bps",
+        "close_return_5_bps",
+        "close_return_acceleration_1_bps",
+    }
 )
+# close_distance_from_ema5_bps[t] = (close[t]-classic_sma_seeded_ema5[t])/close[t]*10000
+# -> trend_ema_encoder declares "price-vs-EMA".
+_LOCAL_MICRO_TREND_FIELDS = frozenset({"close_distance_from_ema5_bps"})
+# close_distance_below_high_range_fraction[t] = (high[t]-close[t])/(high[t]-low[t])
+# close_range_observed[t]                     = 1 iff high[t] > low[t]
+# Both are computed from ONE bar's own high/low/close with no reference to any
+# earlier bar, and price_action_candle_encoder declares exactly
+# "close location and zero-range identity".  The second field is the first
+# one's zero-range validity flag, so the pair stays with one owner.
+_LOCAL_MICRO_CANDLE_FIELDS = frozenset(
+    {
+        "close_distance_below_high_range_fraction",
+        "close_range_observed",
+    }
+)
+_LOCAL_MICRO_STRUCTURE_FIELDS = (
+    _LOCAL_MICRO_MOMENTUM_FIELDS
+    | _LOCAL_MICRO_TREND_FIELDS
+    | _LOCAL_MICRO_CANDLE_FIELDS
+)
+# Fail closed on a producer change: a seventh local primitive must be
+# adjudicated here rather than fall through to the lexical rules below.
+if _LOCAL_MICRO_STRUCTURE_FIELDS != frozenset(
+    _norm(field) for field in MICRO_FEATURE_NAMES_V1
+):
+    raise RuntimeError("LOCAL_MICRO_STRUCTURE_SPECIALIST_ROUTING_INCOMPLETE")
+
+# One emitted name must reach ONE specialist whichever lane it arrives on.
+# ``MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4`` above is the executing authority for
+# the family x timeframe lane; this map DERIVES from that owner (rule 13: no
+# restated literal) so the classifier cannot contradict it.  Without it the
+# lexical rules answered ``ema20_slope_atr`` -> vol_compression_encoder, because
+# the ATR DENOMINATOR is matched before the EMA SUBJECT, and returned
+# ``unmapped`` for ``adx14``, ``bb_position`` and ``mtf_smc_structure_bias``.
+_MULTI_TF_V4_DECLARED_SPECIALIST = {
+    _norm(name): specialist
+    for specialist, names in MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.items()
+    for name in names
+}
+# The per-timeframe projection emits ``f"{tf_lower}_{output_name}_v2"``
+# (htf_features._project / MODEL_NATIVE_CONTEXT_MTF_PROJECTION), which is how
+# ``m15_ema20_slope_atr_v2`` reaches a caller.  Timeframes come from the same
+# owner as the lane itself.
+_MULTI_TF_V4_LANE_PREFIXES = tuple(
+    f"{timeframe}_" for timeframe in MULTI_TF_TIMEFRAMES_LOWER_M5_LAST
+)
+
+
+def _multi_tf_v4_declared_specialist(bare: str) -> str | None:
+    """Return the V4-declared owner for a bare or per-timeframe lane name."""
+
+    declared = _MULTI_TF_V4_DECLARED_SPECIALIST.get(bare)
+    if declared is not None:
+        return declared
+    if not bare.endswith("_v2"):
+        return None
+    for prefix in _MULTI_TF_V4_LANE_PREFIXES:
+        if not bare.startswith(prefix):
+            continue
+        inner = bare[len(prefix) : -len("_v2")]
+        for candidate in (inner, f"{inner}_v2"):
+            declared = _MULTI_TF_V4_DECLARED_SPECIALIST.get(candidate)
+            if declared is not None:
+                return declared
+    return None
 
 
 def classify_entry_specialist_feature(name: str) -> str:
@@ -826,15 +926,23 @@ def classify_entry_specialist_feature(name: str) -> str:
     # volatility target even though ATR is only the unit denominator.
     if bare in _BASIC_V1_TREND_FIELDS:
         return "trend_ema_encoder"
-    # The five local-price primitives form one exact micro/chart-geometry
-    # block. Route their declared names before lexical EMA/range/momentum
-    # matchers so one formula family cannot be split across specialists merely
-    # because its honest field names expose their units.
-    if bare in _LOCAL_MICRO_STRUCTURE_FIELDS:
-        return "chart_geometry_encoder"
+    # The local-price primitives are routed by declared formula, one field at a
+    # time, before any lexical matcher can decide them on a unit suffix.
+    if bare in _LOCAL_MICRO_MOMENTUM_FIELDS:
+        return "momentum_flow_encoder"
+    if bare in _LOCAL_MICRO_TREND_FIELDS:
+        return "trend_ema_encoder"
+    if bare in _LOCAL_MICRO_CANDLE_FIELDS:
+        return "price_action_candle_encoder"
 
     if n.startswith("chart.structure_swing_") or bare.startswith("structure_swing_"):
         return "structure_swing_encoder"
+
+    # Every exact owner above still wins.  Only a LEXICAL decision may be
+    # overridden by the family x timeframe owner.
+    _declared = _multi_tf_v4_declared_specialist(bare)
+    if _declared is not None:
+        return _declared
 
     if _contains_any(
         n,

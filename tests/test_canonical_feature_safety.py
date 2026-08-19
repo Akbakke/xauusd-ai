@@ -125,21 +125,22 @@ def test_live_ctx_rejects_missing_atr_source_before_producing_features() -> None
 
 
 def test_live_ctx_rank_formula_does_not_overwrite_canonical_atr() -> None:
-    frame = pd.DataFrame(
-        {
-            "atr": [9.0, 10.0],
-            "high": [101.0, 102.0],
-            "low": [99.0, 100.0],
-            "close": [100.0, 101.0],
-            "bid_close": [99.9, 100.9],
-            "ask_close": [100.1, 101.1],
-        }
-    )
+    # A full Wilder-14 seed window: ctx_cont.atr_bps is the one Wilder ATR
+    # owner (rule 19) and has no defined value on a two-row frame. The retired
+    # `min_periods=1` partial window is exactly what made that look possible.
+    frame = _ctx_atr_frame()
+    canonical_atr = np.arange(len(frame), dtype=np.float64) + 9.0
+    frame["atr"] = canonical_atr
 
     _add_spread_atr_bps(frame)
 
-    assert frame["atr"].tolist() == [9.0, 10.0]
-    assert np.isfinite(frame[["atr_bps", "spread_bps"]]).all().all()
+    # The offline `atr` column keeps its own producer's values: this helper
+    # writes atr_bps and spread_bps only.
+    np.testing.assert_array_equal(frame["atr"].to_numpy(), canonical_atr)
+    warmup = 13
+    assert np.isnan(frame["atr_bps"].to_numpy()[:warmup]).all()
+    assert np.isfinite(frame["atr_bps"].to_numpy()[warmup:]).all()
+    assert np.isfinite(frame["spread_bps"].to_numpy()).all()
 
 
 def test_live_ctx_emits_no_regime_or_bucket_categorical() -> None:
@@ -147,15 +148,7 @@ def test_live_ctx_emits_no_regime_or_bucket_categorical() -> None:
     # spread_bucket) and the TRAIN rank reference that fitted the buckets are
     # retired: the live context augmenter emits raw continuous ATR/spread
     # evidence only, and the categorical contract is session_id alone.
-    frame = pd.DataFrame(
-        {
-            "high": [101.0, 102.0, 103.0],
-            "low": [99.0, 100.0, 101.0],
-            "close": [100.0, 101.0, 102.0],
-            "bid_close": [99.9, 100.9, 101.9],
-            "ask_close": [100.1, 101.1, 102.1],
-        }
-    )
+    frame = _ctx_atr_frame()
 
     _add_spread_atr_bps(frame)
 
@@ -168,7 +161,7 @@ def test_live_ctx_emits_no_regime_or_bucket_categorical() -> None:
     ):
         assert retired not in frame.columns
         assert retired not in MODEL_NATIVE_CTX_CAT_FIELDS
-    assert np.isfinite(frame[["atr_bps", "spread_bps"]]).all().all()
+    assert np.isfinite(frame[["atr_bps", "spread_bps"]].to_numpy()[13:]).all()
 
 
 def test_basic_v1_spread_owner_does_not_require_slippage() -> None:
@@ -420,3 +413,398 @@ def test_smc_sweep_event_refires_for_a_new_level_identity(monkeypatch) -> None:
     )
     assert out.loc[3:4, "smc_sweep_up_state"].tolist() == [1.0, 1.0]
     assert out.loc[3:4, "smc_sweep_up_event"].tolist() == [1.0, 1.0]
+
+
+def _ctx_atr_frame(rows: int = 40) -> pd.DataFrame:
+    """A valid non-degenerate OHLC + two-sided quote frame.
+
+    Deterministic, not random: the true range must move from bar to bar so a
+    partial-window mean and a Wilder RMA cannot coincide by accident.
+    """
+
+    step = np.arange(rows, dtype=np.float64)
+    close = 2000.0 + np.sin(step / 3.0) * 4.0 + step * 0.1
+    half_range = 0.5 + (step % 5) * 0.4
+    high = close + half_range
+    low = close - half_range * 0.7
+    half_spread = 0.05 + (step % 7) * 0.01
+    return pd.DataFrame(
+        {
+            "high": high,
+            "low": low,
+            "close": close,
+            "bid_close": close - half_spread,
+            "ask_close": close + half_spread,
+        }
+    )
+
+
+def test_ctx_atr_bps_is_the_one_wilder_owner_without_partial_window() -> None:
+    """ctx_cont.atr_bps must be the SAME ATR as `_v1_atr14` (rule 19).
+
+    Regression for the 2026-08-19 repair: this owner used to run its own
+    ``true_range.rolling(14, min_periods=1).mean()``, a simple moving average
+    over a partial window, while `_v1_atr14` at index 0 of the same signal
+    vector — and every ``*_atr``-normalized field on the surface — is the
+    classic Wilder RMA from ``technical_indicators_v1.wilder_atr``.
+    """
+
+    from gx1.features.model_native_market_context_v1 import (
+        derive_model_native_atr_spread_bps,
+    )
+    from gx1.features.technical_indicators_v1 import wilder_atr
+
+    frame = _ctx_atr_frame()
+    high = frame["high"].to_numpy(dtype=np.float64)
+    low = frame["low"].to_numpy(dtype=np.float64)
+    # The comparison arm is exactly basic_v1's `_v1_atr14`:
+    # wilder_atr(high, low, close, 14) on the same rows and the same clock.
+    expected_atr = wilder_atr(
+        frame["high"].astype(np.float64),
+        frame["low"].astype(np.float64),
+        frame["close"].astype(np.float64),
+        14,
+    ).to_numpy(dtype=np.float64)
+    warmup = int(np.flatnonzero(np.isfinite(expected_atr))[0])
+    assert warmup == 13
+
+    derived = derive_model_native_atr_spread_bps(frame)
+    atr = derived["atr"].to_numpy(dtype=np.float64)
+    atr_bps = derived["atr_bps"].to_numpy(dtype=np.float64)
+
+    # Bit-identical to the one ATR owner, on every row it is defined.
+    np.testing.assert_array_equal(np.isnan(atr), np.isnan(expected_atr))
+    np.testing.assert_array_equal(atr[warmup:], expected_atr[warmup:])
+    # An honest unavailable prefix, never a partial-window mean that reads as a
+    # converged ATR.
+    assert np.isnan(atr[:warmup]).all()
+    assert np.isnan(atr_bps[:warmup]).all()
+    # atr_bps is that same ATR expressed over the bar CLOSE (see the
+    # one-denominator regression below).
+    np.testing.assert_array_equal(
+        atr_bps[warmup:],
+        (expected_atr / frame["close"].to_numpy(dtype=np.float64) * 1e4)[
+            warmup:
+        ],
+    )
+    # And it is NOT the retired midrange form.
+    assert not np.array_equal(
+        atr_bps[warmup:],
+        (expected_atr / ((high + low) * 0.5) * 1e4)[warmup:],
+    )
+
+
+def test_ctx_atr_bps_uses_the_one_repository_bps_denominator() -> None:
+    """`atr_bps` must be bps of CLOSE, the repository's one `*_bps` base.
+
+    Regression for the 2026-08-19 one-concept/two-conventions repair: this
+    owner divided the Wilder ATR by the bar midpoint ``(high + low) / 2``
+    while the per-timeframe sibling ``atr_bps_14`` in the SAME signal
+    vector divides by ``close`` -- and so does every other ``*_bps`` owner in
+    this repository, including ``derive_observed_spread_bps`` in this very
+    file.  Verified on 2026-08-19 from real emitted bytes, not from a restated
+    literal: the per-TF ``atr_bps_14`` column of the V31 MULTI_TF_V4_CACHE
+    reproduces as ``wilder_atr(...)/close*1e4`` to float32 resolution on all
+    477,229 native M5 rows and misses ``/mid`` on 96.28% of them.
+
+    The midrange form was a direction leak, not just a rescale: exactly
+    ``atr/mid == (atr/close) * (close/mid)``, and ``close/mid - 1`` is a
+    monotone re-expression of the intrabar close position (Spearman 0.9170 on
+    the full declared M5 tape) -- a quantity this ctx vector already owns as
+    ``close_distance_below_high_range_fraction``.
+    """
+
+    from gx1.features.model_native_market_context_v1 import (
+        MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1,
+        MODEL_NATIVE_ATR_PERIOD_V1,
+        derive_model_native_atr_spread_bps,
+    )
+    from gx1.features.technical_indicators_v1 import wilder_atr
+
+    frame = _ctx_atr_frame()
+    high = frame["high"].to_numpy(dtype=np.float64)
+    low = frame["low"].to_numpy(dtype=np.float64)
+    close = frame["close"].to_numpy(dtype=np.float64)
+    warmup = MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1
+
+    # The frame must actually separate the two conventions, or this test would
+    # pass on a degenerate `mid == close` fixture and prove nothing.
+    mid = (high + low) * 0.5
+    assert np.abs(mid - close).min() > 0.0
+
+    expected_atr = wilder_atr(
+        frame["high"].astype(np.float64),
+        frame["low"].astype(np.float64),
+        frame["close"].astype(np.float64),
+        MODEL_NATIVE_ATR_PERIOD_V1,
+    ).to_numpy(dtype=np.float64)
+
+    atr_bps = derive_model_native_atr_spread_bps(frame)["atr_bps"].to_numpy(
+        dtype=np.float64
+    )
+    np.testing.assert_array_equal(
+        atr_bps[warmup:], (expected_atr / close * 1e4)[warmup:]
+    )
+    # The retired midrange convention must be rejected on every defined row,
+    # not merely "close enough".
+    midrange_form = (expected_atr / mid * 1e4)[warmup:]
+    assert np.all(atr_bps[warmup:] != midrange_form)
+
+    # `spread_bps` in this same owner already uses a quoted CLOSE price, so the
+    # two bps fields this function returns now share one base.
+    spread_bps = derive_model_native_atr_spread_bps(frame)[
+        "spread_bps"
+    ].to_numpy(dtype=np.float64)
+    bid = frame["bid_close"].to_numpy(dtype=np.float64)
+    ask = frame["ask_close"].to_numpy(dtype=np.float64)
+    np.testing.assert_array_equal(spread_bps, (ask - bid) / bid * 1e4)
+
+
+def test_ctx_atr_warmup_contract_matches_the_owner_it_declares() -> None:
+    """The declared prefix contract must be the ATR owner's real warmup."""
+
+    from gx1.features.model_native_market_context_v1 import (
+        MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1,
+        MODEL_NATIVE_ATR_PERIOD_V1,
+        MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1,
+        derive_model_native_atr_spread_bps,
+    )
+
+    assert MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1 == ("atr_bps",)
+    assert (
+        MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1
+        == MODEL_NATIVE_ATR_PERIOD_V1 - 1
+    )
+    frame = _ctx_atr_frame()
+    derived = derive_model_native_atr_spread_bps(frame)
+    for name in MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1:
+        values = derived[name].to_numpy(dtype=np.float64)
+        assert np.isnan(values[:MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1]).all()
+        assert np.isfinite(
+            values[MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1:]
+        ).all()
+    # `spread_bps` is defined on every row and must NOT gain a prefix.
+    assert np.isfinite(derived["spread_bps"].to_numpy()).all()
+    # Too few rows for a defined Wilder seed fails closed instead of emitting a
+    # partial-window value.
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_CONTEXT_SHORT"):
+        derive_model_native_atr_spread_bps(
+            _ctx_atr_frame(MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1)
+        )
+
+
+# ---------------------------------------------------------------------------
+# High-level base block (gx1.scripts.materialize_build_canonical_features_v1
+# .add_high_level_basics) — 2026-08-19 repair wave.
+# ---------------------------------------------------------------------------
+
+
+def _high_level_frame(rows: int = 320) -> pd.DataFrame:
+    """A valid non-degenerate OHLCV + two-sided quote frame.
+
+    Deterministic, not random, and long enough for the classic EMA200 seed so
+    the warmup assertions below are exercised rather than skipped.
+    """
+
+    step = np.arange(rows, dtype=np.float64)
+    close = 2500.0 + step * 0.1 + np.sin(step * 0.31) * 3.0
+    open_ = close - 0.07 * np.cos(step * 0.2)
+    high = np.maximum(open_, close) + 0.4 + 0.1 * (step % 5)
+    low = np.minimum(open_, close) - 0.3 - 0.1 * (step % 7)
+    half_spread = 0.05 + 0.01 * (step % 7)
+    return pd.DataFrame(
+        {
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": np.full(rows, 10.0),
+            "bid_close": close - half_spread,
+            "ask_close": close + half_spread,
+            "ask_high": high + half_spread,
+            "bid_low": low - half_spread,
+        }
+    )
+
+
+def _first_finite_row(values: np.ndarray) -> int:
+    finite = np.flatnonzero(np.isfinite(values))
+    assert finite.size, "column is unavailable on every row"
+    assert np.isfinite(values[finite[0]:]).all(), "non-contiguous warmup prefix"
+    return int(finite[0])
+
+
+def test_high_level_retires_the_fields_owned_by_another_specialist() -> None:
+    """Four base columns were exact functions of live fields owned elsewhere.
+
+    ``ret_5`` == ``ctx_cont.close_return_5_bps`` (micro_structure_v1),
+    ``body_pct`` == ``abs(candle.raw_body_signed_range)`` and
+    ``wick_asym`` == ``(upper_wick_share - lower_wick_share)`` over their sum
+    (entry_candle_primitives_v1), and ``pos_vs_ema200``'s repaired form is the
+    local EMA layer's own ``chart.local_price_vs_ema200_*``.  Rule 19: one
+    specialist owner per field.
+    """
+
+    observed = add_high_level_basics(_high_level_frame())
+
+    for retired in ("ret_5", "body_pct", "wick_asym", "pos_vs_ema200"):
+        assert retired not in observed.columns
+    # The retired unit spellings must not survive under their old names either.
+    for retired_name in ("ema20_slope", "ema100_slope"):
+        assert retired_name not in observed.columns
+    # Both surviving return horizons are genuinely un-duplicated: the micro
+    # family carries the 3-bar and 5-bar returns and the 1-bar acceleration,
+    # never the 1-bar or 20-bar return itself.
+    close = _high_level_frame()["close"].to_numpy(dtype=np.float64)
+    for name, lag in (("ret_1", 1), ("ret_20", 20)):
+        expected = (
+            pd.Series(close).pct_change(lag).to_numpy(dtype=np.float64) * 1e4
+        ).astype(np.float32)
+        np.testing.assert_array_equal(
+            observed[name].to_numpy(dtype=np.float32), expected
+        )
+
+
+def test_high_level_ema_block_is_the_classic_seeded_ema_over_positive_atr() -> None:
+    """The trend block must be ATR multiples of the ONE classic EMA owner.
+
+    Two independent repairs are pinned here.  (1) The block used
+    ``close.ewm(span=..., adjust=False)`` — a seedless recursion that emits a
+    value on row 0 — while every other EMA consumer on this surface uses the
+    SMA-seeded ``technical_indicators_v1.classic_ema``.  (2) The slopes were
+    ``delta / close * 1e4``, so their magnitude carried the volatility regime;
+    they are now divided by the strictly-positive Wilder-14 ATR from
+    ``wilder_atr14_positive``, never by an epsilon-floored price.
+    """
+
+    from gx1.features.technical_indicators_v1 import (
+        classic_ema,
+        wilder_atr14_positive,
+    )
+
+    frame = _high_level_frame()
+    close = pd.Series(frame["close"].to_numpy(dtype=np.float64))
+    _atr14, atr14_positive = wilder_atr14_positive(
+        pd.Series(frame["high"].to_numpy(dtype=np.float64)),
+        pd.Series(frame["low"].to_numpy(dtype=np.float64)),
+        close,
+    )
+    observed = add_high_level_basics(frame.copy())
+
+    for name, span, lookback in (
+        ("ema20_slope_atr", 20, 5),
+        ("ema100_slope_atr", 100, 20),
+    ):
+        ema = classic_ema(close, span)
+        expected = (
+            (ema - ema.shift(lookback)).div(atr14_positive)
+        ).to_numpy(dtype=np.float64).astype(np.float32)
+        values = observed[name].to_numpy(dtype=np.float32)
+        np.testing.assert_array_equal(np.isnan(values), np.isnan(expected))
+        np.testing.assert_array_equal(values, expected)
+        # First finite row is DERIVED from the span and the lookback: the SMA
+        # seed lands at span-1, the k-bar difference moves it to
+        # span-1+lookback.  The seedless recursion had no warmup at all.
+        assert _first_finite_row(values.astype(np.float64)) == span - 1 + lookback
+
+    # The retired price-relative unit is not what is emitted.  A slope in ATR
+    # multiples and the same slope in bps of price differ on every defined row
+    # of this fixture.
+    retired_ema20 = close.ewm(span=20, adjust=False).mean()
+    retired_unit = (
+        (retired_ema20 - retired_ema20.shift(5)) / np.maximum(close, 1e-9) * 1e4
+    ).to_numpy(dtype=np.float64).astype(np.float32)
+    emitted = observed["ema20_slope_atr"].to_numpy(dtype=np.float32)
+    defined = np.isfinite(emitted) & np.isfinite(retired_unit)
+    assert defined.any()
+    assert not np.array_equal(emitted[defined], retired_unit[defined])
+
+
+def test_high_level_atr_z_has_no_partial_window_no_epsilon_and_no_clip() -> None:
+    """``atr50``/``atr_z`` must be full-window, unfloored and unclipped."""
+
+    frame = _high_level_frame()
+    high = pd.Series(frame["high"].to_numpy(dtype=np.float64))
+    low = pd.Series(frame["low"].to_numpy(dtype=np.float64))
+    close = pd.Series(frame["close"].to_numpy(dtype=np.float64))
+    true_range = pd.concat(
+        [high - low, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()],
+        axis=1,
+    ).max(axis=1)
+    atr50 = true_range.rolling(50, min_periods=50).mean()
+    expected_z = (
+        (atr50 - atr50.rolling(50, min_periods=50).mean()).div(
+            atr50.rolling(50, min_periods=50).std().where(
+                atr50.rolling(50, min_periods=50).std() > 0.0
+            )
+        )
+    ).to_numpy(dtype=np.float64).astype(np.float32)
+
+    observed = add_high_level_basics(frame.copy())
+
+    np.testing.assert_array_equal(
+        observed["atr50"].to_numpy(dtype=np.float32),
+        atr50.to_numpy(dtype=np.float64).astype(np.float32),
+    )
+    np.testing.assert_array_equal(
+        observed["atr_z"].to_numpy(dtype=np.float32), expected_z
+    )
+    # Warmup is derived from the declared window, not from a min_periods
+    # choice: the 50-bar mean lands at 49 and its own 50-bar moments at 98.
+    assert _first_finite_row(observed["atr50"].to_numpy(dtype=np.float64)) == 49
+    assert _first_finite_row(observed["atr_z"].to_numpy(dtype=np.float64)) == 98
+
+
+def test_high_level_atr_z_is_unavailable_instead_of_epsilon_divided() -> None:
+    """A constant true range leaves the z-score undefined, never 0.0."""
+
+    rows = 160
+    # Constant OHLC geometry and no gaps => constant true range => the rolling
+    # standard deviation of atr50 is exactly 0 on every full window.
+    close = np.full(rows, 2500.0)
+    frame = pd.DataFrame(
+        {
+            "open": close,
+            "high": close + 1.0,
+            "low": close - 1.0,
+            "close": close,
+            "volume": np.full(rows, 10.0),
+            "bid_close": close - 0.05,
+            "ask_close": close + 0.05,
+            "ask_high": close + 1.05,
+            "bid_low": close - 1.05,
+        }
+    )
+
+    observed = add_high_level_basics(frame.copy())
+
+    atr_z = observed["atr_z"].to_numpy(dtype=np.float64)
+    assert np.isnan(atr_z).all(), "an undefined z-score must not read as 0.0"
+    # Same convention for the two other retired epsilon floors on this block.
+    rvol_60 = observed["rvol_60"].to_numpy(dtype=np.float64)
+    vol_ratio = observed["vol_ratio"].to_numpy(dtype=np.float64)
+    zero_vol = np.isfinite(rvol_60) & (rvol_60 == 0.0)
+    assert zero_vol.any()
+    assert np.isnan(vol_ratio[zero_vol]).all()
+
+
+def test_high_level_range_reports_an_invalid_quote_instead_of_1e13_bps() -> None:
+    """A non-positive mid is an invalid two-sided quote, not a small one."""
+
+    frame = _high_level_frame(rows=120)
+    frame.loc[7, "bid_close"] = -3.0
+    frame.loc[7, "ask_close"] = 1.0
+
+    observed = add_high_level_basics(frame.copy())
+
+    bar_range = observed["range"].to_numpy(dtype=np.float64)
+    assert np.isnan(bar_range[7])
+    assert np.isfinite(np.delete(bar_range, 7)).all()
+    # The retired epsilon floor turned exactly this row into a finite,
+    # astronomically large "range".
+    retired = (
+        (frame.loc[7, "ask_high"] - frame.loc[7, "bid_low"])
+        / max((frame.loc[7, "bid_close"] + frame.loc[7, "ask_close"]) / 2.0, 1e-9)
+        * 1e4
+    )
+    assert abs(retired) > 1e9

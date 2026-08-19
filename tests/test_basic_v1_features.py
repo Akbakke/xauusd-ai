@@ -13,6 +13,16 @@ the d71a8e57 repair-wave precedent):
   discriminator between the repair and the bug.
 - ``_v1_bb10_bandwidth_change_3`` is the plain 3-bar change of the
   dimensionless bandwidth.
+
+And the 2026-08-19 volatility-coupling repair:
+- ``_v1_ema3_ema6_spread_atr`` (renamed from the retired ``..._spread_frac``
+  price-fraction form; the retired literal enters RETIRED_BASIC_V1_FIELDS in
+  the same commit that renames it in entry_model_native_signal_v1) divides the
+  EMA3/EMA6 displacement by the file's own Wilder-14 ATR instead of by
+  ``ema6``. A price fraction of a trend displacement grows with the volatility
+  regime; an ATR multiple does not. The discriminating test below holds the
+  closes fixed and only widens the bars: the price-fraction formula is
+  bit-identical between the two frames, the ATR formula must shrink.
 """
 import ast
 import hashlib
@@ -42,6 +52,7 @@ from gx1.features.basic_v1 import (
 RETIRED_BASIC_V1_FIELDS = frozenset(
     {
         "_v1_atr_regime_id",
+        "_v1_ema3_ema6_spread_frac",
         "_v1_atr_z_10_100",
         "_v1_body_share_1",
         "_v1_body_tr",
@@ -117,7 +128,7 @@ def test_basic_v1_emits_only_the_hash_bound_active_surface() -> None:
     assert {name for name in out if name.startswith("_v1_")} == set(
         BASIC_V1_FEATURES
     )
-    assert BASIC_V1_SCHEMA_VERSION == "gx1_basic_v1_active_surface_v3"
+    assert BASIC_V1_SCHEMA_VERSION == "gx1_basic_v1_active_surface_v4"
     assert BASIC_V1_FEATURES_SHA256 == hashlib.sha256(
         "\n".join(BASIC_V1_FEATURES).encode("utf-8")
     ).hexdigest()
@@ -145,6 +156,35 @@ def test_basic_v1_emits_only_the_hash_bound_active_surface() -> None:
     }
 
 
+def _without_retired_signal_field_tombstones(source: str) -> str:
+    """Excise the signal contract's ``RETIRED_MODEL_NATIVE_SIGNAL_FIELDS`` declaration.
+
+    That tuple is a tombstone list: naming a field there is what makes a stale
+    artifact still carrying it fail loud at load, instead of being routed by the
+    lexical fallback to whichever specialist its spelling happens to match.  It is
+    the opposite of a consumer, so the retired-field scan must not read it as one.
+
+    Only the declaration itself is removed, located by AST rather than by text, so
+    the same name appearing anywhere else in the same file still trips the scan.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return source
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(
+            isinstance(t, ast.Name) and t.id == "RETIRED_MODEL_NATIVE_SIGNAL_FIELDS"
+            for t in node.targets
+        ):
+            continue
+        segment = ast.get_source_segment(source, node)
+        if segment:
+            return source.replace(segment, "", 1)
+    return source
+
+
 def test_retired_basic_v1_fields_have_no_gx1_source_consumer_or_producer() -> None:
     root = Path(__file__).resolve().parents[1] / "gx1"
     offenders: dict[str, list[str]] = {}
@@ -158,6 +198,7 @@ def test_retired_basic_v1_fields_have_no_gx1_source_consumer_or_producer() -> No
     )
     for source_path in sorted(root.rglob("*.py")):
         source = source_path.read_text(encoding="utf-8")
+        source = _without_retired_signal_field_tombstones(source)
         hits = sorted(name for name in RETIRED_BASIC_V1_FIELDS if name in source)
         hits.extend(
             fragment for fragment in retired_formula_fragments if fragment in source
@@ -365,6 +406,7 @@ def test_known_vectors_pin_atr_vwap_parkinson_range_kurtosis_and_ema() -> None:
     )
     atr = float(sum(true_range[:14])) / 14.0
     assert out["_v1_atr14"].iloc[13] == atr
+    atr_row13 = atr
     for row in range(14, 26):
         atr = ((13.0 * atr) + true_range[row]) / 14.0
 
@@ -395,16 +437,75 @@ def test_known_vectors_pin_atr_vwap_parkinson_range_kurtosis_and_ema() -> None:
     expected_kurtosis = factor1 * sum4 / sample_variance**2 - factor2
     assert out["_v1_kurt_r"].iloc[48] == pytest.approx(expected_kurtosis)
 
+    # _v1_ema3_ema6_spread_atr is an ATR MULTIPLE, not a price fraction: the
+    # denominator is the row-13 Wilder-14 ATR, the same denominator
+    # _v1_ema_diff uses. The two candidate formulas are algebraically
+    # separable on this frame because ema6[13] (~2000 price units) and
+    # atr_row13 (~1 price unit) differ by three orders of magnitude, so the
+    # pre-repair (ema3-ema6)/ema6 value cannot satisfy this assertion.
     ema3 = _classic_ema_reference(close, 3)
     ema6 = _classic_ema_reference(close, 6)
-    expected_ema_slope = (ema3[5] - ema6[5]) / ema6[5]
-    assert out["_v1_ema3_ema6_spread_frac"].iloc[5] == pytest.approx(
-        expected_ema_slope
+    expected_spread_atr = (ema3[13] - ema6[13]) / atr_row13
+    assert out["_v1_ema3_ema6_spread_atr"].iloc[13] == pytest.approx(
+        expected_spread_atr
     )
+    # And nothing before row 13 exists: the ATR SMA seed, not the ema6 seed,
+    # owns the warmup of this field now.
+    assert np.isnan(
+        out["_v1_ema3_ema6_spread_atr"].to_numpy(dtype=np.float64)[:13]
+    ).all()
     ema12 = _classic_ema_reference(close, 12)
     ema26 = _classic_ema_reference(close, 26)
     expected_diff = (ema12[25] - ema26[25]) / atr
     assert out["_v1_ema_diff"].iloc[25] == pytest.approx(expected_diff)
+
+
+def test_ema3_ema6_spread_is_measured_in_atr_not_in_price_fraction() -> None:
+    """Widening the bars alone must move the field; a price fraction cannot.
+
+    ``open``/``close`` are byte-identical between the two frames, so the EMA3
+    and EMA6 series -- and therefore the numerator ``ema3 - ema6`` -- are
+    byte-identical too. Only ``high``/``low`` differ, which moves the Wilder-14
+    ATR and nothing else this field reads. The retired formula
+    ``(ema3 - ema6) / ema6`` reads neither ``high`` nor ``low``, so it returns
+    exactly equal values on both frames; the repaired ATR-multiple formula must
+    return strictly smaller magnitudes on the wider frame.
+    """
+
+    narrow = _market_frame(300)
+    wide = narrow.copy()
+    close = narrow["close"].to_numpy(dtype=np.float64)
+    wide["high"] = close + 2.0 * (narrow["high"].to_numpy(dtype=np.float64) - close)
+    wide["low"] = close - 2.0 * (close - narrow["low"].to_numpy(dtype=np.float64))
+    assert wide["close"].equals(narrow["close"])
+    assert wide["open"].equals(narrow["open"])
+
+    narrow_out, _ = build_basic_v1(narrow)
+    wide_out, _ = build_basic_v1(wide)
+
+    first = BASIC_V1_FIRST_FINITE_ROW["_v1_ema3_ema6_spread_atr"]
+    narrow_values = narrow_out["_v1_ema3_ema6_spread_atr"].to_numpy(
+        dtype=np.float64
+    )[first:]
+    wide_values = wide_out["_v1_ema3_ema6_spread_atr"].to_numpy(
+        dtype=np.float64
+    )[first:]
+
+    # The numerator really is untouched: this is what makes the comparison a
+    # clean discriminator rather than two unrelated series.
+    narrow_atr = narrow_out["_v1_atr14"].to_numpy(dtype=np.float64)[first:]
+    wide_atr = wide_out["_v1_atr14"].to_numpy(dtype=np.float64)[first:]
+    assert np.all(wide_atr > narrow_atr)
+    assert np.allclose(
+        narrow_values * narrow_atr,
+        wide_values * wide_atr,
+        rtol=0.0,
+        atol=1e-12,
+    )
+
+    moved = np.abs(narrow_values) > 0.0
+    assert moved.any()
+    assert np.all(np.abs(wide_values[moved]) < np.abs(narrow_values[moved]))
 
 
 def test_plus5_fields_use_complete_indicator_windows_and_known_values() -> None:
@@ -705,7 +806,7 @@ def test_fidelity_renames_preserve_exact_specialist_semantics() -> None:
     )
 
     assert classify_entry_specialist_feature(
-        "_v1_ema3_ema6_spread_frac"
+        "_v1_ema3_ema6_spread_atr"
     ) == "trend_ema_encoder"
     assert classify_entry_specialist_feature(
         "_v1_tema20_change_3_atr"

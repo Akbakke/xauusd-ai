@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -943,13 +944,149 @@ def test_mutable_prediction_mirror_fails_closed_without_fallback(
 ) -> None:
     mirror = tmp_path / "selective_edge_predictions.parquet"
     report = tmp_path / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120000123456Z.json"
+    bundle_dir = tmp_path / "candidate_bundle"
+    bundle_dir.mkdir()
     with pytest.raises(RuntimeError, match="not a timestamped authoritative predictions path"):
         serve_parity._load_pinned_predictions(
             dataset_dir=FULL_DATASET,
+            bundle_dir=bundle_dir,
             pinned_path=mirror,
             prediction_report_path=report,
             expected_predictions_sha256="0" * 64,
         )
+
+
+class _ResolverReached(Exception):
+    """Raised by the spies below once the call under test has been observed."""
+
+
+def test_parity_loader_hands_the_operator_bundle_to_the_evidence_resolver(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`bundle_dir` reaching the resolver must be the explicit candidate bundle.
+
+    The gate used to pass `bundle_dir=None`, which (a) raised `TypeError`
+    inside the resolver so the gate could not reach any verdict at all, and
+    (b) would, if it had resolved, have let the prediction report nominate its
+    own bundle instead of being checked against the operator's `--bundle-dir`.
+    The resolver binds that directory's `bundle_metadata.json` hash,
+    `state_dict_sha256` and direction-decision contract to the prediction
+    event, so the value must be the caller's, unmodified.
+    """
+    captured: dict[str, object] = {}
+
+    def _spy(requested_path, **kwargs):
+        captured["requested_path"] = requested_path
+        captured.update(kwargs)
+        raise _ResolverReached()
+
+    monkeypatch.setattr(
+        serve_parity, "resolve_and_validate_prediction_evidence", _spy
+    )
+    bundle_dir = (tmp_path / "candidate_bundle").resolve()
+    bundle_dir.mkdir()
+    dataset_dir = (tmp_path / "dataset").resolve()
+    pinned = tmp_path / "selective_edge_predictions_20260716T120000123456Z.parquet"
+    report = tmp_path / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120000123456Z.json"
+
+    with pytest.raises(_ResolverReached):
+        serve_parity._load_pinned_predictions(
+            dataset_dir=dataset_dir,
+            bundle_dir=bundle_dir,
+            pinned_path=pinned,
+            prediction_report_path=report,
+            expected_predictions_sha256="0" * 64,
+        )
+
+    assert captured["bundle_dir"] == bundle_dir
+    assert captured["dataset_dir"] == dataset_dir
+    assert captured["expected_stage"] == (
+        serve_parity.MODEL_NATIVE_REQUIRED_EVIDENCE_STAGE
+    )
+    assert captured["expected_splits"] == (
+        serve_parity.MODEL_NATIVE_REQUIRED_TEST_SPLIT,
+    )
+    assert captured["expected_model"] == serve_parity.MODEL_NATIVE_REQUIRED_MODEL_NAME
+
+
+def test_parity_main_forwards_the_explicit_bundle_dir_argument(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`--bundle-dir` must reach the pinned-prediction loader from `main`.
+
+    This is the wiring the `bundle_dir=None` defect bypassed: `main` already
+    required `--bundle-dir` and only compared it against the report *after*
+    the prediction evidence had been resolved without it.
+    """
+    captured: dict[str, object] = {}
+
+    def _spy(**kwargs):
+        captured.update(kwargs)
+        raise _ResolverReached()
+
+    # `main` assigns the parity env pins process-wide; register them with
+    # monkeypatch first so this test cannot leak CUDA_VISIBLE_DEVICES="" into
+    # the rest of the suite.
+    for pin_name, pin_value in serve_gate.SERVE_PARITY_ENV_PINS.items():
+        monkeypatch.setenv(pin_name, os.environ.get(pin_name, pin_value))
+
+    monkeypatch.setattr(serve_parity, "_load_pinned_predictions", _spy)
+    bundle_dir = (tmp_path / "candidate_bundle").resolve()
+    bundle_dir.mkdir()
+    dataset_dir = (tmp_path / "dataset").resolve()
+    dataset_dir.mkdir()
+    pinned = tmp_path / "selective_edge_predictions_20260716T120000123456Z.parquet"
+    report = tmp_path / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120000123456Z.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "verify_model_native_serve_parity_v1",
+            "--dataset-dir",
+            str(dataset_dir),
+            "--pair-manifest-path",
+            str(tmp_path / "pair_manifest.json"),
+            "--pair-generation-root",
+            str(tmp_path / "generations"),
+            "--pinned-predictions",
+            str(pinned),
+            "--pinned-predictions-sha256",
+            "0" * 64,
+            "--prediction-report-json",
+            str(report),
+            "--bundle-dir",
+            str(bundle_dir),
+            "--max-trades",
+            "1",
+            "--out-dir",
+            str(tmp_path / "out"),
+        ],
+    )
+
+    with pytest.raises(_ResolverReached):
+        serve_parity.main()
+
+    assert captured["bundle_dir"] == bundle_dir
+    assert captured["dataset_dir"] == dataset_dir
+    assert captured["prediction_report_path"] == report
+
+
+def test_parity_does_not_second_guess_the_evidence_bundle_comparison() -> None:
+    """The bundle_dir comparison has exactly one owner: the evidence resolver.
+
+    `main` previously re-implemented `report['bundle_dir'] == --bundle-dir`
+    itself. With the resolver receiving the real bundle that copy is dead and
+    is a second owner of one contract (rule 13), so it must not come back.
+    """
+    source = Path(serve_parity.__file__).read_text(encoding="utf-8")
+
+    assert "bundle_dir=None" not in source
+    assert "prediction_bundle_dir" not in source
+    assert (
+        "prediction evidence bundle does not equal the explicit" not in source
+    )
 
 
 def test_parity_sampling_is_exact_deterministic_full_test_span() -> None:

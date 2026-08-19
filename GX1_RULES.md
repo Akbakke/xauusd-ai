@@ -34,8 +34,9 @@ immutable OANDA XAU_USD M1 + M5
   M5 bars; Exit reads 480 M1 bars
   and the latest 512 detailed path rows plus an all-time elapsed-bar feature
   and full-path hash chain; total trade duration is not capped. Exit also
-  consumes the learned frozen 128-wide Entry-decision token projected from the
-  exact ordered 609-wide six-block pre-argmax decision source.
+  consumes the learned frozen Entry-decision token projected from the exact
+  ordered six-block pre-argmax decision source; both widths are owned by
+  `gx1/contracts/entry_decision_token_v1.py` and are not restated here.
 - Each closed higher-timeframe lane has `MULTI_TF_FEATURE_COUNT_V4` ordered
   fields. Raw tick-volume
   primitives are computed by the one volume owner after OHLCV resampling with
@@ -61,9 +62,11 @@ immutable OANDA XAU_USD M1 + M5
   shares. The retained six-field local SMC addition carries
   raw displacement, sided sweep depth, one-shot events and event age; these
   are evidence, not direction votes.
-- Direction has one authority: unique argmax of the accepted model's calibrated
-  LONG/SHORT/FLAT logits. Exit has one authority: unique argmax of the same
-  bundle's HOLD/EXIT_NOW logits. A tie or missing evidence fails closed.
+- Direction has one authority: unique argmax of the accepted model's
+  `entry_action_q_bps` over the valid LONG/SHORT/FLAT actions — expected return
+  in basis points, not a calibrated probability (`entry_fitted_q_v1.py`). Exit
+  has one authority: unique argmax of the same bundle's `unified_exit_action`
+  Q-values over HOLD/EXIT_NOW. A tie or missing evidence fails closed.
 - No post-model handwritten direction/exit rule, threshold selector, fallback,
   cached decision, synthetic FLAT/HOLD, duplicate feature implementation or
   alternate replay route may affect the unique runtime argmax.
@@ -74,17 +77,25 @@ immutable OANDA XAU_USD M1 + M5
   row mask against the frozen TRAIN-only selected-side path ECDF. It cannot
   influence or create direction and cannot create an order from FLAT/invalid.
 - Runtime authority does not prove that every training-objective weight is
-  data-learned. Objective v6/recipe v5 requires plain unweighted CE for the
-  main, MTF and masked side classifiers and plain unweighted BCE for hierarchy
-  binary tasks; Waves A/B retire direction and hierarchical distribution
-  forcing. Fixed auxiliary task weights, rank margins and gate regularization
-  remain a Wave-C audit, so no claim that all static magnitudes are gone is
-  allowed.
+  data-learned. The objective and recipe owners
+  (`gx1/contracts/entry_model_native_training_objective_v1.py`,
+  `gx1/contracts/entry_model_native_train_recipe_v1.py`) are the only
+  authorities; execute them for schema versions, keys and flags — nothing is
+  restated here. Proven from source 2026-08-19: the sole decision loss is
+  masked raw-bps MSE on fitted-Q, task weights are learned by trainable
+  homoscedastic log-variance, and no cross-entropy holds decision authority
+  (one masked BCE survives on the `trendline_event` auxiliary head). The
+  retired description — "objective v6 / recipe v5", unweighted CE on the main,
+  MTF and side classifiers, and a pending Wave-C audit of fixed magnitudes —
+  described a system that no longer exists. Whether every static magnitude in
+  the trainer is gone is **not examined**, so no such claim is allowed.
 - The squeeze owner and exact six-clock manifest/materializer plumbing are
-  production-integrated in source, and the six per-clock TRAIN artifacts are
-  fitted and admissible as of 2026-08-18
-  (`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`). M1/M5/M15/H1/H4/D1 each require
-  their exact immutable TRAIN-only artifact before rebuild or use.
+  production-integrated in source, and six per-clock TRAIN artifacts have been
+  fitted and admitted since 2026-08-18. **The current set and its hash are not
+  named here** (rule 13): several six-clock sets exist on disk with different
+  `contract_sha256`, so resolve the binding from the run's own V4 cache
+  manifest. M1/M5/M15/H1/H4/D1 each require their exact immutable TRAIN-only
+  artifact before rebuild or use.
   Bare/default/cross-clock parameters are forbidden. Fit and serve must decode
   with one causal filter; two decoders in that owner is what made the
   2026-08-15 artifacts absorbing on all six clocks. No rebuild has yet been run
@@ -115,6 +126,12 @@ immutable OANDA XAU_USD M1 + M5
   builds both feature lanes, and passes both feature surfaces to
   preflight/rebuild. The retired event-local
   `canonical_features_v2.parquet`/legacy source-cascade route is forbidden.
+- `--history-start` must precede `--train-start` by at least the widest per-TF
+  receptive field in `PRODUCTION_MTF_PER_TF_WINDOW_BARS` — the D1 lane —
+  counted as real closed D1 bars, never as calendar days. The chain enforces
+  this at `model-source-identity` alongside the 96-row local M5 sequence
+  warmup. The declared TRAIN window and its derivation are in
+  `docs/TRAIN_WINDOW_WIDENING_20260819.md`; no window is restated here.
 - The level-registry runtime-population shadow replays the exact owner state
   machine only as a nonempty-support/provenance gate. It is neither another
   registry implementation nor authority for shadow or live trading.
@@ -167,5 +184,8 @@ were retired on 2026-08-14 through the retention owner: no model, bundle,
 calibration event or metric was ever derived from either, and the "frozen
 comparison baseline" role they were given could never be executed, because
 producing that arm requires training on a forbidden surface. The evaluation
-reference is the coin-flip null (-13.16 bps TRAIN / -18.58 bps VAL), not a
-dataset. The V30 rebuild is required; no recipe or model is currently admitted.
+reference is the coin-flip null, not a dataset; its magnitude is substrate-
+specific and belongs in `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, never
+restated here. The rebuild is required and has not landed: V31 chains have run
+repeatedly since 2026-08-18 and every one that reached a terminal event ended
+RED. No recipe, dataset or model is currently admitted.

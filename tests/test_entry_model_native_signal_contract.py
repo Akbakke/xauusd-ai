@@ -272,14 +272,31 @@ def test_model_native_signal_contract_has_exact_derived_width_and_all_groups_liv
     # candle.raw_*_rejection_depth_local_geometry columns retired -- each an
     # exact function of columns that stay in this owner. Re-derived over the
     # narrowed tuple; the literal is the drift guard, not the source.
+    # 2026-08-19 (candle v5): candle.raw_open_gap_local_geometry ->
+    # candle.raw_open_position_previous_range. Same WIDTH, different name, so
+    # only this ordered-name hash moves; see the v5 note in the owner for the
+    # era measurement that forced the rename.
     assert CANDLE_PRIMITIVE_FEATURE_NAMES_SHA256 == (
-        "c72093fed2e8eef17917bf92fc4a2742ecd6f5a3967834b416216e2ba776f475"
+        "9a869c450465859c43e7eab1bfca8a6bd7f9a3fc05e636df36a29d6c29ff26a7"
     )
     price_owner = contract["mandatory_full_stack"]["price_derived_owner"]
     assert price_owner == price_derived_contract_metadata()
     assert price_owner["schema_version"] == PRICE_DERIVED_FORMULA_SCHEMA_VERSION
+    # 2026-08-19 fidelity repair of the local EMA layer: schema_version v2 -> v3
+    # and four new/changed clauses in PRICE_DERIVED_FORMULA_CONTRACT (the two
+    # `ema*_slope_bps` columns were an exact multiple of the price gap, and the
+    # four price-relative columns carried the volatility regime; both are now
+    # ATR-normalized against the one shared positive Wilder-14 denominator).
+    # 2026-08-19 second pass: v3 -> v4, and the `spread_bps` clause is deleted
+    # with the column it described -- `chart.local_ema50_200_spread_bps` is
+    # retired because its IQR width grew 1.32x across the tape (era proxy),
+    # and it stays exactly recoverable as
+    # `chart.local_ema50_200_spread_atr * ctx_cont.atr_bps` now that the ctx
+    # owner divides its Wilder-14 ATR by `close` instead of the bar midpoint.
+    # Re-derived over the new clause tuple; the literal is the drift guard, not
+    # the source.
     assert PRICE_DERIVED_FORMULA_SHA256 == (
-        "62a2cb37fde1e0b0bc654aa39430deb6c4e309acab9d00139f948057b407bdee"
+        "d3fc5f9f927f5d5b7ab4b9744c1d0f66950748ccd56400a16a5447c37d02aa17"
     )
     assert (
         price_owner["ordered_feature_names_sha256"]

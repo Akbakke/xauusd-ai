@@ -100,6 +100,17 @@ generation the fit read; consumers fail closed without them. The level registry'
 same state machine as serving and is only a nonempty-support/provenance gate,
 not a duplicate registry or a shadow/live execution route.
 
+The declared TRAIN window is a chain invocation value, not a code default; the
+current one and its derivation are in `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
+`--history-start` must cover the widest per-TF receptive field
+(`PRODUCTION_MTF_PER_TF_WINDOW_BARS`, the D1 lane) in real closed D1 bars, and
+the chain fails closed otherwise. Forward label purging at a split boundary
+needs no owner of its own: the builder rebuilds each split with its own
+computation end, so the direction/path horizon truncation, the auxiliary
+union-completeness mask and the Exit lifecycle `crosses_split_end` guard all
+bite at every window end. There is no backward embargo and none is required —
+feature lookback is causal and is what serving does.
+
 The immutable M5 surface is Entry's sole signal/context input authority. It is
 loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
 so no split rebuilds the specialist stack. The M1 surface is Exit's matching
@@ -113,11 +124,17 @@ the exact ordered signal-manifest identity, while their computed values remain
 native to each clock. Exit episodes point into the hash-bound M1 surface; they
 do not duplicate paths.
 
-Exit supervision has no caller-selected lookahead. The dataset event fits one
-hash-bound target policy on native TRAIN M1 only, learns its indifference band
-from executable spread and selects its horizon from the observed 1..512-row
-material-improvement discovery curve. VAL/TEST reuse the frozen policy and
-contribute zero fit rows; corpus load recomputes the TRAIN fit from source.
+Exit supervision has no caller-selected lookahead and **no fitted horizon at
+all**. Every one of the 512 states of every episode is supervised by
+`gx1/contracts/unified_exit_fitted_q_v1.py`: HOLD bootstraps from a frozen
+TRAIN target-network snapshot at the next causal state, EXIT_NOW terminates at
+the current executable quote. There is no discount, margin, indifference band
+or lookahead window (`unified_exit_optimal_stopping_v1` docstring), and the
+pathwise hindsight optimum in that owner is explicitly never a training target.
+Until 2026-08-19 this paragraph described a `gx1_unified_exit_target_policy_v1`
+with a TRAIN-median-spread indifference band and a 1..512 discovery-curve knee;
+no such owner has ever existed in source, and
+`tests/test_entry_v10_outcome_targets.py` asserts its absence in the builder.
 
 The current published source authority is pair generation
 `9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd`
@@ -133,19 +150,27 @@ feature rows and 512 supervised path states. Runtime/replay retains the latest
 512 detailed path rows but carries all-time elapsed age and an incremental hash
 over every prior row, so 512 is not a forced trade-duration limit.
 
-Direction labels are future-outcome supervision, not live rules. Their horizon
-is 24 observed M5 bars. Any M1 reconstruction resolves those M5 buckets first;
-24 may never be interpreted as 24 M1 rows.
+Direction labels are future-outcome supervision, not live rules. **The horizon
+is not a constant and is not restated here**: it is TRAIN-fitted per build by
+the maximum-chord knee of the cumulative material-profit discovery curve over
+candidates 1..`ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS`
+(`gx1/contracts/entry_direction_target_policy_v1.py`), and each build freezes
+it into its own `DATASET_BUILD_PROOF.json` as
+`diagnostic_outcome_horizon_bars`. This paragraph claimed a fixed 24 M5 bars
+until 2026-08-19; there is no 24 in the owner. The horizon is always M5 bars —
+any M1 reconstruction resolves those M5 buckets first and may never count M1
+rows as M5 bars.
 
 ## Model-native decision path
 
 ```text
-all shared evidence -> encoder -> calibrated direction logits
+all shared evidence -> encoder -> entry_action_q_bps (expected return, bps)
                                    |
                        unique argmax or failure
                          LONG / SHORT / FLAT
 
-learned Entry-decision token + M1 features + five-TF context + path -> Exit logits
+learned Entry-decision token + M1 features + five-TF context + path
+                                   -> unified_exit_action q (bps)
                                            |
                                unique argmax or failure
                                   HOLD / EXIT_NOW
@@ -157,8 +182,10 @@ argmax. Sizing cannot create an order when direction is FLAT or invalid.
 Its target is an exact selected-side path-quality ECDF fitted on TRAIN
 tradable rows; only explicitly masked rows train the size head, VAL/TEST use
 the frozen ECDF, and the size output has no direction authority.
-The Entry-decision token is a learned 609-to-128 projection of the exact ordered
-local, final, MTF, raw-fusion, fusion-hidden and final-logit decision blocks.
+The Entry-decision token is a learned projection of the exact ordered six-block
+pre-argmax decision source, whose block names and widths are owned by
+`gx1/contracts/entry_decision_token_v1.py` and are not restated here; the last
+block is `entry_action_q_bps`, not a logit vector.
 It is frozen once at fill as exact little-endian float32 bytes. Every Exit result additionally binds the exact M1
 and five-TF tensor bytes, their clocks/cache identity, side, quotes, path and
 trade identity in one persisted full-input envelope.
@@ -176,16 +203,23 @@ surface. Raw per-TF regime/EMA/trend-age/D1-distance evidence, genuine change
 events, local return and the three unsigned volume primitives remain available
 for learned fusion.
 
-Training-objective v6 and the 46-key recipe-v5 schema use plain unweighted CE
-for main/MTF/masked-side classification and plain unweighted BCE for hierarchy
-binary tasks. Waves A/B retired direction and hierarchical distribution
-forcing. Fixed auxiliary task weights, rank margins and gate regularization
-remain for Wave C, so this is not a claim that every static objective magnitude
-has been eliminated.
+The objective and recipe owners
+(`gx1/contracts/entry_model_native_training_objective_v1.py`,
+`gx1/contracts/entry_model_native_train_recipe_v1.py`) own their schema
+versions, keys and flags; execute them, nothing is restated here (rule 13).
+Proven from source 2026-08-19: the sole decision loss is masked raw-bps MSE on
+fitted-Q for Entry and Exit, task weights are learned by trainable
+homoscedastic log-variance, and no cross-entropy holds decision authority — one
+masked BCE survives on the `trendline_event` auxiliary head. The retired
+"objective v6 / 46-key recipe-v5 / unweighted CE / pending Wave C" description
+matched nothing in source. Whether every static magnitude in the trainer is
+gone is **not examined**.
 
-The TRAIN-fit squeeze owner is implemented and its six per-clock artifacts are
-fitted and admissible (`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`), but no surface,
-cache or dataset has yet been built on them. Fit and serve share one causal
+The TRAIN-fit squeeze owner is implemented and six per-clock artifacts have
+been fitted and admitted; several such sets now exist on disk with different
+`contract_sha256`, so the current binding is read from a run's V4 cache
+manifest and is not named here. V31 chains have built surfaces and caches on
+them, and none reached GREEN. Fit and serve share one causal
 forward-filter decoder; a second decoder in this owner is what made the
 2026-08-15 artifacts absorbing. Exit remains a closed-M1 system; no tick-level
 feature, dataset, OOS result or trading claim exists.
@@ -206,9 +240,14 @@ source pair
 
 Failure at any arrow stops the chain. Fresh native and canonical source
 exists. Historical V28/V29J datasets were retired with their superseded
-feature contracts and have no training or comparison authority. Current
-status is before the current-contract V30 feature-surface and dataset rebuild.
-No accepted candidate exists.
+feature contracts and have no training or comparison authority. V31 rebuild
+chains have run repeatedly since 2026-08-18 under
+`/home/andre2/GX1_DATA/data/data/prebuilt/V31_CHAIN_*`; every one that reached
+a terminal event ended RED, and the newest has no terminal event at all, so its
+partial output is invalid (rule 7). No admitted dataset and no accepted
+candidate exist. The first arrow — feature/cache/liveness proofs — is also not
+yet passed for train==serve: the serve-parity gate has never executed (zero
+events on disk, measured 2026-08-19).
 
 ## Scope boundary
 

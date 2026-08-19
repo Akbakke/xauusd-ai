@@ -24,8 +24,12 @@ two days. Derive them by executing
 consumes the same definitions and TRAIN normalization on 480 local M1 bars,
 closed M5/M15/H1/H4/D1 context, the frozen Entry-decision token and its causal
 in-trade path. The frozen value is a dedicated learned 128-wide Entry-decision
-token built by a learned 609-to-128 projection of the exact ordered local,
-final, MTF, raw-fusion, fusion-hidden and final-logit decision blocks; it is
+token built by a learned projection of the exact ordered six-block pre-argmax
+decision source; the block names and widths are owned by
+`gx1/contracts/entry_decision_token_v1.py`
+(`ENTRY_DECISION_TOKEN_COMPONENTS`, `ENTRY_DECISION_TOKEN_SOURCE_DIM`) and are
+not restated here (rule 13: the width restated in this paragraph was stale).
+The last block is `entry_action_q_bps`, not a logit vector. It is
 not a generic pre-head embedding. Higher-timeframe
 OHLCV closes before feature computation; computed M1 indicators are never
 resampled upward. Each MTF lane carries `htf_features.MULTI_TF_FEATURE_COUNT_V4` ordered fields;
@@ -58,17 +62,21 @@ not restated here. Its retained six-field local SMC event block emits
 raw displacement, sided sweep depth, one-shot events and event age, not a
 direction vote.
 
-The accepted model's unique argmax is the only runtime decision authority.
-Exact top-logit ties, missing paths, stale artifacts and lineage mismatches
-fail closed; no post-model handwritten rule, fallback or alternate replay
-selector may override it. This is not a claim that the training objective is
-free of every fixed magnitude: auxiliary task weights, rank margins and gate
-regularization remain for Wave C.
+The accepted model's unique argmax is the only runtime decision authority, and
+what it ranks is `entry_action_q_bps` — per-action expected return in basis
+points, not a calibrated probability. Exact Q ties, missing paths, stale
+artifacts and lineage mismatches fail closed; no post-model handwritten rule,
+fallback or alternate replay selector may override it.
 
-Training-objective v6 and the 46-key recipe-v5 schema use plain unweighted CE
-for main/MTF/masked-side classification and plain unweighted BCE for hierarchy
-binary tasks. Waves A/B retire direction and hierarchical distribution forcing;
-Wave C is deliberately not claimed complete.
+The objective and recipe owners
+(`gx1/contracts/entry_model_native_training_objective_v1.py`,
+`gx1/contracts/entry_model_native_train_recipe_v1.py`) own their schema
+versions, keys and flags and **no count or version is restated here** (rule
+4/13). Proven from source 2026-08-19: the sole decision loss is masked raw-bps
+MSE on fitted-Q for Entry and Exit, task weights are learned by trainable
+homoscedastic log-variance, and no cross-entropy holds decision authority — one
+masked BCE survives on the `trendline_event` auxiliary head. Whether every
+static magnitude in the trainer is gone is **not examined**.
 
 The five handwritten regime composites, the handcrafted `tf_agreement` head
 and `signed_vol_z_20` are retired while their genuine raw evidence remains for
@@ -91,10 +99,13 @@ but the system is not empirically finished:
   `9b18e215...077232cd` (2026-08-09) are published and hash-bound;
 - the historical V28 and V29J dataset chains were retired and are not valid
   training or comparison substrates;
-- the current source contract is present, but no
-  corresponding dataset rebuild has run yet;
-- objective v6/recipe v5 completes Waves A/B, while fixed auxiliary weights,
-  rank margins and gate regularization remain pending Wave C;
+- the current source contract is present; V31 rebuild chains have run
+  repeatedly since 2026-08-18 and every one that reached a terminal event ended
+  RED, so no admitted dataset exists;
+- train==serve is a requirement, not a proven state: the serve-parity gate has
+  never executed (zero events on disk, measured 2026-08-19) and one real
+  divergence is proven in source (two different ATR formulas between the
+  offline HTF owner and the serve ctx-augment block);
 - no accepted Entry/Exit checkpoint or calibrated bundle;
 - no untouched-TEST edge, historical PnL or win-rate proof;
 - no same-candidate full-TEST unified Exit proof;
@@ -105,7 +116,9 @@ but the system is not empirically finished:
   VAL state. Smoke runs explicitly cannot supply this admission proof.
 
 Every dataset built on a retired feature surface is invalid as substrate for
-new training. A fresh current-contract V30 rebuild is required.
+new training. A fresh current-contract rebuild is required and has not landed;
+the signal-surface schema version that a cache or dataset must match is printed
+by `bash scripts/gx1_handover.sh` and is never restated here.
 
 Registry fit payloads are bound to exact TRAIN-source provenance in the M5
 cache and M1-enriched manifests. The level-registry runtime-population shadow
@@ -120,10 +133,12 @@ state, so a switch had to be bought with one bar's emission evidence against
 the fitted persistence penalty. Fit and serve now share one causal
 forward-filter decoder, the fit method identity is bumped so the old artifacts
 fail closed at load, and the admission gate proves low-state reachability. The
-refit `VOLATILITY_SQUEEZE_SIXCLOCK_20260818`
-(`dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`) is
-admissible and measured live on real TRAIN bytes. No surface, cache or dataset
-has been built on it, so no model or edge claim follows.
+refit `VOLATILITY_SQUEEZE_SIXCLOCK_20260818` is admissible and measured live on
+real TRAIN bytes, but it has since been superseded: three non-retired six-clock
+sets sit under `.../prebuilt/VOLATILITY_SQUEEZE_SIXCLOCK_*` with three different
+`contract_sha256`, and the V31 chains bound `..._GEN1f9424_20260818T160532Z`.
+Read the binding from a run's own V4 cache manifest, never from a document. No
+chain has carried any of them to GREEN, so no model or edge claim follows.
 Exit remains native closed M1. No tick-level dataset, evaluation, OOS or
 trading claim exists.
 

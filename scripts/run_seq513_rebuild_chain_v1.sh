@@ -285,6 +285,14 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# ONE OWNER (rule 13).  This string used to be restated here as
+# "seq513_rebuild_chain_status_v9" while the readiness gate required v7, which
+# made post-rebuild readiness permanently RED with both test suites green.
+# Importing it means a bump can only ever happen in one place.
+from gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 import (
+    CHAIN_SCHEMA,
+)
+
 (
     step,
     state,
@@ -330,7 +338,7 @@ if state in terminal_states:
     stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     terminal_path = path.with_name(f"CHAIN_TERMINAL_{stamp}_{state}.json")
 payload = {
-    "schema_version": "seq513_rebuild_chain_status_v9",
+    "schema_version": CHAIN_SCHEMA,
     "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
@@ -1156,6 +1164,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    PRODUCTION_MTF_PER_TF_WINDOW_BARS,
+)
+from gx1.features.htf_features import build_multi_tf_v4_closed_timestamp_indices
+
 canonical, source = map(Path, sys.argv[1:3])
 history_start = pd.Timestamp(sys.argv[3])
 train_end = pd.Timestamp(sys.argv[4])
@@ -1181,6 +1194,26 @@ if times[0] > history_start or times[-1] != test_end or pre_train_rows < 96:
         "source does not cover the declared common history/test window: "
         f"first={times[0]} last={times[-1]} test_end={test_end} "
         f"pre_train_rows={pre_train_rows}"
+    )
+# The 96-row check above is the local M5 sequence warmup only. The dominant
+# warmup is the D1 receptive field: the widest per-TF window in
+# PRODUCTION_MTF_PER_TF_WINDOW_BARS (rule 13 -- derived here, never restated),
+# counted on the same closed-D1 axis the V4 cache uses. Without this, a
+# --history-start that satisfies the M5 warmup can still leave the first TRAIN
+# rows with an incomplete daily receptive field, and nothing downstream would
+# say so. Rows are counted on the real bar grid, so weekend and closure gaps
+# cannot be miscounted as calendar days.
+required_d1_warmup_bars = int(dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)["D1"])
+d1_axis = build_multi_tf_v4_closed_timestamp_indices(times.as_unit("ns"))["D1"]
+pre_train_d1_bars = int(
+    ((d1_axis >= history_start) & (d1_axis < train_start)).sum()
+)
+if pre_train_d1_bars < required_d1_warmup_bars:
+    raise RuntimeError(
+        "declared common history does not cover the D1 receptive field: "
+        f"history_start={history_start} train_start={train_start} "
+        f"pre_train_d1_bars={pre_train_d1_bars} "
+        f"required_d1_warmup_bars={required_d1_warmup_bars}"
     )
 identity_columns = ["time", "high", "low", "close", "bid_close", "ask_close"]
 canonical_frame = pd.read_parquet(canonical, columns=identity_columns)

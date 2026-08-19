@@ -140,7 +140,10 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "mom_5_atr",
     "mom_20_atr",
     "close_open_atr",
-    "body_pct",
+    # 2026-08-19: ``body_pct`` is RETIRED from the per-TF lane. It was exactly
+    # ``abs(mtf_candle_raw_body_signed_range)`` on every post-warmup row of
+    # every lane. The identity itself is asserted from raw OHLC in
+    # ``test_retired_per_tf_body_pct_is_exactly_the_unsigned_signed_twin``.
     "ema20_dist_atr",
     "ema50_dist_atr",
     "ema100_dist_atr",
@@ -286,7 +289,6 @@ def test_raw_technical_formulas_are_identical_on_all_five_native_clocks() -> Non
         "mom_5_atr",
         "mom_20_atr",
         "close_open_atr",
-        "body_pct",
         "ema20_dist_atr",
         "ema50_dist_atr",
         "ema100_dist_atr",
@@ -486,8 +488,12 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         # what CLAUDE.md rule 13 forbids.
         "chart_geometry_encoder": len(smc_v1.SMC_MTF_GEOMETRY_FEATURE_NAMES_V1)
         + len(TRENDLINE_REGISTRY_FEATURE_NAMES_V1),
-            "price_action_candle_encoder": 2
-            + len(htf.MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES),
+        # 2026-08-19: the hand-counted head of this group drops from 2 to 1.
+        # ``body_pct`` is retired as an exact duplicate of the candle owner's
+        # ``mtf_candle_raw_body_signed_range`` (already counted by the owner
+        # tuple below), leaving ``close_open_atr`` as the only non-owner name.
+        "price_action_candle_encoder": 1
+        + len(htf.MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES),
     }
     flattened = [index for indices in routing.values() for index in indices]
     assert sorted(flattened) == list(range(htf.MULTI_TF_FEATURE_COUNT_V4))
@@ -1557,20 +1563,23 @@ def test_declared_alias_pairs_name_fields_the_surface_emits() -> None:
 def test_mid_series_zero_range_bar_takes_the_sibling_share_convention() -> None:
     """A high == low bar after warmup must not abort the per-TF build.
 
-    ``body_pct`` used to divide by ``(high - low).where((high - low) > 0.0)``,
-    so one zero-range bar put a NaN in the MIDDLE of the surface and
-    ``validate_causal_feature_matrix`` — which this producer runs on its own
-    output — rejected the whole timeframe as "not one causal warmup prefix".
-    MEASURED on the complete declared native M5 tape
-    (XAU_M5_NATIVE_2019_20260804_V4, 537,861 rows, 2019-01-01..2026-08-04):
-    215 zero-range M5 bars, 24 after M15 resampling and 14 after H1
-    resampling, all of them past the warmup prefix — so the abort was real,
-    not hypothetical.
+    The per-TF ``body_pct`` used to divide by
+    ``(high - low).where((high - low) > 0.0)``, so one zero-range bar put a
+    NaN in the MIDDLE of the surface and ``validate_causal_feature_matrix`` --
+    which this producer runs on its own output -- rejected the whole timeframe
+    as "not one causal warmup prefix".  MEASURED on the complete declared
+    native M5 tape (XAU_M5_NATIVE_2019_20260804_V4, 537,861 rows,
+    2019-01-01..2026-08-04): 215 zero-range M5 bars, 24 after M15 resampling
+    and 14 after H1 resampling, all of them past the warmup prefix -- so the
+    abort was real, not hypothetical.
 
-    The convention adopted is the one the sibling candle owner
-    ``gx1.features.entry_candle_primitives_v1`` already uses (and
-    ``compute_micro_structure_features`` after it): the range SHARE is an
-    explicit 0.0.
+    ``body_pct`` itself was RETIRED on 2026-08-19 as an exact duplicate (see
+    ``test_retired_per_tf_body_pct_is_exactly_the_unsigned_signed_twin``), but
+    the convention it adopted is unchanged and now lives only in the sibling
+    candle owner ``gx1.features.entry_candle_primitives_v1``: on a zero-range
+    bar the range SHARE is an explicit 0.0.  This test asserts it on the
+    surviving column, in the same position in the surface, so the mid-series
+    hole cannot come back.
 
     ``mtf_candle_raw_zero_range_flag`` used to sit beside it and mark the row.
     It was retired on 2026-08-15 (constant post-warmup on H4/D1, hence a hard
@@ -1589,9 +1598,7 @@ def test_mid_series_zero_range_bar_takes_the_sibling_share_convention() -> None:
     observed = _compute_v4(bars, timeframe="M5")
 
     assert "mtf_candle_raw_zero_range_flag" not in observed.columns
-    assert observed["body_pct"].iloc[zero_row] == 0.0
-    # The two owners agree on the same row: the unsigned twin of the sibling's
-    # signed body share.
+    assert "body_pct" not in observed.columns
     assert observed["mtf_candle_raw_body_signed_range"].iloc[zero_row] == 0.0
 
     share_columns = (
@@ -1608,15 +1615,18 @@ def test_mid_series_zero_range_bar_takes_the_sibling_share_convention() -> None:
     np.testing.assert_array_equal(recovered, truth)
     assert bool(recovered[zero_row])
 
-    # body_pct has no warmup of its own (both operands are finite from row 0),
-    # so ANY NaN in it is a mid-series hole by construction.
-    body_pct = observed["body_pct"].to_numpy(dtype=np.float64)
-    assert np.isfinite(body_pct).all()
+    # The surviving body share has no warmup of its own (both operands are
+    # finite from row 0), so ANY NaN in it is a mid-series hole by
+    # construction.
+    body_share = observed["mtf_candle_raw_body_signed_range"].to_numpy(
+        dtype=np.float64
+    )
+    assert np.isfinite(body_share).all()
 
-    # And a hole at exactly this row is what the gate rejects — the failure
+    # And a hole at exactly this row is what the gate rejects -- the failure
     # the retired NaN mask produced on every real timeframe that contains a
     # zero-range bar.
-    holed = body_pct.reshape(-1, 1).copy()
+    holed = body_share.reshape(-1, 1).copy()
     holed[zero_row, 0] = np.nan
     with np.testing.assert_raises_regex(
         RuntimeError, "not one causal warmup prefix"
@@ -1624,6 +1634,110 @@ def test_mid_series_zero_range_bar_takes_the_sibling_share_convention() -> None:
         htf.validate_causal_feature_matrix(
             holed, expected_width=1, context="HTF_V4_ZERO_RANGE_TEST"
         )
+
+
+def test_retired_per_tf_body_pct_is_exactly_the_unsigned_signed_twin() -> None:
+    """The arithmetic that justified retiring the per-TF ``body_pct``.
+
+    ``body_pct`` emitted ``abs(close - open) / (high - low)`` where the range
+    was strictly positive and the storage ``0.0`` where ``high == low``.  The
+    sibling causal candle owner emits, from the same frame and into
+    ``mtf_candle_raw_body_signed_range``, ``(close - open) / (high - low)``
+    under the identical condition and the identical zero-range convention, so
+    the retired field was ``abs`` of a column that stays on the surface, and
+    only the survivor carries the SIGN.
+
+    MEASURED on the complete declared native M5 tape
+    (XAU_M5_NATIVE_2019_20260804_V4, 537,861 rows) resampled by this owner,
+    post-warmup, on all five lanes, in float64 and in the served float32:
+    max|body_pct - abs(twin)| == 0.0 exactly on M5 (537,657 rows), M15
+    (179,154), H1 (44,669), H4 (11,524) and D1 (1,754); the twin is negative
+    on 265,508 of the 537,657 M5 rows, so the discarded sign was real
+    evidence.
+
+    NOT VACUOUS.  Nothing here reads a name list: the expected value is
+    recomputed from the frame's raw OHLC by the retired formula, so this test
+    fails if the surviving twin's arithmetic changes (a different denominator,
+    a clip, a different zero-range convention), not merely if a name moves.
+    The rule-4 completeness claim -- that the bar's shape is fully described
+    without ``body_pct`` -- is asserted as the exact range partition beside it.
+    """
+
+    bars = _bars(600, seed=1908)
+    zero_row = 400
+    close_price = float(bars["close"].iloc[zero_row])
+    for column in ("open", "high", "low", "close"):
+        bars.iloc[zero_row, bars.columns.get_loc(column)] = close_price
+
+    observed = _compute_v4(bars, timeframe="M5")
+    assert "body_pct" not in observed.columns
+
+    open_ = bars["open"].to_numpy(dtype=np.float64)
+    high = bars["high"].to_numpy(dtype=np.float64)
+    low = bars["low"].to_numpy(dtype=np.float64)
+    close = bars["close"].to_numpy(dtype=np.float64)
+    bar_range = high - low
+    positive = bar_range > 0.0
+    assert positive.sum() > 0 and (~positive).sum() == 1
+
+    # The retired producer's own formula, recomputed here from raw OHLC.
+    retired_body_pct = np.zeros_like(bar_range)
+    retired_body_pct[positive] = (
+        np.abs(close - open_)[positive] / bar_range[positive]
+    )
+
+    # ``compute_per_bar_features_v4`` emits float32, so the retired field and
+    # its twin met as float32 on the shipped surface: there the identity is
+    # BIT-EXACT, which is what the tape measurement above reports.  Against a
+    # float64 recomputation the only gap is that emission cast, bounded by
+    # float32 machine epsilon -- a declared constant of the storage dtype, not
+    # a tolerance chosen to make the test pass.
+    twin = observed["mtf_candle_raw_body_signed_range"].to_numpy(
+        dtype=np.float64
+    )
+    np.testing.assert_array_equal(
+        np.abs(twin).astype(np.float32),
+        retired_body_pct.astype(np.float32),
+    )
+    np.testing.assert_allclose(
+        np.abs(twin),
+        retired_body_pct,
+        rtol=float(np.finfo(np.float32).eps),
+        atol=0.0,
+    )
+
+    # The sign is the information the retirement ADDS, not removes.
+    expected_sign = np.sign(close - open_)
+    expected_sign[~positive] = 0.0
+    np.testing.assert_array_equal(np.sign(twin), expected_sign)
+    assert (twin < 0.0).sum() > 0 and (twin > 0.0).sum() > 0
+
+    # Rule 4 completeness: the three retained shares partition the range
+    # exactly, so the body share is not the only description of bar shape and
+    # nothing about the candle's geometry left the learned path.
+    upper = observed["mtf_candle_raw_upper_wick_share"].to_numpy(
+        dtype=np.float64
+    )
+    lower = observed["mtf_candle_raw_lower_wick_share"].to_numpy(
+        dtype=np.float64
+    )
+    # Same float32 emission bound as above; the partition itself is exact.
+    eps32 = float(np.finfo(np.float32).eps)
+    partition = np.abs(twin) + upper + lower
+    np.testing.assert_allclose(partition[positive], 1.0, rtol=0.0, atol=4 * eps32)
+    np.testing.assert_array_equal(partition[~positive], 0.0)
+    np.testing.assert_allclose(
+        upper[positive],
+        (high - np.maximum(open_, close))[positive] / bar_range[positive],
+        rtol=eps32,
+        atol=0.0,
+    )
+    np.testing.assert_allclose(
+        lower[positive],
+        (np.minimum(open_, close) - low)[positive] / bar_range[positive],
+        rtol=eps32,
+        atol=0.0,
+    )
 
 
 def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator() -> None:

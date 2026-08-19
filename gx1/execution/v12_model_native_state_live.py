@@ -56,6 +56,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.entry_model_native_state_v2 import validate_state_contract_metadata_v2
 from gx1.features.model_native_market_context_v1 import (
+    MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1,
     derive_model_native_atr_spread_bps,
 )
 from gx1.features.micro_structure_v1 import (
@@ -535,6 +536,12 @@ class ModelNativeStateBuilder:
                 # V30 package 4 (2026-08-13): spread_bps_delta_1's 1-row NaN
                 # prefix, trimmed by the same contract on all three lanes.
                 + list(SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1)
+                # ctx_cont.atr_bps is the classic Wilder-14 ATR from the one
+                # ATR owner (rule 19), so it carries an honest
+                # MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1-row NaN prefix. The
+                # bare `atr` written beside it in step 1b is that value times a
+                # strictly positive price level, so this one entry cuts both.
+                + list(MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1)
             )
         )
         frame = trim_causal_context_warmup_prefix(frame, causal_required).reset_index(

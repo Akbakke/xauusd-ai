@@ -14,7 +14,10 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
+    LOCAL_EMA_SLOPE_LOOKBACK_BARS,
     MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
+    PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
+    PRICE_DERIVED_FEATURE_NAMES,
     SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
     TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
     build_candle_primitive_derived_layer,
@@ -27,6 +30,9 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 from gx1.features import htf_features as htf
 from gx1.features.entry_candle_primitives_v1 import (
     build_entry_candle_primitive_layer,
+)
+from gx1.features.model_native_market_context_v1 import (
+    derive_model_native_atr_spread_bps,
 )
 from gx1.features.technical_indicators_v1 import (
     ema50_200_spread_atr_block,
@@ -60,13 +66,20 @@ def _valid_inputs(tmp_path: Path, *, rows: int = 240):
         position = names.index(name)
         matrix[:, position] = 0.0
         matrix[11 + offset :: 37 + offset, position] = 1.0
-    # EMA200 plus its two causal spread derivatives need 202 closed source
-    # bars before the first emitted sample.  Warmup belongs to the source
-    # history, not to zero-filled model rows.
-    warmup_rows = 202
+    # Warmup belongs to the source history, not to zero-filled model rows, and
+    # the floor is read from the producing owner instead of restated here
+    # (2026-08-19: the local EMA slope repair moved it 202 -> 204, because
+    # ``ema200[t] - ema200[t-5]`` is first finite at the classic EMA200 seed
+    # row 199 plus the 5-bar lookback).
+    warmup_rows = PRICE_DERIVED_CAUSAL_WARMUP_ROWS
     source_rows = warmup_rows + rows
     times = pd.date_range("2026-01-01", periods=source_rows, freq="5min", tz="UTC")
-    index = np.arange(source_rows, dtype=np.float64)
+    # The generator is anchored to the source index at which the emitted
+    # window began under the previous 202-row floor, so raising the floor adds
+    # history at the FRONT and leaves the emitted 240 rows' OHLC bit-identical.
+    # Every non-price layer's pinned hash below is therefore evidence that this
+    # wave did not perturb it, rather than a number that had to be refreshed.
+    index = np.arange(source_rows, dtype=np.float64) - float(warmup_rows - 202)
     mid = 2500.0 + index * 0.1 + np.sin(index * 0.11)
     open_ = mid - 0.05
     close = mid + 0.05 * np.sin(index * 0.17)
@@ -122,11 +135,24 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             price_names,
             # V30 (2026-08-13): package 1 added chart.local_kama_efficiency_30,
             # package 2 the three GAP-2/3 local age fields, and package 3 the
-            # four price-vs-EMA cross events (19 fields); all hashes
-            # re-measured on the unchanged source fixture.
-            (240, 19),
-            "bf143b30872d6513d47a9232ae25beea3f13946a98f8703d9e15250a5097e32a",
-            "af300b1db50c88411851bbc82c69e78ece640acfa293f09c3fd9593d74e26d0e",
+            # four price-vs-EMA cross events.
+            # 2026-08-19 fidelity repair, first pass: six columns changed unit
+            # and/or formula in place (four price-relative `_bps` -> `_atr`, and
+            # the two `ema*_slope_bps` columns, which the classic EMA recursion
+            # made an exact multiple of the price gap, -> the genuine 5-bar EMA
+            # change over the same positive Wilder ATR) at an unchanged width.
+            # 2026-08-19 second pass: chart.local_ema50_200_spread_bps RETIRED,
+            # so the width narrows by one.  MEASURED attribution — re-inserting
+            # that one column at its former position 0, recomputed from the
+            # shared block owner as `spread / close.abs() * 1e4`, reproduces the
+            # pre-removal value hash
+            # d00c709a58fbf60ce8284427456d1466953d14a690c635499282c4692ecca587
+            # exactly, so every surviving column is bit-identical and this is a
+            # narrower surface rather than a changed one.  The width itself is
+            # never restated: it is read from the owner tuple below.
+            (240, len(PRICE_DERIVED_FEATURE_NAMES)),
+            "c2e41f45317ddb571fac9c722984da81c8472d1751596d9f6dcb8286698f2dfe",
+            "e2dd5d7119a90e593815f46d205d8bbfb0315ec5df9dfc587503492bfb9e6752",
         ),
         "candle": (
             candle_x,
@@ -144,9 +170,20 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # proving every surviving column is bit-identical to the
             # pre-removal emission of the same column, so this is a narrower
             # surface, not a changed one.
+            # 2026-08-19: this owner is UNTOUCHED by the local-EMA repair; the
+            # value hash moved only because that repair raised the layer's
+            # declared warmup floor 202 -> 204, so the fixture's source carries
+            # two more leading bars.  MEASURED attribution: rebuilding this
+            # layer on the 202-row fixture reproduces the previous hash
+            # 95882cf125b3152876ab3f2b7b6788af3fc1789b8bd618c895781799756d0955
+            # exactly, and exactly one column differs between the two —
+            # candle.raw_observed_body_direction_duration_bars, uniformly +2
+            # bars, i.e. the two extra prefix rows counted by a run-length
+            # field.  Every other column is bit-identical and the name hash is
+            # unchanged.
             (240, 21),
-            "95882cf125b3152876ab3f2b7b6788af3fc1789b8bd618c895781799756d0955",
-            "c72093fed2e8eef17917bf92fc4a2742ecd6f5a3967834b416216e2ba776f475",
+            "52288c6502211a316f5c67661a6136e6fd1cc26c1e20c225d648508714756058",
+            "9a869c450465859c43e7eab1bfca8a6bd7f9a3fc05e636df36a29d6c29ff26a7",
         ),
     }
     for values, feature_names, shape, value_hash, name_hash in expected.values():
@@ -513,6 +550,305 @@ def test_native_price_builder_and_per_tf_share_exact_ema_spread_owner(
                 "ema50_200_spread_atr",
             ].to_numpy(dtype=np.float32),
         )
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-19 fidelity repair of the local EMA layer.
+#
+# Two defects were repaired in gx1/features/entry_model_native_feature_layers_v1.py:
+#   D1 (formula) `chart.local_ema50_slope_bps` / `chart.local_ema200_slope_bps`
+#       were `ema.diff()/close*1e4`, which the classic EMA recursion makes an
+#       exact positive multiple of the price-vs-EMA gap already in the layer.
+#   D2 (unit)    the four price-relative fields divided by `close`, so their
+#       dispersion tracked realised volatility instead of the trend state.
+# Both are now ATR-normalized against the ONE shared positive Wilder-14
+# denominator, and the slopes are genuine k-bar EMA changes.
+# ---------------------------------------------------------------------------
+
+
+_REPAIRED_ATR_FIELDS_TO_PER_TF_OWNER = {
+    "chart.local_price_vs_ema50_atr": "ema50_dist_atr",
+    "chart.local_price_vs_ema200_atr": "ema200_dist_atr",
+    "chart.local_ema50_slope_atr": "ema50_slope_atr",
+    "chart.local_ema200_slope_atr": "ema200_slope_atr",
+}
+
+
+def test_repaired_local_atr_fields_are_bit_identical_to_the_per_tf_owner(
+    tmp_path: Path,
+) -> None:
+    """The repaired columns ARE the per-TF owner's formula, not a copy of it.
+
+    ``htf_features`` has emitted ``ema{50,200}_dist_atr`` and
+    ``ema{50,200}_slope_atr`` on every per-TF clock since V4; the local M5/M1
+    clock carried neither a genuine EMA slope nor an ATR-normalized price
+    distance.  Asserting bit-equality against that owner on the same native M5
+    frame binds the lookback (5 closed bars), the denominator (the shared
+    block's ``atr14_positive``) and the numerator at once: no literal restated
+    in the local owner can drift from the convention it claims to adopt.
+    """
+
+    _matrix, _names, _samples, source, _source_path = _valid_inputs(
+        tmp_path,
+        rows=300,
+    )
+    source["time"] = pd.date_range(
+        "2026-01-01",
+        periods=len(source),
+        freq="5min",
+        tz="UTC",
+    )
+    samples = pd.DataFrame({"time": source["time"].iloc[-300:]})
+    source_path = tmp_path / "ema_slope_m5.parquet"
+    source.to_parquet(source_path, index=False)
+
+    local, local_names = build_price_derived_layer(samples, source_path)
+    source_index = pd.DatetimeIndex(source["time"])
+    indexed = source.set_index(source_index)
+    per_tf_source = indexed[["open", "high", "low", "close"]].copy()
+    per_tf_source["volume"] = np.full(len(source), 100, dtype=np.int64)
+    per_tf = htf.compute_per_bar_features_v4(
+        per_tf_source,
+        timeframe="M5",
+        v29_registry_constants=synthetic_v29_registry_constants(),
+        volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
+    )
+    for local_name, per_tf_name in _REPAIRED_ATR_FIELDS_TO_PER_TF_OWNER.items():
+        np.testing.assert_array_equal(
+            local[:, local_names.index(local_name)],
+            per_tf.loc[samples["time"], per_tf_name].to_numpy(dtype=np.float32),
+            err_msg=f"{local_name} != per-TF {per_tf_name}",
+        )
+
+
+def test_retired_bps_slope_was_an_exact_multiple_of_the_price_gap(
+    tmp_path: Path,
+) -> None:
+    """Reproduce the retired formula and prove why it could not be a slope.
+
+    This is the defect, executed rather than described.  For the classic
+    recursion ``ema[t] = ema[t-1] + a*(c[t] - ema[t-1])`` with ``a = 2/(s+1)``:
+
+        ema.diff()[t] = a*(c[t] - ema[t-1])
+        c[t] - ema[t] = (1-a)*(c[t] - ema[t-1])
+        => ema.diff()[t] === (a/(1-a)) * (c[t] - ema[t]) === (2/(s-1))*(gap)
+
+    so the retired ``ema.diff()/close*1e4`` was ``(2/49)`` resp. ``(2/199)``
+    times ``price_vs_ema{50,200}_bps``: a positive scalar multiple, which the
+    positively homogeneous ``asinh((x-median)/IQR)`` input normalizer maps to a
+    bit-identical column.  ``slope > 0`` was therefore exactly ``close > ema``,
+    and a rising average with price pulled back below it was representationally
+    impossible.  The identity is algebraic and holds on any price path, so this
+    test proves the retirement was mandatory, not a preference.
+    """
+
+    _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
+    source_index = pd.DatetimeIndex(source["time"])
+    indexed = source.set_index(source_index)
+    block = ema50_200_spread_atr_block(
+        indexed["high"].astype(np.float64),
+        indexed["low"].astype(np.float64),
+        indexed["close"].astype(np.float64),
+    )
+    close = indexed["close"].astype(np.float64)
+    for span in (50, 200):
+        ema = block[f"ema{span}"]
+        retired_slope_bps = (ema.diff() / close.abs() * 1e4).loc[samples["time"]]
+        gap_bps = ((close - ema) / close.abs() * 1e4).loc[samples["time"]]
+        ratio = 2.0 / (span - 1.0)
+        np.testing.assert_allclose(
+            retired_slope_bps.to_numpy(dtype=np.float64),
+            ratio * gap_bps.to_numpy(dtype=np.float64),
+            rtol=0.0,
+            atol=1e-12,
+        )
+
+    # The repaired field is NOT that quantity.  The discriminator is chosen to
+    # be data-independent: under the retired formula the ratio
+    # slope/gap is the CONSTANT 2/(span-1) on every row of every price path, so
+    # a ratio that varies at all is proof the field is no longer a rescaling of
+    # the gap.  (The stronger observable — a rising average with price pulled
+    # back below it — is a property of real tapes and is deliberately NOT
+    # asserted on this synthetic monotone fixture; rule 2c.)
+    local, local_names = build_price_derived_layer(samples, source_path)
+    slope = local[:, local_names.index("chart.local_ema50_slope_atr")].astype(
+        np.float64
+    )
+    gap = local[:, local_names.index("chart.local_price_vs_ema50_atr")].astype(
+        np.float64
+    )
+    assert np.all(gap != 0.0)
+    ratio = slope / gap
+    assert not np.allclose(ratio, 2.0 / 49.0)
+    assert not np.allclose(ratio, float(ratio[0]))
+
+
+def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
+    tmp_path: Path,
+) -> None:
+    """delta/accel adopt the repository's k-bar change convention exactly.
+
+    ``mom_5_atr``, ``ema20_slope_atr``, ``_v1_tema20_change_3_atr`` and
+    ``_v1_kama30_change_5_atr`` all divide a RAW difference by the CURRENT
+    closed bar's positive ATR.  Differencing an already ATR-normalized series
+    instead would fold the ATR's own bar-to-bar change into a field named for
+    the spread, so the two are asserted to be different quantities here.
+    """
+
+    _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
+    source_index = pd.DatetimeIndex(source["time"])
+    indexed = source.set_index(source_index)
+    block = ema50_200_spread_atr_block(
+        indexed["high"].astype(np.float64),
+        indexed["low"].astype(np.float64),
+        indexed["close"].astype(np.float64),
+    )
+    spread = block["spread"]
+    atr14_positive = block["atr14_positive"]
+    expected_delta = (spread.diff() / atr14_positive).loc[samples["time"]]
+    expected_accel = (spread.diff().diff() / atr14_positive).loc[samples["time"]]
+
+    local, local_names = build_price_derived_layer(samples, source_path)
+    np.testing.assert_array_equal(
+        local[:, local_names.index("chart.local_ema50_200_spread_delta_atr")],
+        expected_delta.to_numpy(dtype=np.float32),
+    )
+    np.testing.assert_array_equal(
+        local[:, local_names.index("chart.local_ema50_200_spread_accel_atr")],
+        expected_accel.to_numpy(dtype=np.float32),
+    )
+    differenced_normalized = (
+        block["spread_atr"].diff().loc[samples["time"]].to_numpy(dtype=np.float64)
+    )
+    assert not np.allclose(
+        expected_delta.to_numpy(dtype=np.float64),
+        differenced_normalized,
+    )
+
+
+def test_layer_has_no_price_relative_field_and_bps_stays_exactly_recoverable(
+    tmp_path: Path,
+) -> None:
+    """No column divides by a price level, and the retired bps reading survives.
+
+    2026-08-19, second pass of the same fidelity wave.  The first pass kept
+    ``local_ema50_200_spread_bps`` on ONE ground: it was the exact unit
+    conversion anchor, because ``ctx_cont.atr_bps`` then divided its true range
+    by the bar MIDPOINT while this layer divides by ``close``.  That premise is
+    gone -- ``model_native_market_context_v1`` now emits
+    ``wilder_atr(high, low, close, 14) / close * 1e4`` from the same one Wilder
+    owner that ``ema50_200_spread_atr_block`` uses here -- so
+
+        spread_atr * atr_bps
+            == (spread / atr14) * (atr14 / close * 1e4)
+            == spread / close * 1e4
+
+    is the retired field's exact former definition, from two inputs the model
+    already reads.  Rule 4 is discharged by that algebra and by
+    ``spread_atr`` itself, which is the SAME numerator and keeps the full signed
+    magnitude of the EMA50-200 spread.
+
+    Both owners are EXECUTED here rather than restated (rule 13): a consumer
+    that re-derived ``atr14/close*1e4`` inline would keep passing after the ctx
+    owner changed its denominator, which is exactly the failure this test
+    exists to catch.  The tolerance is the ``rtol=2e-6`` this file already uses
+    where one factor is float32 storage; it is roughly four orders of magnitude
+    tighter than the 1.27e-02 max relative split the retired midpoint
+    denominator produced, so a denominator regression fails loudly.
+
+    The REASON for the retirement -- the field's IQR width grew 1.32x between
+    the last and first third of the real tape while ``spread_atr`` sat at 1.00
+    -- is a property of a real price history and is deliberately not asserted
+    on this synthetic fixture (rule 2c).  What is asserted here is the
+    invariant: nothing in this layer may be price-relative again.
+    """
+
+    price_relative = tuple(
+        name for name in PRICE_DERIVED_FEATURE_NAMES if name.endswith("_bps")
+    )
+    assert price_relative == ()
+
+    _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
+    local, local_names = build_price_derived_layer(samples, source_path)
+    spread_atr = local[
+        :, local_names.index("chart.local_ema50_200_spread_atr")
+    ].astype(np.float64)
+    assert np.all(np.abs(spread_atr) > 0.0)
+
+    source_index = pd.DatetimeIndex(source["time"])
+    indexed = source.set_index(source_index)
+    # The ctx owner returns the observed quoted spread alongside the ATR and
+    # therefore requires quote columns.  They are declared equal to ``close``
+    # so no spread magnitude is invented (rule 2b); only ``atr_bps`` is read.
+    ctx_frame = indexed.copy()
+    ctx_frame["bid_close"] = ctx_frame["close"]
+    ctx_frame["ask_close"] = ctx_frame["close"]
+    atr_bps = derive_model_native_atr_spread_bps(ctx_frame)["atr_bps"]
+    recovered = spread_atr * atr_bps.loc[samples["time"]].to_numpy(
+        dtype=np.float64
+    )
+
+    block = ema50_200_spread_atr_block(
+        indexed["high"].astype(np.float64),
+        indexed["low"].astype(np.float64),
+        indexed["close"].astype(np.float64),
+    )
+    close = indexed["close"].astype(np.float64)
+    retired_spread_bps = (
+        (block["spread"] / close.abs() * 1e4)
+        .loc[samples["time"]]
+        .to_numpy(dtype=np.float64)
+    )
+    np.testing.assert_allclose(
+        recovered,
+        retired_spread_bps,
+        rtol=2e-6,
+        atol=0.0,
+    )
+
+    # Non-vacuity: the comparison must be sensitive to the denominator, not
+    # merely to the field name.  The retired midpoint convention -- the exact
+    # reason the anchor could not be dropped before -- is rejected here.
+    midpoint = ((indexed["high"] + indexed["low"]) / 2.0).astype(np.float64)
+    midpoint_atr_bps = (
+        (block["atr14"] / midpoint * 1e4).loc[samples["time"]].to_numpy(
+            dtype=np.float64
+        )
+    )
+    assert not np.allclose(
+        spread_atr * midpoint_atr_bps,
+        retired_spread_bps,
+        rtol=2e-6,
+        atol=0.0,
+    )
+
+
+def test_price_layer_warmup_floor_is_exactly_the_ema200_slope_first_finite_row(
+    tmp_path: Path,
+) -> None:
+    """One row below the declared floor fails; the floor itself passes.
+
+    The floor is derived, not chosen: classic EMA200's first valid row (199)
+    plus the shared 5-bar EMA-slope lookback.  Asserting both sides of the
+    boundary keeps a future lookback or EMA-seed change from silently emitting
+    a NaN prefix as model evidence.
+    """
+
+    assert PRICE_DERIVED_CAUSAL_WARMUP_ROWS == 199 + LOCAL_EMA_SLOPE_LOOKBACK_BARS
+
+    _matrix, _names, _samples, source, source_path = _valid_inputs(tmp_path)
+    times = pd.DatetimeIndex(source["time"])
+    with pytest.raises(RuntimeError, match="PRICE_DERIVED_LOCAL_EMA_WARMUP_INCOMPLETE"):
+        build_price_derived_layer(
+            pd.DataFrame({"time": times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS - 1 :]}),
+            source_path,
+        )
+    values, names = build_price_derived_layer(
+        pd.DataFrame({"time": times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]}),
+        source_path,
+    )
+    assert tuple(names) == PRICE_DERIVED_FEATURE_NAMES
+    assert np.isfinite(values).all()
 
 
 def test_native_trendline_builder_preserves_explicit_clock_identity(

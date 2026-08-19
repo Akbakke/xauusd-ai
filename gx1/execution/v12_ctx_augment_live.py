@@ -17,7 +17,8 @@ that compatibility block can be deleted.
 Features added by the local context owner include:
 
   Spread / ATR derivations (2):
-    - atr_bps                              # canonical_v2 atr / mid * 1e4
+    - atr_bps                              # Wilder-14 ATR / close * 1e4 (the ONE
+                                           #   ATR owner, technical_indicators_v1)
     - spread_bps                           # (ask - bid) / bid * 1e4
 
   Session features — see gx1.time.session_detector for the SSoT:
@@ -41,7 +42,7 @@ Features added by the local context owner include:
   Quote/spread dynamics (3 — V30 package 4, 2026-08-13; abstention and
   execution-regime evidence, NOT a direction signal):
     - spread_bps_delta_1                   # 1-bar change of the ctx spread_bps
-    - spread_intrabar_range_bps            # (ask_high - bid_low) / close * 1e4
+    - spread_extremes_sum_bps              # ((ask_high-bid_high) + (ask_low-bid_low)) / close * 1e4
     - quote_range_asymmetry_bps            # ((ask_high-ask_low) - (bid_high-bid_low)) / close * 1e4
 
   Swing structure (14— the 5 V1 fields + the 9 V29 event additions adopted
@@ -75,6 +76,7 @@ from gx1.features.micro_structure_v1 import (
     compute_spread_dynamics_features,
 )
 from gx1.features.model_native_market_context_v1 import (
+    MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1,
     derive_model_native_atr_spread_bps,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
@@ -340,7 +342,7 @@ def _add_micro_features(cv3: pd.DataFrame) -> None:
 
 
 def _add_spread_dynamics_features(cv3: pd.DataFrame) -> None:
-    """Mutates cv3: spread_bps_delta_1, spread_intrabar_range_bps,
+    """Mutates cv3: spread_bps_delta_1, spread_extremes_sum_bps,
     quote_range_asymmetry_bps (V30 package 4, 2026-08-13).
 
     Delegates to the ONE owner ``micro_structure_v1``; the frame must carry the
@@ -457,7 +459,13 @@ def _finish_canonical_v3_context(
         # Trim it by contract instead of relying on the much longer D1 warmup
         # above to cover it incidentally. The other two spread-dynamics fields
         # are defined on every row and carry no prefix.
-        + list(SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1),
+        + list(SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1)
+        # ctx_cont.atr_bps is the classic Wilder-14 ATR (rule 19: the same and
+        # only ATR owner every other field on the surface uses), so its first
+        # MODEL_NATIVE_ATR_CAUSAL_WARMUP_ROWS_V1 rows are honest NaN instead of
+        # the retired partial-window mean. Trim it by contract instead of
+        # relying on the much longer D1 warmup above to cover it incidentally.
+        + list(MODEL_NATIVE_ATR_WARMUP_PREFIX_FIELDS_V1),
     )
     return out
 

@@ -80,11 +80,17 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
       believing it about the system.
 
 3. **One decision authority.** Entry direction comes only from the accepted
-   model's calibrated `LONG/SHORT/FLAT` logits; Exit comes only from the same
-   bundle and shared encoder's calibrated `HOLD/EXIT_NOW` logits. No post-model
-   trend, session, confidence, utility, threshold or close rule may veto, flip
-   or manufacture either action. A separate Exit model is forbidden. Exact ties
-   and missing evidence fail closed.
+   model's unique argmax over `entry_action_q_bps` — per-action expected return
+   in basis points over the valid actions, declared by
+   `gx1/contracts/entry_fitted_q_v1.py` and
+   `gx1/contracts/entry_model_native_training_objective_v1.py`. These are
+   Q-values, **not** calibrated class probabilities, and nothing in the current
+   path produces a calibrated `LONG/SHORT/FLAT` distribution; this rule said
+   "calibrated logits" until 2026-08-19. Exit comes only from the same bundle
+   and shared encoder's `unified_exit_action` Q-values over `HOLD/EXIT_NOW`. No
+   post-model trend, session, confidence, utility, threshold or close rule may
+   veto, flip or manufacture either action. A separate Exit model is forbidden.
+   Exact ties and missing evidence fail closed.
 
 4. **Keep every genuine feature family in the learned path.** Retiring a rule
    must never remove its underlying market evidence. The registered
@@ -123,12 +129,26 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    direction authority and may never create an order when direction is FLAT or
    invalid.
 
-   Training-objective v6 and the 46-key recipe-v5 schema use plain unweighted
-   CE for main/MTF/masked-side classification and plain unweighted BCE for
-   hierarchy binary tasks. Waves A/B retire direction and hierarchical
-   distribution forcing. Fixed auxiliary task weights, rank margins and gate
-   regularization remain for Wave C; never claim all static objective
-   magnitudes have been removed.
+   The objective owner `gx1/contracts/entry_model_native_training_objective_v1.py`
+   and the recipe owner `gx1/contracts/entry_model_native_train_recipe_v1.py`
+   are the only authorities on what the trainer optimizes; **read their schema
+   versions, keys and flags by executing them, never from this file** (rule 13).
+   Proven from source 2026-08-19: the sole decision loss is masked raw-bps MSE
+   on fitted-Q for both `entry_action_q` and `unified_exit_action`; task weights
+   are learned (trainable homoscedastic log-variance, Kendall/Gal/Cipolla 2018),
+   and the contract declares `fixed_relative_task_weights`,
+   `handwritten_rank_losses`, `handwritten_composite_weights`,
+   `handwritten_gate_regularization`, `fixed_target_normalization_scales` and
+   `classification_or_probability_loss_authority` all False. No cross-entropy
+   has decision authority; one masked `binary_cross_entropy_with_logits`
+   survives on the `trendline_event` auxiliary head alone. This paragraph
+   described "training-objective v6 and the 46-key recipe-v5 schema", plain
+   unweighted CE on main/MTF/masked-side classification, and a pending "Wave C"
+   of fixed magnitudes until 2026-08-19; none of that existed in source by then,
+   and it was quoted back to the operator as authority in the same session it
+   was disproven. **Not examined**: nobody has swept the trainer for every
+   remaining static magnitude, so the contract's declaration is proven
+   consistent, not proven complete.
 
    Six-clock TRAIN squeeze artifacts exist and are admissible as of 2026-08-18.
    The first set, fitted 2026-08-15, was rejected: its fit decoded globally
@@ -144,7 +164,16 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    closed M1; no tick-level dataset, OOS result or trading claim exists.
 
 6. **Train equals serve.** Exact ordered fields, dimensions, normalization,
-   timeframe construction, hashes and final-logit semantics must match.
+   timeframe construction, hashes and final-decision semantics must match.
+   This is the requirement, not the current state. **Measured 2026-08-19**: the
+   serve-parity gate has never executed — zero `MODEL_NATIVE_SERVE_PARITY`
+   events exist anywhere under `/home/andre2/GX1_DATA`. **Proven from source
+   the same day**: the serve ctx-augment HTF block
+   (`gx1/execution/v12_ctx_augment_live.py::_atr`) computes ATR as a plain
+   rolling mean of true range in float64, while the offline owner
+   (`gx1/features/htf_features.py::_atr` → `technical_indicators_v1.wilder_atr`)
+   uses Wilder RMA and emits float32 — and the serve helper's own comment claims
+   the two match. Treat train==serve as unproven until a parity event exists.
 
 7. **Newest valid terminal evidence wins.** A newer red event blocks every
    older green event. Missing or malformed evidence is red. A GREEN dataset
@@ -165,8 +194,19 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    (learned 2026-08-11: retiring superseded tape generations broke the
    successor ancestor chain; repaired by the retention-attestation route in
    the provenance owner, see docs/DATA_CONTRACT.md "Retired ancestors").
-   Preserve valid active collectors and unrelated dashboards; never
-   restart a retired daemon merely because its name still exists.
+   **That requirement is UNIMPLEMENTED and this rule claimed otherwise until
+   2026-08-19.** What `authority_protected_paths` in
+   `gx1/contracts/evidence_retention_v1.py` actually enforces, proven from
+   source: it harvests absolute path strings out of three repo-root JSON files
+   (`PROJECT_STATE_artifacts.json`, `PROJECT_STATE_xau_direction_launch.json`,
+   `PROJECT_STATE_entry_iql_delete_incident.json`). It never opens a manifest
+   under `GX1_DATA`, never follows a successor parent pointer and never
+   resolves a lineage binding. Measured 2026-08-19 by executing that function:
+   the protected set is **3 paths**, one of which no longer exists, guarding a
+   34 GB tree. Until the owner covers data-to-data references, every
+   reclamation owes a hand-built parent-pointer proof and may not lean on the
+   protected set. Preserve valid active collectors and unrelated dashboards;
+   never restart a retired daemon merely because its name still exists.
 
    a. **Reclamation is a standing duty, not an occasional errand** (operator
       directive 2026-08-13: *"husk kontinuerlig opprydding parallelt dette
@@ -263,10 +303,20 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
     admission are three separate states; never collapse them into "ready".
 
 24. **A changed-path count is not a source identity.** Takeover binds HEAD, the
-    complete tracked diff and every untracked file byte into a deterministic
-    `worktree_fingerprint`. An unchanged document fingerprint cannot authorize
-    continuation when that worktree identity changed; inspect the diff and
-    rerun the affected contracts first.
+    complete tracked diff and untracked file bytes into a deterministic
+    `worktree_fingerprint`. **"Untracked" means `git ls-files --others
+    --exclude-standard`** (`scripts/gx1_handover.sh`), so everything the ignore
+    rules exclude is invisible to that identity — this rule claimed "every
+    untracked file byte" until 2026-08-19. Measured that day: `.git/info/exclude`
+    — itself untracked and locally editable — carries `.claude/`, hiding
+    `.claude/hooks/` (three guard scripts), `.claude/settings.reference.json`
+    (three hook commands and `defaultMode: bypassPermissions`) and a 13 MB
+    **registered git worktree** whose copies of `scripts/gx1_handover.sh` and
+    `gx1/scripts/cleanup_gx1_evidence_v1.py` diverge from HEAD's and which still
+    contains forbidden-route modules (paper runner, collector, live entry/exit).
+    An unchanged document fingerprint cannot authorize continuation when that
+    worktree identity changed; inspect the diff, read
+    `git worktree list --porcelain`, and rerun the affected contracts first.
 
 25. **Gate-green is not quality-green, and the operator must never have to
     dig for that distinction.** The gates prove *consistency* — train==serve,

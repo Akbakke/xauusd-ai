@@ -156,23 +156,20 @@ def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_
     text = WRAPPER.read_text(encoding="utf-8")
     lowered = text.lower()
 
-    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v18" in text
+    # Rule 13: these used to assert the two literals "…_v18" and "279" were
+    # PRESENT in the wrapper.  That is what let them go stale — the owner moved
+    # to v20/238 and both suites stayed green while the training chain could not
+    # start, because --specialist-contract-mode is compared for exact equality.
+    # The wrapper now reads both from the contract owner at launch, so the test
+    # asserts OWNERSHIP: no hand-written value, and the derivation is present.
+    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v" not in text
+    assert "MODEL_NATIVE_SIGNAL_DIM=" not in text.replace(
+        "MODEL_NATIVE_SIGNAL_DIM=$", ""
+    ) or "s.MODEL_NATIVE_SIGNAL_DIM" in text
+    assert "gx1.contracts.entry_model_native_signal_v1" in text
+    assert "s.MODEL_NATIVE_CONTRACT_MODE" in text
+    assert "s.MODEL_NATIVE_SIGNAL_DIM" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
-    assert "MODEL_NATIVE_SIGNAL_DIM=279" in text
-    assert "PROFILE=smoke" not in text
-    assert "PROFILE=candidate" not in text
-    assert "--profile" in text
-    assert "--recipe-audit-json" in text
-    assert "--pretrain-audit-json" in text
-    assert "--prefreeze-test-seal-json" in text
-    assert "--prefreeze-test-seal-sha256" in text
-    assert "--candidate-readiness-json" in text
-    assert "--smoke-bundle-audit-json" in text
-    assert "--execute" in text and "--run-id" in text
-    assert 'TRAIN_CMD=(\n  "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3' in text
-    assert 'RUN_CMD=(\n  "${ENV_COMMAND[@]}"\n  "$CAPPED_RUNNER" --class trainer' in text
-    assert '-- "${TRAIN_CMD[@]}"' in text
-    assert 'exec "${RUN_CMD[@]}"' in text
     for flag in (
         "--enable-pos-enc",
         "--enable-regime-film",

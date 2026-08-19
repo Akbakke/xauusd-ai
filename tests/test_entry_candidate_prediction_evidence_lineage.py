@@ -470,6 +470,25 @@ def test_resolver_requires_exact_explicit_parent_lineage(tmp_path: Path) -> None
         _resolve(event, dataset_dir=wrong_dataset)
 
 
+def test_resolver_rejects_an_absent_parent_lineage_argument(tmp_path: Path) -> None:
+    """A caller that names no bundle/dataset/predictions path fails closed.
+
+    `gx1.scripts.verify_model_native_serve_parity_v1` passed `bundle_dir=None`
+    into this resolver, which dereferenced it and raised a bare `TypeError`.
+    That is not a lineage rejection any consumer's `RuntimeError` handling can
+    see, and it killed the train==serve parity gate before its first leg, so
+    the gate never produced a single event. The argument type is part of the
+    contract and is rejected in the contract's own vocabulary.
+    """
+    event = _event(tmp_path)
+
+    for argument in ("requested_path", "bundle_dir", "dataset_dir"):
+        with pytest.raises(
+            RuntimeError, match=r"must be an explicit path, not NoneType"
+        ):
+            _resolve(event, **{argument: None})
+
+
 def test_explicit_parent_resolution_does_not_scan_newest_sibling(
     tmp_path: Path,
 ) -> None:

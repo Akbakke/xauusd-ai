@@ -90,8 +90,26 @@ def _exact_sha256(value: Any, *, context: str) -> str:
     return normalized
 
 
+def _explicit_path_argument(path: Any, *, context: str) -> Path:
+    """Reject a non-path lineage argument as a contract failure.
+
+    A miswired caller used to reach ``Path(None)`` here and raise a bare
+    ``TypeError``, which reads as an interpreter accident rather than as the
+    fail-closed lineage rejection it is, and which no consumer's
+    ``RuntimeError`` handling surfaces. The type is part of the contract, so it
+    fails in the contract's own vocabulary.
+    """
+    if isinstance(path, Path):
+        return path
+    if isinstance(path, str) and path:
+        return Path(path)
+    raise RuntimeError(
+        f"{context} must be an explicit path, not {type(path).__name__}"
+    )
+
+
 def _explicit_regular_file(path: Path, *, context: str) -> Path:
-    candidate = Path(path).expanduser()
+    candidate = _explicit_path_argument(path, context=context).expanduser()
     if not candidate.is_absolute():
         raise RuntimeError(f"{context} must be an explicit absolute path")
     if candidate.is_symlink() or not candidate.is_file():
@@ -100,7 +118,7 @@ def _explicit_regular_file(path: Path, *, context: str) -> Path:
 
 
 def _explicit_directory(path: Path, *, context: str) -> Path:
-    candidate = Path(path).expanduser()
+    candidate = _explicit_path_argument(path, context=context).expanduser()
     if not candidate.is_absolute():
         raise RuntimeError(f"{context} must be an explicit absolute path")
     if candidate.is_symlink() or not candidate.is_dir():
@@ -529,7 +547,12 @@ def resolve_and_validate_prediction_evidence(
     )
     # A mutable locator is rejected before any filesystem access: naming the
     # evidence wrongly must never reach I/O, hashing or lineage resolution.
-    _timestamped_report_for_predictions(Path(requested_path))
+    _timestamped_report_for_predictions(
+        _explicit_path_argument(
+            requested_path,
+            context="authoritative prediction evidence",
+        )
+    )
     authoritative = _explicit_regular_file(
         requested_path,
         context="authoritative prediction evidence",

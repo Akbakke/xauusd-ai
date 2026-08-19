@@ -147,7 +147,7 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 #     rolling 5-bar VWAP instead of a cumulative session VWAP, and is renamed
 #     vwap_rolling5_slope_atr accordingly.
 # Widths are never restated here; execute the owner tuples.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v33"
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v34"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v20"
 )
@@ -171,6 +171,73 @@ RETIRED_MODEL_NATIVE_SIGNAL_FIELDS = (
     "smc_bars_since_sweep",
     "smc_premium_discount",
     "smc_bars_since_sweep_norm",
+    # v34 (2026-08-19).  Exact duplicates, each proven identical to a field that
+    # remains a model input on the complete declared native M5 tape
+    # XAU_M5_NATIVE_2019_20260804_V4 (537,861 rows, 2019-01-01..2026-08-04).
+    # Rule 4 is satisfied by the twin, not by the removal: no market evidence
+    # leaves the learned path, and in two of the three cases the twin is
+    # strictly richer because it carries a sign this field discarded.
+    "ret_5",  # == ctx_cont.close_return_5_bps, max|diff| 0.0 on 537,856 rows
+    "body_pct",  # == |candle.raw_body_signed_range|, exact on all 537,861 rows
+    "wick_asym",  # == (upper - lower)/(upper + lower) of two mandatory shares.
+    # wick_asym was ALREADY declared retired by the v14 note at the head of this
+    # file; the canonical producer kept emitting it anyway, and on the 6,623 rows
+    # where the denominator is 0 it emitted a placeholder 0.0 for an undefined
+    # 0/0 -- rule 2e.  Contract and producer disagreed and nothing failed.
+    # v34 unit repairs.  These retire because their value changed, not because
+    # they were duplicated: each divided a price difference by ``close`` and so
+    # doubled in magnitude when volatility doubled, letting the model date the
+    # bar instead of read it (the era-proxy class found 2026-08-09).  The
+    # replacement divides the same numerator by the same Wilder-14 ATR the rest
+    # of the surface already uses, so the market evidence is identical and only
+    # the unit changed.
+    "ema20_slope",  # -> ema20_slope_atr
+    "ema100_slope",  # -> ema100_slope_atr (never a contract field)
+    "pos_vs_ema200",  # -> chart.local_price_vs_ema200_atr, same clock, one owner
+    "_v1_ema3_ema6_spread_frac",  # -> _v1_ema3_ema6_spread_atr
+    # v34 price-derived layer, bare (prefix-stripped) spellings.  Two of these
+    # were not merely mis-scaled but arithmetically incapable: local_ema50_slope_bps
+    # was exactly (2/49) * local_price_vs_ema50_bps (least squares recovers
+    # 24.500000000; sign agreement 100.000000% of rows), so a field named for the
+    # slope of the average could only ever restate whether price was above it.
+    # After the repair the slope disagrees in sign with the gap on 50,200 rows
+    # (ema50) and 24,375 (ema200) -- states the retired field could not express.
+    "local_price_vs_ema50_bps",
+    "local_price_vs_ema200_bps",
+    "local_ema50_slope_bps",
+    "local_ema200_slope_bps",
+    "local_ema50_200_spread_delta",
+    "local_ema50_200_spread_accel",
+    # Retired for volatility coupling, not for duplication: measured IQR width
+    # 25.944204 -> 34.245436 across the tape's first/last third (ratio 1.3200,
+    # against 1.0014 for its ATR-normalized twin and 1.3034 for the raw-return
+    # reference), so its magnitude carried the era rather than the market.
+    # Rule 4 is discharged by the retained numerator: chart.local_ema50_200_spread_atr
+    # is mandatory and carries the full signed spread, with sign/edges/age/delta/
+    # accel beside it.  The bps READING also survives exactly, as the product
+    # spread_atr * ctx_cont.atr_bps -- both live inputs, agreeing to 3 float64
+    # ULPs over 537,657 rows (288,691 bitwise equal).  That exact route only
+    # opened when atr_bps moved off the bar midpoint onto close in this same
+    # wave; before that the recovery was approximate and this field was kept
+    # as the anchor.  The premise changed, so the decision changed.
+    "local_ema50_200_spread_bps",
+    # v34 candle repair.  Retired because its VALUE changed, not because it was
+    # duplicated: (open - prev_close) / local_geometry_scale is a near-constant
+    # microstructure seam quantum (median |open - prev_close| ~0.045 USD across
+    # the whole tape) divided by a volatility that grew ~10x (median M5 range
+    # 0.52 -> 5.10 USD), i.e. an inverse-volatility clock. Measured last/first
+    # year IQR ratio 0.0505; every alternative denominator collapses identically
+    # (bar range 0.0488, Wilder ATR 0.0503), which is why the repair changed the
+    # NUMERATOR from a difference to a position:
+    # candle.raw_open_position_previous_range = (open - prev_low)/prev_range,
+    # ratio 0.897 -- the band this candle family already occupies.
+    # Rule 4, exact and measured at 7.1e-15 in float64 over 537,645 rows:
+    #   (open - prev_close)/prev_range == open_position_previous_range
+    #       - (lower_wick_share[t-1] + max(body_signed_range[t-1], 0))
+    # all three of which remain model inputs. The retired unit is gone; the
+    # observation is not.
+    "candle.raw_open_gap_local_geometry",
+    "mtf_candle_raw_open_gap_local_geometry",
 )
 RETIRED_STATIC_REGIME_BUCKET_FIELDS = (
     "session_tradable",
@@ -190,15 +257,12 @@ MODEL_NATIVE_BASE_FIELDS = (
     "_v1_atr14",
     "atr_z",
     "ret_1",
-    "ret_5",
     "ret_20",
     "rvol_20",
-    "body_pct",
-    "ema20_slope",
-    "pos_vs_ema200",
+    "ema20_slope_atr",
     "_v1_pk_sigma20",
     "_v1_ema_diff",
-    "_v1_ema3_ema6_spread_frac",
+    "_v1_ema3_ema6_spread_atr",
     "_v1_range_z",
     "_v1_kama30_change_5_atr",
     "_v1_tema20_change_3_atr",
@@ -482,9 +546,19 @@ if len(set(RETIRED_EXACTLY_RECOVERABLE_CTX_CONT_FIELDS)) != len(
 # `ema_stack_aligned_v2` in {-1, 0, +1} (+1 iff ema20>ema50>ema100>ema200, -1
 # strictly descending, else 0), already emitted for all five lanes by
 # htf_features.MODEL_NATIVE_CONTEXT_MTF_PROJECTION -- no new producer, no new
-# number. Normalization safety [PS]: MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS is
-# empty, so a three-level integer cannot be routed to a nominal embedding or
-# trip the 0..4 domain check; the asinh branch is well defined on three levels.
+# number. Normalization safety: this claim was carried as [PS] and was FALSE IN
+# EFFECT until 2026-08-19 (rule 2d -- recorded, not quietly corrected). It
+# reasoned only about the nominal-embedding route and never about the branch
+# that actually fired: fit_surface_normalization INFERRED binaryness from the
+# sample, so on a TRAIN window observing only {0, +1} the field was stamped
+# binary and a serve-time -1 raised BINARY_VALUE_INVALID -- no Entry action at
+# all, not even FLAT, in a daily downtrend. Declaring the domain would NOT have
+# fixed it either: nn.Embedding(len(domain)) is indexed with the raw .long()
+# value, so a declared (-1, 0, 1) silently indexes the table from the end. The
+# inferred-binary branch was removed at input-normalization v7 and the load path
+# now rejects any surface carrying a nonzero binary_mask. The claim below is
+# true as of that change, and only as of it: the asinh branch is now the branch
+# a three-level signed integer actually reaches, and it is injective on it.
 MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = (
     *(f"{tf}_trend_state_age_bars_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES),
     *(f"{tf}_ema_stack_aligned_v2" for tf in MODEL_NATIVE_CONTEXT_MTF_TIMEFRAMES),
@@ -684,7 +758,7 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
 # families lost nine columns in the previous commit and this commit is where
 # their family registry gets its own identity; no family gains a member here.
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v23"
+    "entry_model_native_mandatory_full_stack_v25"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

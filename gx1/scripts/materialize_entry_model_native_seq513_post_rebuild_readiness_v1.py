@@ -65,7 +65,15 @@ SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v13"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = PRETRAIN_AUDIT_SCHEMA
-CHAIN_SCHEMA = "seq513_rebuild_chain_status_v7"
+# ONE OWNER (rule 13).  This literal and the chain script's own emitted string
+# drifted apart -- the chain emitted v9 while this gate required v7, so
+# chain_terminal_ok was False for every terminal the chain could produce and
+# post-rebuild readiness was permanently RED.  Neither test suite caught it
+# because each pinned its own side: tests/test_seq513_rebuild_chain_contract.py
+# asserted v9 and tests/test_entry_model_native_seq513_post_rebuild_readiness.py
+# asserted v7, and both passed.  The chain script now reads this value from here
+# rather than restating it.
+CHAIN_SCHEMA = "seq513_rebuild_chain_status_v9"
 DIRECT_BUILD_PROOF_FILENAME = "DATASET_BUILD_PROOF.json"
 FORBIDDEN_TEST_INPUT_FIELDS = (
     "test_manifest_json",

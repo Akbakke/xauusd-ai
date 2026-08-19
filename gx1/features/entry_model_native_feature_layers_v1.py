@@ -66,22 +66,39 @@ from gx1.features.volatility_squeeze_state_v1 import (
 PRICE_DERIVED_SOURCE_PRICE_FIELD = "close"
 PRICE_DERIVED_SOURCE_OHLC_FIELDS = ("high", "low", "close")
 
+# The k-bar lookback of the two local EMA slope fields.  ORIGIN (rule 2a): it
+# is not chosen here.  ``htf_features`` computes ``ema20_slope_atr``,
+# ``ema50_slope_atr`` and ``ema200_slope_atr`` as ``(ema - ema.shift(5)) /
+# atr14_positive`` on every per-TF clock, and that file's own ``rsi14_delta_5``
+# comment names the number as "this file's existing EMA-slope lookback
+# convention (the shift(5) used by ema20/50/200_slope_atr)".  Restating the
+# literal here would be rule-13 non-ownership on its own, so the binding is
+# EXECUTABLE: tests/test_entry_model_native_feature_layers.py asserts the two
+# local slope columns are bit-identical to the per-TF owner's
+# ``ema{50,200}_slope_atr`` on the same native M5 frame, which fails the moment
+# either side moves.
+LOCAL_EMA_SLOPE_LOOKBACK_BARS = 5
+
 # Leading rows of a source frame on which the price-derived layer is undefined.
-# classic EMA200 seeds from 200 closes so its first valid row is index 199; the first
-# derivative (ema50_200_spread_delta) moves that to 200 and the second
-# (ema50_200_spread_accel) to 201. Sample rows must therefore begin at source
-# index 201 or later. Verified against the native M1 surface: index 200 fails
-# the layer's own finiteness gate and 201 passes.  The V30
+# classic EMA200 seeds from 200 closes so its first valid row is index 199; the
+# first derivative (ema50_200_spread_delta_atr) moves that to 200 and the
+# second (ema50_200_spread_accel_atr) to 201.  The V30
 # local_kama_efficiency_30 addition needs only 30 rows (window 30), and the V30
 # GAP-2/3 age fields inherit their EMA source's first valid row (index 199 for
-# the ema200-backed pair, 49 for the ema50 side), so this floor is unchanged —
-# re-verified 2026-08-13 on the full 15-column layer: index 200 still fails the
-# layer's own finiteness gate and 201 still passes.  The V30 package-3
+# the ema200-backed pair, 49 for the ema50 side).  The V30 package-3
 # price-vs-EMA cross events add one shift(1) on top of their EMA source (first
-# finite row: index 200 for the ema200 pair, 50 for the ema50 pair), still
-# inside 201 — re-verified 2026-08-13 on the full 19-column layer: index 200
-# still fails the layer's own finiteness gate and 201 still passes.
-PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
+# finite row: index 200 for the ema200 pair, 50 for the ema50 pair).
+#
+# 2026-08-19 fidelity repair (this wave): the floor moved 201 -> 204 and the
+# arithmetic is derived, never chosen.  ``local_ema200_slope_atr`` is
+# ``ema200[t] - ema200[t - LOCAL_EMA_SLOPE_LOOKBACK_BARS]``, so its first
+# finite row is the classic EMA200 first valid row (199) plus the lookback
+# (5) = 204, three rows later than the second spread derivative.  The ema50
+# side is 49 + 5 = 54 and stays well inside.  Sample rows must therefore begin
+# at source index 204 or later; verified on the full layer at native
+# M1 and M5 cadence: index 203 fails the layer's own finiteness gate and 204
+# passes.
+PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 204
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
 # ratio ER = |close[t] - close[t-30]| / sum_{i=t-29..t} |close[i] - close[i-1]|
@@ -92,17 +109,121 @@ PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 201
 # MODEL_NATIVE_STATIC_CONTRACT_SHA256),
 # while V29/V30 additions live in the mandatory causal layers.
 PRICE_DERIVED_FEATURE_NAMES = (
-    "chart.local_ema50_200_spread_bps",
     "chart.local_ema50_200_spread_atr",
     "chart.local_ema50_200_bull_state",
     "chart.local_ema50_200_cross_up",
     "chart.local_ema50_200_cross_down",
-    "chart.local_price_vs_ema50_bps",
-    "chart.local_price_vs_ema200_bps",
-    "chart.local_ema50_slope_bps",
-    "chart.local_ema200_slope_bps",
-    "chart.local_ema50_200_spread_delta",
-    "chart.local_ema50_200_spread_accel",
+    # 2026-08-19 fidelity repair.  Six fields changed unit and/or formula in
+    # place and a seventh (``local_ema50_200_spread_bps``, see (1b)) was
+    # retired outright; the surviving names keep their relative order, so the
+    # flattened mandatory sequence loses one member and renames six, and
+    # nothing is reordered.
+    #
+    # (1) UNIT — the four price-relative fields below carried the volatility
+    # regime instead of the trend state.  ``x/close*1e4`` is normalized by the
+    # price LEVEL, which says nothing about how far price moves, so its
+    # dispersion tracks realised volatility.  MEASURED 2026-08-19 on the
+    # complete declared native M5 tape XAU_M5_NATIVE_2019_20260804_V4
+    # (537,861 rows; 537,657 emitted after this layer's warmup; thirds of
+    # 179,219 rows each, so this is the whole population and carries no
+    # sampling error): IQR width, last third vs first third —
+    #   price_vs_ema50_bps 1.35, price_vs_ema200_bps 1.32,
+    #   spread_delta 1.32, spread_accel 1.28, against ret_1's 1.30,
+    # while every ATR-normalized field in the same pass sat at 0.96-1.01
+    # (spread_atr 1.00).  After the repair the same four read 1.00, 1.00,
+    # 0.98, 0.96.  A model reading "45 bps above EMA50" could not separate a
+    # strong trend from a loud market.  They are now divided by the SAME
+    # positive Wilder-14 ATR
+    # denominator that ``ema50_200_spread_atr`` already uses (the
+    # ``atr14_positive`` column of the one shared block owner), which is the
+    # unit convention this layer, the per-TF lane and every ``*_dist_atr`` /
+    # ``*_depth_atr`` field in the mandatory surface already share.
+    # No market evidence is removed (rule 4): ``local_ema50_200_spread_bps``
+    # and ``local_ema50_200_spread_atr`` were the same numerator over the two
+    # denominators, so their quotient is EXACTLY ``atr14/close*1e4`` at every
+    # row where the spread is non-zero, and multiplying any ``_atr`` field by
+    # it returns its former ``_bps`` value exactly.
+    #
+    # (1b) 2026-08-19, SAME wave, second pass — ``local_ema50_200_spread_bps``
+    # is RETIRED.  The earlier pass kept it on ONE explicit ground: it was the
+    # only exact conversion anchor, because ``ctx_cont.atr_bps`` then divided
+    # its true range by the bar MIDPOINT ``(high+low)/2`` while this layer
+    # divides by ``close``, so recovery through ``atr_bps`` was approximate
+    # (that owner MEASURED the midpoint/close split at |rel diff| max
+    # 1.27e-02 on this same tape).  That premise no longer holds: the ctx
+    # owner now emits ``atr_bps = wilder_atr(high, low, close, 14)/close*1e4``
+    # from the one Wilder owner ``technical_indicators_v1.wilder_atr``, which
+    # is the SAME Wilder-14 that ``wilder_atr14_positive`` feeds to
+    # ``ema50_200_spread_atr_block`` here.  So on every emitted row
+    #     spread_atr * atr_bps
+    #       == (spread/atr14) * (atr14/close*1e4) == spread/close*1e4
+    # which is this field's exact former definition, and both factors are
+    # live model inputs.  PROVEN FROM SOURCE, and MEASURED 2026-08-19 on the
+    # complete declared tape XAU_M5_NATIVE_2019_20260804_V4 over all 537,657
+    # emitted rows: max|spread_atr*atr_bps - spread_bps| = 1.14e-13 against a
+    # field whose max|value| is 433.18 — max relative 4.92e-16, at most 3
+    # float64 ULPs, i.e. IEEE754 rounding order and nothing else (the two
+    # factors are also strictly comparable there: min atr14 = 0.1267 > 0, so
+    # ``atr14_positive`` equals ``atr14`` on every emitted row, and ``close``
+    # is gated strictly positive by ``_require_finite_positive_column`` so the
+    # layer's ``close.abs()`` was the identity).
+    #
+    # The reason to retire is not redundancy, it is that the field is
+    # VOLATILITY-COUPLED exactly like the four repaired above: MEASURED IQR
+    # width, last third vs first third of the same complete population,
+    # 25.944204 -> 34.245436 = 1.3200, against 1.0014 for
+    # ``spread_atr`` (the same numerator, ATR-normalized) and 1.3034 for the
+    # raw-return reference ``ret_1``.  A field whose magnitude doubles when
+    # volatility doubles lets the model date the bar rather than read it —
+    # the era-proxy defect class found on 2026-08-09.  Keeping the exact
+    # conversion anchor was the only thing that outweighed that, and the
+    # anchor role is now filled by two other live inputs.
+    #
+    # NOT EXAMINED, stated uninvited (rule 25a): ``ctx_cont.atr_bps`` itself
+    # MEASURED 1.2262 on the same population.  That is expected — it is a
+    # volatility magnitude, so carrying the volatility regime is its job, not
+    # a defect — but nobody has checked whether the normalizer's asinh/IQR
+    # rescaling leaves it era-separable.  It has a different owner
+    # (model_native_market_context_v1) and is out of this layer's scope.
+    #
+    # (2) FORMULA — the two slope fields did not compute a slope at all.  They
+    # were ``ema.diff()/close*1e4``.  With the classic recursion
+    # ``ema[t] = ema[t-1] + a*(c[t] - ema[t-1])``, a = 2/(s+1):
+    #     ema.diff()[t] = a*(c[t] - ema[t-1])
+    #     c[t] - ema[t]  = (1-a)*(c[t] - ema[t-1])
+    #   => ema.diff()[t] === (a/(1-a)) * (c[t] - ema[t])
+    # so ``ema50_slope_bps === (2/49)*price_vs_ema50_bps`` and
+    # ``ema200_slope_bps === (2/199)*price_vs_ema200_bps`` — a positive scalar
+    # multiple of a field already in the tuple, which the positively
+    # homogeneous ``asinh((x-median)/IQR)`` input normalizer maps to a
+    # bit-identical column.  MEASURED on the same complete tape:
+    # max|slope - (2/49)*gap| = 1.1e-12 against a field whose max|value| is
+    # 25.73, least squares recovers 24.500000000 and 99.500000000 = 49/2 and
+    # 199/2, and sign(slope) == sign(gap) on 100.000000% of 537,657 rows.
+    # Worse than redundant: ``slope > 0`` was therefore exactly and always
+    # ``close > ema``, so a rising average with price pulled back below it —
+    # ordinary trend continuation — was representationally impossible in a
+    # field whose name promised the average's direction.  The repaired fields
+    # disagree in sign with the gap on 50,200 (ema50) and 24,375 (ema200) of
+    # those rows: states the retired fields could not express at all.  They
+    # are replaced by the genuine k-bar EMA change
+    # ``(ema[t] - ema[t-5])/atr14_positive``: the exact formula, lookback,
+    # denominator and SPELLING of the per-TF lane's ``ema50_slope_atr`` /
+    # ``ema200_slope_atr``, which the local M5/M1 clock had never carried.
+    # Nothing is invented; the values are asserted bit-identical to that owner.
+    "chart.local_price_vs_ema50_atr",
+    "chart.local_price_vs_ema200_atr",
+    "chart.local_ema50_slope_atr",
+    "chart.local_ema200_slope_atr",
+    # The two spread derivatives follow the established "raw difference over
+    # the CURRENT closed bar's positive ATR" convention (``mom_5_atr``,
+    # ``ema20_slope_atr``, ``_v1_tema20_change_3_atr``,
+    # ``_v1_kama30_change_5_atr``): the numerator is the raw USD spread
+    # difference, not a difference of an already normalized series.  The unit
+    # now lives in the name, so the value change cannot travel silently under
+    # an unchanged field name.
+    "chart.local_ema50_200_spread_delta_atr",
+    "chart.local_ema50_200_spread_accel_atr",
     "chart.local_kama_efficiency_30",
     # V30 Phase-A completion (2026-08-13): trend_ema GAP-2/GAP-3 on the LOCAL
     # clock.  The per-TF lane carries the matching raw EMA-state durations,
@@ -130,11 +251,18 @@ PRICE_DERIVED_FEATURE_NAMES = (
     "chart.local_price_x_ema200_cross_up",
     "chart.local_price_x_ema200_cross_down",
 )
-PRICE_DERIVED_FORMULA_SCHEMA_VERSION = "entry_local_price_raw_primitives_v2"
+# v4 (2026-08-19, second pass of the same fidelity wave): the
+# ``spread_bps`` clause is gone with the column it described.  The layer no
+# longer divides anything by a price level, so no clause here names ``close``
+# as a denominator.
+PRICE_DERIVED_FORMULA_SCHEMA_VERSION = "entry_local_price_raw_primitives_v4"
 PRICE_DERIVED_FORMULA_CONTRACT = (
     "ema50_200=shared_classic_sma_seeded_technical_owner",
     "spread_atr=raw_spread_over_positive_wilder_atr_no_clip",
-    "price_and_slope_bps=raw_over_positive_closed_bar_close_no_clip",
+    "price_dist_atr=raw_close_minus_ema_over_positive_wilder_atr_no_clip",
+    "ema_slope_atr=raw_k_bar_ema_change_over_positive_wilder_atr_no_clip",
+    "ema_slope_lookback=shared_per_tf_five_closed_bar_convention",
+    "spread_derivatives_atr=raw_spread_difference_over_current_positive_wilder_atr_no_clip",
     "kama_efficiency30=exact_change_over_positive_realized_path_else_unavailable",
     "events=closed_bar_cross_edges_and_causal_age_from_shared_owner",
     "warmup=causal_nan_prefix_then_exact_sample_alignment",
@@ -474,20 +602,34 @@ def build_price_derived_layer(
     ema50 = ema_spread_block["ema50"]
     ema200 = ema_spread_block["ema200"]
     spread = ema_spread_block["spread"]
-    denom = close.abs()
+    # The one positive-only Wilder-14 denominator of this clock, taken from the
+    # SAME shared block that already produces ``spread_atr`` (its
+    # ``atr14_positive`` column is ``atr14.where(atr14 > 0.0)``): a defined
+    # zero ATR is unavailable, never an epsilon floor.  Every ATR-normalized
+    # field below therefore inherits exactly the NaN rows ``spread_atr``
+    # already has, so this repair introduces no new way for the layer's
+    # finiteness gate to fire.
+    atr14_positive = ema_spread_block["atr14_positive"]
 
-    spread_bps = spread / denom * 1e4
     spread_atr = ema_spread_block["spread_atr"]
-    price_vs_ema50 = (close - ema50) / denom * 1e4
-    price_vs_ema200 = (close - ema200) / denom * 1e4
-    ema50_slope = ema50.diff() / denom * 1e4
-    ema200_slope = ema200.diff() / denom * 1e4
+    price_vs_ema50_atr = (close - ema50) / atr14_positive
+    price_vs_ema200_atr = (close - ema200) / atr14_positive
+    ema50_slope_atr = (
+        ema50 - ema50.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+    ) / atr14_positive
+    ema200_slope_atr = (
+        ema200 - ema200.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+    ) / atr14_positive
 
     def causal_delta(values: pd.Series) -> pd.Series:
         return values.diff()
 
-    spread_delta = causal_delta(spread_bps)
-    spread_accel = causal_delta(spread_delta)
+    # Raw USD spread differences over the CURRENT bar's positive ATR (the
+    # convention of every k-bar change field in this repository), not
+    # differences of an already normalized series: the latter would fold the
+    # ATR's own bar-to-bar change into a quantity named for the spread.
+    spread_delta_atr = causal_delta(spread) / atr14_positive
+    spread_accel_atr = causal_delta(causal_delta(spread)) / atr14_positive
 
     # V30 Kaufman efficiency ratio, window 30 (see the name-tuple comment):
     # the exact ER of basic_v1.kama_np — |net 30-bar change| over the summed
@@ -495,7 +637,7 @@ def build_price_derived_layer(
     # triangle inequality. Zero realized volatility leaves the ratio
     # unavailable; it is never replaced by an epsilon or fabricated neutral
     # value. The rolling min_periods=30 warmup stays an honest NaN prefix
-    # inside the layer's existing 201-row floor.
+    # inside the layer's 204-row floor.
     kama_change_30 = (close - close.shift(30)).abs()
     kama_volatility_30 = (
         close.diff().abs().rolling(30, min_periods=30).sum()
@@ -511,8 +653,8 @@ def build_price_derived_layer(
     # "0 bars since the state began" that reads as a fresh flip (rule 2e).
     # First finite row per field: classic EMA200 seed -> index 199 for the
     # 50/200 cross age and the ema200 side age, ema50 -> index 49; all three
-    # are inside the layer's existing 201-row floor, which is therefore
-    # unchanged (it is still set by ema50_200_spread_accel at index 201).
+    # are inside the layer's 204-row floor, which since the 2026-08-19 unit
+    # repair is set by ema200_slope_atr at index 199 + 5 = 204.
     bull_state = (spread > 0).astype(np.float64).where(spread.notna())
     ema50_200_state_age_bars = raw_state_age_bars(
         bull_state.to_numpy(dtype=np.float64),
@@ -525,10 +667,9 @@ def build_price_derived_layer(
     # emits NaN wherever the series or its previous bar is still inside the
     # causal warmup, so the ema200 pair's first finite row is source index 200
     # (classic EMA200 first finite gap at 199, plus one bar for the
-    # shift) and the ema50 pair's is 50 — both inside the layer's existing
-    # 201-row floor, which is therefore unchanged (still set by
-    # ema50_200_spread_accel at index 201; re-verified below on the full
-    # 19-column layer).
+    # shift) and the ema50 pair's is 50 — both inside the layer's 204-row
+    # floor (set by ema200_slope_atr since the 2026-08-19 unit repair;
+    # re-verified below on the full layer).
     price_x_cross = {}
     for ema_span, ema_line in ((50, ema50), (200, ema200)):
         price_gap = close - ema_line
@@ -542,17 +683,16 @@ def build_price_derived_layer(
 
     raw = pd.DataFrame(
         {
-            "ema50_200_spread_bps": spread_bps,
             "ema50_200_spread_atr": spread_atr,
             "ema50_200_bull_state": bull_state,
             "ema50_200_cross_up": _htf_cross_up_event_v4(spread),
             "ema50_200_cross_down": _htf_cross_down_event_v4(spread),
-            "price_vs_ema50_bps": price_vs_ema50,
-            "price_vs_ema200_bps": price_vs_ema200,
-            "ema50_slope_bps": ema50_slope,
-            "ema200_slope_bps": ema200_slope,
-            "ema50_200_spread_delta": spread_delta,
-            "ema50_200_spread_accel": spread_accel,
+            "price_vs_ema50_atr": price_vs_ema50_atr,
+            "price_vs_ema200_atr": price_vs_ema200_atr,
+            "ema50_slope_atr": ema50_slope_atr,
+            "ema200_slope_atr": ema200_slope_atr,
+            "ema50_200_spread_delta_atr": spread_delta_atr,
+            "ema50_200_spread_accel_atr": spread_accel_atr,
             "kama_efficiency_30": kama_efficiency_30,
             "ema50_200_state_age_bars": ema50_200_state_age_bars,
             "price_vs_ema50_state_age_bars": price_state_age_bars[50],

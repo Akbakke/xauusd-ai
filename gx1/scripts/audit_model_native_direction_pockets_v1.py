@@ -736,14 +736,22 @@ def main() -> int:
     # Audit-only market slices are defined by exact signed primitives.  They
     # do not enter inference and do not reproduce the retired hand-weighted
     # trend/session/chart scorebooks.
+    #
+    # 2026-08-19: the two price-vs-EMA fields were renamed `_bps` -> `_atr`
+    # when the producing owner stopped dividing them by `close` and started
+    # dividing them by the shared strictly-positive Wilder-14 ATR (they had
+    # been carrying the volatility regime).  Every use below is a `> 0.0` /
+    # `< 0.0` sign test and both denominators are strictly positive, so
+    # sign((close-ema)/atr) === sign((close-ema)/close) and the slice
+    # boundaries are bit-identical.  No threshold was introduced or moved.
     local_spread_atr = _named_column(
         snap, signal_names, "chart.local_ema50_200_spread_atr"
     )
     local_price_vs_ema50 = _named_column(
-        snap, signal_names, "chart.local_price_vs_ema50_bps"
+        snap, signal_names, "chart.local_price_vs_ema50_atr"
     )
     local_price_vs_ema200 = _named_column(
-        snap, signal_names, "chart.local_price_vs_ema200_bps"
+        snap, signal_names, "chart.local_price_vs_ema200_atr"
     )
     m15_ema_spread = _named_column(
         ctx_cont, ctx_cont_names, "m15_ema5_20_spread_atr_canon_v2"
@@ -898,8 +906,8 @@ def main() -> int:
         "features": {
             "intraday": [
                 "chart.local_ema50_200_spread_atr",
-                "chart.local_price_vs_ema50_bps",
-                "chart.local_price_vs_ema200_bps",
+                "chart.local_price_vs_ema50_atr",
+                "chart.local_price_vs_ema200_atr",
             ],
             "higher_tf": [
                 "m15_ema5_20_spread_atr_canon_v2",
@@ -929,8 +937,8 @@ def main() -> int:
         },
         "diagnostic_model_input_evidence": {
             "local_ema50_200_spread_atr": _finite_distribution(local_spread_atr),
-            "local_price_vs_ema50_bps": _finite_distribution(local_price_vs_ema50),
-            "local_price_vs_ema200_bps": _finite_distribution(local_price_vs_ema200),
+            "local_price_vs_ema50_atr": _finite_distribution(local_price_vs_ema50),
+            "local_price_vs_ema200_atr": _finite_distribution(local_price_vs_ema200),
             "m15_ema5_20_spread_atr": _finite_distribution(m15_ema_spread),
             "h1_ema_diff": _finite_distribution(h1_ema),
             "h4_ema_diff": _finite_distribution(h4_ema),

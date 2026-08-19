@@ -1,23 +1,30 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-18. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-19. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
-This file was 2,842 words on 2026-08-17 and is now roughly a third of that. What
-was cut was a chronological log of every chain attempt, seed run and repair. Git
-holds it. A handover is a map of where you are, not a diary.
+This file was 2,842 words on 2026-08-17; the chronological log of every chain
+attempt, seed run and repair was cut and git holds it. Keep it under 1,800
+words. A handover is a map of where you are, not a diary.
 
 ## Current verdict
 
-Launch is `BLOCK`. There is **no dataset, no model, no calibration, no
+Launch is `BLOCK`. There is **no admitted dataset, no model, no calibration, no
 untouched-TEST result, no PnL and no win-rate proof** on the current contract.
-The offline architecture is connected and repaired at contract/source level; the
-feature surface has never been materialised end to end.
+V31 rebuild chains have run repeatedly since 2026-08-18 under
+`/home/andre2/GX1_DATA/data/data/prebuilt/V31_CHAIN_*` and every one that
+reached a terminal event ended RED; the newest has no terminal event at all, so
+its partial output is invalid (rule 7). The surface has been materialised
+several times and admitted zero times.
 
-The evaluation reference is the coin-flip null: **−13.16 bps TRAIN /
-−18.58 bps VAL**. Oracle is +17.76, so available skill is +30.91. Any edge claim
-is measured against that null, not against zero.
+The evaluation reference is the coin-flip null and it is **substrate-specific**:
+the −13.16 / −18.58 bps pair this file carried until 2026-08-19 was measured on
+the retired V27 snapshot and does not transfer. On V31 bytes the reported
+figures are null **−1.87 bps**, oracle **+23.84**, available skill **+25.71**
+(2026-08-19) — *reported, not re-derived*: no hash-bound artifact under
+`/home/andre2/GX1_DATA` carries them, so re-measure on the admitted rebuild
+before any edge claim leans on them.
 
 - **Source authority**: pair generation
   `9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd`
@@ -41,7 +48,9 @@ Entry-decision token and its causal in-trade path.
 The surface shape is a frozen base block + the mandatory causal families + the
 complete code-owned candidate remainder. **No width or schema version is restated
 here** (rule 4/13) — the counts this file used to carry were stale by 88 fields
-within two days. Read them:
+within two days, and the surface moved again on 2026-08-19 (schema `…_v34`
+landed uncommitted, retiring duplicated and volatility-coupled fields; the newest
+V31 signal manifest on disk already disagrees with HEAD's owner). Read them:
 
 ```bash
 .venv/bin/python -c "import gx1.contracts.entry_model_native_signal_v1 as s, gx1.features.htf_features as h; \
@@ -73,9 +82,17 @@ Relevance is learned — no handwritten confluence vote or timeframe weight exis
   redundancy in the top 25 — the specialist separation is real, not decorative.
 - **Price-source parity proven**: canonical tape and the V29 source parquet are
   bit-identical on all four OHLC columns across 476,113 shared rows.
-- **Objective v6 / recipe schema v5**: plain unweighted CE for main/MTF/
-  masked-side classification, plain unweighted BCE for hierarchy binary tasks.
-  Waves A/B retired direction and hierarchical distribution forcing.
+- **The objective is fitted-Q in basis points, not classification** (proven
+  from source 2026-08-19). The sole decision loss is masked raw-bps MSE for
+  `entry_action_q` and `unified_exit_action`; the decision is the unique argmax
+  of `entry_action_q_bps`, not of a calibrated distribution; task weights are
+  learned (trainable homoscedastic log-variance); no cross-entropy holds
+  decision authority (one masked BCE remains on the `trendline_event`
+  auxiliary head). Execute
+  `gx1/contracts/entry_model_native_training_objective_v1.py` and
+  `entry_model_native_train_recipe_v1.py` for versions, keys and flags — none
+  are restated here. The "objective v6 / recipe schema v5 / unweighted CE"
+  description carried until 2026-08-19 matched nothing in source.
 
 ## What remains empirically unproven or unadmitted
 
@@ -99,14 +116,25 @@ Relevance is learned — no handwritten confluence vote or timeframe weight exis
   is deleted, `VOLATILITY_SQUEEZE_FIT_METHOD` is bumped so the old files are
   rejected at load before any data is read, and
   `require_volatility_squeeze_params` proves low-state reachability.
-  New artifact `VOLATILITY_SQUEEZE_SIXCLOCK_20260818`, manifest sha256
-  `dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`.
-  Measured on real TRAIN bytes: release rate 0.0097–0.0167/bar, squeeze
-  episodes median 21–36 bars, no constant field and no exact-duplicate pair on
-  any clock. **Not yet proven**: the artifacts have never been through the
-  rebuild chain, so no surface, cache or dataset has been built on them.
-- Fixed auxiliary task weights, rank margins and gate regularization remain a
-  Wave-C audit; never claim all static objective magnitudes are gone.
+  Refit `VOLATILITY_SQUEEZE_SIXCLOCK_20260818`, measured on real TRAIN bytes:
+  release rate 0.0097–0.0167/bar, episodes median 21–36 bars, no constant field
+  and no exact-duplicate pair on any clock. **That set was superseded and this
+  file named it as current until 2026-08-19**: three non-retired six-clock sets
+  now sit under `.../prebuilt/VOLATILITY_SQUEEZE_SIXCLOCK_*` with three
+  different `contract_sha256`, and the V31 chains bound
+  `..._GEN1f9424_20260818T160532Z`. Read the binding from the run's own V4 cache
+  manifest (`volatility_squeeze_artifact_set`), never from a document. No chain
+  has carried any of them to GREEN.
+- **train==serve is unproven.** Zero `MODEL_NATIVE_SERVE_PARITY` events exist
+  under `/home/andre2/GX1_DATA` (measured 2026-08-19): the gate has never
+  executed, and it is being repaired now. One divergence is already proven from
+  source — the serve ctx-augment HTF block
+  (`gx1/execution/v12_ctx_augment_live.py::_atr`) takes a rolling mean of true
+  range in float64 while the offline owner (`htf_features._atr` → `wilder_atr`)
+  uses Wilder RMA and emits float32, and the serve comment claims they match.
+- Whether every static magnitude in the trainer is data-derived is **not
+  examined**: the objective contract declares the handwritten-weight flags
+  False, but nobody has swept the trainer.
 
 ## Coarse history
 
@@ -130,23 +158,38 @@ numbers look good, discover the substrate underneath was broken, rebuild.
 
 Every heavy producer, audit, train or replay enters through
 `scripts/gx1_capped_run.sh`: one job at a time, CPU affinity 0-1, 512 MiB swap,
-4G for audits and tests, at most 10G for the heavy dataset producers and 20G for
-the canonical trainer. A cap kill or partial directory is failed evidence.
+4G for audits and tests, at most 20G for the heavy dataset producers
+(`--class producer`) and 20G for the canonical trainer — this file said 10G for
+producers until 2026-08-19; `scripts/gx1_capped_run.sh` is the authority. A cap
+kill or partial directory is failed evidence.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
 ## Next implementation sequence
 
-1. Implement the decided repair wave as **one surface generation** — one contract
-   commit, one canonical re-materialisation on both clocks, one cache generation,
-   one dataset rebuild, one retention pass. Landing it piecemeal pays the same
-   invalidation cost N times.
+1. Land the repair wave as **one surface generation** — one contract commit, one
+   canonical re-materialisation on both clocks, one cache generation, one dataset
+   rebuild, one retention pass. Landing it piecemeal pays the same invalidation
+   cost N times, which is what the RED V31 chains of 2026-08-18/19 cost. The
+   `…_v34` signal contract is in the working tree, uncommitted, alongside the
+   parity-gate repair; finish both before spending another chain run.
 2. ~~Fix the squeeze decode mismatch and refit the six clocks.~~ Done
-   2026-08-18. Chain invocations must now pass
-   `--volatility-squeeze-manifest .../VOLATILITY_SQUEEZE_SIXCLOCK_20260818/manifest.json`
-   with `--expected-volatility-squeeze-manifest-sha256 dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`;
-   the 2026-08-15 path and its `ee7fab3b…` hash are retired and would now fail
-   closed at load on the fit-method check regardless.
-3. Run the rebuild chain to GREEN and materialise the surface once.
+   2026-08-18. Chain invocations must pass `--volatility-squeeze-manifest` with
+   its matching `--expected-volatility-squeeze-manifest-sha256`. **Resolve that
+   pair from the newest artifact set on disk and verify it against the previous
+   run's V4 cache manifest — no hash is restated here** (rule 13; the
+   `dd051f04…` value this step named was already superseded by the set the V31
+   chains actually bound). The 2026-08-15 artifacts fail closed at load on the
+   fit-method check regardless.
+3. Run the rebuild chain to GREEN and materialise the surface once, on the
+   **widened TRAIN window `2021-06-01 → 2026-05-31`** (VAL and TEST unchanged).
+   This is not a tuning preference: measured 2026-08-19, the one-year window
+   leaves **seven D1 features exactly constant**, which raises
+   `[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]` and prevents the trainer starting
+   at all; the five-year window leaves none. 2020 is excluded because its spread
+   p90 is 12.46 bps against 1.78–2.82 in every other year. Derivation, the
+   per-field measurement and the cost of the change are in
+   `docs/TRAIN_WINDOW_WIDENING_20260819.md`; the chain now also fails closed if
+   `--history-start` does not cover the D1 receptive field.
 4. Re-measure every field against real bytes for a final liveness verdict.
 5. Then a **pre-registered cheap test** of whether direction signal exists at all
    on the repaired substrate — question and success criterion written down before

@@ -255,7 +255,11 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "mom_5_atr",
     "mom_20_atr",
     "close_open_atr",
-    "body_pct",
+    # ``body_pct`` was RETIRED from this block on 2026-08-19: it was exactly
+    # ``abs(mtf_candle_raw_body_signed_range)``, a column this same surface
+    # emits from the sibling candle owner, on every row of every lane
+    # (measured on the complete declared M5 tape; the algebra and the per-lane
+    # numbers are at its former emission site in compute_per_bar_features_v4).
     "ema20_dist_atr",
     "ema50_dist_atr",
     "ema100_dist_atr",
@@ -605,7 +609,30 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # subtrahend belonged to a different accumulation. The repaired field
 # differences the rolling 5-bar VWAP the D1 branch already used. A V17 matrix
 # holds the broken numbers under a name that no longer exists.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V18"
+# V19 (2026-08-19): the per-lane surface narrows by ONE column. ``body_pct``
+# is retired on all five lanes as an exact duplicate -- it equalled
+# ``abs(mtf_candle_raw_body_signed_range)`` on every post-warmup row of every
+# lane of the complete declared M5 tape, in float64 and in the served float32,
+# and only the surviving twin carries the sign. The algebra and the per-lane
+# measurement are at its former emission site in
+# compute_per_bar_features_v4. A V18 matrix is one column per lane wider under
+# a feature-name hash that no longer matches.
+# V20 (2026-08-19): the per-lane WIDTH is unchanged, but one column's VALUES
+# change and its name with them.  ``mtf_candle_raw_open_gap_local_geometry`` ->
+# ``mtf_candle_raw_open_position_previous_range``: the retired field divided the
+# bin-seam price difference ``open[t] - close[t-1]`` by a volatility scale, and
+# on the complete declared native M5 tape its yearly IQR collapsed 19.8x from
+# 2019 to 2026 (median reaching exactly 0) because the seam is a FEED quantum
+# that did not grow with gold's volatility -- the most extreme structural break
+# on this surface, and one that no denominator repairs (bar range, Wilder ATR
+# and local_geometry_scale all reproduce the same 0.05 ratio).  The repaired
+# column is a position inside the previous bar's own range, so both sides of the
+# ratio scale together.  The measurements, the refuted denominator hypotheses
+# and the exact rule-4 recovery identity are in the v5 note at
+# CANDLE_PRIMITIVE_FEATURE_VERSION in gx1.features.entry_candle_primitives_v1.
+# A V19 matrix is the same width and holds the broken numbers under a name that
+# no longer exists.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -629,7 +656,13 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V18"
 # v26 (2026-08-18) carries the V30 wave-2 narrowing: a v25 cache is 10 columns
 # per lane wider and carries two per-TF sweep columns under their pre-rename
 # names.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v27"
+# v27 (2026-08-19) retires the per-lane ``body_pct`` duplicate: a v26 cache is
+# one column per lane wider and answers the feature-name hash key with a
+# surface this owner no longer emits.
+# v29 (2026-08-19) carries the candle owner's open-gap era repair: a v28 cache
+# is the same width but answers the feature-name hash key with the retired
+# ``mtf_candle_raw_open_gap_local_geometry`` column and its era-coupled values.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v29"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
 )
@@ -641,7 +674,13 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # v17 (2026-08-18) describes the V30 wave-2 surface: 10 fewer columns per lane
 # and the two renamed sweep-state columns. A v16 artifact answers liveness for
 # names this surface no longer emits.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v18"
+# v18 (2026-08-19) describes the surface without the per-lane ``body_pct``
+# duplicate; a v17 artifact answers liveness for one name per lane that this
+# surface no longer emits.
+# v20 (2026-08-19) describes the surface with the repaired
+# ``mtf_candle_raw_open_position_previous_range``; a v19 artifact answers
+# liveness for one name per lane that this surface no longer emits.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v20"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered
@@ -2896,48 +2935,73 @@ def compute_per_bar_features_v4(
         )
     out["close_open_atr"] = (close - open_) / atr_positive
 
-    # Zero-range convention (2026-08-15) — ADOPTED VERBATIM from the sibling
-    # candle owner in this same repository,
-    # gx1.features.entry_candle_primitives_v1.
-    # compute_entry_candle_primitive_chunk: on a ``high == low`` bar every
-    # range SHARE is mathematically undefined, and that owner emits share 0.0
-    # there.  No magnitude is invented: ``body_pct`` is the unsigned twin of
-    # ``mtf_candle_raw_body_signed_range``, which the sibling already sets to
-    # 0.0 on exactly these rows.
+    # ``body_pct`` is RETIRED from this per-timeframe surface (2026-08-19),
+    # on every one of the five lanes, as an EXACT duplicate of the candle
+    # owner's signed twin that this same function already emits beside it.
     #
-    # WHAT CARRIES THE DISTINCTION NOW (2026-08-15).  This comment used to
-    # name ``candle.raw_zero_range_flag`` / ``mtf_candle_raw_zero_range_flag``
-    # as the field that separated the storage zero from a real observation.
-    # That flag has been RETIRED — it was constant 0.0 post-warmup on H4 and
-    # D1 (liveness RED) and unscaleable as a declared constant; the argument
-    # is in the CANDLE_PRIMITIVE_FEATURE_VERSION note of the sibling owner.
-    # The distinction did not leave with it.  PROVEN FROM ALGEBRA there and
-    # true on this surface for the same reason: the three range shares
-    # partition the range exactly, so on any lane
-    #     mtf_candle_raw_body_signed_range == 0
-    #     and mtf_candle_raw_upper_wick_share == 0
-    #     and mtf_candle_raw_lower_wick_share == 0
-    # holds if and only if ``high == low`` on that bar — those three are
-    # emitted by the sibling owner from this very frame, beside body_pct.  A
-    # real-range doji has a zero body share but nonzero wick shares.
-    # MEASURED, so a future reader can re-judge the trade rather than
-    # re-measure it: on the complete declared native M5 tape
-    # XAU_M5_NATIVE_2019_20260804_V4 (537,861 rows, 2019-01-01..2026-08-04),
-    # resampled by this owner and counted after the >=199-row causal warmup,
-    # zero-range bars number 215 on M5 (0.040%), 24 on M15 (0.013%), 14 on H1
-    # (0.031%), 0 on H4 and 0 on D1 — 253 rows of the whole tape.
+    # WHY IT WAS A DUPLICATE.  This block emitted
+    # ``|close - open| / (high - low)`` where ``high > low`` and the storage
+    # ``0.0`` where ``high == low``.  The sibling causal owner
+    # gx1.features.entry_candle_primitives_v1.compute_entry_candle_primitive_chunk
+    # emits, from this very frame and into
+    # ``mtf_candle_raw_body_signed_range``, ``(close - open) / (high - low)``
+    # under the identical positive-range condition and the identical ``0.0``
+    # on ``high == low``.  So
+    #     body_pct == abs(mtf_candle_raw_body_signed_range)
+    # on every row of every lane, and only the twin carries the SIGN.  The
+    # comment this block used to hold said exactly that -- it called
+    # ``body_pct`` "the unsigned twin of ``mtf_candle_raw_body_signed_range``"
+    # and used the identity to justify the zero-range convention -- without
+    # ever drawing the conclusion that the field was therefore redundant.
     #
-    # The retired ``(high - low).where((high - low) > 0.0)`` mask made
-    # ``body_pct`` NaN on a zero-range bar, i.e. a hole in the MIDDLE of the
-    # series, which validate_causal_feature_matrix rejects as "not one causal
-    # warmup prefix" — a single such bar aborted the entire per-timeframe
-    # build.  Only an exact 0.0 range takes the convention: a NaN or negative
-    # (invalid-geometry) range still propagates NaN and still fails closed.
-    bar_range = high - low
-    body = (close - open_).abs()
-    out["body_pct"] = body.div(bar_range.where(bar_range > 0.0)).mask(
-        bar_range.eq(0.0), 0.0
-    )
+    # RULE 4: NOTHING LEFT THE LEARNED PATH.  The three range shares are the
+    # exact partition of the range (``upper_wick + lower_wick + |body| ==
+    # high - low``; see the algebra note in the sibling owner), so on every
+    # positive-range bar
+    #     |mtf_candle_raw_body_signed_range|
+    #         + mtf_candle_raw_upper_wick_share
+    #         + mtf_candle_raw_lower_wick_share == 1
+    # and all three stay on this surface.  The bar's shape is therefore
+    # described COMPLETE without ``body_pct``: the body share is the absolute
+    # value of a retained column, the two wick shares are retained columns,
+    # and the retained signed form additionally distinguishes a bull body from
+    # a bear body of the same size, which ``body_pct`` could not.  The
+    # zero-range state also survives unchanged: all three shares are ``0.0``
+    # if and only if ``high == low``, the same biconditional that replaced the
+    # retired ``mtf_candle_raw_zero_range_flag`` on 2026-08-15.
+    #
+    # MEASURED on real declared bytes at real contract dimensions -- the
+    # complete native M5 tape XAU_M5_NATIVE_2019_20260804_V4 (537,861 rows,
+    # 2019-01-01..2026-08-04), resampled by this owner, all five lanes, after
+    # the emitted 204-row causal warmup.  This function emits float32, so the
+    # two columns met as float32 and the comparison is on exactly the values
+    # the model is served; the float64 statement above is proven from source
+    # and algebra, not from this table:
+    #   lane  rows(post-warmup)  max|body_pct - |signed||  zero-range rows
+    #   M5           537,657                          0.0              215
+    #   M15          179,154                          0.0               24
+    #   H1            44,669                          0.0               14
+    #   H4            11,524                          0.0                0
+    #   D1             1,754                          0.0                0
+    # Every post-warmup row was BIT-EXACTLY equal on every lane (not "within a
+    # tolerance"), and the sign the twin carries is real evidence, not a
+    # degenerate column: the signed twin is negative on 265,508 / 537,657 M5
+    # rows.  The same sweep over all 176 x 5 emitted columns found no other
+    # exact, negated or affine duplicate; the one remaining exact-abs pair it
+    # did find, ``mtf_level_bars_since_break ==
+    # abs(mtf_level_bars_since_break_signed)`` on all five lanes, belongs to
+    # the level-registry owner and is recorded there for its own adjudication.
+    # The log is GX1_DATA/logs/v31_per_tf_duplicate_sweep_20260819/.
+    #
+    # The zero-range convention itself is unchanged and still live in the
+    # sibling owner: on a ``high == low`` bar every range SHARE is
+    # mathematically undefined and that owner emits the storage ``0.0``.  The
+    # v23 repair that put that convention here (replacing a
+    # ``(high - low).where((high - low) > 0.0)`` mask whose NaN on a
+    # zero-range bar was a hole in the MIDDLE of the series and aborted the
+    # whole per-timeframe build) is preserved where it belongs -- in the
+    # surviving twin -- and is asserted on this surface by
+    # ``test_mid_series_zero_range_bar_takes_the_sibling_share_convention``.
 
     ema20 = _ema(close, 20)
     ema50 = ema_spread_block["ema50"]

@@ -452,9 +452,10 @@ decision. = 601→684, 181→208. Own immutable rebuild `--run-id`.
 
 **Pre-registered evaluation plan — V29 vs V28:** identical walk-forward
 protocol to the 2026-08-09 snapshot-edge refutation (same folds, same
-TRAIN/OOS boundaries); the coin-flip null (−13.16 bps TRAIN), oracle
-(+17.76) and available-skill (+30.91) references re-measured on the V29
-substrate and mandatory in every claim; multi-seed (≥2 seeds — the paused
+TRAIN/OOS boundaries); the coin-flip null, oracle and available-skill
+references re-measured on the V29 substrate and mandatory in every claim (the
+−13.16 / +17.76 / +30.91 triple quoted here is the **V27-substrate** measurement
+and does not transfer — see `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`); multi-seed (≥2 seeds — the paused
 logit-adjust seed protocol, §7.1); abstention quality is the success
 criterion; admission only through the existing gate battery; no gate
 threshold moves without its rule-2f bound. A single-fold win is not

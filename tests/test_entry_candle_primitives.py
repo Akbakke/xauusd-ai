@@ -388,7 +388,13 @@ def test_zero_range_and_gap_after_zero_range_are_finite_and_recoverable() -> Non
     assert (values[:, index["candle.raw_body_signed_range"]] == 0.0).all()
     assert (values[:, index["candle.raw_upper_wick_share"]] == 0.0).all()
     assert (values[:, index["candle.raw_lower_wick_share"]] == 0.0).all()
-    assert values[2, index["candle.raw_open_gap_local_geometry"]] == 1.0
+    # Row 2 opens a full unit above a ZERO-range previous bar, so the position
+    # ratio is an undefined 0/0 and takes the storage zero.  That zero would be
+    # a placeholder reading as "opened at the previous low" (rule 2e) if it
+    # stood alone -- it does not: the whole magnitude is carried by the clamped
+    # sibling on exactly these rows, and the rows themselves stay identifiable
+    # from the previous row's three shares (v3 biconditional, asserted above).
+    assert values[2, index["candle.raw_open_position_previous_range"]] == 0.0
     assert values[2, index["candle.raw_open_above_previous_high_local_geometry"]] == 1.0
     assert np.isfinite(values[1:]).all()
 
@@ -477,3 +483,115 @@ def test_future_ohlc_mutation_cannot_change_prefix() -> None:
     ]
     observed, _ = build_entry_candle_primitive_layer(changed)
     np.testing.assert_array_equal(observed[:-1], baseline[:-1])
+
+
+def test_open_gap_era_proxy_is_retired_and_repaired() -> None:
+    """The v5 era repair: absence, exact arithmetic, and the rule-4 recovery.
+
+    Three independent halves, each of which fails on its own against the v4
+    owner:
+
+    * ABSENCE. ``candle.raw_open_gap_local_geometry`` is gone from the declared
+      tuples and from the emitted index.
+    * VALUE (the non-vacuity half). The emitted column must equal
+      ``(open[t] - low[t-1]) / (high[t-1] - low[t-1])`` on every positive
+      previous-range row. Reverting only the arithmetic to the retired
+      ``(open[t] - close[t-1]) / local_geometry_scale`` -- keeping the new
+      name, the v5 version string and every comment -- fails here, which is
+      what makes the rename non-vacuous.
+    * RULE 4. The retired reading survives exactly, in previous-range units, as
+      ``position[t] - (lower_wick_share[t-1] + max(body_signed_range[t-1], 0))``
+      over columns this same owner still emits. Measured on the complete
+      declared native M5 tape the identity holds to 7.1e-15 in float64 over
+      537,645 rows; here it is asserted to float32 storage tolerance.
+    """
+
+    retired = "candle.raw_open_gap_local_geometry"
+    assert retired not in CANDLE_PRIMITIVE_FEATURE_NAMES
+    assert retired not in CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES
+    assert retired not in CANDLE_PRIMITIVE_WHOLE_BAR_FEATURE_NAMES
+    repaired = "candle.raw_open_position_previous_range"
+    assert repaired in CANDLE_PRIMITIVE_RELATIONAL_FEATURE_NAMES
+    # The repaired name must not claim the local_geometry_scale convention it
+    # no longer uses (rule 19: one denominator convention per spelling).
+    assert "local_geometry" not in repaired
+
+    frame = _relation_frame()
+    values, names = build_entry_candle_primitive_layer(frame)
+    index = {name: i for i, name in enumerate(names)}
+    assert retired not in index
+
+    open_ = frame["open"].to_numpy(dtype=np.float64)
+    high = frame["high"].to_numpy(dtype=np.float64)
+    low = frame["low"].to_numpy(dtype=np.float64)
+    close = frame["close"].to_numpy(dtype=np.float64)
+    previous_range = (high - low)[:-1]
+    positive = previous_range > 0.0
+    assert positive.any(), "fixture must exercise the defined branch"
+
+    observed = values[1:, index[repaired]].astype(np.float64)
+    expected = (open_[1:] - low[:-1]) / previous_range
+    np.testing.assert_allclose(
+        observed[positive], expected[positive], rtol=0.0, atol=1e-6
+    )
+    # The retired arithmetic must NOT reproduce the column: this is the
+    # discriminating assertion, not a restatement of the one above.
+    bar_range = high - low
+    body = np.abs(close - open_)
+    price_scale = np.maximum.reduce(
+        [np.abs(v) for v in (open_[1:], high[1:], low[1:], close[1:],
+                             open_[:-1], high[:-1], low[:-1], close[:-1])]
+        + [np.ones_like(open_[1:])]
+    )
+    local_geometry_scale = np.maximum.reduce([
+        bar_range[1:], previous_range,
+        np.abs(open_[1:] - close[:-1]), np.abs(close[1:] - close[:-1]),
+        np.abs(high[1:] - high[:-1]), np.abs(low[1:] - low[:-1]),
+        np.abs(bar_range[1:] - previous_range), np.abs(body[1:] - body[:-1]),
+        price_scale * np.finfo(np.float64).eps,
+    ])
+    retired_values = (open_[1:] - close[:-1]) / local_geometry_scale
+    assert not np.allclose(
+        observed[positive], retired_values[positive], rtol=0.0, atol=1e-6
+    )
+
+    # Rule 4: the retired reading, in previous-range units, out of emitted
+    # columns only.
+    body_share = values[:, index["candle.raw_body_signed_range"]].astype(np.float64)
+    lower_share = values[:, index["candle.raw_lower_wick_share"]].astype(np.float64)
+    previous_close_location = lower_share[:-1] + np.maximum(body_share[:-1], 0.0)
+    recovered = observed - previous_close_location
+    target = (open_[1:] - close[:-1]) / previous_range
+    np.testing.assert_allclose(
+        recovered[positive], target[positive], rtol=0.0, atol=1e-6
+    )
+
+
+def test_open_position_is_a_bounded_location_on_a_contained_open() -> None:
+    """A bar opening at the previous midpoint reads 0.5, not a seam magnitude.
+
+    This is the fidelity statement the retired column could not make: its value
+    depended on how far the feed's first tick of the bar had drifted from the
+    previous bar's last tick, which is a property of the tape's sampling
+    density rather than of the market.
+    """
+
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-01-01", periods=3, freq="5min", tz="UTC"),
+            "open": [100.0, 100.0, 108.0],
+            "high": [110.0, 104.0, 109.0],
+            "low": [90.0, 99.0, 107.0],
+            "close": [104.0, 103.0, 108.5],
+        }
+    )
+    values, names = build_entry_candle_primitive_layer(frame)
+    index = {name: i for i, name in enumerate(names)}
+    position = values[:, index["candle.raw_open_position_previous_range"]]
+    # Row 1 opens at 100 inside the [90, 110] previous range -> 0.5 exactly.
+    assert position[1] == pytest.approx(0.5)
+    # Row 2 opens at 108 above the [99, 104] previous range -> above 1, and the
+    # clamped sibling flags the same event.
+    assert position[2] > 1.0
+    assert values[2, index["candle.raw_open_above_previous_high_local_geometry"]] > 0.0
+    assert values[2, index["candle.raw_open_below_previous_low_local_geometry"]] == 0.0

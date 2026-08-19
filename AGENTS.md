@@ -30,8 +30,10 @@ Read `GX1_RULES.md` first. It is binding.
   exact contiguous timestamp views are required. Never restore per-split
   inline reconstruction of the specialist fields.
 - Exit is the same feature contract at M1, a 480-bar M1 sequence, a dedicated
-  learned Entry-decision token (one learned 609-to-128 projection of the exact
-  six-block pre-argmax decision source) and the additive 15-field causal path.
+  learned Entry-decision token (one learned projection of the exact six-block
+  pre-argmax decision source; widths owned by
+  `gx1/contracts/entry_decision_token_v1.py`, never restated here) and the
+  additive 15-field causal path.
   Every result binds the frozen float32 token bytes and exact
   M1/five-TF tensor bytes, clocks, cache, side, quotes, path and trade identity.
 - Entry context is closed M15/H1/H4/D1. Exit context is closed
@@ -52,28 +54,41 @@ Read `GX1_RULES.md` first. It is binding.
   UTC trading-session clock phases H4 bars on 22/02/06/10/14/18 UTC and D1 at
   22:00 UTC; the retired H4 00/04/... and D1 midnight grids are not
   current-contract inputs.
-- Unique model argmax is the only Entry/Exit authority; ties fail closed.
-- Training-objective v6 and 46-key recipe schema v5 use plain unweighted CE for
-  main/MTF/side classification and plain unweighted BCE for the hierarchy's
-  binary tasks. Waves A/B retired direction and hierarchical distribution
-  forcing. Fixed auxiliary task weights, rank margins and gate regularization
-  remain for Wave C; do not claim every static objective magnitude is gone.
+- Unique model argmax is the only Entry/Exit authority; ties fail closed. What
+  is argmaxed is `entry_action_q_bps` / `unified_exit_action` — expected return
+  in basis points, not calibrated probabilities (`entry_fitted_q_v1.py`).
+- The objective and recipe owners
+  (`gx1/contracts/entry_model_native_training_objective_v1.py`,
+  `gx1/contracts/entry_model_native_train_recipe_v1.py`) own their schema
+  versions, keys and flags; **execute them, this file restates none of them**.
+  Proven from source 2026-08-19: the sole decision loss is masked raw-bps MSE
+  on fitted-Q, task weights are learned by trainable homoscedastic
+  log-variance, and no cross-entropy holds decision authority — one masked BCE
+  survives on the `trendline_event` auxiliary head. The retired "objective v6 /
+  46-key recipe schema v5 / unweighted CE / pending Wave C" description was
+  false by 2026-08-19. Whether every static magnitude in the trainer is gone is
+  **not examined**; do not claim it either way.
 - There is no admitted model, recipe, edge, win-rate or PnL proof, and no
   dataset. The V28 (513) and V29J (592) chains both ran GREEN but were retired
   on 2026-08-14 through the retention owner: nothing was ever trained on
   either, so neither could serve as the comparison baseline it was named as.
-  The evaluation reference is the coin-flip null (-13.16 bps TRAIN /
-  -18.58 bps VAL). No V30 dataset exists yet.
+  The evaluation reference is the coin-flip null; its magnitude is
+  substrate-specific and lives in
+  `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V31 rebuild chains
+  have run repeatedly since 2026-08-18 under
+  `/home/andre2/GX1_DATA/data/data/prebuilt/V31_CHAIN_*`; every one that
+  reached a terminal event ended RED, and the newest has no terminal event at
+  all, so its partial output is invalid (rule 7). No admitted dataset exists.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
-  production-integrated in source, and the six immutable TRAIN artifacts are
-  fitted and admissible as of 2026-08-18
-  (`VOLATILITY_SQUEEZE_SIXCLOCK_20260818`, manifest sha256
-  `dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6`). The
-  2026-08-15 set is retired and now fails closed at load. Rebuild
-  caches/surfaces/dataset on the new manifest and retrain before making any
-  model or edge claim.
+  production-integrated in source, and six immutable TRAIN artifacts have been
+  fitted and admitted since 2026-08-18. **No manifest path or hash is restated
+  here** (rule 13): several six-clock sets exist on disk with different
+  `contract_sha256`, this file named a superseded one until 2026-08-19, and the
+  binding must be resolved from the run's own V4 cache manifest. The 2026-08-15
+  set fails closed at load. Rebuild caches/surfaces/dataset and retrain before
+  making any model or edge claim.
 - Fresh native M1/M5 V4 sources and canonical pair generation
   `9b18e215...077232cd` (2026-08-09) exist; the 2026-08-04 parent
   `64d62c1f...a11b84c` is untouched history. They are source authority only.

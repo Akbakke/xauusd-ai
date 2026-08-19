@@ -31,7 +31,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 
 
 def test_post_rebuild_readiness_tracks_current_chain_schema() -> None:
-    assert gate.CHAIN_SCHEMA == "seq513_rebuild_chain_status_v7"
+    # Rule 13.  This asserted v7 while tests/test_seq513_rebuild_chain_contract.py
+    # asserted v9 -- two suites, each pinning its own side of one broken contract,
+    # both green, and post-rebuild readiness permanently RED because
+    # chain_terminal_ok could never be True.  This gate is now the sole owner and
+    # the chain script imports CHAIN_SCHEMA from here.
+    assert gate.CHAIN_SCHEMA == "seq513_rebuild_chain_status_v9"
     assert SCHEMA_VERSION == "entry_model_native_seq513_post_rebuild_readiness_v2"
     assert gate.TEST_SEAL_SCHEMA_VERSION == (
         "entry_model_native_seq513_untouched_test_seal_v2"

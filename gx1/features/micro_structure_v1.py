@@ -248,13 +248,30 @@ def compute_micro_structure_features_chunk(
 # The retired canonical spread z-score died constant. Measured on
 # the complete declared native M5 tape 2026-08-13 (N=537,861 rows): spread_bps
 # mean 2.23 / std 2.61 / p1 1.11 / p99 14.66 with ~3261 distinct rounded
-# values; the 1-bar change is nonzero on 99.93% of rows with std 1.161; the
-# intrabar quote envelope (ask_high - bid_low) is 10.21 bps mean / 8.64 std;
+# values; the 1-bar change is nonzero on 99.93% of rows with std 1.161;
 # the quote-range asymmetry is nonzero on 87.85% of rows with std 0.969 bps.
 # Three fields, no thresholds, no clips, no new magnitudes.
+#
+# 2026-08-19 fidelity repair (rule 25b): the middle field was
+# ``spread_intrabar_range_bps = (ask_high - bid_low) / close * 1e4``.  That
+# envelope decomposes as (mid range) + (spread), so it re-reported volatility
+# the ctx surface already carries: measured on the complete declared native M5
+# tape (N=537,861 rows, 2026-08-19) it had r=0.9259 with the mid bar range and
+# r=0.4941 with ``spread_bps``, median 7.83 bps against a 5.84 bps median mid
+# range.  A block introduced as the cure for "no quote-dynamics evidence" was
+# two thirds bar range.  It is replaced by the sum of the quote width at each
+# of the bar's own extremes, from the SAME declared source columns and with no
+# new constant: the mid path cancels inside each term
+# (ask_x - bid_x = the quote width at extreme x), so the range component is
+# gone by algebra, not by subtraction of an estimate.  Same tape, repaired
+# field: r=0.9334 with ``spread_bps``, r=0.2019 with the mid range, median
+# 3.4054 bps.  It is not a restatement of ``spread_bps``: the ratio to it runs
+# p1 1.381 / p50 2.000 / p99 3.678 and is never exactly 2, which is the
+# intrabar quote widening at the extremes that the close-quote level cannot
+# show.
 SPREAD_DYNAMICS_FEATURE_NAMES_V1 = (
     "spread_bps_delta_1",
-    "spread_intrabar_range_bps",
+    "spread_extremes_sum_bps",
     "quote_range_asymmetry_bps",
 )
 # Exact source columns.  All seven are members of
@@ -294,7 +311,7 @@ class SpreadDynamicsCarryV1:
 
 
 MICRO_STRUCTURE_SCHEMA_VERSION = (
-    "micro_structure_primitives_v4_lag_return_range_presence_20260814"
+    "micro_structure_primitives_v5_quote_width_at_extremes_20260819"
 )
 MICRO_PRICE_FORMULA_CONTRACT = (
     "close_return_3_bps[t]=(close[t]/close[t-3]-1)*10000",
@@ -310,7 +327,7 @@ MICRO_PRICE_FORMULA_CONTRACT = (
 SPREAD_DYNAMICS_FORMULA_CONTRACT = (
     "spread_bps[t]=(ask_close[t]-bid_close[t])/bid_close[t]*10000",
     "spread_bps_delta_1[t]=spread_bps[t]-spread_bps[t-1]",
-    "spread_intrabar_range_bps[t]=(ask_high[t]-bid_low[t])/close[t]*10000",
+    "spread_extremes_sum_bps[t]=((ask_high[t]-bid_high[t])+(ask_low[t]-bid_low[t]))/close[t]*10000",
     "quote_range_asymmetry_bps[t]=((ask_high[t]-ask_low[t])-(bid_high[t]-bid_low[t]))/close[t]*10000",
     "warmup=causal_nan_prefix_for_spread_delta_only",
     "transform=no_epsilon_no_clip_no_static_boundary_value",
@@ -369,7 +386,7 @@ def micro_structure_contract_metadata() -> dict[str, object]:
         "price_warmup_prefix_fields": list(MICRO_WARMUP_PREFIX_FIELDS_V1),
         "spread_field_nan_prefix_rows": {
             "spread_bps_delta_1": SPREAD_DYNAMICS_CAUSAL_WARMUP_ROWS_V1,
-            "spread_intrabar_range_bps": 0,
+            "spread_extremes_sum_bps": 0,
             "quote_range_asymmetry_bps": 0,
         },
         "spread_warmup_prefix_fields": list(
@@ -505,8 +522,9 @@ def compute_spread_dynamics_features_chunk(
     # A quote bar is valid only when each side's own high dominates its low and
     # the ask series dominates the bid series.  Both are data-integrity facts of
     # a two-sided quote, not chosen tolerances; a violation is a broken tape and
-    # fails closed.  Together they also prove ask_high >= bid_low, so the
-    # intrabar envelope below is non-negative by construction.
+    # fails closed.  ask_high >= bid_high and ask_low >= bid_low are exactly the
+    # two facts that make each term of ``spread_extremes_sum_bps`` below a
+    # non-negative quote width, so that field needs no separate guard.
     if (
         np.any(bid_high < bid_low)
         or np.any(ask_high < ask_low)
@@ -531,14 +549,21 @@ def compute_spread_dynamics_features_chunk(
     )
     spread_delta_1[1:] = spread_bps[1:] - spread_bps[:-1]
 
-    intrabar_range_bps = (ask_high - bid_low) / close * 1e4
+    # Quote width at each of the bar's own extremes, summed.  Each term
+    # differences the SAME extreme of the two sides, so the mid path cancels
+    # inside the term and no range or level component survives; nothing is
+    # subtracted, estimated or clipped.  Non-negativity is already guaranteed by
+    # the ask_high >= bid_high / ask_low >= bid_low geometry enforced above.
+    extremes_sum_bps = (
+        (ask_high - bid_high) + (ask_low - bid_low)
+    ) / close * 1e4
     quote_range_asymmetry_bps = (
         (ask_high - ask_low) - (bid_high - bid_low)
     ) / close * 1e4
 
     result = {
         "spread_bps_delta_1": spread_delta_1.astype(np.float32),
-        "spread_intrabar_range_bps": intrabar_range_bps.astype(np.float32),
+        "spread_extremes_sum_bps": extremes_sum_bps.astype(np.float32),
         "quote_range_asymmetry_bps": quote_range_asymmetry_bps.astype(np.float32),
     }
     if tuple(result) != SPREAD_DYNAMICS_FEATURE_NAMES_V1 or any(
@@ -552,11 +577,11 @@ def compute_spread_dynamics_features_chunk(
         raise RuntimeError("SPREAD_DYNAMICS_CARRY_OUTPUT_INVALID")
     if not np.isfinite(delta[1:]).all():
         raise RuntimeError("SPREAD_DYNAMICS_WARMUP_PREFIX_INVALID")
-    for name in ("spread_intrabar_range_bps", "quote_range_asymmetry_bps"):
+    for name in ("spread_extremes_sum_bps", "quote_range_asymmetry_bps"):
         if not np.isfinite(result[name]).all():
             raise RuntimeError(f"SPREAD_DYNAMICS_OUTPUT_NONFINITE: {name}")
-    if np.any(result["spread_intrabar_range_bps"] < 0.0):
-        raise RuntimeError("SPREAD_DYNAMICS_INTRABAR_RANGE_NEGATIVE")
+    if np.any(result["spread_extremes_sum_bps"] < 0.0):
+        raise RuntimeError("SPREAD_DYNAMICS_EXTREMES_SUM_NEGATIVE")
     next_state = SpreadDynamicsCarryV1(
         rows_seen=state.rows_seen + len(frame),
         previous_spread_bps=float(spread_bps[-1]),
