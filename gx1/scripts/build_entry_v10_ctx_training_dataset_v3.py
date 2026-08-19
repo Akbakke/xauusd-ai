@@ -3214,6 +3214,24 @@ def build_dataset_canonical(
     for i, name in enumerate(ctx_cat_names):
         df_ctx[name] = df_ctx_cat.iloc[:, i].to_numpy()
 
+    # The recomputed-context warmup trim above shortened the ctx frame's head,
+    # and `merged2` is a parallel frame built from the untrimmed parent. Cutting
+    # it to the same first row keeps the one-to-one contract below meaningful:
+    # without this the join silently drops exactly the trimmed prefix and the
+    # count check reports it as a join failure (CTX_JOIN_ROW_MISMATCH
+    # 454441 -> 454423, the 18-row swing warmup) rather than as the alignment
+    # step it is. This narrows by an exact timestamp, never by position.
+    if len(df_ctx):
+        _ctx_first_time = df_ctx["time"].iloc[0]
+        _rows_before_ctx_align = len(merged2)
+        merged2 = merged2.loc[merged2["time"] >= _ctx_first_time].reset_index(drop=True)
+        if len(merged2) != _rows_before_ctx_align:
+            log.info(
+                "[ENTRY_CTX_ALIGN] trimmed_to_ctx_warmup rows_before=%d rows_after=%d first_time=%s",
+                _rows_before_ctx_align,
+                len(merged2),
+                _ctx_first_time,
+            )
     merged3 = merged2.merge(df_ctx, on="time", how="inner", validate="one_to_one")
     if len(merged3) != len(merged2):
         raise RuntimeError(
