@@ -27,17 +27,20 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.features.htf_features import (
     MODEL_NATIVE_CONTEXT_MTF_PROJECTION,
+    MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
 )
 
 
-SCHEMA_VERSION = "entry_cross_surface_input_overlap_v2"
-POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v2"
+SCHEMA_VERSION = "entry_cross_surface_input_overlap_v3"
+POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v3"
 DECISION_ROUTES = {
     "entry": {
         "local_timeframe": "M5",
@@ -64,17 +67,36 @@ def declared_context_mtf_aliases(*, decision: str) -> frozenset[tuple[str, str]]
     if route is None:
         raise RuntimeError(f"CROSS_SURFACE_DECISION_INVALID: {decision!r}")
     aliases: set[tuple[str, str]] = set()
+    signal_fields = frozenset(
+        (*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    )
+
+    def add_local_paths(*, ctx_name: str, mtf_name: str) -> None:
+        if ctx_name not in MODEL_NATIVE_CTX_CONT_FIELDS:
+            raise RuntimeError(
+                f"CROSS_SURFACE_DECLARED_ALIAS_CONTEXT_MISSING: {ctx_name}"
+            )
+        aliases.add((f"local.ctx_cont.{ctx_name}", mtf_name))
+        signal_name = f"ctx_cont.{ctx_name}"
+        if signal_name in signal_fields:
+            aliases.add((f"local.signal.{signal_name}", mtf_name))
+
     for timeframe in route["active_mtf_timeframes"]:
         tf = str(timeframe).lower()
         for output_name, source_name in MODEL_NATIVE_CONTEXT_MTF_PROJECTION:
             ctx_name = f"{tf}_{output_name}_v2"
             if ctx_name in MODEL_NATIVE_CTX_CONT_FIELDS:
-                aliases.add(
-                    (
-                        f"local.ctx_cont.{ctx_name}",
-                        f"mtf.{tf}.{source_name}",
-                    )
+                add_local_paths(
+                    ctx_name=ctx_name,
+                    mtf_name=f"mtf.{tf}.{source_name}",
                 )
+        for scalar_name, per_bar_name in (
+            MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4[str(timeframe)]
+        ):
+            add_local_paths(
+                ctx_name=scalar_name,
+                mtf_name=f"mtf.{tf}.{per_bar_name}",
+            )
     return frozenset(aliases)
 
 

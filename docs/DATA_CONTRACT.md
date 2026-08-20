@@ -61,6 +61,16 @@ Every MTF candle is completed before the same owner computes its features.
 Resampling finished M1 indicator/feature values into M5/M15/H1/H4/D1 is
 forbidden. A forming higher-timeframe candle may never enter a decision.
 
+The immutable V4 cache persists two owner surfaces per timeframe: the ordered
+per-bar MTF matrix and the compact model-native scalar matrix. Both are exact
+float32 arrays with filenames, sizes and SHA-256 values in the manifest. A
+consumer must preserve these bytes when slicing or rebinding a cache; it may not
+recompute the scalar matrix from a shorter local parquet. Intentional identities
+between an un-pooled current scalar and its per-bar history lane are declared by
+`MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4`. The cross-surface policy
+derives both local representation paths from that owner; all other active exact
+duplicates remain failures.
+
 The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
 the same ordered field list at `MODEL_NATIVE_SIGNAL_DIM` width, and the
 TRAIN-rank reference hash used by the M5 Entry build.

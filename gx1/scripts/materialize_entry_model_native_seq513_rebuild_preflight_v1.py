@@ -60,6 +60,8 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 from gx1.features.htf_features import (
     HTF_V4_CACHE_SCHEMA_VERSION,
     HTF_V4_CACHE_BUILDER_VERSION,
+    MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
+    MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MULTI_TF_FEATURE_COUNT_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_ORIGIN_CONTRACT,
@@ -741,34 +743,55 @@ def _mtf_cache_contract(
         info = observed_tfs.get(tf) if isinstance(observed_tfs.get(tf), dict) else {}
         feats_name = str(info.get("feats_npy") or "")
         ts_name = str(info.get("ts_npy") or "")
+        scalar_name = str(info.get("model_native_scalars_npy") or "")
         feats_path = cache_dir / feats_name if feats_name else cache_dir / "<missing>"
         ts_path = cache_dir / ts_name if ts_name else cache_dir / "<missing>"
+        scalar_path = (
+            cache_dir / scalar_name if scalar_name else cache_dir / "<missing>"
+        )
         if feats_name:
             file_names.add(feats_name)
         if ts_name:
             file_names.add(ts_name)
+        if scalar_name:
+            file_names.add(scalar_name)
         errors: list[str] = []
         feats_shape: tuple[int, ...] = ()
         ts_shape: tuple[int, ...] = ()
         feats_dtype = ""
         ts_dtype = ""
+        scalar_shape: tuple[int, ...] = ()
+        scalar_dtype = ""
         first_ts_ns: int | None = None
         first_complete_ts_ns: int | None = None
         last_ts_ns: int | None = None
         monotonic = False
         causal_warmup_rows: int | None = None
+        scalar_warmup_rows: int | None = None
         source_timestamp_geometry_exact = False
         expected_first_ts_ns: int | None = None
         expected_last_ts_ns: int | None = None
         expected_timestamp_count = 0
-        if feats_path.is_file() and ts_path.is_file() and not feats_path.is_symlink() and not ts_path.is_symlink():
+        if (
+            feats_path.is_file()
+            and ts_path.is_file()
+            and scalar_path.is_file()
+            and not feats_path.is_symlink()
+            and not ts_path.is_symlink()
+            and not scalar_path.is_symlink()
+        ):
             try:
                 feats = np.load(feats_path, mmap_mode="r", allow_pickle=False)
                 ts = np.load(ts_path, mmap_mode="r", allow_pickle=False)
+                scalars = np.load(
+                    scalar_path, mmap_mode="r", allow_pickle=False
+                )
                 feats_shape = tuple(int(x) for x in feats.shape)
                 ts_shape = tuple(int(x) for x in ts.shape)
                 feats_dtype = str(feats.dtype)
                 ts_dtype = str(ts.dtype)
+                scalar_shape = tuple(int(x) for x in scalars.shape)
+                scalar_dtype = str(scalars.dtype)
                 if ts.ndim == 1 and len(ts):
                     first_ts_ns = int(ts[0])
                     last_ts_ns = int(ts[-1])
@@ -781,6 +804,15 @@ def _mtf_cache_contract(
                     ):
                         causal_warmup_rows = int(raw_warmup_rows)
                         first_complete_ts_ns = int(ts[causal_warmup_rows])
+                    raw_scalar_warmup_rows = info.get(
+                        "model_native_scalar_warmup_rows"
+                    )
+                    if (
+                        not isinstance(raw_scalar_warmup_rows, bool)
+                        and isinstance(raw_scalar_warmup_rows, int)
+                        and 0 <= raw_scalar_warmup_rows < len(ts)
+                    ):
+                        scalar_warmup_rows = int(raw_scalar_warmup_rows)
                     expected_index = expected_timestamp_indices.get(tf)
                     if expected_index is not None:
                         expected_ts = expected_index.asi8
@@ -793,7 +825,10 @@ def _mtf_cache_contract(
             except Exception as exc:  # pragma: no cover - corrupt numpy variants differ
                 errors.append(str(exc))
         else:
-            errors.append("feature or timestamp npy is missing/non-regular")
+            errors.append(
+                "feature, timestamp, or model-native scalar npy is "
+                "missing/non-regular"
+            )
 
         feature_history_cutoff_ns = None
         test_end_cutoff_ns = None
@@ -820,14 +855,28 @@ def _mtf_cache_contract(
             not errors
             and feats_name == f"{tf}_feats.npy"
             and ts_name == f"{tf}_ts.npy"
+            and scalar_name == f"{tf}_model_native_scalars.npy"
             and len(feats_shape) == 2
             and feats_shape[0] == n_bars
             and feats_shape[1] == MULTI_TF_FEATURE_COUNT_V4
             and ts_shape == (n_bars,)
+            and scalar_shape
+            == (
+                n_bars,
+                len(MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]),
+            )
             and feats_dtype == "float32"
             and ts_dtype == "int64"
+            and scalar_dtype == "float32"
             and int(info.get("feature_count") or 0) == MULTI_TF_FEATURE_COUNT_V4
             and causal_warmup_rows is not None
+            and scalar_warmup_rows is not None
+            and info.get("model_native_scalar_fields")
+            == list(MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf])
+            and info.get("model_native_scalar_count")
+            == len(MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf])
+            and info.get("model_native_scalar_contract")
+            == MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
             and first_ts_ns == int(info.get("first_ts_ns") or -1)
             and last_ts_ns == int(info.get("last_ts_ns") or -1)
             and monotonic
@@ -842,8 +891,11 @@ def _mtf_cache_contract(
             "timestamp_shape": list(ts_shape),
             "feature_dtype": feats_dtype,
             "timestamp_dtype": ts_dtype,
+            "model_native_scalar_shape": list(scalar_shape),
+            "model_native_scalar_dtype": scalar_dtype,
             "first_ts_ns": first_ts_ns,
             "causal_warmup_rows": causal_warmup_rows,
+            "model_native_scalar_warmup_rows": scalar_warmup_rows,
             "first_complete_ts_ns": first_complete_ts_ns,
             "last_ts_ns": last_ts_ns,
             "expected_source_timestamp_count": expected_timestamp_count,
@@ -857,12 +909,14 @@ def _mtf_cache_contract(
             "timestamps_strictly_increasing": monotonic,
             "feature_file": _artifact_meta(feats_path),
             "timestamp_file": _artifact_meta(ts_path),
+            "model_native_scalar_file": _artifact_meta(scalar_path),
             "errors": errors,
         }
 
     expected_files = {
         *(f"{tf}_feats.npy" for tf in EXPECTED_MTF_TFS),
         *(f"{tf}_ts.npy" for tf in EXPECTED_MTF_TFS),
+        *(f"{tf}_model_native_scalars.npy" for tf in EXPECTED_MTF_TFS),
     }
     observed_npy = {path.name for path in cache_dir.glob("*.npy") if path.is_file()}
     return {

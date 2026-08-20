@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-20T21:19:26Z",
+  "updated_utc": "2026-08-20T23:37:42Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -43,7 +43,7 @@
   "accepted_via_vedtak": null,
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 (2026-08-20) is published source authority. V35_20260820T190506Z ended terminal RED at the pre-build cross-surface audit and its partial surfaces, cache, ranking and manifests may not be consumed; a fresh successor lineage is required after the current source repair is committed.",
+    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 (2026-08-20) is published source authority. V36_20260820T212215Z ended terminal RED at the pre-build cross-surface audit and built no dataset. Its partial surfaces, cache, ranking and manifests may not be consumed. Cache v30 now persists the exact model-native scalar bytes and overlap policy v3 derives intentional representation aliases from their feature owners; a fresh successor lineage is required after this repair is committed and verified.",
     "No current hash-bound dataset, distinct training recipe or same-bundle Entry/Exit model is admitted under the current model-native contract.",
     "The fitted-Q decision objective is raw-bps masked MSE with learned task weights and unique action-Q argmax authority. Whether every remaining static trainer magnitude is data-derived has not been examined.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",

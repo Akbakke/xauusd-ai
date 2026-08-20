@@ -45,6 +45,7 @@ def _all_array_names() -> tuple[str, ...]:
         for name in (
             f"{timeframe}_feats.npy",
             f"{timeframe}_ts.npy",
+            f"{timeframe}_model_native_scalars.npy",
         )
     )
 
@@ -83,6 +84,19 @@ def _source_and_frames(
         frame.attrs["ts_int64"] = index.asi8.astype(np.int64, copy=True)
         frame.attrs["causal_warmup_rows"] = 0
         frame.attrs["htf_feature_contract"] = htf.HTF_V4_MATRIX_CONTRACT
+        scalar_fields = htf.MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
+            timeframe
+        ]
+        scalar_values = np.ascontiguousarray(
+            rows * (np.arange(len(scalar_fields), dtype=np.float32) + 0.5)
+            + np.float32(offset * 100.0)
+        )
+        frame.attrs["model_native_mtf_scalar_fields_v4"] = scalar_fields
+        frame.attrs["model_native_mtf_scalars_np_v4"] = scalar_values
+        frame.attrs["model_native_mtf_scalar_warmup_rows_v4"] = 0
+        frame.attrs["model_native_mtf_scalar_contract_v4"] = (
+            htf.MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+        )
         frames[timeframe] = frame
     return source, source_index, frames
 
@@ -205,6 +219,12 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
             frame_values,
             expected_frames[timeframe].attrs["feats_np"],
         )
+        np.testing.assert_array_equal(
+            loaded[timeframe].attrs["model_native_mtf_scalars_np_v4"],
+            expected_frames[timeframe].attrs[
+                "model_native_mtf_scalars_np_v4"
+            ],
+        )
 
 
 def test_registry_resolver_accepts_only_the_authoritative_cache_manifest(
@@ -278,7 +298,10 @@ def test_loader_rejects_same_size_byte_tamper(
         htf.load_multi_tf_v4_cache(cache_dir)
 
 
-@pytest.mark.parametrize("array_name", ("M5_feats.npy", "H4_ts.npy"))
+@pytest.mark.parametrize(
+    "array_name",
+    ("M5_feats.npy", "H4_ts.npy", "D1_model_native_scalars.npy"),
+)
 def test_loader_rejects_missing_declared_array(
     tmp_path: Path,
     array_name: str,
@@ -298,7 +321,12 @@ def test_loader_rejects_unexpected_inventory_entry(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "entry_name",
-    ("manifest.json", "M15_feats.npy", "H4_ts.npy"),
+    (
+        "manifest.json",
+        "M15_feats.npy",
+        "H4_ts.npy",
+        "D1_model_native_scalars.npy",
+    ),
 )
 def test_loader_rejects_symlinked_manifest_or_array(
     tmp_path: Path,
@@ -543,6 +571,32 @@ def test_v4_disk_projection_matches_in_memory_verified_bytes(
     assert tuple(observed) == tuple(expected)
     for name in expected:
         np.testing.assert_array_equal(observed[name], expected[name])
+
+
+def test_output_source_slice_preserves_exact_model_native_scalar_bytes(
+    tmp_path: Path,
+) -> None:
+    from gx1.scripts.build_entry_exit_m1_enriched_frame_v1 import (
+        _slice_multi_tf_to_output_source,
+    )
+
+    _source, source_index, frames = _source_and_frames(tmp_path)
+    output_index = source_index[3 * 288 :]
+    sliced = _slice_multi_tf_to_output_source(frames, output_index)
+    htf.require_model_native_mtf_scalar_owner_v4(sliced)
+    expected_indices = htf.build_multi_tf_v4_closed_timestamp_indices(
+        output_index
+    )
+    for timeframe in htf.MULTI_TF_RESAMPLE_RULES:
+        positions = frames[timeframe].index.get_indexer(
+            expected_indices[timeframe]
+        )
+        np.testing.assert_array_equal(
+            sliced[timeframe].attrs["model_native_mtf_scalars_np_v4"],
+            frames[timeframe].attrs["model_native_mtf_scalars_np_v4"][
+                positions
+            ],
+        )
 
 
 def test_loader_rejects_legacy_manifest_before_array_load(

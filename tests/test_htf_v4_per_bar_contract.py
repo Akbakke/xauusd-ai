@@ -86,6 +86,31 @@ def test_rsi_uses_classic_wilder_seed_and_recursion() -> None:
     assert (flat.iloc[14:] == 50.0).all()
 
 
+def test_declared_scalar_per_bar_aliases_are_byte_identical() -> None:
+    for timeframe, aliases in (
+        htf.MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4.items()
+    ):
+        if not aliases:
+            continue
+        bars = _bars(600, seed=20260821)
+        bars.index = pd.date_range(
+            pd.Timestamp("2021-01-04T00:00:00Z")
+            + htf.MULTI_TF_RESAMPLE_ORIGIN_OFFSET[timeframe],
+            periods=len(bars),
+            freq=htf.MULTI_TF_RESAMPLE_RULES[timeframe],
+        )
+        per_bar = _compute_v4(bars, timeframe=timeframe)
+        scalars = htf._compute_model_native_mtf_scalar_frame_v4(
+            bars,
+            timeframe=timeframe,
+        )
+        for scalar_name, per_bar_name in aliases:
+            np.testing.assert_array_equal(
+                scalars[scalar_name].to_numpy(dtype=np.float32),
+                per_bar[per_bar_name].to_numpy(dtype=np.float32),
+            )
+
+
 def test_rolling_vwap_requires_the_complete_declared_window() -> None:
     close = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
     volume = pd.Series(np.ones(5))

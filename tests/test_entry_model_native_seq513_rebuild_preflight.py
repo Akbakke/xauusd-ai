@@ -58,6 +58,8 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 from gx1.features.entry_specialist_feature_groups_v1 import group_features_by_specialist
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
+    MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
+    MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MULTI_TF_FEATURE_COUNT_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
@@ -553,6 +555,17 @@ def _build_fixture(
         frame.attrs["ts_int64"] = timestamps
         frame.attrs["causal_warmup_rows"] = warmup_rows
         frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]
+        scalar_values = np.ascontiguousarray(
+            row * (np.arange(len(scalar_fields), dtype=np.float32) + 0.25)
+            + np.float32(tf_offset * 100.0)
+        )
+        frame.attrs["model_native_mtf_scalar_fields_v4"] = scalar_fields
+        frame.attrs["model_native_mtf_scalars_np_v4"] = scalar_values
+        frame.attrs["model_native_mtf_scalar_warmup_rows_v4"] = 0
+        frame.attrs["model_native_mtf_scalar_contract_v4"] = (
+            MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+        )
         mtf_frames[tf] = frame
     publish_multi_tf_v4_cache(
         out_dir=mtf_cache,

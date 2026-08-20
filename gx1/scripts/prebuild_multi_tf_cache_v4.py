@@ -129,6 +129,8 @@ def publish_multi_tf_v4_cache(
         HTF_V4_CACHE_BUILDER_VERSION,
         HTF_V4_CACHE_SCHEMA_VERSION,
         HTF_V4_MATRIX_CONTRACT,
+        MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
+        MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
         MULTI_TF_FEATURE_COUNT_V4,
         MULTI_TF_PER_BAR_FEATURES_V4,
         MULTI_TF_RESAMPLE_ORIGIN_CONTRACT,
@@ -139,6 +141,7 @@ def publish_multi_tf_v4_cache(
         build_multi_tf_v4_liveness_contract,
         compute_htf_v4_cache_identity,
         require_multi_tf_v4_frames,
+        require_model_native_mtf_scalar_owner_v4,
         require_v29_registry_constants,
         validate_causal_feature_matrix,
     )
@@ -182,6 +185,7 @@ def publish_multi_tf_v4_cache(
     if _sha256_file(source) != expected_source_sha256:
         raise RuntimeError("HTF_V4_CACHE_SOURCE_CHANGED_DURING_BUILD")
     require_multi_tf_v4_frames(features)
+    require_model_native_mtf_scalar_owner_v4(features)
     expected_v4_indices: dict[str, pd.DatetimeIndex]
     try:
         source_time = pd.read_parquet(source, columns=["time"])["time"]
@@ -256,6 +260,10 @@ def publish_multi_tf_v4_cache(
                 )
             feats_np = np.asarray(frame.attrs.get("feats_np"))
             ts_int64 = np.asarray(frame.attrs.get("ts_int64"))
+            scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]
+            scalar_np = np.asarray(
+                frame.attrs.get("model_native_mtf_scalars_np_v4")
+            )
             if (
                 tuple(frame.columns) != tuple(FEATURE_NAMES)
                 or not isinstance(frame.index, pd.DatetimeIndex)
@@ -271,6 +279,12 @@ def publish_multi_tf_v4_cache(
                 or len(ts_int64) == 0
                 or np.any(np.diff(ts_int64) <= 0)
                 or not np.array_equal(frame.index.asi8, ts_int64)
+                or frame.attrs.get("model_native_mtf_scalar_fields_v4")
+                != scalar_fields
+                or scalar_np.dtype != np.dtype(np.float32)
+                or scalar_np.shape != (len(feats_np), len(scalar_fields))
+                or frame.attrs.get("model_native_mtf_scalar_contract_v4")
+                != MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
             ):
                 raise RuntimeError(
                     f"HTF_V4_CACHE_FEATURE_SET_INVALID: malformed {tf} arrays"
@@ -296,11 +310,25 @@ def publish_multi_tf_v4_cache(
                 raise RuntimeError(
                     f"HTF_V4_CACHE_FEATURE_SET_INVALID: {tf} attrs mismatch"
                 )
+            scalar_warmup_rows = validate_causal_feature_matrix(
+                scalar_np,
+                expected_width=len(scalar_fields),
+                context=f"HTF_V4_CACHE_PUBLISH_MODEL_NATIVE_SCALARS_{tf}",
+            )
+            if (
+                frame.attrs.get("model_native_mtf_scalar_warmup_rows_v4")
+                != scalar_warmup_rows
+            ):
+                raise RuntimeError(
+                    f"HTF_V4_CACHE_FEATURE_SET_INVALID: {tf} scalar attrs mismatch"
+                )
 
             feats_path = staging / f"{tf}_feats.npy"
             ts_path = staging / f"{tf}_ts.npy"
+            scalar_path = staging / f"{tf}_model_native_scalars.npy"
             _write_npy_fsync(feats_path, feats_np)
             _write_npy_fsync(ts_path, ts_int64)
+            _write_npy_fsync(scalar_path, scalar_np)
             manifest["tfs"][tf] = {
                 "n_bars": int(feats_np.shape[0]),
                 "feature_count": int(feats_np.shape[1]),
@@ -313,6 +341,17 @@ def publish_multi_tf_v4_cache(
                 "first_ts_ns": int(ts_int64[0]),
                 "last_ts_ns": int(ts_int64[-1]),
                 "causal_warmup_rows": int(warmup_rows),
+                "model_native_scalar_fields": list(scalar_fields),
+                "model_native_scalar_count": int(len(scalar_fields)),
+                "model_native_scalars_npy": scalar_path.name,
+                "model_native_scalars_npy_sha256": _sha256_file(scalar_path),
+                "model_native_scalars_npy_size_bytes": int(
+                    scalar_path.stat().st_size
+                ),
+                "model_native_scalar_warmup_rows": int(scalar_warmup_rows),
+                "model_native_scalar_contract": (
+                    MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+                ),
             }
 
         full_input_liveness = build_multi_tf_v4_liveness_contract(
@@ -332,7 +371,11 @@ def publish_multi_tf_v4_cache(
             *(
                 name
                 for tf in MULTI_TF_RESAMPLE_RULES
-                for name in (f"{tf}_feats.npy", f"{tf}_ts.npy")
+                for name in (
+                    f"{tf}_feats.npy",
+                    f"{tf}_ts.npy",
+                    f"{tf}_model_native_scalars.npy",
+                )
             ),
         }
         _write_json_fsync(staging / "manifest.json", manifest)

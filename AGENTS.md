@@ -74,10 +74,14 @@ Read `GX1_RULES.md` first. It is binding.
   either, so neither could serve as the comparison baseline it was named as.
   The evaluation reference is the coin-flip null; its magnitude is
   substrate-specific and lives in
-  `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V35 reached the
+  `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V36 reached the
   pre-dataset cross-surface audit on 2026-08-20 and ended terminal RED; it built
-  no dataset. Its partial surfaces, cache, ranking and manifests are invalid
-  resume/consumer input (rule 7). No admitted dataset exists.
+  no dataset. It exposed that the disk cache dropped the model-native scalar
+  owner and M1 reconstructed it from trimmed history, plus intentional
+  current-value/history-lane aliases missing from policy. Cache v30 persists
+  the exact scalar bytes and overlap policy v3 derives aliases from their
+  feature owners. V35/V36 partial surfaces, caches, rankings and manifests are
+  invalid resume/consumer input (rule 7). No admitted dataset exists.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -106,7 +110,7 @@ Read `GX1_RULES.md` first. It is binding.
   implementation or a live/shadow-trading route.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
   stopped safely. Source/lifecycle fixes invalidate V8/V13/V18, and terminal
-  V34/V35 partial products are also forbidden resume input.
+  V34/V35/V36 partial products are also forbidden resume input.
 
 ## Takeover sequence
 

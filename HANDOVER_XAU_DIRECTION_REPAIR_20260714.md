@@ -1,15 +1,12 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-20. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-21. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
-This file was 2,842 words on 2026-08-17; the chronological log of every chain
-attempt, seed run and repair was cut and git holds it. **Budget: 2,400 words** —
-raised from 1,800 on 2026-08-20 because the chain-binding checklist and the split
-derivation are load-bearing for anyone resuming, and cutting them would push the
-next session into repeating six failed launches. A handover is a map of where you
-are, not a diary; if it grows past the budget, cut history, never a checklist.
+Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
+words** because the chain-binding checklist and split derivation are
+load-bearing. This is a map, not a diary; cut history, never a checklist.
 
 ## Current verdict
 
@@ -19,18 +16,18 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V35 ended RED during `dataset-rebuild` on 2026-08-20.**
-`V35_20260820T190506Z` under
-`/home/andre2/GX1_DATA/data/data/prebuilt/V35_CHAIN_20260820T190506Z` reached the
-new pre-build cross-surface audit after materialising both native surfaces, then
-failed `CROSS_SURFACE_MTF_HISTORY_INSUFFICIENT: D1`. The audit had incorrectly
-included M5 warm-up rows before the signal manifest's bound
-`history_start_utc=2020-01-01` in the decision population; the dataset builder
-does not consume those rows. The v2 repair still validates every source row,
-but hashes and projects only the manifest-bound decision population and reports
-the excluded pre-history count. V35 built **no dataset**. Its terminal RED
-output and all partial products are invalid and may not be resumed or consumed.
-`CHAIN_STATUS.json` is progress telemetry, not a terminal admission event.
+**V36 ended RED during `dataset-rebuild` on 2026-08-20.**
+`V36_20260820T212215Z` passed preflight and rebuilt both native surfaces, then
+the repaired audit found 16 Entry and 14 Exit active exact duplicates. These
+were not new formulas: current closed-TF context used by gates and the same
+per-bar values used as MTF history lacked declared representation aliases.
+It also exposed a real byte defect: cache v29 dropped the compact scalar arrays,
+so M1 reconstructed D1 ATR/EMA state from trimmed M5 history and differed by a
+few float32 ULPs. Cache v30 now persists/hash-binds those original arrays; the
+M1 rebind/slice requires and preserves them, and overlap policy v3 derives both
+local paths from the feature owners. Formula, cache-tamper and slice tests cover
+the repair. V36 built **no dataset**; all its partial products are invalid and
+may not be resumed or consumed. `CHAIN_STATUS.json` remains telemetry only.
 
 Everything below the chain is unchanged: no model has ever been trained on this
 substrate, and `train==serve` has never been proven (see below).
@@ -113,10 +110,14 @@ weight exists.
   excludes them from local/MTF equality hashes and projection. Regression tests
   reproduce the original insufficient-D1-history failure and fail closed on a
   tampered population boundary.
+- **The model-native scalar owner now survives disk publication exactly.** Cache
+  v30 stores a hash-bound float32 scalar matrix per TF. The M1 producer no longer
+  recomputes Wilder/EMA state from a shorter history, and policy v3 declares only
+  owner-derived current-value/history-lane aliases on both local input paths.
 
 ## What remains empirically unproven or unadmitted
 
-- No dataset, model, calibration, edge, PnL or win-rate. V35 materialised native
+- No dataset, model, calibration, edge, PnL or win-rate. V36 materialised native
   M5 and M1 surfaces only inside a terminally invalid chain. They may inform
   source diagnosis, but are not admissible dataset or model evidence. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
@@ -136,10 +137,9 @@ weight exists.
   pre-build cross-surface full scan hashes every active Entry-M5 and Exit-M1
   input against its actually routed MTF last-closed values. Entry excludes M5
   from its MTF route, so those 49 pairs are reported as inactive physical
-  overlap; any undeclared duplicate on an active route fails closed. V35 reached
-  this gate but failed before emitting a report because of its warm-up population
-  bug. No fresh complete run has supplied the v2 report, so this remains a source
-  contract, not an empirical PASS.
+  overlap; any undeclared duplicate on an active route fails closed. V36 emitted
+  a v2 RED report which motivated the source repair; no fresh run has supplied a
+  v3 PASS, so this remains a source contract, not empirical admission.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one
@@ -225,11 +225,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Start one fresh successor chain; never resume V34 or V35.**
-   `V35_20260820T190506Z` is terminal RED before dataset construction. The
+3. **Start one fresh successor chain; never resume V34, V35 or V36.**
+   `V36_20260820T212215Z` is terminal RED before dataset construction. The
    successor must use a new event root and run the repaired full cross-surface
    active-input audit bound into the dataset proof; it may not inherit any V34
-   or V35 cache, ranking, manifest, surface, report or split.
+   or V36 cache, ranking, manifest, surface, report or split.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit

@@ -113,6 +113,60 @@ def full_input_stats(
     return result
 
 
+def cross_surface_hash_fixture(
+    *,
+    decision: str,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Build an exact-width synthetic report with owner-derived aliases.
+
+    Multiple local representation paths may intentionally point at one MTF
+    field.  They must therefore share the digest of that MTF value, while the
+    total local signal-key count remains the model owner's exact width.
+    """
+
+    route = DECISION_ROUTES[decision]
+    aliases = sorted(declared_context_mtf_aliases(decision=decision))
+    signal_aliases = sorted(
+        local for local, _mtf in aliases if local.startswith("local.signal.")
+    )
+    local_hashes = {
+        f"local.signal.fixture_{index}": hashlib.sha256(
+            f"signal:{decision}:{index}".encode("utf-8")
+        ).hexdigest()
+        for index in range(MODEL_NATIVE_SIGNAL_DIM - len(signal_aliases))
+    }
+    local_hashes.update(
+        {
+            local: hashlib.sha256(
+                f"signal:{decision}:{local}".encode("utf-8")
+            ).hexdigest()
+            for local in signal_aliases
+        }
+    )
+    local_hashes.update(
+        {
+            f"local.ctx_cont.{field}": hashlib.sha256(
+                f"context:{decision}:{field}".encode("utf-8")
+            ).hexdigest()
+            for field in MODEL_NATIVE_CTX_CONT_FIELDS
+        }
+    )
+    active_mtf_hashes = {
+        f"mtf.{timeframe.lower()}.{field}": hashlib.sha256(
+            f"mtf:{decision}:{timeframe}:{field}".encode("utf-8")
+        ).hexdigest()
+        for timeframe in route["active_mtf_timeframes"]
+        for field in MULTI_TF_FEATURE_NAMES
+    }
+    for local, mtf in aliases:
+        digest = hashlib.sha256(
+            f"alias:{decision}:{mtf}".encode("utf-8")
+        ).hexdigest()
+        local_hashes[local] = digest
+        active_mtf_hashes[mtf] = digest
+    return local_hashes, active_mtf_hashes
+
+
 def write_full_input_liveness_fixture(
     tmp_path: Path,
     *,
@@ -196,33 +250,9 @@ def write_full_input_liveness_fixture(
         },
     }
     for decision, route in DECISION_ROUTES.items():
-        local_hashes = {
-            f"local.signal.{field}": hashlib.sha256(
-                f"signal:{decision}:{field}".encode("utf-8")
-            ).hexdigest()
-            for field in order["signal"]
-        }
-        local_hashes.update(
-            {
-                f"local.ctx_cont.{field}": hashlib.sha256(
-                    f"context:{decision}:{field}".encode("utf-8")
-                ).hexdigest()
-                for field in MODEL_NATIVE_CTX_CONT_FIELDS
-            }
+        local_hashes, active_mtf_hashes = cross_surface_hash_fixture(
+            decision=decision
         )
-        active_mtf_hashes = {
-            f"mtf.{timeframe.lower()}.{field}": hashlib.sha256(
-                f"mtf:{decision}:{timeframe}:{field}".encode("utf-8")
-            ).hexdigest()
-            for timeframe in route["active_mtf_timeframes"]
-            for field in MULTI_TF_FEATURE_NAMES
-        }
-        for local, mtf in declared_context_mtf_aliases(decision=decision):
-            digest = hashlib.sha256(
-                f"alias:{decision}:{local}:{mtf}".encode("utf-8")
-            ).hexdigest()
-            local_hashes[local] = digest
-            active_mtf_hashes[mtf] = digest
         cross_payload[decision] = {
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),

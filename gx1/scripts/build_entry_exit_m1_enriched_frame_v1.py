@@ -53,15 +53,17 @@ from gx1.execution.v12_ctx_augment_live import (  # noqa: E402
 )
 from gx1.features.htf_features import (  # noqa: E402
     HTF_V4_MATRIX_CONTRACT,
+    MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
+    MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
     MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
     attach_model_native_mtf_scalars_v4,
-    bind_model_native_mtf_scalar_owner_v4,
     build_multi_tf_v4_closed_timestamp_indices,
     build_multi_tf_per_bar_features_v4,
     load_multi_tf_v4_cache,
     project_multi_tf_v4_scalars,
+    require_model_native_mtf_scalar_owner_v4,
     validate_causal_feature_matrix,
 )
 from gx1.time.session_detector import decision_availability  # noqa: E402
@@ -734,10 +736,10 @@ def _load_bound_m5_cache_context(
     ):
         raise RuntimeError("M1_ENRICHED_M5_CONTEXT_GEOMETRY_INVALID")
     context.index = times
-    bind_model_native_mtf_scalar_owner_v4(
-        multi_tf,
-        context[["open", "high", "low", "close", "volume"]],
-    )
+    # The compact scalar owner is part of the immutable cache identity.  Never
+    # reconstruct it from this warmup-trimmed M5 parquet: Wilder/EMA state must
+    # be the exact full-history bytes published by the upstream owner.
+    require_model_native_mtf_scalar_owner_v4(multi_tf)
     return context, multi_tf, {
         "cache_dir": str(cache_path),
         "cache_manifest_path": str(cache_path / "manifest.json"),
@@ -905,6 +907,7 @@ def _slice_multi_tf_to_output_source(
 ) -> dict[str, pd.DataFrame]:
     """Retain exact V4 bytes for the emitted M5 source timestamp geometry."""
 
+    require_model_native_mtf_scalar_owner_v4(multi_tf)
     expected_indices = build_multi_tf_v4_closed_timestamp_indices(output_index)
     sliced: dict[str, pd.DataFrame] = {}
     for timeframe in MULTI_TF_RESAMPLE_RULES:
@@ -912,17 +915,26 @@ def _slice_multi_tf_to_output_source(
         expected = expected_indices[timeframe]
         positions = source.index.get_indexer(expected)
         source_values = np.asarray(source.attrs.get("feats_np"))
+        scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
+            timeframe
+        ]
+        source_scalars = np.asarray(
+            source.attrs.get("model_native_mtf_scalars_np_v4")
+        )
         if (
             len(expected) == 0
             or np.any(positions < 0)
             or source_values.dtype != np.dtype(np.float32)
             or source_values.shape
             != (len(source), len(MULTI_TF_PER_BAR_FEATURES_V4))
+            or source_scalars.dtype != np.dtype(np.float32)
+            or source_scalars.shape != (len(source), len(scalar_fields))
         ):
             raise RuntimeError(
                 f"M5_ENRICHED_MULTI_TF_OUTPUT_SLICE_INVALID: {timeframe}"
             )
         values = np.ascontiguousarray(source_values[positions])
+        scalar_values = np.ascontiguousarray(source_scalars[positions])
         frame = pd.DataFrame(
             values,
             index=expected,
@@ -935,13 +947,27 @@ def _slice_multi_tf_to_output_source(
             expected_width=len(MULTI_TF_PER_BAR_FEATURES_V4),
             context=f"M5_ENRICHED_MULTI_TF_OUTPUT_{timeframe}",
         )
+        scalar_warmup_rows = validate_causal_feature_matrix(
+            scalar_values,
+            expected_width=len(scalar_fields),
+            context=f"M5_ENRICHED_MODEL_NATIVE_SCALAR_OUTPUT_{timeframe}",
+        )
         frame.attrs["ts_int64"] = np.ascontiguousarray(
             expected.asi8.astype(np.int64, copy=False)
         )
         frame.attrs["feats_np"] = frame_values
         frame.attrs["causal_warmup_rows"] = warmup_rows
         frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
+        frame.attrs["model_native_mtf_scalar_fields_v4"] = scalar_fields
+        frame.attrs["model_native_mtf_scalars_np_v4"] = scalar_values
+        frame.attrs["model_native_mtf_scalar_warmup_rows_v4"] = (
+            scalar_warmup_rows
+        )
+        frame.attrs["model_native_mtf_scalar_contract_v4"] = (
+            MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+        )
         sliced[timeframe] = frame
+    require_model_native_mtf_scalar_owner_v4(sliced)
     return sliced
 
 

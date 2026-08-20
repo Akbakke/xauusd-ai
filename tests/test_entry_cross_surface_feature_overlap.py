@@ -27,7 +27,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+from gx1.features.htf_features import (
+    MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+)
 from gx1.scripts.audit_entry_cross_surface_feature_overlap_v1 import (
     _TimestampedColumnHashes,
     _scan_decision_surface,
@@ -41,7 +44,7 @@ def _digest(byte: str) -> str:
 def test_only_explicit_mtf_context_alias_is_permitted() -> None:
     aliases = sorted(declared_context_mtf_aliases(decision="entry"))
     local_hashes = {
-        local: hashlib.sha256(f"{local}:{mtf}".encode("utf-8")).hexdigest()
+        local: hashlib.sha256(mtf.encode("utf-8")).hexdigest()
         for local, mtf in aliases
     }
     mtf_hashes = {mtf: local_hashes[local] for local, mtf in aliases}
@@ -83,6 +86,25 @@ def test_entry_m5_cache_is_not_an_active_entry_route() -> None:
     )
 
 
+def test_alias_policy_derives_both_local_paths_from_feature_owner() -> None:
+    aliases = declared_context_mtf_aliases(decision="entry")
+    for timeframe in DECISION_ROUTES["entry"]["active_mtf_timeframes"]:
+        tf = timeframe.lower()
+        for scalar_name, per_bar_name in (
+            MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4[timeframe]
+        ):
+            mtf_name = f"mtf.{tf}.{per_bar_name}"
+            assert (f"local.ctx_cont.{scalar_name}", mtf_name) in aliases
+            assert (
+                f"local.signal.ctx_cont.{scalar_name}",
+                mtf_name,
+            ) in aliases
+    assert (
+        "local.signal.ctx_cont.h1_ema_stack_aligned_v2",
+        "mtf.h1.ema_stack_aligned_v2",
+    ) in aliases
+
+
 def _passing_overlap_report() -> dict:
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -113,12 +135,24 @@ def _passing_overlap_report() -> dict:
         },
     }
     for decision, route in DECISION_ROUTES.items():
+        aliases = sorted(declared_context_mtf_aliases(decision=decision))
+        signal_aliases = sorted(
+            local for local, _mtf in aliases if local.startswith("local.signal.")
+        )
         local_hashes = {
             f"local.signal.fixture_{index}": hashlib.sha256(
                 f"signal:{decision}:{index}".encode("utf-8")
             ).hexdigest()
-            for index in range(MODEL_NATIVE_SIGNAL_DIM)
+            for index in range(MODEL_NATIVE_SIGNAL_DIM - len(signal_aliases))
         }
+        local_hashes.update(
+            {
+                local: hashlib.sha256(
+                    f"signal:{decision}:{local}".encode("utf-8")
+                ).hexdigest()
+                for local in signal_aliases
+            }
+        )
         local_hashes.update(
             {
                 f"local.ctx_cont.{field}": hashlib.sha256(
@@ -134,9 +168,9 @@ def _passing_overlap_report() -> dict:
             for timeframe in route["active_mtf_timeframes"]
             for field in MULTI_TF_PER_BAR_FEATURES_V4
         }
-        for local, mtf in declared_context_mtf_aliases(decision=decision):
+        for local, mtf in aliases:
             digest = hashlib.sha256(
-                f"alias:{decision}:{local}:{mtf}".encode("utf-8")
+                f"alias:{decision}:{mtf}".encode("utf-8")
             ).hexdigest()
             local_hashes[local] = digest
             active_mtf_hashes[mtf] = digest

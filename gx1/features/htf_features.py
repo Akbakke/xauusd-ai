@@ -509,6 +509,23 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
         "d1_dist_change_1bar_atr_v4",
     ),
 }
+# Exact cross-representation identities owned by this module.  The left-hand
+# scalar is the un-pooled current closed-TF value used by the context/gating
+# path; the right-hand field is the same formula on the per-bar MTF history
+# lane used by the sequence encoder.  Both representations are intentional,
+# but they must remain byte-identical after float32 publication.  Consumers
+# derive duplicate-policy aliases from this owner instead of maintaining an
+# empirical allow-list from a particular dataset run.
+MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4 = {
+    "M5": (),
+    "M15": (),
+    "H1": (("_v1h1_atr_bps", "atr_bps_14"),),
+    "H4": (("_v1h4_atr_bps", "atr_bps_14"),),
+    "D1": (
+        ("d1_atr14_bps_canon_v2", "atr_bps_14"),
+        ("d1_ema_slope_20_canon_v2", "ema20_slope_atr"),
+    ),
+}
 MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
     "D1_dist_from_ema200_atr",
     "_v1h1_ema_diff",
@@ -695,9 +712,14 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20"
 # v29 (2026-08-19) carries the candle owner's open-gap era repair: a v28 cache
 # is the same width but answers the feature-name hash key with the retired
 # ``mtf_candle_raw_open_gap_local_geometry`` column and its era-coupled values.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v29"
+# v30 (2026-08-21) persists the compact model-native scalar owner beside each
+# per-bar lane.  Earlier caches dropped those arrays and the M1 consumer
+# reconstructed them from its warmup-trimmed M5 parquet.  Wilder/EMA state was
+# then a few float32 ULPs away from the full-history Entry owner on early D1
+# rows.  A v29 cache therefore cannot satisfy the train/serve byte contract.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v30"
 HTF_V4_CACHE_BUILDER_VERSION = (
-    "prebuild_multi_tf_cache_v4_raw_continuous_scalar_fidelity_20260814"
+    "prebuild_multi_tf_cache_v4_persisted_model_native_scalars_20260821"
 )
 # v12 re-proves support for raw uncapped event ages without persistent global
 # ever-seen masks; earlier payloads cannot describe this width.
@@ -742,6 +764,25 @@ MULTI_TF_RESAMPLE_RULES = {
     "H4": "4h",
     "D1": "1D",
 }
+if tuple(MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4) != tuple(
+    MULTI_TF_RESAMPLE_RULES
+):
+    raise RuntimeError("HTF_V4_MODEL_NATIVE_EXACT_ALIAS_TIMEFRAMES_INVALID")
+for _alias_timeframe, _alias_pairs in (
+    MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4.items()
+):
+    for _scalar_name, _per_bar_name in _alias_pairs:
+        if (
+            _scalar_name
+            not in MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
+                _alias_timeframe
+            ]
+            or _per_bar_name not in MULTI_TF_PER_BAR_FEATURES_V4
+        ):
+            raise RuntimeError(
+                "HTF_V4_MODEL_NATIVE_EXACT_ALIAS_FIELDS_INVALID: "
+                f"{_alias_timeframe}.{_scalar_name}->{_per_bar_name}"
+            )
 
 # V30 package 3 (2026-08-13) — ONE daily clock, anchored to the trading day.
 #
@@ -3744,48 +3785,6 @@ def require_model_native_mtf_scalar_owner_v4(
     return features
 
 
-def bind_model_native_mtf_scalar_owner_v4(
-    features: Mapping[str, pd.DataFrame],
-    native_m5_ohlcv: pd.DataFrame,
-) -> Mapping[str, pd.DataFrame]:
-    """Bind deterministic scalar views to a verified cache from its exact M5 source."""
-
-    require_multi_tf_v4_frames(features)
-    _validate_m5_input(
-        native_m5_ohlcv,
-        require_volume=True,
-        bar_duration=pd.Timedelta(minutes=5),
-    )
-    source = native_m5_ohlcv.copy(deep=False)
-    source.index = source.index.as_unit("ns")
-    expected_indices = build_multi_tf_v4_closed_timestamp_indices(source.index)
-    for timeframe in MULTI_TF_RESAMPLE_RULES:
-        if not features[timeframe].index.equals(expected_indices[timeframe]):
-            raise RuntimeError(
-                "HTF_V4_MODEL_NATIVE_SCALAR_SOURCE_GEOMETRY_MISMATCH: "
-                f"{timeframe}"
-            )
-        resampled = _resample_ohlcv(source, timeframe).dropna(
-            subset=["open", "high", "low", "close"]
-        )
-        if not expected_indices[timeframe].isin(resampled.index).all():
-            raise RuntimeError(
-                "HTF_V4_MODEL_NATIVE_SCALAR_SOURCE_GEOMETRY_MISMATCH: "
-                f"{timeframe}"
-            )
-        resampled = resampled.loc[expected_indices[timeframe]]
-        scalar_frame = _compute_model_native_mtf_scalar_frame_v4(
-            resampled,
-            timeframe=timeframe,
-        )
-        _attach_model_native_mtf_scalar_frame_v4(
-            features[timeframe],
-            scalar_frame,
-            timeframe=timeframe,
-        )
-    return require_model_native_mtf_scalar_owner_v4(features)
-
-
 def project_model_native_mtf_scalars_v4(
     features: Mapping[str, pd.DataFrame],
     target_ts_ns,
@@ -4176,6 +4175,13 @@ _HTF_V4_CACHE_TF_KEYS = frozenset(
         "first_ts_ns",
         "last_ts_ns",
         "causal_warmup_rows",
+        "model_native_scalar_fields",
+        "model_native_scalar_count",
+        "model_native_scalars_npy",
+        "model_native_scalars_npy_sha256",
+        "model_native_scalars_npy_size_bytes",
+        "model_native_scalar_warmup_rows",
+        "model_native_scalar_contract",
     }
 )
 
@@ -4475,13 +4481,19 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 )
             feats_name = str(info["feats_npy"])
             ts_name = str(info["ts_npy"])
-            expected_names = (f"{tf_name}_feats.npy", f"{tf_name}_ts.npy")
-            if (feats_name, ts_name) != expected_names:
+            scalar_name = str(info["model_native_scalars_npy"])
+            expected_names = (
+                f"{tf_name}_feats.npy",
+                f"{tf_name}_ts.npy",
+                f"{tf_name}_model_native_scalars.npy",
+            )
+            if (feats_name, ts_name, scalar_name) != expected_names:
                 raise RuntimeError(
                     f"HTF_V4_CACHE_CONTRACT_MISMATCH: {tf_name} filenames "
-                    f"observed={(feats_name, ts_name)!r} expected={expected_names!r}"
+                    f"observed={(feats_name, ts_name, scalar_name)!r} "
+                    f"expected={expected_names!r}"
                 )
-            declared_inventory.update((feats_name, ts_name))
+            declared_inventory.update((feats_name, ts_name, scalar_name))
         if initial_inventory != declared_inventory:
             raise RuntimeError(
                 "HTF_V4_CACHE_INVENTORY_MISMATCH: "
@@ -4538,6 +4550,11 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 label=f"{tf_name}.ts_npy_size_bytes",
                 minimum=1,
             )
+            scalar_size = _exact_cache_int(
+                info["model_native_scalars_npy_size_bytes"],
+                label=f"{tf_name}.model_native_scalars_npy_size_bytes",
+                minimum=1,
+            )
             feats_np = _load_verified_cache_npy(
                 directory_fd,
                 str(info["feats_npy"]),
@@ -4558,13 +4575,26 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 expected_size_bytes=ts_size,
                 label=f"{tf_name}.ts_npy",
             )
+            scalar_np = _load_verified_cache_npy(
+                directory_fd,
+                str(info["model_native_scalars_npy"]),
+                expected_sha256=_exact_cache_sha256(
+                    info["model_native_scalars_npy_sha256"],
+                    label=(
+                        f"{tf_name}.model_native_scalars_npy_sha256"
+                    ),
+                ),
+                expected_size_bytes=scalar_size,
+                label=f"{tf_name}.model_native_scalars_npy",
+            )
             if (
                 feats_np.dtype != np.dtype(np.float32)
                 or ts_int64.dtype != np.dtype(np.int64)
+                or scalar_np.dtype != np.dtype(np.float32)
             ):
                 raise RuntimeError(
                     f"HTF_V4_CACHE_CONTRACT_MISMATCH: {tf_name} requires "
-                    "float32 features/int64 timestamps"
+                    "float32 features/scalars and int64 timestamps"
                 )
             if feats_np.shape != (n_bars, feature_width):
                 raise RuntimeError(
@@ -4576,6 +4606,26 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 raise RuntimeError(
                     f"HTF_V4_CACHE_CONTRACT_MISMATCH: {tf_name} timestamps invalid"
                 )
+            expected_scalar_fields = (
+                MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf_name]
+            )
+            scalar_count = _exact_cache_int(
+                info["model_native_scalar_count"],
+                label=f"{tf_name}.model_native_scalar_count",
+                minimum=0,
+            )
+            if (
+                info["model_native_scalar_fields"]
+                != list(expected_scalar_fields)
+                or scalar_count != len(expected_scalar_fields)
+                or scalar_np.shape != (n_bars, scalar_count)
+                or info["model_native_scalar_contract"]
+                != MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+            ):
+                raise RuntimeError(
+                    "HTF_V4_CACHE_MODEL_NATIVE_SCALAR_CONTRACT_MISMATCH: "
+                    f"{tf_name}"
+                )
             warmup_rows = validate_causal_feature_matrix(
                 feats_np,
                 expected_width=feature_width,
@@ -4585,12 +4635,18 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 raise RuntimeError(
                     f"HTF_V4_CACHE_WARMUP_INCOMPLETE: {tf_name} has no complete row"
                 )
+            scalar_warmup_rows = validate_causal_feature_matrix(
+                scalar_np,
+                expected_width=scalar_count,
+                context=f"HTF_V4_CACHE_MODEL_NATIVE_SCALARS_{tf_name}",
+            )
             expected_meta = {
                 "n_bars": n_bars,
                 "feature_count": feature_width,
                 "first_ts_ns": int(ts_int64[0]),
                 "last_ts_ns": int(ts_int64[-1]),
                 "causal_warmup_rows": warmup_rows,
+                "model_native_scalar_warmup_rows": scalar_warmup_rows,
             }
             for name, expected in expected_meta.items():
                 observed = _exact_cache_int(
@@ -4627,7 +4683,20 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
             df.attrs["feats_np"] = frame_values
             df.attrs["causal_warmup_rows"] = warmup_rows
             df.attrs["htf_feature_contract"] = matrix_contract
+            df.attrs["model_native_mtf_scalar_fields_v4"] = (
+                expected_scalar_fields
+            )
+            df.attrs["model_native_mtf_scalars_np_v4"] = np.ascontiguousarray(
+                scalar_np
+            )
+            df.attrs["model_native_mtf_scalar_warmup_rows_v4"] = (
+                scalar_warmup_rows
+            )
+            df.attrs["model_native_mtf_scalar_contract_v4"] = (
+                MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+            )
             out[tf_name] = df
+        require_model_native_mtf_scalar_owner_v4(out)
         try:
             require_multi_tf_v4_liveness_contract(
                 manifest.get("full_input_liveness")

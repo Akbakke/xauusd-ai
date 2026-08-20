@@ -24,6 +24,8 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 )
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
+    MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
+    MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
     build_multi_tf_v4_closed_timestamp_indices,
@@ -271,6 +273,21 @@ def _artifacts(
         frame.attrs["feats_np"][:, ema_stack] = (
             np.arange(len(frame)) % 3 - 1
         ).astype(np.float32)
+    for tf_offset, (timeframe, frame) in enumerate(features.items()):
+        scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
+            timeframe
+        ]
+        scalar_values = (
+            np.arange(len(frame), dtype=np.float32)[:, None]
+            * (np.arange(len(scalar_fields), dtype=np.float32)[None, :] + 0.5)
+            + np.float32(tf_offset * 100.0)
+        ).astype(np.float32)
+        frame.attrs["model_native_mtf_scalar_fields_v4"] = scalar_fields
+        frame.attrs["model_native_mtf_scalars_np_v4"] = scalar_values
+        frame.attrs["model_native_mtf_scalar_warmup_rows_v4"] = 0
+        frame.attrs["model_native_mtf_scalar_contract_v4"] = (
+            MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+        )
 
     cache_dir = tmp_path / "mtf_cache"
     squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)

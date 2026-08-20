@@ -22,7 +22,6 @@ from gx1.contracts.entry_cross_surface_overlap_v1 import (
     POLICY_VERSION as CROSS_SURFACE_POLICY_VERSION,
     SCHEMA_VERSION as CROSS_SURFACE_SCHEMA_VERSION,
     classify_active_duplicate_pairs,
-    declared_context_mtf_aliases,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTEXT_TAG,
@@ -50,6 +49,7 @@ from gx1.features.htf_features import (
     build_multi_tf_v4_liveness_contract,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.entry_full_input_liveness_support import cross_surface_hash_fixture
 
 
 RUN_ID = "UNIT_LIVENESS_20260717"
@@ -249,33 +249,9 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
         },
     }
     for decision, route in DECISION_ROUTES.items():
-        local_hashes = {
-            f"local.signal.fixture_{index}": hashlib.sha256(
-                f"{decision}:signal:{index}".encode("utf-8")
-            ).hexdigest()
-            for index in range(MODEL_NATIVE_SIGNAL_DIM)
-        }
-        local_hashes.update(
-            {
-                f"local.ctx_cont.{field}": hashlib.sha256(
-                    f"{decision}:context:{field}".encode("utf-8")
-                ).hexdigest()
-                for field in MODEL_NATIVE_CTX_CONT_FIELDS
-            }
+        local_hashes, active_mtf_hashes = cross_surface_hash_fixture(
+            decision=decision
         )
-        active_mtf_hashes = {
-            f"mtf.{timeframe.lower()}.{field}": hashlib.sha256(
-                f"{decision}:{timeframe}:{field}".encode("utf-8")
-            ).hexdigest()
-            for timeframe in route["active_mtf_timeframes"]
-            for field in MULTI_TF_PER_BAR_FEATURES_V4
-        }
-        for local_field, mtf_field in declared_context_mtf_aliases(decision=decision):
-            digest = hashlib.sha256(
-                f"{decision}:declared:{local_field}:{mtf_field}".encode("utf-8")
-            ).hexdigest()
-            local_hashes[local_field] = digest
-            active_mtf_hashes[mtf_field] = digest
         cross_report[decision] = {
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
