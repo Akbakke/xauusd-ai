@@ -342,10 +342,8 @@ def test_current_pair_build_cannot_run_cross_tf_before_v4_projection() -> None:
 def test_canonical_context_exposes_only_v4_augmentation_entrypoints() -> None:
     """Keep ``htf_features.py`` as the sole production MTF feature owner.
 
-    The five private names below are a temporary, closed compatibility set for
-    active historical state/dataset callers.  Freezing that set prevents a new
-    local HTF implementation while those callers are migrated; it does not
-    admit another public context-augmentation route.
+    Historical state/dataset callers retain one local compatibility call-site,
+    but it may not retain a local formula or closed-bar alignment helper.
     """
     from gx1.execution import v12_ctx_augment_live
     from gx1.features import htf_features
@@ -363,13 +361,7 @@ def test_canonical_context_exposes_only_v4_augmentation_entrypoints() -> None:
         "augment_canonical_v3_model_agnostic_from_v4",
     }
 
-    legacy_htf_compatibility = {
-        "_resample_ohlc",
-        "_ema",
-        "_atr",
-        "_align_last_closed",
-        "_add_htf_features",
-    }
+    legacy_htf_compatibility = {"_add_htf_features"}
     assert legacy_htf_compatibility <= local_functions
     possible_local_htf_owners = {
         name
@@ -383,6 +375,10 @@ def test_canonical_context_exposes_only_v4_augmentation_entrypoints() -> None:
         or "last_closed" in name
     }
     assert possible_local_htf_owners == legacy_htf_compatibility
+    compatibility_source = inspect.getsource(
+        v12_ctx_augment_live._add_htf_features
+    )
+    assert "project_model_native_htf_context_from_m5_v4" in compatibility_source
     assert Path(htf_features.__file__).resolve() == (
         Path("gx1/features/htf_features.py").resolve()
     )

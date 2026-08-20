@@ -143,9 +143,20 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED" in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
+    launch_state = json.loads(
+        (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    current_pair_manifest = Path(
+        str(launch_state["current_pair_manifest"])
+    )
+    current_pair = json.loads(
+        current_pair_manifest.read_text(encoding="utf-8")
+    )
+    assert current_pair_manifest.is_absolute()
     assert (
-        "pair_generation_id: "
-        "9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd"
+        f"pair_generation_id: {current_pair['pair_generation_id']}"
         in result.stdout
     )
     # The status owner states the standing requirement and dates the last

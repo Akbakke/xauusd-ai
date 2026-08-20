@@ -6,7 +6,6 @@ REPO=/home/andre2/src/GX1_ENGINE
 HANDOVER="$REPO/HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 LAUNCH_STATE="$REPO/PROJECT_STATE_xau_direction_launch.json"
 PY="$REPO/.venv/bin/python"
-CURRENT_PAIR_MANIFEST=/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_MODEL_NATIVE_20260809_PAIR_MANIFEST.json
 
 # Keep the authority fingerprint path-ordered. Historical prose is reference
 # only; GX1_RULES.md defines the active scope.
@@ -50,6 +49,18 @@ esac
 for source in "${sources[@]}"; do
   [[ -f "$source" ]] || { echo "FATAL: authority input missing: $source" >&2; exit 2; }
 done
+CURRENT_PAIR_MANIFEST=$("$PY" - "$LAUNCH_STATE" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+path = state.get("current_pair_manifest")
+if not isinstance(path, str) or not path.startswith("/"):
+    raise SystemExit("FATAL: launch authority current_pair_manifest is invalid")
+print(path)
+PY
+)
 [[ -f "$CURRENT_PAIR_MANIFEST" && ! -L "$CURRENT_PAIR_MANIFEST" ]] || {
   echo "FATAL: current pair manifest missing/non-regular: $CURRENT_PAIR_MANIFEST" >&2
   exit 2
@@ -262,7 +273,7 @@ echo "historical_pnl_winrate: UNPROVEN"
 # every restated number in this repository has (rule 13/25). State the
 # standing requirement, which cannot rot, and date the last verification.
 echo "source_regression: FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
-echo "source_regression_last_verified: 2026-08-18 on 77a69395 + the uncommitted squeeze-decoder repair — 2008 passed, 0 failed, 0 skipped, 0 warnings"
+echo "source_regression_last_verified: HISTORICAL_ONLY 2026-08-18 on 77a69395; current HEAD is not full-suite admitted"
 echo "pair_generation_id: $pair_generation_id"
 echo "native_m1_root: $native_m1_root"
 echo "native_m5_root: $native_m5_root"

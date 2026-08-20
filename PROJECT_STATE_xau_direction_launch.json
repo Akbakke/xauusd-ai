@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-18T00:00:00Z",
+  "updated_utc": "2026-08-20T21:20:00Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -31,6 +31,7 @@
   "required_ctx_cat_dim": 1,
   "required_entry_m5_feature_surface_loaded_once": true,
   "required_entry_split_local_specialist_recompute": false,
+  "current_pair_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_BUILDER_V7_20260818T153858Z_GENERATIONS/53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7/PAIR_MANIFEST.json",
   "dataset_event_id": null,
   "dataset_admission_stage": "NO_ADMITTED_UNIFIED_DATASET",
   "accepted_dataset_dir": null,
@@ -41,8 +42,8 @@
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
   "blockers": [
-    "The active surface is the V31 generation (entry_model_native_signal_v33 / xau_seq513_model_native_direction_v20). Its exact composition is NEVER restated here: execute gx1.contracts.entry_model_native_signal_v1 (MODEL_NATIVE_BASE_SIGNAL_DIM, MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS, MODEL_NATIVE_SIGNAL_DIM, MODEL_NATIVE_MANDATORY_FAMILY_FEATURES) and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; the required_* keys above are the machine-checked mirror and gx1_handover.sh fails closed on any divergence. This generation retired nine exactly-recoverable columns from the candle / SMC-geometry / level owners and seventeen ctx_cont fields (the fourteen SWING_V29 duplicates of the mandatory swing event layer, is_ASIA, minutes_to_next_session_boundary, dow_cos); it added the five {tf}_ema_stack_aligned_v2 companions that make the five {tf}_trend_state_age_bars_v2 readable; it renamed six fields whose names contradicted their units or their event/state semantics; and it REPAIRED one emitted value - the per-TF VWAP slope now differences a rolling 5-bar VWAP instead of a cumulative session VWAP and is named vwap_rolling5_slope_atr. Every artifact built on a pre-V31 surface is invalid as substrate for new training.",
-    "The fresh immutable native M1/M5 pair 9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd (2026-08-09) is published source authority; the current v28/V30 native owner surfaces with exact cross-resolution field identity, TRAIN-fitted registry and per-clock squeeze state, and a unified lifecycle dataset must be rebuilt on it.",
+    "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
+    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 (2026-08-20) is published source authority; the current V34 native owner surfaces with exact cross-resolution field identity, TRAIN-fitted registry and per-clock squeeze state, and a unified lifecycle dataset must be rebuilt on it.",
     "No current hash-bound dataset, distinct training recipe or same-bundle Entry/Exit model is admitted under the v28/V30 contract.",
     "Training-objective v6 and the 46-key recipe-v5 source schema use unweighted CE/BCE and retire direction/hierarchical distribution forcing in Waves A/B. Fixed auxiliary task weights, rank margins and gate regularization remain for Wave C; no claim that all static objective magnitudes are gone is admitted.",
     "The six-clock squeeze TRAIN artifacts are fitted and admissible as of 2026-08-18: VOLATILITY_SQUEEZE_SIXCLOCK_20260818, manifest sha256 dd051f04225875535f89194e056af0a021bc5f2bcba1c73162ec6052583fedb6. The 2026-08-15 set (ee7fab3b...) was absorbing under the runtime decoder on all six clocks and is retired; it now fails closed at load on the fit-method check. Fit and serve share one causal forward-filter decoder and require_volatility_squeeze_params proves low-state reachability. ADMITTED PARAMETERS ARE NOT AN ADMITTED DATASET: no V31 feature/cache/dataset rebuild has been run on these artifacts and no training has occurred, so the rebuild chain and retraining remain required.",
