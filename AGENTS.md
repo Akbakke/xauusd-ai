@@ -74,11 +74,10 @@ Read `GX1_RULES.md` first. It is binding.
   either, so neither could serve as the comparison baseline it was named as.
   The evaluation reference is the coin-flip null; its magnitude is
   substrate-specific and lives in
-  `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V31 rebuild chains
-  have run repeatedly since 2026-08-18 under
-  `/home/andre2/GX1_DATA/data/data/prebuilt/V31_CHAIN_*`; every one that
-  reached a terminal event ended RED, and the newest has no terminal event at
-  all, so its partial output is invalid (rule 7). No admitted dataset exists.
+  `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V35 reached the
+  pre-dataset cross-surface audit on 2026-08-20 and ended terminal RED; it built
+  no dataset. Its partial surfaces, cache, ranking and manifests are invalid
+  resume/consumer input (rule 7). No admitted dataset exists.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -89,9 +88,10 @@ Read `GX1_RULES.md` first. It is binding.
   binding must be resolved from the run's own V4 cache manifest. The 2026-08-15
   set fails closed at load. Rebuild caches/surfaces/dataset and retrain before
   making any model or edge claim.
-- Fresh native M1/M5 V4 sources and canonical pair generation
-  `9b18e215...077232cd` (2026-08-09) exist; the 2026-08-04 parent
-  `64d62c1f...a11b84c` is untouched history. They are source authority only.
+- Canonical pair generation `53cba459...4668f7` (2026-08-20) is current source
+  authority. Resolve its complete identity and generation-local manifest from
+  `PROJECT_STATE_xau_direction_launch.json`; this file deliberately restates no
+  path or hash. Earlier generations remain history, not current build input.
 - The current-contract rebuild chain requires the explicit registry-fit window
   inputs `--registry-fit-train-start`, `--registry-fit-train-end` and
   `--registry-fit-inner-end`. The fit population is the closed interval
@@ -105,7 +105,8 @@ Read `GX1_RULES.md` first. It is binding.
   observation-only support check through the same state machine, not a second
   implementation or a live/shadow-trading route.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
-  stopped safely. Source/lifecycle fixes invalidate V8/V13/V18 as resume input.
+  stopped safely. Source/lifecycle fixes invalidate V8/V13/V18, and terminal
+  V34/V35 partial products are also forbidden resume input.
 
 ## Takeover sequence
 

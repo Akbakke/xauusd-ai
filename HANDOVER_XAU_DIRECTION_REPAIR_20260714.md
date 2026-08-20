@@ -19,13 +19,18 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V34 was deliberately stopped during `dataset-rebuild` on 2026-08-20.**
-`V34_20260820T145741Z` under
-`/home/andre2/GX1_DATA/data/data/prebuilt/V34_CHAIN_20260820T145741Z` had no
-admitted output when it was stopped: the selective evaluator was proven
-unreachable and required a contract repair first. Its partial output is invalid
-and may not be resumed or consumed. `CHAIN_STATUS.json` is progress telemetry,
-not a terminal admission event.
+**V35 ended RED during `dataset-rebuild` on 2026-08-20.**
+`V35_20260820T190506Z` under
+`/home/andre2/GX1_DATA/data/data/prebuilt/V35_CHAIN_20260820T190506Z` reached the
+new pre-build cross-surface audit after materialising both native surfaces, then
+failed `CROSS_SURFACE_MTF_HISTORY_INSUFFICIENT: D1`. The audit had incorrectly
+included M5 warm-up rows before the signal manifest's bound
+`history_start_utc=2020-01-01` in the decision population; the dataset builder
+does not consume those rows. The v2 repair still validates every source row,
+but hashes and projects only the manifest-bound decision population and reports
+the excluded pre-history count. V35 built **no dataset**. Its terminal RED
+output and all partial products are invalid and may not be resumed or consumed.
+`CHAIN_STATUS.json` is progress telemetry, not a terminal admission event.
 
 Everything below the chain is unchanged: no model has ever been trained on this
 substrate, and `train==serve` has never been proven (see below).
@@ -83,53 +88,40 @@ weight exists.
 
 ## What is implemented
 
-- **The v34 surface generation** (2026-08-20, `b11ec2b2` — the commit message
-  carries every measurement; not repeated here). Eleven fidelity repairs on the
-  complete declared tape. The four worth knowing as *classes*, because they
-  recur: an exact duplicate the contract had already declared retired while the
-  producer kept emitting it (`wick_asym`, with a placeholder 0.0 for an undefined
-  0/0); a field that could not express its own name (`local_ema50_slope_bps` was
-  exactly `(2/49)·local_price_vs_ema50_bps`, sign agreement 100.000000%); a
-  denominator that was a **direction leak** rather than a rescale
-  (`ctx_cont.atr_bps` over the bar midpoint — `close/mid` is a monotone
-  re-expression of intrabar close position, Spearman 0.917, against a field the
-  same vector already carries); and a field whose name named the wrong quantity
-  (`spread_intrabar_range_bps` correlated 0.926 with the **bar range**, 0.494 with
-  the spread). Nine volatility-coupled fields went from IQR ratio 1.28–1.94 to
-  0.966–1.064.
-- **Three chain blockers closed.** Each was a restated literal with no owner, and
-  each had green tests on both sides: the trainer wrapper hardcoded contract mode
-  v18 / width 279 against the owner's v20 / 238; the chain emitted chain-status v9
-  while the readiness gate required v7, with one suite pinning each; the parity
-  gate passed `bundle_dir=None` into a non-optional parameter. The tests that
-  pinned those literals now assert **ownership** — pinning a hardcoded value
-  protects it from removal and does nothing to protect it from being wrong.
-- **Two crash classes removed.** The normalization fit *inferred* binaryness from
-  the sample, so a ternary field observing only {0,+1} was stamped binary and a
-  serve-time −1 raised `BINARY_VALUE_INVALID`: no Entry action at all, not even
-  FLAT, in a daily downtrend. Declaring the domain would **not** have fixed it —
-  `nn.Embedding(len(domain))` is indexed with the raw `.long()` value, so a
-  declared `(-1,0,1)` silently indexes the table from the end. The inferred branch
-  is removed and the load path now rejects any surface carrying a nonzero
-  `binary_mask`. Separately, the chain checked only 96 M5 rows of warmup and never
-  the 252-bar daily receptive field.
-- **The objective is fitted-Q in basis points, not classification** (proven from
-  source 2026-08-19). Sole decision loss is masked raw-bps MSE; the decision is
-  the unique argmax of `entry_action_q_bps`, not of a calibrated distribution;
-  task weights are learned. No cross-entropy holds decision authority — one masked
-  BCE survives on the `trendline_event` auxiliary head. Execute the objective and
-  recipe owners for versions and flags. The "objective v6 / recipe v5 / unweighted
-  CE" description carried until 2026-08-19 matched nothing in source and had been
-  quoted back to the operator as authority.
+- **The v34 surface generation** (`b11ec2b2`) repaired eleven fidelity defects.
+  Classes worth retaining: producer-emitted retired duplicates; features that
+  could not express their names; denominators leaking direction; and mislabeled
+  quantities. Nine volatility-coupled fields moved from IQR ratios 1.28–1.94 to
+  0.966–1.064. Exact measurements live in the commit, not here.
+- **Three owner-divergence blockers closed:** stale trainer mode/width literals,
+  a chain/readiness status-version split and a parity call with an invalid null
+  bundle. Tests now derive values from owners instead of pinning restatements.
+- **Two crash classes removed.** Sample-inferred binaryness could classify a
+  partially observed ternary as binary and reject its third value at serve time;
+  that branch is gone and nonzero legacy `binary_mask` fails closed. Chain warm-up
+  now covers the 252-bar daily receptive field instead of only 96 M5 rows.
+- **The objective is fitted-Q in basis points, not classification.** Decision
+  authority is masked raw-bps MSE and unique `entry_action_q_bps` argmax; task
+  weights are learned. One BCE remains only on the `trendline_event` auxiliary.
 - **The trendline registry was entirely dead and is now alive** (`55148a3b`):
   29 of 31 fields were constant or all-NaN on every lane, now 0 of 31. A full
   field catalogue exists, every verdict attacked by an independent refuter — 143
   were overturned by that attack.
+- **The cross-surface audit now uses the dataset's exact decision population.**
+  V35 exposed that a full physical surface includes valid warm-up rows before
+  the signal manifest's research history. Contract v2 validates those rows but
+  excludes them from local/MTF equality hashes and projection. Regression tests
+  reproduce the original insufficient-D1-history failure and fail closed on a
+  tampered population boundary.
 
 ## What remains empirically unproven or unadmitted
 
-- No dataset, model, calibration, edge, PnL or win-rate. Frequency claims on the
-  local signal surface are unproven — that surface has never materialised.
+- No dataset, model, calibration, edge, PnL or win-rate. V35 materialised native
+  M5 and M1 surfaces only inside a terminally invalid chain. They may inform
+  source diagnosis, but are not admissible dataset or model evidence. The M5
+  diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
+  live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
+  Spearman only 0.023966. This is weak univariate signal, not an edge verdict.
 - **Known and deliberately left un-repaired**, recorded so a later FAIL cannot be
   blamed on them retroactively: `mtf_level_bars_since_break` is an exact
   duplicate of `|…_signed|` on all six lanes; the level registry breaks with **no
@@ -144,9 +136,10 @@ weight exists.
   pre-build cross-surface full scan hashes every active Entry-M5 and Exit-M1
   input against its actually routed MTF last-closed values. Entry excludes M5
   from its MTF route, so those 49 pairs are reported as inactive physical
-  overlap; any undeclared duplicate on an active route fails closed. No fresh
-  complete run has yet supplied the new report, so this is a source contract,
-  not an empirical PASS.
+  overlap; any undeclared duplicate on an active route fails closed. V35 reached
+  this gate but failed before emitting a report because of its warm-up population
+  bug. No fresh complete run has supplied the v2 report, so this remains a source
+  contract, not an empirical PASS.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one
@@ -178,22 +171,14 @@ weight exists.
 
 ## Coarse history
 
-Built and rebuilt four to five times. Each cycle: build, test, the numbers look
-good, discover the substrate underneath was broken, rebuild.
-
-- An early chain reached 74.7 bps EV in backtest and was nothing like that live.
-- Most of the feature surface then turned out to be air — names without substance,
-  or encoding so broken the probes measured the bug rather than the market.
-- v9–v19 retired roughly 280 handwritten votes, scorebooks and pre-fused
-  composites, replacing them with the raw primitives they were built from.
-- The direction edge has been **refuted four times**: the June information-ceiling
-  work; an August walk-forward that held in 1 of 5 folds with a −19.48 bps utility
-  regression; a GBM on 2026-08-19 where 0 of 5 folds beat the coin flip and OOS
-  log-loss was worse than a constant prior; and a horizon sweep where no horizon
-  cleared its own floor. **All four measured average accuracy over all bars** —
-  see the pre-registered test for why that question nearly guarantees "no".
-- What survived two years is not the code. It is the rules, the gates, and the
-  ability to detect that something is wrong before it reaches a model.
+Several apparently good builds were later invalidated by substrate defects; one
+early backtest's 74.7 bps EV did not transfer. v9–v19 retired roughly 280
+handwritten votes and composites for raw primitives. Direction edge has been
+**refuted four times**: June's information ceiling; an August walk-forward with
+1/5 folds and −19.48 bps utility regression; a GBM with 0/5 folds over coin flip
+and worse OOS log-loss than a constant prior; and a horizon sweep with no passing
+horizon. All measured all-bar averages, which the frozen selective-edge test is
+designed to correct. The durable assets are the rules and fail-closed gates.
 
 ## Machine and process safety
 
@@ -240,11 +225,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Start one fresh successor chain; never resume V34.**
-   `V34_20260820T145741Z` was stopped before admission and is terminally
-   invalid. The successor must use a new event root and run the full
-   cross-surface active-input audit now bound into the dataset proof; it may not
-   inherit a partial V34 cache, ranking, manifest or split.
+3. **Start one fresh successor chain; never resume V34 or V35.**
+   `V35_20260820T190506Z` is terminal RED before dataset construction. The
+   successor must use a new event root and run the repaired full cross-surface
+   active-input audit bound into the dataset proof; it may not inherit any V34
+   or V35 cache, ranking, manifest, surface, report or split.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit

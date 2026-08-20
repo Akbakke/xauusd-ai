@@ -7,6 +7,7 @@ last-closed values each decision route consumes, and hashes every timestamped
 float32 field sequence.  Equality is consequently a claim about all actual
 decision rows, never a correlation or a sample.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,7 +56,7 @@ from gx1.utils.artifact_primitives_v1 import canonical_json_sha256, sha256_file
 
 OUTPUT_PREFIX = "ENTRY_CROSS_SURFACE_INPUT_OVERLAP"
 OUTPUT_RE = re.compile(rf"{OUTPUT_PREFIX}_\d{{8}}T\d{{6}}(?:\d{{6}})?Z\.json")
-PRODUCER_SCHEMA_VERSION = "entry_cross_surface_feature_overlap_audit_v1"
+PRODUCER_SCHEMA_VERSION = "entry_cross_surface_feature_overlap_audit_v2"
 DEFAULT_BATCH_SIZE = 4096
 _HASH_DOMAIN = b"entry_cross_surface_timestamped_float32_values_v1\0"
 
@@ -76,19 +77,45 @@ def _require_regular_absolute(path: Path, *, label: str) -> Path:
     candidate = Path(path).expanduser()
     if not candidate.is_absolute():
         raise RuntimeError(f"{label}_PATH_NOT_ABSOLUTE: {candidate}")
-    if candidate.is_symlink() or not candidate.is_file() or candidate.resolve() != candidate:
+    if (
+        candidate.is_symlink()
+        or not candidate.is_file()
+        or candidate.resolve() != candidate
+    ):
         raise RuntimeError(f"{label}_PATH_INVALID: {candidate}")
     return candidate
 
 
-def _load_signal_contract(path: Path) -> tuple[list[str], str]:
-    manifest_path = _require_regular_absolute(path, label="CROSS_SURFACE_SIGNAL_MANIFEST")
+def _load_signal_contract(path: Path) -> tuple[list[str], str, pd.Timestamp]:
+    manifest_path = _require_regular_absolute(
+        path, label="CROSS_SURFACE_SIGNAL_MANIFEST"
+    )
     manifest = _read_json(manifest_path, label="CROSS_SURFACE_SIGNAL_MANIFEST")
     contract = require_model_native_manifest(manifest, context="CROSS_SURFACE")
     fields = [str(name) for name in contract["fields"]]
     if len(fields) != MODEL_NATIVE_SIGNAL_DIM or len(fields) != len(set(fields)):
         raise RuntimeError("CROSS_SURFACE_SIGNAL_FIELDS_INVALID")
-    return fields, sha256_file(manifest_path)
+    feature_ranking = manifest.get("feature_ranking")
+    source_cascade = (
+        feature_ranking.get("source_cascade")
+        if isinstance(feature_ranking, Mapping)
+        else None
+    )
+    raw_history_start = (
+        source_cascade.get("history_start_utc")
+        if isinstance(source_cascade, Mapping)
+        else None
+    )
+    if not isinstance(raw_history_start, str):
+        raise RuntimeError("CROSS_SURFACE_HISTORY_START_MISSING")
+    try:
+        history_start = pd.Timestamp(raw_history_start)
+    except Exception as exc:
+        raise RuntimeError("CROSS_SURFACE_HISTORY_START_INVALID") from exc
+    if history_start.tzinfo is None:
+        raise RuntimeError("CROSS_SURFACE_HISTORY_START_INVALID")
+    history_start = history_start.tz_convert("UTC")
+    return fields, sha256_file(manifest_path), history_start
 
 
 def _validate_surface(
@@ -143,7 +170,9 @@ def _validate_surface(
     }
 
 
-def _batch_matrix(batch: Any, *, name: str, width: int, dtype: np.dtype[Any]) -> np.ndarray:
+def _batch_matrix(
+    batch: Any, *, name: str, width: int, dtype: np.dtype[Any]
+) -> np.ndarray:
     index = batch.schema.get_field_index(name)
     if index < 0:
         raise RuntimeError(f"CROSS_SURFACE_COLUMN_MISSING: {name}")
@@ -195,7 +224,9 @@ class _TimestampedColumnHashes:
             raise RuntimeError("CROSS_SURFACE_HASH_FIELDS_INVALID")
         self.rows = 0
 
-    def update(self, *, timestamps_ns: np.ndarray, values: np.ndarray, names: list[str]) -> None:
+    def update(
+        self, *, timestamps_ns: np.ndarray, values: np.ndarray, names: list[str]
+    ) -> None:
         timestamps = np.asarray(timestamps_ns, dtype="<i8")
         matrix = np.asarray(values, dtype="<f4")
         if (
@@ -228,11 +259,16 @@ def _project_mtf_batch(
     frame = cache[timeframe]
     timestamps = np.asarray(frame.attrs.get("ts_int64"), dtype=np.int64)
     values = np.asarray(frame.attrs.get("feats_np"), dtype=np.float32)
-    if timestamps.ndim != 1 or values.shape != (timestamps.size, len(MULTI_TF_PER_BAR_FEATURES_V4)):
+    if timestamps.ndim != 1 or values.shape != (
+        timestamps.size,
+        len(MULTI_TF_PER_BAR_FEATURES_V4),
+    ):
         raise RuntimeError(f"CROSS_SURFACE_MTF_CACHE_ARRAY_INVALID: {timeframe}")
-    cutoff = np.asarray(target_times_ns, dtype=np.int64) + int(
-        decision_seconds * 1_000_000_000
-    ) - int(MULTI_TF_SHIFT[timeframe].value)
+    cutoff = (
+        np.asarray(target_times_ns, dtype=np.int64)
+        + int(decision_seconds * 1_000_000_000)
+        - int(MULTI_TF_SHIFT[timeframe].value)
+    )
     positions = np.searchsorted(timestamps, cutoff, side="right") - 1
     if np.any(positions < 0):
         raise RuntimeError(f"CROSS_SURFACE_MTF_HISTORY_INSUFFICIENT: {timeframe}")
@@ -267,6 +303,7 @@ def _scan_decision_surface(
     signal_fields: list[str],
     cache: Mapping[str, pd.DataFrame],
     batch_size: int,
+    audit_start_ns: int,
 ) -> dict[str, Any]:
     route = DECISION_ROUTES[decision]
     active_tfs = tuple(str(value) for value in route["active_mtf_timeframes"])
@@ -295,6 +332,9 @@ def _scan_decision_surface(
     if tuple(parquet.schema_arrow.names) != ENTRY_EXIT_FEATURE_SURFACE_COLUMNS:
         raise RuntimeError(f"CROSS_SURFACE_PARQUET_SCHEMA_INVALID: {surface_path}")
     previous_time: int | None = None
+    source_first_time: int | None = None
+    source_row_count = 0
+    excluded_pre_history_row_count = 0
     first_time: int | None = None
     for batch in parquet.iter_batches(
         batch_size=batch_size, columns=["time", "signal", "ctx_cont"], use_threads=False
@@ -309,6 +349,17 @@ def _scan_decision_surface(
             width=len(MODEL_NATIVE_CTX_CONT_FIELDS),
             dtype=np.dtype(np.float32),
         )
+        source_row_count += int(times.size)
+        if source_first_time is None:
+            source_first_time = int(times[0])
+        audit_mask = times >= int(audit_start_ns)
+        excluded_pre_history_row_count += int(np.count_nonzero(~audit_mask))
+        previous_time = int(times[-1])
+        if not np.any(audit_mask):
+            continue
+        times = np.ascontiguousarray(times[audit_mask], dtype=np.int64)
+        signal = np.ascontiguousarray(signal[audit_mask], dtype=np.float32)
+        context = np.ascontiguousarray(context[audit_mask], dtype=np.float32)
         local_hashes.update(
             timestamps_ns=times,
             values=np.column_stack((signal, context)),
@@ -336,11 +387,15 @@ def _scan_decision_surface(
                 ),
                 names=list(inactive_m5_hasher._hashers),
             )
-        previous_time = int(times[-1])
         if first_time is None:
             first_time = int(times[0])
-    if first_time is None:
+    if first_time is None or source_first_time is None or previous_time is None:
         raise RuntimeError(f"CROSS_SURFACE_NO_ROWS: {surface_path}")
+    if (
+        local_hashes.rows + excluded_pre_history_row_count != source_row_count
+        or first_time < int(audit_start_ns)
+    ):
+        raise RuntimeError(f"CROSS_SURFACE_AUDIT_POPULATION_INVALID: {surface_path}")
     active_flat = {
         name: digest
         for hasher in active_mtf_hashers.values()
@@ -351,6 +406,10 @@ def _scan_decision_surface(
         "local_timeframe": route["local_timeframe"],
         "active_mtf_timeframes": list(active_tfs),
         "row_count": local_hashes.rows,
+        "source_row_count": source_row_count,
+        "excluded_pre_history_row_count": excluded_pre_history_row_count,
+        "audit_start_time_ns": int(audit_start_ns),
+        "source_first_time_ns": source_first_time,
         "first_time_ns": first_time,
         "last_time_ns": previous_time,
         "local_field_hashes": local_hashes.result(),
@@ -377,7 +436,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     signal_manifest = _require_regular_absolute(
         Path(args.signal_manifest), label="CROSS_SURFACE_SIGNAL_MANIFEST"
     )
-    signal_fields, signal_manifest_sha = _load_signal_contract(signal_manifest)
+    signal_fields, signal_manifest_sha, history_start = _load_signal_contract(
+        signal_manifest
+    )
+    history_start_ns = int(history_start.value)
     m1_surface = _validate_surface(
         surface_path=Path(args.m1_feature_base_parquet),
         signal_manifest_path=signal_manifest,
@@ -394,7 +456,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_run_id=entry_run_id,
         timeframe="M5",
     )
-    if not m1_surface["pair_generation_id"] or m1_surface["pair_generation_id"] != m5_surface["pair_generation_id"]:
+    if (
+        not m1_surface["pair_generation_id"]
+        or m1_surface["pair_generation_id"] != m5_surface["pair_generation_id"]
+    ):
         raise RuntimeError("CROSS_SURFACE_PAIR_GENERATION_MISMATCH")
     cache_dir = Path(args.mtf_cache_dir).expanduser().resolve()
     if cache_dir.is_symlink() or not cache_dir.is_dir():
@@ -426,6 +491,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         signal_fields=signal_fields,
         cache=cache,
         batch_size=batch_size,
+        audit_start_ns=history_start_ns,
     )
     exit_ = _scan_decision_surface(
         decision="exit",
@@ -434,8 +500,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         signal_fields=signal_fields,
         cache=cache,
         batch_size=batch_size,
+        audit_start_ns=history_start_ns,
     )
-    if entry["row_count"] != m5_surface["rows"] or exit_["row_count"] != m1_surface["rows"]:
+    if (
+        entry["source_row_count"] != m5_surface["rows"]
+        or exit_["source_row_count"] != m1_surface["rows"]
+    ):
         raise RuntimeError("CROSS_SURFACE_SURFACE_ROW_COUNT_MISMATCH")
     del cache
     entry_classification = classify_active_duplicate_pairs(
@@ -453,7 +523,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         mtf=entry["inactive_entry_m5_field_hashes"],
     )
     failures: list[dict[str, Any]] = []
-    for decision, classification in (("entry", entry_classification), ("exit", exit_classification)):
+    for decision, classification in (
+        ("entry", entry_classification),
+        ("exit", exit_classification),
+    ):
         missing_declared = classification["missing_declared_context_mtf_alias_pairs"]
         if missing_declared:
             failures.append(
@@ -482,6 +555,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "policy": {
             "version": POLICY_VERSION,
             "comparison": "full_population_timestamped_float32_sha256",
+            "decision_population": "manifest_bound_history_start_through_surface_end",
             "active_unexpected_duplicate_action": "fail_closed_before_dataset_build",
             "declared_context_mtf_alias_action": "report_only_explicit_projection_contract",
             "inactive_entry_m5_action": "report_only_route_excluded_from_entry_mtf",
@@ -494,7 +568,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             },
         },
         "input_bindings": {
-            "signal_manifest": {"path": str(signal_manifest), "sha256": signal_manifest_sha},
+            "signal_manifest": {
+                "path": str(signal_manifest),
+                "sha256": signal_manifest_sha,
+                "feature_history_start_utc": history_start.isoformat(),
+            },
             "m1_feature_surface": m1_surface,
             "m5_feature_surface": m5_surface,
             "mtf_cache": cache_binding,

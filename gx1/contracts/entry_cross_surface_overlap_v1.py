@@ -11,6 +11,7 @@ available to the context-token path.  They are declared here from the sole
 projection owner, reported as aliases, and are never silently ignored.  Every
 other exact local-to-active-MTF duplicate fails the research dataset build.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -18,6 +19,8 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+import pandas as pd
 
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_MTF_CONTEXT_TIMEFRAMES,
@@ -33,8 +36,8 @@ from gx1.features.htf_features import (
 )
 
 
-SCHEMA_VERSION = "entry_cross_surface_input_overlap_v1"
-POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v1"
+SCHEMA_VERSION = "entry_cross_surface_input_overlap_v2"
+POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v2"
 DECISION_ROUTES = {
     "entry": {
         "local_timeframe": "M5",
@@ -162,7 +165,10 @@ def require_eight_family_coverage(
                 f"CROSS_SURFACE_FAMILY_EMPTY: {family}: "
                 f"local={local_count} mtf={mtf_count}"
             )
-        result[family] = {"local_field_count": local_count, "mtf_field_count": mtf_count}
+        result[family] = {
+            "local_field_count": local_count,
+            "mtf_field_count": mtf_count,
+        }
     return result
 
 
@@ -211,7 +217,10 @@ def validate_cross_surface_overlap_report(
         or report.get("failures") != []
     ):
         raise RuntimeError("CROSS_SURFACE_REPORT_DECISION_INVALID")
-    if expected_entry_run_id is not None and report.get("entry_run_id") != expected_entry_run_id:
+    if (
+        expected_entry_run_id is not None
+        and report.get("entry_run_id") != expected_entry_run_id
+    ):
         raise RuntimeError("CROSS_SURFACE_REPORT_RUN_ID_MISMATCH")
     policy = report.get("policy")
     if not isinstance(policy, Mapping) or policy.get("version") != POLICY_VERSION:
@@ -224,8 +233,30 @@ def validate_cross_surface_overlap_report(
         }
         for decision, route in DECISION_ROUTES.items()
     }
-    if declared_routes != expected_routes:
+    if (
+        declared_routes != expected_routes
+        or policy.get("decision_population")
+        != "manifest_bound_history_start_through_surface_end"
+    ):
         raise RuntimeError("CROSS_SURFACE_REPORT_ROUTE_INVALID")
+    bindings = report.get("input_bindings")
+    signal_binding = (
+        bindings.get("signal_manifest") if isinstance(bindings, Mapping) else None
+    )
+    raw_history_start = (
+        signal_binding.get("feature_history_start_utc")
+        if isinstance(signal_binding, Mapping)
+        else None
+    )
+    if not isinstance(raw_history_start, str):
+        raise RuntimeError("CROSS_SURFACE_REPORT_POPULATION_INVALID")
+    try:
+        history_start = pd.Timestamp(raw_history_start)
+    except Exception as exc:
+        raise RuntimeError("CROSS_SURFACE_REPORT_POPULATION_INVALID") from exc
+    if history_start.tzinfo is None:
+        raise RuntimeError("CROSS_SURFACE_REPORT_POPULATION_INVALID")
+    history_start_ns = int(history_start.tz_convert("UTC").value)
     coverage = report.get("eight_family_coverage")
     if not isinstance(coverage, Mapping) or len(coverage) != 8:
         raise RuntimeError("CROSS_SURFACE_REPORT_FAMILY_COVERAGE_INVALID")
@@ -249,6 +280,36 @@ def validate_cross_surface_overlap_report(
             or row.get("missing_declared_context_mtf_alias_pairs") != []
         ):
             raise RuntimeError("CROSS_SURFACE_REPORT_DUPLICATE_DECISION_INVALID")
+        source_row_count = row.get("source_row_count")
+        excluded_rows = row.get("excluded_pre_history_row_count")
+        audit_start_ns = row.get("audit_start_time_ns")
+        source_first_time_ns = row.get("source_first_time_ns")
+        first_time_ns = row.get("first_time_ns")
+        last_time_ns = row.get("last_time_ns")
+        if (
+            isinstance(source_row_count, bool)
+            or not isinstance(source_row_count, int)
+            or isinstance(excluded_rows, bool)
+            or not isinstance(excluded_rows, int)
+            or isinstance(audit_start_ns, bool)
+            or not isinstance(audit_start_ns, int)
+            or isinstance(source_first_time_ns, bool)
+            or not isinstance(source_first_time_ns, int)
+            or isinstance(first_time_ns, bool)
+            or not isinstance(first_time_ns, int)
+            or isinstance(last_time_ns, bool)
+            or not isinstance(last_time_ns, int)
+            or source_row_count != int(row["row_count"]) + excluded_rows
+            or source_row_count < int(row["row_count"])
+            or excluded_rows < 0
+            or audit_start_ns != history_start_ns
+            or source_first_time_ns > first_time_ns
+            or first_time_ns < audit_start_ns
+            or last_time_ns < first_time_ns
+            or (excluded_rows == 0 and source_first_time_ns != first_time_ns)
+            or (excluded_rows > 0 and source_first_time_ns >= audit_start_ns)
+        ):
+            raise RuntimeError("CROSS_SURFACE_REPORT_POPULATION_INVALID")
         local_hashes_raw = row.get("local_field_hashes")
         if not isinstance(local_hashes_raw, Mapping):
             raise RuntimeError("CROSS_SURFACE_REPORT_FIELD_HASH_SET_INVALID")
@@ -256,9 +317,7 @@ def validate_cross_surface_overlap_report(
         expected_ctx_keys = {
             f"local.ctx_cont.{field}" for field in MODEL_NATIVE_CTX_CONT_FIELDS
         }
-        signal_keys = {
-            key for key in local_keys if key.startswith("local.signal.")
-        }
+        signal_keys = {key for key in local_keys if key.startswith("local.signal.")}
         if (
             not expected_ctx_keys <= local_keys
             or len(signal_keys) != MODEL_NATIVE_SIGNAL_DIM
@@ -291,7 +350,9 @@ def validate_cross_surface_overlap_report(
             and set(item) == {"local_field", "mtf_field", "values_sha256"}
             and isinstance(item.get("values_sha256"), str)
             and len(str(item["values_sha256"])) == 64
-            and all(ch in "0123456789abcdef" for ch in str(item["values_sha256"]).lower())
+            and all(
+                ch in "0123456789abcdef" for ch in str(item["values_sha256"]).lower()
+            )
         }
         if observed_aliases != expected_aliases:
             raise RuntimeError("CROSS_SURFACE_REPORT_DECLARED_ALIAS_INVALID")
@@ -309,7 +370,6 @@ def validate_cross_surface_overlap_report(
             != recomputed["unexpected_active_exact_duplicate_pairs"]
         ):
             raise RuntimeError("CROSS_SURFACE_REPORT_DUPLICATE_RECOMPUTE_INVALID")
-    bindings = report.get("input_bindings")
     if not isinstance(bindings, Mapping):
         raise RuntimeError("CROSS_SURFACE_REPORT_BINDINGS_INVALID")
     if expected_input_bindings is not None:
@@ -329,7 +389,6 @@ def validate_cross_surface_overlap_report(
         "entry_run_id": str(report.get("entry_run_id") or ""),
         "decision": "PASS",
         "row_counts": {
-            decision: int(report[decision]["row_count"])
-            for decision in DECISION_ROUTES
+            decision: int(report[decision]["row_count"]) for decision in DECISION_ROUTES
         },
     }

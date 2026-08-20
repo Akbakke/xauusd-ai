@@ -60,9 +60,7 @@ def full_input_field_order() -> dict[str, list[str]]:
         f"ctx_cont_feature_{idx:03d}"
         for idx in range(MODEL_NATIVE_CTX_CONT_DIM - len(ctx_cont))
     )
-    ctx_cat = [
-        f"ctx_cat_feature_{idx}" for idx in range(MODEL_NATIVE_CTX_CAT_DIM)
-    ]
+    ctx_cat = [f"ctx_cat_feature_{idx}" for idx in range(MODEL_NATIVE_CTX_CAT_DIM)]
     return {"signal": signal, "ctx_cont": ctx_cont, "ctx_cat": ctx_cat}
 
 
@@ -134,7 +132,10 @@ def write_full_input_liveness_fixture(
     for split in ("train", "val", "test"):
         manifest = dataset / f"fixture_{split}.manifest.json"
         manifest.write_text(json.dumps({"split": split}) + "\n", encoding="utf-8")
-        manifest_bindings[split] = {"path": str(manifest), "sha256": sha256_file(manifest)}
+        manifest_bindings[split] = {
+            "path": str(manifest),
+            "sha256": sha256_file(manifest),
+        }
         parquet = dataset / f"fixture_{split}.parquet"
         parquet.write_bytes(f"{split}-fullscan-fixture".encode("utf-8"))
         scan_proof[split] = {
@@ -156,9 +157,7 @@ def write_full_input_liveness_fixture(
     mtf_frames: dict[str, pd.DataFrame] = {}
     for timeframe in MULTI_TF_TIMEFRAMES:
         row = np.arange(32, dtype=np.float32)[:, None]
-        column = np.arange(
-            len(MULTI_TF_FEATURE_NAMES), dtype=np.float32
-        )[None, :]
+        column = np.arange(len(MULTI_TF_FEATURE_NAMES), dtype=np.float32)[None, :]
         values = row + column * np.float32(0.001)
         frame = pd.DataFrame(values, columns=MULTI_TF_FEATURE_NAMES)
         frame.attrs["feats_np"] = values.copy()
@@ -166,7 +165,9 @@ def write_full_input_liveness_fixture(
         frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
         mtf_frames[timeframe] = frame
     mtf_liveness = build_multi_tf_v4_liveness_contract(mtf_frames)
-    cross_report = tmp_path / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260716T000000000000Z.json"
+    cross_report = (
+        tmp_path / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260716T000000000000Z.json"
+    )
     cross_run_id = "FIXTURE_CROSS_SURFACE_20260716"
     cross_payload: dict[str, object] = {
         "schema_version": CROSS_SURFACE_SCHEMA_VERSION,
@@ -175,6 +176,7 @@ def write_full_input_liveness_fixture(
         "failures": [],
         "policy": {
             "version": CROSS_SURFACE_POLICY_VERSION,
+            "decision_population": "manifest_bound_history_start_through_surface_end",
             "decision_routes": {
                 decision: {
                     "local_timeframe": route["local_timeframe"],
@@ -183,7 +185,11 @@ def write_full_input_liveness_fixture(
                 for decision, route in DECISION_ROUTES.items()
             },
         },
-        "input_bindings": {},
+        "input_bindings": {
+            "signal_manifest": {
+                "feature_history_start_utc": "2026-01-01T00:00:00+00:00"
+            }
+        },
         "eight_family_coverage": {
             f"family_{index}": {"local_field_count": 1, "mtf_field_count": 1}
             for index in range(8)
@@ -212,13 +218,21 @@ def write_full_input_liveness_fixture(
             for field in MULTI_TF_FEATURE_NAMES
         }
         for local, mtf in declared_context_mtf_aliases(decision=decision):
-            digest = hashlib.sha256(f"alias:{decision}:{local}:{mtf}".encode("utf-8")).hexdigest()
+            digest = hashlib.sha256(
+                f"alias:{decision}:{local}:{mtf}".encode("utf-8")
+            ).hexdigest()
             local_hashes[local] = digest
             active_mtf_hashes[mtf] = digest
         cross_payload[decision] = {
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
             "row_count": 1,
+            "source_row_count": 2,
+            "excluded_pre_history_row_count": 1,
+            "audit_start_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
+            "source_first_time_ns": int(pd.Timestamp("2025-12-31T23:55:00Z").value),
+            "first_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
+            "last_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
             "local_field_hashes": local_hashes,
             "active_mtf_field_hashes": active_mtf_hashes,
             **classify_active_duplicate_pairs(
@@ -256,5 +270,7 @@ def write_full_input_liveness_fixture(
         created_utc="2026-07-16T00:00:00+00:00",
     )
     path = tmp_path / "ENTRY_FULL_INPUT_LIVENESS_CONTRACT.json"
-    path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return path, artifact, manifest_bindings

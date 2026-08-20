@@ -44,10 +44,7 @@ def test_only_explicit_mtf_context_alias_is_permitted() -> None:
         local: hashlib.sha256(f"{local}:{mtf}".encode("utf-8")).hexdigest()
         for local, mtf in aliases
     }
-    mtf_hashes = {
-        mtf: local_hashes[local]
-        for local, mtf in aliases
-    }
+    mtf_hashes = {mtf: local_hashes[local] for local, mtf in aliases}
     result = classify_active_duplicate_pairs(
         decision="entry",
         local_field_hashes=local_hashes,
@@ -80,7 +77,10 @@ def test_unregistered_active_cross_surface_duplicate_fails_closed() -> None:
 def test_entry_m5_cache_is_not_an_active_entry_route() -> None:
     assert DECISION_ROUTES["entry"]["local_timeframe"] == "M5"
     assert "M5" not in DECISION_ROUTES["entry"]["active_mtf_timeframes"]
-    assert all("mtf.m5." not in pair[1] for pair in declared_context_mtf_aliases(decision="entry"))
+    assert all(
+        "mtf.m5." not in pair[1]
+        for pair in declared_context_mtf_aliases(decision="entry")
+    )
 
 
 def _passing_overlap_report() -> dict:
@@ -91,6 +91,7 @@ def _passing_overlap_report() -> dict:
         "failures": [],
         "policy": {
             "version": POLICY_VERSION,
+            "decision_population": "manifest_bound_history_start_through_surface_end",
             "decision_routes": {
                 decision: {
                     "local_timeframe": route["local_timeframe"],
@@ -99,7 +100,13 @@ def _passing_overlap_report() -> dict:
                 for decision, route in DECISION_ROUTES.items()
             },
         },
-        "input_bindings": {"signal_manifest": {"path": "/fixture/signal", "sha256": "a" * 64}},
+        "input_bindings": {
+            "signal_manifest": {
+                "path": "/fixture/signal",
+                "sha256": "a" * 64,
+                "feature_history_start_utc": "2026-01-01T00:00:00+00:00",
+            }
+        },
         "eight_family_coverage": {
             f"family_{index}": {"local_field_count": 1, "mtf_field_count": 1}
             for index in range(8)
@@ -128,7 +135,9 @@ def _passing_overlap_report() -> dict:
             for field in MULTI_TF_PER_BAR_FEATURES_V4
         }
         for local, mtf in declared_context_mtf_aliases(decision=decision):
-            digest = hashlib.sha256(f"alias:{decision}:{local}:{mtf}".encode("utf-8")).hexdigest()
+            digest = hashlib.sha256(
+                f"alias:{decision}:{local}:{mtf}".encode("utf-8")
+            ).hexdigest()
             local_hashes[local] = digest
             active_mtf_hashes[mtf] = digest
         classified = classify_active_duplicate_pairs(
@@ -140,6 +149,12 @@ def _passing_overlap_report() -> dict:
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
             "row_count": 4,
+            "source_row_count": 5,
+            "excluded_pre_history_row_count": 1,
+            "audit_start_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
+            "source_first_time_ns": int(pd.Timestamp("2025-12-31T23:55:00Z").value),
+            "first_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
+            "last_time_ns": int(pd.Timestamp("2026-01-01T00:15:00Z").value),
             "local_field_hashes": local_hashes,
             "active_mtf_field_hashes": active_mtf_hashes,
             **classified,
@@ -147,14 +162,20 @@ def _passing_overlap_report() -> dict:
     return report
 
 
-def test_overlap_report_validation_rejects_a_missing_declared_alias(tmp_path: Path) -> None:
-    report_path = tmp_path / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260820T120000000000Z.json"
+def test_overlap_report_validation_rejects_a_missing_declared_alias(
+    tmp_path: Path,
+) -> None:
+    report_path = (
+        tmp_path / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260820T120000000000Z.json"
+    )
     report = _passing_overlap_report()
     report_path.write_text(json.dumps(report), encoding="utf-8")
     validated = validate_cross_surface_overlap_report(
         report_path.resolve(),
         expected_entry_run_id="UNIT_CROSS_SURFACE_20260820",
-        expected_input_bindings={"signal_manifest": {"path": "/fixture/signal", "sha256": "a" * 64}},
+        expected_input_bindings={
+            "signal_manifest": {"path": "/fixture/signal", "sha256": "a" * 64}
+        },
     )
     assert validated["decision"] == "PASS"
 
@@ -165,7 +186,23 @@ def test_overlap_report_validation_rejects_a_missing_declared_alias(tmp_path: Pa
         validate_cross_surface_overlap_report(report_path.resolve())
 
 
-def test_timestamped_hashes_require_exact_values_not_matching_summary_statistics() -> None:
+def test_overlap_report_validation_rejects_tampered_population_boundary(
+    tmp_path: Path,
+) -> None:
+    report_path = (
+        tmp_path / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260820T120001000000Z.json"
+    )
+    report = _passing_overlap_report()
+    report["entry"]["excluded_pre_history_row_count"] = 0
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="POPULATION"):
+        validate_cross_surface_overlap_report(report_path.resolve())
+
+
+def test_timestamped_hashes_require_exact_values_not_matching_summary_statistics() -> (
+    None
+):
     times = np.asarray([10, 20, 30], dtype=np.int64)
     first = _TimestampedColumnHashes(["one"])
     second = _TimestampedColumnHashes(["two"])
@@ -224,7 +261,9 @@ def test_full_batch_scanner_detects_an_unknown_active_duplicate(tmp_path: Path) 
     cutoff = times_ns + 5 * 60 * 1_000_000_000 - 15 * 60 * 1_000_000_000
     positions = np.searchsorted(cache_times, cutoff, side="right") - 1
     signal[:, 0] = cache["M15"].attrs["feats_np"][positions, 0]
-    ctx_cont = np.arange(rows * len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32).reshape(rows, -1)
+    ctx_cont = np.arange(
+        rows * len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32
+    ).reshape(rows, -1)
     ctx_cat = np.zeros((rows, MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64)
     surface = tmp_path / "m5_surface.parquet"
     pq.write_table(
@@ -246,6 +285,7 @@ def test_full_batch_scanner_detects_an_unknown_active_duplicate(tmp_path: Path) 
         signal_fields=signal_fields,
         cache=cache,
         batch_size=2,
+        audit_start_ns=int(times_ns[0]),
     )
     classified = classify_active_duplicate_pairs(
         decision="entry",
@@ -254,11 +294,82 @@ def test_full_batch_scanner_detects_an_unknown_active_duplicate(tmp_path: Path) 
     )
 
     assert scan["row_count"] == rows
+    assert scan["source_row_count"] == rows
+    assert scan["excluded_pre_history_row_count"] == 0
     assert any(
         row["local_field"] == f"local.signal.{signal_fields[0]}"
         and row["mtf_field"] == f"mtf.m15.{MULTI_TF_PER_BAR_FEATURES_V4[0]}"
         for row in classified["unexpected_active_exact_duplicate_pairs"]
     )
+
+
+def test_full_batch_scanner_excludes_only_manifest_bound_prehistory_rows(
+    tmp_path: Path,
+) -> None:
+    signal_fields = list(
+        MODEL_NATIVE_BASE_FIELDS
+        + MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+        + MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+    )
+    cache_start = pd.Timestamp("2026-01-01T22:00:00Z")
+    cache_times = np.asarray(
+        (cache_start + pd.to_timedelta(np.arange(4), unit="D")).asi8,
+        dtype=np.int64,
+    )
+    cache: dict[str, pd.DataFrame] = {}
+    for timeframe in ("M5", "M15", "H1", "H4", "D1"):
+        values = np.broadcast_to(
+            np.arange(len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32)[None, :],
+            (cache_times.size, len(MULTI_TF_PER_BAR_FEATURES_V4)),
+        ).copy()
+        frame = pd.DataFrame(values, columns=MULTI_TF_PER_BAR_FEATURES_V4)
+        frame.attrs["ts_int64"] = cache_times
+        frame.attrs["feats_np"] = values
+        cache[timeframe] = frame
+
+    times = pd.DatetimeIndex(
+        [
+            "2026-01-02T12:00:00Z",
+            "2026-01-02T22:00:00Z",
+            "2026-01-03T22:00:00Z",
+        ]
+    )
+    audit_start = pd.Timestamp("2026-01-02T22:00:00Z")
+    rows = len(times)
+    surface = tmp_path / "warmup_m5_surface.parquet"
+    pq.write_table(
+        pa.table(
+            {
+                "time": pa.array(times),
+                "signal": np.ones(
+                    (rows, len(signal_fields)), dtype=np.float32
+                ).tolist(),
+                "ctx_cont": np.ones(
+                    (rows, len(MODEL_NATIVE_CTX_CONT_FIELDS)), dtype=np.float32
+                ).tolist(),
+                "ctx_cat": np.zeros(
+                    (rows, MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64
+                ).tolist(),
+            }
+        ),
+        surface,
+    )
+
+    scan = _scan_decision_surface(
+        decision="entry",
+        surface_path=surface,
+        decision_seconds=300,
+        signal_fields=signal_fields,
+        cache=cache,
+        batch_size=2,
+        audit_start_ns=int(audit_start.value),
+    )
+
+    assert scan["source_row_count"] == 3
+    assert scan["excluded_pre_history_row_count"] == 1
+    assert scan["row_count"] == 2
+    assert scan["source_first_time_ns"] == int(times[0].value)
+    assert scan["first_time_ns"] == int(audit_start.value)
 
 
 def test_all_eight_families_are_present_on_local_and_mtf_planes() -> None:

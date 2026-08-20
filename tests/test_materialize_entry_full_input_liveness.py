@@ -54,18 +54,14 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 RUN_ID = "UNIT_LIVENESS_20260717"
 STEM = "unit_seq513__DIR_TRAIN_FIT"
-OUTPUT_FILENAME = (
-    "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260717T120000000000Z.json"
-)
+OUTPUT_FILENAME = "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260717T120000000000Z.json"
 
 
 def _v4_frames() -> dict[str, pd.DataFrame]:
     out = {}
     rows = 32
     row = np.arange(rows, dtype=np.float32)[:, None]
-    col = np.arange(
-        len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32
-    )[None, :]
+    col = np.arange(len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32)[None, :]
     values = row + col * np.float32(0.001)
     for timeframe in MULTI_TF_RESAMPLE_RULES:
         frame = pd.DataFrame(
@@ -85,8 +81,7 @@ def _verified_v4_cache_loader(monkeypatch) -> None:
         return _v4_frames()
 
     monkeypatch.setattr(
-        "gx1.scripts.materialize_entry_full_input_liveness_v1."
-        "load_multi_tf_v4_cache",
+        "gx1.scripts.materialize_entry_full_input_liveness_v1.load_multi_tf_v4_cache",
         load,
     )
 
@@ -224,7 +219,9 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             signal_contract=signal_contract,
             break_seq_snap_parity=break_scanned_parity and split == corrupt_split,
         )
-    cross_report_path = dataset_dir / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260717T120000000000Z.json"
+    cross_report_path = (
+        dataset_dir / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260717T120000000000Z.json"
+    )
     cross_report = {
         "schema_version": CROSS_SURFACE_SCHEMA_VERSION,
         "entry_run_id": RUN_ID,
@@ -232,6 +229,7 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
         "failures": [],
         "policy": {
             "version": CROSS_SURFACE_POLICY_VERSION,
+            "decision_population": "manifest_bound_history_start_through_surface_end",
             "decision_routes": {
                 decision: {
                     "local_timeframe": route["local_timeframe"],
@@ -240,7 +238,11 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
                 for decision, route in DECISION_ROUTES.items()
             },
         },
-        "input_bindings": {},
+        "input_bindings": {
+            "signal_manifest": {
+                "feature_history_start_utc": "2026-01-01T00:00:00+00:00"
+            }
+        },
         "eight_family_coverage": {
             f"family_{index}": {"local_field_count": 1, "mtf_field_count": 1}
             for index in range(8)
@@ -268,9 +270,7 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             for timeframe in route["active_mtf_timeframes"]
             for field in MULTI_TF_PER_BAR_FEATURES_V4
         }
-        for local_field, mtf_field in declared_context_mtf_aliases(
-            decision=decision
-        ):
+        for local_field, mtf_field in declared_context_mtf_aliases(decision=decision):
             digest = hashlib.sha256(
                 f"{decision}:declared:{local_field}:{mtf_field}".encode("utf-8")
             ).hexdigest()
@@ -280,6 +280,12 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
             "row_count": 1,
+            "source_row_count": 2,
+            "excluded_pre_history_row_count": 1,
+            "audit_start_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
+            "source_first_time_ns": int(pd.Timestamp("2025-12-31T23:55:00Z").value),
+            "first_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
+            "last_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
             "local_field_hashes": local_hashes,
             "active_mtf_field_hashes": active_mtf_hashes,
             **classify_active_duplicate_pairs(
@@ -343,7 +349,9 @@ def _args(dataset_dir: Path, out_dir: Path) -> argparse.Namespace:
     )
 
 
-def test_materializer_fullscans_and_binds_exact_owner_dimensions(tmp_path: Path) -> None:
+def test_materializer_fullscans_and_binds_exact_owner_dimensions(
+    tmp_path: Path,
+) -> None:
     dataset_dir = tmp_path / "dataset"
     _write_dataset(dataset_dir)
 
@@ -378,7 +386,9 @@ def test_materializer_fullscans_and_binds_exact_owner_dimensions(tmp_path: Path)
     )
 
 
-def test_materializer_fails_closed_on_seq_history_not_matching_snap(tmp_path: Path) -> None:
+def test_materializer_fails_closed_on_seq_history_not_matching_snap(
+    tmp_path: Path,
+) -> None:
     dataset_dir = tmp_path / "dataset"
     _write_dataset(dataset_dir, break_scanned_parity=True)
 
@@ -386,9 +396,12 @@ def test_materializer_fails_closed_on_seq_history_not_matching_snap(tmp_path: Pa
 
     corrupt_split = SPLITS[-1]
     assert artifact["decision"] == "FAIL"
-    assert artifact["materializer_provenance"]["semantic_fullscan"][corrupt_split][
-        "seq_last_exactly_equals_snap"
-    ] is False
+    assert (
+        artifact["materializer_provenance"]["semantic_fullscan"][corrupt_split][
+            "seq_last_exactly_equals_snap"
+        ]
+        is False
+    )
     assert any(
         row["code"] == "fullscan_proof_invalid" and row["split"] == corrupt_split
         for row in artifact["failures"]
