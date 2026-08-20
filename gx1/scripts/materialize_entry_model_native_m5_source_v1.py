@@ -323,7 +323,20 @@ def _read_json_sealed(
     path: Path,
     *,
     label: str,
-    max_bytes: int = 16 * 1024 * 1024,
+    # Bound on a *malformed* file, not a contract on a legitimate one: this guard
+    # exists so a corrupt or adversarial JSON cannot be read into memory unbounded.
+    # It was 16 MiB with no stated origin and became smaller than real content on
+    # 2026-08-20, failing the chain at m5-model-source on a perfectly valid cache
+    # manifest.  MEASURED, two points on the declared tape: a V4 cache manifest is
+    # 9.00 MB for a 1-year TRAIN fit (70,668 M5 rows, V31 chains) and 20.04 MB for
+    # a 4-year fit (283,883 rows, V32_CHAIN_20260820T084951Z).  All of the growth
+    # is v29_registry_constants.provenance.level_recurrence_threshold, the
+    # competing-risk fit observation stream, which scales with TRAIN rows.  Linear
+    # in rows, the tape's own ceiling on train_start (2020-10-29, 5.77 years,
+    # ~409k TRAIN M5 rows) extrapolates to ~26.5 MB.  64 MiB is the next power of
+    # two that clears that ceiling with margin, so no window this tape can declare
+    # can trip it; anything larger is not a bigger fit, it is a malformed file.
+    max_bytes: int = 64 * 1024 * 1024,
 ) -> tuple[dict[str, Any], _FileSeal]:
     regular = _require_regular_file(path, label=label)
     seal = _seal_file(regular)
