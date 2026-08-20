@@ -273,7 +273,7 @@ echo "historical_pnl_winrate: UNPROVEN"
 # every restated number in this repository has (rule 13/25). State the
 # standing requirement, which cannot rot, and date the last verification.
 echo "source_regression: FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
-echo "source_regression_last_verified: HISTORICAL_ONLY 2026-08-18 on 77a69395; current HEAD is not full-suite admitted"
+echo "source_regression_last_verified: 2026-08-20 on 44aeb4d2; full capped pytest suite reached 100% with exit 0"
 echo "pair_generation_id: $pair_generation_id"
 echo "native_m1_root: $native_m1_root"
 echo "native_m5_root: $native_m5_root"
