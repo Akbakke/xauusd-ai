@@ -249,17 +249,11 @@ NATIVE_M5_ROOT=
 TAPE=
 
 tg() {
-  "$PY" - "$1" <<'PYEOF' || true
-import importlib.util
-import sys
-
-spec = importlib.util.spec_from_file_location(
-    "gx1_tg", "/home/andre2/src/GX1_ENGINE/scripts/gx1_telegram_notifier.py"
-)
-mod = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mod)
-mod.send(sys.argv[1])
-PYEOF
+  # Offline chain status stays on the immutable local log/status surfaces.
+  # Network notifier, dashboard and broker side effects are forbidden for this
+  # workflow; callers keep one status helper without launching an external
+  # process or depending on credentials/network availability.
+  printf '[chain_notice] %s\n' "$1" >>"$LOG"
 }
 
 write_status() {
