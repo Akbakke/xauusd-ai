@@ -7,12 +7,10 @@ by `add_ctx_cont_columns_to_prebuilt.py`. Today the canonical_v3 prebuilt
 on disk has been regenerated without those augmentations, so any live
 inference must compute them from scratch.
 
-Production context augmentation accepts only the scalar projection owned by
-``gx1.features.htf_features`` through the two ``*_from_v4`` entrypoints below.
-The private ``_add_htf_features`` block remains temporarily because historical
-model-state/dataset consumers still call it directly; it is not an alternative
-public augmentation route and must be migrated to the canonical V4 owner before
-that compatibility block can be deleted.
+Production context augmentation accepts only scalar projections owned by
+``gx1.features.htf_features``.  ``_add_htf_features`` is a compatibility
+call-site for historical model-state/dataset consumers, not a formula owner:
+it delegates its complete HTF block to that canonical projection.
 
 Features added by the local context owner include:
 
@@ -68,7 +66,6 @@ import logging
 import numpy as np
 import pandas as pd
 
-from gx1.features.htf_features import multi_tf_resample
 from gx1.features.micro_structure_v1 import (
     MICRO_WARMUP_PREFIX_FIELDS_V1,
     SPREAD_DYNAMICS_WARMUP_PREFIX_FIELDS_V1,
@@ -96,73 +93,6 @@ from gx1.time.session_detector import (
 )
 
 LOG = logging.getLogger("v12_ctx_augment_live")
-
-ATR_EPS = 1e-9
-
-
-# ── HTF resampling helpers ────────────────────────────────────────────────
-
-
-def _resample_ohlc(df_m5: pd.DataFrame, timeframe: str) -> pd.DataFrame:
-    """Resample M5 OHLC to one declared higher timeframe (M15/H1/H4/D1).
-
-    Input df_m5 must be DatetimeIndex'd with columns open/high/low/close.
-    Returns DataFrame with same columns, indexed at the start of each HTF bar.
-
-    V30 package 3 (2026-08-13): keyed on the declared TIMEFRAME and routed
-    through ``htf_features.multi_tf_resample``, the one cadence+origin owner.
-    Before this, the local literal ``"1D"`` kept its own midnight-UTC daily
-    clock that could not follow the trading-day origin decision, so the live
-    ``D1_dist_from_ema200_atr`` would have been
-    computed on different bars than the offline surface (rule 6).
-    """
-    return pd.DataFrame(
-        {
-            "open": multi_tf_resample(df_m5["open"], timeframe).first(),
-            "high": multi_tf_resample(df_m5["high"], timeframe).max(),
-            "low": multi_tf_resample(df_m5["low"], timeframe).min(),
-            "close": multi_tf_resample(df_m5["close"], timeframe).last(),
-        }
-    ).dropna()
-
-
-def _ema(s: pd.Series, span: int) -> pd.Series:
-    return s.ewm(span=span, adjust=False).mean()
-
-
-def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series:
-    prev_close = close.shift(1)
-    tr = pd.concat(
-        [
-            (high - low).abs(),
-            (high - prev_close).abs(),
-            (low - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-    # A1 2026-06-04: STRICT min_periods=n (matches gx1.features.htf_features._atr).
-    # The loose max(2, n//2) emitted an unconverged ATR on short serve/rescore windows;
-    # used ONLY by _add_htf_features (HTF-block-local helper), so this is contained.
-    return tr.rolling(window=n, min_periods=n).mean()
-
-
-def _align_last_closed(
-    target_idx: pd.DatetimeIndex,
-    htf_series: pd.Series,
-    shift: pd.Timedelta,
-    *,
-    base_bar_duration: pd.Timedelta = M5_BAR_DURATION,
-) -> pd.Series:
-    """For each M5 timestamp, return the value of the last fully-closed HTF
-    bar (no lookahead). The HTF bar at time T closes at T + shift.
-    """
-    shifted = htf_series.copy()
-    shifted.index = shifted.index + shift
-    decision_idx = target_idx + base_bar_duration
-    aligned = shifted.reindex(decision_idx, method="ffill")
-    aligned.index = target_idx
-    return aligned
-
 
 # ── per-feature-group computations ────────────────────────────────────────
 
@@ -244,11 +174,7 @@ def _add_htf_features(
     if "time" in m5.columns and not isinstance(m5.index, pd.DatetimeIndex):
         m5["time"] = pd.to_datetime(m5["time"], utc=True, errors="coerce")
         m5 = m5.set_index("time")
-    from gx1.features.htf_features import (
-        D1_EMA200_MIN_BARS,
-        H4_EMA50_MIN_BARS,
-        validate_causal_feature_matrix,
-    )
+    from gx1.features.htf_features import validate_causal_feature_matrix
     if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
         raise RuntimeError("[LIVE_HTF_SOURCE] base bar duration must be positive")
     if (
@@ -281,41 +207,20 @@ def _add_htf_features(
             "[LIVE_HTF_SOURCE] true M5 context does not cover the decision lane"
         )
 
-    df_d1 = _resample_ohlc(m5, "D1")
-    d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
-    d1_ema200 = _ema(d1_mid, 200)
-    d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14)
-    d1_dist = (d1_mid - d1_ema200) / np.maximum(d1_atr14, ATR_EPS)
-    d1_dist.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
-    cv3["D1_dist_from_ema200_atr"] = _align_last_closed(
-        cv3.index,
-        d1_dist,
-        pd.Timedelta(days=1),
-        base_bar_duration=base_bar_duration,
-    ).to_numpy(dtype=float)
-    cv3["d1_dist_change_1bar_atr_v4"] = _align_last_closed(
-        cv3.index,
-        d1_dist.diff(),
-        pd.Timedelta(days=1),
-        base_bar_duration=base_bar_duration,
-    ).to_numpy(dtype=float)
-
-    df_h4 = _resample_ohlc(m5, "H4")
-    h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
-    h4_ema50 = _ema(h4_mid, 50)
-    h4_atr14 = _atr(df_h4["high"], df_h4["low"], df_h4["close"], 14)
-    h4_atr_safe = np.maximum(
-        h4_atr14,
-        np.maximum(df_h4["close"] * 1e-4, 1e-3),
+    from gx1.features.htf_features import (
+        MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4,
+        project_model_native_htf_context_from_m5_v4,
     )
-    h4_distance = (h4_mid - h4_ema50) / h4_atr_safe
-    h4_distance.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
-    cv3["h4_mid_ema50_dist_atr_canon_v2"] = _align_last_closed(
-        cv3.index,
-        h4_distance,
-        pd.Timedelta(hours=4),
-        base_bar_duration=base_bar_duration,
-    ).to_numpy(dtype=float)
+
+    projected = project_model_native_htf_context_from_m5_v4(
+        m5,
+        cv3.index.asi8.astype(np.int64, copy=False),
+        decision_bar_duration=base_bar_duration,
+    )
+    if tuple(projected) != MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4:
+        raise RuntimeError("[LIVE_HTF_SOURCE] canonical context field order invalid")
+    for name in MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4:
+        cv3[name] = projected[name]
 
     htf_values = cv3.loc[:, _htf_cols].to_numpy(dtype=np.float64)
     warmup_rows = validate_causal_feature_matrix(

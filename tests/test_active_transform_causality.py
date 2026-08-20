@@ -8,10 +8,12 @@ import pandas as pd
 import pytest
 
 from gx1.features.htf_features import (
+    MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4,
     MULTI_TF_SHIFT,
     build_multi_tf_per_bar_features_v4 as _build_multi_tf_v4,
     compute_per_bar_features_v4 as _compute_per_bar_v4,
     multi_tf_last_closed_label,
+    project_model_native_htf_context_from_m5_v4,
     slice_multi_tf_v4_window,
 )
 from tests.htf_v29_registry_test_support import (
@@ -24,7 +26,6 @@ from tests.volatility_squeeze_test_support import (
 from gx1.features import basic_v1
 from gx1.execution.v12_ctx_augment_live import (
     _add_htf_features,
-    _align_last_closed as _align_live_last_closed,
 )
 from gx1.scripts.augment_forward_outcome_v2 import (
     CausalContextWarmupError,
@@ -428,6 +429,20 @@ def test_htf_context_owner_overwrites_stale_values_with_causal_prefix() -> None:
     _add_htf_features(before, prefix[["open", "high", "low", "close"]])
     _add_htf_features(after, frame[["open", "high", "low", "close"]])
 
+    expected = project_model_native_htf_context_from_m5_v4(
+        prefix[["open", "high", "low", "close"]],
+        prefix.index.asi8,
+        decision_bar_duration=pd.Timedelta(minutes=5),
+    )
+    assert tuple(expected) == MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4
+    np.testing.assert_allclose(
+        before.loc[:, list(MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4)].to_numpy(),
+        np.column_stack(list(expected.values())),
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+
     warmup = int(before.attrs["causal_htf_warmup_rows"])
     assert warmup > 0
     assert before.iloc[:warmup].isna().any(axis=1).all()
@@ -441,16 +456,11 @@ def test_htf_context_owner_overwrites_stale_values_with_causal_prefix() -> None:
     )
 
 
-def test_closed_htf_alignment_matches_active_htf_owner() -> None:
-    target = pd.DatetimeIndex(["2026-07-08T12:55:00Z"])
-    source = pd.Series(
-        [1.0, 2.0],
-        index=pd.DatetimeIndex(["2026-07-08T11:00:00Z", "2026-07-08T12:00:00Z"]),
+def test_closed_htf_alignment_owner_uses_last_closed_label() -> None:
+    target = pd.Timestamp("2026-07-08T12:55:00Z")
+    assert multi_tf_last_closed_label(target, "H1") == pd.Timestamp(
+        "2026-07-08T12:00:00Z"
     )
-
-    live = _align_live_last_closed(target, source, pd.Timedelta(hours=1))
-    assert float(live.iloc[0]) == 2.0
-    assert multi_tf_last_closed_label(target[0], "H1") == source.index[-1]
 
 
 def test_active_regime_call_sites_have_no_environment_selected_surface() -> None:

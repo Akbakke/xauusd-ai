@@ -16,6 +16,9 @@ are, not a diary; if it grows past the budget, cut history, never a checklist.
 Launch is `BLOCK`. There is **no admitted dataset, no model, no calibration, no
 untouched-TEST result, no PnL and no win-rate proof**.
 
+This repository is **offline-only**: no change, rebuild, audit or result here
+authorizes paper, demo or live trading.
+
 **V34 was deliberately stopped during `dataset-rebuild` on 2026-08-20.**
 `V34_20260820T145741Z` under
 `/home/andre2/GX1_DATA/data/data/prebuilt/V34_CHAIN_20260820T145741Z` had no
@@ -160,17 +163,15 @@ weight exists.
   `MODEL_NATIVE_SERVE_PARITY` events exist (measured 2026-08-19/20). The gate's
   `bundle_dir=None` defect is fixed, so it can now reach a verdict — but there is
   no bundle and no prediction event for it to have a verdict *about*, so rule 6
-  belongs in "not examined", never in "proven consistent". Three divergences are
-  already proven from source and only one is repaired: (a) live overwrote
-  `frame["atr"]` with an SMA-14 partial-window value while offline used Wilder-14,
-  making the whole `chart.local_*_atr` layer train≠serve on `atr` itself —
-  **repaired**; (b) three `ctx_cont` HTF fields are computed at serve by a private
-  SMA/`ewm`/epsilon reimplementation instead of the canonical owner, and
-  `d1_dist_change_1bar_atr_v4` — a *direction* field — points the opposite way
-  from train on ~9% of recent rows — **not repaired**; (c) the MTF surface is fed
-  float64 OHLCV offline and float32 at serve, and the bound cache reproduces
-  bit-exactly only from the float64 build; a ~1e-7 perturbation flips registry
-  touch/break comparisons and 83 of 176 M5 columns differ — **not repaired**.
+  belongs in "not examined", never in "proven consistent". The three known
+  source divergences are now closed in code, but not yet empirically admitted:
+  (a) live no longer overwrites the canonical Wilder ATR with a partial-window
+  SMA; (b) the three long-lookback HTF `ctx_cont` fields now delegate to the
+  canonical V4 scalar owner and its last-closed projection, rather than a
+  private SMA/`ewm`/epsilon formula; and (c) the live Entry MTF builder casts
+  OHLCV to the cache's float32 convention before it calls the shared V4 owner.
+  The next fresh bundle must still produce a real parity event over these exact
+  bound bytes; source agreement is a repair, not evidence of a served model.
 - Whether every static magnitude in the trainer is data-derived is **not
   examined**: the objective contract declares the handwritten-weight flags
   False, but nobody has swept the trainer.
@@ -239,8 +240,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Let `V34_20260820T145741Z` finish.** If RED, fix and rerun; if GREEN, the
-   surface is materialised for the first time on the current contract.
+3. **Start one fresh successor chain; never resume V34.**
+   `V34_20260820T145741Z` was stopped before admission and is terminally
+   invalid. The successor must use a new event root and run the full
+   cross-surface active-input audit now bound into the dataset proof; it may not
+   inherit a partial V34 cache, ranking, manifest or split.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit
@@ -253,7 +257,8 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    ~5.1 USD) by design, so it tests regime transfer, not just fit.
    Derivations: `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
 5. Re-measure every field against real bytes for a final liveness verdict.
-6. **Run the pre-registered test in `docs/PREREGISTERED_TEST_V32.md`.** It was
+6. **Run the pre-registered test in
+   `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a
    number. Its central correction: all four previous refutations measured
    *average accuracy over all bars*, which is nearly guaranteed to answer "no"

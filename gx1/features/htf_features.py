@@ -119,6 +119,39 @@ def _resample_ohlcv(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
     )
 
 
+def _resample_ohlc_for_model_native_scalars(
+    df: pd.DataFrame,
+    timeframe: str,
+) -> pd.DataFrame:
+    """Aggregate the OHLC-only scalar-owner input on the canonical clock.
+
+    The compact model-native scalar block currently consumes no volume field,
+    even though the full V4 matrix does.  Keeping this narrow helper beside the
+    full OHLCV resampler lets the live context and offline dataset invoke the
+    same scalar formula without synthesising a meaningless volume column.
+    """
+
+    required = ("open", "high", "low", "close")
+    missing = [name for name in required if name not in df.columns]
+    if missing:
+        raise RuntimeError(
+            "HTF_V4_MODEL_NATIVE_SCALAR_SOURCE_MISSING: "
+            f"timeframe={timeframe} missing={missing}"
+        )
+    return (
+        multi_tf_resample(df.loc[:, list(required)], timeframe)
+        .agg(
+            {
+                "open": "first",
+                "high": "max",
+                "low": "min",
+                "close": _last_valid,
+            }
+        )
+        .dropna(how="all")
+    )
+
+
 
 def _validate_m5_input(
     m5_candles: pd.DataFrame,
@@ -3343,10 +3376,12 @@ def _compute_model_native_mtf_scalar_frame_v4(
             f"HTF_V4_MODEL_NATIVE_SCALAR_TIMEFRAME_INVALID: {timeframe!r}"
         )
     expected_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[timeframe]
-    _validate_m5_input(ohlcv, require_volume=True)
-    source = ohlcv.loc[:, ["open", "high", "low", "close", "volume"]].astype(
-        np.float64
-    )
+    # The compact scalar block is intentionally OHLC-only.  It is attached to
+    # the full V4 OHLCV cache, but none of its declared formulas read volume;
+    # requiring a fabricated live volume value here would make its own input
+    # contract less truthful.
+    _validate_m5_input(ohlcv, require_volume=False)
+    source = ohlcv.loc[:, ["open", "high", "low", "close"]].astype(np.float64)
     high = source["high"]
     low = source["low"]
     close = source["close"]
@@ -3813,6 +3848,113 @@ def project_model_native_mtf_scalars_v4(
         np.column_stack(list(ordered.values())),
         expected_width=len(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4),
         context="HTF_V4_MODEL_NATIVE_PROJECTION",
+    )
+    return ordered
+
+
+MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4 = (
+    "D1_dist_from_ema200_atr",
+    "d1_dist_change_1bar_atr_v4",
+    "h4_mid_ema50_dist_atr_canon_v2",
+)
+
+
+def project_model_native_htf_context_from_m5_v4(
+    native_m5_ohlc: pd.DataFrame,
+    target_ts_ns,
+    *,
+    decision_bar_duration: pd.Timedelta,
+) -> dict[str, np.ndarray]:
+    """Project the three long-lookback context fields from their V4 owner.
+
+    This is the narrow, cache-independent form of the compact scalar owner.
+    It is for callers that must recompute full causal history from native M5
+    bytes (the offline dataset and live state rebuild).  The scalar formulas,
+    resample clock and last-closed alignment are identical to the fields stored
+    in :func:`build_multi_tf_per_bar_features_v4`; no live compatibility
+    formula is allowed to substitute for them.
+    """
+
+    _validate_m5_input(
+        native_m5_ohlc,
+        require_volume=False,
+        bar_duration=pd.Timedelta(minutes=5),
+    )
+    if decision_bar_duration not in MODEL_NATIVE_MTF_SCALAR_ROUTES_V4:
+        raise RuntimeError(
+            "HTF_V4_MODEL_NATIVE_CONTEXT_PROJECTION_CLOCK_INVALID: "
+            "exact M1 or M5 required"
+        )
+    target = np.asarray(target_ts_ns, dtype=np.int64)
+    if (
+        target.ndim != 1
+        or len(target) == 0
+        or np.any(np.diff(target) <= 0)
+        or np.any(target % int(decision_bar_duration.value) != 0)
+    ):
+        raise RuntimeError(
+            "HTF_V4_MODEL_NATIVE_CONTEXT_PROJECTION_TARGET_INVALID"
+        )
+
+    source = native_m5_ohlc.loc[:, ["open", "high", "low", "close"]].copy(
+        deep=False
+    )
+    source.index = source.index.as_unit("ns")
+    expected_indices = build_multi_tf_v4_closed_timestamp_indices(source.index)
+    source_fields = {
+        "D1": (
+            "D1_dist_from_ema200_atr",
+            "d1_dist_change_1bar_atr_v4",
+        ),
+        "H4": ("h4_mid_ema50_dist_atr_canon_v2",),
+    }
+    projected: dict[str, np.ndarray] = {}
+    for timeframe, fields in source_fields.items():
+        resampled = _resample_ohlc_for_model_native_scalars(source, timeframe)
+        expected_index = expected_indices[timeframe]
+        if (
+            not resampled.index.is_unique
+            or not expected_index.isin(resampled.index).all()
+        ):
+            raise RuntimeError(
+                "HTF_V4_MODEL_NATIVE_CONTEXT_SOURCE_GEOMETRY_MISMATCH: "
+                f"{timeframe}"
+            )
+        scalar_frame = _compute_model_native_mtf_scalar_frame_v4(
+            resampled.loc[expected_index],
+            timeframe=timeframe,
+        )
+        values = scalar_frame.loc[:, list(fields)].to_numpy(
+            dtype=np.float32,
+            copy=False,
+        )
+        cutoff = (
+            target
+            + int(decision_bar_duration.value)
+            - int(MULTI_TF_SHIFT[timeframe].value)
+        )
+        right = np.searchsorted(
+            scalar_frame.index.asi8,
+            cutoff,
+            side="right",
+        ) - 1
+        valid = right >= 0
+        safe = np.clip(right, 0, len(scalar_frame) - 1)
+        for column, field in enumerate(fields):
+            aligned = np.full(len(target), np.nan, dtype=np.float64)
+            aligned[valid] = values[safe[valid], column]
+            projected[field] = aligned
+
+    if set(projected) != set(MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4):
+        raise RuntimeError("HTF_V4_MODEL_NATIVE_CONTEXT_PROJECTION_FIELDS_INVALID")
+    ordered = {
+        field: projected[field]
+        for field in MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4
+    }
+    validate_causal_feature_matrix(
+        np.column_stack(list(ordered.values())),
+        expected_width=len(MODEL_NATIVE_HTF_CONTEXT_FIELDS_V4),
+        context="HTF_V4_MODEL_NATIVE_CONTEXT_PROJECTION",
     )
     return ordered
 
