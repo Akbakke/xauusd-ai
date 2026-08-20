@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -15,6 +16,13 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     PASS_DECISION,
     SPLITS,
     validate_full_input_liveness_artifact,
+)
+from gx1.contracts.entry_cross_surface_overlap_v1 import (
+    DECISION_ROUTES,
+    POLICY_VERSION as CROSS_SURFACE_POLICY_VERSION,
+    SCHEMA_VERSION as CROSS_SURFACE_SCHEMA_VERSION,
+    classify_active_duplicate_pairs,
+    declared_context_mtf_aliases,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTEXT_TAG,
@@ -216,6 +224,74 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             signal_contract=signal_contract,
             break_seq_snap_parity=break_scanned_parity and split == corrupt_split,
         )
+    cross_report_path = dataset_dir / "ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20260717T120000000000Z.json"
+    cross_report = {
+        "schema_version": CROSS_SURFACE_SCHEMA_VERSION,
+        "entry_run_id": RUN_ID,
+        "decision": "PASS",
+        "failures": [],
+        "policy": {
+            "version": CROSS_SURFACE_POLICY_VERSION,
+            "decision_routes": {
+                decision: {
+                    "local_timeframe": route["local_timeframe"],
+                    "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
+                }
+                for decision, route in DECISION_ROUTES.items()
+            },
+        },
+        "input_bindings": {},
+        "eight_family_coverage": {
+            f"family_{index}": {"local_field_count": 1, "mtf_field_count": 1}
+            for index in range(8)
+        },
+    }
+    for decision, route in DECISION_ROUTES.items():
+        local_hashes = {
+            f"local.signal.fixture_{index}": hashlib.sha256(
+                f"{decision}:signal:{index}".encode("utf-8")
+            ).hexdigest()
+            for index in range(MODEL_NATIVE_SIGNAL_DIM)
+        }
+        local_hashes.update(
+            {
+                f"local.ctx_cont.{field}": hashlib.sha256(
+                    f"{decision}:context:{field}".encode("utf-8")
+                ).hexdigest()
+                for field in MODEL_NATIVE_CTX_CONT_FIELDS
+            }
+        )
+        active_mtf_hashes = {
+            f"mtf.{timeframe.lower()}.{field}": hashlib.sha256(
+                f"{decision}:{timeframe}:{field}".encode("utf-8")
+            ).hexdigest()
+            for timeframe in route["active_mtf_timeframes"]
+            for field in MULTI_TF_PER_BAR_FEATURES_V4
+        }
+        for local_field, mtf_field in declared_context_mtf_aliases(
+            decision=decision
+        ):
+            digest = hashlib.sha256(
+                f"{decision}:declared:{local_field}:{mtf_field}".encode("utf-8")
+            ).hexdigest()
+            local_hashes[local_field] = digest
+            active_mtf_hashes[mtf_field] = digest
+        cross_report[decision] = {
+            "local_timeframe": route["local_timeframe"],
+            "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
+            "row_count": 1,
+            "local_field_hashes": local_hashes,
+            "active_mtf_field_hashes": active_mtf_hashes,
+            **classify_active_duplicate_pairs(
+                decision=decision,
+                local_field_hashes=local_hashes,
+                active_mtf_field_hashes=active_mtf_hashes,
+            ),
+        }
+    cross_report_path.write_text(
+        json.dumps(cross_report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     build_proof = {
         "entry_run_id": RUN_ID,
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
@@ -226,6 +302,14 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         },
         "model_native_state_contract": {"entry_run_id": RUN_ID},
+        "cross_surface_input_overlap": {
+            "path": str(cross_report_path.resolve()),
+            "sha256": hashlib.sha256(cross_report_path.read_bytes()).hexdigest(),
+            "schema_version": CROSS_SURFACE_SCHEMA_VERSION,
+            "entry_run_id": RUN_ID,
+            "decision": "PASS",
+            "row_counts": {"entry": 1, "exit": 1},
+        },
     }
     (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
         json.dumps(build_proof, indent=2, sort_keys=True) + "\n",

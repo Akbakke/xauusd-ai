@@ -163,6 +163,8 @@ if [[ -e $REBUILD_TERMINAL_JSON || -L $REBUILD_TERMINAL_JSON \
 fi
 FULL_INPUT_LIVENESS_TIMESTAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 FULL_INPUT_LIVENESS_JSON="$AUDIT_OUT_DIR/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_${FULL_INPUT_LIVENESS_TIMESTAMP}.json"
+CROSS_SURFACE_TIMESTAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
+CROSS_SURFACE_JSON="$AUDIT_OUT_DIR/ENTRY_CROSS_SURFACE_INPUT_OVERLAP_${CROSS_SURFACE_TIMESTAMP}.json"
 if [[ -e $AUDIT_OUT_DIR || -L $AUDIT_OUT_DIR ]]; then
   printf '[ABORT] audit output directory already exists; choose a fresh immutable path: %s\n' "$AUDIT_OUT_DIR" >&2
   exit 2
@@ -227,6 +229,30 @@ PY
 
 export GX1_V10_MULTI_TF_V4_CACHE_DIR=$MTF_CACHE_DIR
 
+mkdir -p "$AUDIT_OUT_DIR"
+"${CAP[@]}" "$PY" -m gx1.scripts.audit_entry_cross_surface_feature_overlap_v1 \
+  --run-id "$RUN_ID" \
+  --signal-manifest "$SIGNAL_MANIFEST" \
+  --m1-feature-base-parquet "$M1_FEATURE_BASE_PARQUET" \
+  --m5-feature-base-parquet "$M5_FEATURE_BASE_PARQUET" \
+  --mtf-cache-dir "$MTF_CACHE_DIR" \
+  --out-json "$CROSS_SURFACE_JSON" \
+  --quiet
+
+"$PY" - "$CROSS_SURFACE_JSON" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if path.is_symlink() or not path.is_file():
+    raise RuntimeError("CROSS_SURFACE_AUDIT_NOT_ATOMICALLY_PUBLISHED")
+report = json.loads(path.read_text(encoding="utf-8"))
+if report.get("decision") != "PASS" or report.get("failures") != []:
+    raise RuntimeError("CROSS_SURFACE_AUDIT_FAILED")
+print(f"[GATE] full cross-surface active-input duplicate audit PASS: {path}")
+PY
+
 mkdir -p "$OUTPUT_DIR"
 BUILDER_RESUME_ARGS=()
 if [[ $RESUME_EXACT_CHECKPOINTS -eq 1 ]]; then
@@ -244,6 +270,7 @@ fi
   --m1-lifecycle-pair-generation-root "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" \
   --m1-feature-base-parquet "$M1_FEATURE_BASE_PARQUET" \
   --m5-feature-base-parquet "$M5_FEATURE_BASE_PARQUET" \
+  --cross-surface-audit-json "$CROSS_SURFACE_JSON" \
   --exit-lifecycle-dir "$EXIT_LIFECYCLE_DIR" \
   --output "$OUTPUT" \
   --rebuild-terminal-json "$REBUILD_TERMINAL_JSON" \
@@ -328,5 +355,5 @@ PY
   --out-dir "$AUDIT_OUT_DIR" \
   --quiet
 
-printf '[PASS] combined Entry/lifecycle dataset materialized and pretrain-audited; full-input-liveness=%s exit-lifecycle=%s; no training was run. run_id=%s output=%s\n' \
-  "$FULL_INPUT_LIVENESS_JSON" "$EXIT_LIFECYCLE_DIR" "$RUN_ID" "$OUTPUT_DIR"
+printf '[PASS] combined Entry/lifecycle dataset materialized and pretrain-audited; cross-surface=%s full-input-liveness=%s exit-lifecycle=%s; no training was run. run_id=%s output=%s\n' \
+  "$CROSS_SURFACE_JSON" "$FULL_INPUT_LIVENESS_JSON" "$EXIT_LIFECYCLE_DIR" "$RUN_ID" "$OUTPUT_DIR"

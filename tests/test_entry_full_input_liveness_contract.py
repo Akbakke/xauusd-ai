@@ -118,6 +118,23 @@ def test_full_input_liveness_rejects_dead_or_missing_mtf_route(tmp_path) -> None
     )
 
 
+def test_full_input_liveness_rejects_tampered_cross_surface_proof(tmp_path) -> None:
+    path, artifact, _ = write_full_input_liveness_fixture(tmp_path)
+    artifact["cross_surface_input_overlap"]["sha256"] = "0" * 64
+    path.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = validate_full_input_liveness_artifact(path)
+
+    assert result["ok"] is False
+    assert any(
+        row.get("code") == "cross_surface_input_overlap_invalid"
+        for row in result["failures"]
+    )
+
+
 def test_oos_single_regime_state_is_observed_but_train_constant_fails(tmp_path) -> None:
     order = full_input_field_order()
     numeric_field = order["signal"][-1]

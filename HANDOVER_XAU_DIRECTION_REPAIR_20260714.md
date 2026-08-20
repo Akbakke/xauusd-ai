@@ -134,11 +134,16 @@ weight exists.
   clock from M1 to D1 — a property of `SWING_LOOKBACK=3`, not of the market, and
   the rule systematically deletes the levels nearest to price;
   `volatility.squeeze_active` occupies ~87% of bars with no `var0<var1` guard in
-  the admission gate; `level_recurrence_threshold_atr` spans four orders of
-  magnitude across seven lanes, with the D1 value fitted on 14 observations; and
-  the v34 unit repair made **49 columns bitwise identical** between the local
-  surface and the per-TF M5 lane, which the duplicate detector cannot see because
-  it hashes within one ordered name list. None of these blocks a measurement.
+  the admission gate; and `level_recurrence_threshold_atr` spans four orders of
+  magnitude across seven lanes, with the D1 value fitted on 14 observations.
+  The V34 unit repair also made **49 columns bitwise identical** between the
+  local M5 surface and the per-TF M5 lane. This is no longer invisible: the
+  pre-build cross-surface full scan hashes every active Entry-M5 and Exit-M1
+  input against its actually routed MTF last-closed values. Entry excludes M5
+  from its MTF route, so those 49 pairs are reported as inactive physical
+  overlap; any undeclared duplicate on an active route fails closed. No fresh
+  complete run has yet supplied the new report, so this is a source contract,
+  not an empirical PASS.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one

@@ -78,6 +78,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
     require_model_native_signal_contract,
 )
+from gx1.contracts.entry_cross_surface_overlap_v1 import (
+    validate_cross_surface_overlap_report,
+)
 from gx1.contracts.entry_structural_aux_label_signal_v1 import (
     STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS,
 )
@@ -4710,6 +4713,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--cross-surface-audit-json",
+        type=str,
+        required=True,
+        help=(
+            "Fresh immutable PASS proof that Entry-M5 and Exit-M1 active MTF "
+            "inputs have no undeclared exact cross-surface duplicates."
+        ),
+    )
+    parser.add_argument(
         "--exit-lifecycle-dir",
         type=str,
         required=True,
@@ -5141,6 +5153,37 @@ def main() -> None:
         "signal_manifest_sha256": _sha256_file(signal_manifest_path),
         "inline_split_recomputation": False,
     }
+    mtf_cache_dir = Path(os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"]).resolve()
+    mtf_cache_manifest_path = (mtf_cache_dir / "manifest.json").resolve()
+    if mtf_cache_manifest_path.is_symlink() or not mtf_cache_manifest_path.is_file():
+        raise RuntimeError("CROSS_SURFACE_MTF_CACHE_MANIFEST_MISSING")
+    cross_surface_input_overlap = validate_cross_surface_overlap_report(
+        Path(args.cross_surface_audit_json).expanduser().resolve(),
+        expected_entry_run_id=entry_run_id,
+        expected_input_bindings={
+            "signal_manifest": {
+                "path": str(signal_manifest_path),
+                "sha256": _sha256_file(signal_manifest_path),
+            },
+            "m1_feature_surface": {
+                "path": str(m1_feature_base_path),
+                "sha256": m1_feature_base_sha256,
+                "manifest_path": str(m1_feature_base_manifest_path),
+                "manifest_sha256": m1_feature_base_manifest_sha256,
+            },
+            "m5_feature_surface": {
+                "path": str(m5_feature_base_path),
+                "sha256": m5_feature_base_sha256,
+                "manifest_path": str(m5_feature_base_manifest_path),
+                "manifest_sha256": m5_feature_base_manifest_sha256,
+            },
+            "mtf_cache": {
+                "path": str(mtf_cache_dir),
+                "manifest_sha256": _sha256_file(mtf_cache_manifest_path),
+            },
+        },
+    )
+    proof_payload["cross_surface_input_overlap"] = cross_surface_input_overlap
     proof_payload["entry_m5_feature_surface"] = m5_feature_surface_binding
     proof_payload["seq_structure_extension_v1"]["mode"] = (
         ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE

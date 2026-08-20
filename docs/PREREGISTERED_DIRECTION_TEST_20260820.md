@@ -1,7 +1,11 @@
-# Pre-registered direction test — v34 substrate
+# Pre-registered direction test — V34 substrate (aborted; rules retained)
 
-Written 2026-08-20, BEFORE the dataset exists. Chain V34_20260820T145741Z is building. Nothing below may be revised after seeing a number; a revision is a new
-pre-registration with its own date, and both stay on the record.
+Written 2026-08-20, BEFORE the dataset exists. Chain V34_20260820T145741Z was
+intentionally aborted before it produced an admissible dataset. The grid, nulls
+and VAL→TEST rule below remain frozen; a successor chain must bind fresh complete
+bytes and may not inherit partial V34 output. Nothing below may be revised after
+seeing a number; a revision is a new pre-registration with its own date, and both
+stay on the record.
 
 ## Why this document exists
 
@@ -32,7 +36,7 @@ bars traded), swept from ~100% down to ~1%.
    The often-quoted -1.87 bps / oracle +23.84 / skill +25.71 triple is currently
    marked *reported, not re-derived* -- no artifact on disk contains it and no
    coin-flip owner exists in source. It MUST be recomputed on fresh admitted
-   V34-surface bytes as
+   successor-surface bytes as
    part of this test. If it cannot be, the test does not run.
 2. **Autocorrelation-preserving floor**: circular-shift of the label series,
    >=200 draws. NOT iid permutation -- the iid floor is invalid for autocorrelated
@@ -82,3 +86,10 @@ on six lanes; the level registry breaks with no confirmation band and fires on
 volatility.squeeze_active occupies ~87% of bars; 49 columns are bitwise identical
 between the local surface and the per-TF M5 lane. If the test FAILS, these are not
 retroactive explanations -- they were known and judged non-blocking today.
+
+Status correction before any result: the replacement chain now runs a full
+cross-surface input audit before dataset construction. It records the 49 M5 pairs
+as route-excluded physical overlap for Entry (Entry's MTF route is M15/H1/H4/D1)
+and fails on any undeclared duplicate actually active on either the Entry or Exit
+decision route. This adds an input-integrity gate; it does not alter the frozen
+coverage grid, null distributions, or primary decision rule above.

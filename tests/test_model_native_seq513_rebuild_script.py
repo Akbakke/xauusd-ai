@@ -117,7 +117,9 @@ def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> Non
     assert "output split already exists" in source
     assert "dataset build proof already exists" in source
     assert "audit output directory already exists" in source
-    assert source.count('--run-id "$RUN_ID"') == 2
+    # The builder and the signal-lineage gate both bind the immutable run ID;
+    # cross-surface liveness is now the third required pre-build consumer.
+    assert source.count('--run-id "$RUN_ID"') == 3
     assert source.count('--feature-ranking-json "$FEATURE_RANKING_JSON"') == 1
     assert "SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON" in source
     assert "--run-id has invalid format" in source

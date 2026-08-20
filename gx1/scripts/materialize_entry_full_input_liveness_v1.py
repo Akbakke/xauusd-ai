@@ -30,6 +30,9 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     sha256_file,
     validate_full_input_liveness_artifact,
 )
+from gx1.contracts.entry_cross_surface_overlap_v1 import (
+    validate_cross_surface_overlap_report,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
@@ -470,6 +473,18 @@ def _validate_build_proof(
     )
     if str(state.get("entry_run_id") or "").strip() != entry_run_id:
         raise RuntimeError("DATASET_BUILD_PROOF_STATE_RUN_ID_MISMATCH")
+    cross_surface = proof.get("cross_surface_input_overlap")
+    if not isinstance(cross_surface, dict):
+        raise RuntimeError("DATASET_BUILD_PROOF_CROSS_SURFACE_AUDIT_MISSING")
+    cross_path = Path(str(cross_surface.get("path") or "")).expanduser()
+    cross_sha = str(cross_surface.get("sha256") or "")
+    validated_cross = validate_cross_surface_overlap_report(
+        cross_path,
+        expected_sha256=cross_sha,
+        expected_entry_run_id=entry_run_id,
+    )
+    if dict(cross_surface) != validated_cross:
+        raise RuntimeError("DATASET_BUILD_PROOF_CROSS_SURFACE_AUDIT_INVALID")
     return proof
 
 
@@ -526,7 +541,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("NO_SPLIT_FIELD_ORDER")
 
     proof_path = (dataset_dir / "DATASET_BUILD_PROOF.json").resolve()
-    _validate_build_proof(
+    build_proof = _validate_build_proof(
         proof_path=proof_path,
         dataset_dir=dataset_dir,
         stem=stem,
@@ -576,6 +591,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         scan_proof_by_split=scan_proof,
         multi_tf_liveness_contract=mtf_liveness_contract,
         multi_tf_cache_binding=mtf_cache_binding,
+        cross_surface_input_overlap=build_proof["cross_surface_input_overlap"],
         created_utc=datetime.now(timezone.utc).isoformat(),
     )
     artifact["materializer_provenance"] = {
@@ -586,6 +602,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "path": str(proof_path),
             "sha256": sha256_file(proof_path),
         },
+        "cross_surface_input_overlap": build_proof["cross_surface_input_overlap"],
         "split_contracts": {
             split: {
                 "manifest_path": str(manifests[split]),

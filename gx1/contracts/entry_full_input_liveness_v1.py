@@ -22,6 +22,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_SIGNAL_DIM,
 )
+from gx1.contracts.entry_cross_surface_overlap_v1 import (
+    validate_cross_surface_overlap_report,
+)
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_FEATURE_NAMES_SHA256_V4,
@@ -36,8 +39,8 @@ from gx1.features.htf_features import (
 # under the non-negative rule for the first time; and the two ATR OOD pairs are
 # renamed to `_bps`. A v7 artifact was produced by a policy that could not see
 # those ten slots and names two fields that no longer exist.
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v8"
-POLICY_VERSION = "entry_full_input_liveness_policy_v8"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v9"
+POLICY_VERSION = "entry_full_input_liveness_policy_v9"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -500,6 +503,7 @@ def build_full_input_liveness_artifact(
     scan_proof_by_split: Mapping[str, Mapping[str, Any]],
     multi_tf_liveness_contract: Mapping[str, Any],
     multi_tf_cache_binding: Mapping[str, Any],
+    cross_surface_input_overlap: Mapping[str, Any],
     created_utc: str,
 ) -> dict[str, Any]:
     normalized_order = {
@@ -731,6 +735,22 @@ def build_full_input_liveness_artifact(
             )
 
     drift_rows = _drift_rows(field_rows)
+    try:
+        validated_cross_surface = validate_cross_surface_overlap_report(
+            str(cross_surface_input_overlap.get("path") or ""),
+            expected_sha256=str(cross_surface_input_overlap.get("sha256") or ""),
+            expected_entry_run_id=str(cross_surface_input_overlap.get("entry_run_id") or ""),
+        )
+    except (AttributeError, RuntimeError) as exc:
+        validated_cross_surface = dict(cross_surface_input_overlap)
+        failures.append(
+            {
+                "code": "cross_surface_input_overlap_invalid",
+                "error": str(exc),
+            }
+        )
+    if dict(cross_surface_input_overlap) != validated_cross_surface:
+        failures.append({"code": "cross_surface_input_overlap_binding_mismatch"})
     return {
         "schema_version": SCHEMA_VERSION,
         "created_utc": str(created_utc),
@@ -756,6 +776,7 @@ def build_full_input_liveness_artifact(
                 "cache_identity_sha256": mtf_cache_identity,
             },
         },
+        "cross_surface_input_overlap": validated_cross_surface,
         "atr_ood_drift": {
             "status": (
                 "STABLE"
@@ -1076,6 +1097,30 @@ def validate_full_input_liveness_artifact(
             recorded_sha256=mtf_recorded_sha,
             actual_sha256=mtf_actual_sha,
         )
+
+    cross_surface_binding = payload.get("cross_surface_input_overlap")
+    if not isinstance(cross_surface_binding, Mapping):
+        _append_failure(failures, "cross_surface_input_overlap_missing")
+    else:
+        try:
+            validated_cross_surface = validate_cross_surface_overlap_report(
+                str(cross_surface_binding.get("path") or ""),
+                expected_sha256=str(cross_surface_binding.get("sha256") or ""),
+                expected_entry_run_id=str(
+                    cross_surface_binding.get("entry_run_id") or ""
+                ),
+            )
+            if dict(cross_surface_binding) != validated_cross_surface:
+                _append_failure(
+                    failures,
+                    "cross_surface_input_overlap_binding_mismatch",
+                )
+        except RuntimeError as exc:
+            _append_failure(
+                failures,
+                "cross_surface_input_overlap_invalid",
+                error=str(exc),
+            )
 
     bindings_root = payload.get("input_bindings") if isinstance(payload.get("input_bindings"), dict) else {}
     bindings = (
