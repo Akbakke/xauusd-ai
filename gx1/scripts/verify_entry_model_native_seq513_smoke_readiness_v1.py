@@ -372,11 +372,25 @@ def _target_aux_contract_report(report: dict[str, Any]) -> dict[str, Any]:
                 entry_q.get("entry_fitted_q_contract"),
                 context="SMOKE_READINESS_TARGET_AUDIT",
             )
-            require_entry_fitted_q_production_economics_readiness(
+            economics = require_entry_fitted_q_production_economics_readiness(
                 entry_q.get("production_economics"),
                 context="SMOKE_READINESS_TARGET_AUDIT",
-                require_ready=True,
+                require_ready=False,
             )
+            if economics["gross_research_training_allowed"] is not True:
+                raise RuntimeError(
+                    "SMOKE_READINESS_ENTRY_FITTED_Q_RESEARCH_NOT_ALLOWED"
+                )
+            if entry_q.get("research_evaluation_allowed") is not True:
+                raise RuntimeError(
+                    "SMOKE_READINESS_TARGET_AUDIT_NOT_MARKED_RESEARCH_ONLY"
+                )
+            if entry_q.get("production_authority_ready") is not False or entry_q.get(
+                "production_edge_claim_allowed"
+            ) is not False:
+                raise RuntimeError(
+                    "SMOKE_READINESS_TARGET_AUDIT_PRODUCTION_STATE_INVALID"
+                )
         except RuntimeError as exc:
             failures.append(str(exc))
     heads = _target_head_contract(report)

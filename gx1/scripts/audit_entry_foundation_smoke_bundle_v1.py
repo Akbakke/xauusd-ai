@@ -1111,11 +1111,8 @@ def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     heads = _active_head_evidence_contract(frame, split=split)
     failures.extend(gate["failures"])
     failures.extend(heads["failures"])
-    failures.append(
-        f"{split}: production economics is not ready; net causal OOS replay is required"
-    )
     return {
-        "decision": "FAIL",
+        "decision": "PASS" if not failures else "FAIL",
         "failures": failures,
         "rows": int(len(frame)),
         "raw_entry_q": {
@@ -1127,6 +1124,7 @@ def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
         "active_head_evidence": heads,
         "production_economics_ready": False,
         "edge_claim_allowed": False,
+        "research_evaluation_allowed": True,
     }
 
 

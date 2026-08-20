@@ -105,9 +105,22 @@ EVALUATION_SPLITS = tuple(
     for stage in EVIDENCE_STAGES
     for split in SELECTIVE_EDGE_STAGE_SPLITS[stage]
 )
-EVALUATION_TOP_FRACS = (0.05, 0.10)
+# Fixed before the V34 dataset exists in
+# docs/PREREGISTERED_DIRECTION_TEST_20260820.md.  These are coverage of all
+# decision bars, not an operator-selected trade filter.  A selected FLAT stays
+# FLAT; the null is evaluated only on the exact selected rows where the model
+# itself chose LONG or SHORT.
+EVALUATION_COVERAGES = (1.00, 0.50, 0.25, 0.10, 0.05, 0.02, 0.01)
+EVALUATION_TOP_FRACS = EVALUATION_COVERAGES
 EVALUATION_MODEL_NAME = "candidate"
 SELECTIVE_EDGE_MAX_STREAM_CHUNK_ROWS = 4096
+PREREGISTERED_SELECTIVE_EDGE_SCHEMA_VERSION = "xau_selective_edge_preregistered_v1"
+RESEARCH_LONG_OUTCOME_COLUMN = "y_long_final_pnl_at_direction_horizon_bps"
+RESEARCH_SHORT_OUTCOME_COLUMN = "y_short_final_pnl_at_direction_horizon_bps"
+RESEARCH_OUTCOME_ECONOMICS = "gross_spread_inclusive_research_only"
+CIRCULAR_SHIFT_NULL_DRAWS = 512
+CIRCULAR_SHIFT_NULL_SEED = 20260820
+MIN_PREREGISTERED_TRADE_ROWS = 32
 SPECIALIST_MODEL_CONTRACT_FLAGS = (
     "specialist_model_contract_valid",
     "specialist_model_contract_set_exact",
@@ -386,37 +399,41 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
     }
 
 
-def _realized_net_policy_pnl(frame: pd.DataFrame) -> np.ndarray:
-    """Select immutable net executable OOS PnL for the raw-Q action.
+def _research_policy_pnl(frame: pd.DataFrame) -> np.ndarray:
+    """Read the only available side outcome without mislabelling it as net PnL.
 
-    These columns are intentionally not synthesized from old path-utility
-    labels. Until the causal quote/cost replay owner emits them, evaluation
-    fails closed rather than reporting a gross same-close proxy as PnL.
+    These outcome labels include the research spread convention but not the
+    causal fill/cost/financing replay required for production.  They are valid
+    for the pre-registered research test only.  Production admission remains
+    exclusively with the unified replay owner.
     """
 
     required = {
         "pred_direction",
-        "realized_net_long_pnl_bps",
-        "realized_net_short_pnl_bps",
+        RESEARCH_LONG_OUTCOME_COLUMN,
+        RESEARCH_SHORT_OUTCOME_COLUMN,
     }
     missing = sorted(required - set(frame.columns))
     if missing:
         raise RuntimeError(
-            f"selective-edge frame lacks executable net OOS evidence: {missing}"
+            "selective-edge frame lacks gross spread-inclusive research "
+            f"outcomes: {missing}"
         )
     side = pd.to_numeric(frame["pred_direction"], errors="coerce").to_numpy(
         dtype=np.float64
     )
     long_score = pd.to_numeric(
-        frame["realized_net_long_pnl_bps"], errors="coerce"
+        frame[RESEARCH_LONG_OUTCOME_COLUMN], errors="coerce"
     ).to_numpy(dtype=np.float64)
     short_score = pd.to_numeric(
-        frame["realized_net_short_pnl_bps"], errors="coerce"
+        frame[RESEARCH_SHORT_OUTCOME_COLUMN], errors="coerce"
     ).to_numpy(dtype=np.float64)
-    if not np.isfinite(side).all() or not np.isfinite(long_score).all() or not np.isfinite(
-        short_score
-    ).all():
-        raise RuntimeError("executable net OOS evidence contains non-finite values")
+    if (
+        not np.isfinite(side).all()
+        or not np.isfinite(long_score).all()
+        or not np.isfinite(short_score).all()
+    ):
+        raise RuntimeError("research side outcomes contain non-finite values")
     if not set(side.astype(np.int64)).issubset(
         set(MODEL_DIRECTION_NAME_BY_INDEX)
     ) or not np.array_equal(side, side.astype(np.int64)):
@@ -433,39 +450,67 @@ def _realized_net_policy_pnl(frame: pd.DataFrame) -> np.ndarray:
     )
 
 
-def _metrics_for_group(
-    frame: pd.DataFrame,
+def _newey_west_mean_se(values: np.ndarray) -> tuple[float | None, int]:
+    """Deterministic HAC standard error for a mean advantage time series."""
+
+    samples = np.asarray(values, dtype=np.float64)
+    if samples.ndim != 1 or len(samples) < 3 or not np.isfinite(samples).all():
+        return None, 0
+    n = int(len(samples))
+    centered = samples - float(np.mean(samples))
+    # Newey-West's automatic bandwidth.  It is an inference detail, not a
+    # tunable trading parameter, and is persisted in every metric row.
+    max_lag = min(n - 1, int(math.floor(4.0 * (n / 100.0) ** (2.0 / 9.0))))
+    long_run_variance = float(np.mean(centered * centered))
+    for lag in range(1, max_lag + 1):
+        weight = 1.0 - (lag / float(max_lag + 1))
+        autocovariance = float(np.mean(centered[lag:] * centered[:-lag]))
+        long_run_variance += 2.0 * weight * autocovariance
+    if not math.isfinite(long_run_variance) or long_run_variance < -1e-12:
+        return None, max_lag
+    return math.sqrt(max(0.0, long_run_variance) / float(n)), max_lag
+
+
+def _circular_shift_null_means(
     *,
-    split: str,
-    model: str,
-    scope: str,
-    top_frac: float,
-    group: str,
-) -> dict[str, Any]:
-    if frame.empty:
-        return {
-            "split": split,
-            "model": model,
-            "scope": scope,
-            "top_frac": float(top_frac),
-            "group": group,
-            "n": 0,
-            "mean_pnl_bps": None,
-            "win_rate": None,
-            "mean_edge_score": None,
-        }
-    pnl = pd.to_numeric(frame["realized_net_policy_pnl_bps"], errors="coerce")
-    return {
-        "split": split,
-        "model": model,
-        "scope": scope,
-        "top_frac": float(top_frac),
-        "group": group,
-        "n": int(len(frame)),
-        "mean_pnl_bps": _safe_mean(pnl),
-        "win_rate": _safe_mean((pnl > 0.0).astype(float)),
-        "mean_edge_score": _safe_mean(frame["edge_score"]),
-    }
+    all_long: np.ndarray,
+    all_short: np.ndarray,
+    selected_positions: np.ndarray,
+    selected_sides: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply non-zero circular label shifts while holding decisions fixed."""
+
+    rows = int(len(all_long))
+    if (
+        rows != len(all_short)
+        or rows <= CIRCULAR_SHIFT_NULL_DRAWS
+        or selected_positions.ndim != 1
+        or selected_sides.ndim != 1
+        or len(selected_positions) != len(selected_sides)
+        or not len(selected_positions)
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_CIRCULAR_NULL_INPUT_INVALID")
+    rng = np.random.default_rng(CIRCULAR_SHIFT_NULL_SEED)
+    shifts = np.sort(
+        rng.choice(
+            np.arange(1, rows, dtype=np.int64),
+            size=CIRCULAR_SHIFT_NULL_DRAWS,
+            replace=False,
+        )
+    )
+    outcomes = np.empty(CIRCULAR_SHIFT_NULL_DRAWS, dtype=np.float64)
+    for draw_index, shift in enumerate(shifts):
+        shifted_positions = (selected_positions + int(shift)) % rows
+        outcomes[draw_index] = float(
+            np.mean(
+                np.where(
+                    selected_sides == MODEL_DIRECTION_LONG_INDEX,
+                    all_long[shifted_positions],
+                    all_short[shifted_positions],
+                )
+            )
+        )
+    return outcomes, shifts
 
 
 def _selection_sort_column(frame: pd.DataFrame) -> str:
@@ -499,47 +544,135 @@ def build_metric_rows(
     top_fracs: list[float],
     exclude_sessions: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
-    """Build diagnostic tail metrics without changing model direction.
+    """Run the fixed-coverage, paired-null pre-registered research test.
 
-    Session exclusion is retained in the helper signature only to make stale
-    direct callers fail explicitly.  Session evidence belongs inside seq513.
+    Ranking uses the raw-Q value of the model-selected action.  It cannot
+    change the action: a selected FLAT remains an abstention.  Coin-flip and
+    circular nulls are calculated on the same selected, model-traded rows.
     """
     if exclude_sessions:
         raise RuntimeError(
             "external session exclusion is forbidden; session evidence must be "
             "fused into the model-native LONG/SHORT/FLAT decision"
         )
+    if tuple(float(value) for value in top_fracs) != EVALUATION_COVERAGES:
+        raise RuntimeError(
+            "SELECTIVE_EDGE_COVERAGE_GRID_INVALID: expected exact "
+            f"{EVALUATION_COVERAGES}"
+        )
     rows: list[dict[str, Any]] = []
     if predictions.empty:
         return rows
     for (split, model), sm in predictions.groupby(["split", "model"], sort=True):
-        pool = sm[~sm["session"].astype(str).isin(exclude_sessions)] if exclude_sessions else sm
+        if sm["time"].duplicated().any():
+            raise RuntimeError(
+                f"SELECTIVE_EDGE_TIME_DUPLICATE: split={split} model={model}"
+            )
+        ordered = sm.sort_values("time", kind="mergesort").reset_index(drop=True).copy()
+        if not ordered["time"].is_monotonic_increasing:
+            raise RuntimeError(
+                f"SELECTIVE_EDGE_TIME_ORDER_INVALID: split={split} model={model}"
+            )
+        ordered["_time_position"] = np.arange(len(ordered), dtype=np.int64)
+        all_long = pd.to_numeric(
+            ordered[RESEARCH_LONG_OUTCOME_COLUMN], errors="coerce"
+        ).to_numpy(dtype=np.float64)
+        all_short = pd.to_numeric(
+            ordered[RESEARCH_SHORT_OUTCOME_COLUMN], errors="coerce"
+        ).to_numpy(dtype=np.float64)
+        if not np.isfinite(all_long).all() or not np.isfinite(all_short).all():
+            raise RuntimeError(
+                f"SELECTIVE_EDGE_RESEARCH_OUTCOME_NONFINITE: split={split} model={model}"
+            )
+        ranked = ordered.sort_values(
+            [_selection_sort_column(ordered), "time"],
+            ascending=[False, True],
+            kind="mergesort",
+        )
         for top_frac in top_fracs:
-            n_budget = max(1, int(math.ceil(len(sm) * float(top_frac))))
-            top = pool.sort_values(_selection_sort_column(pool), ascending=False, kind="mergesort").head(n_budget).copy()
-            rows.append(_metrics_for_group(top, split=str(split), model=str(model), scope="top_score", top_frac=top_frac, group="ALL"))
-            for session, group in top.groupby("session", sort=True):
-                rows.append(
-                    _metrics_for_group(
-                        group,
-                        split=str(split),
-                        model=str(model),
-                        scope="top_score",
-                        top_frac=top_frac,
-                        group=f"session={session}",
-                    )
-                )
-            for side, group in top.groupby("side", sort=True):
-                rows.append(
-                    _metrics_for_group(
-                        group,
-                        split=str(split),
-                        model=str(model),
-                        scope="top_score",
-                        top_frac=top_frac,
-                        group=f"side={side}",
-                    )
-                )
+            n_budget = max(1, int(math.ceil(len(ordered) * float(top_frac))))
+            selected = ranked.head(n_budget).copy()
+            directions = pd.to_numeric(
+                selected["pred_direction"], errors="coerce"
+            ).to_numpy(dtype=np.float64)
+            if not np.isfinite(directions).all() or not np.array_equal(
+                directions, np.rint(directions)
+            ):
+                raise RuntimeError("SELECTIVE_EDGE_DIRECTION_INVALID")
+            directions_int = directions.astype(np.int64)
+            trade_mask = np.isin(directions_int, MODEL_DIRECTION_TRADE_INDICES)
+            traded = selected.loc[trade_mask].copy()
+            trade_sides = directions_int[trade_mask]
+            trade_positions = traded["_time_position"].to_numpy(dtype=np.int64)
+            row: dict[str, Any] = {
+                "split": str(split),
+                "model": str(model),
+                "scope": "preregistered_raw_q_coverage",
+                "top_frac": float(top_frac),
+                "coverage_fraction": float(top_frac),
+                "coverage_percent": float(top_frac * 100.0),
+                "group": "ALL",
+                "selected_decision_rows": int(len(selected)),
+                "n": int(len(traded)),
+                "model_flat_rows": int(len(selected) - len(traded)),
+                "outcome_economics": RESEARCH_OUTCOME_ECONOMICS,
+                "coin_flip_null_method": "exact_uniform_long_short_expectation",
+                "standard_error_method": "newey_west_hac_mean_advantage",
+                "circular_shift_draws": CIRCULAR_SHIFT_NULL_DRAWS,
+                "circular_shift_seed": CIRCULAR_SHIFT_NULL_SEED,
+                "minimum_trade_rows": MIN_PREREGISTERED_TRADE_ROWS,
+                "primary_pass": False,
+                "failure_reason": None,
+            }
+            if len(traded) < MIN_PREREGISTERED_TRADE_ROWS:
+                row["failure_reason"] = "insufficient_model_traded_rows"
+                rows.append(row)
+                continue
+            long_values = all_long[trade_positions]
+            short_values = all_short[trade_positions]
+            model_pnl = np.where(
+                trade_sides == MODEL_DIRECTION_LONG_INDEX,
+                long_values,
+                short_values,
+            )
+            coin_expectation = 0.5 * (long_values + short_values)
+            advantage = model_pnl - coin_expectation
+            standard_error, hac_lag = _newey_west_mean_se(advantage)
+            if standard_error is None:
+                row["failure_reason"] = "advantage_standard_error_unavailable"
+                rows.append(row)
+                continue
+            circular_means, shifts = _circular_shift_null_means(
+                all_long=all_long,
+                all_short=all_short,
+                selected_positions=trade_positions,
+                selected_sides=trade_sides,
+            )
+            model_mean = float(np.mean(model_pnl))
+            coin_mean = float(np.mean(coin_expectation))
+            circular_p95 = float(np.percentile(circular_means, 95.0))
+            excess = model_mean - coin_mean
+            row.update(
+                {
+                    "mean_pnl_bps": model_mean,
+                    "win_rate": float(np.mean(model_pnl > 0.0)),
+                    "mean_edge_score": _safe_mean(traded["edge_score"]),
+                    "coin_flip_mean_pnl_bps": coin_mean,
+                    "mean_advantage_over_coin_bps": excess,
+                    "advantage_standard_error_bps": float(standard_error),
+                    "advantage_hac_lag": int(hac_lag),
+                    "two_standard_error_floor_bps": float(2.0 * standard_error),
+                    "circular_shift_p95_mean_pnl_bps": circular_p95,
+                    "circular_shift_mean_of_means_bps": float(np.mean(circular_means)),
+                    "circular_shift_min_offset": int(np.min(shifts)),
+                    "circular_shift_max_offset": int(np.max(shifts)),
+                    "primary_pass": bool(
+                        excess > 2.0 * standard_error
+                        and model_mean > circular_p95
+                    ),
+                }
+            )
+            rows.append(row)
     return rows
 
 
@@ -571,8 +704,8 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
                     "rows": int(len(predictions[(predictions["split"] == split) & (predictions["model"] == model)])),
                     "top5_all_mean_pnl_bps": _value(0.05, "mean_pnl_bps"),
                     "top10_all_mean_pnl_bps": _value(0.10, "mean_pnl_bps"),
-                    "top5_all_direction_precision": _value(0.05, "direction_precision"),
-                    "top10_all_direction_precision": _value(0.10, "direction_precision"),
+                    "top5_primary_pass": _value(0.05, "primary_pass"),
+                    "top10_primary_pass": _value(0.10, "primary_pass"),
                 }
             )
     return {
@@ -580,6 +713,122 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
         "models": models,
         "summaries": summaries,
     }
+
+
+def _preregistered_hypothesis(
+    metrics: pd.DataFrame,
+    *,
+    evidence_stage: str,
+    val_reference: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Apply the frozen VAL->TEST decision rule without opening alternatives."""
+
+    if metrics.empty:
+        return {
+            "schema_version": PREREGISTERED_SELECTIVE_EDGE_SCHEMA_VERSION,
+            "decision": "FAIL",
+            "reason": "no_metric_rows",
+            "qualifying_coverages": [],
+            "matched_coverages": [],
+        }
+    scope = metrics[
+        (metrics["scope"].astype(str) == "preregistered_raw_q_coverage")
+        & (metrics["group"].astype(str) == "ALL")
+    ].copy()
+    if len(scope) != len(EVALUATION_COVERAGES):
+        raise RuntimeError(
+            "SELECTIVE_EDGE_PREREGISTERED_METRIC_ROWS_INVALID: expected one "
+            "ALL row per fixed coverage"
+        )
+    qualifying = sorted(
+        float(row["coverage_fraction"])
+        for _, row in scope.iterrows()
+        if float(row["coverage_fraction"]) <= 0.25
+        and bool(row.get("primary_pass"))
+    )
+    base = {
+        "schema_version": PREREGISTERED_SELECTIVE_EDGE_SCHEMA_VERSION,
+        "coverage_grid": list(EVALUATION_COVERAGES),
+        "minimum_coverage_for_decision": 0.25,
+        "primary_rule": (
+            "model_mean_minus_exact_coinflip_expectation_gt_2_hac_se "
+            "and model_mean_gt_circular_shift_p95"
+        ),
+        "outcome_economics": RESEARCH_OUTCOME_ECONOMICS,
+        "production_authority_ready": False,
+        "edge_claim_allowed": False,
+        "qualifying_coverages": qualifying,
+        "matched_coverages": [],
+    }
+    if evidence_stage == VAL_EVIDENCE_STAGE:
+        return {
+            **base,
+            "decision": "PASS" if qualifying else "FAIL",
+            "reason": (
+                "at_least_one_coverage_at_or_below_25_percent_passed_on_val"
+                if qualifying
+                else "no_coverage_at_or_below_25_percent_passed_on_val"
+            ),
+        }
+    if not isinstance(val_reference, Mapping):
+        raise RuntimeError("SELECTIVE_EDGE_TEST_REQUIRES_VAL_REFERENCE")
+    reference = val_reference.get("preregistered_selective_edge")
+    if not isinstance(reference, Mapping):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_PREREGISTRATION_MISSING")
+    reference_qualifying = sorted(
+        float(value) for value in reference.get("qualifying_coverages") or []
+    )
+    if reference.get("decision") != "PASS" or not reference_qualifying:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_DID_NOT_PASS")
+    matched = sorted(set(qualifying).intersection(reference_qualifying))
+    return {
+        **base,
+        "decision": "PASS" if matched else "FAIL",
+        "reason": (
+            "same_val_qualifying_coverage_passed_on_test"
+            if matched
+            else "no_val_qualifying_coverage_passed_on_test"
+        ),
+        "val_qualifying_coverages": reference_qualifying,
+        "matched_coverages": matched,
+    }
+
+
+def _load_val_reference(
+    raw_path: str | None,
+    *,
+    evidence_stage: str,
+    bundle_dir: Path,
+) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
+    """Bind TEST to one immutable VAL decision from the identical bundle."""
+
+    if evidence_stage == VAL_EVIDENCE_STAGE:
+        if raw_path:
+            raise RuntimeError("SELECTIVE_EDGE_VAL_STAGE_FORBIDS_VAL_REFERENCE")
+        return None, None
+    if not raw_path:
+        raise RuntimeError("SELECTIVE_EDGE_TEST_REQUIRES_VAL_REFERENCE")
+    path = Path(raw_path).expanduser()
+    if (
+        not path.is_absolute()
+        or path.is_symlink()
+        or not path.is_file()
+        or path.resolve() != path
+        or not path.name.startswith("ENTRY_CANDIDATE_SELECTIVE_EDGE_")
+        or "latest" in path.name.lower()
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_PATH_INVALID")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_JSON_INVALID") from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("evidence_stage") != VAL_EVIDENCE_STAGE
+        or Path(str(payload.get("bundle_dir") or "")).resolve() != bundle_dir
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_BINDING_INVALID")
+    return payload, {"path": str(path), "sha256": _sha256_file(path)}
 
 
 def _explicit_dataset_artifact(
@@ -977,11 +1226,15 @@ def _load_selective_edge_stage_bundle(
     )
     if any(key in metadata for key in ("direction_calibration", "path_calibration")):
         raise RuntimeError("SELECTIVE_EDGE_RETIRED_CALIBRATION_FORBIDDEN")
-    require_entry_fitted_q_production_economics_readiness(
+    economics = require_entry_fitted_q_production_economics_readiness(
         metadata.get("entry_fitted_q_production_economics"),
         context="SELECTIVE_EDGE_CANDIDATE",
-        require_ready=True,
+        require_ready=False,
     )
+    if economics["gross_research_training_allowed"] is not True:
+        raise RuntimeError("SELECTIVE_EDGE_RESEARCH_ECONOMICS_NOT_ALLOWED")
+    if economics["edge_claim_allowed"] is not False:
+        raise RuntimeError("SELECTIVE_EDGE_PRODUCTION_EDGE_CLAIM_MUST_BE_BLOCKED")
     return bundle
 
 
@@ -1248,8 +1501,8 @@ def _predict_bundle(
                 ].astype(np.float32)
                 frame["model_direction"] = frame["pred_direction"].map(SIDE_NAMES)
                 required_targets = {
-                    "realized_net_long_pnl_bps",
-                    "realized_net_short_pnl_bps",
+                    RESEARCH_LONG_OUTCOME_COLUMN,
+                    RESEARCH_SHORT_OUTCOME_COLUMN,
                     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
                 }
                 missing_targets = sorted(required_targets - set(frame.columns))
@@ -1282,7 +1535,9 @@ def _predict_bundle(
                         f"{sorted(set(direction_ids) - set(SIDE_NAMES))}"
                     )
                 frame["side"] = [SIDE_NAMES[int(x)] for x in direction_ids]
-                frame["realized_net_policy_pnl_bps"] = _realized_net_policy_pnl(frame)
+                frame["research_policy_gross_spread_inclusive_pnl_bps"] = (
+                    _research_policy_pnl(frame)
+                )
                 if runtime_head_ready:
                     if "atr_bps" not in frame.columns:
                         raise RuntimeError(
@@ -1335,7 +1590,7 @@ def _predict_bundle(
                     "entry_action_q_margin_bps",
                     "selection_score_mode",
                     "selection_score",
-                    "realized_net_policy_pnl_bps",
+                    "research_policy_gross_spread_inclusive_pnl_bps",
                 ]
                 if runtime_head_ready:
                     keep_cols.extend(
@@ -1361,7 +1616,7 @@ def _predict_bundle(
                 if "y_forecast_ret_K24" in frame.columns:
                     keep_cols.append("y_forecast_ret_K24")
                 keep_cols.extend(
-                    ["realized_net_long_pnl_bps", "realized_net_short_pnl_bps"]
+                    [RESEARCH_LONG_OUTCOME_COLUMN, RESEARCH_SHORT_OUTCOME_COLUMN]
                 )
                 # Keep every persisted auxiliary evidence column.
                 keep_cols.extend(c for c in extra_arrays.keys() if c not in keep_cols)
@@ -1379,6 +1634,9 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Decision: `{report['decision']}`",
         f"- Dataset: `{report['dataset_dir']}`",
         f"- Failure count: `{len(report['failures'])}`",
+        f"- Pre-registered research hypothesis: `{report['preregistered_selective_edge']['decision']}`",
+        f"- Outcome economics: `{report['outcome_economics']}`",
+        f"- Production authority / edge claim: `False / False`",
         f"- Promotion/shadow/live allowed: `{report['promotion_shadow_live_allowed']}`",
         "",
         "## Failures",
@@ -1392,7 +1650,8 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     for row in report["summaries"]:
         lines.append(
             f"- `{row['model']}` `{row['split']}` rows={row['rows']} "
-            f"top5={row['top5_all_mean_pnl_bps']} top10={row['top10_all_mean_pnl_bps']}"
+            f"top5={row['top5_all_mean_pnl_bps']} "
+            f"top10={row['top10_all_mean_pnl_bps']}"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -1419,6 +1678,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
     split_bindings = _require_stage_split_bindings(args, splits=splits)
+    val_reference, val_reference_binding = _load_val_reference(
+        getattr(args, "val_reference_json", None),
+        evidence_stage=evidence_stage,
+        bundle_dir=bundle_dir,
+    )
     device = torch.device(_device_arg(args.device))
     _reject_retired_selection_environment()
     bundle = _load_selective_edge_stage_bundle(
@@ -1439,7 +1703,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         split: Path(dataset_contract["splits"][split]["manifest_path"])
         for split in splits
     }
-    top_fracs = list(EVALUATION_TOP_FRACS)
+    top_fracs = list(EVALUATION_COVERAGES)
     selection_score_mode = MODEL_DIRECTION_SELECTION_MODE
     exclude_sessions = tuple(
         s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
@@ -1496,6 +1760,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metric_rows = build_metric_rows(predictions, top_fracs=top_fracs, exclude_sessions=exclude_sessions)
     metrics = pd.DataFrame(metric_rows)
     summary_payload = build_summary(predictions, metrics)
+    preregistered_selective_edge = _preregistered_hypothesis(
+        metrics,
+        evidence_stage=evidence_stage,
+        val_reference=val_reference,
+    )
     event_created_utc = datetime.now(timezone.utc)
     timestamp = event_created_utc.strftime("%Y%m%dT%H%M%S%fZ")
     ready = not failures
@@ -1536,7 +1805,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "models": summary_payload["models"],
         "summaries": summary_payload["summaries"],
         "top_fracs": top_fracs,
+        "coverages": top_fracs,
         "selection_score_mode": selection_score_mode,
+        "outcome_economics": RESEARCH_OUTCOME_ECONOMICS,
+        "production_authority_ready": False,
+        "edge_claim_allowed": False,
+        "preregistered_selective_edge": preregistered_selective_edge,
+        "val_reference_binding": val_reference_binding,
         "direction_decision_contract": direction_decision_contract,
         "bundle_seq_len": int(bundle_meta.get("seq_len") or 0),
         "bundle_seq_input_dim": int(bundle_meta["seq_input_dim"]),
@@ -1584,6 +1859,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "bundle_metadata_sha256": report["bundle_metadata_sha256"],
             "model_state_dict_sha256": report["model_state_dict_sha256"],
             "evidence_stage": evidence_stage,
+            "outcome_economics": report["outcome_economics"],
+            "production_authority_ready": False,
+            "edge_claim_allowed": False,
+            "preregistered_selective_edge": preregistered_selective_edge,
+            "val_reference_binding": val_reference_binding,
             "authoritative": bool(
                 prediction_evidence.get("authoritative") is True
             ),
@@ -1613,6 +1893,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             json.dumps(
                 {
                     "decision": report["decision"],
+                    "preregistered_hypothesis_decision": (
+                        preregistered_selective_edge["decision"]
+                    ),
                     "failures": failures,
                     "summary_path": str(summary_path),
                     "metrics_path": str(metrics_path),
@@ -1670,6 +1953,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ap.add_argument("--m5-prebuilt-path", required=True)
     ap.add_argument("--multi-tf-cache-dir", required=True)
+    ap.add_argument(
+        "--val-reference-json",
+        help=(
+            "Required only for runtime_authoritative TEST: exact immutable VAL "
+            "selective-edge report from this same bundle."
+        ),
+    )
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

@@ -13,12 +13,15 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
 )
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
+    EVALUATION_COVERAGES,
     _canonical_live_decision_evidence,
     _concatenate_evidence_chunks,
-    _realized_net_policy_pnl,
+    _preregistered_hypothesis,
+    _research_policy_pnl,
     _require_entry_q_ssot,
     _require_selective_edge_stage_split,
     _selection_sort_column,
+    build_metric_rows,
 )
 
 
@@ -58,17 +61,19 @@ def test_live_decision_evidence_contains_raw_q_argmax_and_no_probabilities() -> 
     assert np.all(evidence["entry_action_q_margin_bps"] > 0.0)
 
 
-def test_realized_net_policy_pnl_uses_action_side_and_flat_zero() -> None:
+def test_research_policy_pnl_uses_action_side_and_flat_zero_without_claiming_net() -> None:
     frame = pd.DataFrame(
         {
             "pred_direction": [0, 1, 2],
-            "realized_net_long_pnl_bps": [5.0, 99.0, 99.0],
-            "realized_net_short_pnl_bps": [99.0, -3.0, 99.0],
+            "y_long_final_pnl_at_direction_horizon_bps": [5.0, 99.0, 99.0],
+            "y_short_final_pnl_at_direction_horizon_bps": [99.0, -3.0, 99.0],
         }
     )
-    assert _realized_net_policy_pnl(frame).tolist() == [5.0, -3.0, 0.0]
-    with pytest.raises(RuntimeError, match="lacks executable net OOS evidence"):
-        _realized_net_policy_pnl(frame.drop(columns=["realized_net_long_pnl_bps"]))
+    assert _research_policy_pnl(frame).tolist() == [5.0, -3.0, 0.0]
+    with pytest.raises(RuntimeError, match="gross spread-inclusive research outcomes"):
+        _research_policy_pnl(
+            frame.drop(columns=["y_long_final_pnl_at_direction_horizon_bps"])
+        )
 
 
 def test_selection_sort_is_raw_q_action_value_and_mode_bound() -> None:
@@ -100,6 +105,51 @@ def test_evidence_chunks_require_exact_row_count_and_shape() -> None:
             {"entry_action_q_bps": [np.ones((2, 3), dtype=np.float32)]},
             expected_rows=3,
         )
+
+
+def test_preregistered_metrics_use_fixed_grid_and_autocorrelation_null() -> None:
+    """A synthetic time-linked signal clears both fixed primary nulls.
+
+    Direction is deliberately attached to the better side on each row; a
+    non-zero circular label shift breaks that time alignment, while an iid
+    coin-flip has expectation zero.  This exercises the actual two-part gate,
+    not only a convenience mean-PnL calculation.
+    """
+
+    rng = np.random.default_rng(71)
+    rows = 2_048
+    state = rng.choice(np.array([-1.0, 1.0]), size=rows)
+    long_outcome = state * 5.0 + rng.normal(0.0, 0.1, size=rows)
+    short_outcome = -state * 5.0 + rng.normal(0.0, 0.1, size=rows)
+    direction = np.where(state > 0.0, 0, 1)
+    frame = pd.DataFrame(
+        {
+            "split": "val",
+            "model": "candidate",
+            "time": pd.date_range("2025-06-01", periods=rows, freq="5min", tz="UTC"),
+            "pred_direction": direction,
+            "selection_score": np.linspace(float(rows), 1.0, rows),
+            "selection_score_mode": [MODEL_DIRECTION_SELECTION_MODE] * rows,
+            "edge_score": np.ones(rows),
+            "y_long_final_pnl_at_direction_horizon_bps": long_outcome,
+            "y_short_final_pnl_at_direction_horizon_bps": short_outcome,
+        }
+    )
+    metrics = pd.DataFrame(
+        build_metric_rows(frame, top_fracs=list(EVALUATION_COVERAGES))
+    )
+    assert metrics["coverage_fraction"].tolist() == list(EVALUATION_COVERAGES)
+    assert metrics.loc[metrics["coverage_fraction"] == 0.25, "primary_pass"].item()
+    assert set(metrics["coin_flip_null_method"]) == {
+        "exact_uniform_long_short_expectation"
+    }
+    hypothesis = _preregistered_hypothesis(
+        metrics,
+        evidence_stage="pre_calibration",
+        val_reference=None,
+    )
+    assert hypothesis["decision"] == "PASS"
+    assert 0.25 in hypothesis["qualifying_coverages"]
 
 
 @pytest.mark.parametrize(

@@ -78,6 +78,16 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
       declared warmup, and through the same index mapping the model uses. When
       a gate reports a failure, prove the gate looked at the right rows before
       believing it about the system.
+   h. **Verify against the check's own code, never against your model of it.**
+      Before launching anything expensive, replicate the gate's comparison field
+      for field from its source — including path resolution, dtype and rounding.
+      On 2026-08-20 a pre-flight that confirmed hash, generation id and window
+      printed "ALL BINDINGS OK" and the chain then rejected the artifact on the
+      two fields the pre-flight had not thought to compare; the gate also
+      compares the recorded artifact *path*, resolved, so byte-identical copies
+      in different locations are not interchangeable. A verification that checks
+      the fields you assumed is the same defect class as the gate that measures
+      the wrong rows — it returns a credible answer to a question nobody asked.
 
 3. **One decision authority.** Entry direction comes only from the accepted
    model's unique argmax over `entry_action_q_bps` — per-action expected return
@@ -188,7 +198,11 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 
 9. **Never delete under `/home/andre2/GX1_DATA` or an active run path** without
    an explicit verified cleanup decision, reachability proof and active-process
-   check. The reachability proof must cover manifest-recorded data-to-data
+   check. This covers bytes *you* created seconds ago — a failed run's checkpoint
+   directory is still evidence of what was attempted, and an `rm -rf` against it
+   is the same forbidden act as deleting someone else's dataset (attempted and
+   correctly blocked 2026-08-20). Orphaned scratch under `GX1_DATA` is left in
+   place and reclaimed by the retention owner, never by hand. The reachability proof must cover manifest-recorded data-to-data
    references (successor parent pointers, lineage bindings), not only code
    references — a grep over the repository is not a reachability proof
    (learned 2026-08-11: retiring superseded tape generations broke the

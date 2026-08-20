@@ -27,6 +27,7 @@ AUTHORITY_PATHS = (
     REPO / "docs/FEATURE_VALUE_REVIEW_20260813.md",
     REPO / "docs/INDICATOR_FIDELITY_AUDIT_20260813.md",
     REPO / "docs/GIT_WORKTREE_POLICY.md",
+    REPO / "docs/PREREGISTERED_DIRECTION_TEST_20260820.md",
     REPO / "docs/RECIPE_DECISION_DRAFT_20260808.md",
     REPO / "docs/V29_EVENT_SURFACE_DESIGN_20260811.md",
     REPO / "docs/TRAIN_WINDOW_WIDENING_20260819.md",
@@ -60,6 +61,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-bundle-audit",
     "model-native-candidate-readiness",
     "model-native-selective-edge",
+    "model-native-seed-stability",
     "model-native-smoke-train",
     "model-native-candidate-train",
 }

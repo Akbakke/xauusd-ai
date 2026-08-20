@@ -67,6 +67,7 @@ Model-native seq513 evidence:
   model-native-smoke-bundle-audit
   model-native-candidate-readiness
   model-native-selective-edge
+  model-native-seed-stability
   model-native-sizing-capture-instrument
   model-native-sizing-fit-calibration
   model-native-sizing-bind-bundle
@@ -724,6 +725,12 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
+    ;;
+
+  model-native-seed-stability)
+    reject_non_authoritative_args "$@"
+    require_flag "$cmd" --out-dir "$@"
+    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_candidate_seed_stability_v1 "$@"
     ;;
 
   model-native-sizing-capture-instrument)
