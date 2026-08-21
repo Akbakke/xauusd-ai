@@ -56,7 +56,7 @@ BUNDLE_ARTIFACT_KEYS = (
 # made the post-rebuild readiness event and the smoke bundle audit both
 # unproducible. This module owns it because train_launch already imports
 # from here, so the dependency can only point one way.
-PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v5"
+PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v6"
 INPUT_AUDIT_SCHEMAS = {
     "target": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     "specialist": "entry_specialist_feature_group_audit_v1",

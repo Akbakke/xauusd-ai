@@ -99,11 +99,31 @@ REQUIRED_XAU_TARGET_COLUMNS = (
     *DIRECTION_CONSISTENCY_TARGET_COLUMNS,
     *MODEL_NATIVE_AUX_TARGET_COLUMNS,
 )
-# `y_direction_target_mode_id` is a constant contract identity (the builder
-# writes 1 on every row), so the liveness rule -- which demands >= 2 distinct
-# values -- does not apply to it.  Its correctness is proved by the mode
-# contract check in the consistency block instead.
-TARGET_CONTRACT_IDENTITY_COLUMNS = frozenset({"y_direction_target_mode_id"})
+# These columns are required and audited, but are not required to have two
+# distinct values.  This is not a generic constant-column escape hatch:
+#
+# * ``y_direction_target_mode_id`` is an exact schema identity checked by the
+#   target-consistency proof.
+# * ``y_bad_path`` is the retired selected-side scalar diagnostic.  The fitted
+#   direction policy only selects a side whose spread-aware horizon PnL clears
+#   a positive edge floor, while bad-path means that same PnL is negative.
+#   Therefore the selected-side scalar is structurally zero when the policy is
+#   coherent.  Its two counterfactual source targets remain liveness-required,
+#   and the consistency proof requires an exact finite selected-side copy.
+#
+# Adding another exemption requires an explicit code/schema change and tests.
+TARGET_LIVENESS_EXEMPTION_REASONS = {
+    "y_direction_target_mode_id": (
+        "constant_schema_identity_checked_by_target_consistency"
+    ),
+    "y_bad_path": (
+        "retired_selected_side_diagnostic_checked_as_finite_exact_copy_of_"
+        "live_side_specific_targets"
+    ),
+}
+TARGET_LIVENESS_EXEMPT_COLUMNS = frozenset(
+    TARGET_LIVENESS_EXEMPTION_REASONS
+)
 # Tolerances follow the convention this audit already used before the V30
 # rewrite: the copy identities compare float32 columns that the builder writes
 # from one and the same array, and the policy-derived comparison allows one
@@ -414,21 +434,24 @@ def _target_consistency(
     )
 
     def _copy_mismatch(left: str, right: str) -> int:
+        lhs = columns[left].astype(np.float32)
+        rhs = columns[right].astype(np.float32)
         return int(
             np.sum(
-                np.abs(
-                    columns[left].astype(np.float32)
-                    - columns[right].astype(np.float32)
-                )
-                > TARGET_COPY_IDENTITY_TOLERANCE
+                ~np.isfinite(lhs)
+                | ~np.isfinite(rhs)
+                | (np.abs(lhs - rhs) > TARGET_COPY_IDENTITY_TOLERANCE)
             )
         )
 
     def _policy_mismatch(column: str, expected: np.ndarray) -> int:
+        observed = columns[column].astype(np.float32)
+        expected = np.asarray(expected, dtype=np.float32)
         return int(
             np.sum(
-                np.abs(columns[column].astype(np.float32) - expected)
-                > TARGET_POLICY_DERIVED_TOLERANCE
+                ~np.isfinite(observed)
+                | ~np.isfinite(expected)
+                | (np.abs(observed - expected) > TARGET_POLICY_DERIVED_TOLERANCE)
             )
         )
 
@@ -447,11 +470,15 @@ def _target_consistency(
         ),
         "bad_path_side_mismatch_count": int(
             np.sum(
-                np.abs(
-                    columns["y_bad_path"].astype(np.float32)
-                    - expected_scalar_bad
+                ~np.isfinite(columns["y_bad_path"].astype(np.float32))
+                | ~np.isfinite(expected_scalar_bad)
+                | (
+                    np.abs(
+                        columns["y_bad_path"].astype(np.float32)
+                        - expected_scalar_bad
+                    )
+                    > TARGET_COPY_IDENTITY_TOLERANCE
                 )
-                > TARGET_COPY_IDENTITY_TOLERANCE
             )
         ),
         "direction_long_score_alias_mismatch_count": _copy_mismatch(
@@ -532,7 +559,7 @@ def _audit_split(
     target_liveness = {
         name: _column_liveness(np.asarray(sample[name]))
         for name in REQUIRED_XAU_TARGET_COLUMNS
-        if name in sample and name not in TARGET_CONTRACT_IDENTITY_COLUMNS
+        if name in sample and name != "y_direction_target_mode_id"
     }
     target_consistency = _target_consistency(
         sample,
@@ -699,8 +726,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for name in row.get("missing_target_columns") or []:
             failures.append(f"{split}: missing XAU future-outcome target column: {name}")
         for name, live in (row.get("target_liveness") or {}).items():
+            if name in TARGET_LIVENESS_EXEMPT_COLUMNS:
+                if float(live.get("finite_rate") or 0.0) != 1.0:
+                    failures.append(
+                        f"{split}: liveness-exempt XAU target column is not "
+                        f"fully finite: {name}"
+                    )
+                continue
             if not bool(live.get("live")):
-                failures.append(f"{split}: XAU future-outcome target column is not live: {name}")
+                failures.append(
+                    f"{split}: XAU future-outcome target column is not live: {name}"
+                )
         consistency = row.get("target_consistency") if isinstance(row.get("target_consistency"), dict) else {}
         if (
             consistency.get("authority")
@@ -827,6 +863,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             missing_mandatory_level_features
         ),
         "required_xau_target_columns": list(REQUIRED_XAU_TARGET_COLUMNS),
+        "target_liveness_policy": {
+            "required_live_columns": [
+                name
+                for name in REQUIRED_XAU_TARGET_COLUMNS
+                if name not in TARGET_LIVENESS_EXEMPT_COLUMNS
+            ],
+            "exempt_columns": dict(TARGET_LIVENESS_EXEMPTION_REASONS),
+            "exempt_columns_still_require_full_finiteness": True,
+            "selected_side_bad_path_exact_copy_required": True,
+            "side_specific_bad_path_liveness_required": [
+                "y_long_bad_path",
+                "y_short_bad_path",
+            ],
+        },
         "tape_provenance": tape_provenance_by_split,
         "thresholds": {
             "distance_dominance_margin_atr": float(

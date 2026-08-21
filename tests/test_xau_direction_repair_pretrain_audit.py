@@ -159,6 +159,9 @@ def _write_split(
     include_mandatory_levels: bool = True,
     include_inline_seq_structure: bool = True,
     bad_path_mismatch: bool = False,
+    constant_selected_bad_path: bool = False,
+    nonfinite_scalar_bad_path: bool = False,
+    dead_side_bad_paths: bool = False,
     anti_short_wrong_side: bool = False,
     alias_mismatch: bool = False,
     forced_utility: bool = False,
@@ -210,8 +213,16 @@ def _write_split(
     for i in range(80):
         support_dom = i < 40
         flat = i % 10 == 0
-        selected_long_bad = 1.0 if support_dom and i % 17 == 1 else 0.0
-        selected_short_bad = 1.0 if (not support_dom) and i % 17 == 2 else 0.0
+        selected_long_bad = (
+            0.0
+            if constant_selected_bad_path
+            else 1.0 if support_dom and i % 17 == 1 else 0.0
+        )
+        selected_short_bad = (
+            0.0
+            if constant_selected_bad_path
+            else 1.0 if (not support_dom) and i % 17 == 2 else 0.0
+        )
         pnl_long = 30.0 + i if support_dom else -30.0 - i
         pnl_short = -30.0 - i if support_dom else 30.0 + i
         if flat:
@@ -220,6 +231,8 @@ def _write_split(
         long_mae = 2.0 + i if support_dom else 3.0 + i
         short_mae = 3.0 + i if support_dom else 2.0 + i
         scalar_bad = 0.0 if flat else selected_long_bad if support_dom else selected_short_bad
+        if nonfinite_scalar_bad_path and i == 1:
+            scalar_bad = np.nan
         if bad_path_mismatch and i == 1:
             scalar_bad = 1.0 - scalar_bad
         support = 0.40 if support_dom else 0.90
@@ -261,8 +274,14 @@ def _write_split(
                 "mae_long_first_n_bps": long_mae,
                 "mfe_short_first_n_bps": short_mfe,
                 "mae_short_first_n_bps": short_mae,
-                "bad_path_long_first_n": selected_long_bad if support_dom else 1.0,
-                "bad_path_short_first_n": 1.0 if support_dom else selected_short_bad,
+                "bad_path_long_first_n": (
+                    0.0 if dead_side_bad_paths
+                    else selected_long_bad if support_dom else 1.0
+                ),
+                "bad_path_short_first_n": (
+                    0.0 if dead_side_bad_paths
+                    else 1.0 if support_dom else selected_short_bad
+                ),
                 "y_long_final_pnl_at_direction_horizon_bps": pnl_long,
                 "y_short_final_pnl_at_direction_horizon_bps": pnl_short,
                 "y_direction_target_mode_id": target_mode_id,
@@ -270,8 +289,14 @@ def _write_split(
                 "y_direction_short_score_bps": short_utility,
                 "y_long_path_utility_bps": long_utility,
                 "y_short_path_utility_bps": short_utility,
-                "y_long_bad_path": selected_long_bad if support_dom else 1.0,
-                "y_short_bad_path": 1.0 if support_dom else selected_short_bad,
+                "y_long_bad_path": (
+                    0.0 if dead_side_bad_paths
+                    else selected_long_bad if support_dom else 1.0
+                ),
+                "y_short_bad_path": (
+                    0.0 if dead_side_bad_paths
+                    else 1.0 if support_dom else selected_short_bad
+                ),
                 "y_long_expected_mae_bps": long_mae,
                 "y_short_expected_mae_bps": short_mae,
                 # Touch masks fire on a strict subset of rows so the audit's
@@ -431,6 +456,90 @@ def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: P
 
     assert report["decision"] == "PASS"
     assert report["failures"] == []
+
+
+def test_pretrain_audit_accepts_structurally_constant_selected_bad_path(
+    tmp_path: Path,
+) -> None:
+    for split in ("train", "val", "test"):
+        _write_split(
+            tmp_path,
+            split,
+            inverted=False,
+            constant_selected_bad_path=True,
+        )
+
+    report = run(_args(tmp_path))
+
+    assert report["decision"] == "PASS"
+    assert report["failures"] == []
+    assert report["target_liveness_policy"]["exempt_columns"]["y_bad_path"]
+    for split_report in report["splits"]:
+        assert split_report["target_liveness"]["y_bad_path"]["live"] is False
+        assert split_report["target_liveness"]["y_bad_path"]["finite_rate"] == 1.0
+        assert split_report["target_liveness"]["y_long_bad_path"]["live"] is True
+        assert split_report["target_liveness"]["y_short_bad_path"]["live"] is True
+        assert (
+            split_report["target_consistency"]["bad_path_side_mismatch_count"]
+            == 0
+        )
+
+
+def test_pretrain_audit_rejects_nonfinite_selected_bad_path(
+    tmp_path: Path,
+) -> None:
+    for split in ("train", "val", "test"):
+        _write_split(
+            tmp_path,
+            split,
+            inverted=False,
+            constant_selected_bad_path=True,
+            nonfinite_scalar_bad_path=(split == "train"),
+        )
+
+    with pytest.raises(SystemExit):
+        run(_args(tmp_path))
+
+    report = _read_immutable_audit(tmp_path)
+    assert report["decision"] == "FAIL"
+    assert any(
+        "liveness-exempt XAU target column is not fully finite: y_bad_path"
+        in failure
+        for failure in report["failures"]
+    )
+    assert any(
+        "scalar y_bad_path mismatches" in failure
+        for failure in report["failures"]
+    )
+
+
+def test_pretrain_audit_rejects_dead_side_specific_bad_path_sources(
+    tmp_path: Path,
+) -> None:
+    for split in ("train", "val", "test"):
+        _write_split(
+            tmp_path,
+            split,
+            inverted=False,
+            constant_selected_bad_path=True,
+            dead_side_bad_paths=(split == "train"),
+        )
+
+    with pytest.raises(SystemExit):
+        run(_args(tmp_path))
+
+    report = _read_immutable_audit(tmp_path)
+    assert report["decision"] == "FAIL"
+    assert any(
+        "XAU future-outcome target column is not live: y_long_bad_path"
+        in failure
+        for failure in report["failures"]
+    )
+    assert any(
+        "XAU future-outcome target column is not live: y_short_bad_path"
+        in failure
+        for failure in report["failures"]
+    )
 
 
 def test_missing_polarity_field_does_not_mask_target_consistency(

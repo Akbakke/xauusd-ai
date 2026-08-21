@@ -78,14 +78,18 @@ Read `GX1_RULES.md` first. It is binding.
   pre-dataset cross-surface audit and ended RED; cache v30 and overlap policy v3
   repaired the scalar-byte and representation-alias defects it exposed. The
   V37 then exposed an untrimmed honest Group-A causal warmup prefix; the shared
-  fail-closed prefix owner repaired it. Fresh V38 passed that M1 route,
-  preflight and cross-surface audit v3, then was controlled-ABORTED during
-  dataset construction before lifecycle/VAL/TEST completion. The lifecycle
-  builder duplicated five deterministic 512-state arrays into Python lists per
-  episode and grew without a feasible 10G bound. Its compact pointer envelope
-  now reconstructs the same full population from the hash-bound M1 clock;
-  full-TRAIN scale proof stays under 4G. V35/V36/V37/V38 partial products are
-  invalid resume/consumer input (rule 7). No admitted dataset exists.
+  fail-closed prefix owner repaired it. V38 then exposed an unbounded lifecycle
+  representation; its compact pointer repair reconstructs the unchanged state
+  population from the hash-bound M1 clock. Fresh V39 proved that repair on the
+  full chain: TRAIN/VAL/TEST and compact lifecycle completed, and full-input
+  liveness passed. Post-build pretrain audit v5 ended RED because the retired
+  selected-side `y_bad_path` diagnostic is structurally zero whenever the
+  positive-PnL direction policy is coherent. Both side-specific sources were
+  live and the scalar had zero copy mismatches. Audit v6 makes this exemption
+  explicit while still requiring finite scalar bytes, exact copy identity and
+  live side sources; adversarial tests and a diagnostic V39 replay pass.
+  V35/V36/V37/V38/V39 products remain invalid resume/consumer input (rule 7).
+  No admitted dataset exists.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -114,7 +118,7 @@ Read `GX1_RULES.md` first. It is binding.
   implementation or a live/shadow-trading route.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
   stopped safely. Source/lifecycle fixes invalidate V8/V13/V18, and terminal
-  V34/V35/V36/V37/V38 partial products are also forbidden resume input.
+  V34/V35/V36/V37/V38/V39 products are also forbidden resume input.
 
 ## Takeover sequence
 

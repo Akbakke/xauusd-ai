@@ -16,17 +16,17 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V38 was controlled-ABORTED during dataset rebuild on 2026-08-21.** It proved
-the V37 Group-A warmup repair on fresh bytes, completed both feature surfaces,
-passed preflight and produced the first cross-surface audit v3 PASS. TRAIN then
-wrote 283,787 rows, but lifecycle construction duplicated five deterministic
-512-state arrays as Python lists for every side/entry and grew linearly toward
-the 10G cap. It was stopped at 7.3 GiB before lifecycle, VAL or TEST completion.
-The episode envelope now stores compact M1 pointers and reconstructs the same
-full state population from the hash-bound clock. A full-TRAIN scale proof built
-564,510 episodes / 289,029,120 logical states in 1.81s at 1.43 GiB RSS; the
-DataFrame was 136 MB and parquet 21.9 MB. V38 remains invalid and may not be
-resumed or consumed. `CHAIN_STATUS.json` remains telemetry only.
+**V39 ended RED after dataset rebuild on 2026-08-21.** It proved the Group-A
+and compact-lifecycle repairs on fresh bytes, passed preflight/cross-surface v3,
+wrote TRAIN/VAL/TEST (283,787 / 76,577 / 6,556 rows), materialized seven compact
+lifecycle files in 29.0 MB and passed full-input liveness. The post-build v5
+pretrain audit alone failed: selected-side `y_bad_path` was constant zero. Full
+TRAIN/VAL scans proved why: the positive-PnL direction policy cannot select a
+side whose bad-path definition is negative horizon PnL; both counterfactual
+side targets were live and scalar copy mismatches were zero. Audit v6 makes the
+parked diagnostic exemption explicit while requiring finite scalar bytes,
+exact selected-side copy and live side sources. Adversarial tests and a capped
+diagnostic V39 replay pass. V39 remains invalid; never resume or consume it.
 
 Everything below the chain is unchanged: no model has ever been trained on this
 substrate, and `train==serve` has never been proven (see below).
@@ -122,9 +122,8 @@ weight exists.
 
 ## What remains empirically unproven or unadmitted
 
-- No dataset, model, calibration, edge, PnL or win-rate. V38's surfaces, audit
-  PASS and partial TRAIN may inform source diagnosis but are not admissible
-  dataset or model evidence. The M5
+- No dataset, model, calibration, edge, PnL or win-rate. V39's completed bytes
+  and diagnostic PASS may inform diagnosis but are not admissible evidence. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.
@@ -143,8 +142,8 @@ weight exists.
   input against its actually routed MTF last-closed values. Entry excludes M5
   from its MTF route, so those 49 pairs are reported as inactive physical
   overlap; any undeclared duplicate on an active route fails closed. V36's v2
-  RED motivated the repair; V38 supplied a fresh v3 PASS, but its aborted
-  lineage does not admit a dataset.
+  RED motivated the repair; V38/V39 supplied fresh v3 passes, but neither
+  terminal lineage admits a dataset.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one
@@ -230,11 +229,10 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Start one fresh successor chain; never resume V34 through V38.**
-   `V38_20260821T013710Z` is terminal ABORTED during dataset construction. The
-   successor must use a new event root and run the repaired full cross-surface
-   active-input audit bound into the dataset proof; it may not inherit any V34
-   through V38 cache, ranking, checkpoint, manifest, surface, report or split.
+3. **Start one fresh successor chain; never resume V34 through V39.**
+   `V39_20260821T045847Z` is terminal RED after post-build audit. The successor
+   must use a new event root and audit v6; it may not inherit any V34–V39 cache,
+   ranking, checkpoint, manifest, surface, report, lifecycle or split.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit

@@ -241,13 +241,14 @@ source pair
 
 Failure at any arrow stops the chain. Fresh native and canonical source
 exists. Historical V28/V29J datasets were retired with their superseded
-feature contracts and have no training or comparison authority. V38 passed
-preflight and cross-surface audit v3, then was controlled-ABORTED during
-dataset construction before lifecycle/VAL/TEST completion; its partial output
-is invalid (rule 7). No admitted dataset and no accepted
-candidate exist. The first arrow — feature/cache/liveness proofs — is also not
-yet passed for train==serve: the serve-parity gate has never executed (zero
-events on disk, measured 2026-08-19).
+feature contracts and have no training or comparison authority. V39 completed
+all three splits, compact lifecycle and full-input liveness, then ended RED on
+a stale liveness demand for the retired selected-side `y_bad_path` scalar.
+Audit v6 distinguishes that finite exact-copy diagnostic from its two live
+side-specific sources. V39 remains invalid (rule 7); no dataset or candidate
+is admitted. The first arrow is also not passed for train==serve: the
+serve-parity gate has never executed (zero events on disk, measured
+2026-08-19).
 
 ## Scope boundary
 
