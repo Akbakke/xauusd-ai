@@ -117,7 +117,9 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
 def _audited_wrapper_text() -> str:
     return "\n".join(
         (
-            f"MODEL_NATIVE_CONTRACT_MODE={MODEL_NATIVE_CONTRACT_MODE}",
+            "import gx1.contracts.entry_model_native_signal_v1 as s",
+            "MODEL_NATIVE_CONTRACT_MODE=s.MODEL_NATIVE_CONTRACT_MODE",
+            '--specialist-contract-mode "$MODEL_NATIVE_CONTRACT_MODE"',
             "gx1.contracts.entry_model_native_train_launch_v1",
             "--profile",
             "--recipe-audit-json",
@@ -314,6 +316,28 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
     event_path = Path(report["json_path"])
     assert event_path.is_file()
     assert list((tmp_path / "reports").iterdir()) == [event_path]
+
+
+def test_trainability_rejects_wrapper_that_restates_contract_mode(
+    tmp_path: Path,
+) -> None:
+    args = _args(tmp_path, wired=True)
+    wrapper = Path(args.train_wrapper)
+    wrapper.write_text(
+        _audited_wrapper_text().replace(
+            "import gx1.contracts.entry_model_native_signal_v1 as s\n"
+            "MODEL_NATIVE_CONTRACT_MODE=s.MODEL_NATIVE_CONTRACT_MODE\n",
+            f"MODEL_NATIVE_CONTRACT_MODE={MODEL_NATIVE_CONTRACT_MODE}\n",
+        ),
+        encoding="utf-8",
+    )
+
+    report = _run_blocked(args)
+
+    assert (
+        "canonical train wrapper exposes both explicit model-native profiles"
+        in report["blockers"]
+    )
 
 
 def test_smart_trainability_rejects_duplicated_contract_literals_without_ssot_import(

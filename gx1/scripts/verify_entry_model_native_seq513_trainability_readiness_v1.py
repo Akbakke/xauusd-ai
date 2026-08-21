@@ -676,7 +676,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check(
             "canonical train wrapper exposes both explicit model-native profiles",
-            CONTRACT_MODE in train_wrapper_text
+            "gx1.contracts.entry_model_native_signal_v1" in train_wrapper_text
+            and "MODEL_NATIVE_CONTRACT_MODE" in train_wrapper_text
+            and '--specialist-contract-mode "$MODEL_NATIVE_CONTRACT_MODE"'
+            in train_wrapper_text
             and "--profile" in train_wrapper_text
             and "smoke|candidate" in train_wrapper_text
             and "--smoke-manifest-json" in train_wrapper_text
