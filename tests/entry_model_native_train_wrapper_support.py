@@ -86,6 +86,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     entry_exit_shared_feature_base_contract,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -343,7 +344,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     lifecycle_feature_manifest.write_text(
         json.dumps(
             {
-                "schema_version": "gx1_entry_exit_m1_feature_surface_v1",
+                "schema_version": ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
                 "decision": "PASS",
                 "dataset_run_id": DATASET_RUN_ID,
                 "output_parquet": str(lifecycle_feature_base),

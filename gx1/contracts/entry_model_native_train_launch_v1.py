@@ -83,6 +83,7 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
     PRODUCTION_MTF_PER_TF_WINDOW_BARS,
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
+    ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION,
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
 )
 from gx1.features.htf_features import (
@@ -351,7 +352,7 @@ def _validate_unified_exit_lifecycle_root(
     )
     _require(
         feature_manifest.get("schema_version")
-        == "gx1_entry_exit_m1_feature_surface_v1"
+        == ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION
         and feature_manifest.get("decision") == "PASS"
         and feature_manifest.get("dataset_run_id") == dataset_run_id
         and feature_manifest.get("output_parquet") == m1_feature_path

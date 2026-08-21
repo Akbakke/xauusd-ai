@@ -104,6 +104,13 @@ def test_every_recipe_value_is_consumed_by_the_only_trainer_source() -> None:
     assert "[ENTRY_TRAIN_AMBIENT_CONTROL_FORBIDDEN]" in trainer
 
 
+def test_launch_reads_current_m1_feature_surface_schema_from_owner() -> None:
+    source = Path(launch.__file__).read_text(encoding="utf-8")
+
+    assert "ENTRY_EXIT_FEATURE_SURFACE_SCHEMA_VERSION" in source
+    assert '"gx1_entry_exit_m1_feature_surface_v1"' not in source
+
+
 @pytest.mark.parametrize("mutation", ("missing", "extra", "changed"))
 def test_recipe_env_rejects_every_non_exact_surface(mutation: str) -> None:
     candidate = dict(MODEL_NATIVE_RECIPE_ENV)
