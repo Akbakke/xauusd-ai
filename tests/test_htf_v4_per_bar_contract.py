@@ -522,6 +522,7 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
     }
     flattened = [index for indices in routing.values() for index in indices]
     assert sorted(flattened) == list(range(htf.MULTI_TF_FEATURE_COUNT_V4))
+    assert all(list(indices) == sorted(set(indices)) for indices in routing.values())
     assert "vwap_session_dist_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
     assert "vwap_session_slope_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
     assert "vwap_local_cycle_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4

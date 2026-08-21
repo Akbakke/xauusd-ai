@@ -20,7 +20,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    require_multi_tf_specialist_routing_v4,
 )
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
     _build_unit_test_entry_v10_ctx_hybrid_transformer,
@@ -108,7 +110,13 @@ def _synchronized_seq_snap(
     return seq_x, snap_x
 
 
-def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
+def _guard_test_model(
+    context_routing: dict,
+    *,
+    multi_tf_specialist_indices: dict[str, list[int]] | None = None,
+) -> EntryV10CtxHybridTransformer:
+    mtf_indices = multi_tf_specialist_indices or _multi_tf_specialist_indices()
+    mtf_width = sum(len(indices) for indices in mtf_indices.values())
     return _build_unit_test_entry_v10_ctx_hybrid_transformer(
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
@@ -121,11 +129,11 @@ def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
         cross_family_fusion_scale=0.25,
         ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
         ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
-        m5_seq_dim=MTF_DIM,
-        m15_seq_dim=MTF_DIM,
-        h1_seq_dim=MTF_DIM,
-        h4_seq_dim=MTF_DIM,
-        d1_seq_dim=MTF_DIM,
+        m5_seq_dim=mtf_width,
+        m15_seq_dim=mtf_width,
+        h1_seq_dim=mtf_width,
+        h4_seq_dim=mtf_width,
+        d1_seq_dim=mtf_width,
         m5_seq_len=4,
         m15_seq_len=4,
         h1_seq_len=4,
@@ -137,14 +145,17 @@ def _guard_test_model(context_routing: dict) -> EntryV10CtxHybridTransformer:
             "ctx_cont_nominal_indices"
         ],
         specialist_ctx_cat_indices=context_routing["ctx_cat_indices"],
-        multi_tf_specialist_input_indices=_multi_tf_specialist_indices(),
+        multi_tf_specialist_input_indices=mtf_indices,
         temporal_alias_signal_indices=context_routing[
             "temporal_alias_policy"
         ]["signal_indices"],
         temporal_alias_ctx_cont_indices=context_routing[
             "temporal_alias_policy"
         ]["ctx_cont_indices"],
-        input_normalization=_input_normalization(_specialist_indices()),
+        input_normalization=_input_normalization(
+            _specialist_indices(),
+            mtf_width=mtf_width,
+        ),
     ).eval()
 
 
@@ -152,6 +163,22 @@ def test_m5_family_token_has_no_hard_coded_duplicate_current_bar_merge() -> None
     model = _guard_test_model(_context_routing(_specialist_indices()))
 
     assert not hasattr(model, "mtf_m5_family_merge_norm")
+
+
+def test_model_accepts_exact_production_multi_tf_specialist_routing() -> None:
+    routing = {
+        name: list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(
+            MULTI_TF_PER_BAR_FEATURES_V4
+        ).items()
+    }
+
+    model = _guard_test_model(
+        _context_routing(_specialist_indices()),
+        multi_tf_specialist_indices=routing,
+    )
+
+    assert model.cfg.m5_seq_dim == len(MULTI_TF_PER_BAR_FEATURES_V4)
 
 
 def _context_routing(
@@ -168,6 +195,8 @@ def _ordered_signal_names() -> list[str]:
 
 def _input_normalization(
     specialist_indices: dict[str, list[int]],
+    *,
+    mtf_width: int = MTF_DIM,
 ) -> dict:
     signal_width = sum(len(values) for values in specialist_indices.values())
     if signal_width == MODEL_NATIVE_SIGNAL_DIM:
@@ -181,7 +210,7 @@ def _input_normalization(
         )
     return input_normalization_fixture(
         signal_names=signal_names,
-        mtf_names=[f"mtf_{index}" for index in range(MTF_DIM)],
+        mtf_names=[f"mtf_{index}" for index in range(mtf_width)],
     )
 
 

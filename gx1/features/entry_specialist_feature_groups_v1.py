@@ -130,7 +130,7 @@ from gx1.features.smc_v1 import (  # noqa: E402
 )
 
 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION = (
-    "entry_multi_tf_eight_family_specialist_routing_v8"
+    "entry_multi_tf_eight_family_specialist_routing_v9"
 )
 MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
     [
@@ -256,7 +256,7 @@ def require_multi_tf_specialist_routing_v4(
     return OrderedDict(
         (
             specialist,
-            tuple(index[name] for name in names),
+            tuple(sorted(index[name] for name in names)),
         )
         for specialist, names in MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.items()
     )
