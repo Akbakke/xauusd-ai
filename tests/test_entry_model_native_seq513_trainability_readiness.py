@@ -49,7 +49,12 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
-def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
+def _path_calibration_future_contract(
+    wired: bool,
+    source_dataset: str,
+    smoke_run_id: str,
+    dataset_run_id: str,
+) -> dict:
     if not wired:
         return {}
     smoke_dataset = source_dataset
@@ -59,6 +64,8 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
     wrapper_argv = [
         "scripts/entry_next_edge_control.sh",
         "model-native-smoke-train",
+        "--run-id",
+        smoke_run_id,
         "--dataset-dir",
         smoke_dataset,
         "--out-bundle-dir",
@@ -72,6 +79,8 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
         "profile": "smoke",
         "control_route": "model-native-smoke-train",
         "wrapper_path": "scripts/run_entry_model_native_seq513_train.sh",
+        "entry_run_id": smoke_run_id,
+        "dataset_run_id": dataset_run_id,
         "argv_template": wrapper_argv,
         "wrapper_argv_template": wrapper_argv,
         "requires_edge_audit": True,
@@ -139,6 +148,8 @@ def _audited_wrapper_text() -> str:
 
 
 def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TAG) -> argparse.Namespace:
+    dataset_run_id = "MODEL_NATIVE_SEQ513_DATASET_TRAINABILITY_PYTEST"
+    smoke_run_id = "MODEL_NATIVE_SEQ513_SMOKE_TRAINABILITY_PYTEST"
     post_rebuild = (
         tmp_path
         / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_20260716T120000123456Z.json"
@@ -176,6 +187,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
                 if wired
                 else "BLOCKED_BY_ENTRY_SMART_DATASET_POST_REBUILD_AUDIT"
             ),
+            "entry_run_id": dataset_run_id,
             "dataset_dir": source_dataset,
             "post_rebuild_refresh_command_contract": {
                 "smoke_dataset_dir": smoke_dataset,
@@ -209,11 +221,18 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
                 if wired
                 else "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
             ),
+            "entry_run_id": smoke_run_id,
+            "dataset_run_id": dataset_run_id,
             "future_command_contracts": {
                 "smart_smoke_train": {
                     "implemented_in_control_surface": wired,
                     "specialist_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-                    **_path_calibration_future_contract(wired, source_dataset),
+                    **_path_calibration_future_contract(
+                        wired,
+                        source_dataset,
+                        smoke_run_id,
+                        dataset_run_id,
+                    ),
                 }
             },
             "inputs": {
@@ -308,6 +327,9 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
     assert report["source_metadata_contract"]["declared_ctx_contracts_match_expected"] is True
     assert report["source_metadata_contract"]["no_stale_ctx6cat6"] is True
     assert report["fresh_source_identity_contract"]["future_train_out_under_source_root"] is True
+    assert report["run_lineage_contract"]["ok"] is True
+    assert report["entry_run_id"] == "MODEL_NATIVE_SEQ513_SMOKE_TRAINABILITY_PYTEST"
+    assert report["dataset_run_id"] == "MODEL_NATIVE_SEQ513_DATASET_TRAINABILITY_PYTEST"
     assert report["full_input_liveness_validation"]["ok"] is True
     assert report["training_allowed"] is False
     assert report["execution_allowed_now"] is False
@@ -373,6 +395,24 @@ def test_smart_trainability_blocks_mixed_fresh_and_stale_smoke_reports(tmp_path:
     assert report["decision"] == gate.BLOCKED_DECISION
     assert "smart smoke readiness uses same smoke dataset as post-rebuild contract" in report["blockers"]
     assert report["training_allowed"] is False
+
+
+def test_smart_trainability_blocks_mixed_training_run_lineage(tmp_path: Path) -> None:
+    args = _args(tmp_path, wired=True)
+    smoke_path = Path(args.smart_smoke_readiness_json)
+    smoke = json.loads(smoke_path.read_text(encoding="utf-8"))
+    smoke["future_command_contracts"]["smart_smoke_train"][
+        "entry_run_id"
+    ] = "MODEL_NATIVE_SEQ513_OTHER_TRAINABILITY_PYTEST"
+    _write_json(smoke_path, smoke)
+
+    report = _run_blocked(args)
+
+    assert (
+        "model-native smoke trainability preserves one distinct exact run lineage"
+        in report["blockers"]
+    )
+    assert report["run_lineage_contract"]["ok"] is False
 
 
 def test_smart_trainability_blocks_liveness_bytes_changed_after_smoke(tmp_path: Path) -> None:

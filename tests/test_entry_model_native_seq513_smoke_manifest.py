@@ -121,6 +121,7 @@ def _post_rebuild(
     payload = {
         "schema_version": gate.POST_REBUILD_SCHEMA_VERSION,
         "decision": decision,
+        "entry_run_id": "MODEL_NATIVE_SEQ513_DATASET_PYTEST",
         "post_rebuild_refresh_command_contract": {
             "smoke_dataset_dir": str(dataset_dir),
             "all_commands_avoid_training_replay_iql_shadow_live": True,
@@ -270,6 +271,7 @@ def test_materializes_one_hash_bound_immutable_manifest_event(tmp_path: Path) ->
     manifest = report["smoke_manifest"]
     assert manifest["schema_version"] == gate.SCHEMA_VERSION
     assert manifest["entry_run_id"] == "MODEL_NATIVE_SEQ513_SMOKE_PYTEST"
+    assert manifest["dataset_run_id"] == "MODEL_NATIVE_SEQ513_DATASET_PYTEST"
     assert set(manifest["splits"]) == set(gate.SPLITS)
     for row in manifest["splits"].values():
         assert row["rows"] == 3
@@ -289,6 +291,24 @@ def test_rejects_mutable_latest_input_before_artifact_reads(tmp_path: Path) -> N
         gate.run(_args(tmp_path, dataset_dir, post_rebuild=latest))
 
     assert not (tmp_path / "reports").exists()
+
+
+def test_rejects_smoke_run_id_equal_to_dataset_run_id(tmp_path: Path) -> None:
+    dataset_dir = _dataset(tmp_path)
+
+    report = _run_blocked(
+        _args(
+            tmp_path,
+            dataset_dir,
+            run_id="MODEL_NATIVE_SEQ513_DATASET_PYTEST",
+        )
+    )
+
+    assert (
+        "model-native seq513 smoke run_id differs from immutable dataset run_id"
+        in report["blockers"]
+    )
+    assert report["manifest_embedded"] is False
 
 
 @pytest.mark.parametrize(

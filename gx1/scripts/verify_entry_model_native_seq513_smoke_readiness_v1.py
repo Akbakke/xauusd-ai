@@ -66,6 +66,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
 )
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
     required_training_specialists_for_mode,
@@ -132,6 +133,13 @@ def _artifact_meta(path: Path) -> dict[str, Any]:
         "size_bytes": path.stat().st_size if path.exists() else None,
         "sha256": _sha256_file(path),
     }
+
+
+def _normalized_entry_run_id(value: object) -> str | None:
+    try:
+        return require_entry_run_id(value)
+    except RuntimeError:
+        return None
 
 
 def _require_timestamped_evidence_path(path: Path, *, label: str) -> None:
@@ -502,6 +510,8 @@ def _future_contracts(
     target_audit_json: Path,
     specialist_audit_json: Path,
     smoke_manifest_event_json: Path,
+    training_run_id: str,
+    dataset_run_id: str,
     memory_cap: str,
     swap_cap: str,
 ) -> dict[str, Any]:
@@ -521,7 +531,7 @@ def _future_contracts(
         "scripts/entry_next_edge_control.sh",
         "model-native-smoke-train",
         "--run-id",
-        "<MODEL_NATIVE_SEQ513_SMOKE_RUN_ID_ID>",
+        training_run_id,
         "--dataset-dir",
         str(smart_smoke_dataset_dir),
         "--train-manifest-json",
@@ -700,6 +710,8 @@ def _future_contracts(
         "wrapper_path": TRAIN_WRAPPER_RELATIVE_PATH,
         "execution_allowed_now": False,
         "run_lineage_required": True,
+        "entry_run_id": training_run_id,
+        "dataset_run_id": dataset_run_id,
         "prefreeze_test_seal_lineage_required": True,
         "requires_clean_git": True,
         "requires_ram_cap": True,
@@ -751,6 +763,8 @@ def _future_contracts(
         "manifest_event_bound": True,
         "execution_allowed_now": False,
         "run_lineage_required": True,
+        "entry_run_id": training_run_id,
+        "dataset_run_id": dataset_run_id,
         "requires_clean_git": True,
         "starts_trainer": False,
         "starts_replay": False,
@@ -823,6 +837,32 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else {}
     )
     smoke_manifest_readiness = smoke_manifest_event
+    dataset_run_id = _normalized_entry_run_id(post_rebuild.get("entry_run_id"))
+    smoke_event_run_id = _normalized_entry_run_id(
+        smoke_manifest_readiness.get("entry_run_id")
+    )
+    smoke_embedded_run_id = _normalized_entry_run_id(
+        smoke_manifest.get("entry_run_id")
+    )
+    smoke_embedded_dataset_run_id = _normalized_entry_run_id(
+        smoke_manifest.get("dataset_run_id")
+    )
+    smoke_training_run_id = smoke_event_run_id or smoke_embedded_run_id or ""
+    embedded_future_contracts = (
+        smoke_manifest.get("future_command_contracts")
+        if isinstance(smoke_manifest.get("future_command_contracts"), dict)
+        else {}
+    )
+    embedded_future_train = (
+        embedded_future_contracts.get("smart_smoke_train")
+        if isinstance(embedded_future_contracts.get("smart_smoke_train"), dict)
+        else {}
+    )
+    embedded_future_argv = (
+        embedded_future_train.get("wrapper_argv_template")
+        if isinstance(embedded_future_train.get("wrapper_argv_template"), list)
+        else []
+    )
     smoke_manifest_readiness_checks = {
         str(row.get("name") or ""): row
         for row in smoke_manifest_readiness.get("checks", [])
@@ -902,6 +942,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         target_audit_json=target_audit_json,
         specialist_audit_json=specialist_audit_json,
         smoke_manifest_event_json=smoke_manifest_event_json,
+        training_run_id=smoke_training_run_id,
+        dataset_run_id=dataset_run_id or "",
         memory_cap=str(args.memory_cap),
         swap_cap=str(args.swap_cap),
     )
@@ -1258,6 +1300,63 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     },
                 ),
                 _check(
+                    "post-rebuild readiness carries a valid immutable dataset run_id",
+                    dataset_run_id is not None,
+                    {"dataset_run_id": post_rebuild.get("entry_run_id")},
+                ),
+                _check(
+                    "smoke manifest event and embedded manifest bind one valid training run_id",
+                    smoke_event_run_id is not None
+                    and smoke_event_run_id == smoke_embedded_run_id,
+                    {
+                        "event_entry_run_id": smoke_manifest_readiness.get(
+                            "entry_run_id"
+                        ),
+                        "embedded_entry_run_id": smoke_manifest.get(
+                            "entry_run_id"
+                        ),
+                    },
+                ),
+                _check(
+                    "smoke manifest binds the exact immutable dataset run_id",
+                    dataset_run_id is not None
+                    and smoke_embedded_dataset_run_id == dataset_run_id,
+                    {
+                        "post_rebuild_dataset_run_id": dataset_run_id,
+                        "embedded_dataset_run_id": smoke_embedded_dataset_run_id,
+                    },
+                ),
+                _check(
+                    "smoke training run_id differs from immutable dataset run_id",
+                    smoke_event_run_id is not None
+                    and dataset_run_id is not None
+                    and smoke_event_run_id != dataset_run_id,
+                    {
+                        "training_run_id": smoke_event_run_id,
+                        "dataset_run_id": dataset_run_id,
+                    },
+                ),
+                _check(
+                    "embedded smoke train contract propagates exact run lineage",
+                    embedded_future_train.get("entry_run_id")
+                    == smoke_event_run_id
+                    and embedded_future_train.get("dataset_run_id")
+                    == dataset_run_id
+                    and _argv_arg(embedded_future_argv, "--run-id")
+                    == smoke_event_run_id,
+                    {
+                        "contract_entry_run_id": embedded_future_train.get(
+                            "entry_run_id"
+                        ),
+                        "contract_dataset_run_id": embedded_future_train.get(
+                            "dataset_run_id"
+                        ),
+                        "argv_run_id": _argv_arg(
+                            embedded_future_argv, "--run-id"
+                        ),
+                    },
+                ),
+                _check(
                     "model-native smoke manifest proves post-rebuild orchestration provenance",
                     not missing_smoke_manifest_provenance_checks
                     and not failed_smoke_manifest_provenance_checks,
@@ -1383,6 +1482,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "smart smoke train contract pins num_workers zero",
                     future_contracts["smart_smoke_train"]["num_workers"] == 0
                     and _future_arg("--num-workers") == "0",
+                    future_contracts["smart_smoke_train"],
+                ),
+                _check(
+                    "smart smoke train contract preserves exact run lineage",
+                    future_contracts["smart_smoke_train"].get("entry_run_id")
+                    == smoke_event_run_id
+                    and future_contracts["smart_smoke_train"].get(
+                        "dataset_run_id"
+                    )
+                    == dataset_run_id
+                    and _future_arg("--run-id") == smoke_event_run_id,
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
@@ -1523,6 +1633,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": decision,
         "report_only": True,
+        "entry_run_id": smoke_event_run_id,
+        "dataset_run_id": dataset_run_id,
         "smart_candidate": {
             "manifest_variant": MANIFEST_VARIANT,
             "specialist_contract_mode": CONTRACT_MODE,

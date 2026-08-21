@@ -527,10 +527,20 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "required_training_specialists": list(REQUIRED_SPECIALISTS),
+            "entry_run_id": RUN_ID,
+            "dataset_run_id": DATASET_RUN_ID,
             "future_train_contract": {
                 "profile": "smoke",
                 "control_route": "model-native-smoke-train",
                 "wrapper_path": "scripts/run_entry_model_native_seq513_train.sh",
+                "entry_run_id": RUN_ID,
+                "dataset_run_id": DATASET_RUN_ID,
+                "wrapper_argv_template": [
+                    "scripts/entry_next_edge_control.sh",
+                    "model-native-smoke-train",
+                    "--run-id",
+                    RUN_ID,
+                ],
             },
         },
     )
@@ -540,6 +550,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "schema_version": "entry_model_native_seq513_smoke_dataset_v3",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+            "entry_run_id": RUN_ID,
+            "dataset_run_id": DATASET_RUN_ID,
             "out_dir": str(dataset_dir),
             "splits": {
                 split: {
@@ -559,6 +571,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "failures": [],
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
                 "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+                "entry_run_id": RUN_ID,
+                "dataset_run_id": DATASET_RUN_ID,
                 "smoke_manifest": embedded,
                 "manifest_sha256": canonical_json_sha256(embedded),
             },
@@ -569,6 +583,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
                 "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
                 "failures": [],
+                "entry_run_id": RUN_ID,
+                "dataset_run_id": DATASET_RUN_ID,
                 "smart_candidate": {
                     "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
                     "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,

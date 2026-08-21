@@ -42,6 +42,7 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     REQUIRED_PROOF_CHECKS as REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS,
     SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
@@ -176,16 +177,11 @@ def _canonical_direction_decision_ok(contract: dict[str, Any]) -> bool:
 
 
 def _entry_run_id_ok(run_id: str) -> bool:
-    value = str(run_id or "").strip()
-    placeholders = {
-        "",
-        "<id>",
-        "<run_id-id>",
-        "<MODEL_NATIVE_SEQ513_SMOKE_RUN_ID_ID>",
-        "TODO",
-        "TBD",
-    }
-    return value not in placeholders and "<" not in value and ">" not in value
+    try:
+        require_entry_run_id(run_id)
+    except RuntimeError:
+        return False
+    return True
 
 
 def _resolve_manifest_output_path(manifest: dict[str, Any]) -> Path | None:
@@ -362,6 +358,7 @@ def _future_command_contracts(
     post_rebuild_readiness_json: Path,
     specialist_audit_json: Path,
     run_id: str,
+    dataset_run_id: str,
     memory_cap: str,
     swap_cap: str,
 ) -> dict[str, Any]:
@@ -471,6 +468,7 @@ def _future_command_contracts(
             "mode": "report_only_manifest_materialization",
             "run_lineage_required": True,
             "entry_run_id": run_id,
+            "dataset_run_id": dataset_run_id,
             "mutates_only_report_dir": True,
             "starts_training": False,
             "starts_replay": False,
@@ -488,6 +486,7 @@ def _future_command_contracts(
             "wrapper_argv_template": wrapper_argv,
             "run_lineage_required": True,
             "entry_run_id": run_id,
+            "dataset_run_id": dataset_run_id,
             "requires_clean_git": True,
             "requires_ram_cap": True,
             "ram_cap_runner": RAM_CAP_RUNNER,
@@ -524,6 +523,7 @@ def _build_smoke_manifest(
     *,
     dataset_dir: Path,
     run_id: str,
+    dataset_run_id: str,
     splits: dict[str, dict[str, Any]],
     future_command_contracts: dict[str, Any],
 ) -> dict[str, Any]:
@@ -534,6 +534,7 @@ def _build_smoke_manifest(
         "manifest_variant": MANIFEST_VARIANT,
         "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
         "entry_run_id": run_id,
+        "dataset_run_id": dataset_run_id,
         "out_dir": str(dataset_dir),
         "dataset_dir": str(dataset_dir),
         "stem": DEFAULT_STEM,
@@ -575,6 +576,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     batch_size = int(args.batch_size)
 
     post_rebuild_readiness = _read_json_or_empty(post_rebuild_readiness_json)
+    raw_dataset_run_id = post_rebuild_readiness.get("entry_run_id")
+    dataset_run_id = (
+        require_entry_run_id(raw_dataset_run_id)
+        if _entry_run_id_ok(str(raw_dataset_run_id or ""))
+        else ""
+    )
     post_rebuild_refresh_contract = (
         post_rebuild_readiness.get("post_rebuild_refresh_command_contract")
         if isinstance(post_rebuild_readiness.get("post_rebuild_refresh_command_contract"), dict)
@@ -630,6 +637,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         post_rebuild_readiness_json=post_rebuild_readiness_json,
         specialist_audit_json=specialist_audit_json,
         run_id=run_id,
+        dataset_run_id=dataset_run_id,
         memory_cap=memory_cap,
         swap_cap=swap_cap,
     )
@@ -638,6 +646,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "explicit model-native seq513 smoke run_id id is provided",
             _entry_run_id_ok(run_id),
             {"run_id": run_id},
+        ),
+        _check(
+            "smart post-rebuild readiness carries a valid dataset run_id",
+            bool(dataset_run_id),
+            {"dataset_run_id": raw_dataset_run_id},
+        ),
+        _check(
+            "model-native seq513 smoke run_id differs from immutable dataset run_id",
+            bool(dataset_run_id) and _entry_run_id_ok(run_id) and run_id != dataset_run_id,
+            {"run_id": run_id, "dataset_run_id": dataset_run_id or None},
         ),
         _check(
             "smart smoke dataset directory is explicit or pinned by post-rebuild readiness",
@@ -782,6 +800,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             == "model-native-smoke-train"
             and future_command_contracts["smart_smoke_train"]["wrapper_path"]
             == TRAIN_WRAPPER_RELATIVE_PATH
+            and future_command_contracts["smart_smoke_train"]["entry_run_id"]
+            == run_id
+            and future_command_contracts["smart_smoke_train"]["dataset_run_id"]
+            == dataset_run_id
+            and future_command_contracts["smart_smoke_train"]["argv_template"][
+                future_command_contracts["smart_smoke_train"]["argv_template"].index(
+                    "--run-id"
+                )
+                + 1
+            ]
+            == run_id
             and future_command_contracts["smart_smoke_train"]["wrapper_argv_template"]
             == future_command_contracts["smart_smoke_train"]["argv_template"]
             and all(
@@ -852,6 +881,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _build_smoke_manifest(
             dataset_dir=dataset_dir,
             run_id=run_id,
+            dataset_run_id=dataset_run_id,
             splits=splits,
             future_command_contracts=future_command_contracts,
         )
@@ -870,6 +900,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "manifest_variant": MANIFEST_VARIANT,
         "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
         "entry_run_id": run_id if _entry_run_id_ok(run_id) else None,
+        "dataset_run_id": dataset_run_id or None,
         "smart_smoke_dataset_dir": str(dataset_dir),
         "smart_smoke_dataset_dir_source": dataset_dir_source,
         "out_dir": str(out_dir),

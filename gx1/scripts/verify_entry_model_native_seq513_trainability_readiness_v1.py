@@ -49,6 +49,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
 )
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_CONTRACT_MODES,
@@ -383,6 +384,63 @@ def _argv_value(argv: object, flag: str) -> str | None:
     return None
 
 
+def _argv_raw_value(argv: object, flag: str) -> str | None:
+    if not isinstance(argv, list):
+        return None
+    for idx, value in enumerate(argv[:-1]):
+        if value == flag:
+            raw = argv[idx + 1]
+            return str(raw).strip() if str(raw).strip() else None
+    return None
+
+
+def _normalized_entry_run_id(value: object) -> str | None:
+    try:
+        return require_entry_run_id(value)
+    except RuntimeError:
+        return None
+
+
+def _run_lineage_contract(
+    post_rebuild: dict[str, Any],
+    smoke_readiness: dict[str, Any],
+    future_train: dict[str, Any],
+) -> dict[str, Any]:
+    dataset_run_id = _normalized_entry_run_id(post_rebuild.get("entry_run_id"))
+    smoke_run_id = _normalized_entry_run_id(smoke_readiness.get("entry_run_id"))
+    readiness_dataset_run_id = _normalized_entry_run_id(
+        smoke_readiness.get("dataset_run_id")
+    )
+    future_run_id = _normalized_entry_run_id(future_train.get("entry_run_id"))
+    future_dataset_run_id = _normalized_entry_run_id(
+        future_train.get("dataset_run_id")
+    )
+    argv_run_id = _normalized_entry_run_id(
+        _argv_raw_value(future_train.get("wrapper_argv_template"), "--run-id")
+    )
+    exact = (
+        dataset_run_id is not None
+        and smoke_run_id is not None
+        and readiness_dataset_run_id == dataset_run_id
+        and future_run_id == smoke_run_id
+        and future_dataset_run_id == dataset_run_id
+        and argv_run_id == smoke_run_id
+        and smoke_run_id != dataset_run_id
+    )
+    return {
+        "ok": exact,
+        "dataset_run_id": dataset_run_id,
+        "smoke_run_id": smoke_run_id,
+        "smoke_readiness_dataset_run_id": readiness_dataset_run_id,
+        "future_train_run_id": future_run_id,
+        "future_train_dataset_run_id": future_dataset_run_id,
+        "future_train_argv_run_id": argv_run_id,
+        "training_and_dataset_run_ids_are_distinct": bool(
+            smoke_run_id and dataset_run_id and smoke_run_id != dataset_run_id
+        ),
+    }
+
+
 def _fresh_source_identity_contract(post_rebuild: dict[str, Any], smoke_readiness: dict[str, Any], future_train: dict[str, Any]) -> dict[str, Any]:
     post_contract = (
         post_rebuild.get("post_rebuild_refresh_command_contract")
@@ -535,6 +593,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
     )
     future_train = _future_train_contract(smoke_readiness)
+    run_lineage_contract = _run_lineage_contract(
+        post_rebuild,
+        smoke_readiness,
+        future_train,
+    )
     fresh_source_identity_contract = _fresh_source_identity_contract(post_rebuild, smoke_readiness, future_train)
     source_metadata_contract = _ctx_metadata_contract(
         {
@@ -592,6 +655,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             smoke_readiness.get("decision")
             == "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
             smoke_readiness.get("decision"),
+        ),
+        _check(
+            "model-native smoke trainability preserves one distinct exact run lineage",
+            bool(run_lineage_contract["ok"]),
+            run_lineage_contract,
         ),
         _check(
             "smart post-rebuild binds canonical full-input liveness artifact",
@@ -800,6 +868,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "manifest_variant": CONTRACT_MODE,
         "expected_signal_dim": EXPECTED_SIGNAL_DIM,
         "required_training_specialists": list(required_specialists),
+        "entry_run_id": run_lineage_contract["smoke_run_id"],
+        "dataset_run_id": run_lineage_contract["dataset_run_id"],
         "inputs": {
             "smart_post_rebuild_readiness": _artifact_meta(post_rebuild_json),
             "smart_smoke_readiness": _artifact_meta(smoke_readiness_json),
@@ -811,6 +881,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "selective_edge_script": _artifact_meta(selective_edge_script),
         },
         "future_train_contract": future_train,
+        "run_lineage_contract": run_lineage_contract,
         "fresh_source_identity_contract": fresh_source_identity_contract,
         "source_metadata_contract": source_metadata_contract,
         "full_input_liveness_validation": full_input_liveness_validation,

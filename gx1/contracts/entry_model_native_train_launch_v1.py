@@ -1130,6 +1130,8 @@ def _validate_audits(
     *,
     dataset_dir: Path,
     profile: str,
+    run_id: str,
+    dataset_run_id: str,
 ) -> None:
     feature = payloads["feature_audit_json"]
     _zero_failure(feature, label="feature audit", schema="entry_feature_foundation_audit_v1", decision="PASS")
@@ -1199,6 +1201,10 @@ def _validate_audits(
     _require(trainability.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "trainability mode mismatch")
     _require(int(trainability.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "trainability signal width mismatch")
     _require(tuple(trainability.get("required_training_specialists") or ()) == REQUIRED_SPECIALISTS, "trainability specialist set mismatch")
+    _require(
+        trainability.get("dataset_run_id") == dataset_run_id,
+        "trainability dataset run lineage mismatch",
+    )
     future_train = trainability.get("future_train_contract")
     _require(
         isinstance(future_train, dict)
@@ -1209,6 +1215,23 @@ def _validate_audits(
     )
 
     if profile == "smoke":
+        _require(
+            trainability.get("entry_run_id") == run_id
+            and future_train.get("entry_run_id") == run_id
+            and future_train.get("dataset_run_id") == dataset_run_id,
+            "trainability smoke run lineage mismatch",
+        )
+        future_train_argv = future_train.get("wrapper_argv_template")
+        try:
+            future_train_run_id = future_train_argv[
+                future_train_argv.index("--run-id") + 1
+            ]
+        except (AttributeError, IndexError, ValueError):
+            future_train_run_id = None
+        _require(
+            future_train_run_id == run_id,
+            "trainability future wrapper run_id mismatch",
+        )
         smoke_manifest = payloads["smoke_manifest_json"]
         _zero_failure(
             smoke_manifest,
@@ -1220,6 +1243,13 @@ def _validate_audits(
         _require(int(smoke_manifest.get("expected_seq_snap_width") or 0) == MODEL_NATIVE_SIGNAL_DIM, "smoke manifest width mismatch")
         embedded = smoke_manifest.get("smoke_manifest")
         _require(isinstance(embedded, dict), "smoke manifest has no embedded immutable manifest")
+        _require(
+            smoke_manifest.get("entry_run_id") == run_id
+            and smoke_manifest.get("dataset_run_id") == dataset_run_id
+            and embedded.get("entry_run_id") == run_id
+            and embedded.get("dataset_run_id") == dataset_run_id,
+            "smoke manifest run lineage mismatch",
+        )
         _require(Path(str(embedded.get("out_dir") or "")).resolve() == dataset_dir, "smoke manifest dataset mismatch")
         _require(smoke_manifest.get("manifest_sha256") == canonical_json_sha256(embedded), "smoke embedded manifest hash mismatch")
 
@@ -1235,6 +1265,11 @@ def _validate_audits(
         _require(candidate.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke readiness mode mismatch")
         _require(int(candidate.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "smoke readiness signal width mismatch")
         _require(int(candidate.get("expected_selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "smoke readiness selected width mismatch")
+        _require(
+            smoke_readiness.get("entry_run_id") == run_id
+            and smoke_readiness.get("dataset_run_id") == dataset_run_id,
+            "smoke readiness run lineage mismatch",
+        )
     else:
         candidate_readiness = payloads["candidate_readiness_json"]
         _zero_failure(
@@ -1599,7 +1634,14 @@ def validate_launch(
     expected_large_hashes["m5_prebuilt_path"] = _model_source_hash_from_manifests(
         payloads
     )
-    _validate_audits(artifacts, payloads, dataset_dir=dataset_dir, profile=profile)
+    _validate_audits(
+        artifacts,
+        payloads,
+        dataset_dir=dataset_dir,
+        profile=profile,
+        run_id=run_id,
+        dataset_run_id=dataset_run_id,
+    )
 
     _validate_pretrain_audit(
         payloads["pretrain_audit_json"],

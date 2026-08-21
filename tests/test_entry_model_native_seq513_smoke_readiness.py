@@ -98,6 +98,7 @@ def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
 
 def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) -> argparse.Namespace:
     dataset_run_id = "MODEL_NATIVE_SEQ513_DATASET_READINESS_PYTEST"
+    smoke_run_id = "MODEL_NATIVE_SEQ513_SMOKE_READINESS_PYTEST"
     smart_dataset_dir = tmp_path / "v10_dataset_smart_candidate_20260630"
     smart_smoke_dataset_dir = smart_dataset_dir
     smart_dataset_dir.mkdir()
@@ -359,7 +360,21 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "schema_version": "entry_model_native_seq513_smoke_dataset_v3",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+            "entry_run_id": smoke_run_id,
+            "dataset_run_id": dataset_run_id,
             "out_dir": str(smart_smoke_dataset_dir),
+            "future_command_contracts": {
+                "smart_smoke_train": {
+                    "entry_run_id": smoke_run_id,
+                    "dataset_run_id": dataset_run_id,
+                    "wrapper_argv_template": [
+                        "scripts/entry_next_edge_control.sh",
+                        "model-native-smoke-train",
+                        "--run-id",
+                        smoke_run_id,
+                    ],
+                }
+            },
             "splits": {
                 split: {
                     "rows": 16,
@@ -380,6 +395,8 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
             "report_only": True,
+            "entry_run_id": smoke_run_id,
+            "dataset_run_id": dataset_run_id,
             "manifest_embedded": True,
             "manifest_sha256": readiness._sha256_json(smoke_manifest),
             "smoke_manifest": smoke_manifest,
@@ -510,6 +527,14 @@ def test_model_native_seq513_smoke_readiness_is_blocked_only_by_entry_q_economic
     assert train_contract["ram_cap_runner"] == "scripts/gx1_capped_run.sh"
     assert train_contract["num_workers"] == 0
     assert train_contract["prefreeze_test_seal_lineage_required"] is True
+    assert report["entry_run_id"] == "MODEL_NATIVE_SEQ513_SMOKE_READINESS_PYTEST"
+    assert report["dataset_run_id"] == "MODEL_NATIVE_SEQ513_DATASET_READINESS_PYTEST"
+    assert train_contract["entry_run_id"] == report["entry_run_id"]
+    assert train_contract["dataset_run_id"] == report["dataset_run_id"]
+    run_id_index = train_contract["wrapper_argv_template"].index("--run-id")
+    assert train_contract["wrapper_argv_template"][run_id_index + 1] == report[
+        "entry_run_id"
+    ]
     assert train_contract["requires_edge_audit"] is True
     assert train_contract["recipe_audit_control_route_exposed"] is True
     assert train_contract["recipe_audit_control_route"] == "model-native-train-recipe-audit"
@@ -789,6 +814,29 @@ def test_model_native_seq513_smoke_readiness_fails_closed_on_stale_manifest_hash
     assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
     assert report["training_allowed"] is False
     assert "model-native smoke manifest event hash-binds its embedded manifest" in blockers
+
+
+def test_model_native_seq513_smoke_readiness_rejects_mixed_run_lineage(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    manifest_path = Path(args.smoke_manifest_event_json)
+    event = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = event["smoke_manifest"]
+    manifest["entry_run_id"] = "MODEL_NATIVE_SEQ513_OTHER_SMOKE_PYTEST"
+    event["smoke_manifest"] = manifest
+    event["manifest_sha256"] = readiness._sha256_json(manifest)
+    _write_json(manifest_path, event)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = _run_blocked(args)
+
+    assert (
+        "smart_smoke_dataset_manifest: smoke manifest event and embedded "
+        "manifest bind one valid training run_id"
+        in report["blockers"]
+    )
 
 
 def test_model_native_seq513_smoke_readiness_fails_closed_on_split_artifact_hash_mismatch(

@@ -436,6 +436,40 @@ def test_recipe_rejects_training_run_id_equal_to_dataset_run_id(
         launch.validate_launch(args)
 
 
+def test_smoke_launch_rejects_otherwise_valid_evidence_with_mixed_run_lineage(
+    tmp_path: Path,
+) -> None:
+    wrapper_argv, paths = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    readiness_path = paths["smoke_readiness_json"]
+    readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+    readiness["entry_run_id"] = "MODEL_NATIVE_SEQ513_OTHER_SMOKE_PYTEST"
+    readiness_path.write_text(
+        json.dumps(readiness, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "smoke",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="smoke readiness run lineage mismatch",
+    ):
+        launch.validate_launch(args)
+
+
 def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
     """The recipe owner must be the single origin of every training value.
 
