@@ -745,8 +745,10 @@ def _future_contracts(
         "requires_exact_specialist_contract_proof": True,
     }
     manifest = {
-        "mode": "future_manifest_only_contract",
-        "implemented_in_control_surface": False,
+        "mode": "bound_report_only_manifest_event",
+        "implemented_in_control_surface": True,
+        "control_route": "model-native-smoke-manifest",
+        "manifest_event_bound": True,
         "execution_allowed_now": False,
         "run_lineage_required": True,
         "requires_clean_git": True,
@@ -1571,9 +1573,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "failures": failures,
         "blockers": [f"{row['gate']}: {row['name']}" for row in failures],
         "next_required_gate": (
-            "run the capped smart dataset rebuild under one immutable run lineage, then smart feature/target/"
-            "specialist audits, smart smoke dataset manifest, clean git and a separate smart smoke wrapper review; "
-            "do not start candidate training, replay, IQL, shadow or live"
+            "run the report-only model-native trainability readiness gate, then "
+            "materialize the exact smoke recipe audit; do not start candidate "
+            "training, replay, IQL, shadow or live"
         ),
     }
     report["evidence_binding_sha256"] = _sha256_json(report["inputs"])

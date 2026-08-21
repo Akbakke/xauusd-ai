@@ -496,6 +496,13 @@ def test_model_native_seq513_smoke_readiness_is_blocked_only_by_entry_q_economic
     ] == MODEL_NATIVE_CTX_CONT_DIM
 
     train_contract = report["future_command_contracts"]["smart_smoke_train"]
+    manifest_contract = report["future_command_contracts"]["smart_smoke_manifest"]
+    assert manifest_contract["mode"] == "bound_report_only_manifest_event"
+    assert manifest_contract["implemented_in_control_surface"] is True
+    assert manifest_contract["control_route"] == "model-native-smoke-manifest"
+    assert manifest_contract["manifest_event_bound"] is True
+    assert "trainability readiness gate" in report["next_required_gate"]
+    assert "dataset rebuild" not in report["next_required_gate"]
     assert train_contract["implemented_in_control_surface"] is True
     assert train_contract["execution_allowed_now"] is False
     assert train_contract["requires_clean_git"] is True
