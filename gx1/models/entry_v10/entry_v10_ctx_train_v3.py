@@ -1321,6 +1321,11 @@ def _load_specialist_fusion_contract(
             "[SPECIALIST_BLOCKED_HEADS_MISMATCH] "
             f"audit={sorted(blocked_heads)} expected={list(SPECIALIST_FUSION_BLOCKED_HEADS)}"
         )
+    if (
+        recommended.get("independent_timeframe_only_head") is not None
+        or recommended.get("independent_timeframe_only_head_allowed") is not False
+    ):
+        raise RuntimeError("[SPECIALIST_RETIRED_MTF_DIRECTION_HEAD_PRESENT]")
     overlap = sorted(set(active_heads) & set(blocked_heads))
     if overlap:
         raise RuntimeError(f"[SPECIALIST_HEADS_ACTIVE_AND_BLOCKED] {overlap}")

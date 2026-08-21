@@ -155,7 +155,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     target_path = _write_json(
         evidence / "ENTRY_TARGET_AUDIT_20260716T115959123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v3",
+            "schema_version": "entry_target_foundation_audit_v4",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -213,7 +213,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
                 "foundation_audit_policy_enforcement": (
                     foundation_audit_policy_enforcement("target")
                 ),
-                "schema_version": "entry_target_foundation_audit_v3",
+                "schema_version": "entry_target_foundation_audit_v4",
                 "decision": "PASS",
                 "failures": [],
                 "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),

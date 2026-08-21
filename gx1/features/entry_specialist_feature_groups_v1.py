@@ -282,6 +282,19 @@ MODEL_NATIVE_CONTEXT_TEMPORAL_ALIAS_POLICY_SCHEMA_VERSION = (
 MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS: tuple[str, ...] = ()
 MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY = 0
 SPECIALIST_FUSION_ACTIVE_HEADS = (
+    "entry_action_q",
+    "position_size",
+    "dip",
+    "forecast",
+    "timing",
+    "tail_risk",
+    "vol_forecast",
+    "side_mae",
+    "trendline_event",
+)
+
+SPECIALIST_FUSION_BLOCKED_HEADS = (
+    "hold_horizon",
     "direction",
     "tradable",
     "path_quality",
@@ -290,26 +303,11 @@ SPECIALIST_FUSION_ACTIVE_HEADS = (
     "clean_edge",
     "survival",
     "path_quality_log_var",
-    "position_size",
-    "dip",
-    "forecast",
-    "timing",
-    "tail_risk",
-    "vol_forecast",
     "mtf_direction",
-)
-
-SPECIALIST_FUSION_BLOCKED_HEADS = ("hold_horizon",)
-SPECIALIST_SHARED_REACHABLE_HEADS = tuple(
-    head for head in SPECIALIST_FUSION_ACTIVE_HEADS if head != "mtf_direction"
-) + (
     "trade_side_hierarchy",
-    "trendline_rail",
     "side_validity",
-    "offline_rl_action_value",
-    "offline_rl_expectile_value",
-    "model_native_evidence_fusion",
 )
+SPECIALIST_SHARED_REACHABLE_HEADS = SPECIALIST_FUSION_ACTIVE_HEADS
 
 FORBIDDEN_LEGACY_BRIDGE_SPECIALIST = "forbidden_legacy_bridge"
 _FORBIDDEN_LEGACY_BRIDGE_FIELDS = frozenset(FORBIDDEN_LEGACY_BRIDGE_FIELDS)

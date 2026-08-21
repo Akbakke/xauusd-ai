@@ -39,6 +39,27 @@ ENTRY_DIRECTION_TARGET_ACTION_RULE = (
 ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS = int(
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS
 )
+ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE = (
+    "train_fitted_outcome_diagnostics_v1"
+)
+ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_LABEL_SOURCE = (
+    "train_fitted_spread_aware_executable_pnl_at_selected_horizon"
+)
+ENTRY_DIRECTION_DIAGNOSTIC_SIDE_SCORE_FORMULA = (
+    "spread_aware_executable_pnl_at_selected_horizon_bps"
+)
+
+_DIAGNOSTIC_OUTCOME_PROJECTION_KEYS = (
+    "diagnostic_outcome_target_mode",
+    "diagnostic_outcome_label_source",
+    "diagnostic_outcome_horizon_bars",
+    "diagnostic_side_score_formula",
+    "diagnostic_tradable_edge_floor_bps",
+    "diagnostic_side_margin_floor_bps",
+    "diagnostic_path_quality_horizon_bars",
+    "diagnostic_outcome_policy_sha256",
+    "entry_action_authority",
+)
 
 _POLICY_KEYS = {
     "schema_version",
@@ -95,6 +116,168 @@ def canonical_entry_target_policy_sha256(value: Any) -> str:
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def entry_direction_diagnostic_outcome_contract(
+    target_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Project the retired direction labels as non-authoritative diagnostics.
+
+    The exact fitted policy remains in the upstream ranking/signal lineage. A
+    model-native split manifest intentionally carries only this projection so
+    no serialized fixed-horizon label can be mistaken for the Entry action
+    target, which is fitted-Q and is materialized by the trainer.
+    """
+
+    policy = require_entry_direction_target_policy(target_policy)
+    return {
+        "diagnostic_outcome_target_mode": (
+            ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE
+        ),
+        "diagnostic_outcome_label_source": (
+            ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_LABEL_SOURCE
+        ),
+        "diagnostic_outcome_horizon_bars": int(
+            policy["selected_direction_horizon_bars"]
+        ),
+        "diagnostic_side_score_formula": policy["side_score_formula"],
+        "diagnostic_tradable_edge_floor_bps": float(
+            policy["tradable_edge_floor_bps"]
+        ),
+        "diagnostic_side_margin_floor_bps": float(
+            policy["side_margin_floor_bps"]
+        ),
+        "diagnostic_path_quality_horizon_bars": int(
+            policy["path_quality_horizon_bars"]
+        ),
+        "diagnostic_outcome_policy_sha256": policy["policy_sha256"],
+        "entry_action_authority": False,
+    }
+
+
+def require_entry_direction_diagnostic_outcome_manifest_binding(
+    extra: Any,
+    *,
+    expected_direction_policy_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Validate the exact non-authoritative direction-label projection.
+
+    Model-native split manifests forbid the complete legacy direction-policy
+    payload. This validator therefore binds the duplicated top-level/nested
+    projection, its upstream policy hash, and its authority boundary without
+    pretending that the retired payload is still present.
+    """
+
+    if not isinstance(extra, Mapping):
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_MANIFEST_EXTRA_INVALID"
+        )
+    if "entry_direction_target_policy" in extra:
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_RETIRED_POLICY_PRESENT"
+        )
+    nested = extra.get("diagnostic_outcome_labels")
+    if not isinstance(nested, Mapping):
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_NESTED_PROJECTION_MISSING"
+        )
+
+    projection: dict[str, Any] = {}
+    for key in _DIAGNOSTIC_OUTCOME_PROJECTION_KEYS:
+        top_value = extra.get(key)
+        nested_value = nested.get(key)
+        if top_value != nested_value:
+            raise RuntimeError(
+                "ENTRY_DIAGNOSTIC_OUTCOME_PROJECTION_MISMATCH: "
+                f"key={key}"
+            )
+        projection[key] = top_value
+
+    if (
+        projection["diagnostic_outcome_target_mode"]
+        != ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE
+        or projection["diagnostic_outcome_label_source"]
+        != ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_LABEL_SOURCE
+        or projection["diagnostic_side_score_formula"]
+        != ENTRY_DIRECTION_DIAGNOSTIC_SIDE_SCORE_FORMULA
+        or projection["entry_action_authority"] is not False
+    ):
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_CONTRACT_INVALID"
+        )
+
+    for key in (
+        "diagnostic_outcome_horizon_bars",
+        "diagnostic_path_quality_horizon_bars",
+    ):
+        value = projection[key]
+        if (
+            type(value) is not int
+            or value < 1
+            or value > ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS
+        ):
+            raise RuntimeError(
+                "ENTRY_DIAGNOSTIC_OUTCOME_HORIZON_INVALID: "
+                f"key={key} value={value!r}"
+            )
+    for key in (
+        "diagnostic_tradable_edge_floor_bps",
+        "diagnostic_side_margin_floor_bps",
+    ):
+        value = projection[key]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) < 0.0
+        ):
+            raise RuntimeError(
+                "ENTRY_DIAGNOSTIC_OUTCOME_FLOOR_INVALID: "
+                f"key={key} value={value!r}"
+            )
+
+    policy_sha256 = projection["diagnostic_outcome_policy_sha256"]
+    if not _is_sha256(policy_sha256):
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_POLICY_HASH_INVALID"
+        )
+    if (
+        expected_direction_policy_sha256 is not None
+        and policy_sha256 != expected_direction_policy_sha256
+    ):
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_POLICY_HASH_MISMATCH"
+        )
+
+    provenance = nested.get("diagnostic_outcome_target_provenance")
+    if not isinstance(provenance, Mapping) or dict(provenance) != {
+        "source": "future_executable_pnl_outcomes_only",
+        "feature_derived_rewrite_count": 0,
+        "forced_utility_order_count": 0,
+    }:
+        raise RuntimeError(
+            "ENTRY_DIAGNOSTIC_OUTCOME_PROVENANCE_INVALID"
+        )
+
+    return {
+        "schema_version": "entry_direction_diagnostic_outcome_projection_v1",
+        "decision": "PASS",
+        "policy_sha256": policy_sha256,
+        "selected_direction_horizon_bars": projection[
+            "diagnostic_outcome_horizon_bars"
+        ],
+        "path_quality_horizon_bars": projection[
+            "diagnostic_path_quality_horizon_bars"
+        ],
+        "tradable_edge_floor_bps": float(
+            projection["diagnostic_tradable_edge_floor_bps"]
+        ),
+        "side_margin_floor_bps": float(
+            projection["diagnostic_side_margin_floor_bps"]
+        ),
+        "side_score_formula": projection["diagnostic_side_score_formula"],
+        "entry_action_authority": False,
+    }
 
 
 def _is_sha256(value: Any) -> bool:

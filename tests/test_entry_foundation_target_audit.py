@@ -10,6 +10,7 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
 from gx1.scripts.audit_entry_foundation_targets_v1 import (
     EXPECTED_ACTIVE_AUX_HEADS,
     EXPECTED_BLOCKED_TARGET_HEADS,
+    EXPECTED_EXTRA_ACTIVE_TARGET_HEADS,
     HEAD_TARGET_COLUMNS,
     XAU_DIRECTION_REPAIR_TARGET_COLUMNS,
     _drift,
@@ -60,7 +61,7 @@ def test_target_drift_compares_val_to_train_for_same_scope() -> None:
     assert np.isclose(rows[0]["path_quality_mean_bps_delta_vs_train"], -1.0)
 
 
-def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_active() -> None:
+def test_target_head_contract_matches_exact_model_native_heads_and_liveness() -> None:
     rows = []
     for split in ("train", "val"):
         frame = {
@@ -70,6 +71,14 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
             "y_position_size_target": [0.50, 0.75, 1.0],
             "y_position_size_mask": [1.0, 1.0, 0.0],
             "y_hold_horizon_target": [0.5, 0.5, 0.5],
+            "y_long_expected_mae_bps": [1.0, 2.0, 3.0],
+            "y_short_expected_mae_bps": [3.0, 2.0, 1.0],
+            "y_line_support_touch_held": [0.0, 1.0, 0.0],
+            "y_line_support_touch_mask": [0.0, 1.0, 0.0],
+            "y_line_resistance_touch_held": [1.0, 0.0, 0.0],
+            "y_line_resistance_touch_mask": [1.0, 0.0, 0.0],
+            "y_countertrend_short_trap": [0.0, 1.0, 0.0],
+            "y_countertrend_long_trap": [1.0, 0.0, 0.0],
             "y_forecast_ret_K1": [1.0, 2.0, 3.0],
             "y_forecast_ret_K5": [1.0, 2.0, 3.0],
             "y_forecast_ret_K12": [1.0, 2.0, 3.0],
@@ -92,9 +101,10 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
     for head in EXPECTED_ACTIVE_AUX_HEADS:
         assert head in contract["active_training_heads"]
         assert contract["head_target_liveness"][head]["live_all_splits"] is True
-    for head in EXPECTED_BLOCKED_TARGET_HEADS:
-        assert head in contract["blocked_heads"]
-        assert contract["head_target_liveness"][head]["live_all_splits"] is False
+    assert tuple(contract["blocked_heads"]) == EXPECTED_BLOCKED_TARGET_HEADS
+    for head in EXPECTED_EXTRA_ACTIVE_TARGET_HEADS:
+        assert contract["head_target_liveness"][head]["live_all_splits"] is True
+    assert contract["entry_action_q_serialized_in_dataset"] is False
 
 
 def test_entry_fitted_q_targets_are_never_serialized_in_the_dataset() -> None:

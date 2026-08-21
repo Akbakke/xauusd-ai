@@ -50,6 +50,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     model_native_readiness_contract_metadata,
 )
@@ -140,8 +141,10 @@ def model_native_target_audit_evidence() -> dict[str, object]:
         "target_head_contract": {
             "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
             "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
-            "extra_active_target_heads": [],
-            "extra_active_target_head_liveness": {},
+            "extra_active_target_heads": list(MODEL_NATIVE_EXTRA_ACTIVE_HEADS),
+            "extra_active_target_head_liveness": {
+                head: True for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
+            },
         },
     }
 
@@ -483,7 +486,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     artifacts["target_audit_json"] = _write_json(
         evidence_dir / f"ENTRY_TARGET_AUDIT_{STAMP}.json",
         {
-            "schema_version": "entry_target_foundation_audit_v3",
+            "schema_version": "entry_target_foundation_audit_v4",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -805,7 +808,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                         "foundation_audit_policy_enforcement": (
                             foundation_audit_policy_enforcement("target")
                         ),
-                        "schema_version": "entry_target_foundation_audit_v3",
+                        "schema_version": "entry_target_foundation_audit_v4",
                         "decision": "PASS",
                         "failures": [],
                         "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),

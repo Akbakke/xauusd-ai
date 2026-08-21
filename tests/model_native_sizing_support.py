@@ -40,6 +40,7 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -274,8 +275,10 @@ def model_native_target_audit_evidence() -> dict[str, object]:
         "target_head_contract": {
             "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
             "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
-            "extra_active_target_heads": [],
-            "extra_active_target_head_liveness": {},
+            "extra_active_target_heads": list(MODEL_NATIVE_EXTRA_ACTIVE_HEADS),
+            "extra_active_target_head_liveness": {
+                head: True for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
+            },
         },
     }
 

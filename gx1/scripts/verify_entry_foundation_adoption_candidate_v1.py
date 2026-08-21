@@ -21,7 +21,6 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     require_foundation_audit_report_policy,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
 )
 from gx1.contracts.entry_fitted_q_v1 import (
@@ -32,8 +31,10 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     artifact_fingerprint_checks,
     artifact_fingerprints,
@@ -542,18 +543,18 @@ def _target_checks(
             "target audit proves canonical aux targets and production-ready Entry-Q",
             aux_contract_valid
             and entry_q_contract_valid
-            and extra == MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            and extra == MODEL_NATIVE_EXTRA_ACTIVE_HEADS
             and isinstance(extra_liveness, dict)
             and all(
                 extra_liveness.get(head) is True
-                for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
             ),
             {
                 "aux_contract_valid": aux_contract_valid,
                 "aux_contract_error": aux_contract_error,
                 "entry_fitted_q_target_valid": entry_q_contract_valid,
                 "expected_extra_active_target_heads": list(
-                    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                    MODEL_NATIVE_EXTRA_ACTIVE_HEADS
                 ),
                 "observed_extra_active_target_heads": list(extra),
                 "extra_active_target_head_liveness": extra_liveness,
@@ -622,9 +623,11 @@ def _specialist_checks(
         ),
         _check(
             "specialist fusion heads and liveness are exact",
-            tuple(fusion.get("active_heads", [])) == MODEL_NATIVE_BASE_ACTIVE_HEADS
+            tuple(fusion.get("active_heads", [])) == MODEL_NATIVE_ACTIVE_HEADS
             and tuple(fusion.get("blocked_heads", []))
             == MODEL_NATIVE_BLOCKED_HEADS
+            and fusion.get("independent_timeframe_only_head") is None
+            and fusion.get("independent_timeframe_only_head_allowed") is False
             and report.get("specialist_input_liveness_all_live") is True
             and report.get(
                 "foundation_objective_routing_all_present_and_expected"

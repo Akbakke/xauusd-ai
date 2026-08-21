@@ -14,7 +14,7 @@ from gx1.time.session_detector import SESSION_ORDER
 
 
 FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v13"
-FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v3"
+FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v4"
 FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val")
 # TEST is final evidence, never an input to smoke/candidate continuation.
 FOUNDATION_AUDIT_SMOKE_SPLITS = ("val",)

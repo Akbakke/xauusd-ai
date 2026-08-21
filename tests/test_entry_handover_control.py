@@ -138,7 +138,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert (
         "dataset_contract: "
-        "CURRENT_PAIR_READY_FEATURE_DATASET_REBUILD_PENDING"
+        "V40_GREEN_FOUNDATION_AUDITS_PASS_ADMISSION_PENDING"
         in result.stdout
     )
     assert "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED" in result.stdout
@@ -199,9 +199,10 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "RUN_CURRENT_PAIR_SHARED_FEATURE_DATASET_CHAIN_THEN_BOUNDED_SMOKE"
+        "RUN_V40_REMAINING_ADMISSION_GATES_THEN_BOUNDED_SMOKE"
         in result.stdout
     )
+    assert "dataset_rebuild: NOT_REQUIRED_CURRENT_V40_BYTES_PASS" in result.stdout
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
     assert "model-native-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout

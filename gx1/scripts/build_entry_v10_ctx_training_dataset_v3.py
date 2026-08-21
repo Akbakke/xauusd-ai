@@ -104,6 +104,8 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.entry_direction_target_policy_v1 import (
+    ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE,
+    entry_direction_diagnostic_outcome_contract,
     entry_direction_targets_from_policy,
     fit_entry_direction_target_policy,
     require_entry_direction_target_policy,
@@ -208,7 +210,9 @@ logging.basicConfig(
 # action target or decision authority.  The sole Entry target is materialized
 # in the trainer from the frozen fitted-Q Exit teacher and the exact episode
 # pack bound to each dataset row.
-_DIAGNOSTIC_OUTCOME_TARGET_MODE = "train_fitted_outcome_diagnostics_v1"
+_DIAGNOSTIC_OUTCOME_TARGET_MODE = (
+    ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE
+)
 
 # The old map-derived hold-horizon target is blocked from the exact model-native
 # dataset. It belonged to a different Exit policy and previously admitted a
@@ -248,28 +252,7 @@ ENTRY_DIRECTION_TARGET_MODE_ID = 1
 def diagnostic_outcome_label_contract(
     target_policy: Mapping[str, Any],
 ) -> Dict[str, Any]:
-    policy = require_entry_direction_target_policy(target_policy)
-    return {
-        "diagnostic_outcome_target_mode": _DIAGNOSTIC_OUTCOME_TARGET_MODE,
-        "diagnostic_outcome_label_source": (
-            "train_fitted_spread_aware_executable_pnl_at_selected_horizon"
-        ),
-        "diagnostic_outcome_horizon_bars": diagnostic_outcome_horizon_bars(
-            policy
-        ),
-        "diagnostic_side_score_formula": policy["side_score_formula"],
-        "diagnostic_tradable_edge_floor_bps": float(
-            policy["tradable_edge_floor_bps"]
-        ),
-        "diagnostic_side_margin_floor_bps": float(
-            policy["side_margin_floor_bps"]
-        ),
-        "diagnostic_path_quality_horizon_bars": int(
-            policy["path_quality_horizon_bars"]
-        ),
-        "diagnostic_outcome_policy_sha256": policy["policy_sha256"],
-        "entry_action_authority": False,
-    }
+    return entry_direction_diagnostic_outcome_contract(target_policy)
 
 
 def representation_auxiliary_outcome_contract() -> Dict[str, Any]:

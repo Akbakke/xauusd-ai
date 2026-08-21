@@ -13,9 +13,6 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     EXPECTED_FIELD_COUNTS,
     SCHEMA_VERSION as LIVENESS_SCHEMA,
 )
-from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
-)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,
@@ -26,6 +23,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
 )
 from gx1.scripts import materialize_entry_model_native_seq513_smoke_manifest_v1 as manifest_gate
 from gx1.scripts import verify_entry_model_native_seq513_trainability_readiness_v1 as trainability_gate
@@ -251,7 +254,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         tmp_path / "ENTRY_TARGET_FOUNDATION_AUDIT_20260716T120004123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v3",
+            "schema_version": "entry_target_foundation_audit_v4",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -266,16 +269,16 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             # their owners rather than restated.
             "target_head_contract": {
                 "active_training_heads": list(
-                    readiness.SPECIALIST_FUSION_ACTIVE_HEADS
+                    MODEL_NATIVE_BASE_ACTIVE_HEADS
                 ),
                 "blocked_heads": list(
-                    readiness.SPECIALIST_FUSION_BLOCKED_HEADS
+                    MODEL_NATIVE_BLOCKED_HEADS
                 ),
                 "extra_active_target_heads": list(
-                    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                    MODEL_NATIVE_EXTRA_ACTIVE_HEADS
                 ),
                 "extra_active_target_head_liveness": {
-                    head: True for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                    head: True for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
                 },
             },
             "entry_fitted_q_target_contract": {
@@ -344,8 +347,10 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                 "specialist_input_indices": specialist_indices,
                 "context_specialist_routing": context_routing,
                 "recommended_fusion": {
-                    "active_heads": list(readiness.SPECIALIST_FUSION_ACTIVE_HEADS),
-                    "blocked_heads": list(readiness.SPECIALIST_FUSION_BLOCKED_HEADS),
+                    "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
+                    "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+                    "independent_timeframe_only_head": None,
+                    "independent_timeframe_only_head_allowed": False,
                 },
             },
         },

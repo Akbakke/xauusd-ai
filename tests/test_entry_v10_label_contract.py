@@ -43,10 +43,8 @@ def test_direction_target_has_no_environment_switch() -> None:
     assert "GX1_ENTRY_DIRECTION_TARGET_MODE" not in source
     assert "GX1_ENTRY_DIRECTION_UTILITY_" not in source
     assert '--early_move_threshold_bps' not in source
-    assert (
-        "_DIAGNOSTIC_OUTCOME_TARGET_MODE = "
-        f'"{builder._DIAGNOSTIC_OUTCOME_TARGET_MODE}"'
-    ) in source
+    assert "ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE" in source
+    assert "entry_direction_diagnostic_outcome_contract" in source
 
 
 def test_final_direction_label_horizon_array_uses_emitted_target_horizon() -> None:

@@ -810,8 +810,14 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
             "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
-            "direction_path": "family context -> pre-cross specialist token -> specialist cross-attention -> dynamic specialist gate -> specialist+five-TF cross-attention -> 96-value learned evidence fusion -> calibrated LONG/SHORT/FLAT argmax",
-            "independent_timeframe_only_head": "mtf_direction",
+            "direction_path": (
+                "family context -> pre-cross specialist token -> specialist "
+                "cross-attention -> dynamic specialist gate -> specialist+five-TF "
+                "cross-attention -> 96-value learned evidence fusion -> fitted-Q "
+                "LONG/SHORT/FLAT action-value head"
+            ),
+            "independent_timeframe_only_head": None,
+            "independent_timeframe_only_head_allowed": False,
         },
     }
 

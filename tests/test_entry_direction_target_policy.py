@@ -8,9 +8,11 @@ import pytest
 
 from gx1.contracts.entry_direction_target_policy_v1 import (
     canonical_entry_target_policy_sha256,
+    entry_direction_diagnostic_outcome_contract,
     entry_direction_targets_from_policy,
     fit_entry_direction_target_policy,
     require_entry_direction_target_policy,
+    require_entry_direction_diagnostic_outcome_manifest_binding,
 )
 from tests.entry_direction_target_policy_support import (
     entry_direction_target_policy_fixture,
@@ -121,3 +123,65 @@ def test_entry_direction_target_application_has_no_manual_utility_formula() -> N
     )
     assert result["direction"].tolist() == [2, 0, 1]
     assert result["trade"].tolist() == [False, True, True]
+
+
+def _diagnostic_manifest_extra(policy: dict[str, object]) -> dict[str, object]:
+    projection = entry_direction_diagnostic_outcome_contract(policy)
+    return {
+        **projection,
+        "diagnostic_outcome_labels": {
+            **projection,
+            "diagnostic_outcome_target_provenance": {
+                "source": "future_executable_pnl_outcomes_only",
+                "feature_derived_rewrite_count": 0,
+                "forced_utility_order_count": 0,
+            },
+        },
+    }
+
+
+def test_diagnostic_projection_replaces_retired_full_policy_manifest_binding() -> None:
+    policy = entry_direction_target_policy_fixture()
+    extra = _diagnostic_manifest_extra(policy)
+
+    observed = require_entry_direction_diagnostic_outcome_manifest_binding(
+        extra,
+        expected_direction_policy_sha256=policy["policy_sha256"],
+    )
+
+    assert observed["decision"] == "PASS"
+    assert observed["policy_sha256"] == policy["policy_sha256"]
+    assert observed["selected_direction_horizon_bars"] == policy[
+        "selected_direction_horizon_bars"
+    ]
+    assert observed["entry_action_authority"] is False
+
+
+def test_diagnostic_projection_rejects_split_brain_and_legacy_authority() -> None:
+    policy = entry_direction_target_policy_fixture()
+
+    split_brain = _diagnostic_manifest_extra(policy)
+    split_brain["diagnostic_side_margin_floor_bps"] = 999.0
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_DIAGNOSTIC_OUTCOME_PROJECTION_MISMATCH",
+    ):
+        require_entry_direction_diagnostic_outcome_manifest_binding(split_brain)
+
+    legacy = _diagnostic_manifest_extra(policy)
+    legacy["entry_direction_target_policy"] = policy
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_DIAGNOSTIC_OUTCOME_RETIRED_POLICY_PRESENT",
+    ):
+        require_entry_direction_diagnostic_outcome_manifest_binding(legacy)
+
+    wrong_hash = _diagnostic_manifest_extra(policy)
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_DIAGNOSTIC_OUTCOME_POLICY_HASH_MISMATCH",
+    ):
+        require_entry_direction_diagnostic_outcome_manifest_binding(
+            wrong_hash,
+            expected_direction_policy_sha256="f" * 64,
+        )

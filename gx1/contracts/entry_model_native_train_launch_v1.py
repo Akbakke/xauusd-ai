@@ -27,9 +27,11 @@ from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_contract,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION,
@@ -1161,11 +1163,11 @@ def _validate_audits(
     _require(
         isinstance(target_heads, Mapping)
         and tuple(target_heads.get("extra_active_target_heads") or ())
-        == MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+        == MODEL_NATIVE_EXTRA_ACTIVE_HEADS
         and all(
             (target_heads.get("extra_active_target_head_liveness") or {}).get(head)
             is True
-            for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
         ),
         "target audit extra active target-head proof failed",
     )

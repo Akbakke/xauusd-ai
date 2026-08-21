@@ -22,7 +22,6 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_TARGET_COLUMNS,
     MODEL_NATIVE_DIP_TARGET_COLUMNS,
-    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
@@ -39,7 +38,12 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     require_dataset_split_artifacts,
 )
 from gx1.contracts.entry_direction_target_policy_v1 import (
-    require_entry_direction_target_manifest_binding,
+    require_entry_direction_diagnostic_outcome_manifest_binding,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
 )
 from gx1.contracts.entry_position_size_target_policy_v1 import (
     entry_position_size_targets_from_policy,
@@ -143,37 +147,33 @@ REQUIRED_TARGET_COLUMNS = tuple(
     )
 )
 
-BASE_ACTIVE_TRAINING_HEADS = (
-    "direction",
-    "tradable",
-    "path_quality",
-    "mfe_first_n",
-    "bad_path",
-    "clean_edge",
-    "survival",
+BASE_ACTIVE_TRAINING_HEADS = MODEL_NATIVE_BASE_ACTIVE_HEADS
+EXPECTED_ACTIVE_AUX_HEADS = tuple(
+    head
+    for head in MODEL_NATIVE_BASE_ACTIVE_HEADS
+    if head != "entry_action_q"
 )
-EXPECTED_ACTIVE_AUX_HEADS = (
-    "path_quality_log_var",
-    "position_size",
-    "dip",
-    "forecast",
-    "timing",
-    "tail_risk",
-    "vol_forecast",
-    "mtf_direction",
-)
-EXPECTED_BLOCKED_TARGET_HEADS = ("hold_horizon",)
-EXPECTED_EXTRA_ACTIVE_TARGET_HEADS = MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+EXPECTED_BLOCKED_TARGET_HEADS = MODEL_NATIVE_BLOCKED_HEADS
+EXPECTED_EXTRA_ACTIVE_TARGET_HEADS = MODEL_NATIVE_EXTRA_ACTIVE_HEADS
 HEAD_TARGET_COLUMNS = {
-    "path_quality_log_var": ("path_quality_bps",),
     "position_size": ("y_position_size_target", "y_position_size_mask"),
-    "hold_horizon": ("y_hold_horizon_target",),
     "dip": MODEL_NATIVE_DIP_TARGET_COLUMNS,
     "forecast": MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
     "timing": MODEL_NATIVE_TIMING_TARGET_COLUMNS,
     "tail_risk": MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     "vol_forecast": MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
-    "mtf_direction": ("y_direction",),
+    "side_mae": (
+        "y_long_expected_mae_bps",
+        "y_short_expected_mae_bps",
+    ),
+    "trendline_event": (
+        "y_line_support_touch_held",
+        "y_line_support_touch_mask",
+        "y_line_resistance_touch_held",
+        "y_line_resistance_touch_mask",
+        "y_countertrend_short_trap",
+        "y_countertrend_long_trap",
+    ),
 }
 
 
@@ -513,18 +513,21 @@ def _head_liveness(frames: list[pd.DataFrame]) -> dict[str, Any]:
 
 def _head_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
     head_liveness = _head_liveness(frames)
-    expected_active = list(BASE_ACTIVE_TRAINING_HEADS + EXPECTED_ACTIVE_AUX_HEADS)
+    expected_active = list(BASE_ACTIVE_TRAINING_HEADS)
     expected_blocked = list(EXPECTED_BLOCKED_TARGET_HEADS)
-    blocked_reasons: dict[str, str] = {}
-    for head in expected_blocked:
-        live = bool((head_liveness.get(head) or {}).get("live_all_splits"))
-        blocked_reasons[head] = (
-            "target is intentionally blocked until liveness is non-constant in every split"
-            if not live
-            else "target is live but wrapper contract still blocks this head pending explicit approval"
+    blocked_reasons = {
+        head: (
+            "retired by the exact model-native readiness contract; serialized "
+            "diagnostic liveness cannot reactivate a blocked head"
         )
+        for head in expected_blocked
+    }
     return {
         "base_active_heads": list(BASE_ACTIVE_TRAINING_HEADS),
+        "entry_action_q_target_source": (
+            "frozen_exit_first_state_target_model_materialized_at_train_time"
+        ),
+        "entry_action_q_serialized_in_dataset": False,
         "expected_active_aux_heads": list(EXPECTED_ACTIVE_AUX_HEADS),
         "expected_blocked_target_heads": expected_blocked,
         "active_training_heads": expected_active,
@@ -772,27 +775,15 @@ def _entry_direction_policy_from_split_manifest(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError("split manifest is not an object")
     extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
-    source_frame = (
-        extra.get("source_frame")
-        if isinstance(extra.get("source_frame"), dict)
-        else {}
+    position_policy = extra.get("entry_position_size_target_policy")
+    expected_policy_sha256 = (
+        position_policy.get("entry_direction_target_policy_sha256")
+        if isinstance(position_policy, Mapping)
+        else None
     )
-    source_sha256 = str(source_frame.get("parquet_sha256") or "")
-    provenance = extra.get("xau_tape_provenance")
-    if len(source_sha256) != 64 or not isinstance(provenance, dict):
-        raise RuntimeError("split manifest target-policy source binding missing")
-    splits = payload.get("splits")
-    train_window = (
-        splits.get("train")
-        if isinstance(splits, dict) and isinstance(splits.get("train"), dict)
-        else {}
-    )
-    return require_entry_direction_target_manifest_binding(
+    return require_entry_direction_diagnostic_outcome_manifest_binding(
         extra,
-        expected_source_parquet_sha256=source_sha256,
-        expected_tape_provenance_sha256=canonical_json_sha256(provenance),
-        expected_train_start=train_window.get("start"),
-        expected_train_end=train_window.get("end"),
+        expected_direction_policy_sha256=expected_policy_sha256,
     )
 
 
@@ -811,14 +802,19 @@ def _entry_position_size_policy_from_split_manifest(
         if isinstance(splits, dict) and isinstance(splits.get("train"), dict)
         else {}
     )
+    source_frame = (
+        extra.get("source_frame")
+        if isinstance(extra.get("source_frame"), dict)
+        else {}
+    )
+    source_sha256 = str(source_frame.get("parquet_sha256") or "")
+    provenance = extra.get("xau_tape_provenance")
+    if len(source_sha256) != 64 or not isinstance(provenance, dict):
+        raise RuntimeError("split manifest target-policy source binding missing")
     return require_entry_position_size_target_manifest_binding(
         extra,
-        expected_source_parquet_sha256=direction_policy[
-            "source_parquet_sha256"
-        ],
-        expected_tape_provenance_sha256=direction_policy[
-            "tape_provenance_sha256"
-        ],
+        expected_source_parquet_sha256=source_sha256,
+        expected_tape_provenance_sha256=canonical_json_sha256(provenance),
         expected_direction_policy_sha256=direction_policy["policy_sha256"],
         expected_train_start=train_window.get("start"),
         expected_train_end=train_window.get("end"),
@@ -1037,7 +1033,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.extend(xau_side_quality_contract["failures"])
     for head in EXPECTED_ACTIVE_AUX_HEADS:
         if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
-            failures.append(f"expected active optional head target is not live in all splits: {head}")
+            failures.append(
+                "expected active model-native head target is not live in all "
+                f"splits: {head}"
+            )
+    for head in EXPECTED_EXTRA_ACTIVE_TARGET_HEADS:
+        if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
+            failures.append(
+                "expected extra active model-native head target is not live "
+                f"in all splits: {head}"
+            )
     for head in EXPECTED_BLOCKED_TARGET_HEADS:
         if head not in set(target_head_contract["blocked_heads"]):
             failures.append(f"expected blocked optional head missing from blocked_heads: {head}")
@@ -1046,10 +1051,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     target_contract = {
         "direction_target": (
-            "TRAIN-fitted executable-PnL policy; no caller horizon or threshold"
+            "frozen fitted-Q Exit teacher materialized at train time; serialized "
+            "fixed-horizon direction labels are diagnostics only"
         ),
-        "entry_direction_target_policy": baseline_policy,
-        "entry_direction_target_policy_sha256": (
+        "diagnostic_outcome_policy_projection": baseline_policy,
+        "diagnostic_outcome_policy_sha256": (
             baseline_policy["policy_sha256"]
             if baseline_policy is not None
             else None
@@ -1064,7 +1070,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if baseline_policy is not None
             else None
         ),
-        "bad_path_role": "separate head plus sizing/gating diagnostic; do not fold into direction accuracy",
+        "bad_path_role": (
+            "retired scalar selected-side diagnostic plus live side-specific "
+            "risk outcomes; never an active prediction head"
+        ),
         "trading_objective": "offline replay/PnL/drawdown/tail-risk, not validation accuracy alone",
         "active_training_heads": target_head_contract["active_training_heads"],
         "blocked_heads": target_head_contract["blocked_heads"],

@@ -34,7 +34,6 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     require_foundation_audit_report_policy,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
     require_model_native_aux_target_contract,
 )
@@ -50,6 +49,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT_SHA256,
     model_native_readiness_contract_metadata,
@@ -557,13 +557,13 @@ def _input_audit_contract(
             if tuple(contract.get("blocked_heads") or ()) != tuple(MODEL_NATIVE_BLOCKED_HEADS):
                 failures.append("target audit blocked-head set/order mismatch")
             if tuple(contract.get("extra_active_target_heads") or ()) != tuple(
-                MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                MODEL_NATIVE_EXTRA_ACTIVE_HEADS
             ):
                 failures.append("target audit extra target-head set/order mismatch")
             if not all(
                 (contract.get("extra_active_target_head_liveness") or {}).get(head)
                 is True
-                for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
             ):
                 failures.append("target audit extra target-head liveness is unproven")
         try:

@@ -16,17 +16,19 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V39 ended RED after dataset rebuild on 2026-08-21.** It proved the Group-A
-and compact-lifecycle repairs on fresh bytes, passed preflight/cross-surface v3,
-wrote TRAIN/VAL/TEST (283,787 / 76,577 / 6,556 rows), materialized seven compact
-lifecycle files in 29.0 MB and passed full-input liveness. The post-build v5
-pretrain audit alone failed: selected-side `y_bad_path` was constant zero. Full
-TRAIN/VAL scans proved why: the positive-PnL direction policy cannot select a
-side whose bad-path definition is negative horizon PnL; both counterfactual
-side targets were live and scalar copy mismatches were zero. Audit v6 makes the
-parked diagnostic exemption explicit while requiring finite scalar bytes,
-exact selected-side copy and live side sources. Adversarial tests and a capped
-diagnostic V39 replay pass. V39 remains invalid; never resume or consume it.
+**V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
+(283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and
+passed preflight, cross-surface v3, full-input liveness and pretrain v6. The
+report-only post-rebuild gate is READY and did not open TEST bytes. Foundation
+feature, target-v4 and specialist audits pass on exact TRAIN/VAL bytes: all
+eight specialists, every routed feature and every serialized active target are
+finite and live. The exact output surface is fitted-Q plus sizing, dip,
+forecast, timing, tail-risk, volatility, side-MAE and trendline-event heads;
+legacy direction/tradable/path/bad-path/MTF heads are blocked. A stale audit
+split that simultaneously advertised those retired heads and blocked
+`mtf_direction` while naming it independent was removed; trainer and gates now
+reject it. **V40 is not admitted yet**; remaining admission/smoke evidence must
+pass under the committed repair. V34–V39 remain invalid.
 
 Everything below the chain is unchanged: no model has ever been trained on this
 substrate, and `train==serve` has never been proven (see below).
@@ -122,8 +124,8 @@ weight exists.
 
 ## What remains empirically unproven or unadmitted
 
-- No dataset, model, calibration, edge, PnL or win-rate. V39's completed bytes
-  and diagnostic PASS may inform diagnosis but are not admissible evidence. The M5
+- No admitted dataset, model, calibration, edge, PnL or win-rate. V40's bytes
+  pass the current foundation audits but admission is incomplete. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.
@@ -142,8 +144,7 @@ weight exists.
   input against its actually routed MTF last-closed values. Entry excludes M5
   from its MTF route, so those 49 pairs are reported as inactive physical
   overlap; any undeclared duplicate on an active route fails closed. V36's v2
-  RED motivated the repair; V38/V39 supplied fresh v3 passes, but neither
-  terminal lineage admits a dataset.
+  RED motivated the repair; V40 supplies the fresh v3 pass.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one
@@ -229,10 +230,10 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Start one fresh successor chain; never resume V34 through V39.**
-   `V39_20260821T045847Z` is terminal RED after post-build audit. The successor
-   must use a new event root and audit v6; it may not inherit any V34–V39 cache,
-   ranking, checkpoint, manifest, surface, report, lifecycle or split.
+3. ~~Run the fresh audit-v6 successor chain; never resume V34–V39.~~ V40 is
+   terminal GREEN. Keep building/training stopped until its remaining exact
+   foundation/admission evidence passes under the committed head-contract
+   repair; do not rebuild V40 merely to change a report-only consumer.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit
@@ -244,7 +245,9 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    VAL also spans the 2025–2026 volatility expansion (median M5 bar range ~2.5 →
    ~5.1 USD) by design, so it tests regime transfer, not just fit.
    Derivations: `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
-5. Re-measure every field against real bytes for a final liveness verdict.
+5. ~~Re-measure every field and target against real TRAIN/VAL bytes.~~ Feature,
+   target-v4 and specialist audits pass; still run the remaining admission and
+   smoke gates before training.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a

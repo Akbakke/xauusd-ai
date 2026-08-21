@@ -209,6 +209,8 @@ def _audit_payload() -> dict:
             "recommended_fusion": {
                 "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
                 "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
+                "independent_timeframe_only_head": None,
+                "independent_timeframe_only_head_allowed": False,
             },
         },
     }
@@ -630,6 +632,26 @@ def test_entry_v10_specialist_loader_rejects_tampered_model_contract(tmp_path: P
     payload["specialist_model_contract"]["structure_swing_encoder"]["owned_objectives"] = []
 
     with pytest.raises(RuntimeError, match="SPECIALIST_MODEL_CONTRACT_INVALID"):
+        _load_specialist_fusion_contract(
+            _write_audit(tmp_path, payload),
+            expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+            ordered_signal_names=_ordered_signal_names(),
+            contract_mode=MODEL_NATIVE_CONTRACT_MODE,
+        )
+
+
+def test_entry_v10_specialist_loader_rejects_retired_mtf_direction_head(
+    tmp_path: Path,
+) -> None:
+    payload = _audit_payload()
+    fusion = payload["architecture_contract"]["recommended_fusion"]
+    fusion["independent_timeframe_only_head"] = "mtf_direction"
+    fusion["independent_timeframe_only_head_allowed"] = True
+
+    with pytest.raises(
+        RuntimeError,
+        match="SPECIALIST_RETIRED_MTF_DIRECTION_HEAD_PRESENT",
+    ):
         _load_specialist_fusion_contract(
             _write_audit(tmp_path, payload),
             expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,

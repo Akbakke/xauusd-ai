@@ -28,7 +28,6 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     require_foundation_audit_report_policy,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
 )
 from gx1.contracts.entry_fitted_q_v1 import (
@@ -44,6 +43,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
     TRAIN_WRAPPER_RELATIVE_PATH,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     DIRECTION_CONTEXT_SLICE_CONTRACT,
@@ -63,8 +68,6 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    SPECIALIST_FUSION_ACTIVE_HEADS,
-    SPECIALIST_FUSION_BLOCKED_HEADS,
     required_training_specialists_for_mode,
     specialist_model_contract_for_mode,
 )
@@ -395,10 +398,10 @@ def _target_aux_contract_report(report: dict[str, Any]) -> dict[str, Any]:
             failures.append(str(exc))
     heads = _target_head_contract(report)
     if tuple(heads.get("extra_active_target_heads") or ()) != tuple(
-        MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+        MODEL_NATIVE_EXTRA_ACTIVE_HEADS
     ) or not all(
         (heads.get("extra_active_target_head_liveness") or {}).get(head) is True
-        for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+        for head in MODEL_NATIVE_EXTRA_ACTIVE_HEADS
     ):
         failures.append("extra active target-head liveness is unproven")
     return {
@@ -406,7 +409,7 @@ def _target_aux_contract_report(report: dict[str, Any]) -> dict[str, Any]:
         "failures": failures,
         "required_schema_version": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
         "required_extra_active_target_heads": list(
-            MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            MODEL_NATIVE_EXTRA_ACTIVE_HEADS
         ),
     }
 
@@ -924,6 +927,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     target_active_heads = {str(x) for x in target_head_contract.get("active_training_heads") or []}
     target_blocked_heads = {str(x) for x in target_head_contract.get("blocked_heads") or []}
     specialist_active_heads, specialist_blocked_heads = _recommended_heads(specialist)
+    specialist_architecture = (
+        specialist.get("architecture_contract")
+        if isinstance(specialist.get("architecture_contract"), dict)
+        else {}
+    )
+    specialist_fusion = (
+        specialist_architecture.get("recommended_fusion")
+        if isinstance(specialist_architecture.get("recommended_fusion"), dict)
+        else {}
+    )
     specialist_rows = _liveness_rows(specialist)
     feature_rows = _liveness_rows(feature)
     smoke_splits = smoke_manifest.get("splits") if isinstance(smoke_manifest.get("splits"), dict) else {}
@@ -1115,8 +1128,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart target head contract is exact active/blocked set",
-                    target_active_heads == set(SPECIALIST_FUSION_ACTIVE_HEADS)
-                    and target_blocked_heads == set(SPECIALIST_FUSION_BLOCKED_HEADS)
+                    target_active_heads == set(MODEL_NATIVE_BASE_ACTIVE_HEADS)
+                    and target_blocked_heads == set(MODEL_NATIVE_BLOCKED_HEADS)
                     and not (target_active_heads & target_blocked_heads),
                     {
                         "active": sorted(target_active_heads),
@@ -1162,8 +1175,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart specialist active and blocked heads are exact",
-                    specialist_active_heads == set(SPECIALIST_FUSION_ACTIVE_HEADS)
-                    and specialist_blocked_heads == set(SPECIALIST_FUSION_BLOCKED_HEADS)
+                    specialist_active_heads == set(MODEL_NATIVE_ACTIVE_HEADS)
+                    and specialist_blocked_heads == set(MODEL_NATIVE_BLOCKED_HEADS)
+                    and specialist_fusion.get("independent_timeframe_only_head")
+                    is None
+                    and specialist_fusion.get(
+                        "independent_timeframe_only_head_allowed"
+                    )
+                    is False
                     and not (specialist_active_heads & specialist_blocked_heads),
                     {
                         "active": sorted(specialist_active_heads),

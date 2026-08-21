@@ -21,6 +21,7 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
@@ -214,7 +215,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
         AUDIT_EVENT_PREFIXES["target_audit"],
         "02.000002",
         {
-            "schema_version": "entry_target_foundation_audit_v3",
+            "schema_version": "entry_target_foundation_audit_v4",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -276,8 +277,10 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "architecture_contract": {
                 "input_dim": MODEL_NATIVE_SIGNAL_DIM,
                 "recommended_fusion": {
-                    "active_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
+                    "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
                     "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+                    "independent_timeframe_only_head": None,
+                    "independent_timeframe_only_head_allowed": False,
                 },
             },
         },
