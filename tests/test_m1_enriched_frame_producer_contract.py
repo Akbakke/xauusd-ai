@@ -363,6 +363,8 @@ def test_enriched_producer_can_satisfy_every_declared_ctx_cont_field() -> None:
         "_complete_v4_owned_context(",
         "_attach_ctx_cont_regime_projection(",
         "attach_group_a_ctx_columns_parallel(",
+        "_trim_group_a_causal_warmup(",
+        "_finish_model_native_surface(",
     )
     positions = [stage_source.index(call) for call in ordered_calls]
     assert positions == sorted(positions)
@@ -370,6 +372,53 @@ def test_enriched_producer_can_satisfy_every_declared_ctx_cont_field() -> None:
 
     projection_source = inspect.getsource(builder._attach_ctx_cont_regime_projection)
     assert "project_multi_tf_v4_scalars(" in projection_source
+
+
+def test_enriched_group_a_warmup_is_trimmed_as_one_honest_prefix() -> None:
+    """Long-memory Group-A absence is removed, never numerically filled."""
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+    )
+
+    builder = _load_builder()
+    index = pd.date_range("2026-01-01", periods=6, freq="1min", tz="UTC")
+    frame = pd.DataFrame(
+        {
+            name: np.array([np.nan, np.nan, 1.0, 2.0, 3.0, 4.0])
+            for name in MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
+        },
+        index=index,
+    )
+    frame["close"] = np.arange(len(index), dtype=np.float64)
+
+    out = builder._trim_group_a_causal_warmup(frame)
+
+    assert out.index.equals(index[2:])
+    assert out.attrs["causal_context_warmup_rows_trimmed"] == 2
+    assert np.isfinite(
+        out[list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS)].to_numpy()
+    ).all()
+    np.testing.assert_array_equal(out["close"], frame.loc[index[2]:, "close"])
+
+
+def test_enriched_group_a_warmup_trim_rejects_an_interior_gap() -> None:
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+    )
+
+    builder = _load_builder()
+    frame = pd.DataFrame(
+        {
+            name: np.ones(4, dtype=np.float64)
+            for name in MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
+        }
+    )
+    frame.loc[0, MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS[0]] = np.nan
+    frame.loc[2, MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS[0]] = np.nan
+
+    with pytest.raises(RuntimeError, match="not a contiguous warmup prefix"):
+        builder._trim_group_a_causal_warmup(frame)
 
 
 def test_enriched_regime_projection_binds_the_one_m5_source_owner() -> None:

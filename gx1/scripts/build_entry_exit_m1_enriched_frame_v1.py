@@ -43,6 +43,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
 )
 from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
@@ -1067,6 +1068,22 @@ def _finish_model_native_surface(
     return enriched
 
 
+def _trim_group_a_causal_warmup(enriched: pd.DataFrame) -> pd.DataFrame:
+    """Remove only the declared Group-A whole-row causal warmup prefix.
+
+    The Group-A owner deliberately emits NaN until every long-memory source is
+    available (currently the 60-D1 liquidity lookback is the longest source).
+    The final enriched-frame contract is fully finite, so the producer must
+    apply the shared fail-closed prefix owner after attach and before final
+    validation.  An interior gap remains corruption and raises.
+    """
+
+    return trim_causal_context_warmup_prefix(
+        enriched,
+        list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS),
+    )
+
+
 def _build_enriched_stage(
     *,
     native_stage: Path,
@@ -1231,6 +1248,8 @@ def _build_enriched_stage(
     )
     del canonical, context_m5
     _log_rss("after_group_a_attach")
+    enriched = _trim_group_a_causal_warmup(enriched)
+    _log_rss("after_group_a_warmup_trim")
     enriched = _finish_model_native_surface(enriched, timeframe=timeframe)
     _log_rss("after_finish_surface")
     _write_output_parquet_bounded(

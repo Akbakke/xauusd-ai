@@ -16,18 +16,17 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V36 ended RED during `dataset-rebuild` on 2026-08-20.**
-`V36_20260820T212215Z` passed preflight and rebuilt both native surfaces, then
-the repaired audit found 16 Entry and 14 Exit active exact duplicates. These
-were not new formulas: current closed-TF context used by gates and the same
-per-bar values used as MTF history lacked declared representation aliases.
-It also exposed a real byte defect: cache v29 dropped the compact scalar arrays,
-so M1 reconstructed D1 ATR/EMA state from trimmed M5 history and differed by a
-few float32 ULPs. Cache v30 now persists/hash-binds those original arrays; the
-M1 rebind/slice requires and preserves them, and overlap policy v3 derives both
-local paths from the feature owners. Formula, cache-tamper and slice tests cover
-the repair. V36 built **no dataset**; all its partial products are invalid and
-may not be resumed or consumed. `CHAIN_STATUS.json` remains telemetry only.
+**V37 ended RED in the native M1 enriched lane on 2026-08-21.** It was the
+fresh successor after V36 exposed the scalar-cache and representation-alias
+defects. V37 verified cache v30, completed M5, ranking and signal-manifest work,
+then stopped before cross-surface audit or dataset construction. All fourteen
+Group-A fields carried exactly one 76,207-row causal warmup prefix, 2019-11-08
+through 2020-01-31 21:58 UTC, with no later gap. The attach owner recorded that
+prefix but the enriched producer reached its all-finite gate without applying
+the shared trim owner. Source now performs that fail-closed trim before final
+validation; it never fills a value and still rejects an interior gap. V37 built
+**no dataset**; all V35/V36/V37 partial products are invalid and may not be
+resumed or consumed. `CHAIN_STATUS.json` remains telemetry only.
 
 Everything below the chain is unchanged: no model has ever been trained on this
 substrate, and `train==serve` has never been proven (see below).
@@ -114,11 +113,15 @@ weight exists.
   v30 stores a hash-bound float32 scalar matrix per TF. The M1 producer no longer
   recomputes Wilder/EMA state from a shorter history, and policy v3 declares only
   owner-derived current-value/history-lane aliases on both local input paths.
+- **The native enriched producer now consumes its Group-A warmup contract.** It
+  trims only the declared whole-row causal prefix after attach and before the
+  all-finite output gate; a later non-finite row fails closed.
 
 ## What remains empirically unproven or unadmitted
 
 - No dataset, model, calibration, edge, PnL or win-rate. V36 materialised native
-  M5 and M1 surfaces only inside a terminally invalid chain. They may inform
+  M5 and M1 surfaces only inside a terminally invalid chain; V37 published only
+  its partial M5-side lineage before the M1 failure. They may inform
   source diagnosis, but are not admissible dataset or model evidence. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
@@ -138,8 +141,9 @@ weight exists.
   input against its actually routed MTF last-closed values. Entry excludes M5
   from its MTF route, so those 49 pairs are reported as inactive physical
   overlap; any undeclared duplicate on an active route fails closed. V36 emitted
-  a v2 RED report which motivated the source repair; no fresh run has supplied a
-  v3 PASS, so this remains a source contract, not empirical admission.
+  a v2 RED report which motivated the source repair; V37 stopped before audit,
+  so no fresh run has supplied a v3 PASS. This remains a source contract, not
+  empirical admission.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one
@@ -225,11 +229,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Start one fresh successor chain; never resume V34, V35 or V36.**
-   `V36_20260820T212215Z` is terminal RED before dataset construction. The
+3. **Start one fresh successor chain; never resume V34, V35, V36 or V37.**
+   `V37_20260820T235850Z` is terminal RED before dataset construction. The
    successor must use a new event root and run the repaired full cross-surface
    active-input audit bound into the dataset proof; it may not inherit any V34
-   or V36 cache, ranking, manifest, surface, report or split.
+   through V37 cache, ranking, checkpoint, manifest, surface, report or split.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit

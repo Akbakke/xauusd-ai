@@ -71,6 +71,13 @@ between an un-pooled current scalar and its per-bar history lane are declared by
 derives both local representation paths from that owner; all other active exact
 duplicates remain failures.
 
+Group-A long-memory context is unavailable until every required causal source,
+including the 60-D1 liquidity lookback, exists. The attach owner represents
+that absence as one whole-row NaN prefix and records it; an enriched producer
+must apply `trim_causal_context_warmup_prefix` before its all-finite output gate.
+Numeric filling is forbidden, and any non-finite row after the first complete
+row is corruption.
+
 The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
 the same ordered field list at `MODEL_NATIVE_SIGNAL_DIM` width, and the
 TRAIN-rank reference hash used by the M5 Entry build.
@@ -121,9 +128,9 @@ three different `contract_sha256`, and the V31 chains bound
 `..._GEN1f9424_20260818T160532Z`, not the `..._20260818` set the documents named
 until 2026-08-19. Resolve the binding from the consuming run's own V4 cache
 manifest key `volatility_squeeze_artifact_set`. No downstream rebuild is
-admitted: V31 chains have run repeatedly since 2026-08-18 and every one that
-reached a terminal event ended RED, while the newest has no terminal event at
-all, so its partial output is invalid (rule 7).
+admitted: the newest V37 chain ended terminal RED in the M1 enriched lane
+before audit or dataset construction, so its partial output is invalid (rule
+7).
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through
