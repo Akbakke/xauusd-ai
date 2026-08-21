@@ -1291,7 +1291,11 @@ def _validate_exit_train_population(
         or np.any(np.diff(current_indices) <= 0)
         or np.any(np.diff(current_times) <= 0)
         or np.any(np.diff(source_times) <= 0)
-        or not np.array_equal(source_times[current_indices], current_times)
+        or not np.array_equal(
+            source_times[current_indices]
+            + int(EXIT_TARGET_AVAILABILITY_SHIFT.value),
+            current_times,
+        )
         or not np.isin(current_indices, local_indices).all()
     ):
         raise RuntimeError(

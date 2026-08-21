@@ -16,6 +16,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    EXIT_DECISION_BAR_SECONDS,
+)
 from gx1.contracts.unified_exit_lifecycle_v1 import UnifiedExitLifecycleSplit
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
@@ -236,7 +239,8 @@ class _FakeTrainExitLifecycle:
             "current_row_indices": self.current_indices,
             "current_decision_times_ns": self.source_times_ns[
                 self.current_indices
-            ],
+            ]
+            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
             "source_times_ns": self.source_times_ns,
             "local_merged_intervals": ((21, 551),),
         }
@@ -412,6 +416,11 @@ def test_lifecycle_exposes_unique_train_m1_windows_without_surface_copy() -> Non
     np.testing.assert_array_equal(
         population["local_row_indices"],
         np.arange(21, 1032, dtype=np.int64),
+    )
+    np.testing.assert_array_equal(
+        population["current_decision_times_ns"],
+        population["source_times_ns"][population["current_row_indices"]]
+        + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
     )
     assert population["signal"] is lifecycle._m1_features["signal"]
     assert population["ctx_cont"] is lifecycle._m1_features["ctx_cont"]
