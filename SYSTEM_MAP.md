@@ -122,7 +122,9 @@ The M1 and M5 sources are one immutable generation pair. Dataset splits share
 the same run ID and boundaries. Entry and Exit share TRAIN normalization and
 the exact ordered signal-manifest identity, while their computed values remain
 native to each clock. Exit episodes point into the hash-bound M1 surface; they
-do not duplicate paths.
+do not duplicate paths or deterministic 512-state vectors. The compact episode
+envelope stores scalar pointers; validation reconstructs every state from the
+same immutable M1 clock and verifies its population stream.
 
 Exit supervision has no caller-selected lookahead and **no fitted horizon at
 all**. Every one of the 512 states of every episode is supervised by
@@ -136,11 +138,10 @@ with a TRAIN-median-spread indifference band and a 1..512 discovery-curve knee;
 no such owner has ever existed in source, and
 `tests/test_entry_v10_outcome_targets.py` asserts its absence in the builder.
 
-The current published source authority is pair generation
-`9b18e215061b0310bc0b9e962b00cfc2710f86e9484f3cee66f953f0077232cd`
-(published 2026-08-09; the 2026-08-04 parent `64d62c1f…` is untouched
-history). One rank artifact is fit
-from its canonical M5 market fields; the final model source must prove exact
+The current published source authority is resolved from
+`PROJECT_STATE_xau_direction_launch.json`; this map deliberately restates no
+generation ID. One rank artifact is fit from its canonical M5 market fields;
+the final model source must prove exact
 market identity through TRAIN before either ranking or dataset construction.
 
 The Exit row clock is consecutive authoritative observed M1 rows. Weekend and
@@ -240,11 +241,10 @@ source pair
 
 Failure at any arrow stops the chain. Fresh native and canonical source
 exists. Historical V28/V29J datasets were retired with their superseded
-feature contracts and have no training or comparison authority. V31 rebuild
-chains have run repeatedly since 2026-08-18 under
-`/home/andre2/GX1_DATA/data/data/prebuilt/V31_CHAIN_*`; every one that reached
-a terminal event ended RED, and the newest has no terminal event at all, so its
-partial output is invalid (rule 7). No admitted dataset and no accepted
+feature contracts and have no training or comparison authority. V38 passed
+preflight and cross-surface audit v3, then was controlled-ABORTED during
+dataset construction before lifecycle/VAL/TEST completion; its partial output
+is invalid (rule 7). No admitted dataset and no accepted
 candidate exist. The first arrow — feature/cache/liveness proofs — is also not
 yet passed for train==serve: the serve-parity gate has never executed (zero
 events on disk, measured 2026-08-19).

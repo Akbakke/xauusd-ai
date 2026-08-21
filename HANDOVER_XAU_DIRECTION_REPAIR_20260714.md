@@ -16,16 +16,16 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V37 ended RED in the native M1 enriched lane on 2026-08-21.** It was the
-fresh successor after V36 exposed the scalar-cache and representation-alias
-defects. V37 verified cache v30, completed M5, ranking and signal-manifest work,
-then stopped before cross-surface audit or dataset construction. All fourteen
-Group-A fields carried exactly one 76,207-row causal warmup prefix, 2019-11-08
-through 2020-01-31 21:58 UTC, with no later gap. The attach owner recorded that
-prefix but the enriched producer reached its all-finite gate without applying
-the shared trim owner. Source now performs that fail-closed trim before final
-validation; it never fills a value and still rejects an interior gap. V37 built
-**no dataset**; all V35/V36/V37 partial products are invalid and may not be
+**V38 was controlled-ABORTED during dataset rebuild on 2026-08-21.** It proved
+the V37 Group-A warmup repair on fresh bytes, completed both feature surfaces,
+passed preflight and produced the first cross-surface audit v3 PASS. TRAIN then
+wrote 283,787 rows, but lifecycle construction duplicated five deterministic
+512-state arrays as Python lists for every side/entry and grew linearly toward
+the 10G cap. It was stopped at 7.3 GiB before lifecycle, VAL or TEST completion.
+The episode envelope now stores compact M1 pointers and reconstructs the same
+full state population from the hash-bound clock. A full-TRAIN scale proof built
+564,510 episodes / 289,029,120 logical states in 1.81s at 1.43 GiB RSS; the
+DataFrame was 136 MB and parquet 21.9 MB. V38 remains invalid and may not be
 resumed or consumed. `CHAIN_STATUS.json` remains telemetry only.
 
 Everything below the chain is unchanged: no model has ever been trained on this
@@ -116,13 +116,15 @@ weight exists.
 - **The native enriched producer now consumes its Group-A warmup contract.** It
   trims only the declared whole-row causal prefix after attach and before the
   all-finite output gate; a later non-finite row fails closed.
+- **Lifecycle storage is compact and source-derived.** Episode rows persist
+  scalar M1 pointers, not five repeated 512-state Python lists; validation
+  re-derives every state clock and hashes the compact population contract.
 
 ## What remains empirically unproven or unadmitted
 
-- No dataset, model, calibration, edge, PnL or win-rate. V36 materialised native
-  M5 and M1 surfaces only inside a terminally invalid chain; V37 published only
-  its partial M5-side lineage before the M1 failure. They may inform
-  source diagnosis, but are not admissible dataset or model evidence. The M5
+- No dataset, model, calibration, edge, PnL or win-rate. V38's surfaces, audit
+  PASS and partial TRAIN may inform source diagnosis but are not admissible
+  dataset or model evidence. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.
@@ -140,10 +142,9 @@ weight exists.
   pre-build cross-surface full scan hashes every active Entry-M5 and Exit-M1
   input against its actually routed MTF last-closed values. Entry excludes M5
   from its MTF route, so those 49 pairs are reported as inactive physical
-  overlap; any undeclared duplicate on an active route fails closed. V36 emitted
-  a v2 RED report which motivated the source repair; V37 stopped before audit,
-  so no fresh run has supplied a v3 PASS. This remains a source contract, not
-  empirical admission.
+  overlap; any undeclared duplicate on an active route fails closed. V36's v2
+  RED motivated the repair; V38 supplied a fresh v3 PASS, but its aborted
+  lineage does not admit a dataset.
 - **Six-clock squeeze**: the 2026-08-15 artifacts were absorbing under the
   runtime decoder on all six clocks — M1 emitted **one** release in 352,193 TRAIN
   bars. The cause was the decoder, not the parameters; fit and serve now share one
@@ -229,11 +230,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. **Start one fresh successor chain; never resume V34, V35, V36 or V37.**
-   `V37_20260820T235850Z` is terminal RED before dataset construction. The
+3. **Start one fresh successor chain; never resume V34 through V38.**
+   `V38_20260821T013710Z` is terminal ABORTED during dataset construction. The
    successor must use a new event root and run the repaired full cross-surface
    active-input audit bound into the dataset proof; it may not inherit any V34
-   through V37 cache, ranking, checkpoint, manifest, surface, report or split.
+   through V38 cache, ranking, checkpoint, manifest, surface, report or split.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit

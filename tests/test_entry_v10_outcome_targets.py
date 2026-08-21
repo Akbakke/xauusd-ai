@@ -890,6 +890,14 @@ def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() ->
         "both_sides_for_every_causal_entry_snapshot"
     )
     assert proof["path_values_duplicated_into_episode_artifact"] is False
+    assert proof["state_vectors_duplicated_into_episode_artifact"] is False
+    assert not {
+        "state_indices",
+        "decision_row_indices",
+        "state_row_time_ns",
+        "decision_time_ns",
+        "state_valid_mask",
+    }.intersection(episodes.columns)
     assert len(proof["state_population_stream_sha256"]) == 64
     assert (
         proof["state_population_stream_sha256"]
@@ -912,7 +920,7 @@ def test_unified_exit_full_state_population_is_outcome_independent() -> None:
     )
 
     assert UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION == (
-        "gx1_unified_exit_full_authoritative_state_population_v1"
+        "gx1_unified_exit_full_authoritative_state_pointer_population_v2"
     )
     np.testing.assert_array_equal(baseline["state_indices"], np.arange(512))
     assert baseline["state_valid_mask"].all()
@@ -942,30 +950,21 @@ def test_unified_exit_full_state_population_is_outcome_independent() -> None:
         )
 
 
-def test_unified_exit_population_rejects_omit_reorder_and_state_512() -> None:
+def test_unified_exit_population_rejects_omitted_state_and_pointer_tamper() -> None:
     _split, episodes, proof, source = _in_memory_full_exit_split()
 
     mutations: list[pd.DataFrame] = []
     omitted = episodes.copy()
-    omitted.at[0, "decision_row_indices"] = list(
-        omitted.at[0, "decision_row_indices"][:-1]
-    )
+    omitted.loc[0, "path_state_count"] = 511
     mutations.append(omitted)
-    reordered = episodes.copy()
-    state_indices = list(reordered.at[0, "state_indices"])
-    state_indices[-2:] = state_indices[-2:][::-1]
-    reordered.at[0, "state_indices"] = state_indices
-    mutations.append(reordered)
-    state_512 = episodes.copy()
-    state_indices = list(state_512.at[0, "state_indices"])
-    state_indices[-1] = 512
-    state_512.at[0, "state_indices"] = state_indices
-    mutations.append(state_512)
+    shifted = episodes.copy()
+    shifted.loc[[0, 1], "m1_start_row"] += 1
+    mutations.append(shifted)
 
     for mutated in mutations:
         with pytest.raises(
             RuntimeError,
-            match="STATE_POPULATION",
+            match="EPISODE_VALUE_INVALID|POINTER_TIME_MISMATCH",
         ):
             _in_memory_full_exit_split(
                 source=source,
@@ -981,11 +980,19 @@ def test_unified_exit_population_rejects_omit_reorder_and_state_512() -> None:
             proof=proof,
         )
 
-    ordered_population = [
-        (int(row.side_index), int(state))
-        for row in episodes.itertuples(index=False)
-        for state in row.state_indices
-    ]
+    source_times = pd.DatetimeIndex(
+        pd.to_datetime(source["time"], utc=True, errors="raise")
+    )
+    ordered_population = []
+    for row in episodes.itertuples(index=False):
+        population = unified_exit_state_population_arrays(
+            m1_times=source_times,
+            m1_start_row=int(row.m1_start_row),
+        )
+        ordered_population.extend(
+            (int(row.side_index), int(state))
+            for state in population["state_indices"]
+        )
     assert len(ordered_population) == 1024
     assert ordered_population[511] == (0, 511)
     assert ordered_population[512] == (1, 0)
@@ -1258,7 +1265,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     assert corpus.evidence["future_outcomes_used_as_model_inputs"] is False
     assert corpus.evidence["sample_selection_depends_on_future_target"] is False
     assert corpus.evidence["training_population"] == (
-        "gx1_unified_exit_full_authoritative_state_population_v1"
+        "gx1_unified_exit_full_authoritative_state_pointer_population_v2"
     )
     assert corpus.evidence["validation_population"] == "all_authoritative_states"
     assert corpus.evidence["test_population"] == "all_authoritative_states"
@@ -1268,14 +1275,12 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
 
     # TEST is sealed and semantically validated even though this consumer only
     # selected TRAIN/VAL. Re-sealing every ordinary file hash cannot bless an
-    # omitted/reordered state against the source-recomputed population proof.
+    # source-invalid pointers against the source-recomputed population proof.
     test_lifecycle_path = (
         lifecycle_dir / "test_unified_exit_lifecycle.parquet"
     )
     tampered_test = pd.read_parquet(test_lifecycle_path)
-    tampered_states = list(tampered_test.at[0, "state_indices"])
-    tampered_states[-2:] = tampered_states[-2:][::-1]
-    tampered_test.at[0, "state_indices"] = tampered_states
+    tampered_test.loc[[0, 1], "m1_start_row"] += 1
     tampered_test.to_parquet(test_lifecycle_path, index=False)
     test_manifest_path = (
         lifecycle_dir / "test_unified_exit_lifecycle.manifest.json"
@@ -1301,7 +1306,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         json.dumps(resealed_root, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    with pytest.raises(RuntimeError, match="STATE_POPULATION_MISMATCH"):
+    with pytest.raises(RuntimeError, match="POINTER_TIME_MISMATCH"):
         UnifiedExitLifecycleCorpus(
             root_manifest_path=root_manifest,
             entry_parquets={

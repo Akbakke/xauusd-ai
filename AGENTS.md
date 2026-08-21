@@ -77,12 +77,15 @@ Read `GX1_RULES.md` first. It is binding.
   `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V36 reached the
   pre-dataset cross-surface audit and ended RED; cache v30 and overlap policy v3
   repaired the scalar-byte and representation-alias defects it exposed. The
-  fresh V37 successor then ended terminal RED in the M1 enriched lane before
-  audit or dataset construction: all fourteen Group-A fields had one honest
-  76,207-row causal warmup prefix which the producer recorded but failed to
-  trim. The producer now applies the shared fail-closed prefix owner before its
-  all-finite gate. V35/V36/V37 partial surfaces, caches, rankings and manifests
-  are invalid resume/consumer input (rule 7). No admitted dataset exists.
+  V37 then exposed an untrimmed honest Group-A causal warmup prefix; the shared
+  fail-closed prefix owner repaired it. Fresh V38 passed that M1 route,
+  preflight and cross-surface audit v3, then was controlled-ABORTED during
+  dataset construction before lifecycle/VAL/TEST completion. The lifecycle
+  builder duplicated five deterministic 512-state arrays into Python lists per
+  episode and grew without a feasible 10G bound. Its compact pointer envelope
+  now reconstructs the same full population from the hash-bound M1 clock;
+  full-TRAIN scale proof stays under 4G. V35/V36/V37/V38 partial products are
+  invalid resume/consumer input (rule 7). No admitted dataset exists.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -111,7 +114,7 @@ Read `GX1_RULES.md` first. It is binding.
   implementation or a live/shadow-trading route.
 - V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
   stopped safely. Source/lifecycle fixes invalidate V8/V13/V18, and terminal
-  V34/V35/V36/V37 partial products are also forbidden resume input.
+  V34/V35/V36/V37/V38 partial products are also forbidden resume input.
 
 ## Takeover sequence
 

@@ -174,8 +174,7 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
     canonical_json_sha256,
     require_unified_exit_m1_pair_authority,
-    unified_exit_state_population_arrays,
-    update_unified_exit_state_population_stream,
+    unified_exit_state_pointer_stream_sha256,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_SEQUENCE_BARS,
@@ -1979,101 +1978,110 @@ def build_unified_exit_lifecycle_episodes(
     bid_open = numeric["bid_open"].to_numpy(dtype=np.float64)
     ask_open = numeric["ask_open"].to_numpy(dtype=np.float64)
     path_state_count = int(UNIFIED_EXIT_MAX_PATH_BARS)
-    required_rows = path_state_count
-    m1_ns = m1_time.asi8
-    records: list[dict[str, Any]] = []
-    skipped = {
-        "missing_entry_available_m1_open": 0,
-        "insufficient_m1_tail": 0,
-        "crosses_split_end": 0,
-    }
-    state_population_stream = hashlib.sha256()
-    state_population_stream.update(
-        UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION.encode("ascii")
+    m1_ns = np.asarray(m1_time.asi8, dtype=np.int64)
+    entry_available_ns = np.asarray(
+        entry_time.asi8
+        + int(pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS).value),
+        dtype=np.int64,
     )
-    for entry_row_index, entry_timestamp in enumerate(entry_time):
-        entry_available_at = entry_timestamp + pd.Timedelta(
-            seconds=ENTRY_DECISION_BAR_SECONDS
-        )
-        start_row = int(np.searchsorted(m1_ns, entry_available_at.value))
-        if start_row >= len(m1_ns) or m1_ns[start_row] != entry_available_at.value:
-            skipped["missing_entry_available_m1_open"] += 1
-            continue
-        if start_row + required_rows > len(m1_ns):
-            skipped["insufficient_m1_tail"] += 1
-            continue
-        required_last_row = start_row + required_rows - 1
-        required_end_available_at = pd.Timestamp(
-            m1_ns[required_last_row]
-            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
-            unit="ns",
-            tz="UTC",
-        )
-        if required_end_available_at > parsed_split_end:
-            skipped["crosses_split_end"] += 1
-            continue
-
-        for side_index, side in enumerate(UNIFIED_EXIT_SIDE_ORDER):
-            if int(start_row) < int(min_m1_start_row):
-                # The Exit trainer slices EXIT_FEATURE_SEQUENCE_BARS of feature
-                # history behind every decision row; an episode starting before
-                # the feature surface's floor cannot be served and would fail at
-                # corpus construction. Fail here, at build time, with the count.
-                raise RuntimeError(
-                    "UNIFIED_EXIT_EPISODE_BEFORE_FEATURE_FLOOR: "
-                    f"start_row={int(start_row)} "
-                    f"min_m1_start_row={int(min_m1_start_row)} "
-                    f"entry_row_index={int(entry_row_index)}"
-                )
-            episode_index = len(records)
-            population = unified_exit_state_population_arrays(
-                m1_times=m1_time,
-                m1_start_row=start_row,
-            )
-            update_unified_exit_state_population_stream(
-                state_population_stream,
-                episode_index=episode_index,
-                entry_row_index=entry_row_index,
-                side_index=side_index,
-                m1_start_row=start_row,
-                population=population,
-            )
-            records.append(
-                {
-                    "schema_version": (
-                        UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
-                    ),
-                    "episode_index": np.int64(episode_index),
-                    "entry_row_index": np.int64(entry_row_index),
-                    "entry_time": entry_timestamp,
-                    "entry_available_at": entry_available_at,
-                    "side_index": np.int8(side_index),
-                    "side": side,
-                    "entry_bid": np.float64(bid_open[start_row]),
-                    "entry_ask": np.float64(ask_open[start_row]),
-                    "m1_start_row": np.int64(start_row),
-                    "m1_start_time": m1_time[start_row],
-                    "first_state_decision_time": pd.Timestamp(
-                        int(population["decision_time_ns"][0]),
-                        unit="ns",
-                        tz="UTC",
-                    ),
-                    "path_state_count": np.int16(path_state_count),
-                    "state_indices": population["state_indices"].tolist(),
-                    "decision_row_indices": population[
-                        "decision_row_indices"
-                    ].tolist(),
-                    "state_row_time_ns": population["state_row_time_ns"].tolist(),
-                    "decision_time_ns": population["decision_time_ns"].tolist(),
-                    "state_valid_mask": population["state_valid_mask"].tolist(),
-                }
-            )
-
-    if not records:
+    start_rows = np.searchsorted(m1_ns, entry_available_ns, side="left")
+    exact_open = start_rows < len(m1_ns)
+    exact_positions = np.flatnonzero(exact_open)
+    exact_open[exact_positions] &= (
+        m1_ns[start_rows[exact_positions]]
+        == entry_available_ns[exact_positions]
+    )
+    insufficient_tail = exact_open & (
+        start_rows + path_state_count > len(m1_ns)
+    )
+    complete_tail = exact_open & ~insufficient_tail
+    crosses_split_end = np.zeros(len(entry_time), dtype=np.bool_)
+    complete_positions = np.flatnonzero(complete_tail)
+    decision_delta_ns = int(
+        pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
+    )
+    crosses_split_end[complete_positions] = (
+        m1_ns[
+            start_rows[complete_positions] + path_state_count - 1
+        ]
+        + decision_delta_ns
+        > parsed_split_end.value
+    )
+    eligible = complete_tail & ~crosses_split_end
+    eligible_entry_rows = np.flatnonzero(eligible).astype(np.int64, copy=False)
+    skipped = {
+        "missing_entry_available_m1_open": int(np.count_nonzero(~exact_open)),
+        "insufficient_m1_tail": int(np.count_nonzero(insufficient_tail)),
+        "crosses_split_end": int(np.count_nonzero(crosses_split_end)),
+    }
+    if len(eligible_entry_rows) == 0:
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES")
-    episodes = pd.DataFrame.from_records(
-        records,
+    eligible_start_rows = np.asarray(
+        start_rows[eligible_entry_rows], dtype=np.int64
+    )
+    if np.any(eligible_start_rows < min_m1_start_row):
+        bad_position = int(
+            np.flatnonzero(eligible_start_rows < min_m1_start_row)[0]
+        )
+        raise RuntimeError(
+            "UNIFIED_EXIT_EPISODE_BEFORE_FEATURE_FLOOR: "
+            f"start_row={int(eligible_start_rows[bad_position])} "
+            f"min_m1_start_row={int(min_m1_start_row)} "
+            f"entry_row_index={int(eligible_entry_rows[bad_position])}"
+        )
+
+    episode_entry_rows = np.repeat(eligible_entry_rows, 2)
+    episode_start_rows = np.repeat(eligible_start_rows, 2)
+    episode_indices = np.arange(len(episode_entry_rows), dtype=np.int64)
+    side_indices = np.tile(
+        np.arange(len(UNIFIED_EXIT_SIDE_ORDER), dtype=np.int8),
+        len(eligible_entry_rows),
+    )
+    episode_start_ns = m1_ns[episode_start_rows]
+    episodes = pd.DataFrame(
+        {
+            "schema_version": np.full(
+                len(episode_indices),
+                UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+                dtype=object,
+            ),
+            "episode_index": episode_indices,
+            "entry_row_index": episode_entry_rows,
+            "entry_time": pd.to_datetime(
+                entry_time.asi8[episode_entry_rows], utc=True
+            ),
+            "entry_available_at": pd.to_datetime(
+                episode_start_ns, utc=True
+            ),
+            "side_index": side_indices,
+            "side": np.tile(
+                np.asarray(UNIFIED_EXIT_SIDE_ORDER, dtype=object),
+                len(eligible_entry_rows),
+            ),
+            "entry_bid": bid_open[episode_start_rows],
+            "entry_ask": ask_open[episode_start_rows],
+            "m1_start_row": episode_start_rows,
+            "m1_start_time": pd.to_datetime(episode_start_ns, utc=True),
+            "first_state_decision_time": pd.to_datetime(
+                episode_start_ns + decision_delta_ns,
+                utc=True,
+            ),
+            "path_state_count": np.full(
+                len(episode_indices),
+                path_state_count,
+                dtype=np.int16,
+            ),
+        },
         columns=UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS,
+    )
+    state_population_stream_sha256 = (
+        unified_exit_state_pointer_stream_sha256(
+            episode_indices=episode_indices,
+            entry_row_indices=episode_entry_rows,
+            side_indices=side_indices,
+            m1_start_rows=episode_start_rows,
+            m1_times=m1_time,
+        )
     )
     proof = {
         "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
@@ -2086,11 +2094,11 @@ def build_unified_exit_lifecycle_episodes(
         ),
         "state_population_per_episode": path_state_count,
         "state_population_rows": int(len(episodes) * path_state_count),
-        "state_population_stream_sha256": state_population_stream.hexdigest(),
+        "state_population_stream_sha256": state_population_stream_sha256,
         "side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "action_order": list(UNIFIED_EXIT_ACTION_ORDER),
         "path_state_count": path_state_count,
-        "required_observed_m1_rows_per_episode": required_rows,
+        "required_observed_m1_rows_per_episode": path_state_count,
         "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "market_closure_contract": market_closure_contract,
         "skipped_entry_rows": skipped,
@@ -2112,6 +2120,7 @@ def build_unified_exit_lifecycle_episodes(
         ),
         "extra_lookahead_beyond_trajectory": 0,
         "path_values_duplicated_into_episode_artifact": False,
+        "state_vectors_duplicated_into_episode_artifact": False,
     }
     return episodes, proof
 

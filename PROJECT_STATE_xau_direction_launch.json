@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-21T01:28:08Z",
+  "updated_utc": "2026-08-21T04:41:16Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -43,7 +43,7 @@
   "accepted_via_vedtak": null,
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 (2026-08-20) is published source authority. V37_20260820T235850Z ended terminal RED in the M1 enriched lane before audit or dataset construction. Its fourteen Group-A fields had one exact 76,207-row causal warmup prefix with no later gaps; the producer now applies the shared fail-closed prefix trim before final finiteness validation. V35/V36/V37 partial surfaces, caches, rankings, checkpoints and manifests may not be consumed; a fresh successor lineage is required after this repair is committed and verified.",
+    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V38_20260821T013710Z proved the Group-A warmup repair and cross-surface audit v3 PASS, then was controlled-ABORTED during dataset construction before lifecycle/VAL/TEST completion because five deterministic 512-state arrays were duplicated per episode in Python memory. The compact lifecycle pointer envelope now reconstructs the unchanged full state population from the hash-bound M1 clock and passes full-TRAIN scale proof under 4G. V35/V36/V37/V38 partial products may not be consumed; a fresh successor lineage is required after this repair is committed and verified.",
     "No current hash-bound dataset, distinct training recipe or same-bundle Entry/Exit model is admitted under the current model-native contract.",
     "The fitted-Q decision objective is raw-bps masked MSE with learned task weights and unique action-Q argmax authority. Whether every remaining static trainer magnitude is data-derived has not been examined.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",

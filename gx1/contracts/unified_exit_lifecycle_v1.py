@@ -20,6 +20,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_xau_source_descriptor_v1,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
     EXIT_DECISION_BAR_SECONDS,
     EXIT_FEATURE_ROW_CLOCK,
     EXIT_FEATURE_SEQUENCE_BARS,
@@ -56,10 +57,10 @@ from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 
 
 UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION = (
-    "gx1_unified_exit_lifecycle_episode_envelope_v9"
+    "gx1_unified_exit_lifecycle_episode_envelope_v10"
 )
 UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION = (
-    "gx1_unified_exit_full_authoritative_state_population_v1"
+    "gx1_unified_exit_full_authoritative_state_pointer_population_v2"
 )
 UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION = (
     "gx1_unified_exit_native_pair_m1_authority_v1"
@@ -94,11 +95,6 @@ UNIFIED_EXIT_LIFECYCLE_EPISODE_COLUMNS = (
     "m1_start_time",
     "first_state_decision_time",
     "path_state_count",
-    "state_indices",
-    "decision_row_indices",
-    "state_row_time_ns",
-    "decision_time_ns",
-    "state_valid_mask",
 )
 UNIFIED_EXIT_TRAINING_SAMPLES_PER_ENTRY = (
     len(UNIFIED_EXIT_SIDE_ORDER) * UNIFIED_EXIT_MAX_PATH_BARS
@@ -181,81 +177,93 @@ def unified_exit_state_population_arrays(
     }
 
 
-def update_unified_exit_state_population_stream(
-    digest: Any,
+def unified_exit_state_pointer_stream_sha256(
     *,
-    episode_index: int,
-    entry_row_index: int,
-    side_index: int,
-    m1_start_row: int,
-    population: Mapping[str, np.ndarray],
-) -> None:
-    """Append one exact episode population to a SHA256 stream."""
+    episode_indices: np.ndarray,
+    entry_row_indices: np.ndarray,
+    side_indices: np.ndarray,
+    m1_start_rows: np.ndarray,
+    m1_times: pd.DatetimeIndex,
+    chunk_rows: int = 65_536,
+) -> str:
+    """Hash the exact full-state population through compact source pointers.
 
-    if not hasattr(digest, "update"):
-        raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_DIGEST_INVALID")
-    expected = unified_exit_state_population_arrays(
-        m1_times=pd.DatetimeIndex(
-            np.asarray(population["state_row_time_ns"], dtype=np.int64),
-            tz="UTC",
-        ),
-        m1_start_row=0,
+    Every episode owns all ``UNIFIED_EXIT_MAX_PATH_BARS`` consecutive states.
+    Those state indices, source rows, timestamps, decision clocks and validity
+    masks are deterministic functions of ``m1_start_row`` and the immutable M1
+    clock. Persisting five 512-element Python lists per episode duplicated that
+    deterministic population and made a full TRAIN build unbounded in memory.
+
+    V2 hashes the complete authoritative M1 clock once, then a fixed-width
+    little-endian header per episode: episode/entry/side/start/count followed by
+    first/last state timestamps and their first/last decision timestamps. The
+    M1 artifact hash binds prices and the full clock outside this stream; the
+    validator recomputes this stream from that same artifact. No target or
+    outcome value participates in membership or hashing.
+    """
+
+    raw_arrays = (
+        np.asarray(episode_indices),
+        np.asarray(entry_row_indices),
+        np.asarray(side_indices),
+        np.asarray(m1_start_rows),
     )
-    # The reconstruction above uses a local 0..511 clock and therefore only
-    # validates vector lengths/target domain.  Validate the absolute arrays
-    # explicitly before hashing them in declared order.
+    if any(array.ndim != 1 for array in raw_arrays):
+        raise RuntimeError("UNIFIED_EXIT_STATE_POINTER_STREAM_INPUT_INVALID")
+    row_count = len(raw_arrays[0])
+    if row_count < 1 or any(len(array) != row_count for array in raw_arrays):
+        raise RuntimeError("UNIFIED_EXIT_STATE_POINTER_STREAM_INPUT_INVALID")
+    normalized: list[np.ndarray] = []
+    for raw in raw_arrays:
+        values = np.asarray(raw, dtype=np.int64)
+        if raw.dtype.kind not in "iu" or not np.array_equal(raw, values):
+            raise RuntimeError("UNIFIED_EXIT_STATE_POINTER_STREAM_INPUT_INVALID")
+        normalized.append(values)
+    episodes, entries, sides, starts = normalized
+    times = pd.DatetimeIndex(m1_times).as_unit("ns")
     count = int(UNIFIED_EXIT_MAX_PATH_BARS)
-    arrays: tuple[tuple[str, str], ...] = (
-        ("state_indices", "<i4"),
-        ("decision_row_indices", "<i8"),
-        ("state_row_time_ns", "<i8"),
-        ("decision_time_ns", "<i8"),
-        ("state_valid_mask", "u1"),
-    )
-    normalized: dict[str, np.ndarray] = {}
-    for name, dtype in arrays:
-        raw_values = np.asarray(population.get(name))
-        values = np.asarray(raw_values, dtype=dtype)
-        if values.shape != (count,):
-            raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_VECTOR_INVALID")
-        # Never let numpy's integer/bool cast turn a malformed persisted value
-        # (for example state 512.5 or mask value 2) into a valid-looking one.
-        # Parquet physical types may differ across engines, so compare values
-        # rather than requiring one implementation-specific dtype.
-        if not np.array_equal(raw_values, values):
-            raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_VECTOR_INVALID")
-        normalized[name] = values
     if (
-        not np.array_equal(normalized["state_indices"], expected["state_indices"])
-        or not np.array_equal(
-            normalized["decision_row_indices"],
-            np.arange(
-                int(m1_start_row),
-                int(m1_start_row) + count,
-                dtype=np.int64,
-            ),
-        )
-        or not normalized["state_valid_mask"].all()
-        or np.any(
-            normalized["decision_time_ns"]
-            - normalized["state_row_time_ns"]
-            != int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
-        )
+        times.empty
+        or times.hasnans
+        or not times.is_unique
+        or not times.is_monotonic_increasing
+        or times.tz is None
+        or times[0].utcoffset() != pd.Timedelta(0)
+        or not times.floor(f"{EXIT_DECISION_BAR_SECONDS}s").equals(times)
+        or np.any(episodes < 0)
+        or np.any(entries < 0)
+        or np.any((sides < 0) | (sides >= len(UNIFIED_EXIT_SIDE_ORDER)))
+        or np.any(starts < 0)
+        or np.any(starts + count > len(times))
+        or isinstance(chunk_rows, bool)
+        or not isinstance(chunk_rows, int)
+        or chunk_rows < 1
     ):
-        raise RuntimeError("UNIFIED_EXIT_STATE_POPULATION_VECTOR_INVALID")
-    header = np.asarray(
-        [
-            int(episode_index),
-            int(entry_row_index),
-            int(side_index),
-            int(m1_start_row),
-            count,
-        ],
-        dtype="<i8",
+        raise RuntimeError("UNIFIED_EXIT_STATE_POINTER_STREAM_INPUT_INVALID")
+
+    clock = np.ascontiguousarray(times.asi8, dtype="<i8")
+    digest = hashlib.sha256()
+    digest.update(UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION.encode("ascii"))
+    digest.update(np.asarray([len(clock)], dtype="<i8").tobytes())
+    digest.update(clock.tobytes(order="C"))
+    decision_delta = np.int64(
+        pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
     )
-    digest.update(header.tobytes(order="C"))
-    for name, _dtype in arrays:
-        digest.update(np.ascontiguousarray(normalized[name]).tobytes(order="C"))
+    for lo in range(0, row_count, chunk_rows):
+        hi = min(lo + chunk_rows, row_count)
+        chunk_starts = starts[lo:hi]
+        headers = np.empty((hi - lo, 9), dtype="<i8")
+        headers[:, 0] = episodes[lo:hi]
+        headers[:, 1] = entries[lo:hi]
+        headers[:, 2] = sides[lo:hi]
+        headers[:, 3] = chunk_starts
+        headers[:, 4] = count
+        headers[:, 5] = clock[chunk_starts]
+        headers[:, 6] = clock[chunk_starts + count - 1]
+        headers[:, 7] = headers[:, 5] + decision_delta
+        headers[:, 8] = headers[:, 6] + decision_delta
+        digest.update(headers.tobytes(order="C"))
+    return digest.hexdigest()
 
 
 def _require_base28_native_m1_subset_identity(
@@ -697,117 +705,140 @@ class UnifiedExitLifecycleSplit:
             raise RuntimeError(
                 f"UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_INVALID: {self.split}"
             )
-        self._episode_pointers: dict[
-            tuple[int, int], tuple[int, int, float, float]
-        ] = {}
-        state_population_stream = hashlib.sha256()
-        state_population_stream.update(
-            UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION.encode("ascii")
-        )
-        observed_pairs: set[tuple[int, int]] = set()
-        sides_by_entry: dict[int, list[int]] = {}
-        side_population_counts = np.zeros(2, dtype=np.int64)
-        for raw in episodes.to_dict(orient="records"):
-            integer_fields = (
-                "episode_index",
-                "entry_row_index",
-                "side_index",
-                "m1_start_row",
-                "path_state_count",
-            )
-            if any(
-                isinstance(raw[name], bool)
-                or not isinstance(raw[name], (int, np.integer))
-                for name in integer_fields
-            ):
-                raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_INTEGER_INVALID: {self.split}"
-                )
-            episode_index = int(raw["episode_index"])
-            entry_index = int(raw["entry_row_index"])
-            side_index = int(raw["side_index"])
-            start = int(raw["m1_start_row"])
-            state_count = int(raw["path_state_count"])
+        def exact_integer_column(name: str) -> np.ndarray:
+            raw = episodes[name].to_numpy()
+            values = np.asarray(raw, dtype=np.int64)
             if (
-                episode_index < 0
-                or not 0 <= entry_index < self.entry_row_count
-                or side_index not in (0, 1)
-                or raw["side"] != UNIFIED_EXIT_SIDE_ORDER[side_index]
-                or state_count != UNIFIED_EXIT_MAX_PATH_BARS
-                or start < 0
-                or start + state_count > len(self._m1_times)
+                raw.ndim != 1
+                or raw.dtype.kind not in "iu"
+                or not np.array_equal(raw, values)
             ):
                 raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_VALUE_INVALID: {self.split}"
+                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_INTEGER_INVALID: "
+                    f"{self.split}.{name}"
                 )
-            if episode_index != len(observed_pairs):
-                raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_ORDER_INVALID: {self.split}"
-                )
-            pair = (entry_index, side_index)
-            if pair in observed_pairs:
-                raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_EPISODE_DUPLICATE: {self.split} {pair}"
-                )
-            observed_pairs.add(pair)
-            sides_by_entry.setdefault(entry_index, []).append(side_index)
-            if (
-                pd.Timestamp(raw["m1_start_time"])
-                != self._m1_times[start]
-                or pd.Timestamp(raw["entry_available_at"])
-                != self._m1_times[start]
-                or pd.Timestamp(raw["first_state_decision_time"])
-                != self._m1_times[start]
-                + pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS)
-            ):
-                raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_POINTER_TIME_MISMATCH: {self.split}"
-                )
-            expected_bid = float(self._m1["bid_open"][start])
-            expected_ask = float(self._m1["ask_open"][start])
-            if (
-                float(raw["entry_bid"]) != expected_bid
-                or float(raw["entry_ask"]) != expected_ask
-            ):
-                raise RuntimeError(
-                    f"UNIFIED_EXIT_LIFECYCLE_ENTRY_QUOTE_MISMATCH: {self.split}"
-                )
-            self._episode_pointers[pair] = (
-                episode_index,
-                start,
-                expected_bid,
-                expected_ask,
-            )
-            expected_population = unified_exit_state_population_arrays(
-                m1_times=self._m1_times,
-                m1_start_row=start,
-            )
-            observed_population: dict[str, np.ndarray] = {}
-            for name, expected in expected_population.items():
-                observed = np.asarray(raw[name], dtype=expected.dtype)
-                if observed.shape != expected.shape or not np.array_equal(
-                    observed,
-                    expected,
-                ):
-                    raise RuntimeError(
-                        "UNIFIED_EXIT_LIFECYCLE_STATE_POPULATION_MISMATCH: "
-                        f"{self.split} episode={episode_index} field={name}"
-                    )
-                observed_population[name] = observed
-            update_unified_exit_state_population_stream(
-                state_population_stream,
-                episode_index=episode_index,
-                entry_row_index=entry_index,
-                side_index=side_index,
-                m1_start_row=start,
-                population=observed_population,
-            )
-            side_population_counts[side_index] += state_count
+            return values
 
-        if any(sides != [0, 1] for sides in sides_by_entry.values()):
+        episode_indices = exact_integer_column("episode_index")
+        entry_indices = exact_integer_column("entry_row_index")
+        side_indices = exact_integer_column("side_index")
+        starts = exact_integer_column("m1_start_row")
+        state_counts = exact_integer_column("path_state_count")
+        row_count = len(episodes)
+        expected_sides = np.tile(
+            np.arange(len(UNIFIED_EXIT_SIDE_ORDER), dtype=np.int64),
+            row_count // len(UNIFIED_EXIT_SIDE_ORDER),
+        )
+        if not np.array_equal(
+            episode_indices, np.arange(row_count, dtype=np.int64)
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_EPISODE_ORDER_INVALID: {self.split}"
+            )
+        if (
+            row_count % len(UNIFIED_EXIT_SIDE_ORDER) != 0
+            or np.any((entry_indices < 0) | (entry_indices >= self.entry_row_count))
+            or not np.array_equal(side_indices, expected_sides)
+            or not np.array_equal(entry_indices[0::2], entry_indices[1::2])
+            or np.any(np.diff(entry_indices[0::2]) <= 0)
+            or not np.array_equal(starts[0::2], starts[1::2])
+            or np.any(starts < 0)
+            or np.any(starts + UNIFIED_EXIT_MAX_PATH_BARS > len(self._m1_times))
+            or np.any(state_counts != UNIFIED_EXIT_MAX_PATH_BARS)
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_EPISODE_VALUE_INVALID: {self.split}"
+            )
+        observed_sides = episodes["side"].to_numpy(dtype=object)
+        expected_side_names = np.asarray(UNIFIED_EXIT_SIDE_ORDER, dtype=object)[
+            side_indices
+        ]
+        if not np.array_equal(observed_sides, expected_side_names):
             raise RuntimeError(
                 f"UNIFIED_EXIT_LIFECYCLE_ENTRY_SIDE_POPULATION_INVALID: {self.split}"
             )
+
+        def timestamp_ns(name: str) -> np.ndarray:
+            parsed = pd.DatetimeIndex(
+                pd.to_datetime(episodes[name], utc=True, errors="coerce")
+            ).as_unit("ns")
+            if parsed.hasnans:
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_LIFECYCLE_POINTER_TIME_MISMATCH: "
+                    f"{self.split}.{name}"
+                )
+            return np.asarray(parsed.asi8, dtype=np.int64)
+
+        start_time_ns = np.asarray(self._m1_times.asi8[starts], dtype=np.int64)
+        decision_delta_ns = int(
+            pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
+        )
+        if (
+            not np.array_equal(timestamp_ns("m1_start_time"), start_time_ns)
+            or not np.array_equal(
+                timestamp_ns("entry_available_at"), start_time_ns
+            )
+            or not np.array_equal(
+                timestamp_ns("first_state_decision_time"),
+                start_time_ns + decision_delta_ns,
+            )
+            or not np.array_equal(
+                timestamp_ns("entry_time")
+                + int(pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS).value),
+                start_time_ns,
+            )
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_POINTER_TIME_MISMATCH: {self.split}"
+            )
+        entry_bid = pd.to_numeric(
+            episodes["entry_bid"], errors="coerce"
+        ).to_numpy(dtype=np.float64)
+        entry_ask = pd.to_numeric(
+            episodes["entry_ask"], errors="coerce"
+        ).to_numpy(dtype=np.float64)
+        expected_bid = np.asarray(self._m1["bid_open"][starts], dtype=np.float64)
+        expected_ask = np.asarray(self._m1["ask_open"][starts], dtype=np.float64)
+        if (
+            not np.isfinite(entry_bid).all()
+            or not np.isfinite(entry_ask).all()
+            or not np.array_equal(entry_bid, expected_bid)
+            or not np.array_equal(entry_ask, expected_ask)
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_ENTRY_QUOTE_MISMATCH: {self.split}"
+            )
+        self._episode_pointers = {
+            (int(entry_index), int(side_index)): (
+                int(episode_index),
+                int(start),
+                float(bid),
+                float(ask),
+            )
+            for episode_index, entry_index, side_index, start, bid, ask in zip(
+                episode_indices,
+                entry_indices,
+                side_indices,
+                starts,
+                expected_bid,
+                expected_ask,
+                strict=True,
+            )
+        }
+        state_population_sha256 = unified_exit_state_pointer_stream_sha256(
+            episode_indices=episode_indices,
+            entry_row_indices=entry_indices,
+            side_indices=side_indices,
+            m1_start_rows=starts,
+            m1_times=self._m1_times,
+        )
+        side_population_counts = (
+            np.bincount(
+                side_indices,
+                minlength=len(UNIFIED_EXIT_SIDE_ORDER),
+            ).astype(np.int64)
+            * int(UNIFIED_EXIT_MAX_PATH_BARS)
+        )
         if int(manifest.get("episode_rows", -1)) != len(episodes):
             raise RuntimeError(
                 f"UNIFIED_EXIT_LIFECYCLE_EPISODE_ROWS_MISMATCH: {self.split}"
@@ -822,11 +853,13 @@ class UnifiedExitLifecycleSplit:
             != UNIFIED_EXIT_MAX_PATH_BARS
             or manifest.get("state_population_rows") != expected_population_rows
             or manifest.get("state_population_stream_sha256")
-            != state_population_stream.hexdigest()
+            != state_population_sha256
             or manifest.get("first_state_pre_entry_history_rows")
             != EXIT_FEATURE_SEQUENCE_BARS - 1
             or manifest.get("first_state_post_fill_closed_bars") != 1
             or manifest.get("sample_selection_depends_on_future_target") is not False
+            or manifest.get("path_values_duplicated_into_episode_artifact") is not False
+            or manifest.get("state_vectors_duplicated_into_episode_artifact") is not False
             or int(side_population_counts.sum()) != expected_population_rows
             or np.any(side_population_counts <= 0)
         ):
@@ -838,7 +871,7 @@ class UnifiedExitLifecycleSplit:
             for index in range(2)
         }
         self.state_population_rows = expected_population_rows
-        self.state_population_sha256 = state_population_stream.hexdigest()
+        self.state_population_sha256 = state_population_sha256
 
     def _full_current_indices(self) -> np.ndarray:
         intervals = sorted(

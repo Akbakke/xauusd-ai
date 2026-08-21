@@ -128,9 +128,9 @@ three different `contract_sha256`, and the V31 chains bound
 `..._GEN1f9424_20260818T160532Z`, not the `..._20260818` set the documents named
 until 2026-08-19. Resolve the binding from the consuming run's own V4 cache
 manifest key `volatility_squeeze_artifact_set`. No downstream rebuild is
-admitted: the newest V37 chain ended terminal RED in the M1 enriched lane
-before audit or dataset construction, so its partial output is invalid (rule
-7).
+admitted: V38 passed preflight and cross-surface audit v3, then was
+controlled-ABORTED during dataset construction before lifecycle/VAL/TEST
+completion. Its partial output is invalid (rule 7).
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through
@@ -197,8 +197,13 @@ one.
 
 ## Exit lifecycle
 
-Lifecycle schema is `gx1_unified_exit_lifecycle_episode_envelope_v5`. Episodes
-point into the immutable M1 feature artifact rather than duplicating paths.
+The lifecycle schema is owned by
+`UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION` and is never restated here.
+Episodes persist scalar pointers into the immutable M1 feature artifact, not
+paths or deterministic per-state vectors. The validator reconstructs all state
+indices, source rows, timestamps, decision clocks and masks from each
+`m1_start_row` and the hash-bound M1 clock, then verifies the compact population
+stream. Thus storage is bounded while the supervised population is unchanged.
 The row clock is `consecutive_authoritative_closed_m1_source_rows` under
 `oanda_complete_true_source_absence_no_synthesis_v1`.
 
