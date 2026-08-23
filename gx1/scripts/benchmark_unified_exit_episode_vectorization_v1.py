@@ -16,13 +16,18 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
+    ordered_model_native_signal_fields,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
+    group_features_by_specialist,
+    require_multi_tf_specialist_routing_v4,
 )
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
@@ -41,11 +46,52 @@ TF_LENGTHS = {"M5": 16, "M15": 64, "H1": 96, "H4": 96, "D1": 252}
 TF_EPISODE_CLOSURES = {"M5": 103, "M15": 35, "H1": 10, "H4": 4, "D1": 2}
 
 
-def _round_robin(width: int) -> dict[str, list[int]]:
-    names = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+def _production_local_specialist_routing() -> tuple[
+    tuple[str, ...], dict[str, list[int]]
+]:
+    """Build the same complete local eight-family routing as the trainer."""
+
+    signal_names = ordered_model_native_signal_fields(
+        (
+            *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+            *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+        )
+    )
+    if len(signal_names) != MODEL_NATIVE_SIGNAL_DIM:
+        raise RuntimeError("BENCHMARK_LOCAL_SIGNAL_DIM_SPLIT_BRAIN")
+    grouped = group_features_by_specialist(signal_names)
+    forbidden = tuple(grouped.get("forbidden_legacy_bridge", ()))
+    unmapped = tuple(grouped.get("unmapped", ()))
+    if forbidden or unmapped:
+        raise RuntimeError(
+            "BENCHMARK_LOCAL_SPECIALIST_ROUTING_INVALID: "
+            f"forbidden={forbidden} unmapped={unmapped}"
+        )
+    index = {name: position for position, name in enumerate(signal_names)}
+    routing = {
+        specialist: [index[name] for name in grouped[specialist]]
+        for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS
+    }
+    if (
+        tuple(routing) != tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+        or any(not indices for indices in routing.values())
+        or sorted(index for indices in routing.values() for index in indices)
+        != list(range(MODEL_NATIVE_SIGNAL_DIM))
+    ):
+        raise RuntimeError("BENCHMARK_LOCAL_SPECIALIST_COVERAGE_INVALID")
+    return signal_names, routing
+
+
+def _production_mtf_specialist_routing(
+    tf_names: tuple[str, ...],
+) -> dict[str, list[int]]:
+    """Bind MTF widths/order to the trainer's exact V4 routing contract."""
+
     return {
-        name: list(range(position, width, len(names)))
-        for position, name in enumerate(names)
+        name: list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(
+            tf_names
+        ).items()
     }
 
 
@@ -65,14 +111,23 @@ def main() -> None:
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("BENCHMARK_CUDA_UNAVAILABLE")
     torch.manual_seed(20260814)
-    tf_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
+    tf_names = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
     tf_width = len(tf_names)
+    signal_names, specialist_input_indices = (
+        _production_local_specialist_routing()
+    )
+    multi_tf_specialist_input_indices = _production_mtf_specialist_routing(
+        tf_names
+    )
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         snap_input_dim=MODEL_NATIVE_SIGNAL_DIM,
         seq_len=96,
-        dropout=0.0,
-        multi_tf_num_layers=1,
+        # Match the declared canonical train recipe.  The benchmark uses the
+        # actual online train/eval modes below, so this dropout is not a
+        # convenient zeroed substitute for the production path.
+        dropout=0.05,
+        multi_tf_num_layers=2,
         multi_tf_scale=0.5,
         specialist_num_layers=1,
         specialist_fusion_scale=0.25,
@@ -89,7 +144,7 @@ def main() -> None:
         h1_seq_len=TF_LENGTHS["H1"],
         h4_seq_len=TF_LENGTHS["H4"],
         d1_seq_len=TF_LENGTHS["D1"],
-        specialist_input_indices=_round_robin(MODEL_NATIVE_SIGNAL_DIM),
+        specialist_input_indices=specialist_input_indices,
         specialist_ctx_cont_indices={
             str(name): list(values)
             for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
@@ -108,13 +163,12 @@ def main() -> None:
                 "ctx_cat_indices"
             ].items()
         },
-        multi_tf_specialist_input_indices=_round_robin(tf_width),
+        multi_tf_specialist_input_indices=multi_tf_specialist_input_indices,
         temporal_alias_signal_indices=[],
         temporal_alias_ctx_cont_indices=[],
         input_normalization=input_normalization_fixture(
             signal_names=[
-                f"production_signal_{index}"
-                for index in range(MODEL_NATIVE_SIGNAL_DIM)
+                name for name in signal_names
             ],
             mtf_names=tf_names,
             per_tf_seq_lens=TF_LENGTHS,
@@ -213,14 +267,23 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "schema_version": "gx1_unified_exit_episode_benchmark_v1",
+                "schema_version": "gx1_unified_exit_episode_benchmark_v2",
                 "synthetic_production_shape": True,
+                "exact_production_specialist_routing": True,
                 "batch": batch,
                 "device": str(device),
                 "states_per_side": UNIFIED_EXIT_MAX_PATH_BARS,
                 "sides": 2,
                 "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
                 "mtf_dim": tf_width,
+                "local_specialist_input_widths": {
+                    name: len(indices)
+                    for name, indices in specialist_input_indices.items()
+                },
+                "mtf_specialist_input_widths": {
+                    name: len(indices)
+                    for name, indices in multi_tf_specialist_input_indices.items()
+                },
                 "per_tf_sequence_lengths": TF_LENGTHS,
                 "materialize_seconds": materialize_seconds,
                 "target_forward_seconds": target_seconds,

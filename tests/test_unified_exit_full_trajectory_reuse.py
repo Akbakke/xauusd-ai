@@ -12,6 +12,15 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_MAX_PATH_BARS,
 )
+from gx1.scripts.benchmark_unified_exit_episode_vectorization_v1 import (
+    _production_local_specialist_routing,
+    _production_mtf_specialist_routing,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
+    require_multi_tf_specialist_routing_v4,
+)
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 
 
 class _OneRowDataset:
@@ -145,3 +154,20 @@ def test_exit_profile_clock_is_cpu_safe_and_first_batch_only() -> None:
     assert after >= before
     assert "profile_timing=not _first_batch_logged" in source
     assert "[UNIFIED_EXIT_PROFILE]" in source
+
+
+def test_exit_benchmark_uses_complete_contract_owned_specialist_routing() -> None:
+    signal_names, local = _production_local_specialist_routing()
+    tf_names = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
+    mtf = _production_mtf_specialist_routing(tf_names)
+
+    assert len(signal_names) == trainer.MODEL_NATIVE_SIGNAL_DIM
+    assert tuple(local) == MODEL_NATIVE_TRAINING_SPECIALISTS
+    assert tuple(mtf) == MODEL_NATIVE_TRAINING_SPECIALISTS
+    assert sorted(index for indices in local.values() for index in indices) == list(
+        range(len(signal_names))
+    )
+    assert mtf == {
+        name: list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(tf_names).items()
+    }
