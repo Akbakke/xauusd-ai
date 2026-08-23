@@ -84,7 +84,7 @@ for all 283,787 rows (`chain_sha256`
 `02b03e8cce2d1dd736efedacb2d14547d410501a2e2bc73b8d2efb1b4c409ae1`) and VAL
 proof `sequence_roll_audit/ENTRY_SEQUENCE_ROLL_AUDIT_VAL_20260823T173400Z.json`
 passed for all 76,577 rows (`chain_sha256`
-`f9f2650c512cf0229aa3d3078e8cc95eb9acee6fdc554e2e6cfa5b9c34ffc2f9ea`).
+`f9f2650c512cf0229aa3d3078e8cc95eb9acee6fdc554e2cfa5b9c34ffc2f9ea`).
 Each proof binds its exact parquet and manifest SHA-256 and verifies every
 finite float32 value, every `seq[-1] == snap` equality, every adjacent roll
 and every Arrow-batch boundary. This permits a future smoke-only loader to
