@@ -3430,6 +3430,7 @@ def _unified_exit_full_population_eval_loss(
     device: torch.device,
     exit_cooperation_gate_epoch: Optional[dict[str, dict[str, Any]]] = None,
     exit_feature_tf_gate_epoch: Optional[dict[str, Any]] = None,
+    full_trajectory_accumulator: Optional[dict[str, Any]] = None,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -3451,6 +3452,7 @@ def _unified_exit_full_population_eval_loss(
         device=device,
         exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
         exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+        full_trajectory_accumulator=full_trajectory_accumulator,
     )
 
 def _train_unified_exit_full_population(
@@ -3885,6 +3887,7 @@ def _episode_native_exit_eval_loss(
     device: torch.device,
     exit_cooperation_gate_epoch: Optional[dict[str, dict[str, Any]]],
     exit_feature_tf_gate_epoch: Optional[dict[str, Any]],
+    full_trajectory_accumulator: Optional[dict[str, Any]] = None,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -3902,6 +3905,10 @@ def _episode_native_exit_eval_loss(
     ):
         raise RuntimeError("[UNIFIED_EXIT_ENTRY_BATCH_SHAPE_INVALID]")
     rows = entry_row_indices.detach().cpu().tolist()
+    if full_trajectory_accumulator is not None:
+        if "entry_rows_scanned" not in full_trajectory_accumulator:
+            raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_SCHEMA_INVALID")
+        full_trajectory_accumulator["entry_rows_scanned"] += len(rows)
     materialized = [
         dataset.materialize_full_exit_episode(int(index)) for index in rows
     ]
@@ -3969,6 +3976,16 @@ def _episode_native_exit_eval_loss(
     _episode_stats_update(
         stats, q_values=q_values, targets=targets, valid=valid
     )
+    if full_trajectory_accumulator is not None:
+        _accumulate_unified_exit_full_trajectory(
+            full_trajectory_accumulator,
+            raw_entry_indices=rows,
+            selected_positions=selected,
+            episodes=episodes,
+            q_values=q_values,
+            targets=targets,
+            valid=valid,
+        )
     valid_cells = int(stats["q_valid_cells"])
     all_first_values = torch.zeros(
         (len(rows), 2), device=device, dtype=first_side_values.dtype
@@ -4574,215 +4591,255 @@ def _unified_exit_input_influence_contract(
     return report
 
 
-def _validate_unified_exit_full_trajectories(
+_UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION = (
+    "gx1_unified_exit_full_trajectory_validation_v6"
+)
+
+
+def _new_unified_exit_full_trajectory_accumulator(
     *,
     model: nn.Module,
     target_model: nn.Module,
-    loader: DataLoader,
-    device: torch.device,
 ) -> dict[str, Any]:
-    """Batched full-VAL fitted-Q loss and realized executable policy replay."""
+    """Allocate report-only state for the already-required VAL Exit pass.
 
-    dataset = getattr(loader, "dataset", None)
-    if not isinstance(dataset, EntryV10CtxDataset):
-        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_DATASET_INVALID")
-    if dataset._unified_exit_lifecycle is None:
-        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
-    model.eval()
-    target_model.eval()
-    population_rows = valid_cells = equivalent_rows = 0
-    policy_agreement_rows = predicted_tied_rows = eligible_entry_rows = 0
-    target_tied_prediction_unique_rows = 0
-    side_rows = [0, 0]
-    loss_sum = 0.0
-    entry_rows_scanned = 0
-    state_stream = hashlib.sha256()
-    learned_realized: list[float] = []
-    immediate_realized: list[float] = []
-    terminal_realized: list[float] = []
-    learned_exit_states: list[int] = []
-    exit_cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator(
-        _UNIFIED_EXIT_COOPERATION_GATE_WIDTHS
-    )
-    exit_feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator(
-        _UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE
-    )
-    with torch.no_grad():
-        for batch in loader:
-            entry_kwargs = {
-                "seq_x": batch["seq_x"].to(device),
-                "snap_x": batch["snap_x"].to(device),
-                "ctx_cat": batch["ctx_cat"].to(device),
-                "ctx_cont": batch["ctx_cont"].to(device),
-                **_multi_tf_kwargs_from_batch(batch, device),
-            }
-            out = _model_forward_fp32(model, **entry_kwargs)
-            target_out = _model_forward_fp32(target_model, **entry_kwargs)
-            tokens = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
-            target_tokens = target_out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
-            indices = batch.get("entry_row_index")
-            if (
-                not isinstance(tokens, torch.Tensor)
-                or not isinstance(target_tokens, torch.Tensor)
-                or not isinstance(indices, torch.Tensor)
-                or tokens.ndim != 2
-                or target_tokens.shape != tokens.shape
-                or indices.ndim != 1
-                or int(tokens.shape[0]) != int(indices.shape[0])
-            ):
-                raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ENTRY_TOKEN_INVALID")
-            raw_indices = [int(value) for value in indices.detach().cpu().tolist()]
-            entry_rows_scanned += len(raw_indices)
-            materialized = [
-                dataset.materialize_full_exit_episode(index)
-                for index in raw_indices
-            ]
-            selected = [
-                position
-                for position, episode in enumerate(materialized)
-                if episode is not None
-            ]
-            if not selected:
-                continue
-            episodes = [materialized[position] for position in selected]
-            selected_tensor = torch.tensor(
-                selected, dtype=torch.long, device=device
-            )
-            q_values, valid, _state_valid, _terminal, _lengths = (
-                _forward_unified_exit_episode_batch(
-                    model=model,
-                    entry_decision_representations=tokens.index_select(
-                        0, selected_tensor
-                    ),
-                    episodes=episodes,
-                    device=device,
-                    exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
-                    exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
-                )
-            )
-            (
-                targets,
-                target_valid,
-                _,
-                _first_values,
-                _first_valid,
-            ) = _fitted_q_targets_for_episode_batch(
-                target_model=target_model,
-                target_entry_decision_representations=target_tokens.index_select(
-                    0, selected_tensor
-                ),
-                episodes=episodes,
-                device=device,
-            )
-            if not torch.equal(valid, target_valid):
-                raise RuntimeError("UNIFIED_EXIT_FULL_VAL_MASK_SPLIT_BRAIN")
-            loss_sum += float(nn.functional.mse_loss(
-                q_values[valid], targets[valid], reduction="sum"
-            ).detach().cpu().item())
-            flat_q = q_values.reshape(-1, 2)
-            flat_target = targets.reshape(-1, 2)
-            flat_valid = valid.reshape(-1, 2)
-            target_value = flat_target.masked_fill(
-                ~flat_valid, -torch.inf
-            ).amax(dim=1, keepdim=True)
-            equivalence = (flat_target == target_value) & flat_valid
-            target_tie = equivalence.all(dim=1)
-            prediction_tie = flat_valid.all(dim=1) & (
-                flat_q[:, 0] == flat_q[:, 1]
-            )
-            prediction = torch.argmax(
-                flat_q.masked_fill(~flat_valid, -torch.inf), dim=1
-            )
-            eligible_entry_rows += len(episodes)
-            population_rows += int(flat_q.shape[0])
-            valid_cells += int(flat_valid.sum().item())
-            equivalent_rows += int(target_tie.sum().item())
-            predicted_tied_rows += int(prediction_tie.sum().item())
-            target_tied_prediction_unique_rows += int(
-                (target_tie & ~prediction_tie).sum().item()
-            )
-            policy_agreement_rows += int((
-                equivalence.gather(1, prediction[:, None]).squeeze(1)
-                & ~target_tie
-                & ~prediction_tie
-            ).sum().item())
-            q_np = q_values.detach().cpu().double().numpy()
-            valid_np = valid.detach().cpu().numpy()
-            for episode_position, (entry_position, episode) in enumerate(
-                zip(selected, episodes, strict=True)
-            ):
-                entry_index = raw_indices[entry_position]
-                rewards = np.asarray(
-                    episode["exit_now_reward_bps"], dtype=np.float64
-                )
-                for side_index in (0, 1):
-                    side_rows[side_index] += UNIFIED_EXIT_MAX_PATH_BARS
-                    replay = replay_unified_exit_fitted_q_policy(
-                        predicted_q_bps=q_np[episode_position, side_index],
-                        action_valid_mask=valid_np[episode_position, side_index],
-                        exit_now_reward_bps=rewards[side_index],
-                    )
-                    learned_realized.append(
-                        float(replay["realized_executable_pnl_bps"])
-                    )
-                    learned_exit_states.append(int(replay["exit_state_index"]))
-                    immediate_realized.append(float(rewards[side_index, 0]))
-                    terminal_realized.append(float(rewards[side_index, -1]))
-                stream_rows = np.column_stack((
-                    np.repeat(entry_index, 2 * UNIFIED_EXIT_MAX_PATH_BARS),
-                    np.repeat(np.arange(2), UNIFIED_EXIT_MAX_PATH_BARS),
-                    np.tile(np.arange(UNIFIED_EXIT_MAX_PATH_BARS), 2),
-                    q_np[episode_position, ..., 0].reshape(-1),
-                    q_np[episode_position, ..., 1].reshape(-1),
-                ))
-                state_stream.update(np.ascontiguousarray(stream_rows).tobytes())
-    expected_population = eligible_entry_rows * 2 * UNIFIED_EXIT_MAX_PATH_BARS
-    expected_valid = expected_population * 2 - eligible_entry_rows * 2
+    A candidate checkpoint used to perform the complete VAL scan in ``validate``
+    and then repeat the same online/target Exit forwards solely to create this
+    report.  The accumulator records that report from the first scan and binds
+    it to both immutable parameter states.  It never supplies model inputs,
+    targets, gradients, or checkpoint scores.
+    """
+
+    return {
+        "online_model_state_sha256": _model_state_sha256(model),
+        "target_model_state_sha256": _model_state_sha256(target_model),
+        "entry_rows_scanned": 0,
+        "eligible_entry_rows": 0,
+        "population_rows": 0,
+        "q_valid_cells": 0,
+        "target_equivalent_action_rows": 0,
+        "predicted_tied_rows": 0,
+        "target_tied_prediction_unique_rows": 0,
+        "unique_target_action_agreement_rows": 0,
+        "long_population_rows": 0,
+        "short_population_rows": 0,
+        "loss_sum": 0.0,
+        "learned_realized": [],
+        "immediate_realized": [],
+        "terminal_realized": [],
+        "learned_exit_states": [],
+        "state_stream": hashlib.sha256(),
+    }
+
+
+def _accumulate_unified_exit_full_trajectory(
+    accumulator: dict[str, Any],
+    *,
+    raw_entry_indices: Sequence[int],
+    selected_positions: Sequence[int],
+    episodes: Sequence[Mapping[str, Any]],
+    q_values: torch.Tensor,
+    targets: torch.Tensor,
+    valid: torch.Tensor,
+) -> None:
+    """Record one validated batch without another model/target forward."""
+
     if (
-        population_rows != expected_population
-        or valid_cells != expected_valid
-        or valid_cells <= 0
-        or min(side_rows) <= 0
-        or entry_rows_scanned != len(dataset)
-        or not math.isfinite(loss_sum)
-        or loss_sum < 0.0
-        or predicted_tied_rows != 0
-    ):
-        raise RuntimeError(
-            "UNIFIED_EXIT_FULL_VAL_POPULATION_INVALID: "
-            f"population={population_rows}/{expected_population} "
-            f"q_valid={valid_cells}/{expected_valid} sides={side_rows} "
-            f"predicted_ties={predicted_tied_rows} "
-            f"entries={entry_rows_scanned}/{len(dataset)}"
+        len(selected_positions) != len(episodes)
+        or len(set(int(value) for value in selected_positions))
+        != len(selected_positions)
+        or any(
+            int(value) < 0 or int(value) >= len(raw_entry_indices)
+            for value in selected_positions
         )
-    exit_gate_stats, exit_gate_failures = _finalize_unified_exit_gate_epoch(
-        exit_cooperation_gate_epoch,
-        exit_feature_tf_gate_epoch,
+        or q_values.shape != targets.shape
+        or valid.shape != q_values.shape
+        or tuple(q_values.shape[1:])
+        != (2, UNIFIED_EXIT_MAX_PATH_BARS, 2)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_INPUT_INVALID")
+    if int(q_values.shape[0]) != len(episodes):
+        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_BATCH_INVALID")
+
+    flat_q = q_values.reshape(-1, 2)
+    flat_target = targets.reshape(-1, 2)
+    flat_valid = valid.reshape(-1, 2)
+    target_value = flat_target.masked_fill(~flat_valid, -torch.inf).amax(
+        dim=1, keepdim=True
     )
+    equivalence = (flat_target == target_value) & flat_valid
+    target_tie = equivalence.all(dim=1)
+    prediction_tie = flat_valid.all(dim=1) & (flat_q[:, 0] == flat_q[:, 1])
+    prediction = torch.argmax(
+        flat_q.masked_fill(~flat_valid, -torch.inf), dim=1
+    )
+    accumulator["eligible_entry_rows"] += len(episodes)
+    accumulator["population_rows"] += int(flat_q.shape[0])
+    accumulator["q_valid_cells"] += int(flat_valid.sum().item())
+    accumulator["target_equivalent_action_rows"] += int(target_tie.sum().item())
+    accumulator["predicted_tied_rows"] += int(prediction_tie.sum().item())
+    accumulator["target_tied_prediction_unique_rows"] += int(
+        (target_tie & ~prediction_tie).sum().item()
+    )
+    accumulator["unique_target_action_agreement_rows"] += int(
+        (
+            equivalence.gather(1, prediction[:, None]).squeeze(1)
+            & ~target_tie
+            & ~prediction_tie
+        ).sum().item()
+    )
+    accumulator["loss_sum"] += float(
+        nn.functional.mse_loss(
+            q_values[valid], targets[valid], reduction="sum"
+        )
+        .detach()
+        .cpu()
+        .item()
+    )
+    q_np = q_values.detach().cpu().double().numpy()
+    valid_np = valid.detach().cpu().numpy()
+    for episode_position, (entry_position, episode) in enumerate(
+        zip(selected_positions, episodes, strict=True)
+    ):
+        entry_index = int(raw_entry_indices[int(entry_position)])
+        rewards = np.asarray(episode["exit_now_reward_bps"], dtype=np.float64)
+        for side_index, side_name in enumerate(("long", "short")):
+            accumulator[f"{side_name}_population_rows"] += (
+                UNIFIED_EXIT_MAX_PATH_BARS
+            )
+            replay = replay_unified_exit_fitted_q_policy(
+                predicted_q_bps=q_np[episode_position, side_index],
+                action_valid_mask=valid_np[episode_position, side_index],
+                exit_now_reward_bps=rewards[side_index],
+            )
+            accumulator["learned_realized"].append(
+                float(replay["realized_executable_pnl_bps"])
+            )
+            accumulator["learned_exit_states"].append(
+                int(replay["exit_state_index"])
+            )
+            accumulator["immediate_realized"].append(
+                float(rewards[side_index, 0])
+            )
+            accumulator["terminal_realized"].append(
+                float(rewards[side_index, -1])
+            )
+        stream_rows = np.column_stack((
+            np.repeat(entry_index, 2 * UNIFIED_EXIT_MAX_PATH_BARS),
+            np.repeat(np.arange(2), UNIFIED_EXIT_MAX_PATH_BARS),
+            np.tile(np.arange(UNIFIED_EXIT_MAX_PATH_BARS), 2),
+            q_np[episode_position, ..., 0].reshape(-1),
+            q_np[episode_position, ..., 1].reshape(-1),
+        ))
+        accumulator["state_stream"].update(
+            np.ascontiguousarray(stream_rows).tobytes()
+        )
+
+
+def _finalize_unified_exit_full_trajectory_validation(
+    accumulator: Mapping[str, Any],
+    *,
+    dataset: "EntryV10CtxDataset",
+    exit_gate_stats: Mapping[str, Any],
+    exit_gate_failures: Sequence[str],
+) -> dict[str, Any]:
+    """Fail closed while converting the first-pass accumulator to evidence."""
+
     if exit_gate_failures:
         raise RuntimeError(
             "[UNIFIED_EXIT_FULL_VAL_GATE_HEALTH_INVALID] "
             + "; ".join(exit_gate_failures)
         )
+    required = {
+        "online_model_state_sha256",
+        "target_model_state_sha256",
+        "entry_rows_scanned",
+        "eligible_entry_rows",
+        "population_rows",
+        "q_valid_cells",
+        "target_equivalent_action_rows",
+        "predicted_tied_rows",
+        "target_tied_prediction_unique_rows",
+        "unique_target_action_agreement_rows",
+        "long_population_rows",
+        "short_population_rows",
+        "loss_sum",
+        "learned_realized",
+        "immediate_realized",
+        "terminal_realized",
+        "learned_exit_states",
+        "state_stream",
+    }
+    if set(accumulator) != required:
+        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_SCHEMA_INVALID")
+    eligible_entry_rows = int(accumulator["eligible_entry_rows"])
+    population_rows = int(accumulator["population_rows"])
+    valid_cells = int(accumulator["q_valid_cells"])
+    equivalent_rows = int(accumulator["target_equivalent_action_rows"])
+    predicted_tied_rows = int(accumulator["predicted_tied_rows"])
+    expected_population = eligible_entry_rows * 2 * UNIFIED_EXIT_MAX_PATH_BARS
+    expected_valid = expected_population * 2 - eligible_entry_rows * 2
+    learned_realized = accumulator["learned_realized"]
+    immediate_realized = accumulator["immediate_realized"]
+    terminal_realized = accumulator["terminal_realized"]
+    learned_exit_states = accumulator["learned_exit_states"]
+    loss_sum = float(accumulator["loss_sum"])
+    if (
+        population_rows != expected_population
+        or valid_cells != expected_valid
+        or valid_cells <= 0
+        or int(accumulator["long_population_rows"]) <= 0
+        or int(accumulator["short_population_rows"]) <= 0
+        or int(accumulator["entry_rows_scanned"]) != len(dataset)
+        or not math.isfinite(loss_sum)
+        or loss_sum < 0.0
+        or predicted_tied_rows != 0
+        or not all(
+            isinstance(values, list) and len(values) == eligible_entry_rows * 2
+            for values in (
+                learned_realized,
+                immediate_realized,
+                terminal_realized,
+                learned_exit_states,
+            )
+        )
+    ):
+        raise RuntimeError(
+            "UNIFIED_EXIT_FULL_VAL_POPULATION_INVALID: "
+            f"population={population_rows}/{expected_population} "
+            f"q_valid={valid_cells}/{expected_valid} "
+            f"sides={accumulator['long_population_rows']}/"
+            f"{accumulator['short_population_rows']} "
+            f"predicted_ties={predicted_tied_rows} "
+            f"entries={accumulator['entry_rows_scanned']}/{len(dataset)}"
+        )
+    state_stream = accumulator["state_stream"]
+    if not hasattr(state_stream, "hexdigest"):
+        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_STREAM_INVALID")
     return {
-        "schema_version": "gx1_unified_exit_full_trajectory_validation_v6",
+        "schema_version": _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION,
         "decision": "PASS",
         "population": "all_causal_states_both_sides_batched_episode_forward",
-        "entry_rows_scanned": entry_rows_scanned,
+        "entry_rows_scanned": int(accumulator["entry_rows_scanned"]),
         "eligible_entry_rows": eligible_entry_rows,
         "population_rows": population_rows,
         "q_valid_cells": valid_cells,
         "target_equivalent_action_rows": equivalent_rows,
         "target_unique_action_rows": population_rows - equivalent_rows,
         "predicted_tied_rows": predicted_tied_rows,
-        "target_tied_prediction_unique_rows": target_tied_prediction_unique_rows,
-        "target_tied_prediction_unique_fraction": (
-            target_tied_prediction_unique_rows / max(1, equivalent_rows)
+        "target_tied_prediction_unique_rows": int(
+            accumulator["target_tied_prediction_unique_rows"]
         ),
-        "long_population_rows": side_rows[0],
-        "short_population_rows": side_rows[1],
+        "target_tied_prediction_unique_fraction": (
+            int(accumulator["target_tied_prediction_unique_rows"])
+            / max(1, equivalent_rows)
+        ),
+        "long_population_rows": int(accumulator["long_population_rows"]),
+        "short_population_rows": int(accumulator["short_population_rows"]),
         "fitted_q_bellman_mse_mean": loss_sum / valid_cells,
-        "unique_target_action_agreement": policy_agreement_rows
+        "unique_target_action_agreement": int(
+            accumulator["unique_target_action_agreement_rows"]
+        )
         / max(1, population_rows - equivalent_rows),
         "learned_policy_mean_realized_executable_pnl_bps": float(
             np.mean(learned_realized)
@@ -4795,11 +4852,13 @@ def _validate_unified_exit_full_trajectories(
         ),
         "learned_mean_exit_state_index": float(np.mean(learned_exit_states)),
         "state_prediction_stream_sha256": state_stream.hexdigest(),
+        "online_model_state_sha256": accumulator["online_model_state_sha256"],
+        "target_model_state_sha256": accumulator["target_model_state_sha256"],
         "future_outcomes_used_as_model_inputs": False,
         "predicted_exact_q_tie_runtime_policy": "fail_closed",
         "gamma": 1.0,
         "intermediate_hold_reward_bps": 0.0,
-        **exit_gate_stats,
+        **dict(exit_gate_stats),
     }
 
 
@@ -5709,6 +5768,8 @@ def validate(
     target_model,
     loader,
     device,
+    *,
+    collect_full_exit_trajectory: bool = False,
 ):
     model.eval()
     target_model.eval()
@@ -5717,6 +5778,16 @@ def validate(
     dataset = getattr(loader, "dataset", None)
     if not isinstance(dataset, EntryV10CtxDataset):
         raise RuntimeError("[UNIFIED_EXIT_VALIDATION_DATASET_INVALID]")
+    if dataset._unified_exit_lifecycle is None:
+        raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
+    full_trajectory_accumulator = (
+        _new_unified_exit_full_trajectory_accumulator(
+            model=model,
+            target_model=target_model,
+        )
+        if collect_full_exit_trajectory
+        else None
+    )
     total = 0.0
     entry_q_loss_sum = 0.0
     cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
@@ -5805,6 +5876,7 @@ def validate(
                     device=device,
                     exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
                     exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                    full_trajectory_accumulator=full_trajectory_accumulator,
                 )
             )
             active_head_out = dict(out)
@@ -6014,6 +6086,15 @@ def validate(
         exit_feature_tf_gate_epoch,
     )
     stats.update(exit_gate_stats)
+    if full_trajectory_accumulator is not None:
+        stats["unified_exit_full_trajectory_validation"] = (
+            _finalize_unified_exit_full_trajectory_validation(
+                full_trajectory_accumulator,
+                dataset=dataset,
+                exit_gate_stats=exit_gate_stats,
+                exit_gate_failures=exit_gate_failures,
+            )
+        )
     active_head_metrics, active_head_failures = _active_head_epoch_diagnostics(
         active_head_epoch
     )
@@ -6811,6 +6892,7 @@ def run_train(
     best_policy_pnl = float("-inf")
     best_unique_target_action_agreement = float("-inf")
     best_unified_exit_validation: Dict[str, Any] = {}
+    best_unified_exit_full_trajectory_validation: Dict[str, Any] = {}
     best_unified_exit_fitted_q_state: Dict[str, Any] = {}
     best_entry_fitted_q_state: Dict[str, Any] = {}
     best_fitted_q_target_state: Optional[Dict[str, torch.Tensor]] = None
@@ -6950,6 +7032,7 @@ def run_train(
                 target_model,
                 val_loader,
                 device,
+                collect_full_exit_trajectory=(profile == "candidate"),
             )
 
         # V30 package 5: when the EMA is active the checkpoint gate must judge
@@ -7125,6 +7208,17 @@ def run_train(
                 if key.startswith("unified_exit_")
                 or key.startswith("exit_")
             }
+            if profile == "candidate":
+                full_trajectory = val_stats.get(
+                    "unified_exit_full_trajectory_validation"
+                )
+                if not isinstance(full_trajectory, Mapping):
+                    raise RuntimeError(
+                        "[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]"
+                    )
+                best_unified_exit_full_trajectory_validation = dict(
+                    full_trajectory
+                )
             best_unified_exit_fitted_q_state = dict(fitted_q_iteration_state)
             best_entry_fitted_q_state = dict(entry_fitted_q_iteration_state)
             best_fitted_q_target_state = {
@@ -7322,6 +7416,33 @@ def run_train(
         )
         selected_target_model.requires_grad_(False)
         selected_target_model.eval()
+        full_trajectory_validation = dict(
+            best_unified_exit_full_trajectory_validation
+        )
+        selected_model_state_sha256 = _model_state_sha256(model)
+        selected_target_model_state_sha256 = _model_state_sha256(
+            selected_target_model
+        )
+        if (
+            full_trajectory_validation.get("schema_version")
+            != _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION
+            or full_trajectory_validation.get("decision") != "PASS"
+            or full_trajectory_validation.get("online_model_state_sha256")
+            != selected_model_state_sha256
+            or full_trajectory_validation.get("target_model_state_sha256")
+            != selected_target_model_state_sha256
+        ):
+            raise RuntimeError(
+                "[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_STATE_MISMATCH] "
+                f"report={full_trajectory_validation.get('online_model_state_sha256')}/"
+                f"{full_trajectory_validation.get('target_model_state_sha256')} "
+                f"selected={selected_model_state_sha256}/"
+                f"{selected_target_model_state_sha256}"
+            )
+        # The selected target snapshot was needed only to prove the report's
+        # provenance.  The input-influence audit is online-model only, so
+        # release this full CUDA/CPU replica before that audit begins.
+        del selected_target_model
         unified_exit_input_influence = (
             _unified_exit_input_influence_contract(
                 model=model,
@@ -7335,12 +7456,6 @@ def run_train(
             int(unified_exit_input_influence["numeric_input_count"]),
             int(unified_exit_input_influence["categorical_input_count"]),
             int(unified_exit_input_influence["sample_count"]),
-        )
-        full_trajectory_validation = _validate_unified_exit_full_trajectories(
-            model=model,
-            target_model=selected_target_model,
-            loader=val_loader,
-            device=device,
         )
         log.info(
             "[UNIFIED_EXIT_FULL_TRAJECTORY_VAL_PASS] population=%d "
