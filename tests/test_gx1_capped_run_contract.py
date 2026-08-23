@@ -277,7 +277,10 @@ def _run_staged_guard(
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        timeout=15,
+        # The guard deliberately gives a TERM-unwind window before KILLing a
+        # process group. Under the one-core audit cap this test must not race
+        # that safety window and kill the guard from the outside first.
+        timeout=30,
         check=False,
     )
 
