@@ -481,6 +481,16 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert validation_call < nested_fast_path
 
 
+def test_capped_runner_resolves_only_explicit_system_nvidia_smi_paths() -> None:
+    """WSL driver placement may differ, but caller-controlled PATH is unsafe."""
+    source = RUNNER.read_text(encoding="utf-8")
+
+    assert "resolve_nvidia_smi_path()" in source
+    assert "for candidate in /usr/bin/nvidia-smi /usr/lib/wsl/lib/nvidia-smi; do" in source
+    assert "command -v nvidia-smi" not in source
+    assert 'TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"' in source
+
+
 def test_matching_nested_audit_scope_can_execute_a_nontrainer_target() -> None:
     required = {
         "GX1_CAPPED_CLASS": "audit",

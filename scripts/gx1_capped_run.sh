@@ -33,7 +33,21 @@ RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
-TRAINER_NVIDIA_SMI_PATH=/usr/bin/nvidia-smi
+
+# Resolve only system-owned, absolute telemetry paths.  WSL exposes the host
+# driver at /usr/lib/wsl/lib/nvidia-smi rather than /usr/bin/nvidia-smi; PATH
+# lookup would allow a caller-controlled replacement, so it is forbidden.
+resolve_nvidia_smi_path() {
+  local candidate
+  for candidate in /usr/bin/nvidia-smi /usr/lib/wsl/lib/nvidia-smi; do
+    if [[ -f "$candidate" && -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"
 
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
 # not caller-controlled defaults. A later measured performance contract may
