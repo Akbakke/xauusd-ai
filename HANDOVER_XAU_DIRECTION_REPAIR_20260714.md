@@ -297,6 +297,23 @@ WSL on 2026-08-23 and failed with `UtilAcceptVsock` rather than yielding sensor
 data, so it is not a bridge. A later remedy must provide independently
 measurable host-side VRAM telemetry to the guard; fabricated, cached or
 caller-selected readings are forbidden.
+
+The attended route now has one additional, source-bound **storage-only**
+optimization. It accepts one immutable full-split rolling-identity audit for
+each of TRAIN and VAL and re-hashes both the parquet and split manifest before
+using it. Only when the proof says that every 96-bar `seq` window rolls exactly
+from the preceding `snap` does the loader build a zero-copy sliding view over
+the first 95 bars plus every snapshot, rather than writing a regenerable
+~26 GB TRAIN sequence memmap (and the corresponding VAL mirror). The normalizer
+still reads the complete TRAIN population; there is no sampling, feature
+transformation or model shortcut. This is valid only with
+`model-native-attended-smoke-train` plus explicit
+`--train-sequence-roll-audit-json` and `--val-sequence-roll-audit-json` paths.
+Canonical smoke and candidate/full training reject those flags and retain the
+materialized route. A proof may never be treated as model, OOS, PnL, candidate,
+TEST, promotion, paper or live evidence. Because the trainer and wrapper are
+source-bound by the recipe audit, create a fresh immutable recipe audit after
+this code change before using the attended route.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
 ## What will stop you when you run a chain

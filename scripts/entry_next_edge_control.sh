@@ -83,7 +83,9 @@ Model-native seq513 evidence:
 
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
-  model-native-attended-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
+  model-native-attended-smoke-train --run-id <id> <all other explicit arguments> \
+    --train-sequence-roll-audit-json <immutable-json> \
+    --val-sequence-roll-audit-json <immutable-json> (--dry-run|--execute)
   model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
   model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
@@ -696,6 +698,11 @@ case "$cmd" in
 
   model-native-attended-smoke-train)
     reject_non_authoritative_args "$@"
+    for flag in \
+      --train-sequence-roll-audit-json \
+      --val-sequence-roll-audit-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-smoke "$@"
     ;;
 

@@ -202,8 +202,22 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
         json.dumps(recipe, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    missing_proofs = _run("--attended-smoke", *cuda_args, "--dry-run")
+    assert missing_proofs.returncode == 2
+    assert "requires train_sequence_roll_audit_json" in missing_proofs.stderr
 
-    result = _run("--attended-smoke", *cuda_args, "--dry-run")
+    train_proof = tmp_path / "train.sequence_roll_audit.json"
+    val_proof = tmp_path / "val.sequence_roll_audit.json"
+    train_proof.write_text("{}\n", encoding="utf-8")
+    val_proof.write_text("{}\n", encoding="utf-8")
+    attended_proofs = (
+        "--train-sequence-roll-audit-json",
+        str(train_proof),
+        "--val-sequence-roll-audit-json",
+        str(val_proof),
+    )
+
+    result = _run("--attended-smoke", *cuda_args, *attended_proofs, "--dry-run")
 
     assert result.returncode == 0, result.stderr
     assert "execution_tier=attended_only" in result.stdout
@@ -212,10 +226,36 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
     separator_index = command.index("--", runner_index)
     assert "--attended-smoke" in command[runner_index:separator_index]
     assert command[command.index("--execution-tier") + 1] == "attended_only"
+    assert command[command.index("--train-sequence-roll-audit-json") + 1] == str(
+        train_proof
+    )
+    assert command[command.index("--val-sequence-roll-audit-json") + 1] == str(
+        val_proof
+    )
 
-    cpu_result = _run("--attended-smoke", *args, "--dry-run")
+    cpu_result = _run("--attended-smoke", *args, *attended_proofs, "--dry-run")
     assert cpu_result.returncode == 2
     assert "requires --device cuda" in cpu_result.stderr
+
+
+def test_sequence_roll_reconstruction_proofs_are_attended_only(tmp_path: Path) -> None:
+    args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    train_proof = tmp_path / "train.sequence_roll_audit.json"
+    val_proof = tmp_path / "val.sequence_roll_audit.json"
+    train_proof.write_text("{}\n", encoding="utf-8")
+    val_proof.write_text("{}\n", encoding="utf-8")
+
+    result = _run(
+        *args,
+        "--train-sequence-roll-audit-json",
+        str(train_proof),
+        "--val-sequence-roll-audit-json",
+        str(val_proof),
+        "--dry-run",
+    )
+
+    assert result.returncode == 2
+    assert "valid only with --attended-smoke" in result.stderr
 
 
 def test_smoke_launch_never_opens_or_stats_sealed_test_artifacts(

@@ -21,6 +21,7 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
     PRODUCTION_MTF_PER_TF_WINDOW_BARS,
 )
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+from gx1.scripts.audit_entry_sequence_roll_v1 import audit_sequence_roll
 from tests.entry_v10_trainer_dataset_support import (
     aux_head_target_contract,
     install_multi_tf_stub,
@@ -28,18 +29,33 @@ from tests.entry_v10_trainer_dataset_support import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-def _write_advanced_parquet(path: Path, *, times: list[str] | None = None) -> None:
+def _write_advanced_parquet(
+    path: Path,
+    *,
+    times: list[str] | None = None,
+    rolling_sequence: bool = False,
+) -> None:
     rows = 3
     seq_len = MODEL_NATIVE_SEQ_LEN
     signal_dim = MODEL_NATIVE_SIGNAL_DIM
     ctx_cont_dim = MODEL_NATIVE_CTX_CONT_DIM
     ctx_cat_dim = MODEL_NATIVE_CTX_CAT_DIM
 
-    seq = [
-        [[float(row + step + col) for col in range(signal_dim)] for step in range(seq_len)]
-        for row in range(rows)
-    ]
-    snap = [[float(row + col) for col in range(signal_dim)] for row in range(rows)]
+    if rolling_sequence:
+        chain = np.arange(
+            (rows + seq_len - 1) * signal_dim,
+            dtype=np.float32,
+        ).reshape(rows + seq_len - 1, signal_dim)
+        seq = [chain[row : row + seq_len].tolist() for row in range(rows)]
+        snap = [chain[row + seq_len - 1].tolist() for row in range(rows)]
+    else:
+        seq = [
+            [[float(row + step + col) for col in range(signal_dim)] for step in range(seq_len)]
+            for row in range(rows)
+        ]
+        snap = [
+            [float(row + col) for col in range(signal_dim)] for row in range(rows)
+        ]
     ctx_cont = [[float(row + col) for col in range(ctx_cont_dim)] for row in range(rows)]
     ctx_cat = [[int((row + col) % 3) for col in range(ctx_cat_dim)] for row in range(rows)]
 
@@ -88,6 +104,23 @@ def _write_advanced_parquet(path: Path, *, times: list[str] | None = None) -> No
         ),
         encoding="utf-8",
     )
+
+
+def _write_sequence_roll_proof(parquet_path: Path) -> Path:
+    manifest_path = parquet_path.with_suffix(".manifest.json")
+    proof_path = parquet_path.with_suffix(".sequence_roll_audit.json")
+    proof_path.write_text(
+        json.dumps(
+            audit_sequence_roll(
+                parquet_path=parquet_path,
+                manifest_path=manifest_path,
+            ),
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return proof_path
 
 
 def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_path, monkeypatch) -> None:
@@ -147,6 +180,62 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
         assert forbidden not in sample
     assert memmap_root.exists()
     assert flush_calls == 2
+
+
+def test_advanced_dataset_reconstructs_sequence_only_from_exact_roll_proof(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    parquet_path = tmp_path / "advanced_train.parquet"
+    memmap_root = tmp_path / "memmap"
+    _write_advanced_parquet(parquet_path, rolling_sequence=True)
+    proof_path = _write_sequence_roll_proof(parquet_path)
+    monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 0)
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
+    m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
+
+    ds = trainer.EntryV10CtxDataset(
+        parquet_path,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
+        m5_prebuilt_path=m5_path,
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
+        multi_tf_closed_bar=True,
+        sequence_roll_audit_json=proof_path,
+    )
+
+    assert ds._sequence_roll_reconstructed is True
+    assert not isinstance(ds._np_seq, np.memmap)
+    assert not memmap_root.exists()
+    assert ds._np_seq.shape == (3, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
+    assert np.array_equal(ds._np_seq[:, -1, :], ds._np_snap)
+    assert np.array_equal(ds._np_seq[1:, :-1, :], ds._np_seq[:-1, 1:, :])
+
+    ds.indices = np.asarray([0, 2], dtype=np.int64)
+    ds.compact_materialized_rows(ds.indices)
+    assert ds._sequence_reconstruction_chain is None
+    assert ds._np_seq.flags.c_contiguous
+    assert ds._np_seq.shape == (2, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
+
+
+def test_sequence_roll_reconstruction_rejects_authoritative_proof_claim(
+    tmp_path,
+) -> None:
+    parquet_path = tmp_path / "advanced_train.parquet"
+    _write_advanced_parquet(parquet_path, rolling_sequence=True)
+    proof_path = _write_sequence_roll_proof(parquet_path)
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["authority"]["candidate"] = True
+    proof_path.write_text(json.dumps(proof), encoding="utf-8")
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_PROOF_INVALID",
+    ):
+        trainer._require_sequence_roll_audit(
+            proof_path,
+            parquet_path=parquet_path,
+            manifest_path=parquet_path.with_suffix(".manifest.json"),
+        )
 
 
 def test_advanced_dataset_rejects_unsorted_time_rows(tmp_path, monkeypatch) -> None:
