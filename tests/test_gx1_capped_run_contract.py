@@ -701,6 +701,8 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=1200" in source
     assert "TRAINER_MAX_WALL_SECONDS=600" in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=300" in source
+    assert 'if [[ "$TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then' in source
+    assert "hardware diagnostic remains a single five-minute run" in source
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=78" in source
     assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=90" in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=250" in source

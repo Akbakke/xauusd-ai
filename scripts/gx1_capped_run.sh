@@ -277,11 +277,16 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   TRAINER_EXECUTION_MODE=attended_smoke
   # A real V40 attended run proved that the one former five-minute envelope
   # can expire while correctly re-hashing the immutable 6.62 GB TRAIN source,
-  # before model construction. These are fixed source constants: callers have
-  # no flag or environment control over either deadline. The guarded trainer
-  # alone performs the one-way preflight -> model transition.
-  TRAINER_MAX_WALL_SECONDS=600
-  TRAINER_MODEL_MAX_WALL_SECONDS=300
+  # before model construction. Only the exact canonical data-smoke target has
+  # the source-bound 600+300 staged envelope. The independent no-data hardware diagnostic remains a single five-minute run; it must not gain time merely
+  # because it shares the attended telemetry exception.
+  if [[ "$TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
+    TRAINER_MAX_WALL_SECONDS=600
+    TRAINER_MODEL_MAX_WALL_SECONDS=300
+  else
+    TRAINER_MAX_WALL_SECONDS=300
+    TRAINER_MODEL_MAX_WALL_SECONDS=300
+  fi
   TRAINER_GPU_MAX_CORE_TEMP_C=75
   TRAINER_GPU_MAX_POWER_LIMIT_W=390
   TRAINER_GPU_MAX_POWER_DRAW_W=250

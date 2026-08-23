@@ -72,7 +72,8 @@ Required audited execution values (there are no wrapper defaults):
 --execute additionally requires a clean worktree and runs the capped trainer.
 The profile has no default. Evidence from one profile is rejected in the other.
 --attended-smoke is accepted only for CUDA smoke runs through the dedicated
-control route. It is capped to five minutes and marked in the produced bundle;
+control route. It has a fixed 10-minute data preflight followed by a separate
+five-minute model phase, and is marked in the produced bundle;
 that bundle is rejected by smoke-bundle audit and cannot reach candidate, TEST,
 promotion, paper or live stages.
 Its two sequence-roll proofs authorize only a memory representation for the
