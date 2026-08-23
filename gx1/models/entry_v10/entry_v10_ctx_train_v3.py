@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Mapping, Optional, Sequence, Tuple
@@ -3467,6 +3468,7 @@ def _train_unified_exit_full_population(
     grad_accum_steps: int,
     exit_cooperation_gate_epoch: dict[str, dict[str, Any]],
     exit_feature_tf_gate_epoch: dict[str, Any],
+    profile_timing: bool = False,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -3488,6 +3490,7 @@ def _train_unified_exit_full_population(
         grad_accum_steps=grad_accum_steps,
         exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
         exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+        profile_timing=profile_timing,
     )
 
 def _forward_unified_exit_episode_pack(
@@ -4048,6 +4051,14 @@ def _episode_native_exit_eval_loss(
     )
 
 
+def _synchronized_exit_profile_clock(device: torch.device) -> float:
+    """Return a wall clock that includes queued CUDA work for one probe only."""
+
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+    return time.perf_counter()
+
+
 def _episode_native_exit_train(
     *,
     model: nn.Module,
@@ -4060,6 +4071,7 @@ def _episode_native_exit_train(
     grad_accum_steps: int,
     exit_cooperation_gate_epoch: dict[str, dict[str, Any]],
     exit_feature_tf_gate_epoch: dict[str, Any],
+    profile_timing: bool = False,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -4070,10 +4082,16 @@ def _episode_native_exit_train(
         raise RuntimeError("[UNIFIED_EXIT_ENTRY_BATCH_SHAPE_INVALID]")
     if target_entry_decision_representations.shape != entry_decision_representations.shape:
         raise RuntimeError("[UNIFIED_EXIT_TARGET_ENTRY_BATCH_SHAPE_INVALID]")
+    profile_start = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     rows = entry_row_indices.detach().cpu().tolist()
     episodes = [
         dataset.materialize_full_exit_episode(int(index)) for index in rows
     ]
+    profile_materialized = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     total_valid = sum(
         int(np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_).sum())
         for episode in episodes
@@ -4119,6 +4137,9 @@ def _episode_native_exit_train(
             exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
         )
     )
+    profile_online_forward = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     (
         targets,
         target_mask,
@@ -4137,6 +4158,9 @@ def _episode_native_exit_train(
             device=device,
         )
     )
+    profile_target_forward = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     if not torch.equal(valid, target_mask):
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_MASK_SPLIT_BRAIN]")
     q_loss_sum = nn.functional.mse_loss(
@@ -4154,6 +4178,9 @@ def _episode_native_exit_train(
     ).backward()
     if token.grad is None or not bool(torch.isfinite(token.grad).all().item()):
         raise RuntimeError("[UNIFIED_EXIT_EPISODE_TOKEN_GRADIENT_INVALID]")
+    profile_backward = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     entry_gradients.index_copy_(0, selected_index, token.grad.detach())
     if (
         int(stats["q_valid_cells"]) != total_valid
@@ -4196,6 +4223,27 @@ def _episode_native_exit_train(
         episode_pack_sha256=episode_hashes,
         fill_binding_sha256=fill_hashes,
     )
+    if profile_timing:
+        assert (
+            profile_start is not None
+            and profile_materialized is not None
+            and profile_online_forward is not None
+            and profile_target_forward is not None
+            and profile_backward is not None
+        )
+        profile_end = _synchronized_exit_profile_clock(device)
+        log.info(
+            "[UNIFIED_EXIT_PROFILE] eligible_entries=%d materialize_s=%.6f "
+            "online_forward_s=%.6f target_forward_s=%.6f "
+            "bellman_backward_s=%.6f post_backward_s=%.6f total_s=%.6f",
+            len(selected_episodes),
+            profile_materialized - profile_start,
+            profile_online_forward - profile_materialized,
+            profile_target_forward - profile_online_forward,
+            profile_backward - profile_target_forward,
+            profile_end - profile_backward,
+            profile_end - profile_start,
+        )
     return (
         entry_gradients,
         {
@@ -4992,6 +5040,7 @@ def train_epoch(
                 grad_accum_steps=_accum_steps,
                 exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
                 exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                profile_timing=not _first_batch_logged,
             )
         )
         unified_exit_loss = torch.tensor(

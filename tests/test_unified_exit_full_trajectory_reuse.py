@@ -135,3 +135,13 @@ def test_candidate_source_reuses_the_hash_bound_first_validation_pass() -> None:
     assert 'collect_full_exit_trajectory=(profile == "candidate")' in source
     assert "best_unified_exit_full_trajectory_validation" in source
     assert "UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_STATE_MISMATCH" in source
+
+
+def test_exit_profile_clock_is_cpu_safe_and_first_batch_only() -> None:
+    before = trainer._synchronized_exit_profile_clock(torch.device("cpu"))
+    after = trainer._synchronized_exit_profile_clock(torch.device("cpu"))
+    source = Path(trainer.__file__).read_text(encoding="utf-8")
+
+    assert after >= before
+    assert "profile_timing=not _first_batch_logged" in source
+    assert "[UNIFIED_EXIT_PROFILE]" in source
