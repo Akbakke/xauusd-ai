@@ -432,6 +432,24 @@ Therefore a future model can be evaluated as research after the pre-registered
 gates, but it cannot honestly be called tradable or be routed to paper/live
 until that separate execution-economics program exists and passes.
 
+**Runtime-scope audit, 2026-08-23:** the only active GX1 market process is
+`v12_oanda_data_collector.py` (roughly 2–3% of one CPU core, no CUDA). It
+requests only completed XAU_USD M1 candles, validates canonical bid/ask/mid
+rows, rejects conflicting historical overlaps, atomically persists them under
+`GX1_DATA/reports/v12_live_data_strict_m1_v1`, and latches on a source or
+storage contract violation. At review time its failure latch was absent. It
+does **not** call an order, trade or position endpoint.
+
+The checkout does contain OANDA mutation primitives and a paper-runner for
+future controlled work, so their mere presence must not be mistaken for an
+active trading route. New Entry launch is deliberately frozen at the runner
+boundary: its broker-entry lease, launch lease and live-tail admission all
+raise `launch, broker and live-tail admission are outside the frozen offline
+scope`; the public evidence control surface rejects `shadow`, `live` and
+`start-live` commands. No paper/live runner process was present during this
+audit. This is a source/runtime containment result only — it does not replace
+the later execution-economics, candidate, paper or operator-approval gates.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a
