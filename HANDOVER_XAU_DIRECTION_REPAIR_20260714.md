@@ -232,7 +232,13 @@ temperature is available, but `temperature.memory` is `N/A`, and the driver
 reports a 390 W configured limit. The guard has been proven to stop before
 trainer launch on this condition. Do not bypass it, claim the 90 C VRAM limit
 is observed, or alter the host power limit without an explicit operator
-decision and new evidence.
+decision and new evidence. NVIDIA's CUDA-on-WSL documentation confirms that
+WSL NVML does not support all queries and identifies `/usr/lib/wsl/lib/nvidia-smi`
+as the WSL path. The Windows-host `nvidia-smi.exe` was also read-tested from
+WSL on 2026-08-23 and failed with `UtilAcceptVsock` rather than yielding sensor
+data, so it is not a bridge. A later remedy must provide independently
+measurable host-side VRAM telemetry to the guard; fabricated, cached or
+caller-selected readings are forbidden.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
 ## What will stop you when you run a chain
