@@ -59,6 +59,8 @@ TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"
 # change them only through a new reviewed commit and recipe source binding.
 TRAINER_EXECUTION_MODE=canonical
 TRAINER_MAX_WALL_SECONDS=1200
+TRAINER_MODEL_MAX_WALL_SECONDS=1200
+TRAINER_ATTENDED_STAGE_REQUIRED=false
 TRAINER_GPU_INDEX=0
 TRAINER_GPU_MAX_CORE_TEMP_C=78
 TRAINER_GPU_MAX_MEMORY_TEMP_C=90
@@ -197,6 +199,12 @@ validate_target_command() {
       echo "FATAL: attended smoke is reserved for one CUDA smoke command marked --execution-tier attended_only" >&2
       exit 75
     fi
+    if [[ "$ATTENDED_SMOKE" == true ]]; then
+      # Only the exact canonical trainer can advance from the complete
+      # data-preflight into the separately bounded model phase. The hardware
+      # smoke intentionally remains a standalone telemetry diagnostic.
+      TRAINER_ATTENDED_STAGE_REQUIRED=true
+    fi
     return
   fi
 
@@ -267,7 +275,13 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   # hard cgroup controls, lowers the core threshold, observes every second,
   # and terminates on actual draw above the original 250 W safety ceiling.
   TRAINER_EXECUTION_MODE=attended_smoke
-  TRAINER_MAX_WALL_SECONDS=300
+  # A real V40 attended run proved that the one former five-minute envelope
+  # can expire while correctly re-hashing the immutable 6.62 GB TRAIN source,
+  # before model construction. These are fixed source constants: callers have
+  # no flag or environment control over either deadline. The guarded trainer
+  # alone performs the one-way preflight -> model transition.
+  TRAINER_MAX_WALL_SECONDS=600
+  TRAINER_MODEL_MAX_WALL_SECONDS=300
   TRAINER_GPU_MAX_CORE_TEMP_C=75
   TRAINER_GPU_MAX_POWER_LIMIT_W=390
   TRAINER_GPU_MAX_POWER_DRAW_W=250
@@ -399,7 +413,7 @@ fi
 echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
 if [[ "$JOB_CLASS" == trainer ]]; then
-  echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE max_wall_seconds=$TRAINER_MAX_WALL_SECONDS gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+  echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
 fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -440,6 +454,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \
   --setenv=GX1_TRAINER_EXECUTION_MODE="$TRAINER_EXECUTION_MODE" \
   --setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS" \
+  --setenv=GX1_TRAINER_MODEL_MAX_WALL_SECONDS="$TRAINER_MODEL_MAX_WALL_SECONDS" \
+  --setenv=GX1_TRAINER_ATTENDED_STAGE_REQUIRED="$TRAINER_ATTENDED_STAGE_REQUIRED" \
   --setenv=GX1_TRAINER_GPU_INDEX="$TRAINER_GPU_INDEX" \
   --setenv=GX1_TRAINER_GPU_MAX_CORE_TEMP_C="$TRAINER_GPU_MAX_CORE_TEMP_C" \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C="$TRAINER_GPU_MAX_MEMORY_TEMP_C" \

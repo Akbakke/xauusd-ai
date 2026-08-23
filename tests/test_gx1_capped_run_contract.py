@@ -61,7 +61,9 @@ def _guard_env(
     device: str,
     nvidia_smi_path: Path,
     max_wall_seconds: int = 5,
+    model_max_wall_seconds: int | None = None,
     execution_mode: str = "canonical",
+    attended_stage_required: bool = False,
     max_power_limit_w: int = 250,
     max_power_draw_w: int = 250,
 ) -> dict[str, str]:
@@ -86,6 +88,14 @@ def _guard_env(
         "GX1_TRAINER_DEVICE": device,
         "GX1_TRAINER_EXECUTION_MODE": execution_mode,
         "GX1_TRAINER_MAX_WALL_SECONDS": str(max_wall_seconds),
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": str(
+            model_max_wall_seconds
+            if model_max_wall_seconds is not None
+            else max_wall_seconds
+        ),
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": str(
+            attended_stage_required
+        ).lower(),
         "GX1_TRAINER_GPU_INDEX": "0",
         "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "78",
         "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "90",
@@ -102,6 +112,7 @@ def _guard_env(
             "GX1_CAPPED_CLASS",
             "GX1_TRAINER_DEVICE",
             "GX1_TRAINER_EXECUTION_MODE",
+            "GX1_TRAINER_ATTENDED_STAGE_REQUIRED",
             "GX1_TRAINER_NVIDIA_SMI_PATH",
         }
     )
@@ -201,6 +212,31 @@ def test_attended_smoke_sigterm_unwinds_python_for_temp_scratch_cleanup(
         handler(signal.SIGTERM, None)
 
 
+def test_attended_preflight_marker_requires_attended_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    fifo = tmp_path / "preflight-ready"
+    os.mkfifo(fifo, 0o600)
+    reader = os.open(fifo, os.O_RDWR | os.O_NONBLOCK)
+    token = "a" * 64
+    monkeypatch.setenv("GX1_TRAINER_ATTENDED_STAGE_FIFO", str(fifo))
+    monkeypatch.setenv("GX1_TRAINER_ATTENDED_STAGE_TOKEN", token)
+
+    try:
+        trainer._announce_attended_preflight_ready(execution_tier="attended_only")
+        expected = (
+            f"gx1_attended_preflight_ready_v1:{token}\n".encode("ascii")
+        )
+        assert os.read(reader, len(expected)) == expected
+        with pytest.raises(RuntimeError, match="TIER_INVALID"):
+            trainer._announce_attended_preflight_ready(execution_tier="canonical")
+    finally:
+        os.close(reader)
+
+
 def _fake_nvidia_smi(tmp_path: Path, output: str, *, exit_code: int = 0) -> Path:
     path = tmp_path / "nvidia-smi"
     path.write_text(
@@ -211,6 +247,109 @@ def _fake_nvidia_smi(tmp_path: Path, output: str, *, exit_code: int = 0) -> Path
     )
     path.chmod(0o755)
     return path
+
+
+def _stage_child(tmp_path: Path, body: str) -> Path:
+    path = tmp_path / "stage-child.sh"
+    path.write_text("#!/usr/bin/env bash\nset -euo pipefail\n" + body, encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+def _run_staged_guard(
+    tmp_path: Path,
+    child: Path,
+    *,
+    data_preflight_seconds: int,
+    model_seconds: int,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", str(TRAINER_GUARD), str(child)],
+        cwd=REPO,
+        env=_guard_env(
+            device="cpu",
+            nvidia_smi_path=Path("/bin/false"),
+            execution_mode="attended_smoke",
+            attended_stage_required=True,
+            max_wall_seconds=data_preflight_seconds,
+            model_max_wall_seconds=model_seconds,
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+
+def test_staged_guard_rejects_missing_preflight_marker(tmp_path: Path) -> None:
+    child = _stage_child(tmp_path, "sleep 30\n")
+
+    result = _run_staged_guard(
+        tmp_path, child, data_preflight_seconds=1, model_seconds=1
+    )
+
+    assert result.returncode == 75
+    assert "reason=stage_data_preflight_wall_clock_limit_1s" in result.stderr
+    assert "stage=data_preflight" in result.stderr
+
+
+def test_staged_guard_accepts_one_valid_preflight_transition(tmp_path: Path) -> None:
+    child = _stage_child(
+        tmp_path,
+        'printf "gx1_attended_preflight_ready_v1:%s\\n" "$GX1_TRAINER_ATTENDED_STAGE_TOKEN" > "$GX1_TRAINER_ATTENDED_STAGE_FIFO"\nsleep 2\n',
+    )
+
+    result = _run_staged_guard(
+        tmp_path, child, data_preflight_seconds=3, model_seconds=3
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "from=data_preflight to=model_smoke" in result.stderr
+
+
+def test_staged_guard_rejects_invalid_preflight_marker(tmp_path: Path) -> None:
+    child = _stage_child(
+        tmp_path,
+        'printf "%s\\n" "not-a-valid-marker" > "$GX1_TRAINER_ATTENDED_STAGE_FIFO"\nsleep 30\n',
+    )
+
+    result = _run_staged_guard(
+        tmp_path, child, data_preflight_seconds=3, model_seconds=3
+    )
+
+    assert result.returncode == 75
+    assert "reason=invalid_attended_stage_notification" in result.stderr
+
+
+def test_staged_guard_rejects_duplicate_preflight_marker(tmp_path: Path) -> None:
+    child = _stage_child(
+        tmp_path,
+        'printf "gx1_attended_preflight_ready_v1:%s\\n" "$GX1_TRAINER_ATTENDED_STAGE_TOKEN" > "$GX1_TRAINER_ATTENDED_STAGE_FIFO"\nprintf "gx1_attended_preflight_ready_v1:%s\\n" "$GX1_TRAINER_ATTENDED_STAGE_TOKEN" > "$GX1_TRAINER_ATTENDED_STAGE_FIFO"\nsleep 30\n',
+    )
+
+    result = _run_staged_guard(
+        tmp_path, child, data_preflight_seconds=3, model_seconds=3
+    )
+
+    assert result.returncode == 75
+    assert "from=data_preflight to=model_smoke" in result.stderr
+    assert "reason=invalid_attended_stage_notification" in result.stderr
+
+
+def test_staged_guard_enforces_separate_model_phase_timeout(tmp_path: Path) -> None:
+    child = _stage_child(
+        tmp_path,
+        'printf "gx1_attended_preflight_ready_v1:%s\\n" "$GX1_TRAINER_ATTENDED_STAGE_TOKEN" > "$GX1_TRAINER_ATTENDED_STAGE_FIFO"\nsleep 30\n',
+    )
+
+    result = _run_staged_guard(
+        tmp_path, child, data_preflight_seconds=3, model_seconds=1
+    )
+
+    assert result.returncode == 75
+    assert "from=data_preflight to=model_smoke" in result.stderr
+    assert "reason=stage_model_smoke_wall_clock_limit_1s" in result.stderr
 
 
 def test_trainer_guard_accepts_complete_safe_cuda_telemetry(tmp_path: Path) -> None:
@@ -559,6 +698,9 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert '--setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))"' in source
     assert '--setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX"' in source
     assert "TRAINER_MAX_WALL_SECONDS=1200" in source
+    assert "TRAINER_MODEL_MAX_WALL_SECONDS=1200" in source
+    assert "TRAINER_MAX_WALL_SECONDS=600" in source
+    assert "TRAINER_MODEL_MAX_WALL_SECONDS=300" in source
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=78" in source
     assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=90" in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=250" in source
@@ -568,6 +710,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "--attended-smoke" in source
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
+        in source
+    )
+    assert (
+        '--setenv=GX1_TRAINER_MODEL_MAX_WALL_SECONDS="$TRAINER_MODEL_MAX_WALL_SECONDS"'
         in source
     )
     assert '"$GX1_GPU_GUARD_PATH" "$@"' in source
@@ -581,7 +727,8 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert '"$memory_temp" == N/A' in guard_source
     assert '/bin/kill -TERM -- "-$child_pid"' in guard_source
     assert '/bin/kill -KILL -- "-$child_pid"' in guard_source
-    assert "elapsed >= GX1_TRAINER_MAX_WALL_SECONDS" in guard_source
+    assert "stage_elapsed >= stage_limit" in guard_source
+    assert "gx1_attended_preflight_ready_v1" in guard_source
     validation_call = source.index('\nvalidate_target_command "$@"\n')
     nested_fast_path = source.index('\nif [[ -n "${GX1_CAPPED_CLASS:-}"')
     assert validation_call < nested_fast_path

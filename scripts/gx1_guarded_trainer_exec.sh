@@ -23,6 +23,8 @@ for variable in \
   GX1_TRAINER_DEVICE \
   GX1_TRAINER_EXECUTION_MODE \
   GX1_TRAINER_MAX_WALL_SECONDS \
+  GX1_TRAINER_MODEL_MAX_WALL_SECONDS \
+  GX1_TRAINER_ATTENDED_STAGE_REQUIRED \
   GX1_TRAINER_GPU_INDEX \
   GX1_TRAINER_GPU_MAX_CORE_TEMP_C \
   GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C \
@@ -42,11 +44,20 @@ case "$GX1_TRAINER_EXECUTION_MODE" in
   canonical|attended_smoke) ;;
   *) die "GX1_TRAINER_EXECUTION_MODE must be canonical or attended_smoke" ;;
 esac
+case "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" in
+  true|false) ;;
+  *) die "GX1_TRAINER_ATTENDED_STAGE_REQUIRED must be true or false" ;;
+esac
+if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
+  && "$GX1_TRAINER_EXECUTION_MODE" != attended_smoke ]]; then
+  die "staged attended preflight requires attended_smoke execution mode"
+fi
 for variable in \
   GX1_CAPPED_MEMORY_BYTES \
   GX1_CAPPED_SWAP_BYTES \
   GX1_CAPPED_TASKS_MAX \
   GX1_TRAINER_MAX_WALL_SECONDS \
+  GX1_TRAINER_MODEL_MAX_WALL_SECONDS \
   GX1_TRAINER_GPU_MAX_CORE_TEMP_C \
   GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C \
   GX1_TRAINER_GPU_MAX_POWER_LIMIT_W \
@@ -67,7 +78,7 @@ cgroup_directory="/sys/fs/cgroup${cgroup_relative}"
   && "$(<"$cgroup_directory/pids.max")" == "$GX1_CAPPED_TASKS_MAX" ]] \
   || die "trainer cgroup proof does not match protected environment"
 
-for helper in /usr/bin/setsid /usr/bin/timeout /bin/kill /bin/date /bin/sleep; do
+for helper in /usr/bin/setsid /usr/bin/timeout /bin/kill /bin/date /bin/sleep /usr/bin/mktemp /usr/bin/mkfifo /usr/bin/od /usr/bin/tr /bin/rm /bin/rmdir; do
   [[ -x "$helper" ]] || die "required helper is unavailable: $helper"
 done
 
@@ -143,6 +154,64 @@ assert_safe_telemetry() {
 }
 
 child_pid=
+stage_dir=
+stage_fifo=
+stage_fd=
+stage_token=
+stage_name=canonical
+stage_start_epoch=
+
+cleanup_stage_notification() {
+  if [[ -n "$stage_fd" ]]; then
+    exec {stage_fd}>&- || true
+    stage_fd=
+  fi
+  if [[ -n "$stage_fifo" ]]; then
+    /bin/rm -f -- "$stage_fifo" 2>/dev/null || true
+    stage_fifo=
+  fi
+  if [[ -n "$stage_dir" ]]; then
+    /bin/rmdir -- "$stage_dir" 2>/dev/null || true
+    stage_dir=
+  fi
+}
+
+create_stage_notification() {
+  stage_dir=$(/usr/bin/mktemp -d /tmp/gx1-attended-stage.XXXXXXXX) \
+    || die "could not create private attended-stage directory"
+  stage_fifo="$stage_dir/preflight-ready"
+  /usr/bin/mkfifo -m 600 "$stage_fifo" \
+    || die "could not create private attended-stage pipe"
+  stage_token=$(
+    /usr/bin/od -An -N32 -tx1 /dev/urandom | /usr/bin/tr -d ' \n'
+  ) || die "could not generate attended-stage token"
+  [[ "$stage_token" =~ ^[0-9a-f]{64}$ ]] \
+    || die "generated attended-stage token is invalid"
+  exec {stage_fd}<>"$stage_fifo" \
+    || die "could not open private attended-stage pipe"
+  export GX1_TRAINER_ATTENDED_STAGE_FIFO="$stage_fifo"
+  export GX1_TRAINER_ATTENDED_STAGE_TOKEN="$stage_token"
+}
+
+stage_notification_error=
+consume_stage_notifications() {
+  local message
+  while IFS= read -r -t 0.01 -u "$stage_fd" message; do
+    if [[ "$stage_name" == data_preflight \
+      && "$message" == "gx1_attended_preflight_ready_v1:$stage_token" ]]; then
+      stage_name=model_smoke
+      stage_start_epoch=$(/bin/date +%s)
+      printf '[trainer_safety_stage_transition] from=data_preflight to=model_smoke preflight_elapsed_seconds=%s model_max_wall_seconds=%s\n' \
+        "$((stage_start_epoch - start_epoch))" \
+        "$GX1_TRAINER_MODEL_MAX_WALL_SECONDS" >&2
+      continue
+    fi
+    stage_notification_error=invalid_attended_stage_notification
+    return 1
+  done
+  return 0
+}
+
 terminate_child_group() {
   local reason="$1"
   [[ -n "$child_pid" ]] || return 0
@@ -157,17 +226,19 @@ terminate_child_group() {
   fi
 }
 
-trap 'terminate_child_group guard_exit' EXIT
-trap 'terminate_child_group signal; exit 130' INT TERM HUP
+trap 'terminate_child_group guard_exit; cleanup_stage_notification' EXIT
+trap 'terminate_child_group signal; cleanup_stage_notification; exit 130' INT TERM HUP
 
 if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
   assert_safe_telemetry preflight
 fi
 
-printf '[trainer_safety_guard] execution_mode=%s device=%s max_wall_seconds=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s monitor_interval_seconds=%s\n' \
+printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wall_seconds=%s model_max_wall_seconds=%s attended_stage_required=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s monitor_interval_seconds=%s\n' \
   "$GX1_TRAINER_EXECUTION_MODE" \
   "$GX1_TRAINER_DEVICE" \
   "$GX1_TRAINER_MAX_WALL_SECONDS" \
+  "$GX1_TRAINER_MODEL_MAX_WALL_SECONDS" \
+  "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" \
   "$GX1_TRAINER_GPU_INDEX" \
   "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" \
   "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
@@ -179,21 +250,49 @@ if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
 fi
 
 start_epoch=$(/bin/date +%s)
+stage_start_epoch=$start_epoch
+if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
+  stage_name=data_preflight
+  create_stage_notification
+  printf '[trainer_safety_staged_preflight] data_preflight_max_wall_seconds=%s model_max_wall_seconds=%s transition=guard_verified_private_pipe\n' \
+    "$GX1_TRAINER_MAX_WALL_SECONDS" \
+    "$GX1_TRAINER_MODEL_MAX_WALL_SECONDS" >&2
+else
+  unset GX1_TRAINER_ATTENDED_STAGE_FIFO GX1_TRAINER_ATTENDED_STAGE_TOKEN
+fi
 /usr/bin/setsid "$@" &
 child_pid=$!
 last_heartbeat_epoch=$start_epoch
 
 while /bin/kill -0 "$child_pid" 2>/dev/null; do
   /bin/sleep "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS"
-  /bin/kill -0 "$child_pid" 2>/dev/null || break
   now_epoch=$(/bin/date +%s)
-  elapsed=$((now_epoch - start_epoch))
-  if (( elapsed >= GX1_TRAINER_MAX_WALL_SECONDS )); then
-    terminate_child_group "wall_clock_limit_${GX1_TRAINER_MAX_WALL_SECONDS}s"
+  stage_elapsed=$((now_epoch - stage_start_epoch))
+  if [[ "$stage_name" == model_smoke ]]; then
+    stage_limit=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS
+  else
+    stage_limit=$GX1_TRAINER_MAX_WALL_SECONDS
+  fi
+  if (( stage_elapsed >= stage_limit )); then
+    if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
+      stop_reason="stage_${stage_name}_wall_clock_limit_${stage_limit}s"
+    else
+      stop_reason="wall_clock_limit_${stage_limit}s"
+    fi
+    terminate_child_group "$stop_reason"
     wait "$child_pid" 2>/dev/null || true
     child_pid=
-    die "wall-clock limit reached"
+    die "wall-clock limit reached during stage=$stage_name"
   fi
+  if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
+    if ! consume_stage_notifications; then
+      terminate_child_group "$stage_notification_error"
+      wait "$child_pid" 2>/dev/null || true
+      child_pid=
+      die "invalid attended-stage notification"
+    fi
+  fi
+  /bin/kill -0 "$child_pid" 2>/dev/null || break
   if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
     if ! read_gpu_telemetry; then
       terminate_child_group telemetry_unavailable
@@ -222,19 +321,35 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
   fi
   if (( now_epoch - last_heartbeat_epoch >= 30 )); then
     if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
-      printf '[trainer_safety_heartbeat] elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s memory_observed=%s power_draw_w=%s power_limit_w=%s\n' \
-        "$elapsed" "$core_temp" "$memory_temp" "$memory_observed" "$power_draw" "$power_limit" >&2
+      printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s memory_observed=%s power_draw_w=%s power_limit_w=%s\n' \
+        "$stage_name" "$stage_elapsed" "$core_temp" "$memory_temp" "$memory_observed" "$power_draw" "$power_limit" >&2
     else
-      printf '[trainer_safety_heartbeat] elapsed_seconds=%s device=cpu\n' "$elapsed" >&2
+      printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s device=cpu\n' "$stage_name" "$stage_elapsed" >&2
     fi
     last_heartbeat_epoch=$now_epoch
   fi
 done
+
+if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
+  if ! consume_stage_notifications; then
+    terminate_child_group "$stage_notification_error"
+    wait "$child_pid" 2>/dev/null || true
+    child_pid=
+    die "invalid attended-stage notification"
+  fi
+fi
 
 set +e
 wait "$child_pid"
 child_status=$?
 set -e
 child_pid=
+if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
+  && "$stage_name" == data_preflight ]]; then
+  cleanup_stage_notification
+  trap - EXIT
+  die "attended data preflight exited without its required model-stage marker"
+fi
+cleanup_stage_notification
 trap - EXIT
 exit "$child_status"

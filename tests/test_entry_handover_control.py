@@ -22,6 +22,7 @@ AUTHORITY_PATHS = (
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
     REPO / "docs/DATA_CONTRACT.md",
+    REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
     # 3c84bec9 committed this review doc without extending the authority
     # fingerprint; covered here so no tracked markdown escapes the fingerprint.
     REPO / "docs/FEATURE_VALUE_REVIEW_20260813.md",

@@ -21,8 +21,10 @@ import logging
 import math
 import mmap
 import os
+import re
 import signal
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -6424,6 +6426,79 @@ def validate(
 # -----------------------------------------------------------------------------
 # Train
 # -----------------------------------------------------------------------------
+_ATTENDED_PREFLIGHT_NOTIFICATION_PREFIX = "gx1_attended_preflight_ready_v1:"
+_ATTENDED_PREFLIGHT_TOKEN_RE = re.compile(r"[0-9a-f]{64}\Z")
+
+
+def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
+    """Release the outer guard into its separately bounded model phase.
+
+    The guard creates this private FIFO and unpredictable token immediately
+    before it starts the exact canonical trainer. This function deliberately
+    has no CLI arguments and is called at one location only: immediately after
+    every full data/contract proof and immediately before model construction.
+    """
+
+    if execution_tier != "attended_only":
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_TIER_INVALID] "
+            "only attended_only may announce preflight completion"
+        )
+    fifo_raw = str(os.environ.get("GX1_TRAINER_ATTENDED_STAGE_FIFO") or "")
+    token = str(os.environ.get("GX1_TRAINER_ATTENDED_STAGE_TOKEN") or "")
+    if not fifo_raw or not _ATTENDED_PREFLIGHT_TOKEN_RE.fullmatch(token):
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_MISSING] "
+            "guard-created FIFO/token are required for attended_only"
+        )
+    fifo_path = Path(fifo_raw)
+    if not fifo_path.is_absolute():
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_FIFO_INVALID] "
+            "FIFO path must be absolute"
+        )
+    try:
+        fifo_stat = os.stat(fifo_path, follow_symlinks=False)
+    except OSError as exc:
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_FIFO_UNAVAILABLE] "
+            f"{exc}"
+        ) from exc
+    if (
+        not stat.S_ISFIFO(fifo_stat.st_mode)
+        or fifo_stat.st_uid != os.getuid()
+        or fifo_stat.st_mode & 0o077
+    ):
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_FIFO_UNSAFE] "
+            "expected a private FIFO owned by this trainer user"
+        )
+    flags = os.O_WRONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
+    payload = f"{_ATTENDED_PREFLIGHT_NOTIFICATION_PREFIX}{token}\n".encode(
+        "ascii"
+    )
+    fd: Optional[int] = None
+    try:
+        fd = os.open(fifo_path, flags)
+        written = os.write(fd, payload)
+    except OSError as exc:
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_WRITE_FAILED] "
+            f"{exc}"
+        ) from exc
+    finally:
+        if fd is not None:
+            os.close(fd)
+    if written != len(payload):
+        raise RuntimeError(
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_PARTIAL_WRITE] "
+            f"written={written} expected={len(payload)}"
+        )
+    log.info(
+        "[ATTENDED_STAGE_NOTIFICATION] stage=data_preflight status=sent"
+    )
+
+
 def run_train(
     train_parquet: Path,
     train_manifest_path: Path,
@@ -7037,6 +7112,8 @@ def run_train(
             for name, indices in multi_tf_specialist_indices.items()
         },
     )
+    if execution_tier == "attended_only":
+        _announce_attended_preflight_ready(execution_tier=execution_tier)
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,

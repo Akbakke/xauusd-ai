@@ -365,6 +365,19 @@ weaken the sequence hash or extend the 300-second guard implicitly: a later
 staged preflight must retain the exact source identity before a distinct GPU
 phase may consume it.
 
+**Implemented staged attended preflight, 2026-08-23 (not yet executed):** the
+approved exact attended trainer route now has a source-bound 600-second
+`data_preflight` deadline and a separate 300-second `model_smoke` deadline.
+The guard keeps the same 4 GiB/512 MiB cgroup, one-physical-core affinity,
+one-second CUDA telemetry, 75 C core stop and 250 W actual-draw stop throughout.
+It transitions only once when the real trainer sends a token-bound message on a
+private guard-created FIFO immediately before model construction, after the
+complete cache/lifecycle/hash/normalization/contract/specialist preflight. No
+marker, an invalid or duplicate marker, or either phase timeout kills the whole
+process group. This is a safety/execution repair only: a fresh recipe audit and
+the first observed bounded V40 run remain required, and neither gains candidate,
+edge, OOS, TEST, paper or live authority.
+
 **Attended hardware smoke, 2026-08-23:** the separate no-data CUDA route
 passed under the same attended guard. It constructed the exact Entry
 architecture and specialist routing, completed one deterministic

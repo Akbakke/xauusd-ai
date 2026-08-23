@@ -1,9 +1,10 @@
-# Attended staged preflight: design, not authorization
+# Attended staged preflight safety contract
 
-Status: proposed only. This document does not change a runner, a timeout, a
-dataset, a model recipe or execution authority. It exists because the current
-single 300-second attended wall-clock has now stopped a real V40 run while it
-was correctly re-hashing the 6.62 GB TRAIN parquet, before model construction.
+Status: implemented; test and fresh-recipe validation required before the
+first observed V40 execution. The 2026-08-23 operator approval applies as a
+standing safety constraint: no expanded model run may bypass these fixed
+limits, active telemetry or the full data preflight. This changes neither the
+dataset nor any execution authority.
 
 ## The problem being solved
 
@@ -52,7 +53,7 @@ after all of the following have succeeded in that same process:
    proof, and exact eight-family specialist routing.
 
 The notification must travel through a private, guard-created one-shot pipe
-with an unpredictable token. The runner, not CLI arguments, creates its path
+with an unpredictable token. The guard, not CLI arguments, creates its path
 and token; the trainer gets them only through the protected environment. The
 guard rejects an unexpected message, a duplicate message, an unreadable pipe
 or any marker under canonical mode. The trainer's own unit test is responsible
@@ -87,9 +88,10 @@ prove that every specialist encoder and each 5x8 family-by-timeframe route
 changes decision margins. Staged preflight proves neither model influence nor
 trading edge; it only lets the complete data path reach the model honestly.
 
-## Explicit operator decision required
+## Operator decision and execution boundary
 
-Do not implement or execute this design merely because this file exists. It
-extends an attended diagnostic from one five-minute wall-clock to at most
-fifteen minutes, while CPU thermal telemetry is absent. It requires a specific
-operator approval for both implementation and the first observed execution.
+The operator approved implementation and the first observed bounded execution
+on 2026-08-23. It extends an attended diagnostic from one five-minute
+wall-clock to at most fifteen minutes, while CPU thermal telemetry is absent.
+It does not authorize candidate training, edge claims, TEST, promotion, paper
+trading or live execution. Those remain separate, evidence-gated decisions.
