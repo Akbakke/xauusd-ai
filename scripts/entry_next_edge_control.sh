@@ -64,6 +64,7 @@ Model-native seq513 evidence:
   model-native-smoke-manifest
   model-native-smoke-readiness
   model-native-trainability-readiness
+  model-native-sequence-roll-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-train-recipe-audit
   model-native-smoke-bundle-audit
   model-native-candidate-readiness
@@ -738,6 +739,16 @@ case "$cmd" in
     [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \
       || die "$cmd --execute requires a clean worktree"
     exec "${HARDWARE_CMD[@]}"
+    ;;
+
+  model-native-sequence-roll-audit)
+    # Full byte-level sequence/snapshot identity proof.  It is an audit only:
+    # no target/model fitting, dataset production or downstream authority.
+    reject_non_authoritative_args "$@"
+    for flag in --parquet --manifest-json --out-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_sequence_roll_v1 "$@"
     ;;
 
   model-native-smoke-bundle-audit)
