@@ -349,6 +349,22 @@ unified Exit lifecycle. A recipe created before that binding is insufficient:
 the new audit must bind this loader's exact bytes, not merely the lifecycle
 module that imports it.
 
+**Second attended data-smoke, 2026-08-23:** after source commits `7ca258a5`
+and `db9fe42d`, the fresh recipe audit
+`train_recipe_attended_m1pager_20260823T182110Z/...183206467050Z.json` passed
+and the wrapper dry-run proved the attended-only path. The controlled execute
+reached the full `MULTI_TF_DECISION_WINDOW_COVERAGE` contract, which the first
+attempt had not logged, and then stopped normally at its 300-second wall while
+rehashing the complete 6.62 GB TRAIN parquet for the immutable sequence-roll
+proof. The cgroup recorded reclaim events but zero OOM/oom-kill events; GPU
+telemetry remained 48 C and about 35 W, so no CUDA model batch occurred. It
+published no bundle, changed no V40 dataset/lifecycle bytes and removed its
+new temporary M1 maps during SIGTERM unwinding. This is stronger proof of the
+bounded M1-loader repair, not a training or hardware-success result. Do not
+weaken the sequence hash or extend the 300-second guard implicitly: a later
+staged preflight must retain the exact source identity before a distinct GPU
+phase may consume it.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a
