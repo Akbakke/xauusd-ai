@@ -34,7 +34,13 @@ trainability readiness and smoke recipe for distinct run
 `execution_allowed=true`, but `activation_authority=false`, and the exact
 wrapper `--dry-run` passed. Its only permitted next execution is the bounded
 research smoke: CUDA, one epoch, 10,000 TRAIN rows, batch 64, 4G RAM and
-512M swap. **It has not been executed.**
+512M swap. **It has not been executed.** A recipe pass is not machine
+telemetry: on this WSL host the current trainer preflight fails closed before
+the trainer starts because the RTX 3090 reports `temperature.memory=N/A` and
+its configured power limit is 390 W, above the 250 W policy. Commit
+`0b5cde21` resolves WSL's system-owned `nvidia-smi` path but intentionally
+does not weaken either condition. The smoke is therefore not executable until
+there is a real, approved telemetry/power solution.
 
 The separately named V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
@@ -221,6 +227,12 @@ CUDA trainer work does have a fail-closed 20-minute wall-clock plus 2-second
 GPU telemetry guard (78 C core, 90 C memory and 250 W configured power limit);
 missing telemetry terminates its process group. Treat the unobservable CPU
 temperature as a residual machine risk, not as evidence that it is safe.
+The current RTX 3090/WSL telemetry is specifically insufficient: core
+temperature is available, but `temperature.memory` is `N/A`, and the driver
+reports a 390 W configured limit. The guard has been proven to stop before
+trainer launch on this condition. Do not bypass it, claim the 90 C VRAM limit
+is observed, or alter the host power limit without an explicit operator
+decision and new evidence.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
 ## What will stop you when you run a chain
