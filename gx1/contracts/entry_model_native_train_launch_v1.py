@@ -143,6 +143,9 @@ MTF_SPECIALIST_ROUTING_RELATIVE_PATH = (
 UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH = (
     "gx1/contracts/unified_exit_lifecycle_v1.py"
 )
+ENTRY_EXIT_FEATURE_SURFACE_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_exit_feature_surface_v1.py"
+)
 
 REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 # V30 package 7 (2026-08-13): the `_rail_` substring filter would now yield an
@@ -537,6 +540,13 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         ).resolve(strict=True),
         "unified_exit_lifecycle_contract": (
             repo / UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
+        # The lifecycle imports this owner to decode the native M1 feature
+        # surface. Bind it separately so a source-only loader change cannot
+        # evade the immutable recipe merely because the lifecycle file itself
+        # did not change.
+        "entry_exit_feature_surface_contract": (
+            repo / ENTRY_EXIT_FEATURE_SURFACE_CONTRACT_RELATIVE_PATH
         ).resolve(strict=True),
         "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
     }

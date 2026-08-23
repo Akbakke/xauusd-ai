@@ -343,6 +343,12 @@ measured on the V40 attended route, so it does not authorize a retry by itself:
 create a fresh source-bound recipe audit and retain the existing 4G/300-second
 guard before any future attended execution.
 
+The recipe's exact source-binding set now includes the shared
+`entry_exit_feature_surface_v1.py` owner as a distinct dependency of the
+unified Exit lifecycle. A recipe created before that binding is insufficient:
+the new audit must bind this loader's exact bytes, not merely the lifecycle
+module that imports it.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a
