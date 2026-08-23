@@ -83,6 +83,7 @@ Model-native seq513 evidence:
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
   model-native-attended-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
+  model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
   model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
@@ -695,6 +696,48 @@ case "$cmd" in
   model-native-attended-smoke-train)
     reject_non_authoritative_args "$@"
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-smoke "$@"
+    ;;
+
+  model-native-attended-hardware-smoke)
+    # A diagnostic-only CUDA architecture step.  It has no dataset, bundle or
+    # candidate output and must remain distinct from model-native smoke train.
+    reject_non_authoritative_args "$@"
+    HARDWARE_AUDIT_JSON= HARDWARE_RUN_MODE=
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --specialist-audit-json)
+          [[ -z "$HARDWARE_AUDIT_JSON" && $# -ge 2 ]] \
+            || die "$cmd requires one --specialist-audit-json PATH"
+          HARDWARE_AUDIT_JSON="$2"
+          shift 2
+          ;;
+        --dry-run|--execute)
+          [[ -z "$HARDWARE_RUN_MODE" ]] || die "$cmd requires exactly one run mode"
+          HARDWARE_RUN_MODE="${1#--}"
+          shift
+          ;;
+        *) die "$cmd accepts only --specialist-audit-json and --dry-run|--execute" ;;
+      esac
+    done
+    [[ -n "$HARDWARE_AUDIT_JSON" && -n "$HARDWARE_RUN_MODE" ]] \
+      || die "$cmd requires --specialist-audit-json and one run mode"
+    [[ -f "$HARDWARE_AUDIT_JSON" && ! -L "$HARDWARE_AUDIT_JSON" ]] \
+      || die "$cmd specialist audit must be an existing regular non-symlink file"
+    HARDWARE_CMD=(
+      "$REPO/scripts/gx1_capped_run.sh" --class trainer --mem 4G --swap 512M --attended-smoke --
+      "$PY" -m gx1.scripts.attended_model_native_hardware_smoke_v1
+      --attended-hardware-smoke --device cuda
+      --specialist-audit-json "$HARDWARE_AUDIT_JSON"
+    )
+    if [[ "$HARDWARE_RUN_MODE" == dry-run ]]; then
+      printf 'Validated attended hardware smoke (authority=none):'
+      printf ' %q' "${HARDWARE_CMD[@]}"
+      printf '\n'
+      exit 0
+    fi
+    [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \
+      || die "$cmd --execute requires a clean worktree"
+    exec "${HARDWARE_CMD[@]}"
     ;;
 
   model-native-smoke-bundle-audit)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -178,6 +179,26 @@ def test_trainer_guard_wall_clock_kills_cpu_process_group() -> None:
     assert result.returncode == 75
     assert "wall-clock limit reached" in result.stderr
     assert "reason=wall_clock_limit_1s" in result.stderr
+
+
+def test_attended_smoke_sigterm_unwinds_python_for_temp_scratch_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    registered: dict[int, object] = {}
+    monkeypatch.setattr(
+        trainer.signal,
+        "signal",
+        lambda signum, handler: registered.__setitem__(int(signum), handler),
+    )
+
+    trainer._install_attended_smoke_termination_handler()
+
+    handler = registered[signal.SIGTERM]
+    assert callable(handler)
+    with pytest.raises(KeyboardInterrupt, match="attended smoke stopped"):
+        handler(signal.SIGTERM, None)
 
 
 def _fake_nvidia_smi(tmp_path: Path, output: str, *, exit_code: int = 0) -> Path:

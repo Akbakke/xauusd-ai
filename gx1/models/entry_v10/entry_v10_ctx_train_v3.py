@@ -21,6 +21,7 @@ import logging
 import math
 import mmap
 import os
+import signal
 import shutil
 import subprocess
 import sys
@@ -8360,6 +8361,27 @@ def run_train(
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
+def _install_attended_smoke_termination_handler() -> None:
+    """Turn the guard's SIGTERM into normal Python unwinding for attended smoke.
+
+    ``TemporaryDirectory`` releases the large memmap mirrors when its Dataset
+    object is unwound.  Python's default SIGTERM action exits immediately and
+    skips that finalizer; the bounded attended run would therefore leave an
+    orphaned, regenerable scratch mirror after its wall-clock stop.  This hook
+    is deliberately unavailable to canonical/candidate training and changes no
+    safety threshold: the parent guard still owns termination and KILL fallback.
+    """
+
+    def _terminate(signum: int, _frame: object) -> None:
+        log.warning(
+            "[ATTENDED_SMOKE_GRACEFUL_TERMINATION] signal=%s; unwinding temporary scratch",
+            signum,
+        )
+        raise KeyboardInterrupt("attended smoke stopped by the safety guard")
+
+    signal.signal(signal.SIGTERM, _terminate)
+
+
 def main() -> None:
     _require_trainer_cgroup_preflight()
     _enforce_canonical_train_env_contract()
@@ -8435,6 +8457,8 @@ def main() -> None:
         parser.error("candidate training requires --subsample-rows 0")
     if args.execution_tier == "attended_only" and args.profile != "smoke":
         parser.error("--execution-tier attended_only requires --profile smoke")
+    if args.execution_tier == "attended_only":
+        _install_attended_smoke_termination_handler()
 
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
     _GRAD_CLIP_NORM = float(args.grad_clip_norm)

@@ -56,6 +56,26 @@ both metadata and lock; smoke-bundle audit rejects that tier, so it cannot
 enter candidate, TEST, promotion, paper or live paths. The attended route is
 not a hardware solution and does not make the canonical route safe.
 
+The first attended train smoke on 2026-08-23 proved the guard but did **not**
+reach CUDA model work: before its 300-second wall-clock stop it began building
+the complete 26.3 GB TRAIN nested-array memmap, because the immutable full-TRAIN
+normalization fit is correctly upstream of the 10k optimization subsample. It
+published no bundle and its PID-bound scratch was removed. Do not relabel that
+as a GPU-training result or weaken the full-TRAIN normalization contract merely
+to make a smoke faster. `entry_v10_ctx_train_v3.py` now translates the attended
+guard's `SIGTERM` into normal Python unwinding so its `TemporaryDirectory`
+cleans that regenerable scratch before the guard's KILL fallback.
+
+For an actual CUDA architecture/thermal check without that full-data I/O,
+`model-native-attended-hardware-smoke` is a separately named, source-bound,
+operator-present route. It constructs the exact Entry architecture and
+specialist routing and executes one deterministic CUDA forward/backward/AdamW
+step on contract-valid **synthetic** tensors. It reads no TRAIN/VAL/TEST
+parquet, writes no files, uses the same 4G/512M, five-minute, 75 C,
+250 W actual-draw and one-second guard, and has `authority=none`. It cannot
+stand in for a data smoke, normalization fit, candidate, edge claim, TEST,
+promotion, paper or live evidence.
+
 The separately named V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
 gross, spread-inclusive, research-only and cannot gain production authority

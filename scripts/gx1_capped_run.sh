@@ -33,6 +33,7 @@ set -euo pipefail
 JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
+ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -99,9 +100,10 @@ is_direct_python() {
 }
 
 validate_target_command() {
-  local executable_basename="${1##*/}" target_arg
-  local trainer_reference=false trainer_flag_count=0 trainer_device_count=0
-  local target_index
+  local executable_basename="${1##*/}" target_arg module
+  local trainer_reference=false hardware_smoke_reference=false
+  local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
+  local profile_count=0 execution_tier_count=0 profile_value= execution_tier_value=
   local -a target_args=("$@")
 
   case "$executable_basename" in
@@ -115,6 +117,9 @@ validate_target_command() {
     if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"* ]]; then
       trainer_reference=true
     fi
+    if [[ "$target_arg" == *"$ATTENDED_HARDWARE_SMOKE_MODULE"* ]]; then
+      hardware_smoke_reference=true
+    fi
     if [[ "$target_arg" == "--train" ]]; then
       trainer_flag_count=$((trainer_flag_count + 1))
     fi
@@ -125,16 +130,26 @@ validate_target_command() {
       echo "FATAL: canonical trainer requires --class trainer" >&2
       exit 75
     fi
+    if [[ "$hardware_smoke_reference" == true ]]; then
+      echo "FATAL: attended hardware smoke requires --class trainer" >&2
+      exit 75
+    fi
     return
   fi
 
   if ! is_direct_python "$1" \
-    || [[ "${2:-}" != "-m" ]] \
-    || [[ "${3:-}" != "$CANONICAL_TRAINER_MODULE" ]]; then
+    || [[ "${2:-}" != "-m" ]]; then
     echo "FATAL: trainer class is reserved for the canonical trainer module as a direct target" >&2
     exit 75
   fi
-  if (( trainer_flag_count != 1 )); then
+  module="${3:-}"
+  [[ "$module" == "$CANONICAL_TRAINER_MODULE" \
+    || "$module" == "$ATTENDED_HARDWARE_SMOKE_MODULE" ]] || {
+    echo "FATAL: trainer class permits only the canonical trainer or attended hardware smoke module" >&2
+    exit 75
+  }
+  if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]] \
+    && (( trainer_flag_count != 1 )); then
     echo "FATAL: trainer class requires the canonical --train mode exactly once" >&2
     exit 75
   fi
@@ -147,6 +162,27 @@ validate_target_command() {
       }
       TRAINER_DEVICE="${target_args[$((target_index + 1))]}"
     fi
+    if [[ "${target_args[$target_index]}" == "--attended-hardware-smoke" ]]; then
+      hardware_smoke_flag_count=$((hardware_smoke_flag_count + 1))
+    fi
+    case "${target_args[$target_index]}" in
+      --profile)
+        profile_count=$((profile_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || {
+          echo "FATAL: attended smoke requires a value after --profile" >&2
+          exit 75
+        }
+        profile_value="${target_args[$((target_index + 1))]}"
+        ;;
+      --execution-tier)
+        execution_tier_count=$((execution_tier_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || {
+          echo "FATAL: attended smoke requires a value after --execution-tier" >&2
+          exit 75
+        }
+        execution_tier_value="${target_args[$((target_index + 1))]}"
+        ;;
+    esac
   done
   if (( trainer_device_count != 1 )) \
     || [[ "$TRAINER_DEVICE" != cpu && "$TRAINER_DEVICE" != cuda ]]; then
@@ -154,34 +190,27 @@ validate_target_command() {
     exit 75
   fi
 
-  if [[ "$ATTENDED_SMOKE" == true ]]; then
-    local profile_count=0 execution_tier_count=0 profile_value= execution_tier_value=
-    for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
-      case "${target_args[$target_index]}" in
-        --profile)
-          profile_count=$((profile_count + 1))
-          (( target_index + 1 < ${#target_args[@]} )) || {
-            echo "FATAL: attended smoke requires a value after --profile" >&2
-            exit 75
-          }
-          profile_value="${target_args[$((target_index + 1))]}"
-          ;;
-        --execution-tier)
-          execution_tier_count=$((execution_tier_count + 1))
-          (( target_index + 1 < ${#target_args[@]} )) || {
-            echo "FATAL: attended smoke requires a value after --execution-tier" >&2
-            exit 75
-          }
-          execution_tier_value="${target_args[$((target_index + 1))]}"
-          ;;
-      esac
-    done
-    if [[ "$TRAINER_DEVICE" != cuda \
+  if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]]; then
+    if [[ "$ATTENDED_SMOKE" == true ]] && { [[ "$TRAINER_DEVICE" != cuda \
       || $profile_count -ne 1 || "$profile_value" != smoke \
-      || $execution_tier_count -ne 1 || "$execution_tier_value" != attended_only ]]; then
+      || $execution_tier_count -ne 1 || "$execution_tier_value" != attended_only ]]; }; then
       echo "FATAL: attended smoke is reserved for one CUDA smoke command marked --execution-tier attended_only" >&2
       exit 75
     fi
+    return
+  fi
+
+  # This is intentionally a separate target, not a shortcut into canonical
+  # training.  It carries no --train flag, accepts CUDA only, and is admitted
+  # only through the same attended guard owned by this source file.
+  if [[ "$ATTENDED_SMOKE" != true || "$TRAINER_DEVICE" != cuda \
+    || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 1 ]]; then
+    echo "FATAL: attended hardware smoke requires --attended-smoke, CUDA, no --train, and one --attended-hardware-smoke marker" >&2
+    exit 75
+  fi
+  if (( profile_count != 0 || execution_tier_count != 0 )); then
+    echo "FATAL: attended hardware smoke cannot carry trainer profile or execution-tier arguments" >&2
+    exit 75
   fi
 }
 
