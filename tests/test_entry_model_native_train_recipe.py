@@ -194,6 +194,7 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "wrapper",
         "trainer",
         "trainer_safety_guard",
+        "smoke_bundle_audit",
         "unified_exit_lifecycle_contract",
         "capped_runner",
     }

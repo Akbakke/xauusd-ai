@@ -82,6 +82,7 @@ Model-native seq513 evidence:
 
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
+  model-native-attended-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
   model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
@@ -687,7 +688,13 @@ case "$cmd" in
 
   model-native-smoke-train)
     reject_non_authoritative_args "$@"
+    reject_flags "$cmd" --attended-smoke
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke "$@"
+    ;;
+
+  model-native-attended-smoke-train)
+    reject_non_authoritative_args "$@"
+    exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-smoke "$@"
     ;;
 
   model-native-smoke-bundle-audit)

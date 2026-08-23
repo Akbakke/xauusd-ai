@@ -3,7 +3,8 @@
 # its cap fails inside its own cgroup instead of consuming the workstation.
 # GX1_RULES.md and AGENTS.md require this wrapper for every heavy operation.
 #
-# Usage: scripts/gx1_capped_run.sh --class audit|trainer [--mem 4G] [--swap 512M] -- <command ...>
+# Usage: scripts/gx1_capped_run.sh --class audit|trainer [--mem 4G] [--swap 512M]
+#          [--attended-smoke] -- <command ...>
 #   --class audit is capped at 4G and cannot launch the trainer.
 #   --class producer is for the heavy offline dataset producers (feature lanes,
 #           model source, ranker, dataset rebuild) and may request at most 20G.
@@ -23,10 +24,13 @@
 # libraries to one thread. Trainer jobs additionally pass through the fail-closed
 # wall-clock/GPU guard below; an unavailable sensor, excessive configured power
 # limit, thermal breach, or wall-clock expiry terminates the trainer process group.
+# `--attended-smoke` is a deliberately narrower operator-present exception for
+# one CUDA smoke only. It neither creates candidate authority nor relaxes CPU,
+# memory, pids or actual-power protection; see the fixed policy below.
 # The scope self-check proves the memory/pids limits before the target command is
 # entered. If any protection cannot be created or verified, the job fails closed.
 set -euo pipefail
-JOB_CLASS="" ; MEM=4G ; SWAP=512M
+JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
@@ -52,11 +56,13 @@ TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
 # not caller-controlled defaults. A later measured performance contract may
 # change them only through a new reviewed commit and recipe source binding.
+TRAINER_EXECUTION_MODE=canonical
 TRAINER_MAX_WALL_SECONDS=1200
 TRAINER_GPU_INDEX=0
 TRAINER_GPU_MAX_CORE_TEMP_C=78
 TRAINER_GPU_MAX_MEMORY_TEMP_C=90
 TRAINER_GPU_MAX_POWER_LIMIT_W=250
+TRAINER_GPU_MAX_POWER_DRAW_W=250
 TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2
 TRAINER_DEVICE=
 
@@ -147,6 +153,36 @@ validate_target_command() {
     echo "FATAL: trainer class requires exactly one canonical --device cpu|cuda" >&2
     exit 75
   fi
+
+  if [[ "$ATTENDED_SMOKE" == true ]]; then
+    local profile_count=0 execution_tier_count=0 profile_value= execution_tier_value=
+    for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
+      case "${target_args[$target_index]}" in
+        --profile)
+          profile_count=$((profile_count + 1))
+          (( target_index + 1 < ${#target_args[@]} )) || {
+            echo "FATAL: attended smoke requires a value after --profile" >&2
+            exit 75
+          }
+          profile_value="${target_args[$((target_index + 1))]}"
+          ;;
+        --execution-tier)
+          execution_tier_count=$((execution_tier_count + 1))
+          (( target_index + 1 < ${#target_args[@]} )) || {
+            echo "FATAL: attended smoke requires a value after --execution-tier" >&2
+            exit 75
+          }
+          execution_tier_value="${target_args[$((target_index + 1))]}"
+          ;;
+      esac
+    done
+    if [[ "$TRAINER_DEVICE" != cuda \
+      || $profile_count -ne 1 || "$profile_value" != smoke \
+      || $execution_tier_count -ne 1 || "$execution_tier_value" != attended_only ]]; then
+      echo "FATAL: attended smoke is reserved for one CUDA smoke command marked --execution-tier attended_only" >&2
+      exit 75
+    fi
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -162,6 +198,9 @@ while [[ $# -gt 0 ]]; do
     --swap)
       [[ $# -ge 2 ]] || { echo "FATAL: --swap requires a value" >&2; exit 2; }
       SWAP="$2"; shift 2
+      ;;
+    --attended-smoke)
+      ATTENDED_SMOKE=true; shift
       ;;
     --)     shift; break ;;
     *) echo "FATAL: unknown arg '$1' (put the command after '--')"; exit 2 ;;
@@ -188,6 +227,23 @@ if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
   exit 75
 fi
 validate_target_command "$@"
+
+if [[ "$ATTENDED_SMOKE" == true ]]; then
+  [[ "$JOB_CLASS" == trainer ]] || {
+    echo "FATAL: --attended-smoke requires --class trainer" >&2
+    exit 75
+  }
+  # This is an operator-present diagnostic exception, not a second training
+  # policy. It permits only WSL's literal `N/A` memory reading, retains all
+  # hard cgroup controls, lowers the core threshold, observes every second,
+  # and terminates on actual draw above the original 250 W safety ceiling.
+  TRAINER_EXECUTION_MODE=attended_smoke
+  TRAINER_MAX_WALL_SECONDS=300
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_POWER_LIMIT_W=390
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+fi
 
 if [[ -n "${GX1_CAPPED_CLASS:-}" \
   || -n "${GX1_CAPPED_MEMORY_BYTES:-}" \
@@ -314,7 +370,7 @@ fi
 echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
 if [[ "$JOB_CLASS" == trainer ]]; then
-  echo "[capped_run_trainer_safety] device=$TRAINER_DEVICE max_wall_seconds=$TRAINER_MAX_WALL_SECONDS gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+  echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE max_wall_seconds=$TRAINER_MAX_WALL_SECONDS gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
 fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -353,11 +409,13 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
   --setenv=GX1_GPU_GUARD_PATH="$GPU_GUARD_PATH" \
   --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \
+  --setenv=GX1_TRAINER_EXECUTION_MODE="$TRAINER_EXECUTION_MODE" \
   --setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS" \
   --setenv=GX1_TRAINER_GPU_INDEX="$TRAINER_GPU_INDEX" \
   --setenv=GX1_TRAINER_GPU_MAX_CORE_TEMP_C="$TRAINER_GPU_MAX_CORE_TEMP_C" \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C="$TRAINER_GPU_MAX_MEMORY_TEMP_C" \
   --setenv=GX1_TRAINER_GPU_MAX_POWER_LIMIT_W="$TRAINER_GPU_MAX_POWER_LIMIT_W" \
+  --setenv=GX1_TRAINER_GPU_MAX_POWER_DRAW_W="$TRAINER_GPU_MAX_POWER_DRAW_W" \
   --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
   --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
   --setenv=OMP_NUM_THREADS=1 \

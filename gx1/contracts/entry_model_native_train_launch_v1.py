@@ -115,6 +115,9 @@ CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
 TRAINER_SAFETY_GUARD_RELATIVE_PATH = (
     "scripts/gx1_guarded_trainer_exec.sh"
 )
+SMOKE_BUNDLE_AUDIT_RELATIVE_PATH = (
+    "gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py"
+)
 CONTROL_SURFACE_RELATIVE_PATH = "scripts/entry_next_edge_control.sh"
 TRAIN_WRAPPER_RELATIVE_PATH = "scripts/run_entry_model_native_seq513_train.sh"
 LAUNCH_CONTRACT_RELATIVE_PATH = (
@@ -528,6 +531,9 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         "trainer": (repo / TRAINER_RELATIVE_PATH).resolve(strict=True),
         "trainer_safety_guard": (
             repo / TRAINER_SAFETY_GUARD_RELATIVE_PATH
+        ).resolve(strict=True),
+        "smoke_bundle_audit": (
+            repo / SMOKE_BUNDLE_AUDIT_RELATIVE_PATH
         ).resolve(strict=True),
         "unified_exit_lifecycle_contract": (
             repo / UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH

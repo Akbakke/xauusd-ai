@@ -21,11 +21,13 @@ for variable in \
   GX1_CAPPED_SWAP_BYTES \
   GX1_CAPPED_TASKS_MAX \
   GX1_TRAINER_DEVICE \
+  GX1_TRAINER_EXECUTION_MODE \
   GX1_TRAINER_MAX_WALL_SECONDS \
   GX1_TRAINER_GPU_INDEX \
   GX1_TRAINER_GPU_MAX_CORE_TEMP_C \
   GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C \
   GX1_TRAINER_GPU_MAX_POWER_LIMIT_W \
+  GX1_TRAINER_GPU_MAX_POWER_DRAW_W \
   GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS \
   GX1_TRAINER_NVIDIA_SMI_PATH; do
   [[ -n "${!variable:-}" ]] || die "missing protected environment: $variable"
@@ -36,6 +38,10 @@ case "$GX1_TRAINER_DEVICE" in
   cpu|cuda) ;;
   *) die "GX1_TRAINER_DEVICE must be cpu or cuda" ;;
 esac
+case "$GX1_TRAINER_EXECUTION_MODE" in
+  canonical|attended_smoke) ;;
+  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical or attended_smoke" ;;
+esac
 for variable in \
   GX1_CAPPED_MEMORY_BYTES \
   GX1_CAPPED_SWAP_BYTES \
@@ -44,6 +50,7 @@ for variable in \
   GX1_TRAINER_GPU_MAX_CORE_TEMP_C \
   GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C \
   GX1_TRAINER_GPU_MAX_POWER_LIMIT_W \
+  GX1_TRAINER_GPU_MAX_POWER_DRAW_W \
   GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS; do
   require_uint "$variable" "${!variable}"
 done
@@ -73,7 +80,7 @@ trim() {
 
 telemetry_values=()
 read_gpu_telemetry() {
-  local output core_temp memory_temp power_draw power_limit extra
+  local output core_temp memory_temp power_draw power_limit extra memory_observed
   [[ -x "$GX1_TRAINER_NVIDIA_SMI_PATH" ]] || return 1
   output=$(
     /usr/bin/timeout --signal=KILL 5s \
@@ -89,10 +96,21 @@ read_gpu_telemetry() {
   power_draw=$(trim "${power_draw:-}")
   power_limit=$(trim "${power_limit:-}")
   [[ "$core_temp" =~ ^[0-9]+([.][0-9]+)?$ \
-    && "$memory_temp" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$power_draw" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$power_limit" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
-  telemetry_values=("$core_temp" "$memory_temp" "$power_draw" "$power_limit")
+  memory_observed=true
+  if [[ "$memory_temp" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    :
+  elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke \
+    && "$memory_temp" == N/A ]]; then
+    # WSL's own driver reports literal N/A for this sensor. This exception is
+    # deliberately unavailable to canonical training and is bound to the
+    # attended-only cgroup mode by the parent runner.
+    memory_observed=false
+  else
+    return 1
+  fi
+  telemetry_values=("$core_temp" "$memory_temp" "$power_draw" "$power_limit" "$memory_observed")
 }
 
 float_gt() {
@@ -100,23 +118,27 @@ float_gt() {
 }
 
 assert_safe_telemetry() {
-  local phase="$1" core_temp memory_temp power_draw power_limit
+  local phase="$1" core_temp memory_temp power_draw power_limit memory_observed
   read_gpu_telemetry \
     || die "CUDA telemetry unavailable during $phase; refusing unmonitored load"
   core_temp=${telemetry_values[0]}
   memory_temp=${telemetry_values[1]}
   power_draw=${telemetry_values[2]}
   power_limit=${telemetry_values[3]}
+  memory_observed=${telemetry_values[4]}
   float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
     && die "configured GPU power limit ${power_limit}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W}W during $phase"
   float_gt "$core_temp" "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" \
     && die "GPU core temperature ${core_temp}C exceeds ${GX1_TRAINER_GPU_MAX_CORE_TEMP_C}C during $phase"
-  float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
-    && die "GPU memory temperature ${memory_temp}C exceeds ${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C}C during $phase"
-  # A configured hard limit is the primary power protection. This secondary
-  # observation rejects telemetry that is materially inconsistent with it.
-  float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
-    && die "GPU draw ${power_draw}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W}W during $phase"
+  if [[ "$memory_observed" == true ]]; then
+    float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
+      && die "GPU memory temperature ${memory_temp}C exceeds ${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C}C during $phase"
+  fi
+  # Both independently observed power conditions are mandatory: canonical
+  # runs require a 250 W configured ceiling, while attended smoke additionally
+  # keeps the same 250 W actual-draw stop despite its observed 390 W setting.
+  float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
+    && die "GPU draw ${power_draw}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_DRAW_W}W during $phase"
   return 0
 }
 
@@ -142,14 +164,19 @@ if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
   assert_safe_telemetry preflight
 fi
 
-printf '[trainer_safety_guard] device=%s max_wall_seconds=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s monitor_interval_seconds=%s\n' \
+printf '[trainer_safety_guard] execution_mode=%s device=%s max_wall_seconds=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s monitor_interval_seconds=%s\n' \
+  "$GX1_TRAINER_EXECUTION_MODE" \
   "$GX1_TRAINER_DEVICE" \
   "$GX1_TRAINER_MAX_WALL_SECONDS" \
   "$GX1_TRAINER_GPU_INDEX" \
   "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" \
   "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
   "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
+  "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
   "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
+  printf '[trainer_safety_attended_only] WSL VRAM telemetry may be literal N/A; this run has no candidate, TEST, promotion, or live authority\n' >&2
+fi
 
 start_epoch=$(/bin/date +%s)
 /usr/bin/setsid "$@" &
@@ -178,11 +205,14 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
     memory_temp=${telemetry_values[1]}
     power_draw=${telemetry_values[2]}
     power_limit=${telemetry_values[3]}
+    memory_observed=${telemetry_values[4]}
     breach=
     float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" && breach=power_limit
-    float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" && breach=power_draw
+    float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" && breach=power_draw
     float_gt "$core_temp" "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" && breach=core_temperature
-    float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" && breach=memory_temperature
+    if [[ "$memory_observed" == true ]]; then
+      float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" && breach=memory_temperature
+    fi
     if [[ -n "$breach" ]]; then
       terminate_child_group "$breach"
       wait "$child_pid" 2>/dev/null || true
@@ -192,8 +222,8 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
   fi
   if (( now_epoch - last_heartbeat_epoch >= 30 )); then
     if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
-      printf '[trainer_safety_heartbeat] elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s power_draw_w=%s power_limit_w=%s\n' \
-        "$elapsed" "$core_temp" "$memory_temp" "$power_draw" "$power_limit" >&2
+      printf '[trainer_safety_heartbeat] elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s memory_observed=%s power_draw_w=%s power_limit_w=%s\n' \
+        "$elapsed" "$core_temp" "$memory_temp" "$memory_observed" "$power_draw" "$power_limit" >&2
     else
       printf '[trainer_safety_heartbeat] elapsed_seconds=%s device=cpu\n' "$elapsed" >&2
     fi

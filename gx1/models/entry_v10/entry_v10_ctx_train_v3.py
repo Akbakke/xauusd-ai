@@ -1451,14 +1451,25 @@ _TRAIN_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V4_CACHE_DIR"
 # Scope identity published by scripts/gx1_capped_run.sh, which the trainer is
 # required to run under. The runner re-reads these to verify that a nested
 # capped job matches its parent scope. They name the cgroup the process already
-# lives in - class, memory, swap and task ceiling - and none of them reaches a
-# model input, a target, a threshold or a checkpoint decision, so they are
-# runtime identity rather than ambient control.
+# lives in - class, memory, swap, task ceiling and the already-enforced guard
+# settings - and none of them reaches a model input, a target, a threshold or a
+# checkpoint decision, so they are runtime identity rather than ambient control.
 _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_CAPPED_CLASS",
     "GX1_CAPPED_MEMORY_BYTES",
     "GX1_CAPPED_SWAP_BYTES",
     "GX1_CAPPED_TASKS_MAX",
+    "GX1_GPU_GUARD_PATH",
+    "GX1_TRAINER_DEVICE",
+    "GX1_TRAINER_EXECUTION_MODE",
+    "GX1_TRAINER_MAX_WALL_SECONDS",
+    "GX1_TRAINER_GPU_INDEX",
+    "GX1_TRAINER_GPU_MAX_CORE_TEMP_C",
+    "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C",
+    "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W",
+    "GX1_TRAINER_GPU_MAX_POWER_DRAW_W",
+    "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS",
+    "GX1_TRAINER_NVIDIA_SMI_PATH",
 )
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
@@ -6209,6 +6220,7 @@ def run_train(
     run_id: str = "",
     dataset_run_id: str = "",
     profile: str = "",
+    execution_tier: str = "canonical",
 ) -> None:
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = seq_len
@@ -6231,6 +6243,14 @@ def run_train(
     _guard_no_rl()
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+    if execution_tier not in ("canonical", "attended_only"):
+        raise RuntimeError(
+            f"[ENTRY_TRAIN_EXECUTION_TIER_INVALID] {execution_tier!r}"
+        )
+    if execution_tier == "attended_only" and profile != "smoke":
+        raise RuntimeError(
+            "[ENTRY_TRAIN_ATTENDED_TIER_PROFILE_INVALID] attended_only requires smoke"
+        )
     if profile == "candidate" and int(subsample_rows) != 0:
         raise RuntimeError(
             "[ENTRY_CANDIDATE_SUBSAMPLE_FORBIDDEN] candidate training must "
@@ -7627,6 +7647,7 @@ def run_train(
         "training_run_id": str(run_id),
         "dataset_run_id": str(dataset_run_id),
         "training_profile": str(profile),
+        "execution_tier": str(execution_tier),
         "requested_subsample_rows": int(subsample_rows),
         "physical_train_rows": physical_train_rows,
         "effective_train_rows": effective_train_rows,
@@ -7660,6 +7681,7 @@ def run_train(
             input_normalization_fit_population_proof
         ),
         "run_lineage": run_lineage,
+        "execution_tier": str(execution_tier),
         "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "model_native_training_objective": model_native_training_objective,
@@ -7712,6 +7734,7 @@ def run_train(
         "model_output_schema_version": MODEL_OUTPUT_SCHEMA_VERSION,
         "created_at_utc": _utc_now(),
         "git_commit": _git_commit(),
+        "execution_tier": str(execution_tier),
         "model_native_training_objective": model_native_training_objective,
         "model_native_joint_task_weighting": model_native_joint_task_weighting,
         "unified_entry_exit_contract": unified_entry_exit_contract,
@@ -8344,6 +8367,11 @@ def main() -> None:
     parser = argparse.ArgumentParser("ENTRY_V10_CTX exact model-native trainer")
     parser.add_argument("--train", action="store_true", required=True)
     parser.add_argument("--profile", choices=("smoke", "candidate"), required=True)
+    parser.add_argument(
+        "--execution-tier",
+        choices=("canonical", "attended_only"),
+        default="canonical",
+    )
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--dataset-run-id", type=str, required=True)
     parser.add_argument("--seed", type=int, required=True)
@@ -8405,6 +8433,8 @@ def main() -> None:
         )
     if args.profile == "candidate" and int(args.subsample_rows) != 0:
         parser.error("candidate training requires --subsample-rows 0")
+    if args.execution_tier == "attended_only" and args.profile != "smoke":
+        parser.error("--execution-tier attended_only requires --profile smoke")
 
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
     _GRAD_CLIP_NORM = float(args.grad_clip_norm)
@@ -8486,6 +8516,7 @@ def main() -> None:
         run_id=str(args.run_id),
         dataset_run_id=str(args.dataset_run_id),
         profile=str(args.profile),
+        execution_tier=str(args.execution_tier),
     )
 
 

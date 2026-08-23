@@ -515,12 +515,15 @@ def test_candidate_readiness_route_requires_exact_trainability_event() -> None:
     assert "worktree" not in route.lower()
 
 
-def test_both_train_routes_use_one_profile_explicit_wrapper() -> None:
+def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_isolated() -> None:
     source = CONTROL.read_text(encoding="utf-8")
     wrapper = "scripts/run_entry_model_native_seq513_train.sh"
     smoke_route = source.split("  model-native-smoke-train)", 1)[1].split(
         "    ;;", 1
     )[0]
+    attended_smoke_route = source.split(
+        "  model-native-attended-smoke-train)", 1
+    )[1].split("    ;;", 1)[0]
     candidate_route = source.split(
         "  model-native-candidate-train)", 1
     )[1].split("    ;;", 1)[0]
@@ -530,9 +533,13 @@ def test_both_train_routes_use_one_profile_explicit_wrapper() -> None:
 
     assert wrapper in smoke_route
     assert "--profile smoke" in smoke_route
+    assert 'reject_flags "$cmd" --attended-smoke' in smoke_route
+    assert wrapper in attended_smoke_route
+    assert "--profile smoke" in attended_smoke_route
+    assert "--attended-smoke" in attended_smoke_route
     assert wrapper in candidate_route
     assert "--profile candidate" in candidate_route
-    assert source.count(wrapper) == 2
+    assert source.count(wrapper) == 3
     assert "--train-wrapper" in trainability_route
 
 

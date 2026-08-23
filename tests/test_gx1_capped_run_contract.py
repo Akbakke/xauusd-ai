@@ -60,6 +60,9 @@ def _guard_env(
     device: str,
     nvidia_smi_path: Path,
     max_wall_seconds: int = 5,
+    execution_mode: str = "canonical",
+    max_power_limit_w: int = 250,
+    max_power_draw_w: int = 250,
 ) -> dict[str, str]:
     cgroup_relative = next(
         row.split(":", 2)[2]
@@ -80,11 +83,13 @@ def _guard_env(
         "GX1_CAPPED_SWAP_BYTES": control_files["swap"].read_text().strip(),
         "GX1_CAPPED_TASKS_MAX": control_files["tasks"].read_text().strip(),
         "GX1_TRAINER_DEVICE": device,
+        "GX1_TRAINER_EXECUTION_MODE": execution_mode,
         "GX1_TRAINER_MAX_WALL_SECONDS": str(max_wall_seconds),
         "GX1_TRAINER_GPU_INDEX": "0",
         "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "78",
         "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "90",
-        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": str(max_power_limit_w),
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": str(max_power_draw_w),
         "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
         "GX1_TRAINER_NVIDIA_SMI_PATH": str(nvidia_smi_path),
     }
@@ -95,6 +100,7 @@ def _guard_env(
         not in {
             "GX1_CAPPED_CLASS",
             "GX1_TRAINER_DEVICE",
+            "GX1_TRAINER_EXECUTION_MODE",
             "GX1_TRAINER_NVIDIA_SMI_PATH",
         }
     )
@@ -254,6 +260,76 @@ def test_trainer_guard_rejects_unavailable_cuda_telemetry(
 
     assert result.returncode == 75
     assert "CUDA telemetry unavailable during preflight" in result.stderr
+
+
+def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390")
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=_guard_env(
+            device="cuda",
+            nvidia_smi_path=nvidia_smi,
+            execution_mode="attended_smoke",
+            max_power_limit_w=390,
+            max_power_draw_w=250,
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "execution_mode=attended_smoke" in result.stderr
+    assert "attended_only" in result.stderr
+
+
+def test_trainer_guard_rejects_memory_na_for_canonical_cuda(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 250")
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=_guard_env(device="cuda", nvidia_smi_path=nvidia_smi),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 75
+    assert "CUDA telemetry unavailable during preflight" in result.stderr
+
+
+def test_attended_smoke_keeps_the_actual_draw_ceiling(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 251, 390")
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=_guard_env(
+            device="cuda",
+            nvidia_smi_path=nvidia_smi,
+            execution_mode="attended_smoke",
+            max_power_limit_w=390,
+            max_power_draw_w=250,
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 75
+    assert "GPU draw 251W exceeds 250W" in result.stderr
 
 
 def _sequenced_nvidia_smi(
@@ -462,7 +538,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=78" in source
     assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=90" in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=250" in source
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=250" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2" in source
+    assert "TRAINER_EXECUTION_MODE=canonical" in source
+    assert "--attended-smoke" in source
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
         in source
@@ -473,6 +552,9 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
         in guard_source
     )
     assert "CUDA telemetry unavailable" in guard_source
+    assert "GX1_TRAINER_EXECUTION_MODE" in guard_source
+    assert "GX1_TRAINER_GPU_MAX_POWER_DRAW_W" in guard_source
+    assert '"$memory_temp" == N/A' in guard_source
     assert '/bin/kill -TERM -- "-$child_pid"' in guard_source
     assert '/bin/kill -KILL -- "-$child_pid"' in guard_source
     assert "elapsed >= GX1_TRAINER_MAX_WALL_SECONDS" in guard_source

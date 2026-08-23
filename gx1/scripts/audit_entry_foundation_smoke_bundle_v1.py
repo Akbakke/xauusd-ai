@@ -684,6 +684,14 @@ def _bundle_contract_report(
         except RuntimeError as exc:
             failures.append(str(exc))
 
+    execution_tier = metadata.get("execution_tier")
+    lock_execution_tier = lock.get("execution_tier")
+    if execution_tier != "canonical" or lock_execution_tier != "canonical":
+        failures.append(
+            "bundle execution tier is not canonical; attended-only bundles are "
+            "diagnostic artifacts and cannot pass smoke-bundle audit"
+        )
+
     active_heads = list(MODEL_NATIVE_ACTIVE_HEADS)
     blocked_heads = list(MODEL_NATIVE_BLOCKED_HEADS)
     specialists = list(MODEL_NATIVE_REQUIRED_SPECIALISTS)
@@ -879,6 +887,8 @@ def _bundle_contract_report(
         "blocked_heads": blocked_heads,
         "specialist_groups": specialists,
         "specialist_model_contract_sha256": MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT_SHA256,
+        "execution_tier": execution_tier,
+        "lock_execution_tier": lock_execution_tier,
         "full_stack": full_stack,
     }
     for key, expected in (

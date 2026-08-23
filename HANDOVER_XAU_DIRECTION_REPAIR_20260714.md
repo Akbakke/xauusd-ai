@@ -41,8 +41,20 @@ telemetry: on this WSL host the current trainer preflight fails closed before
 the trainer starts because the RTX 3090 reports `temperature.memory=N/A` and
 its configured power limit is 390 W, above the 250 W policy. Commit
 `0b5cde21` resolves WSL's system-owned `nvidia-smi` path but intentionally
-does not weaken either condition. The smoke is therefore not executable until
-there is a real, approved telemetry/power solution.
+does not weaken either canonical condition. The canonical smoke is therefore
+not executable until there is a real telemetry/power solution. Following an
+explicit operator decision on 2026-08-23, the source also contains one
+separate `model-native-attended-smoke-train` route for an operator-present
+diagnostic only: CUDA smoke only, 300-second hard wall, 75 C core cutoff,
+250 W **actual draw** cutoff, 1-second polling, and all existing 4G/512M,
+one-job and one-physical-core protections. It may accept only the literal WSL
+memory value `N/A` while all other telemetry remains numeric; it permits a
+configured limit up to the observed 390 W only because the 250 W actual-draw
+kill remains active. It must be invoked through that dedicated route, never
+overnight or unattended. Its bundle records `execution_tier=attended_only` in
+both metadata and lock; smoke-bundle audit rejects that tier, so it cannot
+enter candidate, TEST, promotion, paper or live paths. The attended route is
+not a hardware solution and does not make the canonical route safe.
 
 The separately named V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
@@ -237,7 +249,11 @@ is observed, or alter the host power limit without an explicit operator
 decision and new evidence. On 2026-08-23 the operator explicitly authorized a
 250 W setting attempt; `/usr/lib/wsl/lib/nvidia-smi --id=0 --power-limit=250`
 returned `Insufficient Permissions`, and the readback remained 390 W. That is
-not a successful cap change and does not authorize weakening the guard.
+not a successful cap change and does not authorize weakening the canonical
+guard. The only narrowly-scoped exception is the separate, source-bound,
+operator-present attended-smoke route described above; it tolerates exactly
+`temperature.memory=N/A`, keeps a 250 W actual-draw kill and is permanently
+blocked from downstream evidence. NVIDIA's CUDA-on-WSL documentation confirms that
 NVIDIA's CUDA-on-WSL documentation confirms that
 WSL NVML does not support all queries and identifies `/usr/lib/wsl/lib/nvidia-smi`
 as the WSL path. The Windows-host `nvidia-smi.exe` was also read-tested from

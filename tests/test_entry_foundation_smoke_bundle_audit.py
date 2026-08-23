@@ -75,3 +75,26 @@ def test_smoke_audit_parser_has_no_implicit_artifact_defaults() -> None:
     parser = audit.build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args([])
+
+
+def test_attended_only_bundle_cannot_pass_smoke_bundle_audit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(audit, "require_bundle_commit_manifest", lambda _path: None)
+    monkeypatch.setattr(
+        audit,
+        "_read_json",
+        lambda path: {"execution_tier": "attended_only"}
+        if path.name == "bundle_metadata.json"
+        else {"execution_tier": "attended_only"},
+    )
+    monkeypatch.setattr(audit, "load_entry_v10_ctx_bundle", lambda **_kwargs: None)
+
+    report, _metadata, _direction, _loaded = audit._bundle_contract_report(
+        bundle_dir=tmp_path,
+        device="cpu",
+    )
+
+    assert report["decision"] == "FAIL"
+    assert any("attended-only bundles" in failure for failure in report["failures"])

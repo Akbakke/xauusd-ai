@@ -31,7 +31,8 @@ ENV_BIN=/usr/bin/env
 
 usage() {
   cat <<'EOF'
-Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments] (--dry-run|--execute)
+Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments]
+       [--attended-smoke] (--dry-run|--execute)
 
 Required identity and immutable evidence:
   --profile smoke|candidate
@@ -69,6 +70,10 @@ Required audited execution values (there are no wrapper defaults):
 --dry-run validates and prints the exact capped command without writing files.
 --execute additionally requires a clean worktree and runs the capped trainer.
 The profile has no default. Evidence from one profile is rejected in the other.
+--attended-smoke is accepted only for CUDA smoke runs through the dedicated
+control route. It is capped to five minutes and marked in the produced bundle;
+that bundle is rejected by smoke-bundle audit and cannot reach candidate, TEST,
+promotion, paper or live stages.
 EOF
 }
 
@@ -102,6 +107,7 @@ NUM_WORKERS= MULTI_TF_NUM_LAYERS= SPECIALIST_NUM_LAYERS= GRAD_ACCUM_STEPS=
 PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
 PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
 MEMORY_CAP= SWAP_CAP= RUN_MODE=
+ATTENDED_SMOKE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -109,6 +115,11 @@ while [[ $# -gt 0 ]]; do
     --dry-run|--execute)
       [[ -z "$RUN_MODE" ]] || die "choose exactly one of --dry-run or --execute"
       RUN_MODE="${1#--}"
+      shift
+      ;;
+    --attended-smoke)
+      [[ "$ATTENDED_SMOKE" == false ]] || die "duplicate argument: --attended-smoke"
+      ATTENDED_SMOKE=true
       shift
       ;;
     --profile|--run-id|--dataset-dir|--train-manifest-json|--val-manifest-json|\
@@ -196,6 +207,13 @@ case "$PROFILE" in
   smoke|candidate) ;;
   *) die "--profile must be exactly smoke or candidate" ;;
 esac
+if [[ "$ATTENDED_SMOKE" == true ]]; then
+  [[ "$PROFILE" == smoke ]] || die "--attended-smoke is valid only for --profile smoke"
+fi
+EXECUTION_TIER=canonical
+if [[ "$ATTENDED_SMOKE" == true ]]; then
+  EXECUTION_TIER=attended_only
+fi
 [[ -n "$RUN_MODE" ]] || die "choose exactly one of --dry-run or --execute"
 for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
   TRAIN_PARQUET VAL_PARQUET UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON \
@@ -213,6 +231,9 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
   PER_TF_SEQ_LEN_H4 PER_TF_SEQ_LEN_D1; do
   [[ -n "${!variable}" ]] || die "missing required argument for $variable"
 done
+if [[ "$ATTENDED_SMOKE" == true && "$DEVICE" != cuda ]]; then
+  die "--attended-smoke requires --device cuda"
+fi
 PROFILE_VALIDATOR_ARGS=()
 case "$PROFILE" in
   smoke)
@@ -322,6 +343,7 @@ TRAIN_CMD=(
   "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
   --train --profile "$PROFILE" --run-id "$RUN_ID" --dataset-run-id "$DATASET_RUN_ID"
   --seed "$SEED" --device "$DEVICE"
+  --execution-tier "$EXECUTION_TIER"
   --train-manifest-json "$TRAIN_MANIFEST_JSON"
   --val-manifest-json "$VAL_MANIFEST_JSON"
   --train-parquet "$TRAIN_PARQUET"
@@ -349,15 +371,20 @@ TRAIN_CMD=(
   --specialist-num-layers "$SPECIALIST_NUM_LAYERS" --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
   --cross-family-fusion-scale "$CROSS_FAMILY_FUSION_SCALE"
 )
+CAPPED_RUN_ARGS=(--class trainer --mem "$MEMORY_CAP" --swap "$SWAP_CAP")
+if [[ "$ATTENDED_SMOKE" == true ]]; then
+  CAPPED_RUN_ARGS+=(--attended-smoke)
+fi
 RUN_CMD=(
   "${ENV_COMMAND[@]}"
-  "$CAPPED_RUNNER" --class trainer --mem "$MEMORY_CAP" --swap "$SWAP_CAP"
+  "$CAPPED_RUNNER" "${CAPPED_RUN_ARGS[@]}"
   -- "${TRAIN_CMD[@]}"
 )
 
 if [[ "$RUN_MODE" == dry-run ]]; then
-  printf 'Validated model-native seq513 %s contract: mode=%s direction=%s width=%s\n' \
-    "$PROFILE" "$MODEL_NATIVE_CONTRACT_MODE" "$MODEL_NATIVE_DIRECTION_LOGIT_MODE" "$MODEL_NATIVE_SIGNAL_DIM"
+  printf 'Validated model-native seq513 %s contract: mode=%s direction=%s width=%s execution_tier=%s\n' \
+    "$PROFILE" "$MODEL_NATIVE_CONTRACT_MODE" "$MODEL_NATIVE_DIRECTION_LOGIT_MODE" "$MODEL_NATIVE_SIGNAL_DIM" \
+    "$EXECUTION_TIER"
   printf 'Capped %s train command:' "$PROFILE"
   printf ' %q' "${RUN_CMD[@]}"
   printf '\n'
