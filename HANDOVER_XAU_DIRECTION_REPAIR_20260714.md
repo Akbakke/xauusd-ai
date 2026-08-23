@@ -76,6 +76,22 @@ parquet, writes no files, uses the same 4G/512M, five-minute, 75 C,
 stand in for a data smoke, normalization fit, candidate, edge claim, TEST,
 promotion, paper or live evidence.
 
+The prerequisite for a compact, data-backed smoke was independently verified
+on 2026-08-23 by the source-bound full scanner
+`audit_entry_sequence_roll_v1`: TRAIN proof
+`sequence_roll_audit/ENTRY_SEQUENCE_ROLL_AUDIT_20260823T172949Z.json` passed
+for all 283,787 rows (`chain_sha256`
+`02b03e8cce2d1dd736efedacb2d14547d410501a2e2bc73b8d2efb1b4c409ae1`) and VAL
+proof `sequence_roll_audit/ENTRY_SEQUENCE_ROLL_AUDIT_VAL_20260823T173400Z.json`
+passed for all 76,577 rows (`chain_sha256`
+`f9f2650c512cf0229aa3d3078e8cc95eb9acee6fdc554e2e6cfa5b9c34ffc2f9ea`).
+Each proof binds its exact parquet and manifest SHA-256 and verifies every
+finite float32 value, every `seq[-1] == snap` equality, every adjacent roll
+and every Arrow-batch boundary. This permits a future smoke-only loader to
+reconstruct the identical sequence view from the 96-row prefix plus snapshots;
+it does not authorize a candidate shortcut or reduce the full-TRAIN
+normalization population.
+
 The separately named V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
 gross, spread-inclusive, research-only and cannot gain production authority
