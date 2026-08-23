@@ -374,6 +374,37 @@ all candidate/TEST/promotion/live flags false. It confirms only the guarded
 GPU architecture path; it must never be cited as a data-smoke, edge, model,
 normalization or trading result.
 
+**Eight-family operativity audit, 2026-08-23:** this is a current-source,
+read-only review of the immutable V40 artifacts, not a new dataset build or
+training result. `ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260821T101614567463Z`
+is PASS with zero failures. It full-scanned all 283,787 TRAIN and 76,577 VAL
+rows: TRAIN has 234 live numeric signal fields and four explicitly
+minimum-supported rare-event fields, plus all 71 continuous and one
+categorical context field live; VAL has no failures (232 variable and six
+observed-rare signal fields, and every context field observed-variable).
+Its five-clock MTF V20 contract is PASS: each of M5, M15, H1, H4 and D1 has
+176 nonconstant, non-duplicate fields and a complete live-row scan.
+
+`ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260821T111621Z` is separately PASS
+with zero dead or unmapped TRAIN signal fields. The exact one-owner signal
+partition is structure 28, SMC/liquidity 50, trend/EMA 44, volatility 19,
+momentum/flow 33, session/regime 9, chart/geometry 32 and candle/price action
+23 — 238/238 in total — and each count is live in both TRAIN and VAL. The
+trainer rejects missing, overlapping or incomplete specialist indices before
+model construction, then iterates all eight encoders, sends their tokens
+through learned cross-family attention and a dynamic gate. Context routing is
+also exact-one-owner. Therefore these are real data inputs and runtime model
+paths, not inert config labels.
+
+This is intentionally **not** a claim that every family already affects a
+decision. `specialist_out` starts at zero so the untrained model is neutral;
+the first genuine training epoch must open the branch. A trained candidate is
+then required to pass the separate held-out serve-parity ablations: zeroing
+each specialist encoder and each of the five-timeframe-by-eight-family routes
+must change enough decision margins. Until such a trained bundle exists,
+eight-family decision influence, edge, serve parity and trading remain
+unproven.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a
