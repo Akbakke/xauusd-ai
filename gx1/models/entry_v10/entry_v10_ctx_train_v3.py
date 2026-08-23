@@ -6785,6 +6785,11 @@ def run_train(
         cross_family_fusion_scale=float(cross_family_fusion_scale),
         input_normalization=input_normalization,
     ).to(device)
+    # This is deliberately a preflight invariant, not a best-effort log.  It
+    # proves the normalization buffers and their host-only routing caches are
+    # exactly the immutable metadata contract before any optimizer state or
+    # GPU work is allocated to a training candidate.
+    model.require_input_normalization_state()
     entry_q_initial_state = _capture_entry_q_initial_state(model)
     unified_exit_initial_state = _capture_unified_exit_initial_state(model)
     log.info(

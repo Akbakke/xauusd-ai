@@ -597,6 +597,23 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     dtype=torch.bool,
                 ),
             )
+        # These Python tuples are immutable mirrors of the validated buffer
+        # masks.  They are used only to choose which already-device-resident
+        # tensor columns receive nominal validation/embeddings.  Keeping them
+        # on the host avoids materialising a CUDA buffer through ``tolist`` in
+        # every forward call; the registered masks remain the mathematical
+        # authority for normalization.
+        self._input_norm_categorical_index_tuples = {
+            surface: tuple(
+                torch.nonzero(
+                    getattr(self, f"input_norm_{surface}_categorical_mask"),
+                    as_tuple=False,
+                )
+                .flatten()
+                .tolist()
+            )
+            for surface in INPUT_NORMALIZATION_SURFACES
+        }
         self.register_buffer(
             "input_norm_alias_signal_indices",
             torch.tensor(temporal_alias_signal_indices, dtype=torch.long),
@@ -637,6 +654,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Project signal-only inputs into transformer dimension. Exact
         # ctx_cont aliases remain temporal seq evidence, but their byte-equal
         # current-bar snap copies cannot enter this generic snapshot path.
+        # Keep this immutable Python membership set beside the tensor buffer.
+        # The latter is the device index owner; the former prevents every
+        # Forward/Exit call from synchronizing a CUDA index tensor merely to
+        # decide which nominal embeddings belong in this projection.
+        self._generic_snap_index_set = frozenset(generic_snap_indices)
         self.seq_proj = nn.Linear(int(seq_input_dim), d_model)
         self.snap_proj = nn.Linear(len(generic_snap_indices), d_model)
         self.register_buffer(
@@ -654,10 +676,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.tensor(temporal_alias_ctx_cont_indices, dtype=torch.long),
             persistent=False,
         )
-        signal_categorical_indices = torch.nonzero(
-            self.input_norm_signal_categorical_mask,
-            as_tuple=False,
-        ).flatten().tolist()
+        signal_categorical_indices = self._input_norm_categorical_index_tuples[
+            "signal"
+        ]
         self.signal_nominal_embeddings = nn.ModuleDict(
             {
                 str(index): nn.Embedding(
@@ -739,6 +760,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 f"missing={missing[:20]} total_missing={len(missing)} "
                 f"unexpected={unexpected[:20]} total_unexpected={len(unexpected)}"
             )
+        self._specialist_input_index_sets = {
+            name: frozenset(indices) for name, indices in cleaned.items()
+        }
 
         def _clean_context_partition(
             raw: Dict[str, list[int]],
@@ -840,6 +864,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             ]
             for specialist in EXACT_SPECIALIST_NAMES
         }
+        self._specialist_ctx_cont_nominal_index_tuples = {
+            name: tuple(indices)
+            for name, indices in cleaned_ctx_cont_nominal.items()
+        }
         self._specialist_names = EXACT_SPECIALIST_NAMES
         if (
             not isinstance(multi_tf_specialist_input_indices, dict)
@@ -893,6 +921,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "MULTI_TF_SPECIALIST_INDEX_COVERAGE_INVALID: every field must "
                 "have exactly one family owner"
             )
+        self._multi_tf_specialist_index_tuples = {
+            name: tuple(indices) for name, indices in cleaned_mtf.items()
+        }
         self.multi_tf_specialist_routing_schema_version = (
             MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
         )
@@ -1078,18 +1109,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if mtf_layers <= 0:
             raise RuntimeError("MULTI_TF_NUM_LAYERS_INVALID")
         mtf_reference_names = normalization_field_names["mtf_m5"]
-        mtf_categorical_indices = torch.nonzero(
-            self.input_norm_mtf_m5_categorical_mask,
-            as_tuple=False,
-        ).flatten().tolist()
+        mtf_categorical_indices = self._input_norm_categorical_index_tuples[
+            "mtf_m5"
+        ]
         for tf_name in TF_INPUT_SCALE_NAMES[1:]:
             surface = f"mtf_{tf_name}"
             if (
                 normalization_field_names[surface] != mtf_reference_names
-                or torch.nonzero(
-                    getattr(self, f"input_norm_{surface}_categorical_mask"),
-                    as_tuple=False,
-                ).flatten().tolist()
+                or self._input_norm_categorical_index_tuples[surface]
                 != mtf_categorical_indices
                 or self._input_norm_categorical_domains[surface]
                 != self._input_norm_categorical_domains["mtf_m5"]
@@ -1097,6 +1124,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 raise RuntimeError(
                     "ENTRY_INPUT_NORMALIZATION_MTF_CATEGORICAL_SPLIT_BRAIN"
                 )
+        self._multi_tf_categorical_index_set = frozenset(
+            mtf_categorical_indices
+        )
+        self._multi_tf_specialist_categorical_positions = {
+            name: tuple(
+                (local_position, global_index)
+                for local_position, global_index in enumerate(
+                    self._multi_tf_specialist_index_tuples[name]
+                )
+                if global_index in self._multi_tf_categorical_index_set
+            )
+            for name in self._specialist_names
+        }
         self.mtf_nominal_embeddings = nn.ModuleDict(
             {
                 f"{tf_name}_{index}": nn.Embedding(
@@ -1372,6 +1412,21 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         "ENTRY_INPUT_NORMALIZATION_STATE_BUFFER_MISMATCH: "
                         f"surface={surface} field={suffix}"
                     )
+            expected_categorical_indices = tuple(
+                index
+                for index, is_categorical in enumerate(
+                    surface_contract["categorical_mask"]
+                )
+                if bool(is_categorical)
+            )
+            if (
+                self._input_norm_categorical_index_tuples[surface]
+                != expected_categorical_indices
+            ):
+                raise RuntimeError(
+                    "ENTRY_INPUT_NORMALIZATION_CATEGORICAL_INDEX_CACHE_MISMATCH: "
+                    f"surface={surface}"
+                )
         expected_alias_signal = torch.tensor(
             [
                 int(alias["signal_index"])
@@ -1474,10 +1529,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
         if bool(categorical_mask.any().item()):
             domains = self._input_norm_categorical_domains[surface]
-            for index in torch.nonzero(
-                categorical_mask,
-                as_tuple=False,
-            ).flatten().tolist():
+            for index in self._input_norm_categorical_index_tuples[surface]:
                 values = raw_float[..., index]
                 rounded = values.round()
                 domain = domains[field_names[index]]
@@ -1581,7 +1633,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         self.specialist_ctx_cont_nominal_embeddings[str(index)](
                             rounded[:, position].long()
                         )
-                        for position, index in enumerate(nominal_idx.tolist())
+                        for position, index in enumerate(
+                            self._specialist_ctx_cont_nominal_index_tuples[name]
+                        )
                     ],
                     dim=1,
                 )
@@ -1771,7 +1825,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         snap_h = self.snap_proj(
             snap_numeric.index_select(dim=1, index=generic_snap_idx)
         )
-        generic_snap_set = set(generic_snap_idx.tolist())
+        generic_snap_set = self._generic_snap_index_set
         for index_text, embedding in self.signal_nominal_embeddings.items():
             index = int(index_text)
             if index in generic_snap_set:
@@ -1791,7 +1845,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 self.specialist_proj[name](seq_part),
                 positional_encoding,
             )
-            specialist_index_set = set(idx.tolist())
+            specialist_index_set = self._specialist_input_index_sets[name]
             for index_text, embedding in self.signal_nominal_embeddings.items():
                 index = int(index_text)
                 if index in specialist_index_set:
@@ -1892,12 +1946,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 dtype=normalized_tf.dtype,
             )
             family_tokens: list[torch.Tensor] = []
-            categorical_indices = set(
-                torch.nonzero(
-                    categorical_mask,
-                    as_tuple=False,
-                ).flatten().tolist()
-            )
             for specialist in self._specialist_names:
                 family_idx = getattr(
                     self,
@@ -1920,9 +1968,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     * effective_scale
                 )
                 projected = self.mtf_family_proj[specialist](family_values)
-                for local_position, global_index in enumerate(family_idx.tolist()):
-                    if global_index not in categorical_indices:
-                        continue
+                for local_position, global_index in (
+                    self._multi_tf_specialist_categorical_positions[specialist]
+                ):
                     nominal = self.mtf_nominal_embeddings[
                         f"{suffix}_{global_index}"
                     ](tensor[..., global_index].long())
@@ -2159,7 +2207,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             family_input = self.specialist_proj[name](
                 signal_numeric.index_select(2, indices)
             )
-            owned = set(indices.tolist())
+            owned = self._specialist_input_index_sets[name]
             for index_text, embedding in self.signal_nominal_embeddings.items():
                 index = int(index_text)
                 if index in owned:
@@ -2209,7 +2257,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         current_snap = self.snap_proj(
             current_numeric.index_select(2, generic_idx)
         )
-        generic_set = set(generic_idx.tolist())
+        generic_set = self._generic_snap_index_set
         for index_text, embedding in self.signal_nominal_embeddings.items():
             index = int(index_text)
             if index in generic_set:
@@ -2255,26 +2303,30 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 or tuple(gather.shape) != (batch_size, state_count)
                 or tuple(history_lengths.shape) != (batch_size,)
                 or history_lengths.dtype not in (torch.int64, torch.int32)
-                or bool((history_lengths < 1).any().item())
-                or bool((history_lengths > int(history.shape[1])).any().item())
                 or gather.dtype not in (torch.int64, torch.int32)
-                or bool((gather < 0).any().item())
-                or bool((gather >= int(history.shape[1])).any().item())
-                or bool((gather >= history_lengths[:, None]).any().item())
-                or bool((gather[:, 1:] < gather[:, :-1]).any().item())
             ):
                 raise RuntimeError(
                     f"UNIFIED_EXIT_EPISODE_MTF_INPUT_INVALID:{tf_name}"
                 )
-            for row_index, observed_length in enumerate(
-                history_lengths.detach().cpu().tolist()
-            ):
-                if int(observed_length) < int(history.shape[1]) and bool(
-                    (history[row_index, int(observed_length) :] != 0).any().item()
-                ):
-                    raise RuntimeError(
-                        f"UNIFIED_EXIT_EPISODE_MTF_PADDING_INVALID:{tf_name}"
-                    )
+            invalid_gather_or_length = (
+                (history_lengths < 1).any()
+                | (history_lengths > int(history.shape[1])).any()
+                | (gather < 0).any()
+                | (gather >= int(history.shape[1])).any()
+                | (gather >= history_lengths[:, None]).any()
+                | (gather[:, 1:] < gather[:, :-1]).any()
+            )
+            if bool(invalid_gather_or_length.item()):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_EPISODE_MTF_INPUT_INVALID:{tf_name}"
+                )
+            padding_rows = torch.arange(
+                int(history.shape[1]), device=history.device
+            )[None, :] >= history_lengths[:, None]
+            if bool((history[padding_rows] != 0).any().item()):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_EPISODE_MTF_PADDING_INVALID:{tf_name}"
+                )
             _assert_finite(f"exit_mtf_history_{tf_name}", history)
             surface = f"mtf_{tf_name}"
             normalized = self._normalize_input_surface(
@@ -2306,14 +2358,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 projected = self.mtf_family_proj[name](
                     numeric.index_select(2, indices)
                 )
-                owned = set(indices.tolist())
-                for index in torch.nonzero(
-                    mtf_cat_mask, as_tuple=False
-                ).flatten().tolist():
-                    if index in owned:
-                        projected = projected + self.mtf_nominal_embeddings[
-                            f"{tf_name}_{index}"
-                        ](history[..., index].long())
+                for _local_position, global_index in (
+                    self._multi_tf_specialist_categorical_positions[name]
+                ):
+                    projected = projected + self.mtf_nominal_embeddings[
+                        f"{tf_name}_{global_index}"
+                    ](history[..., global_index].long())
                 encoded, _ = self.exit_episode_mtf_family_gru[name](
                     projected
                     * self._effective_tf_input_scale(tf_name).to(
@@ -2344,9 +2394,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         current_owned_numeric.dtype
                     )
                 )
-                for local_position, global_index in enumerate(indices.tolist()):
-                    if not bool(mtf_cat_mask[global_index].item()):
-                        continue
+                for local_position, global_index in (
+                    self._multi_tf_specialist_categorical_positions[name]
+                ):
                     nominal = self.mtf_nominal_embeddings[
                         f"{tf_name}_{global_index}"
                     ](current_raw_fields[..., global_index].long())
@@ -2757,7 +2807,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             family_input = self.specialist_proj[family_name](
                 signal_numeric.index_select(2, indices)
             )
-            owned = set(indices.tolist())
+            owned = self._specialist_input_index_sets[family_name]
             for index_text, embedding in self.signal_nominal_embeddings.items():
                 index = int(index_text)
                 if index in owned:
@@ -2801,7 +2851,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         current_snap = self.snap_proj(
             current_numeric.index_select(2, generic_idx)
         )
-        generic_set = set(generic_idx.tolist())
+        generic_set = self._generic_snap_index_set
         for index_text, embedding in self.signal_nominal_embeddings.items():
             index = int(index_text)
             if index in generic_set:
@@ -2885,14 +2935,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     projected = self.mtf_family_proj[family_name](
                         numeric_new.index_select(2, indices)
                     )
-                    owned = set(indices.tolist())
-                    for index in torch.nonzero(
-                        mtf_cat_mask, as_tuple=False
-                    ).flatten().tolist():
-                        if index in owned:
-                            projected = projected + self.mtf_nominal_embeddings[
-                                f"{tf_name}_{index}"
-                            ](new_rows[..., index].long())
+                    for _local_position, global_index in (
+                        self._multi_tf_specialist_categorical_positions[
+                            family_name
+                        ]
+                    ):
+                        projected = projected + self.mtf_nominal_embeddings[
+                            f"{tf_name}_{global_index}"
+                        ](new_rows[..., global_index].long())
                     encoded, hidden = self.exit_episode_mtf_family_gru[
                         family_name
                     ](
@@ -2926,9 +2976,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         current_tf_n.dtype
                     )
                 )
-                for local_position, global_index in enumerate(indices.tolist()):
-                    if not bool(mtf_cat_mask[global_index].item()):
-                        continue
+                for local_position, global_index in (
+                    self._multi_tf_specialist_categorical_positions[family_name]
+                ):
                     current_residual = current_residual + self.mtf_nominal_embeddings[
                         f"{tf_name}_{global_index}"
                     ](current_tf_raw[:, global_index].long()).unsqueeze(1) * (

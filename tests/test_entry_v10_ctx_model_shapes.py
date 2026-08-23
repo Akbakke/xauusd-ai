@@ -647,6 +647,66 @@ def test_input_normalization_buffers_are_persistent_and_hash_bound() -> None:
         model.require_input_normalization_state()
 
 
+def test_host_only_routing_caches_exactly_mirror_contract_owned_indices() -> None:
+    """CUDA-avoidance caches may route, but can never invent ownership."""
+
+    model = _make_model()
+    for surface in model._input_normalization_contract["surfaces"]:
+        expected = tuple(
+            torch.nonzero(
+                getattr(model, f"input_norm_{surface}_categorical_mask"),
+                as_tuple=False,
+            )
+            .flatten()
+            .tolist()
+        )
+        assert model._input_norm_categorical_index_tuples[surface] == expected
+    for name in EXACT_SPECIALIST_NAMES:
+        assert model._specialist_input_index_sets[name] == frozenset(
+            getattr(model, f"specialist_idx_{name}").tolist()
+        )
+        assert model._multi_tf_specialist_index_tuples[name] == tuple(
+            getattr(model, f"multi_tf_specialist_idx_{name}").tolist()
+        )
+        assert model._specialist_ctx_cont_nominal_index_tuples[name] == tuple(
+            getattr(model, f"specialist_ctx_cont_nominal_idx_{name}").tolist()
+        )
+        expected_mtf_nominal_positions = tuple(
+            (local_position, global_index)
+            for local_position, global_index in enumerate(
+                model._multi_tf_specialist_index_tuples[name]
+            )
+            if global_index in model._multi_tf_categorical_index_set
+        )
+        assert (
+            model._multi_tf_specialist_categorical_positions[name]
+            == expected_mtf_nominal_positions
+        )
+    assert model._generic_snap_index_set == frozenset(
+        model.generic_snap_idx.tolist()
+    )
+
+    model._input_norm_categorical_index_tuples = {
+        **model._input_norm_categorical_index_tuples,
+        "signal": (0,),
+    }
+    with pytest.raises(RuntimeError, match="CATEGORICAL_INDEX_CACHE_MISMATCH"):
+        model.require_input_normalization_state()
+
+
+def test_hot_forward_owners_do_not_materialize_device_index_buffers() -> None:
+    """Keep Exit and Entry routes free of CUDA ``tolist`` synchronizations."""
+
+    for owner in (
+        EntryV10CtxHybridTransformer._normalize_input_surface,
+        EntryV10CtxHybridTransformer._build_family_context_tokens,
+        EntryV10CtxHybridTransformer._encode_multi_tf_route,
+        EntryV10CtxHybridTransformer._forward_exit_causal_episode,
+        EntryV10CtxHybridTransformer.forward_exit_incremental_step,
+    ):
+        assert ".tolist()" not in inspect.getsource(owner)
+
+
 def test_input_normalization_applies_identical_non_saturating_asinh_in_train_and_eval() -> None:
     model = _make_model()
     center = model.input_norm_signal_center
