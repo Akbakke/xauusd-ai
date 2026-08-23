@@ -249,13 +249,17 @@ def _synthetic_normalization() -> tuple[dict[str, Any], dict[str, np.ndarray]]:
 def _batch(samples: dict[str, np.ndarray]) -> dict[str, torch.Tensor]:
     batch = HARDWARE_SMOKE_BATCH_SIZE
     seq_len = 96
+    # The model proves at runtime that the current snapshot and the final
+    # causal M5 sequence bar are byte-identical.  Keep every current-bar
+    # context surface on that same deterministic coordinate.
+    current = seq_len - 1
     out = {
         "seq_x": torch.from_numpy(
             np.stack([samples["signal"][i : i + seq_len] for i in range(batch)])
         ),
-        "snap_x": torch.from_numpy(samples["signal"][:batch].copy()),
-        "ctx_cont": torch.from_numpy(samples["ctx_cont"][:batch].copy()),
-        "ctx_cat": torch.from_numpy(samples["ctx_cat"][:batch].copy()),
+        "snap_x": torch.from_numpy(samples["signal"][current : current + batch].copy()),
+        "ctx_cont": torch.from_numpy(samples["ctx_cont"][current : current + batch].copy()),
+        "ctx_cat": torch.from_numpy(samples["ctx_cat"][current : current + batch].copy()),
     }
     for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES:
         tf_l = str(tf).lower()
