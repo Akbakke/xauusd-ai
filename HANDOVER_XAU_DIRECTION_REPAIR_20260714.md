@@ -365,6 +365,15 @@ weaken the sequence hash or extend the 300-second guard implicitly: a later
 staged preflight must retain the exact source identity before a distinct GPU
 phase may consume it.
 
+**Attended hardware smoke, 2026-08-23:** the separate no-data CUDA route
+passed under the same attended guard. It constructed the exact Entry
+architecture and specialist routing, completed one deterministic
+forward/backward/AdamW step in 1.211 seconds and reported 163 MiB peak CUDA
+allocation. Its output declares `authority=none`, `data_authority=none` and
+all candidate/TEST/promotion/live flags false. It confirms only the guarded
+GPU architecture path; it must never be cited as a data-smoke, edge, model,
+normalization or trading result.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a
