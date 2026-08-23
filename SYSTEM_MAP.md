@@ -219,11 +219,11 @@ gone is **not examined**.
 The TRAIN-fit squeeze owner is implemented and six per-clock artifacts have
 been fitted and admitted; several such sets now exist on disk with different
 `contract_sha256`, so the current binding is read from a run's V4 cache
-manifest and is not named here. V31 chains have built surfaces and caches on
-them, and none reached GREEN. Fit and serve share one causal
-forward-filter decoder; a second decoder in this owner is what made the
-2026-08-15 artifacts absorbing. Exit remains a closed-M1 system; no tick-level
-feature, dataset, OOS result or trading claim exists.
+manifest and is not named here. The current V40 data chain completed its
+feature/cache/lifecycle/liveness gates on its own bound artifacts. Fit and
+serve share one causal forward-filter decoder; a second decoder is what made
+the 2026-08-15 artifacts absorbing. This is data-level evidence only: Exit
+remains a closed-M1 system, and no model, OOS result or trading claim exists.
 
 ## Evidence sequence
 
@@ -241,14 +241,12 @@ source pair
 
 Failure at any arrow stops the chain. Fresh native and canonical source
 exists. Historical V28/V29J datasets were retired with their superseded
-feature contracts and have no training or comparison authority. V39 completed
-all three splits, compact lifecycle and full-input liveness, then ended RED on
-a stale liveness demand for the retired selected-side `y_bad_path` scalar.
-Audit v6 distinguishes that finite exact-copy diagnostic from its two live
-side-specific sources. V39 remains invalid (rule 7); no dataset or candidate
-is admitted. The first arrow is also not passed for train==serve: the
-serve-parity gate has never executed (zero events on disk, measured
-2026-08-19).
+feature contracts and have no training or comparison authority. V39 remains
+invalid. V40 is the current GREEN data artifact: TRAIN/VAL/sealed TEST,
+compact lifecycle and full-input liveness passed under the repaired
+selected-side diagnostic policy. It has not admitted a candidate, calibration,
+TEST evaluation or trading claim. The first train==serve parity event is also
+still missing.
 
 ## Scope boundary
 

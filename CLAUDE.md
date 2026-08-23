@@ -175,15 +175,12 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 
 6. **Train equals serve.** Exact ordered fields, dimensions, normalization,
    timeframe construction, hashes and final-decision semantics must match.
-   This is the requirement, not the current state. **Measured 2026-08-19**: the
-   serve-parity gate has never executed — zero `MODEL_NATIVE_SERVE_PARITY`
-   events exist anywhere under `/home/andre2/GX1_DATA`. **Proven from source
-   the same day**: the serve ctx-augment HTF block
-   (`gx1/execution/v12_ctx_augment_live.py::_atr`) computes ATR as a plain
-   rolling mean of true range in float64, while the offline owner
-   (`gx1/features/htf_features.py::_atr` → `technical_indicators_v1.wilder_atr`)
-   uses Wilder RMA and emits float32 — and the serve helper's own comment claims
-   the two match. Treat train==serve as unproven until a parity event exists.
+   This is the requirement, not the current state. The serve-parity gate has
+   still never executed — no `MODEL_NATIVE_SERVE_PARITY` event exists for a
+   current bundle. The formerly divergent ATR, long-lookback context and
+   float32-assembly paths are repaired in source, but source agreement is not
+   empirical train==serve evidence. Treat train==serve as unproven until the
+   same bound bundle emits and passes a real parity event.
 
 7. **Newest valid terminal evidence wins.** A newer red event blocks every
    older green event. Missing or malformed evidence is red. A GREEN dataset

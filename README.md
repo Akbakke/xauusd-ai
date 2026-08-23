@@ -95,17 +95,17 @@ but the system is not empirically finished:
 
 - focused capped contract tests cover the current source changes; this document
   makes no aggregate whole-repository green claim after concurrent repairs;
-- fresh native M1/M5 V4 sources and canonical pair generation
-  `9b18e215...077232cd` (2026-08-09) are published and hash-bound;
+- fresh native M1/M5 V4 sources and the current canonical pair are published
+  and hash-bound; resolve their exact identity from
+  `PROJECT_STATE_xau_direction_launch.json`, never this document;
 - the historical V28 and V29J dataset chains were retired and are not valid
   training or comparison substrates;
-- the current source contract is present; V31 rebuild chains have run
-  repeatedly since 2026-08-18 and every one that reached a terminal event ended
-  RED, so no admitted dataset exists;
-- train==serve is a requirement, not a proven state: the serve-parity gate has
-  never executed (zero events on disk, measured 2026-08-19) and one real
-  divergence is proven in source (two different ATR formulas between the
-  offline HTF owner and the serve ctx-augment block);
+- V40 is the current GREEN data artifact: its TRAIN/VAL/sealed TEST splits,
+  compact Exit lifecycle, full-input liveness and pretrain audit passed. It is
+  not a trained or admitted candidate, and cannot authorize a trading claim;
+- train==serve is a requirement, not a proven state: the source-level ATR,
+  long-lookback context and float32-assembly divergences are repaired, but the
+  serve-parity gate has not yet emitted a real same-bundle event;
 - no accepted Entry/Exit checkpoint or calibrated bundle;
 - no untouched-TEST edge, historical PnL or win-rate proof;
 - no same-candidate full-TEST unified Exit proof;
@@ -133,12 +133,10 @@ state, so a switch had to be bought with one bar's emission evidence against
 the fitted persistence penalty. Fit and serve now share one causal
 forward-filter decoder, the fit method identity is bumped so the old artifacts
 fail closed at load, and the admission gate proves low-state reachability. The
-refit `VOLATILITY_SQUEEZE_SIXCLOCK_20260818` is admissible and measured live on
-real TRAIN bytes, but it has since been superseded: three non-retired six-clock
-sets sit under `.../prebuilt/VOLATILITY_SQUEEZE_SIXCLOCK_*` with three different
-`contract_sha256`, and the V31 chains bound `..._GEN1f9424_20260818T160532Z`.
-Read the binding from a run's own V4 cache manifest, never from a document. No
-chain has carried any of them to GREEN, so no model or edge claim follows.
+refit is admissible on real TRAIN bytes, but several non-retired six-clock
+sets exist with different `contract_sha256`. Read the binding from a run's own
+V4 cache manifest, never from a document. V40 passed its data-level gates on
+its own binding; that still establishes no model or edge claim.
 Exit remains native closed M1. No tick-level dataset, evaluation, OOS or
 trading claim exists.
 

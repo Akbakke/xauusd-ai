@@ -412,6 +412,51 @@ def test_entry_q_gradient_reaches_joint_local_mtf_and_family_representations() -
         assert parameter.grad.abs().sum().item() > 0.0
 
 
+def test_all_eight_family_routes_reach_joint_entry_and_exit_q_losses() -> None:
+    """Prove every declared family is trainable, not merely serialized."""
+
+    torch.manual_seed(1308)
+    model = _make_model(dropout=0.0).train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
+    entry_target = torch.tensor(
+        [[2.0, -1.0, 0.0], [-1.0, 2.0, 0.0], [1.0, 0.0, 0.0]],
+        dtype=torch.float32,
+    )
+
+    # The two neutral zero-initialized fusion outputs intentionally protect a
+    # cold model from a hand-authored family/timeframe preference. Warm only
+    # through the sole Entry-Q authority before testing every family route;
+    # this is a reachability test, not evidence of market utility.
+    for _ in range(2):
+        optimizer.zero_grad(set_to_none=True)
+        entry = _forward(model, batch_size=3)
+        torch.nn.functional.mse_loss(
+            entry["entry_action_q_bps"], entry_target
+        ).backward()
+        optimizer.step()
+
+    optimizer.zero_grad(set_to_none=True)
+    entry = _forward(model, batch_size=3)
+    exit_output = model.forward_exit_incremental_prefix(
+        **_make_exit_episode_inputs(state_count=3, batch_size=3)
+    )
+    (
+        torch.nn.functional.mse_loss(entry["entry_action_q_bps"], entry_target)
+        + exit_output["exit_action_q_bps"].square().mean()
+    ).backward()
+
+    for name in EXACT_SPECIALIST_NAMES:
+        for parameter in (
+            model.specialist_proj[name].weight,
+            model.mtf_family_proj[name].weight,
+            model.exit_episode_family_gru[name].weight_ih_l0,
+            model.exit_episode_mtf_family_gru[name].weight_ih_l0,
+        ):
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+            assert parameter.grad.abs().sum().item() > 0.0, name
+
+
 def test_position_size_head_has_no_entry_q_decision_authority() -> None:
     model = _make_model().train()
     output = _forward(model, batch_size=4)
