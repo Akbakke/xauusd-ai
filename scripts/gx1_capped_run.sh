@@ -20,9 +20,11 @@
 #   --swap  MemorySwapMax. The immutable safety ceiling is 512M; swap storms are forbidden.
 # The runner also requires >=20G currently available RAM, serializes heavy jobs, binds the
 # job to two CPU cores, lowers its CPU/I/O priority, and constrains common numerical
-# libraries to one thread. The scope self-check proves the memory/pids limits before the
-# target command is entered. If the cgroup cannot be created or verified, the job fails
-# closed and is never launched.
+# libraries to one thread. Trainer jobs additionally pass through the fail-closed
+# wall-clock/GPU guard below; an unavailable sensor, excessive configured power
+# limit, thermal breach, or wall-clock expiry terminates the trainer process group.
+# The scope self-check proves the memory/pids limits before the target command is
+# entered. If any protection cannot be created or verified, the job fails closed.
 set -euo pipefail
 JOB_CLASS="" ; MEM=4G ; SWAP=512M
 
@@ -30,6 +32,19 @@ CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
+GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
+TRAINER_NVIDIA_SMI_PATH=/usr/bin/nvidia-smi
+
+# Crash-response safety freeze (2026-08-23). These are source-bound constants,
+# not caller-controlled defaults. A later measured performance contract may
+# change them only through a new reviewed commit and recipe source binding.
+TRAINER_MAX_WALL_SECONDS=1200
+TRAINER_GPU_INDEX=0
+TRAINER_GPU_MAX_CORE_TEMP_C=78
+TRAINER_GPU_MAX_MEMORY_TEMP_C=90
+TRAINER_GPU_MAX_POWER_LIMIT_W=250
+TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2
+TRAINER_DEVICE=
 
 SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))
 SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))
@@ -65,7 +80,9 @@ is_direct_python() {
 
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg
-  local trainer_reference=false trainer_flag_count=0
+  local trainer_reference=false trainer_flag_count=0 trainer_device_count=0
+  local target_index
+  local -a target_args=("$@")
 
   case "$executable_basename" in
     env|bash|sh|dash|zsh|ksh)
@@ -99,6 +116,21 @@ validate_target_command() {
   fi
   if (( trainer_flag_count != 1 )); then
     echo "FATAL: trainer class requires the canonical --train mode exactly once" >&2
+    exit 75
+  fi
+  for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
+    if [[ "${target_args[$target_index]}" == "--device" ]]; then
+      trainer_device_count=$((trainer_device_count + 1))
+      (( target_index + 1 < ${#target_args[@]} )) || {
+        echo "FATAL: trainer class requires a value after --device" >&2
+        exit 75
+      }
+      TRAINER_DEVICE="${target_args[$((target_index + 1))]}"
+    fi
+  done
+  if (( trainer_device_count != 1 )) \
+    || [[ "$TRAINER_DEVICE" != cpu && "$TRAINER_DEVICE" != cuda ]]; then
+    echo "FATAL: trainer class requires exactly one canonical --device cpu|cuda" >&2
     exit 75
   fi
 }
@@ -173,6 +205,17 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     echo "FATAL: nested capped job parent scope proof failed" >&2
     exit 75
   }
+  if [[ "$JOB_CLASS" == trainer ]]; then
+    [[ "${GX1_TRAINER_DEVICE:-}" == "$TRAINER_DEVICE" ]] || {
+      echo "FATAL: nested trainer device differs from protected parent scope" >&2
+      exit 75
+    }
+    [[ -x "$GPU_GUARD_PATH" ]] || {
+      echo "FATAL: canonical trainer safety guard is unavailable" >&2
+      exit 75
+    }
+    exec "$GPU_GUARD_PATH" "$@"
+  fi
   exec "$@"
 fi
 host_total_kib=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo)
@@ -233,6 +276,15 @@ fi
 for helper in /usr/bin/taskset /usr/bin/ionice /usr/bin/nice /bin/bash; do
   [[ -x "$helper" ]] || { echo "FATAL: required capacity helper is missing: $helper" >&2; exit 75; }
 done
+if [[ "$JOB_CLASS" == trainer && ! -x "$GPU_GUARD_PATH" ]]; then
+  echo "FATAL: canonical trainer safety guard is unavailable: $GPU_GUARD_PATH" >&2
+  exit 75
+fi
+if [[ "$JOB_CLASS" == trainer && "$TRAINER_DEVICE" == cuda \
+  && ! -x "$TRAINER_NVIDIA_SMI_PATH" ]]; then
+  echo "FATAL: required CUDA telemetry owner is unavailable: $TRAINER_NVIDIA_SMI_PATH" >&2
+  exit 75
+fi
 
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" && -w "$XDG_RUNTIME_DIR" ]]; then
   LOCK_PATH="$XDG_RUNTIME_DIR/gx1-heavy-job.lock"
@@ -247,6 +299,9 @@ if ! flock -n 9; then
 fi
 echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
+if [[ "$JOB_CLASS" == trainer ]]; then
+  echo "[capped_run_trainer_safety] device=$TRAINER_DEVICE max_wall_seconds=$TRAINER_MAX_WALL_SECONDS gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
 # controllers are absent. Do not describe those properties as protection. The
@@ -265,6 +320,10 @@ cg_dir="/sys/fs/cgroup${cg_rel}"
 echo "[capped_run_scope_verified] memory.max=$GX1_EXPECTED_MEMORY_BYTES memory.high=$GX1_EXPECTED_MEMORY_BYTES memory.swap.max=$GX1_EXPECTED_SWAP_BYTES pids.max=$GX1_EXPECTED_TASKS" >&2
 verified_cpu_affinity="$GX1_CPU_AFFINITY"
 unset GX1_EXPECTED_MEMORY_BYTES GX1_EXPECTED_SWAP_BYTES GX1_EXPECTED_TASKS GX1_CPU_AFFINITY
+if [[ "$GX1_CAPPED_CLASS" == trainer ]]; then
+  [[ -x "$GX1_GPU_GUARD_PATH" ]] || { echo "FATAL: trainer safety guard unavailable inside scope" >&2; exit 75; }
+  exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$GX1_GPU_GUARD_PATH" "$@"
+fi
 exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$@"
 '
 systemd-run --user --scope --quiet \
@@ -278,6 +337,15 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_CAPPED_MEMORY_BYTES="$((requested_mem_kib * 1024))" \
   --setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))" \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
+  --setenv=GX1_GPU_GUARD_PATH="$GPU_GUARD_PATH" \
+  --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \
+  --setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS" \
+  --setenv=GX1_TRAINER_GPU_INDEX="$TRAINER_GPU_INDEX" \
+  --setenv=GX1_TRAINER_GPU_MAX_CORE_TEMP_C="$TRAINER_GPU_MAX_CORE_TEMP_C" \
+  --setenv=GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C="$TRAINER_GPU_MAX_MEMORY_TEMP_C" \
+  --setenv=GX1_TRAINER_GPU_MAX_POWER_LIMIT_W="$TRAINER_GPU_MAX_POWER_LIMIT_W" \
+  --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
+  --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
   --setenv=OMP_NUM_THREADS=1 \
   --setenv=MKL_NUM_THREADS=1 \
   --setenv=OPENBLAS_NUM_THREADS=1 \

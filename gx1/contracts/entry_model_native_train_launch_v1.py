@@ -102,8 +102,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v6"
-RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v6"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v7"
+RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v7"
 
 TRAINING_DATA_SPLITS = ("train", "val")
 SEALED_DATA_SPLITS = (*TRAINING_DATA_SPLITS, "test")
@@ -112,6 +112,9 @@ MODEL_RELATIVE_PATH = (
     "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
 )
 CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
+TRAINER_SAFETY_GUARD_RELATIVE_PATH = (
+    "scripts/gx1_guarded_trainer_exec.sh"
+)
 CONTROL_SURFACE_RELATIVE_PATH = "scripts/entry_next_edge_control.sh"
 TRAIN_WRAPPER_RELATIVE_PATH = "scripts/run_entry_model_native_seq513_train.sh"
 LAUNCH_CONTRACT_RELATIVE_PATH = (
@@ -523,6 +526,9 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         "recipe_producer": (repo / RECIPE_PRODUCER_RELATIVE_PATH).resolve(strict=True),
         "wrapper": wrapper_path,
         "trainer": (repo / TRAINER_RELATIVE_PATH).resolve(strict=True),
+        "trainer_safety_guard": (
+            repo / TRAINER_SAFETY_GUARD_RELATIVE_PATH
+        ).resolve(strict=True),
         "unified_exit_lifecycle_contract": (
             repo / UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH
         ).resolve(strict=True),

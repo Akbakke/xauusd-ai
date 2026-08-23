@@ -191,10 +191,11 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "mtf_specialist_routing",
         "recipe_contract",
         "recipe_producer",
-            "wrapper",
-            "trainer",
-            "unified_exit_lifecycle_contract",
-            "capped_runner",
+        "wrapper",
+        "trainer",
+        "trainer_safety_guard",
+        "unified_exit_lifecycle_contract",
+        "capped_runner",
     }
 
     original_recipe = str(paths["recipe_audit_json"])
