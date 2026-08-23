@@ -405,6 +405,33 @@ must change enough decision margins. Until such a trained bundle exists,
 eight-family decision influence, edge, serve parity and trading remain
 unproven.
 
+**Target-semantics audit, 2026-08-23:** the superseded V3 target audit failed
+on an obsolete target-policy schema and must never be cited. The bound V4
+artifact `foundation_target_audit_v4/ENTRY_TARGET_FOUNDATION_AUDIT_20260821T111346Z.json`
+is PASS with zero failures and binds the same V40 TRAIN/VAL parquet and
+manifest hashes as the current liveness/recipe path. Its static diagnostic
+horizons are exactly 19 bars in both splits, but the contract explicitly
+forbids a fixed-horizon direction or path label from Entry decision authority.
+The sole Entry decision target is instead LONG/SHORT/FLAT raw-bps fitted-Q:
+LONG and SHORT bridge only to a frozen TRAIN-fitted Exit target at the first
+authoritative post-fill state, FLAT terminates at zero, exact ties fail closed,
+and VAL/TEST never update the target snapshot. Future-looking auxiliary
+supervision has declared horizons up to 96 bars, excludes incomplete tail rows
+before emission, and every active auxiliary head is live in both TRAIN and
+VAL. This proves target presence, target population and the declared
+train-only target topology; it is not a model-quality result.
+
+The same V4 artifact makes the production boundary explicit. Its fitted-Q
+economics are `gross_spread_inclusive_research_only`, and the source contract
+sets `production_authority_ready`, `candidate_ready_allowed`,
+`bundle_serving_admission_allowed` and `edge_claim_allowed` false. Missing
+evidence includes causal next-executable bid/ask, commission, slippage,
+financing/swap semantics, elapsed-time/gap classification, an immutable net
+cost/gap audit, and portfolio replay with overlapping-capital constraints.
+Therefore a future model can be evaluated as research after the pre-registered
+gates, but it cannot honestly be called tradable or be routed to paper/live
+until that separate execution-economics program exists and passes.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a
