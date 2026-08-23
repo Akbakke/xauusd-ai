@@ -314,6 +314,23 @@ materialized route. A proof may never be treated as model, OOS, PnL, candidate,
 TEST, promotion, paper or live evidence. Because the trainer and wrapper are
 source-bound by the recipe audit, create a fresh immutable recipe audit after
 this code change before using the attended route.
+
+**Observed attended data-smoke result, 2026-08-23:** source commit `8107e13f`
+passed its hook and the fresh recipe audit
+`train_recipe_attended_data_20260823T174924Z/...174944002159Z.json` passed.
+The real CUDA attended run then passed guard/preflight and logged trainer
+configuration, but did **not** reach a GPU model batch: a read at 3:10 showed
+47 C core, 34.75 W draw, 5% GPU utilization and 485 MiB VRAM. At 4:14 its
+isolated cgroup was at 4,279,123,968 / 4,294,967,296 bytes with 1,483
+`memory.events:max` events (no OOM event at that instant); it ended before a
+manual SIGTERM could be delivered and emitted no bundle. The final exit reason
+was not captured, so call this **memory-pressure termination/suspected cap
+failure**, not a proven OOM. It did not alter V40 bytes and left no V40
+sequence-memmap scratch. Do not rerun it unchanged: full Exit/M1 lifecycle and
+normalization preparation still exceed the 4G attended envelope before GPU
+optimization. The next engineering task is a source-bound, full-population
+streaming representation for that remaining lifecycle/normalization surface;
+never relax the cgroup or skip the full population to make a smoke green.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
 ## What will stop you when you run a chain
