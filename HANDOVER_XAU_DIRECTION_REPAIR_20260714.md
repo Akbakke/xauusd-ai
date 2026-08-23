@@ -211,6 +211,16 @@ Every heavy producer, audit, train or replay enters through
 (`--class producer`) and 20G for the canonical trainer — this file said 10G for
 producers until 2026-08-19; `scripts/gx1_capped_run.sh` is the authority. A cap
 kill or partial directory is failed evidence.
+
+The 2026-08-23 smoke preflight additionally measured that WSL exposes CPU 0-1
+as the two hyperthreads of **one** physical core, and the runner pins every
+heavy job there, sets common numerical libraries to one thread, and lowers CPU
+and I/O priority. WSL exposes neither `lm-sensors`, `/sys/class/thermal` nor
+CPU frequency control here, so there is **no CPU-temperature cutoff** to claim.
+CUDA trainer work does have a fail-closed 20-minute wall-clock plus 2-second
+GPU telemetry guard (78 C core, 90 C memory and 250 W configured power limit);
+missing telemetry terminates its process group. Treat the unobservable CPU
+temperature as a residual machine risk, not as evidence that it is safe.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
 ## What will stop you when you run a chain
