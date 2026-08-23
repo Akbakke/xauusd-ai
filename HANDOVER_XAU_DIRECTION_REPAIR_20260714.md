@@ -34,7 +34,9 @@ trainability readiness and smoke recipe for distinct run
 `execution_allowed=true`, but `activation_authority=false`, and the exact
 wrapper `--dry-run` passed. Its only permitted next execution is the bounded
 research smoke: CUDA, one epoch, 10,000 TRAIN rows, batch 64, 4G RAM and
-512M swap. **It has not been executed.** A recipe pass is not machine
+512M swap. One explicit `--execute` attempt on 2026-08-23 reached the capped
+runner but stopped at its preflight (exit 75), before a Python trainer or CUDA
+context was started, and created no bundle. A recipe pass is not machine
 telemetry: on this WSL host the current trainer preflight fails closed before
 the trainer starts because the RTX 3090 reports `temperature.memory=N/A` and
 its configured power limit is 390 W, above the 250 W policy. Commit
@@ -232,7 +234,11 @@ temperature is available, but `temperature.memory` is `N/A`, and the driver
 reports a 390 W configured limit. The guard has been proven to stop before
 trainer launch on this condition. Do not bypass it, claim the 90 C VRAM limit
 is observed, or alter the host power limit without an explicit operator
-decision and new evidence. NVIDIA's CUDA-on-WSL documentation confirms that
+decision and new evidence. On 2026-08-23 the operator explicitly authorized a
+250 W setting attempt; `/usr/lib/wsl/lib/nvidia-smi --id=0 --power-limit=250`
+returned `Insufficient Permissions`, and the readback remained 390 W. That is
+not a successful cap change and does not authorize weakening the guard.
+NVIDIA's CUDA-on-WSL documentation confirms that
 WSL NVML does not support all queries and identifies `/usr/lib/wsl/lib/nvidia-smi`
 as the WSL path. The Windows-host `nvidia-smi.exe` was also read-tested from
 WSL on 2026-08-23 and failed with `UtilAcceptVsock` rather than yielding sensor
