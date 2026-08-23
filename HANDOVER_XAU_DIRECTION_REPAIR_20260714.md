@@ -27,8 +27,24 @@ forecast, timing, tail-risk, volatility, side-MAE and trendline-event heads;
 legacy direction/tradable/path/bad-path/MTF heads are blocked. A stale audit
 split that simultaneously advertised those retired heads and blocked
 `mtf_direction` while naming it independent was removed; trainer and gates now
-reject it. **V40 is not admitted yet**; remaining admission/smoke evidence must
-pass under the committed repair. V34–V39 remain invalid.
+reject it. On 2026-08-23, after the committed report-only control-cap repair
+`aeed9a77`, V40 published a fresh immutable smoke manifest, smoke readiness,
+trainability readiness and smoke recipe for distinct run
+`V40_SMOKE_20260823T153000Z`. All four are green; the recipe is `PASS` with
+`execution_allowed=true`, but `activation_authority=false`, and the exact
+wrapper `--dry-run` passed. Its only permitted next execution is the bounded
+research smoke: CUDA, one epoch, 10,000 TRAIN rows, batch 64, 4G RAM and
+512M swap. **It has not been executed.**
+
+The separately named V40 adoption-candidate report is intentionally
+`BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
+gross, spread-inclusive, research-only and cannot gain production authority
+until causal executable bid/ask, commission, slippage, financing, portfolio
+replay and related economics evidence exists. This blocks activation, edge
+claims and all paper/live use; it does not make a research smoke invalid. V40
+is therefore not admitted for a candidate, calibration, TEST evaluation or
+trading, and the smoke must not start without explicit operator approval.
+V34–V39 remain invalid.
 
 Everything below the chain is unchanged: no model has ever been trained on this
 substrate, and `train==serve` has never been proven (see below).
@@ -125,7 +141,9 @@ weight exists.
 ## What remains empirically unproven or unadmitted
 
 - No admitted dataset, model, calibration, edge, PnL or win-rate. V40's bytes
-  pass the current foundation audits but admission is incomplete. The M5
+  pass the current foundation audits and the current-source report-only smoke
+  chain, but its bounded research smoke is unexecuted and production admission
+  is deliberately incomplete. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.
@@ -231,9 +249,10 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
 3. ~~Run the fresh audit-v6 successor chain; never resume V34–V39.~~ V40 is
-   terminal GREEN. Keep building/training stopped until its remaining exact
-   foundation/admission evidence passes under the committed head-contract
-   repair; do not rebuild V40 merely to change a report-only consumer.
+   terminal GREEN. Its foundation audits and current-source report-only smoke
+   chain now pass; the exact smoke wrapper also passed `--dry-run`. Do not
+   rebuild V40 merely to change a report-only consumer. Keep actual GPU
+   training stopped until the explicitly bounded smoke is approved.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit
@@ -246,8 +265,9 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    ~5.1 USD) by design, so it tests regime transfer, not just fit.
    Derivations: `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
 5. ~~Re-measure every field and target against real TRAIN/VAL bytes.~~ Feature,
-   target-v4 and specialist audits pass; still run the remaining admission and
-   smoke gates before training.
+   target-v4 and specialist audits pass. The report-only smoke gates and
+   wrapper dry-run also pass; the next step is the single approved bounded
+   research smoke, not a candidate or full training run.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a
