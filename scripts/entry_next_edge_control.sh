@@ -566,7 +566,9 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_foundation_adoption_candidate_v1 "$@"
+    # This is a report-only hash/provenance gate: it never materializes data
+    # or starts training, so keep it within the narrow audit safety envelope.
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_foundation_adoption_candidate_v1 "$@"
     ;;
 
   model-native-smoke-manifest)
@@ -591,7 +593,8 @@ case "$cmd" in
       --batch-size; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_smoke_manifest_v1 "$@"
+    # The smoke manifest is immutable evidence only, not a dataset producer.
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_smoke_manifest_v1 "$@"
     ;;
 
   model-native-smoke-readiness)
@@ -612,7 +615,8 @@ case "$cmd" in
       --swap-cap; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_smoke_readiness_v1 "$@"
+    # Readiness verification has no model or dataset side effect.
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_smoke_readiness_v1 "$@"
     ;;
 
   model-native-trainability-readiness)
@@ -629,7 +633,8 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_trainability_readiness_v1 "$@"
+    # Source/control inspection is report-only and must not reserve producer memory.
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_trainability_readiness_v1 "$@"
     ;;
 
   model-native-train-recipe-audit)

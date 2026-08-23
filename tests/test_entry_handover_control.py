@@ -610,6 +610,22 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     assert "evaluate_entry_candidate_selective_edge_v1" in prediction
 
 
+def test_report_only_admission_routes_use_the_narrow_audit_cap() -> None:
+    """Evidence-only routes must not receive dataset-producer resources."""
+    source = CONTROL.read_text(encoding="utf-8")
+    for command, successor in (
+        ("model-native-adoption-candidate", "model-native-smoke-manifest"),
+        ("model-native-smoke-manifest", "model-native-smoke-readiness"),
+        ("model-native-smoke-readiness", "model-native-trainability-readiness"),
+        ("model-native-trainability-readiness", "model-native-train-recipe-audit"),
+    ):
+        route = source.split(f"  {command})", 1)[1].split(
+            f"  {successor})", 1
+        )[0]
+        assert 'exec "${AUDIT_CAP[@]}"' in route
+        assert "PRODUCER_CAP" not in route
+
+
 def test_retired_separate_exit_dataset_route_is_absent() -> None:
     source = CONTROL.read_text(encoding="utf-8")
     assert "model-native-v3-exit-dataset" not in source
