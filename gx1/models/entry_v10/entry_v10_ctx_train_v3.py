@@ -1609,8 +1609,10 @@ _TRAIN_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V4_CACHE_DIR"
 # required to run under. The runner re-reads these to verify that a nested
 # capped job matches its parent scope. They name the cgroup the process already
 # lives in - class, memory, swap, task ceiling and the already-enforced guard
-# settings - and none of them reaches a model input, a target, a threshold or a
-# checkpoint decision, so they are runtime identity rather than ambient control.
+# settings. The attended FIFO/token is also guard-created transport only; the
+# trainer validates it immediately before model construction. None reaches a
+# model input, target, threshold or checkpoint decision, so these are runtime
+# identity rather than ambient control.
 _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_CAPPED_CLASS",
     "GX1_CAPPED_MEMORY_BYTES",
@@ -1620,6 +1622,10 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_TRAINER_DEVICE",
     "GX1_TRAINER_EXECUTION_MODE",
     "GX1_TRAINER_MAX_WALL_SECONDS",
+    "GX1_TRAINER_MODEL_MAX_WALL_SECONDS",
+    "GX1_TRAINER_ATTENDED_STAGE_REQUIRED",
+    "GX1_TRAINER_ATTENDED_STAGE_FIFO",
+    "GX1_TRAINER_ATTENDED_STAGE_TOKEN",
     "GX1_TRAINER_GPU_INDEX",
     "GX1_TRAINER_GPU_MAX_CORE_TEMP_C",
     "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C",

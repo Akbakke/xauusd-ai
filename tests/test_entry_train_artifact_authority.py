@@ -261,6 +261,23 @@ def test_trainer_boundary_requires_exact_recipe_and_allows_only_bound_runtime_en
         trainer._enforce_canonical_train_env_contract()
 
 
+def test_trainer_boundary_allows_only_guard_owned_attended_stage_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_exact_trainer_env(monkeypatch)
+    guarded_transport = {
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "300",
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "true",
+        "GX1_TRAINER_ATTENDED_STAGE_FIFO": "/tmp/guard-created-preflight",
+        "GX1_TRAINER_ATTENDED_STAGE_TOKEN": "a" * 64,
+    }
+    for key, value in guarded_transport.items():
+        monkeypatch.setenv(key, value)
+
+    trainer._enforce_canonical_train_env_contract()
+    assert set(guarded_transport).issubset(trainer._TRAIN_CAPPED_SCOPE_ENV)
+
+
 @pytest.mark.parametrize("recipe_key", sorted(MODEL_NATIVE_RECIPE_ENV))
 def test_trainer_boundary_rejects_every_missing_recipe_key(
     monkeypatch: pytest.MonkeyPatch,
