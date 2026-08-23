@@ -333,6 +333,16 @@ streaming representation for that remaining lifecycle/normalization surface;
 never relax the cgroup or skip the full population to make a smoke green.
 Deletions under `/home/andre2/GX1_DATA` go through the retention owner only.
 
+**Pending bounded-loader repair, 2026-08-23:** the shared M1 feature-surface
+loader now flushes and discards clean pages from its temporary disk-backed
+maps in bounded increments, and scans categorical domains in bounded rows.
+It preserves the complete source-bound float/int matrices and every existing
+validation; it is not sampling or a changed feature representation. The full
+test suite passed under the 4G/one-core audit cap. This repair has not yet been
+measured on the V40 attended route, so it does not authorize a retry by itself:
+create a fresh source-bound recipe audit and retain the existing 4G/300-second
+guard before any future attended execution.
+
 ## What will stop you when you run a chain
 
 Six chain attempts on 2026-08-19/20 failed before any compute. Every one was a

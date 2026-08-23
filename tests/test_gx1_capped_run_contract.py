@@ -227,7 +227,10 @@ def test_trainer_guard_accepts_complete_safe_cuda_telemetry(tmp_path: Path) -> N
     )
 
     assert result.returncode == 0, result.stderr
-    assert "[trainer_safety_guard] device=cuda" in result.stderr
+    assert (
+        "[trainer_safety_guard] execution_mode=canonical device=cuda"
+        in result.stderr
+    )
 
 
 @pytest.mark.parametrize(

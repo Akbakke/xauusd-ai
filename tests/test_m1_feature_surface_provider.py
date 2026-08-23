@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import gx1.contracts.entry_exit_feature_surface_v1 as feature_surface_module
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_SEQUENCE_BARS,
     entry_exit_shared_feature_base_contract,
@@ -58,8 +59,10 @@ def _artifact(
     tmp_path: Path,
     *,
     market_gap: bool = False,
+    rows: int | None = None,
 ) -> tuple[Path, Path, str, str]:
-    rows = EXIT_FEATURE_SEQUENCE_BARS + 1
+    if rows is None:
+        rows = EXIT_FEATURE_SEQUENCE_BARS + 1
     start = pd.Timestamp("2026-01-01T00:00:00Z")
     times = pd.date_range(start, periods=rows, freq="min")
     if market_gap:
@@ -267,3 +270,41 @@ def test_full_surface_loader_can_use_disk_backed_shared_storage(
             dtype=np.float32,
         ),
     )
+
+
+def test_disk_backed_loader_validates_full_surface_in_bounded_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    batch_rows = 64
+    rows = batch_rows * 3 + 7
+    parquet, _manifest, _run_id, _pair_id = _artifact(tmp_path, rows=rows)
+    monkeypatch.setattr(
+        feature_surface_module,
+        "_M1_FEATURE_SURFACE_BATCH_ROWS",
+        batch_rows,
+    )
+    monkeypatch.setattr(
+        feature_surface_module,
+        "_M1_FEATURE_SURFACE_DISK_SYNC_ROWS",
+        batch_rows * 2,
+    )
+    original_isfinite = np.isfinite
+    observed_sizes: list[int] = []
+
+    def _tracked_isfinite(values: object, *args: object, **kwargs: object):
+        array = np.asarray(values)
+        observed_sizes.append(int(array.size))
+        return original_isfinite(values, *args, **kwargs)
+
+    monkeypatch.setattr(feature_surface_module.np, "isfinite", _tracked_isfinite)
+
+    _times, arrays = load_m1_feature_surface(
+        parquet,
+        context="TEST",
+        storage_dir=tmp_path / "bounded_shared_surface_storage",
+    )
+
+    assert arrays["signal"].shape[0] == rows
+    assert observed_sizes
+    assert max(observed_sizes) <= batch_rows * MODEL_NATIVE_SIGNAL_DIM

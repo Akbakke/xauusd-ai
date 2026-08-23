@@ -7,6 +7,7 @@ their independently computed native-resolution values.
 from __future__ import annotations
 
 import json
+import mmap
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -50,6 +51,8 @@ ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE = (
     "exact_hash_bound_native_m5_feature_surface_v1"
 )
 ENTRY_EXIT_FEATURE_SURFACE_COLUMNS = ("time", "signal", "ctx_cont", "ctx_cat")
+_M1_FEATURE_SURFACE_BATCH_ROWS = 8192
+_M1_FEATURE_SURFACE_DISK_SYNC_ROWS = 262_144
 _REGISTRY_FIT_BINDING_KEYS = frozenset(
     {
         "lane",
@@ -625,9 +628,42 @@ def load_m1_feature_surface(
         "ctx_cat": MODEL_NATIVE_CTX_CAT_DIM,
     }
     offsets = 0
+
+    def _flush_and_discard_disk_backing() -> None:
+        """Release clean shared pages without changing the decoded surface.
+
+        The arrays are deliberately complete: the normalizer and Exit
+        lifecycle must consume every owner-declared TRAIN row. On a bounded
+        smoke host, retaining every clean page after decoding makes the file
+        cache compete with the model for the same cgroup allowance. These are
+        MAP_SHARED temporary files, so flushing commits the exact decoded
+        bytes and MADV_DONTNEED only releases clean cache pages.
+        """
+
+        if backing_root is None:
+            return
+        advice = getattr(mmap, "MADV_DONTNEED", None)
+        for values in arrays.values():
+            if not isinstance(values, np.memmap):
+                raise RuntimeError(
+                    f"{context}_M1_FEATURE_SURFACE_DISK_BACKING_INVALID"
+                )
+            values.flush()
+            mmap_handle = getattr(values, "_mmap", None)
+            if (
+                advice is not None
+                and mmap_handle is not None
+                and hasattr(mmap_handle, "madvise")
+            ):
+                mmap_handle.madvise(advice)
+
+    # Bound dirty shared pages while decoding the complete immutable surface.
+    # This is storage management only: every batch still receives the same
+    # exact dtype, width, finite and categorical-domain validation.
+    next_disk_sync = _M1_FEATURE_SURFACE_DISK_SYNC_ROWS
     try:
         batches = parquet.iter_batches(
-            batch_size=8192,
+            batch_size=_M1_FEATURE_SURFACE_BATCH_ROWS,
             columns=["signal", "ctx_cont", "ctx_cat"],
             use_threads=False,
         )
@@ -671,6 +707,11 @@ def load_m1_feature_surface(
                     cast_values = values.astype(np.float32, copy=False)
                 arrays[name][offsets : offsets + row_count] = cast_values
             offsets += row_count
+            if backing_root is not None and offsets >= next_disk_sync:
+                _flush_and_discard_disk_backing()
+                next_disk_sync = (
+                    offsets + _M1_FEATURE_SURFACE_DISK_SYNC_ROWS
+                )
     except RuntimeError:
         raise
     except Exception as exc:
@@ -683,21 +724,23 @@ def load_m1_feature_surface(
             f"rows={offsets} expected={len(times)}"
         )
 
-    for index, (lower, upper) in enumerate(MODEL_NATIVE_CTX_CAT_MIN_MAX.values()):
-        values = arrays["ctx_cat"][:, index]
-        if np.any(values < lower) or np.any(values > upper):
-            raise RuntimeError(
-                f"{context}_M1_FEATURE_SURFACE_CTX_CAT_DOMAIN_INVALID: index={index}"
-            )
-    if backing_root is not None:
-        for values in arrays.values():
-            if isinstance(values, np.memmap):
-                values.flush()
-                mmap_handle = getattr(values, "_mmap", None)
-                if mmap_handle is not None and hasattr(mmap_handle, "madvise"):
-                    import mmap
-
-                    mmap_handle.madvise(mmap.MADV_DONTNEED)
+    # Do not form a full-surface boolean matrix here. The canonical M1
+    # feature surface is multi-gigabyte once decoded; bounded validation keeps
+    # the same exhaustive domain check compatible with the 4 GiB attended
+    # trainer envelope.
+    for start in range(0, len(times), _M1_FEATURE_SURFACE_BATCH_ROWS):
+        stop = min(len(times), start + _M1_FEATURE_SURFACE_BATCH_ROWS)
+        for index, (lower, upper) in enumerate(
+            MODEL_NATIVE_CTX_CAT_MIN_MAX.values()
+        ):
+            values = arrays["ctx_cat"][start:stop, index]
+            if np.any(values < lower) or np.any(values > upper):
+                raise RuntimeError(
+                    f"{context}_M1_FEATURE_SURFACE_CTX_CAT_DOMAIN_INVALID: "
+                    f"index={index}"
+                )
+        if backing_root is not None:
+            _flush_and_discard_disk_backing()
     return times, {
         name: values
         for name, values in arrays.items()

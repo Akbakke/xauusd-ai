@@ -433,7 +433,10 @@ def test_no_producer_route_binds_a_split_manifest_it_runs_before() -> None:
     control = (REPO / "scripts/entry_next_edge_control.sh").read_text(
         encoding="utf-8"
     )
-    assert "split-manifest" not in control
+    # The control surface may name an ordinary split manifest for its
+    # reconstruction audit. Only the retired *registry-fit* pointer is
+    # forbidden: it would bind a producer to an artifact produced downstream.
+    assert "--registry-fit-split-manifest" not in control
     # The tape and pair bindings are real source authority and must remain.
     assert "--tape-manifest" in control
     assert "--pair-manifest" in control
