@@ -365,18 +365,41 @@ weaken the sequence hash or extend the 300-second guard implicitly: a later
 staged preflight must retain the exact source identity before a distinct GPU
 phase may consume it.
 
-**Implemented staged attended preflight, 2026-08-23 (not yet executed):** the
-approved exact attended trainer route now has a source-bound 600-second
-`data_preflight` deadline and a separate 300-second `model_smoke` deadline.
-The guard keeps the same 4 GiB/512 MiB cgroup, one-physical-core affinity,
-one-second CUDA telemetry, 75 C core stop and 250 W actual-draw stop throughout.
-It transitions only once when the real trainer sends a token-bound message on a
-private guard-created FIFO immediately before model construction, after the
-complete cache/lifecycle/hash/normalization/contract/specialist preflight. No
-marker, an invalid or duplicate marker, or either phase timeout kills the whole
-process group. This is a safety/execution repair only: a fresh recipe audit and
-the first observed bounded V40 run remain required, and neither gains candidate,
-edge, OOS, TEST, paper or live authority.
+**Observed staged attended data/model smoke, 2026-08-24:** source commits
+`11c6e63e` (verified V4 cache memory mapping/reuse) and `e8d26eaa` (pre-model
+RSS telemetry) passed their hooks and the fresh immutable recipe audit
+`train_recipe_attended_cache_rss_20260824T065600Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260824T045627627308Z.json`
+is PASS, source-bound to `e8d26eaa`. The cache repair preserves the exact
+byte/hash checks but streams verification into read-only mappings, discards
+clean pages after exhaustive validation, and passes the already verified cache
+into full-TRAIN normalization rather than loading a second copy. A direct V40
+measurement reported 0.46 GiB mapped cache backing and 0.17 GiB RSS after
+load/validation.
+
+The approved exact route completed the entire 600-second-capable
+`data_preflight` in 405 seconds: immutable TRAIN/VAL hashes, decision-window
+coverage, full-TRAIN normalization over 1,694,883 declared rows, both
+sequence-roll proofs, all contracts and all eight specialist routes passed.
+Its pre-model RSS was 3.22 GiB, versus about 4.05 GiB in the previous attempt.
+The token-bound private FIFO then moved the same cgroup into the separate
+300-second `model_smoke` phase. With the unchanged batch size of 64, four
+complete Exit/Entry forward-backward-optimizer steps finished; RSS was 3.55 GiB
+after the first full loss, 3.58 GiB during steps two/three and 3.63 GiB when
+batch five began. Observed guard heartbeats were 54–62 C and 105–192 W, below
+the fixed 75 C and 250 W actual-draw stops. The guard ended the live process
+group only at `stage_model_smoke_wall_clock_limit_300s` (exit 75); there was no
+cgroup OOM, temperature or power stop, no output bundle, no active trainer,
+no attended FIFO/scratch directory and no V40 data write. This is a successful
+bounded *trainability/safety* result, not a completed epoch, candidate, edge,
+OOS, PnL, TEST, paper or live result.
+
+One WSL kernel line, `dxgkio_make_resident: Ioctl failed: -12`, was logged
+during the scope. It did not produce a trainer exception or override the
+guard's time-limit termination, but it means GPU/WSL residency capacity remains
+an observed platform risk. Do not enlarge batch size, duration, cgroup limits
+or power limits on the basis of this smoke. The next work is to make the
+bounded run resumable/observable and then assess a separately audited training
+budget; it is not permission for full/candidate training.
 
 **Attended hardware smoke, 2026-08-23:** the separate no-data CUDA route
 passed under the same attended guard. It constructed the exact Entry
@@ -500,9 +523,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
 2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
 3. ~~Run the fresh audit-v6 successor chain; never resume V34–V39.~~ V40 is
    terminal GREEN. Its foundation audits and current-source report-only smoke
-   chain now pass; the exact smoke wrapper also passed `--dry-run`. Do not
-   rebuild V40 merely to change a report-only consumer. Keep actual GPU
-   training stopped until the explicitly bounded smoke is approved.
+   chain now pass. The one explicitly bounded attended smoke completed its
+   data preflight and four optimizer steps within every cgroup, temperature and
+   actual-power stop; it is still research-only and does not authorize
+   candidate or full training. Do not rebuild V40 merely to change a
+   report-only consumer.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
    VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
    Four years is a floor, not a preference: below two years the normalization fit
@@ -515,9 +540,10 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    ~5.1 USD) by design, so it tests regime transfer, not just fit.
    Derivations: `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
 5. ~~Re-measure every field and target against real TRAIN/VAL bytes.~~ Feature,
-   target-v4 and specialist audits pass. The report-only smoke gates and
-   wrapper dry-run also pass; the next step is the single approved bounded
-   research smoke, not a candidate or full training run.
+   target-v4 and specialist audits pass. The report-only smoke gates, wrapper
+   dry-run and the one bounded attended data/model smoke have passed their
+   safety/data phases; the next step remains an explicitly designed, audited
+   research training budget, not candidate or full training.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a
