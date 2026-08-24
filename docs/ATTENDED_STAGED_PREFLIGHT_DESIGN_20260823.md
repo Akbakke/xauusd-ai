@@ -88,6 +88,48 @@ prove that every specialist encoder and each 5x8 family-by-timeframe route
 changes decision margins. Staged preflight proves neither model influence nor
 trading edge; it only lets the complete data path reach the model honestly.
 
+## Resumable attended research session (implemented, not yet re-executed)
+
+The observed V40 route completes four real optimizer steps inside the fixed
+five-minute model phase, but a full smoke epoch contains more batches than one
+such safety window. The trainer therefore owns one deliberately narrow
+research-session mechanism:
+
+- It applies only to `execution_tier=attended_only`, smoke profile, exactly one
+  epoch and `grad_accum_steps=1`. Canonical and candidate paths neither create
+  nor read it.
+- Its fixed, source-owned budget is four **complete** optimizer steps. The
+  process returns normally after that budget; the outer guard remains active
+  as a temperature, actual-power, telemetry and wall-clock backstop.
+- Each completed step atomically writes a hash-bound state in the inactive one
+  of two local slots, then atomically points `ATTENDED_RESEARCH_SESSION_ACTIVE.json`
+  at it. State includes online/target model, optimizer, optional EMA/scheduler,
+  exact batch permutation and CPU/CUDA/Python/NumPy RNG state. A process never
+  resumes a partial gradient accumulation.
+- The static contract binds the source commit, output name, full immutable
+  TRAIN/VAL/M5/lifecycle bytes, normalization hash and all relevant smoke
+  budget values. A source, data, recipe or output-name change rejects the
+  existing session; it cannot silently start from a nearby artifact.
+- State lives in a private sibling directory of the still-nonexistent bundle
+  path. The bundle path remains absent. A completed session runs neither VAL
+  nor checkpoint selection and publishes no bundle; its authority map fixes
+  candidate, validation, TEST, promotion, paper and live to false.
+
+This mechanism is not a relaxation of the resource policy. It does not raise
+the 4 GiB cgroup, CPU affinity, 512 MiB swap ceiling, temperature limit,
+actual-draw stop, configured power policy or five-minute model deadline. It
+also does not introduce BF16, TF32, autocast or compilation: the current
+training path remains deterministic FP32. The first real session execution
+must re-run the full source/data preflight and the normal guard before it may
+resume a saved complete step.
+
+For attribution, the first batch now also emits `[TRAIN_PROFILE]` with Entry
+online/target forwards, complete Exit training time, post-Exit backward time,
+total synchronized wall time and peak CUDA allocation. The existing
+`[UNIFIED_EXIT_PROFILE]` retains its materialize/online-Exit/target-Exit/
+Bellman-backward breakdown. These are observability records only, not a speed
+mode and not evidence of market edge.
+
 ## Operator decision and execution boundary
 
 The operator approved implementation and the first observed bounded execution

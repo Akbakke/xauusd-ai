@@ -21,6 +21,7 @@ import logging
 import math
 import mmap
 import os
+import random
 import re
 import signal
 import shutil
@@ -38,7 +39,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
 
 # Canonical context ordering; exact model-native dimensions are verified below.
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -971,6 +972,414 @@ UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
 # training steps had already pressured the allocator. The cost past 128 rows is
 # not proven linear, so CUDA is bounded at the one size actually measured safe.
 UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
+
+# The attended route is a bounded trainability diagnostic, never a candidate
+# producer.  Four complete optimizer steps were observed to fit below its
+# guard-owned five-minute CUDA window on V40; the process exits normally after
+# that fixed budget so the guard remains a backstop rather than the mechanism
+# that ends a session.  This is deliberately source-owned: no CLI argument or
+# ambient variable may expand it.
+_ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION = "gx1_attended_research_session_v1"
+_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 4
+_ATTENDED_RESEARCH_SESSION_DIR_PREFIX = ".gx1-attended-research-session."
+_ATTENDED_RESEARCH_CONTRACT_FILENAME = "ATTENDED_RESEARCH_SESSION_CONTRACT.json"
+_ATTENDED_RESEARCH_ACTIVE_FILENAME = "ATTENDED_RESEARCH_SESSION_ACTIVE.json"
+_ATTENDED_RESEARCH_STATE_FILENAMES = (
+    "attended_research_state_slot_0.pt",
+    "attended_research_state_slot_1.pt",
+)
+
+
+class _ExactIndexSampler(Sampler[int]):
+    """Yield one persisted order without consuming any additional RNG state."""
+
+    def __init__(self, order: torch.Tensor, *, batch_offset: int, batch_size: int):
+        if (
+            not isinstance(order, torch.Tensor)
+            or order.dtype != torch.int64
+            or order.ndim != 1
+            or int(batch_offset) < 0
+            or int(batch_size) < 1
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_SAMPLER_ARGUMENT_INVALID]")
+        start = int(batch_offset) * int(batch_size)
+        if start > int(order.numel()):
+            raise RuntimeError("[ATTENDED_RESEARCH_SAMPLER_OFFSET_INVALID]")
+        self._order = order.detach().cpu().contiguous()
+        self._start = start
+
+    def __iter__(self):
+        return iter(self._order[self._start :].tolist())
+
+    def __len__(self) -> int:
+        return int(self._order.numel()) - self._start
+
+
+def _attended_session_json_bytes(value: Mapping[str, Any]) -> bytes:
+    return (
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _attended_session_sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _attended_session_atomic_write_json(path: Path, value: Mapping[str, Any]) -> None:
+    if path.is_symlink() or not path.parent.is_dir() or path.parent.is_symlink():
+        raise RuntimeError("[ATTENDED_RESEARCH_SESSION_PATH_INVALID]")
+    payload = _attended_session_json_bytes(value)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        _fsync_regular_file(path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def _attended_session_read_json(path: Path, *, label: str) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"[ATTENDED_RESEARCH_SESSION_{label}_PATH_INVALID]")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise RuntimeError(
+            f"[ATTENDED_RESEARCH_SESSION_{label}_JSON_INVALID]"
+        ) from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"[ATTENDED_RESEARCH_SESSION_{label}_JSON_INVALID]")
+    return value
+
+
+def _attended_session_rng_state(*, device: torch.device) -> dict[str, Any]:
+    numpy_name, numpy_keys, numpy_position, numpy_has_gauss, numpy_cached = (
+        np.random.get_state()
+    )
+    if numpy_name != "MT19937":
+        raise RuntimeError("[ATTENDED_RESEARCH_NUMPY_RNG_UNSUPPORTED]")
+    state: dict[str, Any] = {
+        "python": random.getstate(),
+        "numpy_name": numpy_name,
+        "numpy_keys": torch.as_tensor(numpy_keys, dtype=torch.uint32).cpu(),
+        "numpy_position": int(numpy_position),
+        "numpy_has_gauss": int(numpy_has_gauss),
+        "numpy_cached": float(numpy_cached),
+        "torch_cpu": torch.get_rng_state().cpu(),
+    }
+    if device.type == "cuda":
+        state["torch_cuda"] = [
+            item.detach().cpu() for item in torch.cuda.get_rng_state_all()
+        ]
+    return state
+
+
+def _restore_attended_session_rng_state(
+    state: Mapping[str, Any], *, device: torch.device
+) -> None:
+    expected = {
+        "python",
+        "numpy_name",
+        "numpy_keys",
+        "numpy_position",
+        "numpy_has_gauss",
+        "numpy_cached",
+        "torch_cpu",
+    }
+    if device.type == "cuda":
+        expected.add("torch_cuda")
+    if set(state) != expected:
+        raise RuntimeError("[ATTENDED_RESEARCH_RNG_STATE_SCHEMA_INVALID]")
+    python_state = state["python"]
+    numpy_keys = state["numpy_keys"]
+    torch_cpu = state["torch_cpu"]
+    if (
+        state["numpy_name"] != "MT19937"
+        or not isinstance(numpy_keys, torch.Tensor)
+        or numpy_keys.dtype != torch.uint32
+        or numpy_keys.ndim != 1
+        or not isinstance(torch_cpu, torch.Tensor)
+        or torch_cpu.dtype != torch.uint8
+        or torch_cpu.ndim != 1
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_RNG_STATE_INVALID]")
+    try:
+        random.setstate(python_state)
+        np.random.set_state(
+            (
+                "MT19937",
+                numpy_keys.detach().cpu().numpy().astype(np.uint32, copy=False),
+                int(state["numpy_position"]),
+                int(state["numpy_has_gauss"]),
+                float(state["numpy_cached"]),
+            )
+        )
+        torch.set_rng_state(torch_cpu.detach().cpu())
+        if device.type == "cuda":
+            cuda_state = state["torch_cuda"]
+            if (
+                not isinstance(cuda_state, list)
+                or not cuda_state
+                or any(
+                    not isinstance(value, torch.Tensor)
+                    or value.dtype != torch.uint8
+                    or value.ndim != 1
+                    for value in cuda_state
+                )
+            ):
+                raise RuntimeError("[ATTENDED_RESEARCH_CUDA_RNG_STATE_INVALID]")
+            torch.cuda.set_rng_state_all(
+                [value.detach().cpu() for value in cuda_state]
+            )
+    except (TypeError, ValueError, RuntimeError) as exc:
+        if isinstance(exc, RuntimeError) and str(exc).startswith("[ATTENDED_"):
+            raise
+        raise RuntimeError("[ATTENDED_RESEARCH_RNG_STATE_INVALID]") from exc
+
+
+class _AttendedResearchSession:
+    """Two-slot, hash-bound progress state for one attended smoke only.
+
+    The session is intentionally a sibling of the still-nonexistent bundle
+    directory.  Therefore it cannot be mistaken for a partial bundle or be
+    consumed by any candidate/promotion path.  A completed optimizer step is
+    the only checkpoint boundary; the active JSON must hash-bind the selected
+    slot before any resume is accepted.
+    """
+
+    def __init__(
+        self,
+        *,
+        out_bundle_dir: Path,
+        contract: Mapping[str, Any],
+    ) -> None:
+        output = Path(out_bundle_dir).expanduser().resolve()
+        if output.exists() or output.is_symlink() or output.parent.is_symlink():
+            raise RuntimeError("[ATTENDED_RESEARCH_OUTPUT_PATH_INVALID]")
+        if not output.parent.is_dir():
+            raise RuntimeError("[ATTENDED_RESEARCH_OUTPUT_PARENT_INVALID]")
+        self._directory = output.parent / (
+            _ATTENDED_RESEARCH_SESSION_DIR_PREFIX + output.name
+        )
+        self._contract = dict(contract)
+        self._contract_bytes = _attended_session_json_bytes(self._contract)
+        self._contract_sha256 = _attended_session_sha256_bytes(self._contract_bytes)
+        self._active_path = self._directory / _ATTENDED_RESEARCH_ACTIVE_FILENAME
+        self._contract_path = self._directory / _ATTENDED_RESEARCH_CONTRACT_FILENAME
+        if self._directory.exists():
+            directory_stat = os.stat(self._directory, follow_symlinks=False)
+            if (
+                self._directory.is_symlink()
+                or not self._directory.is_dir()
+                or directory_stat.st_uid != os.getuid()
+                or directory_stat.st_mode & 0o077
+            ):
+                raise RuntimeError("[ATTENDED_RESEARCH_SESSION_DIRECTORY_INVALID]")
+            on_disk = _attended_session_read_json(
+                self._contract_path, label="CONTRACT"
+            )
+            if on_disk != self._contract:
+                raise RuntimeError("[ATTENDED_RESEARCH_SESSION_CONTRACT_MISMATCH]")
+        else:
+            self._directory.mkdir(mode=0o700)
+            try:
+                descriptor = os.open(
+                    self._contract_path,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                    0o600,
+                )
+                with os.fdopen(descriptor, "wb") as handle:
+                    handle.write(self._contract_bytes)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                _fsync_regular_file(self._contract_path)
+            except Exception:
+                # An incomplete, first-use session has no checkpoint and must
+                # fail closed rather than be treated as resumable evidence.
+                raise
+
+    @property
+    def directory(self) -> Path:
+        return self._directory
+
+    @property
+    def contract_sha256(self) -> str:
+        return self._contract_sha256
+
+    def _slot_path(self, slot: int) -> Path:
+        if slot not in (0, 1):
+            raise RuntimeError("[ATTENDED_RESEARCH_SLOT_INVALID]")
+        return self._directory / _ATTENDED_RESEARCH_STATE_FILENAMES[slot]
+
+    def load_checkpoint(self) -> Optional[dict[str, Any]]:
+        if self._active_path.is_symlink():
+            raise RuntimeError("[ATTENDED_RESEARCH_SESSION_ACTIVE_PATH_INVALID]")
+        if not self._active_path.exists():
+            return None
+        active = _attended_session_read_json(self._active_path, label="ACTIVE")
+        expected_keys = {
+            "schema_version",
+            "session_contract_sha256",
+            "slot",
+            "checkpoint_index",
+            "state_sha256",
+            "complete_optimizer_steps",
+            "epoch_index",
+            "next_batch_offset",
+            "epoch_order_sha256",
+            "complete",
+        }
+        if (
+            set(active) != expected_keys
+            or active.get("schema_version") != _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION
+            or active.get("session_contract_sha256") != self._contract_sha256
+            or active.get("slot") not in (0, 1)
+            or any(
+                not isinstance(active.get(key), int) or isinstance(active.get(key), bool)
+                or int(active[key]) < 0
+                for key in (
+                    "checkpoint_index",
+                    "complete_optimizer_steps",
+                    "epoch_index",
+                    "next_batch_offset",
+                )
+            )
+            or not isinstance(active.get("state_sha256"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", str(active.get("state_sha256")))
+            or not isinstance(active.get("epoch_order_sha256"), str)
+            or not re.fullmatch(
+                r"[0-9a-f]{64}", str(active.get("epoch_order_sha256"))
+            )
+            or not isinstance(active.get("complete"), bool)
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_ACTIVE_POINTER_INVALID]")
+        state_path = self._slot_path(int(active["slot"]))
+        if state_path.is_symlink() or not state_path.is_file():
+            raise RuntimeError("[ATTENDED_RESEARCH_STATE_PATH_INVALID]")
+        if _sha256_file(state_path) != active["state_sha256"]:
+            raise RuntimeError("[ATTENDED_RESEARCH_STATE_SHA256_MISMATCH]")
+        try:
+            state = torch.load(state_path, weights_only=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise RuntimeError("[ATTENDED_RESEARCH_STATE_LOAD_INVALID]") from exc
+        if not isinstance(state, dict):
+            raise RuntimeError("[ATTENDED_RESEARCH_STATE_SCHEMA_INVALID]")
+        if (
+            state.get("schema_version") != _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION
+            or state.get("session_contract_sha256") != self._contract_sha256
+            or int(state.get("checkpoint_index", -1))
+            != int(active["checkpoint_index"])
+            or int(state.get("complete_optimizer_steps", -1))
+            != int(active["complete_optimizer_steps"])
+            or int(state.get("epoch_index", -1)) != int(active["epoch_index"])
+            or int(state.get("next_batch_offset", -1))
+            != int(active["next_batch_offset"])
+            or bool(state.get("complete", False)) != bool(active["complete"])
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_STATE_POINTER_MISMATCH]")
+        order = state.get("epoch_order")
+        if (
+            not isinstance(order, torch.Tensor)
+            or order.dtype != torch.int64
+            or order.ndim != 1
+            or hashlib.sha256(order.detach().cpu().contiguous().numpy().tobytes()).hexdigest()
+            != active["epoch_order_sha256"]
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_ORDER_INVALID]")
+        return state
+
+    def save_checkpoint(
+        self,
+        *,
+        model: nn.Module,
+        target_model: nn.Module,
+        optimizer: optim.Optimizer,
+        weight_ema: Optional["_WeightEma"],
+        lr_scheduler: Optional[optim.lr_scheduler.LRScheduler],
+        device: torch.device,
+        checkpoint_index: int,
+        complete_optimizer_steps: int,
+        epoch_index: int,
+        next_batch_offset: int,
+        epoch_order: torch.Tensor,
+        complete: bool,
+    ) -> None:
+        if (
+            int(checkpoint_index) < 1
+            or int(complete_optimizer_steps) < 1
+            or int(epoch_index) < 0
+            or int(next_batch_offset) < 0
+            or not isinstance(epoch_order, torch.Tensor)
+            or epoch_order.dtype != torch.int64
+            or epoch_order.ndim != 1
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_ARGUMENT_INVALID]")
+        previous = self.load_checkpoint()
+        previous_slot = -1 if previous is None else int(
+            _attended_session_read_json(self._active_path, label="ACTIVE")["slot"]
+        )
+        slot = 0 if previous_slot != 0 else 1
+        state_path = self._slot_path(slot)
+        if state_path.is_symlink():
+            raise RuntimeError("[ATTENDED_RESEARCH_STATE_PATH_INVALID]")
+        order_cpu = epoch_order.detach().cpu().contiguous()
+        state = {
+            "schema_version": _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION,
+            "session_contract_sha256": self._contract_sha256,
+            "checkpoint_index": int(checkpoint_index),
+            "complete_optimizer_steps": int(complete_optimizer_steps),
+            "epoch_index": int(epoch_index),
+            "next_batch_offset": int(next_batch_offset),
+            "epoch_order": order_cpu,
+            "model_state": model.state_dict(),
+            "target_model_state": target_model.state_dict(),
+            "optimizer_state": optimizer.state_dict(),
+            "weight_ema_state": (
+                weight_ema.checkpoint_state() if weight_ema is not None else None
+            ),
+            "lr_scheduler_state": (
+                lr_scheduler.state_dict() if lr_scheduler is not None else None
+            ),
+            "rng_state": _attended_session_rng_state(device=device),
+            "complete": bool(complete),
+        }
+        fd, temporary = tempfile.mkstemp(prefix=f".{state_path.name}.", dir=str(self._directory))
+        try:
+            os.close(fd)
+            torch.save(state, temporary)
+            with open(temporary, "rb") as handle:
+                os.fsync(handle.fileno())
+            os.replace(temporary, state_path)
+            _fsync_regular_file(state_path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+        active = {
+            "schema_version": _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION,
+            "session_contract_sha256": self._contract_sha256,
+            "slot": slot,
+            "checkpoint_index": int(checkpoint_index),
+            "state_sha256": _sha256_file(state_path),
+            "complete_optimizer_steps": int(complete_optimizer_steps),
+            "epoch_index": int(epoch_index),
+            "next_batch_offset": int(next_batch_offset),
+            "epoch_order_sha256": hashlib.sha256(
+                order_cpu.numpy().tobytes()
+            ).hexdigest(),
+            "complete": bool(complete),
+        }
+        _attended_session_atomic_write_json(self._active_path, active)
 
 
 def _enforce_canonical_train_env_contract() -> None:
@@ -3540,6 +3949,53 @@ class _WeightEma:
     def state_dict_clone(self) -> Dict[str, torch.Tensor]:
         return {name: tensor.detach().cpu().clone() for name, tensor in self._shadow.items()}
 
+    def checkpoint_state(self) -> Dict[str, Any]:
+        """Return the in-place shadow without a host-side clone.
+
+        The attended cgroup has only a small RSS margin after an exact Exit
+        step.  ``torch.save`` serializes each storage synchronously, so keeping
+        the device tensors by reference avoids an avoidable full CPU duplicate
+        at the checkpoint boundary.  The call is made only after an optimizer
+        step and before the next forward can mutate any parameter.
+        """
+
+        return {
+            "decay": float(self.decay),
+            "steps": int(self._steps),
+            "shadow": dict(self._shadow),
+        }
+
+    def restore_checkpoint_state(
+        self,
+        state: Mapping[str, Any],
+        *,
+        model: nn.Module,
+    ) -> None:
+        if set(state) != {"decay", "steps", "shadow"}:
+            raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_SCHEMA_INVALID]")
+        if float(state["decay"]) != float(self.decay) or int(state["steps"]) < 0:
+            raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_STATE_INVALID]")
+        shadow = state["shadow"]
+        expected = model.state_dict()
+        if not isinstance(shadow, Mapping) or set(shadow) != set(expected):
+            raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_KEYS_INVALID]")
+        restored: Dict[str, torch.Tensor] = {}
+        for name, expected_tensor in expected.items():
+            value = shadow.get(name)
+            if (
+                not isinstance(value, torch.Tensor)
+                or value.shape != expected_tensor.shape
+                or value.dtype != expected_tensor.dtype
+                or not bool(torch.isfinite(value).all().item())
+            ):
+                raise RuntimeError(
+                    "[ATTENDED_RESEARCH_WEIGHT_EMA_TENSOR_INVALID] "
+                    f"name={name}"
+                )
+            restored[name] = value.detach().to(expected_tensor.device).clone()
+        self._shadow = restored
+        self._steps = int(state["steps"])
+
 
 def _step_partial_gradient_accumulation(
     *,
@@ -5190,7 +5646,10 @@ def train_epoch(
     task_supervision_observed: dict[str, bool],
     task_gradient_observed: dict[str, bool],
     weight_ema: Optional["_WeightEma"] = None,
-):
+    attended_batch_offset: int = 0,
+    attended_max_optimizer_steps: Optional[int] = None,
+    attended_checkpoint_hook: Optional[Any] = None,
+) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
     if any(parameter.requires_grad for parameter in target_model.parameters()):
@@ -5205,6 +5664,14 @@ def train_epoch(
         )
     if _accum_steps > 1:
         log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
+    if attended_max_optimizer_steps is not None:
+        if (
+            int(attended_max_optimizer_steps) < 1
+            or attended_checkpoint_hook is None
+            or _accum_steps != 1
+            or int(attended_batch_offset) < 0
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_TRAIN_EPOCH_ARGUMENT_INVALID]")
     _accum_count = 0
     optimizer.zero_grad(set_to_none=True)
     total = 0.0
@@ -5235,9 +5702,11 @@ def train_epoch(
     log.info("[TRAIN_RSS] epoch_start rss_gib=%.2f", _train_rss_gib())
     _first_batch_logged = False
     _batch_i = 0
+    _optimizer_steps_this_call = 0
     for batch in loader:
         _batch_i += 1
-        log.info("[TRAIN_STEP] batch=%d begin rss_gib=%.2f", _batch_i, _train_rss_gib())
+        _absolute_batch_i = int(attended_batch_offset) + _batch_i
+        log.info("[TRAIN_STEP] batch=%d begin rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
         non_blocking = device.type == "cuda"
@@ -5248,6 +5717,12 @@ def train_epoch(
         batch_rows = int(seq_x.shape[0])
         # Grad accum: zero_grad happens AFTER step (or at start of epoch).
         # See loss.backward() / optimizer.step() block below for the gated step.
+        _profile_timing = not _first_batch_logged
+        _profile_batch_start = (
+            _synchronized_exit_profile_clock(device) if _profile_timing else None
+        )
+        if _profile_timing and device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] before_forward rss_gib=%.2f", _train_rss_gib())
         out = _model_forward_fp32(
@@ -5258,6 +5733,9 @@ def train_epoch(
             ctx_cont=ctx_cont,
             **_multi_tf_kwargs_from_batch(batch, seq_x.device),
         )
+        _profile_entry_online_forward = (
+            _synchronized_exit_profile_clock(device) if _profile_timing else None
+        )
         with torch.no_grad():
             target_out = _model_forward_fp32(
                 target_model,
@@ -5267,6 +5745,9 @@ def train_epoch(
                 ctx_cont=ctx_cont,
                 **_multi_tf_kwargs_from_batch(batch, seq_x.device),
             )
+        _profile_entry_target_forward = (
+            _synchronized_exit_profile_clock(device) if _profile_timing else None
+        )
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] before_exit_loss rss_gib=%.2f", _train_rss_gib())
         entry_representations = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
@@ -5299,8 +5780,11 @@ def train_epoch(
                 grad_accum_steps=_accum_steps,
                 exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
                 exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
-                profile_timing=not _first_batch_logged,
+                profile_timing=_profile_timing,
             )
+        )
+        _profile_exit_train = (
+            _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
         unified_exit_loss = torch.tensor(
             float(unified_exit_stats["raw_loss"]),
@@ -5384,7 +5868,7 @@ def train_epoch(
             raise RuntimeError("[ENTRY_FITTED_Q_TRAIN_PREDICTED_TIE]")
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
         # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
-        log.info("[TRAIN_STEP] batch=%d loss_ready rss_gib=%.2f", _batch_i, _train_rss_gib())
+        log.info("[TRAIN_STEP] batch=%d loss_ready rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
         scaled_main_loss = loss / float(_accum_steps)
         if exit_supervised:
             scaled_main_loss = scaled_main_loss + (
@@ -5392,7 +5876,7 @@ def train_epoch(
             ).sum()
         scaled_main_loss.backward()
         _observe_joint_task_weight_gradients(model, task_gradient_observed)
-        log.info("[TRAIN_STEP] batch=%d backward_done rss_gib=%.2f", _batch_i, _train_rss_gib())
+        log.info("[TRAIN_STEP] batch=%d backward_done rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
         _accum_count += 1
         if _accum_count >= _accum_steps:
             torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
@@ -5405,7 +5889,60 @@ def train_epoch(
             if weight_ema is not None:
                 weight_ema.update(model)
             _accum_count = 0
-            log.info("[TRAIN_STEP] batch=%d step_done", _batch_i)
+            _optimizer_steps_this_call += 1
+            log.info("[TRAIN_STEP] batch=%d step_done", _absolute_batch_i)
+            if attended_checkpoint_hook is not None:
+                _is_final_batch = _batch_i == len(loader)
+                attended_checkpoint_hook(
+                    next_batch_offset=_absolute_batch_i,
+                    complete_epoch=_is_final_batch,
+                )
+            if (
+                attended_max_optimizer_steps is not None
+                and _optimizer_steps_this_call >= int(attended_max_optimizer_steps)
+                and _batch_i < len(loader)
+            ):
+                log.info(
+                    "[ATTENDED_RESEARCH_SESSION_PAUSE] batches_completed=%d "
+                    "optimizer_steps_this_session=%d max_optimizer_steps=%d",
+                    _absolute_batch_i,
+                    _optimizer_steps_this_call,
+                    int(attended_max_optimizer_steps),
+                )
+                return (
+                    total / max(1, n),
+                    {
+                        "partial": True,
+                        "batches_completed": _absolute_batch_i,
+                        "optimizer_steps_this_session": _optimizer_steps_this_call,
+                    },
+                    False,
+                )
+        if _profile_timing:
+            _profile_end = _synchronized_exit_profile_clock(device)
+            assert (
+                _profile_batch_start is not None
+                and _profile_entry_online_forward is not None
+                and _profile_entry_target_forward is not None
+                and _profile_exit_train is not None
+            )
+            _peak_cuda_mib = (
+                int(torch.cuda.max_memory_allocated(device) // (1024 * 1024))
+                if device.type == "cuda"
+                else 0
+            )
+            log.info(
+                "[TRAIN_PROFILE] batch=%d entry_online_forward_s=%.6f "
+                "entry_target_forward_s=%.6f exit_train_s=%.6f "
+                "post_exit_backward_s=%.6f total_s=%.6f peak_cuda_mib=%d",
+                _absolute_batch_i,
+                _profile_entry_online_forward - _profile_batch_start,
+                _profile_entry_target_forward - _profile_entry_online_forward,
+                _profile_exit_train - _profile_entry_target_forward,
+                _profile_end - _profile_exit_train,
+                _profile_end - _profile_batch_start,
+                _peak_cuda_mib,
+            )
 
         bs = batch_rows
         total += float(loss) * bs
@@ -5506,7 +6043,7 @@ def train_epoch(
         exit_feature_tf_gate_epoch,
     )
     stats.update(exit_gate_stats)
-    return total / max(1, n), stats
+    return total / max(1, n), stats, True
 
 
 def _active_head_contract_failures() -> List[str]:
@@ -6032,6 +6569,203 @@ def _resolve_train_out_bundle_dir(out_bundle_dir: Path, gx1_data_override: str) 
     if path.is_absolute():
         return path.resolve()
     return (_resolve_gx1_data(gx1_data_override) / path).resolve()
+
+
+def _attended_research_session_contract(
+    *,
+    out_bundle_dir: Path,
+    run_id: str,
+    dataset_run_id: str,
+    train_parquet: Path,
+    val_parquet: Path,
+    m5_prebuilt_path: Path,
+    lifecycle_manifest_path: Path,
+    input_normalization: Mapping[str, Any],
+    seed: int,
+    batch_size: int,
+    epochs: int,
+    grad_accum_steps: int,
+    subsample_rows: int,
+    lr: float,
+    dropout: float,
+) -> dict[str, Any]:
+    """Bind an attended session to one exact, non-promotable train surface."""
+
+    if int(epochs) != 1 or int(grad_accum_steps) != 1:
+        raise RuntimeError(
+            "[ATTENDED_RESEARCH_TRAIN_BUDGET_INVALID] attended research "
+            "requires exactly one epoch and grad_accum_steps=1"
+        )
+    normalized = dict(input_normalization)
+    normalization_sha256 = normalized.get("contract_sha256")
+    if not isinstance(normalization_sha256, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", normalization_sha256
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_NORMALIZATION_BINDING_INVALID]")
+    artifact_paths = {
+        "train_parquet": Path(train_parquet).resolve(strict=True),
+        "val_parquet": Path(val_parquet).resolve(strict=True),
+        "m5_prebuilt_path": Path(m5_prebuilt_path).resolve(strict=True),
+        "unified_exit_lifecycle_manifest": Path(lifecycle_manifest_path).resolve(
+            strict=True
+        ),
+    }
+    if any(path.is_symlink() or not path.is_file() for path in artifact_paths.values()):
+        raise RuntimeError("[ATTENDED_RESEARCH_ARTIFACT_PATH_INVALID]")
+    return {
+        "schema_version": _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION,
+        "authority": {
+            "research_trainability_only": True,
+            "candidate": False,
+            "validation": False,
+            "test": False,
+            "bundle": False,
+            "promotion": False,
+            "paper": False,
+            "live": False,
+        },
+        "source_commit": _git_commit(),
+        "out_bundle_dir": str(Path(out_bundle_dir).expanduser().resolve()),
+        "run_id": str(run_id),
+        "dataset_run_id": str(dataset_run_id),
+        "profile": "smoke",
+        "execution_tier": "attended_only",
+        "artifacts": {
+            name: {"path": str(path), "sha256": _sha256_file(path)}
+            for name, path in artifact_paths.items()
+        },
+        "input_normalization_sha256": normalization_sha256,
+        "training": {
+            "seed": int(seed),
+            "batch_size": int(batch_size),
+            "epochs": int(epochs),
+            "grad_accum_steps": int(grad_accum_steps),
+            "subsample_rows": int(subsample_rows),
+            "learning_rate": float(lr),
+            "dropout": float(dropout),
+            "max_optimizer_steps_per_session": (
+                _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS
+            ),
+            "precision": "deterministic_fp32",
+            "compile": False,
+            "tf32": False,
+            "autocast": False,
+        },
+    }
+
+
+def _new_attended_research_epoch_order(dataset_rows: int) -> torch.Tensor:
+    if int(dataset_rows) < 1:
+        raise RuntimeError("[ATTENDED_RESEARCH_DATASET_ROWS_INVALID]")
+    # Match the trainer's ordinary shuffle source (the current torch RNG), but
+    # persist its exact result before a resume can be attempted.  The resumed
+    # process therefore consumes no fresh sampling RNG and cannot silently
+    # replace a remaining slice with a newly shuffled one.
+    order = torch.randperm(int(dataset_rows), dtype=torch.int64)
+    if (
+        order.ndim != 1
+        or int(order.numel()) != int(dataset_rows)
+        or not torch.equal(torch.sort(order).values, torch.arange(int(dataset_rows)))
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_ORDER_CONSTRUCTION_INVALID]")
+    return order.cpu()
+
+
+def _restore_attended_research_checkpoint(
+    state: Mapping[str, Any],
+    *,
+    session: _AttendedResearchSession,
+    model: nn.Module,
+    target_model: nn.Module,
+    optimizer: optim.Optimizer,
+    weight_ema: Optional[_WeightEma],
+    lr_scheduler: Optional[optim.lr_scheduler.LRScheduler],
+    device: torch.device,
+    dataset_rows: int,
+) -> dict[str, Any]:
+    expected_keys = {
+        "schema_version",
+        "session_contract_sha256",
+        "checkpoint_index",
+        "complete_optimizer_steps",
+        "epoch_index",
+        "next_batch_offset",
+        "epoch_order",
+        "model_state",
+        "target_model_state",
+        "optimizer_state",
+        "weight_ema_state",
+        "lr_scheduler_state",
+        "rng_state",
+        "complete",
+    }
+    if (
+        set(state) != expected_keys
+        or state.get("schema_version") != _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION
+        or state.get("session_contract_sha256") != session.contract_sha256
+        or int(state.get("epoch_index", -1)) != 0
+        or int(state.get("checkpoint_index", 0)) < 1
+        or int(state.get("complete_optimizer_steps", 0)) < 1
+        or int(state.get("next_batch_offset", -1)) < 0
+        or not isinstance(state.get("complete"), bool)
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_SCHEMA_INVALID]")
+    order = state["epoch_order"]
+    if (
+        not isinstance(order, torch.Tensor)
+        or order.dtype != torch.int64
+        or order.ndim != 1
+        or int(order.numel()) != int(dataset_rows)
+        or not torch.equal(
+            torch.sort(order.detach().cpu()).values,
+            torch.arange(int(dataset_rows)),
+        )
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_ORDER_INVALID]")
+    model_state = state["model_state"]
+    target_state = state["target_model_state"]
+    optimizer_state = state["optimizer_state"]
+    if not isinstance(model_state, Mapping) or not isinstance(target_state, Mapping):
+        raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_MODEL_STATE_INVALID]")
+    if not isinstance(optimizer_state, Mapping):
+        raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_OPTIMIZER_INVALID]")
+    try:
+        model.load_state_dict(model_state, strict=True)
+        target_model.load_state_dict(target_state, strict=True)
+        target_model.requires_grad_(False)
+        target_model.eval()
+        optimizer.load_state_dict(optimizer_state)
+        if weight_ema is None:
+            if state["weight_ema_state"] is not None:
+                raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_UNEXPECTED]")
+        else:
+            if not isinstance(state["weight_ema_state"], Mapping):
+                raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_MISSING]")
+            weight_ema.restore_checkpoint_state(
+                state["weight_ema_state"], model=model
+            )
+        if lr_scheduler is None:
+            if state["lr_scheduler_state"] is not None:
+                raise RuntimeError("[ATTENDED_RESEARCH_LR_SCHEDULER_UNEXPECTED]")
+        else:
+            if not isinstance(state["lr_scheduler_state"], Mapping):
+                raise RuntimeError("[ATTENDED_RESEARCH_LR_SCHEDULER_MISSING]")
+            lr_scheduler.load_state_dict(state["lr_scheduler_state"])
+        if not isinstance(state["rng_state"], Mapping):
+            raise RuntimeError("[ATTENDED_RESEARCH_RNG_STATE_INVALID]")
+        _restore_attended_session_rng_state(state["rng_state"], device=device)
+    except (RuntimeError, TypeError, ValueError) as exc:
+        if isinstance(exc, RuntimeError) and str(exc).startswith("[ATTENDED_"):
+            raise
+        raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_RESTORE_INVALID]") from exc
+    return {
+        "checkpoint_index": int(state["checkpoint_index"]),
+        "complete_optimizer_steps": int(state["complete_optimizer_steps"]),
+        "epoch_index": int(state["epoch_index"]),
+        "next_batch_offset": int(state["next_batch_offset"]),
+        "epoch_order": order.detach().cpu().contiguous(),
+        "complete": bool(state["complete"]),
+    }
 
 
 def _fsync_regular_file(path: Path) -> None:
@@ -6993,15 +7727,96 @@ def run_train(
         num_workers, pin_memory, persistent_workers, str(prefetch_factor),
     )
 
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        persistent_workers=persistent_workers,
-        prefetch_factor=prefetch_factor,
-    )
+    attended_session: Optional[_AttendedResearchSession] = None
+    attended_checkpoint_state: Optional[dict[str, Any]] = None
+    attended_epoch_order: Optional[torch.Tensor] = None
+    attended_batch_offset = 0
+    if execution_tier == "attended_only":
+        attended_session = _AttendedResearchSession(
+            out_bundle_dir=_resolve_train_out_bundle_dir(
+                out_bundle_dir, gx1_data_override
+            ),
+            contract=_attended_research_session_contract(
+                out_bundle_dir=_resolve_train_out_bundle_dir(
+                    out_bundle_dir, gx1_data_override
+                ),
+                run_id=run_id,
+                dataset_run_id=dataset_run_id,
+                train_parquet=Path(train_parquet),
+                val_parquet=Path(val_parquet),
+                m5_prebuilt_path=Path(m5_prebuilt_path),
+                lifecycle_manifest_path=Path(
+                    unified_exit_lifecycle_manifest_path
+                ),
+                input_normalization=input_normalization,
+                seed=seed,
+                batch_size=batch_size,
+                epochs=epochs,
+                grad_accum_steps=grad_accum_steps,
+                subsample_rows=subsample_rows,
+                lr=lr,
+                dropout=dropout,
+            ),
+        )
+        attended_checkpoint_state = attended_session.load_checkpoint()
+        if attended_checkpoint_state is None:
+            attended_epoch_order = _new_attended_research_epoch_order(
+                effective_train_rows
+            )
+        else:
+            pending_order = attended_checkpoint_state.get("epoch_order")
+            if not isinstance(pending_order, torch.Tensor):
+                raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_ORDER_INVALID]")
+            attended_epoch_order = pending_order.detach().cpu().contiguous()
+            attended_batch_offset = int(
+                attended_checkpoint_state.get("next_batch_offset", -1)
+            )
+            if bool(attended_checkpoint_state.get("complete", False)):
+                log.info(
+                    "[ATTENDED_RESEARCH_SESSION_ALREADY_COMPLETE] directory=%s "
+                    "authority=none",
+                    attended_session.directory,
+                )
+        if attended_batch_offset > -(-int(effective_train_rows) // int(batch_size)):
+            raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_OFFSET_INVALID]")
+        log.info(
+            "[ATTENDED_RESEARCH_SESSION] directory=%s resumed=%d batch_offset=%d "
+            "max_optimizer_steps=%d authority=none",
+            attended_session.directory,
+            int(attended_checkpoint_state is not None),
+            attended_batch_offset,
+            _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS,
+        )
+
+    if attended_epoch_order is None:
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            prefetch_factor=prefetch_factor,
+        )
+    else:
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            sampler=_ExactIndexSampler(
+                attended_epoch_order,
+                batch_offset=(
+                    0
+                    if attended_checkpoint_state is not None
+                    and bool(attended_checkpoint_state.get("complete", False))
+                    else attended_batch_offset
+                ),
+                batch_size=batch_size,
+            ),
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            prefetch_factor=prefetch_factor,
+        )
     val_loader = DataLoader(
         val_ds,
         batch_size=batch_size,
@@ -7022,11 +7837,23 @@ def run_train(
     # horizon is only "one epoch" if that row count is the one the optimizer
     # actually steps through, so the loader's own micro-batch count is required
     # to agree before the derivation is trusted.
+    _expected_train_batches = -(-int(effective_train_rows) // int(batch_size))
     _require(
-        len(train_loader) == -(-int(effective_train_rows) // int(batch_size)),
+        (
+            len(train_loader) == _expected_train_batches
+            if execution_tier != "attended_only"
+            else len(train_loader)
+            == _expected_train_batches
+            - (
+                0
+                if attended_checkpoint_state is not None
+                and bool(attended_checkpoint_state.get("complete", False))
+                else attended_batch_offset
+            )
+        ),
         "[WEIGHT_EMA_EPOCH_ROWS_MISMATCH] "
         f"train_loader batches={len(train_loader)} != "
-        f"ceil({effective_train_rows}/{batch_size}) — the EMA horizon cannot "
+        f"expected attended-aware batches for ceil({effective_train_rows}/{batch_size}) — the EMA horizon cannot "
         "be derived from a row budget the epoch does not iterate",
     )
     weight_ema_derivation = resolve_weight_ema_decay(
@@ -7339,6 +8166,140 @@ def run_train(
         int(weight_ema is not None),
     )
 
+    if attended_session is not None:
+        # This branch is intentionally terminal.  It does not invoke VAL,
+        # checkpoint selection, bundle writing or any promotion-capable code;
+        # its only product is the hash-bound research-session state owned above.
+        if (
+            attended_checkpoint_state is not None
+            and bool(attended_checkpoint_state.get("complete", False))
+        ):
+            log.info(
+                "[ATTENDED_RESEARCH_SESSION_TERMINAL] directory=%s "
+                "status=already_complete authority=none",
+                attended_session.directory,
+            )
+            return
+        if attended_epoch_order is None:
+            raise RuntimeError("[ATTENDED_RESEARCH_ORDER_MISSING]")
+        target_model = copy.deepcopy(model).to(device)
+        target_model.requires_grad_(False)
+        target_model.eval()
+        if attended_checkpoint_state is None:
+            attended_progress = {
+                "checkpoint_index": 0,
+                "complete_optimizer_steps": 0,
+                "epoch_index": 0,
+                "next_batch_offset": 0,
+                "epoch_order": attended_epoch_order,
+                "complete": False,
+            }
+        else:
+            attended_progress = _restore_attended_research_checkpoint(
+                attended_checkpoint_state,
+                session=attended_session,
+                model=model,
+                target_model=target_model,
+                optimizer=optimizer,
+                weight_ema=weight_ema,
+                lr_scheduler=lr_scheduler,
+                device=device,
+                dataset_rows=effective_train_rows,
+            )
+            del attended_checkpoint_state
+            attended_checkpoint_state = None
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+        attended_order = attended_progress["epoch_order"]
+        attended_start_offset = int(attended_progress["next_batch_offset"])
+        if attended_start_offset >= _expected_train_batches:
+            raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_OFFSET_INVALID]")
+        attended_train_loader = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            sampler=_ExactIndexSampler(
+                attended_order,
+                batch_offset=attended_start_offset,
+                batch_size=batch_size,
+            ),
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            prefetch_factor=prefetch_factor,
+        )
+        if len(attended_train_loader) != _expected_train_batches - attended_start_offset:
+            raise RuntimeError("[ATTENDED_RESEARCH_REMAINING_LOADER_INVALID]")
+        attended_checkpoint_index = int(attended_progress["checkpoint_index"])
+        attended_complete_steps = int(
+            attended_progress["complete_optimizer_steps"]
+        )
+        target_model_state_sha256 = _model_state_sha256(target_model)
+        log.info(
+            "[ATTENDED_RESEARCH_SESSION_START] directory=%s checkpoint_index=%d "
+            "complete_optimizer_steps=%d batch_offset=%d target_sha256=%s "
+            "authority=none",
+            attended_session.directory,
+            attended_checkpoint_index,
+            attended_complete_steps,
+            attended_start_offset,
+            target_model_state_sha256,
+        )
+
+        def _checkpoint_attended_step(
+            *, next_batch_offset: int, complete_epoch: bool
+        ) -> None:
+            nonlocal attended_checkpoint_index, attended_complete_steps
+            attended_checkpoint_index += 1
+            attended_complete_steps += 1
+            attended_session.save_checkpoint(
+                model=model,
+                target_model=target_model,
+                optimizer=optimizer,
+                weight_ema=weight_ema,
+                lr_scheduler=lr_scheduler,
+                device=device,
+                checkpoint_index=attended_checkpoint_index,
+                complete_optimizer_steps=attended_complete_steps,
+                epoch_index=0,
+                next_batch_offset=int(next_batch_offset),
+                epoch_order=attended_order,
+                complete=bool(complete_epoch),
+            )
+            log.info(
+                "[ATTENDED_RESEARCH_CHECKPOINT] directory=%s checkpoint_index=%d "
+                "complete_optimizer_steps=%d next_batch_offset=%d complete=%d",
+                attended_session.directory,
+                attended_checkpoint_index,
+                attended_complete_steps,
+                int(next_batch_offset),
+                int(bool(complete_epoch)),
+            )
+
+        attended_supervision = {name: False for name in JOINT_TASK_NAMES}
+        attended_gradients = {name: False for name in JOINT_TASK_NAMES}
+        _attended_loss, attended_stats, attended_epoch_complete = train_epoch(
+            model,
+            target_model,
+            attended_train_loader,
+            optimizer,
+            device,
+            grad_accum_steps=1,
+            task_supervision_observed=attended_supervision,
+            task_gradient_observed=attended_gradients,
+            weight_ema=weight_ema,
+            attended_batch_offset=attended_start_offset,
+            attended_max_optimizer_steps=_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS,
+            attended_checkpoint_hook=_checkpoint_attended_step,
+        )
+        log.info(
+            "[ATTENDED_RESEARCH_SESSION_DONE] directory=%s epoch_complete=%d "
+            "stats=%s authority=none bundle_written=0 validation_run=0",
+            attended_session.directory,
+            int(attended_epoch_complete),
+            json.dumps(attended_stats, sort_keys=True, default=_train_json_default),
+        )
+        return
+
     best_state = None
     best_val = float("inf")
     best_policy_pnl = float("-inf")
@@ -7456,7 +8417,7 @@ def run_train(
             _spec_upstream_tensors,
             int(bool(float(_spec_w.norm()) > 0.0)),
         )
-        tr_loss, tr_stats = train_epoch(
+        tr_loss, tr_stats, tr_epoch_complete = train_epoch(
             model,
             target_model,
             train_loader,
@@ -7467,6 +8428,8 @@ def run_train(
             task_gradient_observed=joint_task_gradient_observed,
             weight_ema=weight_ema,
         )
+        if not tr_epoch_complete:
+            raise RuntimeError("[ENTRY_CANONICAL_TRAIN_EPOCH_PARTIAL_FORBIDDEN]")
         # V30 package 5: the LR schedule advances once per epoch, AFTER that
         # epoch's training, so epoch 0 trains at the declared `lr` exactly as
         # before. At the OFF switch this is a no-op branch.

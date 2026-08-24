@@ -152,8 +152,9 @@ def test_exit_profile_clock_is_cpu_safe_and_first_batch_only() -> None:
     source = Path(trainer.__file__).read_text(encoding="utf-8")
 
     assert after >= before
-    assert "profile_timing=not _first_batch_logged" in source
+    assert "_profile_timing = not _first_batch_logged" in source
     assert "[UNIFIED_EXIT_PROFILE]" in source
+    assert "[TRAIN_PROFILE]" in source
 
 
 def test_exit_benchmark_uses_complete_contract_owned_specialist_routing() -> None:

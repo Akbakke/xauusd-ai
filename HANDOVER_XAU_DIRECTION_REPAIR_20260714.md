@@ -401,6 +401,25 @@ or power limits on the basis of this smoke. The next work is to make the
 bounded run resumable/observable and then assess a separately audited training
 budget; it is not permission for full/candidate training.
 
+**Implemented attended-session continuation, not yet re-executed:** the
+trainer now keeps deterministic FP32 and the same V40 model/data/objective, but
+the attended-only smoke route ends itself after a fixed four complete optimizer
+steps rather than waiting for the five-minute guard to kill it. Every completed
+step is written atomically to an inactive one of two local, hash-validated
+session slots. The static session contract binds source commit, exact
+TRAIN/VAL/M5/lifecycle bytes, normalization, smoke configuration and intended
+bundle name; it refuses any source/data/recipe/output mismatch on a later
+attended invocation. It persists online and frozen target models, optimizer,
+EMA/scheduler, exact remaining batch permutation and all relevant RNG state,
+but only at a completed optimizer boundary. The session lives beside the
+still-absent bundle directory and is marked `research_trainability_only`; it
+runs no VAL, selection or export and has no candidate/TEST/promotion/paper/live
+authority. This is an implementation result only: no new V40 CUDA run, model,
+edge, OOS, PnL or trading result exists. The first-batch logs now also include
+complete Entry online/target time, Exit time, post-Exit backward time and peak
+CUDA allocation; no BF16, TF32, autocast, compile, batch-size, cgroup, power or
+timeout relaxation was introduced.
+
 **Attended hardware smoke, 2026-08-23:** the separate no-data CUDA route
 passed under the same attended guard. It constructed the exact Entry
 architecture and specialist routing, completed one deterministic
