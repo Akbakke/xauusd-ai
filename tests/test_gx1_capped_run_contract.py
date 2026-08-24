@@ -756,6 +756,7 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=90" in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=250" in source
     assert "TRAINER_GPU_MAX_POWER_DRAW_W=250" in source
+    assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=24576" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
     assert "--attended-smoke" in source
@@ -774,12 +775,13 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     )
     assert '"$GX1_GPU_GUARD_PATH" "$@"' in source
     assert (
-        "--query-gpu=temperature.gpu,temperature.memory,power.draw,power.limit"
+        "--query-gpu=temperature.gpu,temperature.memory,power.draw,power.limit,memory.used"
         in guard_source
     )
     assert "CUDA telemetry unavailable" in guard_source
     assert "GX1_TRAINER_EXECUTION_MODE" in guard_source
     assert "GX1_TRAINER_GPU_MAX_POWER_DRAW_W" in guard_source
+    assert "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" in guard_source
     assert '"$memory_temp" == N/A' in guard_source
     assert '/bin/kill -TERM -- "-$child_pid"' in guard_source
     assert '/bin/kill -KILL -- "-$child_pid"' in guard_source
