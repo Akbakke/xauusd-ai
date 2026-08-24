@@ -32,7 +32,9 @@ from gx1.features.htf_features import (
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
     build_multi_tf_v4_closed_timestamp_indices,
+    load_multi_tf_v4_cache,
 )
+from gx1.models.entry_v10 import entry_v10_input_normalization as normalization
 from gx1.models.entry_v10.entry_v10_input_normalization import (
     TrainNormalizationArtifacts,
     fit_entry_v10_train_input_normalization,
@@ -366,7 +368,7 @@ def fit_fixture(tmp_path: Path) -> dict:
     }
 
 
-def _fit(values: dict) -> dict:
+def _fit(values: dict, **kwargs: object) -> dict:
     return fit_entry_v10_train_input_normalization(
         train_seq=values["seq"],
         train_snap=values["snap"],
@@ -378,6 +380,7 @@ def _fit(values: dict) -> dict:
         per_tf_seq_lens=values["per_tf_seq_lens"],
         artifacts=values["artifacts"],
         row_chunk=5,
+        **kwargs,
     )
 
 
@@ -596,6 +599,25 @@ def test_shared_train_fit_deduplicates_entry_exit_and_binds_all_lineage(
         np.float32(contract["surfaces"]["signal"]["center"][non_alias_index])
         == expected_median
     )
+
+
+def test_shared_train_fit_reuses_explicit_verified_cache(
+    fit_fixture: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The trainer's cache object is reused instead of loaded a second time."""
+
+    cache = load_multi_tf_v4_cache(fit_fixture["artifacts"].mtf_cache_dir)
+
+    def forbidden_reload(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("normalization must reuse the supplied cache")
+
+    monkeypatch.setattr(normalization, "load_multi_tf_v4_cache", forbidden_reload)
+    result = _fit(
+        fit_fixture,
+        prevalidated_multi_tf_cache=cache,
+    )
+    assert result["normalization_contract"]["contract_sha256"]
 
 
 def test_shared_train_fit_rejects_dataset_cache_identity_tamper(

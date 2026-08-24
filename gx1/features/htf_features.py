@@ -18,9 +18,9 @@ frozen in the immutable cache manifest.
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import math
+import mmap
 import os
 import stat
 from pathlib import Path
@@ -4206,6 +4206,11 @@ class MultiTFV4DiskCache(dict):
         self.m5_prebuilt_source_sha256 = m5_prebuilt_source_sha256
         self.v29_registry_constants = v29_registry_constants
         self.volatility_squeeze_artifacts = volatility_squeeze_artifacts
+        # The verified arrays are immutable disk-backed mappings.  Keep the
+        # owning memmaps alive separately from the DataFrame views so a caller
+        # can explicitly discard clean pages after a full-surface audit without
+        # changing any values, views or cache identity.
+        self._disk_backing_arrays: tuple[np.memmap, ...] = ()
 
 
 def compute_htf_v4_cache_identity(manifest: dict) -> str:
@@ -4328,20 +4333,95 @@ def _load_verified_cache_npy(
     expected_size_bytes: int,
     label: str,
 ) -> np.ndarray:
-    payload = _read_cache_file_bytes(
-        directory_fd,
-        name,
-        expected_sha256=expected_sha256,
-        expected_size_bytes=expected_size_bytes,
-        label=label,
-    )
+    """Verify an immutable NPY by descriptor, then expose it as read-only mmap.
+
+    The original loader read every V4 array into one ``bytes`` object and then
+    decoded a second anonymous NumPy allocation.  The production M5 matrix is
+    several GiB, so that made the host-RSS envelope depend on cache size even
+    though the cache is already immutable and disk-resident.  We retain the
+    exact byte/size verification, but stream it and map the *same open file
+    descriptor* read-only afterwards.  No unverified path is reopened.
+    """
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try:
-        loaded = np.load(io.BytesIO(payload), allow_pickle=False)
-    except Exception as exc:
-        raise RuntimeError(f"HTF_V4_CACHE_NPY_INVALID: {label}") from exc
-    if not isinstance(loaded, np.ndarray):
-        raise RuntimeError(f"HTF_V4_CACHE_NPY_INVALID: {label} is not an ndarray")
-    return loaded
+        fd = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as exc:
+        raise RuntimeError(f"HTF_V4_CACHE_FILE_INVALID: {label}") from exc
+    try:
+        file_stat = os.fstat(fd)
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise RuntimeError(
+                f"HTF_V4_CACHE_FILE_INVALID: {label} is not regular"
+            )
+        digest = hashlib.sha256()
+        observed_size = 0
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+            observed_size += len(chunk)
+        if observed_size != expected_size_bytes:
+            raise RuntimeError(
+                f"HTF_V4_CACHE_SIZE_MISMATCH: {label} "
+                f"observed={observed_size} expected={expected_size_bytes}"
+            )
+        if digest.hexdigest() != expected_sha256:
+            raise RuntimeError(
+                f"HTF_V4_CACHE_SHA256_MISMATCH: {label} "
+                f"observed={digest.hexdigest()} expected={expected_sha256}"
+            )
+        # ``/proc/self/fd/<n>`` opens this pinned descriptor rather than a
+        # mutable cache pathname.  ``np.load(..., mmap_mode='r')`` then gives
+        # us exactly one read-only mapping rather than a byte buffer plus a
+        # second anonymous ndarray.
+        try:
+            loaded = np.load(
+                f"/proc/self/fd/{fd}", mmap_mode="r", allow_pickle=False
+            )
+        except Exception as exc:
+            raise RuntimeError(f"HTF_V4_CACHE_NPY_INVALID: {label}") from exc
+        if not isinstance(loaded, np.memmap):
+            raise RuntimeError(
+                f"HTF_V4_CACHE_NPY_INVALID: {label} is not a read-only memmap"
+            )
+        return loaded
+    finally:
+        # The verification stream can populate a large file cache.  The
+        # mapping remains valid, while this advisory drops clean pages before
+        # the next array is checked.  It is a host-memory optimisation only.
+        advice = getattr(os, "POSIX_FADV_DONTNEED", None)
+        if advice is not None and hasattr(os, "posix_fadvise"):
+            try:
+                os.posix_fadvise(fd, 0, 0, advice)
+            except OSError:
+                pass
+        os.close(fd)
+
+
+def discard_multi_tf_v4_cache_pages(cache: MultiTFV4DiskCache) -> None:
+    """Release clean mapped cache pages while preserving exact cache bytes.
+
+    This is intentionally limited to the loader-owned read-only mappings.  It
+    cannot alter model inputs or cache identity; later causal window reads page
+    in only the required rows.
+    """
+
+    if not isinstance(cache, MultiTFV4DiskCache):
+        raise RuntimeError("HTF_V4_CACHE_DISCARD_REQUIRES_VERIFIED_CACHE")
+    advice = getattr(mmap, "MADV_DONTNEED", None)
+    if advice is None:
+        return
+    for values in cache._disk_backing_arrays:
+        if not isinstance(values, np.memmap):
+            raise RuntimeError("HTF_V4_CACHE_DISK_BACKING_INVALID")
+        mapping = getattr(values, "_mmap", None)
+        if mapping is not None and hasattr(mapping, "madvise"):
+            try:
+                mapping.madvise(advice)
+            except (OSError, ValueError):
+                pass
 
 
 def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
@@ -4525,6 +4605,7 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
             v29_registry_constants=manifest_registry_constants,
             volatility_squeeze_artifacts=manifest_squeeze_artifacts,
         )
+        disk_backing_arrays: list[np.memmap] = []
         for tf_name in MULTI_TF_RESAMPLE_RULES:
             info = tf_manifest[tf_name]
             n_bars = _exact_cache_int(
@@ -4587,6 +4668,7 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 expected_size_bytes=scalar_size,
                 label=f"{tf_name}.model_native_scalars_npy",
             )
+            disk_backing_arrays.extend((feats_np, ts_int64, scalar_np))
             if (
                 feats_np.dtype != np.dtype(np.float32)
                 or ts_int64.dtype != np.dtype(np.int64)
@@ -4696,6 +4778,7 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
             )
             out[tf_name] = df
+        out._disk_backing_arrays = tuple(disk_backing_arrays)
         require_model_native_mtf_scalar_owner_v4(out)
         try:
             require_multi_tf_v4_liveness_contract(
@@ -4720,6 +4803,10 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 f"missing={sorted(declared_inventory - final_inventory)} "
                 f"unexpected={sorted(final_inventory - declared_inventory)}"
             )
+        # Full cache validation above necessarily touches every array.  Drop
+        # those clean pages before returning to the trainer; the DataFrame
+        # views and all byte-bound cache semantics remain unchanged.
+        discard_multi_tf_v4_cache_pages(out)
         return out
     finally:
         os.close(directory_fd)

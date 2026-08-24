@@ -62,6 +62,7 @@ from gx1.features.htf_features import (
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_SHIFT,
     MultiTFV4DiskCache,
+    discard_multi_tf_v4_cache_pages,
     load_multi_tf_v4_cache,
 )
 
@@ -1134,6 +1135,7 @@ def _verify_artifacts_and_load_mtf(
     *,
     artifacts: TrainNormalizationArtifacts,
     ordered_signal_names: Sequence[str],
+    prevalidated_multi_tf_cache: MultiTFV4DiskCache | None = None,
 ) -> tuple[dict[str, Any], MultiTFV4DiskCache]:
     dataset_run_id = str(artifacts.dataset_run_id).strip()
     if not dataset_run_id:
@@ -1184,7 +1186,16 @@ def _verify_artifacts_and_load_mtf(
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_MTF_CACHE_PATH_INVALID]"
         )
-    cache = load_multi_tf_v4_cache(cache_dir)
+    # The trainer already owns the exact verified cache used by its datasets.
+    # Accept that object explicitly when supplied, so full-TRAIN
+    # normalization cannot create a second multi-GiB cache allocation.  The
+    # manifest binding below still proves its bytes and identity against this
+    # invocation; this is reuse, never an ambient-cache shortcut.
+    cache = (
+        prevalidated_multi_tf_cache
+        if prevalidated_multi_tf_cache is not None
+        else load_multi_tf_v4_cache(cache_dir)
+    )
     if not isinstance(cache, MultiTFV4DiskCache):
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_MTF_CACHE_IDENTITY_MISSING]"
@@ -1348,6 +1359,7 @@ def fit_entry_v10_train_input_normalization(
     ordered_signal_names: Sequence[str],
     per_tf_seq_lens: Mapping[str, int],
     artifacts: TrainNormalizationArtifacts,
+    prevalidated_multi_tf_cache: MultiTFV4DiskCache | None = None,
     row_chunk: int = DEFAULT_ROW_CHUNK,
 ) -> dict[str, Any]:
     """Fit and bind the exact full-TRAIN model-native input transform.
@@ -1390,6 +1402,7 @@ def fit_entry_v10_train_input_normalization(
     base_lineage, multi_tf_sources = _verify_artifacts_and_load_mtf(
         artifacts=artifacts,
         ordered_signal_names=signal_names,
+        prevalidated_multi_tf_cache=prevalidated_multi_tf_cache,
     )
     row_count = int(snap.shape[0])
     manifest = _read_json_object(
@@ -1686,6 +1699,10 @@ def fit_entry_v10_train_input_normalization(
         "mtf_populations": tf_population_proofs,
     }
     population_proof["proof_sha256"] = _canonical_sha256(population_proof)
+    # MTF fitting scans its full declared populations.  These are immutable,
+    # read-only cache mappings, so release their clean pages before model
+    # construction while retaining the exact object used by the datasets.
+    discard_multi_tf_v4_cache_pages(multi_tf_sources)
     return {
         "schema_version": FIT_HELPER_SCHEMA_VERSION,
         "normalization_contract": normalization_contract,

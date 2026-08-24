@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import inspect
-import io
 import json
 import sys
 from pathlib import Path
@@ -187,18 +186,21 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
     )
 
     real_load = np.load
-    verified_byte_loads = 0
+    verified_memmap_loads = 0
 
     def guarded_load(file, *args, **kwargs):
-        nonlocal verified_byte_loads
-        assert isinstance(file, io.BytesIO)
-        verified_byte_loads += 1
+        nonlocal verified_memmap_loads
+        assert isinstance(file, str)
+        assert file.startswith("/proc/self/fd/")
+        assert kwargs.get("mmap_mode") == "r"
+        assert kwargs.get("allow_pickle") is False
+        verified_memmap_loads += 1
         return real_load(file, *args, **kwargs)
 
     monkeypatch.setattr(htf.np, "load", guarded_load)
     loaded = htf.load_multi_tf_v4_cache(cache_dir)
     assert isinstance(loaded, htf.MultiTFV4DiskCache)
-    assert verified_byte_loads == len(_all_array_names())
+    assert verified_memmap_loads == len(_all_array_names())
     assert loaded.cache_identity_sha256 == manifest["cache_identity_sha256"]
     assert loaded.m5_prebuilt_source == str(source)
     assert loaded.m5_prebuilt_source_sha256 == _sha256(source)

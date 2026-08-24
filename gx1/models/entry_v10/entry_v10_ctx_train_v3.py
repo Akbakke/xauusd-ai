@@ -6786,6 +6786,7 @@ def run_train(
             m5_prebuilt_path=Path(m5_prebuilt_path),
             mtf_cache_dir=mtf_cache_dir,
         ),
+        prevalidated_multi_tf_cache=multi_tf_features,
     )
     input_normalization = normalization_fit["normalization_contract"]
     input_normalization_fit_population_proof = normalization_fit[
