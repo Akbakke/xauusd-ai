@@ -88,9 +88,9 @@ prove that every specialist encoder and each 5x8 family-by-timeframe route
 changes decision margins. Staged preflight proves neither model influence nor
 trading edge; it only lets the complete data path reach the model honestly.
 
-## Resumable attended research session (implemented, not yet re-executed)
+## Resumable attended research session (implemented; bounded V40 session observed)
 
-The observed V40 route completes four real optimizer steps inside the fixed
+The observed V40 route can complete real optimizer steps inside the fixed
 five-minute model phase, but a full smoke epoch contains more batches than one
 such safety window. The trainer therefore owns one deliberately narrow
 research-session mechanism:
@@ -98,9 +98,11 @@ research-session mechanism:
 - It applies only to `execution_tier=attended_only`, smoke profile, exactly one
   epoch and `grad_accum_steps=1`. Canonical and candidate paths neither create
   nor read it.
-- Its fixed, source-owned budget is four **complete** optimizer steps. The
-  process returns normally after that budget; the outer guard remains active
-  as a temperature, actual-power, telemetry and wall-clock backstop.
+- Its fixed, source-owned budget is two **complete** optimizer steps. Its
+  attended-only Exit forward is streamed in groups of 32 complete episodes;
+  neither setting is exposed on the CLI. The process returns normally after
+  that budget; the outer guard remains active as a temperature, actual-power,
+  telemetry and wall-clock backstop.
 - Each completed step atomically writes a hash-bound state in the inactive one
   of two local slots, then atomically points `ATTENDED_RESEARCH_SESSION_ACTIVE.json`
   at it. State includes online/target model, optimizer, optional EMA/scheduler,
@@ -119,9 +121,23 @@ This mechanism is not a relaxation of the resource policy. It does not raise
 the 4 GiB cgroup, CPU affinity, 512 MiB swap ceiling, temperature limit,
 actual-draw stop, configured power policy or five-minute model deadline. It
 also does not introduce BF16, TF32, autocast or compilation: the current
-training path remains deterministic FP32. The first real session execution
-must re-run the full source/data preflight and the normal guard before it may
-resume a saved complete step.
+training path remains deterministic FP32. Checkpoint state is deserialized to
+CPU before it is restored to CUDA, avoiding a temporary second CUDA-resident
+copy. Every real session execution must re-run the full source/data preflight
+and the normal guard. A source/budget change deliberately rejects its prior
+session rather than resuming it under changed memory behavior.
+
+On 2026-08-24, the first session implementation (`44a253c6`) passed a fresh
+immutable V40 recipe audit and persisted four complete, hash-verified
+checkpoints (`complete=false`, `next_batch_offset=4`) in its private sibling
+directory. No bundle was written, and no VAL, selection or authority-bearing
+work ran. During that observed run the RTX 3090 remained below the guard's
+core-temperature and actual-draw limits, but reached 24,260 MiB reported VRAM
+usage and a new WSL/DXG `dxgkio_make_resident: Ioctl failed: -12` warning was
+recorded. That is a platform-risk signal, not a success criterion. The tighter
+two-step/32-row source-bound configuration above exists to leave residency
+headroom; it requires a fresh output path and audit and must not resume the
+older four-step state.
 
 For attribution, the first batch now also emits `[TRAIN_PROFILE]` with Entry
 online/target forwards, complete Exit training time, post-Exit backward time,

@@ -36,7 +36,9 @@ def _step(model: torch.nn.Module, optimizer: torch.optim.Optimizer) -> None:
     optimizer.zero_grad(set_to_none=True)
 
 
-def test_attended_session_restores_exact_step_boundary_and_rng(tmp_path: Path) -> None:
+def test_attended_session_restores_exact_step_boundary_and_rng(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     out_bundle = tmp_path / "BUNDLE_20260824T120000Z"
     session = trainer._AttendedResearchSession(
         out_bundle_dir=out_bundle,
@@ -72,8 +74,17 @@ def test_attended_session_restores_exact_step_boundary_and_rng(tmp_path: Path) -
     expected_numpy = float(np.random.random())
     expected_torch = torch.rand(3)
 
+    original_load = trainer.torch.load
+    observed_map_locations: list[object] = []
+
+    def _cpu_staged_load(*args, **kwargs):
+        observed_map_locations.append(kwargs.get("map_location"))
+        return original_load(*args, **kwargs)
+
+    monkeypatch.setattr(trainer.torch, "load", _cpu_staged_load)
     restored_state = session.load_checkpoint()
     assert restored_state is not None
+    assert observed_map_locations == ["cpu"]
     restored_model = torch.nn.Linear(3, 2)
     restored_target = copy.deepcopy(restored_model)
     restored_target.requires_grad_(False)
@@ -168,7 +179,9 @@ def test_exact_index_sampler_starts_at_complete_batch_boundary() -> None:
 def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     source = Path(trainer.__file__).read_text(encoding="utf-8")
 
-    assert "_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 4" in source
+    assert "_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2" in source
+    assert "_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 32" in source
+    assert 'map_location="cpu", weights_only=True' in source
     assert '"precision": "deterministic_fp32"' in source
     assert '"tf32": False' in source
     assert '"autocast": False' in source

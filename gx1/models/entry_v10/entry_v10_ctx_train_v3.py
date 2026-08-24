@@ -974,13 +974,16 @@ UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
 UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
 
 # The attended route is a bounded trainability diagnostic, never a candidate
-# producer.  Four complete optimizer steps were observed to fit below its
-# guard-owned five-minute CUDA window on V40; the process exits normally after
-# that fixed budget so the guard remains a backstop rather than the mechanism
-# that ends a session.  This is deliberately source-owned: no CLI argument or
-# ambient variable may expand it.
+# producer.  Its Exit branch is intentionally narrower than the canonical
+# trainer: this bounds its transient attention allocation below the group size
+# that reached the VRAM ceiling in the first attended smoke. The two-step
+# budget leaves the
+# guard-owned five-minute CUDA window as a backstop, rather than the mechanism
+# that ends a session.  Both values are source-owned; no CLI argument or
+# ambient variable may expand either one.
 _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION = "gx1_attended_research_session_v1"
-_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 4
+_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2
+_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 32
 _ATTENDED_RESEARCH_SESSION_DIR_PREFIX = ".gx1-attended-research-session."
 _ATTENDED_RESEARCH_CONTRACT_FILENAME = "ATTENDED_RESEARCH_SESSION_CONTRACT.json"
 _ATTENDED_RESEARCH_ACTIVE_FILENAME = "ATTENDED_RESEARCH_SESSION_ACTIVE.json"
@@ -1270,7 +1273,11 @@ class _AttendedResearchSession:
         if _sha256_file(state_path) != active["state_sha256"]:
             raise RuntimeError("[ATTENDED_RESEARCH_STATE_SHA256_MISMATCH]")
         try:
-            state = torch.load(state_path, weights_only=True)
+            # A checkpoint contains CUDA-originating tensors.  Always stage it
+            # in host memory first: loading straight to CUDA can briefly retain
+            # both the serialized state and the restored optimizer state on an
+            # already constrained device.
+            state = torch.load(state_path, map_location="cpu", weights_only=True)
         except (OSError, RuntimeError, ValueError) as exc:
             raise RuntimeError("[ATTENDED_RESEARCH_STATE_LOAD_INVALID]") from exc
         if not isinstance(state, dict):
@@ -4184,6 +4191,7 @@ def _train_unified_exit_full_population(
     exit_cooperation_gate_epoch: dict[str, dict[str, Any]],
     exit_feature_tf_gate_epoch: dict[str, Any],
     profile_timing: bool = False,
+    exit_action_forward_chunk_rows: Optional[int] = None,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -4206,6 +4214,7 @@ def _train_unified_exit_full_population(
         exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
         exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
         profile_timing=profile_timing,
+        exit_action_forward_chunk_rows=exit_action_forward_chunk_rows,
     )
 
 def _forward_unified_exit_episode_pack(
@@ -4787,6 +4796,7 @@ def _episode_native_exit_train(
     exit_cooperation_gate_epoch: dict[str, dict[str, Any]],
     exit_feature_tf_gate_epoch: dict[str, Any],
     profile_timing: bool = False,
+    exit_action_forward_chunk_rows: Optional[int] = None,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -4797,6 +4807,28 @@ def _episode_native_exit_train(
         raise RuntimeError("[UNIFIED_EXIT_ENTRY_BATCH_SHAPE_INVALID]")
     if target_entry_decision_representations.shape != entry_decision_representations.shape:
         raise RuntimeError("[UNIFIED_EXIT_TARGET_ENTRY_BATCH_SHAPE_INVALID]")
+    if exit_action_forward_chunk_rows is not None:
+        if int(exit_action_forward_chunk_rows) < 1:
+            raise RuntimeError("[UNIFIED_EXIT_ACTION_CHUNK_ROWS_INVALID]")
+        # This attended-only path streams one contiguous group of complete
+        # episodes at a time.  The canonical route retains the established
+        # unchunked implementation below exactly.
+        return _episode_native_exit_train_chunked(
+            model=model,
+            target_model=target_model,
+            entry_decision_representations=entry_decision_representations,
+            target_entry_decision_representations=(
+                target_entry_decision_representations
+            ),
+            entry_row_indices=entry_row_indices,
+            dataset=dataset,
+            device=device,
+            grad_accum_steps=grad_accum_steps,
+            exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+            exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+            profile_timing=profile_timing,
+            exit_action_forward_chunk_rows=int(exit_action_forward_chunk_rows),
+        )
     profile_start = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
@@ -4966,6 +4998,235 @@ def _episode_native_exit_train(
             "raw_loss": float(q_loss_sum.detach().cpu().item())
             / float(total_valid),
         },
+        entry_targets,
+        entry_valid,
+    )
+
+
+def _episode_native_exit_train_chunked(
+    *,
+    model: nn.Module,
+    target_model: nn.Module,
+    entry_decision_representations: torch.Tensor,
+    target_entry_decision_representations: torch.Tensor,
+    entry_row_indices: torch.Tensor,
+    dataset: "EntryV10CtxDataset",
+    device: torch.device,
+    grad_accum_steps: int,
+    exit_cooperation_gate_epoch: dict[str, dict[str, Any]],
+    exit_feature_tf_gate_epoch: dict[str, Any],
+    profile_timing: bool,
+    exit_action_forward_chunk_rows: int,
+) -> tuple[
+    torch.Tensor,
+    Dict[str, Any],
+    torch.Tensor,
+    torch.Tensor,
+]:
+    """Stream attended Exit groups without retaining a full-batch graph.
+
+    This is deliberately separate from the canonical unchunked owner above.
+    It is used only by bounded attended research, whose session contract binds
+    the group size.  Each group backpropagates its sum-normalized contribution
+    immediately, so CUDA can release its attention graph before the next group.
+    """
+
+    profile_start = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
+    rows = entry_row_indices.detach().cpu().tolist()
+    episodes = [
+        dataset.materialize_full_exit_episode(int(index)) for index in rows
+    ]
+    profile_materialized = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
+    total_valid = sum(
+        int(np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_).sum())
+        for episode in episodes
+        if episode is not None
+    )
+    if total_valid == 0:
+        entry_targets, entry_valid, _ = build_entry_fitted_q_targets(
+            frozen_exit_first_state_values_bps=torch.zeros(
+                (len(rows), 2),
+                device=device,
+                dtype=entry_decision_representations.dtype,
+            ),
+            exit_side_valid_mask=torch.zeros(
+                (len(rows), 2), device=device, dtype=torch.bool
+            ),
+            episode_pack_sha256=[None] * len(rows),
+            fill_binding_sha256=[None] * len(rows),
+        )
+        return (
+            torch.zeros_like(entry_decision_representations),
+            {**_empty_exit_stats(), "raw_loss": 0.0},
+            entry_targets,
+            entry_valid,
+        )
+    selected = [index for index, episode in enumerate(episodes) if episode is not None]
+    selected_episodes = [episodes[index] for index in selected]
+    selected_index = torch.tensor(selected, device=device, dtype=torch.long)
+    entry_gradients = torch.zeros_like(entry_decision_representations)
+    token = (
+        entry_decision_representations.index_select(0, selected_index)
+        .detach()
+        .clone()
+        .requires_grad_(True)
+    )
+    stats = _empty_exit_stats()
+    raw_loss_sum = 0.0
+    selected_first_values = torch.zeros(
+        (len(selected), 2),
+        device=device,
+        dtype=target_entry_decision_representations.dtype,
+    )
+    selected_first_valid = torch.zeros(
+        (len(selected), 2), device=device, dtype=torch.bool
+    )
+    profile_online_forward_s = 0.0
+    profile_target_forward_s = 0.0
+    profile_backward_s = 0.0
+    chunk_count = 0
+    for start in range(0, len(selected_episodes), exit_action_forward_chunk_rows):
+        stop = min(start + exit_action_forward_chunk_rows, len(selected_episodes))
+        positions = torch.arange(start, stop, device=device, dtype=torch.long)
+        raw_indices = selected_index.index_select(0, positions)
+        chunk_episodes = selected_episodes[start:stop]
+        chunk_online_start = (
+            _synchronized_exit_profile_clock(device) if profile_timing else None
+        )
+        q_values, valid, _state_valid, _terminal, _lengths = (
+            _forward_unified_exit_episode_batch(
+                model=model,
+                entry_decision_representations=token.index_select(0, positions),
+                episodes=chunk_episodes,
+                device=device,
+                exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+                exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+            )
+        )
+        chunk_online_end = (
+            _synchronized_exit_profile_clock(device) if profile_timing else None
+        )
+        (
+            targets,
+            target_mask,
+            _target_terminal,
+            first_side_values,
+            first_side_valid,
+        ) = _fitted_q_targets_for_episode_batch(
+            target_model=target_model,
+            target_entry_decision_representations=(
+                target_entry_decision_representations.index_select(0, raw_indices)
+            ),
+            episodes=chunk_episodes,
+            device=device,
+        )
+        chunk_target_end = (
+            _synchronized_exit_profile_clock(device) if profile_timing else None
+        )
+        if not torch.equal(valid, target_mask):
+            raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_MASK_SPLIT_BRAIN]")
+        q_loss_sum = nn.functional.mse_loss(
+            q_values[valid], targets[valid], reduction="sum"
+        )
+        _episode_stats_update(
+            stats, q_values=q_values, targets=targets, valid=valid
+        )
+        selected_first_values.index_copy_(0, positions, first_side_values)
+        selected_first_valid.index_copy_(0, positions, first_side_valid)
+        (
+            torch.exp(-model.task_log_variances["unified_exit_action"])
+            * q_loss_sum
+            / float(total_valid)
+            / float(grad_accum_steps)
+        ).backward()
+        chunk_backward_end = (
+            _synchronized_exit_profile_clock(device) if profile_timing else None
+        )
+        raw_loss_sum += float(q_loss_sum.detach().cpu().item())
+        chunk_count += 1
+        if profile_timing:
+            assert (
+                chunk_online_start is not None
+                and chunk_online_end is not None
+                and chunk_target_end is not None
+                and chunk_backward_end is not None
+            )
+            profile_online_forward_s += chunk_online_end - chunk_online_start
+            profile_target_forward_s += chunk_target_end - chunk_online_end
+            profile_backward_s += chunk_backward_end - chunk_target_end
+        # Keep no large Exit graph alive across groups.  This is important on
+        # WSL/DXG where a cached near-capacity allocation can fail residency.
+        del q_values, valid, targets, target_mask, first_side_values, first_side_valid
+
+    if token.grad is None or not bool(torch.isfinite(token.grad).all().item()):
+        raise RuntimeError("[UNIFIED_EXIT_EPISODE_TOKEN_GRADIENT_INVALID]")
+    entry_gradients.index_copy_(0, selected_index, token.grad.detach())
+    if (
+        int(stats["q_valid_cells"]) != total_valid
+        or int(stats["population_rows"])
+        != sum(
+            int(np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_).sum())
+            for episode in episodes
+            if episode is not None
+        )
+    ):
+        raise RuntimeError("[UNIFIED_EXIT_EPISODE_POPULATION_COUNT_MISMATCH]")
+    all_first_values = torch.zeros(
+        (len(rows), 2), device=device, dtype=selected_first_values.dtype
+    )
+    all_first_valid = torch.zeros(
+        (len(rows), 2), device=device, dtype=torch.bool
+    )
+    all_first_values.index_copy_(0, selected_index, selected_first_values)
+    all_first_valid.index_copy_(0, selected_index, selected_first_valid)
+    episode_hashes: list[str | None] = [None] * len(rows)
+    fill_hashes: list[str | None] = [None] * len(rows)
+    for batch_position, episode in zip(selected, selected_episodes):
+        if int(episode["entry_row_index"]) != int(rows[batch_position]):
+            raise RuntimeError("[ENTRY_FITTED_Q_EPISODE_ROW_BINDING_INVALID]")
+        episode_hash = str(episode["episode_pack_sha256"])
+        episode_hashes[batch_position] = episode_hash
+        fill_hashes[batch_position] = entry_fill_binding_sha256(
+            entry_row_index=int(rows[batch_position]),
+            episode_pack_sha256=episode_hash,
+            first_exit_state_time_ns=int(
+                np.asarray(episode["exit_state_row_time_ns"], dtype=np.int64)[0]
+            ),
+            exit_entry_bid_ask=episode["exit_entry_bid_ask"],
+        )
+    entry_targets, entry_valid, _entry_binding = build_entry_fitted_q_targets(
+        frozen_exit_first_state_values_bps=all_first_values,
+        exit_side_valid_mask=all_first_valid,
+        episode_pack_sha256=episode_hashes,
+        fill_binding_sha256=fill_hashes,
+    )
+    if profile_timing:
+        assert profile_start is not None and profile_materialized is not None
+        profile_end = _synchronized_exit_profile_clock(device)
+        log.info(
+            "[UNIFIED_EXIT_PROFILE] eligible_entries=%d chunk_rows=%d chunks=%d "
+            "materialize_s=%.6f online_forward_s=%.6f target_forward_s=%.6f "
+            "bellman_backward_s=%.6f post_backward_s=%.6f total_s=%.6f",
+            len(selected_episodes),
+            exit_action_forward_chunk_rows,
+            chunk_count,
+            profile_materialized - profile_start,
+            profile_online_forward_s,
+            profile_target_forward_s,
+            profile_backward_s,
+            profile_end - profile_materialized
+            - profile_online_forward_s
+            - profile_target_forward_s
+            - profile_backward_s,
+            profile_end - profile_start,
+        )
+    return (
+        entry_gradients,
+        {**stats, "raw_loss": raw_loss_sum / float(total_valid)},
         entry_targets,
         entry_valid,
     )
@@ -5649,6 +5910,7 @@ def train_epoch(
     attended_batch_offset: int = 0,
     attended_max_optimizer_steps: Optional[int] = None,
     attended_checkpoint_hook: Optional[Any] = None,
+    attended_exit_action_forward_chunk_rows: Optional[int] = None,
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
@@ -5670,6 +5932,8 @@ def train_epoch(
             or attended_checkpoint_hook is None
             or _accum_steps != 1
             or int(attended_batch_offset) < 0
+            or attended_exit_action_forward_chunk_rows is None
+            or int(attended_exit_action_forward_chunk_rows) < 1
         ):
             raise RuntimeError("[ATTENDED_RESEARCH_TRAIN_EPOCH_ARGUMENT_INVALID]")
     _accum_count = 0
@@ -5781,6 +6045,11 @@ def train_epoch(
                 exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
                 exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
                 profile_timing=_profile_timing,
+                exit_action_forward_chunk_rows=(
+                    attended_exit_action_forward_chunk_rows
+                    if attended_max_optimizer_steps is not None
+                    else None
+                ),
             )
         )
         _profile_exit_train = (
@@ -6645,6 +6914,9 @@ def _attended_research_session_contract(
             "dropout": float(dropout),
             "max_optimizer_steps_per_session": (
                 _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS
+            ),
+            "unified_exit_action_forward_chunk_rows": (
+                _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
             ),
             "precision": "deterministic_fp32",
             "compile": False,
@@ -7781,11 +8053,12 @@ def run_train(
             raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_OFFSET_INVALID]")
         log.info(
             "[ATTENDED_RESEARCH_SESSION] directory=%s resumed=%d batch_offset=%d "
-            "max_optimizer_steps=%d authority=none",
+            "max_optimizer_steps=%d exit_chunk_rows=%d authority=none",
             attended_session.directory,
             int(attended_checkpoint_state is not None),
             attended_batch_offset,
             _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS,
+            _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
         )
 
     if attended_epoch_order is None:
@@ -8237,12 +8510,13 @@ def run_train(
         log.info(
             "[ATTENDED_RESEARCH_SESSION_START] directory=%s checkpoint_index=%d "
             "complete_optimizer_steps=%d batch_offset=%d target_sha256=%s "
-            "authority=none",
+            "exit_chunk_rows=%d authority=none",
             attended_session.directory,
             attended_checkpoint_index,
             attended_complete_steps,
             attended_start_offset,
             target_model_state_sha256,
+            _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
         )
 
         def _checkpoint_attended_step(
@@ -8290,6 +8564,9 @@ def run_train(
             attended_batch_offset=attended_start_offset,
             attended_max_optimizer_steps=_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS,
             attended_checkpoint_hook=_checkpoint_attended_step,
+            attended_exit_action_forward_chunk_rows=(
+                _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
+            ),
         )
         log.info(
             "[ATTENDED_RESEARCH_SESSION_DONE] directory=%s epoch_complete=%d "

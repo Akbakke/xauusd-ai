@@ -170,8 +170,10 @@ def _patch_episode_owners(monkeypatch: pytest.MonkeyPatch, targets: torch.Tensor
     )
 
 
+@pytest.mark.parametrize("exit_action_forward_chunk_rows", [None, 1])
 def test_full_exit_streaming_matches_monolithic_objective_and_retains_ties(
     monkeypatch: pytest.MonkeyPatch,
+    exit_action_forward_chunk_rows: int | None,
 ) -> None:
     torch.manual_seed(9)
     target_q = _TARGET_Q.clone()
@@ -202,6 +204,7 @@ def test_full_exit_streaming_matches_monolithic_objective_and_retains_ties(
         grad_accum_steps=1,
         exit_cooperation_gate_epoch=None,
         exit_feature_tf_gate_epoch=None,
+        exit_action_forward_chunk_rows=exit_action_forward_chunk_rows,
     )
     streamed_objective = (
         torch.exp(
@@ -257,6 +260,101 @@ def test_full_exit_streaming_matches_monolithic_objective_and_retains_ties(
         monolithic.task_log_variances["unified_exit_action"].grad,
         atol=1e-6,
     )
+
+
+def test_attended_exit_chunking_streams_complete_episode_groups(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = _episode_fixture()
+    second = {**_episode_fixture(), "entry_row_index": 8}
+
+    class _TwoExitDataset:
+        def __init__(self) -> None:
+            self._unified_exit_lifecycle = object()
+            self._episodes = {7: first, 8: second}
+
+        def materialize_full_exit_episode(self, entry_row_index: int):
+            return self._episodes[entry_row_index]
+
+    forward_group_sizes: list[int] = []
+
+    def forward_batch(*, model, entry_decision_representations, episodes, device, **_kwargs):
+        forward_group_sizes.append(len(episodes))
+        tokens = entry_decision_representations.repeat_interleave(4, dim=0)
+        snapshots = torch.cat(
+            [episode["snap"].reshape(4, 2) for episode in episodes], dim=0
+        ).to(device)
+        model.forwarded_rows += int(tokens.shape[0])
+        q_values = model.exit_head(torch.cat((tokens, snapshots), dim=1)).reshape(
+            len(episodes), 2, 2, 2
+        )
+        valid = torch.from_numpy(
+            np.stack(
+                [episode["exit_action_valid_mask"] for episode in episodes], axis=0
+            )
+        ).to(device)
+        state_valid = torch.from_numpy(
+            np.stack(
+                [episode["exit_state_valid_mask"] for episode in episodes], axis=0
+            )
+        ).to(device)
+        terminal = torch.zeros_like(state_valid)
+        lengths = torch.full((len(episodes), 2), 2, dtype=torch.long, device=device)
+        return q_values, valid, state_valid, terminal, lengths
+
+    def fitted_targets_batch(*, episodes, device, **_kwargs):
+        valid = torch.from_numpy(
+            np.stack(
+                [episode["exit_action_valid_mask"] for episode in episodes], axis=0
+            )
+        ).to(device)
+        state_valid = torch.from_numpy(
+            np.stack(
+                [episode["exit_state_valid_mask"] for episode in episodes], axis=0
+            )
+        ).to(device)
+        targets = _TARGET_Q.to(device).expand(len(episodes), -1, -1, -1)
+        terminal = torch.zeros_like(state_valid)
+        first_values = unified_exit_first_state_side_values(
+            frozen_target_q_bps=targets,
+            action_valid_mask=valid,
+            state_valid_mask=state_valid,
+        )
+        return targets, valid, terminal, first_values, state_valid[..., 0]
+
+    monkeypatch.setattr(trainer, "_forward_unified_exit_episode_batch", forward_batch)
+    monkeypatch.setattr(
+        trainer, "_fitted_q_targets_for_episode_batch", fitted_targets_batch
+    )
+    model = _ExitModel()
+    model.task_log_variances["unified_exit_action"].data.fill_(0.2)
+    token = torch.tensor([[0.4, -0.3], [0.2, 0.1]], requires_grad=True)
+    (
+        entry_gradient,
+        stats,
+        entry_targets,
+        entry_valid,
+    ) = trainer._train_unified_exit_full_population(
+        model=model,
+        target_model=copy.deepcopy(model).eval(),
+        entry_decision_representations=token,
+        target_entry_decision_representations=token.detach(),
+        entry_row_indices=torch.tensor([7, 8]),
+        dataset=_TwoExitDataset(),
+        device=torch.device("cpu"),
+        grad_accum_steps=1,
+        exit_cooperation_gate_epoch=None,
+        exit_feature_tf_gate_epoch=None,
+        exit_action_forward_chunk_rows=1,
+    )
+
+    assert forward_group_sizes == [1, 1]
+    assert model.forwarded_rows == 2 * _EXPECTED_POPULATION_ROWS
+    assert stats["population_rows"] == 2 * _EXPECTED_POPULATION_ROWS
+    assert stats["q_valid_cells"] == 2 * _EXPECTED_Q_VALID_CELLS
+    assert entry_gradient.shape == token.shape
+    assert entry_targets.shape == (2, 3)
+    assert entry_valid.tolist() == [[True, True, True], [True, True, True]]
 
 
 def test_full_exit_validation_uses_population_and_valid_denominators(

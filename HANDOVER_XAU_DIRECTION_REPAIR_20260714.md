@@ -198,8 +198,8 @@ weight exists.
 
 - No admitted dataset, model, calibration, edge, PnL or win-rate. V40's bytes
   pass the current foundation audits and the current-source report-only smoke
-  chain, but its bounded research smoke is unexecuted and production admission
-  is deliberately incomplete. The M5
+  chain, and its bounded research smoke has run only as a trainability/safety
+  diagnostic; production admission is deliberately incomplete. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.
@@ -401,7 +401,7 @@ or power limits on the basis of this smoke. The next work is to make the
 bounded run resumable/observable and then assess a separately audited training
 budget; it is not permission for full/candidate training.
 
-**Implemented attended-session continuation, not yet re-executed:** the
+**Implemented attended-session continuation, first bounded session observed:** the
 trainer now keeps deterministic FP32 and the same V40 model/data/objective, but
 the attended-only smoke route ends itself after a fixed four complete optimizer
 steps rather than waiting for the five-minute guard to kill it. Every completed
@@ -419,6 +419,26 @@ edge, OOS, PnL or trading result exists. The first-batch logs now also include
 complete Entry online/target time, Exit time, post-Exit backward time and peak
 CUDA allocation; no BF16, TF32, autocast, compile, batch-size, cgroup, power or
 timeout relaxation was introduced.
+
+**Second observed V40 attended session, 2026-08-24:** the fresh V40 recipe
+audit bound to source `44a253c6` passed before model construction. Its
+research-only private session wrote four complete, hash-verified checkpoint
+states and its active pointer recorded `complete_optimizer_steps=4`,
+`next_batch_offset=4` and `complete=false`; the intended bundle directory
+remained absent. This proves only durable bounded trainability progress: no
+VAL, checkpoint selection, candidate, edge, OOS, PnL, TEST, promotion, paper
+or live result exists. At the observed ten-minute status the trainer was below
+the 4 GiB cgroup ceiling (about 3.64 GiB RSS), core temperature was 63 C and
+actual draw 191 W, but reported VRAM was 24,260 MiB (near the 24 GiB device
+ceiling). A further WSL/DXG `dxgkio_make_resident: Ioctl failed: -12` line was
+then present in the kernel log. Treat that as a residency-risk event even
+though the process exited and checkpoint state verified. The next source-bound
+attended configuration therefore limits each session to two complete optimizer
+steps, streams the Exit loss in 32-episode groups and stages checkpoint loads
+on CPU before CUDA restore. It must use a fresh output path and recipe audit;
+the older four-step state is intentionally not resumed under changed memory
+behavior. Do not increase batch size, session duration, cgroup, power limit or
+GPU utilization from either observed session.
 
 **Attended hardware smoke, 2026-08-23:** the separate no-data CUDA route
 passed under the same attended guard. It constructed the exact Entry
@@ -544,7 +564,9 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    terminal GREEN. Its foundation audits and current-source report-only smoke
    chain now pass. The one explicitly bounded attended smoke completed its
    data preflight and four optimizer steps within every cgroup, temperature and
-   actual-power stop; it is still research-only and does not authorize
+   actual-power stop; a later session observed near-capacity VRAM/DXG residency
+   risk and tightened its future bounded configuration. It is still
+   research-only and does not authorize
    candidate or full training. Do not rebuild V40 merely to change a
    report-only consumer.
 4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
