@@ -99,7 +99,7 @@ research-session mechanism:
   epoch and `grad_accum_steps=1`. Canonical and candidate paths neither create
   nor read it.
 - Its fixed, source-owned budget is two **complete** optimizer steps. Its
-  attended-only Exit forward is streamed in groups of 32 complete episodes;
+  attended-only Exit forward is streamed in groups of 8 complete episodes;
   neither setting is exposed on the CLI. The process returns normally after
   that budget; the outer guard remains active as a temperature, actual-power,
   telemetry and wall-clock backstop.
@@ -134,10 +134,12 @@ directory. No bundle was written, and no VAL, selection or authority-bearing
 work ran. During that observed run the RTX 3090 remained below the guard's
 core-temperature and actual-draw limits, but reached 24,260 MiB reported VRAM
 usage and a new WSL/DXG `dxgkio_make_resident: Ioctl failed: -12` warning was
-recorded. That is a platform-risk signal, not a success criterion. The tighter
-two-step/32-row source-bound configuration above exists to leave residency
-headroom; it requires a fresh output path and audit and must not resume the
-older four-step state.
+recorded. That is a platform-risk signal, not a success criterion. The former
+two-step/32-row configuration was still unsafe under WSL. The current
+two-step/8-row source-bound configuration is a lower-memory change that
+requires a fresh output path, recipe audit and bounded measurement; it must
+not resume the older four-step state or be treated as an established safe
+historical-CUDA path.
 
 For attribution, the first batch now also emits `[TRAIN_PROFILE]` with Entry
 online/target forwards, complete Exit training time, post-Exit backward time,
