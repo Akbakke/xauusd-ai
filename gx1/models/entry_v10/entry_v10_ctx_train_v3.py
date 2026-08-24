@@ -7119,6 +7119,14 @@ def run_train(
             for name, indices in multi_tf_specialist_indices.items()
         },
     )
+    # This is the last point after complete immutable-data preflight and
+    # before CUDA/model allocation.  Keep the measurement source-local so an
+    # attended cgroup result can distinguish data-residency pressure from a
+    # model/episode allocation without changing either training surface.
+    log.info(
+        "[TRAIN_RSS] pre_model_construct rss_gib=%.2f",
+        _train_rss_gib(),
+    )
     if execution_tier == "attended_only":
         _announce_attended_preflight_ready(execution_tier=execution_tier)
     model = EntryV10CtxHybridTransformer(
