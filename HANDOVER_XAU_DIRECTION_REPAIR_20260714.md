@@ -583,12 +583,12 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
 5. ~~Re-measure every field and target against real TRAIN/VAL bytes.~~ Feature,
    target-v4 and specialist audits pass. The report-only smoke gates, wrapper
    dry-run and the bounded attended data/model smoke have passed their
-   safety/data phases. The next step is the source-bound
-   `--research-smoke` V40 run: one full CUDA smoke profile under the 4 GiB /
-   512 MiB / CPU 0-1 cgroup, 75 C core and 250 W actual-draw stops, with a
-   24-hour watchdog. It may produce a smoke-only VAL bundle; it is neither a
-   candidate nor TEST/paper/live authority. Do not reuse either attended
-   private checkpoint session as that run's output.
+   safety/data phases. Historical CUDA `--research-smoke` is suspended after
+   a WSL/GPU reset: it held nearly all VRAM resident under a 24-hour watchdog.
+   Run only the no-data attended hardware diagnostic (five minutes maximum,
+   70 C core and 180 W actual-draw stops) until a low-VRAM resumable historical
+   design is independently measured. Do not reuse either attended private
+   checkpoint session as a bundle output.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a

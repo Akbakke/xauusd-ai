@@ -454,7 +454,7 @@ def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
     assert "attended_only" in result.stderr
 
 
-def test_trainer_guard_allows_literal_wsl_memory_na_for_research_smoke(
+def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
     tmp_path: Path,
 ) -> None:
     nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390")
@@ -475,9 +475,8 @@ def test_trainer_guard_allows_literal_wsl_memory_na_for_research_smoke(
         check=False,
     )
 
-    assert result.returncode == 0, result.stderr
-    assert "execution_mode=research_smoke" in result.stderr
-    assert "research_smoke" in result.stderr
+    assert result.returncode == 75
+    assert "must be canonical or attended_smoke" in result.stderr
 
 
 def test_trainer_guard_rejects_memory_na_for_canonical_cuda(
@@ -739,7 +738,11 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
     assert "--attended-smoke" in source
-    assert "--research-smoke" in source
+    assert "disabled after the WSL/GPU reset" in source
+    assert "TRAINER_MAX_WALL_SECONDS=86400" not in source
+    assert "TRAINER_MODEL_MAX_WALL_SECONDS=86400" not in source
+    assert "TRAINER_GPU_MAX_CORE_TEMP_C=70" in source
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=180" in source
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
         in source

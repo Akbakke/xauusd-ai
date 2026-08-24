@@ -41,8 +41,8 @@ case "$GX1_TRAINER_DEVICE" in
   *) die "GX1_TRAINER_DEVICE must be cpu or cuda" ;;
 esac
 case "$GX1_TRAINER_EXECUTION_MODE" in
-  canonical|attended_smoke|research_smoke) ;;
-  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical, attended_smoke, or research_smoke" ;;
+  canonical|attended_smoke) ;;
+  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical or attended_smoke" ;;
 esac
 case "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" in
   true|false) ;;
@@ -112,13 +112,11 @@ read_gpu_telemetry() {
   memory_observed=true
   if [[ "$memory_temp" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
     :
-  elif { [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]] \
-    || [[ "$GX1_TRAINER_EXECUTION_MODE" == research_smoke ]]; } \
-    && [[ "$memory_temp" == N/A ]]; then
+  elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke \
+    && "$memory_temp" == N/A ]]; then
     # WSL's own driver reports literal N/A for this sensor.  This exception is
-    # deliberately unavailable to canonical training.  The only two admitted
-    # uses are bounded attended smoke and the source-bound research-smoke
-    # route, both of which retain the one-second core/actual-draw stops.
+    # deliberately unavailable to canonical training and is accepted only by
+    # the bounded attended diagnostic with one-second core/actual-draw stops.
     memory_observed=false
   else
     return 1
@@ -249,9 +247,6 @@ printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wa
   "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
 if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
   printf '[trainer_safety_attended_only] WSL VRAM telemetry may be literal N/A; this run has no candidate, TEST, promotion, or live authority\n' >&2
-fi
-if [[ "$GX1_TRAINER_EXECUTION_MODE" == research_smoke ]]; then
-  printf '[trainer_safety_research_smoke] WSL VRAM telemetry may be literal N/A; this run is smoke-only and has no candidate, TEST, promotion, paper, or live authority\n' >&2
 fi
 
 start_epoch=$(/bin/date +%s)

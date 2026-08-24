@@ -79,7 +79,7 @@ def test_candidate_wrapper_rejects_research_smoke_mode() -> None:
     result = _run("--research-smoke", "--dry-run")
 
     assert result.returncode == 2
-    assert "valid only for --profile smoke" in result.stderr
+    assert "disabled after the WSL/GPU reset" in result.stderr
 
 
 def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -> None:

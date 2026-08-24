@@ -33,7 +33,7 @@ usage() {
   cat <<'EOF'
 Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments]
        [--attended-smoke --train-sequence-roll-audit-json PATH \
-        --val-sequence-roll-audit-json PATH | --research-smoke] (--dry-run|--execute)
+        --val-sequence-roll-audit-json PATH] (--dry-run|--execute)
 
 Required identity and immutable evidence:
   --profile smoke|candidate
@@ -78,11 +78,9 @@ that bundle is rejected by smoke-bundle audit and cannot reach candidate, TEST,
 promotion, paper or live stages.
 Its two sequence-roll proofs authorize only a memory representation for the
 exact TRAIN/VAL inputs; the trainer re-hashes and validates them before use.
---research-smoke is accepted only for CUDA smoke runs through the guarded
-historical research route. It keeps the canonical trainer/data path so a
-completed smoke bundle may be audited on VAL, but has a source-owned 24-hour
-watchdog, 75 C core stop, 250 W actual-draw stop and no candidate, TEST, paper
-or live authority. It must not be combined with --attended-smoke.
+--research-smoke is intentionally disabled after a WSL/GPU reset during the
+former long-running route. Historical CUDA training requires a separately
+designed low-VRAM, resumable architecture before it may be re-enabled.
 EOF
 }
 
@@ -118,7 +116,6 @@ PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
 PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
 MEMORY_CAP= SWAP_CAP= RUN_MODE=
 ATTENDED_SMOKE=false
-RESEARCH_SMOKE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -134,9 +131,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --research-smoke)
-      [[ "$RESEARCH_SMOKE" == false ]] || die "duplicate argument: --research-smoke"
-      RESEARCH_SMOKE=true
-      shift
+      die "--research-smoke is disabled after the WSL/GPU reset"
       ;;
     --profile|--run-id|--dataset-dir|--train-manifest-json|--val-manifest-json|\
     --train-parquet|--val-parquet|--unified-exit-lifecycle-manifest-json|\
@@ -237,12 +232,6 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
 elif [[ -n "$TRAIN_SEQUENCE_ROLL_AUDIT_JSON" || -n "$VAL_SEQUENCE_ROLL_AUDIT_JSON" ]]; then
   die "sequence-roll reconstruction proofs are valid only with --attended-smoke"
 fi
-if [[ "$RESEARCH_SMOKE" == true ]]; then
-  [[ "$ATTENDED_SMOKE" == false ]] \
-    || die "--research-smoke and --attended-smoke are mutually exclusive"
-  [[ "$PROFILE" == smoke ]] \
-    || die "--research-smoke is valid only for --profile smoke"
-fi
 EXECUTION_TIER=canonical
 if [[ "$ATTENDED_SMOKE" == true ]]; then
   EXECUTION_TIER=attended_only
@@ -266,9 +255,6 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
 done
 if [[ "$ATTENDED_SMOKE" == true && "$DEVICE" != cuda ]]; then
   die "--attended-smoke requires --device cuda"
-fi
-if [[ "$RESEARCH_SMOKE" == true && "$DEVICE" != cuda ]]; then
-  die "--research-smoke requires --device cuda"
 fi
 PROFILE_VALIDATOR_ARGS=()
 case "$PROFILE" in
@@ -416,9 +402,6 @@ fi
 CAPPED_RUN_ARGS=(--class trainer --mem "$MEMORY_CAP" --swap "$SWAP_CAP")
 if [[ "$ATTENDED_SMOKE" == true ]]; then
   CAPPED_RUN_ARGS+=(--attended-smoke)
-fi
-if [[ "$RESEARCH_SMOKE" == true ]]; then
-  CAPPED_RUN_ARGS+=(--research-smoke)
 fi
 RUN_CMD=(
   "${ENV_COMMAND[@]}"
