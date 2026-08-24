@@ -30,7 +30,7 @@
 # The scope self-check proves the memory/pids limits before the target command is
 # entered. If any protection cannot be created or verified, the job fails closed.
 set -euo pipefail
-JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
+JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false ; RESEARCH_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
@@ -193,10 +193,20 @@ validate_target_command() {
   fi
 
   if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]]; then
+    if [[ "$ATTENDED_SMOKE" == true && "$RESEARCH_SMOKE" == true ]]; then
+      echo "FATAL: attended smoke and research smoke are mutually exclusive" >&2
+      exit 75
+    fi
     if [[ "$ATTENDED_SMOKE" == true ]] && { [[ "$TRAINER_DEVICE" != cuda \
       || $profile_count -ne 1 || "$profile_value" != smoke \
       || $execution_tier_count -ne 1 || "$execution_tier_value" != attended_only ]]; }; then
       echo "FATAL: attended smoke is reserved for one CUDA smoke command marked --execution-tier attended_only" >&2
+      exit 75
+    fi
+    if [[ "$RESEARCH_SMOKE" == true ]] && { [[ "$TRAINER_DEVICE" != cuda \
+      || $profile_count -ne 1 || "$profile_value" != smoke \
+      || $execution_tier_count -ne 1 || "$execution_tier_value" != canonical ]]; }; then
+      echo "FATAL: research smoke is reserved for one CUDA smoke command marked --execution-tier canonical" >&2
       exit 75
     fi
     if [[ "$ATTENDED_SMOKE" == true ]]; then
@@ -211,7 +221,7 @@ validate_target_command() {
   # This is intentionally a separate target, not a shortcut into canonical
   # training.  It carries no --train flag, accepts CUDA only, and is admitted
   # only through the same attended guard owned by this source file.
-  if [[ "$ATTENDED_SMOKE" != true || "$TRAINER_DEVICE" != cuda \
+  if [[ "$ATTENDED_SMOKE" != true || "$RESEARCH_SMOKE" == true || "$TRAINER_DEVICE" != cuda \
     || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 1 ]]; then
     echo "FATAL: attended hardware smoke requires --attended-smoke, CUDA, no --train, and one --attended-hardware-smoke marker" >&2
     exit 75
@@ -238,6 +248,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --attended-smoke)
       ATTENDED_SMOKE=true; shift
+      ;;
+    --research-smoke)
+      RESEARCH_SMOKE=true; shift
       ;;
     --)     shift; break ;;
     *) echo "FATAL: unknown arg '$1' (put the command after '--')"; exit 2 ;;
@@ -287,6 +300,29 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
     TRAINER_MAX_WALL_SECONDS=300
     TRAINER_MODEL_MAX_WALL_SECONDS=300
   fi
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_POWER_LIMIT_W=390
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+fi
+
+if [[ "$RESEARCH_SMOKE" == true ]]; then
+  [[ "$ATTENDED_SMOKE" == false ]] || {
+    echo "FATAL: --research-smoke and --attended-smoke are mutually exclusive" >&2
+    exit 75
+  }
+  # Research smoke is the one complete historical smoke epoch that produces
+  # a smoke-only VAL bundle.  It does not widen the cgroup, increase the
+  # actual-draw ceiling, alter the model, or grant candidate/TEST/serve
+  # authority.  WSL currently exposes a fixed 390 W configured driver limit
+  # and literal N/A GDDR telemetry; the guard therefore accepts that platform
+  # presentation but samples core temperature and actual draw once per second
+  # and terminates at the same conservative 75 C / 250 W stops as attended
+  # smoke.  Twenty-four hours is a hard watchdog for one source-bound full
+  # historical smoke, not a permission for an unattended daemon.
+  TRAINER_EXECUTION_MODE=research_smoke
+  TRAINER_MAX_WALL_SECONDS=86400
+  TRAINER_MODEL_MAX_WALL_SECONDS=86400
   TRAINER_GPU_MAX_CORE_TEMP_C=75
   TRAINER_GPU_MAX_POWER_LIMIT_W=390
   TRAINER_GPU_MAX_POWER_DRAW_W=250

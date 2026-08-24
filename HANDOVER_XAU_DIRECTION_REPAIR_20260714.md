@@ -582,9 +582,13 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    Derivations: `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
 5. ~~Re-measure every field and target against real TRAIN/VAL bytes.~~ Feature,
    target-v4 and specialist audits pass. The report-only smoke gates, wrapper
-   dry-run and the one bounded attended data/model smoke have passed their
-   safety/data phases; the next step remains an explicitly designed, audited
-   research training budget, not candidate or full training.
+   dry-run and the bounded attended data/model smoke have passed their
+   safety/data phases. The next step is the source-bound
+   `--research-smoke` V40 run: one full CUDA smoke profile under the 4 GiB /
+   512 MiB / CPU 0-1 cgroup, 75 C core and 250 W actual-draw stops, with a
+   24-hour watchdog. It may produce a smoke-only VAL bundle; it is neither a
+   candidate nor TEST/paper/live authority. Do not reuse either attended
+   private checkpoint session as that run's output.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a

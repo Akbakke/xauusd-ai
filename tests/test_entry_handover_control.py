@@ -65,6 +65,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-selective-edge",
     "model-native-seed-stability",
     "model-native-smoke-train",
+    "model-native-research-smoke-train",
     "model-native-candidate-train",
 }
 
@@ -200,12 +201,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "RUN_V40_REMAINING_ADMISSION_GATES_THEN_BOUNDED_SMOKE"
+        "RUN_V40_GUARDED_RESEARCH_SMOKE_THEN_SMOKE_BUNDLE_AUDIT"
         in result.stdout
     )
     assert "dataset_rebuild: NOT_REQUIRED_CURRENT_V40_BYTES_PASS" in result.stdout
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "model-native-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
+    assert "model-native-research-smoke-train -> model-native-smoke-bundle-audit" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
@@ -525,6 +526,9 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
     attended_smoke_route = source.split(
         "  model-native-attended-smoke-train)", 1
     )[1].split("    ;;", 1)[0]
+    research_smoke_route = source.split(
+        "  model-native-research-smoke-train)", 1
+    )[1].split("    ;;", 1)[0]
     candidate_route = source.split(
         "  model-native-candidate-train)", 1
     )[1].split("    ;;", 1)[0]
@@ -534,15 +538,19 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
 
     assert wrapper in smoke_route
     assert "--profile smoke" in smoke_route
-    assert 'reject_flags "$cmd" --attended-smoke' in smoke_route
+    assert 'reject_flags "$cmd" --attended-smoke --research-smoke' in smoke_route
     assert wrapper in attended_smoke_route
     assert "--profile smoke" in attended_smoke_route
     assert "--attended-smoke" in attended_smoke_route
     assert "--train-sequence-roll-audit-json" in attended_smoke_route
     assert "--val-sequence-roll-audit-json" in attended_smoke_route
+    assert wrapper in research_smoke_route
+    assert "--profile smoke" in research_smoke_route
+    assert "--research-smoke" in research_smoke_route
+    assert "--attended-smoke --research-smoke" in research_smoke_route
     assert wrapper in candidate_route
     assert "--profile candidate" in candidate_route
-    assert source.count(wrapper) == 3
+    assert source.count(wrapper) == 4
     assert "--train-wrapper" in trainability_route
 
 

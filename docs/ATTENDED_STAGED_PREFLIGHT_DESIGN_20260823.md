@@ -153,3 +153,23 @@ on 2026-08-23. It extends an attended diagnostic from one five-minute
 wall-clock to at most fifteen minutes, while CPU thermal telemetry is absent.
 It does not authorize candidate training, edge claims, TEST, promotion, paper
 trading or live execution. Those remain separate, evidence-gated decisions.
+
+### Guarded historical research smoke
+
+The later `--research-smoke` route is deliberately distinct from the bounded
+attended diagnostic.  It accepts only the canonical CUDA **smoke** profile and
+therefore runs the ordinary full TRAIN/VAL path and may write a smoke bundle;
+it never changes the model, targets, data, profile, or execution tier.  Its
+purpose is to obtain the first historical VAL measurement, not to admit a
+candidate or trading result.
+
+The source-owned guard retains the 4 GiB cgroup, 512 MiB swap cap, CPU affinity
+0-1, deterministic FP32, a one-second telemetry interval, 75 C core stop and
+250 W **actual-draw** stop.  It permits the observed WSL presentation of a
+390 W configured driver limit and literal `temperature.memory=N/A`; canonical
+training still rejects that presentation.  The research route has a 24-hour
+hard watchdog for one complete historical smoke, is mutually exclusive with
+`--attended-smoke`, and is rejected for the candidate profile.  The missing
+memory-temperature sensor is explicitly reported at launch rather than treated
+as a passing measurement.  TEST, promotion, paper and live authority remain
+false.

@@ -86,6 +86,8 @@ Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-attended-smoke-train --run-id <id> <all other explicit arguments> \
     --train-sequence-roll-audit-json <immutable-json> \
     --val-sequence-roll-audit-json <immutable-json> (--dry-run|--execute)
+  model-native-research-smoke-train --run-id <id> <all other explicit arguments> \
+    (--dry-run|--execute)
   model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
   model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
@@ -692,18 +694,29 @@ case "$cmd" in
 
   model-native-smoke-train)
     reject_non_authoritative_args "$@"
-    reject_flags "$cmd" --attended-smoke
+    reject_flags "$cmd" --attended-smoke --research-smoke
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke "$@"
     ;;
 
   model-native-attended-smoke-train)
     reject_non_authoritative_args "$@"
+    reject_flags "$cmd" --research-smoke
     for flag in \
       --train-sequence-roll-audit-json \
       --val-sequence-roll-audit-json; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-smoke "$@"
+    ;;
+
+  model-native-research-smoke-train)
+    # The sole long-running historical route: it remains the canonical smoke
+    # profile, with the runner's narrow 4 GiB / CPU 0-1 / thermal guard.
+    # It may create a smoke-only VAL bundle; it has no candidate or TEST
+    # authority and is intentionally separate from the attended diagnostic.
+    reject_non_authoritative_args "$@"
+    reject_flags "$cmd" --attended-smoke --research-smoke
+    exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --research-smoke "$@"
     ;;
 
   model-native-attended-hardware-smoke)

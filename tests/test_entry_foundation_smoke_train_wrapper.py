@@ -238,6 +238,35 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
     assert "requires --device cuda" in cpu_result.stderr
 
 
+def test_research_smoke_is_cuda_only_and_keeps_canonical_execution_tier(
+    tmp_path: Path,
+) -> None:
+    args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    cuda_args = _replace_arg(args, "--device", "cuda")
+    recipe_path = Path(cuda_args[cuda_args.index("--recipe-audit-json") + 1])
+    recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
+    recipe["trainer_cli"]["device"] = "cuda"
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(recipe["trainer_cli"])
+    recipe_path.write_text(
+        json.dumps(recipe, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = _run("--research-smoke", *cuda_args, "--dry-run")
+
+    assert result.returncode == 0, result.stderr
+    assert "execution_tier=canonical" in result.stdout
+    command = _capped_command_tokens(result.stdout)
+    runner_index = command.index(str(REPO / "scripts/gx1_capped_run.sh"))
+    separator_index = command.index("--", runner_index)
+    assert "--research-smoke" in command[runner_index:separator_index]
+    assert command[command.index("--execution-tier") + 1] == "canonical"
+
+    cpu_result = _run("--research-smoke", *args, "--dry-run")
+    assert cpu_result.returncode == 2
+    assert "requires --device cuda" in cpu_result.stderr
+
+
 def test_sequence_roll_reconstruction_proofs_are_attended_only(tmp_path: Path) -> None:
     args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
     train_proof = tmp_path / "train.sequence_roll_audit.json"

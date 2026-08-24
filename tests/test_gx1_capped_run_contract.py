@@ -454,6 +454,32 @@ def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
     assert "attended_only" in result.stderr
 
 
+def test_trainer_guard_allows_literal_wsl_memory_na_for_research_smoke(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390")
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=_guard_env(
+            device="cuda",
+            nvidia_smi_path=nvidia_smi,
+            execution_mode="research_smoke",
+            max_power_limit_w=390,
+            max_power_draw_w=250,
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "execution_mode=research_smoke" in result.stderr
+    assert "research_smoke" in result.stderr
+
+
 def test_trainer_guard_rejects_memory_na_for_canonical_cuda(
     tmp_path: Path,
 ) -> None:
@@ -713,6 +739,7 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
     assert "--attended-smoke" in source
+    assert "--research-smoke" in source
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
         in source
