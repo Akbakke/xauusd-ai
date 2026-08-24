@@ -170,3 +170,12 @@ It also retains the five-minute model deadline, 70 C core stop, 180 W
 **actual-draw** stop, 4 GiB cgroup, 512 MiB swap and CPU affinity 0-1. This is
 one fresh bounded measurement, not permission for continued historical CUDA
 training; it is non-promotable and may not create a bundle or any edge result.
+
+The first measurement under this geometry reached the model boundary on
+2026-08-24: full V40 data preflight passed, the allocator fence reported a
+12,287 MiB budget, and a batch-8 Entry/Exit loss reached its first backward
+pass. The outer guard then stopped the process for actual draw above 180 W
+before an optimizer step completed. The intended bundle remained absent and
+the session contains no completed checkpoint. This is a successful safety stop,
+not trainability or edge evidence. Do not raise the draw threshold or retry
+automatically; first establish an independently measured host-side power plan.

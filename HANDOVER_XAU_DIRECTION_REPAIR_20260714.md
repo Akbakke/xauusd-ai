@@ -452,6 +452,22 @@ all candidate/TEST/promotion/live flags false. It confirms only the guarded
 GPU architecture path; it must never be cited as a data-smoke, edge, model,
 normalization or trading result.
 
+**Low-VRAM V40 historical measurement, 2026-08-24:** source `cc245139` and
+the immutable recipe audit
+`train_recipe_attended_lowvram_20260824T212239Z/...212240905051Z.json` passed.
+The full V40 TRAIN/VAL identity and normalization preflight reached the
+pre-model boundary at 3.83 GiB RSS. The attended-only CUDA fence was set to
+50% (12,287 MiB), the exact batch-8 model constructed, and the first Entry and
+8-episode Exit loss completed its logged forward/Exit-backward profile. The
+outer safety guard then sent TERM for `power_draw` during the remaining model
+backward, before an optimizer step or checkpoint completed. The intended bundle
+directory stayed absent; only the non-promotable static attended-session
+contract exists. After exit the GPU read 49 C, 35.52 W and 399 MiB with no
+active trainer. This proves the new memory fence and automatic draw stop, but
+not a completed training step, model, edge, OOS, PnL, win rate or backtest.
+Do not raise the 180 W stop or retry the historical CUDA lane automatically;
+first obtain an independently measurable host-side power plan.
+
 **Eight-family operativity audit, 2026-08-23:** this is a current-source,
 read-only review of the immutable V40 artifacts, not a new dataset build or
 training result. `ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260821T101614567463Z`
@@ -588,10 +604,10 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    dry-run and the bounded attended data/model smoke have passed their
    safety/data phases. Historical CUDA `--research-smoke` is suspended after
    a WSL/GPU reset: it held nearly all VRAM resident under a 24-hour watchdog.
-   The long-running historical route remains disabled. Run at most one fresh,
-   low-VRAM attended data diagnostic only after a source-bound recipe audit;
-   it is fixed at batch 8, two optimizer steps, 8-episode Exit chunks, a 50%
-   CUDA allocator fence and a 12 GiB NVML-use stop. Do not reuse either
+   The long-running historical route remains disabled. The first low-VRAM
+   attended data measurement safely stopped at the 180 W actual-draw guard
+   before an optimizer step. Do not retry it or raise its draw threshold until
+   an independently measurable host-side power plan exists. Do not reuse either
    attended private checkpoint session as a bundle output.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
