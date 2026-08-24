@@ -139,7 +139,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert (
         "dataset_contract: "
-        "V40_GREEN_FOUNDATION_AUDITS_PASS_ADMISSION_PENDING"
+        "V40_REGISTRY_BRANCH_SUPPORT_REBUILD_REQUIRED"
         in result.stdout
     )
     assert "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED" in result.stdout
@@ -200,10 +200,13 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "ANALYZE_V40_POWER_CEILING_BEFORE_ANY_HISTORICAL_CUDA_RETRY"
+        "REBUILD_V40_SUCCESSOR_WITH_BRANCH_SUPPORTED_REGISTRY_FIT"
         in result.stdout
     )
-    assert "dataset_rebuild: NOT_REQUIRED_CURRENT_V40_BYTES_PASS" in result.stdout
+    assert (
+        "dataset_rebuild: REQUIRED_CURRENT_V40_REGISTRY_FIT_SCHEMA_REJECTED"
+        in result.stdout
+    )
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
     assert "batch-8 diagnostic stopped at 180 W" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout
