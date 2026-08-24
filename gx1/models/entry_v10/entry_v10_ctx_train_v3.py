@@ -8252,14 +8252,15 @@ def run_train(
         _announce_attended_preflight_ready(execution_tier=execution_tier)
         try:
             torch.cuda.empty_cache()
+            cuda_index = torch.cuda.current_device()
             torch.cuda.set_per_process_memory_fraction(
                 _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION,
-                device,
+                cuda_index,
             )
             total_mib = int(
-                torch.cuda.get_device_properties(device).total_memory // (1024 * 1024)
+                torch.cuda.get_device_properties(cuda_index).total_memory // (1024 * 1024)
             )
-        except RuntimeError as exc:
+        except (RuntimeError, ValueError) as exc:
             raise RuntimeError(
                 "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE_FAILED]"
             ) from exc

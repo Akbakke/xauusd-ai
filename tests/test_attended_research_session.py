@@ -184,6 +184,7 @@ def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     assert "_ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION = 0.50" in source
     assert "_ATTENDED_RESEARCH_BATCH_SIZE = 8" in source
     assert "torch.cuda.set_per_process_memory_fraction(" in source
+    assert "cuda_index = torch.cuda.current_device()" in source
     assert 'map_location="cpu", weights_only=True' in source
     assert '"precision": "deterministic_fp32"' in source
     assert '"tf32": False' in source
