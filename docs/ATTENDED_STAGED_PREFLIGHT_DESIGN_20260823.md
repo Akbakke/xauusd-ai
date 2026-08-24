@@ -161,5 +161,6 @@ under WSL and the host/WSL session reset.  No historical CUDA train, bundle,
 candidate, TEST, paper or live step may use that route.  The only admitted CUDA
 action is the no-data attended hardware diagnostic: one five-minute maximum,
 70 C core stop, 180 W **actual-draw** stop, 4 GiB cgroup, 512 MiB swap and CPU
-affinity 0-1.  A low-VRAM resumable design must be measured and reviewed before
-historical CUDA training is reintroduced.
+affinity 0-1.  The resumable attended research lane retains no more than eight
+480-bar Exit episodes per backward group; it is non-promotable and needs a
+fresh, bounded measurement before any historical CUDA training is reintroduced.

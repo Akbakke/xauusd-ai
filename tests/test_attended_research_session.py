@@ -180,7 +180,7 @@ def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     source = Path(trainer.__file__).read_text(encoding="utf-8")
 
     assert "_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2" in source
-    assert "_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 32" in source
+    assert "_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8" in source
     assert 'map_location="cpu", weights_only=True' in source
     assert '"precision": "deterministic_fp32"' in source
     assert '"tf32": False' in source

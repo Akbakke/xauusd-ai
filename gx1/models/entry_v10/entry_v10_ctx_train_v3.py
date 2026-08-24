@@ -983,7 +983,11 @@ UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
 # ambient variable may expand either one.
 _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION = "gx1_attended_research_session_v1"
 _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2
-_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 32
+# The former 32-row attended group kept almost all of the WSL GPU allocation
+# resident in the historical smoke.  Use the only group size with a documented
+# bounded 480-bar attention measurement instead.  This is a diagnostic-only,
+# checkpointed lane; it trades speed for a releasable graph after each group.
+_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
 _ATTENDED_RESEARCH_SESSION_DIR_PREFIX = ".gx1-attended-research-session."
 _ATTENDED_RESEARCH_CONTRACT_FILENAME = "ATTENDED_RESEARCH_SESSION_CONTRACT.json"
 _ATTENDED_RESEARCH_ACTIVE_FILENAME = "ATTENDED_RESEARCH_SESSION_ACTIVE.json"
