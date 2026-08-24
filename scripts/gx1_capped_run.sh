@@ -66,6 +66,9 @@ TRAINER_GPU_MAX_CORE_TEMP_C=78
 TRAINER_GPU_MAX_MEMORY_TEMP_C=90
 TRAINER_GPU_MAX_POWER_LIMIT_W=250
 TRAINER_GPU_MAX_POWER_DRAW_W=250
+# The canonical mode retains the device-sized ceiling for observability. The
+# bounded attended data diagnostic narrows this to 12 GiB below.
+TRAINER_GPU_MAX_MEMORY_USED_MIB=24576
 TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2
 TRAINER_DEVICE=
 
@@ -295,6 +298,10 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   TRAINER_GPU_MAX_CORE_TEMP_C=70
   TRAINER_GPU_MAX_POWER_LIMIT_W=390
   TRAINER_GPU_MAX_POWER_DRAW_W=180
+  # WSL/DXG previously approached the 24 GiB device ceiling and then lost
+  # residency. Keep a visible 12 GiB stop in addition to the trainer's
+  # allocator-level half-device cap; neither is caller configurable.
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
   TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
 fi
 
@@ -423,7 +430,7 @@ fi
 echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
 if [[ "$JOB_CLASS" == trainer ]]; then
-  echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
 fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -471,6 +478,7 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C="$TRAINER_GPU_MAX_MEMORY_TEMP_C" \
   --setenv=GX1_TRAINER_GPU_MAX_POWER_LIMIT_W="$TRAINER_GPU_MAX_POWER_LIMIT_W" \
   --setenv=GX1_TRAINER_GPU_MAX_POWER_DRAW_W="$TRAINER_GPU_MAX_POWER_DRAW_W" \
+  --setenv=GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB="$TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
   --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
   --setenv=OMP_NUM_THREADS=1 \

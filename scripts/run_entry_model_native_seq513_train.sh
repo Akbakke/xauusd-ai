@@ -256,6 +256,15 @@ done
 if [[ "$ATTENDED_SMOKE" == true && "$DEVICE" != cuda ]]; then
   die "--attended-smoke requires --device cuda"
 fi
+if [[ "$ATTENDED_SMOKE" == true ]]; then
+  # This lane is a one-off historical CUDA measurement, not a faster smoke
+  # profile.  Its exact micro-batch geometry is part of the WSL residency
+  # boundary and must agree with the trainer's independent assertion.
+  [[ "$BATCH_SIZE" == 8 ]] \
+    || die "--attended-smoke requires the fixed low-VRAM --batch-size 8"
+  [[ "$EPOCHS" == 1 && "$GRAD_ACCUM_STEPS" == 1 ]] \
+    || die "--attended-smoke requires exactly --epochs 1 and --grad-accum-steps 1"
+fi
 PROFILE_VALIDATOR_ARGS=()
 case "$PROFILE" in
   smoke)

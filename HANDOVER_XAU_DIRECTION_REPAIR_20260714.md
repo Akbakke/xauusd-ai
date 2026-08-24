@@ -45,11 +45,12 @@ does not weaken either canonical condition. The canonical smoke is therefore
 not executable until there is a real telemetry/power solution. Following an
 explicit operator decision on 2026-08-23, the source also contains one
 separate `model-native-attended-smoke-train` route for an operator-present
-diagnostic only: CUDA smoke only, 300-second hard wall, 75 C core cutoff,
-250 W **actual draw** cutoff, 1-second polling, and all existing 4G/512M,
-one-job and one-physical-core protections. It may accept only the literal WSL
+low-VRAM diagnostic only: CUDA smoke only, a 600-second data preflight followed
+by a 300-second model wall, 70 C core cutoff, 180 W **actual draw** cutoff,
+12 GiB NVML-use cutoff, 1-second polling, and all existing 4G/512M, one-job
+and one-physical-core protections. It may accept only the literal WSL
 memory value `N/A` while all other telemetry remains numeric; it permits a
-configured limit up to the observed 390 W only because the 250 W actual-draw
+configured limit up to the observed 390 W only because the 180 W actual-draw
 kill remains active. It must be invoked through that dedicated route, never
 overnight or unattended. Its bundle records `execution_tier=attended_only` in
 both metadata and lock; smoke-bundle audit rejects that tier, so it cannot
@@ -71,8 +72,9 @@ For an actual CUDA architecture/thermal check without that full-data I/O,
 operator-present route. It constructs the exact Entry architecture and
 specialist routing and executes one deterministic CUDA forward/backward/AdamW
 step on contract-valid **synthetic** tensors. It reads no TRAIN/VAL/TEST
-parquet, writes no files, uses the same 4G/512M, five-minute, 75 C,
-250 W actual-draw and one-second guard, and has `authority=none`. It cannot
+parquet, writes no files, uses the same 4G/512M, five-minute, 70 C,
+180 W actual-draw, 12 GiB NVML-use and one-second guard, and has
+`authority=none`. It cannot
 stand in for a data smoke, normalization fit, candidate, edge claim, TEST,
 promotion, paper or live evidence.
 
@@ -288,9 +290,9 @@ returned `Insufficient Permissions`, and the readback remained 390 W. That is
 not a successful cap change and does not authorize weakening the canonical
 guard. The only narrowly-scoped exception is the separate, source-bound,
 operator-present attended-smoke route described above; it tolerates exactly
-`temperature.memory=N/A`, keeps a 250 W actual-draw kill and is permanently
-blocked from downstream evidence. NVIDIA's CUDA-on-WSL documentation confirms that
-NVIDIA's CUDA-on-WSL documentation confirms that
+`temperature.memory=N/A`, keeps a 180 W actual-draw kill, adds a 12 GiB
+NVML-use stop and a 50% CUDA allocator fence, and is permanently blocked from
+downstream evidence. NVIDIA's CUDA-on-WSL documentation confirms that
 WSL NVML does not support all queries and identifies `/usr/lib/wsl/lib/nvidia-smi`
 as the WSL path. The Windows-host `nvidia-smi.exe` was also read-tested from
 WSL on 2026-08-23 and failed with `UtilAcceptVsock` rather than yielding sensor
@@ -434,11 +436,12 @@ ceiling). A further WSL/DXG `dxgkio_make_resident: Ioctl failed: -12` line was
 then present in the kernel log. Treat that as a residency-risk event even
 though the process exited and checkpoint state verified. The next source-bound
 attended configuration therefore limits each session to two complete optimizer
-steps, streams the Exit loss in 32-episode groups and stages checkpoint loads
-on CPU before CUDA restore. It must use a fresh output path and recipe audit;
-the older four-step state is intentionally not resumed under changed memory
-behavior. Do not increase batch size, session duration, cgroup, power limit or
-GPU utilization from either observed session.
+steps, CUDA batch size 8, streams the Exit loss in 8-episode groups, fences the
+PyTorch allocator at 50% of device VRAM, stops at 12 GiB observed NVML use and
+stages checkpoint loads on CPU before CUDA restore. It must use a fresh output
+path and recipe audit; the older four-step state is intentionally not resumed
+under changed memory behavior. Do not increase batch size, session duration,
+cgroup, power limit or GPU utilization from either observed session.
 
 **Attended hardware smoke, 2026-08-23:** the separate no-data CUDA route
 passed under the same attended guard. It constructed the exact Entry
@@ -585,10 +588,11 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    dry-run and the bounded attended data/model smoke have passed their
    safety/data phases. Historical CUDA `--research-smoke` is suspended after
    a WSL/GPU reset: it held nearly all VRAM resident under a 24-hour watchdog.
-   Run only the no-data attended hardware diagnostic (five minutes maximum,
-   70 C core and 180 W actual-draw stops) until a low-VRAM resumable historical
-   design is independently measured. Do not reuse either attended private
-   checkpoint session as a bundle output.
+   The long-running historical route remains disabled. Run at most one fresh,
+   low-VRAM attended data diagnostic only after a source-bound recipe audit;
+   it is fixed at batch 8, two optimizer steps, 8-episode Exit chunks, a 50%
+   CUDA allocator fence and a 12 GiB NVML-use stop. Do not reuse either
+   attended private checkpoint session as a bundle output.
 6. **Run the pre-registered test in
    `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
    written before the dataset existed and must not be edited after seeing a

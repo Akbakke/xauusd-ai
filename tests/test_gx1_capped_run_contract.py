@@ -66,6 +66,7 @@ def _guard_env(
     attended_stage_required: bool = False,
     max_power_limit_w: int = 250,
     max_power_draw_w: int = 250,
+    max_memory_used_mib: int = 12288,
 ) -> dict[str, str]:
     cgroup_relative = next(
         row.split(":", 2)[2]
@@ -101,6 +102,7 @@ def _guard_env(
         "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "90",
         "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": str(max_power_limit_w),
         "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": str(max_power_draw_w),
+        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": str(max_memory_used_mib),
         "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
         "GX1_TRAINER_NVIDIA_SMI_PATH": str(nvidia_smi_path),
     }
@@ -356,7 +358,7 @@ def test_staged_guard_enforces_separate_model_phase_timeout(tmp_path: Path) -> N
 
 
 def test_trainer_guard_accepts_complete_safe_cuda_telemetry(tmp_path: Path) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 100, 250")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 100, 250, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -378,10 +380,10 @@ def test_trainer_guard_accepts_complete_safe_cuda_telemetry(tmp_path: Path) -> N
 @pytest.mark.parametrize(
     ("telemetry", "expected"),
     [
-        ("79, 70, 100, 250", "core temperature"),
-        ("50, 91, 100, 250", "memory temperature"),
-        ("50, 70, 251, 250", "GPU draw"),
-        ("50, 70, 100, 251", "configured GPU power limit"),
+        ("79, 70, 100, 250, 1000", "core temperature"),
+        ("50, 91, 100, 250, 1000", "memory temperature"),
+        ("50, 70, 251, 250, 1000", "GPU draw"),
+        ("50, 70, 100, 251, 1000", "configured GPU power limit"),
     ],
 )
 def test_trainer_guard_rejects_unsafe_cuda_preflight(
@@ -403,6 +405,25 @@ def test_trainer_guard_rejects_unsafe_cuda_preflight(
 
     assert result.returncode == 75
     assert expected in result.stderr
+
+
+def test_trainer_guard_rejects_gpu_memory_residency_above_bound(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 100, 250, 12289")
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=_guard_env(device="cuda", nvidia_smi_path=nvidia_smi),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 75
+    assert "GPU memory used 12289MiB exceeds 12288MiB" in result.stderr
 
 
 def test_trainer_guard_rejects_unavailable_cuda_telemetry(
@@ -431,7 +452,7 @@ def test_trainer_guard_rejects_unavailable_cuda_telemetry(
 def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -457,7 +478,7 @@ def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
 def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -482,7 +503,7 @@ def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
 def test_trainer_guard_rejects_memory_na_for_canonical_cuda(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 250")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 250, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -501,7 +522,7 @@ def test_trainer_guard_rejects_memory_na_for_canonical_cuda(
 def test_attended_smoke_keeps_the_actual_draw_ceiling(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 251, 390")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 251, 390, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,

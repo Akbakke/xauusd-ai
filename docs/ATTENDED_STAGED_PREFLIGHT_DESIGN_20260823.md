@@ -25,7 +25,7 @@ The attended-only route would receive two fixed, source-bound deadlines:
 
 | Stage | Fixed maximum | Work included | Protection retained |
 | --- | ---: | --- | --- |
-| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 4 GiB hard cgroup, 512 MiB swap ceiling, one physical CPU core, low priority, one-second GPU telemetry, 75 C core stop, 250 W actual-draw stop |
+| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 4 GiB hard cgroup, 512 MiB swap ceiling, one physical CPU core, low priority, one-second GPU telemetry, 70 C core stop, 180 W actual-draw stop, 12 GiB NVML-use stop |
 | `model_smoke` | 300 seconds | model construction, CUDA input-contract forward, optimizer and the declared attended smoke epoch | exactly the same controls, with a newly measured 300-second deadline |
 
 The total maximum is therefore 900 seconds. It is a more tightly specified
@@ -156,13 +156,17 @@ wall-clock to at most fifteen minutes, while CPU thermal telemetry is absent.
 It does not authorize candidate training, edge claims, TEST, promotion, paper
 trading or live execution. Those remain separate, evidence-gated decisions.
 
-### Historical CUDA training suspended
+### Long-running historical CUDA training suspended
 
 `--research-smoke` was removed after it kept nearly all 24 GiB VRAM resident
 under WSL and the host/WSL session reset.  No historical CUDA train, bundle,
-candidate, TEST, paper or live step may use that route.  The only admitted CUDA
-action is the no-data attended hardware diagnostic: one five-minute maximum,
-70 C core stop, 180 W **actual-draw** stop, 4 GiB cgroup, 512 MiB swap and CPU
-affinity 0-1.  The resumable attended research lane retains no more than eight
-480-bar Exit episodes per backward group; it is non-promotable and needs a
-fresh, bounded measurement before any historical CUDA training is reintroduced.
+candidate, TEST, paper or live step may use that route. The no-data attended
+hardware diagnostic remains available. A separate historical-data diagnostic
+is admitted only through the attended-only route with its source-owned
+low-VRAM geometry: CUDA batch size 8, one epoch, gradient accumulation 1, two
+complete optimizer steps, at most eight 480-bar Exit episodes per backward
+group, a 50% per-process CUDA allocator fence, and a 12 GiB NVML-use stop.
+It also retains the five-minute model deadline, 70 C core stop, 180 W
+**actual-draw** stop, 4 GiB cgroup, 512 MiB swap and CPU affinity 0-1. This is
+one fresh bounded measurement, not permission for continued historical CUDA
+training; it is non-promotable and may not create a bundle or any edge result.

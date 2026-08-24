@@ -200,12 +200,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "RUN_V40_LOW_VRAM_DESIGN_BEFORE_ANY_HISTORICAL_CUDA_TRAINING"
+        "RUN_ONE_V40_LOW_VRAM_HISTORICAL_DIAGNOSTIC"
         in result.stdout
     )
     assert "dataset_rebuild: NOT_REQUIRED_CURRENT_V40_BYTES_PASS" in result.stdout
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "model-native-attended-hardware-smoke only" in result.stdout
+    assert "one attended batch-8/two-step historical diagnostic" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000

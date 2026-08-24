@@ -983,6 +983,12 @@ UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
 # ambient variable may expand either one.
 _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION = "gx1_attended_research_session_v1"
 _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2
+# An attended session may allocate at most half of the device through the
+# PyTorch caching allocator.  The independent guard observes total NVML usage
+# every second and stops at the same 12 GiB threshold; the allocator fence is
+# needed because a WSL residency failure can occur before the next poll.
+_ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION = 0.50
+_ATTENDED_RESEARCH_BATCH_SIZE = 8
 # The former 32-row attended group kept almost all of the WSL GPU allocation
 # resident in the historical smoke.  Use the only group size with a documented
 # bounded 480-bar attention measurement instead.  This is a diagnostic-only,
@@ -7584,6 +7590,16 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_TRAIN_ATTENDED_TIER_PROFILE_INVALID] attended_only requires smoke"
         )
+    if execution_tier == "attended_only" and (
+        device.type != "cuda"
+        or int(batch_size) != _ATTENDED_RESEARCH_BATCH_SIZE
+        or int(epochs) != 1
+        or int(grad_accum_steps) != 1
+    ):
+        raise RuntimeError(
+            "[ATTENDED_RESEARCH_LOW_VRAM_GEOMETRY_INVALID] "
+            "requires CUDA, batch_size=8, epochs=1 and grad_accum_steps=1"
+        )
     reconstruction_audits = (
         train_sequence_roll_audit_json,
         val_sequence_roll_audit_json,
@@ -8233,6 +8249,27 @@ def run_train(
     )
     if execution_tier == "attended_only":
         _announce_attended_preflight_ready(execution_tier=execution_tier)
+        try:
+            torch.cuda.empty_cache()
+            torch.cuda.set_per_process_memory_fraction(
+                _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION,
+                device,
+            )
+            total_mib = int(
+                torch.cuda.get_device_properties(device).total_memory // (1024 * 1024)
+            )
+        except RuntimeError as exc:
+            raise RuntimeError(
+                "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE_FAILED]"
+            ) from exc
+        log.info(
+            "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE] fraction=%.2f budget_mib=%d "
+            "batch_size=%d exit_chunk_rows=%d",
+            _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION,
+            int(total_mib * _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION),
+            _ATTENDED_RESEARCH_BATCH_SIZE,
+            _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
+        )
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
@@ -10090,6 +10127,16 @@ def main() -> None:
         parser.error("candidate training requires --subsample-rows 0")
     if args.execution_tier == "attended_only" and args.profile != "smoke":
         parser.error("--execution-tier attended_only requires --profile smoke")
+    if args.execution_tier == "attended_only" and (
+        args.device != "cuda"
+        or int(args.batch_size) != _ATTENDED_RESEARCH_BATCH_SIZE
+        or int(args.epochs) != 1
+        or int(args.grad_accum_steps) != 1
+    ):
+        parser.error(
+            "--execution-tier attended_only requires --device cuda, "
+            "--batch_size 8, --epochs 1 and --grad-accum-steps 1"
+        )
     reconstruction_args = (
         args.train_sequence_roll_audit_json,
         args.val_sequence_roll_audit_json,

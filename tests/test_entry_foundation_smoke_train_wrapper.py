@@ -194,9 +194,11 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
 ) -> None:
     args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
     cuda_args = _replace_arg(args, "--device", "cuda")
+    cuda_args = _replace_arg(cuda_args, "--epochs", "1")
     recipe_path = Path(cuda_args[cuda_args.index("--recipe-audit-json") + 1])
     recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
     recipe["trainer_cli"]["device"] = "cuda"
+    recipe["trainer_cli"]["epochs"] = 1
     recipe["trainer_cli_sha256"] = canonical_json_sha256(recipe["trainer_cli"])
     recipe_path.write_text(
         json.dumps(recipe, indent=2, sort_keys=True) + "\n",
