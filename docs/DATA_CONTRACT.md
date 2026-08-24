@@ -94,6 +94,14 @@ materializers resolve the lane-correct frozen artifact fail-closed;
 cross-lane payloads and provenance-free bare values are rejected. VAL, TEST
 and serve never refit.
 
+Each candidate threshold must additionally leave enough observations in both
+near/far branches of both chronological partitions: at least
+`ceil(sqrt(partition observation count))` per branch. The bound scales with
+the observed population rather than accepting a fixed, clock-specific tail
+count. It prevents a formally scoreable but tiny branch from selecting a
+registry identity band. The exact branch counts and derived minimum are part
+of the immutable fit payload and are revalidated at every consumer.
+
 The declared TRAIN population of that fit is an ordered PAIR —
 `declared_train_window_start` and `declared_train_window_end`, plus the
 inner boundary strictly between them. Both bounds are required arguments of

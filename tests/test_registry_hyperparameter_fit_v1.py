@@ -94,10 +94,10 @@ def _fit(
 
 def test_selection_moves_with_chronological_train_outcome_distribution(tmp_path):
     first = _fit(tmp_path / "a", reaction_boundary=0.3)
-    second = _fit(tmp_path / "b", reaction_boundary=0.5)
+    second = _fit(tmp_path / "b", reaction_boundary=0.4)
 
     assert first["selected_threshold_atr"] == 0.3
-    assert second["selected_threshold_atr"] == 0.5
+    assert second["selected_threshold_atr"] == 0.4
     assert first["candidate_count_total_empirical"] == 5
     assert second["candidate_count_total_empirical"] == 5
     assert first["selection_objective"].endswith(
@@ -120,6 +120,30 @@ def test_selection_moves_with_chronological_train_outcome_distribution(tmp_path)
         np.asarray(prior["base_probabilities"])
         * prior["selected_concentration"],
     )
+    assert first["branch_support_policy"] == (
+        "each_near_far_branch_requires_ceil_sqrt_its_chronological_"
+        "partition_observation_count_in_inner_fit_and_inner_selection"
+    )
+    assert first["minimum_branch_observation_counts"] == {
+        "inner_fit": 4,
+        "inner_selection": 4,
+    }
+    assert first["selected_branch_observation_counts"] == {
+        "inner_fit": {"near": 6, "far": 6},
+        "inner_selection": {"near": 6, "far": 6},
+    }
+
+
+def test_selection_rejects_a_candidate_with_a_thin_chronological_branch(tmp_path):
+    """A one-sided tail cannot masquerade as a two-population threshold fit."""
+
+    payload = _fit(tmp_path, reaction_boundary=0.5)
+    # ``0.5`` would isolate only two rows in each partition.  The exact
+    # population-scaled support rule requires four, so the valid next-best
+    # candidate is selected instead.
+    assert payload["selected_threshold_atr"] == 0.4
+    for partition, branches in payload["selected_branch_observation_counts"].items():
+        assert min(branches.values()) >= payload["minimum_branch_observation_counts"][partition]
 
 
 def test_empirical_hazards_have_no_static_pseudocount() -> None:

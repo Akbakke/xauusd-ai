@@ -16,6 +16,14 @@ distinct observed at-risk count and marginal likelihood selects one. No fixed
 pseudocount enters selection. Future outcomes are therefore used only inside
 the declared TRAIN window; they are never inputs to serving features.
 
+Threshold selection must not turn a two-population comparison into a score for
+one or two tail observations.  A candidate is eligible only when both its
+near and far branches contain at least the ceiling of the square root of their
+own chronological partition size, in both the inner-fit and inner-selection
+partitions.  This is a deterministic, population-scaled support requirement:
+it grows with available evidence and introduces no clock-specific threshold
+or hand-picked quantile.
+
 The event-time model is non-parametric.  At each observed age it stores the
 number at risk, the two event counts and the censor count. Predictive hazards
 use the immutable empirical-Bayes Dirichlet artifact described above.
@@ -47,7 +55,7 @@ from gx1.utils.artifact_primitives_v1 import canonical_json_sha256, sha256_file
 
 
 REGISTRY_HYPERPARAMETER_FIT_SCHEMA_V1 = (
-    "registry_hyperparameter_competing_risk_fit_v2_runtime_population"
+    "registry_hyperparameter_competing_risk_fit_v3_branch_supported_runtime_population"
 )
 REGISTRY_HYPERPARAMETER_FIT_OWNER_V1 = (
     "gx1.contracts.registry_hyperparameter_fit_v1"
@@ -804,6 +812,10 @@ def fit_registry_competing_risk_threshold_v1(
             dtype=np.float64,
         )
 
+    minimum_branch_observation_counts = {
+        "inner_fit": int(math.ceil(math.sqrt(float(fit_dist.size)))),
+        "inner_selection": int(math.ceil(math.sqrt(float(sel_dist.size)))),
+    }
     score_by_age = score_contribution(horizon)
     running_score = float(np.sum(score_by_age, dtype=np.float64))
     score_rows: list[tuple[float, float]] = []
@@ -847,6 +859,16 @@ def fit_registry_competing_risk_threshold_v1(
             or selection_pointer == len(selection_order)
         ):
             continue
+        if (
+            fit_pointer < minimum_branch_observation_counts["inner_fit"]
+            or len(fit_order) - fit_pointer
+            < minimum_branch_observation_counts["inner_fit"]
+            or selection_pointer
+            < minimum_branch_observation_counts["inner_selection"]
+            or len(selection_order) - selection_pointer
+            < minimum_branch_observation_counts["inner_selection"]
+        ):
+            continue
         score = float(running_score)
         if not math.isfinite(score):
             continue
@@ -860,6 +882,17 @@ def fit_registry_competing_risk_threshold_v1(
         key=lambda item: (-item[1], item[0]),
     )
     selected_near = fit_dist <= selected_threshold
+    selected_selection_near = sel_dist <= selected_threshold
+    selected_branch_observation_counts = {
+        "inner_fit": {
+            "near": int(selected_near.sum()),
+            "far": int((~selected_near).sum()),
+        },
+        "inner_selection": {
+            "near": int(selected_selection_near.sum()),
+            "far": int((~selected_selection_near).sum()),
+        },
+    }
     near_counts = _hazard_counts(
         fit_duration,
         fit_cause,
@@ -890,6 +923,12 @@ def fit_registry_competing_risk_threshold_v1(
         "threshold_candidate_origin": (
             "all_distinct_inner_fit_distance_atr_values_except_population_max"
         ),
+        "branch_support_policy": (
+            "each_near_far_branch_requires_ceil_sqrt_its_chronological_"
+            "partition_observation_count_in_inner_fit_and_inner_selection"
+        ),
+        "minimum_branch_observation_counts": minimum_branch_observation_counts,
+        "selected_branch_observation_counts": selected_branch_observation_counts,
         "selected_threshold_atr": selected_threshold,
         "selected_selection_log_likelihood": selected_score,
         "candidate_count_total_empirical": int(candidates.size),
@@ -969,6 +1008,9 @@ def require_registry_hyperparameter_payload_v1(
         "selection_objective",
         "tie_break",
         "threshold_candidate_origin",
+        "branch_support_policy",
+        "minimum_branch_observation_counts",
+        "selected_branch_observation_counts",
         "selected_threshold_atr",
         "selected_selection_log_likelihood",
         "candidate_count_total_empirical",
@@ -1016,6 +1058,11 @@ def require_registry_hyperparameter_payload_v1(
         != "minimum_threshold_atr_on_exact_log_likelihood_tie"
         or observed["threshold_candidate_origin"]
         != "all_distinct_inner_fit_distance_atr_values_except_population_max"
+        or observed["branch_support_policy"]
+        != (
+            "each_near_far_branch_requires_ceil_sqrt_its_chronological_"
+            "partition_observation_count_in_inner_fit_and_inner_selection"
+        )
         or observed["outcome_semantics"]
         != (
             "first_authoritative_reaction_or_break_after_candidate_origin; "
@@ -1088,6 +1135,34 @@ def require_registry_hyperparameter_payload_v1(
         or expiry != math.ceil(float(rmst))
     ):
         raise RuntimeError("[REGISTRY_HYPERPARAMETER_PAYLOAD_VALUES_INVALID]")
+    minimum_branch_counts = observed["minimum_branch_observation_counts"]
+    selected_branch_counts = observed["selected_branch_observation_counts"]
+    if (
+        not isinstance(minimum_branch_counts, Mapping)
+        or set(minimum_branch_counts) != {"inner_fit", "inner_selection"}
+        or not isinstance(selected_branch_counts, Mapping)
+        or set(selected_branch_counts) != {"inner_fit", "inner_selection"}
+    ):
+        raise RuntimeError("[REGISTRY_HYPERPARAMETER_BRANCH_SUPPORT_SCHEMA_INVALID]")
+    for partition, total in (
+        ("inner_fit", observed["inner_fit_observation_count"]),
+        ("inner_selection", observed["inner_selection_observation_count"]),
+    ):
+        minimum = minimum_branch_counts[partition]
+        branches = selected_branch_counts[partition]
+        if (
+            isinstance(minimum, bool)
+            or not isinstance(minimum, int)
+            or minimum != int(math.ceil(math.sqrt(float(total))))
+            or not isinstance(branches, Mapping)
+            or set(branches) != {"near", "far"}
+            or any(
+                isinstance(count, bool) or not isinstance(count, int) or count < minimum
+                for count in branches.values()
+            )
+            or int(branches["near"]) + int(branches["far"]) != int(total)
+        ):
+            raise RuntimeError("[REGISTRY_HYPERPARAMETER_BRANCH_SUPPORT_INVALID]")
     for key in (
         "candidate_count_total_empirical",
         "candidate_count_scoreable",

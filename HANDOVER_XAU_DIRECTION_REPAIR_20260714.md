@@ -57,6 +57,17 @@ both metadata and lock; smoke-bundle audit rejects that tier, so it cannot
 enter candidate, TEST, promotion, paper or live paths. The attended route is
 not a hardware solution and does not make the canonical route safe.
 
+**2026-08-24 source-status correction:** a read-only V40 audit found that the
+TRAIN-only level-registry fit could select a near/far threshold with a thin
+branch (M5: 56 versus 46,199 fit observations; D1: 3 versus 165). The source
+contract now requires every near/far branch to have at least the ceiling of the
+square root of its own inner-fit and inner-selection population. This is a
+population-scaled anti-tail-fit gate, not a fixed tuning value. The old V40
+registry payloads intentionally fail the new schema validator, so **V40 is
+blocked from any new train/smoke attempt until a fresh, immutable rebuild
+produces branch-supported registry artifacts**. No rebuild was started by this
+change.
+
 The first attended train smoke on 2026-08-23 proved the guard but did **not**
 reach CUDA model work: before its 300-second wall-clock stop it began building
 the complete 26.3 GB TRAIN nested-array memmap, because the immutable full-TRAIN
