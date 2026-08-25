@@ -205,3 +205,15 @@ def test_seq513_rebuild_caps_every_heavy_stage() -> None:
         '--mem 10G --swap 512M --)'
     ) in source
     assert '"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source
+
+
+def test_seq513_rebuild_caps_full_source_lineage_gate() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    # This gate streams the complete source parquet to bind its SHA-256 and
+    # imports the lineage validator.  It must never execute outside the same
+    # verified producer cgroup that protects the actual dataset builder.
+    assert (
+        '"${CAP[@]}" "$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" '
+        '"$RUN_ID" "$SOURCE_PARQUET"'
+    ) in source

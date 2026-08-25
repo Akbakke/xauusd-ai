@@ -181,7 +181,12 @@ for split in train val test; do
 done
 cd "$ENG"
 
-"$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$RUN_ID" "$SOURCE_PARQUET" \
+# This gate reads and hashes the complete source parquet and imports the
+# lineage validator.  It is therefore a real dataset-stage workload, not a
+# shell-only argument check: keep it in the same verified producer cgroup as
+# every later full-population stage.  An uncapped pre-builder gate would leave
+# the workstation exposed before the actual builder receives its hard limits.
+"${CAP[@]}" "$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$RUN_ID" "$SOURCE_PARQUET" \
     "$CANONICAL_V2_PARQUET" "$MTF_CACHE_DIR" "$HISTORY_START" "$TEST_END" \
     "$TRAIN_START" "$TRAIN_END" <<'PY'
 import hashlib
