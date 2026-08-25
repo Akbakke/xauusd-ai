@@ -445,10 +445,73 @@ def _family_liveness(
             "live_field_count": len(fields) - len(dead),
             "all_fields_live": bool(fields) and not dead,
             "dead_fields": dead,
+            # The list itself is derived from the exact qualified local
+            # surface fields.  Persist its hash so the M1 and M5 reports
+            # cannot each pass with a differently ordered family partition.
+            "qualified_field_order_sha256": canonical_json_sha256(fields),
         }
         if not fields:
             invalid.append({"family": family, "reason": "empty_family"})
     return rows, invalid
+
+
+def _cross_clock_harmony(
+    *,
+    entry: Mapping[str, Any],
+    exit_: Mapping[str, Any],
+    entry_families: Mapping[str, Mapping[str, Any]],
+    exit_families: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Bind both native clocks to one ordered, eight-family input topology."""
+
+    entry_fields = list((entry.get("field_stats") or {}).keys())
+    exit_fields = list((exit_.get("field_stats") or {}).keys())
+    failures: list[str] = []
+    if entry_fields != exit_fields:
+        failures.append("qualified_field_order_mismatch")
+    family_rows: dict[str, dict[str, Any]] = {}
+    for family in MODEL_NATIVE_TRAINING_SPECIALISTS:
+        entry_row = entry_families.get(family)
+        exit_row = exit_families.get(family)
+        entry_hash = (
+            entry_row.get("qualified_field_order_sha256")
+            if isinstance(entry_row, Mapping)
+            else None
+        )
+        exit_hash = (
+            exit_row.get("qualified_field_order_sha256")
+            if isinstance(exit_row, Mapping)
+            else None
+        )
+        field_count = (
+            entry_row.get("field_count") if isinstance(entry_row, Mapping) else None
+        )
+        row_ok = (
+            isinstance(entry_row, Mapping)
+            and isinstance(exit_row, Mapping)
+            and entry_hash == exit_hash
+            and field_count == exit_row.get("field_count")
+            and entry_row.get("all_fields_live") is True
+            and exit_row.get("all_fields_live") is True
+        )
+        if not row_ok:
+            failures.append(f"family_harmony_invalid:{family}")
+        family_rows[family] = {
+            "field_count": field_count,
+            "qualified_field_order_sha256": entry_hash,
+            "entry_exit_equal": bool(row_ok),
+        }
+    if set(entry_families) != set(MODEL_NATIVE_TRAINING_SPECIALISTS):
+        failures.append("entry_family_set_mismatch")
+    if set(exit_families) != set(MODEL_NATIVE_TRAINING_SPECIALISTS):
+        failures.append("exit_family_set_mismatch")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "qualified_field_count": len(entry_fields),
+        "qualified_field_order_sha256": canonical_json_sha256(entry_fields),
+        "families": family_rows,
+    }
 
 
 def _cross_population_matches(
@@ -529,6 +592,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             failures.append({"code": "family_not_fully_live", "decision": decision, "families": failed_families})
         if not _cross_population_matches(scan=scan, cross_row=cross_row):
             failures.append({"code": "population_differs_from_cross_surface_proof", "decision": decision})
+    cross_clock_harmony = _cross_clock_harmony(
+        entry=entry,
+        exit_=exit_,
+        entry_families=entry_families,
+        exit_families=exit_families,
+    )
+    if cross_clock_harmony["decision"] != "PASS":
+        failures.append(
+            {
+                "code": "cross_clock_feature_harmony_invalid",
+                "issues": cross_clock_harmony["failures"],
+            }
+        )
     report = {
         "schema_version": SCHEMA_VERSION,
         "producer_schema_version": PRODUCER_SCHEMA_VERSION,
@@ -546,6 +622,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             },
             "categorical_liveness": "finite_integer_and_more_than_one_observed_category",
             "family_rule": "every_locally_consumed_field_of_each_of_eight_families_must_be_live",
+            "cross_clock_harmony_rule": "M1_and_M5_must_have_identical_qualified_field_order_and_per_family_partition",
         },
         "input_bindings": {
             "signal_manifest": {"path": str(signal_manifest), "sha256": signal_manifest_sha},
@@ -555,6 +632,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "entry": {**entry, "eight_family_liveness": entry_families},
         "exit": {**exit_, "eight_family_liveness": exit_families},
+        "cross_clock_harmony": cross_clock_harmony,
     }
     with out_path.open("x", encoding="utf-8") as handle:
         json.dump(report, handle, indent=2, sort_keys=True, allow_nan=False)

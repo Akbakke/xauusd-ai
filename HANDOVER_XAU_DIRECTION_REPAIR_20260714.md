@@ -575,6 +575,12 @@ through learned cross-family attention and a dynamic gate. Context routing is
 also exact-one-owner. Therefore these are real data inputs and runtime model
 paths, not inert config labels. A future causal successor must repeat these
 audits on its own immutable output; V42's PASS cannot be inherited by V43.
+The V42 report's qualified M1 and M5 field lists were also rechecked directly:
+the same 310 names occur in the same order (list SHA-256
+`0ae5da7e9cac3eb40e2d96a7368f820459a16debeee6564b588acc4d082f1020`),
+with identical per-family lists. The successor feature-surface audit now makes
+this cross-clock harmony a fail-closed, serialized contract rather than a
+manual check.
 
 This is intentionally **not** a claim that every family already affects a
 decision. `specialist_out` starts at zero so the untrained model is neutral;

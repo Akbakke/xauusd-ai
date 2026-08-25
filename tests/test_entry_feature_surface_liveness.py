@@ -17,6 +17,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 from gx1.scripts.audit_entry_feature_surface_liveness_v1 import (
     _StreamingFieldStats,
+    _cross_clock_harmony,
     _family_liveness,
     _field_liveness,
 )
@@ -118,6 +119,55 @@ def test_all_eight_actual_owner_families_require_every_field_to_be_live() -> Non
             break
     else:  # pragma: no cover - the exact owner contract always has all eight
         raise AssertionError("first owner family had no actual fields")
+
+
+def test_m1_m5_harmony_requires_identical_field_and_family_order() -> None:
+    signal_fields = [
+        *MODEL_NATIVE_BASE_FIELDS,
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    ]
+    field_stats: dict[str, dict[str, object]] = {
+        **{
+            f"local.signal.{field}": {**_live_numeric_row(), "live": True}
+            for field in signal_fields
+        },
+        **{
+            f"local.ctx_cont.{field}": {**_live_numeric_row(), "live": True}
+            for field in MODEL_NATIVE_CTX_CONT_FIELDS
+        },
+        **{
+            f"local.ctx_cat.{field}": {**_live_categorical_row(), "live": True}
+            for field in MODEL_NATIVE_CTX_CAT_FIELDS
+        },
+    }
+    entry_families, entry_issues = _family_liveness(
+        field_stats=field_stats, signal_fields=signal_fields
+    )
+    exit_families, exit_issues = _family_liveness(
+        field_stats=field_stats, signal_fields=signal_fields
+    )
+    assert entry_issues == exit_issues == []
+
+    passed = _cross_clock_harmony(
+        entry={"field_stats": field_stats},
+        exit_={"field_stats": field_stats},
+        entry_families=entry_families,
+        exit_families=exit_families,
+    )
+    assert passed["decision"] == "PASS"
+    assert tuple(passed["families"]) == MODEL_NATIVE_TRAINING_SPECIALISTS
+    assert all(row["entry_exit_equal"] is True for row in passed["families"].values())
+
+    reordered = dict(reversed(list(field_stats.items())))
+    failed = _cross_clock_harmony(
+        entry={"field_stats": field_stats},
+        exit_={"field_stats": reordered},
+        entry_families=entry_families,
+        exit_families=exit_families,
+    )
+    assert failed["decision"] == "FAIL"
+    assert "qualified_field_order_mismatch" in failed["failures"]
 
 
 def test_control_route_requires_the_immutable_cross_surface_proof() -> None:
