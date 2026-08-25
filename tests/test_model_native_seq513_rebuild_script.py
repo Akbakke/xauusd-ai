@@ -1,5 +1,9 @@
 from pathlib import Path
 
+import pytest
+
+from gx1.scripts import build_entry_v10_ctx_training_dataset_v3 as dataset_builder
+
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "rebuild_entry_model_native_seq513_dataset.sh"
@@ -103,9 +107,37 @@ def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
     assert 'direction_target_policy["early_move_threshold_bps"]' in builder
     assert "fit_causal_m1_target_policy(" in builder
     assert "materialize_causal_m1_auxiliary_outcomes(" in builder
+    assert "MODEL_NATIVE_SPLIT_UNIFIED_EXIT_LIFECYCLE_BINDING_MISSING" in builder
+    assert '"unified_exit_lifecycle": deepcopy(' in builder
+    assert 'proof_payload["unified_exit_lifecycle"]' in builder
     assert "--m1-lifecycle-source \"$BASE28\"" in (
         (REPO / "scripts/run_seq513_rebuild_chain_v1.sh").read_text(encoding="utf-8")
     )
+
+
+def test_split_manifest_rejects_causal_m1_sizing_without_lifecycle_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Stop after the binding guard: the remaining MTF-cache checks belong to
+    # their own contract tests and require immutable cache artifacts.
+    monkeypatch.setattr(
+        dataset_builder,
+        "_require_model_native_manifest_contract",
+        lambda extra: {},
+    )
+    splits = {
+        "train": {"start": "2025-01-01T00:00:00Z", "end": "2025-01-31T00:00:00Z"},
+        "val": {"start": "2025-02-01T00:00:00Z", "end": "2025-02-28T00:00:00Z"},
+        "test": {"start": "2025-03-01T00:00:00Z", "end": "2025-03-31T00:00:00Z"},
+    }
+    with pytest.raises(
+        RuntimeError,
+        match="MODEL_NATIVE_SPLIT_UNIFIED_EXIT_LIFECYCLE_BINDING_MISSING",
+    ):
+        dataset_builder._require_model_native_seq513_split_manifest_contract(
+            splits=splits,
+            extra={"entry_causal_m1_position_size_target_policy": {}},
+        )
 
 
 def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> None:

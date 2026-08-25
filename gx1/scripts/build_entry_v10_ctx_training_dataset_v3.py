@@ -2377,6 +2377,39 @@ def _require_model_native_seq513_split_manifest_contract(
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_ORDER_INVALID")
     signal_contract = _require_model_native_manifest_contract(extra)
+    # The causal M1 sizing target is valid only against the exact M1 source
+    # that owns the Exit lifecycle.  Keep that binding in every split manifest
+    # (not only in the separately published lifecycle/proof artifacts): the
+    # pre-train audit consumes split manifests and must never need to infer it.
+    if "entry_causal_m1_position_size_target_policy" in extra:
+        lifecycle = extra.get("unified_exit_lifecycle")
+        if not isinstance(lifecycle, Mapping):
+            raise RuntimeError(
+                "MODEL_NATIVE_SPLIT_UNIFIED_EXIT_LIFECYCLE_BINDING_MISSING"
+            )
+        m1_source_sha256 = str(
+            lifecycle.get("m1_source_sha256") or ""
+        ).strip().lower()
+        if (
+            len(m1_source_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in m1_source_sha256)
+        ):
+            raise RuntimeError(
+                "MODEL_NATIVE_SPLIT_UNIFIED_EXIT_LIFECYCLE_BINDING_INVALID"
+            )
+        causal_m1_position_size_policy = (
+            require_causal_m1_position_size_target_policy(
+                extra["entry_causal_m1_position_size_target_policy"],
+                expected_m1_source_sha256=m1_source_sha256,
+            )
+        )
+        if (
+            causal_m1_position_size_policy["m1_source_sha256"]
+            != m1_source_sha256
+        ):
+            raise RuntimeError(
+                "MODEL_NATIVE_SPLIT_UNIFIED_EXIT_LIFECYCLE_BINDING_MISMATCH"
+            )
     mtf_binding = extra.get("multi_tf_cache_binding")
     # One truth: the exact key set lives in the normalization owner. This
     # builder writes V29 manifests, so the V29 set (with the TRAIN-fitted
@@ -5487,6 +5520,9 @@ def main() -> None:
                 "model_native_state_contract": state_contract,
                 "xau_tape_provenance": xau_tape_provenance,
                 "entry_run_id": entry_run_id,
+                "unified_exit_lifecycle": deepcopy(
+                    proof_payload["unified_exit_lifecycle"]
+                ),
                 "source_frame": {
                     "mode": "exact_source_parquet",
                     "parquet_path": str(source_parquet_path),
@@ -5686,6 +5722,9 @@ def main() -> None:
                 "model_native_state_contract": state_contract,
                 "xau_tape_provenance": xau_tape_provenance,
                 "entry_run_id": entry_run_id,
+                "unified_exit_lifecycle": deepcopy(
+                    proof_payload["unified_exit_lifecycle"]
+                ),
             },
         )
 

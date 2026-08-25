@@ -458,6 +458,30 @@ def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: P
     assert report["failures"] == []
 
 
+def test_pretrain_audit_fails_closed_when_causal_m1_lifecycle_binding_is_missing(
+    tmp_path: Path,
+) -> None:
+    for split in ("train", "val", "test"):
+        _write_split(tmp_path, split, inverted=False)
+        manifest_path = tmp_path / f"{DEFAULT_STEM}_{split}.manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        # The audit must choose the current causal-M1 path when the new sizing
+        # policy is declared.  The exact policy payload is irrelevant here:
+        # lifecycle binding is required before that payload is consumed.
+        manifest["extra"]["entry_causal_m1_position_size_target_policy"] = {}
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        run(_args(tmp_path))
+
+    report = _read_immutable_audit(tmp_path)
+    assert report["decision"] == "FAIL"
+    assert any(
+        "manifest unified_exit_lifecycle M1 source hash missing" in failure
+        for failure in report["failures"]
+    )
+
+
 def test_pretrain_audit_accepts_structurally_constant_selected_bad_path(
     tmp_path: Path,
 ) -> None:
