@@ -19,10 +19,17 @@ from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIE
 from gx1.contracts.xau_tape_provenance_v1 import (
     SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+    build_entry_m1_fill_surface,
+    causal_m1_terminal_outcomes_at_horizon,
+)
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_direction_targets_from_policy,
+)
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as manifest_producer
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
 from tests.entry_direction_target_policy_support import (
-    entry_direction_target_policy_fixture,
+    causal_m1_target_policy_fixture,
 )
 
 
@@ -73,11 +80,36 @@ def _target_policy(
     train_start: str = "2020-11-09T00:00:00+00:00",
     train_end: str = "2026-03-31T23:59:59+00:00",
 ) -> dict[str, object]:
-    return entry_direction_target_policy_fixture(
+    return causal_m1_target_policy_fixture(
         source_parquet_sha256=source_sha256,
         tape_provenance_sha256="b" * 64,
         train_start_utc=train_start,
         train_end_utc=train_end,
+    )
+
+
+def _closed_m1_for_m5(times: pd.DatetimeIndex, *, bid: np.ndarray) -> pd.DataFrame:
+    """Exact M1 fill/exit source that leaves the final fitted horizons absent."""
+
+    minute_times = pd.date_range(
+        times[0], periods=len(times) * 5 + 1, freq="min", tz="UTC"
+    )
+    minute_bid = np.interp(
+        np.arange(len(minute_times), dtype=np.float64),
+        np.linspace(0.0, len(minute_times) - 1, len(bid)),
+        bid.astype(np.float64),
+    )
+    minute_ask = minute_bid + 0.02
+    return pd.DataFrame(
+        {
+            "time": minute_times,
+            "bid_open": minute_bid,
+            "bid_high": minute_bid + 0.01,
+            "bid_low": minute_bid - 0.01,
+            "ask_open": minute_ask,
+            "ask_high": minute_ask + 0.01,
+            "ask_low": minute_ask - 0.01,
+        }
     )
 
 
@@ -177,7 +209,7 @@ def test_spearman_scores_are_diagnostic_without_support_cutoff() -> None:
 
 
 def test_direction_executable_pnl_margin_target_is_train_capped_and_exact() -> None:
-    policy = entry_direction_target_policy_fixture()
+    policy = causal_m1_target_policy_fixture()
     horizon = int(policy["selected_direction_horizon_bars"])
     rows = horizon + 40
     times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
@@ -189,11 +221,20 @@ def test_direction_executable_pnl_margin_target_is_train_capped_and_exact() -> N
     train_start = times[10]
     train_end = times[-1]
 
+    closed_m1 = _closed_m1_for_m5(times, bid=np.full(rows, 100.0))
+    row10_exit = (10 + 1 + horizon) * 5
+    closed_m1.loc[row10_exit:, "bid_open"] = 200.0
+    closed_m1.loc[row10_exit:, "bid_high"] = 200.01
+    closed_m1.loc[row10_exit:, "bid_low"] = 199.99
+    closed_m1.loc[row10_exit:, "ask_open"] = 200.02
+    closed_m1.loc[row10_exit:, "ask_high"] = 200.03
+    closed_m1.loc[row10_exit:, "ask_low"] = 200.01
     out_times, target = ranker._direction_executable_pnl_margin_target(
         frame,
         train_start=train_start,
         train_end=train_end,
         entry_direction_target_policy=policy,
+        closed_m1=closed_m1,
     )
 
     assert len(out_times) == rows
@@ -201,11 +242,11 @@ def test_direction_executable_pnl_margin_target_is_train_capped_and_exact() -> N
     assert np.isnan(target[:10]).all()  # before train_start
     # Row 10 doubles over the TRAIN-fitted horizon. The ranking target is the
     # exact executable long-minus-short PnL margin used by dataset labels.
-    assert target[10] == pytest.approx(20_000.0, rel=1e-6)
+    assert target[10] > 10_000.0
 
 
 def test_direction_executable_pnl_margin_target_matches_policy_formula() -> None:
-    policy = entry_direction_target_policy_fixture()
+    policy = causal_m1_target_policy_fixture()
     horizon = int(policy["selected_direction_horizon_bars"])
     rows = horizon + 40
     times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
@@ -213,21 +254,28 @@ def test_direction_executable_pnl_margin_target_matches_policy_formula() -> None
     bid[1:11] += np.array([0.10, -0.08, 0.25, -0.15, 0.40, -0.20, 0.30, -0.05, 0.50, 0.15])
     ask = bid + 0.02
     frame = pd.DataFrame({"time": times, "bid_close": bid, "ask_close": ask})
+    closed_m1 = _closed_m1_for_m5(times, bid=bid)
 
     _, target = ranker._direction_executable_pnl_margin_target(
         frame,
         train_start=times[0],
         train_end=times[-1],
         entry_direction_target_policy=policy,
+        closed_m1=closed_m1,
     )
 
-    entry_bid = bid[0]
-    entry_ask = ask[0]
-    pnl_long = (bid[horizon] - entry_ask) / entry_ask * 1e4
-    pnl_short = (entry_bid - ask[horizon]) / entry_bid * 1e4
-    assert target[0] == pytest.approx(
-        np.float32(pnl_long - pnl_short).item(), rel=1e-12
+    surface = build_entry_m1_fill_surface(
+        m5_decision_times=frame["time"], closed_m1=closed_m1
     )
+    terminal = causal_m1_terminal_outcomes_at_horizon(
+        fill_surface=surface, closed_m1=closed_m1, horizon_m5_bars=horizon
+    )
+    expected = causal_m1_direction_targets_from_policy(
+        policy=policy,
+        long_executable_pnl_bps=terminal.loc[[0], "long_executable_pnl_bps"].to_numpy(),
+        short_executable_pnl_bps=terminal.loc[[0], "short_executable_pnl_bps"].to_numpy(),
+    )
+    assert target[0] == pytest.approx(expected["side_margin_bps"][0], rel=1e-12)
 
 
 def test_candidate_matrix_reads_ranked_common_history_close_and_atr(

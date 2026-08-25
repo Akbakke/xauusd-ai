@@ -70,6 +70,9 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_json_sha256,
     validate_xau_tape_provenance_v1,
 )
+from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
+    require_causal_m1_position_size_target_manifest_binding,
+)
 from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_manifest_binding,
 )
@@ -2360,8 +2363,23 @@ def _entry_position_size_target_policy_from_manifest(
         if isinstance(splits, dict) and isinstance(splits.get("train"), dict)
         else {}
     )
-    return require_entry_position_size_target_manifest_binding(
+    if "entry_causal_m1_position_size_target_policy" not in extra:
+        return require_entry_position_size_target_manifest_binding(
+            extra,
+            expected_train_start=train_window.get("start"),
+            expected_train_end=train_window.get("end"),
+        )
+    lifecycle = extra.get("unified_exit_lifecycle")
+    expected_m1_source = (
+        str(lifecycle.get("m1_source_sha256") or "").strip().lower()
+        if isinstance(lifecycle, dict)
+        else ""
+    )
+    if len(expected_m1_source) != 64:
+        raise RuntimeError("[ENTRY_POSITION_SIZE_POLICY_M1_SOURCE_MISSING]")
+    return require_causal_m1_position_size_target_manifest_binding(
         extra,
+        expected_m1_source_sha256=expected_m1_source,
         expected_train_start=train_window.get("start"),
         expected_train_end=train_window.get("end"),
     )

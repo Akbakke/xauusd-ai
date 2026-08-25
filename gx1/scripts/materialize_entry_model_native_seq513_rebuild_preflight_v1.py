@@ -1198,9 +1198,9 @@ def _command_contract(
             "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
             "entry_direction_target_policy": (
-                "fit_once_on_exact_train_native_m5_then_hash_bound"
+                "fit_once_on_exact_train_m5_decisions_and_pair_bound_m1_fills_then_hash_bound"
             ),
-            "direction_target_mode": "train_fitted_executable_pnl_v1",
+            "direction_target_mode": "train_fitted_exact_m1_execution_pnl_v1",
             "aux_head_target_contract": model_native_aux_target_contract_metadata(),
             "inline_selected_features": True,
             "run_lineage_required": True,

@@ -22,6 +22,9 @@ from gx1.contracts.entry_execution_causality_v1 import (
     legacy_same_close_target_contract_failures,
 )
 from gx1.contracts.entry_fitted_q_v1 import require_entry_fitted_q_contract
+from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
+    require_causal_m1_position_size_target_policy,
+)
 
 
 def _read_json(path: Path, *, label: str) -> dict[str, Any]:
@@ -54,6 +57,7 @@ def _split_row(
     lifecycle_manifest_path: Path,
     expected_run_id: str,
     expected_direction_policy_sha256: str,
+    require_causal_auxiliary: bool,
 ) -> dict[str, Any]:
     dataset_manifest = _read_json(
         dataset_manifest_path, label=f"{split.upper()}_DATASET_MANIFEST"
@@ -72,7 +76,21 @@ def _split_row(
         context=f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}",
     )
     diagnostic = extra.get("diagnostic_outcome_labels")
-    position = extra.get("entry_position_size_target_policy")
+    position = extra.get("entry_causal_m1_position_size_target_policy")
+    if isinstance(position, Mapping):
+        position = require_causal_m1_position_size_target_policy(position)
+    elif not require_causal_auxiliary:
+        # Legacy artifacts are still reportable as BLOCK; they must not make
+        # the audit crash before it can state why their M5-close contract is
+        # unfit for training.
+        position = extra.get("entry_position_size_target_policy")
+    position_direction_hash = (
+        position.get("entry_causal_m1_target_policy_sha256")
+        if isinstance(position, Mapping)
+        else None
+    )
+    if position_direction_hash is None and isinstance(position, Mapping):
+        position_direction_hash = position.get("entry_direction_target_policy_sha256")
     if (
         not isinstance(diagnostic, Mapping)
         or not isinstance(position, Mapping)
@@ -80,8 +98,7 @@ def _split_row(
         != expected_direction_policy_sha256
         or extra.get("diagnostic_outcome_policy_sha256")
         != expected_direction_policy_sha256
-        or position.get("entry_direction_target_policy_sha256")
-        != expected_direction_policy_sha256
+        or position_direction_hash != expected_direction_policy_sha256
     ):
         raise RuntimeError(
             f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}_AUXILIARY_POLICY_LINEAGE_INVALID"
@@ -134,6 +151,9 @@ def build_report(
     if not is_sha256(policy_sha256):
         raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_DIRECTION_POLICY_HASH_INVALID")
     target_contract = ranking.get("target_contract")
+    require_causal_auxiliary = not legacy_same_close_target_contract_failures(
+        target_contract
+    )
     split_rows = [
         _split_row(
             split=split,
@@ -141,6 +161,7 @@ def build_report(
             lifecycle_manifest_path=split_paths[split][1],
             expected_run_id=run_id,
             expected_direction_policy_sha256=policy_sha256,
+            require_causal_auxiliary=require_causal_auxiliary,
         )
         for split in ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS
     ]

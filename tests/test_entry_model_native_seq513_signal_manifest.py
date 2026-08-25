@@ -32,7 +32,7 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
 )
 from tests.entry_direction_target_policy_support import (
-    entry_direction_target_policy_fixture,
+    causal_m1_target_policy_fixture,
 )
 
 
@@ -115,7 +115,7 @@ def _ranking_payload(tmp_path: Path) -> dict:
         json.dumps(source_cascade),
         encoding="utf-8",
     )
-    policy = entry_direction_target_policy_fixture(
+    policy = causal_m1_target_policy_fixture(
         source_parquet_sha256=canonical_sha256,
         tape_provenance_sha256="b" * 64,
         train_start_utc="2020-01-01T00:00:00+00:00",

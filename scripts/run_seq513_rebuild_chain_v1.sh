@@ -1281,6 +1281,7 @@ run_feature_ranker() {
     --mtf-cache-dir "$MTF" \
     --source-cascade-proof "$SOURCE_CASCADE" \
     --tape-root "$TAPE" \
+    --m1-lifecycle-source "$BASE28" \
     --expected-source-time-max "$TEST_END" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" \

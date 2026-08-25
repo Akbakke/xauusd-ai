@@ -38,6 +38,9 @@ from gx1.contracts.entry_fitted_q_v1 import (
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_TARGET_COLUMNS,
 )
+from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
+    require_causal_m1_position_size_target_manifest_binding,
+)
 from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_manifest_binding,
 )
@@ -244,10 +247,30 @@ def _position_size_target_policy(
         raise RuntimeError(
             "manifest diagnostic_outcome_policy_sha256 missing"
         )
-    return require_entry_position_size_target_manifest_binding(
+    if "entry_causal_m1_position_size_target_policy" not in extra:
+        # Immutable legacy artifacts remain auditable; the independent
+        # execution-causality launch gate blocks them from new training.
+        return require_entry_position_size_target_manifest_binding(
+            extra,
+            expected_source_parquet_sha256=expected_source,
+            expected_tape_provenance_sha256=canonical_json_sha256(xau_provenance),
+            expected_direction_policy_sha256=expected_direction_policy,
+            expected_train_start=train_window.get("start"),
+            expected_train_end=train_window.get("end"),
+        )
+    lifecycle = extra.get("unified_exit_lifecycle")
+    expected_m1_source = (
+        str(lifecycle.get("m1_source_sha256") or "").strip().lower()
+        if isinstance(lifecycle, dict)
+        else ""
+    )
+    if len(expected_m1_source) != 64:
+        raise RuntimeError("manifest unified_exit_lifecycle M1 source hash missing")
+    return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=expected_source,
         expected_tape_provenance_sha256=canonical_json_sha256(xau_provenance),
+        expected_m1_source_sha256=expected_m1_source,
         expected_direction_policy_sha256=expected_direction_policy,
         expected_train_start=train_window.get("start"),
         expected_train_end=train_window.get("end"),

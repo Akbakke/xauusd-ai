@@ -103,18 +103,30 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TAIL_MAE_UPPER_SAFETY_CAP_BPS,
     model_native_aux_target_contract_metadata,
 )
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    ENTRY_CAUSAL_M1_TARGET_POLICY_SCHEMA_VERSION,
+    ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE,
+    causal_m1_direction_diagnostic_outcome_contract,
+    causal_m1_direction_targets_from_policy,
+    fit_causal_m1_target_policy,
+    materialize_causal_m1_auxiliary_outcomes,
+    require_causal_m1_target_policy,
+)
 from gx1.contracts.entry_direction_target_policy_v1 import (
     ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE,
     entry_direction_diagnostic_outcome_contract,
     entry_direction_targets_from_policy,
-    fit_entry_direction_target_policy,
     require_entry_direction_target_policy,
 )
+from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
+    ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_POLICY_SCHEMA_VERSION,
+    causal_m1_position_size_target_policy_contract,
+    causal_m1_position_size_targets_from_policy,
+    fit_causal_m1_position_size_target_policy,
+    require_causal_m1_position_size_target_policy,
+)
 from gx1.contracts.entry_position_size_target_policy_v1 import (
-    entry_position_size_target_policy_contract,
     entry_position_size_targets_from_policy,
-    fit_entry_position_size_target_policy,
-    require_entry_position_size_target_policy,
 )
 from gx1.contracts.entry_fitted_q_v1 import (
     entry_fitted_q_contract,
@@ -211,7 +223,7 @@ logging.basicConfig(
 # in the trainer from the frozen fitted-Q Exit teacher and the exact episode
 # pack bound to each dataset row.
 _DIAGNOSTIC_OUTCOME_TARGET_MODE = (
-    ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE
+    ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE
 )
 
 # The old map-derived hold-horizon target is blocked from the exact model-native
@@ -224,7 +236,13 @@ def diagnostic_outcome_horizon_bars(
     target_policy: Mapping[str, Any],
 ) -> int:
     """Return the actual horizon used by the emitted final y_direction label."""
-    policy = require_entry_direction_target_policy(target_policy)
+    if target_policy.get("schema_version") == ENTRY_CAUSAL_M1_TARGET_POLICY_SCHEMA_VERSION:
+        policy = require_causal_m1_target_policy(target_policy)
+    else:
+        # Read-only compatibility for already-emitted historical manifests and
+        # their test fixtures. The active builder call below requires causal
+        # M1 policy and cannot use this branch for a successor dataset.
+        policy = require_entry_direction_target_policy(target_policy)
     return int(policy["selected_direction_horizon_bars"])
 
 
@@ -252,6 +270,8 @@ ENTRY_DIRECTION_TARGET_MODE_ID = 1
 def diagnostic_outcome_label_contract(
     target_policy: Mapping[str, Any],
 ) -> Dict[str, Any]:
+    if target_policy.get("schema_version") == ENTRY_CAUSAL_M1_TARGET_POLICY_SCHEMA_VERSION:
+        return causal_m1_direction_diagnostic_outcome_contract(target_policy)
     return entry_direction_diagnostic_outcome_contract(target_policy)
 
 
@@ -671,13 +691,22 @@ def _position_size_target_from_path(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Apply the sole immutable TRAIN ECDF sizing-target owner."""
 
-    result = entry_position_size_targets_from_policy(
-        policy=target_policy,
-        mfe_first_n_bps=mfe_first_n_bps,
-        mae_first_n_bps=mae_first_n_bps,
-        selected_side=selected_side,
-        trade_mask=trade_mask,
-    )
+    if target_policy.get("schema_version") == ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_POLICY_SCHEMA_VERSION:
+        result = causal_m1_position_size_targets_from_policy(
+            policy=target_policy,
+            mfe_first_n_bps=mfe_first_n_bps,
+            mae_first_n_bps=mae_first_n_bps,
+            selected_side=selected_side,
+            trade_mask=trade_mask,
+        )
+    else:
+        result = entry_position_size_targets_from_policy(
+            policy=target_policy,
+            mfe_first_n_bps=mfe_first_n_bps,
+            mae_first_n_bps=mae_first_n_bps,
+            selected_side=selected_side,
+            trade_mask=trade_mask,
+        )
     return result["target"], result["mask"]
 
 
@@ -2688,6 +2717,7 @@ def build_dataset_canonical(
     seq_len: int,
     entry_direction_target_policy: Mapping[str, Any],
     entry_position_size_target_policy: Mapping[str, Any],
+    closed_m1: pd.DataFrame,
     canonical_v2_parquet: Path,
     seq_structure_manifest_path: Path,
     m5_feature_surface_times: pd.DatetimeIndex,
@@ -2710,10 +2740,10 @@ def build_dataset_canonical(
         architecture,
         context="ENTRY_V10_DATASET_BUILD",
     )
-    direction_target_policy = require_entry_direction_target_policy(
+    direction_target_policy = require_causal_m1_target_policy(
         entry_direction_target_policy
     )
-    position_size_target_policy = require_entry_position_size_target_policy(
+    position_size_target_policy = require_causal_m1_position_size_target_policy(
         entry_position_size_target_policy,
         expected_source_parquet_sha256=direction_target_policy[
             "source_parquet_sha256"
@@ -2721,6 +2751,7 @@ def build_dataset_canonical(
         expected_tape_provenance_sha256=direction_target_policy[
             "tape_provenance_sha256"
         ],
+        expected_m1_source_sha256=direction_target_policy["m1_source_sha256"],
         expected_direction_policy_sha256=direction_target_policy["policy_sha256"],
     )
     direction_horizon_bars = int(
@@ -3120,34 +3151,28 @@ def build_dataset_canonical(
     if not np.isfinite(df_ctx_cat.to_numpy(dtype=np.float64)).all():
         raise RuntimeError("CTX_CAT_NONFINITE_IN_SOURCE")
 
-    path_quality = _compute_path_quality_first_n(
-        tape=merged[
-            ["time"]
-            + [
-                c
-                for c in merged.columns
-                if c in ("bid_close", "ask_close", "bid", "ask")
-            ]
-        ].copy(),
-        horizon_bars=path_quality_horizon_bars,
+    # Every active non-Q Entry auxiliary is bound to the M5-close decision,
+    # exact following M1 fill and exact M1 exit/path.  Crucially, labels whose
+    # exit would cross this split boundary are excluded rather than borrowing
+    # a later VAL/TEST quote.
+    causal_m1_labels = materialize_causal_m1_auxiliary_outcomes(
+        policy=direction_target_policy,
+        m5_decision_times=merged["time"],
+        closed_m1=closed_m1,
     )
-    bad_path = _compute_bad_path_first_n(
-        tape=merged[
-            ["time"]
-            + [
-                c
-                for c in merged.columns
-                if c in ("bid_close", "ask_close", "bid", "ask")
-            ]
-        ].copy(),
-        horizon_bars=path_quality_horizon_bars,
-    )
+    causal_m1_labels = causal_m1_labels.loc[
+        causal_m1_labels["outcome_valid"]
+        & causal_m1_labels["exit_decision_at"].notna()
+        & (causal_m1_labels["exit_decision_at"] <= end)
+    ].copy()
+    if len(causal_m1_labels) == 0:
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_JOIN_EMPTY")
 
     # Direction, early-move, quality and bad-path targets are selected below
     # from the final spread-aware side at the exact TRAIN-fitted horizon. No
     # bootstrap direction or caller-selected fixed duration is admitted.
     merged2 = merged.merge(
-        path_quality[
+        causal_m1_labels[
             [
                 "time",
                 "mfe_long_first_n_bps",
@@ -3162,7 +3187,7 @@ def build_dataset_canonical(
         validate="one_to_one",
     )
     merged2 = merged2.merge(
-        bad_path[
+        causal_m1_labels[
             [
                 "time",
                 "bad_path_long_first_n",
@@ -3177,25 +3202,18 @@ def build_dataset_canonical(
         how="inner",
         validate="one_to_one",
     )
-    # Dedicated fitted-horizon executable PnL for DIRECTION/tradable. The
-    # horizon is learned once on TRAIN and shared by every split.
-    _dir_pnl = _compute_bad_path_first_n(
-        tape=merged[
-            ["time"]
-            + [
-                c
-                for c in merged.columns
-                if c in ("bid_close", "ask_close", "bid", "ask")
+    merged2 = merged2.merge(
+        causal_m1_labels[
+            [
+                "time",
+                "v11_pnl_long_at_dir_horizon_bps",
+                "v11_pnl_short_at_dir_horizon_bps",
             ]
-        ].copy(),
-        horizon_bars=direction_horizon_bars,
-    )[["time", "v11_pnl_long_at_horizon_bps", "v11_pnl_short_at_horizon_bps"]].rename(
-        columns={
-            "v11_pnl_long_at_horizon_bps": "v11_pnl_long_at_dir_horizon_bps",
-            "v11_pnl_short_at_horizon_bps": "v11_pnl_short_at_dir_horizon_bps",
-        }
+        ],
+        on="time",
+        how="inner",
+        validate="one_to_one",
     )
-    merged2 = merged2.merge(_dir_pnl, on="time", how="inner", validate="one_to_one")
     if len(merged2) == 0:
         raise RuntimeError("LABEL_JOIN_EMPTY")
 
@@ -3689,7 +3707,7 @@ def build_dataset_canonical(
     _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
     _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
 
-    _direction_targets = entry_direction_targets_from_policy(
+    _direction_targets = causal_m1_direction_targets_from_policy(
         policy=direction_target_policy,
         long_executable_pnl_bps=_pnl_long_at_h,
         short_executable_pnl_bps=_pnl_short_at_h,
@@ -4506,7 +4524,7 @@ def build_dataset_canonical(
         },
         **entry_fitted_q_dataset_contract(),
         **diagnostic_outcome_label_contract(direction_target_policy),
-        **entry_position_size_target_policy_contract(position_size_target_policy),
+        **causal_m1_position_size_target_policy_contract(position_size_target_policy),
         **representation_auxiliary_outcome_contract(),
         "early_move_threshold_bps": float(
             direction_target_policy["early_move_threshold_bps"]
@@ -5248,12 +5266,25 @@ def main() -> None:
     if not train_direction_tape_times.equals(train_m5_source_times):
         raise RuntimeError("ENTRY_TARGET_POLICY_TRAIN_TAPE_TIME_MISMATCH")
     tape_provenance_sha256 = canonical_json_sha256(xau_tape_provenance)
-    entry_direction_target_policy = fit_entry_direction_target_policy(
+    # The same authoritative M1 source serves the causal Entry auxiliaries and
+    # the already-M1-bound fitted-Q Exit lifecycle.  Read it once before
+    # fitting either auxiliary policy; no M5 close is admissible as a proxy.
+    closed_m1_lifecycle = pd.read_parquet(
+        m1_lifecycle_source_path,
+        columns=list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
+    )
+    assert_no_price_scale_glitch(
+        closed_m1_lifecycle,
+        context="UNIFIED_EXIT_M1_SOURCE",
+    )
+    entry_direction_target_policy = fit_causal_m1_target_policy(
         closed_m5=train_direction_tape,
+        closed_m1=closed_m1_lifecycle,
         train_start=train_start,
         train_end=train_end,
         source_parquet_sha256=_sha256_file(source_parquet_path),
         tape_provenance_sha256=tape_provenance_sha256,
+        m1_source_sha256=m1_lifecycle_source_sha256,
     )
     if (
         signal_lineage.get("entry_direction_target_policy")
@@ -5265,11 +5296,13 @@ def main() -> None:
             "ENTRY_TARGET_POLICY_RANKING_DATASET_MISMATCH: feature ranking, "
             "signal manifest and dataset labels must share one exact TRAIN fit"
         )
-    entry_position_size_target_policy = fit_entry_position_size_target_policy(
+    entry_position_size_target_policy = fit_causal_m1_position_size_target_policy(
         closed_m5=train_direction_tape,
-        entry_direction_target_policy=entry_direction_target_policy,
+        closed_m1=closed_m1_lifecycle,
+        entry_causal_m1_target_policy=entry_direction_target_policy,
         source_parquet_sha256=_sha256_file(source_parquet_path),
         tape_provenance_sha256=tape_provenance_sha256,
+        m1_source_sha256=m1_lifecycle_source_sha256,
         ecdf_artifact_path=(
             output_path.parent
             / f"{output_path.stem}.entry_position_size_train_ecdf.npy"
@@ -5280,19 +5313,9 @@ def main() -> None:
         diagnostic_outcome_label_contract(entry_direction_target_policy)
     )
     proof_payload.update(
-        entry_position_size_target_policy_contract(
+        causal_m1_position_size_target_policy_contract(
             entry_position_size_target_policy
         )
-    )
-    # Read the authoritative M1 source once. Exit targets are exact dynamic-
-    # programming results for each sealed trajectory and fit no distribution.
-    closed_m1_lifecycle = pd.read_parquet(
-        m1_lifecycle_source_path,
-        columns=list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
-    )
-    assert_no_price_scale_glitch(
-        closed_m1_lifecycle,
-        context="UNIFIED_EXIT_M1_SOURCE",
     )
     _m1_covered_offset = len(m1_source_times) - len(
         m1_comparable_source_times
@@ -5346,7 +5369,7 @@ def main() -> None:
                 "aux_head_target_contract": model_native_aux_target_contract_metadata(),
                 **entry_fitted_q_dataset_contract(),
                 **diagnostic_outcome_label_contract(entry_direction_target_policy),
-                **entry_position_size_target_policy_contract(
+                **causal_m1_position_size_target_policy_contract(
                     entry_position_size_target_policy
                 ),
                 **representation_auxiliary_outcome_contract(),
@@ -5470,6 +5493,7 @@ def main() -> None:
             entry_position_size_target_policy=(
                 entry_position_size_target_policy
             ),
+            closed_m1=closed_m1_lifecycle,
             split_name=split_name,
             canonical_v2_parquet=canonical_v2_path,
             output_path=out,

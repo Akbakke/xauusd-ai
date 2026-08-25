@@ -184,3 +184,17 @@ def test_only_a_hash_bound_causal_split_report_can_authorize_training() -> None:
         require_entry_execution_causality_audit(
             tampered, require_training_authorized=False
         )
+
+
+def test_causal_ranking_refuses_a_legacy_sizing_payload(tmp_path: Path) -> None:
+    dataset, signal, split_paths = _audit_fixture(tmp_path)
+    payload = json.loads(signal.read_text(encoding="utf-8"))
+    payload["feature_ranking"]["target_contract"] = _causal_target_contract()
+    signal.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="AUXILIARY_POLICY_LINEAGE_INVALID"):
+        build_report(
+            dataset_dir=dataset,
+            signal_manifest_path=signal,
+            split_paths=split_paths,
+        )

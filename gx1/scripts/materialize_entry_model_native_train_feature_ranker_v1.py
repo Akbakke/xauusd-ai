@@ -59,10 +59,15 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_json_sha256,
     validate_xau_tape_provenance_v1,
 )
-from gx1.contracts.entry_direction_target_policy_v1 import (
-    entry_direction_targets_from_policy,
-    fit_entry_direction_target_policy,
-    require_entry_direction_target_policy,
+from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+    build_entry_m1_fill_surface,
+    causal_m1_terminal_outcomes_at_horizon,
+    prepare_causal_m1_quote_source,
+)
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_direction_targets_from_policy,
+    fit_causal_m1_target_policy,
+    require_causal_m1_target_policy,
 )
 from gx1.contracts.entry_model_native_feature_availability_v1 import (
     fit_feature_availability_contract,
@@ -89,7 +94,7 @@ from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
 
 
 RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
-RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v9"
+RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v10"
 _RANKING_OUTPUT_RE = re.compile(
     rf"^{RANKING_EVENT_PREFIX}_(\d{{8}}T\d{{6}}(?:\d{{6}})?Z)\.json$"
 )
@@ -471,49 +476,42 @@ def _direction_executable_pnl_margin_target(
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
     entry_direction_target_policy: dict[str, Any],
+    closed_m1: pd.DataFrame,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Exact fitted-horizon executable-PnL margin, capped to TRAIN.
+    """Exact M1-fill fitted-horizon PnL margin, capped to TRAIN.
 
     This mirrors the dataset label contract.  It is target engineering for
     offline ranking only and is never a live direction rule.
     """
-    bid = frame["bid_close"].astype(np.float64).to_numpy()
-    ask = frame["ask_close"].astype(np.float64).to_numpy()
-    if (
-        not np.isfinite(bid).all()
-        or not np.isfinite(ask).all()
-        or (bid <= 0.0).any()
-        or (ask <= 0.0).any()
-        or (ask < bid).any()
-    ):
-        raise RuntimeError("FEATURE_RANKER_BID_ASK_INVALID")
-    policy = require_entry_direction_target_policy(
+    if "time" not in frame.columns:
+        raise RuntimeError("FEATURE_RANKER_DIRECTION_TIME_MISSING")
+    policy = require_causal_m1_target_policy(
         entry_direction_target_policy
     )
     horizon_bars = int(policy["selected_direction_horizon_bars"])
-    if len(frame) <= horizon_bars:
-        raise RuntimeError("FEATURE_RANKER_DIRECTION_HORIZON_UNAVAILABLE")
-
-    target = np.full(len(frame), np.nan, dtype=np.float64)
-    usable = len(frame) - horizon_bars
-    entry_bid = bid[:usable]
-    entry_ask = ask[:usable]
-    exit_bid = bid[horizon_bars:]
-    exit_ask = ask[horizon_bars:]
-    pnl_long = (exit_bid - entry_ask) / entry_ask * 1e4
-    pnl_short = (entry_bid - exit_ask) / entry_bid * 1e4
-    targets = entry_direction_targets_from_policy(
-        policy=policy,
-        long_executable_pnl_bps=pnl_long,
-        short_executable_pnl_bps=pnl_short,
+    prepared_m1 = prepare_causal_m1_quote_source(closed_m1)
+    surface = build_entry_m1_fill_surface(
+        m5_decision_times=frame["time"], closed_m1=prepared_m1
     )
-    target[:usable] = targets["side_margin_bps"].astype(np.float64)
+    terminal = causal_m1_terminal_outcomes_at_horizon(
+        fill_surface=surface, closed_m1=prepared_m1, horizon_m5_bars=horizon_bars
+    )
+    target = np.full(len(frame), np.nan, dtype=np.float64)
+    valid = terminal["outcome_valid"].to_numpy(dtype=bool)
+    valid_rows = np.flatnonzero(valid)
+    targets = causal_m1_direction_targets_from_policy(
+        policy=policy,
+        long_executable_pnl_bps=(
+            terminal["long_executable_pnl_bps"].to_numpy(dtype=np.float64)[valid_rows]
+        ),
+        short_executable_pnl_bps=(
+            terminal["short_executable_pnl_bps"].to_numpy(dtype=np.float64)[valid_rows]
+        ),
+    )
+    target[valid_rows] = targets["side_margin_bps"].astype(np.float64)
     times = frame["time"].to_numpy()
     in_fit = (frame["time"] >= train_start) & (frame["time"] <= train_end)
     target[~in_fit.to_numpy()] = np.nan
-    full_horizon = np.arange(len(frame)) < usable
-    if not np.isfinite(target[in_fit.to_numpy() & full_horizon]).all():
-        raise RuntimeError("FEATURE_RANKER_DIRECTION_MARGIN_NONFINITE")
     return times, target
 
 
@@ -589,7 +587,7 @@ def emit_ranking(
         "source_sha256": source_sha256,
         "target_sha256": target_sha256,
         "target_contract": dict(TRAIN_FEATURE_RANKING_TARGET_CONTRACT),
-        "entry_direction_target_policy": require_entry_direction_target_policy(
+        "entry_direction_target_policy": require_causal_m1_target_policy(
             entry_direction_target_policy
         ),
         "entry_direction_target_policy_sha256": (
@@ -623,6 +621,12 @@ def main() -> None:
     parser.add_argument("--mtf-cache-dir", type=Path, required=True)
     parser.add_argument("--source-cascade-proof", type=Path, required=True)
     parser.add_argument("--tape-root", type=Path, required=True)
+    parser.add_argument(
+        "--m1-lifecycle-source",
+        type=Path,
+        required=True,
+        help="Exact pair-bound M1 bid/ask source used for causal ranking labels.",
+    )
     parser.add_argument("--expected-source-time-max", required=True)
     parser.add_argument("--history-start", required=True)
     parser.add_argument("--train-start", required=True)
@@ -667,6 +671,19 @@ def main() -> None:
         expected_run_id=run_id,
         require_current=True,
     )
+    m1_lifecycle_source = args.m1_lifecycle_source.expanduser().resolve()
+    if m1_lifecycle_source.is_symlink() or not m1_lifecycle_source.is_file():
+        raise RuntimeError(
+            f"FEATURE_RANKER_M1_LIFECYCLE_SOURCE_MISSING: {m1_lifecycle_source}"
+        )
+    m1_source_sha256 = _sha256_file(m1_lifecycle_source)
+    closed_m1 = pd.read_parquet(
+        m1_lifecycle_source,
+        columns=[
+            "time", "bid_open", "bid_high", "bid_low",
+            "ask_open", "ask_high", "ask_low",
+        ],
+    )
     policy_source = pd.read_parquet(
         source_parquet,
         columns=["time", "bid_close", "ask_close"],
@@ -678,12 +695,14 @@ def main() -> None:
         (policy_source["time"] >= train_start)
         & (policy_source["time"] <= train_end)
     ].reset_index(drop=True)
-    entry_direction_target_policy = fit_entry_direction_target_policy(
+    entry_direction_target_policy = fit_causal_m1_target_policy(
         closed_m5=policy_source,
+        closed_m1=closed_m1,
         train_start=train_start,
         train_end=train_end,
         source_parquet_sha256=source_sha256,
         tape_provenance_sha256=canonical_json_sha256(tape_provenance),
+        m1_source_sha256=m1_source_sha256,
     )
     checkpoint_key = _ranker_checkpoint_key(
         run_id=run_id,
@@ -788,6 +807,7 @@ def main() -> None:
             train_start=train_start,
             train_end=train_end,
             entry_direction_target_policy=entry_direction_target_policy,
+            closed_m1=closed_m1,
         )
         train_rows = int(len(frame))
         _stm = pd.Timestamp(frame["time"].max())

@@ -51,8 +51,8 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-from gx1.contracts.entry_direction_target_policy_v1 import (
-    require_entry_direction_target_policy,
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    require_causal_m1_target_policy,
 )
 from gx1.contracts.entry_model_native_feature_availability_v1 import (
     require_feature_availability_contract,
@@ -65,24 +65,26 @@ from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v14"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v15"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v14"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v15"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v11"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v12"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v11"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v12"
 TRAIN_FEATURE_RANKING_TARGET_CONTRACT = {
-    "target": "train_fitted_executable_pnl_side_margin_bps",
+    "target": "train_fitted_exact_m1_executable_pnl_side_margin_bps",
     "horizon_source": (
         "entry_direction_target_policy.selected_direction_horizon_bars"
     ),
-    "long_entry_price": "ask_close_t0",
-    "long_exit_price": "bid_close_t_plus_fitted_horizon",
-    "short_entry_price": "bid_close_t0",
-    "short_exit_price": "ask_close_t_plus_fitted_horizon",
+    "entry_decision_time": "authoritative_m5_bar_close_available_at",
+    "long_entry_price": "ask_open_first_authoritative_m1_at_or_after_entry_decision",
+    "long_exit_price": "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
+    "short_entry_price": "bid_open_first_authoritative_m1_at_or_after_entry_decision",
+    "short_exit_price": "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
+    "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
     "ranking_target_formula": (
         "long_executable_pnl_bps-short_executable_pnl_bps"
     ),
@@ -405,7 +407,7 @@ def load_and_validate_train_feature_ranking(
     target_hash = _require_sha256(ranking.get("target_sha256"), field="target_sha256")
     if source_hash == target_hash:
         raise RuntimeError("FEATURE_RANKING_SOURCE_TARGET_HASH_COLLISION")
-    entry_direction_target_policy = require_entry_direction_target_policy(
+    entry_direction_target_policy = require_causal_m1_target_policy(
         ranking.get("entry_direction_target_policy"),
         expected_source_parquet_sha256=source_hash,
     )

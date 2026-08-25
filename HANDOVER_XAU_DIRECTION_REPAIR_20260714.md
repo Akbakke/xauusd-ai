@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-21. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-25. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
@@ -64,6 +64,20 @@ because its old report-only recipe was internally coherent. A successor must
 rebuild every active auxiliary from exact M1 fill bid/ask quotes, bind the
 entry and exit quote times in each split's evidence, then re-run this audit.
 This discovery produces no model, epoch, PnL, win rate or edge result.
+
+**Successor causal-label implementation, 2026-08-25:** commits `224beaec` and
+`8db0c0fc` add exact M5-decision-to-M1-fill/exit primitives plus a TRAIN-only
+direction policy and selected-side sizing ECDF. The successor integration
+migrates the ranker, signal manifest, split builder, preflight and
+launch/audit consumers to this source: ranker now requires the pair-bound M1
+parquet, a split drops labels whose exact M1 exit would cross its end, and the
+causality audit refuses a legacy sizing payload whenever the ranking claims a
+causal M1 contract. Unit and bounded real-source smoke checks pass. **No
+dataset rebuild, training, CUDA work, TEST read, PnL or edge evaluation has
+been run from this implementation.** V42 remains the current immutable BLOCK;
+a fresh successor lineage must complete the bounded rebuild/audit chain and
+produce a new PASS causality report before an explicitly authorized training
+smoke can be considered.
 
 **Historical V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
 (283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and

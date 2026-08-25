@@ -79,7 +79,7 @@ from gx1.scripts import (
 from gx1.scripts.prebuild_multi_tf_cache_v4 import publish_multi_tf_v4_cache
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from tests.entry_direction_target_policy_support import (
-    entry_direction_target_policy_fixture,
+    causal_m1_target_policy_fixture,
 )
 
 from tests.htf_v29_registry_test_support import (
@@ -361,7 +361,7 @@ def _build_fixture(
         "time_max_utc": SPLITS["test_end"],
     }
     _write_json(Path(source_cascade["path"]), source_cascade)
-    direction_target_policy = entry_direction_target_policy_fixture(
+    direction_target_policy = causal_m1_target_policy_fixture(
         source_parquet_sha256=_sha256(source),
         tape_provenance_sha256="b" * 64,
         train_start_utc=datetime.fromisoformat(SPLITS["train_start"]).isoformat(),
@@ -785,10 +785,10 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     )
     assert command["fixed_builder_contract"]["state_schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
     assert command["fixed_builder_contract"]["entry_direction_target_policy"] == (
-        "fit_once_on_exact_train_native_m5_then_hash_bound"
+        "fit_once_on_exact_train_m5_decisions_and_pair_bound_m1_fills_then_hash_bound"
     )
     assert command["fixed_builder_contract"]["direction_target_mode"] == (
-        "train_fitted_executable_pnl_v1"
+        "train_fitted_exact_m1_execution_pnl_v1"
     )
     assert command["fixed_builder_contract"]["run_lineage_required"] is True
     aux_contract = command["fixed_builder_contract"]["aux_head_target_contract"]
@@ -928,7 +928,7 @@ def test_preflight_blocks_incomplete_contracts(
         ),
         (
             {"break_ranking_source_hash": True},
-            "ENTRY_TARGET_POLICY_SOURCE_MISMATCH",
+            "ENTRY_CAUSAL_M1_TARGET_POLICY_SOURCE_PARQUET_SHA256_MISMATCH",
         ),
         (
             {"break_ranking_train_window": True},

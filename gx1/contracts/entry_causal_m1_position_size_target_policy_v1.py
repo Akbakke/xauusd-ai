@@ -331,3 +331,42 @@ def causal_m1_position_size_target_policy_contract(
         "position_size_target_unmasked_training_allowed": False,
         "position_size_target_live_direction_authority": False,
     }
+
+
+def require_causal_m1_position_size_target_manifest_binding(
+    extra: Any,
+    *,
+    expected_source_parquet_sha256: str | None = None,
+    expected_tape_provenance_sha256: str | None = None,
+    expected_m1_source_sha256: str | None = None,
+    expected_direction_policy_sha256: str | None = None,
+    expected_train_start: Any | None = None,
+    expected_train_end: Any | None = None,
+) -> dict[str, Any]:
+    """Validate the complete frozen causal-M1 sizing projection in a manifest."""
+
+    if not isinstance(extra, Mapping):
+        raise RuntimeError("ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_MANIFEST_EXTRA_INVALID")
+    policy = require_causal_m1_position_size_target_policy(
+        extra.get("entry_causal_m1_position_size_target_policy"),
+        expected_source_parquet_sha256=expected_source_parquet_sha256,
+        expected_tape_provenance_sha256=expected_tape_provenance_sha256,
+        expected_m1_source_sha256=expected_m1_source_sha256,
+        expected_direction_policy_sha256=expected_direction_policy_sha256,
+    )
+    expected_projection = causal_m1_position_size_target_policy_contract(policy)
+    for key, expected in expected_projection.items():
+        if extra.get(key) != expected:
+            raise RuntimeError(
+                "ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_MANIFEST_PROJECTION_MISMATCH: "
+                f"key={key}"
+            )
+    if expected_train_start is not None and _utc(
+        expected_train_start, field="EXPECTED_TRAIN_START"
+    ) != _utc(policy["train_start_utc"], field="TRAIN_START"):
+        raise RuntimeError("ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_MANIFEST_TRAIN_START_MISMATCH")
+    if expected_train_end is not None and _utc(
+        expected_train_end, field="EXPECTED_TRAIN_END"
+    ) != _utc(policy["train_end_utc"], field="TRAIN_END"):
+        raise RuntimeError("ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_MANIFEST_TRAIN_END_MISMATCH")
+    return policy

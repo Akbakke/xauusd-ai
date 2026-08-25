@@ -37,13 +37,17 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
     require_dataset_split_artifacts,
 )
-from gx1.contracts.entry_direction_target_policy_v1 import (
-    require_entry_direction_diagnostic_outcome_manifest_binding,
-)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
+)
+from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
+    causal_m1_position_size_targets_from_policy,
+    require_causal_m1_position_size_target_manifest_binding,
+)
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    require_entry_direction_diagnostic_outcome_manifest_binding,
 )
 from gx1.contracts.entry_position_size_target_policy_v1 import (
     entry_position_size_targets_from_policy,
@@ -386,7 +390,13 @@ def _position_size_target_contract(
                     f"count={negative_mae_count}"
                 )
             if not row_failures:
-                expected = entry_position_size_targets_from_policy(
+                target_fn = (
+                    causal_m1_position_size_targets_from_policy
+                    if target_policy.get("schema_version")
+                    == "gx1_entry_causal_m1_position_size_target_policy_v1"
+                    else entry_position_size_targets_from_policy
+                )
+                expected = target_fn(
                     policy=target_policy,
                     mfe_first_n_bps=mfe,
                     mae_first_n_bps=mae,
@@ -775,16 +785,56 @@ def _entry_direction_policy_from_split_manifest(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError("split manifest is not an object")
     extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
-    position_policy = extra.get("entry_position_size_target_policy")
+    position_policy = extra.get("entry_causal_m1_position_size_target_policy")
+    if position_policy is None:
+        position_policy = extra.get("entry_position_size_target_policy")
     expected_policy_sha256 = (
-        position_policy.get("entry_direction_target_policy_sha256")
+        position_policy.get("entry_causal_m1_target_policy_sha256")
+        or position_policy.get("entry_direction_target_policy_sha256")
         if isinstance(position_policy, Mapping)
         else None
     )
-    return require_entry_direction_diagnostic_outcome_manifest_binding(
-        extra,
-        expected_direction_policy_sha256=expected_policy_sha256,
+    if "entry_causal_m1_position_size_target_policy" not in extra:
+        return require_entry_direction_diagnostic_outcome_manifest_binding(
+            extra, expected_direction_policy_sha256=expected_policy_sha256
+        )
+    policy_sha256 = str(extra.get("diagnostic_outcome_policy_sha256") or "")
+    if policy_sha256 != expected_policy_sha256:
+        raise RuntimeError("ENTRY_CAUSAL_M1_DIRECTION_MANIFEST_POLICY_MISMATCH")
+    diagnostic = extra.get("diagnostic_outcome_labels")
+    # The full policy is intentionally absent from split manifests. The M1
+    # causal projection is therefore checked for exact duplicated values and
+    # its hash is lineaged through the sizing policy.
+    if not isinstance(diagnostic, Mapping):
+        raise RuntimeError("ENTRY_CAUSAL_M1_DIRECTION_MANIFEST_DIAGNOSTIC_MISSING")
+    fields = (
+        "diagnostic_outcome_target_mode", "diagnostic_outcome_label_source",
+        "diagnostic_outcome_horizon_bars", "diagnostic_side_score_formula",
+        "diagnostic_tradable_edge_floor_bps", "diagnostic_side_margin_floor_bps",
+        "diagnostic_path_quality_horizon_bars", "diagnostic_outcome_policy_sha256",
+        "entry_action_authority",
     )
+    for field in fields:
+        if extra.get(field) != diagnostic.get(field):
+            raise RuntimeError(f"ENTRY_CAUSAL_M1_DIRECTION_MANIFEST_PROJECTION_MISMATCH:{field}")
+    if (
+        diagnostic.get("diagnostic_outcome_policy_sha256") != expected_policy_sha256
+        or diagnostic.get("diagnostic_outcome_target_mode")
+        != "train_fitted_exact_m1_execution_diagnostics_v1"
+        or diagnostic.get("diagnostic_outcome_label_source")
+        != "train_fitted_exact_m1_fill_executable_pnl_at_selected_horizon"
+        or diagnostic.get("entry_action_authority") is not False
+    ):
+        raise RuntimeError("ENTRY_CAUSAL_M1_DIRECTION_MANIFEST_CONTRACT_INVALID")
+    return {
+        "policy_sha256": expected_policy_sha256,
+        "selected_direction_horizon_bars": diagnostic["diagnostic_outcome_horizon_bars"],
+        "path_quality_horizon_bars": diagnostic["diagnostic_path_quality_horizon_bars"],
+        "tradable_edge_floor_bps": diagnostic["diagnostic_tradable_edge_floor_bps"],
+        "side_margin_floor_bps": diagnostic["diagnostic_side_margin_floor_bps"],
+        "side_score_formula": diagnostic["diagnostic_side_score_formula"],
+        "entry_action_authority": False,
+    }
 
 
 def _entry_position_size_policy_from_split_manifest(
@@ -811,10 +861,22 @@ def _entry_position_size_policy_from_split_manifest(
     provenance = extra.get("xau_tape_provenance")
     if len(source_sha256) != 64 or not isinstance(provenance, dict):
         raise RuntimeError("split manifest target-policy source binding missing")
-    return require_entry_position_size_target_manifest_binding(
+    if "entry_causal_m1_position_size_target_policy" not in extra:
+        return require_entry_position_size_target_manifest_binding(
+            extra,
+            expected_source_parquet_sha256=source_sha256,
+            expected_tape_provenance_sha256=canonical_json_sha256(provenance),
+            expected_direction_policy_sha256=direction_policy["policy_sha256"],
+            expected_train_start=train_window.get("start"),
+            expected_train_end=train_window.get("end"),
+        )
+    lifecycle = extra.get("unified_exit_lifecycle")
+    m1_sha256 = str(lifecycle.get("m1_source_sha256") or "") if isinstance(lifecycle, Mapping) else ""
+    return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=source_sha256,
         expected_tape_provenance_sha256=canonical_json_sha256(provenance),
+        expected_m1_source_sha256=m1_sha256,
         expected_direction_policy_sha256=direction_policy["policy_sha256"],
         expected_train_start=train_window.get("start"),
         expected_train_end=train_window.get("end"),

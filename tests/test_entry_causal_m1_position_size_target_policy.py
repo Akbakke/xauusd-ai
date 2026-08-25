@@ -9,6 +9,7 @@ from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
     causal_m1_position_size_targets_from_policy,
     causal_m1_position_size_target_policy_contract,
     fit_causal_m1_position_size_target_policy,
+    require_causal_m1_position_size_target_manifest_binding,
     require_causal_m1_position_size_target_policy,
 )
 from tests.test_entry_causal_m1_target_policy import _fit, _m1, _sha
@@ -33,6 +34,16 @@ def test_fit_and_apply_use_only_exact_m1_selected_side_paths(tmp_path: Path) -> 
     assert causal_m1_position_size_target_policy_contract(policy)[
         "position_size_target_source"
     ] == "train_fitted_exact_m1_selected_side_path_ecdf"
+    binding = {
+        **causal_m1_position_size_target_policy_contract(policy),
+    }
+    assert require_causal_m1_position_size_target_manifest_binding(
+        binding,
+        expected_source_parquet_sha256=_sha("m5"),
+        expected_tape_provenance_sha256=_sha("tape"),
+        expected_m1_source_sha256=_sha("m1"),
+        expected_direction_policy_sha256=direction["policy_sha256"],
+    ) == policy
     output = causal_m1_position_size_targets_from_policy(
         policy=policy,
         mfe_first_n_bps=np.array([20.0, 30.0, 5.0]),

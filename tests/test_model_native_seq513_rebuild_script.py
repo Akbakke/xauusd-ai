@@ -101,7 +101,11 @@ def test_seq513_rebuild_does_not_hide_target_or_sequence_defaults() -> None:
         assert "default" not in keywords, flag
     assert "--early_move_threshold_bps" not in builder
     assert 'direction_target_policy["early_move_threshold_bps"]' in builder
-    assert "fit_entry_direction_target_policy(" in builder
+    assert "fit_causal_m1_target_policy(" in builder
+    assert "materialize_causal_m1_auxiliary_outcomes(" in builder
+    assert "--m1-lifecycle-source \"$BASE28\"" in (
+        (REPO / "scripts/run_seq513_rebuild_chain_v1.sh").read_text(encoding="utf-8")
+    )
 
 
 def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> None:
