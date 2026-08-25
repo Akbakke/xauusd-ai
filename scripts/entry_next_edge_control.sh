@@ -34,6 +34,7 @@ Model-native seq513 evidence:
   model-native-m1-feature-base --source-parquet <immutable-parquet> --alignment-parquet <pair-bound-m1-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <m1-enriched-manifest-json> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256>
   model-native-m5-feature-base --source-parquet <immutable-parquet> --seq-structure-manifest <json> --output-parquet <new-parquet> --dataset-run-id <id> --pair-generation-id <sha256> --v29-registry-constants-json <v4-cache-manifest-json> --volatility-squeeze-manifest <json> --expected-volatility-squeeze-manifest-sha256 <sha256>
   model-native-cross-surface-overlap --run-id <id> --signal-manifest <json> --m1-feature-base-parquet <immutable-parquet> --m5-feature-base-parquet <immutable-parquet> --mtf-cache-dir <immutable-dir> --out-json <new-json>
+  model-native-feature-surface-liveness --run-id <id> --signal-manifest <json> --m1-feature-base-parquet <immutable-parquet> --m5-feature-base-parquet <immutable-parquet> --cross-surface-overlap-json <immutable-json> --out-json <new-json>
   model-native-rebuild-preflight \
     --run-id <id> \
     --source-parquet <immutable-parquet> \
@@ -525,6 +526,20 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_cross_surface_feature_overlap_v1 "$@"
+    ;;
+
+  model-native-feature-surface-liveness)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --run-id \
+      --signal-manifest \
+      --m1-feature-base-parquet \
+      --m5-feature-base-parquet \
+      --cross-surface-overlap-json \
+      --out-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_feature_surface_liveness_v1 "$@"
     ;;
 
   model-native-foundation-target-audit)

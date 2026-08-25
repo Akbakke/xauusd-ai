@@ -50,6 +50,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-m1-feature-base",
     "model-native-m5-feature-base",
     "model-native-cross-surface-overlap",
+    "model-native-feature-surface-liveness",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
     "model-native-foundation-feature-audit",
