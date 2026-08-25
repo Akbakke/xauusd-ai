@@ -17,6 +17,10 @@ from typing import Any
 from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_production_economics_readiness,
 )
+from gx1.contracts.entry_execution_causality_v1 import (
+    ENTRY_EXECUTION_CAUSALITY_AUDIT_SCHEMA_VERSION,
+    require_entry_execution_causality_audit,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import sha256_file
 
 
@@ -69,6 +73,10 @@ _REQUIRED_REPORTS: dict[str, tuple[str, str]] = {
         "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
     ),
     "train_recipe": ("entry_model_native_seq513_train_recipe_audit_v7", "PASS"),
+    "execution_causality": (
+        ENTRY_EXECUTION_CAUSALITY_AUDIT_SCHEMA_VERSION,
+        "BLOCK",
+    ),
     "adoption_candidate": (
         "entry_model_native_adoption_candidate_v1",
         "BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW",
@@ -176,6 +184,27 @@ def _require_adoption_block(payload: Mapping[str, Any]) -> None:
             raise RuntimeError(f"[AUDITED_ADOPTION_{key.upper()}_OPEN]")
 
 
+def _require_execution_causality_block(
+    payload: Mapping[str, Any], *, dataset_dir: Path, dataset_run_id: str
+) -> None:
+    """Keep a same-close auxiliary finding visible in the current state."""
+
+    report = require_entry_execution_causality_audit(
+        payload,
+        expected_dataset_dir=str(dataset_dir),
+        expected_entry_run_id=dataset_run_id,
+        require_training_authorized=False,
+    )
+    if (
+        report["training_authorized"] is not False
+        or report["legacy_m5_same_close_label_present"] is not True
+        or report["entry_fitted_q_m1_fill_lifecycle_bound"] is not True
+        or report["active_auxiliary_targets_m1_fill_bound"] is not False
+        or report["future_causal_rebuild_required"] is not True
+    ):
+        raise RuntimeError("[AUDITED_EXECUTION_CAUSALITY_BLOCKER_INVALID]")
+
+
 def require_current_audited_dataset_evidence(
     value: Mapping[str, Any] | Any,
 ) -> dict[str, Any]:
@@ -258,6 +287,12 @@ def require_current_audited_dataset_evidence(
         )
         if name == "adoption_candidate":
             _require_adoption_block(payload)
+        elif name == "execution_causality":
+            _require_execution_causality_block(
+                payload,
+                dataset_dir=dataset_dir,
+                dataset_run_id=evidence["dataset_run_id"],
+            )
         else:
             _require_empty_failures(payload, label=f"CURRENT_AUDITED_{name.upper()}")
         validated[name] = {"path": str(path), "sha256": observed_sha}

@@ -28,7 +28,7 @@ def test_current_v42_review_is_hash_bound_but_not_admitted() -> None:
     assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
     assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
     assert summary["dataset_run_id"] == "V42_20260825T011122Z"
-    assert summary["report_count"] == 12
+    assert summary["report_count"] == 13
 
 
 @pytest.mark.parametrize(

@@ -70,6 +70,9 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     recipe_env_sha256,
     recipe_source_bindings,
 )
+from gx1.contracts.entry_execution_causality_v1 import (
+    build_entry_execution_causality_audit,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     model_native_recipe_env_contract_metadata,
@@ -370,26 +373,47 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "m1_source_sha256": artifact_binding(lifecycle_m1)["sha256"],
     }
     lifecycle_authority_sha256 = canonical_json_sha256(lifecycle_authority)
-    lifecycle_splits = {
-        split: {
+    lifecycle_splits = {}
+    for split in ("train", "val", "test"):
+        lifecycle_parquet = lifecycle_dir / f"{split}_unified_exit_lifecycle.parquet"
+        lifecycle_parquet.write_bytes(f"{split}-lifecycle-fixture".encode())
+        lifecycle_manifest = _write_json(
+            lifecycle_dir / f"{split}_unified_exit_lifecycle.manifest.json",
+            {
+                "decision": "PASS",
+                "entry_run_id": DATASET_RUN_ID,
+                "entry_side_selection": (
+                    "both_sides_for_every_causal_entry_snapshot"
+                ),
+                "first_state_post_fill_closed_bars": 1,
+                "state_row_timestamp_semantics": "authoritative_m1_bar_start",
+                "decision_time_semantics": (
+                    "authoritative_m1_bar_close_available_at"
+                ),
+                "future_outcomes_used_as_model_inputs": False,
+                "sample_selection_depends_on_future_target": False,
+                "exit_supervision_authority": (
+                    "executable_exit_now_reward_plus_train_fitted_q"
+                ),
+            },
+        )
+        lifecycle_splits[split] = {
             "entry_dataset_path": str(artifacts[f"{split}_parquet"]),
             "entry_dataset_sha256": artifact_binding(
                 artifacts[f"{split}_parquet"]
             )["sha256"],
-            "lifecycle_parquet": (
-                f"{split}_unified_exit_lifecycle.parquet"
-            ),
-            "lifecycle_parquet_sha256": "1" * 64,
-            "lifecycle_manifest": (
-                f"{split}_unified_exit_lifecycle.manifest.json"
-            ),
-            "lifecycle_manifest_sha256": "2" * 64,
+            "lifecycle_parquet": lifecycle_parquet.name,
+            "lifecycle_parquet_sha256": artifact_binding(lifecycle_parquet)[
+                "sha256"
+            ],
+            "lifecycle_manifest": lifecycle_manifest.name,
+            "lifecycle_manifest_sha256": artifact_binding(lifecycle_manifest)[
+                "sha256"
+            ],
             "episode_rows": 2,
             "state_population_rows": 1024,
             "state_population_stream_sha256": "3" * 64,
         }
-        for split in ("train", "val", "test")
-    }
     artifacts["unified_exit_lifecycle_manifest_json"] = _write_json(
         lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
         {
@@ -667,6 +691,58 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             },
             "splits": pretrain_splits,
         },
+    )
+    causal_target_contract = {
+        "entry_decision_time": "authoritative_m5_bar_close_available_at",
+        "long_entry_price": (
+            "ask_open_first_authoritative_m1_at_or_after_entry_decision"
+        ),
+        "short_entry_price": (
+            "bid_open_first_authoritative_m1_at_or_after_entry_decision"
+        ),
+        "long_exit_price": (
+            "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
+        ),
+        "short_exit_price": (
+            "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
+        ),
+        "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
+        "target_affects_feature_availability": False,
+    }
+    causality_rows = []
+    for split in ("train", "val"):
+        lifecycle_manifest = lifecycle_dir / lifecycle_splits[split][
+            "lifecycle_manifest"
+        ]
+        causality_rows.append(
+            {
+                "split": split,
+                "dataset_manifest_path": str(
+                    artifacts[f"{split}_manifest_json"]
+                ),
+                "dataset_manifest_sha256": artifact_binding(
+                    artifacts[f"{split}_manifest_json"]
+                )["sha256"],
+                "lifecycle_manifest_path": str(lifecycle_manifest),
+                "lifecycle_manifest_sha256": artifact_binding(lifecycle_manifest)[
+                    "sha256"
+                ],
+                "entry_fitted_q_m1_fill_lifecycle_bound": True,
+                "active_auxiliary_targets_m1_fill_bound": True,
+            }
+        )
+    artifacts["execution_causality_audit_json"] = _write_json(
+        evidence_dir / f"ENTRY_EXECUTION_CAUSALITY_AUDIT_{STAMP}.json",
+        build_entry_execution_causality_audit(
+            dataset_dir=str(dataset_dir),
+            entry_run_id=DATASET_RUN_ID,
+            signal_manifest_path=str(
+                (evidence_dir / f"ENTRY_SIGNAL_MANIFEST_{STAMP}.json").resolve()
+            ),
+            signal_manifest_sha256="4" * 64,
+            ranking_target_contract=causal_target_contract,
+            split_rows=causality_rows,
+        ),
     )
     artifacts["post_rebuild_readiness_json"] = _write_json(
         evidence_dir / f"ENTRY_POST_REBUILD_READINESS_{STAMP}.json",
@@ -953,6 +1029,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "target_audit_json",
         "specialist_audit_json",
         "pretrain_audit_json",
+        "execution_causality_audit_json",
         "trainability_readiness_json",
         *(
             ["smoke_manifest_json", "smoke_readiness_json"]
@@ -1060,6 +1137,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--target-audit-json", str(artifacts["target_audit_json"]),
         "--specialist-audit-json", str(artifacts["specialist_audit_json"]),
         "--pretrain-audit-json", str(artifacts["pretrain_audit_json"]),
+        "--execution-causality-audit-json", str(artifacts["execution_causality_audit_json"]),
         "--recipe-audit-json", str(artifacts["recipe_audit_json"]),
         "--trainability-readiness-json", str(artifacts["trainability_readiness_json"]),
         "--out-bundle-dir", str(out_bundle),

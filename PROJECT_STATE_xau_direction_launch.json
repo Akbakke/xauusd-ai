@@ -112,6 +112,12 @@
         "schema_version": "entry_model_native_seq513_train_recipe_audit_v7",
         "decision": "PASS"
       },
+      "execution_causality": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/audit/ENTRY_EXECUTION_CAUSALITY_AUDIT_20260825T052916Z.json",
+        "sha256": "e929536ef36602464dd51445f83a22c23fcdd53cd0c90f5bc762633acc07a865",
+        "schema_version": "entry_execution_causality_audit_v1",
+        "decision": "BLOCK"
+      },
       "adoption_candidate": {
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/adoption_candidate_recheck/ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE_20260825T043915926322Z.json",
         "sha256": "f1a3a8c8d6b16fe6c0287aa32b64bf20a3e8e9743d123327e9a4804c52ac5098",

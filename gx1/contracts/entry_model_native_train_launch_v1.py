@@ -26,6 +26,10 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
 from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_contract,
 )
+from gx1.contracts.entry_execution_causality_v1 import (
+    ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS,
+    require_entry_execution_causality_audit,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
@@ -181,6 +185,7 @@ _COMMON_BINDING_KEYS = (
     "target_audit_json",
     "specialist_audit_json",
     "pretrain_audit_json",
+    "execution_causality_audit_json",
     "trainability_readiness_json",
 )
 _PROFILE_BINDING_KEYS = {
@@ -1213,6 +1218,53 @@ def _validate_audits(
         expected_contract_mode=MODEL_NATIVE_CONTRACT_MODE,
     )
     _require(liveness_result.get("ok") is True, f"full-input liveness audit invalid: {liveness_result.get('failures')}")
+
+    try:
+        causality = require_entry_execution_causality_audit(
+            payloads["execution_causality_audit_json"],
+            expected_dataset_dir=str(dataset_dir),
+            expected_entry_run_id=dataset_run_id,
+            require_training_authorized=True,
+        )
+    except RuntimeError as exc:
+        raise LaunchContractError(
+            f"Entry execution-causality audit does not authorize training: {exc}"
+        ) from exc
+    causality_rows = {
+        row["split"]: row for row in causality["splits"]
+    }
+    lifecycle_root = payloads["unified_exit_lifecycle_manifest_json"]
+    lifecycle_splits = lifecycle_root.get("splits")
+    _require(
+        isinstance(lifecycle_splits, Mapping),
+        "unified Exit lifecycle split bindings are missing",
+    )
+    for split in ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS:
+        row = causality_rows[split]
+        dataset_manifest = artifacts[f"{split}_manifest_json"]
+        _require(
+            row["dataset_manifest_path"] == str(dataset_manifest)
+            and row["dataset_manifest_sha256"] == sha256_file(dataset_manifest),
+            f"Entry execution-causality {split} dataset-manifest binding mismatch",
+        )
+        lifecycle_binding = lifecycle_splits.get(split)
+        _require(
+            isinstance(lifecycle_binding, Mapping),
+            f"unified Exit lifecycle {split} binding missing",
+        )
+        expected_lifecycle = (
+            artifacts["unified_exit_lifecycle_manifest_json"].parent
+            / str(lifecycle_binding.get("lifecycle_manifest") or "")
+        ).resolve()
+        _require(
+            row["lifecycle_manifest_path"] == str(expected_lifecycle)
+            and row["lifecycle_manifest_sha256"]
+            == lifecycle_binding.get("lifecycle_manifest_sha256")
+            and expected_lifecycle.is_file()
+            and sha256_file(expected_lifecycle)
+            == lifecycle_binding.get("lifecycle_manifest_sha256"),
+            f"Entry execution-causality {split} lifecycle-manifest binding mismatch",
+        )
 
     trainability = payloads["trainability_readiness_json"]
     _zero_failure(

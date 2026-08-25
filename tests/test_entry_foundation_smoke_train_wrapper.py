@@ -189,6 +189,37 @@ def test_smoke_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -
         assert stale_key not in command[separator_index + 1 :]
 
 
+def test_smoke_wrapper_rejects_execution_causality_block_before_trainer(
+    tmp_path: Path,
+) -> None:
+    args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    causality_path = paths["execution_causality_audit_json"]
+    causality = json.loads(causality_path.read_text(encoding="utf-8"))
+    causality.update(
+        {
+            "decision": "BLOCK",
+            "training_authorized": False,
+            "legacy_m5_same_close_label_present": True,
+            "active_auxiliary_targets_m1_fill_bound": False,
+            "future_causal_rebuild_required": True,
+            "failures": ["ENTRY_EXECUTION_CAUSALITY_LONG_SAME_CLOSE_ENTRY"],
+            "remediation": ["rebuild_all_active_auxiliary_outcomes_from_exact_m1_fill_quotes"],
+        }
+    )
+    for row in causality["splits"]:
+        row["active_auxiliary_targets_m1_fill_bound"] = False
+    causality_path.write_text(
+        json.dumps(causality, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = _run(*args, "--dry-run")
+
+    assert result.returncode == 2
+    assert "ENTRY_EXECUTION_CAUSALITY_AUDIT_TRAINING_BLOCKED" in result.stderr
+    assert "Capped smoke train command:" not in result.stdout
+
+
 def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
     tmp_path: Path,
 ) -> None:

@@ -65,6 +65,7 @@ Model-native seq513 evidence:
   model-native-smoke-manifest
   model-native-smoke-readiness
   model-native-trainability-readiness
+  model-native-execution-causality-audit --dataset-dir <dataset-dir> --signal-manifest <json> --train-manifest <json> --val-manifest <json> --train-lifecycle-manifest <json> --val-lifecycle-manifest <json> --output <new-json>
   model-native-sequence-roll-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-train-recipe-audit
   model-native-smoke-bundle-audit
@@ -694,6 +695,7 @@ case "$cmd" in
       --target-audit-json \
       --specialist-audit-json \
       --pretrain-audit-json \
+      --execution-causality-audit-json \
       --smoke-manifest-json \
       --smoke-readiness-json \
       --trainability-readiness-json \
@@ -701,6 +703,23 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
+    ;;
+
+  model-native-execution-causality-audit)
+    # Manifest-only.  This runs before any trainer/GPU allocation and returns
+    # BLOCK when one active auxiliary still uses a same-close proxy.
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --dataset-dir \
+      --signal-manifest \
+      --train-manifest \
+      --val-manifest \
+      --train-lifecycle-manifest \
+      --val-lifecycle-manifest \
+      --output; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_execution_causality_v1 "$@"
     ;;
 
   model-native-smoke-train)

@@ -45,6 +45,26 @@ executed fill price. No such observed fill ledger exists for V42 historical
 rows, so this is only the collection/verification instrument for a later,
 separately authorized demo-evidence phase—not a V42 economics admission.
 
+**Execution-causality verdict, verified 2026-08-25:** a separate bounded,
+manifest-only audit now distinguishes the two Entry supervision paths before a
+trainer may allocate a GPU. V42's frozen fitted-Q Entry-to-Exit lifecycle
+passes its own M1 timeline: the decision is available at the closed M5 bar,
+the entry uses the next authoritative M1 open, and the first Exit decision
+comes only after one completed post-fill M1 bar. But the still-active
+diagnostic and position-size auxiliaries share the older M5 ranking policy,
+whose declared prices are `ask_close_t0` / `bid_close_t0`. They therefore lack
+an exact decision-time-to-M1-fill binding. The immutable V42 report is
+`audit/ENTRY_EXECUTION_CAUSALITY_AUDIT_20260825T052916Z.json`: `BLOCK`,
+`entry_fitted_q_m1_fill_lifecycle_bound=true`,
+`active_auxiliary_targets_m1_fill_bound=false` and
+`future_causal_rebuild_required=true`. The canonical smoke/candidate launch
+contract now requires a fresh PASS causality report and rejects this state
+before it constructs a trainer or CUDA context. Do **not** train V42 merely
+because its old report-only recipe was internally coherent. A successor must
+rebuild every active auxiliary from exact M1 fill bid/ask quotes, bind the
+entry and exit quote times in each split's evidence, then re-run this audit.
+This discovery produces no model, epoch, PnL, win rate or edge result.
+
 **Historical V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
 (283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and
 passed preflight, cross-surface v3, full-input liveness and pretrain v6. The

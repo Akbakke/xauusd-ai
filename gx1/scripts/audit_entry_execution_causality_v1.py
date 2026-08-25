@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+"""Audit the Entry decision-to-fill boundary before any trainer launch.
+
+This is intentionally a metadata/manifest audit.  It neither materializes a
+dataset nor opens a model, so an execution-causality failure is discovered
+before GPU allocation or a multi-day training run.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from gx1.contracts.entry_execution_causality_v1 import (
+    ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS,
+    build_entry_execution_causality_audit,
+    canonical_json_sha256,
+    is_sha256,
+    legacy_same_close_target_contract_failures,
+)
+from gx1.contracts.entry_fitted_q_v1 import require_entry_fitted_q_contract
+
+
+def _read_json(path: Path, *, label: str) -> dict[str, Any]:
+    resolved = path.expanduser().resolve()
+    if resolved.is_symlink() or not resolved.is_file():
+        raise RuntimeError(f"ENTRY_EXECUTION_CAUSALITY_{label}_MISSING: {resolved}")
+    try:
+        value = json.loads(resolved.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"ENTRY_EXECUTION_CAUSALITY_{label}_INVALID: {resolved}"
+        ) from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"ENTRY_EXECUTION_CAUSALITY_{label}_OBJECT_REQUIRED")
+    return value
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _split_row(
+    *,
+    split: str,
+    dataset_manifest_path: Path,
+    lifecycle_manifest_path: Path,
+    expected_run_id: str,
+    expected_direction_policy_sha256: str,
+) -> dict[str, Any]:
+    dataset_manifest = _read_json(
+        dataset_manifest_path, label=f"{split.upper()}_DATASET_MANIFEST"
+    )
+    extra = dataset_manifest.get("extra")
+    if not isinstance(extra, Mapping):
+        raise RuntimeError(
+            f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}_DATASET_EXTRA_MISSING"
+        )
+    if extra.get("entry_run_id") != expected_run_id:
+        raise RuntimeError(
+            f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}_DATASET_RUN_ID_MISMATCH"
+        )
+    require_entry_fitted_q_contract(
+        extra.get("entry_fitted_q"),
+        context=f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}",
+    )
+    diagnostic = extra.get("diagnostic_outcome_labels")
+    position = extra.get("entry_position_size_target_policy")
+    if (
+        not isinstance(diagnostic, Mapping)
+        or not isinstance(position, Mapping)
+        or diagnostic.get("diagnostic_outcome_policy_sha256")
+        != expected_direction_policy_sha256
+        or extra.get("diagnostic_outcome_policy_sha256")
+        != expected_direction_policy_sha256
+        or position.get("entry_direction_target_policy_sha256")
+        != expected_direction_policy_sha256
+    ):
+        raise RuntimeError(
+            f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}_AUXILIARY_POLICY_LINEAGE_INVALID"
+        )
+    lifecycle = _read_json(
+        lifecycle_manifest_path, label=f"{split.upper()}_LIFECYCLE_MANIFEST"
+    )
+    lifecycle_bound = (
+        lifecycle.get("decision") == "PASS"
+        and lifecycle.get("entry_run_id") == expected_run_id
+        and lifecycle.get("entry_side_selection")
+        == "both_sides_for_every_causal_entry_snapshot"
+        and lifecycle.get("first_state_post_fill_closed_bars") == 1
+        and lifecycle.get("state_row_timestamp_semantics")
+        == "authoritative_m1_bar_start"
+        and lifecycle.get("decision_time_semantics")
+        == "authoritative_m1_bar_close_available_at"
+        and lifecycle.get("future_outcomes_used_as_model_inputs") is False
+        and lifecycle.get("sample_selection_depends_on_future_target") is False
+        and lifecycle.get("exit_supervision_authority")
+        == "executable_exit_now_reward_plus_train_fitted_q"
+    )
+    return {
+        "split": split,
+        "dataset_manifest_path": str(dataset_manifest_path.resolve()),
+        "dataset_manifest_sha256": _sha256_file(dataset_manifest_path),
+        "lifecycle_manifest_path": str(lifecycle_manifest_path.resolve()),
+        "lifecycle_manifest_sha256": _sha256_file(lifecycle_manifest_path),
+        "entry_fitted_q_m1_fill_lifecycle_bound": lifecycle_bound,
+        # The immutable ranking target decides whether every current active
+        # diagnostic/sizing auxiliary has a causal quote definition.  The
+        # top-level report derives this one, so it cannot be silently set True
+        # in a split row.
+        "active_auxiliary_targets_m1_fill_bound": False,
+    }
+
+
+def build_report(
+    *,
+    dataset_dir: Path,
+    signal_manifest_path: Path,
+    split_paths: Mapping[str, tuple[Path, Path]],
+) -> dict[str, Any]:
+    signal = _read_json(signal_manifest_path, label="SIGNAL_MANIFEST")
+    run_id = signal.get("entry_run_id")
+    ranking = signal.get("feature_ranking")
+    if not isinstance(run_id, str) or not run_id or not isinstance(ranking, Mapping):
+        raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_SIGNAL_LINEAGE_INVALID")
+    policy_sha256 = ranking.get("entry_direction_target_policy_sha256")
+    if not is_sha256(policy_sha256):
+        raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_DIRECTION_POLICY_HASH_INVALID")
+    target_contract = ranking.get("target_contract")
+    split_rows = [
+        _split_row(
+            split=split,
+            dataset_manifest_path=split_paths[split][0],
+            lifecycle_manifest_path=split_paths[split][1],
+            expected_run_id=run_id,
+            expected_direction_policy_sha256=policy_sha256,
+        )
+        for split in ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS
+    ]
+    auxiliary_bound = not legacy_same_close_target_contract_failures(target_contract)
+    fitted_q_bound = all(
+        row["entry_fitted_q_m1_fill_lifecycle_bound"] for row in split_rows
+    )
+    for row in split_rows:
+        row["entry_fitted_q_m1_fill_lifecycle_bound"] = fitted_q_bound
+        row["active_auxiliary_targets_m1_fill_bound"] = auxiliary_bound
+    return build_entry_execution_causality_audit(
+        dataset_dir=str(dataset_dir.resolve()),
+        entry_run_id=run_id,
+        signal_manifest_path=str(signal_manifest_path.resolve()),
+        signal_manifest_sha256=_sha256_file(signal_manifest_path),
+        ranking_target_contract=target_contract,
+        split_rows=split_rows,
+    )
+
+
+def _write_fresh_json(path: Path, payload: Mapping[str, Any]) -> None:
+    output = path.expanduser().resolve()
+    if output.suffix != ".json" or not output.parent.is_dir():
+        raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_OUTPUT_PATH_INVALID")
+    encoded = (
+        json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    ).encode("utf-8")
+    descriptor = os.open(
+        output,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+        0o644,
+    )
+    try:
+        view = memoryview(encoded)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError(f"short report write: {output}")
+            view = view[written:]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset-dir", required=True)
+    parser.add_argument("--signal-manifest", required=True)
+    for split in ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS:
+        parser.add_argument(f"--{split}-manifest", required=True)
+        parser.add_argument(f"--{split}-lifecycle-manifest", required=True)
+    parser.add_argument("--output", required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(argv)
+    dataset_dir = Path(args.dataset_dir).expanduser().resolve()
+    if dataset_dir.is_symlink() or not dataset_dir.is_dir():
+        raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_DATASET_DIR_INVALID")
+    split_paths = {
+        split: (
+            Path(getattr(args, f"{split}_manifest")).expanduser().resolve(),
+            Path(getattr(args, f"{split}_lifecycle_manifest")).expanduser().resolve(),
+        )
+        for split in ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS
+    }
+    report = build_report(
+        dataset_dir=dataset_dir,
+        signal_manifest_path=Path(args.signal_manifest).expanduser().resolve(),
+        split_paths=split_paths,
+    )
+    _write_fresh_json(Path(args.output), report)
+    print(
+        json.dumps(
+            {
+                "decision": report["decision"],
+                "training_authorized": report["training_authorized"],
+                "failures": report["failures"],
+                "report_sha256": canonical_json_sha256(report),
+                "output": str(Path(args.output).expanduser().resolve()),
+            },
+            sort_keys=True,
+        )
+    )
+    return 0 if report["training_authorized"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

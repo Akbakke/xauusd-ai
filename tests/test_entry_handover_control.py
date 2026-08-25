@@ -60,6 +60,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-manifest",
     "model-native-smoke-readiness",
     "model-native-trainability-readiness",
+    "model-native-execution-causality-audit",
     "model-native-train-recipe-audit",
     "model-native-smoke-bundle-audit",
     "model-native-candidate-readiness",
@@ -140,11 +141,11 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert "current_audited_dataset_status: " in result.stdout
     assert "current_audited_dataset_run_id: V42_20260825T011122Z" in result.stdout
-    assert "current_audited_dataset_report_count: 12" in result.stdout
+    assert "current_audited_dataset_report_count: 13" in result.stdout
     assert "dataset_contract: V42_HASH_BOUND_AUDITED_REPORT_ONLY" in result.stdout
     assert (
         "train_recipe: "
-        "V42_AUDITED_EXECUTION_ELIGIBLE_ACTIVATION_FORBIDDEN"
+        "V42_OLD_RECIPE_BLOCKED_BY_EXECUTION_CAUSALITY_AUDIT"
         in result.stdout
     )
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
@@ -207,7 +208,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         "BIND_PRODUCTION_ECONOMICS_BEFORE_ANY_ADMISSION_OR_EDGE_CLAIM"
         in result.stdout
     )
-    assert "dataset_rebuild: NOT_REQUIRED_FOR_CURRENT_AUDITED_V42_STATUS_REPAIR" in result.stdout
+    assert "dataset_rebuild: REQUIRED_BEFORE_ANY_V42_SUCCESSOR_TRAINING" in result.stdout
     assert (
         "production_economics_blocker: "
         "ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_NOT_BOUND"
