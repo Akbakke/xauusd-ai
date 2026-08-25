@@ -135,7 +135,12 @@ def _install_causal_ranking(
             "source_sha256": "a" * 64,
             "entry_direction_target_policy": policy,
             "entry_direction_target_policy_sha256": policy["policy_sha256"],
-            "target_contract": policy["target_contract"],
+            # The ranker's objective contract and the causal-M1 policy's
+            # outcome contract have separate owners.  They overlap on fill
+            # semantics, but each carries additional metadata the other must
+            # not be required to duplicate.  This is the production shape
+            # that the execution-causality audit must accept.
+            "target_contract": _causal_target_contract(),
         }
     )
     signal.write_text(json.dumps(signal_payload, sort_keys=True), encoding="utf-8")

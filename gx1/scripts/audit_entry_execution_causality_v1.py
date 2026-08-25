@@ -194,9 +194,25 @@ def build_report(
             ranking.get("entry_direction_target_policy"),
             expected_source_parquet_sha256=source_sha256,
         )
+        # `feature_ranking.target_contract` describes the ranking objective,
+        # while the causal policy's `target_contract` owns the lower-level M1
+        # outcome construction.  They intentionally have different schemas:
+        # the former adds ranking fit semantics and the latter adds gap/path
+        # semantics.  Requiring whole-object equality would therefore reject a
+        # correctly-bound causal ranking.  Require agreement on every field
+        # they deliberately share instead; each complete contract is already
+        # validated by its respective owner above.
+        causal_target_contract = causal_direction_policy["target_contract"]
+        shared_target_contract_fields = set(causal_target_contract).intersection(
+            target_contract
+        )
         if (
             causal_direction_policy["policy_sha256"] != policy_sha256
-            or causal_direction_policy["target_contract"] != target_contract
+            or not shared_target_contract_fields
+            or any(
+                causal_target_contract[field] != target_contract[field]
+                for field in shared_target_contract_fields
+            )
         ):
             raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_CAUSAL_RANKING_POLICY_MISMATCH")
     split_rows = [
