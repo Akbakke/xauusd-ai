@@ -221,7 +221,7 @@ def test_aux_target_emission_contract_rejects_non_exact_row_proof(
     elif mutation == "tail":
         candidate["incomplete_tail_rows_total"] = 95
     elif mutation == "excluded":
-        candidate["incomplete_candidate_rows_excluded"] = 95
+        candidate["incomplete_candidate_rows_excluded"] = 97
     elif mutation == "equation":
         candidate["candidate_rows_before_completeness"] = 101
     else:
@@ -233,6 +233,19 @@ def test_aux_target_emission_contract_rejects_non_exact_row_proof(
             candidate,
             context="TEST",
         )
+
+
+def test_aux_target_emission_contract_allows_m1_prefiltered_tail() -> None:
+    """The earlier causal M1 gate may remove part of the K=96 target tail."""
+
+    candidate = _emission_contract()
+    candidate["incomplete_candidate_rows_excluded"] = 76
+    candidate["complete_rows_emitted"] = 24
+
+    assert require_model_native_aux_target_emission_contract(
+        candidate,
+        context="TEST_M1_PREFILTERED_TAIL",
+    ) == model_native_aux_target_contract_metadata()
 
 
 def test_model_native_group_a_recompute_is_memory_capped_and_explicit() -> None:

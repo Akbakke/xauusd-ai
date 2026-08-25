@@ -223,11 +223,17 @@ def require_model_native_aux_target_emission_contract(
             )
         proof[key] = raw
     expected_incomplete = int(MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS)
+    # The M1 fill-lifecycle completeness gate runs before this auxiliary-target
+    # gate.  It may already have removed part of the final K=96 M5 tail, so
+    # the number of *candidate* rows rejected here is bounded by the global
+    # incomplete target tail; it is not necessarily equal to it.  The exact
+    # candidate/emitted accounting below remains mandatory and prevents an
+    # incomplete auxiliary target from reaching the trainer.
     if (
         proof["candidate_rows_before_completeness"] <= 0
         or proof["complete_rows_emitted"] <= 0
         or proof["incomplete_tail_rows_total"] != expected_incomplete
-        or proof["incomplete_candidate_rows_excluded"] != expected_incomplete
+        or proof["incomplete_candidate_rows_excluded"] > expected_incomplete
         or proof["candidate_rows_before_completeness"]
         != proof["complete_rows_emitted"]
         + proof["incomplete_candidate_rows_excluded"]
