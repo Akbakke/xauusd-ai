@@ -1,6 +1,66 @@
 # Post-build integrity gate: XAUUSD directional bot
 
-Status: **PENDING — V44 must finish before this document can be signed off.**
+Status: **V46 REVIEWED — `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`; this is not a training, demo, live, or edge sign-off.**
+
+## V46 review record — 2026-08-25
+
+**Decision:** `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`.
+
+The exact V46 build passed its rebuild chain, full-input liveness, foundation
+feature/target, eight-specialist, pretrain, execution-causality, trainability,
+and immutable recipe gates.  The canonical smoke wrapper also passed
+`--dry-run`; it did not create a bundle, start a trainer, allocate CUDA, rebuild
+data, open a broker connection, or place an order.
+
+This is deliberately narrower than `PASS_FOR_TRAINING`.  A future actual smoke
+remains an explicit, resource-controlled execution decision; it is not implied
+by this record.  There is no PnL, win rate, MAE/MFE, backtest, demo, or live
+claim at this stage.
+
+### Immutable V46 evidence
+
+- Chain root: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN`.
+- Green terminal: `CHAIN_TERMINAL_20260825T195501470746Z_GREEN.json`.
+- Full-input liveness: `audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T191417645593Z.json`
+  (`PASS`; 238 signal fields, 71 continuous context fields, one categorical
+  context field, and all eight MTF family surfaces live).
+- Pretrain audit: `audit/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260825T195458720518Z.json`
+  (`PASS`).
+- Foundation feature / target audits: `audit/foundation_features/ENTRY_FEATURE_FOUNDATION_AUDIT_20260825T200552Z.json`
+  and `audit/foundation_targets/ENTRY_TARGET_FOUNDATION_AUDIT_20260825T200719Z.json`
+  (`PASS`).
+- Eight-specialist audit: `audit/specialist_features/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260825T200754Z.json`
+  (`PASS`; all required families are bound to the 238-field model surface).
+- Execution causality: `audit/ENTRY_EXECUTION_CAUSALITY_AUDIT_20260825T2010Z.json`
+  (`PASS`; no legacy same-close M5 label and active auxiliary targets are M1-fill bound).
+- Exact smoke recipe: `train_recipe_audit_20260825T202900Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260825T201737076503Z.json`
+  (`PASS`, report-only, source commit `980fa0f17a7f2d5b1a92253dd00123935b90c527`).
+
+### Repair captured before execution
+
+The recipe gate exposed an auxiliary-target proof validator error before any
+training.  It incorrectly required all 96 global K=96 tail rows to reach the
+auxiliary completeness gate, even though the earlier causal-M1 filter can
+legitimately remove part of that tail.  The corrected validator still requires
+the global tail to be exactly 96, requires exact candidate/emitted accounting,
+and forbids non-finite emitted targets; it now permits the bounded remainder
+observed in V46 (76 train and 56 validation rows).  The repair is commit
+`980fa0f1` and was covered by the contract tests.
+
+### Test-isolation and robustness caveats
+
+- The original V46 test seal remains the authoritative pre-training artifact.
+  During this review, a structural manifest query exposed four aggregate test
+  count fields; no test parquet, labels, feature values, predictions, or
+  performance were read.  Record this as a metadata disclosure, not a model
+  selection input.  V46 test results must not be used to tune anything, and a
+  fresh explicit final-evaluation sign-off is required before any OOS claim.
+- Liveness found genuine train/validation ATR distribution shift on H4/D1.
+  It is not a broken feature, but it is a regime-robustness risk to be tested
+  with walk-forward validation after a model exists.
+- The current entry-fitted-Q target is gross-spread-inclusive research only;
+  it has no production authority.  Costs, financing, execution latency, and
+  portfolio constraints still need the later evaluation gates.
 
 ## Purpose
 
