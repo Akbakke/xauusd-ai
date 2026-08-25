@@ -50,6 +50,8 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1
 from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
+    _architecture,
+    _architecture_contract_failures,
     _context_taxonomy_failures,
     _specialist_input_liveness_rows,
     run,
@@ -492,6 +494,8 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert all(row["feature_count_matches"] is True for row in report["smart_family_contract_rows"])
     assert len(report["specialist_input_liveness"]) == 16
     assert report["specialist_input_liveness_all_live"] is True
+    assert report["architecture_contract_valid"] is True
+    assert report["architecture_contract_failures"] == []
     assert report["context_taxonomy_all_mapped"] is True
     assert report["context_specialist_routing_all_mapped"] is True
     assert report["context_specialist_routing_failure_count"] == 0
@@ -513,6 +517,38 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
         "bit_identical_copy_from_signal_train_stats"
     )
     assert set(report["split_artifacts"]) == {"train", "val"}
+
+
+def test_architecture_partition_rejects_empty_trainable_family_or_populated_sentinel() -> None:
+    fields, _selected = _smart_seq513_fields()
+    architecture = _architecture(fields)
+    assert _architecture_contract_failures(
+        architecture,
+        signal_fields=fields,
+        required_specialists=MODEL_NATIVE_TRAINING_SPECIALISTS,
+    ) == []
+
+    empty = json.loads(json.dumps(architecture))
+    victim = "vol_compression_encoder"
+    empty["specialist_input_indices"][victim] = []
+    empty_failures = _architecture_contract_failures(
+        empty,
+        signal_fields=fields,
+        required_specialists=MODEL_NATIVE_TRAINING_SPECIALISTS,
+    )
+    assert any(
+        "trainable specialist is empty: vol_compression_encoder" in failure
+        for failure in empty_failures
+    )
+
+    sentinel = json.loads(json.dumps(architecture))
+    sentinel["specialist_input_indices"]["unmapped"] = [0]
+    sentinel_failures = _architecture_contract_failures(
+        sentinel,
+        signal_fields=fields,
+        required_specialists=MODEL_NATIVE_TRAINING_SPECIALISTS,
+    )
+    assert any("unmapped sentinel is non-empty" in failure for failure in sentinel_failures)
 
 
 def test_specialist_feature_group_audit_fails_closed_on_model_native_family_count_mismatch(

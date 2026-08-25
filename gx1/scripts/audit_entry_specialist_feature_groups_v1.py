@@ -8,7 +8,7 @@ import json
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
@@ -822,6 +822,92 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
     }
 
 
+def _architecture_contract_failures(
+    architecture: Mapping[str, Any],
+    *,
+    signal_fields: list[str],
+    required_specialists: tuple[str, ...],
+) -> list[str]:
+    """Prove the serialized model-routing map can instantiate all eight routes.
+
+    The liveness rows above are classified directly from signal names.  The
+    trainer, however, consumes the separately serialized integer partition in
+    ``architecture_contract.specialist_input_indices``.  Keeping the two
+    claims independent is load-bearing: a stale or hollow serialized partition
+    must fail the audit before a trainer can receive it.
+
+    ``unmapped`` is the only permitted non-trainable sentinel and it must be
+    empty on the model-native surface.  Every trainable family must have a
+    non-empty, ordered, exact index list; their union must be the entire signal
+    surface exactly once.
+    """
+
+    raw = architecture.get("specialist_input_indices")
+    if not isinstance(raw, Mapping):
+        return ["architecture specialist_input_indices is missing or not a mapping"]
+    expected_keys = set(required_specialists) | {"unmapped"}
+    observed_keys = {str(name) for name in raw}
+    failures: list[str] = []
+    if observed_keys != expected_keys:
+        failures.append(
+            "architecture specialist index key set mismatch: "
+            f"observed={sorted(observed_keys)} expected={sorted(expected_keys)}"
+        )
+        return failures
+    if int(architecture.get("input_dim") or -1) != len(signal_fields):
+        failures.append(
+            "architecture specialist input_dim mismatch: "
+            f"observed={architecture.get('input_dim')} expected={len(signal_fields)}"
+        )
+
+    expected_by_group: dict[str, list[int]] = {
+        group: [] for group in required_specialists
+    }
+    expected_by_group["unmapped"] = []
+    for index, field in enumerate(signal_fields):
+        owner = classify_entry_specialist_feature(field)
+        if owner not in expected_by_group:
+            failures.append(
+                "architecture feature has no trainable owner: "
+                f"index={index} field={field!r} owner={owner!r}"
+            )
+            continue
+        expected_by_group[owner].append(index)
+
+    observed_indices: list[int] = []
+    for group in (*required_specialists, "unmapped"):
+        values = raw.get(group)
+        if not isinstance(values, list):
+            failures.append(f"architecture {group} indices are not a list")
+            continue
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
+            failures.append(f"architecture {group} indices have a non-integer value")
+            continue
+        if values != sorted(set(values)):
+            failures.append(f"architecture {group} indices are not ordered unique")
+            continue
+        if any(value < 0 or value >= len(signal_fields) for value in values):
+            failures.append(f"architecture {group} indices are outside signal width")
+            continue
+        if group != "unmapped" and not values:
+            failures.append(f"architecture trainable specialist is empty: {group}")
+        if group == "unmapped" and values:
+            failures.append(
+                "architecture unmapped sentinel is non-empty: "
+                f"indices={values[:20]} total={len(values)}"
+            )
+        if values != expected_by_group[group]:
+            failures.append(
+                f"architecture {group} index partition differs from exact field routing: "
+                f"observed_count={len(values)} expected_count={len(expected_by_group[group])}"
+            )
+        observed_indices.extend(values)
+
+    if sorted(observed_indices) != list(range(len(signal_fields))):
+        failures.append("architecture specialist indices do not cover every signal exactly once")
+    return failures
+
+
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
         "# Entry Specialist Feature Group Audit",
@@ -1066,6 +1152,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         smart_family_rows=smart_family_rows,
     )
     failures.extend(smart_contract_failures)
+    architecture_contract = _architecture(signal_fields)
+    architecture_contract_failures = _architecture_contract_failures(
+        architecture_contract,
+        signal_fields=signal_fields,
+        required_specialists=required_training_specialists,
+    )
+    failures.extend(architecture_contract_failures)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
@@ -1106,6 +1199,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "smart_family_contract_rows": smart_family_rows,
         "smart_family_contract_valid": not smart_contract_failures,
         "smart_family_contract_failures": smart_contract_failures,
+        "architecture_contract_valid": not architecture_contract_failures,
+        "architecture_contract_failures": architecture_contract_failures,
         "specialist_counts": specialist_counts,
         "specialist_input_liveness": specialist_input_liveness,
         "specialist_input_liveness_all_live": not specialist_input_liveness_failures,
@@ -1161,7 +1256,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             split: {k: v for k, v in contract.items() if k not in {"fields", "extension_features"}}
             for split, contract in split_contracts.items()
         },
-        "architecture_contract": _architecture(signal_fields),
+        "architecture_contract": architecture_contract,
         "failures": failures,
     }
 
