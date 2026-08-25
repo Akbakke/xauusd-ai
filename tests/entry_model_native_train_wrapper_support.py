@@ -73,6 +73,11 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
 from gx1.contracts.entry_execution_causality_v1 import (
     build_entry_execution_causality_audit,
 )
+from gx1.contracts.entry_sequence_integrity_v1 import (
+    AUTHORITY as SEQUENCE_INTEGRITY_AUTHORITY,
+    REQUIRED_CHECKS as SEQUENCE_INTEGRITY_REQUIRED_CHECKS,
+    SCHEMA_VERSION as SEQUENCE_INTEGRITY_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     model_native_recipe_env_contract_metadata,
@@ -744,6 +749,37 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             split_rows=causality_rows,
         ),
     )
+    for split in ("train", "val"):
+        artifacts[f"{split}_sequence_integrity_audit_json"] = _write_json(
+            evidence_dir / f"ENTRY_SEQUENCE_INTEGRITY_{split.upper()}_{STAMP}.json",
+            {
+                "schema_version": SEQUENCE_INTEGRITY_SCHEMA_VERSION,
+                "decision": "PASS",
+                "created_utc": "2026-07-16T01:02:03.123456+00:00",
+                "parquet_path": str(artifacts[f"{split}_parquet"]),
+                "parquet_sha256": sealed_parquet_sha256[split],
+                "manifest_path": str(artifacts[f"{split}_manifest_json"]),
+                "manifest_sha256": artifact_binding(
+                    artifacts[f"{split}_manifest_json"]
+                )["sha256"],
+                "rows": 1,
+                "sequence_shape": [1, 96, MODEL_NATIVE_SIGNAL_DIM],
+                "snapshot_shape": [1, MODEL_NATIVE_SIGNAL_DIM],
+                "checks": dict(SEQUENCE_INTEGRITY_REQUIRED_CHECKS),
+                "transition_summary": {
+                    "pairs": 0,
+                    "calendar_one_bar_pairs": 0,
+                    "calendar_gap_pairs": 0,
+                    "physical_one_bar_pairs": 0,
+                    "physical_multi_bar_pairs": 0,
+                    "calendar_elapsed_bars_total": 0,
+                    "physical_event_bars_total": 0,
+                    "nontrading_calendar_bars_total": 0,
+                },
+                "sequence_event_chain_sha256": "6" * 64,
+                "authority": dict(SEQUENCE_INTEGRITY_AUTHORITY),
+            },
+        )
     artifacts["post_rebuild_readiness_json"] = _write_json(
         evidence_dir / f"ENTRY_POST_REBUILD_READINESS_{STAMP}.json",
         {
@@ -1030,6 +1066,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "specialist_audit_json",
         "pretrain_audit_json",
         "execution_causality_audit_json",
+        "train_sequence_integrity_audit_json",
+        "val_sequence_integrity_audit_json",
         "trainability_readiness_json",
         *(
             ["smoke_manifest_json", "smoke_readiness_json"]
@@ -1138,6 +1176,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--specialist-audit-json", str(artifacts["specialist_audit_json"]),
         "--pretrain-audit-json", str(artifacts["pretrain_audit_json"]),
         "--execution-causality-audit-json", str(artifacts["execution_causality_audit_json"]),
+        "--train-sequence-integrity-audit-json", str(artifacts["train_sequence_integrity_audit_json"]),
+        "--val-sequence-integrity-audit-json", str(artifacts["val_sequence_integrity_audit_json"]),
         "--recipe-audit-json", str(artifacts["recipe_audit_json"]),
         "--trainability-readiness-json", str(artifacts["trainability_readiness_json"]),
         "--out-bundle-dir", str(out_bundle),

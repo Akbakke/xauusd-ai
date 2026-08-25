@@ -30,6 +30,9 @@ from gx1.contracts.entry_execution_causality_v1 import (
     ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS,
     require_entry_execution_causality_audit,
 )
+from gx1.contracts.entry_sequence_integrity_v1 import (
+    require_sequence_integrity_audit,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
@@ -106,8 +109,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v7"
-RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v7"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v8"
+RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v8"
 
 TRAINING_DATA_SPLITS = ("train", "val")
 SEALED_DATA_SPLITS = (*TRAINING_DATA_SPLITS, "test")
@@ -150,6 +153,12 @@ UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH = (
 ENTRY_EXIT_FEATURE_SURFACE_CONTRACT_RELATIVE_PATH = (
     "gx1/contracts/entry_exit_feature_surface_v1.py"
 )
+SEQUENCE_INTEGRITY_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_sequence_integrity_v1.py"
+)
+SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH = (
+    "gx1/scripts/audit_entry_sequence_integrity_v1.py"
+)
 
 REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 # V30 package 7 (2026-08-13): the `_rail_` substring filter would now yield an
@@ -186,6 +195,8 @@ _COMMON_BINDING_KEYS = (
     "specialist_audit_json",
     "pretrain_audit_json",
     "execution_causality_audit_json",
+    "train_sequence_integrity_audit_json",
+    "val_sequence_integrity_audit_json",
     "trainability_readiness_json",
 )
 _PROFILE_BINDING_KEYS = {
@@ -552,6 +563,12 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         # did not change.
         "entry_exit_feature_surface_contract": (
             repo / ENTRY_EXIT_FEATURE_SURFACE_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
+        "sequence_integrity_contract": (
+            repo / SEQUENCE_INTEGRITY_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
+        "sequence_integrity_audit": (
+            repo / SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH
         ).resolve(strict=True),
         "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
     }
@@ -1152,6 +1169,59 @@ def _validate_multi_tf_cache_manifest(
     return cache_dir
 
 
+def _validate_sequence_integrity_audits(
+    artifacts: Mapping[str, Path],
+    payloads: Mapping[str, Mapping[str, Any]],
+    *,
+    post_rebuild: Mapping[str, Any],
+    expected_large_hashes: Mapping[str, str],
+) -> None:
+    """Require exact full sequence evidence for both trainable splits.
+
+    This is separate from the attended-only roll reconstruction proof: causal
+    M1 lifecycle exclusions can skip emitted rows while the physical feature
+    event chain remains correct.  The immutable integrity audit proves that
+    latter condition and is mandatory for every profile before a trainer may
+    read either split.
+    """
+
+    split_artifacts = post_rebuild.get("split_artifacts")
+    _require(
+        isinstance(split_artifacts, Mapping),
+        "post-rebuild sequence-integrity split artifacts missing",
+    )
+    for split in TRAINING_DATA_SPLITS:
+        split_row = split_artifacts.get(split)
+        _require(
+            isinstance(split_row, Mapping),
+            f"post-rebuild sequence-integrity {split} split binding missing",
+        )
+        expected_rows = split_row.get("rows")
+        _require(
+            type(expected_rows) is int and expected_rows > 0,
+            f"post-rebuild sequence-integrity {split} row count invalid",
+        )
+        try:
+            require_sequence_integrity_audit(
+                payloads[f"{split}_sequence_integrity_audit_json"],
+                expected_parquet_path=artifacts[f"{split}_parquet"],
+                expected_manifest_path=artifacts[f"{split}_manifest_json"],
+                expected_parquet_sha256=expected_large_hashes[
+                    f"{split}_parquet"
+                ],
+                expected_manifest_sha256=sha256_file(
+                    artifacts[f"{split}_manifest_json"]
+                ),
+                expected_rows=expected_rows,
+                expected_seq_len=MODEL_NATIVE_SEQ_LEN,
+                expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+            )
+        except RuntimeError as exc:
+            raise LaunchContractError(
+                f"{split} sequence-integrity audit invalid: {exc}"
+            ) from exc
+
+
 def _validate_audits(
     artifacts: Mapping[str, Path],
     payloads: Mapping[str, Mapping[str, Any]],
@@ -1708,6 +1778,12 @@ def validate_launch(
     )
     expected_large_hashes["m5_prebuilt_path"] = _model_source_hash_from_manifests(
         payloads
+    )
+    _validate_sequence_integrity_audits(
+        artifacts,
+        payloads,
+        post_rebuild=payloads["post_rebuild_readiness_json"],
+        expected_large_hashes=expected_large_hashes,
     )
     _validate_audits(
         artifacts,

@@ -2,9 +2,12 @@
 """Prove the nested Entry sequence is exactly the rolling snapshot chain.
 
 The model-native split parquet stores both ``seq`` (96 consecutive rows) and
-``snap`` (the final row).  A memory-efficient smoke path may reconstruct its
-sequence view from snapshots only *after* this auditor proves every adjacent
-sequence row rolls by exactly one snapshot.  Sampling is forbidden: this reads
+``snap`` (the final row).  A memory-efficient attended-smoke path may
+reconstruct its sequence view from snapshots only *after* this auditor proves
+every emitted row is the next M5 event and every sequence rolls by exactly one
+snapshot.  Causally filtered splits with omitted M1-lifecycle rows are not
+eligible for that optimisation; use ``audit_entry_sequence_integrity_v1`` to
+verify their physical event chain instead.  Sampling is forbidden: this reads
 the full supplied split and source-binds the conclusion to the exact parquet
 and manifest bytes.
 
@@ -36,6 +39,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 SCHEMA_VERSION = "entry_model_native_sequence_roll_audit_v1"
 _SHA256_BUFFER_BYTES = 1024 * 1024
 _ARROW_BATCH_ROWS = 256
+_M5_NS = 5 * 60 * 1_000_000_000
 
 
 def _sha256_file(path: Path) -> str:
@@ -72,6 +76,41 @@ def _canonical_json(value: Any) -> bytes:
     )
 
 
+def _require_emitted_rows_contiguous(pf: pq.ParquetFile, *, rows: int) -> None:
+    """Fail before nested reads when a split cannot be snap-reconstructed."""
+
+    previous_time_ns: int | None = None
+    observed_rows = 0
+    for batch in pf.iter_batches(batch_size=8192, columns=["time"]):
+        try:
+            time_ns = batch.column("time").to_numpy(zero_copy_only=False)
+            time_ns = time_ns.astype("datetime64[ns]").astype("int64", copy=False)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("[ENTRY_SEQUENCE_ROLL_TIME_INVALID]") from exc
+        if np.any(time_ns == np.iinfo(np.int64).min):
+            raise RuntimeError("[ENTRY_SEQUENCE_ROLL_TIME_NULL]")
+        if previous_time_ns is not None:
+            delta_ns = int(time_ns[0]) - previous_time_ns
+            if delta_ns != _M5_NS:
+                raise RuntimeError(
+                    "[ENTRY_SEQUENCE_ROLL_EMITTED_ROWS_NONCONTIGUOUS] "
+                    f"row={observed_rows} delta_ns={delta_ns}"
+                )
+        if len(time_ns) > 1:
+            deltas = np.diff(time_ns)
+            invalid = np.flatnonzero(deltas != _M5_NS)
+            if len(invalid):
+                row = observed_rows + int(invalid[0]) + 1
+                raise RuntimeError(
+                    "[ENTRY_SEQUENCE_ROLL_EMITTED_ROWS_NONCONTIGUOUS] "
+                    f"row={row} delta_ns={int(deltas[int(invalid[0])])}"
+                )
+        previous_time_ns = int(time_ns[-1])
+        observed_rows += len(time_ns)
+    if observed_rows != rows:
+        raise RuntimeError("[ENTRY_SEQUENCE_ROLL_ROW_COUNT_MISMATCH]")
+
+
 def audit_sequence_roll(*, parquet_path: Path, manifest_path: Path) -> dict[str, Any]:
     """Audit every sequence transition in one exact split parquet."""
 
@@ -85,7 +124,7 @@ def audit_sequence_roll(*, parquet_path: Path, manifest_path: Path) -> dict[str,
         raise RuntimeError("[ENTRY_SEQUENCE_ROLL_MANIFEST_JSON_INVALID]")
 
     pf = pq.ParquetFile(parquet_path)
-    required = {"seq", "snap"}
+    required = {"time", "seq", "snap"}
     columns = set(pf.schema_arrow.names)
     if not required.issubset(columns):
         raise RuntimeError(
@@ -94,6 +133,7 @@ def audit_sequence_roll(*, parquet_path: Path, manifest_path: Path) -> dict[str,
     rows = int(pf.metadata.num_rows)
     if rows < 2:
         raise RuntimeError("[ENTRY_SEQUENCE_ROLL_ROWS_INVALID]")
+    _require_emitted_rows_contiguous(pf, rows=rows)
 
     previous_sequence: np.ndarray | None = None
     observed_rows = 0

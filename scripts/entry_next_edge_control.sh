@@ -67,6 +67,7 @@ Model-native seq513 evidence:
   model-native-trainability-readiness
   model-native-execution-causality-audit --dataset-dir <dataset-dir> --signal-manifest <json> --train-manifest <json> --val-manifest <json> --train-lifecycle-manifest <json> --val-lifecycle-manifest <json> --output <new-json>
   model-native-sequence-roll-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
+  model-native-sequence-integrity-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-train-recipe-audit
   model-native-smoke-bundle-audit
   model-native-candidate-readiness
@@ -696,6 +697,8 @@ case "$cmd" in
       --specialist-audit-json \
       --pretrain-audit-json \
       --execution-causality-audit-json \
+      --train-sequence-integrity-audit-json \
+      --val-sequence-integrity-audit-json \
       --smoke-manifest-json \
       --smoke-readiness-json \
       --trainability-readiness-json \
@@ -789,6 +792,17 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_sequence_roll_v1 "$@"
+    ;;
+
+  model-native-sequence-integrity-audit)
+    # Full byte-level physical event-chain proof. Unlike the attended-only
+    # reconstruction proof, this accepts causally filtered output rows while
+    # proving their exact sequence overlap before any trainer/GPU allocation.
+    reject_non_authoritative_args "$@"
+    for flag in --parquet --manifest-json --out-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_sequence_integrity_v1 "$@"
     ;;
 
   model-native-smoke-bundle-audit)

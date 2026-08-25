@@ -197,6 +197,8 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "smoke_bundle_audit",
         "unified_exit_lifecycle_contract",
         "entry_exit_feature_surface_contract",
+        "sequence_integrity_contract",
+        "sequence_integrity_audit",
         "capped_runner",
     }
 
@@ -376,6 +378,39 @@ def test_launch_rejects_non_exact_split_aux_target_emission_proof(
             parquet=paths["train_parquet"],
             m5_prebuilt=paths["m5_prebuilt_path"],
         )
+
+
+def test_launch_rejects_tampered_train_sequence_integrity_proof(
+    tmp_path: Path,
+) -> None:
+    wrapper_argv, paths = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    integrity_path = paths["train_sequence_integrity_audit_json"]
+    integrity = json.loads(integrity_path.read_text(encoding="utf-8"))
+    integrity["checks"]["every_emitted_pair_has_exact_physical_overlap"] = False
+    integrity_path.write_text(
+        json.dumps(integrity, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "smoke",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="train sequence-integrity audit invalid",
+    ):
+        launch.validate_launch(args)
 
 
 def test_launch_derives_dataset_run_id_from_post_rebuild_and_all_splits(

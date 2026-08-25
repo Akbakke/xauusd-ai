@@ -311,6 +311,8 @@ def _wrapper_recipe_audit_review(text: str, required_env_keys: tuple[str, ...]) 
     required_wiring = (
         "--recipe-audit-json",
         "--pretrain-audit-json",
+        "--train-sequence-integrity-audit-json",
+        "--val-sequence-integrity-audit-json",
         "--full-input-liveness-audit-json",
         "--post-rebuild-readiness-json",
         "--prefreeze-test-seal-json",

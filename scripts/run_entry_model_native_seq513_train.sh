@@ -48,7 +48,9 @@ Required identity and immutable evidence:
   --prefreeze-test-seal-json PATH --prefreeze-test-seal-sha256 SHA256
   --full-input-liveness-audit-json PATH
   --feature-audit-json PATH  --target-audit-json PATH  --specialist-audit-json PATH
-  --pretrain-audit-json PATH --execution-causality-audit-json PATH --recipe-audit-json PATH
+  --pretrain-audit-json PATH --execution-causality-audit-json PATH
+  --train-sequence-integrity-audit-json PATH --val-sequence-integrity-audit-json PATH
+  --recipe-audit-json PATH
   --trainability-readiness-json PATH
   --out-bundle-dir PATH --gx1-data-root PATH
 
@@ -104,7 +106,8 @@ UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON=
 POST_REBUILD_READINESS_JSON=
 PREFREEZE_TEST_SEAL_JSON= PREFREEZE_TEST_SEAL_SHA256=
 FULL_INPUT_LIVENESS_AUDIT_JSON= FEATURE_AUDIT_JSON= TARGET_AUDIT_JSON=
-SPECIALIST_AUDIT_JSON= PRETRAIN_AUDIT_JSON= EXECUTION_CAUSALITY_AUDIT_JSON= RECIPE_AUDIT_JSON=
+SPECIALIST_AUDIT_JSON= PRETRAIN_AUDIT_JSON= EXECUTION_CAUSALITY_AUDIT_JSON=
+TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON= VAL_SEQUENCE_INTEGRITY_AUDIT_JSON= RECIPE_AUDIT_JSON=
 SMOKE_MANIFEST_JSON= SMOKE_READINESS_JSON= TRAINABILITY_READINESS_JSON=
 CANDIDATE_READINESS_JSON= SMOKE_BUNDLE_AUDIT_JSON=
 TRAIN_SEQUENCE_ROLL_AUDIT_JSON= VAL_SEQUENCE_ROLL_AUDIT_JSON=
@@ -138,7 +141,8 @@ while [[ $# -gt 0 ]]; do
     --m5-prebuilt-path|--multi-tf-cache-manifest-json|\
     --post-rebuild-readiness-json|--prefreeze-test-seal-json|--prefreeze-test-seal-sha256|\
     --full-input-liveness-audit-json|--feature-audit-json|--target-audit-json|\
-    --specialist-audit-json|--pretrain-audit-json|--execution-causality-audit-json|--recipe-audit-json|\
+    --specialist-audit-json|--pretrain-audit-json|--execution-causality-audit-json|\
+    --train-sequence-integrity-audit-json|--val-sequence-integrity-audit-json|--recipe-audit-json|\
     --smoke-manifest-json|--smoke-readiness-json|--trainability-readiness-json|\
     --candidate-readiness-json|--smoke-bundle-audit-json|\
     --train-sequence-roll-audit-json|--val-sequence-roll-audit-json|\
@@ -171,6 +175,8 @@ while [[ $# -gt 0 ]]; do
         --specialist-audit-json) variable=SPECIALIST_AUDIT_JSON ;;
         --pretrain-audit-json) variable=PRETRAIN_AUDIT_JSON ;;
         --execution-causality-audit-json) variable=EXECUTION_CAUSALITY_AUDIT_JSON ;;
+        --train-sequence-integrity-audit-json) variable=TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON ;;
+        --val-sequence-integrity-audit-json) variable=VAL_SEQUENCE_INTEGRITY_AUDIT_JSON ;;
         --recipe-audit-json) variable=RECIPE_AUDIT_JSON ;;
         --smoke-manifest-json) variable=SMOKE_MANIFEST_JSON ;;
         --smoke-readiness-json) variable=SMOKE_READINESS_JSON ;;
@@ -244,6 +250,7 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
   POST_REBUILD_READINESS_JSON PREFREEZE_TEST_SEAL_JSON PREFREEZE_TEST_SEAL_SHA256 \
   FULL_INPUT_LIVENESS_AUDIT_JSON \
   FEATURE_AUDIT_JSON TARGET_AUDIT_JSON SPECIALIST_AUDIT_JSON PRETRAIN_AUDIT_JSON EXECUTION_CAUSALITY_AUDIT_JSON \
+  TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON VAL_SEQUENCE_INTEGRITY_AUDIT_JSON \
   RECIPE_AUDIT_JSON TRAINABILITY_READINESS_JSON \
   OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE LEARNING_RATE \
   EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA GRAD_CLIP_NORM WEIGHT_DECAY MULTI_TF_SCALE \
@@ -312,6 +319,8 @@ VALIDATOR_ARGS=(
   --feature-audit-json "$FEATURE_AUDIT_JSON" --target-audit-json "$TARGET_AUDIT_JSON"
   --specialist-audit-json "$SPECIALIST_AUDIT_JSON" --pretrain-audit-json "$PRETRAIN_AUDIT_JSON"
   --execution-causality-audit-json "$EXECUTION_CAUSALITY_AUDIT_JSON"
+  --train-sequence-integrity-audit-json "$TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON"
+  --val-sequence-integrity-audit-json "$VAL_SEQUENCE_INTEGRITY_AUDIT_JSON"
   --recipe-audit-json "$RECIPE_AUDIT_JSON"
   --trainability-readiness-json "$TRAINABILITY_READINESS_JSON"
   --device "$DEVICE" --seed "$SEED" --epochs "$EPOCHS" --batch-size "$BATCH_SIZE"
