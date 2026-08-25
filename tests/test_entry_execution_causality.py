@@ -12,7 +12,11 @@ from gx1.contracts.entry_execution_causality_v1 import (
     require_entry_execution_causality_audit,
 )
 from gx1.contracts.entry_fitted_q_v1 import entry_fitted_q_contract
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_direction_diagnostic_outcome_contract,
+)
 from gx1.scripts.audit_entry_execution_causality_v1 import build_report
+from tests.entry_direction_target_policy_support import causal_m1_target_policy_fixture
 
 
 def _write(path: Path, value: dict) -> Path:
@@ -113,6 +117,41 @@ def _audit_fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, tuple[Path, Pa
     return dataset, signal, split_paths
 
 
+def _install_causal_ranking(
+    signal: Path, split_paths: dict[str, tuple[Path, Path]]
+) -> dict[str, object]:
+    """Make the ranker and diagnostic contract genuinely causal for a test.
+
+    The caller deliberately retains the legacy sizing manifest unless it needs
+    to replace it.  That lets the audit prove that a causal-looking ranker is
+    not enough to authorize a mixed auxiliary surface.
+    """
+
+    policy = causal_m1_target_policy_fixture(source_parquet_sha256="a" * 64)
+    signal_payload = json.loads(signal.read_text(encoding="utf-8"))
+    ranking = signal_payload["feature_ranking"]
+    ranking.update(
+        {
+            "source_sha256": "a" * 64,
+            "entry_direction_target_policy": policy,
+            "entry_direction_target_policy_sha256": policy["policy_sha256"],
+            "target_contract": policy["target_contract"],
+        }
+    )
+    signal.write_text(json.dumps(signal_payload, sort_keys=True), encoding="utf-8")
+    diagnostic = causal_m1_direction_diagnostic_outcome_contract(policy)
+    for manifest_path, _ in split_paths.values():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        extra = manifest["extra"]
+        extra["diagnostic_outcome_policy_sha256"] = policy["policy_sha256"]
+        extra["diagnostic_outcome_labels"] = diagnostic
+        extra["entry_position_size_target_policy"] = {
+            "entry_direction_target_policy_sha256": policy["policy_sha256"]
+        }
+        manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+    return policy
+
+
 def test_same_close_target_is_explicitly_rejected() -> None:
     failures = legacy_same_close_target_contract_failures(_legacy_target_contract())
 
@@ -188,11 +227,32 @@ def test_only_a_hash_bound_causal_split_report_can_authorize_training() -> None:
 
 def test_causal_ranking_refuses_a_legacy_sizing_payload(tmp_path: Path) -> None:
     dataset, signal, split_paths = _audit_fixture(tmp_path)
-    payload = json.loads(signal.read_text(encoding="utf-8"))
-    payload["feature_ranking"]["target_contract"] = _causal_target_contract()
-    signal.write_text(json.dumps(payload), encoding="utf-8")
+    _install_causal_ranking(signal, split_paths)
 
-    with pytest.raises(RuntimeError, match="AUXILIARY_POLICY_LINEAGE_INVALID"):
+    with pytest.raises(
+        RuntimeError, match="ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_POLICY_SCHEMA_INVALID"
+    ):
+        build_report(
+            dataset_dir=dataset,
+            signal_manifest_path=signal,
+            split_paths=split_paths,
+        )
+
+
+def test_causal_ranking_requires_exact_m1_diagnostic_contract(tmp_path: Path) -> None:
+    dataset, signal, split_paths = _audit_fixture(tmp_path)
+    _install_causal_ranking(signal, split_paths)
+    for manifest_path, _ in split_paths.values():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["extra"]["diagnostic_outcome_labels"][
+            "diagnostic_outcome_label_source"
+        ] = "legacy_m5_close_outcome"
+        manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_EXECUTION_CAUSALITY_TRAIN_CAUSAL_DIAGNOSTIC_CONTRACT_INVALID",
+    ):
         build_report(
             dataset_dir=dataset,
             signal_manifest_path=signal,

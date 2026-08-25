@@ -23,7 +23,11 @@ from gx1.contracts.entry_execution_causality_v1 import (
 )
 from gx1.contracts.entry_fitted_q_v1 import require_entry_fitted_q_contract
 from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
-    require_causal_m1_position_size_target_policy,
+    require_causal_m1_position_size_target_manifest_binding,
+)
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_direction_diagnostic_outcome_contract,
+    require_causal_m1_target_policy,
 )
 
 
@@ -58,6 +62,7 @@ def _split_row(
     expected_run_id: str,
     expected_direction_policy_sha256: str,
     require_causal_auxiliary: bool,
+    expected_causal_direction_policy: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     dataset_manifest = _read_json(
         dataset_manifest_path, label=f"{split.upper()}_DATASET_MANIFEST"
@@ -76,10 +81,37 @@ def _split_row(
         context=f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}",
     )
     diagnostic = extra.get("diagnostic_outcome_labels")
-    position = extra.get("entry_causal_m1_position_size_target_policy")
-    if isinstance(position, Mapping):
-        position = require_causal_m1_position_size_target_policy(position)
-    elif not require_causal_auxiliary:
+    if not isinstance(diagnostic, Mapping):
+        raise RuntimeError(
+            f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}_AUXILIARY_POLICY_LINEAGE_INVALID"
+        )
+    if require_causal_auxiliary:
+        if not isinstance(expected_causal_direction_policy, Mapping):
+            raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_CAUSAL_TARGET_POLICY_MISSING")
+        expected_diagnostic = causal_m1_direction_diagnostic_outcome_contract(
+            expected_causal_direction_policy
+        )
+        if any(
+            diagnostic.get(field) != expected
+            for field, expected in expected_diagnostic.items()
+        ):
+            raise RuntimeError(
+                f"ENTRY_EXECUTION_CAUSALITY_{split.upper()}_CAUSAL_DIAGNOSTIC_CONTRACT_INVALID"
+            )
+        position = require_causal_m1_position_size_target_manifest_binding(
+            extra,
+            expected_source_parquet_sha256=expected_causal_direction_policy[
+                "source_parquet_sha256"
+            ],
+            expected_tape_provenance_sha256=expected_causal_direction_policy[
+                "tape_provenance_sha256"
+            ],
+            expected_m1_source_sha256=expected_causal_direction_policy[
+                "m1_source_sha256"
+            ],
+            expected_direction_policy_sha256=expected_direction_policy_sha256,
+        )
+    else:
         # Legacy artifacts are still reportable as BLOCK; they must not make
         # the audit crash before it can state why their M5-close contract is
         # unfit for training.
@@ -92,8 +124,7 @@ def _split_row(
     if position_direction_hash is None and isinstance(position, Mapping):
         position_direction_hash = position.get("entry_direction_target_policy_sha256")
     if (
-        not isinstance(diagnostic, Mapping)
-        or not isinstance(position, Mapping)
+        not isinstance(position, Mapping)
         or diagnostic.get("diagnostic_outcome_policy_sha256")
         != expected_direction_policy_sha256
         or extra.get("diagnostic_outcome_policy_sha256")
@@ -154,6 +185,20 @@ def build_report(
     require_causal_auxiliary = not legacy_same_close_target_contract_failures(
         target_contract
     )
+    causal_direction_policy: Mapping[str, Any] | None = None
+    if require_causal_auxiliary:
+        source_sha256 = ranking.get("source_sha256")
+        if not is_sha256(source_sha256):
+            raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_CAUSAL_RANKING_SOURCE_INVALID")
+        causal_direction_policy = require_causal_m1_target_policy(
+            ranking.get("entry_direction_target_policy"),
+            expected_source_parquet_sha256=source_sha256,
+        )
+        if (
+            causal_direction_policy["policy_sha256"] != policy_sha256
+            or causal_direction_policy["target_contract"] != target_contract
+        ):
+            raise RuntimeError("ENTRY_EXECUTION_CAUSALITY_CAUSAL_RANKING_POLICY_MISMATCH")
     split_rows = [
         _split_row(
             split=split,
@@ -162,6 +207,7 @@ def build_report(
             expected_run_id=run_id,
             expected_direction_policy_sha256=policy_sha256,
             require_causal_auxiliary=require_causal_auxiliary,
+            expected_causal_direction_policy=causal_direction_policy,
         )
         for split in ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS
     ]

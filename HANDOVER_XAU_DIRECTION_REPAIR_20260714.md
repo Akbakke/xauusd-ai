@@ -65,14 +65,18 @@ rebuild every active auxiliary from exact M1 fill bid/ask quotes, bind the
 entry and exit quote times in each split's evidence, then re-run this audit.
 This discovery produces no model, epoch, PnL, win rate or edge result.
 
-**Successor causal-label implementation, 2026-08-25:** commits `224beaec` and
-`8db0c0fc` add exact M5-decision-to-M1-fill/exit primitives plus a TRAIN-only
-direction policy and selected-side sizing ECDF. The successor integration
+**Successor causal-label implementation, 2026-08-25:** commits `224beaec`,
+`8db0c0fc` and `b2bccf24` add exact M5-decision-to-M1-fill/exit primitives, a
+TRAIN-only direction policy, selected-side sizing ECDF, and the split-level
+binding of those auxiliaries. The successor integration
 migrates the ranker, signal manifest, split builder, preflight and
 launch/audit consumers to this source: ranker now requires the pair-bound M1
 parquet, a split drops labels whose exact M1 exit would cross its end, and the
 causality audit refuses a legacy sizing payload whenever the ranking claims a
-causal M1 contract. Unit and bounded real-source smoke checks pass. **No
+causal M1 contract. A causal candidate must also carry the complete
+hash-checked ranker policy, the exact M1 diagnostic projection in each split,
+and a sizing policy bound to the same M5 source, tape provenance, M1 source
+and direction-policy hash. Unit and bounded real-source smoke checks pass. **No
 dataset rebuild, training, CUDA work, TEST read, PnL or edge evaluation has
 been run from this implementation.** V42 remains the current immutable BLOCK;
 a fresh successor lineage must complete the bounded rebuild/audit chain and
@@ -542,19 +546,26 @@ not a completed training step, model, edge, OOS, PnL, win rate or backtest.
 Do not raise the 180 W stop or retry the historical CUDA lane automatically;
 first obtain an independently measurable host-side power plan.
 
-**Eight-family operativity audit, 2026-08-23:** this is a current-source,
-read-only review of the immutable V40 artifacts, not a new dataset build or
-training result. `ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260821T101614567463Z`
-is PASS with zero failures. It full-scanned all 283,787 TRAIN and 76,577 VAL
-rows: TRAIN has 234 live numeric signal fields and four explicitly
-minimum-supported rare-event fields, plus all 71 continuous and one
-categorical context field live; VAL has no failures (232 variable and six
-observed-rare signal fields, and every context field observed-variable).
-Its five-clock MTF V20 contract is PASS: each of M5, M15, H1, H4 and D1 has
-176 nonconstant, non-duplicate fields and a complete live-row scan.
+**Eight-family operativity audit, V42, re-verified 2026-08-25:** this is a
+read-only check of the immutable V42 artifacts, not a rebuild or training
+result. The four report hashes pinned in `PROJECT_STATE_xau_direction_launch.json`
+all rehash exactly. Its full-input contract
+`ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T031933857454Z` validates as PASS
+against V42's `dataset/`: all 310 model fields (238 signal, 71 continuous,
+one categorical) are finite across all 283,787 TRAIN and 76,577 VAL rows;
+306 TRAIN fields are LIVE and four are explicitly allowed rare events, while
+304 VAL fields are observed-variable and six are observed rare events. None is
+silently zero-filled or treated as ordinary numeric variation. The five-clock
+MTF contract is separately PASS.
 
-`ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260821T111621Z` is separately PASS
-with zero dead or unmapped TRAIN signal fields. The exact one-owner signal
+`ENTRY_FEATURE_SURFACE_LIVENESS_20260825T050000000000Z` full-scanned the
+native sources after their required history: 467,154 M5 rows (9,871 prefix
+rows excluded) and 2,292,408 M1 rows. For both clocks every field in every
+family is finite and live: chart/geometry 33, momentum/flow 45,
+price-action/candle 25, session/regime 19, SMC/liquidity 64, structure/swing
+34, trend/EMA 65 and volatility 25 (310/310). The distinct specialist-routing
+audit `ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260825T042226Z` is PASS with
+zero dead or unmapped TRAIN signal fields. Its exact one-owner training-signal
 partition is structure 28, SMC/liquidity 50, trend/EMA 44, volatility 19,
 momentum/flow 33, session/regime 9, chart/geometry 32 and candle/price action
 23 — 238/238 in total — and each count is live in both TRAIN and VAL. The
@@ -562,7 +573,8 @@ trainer rejects missing, overlapping or incomplete specialist indices before
 model construction, then iterates all eight encoders, sends their tokens
 through learned cross-family attention and a dynamic gate. Context routing is
 also exact-one-owner. Therefore these are real data inputs and runtime model
-paths, not inert config labels.
+paths, not inert config labels. A future causal successor must repeat these
+audits on its own immutable output; V42's PASS cannot be inherited by V43.
 
 This is intentionally **not** a claim that every family already affects a
 decision. `specialist_out` starts at zero so the untrained model is neutral;
