@@ -76,6 +76,9 @@ from gx1.time.session_detector import SESSION_ORDER  # noqa: E402
 from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     MODEL_NATIVE_CONTRACT_MODE,
 )
+from gx1.contracts.oanda_fill_economics_v1 import (  # noqa: E402
+    observed_oanda_order_fill_economics,
+)
 
 ENV_FILE = REPO_ROOT / ".env"
 if ENV_FILE.is_file():
@@ -2143,6 +2146,10 @@ def attempt_market_entry(
              "oanda_order_id": fill.get("orderID"),
              "trade_id": trade_id,
              "client_order_id": client_order_id,
+             "execution_economics": observed_oanda_order_fill_economics(
+                 fill,
+                 context="BROKER_ENTRY_FILL",
+             ),
              "raw": response}
 
 
@@ -2321,6 +2328,10 @@ def attempt_close_trade(client: OandaClient, trade: TradeState) -> dict[str, Any
             "oanda_transaction_id": transaction_id,
             "oanda_order_id": order_id,
             "closed_signed_units": closed_units,
+            "execution_economics": observed_oanda_order_fill_economics(
+                fill,
+                context="BROKER_CLOSE_FILL",
+            ),
             "raw": response,
         }
     except Exception as exc:
@@ -2388,6 +2399,7 @@ def _broker_close_terminal_journal_event(
                 "oanda_transaction_id",
                 "oanda_order_id",
                 "closed_signed_units",
+                "execution_economics",
             )
         },
     }
@@ -3320,6 +3332,9 @@ def main() -> int:
                             else float(close_result["realized_pl"])
                         )
                         if not args.dry_run:
+                            close_economics = close_result.get(
+                                "execution_economics"
+                            )
                             journal.log_oanda_trade_update(
                                 trade_id=trade.trade_id,
                                 event_type="TRADE_CLOSED_OANDA",
@@ -3330,6 +3345,21 @@ def main() -> int:
                                 price=exit_price,
                                 units=trade.units,
                                 pl=realized_pnl,
+                                commission=(
+                                    close_economics.get(
+                                        "commission_account_units"
+                                    )
+                                    if isinstance(close_economics, dict)
+                                    else None
+                                ),
+                                financing=(
+                                    close_economics.get(
+                                        "financing_account_units"
+                                    )
+                                    if isinstance(close_economics, dict)
+                                    else None
+                                ),
+                                execution_economics=close_economics,
                                 ts_oanda=close_result["fill_time"],
                             )
                         journal.log_exit_summary(
@@ -3987,6 +4017,36 @@ def main() -> int:
                                 oanda_transaction_id=order_result.get("oanda_transaction_id"),
                                 fill_price=fill_price,
                                 fill_units=filled_trade_units,
+                                commission=(
+                                    order_result.get("execution_economics", {}).get(
+                                        "commission_account_units"
+                                    )
+                                    if isinstance(
+                                        order_result.get("execution_economics"), dict
+                                    )
+                                    else None
+                                ),
+                                financing=(
+                                    order_result.get("execution_economics", {}).get(
+                                        "financing_account_units"
+                                    )
+                                    if isinstance(
+                                        order_result.get("execution_economics"), dict
+                                    )
+                                    else None
+                                ),
+                                pl=(
+                                    order_result.get("execution_economics", {}).get(
+                                        "pl_account_units"
+                                    )
+                                    if isinstance(
+                                        order_result.get("execution_economics"), dict
+                                    )
+                                    else None
+                                ),
+                                execution_economics=order_result.get(
+                                    "execution_economics"
+                                ),
                                 ts_oanda=order_result.get("fill_time"),
                             )
                             journal.log_entry_snapshot(

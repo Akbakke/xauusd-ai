@@ -165,6 +165,14 @@ def test_close_accepts_only_exact_reconciled_trade_fill() -> None:
     assert result["trade_id"] == "trade-7"
     assert result["closed_signed_units"] == -7
     assert result["fill_price"] == pytest.approx(3300.25)
+    # The historical fixture deliberately has no explicit commission,
+    # financing, GSLO fee, or half-spread fields. The runner must preserve this
+    # as incomplete broker economics rather than silently recording zero cost.
+    assert result["execution_economics"]["economics_status"] == (
+        "INCOMPLETE_OR_INVALID_OBSERVED_FILL_CASHFLOW"
+    )
+    assert result["execution_economics"]["commission_account_units"] is None
+    assert result["execution_economics"]["net_cashflow_account_units"] is None
 
 
 def test_close_reject_with_fill_evidence_is_ambiguous_not_terminal() -> None:

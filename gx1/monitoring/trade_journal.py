@@ -1080,6 +1080,7 @@ class TradeJournal:
         commission: Optional[float] = None,
         financing: Optional[float] = None,
         pl: Optional[float] = None,
+        execution_economics: Optional[dict[str, Any]] = None,
         ts_oanda: Optional[str] = None,
     ) -> None:
         """
@@ -1095,6 +1096,8 @@ class TradeJournal:
             commission: Commission
             financing: Financing
             pl: Profit/loss
+            execution_economics: Literal broker cost/fill evidence; incomplete
+                evidence remains explicit and is never normalized to zero.
             ts_oanda: OANDA timestamp (RFC3339)
         """
         if not self.enabled:
@@ -1116,6 +1119,7 @@ class TradeJournal:
                 "commission": commission,
                 "financing": financing,
                 "pl": pl,
+                "execution_economics": execution_economics,
                 "ts_oanda": ts_oanda,
             }
             
@@ -1135,6 +1139,9 @@ class TradeJournal:
         price: Optional[float] = None,
         units: Optional[int] = None,
         pl: Optional[float] = None,
+        commission: Optional[float] = None,
+        financing: Optional[float] = None,
+        execution_economics: Optional[dict[str, Any]] = None,
         ts_oanda: Optional[str] = None,
     ) -> None:
         """
@@ -1148,6 +1155,10 @@ class TradeJournal:
             price: Price
             units: Units
             pl: Profit/loss
+            commission: Literal broker commission, if explicitly supplied.
+            financing: Literal broker financing, if explicitly supplied.
+            execution_economics: Literal broker cost/fill evidence; no missing
+                component is treated as zero.
             ts_oanda: OANDA timestamp (RFC3339)
         """
         if not self.enabled:
@@ -1166,6 +1177,9 @@ class TradeJournal:
                 "price": price,
                 "units": units,
                 "pl": pl,
+                "commission": commission,
+                "financing": financing,
+                "execution_economics": execution_economics,
                 "ts_oanda": ts_oanda,
             }
             

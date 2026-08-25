@@ -37,6 +37,13 @@ available only as a labelled research diagnostic, cannot return an economics
 also fails before artifact loading while the fitted-Q production-economics gate
 is red. A successor needs immutable broker cost and financing facts plus a
 shared-portfolio replay; no replacement cost number may be invented.
+The local OANDA fill journal now preserves explicitly returned `pl`,
+`financing`, `commission`, `halfSpreadCost` and guaranteed-execution-fee
+components as broker observations. A missing/malformed field is recorded as
+incomplete rather than zero, and half-spread is never double-counted against an
+executed fill price. No such observed fill ledger exists for V42 historical
+rows, so this is only the collection/verification instrument for a later,
+separately authorized demo-evidence phase—not a V42 economics admission.
 
 **Historical V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
 (283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and

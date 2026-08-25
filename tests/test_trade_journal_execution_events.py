@@ -120,6 +120,12 @@ class TestTradeJournalExecutionEvents(unittest.TestCase):
             commission=0.5,
             financing=0.0,
             pl=0.0,
+            execution_economics={
+                "schema_version": "gx1_oanda_order_fill_economics_v1",
+                "economics_status": "INCOMPLETE_OR_INVALID_OBSERVED_FILL_CASHFLOW",
+                "commission_account_units": None,
+                "net_cashflow_account_units": None,
+            },
             ts_oanda="2025-01-15T10:00:00.000000000Z",
         )
         
@@ -148,6 +154,12 @@ class TestTradeJournalExecutionEvents(unittest.TestCase):
         self.assertEqual(event["commission"], 0.5)
         self.assertEqual(event["financing"], 0.0)
         self.assertEqual(event["pl"], 0.0)
+        self.assertEqual(event["execution_economics"], {
+            "schema_version": "gx1_oanda_order_fill_economics_v1",
+            "economics_status": "INCOMPLETE_OR_INVALID_OBSERVED_FILL_CASHFLOW",
+            "commission_account_units": None,
+            "net_cashflow_account_units": None,
+        })
         self.assertEqual(event["ts_oanda"], "2025-01-15T10:00:00.000000000Z")
     
     def test_order_rejected_logged(self):
