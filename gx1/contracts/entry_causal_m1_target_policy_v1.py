@@ -25,6 +25,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
 from gx1.contracts.entry_direction_target_policy_v1 import (
     ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS,
     ENTRY_DIRECTION_TARGET_POLICY_PATH_QUANTILES,
+    apply_entry_direction_target_rule,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
 
@@ -34,6 +35,8 @@ ENTRY_CAUSAL_M1_TARGET_POLICY_FIT_METHOD = "train_exact_m1_fill_executable_profi
 ENTRY_CAUSAL_M1_TARGET_POLICY_EDGE_FIT_METHOD = "train_median_exact_m1_entry_spread_bps_v1"
 ENTRY_CAUSAL_M1_TARGET_POLICY_PATH_THRESHOLD_FIT_METHOD = "train_combined_long_short_exact_m1_path_empirical_quartiles_v1"
 ENTRY_CAUSAL_M1_TARGET_POLICY_ACTION_RULE = "trade_better_exact_m1_executable_pnl_side_iff_edge_and_side_margin_exceed_train_fitted_m1_spread_floor_else_flat_v1"
+ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE = "train_fitted_exact_m1_execution_diagnostics_v1"
+ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_LABEL_SOURCE = "train_fitted_exact_m1_fill_executable_pnl_at_selected_horizon"
 
 _POLICY_KEYS = {
     "schema_version", "decision", "fit_split", "fit_scope", "fit_method",
@@ -130,20 +133,30 @@ def causal_m1_direction_targets_from_policy(
         raise RuntimeError("ENTRY_CAUSAL_M1_TARGET_POLICY_TARGET_SHAPE_INVALID")
     if not np.isfinite(long_pnl).all() or not np.isfinite(short_pnl).all():
         raise RuntimeError("ENTRY_CAUSAL_M1_TARGET_POLICY_TARGET_VALUES_INVALID")
-    best_long = long_pnl >= short_pnl
-    best = np.where(best_long, long_pnl, short_pnl)
-    margin = np.abs(long_pnl - short_pnl)
-    trade = (best > float(normalized["tradable_edge_floor_bps"])) & (
-        margin > float(normalized["side_margin_floor_bps"])
+    return apply_entry_direction_target_rule(
+        long_executable_pnl_bps=long_pnl,
+        short_executable_pnl_bps=short_pnl,
+        tradable_edge_floor_bps=normalized["tradable_edge_floor_bps"],
+        side_margin_floor_bps=normalized["side_margin_floor_bps"],
     )
-    side = np.full(len(long_pnl), -1, dtype=np.int8)
-    side[trade & best_long] = 0
-    side[trade & ~best_long] = 1
+
+
+def causal_m1_direction_diagnostic_outcome_contract(
+    policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Projection placed in split manifests; never a serving action rule."""
+
+    normalized = require_causal_m1_target_policy(policy)
     return {
-        "side": side,
-        "trade": trade,
-        "side_margin_bps": margin.astype(np.float64),
-        "best_executable_pnl_bps": best.astype(np.float64),
+        "diagnostic_outcome_target_mode": ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE,
+        "diagnostic_outcome_label_source": ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_LABEL_SOURCE,
+        "diagnostic_outcome_horizon_bars": int(normalized["selected_direction_horizon_bars"]),
+        "diagnostic_side_score_formula": normalized["side_score_formula"],
+        "diagnostic_tradable_edge_floor_bps": float(normalized["tradable_edge_floor_bps"]),
+        "diagnostic_side_margin_floor_bps": float(normalized["side_margin_floor_bps"]),
+        "diagnostic_path_quality_horizon_bars": int(normalized["path_quality_horizon_bars"]),
+        "diagnostic_outcome_policy_sha256": normalized["policy_sha256"],
+        "entry_action_authority": False,
     }
 
 

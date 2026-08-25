@@ -8,6 +8,7 @@ import pytest
 
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
     causal_m1_direction_targets_from_policy,
+    causal_m1_direction_diagnostic_outcome_contract,
     fit_causal_m1_target_policy,
     materialize_causal_m1_auxiliary_outcomes,
     require_causal_m1_target_policy,
@@ -20,7 +21,10 @@ def _sha(seed: str) -> str:
 
 def _m1(rows: int = 1_100) -> pd.DataFrame:
     time = pd.date_range("2024-01-01T00:00:00Z", periods=rows, freq="min")
-    base = 2000.0 + np.linspace(0.0, 15.0, rows) + np.sin(np.arange(rows) / 11.0) * 1.5
+    # Repeating movement deliberately gives TRAIN both executable long and
+    # short opportunities; the sizing ECDF must not quietly fit one side only.
+    index = np.arange(rows, dtype=np.float64)
+    base = 2000.0 + np.sin(index / 11.0) * 8.0 + np.sin(index / 23.0) * 3.0
     bid = base
     ask = base + 0.2
     return pd.DataFrame(
@@ -85,6 +89,11 @@ def test_direction_target_is_a_frozen_offline_policy() -> None:
     )
     assert result["side"].tolist() == [0, 1]
     assert result["trade"].tolist() == [True, True]
+    assert result["long_score_bps"].tolist() == [20.0, -20.0]
+    assert result["short_score_bps"].tolist() == [-20.0, 20.0]
+    assert causal_m1_direction_diagnostic_outcome_contract(policy)[
+        "diagnostic_outcome_label_source"
+    ] == "train_fitted_exact_m1_fill_executable_pnl_at_selected_horizon"
 
 
 def test_materialized_auxiliary_evidence_retains_invalid_m1_rows() -> None:
