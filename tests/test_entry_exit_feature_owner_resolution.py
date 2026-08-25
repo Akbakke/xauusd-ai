@@ -39,6 +39,7 @@ from gx1.execution import v12_model_native_state_live as native_state
 from gx1.features.volume_features import VOLUME_FEATURE_PREFIX_ROWS
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _align_native_m5_feature_surface,
+    _attach_causal_m1_labels_preserving_feature_timeline,
 )
 
 
@@ -464,6 +465,40 @@ def test_entry_m5_surface_alignment_fails_closed(
             surface_times=surface_times,
             surface_arrays=_m5_surface_arrays(len(surface_times)),
         )
+
+
+def test_causal_m1_label_gap_does_not_remove_feature_history_rows() -> None:
+    times = pd.date_range("2026-01-01", periods=6, freq="5min", tz="UTC")
+    features = pd.DataFrame({"time": times, "feature": np.arange(len(times))})
+    labels = pd.DataFrame(
+        {
+            "time": times[[0, 1, 3, 4, 5]],
+            "mfe_long_first_n_bps": 1.0,
+            "mae_long_first_n_bps": -1.0,
+            "mfe_short_first_n_bps": 1.5,
+            "mae_short_first_n_bps": -1.5,
+            "path_quality_horizon_bars": 12,
+            "bad_path_long_first_n": 0.0,
+            "bad_path_short_first_n": 0.0,
+            "bad_path_horizon_bars": 12,
+            "v11_pnl_long_at_dir_horizon_bps": 0.5,
+            "v11_pnl_short_at_dir_horizon_bps": -0.5,
+        }
+    )
+
+    attached, label_complete = _attach_causal_m1_labels_preserving_feature_timeline(
+        feature_rows=features,
+        complete_causal_labels=labels,
+    )
+
+    assert attached["time"].tolist() == times.tolist()
+    assert label_complete.tolist() == [True, True, False, True, True, True]
+    aligned = _align_native_m5_feature_surface(
+        target_times=attached["time"],
+        surface_times=times,
+        surface_arrays=_m5_surface_arrays(len(times)),
+    )
+    assert aligned["signal"].shape[0] == len(times)
 
 
 def test_every_production_cache_publish_call_binds_registry_constants() -> None:

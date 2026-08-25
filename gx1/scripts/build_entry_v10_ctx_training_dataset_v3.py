@@ -105,7 +105,6 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 )
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
     ENTRY_CAUSAL_M1_TARGET_POLICY_SCHEMA_VERSION,
-    ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE,
     causal_m1_direction_diagnostic_outcome_contract,
     causal_m1_direction_targets_from_policy,
     fit_causal_m1_target_policy,
@@ -113,9 +112,7 @@ from gx1.contracts.entry_causal_m1_target_policy_v1 import (
     require_causal_m1_target_policy,
 )
 from gx1.contracts.entry_direction_target_policy_v1 import (
-    ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE,
     entry_direction_diagnostic_outcome_contract,
-    entry_direction_targets_from_policy,
     require_entry_direction_target_policy,
 )
 from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
@@ -215,15 +212,6 @@ from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 log = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
-)
-
-# The old TRAIN-fitted horizon labels remain dataset-only diagnostics for
-# outcome auxiliaries and position-size fitting.  They are never the Entry
-# action target or decision authority.  The sole Entry target is materialized
-# in the trainer from the frozen fitted-Q Exit teacher and the exact episode
-# pack bound to each dataset row.
-_DIAGNOSTIC_OUTCOME_TARGET_MODE = (
-    ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE
 )
 
 # The old map-derived hold-horizon target is blocked from the exact model-native
@@ -2641,6 +2629,80 @@ _MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpo
 _MODEL_NATIVE_STREAMING_BATCH_SIZE = 512
 
 
+_CAUSAL_M1_LABEL_COLUMNS: tuple[str, ...] = (
+    "mfe_long_first_n_bps",
+    "mae_long_first_n_bps",
+    "mfe_short_first_n_bps",
+    "mae_short_first_n_bps",
+    "path_quality_horizon_bars",
+    "bad_path_long_first_n",
+    "bad_path_short_first_n",
+    "bad_path_horizon_bars",
+    "v11_pnl_long_at_dir_horizon_bps",
+    "v11_pnl_short_at_dir_horizon_bps",
+)
+
+
+def _attach_causal_m1_labels_preserving_feature_timeline(
+    *,
+    feature_rows: pd.DataFrame,
+    complete_causal_labels: pd.DataFrame,
+) -> tuple[pd.DataFrame, np.ndarray]:
+    """Attach valid M1 outcomes without turning unavailable labels into time gaps.
+
+    The M5 feature surface is the observed source timeline. An entry close near
+    a market closure can have a valid M5 feature row while lacking the exact
+    following M1 fill or bounded M1 exit required by the target contract. Such a
+    row is unavailable for supervision, not absent from feature history.
+    Removing it would make the later sequence builder stitch its neighbours
+    together. Keep the left timeline intact and return the exact supervision
+    availability mask; emission applies that mask before anything is written.
+    """
+
+    if "time" not in feature_rows.columns or "time" not in complete_causal_labels.columns:
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_TIME_COLUMN_MISSING")
+    missing = [
+        name for name in _CAUSAL_M1_LABEL_COLUMNS if name not in complete_causal_labels.columns
+    ]
+    if missing:
+        raise RuntimeError(f"ENTRY_CAUSAL_M1_LABEL_COLUMNS_MISSING: {missing}")
+    overlap = set(feature_rows.columns) & set(_CAUSAL_M1_LABEL_COLUMNS)
+    if overlap:
+        raise RuntimeError(
+            "ENTRY_CAUSAL_M1_LABEL_OWNER_OVERLAP: " f"{sorted(overlap)}"
+        )
+
+    feature_time = pd.DatetimeIndex(
+        pd.to_datetime(feature_rows["time"], utc=True, errors="coerce")
+    )
+    label_time = pd.DatetimeIndex(
+        pd.to_datetime(complete_causal_labels["time"], utc=True, errors="coerce")
+    )
+    if (
+        len(feature_time) == 0
+        or feature_time.hasnans
+        or not feature_time.is_unique
+        or not feature_time.is_monotonic_increasing
+    ):
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_FEATURE_TIME_INVALID")
+    if label_time.hasnans or not label_time.is_unique or not label_time.is_monotonic_increasing:
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_TIME_INVALID")
+
+    labels = complete_causal_labels.loc[:, ["time", *_CAUSAL_M1_LABEL_COLUMNS]].copy()
+    attached = feature_rows.merge(labels, on="time", how="left", validate="one_to_one")
+    if len(attached) != len(feature_rows):
+        raise RuntimeError(
+            "ENTRY_CAUSAL_M1_LABEL_LEFT_JOIN_ROW_MISMATCH: "
+            f"before={len(feature_rows)} after={len(attached)}"
+        )
+    label_complete = attached.loc[:, _CAUSAL_M1_LABEL_COLUMNS].notna().all(axis=1).to_numpy(
+        dtype=bool
+    )
+    if not label_complete.any():
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_COMPLETE_ROWS_EMPTY")
+    return attached, label_complete
+
+
 def _align_native_m5_feature_surface(
     *,
     target_times: Sequence[Any],
@@ -2743,6 +2805,7 @@ def build_dataset_canonical(
     direction_target_policy = require_causal_m1_target_policy(
         entry_direction_target_policy
     )
+    diagnostic_contract = diagnostic_outcome_label_contract(direction_target_policy)
     position_size_target_policy = require_causal_m1_position_size_target_policy(
         entry_position_size_target_policy,
         expected_source_parquet_sha256=direction_target_policy[
@@ -3171,51 +3234,18 @@ def build_dataset_canonical(
     # Direction, early-move, quality and bad-path targets are selected below
     # from the final spread-aware side at the exact TRAIN-fitted horizon. No
     # bootstrap direction or caller-selected fixed duration is admitted.
-    merged2 = merged.merge(
-        causal_m1_labels[
-            [
-                "time",
-                "mfe_long_first_n_bps",
-                "mae_long_first_n_bps",
-                "mfe_short_first_n_bps",
-                "mae_short_first_n_bps",
-                "path_quality_horizon_bars",
-            ]
-        ],
-        on="time",
-        how="inner",
-        validate="one_to_one",
+    # Preserve the exact observed M5 feature timeline. Outcome-unavailable M5
+    # rows (for example, a close whose next M1 fill falls in a market closure)
+    # remain valid history for later decisions, but cannot supervise a target.
+    # A left join records that distinction; the emission mask below excludes all
+    # incomplete-label rows before the parquet is written.
+    merged2, _causal_m1_labels_complete_after_join = (
+        _attach_causal_m1_labels_preserving_feature_timeline(
+            feature_rows=merged,
+            complete_causal_labels=causal_m1_labels,
+        )
     )
-    merged2 = merged2.merge(
-        causal_m1_labels[
-            [
-                "time",
-                "bad_path_long_first_n",
-                "bad_path_short_first_n",
-                "bad_path_horizon_bars",
-                # The generic PnL columns are not merged: direction uses the
-                # dedicated fitted-horizon columns below. bad_path still uses
-                # its own side-specific outcome at that same fitted horizon.
-            ]
-        ],
-        on="time",
-        how="inner",
-        validate="one_to_one",
-    )
-    merged2 = merged2.merge(
-        causal_m1_labels[
-            [
-                "time",
-                "v11_pnl_long_at_dir_horizon_bps",
-                "v11_pnl_short_at_dir_horizon_bps",
-            ]
-        ],
-        on="time",
-        how="inner",
-        validate="one_to_one",
-    )
-    if len(merged2) == 0:
-        raise RuntimeError("LABEL_JOIN_EMPTY")
+    del _causal_m1_labels_complete_after_join
 
     # Re-attach ctx to merged2 (align by time)
     df_ctx = pd.DataFrame({"time": df["time"].to_numpy()})
@@ -3651,6 +3681,29 @@ def build_dataset_canonical(
         raise RuntimeError("MODEL_NATIVE_CTX_CAT_NONFINITE")
 
     target_rows = len(merged3)
+    _causal_m1_label_complete_mask = (
+        merged3.loc[:, _CAUSAL_M1_LABEL_COLUMNS].notna().all(axis=1).to_numpy(dtype=bool)
+    )
+    if not _causal_m1_label_complete_mask.any():
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_COMPLETE_ROWS_EMPTY_AFTER_FEATURE_JOIN")
+    _causal_m1_label_unavailable_rows = int(
+        np.count_nonzero(~_causal_m1_label_complete_mask)
+    )
+    # The unavailable rows are never emitted. Give downstream vectorized target
+    # calculations neutral finite placeholders so the availability mask, rather
+    # than accidental NaN propagation, is the sole reason they are excluded.
+    if _causal_m1_label_unavailable_rows:
+        for _label_name in _CAUSAL_M1_LABEL_COLUMNS:
+            merged3[_label_name] = pd.to_numeric(
+                merged3[_label_name], errors="raise"
+            ).where(_causal_m1_label_complete_mask, 0.0)
+    log.info(
+        "[ENTRY_CAUSAL_M1_LABEL_COVERAGE] split=%s feature_rows=%d complete_rows=%d unavailable_rows=%d",
+        split_name or "unspecified",
+        target_rows,
+        int(np.count_nonzero(_causal_m1_label_complete_mask)),
+        _causal_m1_label_unavailable_rows,
+    )
     y_dir = np.full(target_rows, MODEL_DIRECTION_FLAT_INDEX, dtype=np.int32)
     y_early = np.zeros(target_rows, dtype=np.float32)
     y_qual = np.zeros(target_rows, dtype=np.float32)
@@ -4177,7 +4230,7 @@ def build_dataset_canonical(
         "[ENTRY_DIAGNOSTIC_OUTCOME_SEMANTICS] split=%s source=executable_pnl_only "
         "target_mode=%s long_rate=%.6f short_rate=%.6f flat_rate=%.6f",
         _split_tag,
-        _DIAGNOSTIC_OUTCOME_TARGET_MODE,
+        diagnostic_contract["diagnostic_outcome_target_mode"],
         _directional_long_rate,
         _directional_short_rate,
         _directional_flat_rate,
@@ -4300,6 +4353,11 @@ def build_dataset_canonical(
         dtype=bool,
     )
     emit_mask[: seq_len - 1] = False
+    emitted_candidate_count_before_causal_m1_completeness = int(emit_mask.sum())
+    causal_m1_label_incomplete_candidate_rows_excluded = int(
+        np.count_nonzero(emit_mask & ~_causal_m1_label_complete_mask)
+    )
+    emit_mask &= _causal_m1_label_complete_mask
     emitted_candidate_count_before_aux_completeness = int(emit_mask.sum())
     aux_target_incomplete_candidate_rows_excluded = int(
         np.count_nonzero(emit_mask & ~_head_target_complete_mask)
@@ -4310,8 +4368,11 @@ def build_dataset_canonical(
         raise RuntimeError(
             "MODEL_NATIVE_EMIT_WINDOW_EMPTY_AFTER_HISTORY_AND_TARGET_COMPLETENESS: "
             f"emit={emit_start}..{emit_end} history={start}..{end} "
+            f"before_causal_m1_completeness={emitted_candidate_count_before_causal_m1_completeness} "
             f"before_aux_completeness={emitted_candidate_count_before_aux_completeness}"
         )
+    if not _causal_m1_label_complete_mask[emit_mask].all():
+        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_INCOMPLETE_EMISSION_FORBIDDEN")
     for target_name in MODEL_NATIVE_AUX_TARGET_COLUMNS:
         if not np.isfinite(_head_target_arrays[target_name][emit_mask]).all():
             raise RuntimeError(
@@ -4522,8 +4583,23 @@ def build_dataset_canonical(
             ),
             "complete_rows_emitted": int(emitted_candidate_count),
         },
+        "causal_m1_label_coverage": {
+            "feature_timeline_rows": int(target_rows),
+            "complete_rows": int(np.count_nonzero(_causal_m1_label_complete_mask)),
+            "unavailable_rows": _causal_m1_label_unavailable_rows,
+            "emission_candidates_before_causal_m1_completeness": int(
+                emitted_candidate_count_before_causal_m1_completeness
+            ),
+            "incomplete_candidate_rows_excluded": int(
+                causal_m1_label_incomplete_candidate_rows_excluded
+            ),
+            "complete_candidate_rows_before_aux_completeness": int(
+                emitted_candidate_count_before_aux_completeness
+            ),
+            "complete_rows_emitted": int(emitted_candidate_count),
+        },
         **entry_fitted_q_dataset_contract(),
-        **diagnostic_outcome_label_contract(direction_target_policy),
+        **diagnostic_contract,
         **causal_m1_position_size_target_policy_contract(position_size_target_policy),
         **representation_auxiliary_outcome_contract(),
         "early_move_threshold_bps": float(

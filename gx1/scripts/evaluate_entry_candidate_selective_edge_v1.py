@@ -1636,7 +1636,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Failure count: `{len(report['failures'])}`",
         f"- Pre-registered research hypothesis: `{report['preregistered_selective_edge']['decision']}`",
         f"- Outcome economics: `{report['outcome_economics']}`",
-        f"- Production authority / edge claim: `False / False`",
+        "- Production authority / edge claim: `False / False`",
         f"- Promotion/shadow/live allowed: `{report['promotion_shadow_live_allowed']}`",
         "",
         "## Failures",

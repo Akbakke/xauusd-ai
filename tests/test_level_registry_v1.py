@@ -76,7 +76,8 @@ def _fit_source(tmp_path: Path, *, clock: str) -> dict:
         path = (tmp_path / f"{name}.json").resolve()
         path.write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
         paths[name] = path
-    digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+    def digest(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
     return {
         "source_artifact": str(paths["source"]),
         "source_sha256": digest(paths["source"]),
@@ -603,7 +604,7 @@ def test_s2_break_once_retest_hold_and_signed_reactions():
     # No later bar intersects the exact center, so the raw retest stays armed.
     assert hold[8:].sum() == 0.0
     assert fail[8:].sum() == 0.0
-    lv = next(l for l in state["levels"] if l["break_bar"] == 13)
+    lv = next(level for level in state["levels"] if level["break_bar"] == 13)
     assert lv["status"] == "broken" and lv["retest_state"] == "pending"
 
 
@@ -632,7 +633,7 @@ def test_s4_retest_stays_pending_past_old_twenty_four_bar_window():
     assert _col(m5, names, "level_break_down_event")[8:].sum() == 1.0
     assert _col(m5, names, "level_retest_hold_signed")[8:].sum() == 0.0
     assert _col(m5, names, "level_retest_fail_signed")[8:].sum() == 0.0
-    lv = next(l for l in state["levels"] if l["break_side"] == -1)
+    lv = next(level for level in state["levels"] if level["break_side"] == -1)
     assert lv["retest_state"] == "pending"
     assert len(df) - 1 - lv["break_bar"] > 24
 

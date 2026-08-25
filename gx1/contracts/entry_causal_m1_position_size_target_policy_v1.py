@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-import math
 import os
 from collections.abc import Mapping
 from pathlib import Path

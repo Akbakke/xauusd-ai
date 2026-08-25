@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from gx1.contracts.entry_direction_target_policy_v1 import (
+    ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE,
+    entry_direction_diagnostic_outcome_contract,
+)
 from gx1.scripts import build_entry_v10_ctx_training_dataset_v3 as builder
 from tests.entry_direction_target_policy_support import (
     entry_direction_target_policy_fixture,
@@ -20,8 +24,10 @@ def test_diagnostic_outcome_contract_is_exact_train_fitted_executable_pnl() -> N
     assert contract["diagnostic_outcome_horizon_bars"] == policy[
         "selected_direction_horizon_bars"
     ]
-    assert contract["diagnostic_outcome_target_mode"] == (
-        builder._DIAGNOSTIC_OUTCOME_TARGET_MODE
+    assert contract == entry_direction_diagnostic_outcome_contract(policy)
+    assert (
+        contract["diagnostic_outcome_target_mode"]
+        == ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE
     )
     assert contract["diagnostic_side_score_formula"] == policy[
         "side_score_formula"
@@ -43,7 +49,6 @@ def test_direction_target_has_no_environment_switch() -> None:
     assert "GX1_ENTRY_DIRECTION_TARGET_MODE" not in source
     assert "GX1_ENTRY_DIRECTION_UTILITY_" not in source
     assert '--early_move_threshold_bps' not in source
-    assert "ENTRY_DIRECTION_DIAGNOSTIC_OUTCOME_TARGET_MODE" in source
     assert "entry_direction_diagnostic_outcome_contract" in source
 
 

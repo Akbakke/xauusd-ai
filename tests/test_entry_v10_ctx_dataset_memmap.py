@@ -182,6 +182,34 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
     assert flush_calls == 2
 
 
+def test_advanced_dataset_does_not_delete_preexisting_memmap_scratch(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    parquet_path = tmp_path / "advanced_train.parquet"
+    memmap_root = tmp_path / "memmap"
+    preserved = memmap_root / "prior_run_999999"
+    preserved.mkdir(parents=True)
+    sentinel = preserved / "retain-until-approved.bin"
+    sentinel.write_bytes(b"retention-owner-must-decide")
+    _write_advanced_parquet(parquet_path)
+
+    monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 0)
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
+    m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
+
+    ds = trainer.EntryV10CtxDataset(
+        parquet_path,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
+        m5_prebuilt_path=m5_path,
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
+        multi_tf_closed_bar=True,
+    )
+
+    assert isinstance(ds._np_seq, np.memmap)
+    assert sentinel.read_bytes() == b"retention-owner-must-decide"
+
+
 def test_advanced_dataset_reconstructs_sequence_only_from_exact_roll_proof(
     tmp_path,
     monkeypatch,

@@ -22,7 +22,6 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
 )
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
-    MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     model_native_readiness_contract_metadata,

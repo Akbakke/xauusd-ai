@@ -919,12 +919,12 @@ def _run_level_registry(
     for i in range(nb):
         t = base + i
         h = float(high[i])
-        l = float(low[i])
+        low_value = float(low[i])
         c = float(close[i])
         a = float(atr[i])
 
         buf_high.append(h)
-        buf_low.append(l)
+        buf_low.append(low_value)
         if len(buf_high) > window_len:
             del buf_high[0]
             del buf_low[0]
@@ -963,7 +963,7 @@ def _run_level_registry(
                     level,
                     t=t,
                     high=h,
-                    low=l,
+            low=low_value,
                     reason="learned_eligibility_expiry",
                     runtime_lifecycle_log=runtime_lifecycle_log,
                 )
@@ -1107,7 +1107,7 @@ def _run_level_registry(
                         lv,
                         t=t,
                         high=h,
-                        low=l,
+                        low=low_value,
                         reason="break",
                         runtime_lifecycle_log=runtime_lifecycle_log,
                     )
@@ -1130,7 +1130,7 @@ def _run_level_registry(
                         lv,
                         t=t,
                         high=h,
-                        low=l,
+                        low=low_value,
                         reason="break",
                         runtime_lifecycle_log=runtime_lifecycle_log,
                     )
@@ -1178,12 +1178,12 @@ def _run_level_registry(
         for lv in list(pending_retest_by_id.values()):
             if lv["break_bar"] == t:
                 continue
-            if h >= lv["center_price"] and l <= lv["center_price"]:
+            if h >= lv["center_price"] and low_value <= lv["center_price"]:
                 _finalize_reaction_lifecycle(
                     lv,
                     t=t,
                     high=h,
-                    low=l,
+                    low=low_value,
                     reason="retest_resolution",
                     runtime_lifecycle_log=runtime_lifecycle_log,
                 )
@@ -1256,13 +1256,15 @@ def _run_level_registry(
         for lv in active_by_id.values():
             if lv["level_id"] in admitted_ids:
                 continue
-            intersects_center = h >= lv["center_price"] and l <= lv["center_price"]
+            intersects_center = (
+                h >= lv["center_price"] and low_value <= lv["center_price"]
+            )
             if intersects_center and not lv["prev_bar_intersects_center"]:
                 _finalize_reaction_lifecycle(
                     lv,
                     t=t,
                     high=h,
-                    low=l,
+                    low=low_value,
                     reason="exact_center_reentry",
                     runtime_lifecycle_log=runtime_lifecycle_log,
                 )
@@ -1286,12 +1288,12 @@ def _run_level_registry(
             if not lv["open_reactions"]:
                 continue
             for window in lv["open_reactions"]:
-                _update_reaction_extreme(window, t=t, high=h, low=l)
+                _update_reaction_extreme(window, t=t, high=h, low=low_value)
 
         # (6) excursion memory for the next bar's touch dedup.
         for lv in active_by_id.values():
             lv["prev_bar_intersects_center"] = (
-                h >= lv["center_price"] and l <= lv["center_price"]
+                h >= lv["center_price"] and low_value <= lv["center_price"]
             )
 
         # (7) emission (post-update state; broken levels are never "nearest

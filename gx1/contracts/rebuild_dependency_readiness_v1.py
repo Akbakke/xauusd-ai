@@ -14,7 +14,7 @@ import json
 import platform
 import sys
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable
 
 
 REBUILD_DEPENDENCY_READINESS_SCHEMA_VERSION = "gx1_rebuild_dependency_readiness_v1"
