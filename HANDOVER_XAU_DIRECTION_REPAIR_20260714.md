@@ -16,7 +16,22 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
+**Current V42 status, verified 2026-08-25:** the explicit
+`current_audited_dataset_evidence` binding in
+`PROJECT_STATE_xau_direction_launch.json` rehashes the V42 rebuild terminal,
+post-rebuild readiness, full input and feature-surface liveness, all three
+foundation audits, smoke manifest/readiness, trainability, recipe and adoption
+review. All data/feature reports named there pass, including exact routing for
+all eight specialists. This establishes that V42 is an **audited research
+dataset**, not an admitted dataset: its distinct adoption review is deliberately
+blocked by the fitted-Q production-economics contract. Causal executable
+bid/ask, commission, slippage, financing, gap/terminal treatment and portfolio
+constraints remain unbound. Therefore no edge claim, candidate, calibration,
+TEST evaluation, paper/demo/live action or activation is authorized. The V42
+recipe's `execution_allowed=true` means only that its immutable research recipe
+is internally coherent; it does not grant operator authorization to run it.
+
+**Historical V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
 (283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and
 passed preflight, cross-surface v3, full-input liveness and pretrain v6. The
 report-only post-rebuild gate is READY and did not open TEST bytes. Foundation
@@ -105,7 +120,7 @@ reconstruct the identical sequence view from the 96-row prefix plus snapshots;
 it does not authorize a candidate shortcut or reduce the full-TRAIN
 normalization population.
 
-The separately named V40 adoption-candidate report is intentionally
+The separately named historical V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
 gross, spread-inclusive, research-only and cannot gain production authority
 until causal executable bid/ask, commission, slippage, financing, portfolio
@@ -209,10 +224,10 @@ weight exists.
 
 ## What remains empirically unproven or unadmitted
 
-- No admitted dataset, model, calibration, edge, PnL or win-rate. V40's bytes
-  pass the current foundation audits and the current-source report-only smoke
-  chain, and its bounded research smoke has run only as a trainability/safety
-  diagnostic; production admission is deliberately incomplete. The M5
+- No admitted dataset, model, calibration, edge, PnL or win-rate. V42's bytes
+  pass the current foundation audits and report-only readiness chain, but the
+  separately hash-bound V42 adoption review is blocked on production economics.
+  Its recipe therefore has no activation authority. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.

@@ -186,6 +186,8 @@ comparison baseline" role they were given could never be executed, because
 producing that arm requires training on a forbidden surface. The evaluation
 reference is the coin-flip null, not a dataset; its magnitude is substrate-
 specific and belongs in `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, never
-restated here. The rebuild is required and has not landed: V31 chains have run
-repeatedly since 2026-08-18 and every one that reached a terminal event ended
-RED. No recipe, dataset or model is currently admitted.
+restated here. V42 is the current explicitly hash-bound audited research
+rebuild, but it is not admitted: the fitted-Q production-economics contract
+blocks activation, edge claims and every paper/live route until its missing
+executable-price, cost and portfolio evidence is bound. No recipe, dataset or
+model is currently admitted.

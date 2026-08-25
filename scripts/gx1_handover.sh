@@ -90,6 +90,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
 )
+from gx1.contracts.current_audited_dataset_evidence_v1 import (
+    require_blocked_launch_state_with_current_audited_dataset,
+)
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
@@ -108,10 +111,12 @@ pair_path = Path(sys.argv[3])
 authority_paths = tuple(Path(raw) for raw in sys.argv[4:])
 
 state = json.loads(launch_path.read_text(encoding="utf-8"))
-if not isinstance(state, dict) or state.get("decision") != "BLOCK":
-    raise SystemExit("FATAL: launch authority must remain BLOCK")
-if state.get("accepted_bundle_dir") is not None:
-    raise SystemExit("FATAL: blocked launch authority carries an accepted bundle")
+try:
+    audited_dataset = require_blocked_launch_state_with_current_audited_dataset(
+        state
+    )
+except RuntimeError as exc:
+    raise SystemExit(f"FATAL: current audited dataset evidence invalid: {exc}") from exc
 expected_state = {
     "required_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
     "required_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
@@ -197,6 +202,10 @@ print(changed)
 print(state.get("required_contract_mode", "MISSING"))
 print(state.get("dataset_event_id") or "NONE")
 print(state.get("dataset_admission_stage") or "NONE")
+print(audited_dataset["status"])
+print(audited_dataset["dataset_run_id"])
+print(audited_dataset["report_count"])
+print(audited_dataset["blocker"])
 print(pair_id)
 print(artifacts["canonical_v3"]["parquet_path"])
 print(artifacts["base28"]["parquet_path"])
@@ -228,15 +237,19 @@ changed_path_count=${identity[2]}
 required_contract_mode=${identity[3]}
 dataset_event_id=${identity[4]}
 dataset_admission_stage=${identity[5]}
-pair_generation_id=${identity[6]}
-canonical_v3_path=${identity[7]}
-base28_path=${identity[8]}
-native_m1_root=${identity[9]}
-native_m5_root=${identity[10]}
-m1_time_max=${identity[11]}
-m5_time_max=${identity[12]}
-entry_contract_summary=${identity[13]}
-feature_contract_summary=${identity[14]}
+audited_dataset_status=${identity[6]}
+audited_dataset_run_id=${identity[7]}
+audited_dataset_report_count=${identity[8]}
+audited_dataset_blocker=${identity[9]}
+pair_generation_id=${identity[10]}
+canonical_v3_path=${identity[11]}
+base28_path=${identity[12]}
+native_m1_root=${identity[13]}
+native_m5_root=${identity[14]}
+m1_time_max=${identity[15]}
+m5_time_max=${identity[16]}
+entry_contract_summary=${identity[17]}
+feature_contract_summary=${identity[18]}
 head_commit=$(git rev-parse HEAD)
 
 if [[ "$mode" == check ]]; then
@@ -266,15 +279,18 @@ echo "required_contract_mode: $required_contract_mode"
 echo "dataset_event_id: $dataset_event_id"
 echo "dataset_admission_stage: $dataset_admission_stage"
 echo "accepted_bundle_dir: NONE"
-echo "dataset_contract: V40_REGISTRY_BRANCH_SUPPORT_REBUILD_REQUIRED"
-echo "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED"
+echo "current_audited_dataset_status: $audited_dataset_status"
+echo "current_audited_dataset_run_id: $audited_dataset_run_id"
+echo "current_audited_dataset_report_count: $audited_dataset_report_count"
+echo "dataset_contract: V42_HASH_BOUND_AUDITED_REPORT_ONLY"
+echo "train_recipe: V42_AUDITED_EXECUTION_ELIGIBLE_ACTIVATION_FORBIDDEN"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 # A restated test count goes stale the moment anyone adds a test — and
 # every restated number in this repository has (rule 13/25). State the
 # standing requirement, which cannot rot, and date the last verification.
 echo "source_regression: FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
-echo "source_regression_last_verified: 2026-08-21 on the V40 head-contract repair tree; full capped pytest suite reached 100% with exit 0"
+echo "source_regression_last_verified: 2026-08-25 on the V42 current-status repair tree; full capped pytest suite reached exit 0 with zero JUnit failures, errors or skips"
 echo "pair_generation_id: $pair_generation_id"
 echo "native_m1_root: $native_m1_root"
 echo "native_m5_root: $native_m5_root"
@@ -299,16 +315,17 @@ echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "source_identity_gate: $([[ $changed_path_count == 0 ]] && echo READY_CLEAN_WORKTREE || echo BLOCK_DIRTY_WORKTREE)"
-echo "resume_stage: REBUILD_V40_SUCCESSOR_WITH_BRANCH_SUPPORTED_REGISTRY_FIT"
-echo "dataset_rebuild: REQUIRED_CURRENT_V40_REGISTRY_FIT_SCHEMA_REJECTED"
+echo "resume_stage: BIND_PRODUCTION_ECONOMICS_BEFORE_ANY_ADMISSION_OR_EDGE_CLAIM"
+echo "dataset_rebuild: NOT_REQUIRED_FOR_CURRENT_AUDITED_V42_STATUS_REPAIR"
+echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M cpu=0-1 one_job_at_a_time"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
-echo "  1. rebuild a fresh immutable V40 successor; old registry fits fail branch-support validation"
-echo "  2. rerun foundation, target, liveness and specialist audits on the successor bytes"
-echo "  3. establish an independently measurable host-side power plan before another CUDA diagnostic; prior batch-8 diagnostic stopped at 180 W"
-echo "  4. only then assess a separately audited train recipe -> smoke bundle audit -> candidate readiness"
-echo "  5. calibration -> untouched TEST selective edge -> same-bundle unified Exit proof"
+echo "  1. bind causal next-executable bid/ask, commission, slippage and financing semantics"
+echo "  2. bind gap/terminal treatment and portfolio capital constraints to immutable evidence"
+echo "  3. audit the resulting net-cost target without reading sealed TEST bytes"
+echo "  4. establish independently measurable host-side power limits before any new CUDA diagnostic"
+echo "  5. only after separate human authorization: bounded research training -> calibration -> untouched TEST selective edge -> same-bundle unified Exit proof"
 echo "forbidden_routes: live, paper, broker, daemon, promotion, drift-adaptation"
 echo
 echo "## Source worktree"

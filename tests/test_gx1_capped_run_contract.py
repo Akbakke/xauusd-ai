@@ -560,7 +560,10 @@ def _sequenced_nvidia_smi(
         "count=$((count + 1))\n"
         "printf '%s' \"$count\" >\"$counter\"\n"
         "if [ \"$count\" -eq 1 ]; then\n"
-        "  printf '%s\\n' '50, 70, 100, 250'\n"
+        # The production guard queries all five values, including residency.
+        # Keep the first sequenced sample a fully valid telemetry record so
+        # the second sample actually exercises the running-child stop path.
+        "  printf '%s\\n' '50, 70, 100, 250, 1000'\n"
         "  exit 0\n"
         "fi\n"
         f"printf '%s\\n' '{later_output}'\n"
@@ -600,7 +603,7 @@ def test_trainer_guard_kills_running_group_on_thermal_breach(
 ) -> None:
     nvidia_smi = _sequenced_nvidia_smi(
         tmp_path,
-        later_output="50, 91, 100, 250",
+        later_output="50, 91, 100, 250, 1000",
     )
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/sleep", "30"],

@@ -138,12 +138,15 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_event_id: NONE" in result.stdout
     assert "dataset_admission_stage: NO_ADMITTED_UNIFIED_DATASET" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
+    assert "current_audited_dataset_status: " in result.stdout
+    assert "current_audited_dataset_run_id: V42_20260825T011122Z" in result.stdout
+    assert "current_audited_dataset_report_count: 12" in result.stdout
+    assert "dataset_contract: V42_HASH_BOUND_AUDITED_REPORT_ONLY" in result.stdout
     assert (
-        "dataset_contract: "
-        "V40_REGISTRY_BRANCH_SUPPORT_REBUILD_REQUIRED"
+        "train_recipe: "
+        "V42_AUDITED_EXECUTION_ELIGIBLE_ACTIVATION_FORBIDDEN"
         in result.stdout
     )
-    assert "train_recipe: NONE_VALID_V19_FULL_POOL_REBUILD_REQUIRED" in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     launch_state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -201,15 +204,17 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "REBUILD_V40_SUCCESSOR_WITH_BRANCH_SUPPORTED_REGISTRY_FIT"
+        "BIND_PRODUCTION_ECONOMICS_BEFORE_ANY_ADMISSION_OR_EDGE_CLAIM"
         in result.stdout
     )
+    assert "dataset_rebuild: NOT_REQUIRED_FOR_CURRENT_AUDITED_V42_STATUS_REPAIR" in result.stdout
     assert (
-        "dataset_rebuild: REQUIRED_CURRENT_V40_REGISTRY_FIT_SCHEMA_REJECTED"
+        "production_economics_blocker: "
+        "ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_NOT_BOUND"
         in result.stdout
     )
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "batch-8 diagnostic stopped at 180 W" in result.stdout
+    assert "independently measurable host-side power limits" in result.stdout
     assert "same-bundle unified Exit proof" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
@@ -253,7 +258,16 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert state["dataset_admission_stage"] == "NO_ADMITTED_UNIFIED_DATASET"
     assert state["accepted_dataset_dir"] is None
     assert state["accepted_dataset_terminal_evidence"] is None
-    assert state["current_audited_dataset_evidence"] == {}
+    from gx1.contracts.current_audited_dataset_evidence_v1 import (
+        CURRENT_AUDITED_DATASET_BLOCKER,
+        CURRENT_AUDITED_DATASET_STATUS,
+        require_blocked_launch_state_with_current_audited_dataset,
+    )
+
+    summary = require_blocked_launch_state_with_current_audited_dataset(state)
+    assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
+    assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
+    assert summary["dataset_run_id"] == "V42_20260825T011122Z"
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     assert state["current_smoke_launch_evidence"] is None
@@ -262,7 +276,10 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert "No current hash-bound dataset" in blockers
     assert "Untouched TEST direction edge" in blockers
     assert "remain fail-closed" in blockers
-    assert len(LAUNCH_STATE.read_bytes()) < 5_000
+    # The state now carries twelve hash-bound V42 report identities.  Keep the
+    # launch authority compact enough to inspect, while treating those exact
+    # identities as necessary fail-closed control data rather than a history.
+    assert len(LAUNCH_STATE.read_bytes()) < 12_000
     assert not any(
         key in state
         for key in (

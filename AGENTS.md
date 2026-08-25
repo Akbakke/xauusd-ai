@@ -69,7 +69,12 @@ Read `GX1_RULES.md` first. It is binding.
   false by 2026-08-19. Whether every static magnitude in the trainer is gone is
   **not examined**; do not claim it either way.
 - There is no admitted model, recipe, edge, win-rate or PnL proof, and no
-  dataset. The V28 (513) and V29J (592) chains both ran GREEN but were retired
+  admitted dataset. V42 is an explicitly hash-bound audited research dataset:
+  its data, liveness, all-eight-specialist and report-only readiness evidence
+  is verified by `current_audited_dataset_evidence` in the launch state. It
+  remains blocked from admission because fitted-Q production economics lacks
+  executable bid/ask, cost, gap/terminal and portfolio evidence. The V28 (513)
+  and V29J (592) chains both ran GREEN but were retired
   on 2026-08-14 through the retention owner: nothing was ever trained on
   either, so neither could serve as the comparison baseline it was named as.
   The evaluation reference is the coin-flip null; its magnitude is
@@ -191,11 +196,13 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Use the published V4 native/canonical pair and run the current-pair rebuild
-   chain under a new dataset run ID.
-3. Rebuild both resolution surfaces, then pass the exact M5 surface to Entry
-   and the exact M1 surface to lifecycle/Exit before building the splits.
-4. Materialize a distinct training run ID and bounded smoke recipe.
+2. Preserve V42's sealed TEST and bind causal executable prices, costs,
+   financing, gap/terminal treatment and portfolio constraints to a new
+   production-economics evidence contract.
+3. Audit the net-cost target on TRAIN/VAL only; do not rebuild V42 merely to
+   change a report-only consumer.
+4. Reassess a distinct bounded research run only after the economics audit and
+   explicit operator authorization.
 5. Train/audit smoke, then full candidate if every gate passes.
 6. Fit allowed calibration, freeze the candidate, evaluate untouched TEST and
    run the same bundle's unified Exit replay.

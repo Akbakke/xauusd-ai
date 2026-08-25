@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-21T08:10:03Z",
+  "updated_utc": "2026-08-25T04:34:40Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -36,7 +36,90 @@
   "dataset_admission_stage": "NO_ADMITTED_UNIFIED_DATASET",
   "accepted_dataset_dir": null,
   "accepted_dataset_terminal_evidence": null,
-  "current_audited_dataset_evidence": {},
+  "current_audited_dataset_evidence": {
+    "schema_version": "gx1_current_audited_dataset_evidence_v1",
+    "status": "AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED",
+    "blocker": "ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_NOT_BOUND",
+    "dataset_run_id": "V42_20260825T011122Z",
+    "root_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z",
+    "dataset_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/dataset",
+    "admission_allowed": false,
+    "activation_allowed": false,
+    "reports": {
+      "rebuild_terminal": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20260825T011148365754Z.json",
+        "sha256": "e025174102b19ab4484efe669a8b993d5095623beccbb740a32a2ce343fa687c",
+        "schema_version": "entry_model_native_seq513_dataset_rebuild_terminal_v1",
+        "decision": "COMPLETED_MODEL_NATIVE_SEQ513_DATASET_REBUILD"
+      },
+      "post_rebuild_readiness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/post_rebuild_readiness/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260825T040409607391Z.json",
+        "sha256": "cf2430e9ef685d1c8126173ac5d3b3cf9c745e479e4034d1142f1428c07f33ae",
+        "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v2",
+        "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW"
+      },
+      "full_input_liveness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T031933857454Z.json",
+        "sha256": "dcc8b6d85da98d41fd8537de7bbe274601bcc4685b9f3fc3fa95f21ecd151528",
+        "schema_version": "entry_full_input_liveness_contract_v9",
+        "decision": "PASS"
+      },
+      "feature_surface_liveness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260825T050000000000Z.json",
+        "sha256": "3adeddbef89819e80eec1b47d59e75b1d69930be54948a5194291ce22ebd258e",
+        "schema_version": "entry_feature_surface_liveness_v1",
+        "decision": "PASS"
+      },
+      "feature_audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/foundation_feature_audit/ENTRY_FEATURE_FOUNDATION_AUDIT_20260825T040607Z.json",
+        "sha256": "f0c0c096cb9421d189522c4fa46c2b1ed3c81ae010e7d0aa95358b7cdce658d3",
+        "schema_version": "entry_feature_foundation_audit_v1",
+        "decision": "PASS"
+      },
+      "target_audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/foundation_target_audit/ENTRY_TARGET_FOUNDATION_AUDIT_20260825T040713Z.json",
+        "sha256": "18db21f21bbbd929d7511d0d829d0efbaf091c1dcf5d89b903fa659c01abecf1",
+        "schema_version": "entry_target_foundation_audit_v4",
+        "decision": "PASS"
+      },
+      "specialist_audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/foundation_specialist_audit_routing/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260825T042226Z.json",
+        "sha256": "5005964105f8f668b2979e01be3f4cbf964e3cb8f1ee114977a8ce52768b385a",
+        "schema_version": "entry_specialist_feature_group_audit_v1",
+        "decision": "PASS"
+      },
+      "smoke_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/smoke_manifest/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_20260825T040835570961Z.json",
+        "sha256": "48fd4274fd3a479eea188d610e675abfa518a97f4bf363f11f46e7b8f86f7c65",
+        "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
+        "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
+      },
+      "smoke_readiness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/smoke_readiness/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260825T040906634190Z.json",
+        "sha256": "3a79956ea19724b8b7823d779d82e4288073510995b8e6126c073afc729fadd6",
+        "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
+        "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
+      },
+      "trainability_readiness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/trainability_readiness/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260825T040935511172Z.json",
+        "sha256": "2294ddc406f1eb67dfe75d030ac23d19df20456e05dc992a21ef847d63f0c71f",
+        "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
+        "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
+      },
+      "train_recipe": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/train_recipe_20260825T041100Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260825T040958158875Z.json",
+        "sha256": "cadbfdfdf69441693ad365dc65582aeed91ced84ae921493b69218a18fcbff0b",
+        "schema_version": "entry_model_native_seq513_train_recipe_audit_v7",
+        "decision": "PASS"
+      },
+      "adoption_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/adoption_candidate_recheck/ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE_20260825T043915926322Z.json",
+        "sha256": "f1a3a8c8d6b16fe6c0287aa32b64bf20a3e8e9743d123327e9a4804c52ac5098",
+        "schema_version": "entry_model_native_adoption_candidate_v1",
+        "decision": "BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW"
+      }
+    }
+  },
   "accepted_bundle_dir": null,
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
