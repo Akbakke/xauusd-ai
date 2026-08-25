@@ -133,6 +133,8 @@ def _audited_wrapper_text() -> str:
             "--profile",
             "--recipe-audit-json",
             "--pretrain-audit-json",
+            "--train-sequence-integrity-audit-json",
+            "--val-sequence-integrity-audit-json",
             "--full-input-liveness-audit-json",
             "--post-rebuild-readiness-json",
             "--prefreeze-test-seal-json",

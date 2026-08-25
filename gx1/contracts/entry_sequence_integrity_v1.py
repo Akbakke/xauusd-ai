@@ -2,9 +2,10 @@
 
 The emitted train/validation rows can legitimately skip decision timestamps when
 the causal M1 fill lifecycle is incomplete.  They therefore cannot always be
-reconstructed from their emitted ``snap`` rows alone.  This contract proves the
-stronger and correctly scoped property: each emitted sequence belongs to one
-physical event chain, without inventing calendar bars across market closures.
+reconstructed from their emitted ``snap`` rows alone.  The proof binds every
+emitted timestamp to the immutable M5 source frame, requires exact seq overlap
+when that source distance is below one sequence, and records source-indexed
+boundaries where overlap is mathematically impossible.
 """
 
 from __future__ import annotations
@@ -13,13 +14,17 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "entry_model_native_sequence_integrity_audit_v1"
+SCHEMA_VERSION = "entry_model_native_sequence_integrity_audit_v2"
 REQUIRED_CHECKS = {
     "all_values_finite_float32": True,
     "every_seq_last_equals_snap_bit_identical": True,
     "timestamps_strictly_increasing": True,
     "timestamps_are_whole_m5_intervals": True,
-    "every_emitted_pair_has_exact_physical_overlap": True,
+    "source_frame_hash_matches_manifest": True,
+    "source_timestamps_strictly_increasing": True,
+    "every_emitted_timestamp_maps_exactly_once_to_source": True,
+    "every_overlap_eligible_pair_has_exact_physical_overlap": True,
+    "source_nonoverlap_boundaries_are_at_least_sequence_length": True,
     "physical_event_steps_do_not_exceed_elapsed_m5_intervals": True,
 }
 AUTHORITY = {
@@ -40,6 +45,8 @@ TRANSITION_SUMMARY_KEYS = {
     "calendar_elapsed_bars_total",
     "physical_event_bars_total",
     "nontrading_calendar_bars_total",
+    "source_overlap_eligible_pairs",
+    "source_nonoverlap_boundary_pairs",
 }
 
 
@@ -65,6 +72,8 @@ def require_sequence_integrity_audit(
     expected_manifest_path: Path,
     expected_parquet_sha256: str,
     expected_manifest_sha256: str,
+    expected_source_parquet_path: Path,
+    expected_source_parquet_sha256: str,
     expected_rows: int,
     expected_seq_len: int,
     expected_signal_dim: int,
@@ -81,6 +90,9 @@ def require_sequence_integrity_audit(
         "parquet_sha256",
         "manifest_path",
         "manifest_sha256",
+        "source_parquet_path",
+        "source_parquet_sha256",
+        "source_rows",
         "rows",
         "sequence_shape",
         "snapshot_shape",
@@ -97,6 +109,13 @@ def require_sequence_integrity_audit(
     _require(report["manifest_path"] == str(expected_manifest_path), "manifest_path")
     _require(_sha256(report["parquet_sha256"], field="parquet") == expected_parquet_sha256, "parquet_binding")
     _require(_sha256(report["manifest_sha256"], field="manifest") == expected_manifest_sha256, "manifest_binding")
+    _require(report["source_parquet_path"] == str(expected_source_parquet_path), "source_parquet_path")
+    _require(
+        _sha256(report["source_parquet_sha256"], field="source_parquet")
+        == expected_source_parquet_sha256,
+        "source_parquet_binding",
+    )
+    _require(type(report["source_rows"]) is int and report["source_rows"] >= expected_seq_len, "source_rows")
     _require(type(report["rows"]) is int and report["rows"] == expected_rows, "rows")
     _require(
         report["sequence_shape"] == [expected_rows, expected_seq_len, expected_signal_dim],
@@ -123,6 +142,12 @@ def require_sequence_integrity_audit(
     _require(
         summary["physical_one_bar_pairs"] + summary["physical_multi_bar_pairs"] == pairs,
         "physical_pair_accounting",
+    )
+    _require(
+        summary["source_overlap_eligible_pairs"]
+        + summary["source_nonoverlap_boundary_pairs"]
+        == pairs,
+        "source_overlap_pair_accounting",
     )
     _require(
         summary["calendar_elapsed_bars_total"] >= summary["physical_event_bars_total"] >= pairs,

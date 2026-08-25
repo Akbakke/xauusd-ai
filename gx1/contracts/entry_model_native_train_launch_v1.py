@@ -1212,6 +1212,10 @@ def _validate_sequence_integrity_audits(
                 expected_manifest_sha256=sha256_file(
                     artifacts[f"{split}_manifest_json"]
                 ),
+                expected_source_parquet_path=artifacts["m5_prebuilt_path"],
+                expected_source_parquet_sha256=expected_large_hashes[
+                    "m5_prebuilt_path"
+                ],
                 expected_rows=expected_rows,
                 expected_seq_len=MODEL_NATIVE_SEQ_LEN,
                 expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,

@@ -313,6 +313,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     m5_dir.mkdir()
     m5_path = m5_dir / "xau_m5.parquet"
     m5_path.write_bytes(b"xau-m5-fixture")
+    m5_sha256 = artifact_binding(m5_path)["sha256"]
     artifacts["m5_prebuilt_path"] = m5_path.resolve()
 
     mtf_cache_dir = (tmp_path / f"MULTI_TF_V4_CACHE_{STAMP}").resolve()
@@ -762,6 +763,9 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "manifest_sha256": artifact_binding(
                     artifacts[f"{split}_manifest_json"]
                 )["sha256"],
+                "source_parquet_path": str(m5_path),
+                "source_parquet_sha256": m5_sha256,
+                "source_rows": 96,
                 "rows": 1,
                 "sequence_shape": [1, 96, MODEL_NATIVE_SIGNAL_DIM],
                 "snapshot_shape": [1, MODEL_NATIVE_SIGNAL_DIM],
@@ -775,6 +779,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     "calendar_elapsed_bars_total": 0,
                     "physical_event_bars_total": 0,
                     "nontrading_calendar_bars_total": 0,
+                    "source_overlap_eligible_pairs": 0,
+                    "source_nonoverlap_boundary_pairs": 0,
                 },
                 "sequence_event_chain_sha256": "6" * 64,
                 "authority": dict(SEQUENCE_INTEGRITY_AUTHORITY),

@@ -390,7 +390,7 @@ def test_launch_rejects_tampered_train_sequence_integrity_proof(
     )
     integrity_path = paths["train_sequence_integrity_audit_json"]
     integrity = json.loads(integrity_path.read_text(encoding="utf-8"))
-    integrity["checks"]["every_emitted_pair_has_exact_physical_overlap"] = False
+    integrity["checks"]["every_overlap_eligible_pair_has_exact_physical_overlap"] = False
     integrity_path.write_text(
         json.dumps(integrity, sort_keys=True) + "\n", encoding="utf-8"
     )
