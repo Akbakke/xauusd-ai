@@ -5,10 +5,17 @@ import pytest
 import torch
 
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_MTF_CONTEXT_COUNT,
@@ -20,6 +27,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    classify_entry_specialist_feature,
+    model_native_context_temporal_alias_policy,
     require_multi_tf_specialist_routing_v4,
 )
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
@@ -179,6 +188,147 @@ def test_model_accepts_exact_production_multi_tf_specialist_routing() -> None:
     )
 
     assert model.cfg.m5_seq_dim == len(MULTI_TF_PER_BAR_FEATURES_V4)
+
+
+def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch() -> None:
+    """Exercise the production field orders, not a round-robin test mapping.
+
+    The V42 signal manifest is contract-owned exactly by these tuples, while
+    MTF V4 owns the 176-field order below.  A future rename could leave the
+    generic eight-family smoke test green while making one physical family
+    empty or mis-indexed.  This checks the real partitions through a forward
+    and backward pass without training on market data.
+    """
+
+    torch.manual_seed(2408)
+    signal_fields = [
+        *MODEL_NATIVE_BASE_FIELDS,
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    ]
+    specialist_indices = {
+        specialist: [
+            index
+            for index, field in enumerate(signal_fields)
+            if classify_entry_specialist_feature(field) == specialist
+        ]
+        for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS
+    }
+    assert sum(len(values) for values in specialist_indices.values()) == len(
+        signal_fields
+    )
+    assert all(values for values in specialist_indices.values())
+    mtf_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
+    mtf_indices = {
+        name: list(indices)
+        for name, indices in require_multi_tf_specialist_routing_v4(
+            mtf_names
+        ).items()
+    }
+    assert sum(len(values) for values in mtf_indices.values()) == len(mtf_names)
+    assert all(values for values in mtf_indices.values())
+
+    context_routing = json.loads(
+        json.dumps(MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT)
+    )
+    context_routing["temporal_alias_policy"] = (
+        model_native_context_temporal_alias_policy(signal_fields)
+    )
+    tf_lengths = {name: 4 for name in ("M5", "M15", "H1", "H4", "D1")}
+    model = _build_unit_test_entry_v10_ctx_hybrid_transformer(
+        seq_input_dim=len(signal_fields),
+        snap_input_dim=len(signal_fields),
+        seq_len=4,
+        dropout=0.0,
+        multi_tf_num_layers=1,
+        multi_tf_scale=0.5,
+        specialist_num_layers=1,
+        specialist_fusion_scale=0.25,
+        cross_family_fusion_scale=0.25,
+        ctx_cont_dim=MODEL_NATIVE_CTX_CONT_DIM,
+        ctx_cat_dim=MODEL_NATIVE_CTX_CAT_DIM,
+        m5_seq_dim=len(mtf_names),
+        m15_seq_dim=len(mtf_names),
+        h1_seq_dim=len(mtf_names),
+        h4_seq_dim=len(mtf_names),
+        d1_seq_dim=len(mtf_names),
+        m5_seq_len=4,
+        m15_seq_len=4,
+        h1_seq_len=4,
+        h4_seq_len=4,
+        d1_seq_len=4,
+        specialist_input_indices=specialist_indices,
+        specialist_ctx_cont_indices=context_routing["ctx_cont_indices"],
+        specialist_ctx_cont_nominal_indices=context_routing[
+            "ctx_cont_nominal_indices"
+        ],
+        specialist_ctx_cat_indices=context_routing["ctx_cat_indices"],
+        multi_tf_specialist_input_indices=mtf_indices,
+        temporal_alias_signal_indices=context_routing[
+            "temporal_alias_policy"
+        ]["signal_indices"],
+        temporal_alias_ctx_cont_indices=context_routing[
+            "temporal_alias_policy"
+        ]["ctx_cont_indices"],
+        input_normalization=input_normalization_fixture(
+            signal_names=signal_fields,
+            mtf_names=mtf_names,
+            per_tf_seq_lens=tf_lengths,
+        ),
+    ).train()
+    batch_size = 3
+    ctx_cont = torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM)
+    for field, domain in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS.items():
+        ctx_cont[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)] = 0.0
+        assert 0 in domain
+    seq = torch.randn(batch_size, 4, len(signal_fields))
+    for alias in context_routing["temporal_alias_policy"]["aliases"]:
+        seq[:, :, int(alias["signal_index"])] = ctx_cont[
+            :, int(alias["ctx_cont_index"])
+        ].view(batch_size, 1)
+    snap = seq[:, -1, :].clone()
+    mtf = {
+        f"seq_{timeframe.lower()}": torch.randn(
+            batch_size, 4, len(mtf_names)
+        )
+        for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    mtf_ema_stack_index = mtf_names.index("ema_stack_aligned_v2")
+    for values in mtf.values():
+        values[:, :, mtf_ema_stack_index] = 0.0
+    ctx_cat = torch.zeros(
+        batch_size, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long
+    )
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
+    target = torch.tensor(
+        [[2.0, -1.0, 0.0], [-1.0, 2.0, 0.0], [1.0, 0.0, 0.0]],
+        dtype=torch.float32,
+    )
+    for _ in range(2):
+        optimizer.zero_grad(set_to_none=True)
+        torch.nn.functional.mse_loss(
+            model(seq, snap, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)[
+                "entry_action_q_bps"
+            ],
+            target,
+        ).backward()
+        optimizer.step()
+
+    optimizer.zero_grad(set_to_none=True)
+    torch.nn.functional.mse_loss(
+        model(seq, snap, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)[
+            "entry_action_q_bps"
+        ],
+        target,
+    ).backward()
+    for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS:
+        for parameter in (
+            model.specialist_proj[specialist].weight,
+            model.mtf_family_proj[specialist].weight,
+        ):
+            assert parameter.grad is not None, specialist
+            assert torch.isfinite(parameter.grad).all(), specialist
+            assert parameter.grad.abs().sum().item() > 0.0, specialist
 
 
 def _context_routing(
