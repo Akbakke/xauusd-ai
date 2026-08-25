@@ -12,7 +12,12 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     calibrated_sizing_transform,
     recompute_sizing_oos_evidence,
 )
+from gx1.contracts.entry_model_native_sizing_authority_v1 import (
+    ModelNativeSizingUnavailable,
+    prepare_model_native_sizing_authority,
+)
 from tests.model_native_sizing_support import (
+    unverified_learned_sizing_authority,
     write_passing_sizing_calibration_and_proof,
 )
 
@@ -64,6 +69,19 @@ def test_flat_is_exact_zero_without_changing_direction(tmp_path: Path) -> None:
     assert application["units"] == 0
     assert application["authorized_order"] is False
     assert application["no_order_reason"] == "MODEL_DIRECTION_FLAT"
+
+
+def test_current_fitted_q_economics_blocks_sizing_authority_before_artifact_load() -> None:
+    """No structurally plausible legacy adoption can bypass the global red gate."""
+
+    with pytest.raises(
+        ModelNativeSizingUnavailable,
+        match="Entry fitted-Q production economics are not ready",
+    ):
+        prepare_model_native_sizing_authority(
+            unverified_learned_sizing_authority(),
+            context="unit current economics gate",
+        )
 
 
 @pytest.mark.parametrize(

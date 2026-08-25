@@ -10,7 +10,9 @@ No JSON in this chain is intended for hand editing.  The public stages are:
 
 Broker, instrument capture, serve parity, live source authority, promotion,
 adoption, runtime parity, and caller-supplied compatibility rows are forbidden.
-Any missing or red canonical producer evidence fails closed.
+The retired fixed-1bp joint-Exit proof is also forbidden: it never established
+broker costs, financing, or shared-portfolio economics. Any missing or red
+canonical producer evidence fails closed.
 """
 
 from __future__ import annotations
@@ -959,13 +961,12 @@ def _finalize_joint_exit_sizing_proof(
     authority_root: Path,
     canonical_producer_evidence: dict[str, Any],
 ) -> tuple[Path, dict[str, Any]]:
-    """Publish row-recomputed sizing evidence from the exact candidate bundle.
+    """Retired: the historical finalizer used an unbound fixed cost proxy."""
 
-    This stage does not accept a caller-supplied PASS or summary.  Every metric
-    is recomputed from immutable full-TEST replay and per-M1 Exit trace
-    parquets. The OOS proof's immutable candidate bundle binds both Entry and
-    the unified HOLD/EXIT_NOW head before any activation is possible.
-    """
+    raise SizingFinalizationError(
+        "joint Exit sizing proof retired: immutable broker cost, financing, "
+        "and shared-portfolio replay are unbound"
+    )
 
     if not isinstance(canonical_producer_evidence, dict):
         raise SizingFinalizationError(
@@ -1114,14 +1115,12 @@ def produce_canonical_unified_joint_sizing_proof(
     authority_root: Path,
     device: str = "cpu",
 ) -> tuple[Path, dict[str, Any]]:
-    """Produce exact full-TEST Entry/Exit replay from one candidate bundle.
+    """Refuse the retired fixed-proxy finalization path before any replay work."""
 
-    Direction is replayed from the persisted model head envelope. Every
-    non-FLAT row then advances the offline path state one complete M1 bar at
-    a time and advances the same bundle's persisted recurrent Exit owner until the
-    model itself emits EXIT_NOW. Missing source tail, byte drift,
-    direction mismatch, or a noncanonical lineage artifact fail closed.
-    """
+    raise SizingFinalizationError(
+        "joint Exit sizing proof retired: immutable broker cost, financing, "
+        "and shared-portfolio replay are unbound"
+    )
 
     from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
         decode_model_native_runtime_head_evidence,
@@ -1856,15 +1855,6 @@ def _parser() -> argparse.ArgumentParser:
     proof.add_argument("--calibration", type=Path, required=True)
     proof.add_argument("--oos-source", type=Path, required=True)
     proof.add_argument("--authority-root", type=Path, required=True)
-    unified = sub.add_parser("produce-unified-joint-exit-proof")
-    unified.add_argument("--calibration", type=Path, required=True)
-    unified.add_argument("--proof", type=Path, required=True)
-    unified.add_argument("--source-tape", type=Path, required=True)
-    unified.add_argument("--prebuilt-pair-manifest", type=Path, required=True)
-    unified.add_argument("--prebuilt-generation-root", type=Path, required=True)
-    unified.add_argument("--multi-tf-cache-dir", type=Path, required=True)
-    unified.add_argument("--authority-root", type=Path, required=True)
-    unified.add_argument("--device", default="cpu")
     return parser
 
 
@@ -1903,18 +1893,6 @@ def main() -> int:
             calibration_path=args.calibration,
             oos_source_path=args.oos_source,
             authority_root=args.authority_root,
-        )
-        result = _binding(path)
-    elif args.command == "produce-unified-joint-exit-proof":
-        path, _ = produce_canonical_unified_joint_sizing_proof(
-            calibration_path=args.calibration,
-            proof_path=args.proof,
-            source_tape_path=args.source_tape,
-            prebuilt_pair_manifest_path=args.prebuilt_pair_manifest,
-            prebuilt_generation_root=args.prebuilt_generation_root,
-            multi_tf_cache_dir=args.multi_tf_cache_dir,
-            authority_root=args.authority_root,
-            device=args.device,
         )
         result = _binding(path)
     else:

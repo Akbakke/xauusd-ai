@@ -30,6 +30,13 @@ constraints remain unbound. Therefore no edge claim, candidate, calibration,
 TEST evaluation, paper/demo/live action or activation is authorized. The V42
 recipe's `execution_allowed=true` means only that its immutable research recipe
 is internally coherent; it does not grant operator authorization to run it.
+The older sizing-chain joint replay that subtracted a fixed 1 bp
+commission/slippage proxy was retired on 2026-08-25: bid/ask quote delta remains
+available only as a labelled research diagnostic, cannot return an economics
+`PASS`, and cannot produce or load an adoption proof. The sizing authority now
+also fails before artifact loading while the fitted-Q production-economics gate
+is red. A successor needs immutable broker cost and financing facts plus a
+shared-portfolio replay; no replacement cost number may be invented.
 
 **Historical V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
 (283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and

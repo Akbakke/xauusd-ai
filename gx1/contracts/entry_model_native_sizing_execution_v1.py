@@ -40,13 +40,13 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v12"
+    "entry_model_native_joint_exit_sizing_proof_v13_retired"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_unified_model_exit_q_to_exit_now_v12"
+    "retired_fixed_proxy_cannot_authorize_production_economics_v13"
 )
 CANONICAL_UNIFIED_REPLAY_PRODUCER_SCHEMA_VERSION = (
     "canonical_unified_candidate_full_test_replay_producer_v5"
@@ -55,7 +55,7 @@ CANONICAL_UNIFIED_REPLAY_PRODUCER_CONTRACT = (
     "same_candidate_bundle_unified_exit_full_test_owned_rows_v5"
 )
 MODEL_NATIVE_UNIFIED_REPLAY_COST_POLICY_SCHEMA_VERSION = (
-    "gx1_unified_replay_net_cost_policy_v1"
+    "gx1_unified_replay_research_quote_delta_policy_v2"
 )
 UNIFIED_CANDIDATE_BUNDLE_AUTHORITY_SCHEMA_VERSION = (
     "gx1_unified_candidate_bundle_authority_v1"
@@ -962,15 +962,28 @@ def recompute_joint_exit_replay_coverage(
 
 
 def unified_replay_net_cost_policy_metadata() -> dict[str, Any]:
-    """Immutable executable-price cost policy for the final TEST replay."""
+    """Declare why the old fixed-cost replay can only be a diagnostic.
+
+    Bid/ask candles establish the quoted executable price delta, but they do
+    not establish broker commission, realised slippage, financing/swap or a
+    shared-capital replay.  The prior 1 bp subtraction was a research proxy,
+    not an immutable economic fact, and must never admit a candidate.
+
+    The historical function name is retained so old callers receive the
+    fail-closed declaration rather than silently reconstructing that proxy.
+    """
 
     return {
         "schema_version": MODEL_NATIVE_UNIFIED_REPLAY_COST_POLICY_SCHEMA_VERSION,
+        "scope": "research_only_executable_bid_ask_quote_delta",
         "spread_cost": "embedded_in_entry_and_exit_bid_ask_prices",
-        "additional_round_trip_cost_bps": 1.0,
-        "commission_and_slippage_proxy": "deducted_per_authorized_trade",
-        "financing_claimed": False,
-        "admission": "finite_total_net_pnl_usd_and_mean_net_pnl_bps_both_gt_zero",
+        "additional_round_trip_cost_bps": None,
+        "commission_slippage_financing": "unbound_no_proxy_permitted",
+        "shared_portfolio_replay": "unbound",
+        "production_economics_bound": False,
+        "candidate_admission_allowed": False,
+        "edge_claim_allowed": False,
+        "admission": "BLOCKED_PRODUCTION_ECONOMICS_UNBOUND",
     }
 
 
@@ -979,7 +992,12 @@ def recompute_unified_replay_net_pnl(
     *,
     context: str,
 ) -> dict[str, Any]:
-    """Recompute final net PnL from executable prices after declared costs."""
+    """Recompute a research-only executable quote-delta diagnostic.
+
+    This function deliberately returns ``BLOCKED`` for every input.  It keeps
+    the old public spelling only to prevent an old caller from treating a
+    positive quote delta as net PnL or production evidence.
+    """
 
     if set(frame.columns) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS):
         _fail(context, "joint replay row columns mismatch")
@@ -990,12 +1008,12 @@ def recompute_unified_replay_net_pnl(
     authorized = np.asarray(authorized_values, dtype=bool)
     trade_mask = np.isin(directions, [0, 1]) & authorized
     if int(np.count_nonzero(trade_mask)) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES:
-        _fail(context, "insufficient authorized trades for net PnL admission")
+        _fail(context, "insufficient authorized trades for quote-delta diagnostic")
     if min(
         int(np.count_nonzero(trade_mask & (directions == 0))),
         int(np.count_nonzero(trade_mask & (directions == 1))),
     ) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE:
-        _fail(context, "insufficient authorized LONG/SHORT net PnL support")
+        _fail(context, "insufficient authorized LONG/SHORT quote-delta support")
     numeric: dict[str, np.ndarray] = {}
     for name in (
         "entry_bid",
@@ -1027,31 +1045,24 @@ def recompute_unified_replay_net_pnl(
         numeric["model_exit_fill_bid"] - numeric["entry_ask"],
         numeric["entry_bid"] - numeric["model_exit_fill_ask"],
     )
-    extra_cost_bps = float(
-        unified_replay_net_cost_policy_metadata()["additional_round_trip_cost_bps"]
-    )
-    cost_per_unit = reference_price * extra_cost_bps / 10_000.0
-    net_per_unit = executable_delta - cost_per_unit
-    net_bps = net_per_unit / reference_price * 10_000.0
-    net_usd = net_per_unit * numeric["units"]
-    selected_bps = net_bps[required]
-    selected_usd = net_usd[required]
+    quote_delta_bps = executable_delta / reference_price * 10_000.0
+    quote_delta_usd = executable_delta * numeric["units"]
+    selected_bps = quote_delta_bps[required]
+    selected_usd = quote_delta_usd[required]
     if not np.isfinite(selected_bps).all() or not np.isfinite(selected_usd).all():
-        _fail(context, "final net PnL is non-finite")
-    total_net_usd = float(np.sum(selected_usd))
-    mean_net_bps = float(np.mean(selected_bps))
-    admitted = total_net_usd > 0.0 and mean_net_bps > 0.0
+        _fail(context, "executable quote-delta diagnostic is non-finite")
     return {
-        "decision": "PASS" if admitted else "FAIL",
-        "failures": [] if admitted else ["net_pnl_not_strictly_positive"],
+        "decision": "BLOCKED",
+        "failures": ["production_economics_and_shared_portfolio_replay_unbound"],
         "authorized_trade_rows": int(np.count_nonzero(required)),
-        "total_net_pnl_usd": total_net_usd,
-        "mean_net_pnl_bps": mean_net_bps,
-        "total_declared_additional_cost_usd": float(
-            np.sum(cost_per_unit[required] * numeric["units"][required])
+        "total_executable_quote_delta_usd": float(np.sum(selected_usd)),
+        "mean_executable_quote_delta_bps": float(np.mean(selected_bps)),
+        "long_mean_executable_quote_delta_bps": float(
+            np.mean(quote_delta_bps[required & (directions == 0)])
         ),
-        "long_mean_net_pnl_bps": float(np.mean(net_bps[required & (directions == 0)])),
-        "short_mean_net_pnl_bps": float(np.mean(net_bps[required & (directions == 1)])),
+        "short_mean_executable_quote_delta_bps": float(
+            np.mean(quote_delta_bps[required & (directions == 1)])
+        ),
     }
 
 
@@ -1484,7 +1495,18 @@ def load_bound_joint_exit_sizing_proof(
     context: str,
     verify_source_files: bool,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Load and independently recompute one newest immutable joint proof."""
+    """Reject retired joint proofs that depended on an invented 1 bp cost.
+
+    A successor needs immutable broker cost/financing inputs and a shared
+    portfolio replay.  Until that distinct contract exists, neither new nor
+    historical fixed-proxy artifacts are admissible.
+    """
+
+    _fail(
+        context,
+        "joint Exit sizing proof retired: immutable broker cost, financing, "
+        "and shared-portfolio replay are unbound",
+    )
 
     try:
         canonical_binding = require_immutable_json_binding(

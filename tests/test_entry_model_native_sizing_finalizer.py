@@ -228,7 +228,7 @@ def test_failed_proof_refresh_publishes_newer_terminal_fail(tmp_path: Path) -> N
     assert terminal["failures"]
 
 
-def test_offline_cli_has_only_the_five_retained_routes() -> None:
+def test_offline_cli_has_only_the_four_nonproduction_research_routes() -> None:
     parser = sizing_finalizer._parser()
     subcommands = next(
         action for action in parser._actions if hasattr(action, "choices") and action.choices
@@ -238,7 +238,6 @@ def test_offline_cli_has_only_the_five_retained_routes() -> None:
         "bind-bundle",
         "materialize-test-oos",
         "finalize-test-proof",
-        "produce-unified-joint-exit-proof",
     }
     for retired in (
         "capture_oanda_instrument_evidence",

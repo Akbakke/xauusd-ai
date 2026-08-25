@@ -446,8 +446,10 @@ def test_control_surface_exposes_only_exact_model_native_routes() -> None:
     assert "  exit-transformer-" not in source
     assert (
         "Entry/Exit launch, promotion, shadow\n"
-        "and live operation are outside this checkout. Unified Exit evidence is admitted\n"
-        "only through the same-candidate, full-TEST producer route above."
+        "and live operation are outside this checkout. The retired fixed-proxy\n"
+        "joint-Exit route is not exposed. A future production economic contract needs\n"
+        "immutable broker costs, financing and shared-portfolio replay before it can\n"
+        "become an authority."
     ) in result.stdout
 
 
@@ -1106,17 +1108,10 @@ def test_removed_or_mutating_routes_fail_closed() -> None:
 @pytest.mark.parametrize(
     ("route", "required_flag"),
     [
-        ("model-native-sizing-capture-instrument", "--authority-root"),
         ("model-native-sizing-fit-calibration", "--predictions"),
         ("model-native-sizing-bind-bundle", "--source-bundle-dir"),
         ("model-native-sizing-materialize-test-oos", "--calibration"),
         ("model-native-sizing-finalize-test-proof", "--calibration"),
-        (
-            "model-native-sizing-produce-unified-joint-proof",
-            "--calibration",
-        ),
-        ("model-native-sizing-adopt", "--bundle-dir"),
-        ("model-native-sizing-runtime-parity", "--adoption"),
         ("model-native-serve-parity", "--dataset-dir"),
         ("model-native-direction-pocket-audit", "--dataset-dir"),
     ],
@@ -1135,3 +1130,25 @@ def test_downstream_evidence_routes_are_exposed_but_fail_without_exact_inputs(
     )
     assert result.returncode == 2
     assert f"requires exactly one explicit {required_flag}" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "route",
+    [
+        "model-native-sizing-capture-instrument",
+        "model-native-sizing-produce-unified-joint-proof",
+        "model-native-sizing-adopt",
+        "model-native-sizing-runtime-parity",
+    ],
+)
+def test_retired_sizing_authority_routes_are_not_exposed(route: str) -> None:
+    result = subprocess.run(
+        ["bash", str(CONTROL), route],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert f"unknown command: {route}" in result.stderr

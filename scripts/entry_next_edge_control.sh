@@ -71,14 +71,10 @@ Model-native seq513 evidence:
   model-native-candidate-readiness
   model-native-selective-edge
   model-native-seed-stability
-  model-native-sizing-capture-instrument
   model-native-sizing-fit-calibration
   model-native-sizing-bind-bundle
   model-native-sizing-materialize-test-oos
   model-native-sizing-finalize-test-proof
-  model-native-sizing-produce-unified-joint-proof
-  model-native-sizing-adopt
-  model-native-sizing-runtime-parity
   model-native-serve-parity
   model-native-direction-pocket-audit
 
@@ -93,8 +89,10 @@ Immutable run-lineage execution (evidence gates remain authoritative):
 Every evidence input and output directory must be explicit. Mutable mirrors,
 soft failure flags, feature-mask ablations, alternate contract modes, and
 secondary direction paths are rejected. Entry/Exit launch, promotion, shadow
-and live operation are outside this checkout. Unified Exit evidence is admitted
-only through the same-candidate, full-TEST producer route above.
+and live operation are outside this checkout. The retired fixed-proxy
+joint-Exit route is not exposed. A future production economic contract needs
+immutable broker costs, financing and shared-portfolio replay before it can
+become an authority.
 EOF
 }
 
@@ -837,22 +835,14 @@ case "$cmd" in
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_candidate_seed_stability_v1 "$@"
     ;;
 
-  model-native-sizing-capture-instrument)
-    reject_non_authoritative_args "$@"
-    require_flag "$cmd" --authority-root "$@"
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
-      capture-instrument "$@"
-    ;;
-
   model-native-sizing-fit-calibration)
     reject_non_authoritative_args "$@"
     for flag in \
       --predictions \
+      --predictions-sha256 \
       --prediction-report \
       --bundle-dir \
       --dataset-dir \
-      --dataset-manifest \
-      --instrument-evidence \
       --authority-root; do
       require_flag "$cmd" "$flag" "$@"
     done
@@ -874,11 +864,11 @@ case "$cmd" in
     for flag in \
       --calibration \
       --test-predictions \
+      --test-predictions-sha256 \
       --test-prediction-report \
       --bundle-dir \
       --dataset-dir \
       --source-tape \
-      --model-head-serve-parity \
       --authority-root; do
       require_flag "$cmd" "$flag" "$@"
     done
@@ -893,52 +883,6 @@ case "$cmd" in
     done
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       finalize-test-proof "$@"
-    ;;
-
-  model-native-sizing-produce-unified-joint-proof)
-    reject_non_authoritative_args "$@"
-    reject_flags "$cmd" \
-      --artifact-registry \
-      --replay-rows \
-      --exit-trace-rows
-    for flag in \
-      --calibration \
-      --proof \
-      --source-tape \
-      --prebuilt-pair-manifest \
-      --prebuilt-generation-root \
-      --multi-tf-cache-dir \
-      --authority-root \
-      --device; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "${PRODUCER_CAP[@]}" \
-      "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
-      produce-unified-joint-exit-proof "$@"
-    ;;
-
-  model-native-sizing-adopt)
-    reject_non_authoritative_args "$@"
-    for flag in \
-      --bundle-dir \
-      --calibration \
-      --proof \
-      --joint-exit-proof \
-      --authority-root \
-      --run-id; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
-      adopt "$@"
-    ;;
-
-  model-native-sizing-runtime-parity)
-    reject_non_authoritative_args "$@"
-    for flag in --adoption --observations --authority-root; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
-      finalize-runtime-parity "$@"
     ;;
 
   model-native-serve-parity)

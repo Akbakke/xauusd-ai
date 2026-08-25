@@ -114,7 +114,7 @@ def test_bound_parquet_rejects_same_hash_path_identity_swap(
         read_bound_parquet_exact(binding, context="UNIT_SAME_HASH_PATH_SWAP")
 
 
-def test_unified_replay_recomputes_hard_direction_and_positive_net_edge(
+def test_unified_replay_positive_quote_delta_remains_production_blocked(
     tmp_path: Path,
 ) -> None:
     evidence = write_passing_unified_replay_fixture(tmp_path)
@@ -161,16 +161,20 @@ def test_unified_replay_recomputes_hard_direction_and_positive_net_edge(
     assert sizing["direction_edge_admission"]["decision"] == "PASS"
     assert sizing["direction_edge_admission"]["trade_direction_precision"] == 1.0
 
-    assert unified_replay_net_cost_policy_metadata()[
-        "additional_round_trip_cost_bps"
-    ] == 1.0
+    policy = unified_replay_net_cost_policy_metadata()
+    assert policy["additional_round_trip_cost_bps"] is None
+    assert policy["production_economics_bound"] is False
+    assert policy["candidate_admission_allowed"] is False
     net = recompute_unified_replay_net_pnl(rows, context="UNIT_FULL_TEST_NET_PNL")
-    assert net["decision"] == "PASS"
-    assert net["total_net_pnl_usd"] > 0.0
-    assert net["mean_net_pnl_bps"] > 0.0
+    assert net["decision"] == "BLOCKED"
+    assert net["failures"] == [
+        "production_economics_and_shared_portfolio_replay_unbound"
+    ]
+    assert net["total_executable_quote_delta_usd"] > 0.0
+    assert net["mean_executable_quote_delta_bps"] > 0.0
 
 
-def test_direction_and_net_pnl_cannot_soft_pass_when_metrics_are_computable(
+def test_direction_and_quote_delta_diagnostic_cannot_soft_pass(
     tmp_path: Path,
 ) -> None:
     evidence = write_passing_unified_replay_fixture(tmp_path)
@@ -207,8 +211,11 @@ def test_direction_and_net_pnl_cannot_soft_pass_when_metrics_are_computable(
         losing.loc[short_mask, "entry_bid"].astype(float) + 1.0
     )
     net = recompute_unified_replay_net_pnl(losing, context="UNIT_NET_EDGE_MUST_FAIL")
-    assert net["decision"] == "FAIL"
-    assert net["failures"] == ["net_pnl_not_strictly_positive"]
+    assert net["decision"] == "BLOCKED"
+    assert net["failures"] == [
+        "production_economics_and_shared_portfolio_replay_unbound"
+    ]
+    assert net["total_executable_quote_delta_usd"] < 0.0
 
 
 def test_unified_exit_trace_and_status_mutations_fail_closed(tmp_path: Path) -> None:
@@ -249,7 +256,7 @@ def test_unified_exit_trace_and_status_mutations_fail_closed(tmp_path: Path) -> 
 def test_canonical_replay_producer_fails_closed_on_missing_chain(
     tmp_path: Path,
 ) -> None:
-    with pytest.raises(SizingFinalizationError, match="source file missing"):
+    with pytest.raises(SizingFinalizationError, match="joint Exit sizing proof retired"):
         produce_canonical_unified_joint_sizing_proof(
             calibration_path=tmp_path / "calibration.json",
             proof_path=tmp_path / "proof.json",

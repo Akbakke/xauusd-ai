@@ -1,10 +1,10 @@
 """Fail-closed learned execution sizing authority for model-native Entry.
 
-The final model bundle binds only the TRAIN/VAL-fitted calibration.  A separate
-immutable adoption event is admissible only after the sizing-head diagnostic
-and a full-TEST joint replay of the same bundle's Entry and Exit heads are both
-proven. Paper/live launch additionally requires a fresh post-adoption
-broker-runtime sizing parity event.
+The final model bundle binds only the TRAIN/VAL-fitted calibration. Historical
+joint replay/adoption artifacts are not a production path: their fixed 1 bp
+cost proxy did not bind commission, slippage, financing, or shared-portfolio
+economics. The authority therefore also requires the Entry fitted-Q production
+economics gate, which is currently red.
 
 Only ``learned_calibrated`` is executable.  ``historical_fixed_1x`` exists only
 as an explicitly named negative-control description and has no application
@@ -43,6 +43,10 @@ from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
     load_bound_joint_exit_sizing_proof,
     require_candidate_bundle_authority,
+)
+from gx1.contracts.entry_fitted_q_v1 import (
+    entry_fitted_q_production_economics_readiness,
+    require_entry_fitted_q_production_economics_readiness,
 )
 from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
 
@@ -778,6 +782,21 @@ def _validate_learned_sizing_authority_snapshot(
     context: str,
 ) -> ValidatedLearnedSizingAuthority:
     """Do the one expensive full-chain hash/load/recompute validation."""
+
+    # Do this before reading an adoption artifact. A structurally valid old
+    # artifact cannot turn today's gross fitted-Q research target into a
+    # production authorization.
+    try:
+        require_entry_fitted_q_production_economics_readiness(
+            entry_fitted_q_production_economics_readiness(),
+            context=f"{context}.entry_fitted_q_production_economics",
+            require_ready=True,
+        )
+    except RuntimeError as exc:
+        raise ModelNativeSizingUnavailable(
+            "Entry fitted-Q production economics are not ready; "
+            "learned sizing authority is unavailable"
+        ) from exc
 
     authority = require_model_native_sizing_authority_contract(
         contract,
