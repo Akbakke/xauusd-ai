@@ -643,9 +643,14 @@ these **before** launching, not after:
    Fit the squeeze against the *generation-local* `PAIR_MANIFEST.json`, never a
    copy you placed elsewhere, even when the bytes are identical.
 3. **Pair manifest** passed to the chain must be the generation-local one.
-4. **Worktree must be clean.** The chain binds HEAD; commit first.
-5. **Event root must be empty.** A part-built root is never resumed (rule 7).
-6. **The pair's `canonical_v3` must carry the current field names.** A base-block
+4. **Direct dependencies must exactly match `requirements.txt` and import.** The
+   chain checks its CPython 3.10 environment before pair/data work and fails
+   before a producer starts on a missing, mismatched or unimportable package.
+   Check manually with
+   `python -m gx1.scripts.verify_rebuild_dependency_readiness_v1 --repo /home/andre2/src/GX1_ENGINE`.
+5. **Worktree must be clean.** The chain binds HEAD; commit first.
+6. **Event root must be empty.** A part-built root is never resumed (rule 7).
+7. **The pair's `canonical_v3` must carry the current field names.** A base-block
    rename invalidates the pair. Check with `pyarrow` before spending two hours.
 
 The runnable pre-flight is: replicate the gate's own comparison, field for field,

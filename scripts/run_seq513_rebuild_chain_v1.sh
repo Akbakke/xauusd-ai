@@ -504,6 +504,18 @@ if [[ -n $WORKTREE_STATUS ]]; then
 fi
 write_status "$CURRENT_STEP" RUNNING
 
+# A producer can consume hours and substantial RAM.  Verify the exact direct
+# Python environment from the pinned requirements owner before it hashes a
+# source or starts a feature/ranking process.  This does not inspect data,
+# create an output, import a CUDA context, or loosen the clean-revision gate.
+CURRENT_STEP=dependency-readiness
+write_status "$CURRENT_STEP" RUNNING
+if ! "$PY" -m gx1.scripts.verify_rebuild_dependency_readiness_v1 \
+  --repo "$ENG" >>"$LOG" 2>&1; then
+  fail "rebuild dependency readiness failed"
+fi
+write_status "$CURRENT_STEP" RUNNING
+
 require_source_identity() {
   local observed_head observed_status
   if ! observed_head=$(git -C "$ENG" rev-parse --verify HEAD 2>>"$LOG"); then
