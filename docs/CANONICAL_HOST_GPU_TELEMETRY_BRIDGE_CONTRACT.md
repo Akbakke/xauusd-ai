@@ -1,10 +1,12 @@
 # Canonical host GPU telemetry bridge contract
 
-Status: the signed bridge remains a design-only prerequisite. The companion
-`scripts/windows/Install-GX1-HostTelemetry.ps1` is admitted solely as an
-elevated host sensor-installation and validation tool; it does not implement
-the bridge, relax a guard, change a model/feature/target/dataset or grant any
-execution authority.
+Status: the signed bridge remains a non-admitted prerequisite. The repository
+now contains a fail-closed Linux query client and a Windows service installer,
+but neither has been installed, source-bound to the generated public
+certificate, or connected to the trainer guard. The companion
+`scripts/windows/Install-GX1-HostTelemetry.ps1` remains solely an elevated
+host sensor-installation and validation tool; none of these artifacts relax a
+guard, change a model/feature/target/dataset or grant execution authority.
 
 ## Why this exists
 
@@ -36,6 +38,30 @@ unsigned and nonces are not involved, so it cannot be read by the canonical
 guard or be used as a file-based substitute for the future bridge. A successful
 probe reduces the unknown hardware risk; it does not meet any of the bridge
 admission criteria below.
+
+## Staged bridge implementation (still inactive)
+
+`scripts/gx1_host_telemetry_bridge_query.sh` generates a new 256-bit nonce for
+each query, requires the exact request/response schemas, pins the expected GPU
+UUID and public-certificate SHA-256, validates every numeric field, and uses
+OpenSSL to verify the RSA-SHA256 response signature. Its deterministic tests
+cover a valid response, wrong/replayed nonce, wrong UUID, excess field, bad
+signature, bad certificate binding and timeout.
+
+`scripts/windows/Install-GX1-HostTelemetryBridge.ps1` is the only proposed
+host installer. It creates a non-exportable LocalMachine RSA certificate,
+exports only its public certificate, locks its service tree to SYSTEM and
+Administrators (Users receive read/execute only), and registers a SYSTEM task
+which listens only at the fixed loopback endpoint. It returns live core/power/
+VRAM-residency from Windows `nvidia-smi` and live `GPU Memory Junction` from
+the already verified LibreHardwareMonitor library before signing all fields.
+It never changes the GPU power limit.
+
+The installer must be run and its reported public-certificate SHA-256 must be
+committed as the source-bound client value. A signed Linux-to-host bridge probe
+must then pass before the guard is modified to consume it. Until those facts
+are observed, these scripts are inert implementation material rather than
+canonical safety evidence.
 
 ## Observed bootstrap evidence (2026-08-26; non-promotable)
 
