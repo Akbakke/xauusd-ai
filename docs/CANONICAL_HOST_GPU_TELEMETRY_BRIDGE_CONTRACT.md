@@ -1,7 +1,10 @@
 # Canonical host GPU telemetry bridge contract
 
-Status: design-only prerequisite; no bridge implementation is admitted by this
-document. It changes no model, feature, target, dataset or execution authority.
+Status: the signed bridge remains a design-only prerequisite. The companion
+`scripts/windows/Install-GX1-HostTelemetry.ps1` is admitted solely as an
+elevated host sensor-installation and validation tool; it does not implement
+the bridge, relax a guard, change a model/feature/target/dataset or grant any
+execution authority.
 
 ## Why this exists
 
@@ -18,6 +21,20 @@ The attended-only diagnostic exception is deliberately not reusable here. It
 is bounded, non-promotable research evidence only. A host bridge is a way to
 make the existing canonical policy observable; it must never weaken that
 policy.
+
+## Sensor bootstrap (not a canonical shortcut)
+
+The host bootstrap installs the pinned `LibreHardwareMonitor.LibreHardwareMonitor`
+Winget package and queries its `GPU Memory Junction` sensor from an elevated
+native Windows process. It also records the native `nvidia-smi` name, UUID and
+physical power limit. This is a zero-load installation/probe step to determine
+whether the exact RTX 3090 has a numeric VRAM-temperature source.
+
+Its console JSON is validation evidence only. The output is deliberately
+unsigned and nonces are not involved, so it cannot be read by the canonical
+guard or be used as a file-based substitute for the future bridge. A successful
+probe reduces the unknown hardware risk; it does not meet any of the bridge
+admission criteria below.
 
 ## Non-negotiable prerequisites
 
