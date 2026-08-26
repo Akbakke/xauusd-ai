@@ -1,9 +1,11 @@
 # Canonical host GPU telemetry bridge contract
 
 Status: the signed bridge remains a non-admitted prerequisite. The repository
-now contains a fail-closed Linux query client and a Windows service installer,
-but neither has been installed, source-bound to the generated public
-certificate, or connected to the trainer guard. The companion
+now contains a fail-closed Linux query client wired into the canonical trainer
+guard and a Windows service installer, but the service has not been installed
+and the generated public certificate is deliberately source-unbound. The guard
+therefore rejects canonical CUDA before it can create a cgroup, load data or
+allocate a model. The companion
 `scripts/windows/Install-GX1-HostTelemetry.ps1` remains solely an elevated
 host sensor-installation and validation tool; none of these artifacts relax a
 guard, change a model/feature/target/dataset or grant execution authority.
@@ -59,9 +61,9 @@ It never changes the GPU power limit.
 
 The installer must be run and its reported public-certificate SHA-256 must be
 committed as the source-bound client value. A signed Linux-to-host bridge probe
-must then pass before the guard is modified to consume it. Until those facts
-are observed, these scripts are inert implementation material rather than
-canonical safety evidence.
+must then pass. Until those facts are observed, the guard's `unbound` sentinel
+keeps the bridge path closed and these scripts are implementation material
+rather than canonical safety evidence.
 
 ## Observed bootstrap evidence (2026-08-26; non-promotable)
 

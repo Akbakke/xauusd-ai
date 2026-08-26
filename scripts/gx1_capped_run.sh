@@ -38,6 +38,16 @@ RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
+HOST_TELEMETRY_QUERY_PATH="$REPO_ROOT/scripts/gx1_host_telemetry_bridge_query.sh"
+# The host installer generates a non-exportable machine certificate.  Its
+# public certificate SHA-256 is deliberately unbound until the observed host
+# installation output is reviewed and committed.  Canonical CUDA cannot start
+# while this sentinel remains, even if ordinary WSL nvidia-smi looks healthy.
+CANONICAL_HOST_TELEMETRY_URL='http://127.0.0.1:38127/gx1/v1/telemetry/'
+CANONICAL_HOST_TELEMETRY_CERT_PATH='/mnt/c/ProgramData/GX1/HostTelemetryBridge/GX1HostTelemetryBridgePublic.pem'
+CANONICAL_HOST_TELEMETRY_CERT_SHA256='unbound'
+CANONICAL_HOST_TELEMETRY_GPU_UUID='GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
+CANONICAL_HOST_TELEMETRY_TIMEOUT_SECONDS=2
 
 # Resolve only system-owned, absolute telemetry paths.  WSL exposes the host
 # driver at /usr/lib/wsl/lib/nvidia-smi rather than /usr/bin/nvidia-smi; PATH
@@ -440,9 +450,21 @@ if [[ "$JOB_CLASS" == trainer && ! -x "$GPU_GUARD_PATH" ]]; then
   exit 75
 fi
 if [[ "$JOB_CLASS" == trainer && "$TRAINER_DEVICE" == cuda \
+  && "$TRAINER_EXECUTION_MODE" != canonical \
   && ! -x "$TRAINER_NVIDIA_SMI_PATH" ]]; then
   echo "FATAL: required CUDA telemetry owner is unavailable: $TRAINER_NVIDIA_SMI_PATH" >&2
   exit 75
+fi
+if [[ "$JOB_CLASS" == trainer && "$TRAINER_DEVICE" == cuda \
+  && "$TRAINER_EXECUTION_MODE" == canonical ]]; then
+  [[ -x "$HOST_TELEMETRY_QUERY_PATH" ]] || {
+    echo "FATAL: canonical host telemetry query client is unavailable: $HOST_TELEMETRY_QUERY_PATH" >&2
+    exit 75
+  }
+  [[ "$CANONICAL_HOST_TELEMETRY_CERT_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+    echo "FATAL: canonical host telemetry certificate is not source-bound; refusing CUDA load" >&2
+    exit 75
+  }
 fi
 
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" && -w "$XDG_RUNTIME_DIR" ]]; then
@@ -475,7 +497,7 @@ if [[ "$JOB_CLASS" == trainer && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
   echo "[capped_run_trainer_guard_log] path=$TRAINER_GUARD_LOG_PATH" >&2
 fi
 if [[ "$JOB_CLASS" == trainer ]]; then
-echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS host_telemetry_endpoint=$CANONICAL_HOST_TELEMETRY_URL" >&2
 fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -527,6 +549,12 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB="$TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
   --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH="$HOST_TELEMETRY_QUERY_PATH" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_URL="$CANONICAL_HOST_TELEMETRY_URL" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_CERT_PATH="$CANONICAL_HOST_TELEMETRY_CERT_PATH" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256="$CANONICAL_HOST_TELEMETRY_CERT_SHA256" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_GPU_UUID="$CANONICAL_HOST_TELEMETRY_GPU_UUID" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS="$CANONICAL_HOST_TELEMETRY_TIMEOUT_SECONDS" \
   --setenv=OMP_NUM_THREADS=1 \
   --setenv=MKL_NUM_THREADS=1 \
   --setenv=OPENBLAS_NUM_THREADS=1 \

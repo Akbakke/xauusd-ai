@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import signal
 import subprocess
@@ -81,6 +82,16 @@ def _guard_env(
     }
     if any(not path.is_file() for path in control_files.values()):
         pytest.skip("requires a delegated cgroup-v2 scope")
+    if device == "cuda":
+        bridge_query, bridge_certificate, bridge_certificate_sha256 = (
+            _fake_host_telemetry_query(nvidia_smi_path)
+        )
+    else:
+        bridge_query = Path("/bin/false")
+        bridge_certificate = Path("/etc/hosts")
+        bridge_certificate_sha256 = hashlib.sha256(
+            bridge_certificate.read_bytes()
+        ).hexdigest()
     protected = {
         "GX1_CAPPED_CLASS": "trainer",
         "GX1_CAPPED_MEMORY_BYTES": control_files["memory"].read_text().strip(),
@@ -105,6 +116,16 @@ def _guard_env(
         "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": str(max_memory_used_mib),
         "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
         "GX1_TRAINER_NVIDIA_SMI_PATH": str(nvidia_smi_path),
+        "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH": str(bridge_query),
+        "GX1_TRAINER_HOST_TELEMETRY_URL": (
+            "http://127.0.0.1:38127/gx1/v1/telemetry/"
+        ),
+        "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH": str(bridge_certificate),
+        "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256": bridge_certificate_sha256,
+        "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID": (
+            "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29"
+        ),
+        "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS": "2",
     }
     numeric_values = (
         value
@@ -116,6 +137,12 @@ def _guard_env(
             "GX1_TRAINER_EXECUTION_MODE",
             "GX1_TRAINER_ATTENDED_STAGE_REQUIRED",
             "GX1_TRAINER_NVIDIA_SMI_PATH",
+            "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH",
+            "GX1_TRAINER_HOST_TELEMETRY_URL",
+            "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH",
+            "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256",
+            "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID",
+            "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS",
         }
     )
     if any(not value.isdigit() for value in numeric_values):
@@ -255,6 +282,29 @@ def _fake_nvidia_smi(tmp_path: Path, output: str, *, exit_code: int = 0) -> Path
     return path
 
 
+def _fake_host_telemetry_query(nvidia_smi_path: Path) -> tuple[Path, Path, str]:
+    """Expose a protected canonical bridge fixture with nvidia-like rows.
+
+    The bridge query itself has dedicated RSA/schema tests.  These guard tests
+    deliberately supply a source-owned executable which emits the same five
+    telemetry columns as their former native-driver fixture, so the existing
+    guard thresholds are exercised without weakening canonical's bridge-only
+    routing.
+    """
+
+    directory = nvidia_smi_path.parent
+    query = directory / "host-telemetry-query"
+    certificate = directory / "host-telemetry-public.pem"
+    query.write_text(
+        "#!/bin/sh\n"
+        f'exec "{nvidia_smi_path}" "$@"\n',
+        encoding="utf-8",
+    )
+    query.chmod(0o755)
+    certificate.write_text("test public certificate\n", encoding="utf-8")
+    return query, certificate, hashlib.sha256(certificate.read_bytes()).hexdigest()
+
+
 def _stage_child(tmp_path: Path, body: str) -> Path:
     path = tmp_path / "stage-child.sh"
     path.write_text("#!/usr/bin/env bash\nset -euo pipefail\n" + body, encoding="utf-8")
@@ -379,6 +429,50 @@ def test_trainer_guard_accepts_complete_safe_cuda_telemetry(tmp_path: Path) -> N
         "[trainer_safety_guard] execution_mode=canonical device=cuda"
         in result.stderr
     )
+
+
+def test_canonical_cuda_guard_uses_host_bridge_not_wsl_nvidia_smi(
+    tmp_path: Path,
+) -> None:
+    bridge_backed_nvidia = _fake_nvidia_smi(tmp_path, "50, 70, 100, 250, 1000")
+    env = _guard_env(device="cuda", nvidia_smi_path=bridge_backed_nvidia)
+    # The source-owned fake bridge continues to use bridge_backed_nvidia, but
+    # canonical's ordinary WSL driver path is unavailable.  Success therefore
+    # proves the guard routes canonical telemetry only through the bridge.
+    env["GX1_TRAINER_NVIDIA_SMI_PATH"] = "/bin/false"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_canonical_cuda_guard_rejects_unbound_host_certificate(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 100, 250, 1000")
+    env = _guard_env(device="cuda", nvidia_smi_path=nvidia_smi)
+    env["GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256"] = "unbound"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 75
+    assert "certificate is not source-bound" in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -858,6 +952,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=24576" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
+    assert 'CANONICAL_HOST_TELEMETRY_CERT_SHA256=\'unbound\'' in source
+    assert "canonical host telemetry certificate is not source-bound" in source
+    assert "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" in source
+    assert "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256" in source
     assert "--attended-smoke" in source
     assert "disabled after the WSL/GPU reset" in source
     assert "TRAINER_MAX_WALL_SECONDS=86400" not in source
@@ -881,6 +979,8 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "GX1_TRAINER_EXECUTION_MODE" in guard_source
     assert "GX1_TRAINER_GPU_MAX_POWER_DRAW_W" in guard_source
     assert "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" in guard_source
+    assert "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" in guard_source
+    assert "canonical host telemetry certificate is not source-bound" in guard_source
     assert "GX1_TRAINER_GUARD_LOG_PATH" in source
     assert "event=heartbeat" in guard_source
     assert "event=exit child_status=$child_status" in guard_source
