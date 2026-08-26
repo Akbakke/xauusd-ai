@@ -37,6 +37,25 @@ guard or be used as a file-based substitute for the future bridge. A successful
 probe reduces the unknown hardware risk; it does not meet any of the bridge
 admission criteria below.
 
+## Observed bootstrap evidence (2026-08-26; non-promotable)
+
+The elevated host probe completed successfully against the installed,
+SHA-verified LibreHardwareMonitor v0.9.6 release. Its interactive console
+output reported the following values for the single pinned GPU:
+
+| Field | Observed value |
+| --- | --- |
+| GPU name | `NVIDIA GeForce RTX 3090` |
+| GPU UUID | `GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29` |
+| VRAM junction temperature | `64 C` |
+| Host power limit | `390 W` |
+
+This proves that a host-only numeric VRAM-temperature source exists for the
+right device. The output is an interactive installation probe, deliberately
+not a signed bridge reply. It must never be admitted as canonical evidence.
+The 390 W reading also means canonical CUDA remains blocked until the physical
+limit is demonstrably at or below 250 W in a later signed bridge preflight.
+
 ## Non-negotiable prerequisites
 
 Before a canonical CUDA smoke can start, both of these must be demonstrated in
