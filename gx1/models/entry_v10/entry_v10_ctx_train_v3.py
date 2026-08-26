@@ -2239,6 +2239,10 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_CAPPED_SWAP_BYTES",
     "GX1_CAPPED_TASKS_MAX",
     "GX1_GPU_GUARD_PATH",
+    # Guard-owned, exclusive sidecar created by gx1_capped_run.sh.  It records
+    # safety telemetry only and has no bearing on model inputs, targets or
+    # checkpoint decisions.
+    "GX1_TRAINER_GUARD_LOG_PATH",
     "GX1_TRAINER_DEVICE",
     "GX1_TRAINER_EXECUTION_MODE",
     "GX1_TRAINER_MAX_WALL_SECONDS",

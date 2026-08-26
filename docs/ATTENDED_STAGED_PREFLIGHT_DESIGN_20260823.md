@@ -11,8 +11,8 @@ dataset nor any execution authority.
 The operator explicitly approved the attended-only actual-draw ceiling at
 390 W. The current source-bound attended policy is therefore 390 W configured
 and 390 W actual draw, while retaining the 70 C core stop, 12 GiB NVML-use
-stop, one-second telemetry, 4 GiB cgroup, 512 MiB swap ceiling, CPU affinity
-0-1, and the staged 600+300-second deadlines. Canonical training remains
+stop, one-second telemetry, 10 GiB cgroup, 512 MiB swap ceiling, two logical
+CPU cores (affinity 0-1), and the staged 600+300-second deadlines. Canonical training remains
 separate and still requires a physical power limit at or below 250 W.
 
 The fresh V46 run bound to source commit `42c78b94` completed the full data
@@ -42,7 +42,7 @@ The attended-only route would receive two fixed, source-bound deadlines:
 
 | Stage | Fixed maximum | Work included | Protection retained |
 | --- | ---: | --- | --- |
-| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 4 GiB hard cgroup, 512 MiB swap ceiling, one physical CPU core, low priority, one-second GPU telemetry, 70 C core stop, 390 W actual-draw stop, 12 GiB NVML-use stop |
+| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 10 GiB hard cgroup, 512 MiB swap ceiling, two logical CPU cores (affinity 0-1), low priority, one-second GPU telemetry, 70 C core stop, 390 W actual-draw stop, 12 GiB NVML-use stop |
 | `model_smoke` | 300 seconds | model construction, CUDA input-contract forward, optimizer and the declared attended smoke epoch | exactly the same controls, with a newly measured 300-second deadline |
 
 The total maximum is therefore 900 seconds. It is a more tightly specified
@@ -95,7 +95,7 @@ Implementation is incomplete unless all of these pass:
    boundary, and never in canonical execution.
 3. The recipe audit source-binds every changed owner: capped runner, guard and
    trainer. Existing candidate/full routes reject every attended-stage input.
-4. The whole suite passes under the existing 4 GiB / one-core audit cap.
+4. The whole suite passes under the attended 10 GiB / two-logical-core cap.
 5. A fresh V40 recipe audit passes, followed only by an operator-approved,
    observed V40 attended run. No result from it may claim candidate, edge,
    OOS, TEST, PnL, paper or live authority.

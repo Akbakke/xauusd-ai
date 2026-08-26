@@ -266,6 +266,7 @@ def test_trainer_boundary_allows_only_guard_owned_attended_stage_transport(
 ) -> None:
     _set_exact_trainer_env(monkeypatch)
     guarded_transport = {
+        "GX1_TRAINER_GUARD_LOG_PATH": "/tmp/guard-created-sidecar.log",
         "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "300",
         "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "true",
         "GX1_TRAINER_ATTENDED_STAGE_FIFO": "/tmp/guard-created-preflight",
