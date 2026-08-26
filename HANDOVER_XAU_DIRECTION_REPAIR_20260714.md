@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-25. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-26. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
@@ -229,6 +229,19 @@ partial and cannot be treated as a bundle, validation, PnL, edge, OOS,
 candidate, TEST, paper or live result. The cache may expose read-only MTF
 NumPy views; the loader now copies only each per-sample MTF window to writable
 float32 before PyTorch conversion, with a deterministic read-only test.
+
+**V46 canonical source-representation repair, 2026-08-26:** the two V46
+source-reconstruction PASS proofs are now mandatory for every model-native
+TRAIN/VAL launch, not merely attended smokes. The immutable training recipe
+binds their exact bytes; the wrapper passes them on every smoke/candidate
+route; and the trainer re-hashes them before loading the source surface. This
+is only a storage representation repair: the 238-signal, 96-bar sequences,
+targets, split boundaries, full-TRAIN normalization, five MTF surfaces and
+eight specialist families are unchanged. It closes the prior canonical path
+that would otherwise allocate the old 22.67 GiB TRAIN plus 6.48 GiB VAL
+materialised sequence views. Candidate authority still requires its separate
+readiness and smoke-bundle gates; no canonical full training, candidate bundle,
+PnL, win rate, MAE/MFE, OOS, TEST, paper or live result has been produced.
 
 The separately named historical V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly

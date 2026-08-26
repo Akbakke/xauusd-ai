@@ -2213,6 +2213,12 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "unified_exit_lifecycle_manifest": (
         "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
     ),
+    "train_sequence_source_audit": (
+        "GX1_ENTRY_TRAIN_SEQUENCE_SOURCE_AUDIT_SHA256"
+    ),
+    "val_sequence_source_audit": (
+        "GX1_ENTRY_VAL_SEQUENCE_SOURCE_AUDIT_SHA256"
+    ),
 }
 _TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 # Recipe-validated absolute path of the mandatory verified multi-TF V2 disk
@@ -2269,6 +2275,25 @@ def _expected_train_artifact_sha256(label: str) -> str:
     ):
         raise RuntimeError(f"[ENTRY_TRAIN_ARTIFACT_HASH_ENV_INVALID] {env_name}")
     return value
+
+
+def _require_bound_sequence_source_audit(
+    path: Path,
+    *,
+    split: str,
+) -> Path:
+    """Return one recipe-bound source-window proof without a TOCTOU gap."""
+
+    label = f"{split}_sequence_source_audit"
+    audit_path = _explicit_regular_artifact(path, label=label)
+    expected_sha = _expected_train_artifact_sha256(label)
+    observed_sha = _sha256_file(audit_path)
+    if observed_sha != expected_sha:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_ARTIFACT_SHA256_MISMATCH] "
+            f"{label} expected={expected_sha} observed={observed_sha}"
+        )
+    return audit_path
 
 
 def _resolve_explicit_train_split_artifacts(
@@ -7954,16 +7979,18 @@ def run_train(
         train_sequence_source_audit_json,
         val_sequence_source_audit_json,
     )
-    if _is_attended_execution_tier(execution_tier):
-        if any(value is None for value in reconstruction_audits):
-            raise RuntimeError(
-                "[ENTRY_TRAIN_ATTENDED_SEQUENCE_SOURCE_PROOFS_REQUIRED] "
-                "both TRAIN and VAL proofs are required"
-            )
-    elif any(value is not None for value in reconstruction_audits):
+    if any(value is None for value in reconstruction_audits):
         raise RuntimeError(
-            "[ENTRY_TRAIN_SEQUENCE_SOURCE_RECONSTRUCTION_CANONICAL_FORBIDDEN]"
+            "[ENTRY_TRAIN_SEQUENCE_SOURCE_PROOFS_REQUIRED] "
+            "both TRAIN and VAL proofs are required for the mandatory "
+            "source-backed sequence representation"
         )
+    train_sequence_source_audit_json = _require_bound_sequence_source_audit(
+        Path(train_sequence_source_audit_json), split="train"
+    )
+    val_sequence_source_audit_json = _require_bound_sequence_source_audit(
+        Path(val_sequence_source_audit_json), split="val"
+    )
     if any(value is not None for value in (
         train_sequence_roll_audit_json,
         val_sequence_roll_audit_json,
@@ -8218,34 +8245,32 @@ def run_train(
     val_ds.bind_unified_exit_lifecycle(
         unified_exit_lifecycle.splits["val"]
     )
-    sequence_source_reconstruction_evidence: Optional[dict[str, Any]] = None
-    if _is_attended_execution_tier(execution_tier):
-        if (
-            not train_ds._sequence_source_reconstructed
-            or not val_ds._sequence_source_reconstructed
-            or train_ds._sequence_source_audit is None
-            or val_ds._sequence_source_audit is None
-        ):
-            raise RuntimeError(
-                "[ENTRY_TRAIN_ATTENDED_SEQUENCE_SOURCE_RECONSTRUCTION_MISSING]"
-            )
-        sequence_source_reconstruction_evidence = {
-            "schema_version": "entry_model_native_sequence_source_reconstruction_v1",
-            "authority": "data_reconstruction_only",
-            "candidate": False,
-            "test": False,
-            "promotion": False,
-            "paper": False,
-            "live": False,
-            "splits": {
-                "train": dict(train_ds._sequence_source_audit),
-                "val": dict(val_ds._sequence_source_audit),
-            },
-        }
-        log.info(
-            "[ATTENDED_SEQUENCE_SOURCE_RECONSTRUCTION] TRAIN+VAL proof-bound "
-            "storage optimization active; authority=data_reconstruction_only"
+    if (
+        not train_ds._sequence_source_reconstructed
+        or not val_ds._sequence_source_reconstructed
+        or train_ds._sequence_source_audit is None
+        or val_ds._sequence_source_audit is None
+    ):
+        raise RuntimeError(
+            "[ENTRY_TRAIN_SEQUENCE_SOURCE_RECONSTRUCTION_MISSING]"
         )
+    sequence_source_reconstruction_evidence: dict[str, Any] = {
+        "schema_version": "entry_model_native_sequence_source_reconstruction_v1",
+        "authority": "data_reconstruction_only",
+        "candidate": False,
+        "test": False,
+        "promotion": False,
+        "paper": False,
+        "live": False,
+        "splits": {
+            "train": dict(train_ds._sequence_source_audit),
+            "val": dict(val_ds._sequence_source_audit),
+        },
+    }
+    log.info(
+        "[SEQUENCE_SOURCE_RECONSTRUCTION] TRAIN+VAL proof-bound storage "
+        "representation active; authority=data_reconstruction_only"
+    )
     unified_exit_lifecycle_evidence = dict(
         unified_exit_lifecycle.evidence
     )
@@ -10010,9 +10035,9 @@ def run_train(
         },
     }
     if sequence_source_reconstruction_evidence is not None:
-        # This field records the exact audit inputs if an attended smoke ever
-        # reaches export.  It is an explicit denial of all candidate and
-        # deployment authority, not a substitute for an OOS result.
+        # This records the exact storage-reconstruction proof for every
+        # profile. It is an explicit denial of candidate and deployment
+        # authority by itself, never a substitute for an OOS result.
         lock["sequence_source_reconstruction"] = (
             sequence_source_reconstruction_evidence
         )
@@ -10478,8 +10503,8 @@ def main() -> None:
     parser.add_argument("--val-parquet", type=Path, required=True)
     parser.add_argument("--train-sequence-roll-audit-json", type=Path)
     parser.add_argument("--val-sequence-roll-audit-json", type=Path)
-    parser.add_argument("--train-sequence-source-audit-json", type=Path)
-    parser.add_argument("--val-sequence-source-audit-json", type=Path)
+    parser.add_argument("--train-sequence-source-audit-json", type=Path, required=True)
+    parser.add_argument("--val-sequence-source-audit-json", type=Path, required=True)
     parser.add_argument("--prefreeze-test-seal-json", type=Path, required=True)
     parser.add_argument("--prefreeze-test-seal-sha256", type=str, required=True)
     parser.add_argument(
@@ -10544,17 +10569,6 @@ def main() -> None:
         parser.error("--execution-tier attended_only requires --device cuda")
     if args.execution_tier == "attended_cpu_only" and args.device != "cpu":
         parser.error("--execution-tier attended_cpu_only requires --device cpu")
-    reconstruction_args = (
-        args.train_sequence_source_audit_json,
-        args.val_sequence_source_audit_json,
-    )
-    if _is_attended_execution_tier(args.execution_tier) and any(
-        value is None for value in reconstruction_args
-    ):
-        parser.error(
-            "attended execution tiers require both "
-            "--train-sequence-source-audit-json and --val-sequence-source-audit-json"
-        )
     if any(value is not None for value in (
         args.train_sequence_roll_audit_json,
         args.val_sequence_roll_audit_json,

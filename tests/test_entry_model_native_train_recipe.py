@@ -199,6 +199,8 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "entry_exit_feature_surface_contract",
         "sequence_integrity_contract",
         "sequence_integrity_audit",
+        "sequence_source_reconstruction_contract",
+        "sequence_source_reconstruction_audit",
         "capped_runner",
     }
 
@@ -409,6 +411,39 @@ def test_launch_rejects_tampered_train_sequence_integrity_proof(
     with pytest.raises(
         launch.LaunchContractError,
         match="train sequence-integrity audit invalid",
+    ):
+        launch.validate_launch(args)
+
+
+def test_launch_rejects_tampered_train_sequence_source_reconstruction_proof(
+    tmp_path: Path,
+) -> None:
+    wrapper_argv, paths = build_wrapper_contract(
+        tmp_path,
+        profile="candidate",
+        wrapper=WRAPPER,
+    )
+    proof_path = paths["train_sequence_source_audit_json"]
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["checks"]["every_sequence_equals_exact_source_surface_history_bit_identical"] = False
+    proof_path.write_text(
+        json.dumps(proof, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "candidate",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="train sequence-source reconstruction audit invalid",
     ):
         launch.validate_launch(args)
 

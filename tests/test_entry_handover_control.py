@@ -563,6 +563,8 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
     assert wrapper in smoke_route
     assert "--profile smoke" in smoke_route
     assert 'reject_flags "$cmd" --attended-smoke --research-smoke' in smoke_route
+    assert "--train-sequence-source-audit-json" in smoke_route
+    assert "--val-sequence-source-audit-json" in smoke_route
     assert wrapper in attended_smoke_route
     assert "--profile smoke" in attended_smoke_route
     assert "--attended-smoke" in attended_smoke_route
@@ -575,6 +577,8 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
     assert "--val-sequence-source-audit-json" in attended_cpu_smoke_route
     assert wrapper in candidate_route
     assert "--profile candidate" in candidate_route
+    assert "--train-sequence-source-audit-json" in candidate_route
+    assert "--val-sequence-source-audit-json" in candidate_route
     assert source.count(wrapper) == 4
     assert "--train-wrapper" in trainability_route
 
@@ -600,6 +604,8 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
         "--target-audit-json",
         "--specialist-audit-json",
         "--pretrain-audit-json",
+        "--train-sequence-source-audit-json",
+        "--val-sequence-source-audit-json",
         "--trainability-readiness-json",
         "--memory-cap",
         "--swap-cap",

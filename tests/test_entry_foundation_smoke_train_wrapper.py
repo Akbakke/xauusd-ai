@@ -48,6 +48,13 @@ def _replace_arg(args: list[str], flag: str, value: str) -> list[str]:
     return updated
 
 
+def _without_arg(args: list[str], flag: str) -> list[str]:
+    updated = list(args)
+    index = updated.index(flag)
+    del updated[index : index + 2]
+    return updated
+
+
 def _capped_command_tokens(stdout: str) -> list[str]:
     line = next(
         row for row in stdout.splitlines() if row.startswith("Capped smoke train command:")
@@ -223,7 +230,7 @@ def test_smoke_wrapper_rejects_execution_causality_block_before_trainer(
 def test_attended_cuda_and_cpu_smokes_mark_distinct_exact_inner_commands(
     tmp_path: Path,
 ) -> None:
-    args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
     cuda_args = _replace_arg(args, "--device", "cuda")
     cuda_args = _replace_arg(cuda_args, "--epochs", "1")
     recipe_path = Path(cuda_args[cuda_args.index("--recipe-audit-json") + 1])
@@ -235,22 +242,18 @@ def test_attended_cuda_and_cpu_smokes_mark_distinct_exact_inner_commands(
         json.dumps(recipe, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    missing_proofs = _run("--attended-smoke", *cuda_args, "--dry-run")
-    assert missing_proofs.returncode == 2
-    assert "requires train_sequence_source_audit_json" in missing_proofs.stderr
-
-    train_proof = tmp_path / "train.sequence_source_audit.json"
-    val_proof = tmp_path / "val.sequence_source_audit.json"
-    train_proof.write_text("{}\n", encoding="utf-8")
-    val_proof.write_text("{}\n", encoding="utf-8")
-    attended_proofs = (
-        "--train-sequence-source-audit-json",
-        str(train_proof),
-        "--val-sequence-source-audit-json",
-        str(val_proof),
+    missing_proofs = _run(
+        "--attended-smoke",
+        *_without_arg(
+            _without_arg(cuda_args, "--train-sequence-source-audit-json"),
+            "--val-sequence-source-audit-json",
+        ),
+        "--dry-run",
     )
+    assert missing_proofs.returncode == 2
+    assert "missing required argument for TRAIN_SEQUENCE_SOURCE_AUDIT_JSON" in missing_proofs.stderr
 
-    result = _run("--attended-smoke", *cuda_args, *attended_proofs, "--dry-run")
+    result = _run("--attended-smoke", *cuda_args, "--dry-run")
 
     assert result.returncode == 0, result.stderr
     assert "execution_tier=attended_only" in result.stdout
@@ -260,13 +263,13 @@ def test_attended_cuda_and_cpu_smokes_mark_distinct_exact_inner_commands(
     assert "--attended-smoke" in command[runner_index:separator_index]
     assert command[command.index("--execution-tier") + 1] == "attended_only"
     assert command[command.index("--train-sequence-source-audit-json") + 1] == str(
-        train_proof
+        paths["train_sequence_source_audit_json"]
     )
     assert command[command.index("--val-sequence-source-audit-json") + 1] == str(
-        val_proof
+        paths["val_sequence_source_audit_json"]
     )
 
-    cpu_result = _run("--attended-smoke", *args, *attended_proofs, "--dry-run")
+    cpu_result = _run("--attended-smoke", *args, "--dry-run")
     assert cpu_result.returncode == 2
     assert "requires --device cuda" in cpu_result.stderr
 
@@ -278,9 +281,7 @@ def test_attended_cuda_and_cpu_smokes_mark_distinct_exact_inner_commands(
         json.dumps(recipe, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    cpu_attended = _run(
-        "--attended-cpu-smoke", *cpu_args, *attended_proofs, "--dry-run"
-    )
+    cpu_attended = _run("--attended-cpu-smoke", *cpu_args, "--dry-run")
     assert cpu_attended.returncode == 0, cpu_attended.stderr
     assert "execution_tier=attended_cpu_only" in cpu_attended.stdout
     cpu_command = _capped_command_tokens(cpu_attended.stdout)
@@ -289,9 +290,7 @@ def test_attended_cuda_and_cpu_smokes_mark_distinct_exact_inner_commands(
         cpu_command[cpu_command.index("--execution-tier") + 1]
         == "attended_cpu_only"
     )
-    invalid_cuda_cpu_attended = _run(
-        "--attended-cpu-smoke", *cuda_args, *attended_proofs, "--dry-run"
-    )
+    invalid_cuda_cpu_attended = _run("--attended-cpu-smoke", *cuda_args, "--dry-run")
     assert invalid_cuda_cpu_attended.returncode == 2
     assert "requires --device cpu" in invalid_cuda_cpu_attended.stderr
 
@@ -303,24 +302,20 @@ def test_research_smoke_is_disabled_after_wsl_gpu_reset() -> None:
     assert "disabled after the WSL/GPU reset" in result.stderr
 
 
-def test_sequence_source_reconstruction_proofs_are_attended_only(tmp_path: Path) -> None:
+def test_sequence_source_reconstruction_proofs_are_required_for_canonical_training(
+    tmp_path: Path,
+) -> None:
     args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
-    train_proof = tmp_path / "train.sequence_source_audit.json"
-    val_proof = tmp_path / "val.sequence_source_audit.json"
-    train_proof.write_text("{}\n", encoding="utf-8")
-    val_proof.write_text("{}\n", encoding="utf-8")
-
     result = _run(
-        *args,
-        "--train-sequence-source-audit-json",
-        str(train_proof),
-        "--val-sequence-source-audit-json",
-        str(val_proof),
+        *_without_arg(
+            _without_arg(args, "--train-sequence-source-audit-json"),
+            "--val-sequence-source-audit-json",
+        ),
         "--dry-run",
     )
 
     assert result.returncode == 2
-    assert "valid only with an attended smoke" in result.stderr
+    assert "missing required argument for TRAIN_SEQUENCE_SOURCE_AUDIT_JSON" in result.stderr
 
 
 def test_smoke_launch_never_opens_or_stats_sealed_test_artifacts(

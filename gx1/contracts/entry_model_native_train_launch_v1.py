@@ -33,6 +33,9 @@ from gx1.contracts.entry_execution_causality_v1 import (
 from gx1.contracts.entry_sequence_integrity_v1 import (
     require_sequence_integrity_audit,
 )
+from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
+    require_sequence_source_reconstruction_audit,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
@@ -109,8 +112,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v8"
-RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v8"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v9"
+RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v9"
 
 TRAINING_DATA_SPLITS = ("train", "val")
 SEALED_DATA_SPLITS = (*TRAINING_DATA_SPLITS, "test")
@@ -159,6 +162,12 @@ SEQUENCE_INTEGRITY_CONTRACT_RELATIVE_PATH = (
 SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH = (
     "gx1/scripts/audit_entry_sequence_integrity_v1.py"
 )
+SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_sequence_source_reconstruction_v1.py"
+)
+SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH = (
+    "gx1/scripts/audit_entry_sequence_source_reconstruction_v1.py"
+)
 
 REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 # V30 package 7 (2026-08-13): the `_rail_` substring filter would now yield an
@@ -197,6 +206,12 @@ _COMMON_BINDING_KEYS = (
     "execution_causality_audit_json",
     "train_sequence_integrity_audit_json",
     "val_sequence_integrity_audit_json",
+    # These two full-byte proofs authorize only the source-backed storage
+    # representation.  They do not grant candidate/OOS/deployment authority,
+    # but are mandatory so canonical training cannot fall back to allocating
+    # the materialised 96x238 sequence tensors in RAM.
+    "train_sequence_source_audit_json",
+    "val_sequence_source_audit_json",
     "trainability_readiness_json",
 )
 _PROFILE_BINDING_KEYS = {
@@ -238,6 +253,12 @@ TRAINER_ARTIFACT_HASH_ENV = {
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
     "unified_exit_lifecycle_manifest_json": (
         "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
+    ),
+    "train_sequence_source_audit_json": (
+        "GX1_ENTRY_TRAIN_SEQUENCE_SOURCE_AUDIT_SHA256"
+    ),
+    "val_sequence_source_audit_json": (
+        "GX1_ENTRY_VAL_SEQUENCE_SOURCE_AUDIT_SHA256"
     ),
 }
 TRAINER_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
@@ -569,6 +590,12 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
         ).resolve(strict=True),
         "sequence_integrity_audit": (
             repo / SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH
+        ).resolve(strict=True),
+        "sequence_source_reconstruction_contract": (
+            repo / SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
+        "sequence_source_reconstruction_audit": (
+            repo / SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH
         ).resolve(strict=True),
         "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
     }
@@ -1226,6 +1253,60 @@ def _validate_sequence_integrity_audits(
             ) from exc
 
 
+def _validate_sequence_source_reconstruction_audits(
+    artifacts: Mapping[str, Path],
+    payloads: Mapping[str, Mapping[str, Any]],
+    *,
+    post_rebuild: Mapping[str, Any],
+    expected_large_hashes: Mapping[str, str],
+) -> None:
+    """Require exact source-backed-window proofs for both trainable splits.
+
+    This proof changes only how the already-sealed sequence bytes are read: a
+    dataset window is reconstructed from the exact immutable M5 feature
+    surface instead of allocating a second materialised N×96×238 copy.  The
+    proof's own authority explicitly denies candidate, TEST and deployment;
+    those decisions remain entirely with their existing profile gates.
+    """
+
+    split_artifacts = post_rebuild.get("split_artifacts")
+    _require(
+        isinstance(split_artifacts, Mapping),
+        "post-rebuild source-reconstruction split artifacts missing",
+    )
+    for split in TRAINING_DATA_SPLITS:
+        split_row = split_artifacts.get(split)
+        _require(
+            isinstance(split_row, Mapping),
+            f"post-rebuild source-reconstruction {split} split binding missing",
+        )
+        expected_rows = split_row.get("rows")
+        _require(
+            type(expected_rows) is int and expected_rows > 0,
+            f"post-rebuild source-reconstruction {split} row count invalid",
+        )
+        try:
+            require_sequence_source_reconstruction_audit(
+                payloads[f"{split}_sequence_source_audit_json"],
+                expected_parquet_path=artifacts[f"{split}_parquet"],
+                expected_manifest_path=artifacts[f"{split}_manifest_json"],
+                expected_parquet_sha256=expected_large_hashes[
+                    f"{split}_parquet"
+                ],
+                expected_manifest_sha256=sha256_file(
+                    artifacts[f"{split}_manifest_json"]
+                ),
+                expected_feature_surface=payloads[f"{split}_manifest_json"],
+                expected_rows=expected_rows,
+                expected_seq_len=MODEL_NATIVE_SEQ_LEN,
+                expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+            )
+        except RuntimeError as exc:
+            raise LaunchContractError(
+                f"{split} sequence-source reconstruction audit invalid: {exc}"
+            ) from exc
+
+
 def _validate_audits(
     artifacts: Mapping[str, Path],
     payloads: Mapping[str, Mapping[str, Any]],
@@ -1784,6 +1865,12 @@ def validate_launch(
         payloads
     )
     _validate_sequence_integrity_audits(
+        artifacts,
+        payloads,
+        post_rebuild=payloads["post_rebuild_readiness_json"],
+        expected_large_hashes=expected_large_hashes,
+    )
+    _validate_sequence_source_reconstruction_audits(
         artifacts,
         payloads,
         post_rebuild=payloads["post_rebuild_readiness_json"],

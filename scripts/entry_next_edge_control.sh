@@ -82,7 +82,9 @@ Model-native seq513 evidence:
   model-native-direction-pocket-audit
 
 Immutable run-lineage execution (evidence gates remain authoritative):
-  model-native-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
+  model-native-smoke-train --run-id <id> <all other explicit arguments> \
+    --train-sequence-source-audit-json <immutable-json> \
+    --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
   model-native-attended-smoke-train --run-id <id> <all other explicit arguments> \
     --train-sequence-source-audit-json <immutable-json> \
     --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
@@ -90,7 +92,9 @@ Immutable run-lineage execution (evidence gates remain authoritative):
     --train-sequence-source-audit-json <immutable-json> \
     --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
   model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
-  model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
+  model-native-candidate-train --run-id <id> <all other explicit arguments> \
+    --train-sequence-source-audit-json <immutable-json> \
+    --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
 soft failure flags, feature-mask ablations, alternate contract modes, and
@@ -703,12 +707,32 @@ case "$cmd" in
       --execution-causality-audit-json \
       --train-sequence-integrity-audit-json \
       --val-sequence-integrity-audit-json \
-      --smoke-manifest-json \
-      --smoke-readiness-json \
+      --train-sequence-source-audit-json \
+      --val-sequence-source-audit-json \
       --trainability-readiness-json \
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
+    recipe_profile=
+    for ((recipe_index=0; recipe_index < ${#COMMAND_ARGS[@]}; recipe_index++)); do
+      recipe_arg="${COMMAND_ARGS[recipe_index]}"
+      if [[ "$recipe_arg" == "--profile" ]]; then
+        ((recipe_index + 1 < ${#COMMAND_ARGS[@]})) \
+          || die "$cmd --profile requires a value"
+        recipe_profile="${COMMAND_ARGS[recipe_index + 1]}"
+      elif [[ "$recipe_arg" == --profile=* ]]; then
+        recipe_profile="${recipe_arg#--profile=}"
+      fi
+    done
+    if [[ "$recipe_profile" == "smoke" ]]; then
+      require_flag "$cmd" --smoke-manifest-json "$@"
+      require_flag "$cmd" --smoke-readiness-json "$@"
+    elif [[ "$recipe_profile" == "candidate" ]]; then
+      require_flag "$cmd" --candidate-readiness-json "$@"
+      require_flag "$cmd" --smoke-bundle-audit-json "$@"
+    else
+      die "$cmd --profile must be exactly smoke or candidate"
+    fi
     exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
     ;;
 
@@ -732,6 +756,11 @@ case "$cmd" in
   model-native-smoke-train)
     reject_non_authoritative_args "$@"
     reject_flags "$cmd" --attended-smoke --research-smoke
+    for flag in \
+      --train-sequence-source-audit-json \
+      --val-sequence-source-audit-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke "$@"
     ;;
 
@@ -868,6 +897,11 @@ case "$cmd" in
 
   model-native-candidate-train)
     reject_non_authoritative_args "$@"
+    for flag in \
+      --train-sequence-source-audit-json \
+      --val-sequence-source-audit-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile candidate "$@"
     ;;
 

@@ -78,6 +78,11 @@ from gx1.contracts.entry_sequence_integrity_v1 import (
     REQUIRED_CHECKS as SEQUENCE_INTEGRITY_REQUIRED_CHECKS,
     SCHEMA_VERSION as SEQUENCE_INTEGRITY_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
+    AUTHORITY as SEQUENCE_SOURCE_RECONSTRUCTION_AUTHORITY,
+    REQUIRED_CHECKS as SEQUENCE_SOURCE_RECONSTRUCTION_REQUIRED_CHECKS,
+    SCHEMA_VERSION as SEQUENCE_SOURCE_RECONSTRUCTION_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     model_native_recipe_env_contract_metadata,
@@ -197,6 +202,7 @@ def _split_manifest(
     parquet: Path,
     *,
     m5_prebuilt: Path,
+    feature_surface_manifest: Path,
 ) -> Path:
     selected = canonical_model_native_selected_fields(
         remainder_prefix="session_regime.train_wrapper_fixture"
@@ -252,6 +258,25 @@ def _split_manifest(
                     "fields": contract["fields"],
                     "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                     "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                    "seq_structure_extension_v1": {
+                        "feature_surface": {
+                            "dataset_run_id": DATASET_RUN_ID,
+                            "inline_split_recomputation": False,
+                            "manifest_path": str(
+                                feature_surface_manifest.resolve()
+                            ),
+                            "manifest_sha256": artifact_binding(
+                                feature_surface_manifest
+                            )["sha256"],
+                            "pair_generation_id": "PYTEST_FEATURE_SURFACE_V1",
+                            "path": str(m5_prebuilt.resolve()),
+                            "rows": 96,
+                            "schema_version": "pytest_entry_m5_feature_surface_v1",
+                            "sha256": m5_sha256,
+                            "signal_manifest_sha256": m5_sha256,
+                            "time_alignment": "exact_entry_m5_source_timeline",
+                        }
+                    },
                 },
                 "aux_head_target_contract": {
                     **model_native_aux_target_contract_metadata(),
@@ -315,6 +340,18 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     m5_path.write_bytes(b"xau-m5-fixture")
     m5_sha256 = artifact_binding(m5_path)["sha256"]
     artifacts["m5_prebuilt_path"] = m5_path.resolve()
+    feature_surface_manifest = _write_json(
+        m5_dir / "xau_m5_feature_surface.manifest.json",
+        {
+            "schema_version": "pytest_entry_m5_feature_surface_v1",
+            "output_parquet": str(m5_path.resolve()),
+            "output_parquet_sha256": m5_sha256,
+            "rows": 96,
+            "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+            "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        },
+    )
 
     mtf_cache_dir = (tmp_path / f"MULTI_TF_V4_CACHE_{STAMP}").resolve()
     mtf_cache_dir.mkdir()
@@ -339,6 +376,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             manifest,
             parquet,
             m5_prebuilt=m5_path,
+            feature_surface_manifest=feature_surface_manifest,
         )
 
     lifecycle_dir = (tmp_path / f"exit_lifecycle_{STAMP}").resolve()
@@ -786,6 +824,39 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "authority": dict(SEQUENCE_INTEGRITY_AUTHORITY),
             },
         )
+        feature_surface = json.loads(
+            artifacts[f"{split}_manifest_json"].read_text(encoding="utf-8")
+        )["extra"]["signal_bridge"]["seq_structure_extension_v1"][
+            "feature_surface"
+        ]
+        artifacts[f"{split}_sequence_source_audit_json"] = _write_json(
+            evidence_dir
+            / f"ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_{split.upper()}_{STAMP}.json",
+            {
+                "schema_version": SEQUENCE_SOURCE_RECONSTRUCTION_SCHEMA_VERSION,
+                "decision": "PASS",
+                "created_utc": "2026-07-16T01:02:03.123456+00:00",
+                "parquet_path": str(artifacts[f"{split}_parquet"]),
+                "parquet_sha256": sealed_parquet_sha256[split],
+                "manifest_path": str(artifacts[f"{split}_manifest_json"]),
+                "manifest_sha256": artifact_binding(
+                    artifacts[f"{split}_manifest_json"]
+                )["sha256"],
+                "feature_surface_path": feature_surface["path"],
+                "feature_surface_sha256": feature_surface["sha256"],
+                "feature_surface_manifest_path": feature_surface["manifest_path"],
+                "feature_surface_manifest_sha256": feature_surface[
+                    "manifest_sha256"
+                ],
+                "feature_surface_rows": feature_surface["rows"],
+                "rows": 1,
+                "sequence_shape": [1, 96, MODEL_NATIVE_SIGNAL_DIM],
+                "snapshot_shape": [1, MODEL_NATIVE_SIGNAL_DIM],
+                "checks": dict(SEQUENCE_SOURCE_RECONSTRUCTION_REQUIRED_CHECKS),
+                "sequence_source_chain_sha256": "7" * 64,
+                "authority": dict(SEQUENCE_SOURCE_RECONSTRUCTION_AUTHORITY),
+            },
+        )
     artifacts["post_rebuild_readiness_json"] = _write_json(
         evidence_dir / f"ENTRY_POST_REBUILD_READINESS_{STAMP}.json",
         {
@@ -1074,6 +1145,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "execution_causality_audit_json",
         "train_sequence_integrity_audit_json",
         "val_sequence_integrity_audit_json",
+        "train_sequence_source_audit_json",
+        "val_sequence_source_audit_json",
         "trainability_readiness_json",
         *(
             ["smoke_manifest_json", "smoke_readiness_json"]
@@ -1184,6 +1257,8 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--execution-causality-audit-json", str(artifacts["execution_causality_audit_json"]),
         "--train-sequence-integrity-audit-json", str(artifacts["train_sequence_integrity_audit_json"]),
         "--val-sequence-integrity-audit-json", str(artifacts["val_sequence_integrity_audit_json"]),
+        "--train-sequence-source-audit-json", str(artifacts["train_sequence_source_audit_json"]),
+        "--val-sequence-source-audit-json", str(artifacts["val_sequence_source_audit_json"]),
         "--recipe-audit-json", str(artifacts["recipe_audit_json"]),
         "--trainability-readiness-json", str(artifacts["trainability_readiness_json"]),
         "--out-bundle-dir", str(out_bundle),

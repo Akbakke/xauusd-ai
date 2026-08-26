@@ -32,9 +32,7 @@ ENV_BIN=/usr/bin/env
 usage() {
   cat <<'EOF'
 Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments]
-       [--attended-smoke|--attended-cpu-smoke \
-        --train-sequence-source-audit-json PATH \
-        --val-sequence-source-audit-json PATH] (--dry-run|--execute)
+       [--attended-smoke|--attended-cpu-smoke] (--dry-run|--execute)
 
 Required identity and immutable evidence:
   --profile smoke|candidate
@@ -51,6 +49,7 @@ Required identity and immutable evidence:
   --feature-audit-json PATH  --target-audit-json PATH  --specialist-audit-json PATH
   --pretrain-audit-json PATH --execution-causality-audit-json PATH
   --train-sequence-integrity-audit-json PATH --val-sequence-integrity-audit-json PATH
+  --train-sequence-source-audit-json PATH --val-sequence-source-audit-json PATH
   --recipe-audit-json PATH
   --trainability-readiness-json PATH
   --out-bundle-dir PATH --gx1-data-root PATH
@@ -242,14 +241,6 @@ if [[ "$ATTENDED_SMOKE" == true && "$ATTENDED_CPU_SMOKE" == true ]]; then
 fi
 if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
   [[ "$PROFILE" == smoke ]] || die "attended smoke is valid only for --profile smoke"
-  for variable in TRAIN_SEQUENCE_SOURCE_AUDIT_JSON VAL_SEQUENCE_SOURCE_AUDIT_JSON; do
-    proof_path="${!variable}"
-    [[ -n "$proof_path" ]] || die "attended smoke requires ${variable,,}"
-    [[ "$proof_path" = /* && -f "$proof_path" && ! -L "$proof_path" ]] \
-      || die "attended smoke requires an absolute regular non-symlink ${variable,,}"
-  done
-elif [[ -n "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON" || -n "$VAL_SEQUENCE_SOURCE_AUDIT_JSON" ]]; then
-  die "sequence-source reconstruction proofs are valid only with an attended smoke"
 fi
 EXECUTION_TIER=canonical
 if [[ "$ATTENDED_SMOKE" == true ]]; then
@@ -265,6 +256,7 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
   FULL_INPUT_LIVENESS_AUDIT_JSON \
   FEATURE_AUDIT_JSON TARGET_AUDIT_JSON SPECIALIST_AUDIT_JSON PRETRAIN_AUDIT_JSON EXECUTION_CAUSALITY_AUDIT_JSON \
   TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON VAL_SEQUENCE_INTEGRITY_AUDIT_JSON \
+  TRAIN_SEQUENCE_SOURCE_AUDIT_JSON VAL_SEQUENCE_SOURCE_AUDIT_JSON \
   RECIPE_AUDIT_JSON TRAINABILITY_READINESS_JSON \
   OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE LEARNING_RATE \
   EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA GRAD_CLIP_NORM WEIGHT_DECAY MULTI_TF_SCALE \
@@ -274,6 +266,11 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
   PER_TF_SEQ_LEN_M5 PER_TF_SEQ_LEN_M15 PER_TF_SEQ_LEN_H1 \
   PER_TF_SEQ_LEN_H4 PER_TF_SEQ_LEN_D1; do
   [[ -n "${!variable}" ]] || die "missing required argument for $variable"
+done
+for variable in TRAIN_SEQUENCE_SOURCE_AUDIT_JSON VAL_SEQUENCE_SOURCE_AUDIT_JSON; do
+  proof_path="${!variable}"
+  [[ "$proof_path" = /* && -f "$proof_path" && ! -L "$proof_path" ]] \
+    || die "requires an absolute regular non-symlink ${variable,,}"
 done
 if [[ "$ATTENDED_SMOKE" == true && "$DEVICE" != cuda ]]; then
   die "--attended-smoke requires --device cuda"
@@ -338,6 +335,8 @@ VALIDATOR_ARGS=(
   --execution-causality-audit-json "$EXECUTION_CAUSALITY_AUDIT_JSON"
   --train-sequence-integrity-audit-json "$TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON"
   --val-sequence-integrity-audit-json "$VAL_SEQUENCE_INTEGRITY_AUDIT_JSON"
+  --train-sequence-source-audit-json "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON"
+  --val-sequence-source-audit-json "$VAL_SEQUENCE_SOURCE_AUDIT_JSON"
   --recipe-audit-json "$RECIPE_AUDIT_JSON"
   --trainability-readiness-json "$TRAINABILITY_READINESS_JSON"
   --device "$DEVICE" --seed "$SEED" --epochs "$EPOCHS" --batch-size "$BATCH_SIZE"
@@ -430,12 +429,10 @@ TRAIN_CMD=(
   --specialist-num-layers "$SPECIALIST_NUM_LAYERS" --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
   --cross-family-fusion-scale "$CROSS_FAMILY_FUSION_SCALE"
 )
-if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
-  TRAIN_CMD+=(
-    --train-sequence-source-audit-json "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON"
-    --val-sequence-source-audit-json "$VAL_SEQUENCE_SOURCE_AUDIT_JSON"
-  )
-fi
+TRAIN_CMD+=(
+  --train-sequence-source-audit-json "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON"
+  --val-sequence-source-audit-json "$VAL_SEQUENCE_SOURCE_AUDIT_JSON"
+)
 CAPPED_RUN_ARGS=(--class trainer --mem "$MEMORY_CAP" --swap "$SWAP_CAP")
 if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
   CAPPED_RUN_ARGS+=(--attended-smoke)
