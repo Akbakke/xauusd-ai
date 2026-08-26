@@ -193,6 +193,24 @@ sequence memmap; it preserves the full-TRAIN normalization population and has
 `data_reconstruction_only` authority. It is not a training, edge, TEST, paper
 or live result.
 
+**First V46 attended source smoke, 2026-08-26:** commit `13803b50` was run
+through the attended-only CUDA guard with the observed 390 W configured limit,
+an independent 180 W *actual-draw* stop, 70 C core stop, 12 GiB VRAM stop,
+10 GiB cgroup memory limit, batch size 8, one epoch, and a 10,000-row
+TRAIN-only smoke subset. The ten-minute data preflight passed: both source
+proofs revalidated; TRAIN avoided a 22.67 GiB sequence memmap, VAL avoided a
+6.48 GiB sequence memmap; the normalization fit used 1,659,115 physical
+TRAIN context rows and zero VAL/TEST rows; all five 176-column MTF surfaces
+were present. The guarded model phase built the model and reached its first
+backward pass, then stopped cleanly at the actual-draw boundary before an
+optimizer step completed (`power_draw` guard stop). This is a successful data
+and storage-path smoke, not a completed training epoch, checkpoint, PnL,
+win-rate, MAE/MFE, OOS, candidate, TEST, paper, or live result. The small
+attended-session contract was retained for forensic continuity; the ordinary
+smoke bundle was not produced. Do not raise the actual-draw stop implicitly:
+any future model-phase experiment requires an explicit thermal/power decision
+and a fresh immutable recipe.
+
 The separately named historical V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
 gross, spread-inclusive, research-only and cannot gain production authority
