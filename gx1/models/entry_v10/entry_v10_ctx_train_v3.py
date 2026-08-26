@@ -3832,7 +3832,15 @@ class EntryV10CtxDataset(Dataset):
                 key_prefix="seq_",
             )
             for k, v in mtf.items():
-                out_batch[k] = torch.from_numpy(v)
+                # Cache-backed MTF windows can be read-only Arrow/NumPy views.
+                # The model does not mutate inputs, but PyTorch correctly
+                # rejects a non-writable backing as undefined if any later
+                # operation did. Copy only this per-sample MTF window into a
+                # writable float32 buffer; sequence/source storage stays
+                # shared and untouched.
+                out_batch[k] = torch.from_numpy(
+                    np.array(v, dtype=np.float32, copy=True, order="C")
+                )
             return out_batch
 
 # -----------------------------------------------------------------------------

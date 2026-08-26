@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import warnings
 
 import numpy as np
 import pyarrow as pa
@@ -409,7 +410,24 @@ def test_advanced_dataset_source_reconstruction_handles_filtered_rows(
         ds.sequence_for_full_row(1),
         source[positions[1] - MODEL_NATIVE_SEQ_LEN + 1 : positions[1] + 1],
     )
-    assert np.array_equal(ds[1]["seq_x"].numpy(), ds.sequence_for_full_row(1))
+    original_mtf_window = ds._get_multi_tf_window
+
+    def _readonly_mtf_window(*args, **kwargs):
+        windows = original_mtf_window(*args, **kwargs)
+        for value in windows.values():
+            value.setflags(write=False)
+        return windows
+
+    ds._get_multi_tf_window = _readonly_mtf_window
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error",
+            message="The given NumPy array is not writable",
+            category=UserWarning,
+        )
+        assert np.array_equal(
+            ds[1]["seq_x"].numpy(), ds.sequence_for_full_row(1)
+        )
 
     ds.indices = np.asarray([0, 2], dtype=np.int64)
     ds.compact_materialized_rows(ds.indices)

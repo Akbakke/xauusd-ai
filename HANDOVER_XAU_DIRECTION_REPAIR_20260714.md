@@ -211,6 +211,25 @@ smoke bundle was not produced. Do not raise the actual-draw stop implicitly:
 any future model-phase experiment requires an explicit thermal/power decision
 and a fresh immutable recipe.
 
+**V46 bounded CPU recovery smoke, 2026-08-26:** rather than raise the GPU
+actual-draw boundary after the CUDA guard stop, commit `c953f6fa` added an
+explicit CPU-only attended recovery tier. It retains the exact V46 source
+proofs, 10 GiB memory cap, 512 MiB swap cap, two-core cgroup, staged
+600-second data / 300-second model limits, and the same non-promotable
+authority. Its immutable recipe was
+`train_recipe_audit_attended_cpu_20260826T073849Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260826T073850991678Z.json`.
+The full data preflight passed again and reached the exact model-native
+forward/loss/backward/optimizer path. It completed exactly one CPU optimizer
+step, saved the resumable session checkpoint
+`ATTENDED_RESEARCH_SESSION_ACTIVE.json` (state SHA-256
+`1d3714f23c16cd4451433e3961b7e045eaa85c5bdefea0819ed9de466d3e9d9d`),
+then paused normally. Peak trainer RSS was 5.33 GiB. This proves one true
+optimizer boundary without CUDA load, but the one-step session is explicitly
+partial and cannot be treated as a bundle, validation, PnL, edge, OOS,
+candidate, TEST, paper or live result. The cache may expose read-only MTF
+NumPy views; the loader now copies only each per-sample MTF window to writable
+float32 before PyTorch conversion, with a deterministic read-only test.
+
 The separately named historical V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
 gross, spread-inclusive, research-only and cannot gain production authority
