@@ -115,7 +115,12 @@ def _host_bridge(builder: ResponseBuilder) -> Iterator[str]:
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
-            self.wfile.write(encoded)
+            try:
+                self.wfile.write(encoded)
+            except BrokenPipeError:
+                # The timeout test intentionally closes its curl socket before
+                # this delayed fake service writes the response.
+                pass
 
         def log_message(self, *_args: object) -> None:
             pass
