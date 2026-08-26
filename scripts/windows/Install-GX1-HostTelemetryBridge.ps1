@@ -114,29 +114,19 @@ function Set-BridgeDirectoryAcl {
         [string]$BridgeRoot
     )
 
-    $acl = [System.Security.AccessControl.DirectorySecurity]::new()
-    $acl.SetAccessRuleProtection($true, $false)
-    $inherit = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
-    $propagation = [System.Security.AccessControl.PropagationFlags]::None
-    foreach ($identity in @('SYSTEM', 'BUILTIN\Administrators')) {
-        $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
-            $identity,
-            [System.Security.AccessControl.FileSystemRights]::FullControl,
-            $inherit,
-            $propagation,
-            [System.Security.AccessControl.AccessControlType]::Allow
-        )
-        $acl.AddAccessRule($rule)
-    }
-    $readRule = [System.Security.AccessControl.FileSystemAccessRule]::new(
-        'BUILTIN\Users',
-        [System.Security.AccessControl.FileSystemRights]::ReadAndExecute,
-        $inherit,
-        $propagation,
-        [System.Security.AccessControl.AccessControlType]::Allow
-    )
-    $acl.AddAccessRule($readRule)
-    Set-Acl -LiteralPath $BridgeRoot -AclObject $acl
+    # `/T` is intentional: every persisted service/config/public-key file gets
+    # the same restrictive ACL, rather than merely inheriting a new directory
+    # rule.  Users retain read/execute solely so the Linux verifier can read
+    # the public certificate; only SYSTEM/Administrators can change anything.
+    $icacls = Join-Path $env:WINDIR 'System32\icacls.exe'
+    Invoke-NativeChecked -FilePath $icacls -ArgumentList @(
+        $BridgeRoot,
+        '/inheritance:r',
+        '/grant:r', 'SYSTEM:(OI)(CI)F',
+        'BUILTIN\Administrators:(OI)(CI)F',
+        'BUILTIN\Users:(OI)(CI)RX',
+        '/T', '/C'
+    ) | Out-Null
 }
 
 Assert-Administrator

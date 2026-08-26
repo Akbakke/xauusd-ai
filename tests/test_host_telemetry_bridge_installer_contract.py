@@ -15,8 +15,10 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     assert "KeyExportPolicy = 'NonExportable'" in source
     assert "-UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest" in source
     assert "BUILTIN\\Users" in source
-    assert "ReadAndExecute" in source
-    assert "FullControl" in source
+    assert "SYSTEM:(OI)(CI)F" in source
+    assert "BUILTIN\\Administrators:(OI)(CI)F" in source
+    assert "BUILTIN\\Users:(OI)(CI)RX" in source
+    assert "'/T', '/C'" in source
     assert "public_certificate_sha256" in source
     assert "public_certificate_wsl_path" in source
 
