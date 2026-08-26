@@ -6,6 +6,23 @@ standing safety constraint: no expanded model run may bypass these fixed
 limits, active telemetry or the full data preflight. This changes neither the
 dataset nor any execution authority.
 
+### 2026-08-26 operator-present 390 W amendment
+
+The operator explicitly approved the attended-only actual-draw ceiling at
+390 W. The current source-bound attended policy is therefore 390 W configured
+and 390 W actual draw, while retaining the 70 C core stop, 12 GiB NVML-use
+stop, one-second telemetry, 4 GiB cgroup, 512 MiB swap ceiling, CPU affinity
+0-1, and the staged 600+300-second deadlines. Canonical training remains
+separate and still requires a physical power limit at or below 250 W.
+
+The fresh V46 run bound to source commit `42c78b94` completed the full data
+preflight and two CUDA optimizer steps without a WSL/GPU reset, thermal
+slowdown or a bundle/validation/TEST action. Its session contract and two-slot
+checkpoint are technical trainability evidence only. Commit `d033a87f` adds a
+durable guard sidecar for every future guarded attempt (start, telemetry,
+stage transition, stop reason and exit status); it did not retroactively alter
+the completed V46 session.
+
 ## The problem being solved
 
 The current attended route retains a complete source-identity check even when
@@ -25,7 +42,7 @@ The attended-only route would receive two fixed, source-bound deadlines:
 
 | Stage | Fixed maximum | Work included | Protection retained |
 | --- | ---: | --- | --- |
-| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 4 GiB hard cgroup, 512 MiB swap ceiling, one physical CPU core, low priority, one-second GPU telemetry, 70 C core stop, 180 W actual-draw stop, 12 GiB NVML-use stop |
+| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 4 GiB hard cgroup, 512 MiB swap ceiling, one physical CPU core, low priority, one-second GPU telemetry, 70 C core stop, 390 W actual-draw stop, 12 GiB NVML-use stop |
 | `model_smoke` | 300 seconds | model construction, CUDA input-contract forward, optimizer and the declared attended smoke epoch | exactly the same controls, with a newly measured 300-second deadline |
 
 The total maximum is therefore 900 seconds. It is a more tightly specified
@@ -166,7 +183,7 @@ is admitted only through the attended-only route with its source-owned
 low-VRAM geometry: CUDA batch size 8, one epoch, gradient accumulation 1, two
 complete optimizer steps, at most eight 480-bar Exit episodes per backward
 group, a 50% per-process CUDA allocator fence, and a 12 GiB NVML-use stop.
-It also retains the five-minute model deadline, 70 C core stop, 180 W
+It also retains the five-minute model deadline, 70 C core stop, 390 W
 **actual-draw** stop, 4 GiB cgroup, 512 MiB swap and CPU affinity 0-1. This is
 one fresh bounded measurement, not permission for continued historical CUDA
 training; it is non-promotable and may not create a bundle or any edge result.
@@ -176,6 +193,7 @@ The first measurement under this geometry reached the model boundary on
 12,287 MiB budget, and a batch-8 Entry/Exit loss reached its first backward
 pass. The outer guard then stopped the process for actual draw above 180 W
 before an optimizer step completed. The intended bundle remained absent and
-the session contains no completed checkpoint. This is a successful safety stop,
-not trainability or edge evidence. Do not raise the draw threshold or retry
-automatically; first establish an independently measured host-side power plan.
+the session contains no completed checkpoint. This is a successful historical
+safety stop, not trainability or edge evidence. It predates the explicit
+2026-08-26 operator-present 390 W amendment above; no further power increase
+or automatic retry is authorized by that amendment.
