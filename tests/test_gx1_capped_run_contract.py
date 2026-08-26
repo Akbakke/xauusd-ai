@@ -571,6 +571,38 @@ def test_attended_smoke_rejects_draw_above_operator_authorized_ceiling(
     assert "GPU draw 391W exceeds 390W" in result.stderr
 
 
+def test_trainer_guard_persists_terminal_telemetry_when_given_sidecar(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390, 1000")
+    guard_log = tmp_path / "guard.log"
+    guard_log.write_text("", encoding="utf-8")
+    env = _guard_env(
+        device="cuda",
+        nvidia_smi_path=nvidia_smi,
+        execution_mode="attended_smoke",
+        max_power_limit_w=390,
+        max_power_draw_w=390,
+    )
+    env["GX1_TRAINER_GUARD_LOG_PATH"] = str(guard_log)
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log_text = guard_log.read_text(encoding="utf-8")
+    assert "event=start execution_mode=attended_smoke" in log_text
+    assert "event=telemetry phase=preflight" in log_text
+    assert "event=exit child_status=0" in log_text
+
+
 def _sequenced_nvidia_smi(
     tmp_path: Path,
     *,
@@ -812,6 +844,9 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "GX1_TRAINER_EXECUTION_MODE" in guard_source
     assert "GX1_TRAINER_GPU_MAX_POWER_DRAW_W" in guard_source
     assert "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" in guard_source
+    assert "GX1_TRAINER_GUARD_LOG_PATH" in source
+    assert "event=heartbeat" in guard_source
+    assert "event=exit child_status=$child_status" in guard_source
     assert '"$memory_temp" == N/A' in guard_source
     assert '/bin/kill -TERM -- "-$child_pid"' in guard_source
     assert '/bin/kill -KILL -- "-$child_pid"' in guard_source

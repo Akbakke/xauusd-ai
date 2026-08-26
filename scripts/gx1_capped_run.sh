@@ -71,6 +71,7 @@ TRAINER_GPU_MAX_POWER_DRAW_W=250
 TRAINER_GPU_MAX_MEMORY_USED_MIB=24576
 TRAINER_GPU_MONITOR_INTERVAL_SECONDS=2
 TRAINER_DEVICE=
+TRAINER_OUT_BUNDLE_DIR=
 
 SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))
 SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))
@@ -108,7 +109,8 @@ validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
-  local profile_count=0 execution_tier_count=0 profile_value= execution_tier_value=
+  local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0
+  local profile_value= execution_tier_value=
   local -a target_args=("$@")
 
   case "$executable_basename" in
@@ -187,6 +189,14 @@ validate_target_command() {
         }
         execution_tier_value="${target_args[$((target_index + 1))]}"
         ;;
+      --out_bundle_dir)
+        out_bundle_dir_count=$((out_bundle_dir_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || {
+          echo "FATAL: trainer class requires a value after --out_bundle_dir" >&2
+          exit 75
+        }
+        TRAINER_OUT_BUNDLE_DIR="${target_args[$((target_index + 1))]}"
+        ;;
     esac
   done
   if (( trainer_device_count != 1 )) \
@@ -196,6 +206,10 @@ validate_target_command() {
   fi
 
   if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]]; then
+    if (( out_bundle_dir_count != 1 )) || [[ "$TRAINER_OUT_BUNDLE_DIR" != /* ]]; then
+      echo "FATAL: trainer class requires one absolute --out_bundle_dir" >&2
+      exit 75
+    fi
     if [[ "$ATTENDED_SMOKE" == true ]]; then
       if [[ $profile_count -ne 1 || "$profile_value" != smoke \
         || $execution_tier_count -ne 1 ]]; then
@@ -444,6 +458,22 @@ if ! flock -n 9; then
 fi
 echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
+TRAINER_GUARD_LOG_PATH=
+if [[ "$JOB_CLASS" == trainer && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
+  TRAINER_GUARD_LOG_PARENT="${TRAINER_OUT_BUNDLE_DIR%/*}"
+  TRAINER_GUARD_LOG_BASENAME="${TRAINER_OUT_BUNDLE_DIR##*/}"
+  [[ -d "$TRAINER_GUARD_LOG_PARENT" && ! -L "$TRAINER_GUARD_LOG_PARENT" ]] || {
+    echo "FATAL: trainer guard-log parent is unavailable: $TRAINER_GUARD_LOG_PARENT" >&2
+    exit 75
+  }
+  TRAINER_GUARD_LOG_PATH=$(
+    /usr/bin/mktemp "${TRAINER_GUARD_LOG_PARENT}/.${TRAINER_GUARD_LOG_BASENAME}.guard.XXXXXXXX.log"
+  ) || {
+    echo "FATAL: could not create exclusive trainer guard log" >&2
+    exit 75
+  }
+  echo "[capped_run_trainer_guard_log] path=$TRAINER_GUARD_LOG_PATH" >&2
+fi
 if [[ "$JOB_CLASS" == trainer ]]; then
 echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
 fi
@@ -483,6 +513,7 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))" \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
   --setenv=GX1_GPU_GUARD_PATH="$GPU_GUARD_PATH" \
+  --setenv=GX1_TRAINER_GUARD_LOG_PATH="$TRAINER_GUARD_LOG_PATH" \
   --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \
   --setenv=GX1_TRAINER_EXECUTION_MODE="$TRAINER_EXECUTION_MODE" \
   --setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS" \

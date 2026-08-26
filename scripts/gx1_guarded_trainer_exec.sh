@@ -4,7 +4,17 @@
 # validated the exact trainer target and proved the enclosing cgroup limits.
 set -euo pipefail
 
+guard_log_path="${GX1_TRAINER_GUARD_LOG_PATH:-}"
+
+guard_log() {
+  [[ -n "$guard_log_path" ]] || return 0
+  [[ "$guard_log_path" == /* && -f "$guard_log_path" && ! -L "$guard_log_path" ]] \
+    || return 0
+  printf '%s %s\n' "$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >>"$guard_log_path"
+}
+
 die() {
+  guard_log "event=fatal message=$*"
   printf 'FATAL: trainer safety guard: %s\n' "$*" >&2
   exit 75
 }
@@ -71,6 +81,10 @@ done
 [[ "$GX1_TRAINER_GPU_INDEX" =~ ^[0-9]+$ ]] \
   || die "GX1_TRAINER_GPU_INDEX must be a non-negative integer"
 [[ $# -ge 1 ]] || die "missing canonical trainer command"
+if [[ -n "$guard_log_path" ]]; then
+  [[ "$guard_log_path" == /* && -f "$guard_log_path" && ! -L "$guard_log_path" ]] \
+    || die "guard log path is not an existing absolute regular file"
+fi
 
 cgroup_relative=$(awk -F: '$1 == "0" {print $3}' /proc/self/cgroup)
 cgroup_directory="/sys/fs/cgroup${cgroup_relative}"
@@ -143,6 +157,7 @@ assert_safe_telemetry() {
   power_limit=${telemetry_values[3]}
   memory_used=${telemetry_values[4]}
   memory_observed=${telemetry_values[5]}
+  guard_log "event=telemetry phase=$phase core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used"
   float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
     && die "configured GPU power limit ${power_limit}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W}W during $phase"
   float_gt "$core_temp" "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" \
@@ -210,6 +225,7 @@ consume_stage_notifications() {
       && "$message" == "gx1_attended_preflight_ready_v1:$stage_token" ]]; then
       stage_name=model_smoke
       stage_start_epoch=$(/bin/date +%s)
+      guard_log "event=stage_transition from=data_preflight to=model_smoke preflight_elapsed_seconds=$((stage_start_epoch - start_epoch))"
       printf '[trainer_safety_stage_transition] from=data_preflight to=model_smoke preflight_elapsed_seconds=%s model_max_wall_seconds=%s\n' \
         "$((stage_start_epoch - start_epoch))" \
         "$GX1_TRAINER_MODEL_MAX_WALL_SECONDS" >&2
@@ -225,6 +241,7 @@ terminate_child_group() {
   local reason="$1"
   [[ -n "$child_pid" ]] || return 0
   if /bin/kill -0 "$child_pid" 2>/dev/null; then
+    guard_log "event=stop reason=$reason pid=$child_pid stage=$stage_name"
     printf '[trainer_safety_stop] reason=%s pid=%s\n' "$reason" "$child_pid" >&2
     /bin/kill -TERM -- "-$child_pid" 2>/dev/null || true
     for _ in {1..10}; do
@@ -255,6 +272,7 @@ printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wa
   "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
   "$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
+guard_log "event=start execution_mode=$GX1_TRAINER_EXECUTION_MODE device=$GX1_TRAINER_DEVICE data_preflight_max_wall_seconds=$GX1_TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS max_core_temp_c=$GX1_TRAINER_GPU_MAX_CORE_TEMP_C max_power_limit_w=$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$GX1_TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB"
 if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
   printf '[trainer_safety_attended_only] WSL VRAM telemetry may be literal N/A; this run has no candidate, TEST, promotion, or live authority\n' >&2
 elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_cpu_smoke ]]; then
@@ -337,6 +355,7 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
     if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
       printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s memory_observed=%s power_draw_w=%s power_limit_w=%s memory_used_mib=%s\n' \
         "$stage_name" "$stage_elapsed" "$core_temp" "$memory_temp" "$memory_observed" "$power_draw" "$power_limit" "$memory_used" >&2
+      guard_log "event=heartbeat stage=$stage_name stage_elapsed_seconds=$stage_elapsed core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used"
     else
       printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s device=cpu\n' "$stage_name" "$stage_elapsed" >&2
     fi
@@ -366,4 +385,5 @@ if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
 fi
 cleanup_stage_notification
 trap - EXIT
+guard_log "event=exit child_status=$child_status stage=$stage_name"
 exit "$child_status"
