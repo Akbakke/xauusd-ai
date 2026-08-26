@@ -546,10 +546,10 @@ def test_trainer_guard_rejects_memory_na_for_canonical_cuda(
     assert "CUDA telemetry unavailable during preflight" in result.stderr
 
 
-def test_attended_smoke_keeps_the_actual_draw_ceiling(
+def test_attended_smoke_rejects_draw_above_operator_authorized_ceiling(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 251, 390, 1000")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 391, 390, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -558,7 +558,7 @@ def test_attended_smoke_keeps_the_actual_draw_ceiling(
             nvidia_smi_path=nvidia_smi,
             execution_mode="attended_smoke",
             max_power_limit_w=390,
-            max_power_draw_w=250,
+            max_power_draw_w=390,
         ),
         text=True,
         stdout=subprocess.PIPE,
@@ -568,7 +568,7 @@ def test_attended_smoke_keeps_the_actual_draw_ceiling(
     )
 
     assert result.returncode == 75
-    assert "GPU draw 251W exceeds 250W" in result.stderr
+    assert "GPU draw 391W exceeds 390W" in result.stderr
 
 
 def _sequenced_nvidia_smi(
@@ -794,7 +794,7 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_MAX_WALL_SECONDS=86400" not in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=86400" not in source
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=70" in source
-    assert "TRAINER_GPU_MAX_POWER_DRAW_W=180" in source
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=390" in source
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
         in source

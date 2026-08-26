@@ -152,8 +152,9 @@ assert_safe_telemetry() {
       && die "GPU memory temperature ${memory_temp}C exceeds ${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C}C during $phase"
   fi
   # Both independently observed power conditions are mandatory: canonical
-  # runs require a 250 W configured ceiling, while attended smoke additionally
-  # keeps its stricter 180 W actual-draw stop despite its observed 390 W setting.
+  # runs require a 250 W ceiling; the operator-present attended exception
+  # explicitly permits 390 W while retaining its tighter thermal, VRAM,
+  # telemetry, and staged wall-clock stops.
   float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
     && die "GPU draw ${power_draw}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_DRAW_W}W during $phase"
   (( memory_used > GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB )) \

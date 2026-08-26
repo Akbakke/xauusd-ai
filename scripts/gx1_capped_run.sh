@@ -309,7 +309,10 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   fi
   TRAINER_GPU_MAX_CORE_TEMP_C=70
   TRAINER_GPU_MAX_POWER_LIMIT_W=390
-  TRAINER_GPU_MAX_POWER_DRAW_W=180
+  # The attended 390 W ceiling is an explicit operator-present exception.
+  # It retains the one-second telemetry, 70 C core stop, 12 GiB VRAM stop,
+  # and 600+300 second staged wall-clock limits below.
+  TRAINER_GPU_MAX_POWER_DRAW_W=390
   # WSL/DXG previously approached the 24 GiB device ceiling and then lost
   # residency. Keep a visible 12 GiB stop in addition to the trainer's
   # allocator-level half-device cap; neither is caller configurable.
