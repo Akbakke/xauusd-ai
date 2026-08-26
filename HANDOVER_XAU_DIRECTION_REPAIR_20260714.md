@@ -482,7 +482,11 @@ as the WSL path. The Windows-host `nvidia-smi.exe` was also read-tested from
 WSL on 2026-08-23 and failed with `UtilAcceptVsock` rather than yielding sensor
 data, so it is not a bridge. A later remedy must provide independently
 measurable host-side VRAM telemetry to the guard; fabricated, cached or
-caller-selected readings are forbidden.
+caller-selected readings are forbidden. The required nonce-bound,
+signature-verified admission contract is
+[`docs/CANONICAL_HOST_GPU_TELEMETRY_BRIDGE_CONTRACT.md`](docs/CANONICAL_HOST_GPU_TELEMETRY_BRIDGE_CONTRACT.md);
+it is design-only until a separately authorized host-side implementation is
+installed and verified.
 
 The attended route now has one additional, source-bound **storage-only**
 optimization. It accepts one immutable full-split rolling-identity audit for
