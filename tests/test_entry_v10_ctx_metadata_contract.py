@@ -102,3 +102,12 @@ def test_current_model_and_decision_contract_versions_are_explicit() -> None:
     assert DIRECTION_DECISION_CONTRACT_SCHEMA_VERSION == (
         "gx1_model_direction_decision_v10"
     )
+
+
+def test_bundle_metadata_requires_source_reconstruction_lineage() -> None:
+    """A model bundle cannot omit the TRAIN+VAL source-window proof."""
+
+    with pytest.raises(RuntimeError) as exc_info:
+        bundle._require_exact_model_native_bundle_metadata({}, {})
+    assert "ENTRY_BUNDLE_MODEL_NATIVE_EXACT_METADATA_MISSING" in str(exc_info.value)
+    assert "sequence_source_reconstruction" in str(exc_info.value)

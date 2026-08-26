@@ -357,6 +357,12 @@ def _require_exact_model_native_bundle_metadata(
         "run_lineage",
         "prefreeze_test_seal_lineage",
         "m1_feature_surface_binding",
+        # TRAIN and VAL windows are reconstructed from their immutable M5
+        # feature surfaces. This evidence is not an inference-time model
+        # parameter, but both reconstruction proofs are part of the exact
+        # trained-data lineage and must never differ between metadata and the
+        # transformer lock.
+        "sequence_source_reconstruction",
         "model_architecture_schema_version",
         "model_output_schema_version",
     )
