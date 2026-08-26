@@ -32,8 +32,8 @@ ENV_BIN=/usr/bin/env
 usage() {
   cat <<'EOF'
 Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments]
-       [--attended-smoke --train-sequence-roll-audit-json PATH \
-        --val-sequence-roll-audit-json PATH] (--dry-run|--execute)
+       [--attended-smoke --train-sequence-source-audit-json PATH \
+        --val-sequence-source-audit-json PATH] (--dry-run|--execute)
 
 Required identity and immutable evidence:
   --profile smoke|candidate
@@ -78,8 +78,9 @@ control route. It has a fixed 10-minute data preflight followed by a separate
 five-minute model phase, and is marked in the produced bundle;
 that bundle is rejected by smoke-bundle audit and cannot reach candidate, TEST,
 promotion, paper or live stages.
-Its two sequence-roll proofs authorize only a memory representation for the
-exact TRAIN/VAL inputs; the trainer re-hashes and validates them before use.
+Its two source-reconstruction proofs authorize only a memory representation
+for the exact TRAIN/VAL inputs; the trainer re-hashes and validates them before
+use against the immutable M5 feature surface.
 --research-smoke is intentionally disabled after a WSL/GPU reset during the
 former long-running route. Historical CUDA training requires a separately
 designed low-VRAM, resumable architecture before it may be re-enabled.
@@ -110,7 +111,7 @@ SPECIALIST_AUDIT_JSON= PRETRAIN_AUDIT_JSON= EXECUTION_CAUSALITY_AUDIT_JSON=
 TRAIN_SEQUENCE_INTEGRITY_AUDIT_JSON= VAL_SEQUENCE_INTEGRITY_AUDIT_JSON= RECIPE_AUDIT_JSON=
 SMOKE_MANIFEST_JSON= SMOKE_READINESS_JSON= TRAINABILITY_READINESS_JSON=
 CANDIDATE_READINESS_JSON= SMOKE_BUNDLE_AUDIT_JSON=
-TRAIN_SEQUENCE_ROLL_AUDIT_JSON= VAL_SEQUENCE_ROLL_AUDIT_JSON=
+TRAIN_SEQUENCE_SOURCE_AUDIT_JSON= VAL_SEQUENCE_SOURCE_AUDIT_JSON=
 OUT_BUNDLE_DIR= GX1_DATA_ROOT= DEVICE= SEED= EPOCHS= BATCH_SIZE= LEARNING_RATE=
 EARLY_STOP_PATIENCE= EARLY_STOP_MIN_DELTA= GRAD_CLIP_NORM= WEIGHT_DECAY=
 DROPOUT= MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= CROSS_FAMILY_FUSION_SCALE= SUBSAMPLE_ROWS=
@@ -145,7 +146,7 @@ while [[ $# -gt 0 ]]; do
     --train-sequence-integrity-audit-json|--val-sequence-integrity-audit-json|--recipe-audit-json|\
     --smoke-manifest-json|--smoke-readiness-json|--trainability-readiness-json|\
     --candidate-readiness-json|--smoke-bundle-audit-json|\
-    --train-sequence-roll-audit-json|--val-sequence-roll-audit-json|\
+    --train-sequence-source-audit-json|--val-sequence-source-audit-json|\
     --out-bundle-dir|--gx1-data-root|--device|--seed|--epochs|--batch-size|\
     --learning-rate|--early-stop-patience|--early-stop-min-delta|--grad-clip-norm|\
     --weight-decay|--dropout|--multi-tf-scale|--specialist-fusion-scale|--cross-family-fusion-scale|\
@@ -183,8 +184,8 @@ while [[ $# -gt 0 ]]; do
         --trainability-readiness-json) variable=TRAINABILITY_READINESS_JSON ;;
         --candidate-readiness-json) variable=CANDIDATE_READINESS_JSON ;;
         --smoke-bundle-audit-json) variable=SMOKE_BUNDLE_AUDIT_JSON ;;
-        --train-sequence-roll-audit-json) variable=TRAIN_SEQUENCE_ROLL_AUDIT_JSON ;;
-        --val-sequence-roll-audit-json) variable=VAL_SEQUENCE_ROLL_AUDIT_JSON ;;
+        --train-sequence-source-audit-json) variable=TRAIN_SEQUENCE_SOURCE_AUDIT_JSON ;;
+        --val-sequence-source-audit-json) variable=VAL_SEQUENCE_SOURCE_AUDIT_JSON ;;
         --out-bundle-dir) variable=OUT_BUNDLE_DIR ;;
         --gx1-data-root) variable=GX1_DATA_ROOT ;;
         --device) variable=DEVICE ;;
@@ -230,14 +231,14 @@ case "$PROFILE" in
 esac
 if [[ "$ATTENDED_SMOKE" == true ]]; then
   [[ "$PROFILE" == smoke ]] || die "--attended-smoke is valid only for --profile smoke"
-  for variable in TRAIN_SEQUENCE_ROLL_AUDIT_JSON VAL_SEQUENCE_ROLL_AUDIT_JSON; do
+  for variable in TRAIN_SEQUENCE_SOURCE_AUDIT_JSON VAL_SEQUENCE_SOURCE_AUDIT_JSON; do
     proof_path="${!variable}"
     [[ -n "$proof_path" ]] || die "--attended-smoke requires ${variable,,}"
     [[ "$proof_path" = /* && -f "$proof_path" && ! -L "$proof_path" ]] \
       || die "--attended-smoke requires an absolute regular non-symlink ${variable,,}"
   done
-elif [[ -n "$TRAIN_SEQUENCE_ROLL_AUDIT_JSON" || -n "$VAL_SEQUENCE_ROLL_AUDIT_JSON" ]]; then
-  die "sequence-roll reconstruction proofs are valid only with --attended-smoke"
+elif [[ -n "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON" || -n "$VAL_SEQUENCE_SOURCE_AUDIT_JSON" ]]; then
+  die "sequence-source reconstruction proofs are valid only with --attended-smoke"
 fi
 EXECUTION_TIER=canonical
 if [[ "$ATTENDED_SMOKE" == true ]]; then
@@ -415,8 +416,8 @@ TRAIN_CMD=(
 )
 if [[ "$ATTENDED_SMOKE" == true ]]; then
   TRAIN_CMD+=(
-    --train-sequence-roll-audit-json "$TRAIN_SEQUENCE_ROLL_AUDIT_JSON"
-    --val-sequence-roll-audit-json "$VAL_SEQUENCE_ROLL_AUDIT_JSON"
+    --train-sequence-source-audit-json "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON"
+    --val-sequence-source-audit-json "$VAL_SEQUENCE_SOURCE_AUDIT_JSON"
   )
 fi
 CAPPED_RUN_ARGS=(--class trainer --mem "$MEMORY_CAP" --swap "$SWAP_CAP")

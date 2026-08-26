@@ -583,6 +583,105 @@ def _validate_full_train_inputs(
     return seq, snap, ctx_cont, ctx_cat
 
 
+def _validate_source_backed_train_inputs(
+    *,
+    train_snap: Any,
+    train_ctx_cont: Any,
+    train_ctx_cat: Any,
+    entry_sequence_source: Mapping[str, Any],
+    ordered_signal_names: Sequence[str],
+    temporal_aliases: Sequence[Mapping[str, Any]],
+    row_chunk: int,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    """Validate source-backed Entry windows without materialising ``N×96``.
+
+    The caller has already supplied an immutable full audit proving every
+    stored sequence equals the same source surface.  This function still
+    validates the live backing, source row mapping, snap alias and contextual
+    values before normalization consumes it.
+    """
+
+    if isinstance(row_chunk, bool) or not isinstance(
+        row_chunk, (int, np.integer)
+    ) or int(row_chunk) < 1:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_ROW_CHUNK_INVALID]")
+    if not isinstance(entry_sequence_source, Mapping) or set(entry_sequence_source) != {
+        "signal",
+        "times_ns",
+        "sample_positions",
+    }:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_INVALID]")
+    signal = np.asarray(entry_sequence_source["signal"])
+    source_times = np.asarray(entry_sequence_source["times_ns"])
+    positions = np.asarray(entry_sequence_source["sample_positions"])
+    snap = np.asarray(train_snap)
+    ctx_cont = np.asarray(train_ctx_cont)
+    ctx_cat = np.asarray(train_ctx_cat)
+    names = [str(name) for name in ordered_signal_names]
+    rows = int(snap.shape[0]) if snap.ndim == 2 else -1
+    if (
+        signal.dtype != np.dtype(np.float32)
+        or source_times.dtype != np.dtype(np.int64)
+        or positions.dtype != np.dtype(np.int64)
+        or snap.dtype != np.dtype(np.float32)
+        or ctx_cont.dtype != np.dtype(np.float32)
+        or not np.issubdtype(ctx_cat.dtype, np.integer)
+        or signal.ndim != 2
+        or signal.shape[1] != MODEL_NATIVE_SIGNAL_DIM
+        or source_times.shape != (signal.shape[0],)
+        or positions.shape != (rows,)
+        or snap.shape != (rows, MODEL_NATIVE_SIGNAL_DIM)
+        or ctx_cont.shape != (rows, len(MODEL_NATIVE_CTX_CONT_FIELDS))
+        or ctx_cat.shape != (rows, len(MODEL_NATIVE_CTX_CAT_FIELDS))
+        or rows < 2
+        or np.any(np.diff(source_times) <= 0)
+        or np.any(positions < MODEL_NATIVE_SEQ_LEN - 1)
+        or np.any(positions >= signal.shape[0])
+        or np.any(np.diff(positions) <= 0)
+        or names != list(dict.fromkeys(names))
+        or len(names) != MODEL_NATIVE_SIGNAL_DIM
+    ):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_INVALID]")
+    alias_signal_indices = np.asarray(
+        [int(alias["signal_index"]) for alias in temporal_aliases],
+        dtype=np.int64,
+    )
+    alias_ctx_indices = np.asarray(
+        [int(alias["ctx_cont_index"]) for alias in temporal_aliases],
+        dtype=np.int64,
+    )
+    for start in range(0, rows, int(row_chunk)):
+        stop = min(rows, start + int(row_chunk))
+        selected = positions[start:stop]
+        snap_block = snap[start:stop]
+        ctx_block = ctx_cont[start:stop]
+        if (
+            not np.isfinite(signal[selected]).all()
+            or not np.isfinite(snap_block).all()
+            or not np.isfinite(ctx_block).all()
+            or not np.array_equal(signal[selected], snap_block)
+            or (
+                alias_signal_indices.size
+                and not np.array_equal(
+                    snap_block[:, alias_signal_indices],
+                    ctx_block[:, alias_ctx_indices],
+                )
+            )
+        ):
+            raise RuntimeError(
+                "[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_VALUE_INVALID] "
+                f"rows={start}:{stop}"
+            )
+    return signal, source_times, positions, snap, ctx_cont, ctx_cat
+
+
 def _load_entry_m5_source_times(path: Path) -> np.ndarray:
     try:
         frame = pd.read_parquet(path, columns=["time"])
@@ -783,6 +882,97 @@ def _select_entry_local_population(
     }
     proof["selection_proof_sha256"] = _canonical_sha256(proof)
     return parts, proof
+
+
+def _select_entry_local_population_from_source(
+    *,
+    source_signal: np.ndarray,
+    source_times_ns: np.ndarray,
+    source_positions: np.ndarray,
+    train_times_ns: np.ndarray,
+    signal_names: Sequence[str],
+) -> tuple[list[MatrixPopulationPart], dict[str, Any]]:
+    """Select the Entry-local TRAIN population from its physical M5 source."""
+
+    positions = np.asarray(source_positions, dtype=np.int64)
+    source_times = np.asarray(source_times_ns, dtype=np.int64)
+    signal = np.asarray(source_signal)
+    if (
+        signal.dtype != np.dtype(np.float32)
+        or signal.ndim != 2
+        or signal.shape[1] != MODEL_NATIVE_SIGNAL_DIM
+        or source_times.shape != (signal.shape[0],)
+        or positions.shape != train_times_ns.shape
+        or np.any(positions < MODEL_NATIVE_SEQ_LEN - 1)
+        or np.any(positions >= signal.shape[0])
+        or np.any(np.diff(positions) <= 0)
+        or not np.array_equal(source_times[positions], train_times_ns)
+    ):
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_ENTRY_SOURCE_POINTER_INVALID]"
+        )
+    left_edges = positions - MODEL_NATIVE_SEQ_LEN + 1
+    merged_intervals: list[tuple[int, int]] = []
+    covered_right = -1
+    for left, right in zip(left_edges.tolist(), positions.tolist()):
+        new_left = max(int(left), covered_right + 1)
+        if new_left <= int(right):
+            if not merged_intervals or new_left > merged_intervals[-1][1]:
+                merged_intervals.append((new_left, int(right) + 1))
+            else:
+                merged_intervals[-1] = (
+                    merged_intervals[-1][0],
+                    max(merged_intervals[-1][1], int(right) + 1),
+                )
+        covered_right = int(right)
+    selected_count = sum(right - left for left, right in merged_intervals)
+    selected_indices = np.empty(selected_count, dtype=np.int64)
+    offset = 0
+    for left, right in merged_intervals:
+        count = right - left
+        selected_indices[offset : offset + count] = np.arange(
+            left, right, dtype=np.int64
+        )
+        offset += count
+    if (
+        offset != selected_count
+        or selected_indices.size < MODEL_NATIVE_SEQ_LEN
+        or np.any(np.diff(selected_indices) <= 0)
+    ):
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_ENTRY_SOURCE_POPULATION_INVALID]"
+        )
+    digest = hashlib.sha256()
+    digest.update(b"entry_exit_shared_local_entry_m5_rows_v1\0")
+    digest.update(bytes.fromhex(_field_names_sha256(signal_names)))
+    _update_physical_rows_hash(
+        digest,
+        physical_indices=selected_indices,
+        timestamps_ns=source_times[selected_indices],
+        values=signal[selected_indices],
+    )
+    proof = {
+        "route": "entry_m5_local",
+        "selection": "union_of_entry_train_windows_each_physical_m5_row_once",
+        "sequence_bars": MODEL_NATIVE_SEQ_LEN,
+        "decision_row_count": int(train_times_ns.size),
+        "selected_unique_row_count": int(selected_indices.size),
+        "selected_row_indices_sha256": _hash_int64_indices(
+            selected_indices,
+            namespace="entry_local_m5_rows",
+        ),
+        "selected_row_values_sha256": digest.hexdigest(),
+        "time_min_utc": _timestamp_iso_utc(source_times[selected_indices[0]]),
+        "time_max_utc": _timestamp_iso_utc(source_times[selected_indices[-1]]),
+    }
+    proof["selection_proof_sha256"] = _canonical_sha256(proof)
+    return [
+        MatrixPopulationPart(
+            signal,
+            row_indices=selected_indices,
+            source="entry_m5_feature_surface_source_backed",
+        )
+    ], proof
 
 
 def _hash_selected_surface_rows(
@@ -1361,6 +1551,7 @@ def fit_entry_v10_train_input_normalization(
     artifacts: TrainNormalizationArtifacts,
     prevalidated_multi_tf_cache: MultiTFV4DiskCache | None = None,
     row_chunk: int = DEFAULT_ROW_CHUNK,
+    entry_sequence_source: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Fit and bind the exact full-TRAIN model-native input transform.
 
@@ -1387,15 +1578,37 @@ def fit_entry_v10_train_input_normalization(
             "[ENTRY_INPUT_NORMALIZATION_MTF_SEQ_LENS_INVALID]"
         )
     aliases = _derive_temporal_aliases(signal_names)
-    seq, snap, ctx_cont, ctx_cat = _validate_full_train_inputs(
-        train_seq=train_seq,
-        train_snap=train_snap,
-        train_ctx_cont=train_ctx_cont,
-        train_ctx_cat=train_ctx_cat,
-        ordered_signal_names=signal_names,
-        temporal_aliases=aliases,
-        row_chunk=row_chunk,
-    )
+    source_signal: np.ndarray | None = None
+    source_times_ns: np.ndarray | None = None
+    source_positions: np.ndarray | None = None
+    if entry_sequence_source is None:
+        seq, snap, ctx_cont, ctx_cat = _validate_full_train_inputs(
+            train_seq=train_seq,
+            train_snap=train_snap,
+            train_ctx_cont=train_ctx_cont,
+            train_ctx_cat=train_ctx_cat,
+            ordered_signal_names=signal_names,
+            temporal_aliases=aliases,
+            row_chunk=row_chunk,
+        )
+    else:
+        (
+            source_signal,
+            source_times_ns,
+            source_positions,
+            snap,
+            ctx_cont,
+            ctx_cat,
+        ) = _validate_source_backed_train_inputs(
+            train_snap=train_snap,
+            train_ctx_cont=train_ctx_cont,
+            train_ctx_cat=train_ctx_cat,
+            entry_sequence_source=entry_sequence_source,
+            ordered_signal_names=signal_names,
+            temporal_aliases=aliases,
+            row_chunk=row_chunk,
+        )
+        seq = None
     train_times_ns = _as_utc_train_times_ns(
         train_times, expected_rows=int(snap.shape[0])
     )
@@ -1429,16 +1642,35 @@ def fit_entry_v10_train_input_normalization(
         train_exit_lifecycle,
         temporal_aliases=aliases,
     )
-    m5_source_times_ns = _load_entry_m5_source_times(
-        Path(base_lineage["m5_prebuilt_path"])
-    )
-    entry_local_parts, entry_local_proof = _select_entry_local_population(
-        train_seq=seq,
-        train_snap=snap,
-        train_times_ns=train_times_ns,
-        m5_source_times_ns=m5_source_times_ns,
-        signal_names=signal_names,
-    )
+    if entry_sequence_source is None:
+        if seq is None:
+            raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SEQUENCE_BACKING_MISSING]")
+        m5_source_times_ns = _load_entry_m5_source_times(
+            Path(base_lineage["m5_prebuilt_path"])
+        )
+        entry_local_parts, entry_local_proof = _select_entry_local_population(
+            train_seq=seq,
+            train_snap=snap,
+            train_times_ns=train_times_ns,
+            m5_source_times_ns=m5_source_times_ns,
+            signal_names=signal_names,
+        )
+    else:
+        if (
+            source_signal is None
+            or source_times_ns is None
+            or source_positions is None
+        ):
+            raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_MISSING]")
+        entry_local_parts, entry_local_proof = (
+            _select_entry_local_population_from_source(
+                source_signal=source_signal,
+                source_times_ns=source_times_ns,
+                source_positions=source_positions,
+                train_times_ns=train_times_ns,
+                signal_names=signal_names,
+            )
+        )
     exit_local_indices = exit_population["local_row_indices"]
     exit_current_indices = exit_population["current_row_indices"]
     exit_source_times_ns = exit_population["source_times_ns"]

@@ -165,6 +165,10 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
     current_entry_exit_architecture_observation,
     require_entry_exit_production_architecture,
 )
+from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
+    feature_surface_binding_from_split_manifest,
+    require_sequence_source_reconstruction_audit,
+)
 from gx1.models.entry_v10.entry_v10_input_normalization import (
     TrainNormalizationArtifacts,
     fit_entry_v10_train_input_normalization,
@@ -1476,6 +1480,188 @@ _SEQUENCE_ROLL_AUDIT_AUTHORITY = {
     "paper": False,
     "live": False,
 }
+_SEQUENCE_SOURCE_SURFACE_CACHE: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+
+
+def _sequence_source_exact_regular_file(raw: Path, *, label: str) -> Path:
+    """Resolve one immutable source-reconstruction input without indirection."""
+
+    supplied = Path(raw).expanduser()
+    if (
+        not supplied.is_absolute()
+        or supplied.is_symlink()
+        or any(parent.is_symlink() for parent in supplied.parents)
+    ):
+        raise RuntimeError(
+            f"[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_{label}_PATH_INVALID]"
+        )
+    try:
+        resolved = supplied.resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError(
+            f"[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_{label}_PATH_INVALID]"
+        ) from exc
+    if resolved != supplied or not resolved.is_file():
+        raise RuntimeError(
+            f"[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_{label}_PATH_INVALID]"
+        )
+    return resolved
+
+
+def _load_sequence_source_surface(
+    surface_path: Path,
+    *,
+    expected_rows: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Read the exact M5 signal surface in bounded Arrow batches.
+
+    Unlike the legacy emitted-row roll shortcut this backing is the real M5
+    event timeline.  It stays below one gigabyte and is shared logically by
+    every filtered supervised row, avoiding a 20+ GiB scratch ``seq`` mirror.
+    """
+
+    cache_key = str(surface_path)
+    cached = _SEQUENCE_SOURCE_SURFACE_CACHE.get(cache_key)
+    if cached is not None:
+        cached_times, cached_signal = cached
+        if (
+            cached_times.shape == (int(expected_rows),)
+            and cached_signal.shape
+            == (int(expected_rows), MODEL_NATIVE_SIGNAL_DIM)
+        ):
+            return cached
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_CACHE_INVALID]"
+        )
+
+    import pyarrow.parquet as pq
+
+    try:
+        feature_surface = pq.ParquetFile(surface_path)
+    except Exception as exc:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_OPEN_INVALID]"
+        ) from exc
+    if tuple(feature_surface.schema_arrow.names) != (
+        "time",
+        "signal",
+        "ctx_cont",
+        "ctx_cat",
+    ):
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SCHEMA_INVALID]"
+        )
+    rows = int(feature_surface.metadata.num_rows)
+    if rows != int(expected_rows) or rows < MODEL_NATIVE_SEQ_LEN:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_ROWS_INVALID]"
+        )
+    try:
+        table = feature_surface.read(columns=["time"]).combine_chunks()
+        times = table.column("time").to_numpy(zero_copy_only=False)
+        times = times.astype("datetime64[ns]").astype(np.int64, copy=False)
+    except Exception as exc:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_TIME_INVALID]"
+        ) from exc
+    if (
+        times.shape != (rows,)
+        or np.any(times == np.iinfo(np.int64).min)
+        or np.any(np.diff(times) <= 0)
+        or np.any(np.diff(times) % (ENTRY_DECISION_BAR_SECONDS * 1_000_000_000))
+    ):
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_TIME_INVALID]"
+        )
+    signal_surface = np.empty((rows, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
+    offset = 0
+    try:
+        batches = feature_surface.iter_batches(
+            batch_size=_NESTED_ARROW_BATCH_ROWS,
+            columns=["signal"],
+            use_threads=False,
+        )
+        for batch in batches:
+            count = int(batch.num_rows)
+            values = batch.column("signal")
+            if not hasattr(values, "values"):
+                raise RuntimeError("signal values missing")
+            flat = values.values.to_numpy(zero_copy_only=False)
+            if flat.shape != (count * MODEL_NATIVE_SIGNAL_DIM,):
+                raise RuntimeError("signal width invalid")
+            decoded = np.asarray(flat, dtype=np.float32).reshape(
+                count, MODEL_NATIVE_SIGNAL_DIM
+            )
+            if not np.isfinite(decoded).all():
+                raise RuntimeError("signal nonfinite")
+            signal_surface[offset : offset + count] = decoded
+            offset += count
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_INVALID]"
+        ) from exc
+    except Exception as exc:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_INVALID]"
+        ) from exc
+    if offset != rows:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_ROW_COUNT_MISMATCH]"
+        )
+    _SEQUENCE_SOURCE_SURFACE_CACHE[cache_key] = (times, signal_surface)
+    return times, signal_surface
+
+
+def _require_sequence_source_reconstruction(
+    audit_path: Path,
+    *,
+    parquet_path: Path,
+    manifest_path: Path,
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
+    """Authorize one source-backed sequence view and load its exact surface."""
+
+    audit_path = _sequence_source_exact_regular_file(audit_path, label="AUDIT")
+    parquet_path = _sequence_source_exact_regular_file(parquet_path, label="PARQUET")
+    manifest_path = _sequence_source_exact_regular_file(manifest_path, label="MANIFEST")
+    audit = _sequence_roll_read_json_object(audit_path)
+    manifest = _sequence_roll_read_json_object(manifest_path)
+    feature_surface = feature_surface_binding_from_split_manifest(manifest)
+    source_path = _sequence_source_exact_regular_file(
+        Path(feature_surface["path"]), label="FEATURE_SURFACE"
+    )
+    source_manifest_path = _sequence_source_exact_regular_file(
+        Path(feature_surface["manifest_path"]), label="FEATURE_SURFACE_MANIFEST"
+    )
+    import pyarrow.parquet as pq
+
+    rows = int(pq.ParquetFile(parquet_path).metadata.num_rows)
+    try:
+        require_sequence_source_reconstruction_audit(
+            audit,
+            expected_parquet_path=parquet_path,
+            expected_manifest_path=manifest_path,
+            expected_parquet_sha256=_sha256_file(parquet_path),
+            expected_manifest_sha256=_sha256_file(manifest_path),
+            expected_feature_surface=manifest,
+            expected_rows=rows,
+            expected_seq_len=MODEL_NATIVE_SEQ_LEN,
+            expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_INVALID] {exc}"
+        ) from exc
+    if (
+        _sha256_file(source_path) != feature_surface["sha256"]
+        or _sha256_file(source_manifest_path) != feature_surface["manifest_sha256"]
+    ):
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_SOURCE_BINDING_INVALID]"
+        )
+    source_times, source_signal = _load_sequence_source_surface(
+        source_path, expected_rows=int(feature_surface["rows"])
+    )
+    return dict(audit), source_times, source_signal
 
 
 def _sequence_roll_exact_regular_file(raw: Path, *, label: str) -> Path:
@@ -2680,6 +2866,11 @@ def _deterministic_liveness_storage_indices(
         num=rows,
         dtype=np.int64,
     )
+    if bool(getattr(dataset, "_sequence_source_reconstructed", False)):
+        # Source-backed windows have no N×96 materialised array.  Return the
+        # immutable split row ids; the caller resolves each via the source
+        # surface and separately maps snap/context storage if compacted.
+        return selected_rows[dataset_offsets]
     compact_rows = getattr(dataset, "_compact_row_indices", None)
     if compact_rows is None:
         storage_indices = selected_rows[dataset_offsets]
@@ -2723,6 +2914,7 @@ class EntryV10CtxDataset(Dataset):
         per_tf_seq_lens: Dict[str, int],
         multi_tf_closed_bar: bool,
         sequence_roll_audit_json: Optional[Path] = None,
+        sequence_source_audit_json: Optional[Path] = None,
     ):
         architecture = current_entry_exit_architecture_observation()
         architecture["entry"]["sequence_bars"] = seq_len
@@ -2775,6 +2967,11 @@ class EntryV10CtxDataset(Dataset):
         self._sequence_reconstruction_chain: Optional[np.ndarray] = None
         self._sequence_roll_reconstructed = False
         self._sequence_roll_audit: Optional[dict[str, Any]] = None
+        self._sequence_source_reconstructed = False
+        self._sequence_source_audit: Optional[dict[str, Any]] = None
+        self._sequence_source_times_ns: Optional[np.ndarray] = None
+        self._sequence_source_signal: Optional[np.ndarray] = None
+        self._sequence_source_positions: Optional[np.ndarray] = None
         # When a bounded smoke uses a uniform subset, this maps the compact
         # in-memory rows back to their original immutable parquet row ids.  The
         # full dataset/lifecycle row space remains authoritative; this is only
@@ -2786,6 +2983,10 @@ class EntryV10CtxDataset(Dataset):
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
+        if sequence_roll_audit_json is not None and sequence_source_audit_json is not None:
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_RECONSTRUCTION_PROOF_MODE_AMBIGUOUS]"
+            )
         sequence_roll_audit: Optional[dict[str, Any]] = None
         if sequence_roll_audit_json is not None:
             sequence_roll_audit = _require_sequence_roll_audit(
@@ -2794,6 +2995,19 @@ class EntryV10CtxDataset(Dataset):
                 manifest_path=self.parquet_path.with_suffix(".manifest.json"),
             )
             self._sequence_roll_audit = dict(sequence_roll_audit)
+        sequence_source_audit: Optional[dict[str, Any]] = None
+        if sequence_source_audit_json is not None:
+            (
+                sequence_source_audit,
+                self._sequence_source_times_ns,
+                self._sequence_source_signal,
+            ) = _require_sequence_source_reconstruction(
+                Path(sequence_source_audit_json),
+                parquet_path=self.parquet_path,
+                manifest_path=self.parquet_path.with_suffix(".manifest.json"),
+            )
+            self._sequence_source_audit = dict(sequence_source_audit)
+            self._sequence_source_reconstructed = True
         signal_contract = _signal_contract_from_manifest_path(
             self.parquet_path.with_suffix(".manifest.json")
         )
@@ -2889,9 +3103,23 @@ class EntryV10CtxDataset(Dataset):
             pf = pq.ParquetFile(self.parquet_path)
             n_rows = int(pf.metadata.num_rows)
             # Probe one batch to learn dims
-            first_batch = next(pf.iter_batches(batch_size=64, columns=["seq", "snap", "ctx_cont", "ctx_cat"]))
-            seq_dim = int(first_batch.column("seq")[0].values[0].values.__len__())
-            seq_len = int(first_batch.column("seq")[0].values.__len__())
+            source_reconstruction = sequence_source_audit is not None
+            first_batch = next(
+                pf.iter_batches(
+                    batch_size=64,
+                    columns=(
+                        ["snap", "ctx_cont", "ctx_cat"]
+                        if source_reconstruction
+                        else ["seq", "snap", "ctx_cont", "ctx_cat"]
+                    ),
+                )
+            )
+            if source_reconstruction:
+                seq_dim = int(first_batch.column("snap")[0].values.__len__())
+                seq_len = self.seq_len
+            else:
+                seq_dim = int(first_batch.column("seq")[0].values[0].values.__len__())
+                seq_len = int(first_batch.column("seq")[0].values.__len__())
             snap_dim = int(first_batch.column("snap")[0].values.__len__())
             ctx_cont_dim = int(first_batch.column("ctx_cont")[0].values.__len__())
             ctx_cat_dim = int(first_batch.column("ctx_cat")[0].values.__len__())
@@ -2939,18 +3167,25 @@ class EntryV10CtxDataset(Dataset):
             # 26GB regenerable memmap mirror. Candidate/full paths provide no
             # audit and stay on the existing materialised branch.
             reconstruct_sequence_from_snapshots = sequence_roll_audit is not None
+            # The source-reconstruction proof is stronger for causally
+            # filtered rows: it binds every stored window to the immutable M5
+            # feature surface rather than pretending emitted labels are an
+            # uninterrupted bar stream.
             use_memmap = (
                 nested_bytes >= _MEMMAP_MIN_BYTES
                 and not reconstruct_sequence_from_snapshots
+                and not source_reconstruction
             )
-            first_sequence = (
-                first_batch.column("seq")[0]
-                .values
-                .flatten()
-                .to_numpy(zero_copy_only=False)
-                .reshape(seq_len, seq_dim)
-                .astype(np.float32, copy=False)
-            )
+            first_sequence: Optional[np.ndarray] = None
+            if not source_reconstruction:
+                first_sequence = (
+                    first_batch.column("seq")[0]
+                    .values
+                    .flatten()
+                    .to_numpy(zero_copy_only=False)
+                    .reshape(seq_len, seq_dim)
+                    .astype(np.float32, copy=False)
+                )
             if use_memmap:
                 memmap_root = _MEMMAP_ROOT
                 memmap_root.mkdir(parents=True, exist_ok=True)
@@ -2974,7 +3209,13 @@ class EntryV10CtxDataset(Dataset):
                     memmap_dir,
                 )
             else:
-                if reconstruct_sequence_from_snapshots:
+                if source_reconstruction:
+                    self._np_seq = None
+                elif reconstruct_sequence_from_snapshots:
+                    if first_sequence is None:
+                        raise RuntimeError(
+                            "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_FIRST_WINDOW_MISSING]"
+                        )
                     chain = np.empty(
                         (n_rows + seq_len - 1, seq_dim), dtype=np.float32
                     )
@@ -2997,12 +3238,12 @@ class EntryV10CtxDataset(Dataset):
                 batch_size=_NESTED_ARROW_BATCH_ROWS,
                 columns=(
                     ["snap", "ctx_cont", "ctx_cat"]
-                    if reconstruct_sequence_from_snapshots
+                    if (reconstruct_sequence_from_snapshots or source_reconstruction)
                     else ["seq", "snap", "ctx_cont", "ctx_cat"]
                 ),
             ):
                 nb = batch.num_rows
-                if not reconstruct_sequence_from_snapshots:
+                if not (reconstruct_sequence_from_snapshots or source_reconstruction):
                     self._np_seq[idx:idx+nb] = batch.column("seq").flatten().flatten().to_numpy(
                         zero_copy_only=False).reshape(nb, seq_len, seq_dim).astype(np.float32, copy=False)
                 self._np_snap[idx:idx+nb] = batch.column("snap").flatten().to_numpy(
@@ -3024,6 +3265,10 @@ class EntryV10CtxDataset(Dataset):
             if use_memmap:
                 _flush_memmap_pages(self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
             if reconstruct_sequence_from_snapshots:
+                if first_sequence is None:
+                    raise RuntimeError(
+                        "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_FIRST_WINDOW_MISSING]"
+                    )
                 if not np.array_equal(self._np_seq[0], first_sequence):
                     raise RuntimeError(
                         "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_FIRST_WINDOW_MISMATCH]"
@@ -3038,6 +3283,52 @@ class EntryV10CtxDataset(Dataset):
                     * np.dtype(np.float32).itemsize
                     / 1e9,
                 )
+            if source_reconstruction:
+                if (
+                    self._sequence_source_times_ns is None
+                    or self._sequence_source_signal is None
+                ):
+                    raise RuntimeError(
+                        "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_BACKING_MISSING]"
+                    )
+                # Arrow/Pandas can retain the physical Parquet resolution
+                # (for example ``datetime64[ms, UTC]``).  Casting that Series
+                # directly to int64 would then produce milliseconds, while the
+                # immutable feature surface is explicitly nanoseconds.
+                sample_times_ns = (
+                    df["time"]
+                    .to_numpy(dtype="datetime64[ns]")
+                    .astype(np.int64, copy=False)
+                )
+                positions = np.searchsorted(
+                    self._sequence_source_times_ns, sample_times_ns
+                ).astype(np.int64, copy=False)
+                if (
+                    np.any(positions < self.seq_len - 1)
+                    or np.any(positions >= len(self._sequence_source_times_ns))
+                    or not np.array_equal(
+                        self._sequence_source_times_ns[positions], sample_times_ns
+                    )
+                    or not np.array_equal(
+                        self._np_snap,
+                        self._sequence_source_signal[positions],
+                    )
+                ):
+                    raise RuntimeError(
+                        "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_RUNTIME_BINDING_INVALID]"
+                    )
+                self._sequence_source_positions = positions
+                log.info(
+                    "[SEQUENCE_SOURCE_RECONSTRUCTION] audit=%s rows=%d "
+                    "source_rows=%d source_bytes=%.2f MB avoided_sequence_memmap_bytes=%.2f GB",
+                    sequence_source_audit_json,
+                    n_rows,
+                    int(len(self._sequence_source_times_ns)),
+                    self._sequence_source_signal.nbytes / 1e6,
+                    np.prod(seq_shape, dtype=np.int64)
+                    * np.dtype(np.float32).itemsize
+                    / 1e9,
+                )
             if reconstruct_sequence_from_snapshots:
                 log.info(
                     "[MEM_FIX] rolling seq view built: logical_shape=%s "
@@ -3046,7 +3337,7 @@ class EntryV10CtxDataset(Dataset):
                     self._np_seq.nbytes / 1e9,
                     self._sequence_reconstruction_chain.nbytes / 1e6,
                 )
-            else:
+            elif not source_reconstruction:
                 log.info(
                     "[MEM_FIX] arrays built: seq=%s (%.2f GB)",
                     self._np_seq.shape,
@@ -3319,6 +3610,65 @@ class EntryV10CtxDataset(Dataset):
     def __len__(self) -> int:
         return len(self.indices)
 
+    def _storage_position_for_full_row(self, row_index: int) -> int:
+        """Map one immutable split row to its current snap/context backing."""
+
+        row = int(row_index)
+        if row < 0 or row >= len(self.df):
+            raise RuntimeError("[ENTRY_V10_CTX_STORAGE_ROW_OOB]")
+        if self._compact_row_indices is None:
+            return row
+        storage_position = int(np.searchsorted(self._compact_row_indices, row))
+        if (
+            storage_position >= len(self._compact_row_indices)
+            or int(self._compact_row_indices[storage_position]) != row
+        ):
+            raise RuntimeError("[ENTRY_V10_CTX_COMPACT_ROW_LOOKUP_MISMATCH]")
+        return storage_position
+
+    def sequence_for_full_row(self, row_index: int) -> np.ndarray:
+        """Return one exact Entry history without materialising all windows."""
+
+        row = int(row_index)
+        if self._sequence_source_reconstructed:
+            if (
+                self._sequence_source_signal is None
+                or self._sequence_source_positions is None
+            ):
+                raise RuntimeError(
+                    "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_BACKING_MISSING]"
+                )
+            position = int(self._sequence_source_positions[row])
+            sequence = self._sequence_source_signal[
+                position - self.seq_len + 1 : position + 1
+            ]
+        else:
+            storage_position = self._storage_position_for_full_row(row)
+            sequence = self._np_seq[storage_position]
+        if sequence.shape != (self.seq_len, self.seq_input_dim):
+            raise RuntimeError("[ENTRY_V10_CTX_SEQUENCE_SOURCE_SHAPE_INVALID]")
+        return sequence
+
+    def source_reconstruction_normalization_input(self) -> Optional[dict[str, np.ndarray]]:
+        """Expose the exact source representation to TRAIN-only normalization."""
+
+        if not self._sequence_source_reconstructed:
+            return None
+        if (
+            self._sequence_source_signal is None
+            or self._sequence_source_times_ns is None
+            or self._sequence_source_positions is None
+            or self._compact_row_indices is not None
+        ):
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_NORMALIZATION_BACKING_INVALID]"
+            )
+        return {
+            "signal": self._sequence_source_signal,
+            "times_ns": self._sequence_source_times_ns,
+            "sample_positions": self._sequence_source_positions,
+        }
+
     def compact_materialized_rows(self, row_indices: Sequence[int]) -> None:
         """Release the full nested-array backing after a bounded smoke sample.
 
@@ -3361,12 +3711,23 @@ class EntryV10CtxDataset(Dataset):
             self._np_ctx_cont,
             self._np_ctx_cat,
         )
-        compact_arrays = (
-            np.ascontiguousarray(self._np_seq[observed], dtype=np.float32),
-            np.ascontiguousarray(self._np_snap[observed], dtype=np.float32),
-            np.ascontiguousarray(self._np_ctx_cont[observed], dtype=np.float32),
-            np.ascontiguousarray(self._np_ctx_cat[observed], dtype=np.int64),
-        )
+        if self._sequence_source_reconstructed:
+            # Keep the compact smoke's sequence view source-backed. Copying
+            # 10k windows here would recreate a near-gigabyte duplicate just
+            # after the full byte-identical audit allowed us to avoid it.
+            compact_arrays = (
+                None,
+                np.ascontiguousarray(self._np_snap[observed], dtype=np.float32),
+                np.ascontiguousarray(self._np_ctx_cont[observed], dtype=np.float32),
+                np.ascontiguousarray(self._np_ctx_cat[observed], dtype=np.int64),
+            )
+        else:
+            compact_arrays = (
+                np.ascontiguousarray(self._np_seq[observed], dtype=np.float32),
+                np.ascontiguousarray(self._np_snap[observed], dtype=np.float32),
+                np.ascontiguousarray(self._np_ctx_cont[observed], dtype=np.float32),
+                np.ascontiguousarray(self._np_ctx_cat[observed], dtype=np.int64),
+            )
         for array in old_arrays:
             if isinstance(array, np.memmap):
                 array.flush()
@@ -3396,7 +3757,7 @@ class EntryV10CtxDataset(Dataset):
             "[MEM_COMPACT] smoke_rows=%d original_rows=%d retained_nested_bytes=%.2f MB",
             int(observed.size),
             int(len(self.df)),
-            sum(int(array.nbytes) for array in compact_arrays) / 1e6,
+            sum(int(array.nbytes) for array in compact_arrays if array is not None) / 1e6,
         )
 
     def bind_unified_exit_lifecycle(
@@ -3425,19 +3786,8 @@ class EntryV10CtxDataset(Dataset):
             row = self.df.iloc[t]
             # V12.2: nested cols were pre-converted to np arrays in __init__;
             # __getitem__ now just slices for speed + memory efficiency.
-            storage_position = t
-            if self._compact_row_indices is not None:
-                storage_position = int(
-                    np.searchsorted(self._compact_row_indices, t)
-                )
-                if (
-                    storage_position >= len(self._compact_row_indices)
-                    or int(self._compact_row_indices[storage_position]) != t
-                ):
-                    raise RuntimeError(
-                        "[ENTRY_V10_CTX_COMPACT_ROW_LOOKUP_MISMATCH]"
-                    )
-            seq = self._np_seq[storage_position]
+            storage_position = self._storage_position_for_full_row(t)
+            seq = self.sequence_for_full_row(t)
             snap = self._np_snap[storage_position]
             ctx_cont = self._np_ctx_cont[storage_position]
             ctx_cat = self._np_ctx_cat[storage_position]
@@ -7531,6 +7881,8 @@ def run_train(
     execution_tier: str = "canonical",
     train_sequence_roll_audit_json: Optional[Path] = None,
     val_sequence_roll_audit_json: Optional[Path] = None,
+    train_sequence_source_audit_json: Optional[Path] = None,
+    val_sequence_source_audit_json: Optional[Path] = None,
 ) -> None:
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = seq_len
@@ -7572,18 +7924,25 @@ def run_train(
             "requires CUDA, batch_size=8, epochs=1 and grad_accum_steps=1"
         )
     reconstruction_audits = (
-        train_sequence_roll_audit_json,
-        val_sequence_roll_audit_json,
+        train_sequence_source_audit_json,
+        val_sequence_source_audit_json,
     )
     if execution_tier == "attended_only":
         if any(value is None for value in reconstruction_audits):
             raise RuntimeError(
-                "[ENTRY_TRAIN_ATTENDED_SEQUENCE_ROLL_PROOFS_REQUIRED] "
+                "[ENTRY_TRAIN_ATTENDED_SEQUENCE_SOURCE_PROOFS_REQUIRED] "
                 "both TRAIN and VAL proofs are required"
             )
     elif any(value is not None for value in reconstruction_audits):
         raise RuntimeError(
-            "[ENTRY_TRAIN_SEQUENCE_ROLL_RECONSTRUCTION_CANONICAL_FORBIDDEN]"
+            "[ENTRY_TRAIN_SEQUENCE_SOURCE_RECONSTRUCTION_CANONICAL_FORBIDDEN]"
+        )
+    if any(value is not None for value in (
+        train_sequence_roll_audit_json,
+        val_sequence_roll_audit_json,
+    )):
+        raise RuntimeError(
+            "[ENTRY_TRAIN_SEQUENCE_ROLL_RECONSTRUCTION_RETIRED]"
         )
     if profile == "candidate" and int(subsample_rows) != 0:
         raise RuntimeError(
@@ -7755,7 +8114,7 @@ def run_train(
         m5_prebuilt_path=m5_prebuilt_path,
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
-        sequence_roll_audit_json=train_sequence_roll_audit_json,
+        sequence_source_audit_json=train_sequence_source_audit_json,
     )
     physical_train_rows = int(len(train_ds))
     # Bind the immutable TRAIN lifecycle before normalization so the shared
@@ -7784,6 +8143,9 @@ def run_train(
             mtf_cache_dir=mtf_cache_dir,
         ),
         prevalidated_multi_tf_cache=multi_tf_features,
+        entry_sequence_source=(
+            train_ds.source_reconstruction_normalization_input()
+        ),
     )
     input_normalization = normalization_fit["normalization_contract"]
     input_normalization_fit_population_proof = normalization_fit[
@@ -7824,24 +8186,24 @@ def run_train(
         m5_prebuilt_path=m5_prebuilt_path,
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
-        sequence_roll_audit_json=val_sequence_roll_audit_json,
+        sequence_source_audit_json=val_sequence_source_audit_json,
     )
     val_ds.bind_unified_exit_lifecycle(
         unified_exit_lifecycle.splits["val"]
     )
-    sequence_roll_reconstruction_evidence: Optional[dict[str, Any]] = None
+    sequence_source_reconstruction_evidence: Optional[dict[str, Any]] = None
     if execution_tier == "attended_only":
         if (
-            not train_ds._sequence_roll_reconstructed
-            or not val_ds._sequence_roll_reconstructed
-            or train_ds._sequence_roll_audit is None
-            or val_ds._sequence_roll_audit is None
+            not train_ds._sequence_source_reconstructed
+            or not val_ds._sequence_source_reconstructed
+            or train_ds._sequence_source_audit is None
+            or val_ds._sequence_source_audit is None
         ):
             raise RuntimeError(
-                "[ENTRY_TRAIN_ATTENDED_SEQUENCE_ROLL_RECONSTRUCTION_MISSING]"
+                "[ENTRY_TRAIN_ATTENDED_SEQUENCE_SOURCE_RECONSTRUCTION_MISSING]"
             )
-        sequence_roll_reconstruction_evidence = {
-            "schema_version": "entry_model_native_sequence_roll_reconstruction_v1",
+        sequence_source_reconstruction_evidence = {
+            "schema_version": "entry_model_native_sequence_source_reconstruction_v1",
             "authority": "data_reconstruction_only",
             "candidate": False,
             "test": False,
@@ -7849,12 +8211,12 @@ def run_train(
             "paper": False,
             "live": False,
             "splits": {
-                "train": dict(train_ds._sequence_roll_audit),
-                "val": dict(val_ds._sequence_roll_audit),
+                "train": dict(train_ds._sequence_source_audit),
+                "val": dict(val_ds._sequence_source_audit),
             },
         }
         log.info(
-            "[ATTENDED_SEQUENCE_ROLL_RECONSTRUCTION] TRAIN+VAL proof-bound "
+            "[ATTENDED_SEQUENCE_SOURCE_RECONSTRUCTION] TRAIN+VAL proof-bound "
             "storage optimization active; authority=data_reconstruction_only"
         )
     unified_exit_lifecycle_evidence = dict(
@@ -9602,15 +9964,15 @@ def run_train(
             "active_heads": active_heads,
         },
     }
-    if sequence_roll_reconstruction_evidence is not None:
+    if sequence_source_reconstruction_evidence is not None:
         # This field records the exact audit inputs if an attended smoke ever
         # reaches export.  It is an explicit denial of all candidate and
         # deployment authority, not a substitute for an OOS result.
-        lock["sequence_roll_reconstruction"] = (
-            sequence_roll_reconstruction_evidence
+        lock["sequence_source_reconstruction"] = (
+            sequence_source_reconstruction_evidence
         )
-        meta["sequence_roll_reconstruction"] = (
-            sequence_roll_reconstruction_evidence
+        meta["sequence_source_reconstruction"] = (
+            sequence_source_reconstruction_evidence
         )
     # Architecture reconstruction fields are duplicated exactly in the lock;
     # neither side may infer MTF layout or positive-scale semantics from the
@@ -9838,11 +10200,34 @@ def run_train(
                 _live_ds,
                 sample_rows=_sample_rows,
             )
-            _ab = {
-                "seq_x": np.asarray(_live_ds._np_seq[_sample_idx], dtype=np.float32),
-                "ctx_cont": np.asarray(_live_ds._np_ctx_cont[_sample_idx], dtype=np.float32),
-                "snap_x": np.asarray(_live_ds._np_snap[_sample_idx], dtype=np.float32),
-            }
+            if bool(getattr(_live_ds, "_sequence_source_reconstructed", False)):
+                _storage_idx = np.asarray(
+                    [
+                        _live_ds._storage_position_for_full_row(int(row))
+                        for row in _sample_idx
+                    ],
+                    dtype=np.int64,
+                )
+                _ab = {
+                    "seq_x": np.stack(
+                        [
+                            _live_ds.sequence_for_full_row(int(row))
+                            for row in _sample_idx
+                        ]
+                    ).astype(np.float32, copy=False),
+                    "ctx_cont": np.asarray(
+                        _live_ds._np_ctx_cont[_storage_idx], dtype=np.float32
+                    ),
+                    "snap_x": np.asarray(
+                        _live_ds._np_snap[_storage_idx], dtype=np.float32
+                    ),
+                }
+            else:
+                _ab = {
+                    "seq_x": np.asarray(_live_ds._np_seq[_sample_idx], dtype=np.float32),
+                    "ctx_cont": np.asarray(_live_ds._np_ctx_cont[_sample_idx], dtype=np.float32),
+                    "snap_x": np.asarray(_live_ds._np_snap[_sample_idx], dtype=np.float32),
+                }
             if getattr(_live_ds, "_multi_tf_feats", None):
                 for _tf, _feats in _live_ds._multi_tf_feats.items():
                     _arr = np.asarray(_feats.attrs.get("feats_np"), dtype=np.float32)
@@ -10048,6 +10433,8 @@ def main() -> None:
     parser.add_argument("--val-parquet", type=Path, required=True)
     parser.add_argument("--train-sequence-roll-audit-json", type=Path)
     parser.add_argument("--val-sequence-roll-audit-json", type=Path)
+    parser.add_argument("--train-sequence-source-audit-json", type=Path)
+    parser.add_argument("--val-sequence-source-audit-json", type=Path)
     parser.add_argument("--prefreeze-test-seal-json", type=Path, required=True)
     parser.add_argument("--prefreeze-test-seal-sha256", type=str, required=True)
     parser.add_argument(
@@ -10110,23 +10497,21 @@ def main() -> None:
             "--batch_size 8, --epochs 1 and --grad-accum-steps 1"
         )
     reconstruction_args = (
-        args.train_sequence_roll_audit_json,
-        args.val_sequence_roll_audit_json,
+        args.train_sequence_source_audit_json,
+        args.val_sequence_source_audit_json,
     )
     if args.execution_tier == "attended_only" and any(
         value is None for value in reconstruction_args
     ):
         parser.error(
             "--execution-tier attended_only requires both "
-            "--train-sequence-roll-audit-json and --val-sequence-roll-audit-json"
+            "--train-sequence-source-audit-json and --val-sequence-source-audit-json"
         )
-    if args.execution_tier != "attended_only" and any(
-        value is not None for value in reconstruction_args
-    ):
-        parser.error(
-            "sequence-roll reconstruction proofs are valid only for "
-            "--execution-tier attended_only"
-        )
+    if any(value is not None for value in (
+        args.train_sequence_roll_audit_json,
+        args.val_sequence_roll_audit_json,
+    )):
+        parser.error("sequence-roll reconstruction proofs are retired")
     if args.execution_tier == "attended_only":
         _install_attended_smoke_termination_handler()
 
@@ -10213,6 +10598,8 @@ def main() -> None:
         execution_tier=str(args.execution_tier),
         train_sequence_roll_audit_json=args.train_sequence_roll_audit_json,
         val_sequence_roll_audit_json=args.val_sequence_roll_audit_json,
+        train_sequence_source_audit_json=args.train_sequence_source_audit_json,
+        val_sequence_source_audit_json=args.val_sequence_source_audit_json,
     )
 
 

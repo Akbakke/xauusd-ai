@@ -172,6 +172,27 @@ reconstruct the identical sequence view from the 96-row prefix plus snapshots;
 it does not authorize a candidate shortcut or reduce the full-TRAIN
 normalization population.
 
+**V46 source-backed sequence repair, 2026-08-26:** the causal M1 lifecycle
+correctly omits un-supervisable decision rows, so V46's emitted TRAIN/VAL rows
+are not an uninterrupted snapshot chain and must not use the older
+`sequence_roll` storage shortcut. This is not a missing-feature or target
+problem: the immutable `m5_feature_base.parquet` is the original 238-signal,
+causal M5 timeline from which every V46 `seq` and `snap` was built. The new
+`model-native-sequence-source-reconstruction-audit` exhaustively binds the
+split parquet, split manifest, M5 feature-surface parquet and its manifest,
+then compares every stored 96×238 sequence and snapshot byte-for-byte with the
+source surface. V46 proof results are TRAIN
+`audit/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_TRAIN_20260826T000000Z.json`
+(248,028 rows; chain `b460ccdc891017a392d964c22c381557b5c474b0b719c6a0b30bb2d941dc9d54`)
+and VAL
+`audit/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_VAL_20260826T000000Z.json`
+(70,880 rows; chain `a61e194d30044d02f8ab4b45f3cdf4a9868b0e320b7843c624c04b43227d423b`).
+Both are PASS. The attended smoke loader may use those proofs to obtain
+windows from the source surface without writing the former 20+ GiB temporary
+sequence memmap; it preserves the full-TRAIN normalization population and has
+`data_reconstruction_only` authority. It is not a training, edge, TEST, paper
+or live result.
+
 The separately named historical V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
 gross, spread-inclusive, research-only and cannot gain production authority

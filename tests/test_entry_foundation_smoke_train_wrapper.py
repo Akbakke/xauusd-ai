@@ -237,16 +237,16 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
     )
     missing_proofs = _run("--attended-smoke", *cuda_args, "--dry-run")
     assert missing_proofs.returncode == 2
-    assert "requires train_sequence_roll_audit_json" in missing_proofs.stderr
+    assert "requires train_sequence_source_audit_json" in missing_proofs.stderr
 
-    train_proof = tmp_path / "train.sequence_roll_audit.json"
-    val_proof = tmp_path / "val.sequence_roll_audit.json"
+    train_proof = tmp_path / "train.sequence_source_audit.json"
+    val_proof = tmp_path / "val.sequence_source_audit.json"
     train_proof.write_text("{}\n", encoding="utf-8")
     val_proof.write_text("{}\n", encoding="utf-8")
     attended_proofs = (
-        "--train-sequence-roll-audit-json",
+        "--train-sequence-source-audit-json",
         str(train_proof),
-        "--val-sequence-roll-audit-json",
+        "--val-sequence-source-audit-json",
         str(val_proof),
     )
 
@@ -259,10 +259,10 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
     separator_index = command.index("--", runner_index)
     assert "--attended-smoke" in command[runner_index:separator_index]
     assert command[command.index("--execution-tier") + 1] == "attended_only"
-    assert command[command.index("--train-sequence-roll-audit-json") + 1] == str(
+    assert command[command.index("--train-sequence-source-audit-json") + 1] == str(
         train_proof
     )
-    assert command[command.index("--val-sequence-roll-audit-json") + 1] == str(
+    assert command[command.index("--val-sequence-source-audit-json") + 1] == str(
         val_proof
     )
 
@@ -278,18 +278,18 @@ def test_research_smoke_is_disabled_after_wsl_gpu_reset() -> None:
     assert "disabled after the WSL/GPU reset" in result.stderr
 
 
-def test_sequence_roll_reconstruction_proofs_are_attended_only(tmp_path: Path) -> None:
+def test_sequence_source_reconstruction_proofs_are_attended_only(tmp_path: Path) -> None:
     args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
-    train_proof = tmp_path / "train.sequence_roll_audit.json"
-    val_proof = tmp_path / "val.sequence_roll_audit.json"
+    train_proof = tmp_path / "train.sequence_source_audit.json"
+    val_proof = tmp_path / "val.sequence_source_audit.json"
     train_proof.write_text("{}\n", encoding="utf-8")
     val_proof.write_text("{}\n", encoding="utf-8")
 
     result = _run(
         *args,
-        "--train-sequence-roll-audit-json",
+        "--train-sequence-source-audit-json",
         str(train_proof),
-        "--val-sequence-roll-audit-json",
+        "--val-sequence-source-audit-json",
         str(val_proof),
         "--dry-run",
     )

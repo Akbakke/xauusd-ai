@@ -22,6 +22,9 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
 )
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.scripts.audit_entry_sequence_roll_v1 import audit_sequence_roll
+from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import (
+    audit_sequence_source_reconstruction,
+)
 from tests.entry_v10_trainer_dataset_support import (
     aux_head_target_contract,
     install_multi_tf_stub,
@@ -61,7 +64,7 @@ def _write_advanced_parquet(
 
     columns = {
             "time": pa.array(
-                times or [f"2026-01-0{row + 1}T00:00:00Z" for row in range(rows)],
+                times or [f"2026-01-01T00:{row * 5:02d}:00Z" for row in range(rows)],
                 type=pa.string(),
             ),
             "seq": pa.array(seq, type=pa.list_(pa.list_(pa.float64()))),
@@ -121,6 +124,139 @@ def _write_sequence_roll_proof(parquet_path: Path) -> Path:
         encoding="utf-8",
     )
     return proof_path
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_source_backed_advanced_fixture(
+    tmp_path: Path,
+) -> tuple[Path, Path, np.ndarray, np.ndarray]:
+    """Create causally filtered rows whose histories come from one M5 surface."""
+
+    width = MODEL_NATIVE_SIGNAL_DIM
+    source = np.arange((MODEL_NATIVE_SEQ_LEN + 8) * width, dtype=np.float32).reshape(
+        MODEL_NATIVE_SEQ_LEN + 8, width
+    )
+    source_times = np.datetime64("2026-01-01T00:00:00") + (
+        np.arange(len(source), dtype=np.int64) * np.timedelta64(5, "m")
+    )
+    surface = tmp_path / "m5_feature_base.parquet"
+    pq.write_table(
+        pa.table(
+            {
+                "time": pa.array(source_times),
+                "signal": pa.array(source.tolist()),
+                "ctx_cont": pa.array(
+                    np.zeros(
+                        (len(source), MODEL_NATIVE_CTX_CONT_DIM), dtype=np.float32
+                    ).tolist()
+                ),
+                "ctx_cat": pa.array(
+                    np.zeros(
+                        (len(source), MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64
+                    ).tolist()
+                ),
+            }
+        ),
+        surface,
+    )
+    surface_manifest = Path(f"{surface}.manifest.json")
+    surface_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "gx1_entry_exit_m5_feature_surface_v8",
+                "output_parquet": str(surface.resolve()),
+                "output_parquet_sha256": _sha256(surface),
+                "rows": len(source),
+                "signal_dim": width,
+                "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+                "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+            }
+        ),
+        encoding="utf-8",
+    )
+    positions = np.asarray([95, 97, 101], dtype=np.int64)
+    sequence = np.stack(
+        [source[position - MODEL_NATIVE_SEQ_LEN + 1 : position + 1] for position in positions]
+    )
+    parquet_path = tmp_path / "source_backed_train.parquet"
+    columns = {
+        "time": pa.array(source_times[positions]),
+        "seq": pa.array(sequence.tolist()),
+        "snap": pa.array(source[positions].tolist()),
+        "ctx_cont": pa.array(
+            np.zeros((len(positions), MODEL_NATIVE_CTX_CONT_DIM), dtype=np.float32).tolist()
+        ),
+        "ctx_cat": pa.array(
+            np.zeros((len(positions), MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64).tolist()
+        ),
+        "mae_first_n_bps": pa.array([1.0, 2.0, 3.0]),
+        "y_early_move": pa.array([0.0, 1.0, 0.0]),
+        "y_quality_score": pa.array([0.2, 0.4, 0.6]),
+    }
+    for target in trainer._MODEL_NATIVE_ACTIVE_TARGET_COLS:
+        values = [0.0, 0.0, 0.0]
+        if target == "y_position_size_target":
+            values = [0.5, 0.5, 0.5]
+        elif target == "y_position_size_mask":
+            values = [1.0, 1.0, 0.0]
+        columns[target] = pa.array(values)
+    pq.write_table(pa.table(columns), parquet_path)
+    signal_contract = model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields(
+            remainder_prefix="session_regime.source_backed_fixture"
+        )
+    )
+    split_manifest = parquet_path.with_suffix(".manifest.json")
+    split_manifest.write_text(
+        json.dumps(
+            {
+                "extra": {
+                    "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+                    "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+                    "model_native_signal_contract": signal_contract,
+                    "aux_head_target_contract": aux_head_target_contract(),
+                    "signal_bridge": {
+                        "fields": signal_contract["fields"],
+                        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                        "seq_structure_extension_v1": {
+                            "feature_surface": {
+                                "dataset_run_id": "FIXTURE_DATASET_20260826",
+                                "inline_split_recomputation": False,
+                                "manifest_path": str(surface_manifest.resolve()),
+                                "manifest_sha256": _sha256(surface_manifest),
+                                "pair_generation_id": "fixture_generation",
+                                "path": str(surface.resolve()),
+                                "rows": len(source),
+                                "schema_version": "gx1_entry_exit_m5_feature_surface_v8",
+                                "sha256": _sha256(surface),
+                                "signal_manifest_sha256": "1" * 64,
+                                "time_alignment": "exact_entry_m5_source_timeline",
+                            }
+                        },
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    proof_path = parquet_path.with_suffix(".sequence_source_audit.json")
+    proof_path.write_text(
+        json.dumps(
+            audit_sequence_source_reconstruction(
+                parquet_path=parquet_path.resolve(), manifest_path=split_manifest.resolve()
+            ),
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return parquet_path, proof_path, source, positions
 
 
 def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_path, monkeypatch) -> None:
@@ -243,6 +379,42 @@ def test_advanced_dataset_reconstructs_sequence_only_from_exact_roll_proof(
     assert ds._sequence_reconstruction_chain is None
     assert ds._np_seq.flags.c_contiguous
     assert ds._np_seq.shape == (2, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
+
+
+def test_advanced_dataset_source_reconstruction_handles_filtered_rows(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    parquet_path, proof_path, source, positions = _write_source_backed_advanced_fixture(
+        tmp_path
+    )
+    memmap_root = tmp_path / "memmap"
+    monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 0)
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
+    m5_path = install_multi_tf_stub(tmp_path, monkeypatch)
+
+    ds = trainer.EntryV10CtxDataset(
+        parquet_path,
+        seq_len=MODEL_NATIVE_SEQ_LEN,
+        m5_prebuilt_path=m5_path,
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
+        multi_tf_closed_bar=True,
+        sequence_source_audit_json=proof_path,
+    )
+
+    assert ds._sequence_source_reconstructed is True
+    assert ds._np_seq is None
+    assert not memmap_root.exists()
+    assert np.array_equal(
+        ds.sequence_for_full_row(1),
+        source[positions[1] - MODEL_NATIVE_SEQ_LEN + 1 : positions[1] + 1],
+    )
+    assert np.array_equal(ds[1]["seq_x"].numpy(), ds.sequence_for_full_row(1))
+
+    ds.indices = np.asarray([0, 2], dtype=np.int64)
+    ds.compact_materialized_rows(ds.indices)
+    assert ds._np_seq is None
+    assert np.array_equal(ds[1]["seq_x"].numpy(), ds.sequence_for_full_row(2))
 
 
 def test_sequence_roll_reconstruction_rejects_authoritative_proof_claim(

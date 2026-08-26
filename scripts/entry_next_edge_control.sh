@@ -68,6 +68,7 @@ Model-native seq513 evidence:
   model-native-execution-causality-audit --dataset-dir <dataset-dir> --signal-manifest <json> --train-manifest <json> --val-manifest <json> --train-lifecycle-manifest <json> --val-lifecycle-manifest <json> --output <new-json>
   model-native-sequence-roll-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-sequence-integrity-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
+  model-native-sequence-source-reconstruction-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-train-recipe-audit
   model-native-smoke-bundle-audit
   model-native-candidate-readiness
@@ -83,8 +84,8 @@ Model-native seq513 evidence:
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
   model-native-attended-smoke-train --run-id <id> <all other explicit arguments> \
-    --train-sequence-roll-audit-json <immutable-json> \
-    --val-sequence-roll-audit-json <immutable-json> (--dry-run|--execute)
+    --train-sequence-source-audit-json <immutable-json> \
+    --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
   model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
   model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
@@ -735,8 +736,8 @@ case "$cmd" in
     reject_non_authoritative_args "$@"
     reject_flags "$cmd" --research-smoke
     for flag in \
-      --train-sequence-roll-audit-json \
-      --val-sequence-roll-audit-json; do
+      --train-sequence-source-audit-json \
+      --val-sequence-source-audit-json; do
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-smoke "$@"
@@ -803,6 +804,17 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_sequence_integrity_v1 "$@"
+    ;;
+
+  model-native-sequence-source-reconstruction-audit)
+    # Full byte-level proof that a causally filtered split can recover every
+    # stored window from its immutable M5 feature surface.  This is a
+    # data-storage audit only and does not allocate a model or GPU.
+    reject_non_authoritative_args "$@"
+    for flag in --parquet --manifest-json --out-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_sequence_source_reconstruction_v1 "$@"
     ;;
 
   model-native-smoke-bundle-audit)
