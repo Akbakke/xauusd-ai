@@ -210,9 +210,9 @@ if ($SetPowerLimitWatts -gt 0) {
     Invoke-NativeChecked -FilePath $nativeSmi -ArgumentList @('-i', "$GpuIndex", '-pl', "$SetPowerLimitWatts") | Out-Host
 }
 
-$rawGpu = Invoke-NativeChecked -FilePath $nativeSmi -ArgumentList @(
+$rawGpu = @(Invoke-NativeChecked -FilePath $nativeSmi -ArgumentList @(
     '-i', "$GpuIndex", '--query-gpu=name,uuid,power.limit', '--format=csv,noheader,nounits'
-)
+))
 if ($rawGpu.Count -ne 1) {
     throw "Expected exactly one GPU result at index $GpuIndex; got $($rawGpu.Count)."
 }
