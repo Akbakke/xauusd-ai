@@ -211,6 +211,33 @@ smoke bundle was not produced. Do not raise the actual-draw stop implicitly:
 any future model-phase experiment requires an explicit thermal/power decision
 and a fresh immutable recipe.
 
+**Current V46 attended 390 W guard verification, 2026-08-26:** the later,
+explicit operator-present 390 W amendment was executed from fresh recipe audit
+`train_recipe_audit_attended_390w_guardlog_20260826T083608Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260826T083609772346Z.json`
+against source commit `cc137327`. It passed the full source-bound preflight in
+420 seconds (both sequence-source proofs, five 176-column causal MTF surfaces,
+all eight specialist groups and TRAIN-only normalization over 1,659,115
+physical context rows), then completed exactly two FP32 CUDA optimizer steps
+at batch 8. The trainer recorded a 5,717 MiB CUDA peak; the sidecar recorded a
+normal `child_status=0` exit and no guard brake. The private two-slot session
+has `complete_optimizer_steps=2`; its declared authority is strictly
+`research_trainability_only`, and the declared bundle path is absent. Thus it
+is evidence that the repaired V46 data-to-model path can run within the
+attended guard, **not** evidence of validation, a completed epoch, candidate,
+edge, PnL, win rate, MAE/MFE, OOS, TEST, paper or live performance.
+
+The matching canonical CUDA batch-64 recipe
+`train_recipe_audit_canonical_cuda_smoke_20260826T084616Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260826T084618615360Z.json`
+also passed its exact dry-run. An intentional real canonical guard probe then
+returned exit 75 *before* Python/data/model launch and left its bundle path
+absent: the current WSL NVML read has `Memory Current Temp: N/A` while the
+driver power limit is 390 W. Canonical execution therefore requires **both** a
+physical driver limit at or below 250 W and a trusted host-side VRAM-temperature
+telemetry bridge (or another execution environment with an equivalent real
+reading). Do not make the attended exception canonical, accept a cached or
+caller-controlled reading, or retry canonical training until both conditions
+are actually evidenced.
+
 **V46 bounded CPU recovery smoke, 2026-08-26:** rather than raise the GPU
 actual-draw boundary after the CUDA guard stop, commit `c953f6fa` added an
 explicit CPU-only attended recovery tier. It retains the exact V46 source
@@ -446,7 +473,8 @@ returned `Insufficient Permissions`, and the readback remained 390 W. That is
 not a successful cap change and does not authorize weakening the canonical
 guard. The only narrowly-scoped exception is the separate, source-bound,
 operator-present attended-smoke route described above; it tolerates exactly
-`temperature.memory=N/A`, keeps a 180 W actual-draw kill, adds a 12 GiB
+`temperature.memory=N/A`, keeps the explicitly approved 390 W actual-draw
+kill, adds a 12 GiB
 NVML-use stop and a 50% CUDA allocator fence, and is permanently blocked from
 downstream evidence. NVIDIA's CUDA-on-WSL documentation confirms that
 WSL NVML does not support all queries and identifies `/usr/lib/wsl/lib/nvidia-smi`
