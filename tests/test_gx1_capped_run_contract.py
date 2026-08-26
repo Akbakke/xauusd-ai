@@ -214,7 +214,7 @@ def test_attended_smoke_sigterm_unwinds_python_for_temp_scratch_cleanup(
         handler(signal.SIGTERM, None)
 
 
-def test_attended_preflight_marker_requires_attended_only(
+def test_attended_preflight_marker_requires_an_attended_tier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -231,6 +231,10 @@ def test_attended_preflight_marker_requires_attended_only(
         trainer._announce_attended_preflight_ready(execution_tier="attended_only")
         expected = (
             f"gx1_attended_preflight_ready_v1:{token}\n".encode("ascii")
+        )
+        assert os.read(reader, len(expected)) == expected
+        trainer._announce_attended_preflight_ready(
+            execution_tier="attended_cpu_only"
         )
         assert os.read(reader, len(expected)) == expected
         with pytest.raises(RuntimeError, match="TIER_INVALID"):
@@ -475,6 +479,29 @@ def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
     assert "attended_only" in result.stderr
 
 
+def test_trainer_guard_allows_cpu_attended_recovery_without_cuda_telemetry(
+    tmp_path: Path,
+) -> None:
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"],
+        cwd=REPO,
+        env=_guard_env(
+            device="cpu",
+            nvidia_smi_path=Path("/bin/false"),
+            execution_mode="attended_cpu_smoke",
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "execution_mode=attended_cpu_smoke" in result.stderr
+    assert "attended_cpu_only" in result.stderr
+
+
 def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
     tmp_path: Path,
 ) -> None:
@@ -497,7 +524,7 @@ def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
     )
 
     assert result.returncode == 75
-    assert "must be canonical or attended_smoke" in result.stderr
+    assert "must be canonical, attended_smoke or attended_cpu_smoke" in result.stderr
 
 
 def test_trainer_guard_rejects_memory_na_for_canonical_cuda(

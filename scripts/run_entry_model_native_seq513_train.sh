@@ -32,7 +32,8 @@ ENV_BIN=/usr/bin/env
 usage() {
   cat <<'EOF'
 Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments]
-       [--attended-smoke --train-sequence-source-audit-json PATH \
+       [--attended-smoke|--attended-cpu-smoke \
+        --train-sequence-source-audit-json PATH \
         --val-sequence-source-audit-json PATH] (--dry-run|--execute)
 
 Required identity and immutable evidence:
@@ -73,9 +74,10 @@ Required audited execution values (there are no wrapper defaults):
 --dry-run validates and prints the exact capped command without writing files.
 --execute additionally requires a clean worktree and runs the capped trainer.
 The profile has no default. Evidence from one profile is rejected in the other.
---attended-smoke is accepted only for CUDA smoke runs through the dedicated
-control route. It has a fixed 10-minute data preflight followed by a separate
-five-minute model phase, and is marked in the produced bundle;
+--attended-smoke is accepted only for CUDA smoke runs. --attended-cpu-smoke
+is its CPU-only recovery counterpart after a GPU safety stop. Both have a
+fixed 10-minute data preflight followed by a separate five-minute model phase,
+and are marked in the produced bundle;
 that bundle is rejected by smoke-bundle audit and cannot reach candidate, TEST,
 promotion, paper or live stages.
 Its two source-reconstruction proofs authorize only a memory representation
@@ -120,6 +122,7 @@ PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
 PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
 MEMORY_CAP= SWAP_CAP= RUN_MODE=
 ATTENDED_SMOKE=false
+ATTENDED_CPU_SMOKE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -132,6 +135,11 @@ while [[ $# -gt 0 ]]; do
     --attended-smoke)
       [[ "$ATTENDED_SMOKE" == false ]] || die "duplicate argument: --attended-smoke"
       ATTENDED_SMOKE=true
+      shift
+      ;;
+    --attended-cpu-smoke)
+      [[ "$ATTENDED_CPU_SMOKE" == false ]] || die "duplicate argument: --attended-cpu-smoke"
+      ATTENDED_CPU_SMOKE=true
       shift
       ;;
     --research-smoke)
@@ -229,20 +237,25 @@ case "$PROFILE" in
   smoke|candidate) ;;
   *) die "--profile must be exactly smoke or candidate" ;;
 esac
-if [[ "$ATTENDED_SMOKE" == true ]]; then
-  [[ "$PROFILE" == smoke ]] || die "--attended-smoke is valid only for --profile smoke"
+if [[ "$ATTENDED_SMOKE" == true && "$ATTENDED_CPU_SMOKE" == true ]]; then
+  die "choose at most one of --attended-smoke or --attended-cpu-smoke"
+fi
+if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
+  [[ "$PROFILE" == smoke ]] || die "attended smoke is valid only for --profile smoke"
   for variable in TRAIN_SEQUENCE_SOURCE_AUDIT_JSON VAL_SEQUENCE_SOURCE_AUDIT_JSON; do
     proof_path="${!variable}"
-    [[ -n "$proof_path" ]] || die "--attended-smoke requires ${variable,,}"
+    [[ -n "$proof_path" ]] || die "attended smoke requires ${variable,,}"
     [[ "$proof_path" = /* && -f "$proof_path" && ! -L "$proof_path" ]] \
-      || die "--attended-smoke requires an absolute regular non-symlink ${variable,,}"
+      || die "attended smoke requires an absolute regular non-symlink ${variable,,}"
   done
 elif [[ -n "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON" || -n "$VAL_SEQUENCE_SOURCE_AUDIT_JSON" ]]; then
-  die "sequence-source reconstruction proofs are valid only with --attended-smoke"
+  die "sequence-source reconstruction proofs are valid only with an attended smoke"
 fi
 EXECUTION_TIER=canonical
 if [[ "$ATTENDED_SMOKE" == true ]]; then
   EXECUTION_TIER=attended_only
+elif [[ "$ATTENDED_CPU_SMOKE" == true ]]; then
+  EXECUTION_TIER=attended_cpu_only
 fi
 [[ -n "$RUN_MODE" ]] || die "choose exactly one of --dry-run or --execute"
 for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
@@ -265,14 +278,17 @@ done
 if [[ "$ATTENDED_SMOKE" == true && "$DEVICE" != cuda ]]; then
   die "--attended-smoke requires --device cuda"
 fi
-if [[ "$ATTENDED_SMOKE" == true ]]; then
+if [[ "$ATTENDED_CPU_SMOKE" == true && "$DEVICE" != cpu ]]; then
+  die "--attended-cpu-smoke requires --device cpu"
+fi
+if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
   # This lane is a one-off historical CUDA measurement, not a faster smoke
   # profile.  Its exact micro-batch geometry is part of the WSL residency
   # boundary and must agree with the trainer's independent assertion.
   [[ "$BATCH_SIZE" == 8 ]] \
-    || die "--attended-smoke requires the fixed low-VRAM --batch-size 8"
+    || die "attended smoke requires the fixed --batch-size 8"
   [[ "$EPOCHS" == 1 && "$GRAD_ACCUM_STEPS" == 1 ]] \
-    || die "--attended-smoke requires exactly --epochs 1 and --grad-accum-steps 1"
+    || die "attended smoke requires exactly --epochs 1 and --grad-accum-steps 1"
 fi
 PROFILE_VALIDATOR_ARGS=()
 case "$PROFILE" in
@@ -414,14 +430,14 @@ TRAIN_CMD=(
   --specialist-num-layers "$SPECIALIST_NUM_LAYERS" --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
   --cross-family-fusion-scale "$CROSS_FAMILY_FUSION_SCALE"
 )
-if [[ "$ATTENDED_SMOKE" == true ]]; then
+if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
   TRAIN_CMD+=(
     --train-sequence-source-audit-json "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON"
     --val-sequence-source-audit-json "$VAL_SEQUENCE_SOURCE_AUDIT_JSON"
   )
 fi
 CAPPED_RUN_ARGS=(--class trainer --mem "$MEMORY_CAP" --swap "$SWAP_CAP")
-if [[ "$ATTENDED_SMOKE" == true ]]; then
+if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
   CAPPED_RUN_ARGS+=(--attended-smoke)
 fi
 RUN_CMD=(

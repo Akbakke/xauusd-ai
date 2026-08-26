@@ -86,6 +86,9 @@ Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-attended-smoke-train --run-id <id> <all other explicit arguments> \
     --train-sequence-source-audit-json <immutable-json> \
     --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
+  model-native-attended-cpu-smoke-train --run-id <id> <all other explicit arguments> \
+    --train-sequence-source-audit-json <immutable-json> \
+    --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
   model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
   model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
@@ -741,6 +744,19 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-smoke "$@"
+    ;;
+
+  model-native-attended-cpu-smoke-train)
+    # CPU-only recovery lane after a CUDA safety stop. It uses the same full
+    # data proofs and staged time/cgroup limits, but has no CUDA allocation.
+    reject_non_authoritative_args "$@"
+    reject_flags "$cmd" --research-smoke --attended-smoke
+    for flag in \
+      --train-sequence-source-audit-json \
+      --val-sequence-source-audit-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile smoke --attended-cpu-smoke "$@"
     ;;
 
   model-native-attended-hardware-smoke)

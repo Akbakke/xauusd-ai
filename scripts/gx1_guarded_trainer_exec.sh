@@ -42,15 +42,16 @@ case "$GX1_TRAINER_DEVICE" in
   *) die "GX1_TRAINER_DEVICE must be cpu or cuda" ;;
 esac
 case "$GX1_TRAINER_EXECUTION_MODE" in
-  canonical|attended_smoke) ;;
-  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical or attended_smoke" ;;
+  canonical|attended_smoke|attended_cpu_smoke) ;;
+  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical, attended_smoke or attended_cpu_smoke" ;;
 esac
 case "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" in
   true|false) ;;
   *) die "GX1_TRAINER_ATTENDED_STAGE_REQUIRED must be true or false" ;;
 esac
 if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
-  && "$GX1_TRAINER_EXECUTION_MODE" != attended_smoke ]]; then
+  && "$GX1_TRAINER_EXECUTION_MODE" != attended_smoke \
+  && "$GX1_TRAINER_EXECUTION_MODE" != attended_cpu_smoke ]]; then
   die "staged attended preflight requires attended_smoke execution mode"
 fi
 for variable in \
@@ -255,6 +256,8 @@ printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wa
   "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
 if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
   printf '[trainer_safety_attended_only] WSL VRAM telemetry may be literal N/A; this run has no candidate, TEST, promotion, or live authority\n' >&2
+elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_cpu_smoke ]]; then
+  printf '[trainer_safety_attended_cpu_only] no CUDA allocation; this run has no candidate, TEST, promotion, or live authority\n' >&2
 fi
 
 start_epoch=$(/bin/date +%s)

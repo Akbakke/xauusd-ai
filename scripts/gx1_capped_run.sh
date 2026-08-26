@@ -196,11 +196,19 @@ validate_target_command() {
   fi
 
   if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]]; then
-    if [[ "$ATTENDED_SMOKE" == true ]] && { [[ "$TRAINER_DEVICE" != cuda \
-      || $profile_count -ne 1 || "$profile_value" != smoke \
-      || $execution_tier_count -ne 1 || "$execution_tier_value" != attended_only ]]; }; then
-      echo "FATAL: attended smoke is reserved for one CUDA smoke command marked --execution-tier attended_only" >&2
-      exit 75
+    if [[ "$ATTENDED_SMOKE" == true ]]; then
+      if [[ $profile_count -ne 1 || "$profile_value" != smoke \
+        || $execution_tier_count -ne 1 ]]; then
+        echo "FATAL: attended smoke is reserved for one smoke command with one attended execution tier" >&2
+        exit 75
+      fi
+      case "$TRAINER_DEVICE:$execution_tier_value" in
+        cuda:attended_only|cpu:attended_cpu_only) ;;
+        *)
+          echo "FATAL: attended CUDA requires --execution-tier attended_only; attended CPU requires attended_cpu_only" >&2
+          exit 75
+          ;;
+      esac
     fi
     if [[ "$ATTENDED_SMOKE" == true ]]; then
       # Only the exact canonical trainer can advance from the complete
@@ -282,7 +290,11 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   # hard cgroup controls, lowers the core threshold, observes every second,
   # and terminates at a deliberately lower actual-draw ceiling.  The former
   # 24-hour research route held nearly all VRAM under WSL and is disabled.
-  TRAINER_EXECUTION_MODE=attended_smoke
+  if [[ "$TRAINER_DEVICE" == cpu ]]; then
+    TRAINER_EXECUTION_MODE=attended_cpu_smoke
+  else
+    TRAINER_EXECUTION_MODE=attended_smoke
+  fi
   # A real V40 attended run proved that the one former five-minute envelope
   # can expire while correctly re-hashing the immutable 6.62 GB TRAIN source,
   # before model construction. Only the exact canonical data-smoke target has

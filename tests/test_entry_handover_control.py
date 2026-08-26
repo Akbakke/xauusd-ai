@@ -550,6 +550,9 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
     attended_smoke_route = source.split(
         "  model-native-attended-smoke-train)", 1
     )[1].split("    ;;", 1)[0]
+    attended_cpu_smoke_route = source.split(
+        "  model-native-attended-cpu-smoke-train)", 1
+    )[1].split("    ;;", 1)[0]
     candidate_route = source.split(
         "  model-native-candidate-train)", 1
     )[1].split("    ;;", 1)[0]
@@ -565,9 +568,14 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
     assert "--attended-smoke" in attended_smoke_route
     assert "--train-sequence-source-audit-json" in attended_smoke_route
     assert "--val-sequence-source-audit-json" in attended_smoke_route
+    assert wrapper in attended_cpu_smoke_route
+    assert "--profile smoke" in attended_cpu_smoke_route
+    assert "--attended-cpu-smoke" in attended_cpu_smoke_route
+    assert "--train-sequence-source-audit-json" in attended_cpu_smoke_route
+    assert "--val-sequence-source-audit-json" in attended_cpu_smoke_route
     assert wrapper in candidate_route
     assert "--profile candidate" in candidate_route
-    assert source.count(wrapper) == 3
+    assert source.count(wrapper) == 4
     assert "--train-wrapper" in trainability_route
 
 

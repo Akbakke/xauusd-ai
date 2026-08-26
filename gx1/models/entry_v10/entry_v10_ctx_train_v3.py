@@ -7188,6 +7188,9 @@ def _attended_research_session_contract(
     subsample_rows: int,
     lr: float,
     dropout: float,
+    execution_tier: str,
+    device_type: str,
+    max_optimizer_steps: int,
 ) -> dict[str, Any]:
     """Bind an attended session to one exact, non-promotable train surface."""
 
@@ -7196,6 +7199,12 @@ def _attended_research_session_contract(
             "[ATTENDED_RESEARCH_TRAIN_BUDGET_INVALID] attended research "
             "requires exactly one epoch and grad_accum_steps=1"
         )
+    if not _is_attended_execution_tier(execution_tier):
+        raise RuntimeError("[ATTENDED_RESEARCH_EXECUTION_TIER_INVALID]")
+    if device_type not in ("cpu", "cuda"):
+        raise RuntimeError("[ATTENDED_RESEARCH_DEVICE_INVALID]")
+    if int(max_optimizer_steps) < 1:
+        raise RuntimeError("[ATTENDED_RESEARCH_MAX_STEPS_INVALID]")
     normalized = dict(input_normalization)
     normalization_sha256 = normalized.get("contract_sha256")
     if not isinstance(normalization_sha256, str) or not re.fullmatch(
@@ -7229,7 +7238,7 @@ def _attended_research_session_contract(
         "run_id": str(run_id),
         "dataset_run_id": str(dataset_run_id),
         "profile": "smoke",
-        "execution_tier": "attended_only",
+        "execution_tier": str(execution_tier),
         "artifacts": {
             name: {"path": str(path), "sha256": _sha256_file(path)}
             for name, path in artifact_paths.items()
@@ -7243,9 +7252,8 @@ def _attended_research_session_contract(
             "subsample_rows": int(subsample_rows),
             "learning_rate": float(lr),
             "dropout": float(dropout),
-            "max_optimizer_steps_per_session": (
-                _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS
-            ),
+            "device": str(device_type),
+            "max_optimizer_steps_per_session": int(max_optimizer_steps),
             "unified_exit_action_forward_chunk_rows": (
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
             ),
@@ -7771,6 +7779,14 @@ def validate(
 # -----------------------------------------------------------------------------
 _ATTENDED_PREFLIGHT_NOTIFICATION_PREFIX = "gx1_attended_preflight_ready_v1:"
 _ATTENDED_PREFLIGHT_TOKEN_RE = re.compile(r"[0-9a-f]{64}\Z")
+_ATTENDED_EXECUTION_TIERS = frozenset(("attended_only", "attended_cpu_only"))
+_ATTENDED_CPU_MAX_OPTIMIZER_STEPS = 1
+
+
+def _is_attended_execution_tier(execution_tier: str) -> bool:
+    """Return whether a tier is a non-promotable, operator-present smoke."""
+
+    return execution_tier in _ATTENDED_EXECUTION_TIERS
 
 
 def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
@@ -7782,17 +7798,17 @@ def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
     every full data/contract proof and immediately before model construction.
     """
 
-    if execution_tier != "attended_only":
+    if not _is_attended_execution_tier(execution_tier):
         raise RuntimeError(
             "[ENTRY_ATTENDED_STAGE_NOTIFICATION_TIER_INVALID] "
-            "only attended_only may announce preflight completion"
+            "only attended-only tiers may announce preflight completion"
         )
     fifo_raw = str(os.environ.get("GX1_TRAINER_ATTENDED_STAGE_FIFO") or "")
     token = str(os.environ.get("GX1_TRAINER_ATTENDED_STAGE_TOKEN") or "")
     if not fifo_raw or not _ATTENDED_PREFLIGHT_TOKEN_RE.fullmatch(token):
         raise RuntimeError(
             "[ENTRY_ATTENDED_STAGE_NOTIFICATION_MISSING] "
-            "guard-created FIFO/token are required for attended_only"
+            "guard-created FIFO/token are required for attended-only tiers"
         )
     fifo_path = Path(fifo_raw)
     if not fifo_path.is_absolute():
@@ -7905,29 +7921,32 @@ def run_train(
     _guard_no_rl()
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
-    if execution_tier not in ("canonical", "attended_only"):
+    if execution_tier not in ("canonical", *_ATTENDED_EXECUTION_TIERS):
         raise RuntimeError(
             f"[ENTRY_TRAIN_EXECUTION_TIER_INVALID] {execution_tier!r}"
         )
-    if execution_tier == "attended_only" and profile != "smoke":
+    if _is_attended_execution_tier(execution_tier) and profile != "smoke":
         raise RuntimeError(
-            "[ENTRY_TRAIN_ATTENDED_TIER_PROFILE_INVALID] attended_only requires smoke"
+            "[ENTRY_TRAIN_ATTENDED_TIER_PROFILE_INVALID] attended-only tiers require smoke"
         )
-    if execution_tier == "attended_only" and (
-        device.type != "cuda"
-        or int(batch_size) != _ATTENDED_RESEARCH_BATCH_SIZE
+    if _is_attended_execution_tier(execution_tier) and (
+        int(batch_size) != _ATTENDED_RESEARCH_BATCH_SIZE
         or int(epochs) != 1
         or int(grad_accum_steps) != 1
     ):
         raise RuntimeError(
             "[ATTENDED_RESEARCH_LOW_VRAM_GEOMETRY_INVALID] "
-            "requires CUDA, batch_size=8, epochs=1 and grad_accum_steps=1"
+            "requires batch_size=8, epochs=1 and grad_accum_steps=1"
         )
+    if execution_tier == "attended_only" and device.type != "cuda":
+        raise RuntimeError("[ATTENDED_RESEARCH_CUDA_TIER_DEVICE_INVALID]")
+    if execution_tier == "attended_cpu_only" and device.type != "cpu":
+        raise RuntimeError("[ATTENDED_RESEARCH_CPU_TIER_DEVICE_INVALID]")
     reconstruction_audits = (
         train_sequence_source_audit_json,
         val_sequence_source_audit_json,
     )
-    if execution_tier == "attended_only":
+    if _is_attended_execution_tier(execution_tier):
         if any(value is None for value in reconstruction_audits):
             raise RuntimeError(
                 "[ENTRY_TRAIN_ATTENDED_SEQUENCE_SOURCE_PROOFS_REQUIRED] "
@@ -8192,7 +8211,7 @@ def run_train(
         unified_exit_lifecycle.splits["val"]
     )
     sequence_source_reconstruction_evidence: Optional[dict[str, Any]] = None
-    if execution_tier == "attended_only":
+    if _is_attended_execution_tier(execution_tier):
         if (
             not train_ds._sequence_source_reconstructed
             or not val_ds._sequence_source_reconstructed
@@ -8356,7 +8375,13 @@ def run_train(
     attended_checkpoint_state: Optional[dict[str, Any]] = None
     attended_epoch_order: Optional[torch.Tensor] = None
     attended_batch_offset = 0
-    if execution_tier == "attended_only":
+    attended_max_optimizer_steps: Optional[int] = None
+    if _is_attended_execution_tier(execution_tier):
+        attended_max_optimizer_steps = (
+            _ATTENDED_CPU_MAX_OPTIMIZER_STEPS
+            if device.type == "cpu"
+            else _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS
+        )
         attended_session = _AttendedResearchSession(
             out_bundle_dir=_resolve_train_out_bundle_dir(
                 out_bundle_dir, gx1_data_override
@@ -8381,6 +8406,9 @@ def run_train(
                 subsample_rows=subsample_rows,
                 lr=lr,
                 dropout=dropout,
+                execution_tier=execution_tier,
+                device_type=device.type,
+                max_optimizer_steps=attended_max_optimizer_steps,
             ),
         )
         attended_checkpoint_state = attended_session.load_checkpoint()
@@ -8410,7 +8438,7 @@ def run_train(
             attended_session.directory,
             int(attended_checkpoint_state is not None),
             attended_batch_offset,
-            _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS,
+            int(attended_max_optimizer_steps),
             _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
         )
 
@@ -8467,7 +8495,7 @@ def run_train(
     _require(
         (
             len(train_loader) == _expected_train_batches
-            if execution_tier != "attended_only"
+            if not _is_attended_execution_tier(execution_tier)
             else len(train_loader)
             == _expected_train_batches
             - (
@@ -8580,30 +8608,39 @@ def run_train(
         "[TRAIN_RSS] pre_model_construct rss_gib=%.2f",
         _train_rss_gib(),
     )
-    if execution_tier == "attended_only":
+    if _is_attended_execution_tier(execution_tier):
         _announce_attended_preflight_ready(execution_tier=execution_tier)
-        try:
-            torch.cuda.empty_cache()
-            cuda_index = torch.cuda.current_device()
-            torch.cuda.set_per_process_memory_fraction(
+        if device.type == "cuda":
+            try:
+                torch.cuda.empty_cache()
+                cuda_index = torch.cuda.current_device()
+                torch.cuda.set_per_process_memory_fraction(
+                    _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION,
+                    cuda_index,
+                )
+                total_mib = int(
+                    torch.cuda.get_device_properties(cuda_index).total_memory // (1024 * 1024)
+                )
+            except (RuntimeError, ValueError) as exc:
+                raise RuntimeError(
+                    "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE_FAILED]"
+                ) from exc
+            log.info(
+                "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE] fraction=%.2f budget_mib=%d "
+                "batch_size=%d exit_chunk_rows=%d",
                 _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION,
-                cuda_index,
+                int(total_mib * _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION),
+                _ATTENDED_RESEARCH_BATCH_SIZE,
+                _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
             )
-            total_mib = int(
-                torch.cuda.get_device_properties(cuda_index).total_memory // (1024 * 1024)
+        else:
+            log.info(
+                "[ATTENDED_RESEARCH_CPU_FENCE] batch_size=%d max_optimizer_steps=%d "
+                "exit_chunk_rows=%d authority=none",
+                _ATTENDED_RESEARCH_BATCH_SIZE,
+                _ATTENDED_CPU_MAX_OPTIMIZER_STEPS,
+                _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
             )
-        except (RuntimeError, ValueError) as exc:
-            raise RuntimeError(
-                "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE_FAILED]"
-            ) from exc
-        log.info(
-            "[ATTENDED_RESEARCH_CUDA_MEMORY_FENCE] fraction=%.2f budget_mib=%d "
-            "batch_size=%d exit_chunk_rows=%d",
-            _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION,
-            int(total_mib * _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION),
-            _ATTENDED_RESEARCH_BATCH_SIZE,
-            _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
-        )
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
@@ -8937,7 +8974,7 @@ def run_train(
             task_gradient_observed=attended_gradients,
             weight_ema=weight_ema,
             attended_batch_offset=attended_start_offset,
-            attended_max_optimizer_steps=_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS,
+            attended_max_optimizer_steps=attended_max_optimizer_steps,
             attended_checkpoint_hook=_checkpoint_attended_step,
             attended_exit_action_forward_chunk_rows=(
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
@@ -10416,7 +10453,7 @@ def main() -> None:
     parser.add_argument("--profile", choices=("smoke", "candidate"), required=True)
     parser.add_argument(
         "--execution-tier",
-        choices=("canonical", "attended_only"),
+        choices=("canonical", "attended_only", "attended_cpu_only"),
         default="canonical",
     )
     parser.add_argument("--run-id", type=str, required=True)
@@ -10484,27 +10521,30 @@ def main() -> None:
         )
     if args.profile == "candidate" and int(args.subsample_rows) != 0:
         parser.error("candidate training requires --subsample-rows 0")
-    if args.execution_tier == "attended_only" and args.profile != "smoke":
-        parser.error("--execution-tier attended_only requires --profile smoke")
-    if args.execution_tier == "attended_only" and (
-        args.device != "cuda"
-        or int(args.batch_size) != _ATTENDED_RESEARCH_BATCH_SIZE
+    if _is_attended_execution_tier(args.execution_tier) and args.profile != "smoke":
+        parser.error("attended execution tiers require --profile smoke")
+    if _is_attended_execution_tier(args.execution_tier) and (
+        int(args.batch_size) != _ATTENDED_RESEARCH_BATCH_SIZE
         or int(args.epochs) != 1
         or int(args.grad_accum_steps) != 1
     ):
         parser.error(
-            "--execution-tier attended_only requires --device cuda, "
-            "--batch_size 8, --epochs 1 and --grad-accum-steps 1"
+            "attended execution tiers require --batch_size 8, --epochs 1 "
+            "and --grad-accum-steps 1"
         )
+    if args.execution_tier == "attended_only" and args.device != "cuda":
+        parser.error("--execution-tier attended_only requires --device cuda")
+    if args.execution_tier == "attended_cpu_only" and args.device != "cpu":
+        parser.error("--execution-tier attended_cpu_only requires --device cpu")
     reconstruction_args = (
         args.train_sequence_source_audit_json,
         args.val_sequence_source_audit_json,
     )
-    if args.execution_tier == "attended_only" and any(
+    if _is_attended_execution_tier(args.execution_tier) and any(
         value is None for value in reconstruction_args
     ):
         parser.error(
-            "--execution-tier attended_only requires both "
+            "attended execution tiers require both "
             "--train-sequence-source-audit-json and --val-sequence-source-audit-json"
         )
     if any(value is not None for value in (
@@ -10512,7 +10552,7 @@ def main() -> None:
         args.val_sequence_roll_audit_json,
     )):
         parser.error("sequence-roll reconstruction proofs are retired")
-    if args.execution_tier == "attended_only":
+    if _is_attended_execution_tier(args.execution_tier):
         _install_attended_smoke_termination_handler()
 
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY

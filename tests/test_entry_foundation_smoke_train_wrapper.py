@@ -220,7 +220,7 @@ def test_smoke_wrapper_rejects_execution_causality_block_before_trainer(
     assert "Capped smoke train command:" not in result.stdout
 
 
-def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
+def test_attended_cuda_and_cpu_smokes_mark_distinct_exact_inner_commands(
     tmp_path: Path,
 ) -> None:
     args, _paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
@@ -270,6 +270,31 @@ def test_attended_smoke_is_cuda_only_and_marks_the_exact_inner_command(
     assert cpu_result.returncode == 2
     assert "requires --device cuda" in cpu_result.stderr
 
+    cpu_args = _replace_arg(args, "--epochs", "1")
+    recipe["trainer_cli"]["device"] = "cpu"
+    recipe["trainer_cli"]["epochs"] = 1
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(recipe["trainer_cli"])
+    recipe_path.write_text(
+        json.dumps(recipe, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    cpu_attended = _run(
+        "--attended-cpu-smoke", *cpu_args, *attended_proofs, "--dry-run"
+    )
+    assert cpu_attended.returncode == 0, cpu_attended.stderr
+    assert "execution_tier=attended_cpu_only" in cpu_attended.stdout
+    cpu_command = _capped_command_tokens(cpu_attended.stdout)
+    assert "--attended-smoke" in cpu_command
+    assert (
+        cpu_command[cpu_command.index("--execution-tier") + 1]
+        == "attended_cpu_only"
+    )
+    invalid_cuda_cpu_attended = _run(
+        "--attended-cpu-smoke", *cuda_args, *attended_proofs, "--dry-run"
+    )
+    assert invalid_cuda_cpu_attended.returncode == 2
+    assert "requires --device cpu" in invalid_cuda_cpu_attended.stderr
+
 
 def test_research_smoke_is_disabled_after_wsl_gpu_reset() -> None:
     result = _run("--research-smoke", "--dry-run")
@@ -295,7 +320,7 @@ def test_sequence_source_reconstruction_proofs_are_attended_only(tmp_path: Path)
     )
 
     assert result.returncode == 2
-    assert "valid only with --attended-smoke" in result.stderr
+    assert "valid only with an attended smoke" in result.stderr
 
 
 def test_smoke_launch_never_opens_or_stats_sealed_test_artifacts(
