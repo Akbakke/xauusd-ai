@@ -135,7 +135,7 @@ research-session mechanism:
   candidate, validation, TEST, promotion, paper and live to false.
 
 This mechanism is not a relaxation of the resource policy. It does not raise
-the 4 GiB cgroup, CPU affinity, 512 MiB swap ceiling, temperature limit,
+the 10 GiB cgroup, CPU affinity, 512 MiB swap ceiling, temperature limit,
 actual-draw stop, configured power policy or five-minute model deadline. It
 also does not introduce BF16, TF32, autocast or compilation: the current
 training path remains deterministic FP32. Checkpoint state is deserialized to
@@ -184,7 +184,7 @@ low-VRAM geometry: CUDA batch size 8, one epoch, gradient accumulation 1, two
 complete optimizer steps, at most eight 480-bar Exit episodes per backward
 group, a 50% per-process CUDA allocator fence, and a 12 GiB NVML-use stop.
 It also retains the five-minute model deadline, 70 C core stop, 390 W
-**actual-draw** stop, 4 GiB cgroup, 512 MiB swap and CPU affinity 0-1. This is
+**actual-draw** stop, 10 GiB cgroup, 512 MiB swap and CPU affinity 0-1. This is
 one fresh bounded measurement, not permission for continued historical CUDA
 training; it is non-promotable and may not create a bundle or any edge result.
 
