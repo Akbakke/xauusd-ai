@@ -242,6 +242,13 @@ that would otherwise allocate the old 22.67 GiB TRAIN plus 6.48 GiB VAL
 materialised sequence views. Candidate authority still requires its separate
 readiness and smoke-bundle gates; no canonical full training, candidate bundle,
 PnL, win rate, MAE/MFE, OOS, TEST, paper or live result has been produced.
+The V46 proof-bound canonical smoke recipe is
+`train_recipe_audit_canonical_source_20260826T080554Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260826T080705100625Z.json`
+(PASS; SHA-256 `a06519cccfda1a92a85ba5d4235f92732206b85e9d25dca0a65d62cef62bcc76`).
+Its wrapper dry-run passed with `execution_tier=canonical`, source-audit hashes
+in the trainer environment, the exact V46 TRAIN/VAL manifests and no output
+bundle created. This is an admission/identity check only, not an optimizer,
+validation or economic result.
 
 The separately named historical V40 adoption-candidate report is intentionally
 `BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW`: the fitted-Q target is explicitly
