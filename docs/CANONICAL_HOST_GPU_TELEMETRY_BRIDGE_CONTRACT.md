@@ -24,11 +24,12 @@ policy.
 
 ## Sensor bootstrap (not a canonical shortcut)
 
-The host bootstrap installs the pinned `LibreHardwareMonitor.LibreHardwareMonitor`
-Winget package and queries its `GPU Memory Junction` sensor from an elevated
-native Windows process. It also records the native `nvidia-smi` name, UUID and
-physical power limit. This is a zero-load installation/probe step to determine
-whether the exact RTX 3090 has a numeric VRAM-temperature source.
+The host bootstrap downloads the pinned official LibreHardwareMonitor release,
+verifies its SHA-256 before extraction, and queries its `GPU Memory Junction`
+sensor from an elevated native Windows process. It also records the native
+`nvidia-smi` name, UUID and physical power limit. This is a zero-load
+installation/probe step to determine whether the exact RTX 3090 has a numeric
+VRAM-temperature source.
 
 Its console JSON is validation evidence only. The output is deliberately
 unsigned and nonces are not involved, so it cannot be read by the canonical

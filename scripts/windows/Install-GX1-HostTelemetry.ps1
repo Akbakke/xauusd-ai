@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   This script is intentionally a *sensor bootstrap*, not a canonical-training
-  bypass.  It installs the pinned LibreHardwareMonitor Winget package and uses
+  bypass.  It installs the pinned LibreHardwareMonitor release package and uses
   its library in this elevated, native Windows PowerShell process to require a
   numeric "GPU Memory Junction" value from the requested Nvidia GPU.
 
@@ -59,28 +59,60 @@ function Invoke-NativeChecked {
     return @($output | ForEach-Object { $_.ToString() })
 }
 
-function Find-LibreHardwareMonitorExe {
-    $roots = @(
-        (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'),
-        (Join-Path $env:ProgramFiles 'WinGet\Packages')
-    ) | Where-Object { Test-Path -LiteralPath $_ }
+function Get-PinnedLibreHardwareMonitorExe {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallationRoot
+    )
 
-    foreach ($root in $roots) {
-        $candidate = Get-ChildItem -LiteralPath $root -Filter 'LibreHardwareMonitor.exe' -File -Recurse -ErrorAction SilentlyContinue |
-            Select-Object -First 1
-        if ($null -ne $candidate) {
-            return $candidate.FullName
+    $executable = Join-Path $InstallationRoot 'LibreHardwareMonitor.exe'
+    $library = Join-Path $InstallationRoot 'LibreHardwareMonitorLib.dll'
+    if ((Test-Path -LiteralPath $executable -PathType Leaf) -and
+        (Test-Path -LiteralPath $library -PathType Leaf)) {
+        return $executable
+    }
+    return $null
+}
+
+function Install-PinnedLibreHardwareMonitor {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallationRoot,
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseUri,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedSha256
+    )
+
+    $existing = Get-PinnedLibreHardwareMonitorExe -InstallationRoot $InstallationRoot
+    if ($null -ne $existing) {
+        return $existing
+    }
+
+    $parent = Split-Path -Parent $InstallationRoot
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    New-Item -ItemType Directory -Path $InstallationRoot -Force | Out-Null
+    $temporaryZip = Join-Path $env:TEMP ("GX1-LibreHardwareMonitor-$PID.zip")
+    try {
+        Write-Host 'Downloading the pinned LibreHardwareMonitor release...'
+        Invoke-WebRequest -Uri $ReleaseUri -OutFile $temporaryZip -UseBasicParsing
+        $actualSha256 = (Get-FileHash -LiteralPath $temporaryZip -Algorithm SHA256).Hash.ToUpperInvariant()
+        if ($actualSha256 -ne $ExpectedSha256.ToUpperInvariant()) {
+            throw "Refusing to install LibreHardwareMonitor: expected SHA-256 $ExpectedSha256, got $actualSha256."
+        }
+        Expand-Archive -LiteralPath $temporaryZip -DestinationPath $InstallationRoot -Force
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryZip -PathType Leaf) {
+            Remove-Item -LiteralPath $temporaryZip -Force
         }
     }
 
-    # Winget may add a PATH shim.  Prefer the package directory above, because
-    # the shim does not have LibreHardwareMonitorLib.dll beside it.
-    $command = Get-Command -Name 'LibreHardwareMonitor.exe' -CommandType Application -ErrorAction SilentlyContinue
-    if ($null -ne $command -and (Test-Path -LiteralPath $command.Source -PathType Leaf)) {
-        return $command.Source
+    $installed = Get-PinnedLibreHardwareMonitorExe -InstallationRoot $InstallationRoot
+    if ($null -eq $installed) {
+        throw "Pinned LibreHardwareMonitor extraction did not produce its expected executable and library in $InstallationRoot"
     }
-
-    return $null
+    return $installed
 }
 
 function Get-LhmMemoryJunctionProbe {
@@ -155,25 +187,17 @@ public sealed class Gx1LhmUpdateVisitor : IVisitor
 
 Assert-Administrator
 
-$winget = Get-Command -Name 'winget.exe' -CommandType Application -ErrorAction SilentlyContinue
-if ($null -eq $winget) {
-    throw 'winget.exe was not found. Install Microsoft App Installer, then rerun this native Windows PowerShell command.'
-}
+$pinnedLhmRoot = Join-Path $env:ProgramData 'GX1\LibreHardwareMonitor\v0.9.6'
+$pinnedLhmUri = 'https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/download/v0.9.6/LibreHardwareMonitor.zip'
+$pinnedLhmSha256 = '086D9F1B5A99E643EDC2CFAAac16051685B551E4C5AC0B32A57C58C0E529C001'
 
 if ($Install) {
-    if ($null -eq (Find-LibreHardwareMonitorExe)) {
-        Write-Host 'Installing the pinned LibreHardwareMonitor Winget package...'
-        Invoke-NativeChecked -FilePath $winget.Source -ArgumentList @(
-            'install', '--exact', '--id', 'LibreHardwareMonitor.LibreHardwareMonitor',
-            '--source', 'winget', '--scope', 'user', '--accept-package-agreements',
-            '--accept-source-agreements', '--disable-interactivity'
-        ) | Out-Host
-    }
+    Install-PinnedLibreHardwareMonitor -InstallationRoot $pinnedLhmRoot -ReleaseUri $pinnedLhmUri -ExpectedSha256 $pinnedLhmSha256 | Out-Null
 }
 
-$lhmExe = Find-LibreHardwareMonitorExe
+$lhmExe = Get-PinnedLibreHardwareMonitorExe -InstallationRoot $pinnedLhmRoot
 if ($null -eq $lhmExe) {
-    throw 'LibreHardwareMonitor is not installed or its executable could not be resolved. Rerun with -Install.'
+    throw 'The pinned LibreHardwareMonitor release is not installed. Rerun with -Install.'
 }
 
 $nativeSmi = Join-Path $env:WINDIR 'System32\nvidia-smi.exe'
