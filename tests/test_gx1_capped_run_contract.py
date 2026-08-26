@@ -601,6 +601,11 @@ def test_trainer_guard_persists_terminal_telemetry_when_given_sidecar(
     assert "event=start execution_mode=attended_smoke" in log_text
     assert "event=telemetry phase=preflight" in log_text
     assert "event=exit child_status=0" in log_text
+    assert "telemetry_samples=1" in log_text
+    assert "peak_core_temp_c=50" in log_text
+    assert "peak_memory_temp_c=N/A" in log_text
+    assert "peak_power_draw_w=100" in log_text
+    assert "peak_memory_used_mib=1000" in log_text
 
 
 def _sequenced_nvidia_smi(
@@ -631,6 +636,38 @@ def _sequenced_nvidia_smi(
     )
     path.chmod(0o755)
     return path
+
+
+def test_trainer_guard_exit_records_peaks_across_short_cuda_session(
+    tmp_path: Path,
+) -> None:
+    nvidia_smi = _sequenced_nvidia_smi(
+        tmp_path,
+        later_output="60, 80, 200, 250, 2000",
+    )
+    guard_log = tmp_path / "guard.log"
+    guard_log.write_text("", encoding="utf-8")
+    env = _guard_env(device="cuda", nvidia_smi_path=nvidia_smi)
+    env["GX1_TRAINER_GUARD_LOG_PATH"] = str(guard_log)
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/sleep", "2"],
+        cwd=REPO,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log_text = guard_log.read_text(encoding="utf-8")
+    assert "event=exit child_status=0" in log_text
+    assert "telemetry_samples=" in log_text
+    assert "peak_core_temp_c=60" in log_text
+    assert "peak_memory_temp_c=80" in log_text
+    assert "peak_power_draw_w=200" in log_text
+    assert "peak_memory_used_mib=2000" in log_text
 
 
 def test_trainer_guard_kills_running_group_when_telemetry_disappears(

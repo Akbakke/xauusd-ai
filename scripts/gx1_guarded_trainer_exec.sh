@@ -13,8 +13,23 @@ guard_log() {
   printf '%s %s\n' "$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >>"$guard_log_path"
 }
 
+telemetry_sample_count=0
+telemetry_peak_core_temp=N/A
+telemetry_peak_memory_temp=N/A
+telemetry_peak_power_draw=N/A
+telemetry_peak_memory_used=N/A
+
+telemetry_summary_fields() {
+  printf 'telemetry_samples=%s peak_core_temp_c=%s peak_memory_temp_c=%s peak_power_draw_w=%s peak_memory_used_mib=%s' \
+    "$telemetry_sample_count" \
+    "$telemetry_peak_core_temp" \
+    "$telemetry_peak_memory_temp" \
+    "$telemetry_peak_power_draw" \
+    "$telemetry_peak_memory_used"
+}
+
 die() {
-  guard_log "event=fatal message=$*"
+  guard_log "event=fatal message=$* $(telemetry_summary_fields)"
   printf 'FATAL: trainer safety guard: %s\n' "$*" >&2
   exit 75
 }
@@ -147,6 +162,28 @@ float_gt() {
   awk -v left="$1" -v right="$2" 'BEGIN { exit !(left > right) }'
 }
 
+record_gpu_telemetry() {
+  local core_temp="$1" memory_temp="$2" power_draw="$3" memory_used="$4" memory_observed="$5"
+  telemetry_sample_count=$((telemetry_sample_count + 1))
+  if [[ "$telemetry_peak_core_temp" == N/A ]] \
+    || float_gt "$core_temp" "$telemetry_peak_core_temp"; then
+    telemetry_peak_core_temp="$core_temp"
+  fi
+  if [[ "$memory_observed" == true ]] \
+    && { [[ "$telemetry_peak_memory_temp" == N/A ]] \
+      || float_gt "$memory_temp" "$telemetry_peak_memory_temp"; }; then
+    telemetry_peak_memory_temp="$memory_temp"
+  fi
+  if [[ "$telemetry_peak_power_draw" == N/A ]] \
+    || float_gt "$power_draw" "$telemetry_peak_power_draw"; then
+    telemetry_peak_power_draw="$power_draw"
+  fi
+  if [[ "$telemetry_peak_memory_used" == N/A ]] \
+    || (( memory_used > telemetry_peak_memory_used )); then
+    telemetry_peak_memory_used="$memory_used"
+  fi
+}
+
 assert_safe_telemetry() {
   local phase="$1" core_temp memory_temp power_draw power_limit memory_used memory_observed
   read_gpu_telemetry \
@@ -157,6 +194,8 @@ assert_safe_telemetry() {
   power_limit=${telemetry_values[3]}
   memory_used=${telemetry_values[4]}
   memory_observed=${telemetry_values[5]}
+  record_gpu_telemetry \
+    "$core_temp" "$memory_temp" "$power_draw" "$memory_used" "$memory_observed"
   guard_log "event=telemetry phase=$phase core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used"
   float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
     && die "configured GPU power limit ${power_limit}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W}W during $phase"
@@ -336,6 +375,8 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
     power_limit=${telemetry_values[3]}
     memory_used=${telemetry_values[4]}
     memory_observed=${telemetry_values[5]}
+    record_gpu_telemetry \
+      "$core_temp" "$memory_temp" "$power_draw" "$memory_used" "$memory_observed"
     breach=
     float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" && breach=power_limit
     float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" && breach=power_draw
@@ -385,5 +426,5 @@ if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
 fi
 cleanup_stage_notification
 trap - EXIT
-guard_log "event=exit child_status=$child_status stage=$stage_name"
+guard_log "event=exit child_status=$child_status stage=$stage_name $(telemetry_summary_fields)"
 exit "$child_status"
