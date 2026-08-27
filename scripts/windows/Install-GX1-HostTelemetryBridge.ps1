@@ -147,6 +147,8 @@ $bridgeRoot = Join-Path $env:ProgramData 'GX1\HostTelemetryBridge'
 New-Item -ItemType Directory -Path $bridgeRoot -Force | Out-Null
 $configPath = Join-Path $bridgeRoot 'bridge-config.json'
 $servicePath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.ps1'
+$runnerPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeRunner.ps1'
+$serviceLogPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.log'
 $publicCertificatePath = Join-Path $bridgeRoot 'GX1HostTelemetryBridgePublic.pem'
 $endpoint = "http://127.0.0.1:$Port/gx1/v1/telemetry/"
 $certificate = Get-BridgeCertificate -ConfigPath $configPath -ForceRotate:$RotateCertificate
@@ -376,6 +378,21 @@ finally {
     $serviceSource,
     [System.Text.UTF8Encoding]::new($false)
 )
+$runnerSource = @"
+`$ErrorActionPreference = 'Stop'
+& '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port *>> '$serviceLogPath'
+exit `$LASTEXITCODE
+"@
+[System.IO.File]::WriteAllText(
+    $runnerPath,
+    $runnerSource,
+    [System.Text.UTF8Encoding]::new($false)
+)
+[System.IO.File]::WriteAllText(
+    $serviceLogPath,
+    '',
+    [System.Text.UTF8Encoding]::new($false)
+)
 
 $configuration = [ordered]@{
     schema_version = 'gx1_host_telemetry_bridge_install_v1'
@@ -384,6 +401,8 @@ $configuration = [ordered]@{
     gpu_index = $GpuIndex
     endpoint = $endpoint
     service_path = $servicePath
+    runner_path = $runnerPath
+    service_log_path = $serviceLogPath
 }
 $configuration | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $configPath -Encoding UTF8
 Export-PublicCertificatePem -Certificate $certificate -DestinationPath $publicCertificatePath
@@ -401,7 +420,7 @@ if ($null -ne $existingTask) {
     Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 }
 $powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
-$arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$servicePath`" -CertificateThumbprint $($certificate.Thumbprint) -ExpectedGpuName `"$ExpectedGpuName`" -GpuIndex $GpuIndex -Port $Port"
+$arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$runnerPath`""
 $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
@@ -411,7 +430,14 @@ Start-ScheduledTask -TaskName $taskName
 Start-Sleep -Seconds 2
 $task = Get-ScheduledTask -TaskName $taskName
 if ($task.State -ne 'Running') {
-    throw "Host telemetry bridge task did not enter Running state (state=$($task.State))."
+    $diagnostic = ''
+    if (Test-Path -LiteralPath $serviceLogPath -PathType Leaf) {
+        $diagnostic = (Get-Content -LiteralPath $serviceLogPath -Tail 80 | Out-String).Trim()
+    }
+    if ([string]::IsNullOrWhiteSpace($diagnostic)) {
+        $diagnostic = 'No service output was captured; inspect task result with Get-ScheduledTaskInfo -TaskName GX1HostTelemetryBridge.'
+    }
+    throw "Host telemetry bridge task did not enter Running state (state=$($task.State)). Diagnostic output:`n$diagnostic"
 }
 
 $certificateSha256 = (Get-FileHash -LiteralPath $publicCertificatePath -Algorithm SHA256).Hash.ToLowerInvariant()

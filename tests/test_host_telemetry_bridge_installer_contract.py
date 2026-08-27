@@ -20,6 +20,9 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     assert "'/T', '/C'" in source
     assert "public_certificate_sha256" in source
     assert "public_certificate_wsl_path" in source
+    assert "GX1-HostTelemetryBridgeRunner.ps1" in source
+    assert "GX1-HostTelemetryBridgeService.log" in source
+    assert "Diagnostic output:" in source
 
 
 def test_host_bridge_service_is_loopback_nonce_bound_and_sensor_complete() -> None:
