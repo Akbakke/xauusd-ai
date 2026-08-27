@@ -179,7 +179,7 @@ def test_exact_index_sampler_starts_at_complete_batch_boundary() -> None:
 def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     source = Path(trainer.__file__).read_text(encoding="utf-8")
 
-    assert "_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2" in source
+    assert "_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 60" in source
     assert "_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8" in source
     assert "_ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION = 0.50" in source
     assert "_ATTENDED_RESEARCH_BATCH_SIZE = 8" in source

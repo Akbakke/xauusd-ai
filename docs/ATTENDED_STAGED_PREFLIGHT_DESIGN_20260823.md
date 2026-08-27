@@ -115,11 +115,12 @@ research-session mechanism:
 - It applies only to `execution_tier=attended_only`, smoke profile, exactly one
   epoch and `grad_accum_steps=1`. Canonical and candidate paths neither create
   nor read it.
-- Its fixed, source-owned budget is two **complete** optimizer steps. Its
+- Its fixed, source-owned budget is 60 **complete** optimizer steps. Its
   attended-only Exit forward is streamed in groups of 8 complete episodes;
-  neither setting is exposed on the CLI. The process returns normally after
-  that budget; the outer guard remains active as a temperature, actual-power,
-  telemetry and wall-clock backstop.
+  neither setting is exposed on the CLI. This is one operator-present session,
+  still bounded by the guard-owned five-minute model deadline; it is not a
+  candidate-training or edge-evaluation path. The outer guard remains active
+  as a temperature, actual-power, telemetry and wall-clock backstop.
 - Each completed step atomically writes a hash-bound state in the inactive one
   of two local slots, then atomically points `ATTENDED_RESEARCH_SESSION_ACTIVE.json`
   at it. State includes online/target model, optimizer, optional EMA/scheduler,
@@ -153,10 +154,11 @@ core-temperature and actual-draw limits, but reached 24,260 MiB reported VRAM
 usage and a new WSL/DXG `dxgkio_make_resident: Ioctl failed: -12` warning was
 recorded. That is a platform-risk signal, not a success criterion. The former
 two-step/32-row configuration was still unsafe under WSL. The current
-two-step/8-row source-bound configuration is a lower-memory change that
-requires a fresh output path, recipe audit and bounded measurement; it must
-not resume the older four-step state or be treated as an established safe
-historical-CUDA path.
+60-step/8-row source-bound configuration follows a clean V46 two-step/8-row
+execution that completed full data preflight and CUDA model stage without a
+guard breach. It requires a fresh output path and recipe audit, must not resume
+the older state, and is still not an established historical-CUDA
+candidate-training path.
 
 For attribution, the first batch now also emits `[TRAIN_PROFILE]` with Entry
 online/target forwards, complete Exit training time, post-Exit backward time,

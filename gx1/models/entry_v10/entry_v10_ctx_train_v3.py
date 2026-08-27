@@ -982,13 +982,14 @@ UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
 # The attended route is a bounded trainability diagnostic, never a candidate
 # producer.  Its Exit branch is intentionally narrower than the canonical
 # trainer: this bounds its transient attention allocation below the group size
-# that reached the VRAM ceiling in the first attended smoke. The two-step
-# budget leaves the
-# guard-owned five-minute CUDA window as a backstop, rather than the mechanism
-# that ends a session.  Both values are source-owned; no CLI argument or
-# ambient variable may expand either one.
+# that reached the VRAM ceiling in the first attended smoke.  The current
+# 60-step budget is one checkpointed, operator-present research session under
+# the guard-owned five-minute CUDA window.  It replaces the former two-step
+# probe only after that probe completed the complete V46 data preflight and
+# CUDA model stage without a guard breach.  Both values are source-owned; no
+# CLI argument or ambient variable may expand either one.
 _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION = "gx1_attended_research_session_v1"
-_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 2
+_ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 60
 # An attended session may allocate at most half of the device through the
 # PyTorch caching allocator.  The independent guard observes total NVML usage
 # every second and stops at the same 12 GiB threshold; the allocator fence is
