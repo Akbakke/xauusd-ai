@@ -119,12 +119,14 @@ function Set-BridgeDirectoryAcl {
     # rule.  Users retain read/execute solely so the Linux verifier can read
     # the public certificate; only SYSTEM/Administrators can change anything.
     $icacls = Join-Path $env:WINDIR 'System32\icacls.exe'
+    # Use well-known SID syntax (`*SID`) rather than English local-group names:
+    # on this host the Administrator group is localized to Norwegian.
     Invoke-NativeChecked -FilePath $icacls -ArgumentList @(
         $BridgeRoot,
         '/inheritance:r',
-        '/grant:r', 'SYSTEM:(OI)(CI)F',
-        'BUILTIN\Administrators:(OI)(CI)F',
-        'BUILTIN\Users:(OI)(CI)RX',
+        '/grant:r', '*S-1-5-18:(OI)(CI)F',
+        '*S-1-5-32-544:(OI)(CI)F',
+        '*S-1-5-32-545:(OI)(CI)RX',
         '/T', '/C'
     ) | Out-Null
 }
