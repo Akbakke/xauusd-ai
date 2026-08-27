@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -83,9 +84,17 @@ def _require_emitted_rows_contiguous(pf: pq.ParquetFile, *, rows: int) -> None:
     observed_rows = 0
     for batch in pf.iter_batches(batch_size=8192, columns=["time"]):
         try:
-            time_ns = batch.column("time").to_numpy(zero_copy_only=False)
-            time_ns = time_ns.astype("datetime64[ns]").astype("int64", copy=False)
-        except (TypeError, ValueError) as exc:
+            # Convert through Arrow's UTC timestamp representation.  NumPy's
+            # timezone-aware datetime64 conversion warns even though Arrow has
+            # already supplied the exact epoch values; warnings are forbidden
+            # for this evidence-producing audit.
+            time_values = batch.column("time").cast(
+                pa.timestamp("ns", tz="UTC")
+            )
+            time_ns = time_values.cast(pa.int64()).to_numpy(
+                zero_copy_only=False
+            )
+        except (pa.ArrowException, TypeError, ValueError) as exc:
             raise RuntimeError("[ENTRY_SEQUENCE_ROLL_TIME_INVALID]") from exc
         if np.any(time_ns == np.iinfo(np.int64).min):
             raise RuntimeError("[ENTRY_SEQUENCE_ROLL_TIME_NULL]")

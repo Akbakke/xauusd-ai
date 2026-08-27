@@ -4,7 +4,8 @@ The launch-state file may name one explicit dataset review.  This module makes
 that status useful without turning it into an admission path: every named
 report is content-addressed, no ``latest`` discovery is permitted, and the
 only accepted V1 status still says that production economics blocks use of the
-research fitted-Q target.
+research fitted-Q target. The selected V46 review repaired the older same-close
+auxiliary-label defect; that causal PASS must not be confused with admission.
 """
 from __future__ import annotations
 
@@ -50,10 +51,6 @@ _REQUIRED_REPORTS: dict[str, tuple[str, str]] = {
         "entry_full_input_liveness_contract_v9",
         "PASS",
     ),
-    "feature_surface_liveness": (
-        "entry_feature_surface_liveness_v1",
-        "PASS",
-    ),
     "feature_audit": ("entry_feature_foundation_audit_v1", "PASS"),
     "target_audit": ("entry_target_foundation_audit_v4", "PASS"),
     "specialist_audit": (
@@ -72,10 +69,10 @@ _REQUIRED_REPORTS: dict[str, tuple[str, str]] = {
         "entry_model_native_seq513_trainability_readiness_v1",
         "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
     ),
-    "train_recipe": ("entry_model_native_seq513_train_recipe_audit_v7", "PASS"),
+    "train_recipe": ("entry_model_native_seq513_train_recipe_audit_v8", "PASS"),
     "execution_causality": (
         ENTRY_EXECUTION_CAUSALITY_AUDIT_SCHEMA_VERSION,
-        "BLOCK",
+        "PASS",
     ),
     "adoption_candidate": (
         "entry_model_native_adoption_candidate_v1",
@@ -184,25 +181,25 @@ def _require_adoption_block(payload: Mapping[str, Any]) -> None:
             raise RuntimeError(f"[AUDITED_ADOPTION_{key.upper()}_OPEN]")
 
 
-def _require_execution_causality_block(
+def _require_execution_causality_pass(
     payload: Mapping[str, Any], *, dataset_dir: Path, dataset_run_id: str
 ) -> None:
-    """Keep a same-close auxiliary finding visible in the current state."""
+    """Require the repaired M1 decision-to-fill evidence without admission."""
 
     report = require_entry_execution_causality_audit(
         payload,
         expected_dataset_dir=str(dataset_dir),
         expected_entry_run_id=dataset_run_id,
-        require_training_authorized=False,
+        require_training_authorized=True,
     )
     if (
-        report["training_authorized"] is not False
-        or report["legacy_m5_same_close_label_present"] is not True
+        report["training_authorized"] is not True
+        or report["legacy_m5_same_close_label_present"] is not False
         or report["entry_fitted_q_m1_fill_lifecycle_bound"] is not True
-        or report["active_auxiliary_targets_m1_fill_bound"] is not False
-        or report["future_causal_rebuild_required"] is not True
+        or report["active_auxiliary_targets_m1_fill_bound"] is not True
+        or report["future_causal_rebuild_required"] is not False
     ):
-        raise RuntimeError("[AUDITED_EXECUTION_CAUSALITY_BLOCKER_INVALID]")
+        raise RuntimeError("[AUDITED_EXECUTION_CAUSALITY_PASS_INVALID]")
 
 
 def require_current_audited_dataset_evidence(
@@ -288,7 +285,7 @@ def require_current_audited_dataset_evidence(
         if name == "adoption_candidate":
             _require_adoption_block(payload)
         elif name == "execution_causality":
-            _require_execution_causality_block(
+            _require_execution_causality_pass(
                 payload,
                 dataset_dir=dataset_dir,
                 dataset_run_id=evidence["dataset_run_id"],

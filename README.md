@@ -100,12 +100,13 @@ but the system is not empirically finished:
   `PROJECT_STATE_xau_direction_launch.json`, never this document;
 - the historical V28 and V29J dataset chains were retired and are not valid
   training or comparison substrates;
-- V42 is the current hash-bound **audited-but-unadmitted** data artifact: its
-  rebuild, TRAIN/VAL/sealed TEST split, full-input and source-surface liveness,
-  all eight-specialist audit, smoke/readiness and recipe reports are explicitly
-  rehashed from `PROJECT_STATE_xau_direction_launch.json`. Its fitted-Q
-  production-economics gate is blocked, so this is neither a trained/admitted
-  candidate nor an authorization for an edge or trading claim;
+- V46 is the current hash-bound **audited-but-unadmitted** research data
+  artifact: its rebuild, TRAIN/VAL/sealed TEST split, source-backed sequence
+  reconstruction, all-eight-specialist audit, M1 decision-to-fill causality,
+  smoke/readiness and recipe reports are explicitly rehashed from
+  `PROJECT_STATE_xau_direction_launch.json`. Its fitted-Q production-economics
+  gate is blocked, so this is neither a trained/admitted candidate nor an
+  authorization for an edge or trading claim;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;
@@ -119,7 +120,7 @@ but the system is not empirically finished:
   VAL state. Smoke runs explicitly cannot supply this admission proof.
 
 Every dataset built on a retired feature surface is invalid as substrate for
-new training. V42 is the current-contract rebuild; its audit status is explicit
+new training. V46 is the current-contract research rebuild; its audit status is explicit
 but deliberately not admission. The signal-surface schema version that a cache
 or dataset must match is printed by `bash scripts/gx1_handover.sh` and is never
 restated here.

@@ -23,6 +23,7 @@ AUTHORITY_PATHS = (
     HANDOVER,
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
+    REPO / "docs/CANONICAL_HOST_GPU_TELEMETRY_BRIDGE_CONTRACT.md",
     # 3c84bec9 committed this review doc without extending the authority
     # fingerprint; covered here so no tracked markdown escapes the fingerprint.
     REPO / "docs/FEATURE_VALUE_REVIEW_20260813.md",
@@ -141,14 +142,14 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_admission_stage: NO_ADMITTED_UNIFIED_DATASET" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert "current_audited_dataset_status: " in result.stdout
-    assert "current_audited_dataset_run_id: V42_20260825T011122Z" in result.stdout
-    assert "current_audited_dataset_report_count: 13" in result.stdout
-    assert "dataset_contract: V42_HASH_BOUND_AUDITED_REPORT_ONLY" in result.stdout
+    assert "current_audited_dataset_run_id: V46_20260825T170935Z" in result.stdout
+    assert "current_audited_dataset_report_count: 12" in result.stdout
     assert (
-        "train_recipe: "
-        "V42_OLD_RECIPE_BLOCKED_BY_EXECUTION_CAUSALITY_AUDIT"
+        "dataset_contract: "
+        "HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
         in result.stdout
     )
+    assert "train_recipe: CURRENT_AUDITED_RESEARCH_ONLY_NO_CANDIDATE_AUTHORITY" in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     launch_state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -209,7 +210,11 @@ def test_handover_viewer_prints_current_goal() -> None:
         "BIND_PRODUCTION_ECONOMICS_BEFORE_ANY_ADMISSION_OR_EDGE_CLAIM"
         in result.stdout
     )
-    assert "dataset_rebuild: REQUIRED_BEFORE_ANY_V42_SUCCESSOR_TRAINING" in result.stdout
+    assert (
+        "dataset_rebuild: "
+        "REQUIRED_AFTER_PRODUCTION_ECONOMICS_BINDING_BEFORE_CANDIDATE_TRAINING"
+        in result.stdout
+    )
     assert (
         "production_economics_blocker: "
         "ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_NOT_BOUND"
@@ -269,16 +274,16 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     summary = require_blocked_launch_state_with_current_audited_dataset(state)
     assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
     assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-    assert summary["dataset_run_id"] == "V42_20260825T011122Z"
+    assert summary["dataset_run_id"] == "V46_20260825T170935Z"
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     assert state["current_smoke_launch_evidence"] is None
     blockers = "\n".join(state["blockers"])
     assert "fresh immutable native M1/M5 pair" in blockers
-    assert "No current hash-bound dataset" in blockers
+    assert "No admitted dataset" in blockers
     assert "Untouched TEST direction edge" in blockers
     assert "remain fail-closed" in blockers
-    # The state now carries twelve hash-bound V42 report identities.  Keep the
+    # The state now carries twelve hash-bound V46 report identities. Keep the
     # launch authority compact enough to inspect, while treating those exact
     # identities as necessary fail-closed control data rather than a history.
     assert len(LAUNCH_STATE.read_bytes()) < 12_000

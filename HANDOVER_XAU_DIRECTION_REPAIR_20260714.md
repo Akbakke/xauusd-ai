@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-26. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-27. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
@@ -16,7 +16,18 @@ untouched-TEST result, no PnL and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**Current V42 status, verified 2026-08-25:** the explicit
+**Current V46 status, reconciled 2026-08-27:** `V46_20260825T170935Z` is the
+current hash-bound research dataset in `PROJECT_STATE_xau_direction_launch.json`.
+It has PASS evidence for all eight feature families, source-backed sequences,
+TRAIN-only normalization and the repaired M5-decision-to-M1-fill causality
+audit. Its new adoption review is still deliberately BLOCKED by exactly one
+gate: fitted-Q production economics. No immutable historical broker commission,
+slippage, financing/swap, gap/terminal or shared-capital replay evidence exists,
+so V46 is neither a candidate, a PnL result nor authority for paper/demo/live.
+This status update does not authorize rebuilding, training or any external
+collection.
+
+**Historical V42 status, verified 2026-08-25:** the explicit
 `current_audited_dataset_evidence` binding in
 `PROJECT_STATE_xau_direction_launch.json` rehashes the V42 rebuild terminal,
 post-rebuild readiness, full input and feature-surface liveness, all three
@@ -78,10 +89,10 @@ hash-checked ranker policy, the exact M1 diagnostic projection in each split,
 and a sizing policy bound to the same M5 source, tape provenance, M1 source
 and direction-policy hash. Unit and bounded real-source smoke checks pass. **No
 dataset rebuild, training, CUDA work, TEST read, PnL or edge evaluation has
-been run from this implementation.** V42 remains the current immutable BLOCK;
-a fresh successor lineage must complete the bounded rebuild/audit chain and
-produce a new PASS causality report before an explicitly authorized training
-smoke can be considered.
+been run from this implementation.** V42 remains historical BLOCK evidence;
+V46 is its fresh successor and has completed the bounded rebuild/audit chain
+with the required PASS causality report. It is still not training-authorized
+for a candidate because production economics remains unbound.
 
 **Historical V40 completed GREEN on 2026-08-21.** It wrote TRAIN/VAL/sealed TEST
 (283,787 / 76,577 / 6,556 rows), seven compact lifecycle files in 29.0 MB and
@@ -381,10 +392,10 @@ weight exists.
 
 ## What remains empirically unproven or unadmitted
 
-- No admitted dataset, model, calibration, edge, PnL or win-rate. V42's bytes
-  pass the current foundation audits and report-only readiness chain, but the
-  separately hash-bound V42 adoption review is blocked on production economics.
-  Its recipe therefore has no activation authority. The M5
+- No admitted dataset, model, calibration, edge, PnL or win-rate. V46's bytes
+  pass the current foundation audits, source-backed sequence causality and
+  report-only readiness chain, but its separately hash-bound adoption review is
+  blocked on production economics. Its recipe therefore has no activation authority. The M5
   diagnostics covered 477,229 rows; all 67 TRAIN-fitted candidates were finite,
   live and non-duplicate on 283,902 TRAIN rows, with top absolute diagnostic
   Spearman only 0.023966. This is weak univariate signal, not an edge verdict.

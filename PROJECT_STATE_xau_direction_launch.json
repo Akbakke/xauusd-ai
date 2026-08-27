@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-25T04:34:40Z",
+  "updated_utc": "2026-08-27T21:10:40Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -40,87 +40,81 @@
     "schema_version": "gx1_current_audited_dataset_evidence_v1",
     "status": "AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED",
     "blocker": "ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_NOT_BOUND",
-    "dataset_run_id": "V42_20260825T011122Z",
-    "root_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z",
-    "dataset_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/dataset",
+    "dataset_run_id": "V46_20260825T170935Z",
+    "root_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN",
+    "dataset_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/dataset",
     "admission_allowed": false,
     "activation_allowed": false,
     "reports": {
       "rebuild_terminal": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20260825T011148365754Z.json",
-        "sha256": "e025174102b19ab4484efe669a8b993d5095623beccbb740a32a2ce343fa687c",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20260825T170937379679Z.json",
+        "sha256": "d0f6aff83423b025369c7f2f6236771ce95250ec028f24682ea191c4dafa32c7",
         "schema_version": "entry_model_native_seq513_dataset_rebuild_terminal_v1",
         "decision": "COMPLETED_MODEL_NATIVE_SEQ513_DATASET_REBUILD"
       },
       "post_rebuild_readiness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/post_rebuild_readiness/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260825T040409607391Z.json",
-        "sha256": "cf2430e9ef685d1c8126173ac5d3b3cf9c745e479e4034d1142f1428c07f33ae",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/post_rebuild_readiness/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260825T200257388615Z.json",
+        "sha256": "cef2023e80aff6cbc12ee24dd2ca34cdce10b4cc0b2ea6736d2751d367b7e851",
         "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v2",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW"
       },
       "full_input_liveness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T031933857454Z.json",
-        "sha256": "dcc8b6d85da98d41fd8537de7bbe274601bcc4685b9f3fc3fa95f21ecd151528",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T191417645593Z.json",
+        "sha256": "73b10d55e8ca1d82a624c0e70bb8b7cdd6ae234a84e56324e246e4a3bdd1f3f4",
         "schema_version": "entry_full_input_liveness_contract_v9",
         "decision": "PASS"
       },
-      "feature_surface_liveness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260825T050000000000Z.json",
-        "sha256": "3adeddbef89819e80eec1b47d59e75b1d69930be54948a5194291ce22ebd258e",
-        "schema_version": "entry_feature_surface_liveness_v1",
-        "decision": "PASS"
-      },
       "feature_audit": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/foundation_feature_audit/ENTRY_FEATURE_FOUNDATION_AUDIT_20260825T040607Z.json",
-        "sha256": "f0c0c096cb9421d189522c4fa46c2b1ed3c81ae010e7d0aa95358b7cdce658d3",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/foundation_features/ENTRY_FEATURE_FOUNDATION_AUDIT_20260825T200552Z.json",
+        "sha256": "b3985aef0fdfe6928820d089c1a15ed5a3f9d30413635be884cc1d39cfa8097b",
         "schema_version": "entry_feature_foundation_audit_v1",
         "decision": "PASS"
       },
       "target_audit": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/foundation_target_audit/ENTRY_TARGET_FOUNDATION_AUDIT_20260825T040713Z.json",
-        "sha256": "18db21f21bbbd929d7511d0d829d0efbaf091c1dcf5d89b903fa659c01abecf1",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/foundation_targets/ENTRY_TARGET_FOUNDATION_AUDIT_20260825T200719Z.json",
+        "sha256": "56570fb2c4f8d7d26c327ea856ab096e7a39e98c34bb9d1c48de8c1df134ebff",
         "schema_version": "entry_target_foundation_audit_v4",
         "decision": "PASS"
       },
       "specialist_audit": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/foundation_specialist_audit_routing/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260825T042226Z.json",
-        "sha256": "5005964105f8f668b2979e01be3f4cbf964e3cb8f1ee114977a8ce52768b385a",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/specialist_features/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260825T200754Z.json",
+        "sha256": "9fea0c5003bc311abbebe420443320acfea8d76d8b822a4081cb62951481d165",
         "schema_version": "entry_specialist_feature_group_audit_v1",
         "decision": "PASS"
       },
       "smoke_manifest": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/smoke_manifest/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_20260825T040835570961Z.json",
-        "sha256": "48fd4274fd3a479eea188d610e675abfa518a97f4bf363f11f46e7b8f86f7c65",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/smoke_manifest/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_20260825T201033048962Z.json",
+        "sha256": "732a83d31ac6b2f145377a3990d8a8cf31cb659be9311c7122d5b8b1229333ed",
         "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
       },
       "smoke_readiness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/smoke_readiness/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260825T040906634190Z.json",
-        "sha256": "3a79956ea19724b8b7823d779d82e4288073510995b8e6126c073afc729fadd6",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/smoke_readiness/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260825T201102633708Z.json",
+        "sha256": "bada60b4c05e424e59436232260ac2d269d3a937493b1d6c5f04fe296d8ac6a1",
         "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
       },
       "trainability_readiness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/trainability_readiness/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260825T040935511172Z.json",
-        "sha256": "2294ddc406f1eb67dfe75d030ac23d19df20456e05dc992a21ef847d63f0c71f",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/trainability_readiness/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260825T201130766253Z.json",
+        "sha256": "5a7e08a91b5ebcc4da6163339341fea338abea92ddcfb3ebc1353342cda948f2",
         "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
       },
       "train_recipe": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/train_recipe_20260825T041100Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260825T040958158875Z.json",
-        "sha256": "cadbfdfdf69441693ad365dc65582aeed91ced84ae921493b69218a18fcbff0b",
-        "schema_version": "entry_model_native_seq513_train_recipe_audit_v7",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_20260825T211500Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260825T205303897382Z.json",
+        "sha256": "a6c6063aa69b9dcccddce6ac6f51575c9462fbccbdaa7ab2a4e8a23c28ea5916",
+        "schema_version": "entry_model_native_seq513_train_recipe_audit_v8",
         "decision": "PASS"
       },
       "execution_causality": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/audit/ENTRY_EXECUTION_CAUSALITY_AUDIT_20260825T052916Z.json",
-        "sha256": "e929536ef36602464dd51445f83a22c23fcdd53cd0c90f5bc762633acc07a865",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/ENTRY_EXECUTION_CAUSALITY_AUDIT_20260825T2010Z.json",
+        "sha256": "bdc76e9d8701d24b41bd117f3e3a880b34e255dc02833a931d6a26f85db92df8",
         "schema_version": "entry_execution_causality_audit_v1",
-        "decision": "BLOCK"
+        "decision": "PASS"
       },
       "adoption_candidate": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V42_CHAIN_20260825T011122Z/adoption_candidate_recheck/ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE_20260825T043915926322Z.json",
-        "sha256": "f1a3a8c8d6b16fe6c0287aa32b64bf20a3e8e9743d123327e9a4804c52ac5098",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/adoption_candidate_recheck_20260827T211000Z/ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE_20260827T211040853410Z.json",
+        "sha256": "64abe65e4f1031ffd323e0145ec7459d00edac97088ba19d1524cf7cc3adbf0d",
         "schema_version": "entry_model_native_adoption_candidate_v1",
         "decision": "BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW"
       }
@@ -132,8 +126,8 @@
   "accepted_via_vedtak": null,
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V39_20260821T045847Z completed TRAIN/VAL/TEST, compact lifecycle and full-input liveness, then ended RED because pretrain audit v5 incorrectly demanded variation from the retired selected-side y_bad_path scalar that the positive-PnL direction policy makes structurally zero. Both side-specific sources were live and scalar copy mismatches were zero. Audit v6 keeps finite/exact-copy/side-liveness checks and passes adversarial tests plus a diagnostic V39 replay. V35/V36/V37/V38/V39 products may not be consumed; a fresh successor lineage is required after commit.",
-    "No current hash-bound dataset, distinct training recipe or same-bundle Entry/Exit model is admitted under the current model-native contract.",
+    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V46_20260825T170935Z is the current hash-bound research dataset: it repaired all active auxiliary labels to exact M1 decision/fill bid/ask evidence and passed its execution-causality audit. It remains deliberately unadmitted because fitted-Q production economics is unbound; V35/V36/V37/V38/V39 products may not be consumed.",
+    "No admitted dataset, distinct candidate-training recipe or same-bundle Entry/Exit model exists under the current model-native contract.",
     "The fitted-Q decision objective is raw-bps masked MSE with learned task weights and unique action-Q argmax authority. Whether every remaining static trainer magnitude is data-derived has not been examined.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

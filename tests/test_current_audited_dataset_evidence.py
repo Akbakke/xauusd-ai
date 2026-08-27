@@ -22,13 +22,13 @@ def _state() -> dict[str, object]:
     return json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
 
 
-def test_current_v42_review_is_hash_bound_but_not_admitted() -> None:
+def test_current_v46_review_is_hash_bound_but_not_admitted() -> None:
     summary = require_blocked_launch_state_with_current_audited_dataset(_state())
 
     assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
     assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-    assert summary["dataset_run_id"] == "V42_20260825T011122Z"
-    assert summary["report_count"] == 13
+    assert summary["dataset_run_id"] == "V46_20260825T170935Z"
+    assert summary["report_count"] == 12
 
 
 @pytest.mark.parametrize(

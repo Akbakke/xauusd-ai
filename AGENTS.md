@@ -69,11 +69,12 @@ Read `GX1_RULES.md` first. It is binding.
   false by 2026-08-19. Whether every static magnitude in the trainer is gone is
   **not examined**; do not claim it either way.
 - There is no admitted model, recipe, edge, win-rate or PnL proof, and no
-  admitted dataset. V42 is an explicitly hash-bound audited research dataset:
-  its data, liveness, all-eight-specialist and report-only readiness evidence
-  is verified by `current_audited_dataset_evidence` in the launch state. It
-  remains blocked from admission because fitted-Q production economics lacks
-  executable bid/ask, cost, gap/terminal and portfolio evidence. The V28 (513)
+  admitted dataset. V46 is the explicitly hash-bound audited research dataset:
+  its data, liveness, all-eight-specialist, source-backed sequence and
+  M1-decision-to-fill causality PASS evidence is verified by
+  `current_audited_dataset_evidence` in the launch state. It remains blocked
+  from admission because fitted-Q production economics lacks immutable
+  executable bid/ask, cost, financing, gap/terminal and portfolio evidence. The V28 (513)
   and V29J (592) chains both ran GREEN but were retired
   on 2026-08-14 through the retention owner: nothing was ever trained on
   either, so neither could serve as the comparison baseline it was named as.
@@ -196,10 +197,10 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V42's sealed TEST and bind causal executable prices, costs,
+2. Preserve V46's sealed TEST and bind causal executable prices, costs,
    financing, gap/terminal treatment and portfolio constraints to a new
    production-economics evidence contract.
-3. Audit the net-cost target on TRAIN/VAL only; do not rebuild V42 merely to
+3. Audit the net-cost target on TRAIN/VAL only; do not rebuild V46 merely to
    change a report-only consumer.
 4. Reassess a distinct bounded research run only after the economics audit and
    explicit operator authorization.
