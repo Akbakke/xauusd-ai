@@ -271,6 +271,12 @@ def test_trainer_boundary_allows_only_guard_owned_attended_stage_transport(
         "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "true",
         "GX1_TRAINER_ATTENDED_STAGE_FIFO": "/tmp/guard-created-preflight",
         "GX1_TRAINER_ATTENDED_STAGE_TOKEN": "a" * 64,
+        "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH": "/tmp/guard-owned-query",
+        "GX1_TRAINER_HOST_TELEMETRY_URL": "http://127.0.0.1:38127/gx1/v1/telemetry/",
+        "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH": "/tmp/guard-owned-cert.pem",
+        "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256": "b" * 64,
+        "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID": "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29",
+        "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS": "2",
     }
     for key, value in guarded_transport.items():
         monkeypatch.setenv(key, value)

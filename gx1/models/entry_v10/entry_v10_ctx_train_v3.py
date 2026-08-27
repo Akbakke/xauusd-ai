@@ -2259,6 +2259,16 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB",
     "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS",
     "GX1_TRAINER_NVIDIA_SMI_PATH",
+    # The capped guard, not the model, owns canonical host telemetry.  These
+    # values must traverse the trainer process so its parent guard can keep
+    # its signed canonical path distinct from the attended native-SMI path.
+    # They never affect model inputs, targets, loss or checkpoint selection.
+    "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH",
+    "GX1_TRAINER_HOST_TELEMETRY_URL",
+    "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH",
+    "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256",
+    "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID",
+    "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS",
 )
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
