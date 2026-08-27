@@ -131,6 +131,28 @@ function Set-BridgeDirectoryAcl {
     ) | Out-Null
 }
 
+function Repair-ExistingBridgeDirectoryAccess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BridgeRoot
+    )
+
+    # A prior interrupted install can leave this narrowly scoped directory
+    # protected before its configuration has been written successfully.  An
+    # elevated administrator reclaims ownership of this exact GX1 directory,
+    # then reapplies the least-privilege ACL before reading any prior state.
+    # This deliberately does not touch any other ProgramData content.
+    if (-not (Test-Path -LiteralPath $BridgeRoot -PathType Container)) {
+        return
+    }
+    $takeown = Join-Path $env:WINDIR 'System32\takeown.exe'
+    Invoke-NativeChecked -FilePath $takeown -ArgumentList @(
+        '/F', $BridgeRoot,
+        '/A', '/R', '/D', 'Y'
+    ) | Out-Null
+    Set-BridgeDirectoryAcl -BridgeRoot $BridgeRoot
+}
+
 Assert-Administrator
 
 $lhmRoot = Join-Path $env:ProgramData 'GX1\LibreHardwareMonitor\v0.9.6'
@@ -145,6 +167,7 @@ if (-not (Test-Path -LiteralPath $nativeSmi -PathType Leaf)) {
 
 $bridgeRoot = Join-Path $env:ProgramData 'GX1\HostTelemetryBridge'
 New-Item -ItemType Directory -Path $bridgeRoot -Force | Out-Null
+Repair-ExistingBridgeDirectoryAccess -BridgeRoot $bridgeRoot
 $configPath = Join-Path $bridgeRoot 'bridge-config.json'
 $servicePath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.ps1'
 $runnerPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeRunner.ps1'
