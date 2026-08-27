@@ -121,11 +121,20 @@ function Set-BridgeDirectoryAcl {
     $icacls = Join-Path $env:WINDIR 'System32\icacls.exe'
     # Use well-known SID syntax (`*SID`) rather than English local-group names:
     # on this host the Administrator group is localized to Norwegian.
+    # Retain a direct ACE for the elevated installer identity as well.  A
+    # partially applied legacy ACL on this host demonstrated that relying on
+    # the Administrators alias alone can prevent the installer from reading
+    # its own task diagnostics under UAC.
+    $installerSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    if ($installerSid -notmatch '^S-1-5-21-(?:[0-9]+-){3}[0-9]+$') {
+        throw 'Unable to determine a valid local installer SID for bridge ACLs.'
+    }
     Invoke-NativeChecked -FilePath $icacls -ArgumentList @(
         $BridgeRoot,
         '/inheritance:r',
         '/grant:r', '*S-1-5-18:(OI)(CI)F',
         '*S-1-5-32-544:(OI)(CI)F',
+        "*$installerSid`:(OI)(CI)F",
         '*S-1-5-32-545:(OI)(CI)RX',
         '/T', '/C'
     ) | Out-Null
