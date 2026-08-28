@@ -1459,8 +1459,20 @@ def _require_entry_q_state_contract(state_dict: Mapping[str, Any]) -> None:
 
 def _require_model_native_learned_component_liveness(
     state_dict: Mapping[str, Any],
+    *,
+    training_profile: str,
 ) -> None:
-    """Reject structurally present full-stack blocks that remained pass-throughs."""
+    """Reject structurally present full-stack blocks that remained pass-throughs.
+
+    The bounded smoke is deliberately a tiny, deterministic compute sample.  It
+    can establish that every routing matrix is present, finite and shaped for
+    the full production surface, but it cannot require a rare event feature to
+    occur in that sample.  Candidate training owns the population-wide
+    requirement that every zero-initialized feature gate row must move.
+    """
+
+    if training_profile not in {"smoke", "candidate"}:
+        raise RuntimeError("[ENTRY_BUNDLE_TRAINING_PROFILE_INVALID]")
 
     failures: list[str] = []
     for component, keys in _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS.items():
@@ -1504,15 +1516,16 @@ def _require_model_native_learned_component_liveness(
             if not bool(torch.isfinite(value).all().item()):
                 failures.append(f"feature_tf_context_gate:{key}:non_finite")
                 continue
-            dead_rows = torch.nonzero(
-                torch.count_nonzero(value, dim=1) == 0,
-                as_tuple=False,
-            ).flatten()
-            if int(dead_rows.numel()) > 0:
-                failures.append(
-                    "feature_tf_context_gate:"
-                    f"{key}:zero_init_pass_through_rows={dead_rows.tolist()}"
-                )
+            if training_profile == "candidate":
+                dead_rows = torch.nonzero(
+                    torch.count_nonzero(value, dim=1) == 0,
+                    as_tuple=False,
+                ).flatten()
+                if int(dead_rows.numel()) > 0:
+                    failures.append(
+                        "feature_tf_context_gate:"
+                        f"{key}:zero_init_pass_through_rows={dead_rows.tolist()}"
+                    )
     _require_entry_q_state_contract(state_dict)
     if failures:
         raise RuntimeError(
@@ -1694,7 +1707,10 @@ def load_entry_v10_ctx_bundle(
     )
     _require_model_native_state_head_contract(meta, state_dict_preview)
     _require_joint_task_weighting_state(meta, state_dict_preview)
-    _require_model_native_learned_component_liveness(state_dict_preview)
+    _require_model_native_learned_component_liveness(
+        state_dict_preview,
+        training_profile=str(meta["run_lineage"]["training_profile"]),
+    )
     required_tf_scale_keys = {
         f"tf_input_scale_{tf}" for tf in TF_INPUT_SCALE_NAMES
     }

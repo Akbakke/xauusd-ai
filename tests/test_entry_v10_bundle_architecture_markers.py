@@ -6,6 +6,7 @@ import ast
 from pathlib import Path
 
 import pytest
+import torch
 
 import gx1.models.entry_v10.entry_v10_bundle as bundle
 
@@ -45,6 +46,42 @@ def test_active_event_head_contract_rejects_retired_head_metadata() -> None:
     with pytest.raises(RuntimeError, match="STALE_ENTRY_HEAD"):
         bundle._require_model_native_retired_head_contract(
             {**active, "hierarchical_entry_heads": {"enabled": True}}
+        )
+
+
+def test_feature_gate_row_liveness_is_candidate_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Rare event fields cannot be required to occur in a 32-row smoke."""
+
+    routing = {"chart_geometry_encoder": (0, 1, 2)}
+    monkeypatch.setattr(
+        bundle,
+        "require_multi_tf_specialist_routing_v4",
+        lambda _features: routing,
+    )
+    monkeypatch.setattr(bundle, "_require_entry_q_state_contract", lambda _state: None)
+    state = {
+        key: torch.ones(1)
+        for keys in bundle._MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS.values()
+        for key in keys
+    }
+    for timeframe in bundle.TF_INPUT_SCALE_NAMES:
+        state[f"mtf_feature_context_gate.{timeframe}__chart_geometry_encoder.weight"] = (
+            torch.ones(3, 1)
+        )
+    state[
+        "mtf_feature_context_gate.m5__chart_geometry_encoder.weight"
+    ][2].zero_()
+
+    bundle._require_model_native_learned_component_liveness(
+        state,
+        training_profile="smoke",
+    )
+    with pytest.raises(RuntimeError, match="zero_init_pass_through_rows=\\[2\\]"):
+        bundle._require_model_native_learned_component_liveness(
+            state,
+            training_profile="candidate",
         )
 
 
