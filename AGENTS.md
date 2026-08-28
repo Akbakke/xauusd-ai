@@ -108,7 +108,8 @@ Read `GX1_RULES.md` first. It is binding.
   episode-native movement proof then passed, but the bundle loader incorrectly
   imposed a candidate-only Exit gate on smoke. Its next repeat passed that
   repair but exposed a stale Regime-FiLM metadata requirement. Commit
-  `57d4ebcb` requires the retired component to be absent; candidate evidence
+  `57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
+  `64d648da` then align and statically check active-head metadata; candidate evidence
   remains strict. One fresh recipe-bound/dry-run-checked repeat is the only
   local continuation. Resolve
   exact guard logs and the next decision from the handover, never from an old

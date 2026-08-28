@@ -9,7 +9,7 @@ unchanged.
 > Current-status note, 2026-08-28: this is a historical derivation, not a
 > command to rebuild or change V46. Resolve the exact active split from V46's
 > hash-bound artifacts. The current next step is one bounded-smoke repeat after
-> commit `57d4ebcb` repaired a stale Regime-FiLM metadata mismatch, not a train-window
+> commits through `64d648da` repaired and statically checked metadata mismatches, not a train-window
 > decision.
 
 Every number below is a dated observation of a *tape*, which is why it may be

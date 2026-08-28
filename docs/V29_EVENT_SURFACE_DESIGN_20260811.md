@@ -16,7 +16,7 @@ nothing until the recipe owner adopts it and the evidence ladder runs.
 > The active V46 surface is frozen; do not revive this proposal to solve the
 > current bounded-smoke movement-proof repair. Current authority is the
 > handover plus the code-owned contracts; commits `a77ebb6e`, `31f376ca` and
-> `57d4ebcb` change no feature surface.
+> `57d4ebcb`, `e0cf52ed` and `64d648da` change no feature surface.
 
 Shared finding of all eight reports, stated once: the current surface is a
 dense continuous conditioning system with almost no discrete events, no level

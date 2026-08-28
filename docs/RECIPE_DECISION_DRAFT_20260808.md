@@ -8,7 +8,7 @@ from the six-lane headmaster review and the measured HEAD smoke attribution.
 > Current-status note, 2026-08-28: V46's recipe owner and hash-bound recipe
 > audit are current. This draft must not change V46 features, objectives,
 > batch geometry or the one-repeat bounded-smoke plan recorded in the handover
-> after commit `57d4ebcb` repaired the stale Regime-FiLM metadata mismatch.
+> after commits through `64d648da` repaired and statically checked metadata mismatches.
 
 ## Why a new decision is needed
 

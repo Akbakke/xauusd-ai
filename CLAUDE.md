@@ -383,7 +383,8 @@ then completed four CUDA optimizer steps and validation inside 65 C / 211.77 W
 / 8,751 MiB. Its active episode-native movement proof passed, but the bundle
 loader incorrectly imposed a candidate-only Exit gate on smoke. Its next
 repeat passed that repair but exposed a stale Regime-FiLM metadata requirement.
-Commit `57d4ebcb` requires the retired component to be absent; candidate
+Commit `57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
+`64d648da` then align and statically check active-head metadata. Candidate
 evidence remains strict. Exactly one fresh recipe-bound/dry-run-checked repeat
 is authorized;
 assess its terminal evidence before any later local retry. A remote machine, if

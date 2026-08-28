@@ -36,7 +36,8 @@ subsequent batch-8/32-row smoke completed four CUDA optimizer steps, validation
 and active episode movement proof under the same guard (65 C / 211.77 W /
 8,751 MiB), then its bundle loader imposed a candidate-only Exit gate on
 smoke. Its next repeat exposed a stale Regime-FiLM metadata requirement;
-commit `57d4ebcb` requires the retired component to be absent. The local CUDA
+commits `57d4ebcb`, `e0cf52ed` and `64d648da` repair and statically check
+the metadata path. The local CUDA
 route permits exactly one fresh recipe-bound/dry-run-checked repeat, then
 returns to hold.
 

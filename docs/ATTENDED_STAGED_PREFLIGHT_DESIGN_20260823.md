@@ -11,7 +11,8 @@ dataset nor any execution authority.
 > now limited to one fresh 220 W batch-8/32-row repeat after the prior smoke
 > completed four steps and active movement proof, but hit a smoke/candidate
 > bundle-gate mismatch. Its next repeat exposed a stale Regime-FiLM metadata
-> requirement; commit `57d4ebcb` requires its absence. Do not use attended
+> requirement; later commits `e0cf52ed` and `64d648da` align and statically
+> check all direct metadata keys. Do not use attended
 > results, a 390 W
 > configured driver limit or this document to bypass the canonical smoke/bundle
 > gate. The authoritative current plan is the handover.

@@ -5,7 +5,8 @@
 > its active episode movement proof inside the 220 W guard, but emitted no
 > bundle because the loader imposed a candidate-only Exit gate on smoke. Its
 > next repeat passed that repair but exposed a stale Regime-FiLM metadata
-> requirement. Commit `57d4ebcb` requires the retired component to be absent;
+> requirement. Commits `57d4ebcb`, `e0cf52ed` and `64d648da` repair and
+> statically check the metadata path;
 > the handover owns the one permitted fresh recipe-bound/dry-run-checked repeat.
 
 ## Source authority

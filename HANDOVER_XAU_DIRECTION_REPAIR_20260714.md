@@ -86,9 +86,13 @@ as false and the active model has no Regime-FiLM state/constructor, while the
 final loader and smoke audit required it to be true. This is not an OOM, crash,
 feature, target, sequence, movement-proof or economics failure. Commit
 `57d4ebcb` makes train/serve/audit agree that the retired component must be
-explicitly absent, with regression coverage for both stale metadata values. It
-changes no V46 byte, feature, target, model-compute selection, economics or
-candidate rule. Before one exact repeat, materialize a fresh hash-bound recipe
+explicitly absent. The following repeat then reached final loading safely but
+found stale `hierarchical_entry_heads`/`trendline_rail_head` loader metadata;
+the active trainer emits `trendline_event_head` instead. Commit `e0cf52ed`
+aligns that contract, and `64d648da` statically compares every direct loader
+metadata requirement with the trainer's emitted dictionary before CUDA. These
+commits change no V46 byte, feature, target, model-compute selection, economics
+or candidate rule. Before one exact repeat, materialize a fresh hash-bound recipe
 and pass its wrapper dry-run; then assess terminal guard, durable trainer
 sidecar, committed bundle and smoke-bundle audit before any later local or
 remote execution.

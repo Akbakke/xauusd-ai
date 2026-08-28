@@ -25,5 +25,6 @@ proof completed, then no bundle was allowed because the loader imposed a
 candidate-only Exit gate on smoke. Do not leave a stale run recipe or old
 execution plan in one document while changing another. The next repeat passed
 that gate repair but exposed a stale Regime-FiLM metadata requirement. Commit
-`57d4ebcb` requires the retired component to be absent; its fresh recipe-bound/
-dry-run-checked repeat remains the only local continuation.
+`57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
+`64d648da` align and statically check active-head metadata. Its fresh recipe-
+bound/dry-run-checked repeat remains the only local continuation.
