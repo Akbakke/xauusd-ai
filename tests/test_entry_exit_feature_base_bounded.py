@@ -48,6 +48,7 @@ from gx1.scripts import materialize_entry_exit_m1_feature_base_v1 as producer
 from gx1.scripts.materialize_entry_exit_m1_feature_base_v1 import (
     _BOUNDED_CAUSAL_OVERLAP_ROWS,
     _build_bounded_extension_chunk,
+    _native_registry_decision_clock,
 )
 
 
@@ -234,6 +235,28 @@ def _build_bounded_in_batches(
     assert observed_names is not None
     assert observed_meta is not None
     return np.concatenate(observed), observed_names, observed_meta
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "bar_seconds"),
+    (("M1", EXIT_DECISION_BAR_SECONDS), ("M5", ENTRY_DECISION_BAR_SECONDS)),
+)
+def test_registry_decision_clock_matches_native_surface(
+    timeframe: str,
+    bar_seconds: int,
+) -> None:
+    assert _native_registry_decision_clock(
+        timeframe=timeframe,
+        bar_seconds=bar_seconds,
+    ) == (timeframe, bar_seconds)
+
+
+def test_registry_decision_clock_rejects_cross_resolution_geometry() -> None:
+    with pytest.raises(RuntimeError, match="NATIVE_CLOCK_INVALID"):
+        _native_registry_decision_clock(
+            timeframe="M5",
+            bar_seconds=EXIT_DECISION_BAR_SECONDS,
+        )
 
 
 def _stub_sparse_registry_age_layer(

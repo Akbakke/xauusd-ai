@@ -835,7 +835,11 @@ def test_exact_resolution_pyramid_is_sliceable_across_all_split_boundaries() -> 
     features: dict[str, pd.DataFrame] = {}
     end = pd.Timestamp("2026-01-21T00:00:00Z")
     for timeframe, rule in htf.MULTI_TF_RESAMPLE_RULES.items():
-        index = pd.date_range(end=end, periods=400, freq=rule)
+        index = pd.date_range(
+            end=htf.multi_tf_bar_label(end, timeframe),
+            periods=400,
+            freq=rule,
+        )
         values = np.ones(
             (len(index), htf.MULTI_TF_FEATURE_COUNT_V4),
             dtype=np.float32,
@@ -932,7 +936,10 @@ def test_shared_v4_cache_has_exact_entry_and_exit_routes_and_clocks() -> None:
     decision = pd.Timestamp("2026-01-20T18:00:00Z")
     features: dict[str, pd.DataFrame] = {}
     for timeframe, rule in htf.MULTI_TF_RESAMPLE_RULES.items():
-        index = pd.date_range(end=decision, periods=400, freq=rule)
+        # Each synthetic lane must use the exact production origin.  In
+        # particular H4/D1 are trading-session aligned, not midnight-aligned.
+        end = htf.multi_tf_bar_label(decision, timeframe)
+        index = pd.date_range(end=end, periods=400, freq=rule)
         values = np.repeat(
             np.arange(len(index), dtype=np.float32).reshape(-1, 1),
             htf.MULTI_TF_FEATURE_COUNT_V4,
@@ -991,6 +998,39 @@ def test_shared_v4_cache_has_exact_entry_and_exit_routes_and_clocks() -> None:
             per_tf_seq_lens=lengths,
             route_timeframes=("M5", "M15", "H1", "H4"),
             base_bar_duration=pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS),
+        )
+    with np.testing.assert_raises_regex(
+        RuntimeError,
+        "MODEL_NATIVE_MTF_DECISION_CLOCK_GRID_INVALID",
+    ):
+        htf.get_model_native_multi_tf_route_windows(
+            features,
+            decision_bar_start=decision + pd.Timedelta(minutes=1),
+            per_tf_seq_lens=lengths,
+            route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
+            base_bar_duration=pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS),
+        )
+
+    # A manifest can claim the D1 origin while an array has been labelled on
+    # midnight.  Route validation must reject the actual bytes, not trust the
+    # declaration.
+    bad_features = dict(features)
+    bad_d1 = features["D1"].copy(deep=False)
+    bad_index = bad_d1.index + pd.Timedelta(hours=2)
+    bad_d1.index = bad_index
+    bad_d1.attrs = dict(features["D1"].attrs)
+    bad_d1.attrs["ts_int64"] = bad_index.asi8.astype(np.int64, copy=True)
+    bad_features["D1"] = bad_d1
+    with np.testing.assert_raises_regex(
+        RuntimeError,
+        "HTF_V4_CACHE_TIMESTAMP_GRID_INVALID",
+    ):
+        htf.get_model_native_multi_tf_route_windows(
+            bad_features,
+            decision_bar_start=decision,
+            per_tf_seq_lens=lengths,
+            route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
+            base_bar_duration=pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS),
         )
 
 

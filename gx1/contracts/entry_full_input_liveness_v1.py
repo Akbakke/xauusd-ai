@@ -39,8 +39,8 @@ from gx1.features.htf_features import (
 # under the non-negative rule for the first time; and the two ATR OOD pairs are
 # renamed to `_bps`. A v7 artifact was produced by a policy that could not see
 # those ten slots and names two fields that no longer exist.
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v9"
-POLICY_VERSION = "entry_full_input_liveness_policy_v9"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v10"
+POLICY_VERSION = "entry_full_input_liveness_policy_v10"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -690,16 +690,19 @@ def build_full_input_liveness_artifact(
         exists = bool(parquet is not None and parquet.exists() and parquet.is_file())
         size_bytes = _int(raw.get("size_bytes"))
         mtime_ns = _int(raw.get("mtime_ns"))
+        parquet_sha256 = str(raw.get("parquet_sha256") or "")
         total_rows = _int(raw.get("total_rows"))
         scanned_rows = _int(raw.get("scanned_rows"))
         fullscan = raw.get("fullscan") is True
         scan_complete = raw.get("scan_complete") is True
         observed_size = int(parquet.stat().st_size) if exists else -1
         observed_mtime_ns = int(parquet.stat().st_mtime_ns) if exists else -1
+        observed_parquet_sha256 = sha256_file(parquet) if exists else ""
         stat_identity = {
             "parquet_path": parquet_path,
             "size_bytes": size_bytes,
             "mtime_ns": mtime_ns,
+            "parquet_sha256": parquet_sha256,
         }
         scan_proof[split] = {
             **stat_identity,
@@ -713,6 +716,8 @@ def build_full_input_liveness_artifact(
             not exists
             or size_bytes != observed_size
             or mtime_ns != observed_mtime_ns
+            or not _is_sha256(parquet_sha256)
+            or parquet_sha256 != observed_parquet_sha256
             or total_rows <= 0
             or scanned_rows != total_rows
             or not fullscan
@@ -731,6 +736,8 @@ def build_full_input_liveness_artifact(
                     "observed_size_bytes": observed_size,
                     "recorded_mtime_ns": mtime_ns,
                     "observed_mtime_ns": observed_mtime_ns,
+                    "recorded_parquet_sha256": parquet_sha256,
+                    "observed_parquet_sha256": observed_parquet_sha256,
                 }
             )
 
@@ -1167,13 +1174,16 @@ def validate_full_input_liveness_artifact(
         exists = bool(parquet is not None and parquet.exists() and parquet.is_file())
         size_bytes = _int(proof.get("size_bytes"))
         mtime_ns = _int(proof.get("mtime_ns"))
+        parquet_sha256 = str(proof.get("parquet_sha256") or "")
         stat_identity = {
             "parquet_path": parquet_path,
             "size_bytes": size_bytes,
             "mtime_ns": mtime_ns,
+            "parquet_sha256": parquet_sha256,
         }
         observed_size = int(parquet.stat().st_size) if exists else -1
         observed_mtime_ns = int(parquet.stat().st_mtime_ns) if exists else -1
+        observed_parquet_sha256 = sha256_file(parquet) if exists else ""
         total_rows = _int(proof.get("total_rows"))
         scanned_rows = _int(proof.get("scanned_rows"))
         if (
@@ -1181,6 +1191,8 @@ def validate_full_input_liveness_artifact(
             or not exists
             or size_bytes != observed_size
             or mtime_ns != observed_mtime_ns
+            or not _is_sha256(parquet_sha256)
+            or parquet_sha256 != observed_parquet_sha256
             or total_rows <= 0
             or scanned_rows != total_rows
             or proof.get("fullscan") is not True
@@ -1199,6 +1211,8 @@ def validate_full_input_liveness_artifact(
                 observed_size_bytes=observed_size,
                 recorded_mtime_ns=mtime_ns,
                 observed_mtime_ns=observed_mtime_ns,
+                recorded_parquet_sha256=parquet_sha256,
+                observed_parquet_sha256=observed_parquet_sha256,
             )
         split_row_count_mismatches = sum(
             1

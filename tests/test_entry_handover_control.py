@@ -77,6 +77,8 @@ RETAINED_CONTROL_ROUTES = {
 def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
     text = HANDOVER_VIEWER.read_text(encoding="utf-8")
 
+    assert "rev-parse --show-toplevel" in text
+    assert "REPO=/home/andre2/src/GX1_ENGINE" not in text
     assert "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md" in text
     assert (
         "takeover_entrypoint: scripts/entry_next_edge_control.sh handover"
@@ -88,6 +90,14 @@ def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
     assert "no competing" in text
     assert "GX1_ALLOW_LEGACY_HANDOVER" not in text
     assert "SMART JOINT POLICY PROMOTED" not in text
+
+
+def test_handover_authority_fingerprint_includes_current_pair_manifest() -> None:
+    text = HANDOVER_VIEWER.read_text(encoding="utf-8")
+
+    # The pair is dynamically located from launch state, then passed as an
+    # additional byte-bound authority input; merely parsing it is not enough.
+    assert '"${sources[@]}" "$CURRENT_PAIR_MANIFEST"' in text
 
 
 def test_handover_authority_fingerprint_covers_every_markdown_file() -> None:
@@ -336,20 +346,23 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     )
 
     assert result.returncode == 0
-    # The viewer deliberately pins one repository root inside its own source.
-    # Recompute the fingerprint against exactly that root (path bytes are part
-    # of the hash), so this test stays exact when run from a worktree checkout.
+    # The viewer derives its root from its own path through git. Recompute
+    # against that worktree root (path bytes are part of the fingerprint).
     viewer_repo = Path(
-        next(
-            line.split("=", 1)[1].strip()
-            for line in HANDOVER_VIEWER.read_text(encoding="utf-8").splitlines()
-            if line.startswith("REPO=")
-        )
+        subprocess.check_output(
+            ["git", "-C", str(HANDOVER_VIEWER.parent.parent), "rev-parse", "--show-toplevel"],
+            text=True,
+        ).strip()
     )
     digest = hashlib.sha256()
-    digest.update(b"gx1-takeover-authority-v2\0")
-    for index, authority_path in enumerate(AUTHORITY_PATHS):
-        path = viewer_repo / authority_path.relative_to(REPO)
+    digest.update(b"gx1-takeover-authority-v3\0")
+    launch_state = json.loads((viewer_repo / LAUNCH_STATE.name).read_text())
+    current_pair = Path(str(launch_state["current_pair_manifest"]))
+    authority_paths = (
+        *(viewer_repo / authority_path.relative_to(REPO) for authority_path in AUTHORITY_PATHS),
+        current_pair,
+    )
+    for index, path in enumerate(authority_paths):
         path_bytes = str(path).encode("utf-8")
         payload = path.read_bytes()
         digest.update(index.to_bytes(4, "big"))

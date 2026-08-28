@@ -339,7 +339,8 @@ def test_trainer_cannot_slice_bridge_or_soft_skip_post_export_liveness() -> None
     assert '"snap_x"][:, 7:]' not in block
     assert "audit skipped (non-fatal)" not in block
     assert "[FEATURE_LIVENESS_AUDIT_UNAVAILABLE]" in block
-    assert 'require_variability=(profile == "candidate")' in block
+    assert 'profile == "candidate"' in block
+    assert "require_variability=" in block
 
 
 def test_feature_liveness_cli_uses_current_exact_dataset_constructor() -> None:

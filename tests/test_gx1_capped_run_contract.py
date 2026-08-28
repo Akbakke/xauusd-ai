@@ -546,7 +546,10 @@ def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
     )
 
     assert result.returncode == 75
-    assert "must be canonical, attended_smoke or attended_cpu_smoke" in result.stderr
+    assert (
+        "must be canonical, attended_smoke, attended_cpu_smoke or cuda_producer"
+        in result.stderr
+    )
 
 
 def test_trainer_guard_allows_wsl_memory_na_for_canonical_cuda(

@@ -1531,6 +1531,22 @@ def test_collector_cli_rejects_introspection_before_credentials_or_writes(
     assert invalid_exit.value.code == 2
 
 
+def test_collector_main_is_scope_blocked_before_credentials_or_writes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_oanda_data_collector as collector
+
+    monkeypatch.setattr(
+        collector,
+        "load_oanda_credentials",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("credentials must not load")
+        ),
+    )
+    with pytest.raises(RuntimeError, match="GX1_OFFLINE_SCOPE_FORBIDDEN"):
+        collector.main([])
+
+
 def _collector_frame(times: list[str]) -> pd.DataFrame:
     parsed = pd.to_datetime(times, utc=True)
     rows: list[dict[str, object]] = []

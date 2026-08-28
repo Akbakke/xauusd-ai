@@ -895,10 +895,16 @@ class UnifiedExitLifecycleSplit:
     def authoritative_current_decision_times_ns(self) -> np.ndarray:
         """Return every unique full-population bar-close decision clock."""
 
+        return self.authoritative_current_state_row_times_ns() + int(
+            pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
+        )
+
+    def authoritative_current_state_row_times_ns(self) -> np.ndarray:
+        """Return every unique full-population M1 state-bar start clock."""
+
         current_indices = self._full_current_indices()
         return np.asarray(
-            self._m1_times.asi8[current_indices]
-            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
+            self._m1_times.asi8[current_indices],
             dtype=np.int64,
         )
 
@@ -1201,20 +1207,11 @@ class UnifiedExitLifecycleCorpus:
                 "UNIFIED_EXIT_LIFECYCLE_ROOT_MANIFEST_INVALID"
             )
         root = manifest_path.parent
-        expected_inventory = {
-            "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
-            *(
-                f"{split}_unified_exit_lifecycle{suffix}"
-                for split in ("train", "val", "test")
-                for suffix in (".parquet", ".manifest.json")
-            ),
-        }
-        observed_inventory = {path.name for path in root.iterdir()}
-        if (
-            observed_inventory != expected_inventory
-            or any(path.is_symlink() or not path.is_file() for path in root.iterdir())
-        ):
-            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_INVENTORY_INVALID")
+        # A pre-freeze TRAIN/VAL consumer must not enumerate, stat, hash or
+        # parse the sealed TEST artifacts.  The immutable root manifest and
+        # the separately verified TEST seal bind TEST lineage; only a TEST
+        # consumer may materialise the TEST lifecycle itself.  In particular,
+        # do not turn this inventory check into an accidental TEST path-stat.
         root_manifest = _read_exact_json(manifest_path)
         _require_exact_keys(
             root_manifest,
@@ -1385,11 +1382,11 @@ class UnifiedExitLifecycleCorpus:
             )
         self.splits: dict[str, UnifiedExitLifecycleSplit] = {}
         split_evidence: dict[str, Any] = {}
-        # Validate every sealed split, including TEST when a TRAIN/VAL consumer
-        # elects not to materialize it.  A root manifest must never bless an
-        # omitted/reordered TEST population merely because the caller selected
-        # fewer runtime splits.
-        for split in ("train", "val", "test"):
+        # Validate exactly the splits this consumer is authorised to
+        # materialise.  TEST semantic validation belongs to the immutable
+        # build/seal step; the pre-freeze trainer has only metadata-only TEST
+        # lineage and must not touch a TEST path or byte.
+        for split in selected_splits:
             binding = root_manifest["splits"][split]
             _require_exact_keys(
                 binding,

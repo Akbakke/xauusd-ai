@@ -295,10 +295,11 @@ def _feature_base_contract(
             # emitted as synthetic zeros, which is what made an exact match with
             # the full source timeline possible. A V29 surface additionally
             # declares the measured V29 layer warmup floor in its manifest
-            # (causal_warmup); the exactness check binds that declared
-            # exclusion with a full row accounting — the surface must equal
-            # the source suffix after 201 fixed + declared V29 rows, and the
-            # declared floor must be the surface's actual first row.
+            # (causal_warmup); the exactness check binds every declared
+            # exclusion in the producer's order — fixed price warmup, then
+            # foundation-event warmup, then V29 warmup.  Omitting either
+            # variable exclusion would reject a valid future surface after a
+            # costly rebuild.
             usable_source_times = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
             warmup_block = manifest.get("causal_warmup")
             declared_ok = True
@@ -306,14 +307,23 @@ def _feature_base_contract(
                 "exact_entry_m5_source_timeline_after_causal_warmup"
             )
             if isinstance(warmup_block, dict):
+                foundation_excluded = warmup_block.get(
+                    "rows_before_foundation_event_warmup"
+                )
                 v29_excluded = warmup_block.get("rows_before_v29_layer_warmup")
                 declared_first = warmup_block.get("first_surface_row_utc")
                 declared_ok = (
+                    not isinstance(foundation_excluded, bool)
+                    and isinstance(foundation_excluded, int)
+                    and 0 <= foundation_excluded < len(usable_source_times)
+                    and
                     not isinstance(v29_excluded, bool)
                     and isinstance(v29_excluded, int)
-                    and 0 <= v29_excluded < len(usable_source_times)
                     and isinstance(declared_first, str)
                 )
+                if declared_ok:
+                    usable_source_times = usable_source_times[foundation_excluded:]
+                    declared_ok = 0 <= v29_excluded < len(usable_source_times)
                 if declared_ok:
                     usable_source_times = usable_source_times[v29_excluded:]
                     try:

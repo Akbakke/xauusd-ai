@@ -36,6 +36,7 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     sha256_file,
     unified_exit_state_population_arrays,
 )
+import gx1.contracts.unified_exit_lifecycle_v1 as unified_exit_lifecycle
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
     entry_exit_shared_feature_base_contract,
@@ -1122,6 +1123,7 @@ def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
 
 def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     entries = pd.DataFrame(
         {
@@ -1286,47 +1288,38 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         len(episodes) * 512
     )
 
-    # TEST is sealed and semantically validated even though this consumer only
-    # selected TRAIN/VAL. Re-sealing every ordinary file hash cannot bless an
-    # source-invalid pointers against the source-recomputed population proof.
-    test_lifecycle_path = (
-        lifecycle_dir / "test_unified_exit_lifecycle.parquet"
+    # TEST is already sealed before this pre-freeze consumer is constructed.
+    # Any TEST path access here would violate the opaque-test contract.
+    forbidden_test_paths = {
+        entry_paths["test"].resolve(),
+        (lifecycle_dir / "test_unified_exit_lifecycle.parquet").resolve(),
+        (lifecycle_dir / "test_unified_exit_lifecycle.manifest.json").resolve(),
+    }
+    original_sha256_file = unified_exit_lifecycle.sha256_file
+    original_read_parquet = unified_exit_lifecycle.pd.read_parquet
+
+    def _deny_test_sha256(path: Path) -> str:
+        if Path(path).resolve() in forbidden_test_paths:
+            raise AssertionError(f"pre-freeze corpus accessed TEST hash: {path}")
+        return original_sha256_file(path)
+
+    def _deny_test_parquet(path: Path, *args: object, **kwargs: object) -> pd.DataFrame:
+        if Path(path).resolve() in forbidden_test_paths:
+            raise AssertionError(f"pre-freeze corpus read TEST parquet: {path}")
+        return original_read_parquet(path, *args, **kwargs)
+
+    monkeypatch.setattr(unified_exit_lifecycle, "sha256_file", _deny_test_sha256)
+    monkeypatch.setattr(
+        unified_exit_lifecycle.pd,
+        "read_parquet",
+        _deny_test_parquet,
     )
-    tampered_test = pd.read_parquet(test_lifecycle_path)
-    tampered_test.loc[[0, 1], "m1_start_row"] += 1
-    tampered_test.to_parquet(test_lifecycle_path, index=False)
-    test_manifest_path = (
-        lifecycle_dir / "test_unified_exit_lifecycle.manifest.json"
+    prefreeze_corpus = UnifiedExitLifecycleCorpus(
+        root_manifest_path=root_manifest,
+        entry_parquets={name: entry_paths[name] for name in ("train", "val")},
+        dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
     )
-    test_manifest = json.loads(
-        test_manifest_path.read_text(encoding="utf-8")
-    )
-    test_manifest["lifecycle_parquet_sha256"] = sha256_file(
-        test_lifecycle_path
-    )
-    test_manifest_path.write_text(
-        json.dumps(test_manifest, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    resealed_root = json.loads(root_manifest.read_text(encoding="utf-8"))
-    resealed_root["splits"]["test"]["lifecycle_parquet_sha256"] = (
-        sha256_file(test_lifecycle_path)
-    )
-    resealed_root["splits"]["test"]["lifecycle_manifest_sha256"] = (
-        sha256_file(test_manifest_path)
-    )
-    root_manifest.write_text(
-        json.dumps(resealed_root, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    with pytest.raises(RuntimeError, match="POINTER_TIME_MISMATCH"):
-        UnifiedExitLifecycleCorpus(
-            root_manifest_path=root_manifest,
-            entry_parquets={
-                name: entry_paths[name] for name in ("train", "val")
-            },
-            dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
-        )
+    assert set(prefreeze_corpus.splits) == {"train", "val"}
 
 
 def test_aux_target_builder_requires_bid_ask_high_low() -> None:

@@ -57,6 +57,22 @@ def test_trainer_uses_direct_masked_raw_bps_entry_q_mse() -> None:
     assert "frozen_exit_first_state_values_bps" in source
 
 
+def test_exit_mtf_history_uses_m1_state_start_not_already_closed_clock() -> None:
+    """The shared MTF route owns the single +60-second Exit availability shift."""
+
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    call_start = source.index("**self._get_exit_multi_tf_episode_histories(")
+    call_end = source.index(")", call_start)
+    call = source[call_start:call_end]
+    assert 'core["exit_state_row_time_ns"]' in call
+    assert 'core["exit_decision_time_ns"]' not in call
+    history_start = source.index("def _get_exit_multi_tf_episode_histories(")
+    history_end = source.index("def materialize_full_exit_episode(", history_start)
+    history = source[history_start:history_end]
+    assert "state_bar_start_time_ns" in history
+    assert "availability_ns = state_start_ns + int(" in history
+
+
 def test_retired_entry_authorities_have_no_trainer_surface() -> None:
     source = TRAINER_PATH.read_text(encoding="utf-8")
     forbidden = (
@@ -151,7 +167,7 @@ def test_trainer_environment_reads_are_contract_owned() -> None:
 
 def test_subsampling_is_uniform_and_not_label_dependent() -> None:
     source = TRAINER_PATH.read_text(encoding="utf-8")
-    assert "rng.choice" in source
+    assert "deterministic_uniform_subsample_indices" in source
     assert "subsample_rows" in source
     assert "y_direction" not in source
     assert "stratified" not in source.lower()

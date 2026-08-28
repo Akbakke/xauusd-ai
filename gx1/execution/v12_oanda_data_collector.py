@@ -46,6 +46,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
     canonical_native_rows_sha256,
     validate_canonical_native_frame,
 )
+from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.execution.oanda_client import (  # noqa: E402
     OandaAPIError,
     OandaClient,
@@ -449,6 +450,7 @@ def main(argv: list[str] | None = None) -> int:
     # Parse first: --help and malformed invocations cannot load credentials or
     # touch the collector output. This closes the historical side effect where
     # even a harmless introspection call started the infinite collection loop.
+    require_offline_scope("oanda_collector")
     if ENV_FILE.is_file():
         with ENV_FILE.open() as handle:
             for line in handle:

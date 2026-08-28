@@ -596,8 +596,60 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
     assert report["failures"] == []
     assert report["candidate_training_allowed"] is True
     assert report["promotion_shadow_live_allowed"] is False
+    assert report["dataset_dir"] == str(paths["dataset"].resolve())
+    assert report["smoke_bundle_dataset_dir"] == str(paths["dataset"].resolve())
     assert report["checks"][0]["details"]["qualification_decision"] == "FAIL"
     assert Path(report["json_path"]).is_file()
+
+
+def test_candidate_readiness_refuses_to_write_evidence_inside_dataset(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    smoke, paths = _fixture(tmp_path)
+    _technical_only_smoke(smoke)
+    smoke_path, _ = _event(
+        paths["evidence"],
+        "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT",
+        smoke,
+        offset_seconds=3,
+    )
+    future = {
+        "profile": "smoke",
+        "control_route": "model-native-smoke-train",
+        "wrapper_path": "scripts/run_entry_model_native_seq513_train.sh",
+        "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
+        "training_objective_schema": TRAINING_OBJECTIVE_SCHEMA,
+        "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
+        "joint_task_names": list(JOINT_TASK_NAMES),
+    }
+    trainability_path, _ = _event(
+        paths["evidence"],
+        "ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS",
+        {
+            "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
+            "failures": [],
+            "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "required_training_specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            "future_train_contract": future,
+        },
+        offset_seconds=4,
+    )
+    with pytest.raises(RuntimeError, match="out_dir must not be the dataset"):
+        readiness.run(
+            readiness.build_parser().parse_args(
+                [
+                    "--smoke-bundle-audit-json", str(smoke_path),
+                    "--specialist-audit-json", str(paths["specialist"]),
+                    "--trainability-readiness-json", str(trainability_path),
+                    "--expected-smoke-dataset-dir", str(paths["dataset"]),
+                    "--out-dir", str(paths["dataset"] / "evidence"),
+                    "--quiet",
+                ]
+            )
+        )
 
 
 def test_parser_rejects_generic_upstream_and_retired_aliases() -> None:

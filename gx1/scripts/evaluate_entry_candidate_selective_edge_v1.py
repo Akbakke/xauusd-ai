@@ -73,12 +73,21 @@ from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
+from gx1.models.entry_v10.entry_v10_input_normalization import (
+    require_dataset_manifest_multi_tf_cache_binding,
+    require_multi_tf_v4_cache_binding_files,
+)
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    PrefreezeTestSealLineageError,
+    require_prefreeze_test_seal_lineage_metadata,
+)
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS,
     PREDICTION_EVIDENCE_STAGE_SPLITS,
     atomic_write_parquet_immutable,
     atomic_write_text,
     build_prediction_evidence_declaration,
+    resolve_and_validate_prediction_evidence,
 )
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _bundle_dataset_kwargs,
@@ -797,16 +806,19 @@ def _preregistered_hypothesis(
 def _load_val_reference(
     raw_path: str | None,
     *,
+    expected_sha256: str | None,
     evidence_stage: str,
     bundle_dir: Path,
+    dataset_dir: Path,
+    dataset_contract: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
-    """Bind TEST to one immutable VAL decision from the identical bundle."""
+    """Resolve one hash-pinned VAL event before it can unlock sealed TEST."""
 
     if evidence_stage == VAL_EVIDENCE_STAGE:
-        if raw_path:
+        if raw_path or expected_sha256:
             raise RuntimeError("SELECTIVE_EDGE_VAL_STAGE_FORBIDS_VAL_REFERENCE")
         return None, None
-    if not raw_path:
+    if not raw_path or not expected_sha256:
         raise RuntimeError("SELECTIVE_EDGE_TEST_REQUIRES_VAL_REFERENCE")
     path = Path(raw_path).expanduser()
     if (
@@ -818,17 +830,74 @@ def _load_val_reference(
         or "latest" in path.name.lower()
     ):
         raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_PATH_INVALID")
+    supplied_sha = str(expected_sha256).strip().lower()
+    if len(supplied_sha) != 64 or any(
+        character not in "0123456789abcdef" for character in supplied_sha
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_SHA256_INVALID")
+    if _sha256_file(path) != supplied_sha:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_SHA256_MISMATCH")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_JSON_INVALID") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_BINDING_INVALID")
     if (
-        not isinstance(payload, dict)
-        or payload.get("evidence_stage") != VAL_EVIDENCE_STAGE
+        payload.get("evidence_stage") != VAL_EVIDENCE_STAGE
+        or payload.get("decision") != "PASS"
+        or payload.get("failures") != []
+        or Path(str(payload.get("json_path") or "")).resolve() != path
         or Path(str(payload.get("bundle_dir") or "")).resolve() != bundle_dir
+        or Path(str(payload.get("dataset_dir") or "")).resolve() != dataset_dir
+        or payload.get("dataset_signal_contract") != dataset_contract
     ):
         raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_BINDING_INVALID")
-    return payload, {"path": str(path), "sha256": _sha256_file(path)}
+    evidence = payload.get("prediction_evidence")
+    if not isinstance(evidence, Mapping):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_EVIDENCE_INVALID")
+    try:
+        predictions_path, resolved, _ = resolve_and_validate_prediction_evidence(
+            Path(str(evidence.get("path") or "")),
+            expected_sha256=str(evidence.get("sha256") or ""),
+            prediction_report_path=path,
+            bundle_dir=bundle_dir,
+            dataset_dir=dataset_dir,
+            expected_stage=VAL_EVIDENCE_STAGE,
+            expected_splits=("val",),
+            expected_model=EVALUATION_MODEL_NAME,
+        )
+    except RuntimeError as exc:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_EVIDENCE_INVALID") from exc
+    if resolved != payload:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_EVIDENCE_INVALID")
+    metrics_path = Path(str(payload.get("metrics_path") or ""))
+    metrics_sha = str(payload.get("metrics_sha256") or "").lower()
+    if (
+        not metrics_path.is_absolute()
+        or metrics_path.is_symlink()
+        or not metrics_path.is_file()
+        or metrics_path.resolve() != metrics_path
+        or _sha256_file(metrics_path) != metrics_sha
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_METRICS_INVALID")
+    try:
+        recomputed_metrics = pd.DataFrame(
+            build_metric_rows(
+                pd.read_parquet(predictions_path),
+                top_fracs=list(EVALUATION_COVERAGES),
+            )
+        )
+        recomputed = _preregistered_hypothesis(
+            recomputed_metrics,
+            evidence_stage=VAL_EVIDENCE_STAGE,
+            val_reference=None,
+        )
+    except Exception as exc:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_METRICS_INVALID") from exc
+    if payload.get("preregistered_selective_edge") != recomputed:
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_PREREGISTRATION_INVALID")
+    return payload, {"path": str(path), "sha256": supplied_sha}
 
 
 def _explicit_dataset_artifact(
@@ -909,6 +978,8 @@ def _dataset_model_native_contract(
             suffix=f"_{split}.parquet",
         )
         data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise RuntimeError(f"dataset split {split!r} manifest is not an object")
         declared_parquet = Path(str(data.get("output_data_path") or "")).expanduser()
         if not declared_parquet.is_absolute() or declared_parquet != parquet_path:
             raise RuntimeError(
@@ -934,6 +1005,17 @@ def _dataset_model_native_contract(
             "seq_input_dim": int(contract["seq_input_dim"]),
             "snap_input_dim": int(contract["snap_input_dim"]),
             "ordered_fields_sha256": str(contract["ordered_fields_sha256"]),
+            "manifest_schema_version": str(data.get("schema_version") or ""),
+            "manifest_variant": str(data.get("manifest_variant") or ""),
+            "dataset_run_id": str(extra.get("entry_run_id") or ""),
+            "rows": extra.get("rows"),
+            "instrument": str(
+                (extra.get("xau_tape_provenance") or {}).get("instrument")
+                if isinstance(extra.get("xau_tape_provenance"), dict)
+                else ""
+            ),
+            "multi_tf_cache_binding": extra.get("multi_tf_cache_binding"),
+            "source_frame": extra.get("source_frame"),
         }
         if _sha256_file(manifest_path) != manifest_sha:
             raise RuntimeError(
@@ -942,6 +1024,151 @@ def _dataset_model_native_contract(
     if reference_contract is None:
         raise RuntimeError("dataset has no model-native signal contract")
     return {"contract": reference_contract, "splits": rows}
+
+
+def _require_runtime_test_seal_metadata(
+    bundle_metadata: Mapping[str, Any],
+    *,
+    dataset_dir: Path,
+) -> dict[str, Any] | None:
+    """Return the revalidated TEST seal metadata before TEST paths are opened."""
+
+    if not isinstance(bundle_metadata, Mapping):
+        raise RuntimeError("SELECTIVE_EDGE_BUNDLE_METADATA_INVALID")
+    run_lineage = bundle_metadata.get("run_lineage")
+    dataset_run_id = (
+        str(run_lineage.get("dataset_run_id") or "")
+        if isinstance(run_lineage, Mapping)
+        else ""
+    )
+    try:
+        return require_prefreeze_test_seal_lineage_metadata(
+            bundle_metadata.get("prefreeze_test_seal_lineage"),
+            expected_dataset_run_id=dataset_run_id,
+            expected_dataset_dir=dataset_dir,
+        )
+    except (PrefreezeTestSealLineageError, RuntimeError, ValueError) as exc:
+        raise RuntimeError("SELECTIVE_EDGE_TEST_SEAL_METADATA_INVALID") from exc
+
+
+def _require_requested_test_bindings_match_seal(
+    split_bindings: Mapping[str, Mapping[str, str]],
+    *,
+    dataset_dir: Path,
+    seal: Mapping[str, Any] | None,
+) -> None:
+    """Reject an alternate hash-valid TEST path before any TEST file is read."""
+
+    if seal is None:
+        return
+    binding = split_bindings.get("test")
+    if not isinstance(binding, Mapping):
+        raise RuntimeError("SELECTIVE_EDGE_TEST_SEAL_BINDING_INVALID")
+    test_manifest = seal["test_manifest"]
+    test_parquet = seal["test_parquet"]
+    expected = {
+        "manifest_path": str(test_manifest["path"]),
+        "manifest_sha256": str(test_manifest["sha256"]),
+        "parquet_path": str(test_parquet["path"]),
+        "parquet_sha256": str(test_parquet["sha256"]),
+    }
+    if dict(binding) != expected:
+        raise RuntimeError("SELECTIVE_EDGE_TEST_SEAL_BINDING_INVALID")
+    if Path(str(seal["dataset_dir"])).resolve() != dataset_dir:
+        raise RuntimeError("SELECTIVE_EDGE_TEST_SEAL_BINDING_INVALID")
+
+
+def _require_loaded_test_contract_matches_seal(
+    dataset_contract: Mapping[str, Any],
+    *,
+    seal: Mapping[str, Any] | None,
+) -> None:
+    if seal is None:
+        return
+    try:
+        test = dataset_contract["splits"]["test"]
+        expected_manifest = seal["test_manifest"]
+        expected_parquet = seal["test_parquet"]
+        exact = (
+            test["manifest_path"] == expected_manifest["path"]
+            and test["manifest_sha256"] == expected_manifest["sha256"]
+            and test["parquet_path"] == expected_parquet["path"]
+            and test["parquet_sha256"] == expected_parquet["sha256"]
+            and test["manifest_schema_version"] == expected_manifest["schema_version"]
+            and test["manifest_variant"] == expected_manifest["manifest_variant"]
+            and test["dataset_run_id"] == seal["dataset_run_id"]
+            and test["instrument"] == expected_manifest["instrument"]
+            and test["rows"] == seal["rows"]
+        )
+    except (KeyError, TypeError):
+        exact = False
+    if not exact:
+        raise RuntimeError("SELECTIVE_EDGE_TEST_SEAL_LOADED_CONTRACT_MISMATCH")
+
+
+def _require_evaluation_mtf_source_provenance(
+    *,
+    dataset_contract: Mapping[str, Any],
+    bundle_metadata: Mapping[str, Any],
+    m5_prebuilt: Path,
+    mtf_cache_dir: Path,
+) -> dict[str, Any]:
+    """Bind the evaluator's actual M5/cache bytes to split and bundle truth."""
+
+    run_lineage = bundle_metadata.get("run_lineage")
+    dataset_run_id = (
+        str(run_lineage.get("dataset_run_id") or "")
+        if isinstance(run_lineage, Mapping)
+        else ""
+    )
+    splits = dataset_contract.get("splits")
+    if not isinstance(splits, Mapping) or len(splits) != 1:
+        raise RuntimeError("SELECTIVE_EDGE_EVALUATION_DATASET_BINDING_INVALID")
+    split, row = next(iter(splits.items()))
+    if not isinstance(row, Mapping):
+        raise RuntimeError("SELECTIVE_EDGE_EVALUATION_DATASET_BINDING_INVALID")
+    manifest_path = Path(str(row.get("manifest_path") or ""))
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        binding = require_dataset_manifest_multi_tf_cache_binding(
+            manifest,
+            dataset_run_id=dataset_run_id,
+            context=f"SELECTIVE_EDGE_{str(split).upper()}_MTF",
+        )
+        verified = require_multi_tf_v4_cache_binding_files(
+            binding,
+            expected_cache_dir=mtf_cache_dir,
+            context=f"SELECTIVE_EDGE_{str(split).upper()}_MTF",
+        )
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError("SELECTIVE_EDGE_EVALUATION_MTF_PROVENANCE_INVALID") from exc
+    source_frame = row.get("source_frame")
+    if not isinstance(source_frame, Mapping) or (
+        source_frame.get("parquet_path") != str(m5_prebuilt)
+        or source_frame.get("parquet_sha256")
+        != verified["m5_prebuilt_source_sha256"]
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_EVALUATION_M5_PROVENANCE_INVALID")
+    bundle_mtf = bundle_metadata.get("multi_tf")
+    expected_bundle = {
+        "shared_cache_identity_sha256": verified["cache_identity_sha256"],
+        "shared_cache_manifest_sha256": verified["manifest_sha256"],
+        "shared_cache_dir": str(mtf_cache_dir),
+        "shared_cache_manifest_path": str(mtf_cache_dir / "manifest.json"),
+        "shared_cache_m5_source": str(m5_prebuilt),
+        "shared_cache_m5_source_sha256": verified["m5_prebuilt_source_sha256"],
+    }
+    if not isinstance(bundle_mtf, Mapping) or any(
+        bundle_mtf.get(key) != value for key, value in expected_bundle.items()
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_EVALUATION_BUNDLE_MTF_PROVENANCE_INVALID")
+    return {
+        "split": str(split),
+        "dataset_run_id": dataset_run_id,
+        "cache_binding": verified,
+        "bundle_mtf": expected_bundle,
+        "source_frame": dict(source_frame),
+    }
 
 
 def _iter_split_chunks(
@@ -1693,6 +1920,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         evidence_stage=evidence_stage,
         split_spec=args.splits,
     )
+    # TEST remains physically sealed until the separate single-use candidate
+    # release authority is implemented.  The old evaluator permitted every
+    # full candidate to supply a self-consistent TEST path, which turns TEST
+    # into a tuning set.  Keeping the route hard-closed is safer than exposing
+    # a partially repaired backtest path while the release event is audited.
+    if evidence_stage != VAL_EVIDENCE_STAGE:
+        raise RuntimeError(
+            "SELECTIVE_EDGE_TEST_RELEASE_AUTHORITY_REQUIRED: "
+            "runtime_authoritative TEST evaluation is locked pending an exact "
+            "single-use candidate release event"
+        )
     bundle_dir = Path(args.bundle_dir).expanduser().resolve()
     contract_mode = MODEL_NATIVE_CONTRACT_MODE
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
@@ -1709,11 +1947,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
     split_bindings = _require_stage_split_bindings(args, splits=splits)
-    val_reference, val_reference_binding = _load_val_reference(
-        getattr(args, "val_reference_json", None),
-        evidence_stage=evidence_stage,
-        bundle_dir=bundle_dir,
-    )
     device = torch.device(_device_arg(args.device))
     _reject_retired_selection_environment()
     bundle = _load_selective_edge_stage_bundle(
@@ -1721,10 +1954,41 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         device=device,
         evidence_stage=evidence_stage,
     )
+    test_seal = (
+        _require_runtime_test_seal_metadata(
+            bundle.metadata,
+            dataset_dir=dataset_dir,
+        )
+        if evidence_stage != VAL_EVIDENCE_STAGE
+        else None
+    )
+    _require_requested_test_bindings_match_seal(
+        split_bindings,
+        dataset_dir=dataset_dir,
+        seal=test_seal,
+    )
     dataset_contract = _dataset_model_native_contract(
         dataset_dir,
         splits,
         split_bindings,
+    )
+    _require_loaded_test_contract_matches_seal(
+        dataset_contract,
+        seal=test_seal,
+    )
+    mtf_source_provenance = _require_evaluation_mtf_source_provenance(
+        dataset_contract=dataset_contract,
+        bundle_metadata=bundle.metadata,
+        m5_prebuilt=m5_prebuilt,
+        mtf_cache_dir=mtf_cache_dir,
+    )
+    val_reference, val_reference_binding = _load_val_reference(
+        getattr(args, "val_reference_json", None),
+        expected_sha256=getattr(args, "val_reference_sha256", None),
+        evidence_stage=evidence_stage,
+        bundle_dir=bundle_dir,
+        dataset_dir=dataset_dir,
+        dataset_contract=dataset_contract,
     )
     split_parquets = {
         split: Path(dataset_contract["splits"][split]["parquet_path"])
@@ -1832,6 +2096,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "dataset_dir": str(dataset_dir),
         "model_native_signal_contract": dataset_contract["contract"],
         "dataset_signal_contract": dataset_contract,
+        "mtf_source_provenance": mtf_source_provenance,
+        "prefreeze_test_seal_lineage": test_seal,
         "splits": summary_payload["splits"],
         "models": summary_payload["models"],
         "summaries": summary_payload["summaries"],
@@ -1990,6 +2256,10 @@ def build_parser() -> argparse.ArgumentParser:
             "Required only for runtime_authoritative TEST: exact immutable VAL "
             "selective-edge report from this same bundle."
         ),
+    )
+    ap.add_argument(
+        "--val-reference-sha256",
+        help="Exact SHA-256 of --val-reference-json; required for sealed TEST.",
     )
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")

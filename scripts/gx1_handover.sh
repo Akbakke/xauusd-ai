@@ -2,7 +2,8 @@
 # Read-only, fail-closed takeover status for the GX1 gold/XAUUSD project.
 set -euo pipefail
 
-REPO=/home/andre2/src/GX1_ENGINE
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+REPO=$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)
 HANDOVER="$REPO/HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 LAUNCH_STATE="$REPO/PROJECT_STATE_xau_direction_launch.json"
 PY="$REPO/.venv/bin/python"
@@ -72,7 +73,7 @@ PY
 cd "$REPO"
 
 readarray -t identity < <("$PY" - "$REPO" "$LAUNCH_STATE" \
-  "$CURRENT_PAIR_MANIFEST" "${sources[@]}" <<'PY'
+  "$CURRENT_PAIR_MANIFEST" "${sources[@]}" "$CURRENT_PAIR_MANIFEST" <<'PY'
 import hashlib
 import json
 import os
@@ -157,7 +158,7 @@ if (
     raise SystemExit("FATAL: current pair authority is invalid")
 
 authority = hashlib.sha256()
-authority.update(b"gx1-takeover-authority-v2\0")
+authority.update(b"gx1-takeover-authority-v3\0")
 for index, path in enumerate(authority_paths):
     path_bytes = str(path).encode("utf-8")
     payload = path.read_bytes()

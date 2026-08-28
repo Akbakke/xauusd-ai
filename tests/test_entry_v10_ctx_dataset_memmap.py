@@ -435,6 +435,61 @@ def test_advanced_dataset_source_reconstruction_handles_filtered_rows(
     assert np.array_equal(ds[1]["seq_x"].numpy(), ds.sequence_for_full_row(2))
 
 
+def test_sequence_source_surface_cache_is_content_bound(tmp_path) -> None:
+    """A same-path replacement may not return arrays cached for old bytes."""
+
+    parquet_path, _proof_path, source, _positions = _write_source_backed_advanced_fixture(
+        tmp_path
+    )
+    manifest = json.loads(parquet_path.with_suffix(".manifest.json").read_text())
+    binding = manifest["extra"]["signal_bridge"]["seq_structure_extension_v1"][
+        "feature_surface"
+    ]
+    surface = Path(binding["path"])
+    trainer._SEQUENCE_SOURCE_SURFACE_CACHE.clear()
+    old_sha = _sha256(surface)
+    _old_times, old_signal = trainer._load_sequence_source_surface(
+        surface,
+        expected_rows=len(source),
+        expected_sha256=old_sha,
+    )
+
+    replacement = source.copy()
+    replacement[:, 0] += np.float32(7.0)
+    source_times = np.datetime64("2026-01-01T00:00:00") + (
+        np.arange(len(source), dtype=np.int64) * np.timedelta64(5, "m")
+    )
+    pq.write_table(
+        pa.table(
+            {
+                "time": pa.array(source_times),
+                "signal": pa.array(replacement.tolist()),
+                "ctx_cont": pa.array(
+                    np.zeros(
+                        (len(source), MODEL_NATIVE_CTX_CONT_DIM), dtype=np.float32
+                    ).tolist()
+                ),
+                "ctx_cat": pa.array(
+                    np.zeros(
+                        (len(source), MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64
+                    ).tolist()
+                ),
+            }
+        ),
+        surface,
+    )
+    new_sha = _sha256(surface)
+    assert new_sha != old_sha
+    _new_times, new_signal = trainer._load_sequence_source_surface(
+        surface,
+        expected_rows=len(source),
+        expected_sha256=new_sha,
+    )
+
+    assert not np.array_equal(old_signal, new_signal)
+    np.testing.assert_array_equal(new_signal, replacement)
+
+
 def test_sequence_roll_reconstruction_rejects_authoritative_proof_claim(
     tmp_path,
 ) -> None:

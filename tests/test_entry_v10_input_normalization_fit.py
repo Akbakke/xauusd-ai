@@ -601,6 +601,33 @@ def test_shared_train_fit_deduplicates_entry_exit_and_binds_all_lineage(
     )
 
 
+def test_shared_train_fit_uses_exit_state_bar_starts_once(
+    fit_fixture: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The MTF selector, like the shared runtime owner, owns the +60s shift."""
+
+    original = normalization.select_shared_causal_mtf_fit_population
+    observed: list[np.ndarray] = []
+
+    def capture_exit_clock(**kwargs: object):
+        observed.append(np.asarray(kwargs["exit_train_times_ns"], dtype=np.int64))
+        return original(**kwargs)
+
+    monkeypatch.setattr(
+        normalization,
+        "select_shared_causal_mtf_fit_population",
+        capture_exit_clock,
+    )
+    _fit(fit_fixture)
+
+    lifecycle = fit_fixture["exit_lifecycle"]
+    expected = lifecycle.source_times_ns[lifecycle.current_indices]
+    assert len(observed) == len(MULTI_TF_RESAMPLE_RULES)
+    for values in observed:
+        np.testing.assert_array_equal(values, expected)
+
+
 def test_shared_train_fit_reuses_explicit_verified_cache(
     fit_fixture: dict,
     monkeypatch: pytest.MonkeyPatch,
@@ -710,13 +737,13 @@ def test_fit_is_structurally_independent_of_downstream_subsamples(
 
 def test_mtf_warmup_is_a_hard_failure() -> None:
     source_times = pd.date_range(
-        "2026-01-01T00:00:00Z", periods=20, freq="1D", tz="UTC"
+        "2026-01-01T00:00:00Z", periods=20, freq="5min", tz="UTC"
     ).asi8
     source = _mtf_frame(
         source_times, _mtf_values(len(source_times)), warmup_rows=9
     )
     train_times = pd.DatetimeIndex(
-        ["2026-01-11T00:00:00Z", "2026-01-12T00:00:00Z"]
+        ["2026-01-01T00:50:00Z", "2026-01-01T00:55:00Z"]
     ).asi8
     with pytest.raises(
         RuntimeError, match="ENTRY_INPUT_NORMALIZATION_MTF_WARMUP_INCOMPLETE"
@@ -726,4 +753,19 @@ def test_mtf_warmup_is_a_hard_failure() -> None:
             source=source,
             train_times_ns=train_times,
             seq_len=3,
+        )
+
+
+def test_mtf_fit_rejects_off_grid_local_decision_clocks() -> None:
+    entry_off_grid = np.asarray(
+        [pd.Timestamp("2026-01-11T00:01:00Z").value], dtype=np.int64
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_INPUT_NORMALIZATION_ROUTE_CLOCK_GRID_INVALID",
+    ):
+        normalization._validate_route_times(
+            entry_off_grid,
+            route="entry",
+            allow_empty=False,
         )

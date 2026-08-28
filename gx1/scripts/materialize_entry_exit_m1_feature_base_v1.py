@@ -81,6 +81,21 @@ _BOUNDED_CAUSAL_OVERLAP_ROWS = 8
 _BOUNDED_PARQUET_ROW_GROUPS_PER_BATCH = 64
 
 
+def _native_registry_decision_clock(
+    *, timeframe: str, bar_seconds: int
+) -> tuple[str, int]:
+    expected_seconds = {
+        "M1": EXIT_DECISION_BAR_SECONDS,
+        "M5": ENTRY_DECISION_BAR_SECONDS,
+    }
+    if (
+        timeframe not in expected_seconds
+        or int(bar_seconds) != expected_seconds[timeframe]
+    ):
+        raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_NATIVE_CLOCK_INVALID")
+    return timeframe, expected_seconds[timeframe]
+
+
 def _fsync_directory(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
@@ -372,6 +387,12 @@ def _materialize_bounded_feature_surface(
 
     if (timeframe == "M1") != (alignment is not None):
         raise RuntimeError("ENTRY_EXIT_FEATURE_BASE_NATIVE_ROUTE_INVALID")
+    registry_decision_clock, registry_decision_bar_seconds = (
+        _native_registry_decision_clock(
+            timeframe=timeframe,
+            bar_seconds=bar_seconds,
+        )
+    )
 
     from gx1.features.entry_model_native_feature_layers_v1 import (
         PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
@@ -644,8 +665,8 @@ def _materialize_bounded_feature_surface(
                     max_evidence_age_bars=int(
                         _v29_registry_params()["level_expiry_bars"]
                     ),
-                    decision_clock="M1",
-                    decision_bar_seconds=60,
+                    decision_clock=registry_decision_clock,
+                    decision_bar_seconds=registry_decision_bar_seconds,
                     raw_frame=raw_frame,
                 ),
             ),

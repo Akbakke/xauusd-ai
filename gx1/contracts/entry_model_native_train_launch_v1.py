@@ -7,6 +7,7 @@ only the audited, allowlisted trainer environment.
 from __future__ import annotations
 
 import argparse
+import ast
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -18,6 +19,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
+    SCHEMA_VERSION as FULL_INPUT_LIVENESS_SCHEMA_VERSION,
     validate_full_input_liveness_artifact,
 )
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
@@ -30,6 +32,9 @@ from gx1.contracts.entry_fitted_q_v1 import (
 from gx1.contracts.entry_execution_causality_v1 import (
     ENTRY_EXECUTION_CAUSALITY_REQUIRED_SPLITS,
     require_entry_execution_causality_audit,
+)
+from gx1.contracts.current_audited_dataset_evidence_v1 import (
+    require_blocked_launch_state_with_current_audited_dataset,
 )
 from gx1.contracts.entry_sequence_integrity_v1 import (
     require_sequence_integrity_audit,
@@ -169,6 +174,7 @@ SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH = (
 SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH = (
     "gx1/scripts/audit_entry_sequence_source_reconstruction_v1.py"
 )
+CANONICAL_LAUNCH_STATE_RELATIVE_PATH = "PROJECT_STATE_xau_direction_launch.json"
 
 REQUIRED_SPECIALISTS = MODEL_NATIVE_TRAINING_SPECIALISTS
 # V30 package 7 (2026-08-13): the `_rail_` substring filter would now yield an
@@ -188,6 +194,16 @@ _STAMP_RE = re.compile(r"(?:^|[^0-9])20[0-9]{6}T[0-9]{6}(?:[0-9]{6})?Z(?:[^0-9]|
 _SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 _CAP_RE = re.compile(r"^[1-9][0-9]*[KMGT]$")
 _MUTABLE_POINTER_RE = re.compile(r"(?:^|[/_.-])latest(?:[/_.-]|$)", re.IGNORECASE)
+
+_CURRENT_AUDITED_CANDIDATE_REPORTS = {
+    "post_rebuild_readiness_json": "post_rebuild_readiness",
+    "full_input_liveness_audit_json": "full_input_liveness",
+    "feature_audit_json": "feature_audit",
+    "target_audit_json": "target_audit",
+    "specialist_audit_json": "specialist_audit",
+    "trainability_readiness_json": "trainability_readiness",
+    "execution_causality_audit_json": "execution_causality",
+}
 
 _COMMON_BINDING_KEYS = (
     "train_manifest_json",
@@ -289,13 +305,21 @@ def canonical_json_sha256(value: Any) -> str:
 def artifact_binding(path: Path, *, content_sha256: str | None = None) -> dict[str, Any]:
     """Build the binding shape expected from an upstream audit.
 
-    Audit producers may pass a previously computed hash for large artifacts;
-    launch validation checks their stat identity without rereading many GB.
+    A prior audit hash is an expected value, never a substitute for reading
+    the current bytes.  Stat identity can be restored after same-size edits,
+    so accepting it for large parquet/M5 artifacts would publish a recipe
+    that only fails much later in trainer preflight.
     """
 
     resolved = path.expanduser().resolve(strict=True)
     stat_result = resolved.stat()
-    digest = content_sha256 or sha256_file(resolved)
+    observed_digest = sha256_file(resolved)
+    if content_sha256 is not None:
+        _require(
+            observed_digest == content_sha256,
+            f"artifact content hash mismatch before launch: {resolved}",
+        )
+    digest = observed_digest
     return {
         "path": str(resolved),
         "sha256": str(digest),
@@ -510,6 +534,90 @@ def _resolved_output_path(raw: str) -> Path:
     return parent / path.name
 
 
+def _candidate_current_audited_dataset_binding(
+    *,
+    repo: Path,
+    dataset_dir: Path,
+    dataset_run_id: str,
+    artifacts: Mapping[str, Path],
+) -> dict[str, Any]:
+    """Bind candidate training to the one reviewed dataset named by repo state.
+
+    Candidate training may never select a merely self-consistent historical
+    dataset.  The launch-state location is repo-owned, fixed and non-callable;
+    its status remains BLOCK so this check grants no activation authority.
+    """
+
+    state_path = repo / CANONICAL_LAUNCH_STATE_RELATIVE_PATH
+    _require(
+        state_path.is_file()
+        and not state_path.is_symlink()
+        and state_path.resolve(strict=True) == state_path,
+        "candidate canonical launch state is not an exact regular repo file",
+    )
+    state = _read_json(state_path, "candidate canonical launch state")
+    try:
+        evidence = require_blocked_launch_state_with_current_audited_dataset(state)
+    except RuntimeError as exc:
+        raise LaunchContractError(
+            f"candidate canonical launch state is not a current audited BLOCK: {exc}"
+        ) from exc
+    _require(
+        Path(str(evidence["dataset_dir"])).resolve(strict=True) == dataset_dir,
+        "candidate dataset does not match current audited dataset",
+    )
+    _require(
+        evidence["dataset_run_id"] == dataset_run_id,
+        "candidate dataset run ID does not match current audited dataset",
+    )
+    audited = state.get("current_audited_dataset_evidence")
+    reports = audited.get("reports") if isinstance(audited, Mapping) else None
+    _require(
+        isinstance(reports, Mapping),
+        "candidate canonical launch state reports are missing",
+    )
+    binding_reports: dict[str, dict[str, str]] = {}
+    for artifact_key, report_name in _CURRENT_AUDITED_CANDIDATE_REPORTS.items():
+        row = reports.get(report_name)
+        _require(
+            isinstance(row, Mapping),
+            f"candidate canonical report missing: {report_name}",
+        )
+        report_path = Path(str(row.get("path") or ""))
+        report_sha = str(row.get("sha256") or "")
+        _require(
+            report_path.is_absolute()
+            and report_path == artifacts[artifact_key]
+            and sha256_file(report_path) == report_sha,
+            f"candidate canonical report binding mismatch: {report_name}",
+        )
+        if report_name == "full_input_liveness":
+            _require(
+                row.get("schema_version") == FULL_INPUT_LIVENESS_SCHEMA_VERSION,
+                "candidate current full-input liveness schema is stale",
+            )
+            semantic = validate_full_input_liveness_artifact(
+                report_path,
+                expected_sha256=report_sha,
+                expected_dataset_dir=dataset_dir,
+            )
+            _require(
+                semantic.get("ok") is True,
+                "candidate current full-input liveness evidence is invalid",
+            )
+        binding_reports[artifact_key] = {
+            "path": str(report_path),
+            "sha256": report_sha,
+        }
+    return {
+        "launch_state_path": str(state_path),
+        "launch_state_sha256": sha256_file(state_path),
+        "dataset_dir": str(dataset_dir),
+        "dataset_run_id": dataset_run_id,
+        "reports": binding_reports,
+    }
+
+
 def _zero_failure(
     payload: Mapping[str, Any],
     *,
@@ -546,60 +654,126 @@ def _validate_binding_map(
         _require(binding == current, f"{label} binding {key} does not match the current immutable artifact")
 
 
-def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, Path]:
+def _module_file_candidates(repo: Path, module: str) -> tuple[Path, ...]:
+    """Return exact repo-owned candidates for one importable gx1 module."""
+
+    if not module.startswith("gx1"):
+        return ()
+    relative = Path(*module.split("."))
+    return (repo / relative.with_suffix(".py"), repo / relative / "__init__.py")
+
+
+def _module_name_for_path(repo: Path, path: Path) -> str:
+    relative = path.resolve(strict=True).relative_to(repo.resolve(strict=True))
+    if relative.name == "__init__.py":
+        return ".".join(relative.parent.parts)
+    return ".".join(relative.with_suffix("").parts)
+
+
+def _relative_import_module(current_module: str, node: ast.ImportFrom) -> str | None:
+    """Resolve a static relative import without importing executable code."""
+
+    if node.level == 0:
+        return node.module
+    package = current_module.split(".")[:-1]
+    if node.level > len(package):
+        return None
+    prefix = package[: len(package) - node.level + 1]
+    if node.module:
+        prefix.extend(node.module.split("."))
+    return ".".join(prefix)
+
+
+def _recipe_local_python_import_closure(
+    *, repo: Path, roots: Sequence[Path]
+) -> dict[str, Path]:
+    """Statically bind every repo-local Python module the train route imports.
+
+    The recipe cannot treat an ancestor Git commit plus a hand-maintained short
+    list as immutable source identity.  This closure is derived from AST import
+    statements only; importing the modules here would execute their code and
+    make materialisation depend on ambient runtime state.
+    """
+
+    repo_root = repo.resolve(strict=True)
+    pending = [path.resolve(strict=True) for path in roots]
+    closure: dict[str, Path] = {}
+    while pending:
+        path = pending.pop()
+        if path.suffix != ".py" or not path.is_file() or path.is_symlink():
+            raise LaunchContractError(f"recipe source root is not a regular Python file: {path}")
+        relative = path.relative_to(repo_root).as_posix()
+        if relative in closure:
+            continue
+        closure[relative] = path
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except (OSError, SyntaxError, UnicodeError) as exc:
+            raise LaunchContractError(f"cannot parse recipe source dependency: {path}") from exc
+        current_module = _module_name_for_path(repo_root, path)
+        imported_modules: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported_modules.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                module = _relative_import_module(current_module, node)
+                if not module:
+                    continue
+                imported_modules.add(module)
+                # ``from gx1.package import submodule`` loads the submodule
+                # even though the AST's module field names only its package.
+                for alias in node.names:
+                    if alias.name != "*":
+                        imported_modules.add(f"{module}.{alias.name}")
+        for module in sorted(imported_modules):
+            for candidate in _module_file_candidates(repo_root, module):
+                if candidate.exists():
+                    pending.append(candidate.resolve(strict=True))
+                    break
     return {
-        "aux_target_contract": (
-            repo / AUX_TARGET_CONTRACT_RELATIVE_PATH
-        ).resolve(strict=True),
+        f"python:{relative}": closure[relative]
+        for relative in sorted(closure)
+    }
+
+
+def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, Path]:
+    """Return exact shell roots and the complete static local Python closure."""
+
+    shell_roots = {
         "control_surface": (repo / CONTROL_SURFACE_RELATIVE_PATH).resolve(strict=True),
-        "launch_contract": (repo / LAUNCH_CONTRACT_RELATIVE_PATH).resolve(strict=True),
-        "model": (repo / MODEL_RELATIVE_PATH).resolve(strict=True),
-        "test_seal_contract": (
-            repo / POST_REBUILD_CONTRACT_RELATIVE_PATH
-        ).resolve(strict=True),
-        "mtf_feature_builder": (
-            repo / HTF_FEATURES_RELATIVE_PATH
-        ).resolve(strict=True),
-        "mtf_smc_geometry": (
-            repo / SMC_FEATURES_RELATIVE_PATH
-        ).resolve(strict=True),
-        "mtf_specialist_routing": (
-            repo / MTF_SPECIALIST_ROUTING_RELATIVE_PATH
-        ).resolve(strict=True),
-        "recipe_contract": (repo / RECIPE_CONTRACT_RELATIVE_PATH).resolve(strict=True),
-        "recipe_producer": (repo / RECIPE_PRODUCER_RELATIVE_PATH).resolve(strict=True),
-        "wrapper": wrapper_path,
-        "trainer": (repo / TRAINER_RELATIVE_PATH).resolve(strict=True),
+        "wrapper": wrapper_path.resolve(strict=True),
         "trainer_safety_guard": (
             repo / TRAINER_SAFETY_GUARD_RELATIVE_PATH
         ).resolve(strict=True),
-        "smoke_bundle_audit": (
-            repo / SMOKE_BUNDLE_AUDIT_RELATIVE_PATH
-        ).resolve(strict=True),
-        "unified_exit_lifecycle_contract": (
-            repo / UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH
-        ).resolve(strict=True),
-        # The lifecycle imports this owner to decode the native M1 feature
-        # surface. Bind it separately so a source-only loader change cannot
-        # evade the immutable recipe merely because the lifecycle file itself
-        # did not change.
-        "entry_exit_feature_surface_contract": (
-            repo / ENTRY_EXIT_FEATURE_SURFACE_CONTRACT_RELATIVE_PATH
-        ).resolve(strict=True),
-        "sequence_integrity_contract": (
-            repo / SEQUENCE_INTEGRITY_CONTRACT_RELATIVE_PATH
-        ).resolve(strict=True),
-        "sequence_integrity_audit": (
-            repo / SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH
-        ).resolve(strict=True),
-        "sequence_source_reconstruction_contract": (
-            repo / SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH
-        ).resolve(strict=True),
-        "sequence_source_reconstruction_audit": (
-            repo / SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH
-        ).resolve(strict=True),
         "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
     }
+    python_roots = [
+        (repo / relative).resolve(strict=True)
+        for relative in (
+            AUX_TARGET_CONTRACT_RELATIVE_PATH,
+            LAUNCH_CONTRACT_RELATIVE_PATH,
+            MODEL_RELATIVE_PATH,
+            POST_REBUILD_CONTRACT_RELATIVE_PATH,
+            HTF_FEATURES_RELATIVE_PATH,
+            SMC_FEATURES_RELATIVE_PATH,
+            MTF_SPECIALIST_ROUTING_RELATIVE_PATH,
+            RECIPE_CONTRACT_RELATIVE_PATH,
+            RECIPE_PRODUCER_RELATIVE_PATH,
+            TRAINER_RELATIVE_PATH,
+            SMOKE_BUNDLE_AUDIT_RELATIVE_PATH,
+            UNIFIED_EXIT_LIFECYCLE_CONTRACT_RELATIVE_PATH,
+            ENTRY_EXIT_FEATURE_SURFACE_CONTRACT_RELATIVE_PATH,
+            SEQUENCE_INTEGRITY_CONTRACT_RELATIVE_PATH,
+            SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH,
+            SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH,
+            SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH,
+        )
+    ]
+    closure = _recipe_local_python_import_closure(repo=repo, roots=python_roots)
+    overlapping = set(shell_roots) & set(closure)
+    if overlapping:
+        raise LaunchContractError(f"recipe source binding key collision: {sorted(overlapping)}")
+    return {**shell_roots, **closure}
 
 
 def recipe_source_bindings(*, repo: Path, wrapper_path: Path) -> dict[str, dict[str, Any]]:
@@ -1517,6 +1691,22 @@ def _validate_audits(
         )
         _require(int(candidate_readiness.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "candidate readiness signal width mismatch")
         _require(tuple(candidate_readiness.get("required_specialist_groups") or ()) == REQUIRED_SPECIALISTS, "candidate readiness specialist set mismatch")
+        for readiness_dataset_key in (
+            "expected_smoke_dataset_dir",
+            "dataset_dir",
+            "smoke_bundle_dataset_dir",
+        ):
+            try:
+                readiness_dataset_dir = Path(
+                    str(candidate_readiness.get(readiness_dataset_key) or "")
+                ).expanduser().resolve(strict=True)
+            except (OSError, RuntimeError):
+                readiness_dataset_dir = None
+            _require(
+                readiness_dataset_dir == dataset_dir,
+                "candidate readiness dataset binding mismatch: "
+                f"{readiness_dataset_key}",
+            )
         _require(candidate_readiness.get("candidate_training_allowed") is True, "candidate readiness does not authorize explicit training")
         _require(
             candidate_readiness.get("promotion_shadow_live_allowed") is False
@@ -1642,6 +1832,10 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         _require(
             integer_values["subsample_rows"] == 0,
             "candidate training requires full TRAIN population (subsample_rows=0)",
+        )
+        _require(
+            integer_values["grad_accum_steps"] == 1,
+            "candidate training requires grad_accum_steps=1 for exact resumable checkpoints",
         )
     else:
         _require(
@@ -1774,6 +1968,16 @@ def build_recipe_audit_payload(
         artifacts=artifacts,
         dataset_run_id=dataset_run_id,
     )
+    current_audited_dataset_binding = (
+        _candidate_current_audited_dataset_binding(
+            repo=repo,
+            dataset_dir=dataset_dir,
+            dataset_run_id=dataset_run_id,
+            artifacts=artifacts,
+        )
+        if profile == "candidate"
+        else None
+    )
     expected_large_hashes["m5_prebuilt_path"] = _model_source_hash_from_manifests(
         payloads
     )
@@ -1813,6 +2017,7 @@ def build_recipe_audit_payload(
         "run_id": run_id,
         "dataset_run_id": dataset_run_id,
         "dataset_dir": str(dataset_dir),
+        "current_audited_dataset_binding": current_audited_dataset_binding,
         "out_bundle_dir": str(out_bundle_dir),
         "prefreeze_test_seal_lineage": test_seal_lineage,
         "prefreeze_test_seal_lineage_sha256": canonical_json_sha256(
@@ -1927,6 +2132,17 @@ def validate_launch(
         dataset_run_id=dataset_run_id,
     )
 
+    current_audited_dataset_binding = (
+        _candidate_current_audited_dataset_binding(
+            repo=repo,
+            dataset_dir=dataset_dir,
+            dataset_run_id=dataset_run_id,
+            artifacts=artifacts,
+        )
+        if profile == "candidate"
+        else None
+    )
+
     _validate_pretrain_audit(
         payloads["pretrain_audit_json"],
         artifacts=artifacts,
@@ -1982,6 +2198,11 @@ def validate_launch(
     )
     _require(Path(str(recipe.get("dataset_dir") or "")).resolve() == dataset_dir, "recipe audit dataset mismatch")
     _require(Path(str(recipe.get("out_bundle_dir") or "")).resolve() == out_bundle_dir, "recipe audit output mismatch")
+    _require(
+        recipe.get("current_audited_dataset_binding")
+        == current_audited_dataset_binding,
+        "recipe audit current audited dataset binding mismatch",
+    )
     _require(
         recipe.get("prefreeze_test_seal_lineage") == test_seal_lineage
         and recipe.get("prefreeze_test_seal_lineage_sha256")

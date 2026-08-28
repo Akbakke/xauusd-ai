@@ -41,6 +41,7 @@ from gx1.models.entry_v10.direction_decision_contract import (  # noqa: E402
 from gx1.contracts.live_tail_publication_v1 import (  # noqa: E402
     require_newest_live_tail_runtime_authority,
 )
+from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 
 RUNS = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 JOURNAL_GLOB = str(RUNS / "v12_paper_journal_*.jsonl")
@@ -621,6 +622,7 @@ def main():
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--host", default="0.0.0.0")
     args = ap.parse_args()
+    require_offline_scope("dashboard")
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"GX1 Jarvis dashboard → http://localhost:{args.port}  (host bind {args.host}:{args.port})")
     print("READ-ONLY. Ctrl-C to stop.")

@@ -931,6 +931,34 @@ def multi_tf_last_closed_label(
     )
 
 
+def require_multi_tf_timestamp_grid(
+    timestamps_ns: np.ndarray,
+    *,
+    timeframe: str,
+    context: str,
+) -> None:
+    """Require an exact V4 axis on this timeframe's declared bar grid.
+
+    A monotonic axis alone is insufficient: H4 and D1 must be phase-aligned
+    to the trading-session origin (22:00 UTC), not merely spaced four hours
+    or one day apart.  This is shared by disk-cache loading and in-memory
+    route validation so a cache cannot claim the right origin in its manifest
+    while supplying arrays labelled on a different clock.
+    """
+
+    if timeframe not in MULTI_TF_RESAMPLE_RULES:
+        raise RuntimeError(f"{context}: invalid timeframe={timeframe!r}")
+    raw = np.asarray(timestamps_ns)
+    if raw.dtype != np.dtype(np.int64) or raw.ndim != 1 or raw.size < 1:
+        raise RuntimeError(f"{context}: invalid timestamp array")
+    index = pd.DatetimeIndex(raw.astype("datetime64[ns]"), tz="UTC")
+    labels = multi_tf_bar_label(index, timeframe)
+    if not np.array_equal(labels.asi8, raw):
+        raise RuntimeError(
+            f"{context}: timestamps are not on the declared {timeframe} grid"
+        )
+
+
 def build_multi_tf_v4_closed_timestamp_indices(
     m5_index: pd.DatetimeIndex,
 ) -> dict[str, pd.DatetimeIndex]:
@@ -3730,6 +3758,11 @@ def require_multi_tf_v4_frames(
             raise RuntimeError(
                 f"HTF_V4_CACHE_VERIFIED_MATRIX_INVALID: {timeframe}"
             )
+        require_multi_tf_timestamp_grid(
+            timestamps,
+            timeframe=timeframe,
+            context="HTF_V4_CACHE_TIMESTAMP_GRID_INVALID",
+        )
         warmup_rows = validate_causal_feature_matrix(
             verified,
             expected_width=MULTI_TF_FEATURE_COUNT_V4,
@@ -4688,6 +4721,11 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 raise RuntimeError(
                     f"HTF_V4_CACHE_CONTRACT_MISMATCH: {tf_name} timestamps invalid"
                 )
+            require_multi_tf_timestamp_grid(
+                ts_int64,
+                timeframe=tf_name,
+                context="HTF_V4_CACHE_TIMESTAMP_GRID_INVALID",
+            )
             expected_scalar_fields = (
                 MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf_name]
             )
@@ -4889,6 +4927,18 @@ def slice_multi_tf_v4_window(
             )
         ):
             raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: malformed exact cache arrays")
+        matching_timeframes = tuple(
+            timeframe
+            for timeframe, declared_shift in MULTI_TF_SHIFT.items()
+            if declared_shift == tf_shift
+        )
+        if len(matching_timeframes) != 1:
+            raise RuntimeError("HTF_WINDOW_SHIFT_INVALID: no unique V4 timeframe")
+        require_multi_tf_timestamp_grid(
+            ts_int64,
+            timeframe=matching_timeframes[0],
+            context="HTF_WINDOW_SOURCE_GRID_INVALID",
+        )
         _HTF_WINDOW_VALIDATED[id(feats)] = (feats, _token)
     warmup_rows = feats.attrs.get("causal_warmup_rows")
     if (
@@ -4977,6 +5027,17 @@ def get_model_native_multi_tf_route_windows(
     if target.tz is None or target.utcoffset() != pd.Timedelta(0):
         raise RuntimeError(
             "MODEL_NATIVE_MTF_DECISION_TIMESTAMP_INVALID: timezone-aware UTC required"
+        )
+    # A route may only be evaluated at the opening timestamp of its local
+    # bar.  Otherwise an off-grid M5 Entry timestamp could be advanced by
+    # five minutes and select a context unavailable at any valid decision.
+    # UTC epoch alignment is the canonical grid for the M1 and M5 clocks.
+    bar_ns = int(base_bar_duration.value)
+    if int(target.value) % bar_ns != 0:
+        raise RuntimeError(
+            "MODEL_NATIVE_MTF_DECISION_CLOCK_GRID_INVALID: "
+            f"route={route!r} target={target.isoformat()} "
+            f"bar_seconds={int(base_bar_duration.total_seconds())}"
         )
     availability = target + base_bar_duration
     return {

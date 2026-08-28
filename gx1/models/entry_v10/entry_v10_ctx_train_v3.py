@@ -1637,6 +1637,7 @@ def _candidate_training_session_atomic_write_json(
             os.fsync(handle.fileno())
         os.replace(temporary, path)
         _fsync_regular_file(path)
+        _fsync_directory(path.parent)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -1708,6 +1709,7 @@ class _CandidateTrainingSession:
                     handle.flush()
                     os.fsync(handle.fileno())
                 _fsync_regular_file(self._contract_path)
+                _fsync_directory(self._directory)
             except Exception:
                 raise
 
@@ -1728,6 +1730,10 @@ class _CandidateTrainingSession:
         if self._active_path.is_symlink():
             raise RuntimeError("[CANDIDATE_TRAINING_SESSION_ACTIVE_PATH_INVALID]")
         if not self._active_path.exists():
+            if any(self._slot_path(slot).exists() for slot in (0, 1)):
+                raise RuntimeError(
+                    "[CANDIDATE_TRAINING_ACTIVE_POINTER_MISSING_WITH_STATE]"
+                )
             return None
         active = _candidate_training_session_read_json(self._active_path, label="ACTIVE")
         expected_keys = {
@@ -1837,6 +1843,7 @@ class _CandidateTrainingSession:
                 os.fsync(handle.fileno())
             os.replace(temporary, state_path)
             _fsync_regular_file(state_path)
+            _fsync_directory(self._directory)
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
@@ -1929,7 +1936,9 @@ _SEQUENCE_ROLL_AUDIT_AUTHORITY = {
     "paper": False,
     "live": False,
 }
-_SEQUENCE_SOURCE_SURFACE_CACHE: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+_SEQUENCE_SOURCE_SURFACE_CACHE: dict[
+    tuple[str, str], tuple[np.ndarray, np.ndarray]
+] = {}
 
 
 def _sequence_source_exact_regular_file(raw: Path, *, label: str) -> Path:
@@ -1961,6 +1970,7 @@ def _load_sequence_source_surface(
     surface_path: Path,
     *,
     expected_rows: int,
+    expected_sha256: str,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Read the exact M5 signal surface in bounded Arrow batches.
 
@@ -1969,7 +1979,15 @@ def _load_sequence_source_surface(
     every filtered supervised row, avoiding a 20+ GiB scratch ``seq`` mirror.
     """
 
-    cache_key = str(surface_path)
+    # The source is contract-immutable.  A process-local cache keyed only by
+    # pathname could otherwise return pre-replacement arrays after the caller
+    # had already verified replacement bytes at that same pathname.
+    observed_before = _sha256_file(surface_path)
+    if observed_before != expected_sha256:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_CHANGED_BEFORE_READ]"
+        )
+    cache_key = (str(surface_path), expected_sha256)
     cached = _SEQUENCE_SOURCE_SURFACE_CACHE.get(cache_key)
     if cached is not None:
         cached_times, cached_signal = cached
@@ -2057,6 +2075,10 @@ def _load_sequence_source_surface(
         raise RuntimeError(
             "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_ROW_COUNT_MISMATCH]"
         )
+    if _sha256_file(surface_path) != expected_sha256:
+        raise RuntimeError(
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_CHANGED_DURING_READ]"
+        )
     _SEQUENCE_SOURCE_SURFACE_CACHE[cache_key] = (times, signal_surface)
     return times, signal_surface
 
@@ -2100,15 +2122,18 @@ def _require_sequence_source_reconstruction(
         raise RuntimeError(
             f"[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_INVALID] {exc}"
         ) from exc
+    source_sha256 = _sha256_file(source_path)
     if (
-        _sha256_file(source_path) != feature_surface["sha256"]
+        source_sha256 != feature_surface["sha256"]
         or _sha256_file(source_manifest_path) != feature_surface["manifest_sha256"]
     ):
         raise RuntimeError(
             "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_SOURCE_BINDING_INVALID]"
         )
     source_times, source_signal = _load_sequence_source_surface(
-        source_path, expected_rows=int(feature_surface["rows"])
+        source_path,
+        expected_rows=int(feature_surface["rows"]),
+        expected_sha256=source_sha256,
     )
     return dict(audit), source_times, source_signal
 
@@ -4008,19 +4033,25 @@ class EntryV10CtxDataset(Dataset):
 
     def _get_exit_multi_tf_episode_histories(
         self,
-        decision_time_ns: np.ndarray,
+        state_bar_start_time_ns: np.ndarray,
     ) -> Dict[str, np.ndarray]:
-        """Return each unique native MTF history and exact as-of gathers once."""
+        """Return Exit histories as of each M1 state's just-closed bar.
 
-        decision_ns = np.asarray(decision_time_ns, dtype=np.int64)
+        The shared MTF owner accepts an M1 *bar start* and applies the one
+        native 60-second close shift itself.  Passing ``exit_decision_time``
+        here would apply that shift twice and could expose a still-open M5
+        bar at boundary states.
+        """
+
+        state_start_ns = np.asarray(state_bar_start_time_ns, dtype=np.int64)
         if (
-            decision_ns.ndim != 1
-            or decision_ns.shape != (UNIFIED_EXIT_MAX_PATH_BARS,)
-            or np.any(np.diff(decision_ns) <= 0)
+            state_start_ns.ndim != 1
+            or state_start_ns.shape != (UNIFIED_EXIT_MAX_PATH_BARS,)
+            or np.any(np.diff(state_start_ns) <= 0)
         ):
             raise RuntimeError("UNIFIED_EXIT_EPISODE_MTF_CLOCK_INVALID")
         out: dict[str, np.ndarray] = {}
-        availability_ns = decision_ns + int(
+        availability_ns = state_start_ns + int(
             pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
         )
         for tf in EXIT_MTF_CONTEXT_TIMEFRAMES:
@@ -4089,7 +4120,7 @@ class EntryV10CtxDataset(Dataset):
                     self._multi_tf_cache_identity_sha256
                 ),
                 **self._get_exit_multi_tf_episode_histories(
-                    core["exit_decision_time_ns"]
+                    core["exit_state_row_time_ns"]
                 ),
             }
         )
@@ -7365,6 +7396,21 @@ def _active_head_target_surfaces(
         ],
         dim=1,
     ).clamp(0.0, 1.0)
+    # Exact loss mask: the two line-hold outcomes only exist after their own
+    # registry touch events, while the two trap labels are dense.
+    trendline_mask = torch.stack(
+        [
+            _active_head_batch_target(
+                batch, "y_line_support_touch_mask", device
+            ).reshape(-1) > 0.5,
+            _active_head_batch_target(
+                batch, "y_line_resistance_touch_mask", device
+            ).reshape(-1) > 0.5,
+            torch.ones(batch_size, dtype=torch.bool, device=device),
+            torch.ones(batch_size, dtype=torch.bool, device=device),
+        ],
+        dim=1,
+    )
 
     surfaces: Dict[
         str,
@@ -7374,7 +7420,9 @@ def _active_head_target_surfaces(
             "entry_action_q_bps": (
                 _prediction("entry_action_q_bps"),
                 entry_q_target,
-                entry_q_valid.any(dim=1),
+                # The raw-Q loss is element-masked.  A row that supervises
+                # only one action is not evidence for the other two actions.
+                entry_q_valid,
             )
         },
         "position_size": {
@@ -7427,7 +7475,7 @@ def _active_head_target_surfaces(
             "trendline_event_logits": (
                 _prediction("trendline_event_logits"),
                 trendline_target,
-                all_rows,
+                trendline_mask,
             )
         },
     }
@@ -7570,27 +7618,35 @@ def _accumulate_active_head_epoch(
                     f"head={head_name} component={component_name} "
                     f"prediction={tuple(prediction.shape)} target={tuple(target.shape)}"
                 )
-            if prediction.shape != target.shape or mask.ndim != 1:
+            if prediction.shape != target.shape:
                 raise RuntimeError(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_SHAPE_MISMATCH] "
                     f"head={head_name} component={component_name} "
                     f"prediction={tuple(prediction.shape)} target={tuple(target.shape)} "
                     f"mask={tuple(mask.shape)}"
                 )
-            if int(mask.shape[0]) != int(prediction.shape[0]):
+            if mask.ndim == 1 and int(mask.shape[0]) == int(prediction.shape[0]):
+                element_mask = mask.reshape(-1, 1).expand_as(prediction)
+            elif mask.ndim == 2 and tuple(mask.shape) == tuple(prediction.shape):
+                element_mask = mask
+            else:
                 raise RuntimeError(
-                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_MASK_ROW_MISMATCH] "
-                    f"head={head_name} component={component_name}"
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_MASK_SHAPE_MISMATCH] "
+                    f"head={head_name} component={component_name} "
+                    f"mask={tuple(mask.shape)} prediction={tuple(prediction.shape)}"
                 )
             component_store = head_store[head_name]["components"].setdefault(
                 component_name,
-                {"prediction": [], "target": []},
+                {"prediction": [], "target": [], "mask": []},
             )
             component_store["prediction"].append(
-                prediction[mask].detach().float().cpu().numpy()
+                prediction.detach().float().cpu().numpy()
             )
             component_store["target"].append(
-                target[mask].detach().float().cpu().numpy()
+                target.detach().float().cpu().numpy()
+            )
+            component_store["mask"].append(
+                element_mask.detach().bool().cpu().numpy()
             )
 
 
@@ -7645,6 +7701,9 @@ def _active_head_epoch_diagnostics(
             target_chunks = (
                 component.get("target") if isinstance(component, dict) else None
             )
+            mask_chunks = (
+                component.get("mask") if isinstance(component, dict) else None
+            )
             if not prediction_chunks or not target_chunks:
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_MISSING] "
@@ -7660,17 +7719,33 @@ def _active_head_epoch_diagnostics(
                     [np.asarray(value, dtype=np.float64) for value in target_chunks],
                     axis=0,
                 )
+                # Compatibility for synthetic legacy test accumulators: real
+                # training always records a mask.  Missing mask data is only
+                # equivalent to dense supervision, never a partial mask.
+                element_mask = (
+                    np.concatenate(
+                        [np.asarray(value, dtype=bool) for value in mask_chunks],
+                        axis=0,
+                    )
+                    if mask_chunks
+                    else np.ones_like(prediction, dtype=bool)
+                )
             except Exception as exc:
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_INVALID] "
                     f"head={head_name} component={component_name} error={exc}"
                 )
                 continue
-            if prediction.ndim != 2 or target.shape != prediction.shape:
+            if (
+                prediction.ndim != 2
+                or target.shape != prediction.shape
+                or element_mask.shape != prediction.shape
+            ):
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_SHAPE_INVALID] "
                     f"head={head_name} component={component_name} "
-                    f"prediction={prediction.shape} target={target.shape}"
+                    f"prediction={prediction.shape} target={target.shape} "
+                    f"mask={element_mask.shape}"
                 )
                 continue
             expected_width = int(_ACTIVE_HEAD_COMPONENT_WIDTHS[component_name])
@@ -7681,23 +7756,36 @@ def _active_head_epoch_diagnostics(
                     f"observed={int(prediction.shape[1])} expected={expected_width}"
                 )
                 continue
-            rows = int(prediction.shape[0])
+            rows_by_column = element_mask.sum(axis=0).astype(int)
+            rows = int(np.min(rows_by_column))
             if rows < _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS:
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ROWS_INSUFFICIENT] "
-                    f"head={head_name} component={component_name} rows={rows}"
+                    f"head={head_name} component={component_name} "
+                    f"rows_by_column={rows_by_column.tolist()}"
                 )
                 continue
-            if not np.isfinite(prediction).all() or not np.isfinite(target).all():
+            if (
+                not np.isfinite(prediction[element_mask]).all()
+                or not np.isfinite(target[element_mask]).all()
+            ):
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_NONFINITE] "
                     f"head={head_name} component={component_name}"
                 )
                 continue
-            prediction_range = np.ptp(prediction, axis=0)
-            target_range = np.ptp(target, axis=0)
-            prediction_std = np.std(prediction, axis=0)
-            target_std = np.std(target, axis=0)
+            prediction_range = np.asarray(
+                [np.ptp(prediction[element_mask[:, col], col]) for col in range(prediction.shape[1])]
+            )
+            target_range = np.asarray(
+                [np.ptp(target[element_mask[:, col], col]) for col in range(target.shape[1])]
+            )
+            prediction_std = np.asarray(
+                [np.std(prediction[element_mask[:, col], col]) for col in range(prediction.shape[1])]
+            )
+            target_std = np.asarray(
+                [np.std(target[element_mask[:, col], col]) for col in range(target.shape[1])]
+            )
             dead_prediction_columns = np.flatnonzero(
                 prediction_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
             ).astype(int).tolist()
@@ -7735,6 +7823,7 @@ def _active_head_epoch_diagnostics(
                 )
             component_metrics[component_name] = {
                 "rows": rows,
+                "supervised_rows_by_column": rows_by_column.tolist(),
                 "width": int(prediction.shape[1]),
                 "prediction_min_range": float(np.min(prediction_range)),
                 "prediction_min_std": float(np.min(prediction_std)),
@@ -8121,6 +8210,8 @@ def _candidate_training_session_contract(
     batch_size: int,
     epochs: int,
     grad_accum_steps: int,
+    grad_clip_norm: float,
+    weight_decay: float,
     lr: float,
     dropout: float,
     early_stopping_patience: int,
@@ -8148,7 +8239,7 @@ def _candidate_training_session_contract(
     if (
         int(batch_size) < 1
         or int(epochs) < 1
-        or int(grad_accum_steps) < 1
+        or int(grad_accum_steps) != 1
         or int(early_stopping_patience) < 1
         or int(seq_len) < 1
         or set(per_tf_seq_lens) != set(MULTI_TF_TIMEFRAMES)
@@ -8157,6 +8248,10 @@ def _candidate_training_session_contract(
         or int(specialist_num_layers) < 1
         or not math.isfinite(float(lr))
         or float(lr) <= 0.0
+        or not math.isfinite(float(grad_clip_norm))
+        or float(grad_clip_norm) <= 0.0
+        or not math.isfinite(float(weight_decay))
+        or float(weight_decay) < 0.0
         or not math.isfinite(float(dropout))
         or float(dropout) < 0.0
         or not math.isfinite(float(early_stopping_min_delta))
@@ -8207,6 +8302,8 @@ def _candidate_training_session_contract(
             "batch_size": int(batch_size),
             "epochs": int(epochs),
             "grad_accum_steps": int(grad_accum_steps),
+            "grad_clip_norm": float(grad_clip_norm),
+            "weight_decay": float(weight_decay),
             "learning_rate": float(lr),
             "dropout": float(dropout),
             "early_stopping_patience": int(early_stopping_patience),
@@ -8323,6 +8420,16 @@ def _fsync_regular_file(path: Path) -> None:
             f"[ENTRY_BUNDLE_STAGE_ARTIFACT_INVALID] {path}"
         )
     descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _fsync_directory(path: Path) -> None:
+    if path.is_symlink() or not path.is_dir():
+        raise RuntimeError(f"[CANDIDATE_TRAINING_SESSION_DIRECTORY_INVALID] {path}")
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(descriptor)
     finally:
@@ -9049,6 +9156,8 @@ def _run_resumable_candidate_training(
     input_normalization: Mapping[str, Any],
     seed: int,
     grad_accum_steps: int,
+    grad_clip_norm: float,
+    weight_decay: float,
     lr: float,
     dropout: float,
     seq_len: int,
@@ -9092,6 +9201,8 @@ def _run_resumable_candidate_training(
             batch_size=batch_size,
             epochs=epochs,
             grad_accum_steps=grad_accum_steps,
+            grad_clip_norm=grad_clip_norm,
+            weight_decay=weight_decay,
             lr=lr,
             dropout=dropout,
             early_stopping_patience=early_stopping_patience,
@@ -9661,6 +9772,11 @@ def run_train(
             "[ENTRY_CANDIDATE_SUBSAMPLE_FORBIDDEN] candidate training must "
             "use the full TRAIN population"
         )
+    if profile == "candidate" and int(grad_accum_steps) != 1:
+        raise RuntimeError(
+            "[ENTRY_CANDIDATE_GRAD_ACCUM_STEPS_INVALID] candidate training "
+            "requires grad_accum_steps=1 for exact resumable checkpoints"
+        )
     if profile == "smoke" and int(subsample_rows) <= 0:
         raise RuntimeError(
             "[ENTRY_SMOKE_SUBSAMPLE_REQUIRED] smoke must declare a positive "
@@ -9840,10 +9956,12 @@ def run_train(
                 f"{_split_name}={_split_path}: {exc}"
             ) from exc
         decision_times_by_route_split["entry"][_split_name] = _split_times
+        # The MTF owner accepts local M1 bar starts and applies the one causal
+        # close shift.  Do not pass an already shifted Exit decision clock.
         decision_times_by_route_split["exit"][_split_name] = pd.to_datetime(
             unified_exit_lifecycle.splits[
                 _split_name
-            ].selected_current_decision_times_ns(),
+            ].authoritative_current_state_row_times_ns(),
             unit="ns",
             utc=True,
         )
@@ -10895,6 +11013,8 @@ def run_train(
             input_normalization=input_normalization,
             seed=seed,
             grad_accum_steps=grad_accum_steps,
+            grad_clip_norm=float(_GRAD_CLIP_NORM),
+            weight_decay=float(_WEIGHT_DECAY),
             lr=lr,
             dropout=dropout,
             seq_len=seq_len,
@@ -12474,6 +12594,10 @@ def main() -> None:
         )
     if args.profile == "candidate" and int(args.subsample_rows) != 0:
         parser.error("candidate training requires --subsample-rows 0")
+    if args.profile == "candidate" and int(args.grad_accum_steps) != 1:
+        parser.error(
+            "candidate training requires --grad-accum-steps 1 for exact resumable checkpoints"
+        )
     if args.profile == "smoke" and int(args.subsample_rows) <= 0:
         parser.error(
             "smoke training requires an explicit positive --subsample-rows "

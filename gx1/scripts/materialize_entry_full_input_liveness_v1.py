@@ -5,7 +5,7 @@ The scan is deliberately exhaustive.  Signal statistics are computed from the
 owner-declared snapshot surface (one value per emitted row), while every value in the
 96x513 sequence is also checked for shape, finiteness and exact last-step parity
 with ``snap``.  The artifact binds all split manifests, the dataset build proof
-and the stat identity of every fully scanned parquet.
+and the exact bytes (not merely stat identity) of every fully scanned parquet.
 """
 from __future__ import annotations
 
@@ -413,6 +413,7 @@ def _scan_split(
         "parquet_path": str(parquet_path),
         "size_bytes": int(stat.st_size),
         "mtime_ns": int(stat.st_mtime_ns),
+        "parquet_sha256": sha256_file(parquet_path),
         "total_rows": total_rows,
         "scanned_rows": scanned_rows,
         "fullscan": bool(scanned_rows == total_rows and total_rows > 0),

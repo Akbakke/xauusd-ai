@@ -29,10 +29,14 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _preregistered_hypothesis,
     _research_policy_pnl,
     _require_entry_q_ssot,
+    _load_val_reference,
+    _require_requested_test_bindings_match_seal,
     _require_selective_edge_stage_split,
     _selection_sort_column,
+    run,
     build_metric_rows,
 )
+from pathlib import Path
 
 
 def test_vector_evidence_widths_match_model_output_owners() -> None:
@@ -79,6 +83,70 @@ def test_entry_q_is_the_only_decision_surface_and_ties_fail_closed() -> None:
         _require_entry_q_ssot(
             {"entry_action_q_bps": torch.tensor([[1.0, 1.0, 0.0]])}
         )
+
+
+def test_runtime_test_bindings_must_equal_the_prefreeze_seal(
+    tmp_path: Path,
+) -> None:
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    seal = {
+        "dataset_dir": str(dataset.resolve()),
+        "test_manifest": {
+            "path": str((dataset / "xau_test.manifest.json").resolve()),
+            "sha256": "a" * 64,
+        },
+        "test_parquet": {
+            "path": str((dataset / "xau_test.parquet").resolve()),
+            "sha256": "b" * 64,
+        },
+    }
+    bindings = {
+        "test": {
+            "manifest_path": seal["test_manifest"]["path"],
+            "manifest_sha256": seal["test_manifest"]["sha256"],
+            "parquet_path": seal["test_parquet"]["path"],
+            "parquet_sha256": seal["test_parquet"]["sha256"],
+        }
+    }
+    _require_requested_test_bindings_match_seal(
+        bindings,
+        dataset_dir=dataset.resolve(),
+        seal=seal,
+    )
+    bindings["test"]["parquet_sha256"] = "c" * 64
+    with pytest.raises(RuntimeError, match="SELECTIVE_EDGE_TEST_SEAL_BINDING_INVALID"):
+        _require_requested_test_bindings_match_seal(
+            bindings,
+            dataset_dir=dataset.resolve(),
+            seal=seal,
+        )
+
+
+def test_val_stage_forbids_any_test_val_reference_binding(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="SELECTIVE_EDGE_VAL_STAGE_FORBIDS_VAL_REFERENCE"):
+        _load_val_reference(
+            str(tmp_path / "forbidden.json"),
+            expected_sha256="a" * 64,
+            evidence_stage="pre_calibration",
+            bundle_dir=tmp_path,
+            dataset_dir=tmp_path,
+            dataset_contract={},
+        )
+
+
+def test_runtime_authoritative_route_is_locked_without_single_use_release(
+    tmp_path: Path,
+) -> None:
+    class Args:
+        evidence_stage = "runtime_authoritative"
+        splits = "test"
+
+    with pytest.raises(
+        RuntimeError,
+        match="SELECTIVE_EDGE_TEST_RELEASE_AUTHORITY_REQUIRED",
+    ):
+        run(Args())
 
 
 def test_live_decision_evidence_contains_raw_q_argmax_and_no_probabilities() -> None:

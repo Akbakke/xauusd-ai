@@ -64,6 +64,7 @@ from gx1.features.htf_features import (
     MultiTFV4DiskCache,
     discard_multi_tf_v4_cache_pages,
     load_multi_tf_v4_cache,
+    require_multi_tf_timestamp_grid,
 )
 
 
@@ -1070,6 +1071,16 @@ def _extract_mtf_source(
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_MTF_SOURCE_INVALID] tf={tf}"
         )
+    try:
+        require_multi_tf_timestamp_grid(
+            timestamps,
+            timeframe=tf,
+            context="ENTRY_INPUT_NORMALIZATION_MTF_SOURCE_GRID_INVALID",
+        )
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"[ENTRY_INPUT_NORMALIZATION_MTF_SOURCE_INVALID] tf={tf}"
+        ) from exc
     return (
         np.ascontiguousarray(timestamps, dtype=np.int64),
         values,
@@ -1124,6 +1135,21 @@ def _validate_route_times(
     if times.size < 1 or np.any(np.diff(times) <= 0):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_ROUTE_TIMES_INVALID] route={route}"
+        )
+    route_bar_seconds = {
+        "entry": ENTRY_DECISION_BAR_SECONDS,
+        "exit": EXIT_DECISION_BAR_SECONDS,
+    }.get(route)
+    if route_bar_seconds is None:
+        raise RuntimeError(
+            f"[ENTRY_INPUT_NORMALIZATION_ROUTE_TIMES_INVALID] route={route}"
+        )
+    # Fit exactly the same local clocks as the shared runtime route owner;
+    # never let an off-grid M5 Entry time shift the availability cutoff.
+    if np.any(np.remainder(times, int(route_bar_seconds) * 1_000_000_000)):
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_ROUTE_CLOCK_GRID_INVALID] "
+            f"route={route} bar_seconds={int(route_bar_seconds)}"
         )
     return times
 
@@ -1675,6 +1701,11 @@ def fit_entry_v10_train_input_normalization(
     exit_current_indices = exit_population["current_row_indices"]
     exit_source_times_ns = exit_population["source_times_ns"]
     exit_decision_times_ns = exit_population["current_decision_times_ns"]
+    # ``select_shared_causal_mtf_fit_population`` follows the same shared MTF
+    # API as training: it receives the native M1 state-bar start and applies
+    # the one 60-second availability shift.  Passing current_decision_times
+    # here would shift a second time and fit normalization on leaked MTF rows.
+    exit_state_bar_start_times_ns = exit_source_times_ns[exit_current_indices]
     exit_local_proof = {
         "route": "exit_m1_local",
         "selection": "union_of_exit_train_480_windows_each_physical_m1_row_once",
@@ -1766,7 +1797,7 @@ def fit_entry_v10_train_input_normalization(
                 tf=tf,
                 source=multi_tf_sources[tf],
                 entry_train_times_ns=train_times_ns,
-                exit_train_times_ns=exit_decision_times_ns,
+                exit_train_times_ns=exit_state_bar_start_times_ns,
                 seq_len=int(per_tf_seq_lens[tf]),
             )
         )
@@ -1789,10 +1820,10 @@ def fit_entry_v10_train_input_normalization(
         )
 
     fit_start_utc = _timestamp_iso_utc(
-        min(int(train_times_ns[0]), int(exit_decision_times_ns[0]))
+        min(int(train_times_ns[0]), int(exit_state_bar_start_times_ns[0]))
     )
     fit_end_utc = _timestamp_iso_utc(
-        max(int(train_times_ns[-1]), int(exit_decision_times_ns[-1]))
+        max(int(train_times_ns[-1]), int(exit_state_bar_start_times_ns[-1]))
     )
     lineage = {
         **base_lineage,

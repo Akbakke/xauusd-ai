@@ -18,6 +18,7 @@ from __future__ import annotations
 import glob
 import json
 import os
+import sys
 import time
 import urllib.parse
 import urllib.request
@@ -25,6 +26,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO = Path("/home/andre2/src/GX1_ENGINE")
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+from gx1.contracts.gx1_scope_v1 import require_offline_scope
 RUNS = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 JOURNAL_GLOB = str(RUNS / "v12_paper_journal_*.jsonl")
 TRADES_DIR = RUNS / "trade_journal" / "trades"
@@ -43,9 +47,8 @@ def _load_env():
                     os.environ.setdefault(k, v)
 
 
-_load_env()
-TOKEN = os.environ.get("GX1_TELEGRAM_BOT_TOKEN")
-CHAT = os.environ.get("GX1_TELEGRAM_CHAT_ID")
+TOKEN: str | None = None
+CHAT: str | None = None
 
 
 def send(text: str) -> bool:
@@ -156,6 +159,13 @@ def _save_state(s):
 
 
 def main() -> int:
+    # Frozen offline scope rejects this legacy notifier before it may read a
+    # secret, inspect journals, write state, or contact Telegram.
+    require_offline_scope("telegram_notifier")
+    global TOKEN, CHAT
+    _load_env()
+    TOKEN = os.environ.get("GX1_TELEGRAM_BOT_TOKEN")
+    CHAT = os.environ.get("GX1_TELEGRAM_CHAT_ID")
     if not TOKEN or not CHAT:
         print("FATAL: GX1_TELEGRAM_BOT_TOKEN / GX1_TELEGRAM_CHAT_ID mangler i .env")
         return 1

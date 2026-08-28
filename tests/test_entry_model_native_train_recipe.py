@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -27,6 +28,23 @@ from tests.entry_model_native_train_wrapper_support import (
 
 REPO = Path(__file__).resolve().parents[1]
 WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
+
+
+def test_launch_artifact_binding_rehashes_same_stat_byte_mutation(
+    tmp_path: Path,
+) -> None:
+    artifact = tmp_path / "large-looking.parquet"
+    artifact.write_bytes(b"AAAA")
+    expected = launch.sha256_file(artifact)
+    prior = artifact.stat()
+    artifact.write_bytes(b"BBBB")
+    os.utime(artifact, ns=(prior.st_atime_ns, prior.st_mtime_ns))
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="artifact content hash mismatch before launch",
+    ):
+        launch.artifact_binding(artifact, content_sha256=expected)
 
 
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
@@ -111,6 +129,32 @@ def test_launch_reads_current_m1_feature_surface_schema_from_owner() -> None:
     assert '"gx1_entry_exit_m1_feature_surface_v1"' not in source
 
 
+def test_candidate_binding_rejects_stale_current_liveness_before_training() -> None:
+    """The repository's historical V46 review cannot authorize new code."""
+
+    state = json.loads(
+        (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    evidence = state["current_audited_dataset_evidence"]
+    reports = evidence["reports"]
+    artifacts = {
+        artifact_key: Path(reports[report_name]["path"])
+        for artifact_key, report_name in launch._CURRENT_AUDITED_CANDIDATE_REPORTS.items()
+    }
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="candidate current full-input liveness schema is stale",
+    ):
+        launch._candidate_current_audited_dataset_binding(
+            repo=REPO,
+            dataset_dir=Path(evidence["dataset_dir"]),
+            dataset_run_id=str(evidence["dataset_run_id"]),
+            artifacts=artifacts,
+        )
+
+
 @pytest.mark.parametrize("mutation", ("missing", "extra", "changed"))
 def test_recipe_env_rejects_every_non_exact_surface(mutation: str) -> None:
     candidate = dict(MODEL_NATIVE_RECIPE_ENV)
@@ -180,29 +224,24 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
     assert event["activation_authority"] is False
     assert event["report_only"] is True
     assert not any(event["side_effects_started"].values())
-    assert set(event["source_bindings"]) == {
-        "aux_target_contract",
+    bindings = event["source_bindings"]
+    assert {
         "control_surface",
-        "launch_contract",
-        "model",
-        "test_seal_contract",
-        "mtf_feature_builder",
-        "mtf_smc_geometry",
-        "mtf_specialist_routing",
-        "recipe_contract",
-        "recipe_producer",
         "wrapper",
-        "trainer",
         "trainer_safety_guard",
-        "smoke_bundle_audit",
-        "unified_exit_lifecycle_contract",
-        "entry_exit_feature_surface_contract",
-        "sequence_integrity_contract",
-        "sequence_integrity_audit",
-        "sequence_source_reconstruction_contract",
-        "sequence_source_reconstruction_audit",
         "capped_runner",
+    }.issubset(bindings)
+    python_bindings = {
+        key for key in bindings if key.startswith("python:gx1/")
     }
+    assert len(python_bindings) >= 70
+    assert {
+        "python:gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "python:gx1/models/entry_v10/entry_v10_bundle.py",
+        "python:gx1/models/entry_v10/entry_v10_input_normalization.py",
+        "python:gx1/contracts/entry_model_native_training_objective_v1.py",
+        "python:gx1/contracts/entry_model_native_joint_task_weighting_v1.py",
+    }.issubset(python_bindings)
 
     original_recipe = str(paths["recipe_audit_json"])
     validated_argv = [

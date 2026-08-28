@@ -373,6 +373,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     trainability_path = Path(args.trainability_readiness_json).expanduser()
     expected_dataset = Path(args.expected_smoke_dataset_dir).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
+    if out_dir == expected_dataset or expected_dataset in out_dir.parents:
+        raise RuntimeError(
+            "candidate readiness out_dir must not be the dataset or a dataset child"
+        )
 
     smoke = _immutable_event(smoke_path, label="smoke bundle audit")
     specialist = _immutable_event(specialist_path, label="specialist audit")
@@ -456,6 +460,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "sequence_length": MODEL_NATIVE_SEQ_LEN,
         "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "expected_smoke_dataset_dir": str(expected_dataset),
+        # Candidate readiness is evidence about one physical dataset, not a
+        # portable green light.  Preserve both the caller's explicit target
+        # and the smoke audit's independently validated declaration so launch
+        # cannot combine readiness from A with artifacts from B.
+        "dataset_dir": str(expected_dataset),
+        "smoke_bundle_dataset_dir": str(normalized_smoke.get("dataset_dir") or ""),
         "required_specialist_groups": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
         "candidate_training_allowed": ready,
         "promotion_shadow_live_allowed": False,

@@ -196,6 +196,7 @@ def write_full_input_liveness_fixture(
             "parquet_path": str(parquet),
             "size_bytes": parquet.stat().st_size,
             "mtime_ns": parquet.stat().st_mtime_ns,
+            "parquet_sha256": sha256_file(parquet),
             "total_rows": 10000,
             "scanned_rows": 10000,
             "fullscan": True,

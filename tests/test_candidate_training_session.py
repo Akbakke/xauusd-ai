@@ -163,6 +163,27 @@ def test_candidate_session_refuses_contract_and_state_tampering(tmp_path: Path) 
         session.load_checkpoint()
 
 
+def test_candidate_session_refuses_state_without_active_pointer(tmp_path: Path) -> None:
+    out_bundle = tmp_path / "BUNDLE_20260828T140000Z"
+    session = trainer._CandidateTrainingSession(
+        out_bundle_dir=out_bundle,
+        contract=_contract(),
+    )
+    model = torch.nn.Linear(3, 2)
+    target_model = copy.deepcopy(model)
+    target_model.requires_grad_(False)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=30, eta_min=0.0
+    )
+    ema = trainer._WeightEma(model, 0.5)
+    _step(model, optimizer)
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+    (session.directory / trainer._CANDIDATE_TRAINING_ACTIVE_FILENAME).unlink()
+    with pytest.raises(RuntimeError, match="ACTIVE_POINTER_MISSING_WITH_STATE"):
+        session.load_checkpoint()
+
+
 def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> None:
     snapshot = trainer._candidate_validation_snapshot(
         total=1.5,
@@ -270,7 +291,13 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
         "root_manifest_sha256": "b" * 64,
     }
 
-    def _run(model: torch.nn.Module, optimizer: torch.optim.Optimizer):
+    def _run(
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        *,
+        grad_clip_norm: float = 1.0,
+        weight_decay: float = 1e-5,
+    ):
         return trainer._run_resumable_candidate_training(
             model=model,
             optimizer=optimizer,
@@ -299,6 +326,8 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
             input_normalization={"contract_sha256": "c" * 64},
             seed=1337,
             grad_accum_steps=1,
+            grad_clip_norm=grad_clip_norm,
+            weight_decay=weight_decay,
             lr=0.001,
             dropout=0.0,
             seq_len=96,
@@ -322,6 +351,14 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
         _run(first_model, torch.optim.AdamW(first_model.parameters(), lr=0.001))
     assert calls == {"train": 1, "validation": 0}
     assert train_offsets == [0]
+
+    changed_hyperparameter_model = torch.nn.Linear(3, 2)
+    with pytest.raises(RuntimeError, match="SESSION_CONTRACT_MISMATCH"):
+        _run(
+            changed_hyperparameter_model,
+            torch.optim.AdamW(changed_hyperparameter_model.parameters(), lr=0.001),
+            grad_clip_norm=0.5,
+        )
 
     second_model = torch.nn.Linear(3, 2)
     second = _run(second_model, torch.optim.AdamW(second_model.parameters(), lr=0.001))

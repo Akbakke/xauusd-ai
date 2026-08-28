@@ -200,6 +200,7 @@ def _build_fixture(
     break_m1_feature_identity: bool = False,
     break_m5_feature_identity: bool = False,
     break_mtf: bool = False,
+    m5_foundation_warmup: int = 0,
     late_mtf_history_tf: str | None = None,
     missing_tape_year: int | None = None,
     missing_tape_column: str | None = None,
@@ -299,7 +300,9 @@ def _build_fixture(
     )
     # The producer cannot emit the leading PRICE_DERIVED_CAUSAL_WARMUP_ROWS
     # rows, so the surface it publishes starts after that prefix.
-    m5_surface_times = source_times[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
+    m5_surface_times = source_times[
+        PRICE_DERIVED_CAUSAL_WARMUP_ROWS + m5_foundation_warmup:
+    ]
     m5_feature_base = _write_parquet(
         tmp_path / "inputs/xauusd_m5_feature_base.parquet",
         {"time": m5_surface_times},
@@ -318,6 +321,19 @@ def _build_fixture(
             "pair_generation_id": "fixture-pair-generation-v1",
             "rows": len(m5_surface_times),
             "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+            **(
+                {
+                    "causal_warmup": {
+                        "rows_before_foundation_event_warmup": m5_foundation_warmup,
+                        "rows_before_v29_layer_warmup": 0,
+                        "first_surface_row_utc": pd.Timestamp(
+                            m5_surface_times[0]
+                        ).isoformat(),
+                    }
+                }
+                if m5_foundation_warmup
+                else {}
+            ),
         },
     )
     m1_pair_manifest = _write_json(
@@ -842,6 +858,18 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "allow_zero_ctx",
     ):
         assert retired not in serialized
+
+
+def test_preflight_accepts_declared_foundation_event_warmup(
+    tmp_path: Path,
+) -> None:
+    """Preflight must mirror the producer's price→foundation→V29 trim order."""
+
+    report = preflight.run(_build_fixture(tmp_path, m5_foundation_warmup=3))
+    m5_surface = report["inputs"]["m5_feature_base_parquet"]
+    assert m5_surface["time_alignment"] == (
+        "exact_entry_m5_source_timeline_after_declared_causal_warmup"
+    )
 
 
 def test_mtf_cache_contract_fails_closed_without_borrowing_seq513_length(

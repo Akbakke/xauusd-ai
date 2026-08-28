@@ -383,8 +383,15 @@ def atomic_write_parquet_immutable(frame: pd.DataFrame, path: Path) -> None:
     tmp = Path(raw_tmp)
     try:
         frame.to_parquet(tmp, index=False)
+        with tmp.open("rb") as handle:
+            os.fsync(handle.fileno())
         # link() is an atomic no-replace publication on the same filesystem.
         os.link(tmp, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     finally:
         tmp.unlink(missing_ok=True)
 
@@ -405,6 +412,11 @@ def atomic_write_text(path: Path, content: str) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.link(tmp, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     finally:
         tmp.unlink(missing_ok=True)
 

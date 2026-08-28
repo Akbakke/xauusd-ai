@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -325,6 +326,30 @@ def test_full_input_liveness_fails_when_bound_manifest_or_scanned_parquet_change
         row["code"] == "fullscan_proof_invalid" and row.get("split") == scanned_split
         for row in parquet_result["failures"]
     )
+
+
+def test_full_input_liveness_rejects_same_stat_parquet_byte_tamper(tmp_path) -> None:
+    """A retained size/mtime must not let a different scan masquerade as bound."""
+
+    artifact_path, artifact, _ = write_full_input_liveness_fixture(tmp_path)
+    scanned_split = SPLITS[0]
+    proof = artifact["input_bindings"]["fullscan_proof"][scanned_split]
+    parquet = Path(proof["parquet_path"])
+    before = parquet.stat()
+    original = parquet.read_bytes()
+    parquet.write_bytes(bytes((value ^ 1) for value in original))
+    assert parquet.stat().st_size == before.st_size
+    os.utime(parquet, ns=(before.st_atime_ns, before.st_mtime_ns))
+
+    result = validate_full_input_liveness_artifact(artifact_path)
+
+    assert result["ok"] is False
+    failure = next(
+        row
+        for row in result["failures"]
+        if row["code"] == "fullscan_proof_invalid" and row.get("split") == scanned_split
+    )
+    assert failure["recorded_parquet_sha256"] != failure["observed_parquet_sha256"]
 
 
 def _semantic_stats(
