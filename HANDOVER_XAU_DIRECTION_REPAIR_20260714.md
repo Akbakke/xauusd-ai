@@ -50,6 +50,22 @@ as a canonical prerequisite. Later historical paragraphs that require a
 physical 250 W driver setting or bridge-provided VRAM temperature do not
 describe the active guard.
 
+**Active V46 all-field operativity proof, 2026-08-28:**
+`audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260828T075506Z.json` is a new,
+full-population read-only scan of the exact V46 M5 Entry and M1 Exit feature
+surfaces. It is PASS: all 310 locally consumed fields are finite and live on
+both clocks, with zero dead fields in each of the eight specialist families.
+The independently bound V46 full-input contract is also PASS: its 310
+TRAIN fields are 306 `LIVE` plus four measured `ALLOWED_RARE_EVENT` fields;
+its 310 VAL fields are 304 measured `OBSERVED_VARIABLE` plus six measured
+`OBSERVED_RARE_EVENT` fields. `OBSERVED_*` is a full-population measurement
+status for untouched VAL, never an unmeasured/dummy field. Its five-clock MTF
+cache contains 176 measured, non-constant fields on each of M5/M15/H1/H4/D1
+(880 placements), with zero exact duplicate columns. The runtime routing test
+suite proves all eight family branches and all five MTF lanes reach the model;
+no CUDA training may cite an older 419-field/304-"unmeasured" diagnostic as
+the active V46 contract.
+
 **Historical V42 status, verified 2026-08-25:** the explicit
 `current_audited_dataset_evidence` binding in
 `PROJECT_STATE_xau_direction_launch.json` rehashes the V42 rebuild terminal,
