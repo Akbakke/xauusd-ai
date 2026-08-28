@@ -10335,7 +10335,10 @@ def run_train(
     # No input slicing, constant allowlist, or transient-error pass-through is
     # permitted. Both seq_x and snap_x must prove the exact owner-declared
     # signal surface; ctx_cont must prove the owner-declared field count; every MTF surface
-    # must be present/live.
+    # must be present and finite. Candidate also proves variation directly on
+    # its full population. A 32-row smoke may not reclassify a rare feature as
+    # dead: the launch contract has already hash-validated the immutable full-
+    # population liveness artifact before CUDA is allocated.
     try:
         from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
         _live_cc = list(ordered_ctx_cont_names)
@@ -10529,7 +10532,8 @@ def run_train(
                                   snap_names=_snap_names,
                                   multi_tf_names=_live_mtf_names,
                                   raise_on_fail=True,
-                                  population_stats=_population_stats)
+                                  population_stats=_population_stats,
+                                  require_variability=(profile == "candidate"))
         if _pop_cache:
             log.info(
                 "[FEATURE_LIVENESS_POPULATION_ESCALATION] %d field(s) below "
@@ -10542,10 +10546,16 @@ def run_train(
             )
         log.info(
             "[FEATURE_LIVENESS] post-export audit OK — exact "
-            "seq513/ctx%d+%d/5x%d MTF inputs are live",
+            "seq513/ctx%d+%d/5x%d MTF inputs are %s",
             MODEL_NATIVE_CTX_CONT_DIM,
             MODEL_NATIVE_CTX_CAT_DIM,
             len(_live_mtf_names),
+            (
+                "full-population live"
+                if profile == "candidate"
+                else "finite/structurally present; full-population liveness "
+                "was hash-validated before bounded smoke"
+            ),
         )
     except FeatureLivenessError:
         raise

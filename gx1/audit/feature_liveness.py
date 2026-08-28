@@ -102,6 +102,7 @@ def _dead_cols(
     allow_known_dead: bool = True,
     population_stats: Optional[PopulationStats] = None,
     surface: str = "",
+    require_variability: bool = True,
 ) -> List[str]:
     """Return non-finite or constant columns without an allowed legacy exemption.
 
@@ -122,6 +123,8 @@ def _dead_cols(
         finite = np.isfinite(flat[:, j])
         if not bool(finite.all()):
             out.append(f"{qualified} (nonfinite={int((~finite).sum())})")
+            continue
+        if not require_variability:
             continue
         std = float(flat[:, j].std())
         if std >= DEAD_STD:
@@ -152,6 +155,7 @@ def _surface_contract_issues(
     surface: str,
     expected_dim: int,
     population_stats: Optional[PopulationStats] = None,
+    require_variability: bool = True,
 ) -> List[str]:
     """Validate one authoritative model-native numeric input surface."""
 
@@ -186,6 +190,7 @@ def _surface_contract_issues(
                 allow_known_dead=False,
                 population_stats=population_stats,
                 surface=surface,
+                require_variability=require_variability,
             )
         )
     return issues
@@ -222,6 +227,7 @@ def check_multi_tf_integrity(
     feature_names: Sequence[str],
     allow_known_dead: bool = True,
     population_stats: Optional[PopulationStats] = None,
+    require_variability: bool = True,
 ) -> Dict[str, object]:
     """All 5 TFs present, correctly shaped, live and at distinct resolutions.
 
@@ -256,12 +262,15 @@ def check_multi_tf_integrity(
                 allow_known_dead=allow_known_dead,
                 population_stats=population_stats,
                 surface=f"multi_tf.{tf}",
+                require_variability=require_variability,
             )
         )
         # mask zero-padded warmup rows (atr==0) so the ATR-scaling sanity isn't deflated on a skewed batch
         _atr_col = a.reshape(-1, a.shape[-1])[:, atr_idx]
         _nz = _atr_col[_atr_col > 0]
         rep["atr_by_tf"][tf] = float(_nz.mean()) if _nz.size else 0.0
+    if not require_variability:
+        return rep
     # distinctness: ema50_dist series must not be ~identical across TFs (corr<0.98)
     if ema50_idx is not None and {"M5", "D1"} <= set(seq_by_tf):
         def ser(tf):
@@ -284,7 +293,8 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                               snap_names: Optional[Sequence[str]] = None,
                               multi_tf_names: Optional[Sequence[str]] = None,
                               raise_on_fail: bool = True,
-                              population_stats: Optional[PopulationStats] = None) -> dict:
+                              population_stats: Optional[PopulationStats] = None,
+                              require_variability: bool = True) -> dict:
     """Authoritative post-export gate for exact model-native V10 inputs.
 
     The gate never infers names, dimensions, bridge compatibility, or constant
@@ -294,6 +304,9 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
     ``population_stats`` lets the caller escalate a sample-flagged field to its
     complete declared population, which is the only place a deadness verdict is
     valid. The caller owns access to its own data; this gate owns the verdict.
+    Bounded smoke can set ``require_variability=False`` only after the immutable
+    full-population liveness artifact has been validated at launch; it still
+    rejects absent, malformed, legacy or non-finite runtime inputs.
     """
     def to_np(x):
         return x.detach().cpu().numpy() if hasattr(x, "detach") else np.asarray(x)
@@ -312,6 +325,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 surface="signal_sequence",
                 expected_dim=MODEL_NATIVE_SIGNAL_DIM,
                 population_stats=population_stats,
+                require_variability=require_variability,
             )
         )
     if "snap_x" not in batch:
@@ -324,6 +338,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 surface="signal",
                 expected_dim=MODEL_NATIVE_SIGNAL_DIM,
                 population_stats=population_stats,
+                require_variability=require_variability,
             )
         )
     if ctx_cont_names is None:
@@ -340,6 +355,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 # the restated 142 literal was a second truth.
                 expected_dim=MODEL_NATIVE_CTX_CONT_DIM,
                 population_stats=population_stats,
+                require_variability=require_variability,
             )
         )
     seq_by_tf = {k.replace("seq_", "").upper(): to_np(batch[k])
@@ -352,6 +368,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
             feature_names=multi_tf_names or (),
             allow_known_dead=False,
             population_stats=population_stats,
+            require_variability=require_variability,
         )
         if seq_by_tf and multi_tf_names is not None
         else {
@@ -369,6 +386,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
         "ok": not issues,
         "authoritative": True,
         "contract": "model_native_seq513_mtf_declared",
+        "require_variability": bool(require_variability),
         "issues": issues,
         "multi_tf_atr": mtf.get("atr_by_tf", {}),
     }

@@ -157,10 +157,12 @@ def _stub_multi_tf(monkeypatch, seen: dict | None = None) -> None:
         feature_names,
         allow_known_dead,
         population_stats=None,
+        require_variability=True,
     ):
         assert feature_names == ["mtf.fixture"]
         if seen is not None:
             seen["allow_known_dead"] = allow_known_dead
+            seen["require_variability"] = require_variability
         return {
             "missing": [],
             "new_dead": [],
@@ -206,10 +208,11 @@ def test_exact_model_native_seq513_can_pass_only_when_finite_and_live(monkeypatc
         "ok": True,
         "authoritative": True,
         "contract": "model_native_seq513_mtf_declared",
+        "require_variability": True,
         "issues": [],
         "multi_tf_atr": {"M5": 1.0, "D1": 2.0},
     }
-    assert seen == {"allow_known_dead": False}
+    assert seen == {"allow_known_dead": False, "require_variability": True}
 
 
 def test_model_native_seq513_rejects_constant_smc_choch_without_any_allowlist(monkeypatch) -> None:
@@ -229,6 +232,38 @@ def test_model_native_seq513_rejects_constant_smc_choch_without_any_allowlist(mo
 
     assert report["ok"] is False
     assert any("signal:smc_choch (std=" in issue for issue in report["issues"])
+
+
+def test_bounded_smoke_still_checks_finiteness_but_not_rare_event_variability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_multi_tf(monkeypatch)
+    batch, signal_names, ctx_cont_names = _batch()
+    smc_choch_index = signal_names.index("smc_choch")
+    batch["snap_x"][:, smc_choch_index] = 0.0
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
+        raise_on_fail=False,
+        require_variability=False,
+    )
+    assert report["ok"] is True
+    assert report["require_variability"] is False
+
+    batch["snap_x"][0, smc_choch_index] = np.nan
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        multi_tf_names=["mtf.fixture"],
+        raise_on_fail=False,
+        require_variability=False,
+    )
+    assert report["ok"] is False
+    assert any("nonfinite" in issue for issue in report["issues"])
 
 
 def test_model_native_seq513_rejects_nonfinite_input(monkeypatch) -> None:
@@ -304,6 +339,7 @@ def test_trainer_cannot_slice_bridge_or_soft_skip_post_export_liveness() -> None
     assert '"snap_x"][:, 7:]' not in block
     assert "audit skipped (non-fatal)" not in block
     assert "[FEATURE_LIVENESS_AUDIT_UNAVAILABLE]" in block
+    assert 'require_variability=(profile == "candidate")' in block
 
 
 def test_feature_liveness_cli_uses_current_exact_dataset_constructor() -> None:
