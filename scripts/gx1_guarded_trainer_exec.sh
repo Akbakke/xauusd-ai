@@ -5,6 +5,7 @@
 set -euo pipefail
 
 guard_log_path="${GX1_TRAINER_GUARD_LOG_PATH:-}"
+trainer_stdio_log_path="${GX1_TRAINER_STDIO_LOG_PATH:-}"
 
 guard_log() {
   [[ -n "$guard_log_path" ]] || return 0
@@ -99,6 +100,10 @@ done
 if [[ -n "$guard_log_path" ]]; then
   [[ "$guard_log_path" == /* && -f "$guard_log_path" && ! -L "$guard_log_path" ]] \
     || die "guard log path is not an existing absolute regular file"
+fi
+if [[ -n "$trainer_stdio_log_path" ]]; then
+  [[ "$trainer_stdio_log_path" == /* && -f "$trainer_stdio_log_path" && ! -L "$trainer_stdio_log_path" ]] \
+    || die "trainer stdio log path is not an existing absolute regular file"
 fi
 
 cgroup_relative=$(awk -F: '$1 == "0" {print $3}' /proc/self/cgroup)
@@ -327,7 +332,15 @@ if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
 else
   unset GX1_TRAINER_ATTENDED_STAGE_FIFO GX1_TRAINER_ATTENDED_STAGE_TOKEN
 fi
-/usr/bin/setsid "$@" &
+if [[ -n "$trainer_stdio_log_path" ]]; then
+  # The capped runner pre-creates this private regular file beside the guard
+  # log.  A terminal Python failure must survive an interrupted shell/session;
+  # otherwise a bounded run can consume its preflight budget yet leave only
+  # ``child_status=1`` to diagnose.
+  /usr/bin/setsid "$@" >>"$trainer_stdio_log_path" 2>&1 &
+else
+  /usr/bin/setsid "$@" &
+fi
 child_pid=$!
 last_heartbeat_epoch=$start_epoch
 

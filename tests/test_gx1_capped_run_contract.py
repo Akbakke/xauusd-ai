@@ -737,6 +737,29 @@ def test_trainer_guard_kills_running_group_on_thermal_breach(
     assert "GPU safety threshold breached" in result.stderr
 
 
+def test_trainer_guard_persists_child_stdio_when_path_is_precreated(
+    tmp_path: Path,
+) -> None:
+    stdio_log = tmp_path / "trainer.log"
+    stdio_log.write_text("", encoding="utf-8")
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/bash", "-c", "echo durable-child-output"],
+        cwd=REPO,
+        env={
+            **_guard_env(device="cpu", nvidia_smi_path=Path("/bin/true")),
+            "GX1_TRAINER_STDIO_LOG_PATH": str(stdio_log),
+        },
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert stdio_log.read_text(encoding="utf-8") == "durable-child-output\n"
+
+
 @pytest.mark.parametrize("wrapper", ["/usr/bin/env", "/bin/bash", "/bin/sh"])
 def test_capped_runner_rejects_env_and_shell_targets_before_nested_fast_path(
     wrapper: str,

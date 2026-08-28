@@ -165,6 +165,10 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   exactly zero subprocess workers. Canonical training is deterministic FP32;
   compile, autocast, TF32 and ambient fast-mode switches are forbidden.
 - A cap kill, partial directory or interrupted event is failed evidence.
+- Every capped trainer run must persist its child stdout/stderr in the
+  pre-created immutable-adjacent sidecar log as well as its guard log. A bare
+  `child_status` is insufficient failure evidence and does not authorize a
+  retry.
 - Delete generated runs only through the retention owner after reachability and
   active-process checks. Never delete unknown worktrees or user changes.
 - Canonical CUDA's native guard stops above 70 C core, 220 W actual draw or

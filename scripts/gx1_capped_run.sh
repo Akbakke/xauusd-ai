@@ -472,6 +472,7 @@ fi
 echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
 TRAINER_GUARD_LOG_PATH=
+TRAINER_STDIO_LOG_PATH=
 if [[ "$JOB_CLASS" == trainer && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
   TRAINER_GUARD_LOG_PARENT="${TRAINER_OUT_BUNDLE_DIR%/*}"
   TRAINER_GUARD_LOG_BASENAME="${TRAINER_OUT_BUNDLE_DIR##*/}"
@@ -485,7 +486,14 @@ if [[ "$JOB_CLASS" == trainer && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
     echo "FATAL: could not create exclusive trainer guard log" >&2
     exit 75
   }
+  TRAINER_STDIO_LOG_PATH=$(
+    /usr/bin/mktemp "${TRAINER_GUARD_LOG_PARENT}/.${TRAINER_GUARD_LOG_BASENAME}.trainer.XXXXXXXX.log"
+  ) || {
+    echo "FATAL: could not create exclusive trainer stdio log" >&2
+    exit 75
+  }
   echo "[capped_run_trainer_guard_log] path=$TRAINER_GUARD_LOG_PATH" >&2
+  echo "[capped_run_trainer_stdio_log] path=$TRAINER_STDIO_LOG_PATH" >&2
 fi
 if [[ "$JOB_CLASS" == trainer ]]; then
 echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS telemetry_owner=$TRAINER_NVIDIA_SMI_PATH" >&2
@@ -527,6 +535,7 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
   --setenv=GX1_GPU_GUARD_PATH="$GPU_GUARD_PATH" \
   --setenv=GX1_TRAINER_GUARD_LOG_PATH="$TRAINER_GUARD_LOG_PATH" \
+  --setenv=GX1_TRAINER_STDIO_LOG_PATH="$TRAINER_STDIO_LOG_PATH" \
   --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \
   --setenv=GX1_TRAINER_EXECUTION_MODE="$TRAINER_EXECUTION_MODE" \
   --setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS" \
