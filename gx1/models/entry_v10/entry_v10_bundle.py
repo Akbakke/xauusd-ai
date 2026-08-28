@@ -670,19 +670,11 @@ def _require_exact_model_native_bundle_metadata(
             "[ENTRY_BUNDLE_UNIFIED_EXIT_TRAINING_EVIDENCE_INVALID]"
         )
     try:
-        require_unified_exit_gate_evidence(
-            exit_validation,
-            expected_rows=int(exit_validation["unified_exit_population_rows"]),
-            context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+        _require_profiled_unified_exit_gate_evidence(
+            training_profile=str(training_profile),
+            exit_validation=exit_validation,
+            full_trajectory_validation=full_trajectory_validation,
         )
-        if training_profile == "candidate":
-            require_unified_exit_gate_evidence(
-                full_trajectory_validation,
-                expected_rows=int(
-                    full_trajectory_validation["population_rows"]
-                ),
-                context="ENTRY_BUNDLE_FULL_TRAJECTORY",
-            )
     except RuntimeError as exc:
         raise RuntimeError(
             "[ENTRY_BUNDLE_UNIFIED_EXIT_GATE_EVIDENCE_INVALID]"
@@ -1261,6 +1253,40 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(
             "[ENTRY_BUNDLE_RETIRED_PATH_CALIBRATION_FORBIDDEN]"
         )
+
+
+def _require_profiled_unified_exit_gate_evidence(
+    *,
+    training_profile: str,
+    exit_validation: Mapping[str, Any],
+    full_trajectory_validation: Mapping[str, Any],
+) -> None:
+    """Apply Exit-gate admission at the profile that owns its authority.
+
+    A bounded smoke records the raw gate diagnostics but deliberately admits a
+    checkpoint on active-head liveness only. Its run lineage marks it as a
+    non-candidate and every serving/candidate route requires a full-population
+    candidate lineage. Requiring candidate-grade Exit gate variation while
+    loading that same smoke bundle contradicts the smoke admission contract and
+    makes the diagnostic bundle impossible to export. Candidate bundles keep
+    both strict selected-checkpoint and full-trajectory gate proofs.
+    """
+
+    if training_profile == "smoke":
+        return
+    if training_profile != "candidate":
+        raise RuntimeError("[ENTRY_BUNDLE_TRAINING_PROFILE_INVALID]")
+    require_unified_exit_gate_evidence(
+        exit_validation,
+        expected_rows=int(exit_validation["unified_exit_population_rows"]),
+        context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+    )
+    require_unified_exit_gate_evidence(
+        full_trajectory_validation,
+        expected_rows=int(full_trajectory_validation["population_rows"]),
+        context="ENTRY_BUNDLE_FULL_TRAJECTORY",
+    )
+
 
 def _require_model_native_state_head_contract(
     meta: Mapping[str, Any],
