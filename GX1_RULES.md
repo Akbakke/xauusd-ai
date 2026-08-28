@@ -178,8 +178,10 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   71 C before a bundle. The repaired batch-8 32/32 smoke then completed four
   optimizer steps and validation within 65 C / 211.77 W / 8,751 MiB. Its active
   episode movement proof passed, but the bundle loader imposed a candidate-only
-  Exit gate on smoke. Commit `31f376ca` scopes that gate by profile and leaves
-  candidate admission strict. Exactly one fresh recipe-bound/dry-run-checked
+  Exit gate on smoke. Its next repeat passed that repair but exposed a stale
+  Regime-FiLM metadata requirement. Commit `57d4ebcb` requires the retired
+  component to be absent and leaves candidate admission strict. Exactly one
+  fresh recipe-bound/dry-run-checked
   repetition of that batch-8 32/32 smoke is allowed; inspect both terminal
   guard and trainer-sidecar evidence before any later local CUDA retry.
 - An ephemeral remote GPU is permitted only for the same offline research

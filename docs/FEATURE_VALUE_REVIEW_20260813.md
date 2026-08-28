@@ -4,7 +4,7 @@
 > provenance only. It is not the active V46 field contract and may not be used
 > to add/remove features or infer current liveness. V46's full-surface proof,
 > canonical smoke status and next action are owned by the handover. The latest
-> smoke's latest bundle-gate repair is commit `31f376ca`; it changes none of
+> smoke's latest metadata repair is commit `57d4ebcb`; it changes none of
 > the historical review's feature conclusions.
 
 Five parallel read-only reviews over the complete V29 surface (592 signal /

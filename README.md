@@ -112,8 +112,9 @@ but the system is not empirically finished:
   step or bundle, while VRAM stayed at 8.95 GiB. The repaired batch-8/32-row-
   per-split smoke then completed four optimizer steps and validation within
   65 C / 211.77 W / 8.75 GiB. Its active episode-native movement proof passed,
-  but the bundle loader imposed a candidate-only Exit gate on smoke. Commit
-  `31f376ca` scopes that gate by profile; only one fresh
+  but the bundle loader imposed a candidate-only Exit gate on smoke. Its next
+  repeat passed that repair but exposed a stale Regime-FiLM metadata requirement.
+  Commit `57d4ebcb` requires the retired component to be absent; only one fresh
   recipe-bound/dry-run-checked repetition may run next; assess guard and
   durable trainer-sidecar evidence before any retry or remote offline smoke
   on a frozen commit and V46 artifacts;

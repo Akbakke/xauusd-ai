@@ -248,9 +248,11 @@ bundle, candidate, calibration, TEST evaluation or trading claim exists. The
 first train==serve parity event is also still missing. A 220 W batch-8/32-row
 smoke completed four CUDA steps and validation inside 65 C / 211.77 W / 8.75
 GiB. Its active episode-native movement proof passed, but the bundle loader
-applied a candidate-only Exit gate to smoke. Commit `31f376ca` scopes that gate
-by profile while retaining strict candidate evidence; the next execution is one
-fresh hash-bound/dry-run-checked repetition, never
+applied a candidate-only Exit gate to smoke. Its next repeat passed that repair
+but exposed a stale Regime-FiLM metadata requirement. Commit `57d4ebcb`
+requires the retired component to be absent while retaining strict candidate
+evidence; the next execution is one fresh hash-bound/dry-run-checked
+repetition, never
 a live route.
 
 ## Scope boundary

@@ -15,8 +15,8 @@ nothing until the recipe owner adopts it and the evidence ladder runs.
 > Current-status note, 2026-08-28: V29 is retired historical design material.
 > The active V46 surface is frozen; do not revive this proposal to solve the
 > current bounded-smoke movement-proof repair. Current authority is the
-> handover plus the code-owned contracts; commits `a77ebb6e` and `31f376ca`
-> change no feature surface.
+> handover plus the code-owned contracts; commits `a77ebb6e`, `31f376ca` and
+> `57d4ebcb` change no feature surface.
 
 Shared finding of all eight reports, stated once: the current surface is a
 dense continuous conditioning system with almost no discrete events, no level

@@ -12,7 +12,7 @@ stay on the record.
 > smoke emitted no bundle after a smoke/candidate Exit-gate mismatch in the
 > bundle loader, despite passing its active movement proof. Do not revise this
 > protocol or treat the bounded smoke as a direction result; see the handover
-> for commit `31f376ca`'s one-repeat
+> for commit `57d4ebcb`'s one-repeat
 > plan.
 
 ## Why this document exists

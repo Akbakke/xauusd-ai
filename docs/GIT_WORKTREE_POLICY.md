@@ -23,6 +23,7 @@ must be updated together in one reviewed commit. They describe the 2026-08-28
 bounded-smoke status: four 220 W CUDA steps/validation and its active movement
 proof completed, then no bundle was allowed because the loader imposed a
 candidate-only Exit gate on smoke. Do not leave a stale run recipe or old
-execution plan in one document while changing another. Commit `31f376ca`
-scopes that gate by profile; its fresh recipe-bound/dry-run-checked repeat
-remains the only local continuation.
+execution plan in one document while changing another. The next repeat passed
+that gate repair but exposed a stale Regime-FiLM metadata requirement. Commit
+`57d4ebcb` requires the retired component to be absent; its fresh recipe-bound/
+dry-run-checked repeat remains the only local continuation.

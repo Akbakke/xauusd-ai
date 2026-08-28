@@ -106,9 +106,11 @@ Read `GX1_RULES.md` first. It is binding.
   thermal breach or crash. The repaired 32/32 smoke then completed four CUDA
   optimizer steps and validation inside 65 C / 211.77 W / 8,751 MiB. Its active
   episode-native movement proof then passed, but the bundle loader incorrectly
-  imposed a candidate-only Exit gate on smoke. Commit `31f376ca` scopes that
-  gate by profile; candidate evidence remains strict. One fresh recipe-bound/
-  dry-run-checked repeat is the only local continuation. Resolve
+  imposed a candidate-only Exit gate on smoke. Its next repeat passed that
+  repair but exposed a stale Regime-FiLM metadata requirement. Commit
+  `57d4ebcb` requires the retired component to be absent; candidate evidence
+  remains strict. One fresh recipe-bound/dry-run-checked repeat is the only
+  local continuation. Resolve
   exact guard logs and the next decision from the handover, never from an old
   run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;

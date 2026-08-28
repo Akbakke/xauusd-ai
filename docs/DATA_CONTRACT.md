@@ -3,9 +3,10 @@
 > Runtime-status note, 2026-08-28: V46 data and feature evidence remains PASS.
 > The latest bounded canonical smoke completed four CUDA steps, validation and
 > its active episode movement proof inside the 220 W guard, but emitted no
-> bundle because the loader imposed a candidate-only Exit gate on smoke. Commit
-> `31f376ca` scopes that gate by profile; the handover owns the one permitted
-> fresh recipe-bound/dry-run-checked repeat.
+> bundle because the loader imposed a candidate-only Exit gate on smoke. Its
+> next repeat passed that repair but exposed a stale Regime-FiLM metadata
+> requirement. Commit `57d4ebcb` requires the retired component to be absent;
+> the handover owns the one permitted fresh recipe-bound/dry-run-checked repeat.
 
 ## Source authority
 

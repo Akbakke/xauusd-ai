@@ -75,15 +75,23 @@ four optimizer steps and validation under the one-second 220 W process stop
 (65 C / 214.56 W / 8,751 MiB); all active episode Exit groups moved. Strict
 staged state loading also passed. It wrote **no final bundle** solely because
 the loader contradicted the smoke admission contract by imposing the
-candidate-only unified-Exit gate on smoke diagnostics. This is not an OOM,
-crash, feature, target, sequence or movement-proof failure. Commit `31f376ca`
+candidate-only unified-Exit gate on smoke diagnostics. Commit `31f376ca`
 scopes that gate by `training_profile`: a marked smoke may export its
 diagnostic bundle, whereas candidate still requires selected-checkpoint and
-full-trajectory gate evidence. It changes no V46 byte, feature, target,
-model-compute selection, economics or candidate rule. Before one exact repeat,
-materialize a fresh hash-bound recipe and pass its wrapper dry-run; then assess
-the terminal guard, durable trainer sidecar and persisted bundle evidence
-before any later local or remote execution.
+full-trajectory gate evidence. The next fresh repeat completed full preflight,
+four optimizer steps, validation, all active Exit movement and strict staged
+state load under the same safe envelope (65 C / 215.76 W / 8,751 MiB). It then
+found a second impossible contract: the trainer records `enable_regime_film`
+as false and the active model has no Regime-FiLM state/constructor, while the
+final loader and smoke audit required it to be true. This is not an OOM, crash,
+feature, target, sequence, movement-proof or economics failure. Commit
+`57d4ebcb` makes train/serve/audit agree that the retired component must be
+explicitly absent, with regression coverage for both stale metadata values. It
+changes no V46 byte, feature, target, model-compute selection, economics or
+candidate rule. Before one exact repeat, materialize a fresh hash-bound recipe
+and pass its wrapper dry-run; then assess terminal guard, durable trainer
+sidecar, committed bundle and smoke-bundle audit before any later local or
+remote execution.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
