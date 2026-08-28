@@ -492,8 +492,12 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         else:
             exit_ask = 2498.9 if winner else 2500.9
             exit_bid = exit_ask - 0.2
-        for minute in range(11):
-            progress = max(0.0, (minute - 5) / 5.0)
+        # The synthetic unified-Exit trace holds from the Entry fill at minute
+        # five through its final closed bar at minute fourteen.  Keep every
+        # one of those source bars available; the former 0..10 fixture made a
+        # formally valid trace point beyond its claimed raw M1 source.
+        for minute in range(15):
+            progress = min(1.0, max(0.0, (minute - 5) / 5.0))
             bid = entry_bid + progress * (exit_bid - entry_bid)
             ask = entry_ask + progress * (exit_ask - entry_ask)
             mid = (bid + ask) / 2.0
