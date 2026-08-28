@@ -1042,11 +1042,7 @@ def _require_exact_model_native_bundle_metadata(
                 f"tf={tf}"
             )
 
-    for key in ("enable_pos_enc", "enable_regime_film"):
-        if meta.get(key) is not True:
-            raise RuntimeError(
-                f"[ENTRY_BUNDLE_MODEL_NATIVE_FULL_STACK_COMPONENT_REQUIRED] meta.{key}"
-            )
+    _require_model_native_architecture_markers(meta)
     normalized_tf_scale = require_tf_input_scale_contract(
         meta["tf_input_scale"]
     )
@@ -1286,6 +1282,26 @@ def _require_profiled_unified_exit_gate_evidence(
         expected_rows=int(full_trajectory_validation["population_rows"]),
         context="ENTRY_BUNDLE_FULL_TRAJECTORY",
     )
+
+
+def _require_model_native_architecture_markers(meta: Mapping[str, Any]) -> None:
+    """Reject a train/serve architecture split before state loading.
+
+    The active model owns positional encodings, but Regime FiLM is retired: it
+    has no constructor path or state keys.  The trainer records both facts in
+    bundle metadata so a loader cannot silently construct a different model.
+    """
+
+    if meta.get("enable_pos_enc") is not True:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_FULL_STACK_COMPONENT_REQUIRED] "
+            "meta.enable_pos_enc"
+        )
+    if meta.get("enable_regime_film") is not False:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_RETIRED_REGIME_FILM_FORBIDDEN] "
+            "meta.enable_regime_film"
+        )
 
 
 def _require_model_native_state_head_contract(

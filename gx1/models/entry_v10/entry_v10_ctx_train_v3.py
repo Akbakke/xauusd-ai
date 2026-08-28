@@ -10032,6 +10032,8 @@ def run_train(
         # state_dict), so the live bundle loader MUST read this to rebuild the
         # model with matching forward behaviour.
         "enable_pos_enc": True,
+        # Regime FiLM is retired from the frozen model; recording explicit
+        # absence lets the strict loader reject any train/serve split.
         "enable_regime_film": False,
         "enable_mtf_direction_head": False,
         "batch_size": batch_size,

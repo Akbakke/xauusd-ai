@@ -700,7 +700,7 @@ def _bundle_contract_report(
         "cross_tf_attention": False,
         "retired_mtf_direction_head_absent": False,
         "positional_encoding": False,
-        "regime_film": False,
+        "retired_regime_film_absent": False,
         "learned_tf_input_scales": False,
         "specialist_fusion": False,
         "cross_family_cooperation": False,
@@ -748,9 +748,11 @@ def _bundle_contract_report(
                         )
                     )
                 ),
-                "regime_film": bool(
-                    metadata.get("enable_regime_film") is True
-                    and any(key.startswith("regime_film.") for key in model_keys)
+                "retired_regime_film_absent": bool(
+                    metadata.get("enable_regime_film") is False
+                    and not any(
+                        key.startswith("regime_film.") for key in model_keys
+                    )
                 ),
                 "learned_tf_input_scales": all(
                     finite_nonzero_tensor(f"tf_input_scale_{tf}")
