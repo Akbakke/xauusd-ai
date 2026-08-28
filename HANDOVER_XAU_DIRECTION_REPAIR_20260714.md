@@ -194,6 +194,35 @@ predeclared, CPU-preflighted and guarded; it is not an edge, backtest or trade
 authorization. Family contribution must later be evaluated with ablation and
 regime-sliced untouched OOS, never by forcing equal gate shares.
 
+**Current candidate-start status, completed 2026-08-28:** after committing the
+technical-start/quality separation (`f90b3df9`), three new immutable,
+report-only events passed with no CUDA allocation or dataset rebuild:
+
+- smoke readiness:
+  `smoke_readiness_technical_20260828T133314Z/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260828T133329667205Z.json`;
+- trainability readiness:
+  `trainability_readiness_technical_20260828T133339Z/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260828T133341329273Z.json`;
+- candidate readiness:
+  `candidate_readiness_technical_20260828T133352Z/ENTRY_CANDIDATE_READINESS_20260828T133355765086Z.json`.
+
+The last event is `READY_FOR_CANDIDATE_TRAINING`, binds the fixed 238 signal
+fields, 71 continuous plus one categorical context field, all five MTF clocks,
+all eight specialist groups, exact bundle files and all 70,880 VAL prediction
+rows. It explicitly keeps activation/paper/demo/live `false`. This is the
+answer to pipeline readiness: **yes, it is technically ready to start the
+research candidate; no, it has no predictive or economic proof yet.**
+
+**Next execution constraint, discovered before candidate CUDA:** the local
+canonical trainer guard permits a maximum 20-minute candidate process, while
+the V46 TRAIN split contains 248,028 rows and the candidate path has no
+candidate-resume checkpoint protocol. A nominal 30-epoch full-population run
+would therefore be forcibly truncated and must not be started. Do not weaken or
+bypass the 220 W / 70 C / 12 GiB / one-second guard. The next implementation
+decision is bounded and separate from feature work: either add a hash-bound,
+restart-safe candidate checkpoint/session protocol with the same guard, or
+prepare a reproducible external-GPU run after an explicit provider decision.
+Neither route changes V46 data, features, targets or the untouched TEST seal.
+
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
 yet.

@@ -119,9 +119,16 @@ Read `GX1_RULES.md` first. It is binding.
   by actual gradients. Keep the strict quality audit for later candidate/OOS
   qualification, but assess contribution with ablation and regime-sliced OOS,
   not forced equal gate shares. The preregistered selective-edge decision is
-  FAIL. This proves no edge. Any candidate run must still be predeclared,
-  CPU-preflighted and guarded; resolve exact logs and the next decision from the
-  handover, never from an old run directory.
+  FAIL. This proves no edge. The clean-source reports emitted 2026-08-28 now
+  explicitly authorize candidate research, never activation: smoke readiness,
+  trainability readiness and candidate readiness all pass. The currently
+  implemented candidate executor is still bounded to a 20-minute guarded
+  session without a candidate-resume mechanism, so it cannot honestly be
+  launched as a 30-epoch full-population job yet. Resolve this execution-window
+  mismatch with a separately reviewed resumable candidate design or external
+  compute; do not bypass the guard or mislabel a truncated run as candidate
+  evidence. Resolve exact logs and the next decision from the handover, never
+  from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are

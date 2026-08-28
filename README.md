@@ -125,7 +125,12 @@ but the system is not empirically finished:
   requires finite, positive, non-constant routes through all eight families;
   later candidate/OOS ablations must establish which are economically useful by
   regime. The preregistered selective-edge hypothesis is FAIL. Any candidate
-  CUDA work must be predeclared and CPU-preflighted behind the same guard;
+  CUDA work must be predeclared and CPU-preflighted behind the same guard. The
+  technical candidate-readiness event now passes, but the current local
+  candidate executor has a 20-minute safety window and no candidate-resume
+  protocol; it must not be used to pretend a truncated job is a 30-epoch run.
+  A reviewed resumable executor or external compute is the remaining execution
+  prerequisite;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;
