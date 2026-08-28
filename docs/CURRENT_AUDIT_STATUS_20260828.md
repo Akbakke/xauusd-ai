@@ -15,10 +15,10 @@ activity, collector, Telegram notifier or dashboard from this state. The
 collector/dashboard/notifier/self-check services are deliberately inactive.
 
 The current V46 source data are retained and are not to be rebuilt merely to
-obtain another smoke run. Historical liveness/normalization evidence predates
-the repaired Exit MTF timing contract and is not candidate authority. It must
-be regenerated from the retained immutable V46 inputs only after the remaining
-static audit closes.
+obtain another smoke run. Full-input liveness has now been refreshed from the
+retained immutable TRAIN/VAL bytes; historical normalization evidence still
+predates the repaired Exit MTF timing contract and is not candidate authority.
+Regenerate only that normalization evidence if the CPU preflight requires it.
 
 ## What the current source now proves
 
@@ -65,6 +65,10 @@ static audit closes.
   capped/guarded producer scope; proof-only smoke-bundle audits and the
   synthetic Exit benchmark are CPU-only. Evidence cleanup checks for an open
   writer before moving any target into quarantine.
+- A fresh V46 full-input-liveness v10 scan passed on 2026-08-28. It scanned
+  all 248,028 TRAIN and 70,880 VAL rows, checked all 7,286,409,984 sequence
+  values for finiteness and exact last-step/snapshot parity, and revalidated
+  the complete five-clock MTF cache. It did not open TEST.
 
 Recent repair commits: `3570ed51`, `64db63d1`, `a8717ec6`, `34659e36`.
 The current source audit repair is pending its local regression commit. No
@@ -72,12 +76,11 @@ dataset, CUDA or broker operation was started while applying it.
 
 ## Required next sequence
 
-1. Commit the closed source-audit repair, then run the bounded CPU preflight
-   against retained V46 inputs. Stop immediately on a mismatch; do not add,
-   remove or retune features.
-2. Regenerate only liveness/normalization evidence that the CPU preflight
-   identifies as stale for the current source commit; do not rebuild V46 by
-   default.
+1. Commit the refreshed V46 liveness pointer and run the bounded CPU
+   source/recipe preflight against retained V46 inputs. Stop immediately on a
+   mismatch; do not add, remove or retune features.
+2. Regenerate only normalization evidence that the CPU preflight identifies
+   as stale for the current source commit; do not rebuild V46 by default.
 3. Run one guarded, bounded learning-validation probe (one epoch over the
    agreed chronological research window) solely to prove end-to-end learning,
    field use and numerical stability. It is not a performance claim.

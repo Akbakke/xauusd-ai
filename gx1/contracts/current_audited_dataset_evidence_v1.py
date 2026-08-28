@@ -48,7 +48,7 @@ _REQUIRED_REPORTS: dict[str, tuple[str, str]] = {
         "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW",
     ),
     "full_input_liveness": (
-        "entry_full_input_liveness_contract_v9",
+        "entry_full_input_liveness_contract_v10",
         "PASS",
     ),
     "feature_audit": ("entry_feature_foundation_audit_v1", "PASS"),

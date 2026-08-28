@@ -161,8 +161,8 @@ def test_launch_reads_current_m1_feature_surface_schema_from_owner() -> None:
     assert '"gx1_entry_exit_m1_feature_surface_v1"' not in source
 
 
-def test_candidate_binding_rejects_stale_current_liveness_before_training() -> None:
-    """The repository's historical V46 review cannot authorize new code."""
+def test_candidate_binding_requires_the_refreshed_current_liveness_before_training() -> None:
+    """The reviewed V46 binding must use the current liveness schema and bytes."""
 
     state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -175,16 +175,16 @@ def test_candidate_binding_rejects_stale_current_liveness_before_training() -> N
         artifact_key: Path(reports[report_name]["path"])
         for artifact_key, report_name in launch._CURRENT_AUDITED_CANDIDATE_REPORTS.items()
     }
-    with pytest.raises(
-        launch.LaunchContractError,
-        match="candidate current full-input liveness schema is stale",
-    ):
-        launch._candidate_current_audited_dataset_binding(
-            repo=REPO,
-            dataset_dir=Path(evidence["dataset_dir"]),
-            dataset_run_id=str(evidence["dataset_run_id"]),
-            artifacts=artifacts,
-        )
+    binding = launch._candidate_current_audited_dataset_binding(
+        repo=REPO,
+        dataset_dir=Path(evidence["dataset_dir"]),
+        dataset_run_id=str(evidence["dataset_run_id"]),
+        artifacts=artifacts,
+    )
+    assert binding["reports"]["full_input_liveness_audit_json"] == {
+        "path": str(reports["full_input_liveness"]["path"]),
+        "sha256": str(reports["full_input_liveness"]["sha256"]),
+    }
 
 
 @pytest.mark.parametrize("mutation", ("missing", "extra", "changed"))

@@ -46,7 +46,7 @@ claim at this stage.
 
 - Chain root: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN`.
 - Green terminal: `CHAIN_TERMINAL_20260825T195501470746Z_GREEN.json`.
-- Full-input liveness: `audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T191417645593Z.json`
+- Current full-input liveness: `audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260828T174938Z.json`
   (`PASS`; 238 signal fields, 71 continuous context fields, one categorical
   context field, and all eight MTF family surfaces live).
 - Pretrain audit: `audit/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260825T195458720518Z.json`

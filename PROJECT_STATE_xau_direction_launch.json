@@ -59,9 +59,9 @@
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW"
       },
       "full_input_liveness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260825T191417645593Z.json",
-        "sha256": "73b10d55e8ca1d82a624c0e70bb8b7cdd6ae234a84e56324e246e4a3bdd1f3f4",
-        "schema_version": "entry_full_input_liveness_contract_v9",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260828T174938Z.json",
+        "sha256": "b18eaf304e3e7f0072f49363acca7b42b5c1953d37e2a0c6c56cf5aa8c16446a",
+        "schema_version": "entry_full_input_liveness_contract_v10",
         "decision": "PASS"
       },
       "feature_audit": {
