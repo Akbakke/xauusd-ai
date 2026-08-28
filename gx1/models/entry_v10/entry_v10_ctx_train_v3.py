@@ -4431,20 +4431,41 @@ def _step_partial_gradient_accumulation(
     return True
 
 
+# This proof follows the exact execution path of
+# ``forward_exit_episode``/``forward_exit_incremental_prefix``.  The model
+# state still contains an older static Exit branch (``exit_path_encoder``,
+# ``exit_entry_path_attention``, ``exit_entry_query_norm`` and ``exit_fuse``),
+# but neither public Exit forward method calls it.  Treating that retired
+# branch as trainable evidence made a valid episode-native checkpoint fail even
+# after the real Exit objective had back-propagated.  Do not weaken the proof:
+# bind it instead to every active episode-native component group below.
 _UNIFIED_EXIT_MOVEMENT_PREFIXES: Dict[str, Tuple[str, ...]] = {
     "m5_mtf_route": (
         "tf_input_scale_m5",
         "mtf_feature_context_gate.m5__",
         "mtf_nominal_embeddings.m5_",
     ),
-    "path_projection": ("exit_path_proj.",),
-    "path_encoder": ("exit_path_encoder.",),
-    "side_embedding": ("exit_side_embedding.",),
-    "entry_path_attention": ("exit_entry_path_attention.",),
-    "entry_path_fusion": (
-        "exit_entry_query_norm.",
-        "exit_fuse.",
+    "episode_local_encoder": ("exit_episode_global_gru.",),
+    "episode_family_encoders": ("exit_episode_family_gru.",),
+    "episode_family_cooperation": (
+        "exit_episode_family_cross_attn.",
+        "exit_episode_family_gate.",
+        "exit_episode_family_token_gate.",
+        "exit_episode_family_out.",
     ),
+    "episode_local_fusion": ("exit_episode_local_fuse.",),
+    "episode_mtf_family_encoders": ("exit_episode_mtf_family_gru.",),
+    "episode_mtf_cooperation": (
+        "exit_episode_family_axis_attn.",
+        "exit_episode_timeframe_axis_attn.",
+        "exit_episode_family_tf_context_gate.",
+        "exit_episode_family_tf_token_gate.",
+        "exit_episode_family_tf_out.",
+    ),
+    "path_projection": ("exit_path_proj.",),
+    "episode_path_encoder": ("exit_episode_path_gru.",),
+    "side_embedding": ("exit_side_embedding.",),
+    "episode_fusion": ("exit_episode_fuse.",),
     "action_head": ("head_exit_action.",),
 }
 
@@ -4527,7 +4548,7 @@ def _unified_exit_movement_proof(
             f"components={dead}"
         )
     return {
-        "schema_version": "gx1_unified_exit_parameter_movement_v1",
+        "schema_version": "gx1_unified_exit_parameter_movement_v2",
         "selected_checkpoint_epoch": int(selected_checkpoint_epoch),
         "component_max_abs_delta": component_max_abs_delta,
         "parameter_max_abs_delta": parameter_max_abs_delta,
