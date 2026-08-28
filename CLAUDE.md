@@ -14,6 +14,11 @@ the work state, and `scripts/gx1_handover.sh` is the executable status owner
 that outranks every document. If they disagree, fail closed and repair the
 documentation and the code together.
 
+The current status companion is
+`docs/CURRENT_AUDIT_STATUS_20260828.md`: it makes the active audit/preflight
+hold explicit, including inactive background services and the prohibition on
+full training, TEST, demo and live work.
+
 ## Scope freeze
 
 The only active work is offline XAUUSD work: Entry on native M5, Exit on native

@@ -2,6 +2,12 @@
 
 This file defines the only active project scope.
 
+The current operational checkpoint is
+[`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md).
+It is intentionally stricter than historical run notes: background services
+remain stopped and no full training, TEST, demo or live route is authorised
+until the current V46 audit/preflight sequence is complete.
+
 ## One pipeline
 
 ```text

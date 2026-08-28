@@ -1,5 +1,10 @@
 # GX1 system map
 
+For current execution authority and the audit/preflight checkpoint, read
+[`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
+before using this architecture map. The map describes the intended offline
+pipeline; it does not authorise training, TEST, demo or live operation.
+
 ## Current feature architecture
 
 ```text

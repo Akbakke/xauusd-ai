@@ -4,6 +4,12 @@ Updated 2026-08-28. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
+> Current operational override (2026-08-28): read
+> [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
+> before acting on historical run prose below. The active state is audit
+> completion with all background services stopped; no full training, TEST,
+> OANDA/demo or live operation is authorised.
+
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are
 load-bearing. This is a map, not a diary; cut history, never a checklist.

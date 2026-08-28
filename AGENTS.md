@@ -4,6 +4,12 @@ Read `GX1_RULES.md` first. It is binding.
 
 ## Current truth
 
+**Operational override, 2026-08-28:**
+[`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
+is the short current-state companion to this historical handover. It controls
+the next action: retain V46, keep background services stopped, finish the
+current-contract audit, and do not start full training, TEST, demo or live.
+
 - Scope is offline XAUUSD only.
 - Architecture is fixed: the same eight code-owned feature implementations run
   independently on local M5 for Entry and local M1 for Exit, in one model and

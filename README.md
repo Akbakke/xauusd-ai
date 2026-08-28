@@ -3,6 +3,12 @@
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading
 system. It is not currently an admitted or profitable trading bot.
 
+Current operational status is in
+[docs/CURRENT_AUDIT_STATUS_20260828.md](docs/CURRENT_AUDIT_STATUS_20260828.md).
+It overrides older run-history prose for the next action: no full training,
+TEST, demo, live route or background service is authorised while the V46
+current-contract audit is being completed.
+
 ## Architecture
 
 ```text
