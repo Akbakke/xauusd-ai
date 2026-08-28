@@ -212,24 +212,32 @@ rows. It explicitly keeps activation/paper/demo/live `false`. This is the
 answer to pipeline readiness: **yes, it is technically ready to start the
 research candidate; no, it has no predictive or economic proof yet.**
 
-**Next execution constraint, discovered before candidate CUDA:** the local
-canonical trainer guard permits a maximum 20-minute candidate process, while
-the V46 TRAIN split contains 248,028 rows and the candidate path has no
-candidate-resume checkpoint protocol. A nominal 30-epoch full-population run
-would therefore be forcibly truncated and must not be started. Do not weaken or
-bypass the 220 W / 70 C / 12 GiB / one-second guard. The next implementation
-decision is bounded and separate from feature work: either add a hash-bound,
-restart-safe candidate checkpoint/session protocol with the same guard, or
-prepare a reproducible external-GPU run after an explicit provider decision.
-Neither route changes V46 data, features, targets or the untouched TEST seal.
+**Candidate execution protocol, implemented in current source 2026-08-28:**
+the local canonical trainer remains limited to a 20-minute process behind the
+220 W / 70 C / 12 GiB / one-second guard. The previous no-resume mismatch is
+now repaired in source: a hash-bound two-slot candidate session persists the
+online model, fixed per-epoch fitted-Q target, optimizer, EMA, scheduler,
+deterministic RNG/order, checkpoint-selection evidence and any partial full-VAL
+trajectory accumulator. The candidate restarts from the recorded train or VAL
+batch boundary; it does not reset early stopping or select a new model. The
+protocol changes no V46 data, features, targets or untouched TEST seal. It has
+unit/regression coverage only at this point: commit it, re-run its test suite,
+materialize a fresh candidate recipe and pass a no-GPU dry-run before any
+candidate CUDA process. A partial state has no bundle, validation, TEST,
+backtest, paper, demo or live authority.
 
-**Pending chronological integration, prepared 2026-08-28 (not yet run):** the
-only newly permitted local learning check is a non-promotable attended smoke
+**Observed chronological integration, 2026-08-28 (partial technical session):**
+the only newly permitted local learning check is a non-promotable attended smoke
 over `[2024-12-01T00:00:00Z, 2025-06-01T00:00:00Z)`, the last six calendar
 months available in V46 TRAIN (32,289 decision rows). It is not a random
 subsample: the exact UTC bounds and selected-row hash are bound into the
 recipe/session contract, while a small deterministic VAL sample is used only
-to preserve the preflight memory ceiling. Each completed batch-8 optimizer
+to preserve the preflight memory ceiling. The first controlled session completed
+60/4,037 optimizer steps and persisted exact state at batch offset 60; all ten
+joint tasks received supervision and gradients, all eight specialists and five
+MTF clocks were active, and the guard exited normally at 64 C / 202.48 W /
+8,763 MiB. It is not a completed epoch and produced no VAL, OOS, PnL, winrate
+or MAE/MFE authority. Each completed batch-8 optimizer
 step is two-slot checkpointed under the existing 220 W / 70 C / 12 GiB guard.
 On completion it writes a private technical-only report that requires every
 joint task to receive supervision and gradient and the online model to differ

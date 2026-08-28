@@ -55,9 +55,10 @@ def _state(
         "lr_scheduler_state": scheduler.state_dict(),
         "rng_state": trainer._attended_session_rng_state(device=torch.device("cpu")),
         "training_progress": {
-            "joint_task_supervision": {"entry_action_q": True},
-            "joint_task_gradients": {"entry_action_q": True},
-            "checkpoint_selection": {"best_epoch": 0},
+            **trainer._new_candidate_training_progress(),
+            "joint_task_supervision_observed": {
+                name: True for name in trainer.JOINT_TASK_NAMES
+            },
         },
         "complete": False,
     }
@@ -111,9 +112,10 @@ def test_candidate_session_round_trips_exact_torch_state(tmp_path: Path) -> None
     )
     assert progress["phase"] == "train"
     assert progress["next_batch_offset"] == 17
-    assert progress["training_progress"]["checkpoint_selection"] == {
-        "best_epoch": 0
-    }
+    assert progress["training_progress"]["checkpoint_selection"]["best_epoch"] == -1
+    assert all(
+        progress["training_progress"]["joint_task_supervision_observed"].values()
+    )
     for expected, observed in zip(model.parameters(), restored_model.parameters()):
         assert torch.equal(expected, observed)
     for expected, observed in zip(target_model.parameters(), restored_target.parameters()):
@@ -198,3 +200,138 @@ def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> N
     assert restored["rows"] == 1
     assert restored["cooperation_gate_epoch"]["gate"]["sum"].shape == (2,)
     assert restored["full_trajectory_accumulator"]["state_stream_chain_sha256"] == "0" * 64
+
+
+def test_candidate_runner_resumes_completed_hash_bound_session(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The candidate coordinator must not retrain after a completed resume."""
+
+    class _Rows(torch.utils.data.Dataset):
+        def __init__(self, rows: int) -> None:
+            self.rows = rows
+
+        def __len__(self) -> int:
+            return self.rows
+
+        def __getitem__(self, index: int) -> torch.Tensor:
+            return torch.tensor(index, dtype=torch.int64)
+
+    calls = {"train": 0, "validation": 0}
+    train_offsets: list[int] = []
+
+    def _fake_train_epoch(*args, **kwargs):
+        calls["train"] += 1
+        loader = args[2]
+        checkpoint = kwargs["session_checkpoint_hook"]
+        train_offsets.append(int(kwargs["session_batch_offset"]))
+        if calls["train"] == 1:
+            checkpoint(
+                next_batch_offset=kwargs["session_batch_offset"] + 1,
+                complete_epoch=False,
+            )
+            raise RuntimeError("test-interrupt-after-checkpoint")
+        checkpoint(
+            next_batch_offset=kwargs["session_batch_offset"] + len(loader),
+            complete_epoch=True,
+        )
+        return 0.0, {}, True
+
+    def _fake_validate(*args, **kwargs):
+        calls["validation"] += 1
+        return (
+            1.0,
+            float("nan"),
+            0.75,
+            float("nan"),
+            {
+                "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean": 2.0,
+                "active_head_health_ok": True,
+                "cooperation_gate_health_ok": True,
+                "exit_cooperation_gate_health_ok": True,
+                "unified_exit_full_trajectory_validation": {
+                    "schema_version": "test",
+                    "decision": "PASS",
+                },
+            },
+        )
+
+    monkeypatch.setattr(trainer, "train_epoch", _fake_train_epoch)
+    monkeypatch.setattr(trainer, "validate", _fake_validate)
+
+    artifacts = {}
+    for name in ("train", "val", "m5", "lifecycle"):
+        path = tmp_path / f"{name}.bin"
+        path.write_bytes(name.encode("ascii"))
+        artifacts[name] = path
+    out_bundle = tmp_path / "CANDIDATE_20260828T140000Z"
+    lifecycle = {
+        "splits": {"train": {"lifecycle_manifest_sha256": "a" * 64}},
+        "root_manifest_sha256": "b" * 64,
+    }
+
+    def _run(model: torch.nn.Module, optimizer: torch.optim.Optimizer):
+        return trainer._run_resumable_candidate_training(
+            model=model,
+            optimizer=optimizer,
+            weight_ema=None,
+            lr_scheduler=None,
+            device=torch.device("cpu"),
+            train_ds=_Rows(4),
+            val_ds=_Rows(2),
+            effective_train_rows=4,
+            batch_size=2,
+            num_workers=0,
+            pin_memory=False,
+            persistent_workers=False,
+            prefetch_factor=None,
+            epochs=1,
+            early_stopping_patience=1,
+            early_stopping_min_delta=0.0,
+            out_bundle_dir=out_bundle,
+            gx1_data_override="",
+            run_id="V46_20260825T170935Z_CANDIDATE",
+            dataset_run_id="V46_20260825T170935Z",
+            train_parquet=artifacts["train"],
+            val_parquet=artifacts["val"],
+            m5_prebuilt_path=artifacts["m5"],
+            unified_exit_lifecycle_manifest_path=artifacts["lifecycle"],
+            input_normalization={"contract_sha256": "c" * 64},
+            seed=1337,
+            grad_accum_steps=1,
+            lr=0.001,
+            dropout=0.0,
+            seq_len=96,
+            per_tf_seq_lens={
+                "M5": 16,
+                "M15": 64,
+                "H1": 96,
+                "H4": 96,
+                "D1": 252,
+            },
+            multi_tf_num_layers=2,
+            specialist_num_layers=1,
+            multi_tf_scale=0.5,
+            specialist_fusion_scale=0.25,
+            cross_family_fusion_scale=0.25,
+            unified_exit_lifecycle_evidence=lifecycle,
+        )
+
+    first_model = torch.nn.Linear(3, 2)
+    with pytest.raises(RuntimeError, match="test-interrupt-after-checkpoint"):
+        _run(first_model, torch.optim.AdamW(first_model.parameters(), lr=0.001))
+    assert calls == {"train": 1, "validation": 0}
+    assert train_offsets == [0]
+
+    second_model = torch.nn.Linear(3, 2)
+    second = _run(second_model, torch.optim.AdamW(second_model.parameters(), lr=0.001))
+    assert calls == {"train": 2, "validation": 1}
+    assert train_offsets == [0, 1]
+    assert second["best_epoch"] == 1
+    assert second["best_policy_pnl"] == 2.0
+    assert not out_bundle.exists()
+
+    third_model = torch.nn.Linear(3, 2)
+    third = _run(third_model, torch.optim.AdamW(third_model.parameters(), lr=0.001))
+    assert calls == {"train": 2, "validation": 1}
+    assert third["best_epoch"] == 1

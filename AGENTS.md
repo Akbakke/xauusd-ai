@@ -121,14 +121,16 @@ Read `GX1_RULES.md` first. It is binding.
   not forced equal gate shares. The preregistered selective-edge decision is
   FAIL. This proves no edge. The clean-source reports emitted 2026-08-28 now
   explicitly authorize candidate research, never activation: smoke readiness,
-  trainability readiness and candidate readiness all pass. The currently
-  implemented candidate executor is still bounded to a 20-minute guarded
-  session without a candidate-resume mechanism, so it cannot honestly be
-  launched as a 30-epoch full-population job yet. Resolve this execution-window
-  mismatch with a separately reviewed resumable candidate design or external
-  compute; do not bypass the guard or mislabel a truncated run as candidate
-  evidence. Resolve exact logs and the next decision from the handover, never
-  from an old run directory.
+  trainability readiness and candidate readiness all pass. The source now
+  contains a hash-bound, two-slot candidate resume protocol for the
+  same 20-minute 220 W / 70 C / 12 GiB guarded window. It persists model,
+  fixed fitted-Q target, optimizer, EMA, scheduler, deterministic order/RNG,
+  selection state and an in-flight full-VAL accumulator. The protocol has
+  regression coverage but has not yet been accepted with a full candidate CUDA
+  run. It must first be committed, recipe-audited and dry-run against the exact
+  V46 evidence. Do not bypass the guard or mislabel a partial session as
+  candidate evidence. Resolve exact logs and the next decision from the
+  handover, never from an old run directory.
 - Before candidate execution, a pre-candidate integration may use only the
   explicit attended-smoke time window `[2024-12-01T00:00:00Z,
   2025-06-01T00:00:00Z)` from V46 TRAIN. It is 32,289 chronological rows,

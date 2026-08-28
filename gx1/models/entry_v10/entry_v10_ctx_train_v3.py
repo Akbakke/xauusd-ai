@@ -1054,6 +1054,134 @@ _CANDIDATE_TRAINING_STATE_KEYS = frozenset(
         "complete",
     )
 )
+_CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION = (
+    "gx1_candidate_training_progress_v1"
+)
+_CANDIDATE_TRAINING_PROGRESS_KEYS = frozenset(
+    (
+        "schema_version",
+        "joint_task_supervision_observed",
+        "joint_task_gradient_observed",
+        "checkpoint_selection",
+        "validation_snapshot",
+    )
+)
+_CANDIDATE_TRAINING_SELECTION_KEYS = frozenset(
+    (
+        "best_state",
+        "best_val",
+        "best_policy_pnl",
+        "best_unique_target_action_agreement",
+        "best_unified_exit_validation",
+        "best_unified_exit_full_trajectory_validation",
+        "best_unified_exit_fitted_q_state",
+        "best_entry_fitted_q_state",
+        "best_fitted_q_target_state",
+        "best_epoch",
+        "epochs_since_improve",
+        "last_epoch",
+        "last_val_stats",
+        "early_stopped",
+    )
+)
+# A candidate does not rely on an unbounded process.  These source-owned
+# intervals bound lost work if the independent 20-minute 220 W / 70 C guard
+# terminates a process between checkpoints.  They do not alter batch geometry,
+# data order, labels, model, objective or validation population.
+# The observed eight-row full-path probe averaged about 3.7 seconds per
+# optimizer step after preflight.  Sixty-four steps therefore bounds replay to
+# roughly four minutes while halving the durable state I/O versus the initial
+# 32-step design.  It remains well inside the independent 20-minute guard.
+_CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS = 64
+_CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES = 64
+
+
+def _new_candidate_training_progress() -> dict[str, Any]:
+    """Create the only allowed initial full-candidate progress surface.
+
+    This state is deliberately separate from model/optimizer state.  It holds
+    the exact checkpoint-selection evidence and any partial validation stream,
+    so a time-bounded candidate process can resume without silently resetting
+    early stopping, model selection, task liveness, or full-trajectory VAL.
+    """
+
+    return {
+        "schema_version": _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION,
+        "joint_task_supervision_observed": {
+            name: False for name in JOINT_TASK_NAMES
+        },
+        "joint_task_gradient_observed": {
+            name: False for name in JOINT_TASK_NAMES
+        },
+        "checkpoint_selection": {
+            "best_state": None,
+            "best_val": float("inf"),
+            "best_policy_pnl": float("-inf"),
+            "best_unique_target_action_agreement": float("-inf"),
+            "best_unified_exit_validation": {},
+            "best_unified_exit_full_trajectory_validation": {},
+            "best_unified_exit_fitted_q_state": {},
+            "best_entry_fitted_q_state": {},
+            "best_fitted_q_target_state": None,
+            "best_epoch": -1,
+            "epochs_since_improve": 0,
+            "last_epoch": 0,
+            "last_val_stats": {},
+            "early_stopped": False,
+        },
+        "validation_snapshot": None,
+    }
+
+
+def _require_candidate_training_progress(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate progress before it can control a resumed candidate."""
+
+    progress = dict(value)
+    if (
+        set(progress) != _CANDIDATE_TRAINING_PROGRESS_KEYS
+        or progress.get("schema_version")
+        != _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_PROGRESS_SCHEMA_INVALID]")
+    for key in (
+        "joint_task_supervision_observed",
+        "joint_task_gradient_observed",
+    ):
+        observed = progress.get(key)
+        if (
+            not isinstance(observed, Mapping)
+            or set(observed) != set(JOINT_TASK_NAMES)
+            or not all(isinstance(flag, bool) for flag in observed.values())
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_PROGRESS_TASKS_INVALID]")
+        progress[key] = {
+            name: bool(observed[name]) for name in JOINT_TASK_NAMES
+        }
+    selection = progress.get("checkpoint_selection")
+    if (
+        not isinstance(selection, Mapping)
+        or set(selection) != _CANDIDATE_TRAINING_SELECTION_KEYS
+        or not isinstance(selection.get("best_epoch"), int)
+        or int(selection["best_epoch"]) < -1
+        or not isinstance(selection.get("epochs_since_improve"), int)
+        or int(selection["epochs_since_improve"]) < 0
+        or not isinstance(selection.get("last_epoch"), int)
+        or int(selection["last_epoch"]) < 0
+        or not isinstance(selection.get("early_stopped"), bool)
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]")
+    progress["checkpoint_selection"] = dict(selection)
+    validation_snapshot = progress.get("validation_snapshot")
+    if validation_snapshot is not None:
+        if not isinstance(validation_snapshot, Mapping):
+            raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_STATE_INVALID]")
+        # This call also rejects pickled/non-weights-only state before a
+        # resumed candidate can use the accumulator.
+        _restore_candidate_validation_snapshot(validation_snapshot)
+        progress["validation_snapshot"] = dict(validation_snapshot)
+    return progress
 
 
 class _ExactIndexSampler(Sampler[int]):
@@ -1661,6 +1789,9 @@ class _CandidateTrainingSession:
             or epoch_order.ndim != 1
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
+        state["training_progress"] = _require_candidate_training_progress(
+            state["training_progress"]
+        )
         return state
 
     def save_checkpoint(self, state: Mapping[str, Any]) -> None:
@@ -1687,6 +1818,9 @@ class _CandidateTrainingSession:
             or epoch_order.ndim != 1
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
+        value["training_progress"] = _require_candidate_training_progress(
+            value["training_progress"]
+        )
         previous = self.load_checkpoint()
         previous_slot = -1 if previous is None else int(
             _candidate_training_session_read_json(self._active_path, label="ACTIVE")["slot"]
@@ -6654,6 +6788,7 @@ def train_epoch(
     session_checkpoint_hook: Optional[Any] = None,
     session_exit_action_forward_chunk_rows: Optional[int] = None,
     session_checkpoint_every_optimizer_step: bool = True,
+    session_checkpoint_interval_optimizer_steps: Optional[int] = None,
     session_log_label: str = "BOUNDED_TRAINING",
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
@@ -6681,6 +6816,17 @@ def train_epoch(
             or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(session_log_label))
         ):
             raise RuntimeError("[BOUNDED_TRAINING_EPOCH_ARGUMENT_INVALID]")
+    if session_checkpoint_interval_optimizer_steps is not None:
+        if (
+            int(session_checkpoint_interval_optimizer_steps) < 1
+            or session_checkpoint_hook is None
+            or _accum_steps != 1
+            or int(session_batch_offset) < 0
+            or session_exit_action_forward_chunk_rows is None
+            or int(session_exit_action_forward_chunk_rows) < 1
+            or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(session_log_label))
+        ):
+            raise RuntimeError("[BOUNDED_TRAINING_CHECKPOINT_INTERVAL_INVALID]")
     _accum_count = 0
     optimizer.zero_grad(set_to_none=True)
     total = 0.0
@@ -6909,11 +7055,18 @@ def train_epoch(
             _accum_count = 0
             _optimizer_steps_this_call += 1
             log.info("[TRAIN_STEP] batch=%d step_done", _absolute_batch_i)
-            if (
-                session_checkpoint_hook is not None
-                and session_checkpoint_every_optimizer_step
+            _is_final_batch = _batch_i == len(loader)
+            _checkpoint_interval_due = (
+                session_checkpoint_interval_optimizer_steps is not None
+                and _optimizer_steps_this_call
+                % int(session_checkpoint_interval_optimizer_steps)
+                == 0
+            )
+            if session_checkpoint_hook is not None and (
+                session_checkpoint_every_optimizer_step
+                or _checkpoint_interval_due
+                or _is_final_batch
             ):
-                _is_final_batch = _batch_i == len(loader)
                 session_checkpoint_hook(
                     next_batch_offset=_absolute_batch_i,
                     complete_epoch=_is_final_batch,
@@ -7970,6 +8123,15 @@ def _candidate_training_session_contract(
     grad_accum_steps: int,
     lr: float,
     dropout: float,
+    early_stopping_patience: int,
+    early_stopping_min_delta: float,
+    seq_len: int,
+    per_tf_seq_lens: Mapping[str, int],
+    multi_tf_num_layers: int,
+    specialist_num_layers: int,
+    multi_tf_scale: float,
+    specialist_fusion_scale: float,
+    cross_family_fusion_scale: float,
     execution_tier: str,
     device_type: str,
 ) -> dict[str, Any]:
@@ -7987,10 +8149,20 @@ def _candidate_training_session_contract(
         int(batch_size) < 1
         or int(epochs) < 1
         or int(grad_accum_steps) < 1
+        or int(early_stopping_patience) < 1
+        or int(seq_len) < 1
+        or set(per_tf_seq_lens) != set(MULTI_TF_TIMEFRAMES)
+        or any(int(per_tf_seq_lens[name]) < 1 for name in MULTI_TF_TIMEFRAMES)
+        or int(multi_tf_num_layers) < 1
+        or int(specialist_num_layers) < 1
         or not math.isfinite(float(lr))
         or float(lr) <= 0.0
         or not math.isfinite(float(dropout))
         or float(dropout) < 0.0
+        or not math.isfinite(float(early_stopping_min_delta))
+        or not math.isfinite(float(multi_tf_scale))
+        or not math.isfinite(float(specialist_fusion_scale))
+        or not math.isfinite(float(cross_family_fusion_scale))
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
     normalization_sha256 = dict(input_normalization).get("contract_sha256")
@@ -8037,6 +8209,18 @@ def _candidate_training_session_contract(
             "grad_accum_steps": int(grad_accum_steps),
             "learning_rate": float(lr),
             "dropout": float(dropout),
+            "early_stopping_patience": int(early_stopping_patience),
+            "early_stopping_min_delta": float(early_stopping_min_delta),
+            "seq_len": int(seq_len),
+            "per_tf_seq_lens": {
+                name: int(per_tf_seq_lens[name])
+                for name in MULTI_TF_TIMEFRAMES
+            },
+            "multi_tf_num_layers": int(multi_tf_num_layers),
+            "specialist_num_layers": int(specialist_num_layers),
+            "multi_tf_scale": float(multi_tf_scale),
+            "specialist_fusion_scale": float(specialist_fusion_scale),
+            "cross_family_fusion_scale": float(cross_family_fusion_scale),
             "device": str(device_type),
             "precision": "deterministic_fp32",
             "compile": False,
@@ -8283,6 +8467,7 @@ def validate(
     resume_validation_state: Optional[Mapping[str, Any]] = None,
     validation_batch_offset: int = 0,
     max_validation_batches: Optional[int] = None,
+    validation_checkpoint_interval_batches: Optional[int] = None,
     validation_checkpoint_hook: Optional[Any] = None,
     validation_session_log_label: str = "CANDIDATE_TRAINING",
 ):
@@ -8295,8 +8480,12 @@ def validate(
         raise RuntimeError("[UNIFIED_EXIT_VALIDATION_DATASET_INVALID]")
     if dataset._unified_exit_lifecycle is None:
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
-    if max_validation_batches is not None and (
-        int(max_validation_batches) < 1
+    if (max_validation_batches is not None or validation_checkpoint_interval_batches is not None) and (
+        (max_validation_batches is not None and int(max_validation_batches) < 1)
+        or (
+            validation_checkpoint_interval_batches is not None
+            and int(validation_checkpoint_interval_batches) < 1
+        )
         or validation_checkpoint_hook is None
         or int(validation_batch_offset) < 0
         or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(validation_session_log_label))
@@ -8570,11 +8759,7 @@ def validate(
             entry_policy_realized_pnl_chunks.append(
                 realized_policy_pnl.detach().cpu().numpy()
             )
-            if (
-                max_validation_batches is not None
-                and batch_i >= int(max_validation_batches)
-                and batch_i < len(loader)
-            ):
+            def _checkpoint_validation_snapshot() -> dict[str, Any]:
                 snapshot = _candidate_validation_snapshot(
                     total=total,
                     entry_q_loss_sum=entry_q_loss_sum,
@@ -8605,10 +8790,26 @@ def validate(
                     ),
                     full_trajectory_accumulator=full_trajectory_accumulator,
                 )
-                next_batch_offset = int(validation_batch_offset) + int(batch_i)
+                return snapshot
+
+            next_batch_offset = int(validation_batch_offset) + int(batch_i)
+            if (
+                validation_checkpoint_interval_batches is not None
+                and batch_i % int(validation_checkpoint_interval_batches) == 0
+                and batch_i < len(loader)
+            ):
                 validation_checkpoint_hook(
                     next_batch_offset=next_batch_offset,
-                    validation_snapshot=snapshot,
+                    validation_snapshot=_checkpoint_validation_snapshot(),
+                )
+            if (
+                max_validation_batches is not None
+                and batch_i >= int(max_validation_batches)
+                and batch_i < len(loader)
+            ):
+                validation_checkpoint_hook(
+                    next_batch_offset=next_batch_offset,
+                    validation_snapshot=_checkpoint_validation_snapshot(),
                 )
                 log.info(
                     "[%s_VALIDATION_SESSION_PAUSE] batches_completed=%d "
@@ -8817,6 +9018,533 @@ def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
     log.info(
         "[ATTENDED_STAGE_NOTIFICATION] stage=data_preflight status=sent"
     )
+
+
+def _run_resumable_candidate_training(
+    *,
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    weight_ema: Optional[_WeightEma],
+    lr_scheduler: Optional[optim.lr_scheduler.LRScheduler],
+    device: torch.device,
+    train_ds: EntryV10CtxDataset,
+    val_ds: EntryV10CtxDataset,
+    effective_train_rows: int,
+    batch_size: int,
+    num_workers: int,
+    pin_memory: bool,
+    persistent_workers: bool,
+    prefetch_factor: Optional[int],
+    epochs: int,
+    early_stopping_patience: int,
+    early_stopping_min_delta: float,
+    out_bundle_dir: Path,
+    gx1_data_override: str,
+    run_id: str,
+    dataset_run_id: str,
+    train_parquet: Path,
+    val_parquet: Path,
+    m5_prebuilt_path: Path,
+    unified_exit_lifecycle_manifest_path: Path,
+    input_normalization: Mapping[str, Any],
+    seed: int,
+    grad_accum_steps: int,
+    lr: float,
+    dropout: float,
+    seq_len: int,
+    per_tf_seq_lens: Mapping[str, int],
+    multi_tf_num_layers: int,
+    specialist_num_layers: int,
+    multi_tf_scale: float,
+    specialist_fusion_scale: float,
+    cross_family_fusion_scale: float,
+    unified_exit_lifecycle_evidence: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Run one full candidate through durable train/VAL phase checkpoints.
+
+    The candidate is intentionally restarted by the outer, independent
+    resource guard.  Each saved state contains the exact current train order,
+    fixed fitted-Q target, online model, optimizer, EMA, scheduler, RNG,
+    model-selection evidence and (when needed) the full VAL accumulator.  A
+    restart therefore resumes the same candidate rather than silently training
+    a new model or resetting checkpoint selection.
+    """
+
+    if int(effective_train_rows) != len(train_ds) or len(train_ds) <= 0:
+        raise RuntimeError("[CANDIDATE_TRAINING_TRAIN_POPULATION_INVALID]")
+    if len(val_ds) <= 0:
+        raise RuntimeError("[CANDIDATE_TRAINING_VAL_POPULATION_INVALID]")
+    resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
+        out_bundle_dir, gx1_data_override
+    )
+    session = _CandidateTrainingSession(
+        out_bundle_dir=resolved_out_bundle_dir,
+        contract=_candidate_training_session_contract(
+            out_bundle_dir=resolved_out_bundle_dir,
+            run_id=run_id,
+            dataset_run_id=dataset_run_id,
+            train_parquet=Path(train_parquet),
+            val_parquet=Path(val_parquet),
+            m5_prebuilt_path=Path(m5_prebuilt_path),
+            lifecycle_manifest_path=Path(unified_exit_lifecycle_manifest_path),
+            input_normalization=input_normalization,
+            seed=seed,
+            batch_size=batch_size,
+            epochs=epochs,
+            grad_accum_steps=grad_accum_steps,
+            lr=lr,
+            dropout=dropout,
+            early_stopping_patience=early_stopping_patience,
+            early_stopping_min_delta=early_stopping_min_delta,
+            seq_len=seq_len,
+            per_tf_seq_lens=per_tf_seq_lens,
+            multi_tf_num_layers=multi_tf_num_layers,
+            specialist_num_layers=specialist_num_layers,
+            multi_tf_scale=multi_tf_scale,
+            specialist_fusion_scale=specialist_fusion_scale,
+            cross_family_fusion_scale=cross_family_fusion_scale,
+            execution_tier="canonical",
+            device_type=device.type,
+        ),
+    )
+    restored_state = session.load_checkpoint()
+    expected_train_batches = -(-len(train_ds) // int(batch_size))
+    fixed_val_order = torch.arange(len(val_ds), dtype=torch.int64)
+
+    if restored_state is None:
+        epoch_order = torch.randperm(len(train_ds), dtype=torch.int64)
+        target_model = copy.deepcopy(model).to(device)
+        target_model.requires_grad_(False)
+        target_model.eval()
+        progress = _new_candidate_training_progress()
+        phase = "train"
+        epoch_index = 0
+        next_batch_offset = 0
+        checkpoint_index = 1
+        complete = False
+    else:
+        target_model = copy.deepcopy(model).to(device)
+        restored = _restore_candidate_training_checkpoint(
+            restored_state,
+            session=session,
+            model=model,
+            target_model=target_model,
+            optimizer=optimizer,
+            weight_ema=weight_ema,
+            lr_scheduler=lr_scheduler,
+            device=device,
+            dataset_rows=len(train_ds),
+        )
+        epoch_order = restored["epoch_order"]
+        progress = _require_candidate_training_progress(
+            restored["training_progress"]
+        )
+        phase = str(restored["phase"])
+        epoch_index = int(restored["epoch_index"])
+        next_batch_offset = int(restored["next_batch_offset"])
+        checkpoint_index = int(restored["checkpoint_index"])
+        complete = bool(restored["complete"])
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+
+    def _save(
+        *,
+        phase_value: str,
+        epoch_value: int,
+        batch_offset_value: int,
+        complete_value: bool,
+        advance_checkpoint: bool = True,
+    ) -> None:
+        nonlocal checkpoint_index
+        if advance_checkpoint:
+            checkpoint_index += 1
+        session.save_checkpoint(
+            {
+                "schema_version": _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
+                "session_contract_sha256": session.contract_sha256,
+                "checkpoint_index": int(checkpoint_index),
+                "phase": str(phase_value),
+                "epoch_index": int(epoch_value),
+                "next_batch_offset": int(batch_offset_value),
+                "epoch_order": epoch_order.detach().cpu().contiguous(),
+                "model_state": model.state_dict(),
+                "target_model_state": target_model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "weight_ema_state": (
+                    weight_ema.checkpoint_state() if weight_ema is not None else None
+                ),
+                "lr_scheduler_state": (
+                    lr_scheduler.state_dict() if lr_scheduler is not None else None
+                ),
+                "rng_state": _attended_session_rng_state(device=device),
+                "training_progress": _require_candidate_training_progress(progress),
+                "complete": bool(complete_value),
+            }
+        )
+        log.info(
+            "[CANDIDATE_TRAINING_CHECKPOINT] directory=%s checkpoint_index=%d "
+            "phase=%s epoch_index=%d next_batch_offset=%d complete=%d",
+            session.directory,
+            int(checkpoint_index),
+            phase_value,
+            int(epoch_value),
+            int(batch_offset_value),
+            int(bool(complete_value)),
+        )
+
+    if restored_state is None:
+        _save(
+            phase_value=phase,
+            epoch_value=epoch_index,
+            batch_offset_value=next_batch_offset,
+            complete_value=False,
+            advance_checkpoint=False,
+        )
+
+    def _result() -> dict[str, Any]:
+        checked = _require_candidate_training_progress(progress)
+        selection = dict(checked["checkpoint_selection"])
+        return {
+            **selection,
+            "joint_task_supervision_observed": dict(
+                checked["joint_task_supervision_observed"]
+            ),
+            "joint_task_gradient_observed": dict(
+                checked["joint_task_gradient_observed"]
+            ),
+            "session_directory": str(session.directory),
+        }
+
+    if complete:
+        log.info(
+            "[CANDIDATE_TRAINING_SESSION_TERMINAL] directory=%s "
+            "status=complete_no_bundle_published",
+            session.directory,
+        )
+        return _result()
+
+    log.info(
+        "[CANDIDATE_TRAINING_SESSION_START] directory=%s resumed=%d phase=%s "
+        "epoch_index=%d batch_offset=%d train_checkpoint_interval=%d "
+        "validation_checkpoint_interval=%d",
+        session.directory,
+        int(restored_state is not None),
+        phase,
+        epoch_index,
+        next_batch_offset,
+        _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS,
+        _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES,
+    )
+
+    while True:
+        if epoch_index >= int(epochs):
+            _save(
+                phase_value=phase,
+                epoch_value=epoch_index,
+                batch_offset_value=next_batch_offset,
+                complete_value=True,
+            )
+            return _result()
+        selection = progress["checkpoint_selection"]
+        if phase == "train":
+            if next_batch_offset > expected_train_batches:
+                raise RuntimeError("[CANDIDATE_TRAINING_BATCH_OFFSET_INVALID]")
+            if next_batch_offset == expected_train_batches:
+                # The final train-step checkpoint occurs before the LR scheduler
+                # advances. Replaying this transition is therefore exact after
+                # an interrupt at the epoch boundary.
+                if lr_scheduler is not None:
+                    lr_scheduler.step()
+                phase = "validation"
+                next_batch_offset = 0
+                progress["validation_snapshot"] = None
+                _save(
+                    phase_value=phase,
+                    epoch_value=epoch_index,
+                    batch_offset_value=next_batch_offset,
+                    complete_value=False,
+                )
+                continue
+            train_loader = DataLoader(
+                train_ds,
+                batch_size=batch_size,
+                sampler=_ExactIndexSampler(
+                    epoch_order,
+                    batch_offset=next_batch_offset,
+                    batch_size=batch_size,
+                ),
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                persistent_workers=persistent_workers,
+                prefetch_factor=prefetch_factor,
+            )
+            if len(train_loader) != expected_train_batches - next_batch_offset:
+                raise RuntimeError("[CANDIDATE_TRAINING_REMAINING_LOADER_INVALID]")
+
+            def _checkpoint_train_step(
+                *, next_batch_offset: int, complete_epoch: bool
+            ) -> None:
+                _save(
+                    phase_value="train",
+                    epoch_value=epoch_index,
+                    batch_offset_value=int(next_batch_offset),
+                    complete_value=False,
+                )
+
+            train_epoch(
+                model,
+                target_model,
+                train_loader,
+                optimizer,
+                device,
+                grad_accum_steps=int(grad_accum_steps),
+                task_supervision_observed=progress[
+                    "joint_task_supervision_observed"
+                ],
+                task_gradient_observed=progress[
+                    "joint_task_gradient_observed"
+                ],
+                weight_ema=weight_ema,
+                session_batch_offset=next_batch_offset,
+                session_checkpoint_hook=_checkpoint_train_step,
+                session_exit_action_forward_chunk_rows=(
+                    UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                    if device.type == "cuda"
+                    else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
+                ),
+                session_checkpoint_every_optimizer_step=False,
+                session_checkpoint_interval_optimizer_steps=(
+                    _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS
+                ),
+                session_log_label="CANDIDATE_TRAINING",
+            )
+            # A normal return necessarily finished the remaining sampler. The
+            # final callback persisted the exact epoch boundary above.
+            next_batch_offset = expected_train_batches
+            continue
+
+        if phase != "validation":
+            raise RuntimeError("[CANDIDATE_TRAINING_PHASE_INVALID]")
+        if next_batch_offset > -(-len(val_ds) // int(batch_size)):
+            raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_OFFSET_INVALID]")
+        val_loader = DataLoader(
+            val_ds,
+            batch_size=batch_size,
+            sampler=_ExactIndexSampler(
+                fixed_val_order,
+                batch_offset=next_batch_offset,
+                batch_size=batch_size,
+            ),
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            prefetch_factor=prefetch_factor,
+        )
+        resume_validation_state = progress["validation_snapshot"]
+        if resume_validation_state is not None:
+            resume_validation_state = _restore_candidate_validation_snapshot(
+                resume_validation_state
+            )
+
+        def _checkpoint_validation(
+            *, next_batch_offset: int, validation_snapshot: Mapping[str, Any]
+        ) -> None:
+            progress["validation_snapshot"] = dict(validation_snapshot)
+            _save(
+                phase_value="validation",
+                epoch_value=epoch_index,
+                batch_offset_value=int(next_batch_offset),
+                complete_value=False,
+            )
+
+        if weight_ema is None:
+            va_loss, auc, acc, val_short_to_long, val_stats = validate(
+                model,
+                target_model,
+                val_loader,
+                device,
+                collect_full_exit_trajectory=True,
+                resume_validation_state=resume_validation_state,
+                validation_batch_offset=next_batch_offset,
+                validation_checkpoint_interval_batches=(
+                    _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES
+                ),
+                validation_checkpoint_hook=_checkpoint_validation,
+                validation_session_log_label="CANDIDATE_TRAINING",
+            )
+        else:
+            raw_model_state = {
+                name: tensor.detach().cpu().clone()
+                for name, tensor in model.state_dict().items()
+            }
+
+            def _checkpoint_ema_validation(
+                *, next_batch_offset: int,
+                validation_snapshot: Mapping[str, Any],
+            ) -> None:
+                model.load_state_dict(raw_model_state, strict=True)
+                try:
+                    _checkpoint_validation(
+                        next_batch_offset=next_batch_offset,
+                        validation_snapshot=validation_snapshot,
+                    )
+                finally:
+                    model.load_state_dict(weight_ema._shadow, strict=True)
+
+            with weight_ema.evaluating(model):
+                va_loss, auc, acc, val_short_to_long, val_stats = validate(
+                    model,
+                    target_model,
+                    val_loader,
+                    device,
+                    collect_full_exit_trajectory=True,
+                    resume_validation_state=resume_validation_state,
+                    validation_batch_offset=next_batch_offset,
+                    validation_checkpoint_interval_batches=(
+                        _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES
+                    ),
+                    validation_checkpoint_hook=_checkpoint_ema_validation,
+                    validation_session_log_label="CANDIDATE_TRAINING",
+                )
+
+        progress["validation_snapshot"] = None
+        selection["last_epoch"] = int(epoch_index) + 1
+        selection["last_val_stats"] = _candidate_snapshot_safe(dict(val_stats))
+        policy_pnl = float(
+            val_stats.get(
+                "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean",
+                float("nan"),
+            )
+        )
+        improved = np.isfinite(policy_pnl) and (
+            policy_pnl - float(selection["best_policy_pnl"])
+        ) > float(early_stopping_min_delta)
+        admission_ok = _checkpoint_admission_ok(
+            profile="candidate",
+            active_head_health_ok=bool(val_stats.get("active_head_health_ok", False)),
+            cooperation_gate_health_ok=bool(
+                val_stats.get("cooperation_gate_health_ok", False)
+            ),
+            exit_cooperation_gate_health_ok=bool(
+                val_stats.get("exit_cooperation_gate_health_ok", False)
+            ),
+        )
+        if improved and admission_ok:
+            full_trajectory = val_stats.get("unified_exit_full_trajectory_validation")
+            if not isinstance(full_trajectory, Mapping):
+                raise RuntimeError("[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]")
+            target_model_state_sha256 = _model_state_sha256(target_model)
+            fitted_q_iteration_state = {
+                "schema_version": "gx1_unified_exit_fitted_q_iteration_state_v1",
+                "iteration_index": int(epoch_index),
+                "target_model_state_sha256": target_model_state_sha256,
+                "train_split_sha256": _sha256_file(Path(train_parquet)),
+                "train_fold_sha256": unified_exit_lifecycle_evidence["splits"][
+                    "train"
+                ]["lifecycle_manifest_sha256"],
+                "source_lineage_sha256": unified_exit_lifecycle_evidence[
+                    "root_manifest_sha256"
+                ],
+                "normalization_sha256": input_normalization["contract_sha256"],
+                "fitted_q_contract": unified_exit_fitted_q_contract(),
+                "target_updated_from_val_or_test": False,
+            }
+            entry_fitted_q_iteration_state = {
+                "schema_version": ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
+                "iteration_index": int(epoch_index),
+                "entry_target_model_state_sha256": target_model_state_sha256,
+                "exit_target_model_state_sha256": target_model_state_sha256,
+                "exit_fitted_q_iteration_state_sha256": canonical_json_sha256(
+                    fitted_q_iteration_state
+                ),
+                "train_split_sha256": fitted_q_iteration_state["train_split_sha256"],
+                "train_fold_sha256": fitted_q_iteration_state["train_fold_sha256"],
+                "source_lineage_sha256": fitted_q_iteration_state[
+                    "source_lineage_sha256"
+                ],
+                "normalization_sha256": fitted_q_iteration_state[
+                    "normalization_sha256"
+                ],
+                "entry_fitted_q_contract": entry_fitted_q_contract(),
+                "exit_fitted_q_contract": unified_exit_fitted_q_contract(),
+                "target_updated_from_val_or_test": False,
+            }
+            require_entry_fitted_q_iteration_state(
+                entry_fitted_q_iteration_state,
+                exit_fitted_q_iteration_state=fitted_q_iteration_state,
+                context="CANDIDATE_TRAINING",
+            )
+            selection["best_val"] = float(va_loss)
+            selection["best_policy_pnl"] = policy_pnl
+            # Preserve the pre-resume candidate semantics: agreement is
+            # diagnostic-only and a non-finite value must not overwrite the
+            # last finite diagnostic from an earlier selected checkpoint.
+            if np.isfinite(acc):
+                selection["best_unique_target_action_agreement"] = float(acc)
+            selection["best_unified_exit_validation"] = _candidate_snapshot_safe(
+                {
+                    key: val_stats[key]
+                    for key in val_stats
+                    if key.startswith("unified_exit_") or key.startswith("exit_")
+                }
+            )
+            selection["best_unified_exit_full_trajectory_validation"] = (
+                _candidate_snapshot_safe(dict(full_trajectory))
+            )
+            selection["best_unified_exit_fitted_q_state"] = fitted_q_iteration_state
+            selection["best_entry_fitted_q_state"] = entry_fitted_q_iteration_state
+            selection["best_fitted_q_target_state"] = {
+                key: value.detach().cpu().clone()
+                for key, value in target_model.state_dict().items()
+            }
+            selection["best_state"] = (
+                weight_ema.state_dict_clone()
+                if weight_ema is not None
+                else {
+                    key: value.detach().cpu().clone()
+                    for key, value in model.state_dict().items()
+                }
+            )
+            selection["best_epoch"] = int(epoch_index) + 1
+            selection["epochs_since_improve"] = 0
+            log.info(
+                "[BEST_CHECKPOINT] epoch=%d val=%.6f entry_policy_pnl_bps=%.6f "
+                "unique_target_action_agreement=%.6f monitor=%s",
+                int(selection["best_epoch"]),
+                float(selection["best_val"]),
+                float(selection["best_policy_pnl"]),
+                float(acc),
+                ENTRY_CKPT_MONITOR,
+            )
+        else:
+            selection["epochs_since_improve"] = int(
+                selection["epochs_since_improve"]
+            ) + 1
+            if int(selection["epochs_since_improve"]) >= int(
+                early_stopping_patience
+            ):
+                selection["early_stopped"] = True
+        if bool(selection["early_stopped"]) or epoch_index + 1 >= int(epochs):
+            _save(
+                phase_value="validation",
+                epoch_value=epoch_index,
+                batch_offset_value=-(-len(val_ds) // int(batch_size)),
+                complete_value=True,
+            )
+            return _result()
+        epoch_index += 1
+        epoch_order = torch.randperm(len(train_ds), dtype=torch.int64)
+        target_model = copy.deepcopy(model).to(device)
+        target_model.requires_grad_(False)
+        target_model.eval()
+        phase = "train"
+        next_batch_offset = 0
+        _save(
+            phase_value=phase,
+            epoch_value=epoch_index,
+            batch_offset_value=next_batch_offset,
+            complete_value=False,
+        )
 
 
 def run_train(
@@ -10135,8 +10863,92 @@ def run_train(
         "target_action_agreement_affects_checkpoint_score=0",
         _ckpt_monitor,
     )
+    candidate_training_already_completed = False
+    if profile == "candidate":
+        candidate_result = _run_resumable_candidate_training(
+            model=model,
+            optimizer=optimizer,
+            weight_ema=weight_ema,
+            lr_scheduler=lr_scheduler,
+            device=device,
+            train_ds=train_ds,
+            val_ds=val_ds,
+            effective_train_rows=effective_train_rows,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            prefetch_factor=prefetch_factor,
+            epochs=epochs,
+            early_stopping_patience=early_stopping_patience,
+            early_stopping_min_delta=early_stopping_min_delta,
+            out_bundle_dir=out_bundle_dir,
+            gx1_data_override=gx1_data_override,
+            run_id=run_id,
+            dataset_run_id=dataset_run_id,
+            train_parquet=Path(train_parquet),
+            val_parquet=Path(val_parquet),
+            m5_prebuilt_path=Path(m5_prebuilt_path),
+            unified_exit_lifecycle_manifest_path=Path(
+                unified_exit_lifecycle_manifest_path
+            ),
+            input_normalization=input_normalization,
+            seed=seed,
+            grad_accum_steps=grad_accum_steps,
+            lr=lr,
+            dropout=dropout,
+            seq_len=seq_len,
+            per_tf_seq_lens=_effective_tf_lens,
+            multi_tf_num_layers=multi_tf_num_layers,
+            specialist_num_layers=specialist_num_layers,
+            multi_tf_scale=multi_tf_scale,
+            specialist_fusion_scale=specialist_fusion_scale,
+            cross_family_fusion_scale=cross_family_fusion_scale,
+            unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
+        )
+        best_state = candidate_result["best_state"]
+        best_val = float(candidate_result["best_val"])
+        best_policy_pnl = float(candidate_result["best_policy_pnl"])
+        best_unique_target_action_agreement = float(
+            candidate_result["best_unique_target_action_agreement"]
+        )
+        best_unified_exit_validation = dict(
+            _candidate_snapshot_restore(
+                candidate_result["best_unified_exit_validation"]
+            )
+        )
+        best_unified_exit_full_trajectory_validation = dict(
+            _candidate_snapshot_restore(
+                candidate_result["best_unified_exit_full_trajectory_validation"]
+            )
+        )
+        best_unified_exit_fitted_q_state = dict(
+            candidate_result["best_unified_exit_fitted_q_state"]
+        )
+        best_entry_fitted_q_state = dict(
+            candidate_result["best_entry_fitted_q_state"]
+        )
+        best_fitted_q_target_state = candidate_result[
+            "best_fitted_q_target_state"
+        ]
+        best_epoch = int(candidate_result["best_epoch"])
+        epochs_since_improve = int(candidate_result["epochs_since_improve"])
+        last_epoch = int(candidate_result["last_epoch"])
+        last_val_stats = dict(
+            _candidate_snapshot_restore(candidate_result["last_val_stats"])
+        )
+        early_stopped = bool(candidate_result["early_stopped"])
+        joint_task_supervision_observed = dict(
+            candidate_result["joint_task_supervision_observed"]
+        )
+        joint_task_gradient_observed = dict(
+            candidate_result["joint_task_gradient_observed"]
+        )
+        candidate_training_already_completed = True
 
     for epoch in range(epochs):
+        if candidate_training_already_completed:
+            break
         last_epoch = epoch + 1
         # One immutable fitted-Q target snapshot per declared iteration.  It is
         # copied before any optimizer step in this epoch, never updated from

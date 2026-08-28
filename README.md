@@ -126,18 +126,20 @@ but the system is not empirically finished:
   later candidate/OOS ablations must establish which are economically useful by
   regime. The preregistered selective-edge hypothesis is FAIL. Any candidate
   CUDA work must be predeclared and CPU-preflighted behind the same guard. The
-  technical candidate-readiness event now passes, but the current local
-  candidate executor has a 20-minute safety window and no candidate-resume
-  protocol; it must not be used to pretend a truncated job is a 30-epoch run.
-  A reviewed resumable executor or external compute is the remaining execution
-  prerequisite;
-- a prepared, unrun six-month chronological **technical integration** lane is
-  narrower than candidate training: it selects only V46 TRAIN timestamps from
-  2024-12-01 (inclusive) to 2025-06-01 (exclusive), binds that selection into
-  the recipe/session, runs one checkpointed batch-8 epoch under the existing
-  guard, and emits a private technical report only. It must prove full feature
-  liveness, every joint-task gradient and parameter movement, but creates no
-  bundle, OOS/backtest or trading authority;
+  technical candidate-readiness event now passes. The current source has a
+  hash-bound two-slot candidate-resume protocol for the 20-minute safety
+  window, including exact train/VAL phase state and full-trajectory VAL
+  accumulation. It is regression-tested but not yet accepted by a full
+  candidate CUDA run; it must be committed, recipe-audited and dry-run before
+  such a run. A partial session is never a candidate result;
+- the first six-month chronological **technical integration** session ran on
+  V46 TRAIN timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive).
+  It bound 32,289 rows and completed a controlled 60/4,037 optimizer-step
+  checkpoint segment: all eight specialists, all five MTF clocks and all ten
+  joint tasks were live and received gradients. It exited normally at 64 C /
+  202.48 W / 8,763 MiB, with no VAL, OOS/backtest, PnL or trading authority.
+  The private terminal report still requires a completed epoch, full liveness
+  and parameter movement;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;
