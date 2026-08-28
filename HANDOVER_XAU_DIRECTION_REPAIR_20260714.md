@@ -57,6 +57,16 @@ The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
 yet.
 
+**Storage retention, independently rechecked 2026-08-28:** the terminal RED
+V43, V44 and V45 chain roots were already removed by the exact approved
+`V46_RETENTION_20260828` chain. Its `DELETE_COMPLETE` execution binds plan
+`af71dbb4…683aa9ba`, approval `719bfb50…4d9fbde`, and all three per-file
+inventory manifests; every declared hash was rechecked and every target is
+absent. The removal accounts for 19,971,864,338 bytes. This is evidence only
+for those three enumerated roots — it is **not** a general permission to delete
+other data. The generic data-to-data lineage walker remains incomplete, so any
+future cleanup still needs a fresh exact retention plan and reachability proof.
+
 **Active CUDA safety truth:** `scripts/gx1_capped_run.sh` and
 `scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
 native WSL `nvidia-smi` executable, accept the observed 390 W *configured*
