@@ -1003,7 +1003,10 @@ _ATTENDED_RESEARCH_BATCH_SIZE = 8
 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
 _ATTENDED_RESEARCH_SESSION_DIR_PREFIX = ".gx1-attended-research-session."
 _ATTENDED_RESEARCH_CONTRACT_FILENAME = "ATTENDED_RESEARCH_SESSION_CONTRACT.json"
-_ATTENDED_RESEARCH_ACTIVE_FILENAME = "ATTENDED_RESEARCH_SESSION_ACTIVE.json"
+# This is a durable resume pointer, not a liveness marker for a running
+# process.  Naming it ``ACTIVE`` caused terminated bounded sessions to look
+# like live training during operator/retention audits.
+_ATTENDED_RESEARCH_ACTIVE_FILENAME = "ATTENDED_RESEARCH_SESSION_RESUME_POINTER.json"
 _ATTENDED_RESEARCH_STATE_FILENAMES = (
     "attended_research_state_slot_0.pt",
     "attended_research_state_slot_1.pt",
@@ -1175,7 +1178,10 @@ class _AttendedResearchSession:
     directory.  Therefore it cannot be mistaken for a partial bundle or be
     consumed by any candidate/promotion path.  A completed optimizer step is
     the only checkpoint boundary; the active JSON must hash-bind the selected
-    slot before any resume is accepted.
+    slot before any resume is accepted.  The pointer is deliberately named as
+    resume state rather than ``ACTIVE``: process liveness belongs to the guard
+    sidecar, whose terminal record is the authority after a bounded session
+    exits.
     """
 
     def __init__(

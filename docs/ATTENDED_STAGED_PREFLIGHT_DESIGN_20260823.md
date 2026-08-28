@@ -123,7 +123,10 @@ research-session mechanism:
   candidate-training or edge-evaluation path. The outer guard remains active
   as a temperature, actual-power, telemetry and wall-clock backstop.
 - Each completed step atomically writes a hash-bound state in the inactive one
-  of two local slots, then atomically points `ATTENDED_RESEARCH_SESSION_ACTIVE.json`
+  of two local slots, then atomically updates
+  `ATTENDED_RESEARCH_SESSION_RESUME_POINTER.json`. This is resumable state,
+  not evidence that a process is currently running; the guard sidecar's
+  terminal record is the liveness authority.
   at it. State includes online/target model, optimizer, optional EMA/scheduler,
   exact batch permutation and CPU/CUDA/Python/NumPy RNG state. A process never
   resumes a partial gradient accumulation.
