@@ -39,6 +39,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.utils.data._utils.collate import default_collate
 
 # Canonical context ordering; exact model-native dimensions are verified below.
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -96,6 +97,24 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES,
     require_model_native_recipe_env,
     resolve_weight_ema_decay,
+)
+from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
+    ENCODER_COMPONENT_PREFIXES as ENTRY_MOVEMENT_ENCODER_COMPONENT_PREFIXES,
+)
+from gx1.contracts.entry_model_native_val_input_influence_v1 import (
+    COMPARISON_SURFACE as ENTRY_VAL_INFLUENCE_SURFACE,
+    COUNTERFACTUAL_DELTA_EPSILON as ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON,
+    FAMILY_ABLATION_EPSILON as ENTRY_VAL_INFLUENCE_FAMILY_EPSILON,
+    NUMERIC_GRADIENT_EPSILON as ENTRY_VAL_INFLUENCE_GRADIENT_EPSILON,
+    SAMPLE_COUNT as ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+    SAMPLING_CONTRACT as ENTRY_VAL_INFLUENCE_SAMPLING_CONTRACT,
+    SCHEMA_VERSION as ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION,
+    SPLIT as ENTRY_VAL_INFLUENCE_SPLIT,
+    canonical_json_sha256 as entry_val_influence_sha256,
+    require_entry_val_input_influence,
+)
+from gx1.contracts.model_native_serve_gate_v1 import (
+    individual_input_influence_layout,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PrefreezeTestSealLineageError,
@@ -2336,9 +2355,27 @@ def _capture_entry_q_initial_state(
             "[ENTRY_FITTED_Q_INITIAL_STATE_MISSING] "
             f"keys={missing}"
         )
+    encoder_keys = {
+        component: tuple(
+            key for key in state if key.startswith(prefix)
+        )
+        for component, prefix in ENTRY_MOVEMENT_ENCODER_COMPONENT_PREFIXES.items()
+    }
+    missing_encoders = [
+        component for component, keys in encoder_keys.items() if not keys
+    ]
+    if missing_encoders:
+        raise RuntimeError(
+            "[ENTRY_FITTED_Q_INITIAL_ENCODER_STATE_MISSING] "
+            f"components={missing_encoders}"
+        )
+    selected_keys = set(_ENTRY_Q_MOVEMENT_KEYS)
+    selected_keys.update(
+        key for keys in encoder_keys.values() for key in keys
+    )
     return {
         key: state[key].detach().cpu().clone()
-        for key in _ENTRY_Q_MOVEMENT_KEYS
+        for key in sorted(selected_keys)
     }
 
 
@@ -2406,6 +2443,61 @@ def _entry_fitted_q_movement_proof(
         if not changed:
             failures.append(f"{component}:no_learned_parameter_movement")
 
+    encoder_component_movement: Dict[str, Dict[str, Any]] = {}
+    for component, prefix in ENTRY_MOVEMENT_ENCODER_COMPONENT_PREFIXES.items():
+        keys = sorted(
+            key
+            for key in initial_state
+            if key.startswith(prefix)
+        )
+        if not keys:
+            failures.append(f"{component}:initial_parameter_set_missing")
+            continue
+        max_abs_delta = 0.0
+        l2_squared = 0.0
+        changed_parameter_count = 0
+        for key in keys:
+            initial = initial_state.get(key)
+            selected = selected_state.get(key)
+            if not isinstance(initial, torch.Tensor) or not isinstance(selected, torch.Tensor):
+                failures.append(f"{component}:{key}:missing_or_non_tensor")
+                continue
+            if tuple(initial.shape) != tuple(selected.shape):
+                failures.append(f"{component}:{key}:shape_changed")
+                continue
+            initial_f64 = initial.detach().cpu().to(dtype=torch.float64)
+            selected_f64 = selected.detach().cpu().to(dtype=torch.float64)
+            if not bool(torch.isfinite(initial_f64).all().item()) or not bool(
+                torch.isfinite(selected_f64).all().item()
+            ):
+                failures.append(f"{component}:{key}:non_finite")
+                continue
+            delta = selected_f64 - initial_f64
+            component_max = float(delta.abs().max().item()) if delta.numel() else 0.0
+            component_l2 = float(torch.linalg.vector_norm(delta).item()) if delta.numel() else 0.0
+            if not np.isfinite(component_max) or not np.isfinite(component_l2):
+                failures.append(f"{component}:{key}:non_finite_delta")
+                continue
+            max_abs_delta = max(max_abs_delta, component_max)
+            l2_squared += component_l2 * component_l2
+            if component_max > 0.0 and component_l2 > 0.0:
+                changed_parameter_count += 1
+        l2_delta = float(math.sqrt(l2_squared))
+        changed = bool(
+            changed_parameter_count > 0
+            and max_abs_delta > 0.0
+            and l2_delta > 0.0
+        )
+        encoder_component_movement[component] = {
+            "parameter_count": len(keys),
+            "changed_parameter_count": changed_parameter_count,
+            "max_abs_delta": max_abs_delta,
+            "l2_delta": l2_delta,
+            "changed": changed,
+        }
+        if not changed:
+            failures.append(f"{component}:no_learned_parameter_movement")
+
     out_weight = selected_state.get("head_entry_action_q.weight")
     output_rows_distinct = bool(
         isinstance(out_weight, torch.Tensor)
@@ -2421,11 +2513,12 @@ def _entry_fitted_q_movement_proof(
         failures.append("head_entry_action_q.weight:action_rows_not_distinct")
 
     proof = {
-        "schema_version": "gx1_entry_fitted_q_parameter_movement_v1",
+        "schema_version": "gx1_entry_fitted_q_parameter_movement_v2",
         "reference": "direct_joint_representation_raw_bps_q_head",
         "selected_checkpoint_epoch": int(selected_checkpoint_epoch),
         "parameter_deltas": parameter_deltas,
         "component_changed": component_changed,
+        "encoder_component_movement": encoder_component_movement,
         "output_rows_distinct": output_rows_distinct,
         "decision": "PASS",
     }
@@ -6504,6 +6597,458 @@ def _unified_exit_input_influence_contract(
         report,
         ordered_signal_names=signal_names,
         context="UNIFIED_EXIT_SELECTED_CHECKPOINT",
+    )
+    return report
+
+
+def _entry_val_influence_sample(
+    dataset: EntryV10CtxDataset,
+) -> tuple[dict[str, torch.Tensor], list[int], list[int]]:
+    """Read exactly eight deterministic causal VAL states, not a loader scan."""
+
+    if len(dataset) < ENTRY_VAL_INFLUENCE_SAMPLE_COUNT:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_POPULATION_TOO_SMALL")
+    positions = (
+        np.arange(ENTRY_VAL_INFLUENCE_SAMPLE_COUNT, dtype=np.int64)
+        * (len(dataset) - 1)
+        // (ENTRY_VAL_INFLUENCE_SAMPLE_COUNT - 1)
+    )
+    if len(set(int(item) for item in positions.tolist())) != ENTRY_VAL_INFLUENCE_SAMPLE_COUNT:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_SAMPLE_POSITIONS_DUPLICATE")
+    batch = default_collate([dataset[int(position)] for position in positions])
+    if not isinstance(batch, dict):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_BATCH_INVALID")
+    row_tensor = batch.get("entry_row_index")
+    if not isinstance(row_tensor, torch.Tensor) or tuple(row_tensor.shape) != (
+        ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+    ):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ROW_INDEX_INVALID")
+    entry_rows = [int(value) for value in row_tensor.tolist()]
+    expected_rows = [int(dataset.indices[int(position)]) for position in positions]
+    if entry_rows != expected_rows:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ROW_INDEX_MISMATCH")
+    decision_times_ns = [
+        int(pd.Timestamp(dataset.df.iloc[row]["time"]).value)
+        for row in entry_rows
+    ]
+    if any(later <= earlier for earlier, later in zip(decision_times_ns, decision_times_ns[1:])):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_TIME_ORDER_INVALID")
+    return batch, entry_rows, decision_times_ns
+
+
+def _entry_val_influence_inputs(
+    batch: Mapping[str, torch.Tensor],
+    *,
+    device: torch.device,
+    require_grad: bool,
+) -> dict[str, Any]:
+    """Copy the exact Entry route into an isolated audit input mapping."""
+
+    required = ("seq_x", "snap_x", "ctx_cat", "ctx_cont", "seq_m15", "seq_h1", "seq_h4", "seq_d1")
+    if any(not isinstance(batch.get(key), torch.Tensor) for key in required):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_BATCH_SURFACE_MISSING")
+    inputs: dict[str, Any] = {
+        "seq_x": batch["seq_x"].detach().to(device).clone(),
+        "snap_x": batch["snap_x"].detach().to(device).clone(),
+        "ctx_cat": batch["ctx_cat"].detach().to(device).clone(),
+        "ctx_cont": batch["ctx_cont"].detach().to(device).clone(),
+        "mtf": {
+            key: batch[key].detach().to(device).clone()
+            for key in ("seq_m15", "seq_h1", "seq_h4", "seq_d1")
+        },
+    }
+    if require_grad:
+        for key in ("seq_x", "snap_x", "ctx_cont"):
+            inputs[key].requires_grad_(True)
+        for value in inputs["mtf"].values():
+            value.requires_grad_(True)
+    return inputs
+
+
+def _entry_val_influence_forward(
+    model: nn.Module,
+    inputs: Mapping[str, Any],
+) -> torch.Tensor:
+    out = _model_forward_fp32(
+        model,
+        inputs["seq_x"],
+        inputs["snap_x"],
+        ctx_cat=inputs["ctx_cat"],
+        ctx_cont=inputs["ctx_cont"],
+        **inputs["mtf"],
+    )
+    q = out.get("entry_action_q_bps")
+    if (
+        not isinstance(q, torch.Tensor)
+        or tuple(q.shape) != (ENTRY_VAL_INFLUENCE_SAMPLE_COUNT, 3)
+        or not bool(torch.isfinite(q).all().item())
+    ):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_Q_INVALID")
+    return q
+
+
+def _entry_val_q_delta(
+    baseline: torch.Tensor,
+    altered: torch.Tensor,
+) -> tuple[float, int]:
+    centered_baseline = baseline - baseline.mean(dim=1, keepdim=True)
+    centered_altered = altered - altered.mean(dim=1, keepdim=True)
+    per_row = (centered_altered - centered_baseline).abs().amax(dim=1)
+    values = per_row.detach().cpu().double().numpy()
+    return float(values.max()), int(np.count_nonzero(values > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON))
+
+
+def _entry_val_next_alias_value(
+    *,
+    model: nn.Module,
+    signal_index: int,
+    ctx_index: int,
+    current: torch.Tensor,
+) -> torch.Tensor:
+    """Change one continuous temporal alias while preserving its exact manifold."""
+
+    required_buffers = (
+        "input_norm_signal_center",
+        "input_norm_signal_scale",
+        "input_norm_signal_binary_mask",
+        "input_norm_signal_categorical_mask",
+        "input_norm_ctx_cont_binary_mask",
+        "input_norm_ctx_cont_categorical_mask",
+    )
+    if any(not hasattr(model, name) for name in required_buffers):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_NORMALIZATION_MISSING")
+    signal_binary = bool(model.input_norm_signal_binary_mask[signal_index].item())
+    ctx_binary = bool(model.input_norm_ctx_cont_binary_mask[ctx_index].item())
+    signal_nominal = bool(model.input_norm_signal_categorical_mask[signal_index].item())
+    ctx_nominal = bool(model.input_norm_ctx_cont_categorical_mask[ctx_index].item())
+    if signal_binary != ctx_binary or signal_nominal != ctx_nominal or signal_nominal:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_NORMALIZATION_MISMATCH")
+    if signal_binary:
+        if bool(((current != 0.0) & (current != 1.0)).any().item()):
+            raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_BINARY_VALUE_INVALID")
+        return 1.0 - current
+    center = model.input_norm_signal_center[signal_index].to(
+        device=current.device, dtype=current.dtype
+    )
+    scale = model.input_norm_signal_scale[signal_index].to(
+        device=current.device, dtype=current.dtype
+    )
+    if not bool(torch.isfinite(center).item()) or not bool(torch.isfinite(scale).item()) or float(scale.item()) <= 0.0:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_SCALE_INVALID")
+    return torch.where(current == center, center + scale, center)
+
+
+def _entry_val_perturb_owner(
+    *,
+    model: nn.Module,
+    baseline: Mapping[str, Any],
+    owner: Mapping[str, Any],
+    continuous: bool,
+) -> dict[str, Any]:
+    inputs = {
+        "seq_x": baseline["seq_x"].detach().clone(),
+        "snap_x": baseline["snap_x"].detach().clone(),
+        "ctx_cat": baseline["ctx_cat"].detach().clone(),
+        "ctx_cont": baseline["ctx_cont"].detach().clone(),
+        "mtf": {key: value.detach().clone() for key, value in baseline["mtf"].items()},
+    }
+    owner_name = str(owner["owner"])
+    if continuous:
+        if owner_name != "signal_ctx_temporal_alias_numeric_manifold":
+            raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_CONTINUOUS_OWNER_INVALID")
+        signal_index = int(owner["signal_index"])
+        ctx_index = int(owner["ctx_cont_index"])
+        current = inputs["seq_x"][:, -1, signal_index]
+        if not torch.equal(current, inputs["snap_x"][:, signal_index]) or not torch.equal(
+            current, inputs["ctx_cont"][:, ctx_index]
+        ):
+            raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_MANIFOLD_INVALID")
+        replacement = _entry_val_next_alias_value(
+            model=model,
+            signal_index=signal_index,
+            ctx_index=ctx_index,
+            current=current,
+        )
+        inputs["seq_x"][:, -1, signal_index] = replacement
+        inputs["snap_x"][:, signal_index] = replacement
+        inputs["ctx_cont"][:, ctx_index] = replacement
+        return inputs
+    domain = owner["domain"]
+    if owner_name == "ctx_cat_embedding":
+        index = int(owner["source_index"])
+        inputs["ctx_cat"][:, index] = _next_valid_category(inputs["ctx_cat"][:, index], domain)
+    elif owner_name == "ctx_cont_nominal_embedding":
+        index = int(owner["source_index"])
+        inputs["ctx_cont"][:, index] = _next_valid_category(inputs["ctx_cont"][:, index], domain).to(inputs["ctx_cont"].dtype)
+    elif owner_name == "signal_ctx_temporal_alias_nominal_embedding":
+        signal_index = int(owner["signal_index"])
+        ctx_index = int(owner["ctx_cont_index"])
+        current = inputs["seq_x"][:, -1, signal_index]
+        if not torch.equal(current, inputs["snap_x"][:, signal_index]) or not torch.equal(current, inputs["ctx_cont"][:, ctx_index]):
+            raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_MANIFOLD_INVALID")
+        replacement = _next_valid_category(inputs["ctx_cont"][:, ctx_index], domain)
+        inputs["seq_x"][:, -1, signal_index] = replacement.to(inputs["seq_x"].dtype)
+        inputs["snap_x"][:, signal_index] = replacement.to(inputs["snap_x"].dtype)
+        inputs["ctx_cont"][:, ctx_index] = replacement.to(inputs["ctx_cont"].dtype)
+    elif owner_name == "mtf_nominal_embedding":
+        surface = str(owner["surface"])
+        index = int(owner["source_index"])
+        inputs["mtf"][surface][:, -1, index] = _next_valid_category(
+            inputs["mtf"][surface][:, -1, index], domain
+        ).to(inputs["mtf"][surface].dtype)
+    else:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_CATEGORICAL_OWNER_INVALID")
+    return inputs
+
+
+def _entry_val_model_buffer_indices(
+    *,
+    model: nn.Module,
+    prefix: str,
+    specialist: str,
+    expected: Sequence[int],
+) -> list[int]:
+    raw = getattr(model, f"{prefix}_{specialist}", None)
+    if not isinstance(raw, torch.Tensor):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_MODEL_ROUTE_BUFFER_MISSING")
+    observed = [int(value) for value in raw.detach().cpu().tolist()]
+    if observed != [int(value) for value in expected]:
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_MODEL_ROUTE_BUFFER_MISMATCH")
+    return observed
+
+
+def _entry_val_input_influence_contract(
+    *,
+    model: nn.Module,
+    dataset: EntryV10CtxDataset,
+    device: torch.device,
+    state_dict_sha256: str,
+    specialist_indices: Mapping[str, Sequence[int]],
+    context_routing: Mapping[str, Any],
+    multi_tf_specialist_indices: Mapping[str, Sequence[int]],
+) -> dict[str, Any]:
+    """Bounded selected-checkpoint proof for every Entry input and family route."""
+
+    signal_names = [str(name) for name in dataset.signal_names]
+    ownership = individual_input_influence_layout(
+        signal_names,
+        mtf_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
+    )
+    batch, entry_rows, decision_times_ns = _entry_val_influence_sample(dataset)
+    model.eval()
+    gradient_inputs = _entry_val_influence_inputs(batch, device=device, require_grad=True)
+    q = _entry_val_influence_forward(model, gradient_inputs)
+    numeric_tensors: dict[str, torch.Tensor] = {
+        "seq_signal": gradient_inputs["seq_x"],
+        "snap_signal": gradient_inputs["snap_x"],
+        "ctx_cont": gradient_inputs["ctx_cont"],
+        **gradient_inputs["mtf"],
+    }
+    gradients_by_surface = {
+        surface: np.zeros(int(tensor.shape[-1]), dtype=np.float64)
+        for surface, tensor in numeric_tensors.items()
+    }
+    for left, right in ((0, 1), (0, 2), (1, 2)):
+        gradients = torch.autograd.grad(
+            (q[:, left] - q[:, right]).sum(),
+            tuple(numeric_tensors.values()),
+            retain_graph=True,
+            allow_unused=True,
+        )
+        for (surface, tensor), gradient in zip(numeric_tensors.items(), gradients):
+            if gradient is None:
+                continue
+            absolute = gradient.detach().abs()
+            reduced = absolute.amax(dim=tuple(range(absolute.ndim - 1)))
+            values = reduced.cpu().double().numpy().reshape(-1)
+            if values.shape != gradients_by_surface[surface].shape or not np.isfinite(values).all():
+                raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_GRADIENT_INVALID")
+            gradients_by_surface[surface] = np.maximum(gradients_by_surface[surface], values)
+    failures: list[str] = []
+    numeric_report: dict[str, Any] = {}
+    for surface, owner in ownership["numeric"].items():
+        indices = np.asarray(owner["source_indices"], dtype=np.int64)
+        values = gradients_by_surface[surface]
+        metrics: dict[str, Any] = {}
+        for token, value in zip(owner["tokens"], values[indices].tolist()):
+            row_failures = [] if math.isfinite(float(value)) and float(value) > ENTRY_VAL_INFLUENCE_GRADIENT_EPSILON else ["class-margin gradient is dead"]
+            metrics[str(token)] = {
+                "decision": "PASS" if not row_failures else "FAIL",
+                "failures": row_failures,
+                "max_abs_entry_action_q_class_margin_gradient": float(value),
+            }
+            failures.extend(f"numeric/{surface}/{token}: {item}" for item in row_failures)
+        numeric_report[surface] = {
+            "tokens": list(owner["tokens"]),
+            "source_indices": indices.tolist(),
+            "metrics": metrics,
+        }
+    baseline_inputs = _entry_val_influence_inputs(batch, device=device, require_grad=False)
+    with torch.no_grad():
+        baseline_q = _entry_val_influence_forward(model, baseline_inputs)
+    manifold_reports: dict[str, Any] = {}
+    for owner in ownership["continuous_manifold"]:
+        token = str(owner["token"])
+        try:
+            with torch.no_grad():
+                altered_q = _entry_val_influence_forward(
+                    model,
+                    _entry_val_perturb_owner(model=model, baseline=baseline_inputs, owner=owner, continuous=True),
+                )
+            delta, changed = _entry_val_q_delta(baseline_q, altered_q)
+            row_failures = [] if delta > ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON and changed >= 1 else ["alias manifold counterfactual is dead"]
+        except Exception as exc:
+            delta, changed = 0.0, 0
+            row_failures = [f"alias manifold counterfactual failed: {exc}"]
+        manifold_reports[token] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "counterfactual": "valid_owner_manifold_counterfactual",
+            "max_abs_entry_action_q_delta_bps": delta,
+            "changed_rows": changed,
+            "total_rows": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+        }
+        failures.extend(f"continuous_manifold/{token}: {item}" for item in row_failures)
+    categorical_reports: dict[str, Any] = {}
+    for owner in ownership["categorical"]:
+        token = str(owner["token"])
+        try:
+            with torch.no_grad():
+                altered_q = _entry_val_influence_forward(
+                    model,
+                    _entry_val_perturb_owner(model=model, baseline=baseline_inputs, owner=owner, continuous=False),
+                )
+            delta, changed = _entry_val_q_delta(baseline_q, altered_q)
+            row_failures = [] if delta > ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON and changed >= 1 else ["categorical counterfactual is dead"]
+        except Exception as exc:
+            delta, changed = 0.0, 0
+            row_failures = [f"categorical counterfactual failed: {exc}"]
+        categorical_reports[token] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "counterfactual": "valid_owner_manifold_counterfactual",
+            "max_abs_entry_action_q_delta_bps": delta,
+            "changed_rows": changed,
+            "total_rows": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+        }
+        failures.extend(f"categorical/{token}: {item}" for item in row_failures)
+
+    expected_ctx = {
+        "ctx_cont": context_routing.get("ctx_cont_indices"),
+        "ctx_cont_nominal": context_routing.get("ctx_cont_nominal_indices"),
+        "ctx_cat": context_routing.get("ctx_cat_indices"),
+    }
+    if any(not isinstance(value, Mapping) for value in expected_ctx.values()):
+        raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_CONTEXT_ROUTING_INVALID")
+    local_reports: dict[str, Any] = {}
+    mtf_reports: dict[str, Any] = {}
+    for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS:
+        signal_indices = _entry_val_model_buffer_indices(
+            model=model, prefix="specialist_idx", specialist=specialist,
+            expected=specialist_indices[specialist],
+        )
+        context_indices = {
+            name: _entry_val_model_buffer_indices(
+                model=model,
+                prefix=f"specialist_{name}_idx",
+                specialist=specialist,
+                expected=expected_ctx[name][specialist],
+            )
+            for name in expected_ctx
+        }
+        altered = _entry_val_influence_inputs(batch, device=device, require_grad=False)
+        altered["seq_x"][:, :, signal_indices] = 0.0
+        altered["snap_x"][:, signal_indices] = 0.0
+        altered["ctx_cont"][:, context_indices["ctx_cont"]] = 0.0
+        altered["ctx_cont"][:, context_indices["ctx_cont_nominal"]] = 0.0
+        altered["ctx_cat"][:, context_indices["ctx_cat"]] = 0
+        with torch.no_grad():
+            altered_q = _entry_val_influence_forward(model, altered)
+        delta, changed = _entry_val_q_delta(baseline_q, altered_q)
+        row_failures = [] if delta > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON and changed >= 1 else ["local/context family mask is dead"]
+        local_reports[specialist] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "source_binding_sha256": entry_val_influence_sha256({"signal": signal_indices, "context": context_indices}),
+            "max_abs_entry_action_q_delta_bps": delta,
+            "changed_rows": changed,
+            "total_rows": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+        }
+        failures.extend(f"local_context/{specialist}: {item}" for item in row_failures)
+        mtf_indices = _entry_val_model_buffer_indices(
+            model=model, prefix="multi_tf_specialist_idx", specialist=specialist,
+            expected=multi_tf_specialist_indices[specialist],
+        )
+        for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES:
+            surface = f"seq_{timeframe.lower()}"
+            altered = _entry_val_influence_inputs(batch, device=device, require_grad=False)
+            altered["mtf"][surface][..., mtf_indices] = 0.0
+            with torch.no_grad():
+                altered_q = _entry_val_influence_forward(model, altered)
+            delta, changed = _entry_val_q_delta(baseline_q, altered_q)
+            row_failures = [] if delta > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON and changed >= 1 else ["MTF family mask is dead"]
+            token = f"{timeframe.lower()}:{specialist}"
+            mtf_reports[token] = {
+                "decision": "PASS" if not row_failures else "FAIL",
+                "failures": row_failures,
+                "source_binding_sha256": entry_val_influence_sha256({"timeframe": timeframe, "indices": mtf_indices}),
+                "max_abs_entry_action_q_delta_bps": delta,
+                "changed_rows": changed,
+                "total_rows": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+            }
+            failures.extend(f"multi_tf/{token}: {item}" for item in row_failures)
+    local_context_routing = {
+        "signal": {name: list(values) for name, values in specialist_indices.items()},
+        "context": dict(context_routing),
+    }
+    multi_tf_routing = {name: list(values) for name, values in multi_tf_specialist_indices.items()}
+    report = {
+        "schema_version": ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION,
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "required_for_candidate": True,
+        "split": ENTRY_VAL_INFLUENCE_SPLIT,
+        "sample_count": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+        "sampling_contract": ENTRY_VAL_INFLUENCE_SAMPLING_CONTRACT,
+        "comparison_surface": ENTRY_VAL_INFLUENCE_SURFACE,
+        "numeric_gradient_epsilon": ENTRY_VAL_INFLUENCE_GRADIENT_EPSILON,
+        "counterfactual_delta_epsilon": ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON,
+        "family_ablation_epsilon": ENTRY_VAL_INFLUENCE_FAMILY_EPSILON,
+        "sample_entry_row_indices": entry_rows,
+        "sample_decision_times_ns": decision_times_ns,
+        "val_data_sha256": _sha256_file(Path(dataset.parquet_path)),
+        "multi_tf_cache_identity_sha256": dataset._multi_tf_cache_identity_sha256,
+        "selected_model_state_dict_sha256": state_dict_sha256,
+        "ordered_signal_names": signal_names,
+        "signal_names_sha256": entry_val_influence_sha256(signal_names),
+        "input_ownership": ownership,
+        "input_ownership_sha256": entry_val_influence_sha256(ownership),
+        "numeric_input_count": sum(len(row["tokens"]) for row in ownership["numeric"].values()),
+        "continuous_manifold_input_count": len(ownership["continuous_manifold"]),
+        "categorical_input_count": len(ownership["categorical"]),
+        "individual": {
+            "numeric": numeric_report,
+            "continuous_manifold": manifold_reports,
+            "categorical": categorical_reports,
+        },
+        "family_ablation": {
+            "epsilon": ENTRY_VAL_INFLUENCE_FAMILY_EPSILON,
+            "sample_count": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
+            "local_context_routing_sha256": entry_val_influence_sha256(local_context_routing),
+            "multi_tf_routing_sha256": entry_val_influence_sha256(multi_tf_routing),
+            "local_context": local_reports,
+            "multi_tf": mtf_reports,
+        },
+    }
+    require_entry_val_input_influence(
+        report,
+        ordered_signal_names=signal_names,
+        val_data_sha256=_sha256_file(Path(dataset.parquet_path)),
+        multi_tf_cache_identity_sha256=dataset._multi_tf_cache_identity_sha256,
+        selected_model_state_dict_sha256=state_dict_sha256,
+        local_context_routing_sha256=entry_val_influence_sha256(local_context_routing),
+        multi_tf_routing_sha256=entry_val_influence_sha256(multi_tf_routing),
+        context="ENTRY_VAL_SELECTED_CHECKPOINT",
     )
     return report
 
@@ -11699,6 +12244,35 @@ def run_train(
     model_path = out_bundle_dir / "model_state_dict.pt"
     torch.save(best_state, model_path)
     state_dict_sha256 = _sha256_file(model_path)
+    if profile == "candidate":
+        model_native_entry_val_input_influence = (
+            _entry_val_input_influence_contract(
+                model=model,
+                dataset=val_ds,
+                device=device,
+                state_dict_sha256=state_dict_sha256,
+                specialist_indices=specialist_indices,
+                context_routing=specialist_meta["context_routing"],
+                multi_tf_specialist_indices=multi_tf_specialist_indices,
+            )
+        )
+        log.info(
+            "[ENTRY_VAL_INPUT_INFLUENCE_PASS] numeric=%d manifold=%d "
+            "categorical=%d local_families=%d mtf_families=%d",
+            int(model_native_entry_val_input_influence["numeric_input_count"]),
+            int(model_native_entry_val_input_influence[
+                "continuous_manifold_input_count"
+            ]),
+            int(model_native_entry_val_input_influence["categorical_input_count"]),
+            len(model_native_entry_val_input_influence["family_ablation"]["local_context"]),
+            len(model_native_entry_val_input_influence["family_ablation"]["multi_tf"]),
+        )
+    else:
+        model_native_entry_val_input_influence = {
+            "schema_version": ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION,
+            "decision": "NOT_RUN_SMOKE_CANNOT_AUTHORIZE_CANDIDATE",
+            "required_for_candidate": True,
+        }
     trained_signal_names = list(train_ds.signal_names)
     trained_model_native_signal_contract = train_ds.model_native_signal_contract
     require_model_native_signal_contract(
@@ -11756,6 +12330,9 @@ def run_train(
         ),
         "selected_entry_fitted_q_iteration_state": best_entry_fitted_q_state,
         "model_native_learned_component_movement": model_native_learned_component_movement,
+        "model_native_entry_val_input_influence": (
+            model_native_entry_val_input_influence
+        ),
         "model_native_signal_contract": trained_model_native_signal_contract,
         "entry_position_size_target_policy": entry_position_size_target_policy,
         "entry_position_size_target_policy_sha256": (
@@ -11832,6 +12409,9 @@ def run_train(
         ),
         "selected_entry_fitted_q_iteration_state": best_entry_fitted_q_state,
         "model_native_learned_component_movement": model_native_learned_component_movement,
+        "model_native_entry_val_input_influence": (
+            model_native_entry_val_input_influence
+        ),
         "context_specialist_routing": specialist_meta["context_routing"],
         "input_normalization": input_normalization,
         "input_normalization_fit_population_proof": (

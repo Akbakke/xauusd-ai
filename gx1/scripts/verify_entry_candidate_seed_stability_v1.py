@@ -24,7 +24,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_LONG_INDEX,
     MODEL_DIRECTION_SHORT_INDEX,
 )
-from gx1.scripts.entry_candidate_prediction_evidence_v1 import sha256_file
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    atomic_write_text,
+    sha256_file,
+)
 
 
 SCHEMA_VERSION = "entry_candidate_seed_stability_v1"
@@ -93,6 +96,67 @@ def _classify_raw_q_regime(pred_direction: np.ndarray) -> dict[str, Any]:
     return {"regime": regime, "rates": rates, "rows": int(len(values))}
 
 
+def _same_recipe_identity(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract the seed-invariant train/source identity from one bundle.
+
+    A five-seed experiment may vary only stochastic seed and resulting model
+    state.  Comparing just dataset/schema leaves room for a different epoch
+    budget, optimizer geometry, cache, source checkout or prefreeze seal to
+    masquerade as seed stability.
+    """
+
+    required = (
+        "git_commit",
+        "execution_tier",
+        "seq_len",
+        "dropout",
+        "batch_size",
+        "epochs",
+        "lr",
+        "early_stopping_patience",
+        "early_stopping_min_delta",
+        "grad_clip_norm",
+        "weight_decay",
+        "model_architecture_schema_version",
+        "model_output_schema_version",
+        "model_native_signal_contract",
+        "model_native_training_objective",
+        "aux_head_target_contract",
+        "m1_feature_surface_binding",
+        "sequence_source_reconstruction",
+        "prefreeze_test_seal_lineage",
+        "input_normalization",
+        "multi_tf",
+        "specialist_fusion",
+        "context_specialist_routing",
+        "run_lineage",
+    )
+    missing = [key for key in required if key not in metadata]
+    if missing:
+        raise RuntimeError(
+            f"SEED_STABILITY_BUNDLE_RECIPE_IDENTITY_MISSING: {missing}"
+        )
+    lineage = metadata["run_lineage"]
+    if not isinstance(lineage, Mapping):
+        raise RuntimeError("SEED_STABILITY_BUNDLE_RUN_LINEAGE_INVALID")
+    # A training run identifier differs by construction between the five
+    # independently run seeds. Everything else must be invariant.
+    lineage_without_run = {
+        str(key): value
+        for key, value in lineage.items()
+        if str(key) != "training_run_id"
+    }
+    if not lineage_without_run:
+        raise RuntimeError("SEED_STABILITY_BUNDLE_RUN_LINEAGE_INVALID")
+    identity = {
+        key: metadata[key]
+        for key in required
+        if key != "run_lineage"
+    }
+    identity["run_lineage_without_training_run_id"] = lineage_without_run
+    return identity
+
+
 def _seed_report_evidence(path: Path, report: Mapping[str, Any]) -> dict[str, Any]:
     if (
         report.get("decision") != "PASS"
@@ -111,6 +175,9 @@ def _seed_report_evidence(path: Path, report: Mapping[str, Any]) -> dict[str, An
     metadata_path, metadata = _read_regular_json(
         str(report.get("bundle_metadata_path") or ""), label="BUNDLE_METADATA"
     )
+    metadata_sha = sha256_file(metadata_path)
+    if str(report.get("bundle_metadata_sha256") or "").lower() != metadata_sha:
+        raise RuntimeError("SEED_STABILITY_BUNDLE_METADATA_SHA256_INVALID")
     seed = metadata.get("seed")
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise RuntimeError("SEED_STABILITY_BUNDLE_SEED_INVALID")
@@ -139,7 +206,8 @@ def _seed_report_evidence(path: Path, report: Mapping[str, Any]) -> dict[str, An
     return {
         "report": {"path": str(path), "sha256": sha256_file(path)},
         "seed": int(seed),
-        "bundle": {"path": str(metadata_path), "sha256": sha256_file(metadata_path)},
+        "bundle": {"path": str(metadata_path), "sha256": metadata_sha},
+        "same_recipe_identity": _same_recipe_identity(metadata),
         "prediction": {"path": str(prediction_path), "sha256": observed_sha},
         "dataset_dir": str(report.get("dataset_dir") or ""),
         "model_native_signal_contract": report.get("model_native_signal_contract"),
@@ -175,6 +243,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "dataset_signal_contract",
         "direction_decision_contract",
         "coverage_grid",
+        "same_recipe_identity",
     ):
         values = [_canonical_sha256(row[key]) for row in evidence]
         if len(set(values)) != 1:
@@ -208,8 +277,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if path.exists():
         raise RuntimeError("SEED_STABILITY_EVENT_EXISTS")
     report["json_path"] = str(path)
-    with path.open("x", encoding="utf-8") as handle:
-        handle.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    atomic_write_text(path, json.dumps(report, indent=2, sort_keys=True) + "\n")
     if not args.quiet:
         print(json.dumps(report, indent=2, sort_keys=True))
     if report["decision"] != "PASS":

@@ -81,6 +81,10 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PrefreezeTestSealLineageError,
     require_prefreeze_test_seal_lineage_metadata,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
+    require_bundle_commit_manifest,
+)
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS,
     PREDICTION_EVIDENCE_STAGE_SPLITS,
@@ -1171,6 +1175,88 @@ def _require_evaluation_mtf_source_provenance(
     }
 
 
+def _bundle_core_integrity_snapshot(
+    *,
+    bundle_dir: Path,
+    bundle_metadata: Mapping[str, Any],
+) -> dict[str, str]:
+    """Re-hash the exact model bytes that are about to (or did) score data.
+
+    ``load_entry_v10_ctx_bundle`` validates these files while it loads the
+    model.  That is necessary, but is not sufficient for a long streamed
+    evaluation: an external writer could replace one of the input files after
+    that load and before this process emits immutable evidence.  A second
+    complete commit-manifest validation makes such a run fail closed instead
+    of attaching an output to a moving source tree.
+    """
+
+    try:
+        committed = require_bundle_commit_manifest(bundle_dir)
+        metadata_path = bundle_dir / "bundle_metadata.json"
+        lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+        state_path = bundle_dir / "model_state_dict.pt"
+        disk_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError("SELECTIVE_EDGE_BUNDLE_CORE_INTEGRITY_INVALID") from exc
+    if not isinstance(disk_metadata, Mapping) or dict(disk_metadata) != dict(
+        bundle_metadata
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_BUNDLE_METADATA_CHANGED")
+    state_sha = _sha256_file(state_path)
+    if (
+        str(disk_metadata.get("state_dict_sha256") or "").lower() != state_sha
+        or not isinstance(lock, Mapping)
+        or str(lock.get("model_sha256") or "").lower() != state_sha
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_BUNDLE_STATE_CHANGED")
+    return {
+        "bundle_commit_sha256": _sha256_file(bundle_dir / BUNDLE_COMMIT_MANIFEST_NAME),
+        "bundle_metadata_sha256": _sha256_file(metadata_path),
+        "master_transformer_lock_sha256": _sha256_file(lock_path),
+        "model_state_dict_sha256": state_sha,
+        "bundle_commit_declared_sha256": str(committed["commit_sha256"]),
+    }
+
+
+def _require_post_prediction_input_stability(
+    *,
+    initial_bundle_core: Mapping[str, str],
+    initial_dataset_contract: Mapping[str, Any],
+    initial_mtf_source_provenance: Mapping[str, Any],
+    bundle_dir: Path,
+    bundle_metadata: Mapping[str, Any],
+    dataset_dir: Path,
+    splits: list[str],
+    split_bindings: dict[str, dict[str, str]],
+    m5_prebuilt: Path,
+    mtf_cache_dir: Path,
+) -> None:
+    """Fail closed if any scored source changed during streamed prediction."""
+
+    current_bundle_core = _bundle_core_integrity_snapshot(
+        bundle_dir=bundle_dir,
+        bundle_metadata=bundle_metadata,
+    )
+    current_dataset_contract = _dataset_model_native_contract(
+        dataset_dir,
+        splits,
+        split_bindings,
+    )
+    current_mtf_source_provenance = _require_evaluation_mtf_source_provenance(
+        dataset_contract=current_dataset_contract,
+        bundle_metadata=bundle_metadata,
+        m5_prebuilt=m5_prebuilt,
+        mtf_cache_dir=mtf_cache_dir,
+    )
+    if dict(current_bundle_core) != dict(initial_bundle_core):
+        raise RuntimeError("SELECTIVE_EDGE_BUNDLE_CHANGED_DURING_PREDICTION")
+    if dict(current_dataset_contract) != dict(initial_dataset_contract):
+        raise RuntimeError("SELECTIVE_EDGE_DATASET_CHANGED_DURING_PREDICTION")
+    if dict(current_mtf_source_provenance) != dict(initial_mtf_source_provenance):
+        raise RuntimeError("SELECTIVE_EDGE_MTF_SOURCE_CHANGED_DURING_PREDICTION")
+
+
 def _iter_split_chunks(
     parquet_path: Path,
     manifest_path: Path,
@@ -1982,6 +2068,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         m5_prebuilt=m5_prebuilt,
         mtf_cache_dir=mtf_cache_dir,
     )
+    bundle_core_integrity = _bundle_core_integrity_snapshot(
+        bundle_dir=bundle_dir,
+        bundle_metadata=bundle.metadata,
+    )
     val_reference, val_reference_binding = _load_val_reference(
         getattr(args, "val_reference_json", None),
         expected_sha256=getattr(args, "val_reference_sha256", None),
@@ -2030,6 +2120,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
+    # Do not write an apparently valid report if a bundle, split parquet, M5
+    # source or multi-TF cache changed while streamed predictions were being
+    # calculated.  This is deliberately before every evidence/output write.
+    _require_post_prediction_input_stability(
+        initial_bundle_core=bundle_core_integrity,
+        initial_dataset_contract=dataset_contract,
+        initial_mtf_source_provenance=mtf_source_provenance,
+        bundle_dir=bundle_dir,
+        bundle_metadata=bundle.metadata,
+        dataset_dir=dataset_dir,
+        splits=splits,
+        split_bindings=split_bindings,
+        m5_prebuilt=m5_prebuilt,
+        mtf_cache_dir=mtf_cache_dir,
+    )
     bundle_specialist_contract = _specialist_contract_snapshot(bundle_meta, contract_mode)
     failures.extend([f"candidate bundle: {failure}" for failure in bundle_specialist_contract["failures"]])
     if bundle_meta.get("model_native_signal_contract") != dataset_contract["contract"]:

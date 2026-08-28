@@ -30,6 +30,7 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _research_policy_pnl,
     _require_entry_q_ssot,
     _load_val_reference,
+    _require_post_prediction_input_stability,
     _require_requested_test_bindings_match_seal,
     _require_selective_edge_stage_split,
     _selection_sort_column,
@@ -37,6 +38,52 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     build_metric_rows,
 )
 from pathlib import Path
+
+
+def test_post_prediction_integrity_rechecks_every_scored_input(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """No selective-edge report may be written against moving input bytes."""
+
+    initial_bundle = {"model_state_dict_sha256": "a" * 64}
+    initial_dataset = {"contract": {"ordered_fields_sha256": "b" * 64}}
+    initial_mtf = {"cache_binding": {"cache_identity_sha256": "c" * 64}}
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1._bundle_core_integrity_snapshot",
+        lambda **_kwargs: initial_bundle,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1._dataset_model_native_contract",
+        lambda *_args, **_kwargs: initial_dataset,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1._require_evaluation_mtf_source_provenance",
+        lambda **_kwargs: initial_mtf,
+    )
+    kwargs = {
+        "initial_bundle_core": initial_bundle,
+        "initial_dataset_contract": initial_dataset,
+        "initial_mtf_source_provenance": initial_mtf,
+        "bundle_dir": tmp_path,
+        "bundle_metadata": {},
+        "dataset_dir": tmp_path,
+        "splits": ["val"],
+        "split_bindings": {"val": {}},
+        "m5_prebuilt": tmp_path / "m5.parquet",
+        "mtf_cache_dir": tmp_path / "cache",
+    }
+    _require_post_prediction_input_stability(**kwargs)
+
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1._dataset_model_native_contract",
+        lambda *_args, **_kwargs: {"contract": {"ordered_fields_sha256": "d" * 64}},
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="SELECTIVE_EDGE_DATASET_CHANGED_DURING_PREDICTION",
+    ):
+        _require_post_prediction_input_stability(**kwargs)
 
 
 def test_vector_evidence_widths_match_model_output_owners() -> None:

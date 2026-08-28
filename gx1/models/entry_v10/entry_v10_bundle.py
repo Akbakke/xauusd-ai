@@ -64,6 +64,11 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     require_learned_component_movement_metadata,
 )
+from gx1.contracts.entry_model_native_val_input_influence_v1 import (
+    SCHEMA_VERSION as ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION,
+    canonical_json_sha256 as entry_val_influence_sha256,
+    require_entry_val_input_influence,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
 )
@@ -352,6 +357,7 @@ def _require_exact_model_native_bundle_metadata(
         "entry_fitted_q_production_economics",
         "selected_entry_fitted_q_iteration_state",
         "model_native_learned_component_movement",
+        "model_native_entry_val_input_influence",
         "context_specialist_routing",
         "input_normalization",
         "input_normalization_fit_population_proof",
@@ -690,6 +696,52 @@ def _require_exact_model_native_bundle_metadata(
             raise RuntimeError(
                 "[ENTRY_BUNDLE_UNIFIED_EXIT_INPUT_INFLUENCE_INVALID]"
             ) from exc
+        try:
+            specialist_fusion = _require_mapping_field(
+                meta,
+                "specialist_fusion",
+                context="meta",
+            )
+            multi_tf = _require_mapping_field(meta, "multi_tf", context="meta")
+            local_context_routing = {
+                "signal": specialist_fusion.get("input_indices"),
+                "context": meta.get("context_specialist_routing"),
+            }
+            require_entry_val_input_influence(
+                meta.get("model_native_entry_val_input_influence"),
+                ordered_signal_names=meta.get("ordered_signal_names", ()),
+                val_data_sha256=str(meta.get("val_data_sha256") or ""),
+                multi_tf_cache_identity_sha256=str(
+                    multi_tf.get("shared_cache_identity_sha256") or ""
+                ),
+                selected_model_state_dict_sha256=str(
+                    meta.get("state_dict_sha256") or ""
+                ),
+                local_context_routing_sha256=entry_val_influence_sha256(
+                    local_context_routing
+                ),
+                multi_tf_routing_sha256=entry_val_influence_sha256(
+                    multi_tf.get("specialist_input_indices")
+                ),
+                context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+            )
+        except RuntimeError as exc:
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_ENTRY_VAL_INPUT_INFLUENCE_INVALID]"
+            ) from exc
+    elif training_profile == "smoke":
+        entry_input_influence = meta.get("model_native_entry_val_input_influence")
+        if (
+            not isinstance(entry_input_influence, Mapping)
+            or entry_input_influence.get("schema_version")
+            != ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION
+            or entry_input_influence.get("decision")
+            != "NOT_RUN_SMOKE_CANNOT_AUTHORIZE_CANDIDATE"
+            or entry_input_influence.get("required_for_candidate") is not True
+        ):
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_ENTRY_VAL_INPUT_INFLUENCE_SMOKE_SENTINEL_INVALID]"
+            )
 
     train_recipe = _require_mapping_field(meta, "train_recipe", context="meta")
     active_raw = train_recipe.get("active_heads")
